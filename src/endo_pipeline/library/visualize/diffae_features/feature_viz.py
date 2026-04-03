@@ -1,3 +1,5 @@
+"""Methods for visualizing Diff AE features."""
+
 import logging
 from pathlib import Path
 from typing import Any
@@ -103,8 +105,7 @@ def plot_kde_comparison(
 
 
 def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple[Figure, Axes]:
-    """
-    Plot cumulative explained variance ratio of PCA components.
+    """Plot cumulative explained variance ratio of PCA components.
 
     Parameters
     ----------
@@ -115,6 +116,7 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple[Figur
     -------
     :
         Figure and Axes objects for the plot.
+
     """
     fig, ax = plt.subplots(figsize=(7, 6))  # initialize figure and axes
 
@@ -135,8 +137,7 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple[Figur
 def plot_component_loadings(
     loading_matrix: np.ndarray, include_legend: bool = True
 ) -> tuple[Figure, Axes]:
-    """
-    Plot component loadings of PCA model.
+    """Plot component loadings of PCA model.
 
     Parameters
     ----------
@@ -149,6 +150,7 @@ def plot_component_loadings(
     -------
     :
         Figure and Axes objects for the plot.
+
     """
     fig, ax = plt.subplots(figsize=(12, 6))  # initialize figure and axes
 
@@ -171,8 +173,7 @@ def plot_component_loadings(
 
 
 def get_dataset_color(dataset_name: str) -> str:
-    """
-    Get default plotting color for a dataset based on its shear stress regime.
+    """Get default plotting color for a dataset based on its shear stress regime.
 
     Dataset color defaults are set in ``SHEAR_COLOR_DICT`` in
     ``endo_pipeline.settings.plot_defaults``.
@@ -181,6 +182,7 @@ def get_dataset_color(dataset_name: str) -> str:
     ----------
     dataset_name
         Name of the dataset to get the color for.
+
     """
     dataset_config = load_dataset_config(dataset_name)
 
@@ -197,8 +199,7 @@ def plot_pc_scatter(
     alpha: float = 0.2,
     scatter_size: float = 1,
 ) -> tuple[Figure, np.ndarray[Axes, Any]]:
-    """
-    Plot scatter plot of PCA components for a list of datasets.
+    """Plot scatter plot of PCA components for a list of datasets.
 
     Parameters
     ----------
@@ -216,10 +217,10 @@ def plot_pc_scatter(
     Returns
     -------
     :
-        Figure object for the scatter plots. Array of Axes objects for the
+        Figure object and array of Axes objects for the
         scatter plots.
-    """
 
+    """
     # initialize color list for legend
     patch_list_for_legend_combined_plot = []
 
@@ -318,8 +319,7 @@ def plot_pc_scatter_from_df(
     pc_column_names: list[str],
     patch_list_for_legend: list[mpatches.Patch],
 ) -> np.ndarray[Axes, Any]:
-    """
-    Plot scatter plot of PCA components from a given dataframe.
+    """Plot scatter plot of PCA components from a given dataframe.
 
     Parameters
     ----------
@@ -337,6 +337,12 @@ def plot_pc_scatter_from_df(
         List of PCA column names to plot.
     patch_list_for_legend
         List of patches to include in the legend for the plot.
+
+    Returns
+    -------
+    :
+        Array of Axes objects for the scatter plots.
+
     """
     # first plot: PC1 v PC2
     ax[0].scatter(
@@ -418,8 +424,7 @@ def get_no_flow_pc_space_example_points_fig4(
     origin_pc1pc2: tuple[float, float] = (0.0, 0.0),
     pc3_target: float | None = None,
 ) -> pd.DataFrame:
-    """
-    Get example points in no-flow PC space for Figure 4.
+    """Get example points in no-flow PC space for Figure 4.
 
     This method returns a dataframe with 8 of each example target and "real"
     data points that are evenly spaced around a circle. The circle is centered
@@ -447,6 +452,7 @@ def get_no_flow_pc_space_example_points_fig4(
     :
         DataFrame containing the example points and real data points closest to
         the target points.
+
     """
     # no flow data is arranged roughly in a circle in PC1-PC2 space, so
     # get 8 points that are evenly spaced around the circle (every 45 degrees)
@@ -477,20 +483,20 @@ def get_no_flow_pc_space_example_points_fig4(
 
 
 def get_point_nearest_target(data_points: np.ndarray, target_points: np.ndarray) -> np.ndarray:
-    """
-    Get the point in data_points nearest to the target point.
+    """Get the point in data_points nearest to the target point.
 
     Parameters
     ----------
     data_points
         Array of shape (n_samples, n_features) containing the data points.
-    target
+    target_points
         Array of shape (n_features, n_targets) containing the target point.
 
     Returns
     -------
     :
         The point in data_points nearest to the target point.
+
     """
     data_points = np.expand_dims(data_points, axis=-1)  # shape (n_samples, n_features, 1)
     target_points = np.expand_dims(target_points, axis=0)  # shape (1, n_features, n_targets)
@@ -507,8 +513,7 @@ def plot_per_position_average_over_time(
     column_labels: list[str] | None = None,
     polar_angle_range: tuple[float, float] = (-np.pi, np.pi),
 ) -> tuple[Figure, np.ndarray[Axes, Any]]:
-    """
-    Plot per-position average over time of specified columns in the dataframe.
+    """Plot per-position average over time of specified columns in the dataframe.
 
     **Polar angle shifting**
 
@@ -526,6 +531,12 @@ def plot_per_position_average_over_time(
         Optional, list of labels for the columns to use in the plot.
     polar_angle_range
         Tuple specifying the range of polar angle values in the dataframe.
+
+    Returns
+    -------
+    :
+        Figure and array of Axes objects for the plot.
+
     """
     # confirm required columns are in dataframe
     required_columns = [Column.POSITION, Column.TIMEPOINT] + column_names
@@ -584,9 +595,7 @@ def plot_component_histograms_over_time(
     bin_tick_num: int = 10,
     frame_range: tuple[int, int] | None = None,
 ) -> tuple[Figure, np.ndarray[Axes, Any]]:
-    """
-    Plot histogram of individual feature components over time for a given
-    dataset.
+    """Plot histogram of individual feature components over time for a given dataset.
 
     ** Histogram and bins **
 
@@ -613,6 +622,12 @@ def plot_component_histograms_over_time(
         Optional, number of ticks for y-axis (bins).
     frame_range
         Optional, tuple specifying the range of frames for labeling x-axis.
+
+    Returns
+    -------
+    :
+        Figure and array of Axes objects for the plot.
+
     """
     ndim = len(hist_arrays)
 
@@ -667,8 +682,7 @@ def pc_loading_heatmap_workflow(
     pc_columns: list[str] = DIFFAE_PC_COLUMN_NAMES,
     annotate: bool = True,
 ) -> Figure:
-    """
-    Visualize PCA loadings as a heatmap.
+    """Visualize PCA loadings as a heatmap.
 
     Parameters
     ----------
@@ -723,8 +737,7 @@ def get_label_for_column(
     mapping_dict: dict[str, dict[str, Any]] | None = None,
     capitalize: bool = False,
 ) -> str:
-    """
-    Convert dataframe column names to human-readable labels.
+    """Convert dataframe column names to human-readable labels.
 
     For example, "feat_0" becomes "Feature 0", and "pc_1" becomes "PC 1".
 
@@ -741,8 +754,8 @@ def get_label_for_column(
     -------
     :
         Human-readable label for the column name.
-    """
 
+    """
     # check for other specific patterns, overriding default label
     label = None
 
