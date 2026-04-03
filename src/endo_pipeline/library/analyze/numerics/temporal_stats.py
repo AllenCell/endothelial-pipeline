@@ -11,14 +11,17 @@ def compute_cumulative_variance_over_time(
 
     **Handling of NaN values**
 
-    * If all values for a crop up to a given timepoint are NaN, the cumulative
-        variance for that crop at that timepoint will be set to NaN
-    * If some but not all values for a crop up to a given timepoint are NaN, the
-        variance function will be applied to all values. Thus, if the variance
-        function can handle NaN values (e.g., by ignoring them), then the
-        cumulative variance will be computed using the available data. If the
-        variance function does not handle NaN values, it may return NaN for that
-        crop and timepoint.
+    If the input ``crop_array`` contains NaN values (e.g., due to missing
+    timepoints for some crops), the function will handle them as follows:
+        - If all values for a crop up to a given timepoint are NaN, the
+          cumulative variance for that crop at that timepoint will be set to NaN
+        - If some (but not all) values for a crop up to a given timepoint are
+          NaN, the variance function will be applied to all values.
+
+    Thus, if the variance function can handle NaN values (e.g., by ignoring
+    them), then the cumulative variance will be computed using the available
+    data. If the variance function does not handle NaN values, it may return NaN
+    for that crop and timepoint.
 
     Parameters
     ----------
@@ -72,28 +75,33 @@ def compute_binned_variance_ratio_vs_time(
 
     At each time bin the function computes:
 
-    * **Population variance** — variance of the feature across all crops and all
-      timepoints that fall in the bin.
-    * **Individual bin variance** — for each crop, the variance of the feature
-      over the timepoints within the bin.
-    * **Ratio** — mean individual bin variance / population variance.
+        - **Population variance:** variance of the feature across all crops and
+          all timepoints that fall in the bin.
+        - **Individual bin variance:** for each crop, the variance of the
+          feature over the timepoints within the bin.
+        - **Ratio:** mean individual bin variance / population variance.
 
     **Interpretation**
 
-    * A ratio near **1** at all bin centres indicates that a single crop's
-      temporal variability within a short window is comparable to the spread
-      across the population — consistent with **ergodic** behaviour.
-    * A ratio **<< 1** means individual crops explore only a small fraction of
-      the population-level spread within each window, indicating **non-ergodic**
-      or **heterogeneous** dynamics where different crops occupy distinct
-      regions of feature space.
-    * A ratio that **increases toward 1** over time suggests that the system is
-      *mixing* — crops start in distinct states but progressively explore more
-      of the available feature space.
-    * Unlike the cumulative variant, the binned ratio is sensitive to
-      *local-in-time* fluctuations and is not biased by early transient
-      dynamics.  Comparing cumulative and binned ratios therefore reveals
-      whether ergodicity is driven by long-term drift or local fluctuations.
+    Interpreting the binned variance ratio over time provides insights into the
+    temporal dynamics and ergodicity of the system:
+
+        - A ratio near **1** at all bin centres indicates that a single crop's
+          temporal variability within a short window is comparable to the spread
+          across the population — consistent with **ergodic** behaviour.
+        - A ratio **<< 1** means individual crops explore only a small fraction
+          of the population-level spread within each window, indicating
+          **non-ergodic** or **heterogeneous** dynamics where different crops
+          occupy distinct regions of feature space.
+        - A ratio that **increases toward 1** over time suggests that the system
+          is *mixing* — crops start in distinct states but progressively explore
+          more of the available feature space.
+        - Unlike the cumulative variant, the binned ratio is sensitive to
+          *local-in-time* fluctuations and is not biased by early transient
+          dynamics.
+
+    Comparing cumulative and binned ratios therefore reveals whether ergodicity
+    is driven by long-term drift or local fluctuations.
 
     Parameters
     ----------
@@ -107,14 +115,14 @@ def compute_binned_variance_ratio_vs_time(
 
     Returns
     -------
-    bin_centres
+    :
         1-D array of time values corresponding to the centre of each bin.
-    ratio_mean
+    :
         1-D array of mean ratio of individual to population variance for each
         bin.
-    ratio_upper
+    :
         1-D array of upper bound of mean ± SEM for the ratio in each bin.
-    ratio_lower
+    :
         1-D array of lower bound of mean ± SEM for the ratio in each bin.
     """
     # shape: (n_crops, n_timepoints, n_features)

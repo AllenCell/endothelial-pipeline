@@ -11,8 +11,8 @@ def mesh_grid_function(f: Callable, ndim: int = 2) -> Callable:
     It is assumed that the state variable x and the vector field f(x) are of the
     same dimension (i.e., f: R^d -> R^d).
 
-    The returned function can be evaluated on a mesh grid, and allows for allows
-    for control parameters as an optional argument.
+    The returned function can be evaluated on a mesh grid, and allows for
+    control parameters as an optional argument.
 
     Parameters
     ----------
