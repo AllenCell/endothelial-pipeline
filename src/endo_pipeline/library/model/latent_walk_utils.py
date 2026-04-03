@@ -31,7 +31,7 @@ def get_max_dim_in_column_names(column_names: list[str], feature_prefix: str) ->
 
     Returns
     -------
-    int
+    :
         Maximum number of dimensions based on the column names.
     """
     # Define pattern that starts with feature prefix followed by 1 or more digits
@@ -89,6 +89,13 @@ def _add_preceding_dims_to_column_names(column_names: list[str], feature_prefix:
     For example, column_names = ["pc_3"] and feature_prefix = "pc_", this method
     would add "pc_1" and "pc_2" to the output list of column names since they
     are the preceding dimensions for "pc_3".
+
+    Parameters
+    ----------
+    column_names
+        List of column names corresponding to each dimension.
+    feature_prefix
+        Prefix to look for in column names, e.g., "pc_" or "feat_".
     """
     try:
         # get max dimension number for the given feature prefix from the column names
@@ -140,6 +147,12 @@ def get_column_names_for_latent_walk_dataframe(input_column_names: list[str]) ->
     If either of the polar coordinate columns are included, both must be
     included, so that the inverse transform can be applied to convert back to
     Cartesian coordinates for image generation.
+
+    Parameters
+    ----------
+    input_column_names
+        Initial list of column names corresponding to each dimension for the
+        latent walk.
     """
     column_names = input_column_names.copy()
     # special cases for transformed variables: polar coordinates and flipped pc3
@@ -247,11 +260,11 @@ def get_latent_walk(
 
     **Specifying walk dimensions**
 
-    The ``walk_column_names`` parameter specifies the dimensions to traverse in
+    The `walk_column_names` parameter specifies the dimensions to traverse in
     the latent walk. For example, if the column names for the PCA features are
-    "pc_1", "pc_2", and "pc_3", and the ``walk_column_names`` parameter is set
-    to ["pc_3"], then the latent walk will only traverse the "pc_3" dimension
-    while holding the "pc_1" and "pc_2" dimensions constant at the baseline walk
+    `pc_1`, `pc_2`, and `pc_3`, and the `walk_column_names` parameter is set to
+    [`pc_3`], then the latent walk will only traverse the `pc_3` dimension while
+    holding the `pc_1` and `pc_2` dimensions constant at the baseline walk
     values.
 
     **Baseline walk values**
@@ -260,9 +273,9 @@ def get_latent_walk(
     those dimensions will be held constant at the baseline walk values. By
     default, the baseline walk values are set to the mean of the data for each
     dimension, but the user can also specify custom baseline walk values for any
-    dimensions using the ``set_column_value`` parameter. This method calls the
-    method ``get_baseline_walk_values`` to get the baseline walk values for each
-    dimension based on the provided data and the ``set_column_value`` parameter.
+    dimensions using the `set_column_value` parameter. This method calls the
+    method `get_baseline_walk_values` to get the baseline walk values for each
+    dimension based on the provided data and the `set_column_value` parameter.
 
     **Walk range**
 
@@ -270,14 +283,13 @@ def get_latent_walk(
     based on either the standard deviation of the data for that dimension or the
     minimum and maximum values of the data for that dimension.
 
-    If the ``sigma``
-    parameter is set to a positive value, the walk range for each dimension will
-    be set to [-sigma * std, sigma * std], where std is the standard deviation of
-    the data for that dimension.
+    If the `sigma` parameter is set to a positive value, the walk range for each
+    dimension will be set to [`-sigma * std`, `sigma * std`], where std is the
+    standard deviation of the data for that dimension.
 
-    If the ``sigma`` parameter is set to None, the
-    walk range for each dimension will be set to [min, max], where min and max
-    are the minimum and maximum values of the data for that dimension.
+    If the `sigma` parameter is set to None, the walk range for each dimension
+    will be set to [`min`, `max`], where `min` and `max` are the minimum and
+    maximum values of the data for that dimension.
 
     Parameters
     ----------
