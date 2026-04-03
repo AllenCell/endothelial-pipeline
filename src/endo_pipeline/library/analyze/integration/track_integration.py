@@ -55,32 +55,46 @@ from endo_pipeline.settings.workflow_defaults import (
 logger = logging.getLogger(__name__)
 
 
-def get_flow_field_estimation_params(
-    column_names: list[str] = list(DYNAMICS_COLUMN_NAMES),
+def get_flow_field_estimation_kernels(
+    column_names: list[str | Column.DiffAEData] | None = None,
     rescale_theta: bool = RESCALE_THETA,
     period_theta_rescaled: float = PERIOD_THETA_RESCALED,
     kernel_names_dynamics: dict[Column.DiffAEData, str] = KERNEL_NAMES_DYNAMICS,
     kernel_bandwidths_dynamics: dict[Column.DiffAEData, float] = KERNEL_BANDWIDTHS_DYNAMICS,
-    bin_widths_dynamics: dict[Column.DiffAEData, float] = BIN_WIDTHS_DYNAMICS,
-) -> tuple[list[KramersMoyalKernel], list[float]]:
-    # initialize kernels and bin widths for each of the three variables for flow
-    # field estimation
+) -> list[KramersMoyalKernel]:
+    """Return the kernels used for flow field estimation for the specified columns."""
+    # initialize kernels for each of the three variables for flow field estimation
     kernels: list[KramersMoyalKernel] = []
-    bin_widths: list[float] = []
     rescaled_theta = period_theta_rescaled + np.pi * (1 - rescale_theta)
 
-    # Get the corresponding kernels and bin widths for each variable. For the
-    # polar angle variable, also specify the period for the kernel based on the
-    # rescaled theta range, to ensure that the periodicity of the polar angle is
-    # taken into account in the flow field estimation.
+    # Get the corresponding kernels for each variable. For the polar angle variable,
+    # also specify the period for the kernel based on the rescaled theta range, to
+    # ensure that the periodicity of the polar angle is taken into account in the
+    # flow field estimation.
+    if column_names is None:
+        column_names = list(DYNAMICS_COLUMN_NAMES)
+
     for column_name in column_names:
         name = kernel_names_dynamics[column_name]
         bandwidth = kernel_bandwidths_dynamics[column_name]
         period = rescaled_theta if column_name == Column.DiffAEData.POLAR_ANGLE else None
-        bin_width = bin_widths_dynamics[column_name]
         kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
+    return kernels
+
+
+def get_flow_field_estimation_bin_widths(
+    column_names: list[str | Column.DiffAEData] | None = None,
+    bin_widths_dynamics: dict[Column.DiffAEData, float] = BIN_WIDTHS_DYNAMICS,
+) -> list[float]:
+    """Return the bin widths used for flow field estimation for the specified columns."""
+    if column_names is None:
+        column_names = list(DYNAMICS_COLUMN_NAMES)
+
+    bin_widths: list[float] = []
+    for column_name in column_names:
+        bin_width = bin_widths_dynamics[column_name]
         bin_widths.append(bin_width)
-    return kernels, bin_widths
+    return bin_widths
 
 
 # def process_dataset_for_track_integration(
@@ -556,12 +570,15 @@ def get_diffae_feats_liveseg_feats_merged_table(
 
 def get_traj_and_flowfield(
     df: pd.DataFrame,
-    column_names: list[str] = list(DYNAMICS_COLUMN_NAMES),
+    column_names: list[str | Column.DiffAEData] | None = None,
     load_precomputed_trajectories: Path | None = None,
 ) -> tuple[np.ndarray, dict]:
 
-    # set kernel and binwidth params
-    kernels, bin_widths = get_flow_field_estimation_params(column_names)
+    if column_names is None:
+        column_names = list(DYNAMICS_COLUMN_NAMES)
+
+    # set kernel params
+    kernels = get_flow_field_estimation_kernels(column_names)
 
     # set time between frames in minutes
     dt = TIME_STEP_IN_MINUTES
@@ -613,18 +630,33 @@ def get_traj_and_flowfield(
 
 def get_flow_field_and_fixed_points(
     dataset_name: str,
-    column_names: list[str] = list(DYNAMICS_COLUMN_NAMES),
+    column_names: list[str | Column.DiffAEData] | None = None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
 ) -> tuple[dict, pd.DataFrame]:
     """
-    Get the trajectories and flow fields for the grid-based and cell-centric crops.
-    This function is called after loading and preprocessing the manifests.
-    The function looks for precomputed trajectories in trajectory_dir and loads them
-    from there if found. If not found then they will be computed and saved to that location.
-    The names of the files that it looks for are:
-    - {dataset_name}_traj_grids.npy for grid-based crops
-    - {dataset_name}_traj_tracks.npy for cell-centric crops
+    Return the flow fields and fixed points for the grid-based crops by loading them from the
+    corresponding dataframe manifests for the given dataset, model and run name.
+    The flow field dictionaries are constructed from the drift data in the drift dataframe manifest
+    and the fixed points are loaded from the fixed points dataframe manifest for the given dataset.
+
+    Parameters
+    ----------
+    dataset_name
+        Name of the dataset for which to load the flow field and fixed points.
+    column_names
+        List of column names corresponding to the dynamics features to use for constructing the flow field,
+        by default None
+    model_manifest_name
+        Name of the model dataframe manifest to use for loading the drift data, by default DEFAULT_MODEL_MANIFEST_NAME
+    run_name
+        Name of the model run to use for loading the drift data, by default DEFAULT_MODEL_RUN_NAME
+
+    Returns
+    -------
+    :
+        The flow field dictionary and the fixed points dataframe for the given dataset.
+
     """
 
     base_name = f"{model_manifest_name}_{run_name}_grid"
@@ -649,7 +681,7 @@ def get_flow_field_and_fixed_points(
         )
         return {}, pd.DataFrame()
 
-    logger.info("Getting trajectories and flow fields for grid-based and cell-centric crops...")
+    logger.info("Getting flow fields and fixed points for grid-based crops...")
 
     # load fixed point dataframe if it exists, and check that required
     # columns are present turn fixed point dataframe into list of arrays of
