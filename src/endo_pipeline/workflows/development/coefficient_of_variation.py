@@ -184,14 +184,13 @@ def main(
             t_min = df_flow[Column.TIMEPOINT].min()
             t_max = df_flow[Column.TIMEPOINT].max()
             all_timepoints = np.arange(t_min, t_max + 1)
-            df_flow_scaled = df_flow.copy()
 
             # fill missing timepoints with NaN values for each crop to ensure
             # consistent time axis across crops when computing population
             # variance and cumulative variance per crop, which require a 2D
             # array of shape (num_crops, num_timepoints)
             data_filled_list = []
-            for _, data_crop in df_flow_scaled.groupby(Column.CROP_INDEX):
+            for _, data_crop in df_flow.groupby(Column.CROP_INDEX):
                 # sort by timepoint to ensure correct order before reindexing
                 data_crop = data_crop.sort_values(by=Column.TIMEPOINT)
 
@@ -208,14 +207,15 @@ def main(
 
             # compute mean ± std for each column at each timepoint; for theta,
             # use circular stats to account for periodicity
+            data_filled_scaled = data_filled.copy()
             for col in column_names:
                 # get scaled values for CoV computation and plotting, using
                 # global bin limits for all datasets to preserve comparability
                 lo, hi = global_bin_limits_dict[col]
-                df_flow_scaled[col] = (df_flow[col] - lo) / (hi - lo)
+                data_filled_scaled[col] = (data_filled_scaled[col] - lo) / (hi - lo)
 
-                grouped_df_unscaled = df_flow.groupby(Column.TIMEPOINT)
-                grouped_df_scaled = df_flow_scaled.groupby(Column.TIMEPOINT)
+                grouped_df_unscaled = data_filled.groupby(Column.TIMEPOINT)
+                grouped_df_scaled = data_filled_scaled.groupby(Column.TIMEPOINT)
 
                 # compute mean ± std in original units and in scaled units for
                 # plotting, using circular stats for theta in both cases
@@ -281,7 +281,7 @@ def main(
                 # crops at each timepoint).  This gives one CoV value per crop
                 # which can be compared to the mean population CoV in an
                 # ergodicity test.
-                df_scaled_crop_grouped = df_flow_scaled.groupby(Column.CROP_INDEX)
+                df_scaled_crop_grouped = data_filled_scaled.groupby(Column.CROP_INDEX)
                 per_crop_cov = df_scaled_crop_grouped[col].apply(
                     std_function, **scaled_function_kwargs
                 ).to_numpy() / np.absolute(
@@ -297,7 +297,9 @@ def main(
                 # population variance at each timepoint (across crops) for
                 # scaled feature to array in shape (num_crops, num_timepoints)
                 # for variance computations
-                data_filled_array = data_filled[col].to_numpy().reshape(-1, len(all_timepoints))
+                data_filled_array = (
+                    data_filled_scaled[col].to_numpy().reshape(-1, len(all_timepoints))
+                )
                 scaled_population_var = var_function(
                     data_filled_array, **scaled_function_kwargs, axis=0
                 )
