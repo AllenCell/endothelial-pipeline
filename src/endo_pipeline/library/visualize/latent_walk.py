@@ -1,3 +1,5 @@
+"""Module for visualizing latent walks as grids of reconstructed image crops."""
+
 import logging
 from pathlib import Path
 from typing import Literal
@@ -25,8 +27,7 @@ def plot_latent_walk_as_grid(
     show_values: bool = True,
     label_sigmas: bool = True,
 ) -> None:
-    """
-    Plot a grid of reconstructed image crops representing a latent walk.
+    """Plot and save a grid of reconstructed image crops representing a latent walk.
 
     Parameters
     ----------
@@ -50,6 +51,7 @@ def plot_latent_walk_as_grid(
     label_sigmas
         True to label the column titles with sigma values, False to label with
         step number.
+
     """
     # Set up the grid
     num_rows = array_of_crops.shape[0]
