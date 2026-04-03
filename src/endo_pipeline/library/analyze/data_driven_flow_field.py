@@ -629,8 +629,9 @@ def get_drift_flow_field_as_dict(
 
     Returns
     -------
-    dict[str, tuple[np.ndarray]]
+    :
         Dictionary containing the flow field vectors and the corresponding grid points.
+
     """
     # restructure the flow field dataframe into a flow field dictionary
     ndim = len(column_names)
