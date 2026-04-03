@@ -1,3 +1,5 @@
+"""Module for visualizing outputs of long-time-scale statistics analyses for time series data."""
+
 from typing import Literal
 
 import matplotlib.pyplot as plt
@@ -30,9 +32,7 @@ def plot_histogram_and_kde(
     axes_xlabel: str | None = None,
     axes_ylabel: str | None = None,
 ) -> None:
-    """
-    Plot a histogram of the input data with an overlaid kernel density estimate
-    (KDE).
+    """Add a histogram of input data with an overlaid kernel density estimate (KDE) to existing axes.
 
     Parameters
     ----------
@@ -70,6 +70,7 @@ def plot_histogram_and_kde(
         The label to set for the x-axis (set to None to omit).
     axes_ylabel
         The label to set for the y-axis (set to None to omit).
+
     """
     # get histogram of the column average using bin widths of 0.1,
     # adjusting x-axis limits based on bin limits for the column
