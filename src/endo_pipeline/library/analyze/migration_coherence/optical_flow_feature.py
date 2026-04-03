@@ -9,12 +9,11 @@ from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dat
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.migration_coherence import (
     MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
-    MIGRATION_COHERENCE_STRIDE_INTERVAL,
     OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS,
 )
 from endo_pipeline.settings.optical_flow import (
     DEFAULT_OPTICAL_FLOW_MANIFEST_NAME,
-    OPTICAL_FLOW_BASE_FEATURES,
+    OPTICAL_FLOW_FEATURE_COLUMNS_DT1,
 )
 
 logger = logging.getLogger(__name__)
@@ -60,10 +59,9 @@ def add_optical_flow_features(
     """
 
     merge_columns_ = merge_columns or list(OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS)
-    optical_flow_feature_columns_ = optical_flow_feature_columns or [
-        f"{feature}_dt{MIGRATION_COHERENCE_STRIDE_INTERVAL}"
-        for feature in OPTICAL_FLOW_BASE_FEATURES
-    ]
+    optical_flow_feature_columns_ = optical_flow_feature_columns or list(
+        OPTICAL_FLOW_FEATURE_COLUMNS_DT1
+    )
     required_columns = merge_columns_ + optical_flow_feature_columns_
     check_required_columns_in_dataframe(df, merge_columns_)
     dataframe_manifest_optical_flow = load_dataframe_manifest(optical_flow_manifest_name)
@@ -80,6 +78,9 @@ def add_optical_flow_features(
         df_optical_flow = load_dataframe(optical_flow_location)
         check_required_columns_in_dataframe(df_optical_flow, required_columns)
         df_optical_flow = df_optical_flow[required_columns]
+
+        # TODO: fix duplicate rows at the source (optical flow workflow)
+        df_optical_flow = df_optical_flow.drop_duplicates(subset=merge_columns_)
 
         df_merged = df_dataset.merge(df_optical_flow, on=merge_columns_, how="left")
         merged_dfs.append(df_merged)
