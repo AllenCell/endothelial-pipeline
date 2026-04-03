@@ -1,3 +1,5 @@
+"""Methods for computing autocorrelation and cross-correlation functions from time series data."""
+
 import logging
 from typing import Any, Literal
 
@@ -20,8 +22,7 @@ logger = logging.getLogger(__name__)
 def cross_correlation_function(
     data_feat1: np.ndarray, data_feat2: np.ndarray, lag_cutoff_fraction: int = NUM_TIMEPOINT_FRAC
 ) -> np.ndarray:
-    """
-    Get the normalized cross-correlation function (CCF) between two features.
+    """Get the normalized cross-correlation function (CCF) between two features.
 
     The input data arrays are expected to be of shape (num_samples,
     num_timepoints). That is, the data are assumed to be {num_samples} iid
@@ -56,6 +57,13 @@ def cross_correlation_function(
     lag_cutoff_fraction
         Fraction of num_timepoints to use as cutoff for lags in the returned
         CCF.
+
+    Returns
+    -------
+    :
+        Array of shape (num_lags,) containing the average scaled CCF across the population of samples,
+        where num_lags is equal to `2 * num_timepoints // lag_cutoff_fraction + 1`.
+
     """
     num_traj = data_feat1.shape[0]
     num_timepoints = data_feat1.shape[1]
@@ -109,18 +117,36 @@ def cross_correlation_function(
     return corr_sum / num_traj
 
 
-def autocorrelation_function(data: np.ndarray, component_index: int) -> np.ndarray:
-    """
-    Get the normalized autocorrelation function (ACF) for a specific component.
+def autocorrelation_function(
+    data: np.ndarray, component_index: int, lag_cutoff_fraction: int = NUM_TIMEPOINT_FRAC
+) -> np.ndarray:
+    """Get the normalized autocorrelation function (ACF) for a specific component.
 
     Wrapper for `cross_correlation_function`, using the fact that the ACF is just
     the CCF of a signal with itself.
+
+    Parameters
+    ----------
+    data
+        Array of shape (num_samples, num_timepoints, num_components) containing
+        time series data for the feature of interest.
+    component_index
+        Index of the component for which to compute the ACF.
+    lag_cutoff_fraction
+        Fraction of num_timepoints to use as cutoff for lags in the returned ACF.
+
+    Returns
+    -------
+    :
+        Array of shape (num_lags,) containing the average scaled ACF across the
+        population of samples, where num_lags is equal to `2 * num_timepoints // lag_cutoff_fraction + 1`.
+
     """
     # Extract the specified component from the data array.
     x_t_j = data[..., component_index]
 
     # Pass to cross_correlation_function with itself to get ACF.
-    return cross_correlation_function(x_t_j, x_t_j)
+    return cross_correlation_function(x_t_j, x_t_j, lag_cutoff_fraction=lag_cutoff_fraction)
 
 
 def fit_exp_decay_and_get_relaxation_timescale(
@@ -182,8 +208,7 @@ def bootstrap_autocorrelation_confidence_intervals(
     n_bootstraps: int = 200,
     confidence_level: float = 0.95,
 ) -> dict[str, tuple]:
-    """
-    Bootstrap the normalized autocorrelation function (ACF) computed from finite data.
+    """Bootstrap the normalized autocorrelation function (ACF) computed from finite data.
 
     The ACF is computed for a specific vector component of an ensemble of stationary,
     vector-valued time series data.
@@ -215,8 +240,8 @@ def bootstrap_autocorrelation_confidence_intervals(
         Dictionary containing lower and upper bounds of the confidence intervals for:
         - autocorrelation: ACF(tau)
         - relaxation_timescale: Decay coefficient from exponential fit to ACF.
-    """
 
+    """
     # Bootstrap the CCF using resampling with replacement
     num_traj = data.shape[0]
     bootstrap_autocorrelations = []
@@ -268,8 +293,7 @@ def bootstrap_cross_correlation_confidence_intervals(
     max_lag_integrate: int = MAX_LAG_INTEGRATE,
     confidence_level: float = 0.95,
 ) -> dict[str, tuple]:
-    """
-    Bootstrap the normalized cross-correlation function (CCF) computed from finite data.
+    """Bootstrap the normalized cross-correlation function (CCF) computed from finite data.
 
     The CCF is computed between between vector components of an ensemble of stationary,
     vector-valued time series data.
@@ -305,8 +329,8 @@ def bootstrap_cross_correlation_confidence_intervals(
         - delta_cross_correlation: |CCF(tau>0) - CCF(tau<0)|
         - delta_cross_correlation_integral: Integral of |CCF(tau>0) - CCF(tau<0)| over
           the first {max_lag_integrate} lags.
-    """
 
+    """
     # Bootstrap the CCF using resampling with replacement
     num_traj = data_feat1.shape[0]
     bootstrap_correlations = []
@@ -362,8 +386,7 @@ def compute_correlations_for_one_dataset(
     max_lag_integrate: int = MAX_LAG_INTEGRATE,
     rescale_polar_angle: bool = RESCALE_THETA,
 ) -> dict[str, dict[str, Any]]:
-    """
-    Compute cross-correlation and autocorrelation for features from one dataset.
+    """Compute cross-correlation and autocorrelation for features from one dataset.
 
     Parameters
     ----------
@@ -385,6 +408,12 @@ def compute_correlations_for_one_dataset(
     rescale_polar_angle
         Whether the polar angle variable has been rescaled from [-pi,pi] to
         [0,pi] (used to set the polar angle period for unwrapping).
+
+    Returns
+    -------
+    :
+        Updated correlation_dict with computed correlations for the dataset.
+
     """
     # check that required columns are present in the dataframe
     required_columns = [
