@@ -203,15 +203,14 @@ def test_filter_dataframe_to_steady_state_removes_not_steady_state_timepoints(da
 
 
 def test_filter_dataframe_to_steady_state_keeps_all_timepoints_when_no_not_steady_state_annotations(
-    dataframe,
+    dataframe, dataset
 ):
     # Dataset with no NOT_STEADY_STATE annotations and no position annotations →
     # full dataframe returned
-    dataset_no_annotations = dataset.copy()
-    dataset_no_annotations.position_annotations = {}
-    dataset_no_annotations.timepoint_annotations = {}
+    dataset.position_annotations = {}
+    dataset.timepoint_annotations = {}
 
-    filtered_df = filter_dataframe_to_steady_state(dataframe, dataset_no_annotations)
+    filtered_df = filter_dataframe_to_steady_state(dataframe, dataset)
     assert filtered_df[Column.POSITION].tolist() == dataframe[Column.POSITION].tolist()
     assert filtered_df[Column.TIMEPOINT].tolist() == dataframe[Column.TIMEPOINT].tolist()
 
