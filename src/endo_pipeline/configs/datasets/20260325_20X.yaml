@@ -1,0 +1,76 @@
+name: 20260325_20X
+date: '20260325'
+original_path: //allen/programs/allencell/data/proj0/abc/183/626/d83/529/75b/747/cf5/b79/f28/d1/20260325_GE00010691_20X_sldy/20260325_GE00010691_20X_sldy.sldy
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: d1f28b79cf574775b529d83626183abc
+barcode: GE00010691
+cell_lines: [AICS-177 cl. 26]
+live_or_fixed_sample: live
+is_timelapse: true
+microscope: 3i
+objective: 20X
+shear_stress_regime: min
+pixel_size_xy_in_um: 0.382
+duration: 577
+time_interval_in_minutes: 5.0
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+channel_names: [EGFP, BF]
+flow_conditions:
+- start: -14
+  stop: 576
+  shear_stress: 6.10
+include_scenes: null
+notes: CDH5 truncated mutant (AICS-177 cl.26) low SS 48h. Minimal GFP signal as
+  expected, puncta forming during flow. BF shows cells get long, thin, and parallel
+  until ~50% timelapse then scatter with gaps and long protrusions. FOV 1 (1-indexed)
+  top flickers dark at TP71. FOV 5 top flickers dark at TP513.
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  auto_bf_temp_artifact:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  not_steady_state:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  cell_piling:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+position_annotations: null
+center_z_plane: null
