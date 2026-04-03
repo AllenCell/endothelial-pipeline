@@ -6,6 +6,7 @@ import pandas as pd
 
 from endo_pipeline.configs import (
     DatasetConfig,
+    FlowCondition,
     PositionAnnotation,
     TimepointAnnotation,
     get_all_unannotated_timepoints,
@@ -139,36 +140,61 @@ def filter_dataframe_by_annotations(
     return dataframe_filtered
 
 
-def split_dataframe_by_flow(
+def filter_dataframe_to_steady_state(
     dataframe: pd.DataFrame, dataset_config: DatasetConfig
-) -> tuple[list[pd.DataFrame], list[float]]:
+) -> pd.DataFrame:
     """
-    Parse a dataframe of features for one dataset into separate dataframes for
-    each flow condition based on the dataset config.
+    Filter dataframe to only include "steady state" timepoints.
 
-    If there is only one flow condition, this method returns a lists of length 1
-    containing the original dataframe and single shear stress value.
-
-    The dataframe should have columns for:
-        - Column.DATASET: dataset name for each row of data, which should be the
-          same across all rows of the dataframe.
-        - Column.TIMEPOINT: timepoint/frame number for each row of data.
+    Filtering is done by removing timepoints that are annotated as
+    NOT_STEADY_STATE in the dataset config.
 
     Parameters
     ----------
     dataframe
-        DataFrame containing feature data for one dataset.
+        Dataframe of features for one dataset.
     dataset_config
-        DatasetConfig object for the given dataset.
+        Dataset config for the dataset.
+    """
+
+    # note: don't need to do dataframe validation checks here since those will
+    # be done in the method `filter_dataframe_by_annotations` that is called
+    # within this method
+
+    # To just filter to steady state timepoints, we can use the more general
+    # method `filter_dataframe_by_annotations` with
+    # timepoint_annotations=[NOT_STEADY_STATE] and position_annotations=[]
+    # (i.e., don't do any additional filtering based on position annotations)
+    dataframe_steady_state = filter_dataframe_by_annotations(
+        dataframe=dataframe,
+        dataset_config=dataset_config,
+        position_annotations=[],
+        timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
+    )
+    return dataframe_steady_state
+
+
+def filter_dataframe_by_flow_condition(
+    dataframe: pd.DataFrame, dataset_config: DatasetConfig, flow_condition: FlowCondition
+) -> pd.DataFrame:
+    """
+    Filter dataframe to only include timepoints corresponding to a specified flow condition.
+
+    Parameters
+    ----------
+    dataframe
+        Dataframe of features for one dataset.
+    dataset_config
+        Dataset config for the dataset.
+    flow_condition
+        Flow condition to filter by.
 
     Returns
     -------
     :
-        List of DataFrames, each containing the feature data for one flow
-        condition.
-    :
-        List of shear stress values for each flow condition.
+        Dataframe filtered to only include timepoints corresponding to the specified flow condition.
     """
+
     # check that required columns are present
     required_columns = [Column.DATASET, Column.TIMEPOINT]
     check_required_columns_in_dataframe(dataframe, required_columns)
@@ -179,30 +205,29 @@ def split_dataframe_by_flow(
     check_dataframe_dataset_matches_dataset_config(dataframe, dataset_config)
 
     # get flow condition information from dataset config
-    flow_conditions = dataset_config.flow_conditions
+    flow_conditions_in_dataset = dataset_config.flow_conditions
 
-    # split out data by flow condition,
-    # starting with first flow condition
-    first_shear = flow_conditions[0].shear_stress
-    # initialize list of shear stress conditions
-    shear_list = [first_shear]
-    # if there is a change in flow condition
-    if len(flow_conditions) > 1:
-        # get frame number where second flow condition starts
-        change_frame = get_frame_after_flow_change(dataset_config)
-        # get second shear stress condition
-        second_shear = flow_conditions[1].shear_stress
-        shear_list.append(second_shear)
-        # separate data into two dataframes based on
-        # frame number where flow condition changes
-        data_flow1 = dataframe[dataframe[Column.TIMEPOINT] < change_frame].copy()
-        data_flow2 = dataframe[dataframe[Column.TIMEPOINT] >= change_frame].copy()
-        # return list of dataframes for each flow condition
-        data_all = [data_flow1, data_flow2]
-    # else, there is only one flow condition
+    # Check that provided flow condition actually in the dataset config. If not, raise an error.
+    if flow_condition not in flow_conditions_in_dataset:
+        raise ValueError(
+            f"Specified flow condition [ {flow_condition} ] does not match any of the flow conditions"
+            f" in the dataset config [ {flow_conditions_in_dataset} ] for dataset {dataset_config.name}."
+        )
+
+    if len(flow_conditions_in_dataset) == 1:
+        # If only one flow condition in dataset, return the original dataframe
+        # since all timepoints correspond to the specified flow condition (i.e.,
+        # the only flow condition in the dataset).
+        return dataframe.copy()
     else:
-        # list of dataframes for one flow condition
-        # = list containing the original dataframe
-        data_all = [dataframe.copy()]
-
-    return data_all, shear_list
+        # multi-flow condition dataset: need to filter to timepoints
+        # corresponding to specified flow condition
+        change_frame = get_frame_after_flow_change(dataset_config)
+        if flow_condition == flow_conditions_in_dataset[0]:
+            # if first flow condition specified, filter to timepoints before
+            # the flow change frame
+            return dataframe[dataframe[Column.TIMEPOINT] < change_frame].copy()
+        else:
+            # if second flow condition specified, filter to timepoints after
+            # the flow change frame
+            return dataframe[dataframe[Column.TIMEPOINT] >= change_frame].copy()

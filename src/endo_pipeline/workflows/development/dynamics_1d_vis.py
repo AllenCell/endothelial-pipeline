@@ -45,15 +45,11 @@ def main(
     import numpy as np
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import (
-        TimepointAnnotation,
-        get_datasets_in_collection,
-        load_dataset_config,
-    )
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.dataframe_filtering import (
-        filter_dataframe_by_annotations,
-        split_dataframe_by_flow,
+        filter_dataframe_by_flow_condition,
+        filter_dataframe_to_steady_state,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
@@ -127,20 +123,18 @@ def main(
         # load dataframe and perform additional filtering (remove
         # non-steady-state timepoints based on annotations), computing
         # only the columns needed for flow field estimation and analysis to save memory.
-        df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
-        df_ = df[columns_to_compute].compute()
-        df_steady_state = filter_dataframe_by_annotations(
-            df_,
-            dataset_config,
-            timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
-        )
-
-        df_by_flow, shear_stress_list = split_dataframe_by_flow(df_steady_state, dataset_config)
+        df_ = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
+        df = df_[columns_to_compute].compute()
+        df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
 
         # compute on a per-shear stress condition basis
-        for df_, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
-            dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
-            fig_title = f"{dataset_name} ({shear_stress} dym/cm$^2$)"
+        for flow_condition in dataset_config.flow_conditions:
+            dataset_name_flow = f"{dataset_name}_shear_{int(flow_condition.shear_stress)}"
+            fig_title = f"{dataset_name} ({flow_condition.shear_stress} dym/cm$^2$)"
+
+            df_flow = filter_dataframe_by_flow_condition(
+                df_steady_state, dataset_config, flow_condition
+            )
 
             # get bins and centers for each variable based on bin widths and limits
             if column_name == ColumnName.DiffAEData.POLAR_ANGLE:
@@ -151,7 +145,7 @@ def main(
             else:
                 bins, centers = get_bins(
                     bin_widths=(bin_widths_dict[column_name],),
-                    data=df_[column_name].to_numpy(),
+                    data=df_flow[column_name].to_numpy(),
                     lower_percentile=BIN_LIMIT_PERCENTILE_CUTOFF,
                     upper_percentile=100 - BIN_LIMIT_PERCENTILE_CUTOFF,
                 )
@@ -159,7 +153,7 @@ def main(
             # get trajectories and differences for the given variable, adjusting
             # polar angle differences for periodicity if needed
             trajectories, differences = get_traj_and_diff(
-                df_, column_names=[column_name], polar_angle_period=polar_angle_period
+                df_flow, column_names=[column_name], polar_angle_period=polar_angle_period
             )
 
             kernel = KramersMoyalKernel(

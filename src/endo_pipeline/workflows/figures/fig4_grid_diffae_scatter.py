@@ -8,7 +8,7 @@ def main() -> None:
     from tqdm import tqdm
 
     from endo_pipeline.cli import NUM_GPUS
-    from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
+    from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import (
         get_output_path,
         load_dataframe,
@@ -16,7 +16,7 @@ def main() -> None:
         load_model,
         save_plot_to_path,
     )
-    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_annotations
+    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
     from endo_pipeline.library.analyze.pca import fit_pca
     from endo_pipeline.library.model import generate_from_coords_batch
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
@@ -63,10 +63,9 @@ def main() -> None:
         feature_dataframe_manifest, dataset_name
     )
     diffae_grid_crops = load_dataframe(dataframe_location)
-    diffae_grid_crops_steady_state = filter_dataframe_by_annotations(
-        diffae_grid_crops,
-        load_dataset_config(dataset_name),
-        timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
+    dataset_config = load_dataset_config(dataset_name)
+    diffae_grid_crops_steady_state = filter_dataframe_to_steady_state(
+        diffae_grid_crops, dataset_config
     )
 
     example_and_target_points = get_no_flow_pc_space_example_points_fig4(
