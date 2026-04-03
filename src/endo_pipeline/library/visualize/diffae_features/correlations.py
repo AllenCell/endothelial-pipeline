@@ -1,3 +1,5 @@
+"""Visualization methods for time series auto- and cross-correlation analyses."""
+
 import logging
 from pathlib import Path
 from typing import Any, Literal
@@ -130,8 +132,7 @@ def _add_delta_ccf_integral_to_plot(
     feature_labels: list[str],
     ax: Axes,
 ) -> Axes:
-    """
-    Print summary of cross-correlation function (CCF) differences on plot.
+    """Print summary of cross-correlation function (CCF) differences on plot.
 
     The summary metric is the integral of the difference between positive and
     negative lag CCFs near lag = zero, which quantifies the overall asymmetry of
@@ -150,6 +151,12 @@ def _add_delta_ccf_integral_to_plot(
         List of feature labels corresponding to the indices in the integral array.
     ax
         Matplotlib Axes object to add the text to.
+
+    Returns
+    -------
+    :
+        Matplotlib Axes object with the text added.
+
     """
     integral_upper_bound_hrs = round(5 * max_lag_integrate / 60, 2)  # convert from frames to hours
     integral_srings = [
@@ -199,9 +206,7 @@ def _add_exp_fit_to_plot(
     feature_labels: list[str],
     exp_decay_func: Literal["exponential_decay", "double_exponential_decay"],
 ) -> tuple[Axes, list[float]]:
-    """
-    Fit exponential decay to autocorrelation function (ACF) and add curve to
-    existing plot.
+    """Fit exponential decay to autocorrelation function (ACF) and add curve to existing plot.
 
     Parameters
     ----------
@@ -216,6 +221,14 @@ def _add_exp_fit_to_plot(
     exp_decay_func
         String specifying which exponential decay function to fit (single or
         double exponential decay).
+
+    Returns
+    -------
+    :
+        Matplotlib Axes object with the fit curve added.
+    :
+        List of relaxation timescales extracted from the fit for each feature/component.
+
     """
     # check to make sure valid function is provided
     if exp_decay_func not in ["exponential_decay", "double_exponential_decay"]:
@@ -507,18 +520,17 @@ def _plot_single_correlation_metric_vs_shear_stress(
     ci_bounds: list[tuple] | None = None,
     labels: list[str] | None = None,
 ) -> tuple[Figure, Axes]:
-    """
-    Plot a single correlation summary metric as a function of shear stress
-    across datasets.
+    """Plot a single correlation summary metric as a function of shear stress across datasets.
 
     Example metrics include:
-        - The integral of the difference between positive and negative lag CCFs
-          for a given feature combination, integrated from lag = zero to some
-          maximum lag. This quantifies the overall asymmetry of the CCF around
-          zero lag, which is a signature of non-equilibrium dynamics.
-        - The average of this integral across all feature combinations.
-        - The relaxation timescales extracted from fitting exponential decay to
-          the ACFs.
+
+    - The integral of the difference between positive and negative lag CCFs
+        for a given feature combination, integrated from lag = zero to some
+        maximum lag. This quantifies the overall asymmetry of the CCF around
+        zero lag, which is a signature of non-equilibrium dynamics.
+    - The average of this integral across all feature combinations.
+    - The relaxation timescales extracted from fitting exponential decay to
+        the ACFs.
 
     Parameters
     ----------
@@ -533,6 +545,12 @@ def _plot_single_correlation_metric_vs_shear_stress(
         intervals of the metric values for each dataset.
     labels
         Optional list of labels for each feature or feature combination.
+
+    Returns
+    -------
+    :
+        Matplotlib Figure and Axes objects containing the resulting plot.
+
     """
     # init plot
     fig, ax = plt.subplots(figsize=(8, 6))
@@ -590,8 +608,7 @@ def _plot_correlation_metrics_vs_shear_stress(
     list_of_datasets: list[str],
     output_path: Path,
 ) -> None:
-    """
-    Plot all correlation metrics as a function of shear stress.
+    """Make and save plots of all correlation metrics as a function of shear stress.
 
     Wrapper method to plot multiple correlation summary metrics (e.g. delta CCF
     integral, relaxation timescales) as a function of shear stress across
@@ -607,6 +624,7 @@ def _plot_correlation_metrics_vs_shear_stress(
         include in the plot.
     output_path
         Path to save the resulting plots.
+
     """
 
     def _get_shear_stress_from_dataset_name(dataset_name: str) -> float:
@@ -705,8 +723,7 @@ def _plot_correlation_metrics_vs_shear_stress(
 def plot_correlation_workflow_outputs(
     correlation_dict: dict[str, dict[str, Any]], bootstrap_samples: int | None = None
 ) -> None:
-    """
-    Plot correlation workflow outputs.
+    """Make and save plots for correlation workflow outputs.
 
     **Workflow output**
 
@@ -733,6 +750,7 @@ def plot_correlation_workflow_outputs(
     bootstrap_samples
         Optional, number of bootstrap samples used to compute confidence
         intervals.
+
     """
     list_of_datasets = list(correlation_dict["lags"].keys())
 
