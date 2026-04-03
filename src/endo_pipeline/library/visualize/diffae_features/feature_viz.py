@@ -10,7 +10,6 @@ import seaborn as sns
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.ticker import MultipleLocator
-from mpl_toolkits.mplot3d import Axes3D
 from seaborn import kdeplot
 
 from endo_pipeline.configs import load_dataset_config
@@ -49,7 +48,7 @@ def plot_kde_comparison(
     feature_column_names: list[str],
     kernel_bw: float = DENSITY_PLOT_KDE_BANDWIDTH,
 ) -> tuple[Figure, np.ndarray[Axes, Any]]:
-
+    """Plot KDE comparison of feature distributions between grid crops and tracked crops."""
     nrows = 1
     ncols = len(feature_column_names)
     figsize = (7 * ncols, 4 * nrows)
@@ -103,17 +102,19 @@ def plot_kde_comparison(
     return fig, axs
 
 
-def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
+def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple[Figure, Axes]:
     """
     Plot cumulative explained variance ratio of PCA components.
 
-    Input:
-    - explained_variance_ratio: np.ndarray, explained variance
-        ratio of PCA components
+    Parameters
+    ----------
+    explained_variance_ratio
+        Array of explained variance ratios for each PCA component.
 
-    Output:
-    - fig: Figure
-    - ax: Axes
+    Returns
+    -------
+    :
+        Figure and Axes objects for the plot.
     """
     fig, ax = plt.subplots(figsize=(7, 6))  # initialize figure and axes
 
@@ -132,15 +133,14 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
 
 
 def plot_component_loadings(
-    loading_matrix: np.ndarray,
-    include_legend: bool = True,
+    loading_matrix: np.ndarray, include_legend: bool = True
 ) -> tuple[Figure, Axes]:
     """
     Plot component loadings of PCA model.
 
     Parameters
     ----------
-    loading_matrix:
+    loading_matrix
         PCA component loadings matrix, shape (n_features, n_components).
     include_legend
         True to include legend in the plot, False to exclude it.
@@ -335,6 +335,8 @@ def plot_pc_scatter_from_df(
         Size of scatter plot points.
     pc_column_names
         List of PCA column names to plot.
+    patch_list_for_legend
+        List of patches to include in the legend for the plot.
     """
     # first plot: PC1 v PC2
     ax[0].scatter(
@@ -378,7 +380,7 @@ def make_pc_scatter_fig4a(
     linewidth=0,
     alpha=0.5,
 ) -> plt.Figure:
-
+    """Make scatter plot of PC space for example points in no-flow dataset for Figure 4a."""
     if pc_col_for_xaxis not in DIFFAE_PC_COLUMN_NAMES:
         raise ValueError(f"pc_col_for_xaxis must be one of: {DIFFAE_PC_COLUMN_NAMES}")
     if pc_col_for_yaxis not in DIFFAE_PC_COLUMN_NAMES:
@@ -416,28 +418,33 @@ def get_no_flow_pc_space_example_points_fig4(
     origin_pc1pc2: tuple[float, float] = (0.0, 0.0),
     pc3_target: float | None = None,
 ) -> pd.DataFrame:
-    """Get example points in no-flow PC space for Figure 4.
-    A dataframe with 8 example points that are evenly spaced around a circle
-    is returned. The dataframe also has columns for the real data points
-    that are closest to these example points.
+    """
+    Get example points in no-flow PC space for Figure 4.
+
+    This method returns a dataframe with 8 of each example target and "real"
+    data points that are evenly spaced around a circle. The circle is centered
+    at the specified origin point and has the specified radius.
+
+    The "real" data points are chosen as the points in the given dataframe that
+    are closest to the target points in PC space.
 
     Parameters
     ----------
     df
-        DataFrame containing the first 3 PCA components.
+        DataFrame containing the features for the no-flow dataset, including the
+        PC columns.
     radius
-        Radius from origin_pc1pc2 to the target points.
+        Radius from the (PC1, PC2) origin to the target points.
     origin_pc1pc2
-        Tuple of (pc1, pc2) coordinates for the origin point.
+        Tuple of (PC1, PC2) coordinates for the origin point.
     pc3_target
-        Optional.
-        If provided pc3 values will be used when finding the real data point
-        that is closest to the example point.
-        If None, only pc1 and pc2 are used and pc3 is ignored.
+        Optional. If provided PC3 values will be used when finding the real data
+        point that is closest to the example point. If None, only PC1 and PC2
+        are used and PC3 is ignored.
 
     Returns
     -------
-    example_points_df:
+    :
         DataFrame containing the example points and real data points closest to
         the target points.
     """
@@ -461,16 +468,17 @@ def get_no_flow_pc_space_example_points_fig4(
     example_points = get_point_nearest_target(data_points, target_points=target_points)
 
     # convert to tuple of tuples
-    example_point_col_names = [f"pc_{i+1}_example" for i in range(example_points.shape[1])]
+    example_point_col_names = [f"pc_{i + 1}_example" for i in range(example_points.shape[1])]
     example_points_df = pd.DataFrame(columns=example_point_col_names, data=example_points)
-    target_point_col_names = [f"pc_{i+1}_target" for i in range(target_points.shape[0])]
+    target_point_col_names = [f"pc_{i + 1}_target" for i in range(target_points.shape[0])]
     example_points_df[target_point_col_names] = target_points.T
 
     return example_points_df
 
 
 def get_point_nearest_target(data_points: np.ndarray, target_points: np.ndarray) -> np.ndarray:
-    """Get the point in data_points nearest to the target point.
+    """
+    Get the point in data_points nearest to the target point.
 
     Parameters
     ----------
@@ -481,7 +489,7 @@ def get_point_nearest_target(data_points: np.ndarray, target_points: np.ndarray)
 
     Returns
     -------
-    closest_point:
+    :
         The point in data_points nearest to the target point.
     """
     data_points = np.expand_dims(data_points, axis=-1)  # shape (n_samples, n_features, 1)
@@ -577,24 +585,28 @@ def plot_component_histograms_over_time(
     frame_range: tuple[int, int] | None = None,
 ) -> tuple[Figure, np.ndarray[Axes, Any]]:
     """
-    Plot histogram of individual feature components over time for a given dataset.
+    Plot histogram of individual feature components over time for a given
+    dataset.
 
     ** Histogram and bins **
-    The histogram is computed for each feature component at each time point (frame).
-    The histogram values are stored in a list of arrays (len = dims), where the shape
-    of each array is (num_bins, num_frames).
 
-    Both the histogram values and the bin edges for each dimension can be generated
-    by the get_histogram_by_component() function.
+    The histogram is computed for each feature component at each time point
+    (frame). The histogram values are stored in a list of arrays (len = dims),
+    where the shape of each array is (num_bins, num_frames).
+
+    Both the histogram values and the bin edges for each dimension can be
+    generated by the get_histogram_by_component() function.
 
     Parameters
     ----------
     hist_arrays
         Histogram values for each component as a function of time.
     bin_edges
-        List of bin edges for each component, generated by get_histogram_by_component() function.
+        List of bin edges for each component, generated by
+        get_histogram_by_component() function.
     feature_names
-        Optional, list of feature names corresponding to each principal component.
+        Optional, list of feature names corresponding to each principal
+        component.
     time_tick_step
         Optional, step size for x-axis ticks (time points).
     bin_tick_num
@@ -634,7 +646,7 @@ def plot_component_histograms_over_time(
             ax_.set_ylabel(feature_names[col])
         else:
             # defaults to "component {col+1}"
-            ax_.set_ylabel(f"component {col+1}")
+            ax_.set_ylabel(f"component {col + 1}")
         if col == ndim - 1:  # only label x-axis on bottom plot
             ax_.set_xlabel("frame number")
         xticks = np.arange(frame_min, frame_max + 1, step=time_tick_step)
@@ -649,102 +661,6 @@ def plot_component_histograms_over_time(
     return fig, ax
 
 
-def plot_km(
-    centers: list[np.ndarray], kmc: np.ndarray, pcs: list[int], shear_stress: float
-) -> tuple:
-    """Plot Kramers-Moyal coefficients."""
-    ndim = len(pcs)
-    if ndim == 2:
-        x_1, x_2 = np.meshgrid(*centers)
-        fig = plt.figure(figsize=(12, 8))
-
-        ax_00: Axes3D = fig.add_subplot(2, 2, 1, projection="3d")
-
-        # the Kramers-Moyal coefficients [1,0]: first component of drift
-        ax_00.contour(x_1, x_2, kmc[0], 50, cmap="Greens", alpha=0.5)
-        ax_00.set_title("$\hat{D}^{(1)}_1$")
-
-        # the Kramers-Moyal coefficients [0,1]: second component of drift
-        ax_01: Axes3D = fig.add_subplot(2, 2, 2, projection="3d")
-
-        ax_01.contour(x_1, x_2, kmc[1], 50, cmap="Greens", alpha=0.5)
-        ax_01.set_title("$\hat{D}^{(1)}_2$")
-
-        # the Kramers-Moyal coefficients [2,0]: first component of diffusion (diagonal)
-        ax_10: Axes3D = fig.add_subplot(2, 2, 3, projection="3d")
-
-        ax_10.contour(x_1, x_2, kmc[2], 50, cmap="Greens", alpha=0.5)
-        ax_10.set_title("$\hat{D}^{(2)}_{11}$")
-
-        # the Kramers-Moyal coefficients [0,2]: second component of diffusion (diagonal)
-        ax_11: Axes3D = fig.add_subplot(2, 2, 4, projection="3d")
-
-        ax_11.contour(x_1, x_2, kmc[3], 50, cmap="Greens", alpha=0.5)
-        ax_11.set_title("$\hat{D}^{(2)}_{22}$")
-
-        # Rotate views and add labels
-        ax_00.view_init(30, 20)
-        ax_01.view_init(30, 20)
-        ax_10.view_init(30, 20)
-        ax_11.view_init(30, 20)
-
-        ax_00.set_xlabel(f"PC{pcs[0]+1}")
-        ax_01.set_xlabel(f"PC{pcs[0]+1}")
-        ax_10.set_xlabel(f"PC{pcs[0]+1}")
-        ax_11.set_xlabel(f"PC{pcs[0]+1}")
-
-        ax_00.set_ylabel(f"PC{pcs[1]+1}")
-        ax_01.set_ylabel(f"PC{pcs[1]+1}")
-        ax_10.set_ylabel(f"PC{pcs[1]+1}")
-        ax_11.set_ylabel(f"PC{pcs[1]+1}")
-
-        fig.suptitle(f"Kramers-Moyal coefficients ({shear_stress} dyn/cm$^2$)")
-
-        return fig, ax_00, ax_01, ax_10, ax_11
-    elif ndim == 1:
-        x_1 = centers[0]
-        fig = plt.figure(figsize=(12, 8))
-        ax_00 = fig.add_subplot(1, 2, 1)
-        ax_01 = fig.add_subplot(1, 2, 2)
-
-        # drift coefficient
-        ax_00.plot(x_1, kmc[0], "k-")
-        ax_00.set_title("$\hat{D}^{(1)}$")
-        ax_00.set_xlabel(f"PC{pcs[0]+1}")
-
-        # diffusion coefficient
-        ax_01.plot(x_1, kmc[1], "k-")
-        ax_01.set_title("$\hat{D}^{(2)}$")
-        ax_01.set_xlabel(f"PC{pcs[0]+1}")
-
-        fig.suptitle(f"Kramers-Moyal coefficients ({np.round(shear_stress,2)} dyn/cm$^2$)")
-
-        return fig, ax_00, ax_01
-    else:
-        raise ValueError("ndim must be 1 or 2")
-
-
-def plot_km_drift_2d(
-    centers: list[np.ndarray], kmc: np.ndarray, pcs: list[int], shear_stress: float
-) -> tuple:
-    """
-    Plot surfaces of Kramers-Moyal drift coefficients
-    computed in a 2D state space.
-    """
-    x_1, x_2 = np.meshgrid(*centers)
-
-    fig, ax = plt.subplots(1, 2, figsize=(14, 6))
-    ax[0].quiver(x_1, x_2, kmc[0], kmc[1], color="k", linewidth=0.5)
-    ax[0].set_xlabel(f"PC{pcs[0]+1}")
-    ax[0].set_ylabel(f"PC{pcs[1]+1}")
-
-    ax[1].streamplot(x_1, x_2, kmc[0], kmc[1], color="k", linewidth=0.5)
-    ax[1].set_xlabel(f"PC{pcs[0]+1}")
-    ax[1].set_ylabel(f"PC{pcs[1]+1}")
-    fig.suptitle(f"Kramers-Moyal drift coefficients ({np.round(shear_stress,2)} dyn/cm$^2$)")
-    return fig, ax
-
-
 def pc_loading_heatmap_workflow(
     pca_loadings_df: pd.DataFrame,
     diffae_feature_columns: list[str] = DIFFAE_FEATURE_COLUMN_NAMES,
@@ -752,7 +668,7 @@ def pc_loading_heatmap_workflow(
     annotate: bool = True,
 ) -> Figure:
     """
-    Workflow to visualize PCA loadings as a heatmap.
+    Visualize PCA loadings as a heatmap.
 
     Parameters
     ----------
@@ -767,7 +683,7 @@ def pc_loading_heatmap_workflow(
 
     Returns
     -------
-    fig_heatmap
+    :
         Figure object for the heatmap
 
     """
