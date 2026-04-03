@@ -43,9 +43,9 @@ def plot_latent_walk_as_grid(
         Directory path to save the output figure.
     file_name
         Name of the output figure file.
-    use_pcs
-        True if latent walk was performed along PC axes, False otherwise.
-    show_value
+    file_format
+        Format of the output figure file (e.g., ".png", ".svg", ".pdf").
+    show_values
         True to show the coordinate value on the image, False otherwise.
     label_sigmas
         True to label the column titles with sigma values, False to label with
