@@ -28,6 +28,10 @@ def main(
         METADATA_COLUMNS_TO_KEEP,
         RESCALE_THETA,
     )
+    from endo_pipeline.settings.flow_field_dataframes import (
+        DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+        STABILITY_COLUMN_NAME,
+    )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -47,6 +51,10 @@ def main(
     feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
+    # Get dataframe manifest for fixed point dataframes
+    fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
+    fixed_points_dataframe_manifest = load_dataframe_manifest(fixed_points_dataframe_manifest_name)
+
     # Default list of datasets if not provided. Filter by datasets available in
     # the manifest.
     dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
@@ -61,6 +69,14 @@ def main(
             logger.warning(
                 "No feature dataframe found in manifest [ %s ] for dataset [ %s ]. Skipping this dataset.",
                 feature_dataframe_manifest_name,
+                dataset_name,
+            )
+            continue
+
+        if dataset_name not in fixed_points_dataframe_manifest.locations:
+            logger.warning(
+                "No fixed points dataframe found in manifest [ %s ] for dataset [ %s ]. Skipping this dataset.",
+                fixed_points_dataframe_manifest_name,
                 dataset_name,
             )
             continue
@@ -86,6 +102,8 @@ def main(
         )
         num_trajectories = df_steady_state[ColumnName.CROP_INDEX].nunique()
 
+        fixed_points_df = load_dataframe(fixed_points_dataframe_manifest.locations[dataset_name])
+
         column_variance_df = pd.DataFrame(columns=[ColumnName.CROP_INDEX, *column_names])
         for traj_index, df_traj in df_steady_state.groupby(ColumnName.CROP_INDEX):
             for column_name in column_names:
@@ -102,17 +120,40 @@ def main(
                     )
 
         # print average and standard deviation of variance for each column across trajectories
+        mean_variance = column_variance_df[column_names].mean()
+        std_variance = column_variance_df[column_names].std()
         for column_name in column_names:
-            mean_variance = column_variance_df[column_name].mean()
-            std_variance = column_variance_df[column_name].std()
             logger.info(
                 "Dataset [ %s ]: Column [ %s ] - Mean Variance: %.4f, Std of Variance: %.4f (n = %d trajectories)",
                 dataset_name,
                 column_name,
-                mean_variance,
-                std_variance,
+                mean_variance[column_name],
+                std_variance[column_name],
                 num_trajectories,
             )
+
+        # Find the fixed points that lie within radius = mean variance for each
+        # column of eachother. (i.e, contained in ellipsoid neighborhood defined
+        # by mean variance across trajectories). Print the fixed point locations
+        # and their stability labels.
+        for fp_index, fp_row in fixed_points_df.iterrows():
+            fp_location = fp_row[column_names]
+            num_trajectories_within_radius = 0
+            for traj_index, var_row in column_variance_df.iterrows():
+                traj_variance = var_row[column_names]
+                if all((fp_location - traj_variance) <= mean_variance):
+                    num_trajectories_within_radius += 1
+
+            stability_label = fp_row[STABILITY_COLUMN_NAME]
+            logger.info(
+                "Dataset [ %s ]: Fixed Point [ %d ] - Location: %s, Stability: %s, Number of Trajectories within Mean Variance Radius: %d",
+                dataset_name,
+                fp_index,
+                fp_location.to_dict(),
+                stability_label,
+                num_trajectories_within_radius,
+            )
+
         if DEMO_MODE:
             logger.warning(
                 "DEMO MODE: Only processing first dataset [ %s ] for demonstration purposes.",
