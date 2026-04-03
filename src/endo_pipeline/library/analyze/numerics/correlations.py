@@ -7,17 +7,14 @@ from scipy.optimize import curve_fit
 
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.cross_correlations import (
+    CROSS_CORR_INDEX_COMBINATIONS,
+    MAX_LAG_INTEGRATE,
+    NUM_TIMEPOINT_FRAC,
+)
 from endo_pipeline.settings.dynamics_workflows import PERIOD_THETA_RESCALED, RESCALE_THETA
 
 logger = logging.getLogger(__name__)
-
-# include all pairs of the first three PCs and all pairs of the three polar coordinates for cross-correlation analysis
-CROSS_CORR_INDEX_COMBINATIONS = [(0, 1), (0, 2), (1, 2), (3, 4), (3, 5), (4, 5)]
-# use lags going from - to + {num_timepoints}//NUM_TIMEPOINT_FRAC for CCF/ACF calculation
-NUM_TIMEPOINT_FRAC = 3
-
-# set upper bound of integration for delta CCF integral calculation
-MAX_LAG_INTEGRATE = 5
 
 
 def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -> np.ndarray:
