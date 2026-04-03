@@ -22,9 +22,9 @@ def _initialize_figure_for_variation_analysis(n_cols: int) -> tuple[Figure, list
 
     Returns
     -------
-    fig
+    :
         The created matplotlib Figure object.
-    axs
+    :
         List of Axes objects corresponding to each subplot.
     """
     fig, ax = plt.subplots(
