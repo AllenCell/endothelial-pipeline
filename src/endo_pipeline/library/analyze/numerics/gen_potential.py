@@ -1,3 +1,5 @@
+"""Methods for computing the generalized potential and related quantities from a given drift vector field and diffusion matrix."""
+
 import numpy as np
 from scipy.integrate import simpson
 
@@ -6,8 +8,9 @@ from .fp_solvers import SteadyFP
 
 
 def gradient_flow_term(potential: np.ndarray, diffusion: np.ndarray, x: list) -> np.ndarray:
-    """
-    Compute the gradient flow term -D(x) grad(U) for a given potential U and
+    """Compute the gradient flow term.
+
+    The gradient flow term is given by -D(x) grad(U) for a given potential U and
     diagonal diffusion matrix `D =diag[D1, D2, ... , Dd]`.
 
     Parameters
@@ -21,8 +24,13 @@ def gradient_flow_term(potential: np.ndarray, diffusion: np.ndarray, x: list) ->
     x
         List of arrays [x1,x2,..xd] that correspond to the grid points in each
         dimension.
-    """
 
+    Returns
+    -------
+    :
+        Gradient flow term -D(x) grad(U) evaluated on a d-D grid (d x n1 x n2 x ... x nd array).
+
+    """
     d = len(x)  # number of dimensions
     dx = [x[i][1] - x[i][0] for i in range(d)]  # grid spacing
 
@@ -46,8 +54,7 @@ def compute_flux_terms(
     dx: list,
     additive_noise: bool,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Compute the terms needed for the stationary probability flux.
+    """Compute the terms needed for the stationary probability flux.
 
     The probability flux term is given by
 
@@ -76,8 +83,17 @@ def compute_flux_terms(
         List of grid spacing in each dimension
     additive_noise
         If True, assume additive noise (default), else multiplicative noise - if additive noise, div(D) = 0, as D is constant
-    """
 
+    Returns
+    -------
+    :
+        f(x)P(x) evaluated on a d-D grid (d x n1 x n2 x ... x nd array)
+    :
+        div(D(x)) * P evaluated on a d-D grid (d x n1 x n2 x ... x nd array)
+    :
+        D(x) grad(P) evaluated on a d-D grid (d x n1 x n2 x ... x nd array)
+
+    """
     d = len(dx)  # number of dimensions
 
     f_p = np.zeros_like(drift)  # initialize array to store f(x)P(x)
@@ -114,9 +130,7 @@ def probability_flux(
     x: list,
     additive_noise: bool,
 ) -> np.ndarray:
-    """
-    Compute the probability flux term.
-
+    """Compute the probability flux term.
 
     The probability flux term is given by
 
@@ -143,8 +157,13 @@ def probability_flux(
     additive_noise
         If True, assume additive noise (default), else multiplicative noise - if
         additive noise, div(D) = 0, as D is constant
-    """
 
+    Returns
+    -------
+    :
+        Probability flux term J(x) evaluated on a d-D grid (d x n1 x n2 x ... x nd array)
+
+    """
     d = len(x)  # number of dimensions
     dx = [x[i][1] - x[i][0] for i in range(d)]  # grid spacing
 
@@ -164,8 +183,7 @@ def grad_flux_decomposition(
     additive_noise: bool,
     tol: float = 1e-8,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Compute the gradient/flux decomposition.
+    """Compute the gradient/flux decomposition.
 
     The gradient/flux decomposition of the drift vector field f(x) for
     stochastic dynamics with diagonal diffusion matrix D(x) is given by
@@ -204,8 +222,8 @@ def grad_flux_decomposition(
         Diffusion geometry term div(D(x)) evaluated on a d-D grid.
     :
         Flux term (f(x)P(x) - div(D(x) P(x)))/P(x) evaluated on a d-D grid.
-    """
 
+    """
     d = len(x)
     dx = [x[i][1] - x[i][0] for i in range(d)]
     num_bins = [len(x[i]) for i in range(d)]
@@ -249,8 +267,7 @@ def entropy_production(
     x: list,
     additive_noise: bool,
 ) -> float:
-    """
-    Compute the entropy production rate.
+    """Compute the entropy production rate.
 
     For a given stationary probability P(x) via the Fokker-Planck equation with
     drift vector field f(x) and diffusion matrix D(x), the entropy production
@@ -285,8 +302,13 @@ def entropy_production(
     additive_noise
         If True, assume additive noise (default), else multiplicative noise - if
         additive noise, div(D) = 0, as D is constant.
-    """
 
+    Returns
+    -------
+    :
+        Entropy production rate (scalar)
+
+    """
     flux = probability_flux(
         p, drift, diffusion, x, additive_noise
     )  # compute probability flux term J(x) = f(x)P(x) - div(D(x) P(x))
