@@ -277,14 +277,15 @@ def _get_index_from_value(val: float, bin_edges_1d: np.ndarray) -> int:
     **Example usage:**
 
     .. code-block:: python
+
+        # example: dim 1 = 0.2 falls in the first bin of
+        # the bin edges for dim 1: [0, 0.5]
+
         val = 0.2
 
         bin_edges = np.array([0, 0.5, 1])
 
         _get_index_from_value(val, bin_edges_1d) = 0
-
-        # i.e., dim 1 = 0.2 falls in the first bin of # the bin edges for dim 1:
-        # [0, 0.5]
 
     Parameters
     ----------
@@ -329,15 +330,11 @@ def get_df_by_bin_value(
         df = pd.DataFrame({'bin_0': [0, 1, 0], 'bin_1': [1, 1, 2]}) pc_axis = 0
         pc_val = 0.2 bin_edges = np.array([0, 0.5, 1])
 
-        _get_index_from_value(latent_val, bin_edges) = 0 # looking for 'bin_0'
-        == 0
+        # should be == 0
+        _get_index_from_value(latent_val, bin_edges) = 0
 
         get_df_by_bin_value(df, latent_dim, latent_val) = pd.DataFrame({'bin_0':
         [0, 0], 'bin_1': [1, 2]})
-
-        # i.e., the dataframe is filtered to only include rows where
-        # bin_{latent_dim} is equal to the bin index that contains the latent
-        # value.
 
     Parameters
     ----------
