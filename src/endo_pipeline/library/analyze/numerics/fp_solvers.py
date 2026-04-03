@@ -1,3 +1,5 @@
+"""Stationary Fokker-Planck solver class ."""
+
 import logging
 from time import time
 
@@ -6,14 +8,11 @@ import torch
 import torch.linalg as tla
 from numpy.fft import fftfreq, fftn, ifftn
 
-from endo_pipeline.cli import NUM_GPUS
-
 logger = logging.getLogger(__name__)
 
 
 class SteadyFP:
-    """
-    Solve the steady-state Fokker-Planck equation using Fourier-Galerkin method.
+    """Solve the steady-state Fokker-Planck equation using Fourier-Galerkin method.
 
     This class defines a solver object for steady-state Fokker-Planck
     equation in 1D or 2D, solving using Fourier-Galerkin method.
@@ -24,8 +23,7 @@ class SteadyFP:
     """
 
     def __init__(self, n: list, dx: list) -> None:
-        """
-        Initialize the stationary Fokker Planck solver `SteadyFP` object.
+        """Initialize the stationary Fokker Planck solver `SteadyFP` object.
 
         Parameters
         ----------
@@ -33,10 +31,15 @@ class SteadyFP:
             Number of grid points in each dimension.
         dx
             Grid spacing in each dimension.
-        """
 
+        Returns
+        -------
+        :
+            Initialized `SteadyFP` solver object.
+
+        """
         # set device to GPU if available, otherwise use CPU
-        self.device = torch.device("cuda:0" if NUM_GPUS is not None else "cpu")
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
         # set number of dimensions ndim based on input n
         # (number of grid points in each dimension)
@@ -70,8 +73,7 @@ class SteadyFP:
         # initialize as dummy array for now
 
     def compute_operator(self, drift: np.ndarray, diffusion: np.ndarray) -> np.ndarray:
-        """
-        Precompute the operator matrix for the linear system of equations.
+        """Precompute the operator matrix for the linear system of equations.
 
         This method computes the Fourier transform of the drift and diffusion
         coefficients and sets up the operator matrix for the linear system.
@@ -90,8 +92,8 @@ class SteadyFP:
         :
             Operator matrix for the linear system of equations (shape depends on
             number of dimensions and grid resolution).
-        """
 
+        """
         if self.d == 1:
             # Initialize Fourier transformed coefficients
             drift_hat = self.dx[0] * fftn(drift)
@@ -131,9 +133,7 @@ class SteadyFP:
         return operator_matrix
 
     def solve(self, drift: np.ndarray, diffusion: np.ndarray) -> np.ndarray:
-        """
-        Solve stationary Fokker-Planck equation from input drift and diffusion
-        coefficients.
+        """Solve stationary Fokker-Planck equation from input drift and diffusion coefficients.
 
         This method uses a Fourier-Galerkin method: derive and solve an
         inhomogeneous linear system of equations using the Fourier transform of
@@ -163,8 +163,8 @@ class SteadyFP:
         :
             Stationary probability density evaluated on d-dimensional grid (same
             shape as input drift and diffusion coefficients).
-        """
 
+        """
         start_fp_op = time()
         operator_matrix = self.compute_operator(drift, diffusion)
         logger.debug("Computing Fokker-Planck operator time: %s seconds", time() - start_fp_op)
