@@ -143,7 +143,7 @@ def filter_dataframe_to_steady_state(
     dataframe: pd.DataFrame, dataset_config: DatasetConfig
 ) -> pd.DataFrame:
     """
-    Filter dataframe to only include timepoints "steady state" timepoints.
+    Filter dataframe to only include "steady state" timepoints.
 
     Filtering is done by removing timepoints that are annotated as
     NOT_STEADY_STATE in the dataset config.
