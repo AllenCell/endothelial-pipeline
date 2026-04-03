@@ -12,11 +12,12 @@ class GradientLoggingCallback(Callback):
     optionally grouped by dot-separated name levels, and logging occurs every
     `log_every_n_steps` steps on the rank zero process only.
 
-    Args:
-        grouping_level (int): Number of dot-separated levels to use for grouping parameter names.
-                              Use -1 to log each parameter individually.
-        log_every_n_steps (int): Number of steps between each logging event.
-
+    Parameters
+    ----------
+    grouping_level
+        Number of dot-separated levels to use for grouping parameter names.
+    log_every_n_steps
+        Number of steps between each logging event.
     """
 
     def __init__(self, grouping_level: int = 2, log_every_n_steps: int = 50):
