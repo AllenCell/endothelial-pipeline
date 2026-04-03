@@ -63,6 +63,10 @@ def main(
     bin_limits_dict = BIN_LIMITS_DYNAMICS.copy()
     if RESCALE_THETA:
         bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
+    polar_angle_period = (
+        bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][1]
+        - bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][0]
+    )
 
     for dataset_name in dataset_names:
         if dataset_name not in feature_dataframe_manifest.locations:
@@ -144,9 +148,24 @@ def main(
             for cluster_index, cluster_members in fpt_clusters.items():
                 # compare to first member of cluster
                 cluster_member_location = cluster_members[0]["location"]
+                # need to unwrap polar angle to compute distance correctly, so
+                # we will compute the distance for each column separately and
+                distances = {}
+                for column_name in column_names:
+                    if column_name == ColumnName.DiffAEData.POLAR_ANGLE:
+                        unwrapped_fp_angle = np.unwrap(
+                            [fp_location[column_name], cluster_member_location[column_name]],
+                            period=polar_angle_period,
+                        )[0]
+                        distances[column_name] = abs(
+                            unwrapped_fp_angle - cluster_member_location[column_name]
+                        )
+                    else:
+                        distances[column_name] = abs(
+                            fp_location[column_name] - cluster_member_location[column_name]
+                        )
                 if all(
-                    abs(fp_location[column_name] - cluster_member_location[column_name])
-                    <= mean_standard_dev[column_name]
+                    distances[column_name] <= mean_standard_dev[column_name]
                     for column_name in column_names
                 ):
                     # if fixed point is within mean standard deviation radius of cluster
