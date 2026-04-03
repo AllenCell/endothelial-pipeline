@@ -1,3 +1,5 @@
+"""Module for plotting phase portraits of 2D systems of ODEs."""
+
 import logging
 import re
 from collections.abc import Callable, Sequence, Sized
@@ -21,8 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_trajectories(my_system: Callable, t_vec: np.ndarray, inits: list[tuple]) -> dict:
-    """
-    Get trajectory solutions of a given system of ODEs.
+    """Get trajectory solutions of a given system of ODEs.
 
     **Method output structure**
 
@@ -39,6 +40,11 @@ def get_trajectories(my_system: Callable, t_vec: np.ndarray, inits: list[tuple])
         Array of time points at which to evaluate the solution.
     inits
         List of initial conditions for the system of ODEs.
+
+    Returns
+    -------
+    :
+        Dictionary storing the resulting trajectories.
     """
     trajectory = {}
     for j, ic in enumerate(inits):
@@ -49,8 +55,7 @@ def get_trajectories(my_system: Callable, t_vec: np.ndarray, inits: list[tuple])
 
 
 def plot_trajectories(trajectory: dict, inits: list[tuple]) -> None:
-    """
-    Plot trajectory solutions of a system of ODEs.
+    """Plot trajectory solutions of a system of ODEs.
 
     Parameters
     ----------
@@ -59,16 +64,15 @@ def plot_trajectories(trajectory: dict, inits: list[tuple]) -> None:
         solution.
     inits
         List of initial conditions.
-    """
 
+    """
     for j, ic in enumerate(inits):
         plt.plot(ic[0], ic[1], "bx", markersize=8)
         plt.plot(trajectory[j][0, :], trajectory[j][1, :], "b-", linewidth=2.25)
 
 
 def findroot(func: Callable, init: float | Sized) -> np.ndarray:
-    """
-    Find root of nonlinear equation f(x)=0.
+    """Find root of nonlinear equation f(x)=0.
 
     **Initial guess for root finding**
 
@@ -90,6 +94,12 @@ def findroot(func: Callable, init: float | Sized) -> np.ndarray:
         Function to find root of.
     init
         Initial guess for the root solver.
+
+    Returns
+    -------
+    :
+        Numpy array containing the root if converged, or NaN array if not converged.
+
     """
     sol, _, convergence, _ = fsolve(func, init, full_output=1, xtol=1e-12)
     # if converged, return solution
@@ -103,8 +113,7 @@ def findroot(func: Callable, init: float | Sized) -> np.ndarray:
 
 
 def get_fpts(my_flow: Callable, inits: list[tuple] | list[np.ndarray]) -> list[np.ndarray]:
-    """
-    Get a list of unique fixed points of the system of ODEs.
+    """Get a list of unique fixed points of the system of ODEs.
 
     This function works by numerically finding roots of the function my_flow
     starting from the initial conditions in inits, using the function findroot.
@@ -123,6 +132,12 @@ def get_fpts(my_flow: Callable, inits: list[tuple] | list[np.ndarray]) -> list[n
         Callable function to find the fixed points of.
     inits
         List of initial conditions for root finding.
+
+    Returns
+    -------
+    :
+        List of unique fixed points.
+
     """
     fpts = []
     # find each of the fixed points near the starting
@@ -141,8 +156,7 @@ def get_fpts(my_flow: Callable, inits: list[tuple] | list[np.ndarray]) -> list[n
 
 
 def get_fpt_type(jacobian: np.ndarray) -> str:
-    """
-    Classify the type of a fixed point given the Jacobian matrix at that point.
+    """Classify the type of a fixed point given the Jacobian matrix at that point.
 
     The point is classified as follows:
         - stable: all eigenvalues have negative real part
@@ -160,6 +174,13 @@ def get_fpt_type(jacobian: np.ndarray) -> str:
     jacobian
         Square matrix representing the Jacobian of the system at the fixed
         point.
+
+    Returns
+    -------
+    :
+        String describing the type of fixed point, including its stability
+        and whether it is a node or spiral (if applicable).
+
     """
     # get eigenvalues of the Jacobian
     eigvals = np.linalg.eigvals(jacobian)
@@ -194,8 +215,12 @@ def get_fpt_type(jacobian: np.ndarray) -> str:
 
 
 def get_stability_label_from_fpt_type(fpt_type: str) -> str:
-    """
-    Get the stability label from the fixed point type string.
+    """Get the stability label from the fixed point type string.
+
+    Parses the input string to find the first word that matches one of the stability
+    labels defined in the StabilityLabel enum (e.g., "stable", "unstable", "saddle",
+    "indeterminate"). If a match is found, it returns that stability label. If no
+    match is found, it returns "unknown".
 
     Parameters
     ----------
@@ -206,6 +231,7 @@ def get_stability_label_from_fpt_type(fpt_type: str) -> str:
     -------
     :
         String describing just the stability of the fixed point.
+
     """
     # use re.match so matching is case-insensitive (re.IGNORECASE) and
     # anchored to the start of the string; the word boundary (\b) prevents a
@@ -224,10 +250,7 @@ def classify_fps(
     unique: bool = True,
     ax_in: plt.Axes | None = None,
 ) -> tuple[list[str], list[tuple[Any, ...] | np.ndarray[Any, Any]], plt.Axes]:
-    """
-    Classify fixed points of a given system of ODEs.
-
-    To do: can break this function up into smaller functions.
+    """Classify fixed points of a given system of ODEs.
 
     Parameters
     ----------
@@ -245,6 +268,15 @@ def classify_fps(
     ax_in
         Matplotlib axes object to plot the fixed points on. If None, no plotting
         will be done.
+
+    Returns
+    -------
+    :
+        Tuple containing:
+        - List of stability labels for the fixed points (unique if unique=True).
+        - List of fixed points that are in bounds of the plot.
+        - Matplotlib axes object with the fixed points plotted (if ax_in is not None).
+
     """
     fpts_new = []
     fpt_stabilities = []
@@ -318,8 +350,7 @@ def plot_null(
     x2: np.ndarray,
     params: dict | None = None,
 ) -> plt.Axes:
-    """
-    Plot the nullclines of a system of ODEs given by f1 and f2.
+    """Plot the nullclines of a system of ODEs given by f1 and f2.
 
     Only implemented for 2D systems.
 
@@ -338,6 +369,12 @@ def plot_null(
     params
         Optional dictionary of parameters to pass to f1 and f2 if they are
         functions of parameters as well as x1 and x2.
+
+    Returns
+    -------
+    :
+        Axes object with the nullclines plotted.
+
     """
     x_1, x_2 = np.meshgrid(x1, x2)
     if params is None:
@@ -363,8 +400,7 @@ def plot_null(
 
 
 def plot_flow(ax: plt.Axes, my_flow: Callable, x: list[np.ndarray], num_grid: int = 15) -> plt.Axes:
-    """
-    Plot flow field of a given system of ODEs.
+    """Plot flow field of a given system of ODEs.
 
     Parameters
     ----------
@@ -379,6 +415,12 @@ def plot_flow(ax: plt.Axes, my_flow: Callable, x: list[np.ndarray], num_grid: in
     num_grid
         Number of grid points to use in each dimension for plotting the flow
         field.
+
+    Returns
+    -------
+    :
+        Axes object with the flow field plotted.
+
     """
     # unpack x into x1 and x2
     x1 = x[0]
@@ -406,8 +448,7 @@ def make_legend_handles_for_fixed_pts(
     marker_size: int = 10,
     edge_color: str = "black",
 ) -> list[StabilityLegendHandle]:
-    """
-    Make a custom legend for the fixed point types, nullclines and trajectories.
+    """Make a custom legend for the fixed point types, nullclines and trajectories.
 
     Purpose of this method is to create a legend that only includes the fixed
     point types that are present in the plot, since the number and type of fixed
@@ -423,6 +464,8 @@ def make_legend_handles_for_fixed_pts(
         Dictionary mapping stability labels to face colors.
     marker_dict
         Dictionary mapping stability labels to marker styles.
+    marker_size
+        Size of the markers for the legend handles.
     edge_color
         Color of the marker edges.
 
@@ -431,6 +474,7 @@ def make_legend_handles_for_fixed_pts(
     :
         List of StabilityLegendHandle objects representing the legend handles
         for the fixed point types.
+
     """
     my_handles = []
     # get legend handles for the fixed point types that are present in given
@@ -464,8 +508,7 @@ def phase_portrait(
     params: dict | None = None,
     nullclines: bool = True,
 ) -> tuple[plt.Figure, plt.Axes]:
-    """
-    Plot the phase portrait of a system of ODEs given by f1 and f2.
+    """Plot the phase portrait of a system of ODEs given by f1 and f2.
 
     Parameters
     ----------
@@ -478,19 +521,31 @@ def phase_portrait(
     x2
         Array of x2 values to use for plotting the phase portrait.
     fig_ax
-        Tuple of (figure, axes) to plot on. If None, a new figure and axes will be created.
+        Tuple of (figure, axes) to plot on. If None, a new figure
+        and axes will be created.
     inits
-        List of initial conditions to plot trajectories from. If None, no trajectories will be plotted.
+        List of initial conditions to plot trajectories from. If None,
+          no trajectories will be plotted.
     t_vec
-        Array of time points to use for plotting trajectories. If None, a default time vector will be used.
+        Array of time points to use for plotting trajectories. If None,
+        a default time vector will be used.
     n1_coarse
-        Number of grid points to use in the x1 direction for finding fixed points.
+        Number of grid points to use in the x1 direction for finding
+        fixed points.
     n2_coarse
-        Number of grid points to use in the x2 direction for finding fixed points. If None, the same number of points as n1_coarse will be used.
+        Number of grid points to use in the x2 direction for finding
+        fixed points. If None, the same number of points as n1_coarse is used.
     params
-        Optional dictionary of parameters to pass to f1 and f2 if they are functions of parameters as well as x1 and x2.
+        Optional dictionary of parameters to pass to f1 and f2 if they are
+        functions of parameters as well as x1 and x2.
     nullclines
         If True, nullclines will be plotted. If False, they will not be plotted.
+
+    Returns
+    -------
+    :
+        Matplotlib Figure and Axes objects with the phase portrait plotted.
+
     """
 
     # define function x' = [f1(x),f2(x)] for rest
