@@ -38,9 +38,7 @@ from endo_pipeline.settings.flow_field_dataframes import (
 from endo_pipeline.settings.migration_coherence import (
     MIGRATION_COHERENCE_COLORMAP,
     MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
-    MIGRATION_COHERENCE_HIST_BINWIDTH,
     MIGRATION_COHERENCE_HIST_FIGSIZE,
-    MIGRATION_COHERENCE_HIST_NUM_BINS,
     MIGRATION_COHERENCE_HIST_PLOT_KDE,
 )
 
@@ -376,7 +374,7 @@ def plot_fixed_points_vs_shear_stress(
             f"{d} ({df_fp.loc[df_fp['dataset'] == d, 'shear_stress_numeric'].iloc[0]})"
             for d in unique_datasets
         ]
-        fig_width = len(unique_datasets) * 0.5
+        fig_width = len(unique_datasets) * 1.2
     else:
         # Numeric x-axis: position by shear stress value
         row_to_x = lambda row: row["shear_stress_numeric"]  # noqa: E731
@@ -482,12 +480,16 @@ def plot_optical_flow_histogram(
     std = data.std()
     cov = std / mean
 
+    if "unit_vector" in optical_flow_feature:
+        binwidth = 0.02
+    if "speed" in optical_flow_feature:
+        binwidth = 0.2
+
     fig, ax = plt.subplots(figsize=MIGRATION_COHERENCE_HIST_FIGSIZE)
     sns.histplot(
         data,
-        bins=MIGRATION_COHERENCE_HIST_NUM_BINS,
         kde=MIGRATION_COHERENCE_HIST_PLOT_KDE,
-        binwidth=MIGRATION_COHERENCE_HIST_BINWIDTH,
+        binwidth=binwidth,
         ax=ax,
         color=color,
     )
@@ -528,6 +530,10 @@ def plot_optical_flow_histogram(
         filename = f"{filename}_with_fixed_points" if df_fp is not None else filename
 
     ax.set_xlabel(optical_flow_feature)
+    if optical_flow_feature == "optical_flow_mean_speed_dt1":
+        ax.set_xlim(0, 10)
+    if optical_flow_feature == "ema01_optical_flow_mean_unit_vector_dt1":
+        ax.set_xlim(0, 1)
     ax.set_ylabel("Count")
     ax.set_title(title)
     fig.tight_layout()

@@ -3,7 +3,7 @@ from endo_pipeline.cli import Datasets
 
 def main(
     datasets: Datasets | None = None,
-    optical_flow_feature: str = "ema01_optical_flow_mean_unit_vector_dt1",
+    optical_flow_feature: str = "optical_flow_mean_speed_dt1",
     plot_fixed_points: bool = True,
     skip_individual_plots: bool = False,
 ) -> None:
@@ -85,7 +85,7 @@ def main(
         fixed_points_dataframe_manifest=fixed_points_dataframe_manifest,
         output_dir=get_output_path(__file__),
         plot_fixed_points=plot_fixed_points,
-        by_dataset=False,
+        by_dataset=True,
     )
 
     if not skip_individual_plots:
@@ -186,10 +186,16 @@ def main(
                     figure_filename = (
                         f"{dataset_name_flow}_{x_col}_vs_{y_col}_colored_by_{optical_flow_feature}"
                     )
+                    if "unit_vector" in optical_flow_feature:
+                        vmax = 1
+                    if "speed" in optical_flow_feature:
+                        vmax = 10
                     fig, axs = plot_scatter_and_binned_heatmap(
                         df=df_flow,
                         x_col=x_col,
                         y_col=y_col,
+                        vmin=0,
+                        vmax=vmax,
                         color_col=optical_flow_feature,
                     )
                     plt.suptitle(plot_label)
