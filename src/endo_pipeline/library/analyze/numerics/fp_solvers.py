@@ -36,7 +36,7 @@ class SteadyFP:
         """
 
         # set device to GPU if available, otherwise use CPU
-        self.device = torch.device("cuda:0" if NUM_GPUS > 0 else "cpu")
+        self.device = torch.device("cuda:0" if NUM_GPUS is not None else "cpu")
 
         # set number of dimensions ndim based on input n
         # (number of grid points in each dimension)
