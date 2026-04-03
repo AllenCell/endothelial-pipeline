@@ -177,6 +177,11 @@ def main(
                     df_fp=fp_for_feature,
                 )
 
+                if "unit_vector" in optical_flow_feature:
+                    vmax = 1
+                if "speed" in optical_flow_feature:
+                    vmax = 10
+
                 # --- 2D plots ---
                 for x_col, y_col in [
                     (ColumnName.DiffAEData.POLAR_RADIUS, ColumnName.DiffAEData.POLAR_ANGLE),
@@ -186,10 +191,6 @@ def main(
                     figure_filename = (
                         f"{dataset_name_flow}_{x_col}_vs_{y_col}_colored_by_{optical_flow_feature}"
                     )
-                    if "unit_vector" in optical_flow_feature:
-                        vmax = 1
-                    if "speed" in optical_flow_feature:
-                        vmax = 10
                     fig, axs = plot_scatter_and_binned_heatmap(
                         df=df_flow,
                         x_col=x_col,
@@ -252,6 +253,7 @@ def main(
                     color_col=optical_flow_feature,
                     df_fp=fp_for_feature,
                     binned=False,
+                    vmax=vmax,
                 )
                 ax.set_title(plot_label, loc="left")
                 save_plot_to_path(
@@ -270,6 +272,7 @@ def main(
                     color_col=optical_flow_feature,
                     df_fp=fp_for_feature,
                     binned=True,
+                    vmax=vmax,
                 )
                 ax.set_title(plot_label, loc="left")
                 save_plot_to_path(
