@@ -473,7 +473,7 @@ def overlay_trajectory_heatmap_on_flowfield(
                 bins[plot_dim[j]][0],
                 bins[plot_dim[j]][-1],
             ),
-            cmap="viridis",
+            cmap="binary",
             aspect="auto",
             origin="lower",
             zorder=-1,

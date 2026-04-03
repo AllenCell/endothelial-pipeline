@@ -656,6 +656,9 @@ def get_flow_field_and_fixed_points(
 
     """
 
+    if column_names is None:
+        column_names = list(DYNAMICS_COLUMN_NAMES)
+
     base_name = f"{model_manifest_name}_{run_name}_grid"
     fixed_points_df_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
     fixed_points_df_manifest = load_dataframe_manifest(fixed_points_df_manifest_name)

@@ -628,16 +628,14 @@ def get_drift_flow_field_as_dict(
     """
     # restructure the flow field dataframe into a flow field dictionary
     ndim = len(column_names)
-    flow_field_column_names = [f"{name}_drift" for name in column_names]
 
-    grid_points_1d = [
-        np.sort(flow_field_dataframe[col].unique()) for col in flow_field_column_names
-    ]
+    grid_points_1d = [np.sort(flow_field_dataframe[col].unique()) for col in column_names]
     grid_shape = tuple(len(points) for points in grid_points_1d)
     grid = np.meshgrid(*grid_points_1d, indexing="ij")
 
     # unpack drift values from dataframe and reshape to grid shape for flow
     # field visualization and ODE solving
+    flow_field_column_names = [f"{name}_drift" for name in column_names]
     drift_values = (
         flow_field_dataframe[flow_field_column_names].to_numpy().reshape(*grid_shape, ndim)
     )

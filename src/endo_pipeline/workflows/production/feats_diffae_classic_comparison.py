@@ -9,7 +9,7 @@ def main(
     datasets: Datasets | None = None,
     positions: list[int] | None = None,
     track_ids_to_overlay: UniqueIntList | None = None,
-    track_integrations_only: bool = False,
+    make_trajectory_summary_plots: bool = True,
     use_global_pc_lims: bool = False,
     for_figures: bool = False,
     n_cores: int = 30,
@@ -108,6 +108,7 @@ def main(
             run_name=DEFAULT_MODEL_RUN_NAME,
         )
 
+        # Define some initial parameters for plotting
         # save plots of the track-based crop trajectories and PCs overlaid
         # on the flow field and trajectories from the grid-based crops
         figure_format: Literal[".png", ".svg", ".pdf"] = ".pdf" if for_figures else ".png"
@@ -138,10 +139,9 @@ def main(
             FeatureLimitsPair(Column.SegData.ECCENTRICITY, (0.0, 1.0)),
         )
 
-        if not track_integrations_only:
-            # plot just the flow field (used for validation with the workflow
-            # visualize_3d_flow_field.py that this one is based on)
-            # plot slices at mean of data at last time point
+        # Make trajectory summary plots, if desired
+        if make_trajectory_summary_plots:
+            # slice the flow field at fixed points and plot those slices
             for i, fp_row in fixed_points_df.iterrows():
                 flow_field_slices = (
                     fp_row[dynamics_columns[2]],
@@ -152,6 +152,9 @@ def main(
                     fp_row[list(map(str, dynamics_columns))].drop(index=[dynamics_columns[1]]),
                 )
 
+                # plot just the flow field (used for validation with the workflow
+                # visualize_3d_flow_field.py that this one is based on)
+                # plot base flow field
                 fig, axs = plot_quiver_slices_from_flow_field_dict(
                     dataset_name=dataset_name,
                     flow_field_dict_grids=flow_field_dict_grids,
@@ -201,9 +204,9 @@ def main(
                         show_plot=False,
                         figure_format=figure_format,
                     )
+
                 # plot trajectory heatmap (indicates where most of the data is in PC-space)
                 bin_widths = get_flow_field_estimation_bin_widths(column_names=dynamics_columns)
-
                 overlay_trajectory_heatmap_on_flowfield(
                     out_dir=out_subdir_heatmap,
                     dataset_name=dataset_name,
