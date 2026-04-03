@@ -8,7 +8,7 @@ def main(
 
     import numpy as np
     import pandas as pd
-    from scipy.stats import circvar
+    from scipy.stats import circstd
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import (
@@ -100,71 +100,92 @@ def main(
             load_dataset_config(dataset_name),
             timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
         )
-        num_trajectories = df_steady_state[ColumnName.CROP_INDEX].nunique()
 
         fixed_points_df = load_dataframe(fixed_points_dataframe_manifest.locations[dataset_name])
 
-        column_variance_df = pd.DataFrame(columns=[ColumnName.CROP_INDEX, *column_names])
+        column_standard_dev_df = pd.DataFrame(columns=[ColumnName.CROP_INDEX, *column_names])
         for traj_index, df_traj in df_steady_state.groupby(ColumnName.CROP_INDEX):
             for column_name in column_names:
                 if column_name == ColumnName.DiffAEData.POLAR_ANGLE:
-                    # take circular variance for polar angle to account for periodicity
-                    column_variance_df.loc[traj_index, column_name] = circvar(
+                    # take circular standard deviation for polar angle to account for periodicity
+                    column_standard_dev_df.loc[traj_index, column_name] = circstd(
                         df_traj[column_name],
                         high=bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][1],
                         low=bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][0],
                     )
                 else:
-                    column_variance_df.loc[traj_index, column_name] = np.nanvar(
+                    column_standard_dev_df.loc[traj_index, column_name] = np.nanstd(
                         df_traj[column_name]
                     )
 
-        # print average and standard deviation of variance for each column across trajectories
-        mean_variance = column_variance_df[column_names].mean()
-        std_variance = column_variance_df[column_names].std()
-        for column_name in column_names:
-            logger.info(
-                "Dataset [ %s ]: Column [ %s ] - Mean Variance: %.4f, Std of Variance: %.4f (n = %d trajectories)",
-                dataset_name,
-                column_name,
-                mean_variance[column_name],
-                std_variance[column_name],
-                num_trajectories,
-            )
+        # Take average of standard deviation for each column across trajectories
+        mean_standard_dev = column_standard_dev_df[column_names].mean()
 
-        # Find the fixed points that lie within radius = mean variance for each
+        # Find the fixed points that lie within radius = mean standard deviation for each
         # column of eachother. (i.e, contained in ellipsoid neighborhood defined
-        # by mean variance across trajectories). Print the fixed point locations
-        # and their stability labels.
+        # by mean standard deviation across trajectories). Cluster these together and
+        # count the number of fixed points in each cluster.
+
+        # Init dict to hold clusters of fixed points, where key is cluster index
+        # and value is list of dicts with keys "location" (pd.Series) and "stability" (str)
+        # representing the fixed points in that cluster. We will use a simple clustering
+        # approach where we iterate through each fixed point and compare to every other
+        # fixed point to see if they are within the mean standard deviation radius of each other
+        # for all columns. If they are, we will assign them to the same cluster.
+        fpt_clusters: dict[int, list[dict[str, pd.Series | str]]] = {}
         for fp_index, fp_row in fixed_points_df.iterrows():
             fp_location = fp_row[column_names]
-            num_trajectories_within_radius = 0
-            for fp_index_other, fp_row_other in fixed_points_df.iterrows():
-                if fp_index_other == fp_index:
-                    continue
-                fp_location_other = fp_row_other[column_names]
-                within_radius = True
-                for column_name in column_names:
-                    variance_radius = mean_variance[column_name]
-                    if (
-                        abs(fp_location[column_name] - fp_location_other[column_name])
-                        > variance_radius
-                    ):
-                        within_radius = False
-                        break
-                if within_radius:
-                    num_trajectories_within_radius += 1
+            fp_stability = fp_row[STABILITY_COLUMN_NAME]
+            assigned_cluster = False
+            if fp_index == 0:
+                # assign first fixed point to first cluster
+                fpt_clusters[0] = [{"location": fp_location, "stability": fp_stability}]
+                continue
+            for cluster_index, cluster_members in fpt_clusters.items():
+                # compare to first member of cluster
+                cluster_member_location = cluster_members[0]["location"]
+                if all(
+                    abs(fp_location[column_name] - cluster_member_location[column_name])
+                    <= mean_standard_dev[column_name]
+                    for column_name in column_names
+                ):
+                    # if fixed point is within mean standard deviation radius of cluster
+                    # member for all columns, assign to this cluster
+                    fpt_clusters[cluster_index].append(
+                        {"location": fp_location, "stability": fp_stability}
+                    )
+                    assigned_cluster = True
+                    break
+            if not assigned_cluster:
+                # if fixed point was not assigned to any existing cluster,
+                # create a new cluster
+                new_cluster_index = max(fpt_clusters.keys()) + 1
+                fpt_clusters[new_cluster_index] = [
+                    {"location": fp_location, "stability": fp_stability}
+                ]
 
-            stability_label = fp_row[STABILITY_COLUMN_NAME]
+        # print summary of clusters for this dataset
+        logger.info(
+            "Dataset [ %s ]: Found [ %d ] clusters of fixed points within mean standard deviation radius across trajectories.",
+            dataset_name,
+            len(fpt_clusters),
+        )
+        for cluster_index, cluster_members in fpt_clusters.items():
+            num_members = len(cluster_members)
+            stability_counts = pd.Series(
+                [member["stability"] for member in cluster_members]
+            ).value_counts()
             logger.info(
-                "Dataset [ %s ]: Fixed Point [ %d ] - Location: %s, Stability: %s, Number of Trajectories within Mean Variance Radius: %d",
-                dataset_name,
-                fp_index,
-                fp_location.to_dict(),
-                stability_label,
-                num_trajectories_within_radius,
+                "Cluster [ %d ]: [ %d ] fixed points. Stability counts: [ %s ].",
+                cluster_index,
+                num_members,
+                stability_counts.to_dict(),
             )
-
+            logger.info(
+                "Cluster [ %d ]: Locations of fixed points in cluster:\n[ %s ]",
+                cluster_index,
+                pd.DataFrame([member["location"] for member in cluster_members]),
+            )
         if DEMO_MODE:
             logger.warning(
                 "DEMO MODE: Only processing first dataset [ %s ] for demonstration purposes.",
