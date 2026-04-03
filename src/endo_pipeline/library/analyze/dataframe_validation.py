@@ -14,8 +14,9 @@ def check_required_columns_in_dataframe(
     df: pd.DataFrame,
     required_columns: list[str],
 ) -> None:
-    """
-    Check that required columns are present in a given dataframe.
+    """Check that required columns are present in a given dataframe.
+
+    Raises a ValueError if any required column is missing.
 
     Parameters
     ----------
@@ -23,8 +24,8 @@ def check_required_columns_in_dataframe(
         DataFrame to check.
     required_columns
         List of required column names to check for.
-    """
 
+    """
     for col in required_columns:
         if col not in df.columns:
             logger.error("DataFrame must contain column [ %s ]", col)
@@ -32,8 +33,7 @@ def check_required_columns_in_dataframe(
 
 
 def check_dataframe_has_single_dataset(dataframe: pd.DataFrame) -> None:
-    """
-    Check that a given dataframe is restricted to a single dataset.
+    """Check that a given dataframe is restricted to a single dataset.
 
     This is done by checking that the column Column.DATASET contains only one
     unique value. If there are multiple unique values in the Column.DATASET
@@ -43,6 +43,7 @@ def check_dataframe_has_single_dataset(dataframe: pd.DataFrame) -> None:
     ----------
     dataframe
         DataFrame to check.
+
     """
     # first check that Column.DATASET is present in the dataframe
     check_required_columns_in_dataframe(dataframe, [Column.DATASET])
@@ -57,9 +58,7 @@ def check_dataframe_dataset_matches_dataset_config(
     dataframe: pd.DataFrame,
     dataset_config: DatasetConfig,
 ) -> None:
-    """
-    Check that the dataset name in a given dataframe matches the dataset name in
-    a given dataset config.
+    """Check that the dataset name in a given dataframe matches that of a given dataset config.
 
     Parameters
     ----------
@@ -67,6 +66,7 @@ def check_dataframe_dataset_matches_dataset_config(
         DataFrame to check.
     dataset_config
         Dataset config to check against.
+
     """
     # check that required columns are present in dataframe
     # first check that Column.DATASET is present in the dataframe

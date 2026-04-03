@@ -1,22 +1,33 @@
+"""Methods for evaluating vector fields on mesh grids and extracting components of vector-valued functions."""
+
 from collections.abc import Callable
 
 import numpy as np
 
 
 def mesh_grid_function(f: Callable, ndim: int = 2) -> Callable:
-    """
-    Turn vector-valued function f(x,u) into function f_mesh(x,u)
-    that can be evaluated appropriately on a mesh grid (i.e.,
-    np.meshgrid(*arrays) object), where x is the state variable
-    and u is the (optional) control parameter.
+    """Turn a vector-valued function into a mesh grid appropriate function.
 
-    If the dimension of the state variable is greater than 2,
-    the dimension must be passed in explicitly as ndim.
-    It is assumed that the state variable x and the vector
-    field f(x) are of the same dimension.
+    It is assumed that the state variable x and the vector field f(x) are of the
+    same dimension (i.e., f: R^d -> R^d).
 
-    The returned function allows for control parameters
-    as an optional argument.
+    The returned function can be evaluated on a mesh grid, and allows for
+    control parameters as an optional argument.
+
+    Parameters
+    ----------
+    f
+        Vector-valued function, where the output is a vector of the same
+        dimension as the input state variable.
+    ndim
+        Dimension of the state variable and vector field (default is 2).
+
+    Returns
+    -------
+    :
+        A function that can be evaluated on a mesh grid, and allows for control
+        parameters as an optional argument.
+
     """
 
     def f_mesh(mesh_grid: tuple[np.ndarray], u: float | None = None) -> np.ndarray:
@@ -30,20 +41,30 @@ def mesh_grid_function(f: Callable, ndim: int = 2) -> Callable:
         # Reshape the result to match the original grid shape
         v = v_flat.reshape(*mesh_shape, ndim)
 
-        return np.asarray(v)  # return the result as a numpy array (not AxesArray)
+        return np.asarray(v)
 
-    return f_mesh  # return the the callable function f_mesh
+    return f_mesh
 
 
 def vector_field_component(f: Callable, i: int) -> Callable:
-    """
-    Return the scalar valued function corresponding to
-    the i-th component (indexing starting at 0)
-    of the vector-valued function f(x,u), where x is
-    the state variable and u is the (optional) control parameter.
+    """Get a single component of a vector-valued function as a callable function.
 
-    The returned function allows for control parameters
-    as an optional argument.
+    The returned function allows for control parameters as an optional argument.
+
+    Parameters
+    ----------
+    f
+        Vector-valued function, where the output is a vector of the same
+        dimension as the input state variable.
+    i
+        Index of the component to extract (0-based index).
+
+    Returns
+    -------
+    :
+        A function that returns the i-th component of the vector field, and allows
+        for control parameters as an optional argument.
+
     """
 
     def f_i(x: np.ndarray, u: float | None = None) -> np.ndarray:

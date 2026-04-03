@@ -1,3 +1,5 @@
+"""Kernel functions and related methods for estimating Kramers-Moyal coefficients."""
+
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -41,9 +43,7 @@ def _get_input_dims_and_distances(
 
 
 def scaled_kernel(kernel_func: Callable) -> Callable:
-    """
-    Transform a pre-defined kernel function into a scaled kernel function that
-    can be used for kernel density estimation.
+    """Transform a pre-defined kernel function into a scaled kernel function.
 
     **Original kernel function**
 
@@ -66,6 +66,18 @@ def scaled_kernel(kernel_func: Callable) -> Callable:
     The value is also divided by the volume of the unit ball in that number of
     dimensions, so that resulting kernel function can be used for kernel density
     estimation in any number of dimensions.
+
+    Parameters
+    ----------
+    kernel_func
+        A kernel function that takes in an array of distances and returns the kernel values.
+
+    Returns
+    -------
+    :
+        A scaled kernel function that takes in an array of distances and a bandwidth, and
+        returns the scaled kernel values.
+
     """
 
     @wraps(kernel_func)  # just for naming
@@ -95,8 +107,7 @@ def gaussian(x: np.ndarray) -> np.ndarray:
 
 @scaled_kernel
 def periodic(x: np.ndarray) -> np.ndarray:
-    """
-    Define the periodic (exponential sine squared) kernel.
+    """Define the periodic (exponential sine squared) kernel.
 
     Differs from the Gaussian kernel in that the exponential factor is
     -2 times the sine squared of the distance, rather than -0.5 times
