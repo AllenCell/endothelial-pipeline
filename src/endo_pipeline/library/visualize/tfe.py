@@ -8,10 +8,11 @@ import dask.array as da
 import imageio.v3 as iio
 import numpy as np
 import pandas as pd
-from colorizer_data import ColorizerDatasetWriter
+from colorizer_data import ColorizerDatasetWriter, FeatureType
 from colorizer_data.converter import ConverterConfig, _write_backdrops, _write_data, _write_features
 from colorizer_data.types import ColorizerMetadata
 from colorizer_data.utils import generate_frame_paths
+from pandas.api.types import is_integer_dtype
 from tqdm import tqdm
 
 from endo_pipeline.configs import (
@@ -20,6 +21,9 @@ from endo_pipeline.configs import (
     get_annotated_timepoints_for_position,
 )
 from endo_pipeline.io import load_dataframe, load_image
+from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
+    calculate_derived_data_dynamics_dependent,
+)
 from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
     add_optical_flow_features,
 )
@@ -37,10 +41,11 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.tfe import TFE_BACKDROP_TYPES
+from endo_pipeline.settings.tfe import TFE_BACKDROP_TYPES, TFE_FEATURE_MAP, TFE_REQUIRED_COLUMNS
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
+    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
 )
 
 logger = logging.getLogger(__name__)
@@ -144,7 +149,7 @@ def generate_tfe_backdrops(
 def get_grid_seg_data_for_tfe(
     dataset: DatasetConfig,
     position: int,
-    max_timepoint: int,
+    max_timepoint: int | None = None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
 ) -> pd.DataFrame:
@@ -179,19 +184,85 @@ def get_grid_seg_data_for_tfe(
     # Filter dataset down to position
     df = df[df[Column.POSITION] == position]
 
-    # Filter  dataset down to max timepoint
+    # Filter dataset down to max timepoint
     if max_timepoint:
         df = df[df[Column.TIMEPOINT] < max_timepoint]
 
-    # Add timepoint annotations as filter columns. Note that the annotations are
-    # mapped to 0 = False and 1 = True because of how TFE handles categorical
-    # features.
+    add_timepoint_annotation_filters(df, dataset, position)
+
+    return df
+
+
+def get_cdh5_seg_data_for_tfe(
+    dataset: DatasetConfig,
+    position: int,
+    max_timepoint: int | None = None,
+    dataframe_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
+) -> pd.DataFrame:
+    """Get dataframe of CDH5 segmentation feature data for TFE."""
+
+    # Get dataframe of track-based crop features (includes both DiffAE and
+    # classic segmentation features)
+    manifest = load_dataframe_manifest(dataframe_manifest_name)
+    location = get_dataframe_location_for_dataset(manifest, dataset.name)
+    df = load_dataframe(location, delay=True)
+
+    # Get columns that need to be loaded by extending the list of required
+    # columns with the intersection between requested feature columns and the
+    # columns available in the dataframe.
+    columns = set(TFE_REQUIRED_COLUMNS)
+    columns.update(set(TFE_FEATURE_MAP.keys()) & set(df.columns))
+    df = df[list(columns)].compute().reset_index(drop=True)
+
+    # Filter dataset down to position
+    df = df[df[Column.POSITION] == position]
+
+    # Compute some additional features
+    df = add_dynamic_features_with_filtering(df)
+
+    # Filter dataset down to max timepoint
+    if max_timepoint:
+        df = df[df[Column.TIMEPOINT] < max_timepoint]
+
+    add_timepoint_annotation_filters(df, dataset, position)
+
+    return df
+
+
+def add_timepoint_annotation_filters(df: pd.DataFrame, dataset: DatasetConfig, position: int):
+    """Add timepoint annotations as categorical 0 or 1 filter columns."""
+
     for annotation in TimepointAnnotation:
         timepoints = get_annotated_timepoints_for_position(dataset, position, [annotation])
         if timepoints:
             df[annotation] = df[Column.TIMEPOINT].isin(timepoints).astype(int)
 
-    return df
+
+def add_dynamic_features_with_filtering(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Add dynamic features calculated on longer tracks.
+
+    The given dataframe is split into two based on the `IS_INCLUDED` filter. For
+    the dataframe with the "included" rows, we calculate the additional dynamic
+    features. This augmented dataframe is then re-combined with the original
+    dataframe with the "excluded" rows.
+    """
+
+    df_excluded = df[~df[Column.SegDataFilters.IS_INCLUDED]]
+    df_included = df[df[Column.SegDataFilters.IS_INCLUDED]]
+
+    df_calc = calculate_derived_data_dynamics_dependent(
+        df_included,
+        compute_per_crop_metrics=True,
+        timeframes_to_average_for_velocity=[5],
+        min_periods_for_averaging=3,
+    )
+    df_result = pd.concat([df_calc, df_excluded], ignore_index=True)
+
+    if df.shape[0] != df_result.shape[0]:
+        raise ValueError("Shape mismatch dropping and merging back filtered rows")
+
+    return df_result
 
 
 def build_tfe_dataset(
@@ -211,9 +282,25 @@ def build_tfe_dataset(
         )
         backdrop_column_names.append(backdrop_column)
 
-    # Select features from feature map if they exist in the provided feature data.
-    feature_info = {col: feature_map[col] for col in feature_map if col in data.columns}
-    feature_column_names = list(feature_info.keys())
+    feature_info = {}
+    feature_column_names = []
+
+    for feature in feature_map:
+        # Ignore feature if not found in the provided feature data
+        if feature not in data.columns:
+            logger.debug("Feature '%s' not found in data and will be skipped", feature)
+            continue
+
+        # Remap any categorical features to 0 = False and 1 = True because of how
+        # TFE handles categorical features if not already remapped.
+        if feature_map[feature].type == FeatureType.CATEGORICAL and not is_integer_dtype(
+            data[feature]
+        ):
+            logger.debug("Feature '%s' being remapped to integer values", feature)
+            data[feature] = data[feature].astype(int)
+
+        feature_info[feature] = feature_map[feature]
+        feature_column_names.append(feature)
 
     # Build TFE converter config
     config = ConverterConfig(
