@@ -14,9 +14,7 @@ logger = logging.getLogger(__name__)
 def _check_and_adjust_km_inputs(
     trajectories: list[np.ndarray], displacements: list[np.ndarray], powers: np.ndarray
 ) -> tuple[list[np.ndarray], list[np.ndarray], np.ndarray]:
-    """
-    Check the inputs for the Kramers-Moyal coefficient computation and adjust
-    them if necessary.
+    """Check the inputs for the Kramers-Moyal coefficient computation and adjust them if necessary.
 
     **Input checks and adjustments**
 
@@ -37,6 +35,20 @@ def _check_and_adjust_km_inputs(
     - Check that the number of columns in the powers array matches the
     number of dimensions in the trajectories, to ensure that the powers are
     correctly applied.
+
+    Parameters
+    ----------
+    trajectories
+        List of invidual trajectories.
+    displacements
+        List of invidual displacements along the trajectories.
+    powers
+        Array of powers corresponding to the Kramers-Moyal coefficients.
+
+    Returns
+    -------
+    :
+        Adjusted trajectories, displacements, and powers for Kramers-Moyal coefficient computation.
 
     """
     if len(trajectories) != len(displacements):
@@ -80,9 +92,7 @@ def _check_and_adjust_km_inputs(
 
 
 def _get_km_powers(ndim: int) -> np.ndarray:
-    """
-    Generate the powers for the first two Kramers-Moyal coefficients for ndim
-    dimensions.
+    """Generate the powers for the first two Kramers-Moyal coefficients for ndim dimensions.
 
     Note that for the second order Kramers-Moyal coefficients (diffusion), we
     only include the pure powers of each component (i.e., no interaction terms).
@@ -104,7 +114,6 @@ def _get_km_powers(ndim: int) -> np.ndarray:
         [2,0],  # diffusion_11
         [0,2]]  # diffusion_22
     """
-
     if ndim == 1:  # straightforward case for 1D data
         powers = np.array([[0], [1], [2]])
         #                   /    f    D
@@ -125,9 +134,7 @@ def _get_weighted_histogram_for_convolution(
     bins: list[np.ndarray],
     powers: np.ndarray,
 ) -> np.ndarray:
-    """
-    Get the weighted histogram of the observations for convolution with the
-    kernel function.
+    """Get the weighted histogram of the observations for convolution with the kernel function.
 
     This function computes the weighted histogram of the observations, where the
     weights are given by the products of the components of the displacement
@@ -181,9 +188,7 @@ def _convolve_histogram_with_kernel(
     powers: np.ndarray,
     tol: float = 1e-10,
 ) -> np.ndarray:
-    """
-    Compute the Kramers-Moyal coefficients by convolving the weighted histogram
-    of observations with kernel.
+    """Compute the Kramers-Moyal coefficients by convolving the weighted histogram of observations with kernel.
 
     This function takes in the weighted histogram of the observations (see
     `_get_weighted_histogram_for_convolution`) and the evaluated kernel on the
@@ -211,8 +216,14 @@ def _convolve_histogram_with_kernel(
         Array of powers corresponding to the Kramers-Moyal coefficients.
     tol
         Tolerance for masking out bins with low probability density.
-    """
 
+    Returns
+    -------
+    :
+        Array of Kramers-Moyal coefficients after convolution and normalization,
+        with low-density bins masked out.
+
+    """
     # Convolve weighted histogram of kmc observations
     # mode "same" returns the convolution at the same size as
     # the input histogram, which is what we want
@@ -247,9 +258,7 @@ def _convolve_histogram_with_kernel(
 def _reshape_outputs_to_drift_diffusion_coefficients(
     ndim: int, kmc: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Reshape the output of kernel convolution to get the drift and diffusion
-    coefficients in the correct shape.
+    """Reshape the output of kernel convolution to get the drift and diffusion coefficients.
 
     For 1D data, the drift and diffusion coefficients are just the first and
     second rows of the output, respectively.
@@ -281,9 +290,7 @@ def _reshape_outputs_to_drift_diffusion_coefficients(
 def _compile_multivariate_product_kernel(
     kernels: list[Callable[[np.ndarray, float, float | None], np.ndarray]],
 ) -> Callable[[np.ndarray, list[float], list[float | None] | None], np.ndarray]:
-    """
-    Compile a multivariate kernel by taking the product of 1D kernels for each
-    variable.
+    """Compile a multivariate kernel by taking the product of 1D kernels for each variable.
 
     This function allows for specifying different kernels and bandwidths for
     each variable/dimension, when performing multivariate kernel-based
@@ -313,8 +320,10 @@ def _compile_multivariate_product_kernel(
 
     Returns
     -------
+    :
         A function that returns the product of the kernel evaluations for each
         variable.
+
     """
 
     def multivariate_kernel(
@@ -341,10 +350,7 @@ def _compile_multivariate_product_kernel(
 
 
 def _evaluate_single_multivariate_kernel(x: np.ndarray, kernel: KramersMoyalKernel) -> np.ndarray:
-    """
-    Evaluate a single multivariate kernel on the input array of differences
-    along each dimension.
-    """
+    """Evaluate a single multivariate kernel on the input array of differences along each dimension."""
     kernel_func = kernel.string_to_kernel()
     return kernel_func(x, kernel.bandwidth, kernel.period)
 
@@ -352,10 +358,7 @@ def _evaluate_single_multivariate_kernel(x: np.ndarray, kernel: KramersMoyalKern
 def _evaluate_multivariate_product_kernel(
     x: np.ndarray, kernel_list: list[KramersMoyalKernel]
 ) -> np.ndarray:
-    """
-    Evaluate a multivariate product kernel on the input array of differences
-    along each dimension.
-    """
+    """Evaluate a multivariate product kernel on the input array of differences along each dimension."""
     kernel_funcs = [kernel.string_to_kernel() for kernel in kernel_list]
     bandwidths = [kernel.bandwidth for kernel in kernel_list]
     periods = [kernel.period for kernel in kernel_list]
@@ -383,9 +386,7 @@ def get_kramers_moyal_coeffs(
     dt: float,
     kernel: KramersMoyalKernel | list[KramersMoyalKernel],
 ) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Get estimates of first and second Kramers-Moyal coefficients from a list of
-    trajectories.
+    """Get estimates of first and second Kramers-Moyal coefficients from a list of trajectories.
 
     **Kernel specification**
 
@@ -418,8 +419,8 @@ def get_kramers_moyal_coeffs(
         First Kramers-Moyal coefficient (drift).
     :
         Second Kramers-Moyal coefficient (diffusion).
-    """
 
+    """
     # get powers for first two Kramers-Moyal coefficients (drift and diffusion)
     # based on dimensionality of data
     ndim = len(bins)
@@ -460,8 +461,7 @@ def get_kernel_density_estimate_from_histogram(
     bins: list[np.ndarray],
     kernel: KramersMoyalKernel | list[KramersMoyalKernel],
 ) -> np.ndarray:
-    """
-    Get kernel density estimate of a given histogram.
+    """Get kernel density estimate of a given histogram.
 
     Parameters
     ----------
@@ -479,6 +479,7 @@ def get_kernel_density_estimate_from_histogram(
     :
         Kernel density estimate of the n-dimensional joint probability density
         of the observations.
+
     """
     # get powers for first two Kramers-Moyal coefficients (drift and diffusion)
     # based on dimensionality of data, power for 0th order coefficient (density) is all zeros
@@ -508,8 +509,7 @@ def get_kernel_density_estimate_from_trajectories(
     bins: list[np.ndarray],
     kernel: KramersMoyalKernel | list[KramersMoyalKernel],
 ) -> np.ndarray:
-    """
-    Get kernel density estimate of the probability density of the observations.
+    """Get kernel density estimate of the probability density of the observations.
 
     This function is similar to `get_kramers_moyal_coeffs`, but only returns the
     0th order Kramers-Moyal coefficient, which corresponds to the probability
@@ -532,6 +532,7 @@ def get_kernel_density_estimate_from_trajectories(
     :
         Kernel density estimate of the n-dimensional joint probability density
         of the observations.
+
     """
     # get powers for first two Kramers-Moyal coefficients (drift and diffusion)
     # based on dimensionality of data
