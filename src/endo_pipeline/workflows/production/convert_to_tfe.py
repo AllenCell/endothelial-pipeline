@@ -97,6 +97,7 @@ def main(
         build_tfe_dataset,
         generate_tfe_backdrops,
         generate_tfe_frames,
+        get_cdh5_seg_data_for_tfe,
         get_grid_seg_data_for_tfe,
     )
     from endo_pipeline.manifests import load_image_manifest
@@ -152,8 +153,10 @@ def main(
             # Get feature data
             if segmentation == "grid":
                 data = get_grid_seg_data_for_tfe(dataset_config, position, timepoints)
+            elif segmentation == "CDH5":
+                data = get_cdh5_seg_data_for_tfe(dataset_config, position, timepoints)
             else:
-                logger.warning("Only 'grid' segmentation is currently supported by this workflow.")
+                logger.warning("Segmentation '%s' is not supported by this workflow.", segmentation)
                 continue
 
             # Build the full TFE dataset
