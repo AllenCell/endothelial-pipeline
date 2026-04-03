@@ -139,9 +139,20 @@ def main(
         for fp_index, fp_row in fixed_points_df.iterrows():
             fp_location = fp_row[column_names]
             num_trajectories_within_radius = 0
-            for traj_index, var_row in column_variance_df.iterrows():
-                traj_variance = var_row[column_names]
-                if all((fp_location - traj_variance) <= mean_variance):
+            for fp_index_other, fp_row_other in fixed_points_df.iterrows():
+                if fp_index_other == fp_index:
+                    continue
+                fp_location_other = fp_row_other[column_names]
+                within_radius = True
+                for column_name in column_names:
+                    variance_radius = mean_variance[column_name]
+                    if (
+                        abs(fp_location[column_name] - fp_location_other[column_name])
+                        > variance_radius
+                    ):
+                        within_radius = False
+                        break
+                if within_radius:
                     num_trajectories_within_radius += 1
 
             stability_label = fp_row[STABILITY_COLUMN_NAME]
