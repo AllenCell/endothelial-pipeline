@@ -9,9 +9,6 @@ OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS: tuple[str, ...] = (
 )
 """Column names to merge on when adding optical flow features to another dataframe."""
 
-MIGRATION_COHERENCE_STRIDE_INTERVAL: int = 1
-"""Interval (in frames) at which tracked optical flow features are computed."""
-
 MIGRATION_COHERENCE_CROP_PATTERN: str = "grid"
 """Crop pattern to use for migration coherence analyses."""
 
