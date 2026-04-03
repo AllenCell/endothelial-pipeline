@@ -114,6 +114,7 @@ def main(
                 )
             )
 
+        # combine the simulation results with the measured trajectories in a single dataframe
         traj_sim_df = pd.concat(map(pd.DataFrame, results)).reset_index(drop=True)
         df_grid_sub = df_grid[
             df_grid[Column.CROP_INDEX].isin(traj_sim_df[Column.CROP_INDEX].unique())
@@ -131,6 +132,9 @@ def main(
             original_range=(0, np.pi),
         )
 
+        # plot overlays of the tracks with the fixed points on the flow field slices
+        # def plot_trajectories_per_fixed_points(trajectory_df: pd.DataFrame, fixed_points_df: pd.DataFrame) -> None:
+
         for i, fp_row in fixed_points_df.iterrows():
             out_subdir = outdir / f"fixed_point_{i}"
             out_subdir.mkdir(parents=True, exist_ok=True)
@@ -147,7 +151,15 @@ def main(
                     index=[DYNAMICS_COLUMN_NAMES[1]]
                 ),
             )
-            for crop_i, traj_df in tqdm(df_grid_sub.groupby(Column.CROP_INDEX)):
+
+            # this part needs to be multiprocessed
+            # (plotting each trajectory overlay can be parallelized)
+            # def plot_trajectory_segment(traj_df: pd.DataFrame, segment_indices: np.ndarray, ax: plt.Axes, cols_simulated: list[str]) -> None:
+            for crop_i, traj_df in tqdm(
+                df_grid_sub.groupby(Column.CROP_INDEX),
+                desc=f"Plotting trajectories for fixed point {i}",
+                total=df_grid_sub[Column.CROP_INDEX].nunique(),
+            ):
                 unwrapped_angle_diff = (
                     traj_df[f"{Column.DiffAEData.POLAR_ANGLE}_simulated_unwrapped"]
                     .diff()
