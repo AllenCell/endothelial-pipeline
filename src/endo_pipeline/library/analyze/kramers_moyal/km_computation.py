@@ -183,7 +183,7 @@ def _convolve_histogram_with_kernel(
     of observations with kernel.
 
     This function takes in the weighted histogram of the observations (see
-    _get_weighted_histogram_for_convolution) and the evaluated kernel on the
+    `_get_weighted_histogram_for_convolution`) and the evaluated kernel on the
     extended histogram grid, and performs the convolution to compute the
     Kramers-Moyal coefficients.
 
