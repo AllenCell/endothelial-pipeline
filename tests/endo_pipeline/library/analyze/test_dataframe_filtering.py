@@ -51,7 +51,9 @@ def dataset():
 
 @pytest.fixture()
 def two_condition_dataset():
-    """Dataset with two flow conditions: frames 0 to 1 at low shear, frames 2 to 3 at high shear."""
+    """Dataset with two flow conditions: frames 0 to 1 at low shear, frames 2 to
+    3 at high shear.
+    """
     return DatasetConfig(
         name="unique_dataset_name",
         date="YYYYMMDD",
