@@ -87,7 +87,7 @@ def main(
         num_trajectories = df_steady_state[ColumnName.CROP_INDEX].nunique()
 
         column_variance_df = pd.DataFrame(columns=[ColumnName.CROP_INDEX, *column_names])
-        for traj_index, df_traj in df_steady_state[crop_pattern].groupby(ColumnName.CROP_INDEX):
+        for traj_index, df_traj in df_steady_state.groupby(ColumnName.CROP_INDEX):
             for column_name in column_names:
                 if column_name == ColumnName.DiffAEData.POLAR_ANGLE:
                     # take circular variance for polar angle to account for periodicity
