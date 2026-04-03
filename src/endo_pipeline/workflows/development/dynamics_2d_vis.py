@@ -67,15 +67,15 @@ def main(
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         filter_dataframe_by_annotations,
-        get_traj_and_diff,
         split_dataset_by_flow,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
-        get_kernel_density_estimate,
+        get_kernel_density_estimate_from_trajectories,
         get_kramers_moyal_coeffs,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins
+    from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
     from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
         plot_and_save_drift_contours,
         plot_and_save_drift_quiver,
@@ -239,7 +239,7 @@ def main(
                 # estimates, using same kernels as for drift estimation, and set
                 # drift to nan in low-confidence regions
                 if mask_threshold is not None:
-                    hist_kde = get_kernel_density_estimate(
+                    hist_kde = get_kernel_density_estimate_from_trajectories(
                         traj_2d,
                         bins=bins_2d,
                         kernel=kernels,

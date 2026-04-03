@@ -78,15 +78,15 @@ def main(
     from endo_pipeline.library.analyze.diffae_dataframe_utils import (
         filter_dataframe_by_annotations,
         filter_dataframe_by_track_length,
-        get_traj_and_diff,
         split_dataset_by_flow,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
-        get_kernel_density_estimate,
+        get_kernel_density_estimate_from_trajectories,
         get_kramers_moyal_coeffs,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins
+    from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.library.visualize.diffae_features.vis_msd import (
         plot_msd_with_exponential_fit,
@@ -239,7 +239,7 @@ def main(
 
                     # compute the weighted average of the msd over the bins
                     # (weighing by the probability density of points in each bin)
-                    prob_density = get_kernel_density_estimate(
+                    prob_density = get_kernel_density_estimate_from_trajectories(
                         traj_list,
                         bins=bins,
                         kernel=kernel,
