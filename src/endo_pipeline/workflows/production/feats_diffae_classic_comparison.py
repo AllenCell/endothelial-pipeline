@@ -1,4 +1,5 @@
 from endo_pipeline.cli import Datasets, UniqueIntList
+from endo_pipeline.library.process.general_image_preprocessing import process_task_queue
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
 )
@@ -8,7 +9,7 @@ def main(
     datasets: Datasets | None = None,
     positions: list[int] | None = None,
     track_ids_to_overlay: UniqueIntList | None = None,
-    track_integrations_only: bool = False,
+    make_trajectory_summary_plots: bool = True,
     use_global_pc_lims: bool = False,
     for_figures: bool = False,
     n_cores: int = 30,
@@ -18,18 +19,16 @@ def main(
 
     import logging
     from collections import namedtuple
-    from multiprocessing import Pool
     from typing import Literal
 
     from matplotlib import pyplot as plt
-    from tqdm import tqdm
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.integration.track_integration import (
         get_flow_field_and_fixed_points,
-        get_flow_field_estimation_params,
+        get_flow_field_estimation_bin_widths,
     )
     from endo_pipeline.library.visualize.integration.track_integration_viz import (  # plot_new_traj_overlay_on_grid_traj_and_flowfield,
         PlotMeasFeatAndFlowFieldOverlayArgs,
@@ -109,6 +108,7 @@ def main(
             run_name=DEFAULT_MODEL_RUN_NAME,
         )
 
+        # Define some initial parameters for plotting
         # save plots of the track-based crop trajectories and PCs overlaid
         # on the flow field and trajectories from the grid-based crops
         figure_format: Literal[".png", ".svg", ".pdf"] = ".pdf" if for_figures else ".png"
@@ -139,10 +139,9 @@ def main(
             FeatureLimitsPair(Column.SegData.ECCENTRICITY, (0.0, 1.0)),
         )
 
-        if not track_integrations_only:
-            # plot just the flow field (used for validation with the workflow
-            # visualize_3d_flow_field.py that this one is based on)
-            # plot slices at mean of data at last time point
+        # Make trajectory summary plots, if desired
+        if make_trajectory_summary_plots:
+            # slice the flow field at fixed points and plot those slices
             for i, fp_row in fixed_points_df.iterrows():
                 flow_field_slices = (
                     fp_row[dynamics_columns[2]],
@@ -153,6 +152,9 @@ def main(
                     fp_row[list(map(str, dynamics_columns))].drop(index=[dynamics_columns[1]]),
                 )
 
+                # plot just the flow field (used for validation with the workflow
+                # visualize_3d_flow_field.py that this one is based on)
+                # plot base flow field
                 fig, axs = plot_quiver_slices_from_flow_field_dict(
                     dataset_name=dataset_name,
                     flow_field_dict_grids=flow_field_dict_grids,
@@ -202,9 +204,9 @@ def main(
                         show_plot=False,
                         figure_format=figure_format,
                     )
-                # plot trajectory heatmap (indicates where most of the data is in PC-space)
-                _, bin_widths = get_flow_field_estimation_params(column_names=dynamics_columns)
 
+                # plot trajectory heatmap (indicates where most of the data is in PC-space)
+                bin_widths = get_flow_field_estimation_bin_widths(column_names=dynamics_columns)
                 overlay_trajectory_heatmap_on_flowfield(
                     out_dir=out_subdir_heatmap,
                     dataset_name=dataset_name,
@@ -281,24 +283,17 @@ def main(
                     )
 
                 # make the plots
-                with Pool(processes=n_cores) as pool:
-                    logger.info(
-                        f"Plotting track overlays for fixed point {i} (using {n_cores} cores)..."
-                    )
-                    list(
-                        tqdm(
-                            pool.imap(
-                                multiproc_plot_measured_feat_overlay_on_flowfield,
-                                arg_list,
-                                chunksize=5,
-                            ),
-                            total=len(arg_list),
-                            desc=f"Plotting tracks at {dataset_name} P{pos} - fixed point {i}",
-                        )
-                    )
-                    pool.close()
-                    pool.join()
-                    logger.info("Plotting track overlays complete.")
+                logger.info(
+                    f"Plotting track overlays for fixed point {i} (using {n_cores} cores)..."
+                )
+                process_task_queue(
+                    task=multiproc_plot_measured_feat_overlay_on_flowfield,
+                    queue=arg_list,
+                    description=f"Plotting tracks at {dataset_name} P{pos} - fixed point {i}",
+                    num_processes=n_cores,
+                    chunksize=5,
+                )
+                logger.info("Plotting track overlays complete.")
 
 
 if __name__ == "__main__":

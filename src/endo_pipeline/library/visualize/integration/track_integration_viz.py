@@ -53,7 +53,7 @@ def get_coarse_grained_trajectory_heatmap_data(
     df_all_positions: pd.DataFrame,
     bounds: np.ndarray | list,
     num_bins: list[int] = [150, 150, 150],
-    pc_cols: list[str] = list(DYNAMICS_COLUMN_NAMES),
+    pc_cols: list[str | Column.DiffAEData] | None = None,
     feature_to_use: str = Column.SegData.NORMALIZED_TIME_PER_TRACK,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
@@ -77,6 +77,9 @@ def get_coarse_grained_trajectory_heatmap_data(
     """
     if feature_to_use not in df_all_positions.columns:
         raise ValueError(f"Feature '{feature_to_use}' not found in DataFrame columns.")
+
+    if pc_cols is None:
+        pc_cols = list(DYNAMICS_COLUMN_NAMES)
 
     bin_data = np.zeros(num_bins)
     bin_counts = np.zeros(num_bins, dtype=int)
@@ -165,8 +168,11 @@ def plot_quiver_slices_from_flow_field_dict(
     flow_field_dict_grids: dict,
     feature_vals: tuple[float, float],
     flow_field_colormap: str = QUIVER_COLORMAP,
-    column_names: list[str] = list(DYNAMICS_COLUMN_NAMES),
+    column_names: list[str | Column.DiffAEData] | None = None,
 ) -> tuple[Figure, np.ndarray]:
+
+    if column_names is None:
+        column_names = list(DYNAMICS_COLUMN_NAMES)
 
     # get limits of grid from the grid crops flow fields
     bounds = get_grid_bounds(flow_field_dict_grids)
@@ -467,7 +473,7 @@ def overlay_trajectory_heatmap_on_flowfield(
                 bins[plot_dim[j]][0],
                 bins[plot_dim[j]][-1],
             ),
-            cmap="viridis",
+            cmap="binary",
             aspect="auto",
             origin="lower",
             zorder=-1,

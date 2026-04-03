@@ -8,15 +8,16 @@ from matplotlib import pyplot as plt
 from seaborn import color_palette
 
 from endo_pipeline.io import get_output_path, load_dataframe
-from endo_pipeline.library.analyze.data_driven_flow_field import solve_ddff_ode
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    check_required_columns_in_dataframe,
-    get_pc_column_names,
-    get_traj_and_diff,
+from endo_pipeline.library.analyze.data_driven_flow_field import (
+    get_drift_df,
+    get_drift_flow_field_as_dict,
+    get_fixed_points_df,
+    solve_ddff_ode,
 )
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics.binning import get_bins
+from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
 from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
@@ -38,11 +39,6 @@ from endo_pipeline.settings.flow_field_3d import (
     TIME_STEP_IN_MINUTES,
     TRAJECTORY_TIME_SPAN,
 )
-from endo_pipeline.settings.flow_field_dataframes import (
-    DATAFRAME_MANIFEST_PREFIX_DRIFT,
-    DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
-    STABILITY_COLUMN_NAME,
-)
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_COLUMNS_TO_DROP,
     DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_FILTERED,
@@ -55,32 +51,46 @@ from endo_pipeline.settings.workflow_defaults import (
 logger = logging.getLogger(__name__)
 
 
-def get_flow_field_estimation_params(
-    column_names: list[str] = list(DYNAMICS_COLUMN_NAMES),
+def get_flow_field_estimation_kernels(
+    column_names: list[str | Column.DiffAEData] | None = None,
     rescale_theta: bool = RESCALE_THETA,
     period_theta_rescaled: float = PERIOD_THETA_RESCALED,
     kernel_names_dynamics: dict[Column.DiffAEData, str] = KERNEL_NAMES_DYNAMICS,
     kernel_bandwidths_dynamics: dict[Column.DiffAEData, float] = KERNEL_BANDWIDTHS_DYNAMICS,
-    bin_widths_dynamics: dict[Column.DiffAEData, float] = BIN_WIDTHS_DYNAMICS,
-) -> tuple[list[KramersMoyalKernel], list[float]]:
-    # initialize kernels and bin widths for each of the three variables for flow
-    # field estimation
+) -> list[KramersMoyalKernel]:
+    """Return the kernels used for flow field estimation for the specified columns."""
+    # initialize kernels for each of the three variables for flow field estimation
     kernels: list[KramersMoyalKernel] = []
-    bin_widths: list[float] = []
     rescaled_theta = period_theta_rescaled + np.pi * (1 - rescale_theta)
 
-    # Get the corresponding kernels and bin widths for each variable. For the
-    # polar angle variable, also specify the period for the kernel based on the
-    # rescaled theta range, to ensure that the periodicity of the polar angle is
-    # taken into account in the flow field estimation.
+    # Get the corresponding kernels for each variable. For the polar angle variable,
+    # also specify the period for the kernel based on the rescaled theta range, to
+    # ensure that the periodicity of the polar angle is taken into account in the
+    # flow field estimation.
+    if column_names is None:
+        column_names = list(DYNAMICS_COLUMN_NAMES)
+
     for column_name in column_names:
         name = kernel_names_dynamics[column_name]
         bandwidth = kernel_bandwidths_dynamics[column_name]
         period = rescaled_theta if column_name == Column.DiffAEData.POLAR_ANGLE else None
-        bin_width = bin_widths_dynamics[column_name]
         kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
+    return kernels
+
+
+def get_flow_field_estimation_bin_widths(
+    column_names: list[str | Column.DiffAEData] | None = None,
+    bin_widths_dynamics: dict[Column.DiffAEData, float] = BIN_WIDTHS_DYNAMICS,
+) -> list[float]:
+    """Return the bin widths used for flow field estimation for the specified columns."""
+    if column_names is None:
+        column_names = list(DYNAMICS_COLUMN_NAMES)
+
+    bin_widths: list[float] = []
+    for column_name in column_names:
+        bin_width = bin_widths_dynamics[column_name]
         bin_widths.append(bin_width)
-    return kernels, bin_widths
+    return bin_widths
 
 
 # def process_dataset_for_track_integration(
@@ -508,10 +518,7 @@ def get_diffae_feats_liveseg_feats_merged_table(
     diffae_tracking_df = load_dataframe(diffae_track_location, delay=False)
 
     # drop any pc columns after the 100th one
-    all_pc_col_names = get_pc_column_names("all")
-    first_100_pc_col_names = get_pc_column_names("first_100_pcs")
-    pc_cols_to_drop = sorted(set(all_pc_col_names) - set(first_100_pc_col_names))
-
+    pc_cols_to_drop = DIFFAE_PC_COLUMN_NAMES[100:]
     diffae_tracking_df = diffae_tracking_df.drop(columns=pc_cols_to_drop)
 
     # load the tracking data of the measured features and merge them
@@ -556,12 +563,15 @@ def get_diffae_feats_liveseg_feats_merged_table(
 
 def get_traj_and_flowfield(
     df: pd.DataFrame,
-    column_names: list[str] = list(DYNAMICS_COLUMN_NAMES),
+    column_names: list[str | Column.DiffAEData] | None = None,
     load_precomputed_trajectories: Path | None = None,
 ) -> tuple[np.ndarray, dict]:
 
-    # set kernel and binwidth params
-    kernels, bin_widths = get_flow_field_estimation_params(column_names)
+    if column_names is None:
+        column_names = list(DYNAMICS_COLUMN_NAMES)
+
+    # set kernel params
+    kernels = get_flow_field_estimation_kernels(column_names)
 
     # set time between frames in minutes
     dt = TIME_STEP_IN_MINUTES
@@ -613,103 +623,53 @@ def get_traj_and_flowfield(
 
 def get_flow_field_and_fixed_points(
     dataset_name: str,
-    column_names: list[str] = list(DYNAMICS_COLUMN_NAMES),
+    column_names: list[str | Column.DiffAEData] | None = None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
 ) -> tuple[dict, pd.DataFrame]:
     """
-    Get the trajectories and flow fields for the grid-based and cell-centric crops.
-    This function is called after loading and preprocessing the manifests.
-    The function looks for precomputed trajectories in trajectory_dir and loads them
-    from there if found. If not found then they will be computed and saved to that location.
-    The names of the files that it looks for are:
-    - {dataset_name}_traj_grids.npy for grid-based crops
-    - {dataset_name}_traj_tracks.npy for cell-centric crops
+    Return the flow fields and fixed points for the grid-based crops by loading them from the
+    corresponding dataframe manifests for the given dataset, model and run name.
+    The flow field dictionaries are constructed from the drift data in the drift dataframe manifest
+    and the fixed points are loaded from the fixed points dataframe manifest for the given dataset.
+
+    Parameters
+    ----------
+    dataset_name
+        Name of the dataset for which to load the flow field and fixed points.
+    column_names
+        List of column names corresponding to the dynamics features to use for constructing the flow field,
+        by default None
+    model_manifest_name
+        Name of the model dataframe manifest to use for loading the drift data, by default DEFAULT_MODEL_MANIFEST_NAME
+    run_name
+        Name of the model run to use for loading the drift data, by default DEFAULT_MODEL_RUN_NAME
+
+    Returns
+    -------
+    :
+        The flow field dictionary and the fixed points dataframe for the given dataset.
+
     """
 
-    base_name = f"{model_manifest_name}_{run_name}_grid"
-    fixed_points_df_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
-    fixed_points_df_manifest = load_dataframe_manifest(fixed_points_df_manifest_name)
+    if column_names is None:
+        column_names = list(DYNAMICS_COLUMN_NAMES)
 
-    if dataset_name not in fixed_points_df_manifest.locations:
-        logger.warning(
-            "Dataset [ %s ] not found in fixed points dataframe manifest [ %s ]!",
-            dataset_name,
-            fixed_points_df_manifest_name,
-        )
-        return {}, pd.DataFrame()
+    logger.info("Getting flow fields and fixed points for grid-based crops...")
 
-    logger.info("Getting trajectories and flow fields for grid-based and cell-centric crops...")
-
-    # load fixed point dataframe if it exists, and check that required
-    # columns are present turn fixed point dataframe into list of arrays of
-    # stable fixed point coordinates for each dataset to use for plotting
-    fixed_points_df_location = get_dataframe_location_for_dataset(
-        fixed_points_df_manifest, dataset_name
-    )
-    fixed_points_df = load_dataframe(fixed_points_df_location, delay=False)
-    check_required_columns_in_dataframe(
-        fixed_points_df,
-        required_columns=[*column_names, Column.DATASET, STABILITY_COLUMN_NAME],
+    fixed_points_df = get_fixed_points_df(
+        dataset_name=dataset_name, model_manifest_name=model_manifest_name, run_name=run_name
     )
 
-    # if there are no fixed points then move to the next dataset
-    if fixed_points_df.empty:
-        logger.warning(
-            "No stable fixed points found for dataset [ %s ]. Nothing to plot for this dataset.",
-            dataset_name,
-        )
-
-    drift_values, grid_points_1d = get_drift_values_and_grid(
+    drift_df = get_drift_df(
         dataset_name=dataset_name,
-        column_names=column_names,
         model_manifest_name=model_manifest_name,
         run_name=run_name,
     )
-    ndim = len(column_names)
-    grid = np.meshgrid(*grid_points_1d, indexing="ij")
-    drift_vector_field = [drift_values[..., i] for i in range(ndim)]
 
-    flow_field_dict = {"vectors": drift_vector_field, "grid": grid}
+    flow_field_dict = get_drift_flow_field_as_dict(drift_df, column_names)
 
     return flow_field_dict, fixed_points_df
-
-
-def get_drift_values_and_grid(
-    dataset_name: str,
-    column_names: list[str] = list(DYNAMICS_COLUMN_NAMES),
-    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_name: str = DEFAULT_MODEL_RUN_NAME,
-) -> tuple[np.ndarray, np.ndarray]:
-
-    base_name = f"{model_manifest_name}_{run_name}_grid"
-    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{base_name}"
-    drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
-
-    if dataset_name not in drift_dataframe_manifest.locations:
-        logger.warning(
-            "Dataset [ %s ] not found in drift dataframe manifest [ %s ]!",
-            dataset_name,
-            drift_dataframe_manifest_name,
-        )
-        return np.array([]), np.array([])
-
-    logger.info("Getting trajectories and flow fields for grid-based and cell-centric crops...")
-
-    drift_dataframe_location = get_dataframe_location_for_dataset(
-        drift_dataframe_manifest, dataset_name
-    )
-    drift_df = load_dataframe(drift_dataframe_location, delay=False)
-
-    # restructure the drift dataframe into a flow field dictionary
-    ndim = len(column_names)
-    drift_column_names = [f"{name}_drift" for name in column_names]
-
-    grid_points_1d = [np.sort(drift_df[column_name].unique()) for column_name in column_names]
-    grid_shape = tuple(len(points) for points in grid_points_1d)
-
-    drift_values = drift_df[drift_column_names].to_numpy().reshape(*grid_shape, ndim)
-    return drift_values, grid_points_1d
 
 
 def get_vector_vector_angle(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
@@ -733,7 +693,6 @@ def get_approx_vec_from_grid(
     v2_grids: np.ndarray,
     slice_indexes: tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
 ) -> np.ndarray:
-
     # create a distance mapping
     point_grids_pc1pc2 = np.asarray(
         list(zip(g1_grids[slice_indexes], g2_grids[slice_indexes], strict=True))
@@ -758,7 +717,6 @@ def get_approx_point_from_grid(
     v2_grids: np.ndarray,
     slice_indexes: tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
 ) -> np.ndarray:
-
     # create a distance mapping
     point_grids_pc1pc2 = np.asarray(
         list(zip(g1_grids[slice_indexes], g2_grids[slice_indexes], strict=True))

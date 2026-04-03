@@ -10,17 +10,28 @@ from scipy.integrate import solve_ivp
 from scipy.interpolate import RegularGridInterpolator, griddata
 from scipy.stats import gaussian_kde
 
-from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
+from endo_pipeline.io.input import load_dataframe
+from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.numerics.binning import circpercentile
 from endo_pipeline.library.visualize.diffae_features.pplane import (
     get_fpt_type,
     get_fpts,
     get_stability_label_from_fpt_type,
 )
+from endo_pipeline.manifests.dataframe_manifest_io import load_dataframe_manifest
+from endo_pipeline.manifests.dataframe_manifest_utils import get_dataframe_location_for_dataset
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_THETA_RESCALED
 from endo_pipeline.settings.flow_field_3d import SAMPLER_RANDOM_SEED
-from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
+from endo_pipeline.settings.flow_field_dataframes import (
+    DATAFRAME_MANIFEST_PREFIX_DRIFT,
+    DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+    STABILITY_COLUMN_NAME,
+)
+from endo_pipeline.settings.workflow_defaults import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -607,3 +618,127 @@ def interpolate_on_curve(traj: np.ndarray, n_points: int = 5) -> np.ndarray:
         interpolated_points[:, i] = np.interp(arc_length_new, arc_length, traj[:, i])
 
     return interpolated_points
+
+
+def get_drift_df(
+    dataset_name: str,
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str = DEFAULT_MODEL_RUN_NAME,
+) -> pd.DataFrame:
+
+    base_name = f"{model_manifest_name}_{run_name}_grid"
+    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{base_name}"
+    drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
+
+    if dataset_name not in drift_dataframe_manifest.locations:
+        logger.warning(
+            "Dataset [ %s ] not found in drift dataframe manifest [ %s ]!",
+            dataset_name,
+            drift_dataframe_manifest_name,
+        )
+        return pd.DataFrame()
+
+    logger.info("Getting drift dataframe for grid-based crops...")
+
+    drift_dataframe_location = get_dataframe_location_for_dataset(
+        drift_dataframe_manifest, dataset_name
+    )
+    drift_df = load_dataframe(drift_dataframe_location, delay=False)
+
+    return drift_df
+
+
+def get_drift_values_and_grid(
+    flow_field_dataframe: pd.DataFrame,
+    column_names: list[str | Column.DiffAEData] | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
+
+    # restructure the drift dataframe into a flow field dictionary
+    ndim = len(column_names)
+    drift_column_names = [f"{name}_drift" for name in column_names]
+
+    grid_points_1d = [
+        np.sort(flow_field_dataframe[column_name].unique()) for column_name in column_names
+    ]
+    grid_shape = tuple(len(points) for points in grid_points_1d)
+
+    # unpack drift values from dataframe and reshape to grid shape for flow
+    # field visualization and ODE solving
+    drift_values = flow_field_dataframe[drift_column_names].to_numpy().reshape(*grid_shape, ndim)
+
+    return drift_values, grid_points_1d
+
+
+def get_drift_flow_field_as_dict(
+    flow_field_dataframe: pd.DataFrame, column_names: list[str | Column.DiffAEData]
+) -> dict[str, tuple[np.ndarray]]:
+    """Convert a drift flow field dataframe into a dictionary suitable for visualization / analysis.
+
+    Parameters
+    ----------
+    flow_field_dataframe
+        Dataframe containing the flow field data with columns corresponding to the coordinates and drift values.
+    column_names
+        List of column names corresponding to the dynamics features to use for constructing the flow field.
+
+    Returns
+    -------
+    ...
+        Dictionary containing the flow field vectors and the corresponding grid points.
+    """
+    drift_values, grid_points_1d = get_drift_values_and_grid(flow_field_dataframe, column_names)
+
+    # reshape the 1D grid points into a an ND grid
+    grid = np.meshgrid(*grid_points_1d, indexing="ij")
+
+    # build flow field dict for downstream functions that expect the flow
+    # field in this format
+    ndim = len(column_names)
+    drift_vector_field = tuple(drift_values[..., i] for i in range(ndim))
+
+    flow_field_dict = {"vectors": tuple(drift_vector_field), "grid": tuple(grid)}
+
+    return flow_field_dict
+
+
+def get_fixed_points_df(
+    dataset_name: str,
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str = DEFAULT_MODEL_RUN_NAME,
+) -> pd.DataFrame:
+    """Get the fixed points dataframe for a given dataset.
+
+    Parameters
+    ----------
+    dataset_name
+        Name of the dataset to retrieve fixed points for.
+    model_manifest_name
+        Name of the model manifest to use for locating the fixed points dataframe.
+    run_name
+        Name of the model run to use for locating the fixed points dataframe.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing the fixed points for the specified dataset.
+    """
+
+    base_name = f"{model_manifest_name}_{run_name}_grid"
+    fixed_points_df_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
+    fixed_points_df_manifest = load_dataframe_manifest(fixed_points_df_manifest_name)
+
+    if dataset_name not in fixed_points_df_manifest.locations:
+        logger.warning(
+            "Dataset [ %s ] not found in fixed points dataframe manifest [ %s ]!",
+            dataset_name,
+            fixed_points_df_manifest_name,
+        )
+        return pd.DataFrame()
+
+    # load fixed point dataframe and check that required columns are present
+    fixed_points_df_location = get_dataframe_location_for_dataset(
+        fixed_points_df_manifest, dataset_name
+    )
+    fixed_points_df = load_dataframe(fixed_points_df_location, delay=False)
+
+    return fixed_points_df

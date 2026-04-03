@@ -20,13 +20,15 @@ def main(
     from endo_pipeline.io.output import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.data_driven_flow_field import (
         compute_extrapolated_vector_field,
-    )
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import rewrap_polar_angle
-    from endo_pipeline.library.analyze.integration.track_integration import (
+        get_drift_df,
+        get_drift_flow_field_as_dict,
         get_drift_values_and_grid,
-        get_flow_field_and_fixed_points,
+        get_fixed_points_df,
+    )
+    from endo_pipeline.library.analyze.integration.track_integration import (
         solve_ddff_from_trajectory_initial_condition_helper,
     )
+    from endo_pipeline.library.analyze.polar_coords import rewrap_polar_angle
     from endo_pipeline.library.visualize.integration.track_integration_viz import (
         plot_quiver_slices_from_flow_field_dict,
     )
@@ -56,13 +58,15 @@ def main(
         # sort the grid-based dynamics dataframe by crop index and timepoint
         df_grid = df_grid.sort_values(by=[Column.CROP_INDEX, Column.TIMEPOINT])
 
-        # load the flow field and fixed points
+        # load the flow field dictionaries and fixed points
+        drift_df = get_drift_df(dataset_name)
         drift_values, grid_points_1d = get_drift_values_and_grid(
-            dataset_name, column_names=DYNAMICS_COLUMN_NAMES
+            flow_field_dataframe=drift_df, column_names=DYNAMICS_COLUMN_NAMES
         )
-        flow_field_dict_grid, fixed_points_df = get_flow_field_and_fixed_points(
-            dataset_name, column_names=DYNAMICS_COLUMN_NAMES
+        flow_field_dict_grid = get_drift_flow_field_as_dict(
+            flow_field_dataframe=drift_df, column_names=DYNAMICS_COLUMN_NAMES
         )
+        fixed_points_df = get_fixed_points_df(dataset_name)
 
         ## ODE solver: dx/dt = f(x) (drift, first Kramers-Moyal coefficient) ##
         # with initial conditions given by init solve IVP, get back trajectory

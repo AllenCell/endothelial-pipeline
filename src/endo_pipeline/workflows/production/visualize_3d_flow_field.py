@@ -36,7 +36,7 @@ def main(
     derived from the DiffAE features via a 3D PCA transformation. For more
     details on the specific features used and how they are derived, see the
     methods `fit_pca` and `project_features_to_pcs` in the
-    `diffae_dataframe_utils` module.
+    `pca` module.
 
     **Dataframe loading pattern**
 
@@ -100,10 +100,10 @@ def main(
         compute_extrapolated_vector_field,
         solve_ddff_ode,
     )
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    from endo_pipeline.library.analyze.dataframe_validation import (
         check_required_columns_in_dataframe,
-        filter_dataframe_by_annotations,
     )
+    from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
         get_kernel_density_estimate_from_trajectories,
     )
