@@ -204,6 +204,8 @@ class MLFlowLogger(_LightningMLFlowLogger):
 
         if monitor is not None:
             artifact_path = f"checkpoints/{monitor}"
+            # Sanitize monitor name for use in filenames (e.g. "val/loss" → "val_loss")
+            safe_monitor = monitor.replace("/", "_")
 
             # Top-k management (upload new, delete old)
             existing = {
@@ -211,7 +213,7 @@ class MLFlowLogger(_LightningMLFlowLogger):
                 for a in self.experiment.list_artifacts(self.run_id, artifact_path)
             }
             top_k = {k.split("/")[-1] for k in ckpt_callback.best_k_models.keys()}
-            best_name = f"best_{monitor}.ckpt"
+            best_name = f"best_{safe_monitor}.ckpt"
             to_delete = existing - top_k - {best_name, "last.ckpt"}
             to_upload = top_k - existing
 
