@@ -205,31 +205,12 @@ def test_filter_dataframe_to_steady_state_removes_not_steady_state_timepoints(da
 def test_filter_dataframe_to_steady_state_keeps_all_timepoints_when_no_not_steady_state_annotations(
     dataframe,
 ):
-    # Dataset with no NOT_STEADY_STATE annotations and no position annotations → full dataframe returned
-    dataset_no_annotations = DatasetConfig(
-        name="unique_dataset_name",
-        date="YYYYMMDD",
-        original_path="/path/to/original/dataset",
-        zarr_positions=[1, 3, 5],
-        fmsid="FMS ID",
-        barcode="Dataset LabKey barcode",
-        cell_lines=["AICS-111", "AICS-222"],
-        live_or_fixed_sample="live",
-        is_timelapse=True,
-        microscope="3i",
-        objective="20X",
-        shear_stress_regime=[],
-        pixel_size_xy_in_um=0.0,
-        duration=4,
-        time_interval_in_minutes=1.0,
-        channel_names=[],
-        flow_conditions=[],
-        n_total_positions=0,
-        original_channel_indices=ChannelIndices(brightfield=0, channel_488=0),
-        zarr_channel_indices=ChannelIndices(brightfield=0, channel_488=0),
-        position_annotations={},
-        timepoint_annotations={},
-    )
+    # Dataset with no NOT_STEADY_STATE annotations and no position annotations →
+    # full dataframe returned
+    dataset_no_annotations = dataset.copy()
+    dataset_no_annotations.position_annotations = {}
+    dataset_no_annotations.timepoint_annotations = {}
+
     filtered_df = filter_dataframe_to_steady_state(dataframe, dataset_no_annotations)
     assert filtered_df[Column.POSITION].tolist() == dataframe[Column.POSITION].tolist()
     assert filtered_df[Column.TIMEPOINT].tolist() == dataframe[Column.TIMEPOINT].tolist()
