@@ -607,3 +607,44 @@ def interpolate_on_curve(traj: np.ndarray, n_points: int = 5) -> np.ndarray:
         interpolated_points[:, i] = np.interp(arc_length_new, arc_length, traj[:, i])
 
     return interpolated_points
+
+
+def get_drift_flow_field_as_dict(
+    flow_field_dataframe: pd.DataFrame, column_names: list[str | Column.DiffAEData]
+) -> dict[str, tuple[np.ndarray]]:
+    """Convert a drift flow field dataframe into a dictionary suitable for visualization / analysis.
+
+    Parameters
+    ----------
+    flow_field_dataframe
+        Dataframe containing the flow field data with columns corresponding to the coordinates and drift values.
+    column_names
+        List of column names corresponding to the dynamics features to use for constructing the flow field.
+
+    Returns
+    -------
+    dict[str, tuple[np.ndarray]]
+        Dictionary containing the flow field vectors and the corresponding grid points.
+    """
+    # restructure the flow field dataframe into a flow field dictionary
+    ndim = len(column_names)
+    flow_field_column_names = [f"{name}_drift" for name in column_names]
+
+    grid_points_1d = [
+        np.sort(flow_field_dataframe[col].unique()) for col in flow_field_column_names
+    ]
+    grid_shape = tuple(len(points) for points in grid_points_1d)
+    grid = np.meshgrid(*grid_points_1d, indexing="ij")
+
+    # unpack drift values from dataframe and reshape to grid shape for flow
+    # field visualization and ODE solving
+    drift_values = (
+        flow_field_dataframe[flow_field_column_names].to_numpy().reshape(*grid_shape, ndim)
+    )
+
+    # build flow field dict for downstream functions that expect the flow
+    # field in this format
+    drift_vector_field = tuple(drift_values[..., i] for i in range(ndim))
+    flow_field_dict = {"vectors": tuple(drift_vector_field), "grid": grid}
+
+    return flow_field_dict

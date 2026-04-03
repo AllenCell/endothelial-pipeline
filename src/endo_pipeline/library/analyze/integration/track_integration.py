@@ -8,7 +8,10 @@ from matplotlib import pyplot as plt
 from seaborn import color_palette
 
 from endo_pipeline.io import get_output_path, load_dataframe
-from endo_pipeline.library.analyze.data_driven_flow_field import solve_ddff_ode
+from endo_pipeline.library.analyze.data_driven_flow_field import (
+    get_drift_flow_field_as_dict,
+    solve_ddff_ode,
+)
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
@@ -677,9 +680,7 @@ def get_flow_field_and_fixed_points(
 
     logger.info("Getting flow fields and fixed points for grid-based crops...")
 
-    # load fixed point dataframe if it exists, and check that required
-    # columns are present turn fixed point dataframe into list of arrays of
-    # stable fixed point coordinates for each dataset to use for plotting
+    # load fixed point dataframe and check that required columns are present
     fixed_points_df_location = get_dataframe_location_for_dataset(
         fixed_points_df_manifest, dataset_name
     )
@@ -689,29 +690,12 @@ def get_flow_field_and_fixed_points(
         required_columns=[*column_names, Column.DATASET, STABILITY_COLUMN_NAME],
     )
 
-    # if there are no fixed points then move to the next dataset
-    if fixed_points_df.empty:
-        logger.warning(
-            "No stable fixed points found for dataset [ %s ]. Nothing to plot for this dataset.",
-            dataset_name,
-        )
-
     drift_dataframe_location = get_dataframe_location_for_dataset(
         drift_dataframe_manifest, dataset_name
     )
     drift_df = load_dataframe(drift_dataframe_location, delay=False)
 
-    # restructure the drift dataframe into a flow field dictionary
-    ndim = len(column_names)
-    drift_column_names = [f"{name}_drift" for name in column_names]
-
-    grid_points_1d = [np.sort(drift_df[column_name].unique()) for column_name in column_names]
-    grid_shape = tuple(len(points) for points in grid_points_1d)
-    grid = np.meshgrid(*grid_points_1d, indexing="ij")
-
-    drift_values = drift_df[drift_column_names].to_numpy().reshape(*grid_shape, ndim)
-    drift_vector_field = [drift_values[..., i] for i in range(ndim)]
-    flow_field_dict = {"vectors": drift_vector_field, "grid": grid}
+    flow_field_dict = get_drift_flow_field_as_dict(drift_df, column_names)
 
     return flow_field_dict, fixed_points_df
 
