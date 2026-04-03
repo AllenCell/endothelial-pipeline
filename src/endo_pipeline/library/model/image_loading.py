@@ -35,11 +35,6 @@ class LogImaged(Transform):
     applies a logarithmic transformation to the image data, and stores the transformed
     image back in the dictionary under a specified output key. The transformation is
     performed using the formula: `log_image = log(image + 1e-12)`.
-
-    Parameters
-    ----------
-    keys : str
-        Key in the input dictionary where the original image data is stored.
     """
 
     def __init__(self, keys: "list | ListConfig | str" = "image") -> None:
@@ -48,7 +43,7 @@ class LogImaged(Transform):
 
         Parameters
         ----------
-        keys : str
+        keys
             Key in the input dictionary where the original image data is stored.
         """
         super().__init__()
@@ -60,12 +55,12 @@ class LogImaged(Transform):
 
         Parameters
         ----------
-        data : dict
+        data
             Input dictionary containing image data under `keys`.
 
         Returns
         -------
-        dict
+        :
             Output dictionary with transformed image data under `keys`, overwriting data in place.
         """
         for key in self.keys:
@@ -160,6 +155,7 @@ class BioIOImageLoaderd(Transform):
         return arg
 
     def _get_filename(self, path: str, kwargs: dict) -> str:
+        """Generate a filename for the output image based on the input path and kwargs."""
         if self.include_meta_in_filename:
             logger.debug("Including metadata in filename")
             path = path.split(".")[0] + "_" + "_".join([f"{k}_{v}" for k, v in kwargs.items()])
@@ -238,101 +234,132 @@ class MultiDimImageDataset(SmartCacheDataset):
         **cache_kwargs: typing.Any,
     ) -> None:
         """
-        Initialize a dataset that reads multi-dimensional images using metadata from a dataframe
-        (loaded from a .parquet file) and prepares them for processing.
+        Initialize a dataset that reads multi-dimensional images using metadata
+        from a dataframe (loaded from a .parquet file) and prepares them for
+        processing.
 
         **Multi-channel images**
-        The ``channel_column`` parameter should be specified to indicate which channel(s)
-        to extract from the image. To load multiple channels, the entries of this column
-        should be a list of the channel indices (e.g. ``[0,1,2]``). Else, this
-        column should contain a single channel index (e.g. ``0`` or ``1``).
+
+        The ``channel_column`` parameter should be specified to indicate which
+        channel(s) to extract from the image. To load multiple channels, the
+        entries of this column should be a list of the channel indices (e.g.
+        ``[0,1,2]``). Else, this column should contain a single channel index
+        (e.g. ``0`` or ``1``).
 
         **Image spatial dimensions**
-        The output image will be in the format ``CZYX`` or ``CYX`` depending on the
-        ``spatial_dims`` parameter. This is to ensure compatibility with dictionary-based
-        MONAI-style transforms. The ``spatial_dims`` parameter specifies the number of spatial
-        dimensions in the output image, which can be either 2 (for ``YX``) or 3 (for ``ZYX``).
+
+        The output image will be in the format ``CZYX`` or ``CYX`` depending on
+        the ``spatial_dims`` parameter. This is to ensure compatibility with
+        dictionary-based MONAI-style transforms. The ``spatial_dims`` parameter
+        specifies the number of spatial dimensions in the output image, which
+        can be either 2 (for ``YX``) or 3 (for ``ZYX``).
 
         **Multi-scene images**
-        If the input images are multi-scene images, the ``scene_column`` parameter should be
-        specified. This column should contain the names of the scenes to extract from the
-        multi-scene image. If not specified, all scenes will be extracted. If multiple scenes
-        are specified, the column entry should be a list (e.g. ``[scene1,scene2]``).
+
+        If the input images are multi-scene images, the ``scene_column``
+        parameter should be specified. This column should contain the names of
+        the scenes to extract from the multi-scene image. If not specified, all
+        scenes will be extracted. If multiple scenes are specified, the column
+        entry should be a list (e.g. ``[scene1,scene2]``).
 
         **Multi-resolution images**
-        If the there are multiple resolution level available for the input images, the
-        ``resolution_column`` parameter should be specified. This column should contain the
-        resolution level at which to load the image. If not specified, the resolution level
-        is assumed to be 0 (full resolution).
+
+        If the there are multiple resolution level available for the input
+        images, the ``resolution_column`` parameter should be specified. This
+        column should contain the resolution level at which to load the image.
+        If not specified, the resolution level is assumed to be 0 (full
+        resolution).
 
         **Timelapse images**
-        If there are multiple timepoints available for the input images, the ``time_start_column``,
-        ``time_stop_column``, and ``time_step_column`` parameters should be specified. These columns
-        should contain the start timepoint, stop timepoint, and step between timepoints (step
-        defaults to 1) respectively. If not specified, all timepoints are extracted. To specify the
-        last timepoint, you can use -1 in the ``time_stop_column``, which will be interpreted as the
-        last timepoint available in the image. The timepoints are zero-indexed, so the first
-        timepoint is 0.
+
+        If there are multiple timepoints available for the input images, the
+        ``time_start_column``, ``time_stop_column``, and ``time_step_column``
+        parameters should be specified. These columns should contain the start
+        timepoint, stop timepoint, and step between timepoints (step defaults to
+        1) respectively. If not specified, all timepoints are extracted. To
+        specify the last timepoint, you can use -1 in the ``time_stop_column``,
+        which will be interpreted as the last timepoint available in the image.
+        The timepoints are zero-indexed, so the first timepoint is 0.
 
         **Excluding timepoints**
-        If you want to exclude specific timepoints from the timelapse image, you can specify
-        the ``timepoints_to_exclude_column`` parameter. This column should contain a
-        list of timepoints to exclude (e.g. ``[1,3,5]``).
 
-        **Z slices *
-        If the input images are 3D and you want to extract specific Z slices, the
-        ``z_start_column``, ``z_stop_column``, and ``z_step_column`` parameters should be
-        specified. These columns should contain the start Z slice, stop Z slice, and step between Z
-        slices (step defaults to 1) respectively. If not specified, all Z slices are extracted.
+        If you want to exclude specific timepoints from the timelapse image, you
+        can specify the ``timepoints_to_exclude_column`` parameter. This column
+        should contain a list of timepoints to exclude (e.g. ``[1,3,5]``).
+
+        **Z slices**
+
+        If the input images are 3D and you want to extract specific Z slices,
+        the ``z_start_column``, ``z_stop_column``, and ``z_step_column``
+        parameters should be specified. These columns should contain the start Z
+        slice, stop Z slice, and step between Z slices (step defaults to 1)
+        respectively. If not specified, all Z slices are extracted.
 
         **Extra columns**
-        The ``extra_columns`` parameter allows you to specify additional columns from the dataframe
-        that you want to include in the output dictionary. These columns will be added to the
-        output dictionary as-is if found, otherwise their values will be set to None.
+
+        The ``extra_columns`` parameter allows you to specify additional columns
+        from the dataframe that you want to include in the output dictionary.
+        These columns will be added to the output dictionary as-is if found,
+        otherwise their values will be set to None.
 
         **Transforms**
-        The ``transform`` parameter allows you to specify a list or composition of MONAI-style
-        transforms to apply to the image metadata. The first transform in the list should be an
-        instance of ``BioIOImageLoaderd``, which will load the image data from the path specified in
-        the metadata dictionary. The subsequent transforms can be any MONAI-style transforms that
-        operate on the metadata dictionary. If no transforms are specified, the dataset will
-        default to an empty list, meaning no transforms will be applied.
 
-        ** SmartCacheDataset **
-        The dataset is a subclass of ``monai.data.SmartCacheDataset``, which means it can be used
-        with MONAI's caching mechanism to speed up data loading and processing. The ``cache_kwargs``
-        parameter allows you to specify additional keyword arguments to pass to the
+        The ``transform`` parameter allows you to specify a list or composition
+        of MONAI-style transforms to apply to the image metadata. The first
+        transform in the list should be an instance of ``BioIOImageLoaderd``,
+        which will load the image data from the path specified in the metadata
+        dictionary. The subsequent transforms can be any MONAI-style transforms
+        that operate on the metadata dictionary. If no transforms are specified,
+        the dataset will default to an empty list, meaning no transforms will be
+        applied.
+
+        **SmartCacheDataset**
+
+        The dataset is a subclass of ``monai.data.SmartCacheDataset``, which
+        means it can be used with MONAI's caching mechanism to speed up data
+        loading and processing. The ``cache_kwargs`` parameter allows you to
+        specify additional keyword arguments to pass to the
         ``SmartCacheDataset``.
 
         **Distributed training**
-        If you are using distributed training with multiple devices/processes, the dataset will
-        automatically distribute the samples evenly across the devices/processes based on the
-        ``LOCAL_RANK`` and ``WORLD_SIZE`` environment variables. If these variables are not set,
-        the dataset will use the ``num_devices`` parameter to determine the number of
+
+        If you are using distributed training with multiple devices/processes,
+        the dataset will automatically distribute the samples evenly across the
+        devices/processes based on the ``LOCAL_RANK`` and ``WORLD_SIZE``
+        environment variables. If these variables are not set, the dataset will
+        use the ``num_devices`` parameter to determine the number of
         devices/processes.
 
         Parameters
         ----------
         dataframe_path
-            Path to .parquet file containing metadata table for loading the images.
+            Path to .parquet file containing metadata table for loading the
+            images.
         img_path_column
-            Column in metadata table that contains path to timelapse or multi-scene file
+            Column in metadata table that contains path to timelapse or
+            multi-scene file
         channel_column
-            Column in metadata table that contains which channel to extract from the file.
+            Column in metadata table that contains which channel to extract from
+            the file.
         spatial_dims
             Spatial dimension of output image.
         scene_column
-            Column in metadata table that contains scenes to extract from a multi-scene file.
+            Column in metadata table that contains scenes to extract from a
+            multi-scene file.
         resolution_column
-            Column in metadata table that contains resolution to extract from multi-resolution file.
+            Column in metadata table that contains resolution to extract from
+            multi-resolution file.
         time_start_column
-            Column in metadata table specifying the first timepoint in timelapse image to load.
+            Column in metadata table specifying the first timepoint in timelapse
+            image to load.
         time_end_column
-            Column in metadata table specifying the last timepoint in timelapse image to load.
+            Column in metadata table specifying the last timepoint in timelapse
+            image to load.
         time_step_column
             Column in metadata table specifying step size between timepoints.
         timepoints_to_include_column
-            Column in metadata table specifying which timepoints to include from the image.
+            Column in metadata table specifying which timepoints to include from
+            the image.
         z_start_column
             Column in metadata table specifying the lowest Z slice to extract.
         z_end_column
@@ -342,10 +369,11 @@ class MultiDimImageDataset(SmartCacheDataset):
         extra_columns
             List of extra columns to include in the output dictionary.
         transform
-            List (or ``Compose`` object) of Monai-style transforms to apply to the image metadata.
+            List (or ``Compose`` object) of Monai-style transforms to apply to
+            the image metadata.
         num_devices
             Optional, number of devices/processes for distributed training.
-        cache_kwargs:
+        cache_kwargs
             Additional keyword arguments to pass to ``CacheDataset``.
         """
 
@@ -529,15 +557,16 @@ def get_z_slice_bounds_per_position(
     z_slice_offsets: tuple[int, int] | None,
 ) -> dict[int, dict[CytoDLLoadDataKeys, int]]:
     """
-    Parse dataset annotations to get lower and upper z-slice
-    bounds per position for image loading and processing.
+    Parse dataset annotations to get lower and upper z-slice bounds per position
+    for image loading and processing.
 
     **Z-slice offsets**
 
-    The ``z_slice_offsets`` parameter allows for flexible control over the z-slice loading.
-    If ``z_slice_offsets`` is provided, it limits the number of z-slices to load
-    by slicing about a global center as annotated in the dataset config. If it
-    is ``None``, all z-slices are loaded from the raw brightfield images.
+    The ``z_slice_offsets`` parameter allows for flexible control over the
+    z-slice loading. If ``z_slice_offsets`` is provided, it limits the number of
+    z-slices to load by slicing about a global center as annotated in the
+    dataset config. If it is ``None``, all z-slices are loaded from the raw
+    brightfield images.
 
     Parameters
     ----------
@@ -596,7 +625,51 @@ def build_zarr_image_loading_dataframe(
     only_include_positions: list[int] | None = None,
     only_include_frames: dict[int, list[int]] | None = None,
 ) -> pd.DataFrame:
-    """Build a DataFrame with metadata for loading Zarr images as a ``MultiDimImageDataset``."""
+    """
+    Build a DataFrame with metadata for loading Zarr images as a
+    `MultiDimImageDataset`.
+
+    **Timepoint and position filtering**
+
+    The `only_include_positions` and `only_include_frames` parameters allow for
+    flexible filtering of which positions and timepoints to include in the
+    DataFrame.
+
+    If `only_include_positions` is provided, only the specified position indices
+    will be included in the DataFrame.
+
+    If `only_include_frames` is provided, only the specified timepoints for each
+    position will be included in the DataFrame.
+
+    If these parameters are not provided, all positions and timepoints will be
+    included.
+
+    Parameters
+    ----------
+    dataset_config
+        Dataset configuration object containing information about the dataset
+        and its structure.
+    resolution_level
+        Resolution level to load from the Zarr files.
+    channel
+        Channel(s) to load from the Zarr files.
+    frame_start
+        First timepoint to load from the Zarr files. If None, loading starts
+        from the first timepoint.
+    frame_stop
+        Last timepoint to load from the Zarr files. If None, loading goes until
+        the last timepoint.
+    frame_step
+        Step size between timepoints to load. If None, all timepoints between
+        start and stop are loaded.
+    z_slice_bounds_per_position
+        Dictionary with z-slice start and stop indices per position for loading
+        from the Zarr files. If None, all z-slices are loaded.
+    only_include_positions
+        List of position indices to include in the DataFrame.
+    only_include_frames
+        Optional, dictionary of timepoints to include for each position.
+    """
     # generate csv with paths to zarr files for each position in the dataset
     available_zarr_locs = get_available_zarr_locations(dataset_config)
     zarr_file_paths = [
