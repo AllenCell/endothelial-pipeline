@@ -1,3 +1,5 @@
+"""Methods related to binning and histogram calculations."""
+
 import logging
 from typing import cast
 

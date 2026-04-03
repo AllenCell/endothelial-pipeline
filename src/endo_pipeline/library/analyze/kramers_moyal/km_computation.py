@@ -1,3 +1,5 @@
+"""Methods for computing Kramers-Moyal coefficients from trajectories using kernel-based estimation."""
+
 import logging
 from collections.abc import Callable
 
