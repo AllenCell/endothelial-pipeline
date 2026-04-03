@@ -205,14 +205,14 @@ def get_cdh5_seg_data_for_tfe(
     # classic segmentation features)
     manifest = load_dataframe_manifest(dataframe_manifest_name)
     location = get_dataframe_location_for_dataset(manifest, dataset.name)
-    df = load_dataframe(location, delay=True)
+    df_delay = load_dataframe(location, delay=True)
 
     # Get columns that need to be loaded by extending the list of required
     # columns with the intersection between requested feature columns and the
     # columns available in the dataframe.
     columns = set(TFE_REQUIRED_COLUMNS)
-    columns.update(set(TFE_FEATURE_MAP.keys()) & set(df.columns))
-    df = df[list(columns)].compute().reset_index(drop=True)
+    columns.update(set(TFE_FEATURE_MAP.keys()) & set(df_delay.columns))
+    df = df_delay[list(columns)].compute().reset_index(drop=True)
 
     # Filter dataset down to position
     df = df[df[Column.POSITION] == position]
