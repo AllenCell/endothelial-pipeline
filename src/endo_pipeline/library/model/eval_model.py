@@ -90,60 +90,6 @@ def load_model_for_inference(
     return model
 
 
-def generate_overrides_for_model_eval(
-    save_path: str,
-    data_path: str,
-    dataset_name: str,
-    model_manifest_name: str,
-    run_name: str,
-    prediction_filename_suffix: str | None = None,
-    cache_rate: float = 1.0,
-    num_gpus: int | None = None,
-) -> dict:
-    """
-    Generate overrides for the CytoDLModel configuration for evaluating model
-    `run_name` from manifest `model_manifest_name` on images from dataset `dataset_name`.
-    """
-    if prediction_filename_suffix is None:
-        save_suffix = f"{dataset_name}_{model_manifest_name}_{run_name}_features"
-    else:
-        save_suffix = prediction_filename_suffix
-    overrides = {
-        # train and val dataloaders are unnecessary for prediction
-        # and might be slow to instantiate (e.g. if they cache data)
-        "data.train_dataloaders": None,
-        "data.val_dataloaders": None,
-        "data.predict_dataloaders.dataset.dataframe_path": data_path,
-        "data.predict_dataloaders.dataset.cache_rate": cache_rate,
-        "paths.output_dir": save_path,
-        "callbacks": None,
-        "callbacks.prediction_saver": {
-            "_target_": "cyto_dl.callbacks.tabular_saver.SaveTabularData",
-            "save_dir": save_path,
-            "meta_keys": [
-                CytoDLSaveDataKeys.TIMEPOINT,
-                Column.DiffAEData.START_Y,
-                Column.DiffAEData.START_X,
-                CytoDLSaveDataKeys.FILE_PATH,
-            ],
-            "save_suffix": save_suffix,
-        },
-        "extras.print_config": False,
-    }
-
-    if num_gpus is not None:
-        overrides["trainer.accelerator"] = "gpu"
-        overrides["trainer.devices"] = num_gpus
-        if num_gpus == 1:
-            overrides["trainer.strategy"] = "auto"
-    else:
-        overrides["trainer.accelerator"] = "cpu"
-        overrides["trainer.devices"] = 1
-        overrides["trainer.strategy"] = "auto"
-
-    return overrides
-
-
 def add_diffae_model_eval_crop_columns(
     df: pd.DataFrame,
     diffae_resolution_level: int = DIFFAE_ZARR_RESOLUTION_LEVEL,

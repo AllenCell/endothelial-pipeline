@@ -1,6 +1,5 @@
 from .diffae import MinStdCropd, RotateRanged, generate_from_coords, generate_from_coords_batch
 from .eval_model import (
-    generate_overrides_for_model_eval,
     load_model_for_inference,
     preprocess_tracking_manifest_for_model_eval,
     update_prediction_from_crops_with_metadata,
@@ -26,7 +25,6 @@ __all__ = [
     "build_zarr_image_loading_dataframe",
     "generate_from_coords",
     "generate_from_coords_batch",
-    "generate_overrides_for_model_eval",
     "get_dataset_names_used_for_training",
     "get_z_slice_bounds_per_position",
     "load_model_for_inference",
