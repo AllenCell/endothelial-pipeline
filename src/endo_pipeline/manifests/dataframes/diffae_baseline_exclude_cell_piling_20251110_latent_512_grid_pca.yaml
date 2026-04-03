@@ -1,5 +1,5 @@
 name: diffae_baseline_exclude_cell_piling_20251110_latent_512_grid_pca
-workflow: endo_pipeline.workflows.production
+workflow: calculate-pca-features
 parameters: {}
 locations:
   20250224_20X:
