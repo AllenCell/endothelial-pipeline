@@ -19,24 +19,24 @@ def _check_and_adjust_km_inputs(
     them if necessary.
 
     **Input checks and adjustments**
-        - Check that the number of trajectories matches the number of
-          displacement arrays, and that the length of each displacement array is
-          one less than the length of the corresponding trajectory (since
-          displacements are computed as differences between consecutive
-          timepoints).
-        - If the trajectories are given as a list of 1D arrays, reshape them to
-          2D arrays with one column, to ensure consistent handling of the data
-          in the subsequent computations.
-        - Check if the powers array is a 1D array, and if so, reshape it to a 2D
-          array with one column, to ensure consistent handling of the powers in
-          the subsequent computations.
-        - Add a row of zeros as the first row of the powers array if the first
-          row is not already all zeros, to ensure proper normalization of the
-          kernel convolution for the 0th order Kramers-Moyal coefficient
-          (probability density).
-        - Check that the number of columns in the powers array matches the
-          number of dimensions in the trajectories, to ensure that the powers
-          are correctly applied
+
+    - Check that the number of trajectories matches the number of
+    displacement arrays, and that the length of each displacement array is one
+    less than the length of the corresponding trajectory (since displacements
+    are computed as differences between consecutive timepoints).
+    - If the trajectories are given as a list of 1D arrays, reshape them to
+    2D arrays with one column, to ensure consistent handling of the data in the
+    subsequent computations.
+    - Check if the powers array is a 1D array, and if so, reshape it to a 2D
+    array with one column, to ensure consistent handling of the powers in the
+    subsequent computations.
+    - Add a row of zeros as the first row of the powers array if the first
+    row is not already all zeros, to ensure proper normalization of the kernel
+    convolution for the 0th order Kramers-Moyal coefficient (probability
+    density).
+    - Check that the number of columns in the powers array matches the
+    number of dimensions in the trajectories, to ensure that the powers are
+    correctly applied.
 
     """
     if len(trajectories) != len(displacements):
@@ -90,15 +90,15 @@ def _get_km_powers(ndim: int) -> np.ndarray:
     For example, for 1D data, the powers are:
 
     .. code-block:: python
-        [[0],  # normalization for kernel
-        convolution (density)
-        [1],  # drift [2]]  # diffusion
+
+        [[0],  # normalization for kernel convolution (density)
+        [1],  # drift
+        [2]]  # diffusion
 
     For 2D data, the powers are:
 
     .. code-block:: python
-        [[0,0],  # normalization for kernel convolution
-        (density)
+        [[0,0],  # normalization for kernel convolution (density)
         [1,0],  # drift_1
         [0,1],  # drift_2
         [2,0],  # diffusion_11
@@ -138,12 +138,15 @@ def _get_weighted_histogram_for_convolution(
 
     For example, in 2D, suppose we input
 
+    .. code-block:: python
+
         powers = [[0, 0], [1, 0], [0, 1], [1, 1], [2, 0], [0, 2]],
 
     Then raising the concatenated displacements `x(t+1)-x(t)` to the powers and
     taking the product across dimensions looks like:
 
     .. code-block:: python
+
         np.power(grads.T, powers[..., None]) = [[1, 1],
                                                 [x_0(t+1)-x_0(t), 1] [1 ,
                                                 x_1(t+1)-x_1(t)],
