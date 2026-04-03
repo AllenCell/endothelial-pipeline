@@ -25,8 +25,7 @@ logger = logging.getLogger(__name__)
 def filter_dataframe_by_track_length(
     dataframe: pd.DataFrame, minimum_track_length: int
 ) -> pd.DataFrame:
-    """
-    Filter dataframe to only include tracks above a minimum track length.
+    """Filter dataframe to only include tracks above a minimum track length.
 
     The expected column name for track length is set as Column.TRACK_LENGTH.
     There is a check to ensure that the specified track length column is present
@@ -53,8 +52,8 @@ def filter_dataframe_by_track_length(
     :
         Filtered DataFrame containing only tracks with length >=
         minimum_track_length.
-    """
 
+    """
     logger.debug(
         "Filtering dataframe to only include tracks with length >= [ %s ] timepoints.",
         minimum_track_length,
@@ -90,8 +89,7 @@ def filter_dataframe_by_annotations(
     position_annotations: list[PositionAnnotation] | None = None,
     timepoint_annotations: list[TimepointAnnotation] | None = None,
 ) -> pd.DataFrame:
-    """
-    Remove annotated timepoints and positions from a dataframe of DiffAE features for one dataset.
+    """Remove annotated timepoints and positions from a dataframe of features for one dataset.
 
     Default behavior is to remove all annotated timepoints and positions.
 
@@ -102,16 +100,18 @@ def filter_dataframe_by_annotations(
     dataset_config
         Dataset config for the dataset.
     position_annotations
-        List of position annotations to remove. Use None to remove all annotated positions.
+        List of position annotations to remove. Use None to remove all
+        annotated positions.
     timepoint_annotations
-        List of timepoint annotations to remove. Use None to remove all annotated timepoints.
+        List of timepoint annotations to remove. Use None to remove all
+        annotated timepoints.
 
     Returns
     -------
     :
         Dataframe with annotated timepoints removed.
-    """
 
+    """
     # check that required columns are present in dataframe
     required_columns = [Column.DATASET, Column.POSITION, Column.TIMEPOINT]
     check_required_columns_in_dataframe(dataframe, required_columns)
@@ -143,8 +143,7 @@ def filter_dataframe_by_annotations(
 def filter_dataframe_to_steady_state(
     dataframe: pd.DataFrame, dataset_config: DatasetConfig
 ) -> pd.DataFrame:
-    """
-    Filter dataframe to only include "steady state" timepoints.
+    """Filter dataframe to only include "steady state" timepoints.
 
     Filtering is done by removing timepoints that are annotated as
     NOT_STEADY_STATE in the dataset config.
@@ -155,8 +154,8 @@ def filter_dataframe_to_steady_state(
         Dataframe of features for one dataset.
     dataset_config
         Dataset config for the dataset.
-    """
 
+    """
     # note: don't need to do dataframe validation checks here since those will
     # be done in the method `filter_dataframe_by_annotations` that is called
     # within this method
@@ -177,8 +176,7 @@ def filter_dataframe_to_steady_state(
 def filter_dataframe_by_flow_condition(
     dataframe: pd.DataFrame, dataset_config: DatasetConfig, flow_condition: FlowCondition
 ) -> pd.DataFrame:
-    """
-    Filter dataframe to only include timepoints corresponding to a specified flow condition.
+    """Filter dataframe to only include timepoints corresponding to a specified flow condition.
 
     Parameters
     ----------
@@ -192,9 +190,10 @@ def filter_dataframe_by_flow_condition(
     Returns
     -------
     :
-        Dataframe filtered to only include timepoints corresponding to the specified flow condition.
-    """
+        Dataframe filtered to only include timepoints corresponding to the
+        specified flow condition.
 
+    """
     # check that required columns are present
     required_columns = [Column.DATASET, Column.TIMEPOINT]
     check_required_columns_in_dataframe(dataframe, required_columns)
