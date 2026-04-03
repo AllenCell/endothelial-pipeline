@@ -45,6 +45,7 @@ def get_trajectories(my_system: Callable, t_vec: np.ndarray, inits: list[tuple])
     -------
     :
         Dictionary storing the resulting trajectories.
+
     """
     trajectory = {}
     for j, ic in enumerate(inits):
