@@ -55,15 +55,20 @@ class DiffAELatentWalkRank0(DiffAELatentWalk):
 
     def on_validation_epoch_end(self, trainer, pl_module):
         """
-        This callback will be executed at the end of each validation epoch. Generated latent space
-        walks along PC axes and saves them out as TIFF files for visualization.
+        This callback will be executed at the end of each validation epoch.
+        Generated latent space walks along PC axes and saves them out as TIFF
+        files for visualization.
 
-        Only executed on rank 0 in distributed training setups to avoid redundant computations.
+        Only executed on rank 0 in distributed training setups to avoid
+        redundant computations.
 
-        Args:
-            trainer: PyTorch Lightning Trainer instance
-            pl_module: PyTorch Lightning Module being trained
-
+        Parameters
+        ----------
+        trainer
+            The PyTorch Lightning Trainer instance managing the training loop.
+        pl_module
+            The PyTorch Lightning Module being trained, which should have access
+            to the model and its hyperparameters.
         """
         # Skip execution on non-primary ranks in distributed training
         if not self._is_rank_zero(trainer):
@@ -151,12 +156,12 @@ class DiffAELatentWalkRank0(DiffAELatentWalk):
         Handles format conversions (torch tensors → numpy, channel dimensions, dtypes)
         and automatically selects appropriate text color based on image intensity.
 
-        Args:
-            img: Input image as numpy array or torch Tensor. Supports HWC, CHW, HW formats.
-            text: Text string to render on the image
-
-        Returns:
-            numpy.ndarray: Image with text annotation, dtype uint8 for OpenCV compatibility
+        Parameters
+        ----------
+        img
+            Input image in (h,w,c), (c,h,w), or (h,w) format.
+        text
+            Text string to render on the image.
         """
 
         # Convert torch.Tensor to numpy array
