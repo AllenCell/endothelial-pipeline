@@ -1,3 +1,5 @@
+"""Methods for visualizing migration coherence metrics and their relationships to morphology dynamics."""
+
 import logging
 from pathlib import Path
 from typing import Any
@@ -60,9 +62,7 @@ def plot_scatter_and_binned_heatmap(
     figsize: tuple[float, float] = (10, 5),
     scatter_point_size: float = 5,
 ) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
-    """
-    Plot scatter and binned mean heatmap over the same x and y columns, colored
-    by a specified feature column.
+    """Plot scatter plot and binned mean heatmap in 2D colored by a specified feature column.
 
     **Dataframe columns and plot description**
 
@@ -102,8 +102,19 @@ def plot_scatter_and_binned_heatmap(
         Bin width along the x-axis for the heatmap.
     y_bin_size
         Bin width along the y-axis for the heatmap.
-    """
+    figsize
+        Figure size for the overall plot (width, height).
+    scatter_point_size
+        Size of the points in the scatter plot.
 
+    Returns
+    -------
+    :
+        The created matplotlib Figure object.
+    :
+        Array of Axes objects corresponding to the scatter and heatmap panels.
+
+    """
     check_required_columns_in_dataframe(
         df,
         required_columns=[x_col, y_col, color_col],
@@ -178,8 +189,7 @@ def plot_3d_scatter_or_binned(
     vmin: float = 0,
     vmax: float = 1,
 ) -> tuple[plt.Figure, Axes3D]:
-    """
-    Plot a 3D scatter or 3D binned heatmap with optional fixed-point overlay.
+    """Plot a 3D scatter or 3D binned heatmap with optional fixed-point overlay.
 
     Parameters
     ----------
@@ -203,6 +213,14 @@ def plot_3d_scatter_or_binned(
         Matplotlib colormap name.
     vmin, vmax
         Color-scale limits.
+
+    Returns
+    -------
+    :
+        The created matplotlib Figure object.
+    :
+        The Axes3D object containing the plot.
+
     """
     x = df[x_col].to_numpy()
     y = df[y_col].to_numpy()
@@ -322,10 +340,13 @@ def plot_fixed_points_vs_shear_stress(
     marker_size_scatter: int = 80,
     marker_size_legend: int = 8,
 ) -> None:
-    """Plot a single fixed-point variable vs shear stress, per dataset.
+    """Make and save plot of one component of fixed points vs shear stress.
 
     Optionally overlays per-dataset mean \u00b1 std error bars when
     *summary_stats* is provided.
+
+    Plot is either categorical by dataset (default) or numeric by shear stress
+    value, as described in the `by_dataset` parameter.
 
     Parameters
     ----------
@@ -342,16 +363,19 @@ def plot_fixed_points_vs_shear_stress(
         Optional ``(ymin, ymax)`` limits for the y-axis.
     summary_stats
         Optional list of dicts with keys ``"shear_stress"``, ``"mean"``,
-        ``"std"``, ``"color"``, and ``"label"`` for each dataset/flow
-        condition.  When provided, mean \u00b1 std error bars are overlaid.
+        ``"std"``, ``"color"``, and ``"label"`` for each dataset/flow condition.
+        When provided, mean \u00b1 std error bars are overlaid.
     by_dataset
-        If ``True`` (default), each dataset gets its own categorical x
-        position, sorted by shear stress. Tick labels show
-        ``"dataset_name (shear_stress)"``.
-        If ``False``, x positions are the numeric shear-stress values and
-        datasets with the same shear stress overlap.
-    """
+        If ``True`` (default), each dataset gets its own categorical x position,
+        sorted by shear stress. Tick labels show ``"dataset_name
+        (shear_stress)"``. If ``False``, x positions are the numeric
+        shear-stress values and datasets with the same shear stress overlap.
+    marker_size_scatter
+        Size of the scatter markers for fixed points.
+    marker_size_legend
+        Size of the markers in the legend for fixed points.
 
+    """
     # Convert shear stress to numeric values for sorting
     df_fp = df_fp.copy()
     df_fp["shear_stress_numeric"] = df_fp["shear_stress"].apply(
@@ -474,8 +498,8 @@ def plot_optical_flow_histogram(
         Optional fixed-points dataframe. If provided, each fixed point's
         ``mean_{optical_flow_feature}`` value is overlaid as a marker on
         the x-axis, colored and shaped by its stability classification.
-    """
 
+    """
     data = df[optical_flow_feature].dropna()
     mean = data.mean()
     median = data.median()
@@ -544,7 +568,7 @@ def plot_cross_dataset_summaries(
     plot_fixed_points: bool = True,
     by_dataset: bool = True,
 ) -> None:
-    """Compute and plot cross-dataset summary visualizations.
+    """Compute, make, and save plot of cross-dataset summary visualizations.
 
     This function loads all necessary data from the provided manifests and
     produces:
@@ -572,6 +596,7 @@ def plot_cross_dataset_summaries(
         point vs shear stress plot, with tick labels showing dataset name and shear stress.
         If ``False``, x positions are the numeric shear-stress values and datasets with the
         same shear stress overlap.
+
     """
     summary_stats: list[dict[str, float | str]] = []
     df_fp_all_list: list[pd.DataFrame] = []
