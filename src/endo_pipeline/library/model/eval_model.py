@@ -191,7 +191,41 @@ def preprocess_tracking_manifest_for_model_eval(
     only_include_positions: list[int] | None = None,
     only_include_frames: dict[int, list[int]] | None = None,
 ) -> pd.DataFrame:
-    """Preprocess the manifest for a dataset to prepare it for model prediction."""
+    """
+    Preprocess the tracking dataframe for a dataset to prepare it for model
+    prediction.
+
+    This function performs the following preprocessing steps:
+        1. Loads the tracking dataframe for the specified dataset from the
+           manifest.
+        2. Selects and computes the necessary columns for model evaluation.
+        3. Filters the dataframe to exclude rows with invalid bounding boxes.
+        4. Adjusts the crop coordinates to be consistent with the specified
+           resolution level.
+        5. Groups the dataframe by zarr path, position, and timepoint, and
+           converts the start and end coordinates to lists.
+        6. Adds columns for which channel to load and what resolution to load it
+           at.
+        7. Optionally filters the dataframe to only include specified position
+           indices and/or frames.
+        8. Optionally adds columns for z slice bounds if specified.
+        9. Removes the temporary column with position index.
+
+    Parameters
+    ----------
+    dataset_config
+        Dataset configuration for the dataset to preprocess the tracking
+        manifest for.
+    z_slice_bounds_per_position
+        Optional, dictionary specifying the z slice bounds for each position
+        index.
+    only_include_positions
+        Optional, list of position indices to include in the preprocessed
+        dataframe.
+    only_include_frames
+        Optional, dictionary specifying which frames to include for each
+        position index.
+    """
 
     manifest = load_dataframe_manifest(DEFAULT_SEG_FEATURE_MANIFEST_NAME)
     location = get_dataframe_location_for_dataset(manifest, dataset_config.name)
@@ -311,7 +345,19 @@ def preprocess_tracking_manifest_for_model_eval(
 def bbox_in_image_bounds(
     df: pd.DataFrame, resolution_level: int = DIFFAE_ZARR_RESOLUTION_LEVEL
 ) -> pd.Series:
-    """Indicate if bounding boxes fit in image bounds without being clipped."""
+    """
+    Indicate if bounding boxes fit in image bounds without being clipped.
+
+    Parameters
+    ----------
+    df
+        Dataframe with columns for image size and bounding box coordinates at
+        resolution level 0.
+    resolution_level
+        Resolution level to check the bounding boxes against. The bounding box
+        coordinates will be downsampled according to the resolution level before
+        checking if they fit within the image bounds.
+    """
     # adjust the image size according to the desired downsample factor
     downsample_factor = 2**resolution_level
     cols_to_downsample = [
@@ -361,8 +407,35 @@ def update_prediction_from_crops_with_metadata(
     prediction_path: Path,
 ) -> None:
     """
-    Update the prediction file with metadata,
-    return the path to the updated prediction file.
+    Add metadata columns to the prediction dataframe from grid-based crop
+    inference.
+
+    This function adds metadata columns to the prediction dataframe, including:
+
+        - dataset name
+        - model manifest name
+        - model run name
+        - resolution level
+        - crop size
+        - position index
+        - timepoint
+
+    The metadata column names are defined in the Column enum.
+
+    Parameters
+    ----------
+    dataset_name
+        Name of the dataset the predictions were made on.
+    model_manifest_name
+        Name of the model manifest the model used for prediction was loaded
+        from.
+    run_name
+        Name of the model run the model used for prediction was loaded from.
+    crop_size
+        Size of the crops that were used for prediction.
+    prediction_path
+        Path to the prediction file to update with metadata (used for both
+        loading and saving).
     """
     # add model and dataset information to prediction file
     pred_df = pd.read_parquet(prediction_path)
@@ -395,7 +468,35 @@ def update_prediction_from_crops_with_metadata(
 def update_prediction_from_tracks_with_metadata(
     dataset_name: str, model_manifest_name: str, run_name: str, prediction_path: Path
 ) -> None:
-    """Update the prediction file with metadata."""
+    """
+    Add metadata columns to the prediction dataframe from track-based crop
+    inference.
+
+    This function adds metadata columns to the prediction dataframe, including:
+
+        - dataset name
+        - model manifest name
+        - model run name
+        - resolution level
+        - crop size
+        - position index
+        - timepoint
+
+    The metadata column names are defined in the Column enum.
+
+    Parameters
+    ----------
+    dataset_name
+        Name of the dataset the predictions were made on.
+    model_manifest_name
+        Name of the model manifest the model used for prediction was loaded
+        from.
+    run_name
+        Name of the model run the model used for prediction was loaded from.
+    prediction_path
+        Path to the prediction file to update with metadata (used for both
+        loading and saving).
+    """
     # add model and dataset information to prediction file
     pred_df = pd.read_parquet(prediction_path)
     pred_df[Column.DATASET] = dataset_name
