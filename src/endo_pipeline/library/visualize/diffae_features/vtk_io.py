@@ -1,3 +1,5 @@
+"""Methods for creating and saving VTK files from 3D vector field data."""
+
 from pathlib import Path
 
 import vtk
@@ -7,8 +9,7 @@ from vtkmodules.util import numpy_support as vtknp
 def save_vector_field_as_vtk(
     vector_field_dict: dict, output_path: Path, volume_extent: dict
 ) -> None:
-    """
-    Save 3D vector field data as a VTK file.
+    """Save 3D vector field data as a VTK file.
 
     **Method input format**
 
@@ -31,6 +32,7 @@ def save_vector_field_as_vtk(
         The file path where the VTK file will be saved.
     volume_extent
         A dictionary specifying the real dimensions of the 3D volume in PC units.
+
     """
     image_data = get_vtk_image_data_from_vector_field(vector_field_dict, volume_extent)
     writer = vtk.vtkStructuredPointsWriter()
@@ -43,8 +45,7 @@ def save_vector_field_as_vtk(
 def get_vtk_image_data_from_vector_field(
     vector_field_dict: dict, volume_extent: dict
 ) -> vtk.vtkImageData:
-    """
-    Convert 3D vector field to VTK image data format.
+    """Convert 3D vector field to VTK image data format.
 
     **Method input format**
 
@@ -65,6 +66,12 @@ def get_vtk_image_data_from_vector_field(
         A dictionary containing the vector field data.
     volume_extent
         A dictionary specifying the real dimensions of the 3D volume in PC units.
+
+    Returns
+    -------
+    :
+         A VTK image data object containing the vector field data.
+
     """
     vx = vector_field_dict["vectors"][0]
     vy = vector_field_dict["vectors"][1]
