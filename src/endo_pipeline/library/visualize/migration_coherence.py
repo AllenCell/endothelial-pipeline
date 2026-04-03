@@ -9,13 +9,13 @@ import seaborn as sns
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.stats import binned_statistic_2d, binned_statistic_dd
 
-from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
+from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_dataframe, save_plot_to_path
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    check_required_columns_in_dataframe,
-    filter_dataframe_by_annotations,
-    split_dataset_by_flow,
+from endo_pipeline.library.analyze.dataframe_filtering import (
+    filter_dataframe_by_flow_condition,
+    filter_dataframe_to_steady_state,
 )
+from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
     add_binned_mean_to_fixed_points,
     add_optical_flow_features,
@@ -585,22 +585,18 @@ def plot_cross_dataset_summaries(
             continue
 
         # Load, filter, and enrich the feature dataframe
-        df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
+        df_ = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
         columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid"], *DYNAMICS_COLUMN_NAMES]
-        df_ = df[columns_to_compute].compute()
-        df_steady_state = filter_dataframe_by_annotations(
-            df_,
-            load_dataset_config(dataset_name),
-            timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
-        )
+        df = df_[columns_to_compute].compute()
+        dataset_config = load_dataset_config(dataset_name)
+        df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
         df_of = add_optical_flow_features(df_steady_state, datasets=[dataset_name])
 
-        dataset_config = load_dataset_config(dataset_name)
-        df_by_flow, shear_stress_list = split_dataset_by_flow(df_of, dataset_config)
         hist_color = get_dataset_color(dataset_name)
 
-        for df_flow, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
-            plot_label = f"{dataset_name} ({int(shear_stress)} dyn/cm$^2$)"
+        for flow_condition in dataset_config.flow_conditions:
+            df_flow = filter_dataframe_by_flow_condition(df_of, dataset_config, flow_condition)
+            plot_label = f"{dataset_name} ({int(flow_condition.shear_stress)} dyn/cm$^2$)"
 
             # Summary stats for the mean-coherence plot
             flow_mean = df_flow[optical_flow_feature].mean()
@@ -609,7 +605,7 @@ def plot_cross_dataset_summaries(
             summary_stats.append(
                 {
                     "label": plot_label,
-                    "shear_stress": int(shear_stress),
+                    "shear_stress": int(flow_condition.shear_stress),
                     "mean": flow_mean,
                     "std": flow_std,
                     "cov": flow_cov,
@@ -644,8 +640,7 @@ def plot_cross_dataset_summaries(
                     df_fp_all_list.append(fp_df)
                 except KeyError:
                     logger.warning(
-                        "No fixed point dataframe found for dataset [ %s ]. "
-                        "Skipping fixed points.",
+                        "No fixed point dataframe found for dataset [ %s ]. Skipping fixed points.",
                         dataset_name,
                     )
 
