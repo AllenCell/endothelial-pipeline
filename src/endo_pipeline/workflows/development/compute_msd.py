@@ -72,9 +72,9 @@ def main(
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.dataframe_filtering import (
+        filter_dataframe_by_flow_condition,
         filter_dataframe_by_track_length,
         filter_dataframe_to_steady_state,
-        split_dataframe_by_flow,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
         get_kernel_density_estimate_from_trajectories,
@@ -160,15 +160,18 @@ def main(
         df = df_[columns_to_compute].compute()
         df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
 
-        df_by_flow, shear_stress_list = split_dataframe_by_flow(df_steady_state, dataset_config)
-
-        for df_, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
+        for flow_condition in dataset_config.flow_conditions:
+            df_flow = filter_dataframe_by_flow_condition(
+                df_steady_state, dataset_config, flow_condition
+            )
             if crop_pattern == "tracked":
-                df_ = filter_dataframe_by_track_length(df_, min_track_length)
+                df_flow = filter_dataframe_by_track_length(df_flow, min_track_length)
             dt_array = np.arange(1, max_lag + 1)
 
-            dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
-            fig_title = f"{dataset_name} ({shear_stress} dyn/cm$^2$), {crop_pattern} crops"
+            dataset_name_flow = f"{dataset_name}_shear_{int(flow_condition.shear_stress)}"
+            fig_title = (
+                f"{dataset_name} ({flow_condition.shear_stress} dyn/cm$^2$), {crop_pattern} crops"
+            )
 
             # compute MSD for each feature via Kramers-Moyal coefficient
             # estimation method
@@ -195,7 +198,7 @@ def main(
                 else:
                     bins, centers = get_bins(
                         bin_widths=(BIN_WIDTHS_DYNAMICS[column_name],),
-                        data=df_[column_name].to_numpy(),
+                        data=df_flow[column_name].to_numpy(),
                         lower_percentile=BIN_LIMIT_PERCENTILE_CUTOFF,
                         upper_percentile=100 - BIN_LIMIT_PERCENTILE_CUTOFF,
                     )
@@ -204,7 +207,7 @@ def main(
                 # using the Kramers-Moyal coefficient estimation method
                 for j, time_lag in enumerate(dt_array):
                     traj_list, d_traj_list = get_traj_and_diff(
-                        df_,
+                        df_flow,
                         column_names=[column_name],
                         polar_angle_period=polar_angle_period,
                         time_lag=time_lag,

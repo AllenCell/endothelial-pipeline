@@ -4,11 +4,13 @@ import pytest
 from endo_pipeline.configs import (
     ChannelIndices,
     DatasetConfig,
+    FlowCondition,
     PositionAnnotation,
     TimepointAnnotation,
 )
 from endo_pipeline.library.analyze.dataframe_filtering import (
     filter_dataframe_by_annotations,
+    filter_dataframe_by_flow_condition,
     filter_dataframe_by_track_length,
     filter_dataframe_to_steady_state,
 )
@@ -44,6 +46,40 @@ def dataset():
             TimepointAnnotation.CELL_PILING: {1: [], 3: [[2, 3]], 5: [3]},
             TimepointAnnotation.AUTO_BF_SCOPE_ERROR: {1: [1], 3: [], 5: []},
         },
+    )
+
+
+@pytest.fixture()
+def two_condition_dataset():
+    """Dataset with two flow conditions: frames 0 to 1 at low shear, frames 2 to
+    3 at high shear.
+    """
+    return DatasetConfig(
+        name="unique_dataset_name",
+        date="YYYYMMDD",
+        original_path="/path/to/original/dataset",
+        zarr_positions=[1],
+        fmsid="FMS ID",
+        barcode="Dataset LabKey barcode",
+        cell_lines=["AICS-111"],
+        live_or_fixed_sample="live",
+        is_timelapse=True,
+        microscope="3i",
+        objective="20X",
+        shear_stress_regime=[],
+        pixel_size_xy_in_um=0.0,
+        duration=4,
+        time_interval_in_minutes=1.0,
+        channel_names=[],
+        flow_conditions=[
+            FlowCondition(start=0, stop=1, shear_stress=1.0),
+            FlowCondition(start=2, stop=3, shear_stress=2.0),
+        ],
+        n_total_positions=0,
+        original_channel_indices=ChannelIndices(brightfield=0, channel_488=0),
+        zarr_channel_indices=ChannelIndices(brightfield=0, channel_488=0),
+        position_annotations={},
+        timepoint_annotations={},
     )
 
 
@@ -244,3 +280,91 @@ def test_filter_dataframe_to_steady_state_keeps_all_timepoints_when_no_not_stead
 def test_filter_dataframe_to_steady_state_raises_with_missing_required_columns(dataframe, dataset):
     with pytest.raises(ValueError, match="DataFrame must contain column"):
         filter_dataframe_to_steady_state(dataframe, dataset)
+
+
+def test_filter_by_flow_condition_single_condition_returns_all_rows(dataframe, dataset):
+    """When dataset has only one flow condition, all rows should be returned unchanged."""
+    single_condition = FlowCondition(start=0, stop=5, shear_stress=1.0)
+    dataset.flow_conditions = [single_condition]
+    result = filter_dataframe_by_flow_condition(dataframe, dataset, single_condition)
+    assert result[Column.TIMEPOINT].tolist() == dataframe[Column.TIMEPOINT].tolist()
+
+
+def test_filter_by_flow_condition_first_condition_returns_frames_before_change(
+    dataframe, two_condition_dataset
+):
+    """First flow condition should include only frames before the change frame (< 2)."""
+    first_condition = two_condition_dataset.flow_conditions[0]
+    result = filter_dataframe_by_flow_condition(dataframe, two_condition_dataset, first_condition)
+    assert result[Column.TIMEPOINT].tolist() == [0, 1] * 3
+
+
+def test_filter_by_flow_condition_second_condition_returns_frames_from_change(
+    dataframe, two_condition_dataset
+):
+    """Second flow condition should include only frames from the change frame onward (>= 2)."""
+    second_condition = two_condition_dataset.flow_conditions[1]
+    result = filter_dataframe_by_flow_condition(dataframe, two_condition_dataset, second_condition)
+    assert result[Column.TIMEPOINT].tolist() == [2, 3] * 3
+
+
+def test_filter_by_flow_condition_returns_copy(dataframe, two_condition_dataset):
+    """Returned dataframe should be a copy; mutating it should not affect the original."""
+    first_condition = two_condition_dataset.flow_conditions[0]
+    result = filter_dataframe_by_flow_condition(dataframe, two_condition_dataset, first_condition)
+    result[Column.TIMEPOINT] = -1
+    assert dataframe[Column.TIMEPOINT].tolist() == [0, 1, 2, 3] * 3
+
+
+def test_filter_by_flow_condition_raises_when_flow_condition_not_in_dataset(
+    dataframe, two_condition_dataset
+):
+    """Providing a FlowCondition not present in the dataset config should raise ValueError."""
+    unrelated_condition = FlowCondition(start=20, stop=30, shear_stress=99.0)
+    with pytest.raises(ValueError, match="does not match any of the flow conditions"):
+        filter_dataframe_by_flow_condition(dataframe, two_condition_dataset, unrelated_condition)
+
+
+@pytest.mark.parametrize(
+    "bad_dataframe",
+    [
+        pd.DataFrame(
+            {
+                Column.DATASET: ["unique_dataset_name"],
+                # Column.TIMEPOINT missing
+            }
+        ),
+        pd.DataFrame(
+            {
+                Column.TIMEPOINT: [0],
+                # Column.DATASET missing
+            }
+        ),
+    ],
+)
+def test_filter_by_flow_condition_raises_with_missing_required_columns(
+    bad_dataframe, two_condition_dataset
+):
+    """Missing required columns should raise a ValueError."""
+    with pytest.raises(ValueError, match="DataFrame must contain column"):
+        filter_dataframe_by_flow_condition(
+            bad_dataframe,
+            two_condition_dataset,
+            two_condition_dataset.flow_conditions[0],
+        )
+
+
+def test_filter_by_flow_condition_raises_when_dataset_name_mismatch(two_condition_dataset):
+    """A dataframe whose dataset name differs from the config name should raise an error."""
+    mismatched_df = pd.DataFrame(
+        {
+            Column.DATASET: ["different_dataset_name"] * 5,
+            Column.TIMEPOINT: list(range(5)),
+        }
+    )
+    with pytest.raises(ValueError):
+        filter_dataframe_by_flow_condition(
+            mismatched_df,
+            two_condition_dataset,
+            two_condition_dataset.flow_conditions[0],
+        )

@@ -62,8 +62,8 @@ def main(
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.dataframe_filtering import (
+        filter_dataframe_by_flow_condition,
         filter_dataframe_to_steady_state,
-        split_dataframe_by_flow,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
         get_kernel_density_estimate_from_trajectories,
@@ -148,12 +148,13 @@ def main(
         df = df_[columns_to_compute].compute()
         df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
 
-        df_by_flow, shear_stress_list = split_dataframe_by_flow(df_steady_state, dataset_config)
-
         # compute on a per-shear stress condition basis
-        for df_, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
-            dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
-            fig_title = f"{dataset_name} ({shear_stress} dym/cm$^2$)"
+        for flow_condition in dataset_config.flow_conditions:
+            dataset_name_flow = f"{dataset_name}_shear_{int(flow_condition.shear_stress)}"
+            fig_title = f"{dataset_name} ({flow_condition.shear_stress} dym/cm$^2$)"
+            df_flow = filter_dataframe_by_flow_condition(
+                df_steady_state, dataset_config, flow_condition
+            )
 
             # loop over pairwise combinations of columns and plot drift contours
             for column_name_pair in [
@@ -192,7 +193,7 @@ def main(
                     else:
                         bins_, centers_ = get_bins(
                             bin_widths=(BIN_WIDTHS_DYNAMICS[column_name],),
-                            data=df_[column_name].to_numpy(),
+                            data=df_flow[column_name].to_numpy(),
                             lower_percentile=BIN_LIMIT_PERCENTILE_CUTOFF,
                             upper_percentile=100 - BIN_LIMIT_PERCENTILE_CUTOFF,
                         )
@@ -213,7 +214,9 @@ def main(
 
                 # get 2D trajectories and differences for the pair of variables
                 traj_2d, diff_2d = get_traj_and_diff(
-                    df_, column_names=list(column_name_pair), polar_angle_period=polar_angle_period
+                    df_flow,
+                    column_names=list(column_name_pair),
+                    polar_angle_period=polar_angle_period,
                 )
 
                 drift, _ = get_kramers_moyal_coeffs(
