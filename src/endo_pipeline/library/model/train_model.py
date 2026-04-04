@@ -1,3 +1,5 @@
+"""Methods for loading models and preprocessing data for model training."""
+
 import logging
 from pathlib import Path
 from typing import Literal
@@ -29,9 +31,7 @@ def _upload_zarr_dataframe_to_fms(
     dataset_config_list: list[DatasetConfig],
     output_savedir: Path,
 ) -> str:
-    """
-    Upload a dataframe containing zarr paths and metadata to FMS, and return the
-    FMS ID of the uploaded file.
+    """Upload a dataframe containing zarr paths and metadata to FMS.
 
     Parameters
     ----------
@@ -49,6 +49,12 @@ def _upload_zarr_dataframe_to_fms(
     output_savedir
         The directory where the output dataframe will be saved as an
         intermediate file before uploading to FMS.
+
+    Returns
+    -------
+    :
+        The FMS ID of the uploaded dataframe.
+
     """
     # save the dataframes to parquet files locally as intermediates
     # use timestamp to ensure unique filenames
@@ -88,8 +94,7 @@ def build_and_save_dataframe_manifest_for_training(
     manifest_name: str,
     workflow_name: str,
 ) -> None:
-    """
-    Build training and validation image loading dataframes and upload to FMS.
+    """Build training and validation image loading dataframes, and upload them to FMS.
 
     This method updates or creates a DataframeManifest with the provided
     parameters and the FMS IDs of the uploaded training and validation
@@ -118,6 +123,7 @@ def build_and_save_dataframe_manifest_for_training(
         The name of the DataframeManifest to be created.
     workflow_name
         The name of the workflow that is creating the dataframe manifest.
+
     """
     # first, upload the train and val dataframes to FMS
     train_fmsid = _upload_zarr_dataframe_to_fms(
@@ -161,9 +167,11 @@ def get_dataset_names_used_for_training(
     val_dataframe_location: DataframeLocation,
     dataset_collection_name: str,
 ) -> list[str]:
-    """
-    Get the list of dataset names used for training based on the provided
-    training and validation dataframes and the dataset collection.
+    """Get the list of dataset names used for model training.
+
+    Parses the provided training and validation dataframes based on the
+    input dataset collection to get the list of dataset names that are
+    used for training.
 
     Parameters
     ----------
@@ -176,6 +184,12 @@ def get_dataset_names_used_for_training(
     dataset_collection_name
         The name of the dataset collection that contains the datasets used for
         training, used to filter the dataset names extracted from the dataframes.
+
+    Returns
+    -------
+    :
+        A sorted list of dataset names used for training.
+
     """
     train_df = load_dataframe(train_dataframe_location)
     val_df = load_dataframe(val_dataframe_location)
@@ -209,8 +223,13 @@ def get_dataset_names_used_for_training(
 def get_included_frames_for_model(
     dataset_config: DatasetConfig, model_manifest: ModelManifest
 ) -> dict[int, list[int]]:
-    """
-    Get list of frames for model training based on timepoint annotations.
+    """Get list of frame numbers for model training based on timepoint annotations.
+
+    **Method output**
+
+    The output of this method is a dictionary where the keys are position numbers and
+    the values are lists of frame numbers that should be included in model training for
+    that position.
 
     Parameters
     ----------
@@ -220,8 +239,13 @@ def get_included_frames_for_model(
     model_manifest
         Model manifest object, used to access information on whether to include
         cell piling timepoints in training.
-    """
 
+    Returns
+    -------
+    :
+        A dictionary of timepoints to include on a per-position basis.
+
+    """
     # Default behavior is to remove all annotations except NOT_STEADY_STATE
     annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
 
