@@ -1,3 +1,5 @@
+"""Methods and classes for loading images for model training and inference."""
+
 import logging
 import os
 import re
@@ -28,8 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 class LogImaged(Transform):
-    """
-    Apply logarithmic transformation to image data in a dictionary.
+    """Apply logarithmic transformation to image data in a dictionary.
 
     This transform takes an input dictionary containing image data under a specified key,
     applies a logarithmic transformation to the image data, and stores the transformed
@@ -38,20 +39,19 @@ class LogImaged(Transform):
     """
 
     def __init__(self, keys: "list | ListConfig | str" = "image") -> None:
-        """
-        Initialize the LogImage transform.
+        """Initialize the LogImage transform.
 
         Parameters
         ----------
         keys
             Key in the input dictionary where the original image data is stored.
+
         """
         super().__init__()
         self.keys = [keys] if isinstance(keys, str) else keys
 
     def __call__(self, data: dict) -> dict:
-        """
-        Apply logarithmic transformation to the image data.
+        """Apply logarithmic transformation to the image data.
 
         Parameters
         ----------
@@ -61,7 +61,9 @@ class LogImaged(Transform):
         Returns
         -------
         :
-            Output dictionary with transformed image data under `keys`, overwriting data in place.
+            Output dictionary with transformed image data under
+            `keys`, overwriting data in place.
+
         """
         for key in self.keys:
             if key not in data:
@@ -83,10 +85,10 @@ class LogImaged(Transform):
 
 
 class BioIOImageLoaderd(Transform):
-    """
-    Enumerates scenes and timepoints for dictionary with format.
+    """Enumerates scenes and timepoints for dictionary with format.
 
     .. code-block:: python
+
         {
             path_key: path,
             channel_key: channel,
@@ -94,9 +96,9 @@ class BioIOImageLoaderd(Transform):
             timepoint_key: timepoint
         }
 
-    Differs from ``monai_bio_reader`` in that reading ``kwargs`` are passed in the dictionary,
+    Differs from `monai_bio_reader` in that reading `kwargs` are passed in the dictionary,
     instead of being fixed at initialization. The filepath will be saved in the dictionary
-    as ``filename_or_obj`` (with or without metadata depending on ``include_meta_in_filename``).
+    as `filename_or_obj` (with or without metadata depending on `include_meta_in_filename`).
     """
 
     def __init__(
@@ -111,8 +113,7 @@ class BioIOImageLoaderd(Transform):
         dask_load: bool = True,
         include_meta_in_filename: bool = False,
     ) -> None:
-        """
-        Initialize the ``BioIOImageLoaderd`` transform.
+        """Initialize the `BioIOImageLoaderd` transform.
 
         Parameters
         ----------
@@ -134,6 +135,7 @@ class BioIOImageLoaderd(Transform):
             Load images using Dask if True, else load them directly into memory.
         include_meta_in_filename
             Include metadata in the filename of the output image if True, else use only the path.
+
         """
         super().__init__()
         self.path_key = path_key
@@ -165,9 +167,20 @@ class BioIOImageLoaderd(Transform):
         return path
 
     def __call__(self, data: dict) -> dict:
-        """
-        Load image data from the path specified in the data dictionary
-        using the arguments specified in the data dictionary.
+        """Load image data as specified in the input dictionary.
+
+        Parameters
+        ----------
+        data
+            Input dictionary containing keys for the image path, scene,
+            resolution, and any additional kwargs for loading.
+
+        Returns
+        -------
+        :
+            Output dictionary with loaded image data under `out_key` and
+            metadata in the filename if `include_meta_in_filename` is True.
+
         """
         # copying prevents the dataset from being modified inplace
         # important when using partially cached datasets so that the
@@ -207,10 +220,10 @@ class BioIOImageLoaderd(Transform):
 
 
 class MultiDimImageDataset(SmartCacheDataset):
-    """
-    Dataset converting a `.csv` file listing multi dimensional (timelapse or
-    multi-scene) files and some metadata into batches of metadata intended for the
-    BioIOImageLoaderd class.
+    """Converts a `.csv` file of image paths and metadata into a batches of metadata for loading.
+
+    Intended as input to the BioIOImageLoaderd transform, which will read the
+    images based on the metadata in the dictionary
     """
 
     def __init__(
@@ -233,10 +246,7 @@ class MultiDimImageDataset(SmartCacheDataset):
         transform: Callable | Sequence[Callable] | None = None,
         **cache_kwargs: typing.Any,
     ) -> None:
-        """
-        Initialize a dataset that reads multi-dimensional images using metadata
-        from a dataframe (loaded from a .parquet file) and prepares them for
-        processing.
+        """Initialize the MultiDimImageDataset.
 
         **Multi-channel images**
 
@@ -375,8 +385,8 @@ class MultiDimImageDataset(SmartCacheDataset):
             Optional, number of devices/processes for distributed training.
         cache_kwargs
             Additional keyword arguments to pass to ``CacheDataset``.
-        """
 
+        """
         df_loc = build_dataframe_location_from_path(dataframe_path)
         df = load_dataframe(df_loc)
         rank = int(os.environ.get("LOCAL_RANK", 0))
@@ -556,9 +566,7 @@ def get_z_slice_bounds_per_position(
     dataset_config: DatasetConfig,
     z_slice_offsets: tuple[int, int] | None,
 ) -> dict[int, dict[CytoDLLoadDataKeys, int]]:
-    """
-    Parse dataset annotations to get lower and upper z-slice bounds per position
-    for image loading and processing.
+    """Get lower and upper z-slice bounds per position for image loading and processing.
 
     **Z-slice offsets**
 
@@ -579,6 +587,7 @@ def get_z_slice_bounds_per_position(
     -------
     :
         Dictionary with z-slice start and stop indices per position.
+
     """
     # get z-slice offsets per position if specified
     if z_slice_offsets is not None:
@@ -625,9 +634,7 @@ def build_zarr_image_loading_dataframe(
     only_include_positions: list[int] | None = None,
     only_include_frames: dict[int, list[int]] | None = None,
 ) -> pd.DataFrame:
-    """
-    Build a DataFrame with metadata for loading Zarr images as a
-    `MultiDimImageDataset`.
+    """Build a DataFrame with image loading metadata for `.zarr` files.
 
     **Timepoint and position filtering**
 
@@ -669,6 +676,13 @@ def build_zarr_image_loading_dataframe(
         List of position indices to include in the DataFrame.
     only_include_frames
         Optional, dictionary of timepoints to include for each position.
+
+    Returns
+    -------
+    :
+        DataFrame with metadata for loading images from Zarr files,
+        which can be used to create a `MultiDimImageDataset`.
+
     """
     # generate csv with paths to zarr files for each position in the dataset
     available_zarr_locs = get_available_zarr_locations(dataset_config)
