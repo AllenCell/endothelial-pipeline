@@ -1,3 +1,5 @@
+"""Methods for generating a latent walk and corresponding images from a DiffusionAutoEncoder model."""
+
 import logging
 import re
 from typing import TYPE_CHECKING
@@ -19,8 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_max_dim_in_column_names(column_names: list[str], feature_prefix: str) -> int:
-    """
-    Get the maximum number of dimensions from the provided column names.
+    """Get the maximum number of dimensions from the provided column names.
 
     Parameters
     ----------
@@ -33,6 +34,7 @@ def get_max_dim_in_column_names(column_names: list[str], feature_prefix: str) ->
     -------
     :
         Maximum number of dimensions based on the column names.
+
     """
     # Define pattern that starts with feature prefix followed by 1 or more digits
     pattern = rf"{feature_prefix}(\d+)"
@@ -49,14 +51,19 @@ def get_max_dim_in_column_names(column_names: list[str], feature_prefix: str) ->
 
 
 def get_num_pcs_from_column_names(column_names: list[str]) -> int:
-    """
-    Get the number of principal components needed for the latent walk based on
-    the provided column names.
+    """Get the number of principal components needed to walk along the given column names.
 
     Parameters
     ----------
     column_names
         List of column names corresponding to each dimension.
+
+    Returns
+    -------
+    :
+        The full set of principal component dimensions needed based on the
+        provided column names.
+
     """
     # get the maximum PC dimension number from the column names; if no PC
     # dimensions are included, set max_pc_dim to 0
@@ -82,9 +89,13 @@ def get_num_pcs_from_column_names(column_names: list[str]) -> int:
 
 
 def _add_preceding_dims_to_column_names(column_names: list[str], feature_prefix: str) -> list[str]:
-    """
-    Add preceding dimension column names to the provided column names based on
-    the provided feature prefix.
+    """Add preceding dimension column names to the provided column names.
+
+    The input feature prefix is used to identify the relevant column names
+    and determine the maximum dimension number included in the column names
+    for that feature prefix. Then, all preceding dimension column names based
+    on the feature prefix and maximum dimension number are added to the
+    provided column names.
 
     For example, column_names = ["pc_3"] and feature_prefix = "pc_", this method
     would add "pc_1" and "pc_2" to the output list of column names since they
@@ -96,6 +107,13 @@ def _add_preceding_dims_to_column_names(column_names: list[str], feature_prefix:
         List of column names corresponding to each dimension.
     feature_prefix
         Prefix to look for in column names, e.g., "pc_" or "feat_".
+
+    Returns
+    -------
+    :
+        List of column names including the original column names and the
+        added preceding dimension column names.
+
     """
     try:
         # get max dimension number for the given feature prefix from the column names
@@ -123,8 +141,7 @@ def _add_preceding_dims_to_column_names(column_names: list[str], feature_prefix:
 
 
 def get_column_names_for_latent_walk_dataframe(input_column_names: list[str]) -> list[str]:
-    """
-    Set up column names for the latent walk based on the provided column names.
+    """Set up column names for the latent walk based on the provided column names.
 
     For example, if the provided columns include any of the PC features, the
     preceding PC features must also be present in the dataframe so that their
@@ -153,6 +170,13 @@ def get_column_names_for_latent_walk_dataframe(input_column_names: list[str]) ->
     input_column_names
         Initial list of column names corresponding to each dimension for the
         latent walk.
+
+    Returns
+    -------
+    :
+        List of column names corresponding to each dimension for the latent walk,
+        including any additional column names as needed.
+
     """
     column_names = input_column_names.copy()
     # special cases for transformed variables: polar coordinates and flipped pc3
@@ -209,9 +233,7 @@ def get_baseline_walk_values(
     dataframe: pd.DataFrame,
     set_column_value: dict[str, float] | None = None,
 ) -> list[float]:
-    """
-    Get baseline walk values for each dimension based on the mean of the data or
-    provided replacement values.
+    """Get baseline latent walk values for each dimension.
 
     Parameters
     ----------
@@ -226,8 +248,8 @@ def get_baseline_walk_values(
     -------
     :
         List of baseline walk values for each dimension.
-    """
 
+    """
     baseline_values = []
     for column_name in dataframe.columns:
         if (set_column_value is None) or (column_name not in set_column_value.keys()):
@@ -254,9 +276,7 @@ def get_latent_walk(
     n_steps: int,
     set_column_value: dict[str, float] | None = None,
 ) -> tuple[pd.DataFrame, np.ndarray]:
-    """
-    Generate a latent walk based on standard deviation or min/max of each
-    dimension.
+    """Generate a latent walk based on standard deviation or min/max of each dimension.
 
     **Specifying walk dimensions**
 
@@ -303,6 +323,13 @@ def get_latent_walk(
         Number of steps in the latent walk.
     set_column_value
         Optional, dictionary mapping column names to set baseline values.
+
+    Returns
+    -------
+    :
+        Tuple containing the latent walk dataframe and the array of
+        walk ranges for each dimension.
+
     """
     walks: list[pd.DataFrame] = []
     ranges: list[np.ndarray] = []
@@ -347,8 +374,7 @@ def generate_latent_walk_images(
     num_gpus: int | None = None,
     random_seed: int | None = None,
 ) -> np.ndarray:
-    """
-    Generate images from a latent walk using the provided model.
+    """Generate images from a latent walk using the provided model.
 
     Parameters
     ----------
@@ -374,6 +400,7 @@ def generate_latent_walk_images(
     :
         Array of stacked generated images from the latent walk, reshaped to
         (n_dim, n_steps, img_width, img_height).
+
     """
     walk_img = generate_from_coords(
         model, walk, n_noise_samples=n_noise_samples, num_gpus=num_gpus, random_seed=random_seed
