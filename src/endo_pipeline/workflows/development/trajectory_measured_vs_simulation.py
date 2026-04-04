@@ -10,14 +10,12 @@ def main(
 
     import numpy as np
     import pandas as pd
-    import seaborn as sns
-    from matplotlib import pyplot as plt
     from tqdm import tqdm
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import load_dataframe
-    from endo_pipeline.io.output import get_output_path, save_plot_to_path
+    from endo_pipeline.io.output import get_output_path
     from endo_pipeline.library.analyze.data_driven_flow_field import (
         compute_extrapolated_vector_field,
         get_drift_df,
@@ -30,7 +28,7 @@ def main(
     )
     from endo_pipeline.library.analyze.polar_coords import rewrap_polar_angle
     from endo_pipeline.library.visualize.integration.track_integration_viz import (
-        plot_quiver_slices_from_flow_field_dict,
+        plot_trajectory_measured_vs_simulation_over_flow_field_helper,
     )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings import ColumnName as Column
@@ -106,6 +104,7 @@ def main(
                     "timepoint_initial": timepoint,
                     "trajectory_duration": track_duration,
                     "simulation_results_column_names": list(DYNAMICS_COLUMN_NAMES),
+                    "time_limit": 10,  # seconds
                 }
             )
 
@@ -136,104 +135,54 @@ def main(
             original_range=(0, np.pi),
         )
 
-        # plot overlays of the tracks with the fixed points on the flow field slices
-        # def plot_trajectories_per_fixed_points(trajectory_df: pd.DataFrame, fixed_points_df: pd.DataFrame) -> None:
+        # # compute the Frechet distance between the measured and simulated trajectories
+        # # NOTE BELOW IS AI GENERATED CODE, NEED TO CHECK IT
+        # frechet_distances = []
+        # for crop_i, traj_df in df_grid_sub.groupby(Column.CROP_INDEX):
+        #     measured_traj = traj_df[[Column.DiffAEData.X, Column.DiffAEData.Y]].values
+        #     simulated_traj = traj_df[
+        #         [f"{Column.DiffAEData.X}_simulated", f"{Column.DiffAEData.Y}_simulated"]
+        #     ].values
+        #     if len(measured_traj) > 0 and len(simulated_traj) > 0:
+        #         frechet_distances.append(frechet_distance(measured_traj, simulated_traj))
+        # df_grid_sub["frechet_distance"] = np.nan
+        # if frechet_distances:
+        #     df_grid_sub.loc[
+        #         df_grid_sub[Column.CROP_INDEX].isin(df_grid_sub[Column.CROP_INDEX].unique()),
+        #         "frechet_distance",
+        #     ] = frechet_distances
+        # # NOTE ABOVE IS AI CODE, NEED TO CHECK IT
 
+        # plot overlays of the tracks with the fixed points on the flow field slices
         for i, fp_row in fixed_points_df.iterrows():
             out_subdir = outdir / f"fixed_point_{i}"
             out_subdir.mkdir(parents=True, exist_ok=True)
 
-            flow_field_slices = (
-                fp_row[DYNAMICS_COLUMN_NAMES[2]],
-                fp_row[DYNAMICS_COLUMN_NAMES[1]],
-            )  # feature 3, feature 2
-            fixed_points_at_slices = (
-                fp_row[list(map(str, DYNAMICS_COLUMN_NAMES))].drop(
-                    index=[DYNAMICS_COLUMN_NAMES[2]]
-                ),
-                fp_row[list(map(str, DYNAMICS_COLUMN_NAMES))].drop(
-                    index=[DYNAMICS_COLUMN_NAMES[1]]
-                ),
-            )
+            # prepare arguments for multiprocessing plotting
+            plotting_args_mp: list[dict] = []
+            for crop_i, traj_df in df_grid_sub.groupby(Column.CROP_INDEX):
+                plotting_args_mp.append(
+                    {
+                        "crop_index": crop_i,
+                        "traj_df": traj_df,
+                        "fixed_point_id": i,
+                        "fixed_point_row": fp_row,
+                        "flow_field_dict_grid": flow_field_dict_grid,
+                        "out_dir": out_subdir,
+                    }
+                )
 
-            # this part needs to be multiprocessed
-            # (plotting each trajectory overlay can be parallelized)
-            # def plot_trajectory_segment(traj_df: pd.DataFrame, segment_indices: np.ndarray, ax: plt.Axes, cols_simulated: list[str]) -> None:
-            for crop_i, traj_df in tqdm(
-                df_grid_sub.groupby(Column.CROP_INDEX),
-                desc=f"Plotting trajectories for fixed point {i}",
-                total=df_grid_sub[Column.CROP_INDEX].nunique(),
-            ):
-                unwrapped_angle_diff = (
-                    traj_df[f"{Column.DiffAEData.POLAR_ANGLE}_simulated_unwrapped"]
-                    .diff()
-                    .replace(np.nan, True)
-                )
-                wrapped_angle_diff = (
-                    traj_df[f"{Column.DiffAEData.POLAR_ANGLE}_simulated"]
-                    .diff()
-                    .replace(np.nan, True)
-                )
-                wrap_discontinuity = np.logical_not(unwrapped_angle_diff == wrapped_angle_diff)
-                angle_segments_to_plot_indices = np.split(
-                    wrap_discontinuity,
-                    wrap_discontinuity.reset_index().index[wrap_discontinuity].tolist(),
-                )
-                fig, axs = plot_quiver_slices_from_flow_field_dict(
-                    dataset_name=dataset_name,
-                    flow_field_dict_grids=flow_field_dict_grid,
-                    feature_vals=flow_field_slices,
-                    column_names=DYNAMICS_COLUMN_NAMES,
-                )
-                for j, ax in enumerate(axs):
-                    # add the fixed points
-                    ax.scatter(*fixed_points_at_slices[j], c="k", s=50)
-
-                    cols_measured: list[str] = fixed_points_at_slices[j].index.tolist()
-                    cols_simulated: list[str] = [f"{col}_simulated" for col in cols_measured]
-
-                    sns.scatterplot(
-                        data=traj_df,
-                        x=cols_measured[0],
-                        y=cols_measured[1],
-                        hue=Column.TIMEPOINT,
-                        palette="flare",
-                        marker="D",
-                        edgecolor="black",
-                        alpha=0.7,
-                        s=10,
-                        ax=ax,
+            with ProcessPoolExecutor(max_workers=n_proc) as executor:
+                list(
+                    tqdm(
+                        executor.map(
+                            plot_trajectory_measured_vs_simulation_over_flow_field_helper,
+                            plotting_args_mp,
+                        ),
+                        desc=f"Plotting trajectories for fixed point {i}",
+                        total=len(plotting_args_mp),
                     )
-                    for segment_indices in angle_segments_to_plot_indices:
-                        data_segment = traj_df.loc[segment_indices.index]
-                        ax.plot(
-                            data_segment[cols_simulated[0]],
-                            data_segment[cols_simulated[1]],
-                            ls="--",
-                            lw=1,
-                            alpha=0.7,
-                            c="black",
-                            zorder=10,
-                        )
-                    sns.scatterplot(
-                        data=traj_df,
-                        x=cols_simulated[0],
-                        y=cols_simulated[1],
-                        hue=Column.TIMEPOINT,
-                        palette="flare",
-                        edgecolor=None,
-                        marker="o",
-                        alpha=0.7,
-                        s=10,
-                        zorder=9,
-                        ax=ax,
-                    )
-                save_plot_to_path(
-                    figure=fig,
-                    output_path=out_subdir,
-                    figure_name=f"{dataset_name}_fp{i}_crop{crop_i}_traj_meas_vs_sim.png",
                 )
-                plt.close(fig)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 from collections import namedtuple
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import numpy as np
 import pandas as pd
@@ -981,3 +981,105 @@ def plot_and_save_track_flow_field_dot_product_histogram(
         figure_name=filename,
     )
     return fig, ax
+
+
+def plot_trajectory_measured_vs_simulation_over_flow_field_helper(args: dict) -> None:
+    plot_trajectory_measured_vs_simulation_over_flow_field(**args)
+
+
+def plot_trajectory_measured_vs_simulation_over_flow_field(
+    crop_index: int,
+    traj_df: pd.DataFrame,
+    fixed_point_id: int,
+    fixed_point_row: pd.Series,
+    flow_field_dict_grid: dict,
+    out_dir: Path,
+) -> None:
+    """Plot measured vs simulated trajectories over the flow field slices for a given fixed point."""
+    dataset_name = traj_df[Column.DATASET].dropna().unique().item()
+    column_names = list(map(str, DYNAMICS_COLUMN_NAMES))
+
+    flow_field_slices = (
+        fixed_point_row[column_names[2]],
+        fixed_point_row[column_names[1]],
+    )  # feature 3, feature 2
+    fixed_points_at_slices = (
+        fixed_point_row[column_names].drop(index=[column_names[2]]),
+        fixed_point_row[column_names].drop(index=[column_names[1]]),
+    )
+
+    unwrapped_angle_diff = (
+        traj_df[f"{Column.DiffAEData.POLAR_ANGLE}_simulated_unwrapped"].diff().replace(np.nan, True)
+    )
+    wrapped_angle_diff = (
+        traj_df[f"{Column.DiffAEData.POLAR_ANGLE}_simulated"].diff().replace(np.nan, True)
+    )
+    wrap_discontinuity = cast(pd.Series, ~(unwrapped_angle_diff == wrapped_angle_diff))
+    angle_segments_to_plot_indices = cast(
+        list[pd.Series],
+        np.split(
+            wrap_discontinuity,
+            wrap_discontinuity.reset_index().index[wrap_discontinuity].tolist(),
+        ),
+    )
+
+    # plot the underlying flow field slices
+    fig, axs = plot_quiver_slices_from_flow_field_dict(
+        dataset_name=dataset_name,
+        flow_field_dict_grids=flow_field_dict_grid,
+        feature_vals=flow_field_slices,
+        column_names=column_names,
+    )
+
+    # for each axis corresponding to a flow field slice
+    for j, ax in enumerate(axs):
+        # add the fixed points to the plot
+        ax.scatter(*fixed_points_at_slices[j], c="k", s=50)
+
+        cols_measured: list[str] = fixed_points_at_slices[j].index.tolist()
+        cols_simulated: list[str] = [f"{col}_simulated" for col in cols_measured]
+
+        # plot measured trajectory points
+        sns.scatterplot(
+            data=traj_df,
+            x=cols_measured[0],
+            y=cols_measured[1],
+            hue=Column.TIMEPOINT,
+            palette="flare",
+            marker="D",
+            edgecolor="black",
+            alpha=0.7,
+            s=10,
+            ax=ax,
+        )
+        # plot simulated trajectory segments (as segments to account for periodic data that wraps)
+        for segment_indices in angle_segments_to_plot_indices:
+            data_segment = traj_df.loc[segment_indices.index]
+            ax.plot(
+                data_segment[cols_simulated[0]],
+                data_segment[cols_simulated[1]],
+                ls="--",
+                lw=1,
+                alpha=0.7,
+                c="black",
+                zorder=10,
+            )
+        sns.scatterplot(
+            data=traj_df,
+            x=cols_simulated[0],
+            y=cols_simulated[1],
+            hue=Column.TIMEPOINT,
+            palette="flare",
+            edgecolor=None,
+            marker="o",
+            alpha=0.7,
+            s=10,
+            zorder=9,
+            ax=ax,
+        )
+    save_plot_to_path(
+        figure=fig,
+        output_path=out_dir,
+        figure_name=f"{dataset_name}_fp{fixed_point_id}_crop{crop_index}_traj_meas_vs_sim.png",
+    )
+    plt.close(fig)

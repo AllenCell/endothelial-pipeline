@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Callable
-from time import time
+from time import perf_counter, time
 from typing import Literal, overload
 
 import numpy as np
@@ -537,6 +537,7 @@ def solve_ddff_ode(
     init: np.ndarray,
     t_span: tuple[float, float],
     num_t: int = 1750,
+    time_limit: float | None = None,
 ) -> np.ndarray:
     """
     Solve an autonomous ODE using ``scipy.integrate.solve_ivp``.
@@ -569,18 +570,47 @@ def solve_ddff_ode(
         Time span for the ODE solver as (t0, tf).
     num_t
         Number of time points to evaluate the solution at.
+    time_limit
+        Maximum allowed time in seconds for the ODE solver to run. If the elapsed time
+        exceeds this limit, the integration will be stopped. If None, no time limit
+        is enforced.
 
     Returns
     -------
     :
         Solution trajectory in 3D state space for the given initial condition and time span.
     """
+
+    if time_limit is None:
+        time_limit = np.inf
+
+    start_time = perf_counter()
+
+    def time_limit_exceeded(t, y):
+        # check if the elapsed time has exceeded the time limit
+        if perf_counter() - start_time > time_limit:
+            return 0  # solve_ivp "events" arg will trigger on a 0 crossing
+        return 1  # integration will continue if not 0 and does not cross 0
+
+    time_limit_exceeded.terminal = True  # stop the solver when this event is triggered
+
     # turn flow field into callable function (works via interpolation)
     my_flow = get_callable_vector_field(flow_field_dict, for_solve_ivp=True)
     # timepoints at which to evaluate the solution
     t_eval = np.linspace(t_span[0], t_span[1], num_t)
     # solve the IVP
-    sol = solve_ivp(my_flow, t_span, init, t_eval=t_eval)
+    sol = solve_ivp(my_flow, t_span, init, t_eval=t_eval, events=time_limit_exceeded)
+
+    if sol.status == 1:
+        logger.warning(
+            "Time limit exceeded during ODE integration after %.2f seconds",
+            perf_counter() - start_time,
+        )
+        return np.full(shape=(num_t, init.shape[0]), fill_value=np.nan)
+    elif sol.status < 0:
+        logger.error("ODE solver failed with status %d", sol.status)
+        return np.full(shape=(num_t, init.shape[0]), fill_value=np.nan)
+
     return sol.y.T  # get trajectory, shape (num_T, 3) (3D trajectory in state space)
 
 

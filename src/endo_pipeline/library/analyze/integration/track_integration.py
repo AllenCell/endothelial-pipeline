@@ -962,12 +962,17 @@ def solve_ddff_from_trajectory_initial_condition(
     timepoint_initial: int,
     trajectory_duration: int,
     simulation_results_column_names: list[str | Column.DiffAEData],
+    time_limit: float | None = None,
 ) -> dict:
+    if time_limit is None:
+        time_limit = np.inf
+
     trajectory_simulation = solve_ddff_ode(
         flow_field_dict=flow_field_dict,
         init=initial_condition,
         t_span=(0, trajectory_duration + 1),
         num_t=trajectory_duration + 1,
+        time_limit=time_limit,
     )
     simulation_as_df_record = {
         Column.CROP_INDEX: [crop_index] * len(trajectory_simulation),
