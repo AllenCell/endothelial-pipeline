@@ -90,20 +90,16 @@ def main(
     import pandas as pd
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import (
-        TimepointAnnotation,
-        get_datasets_in_collection,
-        load_dataset_config,
-    )
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.data_driven_flow_field import (
         compute_extrapolated_vector_field,
         solve_ddff_ode,
     )
+    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
     from endo_pipeline.library.analyze.dataframe_validation import (
         check_required_columns_in_dataframe,
     )
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
         get_kernel_density_estimate_from_trajectories,
     )
@@ -251,13 +247,10 @@ def main(
         # load dataframe and perform additional filtering (remove
         # non-steady-state timepoints based on annotations), computing
         # only the columns needed for flow field estimation and analysis to save memory.
-        df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
-        df_ = df[columns_to_compute].compute()
-        feature_data = filter_dataframe_by_annotations(
-            df_,
-            load_dataset_config(dataset_name),
-            timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
-        )
+        dataset_config = load_dataset_config(dataset_name)
+        df_ = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
+        df = df_[columns_to_compute].compute()
+        feature_data = filter_dataframe_to_steady_state(df, dataset_config)
 
         # load drift vector field dataframe and check that required columns are
         # present

@@ -8,8 +8,7 @@ from endo_pipeline.settings.dynamics_workflows import RESCALE_THETA
 
 
 def pcs_to_polar_r(pc1_values: np.ndarray, pc2_values: np.ndarray) -> np.ndarray:
-    """
-    Convert Cartesian coordinates (pc1, pc2) to polar coordinate r.
+    """Convert Cartesian coordinates (pc1, pc2) to polar coordinate r.
 
     The polar coordinate r is given by the formula:
         r = sqrt(pc1^2 + pc2^2)
@@ -25,6 +24,7 @@ def pcs_to_polar_r(pc1_values: np.ndarray, pc2_values: np.ndarray) -> np.ndarray
     -------
     :
         Polar coordinate r values.
+
     """
     return np.sqrt(pc1_values**2 + pc2_values**2)
 
@@ -34,8 +34,7 @@ def pcs_to_polar_theta(
     pc2_values: np.ndarray,
     rescale: bool = True,
 ) -> np.ndarray:
-    """
-    Convert Cartesian coordinates (pc1, pc2) to polar coordinate theta.
+    """Convert Cartesian coordinates (pc1, pc2) to polar coordinate theta.
 
     The polar coordinate theta is given by the formula:
         theta = arctan2(pc2, pc1)
@@ -53,6 +52,7 @@ def pcs_to_polar_theta(
     -------
     :
         Polar coordinate theta values.
+
     """
     # angle in range [-pi, pi]
     theta = np.arctan2(pc2_values, pc1_values)
@@ -69,8 +69,7 @@ def pcs_to_polar_theta(
 def polar_to_pcs(
     theta_values: np.ndarray, r_values: np.ndarray, is_theta_rescaled: bool = RESCALE_THETA
 ) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Convert polar coordinates (theta, r) back to Cartesian coordinates (pc1, pc2).
+    """Convert polar coordinates (theta, r) back to Cartesian coordinates (pc1, pc2).
 
     The conversion from polar to Cartesian coordinates is given by the formulas:
         pc1 = r * cos(theta)
@@ -87,8 +86,13 @@ def polar_to_pcs(
         Polar coordinate r values.
     is_theta_rescaled
         Whether the input theta values were rescaled to be in the range [0, pi].
-    """
 
+    Returns
+    -------
+    :
+        Tuple containing the Cartesian coordinates (pc1, pc2).
+
+    """
     if is_theta_rescaled:
         # unrescale theta back to range [-pi, pi]
         theta_values = (theta_values * 2) - np.pi
@@ -112,8 +116,7 @@ def rewrap_polar_angle(
 def rewrap_polar_angle(
     unwrapped_angle: float | np.ndarray, original_range: tuple[float, float]
 ) -> float | np.ndarray:
-    """
-    Rewrap unwrapped polar angle value to be within original range.
+    """Rewrap unwrapped polar angle value to be within original range.
 
     Unwrapped angles computed, e.g., using numpy.unwrap can extend beyond the original
     periodic range of polar angle values. This function rewraps the unwrapped angle back
@@ -130,6 +133,12 @@ def rewrap_polar_angle(
         Unwrapped polar angle value.
     original_range
         Original range of polar angle values.
+
+    Returns
+    -------
+    :
+        Rewrapped polar angle value within the original range.
+
     """
     angle_period = original_range[1] - original_range[0]
     rewrapped_angle = ((unwrapped_angle - original_range[0]) % angle_period) + original_range[0]
@@ -141,8 +150,7 @@ def unwrap_nonsequential_array(
     period: float,
     reference_angle: float | None = None,
 ) -> np.ndarray:
-    """
-    Unwrap array of periodic values that may have non-sequential entries.
+    """Unwrap array of periodic values that may have non-sequential entries.
 
     Unlike numpy.unwrap, which assumes sequential entries, this function handles
     non-sequential entries by unwrapping each entry relative to a fixed reference point.
@@ -159,6 +167,14 @@ def unwrap_nonsequential_array(
         Array of periodic values to unwrap.
     period
         Period of the values.
+    reference_angle
+        Optional reference angle to use as the fixed point for unwrapping.
+
+    Returns
+    -------
+    :
+        Array of unwrapped values.
+
     """
     reference_angle_ = wrapped_array[0] if reference_angle is None else reference_angle
     unwrapped_array = np.array(

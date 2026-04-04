@@ -73,11 +73,7 @@ def main(
     import pandas as pd
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import (
-        TimepointAnnotation,
-        get_datasets_in_collection,
-        load_dataset_config,
-    )
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import (
         build_fms_annotations,
         get_output_path,
@@ -90,7 +86,7 @@ def main(
         get_callable_vector_field,
         get_fixed_points_within_bounds,
     )
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
+    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins
@@ -256,13 +252,10 @@ def main(
         # load dataframe and perform additional filtering (remove
         # non-steady-state timepoints based on annotations), computing
         # only the columns needed for flow field estimation and analysis to save memory.
-        df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
-        df_ = df[columns_to_compute].compute()
-        df_steady_state = filter_dataframe_by_annotations(
-            df_,
-            load_dataset_config(dataset_name),
-            timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
-        )
+        df_ = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
+        df = df_[columns_to_compute].compute()
+        dataset_config = load_dataset_config(dataset_name)
+        df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
 
         # get bins for flow field estimation based on the trajectories, to be
         # used for kernel-convolution-based estimation of the Kramers-Moyal

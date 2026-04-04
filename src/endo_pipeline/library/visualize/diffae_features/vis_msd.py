@@ -1,3 +1,5 @@
+"""Visualization methods for MSD (mean squared displacement) analysis."""
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -11,10 +13,10 @@ def plot_msd_with_exponential_fit(
     xlim: tuple[float, float] | None = None,
     ylim: tuple[float, float] | None = None,
 ) -> plt.Figure:
-    """
-    Plot mean squared displacement (MSD) values against time lags on a log-log
-    scale, and fit an exponential function to the data to determine the scaling
-    exponent.
+    """Plot mean squared displacement (MSD) values against time lags with an exponential fit.
+
+    Plot is generated on a log-log scale, and an exponential fit is overlaid to
+    show the relationship between MSD and time lags.
 
     Parameters
     ----------
@@ -38,6 +40,7 @@ def plot_msd_with_exponential_fit(
     -------
     :
         The matplotlib Figure object for the generated plot.
+
     """
     where_finite = np.isfinite(msd_vals)
     linear_fit, res, _, _, _ = np.polyfit(
