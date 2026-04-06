@@ -34,31 +34,24 @@ flow_conditions:
 include_scenes: null
 notes: CD31-sorted AICS-126 cl.41 low SS 48h. GFP looks good, parallel alignment.
   Piling occurs around 24h mark. FOV 1 (1-indexed) bubble crosses, center darkens
-  at TP102. FOV 5 bubble crosses, dark line at TP213. FOV 6 spinning disk stripe
-  artifact darkens FOV at TP562.
+  at TP102. FOV 5 bubble crosses, dark line at TP213. FOV 6 spinning disk stripe artifact
+  darkens FOV at TP562.
 timepoint_annotations:
   auto_bf_scope_error:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
-    5: []
+    0: [2, 84, 216, 248]
+    1: [53, 109, 240, 248, 251, 422, 426]
+    2: [93, 127, 534, 561]
+    3: [4, 24, 44, 95, 124, 248, 272, 281, 407]
+    4: [87, 219, 248, 481]
+    5: [134, 152, 281, 406, 561]
   auto_bf_temp_artifact:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
-    5: []
+    0: [2, 64, 101, 202, 216, 322, 372, 463, 478]
+    1: [251, 282]
+    2: [60, 66, 167, 235, 275, 302, 477, 561]
+    3: [59, 69, 120, 180, 240, 250, 310, 421]
+    4: [50, 114, 186, 256, 341, 473]
+    5: [42, 100, 105, 203, 213, 234, 398, 436, 473, 543, 561]
   auto_gfp_scope_error:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
-    5: []
-  not_steady_state:
     0: []
     1: []
     2: []
@@ -72,5 +65,18 @@ timepoint_annotations:
     3: []
     4: []
     5: []
+  not_steady_state:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 14
+  1: 14
+  2: 14
+  3: 14
+  4: 14
+  5: 14

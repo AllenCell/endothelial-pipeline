@@ -40,27 +40,20 @@ notes: High to low SS 48h. GFP looks good, perpendicular at high SS then more pa
   to low SS but large regions go parallel.
 timepoint_annotations:
   auto_bf_scope_error:
-    0: []
-    1: []
-    2: []
-    3: []
+    0: [576]
+    1: [560]
+    2: [546, 560, 576]
+    3: [548, 576]
     4: []
     5: []
   auto_bf_temp_artifact:
     0: []
     1: []
-    2: []
+    2: [576]
     3: []
     4: []
     5: []
   auto_gfp_scope_error:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
-    5: []
-  not_steady_state:
     0: []
     1: []
     2: []
@@ -74,5 +67,18 @@ timepoint_annotations:
     3: []
     4: []
     5: []
+  not_steady_state:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 11
+  1: 9
+  2: 9
+  3: 10
+  4: 10
+  5: 11

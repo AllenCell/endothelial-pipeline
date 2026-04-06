@@ -42,27 +42,20 @@ notes: FLAGGED CAUTION - notable gaps in monolayer in FOV 2, 4, and 5 (1-indexed
   top at TP292 and TP405.
 timepoint_annotations:
   auto_bf_scope_error:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
-    5: []
+    0: [13, 16, 21, 31, 498, 537]
+    1: [15, 21, 29, 238, 291, 431, 537]
+    2: [11, 275, 276, 500]
+    3: [31, 240, 276, 532, 539]
+    4: [32, 240, 275, 383, 471, 494, 539]
+    5: [30, 275, 390, 413]
   auto_bf_temp_artifact:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
+    0: [0, 10, 537]
+    1: [537]
+    2: [238, 275]
+    3: [240]
+    4: [240]
     5: []
   auto_gfp_scope_error:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
-    5: []
-  not_steady_state:
     0: []
     1: []
     2: []
@@ -76,5 +69,18 @@ timepoint_annotations:
     3: []
     4: []
     5: []
+  not_steady_state:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 8
+  1: 8
+  2: 8
+  3: 8
+  4: 9
+  5: 10

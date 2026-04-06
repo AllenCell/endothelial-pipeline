@@ -30,35 +30,28 @@ channel_names: [EGFP, BF]
 flow_conditions:
 - start: -14
   stop: 576
-  shear_stress: 6.10
+  shear_stress: 6.1
 include_scenes: null
-notes: CDH5 truncated mutant (AICS-177 cl.26) low SS 48h. Minimal GFP signal as
-  expected, puncta forming during flow. BF shows cells get long, thin, and parallel
-  until ~50% timelapse then scatter with gaps and long protrusions. FOV 1 (1-indexed)
-  top flickers dark at TP71. FOV 5 top flickers dark at TP513.
+notes: CDH5 truncated mutant (AICS-177 cl.26) low SS 48h. Minimal GFP signal as expected,
+  puncta forming during flow. BF shows cells get long, thin, and parallel until ~50%
+  timelapse then scatter with gaps and long protrusions. FOV 1 (1-indexed) top flickers
+  dark at TP71. FOV 5 top flickers dark at TP513.
 timepoint_annotations:
   auto_bf_scope_error:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
-    5: []
+    0: [2, 25, 31, 42, 46, 70, 77, 98, 99, 278, 291, 492, 550]
+    1: [26, 96, 150, 201, 278, 364, 491, 553]
+    2: [56, 62, 98, 106, 114, 135, 238, 258, 278, 443, 476, 504, 560]
+    3: [6, 16, 100, 263, 440]
+    4: [6, 77, 116, 264, 468, 470, 544, 546]
+    5: [6, 25, 103, 111, 146, 205, 306, 442, 512, 572]
   auto_bf_temp_artifact:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
+    0: [52, 97, 194, 278]
+    1: [278]
+    2: [79, 247, 256, 278, 404, 533, 564, 574]
+    3: [6, 135, 481, 483, 536, 538, 571]
+    4: [360, 512, 546]
     5: []
   auto_gfp_scope_error:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
-    5: []
-  not_steady_state:
     0: []
     1: []
     2: []
@@ -72,5 +65,18 @@ timepoint_annotations:
     3: []
     4: []
     5: []
+  not_steady_state:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 9
+  1: 8
+  2: 9
+  3: 9
+  4: 10
+  5: 10
