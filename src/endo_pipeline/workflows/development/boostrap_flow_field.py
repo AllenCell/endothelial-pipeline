@@ -140,22 +140,11 @@ def main(
             data=df_steady_state[column_names].to_numpy(),
             pad=PAD_BINS_FLOAT,
         )
-        logger.debug("Bins for dataset [ %s ]: [ %s ]", dataset_name, bins)
 
         # Compute trajectories and displacements once from the full steady-state
         # data; the same lists are reused for the baseline and subsampled for
         # each bootstrap iteration.
         full_trajectories, full_displacements = get_traj_and_diff(df_steady_state, column_names)
-        logger.debug(
-            "Number of trajectories for dataset [ %s ]: [ %d ]",
-            dataset_name,
-            len(full_trajectories),
-        )
-        logger.debug(
-            "Number of displacements for dataset [ %s ]: [ %d ]",
-            dataset_name,
-            len(full_displacements),
-        )
 
         # ---- Begin bootstrap loop here ----
         for _ in range(num_bootstrap_iterations):

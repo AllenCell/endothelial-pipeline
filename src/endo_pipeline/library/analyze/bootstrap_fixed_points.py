@@ -1,4 +1,8 @@
+import logging
+
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 def subsample_trajectories_and_displacements(
@@ -48,6 +52,11 @@ def subsample_trajectories_and_displacements(
         n_keep = max(1, round(n_steps * subsample_fraction))
         # guard against rounding > n_steps
         n_keep = min(n_keep, n_steps)
+        logger.debug(
+            "Subsampling trajectory with [ %d ] steps to keep [ %d ] steps.",
+            n_steps,
+            n_keep,
+        )
         selected = np.sort(rng.choice(n_steps, size=n_keep, replace=False))
         # start points for selected steps + endpoint of the last selected step
         # (selected[-1] + 1 is always a valid index because trajectory has n_steps + 1 rows)
