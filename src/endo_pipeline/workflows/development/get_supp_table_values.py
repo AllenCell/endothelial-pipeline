@@ -14,7 +14,7 @@ def main():
         load_dataset_config,
     )
     from endo_pipeline.io import get_output_path, load_dataframe
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
+    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_annotations
     from endo_pipeline.library.model.train_model import get_included_frames_for_model
     from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
     from endo_pipeline.manifests import (
