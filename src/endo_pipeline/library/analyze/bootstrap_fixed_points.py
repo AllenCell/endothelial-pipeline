@@ -255,7 +255,7 @@ def match_bootstrap_fixed_points_to_baseline(
     baseline_fixed_points: pd.DataFrame,
     bootstrap_fixed_points: list[pd.DataFrame],
     column_names: list[str | Column.DiffAEData],
-    polar_angle_period: float,
+    polar_angle_period: float | None,
     bootstrap_match_radius: float,
 ) -> list[list[np.ndarray]]:
     """Match bootstrap fixed points to baseline fixed points within a specified radius.
@@ -367,7 +367,7 @@ def aggregate_bootstrapping_results(
     matched_coords: dict[int, list[np.ndarray]],
     column_names: list[str | Column.DiffAEData],
     n_bootstrap: int,
-    polar_angle_period: float,
+    polar_angle_period: float | None,
     bootstrap_ci_lower_percentile: float,
     bootstrap_ci_upper_percentile: float,
 ) -> pd.DataFrame:

@@ -193,6 +193,9 @@ def main(
     bin_widths: list[float] = []
     rescaled_theta_period = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
 
+    polar_angle_period = (
+        rescaled_theta_period if Column.DiffAEData.POLAR_ANGLE in column_names else None
+    )
     for column_name in column_names:
         name = KERNEL_NAMES_DYNAMICS[column_name]
         bandwidth = KERNEL_BANDWIDTHS_DYNAMICS[column_name]
@@ -333,7 +336,7 @@ def main(
             baseline_fixed_points=baseline_fp_df,
             bootstrap_fixed_points=bootstrap_fixed_points,
             column_names=column_names,
-            polar_angle_period=period,
+            polar_angle_period=polar_angle_period,
             bootstrap_match_radius=bootstrap_match_radius,
         )
         bootstrap_results_df = aggregate_bootstrapping_results(
@@ -341,7 +344,7 @@ def main(
             matched_coords=matched_coords,
             column_names=column_names,
             n_bootstrap=num_bootstrap_iterations,
-            polar_angle_period=period,
+            polar_angle_period=polar_angle_period,
             bootstrap_ci_lower_percentile=bootstrap_ci_lower_percentile,
             bootstrap_ci_upper_percentile=bootstrap_ci_upper_percentile,
         )
