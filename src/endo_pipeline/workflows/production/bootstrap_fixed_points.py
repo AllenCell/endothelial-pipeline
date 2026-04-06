@@ -163,16 +163,14 @@ def main(
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     dataframe_savedir = get_output_path(__file__, crop_pattern)
-    demo_suffix = "_demo" if DEMO_MODE else ""
     # get dataframe manifest for baseline results to match against in bootstrapping
-    baseline_fixed_point_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}{demo_suffix}"
-    )
+    baseline_fixed_point_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
     baseline_fixed_point_manifest = create_dataframe_manifest(
         baseline_fixed_point_manifest_name, workflow_name=__file__
     )
 
     # load or initialize dataframe manifest for bootstrap results
+    demo_suffix = "_demo" if DEMO_MODE else ""
     bootstrap_results_manifest_name = (
         f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}{demo_suffix}"
     )

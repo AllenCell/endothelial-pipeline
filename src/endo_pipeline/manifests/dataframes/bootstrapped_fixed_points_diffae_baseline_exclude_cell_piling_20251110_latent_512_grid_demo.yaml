@@ -1,0 +1,12 @@
+name: bootstrapped_fixed_points_diffae_baseline_exclude_cell_piling_20251110_latent_512_grid_demo
+workflow: bootstrap_fixed_points
+parameters:
+  model_manifest_name: diffae_baseline_exclude_cell_piling
+  run_name: 20251110_latent_512
+  crop_pattern: grid
+  columns: [polar_theta, polar_r, rho]
+  kernel_names: [periodic, gaussian, gaussian]
+  kernel_bandwidths: [0.15, 0.15, 0.15]
+  bin_widths: [0.05, 0.05, 0.05]
+  num_bootstrap_iterations: 10
+locations: {}
