@@ -3,16 +3,30 @@ from typing import Annotated
 from cyclopts import Parameter
 
 from endo_pipeline.cli import CropPattern, Datasets
+from endo_pipeline.settings.bootstrap_fixed_points import (
+    BOOTSTRAP_MATCH_RADIUS,
+    FP_CI_LOWER_PERCENTILE,
+    FP_CI_UPPER_PERCENTILE,
+    NUM_BOOTSTRAP_ITERATIONS,
+)
 
 
 def main(
     crop_pattern: CropPattern = "grid",
     datasets: Datasets | None = None,
     upload_to_fms: bool = False,
-    num_bootstrap_iterations: Annotated[int, Parameter(name="--num-iterations")] = 100,
-    bootstrap_match_radius: Annotated[float, Parameter(name="--match-dist")] = 0.1,
-    bootstrap_ci_lower_percentile: Annotated[float, Parameter(name="--ci-lower")] = 0.5,
-    bootstrap_ci_upper_percentile: Annotated[float, Parameter(name="--ci-upper")] = 0.95,
+    num_bootstrap_iterations: Annotated[
+        int, Parameter(name="--num-iterations")
+    ] = NUM_BOOTSTRAP_ITERATIONS,
+    bootstrap_match_radius: Annotated[
+        float, Parameter(name="--match-dist")
+    ] = BOOTSTRAP_MATCH_RADIUS,
+    bootstrap_ci_lower_percentile: Annotated[
+        float, Parameter(name="--ci-lower")
+    ] = FP_CI_LOWER_PERCENTILE,
+    bootstrap_ci_upper_percentile: Annotated[
+        float, Parameter(name="--ci-upper")
+    ] = FP_CI_UPPER_PERCENTILE,
 ) -> None:
     """Bootstrap fixed point confidence intervals by subsampling data.
 
