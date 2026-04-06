@@ -1,3 +1,5 @@
+"""Methods for generating images from a DiffAE model (latent vectors to images)."""
+
 import logging
 import typing
 
@@ -20,19 +22,21 @@ def add_noise_to_image(
     noise_image: np.ndarray,
     noise_level: float,
 ) -> np.ndarray:
-    """
-    Add Gaussian noise to an input image at a specified noise level.
+    """Add Gaussian noise to an input image at a specified noise level.
 
     **Noise level weighting**
 
     The output "noised" image is created using the formula:
 
+    .. code-block:: python
+
         output_image = sqrt(1 - noise_level) * input_image + sqrt(noise_level) * noise_img
 
-    Using this formula, ``noise_level`` represents the fraction of the corrupted image
-    that is contributed by the noise image, with the remainder contributed by the original input image.
-    An input noise_level of 0.0 results in no noise being added (the output image is identical
-    to the input image), while a noise_level of 1.0 results in an image composed entirely of noise.
+    Using this formula, `noise_level` represents the fraction of the corrupted
+    image that is contributed by the noise image, with the remainder contributed
+    by the original input image. An input `noise_level` of `0.0` results in no
+    noise being added (the output image is identical to the input image), while a
+    `noise_level` of `1.0` results in an image composed entirely of noise.
 
     Parameters
     ----------
@@ -42,6 +46,12 @@ def add_noise_to_image(
         A standard Gaussian noise image of the same shape as the input image.
     noise_level
         The level of noise to add, between 0.0 (no noise) and 1.0 (all noise).
+
+    Returns
+    -------
+    :
+        The resulting noised image.
+
     """
     if not (0.0 <= noise_level <= 1.0):
         logger.error("Parameter `noise_level` must be between 0.0 and 1.0.")
@@ -63,37 +73,37 @@ def generate_from_coords_and_noised_image(
     noised_image: np.ndarray,
     num_gpus: int | None = None,
 ) -> np.ndarray:
-    """
-    Generate a synthetic image by denoising a noised image
-    conditioned on a coordinate in the latent space of a model.
+    """Generate an image from an initial noisy image conditioned on a latent vector.
 
     **Input array shapes**
 
-    The input conditioning vector array should have shape ``(num_vecs, num_dims)``, where
-    ``num_vecs`` is the number of conditioning vectors and ``num_dims`` is the dimensionality
-    of the latent space. This allows for generating multiple images corresponding
-    to ``num_vecs`` different conditioning vectors.
+    The input conditioning vector array should have shape ``(num_vecs,
+    num_dims)``, where ``num_vecs`` is the number of conditioning vectors and
+    ``num_dims`` is the dimensionality of the latent space. This allows for
+    generating multiple images corresponding to ``num_vecs`` different
+    conditioning vectors.
 
-    The noised image tensor should have shape ``(num_channels, num_pixels_y, num_pixels_x)``,
-    where ``num_channels`` is the number of channels, ``num_pixels_y`` is the height of the image
-    (number of pixels in Y), and ``num_pixels_x`` is the width of the image (number of pixels in X).
-    Note that this shape should be the same as ``model.image_shape`` in the model's configuration.
+    The noised image tensor should have shape ``(num_channels, num_pixels_y,
+    num_pixels_x)``, where ``num_channels`` is the number of channels,
+    ``num_pixels_y`` is the height of the image (number of pixels in Y), and
+    ``num_pixels_x`` is the width of the image (number of pixels in X). Note
+    that this shape should be the same as ``model.image_shape`` in the model's
+    configuration.
 
     **Example usage**
 
     .. code-block:: python
 
-        from endo_pipeline.io import load_model
-        from endo_pipeline.manifests import load_model_manifest
-        from endo_pipeline.library.model.diffae import generate_from_coords_and_noised_image
+        from endo_pipeline.io import load_model from endo_pipeline.manifests
+        import load_model_manifest from endo_pipeline.library.model.diffae
+        import generate_from_coords_and_noised_image
 
-        model_manifest = load_model_manifest("my_model_manifest")
-        model_location = model_manifest.locations["my_run_name"]
-        model = load_model(model_location)
+        model_manifest = load_model_manifest("my_model_manifest") model_location
+        = model_manifest.locations["my_run_name"] model =
+        load_model(model_location)
 
         gen_image = generate_from_coords_and_noised_image(
-            model,
-            coords=my_coords, # shape (num_vecs, num_dims)
+            model, coords=my_coords, # shape (num_vecs, num_dims)
             noised_image=my_noised_image, # shape (1, n_y, n_x) for this model
         )
 
@@ -102,11 +112,18 @@ def generate_from_coords_and_noised_image(
     model
         The model to use for image generation (conditioned denoising).
     coords
-        A coordinate in the latent space of the model; used to condition the denoising.
+        A coordinate in the latent space of the model; used to condition the
+        denoising.
     noised_image
         An image used as the starting point for denoising by the model.
     num_gpus
         Optional, number of available GPUs.
+
+    Returns
+    -------
+    :
+        The generated image.
+
     """
     coords_torch = torch.from_numpy(coords).float()
     noised_image_torch = torch.from_numpy(noised_image).float()
@@ -124,7 +141,8 @@ def generate_from_coords_and_noised_image(
             model_.__class__.__name__,
         )
         raise NotImplementedError(
-            f"Model class [ {model_.__class__.__name__} ] does not support generation from coordinates and noised image."
+            f"Model class [ {model_.__class__.__name__} ] does not support generation "
+            "from coordinates and noised image."
         )
 
     gen_img = model_.generate_from_latent_and_noised_image(
@@ -142,8 +160,7 @@ def generate_from_coords(
     num_gpus: int | None = None,
     random_seed: int | None = None,
 ) -> np.ndarray:
-    """
-    Generate a synthetic image from coordinates in the latent space of a model.
+    """Generate a synthetic image from coordinates in the latent space of a model.
 
     Parameters
     ----------
@@ -160,8 +177,13 @@ def generate_from_coords(
     random_seed
         Random seed for generating noise. Only available for endo-specific
         DiffusionAutoEncoder model instances.
-    """
 
+    Returns
+    -------
+    :
+        The generated image(s).
+
+    """
     if not isinstance(coords, np.ndarray):
         if isinstance(coords, list):
             coords_np = np.array(coords)
@@ -203,22 +225,26 @@ def generate_from_coords_batch(
     coords_batch: np.ndarray,
     num_gpus: int | None = None,
 ) -> list[np.ndarray]:
-    """
-    Generate synthetic images from a batch of coordinates in the latent space of a model.
+    """Generate synthetic images from a batch of latent vectors.
 
     Acts as a wrapper around `generate_from_coords` to process a batch of coordinates,
     returning a list of generated images instead of a single array.
 
     Parameters
     ----------
-    model:
+    model
         The model to use for generation.
-    coords_batch:
+    coords_batch
         An array of shape (batch_size, num_dims) containing latent space coordinates.
-    num_gpus:
+    num_gpus
         Optional, number of available GPUs.
-    """
 
+    Returns
+    -------
+    :
+        A list of generated images corresponding to each coordinate in the batch.
+
+    """
     logger.debug("Batch coordinate array shape: [ %s ]", coords_batch.shape)
 
     img = generate_from_coords(model, coords_batch, num_gpus=num_gpus)
