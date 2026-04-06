@@ -3,10 +3,27 @@ from endo_pipeline.cli import Datasets
 
 def main(
     datasets: Datasets | None = None,
-    optical_flow_feature: str = "optical_flow_mean_speed_dt1",
+    optical_flow_feature: str = "optical_flow_mean_unit_vector_dt1",
     plot_fixed_points: bool = True,
     skip_individual_plots: bool = False,
 ) -> None:
+    """
+    Analyze the coherence of migration in relation to fixed points identified in the structure
+    feature space.
+
+    datasets:
+        Optional list of dataset names to include in the analysis.
+        If not provided, defaults to all datasets in the "optical_flow_analysis" collection.
+        To apply to the KD datasets, set to "perturbation".
+    optical_flow_feature:
+        The optical flow feature to analyze. This should be a column in the feature dataframes.
+        To analyze the speed, use "optical_flow_mean_speed_dt1".
+    plot_fixed_points:
+        Whether to overlay fixed points on the migration coherence plots.
+    skip_individual_plots:
+        Whether to skip generating individual plots for each dataset and flow condition.
+        If True, only the cross-dataset summary plots will be generated.
+    """
     import logging
 
     import matplotlib.pyplot as plt
@@ -249,7 +266,6 @@ def main(
                         plt.close(fig)
 
                 # --- 3D plots ---
-
                 # 3D Scatter
                 fig, ax = plot_3d_scatter_or_binned(
                     df_flow_no_nan,
