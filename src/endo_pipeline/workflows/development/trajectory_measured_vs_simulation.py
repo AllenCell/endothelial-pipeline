@@ -4,6 +4,7 @@ from endo_pipeline.cli import Datasets
 def main(
     datasets: Datasets | None = None,
     n_proc: int = 1,
+    make_trajectory_validation_plots: bool = False,
 ) -> None:
 
     from concurrent.futures import ProcessPoolExecutor
@@ -153,36 +154,37 @@ def main(
         #     ] = frechet_distances
         # # NOTE ABOVE IS AI CODE, NEED TO CHECK IT
 
-        # plot overlays of the tracks with the fixed points on the flow field slices
-        for i, fp_row in fixed_points_df.iterrows():
-            out_subdir = outdir / f"fixed_point_{i}"
-            out_subdir.mkdir(parents=True, exist_ok=True)
+        if make_trajectory_validation_plots:
+            # plot overlays of the tracks with the fixed points on the flow field slices
+            for i, fp_row in fixed_points_df.iterrows():
+                out_subdir = outdir / f"fixed_point_{i}"
+                out_subdir.mkdir(parents=True, exist_ok=True)
 
-            # prepare arguments for multiprocessing plotting
-            plotting_args_mp: list[dict] = []
-            for crop_i, traj_df in df_grid_sub.groupby(Column.CROP_INDEX):
-                plotting_args_mp.append(
-                    {
-                        "crop_index": crop_i,
-                        "traj_df": traj_df,
-                        "fixed_point_id": i,
-                        "fixed_point_row": fp_row,
-                        "flow_field_dict_grid": flow_field_dict_grid,
-                        "out_dir": out_subdir,
-                    }
-                )
-
-            with ProcessPoolExecutor(max_workers=n_proc) as executor:
-                list(
-                    tqdm(
-                        executor.map(
-                            plot_trajectory_measured_vs_simulation_over_flow_field_helper,
-                            plotting_args_mp,
-                        ),
-                        desc=f"Plotting trajectories for fixed point {i}",
-                        total=len(plotting_args_mp),
+                # prepare arguments for multiprocessing plotting
+                plotting_args_mp: list[dict] = []
+                for crop_i, traj_df in df_grid_sub.groupby(Column.CROP_INDEX):
+                    plotting_args_mp.append(
+                        {
+                            "crop_index": crop_i,
+                            "traj_df": traj_df,
+                            "fixed_point_id": i,
+                            "fixed_point_row": fp_row,
+                            "flow_field_dict_grid": flow_field_dict_grid,
+                            "out_dir": out_subdir,
+                        }
                     )
-                )
+
+                with ProcessPoolExecutor(max_workers=n_proc) as executor:
+                    list(
+                        tqdm(
+                            executor.map(
+                                plot_trajectory_measured_vs_simulation_over_flow_field_helper,
+                                plotting_args_mp,
+                            ),
+                            desc=f"Plotting trajectories for fixed point {i}",
+                            total=len(plotting_args_mp),
+                        )
+                    )
 
 
 if __name__ == "__main__":
