@@ -115,9 +115,13 @@ def main(
 
     dataset_names = datasets or get_datasets_in_collection(DATASET_COLLECTION_FOR_3D_DYNAMICS)
     if DEMO_MODE:
-        logger.warning("DEMO MODE: Processing no more than two datasets for quick testing.")
+        logger.warning(
+            "DEMO MODE: Processing no more than two datasets and limiting"
+            " bootstrap iterations to <= 10 for quick testing."
+        )
         num_datasets = min(len(dataset_names), 2)
         dataset_names = dataset_names[:num_datasets]
+        num_bootstrap_iterations = min(num_bootstrap_iterations, 10)
 
     kernels: list[KramersMoyalKernel] = []
     bin_widths: list[float] = []
