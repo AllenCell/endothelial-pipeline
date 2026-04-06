@@ -1,3 +1,5 @@
+"""This workflow compares the measured trajectories with ones simulated from the flow field"""
+
 from endo_pipeline.cli import Datasets
 
 
@@ -134,24 +136,6 @@ def main(
             df_grid_sub[f"{Column.DiffAEData.POLAR_ANGLE}_simulated"].values,
             original_range=(0, np.pi),
         )
-
-        # # compute the Frechet distance between the measured and simulated trajectories
-        # # NOTE BELOW IS AI GENERATED CODE, NEED TO CHECK IT
-        # frechet_distances = []
-        # for crop_i, traj_df in df_grid_sub.groupby(Column.CROP_INDEX):
-        #     measured_traj = traj_df[[Column.DiffAEData.X, Column.DiffAEData.Y]].values
-        #     simulated_traj = traj_df[
-        #         [f"{Column.DiffAEData.X}_simulated", f"{Column.DiffAEData.Y}_simulated"]
-        #     ].values
-        #     if len(measured_traj) > 0 and len(simulated_traj) > 0:
-        #         frechet_distances.append(frechet_distance(measured_traj, simulated_traj))
-        # df_grid_sub["frechet_distance"] = np.nan
-        # if frechet_distances:
-        #     df_grid_sub.loc[
-        #         df_grid_sub[Column.CROP_INDEX].isin(df_grid_sub[Column.CROP_INDEX].unique()),
-        #         "frechet_distance",
-        #     ] = frechet_distances
-        # # NOTE ABOVE IS AI CODE, NEED TO CHECK IT
 
         # plot overlays of the tracks with the fixed points on the flow field slices
         for i, fp_row in fixed_points_df.iterrows():
