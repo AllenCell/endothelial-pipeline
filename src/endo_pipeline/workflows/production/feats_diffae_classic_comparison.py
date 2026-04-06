@@ -30,7 +30,7 @@ def main(
         get_flow_field_and_fixed_points,
         get_flow_field_estimation_bin_widths,
     )
-    from endo_pipeline.library.visualize.integration.track_integration_viz import (  # plot_new_traj_overlay_on_grid_traj_and_flowfield,
+    from endo_pipeline.library.visualize.integration.track_integration_viz import (
         PlotMeasFeatAndFlowFieldOverlayArgs,
         multiproc_plot_measured_feat_overlay_on_flowfield,
         overlay_feature_on_flowfield,
