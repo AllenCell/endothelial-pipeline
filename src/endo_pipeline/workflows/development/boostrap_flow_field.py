@@ -4,6 +4,7 @@ from endo_pipeline.cli import CropPattern, Datasets
 def main(
     crop_pattern: CropPattern = "grid",
     datasets: Datasets | None = None,
+    num_bootstrap_iterations: int = 100,
 ) -> None:
     """Bootstrap fixed point confidence intervals by subsampling data.
 
@@ -13,6 +14,8 @@ def main(
         The crop pattern to use features from.
     datasets
         Optional, specific dataset(s) to run the workflow on.
+    num_bootstrap_iterations
+        Number of bootstrap iterations to perform for each dataset.
 
     """
     import logging
@@ -22,6 +25,9 @@ def main(
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe
+    from endo_pipeline.library.analyze.bootstrap_fixed_points import (
+        subsample_trajectories_and_displacements,
+    )
     from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins
@@ -45,9 +51,11 @@ def main(
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
+        RANDOM_SEED,
     )
 
     logger = logging.getLogger(__name__)
+    rng = np.random.default_rng(RANDOM_SEED)
 
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
     run_name = DEFAULT_MODEL_RUN_NAME
@@ -137,17 +145,26 @@ def main(
         # Compute trajectories and displacements once from the full steady-state
         # data; the same lists are reused for the baseline and subsampled for
         # each bootstrap iteration.
-        full_traj_list, full_d_traj_list = get_traj_and_diff(df_steady_state, column_names)
+        full_trajectories, full_displacements = get_traj_and_diff(df_steady_state, column_names)
         logger.debug(
-            "Number of trajectories for dataset [ %s ]: [ %d ]", dataset_name, len(full_traj_list)
+            "Number of trajectories for dataset [ %s ]: [ %d ]",
+            dataset_name,
+            len(full_trajectories),
         )
         logger.debug(
             "Number of displacements for dataset [ %s ]: [ %d ]",
             dataset_name,
-            len(full_d_traj_list),
+            len(full_displacements),
         )
 
-        # ---- Will put bootstrap loop here ----
+        # ---- Begin bootstrap loop here ----
+        for _ in range(num_bootstrap_iterations):
+            # Subsample trajectories and displacements for this iteration
+            subsampled_trajectories, subsampled_displacements = (
+                subsample_trajectories_and_displacements(
+                    full_trajectories, full_displacements, subsample_fraction=0.5, rng=rng
+                )
+            )
 
 
 if __name__ == "__main__":
