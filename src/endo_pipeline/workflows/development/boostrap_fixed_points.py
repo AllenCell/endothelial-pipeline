@@ -6,8 +6,41 @@ def main(
     datasets: Datasets | None = None,
     upload_to_fms: bool = False,
     num_bootstrap_iterations: int = 100,
+    bootstrap_match_radius: float = 0.1,
+    bootstrap_ci_lower_percentile: float = 0.5,
+    bootstrap_ci_upper_percentile: float = 0.95,
 ) -> None:
     """Bootstrap fixed point confidence intervals by subsampling data.
+
+    **Matching scheme**
+
+    For each bootstrap iteration, baseline fixed points are processed in row
+    order and each is offered the closest unassigned bootstrap fixed point that
+    lies within `BOOTSTRAP_MATCH_RADIUS`.  Each bootstrap fixed point can be
+    matched to at most one baseline fixed point per iteration. Iterations that
+    yield no fixed points, or no fixed points within radius of a given baseline
+    fixed point, are counted as misses for that baseline fixed point.
+
+    **Output dataframe**
+
+    This workflow produces one dataframe per dataset, which gets saved as a
+    `.parquet` file. These dataframe files are tracked via a dataframe manifest
+    with prefix `DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING`. If `upload_to_fms` is
+    True, the dataframe files are uploaded to FMS and the dataframe location
+    is tracked in the manifest by FMS ID. Otherwise, the dataframe files are saved
+    locally and the manifest tracks the local file path.
+
+    Each dataframe contains one row per baseline fixed point, with columns for:
+
+    - `dataset`: dataset identifier.
+    - `stability`: stability classification of the baseline fixed point.
+    - `{col}`: baseline coordinate for each feature column.
+    - `{col}_ci_lower`, `{col}_ci_upper`: lower / upper bootstrap CI bounds
+      for each coordinate (at percentiles `bootstrap_ci_lower_percentile` and
+      `bootstrap_ci_upper_percentile`).
+    - `bootstrap_detection_rate`: fraction of bootstrap samples in which a
+      matched fixed point was found within `bootstrap_match_radius`.
+    - `n_bootstrap_samples`: number of bootstrap iterations performed.
 
     Parameters
     ----------
@@ -19,6 +52,15 @@ def main(
         If true, upload results dataframe to FMS. If False, save locally only.
     num_bootstrap_iterations
         Number of bootstrap iterations to perform for each dataset.
+    bootstrap_match_radius
+        Maximum distance in feature space for a bootstrap fixed point to be
+        considered a match to a given baseline fixed point in each iteration.
+    bootstrap_ci_lower_percentile
+        Percentile used for defining the lower bound of the bootstrap
+        confidence intervals.
+    bootstrap_ci_upper_percentile
+        Percentile used for defining the upper bound of the bootstrap
+        confidence intervals.
 
     """
     import logging
@@ -233,7 +275,7 @@ def main(
             bootstrap_fixed_points=bootstrap_fixed_points,
             column_names=column_names,
             polar_angle_period=period,
-            bootstrap_match_radius=0.1,  # Example radius, adjust as needed
+            bootstrap_match_radius=bootstrap_match_radius,
         )
         bootstrap_results_df = aggregate_bootstrapping_results(
             baseline_fixed_points=baseline_fp_df,
@@ -241,8 +283,8 @@ def main(
             column_names=column_names,
             n_bootstrap=num_bootstrap_iterations,
             polar_angle_period=period,
-            bootstrap_ci_lower_percentile=0.5,
-            bootstrap_ci_upper_percentile=0.95,
+            bootstrap_ci_lower_percentile=bootstrap_ci_lower_percentile,
+            bootstrap_ci_upper_percentile=bootstrap_ci_upper_percentile,
         )
         print(bootstrap_results_df.head())
 
