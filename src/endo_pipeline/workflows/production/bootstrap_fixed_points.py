@@ -269,10 +269,12 @@ def main(
         # each bootstrap iteration.
         full_trajectories, full_displacements = get_traj_and_diff(df_steady_state, column_names)
 
-        # ---- Begin bootstrap loop here ---- generate all subsamples up front
-        # to avoid redundant subsampling in each iteration and to ensure
-        # subsampling is not a bottleneck in the parallel loop. Each element of
-        # `all_subsamples` is a tuple of (subsampled_trajectories, subsampled_displacements)
+        # Generate all subsamples up front to avoid redundant subsampling in
+        # each iteration and to ensure subsampling is not a bottleneck in the
+        # parallel loop. Note that the list comprehension steps through samples
+        # from the rng as expected (i.e., do indeed get distinct samples). Each
+        # element of `all_subsamples` is a tuple of (subsampled_trajectories,
+        # subsampled_displacements).
         all_subsamples: list[tuple[list[np.ndarray], list[np.ndarray]]] = [
             subsample_trajectories_and_displacements(
                 full_trajectories, full_displacements, subsample_fraction=0.5, rng=rng
