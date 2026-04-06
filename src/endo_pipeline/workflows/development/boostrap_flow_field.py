@@ -21,11 +21,13 @@ def main(
     import logging
 
     import numpy as np
+    import pandas as pd
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.bootstrap_fixed_points import (
+        aggregate_bootstrapping_results,
         run_flow_field_and_fixed_points,
         subsample_trajectories_and_displacements,
     )
@@ -148,6 +150,7 @@ def main(
         full_trajectories, full_displacements = get_traj_and_diff(df_steady_state, column_names)
 
         # ---- Begin bootstrap loop here ----
+        bootstrap_fixed_points: list[pd.DataFrame] = []
         for _ in range(num_bootstrap_iterations):
             # Subsample trajectories and displacements for this iteration
             subsampled_trajectories, subsampled_displacements = (
@@ -169,7 +172,19 @@ def main(
                 column_names=column_names,
                 kernels=kernels,
             )
-            print(fixed_point_df_from_subsample.head())
+            bootstrap_fixed_points.append(fixed_point_df_from_subsample)
+
+        # Aggregate bootstrap results by matching fixed points across iterations
+        # to the baseline fixed points and computing confidence intervals and
+        # detection rates for each baseline fixed point
+        bootstrap_results_df = aggregate_bootstrapping_results(
+            baseline_fixed_points=baseline_fp_df,
+            bootstrap_fixed_points=bootstrap_fixed_points,
+            column_names=column_names,
+            polar_dim_idx=column_names.index(ColumnName.DiffAEData.POLAR_ANGLE),
+            polar_angle_period=period,
+        )
+        print(bootstrap_results_df.head())
 
 
 if __name__ == "__main__":

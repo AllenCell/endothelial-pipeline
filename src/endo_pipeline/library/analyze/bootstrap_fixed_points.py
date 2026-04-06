@@ -298,14 +298,14 @@ def aggregate_bootstrapping_results(
 
     # build output dataframe rows with CIs and detection rates for each baseline
     # fixed point
-    rows = []
+    output_dataframe_rows = []
     for i, baseline_fixed_point in baseline_fixed_points.iterrows():
-        row: dict = {
+        dataframe_row: dict = {
             Column.DATASET: baseline_fixed_point[Column.DATASET],
             STABILITY_COLUMN_NAME: baseline_fixed_point[STABILITY_COLUMN_NAME],
         }
         for col in column_names:
-            row[col] = baseline_fixed_point[col]
+            dataframe_row[col] = baseline_fixed_point[col]
 
         hits = matched_coords[i]
         if len(hits) >= 2:
@@ -320,19 +320,19 @@ def aggregate_bootstrapping_results(
                 hits_array = hits_array.copy()
                 hits_array[:, polar_dim_idx] = np.unwrap(seq, period=polar_angle_period)[1:]
             for dim_idx, col in enumerate(column_names):
-                row[f"{col}_ci_lower"] = float(
+                dataframe_row[f"{col}_ci_lower"] = float(
                     np.percentile(hits_array[:, dim_idx], bootstrap_ci_lower_percentile)
                 )
-                row[f"{col}_ci_upper"] = float(
+                dataframe_row[f"{col}_ci_upper"] = float(
                     np.percentile(hits_array[:, dim_idx], bootstrap_ci_upper_percentile)
                 )
         else:
             for col in column_names:
-                row[f"{col}_ci_lower"] = float("nan")
-                row[f"{col}_ci_upper"] = float("nan")
+                dataframe_row[f"{col}_ci_lower"] = float("nan")
+                dataframe_row[f"{col}_ci_upper"] = float("nan")
 
-        row["bootstrap_detection_rate"] = float(hit_counts[i]) / n_bootstrap
-        row["num_bootstrap_samples"] = n_bootstrap
-        rows.append(row)
+        dataframe_row["bootstrap_detection_rate"] = float(hit_counts[i]) / n_bootstrap
+        dataframe_row["num_bootstrap_samples"] = n_bootstrap
+        output_dataframe_rows.append(dataframe_row)
 
-    return pd.DataFrame(rows)
+    return pd.DataFrame(output_dataframe_rows)
