@@ -475,21 +475,38 @@ def main(  # noqa: C901
             )
 
             # Crop coordinate resolver: single place for grid-vs-tracked branching.
-            def _resolve_crops(t0: int) -> tuple[np.ndarray, ...] | None:
+            # Both branches share an identical signature so that mypy sees one
+            # consistent definition.  The *_data* default captures either the
+            # tracked-crops dict or the fixed grid tuple, and a small type-check
+            # dispatches at runtime.
+            _crop_data: dict | tuple = (
+                tracked_crops if is_tracked else (start_y, end_y, start_x, end_x, crop_ids)
+            )
+
+            def _resolve_crops(
+                t0: int,
+                _data: dict | tuple = _crop_data,
+            ) -> tuple[np.ndarray, ...] | None:
                 """Return (sy, ey, sx, ex, crop_ids) for timepoint *t0*."""
-                if is_tracked:
-                    return tracked_crops.get(t0)
-                return (start_y, end_y, start_x, end_x, crop_ids)
+                if isinstance(_data, dict):
+                    return _data.get(t0)
+                return _data
 
             # Unified image-scope flow worker.
-            def _image_pair_flow(t0: int, t1: int, dt: int) -> list[dict]:
+            def _image_pair_flow(
+                t0: int,
+                t1: int,
+                dt: int,
+                _cache: dict = frame_cache,
+                _threshold: float = intensity_threshold,
+            ) -> list[dict]:
                 coords = _resolve_crops(t0)
                 if coords is None:
                     return []
                 sy_, ey_, sx_, ex_, ci_ = coords
                 return compute_image_pair_flow(
-                    frame_cache[t0],
-                    frame_cache[t1],
+                    _cache[t0],
+                    _cache[t1],
                     sy_,
                     ey_,
                     sx_,
@@ -497,7 +514,7 @@ def main(  # noqa: C901
                     ci_,
                     t0,
                     dt,
-                    intensity_threshold,
+                    _threshold,
                     attachment,
                     compute_block_coherence,
                     compute_fast_coherence,
