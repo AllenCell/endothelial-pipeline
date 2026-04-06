@@ -126,7 +126,7 @@ def main(
         logger.warning("DEMO MODE: Processing no more than two datasets for quick visualization.")
         dataset_names = dataset_names[: min(len(dataset_names), 2)]
 
-    fig_savedir = get_output_path(__file__, crop_pattern, "figs")
+    fig_savedir = get_output_path(__file__, crop_pattern)
 
     # Axis bounds from global bin limits, one tuple (min, max) per column
     bounds_for_plots = BIN_LIMITS_DYNAMICS.copy()
