@@ -4,6 +4,7 @@ from endo_pipeline.cli import CropPattern, Datasets
 def main(
     crop_pattern: CropPattern = "grid",
     datasets: Datasets | None = None,
+    upload_to_fms: bool = False,
     num_bootstrap_iterations: int = 100,
 ) -> None:
     """Bootstrap fixed point confidence intervals by subsampling data.
@@ -14,6 +15,8 @@ def main(
         The crop pattern to use features from.
     datasets
         Optional, specific dataset(s) to run the workflow on.
+    upload_to_fms
+        If true, upload results dataframe to FMS. If False, save locally only.
     num_bootstrap_iterations
         Number of bootstrap iterations to perform for each dataset.
 
@@ -25,7 +28,13 @@ def main(
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import get_output_path, load_dataframe
+    from endo_pipeline.io import (
+        build_fms_annotations,
+        get_output_path,
+        load_dataframe,
+        make_name_unique,
+        upload_file_to_fms,
+    )
     from endo_pipeline.library.analyze.bootstrap_fixed_points import (
         aggregate_bootstrapping_results,
         match_bootstrap_fixed_points_to_baseline,
@@ -36,7 +45,15 @@ def main(
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins
     from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
-    from endo_pipeline.manifests import create_dataframe_manifest, load_dataframe_manifest
+    from endo_pipeline.manifests import (
+        DataframeLocation,
+        ModelManifest,
+        build_dataframe_location_from_path,
+        create_dataframe_manifest,
+        load_dataframe_manifest,
+        load_model_manifest,
+        save_dataframe_manifest,
+    )
     from endo_pipeline.settings.column_names import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_WIDTHS_DYNAMICS,
@@ -51,7 +68,11 @@ def main(
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
         PAD_BINS_FLOAT,
     )
-    from endo_pipeline.settings.flow_field_dataframes import DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS
+    from endo_pipeline.settings.flow_field_dataframes import (
+        DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
+        DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+        FMS_ANNOTATION_NOTES_BOOTSTRAPPING,
+    )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -62,6 +83,9 @@ def main(
     rng = np.random.default_rng(RANDOM_SEED)
 
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
+    model_manifest: ModelManifest | None = None
+    if upload_to_fms:
+        model_manifest = load_model_manifest(model_manifest_name)
     run_name = DEFAULT_MODEL_RUN_NAME
     column_names: list[ColumnName.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
@@ -72,11 +96,20 @@ def main(
 
     dataframe_savedir = get_output_path(__file__, crop_pattern)
     demo_suffix = "_demo" if DEMO_MODE else ""
+    # get dataframe manifest for baseline results to match against in bootstrapping
     baseline_fixed_point_manifest_name = (
         f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}{demo_suffix}"
     )
     baseline_fixed_point_manifest = create_dataframe_manifest(
         baseline_fixed_point_manifest_name, workflow_name=__file__
+    )
+
+    # load or initialize dataframe manifest for bootstrap results
+    bootstrap_results_manifest_name = (
+        f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}{demo_suffix}"
+    )
+    bootstrap_results_manifest = create_dataframe_manifest(
+        bootstrap_results_manifest_name, workflow_name=__file__
     )
     logger.info("Bootstrap fixed point dataframes will be saved to: [ %s ]", dataframe_savedir)
 
@@ -97,6 +130,19 @@ def main(
         bin_width = BIN_WIDTHS_DYNAMICS[column_name]
         kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
         bin_widths.append(bin_width)
+
+    # add parameters to the output manifest for traceability
+    bootstrap_results_manifest.parameters = {
+        "model_manifest_name": model_manifest_name,
+        "run_name": run_name,
+        "crop_pattern": crop_pattern,
+        "columns": [column.value for column in column_names],
+        "kernel_names": [kernel.name for kernel in kernels],
+        "kernel_bandwidths": [kernel.bandwidth for kernel in kernels],
+        "bin_widths": bin_widths,
+        "num_bootstrap_iterations": num_bootstrap_iterations,
+    }
+    save_dataframe_manifest(bootstrap_results_manifest)
 
     for dataset_name in dataset_names:
         if dataset_name not in feature_dataframe_manifest.locations:
@@ -195,6 +241,41 @@ def main(
             bootstrap_ci_upper_percentile=0.95,
         )
         print(bootstrap_results_df.head())
+
+        # Save results, upload to FMS (if specified), and update manifest
+        output_file_name = (
+            f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{dataset_name}{demo_suffix}.parquet"
+        )
+        output_save_path = make_name_unique(dataframe_savedir / output_file_name)
+        bootstrap_results_df.to_parquet(output_save_path)
+        logger.info("Saved bootstrap fixed point CI dataframe locally to [ %s ].", output_save_path)
+
+        if upload_to_fms:
+            annotations = build_fms_annotations(
+                dataset_config,
+                model_manifest=model_manifest,
+                run_name=run_name,
+                additional_notes=FMS_ANNOTATION_NOTES_BOOTSTRAPPING,
+            )
+            fmsid = upload_file_to_fms(
+                output_save_path, annotations=annotations, file_type="parquet"
+            )
+            bootstrap_results_manifest.locations[dataset_name] = DataframeLocation(fmsid=fmsid)
+            logger.info(
+                "Uploaded bootstrap fixed point CI dataframe for dataset [ %s ] to FMS "
+                "with FMS ID [ %s ].",
+                dataset_name,
+                fmsid,
+            )
+        elif (
+            bootstrap_results_manifest.locations.get(dataset_name) is None
+            or bootstrap_results_manifest.locations[dataset_name].fmsid is None
+        ):
+            bootstrap_results_manifest.locations[dataset_name] = build_dataframe_location_from_path(
+                output_save_path
+            )
+
+        save_dataframe_manifest(bootstrap_results_manifest)
 
 
 if __name__ == "__main__":

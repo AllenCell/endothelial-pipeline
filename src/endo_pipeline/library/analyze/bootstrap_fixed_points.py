@@ -392,7 +392,6 @@ def aggregate_bootstrapping_results(
         # add rate of detection across bootstrap iterations for this baseline fixed point
         # as weel as the total number of bootstrap iterations (for reference)
         dataframe_row["bootstrap_detection_rate"] = float(num_hits) / n_bootstrap
-        dataframe_row["num_bootstrap_samples"] = n_bootstrap
         output_dataframe_rows.append(dataframe_row)
 
     return pd.DataFrame(output_dataframe_rows)
