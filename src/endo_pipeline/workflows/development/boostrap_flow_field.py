@@ -26,6 +26,7 @@ def main(
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.bootstrap_fixed_points import (
+        run_flow_field_and_fixed_points,
         subsample_trajectories_and_displacements,
     )
     from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
@@ -154,6 +155,21 @@ def main(
                     full_trajectories, full_displacements, subsample_fraction=0.5, rng=rng
                 )
             )
+
+            # Run the flow field and fixed point pipeline on the subsampled data
+            # (using the full steady-state dataframe for bounds computation in
+            # fixed point finding, so that bounds reflect the true data
+            # distribution even in bootstrap iterations)
+            fixed_point_df_from_subsample = run_flow_field_and_fixed_points(
+                subsampled_trajectories,
+                subsampled_displacements,
+                df_for_bounds=df_steady_state,
+                bins=bins,
+                centers=centers,
+                column_names=column_names,
+                kernels=kernels,
+            )
+            print(fixed_point_df_from_subsample.head())
 
 
 if __name__ == "__main__":
