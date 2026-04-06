@@ -984,6 +984,9 @@ def plot_and_save_track_flow_field_dot_product_histogram(
 
 
 def plot_trajectory_measured_vs_simulation_over_flow_field_helper(args: dict) -> None:
+    """Helper function to call plot_trajectory_measured_vs_simulation_over_flow_field with
+    a dictionary of arguments.
+    """
     plot_trajectory_measured_vs_simulation_over_flow_field(**args)
 
 
@@ -995,7 +998,23 @@ def plot_trajectory_measured_vs_simulation_over_flow_field(
     flow_field_dict_grid: dict,
     out_dir: Path,
 ) -> None:
-    """Plot measured vs simulated trajectories over the flow field slices for a given fixed point."""
+    """Plot measured vs simulated trajectories over a flow field slice taken at a fixed point.
+
+    Parameters
+    ----------
+    crop_index
+        The crop index corresponding to the trajectory being plotted.
+    traj_df
+        DataFrame containing the measured and simulated trajectory for the crop.
+    fixed_point_id
+        ID of the fixed point corresponding to the flow field slice being plotted.
+    fixed_point_row
+        Series containing the fixed point coordinates for the slice.
+    flow_field_dict_grid
+        Dictionary representing the flow field over the grid to overlay on the plot.
+    out_dir
+        Directory to save the resulting plot.
+    """
     dataset_name = traj_df[Column.DATASET].dropna().unique().item()
     column_names = list(map(str, DYNAMICS_COLUMN_NAMES))
 
@@ -1077,6 +1096,7 @@ def plot_trajectory_measured_vs_simulation_over_flow_field(
             zorder=9,
             ax=ax,
         )
+        ax.legend(ncols=2)
     save_plot_to_path(
         figure=fig,
         output_path=out_dir,

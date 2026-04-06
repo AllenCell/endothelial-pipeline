@@ -661,6 +661,22 @@ def get_drift_df(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
 ) -> pd.DataFrame:
+    """Get the drift dataframe of a data-driven flow field for a given dataset.
+
+    Parameters
+    ----------
+    dataset_name
+        Name of the dataset to get the drift dataframe for.
+    model_manifest_name
+        Name of the model manifest to use for locating the drift dataframe.
+    run_name
+        Name of the model run to use for locating the drift dataframe.
+
+    Returns
+    -------
+    pd.DataFrame
+        Drift dataframe for the given dataset.
+    """
 
     base_name = f"{model_manifest_name}_{run_name}_grid"
     drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{base_name}"
@@ -684,10 +700,24 @@ def get_drift_df(
     return drift_df
 
 
-def get_drift_values_and_grid(
+def get_drift_values_and_grid_from_drift_df(
     flow_field_dataframe: pd.DataFrame,
     column_names: list[str | Column.DiffAEData] | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
+    """Get the reshaped drift values and the corresponding grid points from a flow field dataframe.
+
+    Parameters
+    ----------
+    flow_field_dataframe
+        Dataframe containing the flow field data with columns corresponding to the coordinates and drift values.
+    column_names
+        List of column names corresponding to the dynamics features to use for constructing the flow field.
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray]
+        Tuple containing the drift values reshaped to the grid shape and the 1D grid points for each dimension.
+    """
 
     # restructure the drift dataframe into a flow field dictionary
     ndim = len(column_names)
@@ -719,11 +749,13 @@ def get_drift_flow_field_as_dict(
 
     Returns
     -------
-    :
+    dict[str, tuple[np.ndarray]]
         Dictionary containing the flow field vectors and the corresponding grid points.
 
     """
-    drift_values, grid_points_1d = get_drift_values_and_grid(flow_field_dataframe, column_names)
+    drift_values, grid_points_1d = get_drift_values_and_grid_from_drift_df(
+        flow_field_dataframe, column_names
+    )
 
     # reshape the 1D grid points into a an ND grid
     grid = np.meshgrid(*grid_points_1d, indexing="ij")
