@@ -72,6 +72,12 @@ def main(
 
     # If datasets aren't provided, default to processing a default list of datasets
     dataset_names = datasets or get_datasets_in_collection("optical_flow_analysis")
+    if datasets is None:
+        collection = "optical_flow_analysis"
+    else:
+        collection = "perturbation"
+
+    output_dir = get_output_path(__file__, collection, optical_flow_feature)
 
     if DEMO_MODE:
         dataset_names = dataset_names[:1]
@@ -83,7 +89,7 @@ def main(
         optical_flow_feature=optical_flow_feature,
         feature_dataframe_manifest=feature_dataframe_manifest,
         fixed_points_dataframe_manifest=fixed_points_dataframe_manifest,
-        output_dir=get_output_path(__file__),
+        output_dir=output_dir,
         plot_fixed_points=plot_fixed_points,
         by_dataset=True,
     )
@@ -97,7 +103,7 @@ def main(
                     feature_dataframe_manifest.name,
                 )
                 continue
-            output_dir = get_output_path(__file__, dataset_name)
+            output_dir = get_output_path(__file__, collection, optical_flow_feature, dataset_name)
             dataset_config = load_dataset_config(dataset_name)
 
             # load dataframe and perform additional filtering (remove

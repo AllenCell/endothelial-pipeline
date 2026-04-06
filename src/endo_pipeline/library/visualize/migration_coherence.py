@@ -672,12 +672,15 @@ def plot_cross_dataset_summaries(
         for var, label in zip(variables, labels, strict=False):
             # For the mean-optical-flow variable, overlay per-dataset mean ± std
             # stats = summary_stats if var == mean_of_col and summary_stats else None
+            ylim = (
+                (0.3, 1) if var == mean_of_col and "unit_vector" in optical_flow_feature else None
+            )
             plot_fixed_points_vs_shear_stress(
                 df_fp_all,
                 var,
                 label,
                 output_dir=output_dir,
-                ylim=None,
+                ylim=ylim,
                 summary_stats=None,
                 by_dataset=by_dataset,
             )
