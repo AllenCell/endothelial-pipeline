@@ -1,17 +1,18 @@
 import logging
 from typing import Literal
 
-from endo_pipeline.cli import Datasets
+from endo_pipeline.cli import CropPattern, Datasets
 from endo_pipeline.configs import TimepointAnnotation
 from endo_pipeline.settings import DIFFAE_ZARR_RESOLUTION_LEVEL
-from endo_pipeline.settings.optical_flow import DEFAULT_OPTICAL_FLOW_MAX_DT, NUM_IO_WORKERS
+from endo_pipeline.settings.optical_flow import (
+    DEFAULT_EMA_ALPHAS,
+    DEFAULT_OPTICAL_FLOW_MAX_DT,
+    DEFAULT_SPEED_THRESHOLD,
+    NUM_IO_WORKERS,
+)
 
 logger = logging.getLogger(__name__)
 
-
-#SAVE OUT THE OPTICAL FLOW!
-#SAVE OUT THE IMAGE FLOW MAPS - will help!
-#Disk space-endo
 
 def main(  # noqa: C901
     datasets: Datasets | None = None,
@@ -24,12 +25,17 @@ def main(  # noqa: C901
     n_jobs: int | None = None,
     n_io_workers: int = NUM_IO_WORKERS,
     flow_scope: Literal["image", "crop"] = "image",
+    crop_pattern: CropPattern = "grid",
     upload_to_fms: bool = False,
     visualize_optical_flow: bool = False,
     include_cell_piling: bool = False,
     include_pre_steady_state: bool = False,
     include_all_conditions: bool = False,
     compute_block_coherence: bool = False,
+    compute_fast_coherence: bool = False,
+    compute_radial_coherence: bool = False,
+    ema_alphas: list[float] = list(DEFAULT_EMA_ALPHAS),
+    speed_threshold: float = DEFAULT_SPEED_THRESHOLD,
 ) -> None:
     """Optical-flow feature extraction with multi-scale temporal coherence.
 
@@ -44,6 +50,13 @@ def main(  # noqa: C901
             per frame pair, then slice flow vectors per crop.  Faster
             and avoids boundary artefacts.
         "crop" - Run TVL1 independently on each crop.
+
+    Crop patterns (crop_pattern):
+        "grid" (default) - Use the fixed-grid crop layout from the DiffAE
+            feature dataframe.
+        "tracked" - Use per-frame tracked crop coordinates from the DiffAE
+            feature dataframe (requires ``TRACK_ID``, ``START_X``,
+            ``START_Y``, ``CROP_SIZE_X`` columns).
 
     Z-projection & normalization (channel-aware, matches DiffAE training):
         BF   -> std(axis=Z) -> log(x+1e-12) -> clip [0.1, 99.9] pctl -> z-score.
@@ -96,9 +109,11 @@ def main(  # noqa: C901
         Parallel workers used in "crop" flow scope (joblib/loky).
     n_io_workers
         Concurrent I/O workers for dask frame loading and
-        ``ThreadPoolExecutor`` in image-scope flow.  Default ``_IO_WORKERS`` (16).
+        ``ThreadPoolExecutor`` in image-scope flow.  Default ``NUM_IO_WORKERS`` (16).
     flow_scope
         "image" or "crop" (see Flow scopes above).
+    crop_pattern
+        "grid" (default) or "tracked" (see Crop patterns above).
     upload_to_fms
         If True, save parquet, upload to FMS, and register in the
         dataframe manifest.  Default False to prevent accidental
@@ -121,6 +136,19 @@ def main(  # noqa: C901
         If True, compute multi-scale block-averaged coherence statistics
         (``optical_flow_angle_std_box{N}``) for each box size.  Off by
         default to save time.
+    compute_fast_coherence
+        If True, compute coherence metrics over pixels whose speed
+        exceeds *speed_threshold*.  Off by default.
+    compute_radial_coherence
+        If True, compute radial coherence metrics (dot product of
+        unit flow with unit radial vector from crop centre).  Off by
+        default.
+    ema_alphas
+        EMA smoothing alpha values for temporal coherence smoothing.
+        Defaults to ``[0.1]``.
+    speed_threshold
+        Minimum pixel speed for the "fast" coherence features.
+        Only used when *compute_fast_coherence* is True.  Default 1.0.
     """
     import os
     import time
@@ -154,6 +182,7 @@ def main(  # noqa: C901
         default_annotations_to_exclude,
         pivot_flow_records,
         plot_demo_summary,
+        plot_tracked_crop_coherence_timeseries,
         resolve_attachment,
         resolve_percentile,
     )
@@ -174,7 +203,11 @@ def main(  # noqa: C901
         DEMO_MAX_DATASETS,
         DEMO_MAX_FRAMES,
         DEMO_MAX_POSITIONS,
+        DEMO_MAX_TRACKED_CROPS_TO_PLOT,
         DIFFAE_DATAFRAME_METADATA_TO_COMPUTE,
+        OPTICAL_FLOW_EMA_FAST_STEMS,
+        OPTICAL_FLOW_EMA_RADIAL_STEMS,
+        OPTICAL_FLOW_EMA_STEMS,
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -185,17 +218,25 @@ def main(  # noqa: C901
     os.environ.setdefault("OMP_NUM_THREADS", DEFAULT_OMP_NUM_THREADS)
     os.environ.setdefault("OPENBLAS_NUM_THREADS", DEFAULT_OPENBLAS_NUM_THREADS)
 
+    is_tracked = crop_pattern == "tracked"
+
     if datasets is None:
         datasets = get_datasets_in_collection(DEFAULT_OPTICAL_FLOW_COLLECTION)
 
     if DEMO_MODE:
-        datasets = datasets[:DEMO_MAX_DATASETS]
+        # For tracked crops, limit to 1 dataset / 1 position so the
+        # time series diagnostic is focused and fast.
+        demo_n_datasets = 1 if is_tracked else DEMO_MAX_DATASETS
+        demo_n_positions = 1 if is_tracked else DEMO_MAX_POSITIONS
+        datasets = datasets[:demo_n_datasets]
         upload_to_fms = False
         visualize_optical_flow = True
         logger.info(
-            "DEMO_MODE is ON. Processing %d dataset(s), %d position(s) each, upload disabled.",
-            DEMO_MAX_DATASETS,
-            DEMO_MAX_POSITIONS,
+            "DEMO_MODE is ON (tracked=%s). Processing %d dataset(s), %d position(s) each, "
+            "upload disabled.",
+            is_tracked,
+            demo_n_datasets,
+            demo_n_positions,
         )
 
     results_dir = get_output_path("optical_flow", "plots")
@@ -218,32 +259,59 @@ def main(  # noqa: C901
     )
     intensity_pctl = resolve_percentile(channel, intensity_percentile)
     attachment = resolve_attachment(channel)
-    flow_columns = build_optical_flow_feature_cols(max_dt, compute_block_coherence)
+    flow_columns = build_optical_flow_feature_cols(
+        max_dt,
+        compute_block_coherence=compute_block_coherence,
+        compute_fast_coherence=compute_fast_coherence,
+        compute_radial_coherence=compute_radial_coherence,
+        ema_alphas=ema_alphas,
+    )
     is_bf = channel == "BF"
 
     logger.info(
-        "Optical-flow extraction --> scope = %s | dt = 1 .. %d | percentile = %d | attachment = %.1f | channel = %s | block_coherence = %s",
+        "Optical-flow extraction --> scope=%s | crop_pattern=%s | dt=1..%d "
+        "| percentile=%d | attachment=%.1f | channel=%s "
+        "| block_coherence=%s | fast_coherence=%s | radial_coherence=%s "
+        "| ema_alphas=%s | speed_threshold=%.2f",
         flow_scope,
+        crop_pattern,
         max_dt,
         intensity_pctl,
         attachment,
         channel,
         compute_block_coherence,
+        compute_fast_coherence,
+        compute_radial_coherence,
+        ema_alphas,
+        speed_threshold,
     )
 
     # Load dataframe with diffae feature metadata (no filtering yet) to get crop
     # coordinates and timepoints for each dataset/position.
-    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_grid"
+    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
     feature_dataframe_manifest_name = f"{base_name}_pca"
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
+
+    # For tracked crops, we also need TRACK_ID, START_X, START_Y, CROP_SIZE_X
+    columns_to_compute = [*DIFFAE_DATAFRAME_METADATA_TO_COMPUTE]
+    if is_tracked:
+        for extra_col in (
+            Column.TRACK_ID,
+            Column.DiffAEData.START_X,
+            Column.DiffAEData.START_Y,
+            Column.DiffAEData.CROP_SIZE_X,
+        ):
+            if extra_col not in columns_to_compute:
+                columns_to_compute.append(extra_col)
 
     # Load or create optical flow manifest and set parameters before the loop so
     # that it is available even if the workflow fails partway through. Add
     # suffix to manifest name in demo mode to avoid overwriting real results
     # with partial demo results.
+    tracked_suffix = f"_{crop_pattern}" if is_tracked else ""
     demo_suffix = "_demo" if DEMO_MODE else ""
     optical_flow_manifest = create_dataframe_manifest(
-        f"{DEFAULT_OPTICAL_FLOW_MANIFEST_NAME}{demo_suffix}",
+        f"{DEFAULT_OPTICAL_FLOW_MANIFEST_NAME}{tracked_suffix}{demo_suffix}",
         workflow_name=__file__,
     )
     optical_flow_manifest.parameters = {
@@ -251,9 +319,14 @@ def main(  # noqa: C901
         "level": level,
         "max_dt": max_dt,
         "flow_scope": flow_scope,
+        "crop_pattern": crop_pattern,
         "intensity_percentile": intensity_pctl,
         "attachment": attachment,
         "compute_block_coherence": compute_block_coherence,
+        "compute_fast_coherence": compute_fast_coherence,
+        "compute_radial_coherence": compute_radial_coherence,
+        "ema_alphas": list(ema_alphas),
+        "speed_threshold": speed_threshold,
         "annotations_excluded": [a.value for a in annotations_to_exclude],
     }
     save_dataframe_manifest(optical_flow_manifest)
@@ -261,20 +334,26 @@ def main(  # noqa: C901
     # set output directory for dataframes
     output_dir = get_output_path("optical_flow", "dataframes")
 
+    # Tracked crops require image-scope TVL1 — reject early.
+    if is_tracked and flow_scope == "crop":
+        raise ValueError(
+            "crop_pattern='tracked' is not supported with flow_scope='crop'. "
+            "Use flow_scope='image' for tracked crops."
+        )
+
     for dataset_idx, dataset_name in enumerate(datasets, 1):
         dataset_start = time.time()
         logger.info("Dataset %d/%d: %s", dataset_idx, len(datasets), dataset_name)
 
         dataset_config = load_dataset_config(dataset_name)
         df_dataset = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
-        columns_to_compute = [*DIFFAE_DATAFRAME_METADATA_TO_COMPUTE]
         df_dataset_: pd.DataFrame = df_dataset[columns_to_compute].compute()
 
         position_list = sorted(df_dataset_[Column.POSITION].unique().tolist())
         if positions:
             position_list = [p for p in position_list if p in positions]
         if DEMO_MODE:
-            position_list = position_list[:DEMO_MAX_POSITIONS]
+            position_list = position_list[:demo_n_positions]
             logger.info("DEMO_MODE: limiting to position(s) %s", position_list)
 
         dataset_parts: list[pd.DataFrame] = []
@@ -305,12 +384,32 @@ def main(  # noqa: C901
 
             # Crop grid
             crop_grid = build_crop_grid(df_position)
-            start_x = crop_grid[Column.DiffAEData.START_X].values.astype(int)
-            start_y = crop_grid[Column.DiffAEData.START_Y].values.astype(int)
-            end_x = crop_grid[Column.DiffAEData.END_X].values.astype(int)
-            end_y = crop_grid[Column.DiffAEData.END_Y].values.astype(int)
-            crop_ids = crop_grid[Column.CROP_INDEX].values
             num_crops = len(crop_grid)
+
+            # For tracked crops, build a per-timepoint crop lookup dict
+            # mapping timepoint -> (start_y, end_y, start_x, end_x, crop_ids)
+            # so that crop coordinates can change frame-to-frame.  For grid
+            # crops, the arrays are constant across all timepoints.
+            if is_tracked:
+                crop_size = int(
+                    df_position[Column.DiffAEData.CROP_SIZE_X].iloc[0]
+                    if Column.DiffAEData.CROP_SIZE_X in df_position.columns
+                    else 128
+                )
+                tracked_crops: dict[int, tuple] = {}
+                for t, grp in df_position.groupby(Column.TIMEPOINT):
+                    sx_ = grp[Column.DiffAEData.START_X].values.astype(int)
+                    sy_ = grp[Column.DiffAEData.START_Y].values.astype(int)
+                    ex_ = sx_ + crop_size
+                    ey_ = sy_ + crop_size
+                    ci_ = grp[Column.CROP_INDEX].values
+                    tracked_crops[int(t)] = (sy_, ey_, sx_, ex_, ci_)
+            else:
+                start_x = crop_grid[Column.DiffAEData.START_X].values.astype(int)
+                start_y = crop_grid[Column.DiffAEData.START_Y].values.astype(int)
+                end_x = crop_grid[Column.DiffAEData.END_X].values.astype(int)
+                end_y = crop_grid[Column.DiffAEData.END_Y].values.astype(int)
+                crop_ids = crop_grid[Column.CROP_INDEX].values
 
             # Z-project
             zarr_path = get_zarr_location_for_position(
@@ -375,51 +474,57 @@ def main(  # noqa: C901
                 num_crops,
             )
 
+            # Crop coordinate resolver: single place for grid-vs-tracked branching.
+            def _resolve_crops(t0: int) -> tuple[np.ndarray, ...] | None:
+                """Return (sy, ey, sx, ex, crop_ids) for timepoint *t0*."""
+                if is_tracked:
+                    return tracked_crops.get(t0)
+                return (start_y, end_y, start_x, end_x, crop_ids)
+
+            # Unified image-scope flow worker.
+            def _image_pair_flow(t0: int, t1: int, dt: int) -> list[dict]:
+                coords = _resolve_crops(t0)
+                if coords is None:
+                    return []
+                sy_, ey_, sx_, ex_, ci_ = coords
+                return compute_image_pair_flow(
+                    frame_cache[t0],
+                    frame_cache[t1],
+                    sy_,
+                    ey_,
+                    sx_,
+                    ex_,
+                    ci_,
+                    t0,
+                    dt,
+                    intensity_threshold,
+                    attachment,
+                    compute_block_coherence,
+                    compute_fast_coherence,
+                    compute_radial_coherence,
+                    speed_threshold,
+                )
+
             # Compute flow
             records: list[dict] = []
             if flow_scope == "image":
-
-                def _image_pair(
-                    t0,
-                    t1,
-                    dt,
-                    _cache=frame_cache,
-                    _start_y=start_y,
-                    _end_y=end_y,
-                    _start_x=start_x,
-                    _end_x=end_x,
-                    _crop_ids=crop_ids,
-                    _threshold=intensity_threshold,
-                    _attachment=attachment,
-                    _compute_block=compute_block_coherence,
-                ):
-                    frame_0, frame_1 = _cache[t0], _cache[t1]
-                    return compute_image_pair_flow(
-                        frame_0,
-                        frame_1,
-                        _start_y,
-                        _end_y,
-                        _start_x,
-                        _end_x,
-                        _crop_ids,
-                        t0,
-                        dt,
-                        _threshold,
-                        _attachment,
-                        _compute_block,
-                    )
-
+                desc = f"{dataset_name} pos={position}"
+                if is_tracked:
+                    desc += " (tracked)"
                 with ThreadPoolExecutor(max_workers=n_io_workers) as pool:
                     futures = {
-                        pool.submit(_image_pair, t0, t1, dt): (t0, dt) for t0, t1, dt in frame_pairs
+                        pool.submit(_image_pair_flow, t0, t1, dt): (t0, dt)
+                        for t0, t1, dt in frame_pairs
                     }
                     for future in tqdm(
                         as_completed(futures),
                         total=len(futures),
-                        desc=f"{dataset_name} pos={position}",
+                        desc=desc,
                     ):
                         records.extend(future.result())
             else:
+                # Crop scope: TVL1 per crop (grid only; tracked + crop
+                # is rejected before the loop).
                 crop_flow_args = [
                     (
                         frame_cache[t0][start_y[i] : end_y[i], start_x[i] : end_x[i]].copy(),
@@ -430,6 +535,9 @@ def main(  # noqa: C901
                         intensity_threshold,
                         attachment,
                         compute_block_coherence,
+                        compute_fast_coherence,
+                        compute_radial_coherence,
+                        speed_threshold,
                     )
                     for t0, t1, dt in frame_pairs
                     for i in range(num_crops)
@@ -466,48 +574,48 @@ def main(  # noqa: C901
             ).drop(columns=["crop_index_y", "timepoint_y"], errors="ignore")
             # rename back if pandas suffixed them
             if "crop_index_x" in df_position.columns:
-                df_position.rename(columns={"crop_index_x": ColumnName.CROP_INDEX}, inplace=True)
+                df_position.rename(columns={"crop_index_x": Column.CROP_INDEX}, inplace=True)
             if "timepoint_x" in df_position.columns:
-                df_position.rename(columns={"timepoint_x": ColumnName.TIMEPOINT}, inplace=True)
+                df_position.rename(columns={"timepoint_x": Column.TIMEPOINT}, inplace=True)
 
             for col in flow_columns:
                 if col not in df_position.columns:
                     df_position[col] = np.nan
 
             # --- EMA smoothing of coherence metrics per crop ---
-            df_position = df_position.sort_values(
-                [ColumnName.CROP_INDEX, ColumnName.TIMEPOINT]
-            )
-            for alpha in (0.05, 0.1, 0.2):
+            df_position = df_position.sort_values([Column.CROP_INDEX, Column.TIMEPOINT])
+
+            # Build the list of (raw_stem, ema_stem) pairs to smooth
+            ema_stems_to_smooth: list[str] = list(OPTICAL_FLOW_EMA_STEMS)
+            if compute_fast_coherence:
+                ema_stems_to_smooth += OPTICAL_FLOW_EMA_FAST_STEMS
+            if compute_radial_coherence:
+                ema_stems_to_smooth += OPTICAL_FLOW_EMA_RADIAL_STEMS
+
+            for alpha in ema_alphas:
                 alpha_tag = str(alpha).replace(".", "")
                 for d in range(1, max_dt + 1):
-                    r_org_col = f"optical_flow_mean_unit_vector_dt{d}"
-                    r_fast_col = f"optical_flow_mean_unit_vector_fast_dt{d}"
-                    if r_org_col in df_position.columns:
-                        df_position[f"ema{alpha_tag}_optical_flow_mean_unit_vector_dt{d}"] = (
-                            df_position.groupby(ColumnName.CROP_INDEX)[r_org_col]
-                            .transform(lambda s, a=alpha: s.ewm(alpha=a, adjust=False).mean())
-                        )
-                    if r_fast_col in df_position.columns:
-                        df_position[f"ema{alpha_tag}_optical_flow_mean_unit_vector_fast_dt{d}"] = (
-                            df_position.groupby(ColumnName.CROP_INDEX)[r_fast_col]
-                            .transform(lambda s, a=alpha: s.ewm(alpha=a, adjust=False).mean())
-                        )
+                    for stem in ema_stems_to_smooth:
+                        raw_col = f"{stem}_dt{d}"
+                        ema_col = f"ema{alpha_tag}_{stem}_dt{d}"
+                        if raw_col in df_position.columns:
+                            df_position[ema_col] = df_position.groupby(Column.CROP_INDEX)[
+                                raw_col
+                            ].transform(lambda s, a=alpha: s.ewm(alpha=a, adjust=False).mean())
 
-            # --- EMA smoothing of radial coherence metrics (alpha=0.1) ---
-            for d in range(1, max_dt + 1):
-                rc_col = f"optical_flow_radial_coherence_dt{d}"
-                rcw_col = f"optical_flow_radial_coherence_weighted_dt{d}"
-                if rc_col in df_position.columns:
-                    df_position[f"ema01_optical_flow_radial_coherence_dt{d}"] = (
-                        df_position.groupby(ColumnName.CROP_INDEX)[rc_col]
-                        .transform(lambda s: s.ewm(alpha=0.1, adjust=False).mean())
-                    )
-                if rcw_col in df_position.columns:
-                    df_position[f"ema01_optical_flow_radial_coherence_weighted_dt{d}"] = (
-                        df_position.groupby(ColumnName.CROP_INDEX)[rcw_col]
-                        .transform(lambda s: s.ewm(alpha=0.1, adjust=False).mean())
-                    )
+            # --- Crop coherence time series diagnostic ---
+            if visualize_optical_flow:
+                plot_tracked_crop_coherence_timeseries(
+                    df_position,
+                    ds_name=dataset_name,
+                    position=position,
+                    out_dir=results_dir,
+                    ema_alphas=ema_alphas,
+                    compute_fast_coherence=compute_fast_coherence,
+                    compute_radial_coherence=compute_radial_coherence,
+                    max_crops=DEMO_MAX_TRACKED_CROPS_TO_PLOT,
+                    max_dt=max_dt,
+                )
 
             logger.info(
                 "Position %d done in %.1fs for %d records",
