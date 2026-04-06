@@ -165,35 +165,26 @@ def run_flow_field_and_fixed_points(
     return fixed_points_dataframe
 
 
-def aggregate_bootstrapping_results(
+def match_bootstrap_fixed_points_to_baseline(
     baseline_fixed_points: pd.DataFrame,
     bootstrap_fixed_points: list[pd.DataFrame],
     column_names: list[str | Column.DiffAEData],
-    n_bootstrap: int,
     polar_angle_period: float,
     bootstrap_match_radius: float,
-    bootstrap_ci_lower_percentile: float,
-    bootstrap_ci_upper_percentile: float,
-) -> pd.DataFrame:
-    """Build the output dataframe of baseline fixed points and their bootstrap matches.
+) -> list[list[np.ndarray]]:
+    """Match bootstrap fixed points to baseline fixed points within a specified radius.
 
-    For each baseline fixed point, this function collects the coordinates of the
-    nearest bootstrap fixed point (across all iterations) that falls within
-    `BOOTSTRAP_MATCH_RADIUS`. It then computes percentile-based CIs (at
-    `BOOTSTRAP_CI_LOWER_PERCENTILE` / `BOOTSTRAP_CI_UPPER_PERCENTILE`) and a
-    detection rate from those matched samples.
+    **Method inputs**
 
-    **Workflow inputs**
+    This function takes as input the following::
 
-    The workflow produces the `baseline_fixed_points` and
-    `bootstrap_fixed_points` inputs as follows:
-
-    - `baseline_fixed_points` is the dataframe of fixed points found in the full
+    - `baseline_fixed_points`: the dataframe of fixed points found in the full
       steady-state data, which serves as the reference for the bootstrap
       analysis.
-    - `bootstrap_fixed_points` is a list of length `n_bootstrap` where
-      each element is either an empty dataframe (if no fixed points were found
-      in that bootstrap iteration) or a dataframe of shape `(n_fpts,
+    - `bootstrap_fixed_points`: a list of length `n_bootstrap`, where each
+      element is either an empty dataframe (if no fixed points were found in
+      that bootstrap iteration) or a dataframe of shape `(n_fpts, 3)` with the
+      coordinates of the fixed points found in that iteration.
 
     **Matching scheme**
 
@@ -204,54 +195,41 @@ def aggregate_bootstrapping_results(
     yield no fixed points, or no fixed points within radius of a given baseline
     fixed point, are counted as misses for that baseline fixed point.
 
-    **Circular distance handling**
+    **Polar angle handling**
 
     If the `polar_theta` (`ColumnName.DiffAEData.POLAR_ANGLE`) column is present
-    in `column_names`, the matched bootstrap angles for each baseline fixed
-    point are unwrapped relative to that baseline angle using `numpy.unwrap`
-    before percentiles are computed.  This prevents artificially wide CIs caused
-    by the wrap-around boundary.
-
-    **Output dataframe**
-
-    One row per baseline fixed point with columns: - ``dataset``: dataset
-    identifier (from ``baseline_fps``). - ``stability``: stability
-    classification (from ``baseline_fps``). - ``{col}``: baseline coordinate for
-    each feature column. - ``{col}_ci_lower``, ``{col}_ci_upper``: lower / upper
-    bootstrap CI
-      bounds (``nan`` when fewer than 2 bootstrap hits were found).
-    - ``bootstrap_detection_rate``: fraction of bootstrap samples in which a
-      matched fixed point was found.
-    - ``n_bootstrap_samples``: total number of bootstrap iterations.
+    in `column_names`, the distance in that dimension is computed using the
+    circular distance formula.
 
     Parameters
     ----------
     baseline_fixed_points
         Dataframe of baseline fixed points.
-    bootstrap_fixed_point_records
-        List of length *n_bootstrap*.  Each element is either an empty dataframe
-        of shape ``(0, 3)`` (no fixed points found in that iteration) or a
-        dataframe of shape ``(n_fpts, 3)`` with the coordinates of the fixed
-        points found in that iteration.
+    bootstrap_fixed_points
+        List of length *n_bootstrap*.
     column_names
-        Names of the three feature columns, in the same order as the last
-        dimension of each array in ``bootstrap_fp_records``.
-    n_bootstrap
-        Total number of bootstrap iterations performed (used as the denominator
-        for the detection rate and stored in ``n_bootstrap_samples``).
+        Names of the three feature columns.
+    polar_angle_period
+        Period of the polar angle dimension, used for unwrapping if the polar
+        angle column is present.
+    bootstrap_match_radius
+        Maximum distance for matching bootstrap fixed points to baseline fixed
+        points.
 
     Returns
     -------
     :
-        One-row-per-baseline fixed point summary dataframe.
+        A dict mapping baseline fixed point indices to lists of matched
+        bootstrap fixed point coordinates.
 
     """
     column_names = list(column_names)
     baseline_fixed_points_array = baseline_fixed_points[column_names].to_numpy()
     n_baseline = len(baseline_fixed_points_array)
 
-    matched_coords: list[list[np.ndarray]] = [[] for _ in range(n_baseline)]
-    hit_counts = np.zeros(n_baseline, dtype=int)
+    # dict to hold matched coords for each baseline fixed point (FP) across
+    # bootstrap iterations, for CI computation. Keys are baseline FP indices.
+    matched_coords: dict[int, list[np.ndarray]] = {i: [] for i in range(n_baseline)}
 
     polar_dim_idx: int | None = None
     if Column.DiffAEData.POLAR_ANGLE in column_names:
@@ -292,9 +270,85 @@ def aggregate_bootstrapping_results(
                     continue
                 if row_dists[boot_idx] <= bootstrap_match_radius:
                     matched_coords[baseline_idx].append(fixed_point_result_array[boot_idx])
-                    hit_counts[baseline_idx] += 1
                     assigned_boot_indices.add(boot_idx)
                 break  # only try the nearest unassigned candidate per baseline FP
+
+    return matched_coords
+
+
+def aggregate_bootstrapping_results(
+    baseline_fixed_points: pd.DataFrame,
+    matched_coords: dict[int, list[np.ndarray]],
+    column_names: list[str | Column.DiffAEData],
+    n_bootstrap: int,
+    polar_angle_period: float,
+    bootstrap_ci_lower_percentile: float,
+    bootstrap_ci_upper_percentile: float,
+) -> pd.DataFrame:
+    """Build the output dataframe of baseline fixed points and their bootstrap matches.
+
+    For each baseline fixed point, this function parses the results of the
+    matching procedure (given by `matched_coords`) to compute:
+
+    - bootstrapped confidence intervals for the fixed point coordinates
+    - a detection rate from the fraction of bootstrap iterations in which a
+      match was found within the specified radius
+
+    **Method inputs**
+
+    This function takes as input the following::
+
+    - `baseline_fixed_points`: the dataframe of fixed points found in the full
+      steady-state data, which serves as the reference for the bootstrap
+      analysis.
+    - `matched_coords`: a dict mapping baseline fixed point indices to lists of
+      matched bootstrap fixed point coordinates (as numpy arrays) across bootstrap
+      iterations.
+
+    **Circular distance handling**
+
+    If the `polar_theta` (`ColumnName.DiffAEData.POLAR_ANGLE`) column is present
+    in `column_names`, the matched bootstrap angles for each baseline fixed
+    point are unwrapped relative to that baseline angle using `numpy.unwrap`
+    before percentiles are computed.  This prevents artificially wide CIs caused
+    by the wrap-around boundary.
+
+    **Output dataframe**
+
+    One row per baseline fixed point with columns:
+
+    - `dataset`: dataset identifier (from `baseline_fps`)
+    - `stability`: stability classification (from `baseline_fps`)
+    - `{col}`: baseline coordinate for each feature column
+    - `{col}_ci_lower`, `{col}_ci_upper`: lower / upper bootstrap CI bounds
+      (`nan` when fewer than 2 bootstrap hits were found).
+    - `bootstrap_detection_rate`: fraction of bootstrap samples in which a
+      matched fixed point was found.
+    - `n_bootstrap_samples`: total number of bootstrap iterations.
+
+    Parameters
+    ----------
+    baseline_fixed_points
+        Dataframe of baseline fixed points.
+    matched_coords
+        Dict mapping baseline fixed point indices to lists of matched bootstrap
+        fixed point coordinates (as numpy arrays) across bootstrap iterations.
+    column_names
+        Names of the three feature columns, in the same order as the last
+        dimension of each array in ``bootstrap_fp_records``.
+    n_bootstrap
+        Total number of bootstrap iterations performed (used as the denominator
+        for the detection rate and stored in ``n_bootstrap_samples``).
+
+    Returns
+    -------
+    :
+        One-row-per-baseline fixed point summary dataframe.
+
+    """
+    polar_dim_idx: int | None = None
+    if Column.DiffAEData.POLAR_ANGLE in column_names:
+        polar_dim_idx = column_names.index(Column.DiffAEData.POLAR_ANGLE)
 
     # build output dataframe rows with CIs and detection rates for each baseline
     # fixed point
@@ -307,31 +361,37 @@ def aggregate_bootstrapping_results(
         for col in column_names:
             dataframe_row[col] = baseline_fixed_point[col]
 
-        hits = matched_coords[i]
-        if len(hits) >= 2:
-            hits_array = np.stack(hits, axis=0)  # (n_hits, 3)
+        num_hits = len(matched_coords[i])
+        if num_hits >= 2:
+            # reshape list of matched coords to the given baseline point
+            # # to (n_hits, 3) for percentile computation
+            matched_coords_array = np.stack(matched_coords[i], axis=0)  # (n_hits, 3)
             if polar_dim_idx is not None:
                 # Unwrap bootstrap polar angles relative to the baseline angle so
                 # that percentiles are computed on a continuous (non-wrapping)
                 # distribution.  Prepend the baseline value as the anchor point
                 # for np.unwrap, then discard it from the result.
                 base_angle = float(baseline_fixed_point[column_names[polar_dim_idx]])
-                seq = np.concatenate([[base_angle], hits_array[:, polar_dim_idx]])
-                hits_array = hits_array.copy()
-                hits_array[:, polar_dim_idx] = np.unwrap(seq, period=polar_angle_period)[1:]
+                seq = np.concatenate([[base_angle], matched_coords_array[:, polar_dim_idx]])
+                matched_coords_array = matched_coords_array.copy()
+                matched_coords_array[:, polar_dim_idx] = np.unwrap(seq, period=polar_angle_period)[
+                    1:
+                ]
             for dim_idx, col in enumerate(column_names):
                 dataframe_row[f"{col}_ci_lower"] = float(
-                    np.percentile(hits_array[:, dim_idx], bootstrap_ci_lower_percentile)
+                    np.percentile(matched_coords_array[:, dim_idx], bootstrap_ci_lower_percentile)
                 )
                 dataframe_row[f"{col}_ci_upper"] = float(
-                    np.percentile(hits_array[:, dim_idx], bootstrap_ci_upper_percentile)
+                    np.percentile(matched_coords_array[:, dim_idx], bootstrap_ci_upper_percentile)
                 )
         else:
             for col in column_names:
                 dataframe_row[f"{col}_ci_lower"] = float("nan")
                 dataframe_row[f"{col}_ci_upper"] = float("nan")
 
-        dataframe_row["bootstrap_detection_rate"] = float(hit_counts[i]) / n_bootstrap
+        # add rate of detection across bootstrap iterations for this baseline fixed point
+        # as weel as the total number of bootstrap iterations (for reference)
+        dataframe_row["bootstrap_detection_rate"] = float(num_hits) / n_bootstrap
         dataframe_row["num_bootstrap_samples"] = n_bootstrap
         output_dataframe_rows.append(dataframe_row)
 

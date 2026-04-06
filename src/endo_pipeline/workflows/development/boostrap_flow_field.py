@@ -28,6 +28,7 @@ def main(
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.bootstrap_fixed_points import (
         aggregate_bootstrapping_results,
+        match_bootstrap_fixed_points_to_baseline,
         run_flow_field_and_fixed_points,
         subsample_trajectories_and_displacements,
     )
@@ -177,12 +178,21 @@ def main(
         # Aggregate bootstrap results by matching fixed points across iterations
         # to the baseline fixed points and computing confidence intervals and
         # detection rates for each baseline fixed point
-        bootstrap_results_df = aggregate_bootstrapping_results(
+        matched_coords = match_bootstrap_fixed_points_to_baseline(
             baseline_fixed_points=baseline_fp_df,
             bootstrap_fixed_points=bootstrap_fixed_points,
             column_names=column_names,
-            polar_dim_idx=column_names.index(ColumnName.DiffAEData.POLAR_ANGLE),
             polar_angle_period=period,
+            bootstrap_match_radius=0.1,  # Example radius, adjust as needed
+        )
+        bootstrap_results_df = aggregate_bootstrapping_results(
+            baseline_fixed_points=baseline_fp_df,
+            matched_coords=matched_coords,
+            column_names=column_names,
+            n_bootstrap=num_bootstrap_iterations,
+            polar_angle_period=period,
+            bootstrap_ci_lower_percentile=0.5,
+            bootstrap_ci_upper_percentile=0.95,
         )
         print(bootstrap_results_df.head())
 
