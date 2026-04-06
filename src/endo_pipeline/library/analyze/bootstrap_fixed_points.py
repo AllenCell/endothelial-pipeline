@@ -1,4 +1,5 @@
 import logging
+import os
 
 import numpy as np
 import pandas as pd
@@ -21,6 +22,10 @@ from endo_pipeline.settings.flow_field_3d import (
 from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
 
 logger = logging.getLogger(__name__)
+
+# needed for multiprocessing loop to share data across iterations without
+# passing as arguments (which causes pickling overhead)
+_worker_state: dict = {}
 
 
 def subsample_trajectories_and_displacements(
@@ -163,6 +168,87 @@ def run_flow_field_and_fixed_points(
         polar_angle_range=polar_angle_range,
     )
     return fixed_points_dataframe
+
+
+def init_bootstrap_worker(
+    df_steady_state: pd.DataFrame,
+    bins: list,
+    centers: list,
+    column_names: list,
+    kernels: list,
+    blas_threads_per_worker: int,
+) -> None:
+    """
+    Initializer for bootstrap worker processes.
+
+    This function is called once per worker process at the start of the
+    bootstrap parallel loop. It sets environment variables to clamp thread usage
+    for common linear-algebra backends, and stores the given data and parameters
+    in a global variable (`_worker_state`) that can be accessed by each
+    iteration of the loop without needing to pass them as arguments (which would
+    cause pickling overhead).
+
+    Parameters
+    ----------
+    df_steady_state
+        Dataframe of steady-state features used for computing bounds and filtering
+        fixed points in each bootstrap iteration.
+    bins
+        Bin edges for each of the three feature dimensions.
+    centers
+        Bin centre arrays for each dimension.
+    column_names
+        Names of the three feature columns.
+    kernels
+        List of ``KramersMoyalKernel`` objects, one per feature dimension.
+    blas_threads_per_worker
+        Maximum number of threads to use for BLAS operations per worker process.
+
+    """
+    # Clamp thread counts for common linear-algebra backends so that
+    # n_workers x blas_threads <= available CPUs.
+    for env_var in (
+        "OMP_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "OPENBLAS_NUM_THREADS",
+        "NUMEXPR_NUM_THREADS",
+        "VECLIB_MAXIMUM_THREADS",
+    ):
+        os.environ[env_var] = str(blas_threads_per_worker)
+    # threadpoolctl provides a runtime-safe way to clamp threads even when
+    # libraries were imported before the env vars were set (e.g. fork start).
+    try:
+        from threadpoolctl import threadpool_limits
+
+        threadpool_limits(limits=blas_threads_per_worker)
+    except ImportError:
+        pass  # env-var approach is sufficient when using spawn / forkserver
+
+    # set _worker_state dict with data and parameters needed for each bootstrap
+    # iteration to pass into run_one_bootstrap_iteration without pickling
+    # overhead
+    _worker_state["df_steady_state"] = df_steady_state
+    _worker_state["bins"] = bins
+    _worker_state["centers"] = centers
+    _worker_state["column_names"] = column_names
+    _worker_state["kernels"] = kernels
+
+
+def run_one_bootstrap_iteration(
+    subsampled_pairs: tuple[list[np.ndarray], list[np.ndarray]],
+) -> pd.DataFrame:
+    """Run one bootstrap iteration using worker-local shared state."""
+    sub_trajectories, sub_displacements = subsampled_pairs
+    s = _worker_state
+    return run_flow_field_and_fixed_points(
+        trajectories=sub_trajectories,
+        displacements=sub_displacements,
+        df_for_bounds=s["df_steady_state"],
+        bins=s["bins"],
+        centers=s["centers"],
+        column_names=s["column_names"],
+        kernels=s["kernels"],
+    )
 
 
 def match_bootstrap_fixed_points_to_baseline(

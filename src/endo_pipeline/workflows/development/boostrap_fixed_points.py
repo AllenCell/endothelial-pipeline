@@ -27,6 +27,7 @@ def main(
     bootstrap_ci_upper_percentile: Annotated[
         float, Parameter(name="--ci-upper")
     ] = FP_CI_UPPER_PERCENTILE,
+    num_workers: int | None = None,
 ) -> None:
     """Bootstrap fixed point confidence intervals by subsampling data.
 
@@ -79,12 +80,18 @@ def main(
     bootstrap_ci_upper_percentile
         Percentile used for defining the upper bound of the bootstrap
         confidence intervals.
+    num_workers
+        Number of worker processes to use for parallel bootstrap iterations. If
+        None, defaults to the number of CPUs available on the machine.
 
     """
     import logging
+    import os
+    from concurrent.futures import ProcessPoolExecutor
 
     import numpy as np
     import pandas as pd
+    from tqdm import tqdm
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
@@ -97,8 +104,9 @@ def main(
     )
     from endo_pipeline.library.analyze.bootstrap_fixed_points import (
         aggregate_bootstrapping_results,
+        init_bootstrap_worker,
         match_bootstrap_fixed_points_to_baseline,
-        run_flow_field_and_fixed_points,
+        run_one_bootstrap_iteration,
         subsample_trajectories_and_displacements,
     )
     from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
@@ -114,7 +122,7 @@ def main(
         load_model_manifest,
         save_dataframe_manifest,
     )
-    from endo_pipeline.settings.column_names import ColumnName
+    from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_WIDTHS_DYNAMICS,
         DYNAMICS_COLUMN_NAMES,
@@ -147,7 +155,7 @@ def main(
     if upload_to_fms:
         model_manifest = load_model_manifest(model_manifest_name)
     run_name = DEFAULT_MODEL_RUN_NAME
-    column_names: list[ColumnName.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
+    column_names: list[Column.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
     base_name = f"{model_manifest_name}_{run_name}_{crop_pattern}"
@@ -190,7 +198,7 @@ def main(
     for column_name in column_names:
         name = KERNEL_NAMES_DYNAMICS[column_name]
         bandwidth = KERNEL_BANDWIDTHS_DYNAMICS[column_name]
-        period = rescaled_theta_period if column_name == ColumnName.DiffAEData.POLAR_ANGLE else None
+        period = rescaled_theta_period if column_name == Column.DiffAEData.POLAR_ANGLE else None
         bin_width = BIN_WIDTHS_DYNAMICS[column_name]
         kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
         bin_widths.append(bin_width)
@@ -260,30 +268,65 @@ def main(
         # each bootstrap iteration.
         full_trajectories, full_displacements = get_traj_and_diff(df_steady_state, column_names)
 
-        # ---- Begin bootstrap loop here ----
-        bootstrap_fixed_points: list[pd.DataFrame] = []
-        for _ in range(num_bootstrap_iterations):
-            # Subsample trajectories and displacements for this iteration
-            subsampled_trajectories, subsampled_displacements = (
-                subsample_trajectories_and_displacements(
-                    full_trajectories, full_displacements, subsample_fraction=0.5, rng=rng
+        # ---- Begin bootstrap loop here ---- generate all subsamples up front
+        # to avoid redundant subsampling in each iteration and to ensure
+        # subsampling is not a bottleneck in the parallel loop. Each element of
+        # `all_subsamples` is a tuple of (subsampled_trajectories, subsampled_displacements)
+        all_subsamples: list[tuple[list[np.ndarray], list[np.ndarray]]] = [
+            subsample_trajectories_and_displacements(
+                full_trajectories, full_displacements, subsample_fraction=0.5, rng=rng
+            )
+            for _ in range(num_bootstrap_iterations)
+        ]
+
+        # Determine worker and per-worker BLAS thread counts that together
+        # stay within the CPUs allocated by SLURM (or the OS).
+        try:
+            n_available_cpus = len(os.sched_getaffinity(0))
+        except AttributeError:  # Windows
+            n_available_cpus = os.cpu_count() or 1
+        n_workers = num_workers or n_available_cpus
+        blas_threads_per_worker = max(1, n_available_cpus // n_workers)
+        # Choose a chunksize that avoids both excessive queue overhead (too
+        # small) and uneven load balancing (too large).
+        chunksize = max(1, num_bootstrap_iterations // (n_workers * 4))
+        logger.info(
+            "Running %d bootstrap iterations for dataset [ %s ] "
+            "with %d worker process(es), %d BLAS thread(s) per worker, chunksize %d.",
+            num_bootstrap_iterations,
+            dataset_name,
+            n_workers,
+            blas_threads_per_worker,
+            chunksize,
+        )
+
+        with ProcessPoolExecutor(
+            max_workers=n_workers,
+            initializer=init_bootstrap_worker,
+            initargs=(
+                df_steady_state,
+                bins,
+                centers,
+                column_names,
+                kernels,
+                blas_threads_per_worker,
+            ),
+        ) as executor:
+            bootstrap_fixed_points: list[pd.DataFrame] = list(
+                tqdm(
+                    executor.map(run_one_bootstrap_iteration, all_subsamples, chunksize=chunksize),
+                    total=num_bootstrap_iterations,
+                    desc=f"Bootstrap iterations for dataset: {dataset_name}",
                 )
             )
 
-            # Run the flow field and fixed point pipeline on the subsampled data
-            # (using the full steady-state dataframe for bounds computation in
-            # fixed point finding, so that bounds reflect the true data
-            # distribution even in bootstrap iterations)
-            fixed_point_df_from_subsample = run_flow_field_and_fixed_points(
-                subsampled_trajectories,
-                subsampled_displacements,
-                df_for_bounds=df_steady_state,
-                bins=bins,
-                centers=centers,
-                column_names=column_names,
-                kernels=kernels,
-            )
-            bootstrap_fixed_points.append(fixed_point_df_from_subsample)
+        n_iterations_with_fpts = sum(r.shape[0] > 0 for r in bootstrap_fixed_points)
+        logger.info(
+            "Bootstrap complete for dataset [ %s ]: %d / %d iterations yielded fixed points.",
+            dataset_name,
+            n_iterations_with_fpts,
+            num_bootstrap_iterations,
+        )
 
         # Aggregate bootstrap results by matching fixed points across iterations
         # to the baseline fixed points and computing confidence intervals and
