@@ -348,7 +348,6 @@ def main(
             bootstrap_ci_lower_percentile=bootstrap_ci_lower_percentile,
             bootstrap_ci_upper_percentile=bootstrap_ci_upper_percentile,
         )
-        print(bootstrap_results_df.head())
 
         # Save results, upload to FMS (if specified), and update manifest
         output_file_name = (
