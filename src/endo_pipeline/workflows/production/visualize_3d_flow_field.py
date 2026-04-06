@@ -2,8 +2,8 @@ from endo_pipeline.cli import CropPattern, Datasets
 
 
 def main(
-    datasets: Datasets | None = None,
     crop_pattern: CropPattern = "grid",
+    datasets: Datasets | None = None,
     plot_stack: bool = False,
     compute_vtk: bool = False,
     use_same_axes: bool = False,
@@ -36,7 +36,7 @@ def main(
     derived from the DiffAE features via a 3D PCA transformation. For more
     details on the specific features used and how they are derived, see the
     methods `fit_pca` and `project_features_to_pcs` in the
-    `diffae_dataframe_utils` module.
+    `pca` module.
 
     **Dataframe loading pattern**
 
@@ -68,13 +68,10 @@ def main(
 
     Parameters
     ----------
-    datasets
-        Optional list of dataset names to visualize. If not provided, will
-        visualize all datasets in the dataframe manifest corresponding to the
-        given model manifest and run name.
     crop_pattern
-        Crop pattern to use for loading the feature dataframes. If not provided,
-        will use the default crop pattern of "grid".
+        The crop pattern for the features to visualize.
+    datasets
+        Optional list of dataset names to visualize.
     plot_stack
         If true, plot 3D stacks of the flow field visualizations in each of the
         three variables.
@@ -93,22 +90,18 @@ def main(
     import pandas as pd
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import (
-        TimepointAnnotation,
-        get_datasets_in_collection,
-        load_dataset_config,
-    )
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.data_driven_flow_field import (
         compute_extrapolated_vector_field,
         solve_ddff_ode,
     )
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
+    from endo_pipeline.library.analyze.dataframe_validation import (
         check_required_columns_in_dataframe,
-        filter_dataframe_by_annotations,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
-        get_kernel_density_estimate,
+        get_kernel_density_estimate_from_trajectories,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
@@ -127,7 +120,6 @@ def main(
         METADATA_COLUMNS_TO_KEEP,
         PERIOD_THETA_RESCALED,
         RESCALE_THETA,
-        TRACK_METADATA_COLUMNS_TO_KEEP,
     )
     from endo_pipeline.settings.flow_field_3d import (
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
@@ -154,15 +146,10 @@ def main(
     ndim = len(column_names)
     drift_column_names = [f"{name}_drift" for name in column_names]
     stability_label_column_name = STABILITY_COLUMN_NAME
+    # columns to keep when loading feature dataframes
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
-    # load model manifest and get corresponding dataframe manifest name
-    if crop_pattern == "tracked":
-        logger.warning(
-            "Using features from track-based crops temporarilty unsupported."
-            "Proceeding with grid-based crops for flow field estimation and analysis."
-        )
-        crop_pattern = "grid"
-
+    # get dataframe manifest for crop-based features
     base_name = f"{model_manifest_name}_{run_name}_{crop_pattern}"
     feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
@@ -260,18 +247,10 @@ def main(
         # load dataframe and perform additional filtering (remove
         # non-steady-state timepoints based on annotations), computing
         # only the columns needed for flow field estimation and analysis to save memory.
-        df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
-        # start with default metadata columns to keep
-        columns_to_compute = [*METADATA_COLUMNS_TO_KEEP, *column_names]
-        if crop_pattern == "tracked":
-            # also keep track ID and track length columns for tracked crops
-            columns_to_compute = [*columns_to_compute, *TRACK_METADATA_COLUMNS_TO_KEEP]
-        df_ = df[columns_to_compute].compute()
-        feature_data = filter_dataframe_by_annotations(
-            df_,
-            load_dataset_config(dataset_name),
-            timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
-        )
+        dataset_config = load_dataset_config(dataset_name)
+        df_ = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
+        df = df_[columns_to_compute].compute()
+        feature_data = filter_dataframe_to_steady_state(df, dataset_config)
 
         # load drift vector field dataframe and check that required columns are
         # present
@@ -353,7 +332,7 @@ def main(
         trajs = []
         for _, traj_df in feature_data.groupby(ColumnName.CROP_INDEX):
             trajs.append(traj_df.sort_values(by=ColumnName.TIMEPOINT)[column_names].to_numpy())
-        prob_kde = get_kernel_density_estimate(trajs, bin_edges, kernels)
+        prob_kde = get_kernel_density_estimate_from_trajectories(trajs, bin_edges, kernels)
 
         # unpack drift values from dataframe and reshape to grid shape for flow
         # field visualization and ODE solving,

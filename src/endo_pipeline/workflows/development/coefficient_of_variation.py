@@ -3,19 +3,15 @@ from typing import Annotated
 from cyclopts import Parameter
 
 from endo_pipeline.cli import CropPattern, Datasets, StrList
-from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_MODEL_MANIFEST_NAME,
-    DEFAULT_MODEL_RUN_NAME,
-)
+from endo_pipeline.settings.dynamics_workflows import LONG_TRACK_THRESHOLD_LENGTH
 
 
 def main(
-    datasets: Datasets | None = None,
-    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_name: str = DEFAULT_MODEL_RUN_NAME,
     crop_pattern: CropPattern = "grid",
+    datasets: Datasets | None = None,
     columns: StrList | None = None,
     just_steady_state: Annotated[bool, Parameter(negative="--include-transient")] = True,
+    min_track_length: int = LONG_TRACK_THRESHOLD_LENGTH,
 ) -> None:
     """
     Compute and visualize coefficient of variation (CoV) statistics over time.
@@ -50,14 +46,10 @@ def main(
 
     Parameters
     ----------
-    datasets
-        Specific datasets to run the workflow on.
-    model_manifest_name
-        The name of the model manifest to use.
-    run_name
-        The name of the model run to use.
     crop_pattern
-        The crop pattern to get features for, either "grid" or "tracked".
+        The crop pattern to use features from.
+    datasets
+        Optional, specific datasets to run the workflow on.
     column_names
         List of specific column names to include in the analysis.
     """
@@ -67,23 +59,21 @@ def main(
     from typing import Any, TypeAlias, cast
 
     import numpy as np
+    import pandas as pd
     from scipy.stats import circmean, circstd, circvar
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import load_dataset_config
-    from endo_pipeline.configs.dataset_config_io import get_datasets_in_collection
-    from endo_pipeline.io import get_output_path, save_plot_to_path
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        df_to_array,
-        fit_pca,
-        get_dataframe_for_dynamics_workflows,
-        split_dataset_by_flow,
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
+    from endo_pipeline.library.analyze.dataframe_filtering import (
+        filter_dataframe_by_flow_condition,
+        filter_dataframe_by_track_length,
+        filter_dataframe_to_steady_state,
     )
     from endo_pipeline.library.analyze.numerics.temporal_stats import (
         compute_binned_variance_ratio_vs_time,
         compute_cumulative_variance_over_time,
     )
-    from endo_pipeline.library.model.latent_walk_utils import get_num_pcs_from_column_names
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.library.visualize.diffae_features.variation_analysis import (
         plot_ergodicity_test,
@@ -91,15 +81,13 @@ def main(
         plot_population_cov_vs_time,
         plot_variance_ratio_vs_time,
     )
-    from endo_pipeline.manifests import (
-        get_feature_dataframe_manifest_name,
-        load_dataframe_manifest,
-        load_model_manifest,
-    )
+    from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_DYNAMICS,
         BIN_LIMITS_THETA_RESCALED,
+        DEFAULT_DATASETS_DYNAMICS_VIS,
+        METADATA_COLUMNS_TO_KEEP,
         PERIOD_THETA_RESCALED,
         RESCALE_THETA,
     )
@@ -110,15 +98,19 @@ def main(
         DEFAULT_COV_ANALYSIS_COLUMNS,
         TIME_WINDOW_BIN_SIZE,
     )
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_MODEL_MANIFEST_NAME,
+        DEFAULT_MODEL_RUN_NAME,
+    )
 
     logger = logging.getLogger(__name__)
 
     # get labels for provided set of feature columns
     column_names = columns or list(DEFAULT_COV_ANALYSIS_COLUMNS)
-    num_pcs = get_num_pcs_from_column_names(column_names)
     variable_labels_dict = {
         col: get_label_for_column(col).replace("polar ", "") for col in column_names
     }
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
     # unpack default bin limits for each column, adjusting limits if rescaling theta
     global_bin_limits_dict = cast(
@@ -127,35 +119,21 @@ def main(
     if RESCALE_THETA:
         global_bin_limits_dict[Column.DiffAEData.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
 
-    # get dataframe manifest for grid-based crop features
-    model_manifest = load_model_manifest(model_manifest_name)
-    dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern=crop_pattern
-    )
-    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
-
-    # fit PCA - ALWAYS on grid-based crop features
-    dataframe_manifest_name_for_pca = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern="grid"
-    )
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name_for_pca, num_pcs=num_pcs)
+    # get manifest for crop-based features
+    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
+    feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
+    feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # plotting timepoints in unit hours: conversion factor
     time_conversion_factor = TIME_STEP_IN_MINUTES / 60
 
     # dataset list from specified collection
-    if datasets is None:
-        dataset_names = get_datasets_in_collection("3d_flow_field_analysis")
-    else:
-        dataset_names = datasets.copy()
+    # Use provided datasets or default if none provided.
+    dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
 
     if DEMO_MODE:
-        logger.warning("DEMO MODE: limiting to first dataset only")
+        logger.warning("DEMO MODE: limiting to first dataset only.")
         dataset_names = dataset_names[:1]
-
-    # output directory for summary figures (keyed by collection, not individual dataset)
-    fig_savedir = get_output_path(__file__, crop_pattern)
-    logger.debug("Saving summary plots to [ %s ]", fig_savedir)
 
     # Accumulators for multi-dataset plots.
     # Each entry is (time_values, cov_series, color, label) for population CoV, and
@@ -169,18 +147,24 @@ def main(
     mean_std_scaled: DiffAEColumnDict = {col: [] for col in column_names}
 
     for dataset_name in dataset_names:
+        if dataset_name not in feature_dataframe_manifest.locations:
+            logger.warning(
+                f"Dataset {dataset_name} not found in manifest {feature_dataframe_manifest_name}. Skipping."
+            )
+            continue
+        fig_savedir = get_output_path(__file__, crop_pattern, dataset_name)
         dataset_config = load_dataset_config(dataset_name)
 
-        df = get_dataframe_for_dynamics_workflows(
-            dataset_name,
-            dataframe_manifest,
-            pca=pca,
-            include_cell_piling=False,
-            include_not_steady_state=not just_steady_state,
-            crop_pattern=crop_pattern,
-            compute_polar=True,
-            rescale_theta=RESCALE_THETA,
-        )
+        # load dataframe and perform additional filtering (remove
+        # non-steady-state timepoints based on annotations), computing
+        # only the columns needed for analysis
+        df_ = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
+        # start with default metadata columns to keep
+        df = df_[columns_to_compute].compute()
+        if just_steady_state:
+            df = filter_dataframe_to_steady_state(df, dataset_config)
+        if crop_pattern == "tracked":
+            df = filter_dataframe_by_track_length(df, min_track_length)
         df = df.dropna(subset=column_names)
 
         # polar angle periodicity settings
@@ -188,28 +172,50 @@ def main(
         theta_range = BIN_LIMITS_THETA_RESCALED if RESCALE_THETA else (-np.pi, np.pi)
         theta_period = PERIOD_THETA_RESCALED if RESCALE_THETA else 2 * np.pi
 
-        # split by flow conditions (shared by unscaled and scaled paths)
-        df_by_flow, shear_stress_list = split_dataset_by_flow(df, dataset_config)
-
-        # collect unscaled mean ± std per flow condition
-        for df_flow, shear_stress, shear_stress_regime in zip(
-            df_by_flow, shear_stress_list, dataset_config.shear_stress_regime, strict=True
+        # split by flow conditions and collect unscaled mean ± std per flow
+        # condition
+        for flow_condition, shear_regime in zip(
+            dataset_config.flow_conditions, dataset_config.shear_stress_regime, strict=True
         ):
-            color = SHEAR_COLOR_DICT[(shear_stress_regime,)]
-            label = f"{dataset_name} ({int(shear_stress)} dyn/cm$^2$)"
+            color = SHEAR_COLOR_DICT[(shear_regime,)]
+            label = f"{dataset_name} ({int(flow_condition.shear_stress)} dyn/cm$^2$)"
 
-            t_vals = df_flow[Column.TIMEPOINT].sort_values().unique() * time_conversion_factor
-            df_flow_scaled = df_flow.copy()
+            df_flow = filter_dataframe_by_flow_condition(df, dataset_config, flow_condition)
+            t_min = df_flow[Column.TIMEPOINT].min()
+            t_max = df_flow[Column.TIMEPOINT].max()
+            all_timepoints = np.arange(t_min, t_max + 1)
+
+            # fill missing timepoints with NaN values for each crop to ensure
+            # consistent time axis across crops when computing population
+            # variance and cumulative variance per crop, which require a 2D
+            # array of shape (num_crops, num_timepoints)
+            data_filled_list = []
+            for _, data_crop in df_flow.groupby(Column.CROP_INDEX):
+                # sort by timepoint to ensure correct order before reindexing
+                data_crop = data_crop.sort_values(by=Column.TIMEPOINT)
+
+                # reindex dataframe to include all timepoints in full range
+                data_crop_filled = data_crop.set_index(Column.TIMEPOINT).reindex(all_timepoints)
+
+                # reset index to restore timepoint column
+                data_crop_filled = data_crop_filled.reset_index()
+
+                # append to list
+                data_filled_list.append(data_crop_filled)
+
+            data_filled = pd.concat(data_filled_list, ignore_index=True)
+
             # compute mean ± std for each column at each timepoint; for theta,
             # use circular stats to account for periodicity
+            data_filled_scaled = data_filled.copy()
             for col in column_names:
                 # get scaled values for CoV computation and plotting, using
                 # global bin limits for all datasets to preserve comparability
                 lo, hi = global_bin_limits_dict[col]
-                df_flow_scaled[col] = (df_flow[col] - lo) / (hi - lo)
+                data_filled_scaled[col] = (data_filled_scaled[col] - lo) / (hi - lo)
 
-                grouped_df_unscaled = df_flow.groupby(Column.TIMEPOINT)
-                grouped_df_scaled = df_flow_scaled.groupby(Column.TIMEPOINT)
+                grouped_df_unscaled = data_filled.groupby(Column.TIMEPOINT)
+                grouped_df_scaled = data_filled_scaled.groupby(Column.TIMEPOINT)
 
                 # compute mean ± std in original units and in scaled units for
                 # plotting, using circular stats for theta in both cases
@@ -275,7 +281,7 @@ def main(
                 # crops at each timepoint).  This gives one CoV value per crop
                 # which can be compared to the mean population CoV in an
                 # ergodicity test.
-                df_scaled_crop_grouped = df_flow_scaled.groupby(Column.CROP_INDEX)
+                df_scaled_crop_grouped = data_filled_scaled.groupby(Column.CROP_INDEX)
                 per_crop_cov = df_scaled_crop_grouped[col].apply(
                     std_function, **scaled_function_kwargs
                 ).to_numpy() / np.absolute(
@@ -286,21 +292,23 @@ def main(
 
                 # compute ratio of cumulative covariance per crop versus
                 # population covariance at each timepoint, with SEM across
-                # crops; use (n_crops, n_timepoints) array of features for this calculation
-                scaled_crop_array = df_to_array(df_flow_scaled, [col]).squeeze()
-                t_vals_full = np.arange(scaled_crop_array.shape[1]) * time_conversion_factor
-                # population variance at each timepoint (across crops) for scaled feature
+                # crops
+
+                # population variance at each timepoint (across crops) for
+                # scaled feature to array in shape (num_crops, num_timepoints)
+                # for variance computations
+                data_filled_array = (
+                    data_filled_scaled[col].to_numpy().reshape(-1, len(all_timepoints))
+                )
                 scaled_population_var = var_function(
-                    scaled_crop_array, **scaled_function_kwargs, axis=0
+                    data_filled_array, **scaled_function_kwargs, axis=0
                 )
                 # compute cumulative variance for each crop at each timepoint
                 cumulative_var_per_crop = compute_cumulative_variance_over_time(
-                    scaled_crop_array, var_function, **scaled_function_kwargs
+                    data_filled_array, var_function, **scaled_function_kwargs
                 )
                 # compute sem for the cumulative variance across crops at each timepoint
-                num_valid_crops = np.sum(
-                    np.isfinite(scaled_crop_array), axis=0
-                )  # count crops with data at each timepoint
+                num_valid_crops = np.sum(np.isfinite(data_filled_array), axis=0)
                 cumulative_var_mean = np.nanmean(cumulative_var_per_crop, axis=0)
                 cumulative_var_sem = np.nanstd(cumulative_var_per_crop, axis=0) / np.sqrt(
                     num_valid_crops
@@ -315,17 +323,20 @@ def main(
                 # computed within rolling time windows instead of
                 # cumulatively from t=0
                 bvr_time, bvr_mean, bvr_upper, bvr_lower = compute_binned_variance_ratio_vs_time(
-                    scaled_crop_array, bin_size=TIME_WINDOW_BIN_SIZE
+                    data_filled_array, bin_size=TIME_WINDOW_BIN_SIZE
                 )
                 bvr_time = bvr_time * time_conversion_factor
 
                 # add to dicts for plotting
-                mean_std_unscaled[col].append((t_vals, unscaled_mean, unscaled_std, color, label))
-                mean_std_scaled[col].append((t_vals, scaled_mean, scaled_std, color, label))
-                pop_cov_data[col].append((t_vals, scaled_population_cov, color, label))
+                t_vals_scaled = all_timepoints * time_conversion_factor
+                mean_std_unscaled[col].append(
+                    (t_vals_scaled, unscaled_mean, unscaled_std, color, label)
+                )
+                mean_std_scaled[col].append((t_vals_scaled, scaled_mean, scaled_std, color, label))
+                pop_cov_data[col].append((t_vals_scaled, scaled_population_cov, color, label))
                 erg_data[col].append((per_crop_cov, mean_population_cov, color, label))
                 var_ratio_data[col].append(
-                    (t_vals_full, cvr_mean, cvr_upper, cvr_lower, color, label)
+                    (t_vals_scaled, cvr_mean, cvr_upper, cvr_lower, color, label)
                 )
                 binned_var_ratio_data[col].append(
                     (bvr_time, bvr_mean, bvr_upper, bvr_lower, color, label)
@@ -334,7 +345,7 @@ def main(
             logger.debug(
                 "Processed dataset [ %s ] at shear stress [ %s ] dyn/cm^2",
                 dataset_name,
-                int(shear_stress),
+                int(flow_condition.shear_stress),
             )
 
     # --- Plot 1: mean feature value (unscaled) ± std vs time ---

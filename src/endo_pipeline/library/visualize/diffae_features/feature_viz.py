@@ -1,6 +1,8 @@
+"""Methods for visualizing Diff AE features."""
+
 import logging
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
@@ -10,22 +12,18 @@ import seaborn as sns
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.ticker import MultipleLocator
-from mpl_toolkits.mplot3d import Axes3D
 from seaborn import kdeplot
-from sklearn.decomposition import PCA
 
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.io.output import save_plot_to_path
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    check_required_columns_in_dataframe,
-    get_dataframe_for_dynamics_workflows,
+from endo_pipeline.io import save_plot_to_path
+from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
+from endo_pipeline.library.analyze.polar_coords import (
     rewrap_polar_angle,
     unwrap_nonsequential_array,
 )
 from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
     get_seg_feat_plot_args,
 )
-from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.density_comparison_plots import (
     DENSITY_PLOT_KDE_BANDWIDTH,
@@ -52,7 +50,7 @@ def plot_kde_comparison(
     feature_column_names: list[str],
     kernel_bw: float = DENSITY_PLOT_KDE_BANDWIDTH,
 ) -> tuple[Figure, np.ndarray[Axes, Any]]:
-
+    """Plot KDE comparison of feature distributions between grid crops and tracked crops."""
     nrows = 1
     ncols = len(feature_column_names)
     figsize = (7 * ncols, 4 * nrows)
@@ -106,17 +104,19 @@ def plot_kde_comparison(
     return fig, axs
 
 
-def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
-    """
-    Plot cumulative explained variance ratio of PCA components.
+def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple[Figure, Axes]:
+    """Plot cumulative explained variance ratio of PCA components.
 
-    Input:
-    - explained_variance_ratio: np.ndarray, explained variance
-        ratio of PCA components
+    Parameters
+    ----------
+    explained_variance_ratio
+        Array of explained variance ratios for each PCA component.
 
-    Output:
-    - fig: Figure
-    - ax: Axes
+    Returns
+    -------
+    :
+        Figure and Axes objects for the plot.
+
     """
     fig, ax = plt.subplots(figsize=(7, 6))  # initialize figure and axes
 
@@ -135,15 +135,13 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple:
 
 
 def plot_component_loadings(
-    loading_matrix: np.ndarray,
-    include_legend: bool = True,
+    loading_matrix: np.ndarray, include_legend: bool = True
 ) -> tuple[Figure, Axes]:
-    """
-    Plot component loadings of PCA model.
+    """Plot component loadings of PCA model.
 
     Parameters
     ----------
-    loading_matrix:
+    loading_matrix
         PCA component loadings matrix, shape (n_features, n_components).
     include_legend
         True to include legend in the plot, False to exclude it.
@@ -152,6 +150,7 @@ def plot_component_loadings(
     -------
     :
         Figure and Axes objects for the plot.
+
     """
     fig, ax = plt.subplots(figsize=(12, 6))  # initialize figure and axes
 
@@ -174,8 +173,7 @@ def plot_component_loadings(
 
 
 def get_dataset_color(dataset_name: str) -> str:
-    """
-    Get default plotting color for a dataset based on its shear stress regime.
+    """Get default plotting color for a dataset based on its shear stress regime.
 
     Dataset color defaults are set in ``SHEAR_COLOR_DICT`` in
     ``endo_pipeline.settings.plot_defaults``.
@@ -184,6 +182,7 @@ def get_dataset_color(dataset_name: str) -> str:
     ----------
     dataset_name
         Name of the dataset to get the color for.
+
     """
     dataset_config = load_dataset_config(dataset_name)
 
@@ -194,93 +193,64 @@ def get_dataset_color(dataset_name: str) -> str:
 
 
 def plot_pc_scatter(
-    dataset_names: list[str],
-    dataframe_manifest: DataframeManifest,
-    pca: PCA,
-    include_cell_piling: bool = False,
-    crop_pattern: Literal["grid", "tracked"] = "grid",
+    dataframe: pd.DataFrame,
+    savedir: Path,
+    column_names: list[str] | None = None,
     alpha: float = 0.2,
     scatter_size: float = 1,
-    pc_column_names: list[str] = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE],
-    color_by_time: bool = False,
-    save_dir: Path | None = None,
 ) -> tuple[Figure, np.ndarray[Axes, Any]]:
-    """
-    Plot scatter plot of PCA components for a list of datasets.
+    """Plot scatter plot of PCA components for a list of datasets.
 
     Parameters
     ----------
-    dataset_names
-        List of dataset names to plot.
-    dataframe_manifest
-        Manifest containing paths to dataframes for each dataset.
-    pca
-        Fit PCA model used to transform the data.
-    include_cell_piling
-        Include cell piling timepoings from the plot if True, exclude if False.
-    crop_pattern
-        Crop pattern used in the dataframes; either 'grid' or 'tracked'.
+    dataframe
+        DataFrame containing the PCA components for all datasets to plot.
+    savedir
+        Directory to save the plots to.
+    column_names
+        List of feature column names to plot.
     alpha
         Alpha (opacity) value for scatter plot points.
     scatter_size
         Size of scatter plot points.
-    pc_column_names
-        List of PCA column names to plot.
-    color_by_time
-        If True, color points by timepoint instead of dataset.
-    save_dir
-        Directory to save the plots to. If None, plots are not saved.
 
     Returns
     -------
     :
-        Figure object for the scatter plots.
-        Array of Axes objects for the scatter plots.
+        Figure object and array of Axes objects for the
+        scatter plots.
+
     """
-
     # initialize color list for legend
-    patch_dict_for_legend = {}
-    df_list = []
+    patch_list_for_legend_combined_plot = []
 
+    # get list of dataset names from dataframe
+    dataset_names = dataframe[Column.DATASET].unique().tolist()
+
+    # add "color" as a column in the dataframe for plotting, based on dataset name
     for dataset_name in dataset_names:
-        # load dataframe and get top 3 PCs
-        # plot or don't plot cell piling timepoints based on
-        # value of include_cell_piling
-        df = get_dataframe_for_dynamics_workflows(
-            dataset_name,
-            dataframe_manifest,
-            pca,
-            include_cell_piling=include_cell_piling,
-            crop_pattern=crop_pattern,
-        )[[*pc_column_names, Column.TIMEPOINT]]
-        df["dataset_name"] = dataset_name
-        if color_by_time:
-            num_timepoints = df[Column.TIMEPOINT].nunique()
-            cmap = plt.get_cmap("viridis")
-            colors = cmap(np.linspace(0, 1, num_timepoints))
-            df["color"] = df[Column.TIMEPOINT].map(
-                dict(zip(sorted(df[Column.TIMEPOINT].unique()), colors, strict=False))
-            )
-            patch_dict_for_legend[dataset_name] = mpatches.Patch(color=cmap(0), label=dataset_name)
-        else:
-            color = get_dataset_color(dataset_name)
-            df["color"] = color
-            patch_dict_for_legend[dataset_name] = mpatches.Patch(color=color, label=dataset_name)
-        df_list.append(df)
+        dataset_color = get_dataset_color(dataset_name)
+        dataframe.loc[dataframe[Column.DATASET] == dataset_name, "color"] = dataset_color
 
-    df_combined = pd.concat(df_list, ignore_index=True)
+    # input feature column names to plot (use PC column names by default)
+    column_names_ = column_names or DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
 
-    # First plot individual datasets with others faded in background
     for highlighted_dataset in dataset_names:
         # copy combined dataframe to modify for highlighting
-        df_highlighted = df_combined.copy()
+        df_highlighted = dataframe.copy()
         # Separate highlighted and background data
-        mask_highlighted = df_highlighted["dataset_name"] == highlighted_dataset
+        mask_highlighted = df_highlighted[Column.DATASET] == highlighted_dataset
         df_background = df_highlighted[~mask_highlighted].copy()
         df_foreground = df_highlighted[mask_highlighted].copy()
 
         # Set background color
         df_background["color"] = "lightgray"
+
+        # Add color for highlighted dataset and add to patch list for legend
+        dataset_color = df_foreground["color"].iloc[0]
+        patch_list_for_legend_combined_plot.append(
+            mpatches.Patch(color=dataset_color, label=highlighted_dataset)
+        )
 
         # Concatenate with highlighted data last (so it plots on top)
         df_highlighted = pd.concat([df_background, df_foreground], ignore_index=True)
@@ -289,12 +259,13 @@ def plot_pc_scatter(
         fig, ax = plt.subplots(
             2, 1, figsize=(MAX_FIGURE_WIDTH // 2, MAX_FIGURE_HEIGHT // 2), sharex=True
         )
-        # Create patch list for legend
+        # Create patch list for legend with highlighted dataset colored and
+        # others light gray
         patch_list_for_legend = [
             (
-                mpatches.Patch(color="lightgray", label=dataset_name)
-                if dataset_name != highlighted_dataset
-                else patch_dict_for_legend[highlighted_dataset]
+                mpatches.Patch(color=dataset_color, label=highlighted_dataset)
+                if dataset_name == highlighted_dataset
+                else mpatches.Patch(color="lightgray", label=dataset_name)
             )
             for dataset_name in dataset_names
         ]
@@ -306,25 +277,14 @@ def plot_pc_scatter(
             ax,
             alpha,
             scatter_size,
-            pc_column_names,
+            column_names_,
             patch_list_for_legend,
         )
 
-        # add colorbar
-        if color_by_time:
-            num_timepoints = df_foreground[Column.TIMEPOINT].nunique()
-            sm = plt.cm.ScalarMappable(
-                cmap="viridis", norm=plt.Normalize(vmin=0, vmax=num_timepoints)
-            )
-            sm.set_array([])
-            cax = fig.add_axes((0.98, 0.15, 0.05, 0.5))  # [left, bottom, width, height]
-            cbar = fig.colorbar(sm, cax=cax, orientation="vertical")
-            cbar.set_label("frame number")
-
-        if save_dir is not None:
+        if savedir is not None:
             save_plot_to_path(
                 fig,
-                save_dir,
+                savedir,
                 f"pca_scatter_highlight_{highlighted_dataset}",
             )
 
@@ -332,19 +292,20 @@ def plot_pc_scatter(
     fig_combined, ax_combined = plt.subplots(
         2, 1, figsize=(MAX_FIGURE_WIDTH // 2, MAX_FIGURE_HEIGHT // 2), sharex=True
     )
-    shuffled_indices = np.random.default_rng(RANDOM_SEED).permutation(len(df_combined))
-    df_combined = df_combined.iloc[shuffled_indices]
+    shuffled_indices = np.random.default_rng(RANDOM_SEED).permutation(len(dataframe))
+    dataframe_shuffled = dataframe.iloc[shuffled_indices]
     plot_pc_scatter_from_df(
-        df=df_combined,
+        df=dataframe_shuffled,
         dataset_name="reference",
         ax=ax_combined,
         alpha=alpha,
         scatter_size=scatter_size,
-        pc_column_names=pc_column_names,
-        patch_list_for_legend=list(patch_dict_for_legend.values()),
+        pc_column_names=column_names_,
+        patch_list_for_legend=patch_list_for_legend_combined_plot,
     )
-    if save_dir is not None:
-        save_plot_to_path(fig_combined, save_dir, "pca_scatter_ref")
+
+    if savedir is not None:
+        save_plot_to_path(fig_combined, savedir, "pca_scatter_ref")
 
     return fig, ax
 
@@ -358,8 +319,7 @@ def plot_pc_scatter_from_df(
     pc_column_names: list[str],
     patch_list_for_legend: list[mpatches.Patch],
 ) -> np.ndarray[Axes, Any]:
-    """
-    Plot scatter plot of PCA components from a given dataframe.
+    """Plot scatter plot of PCA components from a given dataframe.
 
     Parameters
     ----------
@@ -375,6 +335,14 @@ def plot_pc_scatter_from_df(
         Size of scatter plot points.
     pc_column_names
         List of PCA column names to plot.
+    patch_list_for_legend
+        List of patches to include in the legend for the plot.
+
+    Returns
+    -------
+    :
+        Array of Axes objects for the scatter plots.
+
     """
     # first plot: PC1 v PC2
     ax[0].scatter(
@@ -418,12 +386,12 @@ def make_pc_scatter_fig4a(
     linewidth=0,
     alpha=0.5,
 ) -> plt.Figure:
-
+    """Make scatter plot of PC space for example points in no-flow dataset for Figure 4a."""
     if pc_col_for_xaxis not in DIFFAE_PC_COLUMN_NAMES:
         raise ValueError(f"pc_col_for_xaxis must be one of: {DIFFAE_PC_COLUMN_NAMES}")
     if pc_col_for_yaxis not in DIFFAE_PC_COLUMN_NAMES:
         raise ValueError(f"pc_col_for_yaxis must be one of: {DIFFAE_PC_COLUMN_NAMES}")
-    if hue not in [x.value for x in Column.DiffAEData]:
+    if hue not in [*list(Column.DiffAEData), Column.TIMEPOINT]:
         raise ValueError(f"hue must be one of: {[x.value for x in Column.DiffAEData]}")
 
     fig, ax = plt.subplots(figsize=figsize)
@@ -457,29 +425,34 @@ def get_no_flow_pc_space_example_points_fig4(
     pc3_target: float | None = None,
 ) -> pd.DataFrame:
     """Get example points in no-flow PC space for Figure 4.
-    A dataframe with 8 example points that are evenly spaced around a circle
-    is returned. The dataframe also has columns for the real data points
-    that are closest to these example points.
+
+    This method returns a dataframe with 8 of each example target and "real"
+    data points that are evenly spaced around a circle. The circle is centered
+    at the specified origin point and has the specified radius.
+
+    The "real" data points are chosen as the points in the given dataframe that
+    are closest to the target points in PC space.
 
     Parameters
     ----------
     df
-        DataFrame containing the first 3 PCA components.
+        DataFrame containing the features for the no-flow dataset, including the
+        PC columns.
     radius
-        Radius from origin_pc1pc2 to the target points.
+        Radius from the (PC1, PC2) origin to the target points.
     origin_pc1pc2
-        Tuple of (pc1, pc2) coordinates for the origin point.
+        Tuple of (PC1, PC2) coordinates for the origin point.
     pc3_target
-        Optional.
-        If provided pc3 values will be used when finding the real data point
-        that is closest to the example point.
-        If None, only pc1 and pc2 are used and pc3 is ignored.
+        Optional. If provided PC3 values will be used when finding the real data
+        point that is closest to the example point. If None, only PC1 and PC2
+        are used and PC3 is ignored.
 
     Returns
     -------
-    example_points_df:
+    :
         DataFrame containing the example points and real data points closest to
         the target points.
+
     """
     # no flow data is arranged roughly in a circle in PC1-PC2 space, so
     # get 8 points that are evenly spaced around the circle (every 45 degrees)
@@ -501,9 +474,9 @@ def get_no_flow_pc_space_example_points_fig4(
     example_points = get_point_nearest_target(data_points, target_points=target_points)
 
     # convert to tuple of tuples
-    example_point_col_names = [f"pc_{i+1}_example" for i in range(example_points.shape[1])]
+    example_point_col_names = [f"pc_{i + 1}_example" for i in range(example_points.shape[1])]
     example_points_df = pd.DataFrame(columns=example_point_col_names, data=example_points)
-    target_point_col_names = [f"pc_{i+1}_target" for i in range(target_points.shape[0])]
+    target_point_col_names = [f"pc_{i + 1}_target" for i in range(target_points.shape[0])]
     example_points_df[target_point_col_names] = target_points.T
 
     return example_points_df
@@ -516,13 +489,14 @@ def get_point_nearest_target(data_points: np.ndarray, target_points: np.ndarray)
     ----------
     data_points
         Array of shape (n_samples, n_features) containing the data points.
-    target
+    target_points
         Array of shape (n_features, n_targets) containing the target point.
 
     Returns
     -------
-    closest_point:
+    :
         The point in data_points nearest to the target point.
+
     """
     data_points = np.expand_dims(data_points, axis=-1)  # shape (n_samples, n_features, 1)
     target_points = np.expand_dims(target_points, axis=0)  # shape (1, n_features, n_targets)
@@ -539,8 +513,7 @@ def plot_per_position_average_over_time(
     column_labels: list[str] | None = None,
     polar_angle_range: tuple[float, float] = (-np.pi, np.pi),
 ) -> tuple[Figure, np.ndarray[Axes, Any]]:
-    """
-    Plot per-position average over time of specified columns in the dataframe.
+    """Plot per-position average over time of specified columns in the dataframe.
 
     **Polar angle shifting**
 
@@ -558,6 +531,12 @@ def plot_per_position_average_over_time(
         Optional, list of labels for the columns to use in the plot.
     polar_angle_range
         Tuple specifying the range of polar angle values in the dataframe.
+
+    Returns
+    -------
+    :
+        Figure and array of Axes objects for the plot.
+
     """
     # confirm required columns are in dataframe
     required_columns = [Column.POSITION, Column.TIMEPOINT] + column_names
@@ -616,31 +595,39 @@ def plot_component_histograms_over_time(
     bin_tick_num: int = 10,
     frame_range: tuple[int, int] | None = None,
 ) -> tuple[Figure, np.ndarray[Axes, Any]]:
-    """
-    Plot histogram of individual feature components over time for a given dataset.
+    """Plot histogram of individual feature components over time for a given dataset.
 
     ** Histogram and bins **
-    The histogram is computed for each feature component at each time point (frame).
-    The histogram values are stored in a list of arrays (len = dims), where the shape
-    of each array is (num_bins, num_frames).
 
-    Both the histogram values and the bin edges for each dimension can be generated
-    by the get_histogram_by_component() function.
+    The histogram is computed for each feature component at each time point
+    (frame). The histogram values are stored in a list of arrays (len = dims),
+    where the shape of each array is (num_bins, num_frames).
+
+    Both the histogram values and the bin edges for each dimension can be
+    generated by the get_histogram_by_component() function.
 
     Parameters
     ----------
     hist_arrays
         Histogram values for each component as a function of time.
     bin_edges
-        List of bin edges for each component, generated by get_histogram_by_component() function.
+        List of bin edges for each component, generated by
+        get_histogram_by_component() function.
     feature_names
-        Optional, list of feature names corresponding to each principal component.
+        Optional, list of feature names corresponding to each principal
+        component.
     time_tick_step
         Optional, step size for x-axis ticks (time points).
     bin_tick_num
         Optional, number of ticks for y-axis (bins).
     frame_range
         Optional, tuple specifying the range of frames for labeling x-axis.
+
+    Returns
+    -------
+    :
+        Figure and array of Axes objects for the plot.
+
     """
     ndim = len(hist_arrays)
 
@@ -674,7 +661,7 @@ def plot_component_histograms_over_time(
             ax_.set_ylabel(feature_names[col])
         else:
             # defaults to "component {col+1}"
-            ax_.set_ylabel(f"component {col+1}")
+            ax_.set_ylabel(f"component {col + 1}")
         if col == ndim - 1:  # only label x-axis on bottom plot
             ax_.set_xlabel("frame number")
         xticks = np.arange(frame_min, frame_max + 1, step=time_tick_step)
@@ -689,110 +676,13 @@ def plot_component_histograms_over_time(
     return fig, ax
 
 
-def plot_km(
-    centers: list[np.ndarray], kmc: np.ndarray, pcs: list[int], shear_stress: float
-) -> tuple:
-    """Plot Kramers-Moyal coefficients."""
-    ndim = len(pcs)
-    if ndim == 2:
-        x_1, x_2 = np.meshgrid(*centers)
-        fig = plt.figure(figsize=(12, 8))
-
-        ax_00: Axes3D = fig.add_subplot(2, 2, 1, projection="3d")
-
-        # the Kramers-Moyal coefficients [1,0]: first component of drift
-        ax_00.contour(x_1, x_2, kmc[0], 50, cmap="Greens", alpha=0.5)
-        ax_00.set_title("$\hat{D}^{(1)}_1$")
-
-        # the Kramers-Moyal coefficients [0,1]: second component of drift
-        ax_01: Axes3D = fig.add_subplot(2, 2, 2, projection="3d")
-
-        ax_01.contour(x_1, x_2, kmc[1], 50, cmap="Greens", alpha=0.5)
-        ax_01.set_title("$\hat{D}^{(1)}_2$")
-
-        # the Kramers-Moyal coefficients [2,0]: first component of diffusion (diagonal)
-        ax_10: Axes3D = fig.add_subplot(2, 2, 3, projection="3d")
-
-        ax_10.contour(x_1, x_2, kmc[2], 50, cmap="Greens", alpha=0.5)
-        ax_10.set_title("$\hat{D}^{(2)}_{11}$")
-
-        # the Kramers-Moyal coefficients [0,2]: second component of diffusion (diagonal)
-        ax_11: Axes3D = fig.add_subplot(2, 2, 4, projection="3d")
-
-        ax_11.contour(x_1, x_2, kmc[3], 50, cmap="Greens", alpha=0.5)
-        ax_11.set_title("$\hat{D}^{(2)}_{22}$")
-
-        # Rotate views and add labels
-        ax_00.view_init(30, 20)
-        ax_01.view_init(30, 20)
-        ax_10.view_init(30, 20)
-        ax_11.view_init(30, 20)
-
-        ax_00.set_xlabel(f"PC{pcs[0]+1}")
-        ax_01.set_xlabel(f"PC{pcs[0]+1}")
-        ax_10.set_xlabel(f"PC{pcs[0]+1}")
-        ax_11.set_xlabel(f"PC{pcs[0]+1}")
-
-        ax_00.set_ylabel(f"PC{pcs[1]+1}")
-        ax_01.set_ylabel(f"PC{pcs[1]+1}")
-        ax_10.set_ylabel(f"PC{pcs[1]+1}")
-        ax_11.set_ylabel(f"PC{pcs[1]+1}")
-
-        fig.suptitle(f"Kramers-Moyal coefficients ({shear_stress} dyn/cm$^2$)")
-
-        return fig, ax_00, ax_01, ax_10, ax_11
-    elif ndim == 1:
-        x_1 = centers[0]
-        fig = plt.figure(figsize=(12, 8))
-        ax_00 = fig.add_subplot(1, 2, 1)
-        ax_01 = fig.add_subplot(1, 2, 2)
-
-        # drift coefficient
-        ax_00.plot(x_1, kmc[0], "k-")
-        ax_00.set_title("$\hat{D}^{(1)}$")
-        ax_00.set_xlabel(f"PC{pcs[0]+1}")
-
-        # diffusion coefficient
-        ax_01.plot(x_1, kmc[1], "k-")
-        ax_01.set_title("$\hat{D}^{(2)}$")
-        ax_01.set_xlabel(f"PC{pcs[0]+1}")
-
-        fig.suptitle(f"Kramers-Moyal coefficients ({np.round(shear_stress,2)} dyn/cm$^2$)")
-
-        return fig, ax_00, ax_01
-    else:
-        raise ValueError("ndim must be 1 or 2")
-
-
-def plot_km_drift_2d(
-    centers: list[np.ndarray], kmc: np.ndarray, pcs: list[int], shear_stress: float
-) -> tuple:
-    """
-    Plot surfaces of Kramers-Moyal drift coefficients
-    computed in a 2D state space.
-    """
-    x_1, x_2 = np.meshgrid(*centers)
-
-    fig, ax = plt.subplots(1, 2, figsize=(14, 6))
-    ax[0].quiver(x_1, x_2, kmc[0], kmc[1], color="k", linewidth=0.5)
-    ax[0].set_xlabel(f"PC{pcs[0]+1}")
-    ax[0].set_ylabel(f"PC{pcs[1]+1}")
-
-    ax[1].streamplot(x_1, x_2, kmc[0], kmc[1], color="k", linewidth=0.5)
-    ax[1].set_xlabel(f"PC{pcs[0]+1}")
-    ax[1].set_ylabel(f"PC{pcs[1]+1}")
-    fig.suptitle(f"Kramers-Moyal drift coefficients ({np.round(shear_stress,2)} dyn/cm$^2$)")
-    return fig, ax
-
-
 def pc_loading_heatmap_workflow(
     pca_loadings_df: pd.DataFrame,
     diffae_feature_columns: list[str] = DIFFAE_FEATURE_COLUMN_NAMES,
     pc_columns: list[str] = DIFFAE_PC_COLUMN_NAMES,
     annotate: bool = True,
 ) -> Figure:
-    """
-    Workflow to visualize PCA loadings as a heatmap.
+    """Visualize PCA loadings as a heatmap.
 
     Parameters
     ----------
@@ -807,7 +697,7 @@ def pc_loading_heatmap_workflow(
 
     Returns
     -------
-    fig_heatmap
+    :
         Figure object for the heatmap
 
     """
@@ -847,8 +737,7 @@ def get_label_for_column(
     mapping_dict: dict[str, dict[str, Any]] | None = None,
     capitalize: bool = False,
 ) -> str:
-    """
-    Convert dataframe column names to human-readable labels.
+    """Convert dataframe column names to human-readable labels.
 
     For example, "feat_0" becomes "Feature 0", and "pc_1" becomes "PC 1".
 
@@ -865,8 +754,8 @@ def get_label_for_column(
     -------
     :
         Human-readable label for the column name.
-    """
 
+    """
     # check for other specific patterns, overriding default label
     label = None
 

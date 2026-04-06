@@ -1,6 +1,6 @@
 """Workflow default settings."""
 
-from typing import Literal
+from typing import Literal, TypeAlias
 
 from endo_pipeline.settings.column_names import ColumnName as Column
 
@@ -17,9 +17,35 @@ DEFAULT_SEG_FEATURE_MANIFEST_NAME: str = "live_merged_seg_features"
 """Default manifest name for merged CDH5 segmentation, CDH5 tracking and
 label-free nuclei segmentation features."""
 
+DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_UNFILTERED: str = (
+    "diffae_baseline_exclude_cell_piling_20251110_latent_512_tracked_pca"
+)
+"""Default manifest names for PCA-reduced DiffAE features for track-based crops before filtering."""
+
+DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_FILTERED: str = (
+    "diffae_baseline_exclude_cell_piling_20251110_latent_512_tracked_pca_filtered"
+)
+"""Default manifest names for PCA-reduced DiffAE features for track-based crops after filtering."""
+
+DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_UNFILTERED: str = (
+    "diffae_baseline_exclude_cell_piling_20251110_latent_512_grid_pca"
+)
+"""Default manifest names for PCA-reduced DiffAE features for grid-based crops before filtering."""
+
+DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED: str = (
+    "diffae_baseline_exclude_cell_piling_20251110_latent_512_grid_pca_filtered"
+)
+"""Default manifest names for PCA-reduced DiffAE features for grid-based crops after filtering."""
+
 DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME: str = "pc_diffae_tracked_seg_features"
 """Default manifest name for PCA-reduced DiffAE tracked-cell features merged with
 DiffAE tracked-cell features and CDH5 segmentation features."""
+
+DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED: str = (
+    "pc_diffae_tracked_seg_features_filtered"
+)
+"""Default manifest name for PCA-reduced DiffAE tracked-cell features merged with
+DiffAE tracked-cell features and CDH5 segmentation features after filtering."""
 
 FIXED_SEG_FEATURE_MANIFEST_NAME: str = "fixed_merged_seg_features"
 """Default manifest name for merged CDH5 segmentation, CDH5 tracking and
@@ -58,7 +84,11 @@ IMAGE_METRIC_DATASET_COLORS = {
 }
 """Color palette for image metric bar plots, keyed by dataset split name."""
 
-SEGMENTATION_FEATURE_COLUMNS = {
+SegFeatureColumnDict: TypeAlias = dict[
+    str, list[Column.SegData] | list[str | Column.SegData] | list[Column.SegDataFilters]
+]
+
+SEGMENTATION_FEATURE_COLUMNS: SegFeatureColumnDict = {
     "default": [
         Column.SegData.ALIGNMENT_DEG,
         Column.SegData.ORIENTATION_DEG,
@@ -118,7 +148,62 @@ SEGMENTATION_FEATURE_COLUMNS = {
 }
 """Name of segmentation features to include in analyses."""
 
-DATASET_INFO_COLUMNS = [
+SegColumnsDropDict: TypeAlias = dict[
+    str,
+    list[str]
+    | list[Column.SegData]
+    | list[Column.SegDataFilters]
+    | list[Column.DiffAEData]
+    | list[Column.SegDataWorkflowVerification],
+]
+DEFAULT_COLUMNS_TO_DROP: SegColumnsDropDict = {
+    "segmentation_features": [
+        Column.SegData.EDGE_FLUOR,
+        Column.SegData.NODE_FLUOR,
+        Column.SegData.CELL_FLUOR_MEDIAN,
+        Column.SegData.CELL_FLUOR_MAX,
+        Column.SegData.CELL_FLUOR_MIN,
+        Column.SegData.CELL_FLUOR_PCT25,
+        Column.SegData.CELL_FLUOR_PCT75,
+        Column.SegData.RESOLUTION_FOR_DIFFAE,
+    ],
+    "segmentation_filters": [
+        Column.SegDataFilters.SMOOTHED_AREA_NORMD_DIFF,
+        Column.SegDataFilters.MIN_TRACK_DURATION,
+        Column.SegDataFilters.MAX_SMOOTHED_AREA_NORMALIZED_CHANGE,
+        Column.SegDataFilters.NUM_VALID_TIMEPOINTS_IN_TRACK,
+        Column.SegDataFilters.MIN_NUM_VALID_TIMEPOINTS_PER_TRACK,
+    ],
+    "verification_columns": [
+        Column.SegDataWorkflowVerification.SEGMENTATION_PATH,
+        Column.SegDataWorkflowVerification.TRACKING_REF_IDX,
+        Column.SegDataWorkflowVerification.TRACKING_MATCHED_QUERY_LABEL,
+        Column.SegDataWorkflowVerification.TRACKING_OPTIMIZED_METRIC_VAL,
+        Column.SegDataWorkflowVerification.TRACKING_MATCHING_METHOD,
+        Column.SegDataWorkflowVerification.NUM_NUC_WITH_MOST_OVERLAP,
+        Column.SegDataWorkflowVerification.SMOOTHED_AREA_NORMALIZED,
+        Column.SegDataWorkflowVerification.SIGMA_FOR_AREA_SMOOTHING,
+        Column.SegDataWorkflowVerification.NUM_UNIQUE_TRACKS_PER_TIMEPOINT,
+        Column.SegDataWorkflowVerification.NODE_LABELS,
+        Column.SegDataWorkflowVerification.EDGE_LABELS,
+        Column.SegDataWorkflowVerification.NODE_PAIR_LABELS,
+        Column.SegDataWorkflowVerification.NUCLEI_LABELS_IN_CDH5_SEGMENTATION,
+        Column.SegDataWorkflowVerification.NUCLEI_FRACTION_IN_CDH5_SEGMENTATION,
+    ],
+    "diffae_columns": [
+        Column.DiffAEData.MODEL_MANIFEST,
+        Column.DiffAEData.MODEL_RUN,
+        Column.DiffAEData.CROP_SIZE_X,
+        Column.DiffAEData.CROP_SIZE_Y,
+        Column.DiffAEData.RESOLUTION,
+    ],
+    "base_columns": [
+        Column.CDH5_CHANNEL_INDEX_ZARR,
+        Column.BF_CHANNEL_INDEX_ZARR,
+    ],
+}
+
+DATASET_INFO_COLUMNS: list[str | Column.SegData] = [
     Column.DATASET,
     Column.POSITION,
     Column.TIMEPOINT,
@@ -132,7 +217,7 @@ DATASET_INFO_COLUMNS = [
 # Default model configurations for model qc
 # =========================================
 
-DEFAULT_MODEL_QC_MANIFEST_NAMES = [
+DEFAULT_MODEL_QC_MANIFEST_NAMES: list[str] = [
     "diffae_baseline_exclude_cell_piling",  # 8 BF
     "diffae_baseline_exclude_cell_piling",  # 16 BF
     "diffae_baseline_exclude_cell_piling",  # 32 BF
@@ -150,7 +235,7 @@ Covers 8 brightfield-conditioned latent dimensions (8--1024) and 2 CDH5-
 conditioned models (512, 1024).
 """
 
-DEFAULT_MODEL_QC_RUN_NAMES = [
+DEFAULT_MODEL_QC_RUN_NAMES: list[str] = [
     "20260207_latent_8",
     "20260205_latent_16",
     "20260203_latent_32",
@@ -163,7 +248,7 @@ DEFAULT_MODEL_QC_RUN_NAMES = [
     "20251110_latent_1024",
 ]
 """Run names corresponding to each entry in :data:`DEFAULT_MODEL_QC_MANIFEST_NAMES`."""
-DEFAULT_MODEL_QC_LABELS = [
+DEFAULT_MODEL_QC_LABELS: list[str] = [
     "8 BF",
     "16 BF",
     "32 BF",

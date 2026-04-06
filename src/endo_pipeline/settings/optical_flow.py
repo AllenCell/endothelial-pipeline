@@ -5,6 +5,8 @@ live here so that they can be adjusted in one place without touching
 compute, I/O, or visualisation code.
 """
 
+from endo_pipeline.settings.column_names import ColumnName
+
 # ---------------------------------------------------------------------------
 # Multi-scale coherence
 # ---------------------------------------------------------------------------
@@ -69,6 +71,18 @@ DEFAULT_OPTICAL_FLOW_COLLECTION: str = "diffae_model_training"
 
 DEFAULT_OPTICAL_FLOW_MANIFEST_NAME: str = "optical_flow_bf"
 """Default dataframe manifest name for optical-flow features."""
+
+DIFFAE_DATAFRAME_METADATA_TO_COMPUTE: tuple[str, ...] = (
+    ColumnName.DATASET,
+    ColumnName.POSITION,
+    ColumnName.TIMEPOINT,
+    ColumnName.CROP_INDEX,
+    ColumnName.DiffAEData.START_X,
+    ColumnName.DiffAEData.START_Y,
+    ColumnName.DiffAEData.END_X,
+    ColumnName.DiffAEData.END_Y,
+)
+"""Metadata columns from Diff AE feature dataframe needed for optical flow computations."""
 
 # ---------------------------------------------------------------------------
 # Feature names

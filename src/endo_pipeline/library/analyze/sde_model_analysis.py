@@ -1,3 +1,5 @@
+"""Methods related to analysis of fit drift and diffusion functions (SDE model)."""
+
 import logging
 from collections.abc import Callable
 from functools import partial
@@ -29,8 +31,7 @@ logger = logging.getLogger(__name__)
 def get_stationary_probability(
     drift_vals: np.ndarray, diff_vals: np.ndarray, bins: list, tol: float = 1e-10
 ) -> np.ndarray:
-    """
-    Get stationary probability distribution of for an SDE model.
+    """Get stationary probability distribution of for an SDE model.
 
     The SDE model is specified by the drift and diffusion functions, which
     are then used to compute the stationary probability distribution via
@@ -41,10 +42,12 @@ def get_stationary_probability(
     This method is suitable for both 1D and 2D systems, but is not yet
     implemented for higher-dimensional systems.
 
-    - If the drift and diffusion functions are vector-valued, the input arrays should have shape
-        (2, n_1, n_2), where n_1 and n_2 are the number of bins in each dimension.
-    - If the drift and diffusion functions are scalar-valued, the input arrays should have shape
-        (n_1,) where n_1 is the number of bins in the single dimension.
+    - If the drift and diffusion functions are vector-valued, the input
+        arrays should have shape (2, n_1, n_2), where n_1 and n_2 are the
+        number of bins in each dimension.
+    - If the drift and diffusion functions are scalar-valued, the input
+        arrays should have shape (n_1,) where n_1 is the number of bins
+        in the single dimension.
 
     Parameters
     ----------
@@ -61,8 +64,8 @@ def get_stationary_probability(
     -------
     :
         Stationary probability distribution for the given SDE model.
-    """
 
+    """
     ndim = len(bins)
     # bin width in each dimension
     dx = [bins[i][1] - bins[i][0] for i in range(ndim)]
@@ -90,8 +93,7 @@ def get_stationary_hist(
     pc_column_names: list[str],
     bins: list,
 ) -> np.ndarray:
-    """
-    Get a histogram of the stationary data in n-dimensional feature space.
+    """Get a histogram of the stationary data in n-dimensional feature space.
 
     This method is currently only implemented for 1D and 2D data because it is used
     in direct comparison with the output of ``get_stationary_probability``, which is
@@ -100,9 +102,11 @@ def get_stationary_hist(
     Parameters
     ----------
     stationary_data
-        DataFrame containing the dataset of interest restricted to stationary timepoints.
+        DataFrame containing the dataset of interest restricted to
+        stationary timepoints.
     pc_column_names
-        Names of the columns in the DataFrame that contain the principal component features.
+        Names of the columns in the DataFrame that contain the principal
+        component features.
     bins
         List of number of bins for histogramming in each dimension.
 
@@ -110,6 +114,7 @@ def get_stationary_hist(
     -------
     :
         Histogram of the stationary data.
+
     """
     ndim = len(pc_column_names)
 
@@ -144,32 +149,53 @@ def model_data_comparison_one_dataset(
     pplane_xvec: np.ndarray,
     pplane_yvec: np.ndarray,
 ) -> tuple[plt.Figure, plt.Axes, plt.Figure, np.ndarray[plt.Axes, Any]]:
-    """
-    Qualitative evaluation of fit SDE model by taking one
-    dataset at one flow condition, generating phase portrait of the
-    drift term at shear stress = shear stress from data, and comparing
-    the predicted stationary distribution of the model at that
-    shear stress to the histogram of the data from the last
-    100 frames of the given flow condition (approx. stationary).
+    """Run qualitative evaluation of fit SDE model.
 
-    Inputs:
-    - sde_model: list of Callable functions, [drift, diffusion]
-    - stationary_data: DataFrame, feature data for one dataset
-        at one flow condition within that dataset, restricted to
-        only the frames where the data are stationary
-    - shear: float, shear stress at which to evaluate model
-        (this is the shear stress from the data)
-    - pc_axes: list of ints, indices of which PCs model
-        fitting was performed on
-    - bins: list of np.ndarrays, bin edges for each PC
-    - pplane_xvec: np.ndarray, x values for phase portrait
-    - pplane_yvec: np.ndarray, y values for phase portrait
+    **Qualitative evaluation steps**
 
-    Outputs:
-    - fig1: plt.Figure, phase portrait of drift term at shear stress u
-    - ax1: plt.Axes, axis object for fig1
-    - fig2: plt.Figure, comparison of predicted and data stationary distributions
-    - ax2: plt.Axes, axis object for fig2
+    For a given dataset at one flow condition, we will:
+        - Generate a phase portrait of the drift term at the shear stress from
+          the data.
+        - Compare the predicted stationary distribution of the model at that
+          shear stress to the histogram of the stationary data distribution at
+          that shear stress.
+
+    These comparisons will allow us to evaluate whether the model captures the
+    qualitative features of the data dynamics and stationary distribution at the
+    shear stress of interest. The phase portrait of the drift term will show the
+    structure of the flow in feature space.
+
+    Parameters
+    ----------
+    sde_model
+        List of Callable functions, [drift, diffusion], representing
+        the fit SDE model.
+    stationary_data
+        DataFrame containing the dataset of interest restricted to stationary timepoints.
+    shear
+        Float representing the shear stress at which to evaluate the model
+        (this should be the shear stress from the data).
+    pc_axes
+        List of ints representing the indices of the principal components that model
+        fitting was performed on.
+    bins
+        List of np.ndarrays representing the bin edges for each principal component.
+    pplane_xvec
+        np.ndarray representing the x values for the phase portrait.
+    pplane_yvec
+        np.ndarray representing the y values for the phase portrait.
+
+    Returns
+    -------
+    :
+        Tuple containing the following elements:
+        - fig1: Figure object for the phase portrait of the drift term.
+        - ax1: Axes object for the phase portrait of the drift term.
+        - fig2: Figure object for the comparison of the predicted stationary distribution
+            and the histogram of the stationary data distribution.
+        - ax2: Axes object for the comparison of the predicted stationary distribution
+            and the histogram of the stationary data distribution.
+
     """
     drift = sde_model[0]
     diffusion = sde_model[1]
@@ -182,7 +208,6 @@ def model_data_comparison_one_dataset(
         lambda x1, x2: f2([x1, x2], shear),
         pplane_xvec,
         pplane_yvec,
-        verbose=False,
     )
 
     ax1.set_xlabel(f"PC{pc_axes[0] + 1}")
@@ -197,11 +222,6 @@ def model_data_comparison_one_dataset(
     diff_vals = diff_mesh(np.meshgrid(*centers), shear).T
     p_fit = get_stationary_probability(drift_vals, diff_vals, bins)
 
-    # get "stationary" distribution from data
-    # for extracting just the axes (specified via pcs) we want
-    # from the resulting dataframe
-    # e.g., if we are just analyzing the first two principal components,
-    # we want to extract columns 'pc_1' and 'pc_2'
     pc_column_names = [DIFFAE_PC_COLUMN_NAMES[pc_axis] for pc_axis in pc_axes]
     p_hist = get_stationary_hist(stationary_data, pc_column_names, bins)
 
@@ -217,22 +237,38 @@ def model_data_comparison_one_dataset(
 def get_fixed_points_by_shear(
     drift_function: Callable, plt_lims: list, shear_range: np.ndarray
 ) -> list[dict]:
-    """
-    Get fixed points and their types for a given drift
-    function at different shear stresses.
+    """Get fixed points and their types for a given drift function at different shear stresses.
 
     Currently only implemented for 2D systems.
 
-    Inputs:
-    - drift_function: Callable, drift function
-    - plt_lims: list of np.ndarrays, limits for excluding
-        fixed points outside of plotting range
-    - shear_range: np.ndarray, shear stresses at
-        which to evaluate fixed points
+    **Method output**
 
-    Outputs:
-    - fpt_dict_list: list of dicts, each dict contains
-        fixed points and their types for a given shear stress
+    The output is a list of dictionaries, where each dictionary corresponds to a
+    shear stress and contains the fixed points and their types for that shear
+    stress. The keys of each dictionary are:
+        - "fixed_points": list of fixed points for that shear stress
+        - "fixed_point_stability": list of corresponding types for each fixed
+          point (e.g., stable, unstable, saddle)
+        - "shear": value of the shear stress for that dictionary
+
+    Parameters
+    ----------
+    drift_function
+        Callable function representing the drift term of the SDE model, where
+        the input is the state variable and the output is the drift vector.
+    plt_lims
+        List of np.ndarrays representing the limits for excluding fixed points
+        outside of the plotting range.
+    shear_range
+        np.ndarray representing the shear stresses at which to evaluate the
+        fixed points.
+
+    Returns
+    -------
+    :
+        List of dictionaries containing the fixed points and their types for
+        each shear stress in the input shear range.
+
     """
     # initialize list to store fixed points and their types
     fpt_dict_list = []
@@ -247,7 +283,6 @@ def get_fixed_points_by_shear(
     x2_coarse = np.linspace(x2_lims[0], x2_lims[1], 7)
 
     for u_val in shear_range:
-
         # define ODE "flow" function (drift function, u is fixed)
         my_flow = partial(drift_function, u=u_val)
 
@@ -260,9 +295,7 @@ def get_fixed_points_by_shear(
         ]
         # get fixed points and classify them
         fpts = pplane.get_fpts(my_flow, init_coarse)
-        fpt_stabilities, fpts_, _ = pplane.classify_fps(
-            my_flow, fpts, [x1, x2], unique=False, verbose=False
-        )
+        fpt_stabilities, fpts_, _ = pplane.classify_fps(my_flow, fpts, [x1, x2], unique=False)
 
         # store fixed points and their types in dictionary
         fpt_dict: dict[str, Any] = {}
@@ -281,24 +314,32 @@ def get_epr(
     shear_range: np.ndarray,
     additive_noise: bool,
 ) -> np.ndarray:
-    """
-    Get entropy production rate as a function of
-    shear stress for a fit model object.
+    """Get entropy production rate as a function of shear stress for a fit SDE model.
 
-    Inputs:
-    - model: list of Callables, [drift, diffusion]
-    - bins: list of np.ndarrays, bin edges for each
-        dimension of state space
-    - centers: list of np.ndarrays, bin centers for
-        each dimension of state space
-    - shear_range: np.ndarray, shear stresses at which
-        to evaluate entropy production rate
-    - additive_noise: bool, indicates whether model
-        has additive noise (constant diffusion) or not
+    Parameters
+    ----------
+    sde_model
+        List of Callable functions, [drift, diffusion], representing the fit SDE
+        model.
+    bins
+        List of np.ndarrays representing the bin edges for each dimension of the
+        state variable.
+    centers
+        List of np.ndarrays representing the bin centers for each dimension of
+        the state variable.
+    shear_range
+        np.ndarray representing the shear stresses at which to evaluate the
+        entropy production rate.
+    additive_noise
+        If true, assume additive noise (constant diffusion), else multiplicative
+        noise (state-dependent diffusion). If additive noise, div(D) = 0, as D
+        is constant.
 
-    Outputs:
-    - epr: np.ndarray, entropy production rate
-        as a function of shear stress
+    Returns
+    -------
+    :
+        Array of the entropy production rate at each shear stress in the input shear range.
+
     """
     # get drift and diffusion functions
     drift = sde_model[0]
@@ -350,33 +391,46 @@ def run_gen_potential_analysis(
     fig_savedir: Path,
     additive_noise: bool,
 ) -> None:
-    """
-    Run generalized potential energy landscape analysis
-    for a fit SDE model. This is a qualitative evaluation of the model
-    by plotting the generalized potential energy landscape and
-    its gradient/flux decomposition at different shear stresses.
+    """Run generalized potential energy landscape analysis for a fit SDE model.
 
-    Inputs:
-    - model: list of Callables, [drift, diffusion]
-    - bins: list of np.ndarrays, bin edges
-        for each dimension of state space
-    - centers: list of np.ndarrays, bin centers
-        for each dimension of state space
-    - shear_range: np.ndarray, shear stresses
-        at which to evaluate entropy production rate
-    - pc_axes: list of ints, indices of which PCs model
-        fitting was performed on
-    - downsample_quiver: int, downsample factor for
-        quiver plot of gradient/flux decomposition
-    - normed: bool, whether to normalize quiver plot
-        of gradient/flux decomposition
-    - fig_savedir: str, directory to save figures
-    - additive_noise: bool, indicates whether model has
-        additive noise (constant diffusion) or not
-        - if True, D = const, if False, D = D(x)
+    This is a qualitative evaluation of the model by plotting the generalized
+    potential energy landscape and its gradient/flux decomposition at different
+    shear stresses.
 
-    Outputs:
-    - None, saves figures to fig_savedir
+    This method creates and saves out the following plots for each shear stress
+    in the input shear range:
+
+    - Generalized potential energy landscape
+    - Gradient/flux decomposition of the generalized potential energy landscape
+
+
+    Parameters
+    ----------
+    sde_model
+        List of Callable functions, [drift, diffusion], representing the fit SDE model.
+    bins
+        List of np.ndarrays representing the bin edges for each dimension of the
+        state variable.
+    centers
+        List of np.ndarrays representing the bin centers for each dimension of the
+        state variable.
+    shear_range
+        np.ndarray representing the shear stresses at which to evaluate the generalized
+        potential energy landscape.
+    pc_axes
+        List of ints representing the indices of the principal components that model
+        fitting was performed on.
+    downsample_quiver
+        Int representing the downsample factor for the quiver plot of the gradient/flux
+        decomposition.
+    normed
+        Bool indicating whether to normalize the quiver plot of the gradient/flux
+        decomposition.
+    fig_savedir
+        Path representing the directory to save the generated figures.
+    additive_noise
+        If true, assume additive noise (constant diffusion), else multiplicative noise.
+
     """
     logger.info("Running generalized potential energy landscape analysis")
     drift = sde_model[0]

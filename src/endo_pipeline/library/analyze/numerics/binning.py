@@ -1,20 +1,14 @@
+"""Methods related to binning and histogram calculations."""
+
 import logging
 from typing import cast
 
 import numpy as np
 import pandas as pd
-from sklearn.decomposition import PCA
 
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    get_dataframe_for_dynamics_workflows,
-    rewrap_polar_angle,
-)
-from endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.library.analyze.polar_coords import rewrap_polar_angle
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.diffae_feature_dataframes import (
-    DIFFAE_PC_COLUMN_NAMES,
-    NUM_PCS_TO_ANALYZE,
-)
+from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
 from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
 
 logger = logging.getLogger(__name__)
@@ -23,8 +17,7 @@ logger = logging.getLogger(__name__)
 def circpercentile(
     angles: np.ndarray, q: float, polar_range: tuple[float, float] = (0, np.pi)
 ) -> float:
-    """
-    Compute the q-th percentile of circular data.
+    """Compute the q-th percentile of circular data.
 
     Parameters
     ----------
@@ -35,8 +28,13 @@ def circpercentile(
     polar_range
         Tuple specifying the circular range of the data (e.g., (0,
         np.pi) for angles in radians).
-    """
 
+    Returns
+    -------
+    :
+        The q-th percentile of the circular data, wrapped to the specified polar range.
+
+    """
     sorted_angles = np.sort(angles)
 
     # Find largest gap (including wrap-around gap)
@@ -63,9 +61,7 @@ def get_bins(
     lower_percentile: float | None = None,
     upper_percentile: float | None = None,
 ) -> tuple[list[np.ndarray], list[np.ndarray]]:
-    """
-    Generate histogram bins either automatically based on data or user-defined
-    bin limits.
+    """Generate histogram bins either automatically based on data or user-defined bin limits.
 
     **Binning Options:**
 
@@ -104,13 +100,13 @@ def get_bins(
         Upper percentile to use when automatically determining bin limits from
         data.
 
-    Outputs: - bins: list of numpy arrays, each array contains
-        the bin edges for a dimension
-    - centers: list of numpy arrays, each array contains
-        the center of each bin in a dimension
+    Returns
+    -------
+    :
+        List of numpy arrays containing the bin edges for each dimension.
+    :
+        List of numpy arrays containing the bin centers for each dimension.
 
-    If the dimension is 1, bins and centers are still lists (of length 1),
-    containing the bin edges and centers for the single dimension.
     """
     if bin_limits is None and data is None:
         raise ValueError("Please provide data or upper and lower bounds for bins.")
@@ -159,93 +155,10 @@ def get_bins(
     return bins, centers
 
 
-def get_bounds_from_data(
-    dataset_names: list[str],
-    manifest: DataframeManifest,
-    pca: PCA,
-    filter_to_valid: bool = True,
-    pad: float = 0.0,
-    column_names: list[str] | None = None,
-) -> list[tuple[float, float]]:
-    """
-    Set bounds for state space based on the bounds of the features in the
-    datasets.
-
-    **Dataframe filtering:**
-
-    By default, the function filters the dataframes to only include "valid"
-    crops, i.e., crops that are not labeled as "cell piling" or "not steady
-    state".
-
-    Parameters
-    ----------
-    dataset_names
-        List of dataset names to get common bounds from.
-    manifest
-        Dataframe manifest object with feature data locations.
-    pca
-        PCA object used to transform the data.
-    filter_to_valid
-        Whether to filter the dataframes to only include "valid" crops.
-    pad
-        Amount to pad the bounds by on each side.
-    column_names
-        List of column names for the features to use when determining the
-        bounds. If None, uses the default top PCA feature columns (PC1, PC2,
-        PC3) defined in DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE].
-
-    Returns
-    -------
-    :
-        List of tuples, each array contains the (min, max) bounds for a
-        dimension.
-    """
-    column_names_ = column_names or DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
-
-    num_dims = len(column_names_)
-    # initialize bounds - set to extreme values
-    bin_mins = [np.inf] * num_dims
-    bin_maxs = [-np.inf] * num_dims
-
-    # loop over each dataset and update bin mins and maxs
-    for dataset_name in dataset_names:
-        if filter_to_valid:
-            filter_by_annotations = True
-            include_cell_piling = False
-            include_not_steady_state = False
-        else:
-            filter_by_annotations = False
-            include_cell_piling = True
-            include_not_steady_state = True
-        df = get_dataframe_for_dynamics_workflows(
-            dataset_name,
-            manifest,
-            pca=pca,
-            filter_by_annotations=filter_by_annotations,
-            include_cell_piling=include_cell_piling,
-            include_not_steady_state=include_not_steady_state,
-        )
-        # get column names for features
-        for j in range(num_dims):
-            candidate_min = df[column_names_[j]].min()
-            candidate_max = df[column_names_[j]].max()
-            if pad:
-                candidate_min = candidate_min - pad
-                candidate_max = candidate_max + pad
-            # update bounds for each dimension
-            bin_mins[j] = min(bin_mins[j], candidate_min)
-            bin_maxs[j] = max(bin_maxs[j], candidate_max)
-
-    bounds = [(bin_mins[i], bin_maxs[i]) for i in range(num_dims)]
-
-    return bounds
-
-
 def _get_histogram_by_component_one_dataset(
     df: pd.DataFrame, bin_edges: list[np.ndarray], feat_cols: list[str] | None = None
 ) -> tuple[list[np.ndarray], pd.DataFrame]:
-    """
-    Compute histogram of feature data at each timepoint for each latent component.
+    """Compute histogram of feature data at each timepoint for each latent component.
 
     Parameters
     ----------
@@ -262,6 +175,7 @@ def _get_histogram_by_component_one_dataset(
         Histogram values for each component as a function of time
     :
         Updated dataframe with bin indices for each crop at each timepoint along each component.
+
     """
     if feat_cols is None:
         # use all PCA feature columns in the dataframe
@@ -310,15 +224,28 @@ def get_histogram_by_component(
     bin_limits: list[tuple[float, float]],
     feat_cols: list[str] | None = None,
 ) -> tuple[list[list[np.ndarray]], list[np.ndarray], pd.DataFrame]:
-    """
-    Get histogram of feature data at each timepoint for each latent component
-    across all datasets in the input dataframe.
+    """Get histogram of feature data at for each latent component over time.
 
-    Input:
-    - df: pd.DataFrame, feature data for multiple datasets
-    - bin_width: float, width of each histogram bin
-    - bin_limits: bin limits for each component
-    - feat_cols: list[str] | None, column names of the features to use
+    Parameters
+    ----------
+    df
+        Feature data for multiple datasets.
+    bin_width
+        Width of each histogram bin.
+    bin_limits
+        Bin limits for each component.
+    feat_cols
+        Optional, specific column names of the components to analyze.
+
+    Returns
+    -------
+    :
+        List of histogram values for each component as a function of time, one for each dataset.
+    :
+        List of bin edges for each component.
+    :
+        Updated dataframe with bin indices for each crop at each timepoint along each component.
+
     """
     # get column names for extracting feature data for a single dataset
     if feat_cols is None:
@@ -356,25 +283,34 @@ def get_histogram_by_component(
 
 
 def _get_index_from_value(val: float, bin_edges_1d: np.ndarray) -> int:
+    """Given a value and a 1D array of bin edges, return the index of the bin that contains that value.
+
+    **Example usage:**
+
+    .. code-block:: python
+
+        # example: dim 1 = 0.2 falls in the first bin of
+        # the bin edges for dim 1: [0, 0.5]
+
+        val = 0.2
+
+        bin_edges = np.array([0, 0.5, 1])
+
+        _get_index_from_value(val, bin_edges_1d) = 0
+
+    Parameters
+    ----------
+    val
+        Value to find bin index for.
+    bin_edges_1d
+        1D array of bin edges for a single dimension.
+
+    Returns
+    -------
+    :
+        Index of the bin that contains the value.
+
     """
-    Given a value and a 1D array of bin edges,
-    return the index of the bin that contains that value.
-
-    Example:
-    - val = 0.2
-    - bin_edges = np.array([0, 0.5, 1])
-    - _get_index_from_value(val, bin_edges_1d) = 0
-        - i.e., dim 1 = 0.2 falls in the first bin of
-         the bin edges for dim 1: [0, 0.5]
-
-    Input:
-    - val: float, value to find bin index for
-    - dim: int, dimension to find bin index for
-    - bin_edges: list[np.ndarray], bin edges for each component
-        - this is the same as the output of get_histogram_by_component
-
-    """
-
     # get the index of the bin that contains the value
     # this is done by finding the index of the first bin edge
     # that is greater than the value
@@ -398,35 +334,46 @@ def _get_index_from_value(val: float, bin_edges_1d: np.ndarray) -> int:
 def get_df_by_bin_value(
     df: pd.DataFrame, pc_axis: int, pc_val: float, bin_edges: list[np.ndarray]
 ) -> pd.DataFrame:
+    """Filter dataframe to only include rows where column value falls in specified bin.
+
+    The input dataframe should have columns named "bin_{pc_axis}" that contain the bin
+    index for each row along the specified latent component axis. This function uses the
+    provided `pc_val` and `bin_edges` to determine which bin index corresponds to the
+    given value, and then filters the dataframe to only include rows where the "bin_{pc_axis}"
+    column matches that bin index.
+
+    **Example usage:**
+
+    .. code-block:: python
+
+        df = pd.DataFrame({'bin_0': [0, 1, 0], 'bin_1': [1, 1, 2]})
+        pc_axis = 0
+        pc_val = 0.2
+        bin_edges = [np.array([0, 0.5, 1])]
+
+        # should be == 0
+        _get_index_from_value(latent_val, bin_edges) = 0
+
+        get_df_by_bin_value(df, latent_dim, latent_val) = pd.DataFrame({'bin_0':
+        [0, 0], 'bin_1': [1, 2]})
+
+    Parameters
+    ----------
+    df
+        Dataframe of features to filter.
+    pc_axis
+        Integer index of the latent component to filter by (e.g., 0 for the first component).
+    pc_val
+        Value of the latent component to filter by (e.g., 0.2).
+    bin_edges
+        List of 1D arrays of bin edges for each latent component.
+
+    Returns
+    -------
+    :
+        Filtered dataframe.
+
     """
-    Given a dataframe and a latent dimension,
-    return the dataframe with only the rows
-    such that the value of the component in
-    the given latent dimension that falls into
-    the bin that contains the given latent value.
-
-    Example:
-    - df = pd.DataFrame({'bin_0': [0, 1, 0], 'bin_1': [1, 1, 2]})
-    - pc_axis = 0
-    - pc_val = 0.2
-    - bin_edges = np.array([0, 0.5, 1])
-        - _get_index_from_value(latent_val, bin_edges) = 0
-        - looking for 'bin_0' == 0
-    - get_df_by_bin_value(df, latent_dim, latent_val) =
-        pd.DataFrame({'bin_0': [0, 0], 'bin_1': [1, 2]})
-        - i.e., the dataframe is filtered to only include rows
-        where bin_{latent_dim} is equal to the bin index
-        that contains the latent value.
-
-    Input:
-    - df: pd.DataFrame, dataframe to filter
-    - pc_axis: int, dimension to filter by
-    - pc_val: float, value to filter by
-
-    Output:
-    - df: pd.DataFrame, filtered dataframe
-    """
-
     # get the bin edges for the given latent dimension
     bin_edges_1d = bin_edges[pc_axis]
 
@@ -441,25 +388,31 @@ def get_df_by_bin_value(
     return df_bin
 
 
-def get_normalization_constant(p_fit: np.ndarray, dx: list) -> np.ndarray:
-    """
-    Get normalization constant for stationary probability
-    distribution p_fit. The normalization constant is the
-    integral of the probability distribution over the state space.
+def get_normalization_constant(p: np.ndarray, dx: list) -> np.ndarray:
+    """Get normalization constant for probability distribution p.
 
-    Inputs:
-    - p_fit: np.ndarray, stationary probability
-        distribution of the fit SDE model
-        - shape N[1] x N[2] x ... x N[ndim]
-    - dx: list, bin width in each dimension
+    The normalization constant is the integral of the probability distribution
+    over the state space.
 
-    Outputs:
-    - c: float, normalization constant
+    Parameters
+    ----------
+    p
+        Probability distribution to normalize, defined on a grid. The shape of p
+        should be N[1] x N[2] x ... x N[ndim], where N[i] is the number of bins
+        in the i-th dimension.
+    dx
+        List of bin widths in each dimension, used for numerical integration.
+
+    Returns
+    -------
+    :
+        Normalization constant for the probability distribution p.
+
     """
     ndim = len(dx)  # number of dimensions
 
-    # copy p_fit to avoid modifying the original array
-    c = p_fit.copy()
+    # copy p to avoid modifying the original array
+    c = p.copy()
     for i in range(ndim):
         # integrate over axis=0 as we marginalize over each dimension
         c = np.trapz(c, dx=dx[i], axis=0)
@@ -467,40 +420,92 @@ def get_normalization_constant(p_fit: np.ndarray, dx: list) -> np.ndarray:
     return c
 
 
+def _get_bin_counts(
+    sample: np.ndarray,
+    weights: np.ndarray,
+    edges: list[np.ndarray],
+    nbin: np.ndarray,
+) -> np.ndarray:
+    """Get weighted bin counts for the input sample.
+
+    This function computes the bin number each sample falls into using
+    `numpy.searchsorted`, and then uses `numpy.bincount` to count the number of
+    samples in each bin, weighted by the provided weights.
+
+    Parameters
+    ----------
+    sample
+        The data to be histogrammed, with shape (n_samples, n_dimensions).
+    weights
+        An array of weights for each sample, with shape (n_samples,) or (n_weights, n_samples).
+    edges
+        A list of 1D arrays specifying the bin edges for each dimension.
+    nbin
+        An array specifying the number of bins in each dimension, including outliers.
+
+    Returns
+    -------
+    :
+        An array of weighted bin counts for the input sample, with shape (n_weights, n_bins).
+
+    """
+    num_dims = sample.shape[1]
+
+    # Compute the bin number each sample falls into.
+    n_count = tuple(np.searchsorted(edges[i], sample[:, i], side="right") for i in range(num_dims))
+
+    # Adjust behavior of searchsorted for samples that fall on the rightmost
+    # edge of the last bin.
+    for i in range(num_dims):
+        # Find which points are on the rightmost edge.
+        on_edge = sample[:, i] == edges[i][-1]
+        # Shift these points one bin to the left.
+        n_count[i][on_edge] -= 1
+
+    # Compute the sample indices in the flattened histogram matrix.
+    # Ensure n_count is a tuple of integer arrays
+    n_count = tuple(arr.astype(int) for arr in n_count)
+    xy = np.ravel_multi_index(n_count, tuple(map(int, nbin)))
+
+    # Compute the number of repetitions in xy and assign it to the
+    # flattened histmat.
+    hist = np.array([np.bincount(xy, w, minlength=int(np.prod(nbin))) for w in weights])
+    return hist
+
+
 def histogramdd(sample: np.ndarray, bins: list[np.ndarray], weights: np.ndarray) -> np.ndarray:
+    """Compute the multidimensional weighted histogram of a sample.
+
+    Allows for a weights matrix to be passed in, which is used to weight the
+    samples in each bin.
+
+    This code is a modified version of the histogramdd function in `numpy`, with
+    the addition of a weights matrix.
+
+    Part of the following code is licensed under the BSD-3 License (from `numpy`).
+
+    Parameters
+    ----------
+    sample
+        The data to be histogrammed, with shape (n_samples, n_dimensions).
+    bins
+        A list of 1D arrays specifying the bin edges for each dimension.
+    weights
+        An array of weights for each sample, with shape (n_samples,) or (n_weights, n_samples).
+
+    Returns
+    -------
+    :
+        An array of weighted bin counts for the input sample, with shape (n_weights, n_bins).
+
     """
-    Compute the multidimensional weighted histogram of a sample.
-
-    Allows for a weights matrix to be passed in, which is
-    used to weight the samples in each bin.
-
-    This code is a modified version of the histogramdd function
-    in Numpy, with the addition of a weights matrix.
-
-    Part of the following code is licensed under the BSD-3 License (from Numpy).
-
-    Inputs:
-    - sample: np.ndarray, shape (n, d)
-        The input data, where n is the number of samples
-        and d is the number of dimensions.
-    - bins: list[np.ndarray]
-        The bin edges for each dimension. Each element of the list
-        is a 1D array of bin edges for that dimension.
-    - weights: np.ndarray, shape (n,) or (n, m)
-        The weights for each sample.
-
-    Outputs:
-    - hist: np.ndarray, shape (nbin,)
-        The histogram counts for each bin.
-    """
-
-    d = sample.shape[-1]
+    num_dims = sample.shape[-1]
     # initialize edges, dedges, and nbin
     edges = bins.copy()
     dedges = []
-    nbin = np.zeros(d, dtype=int)
+    nbin = np.zeros(num_dims, dtype=int)
     weights = np.asarray(weights)
-    for i in range(d):
+    for i in range(num_dims):
         nbin[i] = len(edges[i]) + 1
         # check that bins are monotonically increasing
         if np.any(edges[i][:-1] > edges[i][1:]):
@@ -510,12 +515,11 @@ def histogramdd(sample: np.ndarray, bins: list[np.ndarray], weights: np.ndarray)
         # get the width of each bin
         dedges.append(np.diff(edges[i]))
 
-    m = len(bins)
-    if m != d:
+    if len(bins) != num_dims:
         raise ValueError("The dimension of bins must be equal to the dimension of the " " sample x")
 
     # Get the histogram counts.
-    hist: np.ndarray = _get_bin_counts(sample, weights, edges, d, nbin)
+    hist: np.ndarray = _get_bin_counts(sample, weights, edges, nbin)
 
     # Reshape the histogram matrix to the correct shape.
     if weights.ndim == 1:
@@ -524,52 +528,11 @@ def histogramdd(sample: np.ndarray, bins: list[np.ndarray], weights: np.ndarray)
         hist = hist.reshape((weights.shape[0], *nbin))
 
     # Remove outliers (indices 0 and -1 for each dimension).
-    core: tuple[slice, ...] = d * (slice(1, -1),)
+    core: tuple[slice, ...] = num_dims * (slice(1, -1),)
 
     # slice the histogram to remove outliers
     # Tell MyPy to ignore the type error here,
     # doesn't like indexing via ellipsis
     hist = hist[..., *core]  # type: ignore
 
-    return hist
-
-
-def _bincount(x: np.ndarray, weights: np.ndarray, minlength: int = 0) -> np.ndarray:
-    """Get the weighted counts of the input array x."""
-    return np.array([np.bincount(x, w, minlength=minlength) for w in weights])
-
-
-def _get_bin_counts(
-    sample: np.ndarray,
-    weights: np.ndarray,
-    edges: list[np.ndarray],
-    d: int,
-    nbin: np.ndarray,
-) -> np.ndarray:
-    """Get weighted bin counts for the input sample."""
-    # Compute the bin number each sample falls into.
-    n_count = tuple(np.searchsorted(edges[i], sample[:, i], side="right") for i in range(d))
-
-    # Using searchsorted, values that fall on an
-    # edge are put in the right bin.
-    # For the rightmost bin, we want values equal
-    # to the right edge to be counted in the last bin,
-    # and not as an outlier.
-    for i in range(d):
-        # Find which points are on the rightmost edge.
-        on_edge = sample[:, i] == edges[i][-1]
-        # Shift these points one bin to the left.
-        n_count[i][on_edge] -= 1
-
-    # These next two lines assign the
-    # correct bin count to the histogram.
-
-    # Compute the sample indices in the flattened histogram matrix.
-    # Ensure n_count is a tuple of integer arrays
-    n_count = tuple(arr.astype(int) for arr in n_count)
-    xy = np.ravel_multi_index(n_count, tuple(map(int, nbin)))
-
-    # Compute the number of repetitions in xy and assign it to the
-    # flattened histmat.
-    hist = _bincount(xy, weights, minlength=int(np.prod(nbin)))
     return hist

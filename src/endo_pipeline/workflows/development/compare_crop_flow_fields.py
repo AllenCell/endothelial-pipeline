@@ -1,16 +1,18 @@
-from endo_pipeline.cli import Datasets
-from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_MODEL_MANIFEST_NAME,
-    DEFAULT_MODEL_RUN_NAME,
-    DEFAULT_SEG_FEATURE_MANIFEST_NAME,
-)
+# from endo_pipeline.cli import Datasets
+
+# from endo_pipeline.settings.workflow_defaults import (
+#     DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
+#     DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
+# )
+
+# NOTE THIS WORKFLOW IS CURRENTLY NON-FUNCTIONAL UNTIL I MAINTAIN
+# THE FUNCTION `process_dataset_for_track_integration`
 
 
 def main(
-    datasets: Datasets | None = None,
-    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
-    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    # datasets: Datasets | None = None,
+    # merged_features_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
+    # diffae_grid_manifest_name: str | None = DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
 ) -> None:
     """
     Make plots comparing cell-centric and grid-based flow fields.
@@ -19,43 +21,38 @@ def main(
     ----------
     datasets
         List of datasets or dataset collections to use for visualization.
-    model_manifest_name
-        Name of the model manifest containing the run to load features from.
-    run_name
-        Name of the specific model run to load features for. If None, uses the most recent run.
-    seg_feature_manifest_name
-        Name of the segmentation feature manifest to use for segmentation features.
+    merged_features_manifest_name
+        Name of the merged features manifest containing the run to load features from.
+    diffae_grid_manifest_name
+        Name of the DiffAE PCA feature grid manifest to use for loading grid-based flow fields.
     """
     import matplotlib
     from matplotlib import pyplot as plt
 
-    from endo_pipeline.configs import get_datasets_in_collection
+    # from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
-    from endo_pipeline.library.analyze.integration.track_integration import (
+    from endo_pipeline.library.analyze.integration.track_integration import (  # process_dataset_for_track_integration,
         make_angular_deviation_test,
-        process_dataset_for_track_integration,
     )
-    from endo_pipeline.settings.workflow_defaults import DEFAULT_PCA_DATASET_COLLECTION_NAME
 
+    # from endo_pipeline.settings.workflow_defaults import DEFAULT_PCA_DATASET_COLLECTION_NAME
     # the below 2 lines are both used to control memory
     # usage problems when making many plots in a loop
     matplotlib.use("Agg")
     plt.ioff()  # turns off interactive mode in matplotlib
 
-    if datasets is not None:
-        dataset_name_list = datasets.copy()
-    else:
-        dataset_name_list = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
+    # if datasets is not None:
+    #     dataset_name_list = datasets.copy()
+    # else:
+    #     dataset_name_list = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
 
-    for dataset_name in dataset_name_list:
-        process_dataset_for_track_integration(
-            dataset_name=dataset_name,
-            model_manifest_name=model_manifest_name,
-            run_name=run_name,
-            seg_feature_manifest_name=seg_feature_manifest_name,
-            collection_name_for_pca=DEFAULT_PCA_DATASET_COLLECTION_NAME,
-            make_integrated_plots=True,
-        )
+    # for dataset_name in dataset_name_list:
+    #     process_dataset_for_track_integration(
+    #         dataset_name=dataset_name,
+    #         merged_cellcentric_features_manifest_name=merged_features_manifest_name,
+    #         diffae_grid_manifest_name=diffae_grid_manifest_name,
+    #         make_integrated_plots=True,
+    #     )
 
     # create a test flow field and test set of vectors
     # to check that the angular deviation calculation

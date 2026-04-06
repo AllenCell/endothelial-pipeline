@@ -5,6 +5,8 @@ def main(
     datasets: Datasets | None = None,
     dry_run: bool = True,
     positions_list: UniqueIntList | None = None,
+    raw_zarr: bool = False,
+    segmentation_zarr: bool = False,
 ) -> None:
     """
     Remove datasets from S3.
@@ -34,10 +36,15 @@ def main(
         If True, jobs will be drafted but not executed.
     positions_list: UniqueIntList | None
         List of position indices to upload. If None, all positions will be uploaded.
+    raw_zarr: bool
+        Whether to include raw image zarrs in the remove CSV.
+    segmentation_zarr: bool
+        Whether to include segmentation zarrs in the remove CSV. If True, both nuclear and
+        VE-cadherin segmentation zarrs will be included.
 
     Example rm job:
-    AWS_PROFILE=allencell_internal_quilt endopipe remove-s3-datasets --datasets 20250618_20X --positions-list 0 1
-    AWS_PROFILE=allencell_internal_quilt endopipe remove-s3-datasets --datasets 20250618_20X --no-dry-run  --positions-list 0 1
+    AWS_PROFILE=allencell_internal_quilt endopipe remove-s3-datasets --datasets 20250618_20X --positions-list 0 1 --raw-zarr --segmentation-zarr
+    AWS_PROFILE=allencell_internal_quilt endopipe remove-s3-datasets --datasets 20250618_20X --no-dry-run  --positions-list 0 1 --raw-zarr --segmentation-zarr
     """
     import logging
 
@@ -57,7 +64,13 @@ def main(
     log_dir_str = str(get_output_path("s3_dataset", "remove_datasets", "status"))
     save_dir_str = str(save_dir)
 
-    csv_path = create_s3_remove_csv(datasets, save_dir, positions_list=positions_list)
+    csv_path = create_s3_remove_csv(
+        datasets,
+        save_dir,
+        positions_list=positions_list,
+        raw_zarr=raw_zarr,
+        segmentation_zarr=segmentation_zarr,
+    )
 
     job_path = create_rm_job(
         csv_path=csv_path,
@@ -70,6 +83,7 @@ def main(
         s3=True,
         path=job_path,
         error_dir=log_dir_str,
+        slurm_args="",  # update to "--partition=aics" if on hpc cluster.
     )
 
     if dry_run:

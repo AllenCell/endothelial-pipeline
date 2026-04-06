@@ -1,16 +1,9 @@
-from typing import Literal
-
-from endo_pipeline.cli import DEMO_MODE, Datasets
-from endo_pipeline.configs import TimepointAnnotation
+from endo_pipeline.cli import Datasets
 from endo_pipeline.settings.workflow_defaults import (
     DATASET_INFO_COLUMNS,
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
-    DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    SEGMENTATION_FEATURE_COLUMNS,
 )
-
-TAGS = ["diffae_features", "visualization", "pc_interpretation"]
 
 
 def main(
@@ -20,51 +13,45 @@ def main(
     dataset_info_columns: list[str] = DATASET_INFO_COLUMNS,
     segmentation_feature_group: str = "default",
     pc_group: str = "default",
-    timepoint_annotations: list[TimepointAnnotation] | Literal["default"] | None = "default",
     aggregate_only: bool = True,
     skip_multi_feature_scatterplots: bool = True,
     plot_migration_coherence_correlations: bool = True,
 ) -> None:
     """
-    Visualize correlation heatmaps and clustermaps for DiffAE features, PCs,
-    and measured quantitites.
+    Visualize correlation heatmaps and clustermaps for DiffAE features, PCs, and
+    measured quantitites.
+
+    #diffae_features #visualization #pc_interpretation
+
+    **Workflow runtime**
+
+    This workflow may take several minutes to run, depending on the number of
+    datasets and features being analyzed. For a faster testing of the workflow,
+    run in demo mode, which uses a single dataset for the analysis.
 
     Parameters
     ----------
     dataset_collection_to_plot
         The name of the dataset collection to analyze.
-    dataset_collection_name_for_pca
-        The name of the dataset collection to use for PCA fitting.
     model_manifest_name
         The name of the model manifest to use for DiffAE features.
     run_name
         The name of the run to use from the model manifest.
-    seg_feature_manifest_name
-        The name of the segmentation feature manifest to use for measured features.
     dataset_info_columns
         List of dataset metadata column names.
     segmentation_feature_group
-        Preset name for selecting segmentation feature columns.
-        If None, uses the default preset.
-        Presets are defined in SEGMENTATION_FEATURE_COLUMNS.
+        Preset name for selecting segmentation feature columns. If None, uses
+        the default preset. Presets are defined in SEGMENTATION_FEATURE_COLUMNS.
     num_pcs
-        Number of principal components to include. If None, uses NUM_PCS_TO_ANALYZE.
-    timepoint_annotations
-        List of timepoint annotations to exclude from the analysis. If "default",
-        excludes NOT_STEADY_STATE and CELL_PILING timepoints. If None, includes all timepoints.
+        Number of principal components to include. If None, uses
+        NUM_PCS_TO_ANALYZE.
     aggregate_only
         If True, only uses the aggregated dataset in the analysis.
     skip_multi_feature_scatterplots
         If True, skips generating multi-feature scatterplots.
-
-    NOTE
-    ----
-    This workflow may take several minutes to run, depending on the number of datasets
-    and features being analyzed.
-    Currently the datasets used to fit the PCA model (`diffae_training`) are also used
-    to generate the correlation visualizations.
-    Future versions may allow specifying separate dataset collections for PCA fitting
-    and visualization.
+    plot_migration_coherence_correlations
+        If True, includes migration coherence features in the correlation
+        analysis and plots.
     """
 
     import logging
@@ -72,14 +59,9 @@ def main(
     import pandas as pd
     from tqdm import tqdm
 
+    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.cli.demo_mode_defaults import use_default_collection
-    from endo_pipeline.configs.dataset_config_utils import get_subset_of_timepoint_annotations
-    from endo_pipeline.io import get_output_path
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        fit_pca,
-        get_dataframe_for_dynamics_workflows,
-        get_pc_column_names,
-    )
+    from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
         add_optical_flow_features,
     )
@@ -88,11 +70,14 @@ def main(
         get_df_for_feature_correlation_viz,
         visualize_correlation_heatmaps,
     )
-    from endo_pipeline.manifests import load_model_manifest
+    from endo_pipeline.manifests import get_dataframe_location_for_dataset
     from endo_pipeline.manifests.dataframe_manifest_io import load_dataframe_manifest
-    from endo_pipeline.manifests.model_manifest_utils import get_feature_dataframe_manifest_name
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
+    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAME_GROUPS
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_PCA_DATASET_COLLECTION_NAME,
+        SEGMENTATION_FEATURE_COLUMNS,
+    )
 
     logger = logging.getLogger(__name__)
 
@@ -109,13 +94,7 @@ def main(
         )
         dataset_name_list = dataset_name_list[:1]
 
-    model_manifest = load_model_manifest(model_manifest_name)
-
-    pc_columns = get_pc_column_names(pc_group)
-
-    if timepoint_annotations == "default":
-        annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
-        timepoint_annotations = get_subset_of_timepoint_annotations(annotations_to_ignore)
+    pc_columns = DIFFAE_PC_COLUMN_NAME_GROUPS[pc_group]
 
     if isinstance(segmentation_feature_group, str):
         if segmentation_feature_group not in SEGMENTATION_FEATURE_COLUMNS:
@@ -138,7 +117,6 @@ def main(
         dataset_info_columns=dataset_info_columns,
         segmentation_feature_columns=segmentation_feature_columns,
         pc_columns=pc_columns,
-        timepoint_annotations=timepoint_annotations,
     )
 
     label_column_tuples = [
@@ -147,48 +125,22 @@ def main(
     ]
 
     if plot_migration_coherence_correlations:
-        # get the crop pattern for the migration coherence data (this is the grid crop pattern)
-        crop_pattern = MIGRATION_COHERENCE_CROP_PATTERN
-        model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
-        feature_dataframe_manifest_name = get_feature_dataframe_manifest_name(
-            model_manifest, run_name, crop_pattern=crop_pattern
+        # Get dataframe manifest for filtered crop-based features so we can add
+        # the optical flow features for correlation analysis and plotting.
+        base_name_grid = f"{model_manifest_name}_{run_name}_grid"
+        grid_feature_dataframe_manifest_name = f"{base_name_grid}_pca_filtered"
+        grid_feature_dataframe_manifest = load_dataframe_manifest(
+            grid_feature_dataframe_manifest_name
         )
-        feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
-
-        # get fit PCA object to apply PCA transformation to diffae features before
-        # plotting against optical flow features.
-        pca = fit_pca(num_pcs=20)
-
-        # load the grid-based DiffAE features upon which the migration coherence measurements
-        # were based and add the optical flow features to this dataframe
-        df_grid = pd.DataFrame()
+        df_grid_list = []
         for dataset_name in dataset_name_list:
-            if df_grid.empty:
-                df_grid = get_dataframe_for_dynamics_workflows(
-                    dataset_name,
-                    feature_dataframe_manifest,
-                    pca=pca,
-                    include_cell_piling=False,
-                    include_not_steady_state=False,
-                    crop_pattern=crop_pattern,
-                )
-            else:
-                df_grid_new = get_dataframe_for_dynamics_workflows(
-                    dataset_name,
-                    feature_dataframe_manifest,
-                    pca=pca,
-                    include_cell_piling=False,
-                    include_not_steady_state=False,
-                    crop_pattern=crop_pattern,
-                )
-                df_grid = pd.concat([df_grid, df_grid_new], ignore_index=True)
-            df_grid = df_grid.reset_index(drop=True)
-
-        # add the optical flow features to the grid-based dataframe
-        df_grid = add_optical_flow_features(
-            df_grid,
-            datasets=dataset_name_list,
-        )
+            df_location = get_dataframe_location_for_dataset(
+                grid_feature_dataframe_manifest, dataset_name
+            )
+            df_grid = load_dataframe(df_location)
+            df_grid = add_optical_flow_features(df_grid, datasets=[dataset_name])
+            df_grid_list.append(df_grid)
+        df_grid = pd.concat(df_grid_list, ignore_index=True)
 
         optical_flow_features = [
             Column.OpticalFlow.UNIT_VECTOR_MEAN,

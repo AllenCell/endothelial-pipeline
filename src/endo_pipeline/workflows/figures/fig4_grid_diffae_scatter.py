@@ -1,12 +1,4 @@
-from endo_pipeline.settings.diffae_feature_dataframes import NUM_PCS_TO_ANALYZE
-from endo_pipeline.settings.workflow_defaults import DEFAULT_PCA_DATASET_COLLECTION_NAME
-
-
-def main(
-    dataset_name: str = "20250818_20X",
-    collection_name_for_pca: str = DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    num_pcs: int = NUM_PCS_TO_ANALYZE,
-) -> None:
+def main() -> None:
     """Creates scatter plots in DiffAE PC-space for grid crops colored by timepoint."""
 
     import matplotlib.patheffects as pe
@@ -15,13 +7,17 @@ def main(
     from skimage.exposure import rescale_intensity
     from tqdm import tqdm
 
-    from endo_pipeline import NUM_GPUS
+    from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.configs import load_dataset_config
-    from endo_pipeline.io import get_output_path, load_image, load_model, save_plot_to_path
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        fit_pca,
-        get_dataframe_for_dynamics_workflows,
+    from endo_pipeline.io import (
+        get_output_path,
+        load_dataframe,
+        load_image,
+        load_model,
+        save_plot_to_path,
     )
+    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
+    from endo_pipeline.library.analyze.pca import fit_pca
     from endo_pipeline.library.model import generate_from_coords_batch
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
         get_no_flow_pc_space_example_points_fig4,
@@ -30,12 +26,13 @@ def main(
     from endo_pipeline.library.visualize.figure_utils import plot_image_thumbnail
     from endo_pipeline.library.visualize.seg_features.general_standard_plots import save_colorbar
     from endo_pipeline.manifests import (
-        get_feature_dataframe_manifest_name,
+        get_dataframe_location_for_dataset,
         get_zarr_location_for_position,
         load_dataframe_manifest,
         load_model_manifest,
     )
     from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.diffae_feature_dataframes import NUM_PCS_TO_ANALYZE
     from endo_pipeline.settings.figures import FIGURE_SAVE_DPI, FONTSIZE_SMALL
     from endo_pipeline.settings.image_data import DIMENSION_ORDER
     from endo_pipeline.settings.workflow_defaults import (
@@ -43,32 +40,36 @@ def main(
         DEFAULT_MODEL_RUN_NAME,
     )
 
-    model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
-    grid_diffae_feat_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, DEFAULT_MODEL_RUN_NAME, crop_pattern="grid"
-    )
-
     outdir = get_output_path(__file__)
 
-    # fit the PCA
-    pca = fit_pca(
-        dataset_collection_name=collection_name_for_pca,
-        dataframe_manifest_name=grid_diffae_feat_manifest_name,
-        num_pcs=num_pcs,
-    )
+    # Load dataframe manifest for the features to visualize
+    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_grid"
+    feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
+    feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
-    # read in the grid crop-based diffae features
-    grid_diffae_manifest = load_dataframe_manifest(grid_diffae_feat_manifest_name)
-    diffae_grid_crops = get_dataframe_for_dynamics_workflows(
-        dataset_name,
-        grid_diffae_manifest,
-        pca,
-        include_cell_piling=False,
-        include_not_steady_state=False,
+    # fit the PCA for later use in image reconstruction from PC-space
+    # coordinates
+    pca = fit_pca(num_pcs=NUM_PCS_TO_ANALYZE)
+
+    # load model manifest to get the model for later use in image reconstruction
+    # from PC-space coordinates
+    model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
+
+    # load dataframe for the no flow dataset and filter to only include the
+    # steady state timepoints (exclude the timepoints annotated as "not steady
+    # state" in the dataset config)
+    dataset_name = "20250818_20X"
+    dataframe_location = get_dataframe_location_for_dataset(
+        feature_dataframe_manifest, dataset_name
+    )
+    diffae_grid_crops = load_dataframe(dataframe_location)
+    dataset_config = load_dataset_config(dataset_name)
+    diffae_grid_crops_steady_state = filter_dataframe_to_steady_state(
+        diffae_grid_crops, dataset_config
     )
 
     example_and_target_points = get_no_flow_pc_space_example_points_fig4(
-        diffae_grid_crops, radius=2.2, origin_pc1pc2=(0, 0), pc3_target=0.0
+        diffae_grid_crops_steady_state, radius=2.2, origin_pc1pc2=(0, 0), pc3_target=0.0
     )
 
     hue = Column.TIMEPOINT
@@ -76,7 +77,7 @@ def main(
     example_point_color = "deepskyblue"
 
     fig1 = make_pc_scatter_fig4a(
-        df=diffae_grid_crops,
+        df=diffae_grid_crops_steady_state,
         pc_col_for_xaxis="pc_1",
         pc_col_for_yaxis="pc_2",
         hue=hue,
@@ -103,7 +104,7 @@ def main(
             path_effects=[pe.withStroke(linewidth=1, foreground="black")],
         )
     fig2 = make_pc_scatter_fig4a(
-        df=diffae_grid_crops,
+        df=diffae_grid_crops_steady_state,
         pc_col_for_xaxis="pc_1",
         pc_col_for_yaxis="pc_3",
         hue=hue,
@@ -157,14 +158,14 @@ def main(
 
     # retrieve the DiffAE grid crop rows containing the example points
     diffae_grid_crops_examples = example_and_target_points.merge(
-        diffae_grid_crops, how="left", left_on="pc_1_example", right_on="pc_1"
+        diffae_grid_crops_steady_state, how="left", left_on="pc_1_example", right_on="pc_1"
     )
 
     # load the timelapse and extract crops at the example points
     dataset_config = load_dataset_config(dataset_name)
 
     for i, row in tqdm(diffae_grid_crops_examples.iterrows(), desc="Saving closest real examples"):
-        position = int(row[Column.POSITION].replace("P", ""))
+        position = int(row[Column.POSITION])
         timepoint = int(row[Column.TIMEPOINT])
         start_x = int(row[Column.DiffAEData.START_X])
         start_y = int(row[Column.DiffAEData.START_Y])
