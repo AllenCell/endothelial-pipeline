@@ -339,7 +339,7 @@ def match_bootstrap_fixed_points_to_baseline(
         pairwise_diffs = (
             baseline_fixed_points_array[:, None, :] - fixed_point_result_array[None, :, :]
         )
-        if polar_dim_idx is not None:
+        if polar_dim_idx is not None and polar_angle_period is not None:
             # use circular distance formula to compute diffs in the polar angle dimension
             modded_diff = pairwise_diffs[:, :, polar_dim_idx] % polar_angle_period
             modded_diff[modded_diff > polar_angle_period / 2] -= polar_angle_period
