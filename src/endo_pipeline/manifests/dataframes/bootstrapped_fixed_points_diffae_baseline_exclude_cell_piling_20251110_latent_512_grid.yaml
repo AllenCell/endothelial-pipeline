@@ -9,4 +9,8 @@ parameters:
   kernel_bandwidths: [0.15, 0.15, 0.15]
   bin_widths: [0.05, 0.05, 0.05]
   num_bootstrap_iterations: 100
-locations: {}
+locations:
+  20250319_20X:
+    fmsid: null
+    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20250319_20X_20260407_170128.parquet
+    s3uri: null
