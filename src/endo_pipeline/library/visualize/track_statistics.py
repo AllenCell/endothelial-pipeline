@@ -1,3 +1,5 @@
+"""Module for visualizing outputs of long-time-scale statistics analyses for time series data."""
+
 from typing import Literal
 
 import matplotlib.pyplot as plt
@@ -30,6 +32,46 @@ def plot_histogram_and_kde(
     axes_xlabel: str | None = None,
     axes_ylabel: str | None = None,
 ) -> None:
+    """Add a histogram of input data with an overlaid kernel density estimate (KDE) to existing axes.
+
+    Parameters
+    ----------
+    axes
+        The matplotlib Axes object to plot on.
+    data
+        1D array of data points to plot the histogram and KDE for.
+    bin_width
+        The width of the bins to use for the histogram.
+    kernel_name
+        The name of the kernel to use for the KDE.
+    kernel_bandwidth
+        The bandwidth parameter for the kernel density estimate.
+    kernel_period
+        The period parameter for the kernel density estimate (only used for
+        periodic kernels).
+    hist_color
+        The color to use for the histogram bars.
+    hist_alpha
+        The alpha (transparency) value to use for the histogram bars.
+    kde_line_style
+        The line style to use for the KDE plot.
+    kde_color
+        The color to use for the KDE plot.
+    kde_label
+        The label to use for the KDE plot in the legend (set to None to omit
+        from legend).
+    pad_bins
+        The amount to pad the histogram bins on either side of the data range.
+    axes_title
+        The title to set for the axes (set to None to omit).
+    axes_xlimits
+        The x-axis limits to set for the plot (set to None to auto-scale).
+    axes_xlabel
+        The label to set for the x-axis (set to None to omit).
+    axes_ylabel
+        The label to set for the y-axis (set to None to omit).
+
+    """
     # get histogram of the column average using bin widths of 0.1,
     # adjusting x-axis limits based on bin limits for the column
     bins, centers = get_bins(bin_widths=(bin_width,), data=data, pad=pad_bins)

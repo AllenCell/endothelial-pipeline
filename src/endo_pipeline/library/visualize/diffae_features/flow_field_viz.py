@@ -1,3 +1,5 @@
+"""Methods used for visualization the the 3D Diff AE feature flow fields."""
+
 import logging
 from pathlib import Path
 from typing import Any, cast
@@ -60,9 +62,26 @@ def set_slice_plot_bounds_and_labels(
     x_label: str = FLOW_FIELD_X_AXIS_LABEL,
     y_labels: tuple[str, ...] = FLOW_FIELD_Y_AXIS_LABELS,
 ) -> np.ndarray[plt.Axes, Any]:
-    """
-    Set the axis limits and labels for the plots
-    of 2D slices of the 3D flow field.
+    """Set the axis limits and labels for the 2D slice plots of the flow field.
+
+    Parameters
+    ----------
+    axs
+        Array of Matplotlib Axes to set the bounds and labels for.
+    bounds
+        List of arrays or tuples specifying the plot bounds for each principal
+        component.
+    x_label
+        Label for the x-axis.
+    y_labels
+        Tuple of labels for the y-axes of each subplot. The length of y_labels
+        must match the number of axes in axs.
+
+    Returns
+    -------
+    :
+        The input array of Matplotlib Axes with the bounds and labels set.
+
     """
     if len(y_labels) != len(axs):
         logger.error("Number of y_labels must match number of axes.")
@@ -88,20 +107,31 @@ def set_slice_plot_bounds_and_labels(
 def get_slice_indexes(
     sliced_variable_grid: np.ndarray, sliced_variable_val: float
 ) -> tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...]:
-    """
-    Get the slice indexes of the grid that are closest to the prescribed value.
-    This is used to slice the grid in 2D for plotting.
+    """Get the slice indexes of the grid that are closest to the prescribed value.
 
-    Inputs:
-    - sliced_variable_grid: np.ndarray
+    This function is used to slice the 3D grid in 2D for plotting.
+
+    **Input variable grid**
+
+    The input variable grid ``sliced_variable_grid`` is a 3D array representing
+    the values of the variable along the grid points in the 3D space. For
+    example, if we are slicing along the z-axis (e.g., PC3), then
+    ``sliced_variable_grid`` would be the 3D array of z-values at each grid
+    point. This is, e.g., obtained as an element of the tuple output by
+    `np.meshgrid`.
+
+    Parameters
+    ----------
+    sliced_variable_grid
         The grid of the variable to be sliced.
-    - sliced_variable_val: float
-        The value of the variable to be sliced.
+    sliced_variable_val
+        The value of the variable at which to slice the grid.
 
-    Outputs:
-    - slice_indexes: np.ndarray
-        The indexes of the grid that are closest to
-        sliced_variable_val.
+    Returns
+    -------
+    :
+        Tuple of arrays representing the indices of the slice in the grid.
+
     """
     # get slice closest to the prescribed value
     # first, get the absolute distance to the prescribed value
@@ -118,8 +148,7 @@ def _get_colormap_norm(
     color_metric: np.ndarray,
     log_normalize: bool = True,
 ) -> Normalize | LogNorm:
-    """
-    Get the colormap normalization object for the given color metric.
+    """Get the colormap normalization object for the given color metric.
 
     Parameters
     ----------
@@ -130,8 +159,9 @@ def _get_colormap_norm(
 
     Returns
     -------
-    norm
+    :
         The colormap normalization object.
+
     """
     if log_normalize:
         return LogNorm(
@@ -153,8 +183,7 @@ def _get_colormap_values(
     clip_min_percentile: float | None = CLIP_MIN_MAGNITUDE_PERCENTILE,
     clip_max_percentile: float | None = CLIP_MAX_MAGNITUDE_PERCENTILE,
 ) -> np.ndarray:
-    """
-    Get the colormap values for the given color metric.
+    """Get the colormap values for the given color metric.
 
     Parameters
     ----------
@@ -173,8 +202,9 @@ def _get_colormap_values(
 
     Returns
     -------
-    color_values
+    :
         The normalized colormap values for the given color metric.
+
     """
     colormap_object = get_cmap(colormap_name)
     if clip_metric:
@@ -213,19 +243,19 @@ def plot_flow_field_stack(
     log_normalize: bool = LOG_NORM_MAGNITUDES,
     feature_labels: list[str] | None = None,
 ) -> None:
-    """
-    Plot flow field PC{i} vs PC{j} over a stack of slices in the 3rd variable.
+    """Make and save plot of the 3D flow field in 2D over a stack of slices in the 3rd variable.
 
     Parameters
     ----------
     flow_field_dict
         Dictionary containing the flow field data.
     plot_axes_indicies
-        Tuple (i,j) of indices specifying which principal components to plot.
+        Tuple (i,j) of indices specifying which features to plot.
     slice_axis_index
-        Index of the principal component to slice over.
+        Index of the feature variable to slice over.
     plot_bounds
-        List of arrays specifying the plot bounds for the x and y axes of the 2D plots.
+        List of arrays specifying the plot bounds for the x and y axes of the 2D
+        plots.
     slice_steps
         List of arrays specifying the slice steps for the slicing axis.
     fig_savedir
@@ -237,7 +267,9 @@ def plot_flow_field_stack(
     log_normalize
         Whether to log normalize the color mapping.
     feature_labels
-        List of labels for each feature variable in the plot. If None, default labels are used.
+        List of labels for each feature variable in the plot. If None, default
+        labels are used.
+
     """
     if feature_labels is None:
         feature_labels = [
@@ -317,8 +349,7 @@ def plot_one_slice_quiver(
     downsample_factor: int = QUIVER_DOWNSAMPLE_FACTOR,
     scale: int | float = QUIVER_VECTOR_SCALE,
 ) -> plt.Axes:
-    """
-    Plot one slice of the flow field (quiver plot) for a given slice of the grid.
+    """Plot one slice of the flow field (quiver plot) for a given slice of the grid.
 
     Parameters
     ----------
@@ -338,6 +369,12 @@ def plot_one_slice_quiver(
         Factor by which to downsample the quiver plot grid.
     scale
         Scale factor for the quiver arrows.
+
+    Returns
+    -------
+    :
+        The Matplotlib Axes with the quiver plot of the flow field slice.
+
     """
     # slice the grid to get the points in the slice
     # and reshape to 2d array
@@ -398,8 +435,7 @@ def plot_quiver_slices(
     log_norm_colormap: bool = True,
     fig_ax: tuple | None = None,
 ) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
-    """
-    Plot quiver plots of the 3D flow field for the specified 2D slices.
+    """Plot quiver plots of the 3D flow field for the specified 2D slices.
 
     **Input dictionary flow_field_dict:**
 
@@ -413,12 +449,20 @@ def plot_quiver_slices(
         Dictionary containing the flow field data.
     slice_indexes
         Tuple of tuples specifying the slice indexes for the 2D slices.
-    colormap
+    colormap_name
         Name of the colormap to use for the quiver plot arrows.
     norm
         Whether to normalize the quiver plot arrows.
+    log_norm_colormap
+        Whether to use a logarithmic normalization for the colormap.
     fig_ax
         Tuple of (fig, ax) to plot on. If None, a new figure and axes are created.
+
+    Returns
+    -------
+    :
+        Matplotlib Figure and array of Axes with the quiver plots of the flow field slices.
+
     """
     # get flow field
     v1, v2, v3 = flow_field_dict["vectors"]
@@ -475,8 +519,7 @@ def plot_flow_field_slices(
     log_norm_colormap: bool = True,
     column_names: list[str] | None = None,
 ) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
-    """
-    Plot 2D slices of the 3D flow field for the specified 2D slices.
+    """Plot 2D slices of the 3D flow field for the specified 2D slices.
 
     Also overlays a KDE contour plot of the data in the 2D slice if `prob_kde`
     is not None.
@@ -515,6 +558,12 @@ def plot_flow_field_slices(
         Optional, list of column names corresponding to features being used for
         the analysis (e.g. the top 3 PCs). Used for labeling the slice values in
         the plot titles and logging.
+
+    Returns
+    -------
+    :
+        Matplotlib Figure and array of Axes with the quiver plots of the flow field slices.
+
     """
     column_names_ = column_names or DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
 
@@ -616,10 +665,9 @@ def plot_stable_fixed_points_together(
     fig_savedir: Path,
     column_names: list[str],
 ) -> None:
-    """
-    Generate plot of stable fixed points from multiple datasets together.
+    """Make and save plot of stable fixed points from multiple datasets together.
 
-    **Input DataFrame stable_fixed_points_df:**
+    **Input DataFrame**
 
     The method input ``stable_fixed_points_df`` should have the following
     columns:
@@ -639,8 +687,8 @@ def plot_stable_fixed_points_together(
     column_names
         List of column names corresponding to features being used for the
         analysis (e.g. the top 3 PCs). Used for indexing the columns in the DataFrame.
-    """
 
+    """
     # check that required columns are present
     required_columns = [Column.DATASET, *column_names]
     check_required_columns_in_dataframe(stable_fixed_points_df, required_columns)
@@ -688,12 +736,11 @@ def flow_field_viz_main(
     plot_stack: bool,
     fig_savedir: Path,
 ) -> None:
-    """
-    Plot 2D summary plots for the computed 3D flow fields.
+    """Make and save 2D summary plots for the computed 3D flow fields.
 
     **Input dictionary flow_field_dict:**
 
-    The method input ``flow_field_dict`` should have the following key/value
+    The method input `flow_field_dict` should have the following key/value
     pairs:
         - "vectors": tuple of 3D arrays (v1,v2,v3)
         - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid)
@@ -721,6 +768,7 @@ def flow_field_viz_main(
         Whether to plot stacks of flow field slices.
     fig_savedir
         Directory to save the figures.
+
     """
     # dataset flow condition for saving the figures
     dataset_name = df[Column.DATASET].unique()[0]

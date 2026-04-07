@@ -952,6 +952,9 @@ def get_and_save_pc_diffae_feats_liveseg_feats_merged_table(dataset_name: str) -
 
 
 def solve_ddff_from_trajectory_initial_condition_helper(args: dict) -> dict:
+    """Helper function to call solve_ddff_from_trajectory_initial_condition with
+    a dictionary of arguments.
+    """
     return solve_ddff_from_trajectory_initial_condition(**args)
 
 
@@ -964,6 +967,32 @@ def solve_ddff_from_trajectory_initial_condition(
     simulation_results_column_names: list[str | Column.DiffAEData],
     time_limit: float | None = None,
 ) -> dict:
+    """
+    Solve the data-driven flow field (DDFF) ODE for a single trajectory given an initial condition.
+    Returns the simulated trajectory as a dictionary suitable for easy conversion to a DataFrame.
+
+    Parameters
+    ----------
+    crop_index
+        The crop index corresponding to the trajectory being simulated.
+    flow_field_dict
+        Dictionary representing the flow field to integrate over.
+    initial_condition
+        Initial condition for the trajectory integration.
+    timepoint_initial
+        The initial timepoint corresponding to the start of the trajectory.
+    trajectory_duration
+        Duration of the trajectory to simulate.
+    simulation_results_column_names
+        List of column names corresponding to the dynamics features to include in the simulation results.
+    time_limit
+        Optional time limit in seconds for the ODE solver.
+
+    Returns
+    -------
+    dict
+        Dictionary containing the simulated trajectory as a record suitable for conversion to a DataFrame.
+    """
     if time_limit is None:
         time_limit = np.inf
 

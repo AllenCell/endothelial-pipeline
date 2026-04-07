@@ -4,24 +4,51 @@ from multiprocessing import Pool
 from pathlib import Path
 from typing import Literal, Protocol
 
+import dask.array as da
 import imageio.v3 as iio
 import numpy as np
-from colorizer_data import ColorizerDatasetWriter
+import pandas as pd
+from colorizer_data import ColorizerDatasetWriter, FeatureType
+from colorizer_data.converter import ConverterConfig, _write_backdrops, _write_data, _write_features
+from colorizer_data.types import ColorizerMetadata
+from colorizer_data.utils import generate_frame_paths
+from pandas.api.types import is_integer_dtype
 from tqdm import tqdm
 
-from endo_pipeline.configs import DatasetConfig
-from endo_pipeline.io import load_image
+from endo_pipeline.configs import (
+    DatasetConfig,
+    TimepointAnnotation,
+    get_annotated_timepoints_for_position,
+)
+from endo_pipeline.io import load_dataframe, load_image
+from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
+    calculate_derived_data_dynamics_dependent,
+)
+from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
+    add_optical_flow_features,
+)
 from endo_pipeline.library.process.image_processing import contrast_stretching
 from endo_pipeline.library.visualize.supplemental_movies import (
     load_bf_image,
     load_bf_std_dev_image,
     load_egfp_image,
 )
-from endo_pipeline.manifests import ImageLocation, ImageManifest, get_image_location_for_dataset
+from endo_pipeline.manifests import (
+    ImageLocation,
+    ImageManifest,
+    get_dataframe_location_for_dataset,
+    get_image_location_for_dataset,
+    load_dataframe_manifest,
+)
+from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.tfe import TFE_BACKDROP_TYPES, TFE_FEATURE_MAP, TFE_REQUIRED_COLUMNS
+from endo_pipeline.settings.workflow_defaults import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
+    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
+)
 
 logger = logging.getLogger(__name__)
-
-import dask.array as da
 
 
 class BackdropImageLoader(Protocol):
@@ -72,16 +99,16 @@ def generate_tfe_backdrop(
     backdrop = image_loader(timepoints=timepoint).squeeze().compute()
     method: Literal["min-max", "percentile"] = "min-max" if "std_dev" in save_key else "percentile"
     backdrop = contrast_stretching(backdrop, method=method)
-    iio.imwrite(output_dir / f"{save_key}_T{timepoint}.png", backdrop)
+    iio.imwrite(output_dir / f"backdrop_{save_key}_{timepoint}.png", backdrop)
 
 
 def generate_tfe_backdrops(
     dataset: DatasetConfig,
     position: int,
     timepoints: int,
-    backdrop_types: list[str],
     output_dir: Path,
-):
+    backdrop_types: list[str] = TFE_BACKDROP_TYPES,
+) -> None:
     """Generate backdrop images for TFE."""
 
     # Partially initialize backdrop image loader methods with shared arguments.
@@ -102,11 +129,10 @@ def generate_tfe_backdrops(
         # Build partially initialized method for saving the backdrop image with
         # the selected image loader method and output directory. The only
         # remaining argument needed is timepoint.
-        save_key = f"{dataset.name}_P{position}_{backdrop_type}"
         make_backdrop_for_image = partial(
             generate_tfe_backdrop,
             image_loader=backdrop_image_loaders[backdrop_type],
-            save_key=save_key,
+            save_key=backdrop_type,
             output_dir=output_dir,
         )
 
@@ -118,3 +144,184 @@ def generate_tfe_backdrops(
                     total=timepoints,
                 )
             )
+
+
+def get_grid_seg_data_for_tfe(
+    dataset: DatasetConfig,
+    position: int,
+    max_timepoint: int | None = None,
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str = DEFAULT_MODEL_RUN_NAME,
+) -> pd.DataFrame:
+    """Get dataframe of grid segmentation feature data for TFE."""
+
+    # Get dataframe of grid-based crop features
+    manifest = load_dataframe_manifest(f"{model_manifest_name}_{run_name}_grid_pca")
+    location = get_dataframe_location_for_dataset(manifest, dataset.name)
+    df = load_dataframe(location, delay=False)
+
+    # Add optical flow features, if they are available
+    manifest_of = load_dataframe_manifest("optical_flow_bf")
+    if dataset.name in manifest_of.locations:
+        df = add_optical_flow_features(df, [dataset.name])
+
+    # Ensure that the dataset has a time interval
+    if dataset.time_interval_in_minutes is None:
+        raise ValueError(f"No time interval found for dataset {dataset}")
+
+    # Calculate and append more feature columns
+    df[Column.SegData.TIME_MINS] = df[Column.TIMEPOINT] * dataset.time_interval_in_minutes
+    df[Column.SegData.TIME_HRS] = df[Column.SegData.TIME_MINS] / 60
+    df[Column.SegData.CENTROID_X] = df[[Column.DiffAEData.START_X, Column.DiffAEData.END_X]].mean(
+        axis=1
+    )
+    df[Column.SegData.CENTROID_Y] = df[[Column.DiffAEData.START_Y, Column.DiffAEData.END_Y]].mean(
+        axis=1
+    )
+    df[Column.SegData.LABEL] = df[Column.CROP_INDEX] + 1
+    df[Column.TRACK_ID] = df[Column.CROP_INDEX] + 1
+
+    # Filter dataset down to position
+    df = df[df[Column.POSITION] == position]
+
+    # Filter dataset down to max timepoint
+    if max_timepoint:
+        df = df[df[Column.TIMEPOINT] < max_timepoint]
+
+    add_timepoint_annotation_filters(df, dataset, position)
+
+    return df
+
+
+def get_cdh5_seg_data_for_tfe(
+    dataset: DatasetConfig,
+    position: int,
+    max_timepoint: int | None = None,
+    dataframe_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
+) -> pd.DataFrame:
+    """Get dataframe of CDH5 segmentation feature data for TFE."""
+
+    # Get dataframe of track-based crop features (includes both DiffAE and
+    # classic segmentation features)
+    manifest = load_dataframe_manifest(dataframe_manifest_name)
+    location = get_dataframe_location_for_dataset(manifest, dataset.name)
+    df_delay = load_dataframe(location, delay=True)
+
+    # Get columns that need to be loaded by extending the list of required
+    # columns with the intersection between requested feature columns and the
+    # columns available in the dataframe.
+    columns = set(TFE_REQUIRED_COLUMNS)
+    columns.update(set(TFE_FEATURE_MAP.keys()) & set(df_delay.columns))
+    df = df_delay[list(columns)].compute().reset_index(drop=True)
+
+    # Filter dataset down to position
+    df = df[df[Column.POSITION] == position]
+
+    # Compute some additional features
+    df = add_dynamic_features_with_filtering(df)
+
+    # Filter dataset down to max timepoint
+    if max_timepoint:
+        df = df[df[Column.TIMEPOINT] < max_timepoint]
+
+    add_timepoint_annotation_filters(df, dataset, position)
+
+    return df
+
+
+def add_timepoint_annotation_filters(df: pd.DataFrame, dataset: DatasetConfig, position: int):
+    """Add timepoint annotations as categorical 0 or 1 filter columns."""
+
+    for annotation in TimepointAnnotation:
+        timepoints = get_annotated_timepoints_for_position(dataset, position, [annotation])
+        if timepoints:
+            df[annotation] = df[Column.TIMEPOINT].isin(timepoints).astype(int)
+
+
+def add_dynamic_features_with_filtering(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Add dynamic features calculated on longer tracks.
+
+    The given dataframe is split into two based on the `IS_INCLUDED` filter. For
+    the dataframe with the "included" rows, we calculate the additional dynamic
+    features. This augmented dataframe is then re-combined with the original
+    dataframe with the "excluded" rows.
+    """
+
+    df_excluded = df[~df[Column.SegDataFilters.IS_INCLUDED]]
+    df_included = df[df[Column.SegDataFilters.IS_INCLUDED]]
+
+    df_calc = calculate_derived_data_dynamics_dependent(
+        df_included,
+        compute_per_crop_metrics=True,
+        timeframes_to_average_for_velocity=[5],
+        min_periods_for_averaging=3,
+    )
+    df_result = pd.concat([df_calc, df_excluded], ignore_index=True)
+
+    if df.shape[0] != df_result.shape[0]:
+        raise ValueError("Shape mismatch dropping and merging back filtered rows")
+
+    return df_result
+
+
+def build_tfe_dataset(
+    writer: ColorizerDatasetWriter,
+    data: pd.DataFrame,
+    feature_map: dict,
+    backdrops: list[str] = TFE_BACKDROP_TYPES,
+):
+    """Build TFE dataset from given feature data."""
+
+    # Add backdrop paths to data
+    backdrop_column_names = []
+    for backdrop in backdrops:
+        backdrop_column = f"backdrop_{backdrop}"
+        data[backdrop_column] = data[Column.TIMEPOINT].transform(
+            lambda tp, col=backdrop_column: writer.outpath / "backdrops" / f"{col}_{tp}.png"
+        )
+        backdrop_column_names.append(backdrop_column)
+
+    feature_info = {}
+    feature_column_names = []
+
+    for feature in feature_map:
+        # Ignore feature if not found in the provided feature data
+        if feature not in data.columns:
+            logger.debug("Feature '%s' not found in data and will be skipped", feature)
+            continue
+
+        # Remap any categorical features to 0 = False and 1 = True because of how
+        # TFE handles categorical features if not already remapped.
+        if feature_map[feature].type == FeatureType.CATEGORICAL and not is_integer_dtype(
+            data[feature]
+        ):
+            logger.debug("Feature '%s' being remapped to integer values", feature)
+            data[feature] = data[feature].astype(int)
+
+        feature_info[feature] = feature_map[feature]
+        feature_column_names.append(feature)
+
+    # Build TFE converter config
+    config = ConverterConfig(
+        object_id_column=Column.SegData.LABEL,
+        times_column=Column.TIMEPOINT,
+        track_column=Column.TRACK_ID,
+        centroid_x_column=Column.SegData.CENTROID_X,
+        centroid_y_column=Column.SegData.CENTROID_Y,
+        centroid_z_column=None,
+        outlier_column="Outlier",
+        backdrop_column_names=backdrop_column_names,
+        feature_column_names=feature_column_names,
+        feature_info=feature_info,
+    )
+
+    # Write out TFE data, features, and backdrops
+    _write_data(data, writer, config)
+    _write_features(data, writer, config)
+    _write_backdrops(data, writer, config)
+
+    # Write out TFE manifest
+    max_frame = data[config.times_column].max()
+    writer.set_frame_paths(generate_frame_paths(max_frame + 1))
+    writer.write_manifest(metadata=ColorizerMetadata())

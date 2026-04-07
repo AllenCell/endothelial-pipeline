@@ -1,0 +1,82 @@
+name: 20260309_20X
+date: '20260309'
+original_path: //allen/programs/allencell/data/proj0/757/b86/4d0/eb6/805/d4b/347/112/127/52b/1a/20260309_GE00010490_20X_SLDY/20260309_GE00010490_20X_SLDY.sldy
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: 1a52b127112347d4b805eb64d0b86757
+barcode: GE00010490
+cell_lines: [AICS-126 cl. 41]
+live_or_fixed_sample: live
+is_timelapse: true
+microscope: 3i
+objective: 20X
+shear_stress_regime: min
+pixel_size_xy_in_um: 0.382
+duration: 577
+time_interval_in_minutes: 5.0
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+channel_names: [EGFP, BF]
+flow_conditions:
+- start: -30
+  stop: 576
+  shear_stress: 6.13
+include_scenes: null
+notes: CD31-sorted AICS-126 cl.41 low SS 48h. GFP looks good, parallel alignment.
+  Piling occurs around 24h mark. FOV 1 (1-indexed) bubble crosses, center darkens
+  at TP102. FOV 5 bubble crosses, dark line at TP213. FOV 6 spinning disk stripe artifact
+  darkens FOV at TP562.
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: [2, 84, 216, 248]
+    1: [53, 109, 240, 248, 251, 422, 426]
+    2: [93, 127, 534, 561]
+    3: [4, 24, 44, 95, 124, 248, 272, 281, 407]
+    4: [87, 219, 248, 481]
+    5: [134, 152, 281, 406, 561]
+  auto_bf_temp_artifact:
+    0: [2, 64, 101, 202, 216, 322, 372, 463, 478]
+    1: [251, 282]
+    2: [60, 66, 167, 235, 275, 302, 477, 561]
+    3: [59, 69, 120, 180, 240, 250, 310, 421]
+    4: [50, 114, 186, 256, 341, 473]
+    5: [42, 100, 105, 203, 213, 234, 398, 436, 473, 543, 561]
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  not_steady_state:
+    0: [[0, 144]]
+    1: [[0, 144]]
+    2: [[0, 144]]
+    3: [[0, 144]]
+    4: [[0, 144]]
+    5: [[0, 144]]
+  cell_piling:
+    0: [[336, 576]]
+    1: [[252, 576]]
+    2: [[252, 576]]
+    3: [[252, 576]]
+    4: [[240, 576]]
+    5: [[240, 576]]
+position_annotations: null
+center_z_plane:
+  0: 14
+  1: 14
+  2: 14
+  3: 14
+  4: 14
+  5: 14
