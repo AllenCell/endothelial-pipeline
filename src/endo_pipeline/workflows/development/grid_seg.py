@@ -27,14 +27,13 @@ def main(datasets: Datasets | None = None, n_cores: int = 4):
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe
-    from endo_pipeline.library.analyze.pca import add_crop_index
     from endo_pipeline.library.process.lib_grid_seg import (
         check_crop_indices_against_existing_segmentations,
         create_grid_segmentation_images,
     )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_FEATURE_COLUMN_NAMES
+    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -43,7 +42,7 @@ def main(datasets: Datasets | None = None, n_cores: int = 4):
     logger = logging.getLogger(__name__)
 
     # Get dataframe manifest for the grid-based Diff AE features
-    dataframe_manifest_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_grid"
+    dataframe_manifest_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_grid_pca"
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
     datasets_all = get_datasets_in_collection("diffae_model_training")
@@ -86,9 +85,8 @@ def main(datasets: Datasets | None = None, n_cores: int = 4):
 
     # don't need the feature columns for this workflow, just the crop locations
     # and labels, so we can drop them to save memory
-    columns_to_compute = [col for col in grid_df_.columns if col not in DIFFAE_FEATURE_COLUMN_NAMES]
+    columns_to_compute = [col for col in grid_df_.columns if col not in DIFFAE_PC_COLUMN_NAMES]
     grid_df = grid_df_[columns_to_compute].compute()
-    grid_df = add_crop_index(grid_df)
 
     if max_num_positions is not None:
         first_position = grid_df[Column.POSITION].unique()[0]
@@ -116,11 +114,8 @@ def main(datasets: Datasets | None = None, n_cores: int = 4):
 
         # don't need the feature columns for this workflow, just the crop locations
         # and labels, so we can drop them to save memory
-        columns_to_compute = [
-            col for col in grid_df_.columns if col not in DIFFAE_FEATURE_COLUMN_NAMES
-        ]
+        columns_to_compute = [col for col in grid_df_.columns if col not in DIFFAE_PC_COLUMN_NAMES]
         grid_df = grid_df_[columns_to_compute].compute()
-        grid_df = add_crop_index(grid_df)
 
         if max_num_positions is not None:
             first_position = grid_df[Column.POSITION].unique()[0]
