@@ -6,41 +6,14 @@ from bioio_base.types import PhysicalPixelSizes
 from skimage.measure import regionprops
 from tqdm import tqdm
 
-from endo_pipeline.io import load_dataframe, load_image_from_path
+from endo_pipeline.io import load_image_from_path
 from endo_pipeline.library.process.general_image_preprocessing import save_image_output
-from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_FEATURE_COLUMN_NAMES
 from endo_pipeline.settings.image_data import (
     IMG_SHAPE_RESOLUTION_1_3i_X,
     IMG_SHAPE_RESOLUTION_1_3i_Y,
     PIXEL_SIZE_3i_20x,
 )
-from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_MODEL_MANIFEST_NAME,
-    DEFAULT_MODEL_RUN_NAME,
-)
-
-
-def load_grid_diffae_df_for_tfe(
-    dataset_name: str,
-    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    model_run_name: str = DEFAULT_MODEL_RUN_NAME,
-) -> pd.DataFrame:
-    """Load the grid-based DiffAE features for a given dataset, model manifest, and model run."""
-    # load the grid-based diffae features dataframe to get the crop locations
-    # and crop labels for a given dataset
-    dataframe_manifest_name = f"{model_manifest_name}_{model_run_name}_grid"
-    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
-    dataframe_location = get_dataframe_location_for_dataset(dataframe_manifest, dataset_name)
-    grid_df_ = load_dataframe(dataframe_location, delay=True)
-
-    # don't need the feature columns for this workflow, just the crop locations
-    # and labels, so we can drop them to save memory
-    columns_to_compute = [col for col in grid_df_.columns if col not in DIFFAE_FEATURE_COLUMN_NAMES]
-    grid_df = grid_df_[columns_to_compute].compute()
-
-    return grid_df
 
 
 def make_grid_seg_filename(position: int, timepoint: int) -> str:
