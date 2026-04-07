@@ -93,12 +93,17 @@ def main(
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import get_output_path
-    from endo_pipeline.library.visualize.tfe import generate_tfe_backdrops, generate_tfe_frames
+    from endo_pipeline.library.visualize.tfe import (
+        build_tfe_dataset,
+        generate_tfe_backdrops,
+        generate_tfe_frames,
+        get_grid_seg_data_for_tfe,
+    )
     from endo_pipeline.manifests import load_image_manifest
     from endo_pipeline.settings.tfe import (
-        TFE_BACKDROP_TYPES,
         TFE_DEFAULT_DATASETS,
         TFE_DEFAULT_POSITIONS,
+        TFE_FEATURE_MAP,
         TFE_IMAGE_MANIFEST_NAME_MAP,
     )
 
@@ -140,11 +145,19 @@ def main(
             # Generate (or regenerate) backdrops if selected
             if generate_backdrops:
                 logger.info("Generating backdrops for '%s' position '%d'", dataset_name, position)
-                backdrop_dir = output_dir / f"{dataset_name}_P{position}" / "backdrops"
+                backdrop_dir = writer.outpath / "backdrops"
                 backdrop_dir.mkdir(parents=True, exist_ok=True)
-                generate_tfe_backdrops(
-                    dataset_config, position, timepoints, TFE_BACKDROP_TYPES, backdrop_dir
-                )
+                generate_tfe_backdrops(dataset_config, position, timepoints, backdrop_dir)
+
+            # Get feature data
+            if segmentation == "grid":
+                data = get_grid_seg_data_for_tfe(dataset_config, position, timepoints)
+            else:
+                logger.warning("Only 'grid' segmentation is currently supported by this workflow.")
+                continue
+
+            # Build the full TFE dataset
+            build_tfe_dataset(writer, data, TFE_FEATURE_MAP)
 
 
 if __name__ == "__main__":

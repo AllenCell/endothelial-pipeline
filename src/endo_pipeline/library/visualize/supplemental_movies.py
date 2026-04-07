@@ -44,7 +44,7 @@ def load_bf_image(
     image = load_image(location, channels=["BF"], timepoints=timepoints, level=level)
 
     focal_plane = config.center_z_plane[position]
-    visualize_plane = focal_plane + 5
+    visualize_plane = focal_plane - 5
     return image[:, :, visualize_plane, :, :]
 
 
