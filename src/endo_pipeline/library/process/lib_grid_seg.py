@@ -125,7 +125,7 @@ def create_grid_segmentation_images(
 
         # save the grid segmentation image for this position and timepoint
         for tp in tqdm(
-            range(np.unique(df[Column.DURATION]).item()),
+            df[Column.TIMEPOINT].unique(),
             desc=f"Saving grid segmentation for {dataset_name} {pos}",
         ):
             fname = make_grid_seg_filename(pos, tp)
@@ -152,7 +152,7 @@ def create_grid_segmentation_images(
 def check_crop_indices_against_existing_segmentations(df: pd.DataFrame, out_dir: Path) -> None:
     pos = np.unique(df[Column.POSITION]).item()
     tp = np.unique(df[Column.TIMEPOINT]).item()
-    fp = out_dir / pos / make_grid_seg_filename(pos, tp)
+    fp = out_dir / str(pos) / make_grid_seg_filename(pos, tp)
 
     segmentation = load_image_from_path(fp)
 
