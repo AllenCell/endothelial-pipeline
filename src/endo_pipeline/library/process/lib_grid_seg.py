@@ -6,14 +6,9 @@ from bioio_base.types import PhysicalPixelSizes
 from skimage.measure import regionprops
 from tqdm import tqdm
 
-from endo_pipeline.io import load_image_from_path
-from endo_pipeline.library.analyze.pca import get_dataframe_for_dynamics_workflows
+from endo_pipeline.io import load_dataframe, load_image_from_path
 from endo_pipeline.library.process.general_image_preprocessing import save_image_output
-from endo_pipeline.manifests import (
-    get_feature_dataframe_manifest_name,
-    load_dataframe_manifest,
-    load_model_manifest,
-)
+from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_FEATURE_COLUMN_NAMES
 from endo_pipeline.settings.image_data import (
@@ -32,31 +27,19 @@ def load_grid_diffae_df_for_tfe(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     model_run_name: str = DEFAULT_MODEL_RUN_NAME,
 ) -> pd.DataFrame:
-    model_manifest = load_model_manifest(model_manifest_name)
-
-    dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, model_run_name, crop_pattern="grid"
-    )
+    """Load the grid-based DiffAE features for a given dataset, model manifest, and model run."""
+    # load the grid-based diffae features dataframe to get the crop locations
+    # and crop labels for a given dataset
+    dataframe_manifest_name = f"{model_manifest_name}_{model_run_name}_grid"
     dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
+    dataframe_location = get_dataframe_location_for_dataset(dataframe_manifest, dataset_name)
+    grid_df_ = load_dataframe(dataframe_location, delay=True)
 
-    # load the grid-based diffae features dataframe to get the crop locations and
-    # crop labels for a given dataset
-    grid_df = get_dataframe_for_dynamics_workflows(
-        dataset_name=dataset_name,
-        manifest=dataframe_manifest,
-        columns_to_keep=[Column.DiffAEData.RESOLUTION],
-        pca=None,
-        filter_by_annotations=False,
-        include_cell_piling=True,
-        include_not_steady_state=True,
-        crop_pattern="grid",
-        compute_polar=True,
-        rescale_theta=True,
-        flip_pc3_sign=True,
-    )
+    # don't need the feature columns for this workflow, just the crop locations
+    # and labels, so we can drop them to save memory
+    columns_to_compute = [col for col in grid_df_.columns if col not in DIFFAE_FEATURE_COLUMN_NAMES]
+    grid_df = grid_df_[columns_to_compute].compute()
 
-    # we don't need the latent feature columns for this workflow
-    grid_df = grid_df.drop(columns=DIFFAE_FEATURE_COLUMN_NAMES)
     return grid_df
 
 
@@ -167,7 +150,6 @@ def create_grid_segmentation_images(
 
 
 def check_crop_indices_against_existing_segmentations(df: pd.DataFrame, out_dir: Path) -> None:
-
     pos = np.unique(df[Column.POSITION]).item()
     tp = np.unique(df[Column.TIMEPOINT]).item()
     fp = out_dir / pos / make_grid_seg_filename(pos, tp)
