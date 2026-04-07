@@ -58,9 +58,11 @@ def main(datasets: Datasets | None = None, n_cores: int = 4):
     for config in dataset_configs_all:
         if config.duration == max_timelapse_duration:
             logger.info(
-                f"Dataset {config.name} is the first dataset with the longest \
-                timelapse duration of {max_timelapse_duration} minutes, and \
-                will be used to create the grid segmentations."
+                "Dataset [ %s ] is the first dataset with the longest "
+                "timelapse duration of [ %d ] minutes, and "
+                "will be used to create the grid segmentations.",
+                config.name,
+                max_timelapse_duration,
             )
             examplary_dataset = config.name
 
@@ -76,9 +78,11 @@ def main(datasets: Datasets | None = None, n_cores: int = 4):
     # and labels, so we can drop them to save memory
     columns_to_compute = [col for col in grid_df_.columns if col not in DIFFAE_FEATURE_COLUMN_NAMES]
     grid_df = grid_df_[columns_to_compute].compute()
-    grid_df_with_crop_index = add_crop_index(grid_df)
+    grid_df = add_crop_index(grid_df)
+    grid_df[Column.DURATION] = config.duration
+
     out_dir = get_output_path(__file__)
-    create_grid_segmentation_images(grid_df_with_crop_index, out_dir)
+    create_grid_segmentation_images(grid_df, out_dir)
 
     # Now we check that the crop indices for each dataset in `datasets` matches
     # the segmentations we produced earlier when we load a grid-based
@@ -90,6 +94,7 @@ def main(datasets: Datasets | None = None, n_cores: int = 4):
                 dataset_name,
             )
             continue
+        dataset_config = load_dataset_config(dataset_name)
         # load the grid-based DiffAE dataframe for the current dataset to get
         # the crop locations and crop labels for a given dataset
         dataframe_location = get_dataframe_location_for_dataset(dataframe_manifest, dataset_name)
@@ -101,11 +106,10 @@ def main(datasets: Datasets | None = None, n_cores: int = 4):
             col for col in grid_df_.columns if col not in DIFFAE_FEATURE_COLUMN_NAMES
         ]
         grid_df = grid_df_[columns_to_compute].compute()
-        grid_df_with_crop_index = add_crop_index(grid_df)
+        grid_df = add_crop_index(grid_df)
+        grid_df[Column.DURATION] = dataset_config.duration
 
-        nm, df = zip(
-            *grid_df_with_crop_index.groupby([Column.POSITION, Column.TIMEPOINT]), strict=True
-        )
+        nm, df = zip(*grid_df.groupby([Column.POSITION, Column.TIMEPOINT]), strict=True)
         num_seg_files = len(nm)
         with ProcessPoolExecutor(max_workers=n_cores) as worker_pool:
             list(

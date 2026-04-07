@@ -125,7 +125,7 @@ def create_grid_segmentation_images(
 
         # save the grid segmentation image for this position and timepoint
         for tp in tqdm(
-            range(np.unique(df["duration"]).item()),
+            range(np.unique(df[Column.DURATION]).item()),
             desc=f"Saving grid segmentation for {dataset_name} {pos}",
         ):
             fname = make_grid_seg_filename(pos, tp)
