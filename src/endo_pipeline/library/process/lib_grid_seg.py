@@ -7,57 +7,13 @@ from skimage.measure import regionprops
 from tqdm import tqdm
 
 from endo_pipeline.io import load_image_from_path
-from endo_pipeline.library.analyze.pca import get_dataframe_for_dynamics_workflows
 from endo_pipeline.library.process.general_image_preprocessing import save_image_output
-from endo_pipeline.manifests import (
-    get_feature_dataframe_manifest_name,
-    load_dataframe_manifest,
-    load_model_manifest,
-)
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_FEATURE_COLUMN_NAMES
 from endo_pipeline.settings.image_data import (
     IMG_SHAPE_RESOLUTION_1_3i_X,
     IMG_SHAPE_RESOLUTION_1_3i_Y,
     PIXEL_SIZE_3i_20x,
 )
-from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_MODEL_MANIFEST_NAME,
-    DEFAULT_MODEL_RUN_NAME,
-)
-
-
-def load_grid_diffae_df_for_tfe(
-    dataset_name: str,
-    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    model_run_name: str = DEFAULT_MODEL_RUN_NAME,
-) -> pd.DataFrame:
-    model_manifest = load_model_manifest(model_manifest_name)
-
-    dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, model_run_name, crop_pattern="grid"
-    )
-    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
-
-    # load the grid-based diffae features dataframe to get the crop locations and
-    # crop labels for a given dataset
-    grid_df = get_dataframe_for_dynamics_workflows(
-        dataset_name=dataset_name,
-        manifest=dataframe_manifest,
-        columns_to_keep=[Column.DiffAEData.RESOLUTION],
-        pca=None,
-        filter_by_annotations=False,
-        include_cell_piling=True,
-        include_not_steady_state=True,
-        crop_pattern="grid",
-        compute_polar=True,
-        rescale_theta=True,
-        flip_pc3_sign=True,
-    )
-
-    # we don't need the latent feature columns for this workflow
-    grid_df = grid_df.drop(columns=DIFFAE_FEATURE_COLUMN_NAMES)
-    return grid_df
 
 
 def make_grid_seg_filename(position: int, timepoint: int) -> str:
@@ -142,7 +98,7 @@ def create_grid_segmentation_images(
 
         # save the grid segmentation image for this position and timepoint
         for tp in tqdm(
-            range(np.unique(df["duration"]).item()),
+            df[Column.TIMEPOINT].unique(),
             desc=f"Saving grid segmentation for {dataset_name} {pos}",
         ):
             fname = make_grid_seg_filename(pos, tp)
@@ -167,10 +123,9 @@ def create_grid_segmentation_images(
 
 
 def check_crop_indices_against_existing_segmentations(df: pd.DataFrame, out_dir: Path) -> None:
-
     pos = np.unique(df[Column.POSITION]).item()
     tp = np.unique(df[Column.TIMEPOINT]).item()
-    fp = out_dir / pos / make_grid_seg_filename(pos, tp)
+    fp = out_dir / str(pos) / make_grid_seg_filename(pos, tp)
 
     segmentation = load_image_from_path(fp)
 
