@@ -231,6 +231,7 @@ def main(
                 baseline_fixed_point_manifest_name,
                 dataset_name,
             )
+            continue
 
         dataset_config = load_dataset_config(dataset_name)
         if len(dataset_config.shear_stress_regime) > 1:
