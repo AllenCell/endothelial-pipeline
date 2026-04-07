@@ -24,6 +24,7 @@ def main(datasets: Datasets | None = None, n_cores: int = 4):
 
     from tqdm import tqdm
 
+    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.pca import add_crop_index
@@ -70,6 +71,14 @@ def main(datasets: Datasets | None = None, n_cores: int = 4):
     if datasets is None:
         datasets = datasets_all
 
+    max_num_positions: int | None = None
+    max_num_timepoints: int | None = None
+    if DEMO_MODE:
+        logger.warning("DEMO_MODE: limiting to one dataset, one position, and 10 timepoints.")
+        datasets = datasets[:1]
+        max_num_positions = 1
+        max_num_timepoints = 10
+
     # load the grid-based DiffAE dataframe for the current dataset to get
     # the crop locations and crop labels for a given dataset
     dataframe_location = get_dataframe_location_for_dataset(dataframe_manifest, examplary_dataset)
@@ -80,8 +89,13 @@ def main(datasets: Datasets | None = None, n_cores: int = 4):
     columns_to_compute = [col for col in grid_df_.columns if col not in DIFFAE_FEATURE_COLUMN_NAMES]
     grid_df = grid_df_[columns_to_compute].compute()
     grid_df = add_crop_index(grid_df)
-    grid_df[Column.DURATION] = config.duration
 
+    if max_num_positions is not None:
+        first_position = grid_df[Column.POSITION].unique()[0]
+        grid_df = grid_df[grid_df[Column.POSITION] == first_position]
+    if max_num_timepoints is not None:
+        timepoints = grid_df[Column.TIMEPOINT].unique()[:max_num_timepoints]
+        grid_df = grid_df[grid_df[Column.TIMEPOINT].isin(timepoints)]
     out_dir = get_output_path(__file__)
     create_grid_segmentation_images(grid_df, out_dir)
 
@@ -95,7 +109,6 @@ def main(datasets: Datasets | None = None, n_cores: int = 4):
                 dataset_name,
             )
             continue
-        dataset_config = load_dataset_config(dataset_name)
         # load the grid-based DiffAE dataframe for the current dataset to get
         # the crop locations and crop labels for a given dataset
         dataframe_location = get_dataframe_location_for_dataset(dataframe_manifest, dataset_name)
@@ -108,7 +121,13 @@ def main(datasets: Datasets | None = None, n_cores: int = 4):
         ]
         grid_df = grid_df_[columns_to_compute].compute()
         grid_df = add_crop_index(grid_df)
-        grid_df[Column.DURATION] = dataset_config.duration
+
+        if max_num_positions is not None:
+            first_position = grid_df[Column.POSITION].unique()[0]
+            grid_df = grid_df[grid_df[Column.POSITION] == first_position]
+        if max_num_timepoints is not None:
+            timepoints = grid_df[Column.TIMEPOINT].unique()[:max_num_timepoints]
+            grid_df = grid_df[grid_df[Column.TIMEPOINT].isin(timepoints)]
 
         nm, df = zip(*grid_df.groupby([Column.POSITION, Column.TIMEPOINT]), strict=True)
         num_seg_files = len(nm)
