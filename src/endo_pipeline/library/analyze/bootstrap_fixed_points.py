@@ -243,7 +243,28 @@ def init_bootstrap_worker(
 def run_one_bootstrap_iteration(
     subsampled_pairs: tuple[list[np.ndarray], list[np.ndarray]],
 ) -> pd.DataFrame:
-    """Run one bootstrap iteration using worker-local shared state."""
+    """
+    Run one bootstrap iteration using worker-local shared state.
+
+    Acesses global variable `_worker_state` to get the data and parameters
+    needed to run the flow field and fixed point analysis on the given
+    subsampled trajectories and displacements. This dict is populated at the
+    start of each worker process by `init_bootstrap_worker`, which is called
+    once per worker at the start of the bootstrap parallel loop.
+
+    Parameters
+    ----------
+    subsampled_pairs
+        Tuple of (subsampled trajectories, subsampled displacements) for this
+        bootstrap iteration.
+
+    Returns
+    -------
+    :
+        Dataframe of fixed points found in this bootstrap iteration (may be
+        empty if none are found).
+
+    """
     sub_trajectories, sub_displacements = subsampled_pairs
     return run_flow_field_and_fixed_points(
         trajectories=sub_trajectories,
