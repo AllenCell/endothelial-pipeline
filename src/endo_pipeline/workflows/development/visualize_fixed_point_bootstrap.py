@@ -55,7 +55,6 @@ def main(
 
     """
     import logging
-    from pathlib import Path
 
     import matplotlib.pyplot as plt
     import numpy as np
@@ -256,15 +255,8 @@ def main(
 
         plt.tight_layout()
 
-        fig_savedir_dataset: Path = fig_savedir / dataset_name
-        fig_savedir_dataset.mkdir(parents=True, exist_ok=True)
-        save_plot_to_path(fig, fig_savedir_dataset, "bootstrap_fixed_points_ci")
+        save_plot_to_path(fig, fig_savedir, f"bootstrap_fixed_points_ci_{dataset_name}")
         plt.close(fig)
-        logger.info(
-            "Saved bootstrap fixed point CI plot for dataset [ %s ] to [ %s ].",
-            dataset_name,
-            fig_savedir_dataset,
-        )
 
     # Combined cross-dataset figure
     if len(all_high_confidence_dfs) < 2:
