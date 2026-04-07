@@ -1,3 +1,5 @@
+"""Methods for bootstrapping fixed points from flow field analysis."""
+
 import logging
 import os
 
@@ -75,11 +77,6 @@ def subsample_trajectories_and_displacements(
         n_keep = max(1, round(n_steps * subsample_fraction))
         # guard against rounding > n_steps
         n_keep = min(n_keep, n_steps)
-        logger.debug(
-            "Subsampling trajectory with [ %d ] steps to keep [ %d ] steps.",
-            n_steps,
-            n_keep,
-        )
         selected = np.sort(rng.choice(n_steps, size=n_keep, replace=False))
         # start points for selected steps + endpoint of the last selected step
         # (selected[-1] + 1 is always a valid index because trajectory has n_steps + 1 rows)
@@ -97,8 +94,8 @@ def run_flow_field_and_fixed_points(
     column_names: list[str | Column.DiffAEData],
     kernels: list[KramersMoyalKernel],
     polar_angle_range: tuple[float, float] = BIN_LIMITS_THETA_RESCALED,
-    lower_percentile_for_stable_fp: float = LOWER_PERCENTILE_FOR_STABLE_FP,
-    upper_percentile_for_stable_fp: float = UPPER_PERCENTILE_FOR_STABLE_FP,
+    lower_percentile_for_filtering: float = LOWER_PERCENTILE_FOR_STABLE_FP,
+    upper_percentile_for_filtering: float = UPPER_PERCENTILE_FOR_STABLE_FP,
     num_inits_for_root_solver: int = NUM_INIT_SAMPLES,
 ) -> pd.DataFrame:
     """Run the Kramers-Moyal + root-finding pipeline on pre-computed trajectory lists.
@@ -139,6 +136,16 @@ def run_flow_field_and_fixed_points(
         dimensions of the trajectory arrays.
     kernels
         List of ``KramersMoyalKernel`` objects, one per feature dimension.
+    polar_angle_range
+        Tuple of (min, max) values for the polar angle dimension, used for
+        filtering fixed points along the polar angle dimension (if present).
+    lower_percentile_for_filtering
+        Lower percentile for initial filtering of fixed points.
+    upper_percentile_for_filtering
+        Upper percentile for initial filtering of fixed points.
+    num_inits_for_root_solver
+        Number of initial conditions to sample for the root solver when finding
+        fixed points.
 
     Returns
     -------
@@ -163,8 +170,8 @@ def run_flow_field_and_fixed_points(
         dataframe=df_for_bounds,
         column_names=column_names,
         num_inits_for_root_solver=num_inits_for_root_solver,
-        lower_percentile=lower_percentile_for_stable_fp,
-        upper_percentile=upper_percentile_for_stable_fp,
+        lower_percentile=lower_percentile_for_filtering,
+        upper_percentile=upper_percentile_for_filtering,
         polar_angle_range=polar_angle_range,
     )
     return fixed_points_dataframe
@@ -178,8 +185,7 @@ def init_bootstrap_worker(
     kernels: list,
     blas_threads_per_worker: int,
 ) -> None:
-    """
-    Initializer for bootstrap worker processes.
+    """Initialize bootstrap worker processes.
 
     This function is called once per worker process at the start of the
     bootstrap parallel loop. It sets environment variables to clamp thread usage
@@ -237,17 +243,37 @@ def init_bootstrap_worker(
 def run_one_bootstrap_iteration(
     subsampled_pairs: tuple[list[np.ndarray], list[np.ndarray]],
 ) -> pd.DataFrame:
-    """Run one bootstrap iteration using worker-local shared state."""
+    """
+    Run one bootstrap iteration using worker-local shared state.
+
+    Acesses global variable `_worker_state` to get the data and parameters
+    needed to run the flow field and fixed point analysis on the given
+    subsampled trajectories and displacements. This dict is populated at the
+    start of each worker process by `init_bootstrap_worker`, which is called
+    once per worker at the start of the bootstrap parallel loop.
+
+    Parameters
+    ----------
+    subsampled_pairs
+        Tuple of (subsampled trajectories, subsampled displacements) for this
+        bootstrap iteration.
+
+    Returns
+    -------
+    :
+        Dataframe of fixed points found in this bootstrap iteration (may be
+        empty if none are found).
+
+    """
     sub_trajectories, sub_displacements = subsampled_pairs
-    s = _worker_state
     return run_flow_field_and_fixed_points(
         trajectories=sub_trajectories,
         displacements=sub_displacements,
-        df_for_bounds=s["df_steady_state"],
-        bins=s["bins"],
-        centers=s["centers"],
-        column_names=s["column_names"],
-        kernels=s["kernels"],
+        df_for_bounds=_worker_state["df_steady_state"],
+        bins=_worker_state["bins"],
+        centers=_worker_state["centers"],
+        column_names=_worker_state["column_names"],
+        kernels=_worker_state["kernels"],
     )
 
 
@@ -425,6 +451,15 @@ def aggregate_bootstrapping_results(
     n_bootstrap
         Total number of bootstrap iterations performed (used as the denominator
         for the detection rate and stored in ``n_bootstrap_samples``).
+    polar_angle_period
+        Period of the polar angle dimension, used for unwrapping if the polar
+        angle column is present.
+    bootstrap_ci_lower_percentile
+        Lower percentile for computing bootstrap confidence intervals for fixed
+        point coordinates.
+    bootstrap_ci_upper_percentile
+        Upper percentile for computing bootstrap confidence intervals for fixed
+        point coordinates.
 
     Returns
     -------

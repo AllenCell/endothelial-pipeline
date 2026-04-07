@@ -31,6 +31,8 @@ def main(
 ) -> None:
     """Bootstrap fixed point confidence intervals by subsampling data.
 
+    #dynamics #bootstrap #fixed_points #confidence_intervals
+
     **Matching scheme**
 
     For each bootstrap iteration, baseline fixed points are processed in row
@@ -165,9 +167,7 @@ def main(
     dataframe_savedir = get_output_path(__file__, crop_pattern)
     # get dataframe manifest for baseline results to match against in bootstrapping
     baseline_fixed_point_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
-    baseline_fixed_point_manifest = create_dataframe_manifest(
-        baseline_fixed_point_manifest_name, workflow_name=__file__
-    )
+    baseline_fixed_point_manifest = load_dataframe_manifest(baseline_fixed_point_manifest_name)
 
     # load or initialize dataframe manifest for bootstrap results
     demo_suffix = "_demo" if DEMO_MODE else ""
@@ -231,6 +231,7 @@ def main(
                 baseline_fixed_point_manifest_name,
                 dataset_name,
             )
+            continue
 
         dataset_config = load_dataset_config(dataset_name)
         if len(dataset_config.shear_stress_regime) > 1:
