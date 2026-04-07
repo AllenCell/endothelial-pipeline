@@ -144,8 +144,7 @@ def main(
             original_range=(0, np.pi),
         )
 
-        # # compute the Frechet distance between the measured and simulated trajectories
-        # # NOTE BELOW IS AI GENERATED CODE, NEED TO CHECK IT
+        # compute the Frechet distance between the measured and simulated trajectories
         theta_period = PERIOD_THETA_RESCALED if RESCALE_THETA else 2 * np.pi
 
         df_grid_sub[f"{Column.DiffAEData.POLAR_ANGLE}_unwrapped"] = df_grid_sub.groupby(
@@ -156,6 +155,7 @@ def main(
             )
         )
         frechet_distances = []
+        dtw_distances = []
         for crop_i, traj_df in df_grid_sub.groupby(Column.CROP_INDEX):
             traj_df = traj_df.dropna(
                 subset=[
@@ -174,14 +174,14 @@ def main(
             ]
 
             # try the Frechet distance:
-            # frechet_dist = frechet_path(traj_measured, traj_simulated)
             frechet_dist = frechet(traj_measured, traj_simulated)
-            dtw_dist = dtw(traj_measured, traj_simulated)
             frechet_distances.append(frechet_dist)
 
             # try dynamic time warping:
-            dtw_dist, _ = dtw(traj_measured.values, traj_simulated.values)
-            break
+            dtw_dist = dtw(traj_measured, traj_simulated)
+            dtw_distances.append(dtw_dist)
+
+            # break
 
         #     measured_traj = traj_df[[Column.DiffAEData.X, Column.DiffAEData.Y]].values
         #     simulated_traj = traj_df[
@@ -195,7 +195,6 @@ def main(
         #         df_grid_sub[Column.CROP_INDEX].isin(df_grid_sub[Column.CROP_INDEX].unique()),
         #         "frechet_distance",
         #     ] = frechet_distances
-        # # NOTE ABOVE IS AI CODE, NEED TO CHECK IT
 
         if make_trajectory_validation_plots:
             # plot overlays of the tracks with the fixed points on the flow field slices
