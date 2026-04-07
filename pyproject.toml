@@ -26,7 +26,6 @@ dependencies = [
     "colorizer-data",
     "cyclopts>=4.4.4",
     "deprecated>=1.2.18",
-    "dtw-python>=1.5.3",
     "fastparquet>=2024.11.0",
     "fipy>=3.4.5",
     "fire>=0.6.0",
@@ -47,11 +46,11 @@ dependencies = [
     "scikit-learn==1.5.1",
     "scipy==1.13.1",
     "seaborn>=0.13.2",
-    "shapely>=2.1.2",
     "sympy==1.13.1",
     "termcolor>=3.0.1",
     "torch~=2.0.0",
     "tqdm>=4.66.5",
+    "tslearn>=0.8.1",
     "vtk>=9.4.1",
 ]
 

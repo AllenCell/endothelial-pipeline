@@ -398,13 +398,6 @@ docutils==0.21.2 \
     #   myst-parser
     #   rich-rst
     #   sphinx
-dtw-python==1.5.3 \
-    --hash=sha256:52b0e6604ea62db7a2610d7dba59ceb7c2a60e8d4e6963c9dc7ead172fac1b05 \
-    --hash=sha256:956e29579ab0a136e35b672d7f2646e52b5fa506165c5bbc1af7bdc2c401d214 \
-    --hash=sha256:dfd248e5c8f67d6f714692bb116ad92fb9179582961889fd23f9318b21b132f6 \
-    --hash=sha256:ec154d8db2d5fac796059a41ec52546c9b9f858ab71401b9bb518817f7f1b7ac \
-    --hash=sha256:f5f6fe9a60d8f0cb4a3bf7c3f724a753328615672f181bb1c60e4a3061b79a52
-    # via endo-pipeline
 elementpath==4.8.0 \
     --hash=sha256:5393191f84969bcf8033b05ec4593ef940e58622ea13cefe60ecefbbf09d58d9 \
     --hash=sha256:5822a2560d99e2633d95f78694c7ff9646adaa187db520da200a8e9479dc46ae
@@ -672,7 +665,9 @@ jmespath==1.0.1 \
 joblib==1.4.2 \
     --hash=sha256:06d478d5674cbc267e7496a410ee875abd68e4340feff4490bcb7afb88060ae6 \
     --hash=sha256:2382c5816b2636fbd20a09e0f4e9dad4736765fdfb7dca582943b9c1366b3f0e
-    # via scikit-learn
+    # via
+    #   scikit-learn
+    #   tslearn
 json5==0.12.0 \
     --hash=sha256:0b4b6ff56801a1c7dc817b0241bca4ce474a0e6a163bfef3fc594d3fd263ff3a \
     --hash=sha256:6d37aa6c08b0609f16e1ec5ff94697e2cbbfbad5ac112afa05794da9ab7810db
@@ -1015,7 +1010,9 @@ numba==0.61.2 \
     --hash=sha256:8750ee147940a6637b80ecf7f95062185ad8726c8c28a2295b8ec1160a196f7d \
     --hash=sha256:bbfdf4eca202cebade0b7d43896978e146f39398909a42941c9303f82f403a18 \
     --hash=sha256:efd3db391df53aaa5cfbee189b6c910a5b471488749fd6606c3f33fc984c2ae2
-    # via cellpose
+    # via
+    #   cellpose
+    #   tslearn
 numcodecs==0.13.1 \
     --hash=sha256:233bc7f26abce24d57e44ea8ebeb5cd17084690b4e7409dd470fdb75528d615f \
     --hash=sha256:2a86f5367af9168e30f99727ff03b27d849c31ad4522060dde0bce2923b3a8bc \
@@ -1049,7 +1046,6 @@ numpy==1.26.4 \
     #   colorizer-data
     #   contourpy
     #   dask
-    #   dtw-python
     #   endo-pipeline
     #   fastparquet
     #   fastremap
@@ -1073,8 +1069,8 @@ numpy==1.26.4 \
     #   scikit-learn
     #   scipy
     #   seaborn
-    #   shapely
     #   tifffile
+    #   tslearn
     #   types-seaborn
     #   xarray
     #   zarr
@@ -1608,7 +1604,9 @@ scikit-learn==1.5.1 \
     --hash=sha256:909144d50f367a513cee6090873ae582dba019cb3fca063b38054fa42704c3a4 \
     --hash=sha256:9a07f90846313a7639af6a019d849ff72baadfa4c74c778821ae0fad07b7275b \
     --hash=sha256:b5e865e9bd59396220de49cb4a57b17016256637c61b4c5cc81aaf16bc123bbe
-    # via endo-pipeline
+    # via
+    #   endo-pipeline
+    #   tslearn
 scipy==1.13.1 \
     --hash=sha256:095a87a0312b08dfd6a6155cbbd310a8c51800fc931b8c0b84003014b874ed3c \
     --hash=sha256:27e52b09c0d3a1d5b63e1105f24177e544a222b43611aaf5bc44d4a0979e32f9 \
@@ -1619,12 +1617,12 @@ scipy==1.13.1 \
     --hash=sha256:e89369d27f9e7b0884ae559a3a956e77c02114cc60a6058b4e5011572eea9299
     # via
     #   cellpose
-    #   dtw-python
     #   endo-pipeline
     #   fipy
     #   numdifftools
     #   scikit-image
     #   scikit-learn
+    #   tslearn
 seaborn==0.13.2 \
     --hash=sha256:636f8336facf092165e27924f223d3c62ca560b1f2bb5dff7ab7fad265361987 \
     --hash=sha256:93e60a40988f4d65e9f4885df477e2fdaff6b73a9ded434c1ab356dd57eefff7
@@ -1648,17 +1646,6 @@ setuptools==79.0.1 \
     #   nvidia-curand-cu11
     #   nvidia-cusparse-cu11
     #   nvidia-nvtx-cu11
-shapely==2.1.2 \
-    --hash=sha256:136ab87b17e733e22f0961504d05e77e7be8c9b5a8184f685b4a91a84efe3c26 \
-    --hash=sha256:16a9c722ba774cf50b5d4541242b4cce05aafd44a015290c82ba8a16931ff63d \
-    --hash=sha256:16c5d0fc45d3aa0a69074979f4f1928ca2734fb2e0dde8af9611e134e46774e7 \
-    --hash=sha256:2ed4ecb28320a433db18a5bf029986aa8afcfd740745e78847e330d5d94922a9 \
-    --hash=sha256:2fa78b49485391224755a856ed3b3bd91c8455f6121fee0db0e71cefb07d0ef6 \
-    --hash=sha256:6ddc759f72b5b2b0f54a7e7cde44acef680a55019eb52ac63a7af2cf17cb9cd2 \
-    --hash=sha256:91121757b0a36c9aac3427a651a7e6567110a4a67c97edf04f8d55d4765f6618 \
-    --hash=sha256:c64d5c97b2f47e3cd9b712eaced3b061f2b71234b3fc263e0fcf7d889c6559dc \
-    --hash=sha256:cc4f7397459b12c0b196c9efe1f9d7e92463cbba142632b4cc6d8bbbbd3e2b09
-    # via endo-pipeline
 six==1.17.0 \
     --hash=sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274 \
     --hash=sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81
@@ -1846,6 +1833,10 @@ traitlets==5.14.3 \
 triton==2.0.0 ; platform_machine == 'x86_64' and sys_platform == 'linux' \
     --hash=sha256:226941c7b8595219ddef59a1fdb821e8c744289a132415ddd584facedeb475b1
     # via torch
+tslearn==0.8.1 \
+    --hash=sha256:2a79e1447df8c0708cfb8b06a65826ecb9b3d62e1b5b98fa26abbc77766f782d \
+    --hash=sha256:68107857404e9a3869ed452fc3b8f1f0b5fdee61a04438c7ee957ec7e928e594
+    # via endo-pipeline
 types-deprecated==1.2.15.20250304 \
     --hash=sha256:86a65aa550ea8acf49f27e226b8953288cd851de887970fbbdf2239c116c3107 \
     --hash=sha256:c329030553029de5cc6cb30f269c11f4e00e598c4241290179f63cda7d33f719

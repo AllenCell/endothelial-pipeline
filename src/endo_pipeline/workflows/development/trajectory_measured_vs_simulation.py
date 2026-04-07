@@ -12,6 +12,7 @@ def main(
     import numpy as np
     import pandas as pd
     from tqdm import tqdm
+    from tslearn.metrics import dtw, frechet
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection
@@ -27,13 +28,20 @@ def main(
     from endo_pipeline.library.analyze.integration.track_integration import (
         solve_ddff_from_trajectory_initial_condition_helper,
     )
-    from endo_pipeline.library.analyze.polar_coords import rewrap_polar_angle
+    from endo_pipeline.library.analyze.polar_coords import (
+        rewrap_polar_angle,
+        unwrap_nonsequential_array,
+    )
     from endo_pipeline.library.visualize.integration.track_integration_viz import (
         plot_trajectory_measured_vs_simulation_over_flow_field_helper,
     )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings import ColumnName as Column
-    from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
+    from endo_pipeline.settings.dynamics_workflows import (
+        DYNAMICS_COLUMN_NAMES,
+        PERIOD_THETA_RESCALED,
+        RESCALE_THETA,
+    )
     from endo_pipeline.settings.flow_field_3d import DATASET_COLLECTION_FOR_3D_DYNAMICS
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
@@ -138,8 +146,43 @@ def main(
 
         # # compute the Frechet distance between the measured and simulated trajectories
         # # NOTE BELOW IS AI GENERATED CODE, NEED TO CHECK IT
-        # frechet_distances = []
-        # for crop_i, traj_df in df_grid_sub.groupby(Column.CROP_INDEX):
+        theta_period = PERIOD_THETA_RESCALED if RESCALE_THETA else 2 * np.pi
+
+        df_grid_sub[f"{Column.DiffAEData.POLAR_ANGLE}_unwrapped"] = df_grid_sub.groupby(
+            Column.CROP_INDEX
+        )[f"{Column.DiffAEData.POLAR_ANGLE}"].transform(
+            lambda x, theta_period=theta_period: unwrap_nonsequential_array(
+                x.values, period=theta_period
+            )
+        )
+        frechet_distances = []
+        for crop_i, traj_df in df_grid_sub.groupby(Column.CROP_INDEX):
+            traj_df = traj_df.dropna(
+                subset=[
+                    f"{Column.DiffAEData.POLAR_ANGLE}_unwrapped",
+                    Column.DiffAEData.POLAR_RADIUS,
+                ]
+            )
+            traj_measured = traj_df[
+                [f"{Column.DiffAEData.POLAR_ANGLE}_unwrapped", Column.DiffAEData.POLAR_RADIUS]
+            ]
+            traj_simulated = traj_df[
+                [
+                    f"{Column.DiffAEData.POLAR_ANGLE}_simulated_unwrapped",
+                    f"{Column.DiffAEData.POLAR_RADIUS}_simulated",
+                ]
+            ]
+
+            # try the Frechet distance:
+            # frechet_dist = frechet_path(traj_measured, traj_simulated)
+            frechet_dist = frechet(traj_measured, traj_simulated)
+            dtw_dist = dtw(traj_measured, traj_simulated)
+            frechet_distances.append(frechet_dist)
+
+            # try dynamic time warping:
+            dtw_dist, _ = dtw(traj_measured.values, traj_simulated.values)
+            break
+
         #     measured_traj = traj_df[[Column.DiffAEData.X, Column.DiffAEData.Y]].values
         #     simulated_traj = traj_df[
         #         [f"{Column.DiffAEData.X}_simulated", f"{Column.DiffAEData.Y}_simulated"]
