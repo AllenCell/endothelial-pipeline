@@ -386,7 +386,7 @@ def save_plot_to_path(
     pad_inches
         Amount of padding around the figure when saving, in inches.
     tight_layout
-        True to automatically adjust subplot parameters to give specified padding.
+        True to apply tight layout to figure, False otherwise.
     show_and_close
         True to display the figure and then close it, False otherwise.
     """
