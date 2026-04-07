@@ -1,3 +1,5 @@
+"""Methods for bootstrapping fixed points from flow field analysis."""
+
 import logging
 import os
 
