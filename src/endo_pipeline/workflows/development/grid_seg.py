@@ -20,6 +20,7 @@ def main(datasets: Datasets | None = None, n_cores: int = 4):
     """
 
     import logging
+    import multiprocessing
     from concurrent.futures import ProcessPoolExecutor
 
     from tqdm import tqdm
@@ -126,7 +127,12 @@ def main(datasets: Datasets | None = None, n_cores: int = 4):
 
         nm, df = zip(*grid_df.groupby([Column.POSITION, Column.TIMEPOINT]), strict=True)
         num_seg_files = len(nm)
-        with ProcessPoolExecutor(max_workers=n_cores) as worker_pool:
+        # Use 'spawn' instead of the default 'fork' start method to avoid
+        # deadlocks on Slurm-managed clusters. Forking after Dask/NumPy have
+        # initialised internal threads leaves inherited mutexes permanently
+        # locked in the child processes, causing the pool to hang.
+        mp_context = multiprocessing.get_context("spawn")
+        with ProcessPoolExecutor(max_workers=n_cores, mp_context=mp_context) as worker_pool:
             list(
                 tqdm(
                     worker_pool.map(
