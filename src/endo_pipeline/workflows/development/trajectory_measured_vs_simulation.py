@@ -170,47 +170,42 @@ def main(
                 x.values, period=theta_period
             )
         )
-        frechet_distances = []
-        dtw_distances = []
-        for crop_i, traj_df in df_grid_sub.groupby(Column.CROP_INDEX):
-            traj_df = traj_df.dropna(
-                subset=[
-                    f"{Column.DiffAEData.POLAR_ANGLE}_unwrapped",
-                    Column.DiffAEData.POLAR_RADIUS,
-                ]
+
+        measured_cols = [
+            f"{Column.DiffAEData.POLAR_ANGLE}_unwrapped",
+            Column.DiffAEData.POLAR_RADIUS,
+        ]
+        simulated_cols = [
+            f"{Column.DiffAEData.POLAR_ANGLE}_simulated_unwrapped",
+            f"{Column.DiffAEData.POLAR_RADIUS}_simulated",
+        ]
+
+        def compute_frechet_distance(curve1: pd.DataFrame, curve2: pd.DataFrame) -> float:
+            return float(frechet(curve1.values, curve2.values))
+
+        def compute_dtw_distance(curve1: pd.DataFrame, curve2: pd.DataFrame) -> float:
+            return float(dtw(curve1.values, curve2.values))
+
+        distances_df = (
+            df_grid_sub.groupby(Column.CROP_INDEX)
+            .apply(
+                lambda traj_df: (
+                    lambda tdf: pd.Series(
+                        {
+                            Column.DATASET: str(traj_df[Column.DATASET].iloc[0]),
+                            Column.POSITION: int(traj_df[Column.POSITION].iloc[0]),
+                            "frechet_distance": compute_frechet_distance(
+                                tdf[measured_cols], tdf[simulated_cols]
+                            ),
+                            "dtw_distance": compute_dtw_distance(
+                                tdf[measured_cols], tdf[simulated_cols]
+                            ),
+                        }
+                    )
+                )(traj_df.dropna(subset=measured_cols))
             )
-            traj_measured = traj_df[
-                [f"{Column.DiffAEData.POLAR_ANGLE}_unwrapped", Column.DiffAEData.POLAR_RADIUS]
-            ]
-            traj_simulated = traj_df[
-                [
-                    f"{Column.DiffAEData.POLAR_ANGLE}_simulated_unwrapped",
-                    f"{Column.DiffAEData.POLAR_RADIUS}_simulated",
-                ]
-            ]
-
-            # try the Frechet distance:
-            frechet_dist = frechet(traj_measured, traj_simulated)
-            frechet_distances.append(frechet_dist)
-
-            # try dynamic time warping:
-            dtw_dist = dtw(traj_measured, traj_simulated)
-            dtw_distances.append(dtw_dist)
-
-            # break
-
-        #     measured_traj = traj_df[[Column.DiffAEData.X, Column.DiffAEData.Y]].values
-        #     simulated_traj = traj_df[
-        #         [f"{Column.DiffAEData.X}_simulated", f"{Column.DiffAEData.Y}_simulated"]
-        #     ].values
-        #     if len(measured_traj) > 0 and len(simulated_traj) > 0:
-        #         frechet_distances.append(frechet_distance(measured_traj, simulated_traj))
-        # df_grid_sub["frechet_distance"] = np.nan
-        # if frechet_distances:
-        #     df_grid_sub.loc[
-        #         df_grid_sub[Column.CROP_INDEX].isin(df_grid_sub[Column.CROP_INDEX].unique()),
-        #         "frechet_distance",
-        #     ] = frechet_distances
+            .reset_index()
+        )
 
         if make_trajectory_validation_plots:
             # plot overlays of the tracks with the fixed points on the flow field slices
