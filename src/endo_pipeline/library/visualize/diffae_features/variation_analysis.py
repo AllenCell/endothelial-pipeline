@@ -1,3 +1,5 @@
+"""Visualization methods for coefficient of variation and variance ratio analyses of DiffAE features."""
+
 from typing import Literal
 
 import matplotlib.pyplot as plt
@@ -12,8 +14,7 @@ from matplotlib.patches import Patch
 
 
 def _initialize_figure_for_variation_analysis(n_cols: int) -> tuple[Figure, list[Axes]]:
-    """
-    Helper function to initialize a matplotlib figure with the specified number of columns.
+    """Initialize a matplotlib figure with the specified number of columns.
 
     Parameters
     ----------
@@ -22,10 +23,11 @@ def _initialize_figure_for_variation_analysis(n_cols: int) -> tuple[Figure, list
 
     Returns
     -------
-    fig
+    :
         The created matplotlib Figure object.
-    axs
+    :
         List of Axes objects corresponding to each subplot.
+
     """
     fig, ax = plt.subplots(
         ncols=n_cols,
@@ -42,15 +44,14 @@ def _build_handles_seen_for_legend(
     alpha: float = 0.45,
     handle_type: Literal["line", "patch"] = "patch",
 ) -> list[Artist]:
-    """
-    Helper function to build a mapping of unique labels to matplotlib Artist
-    handles for legend creation.
+    """Build a mapping of unique labels to matplotlib Artist handles for legend creation.
 
     **Input data format**
 
     Each tuple in the input list be such that the last two elements are (color, label), e.g.:
 
     .. code-block:: python
+
         data_entry = (time_values, cov_series, color, label)
 
 
@@ -61,7 +62,14 @@ def _build_handles_seen_for_legend(
     alpha
         Transparency level for the legend handles.
     handle_type
-        Type of matplotlib Artist to create for the legend handles, either "line" or "patch".
+        Type of matplotlib Artist to create for the legend handles.
+
+    Returns
+    -------
+    :
+        List of matplotlib Artist objects corresponding to unique labels in the input
+        data, to be used for legend creation.
+
     """
     handles_seen: list[Artist] = []
     for data_tuple in data_entry:
@@ -95,7 +103,7 @@ def _format_fig_with_legend_and_title(
     suptitle_y: float = 1.01,
     tight_layout: bool = True,
 ) -> None:
-    """Helper function to format a matplotlib figure with a suptitle and shared legend."""
+    """Format a matplotlib figure with a suptitle and shared legend."""
     fig.suptitle(suptitle, y=suptitle_y)
     fig.legend(
         handles=legend_handles,
@@ -114,11 +122,10 @@ def plot_population_cov_vs_time(
     title: str,
     ylim_dict: dict[str, tuple[float, float]] | None = None,
 ) -> tuple[Figure, list[Axes]]:
-    """
-    Plot population CoV vs time for all dataset / flow conditions on a shared figure.
+    """Plot population coefficient of variation (CoV) vs time.
 
-    Each dataset-condition is drawn as a separate line and coloured by shear stress
-    regime.  A single shared legend is placed below the subplots.
+    Each dataset / flow condition is drawn as a separate line and coloured by shear stress
+    regime. A single shared legend is placed below the subplots.
 
     Parameters
     ----------
@@ -128,12 +135,18 @@ def plot_population_cov_vs_time(
         dataset / flow condition.
     variable_labels_dict
         Human-readable label for each feature column name.
-    fig_savedir
-        Directory to save the figure.
+    title
+        Figure suptitle.
     ylim_dict
         Optional mapping from feature column name to ``(ymin, ymax)`` y-axis
         limits.  When ``None`` (default), matplotlib auto-scales the y-axis.
         Columns absent from the dict also fall back to auto-scaling.
+
+    Returns
+    -------
+    :
+        Matplotlib Figure and Axes objects containing the generated plot.
+
     """
     column_names = list(pop_cov_data.keys())
     n_cols = len(column_names)
@@ -170,8 +183,7 @@ def plot_ergodicity_test(
     variable_labels_dict: dict[str, str],
     title: str,
 ) -> tuple[Figure, list[Axes]]:
-    """
-    Visualize the ergodicity test by comparing temporal and ensemble CoV.
+    """Plot comparison of temporal and ensemble coefficient of variation (CoV).
 
     For an ergodic system the time-average of an observable computed from a
     single trajectory (= per-crop temporal CoV) should equal the ensemble
@@ -191,8 +203,14 @@ def plot_ergodicity_test(
         dataset / flow condition.
     variable_labels_dict
         Human-readable label for each feature column name.
-    fig_savedir
-        Directory to save the figure.
+    title
+        Figure suptitle.
+
+    Returns
+    -------
+    :
+        Matplotlib Figure and Axes objects containing the generated plot.
+
     """
     column_names = list(erg_data.keys())
     n_cols = len(column_names)
@@ -279,8 +297,7 @@ def plot_variance_ratio_vs_time(
     title: str,
     ylabel_suffix: str = "",
 ) -> tuple[Figure, list[Axes]]:
-    """
-    Plot the ratio of individual to population variance as a function of time.
+    """Plot the ratio of individual to population variance as a function of time.
 
     Can be used to plot either the cumulative variance ratio (per-crop
     cumulative temporal variance vs population variance) or the binned variance
@@ -299,10 +316,16 @@ def plot_variance_ratio_vs_time(
         dataset / flow condition.
     variable_labels_dict
         Human-readable label for each feature column name.
-    fig_savedir
-        Directory to save the figure.
+    title
+        Figure suptitle.
     ylabel_suffix
         Optional suffix appended to each y-axis label (e.g. " (cumulative)").
+
+    Returns
+    -------
+    :
+        Matplotlib Figure and Axes objects containing the generated plot.
+
     """
     column_names = list(var_ratio_data.keys())
     n_cols = len(column_names)
@@ -353,8 +376,7 @@ def plot_mean_feature_vs_time(
     title: str,
     ylabel_suffix: str = "",
 ) -> tuple[Figure, list[Axes]]:
-    """
-    Plot population mean ± std of each feature as a function of time.
+    """Plot population mean ± std of each feature as a function of time.
 
     Each dataset-condition is drawn as a line (mean) with a shaded band
     (± 1 std) and coloured by shear stress regime.
@@ -367,14 +389,16 @@ def plot_mean_feature_vs_time(
         per dataset / flow condition.
     variable_labels_dict
         Human-readable label for each feature column name.
-    fig_savedir
-        Directory to save the figure.
-    filename
-        Filename (without directory) for the saved figure.
     title
         Figure suptitle.
     ylabel_suffix
         Optional suffix appended to each y-axis label (e.g. " (scaled)").
+
+    Returns
+    -------
+    :
+        Matplotlib Figure and Axes objects containing the generated plot.
+
     """
     column_names = list(mean_std_data.keys())
     n_cols = len(column_names)

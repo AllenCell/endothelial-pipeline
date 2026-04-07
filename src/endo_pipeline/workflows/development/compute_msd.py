@@ -1,11 +1,12 @@
 from endo_pipeline.cli import CropPattern, Datasets
-from endo_pipeline.settings.dynamics_workflows import MAX_MSD_LAG
+from endo_pipeline.settings.dynamics_workflows import LONG_TRACK_THRESHOLD_LENGTH, MAX_MSD_LAG
 
 
 def main(
-    datasets: Datasets | None = None,
     crop_pattern: CropPattern = "grid",
+    datasets: Datasets | None = None,
     max_lag: float = MAX_MSD_LAG,
+    min_track_length: int = LONG_TRACK_THRESHOLD_LENGTH,
 ) -> None:
     """
     Run MSD analysis workflow for datasets in the specified collection, using
@@ -42,7 +43,7 @@ def main(
     The maximum time lag to consider for MSD calculation is specified by the
     global constant MAX_MSD_LAG. If `crop_pattern` is "tracked," only tracks
     with length greater than or equal to the global constant
-    MINIMUM_MSD_TRACK_LENGTH will be included in the MSD calculation.
+    LONG_TRACK_THRESHOLD_LENGTH will be included in the MSD calculation.
 
     The y-axis limits for the MSD plots are specified by the global constant
     MSD_Y_AXIS_LIMITS.
@@ -53,10 +54,10 @@ def main(
 
     Parameters
     ----------
-    datasets
-        Optional list of datasets to run the workflow on.
     crop_pattern
         Crop pattern to use for selecting features.
+    datasets
+        Optional, specific dataset(s) to run the workflow on.
     max_lag
         Maximum time lag (in number of frames) to consider for mean squared
         displacement calculation.
@@ -69,28 +70,24 @@ def main(
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import get_output_path, save_plot_to_path
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        fit_pca,
-        get_dataframe_for_dynamics_workflows,
-        get_traj_and_diff,
-        split_dataset_by_flow,
+    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
+    from endo_pipeline.library.analyze.dataframe_filtering import (
+        filter_dataframe_by_flow_condition,
+        filter_dataframe_by_track_length,
+        filter_dataframe_to_steady_state,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
-        get_kernel_density_estimate,
+        get_kernel_density_estimate_from_trajectories,
         get_kramers_moyal_coeffs,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins
+    from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.library.visualize.diffae_features.vis_msd import (
         plot_msd_with_exponential_fit,
     )
-    from endo_pipeline.manifests import (
-        get_feature_dataframe_manifest_name,
-        load_dataframe_manifest,
-        load_model_manifest,
-    )
+    from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMIT_PERCENTILE_CUTOFF,
@@ -100,7 +97,7 @@ def main(
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
-        MINIMUM_MSD_TRACK_LENGTH,
+        METADATA_COLUMNS_TO_KEEP,
         MSD_Y_AXIS_LIMITS,
         RESCALE_THETA,
     )
@@ -110,14 +107,13 @@ def main(
     )
 
     logger = logging.getLogger(__name__)
-    model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
-    model_run_name = DEFAULT_MODEL_RUN_NAME
 
     # get labels for provided set of feature columns
     column_names = list(DYNAMICS_COLUMN_NAMES)
     variable_labels_dict = {
         col: get_label_for_column(col).replace("polar ", "") for col in column_names
     }
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
     # unpack default bin widths and limits for each column, adjusting limits if rescaling theta
     global_bin_limits_dict = BIN_LIMITS_DYNAMICS.copy()
@@ -128,18 +124,13 @@ def main(
         - global_bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][0]
     )
 
-    # get dataframe manifest for feature of selected crop pattern
-    model_manifest = load_model_manifest(model_manifest_name)
-    dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, model_run_name, crop_pattern=crop_pattern
-    )
-    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
+    demo_suffix = "_demo" if DEMO_MODE else ""
+    workflow_savedir_name = f"{Path(__file__).stem}{demo_suffix}"
 
-    # only need first three PCs
-    dataframe_manifest_name_for_pca = get_feature_dataframe_manifest_name(
-        model_manifest, model_run_name, crop_pattern="grid"
-    )
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name_for_pca, num_pcs=3)
+    # get dataframe manifest for crop-based features
+    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
+    feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
+    feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # Load default list of datasets if not provided
     dataset_names = datasets or get_datasets_in_collection("timelapse")
@@ -151,44 +142,36 @@ def main(
             dataset_names[0],
         )
 
-    demo_suffix = "_demo" if DEMO_MODE else ""
-    workflow_savedir_name = f"{Path(__file__).stem}{demo_suffix}"
-
-    # loop over datasets in collection
-    # plot summary plots
-    # compute drift and diffusion coefficients in polar coordinates
+    # loop over datasets in collection, compute MSD for given variable, and
+    # plot results, skipping datasets not found in manifest
     for dataset_name in dataset_names:
-        if dataset_name not in dataframe_manifest.locations:
+        if dataset_name not in feature_dataframe_manifest.locations:
             logger.warning(
-                "Dataset [ %s ] does not have dataframe for crop pattern [ %s ], skipping.",
-                dataset_name,
-                crop_pattern,
+                f"Dataset {dataset_name} not found in manifest {feature_dataframe_manifest_name}. Skipping."
             )
             continue
-        dataset_config = load_dataset_config(dataset_name)
         fig_savedir = get_output_path(workflow_savedir_name, crop_pattern, dataset_name)
+        dataset_config = load_dataset_config(dataset_name)
 
-        df = get_dataframe_for_dynamics_workflows(
-            dataset_name,
-            dataframe_manifest,
-            pca=pca,
-            include_cell_piling=False,
-            include_not_steady_state=False,
-            crop_pattern=crop_pattern,
-            compute_polar=True,
-            rescale_theta=RESCALE_THETA,
-            flip_pc3_sign=True,
-            minimum_track_length=MINIMUM_MSD_TRACK_LENGTH if crop_pattern == "tracked" else None,
-        )
+        # load dataframe and perform additional filtering (remove
+        # non-steady-state timepoints based on annotations), computing
+        # only the columns needed for flow field estimation and analysis to save memory.
+        df_ = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
+        df = df_[columns_to_compute].compute()
+        df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
 
-        df_by_flow, shear_stress_list = split_dataset_by_flow(df, dataset_config)
-
-        for df_, shear_stress in zip(df_by_flow, shear_stress_list, strict=True):
+        for flow_condition in dataset_config.flow_conditions:
+            df_flow = filter_dataframe_by_flow_condition(
+                df_steady_state, dataset_config, flow_condition
+            )
+            if crop_pattern == "tracked":
+                df_flow = filter_dataframe_by_track_length(df_flow, min_track_length)
             dt_array = np.arange(1, max_lag + 1)
 
-            dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
-            crop_pattern_title = f"features from crops using pattern: {crop_pattern}"
-            fig_title = f"{dataset_name} ({shear_stress} dyn/cm$^2$) \n {crop_pattern_title}"
+            dataset_name_flow = f"{dataset_name}_shear_{int(flow_condition.shear_stress)}"
+            fig_title = (
+                f"{dataset_name} ({flow_condition.shear_stress} dyn/cm$^2$), {crop_pattern} crops"
+            )
 
             # compute MSD for each feature via Kramers-Moyal coefficient
             # estimation method
@@ -215,7 +198,7 @@ def main(
                 else:
                     bins, centers = get_bins(
                         bin_widths=(BIN_WIDTHS_DYNAMICS[column_name],),
-                        data=df_[column_name].to_numpy(),
+                        data=df_flow[column_name].to_numpy(),
                         lower_percentile=BIN_LIMIT_PERCENTILE_CUTOFF,
                         upper_percentile=100 - BIN_LIMIT_PERCENTILE_CUTOFF,
                     )
@@ -224,7 +207,7 @@ def main(
                 # using the Kramers-Moyal coefficient estimation method
                 for j, time_lag in enumerate(dt_array):
                     traj_list, d_traj_list = get_traj_and_diff(
-                        df_,
+                        df_flow,
                         column_names=[column_name],
                         polar_angle_period=polar_angle_period,
                         time_lag=time_lag,
@@ -249,7 +232,7 @@ def main(
 
                     # compute the weighted average of the msd over the bins
                     # (weighing by the probability density of points in each bin)
-                    prob_density = get_kernel_density_estimate(
+                    prob_density = get_kernel_density_estimate_from_trajectories(
                         traj_list,
                         bins=bins,
                         kernel=kernel,

@@ -5,6 +5,8 @@ live here so that they can be adjusted in one place without touching
 compute, I/O, or visualisation code.
 """
 
+from endo_pipeline.settings.column_names import ColumnName
+
 # ---------------------------------------------------------------------------
 # Multi-scale coherence
 # ---------------------------------------------------------------------------
@@ -70,6 +72,18 @@ DEFAULT_OPTICAL_FLOW_COLLECTION: str = "diffae_model_training"
 DEFAULT_OPTICAL_FLOW_MANIFEST_NAME: str = "optical_flow_bf"
 """Default dataframe manifest name for optical-flow features."""
 
+DIFFAE_DATAFRAME_METADATA_TO_COMPUTE: tuple[str, ...] = (
+    ColumnName.DATASET,
+    ColumnName.POSITION,
+    ColumnName.TIMEPOINT,
+    ColumnName.CROP_INDEX,
+    ColumnName.DiffAEData.START_X,
+    ColumnName.DiffAEData.START_Y,
+    ColumnName.DiffAEData.END_X,
+    ColumnName.DiffAEData.END_Y,
+)
+"""Metadata columns from Diff AE feature dataframe needed for optical flow computations."""
+
 # ---------------------------------------------------------------------------
 # Feature names
 # ---------------------------------------------------------------------------
@@ -83,8 +97,41 @@ OPTICAL_FLOW_BASE_FEATURES: list[str] = [
     "optical_flow_mean_v",
     "optical_flow_std_u",
     "optical_flow_std_v",
+    "optical_flow_mean_unit_vector_fast",
+    "speed_above_1_count",
+    "ema005_optical_flow_mean_unit_vector",
+    "ema005_optical_flow_mean_unit_vector_fast",
+    "ema01_optical_flow_mean_unit_vector",
+    "ema01_optical_flow_mean_unit_vector_fast",
+    "ema02_optical_flow_mean_unit_vector",
+    "ema02_optical_flow_mean_unit_vector_fast",
 ]
 """Base feature names computed per (crop, timepoint, dt) by optical-flow extraction."""
+
+OPTICAL_FLOW_FEATURE_COLUMNS_DT1: list[str] = [
+    "optical_flow_mean_speed_dt1",
+    "optical_flow_mean_unit_vector_dt1",
+    "optical_flow_std_speed_dt1",
+    "optical_flow_mean_angle_dt1",
+    "optical_flow_angle_std_dt1",
+    "optical_flow_mean_u_dt1",
+    "optical_flow_mean_v_dt1",
+    "optical_flow_std_u_dt1",
+    "optical_flow_std_v_dt1",
+    "optical_flow_mean_unit_vector_fast_dt1",
+    "speed_above_1_count_dt1",
+    "ema005_optical_flow_mean_unit_vector_dt1",
+    "ema005_optical_flow_mean_unit_vector_fast_dt1",
+    "ema01_optical_flow_mean_unit_vector_dt1",
+    "ema01_optical_flow_mean_unit_vector_fast_dt1",
+    "ema02_optical_flow_mean_unit_vector_dt1",
+    "ema02_optical_flow_mean_unit_vector_fast_dt1",
+    "ema01_optical_flow_radial_coherence_dt1",
+    "ema01_optical_flow_radial_coherence_weighted_dt1",
+    "optical_flow_radial_coherence_dt1",
+    "optical_flow_radial_coherence_weighted_dt1",
+]
+"""Optical-flow feature column names with dt=1 stride, as stored in dataframes."""
 
 # ---------------------------------------------------------------------------
 # Channel-aware parameters

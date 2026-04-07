@@ -1,6 +1,8 @@
+"""Methods related to flow field estimation and analysis."""
+
 import logging
 from collections.abc import Callable
-from time import time
+from time import perf_counter, time
 from typing import Literal, overload
 
 import numpy as np
@@ -10,17 +12,28 @@ from scipy.integrate import solve_ivp
 from scipy.interpolate import RegularGridInterpolator, griddata
 from scipy.stats import gaussian_kde
 
-from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
+from endo_pipeline.io.input import load_dataframe
+from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.numerics.binning import circpercentile
 from endo_pipeline.library.visualize.diffae_features.pplane import (
     get_fpt_type,
     get_fpts,
     get_stability_label_from_fpt_type,
 )
+from endo_pipeline.manifests.dataframe_manifest_io import load_dataframe_manifest
+from endo_pipeline.manifests.dataframe_manifest_utils import get_dataframe_location_for_dataset
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_THETA_RESCALED
 from endo_pipeline.settings.flow_field_3d import SAMPLER_RANDOM_SEED
-from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
+from endo_pipeline.settings.flow_field_dataframes import (
+    DATAFRAME_MANIFEST_PREFIX_DRIFT,
+    DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+    STABILITY_COLUMN_NAME,
+)
+from endo_pipeline.settings.workflow_defaults import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +41,7 @@ logger = logging.getLogger(__name__)
 def sample_from_density(
     data: np.ndarray, n_samples: int, random_seed: int = SAMPLER_RANDOM_SEED
 ) -> np.ndarray:
-    """
-    Sample points from the density of a given dataset using KDE and rejection sampling.
+    """Sample points from the density of a given dataset using KDE and rejection sampling.
 
     Parameters
     ----------
@@ -44,6 +56,7 @@ def sample_from_density(
     -------
     :
         Sampled points of shape (n_samples, D).
+
     """
     rng = np.random.default_rng(seed=random_seed)
     kde = gaussian_kde(data.T)
@@ -69,8 +82,7 @@ def _compute_percentile_values(
     q: float,
     polar_angle_range: tuple[float, float] = BIN_LIMITS_THETA_RESCALED,
 ) -> dict[str, float]:
-    """
-    Compute the lower and upper percentile bounds for each column in the data.
+    """Compute the lower and upper percentile bounds for each column in the data.
 
     Parameters
     ----------
@@ -88,6 +100,7 @@ def _compute_percentile_values(
     -------
     :
         Dictionary mapping column names to their percentile values.
+
     """
     percentile_values: dict[str, float] = {}
     for column_name in column_names:
@@ -106,9 +119,7 @@ def is_point_within_percentile_bounds(
     upper_percentile_bounds: dict[str, float],
     polar_angle_range: tuple[float, float] = BIN_LIMITS_THETA_RESCALED,
 ):
-    """
-    Check if a point is within a specified percentile range along each dimension
-    of a dataset, accounting for circular variables.
+    """Check if a point is within a specified percentile range in each variable.
 
     **Percentile bound specification**
 
@@ -119,7 +130,7 @@ def is_point_within_percentile_bounds(
     value of the lower percentile for the data in column column_names[i], not
     the specified percentile (e.g. 2) itself.
 
-    **Handling circular variables*
+    **Handling circular variables**
 
     For circular variables (e.g. angles), the function checks if the point is
     within the bounds accounting for wraparound. For example, if the lower
@@ -156,6 +167,7 @@ def is_point_within_percentile_bounds(
     -------
     :
         True if point is within the percentile bounds on all axes, else False.
+
     """
     if len(point) != len(column_names):
         raise ValueError(
@@ -189,15 +201,14 @@ def is_point_within_percentile_bounds(
 def get_fixed_points_within_bounds(
     vector_field_function: Callable[[np.ndarray], np.ndarray],
     dataframe: pd.DataFrame,
-    column_names: list[str],
+    column_names: list[str | Column.DiffAEData],
     num_inits_for_root_solver: int,
     lower_percentile: float,
     upper_percentile: float,
     polar_angle_range: tuple[float, float],
     stability_label_column_name: str = STABILITY_COLUMN_NAME,
 ) -> pd.DataFrame:
-    """
-    Get fixed points of a given estimated vector field with high confidence.
+    """Get fixed points of a given estimated vector field with high confidence.
 
     For a single dataset, this workflow:
 
@@ -237,6 +248,7 @@ def get_fixed_points_within_bounds(
     :
         Dataframe containing of stable fixed points with high confidence (i.e.,
         points filtered by percentile range).
+
     """
     check_required_columns_in_dataframe(
         dataframe, [*column_names, Column.DATASET]
@@ -307,18 +319,20 @@ def get_fixed_points_within_bounds(
 
 
 def fill_nan_for_vtk(data: np.ndarray, method: str = "nearest") -> np.ndarray:
-    """
-    Replaces NaN values in a multi-dimensional NumPy array using scipy.interpolate.griddata.
+    """Replace NaN values in a multi-dimensional `numpy` array using `scipy.interpolate.griddata`.
 
     Parameters
     ----------
     data
-        Input NumPy array with NaN values to be imputed.
+        Input `numpy` array with NaN values to be imputed.
+    method
+        Interpolation method to use for imputation.
 
     Returns
     -------
     :
         A copy of the input array with NaNs imputed.
+
     """
     # Create a copy to avoid modifying the original data
     arr = data.copy()
@@ -358,8 +372,7 @@ def compute_extrapolated_vector_field(
     method: str = "linear",
     for_vtk_files: bool = False,
 ) -> dict:
-    """
-    Extrapolate a 3D vector field from Kramers-Moyal estimates over a specified grid.
+    """Extrapolate a 3D vector field from Kramers-Moyal estimates over a specified grid.
 
     **Method inputs**
 
@@ -401,8 +414,13 @@ def compute_extrapolated_vector_field(
         Method to use for extrapolating the vector field where there are NaNs.
     for_vtk_files
         Whether the output is intended for saving as .vtk files.
-    """
 
+    Returns
+    -------
+    :
+        Dictionary with extrapolated vector field and corresponding grid.
+
+    """
     filled_kmcs = kmcs.copy()
     n_components = filled_kmcs.shape[-1]
     x, y, z = np.meshgrid(*grid_coordinates, indexing="ij")
@@ -455,8 +473,7 @@ def get_callable_vector_field(
 def get_callable_vector_field(
     vector_field_dict: dict, for_solve_ivp: bool = True, method: str = "linear"
 ) -> Callable[[float, np.ndarray], np.ndarray] | Callable[[np.ndarray], np.ndarray]:
-    """
-    Get a callable vector field from a numpy array via linear interpolation.
+    """Get a callable vector field from a numpy array via linear interpolation.
 
     The input is a dictionary with the vector field values on a mesh grid, and this function
     creates a callable function that can be used to evaluate the vector field at any point
@@ -488,8 +505,8 @@ def get_callable_vector_field(
     -------
     :
         Callable function representing the vector field.
-    """
 
+    """
     grid = vector_field_dict["grid"]  # tuple of 3D arrays (xgrid, ygrid, zgrid)
 
     # Extract 1D axes from meshgrid
@@ -526,9 +543,9 @@ def solve_ddff_ode(
     init: np.ndarray,
     t_span: tuple[float, float],
     num_t: int = 1750,
+    time_limit: float | None = None,
 ) -> np.ndarray:
-    """
-    Solve an autonomous ODE using ``scipy.integrate.solve_ivp``.
+    """Solve an autonomous ODE using ``scipy.integrate.solve_ivp``.
 
     **Method inputs**
 
@@ -558,24 +575,53 @@ def solve_ddff_ode(
         Time span for the ODE solver as (t0, tf).
     num_t
         Number of time points to evaluate the solution at.
+    time_limit
+        Maximum allowed time in seconds for the ODE solver to run. If the elapsed time
+        exceeds this limit, the integration will be stopped. If None, no time limit
+        is enforced.
 
     Returns
     -------
     :
         Solution trajectory in 3D state space for the given initial condition and time span.
+
     """
+
+    if time_limit is None:
+        time_limit = np.inf
+
+    start_time = perf_counter()
+
+    def time_limit_exceeded(t, y):
+        # check if the elapsed time has exceeded the time limit
+        if perf_counter() - start_time > time_limit:
+            return 0  # solve_ivp "events" arg will trigger on a 0 crossing
+        return 1  # integration will continue if not 0 and does not cross 0
+
+    time_limit_exceeded.terminal = True  # stop the solver when this event is triggered
+
     # turn flow field into callable function (works via interpolation)
     my_flow = get_callable_vector_field(flow_field_dict, for_solve_ivp=True)
     # timepoints at which to evaluate the solution
     t_eval = np.linspace(t_span[0], t_span[1], num_t)
     # solve the IVP
-    sol = solve_ivp(my_flow, t_span, init, t_eval=t_eval)
+    sol = solve_ivp(my_flow, t_span, init, t_eval=t_eval, events=time_limit_exceeded)
+
+    if sol.status == 1:
+        logger.warning(
+            "Time limit exceeded during ODE integration after %.2f seconds",
+            perf_counter() - start_time,
+        )
+        return np.full(shape=(num_t, init.shape[0]), fill_value=np.nan)
+    elif sol.status < 0:
+        logger.error("ODE solver failed with status %d", sol.status)
+        return np.full(shape=(num_t, init.shape[0]), fill_value=np.nan)
+
     return sol.y.T  # get trajectory, shape (num_T, 3) (3D trajectory in state space)
 
 
 def interpolate_on_curve(traj: np.ndarray, n_points: int = 5) -> np.ndarray:
-    """
-    Obtain points along a curve equally spaced by arc length.
+    """Obtain points along a curve equally spaced by arc length.
 
     Parameters
     ----------
@@ -588,6 +634,7 @@ def interpolate_on_curve(traj: np.ndarray, n_points: int = 5) -> np.ndarray:
     -------
     :
         Interpolated points along the curve, shape (n_points, num_dimensions).
+
     """
     ndim = traj.shape[1]  # number of dimensions
 
@@ -607,3 +654,160 @@ def interpolate_on_curve(traj: np.ndarray, n_points: int = 5) -> np.ndarray:
         interpolated_points[:, i] = np.interp(arc_length_new, arc_length, traj[:, i])
 
     return interpolated_points
+
+
+def get_drift_df(
+    dataset_name: str,
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str = DEFAULT_MODEL_RUN_NAME,
+) -> pd.DataFrame:
+    """Get the drift dataframe of a data-driven flow field for a given dataset.
+
+    Parameters
+    ----------
+    dataset_name
+        Name of the dataset to get the drift dataframe for.
+    model_manifest_name
+        Name of the model manifest to use for locating the drift dataframe.
+    run_name
+        Name of the model run to use for locating the drift dataframe.
+
+    Returns
+    -------
+    pd.DataFrame
+        Drift dataframe for the given dataset.
+    """
+
+    base_name = f"{model_manifest_name}_{run_name}_grid"
+    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{base_name}"
+    drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
+
+    if dataset_name not in drift_dataframe_manifest.locations:
+        logger.warning(
+            "Dataset [ %s ] not found in drift dataframe manifest [ %s ]!",
+            dataset_name,
+            drift_dataframe_manifest_name,
+        )
+        return pd.DataFrame()
+
+    logger.info("Getting drift dataframe for grid-based crops...")
+
+    drift_dataframe_location = get_dataframe_location_for_dataset(
+        drift_dataframe_manifest, dataset_name
+    )
+    drift_df = load_dataframe(drift_dataframe_location, delay=False)
+
+    return drift_df
+
+
+def get_drift_values_and_grid_from_drift_df(
+    flow_field_dataframe: pd.DataFrame,
+    column_names: list[str | Column.DiffAEData] | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Get the reshaped drift values and the corresponding grid points from a flow field dataframe.
+
+    Parameters
+    ----------
+    flow_field_dataframe
+        Dataframe containing the flow field data with columns corresponding to the coordinates and drift values.
+    column_names
+        List of column names corresponding to the dynamics features to use for constructing the flow field.
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray]
+        Tuple containing the drift values reshaped to the grid shape and the 1D grid points for each dimension.
+    """
+
+    # restructure the drift dataframe into a flow field dictionary
+    ndim = len(column_names)
+    drift_column_names = [f"{name}_drift" for name in column_names]
+
+    grid_points_1d = [
+        np.sort(flow_field_dataframe[column_name].unique()) for column_name in column_names
+    ]
+    grid_shape = tuple(len(points) for points in grid_points_1d)
+
+    # unpack drift values from dataframe and reshape to grid shape for flow
+    # field visualization and ODE solving
+    drift_values = flow_field_dataframe[drift_column_names].to_numpy().reshape(*grid_shape, ndim)
+
+    return drift_values, grid_points_1d
+
+
+def get_drift_flow_field_as_dict(
+    flow_field_dataframe: pd.DataFrame, column_names: list[str | Column.DiffAEData]
+) -> dict[str, tuple[np.ndarray]]:
+    """Convert a drift flow field dataframe into a dictionary suitable for visualization / analysis.
+
+    Parameters
+    ----------
+    flow_field_dataframe
+        Dataframe containing the flow field data with columns corresponding to the coordinates and drift values.
+    column_names
+        List of column names corresponding to the dynamics features to use for constructing the flow field.
+
+    Returns
+    -------
+    dict[str, tuple[np.ndarray]]
+        Dictionary containing the flow field vectors and the corresponding grid points.
+
+    """
+    drift_values, grid_points_1d = get_drift_values_and_grid_from_drift_df(
+        flow_field_dataframe, column_names
+    )
+
+    # reshape the 1D grid points into a an ND grid
+    grid = np.meshgrid(*grid_points_1d, indexing="ij")
+
+    # build flow field dict for downstream functions that expect the flow
+    # field in this format
+    ndim = len(column_names)
+    drift_vector_field = tuple(drift_values[..., i] for i in range(ndim))
+
+    flow_field_dict = {"vectors": tuple(drift_vector_field), "grid": tuple(grid)}
+
+    return flow_field_dict
+
+
+def get_fixed_points_df(
+    dataset_name: str,
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str = DEFAULT_MODEL_RUN_NAME,
+) -> pd.DataFrame:
+    """Get the fixed points dataframe for a given dataset.
+
+    Parameters
+    ----------
+    dataset_name
+        Name of the dataset to retrieve fixed points for.
+    model_manifest_name
+        Name of the model manifest to use for locating the fixed points dataframe.
+    run_name
+        Name of the model run to use for locating the fixed points dataframe.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing the fixed points for the specified dataset.
+    """
+
+    base_name = f"{model_manifest_name}_{run_name}_grid"
+    fixed_points_df_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
+    fixed_points_df_manifest = load_dataframe_manifest(fixed_points_df_manifest_name)
+
+    if dataset_name not in fixed_points_df_manifest.locations:
+        logger.warning(
+            "Dataset [ %s ] not found in fixed points dataframe manifest [ %s ]!",
+            dataset_name,
+            fixed_points_df_manifest_name,
+        )
+        return pd.DataFrame()
+
+    # load fixed point dataframe and check that required columns are present
+    fixed_points_df_location = get_dataframe_location_for_dataset(
+        fixed_points_df_manifest, dataset_name
+    )
+    fixed_points_df = load_dataframe(fixed_points_df_location, delay=False)
+
+    return fixed_points_df

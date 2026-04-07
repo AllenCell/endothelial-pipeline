@@ -1,3 +1,5 @@
+"""Methods for computing Kramers-Moyal coefficients from trajectories using kernel-based estimation."""
+
 import logging
 from collections.abc import Callable
 
@@ -14,7 +16,43 @@ logger = logging.getLogger(__name__)
 def _check_and_adjust_km_inputs(
     trajectories: list[np.ndarray], displacements: list[np.ndarray], powers: np.ndarray
 ) -> tuple[list[np.ndarray], list[np.ndarray], np.ndarray]:
-    """Check the inputs for the Kramers-Moyal coefficient computation and adjust them if necessary."""
+    """Check the inputs for the Kramers-Moyal coefficient computation and adjust them if necessary.
+
+    **Input checks and adjustments**
+
+    - Check that the number of trajectories matches the number of
+    displacement arrays, and that the length of each displacement array is one
+    less than the length of the corresponding trajectory (since displacements
+    are computed as differences between consecutive timepoints).
+    - If the trajectories are given as a list of 1D arrays, reshape them to
+    2D arrays with one column, to ensure consistent handling of the data in the
+    subsequent computations.
+    - Check if the powers array is a 1D array, and if so, reshape it to a 2D
+    array with one column, to ensure consistent handling of the powers in the
+    subsequent computations.
+    - Add a row of zeros as the first row of the powers array if the first
+    row is not already all zeros, to ensure proper normalization of the kernel
+    convolution for the 0th order Kramers-Moyal coefficient (probability
+    density).
+    - Check that the number of columns in the powers array matches the
+    number of dimensions in the trajectories, to ensure that the powers are
+    correctly applied.
+
+    Parameters
+    ----------
+    trajectories
+        List of invidual trajectories.
+    displacements
+        List of invidual displacements along the trajectories.
+    powers
+        Array of powers corresponding to the Kramers-Moyal coefficients.
+
+    Returns
+    -------
+    :
+        Adjusted trajectories, displacements, and powers for Kramers-Moyal coefficient computation.
+
+    """
     if len(trajectories) != len(displacements):
         raise ValueError("Must have displacements for each timeseries.")
     if len(displacements[0]) != len(trajectories[0]) - 1:
@@ -56,23 +94,28 @@ def _check_and_adjust_km_inputs(
 
 
 def _get_km_powers(ndim: int) -> np.ndarray:
-    """
-    Generate the powers for the first two Kramers-Moyal coefficients for ndim
-    dimensions.
+    """Generate the powers for the first two Kramers-Moyal coefficients for ndim dimensions.
 
     Note that for the second order Kramers-Moyal coefficients (diffusion), we
     only include the pure powers of each component (i.e., no interaction terms).
 
-    For example, for 1D data, the powers are: [[0],  # normalization for kernel
-    convolution (density)
-     [1],  # drift [2]]  # diffusion
+    For example, for 1D data, the powers are:
 
-    For 2D data, the powers are: [[0,0],  # normalization for kernel convolution
-    (density)
-     [1,0],  # drift_1 [0,1],  # drift_2 [2,0],  # diffusion_11 [0,2]]  #
-     diffusion_22
+    .. code-block:: python
+
+        [[0],  # normalization for kernel convolution (density)
+        [1],  # drift
+        [2]]  # diffusion
+
+    For 2D data, the powers are:
+
+    .. code-block:: python
+        [[0,0],  # normalization for kernel convolution (density)
+        [1,0],  # drift_1
+        [0,1],  # drift_2
+        [2,0],  # diffusion_11
+        [0,2]]  # diffusion_22
     """
-
     if ndim == 1:  # straightforward case for 1D data
         powers = np.array([[0], [1], [2]])
         #                   /    f    D
@@ -93,22 +136,26 @@ def _get_weighted_histogram_for_convolution(
     bins: list[np.ndarray],
     powers: np.ndarray,
 ) -> np.ndarray:
-    """
-    Get the weighted histogram of the observations for convolution with the
-    kernel function.
+    """Get the weighted histogram of the observations for convolution with the kernel function.
 
     This function computes the weighted histogram of the observations, where the
     weights are given by the products of the components of the displacement
-    vectors raised to the corresponding powers specified in `powers`. The
-    resulting weighted histogram is then used for convolution with the kernel
-    function to estimate the Kramers-Moyal coefficients.
+    vectors raised to the corresponding powers specified in `powers`.
+
+    The resulting weighted histogram is then used for convolution with the
+    kernel function to estimate the Kramers-Moyal coefficients.
 
     For example, in 2D, suppose we input
 
+    .. code-block:: python
+
         powers = [[0, 0], [1, 0], [0, 1], [1, 1], [2, 0], [0, 2]],
 
-    Then raising the concatenated displacements ``x(t+1)-x(t)` to the powers and
+    Then raising the concatenated displacements `x(t+1)-x(t)` to the powers and
     taking the product across dimensions looks like:
+
+    .. code-block:: python
+
         np.power(grads.T, powers[..., None]) = [[1, 1],
                                                 [x_0(t+1)-x_0(t), 1] [1 ,
                                                 x_1(t+1)-x_1(t)],
@@ -143,19 +190,42 @@ def _convolve_histogram_with_kernel(
     powers: np.ndarray,
     tol: float = 1e-10,
 ) -> np.ndarray:
-    """
-    Compute the Kramers-Moyal coefficients by convolving the weighted histogram
-    of observations with kernel.
+    """Compute the Kramers-Moyal coefficients by convolving the weighted histogram of observations with kernel.
 
-    This function takes in the weighted histogram of the observations
-    (displacements raised to powers) and the evaluated kernel on the extended
-    histogram grid, and performs the convolution to compute the Kramers-Moyal
-    coefficients. The coefficients are then normalized to ensure that the 0th
-    order coefficient (probability density) integrates to 1, and the higher
-    order coefficients are divided by the appropriate Taylor expansion
-    coefficients and the 0th order coefficient.
-    """
+    This function takes in the weighted histogram of the observations (see
+    `_get_weighted_histogram_for_convolution`) and the evaluated kernel on the
+    extended histogram grid, and performs the convolution to compute the
+    Kramers-Moyal coefficients.
 
+    The coefficients are then normalized to ensure that the 0th order
+    coefficient (probability density) integrates to 1, and the higher order
+    coefficients are divided by the appropriate Taylor expansion coefficients
+    and the 0th order coefficient.
+
+    Finally, bins with low probability density (below the specified tolerance)
+    are masked out (set to NaN) to avoid visualizing unreliable estimates in
+    those regions.
+
+    Parameters
+    ----------
+    hist
+        Weighted histogram of the observations.
+    kernel_eval
+        Evaluated kernel on the extended histogram grid.
+    bins
+        List of monotonically increasing bin edges in each dimension.
+    powers
+        Array of powers corresponding to the Kramers-Moyal coefficients.
+    tol
+        Tolerance for masking out bins with low probability density.
+
+    Returns
+    -------
+    :
+        Array of Kramers-Moyal coefficients after convolution and normalization,
+        with low-density bins masked out.
+
+    """
     # Convolve weighted histogram of kmc observations
     # mode "same" returns the convolution at the same size as
     # the input histogram, which is what we want
@@ -190,9 +260,17 @@ def _convolve_histogram_with_kernel(
 def _reshape_outputs_to_drift_diffusion_coefficients(
     ndim: int, kmc: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Reshape the output of kernel convolution to get the drift and diffusion
-    coefficients in the correct shape.
+    """Reshape the output of kernel convolution to get the drift and diffusion coefficients.
+
+    For 1D data, the drift and diffusion coefficients are just the first and
+    second rows of the output, respectively.
+
+    For higher-dimensional data, we need to make sure that the arrays are in the
+    correct shape, which involves permuting the axes and taking the appropriate
+    slices of the output array. The resulting drift and diffusion arrays will
+    have the shape `N[1] x N[2] x ... x N[ndim] x ndim`, where `N[i]` is the
+    number of bins in the i-th dimension, and the last dimension corresponds to
+    the drift/diffusion coefficients for each variable.
     """
     if ndim == 1:  # just need to take the first two rows
         drift_km = kmc[1]
@@ -214,9 +292,7 @@ def _reshape_outputs_to_drift_diffusion_coefficients(
 def _compile_multivariate_product_kernel(
     kernels: list[Callable[[np.ndarray, float, float | None], np.ndarray]],
 ) -> Callable[[np.ndarray, list[float], list[float | None] | None], np.ndarray]:
-    """
-    Compile a multivariate kernel by taking the product of 1D kernels for each
-    variable.
+    """Compile a multivariate kernel by taking the product of 1D kernels for each variable.
 
     This function allows for specifying different kernels and bandwidths for
     each variable/dimension, when performing multivariate kernel-based
@@ -246,8 +322,10 @@ def _compile_multivariate_product_kernel(
 
     Returns
     -------
+    :
         A function that returns the product of the kernel evaluations for each
         variable.
+
     """
 
     def multivariate_kernel(
@@ -274,10 +352,7 @@ def _compile_multivariate_product_kernel(
 
 
 def _evaluate_single_multivariate_kernel(x: np.ndarray, kernel: KramersMoyalKernel) -> np.ndarray:
-    """
-    Evaluate a single multivariate kernel on the input array of differences
-    along each dimension.
-    """
+    """Evaluate a single multivariate kernel on the input array of differences along each dimension."""
     kernel_func = kernel.string_to_kernel()
     return kernel_func(x, kernel.bandwidth, kernel.period)
 
@@ -285,10 +360,7 @@ def _evaluate_single_multivariate_kernel(x: np.ndarray, kernel: KramersMoyalKern
 def _evaluate_multivariate_product_kernel(
     x: np.ndarray, kernel_list: list[KramersMoyalKernel]
 ) -> np.ndarray:
-    """
-    Evaluate a multivariate product kernel on the input array of differences
-    along each dimension.
-    """
+    """Evaluate a multivariate product kernel on the input array of differences along each dimension."""
     kernel_funcs = [kernel.string_to_kernel() for kernel in kernel_list]
     bandwidths = [kernel.bandwidth for kernel in kernel_list]
     periods = [kernel.period for kernel in kernel_list]
@@ -302,6 +374,7 @@ def _evaluate_multivariate_product_kernel(
 
 
 def get_cartesian_product(arrays: np.ndarray | list) -> np.ndarray:
+    """Compute the cartesian product of the input arrays."""
     shapes = [len(arr) for arr in arrays]
     indices = np.indices(shapes, sparse=False)
     unstacked = [arrays[i][sub_indices] for i, sub_indices in enumerate(indices)]
@@ -315,9 +388,7 @@ def get_kramers_moyal_coeffs(
     dt: float,
     kernel: KramersMoyalKernel | list[KramersMoyalKernel],
 ) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Get estimates of first and second Kramers-Moyal coefficients from a list of
-    trajectories.
+    """Get estimates of first and second Kramers-Moyal coefficients from a list of trajectories.
 
     **Kernel specification**
 
@@ -350,8 +421,8 @@ def get_kramers_moyal_coeffs(
         First Kramers-Moyal coefficient (drift).
     :
         Second Kramers-Moyal coefficient (diffusion).
-    """
 
+    """
     # get powers for first two Kramers-Moyal coefficients (drift and diffusion)
     # based on dimensionality of data
     ndim = len(bins)
@@ -387,13 +458,60 @@ def get_kramers_moyal_coeffs(
     return drift, diffusion
 
 
-def get_kernel_density_estimate(
+def get_kernel_density_estimate_from_histogram(
+    histogram: np.ndarray,
+    bins: list[np.ndarray],
+    kernel: KramersMoyalKernel | list[KramersMoyalKernel],
+) -> np.ndarray:
+    """Get kernel density estimate of a given histogram.
+
+    Parameters
+    ----------
+    histogram
+        n-dimensional histogram of the observations, where the bins are defined
+        by the input `bins`.
+    bins
+        List of monotonically increasing bin edges in each dimension.
+    kernel
+        Kernel used to convolute with the histogram of observations to get the
+        kernel density estimate.
+
+    Returns
+    -------
+    :
+        Kernel density estimate of the n-dimensional joint probability density
+        of the observations.
+
+    """
+    # get powers for first two Kramers-Moyal coefficients (drift and diffusion)
+    # based on dimensionality of data, power for 0th order coefficient (density) is all zeros
+    ndim = len(bins)
+    histogram = np.atleast_2d(histogram)  # make sure histogram is at least 2D for convolution
+    powers = np.zeros((1, ndim), dtype=int)
+
+    # Generate centered kernel on larger grid
+    edges_extended = [(e[1] - e[0]) * np.arange(-e.size, e.size + 1) for e in bins]
+    edges_cartesian_prod = get_cartesian_product(edges_extended)
+
+    # Convert kernels into a callable and evaluate on the grid of points given by
+    # the cartesian product of the extended edges.
+    if isinstance(kernel, list):
+        kernel_eval = _evaluate_multivariate_product_kernel(edges_cartesian_prod, kernel)
+    else:
+        kernel_eval = _evaluate_single_multivariate_kernel(edges_cartesian_prod, kernel)
+
+    # Calculate KDE by convolving histogram with kernel
+    prob_kde = _convolve_histogram_with_kernel(histogram, kernel_eval, bins, powers)[0]
+
+    return prob_kde
+
+
+def get_kernel_density_estimate_from_trajectories(
     trajectories: list[np.ndarray],
     bins: list[np.ndarray],
     kernel: KramersMoyalKernel | list[KramersMoyalKernel],
 ) -> np.ndarray:
-    """
-    Get kernel density estimate of the probability density of the observations.
+    """Get kernel density estimate of the probability density of the observations.
 
     This function is similar to `get_kramers_moyal_coeffs`, but only returns the
     0th order Kramers-Moyal coefficient, which corresponds to the probability
@@ -416,6 +534,7 @@ def get_kernel_density_estimate(
     :
         Kernel density estimate of the n-dimensional joint probability density
         of the observations.
+
     """
     # get powers for first two Kramers-Moyal coefficients (drift and diffusion)
     # based on dimensionality of data
@@ -435,18 +554,9 @@ def get_kernel_density_estimate(
     # get weighted histogram for convolution with kernel function
     hist = _get_weighted_histogram_for_convolution(trajectories, displacements, bins, powers)
 
-    # Generate centered kernel on larger grid
-    edges_extended = [(e[1] - e[0]) * np.arange(-e.size, e.size + 1) for e in bins]
-    edges_cartesian_prod = get_cartesian_product(edges_extended)
-
-    # Convert kernels into a callable and evaluate on the grid of points given by
-    # the cartesian product of the extended edges.
-    if isinstance(kernel, list):
-        kernel_eval = _evaluate_multivariate_product_kernel(edges_cartesian_prod, kernel)
-    else:
-        kernel_eval = _evaluate_single_multivariate_kernel(edges_cartesian_prod, kernel)
-
-    # Calculate KDE by convolving histogram with kernel
-    prob_kde = _convolve_histogram_with_kernel(hist, kernel_eval, bins, powers)[0]
+    # Call method that convolves histogram with kernel to get Kramers-Moyal
+    # coefficients, and take the 0th order coefficient which corresponds to the
+    # probability density of the observations.
+    prob_kde = get_kernel_density_estimate_from_histogram(hist, bins, kernel)
 
     return prob_kde

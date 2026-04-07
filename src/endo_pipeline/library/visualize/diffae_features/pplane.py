@@ -1,3 +1,5 @@
+"""Module for plotting phase portraits of 2D systems of ODEs."""
+
 import logging
 import re
 from collections.abc import Callable, Sequence, Sized
@@ -21,18 +23,29 @@ logger = logging.getLogger(__name__)
 
 
 def get_trajectories(my_system: Callable, t_vec: np.ndarray, inits: list[tuple]) -> dict:
-    """
-    Get trajectories of a system of ODEs given by my_system
-    at initial conditions in inits and time points in t_vec.
+    """Get trajectory solutions of a given system of ODEs.
 
-    Inputs:
-    - my_system: function that takes t and x as inputs
-    - t_vec: time points at which to evaluate the solution
-    - inits: list of initial conditions
+    **Method output structure**
 
-    Outputs:
-    - trajectory: dictionary with keys as indices of
-        inits and values as the solution
+    This method returns a dictionary where the keys are the indices of the
+    initial conditions in the input list `inits`, and the values are the
+    corresponding trajectories (solutions) of the system of ODEs evaluated at
+    the time points specified in `t_vec`.
+
+    Parameters
+    ----------
+    my_system
+        Callable function representing the system of ODEs.
+    t_vec
+        Array of time points at which to evaluate the solution.
+    inits
+        List of initial conditions for the system of ODEs.
+
+    Returns
+    -------
+    :
+        Dictionary storing the resulting trajectories.
+
     """
     trajectory = {}
     for j, ic in enumerate(inits):
@@ -43,18 +56,16 @@ def get_trajectories(my_system: Callable, t_vec: np.ndarray, inits: list[tuple])
 
 
 def plot_trajectories(trajectory: dict, inits: list[tuple]) -> None:
-    """
-    Plot trajectories of a system of ODEs given in the
-    dictionary trajectory (keys are indices of inital
-    conditions in inits and values are the solution).
+    """Plot trajectory solutions of a system of ODEs.
 
-    Inputs:
-    - trajectory: dictionary with keys as indices of
-        inits and values as the solution
-    - inits: list of initial conditions
+    Parameters
+    ----------
+    trajectory
+        Dictionary with keys as indices of initial conditions and values as the
+        solution.
+    inits
+        List of initial conditions.
 
-    Outputs:
-    - None (plots the trajectories)
     """
     for j, ic in enumerate(inits):
         plt.plot(ic[0], ic[1], "bx", markersize=8)
@@ -62,20 +73,34 @@ def plot_trajectories(trajectory: dict, inits: list[tuple]) -> None:
 
 
 def findroot(func: Callable, init: float | Sized) -> np.ndarray:
-    """
-    Find root of nonlinear equation f(x)=0.
+    """Find root of nonlinear equation f(x)=0.
 
-    Inputs:
-    - func: function to find root of
-    - init: initial guess for the root
-        (can be a float, np.ndarray or tuple)
-        - float if scalar function, array
-            or tuple if vector function
+    **Initial guess for root finding**
 
-    Outputs:
-    - sol: root of the function
-        (if convergence == 1)
-    - np.nan: if convergence != 1
+    The initial guess `init` can be a float, a numpy array, or a tuple,
+    depending on whether the function `func` is scalar or vector-valued. If
+    `func` is a scalar function, then `init` should be a float. If `func` is a
+    vector function, then `init` should be an array or a tuple of the same
+    dimension as the output of `func`.
+
+    **Output of root finding**
+
+    If the root finding converges successfully, this function returns a numpy
+    array containing the root. If the root finding does not converge, it returns
+    a numpy array of the same shape as `init` filled with NaN values.
+
+    Parameters
+    ----------
+    func
+        Function to find root of.
+    init
+        Initial guess for the root solver.
+
+    Returns
+    -------
+    :
+        Numpy array containing the root if converged, or NaN array if not converged.
+
     """
     sol, _, convergence, _ = fsolve(func, init, full_output=1, xtol=1e-12)
     # if converged, return solution
@@ -89,8 +114,7 @@ def findroot(func: Callable, init: float | Sized) -> np.ndarray:
 
 
 def get_fpts(my_flow: Callable, inits: list[tuple] | list[np.ndarray]) -> list[np.ndarray]:
-    """
-    Get a list of unique fixed points of the system of ODEs.
+    """Get a list of unique fixed points of the system of ODEs.
 
     This function works by numerically finding roots of the function my_flow
     starting from the initial conditions in inits, using the function findroot.
@@ -103,13 +127,18 @@ def get_fpts(my_flow: Callable, inits: list[tuple] | list[np.ndarray]) -> list[n
     points for root finding, where each initial condition is a point in the
     state space (i.e., a vector of the same dimension as the output of my_flow).
 
-
     Parameters
     ----------
     my_flow
         Callable function to find the fixed points of.
     inits
         List of initial conditions for root finding.
+
+    Returns
+    -------
+    :
+        List of unique fixed points.
+
     """
     fpts = []
     # find each of the fixed points near the starting
@@ -128,8 +157,7 @@ def get_fpts(my_flow: Callable, inits: list[tuple] | list[np.ndarray]) -> list[n
 
 
 def get_fpt_type(jacobian: np.ndarray) -> str:
-    """
-    Classify the type of a fixed point given the Jacobian matrix at that point.
+    """Classify the type of a fixed point given the Jacobian matrix at that point.
 
     The point is classified as follows:
         - stable: all eigenvalues have negative real part
@@ -147,6 +175,13 @@ def get_fpt_type(jacobian: np.ndarray) -> str:
     jacobian
         Square matrix representing the Jacobian of the system at the fixed
         point.
+
+    Returns
+    -------
+    :
+        String describing the type of fixed point, including its stability
+        and whether it is a node or spiral (if applicable).
+
     """
     # get eigenvalues of the Jacobian
     eigvals = np.linalg.eigvals(jacobian)
@@ -181,8 +216,12 @@ def get_fpt_type(jacobian: np.ndarray) -> str:
 
 
 def get_stability_label_from_fpt_type(fpt_type: str) -> str:
-    """
-    Get the stability label from the fixed point type string.
+    """Get the stability label from the fixed point type string.
+
+    Parses the input string to find the first word that matches one of the stability
+    labels defined in the StabilityLabel enum (e.g., "stable", "unstable", "saddle",
+    "indeterminate"). If a match is found, it returns that stability label. If no
+    match is found, it returns "unknown".
 
     Parameters
     ----------
@@ -193,6 +232,7 @@ def get_stability_label_from_fpt_type(fpt_type: str) -> str:
     -------
     :
         String describing just the stability of the fixed point.
+
     """
     # use re.match so matching is case-insensitive (re.IGNORECASE) and
     # anchored to the start of the string; the word boundary (\b) prevents a
@@ -210,48 +250,43 @@ def classify_fps(
     x: list[np.ndarray],
     unique: bool = True,
     ax_in: plt.Axes | None = None,
-    verbose: bool = True,
 ) -> tuple[list[str], list[tuple[Any, ...] | np.ndarray[Any, Any]], plt.Axes]:
-    """
-    Classify fixed points of a system of ODEs given by my_flow.
+    """Classify fixed points of a given system of ODEs.
 
-    To do: can break this function up into smaller functions.
+    Parameters
+    ----------
+    my_flow
+        Callable function representing the system of ODEs.
+    fpts
+        List of fixed points to classify, where each fixed point is a tuple or
+        numpy array representing a point in the state space.
+    x
+        List of numpy arrays representing the grid points for plotting and
+        determining which fixed points are in bounds of the plot.
+    unique
+        If True, only return unique stability labels for the fixed points. If
+        False, return the stability label for each fixed point.
+    ax_in
+        Matplotlib axes object to plot the fixed points on. If None, no plotting
+        will be done.
 
-    Inputs:
-    - my_flow: 2D function that takes x (2D) as input
-    - fpts: list of fixed points to classify
-    - x: tuple of numpy arrays (or a single array)
-        representing the range of x values in
-        each dimension of the state space
-    - unique: boolean (default=True)
-        If True, list of stability types will only
-        contain unique values (this is used for plotting)
-    - ax: matplotlib axes object (default=None)
-        If provided, fixed points will be plotted on this axis
-    - verbose: boolean (default=True)
-        If True, fixed points and their stability will be printed
+    Returns
+    -------
+    :
+        Tuple containing:
+        - List of stability labels for the fixed points (unique if unique=True).
+        - List of fixed points that are in bounds of the plot.
+        - Matplotlib axes object with the fixed points plotted (if ax_in is not None).
 
-    Outputs:
-    - fpt_stabilities: list of strings describing the stability
-        of each fixed point given in fpts that is
-        within the bounds of the plot window (x)
-        - If unique is True, only unique values will be
-            included in the list (so it will not be
-            1-1 with the returned fpts_new)
-    - fpts_new: list of fixed points that are within
-        the bounds of the plot window (x)
-    - ax: matplotlib axes object (if None was provided,
-        return None)
     """
     fpts_new = []
     fpt_stabilities = []
     # unpack x into x1 and x2
     x1 = x[0]
     x2 = x[1]
+
     # define Jacobian as a function of x - for getting stability:
     flow_jacobian = nd.Jacobian(my_flow)
-    if verbose:
-        print("Fixed points:")
 
     if ax_in is None:
         # for type checking easier to make dummy axes object
@@ -274,9 +309,10 @@ def classify_fps(
         # stability of the fixed point is the
         # first word in the fpt_type string
         fpt_stability = get_stability_label_from_fpt_type(fpt_type)
-        # if verbose, print the point and its stability
-        if verbose:
-            print(f"  • {fpt_type} at x = ({fpt[0]:.3f},{fpt[1]:.3f})")
+        # log the point and its stability
+        logger.debug(
+            "[ %s ] at [ x = ( %s ) ]", fpt_type, ", ".join([f"{coord:.4f}" for coord in fpt])
+        )
 
         # if out of bounds of the plot window,
         # don't plot it or append it to the list
@@ -315,23 +351,31 @@ def plot_null(
     x2: np.ndarray,
     params: dict | None = None,
 ) -> plt.Axes:
-    """
-    Plot the nullclines of a system of ODEs given by f1 and f2.
+    """Plot the nullclines of a system of ODEs given by f1 and f2.
 
-    Inputs:
-    - ax: matplotlib axes object
-    - f1: function that takes x1 and x2 as inputs
-    - f2: function that takes x1 and x2 as inputs
-    - x1: numpy array of x1 values
-    - x2: numpy array of x2 values
-    - params: parameters to pass to f1 and f2 (default=None)
-        - If None, f1 and f2 are assumed to be functions
-            of x1 and x2 only
-        - If not None, f1 and f2 are assumed to be functions
-            of x1, x2 and params
+    Only implemented for 2D systems.
 
-    Outputs:
-    - ax: matplotlib axes object with nullclines plotted
+    Parameters
+    ----------
+    ax
+        Axes object to plot on.
+    f1
+        Function representing the first component of the flow.
+    f2
+        Function representing the second component of the flow.
+    x1
+        Array of x1 values to use for plotting the nullclines.
+    x2
+        Array of x2 values to use for plotting the nullclines.
+    params
+        Optional dictionary of parameters to pass to f1 and f2 if they are
+        functions of parameters as well as x1 and x2.
+
+    Returns
+    -------
+    :
+        Axes object with the nullclines plotted.
+
     """
     x_1, x_2 = np.meshgrid(x1, x2)
     if params is None:
@@ -357,20 +401,27 @@ def plot_null(
 
 
 def plot_flow(ax: plt.Axes, my_flow: Callable, x: list[np.ndarray], num_grid: int = 15) -> plt.Axes:
-    """
-    Plot flow field of a system of ODEs given by my_flow.
+    """Plot flow field of a given system of ODEs.
 
-    Inputs:
-    - ax: matplotlib axes object
-    - my_flow: function that takes x as input
-        This is f(x) = dx/dt
-    - x: tuple of numpy arrays
-        Grid points at which to evaluate the flow
-    - num_grid: number of grid points to use (default=15)
-        for plotting the flow field
+    Parameters
+    ----------
+    ax
+        Axes object to plot on.
+    my_flow
+        Callable function representing the system of ODEs, which takes a state
+        vector as input and returns the flow vector at that point.
+    x
+        List of numpy arrays representing the grid points for plotting the flow
+        field.
+    num_grid
+        Number of grid points to use in each dimension for plotting the flow
+        field.
 
-    Outputs:
-    - ax: matplotlib axes object with flow field plotted
+    Returns
+    -------
+    :
+        Axes object with the flow field plotted.
+
     """
     # unpack x into x1 and x2
     x1 = x[0]
@@ -398,8 +449,7 @@ def make_legend_handles_for_fixed_pts(
     marker_size: int = 10,
     edge_color: str = "black",
 ) -> list[StabilityLegendHandle]:
-    """
-    Make a custom legend for the fixed point types, nullclines and trajectories.
+    """Make a custom legend for the fixed point types, nullclines and trajectories.
 
     Purpose of this method is to create a legend that only includes the fixed
     point types that are present in the plot, since the number and type of fixed
@@ -415,6 +465,8 @@ def make_legend_handles_for_fixed_pts(
         Dictionary mapping stability labels to face colors.
     marker_dict
         Dictionary mapping stability labels to marker styles.
+    marker_size
+        Size of the markers for the legend handles.
     edge_color
         Color of the marker edges.
 
@@ -423,6 +475,7 @@ def make_legend_handles_for_fixed_pts(
     :
         List of StabilityLegendHandle objects representing the legend handles
         for the fixed point types.
+
     """
     my_handles = []
     # get legend handles for the fixed point types that are present in given
@@ -455,41 +508,45 @@ def phase_portrait(
     n2_coarse: int | None = None,
     params: dict | None = None,
     nullclines: bool = True,
-    verbose: bool = True,
 ) -> tuple[plt.Figure, plt.Axes]:
-    """
-    Plot the phase portrait of a system of ODEs given by f1 and f2.
+    """Plot the phase portrait of a system of ODEs given by f1 and f2.
 
-    Inputs:
-    - f1: function that takes x1 and x2 as inputs
-    - f2: function that takes x1 and x2 as inputs
-    - x1: numpy array of x1 values
-    - x2: numpy array of x2 values
-    - fig_ax: tuple of matplotlib Figure and Axes objects
-        (default=None)
-        If None, a new figure and axes will be created
-    - inits: list of initial conditions (default=None)
-        If None, no trajectories will be plotted
-    - t_vec: numpy array of time points (default=None)
-        If None, a default time vector will be used
-    - n1_coarse: number of points in x1 for coarse grid
-        (default=10)
-    - n2_coarse: number of points in x2 for coarse grid
-        (default=None)
-        If None, n2_coarse will be set to n1_coarse
-    - params: parameters to pass to f1 and f2 (default=None)
-        If None, f1 and f2 are assumed to be functions
-            of x1 and x2 only
-        If not None, f1 and f2 are assumed to be functions
-            of x1, x2 and params
-    - nullclines: boolean (default=True)
-        If True, nullclines will be plotted
-    - verbose: boolean (default=True)
-        If True, fixed points and their stability will be printed
+    Parameters
+    ----------
+    f1
+        Function representing the first component of the flow.
+    f2
+        Function representing the second component of the flow.
+    x1
+        Array of x1 values to use for plotting the phase portrait.
+    x2
+        Array of x2 values to use for plotting the phase portrait.
+    fig_ax
+        Tuple of (figure, axes) to plot on. If None, a new figure
+        and axes will be created.
+    inits
+        List of initial conditions to plot trajectories from. If None,
+          no trajectories will be plotted.
+    t_vec
+        Array of time points to use for plotting trajectories. If None,
+        a default time vector will be used.
+    n1_coarse
+        Number of grid points to use in the x1 direction for finding
+        fixed points.
+    n2_coarse
+        Number of grid points to use in the x2 direction for finding
+        fixed points. If None, the same number of points as n1_coarse is used.
+    params
+        Optional dictionary of parameters to pass to f1 and f2 if they are
+        functions of parameters as well as x1 and x2.
+    nullclines
+        If True, nullclines will be plotted. If False, they will not be plotted.
 
-    Outputs:
-    - fig: matplotlib Figure object
-    - ax: matplotlib Axes object
+    Returns
+    -------
+    :
+        Matplotlib Figure and Axes objects with the phase portrait plotted.
+
     """
 
     # define function x' = [f1(x),f2(x)] for rest
@@ -543,10 +600,9 @@ def phase_portrait(
     # if fixed points are found, classify them
     # and plot them
     if len(fpts) > 0:
-        fpt_stabilities, _, ax = classify_fps(_my_flow, fpts, [x1, x2], ax_in=ax, verbose=verbose)
+        fpt_stabilities, _, ax = classify_fps(_my_flow, fpts, [x1, x2], ax_in=ax)
     else:
-        if verbose:
-            print("No fixed points found.")
+        logger.debug("No fixed points found.")
         fpt_stabilities = []
 
     ax.set_xlabel("$x_1$", fontsize=14)

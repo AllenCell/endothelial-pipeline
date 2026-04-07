@@ -2,8 +2,8 @@ from endo_pipeline.cli import CropPattern, Datasets
 
 
 def main(
-    datasets: Datasets | None = None,
     crop_pattern: CropPattern = "grid",
+    datasets: Datasets | None = None,
     plot_stack: bool = False,
     compute_vtk: bool = False,
     use_same_axes: bool = False,
@@ -36,7 +36,7 @@ def main(
     derived from the DiffAE features via a 3D PCA transformation. For more
     details on the specific features used and how they are derived, see the
     methods `fit_pca` and `project_features_to_pcs` in the
-    `diffae_dataframe_utils` module.
+    `pca` module.
 
     **Dataframe loading pattern**
 
@@ -68,13 +68,10 @@ def main(
 
     Parameters
     ----------
-    datasets
-        Optional list of dataset names to visualize. If not provided, will
-        visualize all datasets in the dataframe manifest corresponding to the
-        given model manifest and run name.
     crop_pattern
-        Crop pattern to use for loading the feature dataframes. If not provided,
-        will use the default crop pattern of "grid".
+        The crop pattern for the features to visualize.
+    datasets
+        Optional list of dataset names to visualize.
     plot_stack
         If true, plot 3D stacks of the flow field visualizations in each of the
         three variables.
@@ -87,24 +84,24 @@ def main(
     """
     import logging
     from pathlib import Path
+    from typing import cast
 
     import numpy as np
     import pandas as pd
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import get_datasets_in_collection
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.data_driven_flow_field import (
         compute_extrapolated_vector_field,
         solve_ddff_ode,
     )
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
+    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
+    from endo_pipeline.library.analyze.dataframe_validation import (
         check_required_columns_in_dataframe,
-        fit_pca,
-        get_dataframe_for_dynamics_workflows,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
-        get_kernel_density_estimate,
+        get_kernel_density_estimate_from_trajectories,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
@@ -112,13 +109,7 @@ def main(
         plot_stable_fixed_points_together,
     )
     from endo_pipeline.library.visualize.diffae_features.vtk_io import save_vector_field_as_vtk
-    from endo_pipeline.manifests import (
-        get_dataframe_location_for_dataset,
-        get_feature_dataframe_manifest_name,
-        list_datasets_with_dataframes,
-        load_dataframe_manifest,
-        load_model_manifest,
-    )
+    from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_DYNAMICS,
@@ -126,6 +117,7 @@ def main(
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
+        METADATA_COLUMNS_TO_KEEP,
         PERIOD_THETA_RESCALED,
         RESCALE_THETA,
     )
@@ -154,20 +146,16 @@ def main(
     ndim = len(column_names)
     drift_column_names = [f"{name}_drift" for name in column_names]
     stability_label_column_name = STABILITY_COLUMN_NAME
+    # columns to keep when loading feature dataframes
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
-    # load model manifest and get corresponding dataframe manifest name
-    model_manifest = load_model_manifest(model_manifest_name)
-    feature_dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern=crop_pattern
-    )
+    # get dataframe manifest for crop-based features
+    base_name = f"{model_manifest_name}_{run_name}_{crop_pattern}"
+    feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
-    drift_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{feature_dataframe_manifest_name}"
-    )
-    fixed_points_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{feature_dataframe_manifest_name}"
-    )
+    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{base_name}"
+    fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
     # Flexible DEMO_MODE loading pattern: first try to load the manifests with
     # the expected names, but if any of them are not found, then try to load the
     # corresponding demo manifests with the "_demo." This allows for both
@@ -201,28 +189,7 @@ def main(
     # both the drift and feature dataframe manifests to avoid errors later on
     # when loading dataframes for specific datasets, and log an error if no
     # valid dataset names are provided after this filtering step
-    valid_dataset_options = list(
-        set(list_datasets_with_dataframes(drift_dataframe_manifest))
-        & set(list_datasets_with_dataframes(feature_dataframe_manifest))
-    )
-    if datasets is None:
-        dataset_names = get_datasets_in_collection(
-            DATASET_COLLECTION_FOR_3D_DYNAMICS, valid_dataset_options
-        )
-    else:
-        dataset_names = [name for name in datasets if name in valid_dataset_options]
-    if len(dataset_names) == 0:
-        logger.error(
-            "No valid dataset names provided. Dataset names in the loaded flow field dataframe manifest [ %s ] are: [ %s ]",
-            drift_dataframe_manifest_name,
-            valid_dataset_options,
-        )
-        raise ValueError("No valid dataset names provided.")
-
-    # Create output folders if they do not exist yet
-    fig_savedir = get_output_path(__file__, feature_dataframe_manifest_name, "figs")
-    if compute_vtk:
-        vtk_savedir = get_output_path(__file__, feature_dataframe_manifest_name, "vtk")
+    dataset_names = datasets or get_datasets_in_collection(DATASET_COLLECTION_FOR_3D_DYNAMICS)
 
     if DEMO_MODE:
         logger.warning(
@@ -234,14 +201,10 @@ def main(
         num_datasets = min(len(dataset_names), 2)
         dataset_names = dataset_names[:num_datasets]
 
-    # fit PCA using the features from the given dataframe manifest PCA always
-    # fit on the grid-based features, even if the features for flow field
-    # analysis are from tracked-based crops, to ensure that the PCA space is the
-    # same across analyses
-    dataframe_manifest_name_pca = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern="grid"
-    )
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name_pca)
+    # Create output folders if they do not exist yet
+    fig_savedir = get_output_path(__file__, crop_pattern, "figs")
+    if compute_vtk:
+        vtk_savedir = get_output_path(__file__, crop_pattern, "vtk")
 
     # Get the corresponding kernels and bin widths for each variable. For the
     # polar angle variable, also specify the period for the kernel based on the
@@ -253,25 +216,17 @@ def main(
     # bin limits if use_same_axes is False
     kernels = []
     bin_widths = []
-    rescaled_theta = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
+    rescaled_theta_period = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
     bounds_for_plots = []
     for column_name in column_names:
         name = KERNEL_NAMES_DYNAMICS[column_name]
         bandwidth = KERNEL_BANDWIDTHS_DYNAMICS[column_name]
-        period = rescaled_theta if column_name == ColumnName.DiffAEData.POLAR_ANGLE else None
+        period = rescaled_theta_period if column_name == ColumnName.DiffAEData.POLAR_ANGLE else None
         bin_width = BIN_WIDTHS_DYNAMICS[column_name]
         bin_limits_col = BIN_LIMITS_DYNAMICS[column_name]
         kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
         bin_widths.append(bin_width)
         bounds_for_plots.append(bin_limits_col)
-
-    # set list of column names to keep from the loaded feature dataframes
-    columns_plus_metadata_to_keep = [
-        *column_names,
-        ColumnName.DATASET,
-        ColumnName.TIMEPOINT,
-        ColumnName.CROP_INDEX,
-    ]
 
     # next, loop through each dataset to visualize the flow field and
     # trajectories in the feature space for that dataset, with fixed points (if
@@ -279,16 +234,23 @@ def main(
     stable_fixed_point_dataframe_list = []
 
     for dataset_name in dataset_names:
+        if dataset_name not in drift_dataframe_manifest.locations:
+            logger.warning(
+                "No drift coefficient dataframe found in manifest [ %s ] for dataset [ %s ]. Skipping this dataset.",
+                drift_dataframe_manifest_name,
+                dataset_name,
+            )
+            continue
+
         logger.info(f"Visualizing flow field for dataset [ {dataset_name} ]")
         # load dataframe with feature data
-        feature_data = get_dataframe_for_dynamics_workflows(
-            dataset_name,
-            feature_dataframe_manifest,
-            pca=pca,
-            include_cell_piling=False,
-            include_not_steady_state=False,
-            crop_pattern=crop_pattern,
-        )[columns_plus_metadata_to_keep]
+        # load dataframe and perform additional filtering (remove
+        # non-steady-state timepoints based on annotations), computing
+        # only the columns needed for flow field estimation and analysis to save memory.
+        dataset_config = load_dataset_config(dataset_name)
+        df_ = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
+        df = df_[columns_to_compute].compute()
+        feature_data = filter_dataframe_to_steady_state(df, dataset_config)
 
         # load drift vector field dataframe and check that required columns are
         # present
@@ -319,8 +281,9 @@ def main(
             ]
             if not stable_fixed_point_subset.empty:
                 stable_fixed_point_dataframe_list.append(stable_fixed_point_subset)
+                column_names_ = cast(list[str], column_names)
                 for _, row in stable_fixed_point_subset.iterrows():
-                    stable_fixed_points_list.append(row[column_names].to_numpy())
+                    stable_fixed_points_list.append(row[column_names_].to_numpy())
             else:
                 logger.warning(
                     "No stable fixed points found for dataset [ %s ] in fixed point dataframe [ %s ].",
@@ -369,7 +332,7 @@ def main(
         trajs = []
         for _, traj_df in feature_data.groupby(ColumnName.CROP_INDEX):
             trajs.append(traj_df.sort_values(by=ColumnName.TIMEPOINT)[column_names].to_numpy())
-        prob_kde = get_kernel_density_estimate(trajs, bin_edges, kernels)
+        prob_kde = get_kernel_density_estimate_from_trajectories(trajs, bin_edges, kernels)
 
         # unpack drift values from dataframe and reshape to grid shape for flow
         # field visualization and ODE solving,

@@ -1,35 +1,70 @@
+"""Methods for computing autocorrelation and cross-correlation functions from time series data."""
+
 import logging
 from typing import Any, Literal
 
 import numpy as np
+import pandas as pd
 from scipy.optimize import curve_fit
-from sklearn.decomposition import PCA
 
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    df_to_array,
-    get_dataframe_for_dynamics_workflows,
-)
-from endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.diffae_feature_dataframes import (
-    DIFFAE_PC_COLUMN_NAMES,
-    NUM_PCS_TO_ANALYZE,
+from endo_pipeline.settings.cross_correlations import (
+    CROSS_CORR_INDEX_COMBINATIONS,
+    MAX_LAG_INTEGRATE,
+    NUM_TIMEPOINT_FRAC,
 )
 from endo_pipeline.settings.dynamics_workflows import PERIOD_THETA_RESCALED, RESCALE_THETA
 
 logger = logging.getLogger(__name__)
 
-# include all pairs of the first three PCs and all pairs of the three polar coordinates for cross-correlation analysis
-CROSS_CORR_INDEX_COMBINATIONS = [(0, 1), (0, 2), (1, 2), (3, 4), (3, 5), (4, 5)]
-# use lags going from - to + {num_timepoints}//NUM_TIMEPOINT_FRAC for CCF/ACF calculation
-NUM_TIMEPOINT_FRAC = 3
 
-# set upper bound of integration for delta CCF integral calculation
-MAX_LAG_INTEGRATE = 5
+def cross_correlation_function(
+    data_feat1: np.ndarray, data_feat2: np.ndarray, lag_cutoff_fraction: int = NUM_TIMEPOINT_FRAC
+) -> np.ndarray:
+    """Get the normalized cross-correlation function (CCF) between two features.
 
+    The input data arrays are expected to be of shape (num_samples,
+    num_timepoints). That is, the data are assumed to be {num_samples} iid
+    sample time series, each sampled at the same num_timepoints.
 
-def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -> np.ndarray:
-    """Get the normalized cross-correlation function (CCF) between two features."""
+    The cross correlation function for each sample is computed using the
+    convolution theorem, which states that the CCF is the inverse Fourier
+    transform (using the fast Fourier transform, or FFT) of the cross power
+    spectrum of the two signals. That is, it is equal to the inverse FFT of
+    `X1^{*}(f) * X2(f)` where `X1` and `X2` are the FFTs of the two signals.
+
+    The CCF is normalized by the product of the standard deviations of the two
+    signals to get the scaled CCF.
+
+    The resulting scaled CCF is then shifted so that zero lag is in the center
+    of the array, and only the middle portion of the CCF is returned
+    (corresponding to lags going from - to +
+    `num_timepoints//lag_cutoff_fraction`) to get the actual CCF of the unpadded
+    signal.
+
+    Finally, the CCF is averaged over the num_samples trajectories to get the
+    average CCF across the population of samples.
+
+    Parameters
+    ----------
+    data_feat1
+        Array of shape (num_samples, num_timepoints) containing time series data
+        for the first feature for the CCF.
+    data_feat2
+        Array of shape (num_samples, num_timepoints) containing time series data
+        for the second feature for the CCF.
+    lag_cutoff_fraction
+        Fraction of num_timepoints to use as cutoff for lags in the returned
+        CCF.
+
+    Returns
+    -------
+    :
+        Array of shape (num_lags,) containing the average scaled CCF across the population of samples,
+        where num_lags is equal to `2 * num_timepoints // lag_cutoff_fraction + 1`.
+
+    """
     num_traj = data_feat1.shape[0]
     num_timepoints = data_feat1.shape[1]
 
@@ -39,12 +74,10 @@ def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -
     num_pad = 2 ** int(np.ceil(np.log2(2 * num_timepoints - 1)))
 
     for traj_index in range(num_traj):
-
         # Center data by subtracting mean, get standard deviation
         # for normalization of CCF.
-        # fft cannot handle NaNs, so we replace them with zeros after
+        # FFT cannot handle NaNs, so we replace them with zeros after
         # centering/mean subtraction.
-        # Use ddof=1 for standard deviation of sample of the population.
         data_mean1 = np.nanmean(data_feat1[traj_index])
         data_stdev1 = np.nanstd(data_feat1[traj_index], ddof=1)
         x_t_i_ctr = data_feat1[traj_index] - data_mean1
@@ -53,10 +86,7 @@ def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -
         data_mean2 = np.nanmean(data_feat2[traj_index])
         data_stdev2 = np.nanstd(data_feat2[traj_index], ddof=1)
         x_t_j_ctr = data_feat2[traj_index] - data_mean2
-        x_t_j_ctr = np.nan_to_num(x_t_i_ctr, nan=0.0)
-
-        # By the convolution theorem, the CCF is the inverse FFT of the cross power spectrum
-        # (i.e., X1^{*}(f) * X2(f) where X1 and X2 are the FFTs of the two signals).
+        x_t_j_ctr = np.nan_to_num(x_t_j_ctr, nan=0.0)
 
         # Get the FFT of the centered data, padding with zeros to length num_pad.
         cf_1 = np.fft.fft(x_t_i_ctr, n=num_pad)
@@ -68,11 +98,11 @@ def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -
         # normalizing by product of standard deviations (definition of scaled CCF)
         corr_unshifted = np.fft.ifft(sf).real / (data_stdev1 * data_stdev2)
 
-        # Shift the CCF so that zero lag is in the center of the array.
+        # Shift the CCF so that zero lag is in the center of the array and
+        # extract the middle portion of the CCF corresponding to lags from - to
+        # + num_timepoints//lag_cutoff_fraction.
         corr_shifted = np.fft.fftshift(corr_unshifted)
-        # Extract the middle half of the CCF (corresponding to lags going from
-        # - to + num_timepoints//NUM_TIMEPOINT_FRAC) to get the actual CCF of the unpadded signal.
-        max_lag = num_timepoints // NUM_TIMEPOINT_FRAC
+        max_lag = num_timepoints // lag_cutoff_fraction
         index_lb = num_pad // 2 - max_lag
         index_ub = num_pad // 2 + max_lag + 1
         corr = corr_shifted[index_lb:index_ub]
@@ -87,13 +117,36 @@ def cross_correlation_function(data_feat1: np.ndarray, data_feat2: np.ndarray) -
     return corr_sum / num_traj
 
 
-def autocorrelation_function(data: np.ndarray, component_index: int) -> np.ndarray:
-    """Get the normalized autocorrelation function (ACF) for a specific component."""
+def autocorrelation_function(
+    data: np.ndarray, component_index: int, lag_cutoff_fraction: int = NUM_TIMEPOINT_FRAC
+) -> np.ndarray:
+    """Get the normalized autocorrelation function (ACF) for a specific component.
+
+    Wrapper for `cross_correlation_function`, using the fact that the ACF is just
+    the CCF of a signal with itself.
+
+    Parameters
+    ----------
+    data
+        Array of shape (num_samples, num_timepoints, num_components) containing
+        time series data for the feature of interest.
+    component_index
+        Index of the component for which to compute the ACF.
+    lag_cutoff_fraction
+        Fraction of num_timepoints to use as cutoff for lags in the returned ACF.
+
+    Returns
+    -------
+    :
+        Array of shape (num_lags,) containing the average scaled ACF across the
+        population of samples, where num_lags is equal to `2 * num_timepoints // lag_cutoff_fraction + 1`.
+
+    """
     # Extract the specified component from the data array.
     x_t_j = data[..., component_index]
 
     # Pass to cross_correlation_function with itself to get ACF.
-    return cross_correlation_function(x_t_j, x_t_j)
+    return cross_correlation_function(x_t_j, x_t_j, lag_cutoff_fraction=lag_cutoff_fraction)
 
 
 def fit_exp_decay_and_get_relaxation_timescale(
@@ -155,8 +208,7 @@ def bootstrap_autocorrelation_confidence_intervals(
     n_bootstraps: int = 200,
     confidence_level: float = 0.95,
 ) -> dict[str, tuple]:
-    """
-    Bootstrap the normalized autocorrelation function (ACF) computed from finite data.
+    """Bootstrap the normalized autocorrelation function (ACF) computed from finite data.
 
     The ACF is computed for a specific vector component of an ensemble of stationary,
     vector-valued time series data.
@@ -188,8 +240,8 @@ def bootstrap_autocorrelation_confidence_intervals(
         Dictionary containing lower and upper bounds of the confidence intervals for:
         - autocorrelation: ACF(tau)
         - relaxation_timescale: Decay coefficient from exponential fit to ACF.
-    """
 
+    """
     # Bootstrap the CCF using resampling with replacement
     num_traj = data.shape[0]
     bootstrap_autocorrelations = []
@@ -241,8 +293,7 @@ def bootstrap_cross_correlation_confidence_intervals(
     max_lag_integrate: int = MAX_LAG_INTEGRATE,
     confidence_level: float = 0.95,
 ) -> dict[str, tuple]:
-    """
-    Bootstrap the normalized cross-correlation function (CCF) computed from finite data.
+    """Bootstrap the normalized cross-correlation function (CCF) computed from finite data.
 
     The CCF is computed between between vector components of an ensemble of stationary,
     vector-valued time series data.
@@ -278,8 +329,8 @@ def bootstrap_cross_correlation_confidence_intervals(
         - delta_cross_correlation: |CCF(tau>0) - CCF(tau<0)|
         - delta_cross_correlation_integral: Integral of |CCF(tau>0) - CCF(tau<0)| over
           the first {max_lag_integrate} lags.
-    """
 
+    """
     # Bootstrap the CCF using resampling with replacement
     num_traj = data_feat1.shape[0]
     bootstrap_correlations = []
@@ -327,58 +378,90 @@ def bootstrap_cross_correlation_confidence_intervals(
     return confidence_interval_bounds
 
 
-def _compute_correlations_for_one_dataset(
-    dataset_name: str,
-    dataframe_manifest: DataframeManifest,
-    pca: PCA,
+def compute_correlations_for_one_dataset(
+    dataframe: pd.DataFrame,
+    column_names: list[str | Column.DiffAEData],
     correlation_dict: dict,
     bootstrap_samples: int | None = None,
     max_lag_integrate: int = MAX_LAG_INTEGRATE,
     rescale_polar_angle: bool = RESCALE_THETA,
 ) -> dict[str, dict[str, Any]]:
-    """Compute cross-correlation and autocorrelation for features from one dataset."""
+    """Compute cross-correlation and autocorrelation for features from one dataset.
 
-    # try to get dataframe for the given dataset
-    # if it does not exist, skip this dataset, return dict as is
-    try:
-        df = get_dataframe_for_dynamics_workflows(
-            dataset_name,
-            dataframe_manifest,
-            pca=pca,
-            filter_by_annotations=True,
-            include_cell_piling=False,
-            include_not_steady_state=False,
-            compute_polar=True,
-            rescale_theta=rescale_polar_angle,
-        )
-    except KeyError:
-        logger.warning(
-            "Dataset [ %s ] not found in the manifest, skipping for this workflow.", dataset_name
-        )
-        return correlation_dict
+    Parameters
+    ----------
+    dataframe
+        DataFrame containing the data for one dataset, with columns specified in
+        column_names.
+    column_names
+        List of column names corresponding to the features for which to compute
+        correlations.
+    correlation_dict
+        Dictionary to store the computed correlations, which will be updated and
+        returned.
+    bootstrap_samples
+        Number of bootstrap samples to use for calculating confidence intervals.
+        If None, no confidence intervals will be calculated.
+    max_lag_integrate
+        Maximum lag to integrate over for the forward minus backward CCF
+        integral calculation.
+    rescale_polar_angle
+        Whether the polar angle variable has been rescaled from [-pi,pi] to
+        [0,pi] (used to set the polar angle period for unwrapping).
 
-    feat_cols = DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
-    # add polar coordinate features to the list of features for correlation analysis
-    polar_column_names = [
-        Column.DiffAEData.POLAR_ANGLE,
-        Column.DiffAEData.POLAR_RADIUS,
-        Column.DiffAEData.PC3_FLIPPED,
+    Returns
+    -------
+    :
+        Updated correlation_dict with computed correlations for the dataset.
+
+    """
+    # check that required columns are present in the dataframe
+    required_columns = [
+        *column_names,
+        Column.CROP_INDEX,
+        Column.DATASET,
     ]
-    feat_cols.extend(polar_column_names)
+    check_required_columns_in_dataframe(dataframe, required_columns)
+
+    # get dataset name from dataframe
+    dataset_name = dataframe[Column.DATASET].iloc[0]
 
     # unwrap angles if polar_angle is in feat_cols
-    if Column.DiffAEData.POLAR_ANGLE in feat_cols:
+    if Column.DiffAEData.POLAR_ANGLE in column_names:
         polar_angle_period = PERIOD_THETA_RESCALED if rescale_polar_angle else 2 * np.pi
-        for _, df_crop in df.groupby(Column.CROP_INDEX):
-            df.loc[df_crop.index, Column.DiffAEData.POLAR_ANGLE] = np.unwrap(
+        for _, df_crop in dataframe.groupby(Column.CROP_INDEX):
+            dataframe.loc[df_crop.index, Column.DiffAEData.POLAR_ANGLE] = np.unwrap(
                 df_crop[Column.DiffAEData.POLAR_ANGLE], period=polar_angle_period
             )
 
-    # get feature data
-    feats = df_to_array(df, feat_cols)
-    num_feats = len(feat_cols)
+    # get feature data, filling missing timepoints with NaNs to ensure proper
+    # alignment for correlation calculations
+    t_min = dataframe[Column.TIMEPOINT].min()
+    t_max = dataframe[Column.TIMEPOINT].max()
+    all_timepoints = np.arange(t_min, t_max + 1)
 
-    num_timepoints = feats.shape[1]
+    # fill missing timepoints with NaN values for each crop to ensure
+    # consistent time axis across crops when computing population
+    # variance and cumulative variance per crop, which require a 2D
+    # array of shape (num_crops, num_timepoints)
+    data_filled_list = []
+    for _, data_crop in dataframe.groupby(Column.CROP_INDEX):
+        # sort by timepoint to ensure correct order before reindexing
+        data_crop = data_crop.sort_values(by=Column.TIMEPOINT)
+
+        # reindex dataframe to include all timepoints in full range
+        data_crop_filled = data_crop.set_index(Column.TIMEPOINT).reindex(all_timepoints)
+
+        # reset index to restore timepoint column
+        data_crop_filled = data_crop_filled.reset_index()
+
+        # append to list
+        data_filled_list.append(data_crop_filled)
+
+    dataframe_filled = pd.concat(data_filled_list, ignore_index=True)
+
+    num_feats = len(column_names)
+    num_timepoints = len(all_timepoints)
     # make sure lags are symmetric around zero
     max_lags = num_timepoints // NUM_TIMEPOINT_FRAC
     lags = np.arange(-max_lags, max_lags + 1)
@@ -390,6 +473,9 @@ def _compute_correlations_for_one_dataset(
     acf_ub = np.zeros((num_lags, num_feats))
     relaxation_timescale_lb = np.zeros(num_feats)
     relaxation_timescale_ub = np.zeros(num_feats)
+    # dataframe as array of shape (num_crops, num_timepoints, num_feats) for the
+    # current feature, with missing timepoints filled with NaNs
+    feats = dataframe_filled[column_names].to_numpy().reshape(-1, num_timepoints, num_feats)
     for i in range(num_feats):
         acf[:, i] = autocorrelation_function(feats, i)
         if bootstrap_samples is not None:
@@ -445,7 +531,7 @@ def _compute_correlations_for_one_dataset(
     delta_ccf_integral = cross_correlation_difference_norm(delta_ccf)
 
     # store results in dict of dicts and return updated dict
-    correlation_dict["features"][dataset_name] = feat_cols
+    correlation_dict["features"][dataset_name] = column_names
     correlation_dict["lags"][dataset_name] = lags
     correlation_dict["acf"][dataset_name] = acf
     correlation_dict["acf_ci_lower"][dataset_name] = acf_lb
@@ -462,41 +548,6 @@ def _compute_correlations_for_one_dataset(
     correlation_dict["delta_ccf_integral_ci_lower"][dataset_name] = delta_ccf_integral_lb
     correlation_dict["delta_ccf_integral_ci_upper"][dataset_name] = delta_ccf_integral_ub
     correlation_dict["max_lag_integrate"][dataset_name] = max_lag_integrate
-    return correlation_dict
-
-
-def compute_correlation_dict(
-    dataset_names: list[str],
-    dataframe_manifest: DataframeManifest,
-    pca: PCA,
-    bootstrap_samples: int | None = None,
-) -> dict[str, dict]:
-    """Compute cross-correlation and autocorrelation for features from each dataset."""
-    correlation_dict: dict[str, dict[str, np.ndarray]] = {
-        "features": {},
-        "lags": {},
-        "acf": {},
-        "acf_ci_lower": {},
-        "acf_ci_upper": {},
-        "relaxation_timescales_ci_lower": {},
-        "relaxation_timescales_ci_upper": {},
-        "ccf": {},
-        "ccf_ci_lower": {},
-        "ccf_ci_upper": {},
-        "delta_ccf": {},
-        "delta_ccf_ci_lower": {},
-        "delta_ccf_ci_upper": {},
-        "delta_ccf_integral": {},
-        "delta_ccf_integral_ci_lower": {},
-        "delta_ccf_integral_ci_upper": {},
-        "max_lag_integrate": {},
-        "relaxation_timescales": {},
-    }
-    # update dict with correlation functions for each dataset in a loop
-    for dataset_name in dataset_names:
-        correlation_dict = _compute_correlations_for_one_dataset(
-            dataset_name, dataframe_manifest, pca, correlation_dict, bootstrap_samples
-        )
     return correlation_dict
 
 

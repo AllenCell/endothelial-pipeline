@@ -1,3 +1,5 @@
+"""Visualization methods for time series auto- and cross-correlation analyses."""
+
 import logging
 from pathlib import Path
 from typing import Any, Literal
@@ -10,10 +12,6 @@ from matplotlib.figure import Figure
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import get_output_path, save_plot_to_path
-from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-    get_dataset_descriptions,
-    parse_dataset_description,
-)
 from endo_pipeline.library.analyze.numerics.correlations import (
     CROSS_CORR_INDEX_COMBINATIONS,
     double_exponential_decay,
@@ -57,7 +55,7 @@ def _plot_acf_curves_together(
     plot_title: str | None = None,
     **kwargs: Any,
 ) -> tuple[Figure, Axes]:
-    """Plot multiple ACF curves together for comparison."""
+    """Plot multiple autocorrelation function (ACF) curves together for comparison."""
     fig, ax = plt.subplots(figsize=figsize)
 
     lags: np.ndarray = correlation_dict["lags"][dataset_name]
@@ -101,7 +99,7 @@ def _plot_acf_curves_together(
 def _add_relaxation_timescale_to_plot(
     relaxation_timescales: list[float], feature_labels: list[str], ax: Axes
 ) -> Axes:
-    """Print relaxation timescales on plot of ACFs."""
+    """Print relaxation timescales on plot of autocorrelation functions (ACFs)."""
     # using unicode because slurm nodes and A100s do not support LaTeX rendering
     tau_str = chr(964)  # Greek letter tau (τ)
     strings_per_pc = [
@@ -134,7 +132,32 @@ def _add_delta_ccf_integral_to_plot(
     feature_labels: list[str],
     ax: Axes,
 ) -> Axes:
-    """Print integral of delta CCF near zero on plot of delta CCFs."""
+    """Print summary of cross-correlation function (CCF) differences on plot.
+
+    The summary metric is the integral of the difference between positive and
+    negative lag CCFs near lag = zero, which quantifies the overall asymmetry of
+    the CCF around zero lag. This metric is printed on the plot for each feature
+    combination, along with confidence intervals if available.
+
+    Parameters
+    ----------
+    delta_ccf_integral
+        Array of integral values for each feature combination.
+    max_lag_integrate
+        Maximum lag (in frames) to integrate over around lag = zero.
+    ci_bounds
+        Tuple of (lower bounds, upper bounds) for confidence intervals of the integral values.
+    feature_labels
+        List of feature labels corresponding to the indices in the integral array.
+    ax
+        Matplotlib Axes object to add the text to.
+
+    Returns
+    -------
+    :
+        Matplotlib Axes object with the text added.
+
+    """
     integral_upper_bound_hrs = round(5 * max_lag_integrate / 60, 2)  # convert from frames to hours
     integral_srings = [
         rf"$|\int_{{0}}^{{{integral_upper_bound_hrs}}}\Delta C_{{{j+1}{k+1}}}(\tau) d\tau|$"
@@ -183,7 +206,30 @@ def _add_exp_fit_to_plot(
     feature_labels: list[str],
     exp_decay_func: Literal["exponential_decay", "double_exponential_decay"],
 ) -> tuple[Axes, list[float]]:
-    """Fit exponential decay to ACF and add to existing plot."""
+    """Fit exponential decay to autocorrelation function (ACF) and add curve to existing plot.
+
+    Parameters
+    ----------
+    acf
+        Array of ACF values for a single feature/component across lags.
+    lags
+        Array of lag values corresponding to the ACF values.
+    ax
+        Matplotlib Axes object to add the fit curve to.
+    feature_labels
+        List of feature labels corresponding to the ACF curves being plotted.
+    exp_decay_func
+        String specifying which exponential decay function to fit (single or
+        double exponential decay).
+
+    Returns
+    -------
+    :
+        Matplotlib Axes object with the fit curve added.
+    :
+        List of relaxation timescales extracted from the fit for each feature/component.
+
+    """
     # check to make sure valid function is provided
     if exp_decay_func not in ["exponential_decay", "double_exponential_decay"]:
         logger.error(
@@ -252,14 +298,24 @@ def _add_exp_fit_to_plot(
 def _make_all_acf_plots(
     dataset_name: str,
     correlation_dict: dict[str, dict[str, Any]],
-    dataset_description: str,
     output_path: Path,
     fit_double_exp: bool = True,
     bootstrap_samples: int | None = None,
 ) -> dict[str, dict[str, Any]]:
+    """Plot autocorrelation function (ACF) curves and fits for a single dataset."""
     # unpack results
     lags: np.ndarray = correlation_dict["lags"][dataset_name]
     acf: np.ndarray = correlation_dict["acf"][dataset_name]
+
+    # get string for shear stress to include in plot title
+    dataset_config = load_dataset_config(dataset_name)
+    if len(dataset_config.flow_conditions) > 1:
+        logger.warning(
+            "Multiple flow conditions found for dataset [ %s ]. "
+            "Using shear stress from first flow condition for plot titles.",
+            dataset_name,
+        )
+    shear_stress = dataset_config.flow_conditions[0].shear_stress
 
     # plot acf for positive lags
     # (acf is symmetric around zero)
@@ -272,7 +328,7 @@ def _make_all_acf_plots(
         correlation_dict,
         bootstrap_samples=bootstrap_samples,
         component_labels=correlation_dict["features"][dataset_name],
-        plot_title=f"Autocorrelation of PCA Components ({dataset_description})",
+        plot_title=f"Autocorrelation of PCA Components ({shear_stress} dyn/cm$^2$)",
         xlabel="Lag (hours)",
         linewidth=2.75,
     )
@@ -283,6 +339,7 @@ def _make_all_acf_plots(
         output_path,
         f"autocorrelation_{dataset_name}",
     )
+    plt.close(fig)
 
     # fit single exponential decay to ACF
     fig, ax = _plot_acf_curves_together(
@@ -290,7 +347,7 @@ def _make_all_acf_plots(
         correlation_dict,
         bootstrap_samples=bootstrap_samples,
         component_labels=correlation_dict["features"][dataset_name],
-        plot_title=f"Autocorrelation of PCA Components ({dataset_description})",
+        plot_title=f"Autocorrelation of PCA Components ({shear_stress} dyn/cm$^2$)",
         xlabel="Lag (hours)",
         linewidth=2.75,
     )
@@ -305,6 +362,7 @@ def _make_all_acf_plots(
         output_path,
         f"autocorrelation_exp_fit_{dataset_name}",
     )
+    plt.close(fig)
 
     if fit_double_exp:
         # fit double exponential decay to ACF
@@ -313,7 +371,7 @@ def _make_all_acf_plots(
             correlation_dict,
             bootstrap_samples=bootstrap_samples,
             component_labels=correlation_dict["features"][dataset_name],
-            plot_title=f"Autocorrelation of PCA Components ({dataset_description})",
+            plot_title=f"Autocorrelation of PCA Components ({shear_stress} dyn/cm$^2$)",
             xlabel="Lag (hours)",
             linewidth=2.75,
             linestyle="-",
@@ -330,6 +388,7 @@ def _make_all_acf_plots(
             output_path,
             f"autocorrelation_double_exp_fit_{dataset_name}",
         )
+        plt.close(fig)
 
     return correlation_dict
 
@@ -337,10 +396,10 @@ def _make_all_acf_plots(
 def _make_all_ccf_plots(
     dataset_name: str,
     correlation_dict: dict[str, dict[str, Any]],
-    dataset_description: str,
     output_path: Path,
     bootstrap_samples: int | None = None,
 ) -> None:
+    """Plot cross-correlation function (CCF) curves and differences for a single dataset."""
     # unpack results
     lags: np.ndarray = correlation_dict["lags"][dataset_name]
     num_lags = len(lags)
@@ -353,6 +412,10 @@ def _make_all_ccf_plots(
     delta_ccf_integral: np.ndarray = correlation_dict["delta_ccf_integral"][dataset_name]
     max_lag_integrate: int = correlation_dict["max_lag_integrate"][dataset_name]
     feature_labels: list[str] = correlation_dict["features"][dataset_name]
+
+    # get string for shear stress to include in plot title
+    dataset_config = load_dataset_config(dataset_name)
+    shear_stress = dataset_config.flow_conditions[0].shear_stress
 
     # plot ccf with confidence intervals if available
     fig, ax = plt.subplots(figsize=(12, 6))
@@ -368,7 +431,7 @@ def _make_all_ccf_plots(
                 color=list(TABLEAU_COLORS.keys())[i],
                 label="95% CI",
             )
-    ax.set_title(f"Cross-Correlation of PCA Components ({dataset_description})")
+    ax.set_title(f"Cross-Correlation of PCA Components ({shear_stress} dyn/cm$^2$)")
     ax.set_xlabel("Lag (hours)")
     ax.set_ylabel("CCF")
     ax.legend()
@@ -378,6 +441,7 @@ def _make_all_ccf_plots(
         output_path,
         f"cross_correlation_{dataset_name}",
     )
+    plt.close(fig)
 
     # plot delta ccf: difference between positive and negative lags
     fig, ax = plt.subplots(figsize=(12, 6))
@@ -399,7 +463,7 @@ def _make_all_ccf_plots(
                 color=list(TABLEAU_COLORS.keys())[i],
                 label="95% CI",
             )
-    ax.set_title(f"$C_{{ij}}(\\tau) - C_{{ij}}(-\\tau)$ ({dataset_description})")
+    ax.set_title(f"$C_{{ij}}(\\tau) - C_{{ij}}(-\\tau)$ ({shear_stress} dyn/cm$^2$)")
     ax.set_xlabel("Lag $\\tau$ (hours)")
     ax.set_ylabel("$\Delta C_{ij}(\\tau)$")
     ax.legend()
@@ -419,25 +483,21 @@ def _make_all_ccf_plots(
         output_path,
         f"cross_correlation_diff_{dataset_name}",
     )
+    plt.close(fig)
 
 
 def _plot_full_correlation_curves(
     dataset_name: str,
     correlation_dict: dict[str, dict[str, Any]],
-    dataset_descriptions: dict[str, str],
     output_path: Path,
     bootstrap_samples: int | None = None,
 ) -> dict[str, dict[str, Any]]:
-    """Plot full correlation curves for a single dataset."""
-    # get string for dataset description
-    dataset_description = parse_dataset_description(dataset_descriptions[dataset_name])
-
+    """Plot correlation curves (auto- and cross-correlations) for a single dataset."""
     # plot acf and fit exponential decay
     # adds relaxation timescales to correlation_dict
     correlation_dict = _make_all_acf_plots(
         dataset_name,
         correlation_dict,
-        dataset_description,
         output_path,
         bootstrap_samples=bootstrap_samples,
     )
@@ -446,7 +506,6 @@ def _plot_full_correlation_curves(
     _make_all_ccf_plots(
         dataset_name,
         correlation_dict,
-        dataset_description,
         output_path,
         bootstrap_samples=bootstrap_samples,
     )
@@ -461,6 +520,38 @@ def _plot_single_correlation_metric_vs_shear_stress(
     ci_bounds: list[tuple] | None = None,
     labels: list[str] | None = None,
 ) -> tuple[Figure, Axes]:
+    """Plot a single correlation summary metric as a function of shear stress across datasets.
+
+    Example metrics include:
+
+    - The integral of the difference between positive and negative lag CCFs
+        for a given feature combination, integrated from lag = zero to some
+        maximum lag. This quantifies the overall asymmetry of the CCF around
+        zero lag, which is a signature of non-equilibrium dynamics.
+    - The average of this integral across all feature combinations.
+    - The relaxation timescales extracted from fitting exponential decay to
+        the ACFs.
+
+    Parameters
+    ----------
+    metric_values
+        List of arrays of summary metric values for each dataset.
+    shear_stresses
+        Array of shear stress values corresponding to each dataset.
+    features
+        List of feature names corresponding to the indices in the metric arrays.
+    ci_bounds
+        Optional list of tuples of (lower bounds, upper bounds) for confidence
+        intervals of the metric values for each dataset.
+    labels
+        Optional list of labels for each feature or feature combination.
+
+    Returns
+    -------
+    :
+        Matplotlib Figure and Axes objects containing the resulting plot.
+
+    """
     # init plot
     fig, ax = plt.subplots(figsize=(8, 6))
 
@@ -517,7 +608,24 @@ def _plot_correlation_metrics_vs_shear_stress(
     list_of_datasets: list[str],
     output_path: Path,
 ) -> None:
-    """Plot integral of delta CCF near zero as a function of shear stress."""
+    """Make and save plots of all correlation metrics as a function of shear stress.
+
+    Wrapper method to plot multiple correlation summary metrics (e.g. delta CCF
+    integral, relaxation timescales) as a function of shear stress across
+    datasets by calling `_plot_single_correlation_metric_vs_shear_stress` for each metric.
+
+    Parameters
+    ----------
+    correlation_dict
+        Dictionary containing correlation results for multiple datasets, including
+        the summary metrics to plot.
+    list_of_datasets
+        List of dataset names corresponding to the keys in `correlation_dict` to
+        include in the plot.
+    output_path
+        Path to save the resulting plots.
+
+    """
 
     def _get_shear_stress_from_dataset_name(dataset_name: str) -> float:
         flow_conditions = load_dataset_config(dataset_name).flow_conditions
@@ -576,6 +684,7 @@ def _plot_correlation_metrics_vs_shear_stress(
         output_path,
         "delta_ccf_integral_vs_shear_stress",
     )
+    plt.close(fig)
 
     fig, ax = _plot_single_correlation_metric_vs_shear_stress(
         mean_delta_ccf_integral,
@@ -591,6 +700,7 @@ def _plot_correlation_metrics_vs_shear_stress(
         output_path,
         "mean_delta_ccf_integral_vs_shear_stress",
     )
+    plt.close(fig)
 
     fig, ax = _plot_single_correlation_metric_vs_shear_stress(
         relaxation_timescale_values,
@@ -607,37 +717,43 @@ def _plot_correlation_metrics_vs_shear_stress(
         output_path,
         "relaxation_time_vs_shear_stress",
     )
+    plt.close(fig)
 
 
 def plot_correlation_workflow_outputs(
     correlation_dict: dict[str, dict[str, Any]], bootstrap_samples: int | None = None
 ) -> None:
-    """
-    Plot correlation workflow outputs.
+    """Make and save plots for correlation workflow outputs.
 
     **Workflow output**
 
-    Creates and saves a series of summary plots for the correlation analysis results:
-    - Plots the auto and cross-correlation functions for each dataset in
-    ``correlation_dict``.
-    - Fits exponential decay to ACFs to extract relaxation timescales.
-    - Plots CCFs with confidence intervals if bootstrap samples were provided.
-    - Plots difference between positive and negative lag CCFs and computes integrals near
-        lag = zero, which are then printed on the plots.
-    - Plots these integrals as a function of shear stress across datasets.
+    Creates and saves a series of summary plots for the correlation analysis
+    results:
+        - Plots of the autocorrelation functions (ACFs) for each datset in
+          `correlation_dict`.
+            - Fits exponential decay to ACFs to extract relaxation timescales
+              and adds these to the ACF plots.
+        - Plots of the cross-correlation functions (CCFs) for each dataset in
+          `correlation_dict` with confidence intervals if bootstrap samples were
+          provided.
+        - Plots of the difference between positive and negative lag CCFs.
+            - Computes integrals near lag = zero and adds to the plot.
+        - Plots of these integrals as a function of shear stress across
+          datasets.
+        - Plots of the relaxation timescales extracted from the ACFs as a
+          function of shear stress across datasets.
 
     Parameters
     ----------
     correlation_dict
         Dictionary containing correlation results for multiple datasets.
-
     bootstrap_samples
-        Optional, number of bootstrap samples used to compute confidence intervals.
+        Optional, number of bootstrap samples used to compute confidence
+        intervals.
+
     """
     list_of_datasets = list(correlation_dict["lags"].keys())
-    dataset_descriptions = get_dataset_descriptions(
-        list_of_datasets, simple=True, include_duration=False, include_shear_stress=True
-    )
+
     output_path = get_output_path("correlations")
 
     # plot full correlation curves for each dataset
@@ -646,7 +762,6 @@ def plot_correlation_workflow_outputs(
         correlation_dict = _plot_full_correlation_curves(
             dataset_name,
             correlation_dict,
-            dataset_descriptions,
             output_path,
             bootstrap_samples=bootstrap_samples,
         )

@@ -137,12 +137,10 @@ def main(  # noqa: C901
     from endo_pipeline.io import (
         build_fms_annotations,
         get_output_path,
+        load_dataframe,
         load_image,
         make_name_unique,
         upload_file_to_fms,
-    )
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import (
-        get_dataframe_for_dynamics_workflows,
     )
     from endo_pipeline.library.analyze.optical_flow import (
         build_crop_grid,
@@ -158,15 +156,12 @@ def main(  # noqa: C901
     from endo_pipeline.manifests import (
         DataframeLocation,
         create_dataframe_manifest,
-        get_feature_dataframe_manifest_name,
         get_zarr_location_for_position,
         load_dataframe_manifest,
-        load_model_manifest,
         save_dataframe_manifest,
     )
     from endo_pipeline.settings import DIMENSION_ORDER
-    from endo_pipeline.settings.column_names import ColumnName
-    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_FEATURE_COLUMN_NAMES
+    from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.optical_flow import (
         DEFAULT_OMP_NUM_THREADS,
         DEFAULT_OPENBLAS_NUM_THREADS,
@@ -175,6 +170,7 @@ def main(  # noqa: C901
         DEMO_MAX_DATASETS,
         DEMO_MAX_FRAMES,
         DEMO_MAX_POSITIONS,
+        DIFFAE_DATAFRAME_METADATA_TO_COMPUTE,
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -184,8 +180,6 @@ def main(  # noqa: C901
     # Pin OpenMP to 1 thread per worker
     os.environ.setdefault("OMP_NUM_THREADS", DEFAULT_OMP_NUM_THREADS)
     os.environ.setdefault("OPENBLAS_NUM_THREADS", DEFAULT_OPENBLAS_NUM_THREADS)
-
-    diffae_columns_to_drop = list(DIFFAE_FEATURE_COLUMN_NAMES)
 
     if datasets is None:
         datasets = get_datasets_in_collection(DEFAULT_OPTICAL_FLOW_COLLECTION)
@@ -233,12 +227,11 @@ def main(  # noqa: C901
         compute_block_coherence,
     )
 
-    # Shared manifests
-    model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
-    dataframe_name = get_feature_dataframe_manifest_name(
-        model_manifest, DEFAULT_MODEL_RUN_NAME, crop_pattern="grid"
-    )
-    dataframe_manifest = load_dataframe_manifest(dataframe_name)
+    # Load dataframe with diffae feature metadata (no filtering yet) to get crop
+    # coordinates and timepoints for each dataset/position.
+    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_grid"
+    feature_dataframe_manifest_name = f"{base_name}_pca"
+    feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # Load or create optical flow manifest and set parameters before the loop so
     # that it is available even if the workflow fails partway through. Add
@@ -269,14 +262,11 @@ def main(  # noqa: C901
         logger.info("Dataset %d/%d: %s", dataset_idx, len(datasets), dataset_name)
 
         dataset_config = load_dataset_config(dataset_name)
-        df_dataset = get_dataframe_for_dynamics_workflows(
-            dataset_name,
-            dataframe_manifest,
-            pca=None,
-            filter_by_annotations=False,
-        )
+        df_dataset = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
+        columns_to_compute = [*DIFFAE_DATAFRAME_METADATA_TO_COMPUTE]
+        df_dataset_: pd.DataFrame = df_dataset[columns_to_compute].compute()
 
-        position_list = sorted(df_dataset[ColumnName.POSITION].unique().tolist())
+        position_list = sorted(df_dataset_[Column.POSITION].unique().tolist())
         if positions:
             position_list = [p for p in position_list if p in positions]
         if DEMO_MODE:
@@ -301,21 +291,21 @@ def main(  # noqa: C901
                 dataset_config.duration,
             )
 
-            df_position = df_dataset[
-                (df_dataset[ColumnName.POSITION] == position)
-                & (df_dataset[ColumnName.TIMEPOINT].isin(valid_timepoints))
+            df_position = df_dataset_[
+                (df_dataset_[Column.POSITION] == position)
+                & (df_dataset_[Column.TIMEPOINT].isin(valid_timepoints))
             ].copy()
             if df_position.empty:
                 continue
-            df_position["dataset"] = dataset_name
+            df_position[Column.DATASET] = dataset_name
 
             # Crop grid
             crop_grid = build_crop_grid(df_position)
-            start_x = crop_grid[ColumnName.DiffAEData.START_X].values.astype(int)
-            start_y = crop_grid[ColumnName.DiffAEData.START_Y].values.astype(int)
-            end_x = crop_grid[ColumnName.DiffAEData.END_X].values.astype(int)
-            end_y = crop_grid[ColumnName.DiffAEData.END_Y].values.astype(int)
-            crop_ids = crop_grid[ColumnName.CROP_INDEX].values
+            start_x = crop_grid[Column.DiffAEData.START_X].values.astype(int)
+            start_y = crop_grid[Column.DiffAEData.START_Y].values.astype(int)
+            end_x = crop_grid[Column.DiffAEData.END_X].values.astype(int)
+            end_y = crop_grid[Column.DiffAEData.END_Y].values.astype(int)
+            crop_ids = crop_grid[Column.CROP_INDEX].values
             num_crops = len(crop_grid)
 
             # Z-project
@@ -466,7 +456,7 @@ def main(  # noqa: C901
             df_flow_pivoted = pivot_flow_records(records)
             df_position = df_position.merge(
                 df_flow_pivoted,
-                left_on=[ColumnName.CROP_INDEX, ColumnName.TIMEPOINT],
+                left_on=[Column.CROP_INDEX, Column.TIMEPOINT],
                 right_on=["crop_index", "timepoint"],
                 how="left",
             ).drop(columns=["crop_index", "timepoint"], errors="ignore")
@@ -474,10 +464,6 @@ def main(  # noqa: C901
             for col in flow_columns:
                 if col not in df_position.columns:
                     df_position[col] = np.nan
-            df_position.drop(
-                columns=[c for c in diffae_columns_to_drop if c in df_position.columns],
-                inplace=True,
-            )
 
             logger.info(
                 "Position %d done in %.1fs for %d records",

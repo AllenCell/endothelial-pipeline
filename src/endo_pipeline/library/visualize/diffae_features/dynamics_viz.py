@@ -1,3 +1,5 @@
+"""Methods for visualizing the outputs of the DiffAE feature analysis workflows."""
+
 from pathlib import Path
 from typing import Any
 
@@ -7,6 +9,7 @@ from matplotlib.colors import TwoSlopeNorm
 from mpl_toolkits.mplot3d import Axes3D
 
 from endo_pipeline.io import save_plot_to_path
+from endo_pipeline.settings.plot_defaults import SHEAR_COLOR_DICT
 
 
 def plot_and_save_drift_contours(
@@ -18,9 +21,7 @@ def plot_and_save_drift_contours(
     fig_savedir: Path,
     filename_prefix: str,
 ) -> None:
-    """
-    Plot contour of each component of the drift vector field over the 2D state
-    space.
+    """Make and save contour plot of each component of the drift vector field over the 2D state space.
 
     The contour lines are colored according to the value of the drift component,
     using a diverging colormap centered at zero to visualize the direction and
@@ -44,6 +45,7 @@ def plot_and_save_drift_contours(
         Directory to save the figure.
     filename_prefix
         Prefix for the filename when saving the figure, e.g., "dataset_1".
+
     """
     for var_index, var_name in enumerate(variable_labels):
         fig, ax = plt.subplots()
@@ -92,8 +94,7 @@ def plot_and_save_drift_quiver(
     nullcline_linewidth: float = 1.5,
     nullcline_opacity: float = 0.7,
 ):
-    """
-    Plot quiver plot of the drift vector field over the 2D state space.
+    """Make and save quiver plot of the drift vector field over the 2D state space.
 
     Parameters
     ----------
@@ -127,6 +128,7 @@ def plot_and_save_drift_quiver(
         Line width for the nullcline lines.
     nullcline_opacity
         Opacity for the nullcline lines (between 0 and 1).
+
     """
     fig, ax = plt.subplots()
     ax.quiver(
@@ -172,26 +174,43 @@ def plot_and_save_drift_quiver(
 def plot_fixed_points_by_shear(
     fpt_dict_list: list, shear_range: np.ndarray, pcs: list, plt_lims: list
 ) -> tuple[list[plt.Figure], list[plt.Axes]]:
-    """
-    Plot individual components of fixed points (one for each dimension of the
-    state space used to fit the dynamical systems model) of the system by shear stress.
+    """Plot individual components of fixed points as a function of shear stress.
 
-    Input:
-    - fpt_dict_list: list of dictionaries, each containing fixed points,
-        the corresponding types, and the shear stress value
-    - shear_range: np.ndarray, shear stress values corresponding
-        to each dictionary in fpt_dict_list
-    - PCs: list, list of principal components used to fit the dynamical systems model
-    - plt_lims: list, list of tuples containing the limits for each plot
+    **Input dictionary format**:
 
-    Output:
-    - figs: list of plt.Figure
-    - axs: list of plt.Axes
-    The length of figs and axs is equal to the number of principal components
-    (i.e., the dimension of the state space). Figure i in figs corresponds
-    to the plot of the i-th component of the identified fixed points.
+    Each dictionary in `fpt_dict_list` should have the following keys:
+        - "shear": float, the shear stress value corresponding to the fixed
+          points in this dictionary
+        - "fixed_points": list of np.ndarray, each array is a fixed point in the
+          state space
+        - "fixed_point_stability": list of str, each string is the stability
+          type of the corresponding fixed point, e.g., "stable", "unstable",
+          "saddle", or "indeterminate"
+
+    Parameters
+    ----------
+    fpt_dict_list
+        List of dictionaries, each containing fixed points, the corresponding
+        types, and the shear stress value.
+    shear_range
+        Shear stress values corresponding to each dictionary in `fpt_dict_list`.
+    pcs
+        List of principal components used to fit the dynamical systems model.
+    plt_lims
+        List of tuples containing the axes y-limits for each plot.
+
+    Returns
+    -------
+    :
+        Tuple containing:
+            - List of matplotlib Figure objects for each component plot.
+            - List of corresponding Axes objects for each component plot.
+
     """
-    assert len(fpt_dict_list) == len(shear_range)
+    if len(fpt_dict_list) != len(shear_range):
+        raise ValueError(
+            f"Length of fpt_dict_list ({len(fpt_dict_list)}) does not match length of shear_range ({len(shear_range)})."
+        )
 
     # plot fixed points by shear stress
     # initialize figure and axes
@@ -210,27 +229,28 @@ def plot_fixed_points_by_shear(
             fpt_dict = fpt_dict_list[i]
 
             # check that the dict corresponds to the correct shear stress value
-            assert u == fpt_dict["shear"]
+            if u != fpt_dict["shear"]:
+                raise ValueError(
+                    f"Shear stress value ({u}) does not match the value in the dictionary ({fpt_dict['shear']})."
+                )
 
             # get fixed points and types
             fpts = fpt_dict["fixed_points"]
             fpt_stabilities = fpt_dict["fixed_point_stability"]
 
             # check that we have a type for each fixed point
-            assert len(fpts) == len(fpt_stabilities)
+            if len(fpts) != len(fpt_stabilities):
+                raise ValueError(
+                    f"Number of fixed points ({len(fpts)}) does not match number of "
+                    f"stability types ({len(fpt_stabilities)}) for shear stress {u}."
+                )
 
             # plot component j of each fixed point (if any)
             if len(fpts) > 0:
                 # color code by type (stability)
                 for ii, fpt in enumerate(fpts):
-                    if fpt_stabilities[ii] == "stable":
-                        color = "b"
-                    elif fpt_stabilities[ii] == "unstable":
-                        color = "r"
-                    elif fpt_stabilities[ii] == "saddle":
-                        color = "tab:purple"
-                    else:  # can be indeterminate stability
-                        color = "darkgoldenrod"
+                    # default to black if type not in dict
+                    color = SHEAR_COLOR_DICT.get(fpt_stabilities[ii], "k")
                     # plot
                     ax.plot(u, fpt[j], "o", color=color)
                     ax.set_xlabel("Shear stress (dyn/cm$^2$)")
@@ -245,17 +265,24 @@ def plot_fixed_points_by_shear(
 
 
 def plot_histogram_2d(ax: plt.Axes, p_hist: np.ndarray, bins: list, cmap: str) -> plt.Axes:
-    """
-    Plot 2D histogram with specified colormap.
+    """Plot 2D histogram with specified colormap.
 
-    Input:
-    - ax: plt.Axes, the axes to plot on
-    - p_hist: np.ndarray, histogram data (e.g., obtained by np.histogram2d)
-    - bins: list, list of bin edges used to compute the histogram for each dimension
-    - cmap: str, colormap to use for the plot
+    Parameters
+    ----------
+    ax
+        Axes to plot on.
+    p_hist
+        2D histogram data, e.g., obtained by np.histogram2d.
+    bins
+        List of bin edges used to compute the histogram for each dimension.
+    cmap
+        Colormap to use for the plot.
 
-    Output:
-    - ax: plt.Axes
+    Returns
+    -------
+    :
+        The input Axes object with the histogram plotted on it.
+
     """
     # plot histogram, setting origin to lower left and
     # setting the aspect ratio to be square
@@ -276,7 +303,29 @@ def plot_histogram_2d(ax: plt.Axes, p_hist: np.ndarray, bins: list, cmap: str) -
 
 
 def kl_divergence(p: np.ndarray, q: np.ndarray, dx: list, tol: float = 1e-8) -> float:
-    """Approximate Kullback-Leibler divergence for arbitrary dimensionality."""
+    """Approximate Kullback-Leibler divergence between two (possibly multivariate) distributions.
+
+    This method uses the formula `D_KL(p||q) = int p(x) log(p(x)/q(x)) dx`, where
+    the integral is approximated by numerical integration (trapezoidal rule)
+    over the grid defined by the bin edges corresponding to p and q.
+
+    Parameters
+    ----------
+    p
+        First probability distribution.
+    q
+        Second probability distribution.
+    dx
+        List of bin widths used to obtain the distributions for each dimension.
+    tol
+        Small value to avoid division by zero, by default 1e-8.
+
+    Returns
+    -------
+    :
+        The KL divergence D_KL(p||q) approximated by numerical integration.
+
+    """
     ndim = len(dx)
 
     # set small values to tol
@@ -295,25 +344,36 @@ def kl_divergence(p: np.ndarray, q: np.ndarray, dx: list, tol: float = 1e-8) -> 
 def compare_stationary_distributions(
     p_model: np.ndarray, p_hist: np.ndarray, bins: list
 ) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
-    """
-    Side-by-side plots of the histogram of the data at steady state
-    ("empirical PDF") and the numerical solution to the stationary
-    Fokker-Planck equation for the fit SDE model ("model PDF").
-    The figure suptitle includes K-L divergence between the two distributions.
+    """Compare predicted stationary distribution to histogram of data.
 
-    Input:
-    - p_model: np.ndarray, model PDF (obtained from the numerical solution
-        to the stationary Fokker-Planck equation)
-    - p_hist: np.ndarray, empirical PDF (obtained from the data at
-        steady state, e.g., by histogramming)
-        - "steady state" here refers to the assumption that the
-            data are stationary in some sense
-    - bins: list, list of bin edges used to compute the p_hist for each dimension
-        - should be the same as the bins used to compute p_model
+    This function creates a side-by-side plot of the histogram of the data at
+    steady state (the "empirical PDF") and the numerical solution to the
+    stationary Fokker-Planck equation for the fit SDE model (the "model PDF").
 
-    Output:
-    - fig: plt.Figure
-    - ax: plt.Axes
+    The figure suptitle includes the Kullback-Leibler divergence between the two
+    distributions, computed using numerical integration over the grid defined by
+    the bin edges corresponding to p_hist and p_model. (See the `kl_divergence`
+    function for details on the numerical approximation method used.)
+
+    Parameters
+    ----------
+    p_model
+        Predicted stationary distribution from the model, evaluated on the same
+        grid as p_hist.
+    p_hist
+        Histogram of the data at steady state, evaluated on the same grid as
+        p_model.
+    bins
+        List of bin edges used to compute the histogram for each dimension,
+        which should be the same for p_hist and p_model.
+
+    Returns
+    -------
+    :
+        Tuple containing:
+            - The matplotlib Figure object containing the side-by-side plots.
+            - Array of the corresponding Axes objects for the empirical and model PDFs.
+
     """
     # check if 1D or 2D
     ndim = len(bins)
@@ -339,28 +399,6 @@ def compare_stationary_distributions(
     return fig, ax
 
 
-def plot_entropy_production_rate(
-    epr: np.ndarray, shear_range: np.ndarray
-) -> tuple[plt.Figure, plt.Axes]:
-    """
-    Plot entropy production rate as a function of shear stress.
-
-    Input:
-    - epr: np.ndarray, entropy production rate values
-    - shear_range: np.ndarray, shear stress values corresponding
-        to each entropy production rate value
-
-    Output:
-    - fig: plt.Figure
-    - ax: plt.Axes
-    """
-    fig, ax = plt.subplots(figsize=(7, 6))
-    ax.plot(shear_range, epr, "-o", color="k")
-    ax.set_xlabel("Shear stress (dyn/cm$^2$)")
-    ax.set_ylabel("Entropy production rate")
-    return fig, ax
-
-
 def plot_gen_potential_2d(
     potential: np.ndarray,
     xvec: np.ndarray,
@@ -368,19 +406,30 @@ def plot_gen_potential_2d(
     cmap: str = "jet",
     surf: bool = False,
 ) -> tuple[plt.Figure, plt.Axes]:
-    """
-    Plot 2D generalized potential energy landscape with specified colormap.
+    """Plot 2D generalized potential energy landscape with specified colormap.
 
-    Input:
-    - potential: np.ndarray, generalized potential energy landscape
-    - xvec: np.ndarray, x-axis values corresponding to each point in U
-    - yvec: np.ndarray, y-axis values corresponding to each point in U
-    - cmap: str, colormap to use for the plot
-    - surf: bool (default=False), whether to plot the surface as a 3D plot
+    Parameters
+    ----------
+    potential
+        2D array representing the generalized potential energy landscape,
+        evaluated on the grid defined by xvec and yvec.
+    xvec
+        1D array of x-axis values corresponding to each point in the potential.
+    yvec
+        1D array of y-axis values corresponding to each point in the potential.
+    cmap
+        Colormap to use for the plot.
+    surf
+        Whether to plot as a surface (3D) or contour (2D). If True, plots a 3D
+        surface; if False, plots a 2D contour.
 
-    Output:
-    - fig: plt.Figure
-    - ax: plt.Axes
+    Returns
+    -------
+    :
+        Tuple containing:
+            - The matplotlib Figure object containing the plot.
+            - The corresponding Axes object for the plot.
+
     """
     if surf:
         fig = plt.figure(figsize=plt.figaspect(1 / 3))
@@ -413,24 +462,38 @@ def plot_grad_flux_decomposition(
     normed: bool = False,
     downsample: int = 10,
 ) -> tuple[plt.Figure, plt.Axes]:
-    """
-    Plot quiver plot of gradient and flux decomposition of drift vector field
-    over a contour plot of the 2D generalized potential energy landscape.
+    """Plot quiver plot of gradient and flux decomposition of a vector field.
 
-    Input:
-    - potential: np.ndarray, generalized potential energy landscape
-    - xvec: np.ndarray, x-axis values corresponding to each point in U
-    - yvec: np.ndarray, y-axis values corresponding to each point in U
-    - grad: np.ndarray, gradient part of the vector field
-    - flux: np.ndarray, flux remainder part of the vector field
-    - cmap: str (default='jet'), colormap to use for the plot
-    - normed: bool (default=False), whether to normalize the gradient and
-        flux vectors in the quiver plot
-    - downsample: int (default=10), downsample factor for the quiver plot
+    Parameters
+    ----------
+    potential
+        2D array representing the generalized potential energy landscape,
+        evaluated on the grid defined by xvec and yvec.
+    xvec
+        1D array of x-axis values corresponding to each point in the potential.
+    yvec
+        1D array of y-axis values corresponding to each point in the potential.
+    grad
+        3D array of shape (2, nx, ny) representing the gradient component of
+        the vector field, evaluated on the same grid as potential.
+    flux
+        3D array of shape (2, nx, ny) representing the flux component of the
+        vector field, evaluated on the same grid as potential.
+    cmap
+        Colormap to use for the potential energy landscape.
+    normed
+        If True, each vector is normalized to have unit length; if False, the
+        vectors retain their original magnitude.
+    downsample
+        Factor by which to downsample the vectors for visualization.
 
-    Output:
-    - fig: plt.Figure
-    - ax: plt.Axes
+    Returns
+    -------
+    :
+        Tuple containing:
+            - The matplotlib Figure object containing the plot.
+            - The corresponding Axes object for the plot.
+
     """
     # contour plot of the potential energy landscape
     fig, ax = plot_gen_potential_2d(potential, xvec, yvec, cmap=cmap, surf=False)

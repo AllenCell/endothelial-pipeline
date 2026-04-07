@@ -16,7 +16,7 @@ from tqdm import tqdm
 
 from endo_pipeline.configs import get_annotated_timepoints_for_position, load_dataset_config
 from endo_pipeline.io import get_output_path, load_image
-from endo_pipeline.library.analyze.diffae_dataframe_utils import check_required_columns_in_dataframe
+from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.lib_init_density_vs_flow import vector_mean_angle_and_mag
 from endo_pipeline.library.model.eval_model import add_diffae_model_eval_crop_columns
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
@@ -833,6 +833,9 @@ def calculate_derived_data_dynamics_dependent(
         .droplevel([0, 1, 2])
     )
 
+    # add a normalized version of the "time_hours" column
+    big_table = add_normalized_time(big_table)
+
     # add approximate cell density dynamics column
     logger.info("Calculating approximate cell density dynamics...")
     big_table[Column.SegData.CHANGE_IN_NUM_NUCLEI_IN_CROP_PER_MIN] = (
@@ -1492,3 +1495,53 @@ def add_vector_mean_of_migration_in_crop_column(
     )
 
     return df
+
+
+def add_normalized_time(
+    df_all_positions: pd.DataFrame,
+    time_col: str = Column.SegData.TIME_HRS,
+) -> pd.DataFrame:
+    """
+    Add a column to the dataframe with normalized time values
+    between 0 and 1 for each track_id in each position.
+
+    Parameters
+    ----------
+    df_all_positions
+        DataFrame containing all positions and tracks.
+    time_col
+        The name of the column containing time values.
+
+    Returns
+    -------
+    :
+        DataFrame with an additional column
+        "normalized_time" containing the normalized time values between 0 and 1.
+    """
+
+    for _, df_pos in df_all_positions.groupby(Column.POSITION):
+        for _, df_track in df_pos.groupby(Column.TRACK_ID):
+
+            time_values = df_track[time_col].values.astype(np.float64)
+            sorted_inds = np.argsort(time_values)
+            time_values = time_values[sorted_inds]
+            df_track = df_track.iloc[sorted_inds]
+
+            start_time = np.min(time_values)
+            end_time = np.max(time_values)
+
+            normalized_time_values = np.divide(
+                time_values - start_time,
+                end_time - start_time,
+                out=np.zeros_like(time_values, dtype=np.float64),
+                where=(end_time - start_time) != 0,
+            )
+
+            normalized_time_values = np.clip(normalized_time_values, 0, 1)
+
+            df_all_positions.loc[
+                df_track.index,
+                Column.SegData.NORMALIZED_TIME_PER_TRACK,
+            ] = normalized_time_values
+
+    return df_all_positions
