@@ -94,7 +94,15 @@ def main(
         ].transform(lambda t: t.max() - t.min())
 
         # get the initial conditions for the simulation from the dynamics features dataframe
-        df_grid_t_init = df_grid[df_grid[Column.TIMEPOINT] == df_grid[Column.TIMEPOINT].min()]
+        df_grid_t_init = (
+            df_grid.groupby(Column.POSITION, as_index=False)
+            .apply(
+                lambda grp: (df := pd.DataFrame(grp))[
+                    df[Column.TIMEPOINT] == df[Column.TIMEPOINT].min()
+                ]
+            )
+            .reset_index(drop=True)
+        )
         crop_index, initial_conditions = list(
             zip(*df_grid_t_init.groupby(Column.CROP_INDEX)[[*DYNAMICS_COLUMN_NAMES]], strict=True)
         )
