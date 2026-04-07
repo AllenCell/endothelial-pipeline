@@ -65,6 +65,7 @@ def main(datasets: Datasets | None = None, n_cores: int = 4):
                 max_timelapse_duration,
             )
             examplary_dataset = config.name
+            break
 
     if datasets is None:
         datasets = datasets_all
