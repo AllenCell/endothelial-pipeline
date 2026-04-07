@@ -98,10 +98,7 @@ def main(
     column_names: list[ColumnName.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
 
     base_name = f"{model_manifest_name}_{run_name}_{crop_pattern}"
-    demo_suffix = "_demo" if DEMO_MODE else ""
-    bootstrap_fp_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}{demo_suffix}"
-    )
+    bootstrap_fp_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}"
 
     # Flexible DEMO_MODE loading pattern: try without demo suffix first so this
     # workflow can visualise a full production run even when DEMO_MODE is set.
