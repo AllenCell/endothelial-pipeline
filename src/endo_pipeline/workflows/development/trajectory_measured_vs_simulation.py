@@ -1,3 +1,5 @@
+"""This workflow compares the measured trajectories with ones simulated from the flow field"""
+
 from endo_pipeline.cli import Datasets
 
 
@@ -15,16 +17,17 @@ def main(
     from tslearn.metrics import dtw, frechet
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import get_datasets_in_collection
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import load_dataframe
     from endo_pipeline.io.output import get_output_path
     from endo_pipeline.library.analyze.data_driven_flow_field import (
         compute_extrapolated_vector_field,
         get_drift_df,
         get_drift_flow_field_as_dict,
-        get_drift_values_and_grid,
+        get_drift_values_and_grid_from_drift_df,
         get_fixed_points_df,
     )
+    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
     from endo_pipeline.library.analyze.integration.track_integration import (
         solve_ddff_from_trajectory_initial_condition_helper,
     )
@@ -65,9 +68,13 @@ def main(
         # sort the grid-based dynamics dataframe by crop index and timepoint
         df_grid = df_grid.sort_values(by=[Column.CROP_INDEX, Column.TIMEPOINT])
 
+        # filter the grid-based dynamics dataframe to only include timepoints from steady state
+        dataset_config = load_dataset_config(dataset_name)
+        df_grid = filter_dataframe_to_steady_state(dataframe=df_grid, dataset_config=dataset_config)
+
         # load the flow field dictionaries and fixed points
         drift_df = get_drift_df(dataset_name)
-        drift_values, grid_points_1d = get_drift_values_and_grid(
+        drift_values, grid_points_1d = get_drift_values_and_grid_from_drift_df(
             flow_field_dataframe=drift_df, column_names=DYNAMICS_COLUMN_NAMES
         )
         flow_field_dict_grid = get_drift_flow_field_as_dict(
@@ -99,9 +106,10 @@ def main(
         )
 
         if DEMO_MODE:
-            crop_index = crop_index[:10]
-            initial_conditions = initial_conditions[:10]
-            crop_indices_and_initial_conditions = crop_indices_and_initial_conditions[:10]
+            num_traj = 10
+            crop_index = crop_index[:num_traj]
+            initial_conditions = initial_conditions[:num_traj]
+            crop_indices_and_initial_conditions = crop_indices_and_initial_conditions[:num_traj]
 
         ivp_args_mp: list[dict] = []
         for (crop_i, track_duration, timepoint), init_df in crop_indices_and_initial_conditions:
