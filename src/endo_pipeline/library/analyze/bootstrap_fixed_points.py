@@ -245,15 +245,14 @@ def run_one_bootstrap_iteration(
 ) -> pd.DataFrame:
     """Run one bootstrap iteration using worker-local shared state."""
     sub_trajectories, sub_displacements = subsampled_pairs
-    s = _worker_state
     return run_flow_field_and_fixed_points(
         trajectories=sub_trajectories,
         displacements=sub_displacements,
-        df_for_bounds=s["df_steady_state"],
-        bins=s["bins"],
-        centers=s["centers"],
-        column_names=s["column_names"],
-        kernels=s["kernels"],
+        df_for_bounds=_worker_state["df_steady_state"],
+        bins=_worker_state["bins"],
+        centers=_worker_state["centers"],
+        column_names=_worker_state["column_names"],
+        kernels=_worker_state["kernels"],
     )
 
 
