@@ -25,15 +25,25 @@ def main(datasets: Datasets | None = None, n_cores: int = 4):
     from tqdm import tqdm
 
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import get_output_path
+    from endo_pipeline.io import get_output_path, load_dataframe
+    from endo_pipeline.library.analyze.pca import add_crop_index
     from endo_pipeline.library.process.lib_grid_seg import (
         check_crop_indices_against_existing_segmentations,
         create_grid_segmentation_images,
-        load_grid_diffae_df_for_tfe,
     )
+    from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_FEATURE_COLUMN_NAMES
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_MODEL_MANIFEST_NAME,
+        DEFAULT_MODEL_RUN_NAME,
+    )
 
     logger = logging.getLogger(__name__)
+
+    # Get dataframe manifest for the grid-based Diff AE features
+    dataframe_manifest_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_grid"
+    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
     datasets_all = get_datasets_in_collection("diffae_model_training")
     datasets_all.extend(get_datasets_in_collection("replicate_2_datasets"))
@@ -57,17 +67,45 @@ def main(datasets: Datasets | None = None, n_cores: int = 4):
     if datasets is None:
         datasets = datasets_all
 
-    grid_df = load_grid_diffae_df_for_tfe(examplary_dataset)
+    # load the grid-based DiffAE dataframe for the current dataset to get
+    # the crop locations and crop labels for a given dataset
+    dataframe_location = get_dataframe_location_for_dataset(dataframe_manifest, examplary_dataset)
+    grid_df_ = load_dataframe(dataframe_location, delay=True)
+
+    # don't need the feature columns for this workflow, just the crop locations
+    # and labels, so we can drop them to save memory
+    columns_to_compute = [col for col in grid_df_.columns if col not in DIFFAE_FEATURE_COLUMN_NAMES]
+    grid_df = grid_df_[columns_to_compute].compute()
+    grid_df_with_crop_index = add_crop_index(grid_df)
     out_dir = get_output_path(__file__)
-    create_grid_segmentation_images(grid_df, out_dir)
+    create_grid_segmentation_images(grid_df_with_crop_index, out_dir)
 
     # Now we check that the crop indices for each dataset in `datasets` matches
     # the segmentations we produced earlier when we load a grid-based
     # DiffAE dataframe for each dataset.
     for dataset_name in datasets:
-        grid_df = load_grid_diffae_df_for_tfe(dataset_name)
+        if dataset_name not in dataframe_manifest.locations:
+            logger.warning(
+                "Dataset [ %s ] does not have a grid-based DiffAE dataframe, skipping.",
+                dataset_name,
+            )
+            continue
+        # load the grid-based DiffAE dataframe for the current dataset to get
+        # the crop locations and crop labels for a given dataset
+        dataframe_location = get_dataframe_location_for_dataset(dataframe_manifest, dataset_name)
+        grid_df_ = load_dataframe(dataframe_location, delay=True)
 
-        nm, df = zip(*grid_df.groupby([Column.POSITION, Column.TIMEPOINT]), strict=True)
+        # don't need the feature columns for this workflow, just the crop locations
+        # and labels, so we can drop them to save memory
+        columns_to_compute = [
+            col for col in grid_df_.columns if col not in DIFFAE_FEATURE_COLUMN_NAMES
+        ]
+        grid_df = grid_df_[columns_to_compute].compute()
+        grid_df_with_crop_index = add_crop_index(grid_df)
+
+        nm, df = zip(
+            *grid_df_with_crop_index.groupby([Column.POSITION, Column.TIMEPOINT]), strict=True
+        )
         num_seg_files = len(nm)
         with ProcessPoolExecutor(max_workers=n_cores) as worker_pool:
             list(
