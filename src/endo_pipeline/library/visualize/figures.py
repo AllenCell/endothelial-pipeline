@@ -5,7 +5,7 @@ from typing import NamedTuple
 INCHES_TO_PIXELS = 96
 
 ILLUSTRATOR_SCALING_FACTOR = 0.75
-"""Scaling factor to convert figure dimensions from inches to points for use in Adobe Illustrator."""
+"""Scaling factor to rescale figure dimensions for use in Adobe Illustrator."""
 
 
 class FigurePanel(NamedTuple):
