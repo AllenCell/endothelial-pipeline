@@ -239,24 +239,24 @@ def main(
                         )
                     )
 
-    def test():
+    def trajectory_similarity_metrics_test():
         import numpy as np
 
         # define some lines
         # punctual makes a round trip and arrives exactly on time
         punctual_x = [*np.linspace(0, 10, 11), *np.linspace(9, 0, 10)]
         punctual_y = [0] * len(punctual_x)
-        punctual = {"punctual": list(zip(punctual_x, punctual_y, strict=False))}
+        punctual = {"punctual": list(zip(punctual_x, punctual_y, strict=True))}
 
         # lazy moves slower than punctual and gives up half way
         lazy_x = [*np.linspace(0, 10, 21)]
         lazy_y = [0] * len(lazy_x)
-        lazy = {"lazy": list(zip(lazy_x, lazy_y, strict=False))}
+        lazy = {"lazy": list(zip(lazy_x, lazy_y, strict=True))}
 
         # impatient moves faster than punctual and ends up waiting at the end
         impatient_x = [*np.linspace(0, 10, 6), *np.linspace(8, 0, 5), *([0] * 10)]
         impatient_y = [0] * len(impatient_x)
-        impatient = {"impatient": list(zip(impatient_x, impatient_y, strict=False))}
+        impatient = {"impatient": list(zip(impatient_x, impatient_y, strict=True))}
 
         # overachiever moves faster than punctual and ends up doing an extra lap
         overachiever_x = [
@@ -266,13 +266,25 @@ def main(
             *np.linspace(8, 0, 5),
         ]
         overachiever_y = [0] * len(overachiever_x)
-        overachiever = {"overachiever": list(zip(overachiever_x, overachiever_y, strict=False))}
+        overachiever = {"overachiever": list(zip(overachiever_x, overachiever_y, strict=True))}
+
+        # lost moves randomly without following the path everyone else takes
+        lost_x = [*np.random.randint(-10, 10, 21)]
+        lost_y = [*np.random.randint(-10, 10, 21)]
+        lost = {"lost": list(zip(lost_x, lost_y, strict=True))}
+
+        # rebel moves in the opposite direction of everyone else
+        rebel_x = [*np.linspace(0, -10, 11), *np.linspace(-9, 0, 10)]
+        rebel_y = [0] * len(rebel_x)
+        rebel = {"rebel": list(zip(rebel_x, rebel_y, strict=True))}
 
         line_comparisons = (
             (punctual, punctual),
             (punctual, lazy),
             (punctual, impatient),
             (punctual, overachiever),
+            (punctual, lost),
+            (punctual, rebel),
         )
         for line_pair in line_comparisons:
             line1_name = list(line_pair[0].keys())[0]
@@ -296,6 +308,7 @@ def main(
             print(f"Frechet distance between {line1_name} and {line2_name}: {frechet_distance}")
             print(f"DTW distance between {line1_name} and {line2_name}: {dtw_distance}")
             print(f"Hausdorff distance between {line1_name} and {line2_name}: {hausdorff_distance}")
+            print("")
 
 
 if __name__ == "__main__":
