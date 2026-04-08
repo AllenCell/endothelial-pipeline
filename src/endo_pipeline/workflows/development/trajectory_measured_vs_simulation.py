@@ -13,6 +13,7 @@ def main(
 
     import numpy as np
     import pandas as pd
+    from scipy.spatial.distance import directed_hausdorff
     from tqdm import tqdm
     from tslearn.metrics import dtw, frechet
 
@@ -238,29 +239,66 @@ def main(
                         )
                     )
 
+    def test():
+        import numpy as np
+
+        # define some lines
+        # punctual makes a round trip and arrives exactly on time
+        punctual_x = [*np.linspace(0, 10, 11), *np.linspace(9, 0, 10)]
+        punctual_y = [0] * len(punctual_x)
+        punctual = {"punctual": list(zip(punctual_x, punctual_y, strict=False))}
+
+        # lazy moves slower than punctual and gives up half way
+        lazy_x = [*np.linspace(0, 10, 21)]
+        lazy_y = [0] * len(lazy_x)
+        lazy = {"lazy": list(zip(lazy_x, lazy_y, strict=False))}
+
+        # impatient moves faster than punctual and ends up waiting at the end
+        impatient_x = [*np.linspace(0, 10, 6), *np.linspace(8, 0, 5), *([0] * 10)]
+        impatient_y = [0] * len(impatient_x)
+        impatient = {"impatient": list(zip(impatient_x, impatient_y, strict=False))}
+
+        # overachiever moves faster than punctual and ends up doing an extra lap
+        overachiever_x = [
+            *np.linspace(0, 10, 6),
+            *np.linspace(8, 0, 5),
+            *np.linspace(2, 10, 5),
+            *np.linspace(8, 0, 5),
+        ]
+        overachiever_y = [0] * len(overachiever_x)
+        overachiever = {"overachiever": list(zip(overachiever_x, overachiever_y, strict=False))}
+
+        line_comparisons = (
+            (punctual, punctual),
+            (punctual, lazy),
+            (punctual, impatient),
+            (punctual, overachiever),
+        )
+        for line_pair in line_comparisons:
+            line1_name = list(line_pair[0].keys())[0]
+            line2_name = list(line_pair[1].keys())[0]
+            line1_vals = line_pair[0][line1_name]
+            line2_vals = line_pair[1][line2_name]
+
+            frechet_distance = frechet(
+                line1_vals,
+                line2_vals,
+            )
+            dtw_distance = dtw(
+                line1_vals,
+                line2_vals,
+            )
+            hausdorff_distance = directed_hausdorff(
+                line1_vals,
+                line2_vals,
+            )
+
+            print(f"Frechet distance between {line1_name} and {line2_name}: {frechet_distance}")
+            print(f"DTW distance between {line1_name} and {line2_name}: {dtw_distance}")
+            print(f"Hausdorff distance between {line1_name} and {line2_name}: {hausdorff_distance}")
+
 
 if __name__ == "__main__":
     from endo_pipeline.cli import workflow_cli
 
     workflow_cli(main)
-
-
-def test():
-    import numpy as np
-
-    # define some lines
-    # punctual makes a round trip and arrives exactly on time
-    punctual_x = [*np.linspace(0, 10, 11), *np.linspace(9, 0, 10)]
-    punctual_y = [0] * len(punctual_x)
-    punctual = list(zip(punctual_x, punctual_y))
-
-    # lazy moves slower than punctual and gives up half way
-    lazy_x = [*np.linspace(0, 10, 21)]
-    lazy_y = [0] * len(lazy_x)
-    lazy = list(zip(lazy_x, lazy_y))
-
-    # impatient moves faster than punctual and ends up waiting at the end
-    impatient_x = 
-
-    # overachiever moves faster than punctual and ends up doing an extra lap
-    overachiever_x = 
