@@ -94,6 +94,23 @@ def std_dev(
     return std_projection
 
 
+def log_normalize_image(image: np.ndarray) -> np.ndarray:
+    """Apply logarithmic normalization to the input image.
+
+    This function applies a logarithmic transformation to the pixel intensities of the input image,
+    which can help enhance contrast in images with a wide dynamic range.
+
+    Args:
+        image (np.ndarray): Input image as a NumPy array.
+
+    Returns:
+        np.ndarray: Logarithmically normalized image.
+    """
+    # Add a small constant to avoid log(0)
+    log_image = np.log1p(image)
+    return log_image
+
+
 def clip_image(arr: np.ndarray, low_pct: float = 0.1, high_pct: float = 99.9) -> np.ndarray:
     """
     Clip the values in a NumPy array to the specified percentiles.
