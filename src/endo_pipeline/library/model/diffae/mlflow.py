@@ -1,5 +1,7 @@
 import math
 import os
+import re
+import shutil
 import tempfile
 import warnings
 from argparse import Namespace
@@ -121,16 +123,88 @@ class MLFlowLogger(_LightningMLFlowLogger):
             else:
                 raise
 
+    def _resolve_last_checkpoint(self, ckpt_callback: ModelCheckpoint) -> str | None:
+        """Determine the path of the most recently saved checkpoint."""
+        # Try last_model_path (set when save_last=True)
+        last_path = getattr(ckpt_callback, "last_model_path", "")
+        if last_path and Path(last_path).is_file():
+            return last_path
+
+        # Try best_model_path (always the last saved when monitor=None)
+        best_path = ckpt_callback.best_model_path
+        if best_path and Path(best_path).is_file():
+            return best_path
+
+        # Scan dirpath for the checkpoint with the highest epoch number
+        dirpath = ckpt_callback.dirpath
+        if dirpath and Path(dirpath).is_dir():
+            epoch_re = re.compile(r"epoch[=_](\d+)")
+            ckpt_files = [
+                f
+                for f in Path(dirpath).iterdir()
+                if f.is_file()
+                and f.suffix == ".ckpt"
+                and not f.name.startswith("best_")
+                and f.name != "last.ckpt"
+            ]
+            # Pair each file with its parsed epoch number (if present)
+            parsed = []
+            for f in ckpt_files:
+                m = epoch_re.search(f.stem)
+                if m:
+                    parsed.append((int(m.group(1)), f))
+            if parsed:
+                return str(max(parsed, key=lambda t: t[0])[1])
+            # Fall back to most recently modified if no epoch number is found
+            if ckpt_files:
+                return str(max(ckpt_files, key=lambda p: p.stat().st_mtime))
+
+        return None
+
+    def _log_named_checkpoint_as_artifact(
+        self,
+        source_path: str,
+        target_name: str,
+        artifact_path: str,
+    ) -> None:
+        """Log a checkpoint under a given name as an MLflow artifact.
+
+        Creates a temporary copy of the checkpoint at ``source_path`` renamed
+        to ``target_name``, uploads it to MLflow under ``artifact_path``, and
+        cleans up the copy afterwards.  Local checkpoint management is left
+        entirely to Lightning's ``ModelCheckpoint``.
+
+        Parameters
+        ----------
+        source_path
+            Absolute or relative path to the source checkpoint file.
+        target_name
+            Filename to use for the uploaded artifact (e.g. ``"best.ckpt"``).
+        artifact_path
+            Destination directory inside the MLflow artifact store
+            (e.g. ``"checkpoints/val_loss"``).
+        """
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir) / target_name
+            shutil.copy2(source_path, tmp_path)
+            self.experiment.log_artifact(self.run_id, str(tmp_path), artifact_path)
+
     def _after_save_checkpoint(self, ckpt_callback: ModelCheckpoint) -> None:
         monitor = ckpt_callback.monitor
+
         if monitor is not None:
             artifact_path = f"checkpoints/{monitor}"
+            # Sanitize monitor name for use in filenames (e.g. "val/loss" → "val_loss")
+            safe_monitor = monitor.replace("/", "_")
+
+            # Top-k management (upload new, delete old)
             existing = {
                 a.path.split("/")[-1]
                 for a in self.experiment.list_artifacts(self.run_id, artifact_path)
             }
             top_k = {k.split("/")[-1] for k in ckpt_callback.best_k_models.keys()}
-            to_delete = existing - top_k
+            best_name = f"best_{safe_monitor}.ckpt"
+            to_delete = existing - top_k - {best_name, "last.ckpt"}
             to_upload = top_k - existing
 
             repo = get_artifact_repository(self.experiment.get_run(self.run_id).info.artifact_uri)
@@ -155,22 +229,41 @@ class MLFlowLogger(_LightningMLFlowLogger):
                 else:
                     raise ValueError("ckpt_callback.dirpath must not be None")
 
-            best_path = Path(ckpt_callback.best_model_path).with_name("best.ckpt")
-            os.link(ckpt_callback.best_model_path, best_path)
-            self.experiment.log_artifact(self.run_id, str(best_path), artifact_path)
-            best_path.unlink()
+            # Log best_{monitor}.ckpt when a metric is monitored
+            best_src = ckpt_callback.best_model_path
+            if best_src and Path(best_src).is_file():
+                self._log_named_checkpoint_as_artifact(best_src, best_name, artifact_path)
+                # Also keep a local copy of best_{monitor}.ckpt
+                if ckpt_callback.dirpath:
+                    local_best = Path(ckpt_callback.dirpath) / best_name
+                    shutil.copy2(best_src, local_best)
+            else:
+                self._warn(
+                    f"best_model_path is empty or missing ({best_src!r}). "
+                    f"Skipping {best_name} logging."
+                )
+
+            # Clean up local checkpoints that are no longer in top-k.
+            # Keep only: top-k epoch files, best_{monitor}.ckpt, and last.ckpt.
+            if ckpt_callback.dirpath:
+                keep_local = top_k | {best_name, "last.ckpt"}
+                for f in Path(ckpt_callback.dirpath).iterdir():
+                    if f.is_file() and f.suffix == ".ckpt" and f.name not in keep_local:
+                        f.unlink()
 
         else:
-
-            fp = ckpt_callback.best_model_path
+            # When monitor is None there is no metric to rank checkpoints by,
+            # so no "best" checkpoint is saved.  Only last.ckpt (below) is
+            # relevant in this mode.
             artifact_path = "checkpoints"
-            if ckpt_callback.save_top_k == 1:
-                last_path = Path(fp).with_name("last.ckpt")
-                os.link(fp, last_path)
-                self.experiment.log_artifact(self.run_id, str(last_path), artifact_path)
-                last_path.unlink()
+
+        # --- Log last.ckpt only when save_last is enabled in the callback config ---
+        if ckpt_callback.save_last:
+            last_src = self._resolve_last_checkpoint(ckpt_callback)
+            if last_src:
+                self._log_named_checkpoint_as_artifact(last_src, "last.ckpt", artifact_path)
             else:
-                self.experiment.log_artifact(self.run_id, fp, artifact_path)
+                self._warn("Could not determine last checkpoint path. Skipping last.ckpt logging.")
 
 
 def _delete_local_artifact(repo, artifact_path: str):
