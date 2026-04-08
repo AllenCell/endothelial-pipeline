@@ -20,24 +20,33 @@ class ExampleImage(NamedTuple):
     crop_y_start: int  # res level 1
 
 
-FIGURE_1_EXAMPLE_IMAGES: list[ExampleImage] = [
+FIGURE_1_PANEL_B_EXAMPLE_IMAGES: list[ExampleImage] = [
     ExampleImage(
         dataset_name="20250409_20X",
         description="low_flow",
         position=2,
         timepoint=200,
-        crop_x_start=50,
-        crop_y_start=720,
+        crop_x_start=50,  # res level 0
+        crop_y_start=720,  # res level 0
     ),
     ExampleImage(
         dataset_name="20251001_20X",
         description="high_flow",
         position=0,
         timepoint=200,
-        crop_x_start=0,
-        crop_y_start=0,
+        crop_x_start=0,  # res level 0
+        crop_y_start=0,  # res level 0
     ),
 ]
+
+FIGURE_1_PANEL_C_EXAMPLE_IMAGE: ExampleImage = ExampleImage(
+    dataset_name="20250409_20X",
+    description="example crop for showing segmentation and feature extraction",
+    position=2,
+    timepoint=204,
+    crop_x_start=471,  # res level 0
+    crop_y_start=1123,  # res level 0
+)
 
 CDH5_SEG_FIG_EXAMPLE: ExampleImage = ExampleImage(
     dataset_name="20250818_20X",
