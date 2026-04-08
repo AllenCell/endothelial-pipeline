@@ -31,7 +31,7 @@ def main(
 ) -> None:
     """Bootstrap fixed point confidence intervals by subsampling data.
 
-    #dynamics #bootstrap #fixed_points #confidence_intervals
+    #dynamics #bootstrap #fixed-points #confidence-intervals
 
     **Matching scheme**
 
