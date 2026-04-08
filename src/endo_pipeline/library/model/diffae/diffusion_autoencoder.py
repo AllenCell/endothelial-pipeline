@@ -1,3 +1,5 @@
+"""Methods specific to the DiffusionAutoEncoder model, including deterministic inference and visualization."""
+
 import logging
 from copy import deepcopy
 
@@ -11,8 +13,8 @@ from monai.utils import convert_to_tensor
 logger = logging.getLogger(__name__)
 
 
-# A cleaner detach function!
 def detach(img: torch.Tensor | np.ndarray) -> np.ndarray:
+    """Detach tensor from graph and move to CPU, or return numpy array as is."""
     if isinstance(img, torch.Tensor):
         img = img.detach().cpu()
         if img.dtype == torch.bfloat16:
@@ -22,6 +24,8 @@ def detach(img: torch.Tensor | np.ndarray) -> np.ndarray:
 
 
 class _AverageAccumulator:
+    """Accumulator that computes the average of added samples."""
+
     def __init__(self, n_samples: int):
         self.n_samples = n_samples
         self._accumulator: torch.Tensor | None = None
@@ -36,6 +40,8 @@ class _AverageAccumulator:
 
 
 class _AppendAccumulator:
+    """Accumulator that appends samples along a new dimension."""
+
     def __init__(self, n_samples: int):
         self.n_samples = n_samples
         self._accumulator: list[torch.Tensor] = []
@@ -48,7 +54,7 @@ class _AppendAccumulator:
 
 
 def _get_accumulator(average: bool, n_samples: int):
-    """Function to return accumulator correct to accumulate samples with or without averaging"""
+    """Return the appropriate accumulator based on whether averaging or appending is desired."""
     if average:
         return _AverageAccumulator(n_samples)
     else:
@@ -56,11 +62,10 @@ def _get_accumulator(average: bool, n_samples: int):
 
 
 class DiffusionAutoEncoder(_BaseDiffAE):
-    """
-    This class is subclassed from `cyto_dl.models.im2im.diffusion_autoencoder.DiffusionAutoEncoder`.
+    """Enhanced Diffusion AutoEncoder with deterministic inference and visualization capabilities.
 
-    The added functionality allows for deterministic inference by providing control
-    over the conditioning image, diffusion image, and noise generation, ensuring
+    The added functionality in this class allows for deterministic inference by providing
+    control over the conditioning image, diffusion image, and noise generation, ensuring
     reproducible outputs for analysis and visualization.
     """
 
@@ -86,6 +91,7 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         fixed_sample_seed: int | None = 42,
         **base_kwargs,
     ):
+        """Initialize the DiffusionAutoEncoder with options for deterministic noise and fixed samples."""
         self.fixed_noise: torch.Tensor | None = None
         self.noise_cons = noise_cons
         # Store fixed samples for consistent visualization
@@ -141,9 +147,11 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         return torch.randn(shape, device=device, dtype=dtype, generator=gen)
 
     def _get_fixed_samples(self, batch):
-        """
-        Get fixed samples for consistent visualization across epochs
-        Do note that this does not generate noise
+        """Get fixed samples for consistent visualization across epochs.
+
+        This function does not generate the noise sample directly,
+        but it does set the random seed for reproducibility if
+        `fixed_sample_seed` is provided.
         """
         if self.fixed_samples is None and self.fixed_sample_seed is not None:
             # Set seed for reproducible sample selection
@@ -163,7 +171,7 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         return self.fixed_samples
 
     def _make_generator(self, seed: int | None, device: str):
-        """Create a torch generator object with an optional seed"""
+        """Create a torch generator object with an optional seed."""
         gen = torch.Generator(device=device)
         if seed is not None:
             gen.manual_seed(seed)
@@ -177,9 +185,10 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         seed: int | None = None,
         generator: torch.Generator | None = None,
     ) -> torch.Tensor:
-        """
-        Method that generates noise. If there is a pre-made generator, use that
-        else create one from seed
+        """Generate noise using a specified generator or seed.
+
+        If there is a pre-made generator, use that. Otherwise,
+        create one from the given seed.
         """
         if generator is None and seed is not None:
             generator = self._make_generator(seed, device)
@@ -187,9 +196,9 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         return torch.randn(shape, generator=generator, device=device, dtype=dtype)
 
     def _get_fixed_noise(self, shape, dtype, device: str) -> torch.Tensor:
-        """Generate or retrieve fixed noise for noise_cons mode.
+        """Generate or retrieve fixed noise for `noise_cons` mode.
 
-        Only generates noise once and caches it if noise_cons=True.
+        Only generates noise once and caches it if `noise_cons=True`.
         This ensures the exact same noise vector is used across all epochs.
         """
         if self.fixed_noise is None:
@@ -238,6 +247,7 @@ class DiffusionAutoEncoder(_BaseDiffAE):
             )
 
     def model_step(self, stage, batch, batch_idx):
+        """Perform a training/validation step and save example images at specified intervals."""
         batch = convert_to_tensor(batch)
         cond_img = batch[self.hparams.condition_key]
         diff_img = batch[self.diffusion_key]
@@ -274,13 +284,33 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         batch_size: int = 3,
         random_seed: int | None = None,
     ) -> torch.Tensor:
-        """
-        Generate images from latent features.
+        """Generate images from latent features.
+
+        Parameters
+        ----------
+        cond
+            A tensor of shape (N, D) or (N, 1, D) containing the conditioning vectors.
+        save_name
+            The base name for saving the generated image (without extension).
+        n_noise_samples
+            The number of noise samples to generate for each conditioning vector.
+            If None, uses the default value from the model's hyperparameters.
+        average
+            If True, averages the generated samples for each conditioning vector.
+            If False, appends the samples along a new dimension.
+        save
+            Whether to save the generated image as a TIFF file.
+        batch_size
+            The batch size to use when generating images.
+            This controls how many conditioning vectors are processed at a time.
+        random_seed
+            An optional random seed for noise generation to ensure reproducibility.
 
         Returns
         -------
         torch.Tensor
             Detached tensor on CPU (shape: [N, C, H, W]).
+
         """
         if batch_size <= 0:
             raise ValueError("Batch size must be at least 1")
@@ -337,8 +367,7 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         noised_image: torch.Tensor,
         batch_size: int = 3,
     ) -> np.ndarray:
-        """
-        Generate image by denoising a noised image conditioned on a latent vector.
+        """Generate image by denoising a noised image conditioned on a latent vector.
 
         Allows for batch processing to handle a series of conditioning vectors.
 
@@ -362,6 +391,13 @@ class DiffusionAutoEncoder(_BaseDiffAE):
             A tensor holding the noised image to use for image generation.
         batch_size
             The batch size for processing.
+
+        Returns
+        -------
+        :
+            A detached tensor on CPU containing the generated image(s) corresponding
+            to the input conditioning vector(s).
+
         """
         if tuple(noised_image.shape) != tuple(self.hparams.image_shape):
             logger.error(
@@ -401,6 +437,7 @@ class DiffusionAutoEncoder(_BaseDiffAE):
     # The forward method is modified to make this work with both cross-attention and AdaGN!
 
     def forward(self, x_cond: torch.Tensor, x_diff: torch.Tensor):
+        """Perform a forward pass through the model, encoding the conditioning image and predicting noise."""
         B = x_diff.shape[0]
         device = x_diff.device
 
@@ -432,6 +469,7 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         return noise, noise_pred, latent, loss_weight
 
     def predict_step(self, batch, batch_idx):
+        """Perform a single prediction step."""
         meta = batch[self.hparams.condition_key].meta
         dtype = torch.bfloat16 if self.trainer.precision == "bf16-mixed" else torch.float16
         self.to(dtype)

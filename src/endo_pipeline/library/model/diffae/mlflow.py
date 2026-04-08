@@ -1,3 +1,5 @@
+"""MLFlow logger with enhanced features for DiffAE training."""
+
 import math
 import os
 import re
@@ -20,7 +22,8 @@ from omegaconf import OmegaConf
 
 
 class MLFlowLogger(_LightningMLFlowLogger):
-    """
+    """MLFlow Logger with enhanced features for DiffAE training.
+
     Logger is copied from cyto-DL (commit hash: cd55c519b6a18018077d54e0da1871263f1c1c5c),
     with several enhancements:
     - Added support for log-log scaled plots.
@@ -41,6 +44,7 @@ class MLFlowLogger(_LightningMLFlowLogger):
         fault_tolerant: bool = True,
         log_log_scale: bool = True,
     ):
+        """Initialize the MLFlowLogger with enhanced features for DiffAE training."""
         super().__init__(
             experiment_name=experiment_name,
             run_name=run_name,
@@ -74,6 +78,7 @@ class MLFlowLogger(_LightningMLFlowLogger):
 
     @rank_zero_only
     def log_hyperparams(self, params: dict[str, Any] | Namespace, mode: str = "train") -> None:
+        """Log hyperparameters and requirements to MLFlow."""
         requirements = params.pop("requirements", [])
         with tempfile.TemporaryDirectory() as tmp_dir:
             conf_path = Path(tmp_dir) / f"{mode}.yaml"
@@ -89,6 +94,7 @@ class MLFlowLogger(_LightningMLFlowLogger):
     # Metrics + log-log version
     @rank_zero_only
     def log_metrics(self, metrics: Mapping[str, float], step: int | None = None) -> None:
+        """Log metrics to MLFlow, with optional log-log scaling."""
         # Original
         try:
             super().log_metrics(metrics, step)
@@ -115,6 +121,7 @@ class MLFlowLogger(_LightningMLFlowLogger):
 
     # Checkpoint handling
     def after_save_checkpoint(self, ckpt_callback: ModelCheckpoint) -> None:
+        """Handle actions after saving a checkpoint, including logging to MLFlow."""
         try:
             self._after_save_checkpoint(ckpt_callback)
         except Exception as e:

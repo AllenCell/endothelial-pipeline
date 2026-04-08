@@ -1,3 +1,5 @@
+"""Model config override classes for model training runs."""
+
 import logging
 from pathlib import Path
 
@@ -58,7 +60,6 @@ class ModelConfigOverrideTrain:
 
     def __post_init__(self):
         """Post initialization steps for model config overrides."""
-
         self.task_name = "train"
 
         config = load_model_config(self.template_config)
@@ -134,7 +135,6 @@ class ModelConfigOverrideTrain:
 
     def to_dict(self):
         """Convert to overrides dict."""
-
         # Create output directories for checkpoints and logs if they do not exist.
         checkpoint_path = get_output_path(
             "models",
