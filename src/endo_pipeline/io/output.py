@@ -71,9 +71,14 @@ def get_timestamp() -> str:
     return datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d")
 
 
-def get_output_dir() -> Path:
+def get_output_dir(root: Path | None = None) -> Path:
     """
     Get path to output directory.
+
+    Parameters
+    ----------
+    root
+        Optional root directory. If not provided, defaults to three levels up from this file.
 
     Returns
     -------
@@ -81,7 +86,8 @@ def get_output_dir() -> Path:
         Path object for output directory.
     """
 
-    return Path(__file__).resolve().parents[3] / "results"
+    root_ = root or Path(__file__).resolve().parents[3]
+    return root_ / "results"
 
 
 def get_output_path(
@@ -122,7 +128,7 @@ def get_output_path(
         Path object for output.
     """
 
-    output_dir = get_output_dir()
+    output_dir = get_output_dir(Path("//allen/aics/users/erin.angelini/endopipe"))
 
     if include_timestamp:
         timestamp = get_timestamp()
