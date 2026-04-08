@@ -171,9 +171,8 @@ class MLFlowLogger(_LightningMLFlowLogger):
 
         Creates a temporary copy of the checkpoint at ``source_path`` renamed
         to ``target_name``, uploads it to MLflow under ``artifact_path``, and
-        cleans up the copy afterwards.  If a file with ``target_name`` already
-        exists in the same directory (e.g. the source itself), it is logged
-        directly and no copy is made.
+        cleans up the copy afterwards.  Local checkpoint management is left
+        entirely to Lightning's ``ModelCheckpoint``.
 
         Parameters
         ----------
@@ -185,19 +184,10 @@ class MLFlowLogger(_LightningMLFlowLogger):
             Destination directory inside the MLflow artifact store
             (e.g. ``"checkpoints/val_loss"``).
         """
-        # Get name of target path by renaming file in source path
-        target_path = Path(source_path).with_name(target_name)
-
-        # If the target path does not exist, make a temporary copy of the source path
-        if not target_path.exists():
-            shutil.copy2(source_path, target_path)
-
-        # Log the target path as an artifact
-        self.experiment.log_artifact(self.run_id, str(target_path), artifact_path)
-
-        # Delete the temporary copy, if one was created.
-        if Path(source_path).resolve() != target_path.resolve():
-            target_path.unlink()
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir) / target_name
+            shutil.copy2(source_path, tmp_path)
+            self.experiment.log_artifact(self.run_id, str(tmp_path), artifact_path)
 
     def _after_save_checkpoint(self, ckpt_callback: ModelCheckpoint) -> None:
         monitor = ckpt_callback.monitor
@@ -243,11 +233,23 @@ class MLFlowLogger(_LightningMLFlowLogger):
             best_src = ckpt_callback.best_model_path
             if best_src and Path(best_src).is_file():
                 self._log_named_checkpoint_as_artifact(best_src, best_name, artifact_path)
+                # Also keep a local copy of best_{monitor}.ckpt
+                if ckpt_callback.dirpath:
+                    local_best = Path(ckpt_callback.dirpath) / best_name
+                    shutil.copy2(best_src, local_best)
             else:
                 self._warn(
                     f"best_model_path is empty or missing ({best_src!r}). "
                     f"Skipping {best_name} logging."
                 )
+
+            # Clean up local checkpoints that are no longer in top-k.
+            # Keep only: top-k epoch files, best_{monitor}.ckpt, and last.ckpt.
+            if ckpt_callback.dirpath:
+                keep_local = top_k | {best_name, "last.ckpt"}
+                for f in Path(ckpt_callback.dirpath).iterdir():
+                    if f.is_file() and f.suffix == ".ckpt" and f.name not in keep_local:
+                        f.unlink()
 
         else:
             # When monitor is None there is no metric to rank checkpoints by,

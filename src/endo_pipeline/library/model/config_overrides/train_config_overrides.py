@@ -180,6 +180,8 @@ class ModelConfigOverrideTrain:
             "model.image_shape": [1, self.crop_size, self.crop_size],
             # update the callbacks,
             "callbacks.model_checkpoint.save_last": True,
+            "callbacks.model_checkpoint.monitor": "val/loss",
+            "callbacks.model_checkpoint.save_top_k": 3,
             # set condition key
             "model.condition_key": self.condition_key,
             # set number of latent dimensions
