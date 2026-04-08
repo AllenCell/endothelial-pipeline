@@ -1049,6 +1049,13 @@ def plot_trajectory_measured_vs_simulation_over_flow_field(
         feature_vals=flow_field_slices,
         column_names=column_names,
     )
+    frechet_dist = traj_df["frechet_distance"].iloc[0]
+    dtw_dist = traj_df["dtw_distance"].iloc[0]
+    title = (
+        f"{dataset_name} fp = {fixed_point_id} crop {crop_index}: "
+        f"Fréchet = {frechet_dist:.3f}, DTW = {dtw_dist:.3f}"
+    )
+    fig.suptitle(title)
 
     # for each axis corresponding to a flow field slice
     for j, ax in enumerate(axs):
@@ -1097,6 +1104,7 @@ def plot_trajectory_measured_vs_simulation_over_flow_field(
             ax=ax,
         )
         ax.legend(ncols=2)
+    plt.tight_layout()
     save_plot_to_path(
         figure=fig,
         output_path=out_dir,

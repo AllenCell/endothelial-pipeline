@@ -103,9 +103,6 @@ def main(
             )
             .reset_index(drop=True)
         )
-        crop_index, initial_conditions = list(
-            zip(*df_grid_t_init.groupby(Column.CROP_INDEX)[[*DYNAMICS_COLUMN_NAMES]], strict=True)
-        )
 
         crop_indices_and_initial_conditions = list(
             df_grid_t_init.groupby([Column.CROP_INDEX, Column.TRACK_LENGTH, Column.TIMEPOINT])[
@@ -115,8 +112,6 @@ def main(
 
         if DEMO_MODE:
             num_traj = 10
-            crop_index = crop_index[:num_traj]
-            initial_conditions = initial_conditions[:num_traj]
             crop_indices_and_initial_conditions = crop_indices_and_initial_conditions[:num_traj]
 
         ivp_args_mp: list[dict] = []
@@ -189,8 +184,8 @@ def main(
         distances_df = (
             df_grid_sub.groupby(Column.CROP_INDEX)
             .apply(
-                lambda traj_df: (
-                    lambda tdf: pd.Series(
+                lambda traj_df, measured_cols=measured_cols, simulated_cols=simulated_cols: (
+                    lambda tdf, simulated_cols=simulated_cols: pd.Series(
                         {
                             Column.DATASET: str(traj_df[Column.DATASET].iloc[0]),
                             Column.POSITION: int(traj_df[Column.POSITION].iloc[0]),
@@ -205,6 +200,10 @@ def main(
                 )(traj_df.dropna(subset=measured_cols))
             )
             .reset_index()
+        )
+
+        df_grid_sub = df_grid_sub.merge(
+            distances_df, on=[Column.DATASET, Column.POSITION, Column.CROP_INDEX], how="left"
         )
 
         if make_trajectory_validation_plots:
