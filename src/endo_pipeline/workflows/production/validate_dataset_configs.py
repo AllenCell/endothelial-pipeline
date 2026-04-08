@@ -4,7 +4,7 @@ from endo_pipeline.cli import Datasets
 def main(datasets: Datasets | None = None) -> None:
     """Validate dataset(s) by checking config schemas and loading files.
 
-    #test_ready #CPU_only
+    #test-ready #cpu-only
 
     For each specified dataset, confirm:
 
