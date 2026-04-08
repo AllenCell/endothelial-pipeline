@@ -9,10 +9,11 @@ from seaborn import color_palette
 
 from endo_pipeline.io import get_output_path, load_dataframe
 from endo_pipeline.library.analyze.data_driven_flow_field import (
+    get_drift_df,
     get_drift_flow_field_as_dict,
+    get_fixed_points_df,
     solve_ddff_ode,
 )
-from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics.binning import get_bins
@@ -37,11 +38,6 @@ from endo_pipeline.settings.flow_field_3d import (
     INIT_POINT_3D,
     TIME_STEP_IN_MINUTES,
     TRAJECTORY_TIME_SPAN,
-)
-from endo_pipeline.settings.flow_field_dataframes import (
-    DATAFRAME_MANIFEST_PREFIX_DRIFT,
-    DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
-    STABILITY_COLUMN_NAME,
 )
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_COLUMNS_TO_DROP,
@@ -659,44 +655,17 @@ def get_flow_field_and_fixed_points(
     if column_names is None:
         column_names = list(DYNAMICS_COLUMN_NAMES)
 
-    base_name = f"{model_manifest_name}_{run_name}_grid"
-    fixed_points_df_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
-    fixed_points_df_manifest = load_dataframe_manifest(fixed_points_df_manifest_name)
-
-    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{base_name}"
-    drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
-
-    if dataset_name not in fixed_points_df_manifest.locations:
-        logger.warning(
-            "Dataset [ %s ] not found in fixed points dataframe manifest [ %s ]!",
-            dataset_name,
-            fixed_points_df_manifest_name,
-        )
-        return {}, pd.DataFrame()
-    if dataset_name not in drift_dataframe_manifest.locations:
-        logger.warning(
-            "Dataset [ %s ] not found in drift dataframe manifest [ %s ]!",
-            dataset_name,
-            drift_dataframe_manifest_name,
-        )
-        return {}, pd.DataFrame()
-
     logger.info("Getting flow fields and fixed points for grid-based crops...")
 
-    # load fixed point dataframe and check that required columns are present
-    fixed_points_df_location = get_dataframe_location_for_dataset(
-        fixed_points_df_manifest, dataset_name
-    )
-    fixed_points_df = load_dataframe(fixed_points_df_location, delay=False)
-    check_required_columns_in_dataframe(
-        fixed_points_df,
-        required_columns=[*column_names, Column.DATASET, STABILITY_COLUMN_NAME],
+    fixed_points_df = get_fixed_points_df(
+        dataset_name=dataset_name, model_manifest_name=model_manifest_name, run_name=run_name
     )
 
-    drift_dataframe_location = get_dataframe_location_for_dataset(
-        drift_dataframe_manifest, dataset_name
+    drift_df = get_drift_df(
+        dataset_name=dataset_name,
+        model_manifest_name=model_manifest_name,
+        run_name=run_name,
     )
-    drift_df = load_dataframe(drift_dataframe_location, delay=False)
 
     flow_field_dict = get_drift_flow_field_as_dict(drift_df, column_names)
 
@@ -980,3 +949,73 @@ def get_and_save_pc_diffae_feats_liveseg_feats_merged_table(dataset_name: str) -
 
     filename_filtered = f"{dataset_name}_pc_diffae_seg_feats_merged_filtered.parquet"
     merged_df_filtered.to_parquet(out_dir / filename_filtered)
+
+
+def solve_ddff_from_trajectory_initial_condition_helper(args: dict) -> dict:
+    """Helper function to call solve_ddff_from_trajectory_initial_condition with
+    a dictionary of arguments.
+    """
+    return solve_ddff_from_trajectory_initial_condition(**args)
+
+
+def solve_ddff_from_trajectory_initial_condition(
+    crop_index: int,
+    flow_field_dict: dict,
+    initial_condition: np.ndarray,
+    timepoint_initial: int,
+    trajectory_duration: int,
+    simulation_results_column_names: list[str | Column.DiffAEData],
+    time_limit: float | None = None,
+) -> dict:
+    """
+    Solve the data-driven flow field (DDFF) ODE for a single trajectory given an initial condition.
+    Returns the simulated trajectory as a dictionary suitable for easy conversion to a DataFrame.
+
+    Parameters
+    ----------
+    crop_index
+        The crop index corresponding to the trajectory being simulated.
+    flow_field_dict
+        Dictionary representing the flow field to integrate over.
+    initial_condition
+        Initial condition for the trajectory integration.
+    timepoint_initial
+        The initial timepoint corresponding to the start of the trajectory.
+    trajectory_duration
+        Duration of the trajectory to simulate.
+    simulation_results_column_names
+        List of column names corresponding to the dynamics features to include in the simulation results.
+    time_limit
+        Optional time limit in seconds for the ODE solver.
+
+    Returns
+    -------
+    dict
+        Dictionary containing the simulated trajectory as a record suitable for conversion to a DataFrame.
+    """
+    if time_limit is None:
+        time_limit = np.inf
+
+    trajectory_simulation = solve_ddff_ode(
+        flow_field_dict=flow_field_dict,
+        init=initial_condition,
+        t_span=(0, trajectory_duration + 1),
+        num_t=trajectory_duration + 1,
+        time_limit=time_limit,
+    )
+    simulation_as_df_record = {
+        Column.CROP_INDEX: [crop_index] * len(trajectory_simulation),
+        Column.TRACK_LENGTH: [trajectory_duration] * len(trajectory_simulation),
+        Column.TIMEPOINT: list(
+            range(timepoint_initial, timepoint_initial + trajectory_duration + 1)
+        ),
+        **dict(
+            zip(
+                [f"{col_name}_simulated" for col_name in simulation_results_column_names],
+                trajectory_simulation.T,
+                strict=True,
+            )
+        ),
+    }
+
+    return simulation_as_df_record

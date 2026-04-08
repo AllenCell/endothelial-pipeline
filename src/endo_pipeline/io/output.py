@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 from typing import Literal
 
+import matplotlib.pyplot as plt
 from git import Repo
 from matplotlib.figure import Figure
 
@@ -362,6 +363,8 @@ def save_plot_to_path(
     file_format: Literal[".png", ".svg", ".pdf"] = ".png",
     transparent: bool = False,
     pad_inches: float = 0.1,
+    tight_layout: bool = True,
+    show_and_close: bool = True,
 ) -> None:
     """
     Save a matplotlib figure to a file with the specified filename.
@@ -382,9 +385,19 @@ def save_plot_to_path(
         True to save figure with clear background, False otherwise.
     pad_inches
         Amount of padding around the figure when saving, in inches.
+    tight_layout
+        True to apply tight layout to figure, False otherwise.
+    show_and_close
+        True to display the figure and then close it, False otherwise.
     """
 
     output_file = (output_path / figure_name).with_suffix(file_format)
-    figure.savefig(
-        output_file, dpi=dpi, transparent=transparent, bbox_inches="tight", pad_inches=pad_inches
-    )
+
+    if tight_layout:
+        plt.tight_layout()
+
+    figure.savefig(output_file, dpi=dpi, transparent=transparent, pad_inches=pad_inches)
+
+    if show_and_close:
+        plt.show()
+        plt.close(figure)
