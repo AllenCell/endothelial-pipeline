@@ -4,6 +4,9 @@ NUM_BOOTSTRAP_ITERATIONS: int = 100
 """Number of bootstrap iterations for fixed point confidence interval estimation
 in 3D flow field analysis."""
 
+BATCH_SIZE_SCALING_FACTOR: float = 4
+"""Factor to used determine the number of batches for parallel processing in bootstrapping."""
+
 BOOTSTRAP_MATCH_RADIUS: float = 0.1
 """Radius threshold for matching bootstrapped fixed points to baseline fixed
 points in 3D flow field analysis."""
