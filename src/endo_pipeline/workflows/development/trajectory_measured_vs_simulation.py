@@ -243,3 +243,24 @@ if __name__ == "__main__":
     from endo_pipeline.cli import workflow_cli
 
     workflow_cli(main)
+
+
+def test():
+    import numpy as np
+
+    # define some lines
+    # punctual makes a round trip and arrives exactly on time
+    punctual_x = [*np.linspace(0, 10, 11), *np.linspace(9, 0, 10)]
+    punctual_y = [0] * len(punctual_x)
+    punctual = list(zip(punctual_x, punctual_y))
+
+    # lazy moves slower than punctual and gives up half way
+    lazy_x = [*np.linspace(0, 10, 21)]
+    lazy_y = [0] * len(lazy_x)
+    lazy = list(zip(lazy_x, lazy_y))
+
+    # impatient moves faster than punctual and ends up waiting at the end
+    impatient_x = 
+
+    # overachiever moves faster than punctual and ends up doing an extra lap
+    overachiever_x = 
