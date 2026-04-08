@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 _worker_state: dict = {}
 
 
-def subsample_trajectories_and_displacements(
+def sample_trajectories_and_displacements_for_bootstrapping(
     trajectories: list[np.ndarray],
     displacements: list[np.ndarray],
     subsample_fraction: float,

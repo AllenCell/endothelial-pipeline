@@ -127,7 +127,7 @@ def main(
         init_bootstrap_worker,
         match_bootstrap_fixed_points_to_baseline,
         run_one_bootstrap_iteration,
-        subsample_trajectories_and_displacements,
+        sample_trajectories_and_displacements_for_bootstrapping,
     )
     from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
@@ -295,7 +295,7 @@ def main(
         # element of `all_subsamples` is a tuple of (subsampled_trajectories,
         # subsampled_displacements).
         all_subsamples: list[tuple[list[np.ndarray], list[np.ndarray]]] = [
-            subsample_trajectories_and_displacements(
+            sample_trajectories_and_displacements_for_bootstrapping(
                 full_trajectories, full_displacements, subsample_fraction=0.5, rng=rng
             )
             for _ in range(num_bootstrap_iterations)
