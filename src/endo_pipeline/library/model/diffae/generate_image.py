@@ -94,17 +94,19 @@ def generate_from_coords_and_noised_image(
 
     .. code-block:: python
 
-        from endo_pipeline.io import load_model from endo_pipeline.manifests
-        import load_model_manifest from endo_pipeline.library.model.diffae
-        import generate_from_coords_and_noised_image
+        from endo_pipeline.io import load_model
+        from endo_pipeline.manifests import load_model_manifest
+        from endo_pipeline.library.model.diffae import (
+            generate_from_coords_and_noised_image
+        )
 
-        model_manifest = load_model_manifest("my_model_manifest") model_location
-        = model_manifest.locations["my_run_name"] model =
-        load_model(model_location)
+        model_manifest = load_model_manifest("my_model_manifest")
+        model_location = model_manifest.locations["my_run_name"]
+        model = load_model(model_location)
 
         gen_image = generate_from_coords_and_noised_image(
             model, coords=my_coords, # shape (num_vecs, num_dims)
-            noised_image=my_noised_image, # shape (1, n_y, n_x) for this model
+            noised_image=my_noised_image, # shape (1, n_y, n_x)
         )
 
     Parameters
