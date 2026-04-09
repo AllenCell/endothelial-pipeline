@@ -319,7 +319,7 @@ def main(
                 if not stable_fixed_points.empty:
                     stable_fixed_point_dataframe_list.append(stable_fixed_points)
                     column_names_ = cast(list[str], column_names)
-                    for row in stable_fixed_points.itertuples(index=False):
+                    for _, row in stable_fixed_points.iterrows():
                         stable_fixed_points_list.append(row[column_names_].to_numpy())
 
             # To store as dataframe, the grid points were stored as a flattened

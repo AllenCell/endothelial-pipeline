@@ -778,8 +778,8 @@ def flow_field_viz_main(
     """
     # dataset flow condition for saving the figures
     dataset_name = df[Column.DATASET].unique()[0]
-    shear_stress_ = (
-        shear_stress or load_dataset_config(dataset_name).flow_conditions[0].shear_stress
+    shear_stress_ = int(shear_stress) or int(
+        load_dataset_config(dataset_name).flow_conditions[0].shear_stress
     )
 
     ###### additional plots for visualization of flow field #######
