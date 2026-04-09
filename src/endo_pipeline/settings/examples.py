@@ -22,12 +22,12 @@ class ExampleImage(NamedTuple):
 
 FIGURE_1_PANEL_B_EXAMPLE_IMAGES: list[ExampleImage] = [
     ExampleImage(
-        dataset_name="20250409_20X",
+        dataset_name="20250402_20X",  # update this example to be 20250402
         description="low_flow",
-        position=2,
-        timepoint=200,
-        crop_x_start=50,  # res level 0
-        crop_y_start=720,  # res level 0
+        position=3,
+        timepoint=150,
+        crop_x_start=0,  # res level 0
+        crop_y_start=0,  # res level 0
     ),
     ExampleImage(
         dataset_name="20251001_20X",
