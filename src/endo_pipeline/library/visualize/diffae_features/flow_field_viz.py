@@ -778,9 +778,10 @@ def flow_field_viz_main(
     """
     # dataset flow condition for saving the figures
     dataset_name = df[Column.DATASET].unique()[0]
-    shear_stress_ = int(shear_stress) or int(
-        load_dataset_config(dataset_name).flow_conditions[0].shear_stress
+    shear_stress_: float = (
+        shear_stress or load_dataset_config(dataset_name).flow_conditions[0].shear_stress
     )
+    shear_stress_int = int(shear_stress_)
 
     ###### additional plots for visualization of flow field #######
     # 1) plot stacks of flow field slices
@@ -815,7 +816,7 @@ def flow_field_viz_main(
                 plot_bounds[plot_axes[1]],
             ]
             # save to subdirectory of fig_savedir
-            stack_savedir = fig_savedir / f"{dataset_name}_{shear_stress_}_{column_name}_stack"
+            stack_savedir = fig_savedir / f"{dataset_name}_{shear_stress_int}_{column_name}_stack"
             stack_savedir.mkdir(parents=True, exist_ok=True)
             plot_flow_field_stack(
                 flow_field_dict,
@@ -848,7 +849,7 @@ def flow_field_viz_main(
             prob_kde=prob_kde,
             feature_vals=feature_vals,
             column_names=column_names,
-            shear_stress=shear_stress,
+            shear_stress=shear_stress_,
         )
     else:
         for k, fpt in enumerate(stable_fixed_points):
@@ -862,14 +863,14 @@ def flow_field_viz_main(
                 prob_kde=prob_kde,
                 feature_vals=feature_vals,
                 column_names=column_names,
-                shear_stress=shear_stress,
+                shear_stress=shear_stress_,
             )
 
             for j, ax_ in enumerate(ax):  # feature 1 vs feature 2, feature 1 vs feature 3
                 ax_.scatter(fpt[0], fpt[j + 1], s=75, color="black")
             # save the figure
             save_plot_to_path(
-                fig, fig_savedir, f"flow_field_{dataset_name}_{shear_stress_}_fpt_{k}"
+                fig, fig_savedir, f"flow_field_{dataset_name}_{shear_stress_int}_fpt_{k}"
             )
 
     # 2) plot entire trajectory over flow field feature 1 vs feature 2, feature
@@ -911,7 +912,7 @@ def flow_field_viz_main(
             ax_.plot(traj[:, 0], traj[:, j + 1], linewidth=2.5, color="navy")
 
     # save the figure
-    save_plot_to_path(fig, fig_savedir, f"flow_field_{dataset_name}_{shear_stress_}_traj")
+    save_plot_to_path(fig, fig_savedir, f"flow_field_{dataset_name}_{shear_stress_int}_traj")
 
     # 3) trajectory with equally spaced interpolated points
     for j, ax_ in enumerate(ax):
