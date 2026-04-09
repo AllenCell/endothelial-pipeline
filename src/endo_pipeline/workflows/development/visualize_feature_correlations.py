@@ -132,7 +132,7 @@ def main(
         (
             "Measured Features",
             [
-                get_label_for_column(Column.SegData.ORIENTATION_DEG),
+                get_label_for_column(Column.SegData.ORIENTATION),
                 get_label_for_column(Column.SegData.ASPECT_RATIO),
                 get_label_for_column(Column.SegData.CELL_FLUOR_MEAN),
                 get_label_for_column(Column.SegData.EDGE_FLUOR_MEAN),
