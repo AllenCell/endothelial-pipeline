@@ -1,7 +1,7 @@
 """Methods for visualizing the outputs of the DiffAE feature analysis workflows."""
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,6 +9,7 @@ from matplotlib.colors import TwoSlopeNorm
 from mpl_toolkits.mplot3d import Axes3D
 
 from endo_pipeline.io import save_plot_to_path
+from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
 from endo_pipeline.settings.plot_defaults import SHEAR_COLOR_DICT
 
 
@@ -20,6 +21,8 @@ def plot_and_save_drift_contours(
     fig_title: str,
     fig_savedir: Path,
     filename_prefix: str,
+    file_format: Literal[".svg", ".png", ".pdf"] = ".png",
+    figsize: tuple[float, float] = (MAX_FIGURE_WIDTH / 2, MAX_FIGURE_WIDTH / 2),
 ) -> None:
     """Make and save contour plot of each component of the drift vector field over the 2D state space.
 
@@ -45,10 +48,14 @@ def plot_and_save_drift_contours(
         Directory to save the figure.
     filename_prefix
         Prefix for the filename when saving the figure, e.g., "dataset_1".
+    file_format
+        File format for saving the figure, e.g., ".svg", ".png", or ".pdf".
+    figsize
+        Size of the figure, specified as a tuple (width, height).
 
     """
     for var_index, var_name in enumerate(variable_labels):
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=figsize)
         contour = ax.contourf(
             meshgrid[0],
             meshgrid[1],
@@ -72,10 +79,12 @@ def plot_and_save_drift_contours(
         ax.set_xlim(axes_limits[0])
         ax.set_ylim(axes_limits[1])
         fig.suptitle(
-            f"{fig_title} \n d{var_name}/dt vs ({variable_labels[0]}, {variable_labels[1]})", y=1.05
+            f"{fig_title} \n d{var_name}/dt vs ({variable_labels[0]}, {variable_labels[1]})"
         )
         var_name_for_file = var_name.replace("$", "").replace("\\", "")
-        save_plot_to_path(fig, fig_savedir, f"{filename_prefix}_d{var_name_for_file}dt")
+        save_plot_to_path(
+            fig, fig_savedir, f"{filename_prefix}_d{var_name_for_file}dt", file_format=file_format
+        )
 
 
 def plot_and_save_drift_quiver(
@@ -93,6 +102,8 @@ def plot_and_save_drift_quiver(
     nullcline_colors: tuple[str, str] = ("r", "b"),
     nullcline_linewidth: float = 1.5,
     nullcline_opacity: float = 0.7,
+    file_format: Literal[".svg", ".png", ".pdf"] = ".png",
+    figsize: tuple[float, float] = (MAX_FIGURE_WIDTH / 2, MAX_FIGURE_WIDTH / 2),
 ):
     """Make and save quiver plot of the drift vector field over the 2D state space.
 
@@ -128,9 +139,13 @@ def plot_and_save_drift_quiver(
         Line width for the nullcline lines.
     nullcline_opacity
         Opacity for the nullcline lines (between 0 and 1).
+    file_format
+        File format for saving the figure, e.g., ".svg", ".png", or ".pdf".
+    figsize
+        Size of the figure, specified as a tuple (width, height).
 
     """
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=figsize)
     ax.quiver(
         meshgrid[0],
         meshgrid[1],
@@ -167,8 +182,8 @@ def plot_and_save_drift_quiver(
     ax.set_ylabel(variable_labels[1])
     ax.set_xlim(axes_limits[0])
     ax.set_ylim(axes_limits[1])
-    fig.suptitle(f"{fig_title} \n drift in ({variable_labels[0]}, {variable_labels[1]})", y=1.05)
-    save_plot_to_path(fig, fig_savedir, f"{filename_prefix}_drift_quiver")
+    fig.suptitle(f"{fig_title} \n drift in ({variable_labels[0]}, {variable_labels[1]})")
+    save_plot_to_path(fig, fig_savedir, f"{filename_prefix}_drift_quiver", file_format=file_format)
 
 
 def plot_fixed_points_by_shear(
