@@ -266,7 +266,7 @@ def match_bootstrap_fixed_points_to_baseline(
     column_names: list[str | Column.DiffAEData],
     polar_angle_period: float | None,
     bootstrap_match_radius: float,
-) -> list[list[np.ndarray]]:
+) -> dict[int, list[np.ndarray]]:
     """Match bootstrap fixed points to baseline fixed points within a specified radius.
 
     **Method inputs**
@@ -412,6 +412,7 @@ def aggregate_bootstrapping_results(
     - bootstrapped confidence intervals for the fixed point coordinates
     - a detection rate from the fraction of bootstrap iterations in which a
       match was found within the specified radius
+    - a cluster mean coordinate (mean of all matched bootstrap coordinates)
 
     **Method inputs**
 
@@ -441,6 +442,8 @@ def aggregate_bootstrapping_results(
     - `{col}`: baseline coordinate for each feature column
     - `{col}_ci_lower`, `{col}_ci_upper`: lower / upper bootstrap CI bounds
       (`nan` when fewer than 2 bootstrap hits were found).
+    - `{col}_cluster_mean`: mean of all matched bootstrap coordinates across
+      iterations (`nan` when no matches were found).
     - `bootstrap_detection_rate`: fraction of bootstrap samples in which a
       matched fixed point was found.
     - `n_bootstrap_samples`: total number of bootstrap iterations.
@@ -490,9 +493,9 @@ def aggregate_bootstrapping_results(
             dataframe_row[col] = baseline_fixed_point[col]
 
         num_hits = len(matched_coords[i])
-        if num_hits >= 2:
+        if num_hits >= 1:
             # reshape list of matched coords to the given baseline point
-            # # to (n_hits, 3) for percentile computation
+            # to (n_hits, 3) for percentile / mean computation
             matched_coords_array = np.stack(matched_coords[i], axis=0)  # (n_hits, 3)
             if polar_dim_idx is not None:
                 # Unwrap bootstrap polar angles relative to the baseline angle so
@@ -505,15 +508,41 @@ def aggregate_bootstrapping_results(
                 matched_coords_array[:, polar_dim_idx] = np.unwrap(seq, period=polar_angle_period)[
                     1:
                 ]
+
+            # compute running cluster means: after k matches the mean of the
+            # first k matched coordinates (ordered by bootstrap iteration)
+            running_cluster_means = [
+                np.mean(matched_coords_array[: k + 1], axis=0) for k in range(num_hits)
+            ]
+            logger.debug(
+                "Running cluster means for baseline FP %d (%d matches): %s",
+                i,
+                num_hits,
+                running_cluster_means,
+            )
+            cluster_mean = running_cluster_means[-1]  # final mean over all matched iterations
             for dim_idx, col in enumerate(column_names):
-                dataframe_row[f"{col}_ci_lower"] = float(
-                    np.percentile(matched_coords_array[:, dim_idx], bootstrap_ci_lower_percentile)
-                )
-                dataframe_row[f"{col}_ci_upper"] = float(
-                    np.percentile(matched_coords_array[:, dim_idx], bootstrap_ci_upper_percentile)
-                )
+                dataframe_row[f"{col}_cluster_mean"] = float(cluster_mean[dim_idx])
+
+            if num_hits >= 2:
+                for dim_idx, col in enumerate(column_names):
+                    dataframe_row[f"{col}_ci_lower"] = float(
+                        np.percentile(
+                            matched_coords_array[:, dim_idx], bootstrap_ci_lower_percentile
+                        )
+                    )
+                    dataframe_row[f"{col}_ci_upper"] = float(
+                        np.percentile(
+                            matched_coords_array[:, dim_idx], bootstrap_ci_upper_percentile
+                        )
+                    )
+            else:
+                for col in column_names:
+                    dataframe_row[f"{col}_ci_lower"] = float("nan")
+                    dataframe_row[f"{col}_ci_upper"] = float("nan")
         else:
             for col in column_names:
+                dataframe_row[f"{col}_cluster_mean"] = float("nan")
                 dataframe_row[f"{col}_ci_lower"] = float("nan")
                 dataframe_row[f"{col}_ci_upper"] = float("nan")
 
