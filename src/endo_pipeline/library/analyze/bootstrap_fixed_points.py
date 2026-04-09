@@ -285,9 +285,10 @@ def match_bootstrap_fixed_points_to_baseline(
 
     For each bootstrap iteration, baseline fixed points are processed in row
     order and each is offered the closest unassigned bootstrap fixed point that
-    lies within `BOOTSTRAP_MATCH_RADIUS`.  Each bootstrap fixed point can be
-    matched to at most one baseline fixed point per iteration. Iterations that
-    yield no fixed points, or no fixed points within radius of a given baseline
+    lies within `BOOTSTRAP_MATCH_RADIUS` **and shares the same stability
+    classification**.  Each bootstrap fixed point can be matched to at most one
+    baseline fixed point per iteration. Iterations that yield no fixed points,
+    or no fixed points with matching stability within radius of a given baseline
     fixed point, are counted as misses for that baseline fixed point.
 
     **Polar angle handling**
@@ -356,9 +357,15 @@ def match_bootstrap_fixed_points_to_baseline(
 
         pairwise_dists = np.linalg.norm(pairwise_diffs, axis=-1)
 
+        boot_stabilities = fixed_point_result[STABILITY_COLUMN_NAME].to_numpy()
+        baseline_stabilities = baseline_fixed_points[STABILITY_COLUMN_NAME].to_numpy()
+
         assigned_boot_indices: set[int] = set()
         for baseline_idx in range(n_baseline):
-            row_dists = pairwise_dists[baseline_idx]
+            row_dists = pairwise_dists[baseline_idx].copy()
+            # Exclude bootstrap FPs with a different stability classification
+            # from consideration when matching this baseline FP.
+            row_dists[boot_stabilities != baseline_stabilities[baseline_idx]] = np.inf
             sorted_boot_idxs = np.argsort(row_dists)
             for boot_idx in sorted_boot_idxs:
                 if boot_idx in assigned_boot_indices:
