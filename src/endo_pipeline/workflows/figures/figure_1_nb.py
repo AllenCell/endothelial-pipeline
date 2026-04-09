@@ -1,36 +1,21 @@
 # %%
 import matplotlib.pyplot as plt
 
-from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.io import load_dataframe, load_image
 from endo_pipeline.io.output import get_output_path, save_plot_to_path
-from endo_pipeline.library.process.image_processing import (
-    contrast_stretching,
-    crop_image,
-    get_single_bf_plane,
-    log_normalize_image,
-    max_proj,
-    std_dev,
+from endo_pipeline.library.visualize.data_example_figures import (
+    create_panel_b_biological_system_examples,
+    create_panel_c_patch_featurization,
 )
-from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.library.visualize.intro_schematic import create_intro_schematic
-from endo_pipeline.manifests import (
-    get_dataframe_location_for_dataset,
-    get_image_location_for_dataset,
-    get_zarr_location_for_position,
-    load_dataframe_manifest,
-    load_image_manifest,
-)
-from endo_pipeline.settings import ColumnName as Column
 from endo_pipeline.settings.examples import (
     FIGURE_1_PANEL_B_EXAMPLE_IMAGES,
     FIGURE_1_PANEL_C_EXAMPLE_IMAGE,
 )
-from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_WIDTH
-from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
-from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
+from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
+from endo_pipeline.workflows.development.visualize_feature_correlations import (
+    main as visualize_feature_correlations,
 )
+from endo_pipeline.workflows.production.visualize_latent_walk import main as visualize_latent_walk
 
 DESCRIPTION = "Figure panels for Figure 1"
 
@@ -43,205 +28,21 @@ fig, ax = create_intro_schematic(figure_size=(MAX_FIGURE_WIDTH, 2))
 save_plot_to_path(fig, save_dir, "intro_schematic", file_format=".svg", dpi=900)
 
 # %% Panel B: Example images from biological system at low and high shear stress
-CROP_SIZE = 1000  # in pixels at res level 0
-
-image_panel_list = []
-row_titles = []
-for example in FIGURE_1_PANEL_B_EXAMPLE_IMAGES:
-    dataset_config = load_dataset_config(example.dataset_name)
-    shear_stress_value = int(dataset_config.flow_conditions[0].shear_stress)
-    location = get_zarr_location_for_position(dataset_config, position=example.position)
-    gfp_image = load_image(location, timepoints=example.timepoint, channels=["EGFP"], squeeze=True)
-    bf_image = load_image(location, timepoints=example.timepoint, channels=["BF"], squeeze=True)
-
-    gfp_max_proj = max_proj(gfp_image, axis=0)
-    bf_plane = get_single_bf_plane(bf_image)
-    bf_std_dev = std_dev(bf_image, axis=0)
-
-    log_bf_std_dev = log_normalize_image(bf_std_dev)
-
-    gfp_max_proj = contrast_stretching(gfp_max_proj)
-    bf_plane = contrast_stretching(bf_plane)
-    log_bf_std_dev = contrast_stretching(log_bf_std_dev)
-
-    gfp_max_proj = crop_image(gfp_max_proj, example.crop_x_start, example.crop_y_start, CROP_SIZE)
-    bf_plane = crop_image(bf_plane, example.crop_x_start, example.crop_y_start, CROP_SIZE)
-    log_bf_std_dev = crop_image(
-        log_bf_std_dev, example.crop_x_start, example.crop_y_start, CROP_SIZE
-    )
-
-    image_panel_list.extend([gfp_max_proj, bf_plane, log_bf_std_dev])
-    row_titles.append(f"{shear_stress_value} dyn/cm²")
-
-image_panel_fig = make_contact_sheet(
-    image_panel_list,
-    max_rows=2,
-    max_cols=3,
-    col_titles=["GFP max proj", "BF z-slice", "BF std dev proj"],
-    row_titles=row_titles,
-    font_size=FONTSIZE_MEDIUM,
-    subplot_kwargs={"frame_on": False},
-    fig_kwargs={"figsize": (MAX_FIGURE_WIDTH / 2, 2.2), "constrained_layout": True},
+create_panel_b_biological_system_examples(
+    examples=FIGURE_1_PANEL_B_EXAMPLE_IMAGES,
+    save_dir=save_dir,
 )
 
-image_panel_fig.get_constrained_layout_pads(w_pad=0.01, h_pad=0.01, wspace=0.02, hspace=0.02)
-
-for ax in image_panel_fig.axes:
-    ax.xaxis.labelpad = 3
-    ax.yaxis.labelpad = 3
-
-scale_bar_um = 100
-add_scalebar(
-    image_panel_fig.axes[0],
-    scale_bar_um=scale_bar_um,
-    pixel_size=PIXEL_SIZE_3i_20x,
-    location="lower left",
-    bar_thickness=50,
-    padding=50,
+# %% Panel C: Patch featurization example
+create_panel_c_patch_featurization(
+    example=FIGURE_1_PANEL_C_EXAMPLE_IMAGE,
+    save_dir=save_dir,
 )
 
-save_plot_to_path(
-    image_panel_fig,
-    save_dir,
-    f"biological_system_examples_{shear_stress_value}_20_dyn_scale_bar_{scale_bar_um}um",
-    file_format=".svg",
-    tight_layout=False,
-)
-# %%
-CROP_SIZE = 256  # in pixels at res level 0
-TRACKID = 3300
+# %% Panel D: Correlation heatmaps of ai learned and measured features
+visualize_feature_correlations()
 
-image_panel_list = []
-row_titles = []
-example = FIGURE_1_PANEL_C_EXAMPLE_IMAGE
-
-dataset_config = load_dataset_config(example.dataset_name)
-
-tracking_manifest = load_dataframe_manifest(DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED)
-df_location = get_dataframe_location_for_dataset(tracking_manifest, dataset_config.name)
-df_all = load_dataframe(df_location, delay=True)
-# %%
-cols_to_keep = [
-    Column.DATASET,
-    Column.POSITION,
-    Column.TIMEPOINT,
-    Column.SegData.LABEL,
-    Column.TRACK_ID,
-    Column.SegData.START_X_RES_0,
-    Column.SegData.START_Y_RES_0,
-    Column.SegData.END_X_RES_0,
-    Column.SegData.END_Y_RES_0,
-]
-df = df_all[cols_to_keep].compute()
-df = df[df[Column.TRACK_ID] == TRACKID]
-df = df[df[Column.POSITION] == example.position]
-df = df[df[Column.TIMEPOINT] == example.timepoint]
-
-label = df[Column.SegData.LABEL].values[0]
-start_x = df[Column.SegData.START_X_RES_0].values[0]
-start_y = df[Column.SegData.START_Y_RES_0].values[0]
-
-print(f"Track ID: {TRACKID}, Label: {label}, Start (x, y): ({start_x}, {start_y})")
-# %%
-location = get_zarr_location_for_position(dataset_config, position=example.position)
-gfp_image = load_image(location, timepoints=example.timepoint, channels=["EGFP"], squeeze=True)
-bf_image = load_image(location, timepoints=example.timepoint, channels=["BF"], squeeze=True)
-
-gfp_max_proj = max_proj(gfp_image, axis=0)
-bf_std_dev = std_dev(bf_image, axis=0)
-log_bf_std_dev = log_normalize_image(bf_std_dev)
-
-gfp_max_proj = contrast_stretching(gfp_max_proj)
-log_bf_std_dev = contrast_stretching(log_bf_std_dev)
-
-gfp_max_proj = crop_image(gfp_max_proj, start_x, start_y, CROP_SIZE)
-log_bf_std_dev = crop_image(log_bf_std_dev, start_x, start_y, CROP_SIZE)
-
-seg_image_manifest = load_image_manifest("cdh5_classic_seg_zarr")
-seg_image_location = get_image_location_for_dataset(
-    seg_image_manifest, dataset_config, example.position
-)
-seg_image = load_image(
-    seg_image_location,
-    timepoints=example.timepoint,
-    channels=["CDH5_SEG"],
-    squeeze=True,
-    compute=True,
-)
-
-
-# %% create a mask of just the region where seg_image
-
-seg_image_cropped = crop_image(seg_image, start_x, start_y, CROP_SIZE)
-seg_mask = seg_image_cropped == label
-
-# %%
-# Plot log_bf_std_dev next to gfp + seg contour
-fig, axes = plt.subplots(2, 1, figsize=(MAX_FIGURE_WIDTH / 2, 1.5))
-axes[0].imshow(log_bf_std_dev, cmap="gray")
-axes[0].axis("off")
-axes[1].imshow(gfp_max_proj, cmap="gray")
-axes[1].contour(seg_mask, levels=[0.5], colors="magenta", linewidths=0.5)
-axes[1].axis("off")
-
-scale_bar_um = 20
-add_scalebar(
-    axes[1],
-    scale_bar_um=scale_bar_um,
-    pixel_size=PIXEL_SIZE_3i_20x,
-    location="lower left",
-    bar_thickness=10,
-    padding=10,
-)
-
-# Arrows with labels to the right of each image
-# Two arrows from image 0 (BF std dev)
-for y_frac, label_text in [
-    (0.8, "BF patch-based\nAI-learned features"),
-    (0.2, "BF patch-based\nmeasured dynamic features"),
-]:
-    axes[0].annotate(
-        "",
-        xy=(1.45, y_frac),
-        xytext=(1.02, y_frac),
-        xycoords="axes fraction",
-        arrowprops={"arrowstyle": "->", "color": "black", "lw": 1},
-    )
-    axes[0].text(
-        1.48,
-        y_frac,
-        label_text,
-        transform=axes[0].transAxes,
-        fontsize=FONTSIZE_MEDIUM,
-        va="center",
-        ha="left",
-    )
-
-# One magenta arrow from image 1 (GFP + seg)
-axes[1].annotate(
-    "",
-    xy=(1.45, 0.5),
-    xytext=(1.02, 0.5),
-    xycoords="axes fraction",
-    arrowprops={"arrowstyle": "->", "color": "magenta", "lw": 1},
-)
-axes[1].text(
-    1.48,
-    0.5,
-    "VE-Cadherin\nsegmentation-based\nmeasured features",
-    transform=axes[1].transAxes,
-    fontsize=FONTSIZE_MEDIUM,
-    va="center",
-    ha="left",
-)
-
-fig.subplots_adjust(left=0, right=0.55, top=1, bottom=0, wspace=0, hspace=0.02)
-save_plot_to_path(
-    fig,
-    save_dir,
-    f"patch_based_featurization_scale_bar_{scale_bar_um}um",
-    file_format=".svg",
-    tight_layout=False,
-)
+# %% Panel E: Latent walk visualization
+visualize_latent_walk()
 
 # %%
