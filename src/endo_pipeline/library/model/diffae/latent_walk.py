@@ -1,3 +1,5 @@
+"""Methods for performing generative image latent walks using a DiffAE model (latent vectors to images)."""
+
 from collections.abc import Sequence
 from warnings import warn
 
@@ -11,23 +13,22 @@ from .diffusion_autoencoder import detach
 
 
 class DiffAELatentWalkRank0(DiffAELatentWalk):
-    """
-    Subclass of DiffAELatentWalk from Cyto-DL that only performs latent walk computation on rank 0
-    during distributed training to avoid redundant computation and file conflicts.
-    """
+    """Perform a latent walk computation on rank 0 during distributed training."""
 
     def __init__(self, *args, **kwargs):
+        """Initialize the callback and set up storage for validation features."""
         super().__init__(*args, **kwargs)
         self.val_feats: list[np.ndarray] = []
 
     @staticmethod
     def get_core_model(model):
+        """Get the core DiffAE model from the PyTorch Lightning Module."""
         # Returns the "real" model regardless of DDP or not
         return getattr(model, "module", model)
 
     @staticmethod
     def _write_pc_vals(walk_img: np.ndarray, ranges: Sequence[np.ndarray]) -> np.ndarray:
-        """Write PC index and value on image. Expects and returns NumPy."""
+        """Write PC index and value on image."""
         idx = 0
         for i, range_ in enumerate(ranges):
             for val in range_:
@@ -41,12 +42,13 @@ class DiffAELatentWalkRank0(DiffAELatentWalk):
         return walk_img
 
     def _is_rank_zero(self, trainer):
-        """Check if current process is rank 0"""
+        """Check if the current process is rank 0."""
         return not hasattr(trainer, "local_rank") or trainer.local_rank == 0
 
     def on_validation_batch_end(
         self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx=0
     ):
+        """Collect features from the validation batch for later PCA decomposition."""
         # Only collect features on rank 0
         if self._is_rank_zero(trainer):
             super().on_validation_batch_end(
@@ -54,15 +56,22 @@ class DiffAELatentWalkRank0(DiffAELatentWalk):
             )
 
     def on_validation_epoch_end(self, trainer, pl_module):
-        """
-        This callback will be executed at the end of each validation epoch. Generated latent space
-        walks along PC axes and saves them out as TIFF files for visualization.
+        """Perform a latent walk at the end of each validation epoch and save out generated images.
 
-        Only executed on rank 0 in distributed training setups to avoid redundant computations.
+        This callback will be executed at the end of each validation epoch.
+        Generated latent space walks along PC axes and saves them out as TIFF
+        files for visualization.
 
-        Args:
-            trainer: PyTorch Lightning Trainer instance
-            pl_module: PyTorch Lightning Module being trained
+        Only executed on rank 0 in distributed training setups to avoid
+        redundant computations.
+
+        Parameters
+        ----------
+        trainer
+            The PyTorch Lightning Trainer instance managing the training loop.
+        pl_module
+            The PyTorch Lightning Module being trained, which should have access
+            to the model and its hyperparameters.
 
         """
         # Skip execution on non-primary ranks in distributed training
@@ -139,26 +148,31 @@ class DiffAELatentWalkRank0(DiffAELatentWalk):
         self.val_feats = []
 
     def on_predict_epoch_end(self, trainer, pl_module):
+        """Perform a latent walk at the end of prediction epoch and save out generated images."""
         # Only perform latent walk on rank 0
         if self._is_rank_zero(trainer):
             super().on_predict_epoch_end(trainer, pl_module)
 
     @staticmethod
     def _write_text(img, text):
-        """
-        Renders text annotation onto an image at the upper right corner.
+        """Render text annotation onto an image at the upper right corner.
 
         Handles format conversions (torch tensors → numpy, channel dimensions, dtypes)
         and automatically selects appropriate text color based on image intensity.
 
-        Args:
-            img: Input image as numpy array or torch Tensor. Supports HWC, CHW, HW formats.
-            text: Text string to render on the image
+        Parameters
+        ----------
+        img
+            Input image in (h,w,c), (c,h,w), or (h,w) format.
+        text
+            Text string to render on the image.
 
-        Returns:
-            numpy.ndarray: Image with text annotation, dtype uint8 for OpenCV compatibility
+        Returns
+        -------
+        :
+            Annotated image in (h,w,c) format with text rendered.
+
         """
-
         # Convert torch.Tensor to numpy array
         if torch.is_tensor(img):
             img = img.detach().cpu().numpy()

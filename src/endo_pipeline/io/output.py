@@ -2,6 +2,7 @@
 
 import datetime
 import logging
+import os
 import re
 from pathlib import Path
 from typing import Literal
@@ -81,6 +82,17 @@ def get_output_dir() -> Path:
     :
         Path object for output directory.
     """
+
+    current_path = Path(__file__).resolve()
+    user_name = os.getenv("USER") or os.getenv("USERNAME")
+
+    # For specific use case where internal user has repo cloned to their home
+    # directory, try to automatically set the output to their user directory
+    # instead of the repository root
+    if user_name and current_path.parts[1] == "home":
+        user_dir = Path("/allen/aics/users") / user_name
+        if user_dir.exists():
+            return user_dir
 
     return Path(__file__).resolve().parents[3] / "results"
 

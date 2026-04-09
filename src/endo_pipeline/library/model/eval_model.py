@@ -1,3 +1,5 @@
+"""Methods for loading models and preprocessing data for model evaluation (inference)."""
+
 import logging
 import typing
 from pathlib import Path
@@ -33,8 +35,7 @@ logger = logging.getLogger(__name__)
 def load_model_for_inference(
     model_manifest: ModelManifest, run_name: str | None, eval_config: "DictConfig | ListConfig"
 ) -> "CytoDLModel":
-    """
-    Load a CytoDLModel for inference from a model manifest, run name, and specified eval config.
+    """Load a CytoDLModel for inference from a model manifest, run name, and specified eval config.
 
     Parameters
     ----------
@@ -44,6 +45,13 @@ def load_model_for_inference(
         Optional, run name of the specific model to load. Loads the most recent run if None.
     eval_config
         Evaluation configuration to override the loaded model's default configuration.
+
+    Returns
+    -------
+    :
+        CytoDLModel loaded from the specified model manifest and run name, with the configuration
+        overridden by the specified eval config.
+
     """
     # get model location for run_name from model manifest
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
@@ -90,109 +98,61 @@ def load_model_for_inference(
     return model
 
 
-def generate_overrides_for_model_eval(
-    save_path: str,
-    data_path: str,
-    dataset_name: str,
-    model_manifest_name: str,
-    run_name: str,
-    prediction_filename_suffix: str | None = None,
-    cache_rate: float = 1.0,
-    num_gpus: int | None = None,
-) -> dict:
-    """
-    Generate overrides for the CytoDLModel configuration for evaluating model
-    `run_name` from manifest `model_manifest_name` on images from dataset `dataset_name`.
-    """
-    if prediction_filename_suffix is None:
-        save_suffix = f"{dataset_name}_{model_manifest_name}_{run_name}_features"
-    else:
-        save_suffix = prediction_filename_suffix
-    overrides = {
-        # train and val dataloaders are unnecessary for prediction
-        # and might be slow to instantiate (e.g. if they cache data)
-        "data.train_dataloaders": None,
-        "data.val_dataloaders": None,
-        "data.predict_dataloaders.dataset.dataframe_path": data_path,
-        "data.predict_dataloaders.dataset.cache_rate": cache_rate,
-        "paths.output_dir": save_path,
-        "callbacks": None,
-        "callbacks.prediction_saver": {
-            "_target_": "cyto_dl.callbacks.tabular_saver.SaveTabularData",
-            "save_dir": save_path,
-            "meta_keys": [
-                CytoDLSaveDataKeys.TIMEPOINT,
-                Column.DiffAEData.START_Y,
-                Column.DiffAEData.START_X,
-                CytoDLSaveDataKeys.FILE_PATH,
-            ],
-            "save_suffix": save_suffix,
-        },
-        "extras.print_config": False,
-    }
-
-    if num_gpus is not None:
-        overrides["trainer.accelerator"] = "gpu"
-        overrides["trainer.devices"] = num_gpus
-        if num_gpus == 1:
-            overrides["trainer.strategy"] = "auto"
-    else:
-        overrides["trainer.accelerator"] = "cpu"
-        overrides["trainer.devices"] = 1
-        overrides["trainer.strategy"] = "auto"
-
-    return overrides
-
-
 def add_diffae_model_eval_crop_columns(
     df: pd.DataFrame,
     diffae_resolution_level: int = DIFFAE_ZARR_RESOLUTION_LEVEL,
     crop_size: int = NATIVE_ZARR_RESOLUTION_CROP_SIZE,
 ) -> pd.DataFrame:
-    """
-    Add columns to the dataframe for DiffAE model evaluation crops.
+    """Add columns to the dataframe for DiffAE model evaluation crops.
 
     **Note on image resolution**
 
-    The centroids, image sizes, and crop sizes are for the images loaded at the native resolution
-    (i.e. a resolution level of 0). The diffae_resolution_level parameter will be used to
-    downsample those values prior to being passed along to the DiffAE model for evaluation.
-    The diffae_resolution_level parameter will also be passed along to the model and used to load
-    the images at the appropriate resolution level. The "start" and "end" columns returned by
-    this function will determine the crop locations at the same resolution as the centroids.
+    The centroids, image sizes, and crop sizes are for the images loaded at the
+    native resolution (i.e. a resolution level of 0). The
+    diffae_resolution_level parameter will be used to downsample those values
+    prior to being passed along to the DiffAE model for evaluation. The
+    diffae_resolution_level parameter will also be passed along to the model and
+    used to load the images at the appropriate resolution level. The "start" and
+    "end" columns returned by this function will determine the crop locations at
+    the same resolution as the centroids.
 
     **Input dataframe**
 
     The input dataframe requires the following columns:
-        - centroid_X: x-coordinate of the centroid
-        - centroid_Y: y-coordinate of the centroid
-        - image_size_x: width of the image
-        - image_size_y: height of the image
+
+    - centroid_X: x-coordinate of the centroid
+    - centroid_Y: y-coordinate of the centroid
+    - image_size_x: width of the image
+    - image_size_y: height of the image
 
     **Output dataframe**
 
     The output dataframe has the following additional columns:
-        - start_x: x-coordinate of the top-left corner of the crop
-        - start_y: y-coordinate of the top-left corner of the crop
-        - end_x: x-coordinate of the bottom-right corner of the crop
-        - end_y: y-coordinate of the bottom-right corner of the crop
-        - bbox_is_in_bounds: boolean indicating if the bounding box is within image bounds
+
+    - start_x: x-coordinate of the top-left corner of the crop
+    - start_y: y-coordinate of the top-left corner of the crop
+    - end_x: x-coordinate of the bottom-right corner of the crop
+    - end_y: y-coordinate of the bottom-right corner of the crop
+    - bbox_is_in_bounds: boolean indicating if the bounding box is within
+        image bounds
 
     **Crop extraction and downsampling**
 
     Consider and input dataframe is one that has centroids from an image of size
-    2048x2048 at resolution level 0 and ``diffae_resolution_level``=1 and ``crop_size``=256.
-    A crop with size 256x256 is taken around the centroid coordinates and returned under the
-    ``start_x``, ``start_y``, ``end_x``, and ``end_y`` columns of the output dataframe.
+    2048x2048 at resolution level 0 and ``diffae_resolution_level``=1 and
+    ``crop_size``=256. A crop with size 256x256 is taken around the centroid
+    coordinates and returned under the ``start_x``, ``start_y``, ``end_x``, and
+    ``end_y`` columns of the output dataframe.
 
-    These start and end columns are later downsampled by ``diffae_resolution_level``=1
-    (-> 2**1 = downsample factor of 2), resulting in crops of size 128x128.
-    The ``diffae_resolution_level=1``, and downsampled ``start_x``, ``start_y``, ``end_x``,
-    and ``end_y`` columns are passed along to the DiffAE model for evaluation.
+    These start and end columns are later downsampled by
+    ``diffae_resolution_level``=1 (-> 2**1 = downsample factor of 2), resulting
+    in crops of size 128x128. The ``diffae_resolution_level=1``, and downsampled
+    ``start_x``, ``start_y``, ``end_x``, and ``end_y`` columns are passed along
+    to the DiffAE model for evaluation.
 
-    The DiffAE model loads images at resolution level 1 (therefore a size of 1024x1024)
-    and extracts each crop according to the ``start_x``, ``start_y``, ``end_x``, ``end_y``
-    columns (therefore each crop has a size of 128x128).
+    The DiffAE model loads images at resolution level 1 (therefore a size of
+    1024x1024) and extracts each crop according to the ``start_x``, ``start_y``,
+    ``end_x``, ``end_y`` columns (therefore each crop has a size of 128x128).
 
     Parameters
     ----------
@@ -207,6 +167,7 @@ def add_diffae_model_eval_crop_columns(
     -------
     :
         Dataframe with additional columns for DiffAE model evaluation crops.
+
     """
     # add the size of the crop used to get DiffAE features at full res
     df[Column.SegData.CROP_SIZE] = crop_size
@@ -245,8 +206,45 @@ def preprocess_tracking_manifest_for_model_eval(
     only_include_positions: list[int] | None = None,
     only_include_frames: dict[int, list[int]] | None = None,
 ) -> pd.DataFrame:
-    """Preprocess the manifest for a dataset to prepare it for model prediction."""
+    """Preprocess a tracking dataframe for a dataset to prepare it for model prediction.
 
+    This function performs the following preprocessing steps:
+        1. Loads the tracking dataframe for the specified dataset from the
+           manifest.
+        2. Selects and computes the necessary columns for model evaluation.
+        3. Filters the dataframe to exclude rows with invalid bounding boxes.
+        4. Adjusts the crop coordinates to be consistent with the specified
+           resolution level.
+        5. Groups the dataframe by zarr path, position, and timepoint, and
+           converts the start and end coordinates to lists.
+        6. Adds columns for which channel to load and what resolution to load it
+           at.
+        7. Optionally filters the dataframe to only include specified position
+           indices and/or frames.
+        8. Optionally adds columns for z slice bounds if specified.
+        9. Removes the temporary column with position index.
+
+    Parameters
+    ----------
+    dataset_config
+        Dataset configuration for the dataset to preprocess the tracking
+        manifest for.
+    z_slice_bounds_per_position
+        Optional, dictionary specifying the z slice bounds for each position
+        index.
+    only_include_positions
+        Optional, list of position indices to include in the preprocessed
+        dataframe.
+    only_include_frames
+        Optional, dictionary specifying which frames to include for each
+        position index.
+
+    Returns
+    -------
+    :
+        Preprocessed dataframe ready for model evaluation.
+
+    """
     manifest = load_dataframe_manifest(DEFAULT_SEG_FEATURE_MANIFEST_NAME)
     location = get_dataframe_location_for_dataset(manifest, dataset_config.name)
     df = load_dataframe(location, delay=True)
@@ -365,7 +363,25 @@ def preprocess_tracking_manifest_for_model_eval(
 def bbox_in_image_bounds(
     df: pd.DataFrame, resolution_level: int = DIFFAE_ZARR_RESOLUTION_LEVEL
 ) -> pd.Series:
-    """Indicate if bounding boxes fit in image bounds without being clipped."""
+    """Indicate if bounding boxes fit in image bounds without being clipped.
+
+    Parameters
+    ----------
+    df
+        Dataframe with columns for image size and bounding box coordinates at
+        resolution level 0.
+    resolution_level
+        Resolution level to check the bounding boxes against. The bounding box
+        coordinates will be downsampled according to the resolution level before
+        checking if they fit within the image bounds.
+
+    Returns
+    -------
+    :
+        Boolean series indicating if the bounding boxes fit in image bounds without
+        being clipped.
+
+    """
     # adjust the image size according to the desired downsample factor
     downsample_factor = 2**resolution_level
     cols_to_downsample = [
@@ -414,9 +430,35 @@ def update_prediction_from_crops_with_metadata(
     crop_size: list[int],
     prediction_path: Path,
 ) -> None:
-    """
-    Update the prediction file with metadata,
-    return the path to the updated prediction file.
+    """Add metadata columns to the prediction dataframe from grid-based crop inference.
+
+    This function adds metadata columns to the prediction dataframe, including:
+
+        - dataset name
+        - model manifest name
+        - model run name
+        - resolution level
+        - crop size
+        - position index
+        - timepoint
+
+    The metadata column names are defined in the Column enum.
+
+    Parameters
+    ----------
+    dataset_name
+        Name of the dataset the predictions were made on.
+    model_manifest_name
+        Name of the model manifest the model used for prediction was loaded
+        from.
+    run_name
+        Name of the model run the model used for prediction was loaded from.
+    crop_size
+        Size of the crops that were used for prediction.
+    prediction_path
+        Path to the prediction file to update with metadata (used for both
+        loading and saving).
+
     """
     # add model and dataset information to prediction file
     pred_df = pd.read_parquet(prediction_path)
@@ -449,7 +491,34 @@ def update_prediction_from_crops_with_metadata(
 def update_prediction_from_tracks_with_metadata(
     dataset_name: str, model_manifest_name: str, run_name: str, prediction_path: Path
 ) -> None:
-    """Update the prediction file with metadata."""
+    """Add metadata columns to the prediction dataframe from track-based crop inference.
+
+    This function adds metadata columns to the prediction dataframe, including:
+
+        - dataset name
+        - model manifest name
+        - model run name
+        - resolution level
+        - crop size
+        - position index
+        - timepoint
+
+    The metadata column names are defined in the Column enum.
+
+    Parameters
+    ----------
+    dataset_name
+        Name of the dataset the predictions were made on.
+    model_manifest_name
+        Name of the model manifest the model used for prediction was loaded
+        from.
+    run_name
+        Name of the model run the model used for prediction was loaded from.
+    prediction_path
+        Path to the prediction file to update with metadata (used for both
+        loading and saving).
+
+    """
     # add model and dataset information to prediction file
     pred_df = pd.read_parquet(prediction_path)
     pred_df[Column.DATASET] = dataset_name
