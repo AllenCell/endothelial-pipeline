@@ -3,7 +3,6 @@
 from typing import Literal
 
 from endo_pipeline.cli import Datasets
-from endo_pipeline.library.analyze.integration.track_integration import get_time_of_first_passing
 
 
 def main(datasets: Datasets, n_proc: int = 1, crop_pattern: Literal["grid", "tracked"] = "grid"):
@@ -18,7 +17,7 @@ def main(datasets: Datasets, n_proc: int = 1, crop_pattern: Literal["grid", "tra
         get_datasets_in_collection,
         load_dataset_config,
     )
-    from endo_pipeline.io import load_dataframe
+    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.data_driven_flow_field import (
         compute_extrapolated_vector_field,
         get_drift_df,
@@ -28,6 +27,7 @@ def main(datasets: Datasets, n_proc: int = 1, crop_pattern: Literal["grid", "tra
     from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
     from endo_pipeline.library.analyze.integration.track_integration import (
         add_distance_to_fixed_points_columns,
+        get_time_of_first_passing,
         solve_ddff_from_trajectory_initial_condition_helper,
     )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
@@ -48,7 +48,7 @@ def main(datasets: Datasets, n_proc: int = 1, crop_pattern: Literal["grid", "tra
         dataset_names = dataset_names[:1]
 
     for dataset_name in dataset_names:
-        # outdir = get_output_path(__file__, dataset_name)
+        outdir = get_output_path(__file__, dataset_name)
 
         # load the dynamics features from the grid-based dataframe
         dynamics_manifest_grid = load_dataframe_manifest(
@@ -69,9 +69,6 @@ def main(datasets: Datasets, n_proc: int = 1, crop_pattern: Literal["grid", "tra
         drift_values, grid_points_1d = get_drift_values_and_grid_from_drift_df(
             flow_field_dataframe=drift_df, column_names=DYNAMICS_COLUMN_NAMES
         )
-        # flow_field_dict_grid = get_drift_flow_field_as_dict(
-        #     flow_field_dataframe=drift_df, column_names=DYNAMICS_COLUMN_NAMES
-        # )
         fixed_points_df = get_fixed_points_df(dataset_name)
 
         ## ODE solver: dx/dt = f(x) (drift, first Kramers-Moyal coefficient) ##
@@ -152,14 +149,69 @@ def main(datasets: Datasets, n_proc: int = 1, crop_pattern: Literal["grid", "tra
             column_suffix="_simulated",
         )
 
-    for i in fixed_points_df.index:
-        df_grid_sub["time_of_first_passing_measured"] = get_time_of_first_passing(
-            trajectory_df=df_grid_sub,
-            column=f"dist_from_fp_{i}_grid",
-            threshold=MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
-        )
-        df_grid_sub["time_of_first_passing_simulated"] = get_time_of_first_passing(
-            trajectory_df=df_grid_sub,
-            column=f"dist_from_fp_{i}_simulated",
-            threshold=MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
-        )
+        for i in fixed_points_df.index:
+            time_of_first_passing = []
+            time_of_first_passing.append(
+                get_time_of_first_passing(
+                    trajectory_df=df_grid_sub,
+                    column=f"dist_from_fp_{i}_grid",
+                    threshold=MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
+                )
+            )
+            time_of_first_passing.append(
+                get_time_of_first_passing(
+                    trajectory_df=df_grid_sub,
+                    column=f"dist_from_fp_{i}_simulated",
+                    threshold=MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
+                )
+            )
+            time_of_first_passing_df = pd.concat(time_of_first_passing, axis=1).reset_index()
+
+            import seaborn as sns
+            from matplotlib import pyplot as plt
+
+            num_traj_approached_fp_grid = (
+                time_of_first_passing_df[f"time_of_first_passing_dist_from_fp_{i}_grid"]
+                < dataset_config.duration
+            ).sum()
+            num_traj_approached_fp_sim = (
+                time_of_first_passing_df[f"time_of_first_passing_dist_from_fp_{i}_simulated"]
+                < dataset_config.duration
+            ).sum()
+            num_crops = time_of_first_passing_df[Column.CROP_INDEX].nunique()
+
+            fig, ax = plt.subplots()
+            ax.set_title(
+                (
+                    f"{dataset_name} trajectories reaching fixed point {i}: "
+                    f"\ngrid ({num_traj_approached_fp_grid} / {num_crops}) "
+                    f"vs simulated ({num_traj_approached_fp_sim} / {num_crops})"
+                ).title()
+            )
+            sns.histplot(
+                data=time_of_first_passing_df,
+                x=f"time_of_first_passing_dist_from_fp_{i}_grid",
+                binwidth=1,
+                cumulative=True,
+                element="step",
+                fill=False,
+                stat="percent",
+                ax=ax,
+            )
+            sns.histplot(
+                data=time_of_first_passing_df,
+                x=f"time_of_first_passing_dist_from_fp_{i}_simulated",
+                binwidth=1,
+                cumulative=True,
+                element="step",
+                fill=False,
+                stat="percent",
+                ax=ax,
+            )
+            ax.set_xlim(0, dataset_config.duration)
+            ax.axhline(100, ls="--", color="red")
+            ax.set_xlabel((f"time of first passing through fixed point {i}").title())
+            ax.set_ylabel((f"percentage of trajectories reaching fixed point {i}").title())
+            save_plot_to_path(
+                fig, outdir, f"trajectories_approaching_fp_{i}.png", show_and_close=False
+            )

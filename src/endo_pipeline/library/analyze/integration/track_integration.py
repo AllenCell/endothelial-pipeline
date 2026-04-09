@@ -1098,7 +1098,7 @@ def add_distance_to_fixed_points_columns(
     ]
     trajectory_df[f"closest_fp{column_suffix}"] = (
         trajectory_df[dist_from_fp_columns]
-        .idxmin(axis=1)
+        .idxmin(axis=1, skipna=True)
         .transform(
             lambda s: (
                 np.nan if pd.isna(s) else int(s.strip(dist_from_fp_col_prefix).strip(column_suffix))
@@ -1143,6 +1143,15 @@ def get_time_of_first_passing(
     pd.Series
         Series containing the time of first passing for each track.
     """
-    return trajectory_df.groupby(Column.CROP_INDEX).apply(
-        lambda grp: grp[Column.TIMEPOINT][grp[column] < threshold].min()
+    new_column_name = f"time_of_first_passing_{column}"
+    time_of_first_passing = trajectory_df.groupby(Column.CROP_INDEX).apply(
+        lambda grp: pd.Series(
+            {
+                new_column_name: grp[Column.TIMEPOINT][grp[column] <= threshold].min()
+                - grp[Column.TIMEPOINT].min()
+            }
+        ),
+        include_groups=False,
     )
+    time_of_first_passing[new_column_name].replace({np.nan: 1e3}, inplace=True)
+    return time_of_first_passing

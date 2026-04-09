@@ -1101,5 +1101,6 @@ def plot_trajectory_measured_vs_simulation_over_flow_field(
         figure=fig,
         output_path=out_dir,
         figure_name=f"{dataset_name}_fp{fixed_point_id}_crop{crop_index}_traj_meas_vs_sim.png",
+        show_and_close=False,
     )
     plt.close(fig)
