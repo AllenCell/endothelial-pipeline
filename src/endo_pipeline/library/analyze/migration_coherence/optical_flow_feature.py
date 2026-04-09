@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Sequence
 
 import pandas as pd
 
@@ -23,7 +24,7 @@ def add_optical_flow_features(
     df: pd.DataFrame,
     datasets: list[str] | None = None,
     optical_flow_manifest_name: str = DEFAULT_OPTICAL_FLOW_MANIFEST_NAME,
-    optical_flow_feature_columns: list[str] | None = None,
+    optical_flow_feature_columns: Sequence[str] | None = None,
     merge_columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """
@@ -58,7 +59,7 @@ def add_optical_flow_features(
         Concatenated dataframe with optical-flow features merged in.
     """
     if datasets is None:
-        datasets = df[ColumnName.DATASET].unique()
+        datasets = df[ColumnName.DATASET].unique().tolist()
 
     merge_columns_ = merge_columns or list(OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS)
     optical_flow_feature_columns_ = optical_flow_feature_columns or list(
