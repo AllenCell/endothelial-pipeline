@@ -182,6 +182,9 @@ def main(
         def compute_dtw_distance(curve1: pd.DataFrame, curve2: pd.DataFrame) -> float:
             return float(dtw(curve1.values, curve2.values))
 
+        def compute_hausdorff_distance(curve1: pd.DataFrame, curve2: pd.DataFrame) -> float:
+            return float(directed_hausdorff(curve1.values, curve2.values)[0])
+
         distances_df = (
             df_grid_sub.groupby(Column.CROP_INDEX)
             .apply(
@@ -194,6 +197,9 @@ def main(
                                 tdf[measured_cols], tdf[simulated_cols]
                             ),
                             "dtw_distance": compute_dtw_distance(
+                                tdf[measured_cols], tdf[simulated_cols]
+                            ),
+                            "directed_hausdorff_distance": compute_hausdorff_distance(
                                 tdf[measured_cols], tdf[simulated_cols]
                             ),
                         }
@@ -239,8 +245,10 @@ def main(
                         )
                     )
 
-    def trajectory_similarity_metrics_test():
+    def trajectory_similarity_metrics_test(print_outputs: bool = True) -> pd.DataFrame:
         import numpy as np
+        import pandas as pd
+        from matplotlib import pyplot as plt
 
         # define some lines
         # punctual makes a round trip and arrives exactly on time
@@ -286,29 +294,81 @@ def main(
             (punctual, lost),
             (punctual, rebel),
         )
+        color_dict = {
+            "punctual": "tab:blue",
+            "lazy": "tab:orange",
+            "impatient": "tab:green",
+            "overachiever": "tab:red",
+            "lost": "tab:purple",
+            "rebel": "tab:brown",
+        }
+
+        distances = []
         for line_pair in line_comparisons:
             line1_name = list(line_pair[0].keys())[0]
             line2_name = list(line_pair[1].keys())[0]
             line1_vals = line_pair[0][line1_name]
             line2_vals = line_pair[1][line2_name]
 
-            frechet_distance = frechet(
+            frechet_dist = frechet(
                 line1_vals,
                 line2_vals,
             )
-            dtw_distance = dtw(
+            dtw_dist = dtw(
                 line1_vals,
                 line2_vals,
             )
-            hausdorff_distance = directed_hausdorff(
+            hausdorff_dist = directed_hausdorff(
                 line1_vals,
                 line2_vals,
             )
 
-            print(f"Frechet distance between {line1_name} and {line2_name}: {frechet_distance}")
-            print(f"DTW distance between {line1_name} and {line2_name}: {dtw_distance}")
-            print(f"Hausdorff distance between {line1_name} and {line2_name}: {hausdorff_distance}")
-            print("")
+            distances.append(
+                {
+                    "line_1": line1_name,
+                    "line_2": line2_name,
+                    "color": color_dict[line2_name],
+                    "Frechet_distance": frechet_dist,
+                    "DTW_distance": dtw_dist,
+                    "Hausdorff_distance": hausdorff_dist[0],
+                }
+            )
+
+        dist_metrics_df = pd.DataFrame(distances)
+
+        if print_outputs:
+            print(dist_metrics_df)
+
+            fig, ax = plt.subplots()
+            for _, row in dist_metrics_df.iterrows():
+                ax.scatter(
+                    x=row["Hausdorff_distance"],
+                    y=row["Frechet_distance"],
+                    color=color_dict[row["line_2"]],
+                    marker="o",
+                    s=30,
+                    label=f"{row['line_2']} Hausdorff vs. Frechet",
+                    linewidth=1,
+                    alpha=0.7,
+                )
+                ax.scatter(
+                    x=row["Hausdorff_distance"],
+                    y=row["DTW_distance"],
+                    marker="D",
+                    s=30,
+                    edgecolors=color_dict[row["line_2"]],
+                    facecolor="none",
+                    label=f"{row['line_2']} Hausdorff vs. DTW",
+                    linewidth=1,
+                    alpha=0.7,
+                )
+            ax.plot(ax.get_ylim(), ax.get_ylim(), ls=":", c="black")
+            ax.set_xlabel("Hausdorff distance")
+            ax.set_ylabel("Distance metric")
+            ax.legend()
+            plt.show()
+
+        return dist_metrics_df
 
 
 if __name__ == "__main__":
