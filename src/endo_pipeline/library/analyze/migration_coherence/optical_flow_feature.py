@@ -23,7 +23,7 @@ def add_optical_flow_features(
     df: pd.DataFrame,
     datasets: list[str] | None = None,
     optical_flow_manifest_name: str = DEFAULT_OPTICAL_FLOW_MANIFEST_NAME,
-    optical_flow_feature_columns: list[str | ColumnName.OpticalFlow] | None = None,
+    optical_flow_feature_columns: list[ColumnName.OpticalFlow] | None = None,
     merge_columns: list[str | ColumnName.DiffAEData] | None = None,
 ) -> pd.DataFrame:
     """
