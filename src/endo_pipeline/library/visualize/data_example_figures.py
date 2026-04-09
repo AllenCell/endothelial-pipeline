@@ -37,6 +37,7 @@ def create_panel_b_biological_system_examples(
     save_dir: Path,
     crop_size: int = 1000,
     scale_bar_um: int = 100,
+    figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH * 0.25, 3),
 ) -> None:
     """Create Panel B: example images from biological system at low and high shear stress.
 
@@ -52,7 +53,7 @@ def create_panel_b_biological_system_examples(
         Scale bar length in micrometers.
     """
     image_panel_list = []
-    row_titles = []
+    shear_stress_titles = []
     shear_stress_value = 0
 
     for example in examples:
@@ -83,17 +84,19 @@ def create_panel_b_biological_system_examples(
         )
 
         image_panel_list.extend([gfp_max_proj, bf_plane, log_bf_std_dev])
-        row_titles.append(f"{shear_stress_value} dyn/cm\u00b2")
+        shear_stress_titles.append(f"{shear_stress_value} dyn/cm\u00b2")
 
     image_panel_fig = make_contact_sheet(
         image_panel_list,
-        max_rows=len(examples),
-        max_cols=3,
-        col_titles=["GFP max proj", "BF z-slice", "BF std dev proj"],
-        row_titles=row_titles,
+        max_rows=len(image_panel_list) // len(examples),
+        max_cols=len(examples),
+        col_titles=shear_stress_titles,
+        row_titles=["GFP max proj", "BF z-slice", "BF std dev proj"],
+        direction="top-down first",
         font_size=FONTSIZE_MEDIUM,
         subplot_kwargs={"frame_on": False},
-        fig_kwargs={"figsize": (MAX_FIGURE_WIDTH / 2, 2.2)},
+        gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
+        fig_kwargs={"figsize": figure_size, "layout": "constrained"},
     )
 
     for ax in image_panel_fig.axes:
@@ -115,6 +118,7 @@ def create_panel_b_biological_system_examples(
         f"biological_system_examples_{shear_stress_value}_20_dyn_scale_bar_{scale_bar_um}um",
         file_format=".svg",
         tight_layout=False,
+        pad_inches=0,
     )
 
 
@@ -124,6 +128,7 @@ def create_panel_c_patch_featurization(
     track_id: int = 3300,
     crop_size: int = 256,
     scale_bar_um: int = 20,
+    figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH / 2, 2),
 ) -> None:
     """Create Panel C: patch-based featurization example with segmentation overlay.
 
@@ -201,7 +206,9 @@ def create_panel_c_patch_featurization(
     seg_mask = seg_image_cropped == label
 
     # Plot log_bf_std_dev next to gfp + seg contour
-    fig, axes = plt.subplots(2, 1, figsize=(MAX_FIGURE_WIDTH / 2, 1.5))
+    fig, axes = plt.subplots(
+        2, 1, figsize=figure_size, gridspec_kw={"hspace": 0.02, "wspace": 0.02}
+    )
     axes[0].imshow(log_bf_std_dev, cmap="gray")
     axes[0].axis("off")
     axes[1].imshow(gfp_max_proj, cmap="gray")
@@ -258,7 +265,7 @@ def create_panel_c_patch_featurization(
         ha="left",
     )
 
-    fig.subplots_adjust(left=0, right=0.55, top=1, bottom=0, wspace=0, hspace=0.02)
+    fig.subplots_adjust(left=0, right=0.5, top=1, bottom=0, wspace=0, hspace=0.02)
     save_plot_to_path(
         fig,
         save_dir,

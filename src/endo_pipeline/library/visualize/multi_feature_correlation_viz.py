@@ -296,6 +296,7 @@ def plot_and_save_clustermap(
     filename: str,
     metric: str = "correlation",
     data_type: Literal["correlation", "samples"] = "samples",
+    figsize: tuple[float, float] | None = None,
 ) -> None:
     """
     Plot and save a clustermap from the given DataFrame.
@@ -308,6 +309,8 @@ def plot_and_save_clustermap(
         The folder where the clustermap will be saved.
     filename
         The name of the file to save the clustermap as.
+    figsize
+        The size of the figure.
     metric
         The distance metric to use for clustering. Default is "correlation".
     data_type
@@ -323,6 +326,9 @@ def plot_and_save_clustermap(
     2) If "samples", the DataFrame is assumed to contain raw sample data.
        The clustering will be performed on the raw data.
     """
+    if figsize is None:
+        figsize = (MAX_FIGURE_WIDTH, min(MAX_FIGURE_HEIGHT, 1.5 * df.shape[0]))
+
     annotate = check_if_heatmap_should_be_annotated(df)
     clustering_metric = metric
     if data_type == "correlation":
@@ -353,7 +359,7 @@ def plot_and_save_clustermap(
         center=center,
         vmin=vmin,
         vmax=vmax,
-        figsize=(MAX_FIGURE_WIDTH, min(MAX_FIGURE_HEIGHT, 1.5 * df.shape[0])),
+        figsize=figsize,
         row_cluster=True,
         col_cluster=True,
         row_linkage=row_linkage,
@@ -363,9 +369,7 @@ def plot_and_save_clustermap(
     )
 
     # Version without clustering for reference
-    fig, ax = plt.subplots(
-        figsize=(MAX_FIGURE_WIDTH * 0.7, min(MAX_FIGURE_HEIGHT, 1.2 * df.shape[0])), dpi=300
-    )
+    fig, ax = plt.subplots(figsize=figsize, dpi=300)
     sns.heatmap(
         df,
         annot=annotate,
@@ -577,6 +581,7 @@ def visualize_correlation_heatmaps(
     out_dir: Path,
     skip_multi_feature_scatterplots: bool = False,
     cross_correlation_only: bool = False,
+    figsize_cluster_heatmap: tuple[float, float] | None = None,
 ) -> None:
     # Pre-compute full correlation matrix once per dataset
     all_feature_columns: list = []
@@ -644,6 +649,7 @@ def visualize_correlation_heatmaps(
             filename=base_filename,
             metric="cosine",
             data_type="correlation",
+            figsize=figsize_cluster_heatmap,
         )
 
         if skip_multi_feature_scatterplots:
