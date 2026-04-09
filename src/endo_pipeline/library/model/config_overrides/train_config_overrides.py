@@ -1,3 +1,5 @@
+"""Model config override classes for model training runs."""
+
 import logging
 from pathlib import Path
 
@@ -58,7 +60,6 @@ class ModelConfigOverrideTrain:
 
     def __post_init__(self):
         """Post initialization steps for model config overrides."""
-
         self.task_name = "train"
 
         config = load_model_config(self.template_config)
@@ -134,7 +135,6 @@ class ModelConfigOverrideTrain:
 
     def to_dict(self):
         """Convert to overrides dict."""
-
         # Create output directories for checkpoints and logs if they do not exist.
         checkpoint_path = get_output_path(
             "models",
@@ -178,6 +178,10 @@ class ModelConfigOverrideTrain:
             "callbacks.model_checkpoint.dirpath": checkpoint_path.as_posix(),
             # set crop size from input via model.image_shape,
             "model.image_shape": [1, self.crop_size, self.crop_size],
+            # update the callbacks,
+            "callbacks.model_checkpoint.save_last": True,
+            "callbacks.model_checkpoint.monitor": "val/loss",
+            "callbacks.model_checkpoint.save_top_k": 3,
             # set condition key
             "model.condition_key": self.condition_key,
             # set number of latent dimensions

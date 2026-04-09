@@ -22,6 +22,15 @@ FMS_ANNOTATION_NOTES_FIXED_POINTS: str = (
 )
 """Annotation notes for fixed point dataframes uploaded to FMS in 3D flow field analysis."""
 
+DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING: str = "bootstrapped_fixed_points"
+"""Prefix for setting and getting dataframe manifest name for bootstrapped fixed point dataframes."""
+
+FMS_ANNOTATION_NOTES_BOOTSTRAPPING: str = (
+    "Bootstrapped fixed points from 3D flow field analysis, including "
+    "confidence intervals and detection rates."
+)
+"""Annotation notes for bootstrapped fixed point dataframes uploaded to FMS in 3D flow field analysis."""
+
 STABILITY_COLUMN_NAME: str = "stability"
 """Column name for fixed point stability classification labels in fixed point
 dataframes from 3D flow field analysis."""

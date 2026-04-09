@@ -1,3 +1,5 @@
+"""Model config override classes for model evaluation (inference) runs."""
+
 import logging
 from pathlib import Path
 from typing import Any, Literal
@@ -42,7 +44,6 @@ class ModelConfigOverrideEval:
 
     def __post_init__(self):
         """Post initialization steps for model config overrides."""
-
         self.task_name = "eval"
 
         config = load_model_config(self.template_config)
@@ -79,7 +80,6 @@ class ModelConfigOverrideEval:
 
     def to_dict(self, dataset_name: str, crop_pattern: Literal["grid", "tracked"]):
         """Convert to overrides dict."""
-
         # Create directories for outputs if they do not exist.
         output_path = get_output_path(
             "models",

@@ -1,3 +1,5 @@
+"""Methods for evaluating the DiffAE model (encoding images to latent vectors)."""
+
 import logging
 import typing
 
@@ -13,8 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def _get_correct_image_shape(image: np.ndarray) -> np.ndarray:
-    """
-    Ensure that the input image has shape (1, 1, num_px_y, num_px_x).
+    """Ensure that the input image has shape (1, 1, num_px_y, num_px_x).
 
     Parameters
     ----------
@@ -23,8 +24,9 @@ def _get_correct_image_shape(image: np.ndarray) -> np.ndarray:
 
     Returns
     -------
-    np.ndarray
+    :
         The reshaped image.
+
     """
     if len(image.shape) < 4:
         # Expand dims to (1, *image.shape)
@@ -48,14 +50,15 @@ def get_latent_vector_from_crop(
     squeeze: bool = False,
     num_gpus: int | None = None,
 ) -> np.ndarray:
-    """
-    Get the latent vector from an image using the model's semantic encoder.
+    """Get the latent vector from an image using the model's semantic encoder.
 
     **Method inputs**
 
-    The input image can have shape ``(num_px_y, num_px_x)``, ``(num_channel, num_px_y, num_px_x)``,
-    or ``(num_batch, num_channel, num_px_y, num_px_x)``. If the input image has 2 or 3 dimensions,
-    the necessary batch and channel dimensions will be added automatically (and set to 1).
+    The input image can have shape `(num_px_y, num_px_x)`,
+    `(num_channel, num_px_y, num_px_x)`, or
+    `(num_batch, num_channel, num_px_y, num_px_x)`. If the input image
+    has 2 or 3 dimensions, the necessary batch and channel dimensions
+    will be added automatically (and set to 1).
 
     Parameters
     ----------
@@ -66,7 +69,13 @@ def get_latent_vector_from_crop(
     squeeze
         Whether to squeeze the output latent vector to remove the batch dimension.
     num_gpus
-        The number of GPUs available for computation. If ``None``, defaults to CPU.
+        The number of GPUs available for computation. If `None`, defaults to CPU.
+
+    Returns
+    -------
+    :
+        The latent vector corresponding to the input image crop.
+
     """
     # Check that input image_crop has correct number of dims
     # and expand dims if necessary
