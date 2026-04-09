@@ -23,7 +23,7 @@ def plot_latent_walk_as_grid(
     column_names: list[str],
     save_path: Path,
     file_name: str,
-    file_format: Literal[".png", ".svg", ".pdf"] = ".png",
+    file_format: Literal[".png", ".svg", ".pdf"] = ".svg",
     show_values: bool = True,
     label_sigmas: bool = True,
 ) -> None:
