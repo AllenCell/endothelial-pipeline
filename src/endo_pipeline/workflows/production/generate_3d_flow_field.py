@@ -192,10 +192,6 @@ def main(
         num_datasets = min(len(dataset_names), 2)
         dataset_names = dataset_names[:num_datasets]
 
-    # initialize list to hold dataframes of stable fixed points from all
-    # datasets with columns for dataset name and 3D PC space coordinates
-    stable_fixed_points_all_datasets_list = []
-
     # initialize kernels and bin widths for each of the three variables for flow
     # field estimation
     kernels: list[KramersMoyalKernel] = []
@@ -253,7 +249,11 @@ def main(
         df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
 
         # process on a per-flow condition basis
+        vector_field_dataframe_list = []
+        fixed_points_dataframe_list = []
         for flow_condition in dataset_config.flow_conditions:
+            shear_stress = flow_condition.shear_stress
+
             df_flow = filter_dataframe_by_flow_condition(
                 df_steady_state, dataset_config, flow_condition
             )
@@ -288,53 +288,21 @@ def main(
             ):
                 vector_field_df[column_name] = feature_grid[index].flatten()
                 vector_field_df[drift_column_name] = drift_coeffs[..., index].flatten()
+
+            # add columns for dataset name and shear stress (as a descriptor of
+            # the flow condition) to the dataframe for this dataset, to be used
+            # for filtering and grouping in downstream analyses and
+            # visualizations
             vector_field_df[ColumnName.DATASET] = dataset_name
+            vector_field_df[ColumnName.SHEAR_STRESS] = shear_stress
 
-            # save drift coefficients and grid points dataframes to parquet files,
-            # with names that include the input dataframe manifest name for
-            # traceability and to avoid naming conflicts with other runs
-            drift_coeffs_file_name = (
-                f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataset_name}{demo_suffix}.parquet"
-            )
-            drift_coeffs_save_path = make_name_unique(dataframe_savedir / drift_coeffs_file_name)
-            vector_field_df.to_parquet(drift_coeffs_save_path)
-            logger.info(
-                "Saved dataframe with drift coefficients and grid points locally to [ %s ]",
-                drift_coeffs_save_path,
-            )
-            # Upload dataframes to FMS and update manifests
-            if upload_to_fms:
-                dataset_config = load_dataset_config(dataset_name)
-                drift_annotations = build_fms_annotations(
-                    dataset_config,
-                    model_manifest=model_manifest,
-                    run_name=run_name,
-                    additional_notes=FMS_ANNOTATION_NOTES_DRIFT,
-                )
-                drift_fmsid = upload_file_to_fms(
-                    drift_coeffs_save_path, annotations=drift_annotations, file_type="parquet"
-                )
-                drift_dataframe_manifest.locations[dataset_name] = DataframeLocation(
-                    fmsid=drift_fmsid
-                )
-                logger.info(
-                    "Uploaded dataframe with drift coefficients and grid points for dataset [ %s ] to FMS with FMS ID [ %s ]",
-                    dataset_name,
-                    drift_fmsid,
-                )
-            # if not uploading to FMS, log only the path if there is no location for
-            # that dataset or if there is, but the FMS ID is None
-            elif (
-                drift_dataframe_manifest.locations.get(dataset_name) is None
-                or drift_dataframe_manifest.locations[dataset_name].fmsid is None
-            ):
-                drift_dataframe_manifest.locations[dataset_name] = (
-                    build_dataframe_location_from_path(drift_coeffs_save_path)
-                )
-            # save updated manifest with new locations (either FMS or local paths)
-            save_dataframe_manifest(drift_dataframe_manifest)
+            # add dataframe with drift coefficients and grid points for this dataset to
+            # list of such dataframes for all datasets, to be concatenated outside
+            # of flow condition loop
+            vector_field_dataframe_list.append(vector_field_df)
 
-            ## extrapolate the drift to get a flow field over the entire 3D space as specified by the input bins and centers
+            # extrapolate the drift to get a flow field over the entire 3D space
+            # as specified by the input bins and centers
             extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
                 drift_coeffs, centers, method="linear", for_vtk_files=False
             )
@@ -345,7 +313,7 @@ def main(
                 extrapolated_flow_field_dict_reg, for_solve_ivp=False, method="linear"
             )
 
-            fixed_points_for_dataset = get_fixed_points_within_bounds(
+            fixed_points_for_flow_condition = get_fixed_points_within_bounds(
                 vector_field_function=drift_function,
                 dataframe=df_flow,
                 column_names=column_names,
@@ -358,50 +326,105 @@ def main(
             # add stable fixed points from this dataset to the overall dataframe
             # (checking first if returned dataframe is empty first to avoid issues
             # with concatenation and saving an empty dataframe)
-            if fixed_points_for_dataset.empty:
+            if fixed_points_for_flow_condition.empty:
                 continue
 
-            stable_fixed_points_all_datasets_list.append(fixed_points_for_dataset)
+            fixed_points_dataframe_list.append(fixed_points_for_flow_condition)
 
-            # save stable fixed points from this dataset to parquet file
-            fixed_points_file_name = (
-                f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataset_name}{demo_suffix}.parquet"
+        vector_field_for_dataset = pd.concat(vector_field_dataframe_list, ignore_index=True)
+
+        # save drift coefficients and grid points dataframes to parquet files,
+        # with names that include the input dataframe manifest name for
+        # traceability and to avoid naming conflicts with other runs
+        vector_field_file_name = (
+            f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataset_name}{demo_suffix}.parquet"
+        )
+        vector_field_save_path = make_name_unique(dataframe_savedir / vector_field_file_name)
+        vector_field_for_dataset.to_parquet(vector_field_save_path)
+        logger.info(
+            "Saved dataframe with drift coefficients and grid points locally to [ %s ]",
+            vector_field_save_path,
+        )
+        # Upload dataframes to FMS and update manifests
+        if upload_to_fms:
+            dataset_config = load_dataset_config(dataset_name)
+            drift_annotations = build_fms_annotations(
+                dataset_config,
+                model_manifest=model_manifest,
+                run_name=run_name,
+                additional_notes=FMS_ANNOTATION_NOTES_DRIFT,
             )
-            fixed_points_save_path = make_name_unique(dataframe_savedir / fixed_points_file_name)
-            fixed_points_for_dataset.to_parquet(fixed_points_save_path)
-            logger.info("Saved dataframe of points locally to [ %s ]", fixed_points_save_path)
-            # if uploading to FMS, update the dataframe manifest
-            if upload_to_fms:
-                fixed_points_annotations = build_fms_annotations(
-                    dataset_config,
-                    model_manifest=model_manifest,
-                    run_name=run_name,
-                    additional_notes=FMS_ANNOTATION_NOTES_FIXED_POINTS,
-                )
-                fixed_points_fmsid = upload_file_to_fms(
-                    fixed_points_save_path,
-                    annotations=fixed_points_annotations,
-                    file_type="parquet",
-                )
-                fixed_points_dataframe_manifest.locations[dataset_name] = DataframeLocation(
-                    fmsid=fixed_points_fmsid
-                )
-                logger.info(
-                    "Uploaded dataframe of stable fixed points for dataset [ %s ] to FMS with FMS ID [ %s ]",
-                    dataset_name,
-                    fixed_points_fmsid,
-                )
-            # else, log only the path if there is no location for that dataset or if
-            # there is, but the FMS ID is None
-            elif (
-                fixed_points_dataframe_manifest.locations.get(dataset_name) is None
-                or fixed_points_dataframe_manifest.locations[dataset_name].fmsid is None
-            ):
-                fixed_points_dataframe_manifest.locations[dataset_name] = DataframeLocation(
-                    path=fixed_points_save_path
-                )
-            # save updated manifest with new locations (either FMS or local paths)
-            save_dataframe_manifest(fixed_points_dataframe_manifest)
+            vector_field_fmsid = upload_file_to_fms(
+                vector_field_save_path, annotations=drift_annotations, file_type="parquet"
+            )
+            drift_dataframe_manifest.locations[dataset_name] = DataframeLocation(
+                fmsid=vector_field_fmsid
+            )
+            logger.info(
+                "Uploaded dataframe with vector field coefficients and grid points for"
+                " dataset [ %s ] at shear stress [ %s ] to FMS with FMS ID [ %s ]",
+                dataset_name,
+                vector_field_fmsid,
+            )
+        # if not uploading to FMS, log only the path if there is no location for
+        # that dataset or if there is, but the FMS ID is None
+        elif (
+            drift_dataframe_manifest.locations.get(dataset_name) is None
+            or drift_dataframe_manifest.locations[dataset_name].fmsid is None
+        ):
+            drift_dataframe_manifest.locations[dataset_name] = build_dataframe_location_from_path(
+                vector_field_save_path
+            )
+        # save updated manifest with new locations (either FMS or local paths)
+        save_dataframe_manifest(drift_dataframe_manifest)
+
+        # if there are fixed points for this dataset, concatenate them into a
+        # single dataframe and add to list of dataframes of fixed points for all
+        # datasets
+        if not fixed_points_dataframe_list:
+            continue
+
+        fixed_points_for_dataset = pd.concat(fixed_points_dataframe_list, ignore_index=True)
+
+        # save stable fixed points from this dataset to parquet file
+        fixed_points_file_name = (
+            f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataset_name}{demo_suffix}.parquet"
+        )
+        fixed_points_save_path = make_name_unique(dataframe_savedir / fixed_points_file_name)
+        fixed_points_for_dataset.to_parquet(fixed_points_save_path)
+        logger.info("Saved dataframe of points locally to [ %s ]", fixed_points_save_path)
+        # if uploading to FMS, update the dataframe manifest
+        if upload_to_fms:
+            fixed_points_annotations = build_fms_annotations(
+                dataset_config,
+                model_manifest=model_manifest,
+                run_name=run_name,
+                additional_notes=FMS_ANNOTATION_NOTES_FIXED_POINTS,
+            )
+            fixed_points_fmsid = upload_file_to_fms(
+                fixed_points_save_path,
+                annotations=fixed_points_annotations,
+                file_type="parquet",
+            )
+            fixed_points_dataframe_manifest.locations[dataset_name] = DataframeLocation(
+                fmsid=fixed_points_fmsid
+            )
+            logger.info(
+                "Uploaded dataframe of stable fixed points for dataset [ %s ] to FMS with FMS ID [ %s ]",
+                dataset_name,
+                fixed_points_fmsid,
+            )
+        # else, log only the path if there is no location for that dataset or if
+        # there is, but the FMS ID is None
+        elif (
+            fixed_points_dataframe_manifest.locations.get(dataset_name) is None
+            or fixed_points_dataframe_manifest.locations[dataset_name].fmsid is None
+        ):
+            fixed_points_dataframe_manifest.locations[dataset_name] = DataframeLocation(
+                path=fixed_points_save_path
+            )
+        # save updated manifest with new locations (either FMS or local paths)
+        save_dataframe_manifest(fixed_points_dataframe_manifest)
 
 
 if __name__ == "__main__":
