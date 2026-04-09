@@ -64,6 +64,7 @@ def build_optical_flow_feature_cols(
 
     Returns
     -------
+    :
         List of ``{feature}_dt{d}`` column names.
     """
     # --- raw (non-EMA) features ---
@@ -111,6 +112,7 @@ def build_crop_grid(df: pd.DataFrame) -> pd.DataFrame:
 
     Returns
     -------
+    :
         One row per crop with columns ``START_X``, ``START_Y``,
         ``CROP_INDEX``, ``end_x``, and ``end_y``.
     """

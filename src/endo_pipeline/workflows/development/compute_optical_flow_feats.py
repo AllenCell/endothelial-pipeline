@@ -1,7 +1,7 @@
 import logging
 from typing import Literal
 
-from endo_pipeline.cli import CropPattern, Datasets
+from endo_pipeline.cli import CropPattern, Datasets, FloatList
 from endo_pipeline.configs import TimepointAnnotation
 from endo_pipeline.settings import DIFFAE_ZARR_RESOLUTION_LEVEL
 from endo_pipeline.settings.optical_flow import (
@@ -34,7 +34,7 @@ def main(  # noqa: C901
     compute_block_coherence: bool = False,
     compute_fast_coherence: bool = False,
     compute_radial_coherence: bool = False,
-    ema_alphas: list[float] = list(DEFAULT_EMA_ALPHAS),
+    ema_alphas: FloatList = list(DEFAULT_EMA_ALPHAS),
     speed_threshold: float = DEFAULT_SPEED_THRESHOLD,
 ) -> None:
     """Optical-flow feature extraction with multi-scale temporal coherence.
@@ -91,7 +91,7 @@ def main(  # noqa: C901
     channel
         Imaging channel to load (``"BF"`` or ``"EGFP"``).
     level
-        Zarr resolution level.  Defaults to ``DIFFAE_ZARR_RESOLUTION_LEVEL``.
+        Zarr resolution level.
     annotations_to_exclude
         Explicit list of timepoint annotations to exclude.  When ``None``
         (default), the list is built from *include_cell_piling* and
@@ -100,7 +100,7 @@ def main(  # noqa: C901
         annotations).  Passing a non-empty list overrides both boolean
         flags.
     max_dt
-        Maximum temporal gap (inclusive).  Defaults to ``DEFAULT_OPTICAL_FLOW_MAX_DT``.
+        Maximum temporal gap (inclusive).
     intensity_percentile
         Pixels below this percentile (computed across all cached frames)
         are masked out.  None -> auto-select based on channel
@@ -109,46 +109,40 @@ def main(  # noqa: C901
         Parallel workers used in "crop" flow scope (joblib/loky).
     n_io_workers
         Concurrent I/O workers for dask frame loading and
-        ``ThreadPoolExecutor`` in image-scope flow.  Default ``NUM_IO_WORKERS`` (16).
+        ``ThreadPoolExecutor`` in image-scope flow.
     flow_scope
         "image" or "crop" (see Flow scopes above).
     crop_pattern
-        "grid" (default) or "tracked" (see Crop patterns above).
+        "grid" or "tracked" (see Crop patterns above).
     upload_to_fms
         If True, save parquet, upload to FMS, and register in the
-        dataframe manifest.  Default False to prevent accidental
-        uploads during development or external use.
+        dataframe manifest.
     visualize_optical_flow
         If True, produce diagnostic plots (R/G composite, quiver,
         speed & angle histograms) for one randomly chosen crop per
         (dataset, position) pair.  Saved to results/optical_flow/.
     include_cell_piling
         If True, retain timepoints annotated as cell-piling.
-        Default False (they are excluded).
     include_pre_steady_state
         If True, retain timepoints before visual steady state.
-        Default False (they are excluded).
     include_all_conditions
         If True, bypass **all** annotation filtering — including quality
         annotations (scope errors, temp artifacts, XY/Z shifts, unfed).
         Overrides both *include_cell_piling* and *include_pre_steady_state*.
     compute_block_coherence
         If True, compute multi-scale block-averaged coherence statistics
-        (``optical_flow_angle_std_box{N}``) for each box size.  Off by
-        default to save time.
+        (``optical_flow_angle_std_box{N}``) for each box size.
     compute_fast_coherence
         If True, compute coherence metrics over pixels whose speed
-        exceeds *speed_threshold*.  Off by default.
+        exceeds *speed_threshold*.
     compute_radial_coherence
         If True, compute radial coherence metrics (dot product of
-        unit flow with unit radial vector from crop centre).  Off by
-        default.
+        unit flow with unit radial vector from crop centre).
     ema_alphas
         EMA smoothing alpha values for temporal coherence smoothing.
-        Defaults to ``[0.1]``.
     speed_threshold
         Minimum pixel speed for the "fast" coherence features.
-        Only used when *compute_fast_coherence* is True.  Default 1.0.
+        Only used when *compute_fast_coherence* is True.
     """
     import os
     import time
@@ -224,19 +218,15 @@ def main(  # noqa: C901
         datasets = get_datasets_in_collection(DEFAULT_OPTICAL_FLOW_COLLECTION)
 
     if DEMO_MODE:
-        # For tracked crops, limit to 1 dataset / 1 position so the
-        # time series diagnostic is focused and fast.
-        demo_n_datasets = 1 if is_tracked else DEMO_MAX_DATASETS
-        demo_n_positions = 1 if is_tracked else DEMO_MAX_POSITIONS
-        datasets = datasets[:demo_n_datasets]
+        datasets = datasets[:DEMO_MAX_DATASETS]
         upload_to_fms = False
         visualize_optical_flow = True
         logger.info(
             "DEMO_MODE is ON (tracked=%s). Processing %d dataset(s), %d position(s) each, "
             "upload disabled.",
             is_tracked,
-            demo_n_datasets,
-            demo_n_positions,
+            DEMO_MAX_DATASETS,
+            DEMO_MAX_POSITIONS,
         )
 
     results_dir = get_output_path("optical_flow", "plots")
@@ -353,7 +343,7 @@ def main(  # noqa: C901
         if positions:
             position_list = [p for p in position_list if p in positions]
         if DEMO_MODE:
-            position_list = position_list[:demo_n_positions]
+            position_list = position_list[:DEMO_MAX_POSITIONS]
             logger.info("DEMO_MODE: limiting to position(s) %s", position_list)
 
         dataset_parts: list[pd.DataFrame] = []

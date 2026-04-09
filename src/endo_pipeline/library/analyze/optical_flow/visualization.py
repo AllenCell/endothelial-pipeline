@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats as sp_stats
 
+from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.optical_flow import (
     COHERENCE_BOX_SIZES,
@@ -410,11 +411,12 @@ def plot_demo_summary(
     )
     fig.tight_layout()
     out_dir.mkdir(parents=True, exist_ok=True)
-    fig.savefig(
-        out_dir
-        / f"demo_coherent_vs_incoherent_{ds_name}_{position}_{'_'.join(channel)}_{flow_scope}{block_tag}.png",
+    save_plot_to_path(
+        fig,
+        out_dir,
+        f"demo_coherent_vs_incoherent_{ds_name}_{position}_{'_'.join(channel)}_{flow_scope}{block_tag}",
         dpi=300,
-        facecolor="white",
+        show_and_close=False,
     )
     logger.info("Saved coherent-vs-incoherent figure to %s", out_dir)
     plt.close(fig)
@@ -466,7 +468,7 @@ def plot_tracked_crop_coherence_timeseries(
     max_crops
         Maximum number of tracked crops to plot.
     max_dt
-        Maximum temporal gap to plot (plots dt=1 by default).
+        Maximum temporal gap to plot.
     """
     from pathlib import Path
 
@@ -608,7 +610,12 @@ def plot_tracked_crop_coherence_timeseries(
     )
     fig.tight_layout()
     out_dir.mkdir(parents=True, exist_ok=True)
-    fname = out_dir / f"demo_tracked_coherence_timeseries_{ds_name}_{position}.png"
-    fig.savefig(fname, dpi=300, facecolor="white", bbox_inches="tight")
-    logger.info("Saved tracked-crop coherence time series to %s", fname)
+    save_plot_to_path(
+        fig,
+        out_dir,
+        f"demo_tracked_coherence_timeseries_{ds_name}_{position}",
+        dpi=300,
+        show_and_close=False,
+    )
+    logger.info("Saved tracked-crop coherence time series to %s", out_dir)
     plt.close(fig)

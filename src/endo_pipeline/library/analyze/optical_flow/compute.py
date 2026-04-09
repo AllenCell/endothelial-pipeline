@@ -34,6 +34,7 @@ def _block_average_flow(
 
     Returns
     -------
+    :
         Block-averaged ``(u, v)`` arrays, shape ``(H // box, W // box)``.
     """
     if box == 1:
@@ -85,20 +86,19 @@ def compute_flow_statistics(
     compute_block_coherence
         If True, compute multi-scale block-averaged coherence
         (``optical_flow_angle_std_box{N}``) for each box size.
-        Default False.
     compute_fast_coherence
         If True, compute coherence metrics only over pixels whose
-        speed exceeds *speed_threshold*.  Default False.
+        speed exceeds *speed_threshold*.
     compute_radial_coherence
         If True, compute radial coherence metrics (dot product of
         unit flow with unit radial vector from crop centre).
-        Default False.
     speed_threshold
         Minimum pixel speed for the "fast" coherence features.
-        Only used when *compute_fast_coherence* is True.  Default 1.0.
+        Only used when *compute_fast_coherence* is True.
 
     Returns
     -------
+    :
         Flat dictionary of scalar statistics with identifying fields.
     """
     base: dict[str, int | float] = {"crop_index": crop_idx, "timepoint": timepoint, "dt": dt}
@@ -232,7 +232,7 @@ def compute_tvl1(
         Subsequent frame.
     attachment
         TVL1 data-fidelity weight (λ).  Lower values yield smoother
-        flow fields.  Default ``7.5``.
+        flow fields.
 
     Returns
     -------
@@ -277,21 +277,22 @@ def compute_crop_flow(
     dt
         Temporal stride between the two frames.
     thresh
-        Intensity threshold for foreground masking.  Default ``0.0``.
+        Intensity threshold for foreground masking.
     attachment
-        TVL1 data-fidelity weight (λ).  Default ``7.5``.
+        TVL1 data-fidelity weight (λ).
     compute_block_coherence
         If True, compute multi-scale block-averaged coherence
-        statistics.  Default False.
+        statistics.
     compute_fast_coherence
-        If True, compute speed-thresholded coherence.  Default False.
+        If True, compute speed-thresholded coherence.
     compute_radial_coherence
-        If True, compute radial coherence.  Default False.
+        If True, compute radial coherence.
     speed_threshold
-        Speed threshold for fast-coherence features.  Default 1.0.
+        Speed threshold for fast-coherence features.
 
     Returns
     -------
+    :
         Flat dictionary of scalar flow statistics keyed by feature
         name, including ``crop_index``, ``timepoint``, and ``dt``.
     """
@@ -359,16 +360,16 @@ def compute_image_pair_flow(
     thresh
         Intensity threshold for foreground masking.
     attachment
-        TVL1 data-fidelity weight (λ).  Default ``7.5``.
+        TVL1 data-fidelity weight (λ).
     compute_block_coherence
         If True, compute multi-scale block-averaged coherence
-        statistics for each crop.  Default False.
+        statistics for each crop.
     compute_fast_coherence
-        If True, compute speed-thresholded coherence.  Default False.
+        If True, compute speed-thresholded coherence.
     compute_radial_coherence
-        If True, compute radial coherence.  Default False.
+        If True, compute radial coherence.
     speed_threshold
-        Speed threshold for fast-coherence features.  Default 1.0.
+        Speed threshold for fast-coherence features.
 
     Returns
     -------
