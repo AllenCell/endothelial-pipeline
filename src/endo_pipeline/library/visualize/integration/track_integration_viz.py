@@ -1054,8 +1054,9 @@ def plot_trajectory_measured_vs_simulation_over_flow_field(
     title = (
         f"{dataset_name} fp = {fixed_point_id} crop {crop_index}: "
         f"Fréchet = {frechet_dist:.3f}, "
-        f"DTW = {dtw_dist:.3f}, "
-        f"Hausdorff = {traj_df['directed_hausdorff_distance'].iloc[0]:.3f}"
+        f"DTW = {dtw_dist:.3f},\n"
+        f"Hausdorff = {traj_df['directed_hausdorff_distance_meas_vs_sim'].iloc[0]:.3f}, "
+        f"Hausdorff (reversed) = {traj_df['directed_hausdorff_distance_sim_vs_meas'].iloc[0]:.3f}"
     )
     fig.suptitle(title)
 

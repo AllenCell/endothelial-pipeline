@@ -196,11 +196,36 @@ def main(
                             "frechet_distance": compute_frechet_distance(
                                 tdf[measured_cols], tdf[simulated_cols]
                             ),
+                            "frechet_distance_sim_vs_meas": compute_frechet_distance(
+                                tdf[simulated_cols], tdf[measured_cols]
+                            ),
                             "dtw_distance": compute_dtw_distance(
                                 tdf[measured_cols], tdf[simulated_cols]
                             ),
-                            "directed_hausdorff_distance": compute_hausdorff_distance(
+                            "dtw_distance_sim_vs_meas": compute_dtw_distance(
+                                tdf[simulated_cols], tdf[measured_cols]
+                            ),
+                            "directed_hausdorff_distance_meas_vs_sim": compute_hausdorff_distance(
                                 tdf[measured_cols], tdf[simulated_cols]
+                            ),
+                            "directed_hausdorff_distance_sim_vs_meas": compute_hausdorff_distance(
+                                tdf[simulated_cols], tdf[measured_cols]
+                            ),
+                            "frechet_distance_resampled": compute_frechet_distance(
+                                tdf[measured_cols].sample(frac=1),
+                                tdf[simulated_cols].sample(frac=1),
+                            ),
+                            "dtw_distance_resampled": compute_dtw_distance(
+                                tdf[measured_cols].sample(frac=1),
+                                tdf[simulated_cols].sample(frac=1),
+                            ),
+                            "dir_hausdorff_dist_meas_vs_sim_resampled": compute_hausdorff_distance(
+                                tdf[measured_cols].sample(frac=1),
+                                tdf[simulated_cols].sample(frac=1),
+                            ),
+                            "dir_hausdorff_dist_sim_vs_meas_resampled": compute_hausdorff_distance(
+                                tdf[simulated_cols].sample(frac=1),
+                                tdf[measured_cols].sample(frac=1),
                             ),
                         }
                     )
@@ -212,6 +237,59 @@ def main(
         df_grid_sub = df_grid_sub.merge(
             distances_df, on=[Column.DATASET, Column.POSITION, Column.CROP_INDEX], how="left"
         )
+
+        import seaborn as sns
+        from matplotlib import pyplot as plt
+
+        fig, ax = plt.subplots()
+        sns.scatterplot(
+            data=df_grid_sub, x="directed_hausdorff_distance_meas_vs_sim", y="frechet_distance"
+        )
+        ax.plot(ax.get_xlim(), ax.get_xlim(), ls="--", c="red", alpha=0.5, zorder=0)
+        plt.show()
+
+        fig, ax = plt.subplots()
+        sns.scatterplot(
+            data=df_grid_sub,
+            x="directed_hausdorff_distance_sim_vs_meas",
+            y="frechet_distance_sim_vs_meas",
+        )
+        ax.plot(ax.get_xlim(), ax.get_xlim(), ls="--", c="red", alpha=0.5, zorder=0)
+        plt.show()
+
+        fig, ax = plt.subplots()
+        sns.scatterplot(
+            data=df_grid_sub, x="directed_hausdorff_distance_meas_vs_sim", y="dtw_distance"
+        )
+        plt.show()
+
+        fig, ax = plt.subplots()
+        sns.scatterplot(
+            data=df_grid_sub,
+            x="directed_hausdorff_distance_sim_vs_meas",
+            y="dtw_distance_sim_vs_meas",
+        )
+        plt.show()
+
+        fig, ax = plt.subplots()
+        sns.histplot(distances_df["directed_hausdorff_distance_meas_vs_sim"], alpha=0.7, ax=ax)
+        sns.histplot(distances_df["dir_hausdorff_dist_meas_vs_sim_resampled"], alpha=0.7, ax=ax)
+        plt.show()
+
+        fig, ax = plt.subplots()
+        sns.histplot(distances_df["directed_hausdorff_distance_sim_vs_meas"], alpha=0.7, ax=ax)
+        sns.histplot(distances_df["dir_hausdorff_dist_sim_vs_meas_resampled"], alpha=0.7, ax=ax)
+        plt.show()
+
+        fig, ax = plt.subplots()
+        sns.histplot(distances_df["frechet_distance"], alpha=0.7, ax=ax)
+        sns.histplot(distances_df["frechet_distance_resampled"], alpha=0.7, ax=ax)
+        plt.show()
+
+        fig, ax = plt.subplots()
+        sns.histplot(distances_df["dtw_distance"], alpha=0.7, ax=ax)
+        sns.histplot(distances_df["dtw_distance_resampled"], alpha=0.7, ax=ax)
+        plt.show()
 
         if make_trajectory_validation_plots:
             # plot overlays of the tracks with the fixed points on the flow field slices
@@ -257,9 +335,9 @@ def main(
         punctual = {"punctual": list(zip(punctual_x, punctual_y, strict=True))}
 
         # lazy moves slower than punctual and gives up half way
-        lazy_x = [*np.linspace(0, 10, 21)]
-        lazy_y = [0] * len(lazy_x)
-        lazy = {"lazy": list(zip(lazy_x, lazy_y, strict=True))}
+        quitter_x = [*np.linspace(0, 10, 21)]
+        quitter_y = [0] * len(quitter_x)
+        quitter = {"quitter": list(zip(quitter_x, quitter_y, strict=True))}
 
         # impatient moves faster than punctual and ends up waiting at the end
         impatient_x = [*np.linspace(0, 10, 6), *np.linspace(8, 0, 5), *([0] * 10)]
@@ -288,7 +366,7 @@ def main(
 
         line_comparisons = (
             (punctual, punctual),
-            (punctual, lazy),
+            (punctual, quitter),
             (punctual, impatient),
             (punctual, overachiever),
             (punctual, lost),
@@ -296,7 +374,7 @@ def main(
         )
         color_dict = {
             "punctual": "tab:blue",
-            "lazy": "tab:orange",
+            "quitter": "tab:orange",
             "impatient": "tab:green",
             "overachiever": "tab:red",
             "lost": "tab:purple",
@@ -322,6 +400,10 @@ def main(
                 line1_vals,
                 line2_vals,
             )
+            hausdorff_dist_rev = directed_hausdorff(
+                line2_vals,
+                line1_vals,
+            )
 
             distances.append(
                 {
@@ -331,6 +413,7 @@ def main(
                     "Frechet_distance": frechet_dist,
                     "DTW_distance": dtw_dist,
                     "Hausdorff_distance": hausdorff_dist[0],
+                    "Hausdorff_distance_rev": hausdorff_dist_rev[0],
                 }
             )
 
@@ -363,7 +446,40 @@ def main(
                     alpha=0.7,
                 )
             ax.plot(ax.get_ylim(), ax.get_ylim(), ls=":", c="black")
+            ax.axhline(0, ls="--", c="lightgrey")
+            ax.axvline(0, ls="--", c="lightgrey")
             ax.set_xlabel("Hausdorff distance")
+            ax.set_ylabel("Distance metric")
+            ax.legend()
+            plt.show()
+
+            fig, ax = plt.subplots()
+            for _, row in dist_metrics_df.iterrows():
+                ax.scatter(
+                    x=row["Hausdorff_distance_rev"],
+                    y=row["Frechet_distance"],
+                    color=color_dict[row["line_2"]],
+                    marker="o",
+                    s=30,
+                    label=f"{row['line_2']} Hausdorff (reversed) vs. Frechet",
+                    linewidth=1,
+                    alpha=0.7,
+                )
+                ax.scatter(
+                    x=row["Hausdorff_distance_rev"],
+                    y=row["DTW_distance"],
+                    marker="D",
+                    s=30,
+                    edgecolors=color_dict[row["line_2"]],
+                    facecolor="none",
+                    label=f"{row['line_2']} Hausdorff (reversed) vs. DTW",
+                    linewidth=1,
+                    alpha=0.7,
+                )
+            ax.plot(ax.get_ylim(), ax.get_ylim(), ls=":", c="black")
+            ax.axhline(0, ls="--", c="lightgrey")
+            ax.axvline(0, ls="--", c="lightgrey")
+            ax.set_xlabel("Hausdorff distance (inverted comparison)")
             ax.set_ylabel("Distance metric")
             ax.legend()
             plt.show()
