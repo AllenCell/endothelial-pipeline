@@ -12,7 +12,7 @@ from matplotlib.gridspec import GridSpec
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
 from endo_pipeline.library.visualize.figure_utils import add_scalebar
-from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
+from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
 
 logger = logging.getLogger(__name__)
 
@@ -102,9 +102,7 @@ def plot_latent_walk_as_grid(
             if i == 0:
                 if label_sigmas:
                     column_title = f"{j - (num_steps // 2)}\u03c3"
-                else:
-                    column_title = f"Step {j+1}"
-                ax.set_title(column_title, fontsize=10, pad=5)
+                    ax.set_title(column_title, fontsize=10, pad=5)
 
             # Y labels only on first column
             if j == 0:
@@ -116,11 +114,11 @@ def plot_latent_walk_as_grid(
 
             # Plot scalebar only on first image
             if i == 0 and j == 0:
-                scalebar_um = 10
+                scalebar_um = 20
                 add_scalebar(
                     ax,
                     scale_bar_um=scalebar_um,
-                    pixel_size=PIXEL_SIZE_3i_20x,
+                    pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
                     bar_thickness=5,
                     padding=10,
                 )
@@ -128,5 +126,6 @@ def plot_latent_walk_as_grid(
     gs.tight_layout(fig, pad=0.25)
     plt.show()
 
+    file_name = f"{file_name}_scale_bar_{scalebar_um}um"
     save_plot_to_path(fig, save_path, file_name, file_format=file_format)
     plt.close(fig)
