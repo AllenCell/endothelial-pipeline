@@ -10,7 +10,6 @@ def create_segmentation_measured_feature_manifest(
     """Merge nuclei measurement, cdh5 segmentation measurement, and tracking tables into 1 table."""
     import logging
 
-    from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import load_dataframe
     from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
         add_cell_piling_and_steady_state_annotation_columns,
@@ -21,9 +20,6 @@ def create_segmentation_measured_feature_manifest(
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 
     logger = logging.getLogger(__name__)
-
-    timelapse_datasets = get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
-    smad1_datasets = get_datasets_in_collection("smad1")
 
     # make the output directory
     out_dir = Path(out_dir)
@@ -79,10 +75,7 @@ def create_segmentation_measured_feature_manifest(
     # NOTE THIS TABLE WILL BE UPLOADED TO FMS
     # save the raw combined data tables
     # (we want to have an accessible version of the raw data)
-    if dataset_name in smad1_datasets:
-        filename = f"{dataset_name}_fixed_segmentation_features.parquet"
-    elif dataset_name in timelapse_datasets:
-        filename = f"{dataset_name}_live_segmentation_features.parquet"
+    filename = f"{dataset_name}_live_segmentation_features.parquet"
 
     out_dir_raw = out_dir / "segmentation_features_dataframes/"
     out_dir_raw.mkdir(parents=True, exist_ok=True)
