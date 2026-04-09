@@ -322,6 +322,8 @@ def main(
                 upper_percentile=UPPER_PERCENTILE_FOR_STABLE_FP,
                 polar_angle_range=BIN_LIMITS_THETA_RESCALED if RESCALE_THETA else (-np.pi, np.pi),
             )
+            # add column for shear stress
+            fixed_points_for_flow_condition[ColumnName.SHEAR_STRESS] = shear_stress
 
             # add stable fixed points from this dataset to the overall dataframe
             # (checking first if returned dataframe is empty first to avoid issues
