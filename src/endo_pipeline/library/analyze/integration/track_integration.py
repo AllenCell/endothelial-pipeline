@@ -39,6 +39,7 @@ from endo_pipeline.settings.flow_field_3d import (
     TIME_STEP_IN_MINUTES,
     TRAJECTORY_TIME_SPAN,
 )
+from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_COLUMNS_TO_DROP,
     DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_FILTERED,
@@ -1019,3 +1020,129 @@ def solve_ddff_from_trajectory_initial_condition(
     }
 
     return simulation_as_df_record
+
+
+def add_distance_to_fixed_points_columns(
+    trajectory_df: pd.DataFrame,
+    fixed_point_df: pd.DataFrame,
+    trajectory_columns: list[Column.DiffAEData | str],
+    fixed_point_columns: list[Column.DiffAEData | str] | None = None,
+    column_suffix: str = "",
+) -> pd.DataFrame:
+    """
+    Compute the distance from each point in the trajectory to the fixed points.
+
+    Parameters
+    ----------
+    trajectory_df
+        DataFrame containing the trajectory points.
+    fixed_point_df
+        DataFrame containing the fixed points.
+    trajectory_columns
+        List of column names in trajectory_df to use for distance computation.
+    fixed_point_columns
+        List of column names in fixed_point_df to use for distance computation.
+        Expected to be in the same order as trajectory_columns.
+        If None, the trajectory_columns will be used.
+    column_suffix
+        Suffix to append to the new distance-from-fixed-point columns.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing the distances to the nearest fixed point for each trajectory point.
+    """
+
+    if fixed_point_columns is None:
+        fixed_point_columns = trajectory_columns
+
+    if column_suffix and not column_suffix.startswith("_"):
+        column_suffix = f"_{column_suffix}"  # make sure the suffix starts with an underscore
+
+    # determine distance from each fixed point over time and add to the dataframe, along
+    # with the signed difference along each axis (e.g. theta, r, rho) from each fixed point
+    dist_from_fp_col_prefix = "dist_from_fp_"
+    rescaled_theta = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
+
+    for i in fixed_point_df.index:
+        fpt = fixed_point_df.iloc[i]
+
+        for j, col in enumerate(fixed_point_columns):
+            diff_func = lambda x, fpt=fpt, col=col: (
+                np.mod(x - fpt[col] + rescaled_theta / 2, rescaled_theta) - rescaled_theta / 2
+                if Column.DiffAEData.POLAR_ANGLE.value in col
+                else (x - fpt[col])
+            )
+            trajectory_df[f"diff_from_fp_{i}_{col}{column_suffix}"] = diff_func(
+                trajectory_df[trajectory_columns[j]]
+            )
+
+        dynamics_diff_columns = [
+            f"diff_from_fp_{i}_{col}{column_suffix}" for col in fixed_point_columns
+        ]
+        trajectory_df[f"{dist_from_fp_col_prefix}{i}{column_suffix}"] = np.linalg.norm(
+            trajectory_df[dynamics_diff_columns], axis=1
+        )
+
+        dd = (
+            trajectory_df[f"{dist_from_fp_col_prefix}{i}{column_suffix}"]
+            .groupby(trajectory_df[Column.CROP_INDEX])
+            .diff()
+        )
+        dt = trajectory_df[Column.TIMEPOINT].groupby(trajectory_df[Column.CROP_INDEX]).diff()
+        trajectory_df[f"{dist_from_fp_col_prefix}{i}{column_suffix}_veloc"] = dd / dt
+
+    # determine which fixed point is closest at each timepoint for each track
+    dist_from_fp_columns = [
+        f"{dist_from_fp_col_prefix}{i}{column_suffix}" for i in fixed_point_df.index
+    ]
+    trajectory_df[f"closest_fp{column_suffix}"] = (
+        trajectory_df[dist_from_fp_columns]
+        .idxmin(axis=1)
+        .transform(
+            lambda s: (
+                np.nan if pd.isna(s) else int(s.strip(dist_from_fp_col_prefix).strip(column_suffix))
+            )
+        )
+    )
+
+    # create a dictionary mapping a fixed point index to its stability
+    fp_stability_map = dict(
+        zip(
+            fixed_point_df.index,
+            fixed_point_df[STABILITY_COLUMN_NAME],
+            strict=True,
+        )
+    )
+
+    # add the stability as a column for the closest fixed point at each timepoint
+    trajectory_df[f"closest_fp_stability{column_suffix}"] = trajectory_df[
+        f"closest_fp{column_suffix}"
+    ].map(fp_stability_map)
+
+    return trajectory_df
+
+
+def get_time_of_first_passing(
+    trajectory_df: pd.DataFrame, column: str, threshold: float
+) -> pd.Series:
+    """
+    Get the time of first passing for each track in the trajectory dataframe.
+
+    Parameters
+    ----------
+    trajectory_df : pd.DataFrame
+        DataFrame containing the trajectory points.
+    column : str
+        Column name in trajectory_df to use for the first passing computation.
+    threshold : float
+        Threshold value to determine the first passing.
+
+    Returns
+    -------
+    pd.Series
+        Series containing the time of first passing for each track.
+    """
+    return trajectory_df.groupby(Column.CROP_INDEX).apply(
+        lambda grp: grp[Column.TIMEPOINT][grp[column] < threshold].min()
+    )
