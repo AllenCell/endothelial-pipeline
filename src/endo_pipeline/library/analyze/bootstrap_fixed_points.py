@@ -362,18 +362,35 @@ def match_bootstrap_fixed_points_to_baseline(
 
         assigned_boot_indices: set[int] = set()
         for baseline_idx in range(n_baseline):
+            print(
+                f"Matching for baseline FP {baseline_fixed_points_array[baseline_idx]} "
+                f"(stability={baseline_stabilities[baseline_idx]})"
+            )
             row_dists = pairwise_dists[baseline_idx].copy()
             # Exclude bootstrap FPs with a different stability classification
             # from consideration when matching this baseline FP.
             row_dists[boot_stabilities != baseline_stabilities[baseline_idx]] = np.inf
             sorted_boot_idxs = np.argsort(row_dists)
-            for boot_idx in sorted_boot_idxs:
+            valid_boot_idxs = sorted_boot_idxs[row_dists[sorted_boot_idxs] != np.inf]
+            for boot_idx in valid_boot_idxs:
+                print(
+                    f"Checking bootstrap FP {fixed_point_result_array[boot_idx]} "
+                    f"(stability={boot_stabilities[boot_idx]}) with distance {row_dists[boot_idx]:.4f}"
+                )
+                # check if this bootstrap FP has already been matched to a
+                # different baseline FP in this iteration
                 if boot_idx in assigned_boot_indices:
                     continue
+                # if this bootstrap FP is within the match radius, assign it as
+                # a match and move on to the next baseline FP (since each
+                # baseline FP can be matched to at most one bootstrap FP per
+                # iteration)
                 if row_dists[boot_idx] <= bootstrap_match_radius:
+                    print("-> Match found!")
                     matched_coords[baseline_idx].append(fixed_point_result_array[boot_idx])
                     assigned_boot_indices.add(boot_idx)
-                break  # only try the nearest unassigned candidate per baseline FP
+                    break
+                print("-> No match.")
 
     return matched_coords
 
