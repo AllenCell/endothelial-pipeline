@@ -5,6 +5,7 @@ import os
 
 import numpy as np
 import pandas as pd
+from scipy.stats import circmean
 
 from endo_pipeline.library.analyze.data_driven_flow_field import (
     compute_extrapolated_vector_field,
@@ -13,6 +14,7 @@ from endo_pipeline.library.analyze.data_driven_flow_field import (
 )
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
+from endo_pipeline.library.analyze.numerics.binning import circpercentile
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_THETA_RESCALED
 from endo_pipeline.settings.flow_field_3d import (
@@ -412,7 +414,8 @@ def aggregate_bootstrapping_results(
     - bootstrapped confidence intervals for the fixed point coordinates
     - a detection rate from the fraction of bootstrap iterations in which a
       match was found within the specified radius
-    - a cluster mean coordinate (mean of all matched bootstrap coordinates)
+    - a cluster mean coordinate (circular mean for the polar angle dimension,
+      linear mean for all other dimensions)
 
     **Method inputs**
 
@@ -425,13 +428,13 @@ def aggregate_bootstrapping_results(
       matched bootstrap fixed point coordinates (as numpy arrays) across bootstrap
       iterations.
 
-    **Circular distance handling**
+    **Circular statistics for the polar angle**
 
     If the `polar_theta` (`ColumnName.DiffAEData.POLAR_ANGLE`) column is present
-    in `column_names`, the matched bootstrap angles for each baseline fixed
-    point are unwrapped relative to that baseline angle using `numpy.unwrap`
-    before percentiles are computed.  This prevents artificially wide CIs caused
-    by the wrap-around boundary.
+    in `column_names`, `scipy.stats.circmean` is used for the cluster mean and
+    `scipy.stats.circpercentile` is used for the CI bounds in that dimension,
+    with ``low=0`` and ``high=polar_angle_period``.  All other dimensions use
+    the ordinary linear mean and ``numpy.percentile``.
 
     **Output dataframe**
 
@@ -495,47 +498,56 @@ def aggregate_bootstrapping_results(
         num_hits = len(matched_coords[i])
         if num_hits >= 1:
             # reshape list of matched coords to the given baseline point
-            # to (n_hits, 3) for percentile / mean computation
-            matched_coords_array = np.stack(matched_coords[i], axis=0)  # (n_hits, 3)
-            if polar_dim_idx is not None:
-                # Unwrap bootstrap polar angles relative to the baseline angle so
-                # that percentiles are computed on a continuous (non-wrapping)
-                # distribution.  Prepend the baseline value as the anchor point
-                # for np.unwrap, then discard it from the result.
-                base_angle = float(baseline_fixed_point[column_names[polar_dim_idx]])
-                seq = np.concatenate([[base_angle], matched_coords_array[:, polar_dim_idx]])
-                matched_coords_array = matched_coords_array.copy()
-                matched_coords_array[:, polar_dim_idx] = np.unwrap(seq, period=polar_angle_period)[
-                    1:
-                ]
+            # to (n_hits, n_dims) for percentile / mean computation
+            matched_coords_array = np.stack(matched_coords[i], axis=0)
 
-            # compute running cluster means: after k matches the mean of the
-            # first k matched coordinates (ordered by bootstrap iteration)
-            running_cluster_means = [
-                np.mean(matched_coords_array[: k + 1], axis=0) for k in range(num_hits)
-            ]
-            logger.debug(
-                "Running cluster means for baseline FP %d (%d matches): %s",
-                i,
-                num_hits,
-                running_cluster_means,
+            # compute per-dimension cluster means, using circular mean for the
+            # polar angle dimension
+            cluster_mean = np.array(
+                [
+                    (
+                        circmean(
+                            matched_coords_array[:, dim_idx],
+                            low=0,
+                            high=polar_angle_period,
+                        )
+                        if dim_idx == polar_dim_idx and polar_angle_period is not None
+                        else np.mean(matched_coords_array[:, dim_idx])
+                    )
+                    for dim_idx in range(matched_coords_array.shape[1])
+                ]
             )
-            cluster_mean = running_cluster_means[-1]  # final mean over all matched iterations
             for dim_idx, col in enumerate(column_names):
-                dataframe_row[f"{col}_cluster_mean"] = float(cluster_mean[dim_idx])
+                dataframe_row[f"{col}_cluster_mean"] = cluster_mean[dim_idx]
 
             if num_hits >= 2:
                 for dim_idx, col in enumerate(column_names):
-                    dataframe_row[f"{col}_ci_lower"] = float(
-                        np.percentile(
-                            matched_coords_array[:, dim_idx], bootstrap_ci_lower_percentile
+                    if dim_idx == polar_dim_idx and polar_angle_period is not None:
+                        dataframe_row[f"{col}_ci_lower"] = float(
+                            circpercentile(
+                                matched_coords_array[:, dim_idx],
+                                bootstrap_ci_lower_percentile,
+                                polar_range=(0, polar_angle_period),
+                            )
                         )
-                    )
-                    dataframe_row[f"{col}_ci_upper"] = float(
-                        np.percentile(
-                            matched_coords_array[:, dim_idx], bootstrap_ci_upper_percentile
+                        dataframe_row[f"{col}_ci_upper"] = float(
+                            circpercentile(
+                                matched_coords_array[:, dim_idx],
+                                bootstrap_ci_upper_percentile,
+                                polar_range=(0, polar_angle_period),
+                            )
                         )
-                    )
+                    else:
+                        dataframe_row[f"{col}_ci_lower"] = float(
+                            np.percentile(
+                                matched_coords_array[:, dim_idx], bootstrap_ci_lower_percentile
+                            )
+                        )
+                        dataframe_row[f"{col}_ci_upper"] = float(
+                            np.percentile(
+                                matched_coords_array[:, dim_idx], bootstrap_ci_upper_percentile
+                            )
+                        )
             else:
                 for col in column_names:
                     dataframe_row[f"{col}_ci_lower"] = float("nan")
