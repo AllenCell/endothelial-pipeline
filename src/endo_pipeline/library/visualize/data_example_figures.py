@@ -93,10 +93,8 @@ def create_panel_b_biological_system_examples(
         row_titles=row_titles,
         font_size=FONTSIZE_MEDIUM,
         subplot_kwargs={"frame_on": False},
-        fig_kwargs={"figsize": (MAX_FIGURE_WIDTH / 2, 2.2), "constrained_layout": True},
+        fig_kwargs={"figsize": (MAX_FIGURE_WIDTH / 2, 2.2)},
     )
-
-    image_panel_fig.set_constrained_layout_pads(w_pad=0.01, h_pad=0.01, wspace=0.02, hspace=0.02)
 
     for ax in image_panel_fig.axes:
         ax.xaxis.labelpad = 3
