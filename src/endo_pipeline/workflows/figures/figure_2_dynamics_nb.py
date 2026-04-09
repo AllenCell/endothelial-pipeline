@@ -73,7 +73,6 @@ polar_angle_period = (
 # field estimation
 kernels: list[KramersMoyalKernel] = []
 bin_widths: list[float] = []
-axes_limits: list[tuple[float, float]] = []
 
 # Get the corresponding kernels and bin widths for each variable. For the
 # polar angle variable, also specify the period for the kernel based on the
@@ -85,7 +84,6 @@ for column_name in column_names:
     bin_width = BIN_WIDTHS_DYNAMICS[column_name]
     kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=None))
     bin_widths.append(bin_width)
-    axes_limits.append(global_bin_limits_dict[column_name])
 
 # get dataframe manifest for crop-based features
 base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
@@ -169,6 +167,7 @@ for dataset_name, panel_letters, y_position in [
 
         filename_prefix = f"{dataset_name_flow}_{'_'.join(column_names)}"
         # plot drift contours and save
+        axes_limits = [(bins[0][0], bins[0][-1]), (bins[1][0], bins[1][-1])]
         plot_and_save_drift_contours(
             centers_mesh,
             drift,
