@@ -373,6 +373,7 @@ def plot_and_save_clustermap(
     sns.heatmap(
         df,
         annot=annotate,
+        fmt=".2f",
         cmap="RdBu",
         center=center,
         vmin=vmin,
