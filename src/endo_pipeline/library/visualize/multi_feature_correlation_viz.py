@@ -28,6 +28,9 @@ from endo_pipeline.io import load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
 )
+from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
+    add_optical_flow_features,
+)
 from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     get_dataset_color,
     get_label_for_column,
@@ -361,7 +364,7 @@ def plot_and_save_clustermap(
 
     # Version without clustering for reference
     fig, ax = plt.subplots(
-        figsize=(MAX_FIGURE_WIDTH, min(MAX_FIGURE_HEIGHT, 0.8 * df.shape[0])), dpi=300
+        figsize=(MAX_FIGURE_WIDTH * 0.7, min(MAX_FIGURE_HEIGHT, 1.2 * df.shape[0])), dpi=300
     )
     sns.heatmap(
         df,
@@ -400,7 +403,7 @@ def plot_and_save_clustermap(
             output_path=output_folder,
             figure_name=f"{filename}_{label}",
             dpi=300,
-            file_format=".pdf",
+            file_format=".svg",
         )
 
 
@@ -450,6 +453,14 @@ def get_df_for_feature_correlation_viz(
         # order)
         dynamics_seg_columns = SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"]
         supplementary_columns = SEGMENTATION_FEATURE_COLUMNS["supp"]
+        optical_flow_columns = [
+            Column.OpticalFlow.UNIT_VECTOR_MEAN,
+            Column.OpticalFlow.SPEED_MEAN,
+        ]
+        optical_flow_merge_prereq_columns = [
+            Column.SegData.START_X_RES_0,
+            Column.SegData.START_Y_RES_0,
+        ]
         diffae_columns_not_dynamics = [
             col
             for col in Column.DiffAEData
@@ -463,6 +474,8 @@ def get_df_for_feature_correlation_viz(
             *supplementary_columns,
             *diffae_columns_not_dynamics,
             *pc_columns,
+            *optical_flow_columns,
+            *optical_flow_merge_prereq_columns,
         ]
         cols_to_load_overlap = sorted(set(cols_to_load) & set(merged_feats_df_delayed.columns))
         cols_to_load_unique = []
@@ -482,6 +495,20 @@ def get_df_for_feature_correlation_viz(
         # get dynamics dependent features
         merged_feats_df = calculate_derived_data_dynamics_dependent(merged_feats_df)
 
+        merged_feats_df[Column.DiffAEData.START_X] = (
+            merged_feats_df[Column.SegData.START_X_RES_0] // 2
+        )
+        merged_feats_df[Column.DiffAEData.START_Y] = (
+            merged_feats_df[Column.SegData.START_Y_RES_0] // 2
+        )
+
+        merged_feats_df = add_optical_flow_features(
+            merged_feats_df,
+            datasets=[dataset_name],
+            optical_flow_manifest_name="optical_flow_bf_tracked",
+            optical_flow_feature_columns=optical_flow_columns,
+        )
+
         # check that the chosen measurement column names
         # are actually in the DataFrame
         # keep only the columns that will be used
@@ -489,6 +516,7 @@ def get_df_for_feature_correlation_viz(
             *dataset_info_columns,
             *segmentation_feature_columns,
             *pc_columns,
+            *optical_flow_columns,
         ]
         if not all(np.isin(cols_to_keep, merged_feats_df.columns)):
             missing_columns = set(cols_to_keep) - set(merged_feats_df.columns)
@@ -548,6 +576,7 @@ def visualize_correlation_heatmaps(
     label_column_tuples: list[tuple[str, list[str]]],
     out_dir: Path,
     skip_multi_feature_scatterplots: bool = False,
+    cross_correlation_only: bool = False,
 ) -> None:
     # Pre-compute full correlation matrix once per dataset
     all_feature_columns: list = []
@@ -577,10 +606,15 @@ def visualize_correlation_heatmaps(
     }
     colors = df_dataset[Column.DATASET].map(dataset_color_mapping).to_list()
 
+    pair_iter = (
+        itertools.combinations(label_column_tuples, 2)
+        if cross_correlation_only
+        else itertools.combinations_with_replacement(label_column_tuples, 2)
+    )
     for (x_axis_label, x_cols), (
         y_axis_label,
         y_cols,
-    ) in itertools.combinations_with_replacement(label_column_tuples, 2):
+    ) in pair_iter:
         logger.debug(
             "Processing correlation between %s and %s for dataset %s",
             x_axis_label,
