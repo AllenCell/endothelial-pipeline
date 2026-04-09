@@ -84,7 +84,7 @@ def main():
             path=save_dir / "patch_based_featurization_scale_bar_20um.svg",
             x_position=2.8,
             y_position=2,
-            x_offset=0.1,
+            x_offset=0.3,
             y_offset=0.1,
         ),
         FigurePanel(
@@ -99,9 +99,9 @@ def main():
             letter="E",
             path=save_dir3 / "latent_walk_along_polar_theta_polar_r_rho_scale_bar_20um.svg",
             x_position=0,
-            y_position=6,
+            y_position=6.2,
             x_offset=0,
-            y_offset=0.08,
+            y_offset=0.2,
         ),
     ]
     build_figure_from_panels(panels, save_dir / "figure_1.svg", width=MAX_FIGURE_WIDTH, height=10)
