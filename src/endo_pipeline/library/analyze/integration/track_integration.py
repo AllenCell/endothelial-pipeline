@@ -17,7 +17,7 @@ from endo_pipeline.library.analyze.vector_field_estimation import (
     get_vector_field_as_dict_from_dataframe,
     load_drift_dataframe_for_dataset,
     load_fixed_points_dataframe_for_dataset,
-    solve_ddff_ode,
+    solve_ode_from_vector_field_dict,
 )
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
@@ -615,7 +615,7 @@ def get_traj_and_flowfield(
     else:
         # solve IVP, get back trajectory
         logger.debug("Trying to solve ODE...")
-        traj = solve_ddff_ode(flow_field_dict, init, time_span)
+        traj = solve_ode_from_vector_field_dict(flow_field_dict, init, time_span)
         logger.debug("ODE solved.")
 
     return traj, flow_field_dict
@@ -996,7 +996,7 @@ def solve_ddff_from_trajectory_initial_condition(
     if time_limit is None:
         time_limit = np.inf
 
-    trajectory_simulation = solve_ddff_ode(
+    trajectory_simulation = solve_ode_from_vector_field_dict(
         flow_field_dict=flow_field_dict,
         init=initial_condition,
         t_span=(0, trajectory_duration + 1),

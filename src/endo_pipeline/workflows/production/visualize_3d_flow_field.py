@@ -105,7 +105,7 @@ def main(
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.vector_field_estimation import (
         compute_extrapolated_vector_field,
-        solve_ddff_ode,
+        solve_ode_from_vector_field_dict,
     )
     from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
         flow_field_viz_main,
@@ -404,7 +404,7 @@ def main(
                 drift_values, grid_points_1d, method="linear", for_vtk_files=False
             )
 
-            traj = solve_ddff_ode(
+            traj = solve_ode_from_vector_field_dict(
                 extrapolated_flow_field_dict_reg,
                 init=np.array(INIT_POINT_3D),
                 t_span=TRAJECTORY_TIME_SPAN,

@@ -241,7 +241,7 @@ def get_callable_vector_field(
     return vf_solve_ivp if for_solve_ivp else vf_general
 
 
-def solve_ddff_ode(
+def solve_ode_from_vector_field_dict(
     flow_field_dict: dict,
     init: np.ndarray,
     t_span: tuple[float, float],
