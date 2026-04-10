@@ -28,10 +28,10 @@ def main(
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.cli.demo_mode_defaults import use_default_collection
-    from endo_pipeline.configs.dataset_io import concatenate_and_save_feature_tables
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.shape_features import (
         build_cdh5_measured_features_tables_multiproc_wrapper,
+        concatenate_and_save_feature_tables,
     )
     from endo_pipeline.library.process.general_image_preprocessing import (
         build_analysis_queue,

@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Callable
+from os import scandir
 from pathlib import Path
 from typing import Any, Literal
 
@@ -7,6 +8,8 @@ import numpy as np
 import pandas as pd
 from dask.array import Array
 from skimage import draw, filters, graph, measure, morphology, segmentation
+
+from endo_pipeline.configs.dataset_io import extract_t
 
 logger = logging.getLogger(__name__)
 
@@ -1937,3 +1940,92 @@ def get_and_save_nuclei_features_arg_unpacker(args: dict) -> None:
         channel_names=channel_names,
         save_output=save_output,
     )
+
+
+def concatenate_and_save_feature_tables(
+    out_dir: Path,
+    dataset_name: str,
+    out_file_suffix: str = "",
+    input_filename_contains: str = "",
+    file_extension: str = ".csv",
+    sort_by_T: bool = True,
+    check_saved_dataframe: bool = True,
+    remove_initial_files_and_folders: bool = False,
+) -> None:
+    """
+    Concatenate the nuclei feature tables for all positions and
+    timepoints for a given dataset in an out_dir and then saves
+    the concatenated table to the output directory.
+    The expected file structure in out_dir is:
+    out_dir/dataset_name/position/*filename_contains*.file_extension.
+    """
+    out_subdir = out_dir / dataset_name
+
+    file_extension = f".{file_extension}" if not file_extension.startswith(".") else file_extension
+    if input_filename_contains and not input_filename_contains.endswith("*"):
+        input_filename_contains = f"{input_filename_contains}*"
+    feats_filepaths = list(out_subdir.glob(f"**/*{input_filename_contains}{file_extension}"))
+    if sort_by_T:
+        feats_filepaths = sorted(feats_filepaths, key=lambda fp: extract_t(fp.stem))
+
+    if file_extension == ".tsv":
+        sep = "\t"
+        table_reader = lambda fp: pd.read_csv(fp, sep=sep)
+        table_writer = lambda df, fp: df.to_csv(fp, sep=sep, index=False)
+    elif file_extension == ".csv":
+        sep = ","
+        table_reader = lambda fp: pd.read_csv(fp, sep=sep)
+        table_writer = lambda df, fp: df.to_csv(fp, sep=sep, index=False)
+    elif file_extension == ".parquet":
+        table_reader = lambda fp: pd.read_parquet(fp)
+        table_writer = lambda df, fp: df.to_parquet(fp, index=False)
+    else:
+        raise ValueError(
+            f"Invalid file extension {file_extension}. Must be .csv, .tsv., or .parquet."
+        )
+    feats_dfs = [table_reader(fp) for fp in feats_filepaths]
+
+    # define the output path for the concatenated dataframe
+    if out_file_suffix:
+        out_file_suffix = (
+            f"_{out_file_suffix}" if not out_file_suffix.startswith("_") else f"{out_file_suffix}"
+        )
+    concatenated_df_out_path = out_dir / f"{dataset_name}{out_file_suffix}{file_extension}"
+
+    if feats_dfs:
+        concatenated_df = pd.concat(feats_dfs, ignore_index=True)
+        table_writer(concatenated_df, concatenated_df_out_path)
+    else:
+        logger.debug(f"No feature tables found for {dataset_name}.")
+
+    if check_saved_dataframe:
+        # check that the concatenated dataframe at least has the same shape
+        # and column names as a proxy for checking if it was saved correctly
+        saved_df = table_reader(concatenated_df_out_path)
+        same_shape = saved_df.shape == concatenated_df.shape
+        same_column_names = all(saved_df.columns == concatenated_df.columns)
+        if not (same_shape and same_column_names):
+            raise ValueError(
+                f"Saved dataframe {concatenated_df_out_path} \
+                    does not match the concatenated dataframe."
+            )
+        logger.info(f"Concatenated dataframe saved to {concatenated_df_out_path}.")
+
+    if remove_initial_files_and_folders:
+        # remove files that match input_filename_contains
+        for fp in feats_filepaths:
+            fp.unlink()
+    dirs_to_remove = list(out_subdir.glob("**/"))
+    # remove the empty directory now that old tables are deleted
+    # (note this must be done in reverse order because a folder with
+    # subfolders does not count as empty and therfore raises an error)
+    for dir_path in dirs_to_remove[::-1]:
+        # NOTE that rmdir only removes empty directories
+        # and will raise an error if it is not empty. If
+        # a directory is not empty then we will skip it
+        if not any(list(scandir(dir_path))):
+            dir_path.rmdir()
+            logger.debug(f"Removed empty directory {dir_path}.")
+        else:
+            logger.debug(f"Directory {dir_path} is not empty, skipping removal.")
+            continue
