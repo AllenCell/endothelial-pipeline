@@ -8,6 +8,7 @@ import pandas as pd
 from numdifftools import Jacobian
 from scipy.stats import gaussian_kde
 
+from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.numerics.binning import circpercentile
 from endo_pipeline.library.visualize.diffae_features.pplane import (
@@ -15,6 +16,7 @@ from endo_pipeline.library.visualize.diffae_features.pplane import (
     get_fpts,
     get_stability_label_from_fpt_type,
 )
+from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_THETA_RESCALED
 from endo_pipeline.settings.flow_field_3d import (
@@ -23,7 +25,14 @@ from endo_pipeline.settings.flow_field_3d import (
     SAMPLER_RANDOM_SEED,
     UPPER_PERCENTILE_FOR_FILTERING_FPTS,
 )
-from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
+from endo_pipeline.settings.flow_field_dataframes import (
+    DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+    STABILITY_COLUMN_NAME,
+)
+from endo_pipeline.settings.workflow_defaults import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -310,3 +319,47 @@ def get_fixed_points_within_bounds(
             fpts_high_confidence[key] = metadata_dict[key]
 
     return fpts_high_confidence
+
+
+def load_fixed_points_dataframe_for_dataset(
+    dataset_name: str,
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
+    run_name: str = DEFAULT_MODEL_RUN_NAME,
+) -> pd.DataFrame:
+    """
+    Get the fixed points dataframe for a given dataset.
+
+    Parameters
+    ----------
+    dataset_name
+        Name of the dataset to retrieve fixed points for.
+    model_manifest_name
+        Name of the model manifest to use for locating the fixed points dataframe.
+    run_name
+        Name of the model run to use for locating the fixed points dataframe.
+
+    Returns
+    -------
+    :
+        DataFrame containing the fixed points for the specified dataset.
+    """
+
+    base_name = f"{model_manifest_name}_{run_name}_grid"
+    fixed_points_df_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
+    fixed_points_df_manifest = load_dataframe_manifest(fixed_points_df_manifest_name)
+
+    if dataset_name not in fixed_points_df_manifest.locations:
+        logger.warning(
+            "Dataset [ %s ] not found in fixed points dataframe manifest [ %s ]!",
+            dataset_name,
+            fixed_points_df_manifest_name,
+        )
+        return pd.DataFrame()
+
+    # load fixed point dataframe and check that required columns are present
+    fixed_points_df_location = get_dataframe_location_for_dataset(
+        fixed_points_df_manifest, dataset_name
+    )
+    fixed_points_df = load_dataframe(fixed_points_df_location, delay=False)
+
+    return fixed_points_df
