@@ -57,7 +57,7 @@ def main(
         dataset_names = dataset_names[:1]
 
     for dataset_name in dataset_names:
-        out_dir = get_output_path(__file__, dataset_name)
+        out_dir = get_output_path(__file__, dataset_name, crop_pattern)
 
         # load the dynamics features from the grid-based dataframe
         if crop_pattern == "grid":

@@ -1215,7 +1215,7 @@ def plot_time_of_first_passage_histogram(
     save_plot_to_path(
         fig,
         out_dir,
-        f"{crop_pattern}_trajectories_approaching_fp_{fixed_point_id}.png",
+        f"{crop_pattern}_trajectories_approaching_fp_{fixed_point_id}_histogram.png",
         show_and_close=False,
     )
 
@@ -1295,6 +1295,6 @@ def plot_time_of_first_passage_scatterplot(
     save_plot_to_path(
         fig,
         out_dir,
-        f"{crop_pattern}_trajectories_approaching_fp_{fixed_point_id}.png",
+        f"{crop_pattern}_trajectories_approaching_fp_{fixed_point_id}_scatter.png",
         show_and_close=False,
     )
