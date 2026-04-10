@@ -22,13 +22,15 @@ def main(
     from endo_pipeline.library.analyze.integration.track_integration import (
         solve_ddff_from_trajectory_initial_condition_helper,
     )
+    from endo_pipeline.library.analyze.numerics.fixed_points import (
+        load_fixed_points_dataframe_for_dataset,
+    )
     from endo_pipeline.library.analyze.polar_coords import rewrap_polar_angle
     from endo_pipeline.library.analyze.vector_field_estimation import (
         compute_extrapolated_vector_field,
         get_reshaped_vector_field_and_grid,
         get_vector_field_as_dict_from_dataframe,
         load_drift_dataframe_for_dataset,
-        load_fixed_points_dataframe_for_dataset,
     )
     from endo_pipeline.library.visualize.integration.track_integration_viz import (
         plot_trajectory_measured_vs_simulation_over_flow_field_helper,

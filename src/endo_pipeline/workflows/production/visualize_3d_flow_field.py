@@ -105,8 +105,8 @@ def main(
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.vector_field_estimation import (
         compute_extrapolated_vector_field,
-        solve_ode_from_vector_field_dict,
     )
+    from endo_pipeline.library.analyze.vector_field_function import solve_ode_from_vector_field_dict
     from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
         flow_field_viz_main,
         plot_stable_fixed_points_together,
