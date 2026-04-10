@@ -93,17 +93,21 @@ def run_flow_field_and_fixed_points(
     centers: list[np.ndarray],
     column_names: list[str | Column.DiffAEData],
     kernels: list[KramersMoyalKernel],
+    metadata_dict: dict | None = None,
     polar_angle_range: tuple[float, float] = BIN_LIMITS_THETA_RESCALED,
     lower_percentile_for_filtering: float = LOWER_PERCENTILE_FOR_STABLE_FP,
     upper_percentile_for_filtering: float = UPPER_PERCENTILE_FOR_STABLE_FP,
     num_inits_for_root_solver: int = NUM_INIT_SAMPLES,
 ) -> pd.DataFrame:
-    """Run the Kramers-Moyal + root-finding pipeline on pre-computed trajectory lists.
+    """
+    Run the Kramers-Moyal + root-finding pipeline on pre-computed trajectory
+    lists.
 
-    Wrapper function to run the Kramers-Moyal coefficient estimation, vector field extrapolation,
-    and fixed point finding with bounds, on given trajectory and displacement lists. Written
-    as a separate function from the main workflow to allow for use in the bootstrap iterations
-    (for more convenient parallelization).
+    Wrapper function to run the Kramers-Moyal coefficient estimation, vector
+    field extrapolation, and fixed point finding with bounds, on given
+    trajectory and displacement lists. Written as a separate function from the
+    main workflow to allow for use in the bootstrap iterations (for more
+    convenient parallelization).
 
     **Bounds dataframe**
 
@@ -115,7 +119,8 @@ def run_flow_field_and_fixed_points(
     filtering reflects the true data distribution, even when `trajectories` and
     `d_traj_list` are bootstrap-subsampled. This allows for a fair comparison of
     the number and stability of fixed points found in the baseline vs.
-    bootstrap-subsampled conditions, since the same bounds are applied in both cases.
+    bootstrap-subsampled conditions, since the same bounds are applied in both
+    cases.
 
     Parameters
     ----------
@@ -132,10 +137,14 @@ def run_flow_field_and_fixed_points(
     centers
         Bin centre arrays for each dimension.
     column_names
-        Names of the three feature columns, in the same order as the
-        dimensions of the trajectory arrays.
+        Names of the three feature columns, in the same order as the dimensions
+        of the trajectory arrays.
     kernels
         List of ``KramersMoyalKernel`` objects, one per feature dimension.
+    metadata_dict
+        Optional dict of metadata to pass into
+        ``get_fixed_points_within_bounds`` for metadata columns used in
+        filtering fixed points (e.g. to filter by dataset or flow condition).
     polar_angle_range
         Tuple of (min, max) values for the polar angle dimension, used for
         filtering fixed points along the polar angle dimension (if present).
@@ -173,6 +182,7 @@ def run_flow_field_and_fixed_points(
         lower_percentile=lower_percentile_for_filtering,
         upper_percentile=upper_percentile_for_filtering,
         polar_angle_range=polar_angle_range,
+        metadata_dict=metadata_dict,
     )
     return fixed_points_dataframe
 
@@ -238,6 +248,7 @@ def init_bootstrap_worker(
     _worker_state["centers"] = centers
     _worker_state["column_names"] = column_names
     _worker_state["kernels"] = kernels
+    _worker_state["metadata_dict"] = {Column.DATASET: df_steady_state[Column.DATASET].iloc[0]}
 
 
 def run_one_bootstrap_iteration(
@@ -274,6 +285,7 @@ def run_one_bootstrap_iteration(
         centers=_worker_state["centers"],
         column_names=_worker_state["column_names"],
         kernels=_worker_state["kernels"],
+        metadata_dict=_worker_state["metadata_dict"],
     )
 
 
