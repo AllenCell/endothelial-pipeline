@@ -1,3 +1,4 @@
+import logging
 from collections import namedtuple
 from collections.abc import Sequence
 from pathlib import Path
@@ -28,6 +29,8 @@ from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
 from endo_pipeline.settings import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.flow_field_3d import QUIVER_COLORMAP
+
+logger = logging.getLogger(__name__)
 
 
 def set_global_pc_lims(axs: Sequence[plt.Axes], lim: int = 3) -> None:
@@ -1227,6 +1230,13 @@ def plot_time_of_first_passage_scatterplot(
     dataset_name = dataset_config.name
 
     time_of_first_passage_df_sub = time_of_first_passage_df.dropna()
+
+    if time_of_first_passage_df_sub.size < 2:
+        logger.warning(
+            f"Fewer than 2 trajectories reached fixed point {fixed_point_id} "
+            f"for both {crop_pattern} and simulation in dataset {dataset_name}."
+        )
+        return
 
     line_fit = linregress(
         time_of_first_passage_df_sub[

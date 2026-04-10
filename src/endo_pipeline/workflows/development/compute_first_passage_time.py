@@ -82,7 +82,7 @@ def main(
         )
         fixed_points_df = get_fixed_points_df(dataset_name)
 
-        if fixed_points_df.empty():
+        if fixed_points_df.empty:
             logger.warning(f"No fixed points found for dataset {dataset_name}, skipping dataset.")
             continue
 
