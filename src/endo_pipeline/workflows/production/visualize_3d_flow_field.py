@@ -178,6 +178,10 @@ def main(
         # If the production manifests are not found, then in DEMO_MODE will try
         # to load the demo manifests with the "_demo" suffix. Else, if not in
         # DEMO_MODE, will raise the original FileNotFoundError.
+        logger.warning(
+            "Dataframe manifest(s) not found for production run. If you are running in DEMO_MODE, "
+            "the workflow will attempt to load the corresponding demo dataframe manifest(s)."
+        )
         if DEMO_MODE:
             demo_suffix = "_demo"
             drift_dataframe_manifest = load_dataframe_manifest(
