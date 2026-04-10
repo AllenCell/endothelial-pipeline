@@ -21,10 +21,10 @@ logger = logging.getLogger(__name__)
 
 def add_optical_flow_features(
     df: pd.DataFrame,
-    datasets: list[str],
+    datasets: list[str] | None = None,
     optical_flow_manifest_name: str = DEFAULT_OPTICAL_FLOW_MANIFEST_NAME,
-    optical_flow_feature_columns: list[str] | None = None,
-    merge_columns: list[str] | None = None,
+    optical_flow_feature_columns: list[ColumnName.OpticalFlow] | None = None,
+    merge_columns: list[str | ColumnName.DiffAEData] | None = None,
 ) -> pd.DataFrame:
     """
     Load optical-flow features and merge them with an existing dataframe.
@@ -57,6 +57,8 @@ def add_optical_flow_features(
     :
         Concatenated dataframe with optical-flow features merged in.
     """
+    if datasets is None:
+        datasets = df[ColumnName.DATASET].unique().tolist()
 
     merge_columns_ = merge_columns or list(OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS)
     optical_flow_feature_columns_ = optical_flow_feature_columns or list(

@@ -102,7 +102,7 @@ SEGMENTATION_FEATURE_COLUMNS: SegFeatureColumnDict = {
     ],
     "supp": [
         Column.SegData.ALIGNMENT_DEG,
-        Column.SegData.ORIENTATION_DEG,
+        Column.SegData.ORIENTATION,
         Column.SegData.ORIENTATION,
         Column.SegData.ASPECT_RATIO,
         Column.SegData.NEMATIC_ORDER,

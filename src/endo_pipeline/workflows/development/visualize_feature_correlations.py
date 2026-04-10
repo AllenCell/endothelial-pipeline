@@ -15,7 +15,9 @@ def main(
     pc_group: str = "default",
     aggregate_only: bool = True,
     skip_multi_feature_scatterplots: bool = True,
-    plot_migration_coherence_correlations: bool = True,
+    plot_grid_migration_coherence_correlations: bool = False,
+    plot_main_figure_correlations: bool = True,
+    figsize_cluster_heatmap: tuple[float, float] | None = None,
 ) -> None:
     """
     Visualize correlation heatmaps and clustermaps for DiffAE features, PCs, and
@@ -52,6 +54,11 @@ def main(
     plot_migration_coherence_correlations
         If True, includes migration coherence features in the correlation
         analysis and plots.
+    plot_main_figure_correlations
+        If True, includes the main figure features in the correlation analysis
+        and plots.
+    figsize_cluster_heatmap
+        Figure size for the cluster heatmap. If None, uses default size.
     """
 
     import logging
@@ -124,7 +131,31 @@ def main(
         ("PC", [get_label_for_column(col) for col in pc_columns]),
     ]
 
-    if plot_migration_coherence_correlations:
+    label_column_tuples_main_figure = [
+        (
+            "Measured Features",
+            [
+                get_label_for_column(Column.SegData.ORIENTATION),
+                get_label_for_column(Column.SegData.ASPECT_RATIO),
+                get_label_for_column(Column.SegData.NUM_NUCLEI_IN_CROP),
+                get_label_for_column(Column.SegData.AREA_UM_SQ),
+                get_label_for_column(Column.SegData.CELL_FLUOR_MEAN),
+                get_label_for_column(Column.SegData.EDGE_FLUOR_MEAN),
+                get_label_for_column(Column.OpticalFlow.UNIT_VECTOR_MEAN),
+                get_label_for_column(Column.OpticalFlow.SPEED_MEAN),
+            ],
+        ),
+        (
+            "ML-based Features",
+            [
+                get_label_for_column(Column.DiffAEData.POLAR_ANGLE),
+                get_label_for_column(Column.DiffAEData.POLAR_RADIUS),
+                get_label_for_column(Column.DiffAEData.PC3_FLIPPED),
+            ],
+        ),
+    ]
+
+    if plot_grid_migration_coherence_correlations:
         # Get dataframe manifest for filtered crop-based features so we can add
         # the optical flow features for correlation analysis and plotting.
         base_name_grid = f"{model_manifest_name}_{run_name}_grid"
@@ -145,7 +176,6 @@ def main(
         optical_flow_features = [
             Column.OpticalFlow.UNIT_VECTOR_MEAN,
             Column.OpticalFlow.SPEED_MEAN,
-            Column.OpticalFlow.ANGLE_MEAN,
         ]
 
         df_grid.rename(columns=get_label_for_column, inplace=True)
@@ -170,15 +200,20 @@ def main(
 
         out_dir = get_output_path(__file__, dataset_name, model_manifest_name, run_name, "tracked")
 
+        if plot_main_figure_correlations:
+            label_column_tuples = label_column_tuples_main_figure
+
         visualize_correlation_heatmaps(
             dataset_name=dataset_name,
             df_dataset=df_dataset,
             label_column_tuples=label_column_tuples,
             out_dir=out_dir,
             skip_multi_feature_scatterplots=skip_multi_feature_scatterplots,
+            cross_correlation_only=plot_main_figure_correlations,
+            figsize_cluster_heatmap=figsize_cluster_heatmap,
         )
 
-        if plot_migration_coherence_correlations:
+        if plot_grid_migration_coherence_correlations:
             if dataset_name == "aggregate":
                 df_grid_dataset = df_grid
             else:

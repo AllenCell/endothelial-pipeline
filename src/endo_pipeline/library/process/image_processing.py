@@ -9,7 +9,23 @@ from endo_pipeline.settings.image_data import CAMERA_OFFSET
 
 
 def bf_slice(img: BioImage, frame: int) -> np.ndarray:
-    """Get the best Z slice from the brightfield image for a given frame."""
+    """
+    Get the best Z slice from the brightfield image for a given frame.
+
+    Selects the Z plane with the lowest standard deviation (in-focus plane)
+    and shifts 5 planes down to obtain a plane with visible contrast.
+
+    Parameters
+    ----------
+    img
+        The input BioImage object containing the image data.
+    frame
+        The timepoint index to retrieve.
+
+    Returns
+    -------
+        The selected 2D brightfield plane as a NumPy array.
+    """
     bf_stack = img.get_image_dask_data("ZYX", C=1, T=frame)
     stdevs = [plane.std().compute() for plane in bf_stack.squeeze()]
     best_plane = max(0, np.argmin(stdevs) - 5)  # move 5 planes down to have contrast
@@ -18,21 +34,67 @@ def bf_slice(img: BioImage, frame: int) -> np.ndarray:
 
 
 def bf_std_dev(img: BioImage, frame: int) -> np.ndarray:
-    """Calculate the standard deviation of the brightfield image for a given frame."""
+    """
+    Calculate the standard deviation projection of the brightfield image for a given frame.
+
+    Computes the standard deviation across the Z-axis for channel 1 (brightfield).
+
+    Parameters
+    ----------
+    img
+        The input BioImage object containing the image data.
+    frame
+        The timepoint index to retrieve.
+
+    Returns
+    -------
+        The 2D standard deviation projection as a NumPy array.
+    """
     bf_img = img.get_image_dask_data("ZYX", C=1, T=frame, ddof=1)
     bf_std_dev = bf_img.std(axis=0)
     return bf_std_dev.compute()
 
 
 def gfp_max_proj(img: BioImage, frame: int) -> np.ndarray:
-    """Get the maximum projection of the GFP channel for a given frame."""
+    """
+    Get the maximum intensity projection of the GFP channel for a given frame.
+
+    Computes the max projection across the Z-axis for channel 0 (GFP).
+
+    Parameters
+    ----------
+    img
+        The input BioImage object containing the image data.
+    frame
+        The timepoint index to retrieve.
+
+    Returns
+    -------
+        The 2D maximum intensity projection as a NumPy array.
+    """
     gfp = img.get_image_dask_data("ZYX", C=0, T=frame)
     gfp_max_proj = gfp.max(axis=0)
     return gfp_max_proj.compute()
 
 
 def get_single_bf_plane(stack: da.Array, offset: int = -5) -> np.ndarray:
-    """Get a single Z plane from the brightfield stack to visualize."""
+    """
+    Get a single Z plane from the brightfield stack to visualize.
+
+    Identifies the in-focus plane (lowest standard deviation) and applies an
+    offset to select a nearby plane with more visible contrast.
+
+    Parameters
+    ----------
+    stack
+        The brightfield Z-stack as a Dask array.
+    offset
+        Number of planes to shift from the in-focus plane, by default -5.
+
+    Returns
+    -------
+        The selected 2D brightfield plane as a NumPy array.
+    """
     stdevs = [plane.std().compute() for plane in stack.squeeze()]
     focus_plane = np.argmin(stdevs)  # in focus plane has low contrast in BF
     plane_selection = max(0, focus_plane + offset)  # shift from focus plane to get contrast
@@ -41,34 +103,105 @@ def get_single_bf_plane(stack: da.Array, offset: int = -5) -> np.ndarray:
 
 
 def max_proj_405(img: BioImage, frame: int) -> np.ndarray:
-    """Get the maximum projection of the NucViolet channel for a given frame."""
+    """
+    Get the maximum intensity projection of the NucViolet (405 nm) channel for a given frame.
+
+    Computes the max projection across the Z-axis for channel 2 (NucViolet).
+
+    Parameters
+    ----------
+    img
+        The input BioImage object containing the image data.
+    frame
+        The timepoint index to retrieve.
+
+    Returns
+    -------
+        The 2D maximum intensity projection as a NumPy array.
+    """
     channel_405 = img.get_image_dask_data("ZYX", C=2, T=frame)
     channel_405_max_proj = channel_405.max(axis=0)
     return channel_405_max_proj.compute()
 
 
 def max_proj_561(img: BioImage, frame: int) -> np.ndarray:
-    """Get the maximum projection of the SOX17 channel for a given frame."""
+    """
+    Get the maximum intensity projection of the SOX17 (561 nm) channel for a given frame.
+
+    Computes the max projection across the Z-axis for channel 3 (SOX17).
+
+    Parameters
+    ----------
+    img
+        The input BioImage object containing the image data.
+    frame
+        The timepoint index to retrieve.
+
+    Returns
+    -------
+        The 2D maximum intensity projection as a NumPy array.
+    """
     channel_561 = img.get_image_dask_data("ZYX", C=3, T=frame)
     channel_561_max_proj = channel_561.max(axis=0)
     return channel_561_max_proj.compute()
 
 
 def max_proj_640(img: BioImage, frame: int) -> np.ndarray:
-    """Get the maximum projection of the SMAD1 or NR2F2 channel for a given frame."""
+    """
+    Get the maximum intensity projection of the SMAD1 or NR2F2 (640 nm) channel for a given frame.
+
+    Computes the max projection across the Z-axis for channel 4.
+
+    Parameters
+    ----------
+    img
+        The input BioImage object containing the image data.
+    frame
+        The timepoint index to retrieve.
+
+    Returns
+    -------
+        The 2D maximum intensity projection as a NumPy array.
+    """
     channel_640 = img.get_image_dask_data("ZYX", C=4, T=frame)
     channel_640_max_proj = channel_640.max(axis=0)
     return channel_640_max_proj.compute()
 
 
 def max_proj(stack: da.Array, axis: int) -> np.ndarray:
-    """Get the maximum projection of the brightfield stack as a Dask array."""
+    """
+    Compute the maximum intensity projection along the specified axis.
+
+    Parameters
+    ----------
+    stack
+        The input Dask array.
+    axis
+        Axis along which to compute the maximum projection.
+
+    Returns
+    -------
+        The maximum intensity projection as a NumPy array.
+    """
     max_proj = stack.max(axis)  # Max projection along the Z-axis
     return max_proj.compute()
 
 
 def sum_proj(stack: da.Array, axis: int) -> np.ndarray:
-    """Get the sum projection of the brightfield stack as a Dask array."""
+    """
+    Compute the sum projection along the specified axis.
+
+    Parameters
+    ----------
+    stack
+        The input Dask array.
+    axis
+        Axis along which to compute the sum projection.
+
+    Returns
+    -------
+        The sum projection as a NumPy array.
+    """
     sum_proj = stack.sum(axis)  # Sum projection along the Z-axis
     return sum_proj.compute()
 
@@ -81,30 +214,61 @@ def std_dev(
     """
     Compute the standard deviation projection along the specified axis on a Dask array.
 
-    Args:
-        stack: Dask array to project.
-        axis: Axis along which to compute std.
-        unbiased: Whether to use unbiased estimator (ddof=1). Default False.
+    Parameters
+    ----------
+    stack
+        The input Dask array to project.
+    axis
+        Axis along which to compute the standard deviation.
+    unbiased
+        Whether to use the unbiased estimator (ddof=1), by default False.
 
-    Returns:
-        NumPy ndarray with std projection.
+    Returns
+    -------
+        The standard deviation projection as a NumPy array.
     """
     ddof = 1 if unbiased else 0
     std_projection = stack.std(axis=axis, ddof=ddof).compute()
     return std_projection
 
 
+def log_normalize_image(image: np.ndarray) -> np.ndarray:
+    """
+    Apply logarithmic normalization to the input image.
+
+    Applies a logarithmic transformation (log1p) to the pixel intensities,
+    which can help enhance contrast in images with a wide dynamic range.
+
+    Parameters
+    ----------
+    image
+        Input image as a NumPy array.
+
+    Returns
+    -------
+        Logarithmically normalized image.
+    """
+    # Add a small constant to avoid log(0)
+    log_image = np.log1p(image)
+    return log_image
+
+
 def clip_image(arr: np.ndarray, low_pct: float = 0.1, high_pct: float = 99.9) -> np.ndarray:
     """
     Clip the values in a NumPy array to the specified percentiles.
 
-    Args:
-        arr (np.ndarray): Input array to be clipped.
-        low_pct (float): Lower percentile for clipping (default is 0.1).
-        high_pct (float): Upper percentile for clipping (default is 99.9).
+    Parameters
+    ----------
+    arr
+        Input array to be clipped.
+    low_pct
+        Lower percentile for clipping, by default 0.1.
+    high_pct
+        Upper percentile for clipping, by default 99.9.
 
-    Returns:
-        np.ndarray: The clipped array with values constrained between the specified percentiles.
+    Returns
+    -------
+        The clipped array with values constrained between the specified percentiles.
     """
     low_val = np.percentile(arr, low_pct)
     high_val = np.percentile(arr, high_pct)
@@ -113,13 +277,19 @@ def clip_image(arr: np.ndarray, low_pct: float = 0.1, high_pct: float = 99.9) ->
 
 def z_score_normalize_intensity(image: np.ndarray) -> np.ndarray:
     """
-    Normalize intensity including zeros (default MONAI behavior).
+    Normalize image intensity using z-score normalization, including zeros.
 
-    Args:
-        image: Input NumPy array.
+    Follows the default MONAI behavior for intensity normalization. If the
+    standard deviation is zero, returns the mean-subtracted image.
 
-    Returns:
-        Normalized image with zero mean and unit std.
+    Parameters
+    ----------
+    image
+        Input image as a NumPy array.
+
+    Returns
+    -------
+        Normalized image with zero mean and unit standard deviation.
     """
     mean = image.mean()
     std = image.std()
@@ -141,18 +311,29 @@ def scale_intensity_range_percentiles(
     clip: bool = True,
 ) -> np.ndarray:
     """
-    Scale image intensities based on percentile range to a target range [b_min, b_max].
+    Scale image intensities based on percentile range to a target range.
 
-    Args:
-        img (np.ndarray): Input image.
-        lower (float): Lower percentile (e.g., 10).
-        upper (float): Upper percentile (e.g., 98).
-        b_min (float): Output minimum value.
-        b_max (float): Output maximum value.
-        clip (bool): Whether to clip values outside [b_min, b_max].
+    Maps the intensity values between the ``lower`` and ``upper`` percentiles
+    to the output range [``b_min``, ``b_max``].
 
-    Returns:
-        image (np.ndarray): Scaled image.
+    Parameters
+    ----------
+    img
+        Input image.
+    lower
+        Lower percentile for the input range, by default 10.
+    upper
+        Upper percentile for the input range, by default 98.
+    b_min
+        Output minimum value, by default -1.0.
+    b_max
+        Output maximum value, by default 1.0.
+    clip
+        Whether to clip values outside [``b_min``, ``b_max``], by default True.
+
+    Returns
+    -------
+        Scaled image.
     """
     p_low = np.percentile(img, lower)
     p_high = np.percentile(img, upper)
@@ -172,16 +353,15 @@ def get_global_custom_range(
 
     Parameters
     ----------
-    image_list : list[np.ndarray]
+    image_list
         List of images (numpy arrays) to compute the global range.
-    method : str
+    method
         The method to use for calculating the range:
         - 'min-max': Use global min and max values.
         - 'percentile': Use percentiles to determine the range.
 
     Returns
     -------
-    tuple[float, float]
         The global minimum and maximum values for contrast stretching.
     """
     if method == "min-max":
@@ -210,23 +390,22 @@ def contrast_stretching(
 
     Parameters
     ----------
-    image : np.ndarray
+    image
         The input image array.
-    method : str, optional
+    method
         - 'min-max': stretch between min and max
         - 'percentile': stretch between percentiles
-    low_percentile : int, optional
+    low_percentile
         The lower percentile for contrast stretching (default is 1).
-    high_percentile : int, optional
+    high_percentile
         The upper percentile for contrast stretching (default is 99).
-    custom_range : tuple, optional
+    custom_range
         A custom range (low, high) for contrast stretching.
         If provided, overrides the method-specific ranges.
         Useful for applying the same range across multiple images.
 
     Returns
     -------
-    np.ndarray
         The contrast-stretched image as an 8-bit unsigned integer array.
     """
     if custom_range is not None:
@@ -253,14 +432,13 @@ def background_subtract(
 
     Parameters
     ----------
-    img : np.ndarray or dask.array.Array
+    img
         The input image array.
-    camera_offset : int, optional
+    camera_offset
         The camera offset value to subtract from the image, by default 100.
 
     Returns
     -------
-    np.ndarray or dask.array.Array
         The background-subtracted image.
     """
     # Use da.clip for Dask arrays, np.clip for NumPy arrays
@@ -276,17 +454,22 @@ def background_subtract(
 
 def normalize_image(image: np.ndarray, target_max: int = 255) -> np.ndarray:
     """
-    Normalize the image to a specific range (e.g., 0 to 255).
-    8-bit images typically have pixel values in the range of 0 to 255, but this method preserves
-    the original dynamic range of the image while scaling it to the target maximum value instead
-    of clipping the values.
+    Normalize the image to a specific range (e.g., 0 to ``target_max``).
 
-    Args:
-        image (np.ndarray): Input image.
-        target_max (int): The target maximum value for normalization (e.g., 255 for 8-bit).
+    Preserves the original dynamic range of the image while scaling it to the
+    target maximum value instead of clipping. If ``target_max`` is 255 or less,
+    the output is cast to ``uint8``.
 
-    Returns:
-        np.ndarray: Normalized image within the target range.
+    Parameters
+    ----------
+    image
+        Input image.
+    target_max
+        The target maximum value for normalization, by default 255.
+
+    Returns
+    -------
+        Normalized image within the range [0, ``target_max``].
     """
     # Calculate the minimum and maximum pixel values of the original image
     min_val = np.min(image)
@@ -307,18 +490,17 @@ def crop_image(img: np.ndarray, start_x: int, start_y: int, crop_size: int) -> n
 
     Parameters
     ----------
-    img : np.ndarray
+    img
         The input image array with shape (Y, X), (C, Y, X), (T, C, Y, X), or (T, C, Z, Y, X).
-    start_x : int
+    start_x
         The starting pixel coordinate along the X-axis (horizontal) for cropping.
-    start_y : int
+    start_y
         The starting pixel coordinate along the Y-axis (vertical) for cropping.
-    crop_size : int
+    crop_size
         The size of the square crop.
 
     Returns
     -------
-    np.ndarray
         The cropped image region.
     """
     end_x = start_x + crop_size
@@ -336,14 +518,13 @@ def stitch_with_overlap(
 
     Parameters
     ----------
-    arrays : list[da.Array]
+    arrays
         List of tiles to stitch.
-    overlap_ratio : float
+    overlap_ratio
         Fixed overlap ratio between adjacent tiles (default 1%).
 
     Returns
     -------
-    stitched : da.Array
         Stitched array.
     """
     stitched = arrays[0]

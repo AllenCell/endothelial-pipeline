@@ -28,6 +28,9 @@ from endo_pipeline.io import load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
 )
+from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
+    add_optical_flow_features,
+)
 from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     get_dataset_color,
     get_label_for_column,
@@ -293,6 +296,7 @@ def plot_and_save_clustermap(
     filename: str,
     metric: str = "correlation",
     data_type: Literal["correlation", "samples"] = "samples",
+    figsize: tuple[float, float] | None = None,
 ) -> None:
     """
     Plot and save a clustermap from the given DataFrame.
@@ -305,6 +309,8 @@ def plot_and_save_clustermap(
         The folder where the clustermap will be saved.
     filename
         The name of the file to save the clustermap as.
+    figsize
+        The size of the figure.
     metric
         The distance metric to use for clustering. Default is "correlation".
     data_type
@@ -320,6 +326,9 @@ def plot_and_save_clustermap(
     2) If "samples", the DataFrame is assumed to contain raw sample data.
        The clustering will be performed on the raw data.
     """
+    if figsize is None:
+        figsize = (MAX_FIGURE_WIDTH, min(MAX_FIGURE_HEIGHT, 1.5 * df.shape[0]))
+
     annotate = check_if_heatmap_should_be_annotated(df)
     clustering_metric = metric
     if data_type == "correlation":
@@ -350,7 +359,7 @@ def plot_and_save_clustermap(
         center=center,
         vmin=vmin,
         vmax=vmax,
-        figsize=(MAX_FIGURE_WIDTH, min(MAX_FIGURE_HEIGHT, 1.5 * df.shape[0])),
+        figsize=figsize,
         row_cluster=True,
         col_cluster=True,
         row_linkage=row_linkage,
@@ -360,12 +369,11 @@ def plot_and_save_clustermap(
     )
 
     # Version without clustering for reference
-    fig, ax = plt.subplots(
-        figsize=(MAX_FIGURE_WIDTH, min(MAX_FIGURE_HEIGHT, 0.8 * df.shape[0])), dpi=300
-    )
+    fig, ax = plt.subplots(figsize=figsize, dpi=300)
     sns.heatmap(
         df,
         annot=annotate,
+        fmt=".2f",
         cmap="RdBu",
         center=center,
         vmin=vmin,
@@ -393,6 +401,7 @@ def plot_and_save_clustermap(
             axis.get_yticklabels(),
             rotation=0,
         )
+        axis.yaxis.set_label_coords(-0.1, 0.2)
 
     for figure, label in zip([fig, cluster_grid.figure], ["heatmap", "clustermap"], strict=False):
         save_plot_to_path(
@@ -400,7 +409,8 @@ def plot_and_save_clustermap(
             output_path=output_folder,
             figure_name=f"{filename}_{label}",
             dpi=300,
-            file_format=".pdf",
+            file_format=".svg",
+            transparent=True,
         )
 
 
@@ -450,6 +460,14 @@ def get_df_for_feature_correlation_viz(
         # order)
         dynamics_seg_columns = SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"]
         supplementary_columns = SEGMENTATION_FEATURE_COLUMNS["supp"]
+        optical_flow_columns = [
+            Column.OpticalFlow.UNIT_VECTOR_MEAN,
+            Column.OpticalFlow.SPEED_MEAN,
+        ]
+        optical_flow_merge_prereq_columns = [
+            Column.DiffAEData.START_X,
+            Column.DiffAEData.START_Y,
+        ]
         diffae_columns_not_dynamics = [
             col
             for col in Column.DiffAEData
@@ -463,6 +481,8 @@ def get_df_for_feature_correlation_viz(
             *supplementary_columns,
             *diffae_columns_not_dynamics,
             *pc_columns,
+            *optical_flow_columns,
+            *optical_flow_merge_prereq_columns,
         ]
         cols_to_load_overlap = sorted(set(cols_to_load) & set(merged_feats_df_delayed.columns))
         cols_to_load_unique = []
@@ -482,6 +502,13 @@ def get_df_for_feature_correlation_viz(
         # get dynamics dependent features
         merged_feats_df = calculate_derived_data_dynamics_dependent(merged_feats_df)
 
+        merged_feats_df = add_optical_flow_features(
+            merged_feats_df,
+            datasets=[dataset_name],
+            optical_flow_manifest_name="optical_flow_bf_tracked",
+            optical_flow_feature_columns=optical_flow_columns,
+        )
+
         # check that the chosen measurement column names
         # are actually in the DataFrame
         # keep only the columns that will be used
@@ -489,6 +516,7 @@ def get_df_for_feature_correlation_viz(
             *dataset_info_columns,
             *segmentation_feature_columns,
             *pc_columns,
+            *optical_flow_columns,
         ]
         if not all(np.isin(cols_to_keep, merged_feats_df.columns)):
             missing_columns = set(cols_to_keep) - set(merged_feats_df.columns)
@@ -548,6 +576,8 @@ def visualize_correlation_heatmaps(
     label_column_tuples: list[tuple[str, list[str]]],
     out_dir: Path,
     skip_multi_feature_scatterplots: bool = False,
+    cross_correlation_only: bool = False,
+    figsize_cluster_heatmap: tuple[float, float] | None = None,
 ) -> None:
     # Pre-compute full correlation matrix once per dataset
     all_feature_columns: list = []
@@ -577,10 +607,15 @@ def visualize_correlation_heatmaps(
     }
     colors = df_dataset[Column.DATASET].map(dataset_color_mapping).to_list()
 
+    pair_iter = (
+        itertools.combinations(label_column_tuples, 2)
+        if cross_correlation_only
+        else itertools.combinations_with_replacement(label_column_tuples, 2)
+    )
     for (x_axis_label, x_cols), (
         y_axis_label,
         y_cols,
-    ) in itertools.combinations_with_replacement(label_column_tuples, 2):
+    ) in pair_iter:
         logger.debug(
             "Processing correlation between %s and %s for dataset %s",
             x_axis_label,
@@ -610,6 +645,7 @@ def visualize_correlation_heatmaps(
             filename=base_filename,
             metric="cosine",
             data_type="correlation",
+            figsize=figsize_cluster_heatmap,
         )
 
         if skip_multi_feature_scatterplots:
