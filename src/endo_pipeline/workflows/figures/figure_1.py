@@ -73,7 +73,7 @@ def main():
         ),
         FigurePanel(
             letter="B",
-            path=save_dir / "biological_system_examples_20_20_dyn_scale_bar_100um.svg",
+            path=save_dir / "biological_system_examples_scale_bar_100um.svg",
             x_position=0,
             y_position=1.62,
             x_offset=0.1,

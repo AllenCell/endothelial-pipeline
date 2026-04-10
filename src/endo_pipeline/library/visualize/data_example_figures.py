@@ -54,7 +54,6 @@ def create_panel_biological_system_examples(
     """
     image_panel_list = []
     shear_stress_titles = []
-    shear_stress_value = 0
 
     for example in examples:
         dataset_config = load_dataset_config(example.dataset_name)
@@ -126,7 +125,7 @@ def create_panel_biological_system_examples(
     save_plot_to_path(
         fig,
         save_dir,
-        f"biological_system_examples_{shear_stress_value}_20_dyn_scale_bar_{scale_bar_um}um",
+        f"biological_system_examples_scale_bar_{scale_bar_um}um",
         file_format=".svg",
         tight_layout=False,
         pad_inches=0,
