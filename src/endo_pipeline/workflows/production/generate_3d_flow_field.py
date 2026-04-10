@@ -109,10 +109,10 @@ def main(
     )
     from endo_pipeline.settings.flow_field_3d import (
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
-        LOWER_PERCENTILE_FOR_STABLE_FP,
+        LOWER_PERCENTILE_FOR_FILTERING_FPTS,
         NUM_INIT_SAMPLES,
         TIME_STEP_IN_MINUTES,
-        UPPER_PERCENTILE_FOR_STABLE_FP,
+        UPPER_PERCENTILE_FOR_FILTERING_FPTS,
     )
     from endo_pipeline.settings.flow_field_dataframes import (
         DATAFRAME_MANIFEST_PREFIX_DRIFT,
@@ -216,8 +216,8 @@ def main(
             "kernel_bandwidths": [kernel.bandwidth for kernel in kernels],
             "bin_widths": bin_widths,
             "num_init_samples_for_root_solver": NUM_INIT_SAMPLES,
-            "lower_percentile_for_stable_fp": LOWER_PERCENTILE_FOR_STABLE_FP,
-            "upper_percentile_for_stable_fp": UPPER_PERCENTILE_FOR_STABLE_FP,
+            "lower_percentile_for_filtering_fpts": LOWER_PERCENTILE_FOR_FILTERING_FPTS,
+            "upper_percentile_for_filtering_fpts": UPPER_PERCENTILE_FOR_FILTERING_FPTS,
         }
         save_dataframe_manifest(output_dataframe_manifest)
 

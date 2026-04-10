@@ -1,0 +1,312 @@
+"""Methods related to finding and analyzing fixed points of a dynamical system."""
+
+import logging
+from collections.abc import Callable
+
+import numpy as np
+import pandas as pd
+from numdifftools import Jacobian
+from scipy.stats import gaussian_kde
+
+from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
+from endo_pipeline.library.analyze.numerics.binning import circpercentile
+from endo_pipeline.library.visualize.diffae_features.pplane import (
+    get_fpt_type,
+    get_fpts,
+    get_stability_label_from_fpt_type,
+)
+from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_THETA_RESCALED
+from endo_pipeline.settings.flow_field_3d import (
+    LOWER_PERCENTILE_FOR_FILTERING_FPTS,
+    NUM_INIT_SAMPLES,
+    SAMPLER_RANDOM_SEED,
+    UPPER_PERCENTILE_FOR_FILTERING_FPTS,
+)
+from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
+
+logger = logging.getLogger(__name__)
+
+
+def sample_from_density(
+    data: np.ndarray, n_samples: int, random_seed: int = SAMPLER_RANDOM_SEED
+) -> np.ndarray:
+    """Sample points from the density of a given dataset using KDE and rejection sampling.
+
+    Parameters
+    ----------
+    data
+        Input data of shape (N, D).
+    n_samples
+        Number of samples to draw.
+    random_seed
+        Random seed for reproducibility.
+
+    Returns
+    -------
+    :
+        Sampled points of shape (n_samples, D).
+
+    """
+    rng = np.random.default_rng(seed=random_seed)
+    kde = gaussian_kde(data.T)
+    n_dims = data.shape[1]
+    samples: list[np.ndarray] = []
+    # Estimate bounds for rejection sampling
+    mins = data.min(axis=0)
+    maxs = data.max(axis=0)
+    # Estimate maximum density for rejection
+    test_points = rng.uniform(mins, maxs, size=(10000, n_dims))
+    max_density = kde(test_points.T).max()
+    while len(samples) < n_samples:
+        candidate = rng.uniform(mins, maxs)
+        density = kde(candidate)
+        if rng.uniform(0, max_density) < density:
+            samples.append(candidate)
+    return np.array(samples)
+
+
+def _compute_percentile_values(
+    data: pd.DataFrame,
+    column_names: list[str],
+    q: float,
+    polar_angle_range: tuple[float, float] = BIN_LIMITS_THETA_RESCALED,
+) -> dict[str, float]:
+    """Compute the lower and upper percentile bounds for each column in the data.
+
+    Parameters
+    ----------
+    data
+        DataFrame containing the data.
+    column_names
+        List of column names to compute percentiles for.
+    q
+        Percentile to compute (e.g. 2 for the 2nd percentile).
+    polar_angle_range
+        The range of the polar angle variable (e.g. [0, 2pi] or [-pi, pi]) for
+        handling wraparound when computing percentiles for circular variables.
+
+    Returns
+    -------
+    :
+        Dictionary mapping column names to their percentile values.
+
+    """
+    percentile_values: dict[str, float] = {}
+    for column_name in column_names:
+        if column_name == Column.DiffAEData.POLAR_ANGLE:
+            percentile_value = circpercentile(data[column_name], q=q, polar_range=polar_angle_range)
+        else:
+            percentile_value = np.percentile(data[column_name], q=q)
+        percentile_values[column_name] = percentile_value
+    return percentile_values
+
+
+def is_point_within_percentile_bounds(
+    point: np.ndarray | tuple[float, ...],
+    column_names: list[str],
+    lower_percentile_bounds: dict[str, float],
+    upper_percentile_bounds: dict[str, float],
+    polar_angle_range: tuple[float, float] = BIN_LIMITS_THETA_RESCALED,
+):
+    """Check if a point is within a specified percentile range in each variable.
+
+    **Percentile bound specification**
+
+    The inputs lower_percentile_bounds and upper_percentile_bounds should be
+    lists of floats specifying the lower and upper percentiles of the data as
+    computed by, e.g., numpy.percentile or the circpercentile function for
+    circular variables. That is to say, lower_percentile_bounds[i] should be the
+    value of the lower percentile for the data in column column_names[i], not
+    the specified percentile (e.g. 2) itself.
+
+    **Handling circular variables**
+
+    For circular variables (e.g. angles), the function checks if the point is
+    within the bounds accounting for wraparound. For example, if the lower
+    percentile bound is 350 degrees and the upper percentile bound is 10
+    degrees, then a point at 355 degrees would be considered within bounds,
+    while a point at 20 degrees would not be.
+
+    Furthermore, we do not want to return multiple equivalent points that are
+    separated by the wraparound boundary for circular variables. Thus, we also
+    specify the polar angle range (e.g. [0, 360] or [-pi, pi]) to ensure that
+    the point is only considered within bounds if it is within the bounds in the
+    specified polar angle range. For example, if the polar angle range is [0,
+    360], then a point at -5 degrees would not be considered "within bounds"
+    even if the lower percentile bound is 350 and the upper percentile bound is
+    10, degrees.
+
+    Parameters
+    ----------
+    point
+        The point to check.
+    column_names
+        List of column names corresponding to the dimensions of the point and
+        data.
+    lower_percentile_bounds
+        Dictionary mapping column names to pre-computed lower percentile bounds.
+    upper_percentile_bounds
+        Dictionary mapping column names to pre-computed upper percentile bounds.
+    polar_angle_range
+        The range of the polar angle variable (e.g. [0, 2pi] or [-pi, pi]) for
+        handling wraparound when checking if the point is within bounds for
+        circular variables.
+
+    Returns
+    -------
+    :
+        True if point is within the percentile bounds on all axes, else False.
+
+    """
+    if len(point) != len(column_names):
+        raise ValueError(
+            f"Length of point ({len(point)}) does not match number of column names ({len(column_names)})."
+        )
+
+    is_within_bounds = []
+    for point_component, column_name in zip(point, column_names, strict=True):
+        lower_bound = lower_percentile_bounds[column_name]
+        upper_bound = upper_percentile_bounds[column_name]
+        if column_name == Column.DiffAEData.POLAR_ANGLE:
+            # for circular variables, need to account for bounds wrapping around
+            if lower_bound <= upper_bound:
+                is_within_bounds.append(
+                    (lower_bound <= point_component) & (point_component <= upper_bound)
+                )
+            else:
+                # check if point is within bounds accounting for wraparound
+                # and given polar range (e.g. [0, 2pi] or [-pi, pi])
+                is_within_bounds.append(
+                    (polar_angle_range[1] >= point_component >= lower_bound)
+                    | (polar_angle_range[0] <= point_component <= upper_bound)
+                )
+        else:
+            is_within_bounds.append(
+                (lower_bound <= point_component) & (point_component <= upper_bound)
+            )
+    return np.all(is_within_bounds)
+
+
+def get_fixed_points_within_bounds(
+    vector_field_function: Callable[[np.ndarray], np.ndarray],
+    dataframe: pd.DataFrame,
+    column_names: list[str | Column.DiffAEData],
+    num_inits_for_root_solver: int = NUM_INIT_SAMPLES,
+    lower_percentile: float = LOWER_PERCENTILE_FOR_FILTERING_FPTS,
+    upper_percentile: float = UPPER_PERCENTILE_FOR_FILTERING_FPTS,
+    polar_angle_range: tuple[float, float] = BIN_LIMITS_THETA_RESCALED,
+    stability_label_column_name: str = STABILITY_COLUMN_NAME,
+    metadata_dict: dict[str, str | float] | None = None,
+) -> pd.DataFrame:
+    """Get fixed points of a given estimated vector field with high confidence.
+
+    For a single dataset, this workflow:
+
+    1. Finds fixed points of the vector field by finding roots of the input
+       function using multiple initial conditions sampled from the density of
+       the given data.
+    2. Filters the fixed points to only keep those that are within a specified
+       percentile range of the data along each dimension.
+
+    Parameters
+    ----------
+    vector_field_function
+        Callable function that takes in a point in 3D space and outputs a 3D
+        vector at that point.
+    dataframe
+        Dataframe containing the feature data for the dataset, which is used to
+        filter the fixed points to only keep those within a certain percentile
+        range of the data.
+    column_names
+        List of column names corresponding to the features used in the analysis,
+        in the same order as the columns in feature_data.
+    num_inits_for_root_solver
+        Number of initial conditions to use for finding fixed points.
+    lower_percentile
+        Lower percentile for filtering fixed points.
+    upper_percentile
+        Upper percentile for filtering fixed points.
+    polar_angle_range
+        The range of the polar angle variable for handling wraparound when
+        computing percentiles for circular variables.
+    stability_label_column_name
+        Column name to use for fixed point stability classification labels in the
+        output dataframe.
+    metadata_dict
+        Optional dictionary of metadata to include as columns in the output dataframe.
+
+    Returns
+    -------
+    :
+        Dataframe containing of stable fixed points with high confidence (i.e.,
+        points filtered by percentile range).
+
+    """
+    check_required_columns_in_dataframe(dataframe, column_names)
+    feature_data = dataframe[column_names].to_numpy()
+
+    # create Jacobian function for finding stability of fixed points
+    vector_field_jacobian = Jacobian(vector_field_function)
+
+    # sample initial conditions for root solver from data density
+    sampled_inits_for_root_solver = sample_from_density(feature_data, num_inits_for_root_solver)
+
+    # pass into helper function to get fixed points
+    fpts = get_fpts(vector_field_function, sampled_inits_for_root_solver)
+
+    # filter fixed points to only keep ones within a given range of percentiles
+    # of data (e.g., 2 to 98) to get high confidence fixed points that are
+    # within the region of state space supported by the data
+    lower_percentile_bounds = _compute_percentile_values(
+        dataframe, column_names, q=lower_percentile, polar_angle_range=polar_angle_range
+    )
+    logger.debug(
+        "Lower percentile bounds for filtering fixed points: [ %s ]", lower_percentile_bounds
+    )
+    upper_percentile_bounds = _compute_percentile_values(
+        dataframe, column_names, q=upper_percentile, polar_angle_range=polar_angle_range
+    )
+    logger.debug(
+        "Upper percentile bounds for filtering fixed points: [ %s ]", upper_percentile_bounds
+    )
+    fpts_high_confidence_list = []
+    for fpt in fpts:
+        within_percentile = is_point_within_percentile_bounds(
+            fpt, column_names, lower_percentile_bounds, upper_percentile_bounds, polar_angle_range
+        )
+        if within_percentile:
+            # get stability/type of the fixed point
+            fpt_type = get_fpt_type(vector_field_jacobian(fpt))
+            logger.debug("[ %s ] at [ (%.2f, %.2f, %.2f) ]", fpt_type, fpt[0], fpt[1], fpt[2])
+            fpt_stability_label = get_stability_label_from_fpt_type(fpt_type)
+            fpts_high_confidence_list.append(
+                pd.DataFrame(
+                    {
+                        stability_label_column_name: [fpt_stability_label],
+                        column_names[0]: [fpt[0]],
+                        column_names[1]: [fpt[1]],
+                        column_names[2]: [fpt[2]],
+                    }
+                )
+            )
+
+    # check if any fixed points with high confidence were found, and if not, log
+    # a warning and return an empty dataframe with the correct columns
+    if len(fpts_high_confidence_list) == 0:
+        logger.warning(
+            "No fixed points with high confidence found. Consider adjusting percentile"
+            " thresholds or number of initial conditions for root solver."
+        )
+        fpts_high_confidence = pd.DataFrame(columns=[stability_label_column_name, *column_names])
+    # else, concatenate the list of dataframes for each fixed point into a
+    # single dataframe and return it
+    else:
+        fpts_high_confidence = pd.concat(fpts_high_confidence_list, ignore_index=True)
+
+    # add provided metadata columns to the dataframe (e.g. dataset name, shear stress)
+    if metadata_dict is not None:
+        for key in metadata_dict:
+            fpts_high_confidence[key] = metadata_dict[key]
+
+    return fpts_high_confidence
