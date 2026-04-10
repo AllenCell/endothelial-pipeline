@@ -27,15 +27,14 @@ def main():
 
     # Intro schematic
     save_dir = get_output_path("figure_1")
-    fig, ax = create_intro_schematic(figure_size=(MAX_FIGURE_WIDTH, 1.8))
+    fig, _ = create_intro_schematic(figure_size=(MAX_FIGURE_WIDTH, 1.8))
     save_plot_to_path(fig, save_dir, "intro_schematic", file_format=".svg", dpi=900)
 
     # Example images from biological system at low and high shear stress
-    intro_schematic_width = 2.4
     create_panel_biological_system_examples(
         examples=FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES,
         save_dir=save_dir,
-        figure_size=(intro_schematic_width, 3.5),
+        figure_size=(2.4, 3.5),
     )
 
     # Patch featurization example
