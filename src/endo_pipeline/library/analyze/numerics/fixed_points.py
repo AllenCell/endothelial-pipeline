@@ -1,21 +1,18 @@
 """Methods related to finding and analyzing fixed points of a dynamical system."""
 
 import logging
+import re
 from collections.abc import Callable
 
 import numpy as np
 import pandas as pd
 from numdifftools import Jacobian
+from scipy.optimize import fsolve
 from scipy.stats import gaussian_kde
 
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.numerics.binning import circpercentile
-from endo_pipeline.library.visualize.diffae_features.pplane import (
-    get_fpt_type,
-    get_fpts,
-    get_stability_label_from_fpt_type,
-)
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_THETA_RESCALED
@@ -28,6 +25,7 @@ from endo_pipeline.settings.flow_field_3d import (
 from endo_pipeline.settings.flow_field_dataframes import (
     DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
     STABILITY_COLUMN_NAME,
+    StabilityLabel,
 )
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
@@ -195,6 +193,170 @@ def is_point_within_percentile_bounds(
                 (lower_bound <= point_component) & (point_component <= upper_bound)
             )
     return np.all(is_within_bounds)
+
+
+def findroot(func: Callable, init: float | np.ndarray) -> np.ndarray:
+    """
+    Find root of nonlinear equation f(x)=0.
+
+    **Initial guess for root finding**
+
+    The initial guess `init` can be a float, a numpy array, or a tuple,
+    depending on whether the function `func` is scalar or vector-valued. If
+    `func` is a scalar function, then `init` should be a float. If `func` is a
+    vector function, then `init` should be an array or a tuple of the same
+    dimension as the output of `func`.
+
+    **Output of root finding**
+
+    If the root finding converges successfully, this function returns a numpy
+    array containing the root. If the root finding does not converge, it returns
+    a numpy array of the same shape as `init` filled with NaN values.
+
+    Parameters
+    ----------
+    func
+        Function to find root of.
+    init
+        Initial guess for the root solver.
+
+    Returns
+    -------
+    :
+        Numpy array containing the root if converged, or NaN array if not
+        converged.
+
+    """
+    sol, _, convergence, _ = fsolve(func, init, full_output=1, xtol=1e-12)
+    # if converged, return solution
+    if convergence == 1:
+        return np.array(sol)
+    # if not converged, return nan array of same size as init
+    if isinstance(init, float):
+        return np.array([np.nan])
+    else:
+        return np.array([np.nan] * len(init))
+
+
+def get_fpts(my_flow: Callable, inits: list[tuple] | list[np.ndarray]) -> list[np.ndarray]:
+    """
+    Get a list of unique fixed points of the system of ODEs.
+
+    This function works by numerically finding roots of the function my_flow
+    starting from the initial conditions in inits, using the function findroot.
+
+    **Method inputs**
+
+    The input my_flow should be a callable function that takes a state vector as
+    input and returns the flow vector at that point. The input inits should be a
+    list of initial conditions (tuples or numpy arrays) to use as starting
+    points for root finding, where each initial condition is a point in the
+    state space (i.e., a vector of the same dimension as the output of my_flow).
+
+    Parameters
+    ----------
+    my_flow
+        Callable function to find the fixed points of.
+    inits
+        List of initial conditions for root finding.
+
+    Returns
+    -------
+    :
+        List of unique fixed points.
+
+    """
+    fpts = []
+    # find each of the fixed points near the starting
+    # points numerically using the function findroot
+    roots = [findroot(my_flow, ic) for ic in inits]
+    # Only keep unique fixed points and throw
+    # away 'nan' entries (findroot did not converge)
+    for r in roots:
+        # check if the root is not nan
+        if not np.isnan(r).any():
+            fpts.append(r)
+    # get unique elements of list by converting to set of tuples and back to
+    # list of numpy arrays (uniqueness up to 4 decimal places due to numerical
+    # precision)
+    return list(map(np.array, set(map(tuple, np.round(fpts, 4)))))
+
+
+def get_fpt_type(jacobian: np.ndarray) -> str:
+    """
+    Classify the type of a fixed point given the Jacobian matrix at that point.
+
+    The point is classified as follows:
+        - stable: all eigenvalues have negative real part
+            - Eigenvalues are real: classified as stable node
+            - Eigenvalues are complex conjugates: classified as stable spiral
+        - unstable: all eigenvalues have positive real part
+            - Eigenvalues are real: classified as unstable node
+            - Eigenvalues are complex conjugates: classified as unstable spiral
+        - saddle: eigenvalues have real parts of different signs
+        - indeterminate: all eigenvalues have real part close to zero (within
+          numerical precision)
+
+    Parameters
+    ----------
+    jacobian
+        Square matrix representing the Jacobian of the system at the fixed
+        point.
+
+    Returns
+    -------
+    :
+        String describing the type of fixed point, including its stability and
+        whether it is a node or spiral (if applicable).
+
+    """
+    # get eigenvalues of the Jacobian
+    eigvals = np.linalg.eigvals(jacobian)
+
+    # determine stability and type of fixed point
+    if np.isclose(np.real(eigvals).max(), 0) and np.isclose(np.real(eigvals).min(), 0):
+        stability = StabilityLabel.INDETERMINATE
+        fpt_type = f"{stability} stability"
+    elif np.real(eigvals).min() < 0 < np.real(eigvals).max():
+        stability = StabilityLabel.SADDLE
+        fpt_type = f"{stability} point"
+    else:
+        stability = StabilityLabel.STABLE if np.real(eigvals).max() < 0 else StabilityLabel.UNSTABLE
+        if np.imag(eigvals).any():
+            fpt_type = f"{stability} spiral"
+        else:
+            fpt_type = f"{stability} node"
+
+    return fpt_type
+
+
+def get_stability_label_from_fpt_type(fpt_type: str) -> str:
+    """Get the stability label from the fixed point type string.
+
+    Parses the input string to find the first word that matches one of the stability
+    labels defined in the StabilityLabel enum (e.g., "stable", "unstable", "saddle",
+    "indeterminate"). If a match is found, it returns that stability label. If no
+    match is found, it returns "unknown".
+
+    Parameters
+    ----------
+    fpt_type
+        String describing the type of fixed point, e.g., as returned by get_fpt_type.
+
+    Returns
+    -------
+    :
+        String describing just the stability of the fixed point.
+
+    """
+    # use re.match so matching is case-insensitive (re.IGNORECASE) and
+    # anchored to the start of the string; the word boundary (\b) prevents a
+    # label like "stable" from matching a hypothetical "stableish ..." input
+    for stability in StabilityLabel:
+        if re.match(rf"^{re.escape(stability.value)}\b", fpt_type, re.IGNORECASE):
+            return stability.value
+    # if no stability label is found, return "unknown"
+    return "unknown"
 
 
 def get_fixed_points_within_bounds(
