@@ -29,7 +29,10 @@ def main(
         get_drift_values_and_grid_from_drift_df,
         get_fixed_points_df,
     )
-    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
+    from endo_pipeline.library.analyze.dataframe_filtering import (
+        filter_dataframe_by_track_length,
+        filter_dataframe_to_steady_state,
+    )
     from endo_pipeline.library.analyze.integration.track_integration import (
         add_distance_to_fixed_points_columns,
         get_time_of_first_passage,
@@ -41,7 +44,10 @@ def main(
     )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings import ColumnName as Column
-    from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
+    from endo_pipeline.settings.dynamics_workflows import (
+        DYNAMICS_COLUMN_NAMES,
+        LONG_TRACK_THRESHOLD_LENGTH,
+    )
     from endo_pipeline.settings.flow_field_3d import DATASET_COLLECTION_FOR_3D_DYNAMICS
     from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
     from endo_pipeline.settings.workflow_defaults import (
@@ -92,6 +98,16 @@ def main(
             dataframe=trajectories_df, dataset_config=dataset_config
         )
 
+        # add the track durations
+        trajectories_df[Column.TRACK_LENGTH] = trajectories_df.groupby(Column.CROP_INDEX)[
+            Column.TIMEPOINT
+        ].transform(lambda t: t.max() - t.min())
+
+        # filter trajectories to only include long ones
+        trajectories_df = filter_dataframe_by_track_length(
+            dataframe=trajectories_df, minimum_track_length=LONG_TRACK_THRESHOLD_LENGTH
+        )
+
         # load the flow field dictionaries and fixed points
         drift_df = get_drift_df(dataset_name)
         drift_values, grid_points_1d = get_drift_values_and_grid_from_drift_df(
@@ -108,11 +124,6 @@ def main(
         extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
             drift_values, grid_points_1d, method="linear", for_vtk_files=False
         )
-
-        # add the track durations
-        trajectories_df[Column.TRACK_LENGTH] = trajectories_df.groupby(Column.CROP_INDEX)[
-            Column.TIMEPOINT
-        ].transform(lambda t: t.max() - t.min())
 
         # get the initial conditions for the simulation from the dynamics features dataframe
         trajectories_df_t_init = (

@@ -1140,10 +1140,10 @@ def plot_time_of_first_passage_histogram(
     time_of_first_passage_df_sub = time_of_first_passage_df.copy()
     time_of_first_passage_df_sub[
         f"time_of_first_passage_dist_from_fp_{fixed_point_id}_{crop_pattern}"
-    ].replace({np.nan: dataset_config.duration + 1}, inplace=True)
+    ].replace({np.nan: dataset_config.duration + 10}, inplace=True)
     time_of_first_passage_df_sub[
         f"time_of_first_passage_dist_from_fp_{fixed_point_id}_simulated"
-    ].replace({np.nan: dataset_config.duration + 1}, inplace=True)
+    ].replace({np.nan: dataset_config.duration + 10}, inplace=True)
 
     num_traj_approached_fp_meas = (
         time_of_first_passage_df_sub[
@@ -1261,8 +1261,8 @@ def plot_time_of_first_passage_scatterplot(
     )
     trajectories_total = time_of_first_passage_df[Column.CROP_INDEX].nunique()
     traj_details = (
-        f"reached fixed point {fixed_point_id}:"
-        f"\ntracked {trajectories_approached_fp_measured / trajectories_total:.1%}, "
+        f"trajectories reaching fixed point {fixed_point_id}:"
+        f"\n{crop_pattern} {trajectories_approached_fp_measured / trajectories_total:.1%}, "
         f"simulated {trajectories_approached_fp_simulated / trajectories_total:.1%}"
     )
     fig, ax = plt.subplots(figsize=(4, 4))
