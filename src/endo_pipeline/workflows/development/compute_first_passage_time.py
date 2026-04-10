@@ -5,7 +5,11 @@ from typing import Literal
 from endo_pipeline.cli import Datasets
 
 
-def main(datasets: Datasets, n_proc: int = 1, crop_pattern: Literal["grid", "tracked"] = "grid"):
+def main(
+    datasets: Datasets | None = None,
+    n_proc: int = 1,
+    crop_pattern: Literal["grid", "tracked"] = "grid",
+):
 
     from concurrent.futures import ProcessPoolExecutor
 
