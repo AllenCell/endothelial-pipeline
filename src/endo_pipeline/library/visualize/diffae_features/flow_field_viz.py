@@ -657,9 +657,7 @@ def plot_flow_field_slices(
     )
 
     if fig_savedir is not None:
-        save_plot_to_path(
-            fig, fig_savedir, f"flow_field_{dataset_name}_{shear_stress_}"
-        )  # save the figure
+        save_plot_to_path(fig, fig_savedir, f"flow_field_{dataset_name}_{shear_stress_}")
 
     return fig, ax
 
