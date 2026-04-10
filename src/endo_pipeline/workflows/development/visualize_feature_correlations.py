@@ -21,7 +21,7 @@ def main(
     Visualize correlation heatmaps and clustermaps for DiffAE features, PCs, and
     measured quantitites.
 
-    #diffae_features #visualization #pc_interpretation
+    #diffae-features #visualization #pc-interpretation
 
     **Workflow runtime**
 
