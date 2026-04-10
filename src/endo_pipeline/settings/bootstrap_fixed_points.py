@@ -1,6 +1,6 @@
 """Workflow settings for bootstrapping fixed points from 3D flow field analysis."""
 
-NUM_BOOTSTRAP_ITERATIONS: int = 100
+NUM_BOOTSTRAP_ITERATIONS: int = 500
 """Number of bootstrap iterations for fixed point confidence interval estimation
 in 3D flow field analysis."""
 
