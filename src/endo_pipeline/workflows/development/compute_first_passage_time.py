@@ -11,6 +11,7 @@ def main(
     crop_pattern: Literal["grid", "tracked"] = "grid",
 ):
 
+    import logging
     from concurrent.futures import ProcessPoolExecutor
 
     import pandas as pd
@@ -47,6 +48,8 @@ def main(
         DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
     )
 
+    logger = logging.getLogger(__name__)
+
     if crop_pattern == "tracked":
         raise ValueError("Tracked crop pattern is not supported yet.")
 
@@ -78,6 +81,10 @@ def main(
             flow_field_dataframe=drift_df, column_names=DYNAMICS_COLUMN_NAMES
         )
         fixed_points_df = get_fixed_points_df(dataset_name)
+
+        if fixed_points_df.empty():
+            logger.warning(f"No fixed points found for dataset {dataset_name}, skipping dataset.")
+            continue
 
         ## ODE solver: dx/dt = f(x) (drift, first Kramers-Moyal coefficient) ##
         # with initial conditions given by init solve IVP, get back trajectory
