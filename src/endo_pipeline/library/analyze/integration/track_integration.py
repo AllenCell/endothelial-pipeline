@@ -1123,28 +1123,28 @@ def add_distance_to_fixed_points_columns(
     return trajectory_df
 
 
-def get_time_of_first_passing(
+def get_time_of_first_passage(
     trajectory_df: pd.DataFrame, column: str, threshold: float
 ) -> pd.Series:
     """
-    Get the time of first passing for each track in the trajectory dataframe.
+    Get the time of first passage for each track in the trajectory dataframe.
 
     Parameters
     ----------
     trajectory_df : pd.DataFrame
         DataFrame containing the trajectory points.
     column : str
-        Column name in trajectory_df to use for the first passing computation.
+        Column name in trajectory_df to use for the first passage computation.
     threshold : float
-        Threshold value to determine the first passing.
+        Threshold value to determine the first passage.
 
     Returns
     -------
     pd.Series
-        Series containing the time of first passing for each track.
+        Series containing the time of first passage for each track.
     """
-    new_column_name = f"time_of_first_passing_{column}"
-    time_of_first_passing = trajectory_df.groupby(Column.CROP_INDEX).apply(
+    new_column_name = f"time_of_first_passage_{column}"
+    time_of_first_passage = trajectory_df.groupby(Column.CROP_INDEX).apply(
         lambda grp: pd.Series(
             {
                 new_column_name: grp[Column.TIMEPOINT][grp[column] <= threshold].min()
@@ -1153,5 +1153,5 @@ def get_time_of_first_passing(
         ),
         include_groups=False,
     )
-    time_of_first_passing[new_column_name].replace({np.nan: 1e3}, inplace=True)
-    return time_of_first_passing
+    time_of_first_passage[new_column_name].replace({np.nan: 1e3}, inplace=True)
+    return time_of_first_passage

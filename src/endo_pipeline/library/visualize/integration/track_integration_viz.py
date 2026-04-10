@@ -13,6 +13,7 @@ from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+from endo_pipeline.configs.dataset_config import DatasetConfig
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     add_normalized_time,
@@ -1104,3 +1105,79 @@ def plot_trajectory_measured_vs_simulation_over_flow_field(
         show_and_close=False,
     )
     plt.close(fig)
+
+
+def plot_time_of_first_passage(
+    fixed_point_id: int,
+    dataset_config: DatasetConfig,
+    time_of_first_passage_df: pd.DataFrame,
+    out_dir: Path,
+) -> None:
+    """Plot the time of first passage for the given trajectory data.
+
+    Parameters
+    ----------
+    dataset_config
+        Configuration object for the dataset.
+    time_of_first_passage_df
+        DataFrame containing the time of first passage data.
+    columns
+        List of column names to consider for the time of first passage calculation.
+    threshold
+        Threshold value for determining the time of first passage.
+    out_dir
+        Directory to save the resulting plot.
+    """
+    dataset_name = dataset_config.name
+    # time_of_first_passage_df = get_time_of_first_passage_df(trajectory_df, columns, threshold)
+    num_traj_approached_fp_grid = (
+        time_of_first_passage_df[f"time_of_first_passage_dist_from_fp_{fixed_point_id}_grid"]
+        < dataset_config.duration
+    ).sum()
+    num_traj_approached_fp_sim = (
+        time_of_first_passage_df[f"time_of_first_passage_dist_from_fp_{fixed_point_id}_simulated"]
+        < dataset_config.duration
+    ).sum()
+    num_crops = time_of_first_passage_df[Column.CROP_INDEX].nunique()
+
+    fig, ax = plt.subplots()
+    ax.set_title(
+        (
+            f"{dataset_name} trajectories reaching fixed point {fixed_point_id}: "
+            f"\ngrid ({num_traj_approached_fp_grid} / {num_crops}) "
+            f"vs simulated ({num_traj_approached_fp_sim} / {num_crops})"
+        ).title()
+    )
+    sns.histplot(
+        data=time_of_first_passage_df,
+        x=f"time_of_first_passage_dist_from_fp_{fixed_point_id}_grid",
+        binwidth=1,
+        cumulative=True,
+        element="step",
+        fill=False,
+        stat="percent",
+        ax=ax,
+    )
+    sns.histplot(
+        data=time_of_first_passage_df,
+        x=f"time_of_first_passage_dist_from_fp_{fixed_point_id}_simulated",
+        binwidth=1,
+        cumulative=True,
+        element="step",
+        fill=False,
+        stat="percent",
+        ax=ax,
+    )
+    ax.set_xlim(0, dataset_config.duration)
+    ax.axhline(100, ls="--", color="red")
+    ax.set_xlabel(
+        (
+            f"time of first passage through fixed point {fixed_point_id} (relative track start)"
+        ).title()
+    )
+    ax.set_ylabel(
+        (f"cumulative percentage of trajectories reaching fixed point {fixed_point_id}").title()
+    )
+    save_plot_to_path(
+        fig, out_dir, f"trajectories_approaching_fp_{fixed_point_id}.png", show_and_close=False
+    )
