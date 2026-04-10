@@ -170,31 +170,37 @@ def get_callable_vector_field(
 def get_callable_vector_field(
     vector_field_dict: dict, for_solve_ivp: bool = True, method: str = "linear"
 ) -> Callable[[float, np.ndarray], np.ndarray] | Callable[[np.ndarray], np.ndarray]:
-    """Get a callable vector field from a numpy array via linear interpolation.
+    """
+    Get a callable vector field from a numpy array via linear interpolation.
 
-    The input is a dictionary with the vector field values on a mesh grid, and this function
-    creates a callable function that can be used to evaluate the vector field at any point
-    using linear interpolation of the values on the mesh grid.
+    The input is a dictionary with the vector field values on a mesh grid, and
+    this function creates a callable function that can be used to evaluate the
+    vector field at any point using linear interpolation of the values on the
+    mesh grid.
 
     **Method inputs**
 
     The input ``vector_field_dict`` is a dictionary with two keys:
 
-    - "vectors": tuple of 3D arrays (V1,V2,V3) with the vector values in each dimension
-    - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in each dimension
+    - "vectors": tuple of 3D arrays (V1,V2,V3) with the vector values in each
+      dimension
+    - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in
+      each dimension
 
-    The boolean ``for_solve_ivp`` specifies whether to return a callable function
-    formatted for use with ``scipy.integrate.solve_ivp`` (if ``True``) or a general callable
-    function (if ``False``). The difference is that the function for solve_ivp takes in time
-    as the first variable and the point in state space as the second variable, while the general
-    callable is only a function of the point in state space.
+    The boolean ``for_solve_ivp`` specifies whether to return a callable
+    function formatted for use with ``scipy.integrate.solve_ivp`` (if ``True``)
+    or a general callable function (if ``False``). The difference is that the
+    function for solve_ivp takes in time as the first variable and the point in
+    state space as the second variable, while the general callable is only a
+    function of the point in state space.
 
     Parameters
     ----------
     vector_field_dict
         Dictionary with arrays defining a vector field evaluated on a mesh grid.
     for_solve_ivp
-        Return a function formatted for use with scipy.integrate.solve_ivp if True.
+        Return a function formatted for use with scipy.integrate.solve_ivp if
+        True.
     method
         Interpolation method to use ('linear', 'nearest', etc.).
 
@@ -242,25 +248,29 @@ def solve_ddff_ode(
     num_t: int = 1750,
     time_limit: float | None = None,
 ) -> np.ndarray:
-    """Solve an autonomous ODE using ``scipy.integrate.solve_ivp``.
+    """
+    Solve an autonomous ODE using ``scipy.integrate.solve_ivp``.
 
     **Method inputs**
 
     The input ``flow_field_dict`` is a dictionary with two keys:
 
-    - "vectors": tuple of 3D arrays (f1,f2,f3) with the vector values in each dimension
-    - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in each dimension
+    - "vectors": tuple of 3D arrays (f1,f2,f3) with the vector values in each
+      dimension
+    - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in
+      each dimension
 
-    The supplied initial condition ``init`` should be a numpy array of shape (3,).
+    The supplied initial condition ``init`` should be a numpy array of shape
+    (3,).
 
-    The time span ``t_span`` should be a list of two floats specifying the start and end times
-    for the ODE solver. The input ``num_t`` specifies the number of time points to evaluate
-    the solution at between the start and end times.
+    The time span ``t_span`` should be a list of two floats specifying the start
+    and end times for the ODE solver. The input ``num_t`` specifies the number
+    of time points to evaluate the solution at between the start and end times.
 
     **Method output**
 
-    The output is the solution of the ODE with the given initial condition, which is a numpy
-    array of shape (num_t, 3).
+    The output is the solution of the ODE with the given initial condition,
+    which is a numpy array of shape (num_t, 3).
 
     Parameters
     ----------
@@ -273,14 +283,15 @@ def solve_ddff_ode(
     num_t
         Number of time points to evaluate the solution at.
     time_limit
-        Maximum allowed time in seconds for the ODE solver to run. If the elapsed time
-        exceeds this limit, the integration will be stopped. If None, no time limit
-        is enforced.
+        Maximum allowed time in seconds for the ODE solver to run. If the
+        elapsed time exceeds this limit, the integration will be stopped. If
+        None, no time limit is enforced.
 
     Returns
     -------
     :
-        Solution trajectory in 3D state space for the given initial condition and time span.
+        Solution trajectory in 3D state space for the given initial condition
+        and time span.
 
     """
 

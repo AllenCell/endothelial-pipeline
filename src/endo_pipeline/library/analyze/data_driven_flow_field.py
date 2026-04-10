@@ -32,7 +32,8 @@ logger = logging.getLogger(__name__)
 
 
 def interpolate_on_curve(traj: np.ndarray, n_points: int = 5) -> np.ndarray:
-    """Obtain points along a curve equally spaced by arc length.
+    """
+    Obtain points along a curve equally spaced by arc length.
 
     Parameters
     ----------
@@ -186,6 +187,38 @@ def get_drift_estimates_and_fixed_points(
     metadata_dict: dict[str, str | float] | None = None,
     pad_bins_float: float = PAD_BINS_FLOAT,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Get drift estimates and fixed points for data from a given dataset and flow
+    condition.
+
+    Parameters
+    ----------
+    dataframe
+        Input dataframe containing the trajectory data.
+    column_names
+        List of column names corresponding to the features used for computing
+        the drift coefficients.
+    bin_widths
+        List of bin widths for each dimension.
+    kernel
+        Kernel or list of kernels to use for Kramers-Moyal coefficient
+        estimation.
+    time_step
+        Time step for the trajectory data.
+    metadata_dict
+        Optional, dictionary containing metadata to include in the output
+        dataframe (e.g. dataset name, shear stress).
+    pad_bins_float
+        Padding to apply to the bins.
+
+    Returns
+    -------
+    :
+        Dataframe containing the drift vector field estimates and the
+        corresponding grid points.
+
+    :   Dataframe containing the fixed points and their stability.
+    """
     # get bins for flow field estimation based on the trajectories, to be
     # used for kernel-convolution-based estimation of the Kramers-Moyal
     # coefficients. The bins are determined by the specified bin widths and
@@ -239,7 +272,8 @@ def get_drift_df(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
 ) -> pd.DataFrame:
-    """Get the drift dataframe of a data-driven flow field for a given dataset.
+    """
+    Get the drift dataframe of a data-driven flow field for a given dataset.
 
     Parameters
     ----------
@@ -283,19 +317,23 @@ def get_drift_values_and_grid_from_drift_df(
     column_names: list[str | Column.DiffAEData] | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
-    Get the reshaped drift values and the corresponding grid points from a flow field dataframe.
+    Get the reshaped drift values and the corresponding grid points from a flow
+    field dataframe.
 
     Parameters
     ----------
     flow_field_dataframe
-        Dataframe containing the flow field data with columns corresponding to the coordinates and drift values.
+        Dataframe containing the flow field data with columns corresponding to
+        the coordinates and drift values.
     column_names
-        List of column names corresponding to the dynamics features to use for constructing the flow field.
+        List of column names corresponding to the dynamics features to use for
+        constructing the flow field.
 
     Returns
     -------
-    tuple[np.ndarray, np.ndarray]
-        Tuple containing the drift values reshaped to the grid shape and the 1D grid points for each dimension.
+    :
+        Tuple containing the drift values reshaped to the grid shape and the 1D
+        grid points for each dimension.
     """
 
     # restructure the drift dataframe into a flow field dictionary
@@ -317,19 +355,24 @@ def get_drift_values_and_grid_from_drift_df(
 def get_drift_flow_field_as_dict(
     flow_field_dataframe: pd.DataFrame, column_names: list[str | Column.DiffAEData]
 ) -> dict[str, tuple[np.ndarray]]:
-    """Convert a drift flow field dataframe into a dictionary suitable for visualization / analysis.
+    """
+    Convert a drift flow field dataframe into a dictionary suitable for
+    visualization / analysis.
 
     Parameters
     ----------
     flow_field_dataframe
-        Dataframe containing the flow field data with columns corresponding to the coordinates and drift values.
+        Dataframe containing the flow field data with columns corresponding to
+        the coordinates and drift values.
     column_names
-        List of column names corresponding to the dynamics features to use for constructing the flow field.
+        List of column names corresponding to the dynamics features to use for
+        constructing the flow field.
 
     Returns
     -------
-    dict[str, tuple[np.ndarray]]
-        Dictionary containing the flow field vectors and the corresponding grid points.
+    :
+        Dictionary containing the flow field vectors and the corresponding grid
+        points.
 
     """
     drift_values, grid_points_1d = get_drift_values_and_grid_from_drift_df(
@@ -354,7 +397,8 @@ def get_fixed_points_df(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
 ) -> pd.DataFrame:
-    """Get the fixed points dataframe for a given dataset.
+    """
+    Get the fixed points dataframe for a given dataset.
 
     Parameters
     ----------
@@ -367,7 +411,7 @@ def get_fixed_points_df(
 
     Returns
     -------
-    pd.DataFrame
+    :
         DataFrame containing the fixed points for the specified dataset.
     """
 
