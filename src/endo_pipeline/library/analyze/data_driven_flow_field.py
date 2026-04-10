@@ -820,7 +820,7 @@ def get_drift_estimates_and_fixed_points(
         drift_coeffs=drift_coeffs,
         column_names=column_names,
         feature_grid=feature_grid,
-        metadata=metadata_dict,
+        metadata_dict=metadata_dict,
     )
 
     # Extrapolate the drift to get a flow field over the entire 3D space
