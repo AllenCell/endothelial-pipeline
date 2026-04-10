@@ -14,7 +14,10 @@ from scipy.stats import gaussian_kde
 
 from endo_pipeline.io.input import load_dataframe
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
+from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
+from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics.binning import circpercentile
+from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
 from endo_pipeline.library.visualize.diffae_features.pplane import (
     get_fpt_type,
     get_fpts,
@@ -654,6 +657,116 @@ def interpolate_on_curve(traj: np.ndarray, n_points: int = 5) -> np.ndarray:
         interpolated_points[:, i] = np.interp(arc_length_new, arc_length, traj[:, i])
 
     return interpolated_points
+
+
+def compute_drift_vector_field(
+    dataframe: pd.DataFrame,
+    column_names: list[str | Column.DiffAEData],
+    bins: list[np.ndarray],
+    kernel: KramersMoyalKernel | list[KramersMoyalKernel],
+    time_step: float,
+) -> np.ndarray:
+    """
+    Compute the drift coefficient vector field along specified features for a
+    single flow condition.
+
+    **Kernel specification**
+
+    The input ``kernel`` can be a single kernel function that is applied to all
+    dimensions, or a list of kernel functions for each dimension (in which case
+    the product kernel is used).
+
+    In general, the kernel is specified as a ``KramersMoyalKernel`` dataclass,
+    which has attributes for the kernel name, bandwidth, and period (if
+    applicable). If a list of kernels is provided, each kernel in the list
+    should be a ``KramersMoyalKernel`` dataclass corresponding to each
+    dimension.
+
+    Parameters
+    ----------
+    dataframe
+        Dataframe containing the feature data (time series trajectories) for a
+        single flow condition.
+    column_names
+        Feature column names to use for computing the drift coefficients.
+    bins
+        List of arrays specifying the bin edges for each dimension to use for
+        estimating the drift coefficients.
+    kernels
+        Kramers-Moyal kernel or list of Kramers-Moyal kernels in each dimension
+        to use for estimating the drift coefficients.
+
+    Returns
+    -------
+    :
+        Array containing the drift coefficients for each point in the input
+        dataframe.
+
+    """
+
+    # get list of per-crop trajectories, the corresponding
+    # displacement vectors, and time differences
+    traj_list, d_traj_list = get_traj_and_diff(dataframe, column_names)
+
+    # get drift estimates in units hours^-1 for each bin in 3D space
+    # (Kramers-Moyal coefficient estimation)
+    drift_coeffs = get_kramers_moyal_coeffs(
+        traj_list, d_traj_list, bins=bins, dt=time_step, kernel=kernel
+    )[0]
+
+    return drift_coeffs
+
+
+def create_drift_vector_field_df(
+    drift_coeffs: np.ndarray,
+    column_names: list[str | Column.DiffAEData],
+    feature_grid: tuple[np.ndarray],
+    metadata: dict[str, str | float] | None = None,
+) -> pd.DataFrame:
+    """
+    Create dataframe containing the estimated drift vector field for a single
+    flow condition.
+
+    The output dataframe will have columns for the grid points in each of the
+    three dimensions, the corresponding drift coefficients, and additional
+    metadata such as dataset name and shear stress.
+
+    Parameters
+    ----------
+    drift_coeffs
+        Array containing the drift coefficients for each point in the feature
+        grid.
+    column_names
+        List of column names corresponding to the features used for computing
+        the drift coefficients.
+    feature_grid
+        Tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in each
+        dimension corresponding to the drift coefficients.
+    metadata
+        Optional, dictionary containing metadata to include in the output dataframe (e.g.
+        dataset name, shear stress
+    """
+
+    # build dataframe with columns for grid points in each of the three
+    # dimensions and the corresponding drift coefficients
+    drift_column_names: list[str] = [f"{name}_drift" for name in column_names]
+    vector_field_df = pd.DataFrame(columns=[Column.DATASET, *drift_column_names, *column_names])
+
+    # make tuple for indexing the drift coefficients and feature grid
+    index_tuple = tuple(range(len(column_names)))
+    for index, column_name, drift_column_name in zip(
+        index_tuple, column_names, drift_column_names, strict=True
+    ):
+        vector_field_df[column_name] = feature_grid[index].flatten()
+        vector_field_df[drift_column_name] = drift_coeffs[..., index].flatten()
+
+    # add specified metadata columns to the dataframe (e.g. dataset name, shear
+    # stress)
+    if metadata is not None:
+        for key in metadata:
+            vector_field_df[key] = metadata[key]
+
+        return vector_field_df
 
 
 def get_drift_df(

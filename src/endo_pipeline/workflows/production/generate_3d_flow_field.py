@@ -82,7 +82,9 @@ def main(
         upload_file_to_fms,
     )
     from endo_pipeline.library.analyze.data_driven_flow_field import (
+        compute_drift_vector_field,
         compute_extrapolated_vector_field,
+        create_drift_vector_field_df,
         get_callable_vector_field,
         get_fixed_points_within_bounds,
     )
@@ -90,10 +92,8 @@ def main(
         filter_dataframe_by_flow_condition,
         filter_dataframe_to_steady_state,
     )
-    from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins
-    from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
     from endo_pipeline.manifests import (
         DataframeLocation,
         build_dataframe_location_from_path,
@@ -138,7 +138,6 @@ def main(
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
     run_name = DEFAULT_MODEL_RUN_NAME
     column_names: list[ColumnName.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
-    drift_column_names: list[str] = [f"{name}_drift" for name in column_names]
     # columns to keep when loading dataframes
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
@@ -253,10 +252,10 @@ def main(
         fixed_points_dataframe_list = []
         for flow_condition in dataset_config.flow_conditions:
             shear_stress = flow_condition.shear_stress
-
             df_flow = filter_dataframe_by_flow_condition(
                 df_steady_state, dataset_config, flow_condition
             )
+
             # get bins for flow field estimation based on the trajectories, to be
             # used for kernel-convolution-based estimation of the Kramers-Moyal
             # coefficients. The bins are determined by the specified bin widths and
@@ -266,53 +265,45 @@ def main(
                 data=df_flow[column_names].to_numpy(),
                 pad=PAD_BINS_FLOAT,
             )
-
-            # get list of per-crop trajectories, the corresponding
-            # displacement vectors, and time differences
-            traj_list, d_traj_list = get_traj_and_diff(df_flow, column_names)
-
-            # get drift estimates in units hours^-1 for each bin in 3D space
-            # (Kramers-Moyal coefficient estimation)
-            drift_coeffs = get_kramers_moyal_coeffs(
-                traj_list, d_traj_list, bins=bins, dt=TIME_STEP_IN_MINUTES / 60, kernel=kernels
-            )[0]
             feature_grid = np.meshgrid(*centers, indexing="ij")
 
-            # build dataframe with columns for bin centers in each of the three
-            # dimensions and the corresponding drift coefficients
-            vector_field_df = pd.DataFrame(
-                columns=[ColumnName.DATASET, *drift_column_names, *column_names]
+            # estimate the drift coefficients at each bin/grid point in 3D space
+            # using a kernel-convolution-based method for estimating
+            # Kramers-Moyal coefficients from time series data.
+            drift_coeffs = compute_drift_vector_field(
+                df_flow,
+                column_names,
+                bins=bins,
+                kernel=kernels,
+                time_step=TIME_STEP_IN_MINUTES / 60,
             )
-            for index, column_name, drift_column_name in zip(
-                (0, 1, 2), column_names, drift_column_names, strict=True
-            ):
-                vector_field_df[column_name] = feature_grid[index].flatten()
-                vector_field_df[drift_column_name] = drift_coeffs[..., index].flatten()
 
-            # add columns for dataset name and shear stress (as a descriptor of
-            # the flow condition) to the dataframe for this dataset, to be used
-            # for filtering and grouping in downstream analyses and
-            # visualizations
-            vector_field_df[ColumnName.DATASET] = dataset_name
-            vector_field_df[ColumnName.SHEAR_STRESS] = shear_stress
+            # Compile estimated drift coefficients and corresponding grid points
+            # into a dataframe for this dataset, to be saved and tracked.
+            metadata_dict = {
+                ColumnName.DATASET.value: dataset_name,
+                ColumnName.SHEAR_STRESS.value: shear_stress,
+            }
+            vector_field_df = create_drift_vector_field_df(
+                drift_coeffs=drift_coeffs,
+                column_names=column_names,
+                feature_grid=feature_grid,
+                metadata=metadata_dict,
+            )
 
-            # add dataframe with drift coefficients and grid points for this dataset to
-            # list of such dataframes for all datasets, to be concatenated outside
-            # of flow condition loop
+            # Append to list to be concatenated outside of flow condition loop
             vector_field_dataframe_list.append(vector_field_df)
 
-            # extrapolate the drift to get a flow field over the entire 3D space
-            # as specified by the input bins and centers
+            # Extrapolate the drift to get a flow field over the entire 3D space
+            # as specified by the input bins and centers, and use it to get a
+            # callable function for the flow field that can be used for root
+            # finding to identify fixed points.
             extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
                 drift_coeffs, centers, method="linear", for_vtk_files=False
             )
-
-            # get callable drift function to be used for root finding to identify
-            # fixed points
             drift_function = get_callable_vector_field(
                 extrapolated_flow_field_dict_reg, for_solve_ivp=False, method="linear"
             )
-
             fixed_points_for_flow_condition = get_fixed_points_within_bounds(
                 vector_field_function=drift_function,
                 dataframe=df_flow,
@@ -330,7 +321,6 @@ def main(
             # with concatenation and saving an empty dataframe)
             if fixed_points_for_flow_condition.empty:
                 continue
-
             fixed_points_dataframe_list.append(fixed_points_for_flow_condition)
 
         vector_field_for_dataset = pd.concat(vector_field_dataframe_list, ignore_index=True)
