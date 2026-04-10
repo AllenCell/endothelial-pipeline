@@ -20,7 +20,7 @@ class ExampleImage(NamedTuple):
     crop_y_start: int  # res level 1
 
 
-FIGURE_1_PANEL_B_EXAMPLE_IMAGES: list[ExampleImage] = [
+FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES: list[ExampleImage] = [
     ExampleImage(
         dataset_name="20250402_20X",  # update this example to be 20250402
         description="low_flow",
@@ -39,7 +39,7 @@ FIGURE_1_PANEL_B_EXAMPLE_IMAGES: list[ExampleImage] = [
     ),
 ]
 
-FIGURE_1_PANEL_C_EXAMPLE_IMAGE: ExampleImage = ExampleImage(
+FIGURE_1_PATCH_FT_EXAMPLE_IMAGE: ExampleImage = ExampleImage(
     dataset_name="20250409_20X",
     description="example crop for showing segmentation and feature extraction",
     position=2,

@@ -6,14 +6,14 @@ def main():
 
     from endo_pipeline.io.output import get_output_path, save_plot_to_path
     from endo_pipeline.library.visualize.data_example_figures import (
-        create_panel_b_biological_system_examples,
-        create_panel_c_patch_featurization,
+        create_panel_biological_system_examples,
+        create_panel_patch_featurization,
     )
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
     from endo_pipeline.library.visualize.intro_schematic import create_intro_schematic
     from endo_pipeline.settings.examples import (
-        FIGURE_1_PANEL_B_EXAMPLE_IMAGES,
-        FIGURE_1_PANEL_C_EXAMPLE_IMAGE,
+        FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES,
+        FIGURE_1_PATCH_FT_EXAMPLE_IMAGE,
     )
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
     from endo_pipeline.workflows.development.visualize_feature_correlations import (
@@ -25,31 +25,31 @@ def main():
 
     plt.style.use("endo_pipeline.figure")
 
-    # Panel A: Intro schematic
+    # Intro schematic
     save_dir = get_output_path("figure_1")
     fig, ax = create_intro_schematic(figure_size=(MAX_FIGURE_WIDTH, 2))
     save_plot_to_path(fig, save_dir, "intro_schematic", file_format=".svg", dpi=900)
 
-    # Panel B: Example images from biological system at low and high shear stress
-    create_panel_b_biological_system_examples(
-        examples=FIGURE_1_PANEL_B_EXAMPLE_IMAGES,
+    # Example images from biological system at low and high shear stress
+    create_panel_biological_system_examples(
+        examples=FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES,
         save_dir=save_dir,
         figure_size=(2.75, 4),
     )
 
-    # Panel C: Patch featurization example
-    create_panel_c_patch_featurization(
-        example=FIGURE_1_PANEL_C_EXAMPLE_IMAGE,
+    # Patch featurization example
+    create_panel_patch_featurization(
+        example=FIGURE_1_PATCH_FT_EXAMPLE_IMAGE,
         save_dir=save_dir,
         figure_size=(2, 1.5),
     )
 
-    # Panel D: Correlation heatmaps of ai learned and measured features
+    # Correlation heatmaps of ai learned and measured features
     visualize_feature_correlations(
         figsize_cluster_heatmap=(MAX_FIGURE_WIDTH - 2.8, 3),
     )
 
-    # Panel E: Latent walk visualization
+    # Latent walk visualization
     visualize_latent_walk()
 
     # Build figure from panels

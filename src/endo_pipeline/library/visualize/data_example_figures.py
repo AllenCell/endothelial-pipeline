@@ -32,7 +32,7 @@ from endo_pipeline.settings.workflow_defaults import (
 )
 
 
-def create_panel_b_biological_system_examples(
+def create_panel_biological_system_examples(
     examples: list[ExampleImage],
     save_dir: Path,
     crop_size: int = 1000,
@@ -122,7 +122,7 @@ def create_panel_b_biological_system_examples(
     )
 
 
-def create_panel_c_patch_featurization(
+def create_panel_patch_featurization(
     example: ExampleImage,
     save_dir: Path,
     track_id: int = 3300,
