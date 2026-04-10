@@ -518,19 +518,21 @@ def aggregate_bootstrapping_results(
                 ]
             )
             for dim_idx, col in enumerate(column_names):
-                dataframe_row[f"{col}_cluster_mean"] = cluster_mean[dim_idx]
+                dataframe_row[f"{col}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"] = cluster_mean[
+                    dim_idx
+                ]
 
             if num_hits >= 2:
                 for dim_idx, col in enumerate(column_names):
                     if dim_idx == polar_dim_idx and polar_angle_period is not None:
-                        dataframe_row[f"{col}_ci_lower"] = float(
+                        dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_LOWER}"] = float(
                             circpercentile(
                                 matched_coords_array[:, dim_idx],
                                 bootstrap_ci_lower_percentile,
                                 polar_range=(0, polar_angle_period),
                             )
                         )
-                        dataframe_row[f"{col}_ci_upper"] = float(
+                        dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_UPPER}"] = float(
                             circpercentile(
                                 matched_coords_array[:, dim_idx],
                                 bootstrap_ci_upper_percentile,
@@ -538,30 +540,29 @@ def aggregate_bootstrapping_results(
                             )
                         )
                     else:
-                        dataframe_row[f"{col}_ci_lower"] = float(
+                        dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_LOWER}"] = float(
                             np.percentile(
                                 matched_coords_array[:, dim_idx], bootstrap_ci_lower_percentile
                             )
                         )
-                        dataframe_row[f"{col}_ci_upper"] = float(
+                        dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_UPPER}"] = float(
                             np.percentile(
                                 matched_coords_array[:, dim_idx], bootstrap_ci_upper_percentile
                             )
                         )
             else:
                 for col in column_names:
-                    dataframe_row[f"{col}_ci_lower"] = float("nan")
-                    dataframe_row[f"{col}_ci_upper"] = float("nan")
+                    dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_LOWER}"] = float("nan")
+                    dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_UPPER}"] = float("nan")
         else:
             for col in column_names:
-                dataframe_row[f"{col}_cluster_mean"] = float("nan")
-                dataframe_row[f"{col}_ci_lower"] = float("nan")
-                dataframe_row[f"{col}_ci_upper"] = float("nan")
+                dataframe_row[f"{col}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"] = float("nan")
+                dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_LOWER}"] = float("nan")
+                dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_UPPER}"] = float("nan")
 
         # add rate of detection across bootstrap iterations for this baseline fixed point
         # as weel as the total number of bootstrap iterations (for reference)
-        dataframe_row["bootstrap_detection_rate"] = float(num_hits) / n_bootstrap
-        dataframe_row["n_bootstrap_samples"] = n_bootstrap
+        dataframe_row[Column.BootstrapAnalysis.DETECTION_RATE] = float(num_hits) / n_bootstrap
         output_dataframe_rows.append(dataframe_row)
 
     return pd.DataFrame(output_dataframe_rows)
