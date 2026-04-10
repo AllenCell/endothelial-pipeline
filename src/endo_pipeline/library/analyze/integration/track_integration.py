@@ -9,9 +9,9 @@ from seaborn import color_palette
 
 from endo_pipeline.io import get_output_path, load_dataframe
 from endo_pipeline.library.analyze.data_driven_flow_field import (
-    get_drift_df,
-    get_drift_flow_field_as_dict,
-    get_fixed_points_df,
+    get_vector_field_as_dict_from_dataframe,
+    load_drift_dataframe_for_dataset,
+    load_fixed_points_dataframe_for_dataset,
     solve_ddff_ode,
 )
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
@@ -657,17 +657,17 @@ def get_flow_field_and_fixed_points(
 
     logger.info("Getting flow fields and fixed points for grid-based crops...")
 
-    fixed_points_df = get_fixed_points_df(
+    fixed_points_df = load_fixed_points_dataframe_for_dataset(
         dataset_name=dataset_name, model_manifest_name=model_manifest_name, run_name=run_name
     )
 
-    drift_df = get_drift_df(
+    drift_df = load_drift_dataframe_for_dataset(
         dataset_name=dataset_name,
         model_manifest_name=model_manifest_name,
         run_name=run_name,
     )
 
-    flow_field_dict = get_drift_flow_field_as_dict(drift_df, column_names)
+    flow_field_dict = get_vector_field_as_dict_from_dataframe(drift_df, column_names)
 
     return flow_field_dict, fixed_points_df
 

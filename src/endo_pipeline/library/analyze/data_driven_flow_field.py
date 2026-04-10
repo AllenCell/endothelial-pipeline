@@ -230,7 +230,7 @@ def get_drift_estimates_and_fixed_points(
     return vector_field_df, fixed_points_dataframe
 
 
-def get_drift_df(
+def load_drift_dataframe_for_dataset(
     dataset_name: str,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
@@ -275,7 +275,7 @@ def get_drift_df(
     return drift_df
 
 
-def get_drift_values_and_grid_from_drift_df(
+def get_reshaped_vector_field_and_grid(
     flow_field_dataframe: pd.DataFrame,
     column_names: list[str | Column.DiffAEData] | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -315,7 +315,7 @@ def get_drift_values_and_grid_from_drift_df(
     return drift_values, grid_points_1d
 
 
-def get_drift_flow_field_as_dict(
+def get_vector_field_as_dict_from_dataframe(
     flow_field_dataframe: pd.DataFrame, column_names: list[str | Column.DiffAEData]
 ) -> dict[str, tuple[np.ndarray]]:
     """
@@ -338,7 +338,7 @@ def get_drift_flow_field_as_dict(
         points.
 
     """
-    drift_values, grid_points_1d = get_drift_values_and_grid_from_drift_df(
+    drift_values, grid_points_1d = get_reshaped_vector_field_and_grid(
         flow_field_dataframe, column_names
     )
 
@@ -355,7 +355,7 @@ def get_drift_flow_field_as_dict(
     return flow_field_dict
 
 
-def get_fixed_points_df(
+def load_fixed_points_dataframe_for_dataset(
     dataset_name: str,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
