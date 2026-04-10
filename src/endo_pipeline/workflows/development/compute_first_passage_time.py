@@ -61,9 +61,13 @@ def main(
 
     if DEMO_MODE:
         dataset_names = dataset_names[:1]
+        logger.info(f"Running in demo mode, processing only the first dataset: {dataset_names}")
 
     for dataset_name in dataset_names:
-        out_dir = get_output_path(__file__, dataset_name, crop_pattern)
+        if DEMO_MODE:
+            out_dir = get_output_path(__file__, "demo", dataset_name, crop_pattern)
+        else:
+            out_dir = get_output_path(__file__, dataset_name, crop_pattern)
 
         # load the dynamics features from the grid-based dataframe
         if crop_pattern == "grid":
