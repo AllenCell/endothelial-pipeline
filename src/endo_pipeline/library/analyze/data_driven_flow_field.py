@@ -776,7 +776,7 @@ def create_drift_vector_field_df(
         for key in metadata_dict:
             vector_field_df[key] = metadata_dict[key]
 
-        return vector_field_df
+    return vector_field_df
 
 
 def get_drift_estimates_and_fixed_points(
