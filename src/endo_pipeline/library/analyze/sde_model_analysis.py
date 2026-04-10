@@ -22,7 +22,7 @@ from endo_pipeline.library.analyze.numerics.sde_model_eval import (
     mesh_grid_function,
     vector_field_component,
 )
-from endo_pipeline.library.visualize.diffae_features import dynamics_viz, pplane
+from endo_pipeline.library.visualize.diffae_features import dynamics_viz, fixed_points
 from endo_pipeline.settings import DIFFAE_PC_COLUMN_NAMES
 
 logger = logging.getLogger(__name__)
@@ -203,7 +203,7 @@ def model_data_comparison_one_dataset(
     f1 = vector_field_component(drift, 0)
     f2 = vector_field_component(drift, 1)
 
-    fig1, ax1 = pplane.phase_portrait(
+    fig1, ax1 = fixed_points.phase_portrait(
         lambda x1, x2: f1([x1, x2], shear),
         lambda x1, x2: f2([x1, x2], shear),
         pplane_xvec,
@@ -294,8 +294,8 @@ def get_fixed_points_by_shear(
             for j in range(len(x2_coarse))
         ]
         # get fixed points and classify them
-        fpts = pplane.get_fpts(my_flow, init_coarse)
-        fpt_stabilities, fpts_, _ = pplane.classify_fps(my_flow, fpts, [x1, x2], unique=False)
+        fpts = fixed_points.get_fpts(my_flow, init_coarse)
+        fpt_stabilities, fpts_, _ = fixed_points.classify_fps(my_flow, fpts, [x1, x2], unique=False)
 
         # store fixed points and their types in dictionary
         fpt_dict: dict[str, Any] = {}

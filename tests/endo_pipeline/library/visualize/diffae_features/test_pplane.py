@@ -1,6 +1,8 @@
 import pytest
 
-from endo_pipeline.library.visualize.diffae_features.pplane import get_stability_label_from_fpt_type
+from endo_pipeline.library.visualize.diffae_features.fixed_points import (
+    get_stability_label_from_fpt_type,
+)
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 
 # test "easy cases" where the input string exactly matches expected patterns
