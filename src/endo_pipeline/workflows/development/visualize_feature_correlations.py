@@ -146,7 +146,7 @@ def main(
             ],
         ),
         (
-            "AI-based Features",
+            "ML-based Features",
             [
                 get_label_for_column(Column.DiffAEData.POLAR_ANGLE),
                 get_label_for_column(Column.DiffAEData.POLAR_RADIUS),

@@ -227,7 +227,7 @@ def create_panel_patch_featurization(
     # Arrows with labels to the right of each image
     # Two arrows from image 0 (BF std dev)
     for y_frac, label_text in [
-        (0.8, "BF patch-based\nAI-learned features"),
+        (0.8, "BF patch-based\nML-learned features"),
         (0.2, "BF patch-based\nmeasured dynamic features"),
     ]:
         axes[0].annotate(
