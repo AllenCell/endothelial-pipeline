@@ -31,43 +31,6 @@ from endo_pipeline.settings.workflow_defaults import (
 logger = logging.getLogger(__name__)
 
 
-def interpolate_on_curve(traj: np.ndarray, n_points: int = 5) -> np.ndarray:
-    """
-    Obtain points along a curve equally spaced by arc length.
-
-    Parameters
-    ----------
-    traj
-        Curve in n-dimensional space, shape (num_t, num_dimensions).
-    n_points
-        Number of equally spaced points to interpolate along the curve.
-
-    Returns
-    -------
-    :
-        Interpolated points along the curve, shape (n_points, num_dimensions).
-
-    """
-    ndim = traj.shape[1]  # number of dimensions
-
-    # compute cumulative distance of
-    # each point from the first point
-    # along the trajectory
-    distances = np.linalg.norm(np.diff(traj, axis=0), axis=1)
-    arc_length = np.cumsum(np.concatenate(([0], distances)))
-
-    # interpolate to by these distances to
-    #  get n_points evenly spaced points
-    arc_length_new = np.linspace(0, arc_length[-1], n_points)
-
-    # initialize array interpolated points
-    interpolated_points = np.zeros((n_points, 3))
-    for i in range(ndim):  # loop over dimensions
-        interpolated_points[:, i] = np.interp(arc_length_new, arc_length, traj[:, i])
-
-    return interpolated_points
-
-
 def compute_drift_vector_field(
     dataframe: pd.DataFrame,
     column_names: list[str | Column.DiffAEData],
