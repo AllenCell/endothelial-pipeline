@@ -20,7 +20,7 @@ def create_intro_schematic(
 ) -> tuple[plt.Figure, plt.Axes]:
     """
     Create the intro schematic showing the conceptual framework:
-    timelapse imaging -> AI featurization -> (r, theta, rho) at t and t+1.
+    timelapse imaging -> ML featurization -> (r, theta, rho) at t and t+1.
 
     Parameters
     ----------
