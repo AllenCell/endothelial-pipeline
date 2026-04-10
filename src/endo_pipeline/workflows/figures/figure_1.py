@@ -89,7 +89,7 @@ def main():
         ),
         FigurePanel(
             letter="D",
-            path=save_dir2 / "correlation_measured_features_vs_ai-based_features_heatmap.svg",
+            path=save_dir2 / "correlation_measured_features_vs_ml-based_features_heatmap.svg",
             x_position=2.8,
             y_position=3.5,
             x_offset=0.1,
