@@ -25,7 +25,7 @@ from endo_pipeline.manifests import (
 )
 from endo_pipeline.settings import ColumnName as Column
 from endo_pipeline.settings.examples import ExampleImage
-from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
@@ -86,12 +86,12 @@ def create_panel_biological_system_examples(
         image_panel_list.extend([gfp_max_proj, bf_plane, log_bf_std_dev])
         shear_stress_titles.append(f"{shear_stress_value} dyn/cm\u00b2")
 
-    image_panel_fig = make_contact_sheet(
+    fig = make_contact_sheet(
         image_panel_list,
         max_rows=len(image_panel_list) // len(examples),
         max_cols=len(examples),
         col_titles=shear_stress_titles,
-        row_titles=["GFP max proj", "BF z-slice", "BF std dev proj"],
+        row_titles=["VE-Cadherin MIP", "BF Z-slice", "BF Std. Dev. Proj."],
         direction="top-down first",
         font_size=FONTSIZE_MEDIUM,
         subplot_kwargs={"frame_on": False},
@@ -99,21 +99,32 @@ def create_panel_biological_system_examples(
         fig_kwargs={"figsize": figure_size, "layout": "constrained"},
     )
 
-    for ax in image_panel_fig.axes:
+    for ax in fig.axes:
         ax.xaxis.labelpad = 3
         ax.yaxis.labelpad = 3
 
-    add_scalebar(
-        image_panel_fig.axes[0],
-        scale_bar_um=scale_bar_um,
-        pixel_size=PIXEL_SIZE_3i_20x,
-        location="lower left",
-        bar_thickness=50,
-        padding=50,
+        add_scalebar(
+            ax,
+            scale_bar_um=scale_bar_um,
+            pixel_size=PIXEL_SIZE_3i_20x,
+            location="lower right",
+            bar_thickness=25,
+            padding=25,
+        )
+
+    fig.axes[0].text(
+        0.96,
+        0.08,
+        f"{scale_bar_um} \u03bcm",
+        color="white",
+        transform=fig.axes[0].transAxes,
+        fontsize=FONTSIZE_SMALL,
+        va="bottom",
+        ha="right",
     )
 
     save_plot_to_path(
-        image_panel_fig,
+        fig,
         save_dir,
         f"biological_system_examples_{shear_stress_value}_20_dyn_scale_bar_{scale_bar_um}um",
         file_format=".svg",
@@ -125,10 +136,10 @@ def create_panel_biological_system_examples(
 def create_panel_patch_featurization(
     example: ExampleImage,
     save_dir: Path,
+    figure_size: tuple[float, float],
     track_id: int = 3300,
     crop_size: int = 256,
-    scale_bar_um: int = 20,
-    figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH / 2, 2),
+    scale_bar_um: int = 10,
 ) -> None:
     """Create Panel C: patch-based featurization example with segmentation overlay.
 
@@ -138,6 +149,8 @@ def create_panel_patch_featurization(
         Example image configuration for the panel.
     save_dir
         Directory to save the output figure.
+    figure_size
+        Size of the output figure in inches (width, height).
     track_id
         Track ID to select from the dataframe.
     crop_size
@@ -205,67 +218,94 @@ def create_panel_patch_featurization(
     seg_image_cropped = crop_image(seg_image, start_x, start_y, crop_size)
     seg_mask = seg_image_cropped == label
 
-    # Plot log_bf_std_dev next to gfp + seg contour
-    fig, axes = plt.subplots(
-        2, 1, figsize=figure_size, gridspec_kw={"hspace": 0.02, "wspace": 0.02}
-    )
-    axes[0].imshow(log_bf_std_dev, cmap="gray")
-    axes[0].axis("off")
-    axes[1].imshow(gfp_max_proj, cmap="gray")
-    axes[1].contour(seg_mask, levels=[0.5], colors="magenta", linewidths=0.5)
-    axes[1].axis("off")
+    # Plot as 1 row, 4 columns: BF image | arrows+text | GFP+seg image | arrow+text
+    from matplotlib.gridspec import GridSpec
 
+    fig = plt.figure(figsize=figure_size)
+    gs = GridSpec(1, 4, width_ratios=[1, 0.8, 1, 1], wspace=0.02)
+
+    # Column 0: BF std dev image
+    ax_bf = fig.add_subplot(gs[0, 0])
+    ax_bf.imshow(log_bf_std_dev, cmap="gray")
+    ax_bf.axis("off")
     add_scalebar(
-        axes[1],
+        ax_bf,
         scale_bar_um=scale_bar_um,
         pixel_size=PIXEL_SIZE_3i_20x,
-        location="lower left",
-        bar_thickness=10,
+        location="lower right",
+        bar_thickness=5,
         padding=10,
     )
+    ax_bf.text(
+        0.96,
+        0.08,
+        f"{scale_bar_um} \u03bcm",
+        color="white",
+        transform=ax_bf.transAxes,
+        fontsize=FONTSIZE_SMALL,
+        va="bottom",
+        ha="right",
+    )
 
-    # Arrows with labels to the right of each image
-    # Two arrows from image 0 (BF std dev)
+    # Column 1: BF annotations (two arrows + text)
+    ax_annot_bf = fig.add_subplot(gs[0, 1])
+    ax_annot_bf.axis("off")
+    ax_annot_bf.set_xlim(0, 1)
+    ax_annot_bf.set_ylim(0, 1)
     for y_frac, label_text in [
-        (0.8, "BF patch-based\nML-learned features"),
-        (0.2, "BF patch-based\nmeasured dynamic features"),
+        (0.75, "Patch-based\nML-learned\nfeatures"),
+        (0.25, "Patch-based\nmeasured\ndynamic\nfeatures"),
     ]:
-        axes[0].annotate(
+        ax_annot_bf.annotate(
             "",
-            xy=(1.45, y_frac),
-            xytext=(1.02, y_frac),
-            xycoords="axes fraction",
+            xy=(0.15, y_frac),
+            xytext=(0.0, y_frac),
             arrowprops={"arrowstyle": "->", "color": "black", "lw": 1},
         )
-        axes[0].text(
-            1.48,
+        ax_annot_bf.text(
+            0.18,
             y_frac,
             label_text,
-            transform=axes[0].transAxes,
-            fontsize=FONTSIZE_MEDIUM,
+            fontsize=FONTSIZE_SMALL,
             va="center",
             ha="left",
         )
 
-    # One magenta arrow from image 1 (GFP + seg)
-    axes[1].annotate(
+    # Column 2: GFP + seg image
+    ax_gfp = fig.add_subplot(gs[0, 2])
+    ax_gfp.imshow(gfp_max_proj, cmap="gray")
+    ax_gfp.contour(seg_mask, levels=[0.5], colors="magenta", linewidths=0.5)
+    ax_gfp.axis("off")
+    add_scalebar(
+        ax_gfp,
+        scale_bar_um=scale_bar_um,
+        pixel_size=PIXEL_SIZE_3i_20x,
+        location="lower right",
+        bar_thickness=5,
+        padding=10,
+    )
+
+    # Column 3: GFP annotation (one magenta arrow + text)
+    ax_annot_gfp = fig.add_subplot(gs[0, 3])
+    ax_annot_gfp.axis("off")
+    ax_annot_gfp.set_xlim(0, 1)
+    ax_annot_gfp.set_ylim(0, 1)
+    ax_annot_gfp.annotate(
         "",
-        xy=(1.45, 0.5),
-        xytext=(1.02, 0.5),
-        xycoords="axes fraction",
+        xy=(0.15, 0.5),
+        xytext=(0.0, 0.5),
         arrowprops={"arrowstyle": "->", "color": "magenta", "lw": 1},
     )
-    axes[1].text(
-        1.48,
+    ax_annot_gfp.text(
+        0.18,
         0.5,
-        "VE-Cadherin\nsegmentation-based\nmeasured features",
-        transform=axes[1].transAxes,
-        fontsize=FONTSIZE_MEDIUM,
+        "VE-Cadherin\nSegmentation\n-based\nmeasured\nfeatures",
+        fontsize=FONTSIZE_SMALL,
         va="center",
         ha="left",
     )
 
-    fig.subplots_adjust(left=0, right=0.5, top=1, bottom=0, wspace=0, hspace=0.02)
+    fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
     save_plot_to_path(
         fig,
         save_dir,

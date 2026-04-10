@@ -401,6 +401,7 @@ def plot_and_save_clustermap(
             axis.get_yticklabels(),
             rotation=0,
         )
+        axis.yaxis.set_label_coords(-0.1, 0.2)
 
     for figure, label in zip([fig, cluster_grid.figure], ["heatmap", "clustermap"], strict=False):
         save_plot_to_path(
@@ -409,6 +410,7 @@ def plot_and_save_clustermap(
             figure_name=f"{filename}_{label}",
             dpi=300,
             file_format=".svg",
+            transparent=True,
         )
 
 
