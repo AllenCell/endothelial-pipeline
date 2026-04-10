@@ -1153,5 +1153,4 @@ def get_time_of_first_passage(
         ),
         include_groups=False,
     )
-    time_of_first_passage[new_column_name].replace({np.nan: 1e3}, inplace=True)
     return time_of_first_passage

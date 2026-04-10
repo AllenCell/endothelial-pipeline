@@ -35,7 +35,8 @@ def main(
         solve_ddff_from_trajectory_initial_condition_helper,
     )
     from endo_pipeline.library.visualize.integration.track_integration_viz import (
-        plot_time_of_first_passage,
+        plot_time_of_first_passage_histogram,
+        plot_time_of_first_passage_scatterplot,
     )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings import ColumnName as Column
@@ -105,10 +106,12 @@ def main(
             ]
         )
 
+        # if running a demo use just the first 10 trajectories
         if DEMO_MODE:
             num_traj = 10
             crop_indices_and_initial_conditions = crop_indices_and_initial_conditions[:num_traj]
 
+        # create a list of arguments to pass to the ODE solver through multiprocessing
         ivp_args_mp: list[dict] = []
         for (crop_i, track_duration, timepoint), init_df in crop_indices_and_initial_conditions:
             ivp_args_mp.append(
@@ -140,20 +143,22 @@ def main(
         merging_columns = [Column.CROP_INDEX, Column.TRACK_LENGTH, Column.TIMEPOINT]
         df_grid_sub = df_grid_sub.merge(traj_sim_df, on=merging_columns, how="outer")
 
+        # add the distances to the fixed points for the measured trajectories
         df_grid_sub = add_distance_to_fixed_points_columns(
             trajectory_df=df_grid_sub,
             fixed_point_df=fixed_points_df,
             trajectory_columns=DYNAMICS_COLUMN_NAMES,
-            column_suffix="grid",
+            column_suffix=crop_pattern,
         )
 
+        # add the distances to the fixed points for the simulated trajectories
         simulated_columns = [f"{col}_simulated" for col in DYNAMICS_COLUMN_NAMES]
         df_grid_sub = add_distance_to_fixed_points_columns(
             trajectory_df=df_grid_sub,
             fixed_point_df=fixed_points_df,
             trajectory_columns=simulated_columns,
             fixed_point_columns=DYNAMICS_COLUMN_NAMES,
-            column_suffix="_simulated",
+            column_suffix="simulated",
         )
 
         for i in fixed_points_df.index:
@@ -161,7 +166,7 @@ def main(
             time_of_first_passage.append(
                 get_time_of_first_passage(
                     trajectory_df=df_grid_sub,
-                    column=f"dist_from_fp_{i}_grid",
+                    column=f"dist_from_fp_{i}_{crop_pattern}",
                     threshold=MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
                 )
             )
@@ -174,9 +179,18 @@ def main(
             )
             time_of_first_passage_df = pd.concat(time_of_first_passage, axis=1).reset_index()
 
-            plot_time_of_first_passage(
+            plot_time_of_first_passage_histogram(
                 fixed_point_id=i,
                 dataset_config=dataset_config,
                 time_of_first_passage_df=time_of_first_passage_df,
                 out_dir=out_dir,
+                crop_pattern=crop_pattern,
+            )
+
+            plot_time_of_first_passage_scatterplot(
+                fixed_point_id=i,
+                dataset_config=dataset_config,
+                time_of_first_passage_df=time_of_first_passage_df,
+                out_dir=out_dir,
+                crop_pattern=crop_pattern,
             )
