@@ -145,11 +145,6 @@ def main(
             )[list(DYNAMICS_COLUMN_NAMES)]
         )
 
-        # if running a demo use just the first 10 trajectories
-        if DEMO_MODE:
-            num_traj = 10
-            crop_indices_and_initial_conditions = crop_indices_and_initial_conditions[:num_traj]
-
         # create a list of arguments to pass to the ODE solver through multiprocessing
         ivp_args_mp: list[dict] = []
         for (crop_i, track_duration, timepoint), init_df in crop_indices_and_initial_conditions:
