@@ -8,5 +8,25 @@ parameters:
   kernel_names: [periodic, gaussian, gaussian]
   kernel_bandwidths: [0.15, 0.15, 0.15]
   bin_widths: [0.05, 0.05, 0.05]
-  num_bootstrap_iterations: 100
-locations: {}
+  num_bootstrap_iterations: 500
+locations:
+  20250319_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-04-10/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20250319_20X_20260410_162915.parquet
+    s3uri: null
+  20250428_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-04-10/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20250428_20X_20260410_164626.parquet
+    s3uri: null
+  20250611_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-04-10/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20250611_20X_20260410_165724.parquet
+    s3uri: null
+  20250618_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-04-10/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20250618_20X_20260410_170842.parquet
+    s3uri: null
+  20250813_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-04-10/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20250813_20X_20260410_172922.parquet
+    s3uri: null
