@@ -91,7 +91,7 @@ def create_intro_schematic(
         color="black",
     )
 
-    # ── 2. Curved arrows: AI-based featurization ─────────────────────
+    # ── 2. Curved arrows: ML-based featurization ─────────────────────
     # Arrow from t frame to (r, theta, rho) at t
     arrow_t = FancyArrowPatch(
         (rect_t_x + box + 0.02 * w, rect_t_y + 0.8 * box),
@@ -106,7 +106,7 @@ def create_intro_schematic(
     ax.text(
         0.23 * w,
         0.5 * h,
-        "AI-based\nfeaturization",
+        "ML-based\nfeaturization",
         fontsize=FONTSIZE_LARGE,
         fontweight="bold",
         color=TEAL,
