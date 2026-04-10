@@ -465,8 +465,8 @@ def get_df_for_feature_correlation_viz(
             Column.OpticalFlow.SPEED_MEAN,
         ]
         optical_flow_merge_prereq_columns = [
-            Column.SegData.START_X_RES_0,
-            Column.SegData.START_Y_RES_0,
+            Column.DiffAEData.START_X,
+            Column.DiffAEData.START_Y,
         ]
         diffae_columns_not_dynamics = [
             col
@@ -501,13 +501,6 @@ def get_df_for_feature_correlation_viz(
 
         # get dynamics dependent features
         merged_feats_df = calculate_derived_data_dynamics_dependent(merged_feats_df)
-
-        merged_feats_df[Column.DiffAEData.START_X] = (
-            merged_feats_df[Column.SegData.START_X_RES_0] // 2
-        )
-        merged_feats_df[Column.DiffAEData.START_Y] = (
-            merged_feats_df[Column.SegData.START_Y_RES_0] // 2
-        )
 
         merged_feats_df = add_optical_flow_features(
             merged_feats_df,
