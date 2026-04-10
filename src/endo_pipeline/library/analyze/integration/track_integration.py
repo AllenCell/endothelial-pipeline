@@ -8,17 +8,17 @@ from matplotlib import pyplot as plt
 from seaborn import color_palette
 
 from endo_pipeline.io import get_output_path, load_dataframe
-from endo_pipeline.library.analyze.data_driven_flow_field import (
-    get_vector_field_as_dict_from_dataframe,
-    load_drift_dataframe_for_dataset,
-    load_fixed_points_dataframe_for_dataset,
-    solve_ddff_ode,
-)
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
 from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
+from endo_pipeline.library.analyze.vector_field_estimation import (
+    get_vector_field_as_dict_from_dataframe,
+    load_drift_dataframe_for_dataset,
+    load_fixed_points_dataframe_for_dataset,
+    solve_ddff_ode,
+)
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import (

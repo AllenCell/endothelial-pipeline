@@ -18,18 +18,18 @@ def main(
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import load_dataframe
     from endo_pipeline.io.output import get_output_path
-    from endo_pipeline.library.analyze.data_driven_flow_field import (
+    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
+    from endo_pipeline.library.analyze.integration.track_integration import (
+        solve_ddff_from_trajectory_initial_condition_helper,
+    )
+    from endo_pipeline.library.analyze.polar_coords import rewrap_polar_angle
+    from endo_pipeline.library.analyze.vector_field_estimation import (
         compute_extrapolated_vector_field,
         get_reshaped_vector_field_and_grid,
         get_vector_field_as_dict_from_dataframe,
         load_drift_dataframe_for_dataset,
         load_fixed_points_dataframe_for_dataset,
     )
-    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
-    from endo_pipeline.library.analyze.integration.track_integration import (
-        solve_ddff_from_trajectory_initial_condition_helper,
-    )
-    from endo_pipeline.library.analyze.polar_coords import rewrap_polar_angle
     from endo_pipeline.library.visualize.integration.track_integration_viz import (
         plot_trajectory_measured_vs_simulation_over_flow_field_helper,
     )

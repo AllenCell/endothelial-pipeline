@@ -81,14 +81,14 @@ def main(
         make_name_unique,
         upload_file_to_fms,
     )
-    from endo_pipeline.library.analyze.data_driven_flow_field import (
-        get_drift_estimates_and_fixed_points,
-    )
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_flow_condition,
         filter_dataframe_to_steady_state,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
+    from endo_pipeline.library.analyze.vector_field_estimation import (
+        get_drift_estimates_and_fixed_points,
+    )
     from endo_pipeline.manifests import (
         DataframeLocation,
         build_dataframe_location_from_path,

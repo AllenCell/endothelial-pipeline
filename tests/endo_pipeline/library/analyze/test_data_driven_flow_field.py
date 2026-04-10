@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from endo_pipeline.library.analyze.data_driven_flow_field import is_point_within_percentile_bounds
+from endo_pipeline.library.analyze.vector_field_estimation import is_point_within_percentile_bounds
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
 from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_THETA_RESCALED

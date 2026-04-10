@@ -92,10 +92,6 @@ def main(
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe
-    from endo_pipeline.library.analyze.data_driven_flow_field import (
-        compute_extrapolated_vector_field,
-        solve_ddff_ode,
-    )
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_flow_condition,
         filter_dataframe_to_steady_state,
@@ -107,6 +103,10 @@ def main(
         get_kernel_density_estimate_from_trajectories,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
+    from endo_pipeline.library.analyze.vector_field_estimation import (
+        compute_extrapolated_vector_field,
+        solve_ddff_ode,
+    )
     from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
         flow_field_viz_main,
         plot_stable_fixed_points_together,
