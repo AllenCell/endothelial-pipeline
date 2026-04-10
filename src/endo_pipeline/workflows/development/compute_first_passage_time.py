@@ -46,12 +46,10 @@ def main(
     from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
+        DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
     )
 
     logger = logging.getLogger(__name__)
-
-    if crop_pattern == "tracked":
-        raise ValueError("Tracked crop pattern is not supported yet.")
 
     dataset_names = datasets or get_datasets_in_collection(DATASET_COLLECTION_FOR_3D_DYNAMICS)
 
@@ -62,18 +60,37 @@ def main(
         out_dir = get_output_path(__file__, dataset_name)
 
         # load the dynamics features from the grid-based dataframe
-        dynamics_manifest_grid = load_dataframe_manifest(
-            DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED
-        )
-        dynamics_loc_grid = get_dataframe_location_for_dataset(dynamics_manifest_grid, dataset_name)
-        df_grid = load_dataframe(dynamics_loc_grid)
+        if crop_pattern == "grid":
+            dynamics_manifest = load_dataframe_manifest(
+                DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED
+            )
+        elif crop_pattern == "tracked":
+            dynamics_manifest = load_dataframe_manifest(
+                DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED
+            )
+        else:
+            raise ValueError(f"Unsupported crop pattern: {crop_pattern}")
+
+        dynamics_loc = get_dataframe_location_for_dataset(dynamics_manifest, dataset_name)
+        trajectories_df_delayed = load_dataframe(dynamics_loc, delay=True)
+        columns_to_compute = [
+            Column.DATASET,
+            Column.POSITION,
+            Column.TIMEPOINT,
+            Column.CROP_INDEX,
+            *DYNAMICS_COLUMN_NAMES,
+        ]
+        trajectories_df = trajectories_df_delayed[columns_to_compute].compute().reset_index()
+
         # the loaded grid-based dynamics dataframe is disordered by default so
         # sort the grid-based dynamics dataframe by crop index and timepoint
-        df_grid = df_grid.sort_values(by=[Column.CROP_INDEX, Column.TIMEPOINT])
+        trajectories_df = trajectories_df.sort_values(by=[Column.CROP_INDEX, Column.TIMEPOINT])
 
         # filter the grid-based dynamics dataframe to only include timepoints from steady state
         dataset_config = load_dataset_config(dataset_name)
-        df_grid = filter_dataframe_to_steady_state(dataframe=df_grid, dataset_config=dataset_config)
+        trajectories_df = filter_dataframe_to_steady_state(
+            dataframe=trajectories_df, dataset_config=dataset_config
+        )
 
         # load the flow field dictionaries and fixed points
         drift_df = get_drift_df(dataset_name)
@@ -93,13 +110,13 @@ def main(
         )
 
         # add the track durations
-        df_grid[Column.TRACK_LENGTH] = df_grid.groupby(Column.CROP_INDEX)[
+        trajectories_df[Column.TRACK_LENGTH] = trajectories_df.groupby(Column.CROP_INDEX)[
             Column.TIMEPOINT
         ].transform(lambda t: t.max() - t.min())
 
         # get the initial conditions for the simulation from the dynamics features dataframe
-        df_grid_t_init = (
-            df_grid.groupby(Column.POSITION, as_index=False)
+        trajectories_df_t_init = (
+            trajectories_df.groupby(Column.POSITION, as_index=False)
             .apply(
                 lambda grp: (df := pd.DataFrame(grp))[
                     df[Column.TIMEPOINT] == df[Column.TIMEPOINT].min()
@@ -108,9 +125,9 @@ def main(
             .reset_index(drop=True)
         )
         crop_indices_and_initial_conditions = list(
-            df_grid_t_init.groupby([Column.CROP_INDEX, Column.TRACK_LENGTH, Column.TIMEPOINT])[
-                list(DYNAMICS_COLUMN_NAMES)
-            ]
+            trajectories_df_t_init.groupby(
+                [Column.CROP_INDEX, Column.TRACK_LENGTH, Column.TIMEPOINT]
+            )[list(DYNAMICS_COLUMN_NAMES)]
         )
 
         # if running a demo use just the first 10 trajectories
@@ -144,15 +161,17 @@ def main(
 
         # combine the simulation results with the measured trajectories in a single dataframe
         traj_sim_df = pd.concat(map(pd.DataFrame, results)).reset_index(drop=True)
-        df_grid_sub = df_grid[
-            df_grid[Column.CROP_INDEX].isin(traj_sim_df[Column.CROP_INDEX].unique())
+        trajectories_df_sub = trajectories_df[
+            trajectories_df[Column.CROP_INDEX].isin(traj_sim_df[Column.CROP_INDEX].unique())
         ]
         merging_columns = [Column.CROP_INDEX, Column.TRACK_LENGTH, Column.TIMEPOINT]
-        df_grid_sub = df_grid_sub.merge(traj_sim_df, on=merging_columns, how="outer")
+        trajectories_df_sub = trajectories_df_sub.merge(
+            traj_sim_df, on=merging_columns, how="outer"
+        )
 
         # add the distances to the fixed points for the measured trajectories
-        df_grid_sub = add_distance_to_fixed_points_columns(
-            trajectory_df=df_grid_sub,
+        trajectories_df_sub = add_distance_to_fixed_points_columns(
+            trajectory_df=trajectories_df_sub,
             fixed_point_df=fixed_points_df,
             trajectory_columns=DYNAMICS_COLUMN_NAMES,
             column_suffix=crop_pattern,
@@ -160,8 +179,8 @@ def main(
 
         # add the distances to the fixed points for the simulated trajectories
         simulated_columns = [f"{col}_simulated" for col in DYNAMICS_COLUMN_NAMES]
-        df_grid_sub = add_distance_to_fixed_points_columns(
-            trajectory_df=df_grid_sub,
+        trajectories_df_sub = add_distance_to_fixed_points_columns(
+            trajectory_df=trajectories_df_sub,
             fixed_point_df=fixed_points_df,
             trajectory_columns=simulated_columns,
             fixed_point_columns=DYNAMICS_COLUMN_NAMES,
@@ -172,14 +191,14 @@ def main(
             time_of_first_passage = []
             time_of_first_passage.append(
                 get_time_of_first_passage(
-                    trajectory_df=df_grid_sub,
+                    trajectory_df=trajectories_df_sub,
                     column=f"dist_from_fp_{i}_{crop_pattern}",
                     threshold=MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
                 )
             )
             time_of_first_passage.append(
                 get_time_of_first_passage(
-                    trajectory_df=df_grid_sub,
+                    trajectory_df=trajectories_df_sub,
                     column=f"dist_from_fp_{i}_simulated",
                     threshold=MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
                 )
