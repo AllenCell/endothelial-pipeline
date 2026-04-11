@@ -49,6 +49,10 @@ def main(
     for dataset_name in dataset_names:
         outdir = get_output_path(__file__, dataset_name)
 
+        # load the dataset config to get the time interval in minutes for converting time units for the ODE solver
+        dataset_config = load_dataset_config(dataset_name)
+        timepoint_units = dataset_config.time_interval_in_minutes / 60
+
         # load the dynamics features from the grid-based dataframe
         dynamics_manifest_grid = load_dataframe_manifest(
             DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED
@@ -114,6 +118,8 @@ def main(
                     "initial_condition": init_df.values.flatten(),
                     "timepoint_initial": timepoint,
                     "trajectory_duration": track_duration,
+                    # convert time units to hours for the ODE solver
+                    "time_units_for_solver": timepoint_units,
                     "simulation_results_column_names": list(DYNAMICS_COLUMN_NAMES),
                     "time_limit": 10,  # seconds
                 }

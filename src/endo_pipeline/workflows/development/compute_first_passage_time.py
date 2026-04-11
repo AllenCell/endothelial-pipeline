@@ -112,6 +112,12 @@ def main(
             dataframe=trajectories_df, minimum_track_length=LONG_TRACK_THRESHOLD_LENGTH
         )
 
+        timepoint_units = dataset_config.time_interval_in_minutes / 60
+        # add the time in hours as a column since flow field units are 1/hours
+        trajectories_df[Column.SegData.TIME_HRS] = (
+            trajectories_df[Column.TIMEPOINT] * timepoint_units
+        )
+
         # load the flow field dictionaries and fixed points
         drift_df = get_drift_df(dataset_name)
         drift_values, grid_points_1d = get_drift_values_and_grid_from_drift_df(
@@ -155,8 +161,10 @@ def main(
                     "initial_condition": init_df.values.flatten(),
                     "timepoint_initial": timepoint,
                     "trajectory_duration": track_duration,
+                    # convert time units to hours for the ODE solver
+                    "time_units_for_solver": timepoint_units,
                     "simulation_results_column_names": list(DYNAMICS_COLUMN_NAMES),
-                    "time_limit": 10,  # seconds
+                    "time_limit": 10,  # seconds in the real world before timeout
                 }
             )
 

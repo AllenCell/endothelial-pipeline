@@ -965,6 +965,7 @@ def solve_ddff_from_trajectory_initial_condition(
     initial_condition: np.ndarray,
     timepoint_initial: int,
     trajectory_duration: int,
+    time_units_for_solver: float,
     simulation_results_column_names: list[str | Column.DiffAEData],
     time_limit: float | None = None,
 ) -> dict:
@@ -984,6 +985,9 @@ def solve_ddff_from_trajectory_initial_condition(
         The initial timepoint corresponding to the start of the trajectory.
     trajectory_duration
         Duration of the trajectory to simulate.
+    time_units_for_solver
+        The time units to use for the ODE solver (e.g. if timepoint_initial and trajectory_duration
+        are in minutes but you want to solve in hours, this would be 1/60).
     simulation_results_column_names
         List of column names corresponding to the dynamics features to include in the simulation results.
     time_limit
@@ -1000,7 +1004,7 @@ def solve_ddff_from_trajectory_initial_condition(
     trajectory_simulation = solve_ddff_ode(
         flow_field_dict=flow_field_dict,
         init=initial_condition,
-        t_span=(0, trajectory_duration + 1),
+        t_span=(0 * time_units_for_solver, (trajectory_duration + 1) * time_units_for_solver),
         num_t=trajectory_duration + 1,
         time_limit=time_limit,
     )
@@ -1147,8 +1151,8 @@ def get_time_of_first_passage(
     time_of_first_passage = trajectory_df.groupby(Column.CROP_INDEX).apply(
         lambda grp: pd.Series(
             {
-                new_column_name: grp[Column.TIMEPOINT][grp[column] <= threshold].min()
-                - grp[Column.TIMEPOINT].min()
+                new_column_name: grp[Column.SegData.TIME_HRS][grp[column] <= threshold].min()
+                - grp[Column.SegData.TIME_HRS].min()
             }
         ),
         include_groups=False,

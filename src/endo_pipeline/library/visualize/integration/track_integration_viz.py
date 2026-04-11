@@ -1134,32 +1134,35 @@ def plot_time_of_first_passage_histogram(
         Directory to save the resulting plot.
     """
     dataset_name = dataset_config.name
+    if dataset_config.time_interval_in_minutes is None:
+        raise ValueError("DatasetConfig must have time_interval_in_minutes defined.")
+    time_units = dataset_config.time_interval_in_minutes / 60  # convert timeframes to hours
 
     # replace the NaN values (which indicate there was never a first passage) with
     # a large number because the NaNs cause incorrect histogram plotting
     time_of_first_passage_df_sub = time_of_first_passage_df.copy()
     time_of_first_passage_df_sub[
         f"time_of_first_passage_dist_from_fp_{fixed_point_id}_{crop_pattern}"
-    ].replace({np.nan: dataset_config.duration + 10}, inplace=True)
+    ].replace({np.nan: time_units * (dataset_config.duration) + 10}, inplace=True)
     time_of_first_passage_df_sub[
         f"time_of_first_passage_dist_from_fp_{fixed_point_id}_simulated"
-    ].replace({np.nan: dataset_config.duration + 10}, inplace=True)
+    ].replace({np.nan: time_units * (dataset_config.duration) + 10}, inplace=True)
 
     num_traj_approached_fp_meas = (
         time_of_first_passage_df_sub[
             f"time_of_first_passage_dist_from_fp_{fixed_point_id}_{crop_pattern}"
         ]
-        < dataset_config.duration
+        < time_units * dataset_config.duration
     ).sum()
     num_traj_approached_fp_sim = (
         time_of_first_passage_df_sub[
             f"time_of_first_passage_dist_from_fp_{fixed_point_id}_simulated"
         ]
-        < dataset_config.duration
+        < time_units * dataset_config.duration
     ).sum()
     num_crops = time_of_first_passage_df_sub[Column.CROP_INDEX].nunique()
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(5, 5))
     ax.set_title(
         (
             f"{dataset_name} trajectories reaching fixed point {fixed_point_id}: "
@@ -1182,6 +1185,7 @@ def plot_time_of_first_passage_histogram(
             element="step",
             fill=False,
             stat="percent",
+            label=crop_pattern,
             ax=ax,
         )
     # plot histogram for the simulation-based times of first passage (if any)
@@ -1199,19 +1203,19 @@ def plot_time_of_first_passage_histogram(
             element="step",
             fill=False,
             stat="percent",
+            label="simulated",
             ax=ax,
         )
-    ax.set_xlim(0, dataset_config.duration)
+    ax.set_xlim(0, time_units * dataset_config.duration)
     ax.set_ylim(0)
     ax.axhline(100, ls="--", color="red")
-    ax.set_xlabel(
+    ax.set_xlabel(f"{crop_pattern} trajectory first passage time (hrs)".title())
+    ax.set_ylabel(
         (
-            f"time of first passage through fixed point {fixed_point_id} (relative track start)"
+            f"cumulative percentage of trajectories\nthat reached fixed point {fixed_point_id}"
         ).title()
     )
-    ax.set_ylabel(
-        (f"cumulative percentage of trajectories reaching fixed point {fixed_point_id}").title()
-    )
+    ax.legend()
     save_plot_to_path(
         fig,
         out_dir,
@@ -1228,6 +1232,9 @@ def plot_time_of_first_passage_scatterplot(
     crop_pattern: Literal["grid", "tracked"] = "grid",
 ) -> None:
     dataset_name = dataset_config.name
+    if dataset_config.time_interval_in_minutes is None:
+        raise ValueError("DatasetConfig must have time_interval_in_minutes defined.")
+    time_units = dataset_config.time_interval_in_minutes / 60  # convert timeframes to hours
 
     time_of_first_passage_df_sub = time_of_first_passage_df.dropna()
 
@@ -1281,11 +1288,18 @@ def plot_time_of_first_passage_scatterplot(
     ax.set_xlim(0)
     ax.set_ylim(0)
     ax.axline(
-        (0, 0), (dataset_config.duration, dataset_config.duration), ls="--", c="grey", zorder=0
+        (0, 0),
+        (time_units * dataset_config.duration, time_units * dataset_config.duration),
+        ls="--",
+        c="grey",
+        zorder=0,
     )
     ax.axline(
         (0, line_fit.intercept),
-        (dataset_config.duration, line_fit.slope * dataset_config.duration + line_fit.intercept),
+        (
+            time_units * dataset_config.duration,
+            line_fit.slope * time_units * dataset_config.duration + line_fit.intercept,
+        ),
         ls="--",
         c="tab:orange",
         zorder=0,
