@@ -22,7 +22,6 @@ from endo_pipeline.settings.flow_field_dataframes import (
 from endo_pipeline.settings.migration_coherence import (
     MIGRATION_COHERENCE_COLORMAP,
     MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
-    MIGRATION_COHERENCE_HIST_FIGSIZE,
     MIGRATION_COHERENCE_HIST_PLOT_KDE,
 )
 
@@ -318,6 +317,7 @@ def plot_optical_flow_histogram(
     filename: str,
     df_fp: pd.DataFrame | None = None,
     binwidth: float = 0.2,
+    figsize: tuple[float, float] = (4, 2.5),
 ) -> None:
     """Plot and save a histogram of an optical flow feature for a single dataset/flow condition.
 
@@ -347,7 +347,7 @@ def plot_optical_flow_histogram(
     std = data.std()
     cov = std / mean
 
-    fig, ax = plt.subplots(figsize=MIGRATION_COHERENCE_HIST_FIGSIZE)
+    fig, ax = plt.subplots(figsize=figsize)
     sns.histplot(
         data,
         kde=MIGRATION_COHERENCE_HIST_PLOT_KDE,
@@ -394,6 +394,4 @@ def plot_optical_flow_histogram(
     ax.set_xlabel(optical_flow_feature)
     ax.set_ylabel("Count")
     ax.set_title(title)
-    fig.tight_layout()
     save_plot_to_path(fig, output_dir, filename)
-    plt.close(fig)
