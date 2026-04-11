@@ -1020,10 +1020,13 @@ def get_nuclei_coords(
             nuclei_coords[f"coords_{dim}"].append(coords[..., props_dim_order.index(dim)])
     if any(nuclei_coords.values()):
         nuclei_coords_arrs = {
-            dim: np.array(np.stack(coords).squeeze(), ndmin=1) for dim, coords in nuclei_coords.items()
+            dim: np.array(np.stack(coords).squeeze(), ndmin=1)
+            for dim, coords in nuclei_coords.items()
         }
     else:
-        nuclei_coords_arrs = {dim: np.array(coords, ndmin=1) for dim, coords in nuclei_coords.items()}
+        nuclei_coords_arrs = {
+            dim: np.array(coords, ndmin=1) for dim, coords in nuclei_coords.items()
+        }
 
     return nuclei_coords_arrs
 
