@@ -10,9 +10,12 @@ def main(
     Analyze the coherence of migration in relation to fixed points identified in the structure
     feature space.
 
+    Parameters
+    ----------
     datasets:
         List of dataset names to include in the analysis.
         Defaults to all datasets in the "optical_flow_analysis" collection.
+    plot_fixed_points:
         Whether to overlay fixed points on the migration coherence plots.
     skip_individual_plots:
         Whether to skip generating individual plots for each dataset and flow condition.
