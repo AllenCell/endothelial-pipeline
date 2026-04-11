@@ -344,7 +344,7 @@ class ColumnName:
         SPEED_MEAN = "optical_flow_mean_speed_dt1"
         """Mean speed of the optical flow vectors in a crop."""
 
-        UNIT_VECTOR_MEAN = "optical_flow_mean_unit_vector_dt1"
+        UNIT_VECTOR_MEAN = "ema01_optical_flow_mean_unit_vector_dt1"
         """Mean unit vector of the optical flow vectors in a crop."""
 
         SPEED_STD = "optical_flow_std_speed_dt1"
