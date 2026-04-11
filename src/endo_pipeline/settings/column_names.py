@@ -345,7 +345,7 @@ class ColumnName:
         """Mean speed of the optical flow vectors in a crop."""
 
         UNIT_VECTOR_MEAN = "ema01_optical_flow_mean_unit_vector_dt1"
-        """Mean unit vector of the optical flow vectors in a crop."""
+        """Mean unit vector of the optical flow vectors in a crop. EMA smoothing with alpha=0.01."""
 
         SPEED_STD = "optical_flow_std_speed_dt1"
         """Standard deviation of the speeds of the optical flow vectors in a crop."""
