@@ -90,20 +90,19 @@ def main(
     import pandas as pd
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import (
-        TimepointAnnotation,
-        get_datasets_in_collection,
-        load_dataset_config,
-    )
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.data_driven_flow_field import (
         compute_extrapolated_vector_field,
         solve_ddff_ode,
     )
+    from endo_pipeline.library.analyze.dataframe_filtering import (
+        filter_dataframe_by_flow_condition,
+        filter_dataframe_to_steady_state,
+    )
     from endo_pipeline.library.analyze.dataframe_validation import (
         check_required_columns_in_dataframe,
     )
-    from endo_pipeline.library.analyze.diffae_dataframe_utils import filter_dataframe_by_annotations
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
         get_kernel_density_estimate_from_trajectories,
     )
@@ -179,6 +178,10 @@ def main(
         # If the production manifests are not found, then in DEMO_MODE will try
         # to load the demo manifests with the "_demo" suffix. Else, if not in
         # DEMO_MODE, will raise the original FileNotFoundError.
+        logger.warning(
+            "Dataframe manifest(s) not found for production run. If you are running in DEMO_MODE, "
+            "the workflow will attempt to load the corresponding demo dataframe manifest(s)."
+        )
         if DEMO_MODE:
             demo_suffix = "_demo"
             drift_dataframe_manifest = load_dataframe_manifest(
@@ -251,29 +254,31 @@ def main(
         # load dataframe and perform additional filtering (remove
         # non-steady-state timepoints based on annotations), computing
         # only the columns needed for flow field estimation and analysis to save memory.
-        df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
-        df_ = df[columns_to_compute].compute()
-        feature_data = filter_dataframe_by_annotations(
-            df_,
-            load_dataset_config(dataset_name),
-            timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
-        )
+        dataset_config = load_dataset_config(dataset_name)
+        df_ = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
+        df = df_[columns_to_compute].compute()
+        feature_data = filter_dataframe_to_steady_state(df, dataset_config)
 
         # load drift vector field dataframe and check that required columns are
         # present
-        drift_dataframe_location = get_dataframe_location_for_dataset(
+        vector_field_dataframe_location = get_dataframe_location_for_dataset(
             drift_dataframe_manifest, dataset_name
         )
-        drift_dataframe = load_dataframe(drift_dataframe_location, delay=False)
+        vector_field_dataframe = load_dataframe(vector_field_dataframe_location, delay=False)
         check_required_columns_in_dataframe(
-            drift_dataframe,
-            required_columns=[*column_names, *drift_column_names, ColumnName.DATASET],
+            vector_field_dataframe,
+            required_columns=[
+                *column_names,
+                *drift_column_names,
+                ColumnName.DATASET,
+                ColumnName.SHEAR_STRESS,
+            ],
         )
 
         # load fixed point dataframe if it exists, and check that required
         # columns are present turn fixed point dataframe into list of arrays of
         # stable fixed point coordinates for each dataset to use for plotting
-        stable_fixed_points_list: list[np.ndarray] = []
+        dataset_has_fixed_points = False
         try:
             fixed_points_dataframe_location = get_dataframe_location_for_dataset(
                 fixed_points_dataframe_manifest, dataset_name
@@ -281,22 +286,14 @@ def main(
             fixed_points_dataframe = load_dataframe(fixed_points_dataframe_location, delay=False)
             check_required_columns_in_dataframe(
                 fixed_points_dataframe,
-                required_columns=[*column_names, ColumnName.DATASET, stability_label_column_name],
+                required_columns=[
+                    *column_names,
+                    ColumnName.DATASET,
+                    ColumnName.SHEAR_STRESS,
+                    stability_label_column_name,
+                ],
             )
-            stable_fixed_point_subset = fixed_points_dataframe[
-                fixed_points_dataframe[stability_label_column_name] == StabilityLabel.STABLE
-            ]
-            if not stable_fixed_point_subset.empty:
-                stable_fixed_point_dataframe_list.append(stable_fixed_point_subset)
-                column_names_ = cast(list[str], column_names)
-                for _, row in stable_fixed_point_subset.iterrows():
-                    stable_fixed_points_list.append(row[column_names_].to_numpy())
-            else:
-                logger.warning(
-                    "No stable fixed points found for dataset [ %s ] in fixed point dataframe [ %s ].",
-                    dataset_name,
-                    fixed_points_dataframe_manifest.name,
-                )
+            dataset_has_fixed_points = True
         except KeyError:
             logger.warning(
                 "No fixed point dataframe found for dataset [ %s ] in dataframe manifest [ %s ]. "
@@ -305,107 +302,137 @@ def main(
                 fixed_points_dataframe_manifest.name,
             )
 
-        # To store as dataframe, the grid points were stored as a flattened
-        # meshgrid in the grid dataframe, so to get the grid points back into
-        # the shape of the original meshgrid, easiest to get the unique values
-        # for each column and remake the meshgrid from there.
-        #
-        # Also, downstream methods expect the grid to be specified as a list of
-        # 1D arrays of the grid points along each dimension.
-        grid_points_1d = [
-            np.sort(drift_dataframe[column_name].unique()) for column_name in column_names
-        ]
-        grid_shape = tuple(len(points) for points in grid_points_1d)
-        grid = np.meshgrid(*grid_points_1d, indexing="ij")
-
-        # get bins for vtk file extent and for estimating KDE
-        # of data for plotting
-        bin_limits = [
-            (
-                grid_points_1d[i][0] - bin_widths[i] / 2,
-                grid_points_1d[i][-1] + bin_widths[i] / 2,
+        for flow_condition in dataset_config.flow_conditions:
+            shear_stress = flow_condition.shear_stress
+            feature_data_for_flow_condition = filter_dataframe_by_flow_condition(
+                feature_data, dataset_config, flow_condition
             )
-            for i in range(ndim)
-        ]
-        num_bins = [len(points) for points in grid_points_1d]
-        bin_edges = [
-            np.linspace(bin_limit[0], bin_limit[1], num_bin + 1)
-            for bin_limit, num_bin in zip(bin_limits, num_bins, strict=True)
-        ]
+            vector_field_for_flow_condition = vector_field_dataframe[
+                vector_field_dataframe[ColumnName.SHEAR_STRESS] == shear_stress
+            ]
 
-        # build expected inputs for the KDE function: a list of 2D arrays of
-        # shape (n_timepoints_in_traj, 2) and the appropriate kernel for
-        # each column pair
-        trajs = []
-        for _, traj_df in feature_data.groupby(ColumnName.CROP_INDEX):
-            trajs.append(traj_df.sort_values(by=ColumnName.TIMEPOINT)[column_names].to_numpy())
-        prob_kde = get_kernel_density_estimate_from_trajectories(trajs, bin_edges, kernels)
+            stable_fixed_points_list = []
+            if dataset_has_fixed_points:
+                fixed_points_for_flow_condition = fixed_points_dataframe[
+                    fixed_points_dataframe[ColumnName.SHEAR_STRESS] == shear_stress
+                ]
+                stable_fixed_points = fixed_points_for_flow_condition[
+                    fixed_points_for_flow_condition[stability_label_column_name]
+                    == StabilityLabel.STABLE
+                ]
+                if not stable_fixed_points.empty:
+                    stable_fixed_point_dataframe_list.append(stable_fixed_points)
+                    column_names_ = cast(list[str], column_names)
+                    for _, row in stable_fixed_points.iterrows():
+                        stable_fixed_points_list.append(row[column_names_].to_numpy())
 
-        # unpack drift values from dataframe and reshape to grid shape for flow
-        # field visualization and ODE solving,
-        drift_values = drift_dataframe[drift_column_names].to_numpy().reshape(*grid_shape, ndim)
+            # To store as dataframe, the grid points were stored as a flattened
+            # meshgrid in the grid dataframe, so to get the grid points back into
+            # the shape of the original meshgrid, easiest to get the unique values
+            # for each column and remake the meshgrid from there.
+            #
+            # Also, downstream methods expect the grid to be specified as a list of
+            # 1D arrays of the grid points along each dimension.
+            grid_points_1d = [
+                np.sort(vector_field_for_flow_condition[column_name].unique())
+                for column_name in column_names
+            ]
+            grid_shape = tuple(len(points) for points in grid_points_1d)
+            grid = np.meshgrid(*grid_points_1d, indexing="ij")
 
-        # build flow field dict for downstream functions that expect the flow
-        # field in this format
-        drift_vector_field = [drift_values[..., i] for i in range(ndim)]
-        flow_field_dict = {"vectors": drift_vector_field, "grid": grid}
+            # get bins for vtk file extent and for estimating KDE
+            # of data for plotting
+            bin_limits = [
+                (
+                    grid_points_1d[i][0] - bin_widths[i] / 2,
+                    grid_points_1d[i][-1] + bin_widths[i] / 2,
+                )
+                for i in range(ndim)
+            ]
+            num_bins = [len(points) for points in grid_points_1d]
+            bin_edges = [
+                np.linspace(bin_limit[0], bin_limit[1], num_bin + 1)
+                for bin_limit, num_bin in zip(bin_limits, num_bins, strict=True)
+            ]
 
-        # if compute vtk files, extrapolate and save out the flow field as vtk
-        if compute_vtk:
-            extrapolated_flow_field_dict_vtk = compute_extrapolated_vector_field(
-                drift_values, grid_points_1d, method="nearest", for_vtk_files=True
+            # build expected inputs for the KDE function: a list of 2D arrays of
+            # shape (n_timepoints_in_traj, 2) and the appropriate kernel for
+            # each column pair
+            trajs = []
+            for _, traj_df in feature_data_for_flow_condition.groupby(ColumnName.CROP_INDEX):
+                trajs.append(traj_df.sort_values(by=ColumnName.TIMEPOINT)[column_names].to_numpy())
+            prob_kde = get_kernel_density_estimate_from_trajectories(trajs, bin_edges, kernels)
+
+            # unpack drift values from dataframe and reshape to grid shape for flow
+            # field visualization and ODE solving,
+            drift_values = (
+                vector_field_for_flow_condition[drift_column_names]
+                .to_numpy()
+                .reshape(*grid_shape, ndim)
             )
-            # save out the flow field as vtk image data volume extent for vtk
-            # file is determined by the min and max of the feature values in
-            # each dimension, plus an extra half-bin width on either side
-            volume_extent = {
-                "xmin": bin_limits[0][0],
-                "xmax": bin_limits[0][1],
-                "ymin": bin_limits[1][0],
-                "ymax": bin_limits[1][1],
-                "zmin": bin_limits[2][0],
-                "zmax": bin_limits[2][1],
-            }
-            save_vector_field_as_vtk(
-                extrapolated_flow_field_dict_vtk,
-                vtk_savedir / f"flow_field_{dataset_name}.vtk",
-                volume_extent,
+
+            # build flow field dict for downstream functions that expect the flow
+            # field in this format
+            drift_vector_field = [drift_values[..., i] for i in range(ndim)]
+            flow_field_dict = {"vectors": drift_vector_field, "grid": grid}
+
+            # if compute vtk files, extrapolate and save out the flow field as vtk
+            if compute_vtk:
+                extrapolated_flow_field_dict_vtk = compute_extrapolated_vector_field(
+                    drift_values, grid_points_1d, method="nearest", for_vtk_files=True
+                )
+                # save out the flow field as vtk image data volume extent for vtk
+                # file is determined by the min and max of the feature values in
+                # each dimension, plus an extra half-bin width on either side
+                volume_extent = {
+                    "xmin": bin_limits[0][0],
+                    "xmax": bin_limits[0][1],
+                    "ymin": bin_limits[1][0],
+                    "ymax": bin_limits[1][1],
+                    "zmin": bin_limits[2][0],
+                    "zmax": bin_limits[2][1],
+                }
+                save_vector_field_as_vtk(
+                    extrapolated_flow_field_dict_vtk,
+                    vtk_savedir / f"flow_field_{dataset_name}_{shear_stress}.vtk",
+                    volume_extent,
+                )
+
+            ## ODE solver: dx/dt = f(x) (drift, first Kramers-Moyal coefficient) ##
+            # with initial conditions given by init solve IVP, get back trajectory
+            extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
+                drift_values, grid_points_1d, method="linear", for_vtk_files=False
             )
 
-        ## ODE solver: dx/dt = f(x) (drift, first Kramers-Moyal coefficient) ##
-        # with initial conditions given by init solve IVP, get back trajectory
-        extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
-            drift_values, grid_points_1d, method="linear", for_vtk_files=False
-        )
+            traj = solve_ddff_ode(
+                extrapolated_flow_field_dict_reg,
+                init=np.array(INIT_POINT_3D),
+                t_span=TRAJECTORY_TIME_SPAN,
+            )
 
-        traj = solve_ddff_ode(
-            extrapolated_flow_field_dict_reg,
-            init=np.array(INIT_POINT_3D),
-            t_span=TRAJECTORY_TIME_SPAN,
-        )
+            # subfolder for each dataset
+            fig_savedir_dataset: Path = fig_savedir / dataset_name
+            fig_savedir_dataset.mkdir(parents=True, exist_ok=True)
 
-        # subfolder for each dataset
-        fig_savedir_dataset: Path = fig_savedir / dataset_name
-        fig_savedir_dataset.mkdir(parents=True, exist_ok=True)
+            # if not using same axes for all datasets, use bin limits for this
+            # specific dataset, to ensure that the flow field visualizations are
+            # zoomed in enough to see the details of the flow field and trajectories
+            if not use_same_axes:
+                bounds_for_plots = bin_limits.copy()
 
-        # if not using same axes for all datasets, use bin limits for this
-        # specific dataset, to ensure that the flow field visualizations are
-        # zoomed in enough to see the details of the flow field and trajectories
-        if not use_same_axes:
-            bounds_for_plots = bin_limits.copy()
-
-        # call main visualization function
-        flow_field_viz_main(
-            flow_field_dict,
-            feature_data,
-            column_names,
-            traj,
-            stable_fixed_points_list,
-            prob_kde,
-            bounds_for_plots,
-            plot_stack,
-            fig_savedir_dataset,
-        )
+            # call main visualization function
+            flow_field_viz_main(
+                flow_field_dict,
+                feature_data,
+                column_names,
+                traj,
+                stable_fixed_points_list,
+                prob_kde,
+                bounds_for_plots,
+                plot_stack,
+                fig_savedir_dataset,
+                shear_stress=shear_stress,
+            )
 
     # finally, if fixed point data is available for at least two datasets, then
     # plot the fixed points together across datasets on a common set of axes to

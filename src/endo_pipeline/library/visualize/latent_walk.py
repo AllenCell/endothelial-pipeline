@@ -1,3 +1,5 @@
+"""Module for visualizing latent walks as grids of reconstructed image crops."""
+
 import logging
 from pathlib import Path
 from typing import Literal
@@ -10,7 +12,8 @@ from matplotlib.gridspec import GridSpec
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
 from endo_pipeline.library.visualize.figure_utils import add_scalebar
-from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
+from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
 
 logger = logging.getLogger(__name__)
 
@@ -21,12 +24,13 @@ def plot_latent_walk_as_grid(
     column_names: list[str],
     save_path: Path,
     file_name: str,
-    file_format: Literal[".png", ".svg", ".pdf"] = ".png",
+    file_format: Literal[".png", ".svg", ".pdf"] = ".svg",
     show_values: bool = True,
     label_sigmas: bool = True,
+    figsize: tuple[float, float] | None = None,
+    scale_bar_um: int = 10,
 ) -> None:
-    """
-    Plot a grid of reconstructed image crops representing a latent walk.
+    """Plot and save a grid of reconstructed image crops representing a latent walk.
 
     Parameters
     ----------
@@ -43,25 +47,31 @@ def plot_latent_walk_as_grid(
         Directory path to save the output figure.
     file_name
         Name of the output figure file.
-    use_pcs
-        True if latent walk was performed along PC axes, False otherwise.
-    show_value
+    file_format
+        Format of the output figure file (e.g., ".png", ".svg", ".pdf").
+    show_values
         True to show the coordinate value on the image, False otherwise.
     label_sigmas
         True to label the column titles with sigma values, False to label with
         step number.
+    figsize
+        Optional tuple specifying the figure size in inches (width, height). If
+        not provided, defaults to (6.5, num_rows) where num_rows is the
+        number of dimensions in the latent walk.
+    scale_bar_um
+        Length of the scale bar in micrometers to add to each subplot.
     """
     # Set up the grid
     num_rows = array_of_crops.shape[0]
     num_steps = array_of_crops.shape[1]
-    gs = GridSpec(num_rows, num_steps, wspace=0)
+    gs = GridSpec(num_rows, num_steps, wspace=0, hspace=0)
 
     # Desired figure dimensions in inches
-    width = 6.5
-    height = num_rows
+    if figsize is None:
+        figsize = (MAX_FIGURE_WIDTH, num_rows)
 
     # Set up the figure
-    fig = plt.figure(figsize=(width, height))
+    fig = plt.figure(figsize=figsize)
 
     for i in range(num_rows):
         for j in range(num_steps):
@@ -100,9 +110,7 @@ def plot_latent_walk_as_grid(
             if i == 0:
                 if label_sigmas:
                     column_title = f"{j - (num_steps // 2)}\u03c3"
-                else:
-                    column_title = f"Step {j+1}"
-                ax.set_title(column_title, fontsize=10, pad=5)
+                    ax.set_title(column_title, fontsize=10, pad=5)
 
             # Y labels only on first column
             if j == 0:
@@ -112,19 +120,30 @@ def plot_latent_walk_as_grid(
                     ylabel = ylabel.upper()
                 ax.set_ylabel(ylabel, labelpad=5)
 
-            # Plot scalebar only on first image
-            if i == 0 and j == 0:
-                scalebar_um = 10
-                add_scalebar(
-                    ax,
-                    scale_bar_um=scalebar_um,
-                    pixel_size=PIXEL_SIZE_3i_20x,
-                    bar_thickness=5,
-                    padding=10,
-                )
+    for ax in fig.axes:
+        add_scalebar(
+            ax,
+            scale_bar_um=scale_bar_um,
+            pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
+            location="lower right",
+            bar_thickness=2.5,
+            padding=5,
+        )
+
+    fig.axes[0].text(
+        0.96,
+        0.08,
+        f"{scale_bar_um} \u03bcm",
+        color="white",
+        transform=fig.axes[0].transAxes,
+        fontsize=FONTSIZE_SMALL,
+        va="bottom",
+        ha="right",
+    )
 
     gs.tight_layout(fig, pad=0.25)
     plt.show()
 
+    file_name = f"{file_name}_scale_bar_{scale_bar_um}um"
     save_plot_to_path(fig, save_path, file_name, file_format=file_format)
     plt.close(fig)

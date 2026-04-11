@@ -1,3 +1,6 @@
+"""Stationary Fokker-Planck solver class ."""
+
+import logging
 from time import time
 
 import numpy as np
@@ -5,13 +8,11 @@ import torch
 import torch.linalg as tla
 from numpy.fft import fftfreq, fftn, ifftn
 
-# Set device to GPU if available, otherwise use CPU
-DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+logger = logging.getLogger(__name__)
 
 
 class SteadyFP:
-    """
-    Solve the steady-state Fokker-Planck equation using Fourier-Galerkin method.
+    """Solve the steady-state Fokker-Planck equation using Fourier-Galerkin method.
 
     This class defines a solver object for steady-state Fokker-Planck
     equation in 1D or 2D, solving using Fourier-Galerkin method.
@@ -22,19 +23,23 @@ class SteadyFP:
     """
 
     def __init__(self, n: list, dx: list) -> None:
-        """
-        Initialize the SteadyFP object.
+        """Initialize the stationary Fokker Planck solver `SteadyFP` object.
 
-        Input:
-        - n: int or list of ints, grid resolution
-            n[0] x n[1] x ... x n[d-1] for d-dimensional grid
-            - if int, 1D grid
-        - dx: float or list of floats, grid spacing
-            - should be same length as N, or scalar if N is scalar
+        Parameters
+        ----------
+        n
+            Number of grid points in each dimension.
+        dx
+            Grid spacing in each dimension.
 
-        Output:
-        - None (initializes object)
+        Returns
+        -------
+        :
+            Initialized `SteadyFP` solver object.
+
         """
+        # set device to GPU if available, otherwise use CPU
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
         # set number of dimensions ndim based on input n
         # (number of grid points in each dimension)
@@ -68,25 +73,27 @@ class SteadyFP:
         # initialize as dummy array for now
 
     def compute_operator(self, drift: np.ndarray, diffusion: np.ndarray) -> np.ndarray:
+        """Precompute the operator matrix for the linear system of equations.
+
+        This method computes the Fourier transform of the drift and diffusion
+        coefficients and sets up the operator matrix for the linear system.
+
+        Parameters
+        ----------
+        drift
+            Drift coefficients evaluated on d-dimensional grid (ndim x N[0] x
+            N[1] x ... x N[d-1])
+        diffusion
+            Diffusion coefficients evaluated on d-dimensional grid (ndim x N[0]
+            x N[1] x ... x N[d-1])
+
+        Returns
+        -------
+        :
+            Operator matrix for the linear system of equations (shape depends on
+            number of dimensions and grid resolution).
+
         """
-        Precompute the operator matrix for the linear system of equations.
-        This method computes the Fourier transform of the drift
-        and diffusion coefficients and sets up the operator matrix
-        for the linear system.
-
-        Inputs:
-        - f: np.ndarray, drift coefficients evaluated on
-            d-dimensional grid (ndim x N[0] x N[1] x ... x N[d-1])
-        - D: np.ndarray, diffusion coefficients evaluated on
-            d-dimensional grid (ndim x N[0] x N[1] x ... x N[d-1])
-
-        Output:
-        - None (initializes operator matrix for linear system)
-
-        Possible to do: generalize to covariate noise, would need to add a
-        dimension to the diffusion matrix
-        """
-
         if self.d == 1:
             # Initialize Fourier transformed coefficients
             drift_hat = self.dx[0] * fftn(drift)
@@ -95,7 +102,7 @@ class SteadyFP:
             # Set up spectral projection operator
             operator_matrix = np.einsum(
                 "i,ij->ij", -1j * self.k[0], drift_hat[self.idx]
-            ) + np.einsum("i,ij->ij", -self.k[0] ** 2, diff_hat[self.idx])
+            ) + np.einsum("i,ij->ij", -(self.k[0] ** 2), diff_hat[self.idx])
 
         if self.d == 2:
             # Initialize Fourier transformed coefficients
@@ -125,44 +132,55 @@ class SteadyFP:
             operator_matrix = np.reshape(operator_matrix, (np.prod(self.n), np.prod(self.n)))
         return operator_matrix
 
-    def solve(self, drift: np.ndarray, diffusion: np.ndarray, verbose: bool = False) -> np.ndarray:
+    def solve(self, drift: np.ndarray, diffusion: np.ndarray) -> np.ndarray:
+        """Solve stationary Fokker-Planck equation from input drift and diffusion coefficients.
+
+        This method uses a Fourier-Galerkin method: derive and solve an
+        inhomogeneous linear system of equations using the Fourier transform of
+        the drift and diffusion coefficients. The solution to the linear system
+        is the Fourier transform of the stationary probability density, which is
+        then transformed back to real space using the inverse Fourier transform.
+
+        The method inputs assume a diagona diffusion matrix (i.e., no covariate
+        noise), but could be generalized to covariate noise by adding a
+        dimension to the diffusion matrix and modifying the operator matrix
+        accordingly.
+
+        Parameters
+        ----------
+        drift
+            Drift coefficients evaluated on d-dimensional grid (ndim x N[0] x
+            N[1] x ... x N[d-1])
+        diffusion
+            Diffusion coefficients evaluated on d-dimensional grid (ndim x N[0]
+            x N[1] x ... x N[d-1])
+        verbose
+            Whether to print out timing information for computing the operator
+            and solving the linear system.
+
+        Returns
+        -------
+        :
+            Stationary probability density evaluated on d-dimensional grid (same
+            shape as input drift and diffusion coefficients).
+
         """
-        Solve stationary Fokker-Planck equation from input drift coefficients using
-        a Fourier-Galerkin method (uses Fourier transform of drift f(x)
-        and diffusion D(x) to derive inhomogeneous linear system
-        of equations, solved below).
-
-        Inputs:
-        - drift: np.ndarray, drift coefficients evaluated on
-            d-dimensional grid (ndim x N[0] x N[1] x ... x N[d-1])
-        - diffusion: np.ndarray, diffusion coefficients evaluated on
-            d-dimensional grid (ndim x N[0] x N[1] x ... x N[d-1])
-        - verbose: bool (default False), whether to print out timing information
-
-        Output:
-        - p: np.ndarray, stationary probability density evaluated on
-            d-dimensional grid (N[0] x N[1] x ... x N[d-1])
-        """
-
         start_fp_op = time()
         operator_matrix = self.compute_operator(drift, diffusion)
-        if verbose:
-            print(f"%%%% Computing FP operator time: {time() - start_fp_op} seconds %%%%")
+        logger.debug("Computing Fokker-Planck operator time: %s seconds", time() - start_fp_op)
 
         start_fp = time()
         q_hat = (
             tla.lstsq(
-                torch.from_numpy(operator_matrix[1:, 1:]).to(DEVICE),
-                torch.from_numpy(-operator_matrix[1:, 0]).to(DEVICE),
+                torch.from_numpy(operator_matrix[1:, 1:]).to(self.device),
+                torch.from_numpy(-operator_matrix[1:, 0]).to(self.device),
                 rcond=1e-6,
             )[0]
             .cpu()
             .numpy()
         )
         q_hat = np.append([1], q_hat)
-        p = np.real(ifftn(np.reshape(q_hat, self.n))) / np.prod(
-            self.dx
-        )  # take ifft of solution to get probability density p
-        if verbose:
-            print(f"%%%% Solving FP time: {time() - start_fp} seconds %%%%")
+        # take ifft of solution to get probability density p
+        p = np.real(ifftn(np.reshape(q_hat, self.n))) / np.prod(self.dx)
+        logger.debug("Solving Fokker-Planck equation time: %s seconds", time() - start_fp)
         return p

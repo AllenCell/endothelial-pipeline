@@ -1,6 +1,6 @@
 from endo_pipeline.settings.column_names import ColumnName
 
-OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS: tuple[str, ...] = (
+OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS: tuple[str | ColumnName.DiffAEData, ...] = (
     ColumnName.DATASET,
     ColumnName.POSITION,
     ColumnName.TIMEPOINT,

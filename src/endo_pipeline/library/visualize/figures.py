@@ -4,6 +4,9 @@ from typing import NamedTuple
 
 INCHES_TO_PIXELS = 96
 
+ILLUSTRATOR_SCALING_FACTOR = 0.75
+"""Scaling factor to rescale figure dimensions for use in Adobe Illustrator."""
+
 
 class FigurePanel(NamedTuple):
     """Configuration for figure panel."""
@@ -30,8 +33,8 @@ class FigurePanel(NamedTuple):
 def build_empty_figure(width: float, height: float) -> ET.Element:
 
     # Convert inches to points.
-    width = int(width * INCHES_TO_PIXELS)
-    height = int(height * INCHES_TO_PIXELS)
+    width = int(width * INCHES_TO_PIXELS * ILLUSTRATOR_SCALING_FACTOR)
+    height = int(height * INCHES_TO_PIXELS * ILLUSTRATOR_SCALING_FACTOR)
 
     # Register SVG namespaces.
     ET.register_namespace("", "http://www.w3.org/2000/svg")
@@ -47,8 +50,8 @@ def build_empty_figure(width: float, height: float) -> ET.Element:
 
 
 def build_panel_group(root: ET.Element, x: float, y: float) -> ET.Element:
-    x = x * INCHES_TO_PIXELS
-    y = y * INCHES_TO_PIXELS
+    x = x * INCHES_TO_PIXELS * ILLUSTRATOR_SCALING_FACTOR
+    y = y * INCHES_TO_PIXELS * ILLUSTRATOR_SCALING_FACTOR
 
     return ET.SubElement(root, "g", {"transform": f"translate({x},{y})"})
 
@@ -72,6 +75,7 @@ def add_panel_letter(root: ET.Element, letter: str) -> None:
 def build_figure_from_panels(
     figure_panels: list[FigurePanel], output_path: Path, width: float, height: float
 ) -> None:
+
     figure = build_empty_figure(width, height)
 
     for panel in figure_panels:

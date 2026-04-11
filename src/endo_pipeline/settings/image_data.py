@@ -39,6 +39,9 @@ NUM_ZSLICES: int = 25
 PIXEL_SIZE_3i_20x: float = 0.325
 """Pixel size for the 3i 20x objective in micrometers."""
 
+PIXEL_SIZE_3i_20x_RESOLUTION_1: float = PIXEL_SIZE_3i_20x * 2
+"""Pixel size for the 3i 20x objective at zarr resolution level 1 in micrometers."""
+
 AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x: float = 1.43
 """Axial distortion factor for 3i 20x objective determined as described in Diel et al. 2020."""
 

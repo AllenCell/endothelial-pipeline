@@ -13,6 +13,7 @@ def main(
     sigma: float | None = None,
     n_steps: int = 7,
     n_noise_samples: int = 1,
+    figsize: tuple[float, float] | None = None,
 ) -> None:
     """
     Create latent walk for a given model using PC axes.
@@ -95,6 +96,10 @@ def main(
         Number of steps in the latent walk.
     n_noise_samples
         Number of noise samples to use for generating images.
+    figsize
+        Optional, tuple specifying the figure size in inches (width, height). If
+        not provided, defaults to (6.5, num_rows) where num_rows is the number of
+        dimensions in the latent walk.
     """
 
     import pandas as pd
@@ -239,6 +244,7 @@ def main(
         save_path,
         file_name,
         label_sigmas=False if sigma is None else True,
+        figsize=figsize,
     )
 
 

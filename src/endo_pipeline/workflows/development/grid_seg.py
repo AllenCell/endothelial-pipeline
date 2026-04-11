@@ -20,20 +20,31 @@ def main(datasets: Datasets | None = None, n_cores: int = 4):
     """
 
     import logging
+    import multiprocessing
     from concurrent.futures import ProcessPoolExecutor
 
     from tqdm import tqdm
 
+    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import get_output_path
+    from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.process.lib_grid_seg import (
         check_crop_indices_against_existing_segmentations,
         create_grid_segmentation_images,
-        load_grid_diffae_df_for_tfe,
     )
+    from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_MODEL_MANIFEST_NAME,
+        DEFAULT_MODEL_RUN_NAME,
+    )
 
     logger = logging.getLogger(__name__)
+
+    # Get dataframe manifest for the grid-based Diff AE features
+    dataframe_manifest_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_grid_pca"
+    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
 
     datasets_all = get_datasets_in_collection("diffae_model_training")
     datasets_all.extend(get_datasets_in_collection("replicate_2_datasets"))
@@ -48,16 +59,42 @@ def main(datasets: Datasets | None = None, n_cores: int = 4):
     for config in dataset_configs_all:
         if config.duration == max_timelapse_duration:
             logger.info(
-                f"Dataset {config.name} is the first dataset with the longest \
-                timelapse duration of {max_timelapse_duration} minutes, and \
-                will be used to create the grid segmentations."
+                "Dataset [ %s ] is the first dataset with the longest "
+                "timelapse duration of [ %d ] minutes, and "
+                "will be used to create the grid segmentations.",
+                config.name,
+                max_timelapse_duration,
             )
             examplary_dataset = config.name
+            break
 
     if datasets is None:
         datasets = datasets_all
 
-    grid_df = load_grid_diffae_df_for_tfe(examplary_dataset)
+    max_num_positions: int | None = None
+    max_num_timepoints: int | None = None
+    if DEMO_MODE:
+        logger.warning("DEMO_MODE: limiting to one dataset, one position, and 10 timepoints.")
+        datasets = datasets[:1]
+        max_num_positions = 1
+        max_num_timepoints = 10
+
+    # load the grid-based DiffAE dataframe for the current dataset to get
+    # the crop locations and crop labels for a given dataset
+    dataframe_location = get_dataframe_location_for_dataset(dataframe_manifest, examplary_dataset)
+    grid_df_ = load_dataframe(dataframe_location, delay=True)
+
+    # don't need the feature columns for this workflow, just the crop locations
+    # and labels, so we can drop them to save memory
+    columns_to_compute = [col for col in grid_df_.columns if col not in DIFFAE_PC_COLUMN_NAMES]
+    grid_df = grid_df_[columns_to_compute].compute()
+
+    if max_num_positions is not None:
+        first_position = grid_df[Column.POSITION].unique()[0]
+        grid_df = grid_df[grid_df[Column.POSITION] == first_position]
+    if max_num_timepoints is not None:
+        timepoints = grid_df[Column.TIMEPOINT].unique()[:max_num_timepoints]
+        grid_df = grid_df[grid_df[Column.TIMEPOINT].isin(timepoints)]
     out_dir = get_output_path(__file__)
     create_grid_segmentation_images(grid_df, out_dir)
 
@@ -65,11 +102,37 @@ def main(datasets: Datasets | None = None, n_cores: int = 4):
     # the segmentations we produced earlier when we load a grid-based
     # DiffAE dataframe for each dataset.
     for dataset_name in datasets:
-        grid_df = load_grid_diffae_df_for_tfe(dataset_name)
+        if dataset_name not in dataframe_manifest.locations:
+            logger.warning(
+                "Dataset [ %s ] does not have a grid-based DiffAE dataframe, skipping.",
+                dataset_name,
+            )
+            continue
+        # load the grid-based DiffAE dataframe for the current dataset to get
+        # the crop locations and crop labels for a given dataset
+        dataframe_location = get_dataframe_location_for_dataset(dataframe_manifest, dataset_name)
+        grid_df_ = load_dataframe(dataframe_location, delay=True)
+
+        # don't need the feature columns for this workflow, just the crop locations
+        # and labels, so we can drop them to save memory
+        columns_to_compute = [col for col in grid_df_.columns if col not in DIFFAE_PC_COLUMN_NAMES]
+        grid_df = grid_df_[columns_to_compute].compute()
+
+        if max_num_positions is not None:
+            first_position = grid_df[Column.POSITION].unique()[0]
+            grid_df = grid_df[grid_df[Column.POSITION] == first_position]
+        if max_num_timepoints is not None:
+            timepoints = grid_df[Column.TIMEPOINT].unique()[:max_num_timepoints]
+            grid_df = grid_df[grid_df[Column.TIMEPOINT].isin(timepoints)]
 
         nm, df = zip(*grid_df.groupby([Column.POSITION, Column.TIMEPOINT]), strict=True)
         num_seg_files = len(nm)
-        with ProcessPoolExecutor(max_workers=n_cores) as worker_pool:
+        # Use 'spawn' instead of the default 'fork' start method to avoid
+        # deadlocks on Slurm-managed clusters. Forking after Dask/NumPy have
+        # initialised internal threads leaves inherited mutexes permanently
+        # locked in the child processes, causing the pool to hang.
+        mp_context = multiprocessing.get_context("spawn")
+        with ProcessPoolExecutor(max_workers=n_cores, mp_context=mp_context) as worker_pool:
             list(
                 tqdm(
                     worker_pool.map(
