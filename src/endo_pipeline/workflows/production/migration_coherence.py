@@ -1,8 +1,8 @@
-from endo_pipeline.cli import Datasets
+from typing import Literal
 
 
 def main(
-    datasets: Datasets | None = None,
+    dataset_summary_list: Literal["low_high", "intermediate", "perturbation"] = "intermediate",
     plot_fixed_points: bool = True,
     skip_individual_plots: bool = False,
 ) -> None:
@@ -12,9 +12,10 @@ def main(
 
     Parameters
     ----------
-    datasets:
+    dataset_summary_list:
         List of dataset names to include in the analysis.
-        Defaults to all datasets in the "optical_flow_analysis" collection.
+        Can be one of "low_high", "intermediate", or "perturbation".
+        Defaults to all datasets in the "intermediate" collection.
     plot_fixed_points:
         Whether to overlay fixed points on the migration coherence plots.
     skip_individual_plots:
@@ -27,11 +28,7 @@ def main(
     import pandas as pd
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import (
-        TimepointAnnotation,
-        get_datasets_in_collection,
-        load_dataset_config,
-    )
+    from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_annotations,
@@ -67,6 +64,7 @@ def main(
         STABILITY_MARKER_DICT,
     )
     from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
+    from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -86,8 +84,7 @@ def main(
 
     output_dir = get_output_path(__file__)
 
-    if datasets is None:
-        datasets = get_datasets_in_collection("optical_flow_analysis")
+    datasets = SUMMARY_PLOT_DATASETS[dataset_summary_list]
 
     if DEMO_MODE:
         datasets = datasets[:1]
