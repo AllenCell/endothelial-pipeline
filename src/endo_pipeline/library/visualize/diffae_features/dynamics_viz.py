@@ -7,7 +7,11 @@ import numpy as np
 from matplotlib.colors import TwoSlopeNorm
 from mpl_toolkits.mplot3d import Axes3D
 
-from endo_pipeline.settings.plot_defaults import SHEAR_COLOR_DICT
+from endo_pipeline.settings.plot_defaults import (
+    DRIFT_COLORBAR_VMAX,
+    DRIFT_COLORBAR_VMIN,
+    SHEAR_COLOR_DICT,
+)
 
 
 def plot_drift_contours(
@@ -16,8 +20,8 @@ def plot_drift_contours(
     variable_labels: list[str],
     axes_limits: list[tuple[float, float]],
     fig_ax: tuple[plt.Figure, tuple[plt.Axes, plt.Axes]] | None = None,
-    vmin: float | None = None,
-    vmax: float | None = None,
+    vmin: float | None = DRIFT_COLORBAR_VMIN,
+    vmax: float | None = DRIFT_COLORBAR_VMAX,
 ) -> tuple[plt.Figure, tuple[plt.Axes, plt.Axes]]:
     """
     Make and save contour plot of each component of the drift vector field over
