@@ -411,5 +411,5 @@ def save_plot_to_path(
     figure.savefig(output_file, dpi=dpi, transparent=transparent, pad_inches=pad_inches)
 
     if show_and_close:
-        plt.show()
+        plt.show(block=False)
         plt.close(figure)
