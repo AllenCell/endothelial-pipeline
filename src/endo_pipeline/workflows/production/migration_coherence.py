@@ -82,7 +82,7 @@ def main(
     fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
     fixed_points_dataframe_manifest = load_dataframe_manifest(fixed_points_dataframe_manifest_name)
 
-    output_dir = get_output_path(__file__)
+    output_dir = get_output_path(__file__, dataset_summary_list)
 
     datasets = SUMMARY_PLOT_DATASETS[dataset_summary_list]
 
