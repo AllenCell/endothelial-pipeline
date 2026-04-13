@@ -71,9 +71,11 @@ def plot_drift_contours(
         ax.set_ylabel(variable_labels[1])
         ax.set_xlim(axes_limits[0])
         ax.set_ylim(axes_limits[1])
-        fig.suptitle(
-            f"{fig_title} \n d{var_name}/dt vs ({variable_labels[0]}, {variable_labels[1]})", y=1.05
-        )
+        if fig_title is not None:
+            fig.suptitle(
+                f"{fig_title} \n d{var_name}/dt vs ({variable_labels[0]}, {variable_labels[1]})",
+                y=1.05,
+            )
         var_name_for_file = var_name.replace("$", "").replace("\\", "")
         save_plot_to_path(fig, fig_savedir, f"{filename_prefix}_d{var_name_for_file}dt")
 
@@ -167,7 +169,10 @@ def plot_and_save_drift_quiver(
     ax.set_ylabel(variable_labels[1])
     ax.set_xlim(axes_limits[0])
     ax.set_ylim(axes_limits[1])
-    fig.suptitle(f"{fig_title} \n drift in ({variable_labels[0]}, {variable_labels[1]})", y=1.05)
+    if fig_title is not None:
+        fig.suptitle(
+            f"{fig_title} \n drift in ({variable_labels[0]}, {variable_labels[1]})", y=1.05
+        )
     save_plot_to_path(fig, fig_savedir, f"{filename_prefix}_drift_quiver")
 
 
