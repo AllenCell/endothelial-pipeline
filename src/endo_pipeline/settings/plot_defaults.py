@@ -37,3 +37,6 @@ DRIFT_CONTOUR_VMAX: float = 0.25
 
 DRIFT_CONTOUR_LEVELS: int = 50
 """Number of contour levels to use in contour plots of drift components."""
+
+DRIFT_CONTOUR_COLORMAP: str = "RdBu_r"
+"""Colormap to use for contour plots of drift components."""

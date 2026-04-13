@@ -8,6 +8,7 @@ from matplotlib.colors import TwoSlopeNorm
 from mpl_toolkits.mplot3d import Axes3D
 
 from endo_pipeline.settings.plot_defaults import (
+    DRIFT_CONTOUR_COLORMAP,
     DRIFT_CONTOUR_LEVELS,
     DRIFT_CONTOUR_VMAX,
     DRIFT_CONTOUR_VMIN,
@@ -21,6 +22,7 @@ def plot_drift_contours(
     variable_labels: list[str],
     axes_limits: list[tuple[float, float]],
     fig_ax: tuple[plt.Figure, tuple[plt.Axes, plt.Axes]] | None = None,
+    colormap: str = DRIFT_CONTOUR_COLORMAP,
     vmin: float | None = DRIFT_CONTOUR_VMIN,
     vmax: float | None = DRIFT_CONTOUR_VMAX,
     num_levels: int = DRIFT_CONTOUR_LEVELS,
@@ -49,6 +51,8 @@ def plot_drift_contours(
         Optional tuple of (Figure, (Axes, Axes)) to plot on. If None, a new
         figure and axes will be created; if provided, the contour plots will be
         made on the provided axes.
+    colormap
+        Colormap to use for the contour plots.
     vmin
         Optional, minimum colorbar value for the contour plots.
     vmax
@@ -63,6 +67,7 @@ def plot_drift_contours(
         vmin_ = vmin or np.nanmin(drift[..., var_index])
         vmax_ = vmax or np.nanmax(drift[..., var_index])
         contour_levels = np.linspace(vmin_, vmax_, num_levels)
+        # center colormap at zero to visualize sign and magnitude of drift
         colormap_norm = TwoSlopeNorm(vmin=vmin_, vmax=vmax_, vcenter=0)
 
         contour = ax[var_index].contourf(
@@ -70,7 +75,7 @@ def plot_drift_contours(
             meshgrid[1],
             drift[..., var_index],
             levels=contour_levels,
-            cmap="RdBu_r",
+            cmap=colormap,
             norm=colormap_norm,
             extend="both",
         )
