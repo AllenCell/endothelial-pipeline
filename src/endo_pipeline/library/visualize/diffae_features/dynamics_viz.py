@@ -12,12 +12,12 @@ from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.settings.plot_defaults import SHEAR_COLOR_DICT
 
 
-def plot_and_save_drift_contours(
+def plot_drift_contours(
     meshgrid: tuple[np.ndarray, np.ndarray],
     drift: np.ndarray,
     variable_labels: list[str],
     axes_limits: list[tuple[float, float]],
-    fig_title: str,
+    fig_title: str | None,
     fig_savedir: Path,
     filename_prefix: str,
 ) -> None:
@@ -40,7 +40,7 @@ def plot_and_save_drift_contours(
     axes_limits
         Limits for the axes, specified as a list of tuples.
     fig_title
-        Title for the figure.
+        Optional title for the figure.
     fig_savedir
         Directory to save the figure.
     filename_prefix
@@ -83,7 +83,7 @@ def plot_and_save_drift_quiver(
     drift: np.ndarray,
     variable_labels: list[str],
     axes_limits: list[tuple[float, float]],
-    fig_title: str,
+    fig_title: str | None,
     fig_savedir: Path,
     filename_prefix: str,
     include_nullclines: bool = True,
@@ -109,7 +109,7 @@ def plot_and_save_drift_quiver(
     axes_limits
         Limits for the axes, specified as a list of tuples.
     fig_title
-        Title for the figure.
+        Optional title for the figure.
     fig_savedir
         Directory to save the figure.
     filename_prefix
