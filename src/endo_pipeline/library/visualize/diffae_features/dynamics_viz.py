@@ -7,15 +7,15 @@ import numpy as np
 from matplotlib.colors import TwoSlopeNorm
 from mpl_toolkits.mplot3d import Axes3D
 
-from endo_pipeline.settings.plot_defaults import (
+from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_CBAR_NUM_TICKS,
     DRIFT_CONTOUR_CBAR_ROUND,
     DRIFT_CONTOUR_COLORMAP,
     DRIFT_CONTOUR_LEVELS,
     DRIFT_CONTOUR_VMAX,
     DRIFT_CONTOUR_VMIN,
-    SHEAR_COLOR_DICT,
 )
+from endo_pipeline.settings.plot_defaults import SHEAR_COLOR_DICT
 
 
 def plot_drift_contours(
