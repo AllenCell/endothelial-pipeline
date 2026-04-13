@@ -364,9 +364,10 @@ def match_bootstrap_fixed_points_to_baseline(
 
         assigned_boot_indices: set[int] = set()
         for baseline_idx in range(n_baseline):
-            print(
-                f"Matching for baseline FP {baseline_fixed_points_array[baseline_idx]} "
-                f"(stability={baseline_stabilities[baseline_idx]})"
+            logger.debug(
+                "Matching for baseline FP  [ %s ] (stability = %s )",
+                tuple(baseline_fixed_points_array[baseline_idx]),
+                baseline_stabilities[baseline_idx],
             )
             row_dists = pairwise_dists[baseline_idx].copy()
             # Exclude bootstrap FPs with a different stability classification
@@ -375,9 +376,10 @@ def match_bootstrap_fixed_points_to_baseline(
             sorted_boot_idxs = np.argsort(row_dists)
             valid_boot_idxs = sorted_boot_idxs[row_dists[sorted_boot_idxs] != np.inf]
             for boot_idx in valid_boot_idxs:
-                print(
-                    f"Checking bootstrap FP {fixed_point_result_array[boot_idx]} "
-                    f"(stability={boot_stabilities[boot_idx]}) with distance {row_dists[boot_idx]:.4f}"
+                logger.debug(
+                    "Checking bootstrap FP  [ %s ] with distance %.4f",
+                    tuple(fixed_point_result_array[boot_idx]),
+                    row_dists[boot_idx],
                 )
                 # check if this bootstrap FP has already been matched to a
                 # different baseline FP in this iteration
@@ -388,11 +390,11 @@ def match_bootstrap_fixed_points_to_baseline(
                 # baseline FP can be matched to at most one bootstrap FP per
                 # iteration)
                 if row_dists[boot_idx] <= bootstrap_match_radius:
-                    print("-> Match found!")
+                    logger.debug("-> Match found!")
                     matched_coords[baseline_idx].append(fixed_point_result_array[boot_idx])
                     assigned_boot_indices.add(boot_idx)
                     break
-                print("-> No match.")
+                logger.debug("-> No match.")
 
     return matched_coords
 
