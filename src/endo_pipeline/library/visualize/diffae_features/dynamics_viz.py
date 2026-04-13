@@ -1,6 +1,5 @@
 """Methods for visualizing the outputs of the DiffAE feature analysis workflows."""
 
-from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
@@ -8,7 +7,6 @@ import numpy as np
 from matplotlib.colors import TwoSlopeNorm
 from mpl_toolkits.mplot3d import Axes3D
 
-from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.settings.plot_defaults import SHEAR_COLOR_DICT
 
 
@@ -18,10 +16,11 @@ def plot_drift_contours(
     variable_labels: list[str],
     axes_limits: list[tuple[float, float]],
     fig_title: str | None,
-    fig_savedir: Path,
-    filename_prefix: str,
-) -> None:
-    """Make and save contour plot of each component of the drift vector field over the 2D state space.
+    fig_ax: tuple[plt.Figure, tuple[plt.Axes, plt.Axes]] | None = None,
+) -> tuple[plt.Figure, tuple[plt.Axes, plt.Axes]]:
+    """
+    Make and save contour plot of each component of the drift vector field over
+    the 2D state space.
 
     The contour lines are colored according to the value of the drift component,
     using a diverging colormap centered at zero to visualize the direction and
@@ -41,15 +40,16 @@ def plot_drift_contours(
         Limits for the axes, specified as a list of tuples.
     fig_title
         Optional title for the figure.
-    fig_savedir
-        Directory to save the figure.
-    filename_prefix
-        Prefix for the filename when saving the figure, e.g., "dataset_1".
+    fig_ax
+        Optional tuple of (Figure, (Axes, Axes)) to plot on. If None, a new
+        figure and axes will be created; if provided, the contour plots will be
+        made on the provided axes.
 
     """
+    fig, ax = fig_ax or plt.subplots(2, 1, figsize=(7, 12))
+
     for var_index, var_name in enumerate(variable_labels):
-        fig, ax = plt.subplots()
-        contour = ax.contourf(
+        contour = ax[var_index].contourf(
             meshgrid[0],
             meshgrid[1],
             drift[..., var_index],
@@ -58,7 +58,7 @@ def plot_drift_contours(
             norm=TwoSlopeNorm(vcenter=0),
         )
         # add dashed line for nullcline
-        ax.contour(
+        ax[var_index].contour(
             meshgrid[0],
             meshgrid[1],
             drift[..., var_index],
@@ -66,18 +66,18 @@ def plot_drift_contours(
             colors="k",
             linestyles="dashed",
         )
-        fig.colorbar(contour, ax=ax, label=f"d{var_name}/dt")
-        ax.set_xlabel(variable_labels[0])
-        ax.set_ylabel(variable_labels[1])
-        ax.set_xlim(axes_limits[0])
-        ax.set_ylim(axes_limits[1])
+        fig.colorbar(contour, ax=ax[var_index], label=f"d{var_name}/dt")
+        ax[var_index].set_xlabel(variable_labels[0])
+        ax[var_index].set_ylabel(variable_labels[1])
+        ax[var_index].set_xlim(axes_limits[0])
+        ax[var_index].set_ylim(axes_limits[1])
         if fig_title is not None:
             fig.suptitle(
                 f"{fig_title} \n d{var_name}/dt vs ({variable_labels[0]}, {variable_labels[1]})",
                 y=1.05,
             )
-        var_name_for_file = var_name.replace("$", "").replace("\\", "")
-        save_plot_to_path(fig, fig_savedir, f"{filename_prefix}_d{var_name_for_file}dt")
+
+    return fig, ax
 
 
 def plot_drift_quiver(
@@ -86,8 +86,7 @@ def plot_drift_quiver(
     variable_labels: list[str],
     axes_limits: list[tuple[float, float]],
     fig_title: str | None,
-    fig_savedir: Path,
-    filename_prefix: str,
+    fig_ax: tuple[plt.Figure, plt.Axes] | None = None,
     include_nullclines: bool = True,
     quiver_scale: float = 10,
     quiver_color: str = "k",
@@ -96,7 +95,8 @@ def plot_drift_quiver(
     nullcline_linewidth: float = 1.5,
     nullcline_opacity: float = 0.7,
 ):
-    """Make and save quiver plot of the drift vector field over the 2D state space.
+    """
+    Make and save quiver plot of the drift vector field over the 2D state space.
 
     Parameters
     ----------
@@ -112,10 +112,10 @@ def plot_drift_quiver(
         Limits for the axes, specified as a list of tuples.
     fig_title
         Optional title for the figure.
-    fig_savedir
-        Directory to save the figure.
-    filename_prefix
-        Prefix for the filename when saving the figure, e.g., "dataset_1".
+    fig_ax
+        Optional tuple of (Figure, Axes) to plot on. If None, a new figure and
+        axes will be created; if provided, the quiver plot will be made on the
+        provided axes.
     include_nullclines
         Whether to include nullclines (where drift components are zero).
     quiver_scale
@@ -132,7 +132,7 @@ def plot_drift_quiver(
         Opacity for the nullcline lines (between 0 and 1).
 
     """
-    fig, ax = plt.subplots()
+    fig, ax = fig_ax or plt.subplots()
     ax.quiver(
         meshgrid[0],
         meshgrid[1],
@@ -173,7 +173,8 @@ def plot_drift_quiver(
         fig.suptitle(
             f"{fig_title} \n drift in ({variable_labels[0]}, {variable_labels[1]})", y=1.05
         )
-    save_plot_to_path(fig, fig_savedir, f"{filename_prefix}_drift_quiver")
+
+    return fig, ax
 
 
 def plot_fixed_points_by_shear(
