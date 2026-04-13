@@ -354,6 +354,14 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "ticks": range(0, 181, 90),
             "discrete_ticks": False,
         },
+        Column.SegData.ORIENTATION: {
+            "column_name": Column.SegData.ORIENTATION,
+            "label": "Orientation",
+            "lims": (0, 180),
+            "bin_width": 5,
+            "ticks": range(0, 181, 90),
+            "discrete_ticks": False,
+        },
         Column.SegData.NEMATIC_ORDER: {
             "column_name": Column.SegData.NEMATIC_ORDER,
             "label": "Nematic Order",
@@ -380,7 +388,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         },
         Column.SegData.AREA_UM_SQ: {
             "column_name": Column.SegData.AREA_UM_SQ,
-            "label": "Area (μm²)",
+            "label": "Area",
             "lims": (350, 2000),
             "bin_width": None,
             "ticks": None,

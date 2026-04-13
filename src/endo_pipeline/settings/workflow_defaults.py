@@ -91,7 +91,7 @@ SegFeatureColumnDict: TypeAlias = dict[
 SEGMENTATION_FEATURE_COLUMNS: SegFeatureColumnDict = {
     "default": [
         Column.SegData.ALIGNMENT_DEG,
-        Column.SegData.ORIENTATION_DEG,
+        Column.SegData.ORIENTATION,
         Column.SegData.ASPECT_RATIO,
         Column.SegData.CENTROID_VELOCITY_ANGLE_DEG,
         Column.SegData.CELL_FLUOR_MEAN,
@@ -102,7 +102,7 @@ SEGMENTATION_FEATURE_COLUMNS: SegFeatureColumnDict = {
     ],
     "supp": [
         Column.SegData.ALIGNMENT_DEG,
-        Column.SegData.ORIENTATION_DEG,
+        Column.SegData.ORIENTATION,
         Column.SegData.ORIENTATION,
         Column.SegData.ASPECT_RATIO,
         Column.SegData.NEMATIC_ORDER,
