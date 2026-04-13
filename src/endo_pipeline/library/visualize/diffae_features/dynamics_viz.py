@@ -8,6 +8,8 @@ from matplotlib.colors import TwoSlopeNorm
 from mpl_toolkits.mplot3d import Axes3D
 
 from endo_pipeline.settings.plot_defaults import (
+    DRIFT_CONTOUR_CBAR_NUM_TICKS,
+    DRIFT_CONTOUR_CBAR_ROUND,
     DRIFT_CONTOUR_COLORMAP,
     DRIFT_CONTOUR_LEVELS,
     DRIFT_CONTOUR_VMAX,
@@ -26,6 +28,8 @@ def plot_drift_contours(
     vmin: float | None = DRIFT_CONTOUR_VMIN,
     vmax: float | None = DRIFT_CONTOUR_VMAX,
     num_levels: int = DRIFT_CONTOUR_LEVELS,
+    cbar_num_ticks: int = DRIFT_CONTOUR_CBAR_NUM_TICKS,
+    cbar_tick_round: int = DRIFT_CONTOUR_CBAR_ROUND,
 ) -> tuple[plt.Figure, tuple[plt.Axes, plt.Axes]]:
     """
     Make and save contour plot of each component of the drift vector field over
@@ -59,6 +63,10 @@ def plot_drift_contours(
         Optional, maximum colorbar value for the contour plots.
     num_levels
         Number of contour levels to use in the plot.
+    cbar_num_ticks
+        Number of ticks to use in the colorbar for each contour plot.
+    cbar_tick_round
+        Number of decimal places to round colorbar ticks to in the contour plots.
 
     """
     fig, ax = fig_ax or plt.subplots(2, 1, figsize=(7, 12))
@@ -69,6 +77,8 @@ def plot_drift_contours(
         contour_levels = np.linspace(vmin_, vmax_, num_levels)
         # center colormap at zero to visualize sign and magnitude of drift
         colormap_norm = TwoSlopeNorm(vmin=vmin_, vmax=vmax_, vcenter=0)
+        colorbar_ticks = np.linspace(vmin_, vmax_, cbar_num_ticks)
+        colorbar_ticks = np.round(colorbar_ticks, cbar_tick_round)
 
         contour = ax[var_index].contourf(
             meshgrid[0],
@@ -88,7 +98,7 @@ def plot_drift_contours(
             colors="k",
             linestyles="dashed",
         )
-        fig.colorbar(contour, ax=ax[var_index], label=f"d{var_name}/dt")
+        fig.colorbar(contour, ax=ax[var_index], label=f"d{var_name}/dt", ticks=colorbar_ticks)
         ax[var_index].set_xlabel(variable_labels[0])
         ax[var_index].set_ylabel(variable_labels[1])
         ax[var_index].set_xlim(axes_limits[0])
