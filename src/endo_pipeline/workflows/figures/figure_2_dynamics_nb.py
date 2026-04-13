@@ -6,10 +6,7 @@ import numpy as np
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import get_output_path, load_dataframe
-from endo_pipeline.library.analyze.dataframe_filtering import (
-    filter_dataframe_by_flow_condition,
-    filter_dataframe_to_steady_state,
-)
+from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
     get_kernel_density_estimate_from_trajectories,
     get_kramers_moyal_coeffs,
@@ -120,103 +117,95 @@ for dataset_name, panel_letters, y_position in [
     df = df_[columns_to_compute].compute()
     df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
 
-    # compute on a per-shear stress condition basis
-    for flow_condition in dataset_config.flow_conditions:
-        dataset_name_flow = f"{dataset_name}_shear_{int(flow_condition.shear_stress)}"
-        fig_title = f"{dataset_name} ({flow_condition.shear_stress} dym/cm$^2$)"
-        df_flow = filter_dataframe_by_flow_condition(
-            df_steady_state, dataset_config, flow_condition
-        )
+    # build kernels for each variable in the pair based on settings,
+    # adjusting for periodicity if needed, and get bin edges and
+    # centers for each variable in the pair. also get variable labels
+    # and axis limits for plotting, adjusting limits if rescaling
+    # theta and if not using global limits
+    bins, centers = get_bins(
+        bin_widths=bin_widths,
+        data=df_steady_state[column_names].to_numpy(),
+        lower_percentile=BIN_LIMIT_PERCENTILE_CUTOFF,
+        upper_percentile=100 - BIN_LIMIT_PERCENTILE_CUTOFF,
+    )
 
-        # build kernels for each variable in the pair based on settings,
-        # adjusting for periodicity if needed, and get bin edges and
-        # centers for each variable in the pair. also get variable labels
-        # and axis limits for plotting, adjusting limits if rescaling
-        # theta and if not using global limits
-        bins, centers = get_bins(
-            bin_widths=bin_widths,
-            data=df_flow[column_names].to_numpy(),
-            lower_percentile=BIN_LIMIT_PERCENTILE_CUTOFF,
-            upper_percentile=100 - BIN_LIMIT_PERCENTILE_CUTOFF,
-        )
+    # get 2D trajectories and differences for the pair of variables
+    traj_2d, diff_2d = get_traj_and_diff(df_steady_state, column_names=column_names)
 
-        # get 2D trajectories and differences for the pair of variables
-        traj_2d, diff_2d = get_traj_and_diff(df_flow, column_names=column_names)
+    drift, _ = get_kramers_moyal_coeffs(
+        traj_2d,
+        diff_2d,
+        bins=bins,
+        dt=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
+        kernel=kernels,
+    )
 
-        drift, _ = get_kramers_moyal_coeffs(
-            traj_2d,
-            diff_2d,
-            bins=bins,
-            dt=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
-            kernel=kernels,
-        )
+    # get 2D meshgrid of bin centers for plotting
+    centers_mesh = np.meshgrid(*centers, indexing="ij")
 
-        # get 2D meshgrid of bin centers for plotting
-        centers_mesh = np.meshgrid(*centers, indexing="ij")
+    # get histogram for masking low-confidence regions of drift
+    # estimates, using same kernels as for drift estimation, and set
+    # drift to nan in low-confidence regions
+    hist_kde = get_kernel_density_estimate_from_trajectories(
+        traj_2d,
+        bins=bins,
+        kernel=kernels,
+    )
+    low_confidence_mask = hist_kde < HISTOGRAM_THRESHOLD_FOR_MASKING
+    drift[low_confidence_mask] = np.nan
 
-        # get histogram for masking low-confidence regions of drift
-        # estimates, using same kernels as for drift estimation, and set
-        # drift to nan in low-confidence regions
-        hist_kde = get_kernel_density_estimate_from_trajectories(
-            traj_2d,
-            bins=bins,
-            kernel=kernels,
-        )
-        low_confidence_mask = hist_kde < HISTOGRAM_THRESHOLD_FOR_MASKING
-        drift[low_confidence_mask] = np.nan
+    filename_prefix = f"{dataset_name}_{'_'.join(column_names)}"
+    # plot drift contours and save
+    axes_limits = [(bins[0][0], bins[0][-1]), (bins[1][0], bins[1][-1])]
+    plot_and_save_drift_contours(
+        centers_mesh,
+        drift,
+        variable_labels=variable_labels,
+        axes_limits=axes_limits,
+        fig_title=dataset_name,
+        fig_savedir=fig_savedir,
+        filename_prefix=filename_prefix,
+        file_format=".svg",
+    )
 
-        filename_prefix = f"{dataset_name_flow}_{'_'.join(column_names)}"
-        # plot drift contours and save
-        axes_limits = [(bins[0][0], bins[0][-1]), (bins[1][0], bins[1][-1])]
-        plot_and_save_drift_contours(
-            centers_mesh,
-            drift,
-            variable_labels=variable_labels,
-            axes_limits=axes_limits,
-            fig_title=fig_title,
-            fig_savedir=fig_savedir,
-            filename_prefix=filename_prefix,
-            file_format=".svg",
-        )
+    # plot quiver plot of drift and save
+    plot_and_save_drift_quiver(
+        centers_mesh,
+        drift,
+        variable_labels=variable_labels,
+        axes_limits=axes_limits,
+        fig_title=dataset_name,
+        fig_savedir=fig_savedir,
+        filename_prefix=filename_prefix,
+        file_format=".svg",
+    )
 
-        # plot quiver plot of drift and save
-        plot_and_save_drift_quiver(
-            centers_mesh,
-            drift,
-            variable_labels=variable_labels,
-            axes_limits=axes_limits,
-            fig_title=fig_title,
-            fig_savedir=fig_savedir,
-            filename_prefix=filename_prefix,
-            file_format=".svg",
-        )
+    r_contour = FigurePanel(
+        letter=panel_letters[0],
+        path=fig_savedir / f"{filename_prefix}_drdt.svg",
+        x_position=0,
+        y_position=y_position,
+        x_offset=0.08,
+        y_offset=0,
+    )
 
-        r_contour = FigurePanel(
-            letter=panel_letters[0],
-            path=fig_savedir / f"{filename_prefix}_drdt.svg",
-            x_position=0,
-            y_position=y_position,
-            x_offset=0.08,
-            y_offset=0,
-        )
-
-        rho_contour = FigurePanel(
-            letter=panel_letters[1],
-            path=fig_savedir / f"{filename_prefix}_drhodt.svg",
-            x_position=MAX_FIGURE_WIDTH / 3,
-            y_position=y_position,
-            x_offset=0.08,
-            y_offset=0,
-        )
-        quiver_plot = FigurePanel(
-            letter=panel_letters[2],
-            path=fig_savedir / f"{filename_prefix}_drift_quiver.svg",
-            x_position=2 * MAX_FIGURE_WIDTH / 3,
-            y_position=y_position,
-            x_offset=0.08,
-            y_offset=0.08,
-        )
-        panels.extend([r_contour, rho_contour, quiver_plot])
+    rho_contour = FigurePanel(
+        letter=panel_letters[1],
+        path=fig_savedir / f"{filename_prefix}_drhodt.svg",
+        x_position=MAX_FIGURE_WIDTH / 3,
+        y_position=y_position,
+        x_offset=0.08,
+        y_offset=0,
+    )
+    quiver_plot = FigurePanel(
+        letter=panel_letters[2],
+        path=fig_savedir / f"{filename_prefix}_drift_quiver.svg",
+        x_position=2 * MAX_FIGURE_WIDTH / 3,
+        y_position=y_position,
+        x_offset=0.08,
+        y_offset=0.08,
+    )
+    panels.extend([r_contour, rho_contour, quiver_plot])
 
 # %%
 output_path = get_output_path(__file__) / "test_build_fig.svg"
