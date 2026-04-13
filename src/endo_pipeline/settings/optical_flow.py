@@ -87,6 +87,16 @@ DIFFAE_DATAFRAME_METADATA_TO_COMPUTE: tuple[str, ...] = (
 )
 """Metadata columns from Diff AE feature dataframe needed for optical flow computations."""
 
+OPTICAL_FLOW_COLUMNS_TO_COMPUTE: dict[str, tuple[str, ...]] = {
+    "grid": DIFFAE_DATAFRAME_METADATA_TO_COMPUTE,
+    "tracked": DIFFAE_DATAFRAME_METADATA_TO_COMPUTE
+    + (
+        ColumnName.TRACK_ID,
+        ColumnName.DiffAEData.CROP_SIZE_X,
+    ),
+}
+"""Metadata columns keyed by crop pattern (``'grid'`` or ``'tracked'``)."""
+
 # ---------------------------------------------------------------------------
 # Feature names
 # ---------------------------------------------------------------------------

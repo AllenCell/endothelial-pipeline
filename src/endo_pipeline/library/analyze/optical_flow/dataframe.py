@@ -20,6 +20,32 @@ from endo_pipeline.settings.optical_flow import (
 # ---------------------------------------------------------------------------
 # Feature column helpers
 # ---------------------------------------------------------------------------
+def build_ema_stems(
+    compute_fast_coherence: bool = False,
+    compute_radial_coherence: bool = False,
+) -> list[str]:
+    """Return the list of EMA stem names for the enabled coherence features.
+
+    Parameters
+    ----------
+    compute_fast_coherence
+        If True, include speed-thresholded coherence stems.
+    compute_radial_coherence
+        If True, include radial coherence stems.
+
+    Returns
+    -------
+    :
+        Stem names suitable for building ``ema{tag}_{stem}_dt{d}`` columns.
+    """
+    stems: list[str] = list(OPTICAL_FLOW_EMA_STEMS)
+    if compute_fast_coherence:
+        stems += OPTICAL_FLOW_EMA_FAST_STEMS
+    if compute_radial_coherence:
+        stems += OPTICAL_FLOW_EMA_RADIAL_STEMS
+    return stems
+
+
 def build_optical_flow_feature_cols(
     max_dt: int,
     compute_block_coherence: bool = False,
@@ -77,11 +103,7 @@ def build_optical_flow_feature_cols(
         features += [f"optical_flow_angle_std_box{box}" for box in coherence_box_sizes]
 
     # --- EMA-smoothed coherence columns ---
-    ema_stems: list[str] = list(OPTICAL_FLOW_EMA_STEMS)
-    if compute_fast_coherence:
-        ema_stems += OPTICAL_FLOW_EMA_FAST_STEMS
-    if compute_radial_coherence:
-        ema_stems += OPTICAL_FLOW_EMA_RADIAL_STEMS
+    ema_stems = build_ema_stems(compute_fast_coherence, compute_radial_coherence)
 
     ema_features: list[str] = []
     for alpha in ema_alphas:
@@ -160,7 +182,7 @@ def pivot_flow_records(records: list[dict]) -> pd.DataFrame:
 
     Returns
     -------
-    pd.DataFrame
+    :
         Wide-format DataFrame indexed by ``crop_index`` and
         ``timepoint``, with one column per feature-dt combination.
     """
