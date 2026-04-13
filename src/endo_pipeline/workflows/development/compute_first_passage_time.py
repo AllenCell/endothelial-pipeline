@@ -49,6 +49,7 @@ def main(
         LONG_TRACK_THRESHOLD_LENGTH,
     )
     from endo_pipeline.settings.flow_field_3d import DATASET_COLLECTION_FOR_3D_DYNAMICS
+    from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
     from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
@@ -112,12 +113,6 @@ def main(
             dataframe=trajectories_df, minimum_track_length=LONG_TRACK_THRESHOLD_LENGTH
         )
 
-        timepoint_units = dataset_config.time_interval_in_minutes / 60
-        # add the time in hours as a column since flow field units are 1/hours
-        trajectories_df[Column.SegData.TIME_HRS] = (
-            trajectories_df[Column.TIMEPOINT] * timepoint_units
-        )
-
         # load the flow field dictionaries and fixed points
         drift_df = get_drift_df(dataset_name)
         drift_values, grid_points_1d = get_drift_values_and_grid_from_drift_df(
@@ -152,6 +147,10 @@ def main(
         )
 
         # create a list of arguments to pass to the ODE solver through multiprocessing
+        # first we need to define the timepoint units to pass to the ODE solver
+        # which should be in hours since the flow field is in units of 1/hours
+        timepoint_units = dataset_config.time_interval_in_minutes / 60
+
         ivp_args_mp: list[dict] = []
         for (crop_i, track_duration, timepoint), init_df in crop_indices_and_initial_conditions:
             ivp_args_mp.append(
@@ -160,7 +159,8 @@ def main(
                     "flow_field_dict": extrapolated_flow_field_dict_reg,
                     "initial_condition": init_df.values.flatten(),
                     "timepoint_initial": timepoint,
-                    "trajectory_duration": track_duration,
+                    # simulate for up to 3x the duration of the measured trajectory
+                    "trajectory_duration": track_duration * 3,
                     # convert time units to hours for the ODE solver
                     "time_units_for_solver": timepoint_units,
                     "simulation_results_column_names": list(DYNAMICS_COLUMN_NAMES),
@@ -182,9 +182,18 @@ def main(
         trajectories_df_sub = trajectories_df[
             trajectories_df[Column.CROP_INDEX].isin(traj_sim_df[Column.CROP_INDEX].unique())
         ]
-        merging_columns = [Column.CROP_INDEX, Column.TRACK_LENGTH, Column.TIMEPOINT]
-        trajectories_df_sub = trajectories_df_sub.merge(
-            traj_sim_df, on=merging_columns, how="outer"
+        merging_columns = [Column.CROP_INDEX, Column.TIMEPOINT]
+        trajectories_df_sub = pd.merge(
+            left=trajectories_df_sub,
+            right=traj_sim_df,
+            on=merging_columns,
+            how="outer",
+            suffixes=(f"_{crop_pattern}", "_simulated"),
+        )
+
+        # add the time in hours as a column since flow field units are 1/hours
+        trajectories_df_sub[Column.SegData.TIME_HRS] = (
+            trajectories_df_sub[Column.TIMEPOINT] * timepoint_units
         )
 
         # add the distances to the fixed points for the measured trajectories
@@ -206,6 +215,7 @@ def main(
         )
 
         for i in fixed_points_df.index:
+            fixed_point_stability = fixed_points_df.loc[i, STABILITY_COLUMN_NAME]
             time_of_first_passage = []
             time_of_first_passage.append(
                 get_time_of_first_passage(
@@ -225,6 +235,7 @@ def main(
 
             plot_time_of_first_passage_histogram(
                 fixed_point_id=i,
+                fixed_point_stability=fixed_point_stability,
                 dataset_config=dataset_config,
                 time_of_first_passage_df=time_of_first_passage_df,
                 out_dir=out_dir,
@@ -233,6 +244,7 @@ def main(
 
             plot_time_of_first_passage_scatterplot(
                 fixed_point_id=i,
+                fixed_point_stability=fixed_point_stability,
                 dataset_config=dataset_config,
                 time_of_first_passage_df=time_of_first_passage_df,
                 out_dir=out_dir,

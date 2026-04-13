@@ -1113,6 +1113,7 @@ def plot_trajectory_measured_vs_simulation_over_flow_field(
 
 def plot_time_of_first_passage_histogram(
     fixed_point_id: int,
+    fixed_point_stability: str,
     dataset_config: DatasetConfig,
     time_of_first_passage_df: pd.DataFrame,
     out_dir: Path,
@@ -1216,16 +1217,20 @@ def plot_time_of_first_passage_histogram(
         ).title()
     )
     ax.legend()
+    filename = (
+        f"{crop_pattern}_traj_reaching_fp_{fixed_point_id}_{fixed_point_stability}_histogram.png"
+    )
     save_plot_to_path(
         fig,
         out_dir,
-        f"{crop_pattern}_trajectories_approaching_fp_{fixed_point_id}_histogram.png",
+        filename,
         show_and_close=False,
     )
 
 
 def plot_time_of_first_passage_scatterplot(
     fixed_point_id: int,
+    fixed_point_stability: str,
     dataset_config: DatasetConfig,
     time_of_first_passage_df: pd.DataFrame,
     out_dir: Path,
@@ -1306,9 +1311,12 @@ def plot_time_of_first_passage_scatterplot(
     )
     ax.set_xlabel(f"{crop_pattern} trajectory first passage time".title())
     ax.set_ylabel("simulated trajectory first passage time".title())
+    filename = (
+        f"{crop_pattern}_traj_reaching_fp_{fixed_point_id}_{fixed_point_stability}_scatter.png"
+    )
     save_plot_to_path(
         fig,
         out_dir,
-        f"{crop_pattern}_trajectories_approaching_fp_{fixed_point_id}_scatter.png",
+        filename,
         show_and_close=False,
     )

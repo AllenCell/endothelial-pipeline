@@ -117,7 +117,7 @@ def main(
                     "flow_field_dict": extrapolated_flow_field_dict_reg,
                     "initial_condition": init_df.values.flatten(),
                     "timepoint_initial": timepoint,
-                    "trajectory_duration": track_duration,
+                    "trajectory_duration": track_duration * 6,
                     # convert time units to hours for the ODE solver
                     "time_units_for_solver": timepoint_units,
                     "simulation_results_column_names": list(DYNAMICS_COLUMN_NAMES),
