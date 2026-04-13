@@ -73,8 +73,8 @@ def main(
     from endo_pipeline.library.analyze.numerics.binning import get_bins
     from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
     from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
-        plot_and_save_drift_contours,
-        plot_and_save_drift_quiver,
+        plot_drift_contours,
+        plot_drift_quiver,
     )
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.manifests import load_dataframe_manifest
@@ -244,7 +244,7 @@ def main(
 
                 filename_prefix = f"{dataset_name_flow}_{'_'.join(column_name_pair)}"
                 # plot drift contours and save
-                plot_and_save_drift_contours(
+                plot_drift_contours(
                     centers_mesh,
                     drift,
                     variable_labels=column_labels_2d,
@@ -255,7 +255,7 @@ def main(
                 )
 
                 # plot quiver plot of drift and save
-                plot_and_save_drift_quiver(
+                plot_drift_quiver(
                     centers_mesh,
                     drift,
                     variable_labels=column_labels_2d,

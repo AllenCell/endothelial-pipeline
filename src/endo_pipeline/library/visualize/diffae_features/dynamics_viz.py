@@ -80,7 +80,7 @@ def plot_drift_contours(
         save_plot_to_path(fig, fig_savedir, f"{filename_prefix}_d{var_name_for_file}dt")
 
 
-def plot_and_save_drift_quiver(
+def plot_drift_quiver(
     meshgrid: tuple[np.ndarray, np.ndarray],
     drift: np.ndarray,
     variable_labels: list[str],
