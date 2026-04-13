@@ -15,7 +15,6 @@ def plot_drift_contours(
     drift: np.ndarray,
     variable_labels: list[str],
     axes_limits: list[tuple[float, float]],
-    fig_title: str | None,
     fig_ax: tuple[plt.Figure, tuple[plt.Axes, plt.Axes]] | None = None,
 ) -> tuple[plt.Figure, tuple[plt.Axes, plt.Axes]]:
     """
@@ -38,8 +37,6 @@ def plot_drift_contours(
         ["$x_1$", "$x_2$"].
     axes_limits
         Limits for the axes, specified as a list of tuples.
-    fig_title
-        Optional title for the figure.
     fig_ax
         Optional tuple of (Figure, (Axes, Axes)) to plot on. If None, a new
         figure and axes will be created; if provided, the contour plots will be
@@ -72,8 +69,6 @@ def plot_drift_contours(
         ax[var_index].set_xlim(axes_limits[0])
         ax[var_index].set_ylim(axes_limits[1])
         ax[var_index].set_title(f"Drift component: d{var_name}/dt")
-    if fig_title is not None:
-        fig.suptitle(fig_title, y=1.00)
 
     return fig, ax
 
@@ -83,7 +78,6 @@ def plot_drift_quiver(
     drift: np.ndarray,
     variable_labels: list[str],
     axes_limits: list[tuple[float, float]],
-    fig_title: str | None,
     fig_ax: tuple[plt.Figure, plt.Axes] | None = None,
     include_nullclines: bool = True,
     quiver_scale: float = 10,
@@ -108,8 +102,6 @@ def plot_drift_quiver(
         ["$x_1$", "$x_2$"].
     axes_limits
         Limits for the axes, specified as a list of tuples.
-    fig_title
-        Optional title for the figure.
     fig_ax
         Optional tuple of (Figure, Axes) to plot on. If None, a new figure and
         axes will be created; if provided, the quiver plot will be made on the
@@ -167,10 +159,6 @@ def plot_drift_quiver(
     ax.set_ylabel(variable_labels[1])
     ax.set_xlim(axes_limits[0])
     ax.set_ylim(axes_limits[1])
-    if fig_title is not None:
-        fig.suptitle(
-            f"{fig_title} \n drift in ({variable_labels[0]}, {variable_labels[1]})", y=1.00
-        )
 
     return fig, ax
 

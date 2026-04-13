@@ -250,6 +250,7 @@ def main(
                     axes_limits=axes_limits_2d,
                     fig_title=fig_title,
                 )
+                fig.suptitle(fig_title, y=1.00)
                 save_plot_to_path(fig, fig_savedir, f"{filename_prefix}_contours")
 
                 # plot quiver plot of drift and save
@@ -260,6 +261,11 @@ def main(
                     axes_limits=axes_limits_2d,
                     fig_title=fig_title,
                 )
+                fig.suptitle(
+                    f"{fig_title} \n drift in ({column_labels_2d[0]}, {column_labels_2d[1]})",
+                    y=1.00,
+                )
+
                 save_plot_to_path(fig, fig_savedir, f"{filename_prefix}_quiver")
 
 
