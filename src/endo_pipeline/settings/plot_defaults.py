@@ -29,8 +29,11 @@ MODEL_QC_FIG_KWARGS: dict = {"figsize": (9, 6)}
 MODEL_QC_PLOT_DIRECTION: str = "top-down first"
 """Default direction for arranging panels in model QC plots."""
 
-DRIFT_COLORBAR_VMIN: float = -0.25
-"""Minimum value for colorbar in contour plots of drift components."""
+DRIFT_CONTOUR_VMIN: float = -0.25
+"""Minimum value for contour plots of drift components."""
 
-DRIFT_COLORBAR_VMAX: float = 0.25
-"""Maximum value for colorbar in contour plots of drift components."""
+DRIFT_CONTOUR_VMAX: float = 0.25
+"""Maximum value for contour plots of drift components."""
+
+DRIFT_CONTOUR_LEVELS: int = 50
+"""Number of contour levels to use in contour plots of drift components."""

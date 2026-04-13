@@ -8,8 +8,9 @@ from matplotlib.colors import TwoSlopeNorm
 from mpl_toolkits.mplot3d import Axes3D
 
 from endo_pipeline.settings.plot_defaults import (
-    DRIFT_COLORBAR_VMAX,
-    DRIFT_COLORBAR_VMIN,
+    DRIFT_CONTOUR_LEVELS,
+    DRIFT_CONTOUR_VMAX,
+    DRIFT_CONTOUR_VMIN,
     SHEAR_COLOR_DICT,
 )
 
@@ -20,8 +21,9 @@ def plot_drift_contours(
     variable_labels: list[str],
     axes_limits: list[tuple[float, float]],
     fig_ax: tuple[plt.Figure, tuple[plt.Axes, plt.Axes]] | None = None,
-    vmin: float | None = DRIFT_COLORBAR_VMIN,
-    vmax: float | None = DRIFT_COLORBAR_VMAX,
+    vmin: float | None = DRIFT_CONTOUR_VMIN,
+    vmax: float | None = DRIFT_CONTOUR_VMAX,
+    num_levels: int = DRIFT_CONTOUR_LEVELS,
 ) -> tuple[plt.Figure, tuple[plt.Axes, plt.Axes]]:
     """
     Make and save contour plot of each component of the drift vector field over
@@ -48,21 +50,29 @@ def plot_drift_contours(
         figure and axes will be created; if provided, the contour plots will be
         made on the provided axes.
     vmin
-        Optional, minimum value for the color scale.
+        Optional, minimum colorbar value for the contour plots.
     vmax
-        Optional, maximum value for the color scale.
+        Optional, maximum colorbar value for the contour plots.
+    num_levels
+        Number of contour levels to use in the plot.
 
     """
     fig, ax = fig_ax or plt.subplots(2, 1, figsize=(7, 12))
 
     for var_index, var_name in enumerate(variable_labels):
+        vmin_ = vmin or np.nanmin(drift[..., var_index])
+        vmax_ = vmax or np.nanmax(drift[..., var_index])
+        contour_levels = np.linspace(vmin_, vmax_, num_levels)
+        colormap_norm = TwoSlopeNorm(vmin=vmin_, vmax=vmax_, vcenter=0)
+
         contour = ax[var_index].contourf(
             meshgrid[0],
             meshgrid[1],
             drift[..., var_index],
-            levels=50,
+            levels=contour_levels,
             cmap="RdBu_r",
-            norm=TwoSlopeNorm(vmin=vmin, vmax=vmax, vcenter=0),
+            norm=colormap_norm,
+            extend="both",
         )
         # add dashed line for nullcline
         ax[var_index].contour(
