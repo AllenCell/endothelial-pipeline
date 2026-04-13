@@ -61,10 +61,6 @@ def sample_trajectories_and_displacements_for_bootstrapping(
     """
     num_trajectories = len(trajectories)
     sampled_trajectory_indices = rng.integers(low=0, high=num_trajectories, size=num_trajectories)
-    logger.debug(
-        "Sampled trajectory indices for bootstrap iteration: [ %s ]",
-        ", ".join(map(str, sampled_trajectory_indices)),
-    )
     sampled_traj_list = [trajectories[i] for i in sampled_trajectory_indices]
     sampled_displacement_list = [displacements[i] for i in sampled_trajectory_indices]
     return sampled_traj_list, sampled_displacement_list
