@@ -71,11 +71,9 @@ def plot_drift_contours(
         ax[var_index].set_ylabel(variable_labels[1])
         ax[var_index].set_xlim(axes_limits[0])
         ax[var_index].set_ylim(axes_limits[1])
-        if fig_title is not None:
-            fig.suptitle(
-                f"{fig_title} \n d{var_name}/dt vs ({variable_labels[0]}, {variable_labels[1]})",
-                y=1.05,
-            )
+        ax[var_index].set_title(f"Drift component: d{var_name}/dt")
+    if fig_title is not None:
+        fig.suptitle(fig_title, y=1.00)
 
     return fig, ax
 
@@ -171,7 +169,7 @@ def plot_drift_quiver(
     ax.set_ylim(axes_limits[1])
     if fig_title is not None:
         fig.suptitle(
-            f"{fig_title} \n drift in ({variable_labels[0]}, {variable_labels[1]})", y=1.05
+            f"{fig_title} \n drift in ({variable_labels[0]}, {variable_labels[1]})", y=1.00
         )
 
     return fig, ax
