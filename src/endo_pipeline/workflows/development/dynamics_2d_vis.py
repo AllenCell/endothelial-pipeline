@@ -128,12 +128,6 @@ def main(
 
     # loop over datasets in collection, compute 2D drift coefficients for each
     # pairwise combination of polar coordinates, and plot contours of drift coefficients
-    max_drift_value = (
-        -np.inf
-    )  # initialize max drift value for consistent color scaling across datasets
-    min_drift_value = (
-        np.inf
-    )  # initialize min drift value for consistent color scaling across datasets
     for dataset_name in dataset_names:
         if dataset_name not in feature_dataframe_manifest.locations:
             logger.warning(
@@ -232,20 +226,6 @@ def main(
                     kernel=kernels,
                 )
 
-                if np.nanmax(drift) > max_drift_value:
-                    max_drift_value = np.nanmax(drift)
-                if np.nanmin(drift) < min_drift_value:
-                    min_drift_value = np.nanmin(drift)
-
-                # also print percentiles (20 & 80) of drift values across all datasets for debugging and to inform choice of color scale limits for plotting
-                drift_values_flat = drift.flatten()
-                drift_values_flat_nonan = drift_values_flat[~np.isnan(drift_values_flat)]
-                drift_20th_percentile = np.percentile(drift_values_flat_nonan, 20)
-                drift_80th_percentile = np.percentile(drift_values_flat_nonan, 80)
-                print(
-                    f"Drift percentiles for dataset [ {dataset_name_flow} ]: 20th percentile = {drift_20th_percentile}, 80th percentile = {drift_80th_percentile}"
-                )
-
                 # get 2D meshgrid of bin centers for plotting
                 centers_mesh = np.meshgrid(*centers_2d, indexing="ij")
 
@@ -268,7 +248,6 @@ def main(
                     drift,
                     variable_labels=column_labels_2d,
                     axes_limits=axes_limits_2d,
-                    fig_title=fig_title,
                 )
                 fig.suptitle(fig_title, y=1.00)
                 save_plot_to_path(fig, fig_savedir, f"{filename_prefix}_contours")
@@ -279,7 +258,6 @@ def main(
                     drift,
                     variable_labels=column_labels_2d,
                     axes_limits=axes_limits_2d,
-                    fig_title=fig_title,
                 )
                 fig.suptitle(
                     f"{fig_title} \n drift in ({column_labels_2d[0]}, {column_labels_2d[1]})",
@@ -287,9 +265,6 @@ def main(
                 )
 
                 save_plot_to_path(fig, fig_savedir, f"{filename_prefix}_quiver")
-
-    print(f"Max drift value across all datasets: {max_drift_value}")
-    print(f"Min drift value across all datasets: {min_drift_value}")
 
 
 if __name__ == "__main__":

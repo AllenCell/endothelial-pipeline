@@ -16,6 +16,8 @@ def plot_drift_contours(
     variable_labels: list[str],
     axes_limits: list[tuple[float, float]],
     fig_ax: tuple[plt.Figure, tuple[plt.Axes, plt.Axes]] | None = None,
+    vmin: float | None = None,
+    vmax: float | None = None,
 ) -> tuple[plt.Figure, tuple[plt.Axes, plt.Axes]]:
     """
     Make and save contour plot of each component of the drift vector field over
@@ -41,6 +43,10 @@ def plot_drift_contours(
         Optional tuple of (Figure, (Axes, Axes)) to plot on. If None, a new
         figure and axes will be created; if provided, the contour plots will be
         made on the provided axes.
+    vmin
+        Optional, minimum value for the color scale.
+    vmax
+        Optional, maximum value for the color scale.
 
     """
     fig, ax = fig_ax or plt.subplots(2, 1, figsize=(7, 12))
@@ -52,7 +58,7 @@ def plot_drift_contours(
             drift[..., var_index],
             levels=50,
             cmap="RdBu_r",
-            norm=TwoSlopeNorm(vcenter=0),
+            norm=TwoSlopeNorm(vmin=vmin, vmax=vmax, vcenter=0),
         )
         # add dashed line for nullcline
         ax[var_index].contour(
