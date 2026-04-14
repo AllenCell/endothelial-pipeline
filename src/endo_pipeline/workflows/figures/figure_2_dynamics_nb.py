@@ -61,9 +61,12 @@ logger = logging.getLogger(__name__)
 crop_pattern = "grid"
 
 # get labels for provided set of feature columns
-column_names = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
-variable_labels = [get_label_for_column(col).replace("polar ", "") for col in column_names]
-columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
+columns_r_rho = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
+column_theta = Column.DiffAEData.POLAR_ANGLE
+feature_column_names = [column_theta, *columns_r_rho]
+column_labels_r_rho = [get_label_for_column(col).replace("polar ", "") for col in columns_r_rho]
+column_label_theta = get_label_for_column(column_theta).replace("polar ", "")
+columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *feature_column_names]
 
 # unpack default bin widths and limits for each column, adjusting limits if rescaling theta
 global_bin_limits_dict = BIN_LIMITS_DYNAMICS.copy()
@@ -77,19 +80,19 @@ polar_angle_period = (
 
 # initialize kernels and bin widths for each of the three variables for flow
 # field estimation
-kernels: list[KramersMoyalKernel] = []
-bin_widths: list[float] = []
+kernels_r_rho: list[KramersMoyalKernel] = []
+bin_widths_r_rho: list[float] = []
 
 # Get the corresponding kernels and bin widths for each variable. For the
 # polar angle variable, also specify the period for the kernel based on the
 # rescaled theta range, to ensure that the periodicity of the polar angle is
 # taken into account in the flow field estimation.
-for column_name in column_names:
+for column_name in columns_r_rho:
     name = KERNEL_NAMES_DYNAMICS[column_name]
     bandwidth = KERNEL_BANDWIDTHS_DYNAMICS[column_name]
     bin_width = BIN_WIDTHS_DYNAMICS[column_name]
-    kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=None))
-    bin_widths.append(bin_width)
+    kernels_r_rho.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=None))
+    bin_widths_r_rho.append(bin_width)
 
 # get dataframe manifest for crop-based features
 base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
@@ -128,9 +131,9 @@ save_plot_to_path(fig, base_output_dir, "colorbar", file_format=".svg")
 # loop over datasets in collection, compute 2D drift coefficients for each
 # pairwise combination of polar coordinates, and plot contours of drift coefficients
 panels = []
-for dataset_name, panel_letter, y_position, quiver_ylabel_pad in [
-    (low_shear_stress_repr_example, "A", 0.0, 2),
-    (high_shear_stress_repr_example, "C", 2.05, -3),
+for dataset_name, panel_letters, y_position, quiver_ylabel_pad in [
+    (low_shear_stress_repr_example, ("A", "B"), 0.0, 2),
+    (high_shear_stress_repr_example, ("C", "D"), 2.05, -3),
 ]:
     if dataset_name not in feature_dataframe_manifest.locations:
         logger.warning(
@@ -150,57 +153,83 @@ for dataset_name, panel_letter, y_position, quiver_ylabel_pad in [
     df = df_[columns_to_compute].compute()
     df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
 
-    # build kernels for each variable in the pair based on settings,
-    # adjusting for periodicity if needed, and get bin edges and
-    # centers for each variable in the pair. also get variable labels
-    # and axis limits for plotting, adjusting limits if rescaling
-    # theta and if not using global limits
-    bins, centers = get_bins(
-        bin_widths=bin_widths,
-        data=df_steady_state[column_names].to_numpy(),
+    # get drift in (r, rho) space
+    bins_r_rho, centers_r_rho = get_bins(
+        bin_widths=bin_widths_r_rho,
+        data=df_steady_state[columns_r_rho].to_numpy(),
         lower_percentile=BIN_LIMIT_PERCENTILE_CUTOFF,
         upper_percentile=100 - BIN_LIMIT_PERCENTILE_CUTOFF,
     )
 
-    # get 2D trajectories and differences for the pair of variables
-    traj_2d, diff_2d = get_traj_and_diff(df_steady_state, column_names=column_names)
+    # get 2D trajectories and differences for the pair of variables (r, rho)
+    traj_r_rho, diff_r_rho = get_traj_and_diff(df_steady_state, column_names=columns_r_rho)
 
-    drift, _ = get_kramers_moyal_coeffs(
-        traj_2d,
-        diff_2d,
-        bins=bins,
+    drift_r_rho = get_kramers_moyal_coeffs(
+        traj_r_rho,
+        diff_r_rho,
+        bins=bins_r_rho,
         dt=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
-        kernel=kernels,
-    )
+        kernel=kernels_r_rho,
+    )[0]
 
     # get 2D meshgrid of bin centers for plotting
-    centers_mesh = np.meshgrid(*centers, indexing="ij")
+    centers_mesh = np.meshgrid(*centers_r_rho, indexing="ij")
 
     # get histogram for masking low-confidence regions of drift
     # estimates, using same kernels as for drift estimation, and set
     # drift to nan in low-confidence regions
-    hist_kde = get_kernel_density_estimate_from_trajectories(
-        traj_2d,
-        bins=bins,
-        kernel=kernels,
+    hist_kde_r_rho = get_kernel_density_estimate_from_trajectories(
+        traj_r_rho,
+        bins=bins_r_rho,
+        kernel=kernels_r_rho,
     )
-    low_confidence_mask = hist_kde < HISTOGRAM_THRESHOLD_FOR_MASKING
-    drift[low_confidence_mask] = np.nan
+    low_confidence_mask = hist_kde_r_rho < HISTOGRAM_THRESHOLD_FOR_MASKING
+    drift_r_rho[low_confidence_mask] = np.nan
+    axes_limits_r_rho = [
+        (bins_r_rho[0][0], bins_r_rho[0][-1]),
+        (bins_r_rho[1][0], bins_r_rho[1][-1]),
+    ]
 
-    filename_prefix = f"{dataset_name}_{'_'.join(column_names)}"
-    # plot drift contours and save
-    axes_limits = [(bins[0][0], bins[0][-1]), (bins[1][0], bins[1][-1])]
+    # get in 1D for theta
+    bins_theta, centers_theta = get_bins(
+        bin_widths=(BIN_WIDTHS_DYNAMICS[column_theta],),
+        data=df_steady_state[column_theta].to_numpy(),
+    )
 
-    filename_prefix = f"{dataset_name}_{'_'.join(column_names)}"
-    contour_plot_filename = f"{filename_prefix}_contours"
+    # get trajectories and differences for the given variable, adjusting
+    # polar angle differences for periodicity if needed
+    traj_theta, diff_theta = get_traj_and_diff(
+        df_steady_state, column_names=[column_theta], polar_angle_period=polar_angle_period
+    )
+
+    kernel_theta = KramersMoyalKernel(
+        name=KERNEL_NAMES_DYNAMICS[column_theta],
+        bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_theta],
+        period=polar_angle_period,
+    )
+
+    drift_theta = get_kramers_moyal_coeffs(
+        trajectories=traj_theta,
+        displacements=diff_theta,
+        bins=bins_theta,
+        dt=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
+        kernel=kernel_theta,
+    )[0]
+
+    # make and save plots
+    filename_prefix_r_rho = f"{dataset_name}_{'_'.join(columns_r_rho)}"
+    filename_prefix_theta = f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}"
+
+    contour_plot_filename = f"{filename_prefix_r_rho}_contours"
     contour_plot_figsize = (MAX_FIGURE_WIDTH / 4, MAX_FIGURE_HEIGHT / 4)
+
     # plot drift contours and save
     fig, ax = plot_drift_contours(
         centers_mesh,
-        drift,
-        variable_labels=variable_labels,
+        drift_r_rho,
+        variable_labels=column_labels_r_rho,
         figsize=contour_plot_figsize,
-        axes_limits=axes_limits,
+        axes_limits=axes_limits_r_rho,
         axes_aspect="equal",
         include_colorbar=False,
         gridspec_kwargs=gridspec_kwargs,
@@ -218,14 +247,15 @@ for dataset_name, panel_letter, y_position, quiver_ylabel_pad in [
     )
 
     # plot quiver plot of drift and save
-    quiver_plot_filename = f"{filename_prefix}_quiver"
+    quiver_plot_filename = f"{filename_prefix_r_rho}_quiver"
     quiver_plot_figsize = (2.05, 1.65)
+
     fig, ax = plot_drift_quiver(
         centers_mesh,
-        drift,
-        variable_labels=variable_labels,
+        drift_r_rho,
+        variable_labels=column_labels_r_rho,
         figsize=quiver_plot_figsize,
-        axes_limits=axes_limits,
+        axes_limits=axes_limits_r_rho,
         include_nullclines=True,
         gridspec_kwargs=gridspec_kwargs,
         legend_kwargs=legend_kwargs,
@@ -241,8 +271,33 @@ for dataset_name, panel_letter, y_position, quiver_ylabel_pad in [
         tight_layout=False,
     )
 
+    # plot 1D drift in theta and save
+    theta_plot_filename = f"{filename_prefix_theta}_drift"
+    theta_plot_figsize = (MAX_FIGURE_WIDTH / 4, MAX_FIGURE_HEIGHT / 4)
+
+    fig, ax = plt.subplots(figsize=theta_plot_figsize, gridspec_kw=gridspec_kwargs)
+    ax.plot(centers_theta[-1], drift_theta, "k-", linewidth=2)
+    ax.plot(
+        centers_theta[-1],
+        np.zeros_like(centers_theta[-1]),
+        "--",
+        color="gray",
+        linewidth=1,
+        alpha=0.7,
+    )
+    ax.set_xlim(BIN_LIMITS_THETA_RESCALED)
+    ax.set_box_aspect(1.0)
+    ax.xaxis.labelpad = 2
+    ax.yaxis.labelpad = quiver_ylabel_pad
+    ax.set_xlabel(column_label_theta)
+    ax.set_ylabel(f"d{column_label_theta}/dt")
+    save_plot_to_path(fig, fig_savedir, theta_plot_filename, file_format=".svg")
+
+    # build panels for this dataset's visualizations, adjusting positions based
+    # on dataset to stack vertically in figure
+
     contour_plots = FigurePanel(
-        letter=panel_letter,
+        letter=panel_letters[0],
         path=fig_savedir / f"{contour_plot_filename}.svg",
         x_position=0,
         y_position=y_position,
@@ -267,9 +322,17 @@ for dataset_name, panel_letter, y_position, quiver_ylabel_pad in [
         x_offset=-0.1,
         y_offset=0.0,
     )
-    panels.extend([contour_plots, colorbar_panel, quiver_plot])
 
-# %%
+    theta_plot = FigurePanel(
+        letter=panel_letters[1],
+        path=fig_savedir / f"{theta_plot_filename}.svg",
+        x_position=3 * MAX_FIGURE_WIDTH / 4 - 0.45,
+        y_position=y_position,
+        x_offset=0.4,
+        y_offset=-0.2,
+    )
+    panels.extend([contour_plots, colorbar_panel, quiver_plot, theta_plot])
+
 # build figure from panels and save
 figure_filename = "figure_2_dynamics"
 build_figure_from_panels(
