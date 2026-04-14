@@ -8,14 +8,13 @@ from matplotlib.colors import TwoSlopeNorm
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
+from endo_pipeline.library.analyze.data_driven_flow_field import compute_drift_vector_field
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
-    get_kernel_density_estimate_from_trajectories,
-    get_kramers_moyal_coeffs,
+    get_kernel_density_estimate_from_histogram,
 )
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics.binning import get_bins
-from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
 from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
     plot_drift_contours,
     plot_drift_quiver,
@@ -88,6 +87,12 @@ polar_angle_period = (
 kernels_r_rho: list[KramersMoyalKernel] = []
 bin_widths_r_rho: list[float] = []
 
+kernel_theta = KramersMoyalKernel(
+    name=KERNEL_NAMES_DYNAMICS[column_theta],
+    bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_theta],
+    period=polar_angle_period,
+)
+
 # Get the corresponding kernels and bin widths for each variable. For the
 # polar angle variable, also specify the period for the kernel based on the
 # rescaled theta range, to ensure that the periodicity of the polar angle is
@@ -115,7 +120,7 @@ high_shear_stress_repr_example = "20251001_20X"
 gridspec_kwargs = {"wspace": 0.1, "hspace": 0.1}
 fig_kwargs = {"constrained_layout": True}
 legend_kwargs = {"fontsize": "xx-small", "title_fontsize": "xx-small", "loc": (1.05, 0.7)}
-quiver_plot_xlims = (0.2, 1.95)
+quiver_plot_xlims = (0.2, 2.0)
 quiver_plot_ylims = (-1.15, 1.15)
 quiver_plot_x_ticks = [0.25, 0.75, 1.25, 1.75]
 quiver_plot_y_ticks = [-1.0, -0.5, 0.0, 0.5, 1.0]
@@ -193,26 +198,24 @@ for dataset_name, panel_letters, y_position in [
         lower_percentile=BIN_LIMIT_PERCENTILE_CUTOFF,
         upper_percentile=100 - BIN_LIMIT_PERCENTILE_CUTOFF,
     )
-
-    # get 2D trajectories and differences for the pair of variables (r, rho)
-    traj_r_rho, diff_r_rho = get_traj_and_diff(df_steady_state, column_names=columns_r_rho)
-
-    drift_r_rho = get_kramers_moyal_coeffs(
-        traj_r_rho,
-        diff_r_rho,
+    drift_r_rho = compute_drift_vector_field(
+        df_steady_state,
+        column_names=columns_r_rho,
         bins=bins_r_rho,
-        dt=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
         kernel=kernels_r_rho,
-    )[0]
-
-    # get 2D meshgrid of bin centers for plotting
+        time_step=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
+    )
+    # 2D meshgrid of bin centers for plotting
     centers_mesh = np.meshgrid(*centers_r_rho, indexing="ij")
 
     # get histogram for masking low-confidence regions of drift
     # estimates, using same kernels as for drift estimation, and set
     # drift to nan in low-confidence regions
-    hist_kde_r_rho = get_kernel_density_estimate_from_trajectories(
-        traj_r_rho,
+    hist_r_rho = np.histogram2d(
+        df_steady_state[columns_r_rho[0]], df_steady_state[columns_r_rho[1]], bins=bins_r_rho
+    )[0]
+    hist_kde_r_rho = get_kernel_density_estimate_from_histogram(
+        hist_r_rho[None, ...],
         bins=bins_r_rho,
         kernel=kernels_r_rho,
     )
@@ -225,25 +228,13 @@ for dataset_name, panel_letters, y_position in [
         data=df_steady_state[column_theta].to_numpy(),
     )
 
-    # get trajectories and differences for the given variable, adjusting
-    # polar angle differences for periodicity if needed
-    traj_theta, diff_theta = get_traj_and_diff(
-        df_steady_state, column_names=[column_theta], polar_angle_period=polar_angle_period
-    )
-
-    kernel_theta = KramersMoyalKernel(
-        name=KERNEL_NAMES_DYNAMICS[column_theta],
-        bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_theta],
-        period=polar_angle_period,
-    )
-
-    drift_theta = get_kramers_moyal_coeffs(
-        trajectories=traj_theta,
-        displacements=diff_theta,
+    drift_theta = compute_drift_vector_field(
+        df_steady_state,
+        column_names=[column_theta],
         bins=bins_theta,
-        dt=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
         kernel=kernel_theta,
-    )[0]
+        time_step=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
+    )
 
     # make and save plots
     filename_prefix_r_rho = f"{dataset_name}_{'_'.join(columns_r_rho)}"
