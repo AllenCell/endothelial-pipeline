@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.io import get_output_path, load_dataframe
+from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
     get_kernel_density_estimate_from_trajectories,
@@ -15,8 +15,8 @@ from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalK
 from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
 from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
-    plot_and_save_drift_contours,
-    plot_and_save_drift_quiver,
+    plot_drift_contours,
+    plot_drift_quiver,
 )
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
@@ -33,7 +33,7 @@ from endo_pipeline.settings.dynamics_workflows import (
     METADATA_COLUMNS_TO_KEEP,
     RESCALE_THETA,
 )
-from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.flow_field_3d import TIME_STEP_IN_MINUTES
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
@@ -96,8 +96,8 @@ high_shear_stress_repr_example = "20251001_20X"
 # pairwise combination of polar coordinates, and plot contours of drift coefficients
 panels = []
 for dataset_name, panel_letters, y_position in [
-    (low_shear_stress_repr_example, ("A", "B", "C"), 0.0),
-    (high_shear_stress_repr_example, ("D", "E", "F"), MAX_FIGURE_WIDTH / 2),
+    (low_shear_stress_repr_example, ("A", "B"), 0.0),
+    (high_shear_stress_repr_example, ("D", "E"), MAX_FIGURE_HEIGHT / 2),
 ]:
     if dataset_name not in feature_dataframe_manifest.locations:
         logger.warning(
@@ -157,55 +157,46 @@ for dataset_name, panel_letters, y_position in [
     filename_prefix = f"{dataset_name}_{'_'.join(column_names)}"
     # plot drift contours and save
     axes_limits = [(bins[0][0], bins[0][-1]), (bins[1][0], bins[1][-1])]
-    plot_and_save_drift_contours(
+
+    filename_prefix = f"{dataset_name}_{'_'.join(column_names)}"
+    contour_plot_filename = f"{filename_prefix}_contours"
+    # plot drift contours and save
+    fig, _ = plot_drift_contours(
         centers_mesh,
         drift,
         variable_labels=variable_labels,
         axes_limits=axes_limits,
-        fig_title=dataset_name,
-        fig_savedir=fig_savedir,
-        filename_prefix=filename_prefix,
-        file_format=".svg",
     )
+    save_plot_to_path(fig, fig_savedir, contour_plot_filename, file_format=".svg")
 
     # plot quiver plot of drift and save
-    plot_and_save_drift_quiver(
+    quiver_plot_filename = f"{filename_prefix}_quiver"
+    fig, _ = plot_drift_quiver(
         centers_mesh,
         drift,
         variable_labels=variable_labels,
         axes_limits=axes_limits,
-        fig_title=dataset_name,
-        fig_savedir=fig_savedir,
-        filename_prefix=filename_prefix,
-        file_format=".svg",
     )
+    save_plot_to_path(fig, fig_savedir, quiver_plot_filename, file_format=".svg")
 
-    r_contour = FigurePanel(
+    contour_plots = FigurePanel(
         letter=panel_letters[0],
-        path=fig_savedir / f"{filename_prefix}_drdt.svg",
+        path=fig_savedir / f"{contour_plot_filename}.svg",
         x_position=0,
         y_position=y_position,
         x_offset=0.08,
         y_offset=0,
     )
 
-    rho_contour = FigurePanel(
-        letter=panel_letters[1],
-        path=fig_savedir / f"{filename_prefix}_drhodt.svg",
-        x_position=MAX_FIGURE_WIDTH / 3,
-        y_position=y_position,
-        x_offset=0.08,
-        y_offset=0,
-    )
     quiver_plot = FigurePanel(
-        letter=panel_letters[2],
-        path=fig_savedir / f"{filename_prefix}_drift_quiver.svg",
-        x_position=2 * MAX_FIGURE_WIDTH / 3,
+        letter=panel_letters[1],
+        path=fig_savedir / f"{quiver_plot_filename}.svg",
+        x_position=MAX_FIGURE_WIDTH / 3,
         y_position=y_position,
         x_offset=0.08,
         y_offset=0.08,
     )
-    panels.extend([r_contour, rho_contour, quiver_plot])
+    panels.extend([contour_plots, quiver_plot])
 
 # %%
 output_path = get_output_path(__file__) / "test_build_fig.svg"
