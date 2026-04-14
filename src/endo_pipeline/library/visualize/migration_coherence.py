@@ -1,7 +1,6 @@
 """Methods for visualizing migration coherence metrics and their relationships to morphology dynamics."""
 
 import logging
-from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
@@ -11,8 +10,8 @@ import seaborn as sns
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.stats import binned_statistic_2d, binned_statistic_dd
 
-from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
+from endo_pipeline.settings.figures import FONTSIZE_XSMALL
 from endo_pipeline.settings.flow_field_dataframes import (
     STABILITY_COLOR_DICT,
     STABILITY_COLUMN_NAME,
@@ -22,7 +21,6 @@ from endo_pipeline.settings.flow_field_dataframes import (
 from endo_pipeline.settings.migration_coherence import (
     MIGRATION_COHERENCE_COLORMAP,
     MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
-    MIGRATION_COHERENCE_HIST_PLOT_KDE,
 )
 
 logger = logging.getLogger(__name__)
@@ -311,14 +309,15 @@ def plot_3d_scatter_or_binned(
 def plot_optical_flow_histogram(
     df: pd.DataFrame,
     optical_flow_feature: str,
-    title: str,
+    feature_label: str,
+    feature_lim: tuple[float, float] | None,
+    ss_label: str,
     color: str,
-    output_dir: Path,
-    filename: str,
     df_fp: pd.DataFrame | None = None,
     binwidth: float = 0.2,
-    figsize: tuple[float, float] = (4, 2.5),
-) -> None:
+    figure: tuple[plt.Figure, plt.Axes] | None = None,
+    legend_loc: str | None = "upper left",
+) -> plt.Figure:
     """Plot and save a histogram of an optical flow feature for a single dataset/flow condition.
 
     Parameters
@@ -327,46 +326,89 @@ def plot_optical_flow_histogram(
         DataFrame containing the optical flow feature column.
     optical_flow_feature
         Name of the optical flow feature column to plot.
-    title
-        Plot title (e.g. dataset name and shear stress).
+    feature_label
+        Label for the optical flow feature (e.g. "Unit Vector Mean" or "Speed Mean").
+    ss_label
+        Label for the shear stress (e.g. "10 dyn/cm²").
     color
         Color of the histogram bars.
-    output_dir
-        Directory where the figure is saved.
-    filename
-        Filename (without extension) for the saved figure.
+    feature_lim
+        Tuple specifying the limits for the x-axis (min, max). If None, limits are determined automatically.
     df_fp
         Optional fixed-points dataframe. If provided, each fixed point's
         ``mean_{optical_flow_feature}`` value is overlaid as a marker on
         the x-axis, colored and shaped by its stability classification.
+    figure
+        Optional ``(fig, ax)`` tuple to plot onto. If ``None``, a new figure is created.
 
     """
+    if figure is None:
+        fig, ax = plt.subplots(figsize=(2, 2))
+    else:
+        fig, ax = figure
     data = df[optical_flow_feature].dropna()
     mean = data.mean()
-    median = data.median()
     std = data.std()
     cov = std / mean
 
-    fig, ax = plt.subplots(figsize=figsize)
     sns.histplot(
         data,
-        kde=MIGRATION_COHERENCE_HIST_PLOT_KDE,
+        kde=False,
         binwidth=binwidth,
         ax=ax,
         color=color,
     )
-    ax.axvline(mean, color="black", linestyle="--", linewidth=1)
-    ax.axvline(median, color="grey", linestyle="-", linewidth=1)
-    ax.text(
-        0.05,
-        0.95,
-        f"N = {len(data)}\n\u03bc = {mean:.3f}\n\u03c3 = {std:.3f} \nCOV = {cov:.3f} \nmedian = {median:.3f}",
-        transform=ax.transAxes,
-        ha="left",
-        va="top",
-        fontsize=8,
-        bbox={"boxstyle": "round,pad=0.3", "facecolor": "white", "alpha": 0.75},
-    )
+
+    if legend_loc is not None:
+        stats_text = f"{ss_label}\nn={len(data)}\n\u03bc={mean:.2f}\nCV={cov:.2f}"
+        ax.text(
+            0.02,
+            0.98,
+            stats_text,
+            color=color,
+            fontsize=FONTSIZE_XSMALL,
+            ha="left",
+            va="top",
+            transform=ax.transAxes,
+        )
+    elif legend_loc is None:
+        bars = [
+            p
+            for p in ax.patches
+            if np.allclose(p.get_facecolor()[:3], plt.matplotlib.colors.to_rgb(color))
+        ]
+        if bars:
+            peak_bar = max(bars, key=lambda b: b.get_height())
+            peak_x = peak_bar.get_x()
+            stats_text = f"n={len(data)}\n\u03bc={mean:.2f}\nCV={cov:.2f}"
+            x_loc = peak_x - 0.25  # shift left from the peak
+            if x_loc < ax.get_xlim()[0]:
+                x_loc = (
+                    ax.get_xlim()[0] + 0.005
+                )  # if shifted label goes beyond left limit, shift it back inside
+            # Bold label for shear stress
+            ax.text(
+                x_loc,
+                0.99,
+                ss_label,
+                color=color,
+                fontweight="bold",
+                fontsize=FONTSIZE_XSMALL,
+                ha="left",
+                va="top",
+                transform=ax.get_xaxis_transform(),
+            )
+            # Normal-weight stats below
+            ax.text(
+                x_loc,
+                0.92,
+                stats_text,
+                color=color,
+                fontsize=FONTSIZE_XSMALL,
+                ha="left",
+                va="top",
+                transform=ax.get_xaxis_transform(),
+            )
 
     # Overlay fixed points on x-axis
     if df_fp is not None:
@@ -385,13 +427,20 @@ def plot_optical_flow_histogram(
                         color=clr,
                         edgecolor="black",
                         linewidths=1,
-                        s=120,
+                        s=15,
                         zorder=5,
                         clip_on=False,
                     )
-        filename = f"{filename}_with_fixed_points" if df_fp is not None else filename
 
-    ax.set_xlabel(optical_flow_feature)
+    ax.set_xlabel(feature_label)
     ax.set_ylabel("Count")
-    ax.set_title(title)
-    save_plot_to_path(fig, output_dir, filename)
+    if feature_lim is not None:
+        ax.set_xlim(feature_lim)
+
+    # reduce label and tick label padding
+    ax.xaxis.labelpad = 2
+    ax.yaxis.labelpad = 2
+    ax.tick_params(axis="x", pad=2)
+    ax.tick_params(axis="y", pad=2)
+
+    return fig

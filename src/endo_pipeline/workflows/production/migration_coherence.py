@@ -96,7 +96,7 @@ def main(
         feature_dataframe_manifest=feature_dataframe_manifest,
         fixed_points_dataframe_manifest=fixed_points_dataframe_manifest,
         output_dir=output_dir,
-        by_dataset=True,
+        x_axis_mode="dataset",
     )
 
     if not skip_individual_plots:
@@ -141,7 +141,7 @@ def main(
                     df_flow = filter_dataframe_by_flow_condition(
                         df_of, dataset_config, flow_condition
                     )
-                    plot_label = f"{dataset_name} ({int(flow_condition.shear_stress)} dyn/cm$^2$)"
+                    plot_label = f"{dataset_name} ({int(flow_condition.shear_stress)} dyn/cm\u00b2)"
                     hist_color = get_dataset_color(dataset_name)
 
                     # load fixed points once per dataset
@@ -185,15 +185,18 @@ def main(
                         )
 
                     # save individual histogram for this dataset and flow condition
-                    plot_optical_flow_histogram(
+                    fig = plot_optical_flow_histogram(
                         df=df_flow,
                         optical_flow_feature=optical_flow_feature,
-                        title=plot_label,
+                        feature_label="Migration Coherence",
+                        feature_lim=(0.1, vmax),
+                        ss_label=f"{int(flow_condition.shear_stress)} dyn/cm\u00b2",
                         color=hist_color,
-                        output_dir=output_dir,
-                        filename=f"{dataset_name_flow}_{optical_flow_feature}_distribution",
                         df_fp=fp_for_feature,
                         binwidth=hist_binwidth,
+                    )
+                    save_plot_to_path(
+                        fig, output_dir, f"{dataset_name_flow}_{optical_flow_feature}_distribution"
                     )
 
                     # --- 2D plots ---

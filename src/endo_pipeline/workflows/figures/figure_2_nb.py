@@ -5,7 +5,7 @@ Main function to create figure panels for Figure 2.
 import matplotlib.pyplot as plt
 
 from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
-from endo_pipeline.io import get_output_path, load_dataframe
+from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_annotations
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
@@ -22,6 +22,7 @@ from endo_pipeline.settings.dynamics_workflows import (
     METADATA_COLUMNS_TO_KEEP,
 )
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
+from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
 from endo_pipeline.settings.flow_field_dataframes import (
     DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
     STABILITY_COLUMN_NAME,
@@ -52,27 +53,29 @@ feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_
 
 fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
 fixed_points_dataframe_manifest = load_dataframe_manifest(fixed_points_dataframe_manifest_name)
-
+# %%
 # --- Cross-dataset summary plots ---
 plot_cross_dataset_summaries(
     dataset_names=dataset_summary_list,
     feature_dataframe_manifest=feature_dataframe_manifest,
     fixed_points_dataframe_manifest=fixed_points_dataframe_manifest,
     output_dir=save_dir,
-    by_dataset=True,
+    x_axis_mode="shear_stress_categorical",
+    figure_size=(MAX_FIGURE_WIDTH / 4, 2),
+    stable_only=True,
 )
 
 # %%
 optical_flow_feature = ColumnName.OpticalFlow.UNIT_VECTOR_MEAN
 vmax = 1
 hist_binwidth = 0.02
-
+fig, ax = plt.subplots(figsize=(2.15, 2), layout="constrained")
 for dataset_name in [dataset_low, dataset_high]:
     # get settings
     dataset_config = load_dataset_config(dataset_name)
-    shear_stress = int(dataset_config.flow_conditions[0].shear_stress)
+    shear_stress = round(dataset_config.flow_conditions[0].shear_stress)
     dataset_name_flow = f"{dataset_name}_shear_{shear_stress}"
-    plot_label = f"{dataset_name} ({shear_stress} dyn/cm$^2$)"
+    ss_label = f"{shear_stress} dyn/cm$\u00b2$"
     hist_color = get_dataset_color(dataset_name)
 
     # load and filter data
@@ -115,15 +118,25 @@ for dataset_name in [dataset_low, dataset_high]:
         binned_col=optical_flow_feature,
     )
 
-    # save individual histogram for this dataset and flow condition
-    plot_optical_flow_histogram(
+    # save individual histogram for this dataset and flow conditio
+    fig = plot_optical_flow_histogram(
         df=df_of,
         optical_flow_feature=optical_flow_feature,
-        title=plot_label,
+        feature_label="Migration Coherence",
+        feature_lim=(0.1, vmax),
+        ss_label=ss_label,
         color=hist_color,
-        output_dir=save_dir,
-        filename=f"{dataset_name_flow}_{optical_flow_feature}_distribution",
-        df_fp=df_fp,
+        df_fp=None,
         binwidth=hist_binwidth,
+        figure=(fig, ax),
+        legend_loc=None,
     )
+save_plot_to_path(
+    fig,
+    save_dir,
+    "migration_coherence_distribution_high_low_flow_comparison",
+    pad_inches=0,
+    tight_layout=False,
+    file_format=".svg",
+)
 # %%

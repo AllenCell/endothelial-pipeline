@@ -2,6 +2,7 @@
 
 import logging
 from pathlib import Path
+from typing import Literal
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -41,15 +42,13 @@ def plot_fixed_points_vs_shear_stress(
     label: str,
     dataset_order: list[str] | None = None,
     ylim: tuple[float, float] | None = None,
-    by_dataset: bool = True,
+    x_axis_mode: Literal["dataset", "shear_stress_numeric", "shear_stress_categorical"] = "dataset",
     marker_size_scatter: int = 10,
     marker_size_legend: int = 5,
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 3),
+    stable_only: bool = True,
 ) -> plt.Figure:
     """Make and save plot of one component of fixed points vs shear stress.
-
-    Plot is either categorical by dataset (default) or numeric by shear stress
-    value, as described in the `by_dataset` parameter.
 
     Parameters
     ----------
@@ -65,12 +64,17 @@ def plot_fixed_points_vs_shear_stress(
         If ``None``, falls back to sorting by shear stress.
     ylim
         Optional ``(ymin, ymax)`` limits for the y-axis.
-    by_dataset
-        If ``True`` (default), each dataset gets its own categorical x position,
-        ordered by ``dataset_order`` (or by shear stress if not provided).
-        Tick labels show ``"dataset_name (shear_stress)"``.
-        If ``False``, x positions are the numeric shear-stress values and
-        datasets with the same shear stress overlap.
+    x_axis_mode
+        Controls x-axis layout:
+
+        - ``"dataset"`` (default): one categorical tick per dataset, ordered by
+          ``dataset_order`` or shear stress. Labels show
+          ``"dataset_name (shear_stress)"``.
+        - ``"shear_stress_numeric"``: x positions are the actual numeric
+          shear-stress values, with jitter for datasets sharing the same value.
+        - ``"shear_stress_categorical"``: one evenly-spaced tick per unique
+          shear-stress value (so 6 and 21 are adjacent), with jitter for
+          datasets sharing the same value.
     marker_size_scatter
         Size of the scatter markers for fixed points.
     marker_size_legend
@@ -84,8 +88,16 @@ def plot_fixed_points_vs_shear_stress(
     # Convert shear stress to numeric values
     df_fp = df_fp.copy()
     df_fp["shear_stress_numeric"] = df_fp["shear_stress"].apply(
-        lambda s: round(float(s.split("-")[0])) if isinstance(s, str) else round(float(s))
+        lambda s: min(max(round(max(float(v) for v in str(s).split("-"))), 6), 21)
     )
+
+    if stable_only:
+        df_fp = df_fp[df_fp[STABILITY_COLUMN_NAME] == "stable"]
+    else:
+        legend_handles = make_legend_handles_for_fixed_pts(
+            fpt_stabilities=df_fp[STABILITY_COLUMN_NAME].unique().tolist(),
+            marker_size=marker_size_legend,
+        )
 
     # Order by specified dataset list, or fall back to shear stress sorting
     if dataset_order is not None:
@@ -95,13 +107,21 @@ def plot_fixed_points_vs_shear_stress(
     else:
         df_fp = df_fp.sort_values("shear_stress_numeric")
 
-    # Build legend handles for fixed-point stability markers
-    legend_handles = make_legend_handles_for_fixed_pts(
-        fpt_stabilities=df_fp[STABILITY_COLUMN_NAME].unique().tolist(),
-        marker_size=marker_size_legend,
-    )
+    # --- Build jitter map (shared by numeric and categorical shear-stress modes) ---
+    def _build_jitter_map(df: pd.DataFrame, jitter_width: float = 0.4) -> dict[tuple, float]:
+        jmap: dict[tuple, float] = {}
+        for ss in df["shear_stress_numeric"].unique():
+            datasets_at_ss = df.loc[df["shear_stress_numeric"] == ss, "dataset"].unique()
+            n = len(datasets_at_ss)
+            if n <= 1:
+                offsets = [0.0]
+            else:
+                offsets = [jitter_width * (i / (n - 1) - 0.5) for i in range(n)]
+            for ds, off in zip(datasets_at_ss, offsets, strict=False):
+                jmap[(ds, ss)] = off
+        return jmap
 
-    if by_dataset:
+    if x_axis_mode == "dataset":
         # Categorical x-axis: one tick per dataset
         unique_datasets = df_fp["dataset"].unique()
         row_to_x = lambda row: {d: i for i, d in enumerate(unique_datasets)}[
@@ -112,48 +132,125 @@ def plot_fixed_points_vs_shear_stress(
             f"{d} ({df_fp.loc[df_fp['dataset'] == d, 'shear_stress_numeric'].iloc[0]})"
             for d in unique_datasets
         ]
-    else:
-        # Numeric x-axis: position by shear stress value
-        row_to_x = lambda row: row["shear_stress_numeric"]  # noqa: E731
+    elif x_axis_mode == "shear_stress_numeric":
+        # Numeric x-axis: position by shear stress value, jittered by dataset
         unique_shear = sorted(df_fp["shear_stress_numeric"].unique())
         tick_positions = unique_shear
-        tick_labels = [str(int(s)) for s in unique_shear]
+        tick_labels = [str(round(s)) for s in unique_shear]
+        jitter_map = _build_jitter_map(df_fp)
+        row_to_x = lambda row: row["shear_stress_numeric"] + jitter_map.get(  # noqa: E731
+            (row["dataset"], row["shear_stress_numeric"]), 0.0
+        )
+    elif x_axis_mode == "shear_stress_categorical":
+        # Evenly-spaced categorical ticks for each unique shear stress value,
+        # with jitter so datasets sharing a value are visible individually.
+        unique_shear = sorted(df_fp["shear_stress_numeric"].unique())
+        ss_to_pos = {ss: i for i, ss in enumerate(unique_shear)}
+        tick_positions = list(range(len(unique_shear)))
+        tick_labels = [str(round(s)) for s in unique_shear]
+        jitter_map = _build_jitter_map(df_fp)
+        row_to_x = lambda row: ss_to_pos[
+            row["shear_stress_numeric"]
+        ] + jitter_map.get(  # noqa: E731
+            (row["dataset"], row["shear_stress_numeric"]), 0.0
+        )
+    else:
+        raise ValueError(f"Unknown x_axis_mode: {x_axis_mode!r}")
 
     fig, ax = plt.subplots(figsize=figure_size)
 
-    # Plot fixed points — draw gray (unknown stability) behind others
-    for _, row in df_fp.iterrows():
-        stability = row[STABILITY_COLUMN_NAME]
-        mk = STABILITY_MARKER_DICT.get(stability, "o")
-        clr = STABILITY_COLOR_DICT.get(stability, "gray")
-        is_gray = stability not in STABILITY_COLOR_DICT
-        ax.scatter(
-            row_to_x(row),
-            row[variable],
-            marker=mk,
-            color=clr,
-            edgecolor="black",
-            linewidths=0.8,
-            s=marker_size_scatter,
-            alpha=0.35 if is_gray else 1.0,
-            zorder=1 if is_gray else 3,
+    if stable_only:
+        # Unique color per dataset — colorblind-friendly palette (Wong 2011 + extensions)
+        _COLORBLIND_PALETTE = [
+            "#0072B2",  # blue
+            "#E69F00",  # orange
+            "#009E73",  # bluish green
+            "#CC79A7",  # reddish purple
+            "#56B4E9",  # sky blue
+            "#D55E00",  # vermillion
+            "#F0E442",  # yellow
+            "#000000",  # black
+            "#332288",  # indigo
+            "#88CCEE",  # cyan
+            "#44AA99",  # teal
+            "#DDCC77",  # sand
+            "#882255",  # wine
+            "#AA4499",  # magenta
+        ]
+        unique_datasets = list(df_fp["dataset"].unique())
+        dataset_color_map = {
+            ds: _COLORBLIND_PALETTE[i % len(_COLORBLIND_PALETTE)]
+            for i, ds in enumerate(unique_datasets)
+        }
+
+        for _, row in df_fp.iterrows():
+            ax.scatter(
+                row_to_x(row),
+                row[variable],
+                marker="o",
+                color=dataset_color_map[row["dataset"]],
+                edgecolor="black",
+                linewidths=0.5,
+                s=marker_size_scatter,
+                zorder=3,
+            )
+
+        # # Dataset legend
+        # dataset_handles = [
+        #     Line2D(
+        #         [0], [0],
+        #         marker="o",
+        #         color="none",
+        #         markerfacecolor=dataset_color_map[ds],
+        #         markeredgecolor="black",
+        #         markeredgewidth=0.5,
+        #         markersize=marker_size_legend,
+        #         label=ds,
+        #     )
+        #     for ds in unique_datasets
+        # ]
+        # ax.legend(
+        #     handles=dataset_handles,
+        #     loc="center left",
+        #     bbox_to_anchor=(1, 0.5),
+        #     title="dataset",
+        # )
+    else:
+        # Color by stability
+        for _, row in df_fp.iterrows():
+            stability = row[STABILITY_COLUMN_NAME]
+            mk = STABILITY_MARKER_DICT.get(stability, "o")
+            clr = STABILITY_COLOR_DICT.get(stability, "gray")
+            is_gray = stability not in STABILITY_COLOR_DICT
+            ax.scatter(
+                row_to_x(row),
+                row[variable],
+                marker=mk,
+                color=clr,
+                edgecolor="black",
+                linewidths=0.8,
+                s=marker_size_scatter,
+                alpha=0.35 if is_gray else 1.0,
+                zorder=1 if is_gray else 3,
+            )
+        ax.legend(
+            handles=legend_handles,
+            loc="center left",
+            bbox_to_anchor=(1, 0.5),
+            title="stability",
         )
 
     ax.set_xticks(tick_positions)
-    ax.set_xticklabels(tick_labels, rotation=45, ha="right")
+    if x_axis_mode == "dataset":
+        ax.set_xticklabels(tick_labels, rotation=45, ha="right")
+    else:
+        ax.set_xticklabels(tick_labels)
     if ylim is not None:
         ax.set_ylim(*ylim)
 
-    ax.set_ylabel(label, fontsize=10)
-    ax.set_xlabel("shear stress (dyn/cm\u00b2)", fontsize=10)
+    ax.set_ylabel(label)
+    ax.set_xlabel("shear stress (dyn/cm\u00b2)")
     ax.grid(axis="y", alpha=0.3)
-
-    ax.legend(
-        handles=legend_handles,
-        loc="center left",
-        bbox_to_anchor=(1, 0.5),
-        title="stability",
-    )
 
     return fig
 
@@ -163,9 +260,10 @@ def plot_cross_dataset_summaries(
     feature_dataframe_manifest: DataframeManifest,
     fixed_points_dataframe_manifest: DataframeManifest,
     output_dir: Path,
-    by_dataset: bool = True,
+    x_axis_mode: Literal["dataset", "shear_stress_numeric", "shear_stress_categorical"] = "dataset",
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 3),
     dataset_order: list[str] | None = None,
+    stable_only: bool = True,
 ) -> None:
     """Create a plot of cross-dataset summary visualizations for
     observable fixed-point locations vs shear-stress plots
@@ -183,16 +281,17 @@ def plot_cross_dataset_summaries(
         Manifest containing per-dataset fixed-point dataframe locations.
     output_dir
         Directory where the figures are saved.
-    by_dataset
-        If ``True`` (default), each dataset gets its own categorical x position in the fixed
-        point vs shear stress plot, with tick labels showing dataset name and shear stress.
-        If ``False``, x positions are the numeric shear-stress values and datasets with the
-        same shear stress overlap.
+    x_axis_mode
+        Controls x-axis layout of the fixed-point vs shear-stress plot.
+        See :func:`plot_fixed_points_vs_shear_stress` for details.
     figure_size
         Size of the output figure for the fixed point vs shear stress plot.
     dataset_order
         Optional list of dataset names specifying the desired x-axis order in the fixed point vs shear stress plot.
         If ``None``, falls back to sorting by shear stress.
+    stable_only
+        If ``True``, only fixed points classified as stable are included in the
+        fixed point vs shear stress plot.
     """
     optical_flow_features = [
         ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
@@ -220,7 +319,7 @@ def plot_cross_dataset_summaries(
 
         for flow_condition in dataset_config.flow_conditions:
             df_flow = filter_dataframe_by_flow_condition(df_of, dataset_config, flow_condition)
-            plot_label = f"{dataset_name} ({int(flow_condition.shear_stress)} dyn/cm$^2$)"
+            plot_label = f"{dataset_name} ({round(flow_condition.shear_stress)} dyn/cm$^2$)"
 
             # Summary stats per optical flow feature
             for feature_key in optical_flow_features:
@@ -228,7 +327,7 @@ def plot_cross_dataset_summaries(
                 summary_stats[feature_key].append(
                     {
                         "label": plot_label,
-                        "shear_stress": int(flow_condition.shear_stress),
+                        "shear_stress": round(flow_condition.shear_stress),
                         "mean": mean_ft,
                     }
                 )
@@ -282,8 +381,9 @@ def plot_cross_dataset_summaries(
             label,
             dataset_order=dataset_order,
             ylim=None,
-            by_dataset=by_dataset,
+            x_axis_mode=x_axis_mode,
             figure_size=figure_size,
+            stable_only=stable_only,
         )
         save_plot_to_path(
             fig, output_dir, f"fixed_points_{var}_vs_shear_stress", file_format=".svg"
