@@ -25,14 +25,13 @@ from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import (
     BIN_LIMIT_PERCENTILE_CUTOFF,
-    BIN_LIMITS_DYNAMICS,
     BIN_LIMITS_THETA_RESCALED,
     BIN_WIDTHS_DYNAMICS,
     HISTOGRAM_THRESHOLD_FOR_MASKING,
     KERNEL_BANDWIDTHS_DYNAMICS,
     KERNEL_NAMES_DYNAMICS,
     METADATA_COLUMNS_TO_KEEP,
-    RESCALE_THETA,
+    PERIOD_THETA_RESCALED,
 )
 from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.flow_field_2d import (
@@ -72,37 +71,22 @@ column_labels_r_rho = [get_label_for_column(col).replace("polar ", "") for col i
 column_label_theta = get_label_for_column(column_theta).replace("polar ", "")
 columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *feature_column_names]
 
-# unpack default bin widths and limits for each column, adjusting limits if rescaling theta
-global_bin_limits_dict = BIN_LIMITS_DYNAMICS.copy()
-if RESCALE_THETA:
-    global_bin_limits_dict[Column.DiffAEData.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
-polar_angle_period = (
-    global_bin_limits_dict[Column.DiffAEData.POLAR_ANGLE][1]
-    - global_bin_limits_dict[Column.DiffAEData.POLAR_ANGLE][0]
-)
-
-
 # initialize kernels and bin widths for each of the three variables for flow
 # field estimation
 kernels_r_rho: list[KramersMoyalKernel] = []
 bin_widths_r_rho: list[float] = []
-
-kernel_theta = KramersMoyalKernel(
-    name=KERNEL_NAMES_DYNAMICS[column_theta],
-    bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_theta],
-    period=polar_angle_period,
-)
-
-# Get the corresponding kernels and bin widths for each variable. For the
-# polar angle variable, also specify the period for the kernel based on the
-# rescaled theta range, to ensure that the periodicity of the polar angle is
-# taken into account in the flow field estimation.
 for column_name in columns_r_rho:
     name = KERNEL_NAMES_DYNAMICS[column_name]
     bandwidth = KERNEL_BANDWIDTHS_DYNAMICS[column_name]
     bin_width = BIN_WIDTHS_DYNAMICS[column_name]
     kernels_r_rho.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=None))
     bin_widths_r_rho.append(bin_width)
+
+kernel_theta = KramersMoyalKernel(
+    name=KERNEL_NAMES_DYNAMICS[column_theta],
+    bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_theta],
+    period=PERIOD_THETA_RESCALED,
+)
 
 # get dataframe manifest for crop-based features and precomputed fixed points,
 # using crop pattern to get appropriate manifest names
@@ -118,8 +102,12 @@ high_shear_stress_repr_example = "20251001_20X"
 
 # global plotting kwargs / parameters
 gridspec_kwargs = {"wspace": 0.1, "hspace": 0.1}
-fig_kwargs = {"constrained_layout": True}
-legend_kwargs = {"fontsize": "xx-small", "title_fontsize": "xx-small", "loc": (1.05, 0.7)}
+r_axis_labelpad = 2
+rho_axis_labelpad = -2
+contour_plot_figsize = (1.75, 1.85)
+quiver_plot_figsize = (2.05, 1.65)
+theta_plot_figsize = (MAX_FIGURE_WIDTH / 4, MAX_FIGURE_HEIGHT / 4)
+quiver_legend_kwargs = {"fontsize": "xx-small", "title_fontsize": "xx-small", "loc": (1.05, 0.7)}
 quiver_plot_xlims = (0.2, 2.0)
 quiver_plot_ylims = (-1.15, 1.15)
 quiver_plot_x_ticks = [0.25, 0.75, 1.25, 1.75]
@@ -227,7 +215,6 @@ for dataset_name, panel_letters, y_position in [
         bin_widths=(BIN_WIDTHS_DYNAMICS[column_theta],),
         data=df_steady_state[column_theta].to_numpy(),
     )
-
     drift_theta = compute_drift_vector_field(
         df_steady_state,
         column_names=[column_theta],
@@ -239,9 +226,9 @@ for dataset_name, panel_letters, y_position in [
     # make and save plots
     filename_prefix_r_rho = f"{dataset_name}_{'_'.join(columns_r_rho)}"
     filename_prefix_theta = f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}"
-
     contour_plot_filename = f"{filename_prefix_r_rho}_contours"
-    contour_plot_figsize = (1.75, 1.85)
+    quiver_plot_filename = f"{filename_prefix_r_rho}_quiver"
+    theta_plot_filename = f"{filename_prefix_theta}_drift"
 
     # plot drift contours and save
     fig, ax = plot_drift_contours(
@@ -256,19 +243,14 @@ for dataset_name, panel_letters, y_position in [
     )
     for ax_index, ax_ in enumerate(ax):
         # adjust label padding and drop tick labels on shared x axis
-        ax_.xaxis.labelpad = 2
-        ax_.yaxis.labelpad = -2
+        ax_.xaxis.labelpad = r_axis_labelpad
+        ax_.yaxis.labelpad = rho_axis_labelpad
         ax_.set_box_aspect(1.0)
         if ax_index == 0:
             ax_.tick_params(labelbottom=False)
-
     save_plot_to_path(
         fig, fig_savedir, contour_plot_filename, file_format=".svg", tight_layout=True
     )
-
-    # plot quiver plot of drift and save
-    quiver_plot_filename = f"{filename_prefix_r_rho}_quiver"
-    quiver_plot_figsize = (2.05, 1.65)
 
     fig, ax = plot_drift_quiver(
         centers_mesh,
@@ -284,7 +266,7 @@ for dataset_name, panel_letters, y_position in [
         nullcline_styles=["dashed", (0, (1, 1))],
         nullcline_opacity=0.9,
         gridspec_kwargs=gridspec_kwargs,
-        legend_kwargs=legend_kwargs,
+        legend_kwargs=quiver_legend_kwargs,
     )
     # add stable fixed points to quiver plot if available
     if stable_fixed_points is not None:
@@ -313,9 +295,6 @@ for dataset_name, panel_letters, y_position in [
     )
 
     # plot 1D drift in theta and save
-    theta_plot_filename = f"{filename_prefix_theta}_drift"
-    theta_plot_figsize = (MAX_FIGURE_WIDTH / 4, MAX_FIGURE_HEIGHT / 4)
-
     fig, ax = plt.subplots(figsize=theta_plot_figsize, gridspec_kw=gridspec_kwargs)
     ax.plot(centers_theta[-1], drift_theta, "k-", linewidth=2)
     ax.plot(
@@ -345,8 +324,8 @@ for dataset_name, panel_letters, y_position in [
     ax.set_xticks(theta_plot_x_ticks)
     ax.set_xticklabels(theta_plot_x_ticklabels)
     ax.set_yticks(theta_plot_y_ticks)
-    ax.xaxis.labelpad = 2
-    ax.yaxis.labelpad = -2
+    ax.xaxis.labelpad = r_axis_labelpad
+    ax.yaxis.labelpad = rho_axis_labelpad
     ax.set_xlabel(column_label_theta)
     ax.set_ylabel(f"d{column_label_theta}/dt")
     save_plot_to_path(fig, fig_savedir, theta_plot_filename, file_format=".svg")
