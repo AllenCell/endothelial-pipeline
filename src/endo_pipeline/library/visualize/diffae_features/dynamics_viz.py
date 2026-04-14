@@ -1,6 +1,6 @@
 """Methods for visualizing the outputs of the DiffAE feature analysis workflows."""
 
-from typing import Any
+from typing import Any, Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -26,6 +26,7 @@ def plot_drift_contours(
     fig_ax: tuple[plt.Figure, tuple[plt.Axes, plt.Axes]] | None = None,
     figsize: tuple[float, float] = (MAX_FIGURE_WIDTH, 2 * MAX_FIGURE_WIDTH),
     axes_limits: list[tuple[float, float]] | None = None,
+    axes_aspect: Literal["auto", "equal"] | float | None = "equal",
     axes_titles: list[str] | None = None,
     colormap: str = DRIFT_CONTOUR_COLORMAP,
     vmin: float | None = DRIFT_CONTOUR_VMIN,
@@ -60,6 +61,8 @@ def plot_drift_contours(
         Size of the figure, specified as a tuple (width, height).
     axes_limits
         Optional limits for the axes, specified as a list of tuples.
+    axes_aspect
+        Aspect ratio for the axes, e.g., "equal" to make x and y have equal scaling.
     axes_titles
         Optional list of titles for each subplot.
     colormap
@@ -113,7 +116,8 @@ def plot_drift_contours(
             ax[var_index].set_ylim(axes_limits[1])
         if axes_titles:
             ax[var_index].set_title(axes_titles[var_index])
-
+        if axes_aspect:
+            ax[var_index].set_aspect(axes_aspect)
     return fig, ax
 
 

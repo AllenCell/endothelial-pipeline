@@ -160,23 +160,32 @@ for dataset_name, panel_letters, y_position in [
 
     filename_prefix = f"{dataset_name}_{'_'.join(column_names)}"
     contour_plot_filename = f"{filename_prefix}_contours"
+    contour_plot_figsize = (MAX_FIGURE_WIDTH / 3, 2 * MAX_FIGURE_WIDTH / 3)
     # plot drift contours and save
     fig, _ = plot_drift_contours(
         centers_mesh,
         drift,
         variable_labels=variable_labels,
+        figsize=contour_plot_figsize,
         axes_limits=axes_limits,
+        axes_aspect="equal",
     )
     save_plot_to_path(fig, fig_savedir, contour_plot_filename, file_format=".svg")
 
     # plot quiver plot of drift and save
     quiver_plot_filename = f"{filename_prefix}_quiver"
-    fig, _ = plot_drift_quiver(
+    quiver_plot_figsize = (MAX_FIGURE_HEIGHT / 2, MAX_FIGURE_HEIGHT / 3)
+    quiver_legend_loc = (1.05, 0.80)
+    fig, ax = plot_drift_quiver(
         centers_mesh,
         drift,
         variable_labels=variable_labels,
+        figsize=quiver_plot_figsize,
         axes_limits=axes_limits,
+        include_nullclines=True,
+        legend_loc=quiver_legend_loc,
     )
+    ax.set_aspect("equal")
     save_plot_to_path(fig, fig_savedir, quiver_plot_filename, file_format=".svg")
 
     contour_plots = FigurePanel(
