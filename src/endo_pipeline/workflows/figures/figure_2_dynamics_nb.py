@@ -128,9 +128,9 @@ save_plot_to_path(fig, base_output_dir, "colorbar", file_format=".svg")
 # loop over datasets in collection, compute 2D drift coefficients for each
 # pairwise combination of polar coordinates, and plot contours of drift coefficients
 panels = []
-for dataset_name, panel_letter, y_position in [
-    (low_shear_stress_repr_example, "A", 0.0),
-    (high_shear_stress_repr_example, "C", 2.05),
+for dataset_name, panel_letter, y_position, quiver_ylabel_pad in [
+    (low_shear_stress_repr_example, "A", 0.0, 2),
+    (high_shear_stress_repr_example, "C", 2.05, -3),
 ]:
     if dataset_name not in feature_dataframe_manifest.locations:
         logger.warning(
@@ -219,7 +219,7 @@ for dataset_name, panel_letter, y_position in [
 
     # plot quiver plot of drift and save
     quiver_plot_filename = f"{filename_prefix}_quiver"
-    quiver_plot_figsize = (2.25, 2.0)
+    quiver_plot_figsize = (2.05, 1.65)
     fig, ax = plot_drift_quiver(
         centers_mesh,
         drift,
@@ -228,12 +228,11 @@ for dataset_name, panel_letter, y_position in [
         axes_limits=axes_limits,
         include_nullclines=True,
         gridspec_kwargs=gridspec_kwargs,
-        fig_kwargs=fig_kwargs,
         legend_kwargs=legend_kwargs,
     )
-    ax.set_aspect("equal")
+    ax.set_box_aspect(1.0)
     ax.xaxis.labelpad = 2
-    ax.yaxis.labelpad = 3
+    ax.yaxis.labelpad = quiver_ylabel_pad
     save_plot_to_path(
         fig,
         fig_savedir,
@@ -266,7 +265,7 @@ for dataset_name, panel_letter, y_position in [
         x_position=MAX_FIGURE_WIDTH / 4 + 0.5,
         y_position=y_position,
         x_offset=-0.1,
-        y_offset=-0.15,
+        y_offset=0.0,
     )
     panels.extend([contour_plots, colorbar_panel, quiver_plot])
 
