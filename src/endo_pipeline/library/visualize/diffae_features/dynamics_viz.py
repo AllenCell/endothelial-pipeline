@@ -22,8 +22,10 @@ def plot_drift_contours(
     meshgrid: tuple[np.ndarray, np.ndarray],
     drift: np.ndarray,
     variable_labels: list[str],
-    axes_limits: list[tuple[float, float]],
     fig_ax: tuple[plt.Figure, tuple[plt.Axes, plt.Axes]] | None = None,
+    figsize: tuple[float, float] = (7, 12),
+    axes_limits: list[tuple[float, float]] | None = None,
+    axes_titles: list[str] | None = None,
     colormap: str = DRIFT_CONTOUR_COLORMAP,
     vmin: float | None = DRIFT_CONTOUR_VMIN,
     vmax: float | None = DRIFT_CONTOUR_VMAX,
@@ -49,12 +51,16 @@ def plot_drift_contours(
     variable_labels
         Labels for axes corresponding to the state space variables, e.g.,
         ["$x_1$", "$x_2$"].
-    axes_limits
-        Limits for the axes, specified as a list of tuples.
     fig_ax
         Optional tuple of (Figure, (Axes, Axes)) to plot on. If None, a new
         figure and axes will be created; if provided, the contour plots will be
         made on the provided axes.
+    figsize
+        Size of the figure, specified as a tuple (width, height).
+    axes_limits
+        Optional limits for the axes, specified as a list of tuples.
+    axes_titles
+        Optional list of titles for each subplot.
     colormap
         Colormap to use for the contour plots.
     vmin
@@ -69,7 +75,7 @@ def plot_drift_contours(
         Number of decimal places to round colorbar ticks to in the contour plots.
 
     """
-    fig, ax = fig_ax or plt.subplots(2, 1, figsize=(7, 12))
+    fig, ax = fig_ax or plt.subplots(2, 1, figsize=figsize)
 
     for var_index, var_name in enumerate(variable_labels):
         vmin_ = vmin or np.nanmin(drift[..., var_index])
@@ -101,9 +107,11 @@ def plot_drift_contours(
         fig.colorbar(contour, ax=ax[var_index], label=f"d{var_name}/dt", ticks=colorbar_ticks)
         ax[var_index].set_xlabel(variable_labels[0])
         ax[var_index].set_ylabel(variable_labels[1])
-        ax[var_index].set_xlim(axes_limits[0])
-        ax[var_index].set_ylim(axes_limits[1])
-        ax[var_index].set_title(f"Drift component: d{var_name}/dt")
+        if axes_limits:
+            ax[var_index].set_xlim(axes_limits[0])
+            ax[var_index].set_ylim(axes_limits[1])
+        if axes_titles:
+            ax[var_index].set_title(axes_titles[var_index])
 
     return fig, ax
 
@@ -112,11 +120,12 @@ def plot_drift_quiver(
     meshgrid: tuple[np.ndarray, np.ndarray],
     drift: np.ndarray,
     variable_labels: list[str],
-    axes_limits: list[tuple[float, float]],
     fig_ax: tuple[plt.Figure, plt.Axes] | None = None,
-    include_nullclines: bool = True,
+    figsize: tuple[float, float] = (4, 4),
+    axes_limits: list[tuple[float, float]] | None = None,
     quiver_scale: float = 10,
     quiver_color: str = "k",
+    include_nullclines: bool = True,
     nullcline_styles: tuple[str, str] = ("dashed", "dashdot"),
     nullcline_colors: tuple[str, str] = ("r", "b"),
     nullcline_linewidth: float = 1.5,
@@ -135,18 +144,20 @@ def plot_drift_quiver(
     variable_labels
         Labels for axes corresponding to the state space variables, e.g.,
         ["$x_1$", "$x_2$"].
-    axes_limits
-        Limits for the axes, specified as a list of tuples.
     fig_ax
         Optional tuple of (Figure, Axes) to plot on. If None, a new figure and
         axes will be created; if provided, the quiver plot will be made on the
         provided axes.
-    include_nullclines
-        Whether to include nullclines (where drift components are zero).
+    figsize
+        Size of the figure, specified as a tuple (width, height).
+    axes_limits
+        Optional limits for the axes, specified as a list of tuples.
     quiver_scale
         Scale factor for the quiver plot (smaller values make arrows longer).
     quiver_color
         Color for the quiver arrows.
+    include_nullclines
+        Whether to include nullclines (where drift components are zero).
     nullcline_styles
         Tuple of line styles for the nullclines of each variable.
     nullcline_colors
@@ -157,7 +168,7 @@ def plot_drift_quiver(
         Opacity for the nullcline lines (between 0 and 1).
 
     """
-    fig, ax = fig_ax or plt.subplots()
+    fig, ax = fig_ax or plt.subplots(figsize=figsize)
     ax.quiver(
         meshgrid[0],
         meshgrid[1],
@@ -192,8 +203,9 @@ def plot_drift_quiver(
 
     ax.set_xlabel(variable_labels[0])
     ax.set_ylabel(variable_labels[1])
-    ax.set_xlim(axes_limits[0])
-    ax.set_ylim(axes_limits[1])
+    if axes_limits:
+        ax.set_xlim(axes_limits[0])
+        ax.set_ylim(axes_limits[1])
 
     return fig, ax
 

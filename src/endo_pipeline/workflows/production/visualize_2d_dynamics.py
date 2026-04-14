@@ -171,6 +171,7 @@ def main(
                 centers_2d = []
                 column_labels_2d = []
                 axes_limits_2d = []
+                axes_titles = []
                 for column_name in column_name_pair:
                     kernels.append(
                         KramersMoyalKernel(
@@ -183,7 +184,9 @@ def main(
                             ),
                         )
                     )
-                    column_labels_2d.append(variable_labels_dict[column_name])
+                    column_label = variable_labels_dict[column_name]
+                    column_labels_2d.append(column_label)
+                    axes_titles.append(f"Drift component: d{column_label}/dt")
                     if column_name == Column.DiffAEData.POLAR_ANGLE:
                         bins_, centers_ = get_bins(
                             bin_widths=(BIN_WIDTHS_DYNAMICS[column_name],),
@@ -248,6 +251,7 @@ def main(
                     drift,
                     variable_labels=column_labels_2d,
                     axes_limits=axes_limits_2d,
+                    axes_titles=axes_titles,
                 )
                 fig.suptitle(fig_title, y=1.00)
                 save_plot_to_path(fig, fig_savedir, f"{filename_prefix}_contours")
