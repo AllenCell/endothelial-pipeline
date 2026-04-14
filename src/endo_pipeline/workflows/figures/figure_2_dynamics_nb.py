@@ -3,6 +3,8 @@ import logging
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.cm import ScalarMappable
+from matplotlib.colors import TwoSlopeNorm
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
@@ -34,6 +36,13 @@ from endo_pipeline.settings.dynamics_workflows import (
     RESCALE_THETA,
 )
 from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.flow_field_2d import (
+    DRIFT_CONTOUR_CBAR_NUM_TICKS,
+    DRIFT_CONTOUR_CBAR_ROUND,
+    DRIFT_CONTOUR_COLORMAP,
+    DRIFT_CONTOUR_VMAX,
+    DRIFT_CONTOUR_VMIN,
+)
 from endo_pipeline.settings.flow_field_3d import TIME_STEP_IN_MINUTES
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
@@ -169,6 +178,7 @@ for dataset_name, panel_letters, y_position in [
         figsize=contour_plot_figsize,
         axes_limits=axes_limits,
         axes_aspect="equal",
+        include_colorbar=False,
     )
     save_plot_to_path(fig, fig_savedir, contour_plot_filename, file_format=".svg")
 
@@ -206,6 +216,25 @@ for dataset_name, panel_letters, y_position in [
         y_offset=0.08,
     )
     panels.extend([contour_plots, quiver_plot])
+
+# %%
+# make svg of just the colorbar with set ticks and extended on both sides
+fig, ax = plt.subplots(figsize=(1, 2 * MAX_FIGURE_WIDTH / 3))
+# center colormap at zero to visualize sign and magnitude of drift
+vmin = DRIFT_CONTOUR_VMIN
+vmax = DRIFT_CONTOUR_VMAX
+colormap_norm = TwoSlopeNorm(vmin=vmin, vmax=vmax, vcenter=0)
+colorbar_ticks = np.linspace(vmin, vmax, DRIFT_CONTOUR_CBAR_NUM_TICKS)
+colorbar_ticks = np.round(colorbar_ticks, DRIFT_CONTOUR_CBAR_ROUND)
+cb = fig.colorbar(
+    ScalarMappable(norm=colormap_norm, cmap=DRIFT_CONTOUR_COLORMAP),
+    cax=ax,
+    orientation="vertical",
+    ticks=colorbar_ticks,
+    extend="both",
+)
+save_plot_to_path(fig, get_output_path(__file__), "colorbar", file_format=".svg")
+
 
 # %%
 output_path = get_output_path(__file__) / "test_build_fig.svg"
