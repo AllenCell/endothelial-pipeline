@@ -772,9 +772,9 @@ def get_label_for_column(
     elif column_name == Column.DiffAEData.PC3_FLIPPED:
         label = "$\\rho$"
     elif column_name == Column.OpticalFlow.UNIT_VECTOR_MEAN:
-        label = "Optical Flow Mean Unit Vector"
+        label = "Migration Coherence"
     elif column_name == Column.OpticalFlow.SPEED_MEAN:
-        label = "Optical Flow Mean Speed"
+        label = "Mean Speed"
     elif column_name == Column.OpticalFlow.ANGLE_MEAN:
         label = "Optical Flow Mean Angle"
 

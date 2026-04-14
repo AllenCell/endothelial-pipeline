@@ -74,8 +74,6 @@ locations:
     path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_zarr/20250813_6ab0f70bd43f4de987a789905dbfb95c/20250813_6ab0f70bd43f4de987a789905dbfb95c_P{{position}}.ome.zarr
   20250818_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_zarr/20250818_1f895d9188df43e0a10b379cf23a879c/20250818_1f895d9188df43e0a10b379cf23a879c_P{{position}}.ome.zarr
-  20250825_20X:
-    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_zarr/20250825_c2a006900d0342668998fbdd295f347b/20250825_c2a006900d0342668998fbdd295f347b_P{{position}}.ome.zarr
   20250827_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_zarr/20250827_c96180b30a224a48bac3b6d8fe1ffbb4/20250827_c96180b30a224a48bac3b6d8fe1ffbb4_P{{position}}.ome.zarr
   20250929_20X_IF0:
@@ -148,3 +146,9 @@ locations:
     path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_zarr/20260302_e9cfa3b0b24447f7bba000af3b012427/20260302_e9cfa3b0b24447f7bba000af3b012427_P{{position}}.ome.zarr
   20260304_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_zarr/20260304_56c81f459d8e46eabd74cc2147b85f49/20260304_56c81f459d8e46eabd74cc2147b85f49_P{{position}}.ome.zarr
+  20260316_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_zarr/20260316_783bd5c2008048b588ceafd51565beaf/20260316_783bd5c2008048b588ceafd51565beaf_P{{position}}.ome.zarr
+  20260318_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_zarr/20260318_2bcd201f174342aeab5afbcbb9cce560/20260318_2bcd201f174342aeab5afbcbb9cce560_P{{position}}.ome.zarr
+  20260323_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_zarr/20260323_e6a3e50989ed48e1b55657fbd4c52699/20260323_e6a3e50989ed48e1b55657fbd4c52699_P{{position}}.ome.zarr
