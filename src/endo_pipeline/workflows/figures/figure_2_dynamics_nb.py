@@ -100,7 +100,7 @@ feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
 feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
 # Use provided datasets or default if none provided.
-low_shear_stress_repr_example = "20250402_20X"
+low_shear_stress_repr_example = "20250409_20X"
 high_shear_stress_repr_example = "20251001_20X"
 
 # global plotting kwargs
