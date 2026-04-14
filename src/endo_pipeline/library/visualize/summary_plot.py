@@ -185,10 +185,10 @@ def plot_fixed_points_vs_shear_stress(
             "#882255",  # wine
             "#AA4499",  # magenta
         ]
-        unique_datasets: list[str] = list(df_fp["dataset"].unique())
+        unique_datasets_list = df_fp["dataset"].unique()
         dataset_color_map = {
             ds: _COLORBLIND_PALETTE[i % len(_COLORBLIND_PALETTE)]
-            for i, ds in enumerate(unique_datasets)
+            for i, ds in enumerate(unique_datasets_list)
         }
 
         for _, row in df_fp.iterrows():
