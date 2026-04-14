@@ -195,7 +195,7 @@ for dataset_name, panel_letter, y_position in [
     contour_plot_filename = f"{filename_prefix}_contours"
     contour_plot_figsize = (MAX_FIGURE_WIDTH / 4, MAX_FIGURE_HEIGHT / 4)
     # plot drift contours and save
-    fig, _ = plot_drift_contours(
+    fig, ax = plot_drift_contours(
         centers_mesh,
         drift,
         variable_labels=variable_labels,
@@ -206,6 +206,13 @@ for dataset_name, panel_letter, y_position in [
         gridspec_kwargs=gridspec_kwargs,
         fig_kwargs=fig_kwargs,
     )
+    for ax_index, ax_ in enumerate(ax):
+        # adjust label padding and drop tick labels on shared x axis
+        ax_.xaxis.labelpad = 2
+        ax_.yaxis.labelpad = 3
+        if ax_index == 0:
+            ax_.tick_params(labelbottom=False)
+
     save_plot_to_path(
         fig, fig_savedir, contour_plot_filename, file_format=".svg", tight_layout=False
     )
@@ -225,6 +232,8 @@ for dataset_name, panel_letter, y_position in [
         legend_kwargs=legend_kwargs,
     )
     ax.set_aspect("equal")
+    ax.xaxis.labelpad = 2
+    ax.yaxis.labelpad = 3
     save_plot_to_path(
         fig,
         fig_savedir,
@@ -256,7 +265,7 @@ for dataset_name, panel_letter, y_position in [
         path=fig_savedir / f"{quiver_plot_filename}.svg",
         x_position=MAX_FIGURE_WIDTH / 4 + 0.5,
         y_position=y_position,
-        x_offset=0.0,
+        x_offset=-0.1,
         y_offset=-0.15,
     )
     panels.extend([contour_plots, colorbar_panel, quiver_plot])
