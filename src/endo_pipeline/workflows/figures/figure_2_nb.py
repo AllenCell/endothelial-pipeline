@@ -13,6 +13,7 @@ from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature impo
     add_optical_flow_features,
 )
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
+from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
 from endo_pipeline.library.visualize.migration_coherence import plot_optical_flow_histogram
 from endo_pipeline.library.visualize.summary_plot import plot_cross_dataset_summaries
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
@@ -61,7 +62,7 @@ plot_cross_dataset_summaries(
     fixed_points_dataframe_manifest=fixed_points_dataframe_manifest,
     output_dir=save_dir,
     x_axis_mode="shear_stress_categorical",
-    figure_size=(MAX_FIGURE_WIDTH / 4, 2),
+    figure_size=(MAX_FIGURE_WIDTH - 2.1, 2),
     stable_only=True,
 )
 
@@ -73,7 +74,7 @@ fig, ax = plt.subplots(figsize=(2.15, 2), layout="constrained")
 for dataset_name in [dataset_low, dataset_high]:
     # get settings
     dataset_config = load_dataset_config(dataset_name)
-    shear_stress = round(dataset_config.flow_conditions[0].shear_stress)
+    shear_stress = round(max(fc.shear_stress for fc in dataset_config.flow_conditions))
     dataset_name_flow = f"{dataset_name}_shear_{shear_stress}"
     ss_label = f"{shear_stress} dyn/cm$\u00b2$"
     hist_color = get_dataset_color(dataset_name)
@@ -139,4 +140,25 @@ save_plot_to_path(
     tight_layout=False,
     file_format=".svg",
 )
+# %%
+panels = [
+    FigurePanel(
+        letter="G",
+        path=save_dir / "migration_coherence_distribution_high_low_flow_comparison.svg",
+        x_position=0,
+        y_position=0,
+        x_offset=0,
+        y_offset=0,
+    ),
+    FigurePanel(
+        letter="H",
+        path=save_dir / "fixed_points_vs_shear_stress.svg",
+        x_position=2.1,
+        y_position=0,
+        x_offset=0,
+        y_offset=0,
+    ),
+]
+
+build_figure_from_panels(panels, save_dir / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=3)
 # %%

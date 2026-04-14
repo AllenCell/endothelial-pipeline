@@ -26,7 +26,7 @@ from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
     METADATA_COLUMNS_TO_KEEP,
 )
-from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.flow_field_dataframes import (
     STABILITY_COLOR_DICT,
     STABILITY_COLUMN_NAME,
@@ -43,10 +43,11 @@ def plot_fixed_points_vs_shear_stress(
     dataset_order: list[str] | None = None,
     ylim: tuple[float, float] | None = None,
     x_axis_mode: Literal["dataset", "shear_stress_numeric", "shear_stress_categorical"] = "dataset",
-    marker_size_scatter: int = 10,
+    marker_size_scatter: int = 15,
     marker_size_legend: int = 5,
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 3),
     stable_only: bool = True,
+    ax: plt.Axes | None = None,
 ) -> plt.Figure:
     """Make and save plot of one component of fixed points vs shear stress.
 
@@ -108,7 +109,7 @@ def plot_fixed_points_vs_shear_stress(
         df_fp = df_fp.sort_values("shear_stress_numeric")
 
     # --- Build jitter map (shared by numeric and categorical shear-stress modes) ---
-    def _build_jitter_map(df: pd.DataFrame, jitter_width: float = 0.4) -> dict[tuple, float]:
+    def _build_jitter_map(df: pd.DataFrame, jitter_width: float = 0.1) -> dict[tuple, float]:
         jmap: dict[tuple, float] = {}
         for ss in df["shear_stress_numeric"].unique():
             datasets_at_ss = df.loc[df["shear_stress_numeric"] == ss, "dataset"].unique()
@@ -157,7 +158,10 @@ def plot_fixed_points_vs_shear_stress(
     else:
         raise ValueError(f"Unknown x_axis_mode: {x_axis_mode!r}")
 
-    fig, ax = plt.subplots(figsize=figure_size)
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figure_size)
+    else:
+        fig = ax.figure
 
     if stable_only:
         # Unique color per dataset — colorblind-friendly palette (Wong 2011 + extensions)
@@ -195,26 +199,6 @@ def plot_fixed_points_vs_shear_stress(
                 zorder=3,
             )
 
-        # # Dataset legend
-        # dataset_handles = [
-        #     Line2D(
-        #         [0], [0],
-        #         marker="o",
-        #         color="none",
-        #         markerfacecolor=dataset_color_map[ds],
-        #         markeredgecolor="black",
-        #         markeredgewidth=0.5,
-        #         markersize=marker_size_legend,
-        #         label=ds,
-        #     )
-        #     for ds in unique_datasets
-        # ]
-        # ax.legend(
-        #     handles=dataset_handles,
-        #     loc="center left",
-        #     bbox_to_anchor=(1, 0.5),
-        #     title="dataset",
-        # )
     else:
         # Color by stability
         for _, row in df_fp.iterrows():
@@ -249,7 +233,6 @@ def plot_fixed_points_vs_shear_stress(
         ax.set_ylim(*ylim)
 
     ax.set_ylabel(label)
-    ax.set_xlabel("shear stress (dyn/cm\u00b2)")
     ax.grid(axis="y", alpha=0.3)
 
     return fig
@@ -367,15 +350,24 @@ def plot_cross_dataset_summaries(
     df_fp_all = pd.concat(df_fp_all_list, ignore_index=True)
     df_fp_all = add_shear_stress_to_df(df_fp_all)
 
-    # Plot feature-independent fixed-point variables once
-    for var, label in [
+    # Plot all fixed-point variables in a single 1-row subplot
+    fp_variables = [
         (ColumnName.DiffAEData.POLAR_ANGLE, "\u03b8"),
         (ColumnName.DiffAEData.POLAR_RADIUS, "r"),
         (ColumnName.DiffAEData.PC3_FLIPPED, "\u03c1"),
         (f"mean_{ColumnName.OpticalFlow.UNIT_VECTOR_MEAN}", "Migration Coherence"),
-        (f"mean_{ColumnName.OpticalFlow.SPEED_MEAN}", "Mean Speed"),
-    ]:
-        fig = plot_fixed_points_vs_shear_stress(
+        # (f"mean_{ColumnName.OpticalFlow.SPEED_MEAN}", "Mean Speed"),
+    ]
+    n_panels = len(fp_variables)
+    fig, axs = plt.subplots(
+        1,
+        n_panels,
+        figsize=(figure_size[0], figure_size[1]),
+        sharex=True,
+        layout="constrained",
+    )
+    for ax_i, (var, label) in zip(axs, fp_variables, strict=False):
+        plot_fixed_points_vs_shear_stress(
             df_fp_all,
             var,
             label,
@@ -384,7 +376,22 @@ def plot_cross_dataset_summaries(
             x_axis_mode=x_axis_mode,
             figure_size=figure_size,
             stable_only=stable_only,
+            ax=ax_i,
         )
-        save_plot_to_path(
-            fig, output_dir, f"fixed_points_{var}_vs_shear_stress", file_format=".svg"
-        )
+    fig.supxlabel("Shear Stress (dyn/cm\u00b2)", fontsize=FONTSIZE_MEDIUM, fontweight="bold")
+
+    # reduce spacing between axis labels and tick labels
+    for ax in axs:
+        ax.xaxis.labelpad = 2
+        ax.yaxis.labelpad = 2
+        ax.tick_params(axis="x", pad=2)
+        ax.tick_params(axis="y", pad=2)
+
+    save_plot_to_path(
+        fig,
+        output_dir,
+        "fixed_points_vs_shear_stress",
+        file_format=".svg",
+        tight_layout=False,
+        pad_inches=0,
+    )

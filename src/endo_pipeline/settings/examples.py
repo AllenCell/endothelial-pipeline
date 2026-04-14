@@ -1,7 +1,7 @@
 from typing import NamedTuple
 
 EXAMPLE_DATASET = {
-    "FIGURE_2_LOW_FLOW_DATASET": "20250402_20X",
+    "FIGURE_2_LOW_FLOW_DATASET": "20250409_20X",
     "FIGURE_2_HIGH_FLOW_DATASET": "20251001_20X",
     "SUPP_FIG_Z_SLICE": "20250428_20X",
     "SUPP_FIG_IMG_PROC": "20250224_20X",
@@ -24,7 +24,7 @@ class ExampleImage(NamedTuple):
 
 FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES: list[ExampleImage] = [
     ExampleImage(
-        dataset_name="20250402_20X",  # update this example to be 20250402
+        dataset_name="20250402_20X",
         description="low_flow",
         position=3,
         timepoint=150,

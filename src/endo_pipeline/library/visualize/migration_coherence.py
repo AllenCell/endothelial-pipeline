@@ -381,15 +381,15 @@ def plot_optical_flow_histogram(
             peak_bar = max(bars, key=lambda b: b.get_height())
             peak_x = peak_bar.get_x()
             stats_text = f"n={len(data)}\n\u03bc={mean:.2f}\nCV={cov:.2f}"
-            x_loc = peak_x - 0.25  # shift left from the peak
+            x_loc = peak_x - 0.3  # shift left from the peak
             if x_loc < ax.get_xlim()[0]:
                 x_loc = (
-                    ax.get_xlim()[0] + 0.005
+                    ax.get_xlim()[0] + 0.02
                 )  # if shifted label goes beyond left limit, shift it back inside
             # Bold label for shear stress
             ax.text(
                 x_loc,
-                0.99,
+                0.98,
                 ss_label,
                 color=color,
                 fontweight="bold",
@@ -401,7 +401,7 @@ def plot_optical_flow_histogram(
             # Normal-weight stats below
             ax.text(
                 x_loc,
-                0.92,
+                0.91,
                 stats_text,
                 color=color,
                 fontsize=FONTSIZE_XSMALL,
