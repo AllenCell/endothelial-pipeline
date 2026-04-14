@@ -55,12 +55,11 @@ def main(
 
     import logging
 
-    import matplotlib.pyplot as plt
     import numpy as np
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import get_output_path, load_dataframe
+    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_flow_condition,
         filter_dataframe_to_steady_state,
@@ -73,8 +72,8 @@ def main(
     from endo_pipeline.library.analyze.numerics.binning import get_bins
     from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
     from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
-        plot_and_save_drift_contours,
-        plot_and_save_drift_quiver,
+        plot_drift_contours,
+        plot_drift_quiver,
     )
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.manifests import load_dataframe_manifest
@@ -242,27 +241,28 @@ def main(
 
                 filename_prefix = f"{dataset_name_flow}_{'_'.join(column_name_pair)}"
                 # plot drift contours and save
-                plot_and_save_drift_contours(
+                fig, _ = plot_drift_contours(
                     centers_mesh,
                     drift,
                     variable_labels=column_labels_2d,
                     axes_limits=axes_limits_2d,
-                    fig_title=fig_title,
-                    fig_savedir=fig_savedir,
-                    filename_prefix=filename_prefix,
                 )
+                fig.suptitle(fig_title, y=1.00)
+                save_plot_to_path(fig, fig_savedir, f"{filename_prefix}_contours")
 
                 # plot quiver plot of drift and save
-                plot_and_save_drift_quiver(
+                fig, _ = plot_drift_quiver(
                     centers_mesh,
                     drift,
                     variable_labels=column_labels_2d,
                     axes_limits=axes_limits_2d,
-                    fig_title=fig_title,
-                    fig_savedir=fig_savedir,
-                    filename_prefix=filename_prefix,
                 )
-                plt.close("all")
+                fig.suptitle(
+                    f"{fig_title} \n drift in ({column_labels_2d[0]}, {column_labels_2d[1]})",
+                    y=1.00,
+                )
+
+                save_plot_to_path(fig, fig_savedir, f"{filename_prefix}_quiver")
 
 
 if __name__ == "__main__":
