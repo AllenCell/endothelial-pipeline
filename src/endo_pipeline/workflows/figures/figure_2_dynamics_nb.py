@@ -282,11 +282,16 @@ for dataset_name, panel_letters, y_position in [
     fig, ax = plot_drift_quiver(
         centers_mesh,
         drift_r_rho,
-        quiver_scale=5,
+        quiver_scale=4,
+        quiver_color="dimgrey",
+        quiver_downsample=3,
         variable_labels=column_labels_r_rho,
         figsize=quiver_plot_figsize,
         axes_limits=(quiver_plot_xlims, quiver_plot_ylims),
         include_nullclines=True,
+        nullcline_colors=["k", "k"],
+        nullcline_styles=["dashed", (0, (1, 1))],
+        nullcline_opacity=0.9,
         gridspec_kwargs=gridspec_kwargs,
         legend_kwargs=legend_kwargs,
     )
@@ -296,8 +301,10 @@ for dataset_name, panel_letters, y_position in [
             stable_fixed_points[columns_r_rho[0]],
             stable_fixed_points[columns_r_rho[1]],
             "o",
-            color="k",
-            markersize=4,
+            color="blue",
+            markeredgecolor="k",
+            markeredgewidth=0.5,
+            markersize=5,
         )
 
     # set plot formatting args and save
