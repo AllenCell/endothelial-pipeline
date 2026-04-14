@@ -2,7 +2,7 @@
 
 import logging
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -125,6 +125,8 @@ def plot_fixed_points_vs_shear_stress(
                 jmap[(ds, ss)] = off
         return jmap
 
+    row_to_x: Any  # noqa: E731
+    tick_positions: list[float]
     if x_axis_mode == "dataset":
         # Categorical x-axis: one tick per dataset
         unique_datasets = df_fp["dataset"].unique()
@@ -154,18 +156,16 @@ def plot_fixed_points_vs_shear_stress(
         tick_positions = [i * tick_spacing for i in range(len(unique_shear))]
         tick_labels = [str(round(s)) for s in unique_shear]
         jitter_map = _build_jitter_map(df_fp)
-        row_to_x = lambda row: ss_to_pos[
+        row_to_x = lambda row: ss_to_pos[  # noqa: E731
             row["shear_stress_numeric"]
-        ] + jitter_map.get(  # noqa: E731
-            (row["dataset"], row["shear_stress_numeric"]), 0.0
-        )
+        ] + jitter_map.get((row["dataset"], row["shear_stress_numeric"]), 0.0)
     else:
         raise ValueError(f"Unknown x_axis_mode: {x_axis_mode!r}")
 
     if ax is None:
         fig, ax = plt.subplots(figsize=figure_size)
     else:
-        fig = ax.figure
+        fig = ax.figure  # type: ignore[assignment]
 
     if stable_only:
         # Unique color per dataset — colorblind-friendly palette (Wong 2011 + extensions)
@@ -185,7 +185,7 @@ def plot_fixed_points_vs_shear_stress(
             "#882255",  # wine
             "#AA4499",  # magenta
         ]
-        unique_datasets = list(df_fp["dataset"].unique())
+        unique_datasets: list[str] = list(df_fp["dataset"].unique())
         dataset_color_map = {
             ds: _COLORBLIND_PALETTE[i % len(_COLORBLIND_PALETTE)]
             for i, ds in enumerate(unique_datasets)
@@ -383,9 +383,8 @@ def plot_cross_dataset_summaries(
     all_column_info = get_seg_feat_plot_args()
     for ax_i, var in zip(axs, column_names, strict=False):
         column_info = all_column_info.get(var)
-        label = column_info["label"] if column_info else var
-        if var in optical_flow_features:
-            var = f"mean_{var}"
+        label: str = column_info["label"] if column_info else str(var)
+        col_name: str = f"mean_{var}" if var in optical_flow_features else str(var)
         limits = column_info["lims"] if column_info else None
         if limits is not None and limits[0] is not None and limits[1] is not None:
             # Add 5% padding to y-limits
@@ -395,7 +394,7 @@ def plot_cross_dataset_summaries(
             limits = None
         plot_fixed_points_vs_shear_stress(
             df_fp_all,
-            var,
+            col_name,
             label,
             dataset_order=dataset_order,
             ylimits=limits,

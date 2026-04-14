@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from matplotlib.patches import Rectangle
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.stats import binned_statistic_2d, binned_statistic_dd
 
@@ -372,10 +373,11 @@ def plot_optical_flow_histogram(
             transform=ax.transAxes,
         )
     elif legend_loc is None:
-        bars = [
+        bars: list[Rectangle] = [
             p
             for p in ax.patches
-            if np.allclose(p.get_facecolor()[:3], plt.matplotlib.colors.to_rgb(color))
+            if isinstance(p, Rectangle)
+            and np.allclose(p.get_facecolor()[:3], plt.matplotlib.colors.to_rgb(color))
         ]
         if bars:
             peak_bar = max(bars, key=lambda b: b.get_height())
