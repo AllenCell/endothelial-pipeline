@@ -101,12 +101,31 @@ low_shear_stress_repr_example = "20250402_20X"
 high_shear_stress_repr_example = "20251001_20X"
 
 # %%
+base_output_dir = get_output_path(__file__)
+# make svg of just the colorbar with set ticks and extended on both sides
+fig, ax = plt.subplots(figsize=(0.85, MAX_FIGURE_WIDTH / 4))
+# center colormap at zero to visualize sign and magnitude of drift
+vmin = DRIFT_CONTOUR_VMIN
+vmax = DRIFT_CONTOUR_VMAX
+colormap_norm = TwoSlopeNorm(vmin=vmin, vmax=vmax, vcenter=0)
+colorbar_ticks = np.linspace(vmin, vmax, DRIFT_CONTOUR_CBAR_NUM_TICKS)
+colorbar_ticks = np.round(colorbar_ticks, DRIFT_CONTOUR_CBAR_ROUND)
+cb = fig.colorbar(
+    ScalarMappable(norm=colormap_norm, cmap=DRIFT_CONTOUR_COLORMAP),
+    cax=ax,
+    orientation="vertical",
+    ticks=colorbar_ticks,
+    extend="both",
+)
+save_plot_to_path(fig, base_output_dir, "colorbar", file_format=".svg")
+
+# %%
 # loop over datasets in collection, compute 2D drift coefficients for each
 # pairwise combination of polar coordinates, and plot contours of drift coefficients
 panels = []
 for dataset_name, panel_letters, y_position in [
     (low_shear_stress_repr_example, ("A", "B"), 0.0),
-    (high_shear_stress_repr_example, ("D", "E"), MAX_FIGURE_HEIGHT / 2),
+    (high_shear_stress_repr_example, ("D", "E"), MAX_FIGURE_HEIGHT / 3),
 ]:
     if dataset_name not in feature_dataframe_manifest.locations:
         logger.warning(
@@ -169,7 +188,9 @@ for dataset_name, panel_letters, y_position in [
 
     filename_prefix = f"{dataset_name}_{'_'.join(column_names)}"
     contour_plot_filename = f"{filename_prefix}_contours"
-    contour_plot_figsize = (MAX_FIGURE_WIDTH / 3, 2 * MAX_FIGURE_WIDTH / 3)
+    contour_plot_figsize = (MAX_FIGURE_WIDTH / 3, MAX_FIGURE_HEIGHT / 3)
+    gridspec_kwargs = {"wspace": 0.3, "hspace": 0.3}
+    fig_kwargs = {"constrained_layout": True}
     # plot drift contours and save
     fig, _ = plot_drift_contours(
         centers_mesh,
@@ -179,6 +200,8 @@ for dataset_name, panel_letters, y_position in [
         axes_limits=axes_limits,
         axes_aspect="equal",
         include_colorbar=False,
+        gridspec_kwargs=gridspec_kwargs,
+        fig_kwargs=fig_kwargs,
     )
     save_plot_to_path(fig, fig_savedir, contour_plot_filename, file_format=".svg")
 
@@ -207,36 +230,32 @@ for dataset_name, panel_letters, y_position in [
         y_offset=0,
     )
 
+    colorbar_panel = FigurePanel(
+        letter="",
+        path=base_output_dir / "colorbar.svg",
+        x_position=MAX_FIGURE_WIDTH / 4,
+        y_position=y_position + 0.25,
+        x_offset=0.08,
+        y_offset=0.08,
+    )
+
     quiver_plot = FigurePanel(
         letter=panel_letters[1],
         path=fig_savedir / f"{quiver_plot_filename}.svg",
-        x_position=MAX_FIGURE_WIDTH / 3,
+        x_position=MAX_FIGURE_WIDTH / 4 + 1,
         y_position=y_position,
         x_offset=0.08,
         y_offset=0.08,
     )
-    panels.extend([contour_plots, quiver_plot])
+    panels.extend([contour_plots, quiver_plot, colorbar_panel])
+
 
 # %%
-# make svg of just the colorbar with set ticks and extended on both sides
-fig, ax = plt.subplots(figsize=(1, 2 * MAX_FIGURE_WIDTH / 3))
-# center colormap at zero to visualize sign and magnitude of drift
-vmin = DRIFT_CONTOUR_VMIN
-vmax = DRIFT_CONTOUR_VMAX
-colormap_norm = TwoSlopeNorm(vmin=vmin, vmax=vmax, vcenter=0)
-colorbar_ticks = np.linspace(vmin, vmax, DRIFT_CONTOUR_CBAR_NUM_TICKS)
-colorbar_ticks = np.round(colorbar_ticks, DRIFT_CONTOUR_CBAR_ROUND)
-cb = fig.colorbar(
-    ScalarMappable(norm=colormap_norm, cmap=DRIFT_CONTOUR_COLORMAP),
-    cax=ax,
-    orientation="vertical",
-    ticks=colorbar_ticks,
-    extend="both",
+figure_filename = "figure_2_dynamics"
+build_figure_from_panels(
+    panels,
+    base_output_dir / f"{figure_filename}.svg",
+    width=MAX_FIGURE_WIDTH,
+    height=MAX_FIGURE_WIDTH,
 )
-save_plot_to_path(fig, get_output_path(__file__), "colorbar", file_format=".svg")
-
-
-# %%
-output_path = get_output_path(__file__) / "test_build_fig.svg"
-build_figure_from_panels(panels, output_path, width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_WIDTH)
 # %%

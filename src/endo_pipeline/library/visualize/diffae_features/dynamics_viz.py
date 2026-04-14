@@ -35,6 +35,8 @@ def plot_drift_contours(
     include_colorbar: bool = True,
     cbar_num_ticks: int = DRIFT_CONTOUR_CBAR_NUM_TICKS,
     cbar_tick_round: int = DRIFT_CONTOUR_CBAR_ROUND,
+    gridspec_kwargs: dict | None = None,
+    fig_kwargs: dict | None = None,
 ) -> tuple[plt.Figure, tuple[plt.Axes, plt.Axes]]:
     """
     Make and save contour plot of each component of the drift vector field over
@@ -82,7 +84,9 @@ def plot_drift_contours(
         Number of decimal places to round colorbar ticks to in the contour plots.
 
     """
-    fig, ax = fig_ax or plt.subplots(2, 1, figsize=figsize)
+    fig, ax = fig_ax or plt.subplots(
+        2, 1, figsize=figsize, gridspec_kw=gridspec_kwargs, **(fig_kwargs or {})
+    )
 
     for var_index, var_name in enumerate(variable_labels):
         vmin_ = vmin or np.nanmin(drift[..., var_index])
@@ -113,7 +117,9 @@ def plot_drift_contours(
             colorbar_ticks = np.linspace(vmin_, vmax_, cbar_num_ticks)
             colorbar_ticks = np.round(colorbar_ticks, cbar_tick_round)
             fig.colorbar(contour, ax=ax[var_index], label=f"d{var_name}/dt", ticks=colorbar_ticks)
-        ax[var_index].set_xlabel(variable_labels[0])
+        if var_index == 1:
+            # add shared x-axis label only for the second subplot
+            ax[var_index].set_xlabel(variable_labels[0])
         ax[var_index].set_ylabel(variable_labels[1])
         if axes_limits:
             ax[var_index].set_xlim(axes_limits[0])
