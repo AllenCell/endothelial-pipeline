@@ -37,6 +37,7 @@ from endo_pipeline.settings.diffae_feature_dataframes import (
 )
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.plot_defaults import SHEAR_COLOR_DICT
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
 plt.style.use("endo_pipeline.figure")
@@ -766,11 +767,11 @@ def get_label_for_column(
         pc_number = column_name.split("_")[1]
         label = f"PC {pc_number}"
     elif column_name == Column.DiffAEData.POLAR_RADIUS:
-        label = "polar $r$"
+        label = "r"
     elif column_name == Column.DiffAEData.POLAR_ANGLE:
-        label = "polar $\\theta$"
+        label = f"{Unicode.THETA}"
     elif column_name == Column.DiffAEData.PC3_FLIPPED:
-        label = "$\\rho$"
+        label = f"{Unicode.RHO}"
     elif column_name == Column.OpticalFlow.UNIT_VECTOR_MEAN:
         label = "Migration Coherence"
     elif column_name == Column.OpticalFlow.SPEED_MEAN:

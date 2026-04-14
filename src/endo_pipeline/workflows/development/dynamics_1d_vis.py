@@ -79,7 +79,7 @@ def main(
 
     # get label for provided feature column
     column_name = column or ColumnName.DiffAEData.POLAR_ANGLE
-    variable_label = get_label_for_column(column_name).replace("polar ", "")
+    variable_label = get_label_for_column(column_name)
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], column_name]
 
     # cast global constant dicts to avoid type errors

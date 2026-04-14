@@ -107,9 +107,7 @@ def main(
 
     # get labels for provided set of feature columns
     column_names = columns or list(DEFAULT_COV_ANALYSIS_COLUMNS)
-    variable_labels_dict = {
-        col: get_label_for_column(col).replace("polar ", "") for col in column_names
-    }
+    variable_labels_dict = {col: get_label_for_column(col) for col in column_names}
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
     # unpack default bin limits for each column, adjusting limits if rescaling theta
