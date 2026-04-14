@@ -1,6 +1,7 @@
 """Methods for computing autocorrelation and cross-correlation functions from time series data."""
 
 import logging
+from itertools import combinations
 from typing import Any, Literal
 
 import numpy as np
@@ -9,11 +10,7 @@ from scipy.optimize import curve_fit
 
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.cross_correlations import (
-    CROSS_CORR_INDEX_COMBINATIONS,
-    MAX_LAG_INTEGRATE,
-    NUM_TIMEPOINT_FRAC,
-)
+from endo_pipeline.settings.cross_correlations import MAX_LAG_INTEGRATE, NUM_TIMEPOINT_FRAC
 from endo_pipeline.settings.dynamics_workflows import PERIOD_THETA_RESCALED, RESCALE_THETA
 
 logger = logging.getLogger(__name__)
@@ -112,6 +109,14 @@ def cross_correlation_function(
             corr_sum = corr
         else:
             corr_sum = corr_sum + corr
+
+        if np.isnan(corr_sum).any():
+            logger.warning(
+                "NaN values found in CCF for trajectory index [ %s ]. "
+                "This may be due to zero standard deviation in one of the signals for this trajectory.",
+                traj_index,
+            )
+            break
 
     # Return average over number of trajectories.
     return corr_sum / num_traj
@@ -471,6 +476,7 @@ def compute_correlations_for_one_dataset(
     acf = np.zeros((num_lags, num_feats))
     acf_lb = np.zeros((num_lags, num_feats))
     acf_ub = np.zeros((num_lags, num_feats))
+    relaxation_timescale = np.zeros(num_feats)
     relaxation_timescale_lb = np.zeros(num_feats)
     relaxation_timescale_ub = np.zeros(num_feats)
     # dataframe as array of shape (num_crops, num_timepoints, num_feats) for the
@@ -478,6 +484,17 @@ def compute_correlations_for_one_dataset(
     feats = dataframe_filled[column_names].to_numpy().reshape(-1, num_timepoints, num_feats)
     for i in range(num_feats):
         acf[:, i] = autocorrelation_function(feats, i)
+
+        # Fit exponential decay to ACF and get relaxation timescale
+        index_positive = lags > 0
+        positive_lags = lags[index_positive]
+        positive_lags_as_hours = 5 * positive_lags / 60  # convert from frames (5 minutes) to hours
+        acf_positive_lags = acf[:, i][index_positive]
+
+        _, relaxation_time = fit_exp_decay_and_get_relaxation_timescale(
+            acf_positive_lags, positive_lags_as_hours, exp_decay_func="exponential_decay"
+        )
+        relaxation_timescale[i] = relaxation_time
         if bootstrap_samples is not None:
             # calculate bootstrap confidence intervals for ACF and relaxation timescale
             confidence_intervals = bootstrap_autocorrelation_confidence_intervals(
@@ -507,7 +524,13 @@ def compute_correlations_for_one_dataset(
     delta_ccf_integral_lb = np.zeros(num_feats)
     delta_ccf_integral_ub = np.zeros(num_feats)
 
-    for i, (j, k) in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
+    # get the combinations of features for the cross-correlations
+    # (we use the indices of the feature labels here because the features
+    # themselves are stored in an array)
+    feature_indices = range(len(column_names))
+    cross_corr_index_combinations = list(combinations(feature_indices, r=2))
+    # in `combinations` "r" is the number of elements to include in a combination
+    for i, (j, k) in enumerate(cross_corr_index_combinations):
         data_feat1 = feats[..., j]
         data_feat2 = feats[..., k]
         ccf[:, i] = cross_correlation_function(data_feat1, data_feat2)
@@ -536,6 +559,7 @@ def compute_correlations_for_one_dataset(
     correlation_dict["acf"][dataset_name] = acf
     correlation_dict["acf_ci_lower"][dataset_name] = acf_lb
     correlation_dict["acf_ci_upper"][dataset_name] = acf_ub
+    correlation_dict["relaxation_timescales"][dataset_name] = relaxation_timescale
     correlation_dict["relaxation_timescales_ci_lower"][dataset_name] = relaxation_timescale_lb
     correlation_dict["relaxation_timescales_ci_upper"][dataset_name] = relaxation_timescale_ub
     correlation_dict["ccf"][dataset_name] = ccf
@@ -548,6 +572,38 @@ def compute_correlations_for_one_dataset(
     correlation_dict["delta_ccf_integral_ci_lower"][dataset_name] = delta_ccf_integral_lb
     correlation_dict["delta_ccf_integral_ci_upper"][dataset_name] = delta_ccf_integral_ub
     correlation_dict["max_lag_integrate"][dataset_name] = max_lag_integrate
+
+    # if the lower confidence interval is higher than the value or the
+    # upper confidence interval is lower than the value for any of the
+    # metrics (which happens # in DEMO_MODE) then assign that bound to
+    # be equal to the value, so that plotting can continue, but log a
+    # warning about it
+    metrics = ["acf", "ccf", "relaxation_timescales", "delta_ccf", "delta_ccf_integral"]
+    for metric in metrics:
+        invalid_ci_lower = (
+            correlation_dict[metric][dataset_name]
+            < correlation_dict[f"{metric}_ci_lower"][dataset_name]
+        )
+        correlation_dict[f"{metric}_ci_lower"][dataset_name][invalid_ci_lower] = correlation_dict[
+            metric
+        ][dataset_name][invalid_ci_lower]
+        invalid_ci_upper = (
+            correlation_dict[metric][dataset_name]
+            > correlation_dict[f"{metric}_ci_upper"][dataset_name]
+        )
+        correlation_dict[f"{metric}_ci_upper"][dataset_name][invalid_ci_upper] = correlation_dict[
+            metric
+        ][dataset_name][invalid_ci_upper]
+        logger.warning(
+            "Invalid confidence interval bounds found for metric [ %s ] in dataset [ %s ]. "
+            "(Value, lower bound, upper bound): [ %s, %s, %s ]. "
+            "Setting invalid bounds to be equal to the metric value for plotting purposes.",
+            metric,
+            dataset_name,
+            correlation_dict[metric][dataset_name],
+            correlation_dict[f"{metric}_ci_lower"][dataset_name],
+            correlation_dict[f"{metric}_ci_upper"][dataset_name],
+        )
     return correlation_dict
 
 
