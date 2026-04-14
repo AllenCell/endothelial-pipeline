@@ -100,6 +100,10 @@ feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_
 low_shear_stress_repr_example = "20250402_20X"
 high_shear_stress_repr_example = "20251001_20X"
 
+# global plotting kwargs
+gridspec_kwargs = {"wspace": 0.1, "hspace": 0.1}
+fig_kwargs = {"constrained_layout": True}
+
 # %%
 base_output_dir = get_output_path(__file__)
 # make svg of just the colorbar with set ticks and extended on both sides
@@ -188,9 +192,7 @@ for dataset_name, panel_letters, y_position in [
 
     filename_prefix = f"{dataset_name}_{'_'.join(column_names)}"
     contour_plot_filename = f"{filename_prefix}_contours"
-    contour_plot_figsize = (MAX_FIGURE_WIDTH / 3, MAX_FIGURE_HEIGHT / 3)
-    gridspec_kwargs = {"wspace": 0.3, "hspace": 0.3}
-    fig_kwargs = {"constrained_layout": True}
+    contour_plot_figsize = (MAX_FIGURE_WIDTH / 4, MAX_FIGURE_HEIGHT / 4)
     # plot drift contours and save
     fig, _ = plot_drift_contours(
         centers_mesh,
@@ -203,12 +205,14 @@ for dataset_name, panel_letters, y_position in [
         gridspec_kwargs=gridspec_kwargs,
         fig_kwargs=fig_kwargs,
     )
-    save_plot_to_path(fig, fig_savedir, contour_plot_filename, file_format=".svg")
+    save_plot_to_path(
+        fig, fig_savedir, contour_plot_filename, file_format=".svg", tight_layout=False
+    )
 
     # plot quiver plot of drift and save
     quiver_plot_filename = f"{filename_prefix}_quiver"
-    quiver_plot_figsize = (MAX_FIGURE_HEIGHT / 2, MAX_FIGURE_HEIGHT / 3)
-    quiver_legend_loc = (1.05, 0.80)
+    quiver_plot_figsize = (MAX_FIGURE_HEIGHT / 3, MAX_FIGURE_HEIGHT / 4)
+    quiver_legend_loc = (1.05, 0.7)
     fig, ax = plot_drift_quiver(
         centers_mesh,
         drift,
@@ -217,9 +221,13 @@ for dataset_name, panel_letters, y_position in [
         axes_limits=axes_limits,
         include_nullclines=True,
         legend_loc=quiver_legend_loc,
+        gridspec_kwargs=gridspec_kwargs,
+        fig_kwargs=fig_kwargs,
     )
     ax.set_aspect("equal")
-    save_plot_to_path(fig, fig_savedir, quiver_plot_filename, file_format=".svg")
+    save_plot_to_path(
+        fig, fig_savedir, quiver_plot_filename, file_format=".svg", tight_layout=False
+    )
 
     contour_plots = FigurePanel(
         letter=panel_letters[0],
@@ -233,8 +241,8 @@ for dataset_name, panel_letters, y_position in [
     colorbar_panel = FigurePanel(
         letter="",
         path=base_output_dir / "colorbar.svg",
-        x_position=MAX_FIGURE_WIDTH / 4,
-        y_position=y_position + 0.25,
+        x_position=MAX_FIGURE_WIDTH / 4 - 0.5,
+        y_position=y_position - 0.1,
         x_offset=0.08,
         y_offset=0.08,
     )
@@ -242,7 +250,7 @@ for dataset_name, panel_letters, y_position in [
     quiver_plot = FigurePanel(
         letter=panel_letters[1],
         path=fig_savedir / f"{quiver_plot_filename}.svg",
-        x_position=MAX_FIGURE_WIDTH / 4 + 1,
+        x_position=MAX_FIGURE_WIDTH / 4 + 0.5,
         y_position=y_position,
         x_offset=0.08,
         y_offset=0.08,

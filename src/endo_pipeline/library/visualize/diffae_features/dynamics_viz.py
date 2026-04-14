@@ -65,7 +65,8 @@ def plot_drift_contours(
     axes_limits
         Optional limits for the axes, specified as a list of tuples.
     axes_aspect
-        Aspect ratio for the axes, e.g., "equal" to make x and y have equal scaling.
+        Aspect ratio for the axes, e.g., "equal" to make x and y have equal
+        scaling.
     axes_titles
         Optional list of titles for each subplot.
     colormap
@@ -81,7 +82,14 @@ def plot_drift_contours(
     cbar_num_ticks
         Number of ticks to use in the colorbar for each contour plot.
     cbar_tick_round
-        Number of decimal places to round colorbar ticks to in the contour plots.
+        Number of decimal places to round colorbar ticks to in the contour
+        plots.
+    gridspec_kwargs
+        Optional dictionary of keyword arguments to pass to plt.subplots for
+        creating the figure and axes, e.g., to specify a GridSpec layout.
+    fig_kwargs
+        Optional dictionary of keyword arguments to pass to plt.subplots for
+        creating the figure and axes, e.g., to specify a constrained layout.
 
     """
     fig, ax = fig_ax or plt.subplots(
@@ -146,6 +154,8 @@ def plot_drift_quiver(
     nullcline_colors: tuple[str, str] = ("r", "b"),
     nullcline_linewidth: float = 1.5,
     nullcline_opacity: float = 0.7,
+    gridspec_kwargs: dict | None = None,
+    fig_kwargs: dict | None = None,
 ):
     """
     Make and save quiver plot of the drift vector field over the 2D state space.
@@ -182,9 +192,21 @@ def plot_drift_quiver(
         Line width for the nullcline lines.
     nullcline_opacity
         Opacity for the nullcline lines (between 0 and 1).
+    legend_loc
+        Location for the legend indicating which nullcline corresponds to which
+        variable, specified as a tuple of (x, y) coordinates in axes fraction
+        units.
+    gridspec_kwargs
+        Optional dictionary of keyword arguments to pass to plt.subplots for
+        creating the figure and axes, e.g., to specify a GridSpec layout.
+    fig_kwargs
+        Optional dictionary of keyword arguments to pass to plt.subplots for
+        creating the figure and axes, e.g., to specify a constrained layout.
 
     """
-    fig, ax = fig_ax or plt.subplots(figsize=figsize)
+    fig, ax = fig_ax or plt.subplots(
+        figsize=figsize, gridspec_kw=gridspec_kwargs, **(fig_kwargs or {})
+    )
     ax.quiver(
         meshgrid[0],
         meshgrid[1],
