@@ -122,11 +122,12 @@ def plot_drift_quiver(
     drift: np.ndarray,
     variable_labels: list[str],
     fig_ax: tuple[plt.Figure, plt.Axes] | None = None,
-    figsize: tuple[float, float] = (MAX_FIGURE_HEIGHT / 2, MAX_FIGURE_HEIGHT / 2),
+    figsize: tuple[float, float] = (MAX_FIGURE_HEIGHT / 2, MAX_FIGURE_HEIGHT / 3),
     axes_limits: list[tuple[float, float]] | None = None,
     quiver_scale: float = 10,
     quiver_color: str = "k",
     include_nullclines: bool = True,
+    legend_loc: tuple[float, float] = (1.05, 0.80),
     nullcline_styles: tuple[str, str] = ("dashed", "dashdot"),
     nullcline_colors: tuple[str, str] = ("r", "b"),
     nullcline_linewidth: float = 1.5,
@@ -200,7 +201,7 @@ def plot_drift_quiver(
                 linestyle=nullcline_styles[var_index],
                 label=f"d{var_name}/dt",
             )
-        ax.legend(title="Nullclines", loc=(1.025, 0.90))
+        ax.legend(title="Nullclines", loc=legend_loc)
 
     ax.set_xlabel(variable_labels[0])
     ax.set_ylabel(variable_labels[1])
