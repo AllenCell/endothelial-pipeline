@@ -103,6 +103,7 @@ high_shear_stress_repr_example = "20251001_20X"
 # global plotting kwargs
 gridspec_kwargs = {"wspace": 0.1, "hspace": 0.1}
 fig_kwargs = {"constrained_layout": True}
+legend_kwargs = {"fontsize": "xx-small", "title_fontsize": "xx-small", "loc": (1.05, 0.7)}
 
 # %%
 base_output_dir = get_output_path(__file__)
@@ -211,8 +212,7 @@ for dataset_name, panel_letters, y_position in [
 
     # plot quiver plot of drift and save
     quiver_plot_filename = f"{filename_prefix}_quiver"
-    quiver_plot_figsize = (2.25, 3.5)
-    quiver_legend_loc = (1.05, 0.6)
+    quiver_plot_figsize = (2.25, 2.0)
     fig, ax = plot_drift_quiver(
         centers_mesh,
         drift,
@@ -220,13 +220,17 @@ for dataset_name, panel_letters, y_position in [
         figsize=quiver_plot_figsize,
         axes_limits=axes_limits,
         include_nullclines=True,
-        legend_loc=quiver_legend_loc,
         gridspec_kwargs=gridspec_kwargs,
         fig_kwargs=fig_kwargs,
+        legend_kwargs=legend_kwargs,
     )
     ax.set_aspect("equal")
     save_plot_to_path(
-        fig, fig_savedir, quiver_plot_filename, file_format=".svg", tight_layout=False
+        fig,
+        fig_savedir,
+        quiver_plot_filename,
+        file_format=".svg",
+        tight_layout=False,
     )
 
     contour_plots = FigurePanel(
@@ -253,12 +257,12 @@ for dataset_name, panel_letters, y_position in [
         x_position=MAX_FIGURE_WIDTH / 4 + 0.5,
         y_position=y_position,
         x_offset=0.2,
-        y_offset=-1.05,
+        y_offset=0,
     )
     panels.extend([contour_plots, colorbar_panel, quiver_plot])
 
-
 # %%
+# build figure from panels and save
 figure_filename = "figure_2_dynamics"
 build_figure_from_panels(
     panels,

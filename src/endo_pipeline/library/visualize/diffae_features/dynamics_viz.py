@@ -149,13 +149,13 @@ def plot_drift_quiver(
     quiver_scale: float = 10,
     quiver_color: str = "k",
     include_nullclines: bool = True,
-    legend_loc: tuple[float, float] = (1.05, 0.80),
     nullcline_styles: tuple[str, str] = ("dashed", "dashdot"),
     nullcline_colors: tuple[str, str] = ("r", "b"),
     nullcline_linewidth: float = 1.5,
     nullcline_opacity: float = 0.7,
     gridspec_kwargs: dict | None = None,
     fig_kwargs: dict | None = None,
+    legend_kwargs: dict | None = None,
 ):
     """
     Make and save quiver plot of the drift vector field over the 2D state space.
@@ -202,6 +202,9 @@ def plot_drift_quiver(
     fig_kwargs
         Optional dictionary of keyword arguments to pass to plt.subplots for
         creating the figure and axes, e.g., to specify a constrained layout.
+    legend_kwargs
+        Optional dictionary of keyword arguments to pass to ax.legend for
+        customizing the legend, e.g., to specify a title or font size.
 
     """
     fig, ax = fig_ax or plt.subplots(
@@ -237,7 +240,7 @@ def plot_drift_quiver(
                 linestyle=nullcline_styles[var_index],
                 label=f"d{var_name}/dt",
             )
-        ax.legend(title="Nullclines", loc=legend_loc)
+        ax.legend(title="Nullclines", **(legend_kwargs or {}))
 
     ax.set_xlabel(variable_labels[0])
     ax.set_ylabel(variable_labels[1])
