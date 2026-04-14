@@ -45,6 +45,7 @@ from endo_pipeline.settings.migration_coherence import (
     MIGRATION_COHERENCE_HIST_NUM_BINS,
     MIGRATION_COHERENCE_HIST_PLOT_KDE,
 )
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
 
@@ -314,7 +315,7 @@ def plot_3d_scatter_or_binned(
     if legend_handles:
         ax.legend(
             handles=legend_handles,
-            title="stability (\u03b8, r, \u03c1, migration coherence)",
+            title=f"stability ({Unicode.THETA}, r, {Unicode.RHO}, migration coherence)",
             loc="upper right",
             bbox_to_anchor=(1.0, 1.05),
             fontsize=8,
@@ -453,7 +454,7 @@ def plot_fixed_points_vs_shear_stress(
         ax.set_ylim(*ylim)
 
     ax.set_ylabel(label, fontsize=10)
-    ax.set_xlabel("shear stress (dyn/cm\u00b2)", fontsize=10)
+    ax.set_xlabel(f"shear stress (dyn/cm{Unicode.SQUARED})", fontsize=10)
     ax.grid(axis="y", alpha=0.3)
 
     ax.legend(
@@ -520,7 +521,7 @@ def plot_optical_flow_histogram(
     ax.text(
         0.05,
         0.95,
-        f"N = {len(data)}\n\u03bc = {mean:.3f}\n\u03c3 = {std:.3f} \nCOV = {cov:.3f} \nmedian = {median:.3f}",
+        f"N = {len(data)}\n{Unicode.MU} = {mean:.3f}\n{Unicode.SIGMA} = {std:.3f} \nCOV = {cov:.3f} \nmedian = {median:.3f}",
         transform=ax.transAxes,
         ha="left",
         va="top",
@@ -681,7 +682,7 @@ def plot_cross_dataset_summaries(
             ColumnName.DiffAEData.PC3_FLIPPED,
             mean_of_col,
         ]
-        labels = ["\u03b8", "r", "\u03c1", f"mean_{optical_flow_feature}"]
+        labels = [f"{Unicode.THETA}", "r", f"{Unicode.RHO}", f"mean_{optical_flow_feature}"]
 
         for var, label in zip(variables, labels, strict=False):
             # For the mean-optical-flow variable, overlay per-dataset mean ± std
