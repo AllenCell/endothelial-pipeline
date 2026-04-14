@@ -44,6 +44,11 @@ from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_VMIN,
 )
 from endo_pipeline.settings.flow_field_3d import TIME_STEP_IN_MINUTES
+from endo_pipeline.settings.flow_field_dataframes import (
+    DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+    STABILITY_COLUMN_NAME,
+    StabilityLabel,
+)
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -94,10 +99,13 @@ for column_name in columns_r_rho:
     kernels_r_rho.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=None))
     bin_widths_r_rho.append(bin_width)
 
-# get dataframe manifest for crop-based features
+# get dataframe manifest for crop-based features and precomputed fixed points,
+# using crop pattern to get appropriate manifest names
 base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
 feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
 feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
+fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
+fixed_points_dataframe_manifest = load_dataframe_manifest(fixed_points_dataframe_manifest_name)
 
 # Use provided datasets or default if none provided.
 low_shear_stress_repr_example = "20250409_20X"
@@ -116,6 +124,7 @@ theta_plot_ylims = (-0.4, 0.4)
 theta_plot_x_ticks = [0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi]
 theta_plot_x_ticklabels = ["0", "π/4", "π/2", "3π/4", "π"]
 theta_plot_y_ticks = [-0.3, -0.15, 0.0, 0.15, 0.3]
+
 
 # %%
 base_output_dir = get_output_path(__file__)
@@ -161,6 +170,21 @@ for dataset_name, panel_letters, y_position in [
     df_ = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
     df = df_[columns_to_compute].compute()
     df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
+
+    # load fixed points dataframe for this dataset
+    if dataset_name not in fixed_points_dataframe_manifest.locations:
+        logger.warning(
+            "No location found in dataframe manifest [ %s ] for dataset [ %s ],"
+            " skipping loading of fixed points dataframe.",
+            fixed_points_dataframe_manifest_name,
+            dataset_name,
+        )
+        stable_fixed_points = None
+    else:
+        df_fixed_points = load_dataframe(fixed_points_dataframe_manifest.locations[dataset_name])
+        stable_fixed_points = df_fixed_points[
+            df_fixed_points[STABILITY_COLUMN_NAME] == StabilityLabel.STABLE
+        ]
 
     # get drift in (r, rho) space
     bins_r_rho, centers_r_rho = get_bins(
@@ -226,7 +250,7 @@ for dataset_name, panel_letters, y_position in [
     filename_prefix_theta = f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}"
 
     contour_plot_filename = f"{filename_prefix_r_rho}_contours"
-    contour_plot_figsize = (1.625, 1.75)
+    contour_plot_figsize = (1.75, 1.85)
 
     # plot drift contours and save
     fig, ax = plot_drift_contours(
@@ -242,7 +266,7 @@ for dataset_name, panel_letters, y_position in [
     for ax_index, ax_ in enumerate(ax):
         # adjust label padding and drop tick labels on shared x axis
         ax_.xaxis.labelpad = 2
-        ax_.yaxis.labelpad = 3
+        ax_.yaxis.labelpad = -2
         ax_.set_box_aspect(1.0)
         if ax_index == 0:
             ax_.tick_params(labelbottom=False)
@@ -258,7 +282,7 @@ for dataset_name, panel_letters, y_position in [
     fig, ax = plot_drift_quiver(
         centers_mesh,
         drift_r_rho,
-        quiver_scale=3,
+        quiver_scale=5,
         variable_labels=column_labels_r_rho,
         figsize=quiver_plot_figsize,
         axes_limits=(quiver_plot_xlims, quiver_plot_ylims),
@@ -266,6 +290,17 @@ for dataset_name, panel_letters, y_position in [
         gridspec_kwargs=gridspec_kwargs,
         legend_kwargs=legend_kwargs,
     )
+    # add stable fixed points to quiver plot if available
+    if stable_fixed_points is not None:
+        ax.plot(
+            stable_fixed_points[columns_r_rho[0]],
+            stable_fixed_points[columns_r_rho[1]],
+            "o",
+            color="k",
+            markersize=4,
+        )
+
+    # set plot formatting args and save
     ax.set_box_aspect(1.0)
     ax.set_xticks(quiver_plot_x_ticks)
     ax.set_yticks(quiver_plot_y_ticks)
@@ -293,6 +328,19 @@ for dataset_name, panel_letters, y_position in [
         linewidth=1,
         alpha=0.7,
     )
+    # add stable fixed points in theta if available
+    if stable_fixed_points is not None:
+        ax.plot(
+            stable_fixed_points[column_theta],
+            np.zeros_like(stable_fixed_points[column_theta]),
+            "o",
+            color="blue",
+            markeredgecolor="k",
+            markeredgewidth=0.5,
+            markersize=5,
+        )
+
+    # set plot formatting args and save
     ax.set_xlim(theta_plot_xlims)
     ax.set_ylim(theta_plot_ylims)
     ax.set_box_aspect(1.0)
@@ -313,8 +361,8 @@ for dataset_name, panel_letters, y_position in [
         path=fig_savedir / f"{contour_plot_filename}.svg",
         x_position=0,
         y_position=y_position,
-        x_offset=0.08,
-        y_offset=0.0,
+        x_offset=-0.05,
+        y_offset=-0.1,
     )
 
     colorbar_panel = FigurePanel(
@@ -323,13 +371,13 @@ for dataset_name, panel_letters, y_position in [
         x_position=MAX_FIGURE_WIDTH / 4 - 0.4,
         y_position=y_position,
         x_offset=0.08,
-        y_offset=0.08,
+        y_offset=0.00,
     )
 
     quiver_plot = FigurePanel(
         letter="",
         path=fig_savedir / f"{quiver_plot_filename}.svg",
-        x_position=MAX_FIGURE_WIDTH / 4 + 0.7,
+        x_position=MAX_FIGURE_WIDTH / 4 + 0.65,
         y_position=y_position,
         x_offset=-0.1,
         y_offset=0.0,
