@@ -227,7 +227,7 @@ ignore_missing_imports = true
 module = [
     "endo_pipeline.workflows.archive.*"
 ]
-disable_error_code = ["call-overload", "operator"]
+disable_error_code = ["call-overload", "operator", "import-not-found"]
 
 [[tool.mypy.overrides]]
 # This section should be removed when errors in the listed modules are resolved
