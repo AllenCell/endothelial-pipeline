@@ -103,10 +103,19 @@ feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_
 low_shear_stress_repr_example = "20250409_20X"
 high_shear_stress_repr_example = "20251001_20X"
 
-# global plotting kwargs
+# global plotting kwargs / parameters
 gridspec_kwargs = {"wspace": 0.1, "hspace": 0.1}
 fig_kwargs = {"constrained_layout": True}
 legend_kwargs = {"fontsize": "xx-small", "title_fontsize": "xx-small", "loc": (1.05, 0.7)}
+quiver_plot_xlims = (0.2, 1.95)
+quiver_plot_ylims = (-1.15, 1.15)
+quiver_plot_x_ticks = [0.25, 0.75, 1.25, 1.75]
+quiver_plot_y_ticks = [-1.0, -0.5, 0.0, 0.5, 1.0]
+theta_plot_xlims = BIN_LIMITS_THETA_RESCALED
+theta_plot_ylims = (-0.4, 0.4)
+theta_plot_x_ticks = [0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi]
+theta_plot_x_ticklabels = ["0", "π/4", "π/2", "3π/4", "π"]
+theta_plot_y_ticks = [-0.3, -0.15, 0.0, 0.15, 0.3]
 
 # %%
 base_output_dir = get_output_path(__file__)
@@ -125,15 +134,15 @@ cb = fig.colorbar(
     ticks=colorbar_ticks,
     extend="both",
 )
-save_plot_to_path(fig, base_output_dir, "colorbar", file_format=".svg")
+save_plot_to_path(fig, base_output_dir, "colorbar", file_format=".svg", transparent=True)
 
 # %%
 # loop over datasets in collection, compute 2D drift coefficients for each
 # pairwise combination of polar coordinates, and plot contours of drift coefficients
 panels = []
-for dataset_name, panel_letters, y_position, quiver_ylabel_pad in [
-    (low_shear_stress_repr_example, ("A", "B"), 0.0, 2),
-    (high_shear_stress_repr_example, ("C", "D"), 2.05, -3),
+for dataset_name, panel_letters, y_position in [
+    (low_shear_stress_repr_example, ("A", "B"), 0.0),
+    (high_shear_stress_repr_example, ("C", "D"), 2.05),
 ]:
     if dataset_name not in feature_dataframe_manifest.locations:
         logger.warning(
@@ -229,21 +238,21 @@ for dataset_name, panel_letters, y_position, quiver_ylabel_pad in [
         drift_r_rho,
         variable_labels=column_labels_r_rho,
         figsize=contour_plot_figsize,
-        axes_limits=axes_limits_r_rho,
-        axes_aspect="equal",
+        axes_limits=(quiver_plot_xlims, quiver_plot_ylims),
+        axes_aspect=None,
         include_colorbar=False,
         gridspec_kwargs=gridspec_kwargs,
-        fig_kwargs=fig_kwargs,
     )
     for ax_index, ax_ in enumerate(ax):
         # adjust label padding and drop tick labels on shared x axis
         ax_.xaxis.labelpad = 2
         ax_.yaxis.labelpad = 3
+        ax_.set_box_aspect(1.0)
         if ax_index == 0:
             ax_.tick_params(labelbottom=False)
 
     save_plot_to_path(
-        fig, fig_savedir, contour_plot_filename, file_format=".svg", tight_layout=False
+        fig, fig_savedir, contour_plot_filename, file_format=".svg", tight_layout=True
     )
 
     # plot quiver plot of drift and save
@@ -255,14 +264,16 @@ for dataset_name, panel_letters, y_position, quiver_ylabel_pad in [
         drift_r_rho,
         variable_labels=column_labels_r_rho,
         figsize=quiver_plot_figsize,
-        axes_limits=axes_limits_r_rho,
+        axes_limits=(quiver_plot_xlims, quiver_plot_ylims),
         include_nullclines=True,
         gridspec_kwargs=gridspec_kwargs,
         legend_kwargs=legend_kwargs,
     )
     ax.set_box_aspect(1.0)
+    ax.set_xticks(quiver_plot_x_ticks)
+    ax.set_yticks(quiver_plot_y_ticks)
     ax.xaxis.labelpad = 2
-    ax.yaxis.labelpad = quiver_ylabel_pad
+    ax.yaxis.labelpad = -2
     save_plot_to_path(
         fig,
         fig_savedir,
@@ -285,10 +296,14 @@ for dataset_name, panel_letters, y_position, quiver_ylabel_pad in [
         linewidth=1,
         alpha=0.7,
     )
-    ax.set_xlim(BIN_LIMITS_THETA_RESCALED)
+    ax.set_xlim(theta_plot_xlims)
+    ax.set_ylim(theta_plot_ylims)
     ax.set_box_aspect(1.0)
+    ax.set_xticks(theta_plot_x_ticks)
+    ax.set_xticklabels(theta_plot_x_ticklabels)
+    ax.set_yticks(theta_plot_y_ticks)
     ax.xaxis.labelpad = 2
-    ax.yaxis.labelpad = quiver_ylabel_pad
+    ax.yaxis.labelpad = -2
     ax.set_xlabel(column_label_theta)
     ax.set_ylabel(f"d{column_label_theta}/dt")
     save_plot_to_path(fig, fig_savedir, theta_plot_filename, file_format=".svg")
@@ -302,22 +317,22 @@ for dataset_name, panel_letters, y_position, quiver_ylabel_pad in [
         x_position=0,
         y_position=y_position,
         x_offset=0.08,
-        y_offset=0,
+        y_offset=-0.08,
     )
 
     colorbar_panel = FigurePanel(
         letter="",
         path=base_output_dir / "colorbar.svg",
-        x_position=MAX_FIGURE_WIDTH / 4 - 0.5,
+        x_position=MAX_FIGURE_WIDTH / 4 - 0.4,
         y_position=y_position,
         x_offset=0.08,
-        y_offset=0,
+        y_offset=0.08,
     )
 
     quiver_plot = FigurePanel(
         letter="",
         path=fig_savedir / f"{quiver_plot_filename}.svg",
-        x_position=MAX_FIGURE_WIDTH / 4 + 0.5,
+        x_position=MAX_FIGURE_WIDTH / 4 + 0.7,
         y_position=y_position,
         x_offset=-0.1,
         y_offset=0.0,
@@ -326,7 +341,7 @@ for dataset_name, panel_letters, y_position, quiver_ylabel_pad in [
     theta_plot = FigurePanel(
         letter=panel_letters[1],
         path=fig_savedir / f"{theta_plot_filename}.svg",
-        x_position=3 * MAX_FIGURE_WIDTH / 4 - 0.45,
+        x_position=3 * MAX_FIGURE_WIDTH / 4 - 0.35,
         y_position=y_position,
         x_offset=0.4,
         y_offset=-0.2,
