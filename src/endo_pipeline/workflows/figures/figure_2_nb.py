@@ -2,6 +2,8 @@
 """
 Main function to create figure panels for Figure 2.
 """
+import math
+
 import matplotlib.pyplot as plt
 
 from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
@@ -56,11 +58,19 @@ fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS
 fixed_points_dataframe_manifest = load_dataframe_manifest(fixed_points_dataframe_manifest_name)
 # %%
 # --- Cross-dataset summary plots ---
+column_names = [
+    ColumnName.DiffAEData.POLAR_ANGLE,
+    ColumnName.DiffAEData.POLAR_RADIUS,
+    ColumnName.DiffAEData.PC3_FLIPPED,
+    ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
+]
+
 plot_cross_dataset_summaries(
     dataset_names=dataset_summary_list,
     feature_dataframe_manifest=feature_dataframe_manifest,
     fixed_points_dataframe_manifest=fixed_points_dataframe_manifest,
     output_dir=save_dir,
+    column_names=column_names,
     x_axis_mode="shear_stress_categorical",
     figure_size=(MAX_FIGURE_WIDTH - 2.1, 2),
     stable_only=True,
@@ -74,7 +84,7 @@ fig, ax = plt.subplots(figsize=(2.15, 2), layout="constrained")
 for dataset_name in [dataset_low, dataset_high]:
     # get settings
     dataset_config = load_dataset_config(dataset_name)
-    shear_stress = round(max(fc.shear_stress for fc in dataset_config.flow_conditions))
+    shear_stress = math.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
     dataset_name_flow = f"{dataset_name}_shear_{shear_stress}"
     ss_label = f"{shear_stress} dyn/cm$\u00b2$"
     hist_color = get_dataset_color(dataset_name)
@@ -124,7 +134,7 @@ for dataset_name in [dataset_low, dataset_high]:
         df=df_of,
         optical_flow_feature=optical_flow_feature,
         feature_label="Migration Coherence",
-        feature_lim=(0.1, vmax),
+        feature_lim=(0, vmax),
         ss_label=ss_label,
         color=hist_color,
         df_fp=None,

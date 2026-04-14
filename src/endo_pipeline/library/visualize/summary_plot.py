@@ -20,6 +20,9 @@ from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature impo
     add_shear_stress_to_df,
 )
 from endo_pipeline.library.visualize.diffae_features.pplane import make_legend_handles_for_fixed_pts
+from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
+    get_seg_feat_plot_args,
+)
 from endo_pipeline.manifests import DataframeManifest, get_dataframe_location_for_dataset
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.dynamics_workflows import (
@@ -41,7 +44,7 @@ def plot_fixed_points_vs_shear_stress(
     variable: str,
     label: str,
     dataset_order: list[str] | None = None,
-    ylim: tuple[float, float] | None = None,
+    ylimits: tuple[float, float] | None = None,
     x_axis_mode: Literal["dataset", "shear_stress_numeric", "shear_stress_categorical"] = "dataset",
     marker_size_scatter: int = 15,
     marker_size_legend: int = 5,
@@ -63,7 +66,7 @@ def plot_fixed_points_vs_shear_stress(
     dataset_order
         Optional list of dataset names specifying the desired x-axis order.
         If ``None``, falls back to sorting by shear stress.
-    ylim
+    ylimits
         Optional ``(ymin, ymax)`` limits for the y-axis.
     x_axis_mode
         Controls x-axis layout:
@@ -234,8 +237,8 @@ def plot_fixed_points_vs_shear_stress(
         if tick_positions:
             pad = 0.25
             ax.set_xlim(tick_positions[0] - pad, tick_positions[-1] + pad)
-    if ylim is not None:
-        ax.set_ylim(*ylim)
+    if ylimits is not None:
+        ax.set_ylim(ylimits)
 
     ax.set_ylabel(label)
     ax.grid(axis="y", alpha=0.3)
@@ -248,6 +251,7 @@ def plot_cross_dataset_summaries(
     feature_dataframe_manifest: DataframeManifest,
     fixed_points_dataframe_manifest: DataframeManifest,
     output_dir: Path,
+    column_names: list[ColumnName.DiffAEData | ColumnName.OpticalFlow] | None = None,
     x_axis_mode: Literal["dataset", "shear_stress_numeric", "shear_stress_categorical"] = "dataset",
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 3),
     dataset_order: list[str] | None = None,
@@ -269,6 +273,9 @@ def plot_cross_dataset_summaries(
         Manifest containing per-dataset fixed-point dataframe locations.
     output_dir
         Directory where the figures are saved.
+    column_names
+        List of column names to plot in the fixed-point vs shear-stress plot.
+        If None, defaults to polar angle, polar radius, PC3 flipped, migration coherence, and speed.
     x_axis_mode
         Controls x-axis layout of the fixed-point vs shear-stress plot.
         See :func:`plot_fixed_points_vs_shear_stress` for details.
@@ -281,6 +288,15 @@ def plot_cross_dataset_summaries(
         If ``True``, only fixed points classified as stable are included in the
         fixed point vs shear stress plot.
     """
+    if column_names is None:
+        column_names = [
+            ColumnName.DiffAEData.POLAR_ANGLE,
+            ColumnName.DiffAEData.POLAR_RADIUS,
+            ColumnName.DiffAEData.PC3_FLIPPED,
+            ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
+            ColumnName.OpticalFlow.SPEED_MEAN,
+        ]
+
     optical_flow_features = [
         ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
         ColumnName.OpticalFlow.SPEED_MEAN,
@@ -356,14 +372,7 @@ def plot_cross_dataset_summaries(
     df_fp_all = add_shear_stress_to_df(df_fp_all)
 
     # Plot all fixed-point variables in a single 1-row subplot
-    fp_variables = [
-        (ColumnName.DiffAEData.POLAR_ANGLE, "\u03b8"),
-        (ColumnName.DiffAEData.POLAR_RADIUS, "r"),
-        (ColumnName.DiffAEData.PC3_FLIPPED, "\u03c1"),
-        (f"mean_{ColumnName.OpticalFlow.UNIT_VECTOR_MEAN}", "Migration Coherence"),
-        # (f"mean_{ColumnName.OpticalFlow.SPEED_MEAN}", "Mean Speed"),
-    ]
-    n_panels = len(fp_variables)
+    n_panels = len(column_names)
     fig, axs = plt.subplots(
         1,
         n_panels,
@@ -371,13 +380,25 @@ def plot_cross_dataset_summaries(
         sharex=True,
         layout="constrained",
     )
-    for ax_i, (var, label) in zip(axs, fp_variables, strict=False):
+    all_column_info = get_seg_feat_plot_args()
+    for ax_i, var in zip(axs, column_names, strict=False):
+        column_info = all_column_info.get(var)
+        label = column_info["label"] if column_info else var
+        if var in optical_flow_features:
+            var = f"mean_{var}"
+        limits = column_info["lims"] if column_info else None
+        if limits is not None and limits[0] is not None and limits[1] is not None:
+            # Add 5% padding to y-limits
+            padding = 0.05 * (limits[1] - limits[0])
+            limits = (limits[0] - padding, limits[1] + padding)
+        else:
+            limits = None
         plot_fixed_points_vs_shear_stress(
             df_fp_all,
             var,
             label,
             dataset_order=dataset_order,
-            ylim=None,
+            ylimits=limits,
             x_axis_mode=x_axis_mode,
             figure_size=figure_size,
             stable_only=stable_only,
