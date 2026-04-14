@@ -12,6 +12,7 @@ from matplotlib.colorbar import ColorbarBase
 from matplotlib.colors import TwoSlopeNorm
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
+from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.stats import linregress
 
@@ -1320,3 +1321,53 @@ def plot_time_of_first_passage_scatterplot(
         filename,
         show_and_close=False,
     )
+
+
+def plot_initial_conditions_histogram(
+    out_dir: Path,
+    df_first_timepoint: pd.DataFrame,
+    num_bins_polar_theta: int = 12,
+    num_bins_polar_r: int = 12,
+    num_bins_rho: int = 12,
+) -> None:
+    """Skips plotting the bin with 0 occurrences to better visualize the
+    distribution of initial conditions across the other bins.
+    """
+    bin_edges_theta = np.linspace(0, np.pi, num_bins_polar_theta + 1, endpoint=True)
+    bin_edges_r = np.linspace(0, 3, num_bins_polar_r + 1, endpoint=True)
+    bin_edges_rho = np.linspace(-3, 3, num_bins_rho + 1, endpoint=True)
+
+    # bin the initial conditions in a 3 dimensional histogram (theta, r, rho)
+    hist, _ = np.histogramdd(
+        df_first_timepoint[
+            [
+                Column.DiffAEData.POLAR_ANGLE,
+                Column.DiffAEData.POLAR_RADIUS,
+                Column.DiffAEData.PC3_FLIPPED,
+            ]
+        ].to_numpy(),
+        bins=[bin_edges_theta, bin_edges_r, bin_edges_rho],
+    )
+
+    # plot the histogram of initial conditions across the bins, such that
+    # the number of trajectories in each bin is on the x-axis and the
+    # number of bins with that number of trajectories is on the y-axis,
+    # (skipping the bin with 0 trajectories to better visualize the
+    # distribution of initial conditions across the other bins)
+    fig, ax = plt.subplots(figsize=(4, 4))
+    sns.histplot(
+        x=hist[np.nonzero(hist)].ravel(), binwidth=1, cumulative=True, discrete=True, ax=ax
+    )
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+    ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+    ax.set_xlabel("num. trajectories".title())
+    ax.set_ylabel("num. bins".title())
+    ax.set_title(
+        f"num bins: theta: {num_bins_polar_theta}, r: {num_bins_polar_r}, rho: {num_bins_rho}"
+    )
+
+    filename = (
+        f"initial_conditions_histogram_theta_bins"
+        f"_{num_bins_polar_theta}_r_bins_{num_bins_polar_r}_rho_bins_{num_bins_rho}.png"
+    )
+    save_plot_to_path(fig, out_dir, filename, show_and_close=False)

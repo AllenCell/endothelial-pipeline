@@ -39,6 +39,7 @@ def main(
         solve_ddff_from_trajectory_initial_condition_helper,
     )
     from endo_pipeline.library.visualize.integration.track_integration_viz import (
+        plot_initial_conditions_histogram,
         plot_time_of_first_passage_histogram,
         plot_time_of_first_passage_scatterplot,
     )
@@ -249,4 +250,19 @@ def main(
                 time_of_first_passage_df=time_of_first_passage_df,
                 out_dir=out_dir,
                 crop_pattern=crop_pattern,
+            )
+
+        bin_sizes = [
+            {"num_bins_polar_theta": 12, "num_bins_polar_r": 12, "num_bins_rho": 12},
+            {"num_bins_polar_theta": 8, "num_bins_polar_r": 8, "num_bins_rho": 8},
+            {"num_bins_polar_theta": 6, "num_bins_polar_r": 6, "num_bins_rho": 6},
+            {"num_bins_polar_theta": 12, "num_bins_polar_r": 12, "num_bins_rho": 1},
+        ]
+        for bins in bin_sizes:
+            plot_initial_conditions_histogram(
+                df_first_timepoint=trajectories_df_t_init,
+                num_bins_polar_theta=bins["num_bins_polar_theta"],
+                num_bins_polar_r=bins["num_bins_polar_r"],
+                num_bins_rho=bins["num_bins_rho"],
+                out_dir=out_dir,
             )
