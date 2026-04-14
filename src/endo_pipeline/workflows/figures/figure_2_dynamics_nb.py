@@ -194,10 +194,6 @@ for dataset_name, panel_letters, y_position in [
     )
     low_confidence_mask = hist_kde_r_rho < HISTOGRAM_THRESHOLD_FOR_MASKING
     drift_r_rho[low_confidence_mask] = np.nan
-    axes_limits_r_rho = [
-        (bins_r_rho[0][0], bins_r_rho[0][-1]),
-        (bins_r_rho[1][0], bins_r_rho[1][-1]),
-    ]
 
     # get in 1D for theta
     bins_theta, centers_theta = get_bins(
@@ -230,7 +226,7 @@ for dataset_name, panel_letters, y_position in [
     filename_prefix_theta = f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}"
 
     contour_plot_filename = f"{filename_prefix_r_rho}_contours"
-    contour_plot_figsize = (MAX_FIGURE_WIDTH / 4, MAX_FIGURE_HEIGHT / 4)
+    contour_plot_figsize = (1.625, 1.75)
 
     # plot drift contours and save
     fig, ax = plot_drift_contours(
@@ -262,6 +258,7 @@ for dataset_name, panel_letters, y_position in [
     fig, ax = plot_drift_quiver(
         centers_mesh,
         drift_r_rho,
+        quiver_scale=3,
         variable_labels=column_labels_r_rho,
         figsize=quiver_plot_figsize,
         axes_limits=(quiver_plot_xlims, quiver_plot_ylims),
@@ -317,7 +314,7 @@ for dataset_name, panel_letters, y_position in [
         x_position=0,
         y_position=y_position,
         x_offset=0.08,
-        y_offset=-0.08,
+        y_offset=0.0,
     )
 
     colorbar_panel = FigurePanel(
@@ -354,6 +351,6 @@ build_figure_from_panels(
     panels,
     base_output_dir / f"{figure_filename}.svg",
     width=MAX_FIGURE_WIDTH,
-    height=MAX_FIGURE_WIDTH,
+    height=MAX_FIGURE_HEIGHT,
 )
 # %%

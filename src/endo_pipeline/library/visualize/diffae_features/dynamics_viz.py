@@ -36,7 +36,6 @@ def plot_drift_contours(
     cbar_num_ticks: int = DRIFT_CONTOUR_CBAR_NUM_TICKS,
     cbar_tick_round: int = DRIFT_CONTOUR_CBAR_ROUND,
     gridspec_kwargs: dict | None = None,
-    fig_kwargs: dict | None = None,
 ) -> tuple[plt.Figure, tuple[plt.Axes, plt.Axes]]:
     """
     Make and save contour plot of each component of the drift vector field over
@@ -87,14 +86,9 @@ def plot_drift_contours(
     gridspec_kwargs
         Optional dictionary of keyword arguments to pass to plt.subplots for
         creating the figure and axes, e.g., to specify a GridSpec layout.
-    fig_kwargs
-        Optional dictionary of keyword arguments to pass to plt.subplots for
-        creating the figure and axes, e.g., to specify a constrained layout.
 
     """
-    fig, ax = fig_ax or plt.subplots(
-        2, 1, figsize=figsize, gridspec_kw=gridspec_kwargs, **(fig_kwargs or {})
-    )
+    fig, ax = fig_ax or plt.subplots(2, 1, figsize=figsize, gridspec_kw=gridspec_kwargs)
 
     for var_index, var_name in enumerate(variable_labels):
         vmin_ = vmin or np.nanmin(drift[..., var_index])
@@ -154,7 +148,6 @@ def plot_drift_quiver(
     nullcline_linewidth: float = 1.5,
     nullcline_opacity: float = 0.7,
     gridspec_kwargs: dict | None = None,
-    fig_kwargs: dict | None = None,
     legend_kwargs: dict | None = None,
 ):
     """
@@ -199,17 +192,12 @@ def plot_drift_quiver(
     gridspec_kwargs
         Optional dictionary of keyword arguments to pass to plt.subplots for
         creating the figure and axes, e.g., to specify a GridSpec layout.
-    fig_kwargs
-        Optional dictionary of keyword arguments to pass to plt.subplots for
-        creating the figure and axes, e.g., to specify a constrained layout.
     legend_kwargs
         Optional dictionary of keyword arguments to pass to ax.legend for
         customizing the legend, e.g., to specify a title or font size.
 
     """
-    fig, ax = fig_ax or plt.subplots(
-        figsize=figsize, gridspec_kw=gridspec_kwargs, **(fig_kwargs or {})
-    )
+    fig, ax = fig_ax or plt.subplots(figsize=figsize, gridspec_kw=gridspec_kwargs)
     ax.quiver(
         meshgrid[0],
         meshgrid[1],
