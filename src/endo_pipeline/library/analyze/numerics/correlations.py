@@ -482,6 +482,9 @@ def compute_correlations_for_one_dataset(
     # dataframe as array of shape (num_crops, num_timepoints, num_feats) for the
     # current feature, with missing timepoints filled with NaNs
     feats = dataframe_filled[column_names].to_numpy().reshape(-1, num_timepoints, num_feats)
+    num_crops = feats.shape[0]
+    acf_per_crop = np.zeros((num_crops, num_lags, num_feats))
+    relaxation_timescale_per_crop = np.zeros((num_crops, num_feats))
     for i in range(num_feats):
         acf[:, i] = autocorrelation_function(feats, i)
 
@@ -504,6 +507,25 @@ def compute_correlations_for_one_dataset(
             (relaxation_timescale_lb[i], relaxation_timescale_ub[i]) = confidence_intervals[
                 "relaxation_timescale"
             ]
+
+        # find relaxation time for each trajectory
+        for j in range(feats.shape[0]):
+            acf_1_crop = autocorrelation_function(feats[j : j + 1], i)
+            acf_per_crop[j : j + 1, :, i] = acf_1_crop
+            # relaxation_time_per_crop: list = []
+            # for acf_crop in acf_per_crop:
+
+            index_positive_crop = lags > 0
+            positive_lags_crop = lags[index_positive_crop]
+            positive_lags_as_hours_crop = 5 * positive_lags_crop / 60
+            acf_positive_lags_crop = acf_1_crop[index_positive_crop]
+
+            _, relaxation_time_crop = fit_exp_decay_and_get_relaxation_timescale(
+                acf_positive_lags_crop,
+                positive_lags_as_hours_crop,
+                exp_decay_func="exponential_decay",
+            )
+            relaxation_timescale_per_crop[j, i] = relaxation_time_crop
 
     # cross-correlation
     ccf = np.zeros((num_lags, num_feats))
@@ -572,6 +594,8 @@ def compute_correlations_for_one_dataset(
     correlation_dict["delta_ccf_integral_ci_lower"][dataset_name] = delta_ccf_integral_lb
     correlation_dict["delta_ccf_integral_ci_upper"][dataset_name] = delta_ccf_integral_ub
     correlation_dict["max_lag_integrate"][dataset_name] = max_lag_integrate
+    correlation_dict["acf_per_crop"][dataset_name] = acf_per_crop
+    correlation_dict["relaxation_timescale_per_crop"][dataset_name] = relaxation_timescale_per_crop
 
     # if the lower confidence interval is higher than the value or the
     # upper confidence interval is lower than the value for any of the
@@ -596,13 +620,9 @@ def compute_correlations_for_one_dataset(
         ][dataset_name][invalid_ci_upper]
         logger.warning(
             "Invalid confidence interval bounds found for metric [ %s ] in dataset [ %s ]. "
-            "(Value, lower bound, upper bound): [ %s, %s, %s ]. "
             "Setting invalid bounds to be equal to the metric value for plotting purposes.",
             metric,
             dataset_name,
-            correlation_dict[metric][dataset_name],
-            correlation_dict[f"{metric}_ci_lower"][dataset_name],
-            correlation_dict[f"{metric}_ci_upper"][dataset_name],
         )
     return correlation_dict
 

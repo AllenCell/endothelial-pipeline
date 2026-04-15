@@ -123,6 +123,8 @@ def main(
         "delta_ccf_integral_ci_upper": {},
         "max_lag_integrate": {},
         "relaxation_timescales": {},
+        "acf_per_crop": {},
+        "relaxation_timescale_per_crop": {},
     }
     for dataset_name in tqdm(dataset_names):
         # try to get dataframe for the given dataset

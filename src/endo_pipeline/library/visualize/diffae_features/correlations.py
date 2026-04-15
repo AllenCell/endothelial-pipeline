@@ -7,6 +7,8 @@ from typing import Any, Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import seaborn as sns
 from matplotlib.axes import Axes
 from matplotlib.colors import TABLEAU_COLORS
 from matplotlib.figure import Figure
@@ -742,6 +744,41 @@ def _plot_correlation_metrics_vs_shear_stress(
     plt.close(fig)
 
 
+def _plot_relaxation_timescale_histogram(
+    dataset_name: str, correlation_dict: dict[str, dict[str, Any]], output_path: Path
+) -> None:
+    """Plot histograms of relaxation timescales from ACF fits to individual crop indices."""
+    feature_labels = correlation_dict["features"][dataset_name]
+    relaxation_timescales = correlation_dict["relaxation_timescale_per_crop"][dataset_name].copy()
+    df_relaxations = pd.DataFrame(data=relaxation_timescales, columns=feature_labels)
+    for feature in feature_labels:
+        relax_max = df_relaxations[feature].quantile(0.75)  # use 75th percentile as upper bound
+        df_relaxations[df_relaxations[feature] > relax_max] = np.nan
+    df_relaxations = df_relaxations.melt(var_name="Feature", value_name="Relaxation timescale")
+
+    fig, ax = plt.subplots(figsize=(4, 4))
+    sns.histplot(
+        data=df_relaxations,
+        x="Relaxation timescale",
+        hue="Feature",
+        binwidth=1,
+        stat="probability",
+        discrete=True,
+        alpha=0.5,
+        ax=ax,
+    )
+    ax.set_xlim(0)
+    ax.xaxis.set_major_locator(plt.MaxNLocator(integer=True))
+    ax.set_xlabel("Relaxation timescale (hours)")
+    save_plot_to_path(
+        fig,
+        output_path,
+        f"relaxation_timescale_histogram_{dataset_name}",
+        show_and_close=False,
+    )
+    plt.close(fig)
+
+
 def plot_correlation_workflow_outputs(
     correlation_dict: dict[str, dict[str, Any]],
     bootstrap_samples: int | None = None,
@@ -789,7 +826,8 @@ def plot_correlation_workflow_outputs(
             output_path,
             bootstrap_samples=bootstrap_samples,
         )
-        # TODO ADD LAG TIME VS PROBABILITY OF LAG TIME PLOTS FOR EACH DATASET
+
+        _plot_relaxation_timescale_histogram(dataset_name, correlation_dict, output_path)
 
     # plot integrated difference between CCF for positive and
     # negative lags as a function of shear stress
