@@ -280,14 +280,8 @@ def get_fixed_points_within_bounds(
     lower_percentile_bounds = _compute_percentile_values(
         dataframe, column_names, q=lower_percentile, polar_angle_range=polar_angle_range
     )
-    logger.debug(
-        "Lower percentile bounds for filtering fixed points: [ %s ]", lower_percentile_bounds
-    )
     upper_percentile_bounds = _compute_percentile_values(
         dataframe, column_names, q=upper_percentile, polar_angle_range=polar_angle_range
-    )
-    logger.debug(
-        "Upper percentile bounds for filtering fixed points: [ %s ]", upper_percentile_bounds
     )
     fpts_high_confidence_list = []
     for fpt in fpts:
