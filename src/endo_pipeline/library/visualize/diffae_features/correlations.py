@@ -752,18 +752,30 @@ def _plot_relaxation_timescale_histogram(
     relaxation_timescales = correlation_dict["relaxation_timescale_per_crop"][dataset_name].copy()
     df_relaxations = pd.DataFrame(data=relaxation_timescales, columns=feature_labels)
     for feature in feature_labels:
-        relax_max = df_relaxations[feature].quantile(0.75)  # use 75th percentile as upper bound
-        df_relaxations[df_relaxations[feature] > relax_max] = np.nan
-    df_relaxations = df_relaxations.melt(var_name="Feature", value_name="Relaxation timescale")
+        # relax_max = df_relaxations[feature].quantile(0.75)  # use 75th percentile as upper bound
+        relax_max = 48  # cap at 48 hours (arbitrary choice; but is how long we imaged for)
+        relax_min = 0  # I think that a negative relaxation time is non-physical
+        valid_relaxation = df_relaxations[feature].between(relax_min, relax_max)
+        df_relaxations[feature] = df_relaxations[feature].where(valid_relaxation, np.nan)
+    df_relaxations_long = df_relaxations.melt(var_name="Feature", value_name="Relaxation timescale")
+    df_relaxations_long = df_relaxations_long.dropna(subset=["Relaxation timescale"])
 
     fig, ax = plt.subplots(figsize=(4, 4))
-    sns.histplot(
-        data=df_relaxations,
+    # sns.histplot(
+    #     data=df_relaxations_long,
+    #     x="Relaxation timescale",
+    #     hue="Feature",
+    #     binwidth=0.5,
+    #     stat="density",
+    #     alpha=0.5,
+    #     ax=ax,
+    # )
+    sns.kdeplot(
+        data=df_relaxations_long,
         x="Relaxation timescale",
         hue="Feature",
-        binwidth=1,
-        stat="probability",
-        discrete=True,
+        bw_adjust=0.5,
+        clip=(0, 48),  # cap at 48 hours (arbitrary choice; but is how long we imaged for)
         alpha=0.5,
         ax=ax,
     )
