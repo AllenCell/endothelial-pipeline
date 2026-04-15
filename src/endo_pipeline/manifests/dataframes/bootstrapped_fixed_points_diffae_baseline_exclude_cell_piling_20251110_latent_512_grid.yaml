@@ -8,125 +8,133 @@ parameters:
   kernel_names: [periodic, gaussian, gaussian]
   kernel_bandwidths: [0.15, 0.15, 0.15]
   bin_widths: [0.05, 0.05, 0.05]
-  num_bootstrap_iterations: 100
+  num_bootstrap_iterations: 500
 locations:
   20250319_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20250319_20X_20260407_173610.parquet
-    s3uri: null
-  20250326_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20250326_20X_20260407_174928.parquet
-    s3uri: null
-  20250402_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20250402_20X_20260407_175616.parquet
-    s3uri: null
-  20250409_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20250409_20X_20260407_180556.parquet
+    fmsid: ac3c12a9377d4f8c87c4e097c02ed8f9
+    path: null
     s3uri: null
   20250428_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20250428_20X_20260407_181409.parquet
-    s3uri: null
-  20250604_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20250604_20X_20260407_182114.parquet
+    fmsid: 7a4cb99078a64d61b895d2605d3fbbfb
+    path: null
     s3uri: null
   20250611_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20250611_20X_20260407_182627.parquet
+    fmsid: c99b85a16b7f4e9ca68cd9cd18a14d9a
+    path: null
     s3uri: null
   20250618_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20250618_20X_20260407_183151.parquet
-    s3uri: null
-  20250716_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20250716_20X_20260407_184013.parquet
-    s3uri: null
-  20250728_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20250728_20X_20260407_184644.parquet
+    fmsid: 9d1a335f5d4e489fa648d7f76ce205e7
+    path: null
     s3uri: null
   20250813_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20250813_20X_20260407_185625.parquet
+    fmsid: cec336f6bf0f4d52bc283893c5ba56ab
+    path: null
+    s3uri: null
+  20250326_20X:
+    fmsid: d9e147d1bc074f2f8aaed0819a80012b
+    path: null
+    s3uri: null
+  20250402_20X:
+    fmsid: 7b06c138e0ba4fa98bbc5504a53d608f
+    path: null
+    s3uri: null
+  20250409_20X:
+    fmsid: e1e2f5f0f1f448e38bbb64fb1d545a25
+    path: null
+    s3uri: null
+  20250604_20X:
+    fmsid: 8d000b6d641a4bd7bada4dc8aba61e62
+    path: null
+    s3uri: null
+  20250716_20X:
+    fmsid: a500df5b215b4fac817c67eadf5e5c2c
+    path: null
+    s3uri: null
+  20250728_20X:
+    fmsid: 57fb7c0611954207bba5f780ee2de2dc
+    path: null
     s3uri: null
   20250908_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20250908_20X_20260407_192213.parquet
+    fmsid: d97efdb55ea54e0fb0ac65aa2850f590
+    path: null
     s3uri: null
   20251001_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20251001_20X_20260407_193009.parquet
+    fmsid: e03b1d3d7b10461baaee01b943aeffeb
+    path: null
     s3uri: null
   20251022_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20251022_20X_20260407_194213.parquet
+    fmsid: 3ec793e656cb484aacc3f6a063357136
+    path: null
     s3uri: null
   20251029_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20251029_20X_20260407_194818.parquet
+    fmsid: 90ae152d403a41bc9f53e8e7a959dded
+    path: null
     s3uri: null
   20251105_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20251105_20X_20260407_195821.parquet
+    fmsid: 32cd2fcd5f574d58abb0508435ff1be7
+    path: null
     s3uri: null
   20251119_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20251119_20X_20260407_200418.parquet
+    fmsid: d69f995427754be6bab4d80800a9ff21
+    path: null
     s3uri: null
   20260114_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20260114_20X_20260407_201029.parquet
+    fmsid: 755ded54cd7f4e6f9c60b1fc38e011d7
+    path: null
     s3uri: null
   20260121_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20260121_20X_20260407_202035.parquet
+    fmsid: 6f300ab876c44bdfbcbf922cfd703e9e
+    path: null
     s3uri: null
   20260126_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20260126_20X_20260407_202545.parquet
+    fmsid: 4b0b53440dd749fcbdd74859f6b57103
+    path: null
     s3uri: null
   20260128_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20260128_20X_20260407_203313.parquet
+    fmsid: 2a0870f5400f42f9ba18cf260ef71bcd
+    path: null
     s3uri: null
   20260202_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20260202_20X_20260407_203826.parquet
+    fmsid: 6e5a37a98d8848469cc4ed8de59838c8
+    path: null
     s3uri: null
   20260204_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20260204_20X_20260407_204512.parquet
+    fmsid: 94cde5f730074d13a44c0d6b6737968b
+    path: null
     s3uri: null
   20260209_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20260209_20X_20260407_204848.parquet
+    fmsid: f3d264f985264435abfa1430fbb86540
+    path: null
     s3uri: null
   20260211_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20260211_20X_20260407_205253.parquet
+    fmsid: 0171ecf50d564462a24f052bef243b1a
+    path: null
     s3uri: null
   20260216_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20260216_20X_20260407_205738.parquet
+    fmsid: 77de3186edc54db4b60365ce3846c7b1
+    path: null
     s3uri: null
   20260218_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20260218_20X_20260407_210057.parquet
+    fmsid: 7aafbaf8648f4f95b88eb5fc7438d226
+    path: null
     s3uri: null
   20260225_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20260225_20X_20260407_212457.parquet
+    fmsid: 3d8650f17ddc47caba38173b773ddeb8
+    path: null
     s3uri: null
   20260302_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20260302_20X_20260407_212920.parquet
+    fmsid: 2cb415e254fc48de86b6a3fb9f3ae481
+    path: null
     s3uri: null
   20260304_20X:
-    fmsid: null
-    path: /home/erin.angelini/git-repos/fpt-bootstrap/results/2026-04-07/bootstrap_fixed_points/grid/bootstrapped_fixed_points_20260304_20X_20260407_213521.parquet
+    fmsid: dee23b0339d846d9ae2ef6fb24f4f767
+    path: null
+    s3uri: null
+  20260309_20X:
+    fmsid: df6a5b1b1dfc44bc8cbfc026861dd383
+    path: null
+    s3uri: null
+  20260325_20X:
+    fmsid: a4472cd2b87c4510a52b964984c7c15c
+    path: null
     s3uri: null
