@@ -58,6 +58,7 @@ def main(
         METADATA_COLUMNS_TO_KEEP,
     )
     from endo_pipeline.settings.flow_field_dataframes import (
+        DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
         STABILITY_COLOR_DICT,
         STABILITY_COLUMN_NAME,
@@ -82,6 +83,9 @@ def main(
     fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
     fixed_points_dataframe_manifest = load_dataframe_manifest(fixed_points_dataframe_manifest_name)
 
+    bootstrap_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}"
+    fixed_points_bootstrap_dataframe_manifest = load_dataframe_manifest(bootstrap_manifest_name)
+
     output_dir = get_output_path(__file__, dataset_summary_list)
 
     datasets = SUMMARY_PLOT_DATASETS[dataset_summary_list]
@@ -94,7 +98,7 @@ def main(
     plot_cross_dataset_summaries(
         dataset_names=datasets,
         feature_dataframe_manifest=feature_dataframe_manifest,
-        fixed_points_dataframe_manifest=fixed_points_dataframe_manifest,
+        fixed_points_bootstrap_dataframe_manifest=fixed_points_bootstrap_dataframe_manifest,
         output_dir=output_dir,
         x_axis_mode="dataset",
     )
@@ -178,9 +182,9 @@ def main(
                         fp_for_feature = add_binned_mean_to_fixed_points(
                             fp_for_feature,
                             df_flow_no_nan,
-                            x_col=ColumnName.DiffAEData.POLAR_ANGLE,
-                            y_col=ColumnName.DiffAEData.POLAR_RADIUS,
-                            z_col=ColumnName.DiffAEData.PC3_FLIPPED,
+                            fp_x_col=ColumnName.DiffAEData.POLAR_ANGLE,
+                            fp_y_col=ColumnName.DiffAEData.POLAR_RADIUS,
+                            fp_z_col=ColumnName.DiffAEData.PC3_FLIPPED,
                             binned_col=optical_flow_feature,
                         )
 
