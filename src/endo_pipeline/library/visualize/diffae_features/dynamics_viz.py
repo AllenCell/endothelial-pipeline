@@ -147,8 +147,8 @@ def plot_drift_contours(
 def plot_contour_colorbar(
     figsize: tuple[float, float] = (2, 4),
     label: str | None = None,
-    vmin: float | None = DRIFT_CONTOUR_VMIN,
-    vmax: float | None = DRIFT_CONTOUR_VMAX,
+    vmin: float = DRIFT_CONTOUR_VMIN,
+    vmax: float = DRIFT_CONTOUR_VMAX,
     num_ticks: int = DRIFT_CONTOUR_CBAR_NUM_TICKS,
     tick_label_round: int = DRIFT_CONTOUR_CBAR_ROUND,
     center_zero: bool = True,
@@ -194,15 +194,17 @@ def plot_contour_colorbar(
         ax.set_title(label)
 
     if center_zero:
-        colormap_norm = TwoSlopeNorm(vmin=vmin, vmax=vmax, vcenter=0)
+        color_mappable = ScalarMappable(
+            norm=TwoSlopeNorm(vmin=vmin, vmax=vmax, vcenter=0), cmap=colormap
+        )
     else:
-        colormap_norm = plt.Normalize(vmin=vmin, vmax=vmax)
+        color_mappable = ScalarMappable(norm=plt.Normalize(vmin=vmin, vmax=vmax), cmap=colormap)
 
     colorbar_ticks = np.linspace(vmin, vmax, num_ticks)
     colorbar_ticks = np.round(colorbar_ticks, tick_label_round)
 
     fig.colorbar(
-        ScalarMappable(norm=colormap_norm, cmap=colormap),
+        color_mappable,
         cax=ax,
         orientation=orientation,
         ticks=colorbar_ticks,
