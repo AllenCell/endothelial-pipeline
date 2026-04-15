@@ -779,7 +779,7 @@ def _plot_relaxation_timescales_histogram(
         )
         counts.append(crop_count)
     title = ", ".join(counts)
-    ax.set_title("number of crops before / after filter per feature:\n".title() + f"{title}")
+    ax.set_title(f"{dataset_name}\nnumber of crops before / after filter:\n".title() + f"{title}")
     if plot_hist_instead:
         kind = "hist"
         sns.histplot(
