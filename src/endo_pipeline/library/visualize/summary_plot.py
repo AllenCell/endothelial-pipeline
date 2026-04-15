@@ -13,7 +13,6 @@ from endo_pipeline.library.analyze.dataframe_filtering import (
     filter_dataframe_by_flow_condition,
     filter_dataframe_to_steady_state,
 )
-from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
     add_binned_mean_to_fixed_points,
     add_optical_flow_features,
@@ -249,8 +248,9 @@ def plot_fixed_points_vs_shear_stress(
 def plot_cross_dataset_summaries(
     dataset_names: list[str],
     feature_dataframe_manifest: DataframeManifest,
-    fixed_points_dataframe_manifest: DataframeManifest,
+    fixed_points_bootstrap_dataframe_manifest: DataframeManifest,
     output_dir: Path,
+    bootstrap_threshold: float = 0.5,
     column_names: list[ColumnName.DiffAEData | ColumnName.OpticalFlow] | None = None,
     x_axis_mode: Literal["dataset", "shear_stress_numeric", "shear_stress_categorical"] = "dataset",
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 3),
@@ -269,8 +269,9 @@ def plot_cross_dataset_summaries(
         List of dataset names to include in the summaries.
     feature_dataframe_manifest
         Manifest containing per-dataset feature dataframe locations.
-    fixed_points_dataframe_manifest
-        Manifest containing per-dataset fixed-point dataframe locations.
+    fixed_points_bootstrap_dataframe_manifest
+        Manifest containing per-dataset fixed-points and confidence intervals found from
+        precomputed bootstrapping.
     output_dir
         Directory where the figures are saved.
     column_names
@@ -338,29 +339,40 @@ def plot_cross_dataset_summaries(
 
             # Fixed points with binned means for each feature
             try:
-                fp_location = get_dataframe_location_for_dataset(
-                    fixed_points_dataframe_manifest, dataset_name
+                fp_bootstrap_location = get_dataframe_location_for_dataset(
+                    fixed_points_bootstrap_dataframe_manifest, dataset_name
                 )
-                fp_df = load_dataframe(fp_location, delay=False)
-                check_required_columns_in_dataframe(
-                    fp_df,
-                    required_columns=[
-                        *DYNAMICS_COLUMN_NAMES,
-                        ColumnName.DATASET,
-                        STABILITY_COLUMN_NAME,
-                    ],
-                )
+                df_bootstrap = load_dataframe(fp_bootstrap_location, delay=False)
+
+                n_total = len(df_bootstrap)
+                high_confidence_df = df_bootstrap[
+                    df_bootstrap[ColumnName.BootstrapAnalysis.DETECTION_RATE] >= bootstrap_threshold
+                ].copy()
+
+                if high_confidence_df.empty:
+                    logger.warning(
+                        "No fixed points with bootstrap_detection_rate >= %.2f for dataset "
+                        "[ %s ] (%d fixed points in total). Skipping plot for this dataset.",
+                        bootstrap_threshold,
+                        dataset_name,
+                        n_total,
+                    )
+                    continue
+
                 for feature_key in optical_flow_features:
                     df_flow_no_nan = df_flow.dropna(subset=[feature_key])
-                    fp_df = add_binned_mean_to_fixed_points(
-                        fp_df,
+                    high_confidence_df = add_binned_mean_to_fixed_points(
+                        high_confidence_df,
                         df_flow_no_nan,
-                        x_col=ColumnName.DiffAEData.POLAR_ANGLE,
-                        y_col=ColumnName.DiffAEData.POLAR_RADIUS,
-                        z_col=ColumnName.DiffAEData.PC3_FLIPPED,
+                        fp_x_col=f"{ColumnName.DiffAEData.POLAR_ANGLE}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
+                        fp_y_col=f"{ColumnName.DiffAEData.POLAR_RADIUS}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
+                        fp_z_col=f"{ColumnName.DiffAEData.PC3_FLIPPED}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
                         binned_col=feature_key,
+                        of_x_col=ColumnName.DiffAEData.POLAR_ANGLE,
+                        of_y_col=ColumnName.DiffAEData.POLAR_RADIUS,
+                        of_z_col=ColumnName.DiffAEData.PC3_FLIPPED,
                     )
-                df_fp_all_list.append(fp_df)
+                df_fp_all_list.append(high_confidence_df)
             except KeyError:
                 logger.warning(
                     "No fixed point dataframe found for dataset [ %s ]. Skipping fixed points.",
