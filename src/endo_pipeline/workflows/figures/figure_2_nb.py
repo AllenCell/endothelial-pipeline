@@ -410,15 +410,6 @@ for dataset_name, panel_letters, y_position in [
     )
     panels.extend([contour_plots, colorbar_panel, quiver_plot, theta_plot])
 
-# build figure from panels and save
-figure_filename = "figure_2_dynamics"
-build_figure_from_panels(
-    panels,
-    base_output_dir / f"{figure_filename}.svg",
-    width=MAX_FIGURE_WIDTH,
-    height=MAX_FIGURE_HEIGHT,
-)
-
 # %%
 # --- Cross-dataset summary plots ---
 plot_cross_dataset_summaries(
@@ -480,24 +471,29 @@ save_plot_to_path(
     file_format=".svg",
 )
 # %%
-panels = [
-    FigurePanel(
-        letter="G",
-        path=base_output_dir / "migration_coherence_distribution_high_low_flow_comparison.svg",
-        x_position=0,
-        y_position=0,
-        x_offset=0,
-        y_offset=0,
-    ),
-    FigurePanel(
-        letter="H",
-        path=base_output_dir / "fixed_points_vs_shear_stress.svg",
-        x_position=2.1,
-        y_position=0,
-        x_offset=0,
-        y_offset=0,
-    ),
-]
+panels.extend(
+    [
+        FigurePanel(
+            letter="G",
+            path=base_output_dir / "migration_coherence_distribution_high_low_flow_comparison.svg",
+            x_position=0,
+            y_position=6.0,
+            x_offset=0,
+            y_offset=0,
+        ),
+        FigurePanel(
+            letter="H",
+            path=base_output_dir / "fixed_points_vs_shear_stress.svg",
+            x_position=2.1,
+            y_position=6.0,
+            x_offset=0,
+            y_offset=0,
+        ),
+    ]
+)
 
-build_figure_from_panels(panels, base_output_dir / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=3)
+# %%
+build_figure_from_panels(
+    panels, base_output_dir / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
+)
 # %%
