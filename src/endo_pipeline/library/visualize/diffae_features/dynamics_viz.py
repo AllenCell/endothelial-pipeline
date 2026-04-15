@@ -148,6 +148,7 @@ def plot_drift_quiver(
     axes_limits: list[tuple[float, float]] | None = None,
     quiver_scale: float = 10,
     quiver_color: str = "k",
+    quiver_downsample: int = 1,
     include_nullclines: bool = True,
     nullcline_styles: tuple[str, str] = ("dashed", "dashdot"),
     nullcline_colors: tuple[str, str] = ("r", "b"),
@@ -183,6 +184,8 @@ def plot_drift_quiver(
         Scale factor for the quiver plot (smaller values make arrows longer).
     quiver_color
         Color for the quiver arrows.
+    quiver_downsample
+        Factor by which to downsample the quiver arrows for visualization.
     include_nullclines
         Whether to include nullclines (where drift components are zero).
     nullcline_styles
@@ -209,10 +212,10 @@ def plot_drift_quiver(
     """
     fig, ax = fig_ax or plt.subplots(figsize=figsize, gridspec_kw=gridspec_kwargs)
     ax.quiver(
-        meshgrid[0],
-        meshgrid[1],
-        drift[..., 0],
-        drift[..., 1],
+        meshgrid[0][::quiver_downsample, ::quiver_downsample],
+        meshgrid[1][::quiver_downsample, ::quiver_downsample],
+        drift[::quiver_downsample, ::quiver_downsample, 0],
+        drift[::quiver_downsample, ::quiver_downsample, 1],
         color=quiver_color,
         pivot="tail",
         scale=quiver_scale,
