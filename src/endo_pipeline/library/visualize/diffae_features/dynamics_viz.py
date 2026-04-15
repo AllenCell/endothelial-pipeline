@@ -88,6 +88,12 @@ def plot_drift_contours(
     gridspec_kwargs
         Optional dictionary of keyword arguments to pass to plt.subplots for
         creating the figure and axes, e.g., to specify a GridSpec layout.
+    xlabel_kwargs
+        Optional dictionary of keyword arguments to pass to ax.set_xlabel for
+        customizing the x-axis label, e.g., to specify a font size or label padding.
+    ylabel_kwargs
+        Optional dictionary of keyword arguments to pass to ax.set_ylabel for
+        customizing the y-axis label, e.g., to specify a font size or label padding.
 
     """
     fig, ax = fig_ax or plt.subplots(2, 1, figsize=figsize, gridspec_kw=gridspec_kwargs)
@@ -200,6 +206,12 @@ def plot_drift_quiver(
     legend_kwargs
         Optional dictionary of keyword arguments to pass to ax.legend for
         customizing the legend, e.g., to specify a title or font size.
+    xlabel_kwargs
+        Optional dictionary of keyword arguments to pass to ax.set_xlabel for
+        customizing the x-axis label, e.g., to specify a font size or label padding.
+    ylabel_kwargs
+        Optional dictionary of keyword arguments to pass to ax.set_ylabel for
+        customizing the y-axis label, e.g., to specify a font size or label padding.
 
     """
     fig, ax = fig_ax or plt.subplots(figsize=figsize, gridspec_kw=gridspec_kwargs)
