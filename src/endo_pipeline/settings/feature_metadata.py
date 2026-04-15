@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Literal
+from typing import Any, Literal
 
 from numpy import pi
 
@@ -561,7 +561,7 @@ FEATURE_METADATA = {
 """Mapping of column names to feature metadata."""
 
 
-FEATURE_METADATA_DICT = {
+FEATURE_METADATA_DICT: dict[str, dict[str, Any]] = {
     Column.SegData.TIME_HRS: {
         "column_name": Column.SegData.TIME_HRS,
         "label": "Time (h)",
