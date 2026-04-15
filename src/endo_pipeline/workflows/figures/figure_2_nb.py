@@ -8,8 +8,6 @@ import math
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.cm import ScalarMappable
-from matplotlib.colors import TwoSlopeNorm
 
 from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
 from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
@@ -27,6 +25,7 @@ from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature impo
 )
 from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
+    plot_contour_colorbar,
     plot_drift_contours,
     plot_drift_quiver,
 )
@@ -76,7 +75,7 @@ plt.style.use("endo_pipeline.figure")
 
 logger = logging.getLogger(__name__)
 
-save_dir = get_output_path("figure_2")
+base_output_dir = get_output_path("figure_2")
 
 # figure is for grid based crops
 crop_pattern = "grid"
@@ -126,6 +125,7 @@ kernel_theta = KramersMoyalKernel(
 )
 
 # global plotting kwargs / parameters
+contour_colorbar_figsize = (0.85, MAX_FIGURE_WIDTH / 4)
 contour_plot_figsize = (1.75, 1.85)
 quiver_plot_figsize = (2.05, 1.65)
 theta_plot_figsize = (MAX_FIGURE_WIDTH / 4, MAX_FIGURE_HEIGHT / 4)
@@ -158,21 +158,17 @@ theta_plot_y_ticks = [-0.3, 0.0, 0.3]
 
 
 # %%
-base_output_dir = get_output_path(__file__)
+
 # make svg of just the colorbar with set ticks and extended on both sides
-fig, ax = plt.subplots(figsize=(0.85, MAX_FIGURE_WIDTH / 4))
-# center colormap at zero to visualize sign and magnitude of drift
-vmin = DRIFT_CONTOUR_VMIN
-vmax = DRIFT_CONTOUR_VMAX
-colormap_norm = TwoSlopeNorm(vmin=vmin, vmax=vmax, vcenter=0)
-colorbar_ticks = np.linspace(vmin, vmax, DRIFT_CONTOUR_CBAR_NUM_TICKS)
-colorbar_ticks = np.round(colorbar_ticks, DRIFT_CONTOUR_CBAR_ROUND)
-cb = fig.colorbar(
-    ScalarMappable(norm=colormap_norm, cmap=DRIFT_CONTOUR_COLORMAP),
-    cax=ax,
-    orientation="vertical",
-    ticks=colorbar_ticks,
+fig, ax = plot_contour_colorbar(
+    figsize=contour_colorbar_figsize,
+    vmin=DRIFT_CONTOUR_VMIN,
+    vmax=DRIFT_CONTOUR_VMAX,
+    num_ticks=DRIFT_CONTOUR_CBAR_NUM_TICKS,
+    tick_label_round=DRIFT_CONTOUR_CBAR_ROUND,
     extend="both",
+    colormap=DRIFT_CONTOUR_COLORMAP,
+    orientation="vertical",
 )
 save_plot_to_path(fig, base_output_dir, "colorbar", file_format=".svg", transparent=True)
 
@@ -423,7 +419,7 @@ plot_cross_dataset_summaries(
     dataset_names=dataset_summary_list,
     feature_dataframe_manifest=feature_dataframe_manifest,
     fixed_points_bootstrap_dataframe_manifest=bootstrap_dataframe_manifest,
-    output_dir=save_dir,
+    output_dir=base_output_dir,
     column_names=columns_for_summary_plots,
     x_axis_mode="shear_stress_categorical",
     figure_size=(MAX_FIGURE_WIDTH - 2.1, 2),
@@ -471,7 +467,7 @@ for dataset_name in [dataset_low, dataset_high]:
     )
 save_plot_to_path(
     fig,
-    save_dir,
+    base_output_dir,
     "migration_coherence_distribution_high_low_flow_comparison",
     pad_inches=0,
     tight_layout=False,
@@ -481,7 +477,7 @@ save_plot_to_path(
 panels = [
     FigurePanel(
         letter="G",
-        path=save_dir / "migration_coherence_distribution_high_low_flow_comparison.svg",
+        path=base_output_dir / "migration_coherence_distribution_high_low_flow_comparison.svg",
         x_position=0,
         y_position=0,
         x_offset=0,
@@ -489,7 +485,7 @@ panels = [
     ),
     FigurePanel(
         letter="H",
-        path=save_dir / "fixed_points_vs_shear_stress.svg",
+        path=base_output_dir / "fixed_points_vs_shear_stress.svg",
         x_position=2.1,
         y_position=0,
         x_offset=0,
@@ -497,5 +493,5 @@ panels = [
     ),
 ]
 
-build_figure_from_panels(panels, save_dir / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=3)
+build_figure_from_panels(panels, base_output_dir / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=3)
 # %%
