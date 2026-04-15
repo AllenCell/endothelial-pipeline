@@ -101,22 +101,28 @@ low_shear_stress_repr_example = "20250409_20X"
 high_shear_stress_repr_example = "20251001_20X"
 
 # global plotting kwargs / parameters
-gridspec_kwargs = {"wspace": 0.1, "hspace": 0.1}
-xlabel_kwargs = {"labelpad": 2}
-ylabel_kwargs = {"labelpad": -2}
 contour_plot_figsize = (1.75, 1.85)
 quiver_plot_figsize = (2.05, 1.65)
 theta_plot_figsize = (MAX_FIGURE_WIDTH / 4, MAX_FIGURE_HEIGHT / 4)
+
+gridspec_kwargs = {"wspace": 0.1, "hspace": 0.1}
+xlabel_kwargs = {"labelpad": 2}
+ylabel_kwargs = {"labelpad": -2}
 quiver_legend_kwargs = {"fontsize": "xx-small", "title_fontsize": "xx-small", "loc": (1.05, 0.7)}
-quiver_plot_xlims = (0.2, 2.0)
-quiver_plot_ylims = (-1.15, 1.15)
-quiver_plot_x_ticks = [0.25, 0.75, 1.25, 1.75]
-quiver_plot_y_ticks = [-1.0, -0.5, 0.0, 0.5, 1.0]
+
+r_lims = (0.2, 2.0)
+rho_lims = (-1.15, 1.15)
+
+contour_plot_x_ticks = [0.25, 1.0, 1.75]  # ticks for r (contour plot)
+contour_plot_y_ticks = [-1.0, 0.0, 1.0]  # ticks for rho (contour plot)
+quiver_plot_x_ticks = [0.25, 0.75, 1.25, 1.75]  # ticks for r (quiver plot)
+quiver_plot_y_ticks = [-1.0, -0.5, 0.0, 0.5, 1.0]  # ticks for rho (quiver plot)
+
 theta_plot_xlims = BIN_LIMITS_THETA_RESCALED
 theta_plot_ylims = (-0.4, 0.4)
 theta_plot_x_ticks = [0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi]
 theta_plot_x_ticklabels = ["0", "π/4", "π/2", "3π/4", "π"]
-theta_plot_y_ticks = [-0.3, -0.15, 0.0, 0.15, 0.3]
+theta_plot_y_ticks = [-0.3, 0.0, 0.3]
 
 
 # %%
@@ -236,7 +242,7 @@ for dataset_name, panel_letters, y_position in [
         drift_r_rho,
         variable_labels=column_labels_r_rho,
         figsize=contour_plot_figsize,
-        axes_limits=(quiver_plot_xlims, quiver_plot_ylims),
+        axes_limits=(r_lims, rho_lims),
         axes_aspect=None,
         include_colorbar=False,
         gridspec_kwargs=gridspec_kwargs,
@@ -247,6 +253,8 @@ for dataset_name, panel_letters, y_position in [
         ax_: plt.Axes
         # adjust label padding and drop tick labels on shared x axis
         ax_.set_box_aspect(1.0)
+        ax_.set_xticks(contour_plot_x_ticks)
+        ax_.set_yticks(contour_plot_y_ticks)
         if ax_index == 0:
             ax_.tick_params(labelbottom=False)
     save_plot_to_path(
@@ -261,7 +269,7 @@ for dataset_name, panel_letters, y_position in [
         quiver_downsample=3,
         variable_labels=column_labels_r_rho,
         figsize=quiver_plot_figsize,
-        axes_limits=(quiver_plot_xlims, quiver_plot_ylims),
+        axes_limits=(r_lims, rho_lims),
         include_nullclines=True,
         nullcline_colors=["k", "k"],
         nullcline_styles=["dashed", (0, (1, 1))],
