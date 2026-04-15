@@ -20,6 +20,7 @@ from endo_pipeline.library.analyze.numerics.correlations import (
     exponential_decay,
     fit_exp_decay_and_get_relaxation_timescale,
 )
+from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
 
 logger = logging.getLogger(__name__)
 
@@ -744,48 +745,71 @@ def _plot_correlation_metrics_vs_shear_stress(
     plt.close(fig)
 
 
-def _plot_relaxation_timescale_histogram(
-    dataset_name: str, correlation_dict: dict[str, dict[str, Any]], output_path: Path
+def _plot_relaxation_timescales_histogram(
+    dataset_name: str,
+    correlation_dict: dict[str, dict[str, Any]],
+    output_path: Path,
+    plot_hist_instead: bool = True,
 ) -> None:
     """Plot histograms of relaxation timescales from ACF fits to individual crop indices."""
     feature_labels = correlation_dict["features"][dataset_name]
     relaxation_timescales = correlation_dict["relaxation_timescale_per_crop"][dataset_name].copy()
     df_relaxations = pd.DataFrame(data=relaxation_timescales, columns=feature_labels)
+    num_crops_per_feature: dict = {}
     for feature in feature_labels:
         # relax_max = df_relaxations[feature].quantile(0.75)  # use 75th percentile as upper bound
         relax_max = 48  # cap at 48 hours (arbitrary choice; but is how long we imaged for)
         relax_min = 0  # I think that a negative relaxation time is non-physical
         valid_relaxation = df_relaxations[feature].between(relax_min, relax_max)
         df_relaxations[feature] = df_relaxations[feature].where(valid_relaxation, np.nan)
+        num_crops_per_feature[feature] = {
+            "after_filter": valid_relaxation.sum(),
+            "before_filter": len(relaxation_timescales),
+        }
     df_relaxations_long = df_relaxations.melt(var_name="Feature", value_name="Relaxation timescale")
     df_relaxations_long = df_relaxations_long.dropna(subset=["Relaxation timescale"])
 
     fig, ax = plt.subplots(figsize=(4, 4))
-    # sns.histplot(
-    #     data=df_relaxations_long,
-    #     x="Relaxation timescale",
-    #     hue="Feature",
-    #     binwidth=0.5,
-    #     stat="density",
-    #     alpha=0.5,
-    #     ax=ax,
-    # )
-    sns.kdeplot(
-        data=df_relaxations_long,
-        x="Relaxation timescale",
-        hue="Feature",
-        bw_adjust=0.5,
-        clip=(0, 48),  # cap at 48 hours (arbitrary choice; but is how long we imaged for)
-        alpha=0.5,
-        ax=ax,
-    )
+    counts = []
+    for feature in num_crops_per_feature:
+        crop_count = (
+            f"{get_label_for_column(feature)}: "
+            f"{num_crops_per_feature[feature]['after_filter']}/"
+            f"{num_crops_per_feature[feature]['before_filter']}"
+        )
+        counts.append(crop_count)
+    title = ", ".join(counts)
+    ax.set_title("number of crops before / after filter per feature:\n".title() + f"{title}")
+    if plot_hist_instead:
+        kind = "hist"
+        sns.histplot(
+            data=df_relaxations_long,
+            x="Relaxation timescale",
+            hue="Feature",
+            binwidth=0.5,
+            stat="density",
+            alpha=0.5,
+            ax=ax,
+        )
+    else:
+        kind = "kde"
+        sns.kdeplot(
+            data=df_relaxations_long,
+            x="Relaxation timescale",
+            hue="Feature",
+            bw_adjust=0.5,
+            clip=(0, 48),  # cap at 48 hours (arbitrary choice; but is how long we imaged for)
+            alpha=0.5,
+            ax=ax,
+        )
     ax.set_xlim(0)
     ax.xaxis.set_major_locator(plt.MaxNLocator(integer=True))
     ax.set_xlabel("Relaxation timescale (hours)")
+    fname = f"relaxation_timescale_histogram_{dataset_name}_{kind}"
     save_plot_to_path(
         fig,
         output_path,
-        f"relaxation_timescale_histogram_{dataset_name}",
+        fname,
         show_and_close=False,
     )
     plt.close(fig)
@@ -839,7 +863,12 @@ def plot_correlation_workflow_outputs(
             bootstrap_samples=bootstrap_samples,
         )
 
-        _plot_relaxation_timescale_histogram(dataset_name, correlation_dict, output_path)
+        _plot_relaxation_timescales_histogram(
+            dataset_name, correlation_dict, output_path, plot_hist_instead=True
+        )
+        _plot_relaxation_timescales_histogram(
+            dataset_name, correlation_dict, output_path, plot_hist_instead=False
+        )
 
     # plot integrated difference between CCF for positive and
     # negative lags as a function of shear stress
