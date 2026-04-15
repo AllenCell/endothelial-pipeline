@@ -11,13 +11,13 @@ import numpy as np
 
 from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
 from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
-from endo_pipeline.library.analyze.data_driven_flow_field import compute_drift_vector_field
+from endo_pipeline.library.analyze.data_driven_flow_field import (
+    compute_drift_vector_field,
+    mask_drift_coeffs_by_data_density,
+)
 from endo_pipeline.library.analyze.dataframe_filtering import (
     filter_dataframe_by_annotations,
     filter_dataframe_to_steady_state,
-)
-from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
-    get_kernel_density_estimate_from_histogram,
 )
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
@@ -220,6 +220,7 @@ for dataset_name, panel_letters, y_position in [
         lower_percentile=BIN_LIMIT_PERCENTILE_CUTOFF,
         upper_percentile=100 - BIN_LIMIT_PERCENTILE_CUTOFF,
     )
+    centers_mesh = np.meshgrid(*centers_r_rho, indexing="ij")
     drift_r_rho = compute_drift_vector_field(
         df_steady_state,
         column_names=columns_r_rho,
@@ -227,22 +228,14 @@ for dataset_name, panel_letters, y_position in [
         kernel=kernels_r_rho,
         time_step=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
     )
-    # 2D meshgrid of bin centers for plotting
-    centers_mesh = np.meshgrid(*centers_r_rho, indexing="ij")
-
-    # get histogram for masking low-confidence regions of drift
-    # estimates, using same kernels as for drift estimation, and set
-    # drift to nan in low-confidence regions
-    hist_r_rho = np.histogram2d(
-        df_steady_state[columns_r_rho[0]], df_steady_state[columns_r_rho[1]], bins=bins_r_rho
-    )[0]
-    hist_kde_r_rho = get_kernel_density_estimate_from_histogram(
-        hist_r_rho[None, ...],
-        bins=bins_r_rho,
-        kernel=kernels_r_rho,
+    drift_r_rho = mask_drift_coeffs_by_data_density(
+        drift_coeffs=drift_r_rho,
+        dataframe=df_steady_state,
+        column_names=columns_r_rho,
+        histogram_bins=bins_r_rho,
+        histogram_kernel=kernels_r_rho,
+        probability_threshold=HISTOGRAM_THRESHOLD_FOR_MASKING,
     )
-    low_confidence_mask = hist_kde_r_rho < HISTOGRAM_THRESHOLD_FOR_MASKING
-    drift_r_rho[low_confidence_mask] = np.nan
 
     # get in 1D for theta
     bins_theta, centers_theta = get_bins(

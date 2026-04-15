@@ -60,17 +60,16 @@ def main(
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
+    from endo_pipeline.library.analyze.data_driven_flow_field import (
+        compute_drift_vector_field,
+        mask_drift_coeffs_by_data_density,
+    )
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_flow_condition,
         filter_dataframe_to_steady_state,
     )
-    from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
-        get_kernel_density_estimate_from_trajectories,
-        get_kramers_moyal_coeffs,
-    )
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins
-    from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
     from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
         plot_drift_contours,
         plot_drift_quiver,
@@ -215,18 +214,12 @@ def main(
                     )
 
                 # get 2D trajectories and differences for the pair of variables
-                traj_2d, diff_2d = get_traj_and_diff(
+                drift = compute_drift_vector_field(
                     df_flow,
-                    column_names=list(column_name_pair),
-                    polar_angle_period=polar_angle_period,
-                )
-
-                drift, _ = get_kramers_moyal_coeffs(
-                    traj_2d,
-                    diff_2d,
+                    column_names=column_name_pair,
                     bins=bins_2d,
-                    dt=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
                     kernel=kernels,
+                    time_step=TIME_STEP_IN_MINUTES / 60,
                 )
 
                 # get 2D meshgrid of bin centers for plotting
@@ -236,13 +229,14 @@ def main(
                 # estimates, using same kernels as for drift estimation, and set
                 # drift to nan in low-confidence regions
                 if mask_threshold is not None:
-                    hist_kde = get_kernel_density_estimate_from_trajectories(
-                        traj_2d,
-                        bins=bins_2d,
-                        kernel=kernels,
+                    drift = mask_drift_coeffs_by_data_density(
+                        drift_coeffs=drift,
+                        dataframe=df_flow,
+                        column_names=column_name_pair,
+                        histogram_bins=bins_2d,
+                        histogram_kernel=kernels,
+                        probability_threshold=mask_threshold,
                     )
-                    low_confidence_mask = hist_kde < mask_threshold
-                    drift[low_confidence_mask] = np.nan
 
                 filename_prefix = f"{dataset_name_flow}_{'_'.join(column_name_pair)}"
                 # plot drift contours and save

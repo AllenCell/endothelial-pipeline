@@ -729,10 +729,10 @@ def compute_drift_vector_field(
 
 def mask_drift_coeffs_by_data_density(
     drift_coeffs: np.ndarray,
-    histogram_bins: list[np.ndarray],
-    histogram_kernels: KramersMoyalKernel | list[KramersMoyalKernel],
     dataframe: pd.DataFrame,
     column_names: list[str | Column.DiffAEData],
+    histogram_bins: list[np.ndarray],
+    histogram_kernel: KramersMoyalKernel | list[KramersMoyalKernel],
     probability_threshold: float = HISTOGRAM_THRESHOLD_FOR_MASKING,
 ) -> np.ndarray:
     """
@@ -748,18 +748,18 @@ def mask_drift_coeffs_by_data_density(
     drift_coeffs
         Array containing the drift coefficients for each point in the feature
         grid.
-    histogram_bins
-        List of arrays specifying the bin edges for each dimension to use for
-        estimating the data density.
-    histogram_kernels
-        Kramers-Moyal kernel or list of Kramers-Moyal kernels in each dimension
-        to use for estimating the data density.
     dataframe
         Dataframe containing the feature data for a single dataset and flow
         condition.
     column_names
         Feature column names corresponding to the dimensions of the feature
         space.
+    histogram_bins
+        List of arrays specifying the bin edges for each dimension to use for
+        estimating the data density.
+    histogram_kernel
+        Kramers-Moyal kernel or list of Kramers-Moyal kernels in each dimension
+        to use for estimating the data density.
     probability_threshold
         Threshold for the estimated data density below which to set drift
         coefficients to NaN.
@@ -776,7 +776,7 @@ def mask_drift_coeffs_by_data_density(
     hist_kde = get_kernel_density_estimate_from_histogram(
         hist[None, ...],
         bins=histogram_bins,
-        kernel=histogram_kernels,
+        kernel=histogram_kernel,
     )
     low_probability_mask = hist_kde < probability_threshold
     drift_coeffs[low_probability_mask] = np.nan
