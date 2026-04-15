@@ -34,6 +34,9 @@ def plot_drift_contours(
     include_colorbar: bool = True,
     cbar_num_ticks: int = DRIFT_CONTOUR_CBAR_NUM_TICKS,
     cbar_tick_round: int = DRIFT_CONTOUR_CBAR_ROUND,
+    gridspec_kwargs: dict | None = None,
+    xlabel_kwargs: dict | None = None,
+    ylabel_kwargs: dict | None = None,
 ) -> tuple[plt.Figure, tuple[plt.Axes, plt.Axes]]:
     """
     Make and save contour plot of each component of the drift vector field over
@@ -79,9 +82,18 @@ def plot_drift_contours(
         Number of ticks to use in the colorbar for each contour plot.
     cbar_tick_round
         Number of decimal places to round colorbar ticks to in the contour plots.
+    gridspec_kwargs
+        Optional dictionary of keyword arguments to pass to plt.subplots for
+        creating the figure and axes, e.g., to specify a GridSpec layout.
+    xlabel_kwargs
+        Optional dictionary of keyword arguments to pass to ax.set_xlabel for
+        customizing the x-axis label, e.g., to specify a font size or label padding.
+    ylabel_kwargs
+        Optional dictionary of keyword arguments to pass to ax.set_ylabel for
+        customizing the y-axis label, e.g., to specify a font size or label padding.
 
     """
-    fig, ax = fig_ax or plt.subplots(2, 1, figsize=figsize)
+    fig, ax = fig_ax or plt.subplots(2, 1, figsize=figsize, gridspec_kw=gridspec_kwargs)
 
     for var_index, var_name in enumerate(variable_labels):
         vmin_ = vmin or np.nanmin(drift[..., var_index])
@@ -112,8 +124,10 @@ def plot_drift_contours(
             colorbar_ticks = np.linspace(vmin_, vmax_, cbar_num_ticks)
             colorbar_ticks = np.round(colorbar_ticks, cbar_tick_round)
             fig.colorbar(contour, ax=ax[var_index], label=f"d{var_name}/dt", ticks=colorbar_ticks)
-        ax[var_index].set_xlabel(variable_labels[0])
-        ax[var_index].set_ylabel(variable_labels[1])
+        if var_index == 1:
+            # add shared x-axis label only for the second subplot
+            ax[var_index].set_xlabel(variable_labels[0], **(xlabel_kwargs or {}))
+        ax[var_index].set_ylabel(variable_labels[1], **(ylabel_kwargs or {}))
         if axes_limits:
             ax[var_index].set_xlim(axes_limits[0])
             ax[var_index].set_ylim(axes_limits[1])
@@ -139,6 +153,10 @@ def plot_drift_quiver(
     nullcline_colors: tuple[str, str] = ("r", "b"),
     nullcline_linewidth: float = 1.5,
     nullcline_opacity: float = 0.7,
+    gridspec_kwargs: dict | None = None,
+    legend_kwargs: dict | None = None,
+    xlabel_kwargs: dict | None = None,
+    ylabel_kwargs: dict | None = None,
 ):
     """
     Make and save quiver plot of the drift vector field over the 2D state space.
@@ -175,9 +193,21 @@ def plot_drift_quiver(
         Line width for the nullcline lines.
     nullcline_opacity
         Opacity for the nullcline lines (between 0 and 1).
+    gridspec_kwargs
+        Optional dictionary of keyword arguments to pass to plt.subplots for
+        creating the figure and axes, e.g., to specify a GridSpec layout.
+    legend_kwargs
+        Optional dictionary of keyword arguments to pass to ax.legend for
+        customizing the legend, e.g., to specify a title or font size.
+    xlabel_kwargs
+        Optional dictionary of keyword arguments to pass to ax.set_xlabel for
+        customizing the x-axis label, e.g., to specify a font size or label padding.
+    ylabel_kwargs
+        Optional dictionary of keyword arguments to pass to ax.set_ylabel for
+        customizing the y-axis label, e.g., to specify a font size or label padding.
 
     """
-    fig, ax = fig_ax or plt.subplots(figsize=figsize)
+    fig, ax = fig_ax or plt.subplots(figsize=figsize, gridspec_kw=gridspec_kwargs)
     ax.quiver(
         meshgrid[0],
         meshgrid[1],
@@ -208,10 +238,10 @@ def plot_drift_quiver(
                 linestyle=nullcline_styles[var_index],
                 label=f"d{var_name}/dt",
             )
-        ax.legend(title="Nullclines", loc=(1.025, 0.90))
+        ax.legend(title="Nullclines", **(legend_kwargs or {}))
 
-    ax.set_xlabel(variable_labels[0])
-    ax.set_ylabel(variable_labels[1])
+    ax.set_xlabel(variable_labels[0], **(xlabel_kwargs or {}))
+    ax.set_ylabel(variable_labels[1], **(ylabel_kwargs or {}))
     if axes_limits:
         ax.set_xlim(axes_limits[0])
         ax.set_ylim(axes_limits[1])
