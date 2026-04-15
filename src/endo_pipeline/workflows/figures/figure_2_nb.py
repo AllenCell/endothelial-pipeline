@@ -144,6 +144,13 @@ contour_plot_y_ticks = [-1.0, 0.0, 1.0]  # ticks for rho (contour plot)
 quiver_plot_x_ticks = [0.25, 0.75, 1.25, 1.75]  # ticks for r (quiver plot)
 quiver_plot_y_ticks = [-1.0, -0.5, 0.0, 0.5, 1.0]  # ticks for rho (quiver plot)
 
+quiver_scale = 4
+quiver_downsample = 3
+quiver_color = "dimgrey"
+quiver_nullcline_colors = ["k", "k"]
+quiver_nullcline_styles = ["dashed", (0, (1, 1))]  # dashed for r, dense dot for rho
+quiver_nullcline_opacity = 0.9
+
 unicode_pi = "\u03c0"
 theta_plot_drift_kwargs = {"color": "k", "linewidth": 2}
 theta_plot_zero_kwargs = {
@@ -293,16 +300,16 @@ for dataset_name, panel_letters, y_position in [
     fig, ax = plot_drift_quiver(
         centers_mesh,
         drift_r_rho,
-        quiver_scale=4,
-        quiver_color="dimgrey",
-        quiver_downsample=3,
+        quiver_scale=quiver_scale,
+        quiver_color=quiver_color,
+        quiver_downsample=quiver_downsample,
         variable_labels=column_labels_r_rho,
         figsize=quiver_plot_figsize,
         axes_limits=(r_lims, rho_lims),
         include_nullclines=True,
-        nullcline_colors=["k", "k"],
-        nullcline_styles=["dashed", (0, (1, 1))],
-        nullcline_opacity=0.9,
+        nullcline_colors=quiver_nullcline_colors,
+        nullcline_styles=quiver_nullcline_styles,
+        nullcline_opacity=quiver_nullcline_opacity,
         gridspec_kwargs=gridspec_kwargs,
         legend_kwargs=quiver_legend_kwargs,
         xlabel_kwargs=xlabel_kwargs,
