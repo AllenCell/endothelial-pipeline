@@ -36,6 +36,8 @@ def plot_drift_contours(
     cbar_num_ticks: int = DRIFT_CONTOUR_CBAR_NUM_TICKS,
     cbar_tick_round: int = DRIFT_CONTOUR_CBAR_ROUND,
     gridspec_kwargs: dict | None = None,
+    xlabel_kwargs: dict | None = None,
+    ylabel_kwargs: dict | None = None,
 ) -> tuple[plt.Figure, tuple[plt.Axes, plt.Axes]]:
     """
     Make and save contour plot of each component of the drift vector field over
@@ -121,8 +123,8 @@ def plot_drift_contours(
             fig.colorbar(contour, ax=ax[var_index], label=f"d{var_name}/dt", ticks=colorbar_ticks)
         if var_index == 1:
             # add shared x-axis label only for the second subplot
-            ax[var_index].set_xlabel(variable_labels[0])
-        ax[var_index].set_ylabel(variable_labels[1])
+            ax[var_index].set_xlabel(variable_labels[0], **(xlabel_kwargs or {}))
+        ax[var_index].set_ylabel(variable_labels[1], **(ylabel_kwargs or {}))
         if axes_limits:
             ax[var_index].set_xlim(axes_limits[0])
             ax[var_index].set_ylim(axes_limits[1])
@@ -150,6 +152,8 @@ def plot_drift_quiver(
     nullcline_opacity: float = 0.7,
     gridspec_kwargs: dict | None = None,
     legend_kwargs: dict | None = None,
+    xlabel_kwargs: dict | None = None,
+    ylabel_kwargs: dict | None = None,
 ):
     """
     Make and save quiver plot of the drift vector field over the 2D state space.
@@ -231,8 +235,8 @@ def plot_drift_quiver(
             )
         ax.legend(title="Nullclines", **(legend_kwargs or {}))
 
-    ax.set_xlabel(variable_labels[0])
-    ax.set_ylabel(variable_labels[1])
+    ax.set_xlabel(variable_labels[0], **(xlabel_kwargs or {}))
+    ax.set_ylabel(variable_labels[1], **(ylabel_kwargs or {}))
     if axes_limits:
         ax.set_xlim(axes_limits[0])
         ax.set_ylim(axes_limits[1])

@@ -102,8 +102,8 @@ high_shear_stress_repr_example = "20251001_20X"
 
 # global plotting kwargs / parameters
 gridspec_kwargs = {"wspace": 0.1, "hspace": 0.1}
-r_axis_labelpad = 2
-rho_axis_labelpad = -2
+xlabel_kwargs = {"labelpad": 2}
+ylabel_kwargs = {"labelpad": -2}
 contour_plot_figsize = (1.75, 1.85)
 quiver_plot_figsize = (2.05, 1.65)
 theta_plot_figsize = (MAX_FIGURE_WIDTH / 4, MAX_FIGURE_HEIGHT / 4)
@@ -240,11 +240,11 @@ for dataset_name, panel_letters, y_position in [
         axes_aspect=None,
         include_colorbar=False,
         gridspec_kwargs=gridspec_kwargs,
+        xlabel_kwargs=xlabel_kwargs,
+        ylabel_kwargs=ylabel_kwargs,
     )
     for ax_index, ax_ in enumerate(ax):
         # adjust label padding and drop tick labels on shared x axis
-        ax_.xaxis.labelpad = r_axis_labelpad
-        ax_.yaxis.labelpad = rho_axis_labelpad
         ax_.set_box_aspect(1.0)
         if ax_index == 0:
             ax_.tick_params(labelbottom=False)
@@ -267,6 +267,8 @@ for dataset_name, panel_letters, y_position in [
         nullcline_opacity=0.9,
         gridspec_kwargs=gridspec_kwargs,
         legend_kwargs=quiver_legend_kwargs,
+        xlabel_kwargs=xlabel_kwargs,
+        ylabel_kwargs=ylabel_kwargs,
     )
     # add stable fixed points to quiver plot if available
     if stable_fixed_points is not None:
@@ -284,8 +286,6 @@ for dataset_name, panel_letters, y_position in [
     ax.set_box_aspect(1.0)
     ax.set_xticks(quiver_plot_x_ticks)
     ax.set_yticks(quiver_plot_y_ticks)
-    ax.xaxis.labelpad = 2
-    ax.yaxis.labelpad = -2
     save_plot_to_path(
         fig,
         fig_savedir,
@@ -324,10 +324,8 @@ for dataset_name, panel_letters, y_position in [
     ax.set_xticks(theta_plot_x_ticks)
     ax.set_xticklabels(theta_plot_x_ticklabels)
     ax.set_yticks(theta_plot_y_ticks)
-    ax.xaxis.labelpad = r_axis_labelpad
-    ax.yaxis.labelpad = rho_axis_labelpad
-    ax.set_xlabel(column_label_theta)
-    ax.set_ylabel(f"d{column_label_theta}/dt")
+    ax.set_xlabel(column_label_theta, **(xlabel_kwargs or {}))
+    ax.set_ylabel(f"$d${column_label_theta}/$dt$", **(ylabel_kwargs or {}))
     save_plot_to_path(fig, fig_savedir, theta_plot_filename, file_format=".svg")
 
     # build panels for this dataset's visualizations, adjusting positions based
