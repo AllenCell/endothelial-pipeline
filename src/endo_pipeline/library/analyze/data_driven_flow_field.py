@@ -773,15 +773,12 @@ def mask_drift_coeffs_by_data_density(
 
     """
     hist = np.histogramdd(dataframe[column_names].to_numpy(), bins=histogram_bins)[0]
-    print(hist.shape)
     hist_kde = get_kernel_density_estimate_from_histogram(
         hist[None, ...],
         bins=histogram_bins,
         kernel=histogram_kernel,
     )
-    print(hist_kde.shape)
     low_probability_mask = hist_kde < probability_threshold
-    print(low_probability_mask)
     drift_coeffs[low_probability_mask] = np.nan
 
     return drift_coeffs
