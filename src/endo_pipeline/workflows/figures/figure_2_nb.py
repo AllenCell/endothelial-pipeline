@@ -26,6 +26,7 @@ from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature impo
 from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
     plot_contour_colorbar,
+    plot_drift_1d,
     plot_drift_contours,
     plot_drift_quiver,
 )
@@ -144,6 +145,14 @@ quiver_plot_x_ticks = [0.25, 0.75, 1.25, 1.75]  # ticks for r (quiver plot)
 quiver_plot_y_ticks = [-1.0, -0.5, 0.0, 0.5, 1.0]  # ticks for rho (quiver plot)
 
 unicode_pi = "\u03c0"
+theta_plot_drift_kwargs = {"color": "k", "linewidth": 2}
+theta_plot_zero_kwargs = {
+    "linestyle": "--",
+    "color": "gray",
+    "linewidth": 1,
+    "alpha": 0.7,
+}
+theta_plot_axes_labels = [column_label_theta, f"$d${column_label_theta}/$dt$"]
 theta_plot_xlims = BIN_LIMITS_THETA_RESCALED
 theta_plot_ylims = (-0.4, 0.4)
 theta_plot_x_ticks = [0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi]
@@ -324,15 +333,17 @@ for dataset_name, panel_letters, y_position in [
     )
 
     # plot 1D drift in theta and save
-    fig, ax = plt.subplots(figsize=theta_plot_figsize, gridspec_kw=gridspec_kwargs)
-    ax.plot(centers_theta[-1], drift_theta, "k-", linewidth=2)
-    ax.plot(
-        centers_theta[-1],
-        np.zeros_like(centers_theta[-1]),
-        "--",
-        color="gray",
-        linewidth=1,
-        alpha=0.7,
+    fig, ax = plot_drift_1d(
+        drift=drift_theta,
+        centers=centers_theta[-1],
+        figsize=theta_plot_figsize,
+        axes_limits=(theta_plot_xlims, theta_plot_ylims),
+        axes_labels=theta_plot_axes_labels,
+        gridspec_kwargs=gridspec_kwargs,
+        drift_line_kwargs=theta_plot_drift_kwargs,
+        zero_line_kwargs=theta_plot_zero_kwargs,
+        xlabel_kwargs=xlabel_kwargs,
+        ylabel_kwargs=ylabel_kwargs,
     )
     # add stable fixed points in theta if available
     if stable_fixed_points is not None:
@@ -347,14 +358,9 @@ for dataset_name, panel_letters, y_position in [
         )
 
     # set plot formatting args and save
-    ax.set_xlim(theta_plot_xlims)
-    ax.set_ylim(theta_plot_ylims)
     ax.set_box_aspect(1.0)
-    ax.set_xticks(theta_plot_x_ticks)
-    ax.set_xticklabels(theta_plot_x_ticklabels)
+    ax.set_xticks(theta_plot_x_ticks, labels=theta_plot_x_ticklabels)
     ax.set_yticks(theta_plot_y_ticks)
-    ax.set_xlabel(column_label_theta, **(xlabel_kwargs or {}))
-    ax.set_ylabel(f"$d${column_label_theta}/$dt$", **(ylabel_kwargs or {}))
     save_plot_to_path(fig, fig_savedir, theta_plot_filename, file_format=".svg")
 
     # build panels for this dataset's visualizations, adjusting positions based

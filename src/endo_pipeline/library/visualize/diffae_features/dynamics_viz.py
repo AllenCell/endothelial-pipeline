@@ -332,8 +332,8 @@ def plot_drift_1d(
     axes_limits: list[tuple[float, float]] | None = None,
     axes_labels: list[str] | None = None,
     gridspec_kwargs: dict | None = None,
-    drift_line_kwargs: dict = {"color": "k", "linewidth": 2},
-    zero_line_kwargs: dict = {"color": "k", "linestyle": "dashed", "linewidth": 1, "alpha": 0.7},
+    drift_line_kwargs: dict | None = None,
+    zero_line_kwargs: dict | None = None,
     xlabel_kwargs: dict | None = None,
     ylabel_kwargs: dict | None = None,
 ) -> tuple[plt.Figure, plt.Axes]:
@@ -383,8 +383,8 @@ def plot_drift_1d(
         a function of the state variable.
     """
     fig, ax = fig_ax or plt.subplots(figsize=figsize, gridspec_kw=gridspec_kwargs)
-    ax.plot(centers, drift, **drift_line_kwargs)
-    ax.plot(centers, np.zeros_like(centers), **zero_line_kwargs)
+    ax.plot(centers, drift, **(drift_line_kwargs or {}))
+    ax.plot(centers, np.zeros_like(centers), **(zero_line_kwargs or {}))
 
     if axes_limits is not None:
         ax.set_xlim(axes_limits[0])
