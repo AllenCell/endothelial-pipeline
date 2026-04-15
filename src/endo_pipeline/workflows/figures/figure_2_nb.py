@@ -426,7 +426,7 @@ plot_cross_dataset_summaries(
 # %%
 vmax = 1
 hist_binwidth = 0.02
-fig, ax = plt.subplots(figsize=(2.15, 2), layout="constrained")
+fig, ax = plt.subplots(figsize=(2, 2), layout="constrained")
 for dataset_name in [dataset_low, dataset_high]:
     # get settings
     dataset_config = load_dataset_config(dataset_name)
