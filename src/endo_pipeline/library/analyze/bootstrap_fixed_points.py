@@ -5,9 +5,11 @@ import os
 
 import numpy as np
 import pandas as pd
+from scipy.stats import circmean
 
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
+from endo_pipeline.library.analyze.numerics.binning import circpercentile
 from endo_pipeline.library.analyze.vector_field_estimation import (
     compute_extrapolated_vector_field,
     get_callable_vector_field,
@@ -30,59 +32,38 @@ logger = logging.getLogger(__name__)
 _worker_state: dict = {}
 
 
-def subsample_trajectories_and_displacements(
+def sample_trajectories_and_displacements_for_bootstrapping(
     trajectories: list[np.ndarray],
     displacements: list[np.ndarray],
-    subsample_fraction: float,
     rng: np.random.Generator,
 ) -> tuple[list[np.ndarray], list[np.ndarray]]:
-    """Subsample timepoints within paired trajectory and displacement lists.
+    """Sample trajectories and displacements for one bootstrap iteration.
 
-    For each trajectory `trajectories[i]` (shape `(num_timepoints, n_dims)`) and its
-    displacement array `displacements[i]` (shape `(num_timepoints-1, n_dims)`), draw a
-    random subset of the `(num_timepoints-1)` step indices *without replacement*, retaining
-    at least one step.
-
-    The resulting trajectory array has shape `(n_keep + 1, n_dims)` (start points of
-    selected steps plus the endpoint of the last selected step) and the displacement
-    array has shape `(n_keep, n_dims)`.
+    Sampling occurs at the trajectory level, and is done with replacement
+    so that the same number of trajectories are returned as in the input.
 
     Parameters
     ----------
     trajectories
         List of per-crop trajectory arrays produced by ``get_traj_and_diff``.
-        Each array has shape ``(T, n_dims)``.
     displacements
         List of per-crop displacement arrays produced by ``get_traj_and_diff``.
-        Each array has shape ``(T-1, n_dims)``.
-    subsample_fraction
-        Fraction of steps to keep per trajectory (0 < fraction ≤ 1).
     rng
         Random generator used for reproducible sampling.
 
     Returns
     -------
     :
-        Subsampled trajectory list.
+        Resampled trajectory list.
     :
-        Subsampled displacement list.
+        Resampled displacement list.
 
     """
-    sub_traj_list: list[np.ndarray] = []
-    sub_d_traj_list: list[np.ndarray] = []
-    for trajectory, displacement in zip(trajectories, displacements, strict=True):
-        # get number of timepoints with valid displacements
-        # (last timepoint is not a valid step start)
-        n_steps = len(displacement)
-        n_keep = max(1, round(n_steps * subsample_fraction))
-        # guard against rounding > n_steps
-        n_keep = min(n_keep, n_steps)
-        selected = np.sort(rng.choice(n_steps, size=n_keep, replace=False))
-        # start points for selected steps + endpoint of the last selected step
-        # (selected[-1] + 1 is always a valid index because trajectory has n_steps + 1 rows)
-        sub_traj_list.append(trajectory[np.append(selected, selected[-1] + 1)])
-        sub_d_traj_list.append(displacement[selected])
-    return sub_traj_list, sub_d_traj_list
+    num_trajectories = len(trajectories)
+    sampled_trajectory_indices = rng.integers(low=0, high=num_trajectories, size=num_trajectories)
+    sampled_traj_list = [trajectories[i] for i in sampled_trajectory_indices]
+    sampled_displacement_list = [displacements[i] for i in sampled_trajectory_indices]
+    return sampled_traj_list, sampled_displacement_list
 
 
 def run_flow_field_and_fixed_points(
@@ -295,7 +276,7 @@ def match_bootstrap_fixed_points_to_baseline(
     column_names: list[str | Column.DiffAEData],
     polar_angle_period: float | None,
     bootstrap_match_radius: float,
-) -> list[list[np.ndarray]]:
+) -> dict[int, list[np.ndarray]]:
     """Match bootstrap fixed points to baseline fixed points within a specified radius.
 
     **Method inputs**
@@ -314,9 +295,10 @@ def match_bootstrap_fixed_points_to_baseline(
 
     For each bootstrap iteration, baseline fixed points are processed in row
     order and each is offered the closest unassigned bootstrap fixed point that
-    lies within `BOOTSTRAP_MATCH_RADIUS`.  Each bootstrap fixed point can be
-    matched to at most one baseline fixed point per iteration. Iterations that
-    yield no fixed points, or no fixed points within radius of a given baseline
+    lies within `BOOTSTRAP_MATCH_RADIUS` **and shares the same stability
+    classification**.  Each bootstrap fixed point can be matched to at most one
+    baseline fixed point per iteration. Iterations that yield no fixed points,
+    or no fixed points with matching stability within radius of a given baseline
     fixed point, are counted as misses for that baseline fixed point.
 
     **Polar angle handling**
@@ -385,17 +367,42 @@ def match_bootstrap_fixed_points_to_baseline(
 
         pairwise_dists = np.linalg.norm(pairwise_diffs, axis=-1)
 
+        boot_stabilities = fixed_point_result[STABILITY_COLUMN_NAME].to_numpy()
+        baseline_stabilities = baseline_fixed_points[STABILITY_COLUMN_NAME].to_numpy()
+
         assigned_boot_indices: set[int] = set()
         for baseline_idx in range(n_baseline):
-            row_dists = pairwise_dists[baseline_idx]
+            logger.debug(
+                "Matching for baseline FP  [ %s ] (stability = %s )",
+                tuple(baseline_fixed_points_array[baseline_idx]),
+                baseline_stabilities[baseline_idx],
+            )
+            row_dists = pairwise_dists[baseline_idx].copy()
+            # Exclude bootstrap FPs with a different stability classification
+            # from consideration when matching this baseline FP.
+            row_dists[boot_stabilities != baseline_stabilities[baseline_idx]] = np.inf
             sorted_boot_idxs = np.argsort(row_dists)
-            for boot_idx in sorted_boot_idxs:
+            valid_boot_idxs = sorted_boot_idxs[row_dists[sorted_boot_idxs] != np.inf]
+            for boot_idx in valid_boot_idxs:
+                logger.debug(
+                    "Checking bootstrap FP  [ %s ] with distance %.4f",
+                    tuple(fixed_point_result_array[boot_idx]),
+                    row_dists[boot_idx],
+                )
+                # check if this bootstrap FP has already been matched to a
+                # different baseline FP in this iteration
                 if boot_idx in assigned_boot_indices:
                     continue
+                # if this bootstrap FP is within the match radius, assign it as
+                # a match and move on to the next baseline FP (since each
+                # baseline FP can be matched to at most one bootstrap FP per
+                # iteration)
                 if row_dists[boot_idx] <= bootstrap_match_radius:
+                    logger.debug("-> Match found!")
                     matched_coords[baseline_idx].append(fixed_point_result_array[boot_idx])
                     assigned_boot_indices.add(boot_idx)
-                break  # only try the nearest unassigned candidate per baseline FP
+                    break
+                logger.debug("-> No match.")
 
     return matched_coords
 
@@ -417,6 +424,8 @@ def aggregate_bootstrapping_results(
     - bootstrapped confidence intervals for the fixed point coordinates
     - a detection rate from the fraction of bootstrap iterations in which a
       match was found within the specified radius
+    - a cluster mean coordinate (circular mean for the polar angle dimension,
+      linear mean for all other dimensions)
 
     **Method inputs**
 
@@ -429,13 +438,13 @@ def aggregate_bootstrapping_results(
       matched bootstrap fixed point coordinates (as numpy arrays) across bootstrap
       iterations.
 
-    **Circular distance handling**
+    **Circular statistics for the polar angle**
 
     If the `polar_theta` (`ColumnName.DiffAEData.POLAR_ANGLE`) column is present
-    in `column_names`, the matched bootstrap angles for each baseline fixed
-    point are unwrapped relative to that baseline angle using `numpy.unwrap`
-    before percentiles are computed.  This prevents artificially wide CIs caused
-    by the wrap-around boundary.
+    in `column_names`, `scipy.stats.circmean` is used for the cluster mean and
+    `scipy.stats.circpercentile` is used for the CI bounds in that dimension,
+    with ``low=0`` and ``high=polar_angle_period``.  All other dimensions use
+    the ordinary linear mean and ``numpy.percentile``.
 
     **Output dataframe**
 
@@ -446,6 +455,8 @@ def aggregate_bootstrapping_results(
     - `{col}`: baseline coordinate for each feature column
     - `{col}_ci_lower`, `{col}_ci_upper`: lower / upper bootstrap CI bounds
       (`nan` when fewer than 2 bootstrap hits were found).
+    - `{col}_cluster_mean`: mean of all matched bootstrap coordinates across
+      iterations (`nan` when no matches were found).
     - `bootstrap_detection_rate`: fraction of bootstrap samples in which a
       matched fixed point was found.
     - `n_bootstrap_samples`: total number of bootstrap iterations.
@@ -495,37 +506,73 @@ def aggregate_bootstrapping_results(
             dataframe_row[col] = baseline_fixed_point[col]
 
         num_hits = len(matched_coords[i])
-        if num_hits >= 2:
+        if num_hits >= 1:
             # reshape list of matched coords to the given baseline point
-            # # to (n_hits, 3) for percentile computation
-            matched_coords_array = np.stack(matched_coords[i], axis=0)  # (n_hits, 3)
-            if polar_dim_idx is not None:
-                # Unwrap bootstrap polar angles relative to the baseline angle so
-                # that percentiles are computed on a continuous (non-wrapping)
-                # distribution.  Prepend the baseline value as the anchor point
-                # for np.unwrap, then discard it from the result.
-                base_angle = float(baseline_fixed_point[column_names[polar_dim_idx]])
-                seq = np.concatenate([[base_angle], matched_coords_array[:, polar_dim_idx]])
-                matched_coords_array = matched_coords_array.copy()
-                matched_coords_array[:, polar_dim_idx] = np.unwrap(seq, period=polar_angle_period)[
-                    1:
+            # to (n_hits, n_dims) for percentile / mean computation
+            matched_coords_array = np.stack(matched_coords[i], axis=0)
+
+            # compute per-dimension cluster means, using circular mean for the
+            # polar angle dimension
+            cluster_mean = np.array(
+                [
+                    (
+                        circmean(
+                            matched_coords_array[:, dim_idx],
+                            low=0,
+                            high=polar_angle_period,
+                        )
+                        if dim_idx == polar_dim_idx and polar_angle_period is not None
+                        else np.mean(matched_coords_array[:, dim_idx])
+                    )
+                    for dim_idx in range(matched_coords_array.shape[1])
                 ]
+            )
             for dim_idx, col in enumerate(column_names):
-                dataframe_row[f"{col}_ci_lower"] = float(
-                    np.percentile(matched_coords_array[:, dim_idx], bootstrap_ci_lower_percentile)
-                )
-                dataframe_row[f"{col}_ci_upper"] = float(
-                    np.percentile(matched_coords_array[:, dim_idx], bootstrap_ci_upper_percentile)
-                )
+                dataframe_row[f"{col}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"] = cluster_mean[
+                    dim_idx
+                ]
+
+            if num_hits >= 2:
+                for dim_idx, col in enumerate(column_names):
+                    if dim_idx == polar_dim_idx and polar_angle_period is not None:
+                        dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_LOWER}"] = float(
+                            circpercentile(
+                                matched_coords_array[:, dim_idx],
+                                bootstrap_ci_lower_percentile,
+                                polar_range=(0, polar_angle_period),
+                            )
+                        )
+                        dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_UPPER}"] = float(
+                            circpercentile(
+                                matched_coords_array[:, dim_idx],
+                                bootstrap_ci_upper_percentile,
+                                polar_range=(0, polar_angle_period),
+                            )
+                        )
+                    else:
+                        dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_LOWER}"] = float(
+                            np.percentile(
+                                matched_coords_array[:, dim_idx], bootstrap_ci_lower_percentile
+                            )
+                        )
+                        dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_UPPER}"] = float(
+                            np.percentile(
+                                matched_coords_array[:, dim_idx], bootstrap_ci_upper_percentile
+                            )
+                        )
+            else:
+                for col in column_names:
+                    dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_LOWER}"] = float("nan")
+                    dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_UPPER}"] = float("nan")
         else:
             for col in column_names:
-                dataframe_row[f"{col}_ci_lower"] = float("nan")
-                dataframe_row[f"{col}_ci_upper"] = float("nan")
+                dataframe_row[f"{col}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"] = float("nan")
+                dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_LOWER}"] = float("nan")
+                dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_UPPER}"] = float("nan")
 
         # add rate of detection across bootstrap iterations for this baseline fixed point
         # as weel as the total number of bootstrap iterations (for reference)
-        dataframe_row["bootstrap_detection_rate"] = float(num_hits) / n_bootstrap
-        dataframe_row["n_bootstrap_samples"] = n_bootstrap
+        dataframe_row[Column.BootstrapAnalysis.DETECTION_RATE] = float(num_hits) / n_bootstrap
         output_dataframe_rows.append(dataframe_row)
 
     return pd.DataFrame(output_dataframe_rows)

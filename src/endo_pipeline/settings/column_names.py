@@ -344,8 +344,8 @@ class ColumnName:
         SPEED_MEAN = "optical_flow_mean_speed_dt1"
         """Mean speed of the optical flow vectors in a crop."""
 
-        UNIT_VECTOR_MEAN = "optical_flow_mean_unit_vector_dt1"
-        """Mean unit vector of the optical flow vectors in a crop."""
+        UNIT_VECTOR_MEAN = "ema01_optical_flow_mean_unit_vector_dt1"
+        """Mean unit vector of the optical flow vectors in a crop. EMA smoothing with alpha=0.01."""
 
         SPEED_STD = "optical_flow_std_speed_dt1"
         """Standard deviation of the speeds of the optical flow vectors in a crop."""
@@ -367,3 +367,18 @@ class ColumnName:
 
         V_STD = "optical_flow_std_v_dt1"
         """Standard deviation of the v (y) components of the optical flow vectors in a crop."""
+
+    class BootstrapAnalysis(StrEnum):
+        """Column names used in the bootstrap analysis of fixed points."""
+
+        CI_LOWER = "ci_lower"
+        """Lower bound of the confidence interval for the bootstrap distribution."""
+
+        CI_UPPER = "ci_upper"
+        """Upper bound of the confidence interval for the bootstrap distribution."""
+
+        CLUSTER_MEAN = "cluster_mean"
+        """Center of the fixed point cluster (i.e., matched fixed points) across bootstrap iterations."""
+
+        DETECTION_RATE = "detection_rate"
+        """The rate at which the fixed point was detected in the bootstrap iterations."""
