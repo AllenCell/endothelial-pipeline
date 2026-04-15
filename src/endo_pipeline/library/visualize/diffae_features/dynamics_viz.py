@@ -324,6 +324,78 @@ def plot_drift_quiver(
     return fig, ax
 
 
+def plot_drift_1d(
+    drift: np.ndarray,
+    centers: np.ndarray,
+    fig_ax: tuple[plt.Figure, plt.Axes] | None = None,
+    figsize: tuple[float, float] = (7, 4),
+    axes_limits: list[tuple[float, float]] | None = None,
+    axes_labels: list[str] | None = None,
+    gridspec_kwargs: dict | None = None,
+    drift_line_kwargs: dict = {"color": "k", "linewidth": 2},
+    zero_line_kwargs: dict = {"color": "k", "linestyle": "dashed", "linewidth": 1, "alpha": 0.7},
+    xlabel_kwargs: dict | None = None,
+    ylabel_kwargs: dict | None = None,
+) -> tuple[plt.Figure, plt.Axes]:
+    """
+    Plot 1D drift as a function of the state variable.
+
+    Parameters
+    ----------
+    drift
+        1D array of the drift component evaluated at the corresponding centers.
+    centers
+        1D array of the centers of the bins corresponding to the drift values.
+    fig_ax
+        Optional tuple of (Figure, Axes) to plot on. If None, a new figure and
+        axes will be created; if provided, the plot will be made on the provided
+        axes.
+    figsize
+        Size of the figure, specified as a tuple (width, height).
+    axes_limits
+        Optional limits for the axes, specified as a list of tuples.
+    axes_labels
+        Optional list of labels for the x and y axes, specified as a list of
+        strings.
+    gridspec_kwargs
+        Optional dictionary of keyword arguments to pass to plt.subplots for
+        creating the figure and axes, e.g., to specify a GridSpec layout.
+    drift_line_kwargs
+        Dictionary of keyword arguments to pass to ax.plot for customizing the
+        line representing the drift, e.g., to specify color or line width.
+    zero_line_kwargs
+        Dictionary of keyword arguments to pass to ax.plot for customizing the
+        line representing the zero drift level, e.g., to specify color, line
+        style, line width, or opacity.
+    xlabel_kwargs
+        Optional dictionary of keyword arguments to pass to ax.set_xlabel for
+        customizing the x-axis label, e.g., to specify a font size or label
+        padding.
+    ylabel_kwargs
+        Optional dictionary of keyword arguments to pass to ax.set_ylabel for
+        customizing the y-axis label, e.g., to specify a font size or label
+        padding.
+
+    Returns
+    -------
+    :
+        Tuple of figure and axes objects containing the plot of the 1D drift as
+        a function of the state variable.
+    """
+    fig, ax = fig_ax or plt.subplots(figsize=figsize, gridspec_kw=gridspec_kwargs)
+    ax.plot(centers, drift, **drift_line_kwargs)
+    ax.plot(centers, np.zeros_like(centers), **zero_line_kwargs)
+
+    if axes_limits is not None:
+        ax.set_xlim(axes_limits[0])
+        ax.set_ylim(axes_limits[1])
+    if axes_labels is not None:
+        ax.set_xlabel(axes_labels[0], **(xlabel_kwargs or {}))
+        ax.set_ylabel(axes_labels[1], **(ylabel_kwargs or {}))
+
+    return fig, ax
+
+
 def plot_fixed_points_by_shear(
     fpt_dict_list: list, shear_range: np.ndarray, pcs: list, plt_lims: list
 ) -> tuple[list[plt.Figure], list[plt.Axes]]:
