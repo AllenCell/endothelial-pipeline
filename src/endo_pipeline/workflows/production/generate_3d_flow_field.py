@@ -303,6 +303,7 @@ def main(
                 "Uploaded dataframe with vector field coefficients and grid points for"
                 " dataset [ %s ] at shear stress [ %s ] to FMS with FMS ID [ %s ]",
                 dataset_name,
+                shear_stress,
                 vector_field_fmsid,
             )
         # if not uploading to FMS, log only the path if there is no location for
