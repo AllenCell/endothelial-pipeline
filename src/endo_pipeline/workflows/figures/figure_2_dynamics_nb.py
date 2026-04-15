@@ -249,8 +249,7 @@ for dataset_name, panel_letters, y_position in [
         xlabel_kwargs=xlabel_kwargs,
         ylabel_kwargs=ylabel_kwargs,
     )
-    for ax_index, ax_ in enumerate(ax):
-        ax_: plt.Axes
+    for ax_index, ax_ in enumerate(list(ax)):
         # adjust label padding and drop tick labels on shared x axis
         ax_.set_box_aspect(1.0)
         ax_.set_xticks(contour_plot_x_ticks)

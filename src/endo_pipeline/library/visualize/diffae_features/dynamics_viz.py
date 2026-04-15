@@ -1,6 +1,7 @@
 """Methods for visualizing the outputs of the DiffAE feature analysis workflows."""
 
-from typing import Any, Literal
+from collections.abc import Sequence
+from typing import Any, Literal, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -23,7 +24,7 @@ def plot_drift_contours(
     meshgrid: tuple[np.ndarray, np.ndarray],
     drift: np.ndarray,
     variable_labels: list[str],
-    fig_ax: tuple[plt.Figure, tuple[plt.Axes, plt.Axes]] | None = None,
+    fig_ax: tuple[plt.Figure, Sequence[plt.Axes]] | None = None,
     figsize: tuple[float, float] = (MAX_FIGURE_WIDTH, 2 * MAX_FIGURE_WIDTH),
     axes_limits: list[tuple[float, float]] | None = None,
     axes_aspect: Literal["auto", "equal"] | float | None = "equal",
@@ -38,7 +39,7 @@ def plot_drift_contours(
     gridspec_kwargs: dict | None = None,
     xlabel_kwargs: dict | None = None,
     ylabel_kwargs: dict | None = None,
-) -> tuple[plt.Figure, tuple[plt.Axes, plt.Axes]]:
+) -> tuple[plt.Figure, Sequence[plt.Axes]]:
     """
     Make and save contour plot of each component of the drift vector field over
     the 2D state space.
@@ -97,6 +98,7 @@ def plot_drift_contours(
 
     """
     fig, ax = fig_ax or plt.subplots(2, 1, figsize=figsize, gridspec_kw=gridspec_kwargs)
+    ax = cast(Sequence[plt.Axes], ax)
 
     for var_index, var_name in enumerate(variable_labels):
         vmin_ = vmin or np.nanmin(drift[..., var_index])
