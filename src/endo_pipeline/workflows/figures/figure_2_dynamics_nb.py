@@ -244,6 +244,7 @@ for dataset_name, panel_letters, y_position in [
         ylabel_kwargs=ylabel_kwargs,
     )
     for ax_index, ax_ in enumerate(ax):
+        ax_: plt.Axes
         # adjust label padding and drop tick labels on shared x axis
         ax_.set_box_aspect(1.0)
         if ax_index == 0:
