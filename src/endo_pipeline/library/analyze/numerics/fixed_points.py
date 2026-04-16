@@ -332,7 +332,7 @@ def get_fixed_point_type(jacobian: np.ndarray) -> str:
     return fpt_type
 
 
-def get_stability_label_from_fpt_type(fpt_type: str) -> str:
+def get_stability_label_from_fixed_point_type(fpt_type: str) -> str:
     """Get the stability label from the fixed point type string.
 
     Parses the input string to find the first word that matches one of the
@@ -453,7 +453,7 @@ def get_fixed_points_within_bounds(
             # get stability/type of the fixed point
             fpt_type = get_fixed_point_type(vector_field_jacobian(fpt))
             logger.debug("[ %s ] at [ (%.2f, %.2f, %.2f) ]", fpt_type, fpt[0], fpt[1], fpt[2])
-            fpt_stability_label = get_stability_label_from_fpt_type(fpt_type)
+            fpt_stability_label = get_stability_label_from_fixed_point_type(fpt_type)
             fpts_high_confidence_list.append(
                 pd.DataFrame(
                     {

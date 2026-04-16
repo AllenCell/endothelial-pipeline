@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from endo_pipeline.library.analyze.numerics.fixed_points import (
-    get_stability_label_from_fpt_type,
+    get_stability_label_from_fixed_point_type,
     is_point_within_percentile_bounds,
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
@@ -118,7 +118,7 @@ def test_mismatched_point_and_column_names_length_raises():
     ],
 )
 def test_get_stability_label_stable(fpt_type: str) -> None:
-    assert get_stability_label_from_fpt_type(fpt_type) == StabilityLabel.STABLE
+    assert get_stability_label_from_fixed_point_type(fpt_type) == StabilityLabel.STABLE
 
 
 @pytest.mark.parametrize(
@@ -129,16 +129,17 @@ def test_get_stability_label_stable(fpt_type: str) -> None:
     ],
 )
 def test_get_stability_label_unstable(fpt_type: str) -> None:
-    assert get_stability_label_from_fpt_type(fpt_type) == StabilityLabel.UNSTABLE
+    assert get_stability_label_from_fixed_point_type(fpt_type) == StabilityLabel.UNSTABLE
 
 
 def test_get_stability_label_saddle() -> None:
-    assert get_stability_label_from_fpt_type("saddle point") == StabilityLabel.SADDLE
+    assert get_stability_label_from_fixed_point_type("saddle point") == StabilityLabel.SADDLE
 
 
 def test_get_stability_label_indeterminate() -> None:
     assert (
-        get_stability_label_from_fpt_type("indeterminate stability") == StabilityLabel.INDETERMINATE
+        get_stability_label_from_fixed_point_type("indeterminate stability")
+        == StabilityLabel.INDETERMINATE
     )
 
 
@@ -147,12 +148,12 @@ def test_get_stability_label_indeterminate() -> None:
 
 def test_get_stability_label_stable_not_confused_with_unstable() -> None:
     """'stable' must not match an 'unstable ...' string."""
-    assert get_stability_label_from_fpt_type("unstable node") != StabilityLabel.STABLE
+    assert get_stability_label_from_fixed_point_type("unstable node") != StabilityLabel.STABLE
 
 
 def test_get_stability_label_unstable_not_confused_with_stable() -> None:
     """'unstable ...' must not return 'stable'."""
-    result = get_stability_label_from_fpt_type("unstable spiral")
+    result = get_stability_label_from_fixed_point_type("unstable spiral")
     assert result == StabilityLabel.UNSTABLE
     assert result != StabilityLabel.STABLE
 
@@ -173,7 +174,7 @@ def test_get_stability_label_unstable_not_confused_with_stable() -> None:
 )
 def test_get_stability_label_case_insensitive(fpt_type: str, expected: StabilityLabel) -> None:
     """The function is case-insensitive and always returns a lowercase label."""
-    result = get_stability_label_from_fpt_type(fpt_type)
+    result = get_stability_label_from_fixed_point_type(fpt_type)
     assert result == expected
     assert result == result.lower()
 
@@ -182,15 +183,15 @@ def test_get_stability_label_case_insensitive(fpt_type: str, expected: Stability
 
 
 def test_get_stability_label_partial_label_prefix_returns_unknown() -> None:
-    assert get_stability_label_from_fpt_type("stableish point") == "unknown"
+    assert get_stability_label_from_fixed_point_type("stableish point") == "unknown"
 
 
 # test other unrecognized strings
 
 
 def test_get_stability_label_empty_string_returns_unknown() -> None:
-    assert get_stability_label_from_fpt_type("") == "unknown"
+    assert get_stability_label_from_fixed_point_type("") == "unknown"
 
 
 def test_get_stability_label_unrecognised_string_returns_unknown() -> None:
-    assert get_stability_label_from_fpt_type("center point") == "unknown"
+    assert get_stability_label_from_fixed_point_type("center point") == "unknown"
