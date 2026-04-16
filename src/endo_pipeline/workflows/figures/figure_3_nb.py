@@ -63,5 +63,6 @@ for column_name in column_names:
         x_axis_mode="shear_stress_categorical",
         figure_size=(MAX_FIGURE_WIDTH / 2, 2),
         stable_only=True,
+        jitter_width=0.2,
     )
 # %%

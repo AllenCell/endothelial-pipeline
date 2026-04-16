@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
 from endo_pipeline.configs import load_dataset_config
@@ -37,6 +38,53 @@ from endo_pipeline.settings.flow_field_dataframes import (
 
 logger = logging.getLogger(__name__)
 
+# Unique color per dataset — colorblind-friendly palette (Wong 2011 + extensions)
+_COLORBLIND_PALETTE = [
+    "#0072B2",  # blue
+    "#E69F00",  # orange
+    "#009E73",  # bluish green
+    "#CC79A7",  # reddish purple
+    "#56B4E9",  # sky blue
+    "#D55E00",  # vermillion
+    "#F0E442",  # yellow
+    "#000000",  # black
+    "#332288",  # indigo
+    "#88CCEE",  # cyan
+    "#44AA99",  # teal
+    "#DDCC77",  # sand
+    "#882255",  # wine
+    "#AA4499",  # magenta
+]
+
+
+# --- Build jitter map (shared by numeric and categorical shear-stress modes) ---
+def _build_jitter_map(df: pd.DataFrame, jitter_width: float = 0.1) -> dict[tuple, float]:
+    jmap: dict[tuple, float] = {}
+    for ss in df["shear_stress_numeric"].unique():
+        datasets_at_ss = df.loc[df["shear_stress_numeric"] == ss, "dataset"].unique()
+        n = len(datasets_at_ss)
+        if n <= 1:
+            offsets = [0.0]
+        else:
+            offsets = [jitter_width * (i / (n - 1) - 0.5) for i in range(n)]
+        for ds, off in zip(datasets_at_ss, offsets, strict=False):
+            jmap[(ds, ss)] = off
+    return jmap
+
+
+def _compute_yerr(
+    row: pd.Series,  # type: ignore[type-arg]
+    y_val: float,
+    ci_lower_col: str,
+    ci_upper_col: str,
+) -> list[list[float]] | None:
+    """Return asymmetric *yerr* for :func:`~matplotlib.axes.Axes.errorbar`, or ``None``."""
+    lo = row.get(ci_lower_col)
+    hi = row.get(ci_upper_col)
+    if lo is None or hi is None or np.isnan(lo) or np.isnan(hi):
+        return None
+    return [[max(0.0, y_val - lo)], [max(0.0, hi - y_val)]]
+
 
 def plot_fixed_points_vs_shear_stress(
     df_fp: pd.DataFrame,
@@ -50,6 +98,7 @@ def plot_fixed_points_vs_shear_stress(
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 3),
     stable_only: bool = True,
     ax: plt.Axes | None = None,
+    jitter_width: float = 0.1,
 ) -> plt.Figure:
     """Make and save plot of one component of fixed points vs shear stress.
 
@@ -83,6 +132,7 @@ def plot_fixed_points_vs_shear_stress(
     marker_size_legend
         Size of the markers in the legend for fixed points.
 
+
     Returns
     -------
     plt.Figure
@@ -90,9 +140,26 @@ def plot_fixed_points_vs_shear_stress(
     """
     # Convert shear stress to numeric values
     df_fp = df_fp.copy()
+    # Parse raw shear stress to the max numeric value in the label
     df_fp["shear_stress_numeric"] = df_fp["shear_stress"].apply(
-        lambda s: min(max(round(max(float(v) for v in str(s).split("-"))), 6), 21)
+        lambda s: max(float(v) for v in str(s).split("-"))
     )
+    # Snap to ±1 bins; values outside any bin keep their rounded value
+    _SHEAR_STRESS_BINS: dict[int, tuple[int, int]] = {
+        6: (5, 7),
+        9: (8, 10),
+        12: (11, 13),
+        15: (14, 16),
+        21: (20, 22),
+    }
+
+    def _snap_to_bin(val: float) -> int:
+        for center, (lo, hi) in _SHEAR_STRESS_BINS.items():
+            if lo <= val <= hi:
+                return center
+        return round(val)
+
+    df_fp["shear_stress_numeric"] = df_fp["shear_stress_numeric"].apply(_snap_to_bin)
 
     if stable_only:
         df_fp = df_fp[df_fp[STABILITY_COLUMN_NAME] == "stable"]
@@ -109,20 +176,6 @@ def plot_fixed_points_vs_shear_stress(
         df_fp = df_fp.sort_values("dataset")
     else:
         df_fp = df_fp.sort_values("shear_stress_numeric")
-
-    # --- Build jitter map (shared by numeric and categorical shear-stress modes) ---
-    def _build_jitter_map(df: pd.DataFrame, jitter_width: float = 0.1) -> dict[tuple, float]:
-        jmap: dict[tuple, float] = {}
-        for ss in df["shear_stress_numeric"].unique():
-            datasets_at_ss = df.loc[df["shear_stress_numeric"] == ss, "dataset"].unique()
-            n = len(datasets_at_ss)
-            if n <= 1:
-                offsets = [0.0]
-            else:
-                offsets = [jitter_width * (i / (n - 1) - 0.5) for i in range(n)]
-            for ds, off in zip(datasets_at_ss, offsets, strict=False):
-                jmap[(ds, ss)] = off
-        return jmap
 
     row_to_x: Any  # noqa: E731
     tick_positions: list[float]
@@ -142,7 +195,7 @@ def plot_fixed_points_vs_shear_stress(
         unique_shear = sorted(df_fp["shear_stress_numeric"].unique())
         tick_positions = unique_shear
         tick_labels = [str(round(s)) for s in unique_shear]
-        jitter_map = _build_jitter_map(df_fp)
+        jitter_map = _build_jitter_map(df_fp, jitter_width=jitter_width)
         row_to_x = lambda row: row["shear_stress_numeric"] + jitter_map.get(  # noqa: E731
             (row["dataset"], row["shear_stress_numeric"]), 0.0
         )
@@ -154,7 +207,7 @@ def plot_fixed_points_vs_shear_stress(
         ss_to_pos = {ss: i * tick_spacing for i, ss in enumerate(unique_shear)}
         tick_positions = [i * tick_spacing for i in range(len(unique_shear))]
         tick_labels = [str(round(s)) for s in unique_shear]
-        jitter_map = _build_jitter_map(df_fp)
+        jitter_map = _build_jitter_map(df_fp, jitter_width=jitter_width)
         row_to_x = lambda row: ss_to_pos[  # noqa: E731
             row["shear_stress_numeric"]
         ] + jitter_map.get((row["dataset"], row["shear_stress_numeric"]), 0.0)
@@ -167,23 +220,6 @@ def plot_fixed_points_vs_shear_stress(
         fig = ax.figure  # type: ignore[assignment]
 
     if stable_only:
-        # Unique color per dataset — colorblind-friendly palette (Wong 2011 + extensions)
-        _COLORBLIND_PALETTE = [
-            "#0072B2",  # blue
-            "#E69F00",  # orange
-            "#009E73",  # bluish green
-            "#CC79A7",  # reddish purple
-            "#56B4E9",  # sky blue
-            "#D55E00",  # vermillion
-            "#F0E442",  # yellow
-            "#000000",  # black
-            "#332288",  # indigo
-            "#88CCEE",  # cyan
-            "#44AA99",  # teal
-            "#DDCC77",  # sand
-            "#882255",  # wine
-            "#AA4499",  # magenta
-        ]
         unique_datasets_list = df_fp["dataset"].unique()
         dataset_color_map = {
             ds: _COLORBLIND_PALETTE[i % len(_COLORBLIND_PALETTE)]
@@ -191,16 +227,36 @@ def plot_fixed_points_vs_shear_stress(
         }
 
         for _, row in df_fp.iterrows():
-            ax.scatter(
-                row_to_x(row),
-                row[variable],
-                marker="o",
-                color=dataset_color_map[row["dataset"]],
-                edgecolor="black",
-                linewidths=0.5,
-                s=marker_size_scatter,
-                zorder=3,
-            )
+            y_val = row[variable]
+            ci_lower_col = f"{variable}_{ColumnName.BootstrapAnalysis.CI_LOWER}"
+            ci_upper_col = f"{variable}_{ColumnName.BootstrapAnalysis.CI_UPPER}"
+            yerr = _compute_yerr(row, y_val, ci_lower_col, ci_upper_col)
+            if yerr is not None:
+                ax.errorbar(
+                    row_to_x(row),
+                    y_val,
+                    yerr=yerr,
+                    fmt="o",
+                    color=dataset_color_map[row["dataset"]],
+                    markeredgecolor="black",
+                    markeredgewidth=0.5,
+                    markersize=marker_size_scatter**0.5,
+                    capsize=2,
+                    elinewidth=0.8,
+                    ecolor=dataset_color_map[row["dataset"]],
+                    zorder=3,
+                )
+            else:
+                ax.scatter(
+                    row_to_x(row),
+                    y_val,
+                    marker="o",
+                    color=dataset_color_map[row["dataset"]],
+                    edgecolor="black",
+                    linewidths=0.5,
+                    s=marker_size_scatter,
+                    zorder=3,
+                )
 
     else:
         # Color by stability
@@ -209,17 +265,36 @@ def plot_fixed_points_vs_shear_stress(
             mk = STABILITY_MARKER_DICT.get(stability, "o")
             clr = STABILITY_COLOR_DICT.get(stability, "gray")
             is_gray = stability not in STABILITY_COLOR_DICT
-            ax.scatter(
-                row_to_x(row),
-                row[variable],
-                marker=mk,
-                color=clr,
-                edgecolor="black",
-                linewidths=0.8,
-                s=marker_size_scatter,
-                alpha=0.35 if is_gray else 1.0,
-                zorder=1 if is_gray else 3,
-            )
+            y_val = row[variable]
+            yerr = _compute_yerr(row, y_val, ci_lower_col, ci_upper_col)
+            if yerr is not None:
+                ax.errorbar(
+                    row_to_x(row),
+                    y_val,
+                    yerr=yerr,
+                    fmt=mk,
+                    color=clr,
+                    markeredgecolor="black",
+                    markeredgewidth=0.8,
+                    markersize=marker_size_scatter**0.5,
+                    capsize=2,
+                    elinewidth=0.8,
+                    ecolor=clr,
+                    alpha=0.35 if is_gray else 1.0,
+                    zorder=1 if is_gray else 3,
+                )
+            else:
+                ax.scatter(
+                    row_to_x(row),
+                    y_val,
+                    marker=mk,
+                    color=clr,
+                    edgecolor="black",
+                    linewidths=0.8,
+                    s=marker_size_scatter,
+                    alpha=0.35 if is_gray else 1.0,
+                    zorder=1 if is_gray else 3,
+                )
         ax.legend(
             handles=legend_handles,
             loc="center left",
@@ -256,6 +331,7 @@ def plot_cross_dataset_summaries(
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 3),
     dataset_order: list[str] | None = None,
     stable_only: bool = True,
+    jitter_width: float = 0.1,
 ) -> None:
     """Create a plot of cross-dataset summary visualizations for
     observable fixed-point locations vs shear-stress plots
@@ -415,6 +491,7 @@ def plot_cross_dataset_summaries(
             figure_size=figure_size,
             stable_only=stable_only,
             ax=ax_i,
+            jitter_width=jitter_width,
         )
     fig.supxlabel("Shear Stress (dyn/cm\u00b2)", fontsize=FONTSIZE_MEDIUM, fontweight="bold")
 
