@@ -11,10 +11,6 @@ import numpy as np
 
 from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
 from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
-from endo_pipeline.library.analyze.data_driven_flow_field import (
-    compute_drift_vector_field,
-    mask_drift_coeffs_by_data_density,
-)
 from endo_pipeline.library.analyze.dataframe_filtering import (
     filter_dataframe_by_annotations,
     filter_dataframe_to_steady_state,
@@ -24,6 +20,10 @@ from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature impo
     add_optical_flow_features,
 )
 from endo_pipeline.library.analyze.numerics.binning import get_bins
+from endo_pipeline.library.analyze.vector_field_estimation import (
+    compute_drift_vector_field,
+    mask_drift_vector_field_by_data_density,
+)
 from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
     plot_contour_colorbar,
     plot_drift_1d,
@@ -244,7 +244,7 @@ for dataset_name, panel_letters, y_position in [
         kernel=kernels_r_rho,
         time_step=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
     )
-    drift_r_rho = mask_drift_coeffs_by_data_density(
+    drift_r_rho = mask_drift_vector_field_by_data_density(
         drift_coeffs=drift_r_rho,
         dataframe=df_steady_state,
         column_names=columns_r_rho,
