@@ -325,7 +325,7 @@ def plot_cross_dataset_summaries(
     feature_dataframe_manifest: DataframeManifest,
     fixed_points_bootstrap_dataframe_manifest: DataframeManifest,
     output_dir: Path,
-    bootstrap_threshold: float = 0.5,
+    bootstrap_threshold: float = 0.4,
     column_names: list[ColumnName.DiffAEData | ColumnName.OpticalFlow] | None = None,
     x_axis_mode: Literal["dataset", "shear_stress_numeric", "shear_stress_categorical"] = "dataset",
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 3),
@@ -474,19 +474,12 @@ def plot_cross_dataset_summaries(
         column_info = all_column_info.get(var)
         label: str = column_info["label"] if column_info else str(var)
         col_name: str = f"mean_{var}" if var in optical_flow_features else str(var)
-        limits = column_info["lims"] if column_info else None
-        if limits is not None and limits[0] is not None and limits[1] is not None:
-            # Add 5% padding to y-limits
-            padding = 0.05 * (limits[1] - limits[0])
-            limits = (limits[0] - padding, limits[1] + padding)
-        else:
-            limits = None
         plot_fixed_points_vs_shear_stress(
             df_fp_all,
             col_name,
             label,
             dataset_order=dataset_order,
-            ylimits=limits,
+            # ylimits=limits,
             x_axis_mode=x_axis_mode,
             figure_size=figure_size,
             stable_only=stable_only,
@@ -502,10 +495,13 @@ def plot_cross_dataset_summaries(
         ax.tick_params(axis="x", pad=2)
         ax.tick_params(axis="y", pad=2)
 
+    # add variables being used to fname
+    fname = f"{'_'.join(column_names)}_fp_vs_shear_stress"
+
     save_plot_to_path(
         fig,
         output_dir,
-        "fixed_points_vs_shear_stress",
+        fname,
         file_format=".svg",
         tight_layout=False,
         pad_inches=0,
