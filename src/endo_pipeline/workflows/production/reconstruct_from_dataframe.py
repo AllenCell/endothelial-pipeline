@@ -14,28 +14,60 @@ def main(
     dataset_labels: bool = False,
 ) -> None:
     """
-    Reconstruct crops from feature space coordinates stored in a given dataframe.
+    Reconstruct crops from feature coordinates stored in a given dataframe.
 
     The reconstructed crops are saved as PNG files in a local directory.
 
-    #diffae_features #image_generation #pca
+    #diffae-features #image-generation #pca
 
-    **Dataframe file format**:
+    **Dataframe location**
 
-    The dataframe file (.csv, .parquet, etc.) should contain rows of latent
-    space coordinates, with each row representing a point in the PCA-transformed
-    space.
+    The dataframe containing the feature coordinates can be specified via one of
+    three mutually exclusive parameters: `path`, `fmsid`, or `s3uri`. The
+    function will attempt to load the dataframe from the specified location. If
+    multiple location parameters are provided, the function will load the
+    dataframe based on the following priority order: `path` > `fmsid` > `s3uri`.
+    If none of the location parameters are provided, the function will raise a
+    ValueError.
 
-    The column names for the features can either be specified via
-    the ``column_names`` parameter or will default to the standard naming
-    convention defined in ``DIFFAE_PC_COLUMN_NAMES``.
+    **Dataframe file format**
 
-    ** Dataset labels**:
+    The dataframe file (.csv, .parquet, etc.) should contain rows of
+    coordinates, with each row representing a point in the feature space.
+
+    The column names for the features can be specified via the `columns`
+    parameter. If not provided, they will default to the features defined in the
+    `DYNAMICS_COLUMN_NAMES` setting in
+    `endo_pipeline.settings.dynamics_workflows`.
+
+    The column names should correspond to the feature coordinates used for image
+    reconstruction. For example, if the features are PCA coordinates, the column
+    names might be "pc_1", "pc_2", etc.
+
+    **Feature variable transformations**
+
+    If the dataframe contains polar coordinates (angle and radius) instead of
+    Cartesian coordinates (PC1 and PC2), the function will automatically convert
+    the polar coordinates to Cartesian coordinates before performing the inverse
+    PCA transformation for image reconstruction.
+
+    If the dataframe contains a flipped version of PC3 (named "pc3_flipped"),
+    the function will automatically convert it to regular PC3 by negating the
+    values before performing the inverse PCA transformation for image
+    reconstruction.
+
+    This workflow does not currently support dataframes with other types of
+    feature variable transformations, nor does it support use of the original
+    latent coordinates as features for image reconstruction without PCA
+    transformation. If the dataframe contains features that do not correspond to
+    the expected coordinate formats, the function may raise an error or produce
+    incorrect reconstructions.
+
+    **Dataset labels**
 
     If the dataframe contains metadata for dataset labels corresponding to each
-    point, the column name for the dataset is specified by
-    ``ColumnName.DATASET`` in
-    ``endo_pipeline.settings.diffae_feature_dataframes``. If the user input
+    point, the column name for the dataset is specified by `ColumnName.DATASET`
+    in `endo_pipeline.settings.diffae_feature_dataframes`. If the user input
     parameter ``dataset_labels`` is set to True, the dataset label will be
     prefixed to the saved file names. Else, the saved file names will only
     contain the feature coordinate values.
@@ -56,8 +88,8 @@ def main(
     dataset_labels
         If true, the dataset label from the dataframe will be prefixed to the
         saved file names.
-    """
 
+    """
     import matplotlib.pyplot as plt
     import numpy as np
 
