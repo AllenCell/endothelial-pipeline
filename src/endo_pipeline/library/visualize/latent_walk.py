@@ -10,7 +10,7 @@ import numpy as np
 from matplotlib.gridspec import GridSpec
 
 from endo_pipeline.io import save_plot_to_path
-from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
+from endo_pipeline.library.visualize.features import get_label_for_column
 from endo_pipeline.library.visualize.figure_utils import add_scalebar
 from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
