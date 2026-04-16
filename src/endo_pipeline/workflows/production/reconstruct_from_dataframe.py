@@ -6,9 +6,10 @@ def main(
     s3uri: str | None = None,
     path: str | None = None,
     columns: list[str] | None = None,
-    dataset_labels: bool = False,
+    dataset_labels: bool = True,
     output_dir: str | None = None,
     file_format: Literal[".png", ".svg", ".pdf"] = ".png",
+    figsize: tuple[float, float] = (2, 2),
 ) -> None:
     """
     Reconstruct crops from feature coordinates stored in a given dataframe.
@@ -71,7 +72,9 @@ def main(
 
     The reconstructed crops will be saved to the specified output directory in
     the specified file format. If no output directory is provided, a default
-    output directory will be used.
+    output directory will be used. The saved file names will include the feature
+    coordinate values, and if dataset labels are included and `dataset_labels`
+    is set to True, the dataset label will also be included in the file name.
 
     Parameters
     ----------
@@ -94,6 +97,8 @@ def main(
         a default output directory will be used.
     file_format
         Optional file format for the saved plots.
+    figsize
+        Optional figure size for the saved plots.
 
     """
     import matplotlib.pyplot as plt
@@ -190,7 +195,7 @@ def main(
     reconstructed_imgs = generate_from_coords_batch(model, latent_coords, num_gpus=NUM_GPUS)
 
     for i, img in enumerate(reconstructed_imgs):
-        fig, ax = plt.subplots(figsize=(2, 2))
+        fig, ax = plt.subplots(figsize=figsize)
         ax.imshow(img, cmap="gray")
         plt.axis("off")
         file_name = "crop"
