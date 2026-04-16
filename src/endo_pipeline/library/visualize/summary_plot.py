@@ -391,9 +391,10 @@ def plot_cross_dataset_summaries(
         figsize=(figure_size[0], figure_size[1]),
         sharex=True,
         layout="constrained",
+        squeeze=False,
     )
     all_column_info = get_seg_feat_plot_args()
-    for ax_i, var in zip(axs, column_names, strict=False):
+    for ax_i, var in zip(axs[0], column_names, strict=False):
         column_info = all_column_info.get(var)
         label: str = column_info["label"] if column_info else str(var)
         col_name: str = f"mean_{var}" if var in optical_flow_features else str(var)
@@ -418,7 +419,7 @@ def plot_cross_dataset_summaries(
     fig.supxlabel("Shear Stress (dyn/cm\u00b2)", fontsize=FONTSIZE_MEDIUM, fontweight="bold")
 
     # reduce spacing between axis labels and tick labels
-    for ax in axs:
+    for ax in axs[0]:
         ax.xaxis.labelpad = 2
         ax.yaxis.labelpad = 2
         ax.tick_params(axis="x", pad=2)
