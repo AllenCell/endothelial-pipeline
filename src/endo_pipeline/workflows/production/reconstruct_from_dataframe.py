@@ -168,7 +168,6 @@ def main(
         random_seed=random_seed,
         n_noise_samples=1,
     )
-    print(reconstructed_imgs.shape)
     img_list = [reconstructed_imgs[i] for i in range(len(reconstructed_imgs))]
 
     for i, image in enumerate(img_list):
