@@ -1,4 +1,3 @@
-from endo_pipeline.settings.diffae_feature_dataframes import NUM_PCS_TO_ANALYZE
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -9,8 +8,7 @@ def main(
     path: str,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
-    num_pcs: int = NUM_PCS_TO_ANALYZE,
-    column_names: list[str] | None = None,
+    columns: list[str] | None = None,
     dataset_labels: bool = False,
 ) -> None:
     """
@@ -50,9 +48,7 @@ def main(
     run_name
         Run name corresponding to features to load and the model to use for
         image reconstruction.
-    num_pcs
-        Number of principal components used in the PCA transformation.
-    column_names
+    columns
         List of column names in the dataframe corresponding to the feature
         coordinates.
     dataset_labels
@@ -72,14 +68,14 @@ def main(
     )
     from endo_pipeline.library.analyze.pca import fit_pca
     from endo_pipeline.library.model import generate_from_coords_batch
+    from endo_pipeline.library.model.latent_walk_utils import get_num_pcs_from_column_names
     from endo_pipeline.manifests import (
         build_dataframe_location_from_path,
-        get_feature_dataframe_manifest_name,
         get_most_recent_run_name,
         load_model_manifest,
     )
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
+    from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 
     logger = logging.getLogger(__name__)
 
@@ -93,28 +89,27 @@ def main(
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
     model = load_model(model_manifest.locations[run_name_], instantiate=True)
 
-    dataframe_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name_, crop_pattern="grid"
-    )
-
-    # Get fit (3D) PCA object from manifest
-    pca = fit_pca(dataframe_manifest_name=dataframe_manifest_name, num_pcs=num_pcs)
-
     # Directory to save reconstructed crops
     dataframe_file_name = dataframe_path.stem
     crop_savedir = get_output_path(
         "reconstructed_crops", model_manifest_name, run_name_, dataframe_file_name
     )
 
-    # get coordinates as array from dataframe, using specified feature column names or default names
-    feature_column_names = (
-        DIFFAE_PC_COLUMN_NAMES[:num_pcs] if column_names is None else column_names
-    )
-    required_columns = (
-        [Column.DATASET, *feature_column_names] if dataset_labels else feature_column_names
-    )
-    check_required_columns_in_dataframe(dataframe, required_columns)  # validate required columns
-    feature_coords = dataframe[feature_column_names].values  # extract coordinate values
+    # get minimum number of pcs needed for the fit pca object based on the
+    # column names provided; for example, if "pc_11" is in the column names,
+    # then the fit pca object needs to be fit with at least 11 pcs
+    column_names = DYNAMICS_COLUMN_NAMES or columns
+    num_pcs = get_num_pcs_from_column_names(column_names)
+    if num_pcs == 0:
+        raise ValueError(f"No PC-related column names found in {column_names}.")
+
+    # Get fit (3D) PCA object from manifest
+    pca = fit_pca(num_pcs=num_pcs)
+
+    # get coordinates as array from dataframe
+    required_columns = [Column.DATASET, *column_names] if dataset_labels else column_names
+    check_required_columns_in_dataframe(dataframe, required_columns)
+    feature_coords = dataframe[column_names].to_numpy()
 
     # make sure that coords is a 2D array with shape (num_points, num_dimensions)
     feature_coords = np.atleast_2d(feature_coords)
