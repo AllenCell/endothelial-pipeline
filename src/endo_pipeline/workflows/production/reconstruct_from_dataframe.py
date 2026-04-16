@@ -5,7 +5,9 @@ from endo_pipeline.settings.workflow_defaults import (
 
 
 def main(
-    path: str,
+    fmsid: str | None,
+    s3uri: str | None,
+    path: str | None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     columns: list[str] | None = None,
@@ -55,7 +57,6 @@ def main(
         If true, the dataset label from the dataframe will be prefixed to the
         saved file names.
     """
-    from pathlib import Path
 
     import matplotlib.pyplot as plt
     import numpy as np
@@ -70,6 +71,7 @@ def main(
     from endo_pipeline.library.model import generate_from_coords_batch
     from endo_pipeline.library.model.latent_walk_utils import get_num_pcs_from_column_names
     from endo_pipeline.manifests import (
+        DataframeLocation,
         build_dataframe_location_from_path,
         get_most_recent_run_name,
         load_model_manifest,
@@ -78,9 +80,17 @@ def main(
     from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
     from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 
-    # convert csv_path to Path object
-    dataframe_path = Path(path).resolve()
-    dataframe_location = build_dataframe_location_from_path(path)
+    # convert input location to DataframeLocation and load dataframe
+    if path is not None:
+        dataframe_location = build_dataframe_location_from_path(path)
+    elif fmsid is not None:
+        dataframe_location = DataframeLocation(fmsid=fmsid)
+    elif s3uri is not None:
+        dataframe_location = DataframeLocation(s3uri=s3uri)
+    else:
+        raise ValueError(
+            "One of path, fmsid, or s3uri must be provided to specify dataframe location."
+        )
     dataframe = load_dataframe(dataframe_location)
 
     # load model manifest, get run name, and load model
@@ -89,10 +99,7 @@ def main(
     model = load_model(model_manifest.locations[run_name_], instantiate=True)
 
     # Directory to save reconstructed crops
-    dataframe_file_name = dataframe_path.stem
-    crop_savedir = get_output_path(
-        "reconstructed_crops", model_manifest_name, run_name_, dataframe_file_name
-    )
+    crop_savedir = get_output_path("reconstructed_crops", model_manifest_name, run_name_)
 
     # get minimum number of pcs needed for the fit pca object based on the
     # column names provided; for example, if "pc_11" is in the column names,
