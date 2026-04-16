@@ -578,7 +578,7 @@ def plot_per_position_average_over_time(
 
         if i == ndim - 1:
             ax.set_xlabel("frame number")
-        column_label = get_label_for_column(column_name, capitalize=False)
+        column_label = get_label_for_column(column_name)
         ax.set_ylabel(f"average of {column_label} over crops")
         ax.legend(title=f"{Column.POSITION}:")
 
