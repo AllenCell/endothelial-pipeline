@@ -81,14 +81,14 @@ def main(
         make_name_unique,
         upload_file_to_fms,
     )
-    from endo_pipeline.library.analyze.data_driven_flow_field import (
-        get_drift_estimates_and_fixed_points,
-    )
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_flow_condition,
         filter_dataframe_to_steady_state,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
+    from endo_pipeline.library.analyze.vector_field_estimation import (
+        get_drift_estimates_and_fixed_points,
+    )
     from endo_pipeline.manifests import (
         DataframeLocation,
         build_dataframe_location_from_path,
@@ -109,10 +109,10 @@ def main(
     )
     from endo_pipeline.settings.flow_field_3d import (
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
-        LOWER_PERCENTILE_FOR_STABLE_FP,
+        LOWER_PERCENTILE_FOR_FILTERING_FPTS,
         NUM_INIT_SAMPLES,
         TIME_STEP_IN_MINUTES,
-        UPPER_PERCENTILE_FOR_STABLE_FP,
+        UPPER_PERCENTILE_FOR_FILTERING_FPTS,
     )
     from endo_pipeline.settings.flow_field_dataframes import (
         DATAFRAME_MANIFEST_PREFIX_DRIFT,
@@ -216,8 +216,8 @@ def main(
             "kernel_bandwidths": [kernel.bandwidth for kernel in kernels],
             "bin_widths": bin_widths,
             "num_init_samples_for_root_solver": NUM_INIT_SAMPLES,
-            "lower_percentile_for_stable_fp": LOWER_PERCENTILE_FOR_STABLE_FP,
-            "upper_percentile_for_stable_fp": UPPER_PERCENTILE_FOR_STABLE_FP,
+            "lower_percentile_for_filtering_fpts": LOWER_PERCENTILE_FOR_FILTERING_FPTS,
+            "upper_percentile_for_filtering_fpts": UPPER_PERCENTILE_FOR_FILTERING_FPTS,
         }
         save_dataframe_manifest(output_dataframe_manifest)
 
@@ -280,10 +280,6 @@ def main(
         )
         vector_field_save_path = make_name_unique(dataframe_savedir / vector_field_file_name)
         vector_field_for_dataset.to_parquet(vector_field_save_path)
-        logger.info(
-            "Saved dataframe with drift coefficients and grid points locally to [ %s ]",
-            vector_field_save_path,
-        )
         # Upload dataframes to FMS and update manifests
         if upload_to_fms:
             dataset_config = load_dataset_config(dataset_name)
@@ -298,12 +294,6 @@ def main(
             )
             drift_dataframe_manifest.locations[dataset_name] = DataframeLocation(
                 fmsid=vector_field_fmsid
-            )
-            logger.info(
-                "Uploaded dataframe with vector field coefficients and grid points for"
-                " dataset [ %s ] at shear stress [ %s ] to FMS with FMS ID [ %s ]",
-                dataset_name,
-                vector_field_fmsid,
             )
         # if not uploading to FMS, log only the path if there is no location for
         # that dataset or if there is, but the FMS ID is None
@@ -331,7 +321,6 @@ def main(
         )
         fixed_points_save_path = make_name_unique(dataframe_savedir / fixed_points_file_name)
         fixed_points_for_dataset.to_parquet(fixed_points_save_path)
-        logger.info("Saved dataframe of points locally to [ %s ]", fixed_points_save_path)
         # if uploading to FMS, update the dataframe manifest
         if upload_to_fms:
             fixed_points_annotations = build_fms_annotations(
@@ -347,11 +336,6 @@ def main(
             )
             fixed_points_dataframe_manifest.locations[dataset_name] = DataframeLocation(
                 fmsid=fixed_points_fmsid
-            )
-            logger.info(
-                "Uploaded dataframe of stable fixed points for dataset [ %s ] to FMS with FMS ID [ %s ]",
-                dataset_name,
-                fixed_points_fmsid,
             )
         # else, log only the path if there is no location for that dataset or if
         # there is, but the FMS ID is None

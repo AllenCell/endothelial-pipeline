@@ -92,10 +92,6 @@ def main(
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe
-    from endo_pipeline.library.analyze.data_driven_flow_field import (
-        compute_extrapolated_vector_field,
-        solve_ddff_ode,
-    )
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_flow_condition,
         filter_dataframe_to_steady_state,
@@ -107,9 +103,13 @@ def main(
         get_kernel_density_estimate_from_trajectories,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
-    from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
-        flow_field_viz_main,
+    from endo_pipeline.library.analyze.vector_field_estimation import (
+        compute_extrapolated_vector_field,
+    )
+    from endo_pipeline.library.analyze.vector_field_function import solve_ode_from_vector_field_dict
+    from endo_pipeline.library.visualize.diffae_features.flow_field_3d import (
         plot_stable_fixed_points_together,
+        visualize_3d_flow_field_for_one_dataset,
     )
     from endo_pipeline.library.visualize.diffae_features.vtk_io import save_vector_field_as_vtk
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
@@ -404,7 +404,7 @@ def main(
                 drift_values, grid_points_1d, method="linear", for_vtk_files=False
             )
 
-            traj = solve_ddff_ode(
+            traj = solve_ode_from_vector_field_dict(
                 extrapolated_flow_field_dict_reg,
                 init=np.array(INIT_POINT_3D),
                 t_span=TRAJECTORY_TIME_SPAN,
@@ -421,7 +421,7 @@ def main(
                 bounds_for_plots = bin_limits.copy()
 
             # call main visualization function
-            flow_field_viz_main(
+            visualize_3d_flow_field_for_one_dataset(
                 flow_field_dict,
                 feature_data,
                 column_names,
