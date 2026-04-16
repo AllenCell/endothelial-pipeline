@@ -1,7 +1,9 @@
 """Module for methods that filter dataframes for analysis based on certain criteria."""
 
 import logging
+from typing import cast
 
+import numpy as np
 import pandas as pd
 
 from endo_pipeline.configs import (
@@ -230,3 +232,103 @@ def filter_dataframe_by_flow_condition(
             # if second flow condition specified, filter to timepoints after
             # the flow change frame
             return dataframe[dataframe[Column.TIMEPOINT] >= change_frame].copy()
+
+
+def _get_index_from_value(val: float, bin_edges_1d: np.ndarray) -> int:
+    """Given a value and a 1D array of bin edges, return the index of the bin that contains that value.
+
+    **Example usage:**
+
+    .. code-block:: python
+
+        # example: dim 1 = 0.2 falls in the first bin of
+        # the bin edges for dim 1: [0, 0.5]
+
+        val = 0.2
+
+        bin_edges = np.array([0, 0.5, 1])
+
+        _get_index_from_value(val, bin_edges_1d) = 0
+
+    Parameters
+    ----------
+    val
+        Value to find bin index for.
+    bin_edges_1d
+        1D array of bin edges for a single dimension.
+
+    Returns
+    -------
+    :
+        Index of the bin that contains the value.
+
+    """
+    # get the index of the bin that contains the value
+    # this is done by finding the index of the first bin edge
+    # that is greater than the value
+    # and subtracting 1
+    bin_idx = cast(int, np.digitize(val, bin_edges_1d) - 1)
+
+    # check if the value is in the last bin
+    # if so, set the index to the last bin
+    if bin_idx == len(bin_edges_1d) - 1:
+        bin_idx = len(bin_edges_1d) - 2
+
+    # check if the value is in the first bin
+    # if so, set the index to the first bin
+    if bin_idx < 0:
+        bin_idx = 0
+
+    # return the index of the bin
+    return bin_idx
+
+
+def filter_dataframe_to_binned_value(
+    df: pd.DataFrame, feature_column: str, feature_value: float, bin_edges: np.ndarray
+) -> pd.DataFrame:
+    """
+    Filter dataframe to only include rows where column value falls in specified
+    bin.
+
+    The input dataframe should have columns named "bin_{feature_column}" that
+    contain the bin index for each row along the specified feature axis. This
+    function uses the provided `feature_value` and `bin_edges` to determine
+    which bin index corresponds to the given value, and then filters the
+    dataframe to only include rows where the "bin_{feature_column}" column
+    matches that bin index.
+
+    Parameters
+    ----------
+    df
+        Dataframe of features to filter.
+    feature_column
+        Name of the column corresponding to the feature to filter by.
+    feature_value
+        Value of the feature to filter by (e.g., 0.2).
+    bin_edges
+        Array of bin edges for the feature column, used to determine which bin
+        index corresponds to the given feature value.
+
+    Returns
+    -------
+    :
+        Filtered dataframe.
+
+    """
+
+    df_ = df.copy()
+
+    # get the bin index for the given feature value
+    # and find the crops that fall into that bin
+    bin_idx = _get_index_from_value(feature_value, bin_edges)
+
+    if f"bin_{feature_column}" not in df.columns:
+        dataframe_values = df[feature_column].to_numpy()
+        bin_indices = np.digitize(dataframe_values, bin_edges) - 1
+        df_[f"bin_{feature_column}"] = bin_indices
+
+    # filter the dataframe to only include rows
+    # with bin_{feature_column} == bin_idx
+    df_bin = df_.loc[df_[f"bin_{feature_column}"] == bin_idx]
+
+    return df_bin

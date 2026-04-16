@@ -1,7 +1,6 @@
 """Methods related to binning and histogram calculations."""
 
 import logging
-from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -280,112 +279,6 @@ def get_histogram_by_component(
     df_all_datasets_binned = pd.concat(df_list, ignore_index=True)
 
     return hist_array_list_all_datasets, bin_edges, df_all_datasets_binned
-
-
-def _get_index_from_value(val: float, bin_edges_1d: np.ndarray) -> int:
-    """Given a value and a 1D array of bin edges, return the index of the bin that contains that value.
-
-    **Example usage:**
-
-    .. code-block:: python
-
-        # example: dim 1 = 0.2 falls in the first bin of
-        # the bin edges for dim 1: [0, 0.5]
-
-        val = 0.2
-
-        bin_edges = np.array([0, 0.5, 1])
-
-        _get_index_from_value(val, bin_edges_1d) = 0
-
-    Parameters
-    ----------
-    val
-        Value to find bin index for.
-    bin_edges_1d
-        1D array of bin edges for a single dimension.
-
-    Returns
-    -------
-    :
-        Index of the bin that contains the value.
-
-    """
-    # get the index of the bin that contains the value
-    # this is done by finding the index of the first bin edge
-    # that is greater than the value
-    # and subtracting 1
-    bin_idx = cast(int, np.digitize(val, bin_edges_1d) - 1)
-
-    # check if the value is in the last bin
-    # if so, set the index to the last bin
-    if bin_idx == len(bin_edges_1d) - 1:
-        bin_idx = len(bin_edges_1d) - 2
-
-    # check if the value is in the first bin
-    # if so, set the index to the first bin
-    if bin_idx < 0:
-        bin_idx = 0
-
-    # return the index of the bin
-    return bin_idx
-
-
-def get_df_by_bin_value(
-    df: pd.DataFrame, pc_axis: int, pc_val: float, bin_edges: list[np.ndarray]
-) -> pd.DataFrame:
-    """Filter dataframe to only include rows where column value falls in specified bin.
-
-    The input dataframe should have columns named "bin_{pc_axis}" that contain the bin
-    index for each row along the specified latent component axis. This function uses the
-    provided `pc_val` and `bin_edges` to determine which bin index corresponds to the
-    given value, and then filters the dataframe to only include rows where the "bin_{pc_axis}"
-    column matches that bin index.
-
-    **Example usage:**
-
-    .. code-block:: python
-
-        df = pd.DataFrame({'bin_0': [0, 1, 0], 'bin_1': [1, 1, 2]})
-        pc_axis = 0
-        pc_val = 0.2
-        bin_edges = [np.array([0, 0.5, 1])]
-
-        # should be == 0
-        _get_index_from_value(latent_val, bin_edges) = 0
-
-        get_df_by_bin_value(df, latent_dim, latent_val) = pd.DataFrame({'bin_0':
-        [0, 0], 'bin_1': [1, 2]})
-
-    Parameters
-    ----------
-    df
-        Dataframe of features to filter.
-    pc_axis
-        Integer index of the latent component to filter by (e.g., 0 for the first component).
-    pc_val
-        Value of the latent component to filter by (e.g., 0.2).
-    bin_edges
-        List of 1D arrays of bin edges for each latent component.
-
-    Returns
-    -------
-    :
-        Filtered dataframe.
-
-    """
-    # get the bin edges for the given latent dimension
-    bin_edges_1d = bin_edges[pc_axis]
-
-    # get the bin index for the given latent value
-    # and find the crops that fall into that bin
-    bin_idx = _get_index_from_value(pc_val, bin_edges_1d)
-
-    # filter the dataframe to only include rows
-    # with bin_{latent_dim} == bin_idx
-    df_bin = df.loc[df[f"bin_{pc_axis}"] == bin_idx]
-
-    return df_bin
 
 
 def get_normalization_constant(p: np.ndarray, dx: list) -> np.ndarray:
