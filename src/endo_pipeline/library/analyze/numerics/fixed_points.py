@@ -195,7 +195,7 @@ def is_point_within_percentile_bounds(
     return np.all(is_within_bounds)
 
 
-def findroot(func: Callable, init: float | np.ndarray) -> np.ndarray:
+def find_root(func: Callable, init: float | np.ndarray) -> np.ndarray:
     """
     Find root of nonlinear equation f(x)=0.
 
@@ -242,16 +242,18 @@ def get_fpts(my_flow: Callable, inits: list[tuple] | list[np.ndarray]) -> list[n
     """
     Get a list of unique fixed points of the system of ODEs.
 
-    This function works by numerically finding roots of the function my_flow
-    starting from the initial conditions in inits, using the function findroot.
+    This function works by numerically finding roots of the function `my_flow`
+    starting from the initial conditions in `inits`, using the function
+    `find_root`.
 
     **Method inputs**
 
-    The input my_flow should be a callable function that takes a state vector as
-    input and returns the flow vector at that point. The input inits should be a
-    list of initial conditions (tuples or numpy arrays) to use as starting
-    points for root finding, where each initial condition is a point in the
-    state space (i.e., a vector of the same dimension as the output of my_flow).
+    The input `my_flow` should be a callable function that takes a state vector
+    as input and returns the flow vector at that point. The input `inits` should
+    be a list of initial conditions (tuples or `numpy` arrays) to use as
+    starting points for root finding, where each initial condition is a point in
+    the state space (i.e., a vector of the same dimension as the output of
+    `my_flow`).
 
     Parameters
     ----------
@@ -268,10 +270,10 @@ def get_fpts(my_flow: Callable, inits: list[tuple] | list[np.ndarray]) -> list[n
     """
     fpts = []
     # find each of the fixed points near the starting
-    # points numerically using the function findroot
-    roots = [findroot(my_flow, ic) for ic in inits]
+    # points via numerical root finding
+    roots = [find_root(my_flow, ic) for ic in inits]
     # Only keep unique fixed points and throw
-    # away 'nan' entries (findroot did not converge)
+    # away 'nan' entries (find_root did not converge)
     for r in roots:
         # check if the root is not nan
         if not np.isnan(r).any():
