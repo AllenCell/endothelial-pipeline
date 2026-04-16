@@ -2,9 +2,9 @@ from typing import Literal
 
 
 def main(
-    fmsid: str | None,
-    s3uri: str | None,
-    path: str | None,
+    fmsid: str | None = None,
+    s3uri: str | None = None,
+    path: str | None = None,
     columns: list[str] | None = None,
     dataset_labels: bool = False,
     output_dir: str | None = None,
