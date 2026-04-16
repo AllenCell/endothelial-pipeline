@@ -109,9 +109,9 @@ def main(
     from endo_pipeline.io import get_output_path, load_dataframe, load_model
     from endo_pipeline.library.analyze.pca import fit_pca
     from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
+    from endo_pipeline.library.model.diffae.generate_image import generate_latent_walk_images
     from endo_pipeline.library.model.latent_walk_utils import (
         add_pc_coordinates_to_dataframe,
-        generate_latent_walk_images,
         get_column_names_for_latent_walk_dataframe,
         get_feature_coordinates_as_string,
         get_latent_walk,
