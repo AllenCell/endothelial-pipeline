@@ -11,6 +11,7 @@ def main(
     file_format: Literal[".png", ".svg", ".pdf"] = ".png",
     figsize: tuple[float, float] = (2, 2),
     random_seed: int | None = None,
+    n_noise_samples: int = 1,
 ) -> None:
     """
     Reconstruct crops from feature coordinates stored in a given dataframe.
@@ -114,7 +115,7 @@ def main(
     )
     from endo_pipeline.library.analyze.pca import fit_pca
     from endo_pipeline.library.analyze.polar_coords import polar_to_pcs
-    from endo_pipeline.library.model import generate_from_coords_batch
+    from endo_pipeline.library.model import generate_from_coords
     from endo_pipeline.library.model.latent_walk_utils import (
         get_feature_coordinates_as_string,
         get_num_pcs_from_column_names,
@@ -202,22 +203,30 @@ def main(
     pc_column_names = DIFFAE_PC_COLUMN_NAMES[:num_pcs]
     latent_coords = pca.inverse_transform(dataframe[pc_column_names].to_numpy())
 
-    reconstructed_imgs = generate_from_coords_batch(
-        model, latent_coords, num_gpus=NUM_GPUS, random_seed=random_seed
+    reconstructed_imgs = generate_from_coords(
+        model,
+        latent_coords,
+        num_gpus=NUM_GPUS,
+        random_seed=random_seed,
+        n_noise_samples=n_noise_samples,
     )
 
-    for i, img in enumerate(reconstructed_imgs):
-        fig, ax = plt.subplots(figsize=figsize)
-        ax.imshow(img, cmap="gray")
-        plt.axis("off")
-        file_name = "crop_"
-        if dataset_labels:
-            dataset_name = dataframe.iloc[i][Column.DATASET]
-            file_name = f"{dataset_name}_{file_name}"
-        feature_coord_as_str = get_feature_coordinates_as_string(column_names, feature_coords[i])
-        save_plot_to_path(
-            fig, crop_savedir, f"{file_name}{feature_coord_as_str}", file_format=file_format
-        )
+    for i in range(len(feature_coords)):
+        for j in range(n_noise_samples):
+            img_index = i * n_noise_samples + j
+            fig, ax = plt.subplots(figsize=figsize)
+            ax.imshow(reconstructed_imgs[img_index], cmap="gray")
+            plt.axis("off")
+            file_name = f"crop_{j}"
+            if dataset_labels:
+                dataset_name = dataframe.iloc[i][Column.DATASET]
+                file_name = f"{dataset_name}_{file_name}"
+            feature_coord_as_str = get_feature_coordinates_as_string(
+                column_names, feature_coords[i]
+            )
+            save_plot_to_path(
+                fig, crop_savedir, f"{file_name}{feature_coord_as_str}", file_format=file_format
+            )
 
 
 if __name__ == "__main__":
