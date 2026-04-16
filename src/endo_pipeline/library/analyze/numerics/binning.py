@@ -192,8 +192,8 @@ def _get_histogram_by_component_one_dataset(
     df = df.sort_values(by=Column.TIMEPOINT).reset_index(drop=True)
     for t, df_frame in df.groupby(Column.TIMEPOINT):
         # loop over latent components
-        for dim in range(num_feats):
-            feats = df_frame[feat_cols[dim]].to_numpy()
+        for dim, feat_col in enumerate(feat_cols):
+            feats = df_frame[feat_cols].to_numpy()
             # compute histogram of feature data along each component
             t_index = df[Column.TIMEPOINT].unique().tolist().index(t)
             hist = np.histogram(feats, bins=bin_edges[dim], density=True)[0]
@@ -206,12 +206,12 @@ def _get_histogram_by_component_one_dataset(
             bin_idx = np.digitize(feats, bin_edges[dim]) - 1
             # add the bin index to the dataframe (astype int)
             # restrict to crops at frame number t
-            df.loc[df[Column.TIMEPOINT] == t, f"bin_{dim}"] = bin_idx
+            df.loc[df[Column.TIMEPOINT] == t, f"bin_{feat_col}"] = bin_idx
 
     # enforce that bin indices are integers
     # this is important for indexing later
-    for dim in range(num_feats):
-        df[f"bin_{dim}"] = df[f"bin_{dim}"].astype(int)
+    for dim, feat_col in enumerate(feat_cols):
+        df[f"bin_{feat_col}"] = df[f"bin_{feat_col}"].astype(int)
 
     # return the histogram array and the updated dataframe
     return hist_array_list, df
