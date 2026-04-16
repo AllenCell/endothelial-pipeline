@@ -110,9 +110,9 @@ def main(
         check_required_columns_in_dataframe,
     )
     from endo_pipeline.library.analyze.pca import fit_pca
-    from endo_pipeline.library.analyze.polar_coords import polar_to_pcs
     from endo_pipeline.library.model import generate_from_coords_batch
     from endo_pipeline.library.model.latent_walk_utils import (
+        add_pc_coordinates_to_dataframe,
         get_feature_coordinates_as_string,
         get_num_pcs_from_column_names,
     )
@@ -168,26 +168,9 @@ def main(
     # make sure that coords is a 2D array with shape (num_points, num_dimensions)
     feature_coords = np.atleast_2d(feature_coords)
 
-    # if polar angle and radius are included in the column names, convert them
-    # to PC1 and PC2 coordinates for image generation (inverse PCA
-    # transformation cannot be performed with polar coordinates)
-    if (
-        Column.DiffAEData.POLAR_ANGLE in column_names
-        and Column.DiffAEData.POLAR_RADIUS in column_names
-    ):
-        pc1_column_name = f"{Column.DiffAEData.PCA_FEATURE_PREFIX}1"
-        pc2_column_name = f"{Column.DiffAEData.PCA_FEATURE_PREFIX}2"
-        angle = dataframe[Column.DiffAEData.POLAR_ANGLE].to_numpy()
-        radius = dataframe[Column.DiffAEData.POLAR_RADIUS].to_numpy()
-        pc1_values, pc2_values = polar_to_pcs(angle, radius)
-        dataframe[pc1_column_name] = pc1_values
-        dataframe[pc2_column_name] = pc2_values
-
-    # if flipped pc3 is included in the column names, convert it to regular pc3
-    # before performing inverse PCA transformation for image generation
-    if Column.DiffAEData.PC3_FLIPPED in column_names:
-        pc3_column_name = f"{Column.DiffAEData.PCA_FEATURE_PREFIX}3"
-        dataframe[pc3_column_name] = -dataframe[Column.DiffAEData.PC3_FLIPPED].to_numpy()
+    # re-transform coordinates if they are in polar format (angle and radius) or
+    # if they include flipped pc3
+    dataframe = add_pc_coordinates_to_dataframe(dataframe, column_names)
 
     # get latent coordinates by performing inverse PCA transformation on the PC
     # coordinates from the dataframe; only use the PC columns needed for the
