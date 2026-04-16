@@ -193,7 +193,7 @@ def _get_histogram_by_component_one_dataset(
     for t, df_frame in df.groupby(Column.TIMEPOINT):
         # loop over latent components
         for dim, feat_col in enumerate(feat_cols):
-            feats = df_frame[feat_cols].to_numpy()
+            feats = df_frame[feat_col].to_numpy()
             # compute histogram of feature data along each component
             t_index = df[Column.TIMEPOINT].unique().tolist().index(t)
             hist = np.histogram(feats, bins=bin_edges[dim], density=True)[0]
