@@ -264,21 +264,23 @@ def _get_index_from_value(val: float, bin_edges_1d: np.ndarray) -> int:
         Index of the bin that contains the value.
 
     """
+    # raise an error if the value is outside the range of the bin edges
+    if val < bin_edges_1d[0] or val > bin_edges_1d[-1]:
+        raise ValueError(
+            f"Value [ {val} ] is outside the range of bin edges "
+            f"[ {bin_edges_1d[0]}, {bin_edges_1d[-1]} ]. "
+            "Please provide a value within the bin edges range."
+        )
+
     # get the index of the bin that contains the value
     # this is done by finding the index of the first bin edge
     # that is greater than the value
     # and subtracting 1
     bin_idx = cast(int, np.digitize(val, bin_edges_1d) - 1)
 
-    # check if the value is in the last bin
-    # if so, set the index to the last bin
+    # clamp a value exactly at the upper boundary to the last valid bin
     if bin_idx == len(bin_edges_1d) - 1:
         bin_idx = len(bin_edges_1d) - 2
-
-    # check if the value is in the first bin
-    # if so, set the index to the first bin
-    if bin_idx < 0:
-        bin_idx = 0
 
     # return the index of the bin
     return bin_idx
@@ -362,7 +364,10 @@ def filter_dataframe_to_binned_value(
         column_names, feature_values, bin_edges_list, strict=True
     ):
         bin_idx = _get_index_from_value(feature_value, edges)
-        col_bins = np.digitize(dataframe[feature_column].to_numpy(), edges) - 1
+        n_bins = len(edges) - 1
+        col_bins = np.clip(
+            np.digitize(dataframe[feature_column].to_numpy(), edges) - 1, 0, n_bins - 1
+        )
         mask &= col_bins == bin_idx
 
     return dataframe.loc[mask]
