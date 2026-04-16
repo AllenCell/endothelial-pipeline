@@ -9,8 +9,9 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 
+from endo_pipeline.cli import NUM_GPUS
 from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
-from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
+from endo_pipeline.io import get_output_path, load_dataframe, load_model, save_plot_to_path
 from endo_pipeline.library.analyze.data_driven_flow_field import (
     compute_drift_vector_field,
     mask_drift_coeffs_by_data_density,
@@ -24,7 +25,7 @@ from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature impo
     add_optical_flow_features,
 )
 from endo_pipeline.library.analyze.numerics.binning import get_bins
-from endo_pipeline.library.model.latent_walk_utils import get_feature_coordinates_as_string
+from endo_pipeline.library.model.diffae.generate_image import generate_from_dataframe
 from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
     plot_contour_colorbar,
     plot_drift_1d,
@@ -35,10 +36,15 @@ from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     get_dataset_color,
     get_label_for_column,
 )
+from endo_pipeline.library.visualize.figure_utils import make_contact_sheet
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
 from endo_pipeline.library.visualize.migration_coherence import plot_optical_flow_histogram
 from endo_pipeline.library.visualize.summary_plot import plot_cross_dataset_summaries
-from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+from endo_pipeline.manifests import (
+    get_dataframe_location_for_dataset,
+    load_dataframe_manifest,
+    load_model_manifest,
+)
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import (
     BIN_LIMIT_PERCENTILE_CUTOFF,
@@ -72,9 +78,6 @@ from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_RUN_NAME,
     RANDOM_SEED,
 )
-from endo_pipeline.workflows.production.reconstruct_from_dataframe import (
-    main as reconstruct_from_dataframe,
-)
 
 # %%
 plt.style.use("endo_pipeline.figure")
@@ -90,7 +93,10 @@ dataset_low = EXAMPLE_DATASET["FIGURE_2_LOW_FLOW_DATASET"]
 dataset_high = EXAMPLE_DATASET["FIGURE_2_HIGH_FLOW_DATASET"]
 dataset_summary_list = SUMMARY_PLOT_DATASETS["low_high"]
 
-# %%
+# load model for crop reconstruction, which will be used for all reconstructions
+# in this figure
+model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
+model = load_model(model_manifest.locations[DEFAULT_MODEL_RUN_NAME], instantiate=True)
 
 # load dataframe manifests for diffae features, fixed points, optical flow
 # features, and bootstrapped fixed points for this crop pattern, which will be
@@ -130,6 +136,7 @@ kernel_theta = KramersMoyalKernel(
     period=PERIOD_THETA_RESCALED,
 )
 
+# %%
 # global plotting kwargs / parameters
 contour_colorbar_figsize = (0.85, MAX_FIGURE_WIDTH / 4)
 contour_plot_figsize = (1.75, 1.85)
@@ -177,7 +184,7 @@ theta_plot_x_ticklabels = [
 ]
 theta_plot_y_ticks = [-0.3, 0.0, 0.3]
 
-
+n_crop_examples = 3
 # %%
 
 # make svg of just the colorbar with set ticks and extended on both sides
@@ -368,19 +375,28 @@ for dataset_name, panel_letters, y_position, crop_x_position in [
     save_plot_to_path(fig, fig_savedir, theta_plot_filename, file_format=".svg")
 
     # ---------- crop reconstruction from dataframe and save as svg for this dataset ----------
-    fixed_point_coordinates = stable_fixed_points[feature_column_names].to_numpy().flatten()
-    feature_coord_string = get_feature_coordinates_as_string(
-        feature_column_names, fixed_point_coordinates
-    )
-    crop_filename = f"crop_{feature_coord_string}"
-    reconstruct_from_dataframe(
-        fmsid=df_fixed_points_location.fmsid,
-        columns=feature_column_names,
-        dataset_labels=False,
-        output_dir=fig_savedir,
-        file_format=".svg",
-        figsize=(0.75, 0.75),
+    reconstructed_imgs = generate_from_dataframe(
+        stable_fixed_points,
+        feature_column_names,
+        model,
+        num_gpus=NUM_GPUS,
         random_seed=RANDOM_SEED,
+        n_noise_samples=n_crop_examples,
+    )
+    img_list = [reconstructed_imgs[i] for i in range(len(reconstructed_imgs))]
+    contact_sheet = make_contact_sheet(
+        img_list,
+        max_rows=n_crop_examples,
+        max_cols=1,
+        direction="top-down first",
+        gridspec_kwargs=gridspec_kwargs,
+        fig_kwargs={"figsize": (0.5, 1.5)},
+    )
+    save_plot_to_path(
+        contact_sheet,
+        fig_savedir,
+        f"{dataset_name}_crop_reconstructions",
+        file_format=".svg",
     )
 
     # build panels for this dataset's visualizations, adjusting positions based
@@ -422,15 +438,16 @@ for dataset_name, panel_letters, y_position, crop_x_position in [
         y_offset=-0.2,
     )
 
-    crop_panel = FigurePanel(
+    crop_examples = FigurePanel(
         letter=panel_letters[2],
-        path=fig_savedir / f"{crop_filename}.svg",
+        path=fig_savedir / f"{dataset_name}_crop_reconstructions.svg",
         x_position=crop_x_position,
         y_position=y_position + 2.0,
-        x_offset=0.1,
-        y_offset=0.1,
+        x_offset=0.0,
+        y_offset=0.0,
     )
-    panels.extend([contour_plots, colorbar_panel, quiver_plot, theta_plot, crop_panel])
+
+    panels.extend([contour_plots, colorbar_panel, quiver_plot, theta_plot, crop_examples])
 
 # %%
 # --- Cross-dataset summary plots ---
