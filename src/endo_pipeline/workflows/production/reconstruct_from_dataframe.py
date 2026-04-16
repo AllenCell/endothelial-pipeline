@@ -201,7 +201,7 @@ def main(
         fig, ax = plt.subplots(figsize=figsize)
         ax.imshow(img, cmap="gray")
         plt.axis("off")
-        file_name = "crop"
+        file_name = "crop_"
         if dataset_labels:
             dataset_name = dataframe.iloc[i][Column.DATASET]
             file_name = f"{dataset_name}_{file_name}"
