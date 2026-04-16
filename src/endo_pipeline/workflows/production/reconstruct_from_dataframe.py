@@ -152,7 +152,7 @@ def main(
     # get minimum number of pcs needed for the fit pca object based on the
     # column names provided; for example, if "pc_11" is in the column names,
     # then the fit pca object needs to be fit with at least 11 pcs
-    column_names = list(DYNAMICS_COLUMN_NAMES) or columns
+    column_names = columns or list(DYNAMICS_COLUMN_NAMES)
     num_pcs = get_num_pcs_from_column_names(column_names)
     if num_pcs == 0:
         raise ValueError(f"No PC-related column names found in {column_names}.")
