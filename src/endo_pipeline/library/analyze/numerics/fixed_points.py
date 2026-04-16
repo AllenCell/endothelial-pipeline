@@ -238,7 +238,7 @@ def find_root(func: Callable, init: float | np.ndarray) -> np.ndarray:
         return np.array([np.nan] * len(init))
 
 
-def get_fpts(my_flow: Callable, inits: list[tuple] | list[np.ndarray]) -> list[np.ndarray]:
+def get_fixed_points(my_flow: Callable, inits: list[tuple] | list[np.ndarray]) -> list[np.ndarray]:
     """
     Get a list of unique fixed points of the system of ODEs.
 
@@ -426,7 +426,7 @@ def get_fixed_points_within_bounds(
     sampled_inits_for_root_solver = sample_from_density(feature_data, num_inits_for_root_solver)
 
     # pass into helper function to get fixed points
-    fpts = get_fpts(vector_field_function, sampled_inits_for_root_solver)
+    fpts = get_fixed_points(vector_field_function, sampled_inits_for_root_solver)
 
     # filter fixed points to only keep ones within a given range of percentiles
     # of data (e.g., 2 to 98) to get high confidence fixed points that are
