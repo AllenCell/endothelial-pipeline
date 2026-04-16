@@ -193,12 +193,16 @@ def main(
         fig, ax = plt.subplots(figsize=(2, 2))
         ax.imshow(img, cmap="gray")
         plt.axis("off")
-        plt.tight_layout()
-        file_name = "feature_coordinate_"
+        file_name = "crop"
         if dataset_labels:
             dataset_name = dataframe.iloc[i][Column.DATASET]
             file_name = f"{dataset_name}_{file_name}"
-        feature_coord_as_str = "_".join([f"{coord:.2f}" for coord in feature_coords[i]])
+        feature_coord_as_str = "_".join(
+            [
+                f"{column_name}_{coord:.2f}"
+                for column_name, coord in zip(column_names, feature_coords[i], strict=True)
+            ]
+        )
         save_plot_to_path(
             fig, crop_savedir, f"{file_name}{feature_coord_as_str}", file_format=file_format
         )
