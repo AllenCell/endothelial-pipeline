@@ -1,15 +1,7 @@
-from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_MODEL_MANIFEST_NAME,
-    DEFAULT_MODEL_RUN_NAME,
-)
-
-
 def main(
     fmsid: str | None,
     s3uri: str | None,
     path: str | None,
-    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     columns: list[str] | None = None,
     dataset_labels: bool = False,
 ) -> None:
@@ -105,12 +97,15 @@ def main(
     from endo_pipeline.manifests import (
         DataframeLocation,
         build_dataframe_location_from_path,
-        get_most_recent_run_name,
         load_model_manifest,
     )
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
     from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_MODEL_MANIFEST_NAME,
+        DEFAULT_MODEL_RUN_NAME,
+    )
 
     # convert input location to DataframeLocation and load dataframe
     if path is not None:
@@ -126,12 +121,11 @@ def main(
     dataframe = load_dataframe(dataframe_location)
 
     # load model manifest, get run name, and load model
-    model_manifest = load_model_manifest(model_manifest_name)
-    run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
-    model = load_model(model_manifest.locations[run_name_], instantiate=True)
+    model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
+    model = load_model(model_manifest.locations[DEFAULT_MODEL_RUN_NAME], instantiate=True)
 
     # Directory to save reconstructed crops
-    crop_savedir = get_output_path("reconstructed_crops", model_manifest_name, run_name_)
+    crop_savedir = get_output_path("reconstructed_crops")
 
     # get minimum number of pcs needed for the fit pca object based on the
     # column names provided; for example, if "pc_11" is in the column names,
