@@ -93,7 +93,7 @@ class ColumnMetadata:
         self.limits = (self.min, self.max)
 
 
-COLUMN_METADATA = {
+COLUMN_METADATA: dict[str, ColumnMetadata] = {
     # General information ======================================================
     Column.SegData.TIME_HRS: ColumnMetadata(
         name="Time",
