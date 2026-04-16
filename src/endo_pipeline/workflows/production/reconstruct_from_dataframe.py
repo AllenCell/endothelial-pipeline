@@ -101,6 +101,8 @@ def main(
         Optional figure size for the saved plots.
 
     """
+    from pathlib import Path
+
     import matplotlib.pyplot as plt
     import numpy as np
 
@@ -147,7 +149,11 @@ def main(
     model = load_model(model_manifest.locations[DEFAULT_MODEL_RUN_NAME], instantiate=True)
 
     # Directory to save reconstructed crops
-    crop_savedir = get_output_path(output_dir or "reconstructed_crops")
+    crop_savedir = (
+        Path(output_dir).resolve()
+        if output_dir is not None
+        else get_output_path("reconstructed_crops")
+    )
 
     # get minimum number of pcs needed for the fit pca object based on the
     # column names provided; for example, if "pc_11" is in the column names,
