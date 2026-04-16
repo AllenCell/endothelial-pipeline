@@ -24,6 +24,7 @@ from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature impo
     add_optical_flow_features,
 )
 from endo_pipeline.library.analyze.numerics.binning import get_bins
+from endo_pipeline.library.model.latent_walk_utils import get_feature_coordinates_as_string
 from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
     plot_contour_colorbar,
     plot_drift_1d,
@@ -37,7 +38,7 @@ from endo_pipeline.library.visualize.diffae_features.feature_viz import (
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
 from endo_pipeline.library.visualize.migration_coherence import plot_optical_flow_histogram
 from endo_pipeline.library.visualize.summary_plot import plot_cross_dataset_summaries
-from endo_pipeline.manifests import load_dataframe_manifest
+from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import (
     BIN_LIMIT_PERCENTILE_CUTOFF,
@@ -69,6 +70,9 @@ from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
+)
+from endo_pipeline.workflows.production.reconstruct_from_dataframe import (
+    main as reconstruct_from_dataframe,
 )
 
 # %%
@@ -159,7 +163,7 @@ theta_plot_zero_kwargs = {
     "linewidth": 1,
     "alpha": 0.7,
 }
-theta_plot_axes_labels = [column_label_theta, f"$d${column_label_theta}/$dt$"]
+theta_plot_axes_labels = [column_label_theta, f"d{column_label_theta}/dt"]
 theta_plot_xlims = BIN_LIMITS_THETA_RESCALED
 theta_plot_ylims = (-0.4, 0.4)
 theta_plot_x_ticks = [0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi]
@@ -192,9 +196,9 @@ save_plot_to_path(fig, base_output_dir, "colorbar", file_format=".svg", transpar
 # loop over datasets in collection, compute 2D drift coefficients for each
 # pairwise combination of polar coordinates, and plot contours of drift coefficients
 panels = []
-for dataset_name, panel_letters, y_position in [
-    (dataset_low, ("A", "B"), 0.0),
-    (dataset_high, ("C", "D"), 2.05),
+for dataset_name, panel_letters, y_position, crop_x_position in [
+    (dataset_low, ("A", "B", "E"), 0.0, 0.0),
+    (dataset_high, ("C", "D", "F"), 2.05, MAX_FIGURE_WIDTH / 2),
 ]:
     if dataset_name not in feature_dataframe_manifest.locations:
         logger.warning(
@@ -215,19 +219,13 @@ for dataset_name, panel_letters, y_position in [
     df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
 
     # load fixed points dataframe for this dataset
-    if dataset_name not in fixed_points_dataframe_manifest.locations:
-        logger.warning(
-            "No location found in dataframe manifest [ %s ] for dataset [ %s ],"
-            " skipping loading of fixed points dataframe.",
-            fixed_points_dataframe_manifest_name,
-            dataset_name,
-        )
-        stable_fixed_points = None
-    else:
-        df_fixed_points = load_dataframe(fixed_points_dataframe_manifest.locations[dataset_name])
-        stable_fixed_points = df_fixed_points[
-            df_fixed_points[STABILITY_COLUMN_NAME] == StabilityLabel.STABLE
-        ]
+    df_fixed_points_location = get_dataframe_location_for_dataset(
+        fixed_points_dataframe_manifest, dataset_name
+    )
+    df_fixed_points = load_dataframe(df_fixed_points_location)
+    stable_fixed_points = df_fixed_points[
+        df_fixed_points[STABILITY_COLUMN_NAME] == StabilityLabel.STABLE
+    ]
 
     # get drift in (r, rho) space
     bins_r_rho, centers_r_rho = get_bins(
@@ -316,16 +314,15 @@ for dataset_name, panel_letters, y_position in [
         ylabel_kwargs=ylabel_kwargs,
     )
     # add stable fixed points to quiver plot if available
-    if stable_fixed_points is not None:
-        ax.plot(
-            stable_fixed_points[columns_r_rho[0]],
-            stable_fixed_points[columns_r_rho[1]],
-            "o",
-            color="blue",
-            markeredgecolor="k",
-            markeredgewidth=0.5,
-            markersize=5,
-        )
+    ax.plot(
+        stable_fixed_points[columns_r_rho[0]],
+        stable_fixed_points[columns_r_rho[1]],
+        "o",
+        color="blue",
+        markeredgecolor="k",
+        markeredgewidth=0.5,
+        markersize=5,
+    )
 
     # set plot formatting args and save
     ax.set_box_aspect(1.0)
@@ -352,23 +349,38 @@ for dataset_name, panel_letters, y_position in [
         xlabel_kwargs=xlabel_kwargs,
         ylabel_kwargs=ylabel_kwargs,
     )
-    # add stable fixed points in theta if available
-    if stable_fixed_points is not None:
-        ax.plot(
-            stable_fixed_points[column_theta],
-            np.zeros_like(stable_fixed_points[column_theta]),
-            "o",
-            color="blue",
-            markeredgecolor="k",
-            markeredgewidth=0.5,
-            markersize=5,
-        )
+    # add stable fixed points in theta
+    ax.plot(
+        stable_fixed_points[column_theta],
+        np.zeros_like(stable_fixed_points[column_theta]),
+        "o",
+        color="blue",
+        markeredgecolor="k",
+        markeredgewidth=0.5,
+        markersize=5,
+    )
 
     # set plot formatting args and save
     ax.set_box_aspect(1.0)
     ax.set_xticks(theta_plot_x_ticks, labels=theta_plot_x_ticklabels)
     ax.set_yticks(theta_plot_y_ticks)
     save_plot_to_path(fig, fig_savedir, theta_plot_filename, file_format=".svg")
+
+    # ---------- crop reconstruction from dataframe and save as svg for this dataset ----------
+    crop_output_dir = get_output_path(__file__, dataset_name, "crop_reconstructions")
+    fixed_point_coordinates = stable_fixed_points[feature_column_names].to_numpy().flatten()
+    feature_coord_string = get_feature_coordinates_as_string(
+        feature_column_names, fixed_point_coordinates
+    )
+    crop_filename = f"crop_{feature_coord_string}"
+    reconstruct_from_dataframe(
+        fmsid=df_fixed_points_location.fmsid,
+        columns=feature_column_names,
+        dataset_labels=False,
+        output_dir=crop_output_dir,
+        file_format=".svg",
+        figsize=(0.75, 0.75),
+    )
 
     # build panels for this dataset's visualizations, adjusting positions based
     # on dataset to stack vertically in figure
@@ -408,7 +420,16 @@ for dataset_name, panel_letters, y_position in [
         x_offset=0.4,
         y_offset=-0.2,
     )
-    panels.extend([contour_plots, colorbar_panel, quiver_plot, theta_plot])
+
+    crop_panel = FigurePanel(
+        letter=panel_letters[2],
+        path=crop_output_dir / f"{crop_filename}.svg",
+        x_position=crop_x_position,
+        y_position=y_position + 2.0,
+        x_offset=-0.1,
+        y_offset=-0.1,
+    )
+    panels.extend([contour_plots, colorbar_panel, quiver_plot, theta_plot, crop_panel])
 
 # %%
 # --- Cross-dataset summary plots ---
