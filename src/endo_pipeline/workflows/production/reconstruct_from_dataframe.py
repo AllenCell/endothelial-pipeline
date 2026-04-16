@@ -55,7 +55,6 @@ def main(
         If true, the dataset label from the dataframe will be prefixed to the
         saved file names.
     """
-    import logging
     from pathlib import Path
 
     import matplotlib.pyplot as plt
@@ -67,6 +66,7 @@ def main(
         check_required_columns_in_dataframe,
     )
     from endo_pipeline.library.analyze.pca import fit_pca
+    from endo_pipeline.library.analyze.polar_coords import polar_to_pcs
     from endo_pipeline.library.model import generate_from_coords_batch
     from endo_pipeline.library.model.latent_walk_utils import get_num_pcs_from_column_names
     from endo_pipeline.manifests import (
@@ -75,9 +75,8 @@ def main(
         load_model_manifest,
     )
     from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
     from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
-
-    logger = logging.getLogger(__name__)
 
     # convert csv_path to Path object
     dataframe_path = Path(path).resolve()
@@ -113,29 +112,37 @@ def main(
 
     # make sure that coords is a 2D array with shape (num_points, num_dimensions)
     feature_coords = np.atleast_2d(feature_coords)
-    num_points, num_dims = feature_coords.shape
-    logger.debug(
-        "Loaded [ %d ] points with [ %d ] dimensions from dataframe file [ %s ].",
-        num_points,
-        num_dims,
-        dataframe_file_name,
-    )
-    if num_dims != num_pcs:
-        logger.error(
-            "Expected coordinates of [ %d ] dimensions from loaded dataframe, but got [ %d ] dimensions.",
-            num_pcs,
-            num_dims,
-        )
-        raise ValueError(
-            f"Expected coordinates of [ {num_pcs} ] dimensions from loaded dataframe, but got [ {num_dims} ] dimensions."
-        )
 
-    # transform interpolated points to full latent space
-    latent_coords = pca.inverse_transform(feature_coords)
+    # if polar angle and radius are included in the column names, convert them
+    # to PC1 and PC2 coordinates for image generation (inverse PCA
+    # transformation cannot be performed with polar coordinates)
+    if (
+        Column.DiffAEData.POLAR_ANGLE.value in column_names
+        and Column.DiffAEData.POLAR_RADIUS.value in column_names
+    ):
+        pc1_column_name = f"{Column.DiffAEData.PCA_FEATURE_PREFIX}1"
+        pc2_column_name = f"{Column.DiffAEData.PCA_FEATURE_PREFIX}2"
+        angle = dataframe[Column.DiffAEData.POLAR_ANGLE].to_numpy()
+        radius = dataframe[Column.DiffAEData.POLAR_RADIUS].to_numpy()
+        pc1_values, pc2_values = polar_to_pcs(angle, radius)
+        dataframe[pc1_column_name] = pc1_values
+        dataframe[pc2_column_name] = pc2_values
 
-    walk_imgs = generate_from_coords_batch(model, latent_coords, num_gpus=NUM_GPUS)
+    # if flipped pc3 is included in the column names, convert it to regular pc3
+    # before performing inverse PCA transformation for image generation
+    if Column.DiffAEData.PC3_FLIPPED.value in column_names:
+        pc3_column_name = f"{Column.DiffAEData.PCA_FEATURE_PREFIX}3"
+        dataframe[pc3_column_name] = -dataframe[Column.DiffAEData.PC3_FLIPPED.value].to_numpy()
 
-    for i, img in enumerate(walk_imgs):
+    # get latent coordinates by performing inverse PCA transformation on the PC
+    # coordinates from the dataframe; only use the PC columns needed for the
+    # inverse transformation based on the number of PCs determined earlier
+    pc_column_names = DIFFAE_PC_COLUMN_NAMES[:num_pcs]
+    latent_coords = pca.inverse_transform(dataframe[pc_column_names].to_numpy())
+
+    reconstructed_imgs = generate_from_coords_batch(model, latent_coords, num_gpus=NUM_GPUS)
+
+    for i, img in enumerate(reconstructed_imgs):
         fig, ax = plt.subplots(figsize=(2, 2))
         ax.imshow(img, cmap="gray")
         plt.axis("off")
