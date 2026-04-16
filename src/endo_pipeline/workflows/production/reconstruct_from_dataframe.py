@@ -1,14 +1,17 @@
+from typing import Literal
+
+
 def main(
     fmsid: str | None,
     s3uri: str | None,
     path: str | None,
     columns: list[str] | None = None,
     dataset_labels: bool = False,
+    output_dir: str | None = None,
+    file_format: Literal[".png", ".svg", ".pdf"] = ".png",
 ) -> None:
     """
     Reconstruct crops from feature coordinates stored in a given dataframe.
-
-    The reconstructed crops are saved as PNG files in a local directory.
 
     #diffae-features #image-generation #pca
 
@@ -64,6 +67,12 @@ def main(
     prefixed to the saved file names. Else, the saved file names will only
     contain the feature coordinate values.
 
+    **Workflow output**
+
+    The reconstructed crops will be saved to the specified output directory in
+    the specified file format. If no output directory is provided, a default
+    output directory will be used.
+
     Parameters
     ----------
     path
@@ -80,6 +89,11 @@ def main(
     dataset_labels
         If true, the dataset label from the dataframe will be prefixed to the
         saved file names.
+    output_dir
+        Optional output directory to save reconstructed crops. If not provided,
+        a default output directory will be used.
+    file_format
+        Optional file format for the saved plots.
 
     """
     import matplotlib.pyplot as plt
@@ -125,7 +139,7 @@ def main(
     model = load_model(model_manifest.locations[DEFAULT_MODEL_RUN_NAME], instantiate=True)
 
     # Directory to save reconstructed crops
-    crop_savedir = get_output_path("reconstructed_crops")
+    crop_savedir = get_output_path(output_dir or "reconstructed_crops")
 
     # get minimum number of pcs needed for the fit pca object based on the
     # column names provided; for example, if "pc_11" is in the column names,
@@ -185,7 +199,9 @@ def main(
             dataset_name = dataframe.iloc[i][Column.DATASET]
             file_name = f"{dataset_name}_{file_name}"
         feature_coord_as_str = "_".join([f"{coord:.2f}" for coord in feature_coords[i]])
-        save_plot_to_path(fig, crop_savedir, f"{file_name}{feature_coord_as_str}.png")
+        save_plot_to_path(
+            fig, crop_savedir, f"{file_name}{feature_coord_as_str}", file_format=file_format
+        )
 
 
 if __name__ == "__main__":
