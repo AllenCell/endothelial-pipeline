@@ -108,8 +108,8 @@ def test_mismatched_point_and_column_names_length_raises():
         )
 
 
-# test "easy cases" where the input string exactly matches expected patterns
-# as output by get_fpt_type method
+# test "easy cases" where the input string exactly matches expected patterns as
+# output by get_fixed_point_type method
 @pytest.mark.parametrize(
     "fpt_type",
     [

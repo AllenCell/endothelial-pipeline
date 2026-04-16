@@ -284,7 +284,7 @@ def get_fixed_points(my_flow: Callable, inits: list[tuple] | list[np.ndarray]) -
     return list(map(np.array, set(map(tuple, np.round(fpts, 4)))))
 
 
-def get_fpt_type(jacobian: np.ndarray) -> str:
+def get_fixed_point_type(jacobian: np.ndarray) -> str:
     """
     Classify the type of a fixed point given the Jacobian matrix at that point.
 
@@ -335,15 +335,16 @@ def get_fpt_type(jacobian: np.ndarray) -> str:
 def get_stability_label_from_fpt_type(fpt_type: str) -> str:
     """Get the stability label from the fixed point type string.
 
-    Parses the input string to find the first word that matches one of the stability
-    labels defined in the StabilityLabel enum (e.g., "stable", "unstable", "saddle",
-    "indeterminate"). If a match is found, it returns that stability label. If no
-    match is found, it returns "unknown".
+    Parses the input string to find the first word that matches one of the
+    stability labels defined in the StabilityLabel enum (e.g., "stable",
+    "unstable", "saddle", "indeterminate"). If a match is found, it returns that
+    stability label. If no match is found, it returns "unknown".
 
     Parameters
     ----------
     fpt_type
-        String describing the type of fixed point, e.g., as returned by get_fpt_type.
+        String describing the type of fixed point, e.g., as returned by
+        get_fixed_point_type.
 
     Returns
     -------
@@ -450,7 +451,7 @@ def get_fixed_points_within_bounds(
         )
         if within_percentile:
             # get stability/type of the fixed point
-            fpt_type = get_fpt_type(vector_field_jacobian(fpt))
+            fpt_type = get_fixed_point_type(vector_field_jacobian(fpt))
             logger.debug("[ %s ] at [ (%.2f, %.2f, %.2f) ]", fpt_type, fpt[0], fpt[1], fpt[2])
             fpt_stability_label = get_stability_label_from_fpt_type(fpt_type)
             fpts_high_confidence_list.append(
