@@ -236,16 +236,27 @@ def filter_dataframe_by_flow_condition(
 
 
 def _get_index_from_value(val: float, bin_edges_1d: np.ndarray) -> int:
-    """Given a value and a 1D array of bin edges, return the index of the bin that contains that value.
+    """
+    Given a value and a 1D array of bin edges, return the index of the bin that
+    contains that value.
+
+    **Edge case handling**
+
+    - If the value is outside the range of the bin edges, a ValueError is raised
+      with a message indicating that the value is outside the range of the bin
+      edges, and suggesting to provide a value within the bin edges range.
+    - If the value is exactly equal to the upper boundary of the last bin, it is
+      assigned to the last valid bin (i.e., the bin index is clamped to the last
+      valid bin index).
 
     **Example usage:**
 
     .. code-block:: python
 
         # example: dim 1 = 0.2 falls in the first bin of
-        # the bin edges for dim 1: [0, 0.5]
+        # the bin edges for dim 1: [0, 0.5, 1]
 
-        val = 0.2
+        val = 0.2 bin_edges = np.array([0, 0.5, 1])
         bin_edges = np.array([0, 0.5, 1])
         bin_index = _get_index_from_value(val, bin_edges)
 
