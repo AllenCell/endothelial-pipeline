@@ -1,7 +1,10 @@
 """Module for methods that filter dataframes for analysis based on certain criteria."""
 
 import logging
+from collections.abc import Sequence
+from typing import cast
 
+import numpy as np
 import pandas as pd
 
 from endo_pipeline.configs import (
@@ -230,3 +233,141 @@ def filter_dataframe_by_flow_condition(
             # if second flow condition specified, filter to timepoints after
             # the flow change frame
             return dataframe[dataframe[Column.TIMEPOINT] >= change_frame].copy()
+
+
+def _get_index_from_value(val: float, bin_edges_1d: np.ndarray) -> int:
+    """Given a value and a 1D array of bin edges, return the index of the bin that contains that value.
+
+    **Example usage:**
+
+    .. code-block:: python
+
+        # example: dim 1 = 0.2 falls in the first bin of
+        # the bin edges for dim 1: [0, 0.5]
+
+        val = 0.2
+
+        bin_edges = np.array([0, 0.5, 1])
+
+        _get_index_from_value(val, bin_edges_1d) = 0
+
+    Parameters
+    ----------
+    val
+        Value to find bin index for.
+    bin_edges_1d
+        1D array of bin edges for a single dimension.
+
+    Returns
+    -------
+    :
+        Index of the bin that contains the value.
+
+    """
+    # get the index of the bin that contains the value
+    # this is done by finding the index of the first bin edge
+    # that is greater than the value
+    # and subtracting 1
+    bin_idx = cast(int, np.digitize(val, bin_edges_1d) - 1)
+
+    # check if the value is in the last bin
+    # if so, set the index to the last bin
+    if bin_idx == len(bin_edges_1d) - 1:
+        bin_idx = len(bin_edges_1d) - 2
+
+    # check if the value is in the first bin
+    # if so, set the index to the first bin
+    if bin_idx < 0:
+        bin_idx = 0
+
+    # return the index of the bin
+    return bin_idx
+
+
+def filter_dataframe_to_binned_value(
+    df: pd.DataFrame,
+    columns: str | list[str],
+    values: float | Sequence[float],
+    bin_edges: np.ndarray | list[np.ndarray],
+) -> pd.DataFrame:
+    """
+    Filter dataframe to only include rows where the specified feature column(s)
+    fall into the same bin as the specified feature value(s).
+
+    **Example usage:**
+
+    Filtering to a specific point in multidimensional feature space:
+
+    .. code-block:: python
+
+        # example: filter to rows where dim_1 = 0.2 and dim_2 = 0.7,
+        # using the following bin edges:
+        # dim 1 bin edges: [0, 0.5, 1]
+        # dim 2 bin edges: [0, 0.5, 1]
+        filtered_df = filter_dataframe_to_binned_value(
+            df,
+            columns=["dim_1", "dim_2"],
+            values=[0.2, 0.7],
+            bin_edges=[np.array([0, 0.5, 1]), np.array([0, 0.5, 1])]
+        )
+
+    Filtering to a specific point in 1D feature space:
+
+    .. code-block:: python
+
+        # example: filter to rows where dim_1 = 0.2, using the following
+        # bin edges for dim 1: [0, 0.5, 1]
+        filtered_df = filter_dataframe_to_binned_value(
+            df,
+            columns="dim_1",
+            values=0.2,
+            bin_edges=np.array([0, 0.5, 1])
+        )
+
+    Parameters
+    ----------
+    df
+        Dataframe of features to filter.
+    columns
+        Name of the column(s) corresponding to the feature(s) to filter by.
+    value
+        Value(s) of the feature(s) to filter by (e.g., 0.2).
+    bin_edges
+        Array(s) of bin edges for the feature column(s), used to determine which
+        bin index corresponds to the given feature value(s).
+
+    Returns
+    -------
+    :
+        Filtered dataframe.
+
+    """
+
+    df_bin = df.copy()
+
+    # convert args to lists in the 1D case, and check that lengths of columns,
+    # value, and bin_edges match
+    column_names = [columns] if isinstance(columns, str) else columns
+    feature_values = [values] if isinstance(values, (float, int)) else values
+    bin_edges_list = [bin_edges] if isinstance(bin_edges, np.ndarray) else bin_edges
+    if not (len(column_names) == len(feature_values) == len(bin_edges_list)):
+        raise ValueError(
+            "Length of columns, value, and bin_edges must all be the same. "
+            f"Got {len(column_names)} columns, {len(feature_values)} values, and {len(bin_edges_list)} bin_edges."
+        )
+
+    for feature_column, feature_value, bin_edges in zip(
+        column_names, feature_values, bin_edges_list, strict=True
+    ):
+        # get the bin index for the given feature value
+        # and find the crops that fall into that bin
+        bin_idx = _get_index_from_value(feature_value, bin_edges)
+
+        if f"bin_{feature_column}" not in df_bin.columns:
+            df_bin[f"bin_{feature_column}"] = np.digitize(df_bin[feature_column], bin_edges) - 1
+
+        # filter the dataframe to only include rows
+        # with bin_{feature_column} == bin_idx
+        df_bin = df_bin.loc[df_bin[f"bin_{feature_column}"] == bin_idx]
+
+    return df_bin
