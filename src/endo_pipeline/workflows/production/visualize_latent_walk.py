@@ -113,6 +113,7 @@ def main(
     from endo_pipeline.library.model.latent_walk_utils import (
         generate_latent_walk_images,
         get_column_names_for_latent_walk_dataframe,
+        get_feature_coordinates_as_string,
         get_latent_walk,
         get_num_pcs_from_column_names,
     )
@@ -229,12 +230,8 @@ def main(
     sigma_suffix = f"_{int(sigma)}sigma_" if sigma is not None else ""
     file_name = f"latent_walk{sigma_suffix}{axis_suffix}"
     if set_column_value is not None:
-        replace_str = "_".join(
-            [
-                f"{column_name}_setto_{str(val).replace('.', 'p').replace('-', 'neg')}"
-                for column_name, val in set_column_value.items()
-            ]
-        )
+        cols_setto = [f"{col}_setto" for col in set_column_names]
+        replace_str = get_feature_coordinates_as_string(cols_setto, list(set_column_value.values()))
         file_name += f"_with_{replace_str}"
 
     plot_latent_walk_as_grid(

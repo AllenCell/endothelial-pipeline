@@ -112,7 +112,10 @@ def main(
     from endo_pipeline.library.analyze.pca import fit_pca
     from endo_pipeline.library.analyze.polar_coords import polar_to_pcs
     from endo_pipeline.library.model import generate_from_coords_batch
-    from endo_pipeline.library.model.latent_walk_utils import get_num_pcs_from_column_names
+    from endo_pipeline.library.model.latent_walk_utils import (
+        get_feature_coordinates_as_string,
+        get_num_pcs_from_column_names,
+    )
     from endo_pipeline.manifests import (
         DataframeLocation,
         build_dataframe_location_from_path,
@@ -202,12 +205,7 @@ def main(
         if dataset_labels:
             dataset_name = dataframe.iloc[i][Column.DATASET]
             file_name = f"{dataset_name}_{file_name}"
-        feature_coord_as_str = "_".join(
-            [
-                f"{column_name}_{coord:.2f}"
-                for column_name, coord in zip(column_names, feature_coords[i], strict=True)
-            ]
-        )
+        feature_coord_as_str = get_feature_coordinates_as_string(column_names, feature_coords[i])
         save_plot_to_path(
             fig, crop_savedir, f"{file_name}{feature_coord_as_str}", file_format=file_format
         )

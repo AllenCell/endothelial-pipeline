@@ -20,6 +20,34 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def get_feature_coordinates_as_string(
+    column_names: list[str], feature_coordinates: np.ndarray | list[float]
+) -> str:
+    """
+    Get a string representation of the feature coordinates for use in file names.
+
+    Parameters
+    ----------
+    column_names
+        List of column names corresponding to each dimension.
+    feature_coordinates
+        Array of feature coordinates corresponding to the column names.
+
+    Returns
+    -------
+    :
+        String representation of the feature coordinates for the given column
+        names and feature coordinates.
+
+    """
+
+    coordinate_strings = []
+    for column_name, coordinate in zip(column_names, feature_coordinates, strict=True):
+        coordinate_str = f"{coordinate:.2f}".replace(".", "p").replace("-", "neg")
+        coordinate_strings.append(f"{column_name}_{coordinate_str}")
+    return "_".join(coordinate_strings)
+
+
 def get_max_dim_in_column_names(column_names: list[str], feature_prefix: str) -> int:
     """Get the maximum number of dimensions from the provided column names.
 
