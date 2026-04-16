@@ -246,10 +246,10 @@ def _get_index_from_value(val: float, bin_edges_1d: np.ndarray) -> int:
         # the bin edges for dim 1: [0, 0.5]
 
         val = 0.2
-
         bin_edges = np.array([0, 0.5, 1])
+        bin_index = _get_index_from_value(val, bin_edges)
 
-        _get_index_from_value(val, bin_edges_1d) = 0
+        assert bin_index == 0, f"Expected bin index 0, but got {bin_index}."
 
     Parameters
     ----------
@@ -269,7 +269,7 @@ def _get_index_from_value(val: float, bin_edges_1d: np.ndarray) -> int:
         raise ValueError(
             f"Value [ {val} ] is outside the range of bin edges "
             f"[ {bin_edges_1d[0]}, {bin_edges_1d[-1]} ]. "
-            "Please provide a value within the bin edges range."
+            "Please provide a value within the bin edges range or update bin edges."
         )
 
     # get the index of the bin that contains the value
@@ -306,12 +306,26 @@ def filter_dataframe_to_binned_value(
         # using the following bin edges:
         # dim 1 bin edges: [0, 0.5, 1]
         # dim 2 bin edges: [0, 0.5, 1]
+
+        df = pd.DataFrame({
+            "dim_1": [0.1, 0.2, 0.3, 0.6, 0.7, 0.8],
+            "dim_2": [0.6, 0.7, 0.8, 0.1, 0.2, 0.3],
+            "other_col": ["a", "b", "c", "d", "e", "f"]
+        })
+
         filtered_df = filter_dataframe_to_binned_value(
             df,
             columns=["dim_1", "dim_2"],
             values=[0.2, 0.7],
             bin_edges=[np.array([0, 0.5, 1]), np.array([0, 0.5, 1])]
         )
+
+        expected_filtered_df = pd.DataFrame({
+            "dim_1": [0.1, 0.2, 0.3],
+            "dim_2": [0.6, 0.7, 0.8],
+            "other_col": ["a", "b", "c"]
+        })
+        assert filtered_df.equals(expected_filtered_df)
 
     Filtering to a specific point in 1D feature space:
 
