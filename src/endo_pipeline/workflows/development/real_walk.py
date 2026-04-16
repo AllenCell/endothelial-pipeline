@@ -65,9 +65,9 @@ def main(
     from endo_pipeline.library.analyze.numerics.binning import get_histogram_by_component
     from endo_pipeline.library.process.image_processing import max_proj, std_dev
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
-        get_label_for_column,
         plot_component_histograms_over_time,
     )
+    from endo_pipeline.library.visualize.features import get_label_for_column
     from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
     from endo_pipeline.manifests import get_zarr_location_for_position, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column

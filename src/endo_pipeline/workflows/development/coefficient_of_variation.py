@@ -74,13 +74,13 @@ def main(
         compute_binned_variance_ratio_vs_time,
         compute_cumulative_variance_over_time,
     )
-    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.library.visualize.diffae_features.variation_analysis import (
         plot_ergodicity_test,
         plot_mean_feature_vs_time,
         plot_population_cov_vs_time,
         plot_variance_ratio_vs_time,
     )
+    from endo_pipeline.library.visualize.features import get_label_for_column
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (

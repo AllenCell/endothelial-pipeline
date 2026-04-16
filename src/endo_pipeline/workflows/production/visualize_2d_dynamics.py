@@ -74,7 +74,7 @@ def main(
         plot_drift_contours,
         plot_drift_quiver,
     )
-    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
+    from endo_pipeline.library.visualize.features import get_label_for_column
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (

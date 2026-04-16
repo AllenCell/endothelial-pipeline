@@ -21,10 +21,8 @@ def main(
         filter_dataframe_by_track_length,
         filter_dataframe_to_steady_state,
     )
-    from endo_pipeline.library.visualize.diffae_features.feature_viz import (
-        get_dataset_color,
-        get_label_for_column,
-    )
+    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
+    from endo_pipeline.library.visualize.features import get_label_for_column
     from endo_pipeline.library.visualize.track_statistics import plot_histogram_and_kde
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName
