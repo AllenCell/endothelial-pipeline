@@ -14,7 +14,10 @@ from scipy.stats import gaussian_kde
 
 from endo_pipeline.io.input import load_dataframe
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
-from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
+from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
+    get_kernel_density_estimate_from_histogram,
+    get_kramers_moyal_coeffs,
+)
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics.binning import circpercentile, get_bins
 from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
@@ -26,7 +29,10 @@ from endo_pipeline.library.visualize.diffae_features.pplane import (
 from endo_pipeline.manifests.dataframe_manifest_io import load_dataframe_manifest
 from endo_pipeline.manifests.dataframe_manifest_utils import get_dataframe_location_for_dataset
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_THETA_RESCALED
+from endo_pipeline.settings.dynamics_workflows import (
+    BIN_LIMITS_THETA_RESCALED,
+    HISTOGRAM_THRESHOLD_FOR_MASKING,
+)
 from endo_pipeline.settings.flow_field_3d import (
     LOWER_PERCENTILE_FOR_STABLE_FP,
     NUM_INIT_SAMPLES,
@@ -717,6 +723,63 @@ def compute_drift_vector_field(
     drift_coeffs = get_kramers_moyal_coeffs(
         traj_list, d_traj_list, bins=bins, dt=time_step, kernel=kernel
     )[0]
+
+    return drift_coeffs
+
+
+def mask_drift_coeffs_by_data_density(
+    drift_coeffs: np.ndarray,
+    dataframe: pd.DataFrame,
+    column_names: list[str | Column.DiffAEData],
+    histogram_bins: list[np.ndarray],
+    histogram_kernel: KramersMoyalKernel | list[KramersMoyalKernel],
+    probability_threshold: float = HISTOGRAM_THRESHOLD_FOR_MASKING,
+) -> np.ndarray:
+    """
+    Mask drift coefficients in regions of low data density.
+
+    This method uses a kernel density estimate of the data density based on a
+    histogram of the data in the specified feature space. The drift coefficients
+    are set to NaN in regions where the estimated data density is below the
+    specified threshold.
+
+    Parameters
+    ----------
+    drift_coeffs
+        Array containing the drift coefficients for each point in the feature
+        grid.
+    dataframe
+        Dataframe containing the feature data for a single dataset and flow
+        condition.
+    column_names
+        Feature column names corresponding to the dimensions of the feature
+        space.
+    histogram_bins
+        List of arrays specifying the bin edges for each dimension to use for
+        estimating the data density.
+    histogram_kernel
+        Kramers-Moyal kernel or list of Kramers-Moyal kernels in each dimension
+        to use for estimating the data density.
+    probability_threshold
+        Threshold for the estimated data density below which to set drift
+        coefficients to NaN.
+
+    Returns
+    -------
+    :
+        Array of the same shape as the input drift_coeffs, but with coefficients
+        set to NaN in regions where the estimated data density is below the
+        specified threshold.
+
+    """
+    hist = np.histogramdd(dataframe[column_names].to_numpy(), bins=histogram_bins)[0]
+    hist_kde = get_kernel_density_estimate_from_histogram(
+        hist[None, ...],
+        bins=histogram_bins,
+        kernel=histogram_kernel,
+    )
+    low_probability_mask = hist_kde < probability_threshold
+    drift_coeffs[low_probability_mask] = np.nan
 
     return drift_coeffs
 
