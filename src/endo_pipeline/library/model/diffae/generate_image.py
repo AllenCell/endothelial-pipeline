@@ -4,6 +4,7 @@ import logging
 import typing
 
 import numpy as np
+import pandas as pd
 import torch
 
 if typing.TYPE_CHECKING:
@@ -12,7 +13,14 @@ if typing.TYPE_CHECKING:
         DiffusionAutoEncoder as BaseDiffusionAutoEncoder,
     )
 
+
+from endo_pipeline.library.analyze.pca import fit_pca
 from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
+from endo_pipeline.library.model.latent_walk_utils import (
+    add_pc_coordinates_to_dataframe,
+    get_num_pcs_from_column_names,
+)
+from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
 
 logger = logging.getLogger(__name__)
 
@@ -152,6 +160,82 @@ def generate_from_coords_and_noised_image(
         noised_image=noised_image_,
     )
     return gen_img
+
+
+def generate_from_dataframe(
+    dataframe: pd.DataFrame,
+    column_names: list[str],
+    model: "DiffusionAutoEncoder",
+    num_gpus: int | None = None,
+    random_seed: int | None = None,
+    n_noise_samples: int = 1,
+) -> np.ndarray:
+    """
+    Reconstruct crops from feature coordinates stored in a given dataframe.
+
+    Parameters
+    ----------
+    dataframe
+        DataFrame containing the feature coordinates for image reconstruction.
+    column_names
+        List of column names corresponding to the feature coordinates in the
+        dataframe.
+    model
+        DiffusionAutoEncoder model to use for image reconstruction.
+    num_gpus
+        Optional, number of available GPUs.
+    random_seed
+        Random seed for reproducibility of image generation. If None, does not
+        set a random seed.
+    n_noise_samples
+        Number of noise samples to use for generating images. Each noise sample
+        will result in a separate reconstructed image for each set of feature
+        coordinates in the dataframe.
+    coords_batch
+        Whether to use the batch version of the coordinate-based generation
+        function. If True, the return value will be a list of generated images
+        corresponding to each row in the dataframe. If False, the return value
+        will be a single array of generated images.
+
+    Returns
+    -------
+    :
+        Array of reconstructed images corresponding to the feature coordinates
+        in the dataframe. The shape of the array will be (num_samples,
+        img_width, img_height), where num_samples is equal to the number of rows
+        in the dataframe multiplied by n_noise_samples.
+
+    """
+
+    # get minimum number of pcs needed for the fit pca object based on the
+    # column names provided; for example, if "pc_11" is in the column names,
+    # then the fit pca object needs to be fit with at least 11 pcs
+    num_pcs = get_num_pcs_from_column_names(column_names)
+    if num_pcs == 0:
+        raise ValueError(f"No PC-related column names found in {column_names}.")
+
+    # Get fit (3D) PCA object from manifest
+    pca = fit_pca(num_pcs=num_pcs)
+
+    # re-transform coordinates if they are in polar format (angle and radius) or
+    # if they include flipped pc3
+    dataframe = add_pc_coordinates_to_dataframe(dataframe, column_names)
+
+    # get latent coordinates by performing inverse PCA transformation on the PC
+    # coordinates from the dataframe; only use the PC columns needed for the
+    # inverse transformation based on the number of PCs determined earlier
+    pc_column_names = DIFFAE_PC_COLUMN_NAMES[:num_pcs]
+    latent_coords = pca.inverse_transform(dataframe[pc_column_names].to_numpy())
+
+    reconstructed_imgs = generate_from_coords(
+        model,
+        latent_coords,
+        num_gpus=num_gpus,
+        random_seed=random_seed,
+        n_noise_samples=n_noise_samples,
+    )
+
+    return reconstructed_imgs
 
 
 def generate_from_coords(
