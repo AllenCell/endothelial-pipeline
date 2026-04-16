@@ -1,6 +1,7 @@
 """Methods for visualizing migration coherence metrics and their relationships to morphology dynamics."""
 
 import logging
+from enum import StrEnum
 from pathlib import Path
 from typing import Any, Literal
 
@@ -326,7 +327,7 @@ def plot_cross_dataset_summaries(
     fixed_points_bootstrap_dataframe_manifest: DataframeManifest,
     output_dir: Path,
     bootstrap_threshold: float = 0.4,
-    column_names: list[ColumnName.DiffAEData | ColumnName.OpticalFlow] | None = None,
+    column_names: list[ColumnName.DiffAEData | ColumnName.OpticalFlow | StrEnum] | None = None,
     x_axis_mode: Literal["dataset", "shear_stress_numeric", "shear_stress_categorical"] = "dataset",
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 3),
     dataset_order: list[str] | None = None,
