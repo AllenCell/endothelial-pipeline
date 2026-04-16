@@ -343,8 +343,6 @@ def filter_dataframe_to_binned_value(
 
     """
 
-    df_bin = dataframe.copy()
-
     # convert args to lists in the 1D case, and check that lengths of columns,
     # value, and bin_edges match
     column_names = [columns] if isinstance(columns, str) else columns
@@ -356,19 +354,15 @@ def filter_dataframe_to_binned_value(
             f"Got {len(column_names)} columns, {len(feature_values)} values, and {len(bin_edges_list)} bin_edges."
         )
 
-    for feature_column, feature_value, bin_edges in zip(
+    # build a single boolean mask across all dimensions without mutating the dataframe
+    # np.digitize is already fully vectorized per column; combining masks avoids
+    # the per-iteration copy+filter overhead that scales poorly on large dataframes
+    mask = np.ones(len(dataframe), dtype=bool)
+    for feature_column, feature_value, edges in zip(
         column_names, feature_values, bin_edges_list, strict=True
     ):
-        # get the bin index for the given feature value
-        # and find the crops that fall into that bin
-        bin_idx = _get_index_from_value(feature_value, bin_edges)
-        df_bin[f"bin_{feature_column}"] = np.digitize(df_bin[feature_column], bin_edges) - 1
+        bin_idx = _get_index_from_value(feature_value, edges)
+        col_bins = np.digitize(dataframe[feature_column].to_numpy(), edges) - 1
+        mask &= col_bins == bin_idx
 
-        # filter the dataframe to only include rows
-        # with bin_{feature_column} == bin_idx
-        df_bin = df_bin.loc[df_bin[f"bin_{feature_column}"] == bin_idx]
-
-    # drop the bin columns before returning the filtered dataframe
-    bin_column_names = [f"bin_{feature_column}" for feature_column in column_names]
-    df_bin = df_bin.drop(columns=bin_column_names)
-    return df_bin
+    return dataframe.loc[mask]
