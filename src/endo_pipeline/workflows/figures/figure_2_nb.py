@@ -126,58 +126,21 @@ kernel_theta = KramersMoyalKernel(
 )
 
 # global plotting kwargs / parameters
-contour_colorbar_figsize = (0.85, MAX_FIGURE_WIDTH / 4)
-contour_plot_figsize = (1.75, 1.85)
-quiver_plot_figsize = (2.05, 1.65)
-theta_plot_figsize = (MAX_FIGURE_WIDTH / 4, MAX_FIGURE_HEIGHT / 4)
-
 gridspec_kwargs = {"wspace": 0.1, "hspace": 0.1}
 xlabel_kwargs = {"labelpad": 2}
 ylabel_kwargs = {"labelpad": -2}
-quiver_legend_kwargs = {"fontsize": "xx-small", "title_fontsize": "xx-small", "loc": (1.05, 0.7)}
 
 r_lims = (0.2, 2.0)
 rho_lims = (-1.15, 1.15)
 
-contour_plot_x_ticks = [0.25, 1.0, 1.75]  # ticks for r (contour plot)
-contour_plot_y_ticks = [-1.0, 0.0, 1.0]  # ticks for rho (contour plot)
-quiver_plot_x_ticks = [0.25, 0.75, 1.25, 1.75]  # ticks for r (quiver plot)
-quiver_plot_y_ticks = [-1.0, -0.5, 0.0, 0.5, 1.0]  # ticks for rho (quiver plot)
-
-quiver_scale = 4
-quiver_downsample = 3
-quiver_color = "dimgrey"
-quiver_nullcline_colors = ["k", "k"]
-quiver_nullcline_styles = ["dashed", (0, (1, 1))]  # dashed for r, dense dot for rho
-quiver_nullcline_opacity = 0.9
-
 unicode_pi = "\u03c0"
-theta_plot_drift_kwargs = {"color": "k", "linewidth": 2}
-theta_plot_zero_kwargs = {
-    "linestyle": "--",
-    "color": "gray",
-    "linewidth": 1,
-    "alpha": 0.7,
-}
-theta_plot_axes_labels = [column_label_theta, f"$d${column_label_theta}/$dt$"]
-theta_plot_xlims = BIN_LIMITS_THETA_RESCALED
-theta_plot_ylims = (-0.4, 0.4)
-theta_plot_x_ticks = [0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi]
-theta_plot_x_ticklabels = [
-    "0",
-    f"{unicode_pi}/4",
-    f"{unicode_pi}/2",
-    f"3{unicode_pi}/4",
-    f"{unicode_pi}",
-]
-theta_plot_y_ticks = [-0.3, 0.0, 0.3]
 
 
 # %%
 
 # make svg of just the colorbar with set ticks and extended on both sides
 fig, ax = plot_contour_colorbar(
-    figsize=contour_colorbar_figsize,
+    figsize=(0.85, MAX_FIGURE_WIDTH / 4),
     vmin=DRIFT_CONTOUR_VMIN,
     vmax=DRIFT_CONTOUR_VMAX,
     num_ticks=DRIFT_CONTOUR_CBAR_NUM_TICKS,
@@ -278,7 +241,7 @@ for dataset_name, panel_letters, y_position in [
         centers_mesh,
         drift_r_rho,
         variable_labels=column_labels_r_rho,
-        figsize=contour_plot_figsize,
+        figsize=(1.75, 1.85),
         axes_limits=(r_lims, rho_lims),
         axes_aspect=None,
         include_colorbar=False,
@@ -289,8 +252,8 @@ for dataset_name, panel_letters, y_position in [
     for ax_index, ax_ in enumerate(list(ax)):
         # adjust label padding and drop tick labels on shared x axis
         ax_.set_box_aspect(1.0)
-        ax_.set_xticks(contour_plot_x_ticks)
-        ax_.set_yticks(contour_plot_y_ticks)
+        ax_.set_xticks([0.25, 1.0, 1.75])
+        ax_.set_yticks([-1.0, 0.0, 1.0])
         if ax_index == 0:
             ax_.tick_params(labelbottom=False)
     save_plot_to_path(
@@ -300,18 +263,18 @@ for dataset_name, panel_letters, y_position in [
     fig, ax = plot_drift_quiver(
         centers_mesh,
         drift_r_rho,
-        quiver_scale=quiver_scale,
-        quiver_color=quiver_color,
-        quiver_downsample=quiver_downsample,
+        quiver_scale=4,
+        quiver_color="dimgrey",
+        quiver_downsample=3,
         variable_labels=column_labels_r_rho,
-        figsize=quiver_plot_figsize,
+        figsize=(2.05, 1.65),
         axes_limits=(r_lims, rho_lims),
         include_nullclines=True,
-        nullcline_colors=quiver_nullcline_colors,
-        nullcline_styles=quiver_nullcline_styles,
-        nullcline_opacity=quiver_nullcline_opacity,
+        nullcline_colors=["k", "k"],
+        nullcline_styles=["dashed", (0, (1, 1))],  # dashed for r, dense dot for rho
+        nullcline_opacity=0.9,
         gridspec_kwargs=gridspec_kwargs,
-        legend_kwargs=quiver_legend_kwargs,
+        legend_kwargs={"fontsize": "xx-small", "title_fontsize": "xx-small", "loc": (1.05, 0.7)},
         xlabel_kwargs=xlabel_kwargs,
         ylabel_kwargs=ylabel_kwargs,
     )
@@ -329,8 +292,8 @@ for dataset_name, panel_letters, y_position in [
 
     # set plot formatting args and save
     ax.set_box_aspect(1.0)
-    ax.set_xticks(quiver_plot_x_ticks)
-    ax.set_yticks(quiver_plot_y_ticks)
+    ax.set_xticks([0.25, 0.75, 1.25, 1.75])
+    ax.set_yticks([-1.0, -0.5, 0.0, 0.5, 1.0])
     save_plot_to_path(
         fig,
         fig_savedir,
@@ -343,12 +306,12 @@ for dataset_name, panel_letters, y_position in [
     fig, ax = plot_drift_1d(
         drift=drift_theta,
         centers=centers_theta[-1],
-        figsize=theta_plot_figsize,
-        axes_limits=(theta_plot_xlims, theta_plot_ylims),
-        axes_labels=theta_plot_axes_labels,
+        figsize=(MAX_FIGURE_WIDTH / 4, MAX_FIGURE_HEIGHT / 4),
+        axes_limits=(BIN_LIMITS_THETA_RESCALED, (-0.4, 0.4)),
+        axes_labels=[column_label_theta, f"$d${column_label_theta}/$dt$"],
         gridspec_kwargs=gridspec_kwargs,
-        drift_line_kwargs=theta_plot_drift_kwargs,
-        zero_line_kwargs=theta_plot_zero_kwargs,
+        drift_line_kwargs={"color": "k", "linewidth": 2},
+        zero_line_kwargs={"linestyle": "--", "color": "gray", "linewidth": 1, "alpha": 0.7},
         xlabel_kwargs=xlabel_kwargs,
         ylabel_kwargs=ylabel_kwargs,
     )
@@ -366,8 +329,11 @@ for dataset_name, panel_letters, y_position in [
 
     # set plot formatting args and save
     ax.set_box_aspect(1.0)
-    ax.set_xticks(theta_plot_x_ticks, labels=theta_plot_x_ticklabels)
-    ax.set_yticks(theta_plot_y_ticks)
+    ax.set_xticks(
+        [0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi],
+        labels=["0", f"{unicode_pi}/4", f"{unicode_pi}/2", f"3{unicode_pi}/4", f"{unicode_pi}"],
+    )
+    ax.set_yticks([-0.3, 0.0, 0.3])
     save_plot_to_path(fig, fig_savedir, theta_plot_filename, file_format=".svg")
 
     # build panels for this dataset's visualizations, adjusting positions based
@@ -424,16 +390,11 @@ plot_cross_dataset_summaries(
 )
 
 # %%
-vmax = 1
-hist_binwidth = 0.02
 fig, ax = plt.subplots(figsize=(2, 2), layout="constrained")
 for dataset_name in [dataset_low, dataset_high]:
     # get settings
     dataset_config = load_dataset_config(dataset_name)
     shear_stress = math.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
-    dataset_name_flow = f"{dataset_name}_shear_{shear_stress}"
-    ss_label = f"{shear_stress} dyn/cm$\u00b2$"
-    hist_color = get_dataset_color(dataset_name)
 
     # load and filter data
     df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
@@ -454,11 +415,11 @@ for dataset_name in [dataset_low, dataset_high]:
         df=df_of,
         optical_flow_feature=optical_flow_feature,
         feature_label="Migration Coherence",
-        feature_lim=(0, vmax),
-        ss_label=ss_label,
-        color=hist_color,
+        feature_lim=(0, 1),
+        ss_label=f"{shear_stress} dyn/cm$\u00b2$",
+        color=get_dataset_color(dataset_name),
         df_fp=None,
-        binwidth=hist_binwidth,
+        binwidth=0.02,
         figure=(fig, ax),
         legend_loc=None,
     )
