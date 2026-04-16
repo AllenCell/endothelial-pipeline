@@ -127,7 +127,7 @@ def main(
         init_bootstrap_worker,
         match_bootstrap_fixed_points_to_baseline,
         run_one_bootstrap_iteration,
-        subsample_trajectories_and_displacements,
+        sample_trajectories_and_displacements_for_bootstrapping,
     )
     from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
@@ -286,17 +286,16 @@ def main(
         # Compute trajectories and displacements once from the full steady-state
         # data; the same lists are reused for the baseline and subsampled for
         # each bootstrap iteration.
-        full_trajectories, full_displacements = get_traj_and_diff(df_steady_state, column_names)
+        trajectories, displacements = get_traj_and_diff(df_steady_state, column_names)
 
-        # Generate all subsamples up front to avoid redundant subsampling in
-        # each iteration and to ensure subsampling is not a bottleneck in the
-        # parallel loop. Note that the list comprehension steps through samples
-        # from the rng as expected (i.e., do indeed get distinct samples). Each
-        # element of `all_subsamples` is a tuple of (subsampled_trajectories,
-        # subsampled_displacements).
-        all_subsamples: list[tuple[list[np.ndarray], list[np.ndarray]]] = [
-            subsample_trajectories_and_displacements(
-                full_trajectories, full_displacements, subsample_fraction=0.5, rng=rng
+        # Generate all resampled lists of trajectories and displacements for the
+        # bootstrap iterations up front, to avoid overhead from repeatedly
+        # resampling in each worker process. Each element of `all_sampled_pairs`
+        # is a tuple of (resampled_trajectories, resampled_displacements) for
+        # one bootstrap iteration.
+        all_sampled_pairs: list[tuple[list[np.ndarray], list[np.ndarray]]] = [
+            sample_trajectories_and_displacements_for_bootstrapping(
+                trajectories, displacements, rng=rng
             )
             for _ in range(num_bootstrap_iterations)
         ]
@@ -336,7 +335,9 @@ def main(
         ) as executor:
             bootstrap_fixed_points: list[pd.DataFrame] = list(
                 tqdm(
-                    executor.map(run_one_bootstrap_iteration, all_subsamples, chunksize=batch_size),
+                    executor.map(
+                        run_one_bootstrap_iteration, all_sampled_pairs, chunksize=batch_size
+                    ),
                     total=num_bootstrap_iterations,
                     desc=f"Bootstrap iterations for dataset: {dataset_name}",
                 )

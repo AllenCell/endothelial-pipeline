@@ -1,6 +1,8 @@
 from typing import NamedTuple
 
 EXAMPLE_DATASET = {
+    "FIGURE_2_LOW_FLOW_DATASET": "20250409_20X",
+    "FIGURE_2_HIGH_FLOW_DATASET": "20251001_20X",
     "SUPP_FIG_Z_SLICE": "20250428_20X",
     "SUPP_FIG_IMG_PROC": "20250224_20X",
     "SUPP_FIG_SINGLE_TP_BF_OUTLIER": "20250224_20X",
@@ -22,7 +24,7 @@ class ExampleImage(NamedTuple):
 
 FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES: list[ExampleImage] = [
     ExampleImage(
-        dataset_name="20250402_20X",  # update this example to be 20250402
+        dataset_name="20250402_20X",
         description="low_flow",
         position=3,
         timepoint=150,
@@ -47,6 +49,41 @@ FIGURE_1_PATCH_FT_EXAMPLE_IMAGE: ExampleImage = ExampleImage(
     crop_x_start=471,  # res level 0
     crop_y_start=1123,  # res level 0
 )
+
+FIGURE_3_EXAMPLE_IMAGES: list[ExampleImage] = [
+    ExampleImage(
+        dataset_name="20260304_20X",
+        description="example of 12 dyn intermediate dataset with // alignment",
+        position=5,
+        timepoint=202,
+        crop_x_start=0,  # res level 0
+        crop_y_start=0,  # res level 0
+    ),
+    ExampleImage(
+        dataset_name="20260121_20X",
+        description="example of 12 dyn intermediate dataset with mixed alignment",
+        position=1,
+        timepoint=380,
+        crop_x_start=0,  # res level 0
+        crop_y_start=100,  # res level 0
+    ),
+    ExampleImage(
+        dataset_name="20250813_20X",
+        description="example of 14 dyn intermediate dataset with mixed alignment",
+        position=1,
+        timepoint=180,
+        crop_x_start=250,  # res level 0
+        crop_y_start=500,  # res level 0
+    ),
+    ExampleImage(
+        dataset_name="20250326_20X",
+        description="example of 15 dyn intermediate dataset with mixed alignment",
+        position=0,
+        timepoint=180,
+        crop_x_start=0,  # res level 0
+        crop_y_start=100,  # res level 0
+    ),
+]
 
 CDH5_SEG_FIG_EXAMPLE: ExampleImage = ExampleImage(
     dataset_name="20250818_20X",
