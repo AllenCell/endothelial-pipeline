@@ -149,7 +149,7 @@ def main(
     # get minimum number of pcs needed for the fit pca object based on the
     # column names provided; for example, if "pc_11" is in the column names,
     # then the fit pca object needs to be fit with at least 11 pcs
-    column_names = DYNAMICS_COLUMN_NAMES or columns
+    column_names = list(DYNAMICS_COLUMN_NAMES) or columns
     num_pcs = get_num_pcs_from_column_names(column_names)
     if num_pcs == 0:
         raise ValueError(f"No PC-related column names found in {column_names}.")
@@ -169,8 +169,8 @@ def main(
     # to PC1 and PC2 coordinates for image generation (inverse PCA
     # transformation cannot be performed with polar coordinates)
     if (
-        Column.DiffAEData.POLAR_ANGLE.value in column_names
-        and Column.DiffAEData.POLAR_RADIUS.value in column_names
+        Column.DiffAEData.POLAR_ANGLE in column_names
+        and Column.DiffAEData.POLAR_RADIUS in column_names
     ):
         pc1_column_name = f"{Column.DiffAEData.PCA_FEATURE_PREFIX}1"
         pc2_column_name = f"{Column.DiffAEData.PCA_FEATURE_PREFIX}2"
@@ -182,9 +182,9 @@ def main(
 
     # if flipped pc3 is included in the column names, convert it to regular pc3
     # before performing inverse PCA transformation for image generation
-    if Column.DiffAEData.PC3_FLIPPED.value in column_names:
+    if Column.DiffAEData.PC3_FLIPPED in column_names:
         pc3_column_name = f"{Column.DiffAEData.PCA_FEATURE_PREFIX}3"
-        dataframe[pc3_column_name] = -dataframe[Column.DiffAEData.PC3_FLIPPED.value].to_numpy()
+        dataframe[pc3_column_name] = -dataframe[Column.DiffAEData.PC3_FLIPPED].to_numpy()
 
     # get latent coordinates by performing inverse PCA transformation on the PC
     # coordinates from the dataframe; only use the PC columns needed for the
