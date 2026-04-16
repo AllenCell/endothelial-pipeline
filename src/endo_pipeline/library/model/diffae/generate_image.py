@@ -302,6 +302,13 @@ def generate_from_coords(
     if isinstance(walk_img, torch.Tensor):
         return walk_img.detach().cpu().numpy()
 
+    # image shape is returned as (width, height*num_noise_samples) if
+    # n_noise_samples > 1, so reshape to (num_noise_samples, width, height)
+    if n_noise_samples > 1:
+        image_width = walk_img.shape[0]
+        image_height = walk_img.shape[-1] // n_noise_samples
+        walk_img = walk_img.reshape(n_noise_samples, image_width, image_height)
+
     return walk_img
 
 
