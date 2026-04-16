@@ -82,15 +82,13 @@ def main(
         upload_file_to_fms,
     )
     from endo_pipeline.library.analyze.data_driven_flow_field import (
-        compute_extrapolated_vector_field,
-        get_callable_vector_field,
-        get_fixed_points_within_bounds,
+        get_drift_estimates_and_fixed_points,
     )
-    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
-    from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
+    from endo_pipeline.library.analyze.dataframe_filtering import (
+        filter_dataframe_by_flow_condition,
+        filter_dataframe_to_steady_state,
+    )
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
-    from endo_pipeline.library.analyze.numerics.binning import get_bins
-    from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
     from endo_pipeline.manifests import (
         DataframeLocation,
         build_dataframe_location_from_path,
@@ -101,7 +99,6 @@ def main(
     )
     from endo_pipeline.settings.column_names import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
-        BIN_LIMITS_THETA_RESCALED,
         BIN_WIDTHS_DYNAMICS,
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
@@ -114,7 +111,6 @@ def main(
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
         LOWER_PERCENTILE_FOR_STABLE_FP,
         NUM_INIT_SAMPLES,
-        PAD_BINS_FLOAT,
         TIME_STEP_IN_MINUTES,
         UPPER_PERCENTILE_FOR_STABLE_FP,
     )
@@ -135,7 +131,6 @@ def main(
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
     run_name = DEFAULT_MODEL_RUN_NAME
     column_names: list[ColumnName.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
-    drift_column_names: list[str] = [f"{name}_drift" for name in column_names]
     # columns to keep when loading dataframes
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
@@ -189,10 +184,6 @@ def main(
         num_datasets = min(len(dataset_names), 2)
         dataset_names = dataset_names[:num_datasets]
 
-    # initialize list to hold dataframes of stable fixed points from all
-    # datasets with columns for dataset name and 3D PC space coordinates
-    stable_fixed_points_all_datasets_list = []
-
     # initialize kernels and bin widths for each of the three variables for flow
     # field estimation
     kernels: list[KramersMoyalKernel] = []
@@ -240,14 +231,6 @@ def main(
             continue
 
         dataset_config = load_dataset_config(dataset_name)
-        if len(dataset_config.shear_stress_regime) > 1:
-            logger.warning(
-                "Dataset [ %s ] has more than one shear stress condition: [ %s ]. "
-                "Skipping for 3D flow field analysis.",
-                dataset_name,
-                dataset_config.shear_stress_regime,
-            )
-            continue
 
         # load dataframe and perform additional filtering (remove
         # non-steady-state timepoints based on annotations), computing
@@ -257,50 +240,49 @@ def main(
         dataset_config = load_dataset_config(dataset_name)
         df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
 
-        # get bins for flow field estimation based on the trajectories, to be
-        # used for kernel-convolution-based estimation of the Kramers-Moyal
-        # coefficients. The bins are determined by the specified bin widths and
-        # the range of the data.
-        bins, centers = get_bins(
-            bin_widths,
-            data=df_steady_state[column_names].to_numpy(),
-            pad=PAD_BINS_FLOAT,
-        )
+        # process on a per-flow condition basis
+        vector_field_dataframe_list = []
+        fixed_points_dataframe_list = []
+        for flow_condition in dataset_config.flow_conditions:
+            shear_stress = flow_condition.shear_stress
+            df_flow = filter_dataframe_by_flow_condition(
+                df_steady_state, dataset_config, flow_condition
+            )
+            metadata_dict = {
+                ColumnName.DATASET: dataset_name,
+                ColumnName.SHEAR_STRESS: shear_stress,
+            }
+            vector_field_dataframe, fixed_points_dataframe = get_drift_estimates_and_fixed_points(
+                dataframe=df_flow,
+                column_names=column_names,
+                bin_widths=bin_widths,
+                kernel=kernels,
+                time_step=TIME_STEP_IN_MINUTES / 60,  # convert to units of hours
+                metadata_dict=metadata_dict,
+            )
 
-        # get list of per-crop trajectories, the corresponding
-        # displacement vectors, and time differences
-        traj_list, d_traj_list = get_traj_and_diff(df_steady_state, column_names)
+            # Append to lists to be concatenated outside of flow condition loop
+            vector_field_dataframe_list.append(vector_field_dataframe)
 
-        # get drift estimates in units hours^-1 for each bin in 3D space
-        # (Kramers-Moyal coefficient estimation)
-        drift_coeffs = get_kramers_moyal_coeffs(
-            traj_list, d_traj_list, bins=bins, dt=TIME_STEP_IN_MINUTES / 60, kernel=kernels
-        )[0]
-        feature_grid = np.meshgrid(*centers, indexing="ij")
-
-        # build dataframe with columns for bin centers in each of the three
-        # dimensions and the corresponding drift coefficients
-        vector_field_df = pd.DataFrame(
-            columns=[ColumnName.DATASET, *drift_column_names, *column_names]
-        )
-        for index, column_name, drift_column_name in zip(
-            (0, 1, 2), column_names, drift_column_names, strict=True
-        ):
-            vector_field_df[column_name] = feature_grid[index].flatten()
-            vector_field_df[drift_column_name] = drift_coeffs[..., index].flatten()
-        vector_field_df[ColumnName.DATASET] = dataset_name
+            # (checking first if returned fixed point dataframe dataframe is
+            # empty to avoid issues with concatenation and saving an empty
+            # dataframe)
+            if fixed_points_dataframe.empty:
+                continue
+            fixed_points_dataframe_list.append(fixed_points_dataframe)
 
         # save drift coefficients and grid points dataframes to parquet files,
         # with names that include the input dataframe manifest name for
         # traceability and to avoid naming conflicts with other runs
-        drift_coeffs_file_name = (
+        vector_field_for_dataset = pd.concat(vector_field_dataframe_list, ignore_index=True)
+        vector_field_file_name = (
             f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataset_name}{demo_suffix}.parquet"
         )
-        drift_coeffs_save_path = make_name_unique(dataframe_savedir / drift_coeffs_file_name)
-        vector_field_df.to_parquet(drift_coeffs_save_path)
+        vector_field_save_path = make_name_unique(dataframe_savedir / vector_field_file_name)
+        vector_field_for_dataset.to_parquet(vector_field_save_path)
         logger.info(
             "Saved dataframe with drift coefficients and grid points locally to [ %s ]",
-            drift_coeffs_save_path,
+            vector_field_save_path,
         )
         # Upload dataframes to FMS and update manifests
         if upload_to_fms:
@@ -311,14 +293,17 @@ def main(
                 run_name=run_name,
                 additional_notes=FMS_ANNOTATION_NOTES_DRIFT,
             )
-            drift_fmsid = upload_file_to_fms(
-                drift_coeffs_save_path, annotations=drift_annotations, file_type="parquet"
+            vector_field_fmsid = upload_file_to_fms(
+                vector_field_save_path, annotations=drift_annotations, file_type="parquet"
             )
-            drift_dataframe_manifest.locations[dataset_name] = DataframeLocation(fmsid=drift_fmsid)
+            drift_dataframe_manifest.locations[dataset_name] = DataframeLocation(
+                fmsid=vector_field_fmsid
+            )
             logger.info(
-                "Uploaded dataframe with drift coefficients and grid points for dataset [ %s ] to FMS with FMS ID [ %s ]",
+                "Uploaded dataframe with vector field coefficients and grid points for"
+                " dataset [ %s ] at shear stress [ %s ] to FMS with FMS ID [ %s ]",
                 dataset_name,
-                drift_fmsid,
+                vector_field_fmsid,
             )
         # if not uploading to FMS, log only the path if there is no location for
         # that dataset or if there is, but the FMS ID is None
@@ -327,39 +312,18 @@ def main(
             or drift_dataframe_manifest.locations[dataset_name].fmsid is None
         ):
             drift_dataframe_manifest.locations[dataset_name] = build_dataframe_location_from_path(
-                drift_coeffs_save_path
+                vector_field_save_path
             )
         # save updated manifest with new locations (either FMS or local paths)
         save_dataframe_manifest(drift_dataframe_manifest)
 
-        ## extrapolate the drift to get a flow field over the entire 3D space as specified by the input bins and centers
-        extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
-            drift_coeffs, centers, method="linear", for_vtk_files=False
-        )
-
-        # get callable drift function to be used for root finding to identify
-        # fixed points
-        drift_function = get_callable_vector_field(
-            extrapolated_flow_field_dict_reg, for_solve_ivp=False, method="linear"
-        )
-
-        fixed_points_for_dataset = get_fixed_points_within_bounds(
-            vector_field_function=drift_function,
-            dataframe=df_steady_state,
-            column_names=column_names,
-            num_inits_for_root_solver=NUM_INIT_SAMPLES,
-            lower_percentile=LOWER_PERCENTILE_FOR_STABLE_FP,
-            upper_percentile=UPPER_PERCENTILE_FOR_STABLE_FP,
-            polar_angle_range=BIN_LIMITS_THETA_RESCALED if RESCALE_THETA else (-np.pi, np.pi),
-        )
-
-        # add stable fixed points from this dataset to the overall dataframe
-        # (checking first if returned dataframe is empty first to avoid issues
-        # with concatenation and saving an empty dataframe)
-        if fixed_points_for_dataset.empty:
+        # if there are fixed points for this dataset, concatenate them into a
+        # single dataframe and add to list of dataframes of fixed points for all
+        # datasets
+        if not fixed_points_dataframe_list:
             continue
 
-        stable_fixed_points_all_datasets_list.append(fixed_points_for_dataset)
+        fixed_points_for_dataset = pd.concat(fixed_points_dataframe_list, ignore_index=True)
 
         # save stable fixed points from this dataset to parquet file
         fixed_points_file_name = (

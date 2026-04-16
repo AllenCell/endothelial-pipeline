@@ -62,10 +62,6 @@ locations:
     fmsid: eb6a982869b74f519ba04af6eda40620
     path: null
     s3uri: null
-  20250825_20X:
-    fmsid: bce319d80ef5461ca93f5270b566f89a
-    path: null
-    s3uri: null
   20250827_20X:
     fmsid: b55072ede65646d7a478882d08d4a796
     path: null

@@ -14,7 +14,10 @@ from scipy.stats import gaussian_kde
 
 from endo_pipeline.io.input import load_dataframe
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
-from endo_pipeline.library.analyze.numerics.binning import circpercentile
+from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
+from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
+from endo_pipeline.library.analyze.numerics.binning import circpercentile, get_bins
+from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
 from endo_pipeline.library.visualize.diffae_features.pplane import (
     get_fpt_type,
     get_fpts,
@@ -24,7 +27,13 @@ from endo_pipeline.manifests.dataframe_manifest_io import load_dataframe_manifes
 from endo_pipeline.manifests.dataframe_manifest_utils import get_dataframe_location_for_dataset
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_THETA_RESCALED
-from endo_pipeline.settings.flow_field_3d import SAMPLER_RANDOM_SEED
+from endo_pipeline.settings.flow_field_3d import (
+    LOWER_PERCENTILE_FOR_STABLE_FP,
+    NUM_INIT_SAMPLES,
+    PAD_BINS_FLOAT,
+    SAMPLER_RANDOM_SEED,
+    UPPER_PERCENTILE_FOR_STABLE_FP,
+)
 from endo_pipeline.settings.flow_field_dataframes import (
     DATAFRAME_MANIFEST_PREFIX_DRIFT,
     DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
@@ -207,6 +216,7 @@ def get_fixed_points_within_bounds(
     upper_percentile: float,
     polar_angle_range: tuple[float, float],
     stability_label_column_name: str = STABILITY_COLUMN_NAME,
+    metadata_dict: dict[str, str | float] | None = None,
 ) -> pd.DataFrame:
     """Get fixed points of a given estimated vector field with high confidence.
 
@@ -242,6 +252,8 @@ def get_fixed_points_within_bounds(
     stability_label_column_name
         Column name to use for fixed point stability classification labels in the
         output dataframe.
+    metadata_dict
+        Optional dictionary of metadata to include as columns in the output dataframe.
 
     Returns
     -------
@@ -250,11 +262,8 @@ def get_fixed_points_within_bounds(
         points filtered by percentile range).
 
     """
-    check_required_columns_in_dataframe(
-        dataframe, [*column_names, Column.DATASET]
-    )  # check required columns are in dataframe
-    feature_data = dataframe[column_names].to_numpy()  # get feature data as numpy array
-    dataset_name = dataframe[Column.DATASET].iloc[0]  # get dataset name from dataframe
+    check_required_columns_in_dataframe(dataframe, column_names)
+    feature_data = dataframe[column_names].to_numpy()
 
     # create Jacobian function for finding stability of fixed points
     vector_field_jacobian = Jacobian(vector_field_function)
@@ -271,14 +280,8 @@ def get_fixed_points_within_bounds(
     lower_percentile_bounds = _compute_percentile_values(
         dataframe, column_names, q=lower_percentile, polar_angle_range=polar_angle_range
     )
-    logger.debug(
-        "Lower percentile bounds for filtering fixed points: [ %s ]", lower_percentile_bounds
-    )
     upper_percentile_bounds = _compute_percentile_values(
         dataframe, column_names, q=upper_percentile, polar_angle_range=polar_angle_range
-    )
-    logger.debug(
-        "Upper percentile bounds for filtering fixed points: [ %s ]", upper_percentile_bounds
     )
     fpts_high_confidence_list = []
     for fpt in fpts:
@@ -293,7 +296,6 @@ def get_fixed_points_within_bounds(
             fpts_high_confidence_list.append(
                 pd.DataFrame(
                     {
-                        Column.DATASET: [dataset_name],
                         stability_label_column_name: [fpt_stability_label],
                         column_names[0]: [fpt[0]],
                         column_names[1]: [fpt[1]],
@@ -306,15 +308,20 @@ def get_fixed_points_within_bounds(
     # a warning and return an empty dataframe with the correct columns
     if len(fpts_high_confidence_list) == 0:
         logger.warning(
-            "No fixed points with high confidence found for dataset [ %s ]."
-            "Consider adjusting percentile thresholds or number of initial conditions for root solver.",
-            dataset_name,
+            "No fixed points with high confidence found. Consider adjusting percentile"
+            " thresholds or number of initial conditions for root solver."
         )
-        return pd.DataFrame(columns=[Column.DATASET, stability_label_column_name, *column_names])
-
+        fpts_high_confidence = pd.DataFrame(columns=[stability_label_column_name, *column_names])
     # else, concatenate the list of dataframes for each fixed point into a
     # single dataframe and return it
-    fpts_high_confidence = pd.concat(fpts_high_confidence_list, ignore_index=True)
+    else:
+        fpts_high_confidence = pd.concat(fpts_high_confidence_list, ignore_index=True)
+
+    # add provided metadata columns to the dataframe (e.g. dataset name, shear stress)
+    if metadata_dict is not None:
+        for key in metadata_dict:
+            fpts_high_confidence[key] = metadata_dict[key]
+
     return fpts_high_confidence
 
 
@@ -654,6 +661,184 @@ def interpolate_on_curve(traj: np.ndarray, n_points: int = 5) -> np.ndarray:
         interpolated_points[:, i] = np.interp(arc_length_new, arc_length, traj[:, i])
 
     return interpolated_points
+
+
+def compute_drift_vector_field(
+    dataframe: pd.DataFrame,
+    column_names: list[str | Column.DiffAEData],
+    bins: list[np.ndarray],
+    kernel: KramersMoyalKernel | list[KramersMoyalKernel],
+    time_step: float,
+) -> np.ndarray:
+    """
+    Compute the drift coefficient vector field along specified features for a
+    single flow condition.
+
+    **Kernel specification**
+
+    The input ``kernel`` can be a single kernel function that is applied to all
+    dimensions, or a list of kernel functions for each dimension (in which case
+    the product kernel is used).
+
+    In general, the kernel is specified as a ``KramersMoyalKernel`` dataclass,
+    which has attributes for the kernel name, bandwidth, and period (if
+    applicable). If a list of kernels is provided, each kernel in the list
+    should be a ``KramersMoyalKernel`` dataclass corresponding to each
+    dimension.
+
+    Parameters
+    ----------
+    dataframe
+        Dataframe containing the feature data (time series trajectories) for a
+        single flow condition.
+    column_names
+        Feature column names to use for computing the drift coefficients.
+    bins
+        List of arrays specifying the bin edges for each dimension to use for
+        estimating the drift coefficients.
+    kernels
+        Kramers-Moyal kernel or list of Kramers-Moyal kernels in each dimension
+        to use for estimating the drift coefficients.
+
+    Returns
+    -------
+    :
+        Array containing the drift coefficients for each point in the input
+        dataframe.
+
+    """
+
+    # get list of per-crop trajectories, the corresponding
+    # displacement vectors, and time differences
+    traj_list, d_traj_list = get_traj_and_diff(dataframe, column_names)
+
+    # get drift estimates in units hours^-1 for each bin in 3D space
+    # (Kramers-Moyal coefficient estimation)
+    drift_coeffs = get_kramers_moyal_coeffs(
+        traj_list, d_traj_list, bins=bins, dt=time_step, kernel=kernel
+    )[0]
+
+    return drift_coeffs
+
+
+def create_drift_vector_field_df(
+    drift_coeffs: np.ndarray,
+    column_names: list[str | Column.DiffAEData],
+    feature_grid: tuple[np.ndarray],
+    metadata_dict: dict[str, str | float] | None = None,
+) -> pd.DataFrame:
+    """
+    Create dataframe containing the estimated drift vector field for a single
+    flow condition.
+
+    The output dataframe will have columns for the grid points in each of the
+    three dimensions, the corresponding drift coefficients, and additional
+    metadata such as dataset name and shear stress.
+
+    Parameters
+    ----------
+    drift_coeffs
+        Array containing the drift coefficients for each point in the feature
+        grid.
+    column_names
+        List of column names corresponding to the features used for computing
+        the drift coefficients.
+    feature_grid
+        Tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in each
+        dimension corresponding to the drift coefficients.
+    metadata_dict
+        Optional, dictionary containing metadata to include in the output dataframe (e.g.
+        dataset name, shear stress
+    """
+
+    # build dataframe with columns for grid points in each of the three
+    # dimensions and the corresponding drift coefficients
+    drift_column_names: list[str] = [f"{name}_drift" for name in column_names]
+    vector_field_df = pd.DataFrame(columns=[Column.DATASET, *drift_column_names, *column_names])
+
+    # make tuple for indexing the drift coefficients and feature grid
+    index_tuple = tuple(range(len(column_names)))
+    for index, column_name, drift_column_name in zip(
+        index_tuple, column_names, drift_column_names, strict=True
+    ):
+        vector_field_df[column_name] = feature_grid[index].flatten()
+        vector_field_df[drift_column_name] = drift_coeffs[..., index].flatten()
+
+    # add specified metadata columns to the dataframe (e.g. dataset name, shear
+    # stress)
+    if metadata_dict is not None:
+        for key in metadata_dict:
+            vector_field_df[key] = metadata_dict[key]
+
+    return vector_field_df
+
+
+def get_drift_estimates_and_fixed_points(
+    dataframe: pd.DataFrame,
+    column_names: list[str | Column.DiffAEData],
+    bin_widths: list[float],
+    kernel: KramersMoyalKernel | list[KramersMoyalKernel],
+    time_step: float,
+    metadata_dict: dict[str, str | float] | None = None,
+    pad_bins_float: float = PAD_BINS_FLOAT,
+    polar_angle_range: tuple[float, float] = BIN_LIMITS_THETA_RESCALED,
+    num_inits_for_root_solver: int = NUM_INIT_SAMPLES,
+    lower_percentile_for_stable_fp: float = LOWER_PERCENTILE_FOR_STABLE_FP,
+    upper_percentile_for_stable_fp: float = UPPER_PERCENTILE_FOR_STABLE_FP,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    # get bins for flow field estimation based on the trajectories, to be
+    # used for kernel-convolution-based estimation of the Kramers-Moyal
+    # coefficients. The bins are determined by the specified bin widths and
+    # the range of the data.
+    bins, centers = get_bins(
+        bin_widths,
+        data=dataframe[column_names].to_numpy(),
+        pad=pad_bins_float,
+    )
+    feature_grid = np.meshgrid(*centers, indexing="ij")
+
+    # estimate the drift coefficients at each bin/grid point in 3D space
+    # using a kernel-convolution-based method for estimating
+    # Kramers-Moyal coefficients from time series data.
+    drift_coeffs = compute_drift_vector_field(
+        dataframe,
+        column_names,
+        bins=bins,
+        kernel=kernel,
+        time_step=time_step,
+    )
+
+    # Compile estimated drift coefficients and corresponding grid points
+    # into a dataframe for this dataset, to be saved and tracked.
+    vector_field_df = create_drift_vector_field_df(
+        drift_coeffs=drift_coeffs,
+        column_names=column_names,
+        feature_grid=feature_grid,
+        metadata_dict=metadata_dict,
+    )
+
+    # Extrapolate the drift to get a flow field over the entire 3D space
+    # as specified by the input bins and centers, and use it to get a
+    # callable function for the flow field that can be used for root
+    # finding to identify fixed points.
+    extrapolated_flow_field_dict_reg = compute_extrapolated_vector_field(
+        drift_coeffs, centers, method="linear", for_vtk_files=False
+    )
+    drift_function = get_callable_vector_field(
+        extrapolated_flow_field_dict_reg, for_solve_ivp=False, method="linear"
+    )
+    fixed_points_dataframe = get_fixed_points_within_bounds(
+        vector_field_function=drift_function,
+        dataframe=dataframe,
+        column_names=column_names,
+        polar_angle_range=polar_angle_range,
+        num_inits_for_root_solver=num_inits_for_root_solver,
+        lower_percentile=lower_percentile_for_stable_fp,
+        upper_percentile=upper_percentile_for_stable_fp,
+        metadata_dict=metadata_dict,
+    )
+
+    return vector_field_df, fixed_points_dataframe
 
 
 def get_drift_df(

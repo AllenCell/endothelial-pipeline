@@ -120,18 +120,18 @@ OPTICAL_FLOW_FEATURE_COLUMNS_DT1: list[str] = [
     "optical_flow_std_v_dt1",
     "optical_flow_mean_unit_vector_fast_dt1",
     "speed_above_1_count_dt1",
-    "ema005_optical_flow_mean_unit_vector_dt1",
-    "ema005_optical_flow_mean_unit_vector_fast_dt1",
     "ema01_optical_flow_mean_unit_vector_dt1",
     "ema01_optical_flow_mean_unit_vector_fast_dt1",
-    "ema02_optical_flow_mean_unit_vector_dt1",
-    "ema02_optical_flow_mean_unit_vector_fast_dt1",
     "ema01_optical_flow_radial_coherence_dt1",
     "ema01_optical_flow_radial_coherence_weighted_dt1",
-    "optical_flow_radial_coherence_dt1",
-    "optical_flow_radial_coherence_weighted_dt1",
 ]
 """Optical-flow feature column names with dt=1 stride, as stored in dataframes."""
+# TO DO: temporarily remove features until new perturbation data has these columns
+# or we decide not to include them in the final TFE feature set
+# "ema005_optical_flow_mean_unit_vector_dt1",
+# "ema005_optical_flow_mean_unit_vector_fast_dt1",
+# "ema02_optical_flow_mean_unit_vector_dt1",
+# "ema02_optical_flow_mean_unit_vector_fast_dt1",
 
 # ---------------------------------------------------------------------------
 # Channel-aware parameters

@@ -21,10 +21,10 @@ logger = logging.getLogger(__name__)
 
 def add_optical_flow_features(
     df: pd.DataFrame,
-    datasets: list[str],
+    datasets: list[str] | None = None,
     optical_flow_manifest_name: str = DEFAULT_OPTICAL_FLOW_MANIFEST_NAME,
-    optical_flow_feature_columns: list[str] | None = None,
-    merge_columns: list[str] | None = None,
+    optical_flow_feature_columns: list[ColumnName.OpticalFlow] | None = None,
+    merge_columns: list[str | ColumnName.DiffAEData] | None = None,
 ) -> pd.DataFrame:
     """
     Load optical-flow features and merge them with an existing dataframe.
@@ -57,6 +57,8 @@ def add_optical_flow_features(
     :
         Concatenated dataframe with optical-flow features merged in.
     """
+    if datasets is None:
+        datasets = df[ColumnName.DATASET].unique().tolist()
 
     merge_columns_ = merge_columns or list(OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS)
     optical_flow_feature_columns_ = optical_flow_feature_columns or list(
@@ -91,30 +93,41 @@ def add_optical_flow_features(
 def add_binned_mean_to_fixed_points(
     df_fp: pd.DataFrame,
     df_of: pd.DataFrame,
-    x_col: str,
-    y_col: str,
-    z_col: str,
+    fp_x_col: str,
+    fp_y_col: str,
+    fp_z_col: str,
     binned_col: str,
+    of_x_col: str | None = None,
+    of_y_col: str | None = None,
+    of_z_col: str | None = None,
     bin_size_xyz: tuple[float, float, float] = (MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,) * 3,
 ) -> pd.DataFrame:
     """Compute the mean of *binned_col* in the 3D bin surrounding each fixed point.
 
     For each row in *df_fp*, the function finds all rows in *df_of* that fall
     within a bin of size *bin_size_xyz* centered on the fixed point's
-    (*x_col*, *y_col*, *z_col*) coordinates and computes the mean of
-    *binned_col* over those rows.
+    coordinates and computes the mean of *binned_col* over those rows.
+
+    The fixed-points dataframe and optical-flow dataframe may use different
+    column names for the same spatial axes. When the ``of_*`` column
+    parameters are ``None`` they fall back to the corresponding ``fp_*``
+    column.
 
     Parameters
     ----------
     df_fp
-        Fixed-points dataframe with columns *x_col*, *y_col*, *z_col*.
+        Fixed-points dataframe with columns *fp_x_col*, *fp_y_col*,
+        *fp_z_col*.
     df_of
-        Optical-flow dataframe with columns *x_col*, *y_col*, *z_col*,
-        and *binned_col*.
-    x_col, y_col, z_col
-        Column names for the three spatial axes.
+        Optical-flow dataframe with columns *of_x_col*, *of_y_col*,
+        *of_z_col*, and *binned_col*.
+    fp_x_col, fp_y_col, fp_z_col
+        Column names for the three spatial axes in *df_fp*.
     binned_col
         Column name whose bin-mean is computed.
+    of_x_col, of_y_col, of_z_col
+        Column names for the three spatial axes in *df_of*.  When ``None``,
+        defaults to the corresponding ``fp_*`` column name.
     bin_size_xyz
         Half-widths ``(dx, dy, dz)`` defining the bin extent around each
         fixed point.
@@ -125,16 +138,20 @@ def add_binned_mean_to_fixed_points(
         A copy of *df_fp* with an additional column ``mean_{binned_col}``
         containing the mean value of *binned_col* in each fixed point's bin.
     """
+    of_x = of_x_col if of_x_col is not None else fp_x_col
+    of_y = of_y_col if of_y_col is not None else fp_y_col
+    of_z = of_z_col if of_z_col is not None else fp_z_col
+
     dx, dy, dz = bin_size_xyz
     means = []
     for _, row in df_fp.iterrows():
         mask = (
-            (df_of[x_col] >= row[x_col] - dx / 2)
-            & (df_of[x_col] < row[x_col] + dx / 2)
-            & (df_of[y_col] >= row[y_col] - dy / 2)
-            & (df_of[y_col] < row[y_col] + dy / 2)
-            & (df_of[z_col] >= row[z_col] - dz / 2)
-            & (df_of[z_col] < row[z_col] + dz / 2)
+            (df_of[of_x] >= row[fp_x_col] - dx / 2)
+            & (df_of[of_x] < row[fp_x_col] + dx / 2)
+            & (df_of[of_y] >= row[fp_y_col] - dy / 2)
+            & (df_of[of_y] < row[fp_y_col] + dy / 2)
+            & (df_of[of_z] >= row[fp_z_col] - dz / 2)
+            & (df_of[of_z] < row[fp_z_col] + dz / 2)
         )
         means.append(df_of.loc[mask, binned_col].mean())
 

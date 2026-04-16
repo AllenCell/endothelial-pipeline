@@ -354,6 +354,14 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "ticks": range(0, 181, 90),
             "discrete_ticks": False,
         },
+        Column.SegData.ORIENTATION: {
+            "column_name": Column.SegData.ORIENTATION,
+            "label": "Orientation",
+            "lims": (0, 180),
+            "bin_width": 5,
+            "ticks": range(0, 181, 90),
+            "discrete_ticks": False,
+        },
         Column.SegData.NEMATIC_ORDER: {
             "column_name": Column.SegData.NEMATIC_ORDER,
             "label": "Nematic Order",
@@ -380,7 +388,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         },
         Column.SegData.AREA_UM_SQ: {
             "column_name": Column.SegData.AREA_UM_SQ,
-            "label": "Area (μm²)",
+            "label": "Area",
             "lims": (350, 2000),
             "bin_width": None,
             "ticks": None,
@@ -492,7 +500,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         },
         Column.DiffAEData.POLAR_RADIUS: {
             "column_name": Column.DiffAEData.POLAR_RADIUS,
-            "label": r"$r$",
+            "label": "r",
             "lims": (0, None),
             "bin_width": None,
             "ticks": None,
@@ -500,7 +508,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         },
         Column.DiffAEData.POLAR_ANGLE: {
             "column_name": Column.DiffAEData.POLAR_ANGLE,
-            "label": r"$\theta$",
+            "label": "\u03b8",
             "lims": None,
             "bin_width": None,
             "ticks": None,
@@ -508,7 +516,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         },
         Column.DiffAEData.PC3_FLIPPED: {
             "column_name": Column.DiffAEData.PC3_FLIPPED,
-            "label": r"$\rho$",
+            "label": "\u03c1",
             "lims": None,
             "bin_width": None,
             "ticks": None,
@@ -529,6 +537,22 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
             "bin_width": None,
             "ticks": None,
             "discrete_ticks": True,
+        },
+        Column.OpticalFlow.UNIT_VECTOR_MEAN: {
+            "column_name": Column.OpticalFlow.UNIT_VECTOR_MEAN,
+            "label": "Migration Coherence",
+            "lims": (0, 1),
+            "bin_width": 0.02,
+            "ticks": None,
+            "discrete_ticks": False,
+        },
+        Column.OpticalFlow.SPEED_MEAN: {
+            "column_name": Column.OpticalFlow.SPEED_MEAN,
+            "label": "Mean Speed",
+            "lims": (0, None),
+            "bin_width": None,
+            "ticks": None,
+            "discrete_ticks": False,
         },
     }
 
