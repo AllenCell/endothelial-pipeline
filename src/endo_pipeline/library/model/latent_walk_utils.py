@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pandas as pd
 
+from endo_pipeline.library.analyze.polar_coords import polar_to_pcs
 from endo_pipeline.library.model.diffae import generate_from_coords
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import (
@@ -46,6 +47,59 @@ def get_feature_coordinates_as_string(
         coordinate_str = f"{coordinate:.2f}".replace(".", "p").replace("-", "neg")
         coordinate_strings.append(f"{column_name}_{coordinate_str}")
     return "_".join(coordinate_strings)
+
+
+def add_pc_coordinates_to_dataframe(
+    dataframe: pd.DataFrame, feature_column_names: list[str]
+) -> pd.DataFrame:
+    """
+    Add PC coordinates to the dataframe based on the provided feature column
+    names.
+
+    If the provided feature column names include any of the polar coordinate
+    columns or the flipped PC3 column, the corresponding PC coordinates will be
+    calculated and added to the dataframe as new columns.
+
+    The PC coordinates are needed for image generation since the inverse PCA
+    transformation is applied to get the latent coordinates for image
+    generation, and the polar coordinates and flipped PC3 coordinate cannot be
+    used directly for the inverse PCA transformation.
+
+    Parameters
+    ----------
+    dataframe
+        DataFrame containing the data to calculate PC coordinates from.
+    feature_column_names
+        List of column names corresponding to input features.
+
+    Returns
+    -------
+    :
+        DataFrame with added PC coordinate columns if any of the polar coordinate
+        or flipped PC3 columns are present.
+    """
+    # if polar angle and radius are included in the column names, convert them
+    # to PC1 and PC2 coordinates for image generation (inverse PCA
+    # transformation cannot be performed with polar coordinates)
+    if (
+        Column.DiffAEData.POLAR_ANGLE in feature_column_names
+        and Column.DiffAEData.POLAR_RADIUS in feature_column_names
+    ):
+        pc1_column_name = f"{Column.DiffAEData.PCA_FEATURE_PREFIX}1"
+        pc2_column_name = f"{Column.DiffAEData.PCA_FEATURE_PREFIX}2"
+        angle = dataframe[Column.DiffAEData.POLAR_ANGLE].to_numpy()
+        radius = dataframe[Column.DiffAEData.POLAR_RADIUS].to_numpy()
+        pc1_values, pc2_values = polar_to_pcs(angle, radius)
+        dataframe[pc1_column_name] = pc1_values
+        dataframe[pc2_column_name] = pc2_values
+
+    # if flipped pc3 is included in the column names, convert it to regular pc3
+    # before performing inverse PCA transformation for image generation
+    if Column.DiffAEData.PC3_FLIPPED in feature_column_names:
+        pc3_column_name = f"{Column.DiffAEData.PCA_FEATURE_PREFIX}3"
+        dataframe[pc3_column_name] = -dataframe[Column.DiffAEData.PC3_FLIPPED].to_numpy()
+
+    return dataframe
 
 
 def get_max_dim_in_column_names(column_names: list[str], feature_prefix: str) -> int:
