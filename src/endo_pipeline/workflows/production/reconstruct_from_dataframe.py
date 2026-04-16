@@ -10,6 +10,7 @@ def main(
     output_dir: str | None = None,
     file_format: Literal[".png", ".svg", ".pdf"] = ".png",
     figsize: tuple[float, float] = (2, 2),
+    random_seed: int | None = None,
 ) -> None:
     """
     Reconstruct crops from feature coordinates stored in a given dataframe.
@@ -201,7 +202,9 @@ def main(
     pc_column_names = DIFFAE_PC_COLUMN_NAMES[:num_pcs]
     latent_coords = pca.inverse_transform(dataframe[pc_column_names].to_numpy())
 
-    reconstructed_imgs = generate_from_coords_batch(model, latent_coords, num_gpus=NUM_GPUS)
+    reconstructed_imgs = generate_from_coords_batch(
+        model, latent_coords, num_gpus=NUM_GPUS, random_seed=random_seed
+    )
 
     for i, img in enumerate(reconstructed_imgs):
         fig, ax = plt.subplots(figsize=figsize)

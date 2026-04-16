@@ -70,6 +70,7 @@ from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
+    RANDOM_SEED,
 )
 from endo_pipeline.workflows.production.reconstruct_from_dataframe import (
     main as reconstruct_from_dataframe,
@@ -197,7 +198,7 @@ save_plot_to_path(fig, base_output_dir, "colorbar", file_format=".svg", transpar
 # pairwise combination of polar coordinates, and plot contours of drift coefficients
 panels = []
 for dataset_name, panel_letters, y_position, crop_x_position in [
-    (dataset_low, ("A", "B", "E"), 0.0, 0.0),
+    (dataset_low, ("A", "B", "E"), 0.0, 0.5),
     (dataset_high, ("C", "D", "F"), 2.05, MAX_FIGURE_WIDTH / 2),
 ]:
     if dataset_name not in feature_dataframe_manifest.locations:
@@ -367,7 +368,6 @@ for dataset_name, panel_letters, y_position, crop_x_position in [
     save_plot_to_path(fig, fig_savedir, theta_plot_filename, file_format=".svg")
 
     # ---------- crop reconstruction from dataframe and save as svg for this dataset ----------
-    crop_output_dir = get_output_path(__file__, dataset_name, "crop_reconstructions")
     fixed_point_coordinates = stable_fixed_points[feature_column_names].to_numpy().flatten()
     feature_coord_string = get_feature_coordinates_as_string(
         feature_column_names, fixed_point_coordinates
@@ -377,9 +377,10 @@ for dataset_name, panel_letters, y_position, crop_x_position in [
         fmsid=df_fixed_points_location.fmsid,
         columns=feature_column_names,
         dataset_labels=False,
-        output_dir=crop_output_dir,
+        output_dir=fig_savedir,
         file_format=".svg",
         figsize=(0.75, 0.75),
+        random_seed=RANDOM_SEED,
     )
 
     # build panels for this dataset's visualizations, adjusting positions based
@@ -423,11 +424,11 @@ for dataset_name, panel_letters, y_position, crop_x_position in [
 
     crop_panel = FigurePanel(
         letter=panel_letters[2],
-        path=crop_output_dir / f"{crop_filename}.svg",
+        path=fig_savedir / f"{crop_filename}.svg",
         x_position=crop_x_position,
         y_position=y_position + 2.0,
-        x_offset=-0.1,
-        y_offset=-0.1,
+        x_offset=0.1,
+        y_offset=0.1,
     )
     panels.extend([contour_plots, colorbar_panel, quiver_plot, theta_plot, crop_panel])
 

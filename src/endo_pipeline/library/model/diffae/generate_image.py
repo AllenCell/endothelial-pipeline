@@ -226,6 +226,7 @@ def generate_from_coords_batch(
     model: "BaseDiffusionAutoEncoder | DiffusionAutoEncoder",
     coords_batch: np.ndarray,
     num_gpus: int | None = None,
+    random_seed: int | None = None,
 ) -> list[np.ndarray]:
     """Generate synthetic images from a batch of latent vectors.
 
@@ -240,6 +241,8 @@ def generate_from_coords_batch(
         An array of shape (batch_size, num_dims) containing latent space coordinates.
     num_gpus
         Optional, number of available GPUs.
+    random_seed
+        Optional, random seed for generating noise.
 
     Returns
     -------
@@ -249,7 +252,7 @@ def generate_from_coords_batch(
     """
     logger.debug("Batch coordinate array shape: [ %s ]", coords_batch.shape)
 
-    img = generate_from_coords(model, coords_batch, num_gpus=num_gpus)
+    img = generate_from_coords(model, coords_batch, num_gpus=num_gpus, random_seed=random_seed)
     walk_imgs = [img[i] for i in range(len(coords_batch))]
 
     return walk_imgs
