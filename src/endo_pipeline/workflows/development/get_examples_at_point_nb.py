@@ -54,23 +54,27 @@ for col in feat_cols:
 
     bin_limits.append((col_min, col_max))
 
-EXAMPLE_POINT = {
-    f"{Column.DiffAEData.POLAR_ANGLE}": 2.9,
-    f"{Column.DiffAEData.POLAR_RADIUS}": 1.0,
-    f"{Column.DiffAEData.PC3_FLIPPED}": 0.0,
-}
+# example point in (theta, r, rho) space to bin around to find nearby examples
+# images in the dataset
+EXAMPLE_POINT = np.array([2.9, 1.0, 0.0])
 bin_widths = [CROP_HIST_BIN_WIDTH] * len(feat_cols)
 bin_edges = get_bins(bin_widths=bin_widths, bin_limits=bin_limits)[0]
 
 # %%
-for feat_col, bin_edge_array in zip(feat_cols, bin_edges, strict=True):
-    val = EXAMPLE_POINT[feat_col]
-    df = filter_dataframe_to_binned_value(df, feat_col, val, bin_edge_array)
+df = filter_dataframe_to_binned_value(df, feat_cols, EXAMPLE_POINT, bin_edges)
 
 # one example selected at random
 num_crop_samples = 4
 df_sample = df.sample(n=num_crop_samples, random_state=RANDOM_SEED, replace=False)
 
+print(
+    f"Selected crops near point: ({', '.join(feat_cols)}) = ({', '.join(map(str, EXAMPLE_POINT))})"
+)
+print("Range of values in each feature column for selected crops:")
+for col in feat_cols:
+    col_min = df_sample[col].min()
+    col_max = df_sample[col].max()
+    print(f"    {col}: [{col_min:.3f}, {col_max:.3f}]")
 # %%
 crops_bf_std_deviation = []
 crops_gfp_max_projection = []
@@ -139,7 +143,7 @@ plt.show()
 save_plot_to_path(
     fig,
     fig_savedir,
-    f"real_walk_diffae_{'_'.join(map(str, feat_cols))}_{scale_bar_um}um_scalebar",
+    f"get_real_crop_{'_'.join(map(str, feat_cols))}_{scale_bar_um}um_scalebar",
 )
 
 # %%
