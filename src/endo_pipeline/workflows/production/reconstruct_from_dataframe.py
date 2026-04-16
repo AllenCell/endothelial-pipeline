@@ -10,11 +10,11 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     num_pcs: int = NUM_PCS_TO_ANALYZE,
-    pc_column_names: list[str] | None = None,
+    column_names: list[str] | None = None,
     dataset_labels: bool = False,
 ) -> None:
     """
-    Reconstruct crops from PC space coordinates stored in a given CSV file.
+    Reconstruct crops from feature space coordinates stored in a given dataframe.
 
     The reconstructed crops are saved as PNG files in a local directory.
 
@@ -22,37 +22,42 @@ def main(
 
     **Dataframe file format**:
 
-    The dataframe file (.csv, .parquet, etc.) should contain rows of latent space coordinates,
-    with each row representing a point in the PCA-transformed space.
+    The dataframe file (.csv, .parquet, etc.) should contain rows of latent
+    space coordinates, with each row representing a point in the PCA-transformed
+    space.
 
-    The number of columns should match the number of principal components used during PCA fitting and
-    transformation, which is specified by the `num_pcs` parameter. The default number of principal
-    components is set via ``NUM_PCS_TO_ANALYZE`` in ``endo_pipeline.settings.diffae_feature_dataframes``.
-
-    The column names for the principal components can either be specified via the ``pc_column_names``
-    parameter or will default to the standard naming convention defined in ``DIFFAE_PC_COLUMN_NAMES``.
+    The column names for the features can either be specified via
+    the ``column_names`` parameter or will default to the standard naming
+    convention defined in ``DIFFAE_PC_COLUMN_NAMES``.
 
     ** Dataset labels**:
 
-    If the dataframe contains metadata for dataset labels corresponding to each point, the column name
-    for the dataset is specified by ``ColumnName.DATASET`` in ``endo_pipeline.settings.diffae_feature_dataframes``.
-    If the user input parameter ``dataset_labels`` is set to True, the dataset label will be prefixed to the saved
-    file names. Else, the saved file names will only contain the PC coordinate values.
+    If the dataframe contains metadata for dataset labels corresponding to each
+    point, the column name for the dataset is specified by
+    ``ColumnName.DATASET`` in
+    ``endo_pipeline.settings.diffae_feature_dataframes``. If the user input
+    parameter ``dataset_labels`` is set to True, the dataset label will be
+    prefixed to the saved file names. Else, the saved file names will only
+    contain the feature coordinate values.
 
     Parameters
     ----------
     path
         Path to a dataframe file containing PC space coordinates.
     model_manifest_name
-        Name of the model manifest containing the specific run to load features from.
+        Name of the model manifest containing the specific run to load features
+        from.
     run_name
-        Run name corresponding to features to load and the model to use for image reconstruction.
+        Run name corresponding to features to load and the model to use for
+        image reconstruction.
     num_pcs
         Number of principal components used in the PCA transformation.
-    pc_column_names
-        List of column names in the dataframe corresponding to the principal components.
+    column_names
+        List of column names in the dataframe corresponding to the feature
+        coordinates.
     dataset_labels
-        If true, the dataset label from the dataframe will be prefixed to the saved file names.
+        If true, the dataset label from the dataframe will be prefixed to the
+        saved file names.
     """
     import logging
     from pathlib import Path
@@ -101,17 +106,19 @@ def main(
         "reconstructed_crops", model_manifest_name, run_name_, dataframe_file_name
     )
 
-    # get coordinates as array from dataframe, using specified pc column names or default names
-    pc_column_names_ = (
-        DIFFAE_PC_COLUMN_NAMES[:num_pcs] if pc_column_names is None else pc_column_names
+    # get coordinates as array from dataframe, using specified feature column names or default names
+    feature_column_names = (
+        DIFFAE_PC_COLUMN_NAMES[:num_pcs] if column_names is None else column_names
     )
-    required_columns = [Column.DATASET, *pc_column_names_] if dataset_labels else pc_column_names_
+    required_columns = (
+        [Column.DATASET, *feature_column_names] if dataset_labels else feature_column_names
+    )
     check_required_columns_in_dataframe(dataframe, required_columns)  # validate required columns
-    pc_coords = dataframe[pc_column_names_].values  # extract coordinate values
+    feature_coords = dataframe[feature_column_names].values  # extract coordinate values
 
     # make sure that coords is a 2D array with shape (num_points, num_dimensions)
-    pc_coords = np.atleast_2d(pc_coords)
-    num_points, num_dims = pc_coords.shape
+    feature_coords = np.atleast_2d(feature_coords)
+    num_points, num_dims = feature_coords.shape
     logger.debug(
         "Loaded [ %d ] points with [ %d ] dimensions from dataframe file [ %s ].",
         num_points,
@@ -129,7 +136,7 @@ def main(
         )
 
     # transform interpolated points to full latent space
-    latent_coords = pca.inverse_transform(pc_coords)
+    latent_coords = pca.inverse_transform(feature_coords)
 
     walk_imgs = generate_from_coords_batch(model, latent_coords, num_gpus=NUM_GPUS)
 
@@ -138,12 +145,12 @@ def main(
         ax.imshow(img, cmap="gray")
         plt.axis("off")
         plt.tight_layout()
-        file_name = "pc_coordinate_"
+        file_name = "feature_coordinate_"
         if dataset_labels:
             dataset_name = dataframe.iloc[i][Column.DATASET]
             file_name = f"{dataset_name}_{file_name}"
-        pc_coord_as_str = "_".join([f"{coord:.2f}" for coord in pc_coords[i]])
-        save_plot_to_path(fig, crop_savedir, f"{file_name}{pc_coord_as_str}.png")
+        feature_coord_as_str = "_".join([f"{coord:.2f}" for coord in feature_coords[i]])
+        save_plot_to_path(fig, crop_savedir, f"{file_name}{feature_coord_as_str}.png")
 
 
 if __name__ == "__main__":
