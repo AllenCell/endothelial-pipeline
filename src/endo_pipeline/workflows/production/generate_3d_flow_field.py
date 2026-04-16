@@ -280,10 +280,6 @@ def main(
         )
         vector_field_save_path = make_name_unique(dataframe_savedir / vector_field_file_name)
         vector_field_for_dataset.to_parquet(vector_field_save_path)
-        logger.info(
-            "Saved dataframe with drift coefficients and grid points locally to [ %s ]",
-            vector_field_save_path,
-        )
         # Upload dataframes to FMS and update manifests
         if upload_to_fms:
             dataset_config = load_dataset_config(dataset_name)
@@ -298,12 +294,6 @@ def main(
             )
             drift_dataframe_manifest.locations[dataset_name] = DataframeLocation(
                 fmsid=vector_field_fmsid
-            )
-            logger.info(
-                "Uploaded dataframe with vector field coefficients and grid points for"
-                " dataset [ %s ] at shear stress [ %s ] to FMS with FMS ID [ %s ]",
-                dataset_name,
-                vector_field_fmsid,
             )
         # if not uploading to FMS, log only the path if there is no location for
         # that dataset or if there is, but the FMS ID is None
@@ -331,7 +321,6 @@ def main(
         )
         fixed_points_save_path = make_name_unique(dataframe_savedir / fixed_points_file_name)
         fixed_points_for_dataset.to_parquet(fixed_points_save_path)
-        logger.info("Saved dataframe of points locally to [ %s ]", fixed_points_save_path)
         # if uploading to FMS, update the dataframe manifest
         if upload_to_fms:
             fixed_points_annotations = build_fms_annotations(
@@ -347,11 +336,6 @@ def main(
             )
             fixed_points_dataframe_manifest.locations[dataset_name] = DataframeLocation(
                 fmsid=fixed_points_fmsid
-            )
-            logger.info(
-                "Uploaded dataframe of stable fixed points for dataset [ %s ] to FMS with FMS ID [ %s ]",
-                dataset_name,
-                fixed_points_fmsid,
             )
         # else, log only the path if there is no location for that dataset or if
         # there is, but the FMS ID is None

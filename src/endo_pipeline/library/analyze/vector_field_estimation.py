@@ -220,7 +220,10 @@ def get_drift_estimates_and_fixed_points(
         extrapolated_flow_field_dict_reg, for_solve_ivp=False, method="linear"
     )
     fixed_points_dataframe = get_fixed_points_within_bounds(
-        vector_field_function=drift_function, dataframe=dataframe, column_names=column_names
+        vector_field_function=drift_function,
+        dataframe=dataframe,
+        column_names=column_names,
+        metadata_dict=metadata_dict,
     )
 
     return vector_field_df, fixed_points_dataframe
