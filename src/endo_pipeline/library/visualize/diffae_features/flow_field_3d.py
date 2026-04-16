@@ -764,7 +764,7 @@ def plot_stable_fixed_points_together(
     save_plot_to_path(fig, fig_savedir, "fixed_points_plot")
 
 
-def flow_field_viz_main(
+def visualize_3d_flow_field_for_one_dataset(
     flow_field_dict: dict,
     df: pd.DataFrame,
     column_names: list[str],

@@ -107,9 +107,9 @@ def main(
         compute_extrapolated_vector_field,
     )
     from endo_pipeline.library.analyze.vector_field_function import solve_ode_from_vector_field_dict
-    from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
-        flow_field_viz_main,
+    from endo_pipeline.library.visualize.diffae_features.flow_field_3d import (
         plot_stable_fixed_points_together,
+        visualize_3d_flow_field_for_one_dataset,
     )
     from endo_pipeline.library.visualize.diffae_features.vtk_io import save_vector_field_as_vtk
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
@@ -421,7 +421,7 @@ def main(
                 bounds_for_plots = bin_limits.copy()
 
             # call main visualization function
-            flow_field_viz_main(
+            visualize_3d_flow_field_for_one_dataset(
                 flow_field_dict,
                 feature_data,
                 column_names,
