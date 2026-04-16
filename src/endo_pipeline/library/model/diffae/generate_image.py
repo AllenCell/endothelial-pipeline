@@ -13,7 +13,6 @@ if typing.TYPE_CHECKING:
         DiffusionAutoEncoder as BaseDiffusionAutoEncoder,
     )
 
-
 from endo_pipeline.library.analyze.pca import fit_pca
 from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
 from endo_pipeline.library.model.latent_walk_utils import (
@@ -337,3 +336,52 @@ def generate_from_coords_batch(
     walk_imgs = [img[i] for i in range(len(coords_batch))]
 
     return walk_imgs
+
+
+def generate_latent_walk_images(
+    model: "DiffusionAutoEncoder",
+    walk: np.ndarray,
+    ranges: np.ndarray,
+    n_noise_samples: int = 1,
+    num_gpus: int | None = None,
+    random_seed: int | None = None,
+) -> np.ndarray:
+    """Generate images from a latent walk using the provided model.
+
+    Parameters
+    ----------
+    model
+        Model to use for image generation.
+    walk
+        Array of shape (num_steps, num_dims) containing the latent walk
+        coordinates.
+    ranges
+        Array of shape (num_dims, num_steps) containing the coordinate values
+        for each dimension and step. Used to reshape the array of generated
+        images.
+    n_noise_samples
+        Number of noise samples to use for generating images.
+    num_gpus
+        Number of GPUs to use for image generation. If None, uses CPU.
+    random_seed
+        Random seed for reproducibility of image generation. If None, does not
+        set a random seed.
+
+    Returns
+    -------
+    :
+        Array of stacked generated images from the latent walk, reshaped to
+        (n_dim, n_steps, img_width, img_height).
+
+    """
+    walk_img = generate_from_coords(
+        model, walk, n_noise_samples=n_noise_samples, num_gpus=num_gpus, random_seed=random_seed
+    )
+
+    # Reshape to (n_dim, n_steps, img_w, img_h)
+    n_dim = ranges.shape[0]
+    n_steps_actual = ranges.shape[1]
+    image_width = walk_img.shape[-2]
+    image_height = walk_img.shape[-1]
+
+    return walk_img.reshape(n_dim, n_steps_actual, image_width, image_height)

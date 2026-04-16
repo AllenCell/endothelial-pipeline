@@ -7,10 +7,8 @@ def main() -> None:
     from endo_pipeline.io import get_output_path, load_dataframe, load_model
     from endo_pipeline.library.analyze.pca import fit_pca
     from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
-    from endo_pipeline.library.model.latent_walk_utils import (
-        generate_latent_walk_images,
-        get_latent_walk,
-    )
+    from endo_pipeline.library.model.diffae.generate_image import generate_latent_walk_images
+    from endo_pipeline.library.model.latent_walk_utils import get_latent_walk
     from endo_pipeline.library.visualize.latent_walk import plot_latent_walk_as_grid
     from endo_pipeline.manifests import (
         get_dataframe_location_for_dataset,
