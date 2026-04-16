@@ -14,7 +14,6 @@ from matplotlib.ticker import MaxNLocator
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import save_plot_to_path
-from endo_pipeline.library.analyze.data_driven_flow_field import interpolate_on_curve
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.polar_coords import rewrap_polar_angle
 from endo_pipeline.library.visualize.diffae_features.feature_viz import (
@@ -54,6 +53,43 @@ from endo_pipeline.settings.flow_field_3d import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def interpolate_on_curve(traj: np.ndarray, n_points: int = 5) -> np.ndarray:
+    """
+    Obtain points along a curve equally spaced by arc length.
+
+    Parameters
+    ----------
+    traj
+        Curve in n-dimensional space, shape (num_t, num_dimensions).
+    n_points
+        Number of equally spaced points to interpolate along the curve.
+
+    Returns
+    -------
+    :
+        Interpolated points along the curve, shape (n_points, num_dimensions).
+
+    """
+    ndim = traj.shape[1]  # number of dimensions
+
+    # compute cumulative distance of
+    # each point from the first point
+    # along the trajectory
+    distances = np.linalg.norm(np.diff(traj, axis=0), axis=1)
+    arc_length = np.cumsum(np.concatenate(([0], distances)))
+
+    # interpolate to by these distances to
+    #  get n_points evenly spaced points
+    arc_length_new = np.linspace(0, arc_length[-1], n_points)
+
+    # initialize array interpolated points
+    interpolated_points = np.zeros((n_points, 3))
+    for i in range(ndim):  # loop over dimensions
+        interpolated_points[:, i] = np.interp(arc_length_new, arc_length, traj[:, i])
+
+    return interpolated_points
 
 
 def set_slice_plot_bounds_and_labels(
@@ -728,7 +764,7 @@ def plot_stable_fixed_points_together(
     save_plot_to_path(fig, fig_savedir, "fixed_points_plot")
 
 
-def flow_field_viz_main(
+def visualize_3d_flow_field_for_one_dataset(
     flow_field_dict: dict,
     df: pd.DataFrame,
     column_names: list[str],
