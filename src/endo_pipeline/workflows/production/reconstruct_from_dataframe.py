@@ -10,6 +10,7 @@ def main(
     output_dir: str | None = None,
     file_format: Literal[".png", ".svg", ".pdf"] = ".png",
     figsize: tuple[float, float] = (2, 2),
+    random_seed: int | None = None,
 ) -> None:
     """
     Reconstruct crops from feature coordinates stored in a given dataframe.
@@ -109,12 +110,10 @@ def main(
     from endo_pipeline.library.analyze.dataframe_validation import (
         check_required_columns_in_dataframe,
     )
-    from endo_pipeline.library.analyze.pca import fit_pca
-    from endo_pipeline.library.model import generate_from_coords_batch
+    from endo_pipeline.library.model.diffae.generate_image import generate_from_dataframe
     from endo_pipeline.library.model.latent_walk_utils import (
         add_pc_coordinates_to_dataframe,
         get_feature_coordinates_as_string,
-        get_num_pcs_from_column_names,
     )
     from endo_pipeline.manifests import (
         DataframeLocation,
@@ -122,7 +121,6 @@ def main(
         load_model_manifest,
     )
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
     from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -140,7 +138,11 @@ def main(
         raise ValueError(
             "One of path, fmsid, or s3uri must be provided to specify dataframe location."
         )
+
     dataframe = load_dataframe(dataframe_location)
+
+    # default column names if none provided
+    column_names = columns or list(DYNAMICS_COLUMN_NAMES)
 
     # load model manifest, get run name, and load model
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
@@ -149,41 +151,30 @@ def main(
     # Directory to save reconstructed crops
     crop_savedir = get_output_path(output_dir or "reconstructed_crops")
 
-    # get minimum number of pcs needed for the fit pca object based on the
-    # column names provided; for example, if "pc_11" is in the column names,
-    # then the fit pca object needs to be fit with at least 11 pcs
-    column_names = columns or list(DYNAMICS_COLUMN_NAMES)
-    num_pcs = get_num_pcs_from_column_names(column_names)
-    if num_pcs == 0:
-        raise ValueError(f"No PC-related column names found in {column_names}.")
-
-    # Get fit (3D) PCA object from manifest
-    pca = fit_pca(num_pcs=num_pcs)
-
     # get coordinates as array from dataframe
     required_columns = [Column.DATASET, *column_names] if dataset_labels else column_names
     check_required_columns_in_dataframe(dataframe, required_columns)
-    feature_coords = dataframe[column_names].to_numpy()
-
-    # make sure that coords is a 2D array with shape (num_points, num_dimensions)
-    feature_coords = np.atleast_2d(feature_coords)
+    feature_coords = np.atleast_2d(dataframe[column_names].to_numpy())
 
     # re-transform coordinates if they are in polar format (angle and radius) or
     # if they include flipped pc3
     dataframe = add_pc_coordinates_to_dataframe(dataframe, column_names)
 
-    # get latent coordinates by performing inverse PCA transformation on the PC
-    # coordinates from the dataframe; only use the PC columns needed for the
-    # inverse transformation based on the number of PCs determined earlier
-    pc_column_names = DIFFAE_PC_COLUMN_NAMES[:num_pcs]
-    latent_coords = pca.inverse_transform(dataframe[pc_column_names].to_numpy())
+    reconstructed_imgs = generate_from_dataframe(
+        dataframe,
+        column_names,
+        model,
+        num_gpus=NUM_GPUS,
+        random_seed=random_seed,
+        n_noise_samples=1,
+    )
+    print(reconstructed_imgs.shape)
+    img_list = [reconstructed_imgs[i] for i in range(len(reconstructed_imgs))]
 
-    reconstructed_imgs = generate_from_coords_batch(model, latent_coords, num_gpus=NUM_GPUS)
-
-    for i, img in enumerate(reconstructed_imgs):
+    for i, image in enumerate(img_list):
         fig, ax = plt.subplots(figsize=figsize)
-        ax.imshow(img, cmap="gray")
-        plt.axis("off")
+        ax.imshow(image, cmap="gray")
+        ax.axis("off")
         file_name = "crop_"
         if dataset_labels:
             dataset_name = dataframe.iloc[i][Column.DATASET]
