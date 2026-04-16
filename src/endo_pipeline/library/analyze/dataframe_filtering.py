@@ -285,7 +285,7 @@ def _get_index_from_value(val: float, bin_edges_1d: np.ndarray) -> int:
 
 
 def filter_dataframe_to_binned_value(
-    df: pd.DataFrame,
+    dataframe: pd.DataFrame,
     columns: str | list[str],
     values: float | Sequence[float],
     bin_edges: np.ndarray | list[np.ndarray],
@@ -326,11 +326,11 @@ def filter_dataframe_to_binned_value(
 
     Parameters
     ----------
-    df
+    dataframe
         Dataframe of features to filter.
     columns
         Name of the column(s) corresponding to the feature(s) to filter by.
-    value
+    values
         Value(s) of the feature(s) to filter by (e.g., 0.2).
     bin_edges
         Array(s) of bin edges for the feature column(s), used to determine which
@@ -343,7 +343,7 @@ def filter_dataframe_to_binned_value(
 
     """
 
-    df_bin = df.copy()
+    df_bin = dataframe.copy()
 
     # convert args to lists in the 1D case, and check that lengths of columns,
     # value, and bin_edges match
@@ -362,12 +362,13 @@ def filter_dataframe_to_binned_value(
         # get the bin index for the given feature value
         # and find the crops that fall into that bin
         bin_idx = _get_index_from_value(feature_value, bin_edges)
-
-        if f"bin_{feature_column}" not in df_bin.columns:
-            df_bin[f"bin_{feature_column}"] = np.digitize(df_bin[feature_column], bin_edges) - 1
+        df_bin[f"bin_{feature_column}"] = np.digitize(df_bin[feature_column], bin_edges) - 1
 
         # filter the dataframe to only include rows
         # with bin_{feature_column} == bin_idx
         df_bin = df_bin.loc[df_bin[f"bin_{feature_column}"] == bin_idx]
 
+    # drop the bin columns before returning the filtered dataframe
+    bin_column_names = [f"bin_{feature_column}" for feature_column in column_names]
+    df_bin = df_bin.drop(columns=bin_column_names)
     return df_bin

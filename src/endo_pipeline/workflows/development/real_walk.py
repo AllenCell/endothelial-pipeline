@@ -110,7 +110,7 @@ def main(
 
     feat_cols = DIFFAE_PC_COLUMN_NAMES[:n_pcs_to_analyze]
     bin_limits = [(df[feat_col].min(), df[feat_col].max()) for feat_col in feat_cols]
-    hist_array_lists, bin_edges, df_with_bins = get_histogram_by_component(
+    hist_array_lists, bin_edges = get_histogram_by_component(
         df,
         CROP_HIST_BIN_WIDTH,
         bin_limits,
@@ -131,9 +131,7 @@ def main(
     samples = []
     for feat_col, bin_edge_array in zip(feat_cols, bin_edges, strict=True):
         for pc_val in pc_val_list:
-            df_filtered = filter_dataframe_to_binned_value(
-                df_with_bins, feat_col, pc_val, bin_edge_array
-            )
+            df_filtered = filter_dataframe_to_binned_value(df, feat_col, pc_val, bin_edge_array)
 
             logger.info("%d crops for PC %s around value %s", len(df_filtered), feat_col, pc_val)
 

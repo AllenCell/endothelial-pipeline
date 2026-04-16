@@ -156,7 +156,7 @@ def get_bins(
 
 def _get_histogram_by_component_one_dataset(
     df: pd.DataFrame, bin_edges: list[np.ndarray], feat_cols: list[str] | None = None
-) -> tuple[list[np.ndarray], pd.DataFrame]:
+) -> list[np.ndarray]:
     """Compute histogram of feature data at each timepoint for each latent component.
 
     Parameters
@@ -172,8 +172,6 @@ def _get_histogram_by_component_one_dataset(
     -------
     :
         Histogram values for each component as a function of time
-    :
-        Updated dataframe with bin indices for each crop at each timepoint along each component.
 
     """
     if feat_cols is None:
@@ -199,22 +197,7 @@ def _get_histogram_by_component_one_dataset(
             hist = np.histogram(feats, bins=bin_edges[dim], density=True)[0]
             hist_array_list[dim][:, t_index] = hist
 
-            # update the dataframe with column of what bin
-            # each crop at frame number t is in
-            # along the given latent dimension
-            # get the bin index for each crop
-            bin_idx = np.digitize(feats, bin_edges[dim]) - 1
-            # add the bin index to the dataframe (astype int)
-            # restrict to crops at frame number t
-            df.loc[df[Column.TIMEPOINT] == t, f"bin_{feat_col}"] = bin_idx
-
-    # enforce that bin indices are integers
-    # this is important for indexing later
-    for dim, feat_col in enumerate(feat_cols):
-        df[f"bin_{feat_col}"] = df[f"bin_{feat_col}"].astype(int)
-
-    # return the histogram array and the updated dataframe
-    return hist_array_list, df
+    return hist_array_list
 
 
 def get_histogram_by_component(
@@ -222,7 +205,7 @@ def get_histogram_by_component(
     bin_width: float,
     bin_limits: list[tuple[float, float]],
     feat_cols: list[str] | None = None,
-) -> tuple[list[list[np.ndarray]], list[np.ndarray], pd.DataFrame]:
+) -> tuple[list[list[np.ndarray]], list[np.ndarray]]:
     """Get histogram of feature data at for each latent component over time.
 
     Parameters
@@ -268,17 +251,13 @@ def get_histogram_by_component(
     # loop over each dataset in the dataframe
     # get histogram / bin indices for each dataset
     hist_array_list_all_datasets = []
-    df_list = []
     for _, df_group in df.groupby(Column.DATASET):
-        hist_array_list_one_dataset, df_group_ = _get_histogram_by_component_one_dataset(
+        hist_array_list_one_dataset = _get_histogram_by_component_one_dataset(
             df_group, bin_edges, feat_cols
         )
-        df_list.append(df_group_)
         hist_array_list_all_datasets.append(hist_array_list_one_dataset)
 
-    df_all_datasets_binned = pd.concat(df_list, ignore_index=True)
-
-    return hist_array_list_all_datasets, bin_edges, df_all_datasets_binned
+    return hist_array_list_all_datasets, bin_edges
 
 
 def get_normalization_constant(p: np.ndarray, dx: list) -> np.ndarray:
