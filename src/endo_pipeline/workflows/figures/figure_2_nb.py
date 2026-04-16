@@ -137,7 +137,8 @@ panels = [
     ),
     FigurePanel(
         letter="H",
-        path=save_dir / "fixed_points_vs_shear_stress.svg",
+        path=save_dir
+        / "polar_theta_polar_r_rho_ema01_optical_flow_mean_unit_vector_dt1_fp_vs_shear_stress.svg",
         x_position=2.1,
         y_position=0,
         x_offset=0,
