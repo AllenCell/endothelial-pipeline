@@ -489,8 +489,10 @@ def plot_cross_dataset_summaries(
                         "AICS-177 cl. 41": "Control",
                         "AICS-177 cl. 26": "KD",
                     }
-                    label = cell_line_label_map.get(dataset_config.cell_lines[0])
-                    high_confidence_df["cell_line_label"] = label
+                    cell_line_label = cell_line_label_map.get(
+                        dataset_config.cell_lines[0], dataset_config.cell_lines[0]
+                    )
+                    high_confidence_df["cell_line_label"] = cell_line_label
 
                 df_fp_all_list.append(high_confidence_df)
             except KeyError:
@@ -516,12 +518,12 @@ def plot_cross_dataset_summaries(
     all_column_info = get_seg_feat_plot_args()
     for ax_i, var in zip(axs[0], column_names, strict=False):
         column_info = all_column_info.get(var)
-        label: str = column_info["label"] if column_info else str(var)
+        var_label: str = column_info["label"] if column_info else str(var)
         col_name: str = f"mean_{var}" if var in optical_flow_features else str(var)
         plot_fixed_points_vs_shear_stress(
             df_fp_all,
             col_name,
-            label,
+            var_label,
             dataset_order=dataset_order,
             # ylimits=limits,
             x_axis_mode=x_axis_mode,
