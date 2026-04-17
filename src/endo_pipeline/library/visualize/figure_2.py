@@ -5,17 +5,23 @@ from typing import Literal
 
 import pandas as pd
 
+from endo_pipeline.configs import DatasetConfig
 from endo_pipeline.io import save_plot_to_path
+from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_binned_value
+from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
 from endo_pipeline.library.model.diffae.generate_image import generate_from_dataframe
 from endo_pipeline.library.visualize.figure_utils import make_contact_sheet
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.plot_defaults import CROP_HIST_BIN_WIDTH
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
 
 def make_crop_example_contact_sheet(
+    dataset_config: DatasetConfig,
     stable_fixed_point_dataframe: pd.DataFrame,
-    column_names: list[Column.DiffAEData],
+    crop_features_dataframe: pd.DataFrame,
+    feature_column_names: list[Column.DiffAEData],
     model: DiffusionAutoEncoder,
     n_crop_examples: int,
     fig_savedir: Path,
@@ -23,6 +29,7 @@ def make_crop_example_contact_sheet(
     file_format: Literal[".svg", ".png", ".pdf"] = ".svg",
     gridspec_kwargs: dict | None = None,
     fig_kwargs: dict | None = None,
+    bin_width_real_crops: float = CROP_HIST_BIN_WIDTH,
     num_gpus: int | None = None,
     random_seed: int | None = RANDOM_SEED,
 ) -> Path:
@@ -44,7 +51,10 @@ def make_crop_example_contact_sheet(
     ----------
     stable_fixed_point_dataframe
         DataFrame containing the coordinates of the stable fixed points.
-    column_names
+    crop_features_dataframe
+        DataFrame containing the feature coordinates and metadata for all real
+        image crops in the dataset.
+    feature_column_names
         List of column names in the DataFrame corresponding to the stable fixed
         point coordinates.
     model
@@ -75,15 +85,36 @@ def make_crop_example_contact_sheet(
         Path to the saved figure.
 
     """
+    if len(stable_fixed_point_dataframe) > 1:
+        raise ValueError(
+            "Expected stable_fixed_point_dataframe to contain only one row, but it contains "
+            f"{len(stable_fixed_point_dataframe)} rows."
+        )
+
     reconstructed_images = generate_from_dataframe(
         stable_fixed_point_dataframe,
-        column_names,
+        feature_column_names,
         model,
         num_gpus=num_gpus,
         random_seed=random_seed,
         n_noise_samples=n_crop_examples,
     )
     image_list = [reconstructed_images[i] for i in range(len(reconstructed_images))]
+
+    feature_bin_edges = get_bins(
+        bin_widths=[bin_width_real_crops] * len(feature_column_names),
+        data=crop_features_dataframe[feature_column_names].to_numpy(),
+    )[0]
+    real_crops_at_fixed_point = filter_dataframe_to_binned_value(
+        crop_features_dataframe,
+        feature_column_names,
+        feature_bin_edges,
+    )
+
+    real_crops_sampled = real_crops_at_fixed_point.sample(
+        n=n_crop_examples, random_state=random_seed, replace=False
+    )
+    print(real_crops_sampled)
 
     contact_sheet = make_contact_sheet(
         image_list,
