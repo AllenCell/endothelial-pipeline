@@ -484,6 +484,7 @@ FEATURE_METADATA = {
     ),
     Column.OpticalFlow.SPEED_MEAN: FeatureMetadata(
         name="Optical Flow Mean Speed",
+        label="Mean Speed",
         min=0,
         max=8,
         type=FeatureType.CONTINUOUS,
@@ -521,6 +522,7 @@ FEATURE_METADATA = {
         label="Migration Coherence",
         min=0,
         max=1,
+        bin_width=0.02,
         type=FeatureType.CONTINUOUS,
     ),
     "ema01_optical_flow_mean_unit_vector_fast_dt1": FeatureMetadata(
