@@ -19,19 +19,17 @@ from endo_pipeline.settings.workflow_defaults import (
 )
 
 plt.style.use("endo_pipeline.figure")
-# %%
+
 save_dir = get_output_path("figure_3")
 
-# Example images of intermediate shear stress condition
+# %% Example images of intermediate shear stress condition
 create_panel_intermediate_examples(
     examples=FIGURE_3_EXAMPLE_IMAGES,
     save_dir=save_dir,
     figure_size=(MAX_FIGURE_WIDTH * 0.75, 2.5),
 )
 
-# %%
-# --- Cross-dataset summary plots ---
-# Load diffae features
+# %% Load diffae features
 base_name = (
     f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{MIGRATION_COHERENCE_CROP_PATTERN}"
 )
@@ -53,7 +51,7 @@ column_names = [
     ColumnName.DiffAEData.PC3_FLIPPED,
     ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
 ]
-# %%
+# %% Cross-dataset summary plots
 for column_name in column_names:
     plot_cross_dataset_summaries(
         dataset_names=dataset_summary_list,
