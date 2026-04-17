@@ -424,7 +424,7 @@ for dataset_name, panel_letters, y_position, contact_sheet_x_position in [
         y_offset=0.0,
     )
 
-    panels.extend([contour_plots, colorbar_panel, quiver_plot, theta_plot])
+    panels.extend([contour_plots, colorbar_panel, quiver_plot, theta_plot, contact_sheet_panel])
 
 # %%
 # --- Cross-dataset summary plots ---
