@@ -301,23 +301,26 @@ def generate_from_coords(
         )
 
     if isinstance(reconstructed_image, torch.Tensor):
-        reconstructed_image = reconstructed_image.detach().cpu().numpy()
+        reconstructed_image_array = reconstructed_image.detach().cpu().numpy()
+    elif isinstance(reconstructed_image, np.ndarray):
+        reconstructed_image_array = reconstructed_image
 
-    reconstructed_image = reconstructed_image.squeeze()  # remove any singleton dimensions
+    # remove any singleton dimensions
+    reconstructed_image_array = reconstructed_image_array.squeeze()
 
     # reshape if n_noise_samples > 1; the image shape is returned as
     # (width, height*num_noise_samples) if n_noise_samples > 1,
     # so reshape to (num_noise_samples, width, height)
     if n_noise_samples > 1:
         image_sample_list = []
-        image_height = reconstructed_image.shape[-1] // n_noise_samples
+        image_height = reconstructed_image_array.shape[-1] // n_noise_samples
         for sample in range(n_noise_samples):
             image_sample_list.append(
-                reconstructed_image[:, sample * image_height : (sample + 1) * image_height]
+                reconstructed_image_array[:, sample * image_height : (sample + 1) * image_height]
             )
-        reconstructed_image = np.stack(image_sample_list, axis=0)
+        reconstructed_image_array = np.stack(image_sample_list, axis=0)
 
-    return reconstructed_image
+    return reconstructed_image_array
 
 
 def generate_from_coords_batch(
