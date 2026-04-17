@@ -28,7 +28,7 @@ def make_crop_example_contact_sheet(
     dataset_config: DatasetConfig,
     stable_fixed_point_dataframe: pd.DataFrame,
     crop_features_dataframe: pd.DataFrame,
-    feature_column_names: list[Column.DiffAEData],
+    feature_column_names: list[str],
     model: DiffusionAutoEncoder,
     n_crop_examples: int,
     fig_savedir: Path,
