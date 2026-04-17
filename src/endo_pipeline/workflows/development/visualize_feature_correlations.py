@@ -72,7 +72,7 @@ def main(
     from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
         add_optical_flow_features,
     )
-    from endo_pipeline.library.visualize.features import get_label_for_column
+    from endo_pipeline.library.visualize.columns import get_label_for_column
     from endo_pipeline.library.visualize.multi_feature_correlation_viz import (
         get_df_for_feature_correlation_viz,
         visualize_correlation_heatmaps,

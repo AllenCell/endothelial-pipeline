@@ -66,15 +66,11 @@ def main(
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins
-    from endo_pipeline.library.analyze.vector_field_estimation import (
-        compute_drift_vector_field,
-        mask_drift_vector_field_by_data_density,
-    )
+    from endo_pipeline.library.visualize.columns import get_label_for_column
     from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
         plot_drift_contours,
         plot_drift_quiver,
     )
-    from endo_pipeline.library.visualize.features import get_label_for_column
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (

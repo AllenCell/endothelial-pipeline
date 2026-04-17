@@ -31,8 +31,8 @@ from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifes
 from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
     add_optical_flow_features,
 )
+from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
-from endo_pipeline.library.visualize.features import get_label_for_column
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings import RANDOM_SEED
 from endo_pipeline.settings.column_names import ColumnName as Column

@@ -1,4 +1,4 @@
-"""Utility methods for plotting feature data."""
+"""Utility methods for plotting column data."""
 
 import logging
 

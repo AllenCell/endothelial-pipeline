@@ -16,8 +16,8 @@ from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.polar_coords import rewrap_polar_angle
+from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
-from endo_pipeline.library.visualize.features import get_label_for_column
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,

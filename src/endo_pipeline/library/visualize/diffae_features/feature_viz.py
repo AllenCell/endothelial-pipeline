@@ -21,7 +21,7 @@ from endo_pipeline.library.analyze.polar_coords import (
     rewrap_polar_angle,
     unwrap_nonsequential_array,
 )
-from endo_pipeline.library.visualize.features import get_label_for_column
+from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.density_comparison_plots import (
     DENSITY_PLOT_KDE_BANDWIDTH,
