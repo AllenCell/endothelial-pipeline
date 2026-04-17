@@ -38,26 +38,9 @@ from endo_pipeline.settings.flow_field_dataframes import (
     STABILITY_COLUMN_NAME,
     STABILITY_MARKER_DICT,
 )
+from endo_pipeline.settings.summary_plot import COLOR_PALETTE
 
 logger = logging.getLogger(__name__)
-
-# Unique color per dataset — colorblind-friendly palette (Wong 2011 + extensions)
-_COLORBLIND_PALETTE = [
-    "#0072B2",  # blue
-    "#E69F00",  # orange
-    "#009E73",  # bluish green
-    "#CC79A7",  # reddish purple
-    "#56B4E9",  # sky blue
-    "#D55E00",  # vermillion
-    "#F0E442",  # yellow
-    "#000000",  # black
-    "#332288",  # indigo
-    "#88CCEE",  # cyan
-    "#44AA99",  # teal
-    "#DDCC77",  # sand
-    "#882255",  # wine
-    "#AA4499",  # magenta
-]
 
 
 # --- Build jitter map (shared by numeric and categorical shear-stress modes) ---
@@ -225,8 +208,7 @@ def plot_fixed_points_vs_shear_stress(
     if stable_only:
         unique_datasets_list = df_fp["dataset"].unique()
         dataset_color_map = {
-            ds: _COLORBLIND_PALETTE[i % len(_COLORBLIND_PALETTE)]
-            for i, ds in enumerate(unique_datasets_list)
+            ds: COLOR_PALETTE[i % len(COLOR_PALETTE)] for i, ds in enumerate(unique_datasets_list)
         }
 
         for _, row in df_fp.iterrows():
