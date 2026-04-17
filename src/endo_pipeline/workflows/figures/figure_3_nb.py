@@ -45,7 +45,7 @@ fixed_points_bootstrap_dataframe_manifest = load_dataframe_manifest(
 
 dataset_summary_list = SUMMARY_PLOT_DATASETS["intermediate"]
 
-column_names = [
+column_names: list[ColumnName.DiffAEData | ColumnName.OpticalFlow] = [
     ColumnName.DiffAEData.POLAR_ANGLE,
     ColumnName.DiffAEData.POLAR_RADIUS,
     ColumnName.DiffAEData.PC3_FLIPPED,
