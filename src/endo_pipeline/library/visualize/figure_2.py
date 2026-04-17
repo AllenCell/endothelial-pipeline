@@ -116,7 +116,7 @@ def make_crop_example_contact_sheet(
     real_crops_at_fixed_point = filter_dataframe_to_binned_value(
         dataframe=crop_features_dataframe,
         columns=feature_column_names,
-        values=stable_fixed_point_dataframe[feature_column_names].to_numpy(),
+        values=stable_fixed_point_dataframe[feature_column_names].to_numpy().squeeze(),
         bin_edges=feature_bin_edges,
     )
 
@@ -126,11 +126,11 @@ def make_crop_example_contact_sheet(
     real_egfp_list = []
     real_brightfield_list = []
     for idx, row in real_crops_sampled.iterrows():
-        position = row[Column.POSITION].unique().item()
-        timepoint = row[Column.TIMEPOINT].unique().item()
-        crop_x_start = row[Column.DiffAEData.START_X].unique().item()
-        crop_y_start = row[Column.DiffAEData.START_Y].unique().item()
-        crop_size = row[Column.DiffAEData.CROP_SIZE_X].unique().item()
+        position = row[Column.POSITION]
+        timepoint = row[Column.TIMEPOINT]
+        crop_x_start = row[Column.DiffAEData.START_X]
+        crop_y_start = row[Column.DiffAEData.START_Y]
+        crop_size = row[Column.DiffAEData.CROP_SIZE_X]
 
         image_location = get_zarr_location_for_position(dataset_config, position)
         image = load_image(
