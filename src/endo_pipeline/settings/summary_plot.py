@@ -56,3 +56,10 @@ SUMMARY_PLOT_DATASETS: dict[str, list[str]] = {
         "20260325_20X",  # CDH5 Ex2 deletion under low shear stress
     ],
 }
+
+CELL_LINE_LABEL_MAP = {
+    "AICS-126 cl. 41": "Parental",
+    "AICS-177 cl. 12": "Control",
+    "AICS-177 cl. 41": "Control",
+    "AICS-177 cl. 26": "Ex2Del",
+}

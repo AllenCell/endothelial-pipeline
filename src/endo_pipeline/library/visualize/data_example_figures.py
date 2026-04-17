@@ -28,6 +28,7 @@ from endo_pipeline.settings import ColumnName as Column
 from endo_pipeline.settings.examples import ExampleImage
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
+from endo_pipeline.settings.summary_plot import CELL_LINE_LABEL_MAP
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
 )
@@ -433,12 +434,10 @@ def create_panel_perturbation_examples(
         Scale bar length in micrometers.
     """
     image_panel_list = []
-    shear_stress_titles = []
+    cell_line_titles = []
 
     for example in examples:
         dataset_config = load_dataset_config(example.dataset_name)
-        # shear_stress_value = int(dataset_config.flow_conditions[0].shear_stress)
-        # print(dataset_config.name, shear_stress_value)
         cell_line = dataset_config.cell_lines[0]
         location = get_zarr_location_for_position(dataset_config, position=example.position)
         gfp_image = load_image(
@@ -462,13 +461,13 @@ def create_panel_perturbation_examples(
         )
 
         image_panel_list.extend([gfp_max_proj, log_bf_std_dev])
-        shear_stress_titles.append(cell_line)
+        cell_line_titles.append(CELL_LINE_LABEL_MAP.get(cell_line, cell_line))
 
     fig = make_contact_sheet(
         image_panel_list,
         max_rows=len(image_panel_list) // len(examples),
         max_cols=len(examples),
-        col_titles=shear_stress_titles,
+        col_titles=cell_line_titles,
         row_titles=["VE-Cadherin MIP", "BF Std. Dev. Proj."],
         direction="top-down first",
         font_size=FONTSIZE_MEDIUM,

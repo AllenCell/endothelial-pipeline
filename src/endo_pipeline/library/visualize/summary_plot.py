@@ -38,6 +38,7 @@ from endo_pipeline.settings.flow_field_dataframes import (
     STABILITY_COLUMN_NAME,
     STABILITY_MARKER_DICT,
 )
+from endo_pipeline.settings.summary_plot import CELL_LINE_LABEL_MAP
 
 logger = logging.getLogger(__name__)
 
@@ -224,7 +225,7 @@ def plot_fixed_points_vs_shear_stress(
         # order by Parental line, then Control, then VE-Cad KD
         cell_line_order = sorted(
             cell_line_catagories,
-            key=lambda x: (0 if x == "WT" else 1 if x == "Control" else 2),
+            key=lambda x: (0 if x == "Parental" else 1 if x == "Control" else 2),
         )
         cell_line_dtype = pd.CategoricalDtype(categories=cell_line_order, ordered=True)
         df_fp["cell_line_label"] = df_fp["cell_line_label"].astype(cell_line_dtype)
@@ -483,13 +484,7 @@ def plot_cross_dataset_summaries(
                     )
 
                 if x_axis_mode == "cell_line":
-                    cell_line_label_map = {
-                        "AICS-126 cl. 41": "WT",
-                        "AICS-177 cl. 12": "Control",
-                        "AICS-177 cl. 41": "Control",
-                        "AICS-177 cl. 26": "KD",
-                    }
-                    cell_line_label = cell_line_label_map.get(
+                    cell_line_label = CELL_LINE_LABEL_MAP.get(
                         dataset_config.cell_lines[0], dataset_config.cell_lines[0]
                     )
                     high_confidence_df["cell_line_label"] = cell_line_label
