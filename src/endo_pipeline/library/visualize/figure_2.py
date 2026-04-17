@@ -6,13 +6,20 @@ from typing import Literal
 import pandas as pd
 
 from endo_pipeline.configs import DatasetConfig
-from endo_pipeline.io import save_plot_to_path
+from endo_pipeline.io import load_image, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_binned_value
 from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
 from endo_pipeline.library.model.diffae.generate_image import generate_from_dataframe
+from endo_pipeline.library.process.image_processing import crop_image
 from endo_pipeline.library.visualize.figure_utils import make_contact_sheet
+from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.image_data import (
+    DIFFAE_ZARR_RESOLUTION_LEVEL,
+    ZARR_BRIGHTFIELD_CHANNEL,
+    ZARR_EGFP_CHANNEL,
+)
 from endo_pipeline.settings.plot_defaults import CROP_HIST_BIN_WIDTH
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
@@ -30,6 +37,7 @@ def make_crop_example_contact_sheet(
     gridspec_kwargs: dict | None = None,
     fig_kwargs: dict | None = None,
     bin_width_real_crops: float = CROP_HIST_BIN_WIDTH,
+    image_loading_resolution_level: int = DIFFAE_ZARR_RESOLUTION_LEVEL,
     num_gpus: int | None = None,
     random_seed: int | None = RANDOM_SEED,
 ) -> Path:
@@ -91,7 +99,7 @@ def make_crop_example_contact_sheet(
             f"{len(stable_fixed_point_dataframe)} rows."
         )
 
-    reconstructed_images = generate_from_dataframe(
+    generated_images = generate_from_dataframe(
         stable_fixed_point_dataframe,
         feature_column_names,
         model,
@@ -99,7 +107,7 @@ def make_crop_example_contact_sheet(
         random_seed=random_seed,
         n_noise_samples=n_crop_examples,
     )
-    image_list = [reconstructed_images[i] for i in range(len(reconstructed_images))]
+    generated_image_list = [generated_images[i] for i in range(len(generated_images))]
 
     feature_bin_edges = get_bins(
         bin_widths=[bin_width_real_crops] * len(feature_column_names),
@@ -114,12 +122,32 @@ def make_crop_example_contact_sheet(
     real_crops_sampled = real_crops_at_fixed_point.sample(
         n=n_crop_examples, random_state=random_seed, replace=False
     )
-    print(real_crops_sampled)
+    real_egfp_list = []
+    real_brightfield_list = []
+    for idx, row in real_crops_sampled.iterrows():
+        position = row[Column.POSITION].unique().item()
+        timepoint = row[Column.TIMEPOINT].unique().item()
+        crop_x_start = row[Column.DiffAEData.START_X].unique().item()
+        crop_y_start = row[Column.DiffAEData.START_Y].unique().item()
+        crop_size = row[Column.DiffAEData.CROP_SIZE_X].unique().item()
+
+        image_location = get_zarr_location_for_position(dataset_config, position)
+        image = load_image(
+            image_location,
+            timepoints=[timepoint],
+            level=image_loading_resolution_level,
+            squeeze=True,
+        )
+        image_crop = crop_image(image, crop_x_start, crop_y_start, crop_size)
+        brightfield_crop = image_crop[ZARR_BRIGHTFIELD_CHANNEL]
+        gfp_crop = image_crop[ZARR_EGFP_CHANNEL]
+        real_brightfield_list.append(brightfield_crop)
+        real_egfp_list.append(gfp_crop)
 
     contact_sheet = make_contact_sheet(
-        image_list,
+        panels=[*generated_image_list, *real_egfp_list, *real_brightfield_list],
         max_rows=n_crop_examples,
-        max_cols=1,
+        max_cols=3,
         direction="top-down first",
         gridspec_kwargs=gridspec_kwargs,
         fig_kwargs=fig_kwargs,
