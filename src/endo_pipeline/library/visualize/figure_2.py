@@ -114,9 +114,10 @@ def make_crop_example_contact_sheet(
         data=crop_features_dataframe[feature_column_names].to_numpy(),
     )[0]
     real_crops_at_fixed_point = filter_dataframe_to_binned_value(
-        crop_features_dataframe,
-        feature_column_names,
-        feature_bin_edges,
+        dataframe=crop_features_dataframe,
+        columns=feature_column_names,
+        values=stable_fixed_point_dataframe[feature_column_names].to_numpy(),
+        bin_edges=feature_bin_edges,
     )
 
     real_crops_sampled = real_crops_at_fixed_point.sample(
