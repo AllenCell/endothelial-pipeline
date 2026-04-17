@@ -33,7 +33,6 @@ def main(
     """
     import logging
 
-    import numpy as np
     from tqdm import tqdm
 
     from endo_pipeline.cli import DEMO_MODE
@@ -102,30 +101,7 @@ def main(
             )
             bootstrap_samples = 50
 
-    # get cross and autocorrelation for pc features for each dataset and store
-    # results in a dict, updating main dict with results in a loop over datasets
-    correlation_dict: dict[str, dict[str, np.ndarray]] = {
-        "features": {},
-        "lags": {},
-        "acf": {},
-        "acf_ci_lower": {},
-        "acf_ci_upper": {},
-        "relaxation_timescales_ci_lower": {},
-        "relaxation_timescales_ci_upper": {},
-        "ccf": {},
-        "ccf_ci_lower": {},
-        "ccf_ci_upper": {},
-        "delta_ccf": {},
-        "delta_ccf_ci_lower": {},
-        "delta_ccf_ci_upper": {},
-        "delta_ccf_integral": {},
-        "delta_ccf_integral_ci_lower": {},
-        "delta_ccf_integral_ci_upper": {},
-        "max_lag_integrate": {},
-        "relaxation_timescales": {},
-        "acf_per_crop": {},
-        "relaxation_timescale_per_crop": {},
-    }
+    correlation_dict_all: dict = {}
     for dataset_name in tqdm(dataset_names):
         # try to get dataframe for the given dataset
         # if it does not exist, skip this dataset, return dict as is
@@ -155,11 +131,12 @@ def main(
             dataframe=df_steady_state, minimum_track_length=LONG_TRACK_THRESHOLD_LENGTH
         )
         correlation_dict = compute_correlations_for_one_dataset(
-            df_steady_state, column_names, correlation_dict, bootstrap_samples
+            df_steady_state, column_names, bootstrap_samples
         )
+        correlation_dict_all[dataset_name] = correlation_dict
 
     # visualize results of correlation analysis across datasets
-    plot_correlation_workflow_outputs(correlation_dict, bootstrap_samples, crop_pattern)
+    plot_correlation_workflow_outputs(correlation_dict_all, bootstrap_samples, crop_pattern)
 
 
 if __name__ == "__main__":
