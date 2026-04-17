@@ -144,7 +144,7 @@ unicode_pi = "\u03c0"
 
 # make svg of just the colorbar with set ticks and extended on both sides
 fig, ax = plot_contour_colorbar(
-    figsize=(0.85, MAX_FIGURE_WIDTH / 4),
+    figsize=(0.75, MAX_FIGURE_WIDTH / 4),
     vmin=DRIFT_CONTOUR_VMIN,
     vmax=DRIFT_CONTOUR_VMAX,
     num_ticks=DRIFT_CONTOUR_CBAR_NUM_TICKS,
@@ -248,6 +248,7 @@ for dataset_name, panel_letters, y_position in [
         figsize=(1.75, 1.85),
         axes_limits=(r_lims, rho_lims),
         axes_aspect=None,
+        axes_titles=(f"d{column_labels_r_rho[0]}/dt", f"d{column_labels_r_rho[1]}/dt"),
         include_colorbar=False,
         include_nullclines=True,
         nullcline_colors=("k", "k"),
@@ -256,6 +257,14 @@ for dataset_name, panel_letters, y_position in [
         gridspec_kwargs=gridspec_kwargs,
         xlabel_kwargs=xlabel_kwargs,
         ylabel_kwargs=ylabel_kwargs,
+        axes_title_kwargs={
+            "fontsize": "small",
+            "x": 1.05,
+            "y": 0.5,
+            "rotation": 0,
+            "ha": "left",
+            "va": "center",
+        },
     )
     for ax_index, ax_ in enumerate(list(ax)):
         # adjust label padding and drop tick labels on shared x axis
@@ -316,7 +325,7 @@ for dataset_name, panel_letters, y_position in [
         centers=centers_theta[-1],
         figsize=(MAX_FIGURE_WIDTH / 4, MAX_FIGURE_HEIGHT / 4),
         axes_limits=(BIN_LIMITS_THETA_RESCALED, (-0.4, 0.4)),
-        axes_labels=[column_label_theta, f"$d${column_label_theta}/$dt$"],
+        axes_labels=[column_label_theta, f"d{column_label_theta}/dt"],
         gridspec_kwargs=gridspec_kwargs,
         drift_line_kwargs={"color": "k", "linewidth": 2},
         zero_line_kwargs={"linestyle": "--", "color": "gray", "linewidth": 1, "alpha": 0.7},
@@ -359,7 +368,7 @@ for dataset_name, panel_letters, y_position in [
     colorbar_panel = FigurePanel(
         letter="",
         path=base_output_dir / "colorbar.svg",
-        x_position=MAX_FIGURE_WIDTH / 4 - 0.4,
+        x_position=MAX_FIGURE_WIDTH / 4 - 0.3,
         y_position=y_position,
         x_offset=0.08,
         y_offset=0.00,

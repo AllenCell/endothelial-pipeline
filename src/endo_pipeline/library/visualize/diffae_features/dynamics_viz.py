@@ -28,7 +28,7 @@ def plot_drift_contours(
     figsize: tuple[float, float] = (7, 12),
     axes_limits: list[tuple[float, float]] | None = None,
     axes_aspect: Literal["auto", "equal"] | float | None = "equal",
-    axes_titles: list[str] | None = None,
+    axes_titles: tuple[str, str] | None = None,
     colormap: str = DRIFT_CONTOUR_COLORMAP,
     vmin: float | None = DRIFT_CONTOUR_VMIN,
     vmax: float | None = DRIFT_CONTOUR_VMAX,
@@ -44,6 +44,7 @@ def plot_drift_contours(
     gridspec_kwargs: dict | None = None,
     xlabel_kwargs: dict | None = None,
     ylabel_kwargs: dict | None = None,
+    axes_title_kwargs: dict | None = None,
 ) -> tuple[plt.Figure, Sequence[plt.Axes]]:
     """
     Make and save contour plot of each component of the drift vector field over
@@ -74,7 +75,7 @@ def plot_drift_contours(
     axes_aspect
         Aspect ratio for the axes, e.g., "equal" to make x and y have equal scaling.
     axes_titles
-        Optional list of titles for each subplot.
+        Optional tuple of titles for each subplot.
     colormap
         Colormap to use for the contour plots.
     vmin
@@ -89,6 +90,14 @@ def plot_drift_contours(
         Number of ticks to use in the colorbar for each contour plot.
     cbar_tick_round
         Number of decimal places to round colorbar ticks to in the contour plots.
+    nullcline_styles
+        Tuple of line styles for the nullclines of each variable.
+    nullcline_colors
+        Tuple of colors for the nullclines of each variable.
+    nullcline_linewidth
+        Line width for the nullcline lines.
+    nullcline_opacity
+        Opacity for the nullcline lines (between 0 and 1).
     gridspec_kwargs
         Optional dictionary of keyword arguments to pass to plt.subplots for
         creating the figure and axes, e.g., to specify a GridSpec layout.
@@ -98,6 +107,9 @@ def plot_drift_contours(
     ylabel_kwargs
         Optional dictionary of keyword arguments to pass to ax.set_ylabel for
         customizing the y-axis label, e.g., to specify a font size or label padding.
+    axes_title_kwargs
+        Optional dictionary of keyword arguments to pass to ax.set_title for
+        customizing the subplot titles, e.g., to specify a font size.
 
     """
     fig, ax = fig_ax or plt.subplots(2, 1, figsize=figsize, gridspec_kw=gridspec_kwargs)
@@ -145,7 +157,7 @@ def plot_drift_contours(
             ax[var_index].set_xlim(axes_limits[0])
             ax[var_index].set_ylim(axes_limits[1])
         if axes_titles:
-            ax[var_index].set_title(axes_titles[var_index])
+            ax[var_index].set_title(axes_titles[var_index], **(axes_title_kwargs or {}))
         if axes_aspect:
             ax[var_index].set_aspect(axes_aspect)
 
