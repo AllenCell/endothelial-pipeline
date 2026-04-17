@@ -38,9 +38,27 @@ from endo_pipeline.settings.flow_field_dataframes import (
     STABILITY_COLUMN_NAME,
     STABILITY_MARKER_DICT,
 )
-from endo_pipeline.settings.summary_plot import COLOR_PALETTE
+from endo_pipeline.settings.summary_plot import CELL_LINE_LABEL_MAP, COLOR_PALETTE
 
 logger = logging.getLogger(__name__)
+
+# Unique color per dataset — colorblind-friendly palette (Wong 2011 + extensions)
+_COLORBLIND_PALETTE = [
+    "#0072B2",  # blue
+    "#E69F00",  # orange
+    "#009E73",  # bluish green
+    "#CC79A7",  # reddish purple
+    "#56B4E9",  # sky blue
+    "#D55E00",  # vermillion
+    "#F0E442",  # yellow
+    "#000000",  # black
+    "#332288",  # indigo
+    "#88CCEE",  # cyan
+    "#44AA99",  # teal
+    "#DDCC77",  # sand
+    "#882255",  # wine
+    "#AA4499",  # magenta
+]
 
 
 # --- Build jitter map (shared by numeric and categorical shear-stress modes) ---
@@ -78,7 +96,9 @@ def plot_fixed_points_vs_shear_stress(
     label: str,
     dataset_order: list[str] | None = None,
     ylimits: tuple[float, float] | None = None,
-    x_axis_mode: Literal["dataset", "shear_stress_numeric", "shear_stress_categorical"] = "dataset",
+    x_axis_mode: Literal[
+        "dataset", "shear_stress_numeric", "shear_stress_categorical", "cell_line"
+    ] = "dataset",
     marker_size_scatter: int = 15,
     marker_size_legend: int = 5,
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 3),
@@ -113,6 +133,9 @@ def plot_fixed_points_vs_shear_stress(
         - ``"shear_stress_categorical"``: one evenly-spaced tick per unique
           shear-stress value (so 6 and 21 are adjacent), with jitter for
           datasets sharing the same value.
+        - ``"cell_line"``: one categorical tick per cell-line label
+          (e.g. WT, Control, KD), ordered as WT → Control → KD, with
+          jitter for datasets sharing the same shear-stress value.
     marker_size_scatter
         Size of the scatter markers for fixed points.
     marker_size_legend
@@ -197,6 +220,26 @@ def plot_fixed_points_vs_shear_stress(
         row_to_x = lambda row: ss_to_pos[  # noqa: E731
             row["shear_stress_numeric"]
         ] + jitter_map.get((row["dataset"], row["shear_stress_numeric"]), 0.0)
+    elif x_axis_mode == "cell_line":
+        cell_line_catagories = df_fp["cell_line_label"].unique()
+        # order by Parental line, then Control, then VE-Cad KD
+        cell_line_order = sorted(
+            cell_line_catagories,
+            key=lambda x: (0 if x == "Parental" else 1 if x == "Control" else 2),
+        )
+        cell_line_dtype = pd.CategoricalDtype(categories=cell_line_order, ordered=True)
+        df_fp["cell_line_label"] = df_fp["cell_line_label"].astype(cell_line_dtype)
+        df_fp = df_fp.sort_values("cell_line_label")
+        jitter_map = _build_jitter_map(df_fp, jitter_width=jitter_width)
+        cell_line_to_code = {label: i for i, label in enumerate(cell_line_order)}
+        row_to_x = lambda row: cell_line_to_code[
+            row["cell_line_label"]
+        ] + jitter_map.get(  # noqa: E731
+            (row["dataset"], row["shear_stress_numeric"]), 0.0
+        )
+        tick_positions = list(range(len(cell_line_order)))
+        tick_labels = list(cell_line_order)
+
     else:
         raise ValueError(f"Unknown x_axis_mode: {x_axis_mode!r}")
 
@@ -288,14 +331,14 @@ def plot_fixed_points_vs_shear_stress(
         )
 
     ax.set_xticks(tick_positions)
-    if x_axis_mode == "dataset":
+    if x_axis_mode in ("dataset", "cell_line"):
         ax.set_xticklabels(tick_labels, rotation=45, ha="right")
     else:
         ax.set_xticklabels(tick_labels)
-        # Add edge padding so jittered points aren't clipped
-        if tick_positions:
-            pad = 0.25
-            ax.set_xlim(tick_positions[0] - pad, tick_positions[-1] + pad)
+    # Add edge padding so jittered points aren't clipped
+    if tick_positions and x_axis_mode != "dataset":
+        pad = 0.5
+        ax.set_xlim(tick_positions[0] - pad, tick_positions[-1] + pad)
     if ylimits is not None:
         ax.set_ylim(ylimits)
 
@@ -312,7 +355,9 @@ def plot_cross_dataset_summaries(
     output_dir: Path,
     bootstrap_threshold: float = 0.4,
     column_names: list[ColumnName.DiffAEData | ColumnName.OpticalFlow | StrEnum] | None = None,
-    x_axis_mode: Literal["dataset", "shear_stress_numeric", "shear_stress_categorical"] = "dataset",
+    x_axis_mode: Literal[
+        "dataset", "shear_stress_numeric", "shear_stress_categorical", "cell_line"
+    ] = "dataset",
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 3),
     dataset_order: list[str] | None = None,
     stable_only: bool = True,
@@ -349,6 +394,9 @@ def plot_cross_dataset_summaries(
     stable_only
         If ``True``, only fixed points classified as stable are included in the
         fixed point vs shear stress plot.
+    jitter_width
+        Horizontal jitter applied to overlapping points sharing the same
+        x-axis position.  Larger values spread points further apart.
     """
     if column_names is None:
         column_names = [
@@ -433,6 +481,13 @@ def plot_cross_dataset_summaries(
                         of_y_col=ColumnName.DiffAEData.POLAR_RADIUS,
                         of_z_col=ColumnName.DiffAEData.PC3_FLIPPED,
                     )
+
+                if x_axis_mode == "cell_line":
+                    cell_line_label = CELL_LINE_LABEL_MAP.get(
+                        dataset_config.cell_lines[0], dataset_config.cell_lines[0]
+                    )
+                    high_confidence_df["cell_line_label"] = cell_line_label
+
                 df_fp_all_list.append(high_confidence_df)
             except KeyError:
                 logger.warning(
@@ -457,12 +512,12 @@ def plot_cross_dataset_summaries(
     all_column_info = get_seg_feat_plot_args()
     for ax_i, var in zip(axs[0], column_names, strict=False):
         column_info = all_column_info.get(var)
-        label: str = column_info["label"] if column_info else str(var)
+        var_label: str = column_info["label"] if column_info else str(var)
         col_name: str = f"mean_{var}" if var in optical_flow_features else str(var)
         plot_fixed_points_vs_shear_stress(
             df_fp_all,
             col_name,
-            label,
+            var_label,
             dataset_order=dataset_order,
             x_axis_mode=x_axis_mode,
             figure_size=figure_size,
@@ -470,7 +525,10 @@ def plot_cross_dataset_summaries(
             ax=ax_i,
             jitter_width=jitter_width,
         )
-    fig.supxlabel("Shear Stress (dyn/cm\u00b2)", fontsize=FONTSIZE_MEDIUM, fontweight="bold")
+    if x_axis_mode == "cell_line":
+        fig.supxlabel("Cell Line", fontsize=FONTSIZE_MEDIUM, fontweight="bold")
+    else:
+        fig.supxlabel("Shear Stress (dyn/cm\u00b2)", fontsize=FONTSIZE_MEDIUM, fontweight="bold")
 
     # reduce spacing between axis labels and tick labels
     for ax in axs[0]:

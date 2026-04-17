@@ -111,3 +111,86 @@ panels = [
 
 build_figure_from_panels(panels, save_dir / "figure_3.svg", width=MAX_FIGURE_WIDTH, height=6.5)
 # %%
+# --- Cross-dataset summary plots ---
+# Load diffae features
+base_name = (
+    f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{MIGRATION_COHERENCE_CROP_PATTERN}"
+)
+feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
+feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
+
+fixed_points_bootstrap_dataframe_manifest_name = (
+    f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}"
+)
+fixed_points_bootstrap_dataframe_manifest = load_dataframe_manifest(
+    fixed_points_bootstrap_dataframe_manifest_name
+)
+
+dataset_summary_list = SUMMARY_PLOT_DATASETS["intermediate"]
+
+column_names = [
+    ColumnName.DiffAEData.POLAR_ANGLE,
+    ColumnName.DiffAEData.POLAR_RADIUS,
+    ColumnName.DiffAEData.PC3_FLIPPED,
+    ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
+]
+# %%
+for column_name in column_names:
+    plot_cross_dataset_summaries(
+        dataset_names=dataset_summary_list,
+        feature_dataframe_manifest=feature_dataframe_manifest,
+        fixed_points_bootstrap_dataframe_manifest=fixed_points_bootstrap_dataframe_manifest,
+        output_dir=save_dir,
+        bootstrap_threshold=0.4,
+        column_names=[column_name],
+        x_axis_mode="shear_stress_categorical",
+        figure_size=(MAX_FIGURE_WIDTH / 2, 2),
+        stable_only=True,
+        jitter_width=0.2,
+    )
+# %%
+panels = [
+    FigurePanel(
+        letter="A",
+        path=save_dir / "intermediate_examples_scale_bar_100um.svg",
+        x_position=0,
+        y_position=0,
+        x_offset=0.2,
+        y_offset=0,
+    ),
+    FigurePanel(
+        letter="B",
+        path=save_dir / "polar_theta_fp_vs_shear_stress.svg",
+        x_position=0,
+        y_position=2.5,
+        x_offset=0,
+        y_offset=0,
+    ),
+    FigurePanel(
+        letter="",
+        path=save_dir / "ema01_optical_flow_mean_unit_vector_dt1_fp_vs_shear_stress.svg",
+        x_position=MAX_FIGURE_WIDTH / 2,
+        y_position=2.5,
+        x_offset=0,
+        y_offset=0,
+    ),
+    FigurePanel(
+        letter="",
+        path=save_dir / "polar_r_fp_vs_shear_stress.svg",
+        x_position=0,
+        y_position=4.5,
+        x_offset=0,
+        y_offset=0,
+    ),
+    FigurePanel(
+        letter="",
+        path=save_dir / "rho_fp_vs_shear_stress.svg",
+        x_position=MAX_FIGURE_WIDTH / 2,
+        y_position=4.5,
+        x_offset=0,
+        y_offset=0,
+    ),
+]
+
+build_figure_from_panels(panels, save_dir / "figure_3.svg", width=MAX_FIGURE_WIDTH, height=6.5)
+# %%
