@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
-from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
+from endo_pipeline.io import get_output_path, load_dataframe, load_model, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import (
     filter_dataframe_by_annotations,
     filter_dataframe_to_steady_state,
@@ -34,10 +34,11 @@ from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     get_dataset_color,
     get_label_for_column,
 )
+from endo_pipeline.library.visualize.figure_2 import make_crop_example_contact_sheet
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
 from endo_pipeline.library.visualize.migration_coherence import plot_optical_flow_histogram
 from endo_pipeline.library.visualize.summary_plot import plot_cross_dataset_summaries
-from endo_pipeline.manifests import load_dataframe_manifest
+from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import (
     BIN_LIMIT_PERCENTILE_CUTOFF,
@@ -127,6 +128,11 @@ kernel_theta = KramersMoyalKernel(
     period=PERIOD_THETA_RESCALED,
 )
 
+# load and instantiate model for generating synthetic images
+model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
+model_location = model_manifest.locations[DEFAULT_MODEL_RUN_NAME]
+model = load_model(model_location, instantiate=True)
+
 # global plotting kwargs / parameters
 gridspec_kwargs = {"wspace": 0.1, "hspace": 0.1}
 xlabel_kwargs = {"labelpad": 2}
@@ -159,9 +165,9 @@ save_plot_to_path(fig, base_output_dir, "colorbar", file_format=".svg", transpar
 # loop over datasets in collection, compute 2D drift coefficients for each
 # pairwise combination of polar coordinates, and plot contours of drift coefficients
 panels = []
-for dataset_name, panel_letters, y_position in [
-    (dataset_low, ("A", "B"), 0.0),
-    (dataset_high, ("C", "D"), 2.05),
+for dataset_name, panel_letters, y_position, contact_sheet_x_position in [
+    (dataset_low, ("A", "B", "E"), 0.0, 0.0),
+    (dataset_high, ("C", "D", "F"), 2.05, MAX_FIGURE_WIDTH / 2),
 ]:
     if dataset_name not in feature_dataframe_manifest.locations:
         logger.warning(
@@ -353,6 +359,23 @@ for dataset_name, panel_letters, y_position in [
     ax.set_yticks([-0.3, 0.0, 0.3])
     save_plot_to_path(fig, fig_savedir, theta_plot_filename, file_format=".svg")
 
+    # make contact sheet of example crops at stable fixed points for this
+    # dataset (panel below the flow field visualizations)
+
+    crop_contact_sheet_path = make_crop_example_contact_sheet(
+        dataset_config=dataset_config,
+        stable_fixed_point_dataframe=stable_fixed_points,
+        crop_features_dataframe=df,
+        feature_column_names=feature_column_names,
+        model=model,
+        n_crop_examples=2,
+        fig_savedir=fig_savedir,
+        fig_filename=f"{dataset_name}_crop_examples",
+        file_format=".svg",
+        gridspec_kwargs=gridspec_kwargs,
+        fig_kwargs={"figsize": (MAX_FIGURE_WIDTH / 2 - 0.1, 2.0)},
+    )
+
     # build panels for this dataset's visualizations, adjusting positions based
     # on dataset to stack vertically in figure
 
@@ -391,6 +414,16 @@ for dataset_name, panel_letters, y_position in [
         x_offset=0.4,
         y_offset=-0.2,
     )
+
+    contact_sheet_panel = FigurePanel(
+        letter=panel_letters[2],
+        path=crop_contact_sheet_path,
+        x_position=contact_sheet_x_position,
+        y_position=4.0,
+        x_offset=0.0,
+        y_offset=0.0,
+    )
+
     panels.extend([contour_plots, colorbar_panel, quiver_plot, theta_plot])
 
 # %%
