@@ -1,18 +1,23 @@
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from seaborn import color_palette
 
+from endo_pipeline.configs.dataset_config_io import load_dataset_config
 from endo_pipeline.io import get_output_path, load_dataframe
 from endo_pipeline.library.analyze.data_driven_flow_field import (
     get_drift_df,
     get_drift_flow_field_as_dict,
     get_fixed_points_df,
     solve_ddff_ode,
+)
+from endo_pipeline.library.analyze.dataframe_filtering import (
+    filter_dataframe_by_track_length,
+    filter_dataframe_to_steady_state,
 )
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
@@ -30,6 +35,7 @@ from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
     KERNEL_BANDWIDTHS_DYNAMICS,
     KERNEL_NAMES_DYNAMICS,
+    LONG_TRACK_THRESHOLD_LENGTH,
     PERIOD_THETA_RESCALED,
     RESCALE_THETA,
 )
@@ -42,10 +48,12 @@ from endo_pipeline.settings.flow_field_3d import (
 from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_COLUMNS_TO_DROP,
+    DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
     DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_FILTERED,
     DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_UNFILTERED,
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
+    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
 )
 
@@ -1035,6 +1043,12 @@ def add_distance_to_fixed_points_columns(
 ) -> pd.DataFrame:
     """
     Compute the distance from each point in the trajectory to the fixed points.
+    This distance gets added as a new column to the trajectory dataframe for
+    each fixed point, along with the signed difference along each axis
+    (e.g. theta, r, rho) from each fixed point with the following column naming
+    convention:
+    `dist_from_fp_{i}{column_suffix}` for the distance
+    `diff_from_fp_{i}_{col}{column_suffix}` for the signed difference along each axis.
 
     Parameters
     ----------
@@ -1127,9 +1141,7 @@ def add_distance_to_fixed_points_columns(
     return trajectory_df
 
 
-def get_time_of_first_passage(
-    trajectory_df: pd.DataFrame, column: str, threshold: float
-) -> pd.Series:
+def get_first_passage_time(trajectory_df: pd.DataFrame, column: str, threshold: float) -> pd.Series:
     """
     Get the time of first passage for each track in the trajectory dataframe.
 
@@ -1151,10 +1163,60 @@ def get_time_of_first_passage(
     time_of_first_passage = trajectory_df.groupby(Column.CROP_INDEX).apply(
         lambda grp: pd.Series(
             {
-                new_column_name: grp[Column.SegData.TIME_HRS][grp[column] <= threshold].min()
-                - grp[Column.SegData.TIME_HRS].min()
+                new_column_name: grp[Column.TIMEPOINT][grp[column] <= threshold].min()
+                - grp[Column.TIMEPOINT].min()
             }
         ),
         include_groups=False,
     )
     return time_of_first_passage
+
+
+def load_filtered_trajectory_df_for_first_passage_time_workflow(
+    dataset_name: str,
+    crop_pattern: Literal["grid", "tracked"],
+    minimum_track_length: int = LONG_TRACK_THRESHOLD_LENGTH,
+) -> pd.DataFrame:
+    if crop_pattern == "grid":
+        dynamics_manifest = load_dataframe_manifest(
+            DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED
+        )
+    elif crop_pattern == "tracked":
+        dynamics_manifest = load_dataframe_manifest(
+            DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED
+        )
+    else:
+        raise ValueError(f"Unsupported crop pattern: {crop_pattern}")
+
+    dynamics_loc = get_dataframe_location_for_dataset(dynamics_manifest, dataset_name)
+    trajectories_df_delayed = load_dataframe(dynamics_loc, delay=True)
+    columns_to_compute = [
+        Column.DATASET,
+        Column.POSITION,
+        Column.TIMEPOINT,
+        Column.CROP_INDEX,
+        *DYNAMICS_COLUMN_NAMES,
+    ]
+    trajectories_df = trajectories_df_delayed[columns_to_compute].compute().reset_index()
+
+    # the loaded grid-based dynamics dataframe is disordered by default so
+    # sort the grid-based dynamics dataframe by crop index and timepoint
+    trajectories_df = trajectories_df.sort_values(by=[Column.CROP_INDEX, Column.TIMEPOINT])
+
+    # filter the grid-based dynamics dataframe to only include timepoints from steady state
+    dataset_config = load_dataset_config(dataset_name)
+    trajectories_df = filter_dataframe_to_steady_state(
+        dataframe=trajectories_df, dataset_config=dataset_config
+    )
+
+    # add the track durations
+    trajectories_df[Column.TRACK_LENGTH] = trajectories_df.groupby(Column.CROP_INDEX)[
+        Column.TIMEPOINT
+    ].transform(lambda t: t.max() - t.min())
+
+    # filter trajectories to only include long ones
+    trajectories_df = filter_dataframe_by_track_length(
+        dataframe=trajectories_df, minimum_track_length=minimum_track_length
+    )
+
+    return trajectories_df

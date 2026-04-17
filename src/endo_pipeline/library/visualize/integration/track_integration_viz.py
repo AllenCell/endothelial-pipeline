@@ -1112,7 +1112,7 @@ def plot_trajectory_measured_vs_simulation_over_flow_field(
     plt.close(fig)
 
 
-def plot_time_of_first_passage_histogram(
+def plot_first_passage_time_histogram(
     fixed_point_id: int,
     fixed_point_stability: str,
     dataset_config: DatasetConfig,
@@ -1229,13 +1229,12 @@ def plot_time_of_first_passage_histogram(
     )
 
 
-def plot_time_of_first_passage_scatterplot(
+def plot_first_passage_time_scatterplot(
     fixed_point_id: int,
     fixed_point_stability: str,
     dataset_config: DatasetConfig,
     time_of_first_passage_df: pd.DataFrame,
     out_dir: Path,
-    crop_pattern: Literal["grid", "tracked"] = "grid",
 ) -> None:
     dataset_name = dataset_config.name
     if dataset_config.time_interval_in_minutes is None:
@@ -1247,45 +1246,39 @@ def plot_time_of_first_passage_scatterplot(
     if time_of_first_passage_df_sub.size < 2:
         logger.warning(
             f"Fewer than 2 trajectories reached fixed point {fixed_point_id} "
-            f"for both {crop_pattern} and simulation in dataset {dataset_name}."
+            f"for both grid and tracked in dataset {dataset_name}."
         )
         return
 
     line_fit = linregress(
+        time_of_first_passage_df_sub[f"time_of_first_passage_dist_from_fp_{fixed_point_id}_grid"],
         time_of_first_passage_df_sub[
-            f"time_of_first_passage_dist_from_fp_{fixed_point_id}_{crop_pattern}"
-        ],
-        time_of_first_passage_df_sub[
-            f"time_of_first_passage_dist_from_fp_{fixed_point_id}_simulated"
+            f"time_of_first_passage_dist_from_fp_{fixed_point_id}_tracked"
         ],
     )
 
-    trajectories_approached_fp_measured = (
-        time_of_first_passage_df[
-            f"time_of_first_passage_dist_from_fp_{fixed_point_id}_{crop_pattern}"
-        ]
+    trajectories_approached_fp_grid = (
+        time_of_first_passage_df[f"time_of_first_passage_dist_from_fp_{fixed_point_id}_grid"]
         .notna()
         .sum()
     )
-    trajectories_approached_fp_simulated = (
-        time_of_first_passage_df[f"time_of_first_passage_dist_from_fp_{fixed_point_id}_simulated"]
+    trajectories_approached_fp_tracked = (
+        time_of_first_passage_df[f"time_of_first_passage_dist_from_fp_{fixed_point_id}_tracked"]
         .notna()
         .sum()
     )
     trajectories_total = time_of_first_passage_df[Column.CROP_INDEX].nunique()
     traj_details = (
         f"trajectories reaching fixed point {fixed_point_id}:"
-        f"\n{crop_pattern} {trajectories_approached_fp_measured / trajectories_total:.1%}, "
-        f"simulated {trajectories_approached_fp_simulated / trajectories_total:.1%}"
+        f"\ngrid {trajectories_approached_fp_grid / trajectories_total:.1%}, "
+        f"tracked {trajectories_approached_fp_tracked / trajectories_total:.1%}"
     )
     fig, ax = plt.subplots(figsize=(4, 4))
-    ax.set_title(
-        f"{dataset_name} ({crop_pattern}), R = {line_fit.rvalue:.2f}\n{traj_details}".title()
-    )
+    ax.set_title(f"{dataset_name}, R = {line_fit.rvalue:.2f}\n{traj_details}".title())
     sns.scatterplot(
         data=time_of_first_passage_df,
-        x=f"time_of_first_passage_dist_from_fp_{fixed_point_id}_{crop_pattern}",
-        y=f"time_of_first_passage_dist_from_fp_{fixed_point_id}_simulated",
+        x=f"time_of_first_passage_dist_from_fp_{fixed_point_id}_grid",
+        y=f"time_of_first_passage_dist_from_fp_{fixed_point_id}_tracked",
         markers="o",
         c="black",
         s=10,
@@ -1310,11 +1303,9 @@ def plot_time_of_first_passage_scatterplot(
         c="tab:orange",
         zorder=0,
     )
-    ax.set_xlabel(f"{crop_pattern} trajectory first passage time".title())
-    ax.set_ylabel("simulated trajectory first passage time".title())
-    filename = (
-        f"{crop_pattern}_traj_reaching_fp_{fixed_point_id}_{fixed_point_stability}_scatter.png"
-    )
+    ax.set_xlabel("grid trajectory first passage time".title())
+    ax.set_ylabel("tracked trajectory first passage time".title())
+    filename = f"traj_FPT_fp_{fixed_point_id}_{fixed_point_stability}_scatter.png"
     save_plot_to_path(
         fig,
         out_dir,
