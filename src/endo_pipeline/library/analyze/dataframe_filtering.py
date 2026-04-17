@@ -1,7 +1,6 @@
 """Module for methods that filter dataframes for analysis based on certain criteria."""
 
 import logging
-from collections.abc import Sequence
 from typing import cast
 
 import numpy as np
@@ -300,7 +299,7 @@ def _get_index_from_value(val: float, bin_edges_1d: np.ndarray) -> int:
 def filter_dataframe_to_binned_value(
     dataframe: pd.DataFrame,
     columns: str | list[str],
-    values: float | Sequence[float],
+    values: float | np.ndarray,
     bin_edges: np.ndarray | list[np.ndarray],
 ) -> pd.DataFrame:
     """
@@ -373,7 +372,7 @@ def filter_dataframe_to_binned_value(
     # convert args to lists in the 1D case, and check that lengths of columns,
     # value, and bin_edges match
     column_names = [columns] if isinstance(columns, str) else columns
-    feature_values = [values] if isinstance(values, (float, int)) else values
+    feature_values = np.array([values]) if isinstance(values, (float, int)) else values
     bin_edges_list = [bin_edges] if isinstance(bin_edges, np.ndarray) else bin_edges
     if not (len(column_names) == len(feature_values) == len(bin_edges_list)):
         raise ValueError(
