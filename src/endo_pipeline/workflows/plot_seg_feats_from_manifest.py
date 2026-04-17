@@ -43,8 +43,8 @@ def plot_seg_manifest_data(
         mark_parallel,
         mark_perpendicular,
     )
+    from endo_pipeline.settings.column_metadata import COLUMN_METADATA_DICT
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.feature_metadata import FEATURE_METADATA_DICT
 
     # choose which features to put on the y-axis
     # (we will put time on the x-axis)
@@ -71,7 +71,7 @@ def plot_seg_manifest_data(
 
     # get the plotting arguments for the features
     # (e.g. axis limits, axis titles, bin widths, etc.)
-    feats_plot_args = FEATURE_METADATA_DICT
+    feats_plot_args = COLUMN_METADATA_DICT
 
     for feat in angular_feats + feats_to_plot_y + feats_to_plot_y_lineplot_only:
         filename_out = f"{dataset_name}_P{position}_{feat}.png"

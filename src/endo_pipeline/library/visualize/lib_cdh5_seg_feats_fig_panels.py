@@ -32,9 +32,9 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
     load_image_manifest,
 )
+from endo_pipeline.settings.column_metadata import COLUMN_METADATA_DICT
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.examples import CDH5_SEG_FIG_EXAMPLE
-from endo_pipeline.settings.feature_metadata import FEATURE_METADATA_DICT
 from endo_pipeline.settings.figures import FONT_FAMILY, FONTSIZE_SMALL, PDF_FONT_TYPE
 from endo_pipeline.settings.workflow_defaults import SEGMENTATION_FEATURE_COLUMNS
 
@@ -309,7 +309,7 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
 
         # get the plotting arguments for the features
         # (e.g. axis limits, axis titles, bin widths, etc.)
-        feats_plot_args = FEATURE_METADATA_DICT
+        feats_plot_args = COLUMN_METADATA_DICT
 
         # update the y labels of the features being plotted to
         # accomodate these panels being very very small
