@@ -130,7 +130,8 @@ def make_crop_example_contact_sheet(
         timepoint = row[Column.TIMEPOINT]
         crop_x_start = row[Column.DiffAEData.START_X]
         crop_y_start = row[Column.DiffAEData.START_Y]
-        crop_size = row[Column.DiffAEData.CROP_SIZE_X]
+        crop_x_end = row[Column.DiffAEData.END_X]
+        crop_size = crop_x_end - crop_x_start  # assuming square crops
 
         image_location = get_zarr_location_for_position(dataset_config, position)
         image = load_image(
