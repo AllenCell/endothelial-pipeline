@@ -18,18 +18,20 @@ def main(
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import load_dataframe
     from endo_pipeline.io.output import get_output_path
-    from endo_pipeline.library.analyze.data_driven_flow_field import (
-        compute_extrapolated_vector_field,
-        get_drift_df,
-        get_drift_flow_field_as_dict,
-        get_drift_values_and_grid_from_drift_df,
-        get_fixed_points_df,
-    )
     from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
     from endo_pipeline.library.analyze.integration.track_integration import (
         solve_ddff_from_trajectory_initial_condition_helper,
     )
+    from endo_pipeline.library.analyze.numerics.fixed_points import (
+        load_fixed_points_dataframe_for_dataset,
+    )
     from endo_pipeline.library.analyze.polar_coords import rewrap_polar_angle
+    from endo_pipeline.library.analyze.vector_field_estimation import (
+        compute_extrapolated_vector_field,
+        get_reshaped_vector_field_and_grid,
+        get_vector_field_as_dict_from_dataframe,
+        load_drift_dataframe_for_dataset,
+    )
     from endo_pipeline.library.visualize.integration.track_integration_viz import (
         plot_trajectory_measured_vs_simulation_over_flow_field_helper,
     )
@@ -68,14 +70,14 @@ def main(
         df_grid = filter_dataframe_to_steady_state(dataframe=df_grid, dataset_config=dataset_config)
 
         # load the flow field dictionaries and fixed points
-        drift_df = get_drift_df(dataset_name)
-        drift_values, grid_points_1d = get_drift_values_and_grid_from_drift_df(
+        drift_df = load_drift_dataframe_for_dataset(dataset_name)
+        drift_values, grid_points_1d = get_reshaped_vector_field_and_grid(
             flow_field_dataframe=drift_df, column_names=DYNAMICS_COLUMN_NAMES
         )
-        flow_field_dict_grid = get_drift_flow_field_as_dict(
+        flow_field_dict_grid = get_vector_field_as_dict_from_dataframe(
             flow_field_dataframe=drift_df, column_names=DYNAMICS_COLUMN_NAMES
         )
-        fixed_points_df = get_fixed_points_df(dataset_name)
+        fixed_points_df = load_fixed_points_dataframe_for_dataset(dataset_name)
 
         ## ODE solver: dx/dt = f(x) (drift, first Kramers-Moyal coefficient) ##
         # with initial conditions given by init solve IVP, get back trajectory

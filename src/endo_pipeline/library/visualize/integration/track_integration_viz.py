@@ -22,7 +22,7 @@ from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifes
     add_normalized_time,
 )
 from endo_pipeline.library.analyze.numerics.binning import get_bins
-from endo_pipeline.library.visualize.diffae_features.flow_field_viz import (
+from endo_pipeline.library.visualize.diffae_features.flow_field_3d import (
     get_slice_indexes,
     plot_flow_field_slices,
     plot_one_slice_quiver,

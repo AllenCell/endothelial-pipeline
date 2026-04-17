@@ -7,21 +7,21 @@ import numpy as np
 import pandas as pd
 from scipy.stats import circmean
 
-from endo_pipeline.library.analyze.data_driven_flow_field import (
+from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
+from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
+from endo_pipeline.library.analyze.numerics.binning import circpercentile
+from endo_pipeline.library.analyze.vector_field_estimation import (
     compute_extrapolated_vector_field,
     get_callable_vector_field,
     get_fixed_points_within_bounds,
 )
-from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
-from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
-from endo_pipeline.library.analyze.numerics.binning import circpercentile
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_THETA_RESCALED
 from endo_pipeline.settings.flow_field_3d import (
-    LOWER_PERCENTILE_FOR_STABLE_FP,
+    LOWER_PERCENTILE_FOR_FILTERING_FPTS,
     NUM_INIT_SAMPLES,
     TIME_STEP_IN_MINUTES,
-    UPPER_PERCENTILE_FOR_STABLE_FP,
+    UPPER_PERCENTILE_FOR_FILTERING_FPTS,
 )
 from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
 
@@ -76,8 +76,8 @@ def run_flow_field_and_fixed_points(
     kernels: list[KramersMoyalKernel],
     metadata_dict: dict | None = None,
     polar_angle_range: tuple[float, float] = BIN_LIMITS_THETA_RESCALED,
-    lower_percentile_for_filtering: float = LOWER_PERCENTILE_FOR_STABLE_FP,
-    upper_percentile_for_filtering: float = UPPER_PERCENTILE_FOR_STABLE_FP,
+    lower_percentile_for_filtering_fpts: float = LOWER_PERCENTILE_FOR_FILTERING_FPTS,
+    upper_percentile_for_filtering_fpts: float = UPPER_PERCENTILE_FOR_FILTERING_FPTS,
     num_inits_for_root_solver: int = NUM_INIT_SAMPLES,
 ) -> pd.DataFrame:
     """
@@ -160,8 +160,8 @@ def run_flow_field_and_fixed_points(
         dataframe=df_for_bounds,
         column_names=column_names,
         num_inits_for_root_solver=num_inits_for_root_solver,
-        lower_percentile=lower_percentile_for_filtering,
-        upper_percentile=upper_percentile_for_filtering,
+        lower_percentile=lower_percentile_for_filtering_fpts,
+        upper_percentile=upper_percentile_for_filtering_fpts,
         polar_angle_range=polar_angle_range,
         metadata_dict=metadata_dict,
     )

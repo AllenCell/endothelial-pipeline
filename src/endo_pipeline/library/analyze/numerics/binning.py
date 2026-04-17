@@ -1,7 +1,6 @@
 """Methods related to binning and histogram calculations."""
 
 import logging
-from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -157,7 +156,7 @@ def get_bins(
 
 def _get_histogram_by_component_one_dataset(
     df: pd.DataFrame, bin_edges: list[np.ndarray], feat_cols: list[str] | None = None
-) -> tuple[list[np.ndarray], pd.DataFrame]:
+) -> list[np.ndarray]:
     """Compute histogram of feature data at each timepoint for each latent component.
 
     Parameters
@@ -173,8 +172,6 @@ def _get_histogram_by_component_one_dataset(
     -------
     :
         Histogram values for each component as a function of time
-    :
-        Updated dataframe with bin indices for each crop at each timepoint along each component.
 
     """
     if feat_cols is None:
@@ -193,29 +190,14 @@ def _get_histogram_by_component_one_dataset(
     df = df.sort_values(by=Column.TIMEPOINT).reset_index(drop=True)
     for t, df_frame in df.groupby(Column.TIMEPOINT):
         # loop over latent components
-        for dim in range(num_feats):
-            feats = df_frame[feat_cols[dim]].to_numpy()
+        for dim, feat_col in enumerate(feat_cols):
+            feats = df_frame[feat_col].to_numpy()
             # compute histogram of feature data along each component
             t_index = df[Column.TIMEPOINT].unique().tolist().index(t)
             hist = np.histogram(feats, bins=bin_edges[dim], density=True)[0]
             hist_array_list[dim][:, t_index] = hist
 
-            # update the dataframe with column of what bin
-            # each crop at frame number t is in
-            # along the given latent dimension
-            # get the bin index for each crop
-            bin_idx = np.digitize(feats, bin_edges[dim]) - 1
-            # add the bin index to the dataframe (astype int)
-            # restrict to crops at frame number t
-            df.loc[df[Column.TIMEPOINT] == t, f"bin_{dim}"] = bin_idx
-
-    # enforce that bin indices are integers
-    # this is important for indexing later
-    for dim in range(num_feats):
-        df[f"bin_{dim}"] = df[f"bin_{dim}"].astype(int)
-
-    # return the histogram array and the updated dataframe
-    return hist_array_list, df
+    return hist_array_list
 
 
 def get_histogram_by_component(
@@ -223,8 +205,8 @@ def get_histogram_by_component(
     bin_width: float,
     bin_limits: list[tuple[float, float]],
     feat_cols: list[str] | None = None,
-) -> tuple[list[list[np.ndarray]], list[np.ndarray], pd.DataFrame]:
-    """Get histogram of feature data at for each latent component over time.
+) -> tuple[list[list[np.ndarray]], list[np.ndarray]]:
+    """Get histogram of feature data for each latent component over time.
 
     Parameters
     ----------
@@ -269,123 +251,13 @@ def get_histogram_by_component(
     # loop over each dataset in the dataframe
     # get histogram / bin indices for each dataset
     hist_array_list_all_datasets = []
-    df_list = []
     for _, df_group in df.groupby(Column.DATASET):
-        hist_array_list_one_dataset, df_group_ = _get_histogram_by_component_one_dataset(
+        hist_array_list_one_dataset = _get_histogram_by_component_one_dataset(
             df_group, bin_edges, feat_cols
         )
-        df_list.append(df_group_)
         hist_array_list_all_datasets.append(hist_array_list_one_dataset)
 
-    df_all_datasets_binned = pd.concat(df_list, ignore_index=True)
-
-    return hist_array_list_all_datasets, bin_edges, df_all_datasets_binned
-
-
-def _get_index_from_value(val: float, bin_edges_1d: np.ndarray) -> int:
-    """Given a value and a 1D array of bin edges, return the index of the bin that contains that value.
-
-    **Example usage:**
-
-    .. code-block:: python
-
-        # example: dim 1 = 0.2 falls in the first bin of
-        # the bin edges for dim 1: [0, 0.5]
-
-        val = 0.2
-
-        bin_edges = np.array([0, 0.5, 1])
-
-        _get_index_from_value(val, bin_edges_1d) = 0
-
-    Parameters
-    ----------
-    val
-        Value to find bin index for.
-    bin_edges_1d
-        1D array of bin edges for a single dimension.
-
-    Returns
-    -------
-    :
-        Index of the bin that contains the value.
-
-    """
-    # get the index of the bin that contains the value
-    # this is done by finding the index of the first bin edge
-    # that is greater than the value
-    # and subtracting 1
-    bin_idx = cast(int, np.digitize(val, bin_edges_1d) - 1)
-
-    # check if the value is in the last bin
-    # if so, set the index to the last bin
-    if bin_idx == len(bin_edges_1d) - 1:
-        bin_idx = len(bin_edges_1d) - 2
-
-    # check if the value is in the first bin
-    # if so, set the index to the first bin
-    if bin_idx < 0:
-        bin_idx = 0
-
-    # return the index of the bin
-    return bin_idx
-
-
-def get_df_by_bin_value(
-    df: pd.DataFrame, pc_axis: int, pc_val: float, bin_edges: list[np.ndarray]
-) -> pd.DataFrame:
-    """Filter dataframe to only include rows where column value falls in specified bin.
-
-    The input dataframe should have columns named "bin_{pc_axis}" that contain the bin
-    index for each row along the specified latent component axis. This function uses the
-    provided `pc_val` and `bin_edges` to determine which bin index corresponds to the
-    given value, and then filters the dataframe to only include rows where the "bin_{pc_axis}"
-    column matches that bin index.
-
-    **Example usage:**
-
-    .. code-block:: python
-
-        df = pd.DataFrame({'bin_0': [0, 1, 0], 'bin_1': [1, 1, 2]})
-        pc_axis = 0
-        pc_val = 0.2
-        bin_edges = [np.array([0, 0.5, 1])]
-
-        # should be == 0
-        _get_index_from_value(latent_val, bin_edges) = 0
-
-        get_df_by_bin_value(df, latent_dim, latent_val) = pd.DataFrame({'bin_0':
-        [0, 0], 'bin_1': [1, 2]})
-
-    Parameters
-    ----------
-    df
-        Dataframe of features to filter.
-    pc_axis
-        Integer index of the latent component to filter by (e.g., 0 for the first component).
-    pc_val
-        Value of the latent component to filter by (e.g., 0.2).
-    bin_edges
-        List of 1D arrays of bin edges for each latent component.
-
-    Returns
-    -------
-    :
-        Filtered dataframe.
-
-    """
-    # get the bin edges for the given latent dimension
-    bin_edges_1d = bin_edges[pc_axis]
-
-    # get the bin index for the given latent value
-    # and find the crops that fall into that bin
-    bin_idx = _get_index_from_value(pc_val, bin_edges_1d)
-
-    # filter the dataframe to only include rows
-    # with bin_{latent_dim} == bin_idx
-    df_bin = df.loc[df[f"bin_{pc_axis}"] == bin_idx]
-
-    return df_bin
+    return hist_array_list_all_datasets, bin_edges
 
 
 def get_normalization_constant(p: np.ndarray, dx: list) -> np.ndarray:
