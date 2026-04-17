@@ -38,7 +38,7 @@ from endo_pipeline.settings.flow_field_dataframes import (
     STABILITY_COLUMN_NAME,
     STABILITY_MARKER_DICT,
 )
-from endo_pipeline.settings.summary_plot import CELL_LINE_LABEL_MAP
+from endo_pipeline.settings.summary_plot import CELL_LINE_LABEL_MAP, COLOR_PALETTE
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +59,35 @@ _COLORBLIND_PALETTE = [
     "#882255",  # wine
     "#AA4499",  # magenta
 ]
+
+
+# --- Build jitter map (shared by numeric and categorical shear-stress modes) ---
+def _build_jitter_map(df: pd.DataFrame, jitter_width: float = 0.1) -> dict[tuple, float]:
+    jmap: dict[tuple, float] = {}
+    for ss in df["shear_stress_numeric"].unique():
+        datasets_at_ss = df.loc[df["shear_stress_numeric"] == ss, "dataset"].unique()
+        n = len(datasets_at_ss)
+        if n <= 1:
+            offsets = [0.0]
+        else:
+            offsets = [jitter_width * (i / (n - 1) - 0.5) for i in range(n)]
+        for ds, off in zip(datasets_at_ss, offsets, strict=False):
+            jmap[(ds, ss)] = off
+    return jmap
+
+
+def _compute_yerr(
+    row: pd.Series,  # type: ignore[type-arg]
+    y_val: float,
+    ci_lower_col: str,
+    ci_upper_col: str,
+) -> list[list[float]] | None:
+    """Return asymmetric *yerr* for :func:`~matplotlib.axes.Axes.errorbar`, or ``None``."""
+    lo = row.get(ci_lower_col)
+    hi = row.get(ci_upper_col)
+    if lo is None or hi is None or np.isnan(lo) or np.isnan(hi):
+        return None
+    return [[max(0.0, y_val - lo)], [max(0.0, hi - y_val)]]
 
 
 # --- Build jitter map (shared by numeric and categorical shear-stress modes) ---
@@ -251,8 +280,7 @@ def plot_fixed_points_vs_shear_stress(
     if stable_only:
         unique_datasets_list = df_fp["dataset"].unique()
         dataset_color_map = {
-            ds: _COLORBLIND_PALETTE[i % len(_COLORBLIND_PALETTE)]
-            for i, ds in enumerate(unique_datasets_list)
+            ds: COLOR_PALETTE[i % len(COLOR_PALETTE)] for i, ds in enumerate(unique_datasets_list)
         }
 
         for _, row in df_fp.iterrows():
@@ -520,7 +548,6 @@ def plot_cross_dataset_summaries(
             col_name,
             var_label,
             dataset_order=dataset_order,
-            # ylimits=limits,
             x_axis_mode=x_axis_mode,
             figure_size=figure_size,
             stable_only=stable_only,

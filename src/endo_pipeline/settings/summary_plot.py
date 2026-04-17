@@ -63,3 +63,20 @@ CELL_LINE_LABEL_MAP = {
     "AICS-177 cl. 41": "Control",
     "AICS-177 cl. 26": "Ex2Del",
 }
+
+COLOR_PALETTE = [
+    "#0072B2",  # blue
+    "#E69F00",  # orange
+    "#009E73",  # bluish green
+    "#CC79A7",  # reddish purple
+    "#56B4E9",  # sky blue
+    "#D55E00",  # vermillion
+    "#F0E442",  # yellow
+    "#000000",  # black
+    "#332288",  # indigo
+    "#88CCEE",  # cyan
+    "#44AA99",  # teal
+    "#DDCC77",  # sand
+    "#882255",  # wine
+    "#AA4499",  # magenta
+]
