@@ -8,6 +8,7 @@ def main(
     columns: StrList | None = None,
     bootstrap_samples: int | None = 1000,
     crop_pattern: Literal["grid", "tracked"] = "grid",
+    max_cores: int | None = None,
 ) -> None:
     """
     Run auto and cross correlation analysis on DiffAE feature time series data.
@@ -28,8 +29,18 @@ def main(
     datasets
         Optional, specific list of datasets or dataset collections to use in
         workflow.
+    columns
+        Optional, specific list of feature column names to use for correlation
+        analysis. If not provided, will use all three "dynamics analyses" features
+        polar theta, polar r, and rho.
     bootstrap_samples
-        Optional, number of bootstrap samples to use for correlation analysis..
+        Optional, number of bootstrap samples to use for correlation analysis.
+    crop_pattern
+        Optional, crop pattern of the features to analyze. Must be either "grid" or "tracked".
+    max_cores
+        Optional, maximum number of CPU cores to use for parallel processing of bootstrap
+        samples. If None, will use all available cores.
+
     """
     import logging
 
@@ -131,7 +142,7 @@ def main(
             dataframe=df_steady_state, minimum_track_length=LONG_TRACK_THRESHOLD_LENGTH
         )
         correlation_dict = compute_correlations_for_one_dataset(
-            df_steady_state, column_names, bootstrap_samples
+            df_steady_state, column_names, bootstrap_samples, max_cores=max_cores
         )
         correlation_dict_all[dataset_name] = correlation_dict
 
