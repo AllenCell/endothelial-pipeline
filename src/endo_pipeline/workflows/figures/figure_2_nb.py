@@ -461,7 +461,8 @@ panels.extend(
         ),
         FigurePanel(
             letter="H",
-            path=base_output_dir / "fixed_points_vs_shear_stress.svg",
+            path=base_output_dir
+            / "polar_theta_polar_r_rho_ema01_optical_flow_mean_unit_vector_dt1_fp_vs_shear_stress.svg",
             x_position=2.1,
             y_position=6.0,
             x_offset=0,
