@@ -628,20 +628,28 @@ def compute_correlations_for_one_dataset(
     correlation_dict["features"] = column_names
     correlation_dict["lags"] = lags
     correlation_dict["acf"] = acf
-    correlation_dict["acf_ci_lower"] = acf_lb
-    correlation_dict["acf_ci_upper"] = acf_ub
+    correlation_dict[f"acf_{Column.BootstrapAnalysis.CI_LOWER}"] = acf_lb
+    correlation_dict[f"acf_{Column.BootstrapAnalysis.CI_UPPER}"] = acf_ub
     correlation_dict["relaxation_timescales"] = relaxation_timescale
-    correlation_dict["relaxation_timescales_ci_lower"] = relaxation_timescale_lb
-    correlation_dict["relaxation_timescales_ci_upper"] = relaxation_timescale_ub
+    correlation_dict[f"relaxation_timescales_{Column.BootstrapAnalysis.CI_LOWER}"] = (
+        relaxation_timescale_lb
+    )
+    correlation_dict[f"relaxation_timescales_{Column.BootstrapAnalysis.CI_UPPER}"] = (
+        relaxation_timescale_ub
+    )
     correlation_dict["ccf"] = ccf
-    correlation_dict["ccf_ci_lower"] = ccf_lb
-    correlation_dict["ccf_ci_upper"] = ccf_ub
+    correlation_dict[f"ccf_{Column.BootstrapAnalysis.CI_LOWER}"] = ccf_lb
+    correlation_dict[f"ccf_{Column.BootstrapAnalysis.CI_UPPER}"] = ccf_ub
     correlation_dict["delta_ccf"] = delta_ccf
-    correlation_dict["delta_ccf_ci_lower"] = delta_ccf_lb
-    correlation_dict["delta_ccf_ci_upper"] = delta_ccf_ub
+    correlation_dict[f"delta_ccf_{Column.BootstrapAnalysis.CI_LOWER}"] = delta_ccf_lb
+    correlation_dict[f"delta_ccf_{Column.BootstrapAnalysis.CI_UPPER}"] = delta_ccf_ub
     correlation_dict["delta_ccf_integral"] = delta_ccf_integral
-    correlation_dict["delta_ccf_integral_ci_lower"] = delta_ccf_integral_lb
-    correlation_dict["delta_ccf_integral_ci_upper"] = delta_ccf_integral_ub
+    correlation_dict[f"delta_ccf_integral_{Column.BootstrapAnalysis.CI_LOWER}"] = (
+        delta_ccf_integral_lb
+    )
+    correlation_dict[f"delta_ccf_integral_{Column.BootstrapAnalysis.CI_UPPER}"] = (
+        delta_ccf_integral_ub
+    )
     correlation_dict["max_lag_integrate"] = max_lag_integrate
     correlation_dict["acf_per_crop"] = acf_per_crop
     correlation_dict["relaxation_timescale_per_crop"] = relaxation_timescale_per_crop
@@ -653,14 +661,20 @@ def compute_correlations_for_one_dataset(
     # warning about it
     metrics = ["acf", "ccf", "relaxation_timescales", "delta_ccf", "delta_ccf_integral"]
     for metric in metrics:
-        invalid_ci_lower = correlation_dict[metric] < correlation_dict[f"{metric}_ci_lower"]
-        correlation_dict[f"{metric}_ci_lower"][invalid_ci_lower] = correlation_dict[metric][
-            invalid_ci_lower
-        ]
-        invalid_ci_upper = correlation_dict[metric] > correlation_dict[f"{metric}_ci_upper"]
-        correlation_dict[f"{metric}_ci_upper"][invalid_ci_upper] = correlation_dict[metric][
-            invalid_ci_upper
-        ]
+        invalid_ci_lower = (
+            correlation_dict[metric]
+            < correlation_dict[f"{metric}_{Column.BootstrapAnalysis.CI_LOWER}"]
+        )
+        correlation_dict[f"{metric}_{Column.BootstrapAnalysis.CI_LOWER}"][invalid_ci_lower] = (
+            correlation_dict[metric][invalid_ci_lower]
+        )
+        invalid_ci_upper = (
+            correlation_dict[metric]
+            > correlation_dict[f"{metric}_{Column.BootstrapAnalysis.CI_UPPER}"]
+        )
+        correlation_dict[f"{metric}_{Column.BootstrapAnalysis.CI_UPPER}"][invalid_ci_upper] = (
+            correlation_dict[metric][invalid_ci_upper]
+        )
         logger.warning(
             "Invalid confidence interval bounds found for metric [ %s ] in dataset [ %s ]. "
             "Setting invalid bounds to be equal to the metric value for plotting purposes.",

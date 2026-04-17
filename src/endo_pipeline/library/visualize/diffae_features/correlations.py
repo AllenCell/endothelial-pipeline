@@ -21,6 +21,7 @@ from endo_pipeline.library.analyze.numerics.correlations import (
     fit_exp_decay_and_get_relaxation_timescale,
 )
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
+from endo_pipeline.settings.column_names import ColumnName as Column
 
 logger = logging.getLogger(__name__)
 
@@ -84,8 +85,12 @@ def _plot_acf_curves_together(
 
         # add confidence intervals if available
         if bootstrap_samples is not None:
-            acf_ci_lower = correlation_dict["acf_ci_lower"][index_positive]
-            acf_ci_upper = correlation_dict["acf_ci_upper"][index_positive]
+            acf_ci_lower = correlation_dict[f"acf_{Column.BootstrapAnalysis.CI_LOWER}"][
+                index_positive
+            ]
+            acf_ci_upper = correlation_dict[f"acf_{Column.BootstrapAnalysis.CI_UPPER}"][
+                index_positive
+            ]
             ax.fill_between(
                 positive_lags_as_hours,
                 acf_ci_lower[:, i],
@@ -410,11 +415,15 @@ def _make_all_ccf_plots(
     lags: np.ndarray = correlation_dict["lags"]
     num_lags = len(lags)
     ccf: np.ndarray = correlation_dict["ccf"]
-    ccf_ci_lower: np.ndarray = correlation_dict["ccf_ci_lower"]
-    ccf_ci_upper: np.ndarray = correlation_dict["ccf_ci_upper"]
+    ccf_ci_lower: np.ndarray = correlation_dict[f"ccf_{Column.BootstrapAnalysis.CI_LOWER}"]
+    ccf_ci_upper: np.ndarray = correlation_dict[f"ccf_{Column.BootstrapAnalysis.CI_UPPER}"]
     delta_ccf: np.ndarray = correlation_dict["delta_ccf"]
-    delta_ccf_ci_lower: np.ndarray = correlation_dict["delta_ccf_ci_lower"]
-    delta_ccf_ci_upper: np.ndarray = correlation_dict["delta_ccf_ci_upper"]
+    delta_ccf_ci_lower: np.ndarray = correlation_dict[
+        f"delta_ccf_{Column.BootstrapAnalysis.CI_LOWER}"
+    ]
+    delta_ccf_ci_upper: np.ndarray = correlation_dict[
+        f"delta_ccf_{Column.BootstrapAnalysis.CI_UPPER}"
+    ]
     delta_ccf_integral: np.ndarray = correlation_dict["delta_ccf_integral"]
     max_lag_integrate: int = correlation_dict["max_lag_integrate"]
     feature_labels: list[str] = correlation_dict["features"]
@@ -486,8 +495,8 @@ def _make_all_ccf_plots(
     ci_bounds = None
     if bootstrap_samples is not None:
         ci_bounds = (
-            correlation_dict["delta_ccf_integral_ci_lower"],
-            correlation_dict["delta_ccf_integral_ci_upper"],
+            correlation_dict[f"delta_ccf_integral_{Column.BootstrapAnalysis.CI_LOWER}"],
+            correlation_dict[f"delta_ccf_integral_{Column.BootstrapAnalysis.CI_UPPER}"],
         )
     ax = _add_delta_ccf_integral_to_plot(
         delta_ccf_integral, max_lag_integrate, ci_bounds, feature_labels, ax
@@ -655,8 +664,12 @@ def _plot_correlation_metrics_vs_shear_stress(
     ]
     delta_ccf_integral_ci_bounds = [
         (
-            correlation_dict_all[dataset_name]["delta_ccf_integral_ci_lower"],
-            correlation_dict_all[dataset_name]["delta_ccf_integral_ci_upper"],
+            correlation_dict_all[dataset_name][
+                f"delta_ccf_integral_{Column.BootstrapAnalysis.CI_LOWER}"
+            ],
+            correlation_dict_all[dataset_name][
+                f"delta_ccf_integral_{Column.BootstrapAnalysis.CI_UPPER}"
+            ],
         )
         for dataset_name in list_of_datasets
     ]
@@ -673,8 +686,12 @@ def _plot_correlation_metrics_vs_shear_stress(
     ]
     relaxation_timescale_ci_bounds = [
         (
-            correlation_dict_all[dataset_name]["relaxation_timescales_ci_lower"],
-            correlation_dict_all[dataset_name]["relaxation_timescales_ci_upper"],
+            correlation_dict_all[dataset_name][
+                f"relaxation_timescales_{Column.BootstrapAnalysis.CI_LOWER}"
+            ],
+            correlation_dict_all[dataset_name][
+                f"relaxation_timescales_{Column.BootstrapAnalysis.CI_UPPER}"
+            ],
         )
         for dataset_name in list_of_datasets
     ]
