@@ -39,5 +39,5 @@ generated_images = generate_from_dataframe(
 )
 # %%
 image_list = [generated_images[i] for i in range(generated_images.shape[0])]
-fig, ax = make_contact_sheet(panels=image_list, max_rows=2, max_cols=2)
+fig = make_contact_sheet(panels=image_list, max_rows=2, max_cols=2)
 save_plot_to_path(fig, save_dir, "generated_image")
