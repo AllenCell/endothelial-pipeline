@@ -42,7 +42,7 @@ def main(
         add_optical_flow_features,
     )
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
-    from endo_pipeline.library.visualize.diffae_features.pplane import (
+    from endo_pipeline.library.visualize.diffae_features.fixed_points import (
         make_legend_handles_for_fixed_pts,
     )
     from endo_pipeline.library.visualize.migration_coherence import (

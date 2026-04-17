@@ -20,7 +20,9 @@ from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature impo
     add_optical_flow_features,
     add_shear_stress_to_df,
 )
-from endo_pipeline.library.visualize.diffae_features.pplane import make_legend_handles_for_fixed_pts
+from endo_pipeline.library.visualize.diffae_features.fixed_points import (
+    make_legend_handles_for_fixed_pts,
+)
 from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
     get_seg_feat_plot_args,
 )
