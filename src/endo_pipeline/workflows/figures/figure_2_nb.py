@@ -205,7 +205,7 @@ save_plot_to_path(fig, base_output_dir, "colorbar", file_format=".svg", transpar
 # pairwise combination of polar coordinates, and plot contours of drift coefficients
 panels = []
 for dataset_name, panel_letters, y_position, crop_x_position in [
-    (dataset_low, ("A", "B", "E"), 0.0, 0.5),
+    (dataset_low, ("A", "B", "E"), 0.0, 0.0),
     (dataset_high, ("C", "D", "F"), 2.05, MAX_FIGURE_WIDTH / 2),
 ]:
     if dataset_name not in feature_dataframe_manifest.locations:
@@ -375,7 +375,7 @@ for dataset_name, panel_letters, y_position, crop_x_position in [
     save_plot_to_path(fig, fig_savedir, theta_plot_filename, file_format=".svg")
 
     # ---------- crop reconstruction from dataframe and save as svg for this dataset ----------
-    reconstructed_imgs = generate_from_dataframe(
+    reconstructed_images = generate_from_dataframe(
         stable_fixed_points,
         feature_column_names,
         model,
@@ -383,9 +383,9 @@ for dataset_name, panel_letters, y_position, crop_x_position in [
         random_seed=RANDOM_SEED,
         n_noise_samples=n_crop_examples,
     )
-    img_list = [reconstructed_imgs[i] for i in range(len(reconstructed_imgs))]
+    image_list = [reconstructed_images[i] for i in range(len(reconstructed_images))]
     contact_sheet = make_contact_sheet(
-        img_list,
+        image_list,
         max_rows=n_crop_examples,
         max_cols=1,
         direction="top-down first",
@@ -441,10 +441,10 @@ for dataset_name, panel_letters, y_position, crop_x_position in [
     crop_examples = FigurePanel(
         letter=panel_letters[2],
         path=fig_savedir / f"{dataset_name}_crop_reconstructions.svg",
-        x_position=crop_x_position,
+        x_position=crop_x_position + 0.5,
         y_position=y_position + 2.0,
-        x_offset=0.0,
-        y_offset=0.0,
+        x_offset=0.1,
+        y_offset=0.1,
     )
 
     panels.extend([contour_plots, colorbar_panel, quiver_plot, theta_plot, crop_examples])
