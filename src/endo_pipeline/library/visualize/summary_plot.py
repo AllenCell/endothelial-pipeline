@@ -332,10 +332,10 @@ def plot_fixed_points_vs_shear_stress(
         ax.set_xticklabels(tick_labels, rotation=45, ha="right")
     else:
         ax.set_xticklabels(tick_labels)
-        # Add edge padding so jittered points aren't clipped
-        if tick_positions:
-            pad = 0.25
-            ax.set_xlim(tick_positions[0] - pad, tick_positions[-1] + pad)
+    # Add edge padding so jittered points aren't clipped
+    if tick_positions and x_axis_mode != "dataset":
+        pad = 0.5
+        ax.set_xlim(tick_positions[0] - pad, tick_positions[-1] + pad)
     if ylimits is not None:
         ax.set_ylim(ylimits)
 

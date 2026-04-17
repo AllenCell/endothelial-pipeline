@@ -7,7 +7,6 @@ from endo_pipeline.library.visualize.data_example_figures import create_panel_pe
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
 from endo_pipeline.library.visualize.summary_plot import plot_cross_dataset_summaries
 from endo_pipeline.manifests import load_dataframe_manifest
-from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.examples import FIGURE_4_EXAMPLE_IMAGES
 from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
 from endo_pipeline.settings.flow_field_dataframes import DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING
@@ -19,19 +18,17 @@ from endo_pipeline.settings.workflow_defaults import (
 )
 
 plt.style.use("endo_pipeline.figure")
-# %%
+
 save_dir = get_output_path("figure_4")
 
-# Example images of perturbation at low shear stress
+# %% Example images of perturbation at low shear stress
 create_panel_perturbation_examples(
     examples=FIGURE_4_EXAMPLE_IMAGES,
     save_dir=save_dir,
     figure_size=(MAX_FIGURE_WIDTH * 0.75, 2.5),
 )
 
-# %%
-# --- Cross-dataset summary plots ---
-# Load diffae features
+# %% Load data for summary plots
 base_name = (
     f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{MIGRATION_COHERENCE_CROP_PATTERN}"
 )
@@ -47,27 +44,19 @@ fixed_points_bootstrap_dataframe_manifest = load_dataframe_manifest(
 
 dataset_summary_list = SUMMARY_PLOT_DATASETS["perturbation"]
 
-column_names = [
-    ColumnName.DiffAEData.POLAR_ANGLE,
-    ColumnName.DiffAEData.POLAR_RADIUS,
-    ColumnName.DiffAEData.PC3_FLIPPED,
-    ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
-    ColumnName.OpticalFlow.SPEED_MEAN,
-]
-# %%
-for column_name in column_names:
-    plot_cross_dataset_summaries(
-        dataset_names=dataset_summary_list,
-        feature_dataframe_manifest=feature_dataframe_manifest,
-        fixed_points_bootstrap_dataframe_manifest=fixed_points_bootstrap_dataframe_manifest,
-        output_dir=save_dir,
-        bootstrap_threshold=0.4,
-        column_names=[column_name],
-        x_axis_mode="cell_line",
-        figure_size=(MAX_FIGURE_WIDTH / 5, 2),
-        stable_only=True,
-        jitter_width=0.25,
-    )
+# %% Plot summary plot panel
+plot_cross_dataset_summaries(
+    dataset_names=dataset_summary_list,
+    feature_dataframe_manifest=feature_dataframe_manifest,
+    fixed_points_bootstrap_dataframe_manifest=fixed_points_bootstrap_dataframe_manifest,
+    output_dir=save_dir,
+    bootstrap_threshold=0.4,
+    column_names=None,
+    x_axis_mode="cell_line",
+    figure_size=(MAX_FIGURE_WIDTH, 2),
+    stable_only=True,
+    jitter_width=0.25,
+)
 # %%
 panels = [
     FigurePanel(
@@ -76,49 +65,18 @@ panels = [
         x_position=0,
         y_position=0,
         x_offset=0.2,
-        y_offset=0,
+        y_offset=0.08,
     ),
     FigurePanel(
         letter="B",
-        path=save_dir / "polar_theta_fp_vs_shear_stress.svg",
+        path=save_dir
+        / "polar_theta_polar_r_rho_ema01_optical_flow_mean_unit_vector_dt1_optical_flow_mean_speed_dt1_fp_vs_shear_stress.svg",
         x_position=0,
-        y_position=2.5,
-        x_offset=0,
-        y_offset=0.2,
-    ),
-    FigurePanel(
-        letter="",
-        path=save_dir / "polar_r_fp_vs_shear_stress.svg",
-        x_position=MAX_FIGURE_WIDTH / 5,
-        y_position=2.5,
-        x_offset=0,
-        y_offset=0.2,
-    ),
-    FigurePanel(
-        letter="",
-        path=save_dir / "rho_fp_vs_shear_stress.svg",
-        x_position=2 * MAX_FIGURE_WIDTH / 5,
-        y_position=2.5,
-        x_offset=0,
-        y_offset=0.2,
-    ),
-    FigurePanel(
-        letter="",
-        path=save_dir / "ema01_optical_flow_mean_unit_vector_dt1_fp_vs_shear_stress.svg",
-        x_position=3 * MAX_FIGURE_WIDTH / 5,
-        y_position=2.5,
-        x_offset=0,
-        y_offset=0.2,
-    ),
-    FigurePanel(
-        letter="",
-        path=save_dir / "optical_flow_mean_speed_dt1_fp_vs_shear_stress.svg",
-        x_position=4 * MAX_FIGURE_WIDTH / 5,
         y_position=2.5,
         x_offset=0,
         y_offset=0.2,
     ),
 ]
 
-build_figure_from_panels(panels, save_dir / "figure_4.svg", width=MAX_FIGURE_WIDTH, height=6.5)
+build_figure_from_panels(panels, save_dir / "figure_4.svg", width=MAX_FIGURE_WIDTH, height=4.5)
 # %%
