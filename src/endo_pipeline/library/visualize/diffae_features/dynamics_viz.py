@@ -36,6 +36,11 @@ def plot_drift_contours(
     include_colorbar: bool = True,
     cbar_num_ticks: int = DRIFT_CONTOUR_CBAR_NUM_TICKS,
     cbar_tick_round: int = DRIFT_CONTOUR_CBAR_ROUND,
+    include_nullclines: bool = True,
+    nullcline_styles: tuple = ("dashed", "dashdot"),
+    nullcline_colors: tuple = ("r", "b"),
+    nullcline_linewidth: float = 1.5,
+    nullcline_opacity: float = 0.7,
     gridspec_kwargs: dict | None = None,
     xlabel_kwargs: dict | None = None,
     ylabel_kwargs: dict | None = None,
@@ -116,15 +121,18 @@ def plot_drift_contours(
             norm=colormap_norm,
             extend="both",
         )
-        # add dashed line for nullcline
-        ax[var_index].contour(
-            meshgrid[0],
-            meshgrid[1],
-            drift[..., var_index],
-            levels=[0],
-            colors="k",
-            linestyles="dashed",
-        )
+        if include_nullclines:
+            # add dashed line for nullcline
+            ax[var_index].contour(
+                meshgrid[0],
+                meshgrid[1],
+                drift[..., var_index],
+                levels=[0],
+                colors=nullcline_colors[var_index],
+                linestyles=[nullcline_styles[var_index]],
+                linewidths=nullcline_linewidth,
+                alpha=nullcline_opacity,
+            )
         if include_colorbar:
             colorbar_ticks = np.linspace(vmin_, vmax_, cbar_num_ticks)
             colorbar_ticks = np.round(colorbar_ticks, cbar_tick_round)

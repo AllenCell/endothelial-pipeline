@@ -134,6 +134,8 @@ ylabel_kwargs = {"labelpad": -2}
 
 r_lims = (0.2, 2.0)
 rho_lims = (-1.15, 1.15)
+nullcline_r_style = "dashed"
+nullcline_rho_style = (0, (1, 1))  # dense dotted
 
 unicode_pi = "\u03c0"
 
@@ -247,6 +249,10 @@ for dataset_name, panel_letters, y_position in [
         axes_limits=(r_lims, rho_lims),
         axes_aspect=None,
         include_colorbar=False,
+        include_nullclines=True,
+        nullcline_colors=("k", "k"),
+        nullcline_styles=(nullcline_r_style, nullcline_rho_style),
+        nullcline_opacity=1.0,
         gridspec_kwargs=gridspec_kwargs,
         xlabel_kwargs=xlabel_kwargs,
         ylabel_kwargs=ylabel_kwargs,
@@ -272,8 +278,8 @@ for dataset_name, panel_letters, y_position in [
         figsize=(2.05, 1.65),
         axes_limits=(r_lims, rho_lims),
         include_nullclines=True,
-        nullcline_colors=["k", "k"],
-        nullcline_styles=["dashed", (0, (1, 1))],  # dashed for r, dense dot for rho
+        nullcline_colors=("k", "k"),
+        nullcline_styles=(nullcline_r_style, nullcline_rho_style),
         nullcline_opacity=0.9,
         gridspec_kwargs=gridspec_kwargs,
         legend_kwargs={"fontsize": "xx-small", "title_fontsize": "xx-small", "loc": (1.05, 0.7)},
