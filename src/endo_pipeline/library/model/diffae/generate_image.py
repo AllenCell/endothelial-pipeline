@@ -190,11 +190,6 @@ def generate_from_dataframe(
         Number of noise samples to use for generating images. Each noise sample
         will result in a separate reconstructed image for each set of feature
         coordinates in the dataframe.
-    coords_batch
-        Whether to use the batch version of the coordinate-based generation
-        function. If True, the return value will be a list of generated images
-        corresponding to each row in the dataframe. If False, the return value
-        will be a single array of generated images.
 
     Returns
     -------
