@@ -213,7 +213,7 @@ def generate_from_dataframe(
     if num_pcs == 0:
         raise ValueError(f"No PC-related column names found in {column_names}.")
 
-    # Get fit (3D) PCA object from manifest
+    # Fit PCA object for given number of PCs
     pca = fit_pca(num_pcs=num_pcs)
 
     # re-transform coordinates if they are in polar format (angle and radius) or
