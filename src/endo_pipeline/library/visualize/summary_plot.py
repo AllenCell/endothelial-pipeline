@@ -95,7 +95,9 @@ def plot_fixed_points_vs_shear_stress(
     label: str,
     dataset_order: list[str] | None = None,
     ylimits: tuple[float, float] | None = None,
-    x_axis_mode: Literal["dataset", "shear_stress_numeric", "shear_stress_categorical"] = "dataset",
+    x_axis_mode: Literal[
+        "dataset", "shear_stress_numeric", "shear_stress_categorical", "cell_line"
+    ] = "dataset",
     marker_size_scatter: int = 15,
     marker_size_legend: int = 5,
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 3),
@@ -214,6 +216,26 @@ def plot_fixed_points_vs_shear_stress(
         row_to_x = lambda row: ss_to_pos[  # noqa: E731
             row["shear_stress_numeric"]
         ] + jitter_map.get((row["dataset"], row["shear_stress_numeric"]), 0.0)
+    elif x_axis_mode == "cell_line":
+        cell_line_catagories = df_fp["cell_line_label"].unique()
+        # order by Parental line, then Control, then VE-Cad KD
+        cell_line_order = sorted(
+            cell_line_catagories,
+            key=lambda x: (0 if x == "WT" else 1 if x == "Control" else 2),
+        )
+        cell_line_dtype = pd.CategoricalDtype(categories=cell_line_order, ordered=True)
+        df_fp["cell_line_label"] = df_fp["cell_line_label"].astype(cell_line_dtype)
+        df_fp = df_fp.sort_values("cell_line_label")
+        jitter_map = _build_jitter_map(df_fp, jitter_width=jitter_width)
+        cell_line_to_code = {label: i for i, label in enumerate(cell_line_order)}
+        row_to_x = lambda row: cell_line_to_code[
+            row["cell_line_label"]
+        ] + jitter_map.get(  # noqa: E731
+            (row["dataset"], row["shear_stress_numeric"]), 0.0
+        )
+        tick_positions = list(range(len(cell_line_order)))
+        tick_labels = list(cell_line_order)
+
     else:
         raise ValueError(f"Unknown x_axis_mode: {x_axis_mode!r}")
 
@@ -306,7 +328,7 @@ def plot_fixed_points_vs_shear_stress(
         )
 
     ax.set_xticks(tick_positions)
-    if x_axis_mode == "dataset":
+    if x_axis_mode in ("dataset", "cell_line"):
         ax.set_xticklabels(tick_labels, rotation=45, ha="right")
     else:
         ax.set_xticklabels(tick_labels)
@@ -451,6 +473,17 @@ def plot_cross_dataset_summaries(
                         of_y_col=ColumnName.DiffAEData.POLAR_RADIUS,
                         of_z_col=ColumnName.DiffAEData.PC3_FLIPPED,
                     )
+
+                if x_axis_mode == "cell_line":
+                    cell_line_label_map = {
+                        "AICS-126 cl. 41": "WT",
+                        "AICS-177 cl. 12": "Control",
+                        "AICS-177 cl. 41": "Control",
+                        "AICS-177 cl. 26": "KD",
+                    }
+                    label = cell_line_label_map.get(dataset_config.cell_lines[0])
+                    high_confidence_df["cell_line_label"] = label
+
                 df_fp_all_list.append(high_confidence_df)
             except KeyError:
                 logger.warning(
