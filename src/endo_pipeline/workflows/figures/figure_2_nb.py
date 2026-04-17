@@ -62,7 +62,9 @@ from endo_pipeline.settings.flow_field_3d import TIME_STEP_IN_MINUTES
 from endo_pipeline.settings.flow_field_dataframes import (
     DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
     DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+    STABILITY_COLOR_DICT,
     STABILITY_COLUMN_NAME,
+    STABILITY_MARKER_DICT,
     StabilityLabel,
 )
 from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
@@ -283,8 +285,8 @@ for dataset_name, panel_letters, y_position in [
         ax.plot(
             stable_fixed_points[columns_r_rho[0]],
             stable_fixed_points[columns_r_rho[1]],
-            "o",
-            color="blue",
+            STABILITY_MARKER_DICT[StabilityLabel.STABLE],
+            color=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
             markeredgecolor="k",
             markeredgewidth=0.5,
             markersize=5,
@@ -320,8 +322,8 @@ for dataset_name, panel_letters, y_position in [
         ax.plot(
             stable_fixed_points[column_theta],
             np.zeros_like(stable_fixed_points[column_theta]),
-            "o",
-            color="blue",
+            STABILITY_MARKER_DICT[StabilityLabel.STABLE],
+            color=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
             markeredgecolor="k",
             markeredgewidth=0.5,
             markersize=5,
