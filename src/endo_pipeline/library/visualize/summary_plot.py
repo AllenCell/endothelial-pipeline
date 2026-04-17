@@ -132,6 +132,9 @@ def plot_fixed_points_vs_shear_stress(
         - ``"shear_stress_categorical"``: one evenly-spaced tick per unique
           shear-stress value (so 6 and 21 are adjacent), with jitter for
           datasets sharing the same value.
+        - ``"cell_line"``: one categorical tick per cell-line label
+          (e.g. WT, Control, KD), ordered as WT → Control → KD, with
+          jitter for datasets sharing the same shear-stress value.
     marker_size_scatter
         Size of the scatter markers for fixed points.
     marker_size_legend
@@ -352,7 +355,9 @@ def plot_cross_dataset_summaries(
     output_dir: Path,
     bootstrap_threshold: float = 0.4,
     column_names: list[ColumnName.DiffAEData | ColumnName.OpticalFlow | StrEnum] | None = None,
-    x_axis_mode: Literal["dataset", "shear_stress_numeric", "shear_stress_categorical"] = "dataset",
+    x_axis_mode: Literal[
+        "dataset", "shear_stress_numeric", "shear_stress_categorical", "cell_line"
+    ] = "dataset",
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 3),
     dataset_order: list[str] | None = None,
     stable_only: bool = True,
@@ -389,6 +394,9 @@ def plot_cross_dataset_summaries(
     stable_only
         If ``True``, only fixed points classified as stable are included in the
         fixed point vs shear stress plot.
+    jitter_width
+        Horizontal jitter applied to overlapping points sharing the same
+        x-axis position.  Larger values spread points further apart.
     """
     if column_names is None:
         column_names = [
@@ -522,7 +530,10 @@ def plot_cross_dataset_summaries(
             ax=ax_i,
             jitter_width=jitter_width,
         )
-    fig.supxlabel("Shear Stress (dyn/cm\u00b2)", fontsize=FONTSIZE_MEDIUM, fontweight="bold")
+    if x_axis_mode == "cell_line":
+        fig.supxlabel("Cell Line", fontsize=FONTSIZE_MEDIUM, fontweight="bold")
+    else:
+        fig.supxlabel("Shear Stress (dyn/cm\u00b2)", fontsize=FONTSIZE_MEDIUM, fontweight="bold")
 
     # reduce spacing between axis labels and tick labels
     for ax in axs[0]:
