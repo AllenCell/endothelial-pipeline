@@ -194,8 +194,8 @@ def add_binned_mean_to_fixed_points(
                         for _ in range(n_bootstrap)
                     ]
                 )
-                ci_lows.append(float(np.percentile(boot_means, ci_lower_percentile)))
-                ci_highs.append(float(np.percentile(boot_means, ci_upper_percentile)))
+                ci_lows.append(np.percentile(boot_means, ci_lower_percentile))
+                ci_highs.append(np.percentile(boot_means, ci_upper_percentile))
 
     mean_col = f"mean_{binned_col}"
     result = df_fp.copy()
