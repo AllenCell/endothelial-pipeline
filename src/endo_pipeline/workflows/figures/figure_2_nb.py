@@ -390,7 +390,7 @@ for dataset_name, panel_letters, y_position, crop_x_position in [
         max_cols=1,
         direction="top-down first",
         gridspec_kwargs=gridspec_kwargs,
-        fig_kwargs={"figsize": (0.5, 1.5)},
+        fig_kwargs={"figsize": (0.75, 1.75)},
     )
     save_plot_to_path(
         contact_sheet,
@@ -442,7 +442,7 @@ for dataset_name, panel_letters, y_position, crop_x_position in [
         letter=panel_letters[2],
         path=fig_savedir / f"{dataset_name}_crop_reconstructions.svg",
         x_position=crop_x_position + 0.5,
-        y_position=y_position + 2.0,
+        y_position=4.0,
         x_offset=0.1,
         y_offset=0.1,
     )
