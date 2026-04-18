@@ -17,7 +17,7 @@ from endo_pipeline.library.analyze.numerics.gen_potential import (
     grad_flux_decomposition,
 )
 from endo_pipeline.library.analyze.numerics.sde_model_eval import mesh_grid_function
-from endo_pipeline.library.visualize.diffae_features import dynamics_viz
+from endo_pipeline.library.visualize.diffae_features import dynamics
 
 logger = logging.getLogger(__name__)
 
@@ -279,7 +279,7 @@ def run_gen_potential_analysis(
         potential = -np.log(p_fit)
 
         # plot generalized potential energy landscape
-        fig, ax = dynamics_viz.plot_gen_potential_2d(
+        fig, ax = dynamics.plot_gen_potential_2d(
             potential, centers[0], centers[1], cmap="jet", surf=False
         )
         ax.set_xlabel(f"PC{pc_axes[0] + 1}")
@@ -306,7 +306,7 @@ def run_gen_potential_analysis(
             flux_term = np.array(flux_term)
 
         # plot gradient/flux decomposition on top of landscape
-        fig, ax = dynamics_viz.plot_grad_flux_decomposition(
+        fig, ax = dynamics.plot_grad_flux_decomposition(
             potential,
             centers[0],
             centers[1],

@@ -24,7 +24,7 @@ from endo_pipeline.library.analyze.vector_field_estimation import (
     compute_drift_vector_field,
     mask_drift_vector_field_by_data_density,
 )
-from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
+from endo_pipeline.library.visualize.diffae_features.dynamics import (
     plot_contour_colorbar,
     plot_drift_1d,
     plot_drift_contours,
