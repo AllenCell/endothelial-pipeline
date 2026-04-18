@@ -45,7 +45,7 @@ BIN_WIDTHS_DYNAMICS: dict[Column.DiffAEData, float] = {
 """Bin widths for each coordinate in dynamics analysis and visualization."""
 
 BIN_LIMITS_DYNAMICS: dict[Column.DiffAEData, tuple[float, float]] = {
-    Column.DiffAEData.POLAR_ANGLE: (-pi, pi),
+    Column.DiffAEData.POLAR_ANGLE: (0.0, pi),
     Column.DiffAEData.POLAR_RADIUS: (0.0, 3.5),
     Column.DiffAEData.PC3_FLIPPED: (-1.5, 2.5),
 }
