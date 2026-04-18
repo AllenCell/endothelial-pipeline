@@ -176,7 +176,6 @@ def main(
         model_manifest = load_model_manifest(model_manifest_name)
     run_name = DEFAULT_MODEL_RUN_NAME
     column_names: list[Column.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
-    ndim = len(column_names)
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
     base_name = f"{model_manifest_name}_{run_name}_{crop_pattern}"
@@ -185,15 +184,17 @@ def main(
 
     dataframe_savedir = get_output_path(__file__, crop_pattern)
     # get dataframe manifest for baseline results to match against in bootstrapping
+    columns_sorted = sorted(column_names)
+    columns_str = f"_{'_'.join(columns_sorted)}_"
     baseline_fixed_point_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS[ndim]}_{base_name}"
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{columns_str}{base_name}"
     )
     baseline_fixed_point_manifest = load_dataframe_manifest(baseline_fixed_point_manifest_name)
 
     # load or initialize dataframe manifest for bootstrap results
     demo_suffix = "_demo" if DEMO_MODE else ""
     bootstrap_results_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}{demo_suffix}"
+        f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}{base_name}{demo_suffix}"
     )
     bootstrap_results_manifest = create_dataframe_manifest(
         bootstrap_results_manifest_name, workflow_name=__file__
@@ -226,11 +227,12 @@ def main(
         bin_widths.append(bin_width)
 
     # add parameters to the output manifest for traceability
+    column_names_yaml_safe = [f"{column}" for column in column_names]
     bootstrap_results_manifest.parameters = {
         "model_manifest_name": model_manifest_name,
         "run_name": run_name,
         "crop_pattern": crop_pattern,
-        "columns": [column.value for column in column_names],
+        "columns": column_names_yaml_safe,
         "kernel_names": [kernel.name for kernel in kernels],
         "kernel_bandwidths": [kernel.bandwidth for kernel in kernels],
         "bin_widths": bin_widths,
