@@ -7,7 +7,6 @@ from endo_pipeline.library.analyze.numerics.fixed_points import (
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
-from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_THETA_RESCALED
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 
 # Simple non-circular column names used in tests
@@ -17,7 +16,7 @@ THETA = Column.DiffAEData.POLAR_ANGLE
 
 # The polar angle range for wraparound tests, using the default range from the
 # codebase.
-POLAR_RANGE = BIN_LIMITS_THETA_RESCALED
+POLAR_RANGE = (0, np.pi)
 
 
 @pytest.mark.parametrize(

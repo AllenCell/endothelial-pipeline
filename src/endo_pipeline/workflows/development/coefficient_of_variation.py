@@ -116,9 +116,6 @@ def main(
     global_bin_limits_dict = cast(
         dict[str | Column.DiffAEData, tuple[float, float]], BIN_LIMITS_DYNAMICS.copy()
     )
-    if RESCALE_THETA:
-        global_bin_limits_dict[Column.DiffAEData.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
-
     # get manifest for crop-based features
     base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
     feature_dataframe_manifest_name = f"{base_name}_pca_filtered"

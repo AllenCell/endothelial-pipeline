@@ -85,7 +85,6 @@ def main(
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_DYNAMICS,
-        BIN_LIMITS_THETA_RESCALED,
         BIN_WIDTHS_DYNAMICS,
         DEFAULT_DATASETS_DYNAMICS_VIS,
         KERNEL_BANDWIDTHS_DYNAMICS,
@@ -196,8 +195,6 @@ def main(
         period = rescaled_theta_period if column_name == Column.DiffAEData.POLAR_ANGLE else None
         bin_width = BIN_WIDTHS_DYNAMICS[column_name]
         bin_limits_col = BIN_LIMITS_DYNAMICS[column_name]
-        if column_name == Column.DiffAEData.POLAR_ANGLE and RESCALE_THETA:
-            bin_limits_col = BIN_LIMITS_THETA_RESCALED
         kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
         bin_widths.append(bin_width)
         bounds_for_plots.append(bin_limits_col)

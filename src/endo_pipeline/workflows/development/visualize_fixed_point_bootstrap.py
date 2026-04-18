@@ -72,12 +72,7 @@ def main(
     )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.dynamics_workflows import (
-        BIN_LIMITS_DYNAMICS,
-        BIN_LIMITS_THETA_RESCALED,
-        DYNAMICS_COLUMN_NAMES,
-        RESCALE_THETA,
-    )
+    from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_DYNAMICS, DYNAMICS_COLUMN_NAMES
     from endo_pipeline.settings.flow_field_3d import (
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
         FIGSIZE_2D_FLOW_FIELD,
@@ -138,8 +133,6 @@ def main(
 
     # Axis bounds from global bin limits, one tuple (min, max) per column
     bounds_for_plots = BIN_LIMITS_DYNAMICS.copy()
-    if RESCALE_THETA:
-        bounds_for_plots[Column.DiffAEData.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
 
     all_high_confidence_dfs: list[pd.DataFrame] = []
 
