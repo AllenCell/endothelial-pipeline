@@ -6,7 +6,7 @@ def main(
     crop_pattern: CropPattern = "grid",
     datasets: Datasets | None = None,
     columns: StrList | None = None,
-    global_limits: bool = True,
+    use_same_axes: bool = True,
     mask_threshold: float | None = HISTOGRAM_THRESHOLD_FOR_MASKING,
 ) -> None:
     """
@@ -300,12 +300,16 @@ def main(
             # get histogram for masking low-confidence regions of drift
             # estimates, using same kernels as for drift estimation, and set
             # drift to nan in low-confidence regions
+            # get bin edges from bin centers and bin widths
+            bin_limits = [
+                (centers[i].min() - bin_widths[i] / 2, centers[i].max() + bin_widths[i] / 2)
+                for i in range(len(column_names))
+            ]
+            if not use_same_axes:
+                bounds_for_plots = bin_limits.copy()
+
             if mask_threshold is not None:
-                # get bin edges from bin centers and bin widths
-                bin_limits = [
-                    (centers[i].min() - bin_widths[i] / 2, centers[i].max() + bin_widths[i] / 2)
-                    for i in range(len(column_names))
-                ]
+
                 bins_2d = get_bins(bin_widths=bin_widths, bin_limits=bin_limits, pad=0)
                 drift = mask_drift_vector_field_by_data_density(
                     drift_coeffs=drift,
