@@ -1,11 +1,15 @@
 """This workflow computes the time of first passage for each track in the dataset."""
 
 from endo_pipeline.cli import Datasets
+from endo_pipeline.library.visualize.integration.track_integration_viz import (
+    plot_first_passage_time_parameter_sweep,
+)
 
 
 def main(
     datasets: Datasets | None = None,
-):
+    run_FPT_threshold_parameter_sweep: bool = False,
+) -> None:
 
     import logging
 
@@ -20,6 +24,7 @@ def main(
     from endo_pipeline.library.analyze.integration.track_integration import (
         add_distance_to_fixed_points_columns,
         add_first_passage_time_column,
+        compute_first_passage_time_parameter_sweep_df,
         compute_first_passage_time_stats_for_bins,
         load_filtered_trajectory_df_for_first_passage_time_workflow,
     )
@@ -131,6 +136,15 @@ def main(
         # 2. identify trajectories that pass a fixed point and filter df to only those trajectories
         # find if and when a trajectory reaches a fixed point
         for fp_idx in fixed_points_df.index:
+            # for now we will only look at first passage times to stable fixed points
+            fp_stability = fixed_points_df.loc[fp_idx, STABILITY_COLUMN_NAME]
+            if fp_stability != "stable":
+                logger.info(
+                    f"Fixed point {fp_idx} in dataset {dataset_name} is not stable (stability = "
+                    f"{fp_stability}), skipping for first passage time analysis."
+                )
+                continue
+
             traj_df_grid[f"is_at_fp_{fp_idx}"] = (
                 traj_df_grid[f"dist_from_fp_{fp_idx}"] <= MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
             )
@@ -148,56 +162,52 @@ def main(
             traj_df_grid_sub = traj_df_grid[traj_df_grid[f"traj_reached_fp_{fp_idx}"]]
             traj_df_tracked_sub = traj_df_tracked[traj_df_tracked[f"traj_reached_fp_{fp_idx}"]]
 
+            if run_FPT_threshold_parameter_sweep:
+                # run a parameter sweep of the first passage times using different
+                # thresholds for what it means to have "reached" the fixed point
+                thresholds = np.linspace(0, 1, 41)
+                traj_df_grid_param_sweep = traj_df_grid_sub.copy()
+                traj_df_tracked_param_sweep = traj_df_tracked_sub.copy()
+                traj_df_grid_param_sweep = compute_first_passage_time_parameter_sweep_df(
+                    fixed_point_index=fp_idx,
+                    trajectory_df=traj_df_grid_param_sweep,
+                    thresholds=thresholds,
+                )
+                traj_df_tracked_param_sweep = compute_first_passage_time_parameter_sweep_df(
+                    fixed_point_index=fp_idx,
+                    trajectory_df=traj_df_tracked_param_sweep,
+                    thresholds=thresholds,
+                )
+
+                # plot the parameter sweep results
+                plot_first_passage_time_parameter_sweep(
+                    dataset_config=dataset_config,
+                    fixed_point_index=fp_idx,
+                    fixed_point_stability=fp_stability,
+                    first_passage_time_param_sweep_df=traj_df_grid_param_sweep,
+                    out_dir=out_dir,
+                )
+                plot_first_passage_time_parameter_sweep(
+                    dataset_config=dataset_config,
+                    fixed_point_index=fp_idx,
+                    fixed_point_stability=fp_stability,
+                    first_passage_time_param_sweep_df=traj_df_tracked_param_sweep,
+                    out_dir=out_dir,
+                )
+
             # compute the timepoint at which each trajectory first reaches a fixed point
             traj_df_grid_sub = add_first_passage_time_column(
+                fixed_point_index=fp_idx,
                 trajectory_df=traj_df_grid_sub,
                 column=f"dist_from_fp_{fp_idx}",
                 threshold=MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
             )
             traj_df_tracked_sub = add_first_passage_time_column(
+                fixed_point_index=fp_idx,
                 trajectory_df=traj_df_tracked_sub,
                 column=f"dist_from_fp_{fp_idx}",
                 threshold=MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
             )
-
-            # trim all trajectories to only include timepoints prior to reaching the fixed point
-            traj_df_grid_sub = traj_df_grid_sub[
-                traj_df_grid_sub.apply(
-                    lambda row, fp_idx=fp_idx: row[Column.TIMEPOINT]
-                    < row[f"first_passage_dist_from_fp_{fp_idx}"],
-                    axis=1,
-                )
-            ]
-            traj_df_tracked_sub = traj_df_tracked_sub[
-                traj_df_tracked_sub.apply(
-                    lambda row, fp_idx=fp_idx: row[Column.TIMEPOINT]
-                    < row[f"first_passage_dist_from_fp_{fp_idx}"],
-                    axis=1,
-                )
-            ]
-
-            # compute the time to the first passage time from each timepoint
-            traj_df_grid_sub[f"time_to_fp_{fp_idx}"] = (
-                traj_df_grid_sub[f"first_passage_dist_from_fp_{fp_idx}"]
-                - traj_df_grid_sub[Column.TIMEPOINT]
-            )
-            traj_df_tracked_sub[f"time_to_fp_{fp_idx}"] = (
-                traj_df_tracked_sub[f"first_passage_dist_from_fp_{fp_idx}"]
-                - traj_df_tracked_sub[Column.TIMEPOINT]
-            )
-
-            # # find and remove the bin that corresponds to the fixed point location
-            # # so that we don't analyze trajectories that start at the fixed point
-            # fp_bin_index = []
-            # for i, col in enumerate(DYNAMICS_COLUMN_NAMES):
-            #     fp_bin_index.append(
-            #         _get_index_from_value(fixed_points_df.iloc[fp_idx][col], bin_edges[i])
-            #     )
-            # fp_bin_center = [bin_centers[i][idx] for i, idx in enumerate(fp_bin_index)]
-
-            # for b in bin_centers_all:
-            #     if b == tuple(fp_bin_center):
-            #         bin_centers_all.remove(b)
 
         # 3. for each bin (across all steady-state timepoints), compute the mean,
         #    median, and standard deviation of first-passage times for the trajectories
@@ -254,8 +264,6 @@ def main(
 
         # 4. plot the cell FPT vs grid FPT data as a scatterplot with errors and a
         #    scatter with theta, r, rho as the axes and the FPT ratio as the color dimension
-        fp_stability = fixed_points_df.loc[fp_idx, STABILITY_COLUMN_NAME]
-
         # first the correlation scatter plots
         plot_first_passage_time_correlation(
             fixed_point_id=fp_idx,

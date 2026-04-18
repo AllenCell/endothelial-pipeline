@@ -1147,8 +1147,8 @@ def add_distance_to_fixed_points_columns(
 
 
 def add_first_passage_time_column(
-    trajectory_df: pd.DataFrame, column: str, threshold: float
-) -> pd.Series:
+    fixed_point_index: int, trajectory_df: pd.DataFrame, column: str, threshold: float
+) -> pd.DataFrame:
     """
     Add the time of first passage for each track in the trajectory dataframe
     using the column name pattern `first_passage_{column}`.
@@ -1158,10 +1158,13 @@ def add_first_passage_time_column(
 
     Parameters
     ----------
+    fixed_point_index : int
+        Index of the fixed point corresponding to the row being used to compute first passage time.
     trajectory_df : pd.DataFrame
         DataFrame containing the trajectory points.
     column : str
         Column name in trajectory_df to use for the first passage computation.
+        Expected to be the distance from a fixed point.
     threshold : float
         Threshold value to determine the first passage.
 
@@ -1170,6 +1173,7 @@ def add_first_passage_time_column(
     pd.DataFrame
         DataFrame containing the first passage time for each track.
     """
+    # compute where the trajectory first passes the threshold distance to the fixed point
     new_column_name = f"first_passage_{column}"
     trajectory_df[new_column_name] = (
         trajectory_df.groupby(Column.CROP_INDEX)
@@ -1181,6 +1185,21 @@ def add_first_passage_time_column(
             include_groups=False,
         )
         .droplevel(0)
+    )
+
+    # trim all trajectories to only include timepoints prior to reaching the fixed point
+    trajectory_df = trajectory_df[
+        trajectory_df.apply(
+            lambda row, fp_idx=fixed_point_index: row[Column.TIMEPOINT]
+            < row[f"first_passage_dist_from_fp_{fp_idx}"],
+            axis=1,
+        )
+    ]
+
+    # compute the time to the first passage time from each timepoint
+    trajectory_df[f"time_to_fp_{fixed_point_index}"] = (
+        trajectory_df[f"first_passage_dist_from_fp_{fixed_point_index}"]
+        - trajectory_df[Column.TIMEPOINT]
     )
     return trajectory_df
 
@@ -1303,3 +1322,29 @@ def compute_first_passage_time_stats_for_bins(
     )
 
     return first_passage_time_stats_df
+
+
+def compute_first_passage_time_parameter_sweep_df(
+    fixed_point_index: int, trajectory_df: pd.DataFrame, thresholds: Sequence[float]
+) -> pd.DataFrame:
+
+    sweep_results: list = []
+    for thresh in thresholds:
+        fp_dist_col = f"dist_from_fp_{fixed_point_index}"
+        trajectory_df_one_param = trajectory_df.copy()
+        trajectory_df_one_param["num_trajectories_before_fpt_filter"] = trajectory_df[
+            Column.CROP_INDEX
+        ].nunique()
+        trajectory_df_one_param = add_first_passage_time_column(
+            fixed_point_index=fixed_point_index,
+            trajectory_df=trajectory_df_one_param,
+            column=fp_dist_col,
+            threshold=thresh,
+        )
+        trajectory_df_one_param["num_trajectories_after_fpt_filter"] = trajectory_df_one_param[
+            Column.CROP_INDEX
+        ].nunique()
+        trajectory_df_one_param = trajectory_df_one_param.assign(threshold=thresh)
+        sweep_results.append(trajectory_df_one_param)
+
+    return pd.concat(sweep_results, ignore_index=True)

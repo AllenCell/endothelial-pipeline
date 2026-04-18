@@ -1300,7 +1300,7 @@ def plot_first_passage_time_correlation(
         color="black",
         edgecolor="white",
         lw=0.2,
-        label=f"FPT {stat_to_plot} +/- STD",
+        label=f"FPT {stat_to_plot} ± STD",
     )
     ax.axline(xy1=(0, 0), slope=1, color="tab:red", linestyle="--", zorder=0, label="Unity")
     ax.axline(
@@ -1461,5 +1461,88 @@ def plot_initial_conditions_histogram(
     filename = (
         f"initial_conditions_histogram_theta_bins"
         f"_{num_bins_polar_theta}_r_bins_{num_bins_polar_r}_rho_bins_{num_bins_rho}.png"
+    )
+    save_plot_to_path(fig, out_dir, filename, show_and_close=False)
+
+
+def plot_first_passage_time_parameter_sweep(
+    dataset_config: DatasetConfig,
+    fixed_point_index: int,
+    fixed_point_stability: str,
+    first_passage_time_param_sweep_df: pd.DataFrame,
+    out_dir: Path,
+) -> None:
+    """Plot the results of the parameter sweep over the number of bins in the
+    initial conditions histogram and the choice of mean vs. median FPT to plot.
+    """
+    dataset_name = dataset_config.name
+    if dataset_config.time_interval_in_minutes is None:
+        raise ValueError("DatasetConfig must have time_interval_in_minutes defined.")
+
+    time_units = dataset_config.time_interval_in_minutes / 60  # convert timeframes to hours
+    first_passage_time_col = f"time_to_fp_{fixed_point_index}"
+    first_passage_time_param_sweep_df[first_passage_time_col] = (
+        first_passage_time_param_sweep_df[first_passage_time_col] * time_units
+    )
+
+    # compute the summary statistics on the first passage time parameter sweep
+    fpt_param_sweep_agg = (
+        first_passage_time_param_sweep_df.groupby("threshold")[first_passage_time_col]
+        .agg("describe")
+        .reset_index(drop=False)
+    )
+
+    for metric in ["mean", "50%"]:
+        fig, ax = plt.subplots(figsize=(4, 4))
+        ax.set_title(dataset_name.title())
+        ax.errorbar(
+            x=fpt_param_sweep_agg["threshold"],
+            y=fpt_param_sweep_agg[metric],
+            yerr=fpt_param_sweep_agg["std"],
+            label=metric,
+            fmt="o-",
+            color="black",
+            ecolor="gray",
+            elinewidth=1,
+            capsize=3,
+        )
+        ax.set_xlim(0)
+        ax.set_ylim(0)
+        ax.set_xlabel(
+            f"Threshold distance from fixed point {fixed_point_index} ({fixed_point_stability})".title()
+        )
+        ax.set_ylabel(f"first passage time {metric} (hrs)".title())
+        filename = f"FPT_{metric}_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}.png"
+        save_plot_to_path(fig, out_dir, filename, show_and_close=False)
+
+    # also compute the fraction of trajectories that approached the fixed point for each
+    # parameter combination to see how the fixed point distance threshold affects the
+    # number of trajectories that are considered to have reached the fixed point
+    first_passage_time_param_sweep_df["frac_trajectories_approached_fp"] = (
+        first_passage_time_param_sweep_df["num_trajectories_after_fpt_filter"]
+        / first_passage_time_param_sweep_df["num_trajectories_before_fpt_filter"]
+    )
+    num_traj_param_sweep_agg = (
+        first_passage_time_param_sweep_df.groupby("threshold")["frac_trajectories_approached_fp"]
+        .agg(lambda x: np.unique(x).item())
+        .to_frame()
+    ).reset_index(drop=False)
+
+    fig, ax = plt.subplots(figsize=(4, 4))
+    ax.set_title(dataset_name.title())
+    ax.plot(
+        x=num_traj_param_sweep_agg["threshold"],
+        y=num_traj_param_sweep_agg["frac_trajectories_approached_fp"],
+        fmt="o-",
+        color="black",
+    )
+    ax.set_xlim(0)
+    ax.set_ylim(0)
+    ax.set_xlabel(
+        f"Threshold distance from fixed point {fixed_point_index} ({fixed_point_stability})".title()
+    )
+    ax.set_ylabel("Fraction of trajectories approached fixed point".title())
+    filename = (
+        f"FPT_frac_trajectories_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}.png"
     )
     save_plot_to_path(fig, out_dir, filename, show_and_close=False)
