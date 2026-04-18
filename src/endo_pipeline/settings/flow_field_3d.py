@@ -65,18 +65,3 @@ INIT_POINT_3D: tuple[float, float, float] = (1.5, 0.2, -0.5)
 
 TRAJECTORY_TIME_SPAN: tuple[float, float] = (0.0, 5000.0)
 """Default time span for ODE solver in 3D flow field trajectory visualization."""
-
-NUM_INIT_SAMPLES: int = 250
-"""Number of sampled initial points for root finding in 3D flow field analysis."""
-
-SAMPLER_RANDOM_SEED: int = 47
-"""Random seed for initial point sampling in 3D flow field analysis."""
-
-UPPER_PERCENTILE_FOR_FILTERING_FPTS: float = 95.0
-"""Upper percentile threshold for stable fixed point identification in 3D flow field analysis."""
-
-LOWER_PERCENTILE_FOR_FILTERING_FPTS: float = 5.0
-"""Lower percentile threshold for stable fixed point identification in 3D flow field analysis."""
-
-DATASET_COLLECTION_FOR_3D_DYNAMICS: str = "3d_flow_field_analysis"
-"""Default dataset collection name for 3D dynamics analysis."""
