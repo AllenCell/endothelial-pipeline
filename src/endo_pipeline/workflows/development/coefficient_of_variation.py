@@ -85,11 +85,10 @@ def main(
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_DYNAMICS,
-        BIN_LIMITS_THETA_RESCALED,
         DEFAULT_DATASETS_DYNAMICS_VIS,
         METADATA_COLUMNS_TO_KEEP,
         PERIOD_THETA_RESCALED,
-        RESCALE_THETA,
+        POLAR_ANGLE_RANGE,
     )
     from endo_pipeline.settings.flow_field_3d import TIME_STEP_IN_MINUTES
     from endo_pipeline.settings.plot_defaults import SHEAR_COLOR_DICT
@@ -166,8 +165,8 @@ def main(
 
         # polar angle periodicity settings
         theta_col = Column.DiffAEData.POLAR_ANGLE
-        theta_range = BIN_LIMITS_THETA_RESCALED if RESCALE_THETA else (-np.pi, np.pi)
-        theta_period = PERIOD_THETA_RESCALED if RESCALE_THETA else 2 * np.pi
+        theta_range = POLAR_ANGLE_RANGE
+        theta_period = PERIOD_THETA_RESCALED
 
         # split by flow conditions and collect unscaled mean ± std per flow
         # condition

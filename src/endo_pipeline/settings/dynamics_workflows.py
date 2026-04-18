@@ -58,7 +58,7 @@ RESCALE_THETA: bool = True
 """Whether to rescale polar angle coordinate to [0, pi] range for analysis and
 visualization."""
 
-BIN_LIMITS_THETA_RESCALED: tuple[float, float] = (0.0, pi)
+POLAR_ANGLE_RANGE: tuple[float, float] = (0.0, pi)
 """Bin limits for rescaled polar angle coordinate analysis and visualization."""
 
 PERIOD_THETA_RESCALED: float = pi

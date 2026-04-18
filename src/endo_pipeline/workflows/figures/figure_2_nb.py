@@ -41,13 +41,13 @@ from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import (
     BIN_LIMIT_PERCENTILE_CUTOFF,
-    BIN_LIMITS_THETA_RESCALED,
     BIN_WIDTHS_DYNAMICS,
     HISTOGRAM_THRESHOLD_FOR_MASKING,
     KERNEL_BANDWIDTHS_DYNAMICS,
     KERNEL_NAMES_DYNAMICS,
     METADATA_COLUMNS_TO_KEEP,
     PERIOD_THETA_RESCALED,
+    POLAR_ANGLE_RANGE,
 )
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
 from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
@@ -323,7 +323,7 @@ for dataset_name, panel_letters, y_position in [
         drift=drift_theta,
         centers=centers_theta[-1],
         figsize=(MAX_FIGURE_WIDTH / 4, MAX_FIGURE_HEIGHT / 4),
-        axes_limits=(BIN_LIMITS_THETA_RESCALED, (-0.4, 0.4)),
+        axes_limits=(POLAR_ANGLE_RANGE, (-0.4, 0.4)),
         axes_labels=[column_label_theta, f"d{column_label_theta}/dt"],
         gridspec_kwargs=gridspec_kwargs,
         drift_line_kwargs={"color": "k", "linewidth": 2},
