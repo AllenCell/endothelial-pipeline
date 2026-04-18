@@ -1,8 +1,9 @@
-from endo_pipeline.cli import CropPattern, Datasets
+from endo_pipeline.cli import CropPattern, Datasets, StrList
 
 
 def main(
     crop_pattern: CropPattern = "grid",
+    columns: StrList | None = None,
     datasets: Datasets | None = None,
     upload_to_fms: bool = False,
 ) -> None:
@@ -130,10 +131,10 @@ def main(
     # set workflow defaults
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
     run_name = DEFAULT_MODEL_RUN_NAME
-    column_names: list[ColumnName.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
+    column_names = columns or list(DYNAMICS_COLUMN_NAMES)
+    ndim = len(column_names)
     # columns to keep when loading dataframes
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
-    ndim = len(column_names)
 
     # Load default model manifest and get corresponding feature dataframe
     # manifest name for default run name and specified crop pattern.
@@ -145,23 +146,19 @@ def main(
     feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
-    # Create/set output folder for dataframes, save in local directory without
-    # timestamp for intermediate level of "static-ness" (ensure they don't get
-    # periodically deleted).
-    #
     # Also build dataframe manifests for the outputs of this workflow (drift
-    # coefficients, grid points, and stable fixed points) with names that
-    # include the input dataframe manifest name for traceability and to avoid
-    # naming conflicts with other runs. The dataframe manifests get saved to the
-    # dataframe manifest directory, and the dataframes themselves get saved to
-    # the output directory specified in settings.
+    # coefficients and identified fixed points) with names that include the
+    # input dataframe manifest name for traceability and to avoid naming
+    # conflicts with other runs.
     dataframe_savedir = get_output_path(__file__, crop_pattern)
     demo_suffix = "_demo" if DEMO_MODE else ""
+    columns_sorted = sorted(column_names)
+    columns_str = f"_{'_'.join(columns_sorted)}_"
     drift_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_DRIFT[ndim]}_{base_name}{demo_suffix}"
+        f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}{columns_str}{base_name}{demo_suffix}"
     )
     fixed_points_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS[ndim]}_{base_name}{demo_suffix}"
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{columns_str}{base_name}{demo_suffix}"
     )
     drift_dataframe_manifest = create_dataframe_manifest(
         drift_dataframe_manifest_name, workflow_name=__file__
@@ -206,6 +203,7 @@ def main(
         bin_widths.append(bin_width)
 
     # add parameters to dataframe manifests for traceability
+    column_names_yaml_safe = [f"{column}" for column in column_names]
     for output_dataframe_manifest in [
         drift_dataframe_manifest,
         fixed_points_dataframe_manifest,
@@ -214,7 +212,7 @@ def main(
             "model_manifest_name": model_manifest_name,
             "run_name": run_name,
             "crop_pattern": crop_pattern,
-            "columns": [column.value for column in column_names],
+            "columns": column_names_yaml_safe,
             "kernel_names": [kernel.name for kernel in kernels],
             "kernel_bandwidths": [kernel.bandwidth for kernel in kernels],
             "bin_widths": bin_widths,
