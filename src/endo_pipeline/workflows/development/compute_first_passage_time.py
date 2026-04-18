@@ -5,7 +5,6 @@ from endo_pipeline.cli import Datasets
 
 def main(
     datasets: Datasets | None = None,
-    # n_proc: int = 1,
 ):
 
     import logging
@@ -32,10 +31,14 @@ def main(
         get_reshaped_vector_field_and_grid,
         load_drift_dataframe_for_dataset,
     )
-    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
+    from endo_pipeline.library.visualize.integration.track_integration_viz import (
+        plot_first_passage_time_3d_scatter,
+        plot_first_passage_time_correlation,
+    )
     from endo_pipeline.settings import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
     from endo_pipeline.settings.flow_field_3d import DATASET_COLLECTION_FOR_3D_DYNAMICS
+    from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
     from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
 
     logger = logging.getLogger(__name__)
@@ -160,13 +163,15 @@ def main(
             # trim all trajectories to only include timepoints prior to reaching the fixed point
             traj_df_grid_sub = traj_df_grid_sub[
                 traj_df_grid_sub.apply(
-                    lambda row: row[Column.TIMEPOINT] < row[f"first_passage_dist_from_fp_{fp_idx}"],
+                    lambda row, fp_idx=fp_idx: row[Column.TIMEPOINT]
+                    < row[f"first_passage_dist_from_fp_{fp_idx}"],
                     axis=1,
                 )
             ]
             traj_df_tracked_sub = traj_df_tracked_sub[
                 traj_df_tracked_sub.apply(
-                    lambda row: row[Column.TIMEPOINT] < row[f"first_passage_dist_from_fp_{fp_idx}"],
+                    lambda row, fp_idx=fp_idx: row[Column.TIMEPOINT]
+                    < row[f"first_passage_dist_from_fp_{fp_idx}"],
                     axis=1,
                 )
             ]
@@ -248,160 +253,46 @@ def main(
         )
 
         # 4. plot the cell FPT vs grid FPT data as a scatterplot with errors and a
-        #    heatmap with theta, r, rho as the axes and the FPT ratio as the color dimension
+        #    scatter with theta, r, rho as the axes and the FPT ratio as the color dimension
+        fp_stability = fixed_points_df.loc[fp_idx, STABILITY_COLUMN_NAME]
 
-        from matplotlib import pyplot as plt
-        from matplotlib.colors import TwoSlopeNorm
-        from scipy.stats import linregress
-
-        stat = "mean"  # "50%"
-        suffix = "_first_passage_time"
-        metric = f"{stat}{suffix}"
-
-        fpt_stats_df_no_nan = fpt_stats_df.dropna(subset=[f"{metric}_grid", f"{metric}_tracked"])
-        # fpt_stats_df_no_nan = fpt_stats_df.dropna(
-        #     subset=[f"std{suffix}_grid", f"std{suffix}_tracked"]
-        # )
-        linreg_results = linregress(
-            x=fpt_stats_df_no_nan[f"{metric}_tracked"], y=fpt_stats_df_no_nan[f"{metric}_grid"]
+        # first the correlation scatter plots
+        plot_first_passage_time_correlation(
+            fixed_point_id=fp_idx,
+            fixed_point_stability=fp_stability,
+            dataset_config=dataset_config,
+            first_passage_time_df=fpt_stats_df,
+            stat_to_plot="mean",
+            out_dir=out_dir,
         )
-
-        fig, ax = plt.subplots(figsize=(3, 3))
-        ax.errorbar(
-            x=fpt_stats_df[f"{metric}_grid"],
-            y=fpt_stats_df[f"{metric}_tracked"],
-            xerr=fpt_stats_df["std_first_passage_time_grid"],
-            yerr=fpt_stats_df["std_first_passage_time_tracked"],
-            fmt="none",
-            ecolor="gray",
-            alpha=0.5,
-            zorder=0,
+        plot_first_passage_time_correlation(
+            fixed_point_id=fp_idx,
+            fixed_point_stability=fp_stability,
+            dataset_config=dataset_config,
+            first_passage_time_df=fpt_stats_df,
+            stat_to_plot="median",
+            out_dir=out_dir,
         )
-        ax.scatter(
-            x=fpt_stats_df_no_nan[f"{metric}_grid"],
-            y=fpt_stats_df_no_nan[f"{metric}_tracked"],
-            color="black",
-            edgecolor="white",
-            lw=0.2,
+        # histograms don't really work for 4D data (theta, r, rho, and FPT ratio),
+        # so we will use a 3D scatter with color-coded points instead
+        plot_first_passage_time_3d_scatter(
+            fixed_point_id=fp_idx,
+            fixed_point_stability=fp_stability,
+            dataset_config=dataset_config,
+            first_passage_time_df=fpt_stats_df,
+            fixed_points_df=fixed_points_df,
+            stat_to_plot="mean",
+            out_dir=out_dir,
         )
-        ax.axline(xy1=(0, 0), slope=1, color="tab:red", linestyle="--", zorder=0)
-        ax.axline(
-            xy1=(0, linreg_results.intercept),
-            slope=linreg_results.slope,
-            color="tab:blue",
-            linestyle="--",
-            zorder=0,
+        plot_first_passage_time_3d_scatter(
+            fixed_point_id=fp_idx,
+            fixed_point_stability=fp_stability,
+            dataset_config=dataset_config,
+            first_passage_time_df=fpt_stats_df,
+            fixed_points_df=fixed_points_df,
+            stat_to_plot="median",
+            out_dir=out_dir,
         )
-        ax_min = min((*ax.get_xlim(), *ax.get_ylim()))
-        ax_max = max((*ax.get_xlim(), *ax.get_ylim()))
-        ax.set_xlim(ax_min, ax_max)
-        ax.set_ylim(ax_min, ax_max)
-        plt.show()
-        plt.close(fig)
-
-        fig, ax = plt.subplots(figsize=(3, 3.5), subplot_kw={"projection": "3d"})
-        thetas, rs, rhos = zip(*fpt_stats_df_no_nan["bin_center"], strict=True)
-        colors = np.log2(
-            fpt_stats_df_no_nan[f"{metric}_tracked"] / fpt_stats_df_no_nan[f"{metric}_grid"]
-        )
-        scatter3d = ax.scatter(  # type: ignore[call-arg]
-            xs=thetas,
-            ys=rs,
-            zs=rhos,
-            c=colors,
-            cmap="coolwarm_r",
-            norm=TwoSlopeNorm(vcenter=0),
-        )  # type: ignore[call-arg]
-        ax.set_xlabel(get_label_for_column(Column.DiffAEData.POLAR_ANGLE))
-        ax.set_ylabel(get_label_for_column(Column.DiffAEData.POLAR_RADIUS))
-        ax.set_zlabel(get_label_for_column(Column.DiffAEData.PC3_FLIPPED))
-        plt.tight_layout()
-        cax = fig.add_axes([1.15, 0.2, 0.05, 0.6])  # type: ignore[call-overload]
-        cbar = fig.colorbar(scatter3d, cax=cax)  # , ax=ax, shrink=0.5, aspect=5)
-        # cbar.set_ticks([0.25, 0.5, 1, 2, 4])
-        ax.scatter(*fixed_points_df.iloc[fp_idx][list(DYNAMICS_COLUMN_NAMES)].values, color="black", s=10, marker="*")  # type: ignore
-        plt.show()
-        plt.close(fig)
-
-        fig, ax = plt.subplots(figsize=(3, 3.5), subplot_kw={"projection": "3d"})
-        thetas, rs, rhos = zip(*fpt_stats_df_no_nan["bin_center"], strict=True)
-        colors = fpt_stats_df_no_nan[f"count{suffix}_grid"]
-        scatter3d = ax.scatter(  # type: ignore[call-arg]
-            xs=thetas,
-            ys=rs,
-            zs=rhos,
-            c=colors,
-            cmap="tab10",
-            # norm=TwoSlopeNorm(vcenter=0),
-        )  # type: ignore[call-arg]
-        ax.set_xlabel(get_label_for_column(Column.DiffAEData.POLAR_ANGLE))
-        ax.set_ylabel(get_label_for_column(Column.DiffAEData.POLAR_RADIUS))
-        ax.set_zlabel(get_label_for_column(Column.DiffAEData.PC3_FLIPPED))
-        plt.tight_layout()
-        cax = fig.add_axes([1.15, 0.2, 0.05, 0.6])  # type: ignore[call-overload]
-        cbar = fig.colorbar(scatter3d, cax=cax)  # , ax=ax, shrink=0.5, aspect=5)
-        # cbar.set_ticks([0.25, 0.5, 1, 2, 4])
-        ax.scatter(*fixed_points_df.iloc[fp_idx][list(DYNAMICS_COLUMN_NAMES)].values, color="black", s=10, marker="*")  # type: ignore
-        plt.show()
-        plt.close(fig)
-
-        # sns.histplot(
-        #     data=fpt_stats_df,
-        #     x=f"{metric}_grid",
-        #     y=f"{metric}_tracked",
-        #     bins=fpt_stats_df["bin_edges"].tolist(),
-        # )
-
-        # for i in fixed_points_df.index:
-        #     fixed_point_stability = fixed_points_df.loc[i, STABILITY_COLUMN_NAME]
-        #     time_of_first_passage = []
-        #     time_of_first_passage.append(
-        #         get_first_passage_time(
-        #             trajectory_df=traj_df_grid_sub,
-        #             column=f"dist_from_fp_{i}_grid",
-        #             threshold=MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
-        #         )
-        #     )
-        #     time_of_first_passage.append(
-        #         get_first_passage_time(
-        #             trajectory_df=traj_df_tracked_sub,
-        #             column=f"dist_from_fp_{i}_tracked",
-        #             threshold=MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
-        #         )
-        #     )
-        #     time_of_first_passage_df = pd.concat(time_of_first_passage, axis=1).reset_index()
-
-        # plot_first_passage_time_histogram(
-        #     fixed_point_id=i,
-        #     fixed_point_stability=fixed_point_stability,
-        #     dataset_config=dataset_config,
-        #     time_of_first_passage_df=time_of_first_passage_df,
-        #     out_dir=out_dir,
-        #     crop_pattern=crop_pattern,
-        # )
-
-        # plot_first_passage_time_scatterplot(
-        #     fixed_point_id=i,
-        #     fixed_point_stability=fixed_point_stability,
-        #     dataset_config=dataset_config,
-        #     time_of_first_passage_df=time_of_first_passage_df,
-        #     out_dir=out_dir,
-        # )
-
-        # bin_sizes = [
-        #     {"num_bins_polar_theta": 12, "num_bins_polar_r": 12, "num_bins_rho": 12},
-        #     {"num_bins_polar_theta": 8, "num_bins_polar_r": 8, "num_bins_rho": 8},
-        #     {"num_bins_polar_theta": 6, "num_bins_polar_r": 6, "num_bins_rho": 6},
-        #     {"num_bins_polar_theta": 12, "num_bins_polar_r": 12, "num_bins_rho": 1},
-        # ]
-        # for bins in bin_sizes:
-        #     plot_initial_conditions_histogram(
-        #         df_first_timepoint=trajectories_df_t_init,
-        #         num_bins_polar_theta=bins["num_bins_polar_theta"],
-        #         num_bins_polar_r=bins["num_bins_polar_r"],
-        #         num_bins_rho=bins["num_bins_rho"],
-        #         out_dir=out_dir,
-        #     )
 
 
 if __name__ == "__main__":
