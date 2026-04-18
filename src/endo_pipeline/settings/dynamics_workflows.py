@@ -87,9 +87,6 @@ BIN_LIMIT_PERCENTILE_CUTOFF: float = 2.5
 """Percentile cutoff for getting bin limits for computing Kramer-Moyal
 coefficients."""
 
-HISTOGRAM_THRESHOLD_FOR_MASKING: float = 0.05
-"""Histogram threshold for masking in dynamics visualization workflows."""
-
 NUM_INIT_SAMPLES: int = 250
 """Number of sampled initial points for root finding in 3D flow field analysis."""
 

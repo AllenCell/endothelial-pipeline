@@ -1,5 +1,5 @@
 from endo_pipeline.cli import CropPattern, Datasets, StrList
-from endo_pipeline.settings.dynamics_workflows import HISTOGRAM_THRESHOLD_FOR_MASKING
+from endo_pipeline.settings.flow_field_2d import HISTOGRAM_THRESHOLD_FOR_MASKING
 
 
 def main(

@@ -42,7 +42,6 @@ from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import (
     BIN_LIMIT_PERCENTILE_CUTOFF,
     BIN_WIDTHS_DYNAMICS,
-    HISTOGRAM_THRESHOLD_FOR_MASKING,
     KERNEL_BANDWIDTHS_DYNAMICS,
     KERNEL_NAMES_DYNAMICS,
     METADATA_COLUMNS_TO_KEEP,
@@ -58,6 +57,7 @@ from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_COLORMAP,
     DRIFT_CONTOUR_VMAX,
     DRIFT_CONTOUR_VMIN,
+    HISTOGRAM_THRESHOLD_FOR_MASKING,
 )
 from endo_pipeline.settings.flow_field_dataframes import (
     DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
