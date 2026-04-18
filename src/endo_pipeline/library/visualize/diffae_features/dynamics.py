@@ -17,7 +17,6 @@ from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_VMAX,
     DRIFT_CONTOUR_VMIN,
 )
-from endo_pipeline.settings.plot_defaults import SHEAR_COLOR_DICT
 
 
 def plot_drift_contours(
@@ -416,99 +415,6 @@ def plot_drift_1d(
         ax.set_ylabel(axes_labels[1], **(ylabel_kwargs or {}))
 
     return fig, ax
-
-
-def plot_fixed_points_by_shear(
-    fpt_dict_list: list, shear_range: np.ndarray, pcs: list, plt_lims: list
-) -> tuple[list[plt.Figure], list[plt.Axes]]:
-    """Plot individual components of fixed points as a function of shear stress.
-
-    **Input dictionary format**:
-
-    Each dictionary in `fpt_dict_list` should have the following keys:
-        - "shear": float, the shear stress value corresponding to the fixed
-          points in this dictionary
-        - "fixed_points": list of np.ndarray, each array is a fixed point in the
-          state space
-        - "fixed_point_stability": list of str, each string is the stability
-          type of the corresponding fixed point, e.g., "stable", "unstable",
-          "saddle", or "indeterminate"
-
-    Parameters
-    ----------
-    fpt_dict_list
-        List of dictionaries, each containing fixed points, the corresponding
-        types, and the shear stress value.
-    shear_range
-        Shear stress values corresponding to each dictionary in `fpt_dict_list`.
-    pcs
-        List of principal components used to fit the dynamical systems model.
-    plt_lims
-        List of tuples containing the axes y-limits for each plot.
-
-    Returns
-    -------
-    :
-        Tuple containing:
-            - List of matplotlib Figure objects for each component plot.
-            - List of corresponding Axes objects for each component plot.
-
-    """
-    if len(fpt_dict_list) != len(shear_range):
-        raise ValueError(
-            f"Length of fpt_dict_list ({len(fpt_dict_list)}) does not match length of shear_range ({len(shear_range)})."
-        )
-
-    # plot fixed points by shear stress
-    # initialize figure and axes
-    figs = []
-    axs = []
-
-    # loop over components
-    ndim = len(pcs)
-    for j in range(ndim):
-        # initialize figure and axes for the j-th component
-        fig, ax = plt.subplots(figsize=(7, 6))
-
-        # loop over shear stress values
-        for i, u in enumerate(shear_range):
-            # get fixed points and types for the i-th shear stress value
-            fpt_dict = fpt_dict_list[i]
-
-            # check that the dict corresponds to the correct shear stress value
-            if u != fpt_dict["shear"]:
-                raise ValueError(
-                    f"Shear stress value ({u}) does not match the value in the dictionary ({fpt_dict['shear']})."
-                )
-
-            # get fixed points and types
-            fpts = fpt_dict["fixed_points"]
-            fpt_stabilities = fpt_dict["fixed_point_stability"]
-
-            # check that we have a type for each fixed point
-            if len(fpts) != len(fpt_stabilities):
-                raise ValueError(
-                    f"Number of fixed points ({len(fpts)}) does not match number of "
-                    f"stability types ({len(fpt_stabilities)}) for shear stress {u}."
-                )
-
-            # plot component j of each fixed point (if any)
-            if len(fpts) > 0:
-                # color code by type (stability)
-                for ii, fpt in enumerate(fpts):
-                    # default to black if type not in dict
-                    color = SHEAR_COLOR_DICT.get(fpt_stabilities[ii], "k")
-                    # plot
-                    ax.plot(u, fpt[j], "o", color=color)
-                    ax.set_xlabel("Shear stress (dyn/cm$^2$)")
-                    ax.set_ylabel(f"PC{pcs[j] + 1}$^*$")
-        # set fig title and limits, and append to lists
-        ax.set_title("Fixed points by shear stress")
-        ax.set_ylim(plt_lims[j])
-        figs.append(fig)
-        axs.append(ax)
-
-    return figs, axs
 
 
 def plot_histogram_2d(ax: plt.Axes, p_hist: np.ndarray, bins: list, cmap: str) -> plt.Axes:
