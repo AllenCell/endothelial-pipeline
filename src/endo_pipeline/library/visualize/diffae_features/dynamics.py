@@ -417,44 +417,6 @@ def plot_drift_1d(
     return fig, ax
 
 
-def plot_histogram_2d(ax: plt.Axes, p_hist: np.ndarray, bins: list, cmap: str) -> plt.Axes:
-    """Plot 2D histogram with specified colormap.
-
-    Parameters
-    ----------
-    ax
-        Axes to plot on.
-    p_hist
-        2D histogram data, e.g., obtained by np.histogram2d.
-    bins
-        List of bin edges used to compute the histogram for each dimension.
-    cmap
-        Colormap to use for the plot.
-
-    Returns
-    -------
-    :
-        The input Axes object with the histogram plotted on it.
-
-    """
-    # plot histogram, setting origin to lower left and
-    # setting the aspect ratio to be square
-    ax.imshow(
-        p_hist.T,
-        interpolation="nearest",
-        origin="lower",
-        extent=(bins[0][0], bins[0][-1], bins[1][0], bins[1][-1]),
-        cmap=cmap,
-        aspect=(bins[0][-1] - bins[0][0]) / (bins[1][-1] - bins[1][0]),
-    )
-
-    # label axes
-    ax.set_xlabel("$x_1$")
-    ax.set_ylabel("$x_2$")
-
-    return ax
-
-
 def plot_gen_potential_2d(
     potential: np.ndarray,
     xvec: np.ndarray,
