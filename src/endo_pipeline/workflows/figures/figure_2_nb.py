@@ -48,7 +48,7 @@ from endo_pipeline.settings.dynamics_workflows import (
     METADATA_COLUMNS_TO_KEEP,
     POLAR_ANGLE_PERIOD,
     POLAR_ANGLE_RANGE,
-    TIME_STEP_IN_MINUTES,
+    TIME_STEP_IN_HOURS,
 )
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
 from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
@@ -208,7 +208,7 @@ for dataset_name, panel_letters, y_position in [
         column_names=columns_r_rho,
         bins=bins_r_rho,
         kernel=kernels_r_rho,
-        time_step=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
+        time_step=TIME_STEP_IN_HOURS,
     )
     drift_r_rho = mask_drift_vector_field_by_data_density(
         drift_coeffs=drift_r_rho,
@@ -229,7 +229,7 @@ for dataset_name, panel_letters, y_position in [
         column_names=[column_theta],
         bins=bins_theta,
         kernel=kernel_theta,
-        time_step=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
+        time_step=TIME_STEP_IN_HOURS,
     )
 
     # make and save plots

@@ -89,7 +89,7 @@ def main(
         METADATA_COLUMNS_TO_KEEP,
         POLAR_ANGLE_PERIOD,
         POLAR_ANGLE_RANGE,
-        TIME_STEP_IN_MINUTES,
+        TIME_STEP_IN_HOURS,
     )
     from endo_pipeline.settings.plot_defaults import SHEAR_COLOR_DICT
     from endo_pipeline.settings.variation_analysis import (
@@ -121,7 +121,7 @@ def main(
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # plotting timepoints in unit hours: conversion factor
-    time_conversion_factor = TIME_STEP_IN_MINUTES / 60
+    time_conversion_factor = TIME_STEP_IN_HOURS
 
     # dataset list from specified collection
     # Use provided datasets or default if none provided.

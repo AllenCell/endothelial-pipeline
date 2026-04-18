@@ -111,7 +111,7 @@ def main(
         NUM_INIT_SAMPLES,
         POLAR_ANGLE_PERIOD,
         RESCALE_THETA,
-        TIME_STEP_IN_MINUTES,
+        TIME_STEP_IN_HOURS,
         UPPER_PERCENTILE_FOR_FILTERING_FPTS,
     )
     from endo_pipeline.settings.flow_field_dataframes import (
@@ -258,7 +258,7 @@ def main(
                 column_names=column_names,
                 bin_widths=bin_widths,
                 kernel=kernels,
-                time_step=TIME_STEP_IN_MINUTES / 60,  # convert to units of hours
+                time_step=TIME_STEP_IN_HOURS,
                 metadata_dict=metadata_dict,
             )
 

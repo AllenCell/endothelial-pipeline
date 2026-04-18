@@ -57,6 +57,9 @@ DEFAULT_DATASETS_DYNAMICS_VIS: str = "diffae_model_training"
 TIME_STEP_IN_MINUTES: int = 5
 """Time step in minutes between consecutive time points for flow field estimation."""
 
+TIME_STEP_IN_HOURS: float = TIME_STEP_IN_MINUTES / 60
+"""Time step in hours between consecutive time points for flow field estimation."""
+
 RESCALE_THETA: bool = True
 """Whether to rescale polar angle coordinate to [0, pi] range for analysis and
 visualization."""
