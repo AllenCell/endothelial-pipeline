@@ -4,36 +4,51 @@ from matplotlib.lines import Line2D
 
 """Global constants and default settings for dataframe creation and processing in 3D flow field analysis."""
 
-DATAFRAME_MANIFEST_PREFIX_DRIFT: str = "drift_vector_field"
+DATAFRAME_MANIFEST_PREFIX_DRIFT: dict[int, str] = {
+    1: "drift_vector_field_1d",
+    2: "drift_vector_field_2d",
+    3: "drift_vector_field_3d",
+}
 """Prefix for setting and getting dataframe manifest name for drift dataframes
-in 3D flow field analysis."""
+in n-dimensional flow field analysis."""
 
-FMS_ANNOTATION_NOTES_DRIFT: str = (
-    "Drift vectors and corresponding grid points for 3D flow field estimation."
-)
-"""Annotation notes for drift coefficient dataframes uploaded to FMS in 3D flow field analysis."""
+FMS_ANNOTATION_NOTES_DRIFT: dict[int, str] = {
+    1: "Drift vectors and corresponding grid points for 1D flow field estimation.",
+    2: "Drift vectors and corresponding grid points for 2D flow field estimation.",
+    3: "Drift vectors and corresponding grid points for 3D flow field estimation.",
+}
+"""Annotation notes for drift coefficient dataframes uploaded to FMS in
+n-dimensional flow field analysis."""
 
-DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS: str = "drift_fixed_points"
+DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS: dict[int, str] = {
+    1: "drift_fixed_points_1d",
+    2: "drift_fixed_points_2d",
+    3: "drift_fixed_points_3d",
+}
 """Prefix for setting and getting dataframe manifest name for fixed point dataframes
-in 3D flow field analysis."""
+in n-dimensional flow field analysis."""
 
-FMS_ANNOTATION_NOTES_FIXED_POINTS: str = (
-    "High-confidence fixed points identified from 3D flow field analysis."
-)
-"""Annotation notes for fixed point dataframes uploaded to FMS in 3D flow field analysis."""
+FMS_ANNOTATION_NOTES_FIXED_POINTS: dict[int, str] = {
+    1: "High-confidence fixed points identified from 1D flow field analysis.",
+    2: "High-confidence fixed points identified from 2D flow field analysis.",
+    3: "High-confidence fixed points identified from 3D flow field analysis.",
+}
+"""Annotation notes for fixed point dataframes uploaded to FMS in n-dimensional flow field analysis."""
 
 DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING: str = "bootstrapped_fixed_points"
-"""Prefix for setting and getting dataframe manifest name for bootstrapped fixed point dataframes."""
+"""Prefix for setting and getting dataframe manifest name for bootstrapped fixed
+point dataframes (3D only)."""
 
 FMS_ANNOTATION_NOTES_BOOTSTRAPPING: str = (
     "Bootstrapped fixed points from 3D flow field analysis, including "
     "confidence intervals and detection rates."
 )
-"""Annotation notes for bootstrapped fixed point dataframes uploaded to FMS in 3D flow field analysis."""
+"""Annotation notes for bootstrapped fixed point dataframes uploaded to FMS in
+3D flow field analysis."""
 
 STABILITY_COLUMN_NAME: str = "stability"
 """Column name for fixed point stability classification labels in fixed point
-dataframes from 3D flow field analysis."""
+dataframes from n-dimensional flow field analysis."""
 
 
 class StabilityLabel(StrEnum):
