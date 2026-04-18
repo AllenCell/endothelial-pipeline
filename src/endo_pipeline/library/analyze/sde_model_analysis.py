@@ -2,22 +2,15 @@
 
 import logging
 from collections.abc import Callable
-from pathlib import Path
 from time import time
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.numerics.binning import get_normalization_constant
 from endo_pipeline.library.analyze.numerics.fp_solvers import SteadyFP
-from endo_pipeline.library.analyze.numerics.gen_potential import (
-    entropy_production,
-    grad_flux_decomposition,
-)
+from endo_pipeline.library.analyze.numerics.gen_potential import entropy_production
 from endo_pipeline.library.analyze.numerics.sde_model_eval import mesh_grid_function
-from endo_pipeline.library.visualize.diffae_features import dynamics
 
 logger = logging.getLogger(__name__)
 
@@ -205,105 +198,3 @@ def get_epr(
         )
 
     return epr
-
-
-def run_gen_potential_analysis(
-    sde_model: list[Callable],
-    bins: list,
-    centers: list,
-    shear_range: np.ndarray,
-    pc_axes: list,
-    downsample_quiver: int,
-    normed: bool,
-    fig_savedir: Path,
-    additive_noise: bool,
-) -> None:
-    """Run generalized potential energy landscape analysis for a fit SDE model.
-
-    This is a qualitative evaluation of the model by plotting the generalized
-    potential energy landscape and its gradient/flux decomposition at different
-    shear stresses.
-
-    This method creates and saves out the following plots for each shear stress
-    in the input shear range:
-
-    - Generalized potential energy landscape
-    - Gradient/flux decomposition of the generalized potential energy landscape
-
-
-    Parameters
-    ----------
-    sde_model
-        List of Callable functions, [drift, diffusion], representing the fit SDE model.
-    bins
-        List of np.ndarrays representing the bin edges for each dimension of the
-        state variable.
-    centers
-        List of np.ndarrays representing the bin centers for each dimension of the
-        state variable.
-    shear_range
-        np.ndarray representing the shear stresses at which to evaluate the generalized
-        potential energy landscape.
-    pc_axes
-        List of ints representing the indices of the principal components that model
-        fitting was performed on.
-    downsample_quiver
-        Int representing the downsample factor for the quiver plot of the gradient/flux
-        decomposition.
-    normed
-        Bool indicating whether to normalize the quiver plot of the gradient/flux
-        decomposition.
-    fig_savedir
-        Path representing the directory to save the generated figures.
-    additive_noise
-        If true, assume additive noise (constant diffusion), else multiplicative noise.
-
-    """
-    logger.info("Running generalized potential energy landscape analysis")
-    drift = sde_model[0]
-    diffusion = sde_model[1]
-
-    # define mesh grid functions for drift and diffusion
-    drift_mesh = mesh_grid_function(drift)
-    diff_mesh = mesh_grid_function(diffusion)
-
-    for ii, shear in enumerate(shear_range):
-        # evaluate drift and diffusion functions at
-        # grid points for given shear stress
-        drift_vals = drift_mesh(np.meshgrid(*centers), shear).T
-        diff_vals = diff_mesh(np.meshgrid(*centers), shear).T
-
-        # get stationary probability distribution to get
-        # generalized potential energy landscape U
-        p_fit = get_stationary_probability(drift_vals, diff_vals, bins)
-        potential = -np.log(p_fit)
-
-        # plot generalized potential energy landscape
-        fig, ax = dynamics.plot_gen_potential_2d(
-            potential, centers[0], centers[1], cmap="jet", surf=False
-        )
-        ax.set_xlabel(f"PC{pc_axes[0] + 1}")
-        ax.set_ylabel(f"PC{pc_axes[1] + 1}")
-        ax.set_title(f"Shear stress: {shear:.2f} dyn/cm$^2$")
-        fig.suptitle("Generalized potential energy landscape", y=1.0, fontsize=16)
-        plt.show()
-
-        # save out plot, filename indexed by shear stress index in shear_range
-        save_plot_to_path(fig, fig_savedir, f"gp_shear_{ii}")
-
-        #### plot gradient/flux decomposition ####
-
-        # get gradient/flux decomposition
-        _, grad_term, _, flux_term = grad_flux_decomposition(
-            drift_vals, diff_vals, centers, additive_noise
-        )
-
-        # was having issues with flux_term being an
-        # AxesArray object (inherited from SINDy model)
-        # should test this to see if no longer a
-        # problem (should be fixed in sde_model_eval scripts now)
-        if flux_term.__class__ != np.ndarray:
-            flux_term = np.array(flux_term)
-
-        # save out plot, filename indexed by shear stress index in shear_range
-        save_plot_to_path(fig, fig_savedir, f"gp_decomp_shear_{ii}")

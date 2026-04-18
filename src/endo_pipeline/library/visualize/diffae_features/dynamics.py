@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import TwoSlopeNorm
-from mpl_toolkits.mplot3d import Axes3D
 
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_CBAR_NUM_TICKS,
@@ -414,57 +413,4 @@ def plot_drift_1d(
         ax.set_xlabel(axes_labels[0], **(xlabel_kwargs or {}))
         ax.set_ylabel(axes_labels[1], **(ylabel_kwargs or {}))
 
-    return fig, ax
-
-
-def plot_gen_potential_2d(
-    potential: np.ndarray,
-    xvec: np.ndarray,
-    yvec: np.ndarray,
-    cmap: str = "jet",
-    surf: bool = False,
-) -> tuple[plt.Figure, plt.Axes]:
-    """Plot 2D generalized potential energy landscape with specified colormap.
-
-    Parameters
-    ----------
-    potential
-        2D array representing the generalized potential energy landscape,
-        evaluated on the grid defined by xvec and yvec.
-    xvec
-        1D array of x-axis values corresponding to each point in the potential.
-    yvec
-        1D array of y-axis values corresponding to each point in the potential.
-    cmap
-        Colormap to use for the plot.
-    surf
-        Whether to plot as a surface (3D) or contour (2D). If True, plots a 3D
-        surface; if False, plots a 2D contour.
-
-    Returns
-    -------
-    :
-        Tuple containing:
-            - The matplotlib Figure object containing the plot.
-            - The corresponding Axes object for the plot.
-
-    """
-    if surf:
-        fig = plt.figure(figsize=plt.figaspect(1 / 3))
-        ax: Axes3D = fig.add_subplot(1, 2, 1, projection="3d")
-        x_, y_ = np.meshgrid(xvec, yvec, indexing="ij")
-        surf = ax.plot_surface(x_, y_, potential, cmap=cmap)
-        ax.set_zlabel("$-\ln P$")
-        plt.tight_layout()
-    else:
-        fig, ax = plt.subplots(figsize=(7, 6))
-        im = ax.imshow(
-            potential.T,
-            interpolation="nearest",
-            origin="lower",
-            extent=(xvec[0], xvec[-1], yvec[0], yvec[-1]),
-            cmap=cmap,
-            aspect=(xvec[-1] - xvec[0]) / (yvec[-1] - yvec[0]),
-        )
-        fig.colorbar(im, label="$-\ln P$")
     return fig, ax
