@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, Literal
 
@@ -6,11 +7,13 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from seaborn import color_palette
+from tqdm import tqdm
 
 from endo_pipeline.configs.dataset_config_io import load_dataset_config
 from endo_pipeline.io import get_output_path, load_dataframe
 from endo_pipeline.library.analyze.dataframe_filtering import (
     filter_dataframe_by_track_length,
+    filter_dataframe_to_binned_value,
     filter_dataframe_to_steady_state,
 )
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
@@ -1143,9 +1146,15 @@ def add_distance_to_fixed_points_columns(
     return trajectory_df
 
 
-def get_first_passage_time(trajectory_df: pd.DataFrame, column: str, threshold: float) -> pd.Series:
+def add_first_passage_time_column(
+    trajectory_df: pd.DataFrame, column: str, threshold: float
+) -> pd.Series:
     """
-    Get the time of first passage for each track in the trajectory dataframe.
+    Add the time of first passage for each track in the trajectory dataframe
+    using the column name pattern `first_passage_{column}`.
+    The first passage time is computed as the first timepoint (specified by
+    `Column.TIMEPOINT`) at which the value in `column` is less than or equal to
+    the given threshold for each track (grouped by `Column.CROP_INDEX`).
 
     Parameters
     ----------
@@ -1158,20 +1167,22 @@ def get_first_passage_time(trajectory_df: pd.DataFrame, column: str, threshold: 
 
     Returns
     -------
-    pd.Series
-        Series containing the time of first passage for each track.
+    pd.DataFrame
+        DataFrame containing the first passage time for each track.
     """
-    new_column_name = f"time_of_first_passage_{column}"
-    time_of_first_passage = trajectory_df.groupby(Column.CROP_INDEX).apply(
-        lambda grp: pd.Series(
-            {
-                new_column_name: grp[Column.TIMEPOINT][grp[column] <= threshold].min()
-                - grp[Column.TIMEPOINT].min()
-            }
-        ),
-        include_groups=False,
+    new_column_name = f"first_passage_{column}"
+    trajectory_df[new_column_name] = (
+        trajectory_df.groupby(Column.CROP_INDEX)
+        .apply(
+            lambda grp: pd.DataFrame(
+                {new_column_name: grp[Column.TIMEPOINT][grp[column] <= threshold].min()},
+                index=grp.index,
+            ),
+            include_groups=False,
+        )
+        .droplevel(0)
     )
-    return time_of_first_passage
+    return trajectory_df
 
 
 def load_filtered_trajectory_df_for_first_passage_time_workflow(
@@ -1222,3 +1233,73 @@ def load_filtered_trajectory_df_for_first_passage_time_workflow(
     )
 
     return trajectories_df
+
+
+def compute_first_passage_time_stats_for_one_bin(
+    bin_index: int,
+    bin_center: Sequence[float],
+    bin_edges: list[np.ndarray],
+    trajectory_df: pd.DataFrame,
+    time_to_first_passage_col_name: str,
+    feature_column_names: list[str],
+) -> pd.DataFrame:
+
+    trajectory_df_one_bin = filter_dataframe_to_binned_value(
+        dataframe=trajectory_df,
+        columns=feature_column_names,
+        values=bin_center,
+        bin_edges=bin_edges,
+    )
+    first_passage_time_stats_df = (
+        trajectory_df_one_bin[time_to_first_passage_col_name].describe().to_frame().T
+    )
+    new_col_names = {
+        col: col + "_first_passage_time" for col in first_passage_time_stats_df.columns
+    }
+    first_passage_time_stats_df.rename(columns=new_col_names, inplace=True)
+
+    first_passage_time_stats_df = first_passage_time_stats_df.assign(bin_index=bin_index)
+
+    return first_passage_time_stats_df
+
+
+def compute_first_passage_time_stats_for_bins(
+    bin_centers: list[np.ndarray],
+    bin_edges: list[np.ndarray],
+    trajectory_df: pd.DataFrame,
+    time_to_first_passage_col_name: str,
+    feature_column_names: list[str],
+) -> pd.DataFrame:
+
+    bin_centers_mesh = np.meshgrid(*bin_centers, indexing="ij")
+    bin_centers_all = list(zip(*[arr.ravel() for arr in bin_centers_mesh], strict=True))
+
+    bin_edges_mesh = np.meshgrid(*bin_edges, indexing="ij")
+    bin_edges_all = list(zip(*[arr.ravel() for arr in bin_edges_mesh], strict=True))
+
+    results = []
+    for bin_index, bin_center in tqdm(
+        enumerate(bin_centers_all),
+        total=len(bin_centers_all),
+        desc="Computing first passage time statistics for each bin",
+    ):
+        first_passage_time_stats_df = compute_first_passage_time_stats_for_one_bin(
+            bin_index=bin_index,
+            bin_center=bin_center,
+            bin_edges=bin_edges,
+            trajectory_df=trajectory_df,
+            time_to_first_passage_col_name=time_to_first_passage_col_name,
+            feature_column_names=feature_column_names,
+        )
+
+        results.append(first_passage_time_stats_df)
+
+    first_passage_time_stats_df = pd.concat(results, ignore_index=True)
+    first_passage_time_stats_df["bin_center"] = first_passage_time_stats_df["bin_index"].transform(
+        lambda i: bin_centers_all[i]
+    )
+    first_passage_time_stats_df["bin_edges"] = first_passage_time_stats_df["bin_index"].transform(
+        lambda i: bin_edges_all[i]
+    )
+
+    return first_passage_time_stats_df
