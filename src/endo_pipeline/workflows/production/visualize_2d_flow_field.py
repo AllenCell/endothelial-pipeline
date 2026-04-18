@@ -368,7 +368,7 @@ def main(
                 # legend with just the stable fixed point handle
                 existing_legend = ax.get_legend()
                 if existing_legend is not None:
-                    existing_handles, existing_labels = existing_legend.legendHandles, [
+                    existing_handles, existing_labels = existing_legend.legend_handles, [
                         text.get_text() for text in existing_legend.get_texts()
                     ]
                     ax.legend(
