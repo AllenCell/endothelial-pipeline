@@ -1,7 +1,7 @@
 """Methods for visualizing the outputs of the DiffAE feature analysis workflows."""
 
 from collections.abc import Sequence
-from typing import Any, Literal, cast
+from typing import Literal, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -547,103 +547,6 @@ def plot_histogram_2d(ax: plt.Axes, p_hist: np.ndarray, bins: list, cmap: str) -
     ax.set_ylabel("$x_2$")
 
     return ax
-
-
-def kl_divergence(p: np.ndarray, q: np.ndarray, dx: list, tol: float = 1e-8) -> float:
-    """Approximate Kullback-Leibler divergence between two (possibly multivariate) distributions.
-
-    This method uses the formula `D_KL(p||q) = int p(x) log(p(x)/q(x)) dx`, where
-    the integral is approximated by numerical integration (trapezoidal rule)
-    over the grid defined by the bin edges corresponding to p and q.
-
-    Parameters
-    ----------
-    p
-        First probability distribution.
-    q
-        Second probability distribution.
-    dx
-        List of bin widths used to obtain the distributions for each dimension.
-    tol
-        Small value to avoid division by zero, by default 1e-8.
-
-    Returns
-    -------
-    :
-        The KL divergence D_KL(p||q) approximated by numerical integration.
-
-    """
-    ndim = len(dx)
-
-    # set small values to tol
-    p_ = p.copy()
-    p_[p_ < tol] = tol
-    q_ = q.copy()
-    q_[q_ < tol] = tol
-
-    kl_div = p_ * np.log(p_ / q_)  # initial KL divergence
-    for i in range(ndim):
-        kl_div = np.trapz(kl_div, dx=dx[i], axis=0)  # integrate over each dimension
-
-    return kl_div
-
-
-def compare_stationary_distributions(
-    p_model: np.ndarray, p_hist: np.ndarray, bins: list
-) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
-    """Compare predicted stationary distribution to histogram of data.
-
-    This function creates a side-by-side plot of the histogram of the data at
-    steady state (the "empirical PDF") and the numerical solution to the
-    stationary Fokker-Planck equation for the fit SDE model (the "model PDF").
-
-    The figure suptitle includes the Kullback-Leibler divergence between the two
-    distributions, computed using numerical integration over the grid defined by
-    the bin edges corresponding to p_hist and p_model. (See the `kl_divergence`
-    function for details on the numerical approximation method used.)
-
-    Parameters
-    ----------
-    p_model
-        Predicted stationary distribution from the model, evaluated on the same
-        grid as p_hist.
-    p_hist
-        Histogram of the data at steady state, evaluated on the same grid as
-        p_model.
-    bins
-        List of bin edges used to compute the histogram for each dimension,
-        which should be the same for p_hist and p_model.
-
-    Returns
-    -------
-    :
-        Tuple containing:
-            - The matplotlib Figure object containing the side-by-side plots.
-            - Array of the corresponding Axes objects for the empirical and model PDFs.
-
-    """
-    # check if 1D or 2D
-    ndim = len(bins)
-    if ndim == 2:  # call 2D histogram plot function
-        fig, ax = plt.subplots(1, 2, figsize=(12, 4))
-        ax[0] = plot_histogram_2d(ax[0], p_hist, bins, cmap="inferno")  # plot empirical PDF
-        ax[0].set_title("Empirical PDF")
-        ax[1] = plot_histogram_2d(ax[1], p_model, bins, cmap="inferno")  # plot model PDF
-        ax[1].set_title("Model PDF")
-
-    elif ndim == 1:  # call 1D histogram plot function
-        fig, ax = plt.subplots(1, 2, figsize=(12, 4))
-        ax[0].plot(bins[0][:-1], p_hist, "k", label="Empirical PDF")
-        ax[0].set_title("Empirical PDF")
-        ax[1].plot(bins[0][:-1], p_model, "k", label="Model PDF")
-        ax[1].set_title("Model PDF")
-
-    dx = [bins[i][1] - bins[i][0] for i in range(ndim)]  # bin widths
-    kl_div = kl_divergence(p_hist, p_model, dx)
-
-    fig.suptitle("$D_{KL}(p_{hist}||p_{model}) =$" + f"{kl_div:0.4f}", fontsize=16, y=1.05)
-
-    return fig, ax
 
 
 def plot_gen_potential_2d(
