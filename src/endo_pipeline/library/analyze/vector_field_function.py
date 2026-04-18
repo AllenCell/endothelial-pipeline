@@ -81,19 +81,22 @@ def compute_extrapolated_vector_field(
     **Method inputs**
 
     The input ``kmcs`` are the Kramers-Moyal coefficients (drift or diffusion
-    estimates) over a 3D mesh grid obtained from feature data. Where there are
+    estimates) over an ND mesh grid obtained from feature data. Where there are
     no data points, these estimates are `NaN`. This function extrapolates these
     estimates to the entire grid using nearest-neighbor or linear interpolation.
 
-    The array ``kmcs`` should have shape (num_x, num_y, num_z, 3), where num_x,
-    num_y, and num_z are the number of points in each dimension of the 3D
+    The array ``kmcs`` should have shape (n_1, n_2, n_3, ..., n_N, N), where
+    n_1, n_2, ..., n_N are the number of points in each dimension of the ND
     meshgrid defined by ``grid_coordinates``.
 
     **Method output**
 
-    The output is a dictionary with two keys: - "vectors": tuple of 3D arrays
-    (f1,f2,f3) with the vector values in each dimension - "grid": tuple of 3D
-    arrays (xgrid, ygrid, zgrid) with the meshgrid points in each dimension
+    The output is a dictionary with two keys:
+
+    - "vectors": tuple of ND arrays (f1,f2,f3,...) with the vector values in
+      each dimension
+    - "grid": tuple of ND arrays (x1grid, x2grid, x3grid,...) with the meshgrid
+      points in each dimension
 
     **Extrapolation for vtk files vs other uses**
 
@@ -129,7 +132,7 @@ def compute_extrapolated_vector_field(
     """
     filled_kmcs = kmcs.copy()
     n_components = filled_kmcs.shape[-1]
-    x, y, z = np.meshgrid(*grid_coordinates, indexing="ij")
+    grid = np.meshgrid(*grid_coordinates, indexing="ij")
 
     for i in range(n_components):
         component = filled_kmcs[..., i]
@@ -138,21 +141,23 @@ def compute_extrapolated_vector_field(
             if for_vtk_files:
                 component = _fill_nan_for_vtk(component, method=method)
             else:
+                # fill NaNs with zeros to avoid producing NaNs outside convex
+                # hull and extrapolate values outside convex hull
+                # (fill_value=None)
                 interpolator = RegularGridInterpolator(
                     grid_coordinates,
-                    np.where(
-                        nan_mask, 0, component
-                    ),  # fill NaNs with zeros to avoid producing NaNs outside convex hull
+                    np.where(nan_mask, 0, component),
                     method=method,
                     bounds_error=False,
-                    fill_value=None,  # extrapolate outside convex hull
+                    fill_value=None,
                 )
-                nan_points = np.array([x[nan_mask], y[nan_mask], z[nan_mask]]).T
+                nan_grid = [x[nan_mask] for x in grid]
+                nan_points = np.array(nan_grid).T
                 component[nan_mask] = interpolator(nan_points)
             filled_kmcs[..., i] = component
 
     vectors = tuple(filled_kmcs[..., i] for i in range(n_components))
-    return {"vectors": vectors, "grid": (x, y, z)}
+    return {"vectors": vectors, "grid": grid}
 
 
 @overload
@@ -182,9 +187,9 @@ def get_callable_vector_field(
 
     The input ``vector_field_dict`` is a dictionary with two keys:
 
-    - "vectors": tuple of 3D arrays (V1,V2,V3) with the vector values in each
+    - "vectors": tuple of ND arrays (V1,V2,V3,...) with the vector values in each
       dimension
-    - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in
+    - "grid": tuple of ND arrays (x1grid, x2grid, x3grid,...) with the grid points in
       each dimension
 
     The boolean ``for_solve_ivp`` specifies whether to return a callable
@@ -210,13 +215,10 @@ def get_callable_vector_field(
         Callable function representing the vector field.
 
     """
-    grid = vector_field_dict["grid"]  # tuple of 3D arrays (xgrid, ygrid, zgrid)
-
+    grid = vector_field_dict["grid"]  # tuple of ND arrays (x1grid, x2grid, ..., xNgrid)
+    ndim = len(grid)
     # Extract 1D axes from meshgrid
-    x = np.unique(grid[0])
-    y = np.unique(grid[1])
-    z = np.unique(grid[2])
-    axes = (x, y, z)
+    unique_axes = [np.unique(grid[i]) for i in range(ndim)]
 
     # Stack vector components into shape (nx, ny, nz, 3)
     vec_field_grid = np.stack(vector_field_dict["vectors"], axis=-1)
@@ -224,18 +226,18 @@ def get_callable_vector_field(
     # fill_value set to None for extrapolation
     interpolators = [
         RegularGridInterpolator(
-            axes, vec_field_grid[..., i], method=method, bounds_error=False, fill_value=None
+            unique_axes, vec_field_grid[..., i], method=method, bounds_error=False, fill_value=None
         )
-        for i in range(3)
+        for i in range(ndim)
     ]
 
     def vf_general(point: np.ndarray) -> np.ndarray:
-        # point: shape (3,) or (N, 3)
+        # point: shape (N,) or (M, N), where N is the number of dimensions
         point = np.atleast_2d(point)
         return np.stack([interp(point) for interp in interpolators], axis=-1).squeeze()
 
     def vf_solve_ivp(t: float, y: np.ndarray) -> np.ndarray:
-        # y: shape (3,)
+        # y: shape (N,)
         return vf_general(y)
 
     return vf_solve_ivp if for_solve_ivp else vf_general
@@ -255,13 +257,13 @@ def solve_ode_from_vector_field_dict(
 
     The input ``flow_field_dict`` is a dictionary with two keys:
 
-    - "vectors": tuple of 3D arrays (f1,f2,f3) with the vector values in each
+    - "vectors": tuple of ND arrays (f1,f2,f3,...) with the vector values in each
       dimension
-    - "grid": tuple of 3D arrays (xgrid, ygrid, zgrid) with the grid points in
+    - "grid": tuple of ND arrays (x1grid, x2grid, x3grid,...) with the grid points in
       each dimension
 
     The supplied initial condition ``init`` should be a numpy array of shape
-    (3,).
+    (N,).
 
     The time span ``t_span`` should be a list of two floats specifying the start
     and end times for the ODE solver. The input ``num_t`` specifies the number
@@ -270,7 +272,7 @@ def solve_ode_from_vector_field_dict(
     **Method output**
 
     The output is the solution of the ODE with the given initial condition,
-    which is a numpy array of shape (num_t, 3).
+    which is a numpy array of shape (num_t, N).
 
     Parameters
     ----------
@@ -290,7 +292,7 @@ def solve_ode_from_vector_field_dict(
     Returns
     -------
     :
-        Solution trajectory in 3D state space for the given initial condition
+        Solution trajectory in N-dimensional state space for the given initial condition
         and time span.
 
     """
@@ -325,4 +327,5 @@ def solve_ode_from_vector_field_dict(
         logger.error("ODE solver failed with status %d", sol.status)
         return np.full(shape=(num_t, init.shape[0]), fill_value=np.nan)
 
-    return sol.y.T  # get trajectory, shape (num_T, 3) (3D trajectory in state space)
+    # get trajectory, shape (num_T, N) (N-dimensional trajectory in state space)
+    return sol.y.T

@@ -69,6 +69,7 @@ def main(
         save the output dataframes locally and log paths.
     """
     import logging
+    from typing import cast
 
     import numpy as np
     import pandas as pd
@@ -131,7 +132,8 @@ def main(
     # set workflow defaults
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
     run_name = DEFAULT_MODEL_RUN_NAME
-    column_names = columns or list(DYNAMICS_COLUMN_NAMES)
+    column_names_ = columns or list(DYNAMICS_COLUMN_NAMES)
+    column_names = cast(list[ColumnName.DiffAEData], column_names_)
     ndim = len(column_names)
     # columns to keep when loading dataframes
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]

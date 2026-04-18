@@ -451,15 +451,14 @@ def get_fixed_points_within_bounds(
         if within_percentile:
             # get stability/type of the fixed point
             fpt_type = get_fixed_point_type(vector_field_jacobian(fpt))
-            logger.debug("[ %s ] at [ (%.2f, %.2f, %.2f) ]", fpt_type, fpt[0], fpt[1], fpt[2])
+            fpt_string = f"({','.join(f'{coord:.2f}' for coord in fpt)})"
+            logger.debug("[ %s ] at [ %s ]", fpt_type, fpt_string)
             fpt_stability_label = get_stability_label_from_fixed_point_type(fpt_type)
             fpts_high_confidence_list.append(
                 pd.DataFrame(
                     {
                         stability_label_column_name: [fpt_stability_label],
-                        column_names[0]: [fpt[0]],
-                        column_names[1]: [fpt[1]],
-                        column_names[2]: [fpt[2]],
+                        **{column_name: [fpt[i]] for i, column_name in enumerate(column_names)},
                     }
                 )
             )
