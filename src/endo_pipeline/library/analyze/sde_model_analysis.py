@@ -305,22 +305,5 @@ def run_gen_potential_analysis(
         if flux_term.__class__ != np.ndarray:
             flux_term = np.array(flux_term)
 
-        # plot gradient/flux decomposition on top of landscape
-        fig, ax = dynamics.plot_grad_flux_decomposition(
-            potential,
-            centers[0],
-            centers[1],
-            grad_term,
-            flux_term,
-            cmap="jet",
-            normed=normed,
-            downsample=downsample_quiver,
-        )
-        ax.set_xlabel(f"PC{pc_axes[0] + 1}")
-        ax.set_ylabel(f"PC{pc_axes[1] + 1}")
-        ax.set_title(f"Shear stress: {shear:.2f} dyn/cm$^2$")
-        fig.suptitle("Generalized potential energy landscape", y=1.0, fontsize=16)
-        plt.show()
-
         # save out plot, filename indexed by shear stress index in shear_range
         save_plot_to_path(fig, fig_savedir, f"gp_decomp_shear_{ii}")
