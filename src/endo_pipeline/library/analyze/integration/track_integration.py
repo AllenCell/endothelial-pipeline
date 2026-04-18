@@ -34,11 +34,11 @@ from endo_pipeline.settings.dynamics_workflows import (
     KERNEL_NAMES_DYNAMICS,
     POLAR_ANGLE_PERIOD,
     RESCALE_THETA,
+    TIME_STEP_IN_MINUTES,
 )
 from endo_pipeline.settings.flow_field_3d import (
     BIN_WIDTH_DEFAULTS,
     INIT_POINT_3D,
-    TIME_STEP_IN_MINUTES,
     TRAJECTORY_TIME_SPAN,
 )
 from endo_pipeline.settings.workflow_defaults import (

@@ -48,6 +48,7 @@ from endo_pipeline.settings.dynamics_workflows import (
     METADATA_COLUMNS_TO_KEEP,
     POLAR_ANGLE_PERIOD,
     POLAR_ANGLE_RANGE,
+    TIME_STEP_IN_MINUTES,
 )
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
 from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
@@ -58,7 +59,6 @@ from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_VMAX,
     DRIFT_CONTOUR_VMIN,
 )
-from endo_pipeline.settings.flow_field_3d import TIME_STEP_IN_MINUTES
 from endo_pipeline.settings.flow_field_dataframes import (
     DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
     DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,

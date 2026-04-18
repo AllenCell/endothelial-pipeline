@@ -89,8 +89,8 @@ def main(
         METADATA_COLUMNS_TO_KEEP,
         POLAR_ANGLE_PERIOD,
         POLAR_ANGLE_RANGE,
+        TIME_STEP_IN_MINUTES,
     )
-    from endo_pipeline.settings.flow_field_3d import TIME_STEP_IN_MINUTES
     from endo_pipeline.settings.plot_defaults import SHEAR_COLOR_DICT
     from endo_pipeline.settings.variation_analysis import (
         COV_VS_TIME_YLIM_DICT,

@@ -57,9 +57,6 @@ FIGSIZE_2D_FLOW_FIELD: tuple[int, int] = (7, 10)
 FIGSIZE_FLOW_FIELD_STACK: tuple[int, int] = (7, 5)
 """Figure size for the flow field stack visualization figure."""
 
-TIME_STEP_IN_MINUTES: int = 5
-"""Time step in minutes between consecutive time points for flow field estimation."""
-
 INIT_POINT_3D: tuple[float, float, float] = (1.5, 0.2, -0.5)
 """Default initial point for 3D flow field trajectory visualization."""
 
