@@ -16,10 +16,10 @@ from endo_pipeline.library.analyze.vector_field_estimation import (
     get_fixed_points_within_bounds,
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.dynamics_workflows import POLAR_ANGLE_RANGE
-from endo_pipeline.settings.flow_field_3d import (
+from endo_pipeline.settings.dynamics_workflows import (
     LOWER_PERCENTILE_FOR_FILTERING_FPTS,
     NUM_INIT_SAMPLES,
+    POLAR_ANGLE_RANGE,
     TIME_STEP_IN_MINUTES,
     UPPER_PERCENTILE_FOR_FILTERING_FPTS,
 )

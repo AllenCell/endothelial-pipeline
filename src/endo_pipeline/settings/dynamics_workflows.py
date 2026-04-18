@@ -54,6 +54,9 @@ BIN_LIMITS_DYNAMICS: dict[Column.DiffAEData, tuple[float, float]] = {
 DEFAULT_DATASETS_DYNAMICS_VIS: str = "diffae_model_training"
 """Default dataset collection for dynamics visualization workflows."""
 
+TIME_STEP_IN_MINUTES: int = 5
+"""Time step in minutes between consecutive time points for flow field estimation."""
+
 RESCALE_THETA: bool = True
 """Whether to rescale polar angle coordinate to [0, pi] range for analysis and
 visualization."""
@@ -83,6 +86,18 @@ coefficients."""
 
 HISTOGRAM_THRESHOLD_FOR_MASKING: float = 0.05
 """Histogram threshold for masking in dynamics visualization workflows."""
+
+NUM_INIT_SAMPLES: int = 250
+"""Number of sampled initial points for root finding in 3D flow field analysis."""
+
+SAMPLER_RANDOM_SEED: int = 47
+"""Random seed for initial point sampling in 3D flow field analysis."""
+
+UPPER_PERCENTILE_FOR_FILTERING_FPTS: float = 95.0
+"""Upper percentile threshold for stable fixed point identification in 3D flow field analysis."""
+
+LOWER_PERCENTILE_FOR_FILTERING_FPTS: float = 5.0
+"""Lower percentile threshold for stable fixed point identification in 3D flow field analysis."""
 
 MAX_MSD_LAG: int = 24
 """Maximum time lag (in number of frames) to consider for mean squared

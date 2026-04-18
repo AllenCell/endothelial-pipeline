@@ -15,10 +15,10 @@ from endo_pipeline.library.analyze.dataframe_validation import check_required_co
 from endo_pipeline.library.analyze.numerics.binning import circpercentile
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.dynamics_workflows import POLAR_ANGLE_RANGE
-from endo_pipeline.settings.flow_field_3d import (
+from endo_pipeline.settings.dynamics_workflows import (
     LOWER_PERCENTILE_FOR_FILTERING_FPTS,
     NUM_INIT_SAMPLES,
+    POLAR_ANGLE_RANGE,
     SAMPLER_RANDOM_SEED,
     UPPER_PERCENTILE_FOR_FILTERING_FPTS,
 )

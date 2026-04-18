@@ -102,17 +102,15 @@ def main(
     from endo_pipeline.settings.column_names import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_WIDTHS_DYNAMICS,
+        DEFAULT_DATASETS_DYNAMICS_VIS,
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
+        LOWER_PERCENTILE_FOR_FILTERING_FPTS,
         METADATA_COLUMNS_TO_KEEP,
+        NUM_INIT_SAMPLES,
         POLAR_ANGLE_PERIOD,
         RESCALE_THETA,
-    )
-    from endo_pipeline.settings.flow_field_3d import (
-        DATASET_COLLECTION_FOR_3D_DYNAMICS,
-        LOWER_PERCENTILE_FOR_FILTERING_FPTS,
-        NUM_INIT_SAMPLES,
         TIME_STEP_IN_MINUTES,
         UPPER_PERCENTILE_FOR_FILTERING_FPTS,
     )
@@ -175,7 +173,7 @@ def main(
 
     # Default list of datasets if not provided. Filter by datasets available in
     # the manifest.
-    dataset_names = datasets or get_datasets_in_collection(DATASET_COLLECTION_FOR_3D_DYNAMICS)
+    dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
     if DEMO_MODE:
         logger.warning(
             "DEMO MODE: Processing no more than two of the provided datasets for quick testing."
