@@ -176,6 +176,7 @@ def main(
         model_manifest = load_model_manifest(model_manifest_name)
     run_name = DEFAULT_MODEL_RUN_NAME
     column_names: list[Column.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
+    ndim = len(column_names)
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
     base_name = f"{model_manifest_name}_{run_name}_{crop_pattern}"
@@ -184,7 +185,9 @@ def main(
 
     dataframe_savedir = get_output_path(__file__, crop_pattern)
     # get dataframe manifest for baseline results to match against in bootstrapping
-    baseline_fixed_point_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
+    baseline_fixed_point_manifest_name = (
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS[ndim]}_{base_name}"
+    )
     baseline_fixed_point_manifest = load_dataframe_manifest(baseline_fixed_point_manifest_name)
 
     # load or initialize dataframe manifest for bootstrap results

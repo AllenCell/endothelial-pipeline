@@ -133,6 +133,7 @@ def main(
     column_names: list[ColumnName.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
     # columns to keep when loading dataframes
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
+    ndim = len(column_names)
 
     # Load default model manifest and get corresponding feature dataframe
     # manifest name for default run name and specified crop pattern.
@@ -156,9 +157,11 @@ def main(
     # the output directory specified in settings.
     dataframe_savedir = get_output_path(__file__, crop_pattern)
     demo_suffix = "_demo" if DEMO_MODE else ""
-    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{base_name}{demo_suffix}"
+    drift_dataframe_manifest_name = (
+        f"{DATAFRAME_MANIFEST_PREFIX_DRIFT[ndim]}_{base_name}{demo_suffix}"
+    )
     fixed_points_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}{demo_suffix}"
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS[ndim]}_{base_name}{demo_suffix}"
     )
     drift_dataframe_manifest = create_dataframe_manifest(
         drift_dataframe_manifest_name, workflow_name=__file__
@@ -327,7 +330,7 @@ def main(
                 dataset_config,
                 model_manifest=model_manifest,
                 run_name=run_name,
-                additional_notes=FMS_ANNOTATION_NOTES_FIXED_POINTS,
+                additional_notes=FMS_ANNOTATION_NOTES_FIXED_POINTS[ndim],
             )
             fixed_points_fmsid = upload_file_to_fms(
                 fixed_points_save_path,
