@@ -387,3 +387,8 @@ class ColumnName:
         """Column names used in the various vector field analyses."""
 
         STABILITY = "stability"
+        """Column name for the stability label assigned to a fixed point based
+        on the eigenvalues of the Jacobian matrix."""
+
+        DRIFT = "drift"
+        """Column name denoting the drift in a given variable."""

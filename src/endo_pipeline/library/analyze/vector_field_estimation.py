@@ -178,7 +178,7 @@ def create_drift_vector_field_df(
 
     # build dataframe with columns for grid points in each of the three
     # dimensions and the corresponding drift coefficients
-    drift_column_names: list[str] = [f"{name}_drift" for name in column_names]
+    drift_column_names: list[str] = [f"{name}_{Column.VectorField.DRIFT}" for name in column_names]
     vector_field_df = pd.DataFrame(columns=[Column.DATASET, *drift_column_names, *column_names])
 
     # make tuple for indexing the drift coefficients and feature grid
@@ -361,7 +361,7 @@ def get_reshaped_vector_field_and_grid(
 
     # restructure the drift dataframe into a flow field dictionary
     ndim = len(column_names)
-    drift_column_names = [f"{name}_drift" for name in column_names]
+    drift_column_names = [f"{name}_{Column.VectorField.DRIFT}" for name in column_names]
 
     grid_points_1d = [
         np.sort(flow_field_dataframe[column_name].unique()) for column_name in column_names

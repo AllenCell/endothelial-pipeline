@@ -146,7 +146,7 @@ def main(
     run_name = DEFAULT_MODEL_RUN_NAME
     column_names = list(DYNAMICS_COLUMN_NAMES)
     ndim = len(column_names)
-    drift_column_names = [f"{name}_drift" for name in column_names]
+    drift_column_names = [f"{name}_{ColumnName.VectorField.DRIFT}" for name in column_names]
     # columns to keep when loading feature dataframes
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
