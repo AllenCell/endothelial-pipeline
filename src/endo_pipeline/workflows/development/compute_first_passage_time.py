@@ -1,9 +1,6 @@
 """This workflow computes the time of first passage for each track in the dataset."""
 
 from endo_pipeline.cli import Datasets
-from endo_pipeline.library.visualize.integration.track_integration_viz import (
-    plot_first_passage_time_parameter_sweep,
-)
 
 
 def main(
@@ -32,17 +29,17 @@ def main(
     from endo_pipeline.library.analyze.numerics.fixed_points import (
         load_fixed_points_dataframe_for_dataset,
     )
-    from endo_pipeline.library.analyze.vector_field_estimation import (
-        get_reshaped_vector_field_and_grid,
-        load_drift_dataframe_for_dataset,
-    )
     from endo_pipeline.library.visualize.integration.track_integration_viz import (
         plot_first_passage_time_3d_scatter,
         plot_first_passage_time_correlation,
+        plot_first_passage_time_parameter_sweep,
     )
     from endo_pipeline.settings import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
-    from endo_pipeline.settings.flow_field_3d import DATASET_COLLECTION_FOR_3D_DYNAMICS
+    from endo_pipeline.settings.flow_field_3d import (
+        DATASET_COLLECTION_FOR_3D_DYNAMICS,
+        LONG_TRACK_THRESHOLD_LENGTH,
+    )
     from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
     from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
 
@@ -65,18 +62,17 @@ def main(
 
         # load the dynamics features from the grid-based and track-based dataframes
         traj_df_grid = load_filtered_trajectory_df_for_first_passage_time_workflow(
-            dataset_name, crop_pattern="grid"
+            dataset_name,
+            crop_pattern="grid",
+            minimum_track_length=LONG_TRACK_THRESHOLD_LENGTH,
         )
         traj_df_tracked = load_filtered_trajectory_df_for_first_passage_time_workflow(
-            dataset_name, crop_pattern="tracked"
+            dataset_name,
+            crop_pattern="tracked",
+            minimum_track_length=LONG_TRACK_THRESHOLD_LENGTH,
         )
 
         # load the flow field dictionaries and fixed points
-        # NOTE - might keep the flow field dictionary to create example plots
-        drift_df = load_drift_dataframe_for_dataset(dataset_name)
-        drift_values, grid_points_1d = get_reshaped_vector_field_and_grid(
-            flow_field_dataframe=drift_df, column_names=DYNAMICS_COLUMN_NAMES
-        )
         fixed_points_df = load_fixed_points_dataframe_for_dataset(dataset_name)
 
         if fixed_points_df.empty:
@@ -130,9 +126,6 @@ def main(
         bin_limits = [bin_limits[col] for col in DYNAMICS_COLUMN_NAMES]
         bin_edges, bin_centers = get_bins(bin_widths=bin_widths, bin_limits=bin_limits)
 
-        # bin_centers_mesh = np.meshgrid(*bin_centers, indexing="ij")
-        # bin_centers_all = list(zip(*[arr.ravel() for arr in bin_centers_mesh], strict=True))
-
         # 2. identify trajectories that pass a fixed point and filter df to only those trajectories
         # find if and when a trajectory reaches a fixed point
         for fp_idx in fixed_points_df.index:
@@ -145,29 +138,12 @@ def main(
                 )
                 continue
 
-            traj_df_grid[f"is_at_fp_{fp_idx}"] = (
-                traj_df_grid[f"dist_from_fp_{fp_idx}"] <= MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
-            )
-            traj_df_tracked[f"is_at_fp_{fp_idx}"] = (
-                traj_df_tracked[f"dist_from_fp_{fp_idx}"] <= MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
-            )
-
-            traj_df_grid[f"traj_reached_fp_{fp_idx}"] = traj_df_grid.groupby(Column.CROP_INDEX)[
-                f"is_at_fp_{fp_idx}"
-            ].transform(any)
-            traj_df_tracked[f"traj_reached_fp_{fp_idx}"] = traj_df_tracked.groupby(
-                Column.CROP_INDEX
-            )[f"is_at_fp_{fp_idx}"].transform(any)
-
-            traj_df_grid_sub = traj_df_grid[traj_df_grid[f"traj_reached_fp_{fp_idx}"]]
-            traj_df_tracked_sub = traj_df_tracked[traj_df_tracked[f"traj_reached_fp_{fp_idx}"]]
-
             if run_FPT_threshold_parameter_sweep:
                 # run a parameter sweep of the first passage times using different
                 # thresholds for what it means to have "reached" the fixed point
                 thresholds = np.linspace(0, 1, 41)
-                traj_df_grid_param_sweep = traj_df_grid_sub.copy()
-                traj_df_tracked_param_sweep = traj_df_tracked_sub.copy()
+                traj_df_grid_param_sweep = traj_df_grid.copy()
+                traj_df_tracked_param_sweep = traj_df_tracked.copy()
                 traj_df_grid_param_sweep = compute_first_passage_time_parameter_sweep_df(
                     fixed_point_index=fp_idx,
                     trajectory_df=traj_df_grid_param_sweep,
@@ -195,6 +171,23 @@ def main(
                     out_dir=out_dir,
                 )
 
+            traj_df_grid[f"is_at_fp_{fp_idx}"] = (
+                traj_df_grid[f"dist_from_fp_{fp_idx}"] <= MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
+            )
+            traj_df_tracked[f"is_at_fp_{fp_idx}"] = (
+                traj_df_tracked[f"dist_from_fp_{fp_idx}"] <= MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
+            )
+
+            traj_df_grid[f"traj_reached_fp_{fp_idx}"] = traj_df_grid.groupby(Column.CROP_INDEX)[
+                f"is_at_fp_{fp_idx}"
+            ].transform(any)
+            traj_df_tracked[f"traj_reached_fp_{fp_idx}"] = traj_df_tracked.groupby(
+                Column.CROP_INDEX
+            )[f"is_at_fp_{fp_idx}"].transform(any)
+
+            traj_df_grid_sub = traj_df_grid[traj_df_grid[f"traj_reached_fp_{fp_idx}"]]
+            traj_df_tracked_sub = traj_df_tracked[traj_df_tracked[f"traj_reached_fp_{fp_idx}"]]
+
             # compute the timepoint at which each trajectory first reaches a fixed point
             traj_df_grid_sub = add_first_passage_time_column(
                 fixed_point_index=fp_idx,
@@ -211,7 +204,6 @@ def main(
 
         # 3. for each bin (across all steady-state timepoints), compute the mean,
         #    median, and standard deviation of first-passage times for the trajectories
-
         time_to_first_passage_col_name = f"time_to_fp_{fp_idx}"
 
         fpt_stats_df_grid = compute_first_passage_time_stats_for_bins(
