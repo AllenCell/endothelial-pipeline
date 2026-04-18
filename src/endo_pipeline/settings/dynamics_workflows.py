@@ -102,13 +102,6 @@ UPPER_PERCENTILE_FOR_FILTERING_FPTS: float = 95.0
 LOWER_PERCENTILE_FOR_FILTERING_FPTS: float = 5.0
 """Lower percentile threshold for stable fixed point identification in 3D flow field analysis."""
 
-MAX_MSD_LAG: int = 24
-"""Maximum time lag (in number of frames) to consider for mean squared
-displacement calculation."""
-
-MSD_Y_AXIS_LIMITS: tuple[float, float] = (2e-3, 1e0)
-"""Axes limits for mean squared displacement plots."""
-
 LONG_TRACK_THRESHOLD_LENGTH: int = 150
 """
 Minimum track length (in number of timepoints) to include in analyses of
