@@ -90,7 +90,7 @@ def main(
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
         METADATA_COLUMNS_TO_KEEP,
-        PERIOD_THETA_RESCALED,
+        POLAR_ANGLE_PERIOD,
         RESCALE_THETA,
     )
     from endo_pipeline.settings.flow_field_dataframes import (
@@ -186,7 +186,7 @@ def main(
     # bin limits if use_same_axes is False
     kernels = []
     bin_widths = []
-    rescaled_theta_period = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
+    rescaled_theta_period = POLAR_ANGLE_PERIOD + np.pi * (1 - RESCALE_THETA)
     bounds_for_plots = []
     contour_axes_titles = []
     for column_name, column_label in zip(column_names, column_labels, strict=True):

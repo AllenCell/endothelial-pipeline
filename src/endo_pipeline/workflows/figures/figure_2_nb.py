@@ -46,7 +46,7 @@ from endo_pipeline.settings.dynamics_workflows import (
     KERNEL_BANDWIDTHS_DYNAMICS,
     KERNEL_NAMES_DYNAMICS,
     METADATA_COLUMNS_TO_KEEP,
-    PERIOD_THETA_RESCALED,
+    POLAR_ANGLE_PERIOD,
     POLAR_ANGLE_RANGE,
 )
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
@@ -123,7 +123,7 @@ for column_name in columns_r_rho:
 kernel_theta = KramersMoyalKernel(
     name=KERNEL_NAMES_DYNAMICS[column_theta],
     bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_theta],
-    period=PERIOD_THETA_RESCALED,
+    period=POLAR_ANGLE_PERIOD,
 )
 
 # global plotting kwargs / parameters

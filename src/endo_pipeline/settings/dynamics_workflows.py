@@ -59,10 +59,10 @@ RESCALE_THETA: bool = True
 visualization."""
 
 POLAR_ANGLE_RANGE: tuple[float, float] = (0.0, pi)
-"""Bin limits for rescaled polar angle coordinate analysis and visualization."""
+"""Range of polar angle coordinate (dependent on RESCALE_THETA) for analysis and visualization."""
 
-PERIOD_THETA_RESCALED: float = pi
-"""Period for rescaled polar angle coordinate."""
+POLAR_ANGLE_PERIOD: float = pi
+"""Period for polar angle coordinate (dependent on RESCALE_THETA)."""
 
 KERNEL_NAMES_DYNAMICS: dict[Column.DiffAEData, str] = {
     Column.DiffAEData.POLAR_ANGLE: "periodic",

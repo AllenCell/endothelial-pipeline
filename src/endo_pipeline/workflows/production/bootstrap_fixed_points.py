@@ -149,7 +149,7 @@ def main(
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
         METADATA_COLUMNS_TO_KEEP,
-        PERIOD_THETA_RESCALED,
+        POLAR_ANGLE_PERIOD,
         RESCALE_THETA,
     )
     from endo_pipeline.settings.flow_field_3d import (
@@ -213,7 +213,7 @@ def main(
 
     kernels: list[KramersMoyalKernel] = []
     bin_widths: list[float] = []
-    rescaled_theta_period = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
+    rescaled_theta_period = POLAR_ANGLE_PERIOD + np.pi * (1 - RESCALE_THETA)
 
     polar_angle_period = (
         rescaled_theta_period if Column.DiffAEData.POLAR_ANGLE in column_names else None
