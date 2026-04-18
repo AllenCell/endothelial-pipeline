@@ -24,7 +24,6 @@ from endo_pipeline.settings.flow_field_3d import (
 )
 from endo_pipeline.settings.flow_field_dataframes import (
     DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
-    STABILITY_COLUMN_NAME,
     StabilityLabel,
 )
 from endo_pipeline.settings.workflow_defaults import (
@@ -370,7 +369,7 @@ def get_fixed_points_within_bounds(
     lower_percentile: float = LOWER_PERCENTILE_FOR_FILTERING_FPTS,
     upper_percentile: float = UPPER_PERCENTILE_FOR_FILTERING_FPTS,
     polar_angle_range: tuple[float, float] = BIN_LIMITS_THETA_RESCALED,
-    stability_label_column_name: str = STABILITY_COLUMN_NAME,
+    stability_label_column_name: Column.VectorField = Column.VectorField.STABILITY,
     metadata_dict: dict[str, str | float] | None = None,
 ) -> pd.DataFrame:
     """Get fixed points of a given estimated vector field with high confidence.

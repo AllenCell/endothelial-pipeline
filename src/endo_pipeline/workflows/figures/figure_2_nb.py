@@ -63,7 +63,6 @@ from endo_pipeline.settings.flow_field_dataframes import (
     DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
     DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
     STABILITY_COLOR_DICT,
-    STABILITY_COLUMN_NAME,
     STABILITY_MARKER_DICT,
     StabilityLabel,
 )
@@ -193,7 +192,7 @@ for dataset_name, panel_letters, y_position in [
     else:
         df_fixed_points = load_dataframe(fixed_points_dataframe_manifest.locations[dataset_name])
         stable_fixed_points = df_fixed_points[
-            df_fixed_points[STABILITY_COLUMN_NAME] == StabilityLabel.STABLE
+            df_fixed_points[Column.VectorField.STABILITY] == StabilityLabel.STABLE
         ]
 
     # get drift in (r, rho) space

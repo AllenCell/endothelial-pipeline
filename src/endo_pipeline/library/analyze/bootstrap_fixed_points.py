@@ -23,7 +23,6 @@ from endo_pipeline.settings.flow_field_3d import (
     TIME_STEP_IN_MINUTES,
     UPPER_PERCENTILE_FOR_FILTERING_FPTS,
 )
-from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -367,8 +366,8 @@ def match_bootstrap_fixed_points_to_baseline(
 
         pairwise_dists = np.linalg.norm(pairwise_diffs, axis=-1)
 
-        boot_stabilities = fixed_point_result[STABILITY_COLUMN_NAME].to_numpy()
-        baseline_stabilities = baseline_fixed_points[STABILITY_COLUMN_NAME].to_numpy()
+        boot_stabilities = fixed_point_result[Column.VectorField.STABILITY].to_numpy()
+        baseline_stabilities = baseline_fixed_points[Column.VectorField.STABILITY].to_numpy()
 
         assigned_boot_indices: set[int] = set()
         for baseline_idx in range(n_baseline):
@@ -500,7 +499,7 @@ def aggregate_bootstrapping_results(
     for i, baseline_fixed_point in baseline_fixed_points.iterrows():
         dataframe_row: dict = {
             Column.DATASET: baseline_fixed_point[Column.DATASET],
-            STABILITY_COLUMN_NAME: baseline_fixed_point[STABILITY_COLUMN_NAME],
+            Column.VectorField.STABILITY: baseline_fixed_point[Column.VectorField.STABILITY],
         }
         for col in column_names:
             dataframe_row[col] = baseline_fixed_point[col]

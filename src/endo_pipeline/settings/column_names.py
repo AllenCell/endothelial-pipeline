@@ -382,3 +382,8 @@ class ColumnName:
 
         DETECTION_RATE = "detection_rate"
         """The rate at which the fixed point was detected in the bootstrap iterations."""
+
+    class VectorField(StrEnum):
+        """Column names used in the various vector field analyses."""
+
+        STABILITY = "stability"

@@ -33,11 +33,7 @@ from endo_pipeline.settings.dynamics_workflows import (
     METADATA_COLUMNS_TO_KEEP,
 )
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_WIDTH
-from endo_pipeline.settings.flow_field_dataframes import (
-    STABILITY_COLOR_DICT,
-    STABILITY_COLUMN_NAME,
-    STABILITY_MARKER_DICT,
-)
+from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLOR_DICT, STABILITY_MARKER_DICT
 from endo_pipeline.settings.summary_plot import CELL_LINE_LABEL_MAP, COLOR_PALETTE
 
 logger = logging.getLogger(__name__)
@@ -171,10 +167,10 @@ def plot_fixed_points_vs_shear_stress(
     df_fp["shear_stress_numeric"] = df_fp["shear_stress_numeric"].apply(_snap_to_bin)
 
     if stable_only:
-        df_fp = df_fp[df_fp[STABILITY_COLUMN_NAME] == "stable"]
+        df_fp = df_fp[df_fp[ColumnName.VectorField.STABILITY] == "stable"]
     else:
         legend_handles = make_legend_handles_for_fixed_pts(
-            fpt_stabilities=df_fp[STABILITY_COLUMN_NAME].unique().tolist(),
+            fpt_stabilities=df_fp[ColumnName.VectorField.STABILITY].unique().tolist(),
             marker_size=marker_size_legend,
         )
 
@@ -289,7 +285,7 @@ def plot_fixed_points_vs_shear_stress(
     else:
         # Color by stability
         for _, row in df_fp.iterrows():
-            stability = row[STABILITY_COLUMN_NAME]
+            stability = row[ColumnName.VectorField.STABILITY]
             mk = STABILITY_MARKER_DICT.get(stability, "o")
             clr = STABILITY_COLOR_DICT.get(stability, "gray")
             is_gray = stability not in STABILITY_COLOR_DICT

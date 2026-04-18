@@ -132,7 +132,6 @@ def main(
     from endo_pipeline.settings.flow_field_dataframes import (
         DATAFRAME_MANIFEST_PREFIX_DRIFT,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
-        STABILITY_COLUMN_NAME,
         StabilityLabel,
     )
     from endo_pipeline.settings.workflow_defaults import (
@@ -148,7 +147,6 @@ def main(
     column_names = list(DYNAMICS_COLUMN_NAMES)
     ndim = len(column_names)
     drift_column_names = [f"{name}_drift" for name in column_names]
-    stability_label_column_name = STABILITY_COLUMN_NAME
     # columns to keep when loading feature dataframes
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
@@ -292,7 +290,7 @@ def main(
                     *column_names,
                     ColumnName.DATASET,
                     ColumnName.SHEAR_STRESS,
-                    stability_label_column_name,
+                    ColumnName.VectorField.STABILITY,
                 ],
             )
             dataset_has_fixed_points = True
@@ -319,7 +317,7 @@ def main(
                     fixed_points_dataframe[ColumnName.SHEAR_STRESS] == shear_stress
                 ]
                 stable_fixed_points = fixed_points_for_flow_condition[
-                    fixed_points_for_flow_condition[stability_label_column_name]
+                    fixed_points_for_flow_condition[ColumnName.VectorField.STABILITY]
                     == StabilityLabel.STABLE
                 ]
                 if not stable_fixed_points.empty:

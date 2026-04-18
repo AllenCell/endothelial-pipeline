@@ -12,10 +12,10 @@ from mpl_toolkits.mplot3d import Axes3D
 from scipy.stats import binned_statistic_2d, binned_statistic_dd
 
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.figures import FONTSIZE_XSMALL
 from endo_pipeline.settings.flow_field_dataframes import (
     STABILITY_COLOR_DICT,
-    STABILITY_COLUMN_NAME,
     STABILITY_MARKER_DICT,
     StabilityLegendHandle,
 )
@@ -265,7 +265,7 @@ def plot_3d_scatter_or_binned(
     legend_handles = []
     if df_fp is not None:
         for _, row in df_fp.iterrows():
-            stability = row[STABILITY_COLUMN_NAME]
+            stability = row[Column.VectorField.STABILITY]
             mk = STABILITY_MARKER_DICT.get(stability, "o")
             clr = STABILITY_COLOR_DICT.get(stability, "gray")
             theta, r, rho = row[x_col], row[y_col], row[z_col]
@@ -417,7 +417,7 @@ def plot_optical_flow_histogram(
         mean_col = f"mean_{optical_flow_feature}"
         if mean_col in df_fp.columns:
             for _, row in df_fp.iterrows():
-                stability = row[STABILITY_COLUMN_NAME]
+                stability = row[Column.VectorField.STABILITY]
                 mk = STABILITY_MARKER_DICT.get(stability, "o")
                 clr = STABILITY_COLOR_DICT.get(stability, "gray")
                 fp_val = row[mean_col]
