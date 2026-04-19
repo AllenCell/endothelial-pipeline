@@ -1290,6 +1290,8 @@ def compute_first_passage_time_stats_for_bins(
     feature_column_names: list[str],
 ) -> pd.DataFrame:
 
+    dataset_name = trajectory_df[Column.DATASET].unique().astype(str).item()
+
     bin_centers_mesh = np.meshgrid(*bin_centers, indexing="ij")
     bin_centers_all = list(zip(*[arr.ravel() for arr in bin_centers_mesh], strict=True))
 
@@ -1300,7 +1302,7 @@ def compute_first_passage_time_stats_for_bins(
     for bin_index, bin_center in tqdm(
         enumerate(bin_centers_all),
         total=len(bin_centers_all),
-        desc="Computing first passage time statistics for each bin",
+        desc=f"{dataset_name} Computing first passage time statistics for each bin",
     ):
         first_passage_time_stats_df = compute_first_passage_time_stats_for_one_bin(
             bin_index=bin_index,

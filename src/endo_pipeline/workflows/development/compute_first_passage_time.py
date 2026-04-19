@@ -6,7 +6,8 @@ from endo_pipeline.cli import Datasets
 def main(
     datasets: Datasets | None = None,
     minimum_track_length: int | None = None,
-    run_FPT_threshold_parameter_sweep: bool = False,
+    run_FPT_threshold_parameter_sweep: bool = True,
+    fixed_point_radius_threshold: float | None = None,
 ) -> None:
 
     import logging
@@ -33,14 +34,15 @@ def main(
     from endo_pipeline.library.visualize.integration.track_integration_viz import (
         plot_first_passage_time_3d_scatter,
         plot_first_passage_time_correlation,
+        plot_first_passage_time_histogram,
         plot_first_passage_time_parameter_sweep,
     )
     from endo_pipeline.settings import ColumnName as Column
-    from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
-    from endo_pipeline.settings.flow_field_3d import (
-        DATASET_COLLECTION_FOR_3D_DYNAMICS,
+    from endo_pipeline.settings.dynamics_workflows import (
+        DYNAMICS_COLUMN_NAMES,
         LONG_TRACK_THRESHOLD_LENGTH,
     )
+    from endo_pipeline.settings.flow_field_3d import DATASET_COLLECTION_FOR_3D_DYNAMICS
     from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
     from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
 
@@ -50,6 +52,9 @@ def main(
 
     if minimum_track_length is None:
         minimum_track_length = LONG_TRACK_THRESHOLD_LENGTH
+
+    if fixed_point_radius_threshold is None:
+        fixed_point_radius_threshold = MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
 
     if DEMO_MODE:
         dataset_names = dataset_names[:1]
@@ -165,6 +170,7 @@ def main(
                     fixed_point_index=fp_idx,
                     fixed_point_stability=fp_stability,
                     first_passage_time_param_sweep_df=traj_df_grid_param_sweep,
+                    fixed_point_radius_threshold_in_workflow=fixed_point_radius_threshold,
                     out_dir=out_dir,
                 )
                 plot_first_passage_time_parameter_sweep(
@@ -172,14 +178,15 @@ def main(
                     fixed_point_index=fp_idx,
                     fixed_point_stability=fp_stability,
                     first_passage_time_param_sweep_df=traj_df_tracked_param_sweep,
+                    fixed_point_radius_threshold_in_workflow=fixed_point_radius_threshold,
                     out_dir=out_dir,
                 )
 
             traj_df_grid[f"is_at_fp_{fp_idx}"] = (
-                traj_df_grid[f"dist_from_fp_{fp_idx}"] <= MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
+                traj_df_grid[f"dist_from_fp_{fp_idx}"] <= fixed_point_radius_threshold
             )
             traj_df_tracked[f"is_at_fp_{fp_idx}"] = (
-                traj_df_tracked[f"dist_from_fp_{fp_idx}"] <= MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
+                traj_df_tracked[f"dist_from_fp_{fp_idx}"] <= fixed_point_radius_threshold
             )
 
             traj_df_grid[f"traj_reached_fp_{fp_idx}"] = traj_df_grid.groupby(Column.CROP_INDEX)[
@@ -197,106 +204,100 @@ def main(
                 fixed_point_index=fp_idx,
                 trajectory_df=traj_df_grid_sub,
                 column=f"dist_from_fp_{fp_idx}",
-                threshold=MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
+                threshold=fixed_point_radius_threshold,
             )
             traj_df_tracked_sub = add_first_passage_time_column(
                 fixed_point_index=fp_idx,
                 trajectory_df=traj_df_tracked_sub,
                 column=f"dist_from_fp_{fp_idx}",
-                threshold=MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
+                threshold=fixed_point_radius_threshold,
             )
 
-        # 3. for each bin (across all steady-state timepoints), compute the mean,
-        #    median, and standard deviation of first-passage times for the trajectories
-        time_to_first_passage_col_name = f"time_to_fp_{fp_idx}"
+            # 3. for each bin (across all steady-state timepoints), compute the mean,
+            #    median, and standard deviation of first-passage times for the trajectories
+            time_to_first_passage_col_name = f"time_to_fp_{fp_idx}"
 
-        fpt_stats_df_grid = compute_first_passage_time_stats_for_bins(
-            bin_centers=bin_centers,
-            bin_edges=bin_edges,
-            trajectory_df=traj_df_grid_sub,
-            time_to_first_passage_col_name=time_to_first_passage_col_name,
-            feature_column_names=list(DYNAMICS_COLUMN_NAMES),
-        )
-        fpt_stats_df_tracked = compute_first_passage_time_stats_for_bins(
-            bin_centers=bin_centers,
-            bin_edges=bin_edges,
-            trajectory_df=traj_df_tracked_sub,
-            time_to_first_passage_col_name=time_to_first_passage_col_name,
-            feature_column_names=list(DYNAMICS_COLUMN_NAMES),
-        )
-
-        # merge the grid and tracked first passage time stats dataframes
-        fpt_stats_df = fpt_stats_df_grid.merge(
-            fpt_stats_df_tracked,
-            on=["bin_index"],
-            suffixes=("_grid", "_tracked"),
-            validate="one_to_one",
-        )
-
-        # check that the bin centers and edges are the same for the grid and tracked dataframes
-        bin_centers_close = np.allclose(
-            np.array(list(zip(*fpt_stats_df["bin_center_grid"], strict=True))),
-            np.array(list(zip(*fpt_stats_df["bin_center_tracked"], strict=True))),
-        )
-        bin_edges_close = np.allclose(
-            np.array(list(zip(*fpt_stats_df["bin_edges_grid"], strict=True))),
-            np.array(list(zip(*fpt_stats_df["bin_edges_tracked"], strict=True))),
-        )
-        if not bin_centers_close or not bin_edges_close:
-            error_message = (
-                "Bin centers or edges are not the same for grid and tracked dataframes for "
-                f"dataset {dataset_name} and fixed point {fp_idx}. This may indicate an issue "
-                "with the binning or merging of the dataframes."
+            fpt_stats_df_grid = compute_first_passage_time_stats_for_bins(
+                bin_centers=bin_centers,
+                bin_edges=bin_edges,
+                trajectory_df=traj_df_grid_sub,
+                time_to_first_passage_col_name=time_to_first_passage_col_name,
+                feature_column_names=list(DYNAMICS_COLUMN_NAMES),
             )
-            logger.error(error_message)
-            raise ValueError(error_message)
+            fpt_stats_df_tracked = compute_first_passage_time_stats_for_bins(
+                bin_centers=bin_centers,
+                bin_edges=bin_edges,
+                trajectory_df=traj_df_tracked_sub,
+                time_to_first_passage_col_name=time_to_first_passage_col_name,
+                feature_column_names=list(DYNAMICS_COLUMN_NAMES),
+            )
 
-        # drop the duplicate bin center and edge columns from one of the dataframes
-        # since they are the same and rename the columns to remove the suffixes
-        fpt_stats_df = fpt_stats_df.drop(columns=["bin_center_tracked", "bin_edges_tracked"])
-        fpt_stats_df = fpt_stats_df.rename(
-            columns={"bin_center_grid": "bin_center", "bin_edges_grid": "bin_edges"}
-        )
+            # merge the grid and tracked first passage time stats dataframes
+            fpt_stats_df = fpt_stats_df_grid.merge(
+                fpt_stats_df_tracked,
+                on=["bin_index"],
+                suffixes=("_grid", "_tracked"),
+                validate="one_to_one",
+            )
 
-        # 4. plot the cell FPT vs grid FPT data as a scatterplot with errors and a
-        #    scatter with theta, r, rho as the axes and the FPT ratio as the color dimension
-        # first the correlation scatter plots
-        plot_first_passage_time_correlation(
-            fixed_point_id=fp_idx,
-            fixed_point_stability=fp_stability,
-            dataset_config=dataset_config,
-            first_passage_time_df=fpt_stats_df,
-            stat_to_plot="mean",
-            out_dir=out_dir,
-        )
-        plot_first_passage_time_correlation(
-            fixed_point_id=fp_idx,
-            fixed_point_stability=fp_stability,
-            dataset_config=dataset_config,
-            first_passage_time_df=fpt_stats_df,
-            stat_to_plot="median",
-            out_dir=out_dir,
-        )
-        # histograms don't really work for 4D data (theta, r, rho, and FPT ratio),
-        # so we will use a 3D scatter with color-coded points instead
-        plot_first_passage_time_3d_scatter(
-            fixed_point_id=fp_idx,
-            fixed_point_stability=fp_stability,
-            dataset_config=dataset_config,
-            first_passage_time_df=fpt_stats_df,
-            fixed_points_df=fixed_points_df,
-            stat_to_plot="mean",
-            out_dir=out_dir,
-        )
-        plot_first_passage_time_3d_scatter(
-            fixed_point_id=fp_idx,
-            fixed_point_stability=fp_stability,
-            dataset_config=dataset_config,
-            first_passage_time_df=fpt_stats_df,
-            fixed_points_df=fixed_points_df,
-            stat_to_plot="median",
-            out_dir=out_dir,
-        )
+            # check that the bin centers and edges are the same for the grid and tracked dataframes
+            bin_centers_close = np.allclose(
+                np.array(list(zip(*fpt_stats_df["bin_center_grid"], strict=True))),
+                np.array(list(zip(*fpt_stats_df["bin_center_tracked"], strict=True))),
+            )
+            bin_edges_close = np.allclose(
+                np.array(list(zip(*fpt_stats_df["bin_edges_grid"], strict=True))),
+                np.array(list(zip(*fpt_stats_df["bin_edges_tracked"], strict=True))),
+            )
+            if not bin_centers_close or not bin_edges_close:
+                error_message = (
+                    "Bin centers or edges are not the same for grid and tracked dataframes for "
+                    f"dataset {dataset_name} and fixed point {fp_idx}. This may indicate an issue "
+                    "with the binning or merging of the dataframes."
+                )
+                logger.error(error_message)
+                raise ValueError(error_message)
+
+            # drop the duplicate bin center and edge columns from one of the dataframes
+            # since they are the same and rename the columns to remove the suffixes
+            fpt_stats_df = fpt_stats_df.drop(columns=["bin_center_tracked", "bin_edges_tracked"])
+            fpt_stats_df = fpt_stats_df.rename(
+                columns={"bin_center_grid": "bin_center", "bin_edges_grid": "bin_edges"}
+            )
+
+            # 4. plot the cell FPT vs grid FPT data as a scatterplot with errors and a
+            #    scatter with theta, r, rho as the axes and the FPT ratio as the color dimension
+            # first the correlation scatter plots
+            for stat in ["mean", "median"]:
+                plot_first_passage_time_correlation(
+                    fixed_point_id=fp_idx,
+                    fixed_point_stability=fp_stability,
+                    dataset_config=dataset_config,
+                    first_passage_time_df=fpt_stats_df,
+                    stat_to_plot=stat,
+                    out_dir=out_dir,
+                )
+                # histograms don't really work for 4D data (theta, r, rho, and FPT ratio),
+                # so we will use a 3D scatter with color-coded points instead
+                plot_first_passage_time_3d_scatter(
+                    fixed_point_id=fp_idx,
+                    fixed_point_stability=fp_stability,
+                    dataset_config=dataset_config,
+                    first_passage_time_df=fpt_stats_df,
+                    fixed_points_df=fixed_points_df,
+                    stat_to_plot=stat,
+                    out_dir=out_dir,
+                )
+
+                # plot KDE of the first passage times for all of the bins thrown together
+                plot_first_passage_time_histogram(
+                    fixed_point_id=fp_idx,
+                    fixed_point_stability=fp_stability,
+                    dataset_config=dataset_config,
+                    first_passage_time_df=fpt_stats_df,
+                    stat_to_plot=stat,
+                    out_dir=out_dir,
+                )
 
 
 if __name__ == "__main__":

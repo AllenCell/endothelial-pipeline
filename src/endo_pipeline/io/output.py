@@ -377,6 +377,7 @@ def save_plot_to_path(
     pad_inches: float = 0.1,
     tight_layout: bool = True,
     show_and_close: bool = True,
+    bbox_inches: str | None = None,
 ) -> None:
     """
     Save a matplotlib figure to a file with the specified filename.
@@ -408,7 +409,13 @@ def save_plot_to_path(
     if tight_layout:
         plt.tight_layout()
 
-    figure.savefig(output_file, dpi=dpi, transparent=transparent, pad_inches=pad_inches)
+    figure.savefig(
+        output_file,
+        dpi=dpi,
+        transparent=transparent,
+        pad_inches=pad_inches,
+        bbox_inches=bbox_inches,
+    )
 
     if show_and_close:
         plt.show(block=False)

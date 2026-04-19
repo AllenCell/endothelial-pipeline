@@ -22,7 +22,10 @@ from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifes
     add_normalized_time,
 )
 from endo_pipeline.library.analyze.numerics.binning import get_bins
-from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
+from endo_pipeline.library.visualize.diffae_features.feature_viz import (
+    get_dataset_color,
+    get_label_for_column,
+)
 from endo_pipeline.library.visualize.diffae_features.flow_field_3d import (
     get_slice_indexes,
     plot_flow_field_slices,
@@ -1113,7 +1116,7 @@ def plot_trajectory_measured_vs_simulation_over_flow_field(
     plt.close(fig)
 
 
-def plot_first_passage_time_histogram(
+def plot_first_passage_time_histogram_measured_vs_simulated(
     fixed_point_id: int,
     fixed_point_stability: str,
     dataset_config: DatasetConfig,
@@ -1245,10 +1248,6 @@ def plot_first_passage_time_correlation(
 
     # the column title is "50%" for 50th percentile in `pd.describe`` instead of
     # mean so correct that if "median" was chosen
-    if stat_to_plot == "median":
-        stat = "50%"
-    else:
-        stat = stat_to_plot
     stat = "50%" if stat_to_plot == "median" else stat_to_plot
 
     suffix = "_first_passage_time"
@@ -1273,7 +1272,7 @@ def plot_first_passage_time_correlation(
     time_cols = list(set(first_passage_time_df_no_nan.columns) - set(not_time_columns))
 
     # now we can convert all those time columns from timepoints to physical units
-    first_passage_time_df_no_nan[time_cols] * time_units
+    first_passage_time_df_no_nan[time_cols] *= time_units
 
     # do a linear regression to see if the FPTs from the tracked and grid trajectories
     # correlate depending on where they are in binned feature space
@@ -1309,14 +1308,15 @@ def plot_first_passage_time_correlation(
         color="tab:blue",
         linestyle="--",
         zorder=0,
-        label=f"Linear Fit (R={line_fit.rvalue})",
+        label=f"Linear Fit (R={line_fit.rvalue:.2f})",
     )
     ax_min = min((*ax.get_xlim(), *ax.get_ylim()))
     ax_max = max((*ax.get_xlim(), *ax.get_ylim()))
     ax.set_xlim(ax_min, ax_max)
     ax.set_ylim(ax_min, ax_max)
-    ax.set_xlabel("grid trajectory FPT".title())
-    ax.set_ylabel("tracked trajectory FPT".title())
+    ax.set_xlabel("Grid Trajectory FPT")
+    ax.set_ylabel("Tracked Trajectory FPT")
+    ax.legend()
     filename = (
         f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}"
         f"_{stat_to_plot}_correlation.png"
@@ -1345,10 +1345,6 @@ def plot_first_passage_time_3d_scatter(
 
     # the column title is "50%" for 50th percentile in `pd.describe`` instead of
     # mean so correct that if "median" was chosen
-    if stat_to_plot == "median":
-        stat = "50%"
-    else:
-        stat = stat_to_plot
     stat = "50%" if stat_to_plot == "median" else stat_to_plot
 
     suffix = "_first_passage_time"
@@ -1373,7 +1369,7 @@ def plot_first_passage_time_3d_scatter(
     time_cols = list(set(first_passage_time_df_no_nan.columns) - set(not_time_columns))
 
     # now we can convert all those time columns from timepoints to physical units
-    first_passage_time_df_no_nan[time_cols] * time_units
+    first_passage_time_df_no_nan[time_cols] *= time_units
 
     fig, ax = plt.subplots(figsize=(3, 3.5), subplot_kw={"projection": "3d"})
     ax.set_title(f"{dataset_name}".title())
@@ -1385,8 +1381,9 @@ def plot_first_passage_time_3d_scatter(
         first_passage_time_df_no_nan[f"{metric}_tracked"]
         / first_passage_time_df_no_nan[f"{metric}_grid"]
     )
+    cmap_lim = max(abs(colors))
     cmap = "coolwarm_r"
-    norm = TwoSlopeNorm(vcenter=0)
+    norm = TwoSlopeNorm(vcenter=0, vmin=-cmap_lim, vmax=cmap_lim)
     scatter3d = ax.scatter(  # type: ignore[call-arg]
         xs=thetas,
         ys=rs,
@@ -1399,7 +1396,11 @@ def plot_first_passage_time_3d_scatter(
     ax.set_xlabel(get_label_for_column(Column.DiffAEData.POLAR_ANGLE))
     ax.set_ylabel(get_label_for_column(Column.DiffAEData.POLAR_RADIUS))
     ax.set_zlabel(get_label_for_column(Column.DiffAEData.PC3_FLIPPED))  # type:ignore[attr-defined]
-    plt.tight_layout()
+
+    # adjust the focal length of the 3D plot so that depth is easier to perceive
+    ax.set_proj_type("persp", focal_length=0.5)  # type: ignore[attr-defined]
+
+    # add colorbar
     cax = fig.add_axes([1.15, 0.2, 0.05, 0.6])  # type: ignore[call-overload]
     fig.colorbar(scatter3d, cax=cax)
 
@@ -1411,7 +1412,10 @@ def plot_first_passage_time_3d_scatter(
         fig,
         out_dir,
         filename,
+        tight_layout=False,
+        pad_inches=0.2,
         show_and_close=False,
+        bbox_inches="tight",
     )
 
 
@@ -1470,6 +1474,7 @@ def plot_first_passage_time_parameter_sweep(
     fixed_point_index: int,
     fixed_point_stability: str,
     first_passage_time_param_sweep_df: pd.DataFrame,
+    fixed_point_radius_threshold_in_workflow: float | None,
     out_dir: Path,
 ) -> None:
     """Plot the results of the parameter sweep over the number of bins in the
@@ -1481,9 +1486,7 @@ def plot_first_passage_time_parameter_sweep(
 
     time_units = dataset_config.time_interval_in_minutes / 60  # convert timeframes to hours
     first_passage_time_col = f"time_to_fp_{fixed_point_index}"
-    first_passage_time_param_sweep_df[first_passage_time_col] = (
-        first_passage_time_param_sweep_df[first_passage_time_col] * time_units
-    )
+    first_passage_time_param_sweep_df[first_passage_time_col] *= time_units
 
     # compute the summary statistics on the first passage time parameter sweep
     fpt_param_sweep_agg = (
@@ -1492,20 +1495,29 @@ def plot_first_passage_time_parameter_sweep(
         .reset_index(drop=False)
     )
 
-    for metric in ["mean", "50%"]:
+    for metric in ["mean", "median"]:
+        column_name = "50%" if metric == "median" else metric
         fig, ax = plt.subplots(figsize=(4, 4))
         ax.set_title(dataset_name.title())
         ax.errorbar(
             x=fpt_param_sweep_agg["threshold"],
-            y=fpt_param_sweep_agg[metric],
+            y=fpt_param_sweep_agg[column_name],
             yerr=fpt_param_sweep_agg["std"],
-            label=metric,
+            label=f"{metric} FPT ± STD",
             fmt="o-",
             color="black",
             ecolor="gray",
             elinewidth=1,
             capsize=3,
         )
+        if fixed_point_radius_threshold_in_workflow is not None:
+            ax.axvline(
+                fixed_point_radius_threshold_in_workflow,
+                ls="--",
+                color="red",
+                label="threshold in workflow",
+            )
+        ax.legend()
         ax.set_xlim(0)
         ax.set_ylim(0)
         ax.set_xlabel(
@@ -1518,31 +1530,123 @@ def plot_first_passage_time_parameter_sweep(
     # also compute the fraction of trajectories that approached the fixed point for each
     # parameter combination to see how the fixed point distance threshold affects the
     # number of trajectories that are considered to have reached the fixed point
-    first_passage_time_param_sweep_df["frac_trajectories_approached_fp"] = (
+    first_passage_time_param_sweep_df["percent_trajectories_approached_fp"] = (
         first_passage_time_param_sweep_df["num_trajectories_after_fpt_filter"]
         / first_passage_time_param_sweep_df["num_trajectories_before_fpt_filter"]
-    )
+    ) * 100
     num_traj_param_sweep_agg = (
-        first_passage_time_param_sweep_df.groupby("threshold")["frac_trajectories_approached_fp"]
+        first_passage_time_param_sweep_df.groupby("threshold")["percent_trajectories_approached_fp"]
         .agg(lambda x: np.unique(x).item())
         .to_frame()
     ).reset_index(drop=False)
 
-    fig, ax = plt.subplots(figsize=(4, 4))
+    fig, ax = plt.subplots(figsize=(3, 3))
     ax.set_title(dataset_name.title())
     ax.plot(
-        x=num_traj_param_sweep_agg["threshold"],
-        y=num_traj_param_sweep_agg["frac_trajectories_approached_fp"],
-        fmt="o-",
-        color="black",
+        num_traj_param_sweep_agg["threshold"],
+        num_traj_param_sweep_agg["percent_trajectories_approached_fp"],
+        marker="o",
+        color="lightgrey",
+        markerfacecolor="black",
+        markeredgecolor="black",
     )
+    if fixed_point_radius_threshold_in_workflow is not None:
+        ax.axvline(
+            fixed_point_radius_threshold_in_workflow,
+            ls="--",
+            color="red",
+            label="threshold in workflow",
+        )
+    ax.legend()
     ax.set_xlim(0)
-    ax.set_ylim(0)
+    ax.set_ylim(0, 105)
     ax.set_xlabel(
-        f"Threshold distance from fixed point {fixed_point_index} ({fixed_point_stability})".title()
+        "Threshold distance from "
+        f"\nfixed point {fixed_point_index} ({fixed_point_stability})".title()
     )
-    ax.set_ylabel("Fraction of trajectories approached fixed point".title())
+    ax.set_ylabel("Trajectories reaching fixed point (%)".title())
     filename = (
-        f"FPT_frac_trajectories_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}.png"
+        f"FPT_percent_trajectories_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}.png"
     )
+    save_plot_to_path(fig, out_dir, filename, show_and_close=False)
+
+
+def plot_first_passage_time_histogram(
+    fixed_point_id: int,
+    fixed_point_stability: str,
+    dataset_config: DatasetConfig,
+    first_passage_time_df: pd.DataFrame,
+    stat_to_plot: Literal["mean", "median"],
+    out_dir: Path,
+) -> None:
+
+    dataset_name = dataset_config.name
+    dataset_color = get_dataset_color(dataset_name)
+
+    if dataset_config.time_interval_in_minutes is None:
+        raise ValueError("DatasetConfig must have time_interval_in_minutes defined.")
+    time_units = dataset_config.time_interval_in_minutes / 60  # convert timeframes to hours
+
+    # the column title is "50%" for 50th percentile in `pd.describe`` instead of
+    # mean so correct that if "median" was chosen
+    stat = "50%" if stat_to_plot == "median" else stat_to_plot
+
+    suffix = "_first_passage_time"
+    metric = f"{stat}{suffix}"
+
+    # NaN values are unacceptable for the linear regression
+    first_passage_time_df_no_nan = first_passage_time_df.dropna(
+        subset=[f"{metric}_grid", f"{metric}_tracked"]
+    )
+
+    # convert the FPT (which is in timepoints) to physical units
+    # most but not all of the columns are based on time in `first_passage_time_df`
+    not_time_columns = [
+        f"count{suffix}_grid",
+        f"count{suffix}_tracked",
+        "bin_index",
+        "bin_center",
+        "bin_edges",
+    ]
+    # the time columns are the set of columns in the dataframe that are not in
+    # the not_time_columns list
+    time_cols = list(set(first_passage_time_df_no_nan.columns) - set(not_time_columns))
+
+    # now we can convert all those time columns from timepoints to physical units
+    first_passage_time_df_no_nan[time_cols] *= time_units
+
+    fig, ax = plt.subplots(figsize=(3, 3))
+    ax.set_title(f"{dataset_name}".title())
+    sns.histplot(
+        data=first_passage_time_df_no_nan,
+        x=f"{metric}_grid",
+        stat="probability",
+        binwidth=1,
+        kde=True,
+        facecolor="lightgrey",
+        color="black",
+        alpha=0.33,
+        label="grid",
+        ax=ax,
+    )
+    sns.histplot(
+        data=first_passage_time_df_no_nan,
+        x=f"{metric}_tracked",
+        stat="probability",
+        binwidth=1,
+        kde=True,
+        color=dataset_color,
+        linestyle="--",
+        hatch="//",
+        fill=False,
+        alpha=1.0,
+        label="tracked",
+        ax=ax,
+    )
+    ax.legend()
+    ax.set_xlim(0, 24)
+    ax.set_ylabel("Probability")
+    ax.set_xlabel(f"{stat_to_plot.title()} First Passage Time (hrs)")
+
+    filename = f"FPT_fp_{fixed_point_id}_{fixed_point_stability}_{stat_to_plot}_histogram.png"
     save_plot_to_path(fig, out_dir, filename, show_and_close=False)
