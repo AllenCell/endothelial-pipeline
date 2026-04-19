@@ -5,6 +5,7 @@ from endo_pipeline.cli import Datasets
 
 def main(
     datasets: Datasets | None = None,
+    minimum_track_length: int | None = None,
     run_FPT_threshold_parameter_sweep: bool = False,
 ) -> None:
 
@@ -47,6 +48,9 @@ def main(
 
     dataset_names = datasets or get_datasets_in_collection(DATASET_COLLECTION_FOR_3D_DYNAMICS)
 
+    if minimum_track_length is None:
+        minimum_track_length = LONG_TRACK_THRESHOLD_LENGTH
+
     if DEMO_MODE:
         dataset_names = dataset_names[:1]
         logger.info(f"Running in demo mode, processing only the first dataset: {dataset_names}")
@@ -64,12 +68,12 @@ def main(
         traj_df_grid = load_filtered_trajectory_df_for_first_passage_time_workflow(
             dataset_name,
             crop_pattern="grid",
-            minimum_track_length=LONG_TRACK_THRESHOLD_LENGTH,
+            minimum_track_length=minimum_track_length,
         )
         traj_df_tracked = load_filtered_trajectory_df_for_first_passage_time_workflow(
             dataset_name,
             crop_pattern="tracked",
-            minimum_track_length=LONG_TRACK_THRESHOLD_LENGTH,
+            minimum_track_length=minimum_track_length,
         )
 
         # load the flow field dictionaries and fixed points
