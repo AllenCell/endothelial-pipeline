@@ -10,10 +10,11 @@ import numpy as np
 from matplotlib.gridspec import GridSpec
 
 from endo_pipeline.io import save_plot_to_path
-from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
+from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.library.visualize.figure_utils import add_scalebar
 from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +110,7 @@ def plot_latent_walk_as_grid(
             # Titles only on first row
             if i == 0:
                 if label_sigmas:
-                    column_title = f"{j - (num_steps // 2)}\u03c3"
+                    column_title = f"{j - (num_steps // 2)}{Unicode.SIGMA}"
                     ax.set_title(column_title, fontsize=10, pad=5)
 
             # Y labels only on first column
@@ -133,7 +134,7 @@ def plot_latent_walk_as_grid(
     fig.axes[0].text(
         0.96,
         0.08,
-        f"{scale_bar_um} \u03bcm",
+        f"{scale_bar_um} {Unicode.MU}m",
         color="white",
         transform=fig.axes[0].transAxes,
         fontsize=FONTSIZE_SMALL,

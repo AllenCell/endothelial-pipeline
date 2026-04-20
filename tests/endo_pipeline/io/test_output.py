@@ -3,7 +3,13 @@ from pathlib import Path
 
 import pytest
 
-from endo_pipeline.io.output import get_output_path, get_timestamp, make_name_unique, slugify
+from endo_pipeline.io.output import (
+    get_output_path,
+    get_timestamp,
+    join_sorted_strings,
+    make_name_unique,
+    slugify,
+)
 
 
 @pytest.fixture
@@ -45,6 +51,18 @@ def test_slugify(string, expected_slug):
     slug = slugify(string)
 
     assert slug == expected_slug
+
+
+@pytest.mark.parametrize(
+    "strings,expected_result,separator",
+    [
+        (["banana", "apple", "cherry"], "apple_banana_cherry", "_"),
+        (["banana", "apple", "cherry"], "apple-banana-cherry", "-"),
+    ],
+)
+def test_join_sorted_strings(strings, expected_result, separator):
+    result = join_sorted_strings(strings, separator)
+    assert result == expected_result
 
 
 def test_get_timestamp(mock_datetime):

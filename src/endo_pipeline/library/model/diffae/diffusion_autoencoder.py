@@ -329,11 +329,12 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         accumulator = _get_accumulator(average, n_noise_samples)
 
         with torch.no_grad():
-            for _ in tqdm.tqdm(range(n_noise_samples), desc="Sampling noise"):
+            for i in tqdm.tqdm(range(n_noise_samples), desc="Sampling noise"):
+                seed_i = random_seed + i if random_seed is not None else None
                 noise = torch.stack(
                     [
                         self._generate_noise(
-                            self.hparams.image_shape, None, device=self.device, seed=random_seed
+                            self.hparams.image_shape, None, device=self.device, seed=seed_i
                         )
                     ]
                     * cond.shape[0]

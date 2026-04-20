@@ -76,11 +76,11 @@ def main(
         get_reshaped_vector_field_and_grid,
         mask_drift_vector_field_by_data_density,
     )
+    from endo_pipeline.library.visualize.columns import get_label_for_column
     from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
         plot_drift_contours,
         plot_drift_quiver,
     )
-    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
@@ -162,6 +162,8 @@ def main(
             fixed_points_dataframe_manifest = load_dataframe_manifest(
                 f"{fixed_points_dataframe_manifest_name}{demo_suffix}"
             )
+        else:
+            raise
 
     # Use provided datasets or default if none provided.
     dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)

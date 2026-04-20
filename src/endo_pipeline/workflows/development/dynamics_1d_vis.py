@@ -52,7 +52,7 @@ def main(
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins
     from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
-    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
+    from endo_pipeline.library.visualize.columns import get_label_for_column
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
@@ -74,7 +74,7 @@ def main(
 
     # get label for provided feature column
     column_name = column or ColumnName.DiffAEData.POLAR_ANGLE
-    variable_label = get_label_for_column(column_name).replace("polar ", "")
+    variable_label = get_label_for_column(column_name)
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], column_name]
 
     # cast global constant dicts to avoid type errors
