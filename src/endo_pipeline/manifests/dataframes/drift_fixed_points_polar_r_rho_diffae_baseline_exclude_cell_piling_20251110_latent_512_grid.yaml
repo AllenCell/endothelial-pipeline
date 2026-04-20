@@ -1,0 +1,22 @@
+name: drift_fixed_points_polar_r_rho_diffae_baseline_exclude_cell_piling_20251110_latent_512_grid
+workflow: generate_flow_field
+parameters:
+  model_manifest_name: diffae_baseline_exclude_cell_piling
+  run_name: 20251110_latent_512
+  crop_pattern: grid
+  columns: [polar_r, rho]
+  kernel_names: [gaussian, gaussian]
+  kernel_bandwidths: [0.15, 0.15]
+  bin_widths: [0.05, 0.05]
+  num_init_samples_for_root_solver: 250
+  lower_percentile_for_filtering_fpts: 5.0
+  upper_percentile_for_filtering_fpts: 95.0
+locations:
+  20250409_20X:
+    fmsid: 6d8c4b0887b548f3a052ddf92c1189cf
+    path: null
+    s3uri: null
+  20251001_20X:
+    fmsid: efb10d99784140eea298e1213cecf24a
+    path: null
+    s3uri: null

@@ -12,7 +12,7 @@ from scipy.optimize import curve_fit
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.cross_correlations import MAX_LAG_INTEGRATE, NUM_TIMEPOINT_FRAC
-from endo_pipeline.settings.dynamics_workflows import PERIOD_THETA_RESCALED, RESCALE_THETA
+from endo_pipeline.settings.dynamics_workflows import POLAR_ANGLE_PERIOD, RESCALE_THETA
 
 logger = logging.getLogger(__name__)
 
@@ -480,7 +480,7 @@ def compute_correlations_for_one_dataset(
 
     # unwrap angles if polar_angle is in feat_cols
     if Column.DiffAEData.POLAR_ANGLE in column_names:
-        polar_angle_period = PERIOD_THETA_RESCALED if rescale_polar_angle else 2 * np.pi
+        polar_angle_period = POLAR_ANGLE_PERIOD if rescale_polar_angle else 2 * np.pi
         for _, df_crop in dataframe.groupby(Column.CROP_INDEX):
             dataframe.loc[df_crop.index, Column.DiffAEData.POLAR_ANGLE] = np.unwrap(
                 df_crop[Column.DiffAEData.POLAR_ANGLE], period=polar_angle_period

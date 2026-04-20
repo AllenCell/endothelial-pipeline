@@ -8,7 +8,7 @@ import pandas as pd
 
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.dynamics_workflows import PERIOD_THETA_RESCALED
+from endo_pipeline.settings.dynamics_workflows import POLAR_ANGLE_PERIOD
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +59,7 @@ def _take_dataframe_column_diff(
 def compute_forward_differences_along_trajectory(
     df_traj: pd.DataFrame,
     column_names: list,
-    polar_angle_period: float = PERIOD_THETA_RESCALED,
+    polar_angle_period: float = POLAR_ANGLE_PERIOD,
     time_lag: int = 1,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Compute forward differences at a given time lag along a trajectory in feature space.
@@ -151,7 +151,7 @@ def compute_forward_differences_along_trajectory(
 def get_traj_and_diff(
     df: pd.DataFrame,
     column_names: list,
-    polar_angle_period: float = PERIOD_THETA_RESCALED,
+    polar_angle_period: float = POLAR_ANGLE_PERIOD,
     time_lag: int = 1,
 ) -> tuple[list[np.ndarray], list[np.ndarray]]:
     """Get trajectories and single-timepoint forward differences from a dataframe of feature values.

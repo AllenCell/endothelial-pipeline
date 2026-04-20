@@ -16,3 +16,6 @@ DRIFT_CONTOUR_CBAR_NUM_TICKS: int = 7
 DRIFT_CONTOUR_CBAR_ROUND: int = 2
 """Number of decimal places to round colorbar ticks to in contour plots of drift
 components."""
+
+HISTOGRAM_THRESHOLD_FOR_MASKING: float = 0.05
+"""Histogram threshold for masking in 2D dynamics visualization workflows."""

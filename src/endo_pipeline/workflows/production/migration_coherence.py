@@ -61,11 +61,11 @@ def main(
         DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
         STABILITY_COLOR_DICT,
-        STABILITY_COLUMN_NAME,
         STABILITY_MARKER_DICT,
     )
     from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
     from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
+    from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -145,7 +145,7 @@ def main(
                     df_flow = filter_dataframe_by_flow_condition(
                         df_of, dataset_config, flow_condition
                     )
-                    plot_label = f"{dataset_name} ({int(flow_condition.shear_stress)} dyn/cm\u00b2)"
+                    plot_label = f"{dataset_name} ({int(flow_condition.shear_stress)} dyn/cm{Unicode.SQUARED})"
                     hist_color = get_dataset_color(dataset_name)
 
                     # load fixed points once per dataset
@@ -163,7 +163,7 @@ def main(
                                 required_columns=[
                                     *DYNAMICS_COLUMN_NAMES,
                                     ColumnName.DATASET,
-                                    STABILITY_COLUMN_NAME,
+                                    ColumnName.VectorField.STABILITY,
                                 ],
                             )
                         except KeyError:
@@ -194,7 +194,7 @@ def main(
                         optical_flow_feature=optical_flow_feature,
                         feature_label="Migration Coherence",
                         feature_lim=(0.1, vmax),
-                        ss_label=f"{int(flow_condition.shear_stress)} dyn/cm\u00b2",
+                        ss_label=f"{int(flow_condition.shear_stress)} dyn/cm{Unicode.SQUARED}",
                         color=hist_color,
                         df_fp=fp_for_feature,
                         binwidth=hist_binwidth,
@@ -230,7 +230,7 @@ def main(
                         # if fixed points are available, overlay them on the scatter plot
                         if fixed_points_dataframe is not None:
                             for _, row in fixed_points_dataframe.iterrows():
-                                stability = row[STABILITY_COLUMN_NAME]
+                                stability = row[ColumnName.VectorField.STABILITY]
                                 marker = STABILITY_MARKER_DICT.get(stability, "o")
                                 color = STABILITY_COLOR_DICT.get(stability, "gray")
                                 axs[1].scatter(
@@ -244,7 +244,9 @@ def main(
                                 )
                             # add legend for fixed points
                             legend_handles = make_legend_handles_for_fixed_pts(
-                                fixed_points_dataframe[STABILITY_COLUMN_NAME].unique().tolist()
+                                fixed_points_dataframe[ColumnName.VectorField.STABILITY]
+                                .unique()
+                                .tolist()
                             )
                             fig.legend(
                                 handles=legend_handles,
