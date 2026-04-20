@@ -86,7 +86,6 @@ def main(
     from endo_pipeline.settings.flow_field_dataframes import (
         DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
         STABILITY_COLOR_DICT,
-        STABILITY_COLUMN_NAME,
         STABILITY_MARKER_DICT,
         StabilityLabel,
         StabilityLegendHandle,
@@ -199,7 +198,7 @@ def main(
             (axes[1], column_names[0], column_names[2]),  # PC1 vs PC3
         ]:
             for _, row in high_confidence_df.iterrows():
-                stability = row[STABILITY_COLUMN_NAME]
+                stability = row[Column.VectorField.STABILITY]
                 detection_rate = row[Column.BootstrapAnalysis.DETECTION_RATE]
                 print(
                     f"Processing fixed point with stability {stability} and detection rate {detection_rate:.2f}"
@@ -251,7 +250,7 @@ def main(
             ax.set_title(f"{xlabel} vs {ylabel}")
 
         # Legend from the stability labels present in this dataset
-        present_stabilities = set(high_confidence_df[STABILITY_COLUMN_NAME].unique())
+        present_stabilities = set(high_confidence_df[Column.VectorField.STABILITY].unique())
         legend_handles = [
             StabilityLegendHandle(stability_label=s)
             for s in StabilityLabel
@@ -289,7 +288,7 @@ def main(
         for ds_name, ds_df in combined_df.groupby(Column.DATASET):
             ds_color = get_dataset_color(ds_name)
             for _, row in ds_df.iterrows():
-                stability = row[STABILITY_COLUMN_NAME]
+                stability = row[Column.VectorField.STABILITY]
                 # only plot stable fixed points in the combined figure for clearer comparison
                 if stability != StabilityLabel.STABLE:
                     continue

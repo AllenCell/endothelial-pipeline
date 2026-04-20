@@ -108,6 +108,7 @@ def main(
     import logging
     import os
     from concurrent.futures import ProcessPoolExecutor
+    from typing import cast
 
     import numpy as np
     import pandas as pd
@@ -118,6 +119,7 @@ def main(
     from endo_pipeline.io import (
         build_fms_annotations,
         get_output_path,
+        join_sorted_strings,
         load_dataframe,
         make_name_unique,
         upload_file_to_fms,
@@ -184,7 +186,10 @@ def main(
 
     dataframe_savedir = get_output_path(__file__, crop_pattern)
     # get dataframe manifest for baseline results to match against in bootstrapping
-    baseline_fixed_point_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
+    columns_str = join_sorted_strings(cast(list[str], column_names))
+    baseline_fixed_point_manifest_name = (
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{columns_str}_{base_name}"
+    )
     baseline_fixed_point_manifest = load_dataframe_manifest(baseline_fixed_point_manifest_name)
 
     # load or initialize dataframe manifest for bootstrap results
@@ -223,11 +228,12 @@ def main(
         bin_widths.append(bin_width)
 
     # add parameters to the output manifest for traceability
+    column_names_yaml_safe = [f"{column}" for column in column_names]
     bootstrap_results_manifest.parameters = {
         "model_manifest_name": model_manifest_name,
         "run_name": run_name,
         "crop_pattern": crop_pattern,
-        "columns": [column.value for column in column_names],
+        "columns": column_names_yaml_safe,
         "kernel_names": [kernel.name for kernel in kernels],
         "kernel_bandwidths": [kernel.bandwidth for kernel in kernels],
         "bin_widths": bin_widths,
