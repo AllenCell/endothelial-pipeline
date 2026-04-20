@@ -288,9 +288,11 @@ for dataset_name, panel_letters, y_position in [
     fig, ax = plot_drift_quiver(
         centers_mesh,
         drift_r_rho,
-        quiver_scale=4,
+        quiver_scale=3.5,
         quiver_color="dimgrey",
-        quiver_downsample=3,
+        quiver_downsample=4,
+        vmin=DRIFT_CONTOUR_VMIN,
+        vmax=DRIFT_CONTOUR_VMAX,
         variable_labels=column_labels_r_rho,
         figsize=(2.05, 1.65),
         axes_limits=(r_lims, rho_lims),
