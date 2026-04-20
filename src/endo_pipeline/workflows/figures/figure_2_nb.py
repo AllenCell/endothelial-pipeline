@@ -88,22 +88,28 @@ dataset_summary_list = SUMMARY_PLOT_DATASETS["low_high"]
 
 # %%
 
+columns_r_rho = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
+column_theta = Column.DiffAEData.POLAR_ANGLE
+optical_flow_feature = Column.OpticalFlow.UNIT_VECTOR_MEAN
+feature_column_names = [column_theta, *columns_r_rho]
+feature_columns_str = f"_{'_'.join(sorted(feature_column_names))}_"
+
 # load dataframe manifests for diffae features, fixed points, optical flow
 # features, and bootstrapped fixed points for this crop pattern, which will be
 # used for all visualizations in this figure
 base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
 feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
 feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
-fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
-fixed_points_dataframe_manifest = load_dataframe_manifest(fixed_points_dataframe_manifest_name)
+fixed_points_3d_dataframe_manifest_name = (
+    f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{feature_columns_str}{base_name}"
+)
+fixed_points_3d_dataframe_manifest = load_dataframe_manifest(
+    fixed_points_3d_dataframe_manifest_name
+)
 bootstrap_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}"
 bootstrap_dataframe_manifest = load_dataframe_manifest(bootstrap_dataframe_manifest_name)
 
 # get labels for provided set of feature columns
-columns_r_rho = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
-column_theta = Column.DiffAEData.POLAR_ANGLE
-optical_flow_feature = Column.OpticalFlow.UNIT_VECTOR_MEAN
-feature_column_names = [column_theta, *columns_r_rho]
 columns_for_summary_plots = [*feature_column_names, optical_flow_feature]
 column_labels_r_rho = [get_label_for_column(col).replace("polar ", "") for col in columns_r_rho]
 column_label_theta = get_label_for_column(column_theta).replace("polar ", "")
@@ -181,18 +187,20 @@ for dataset_name, panel_letters, y_position in [
     df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
 
     # load fixed points dataframe for this dataset
-    if dataset_name not in fixed_points_dataframe_manifest.locations:
+    if dataset_name not in fixed_points_3d_dataframe_manifest.locations:
         logger.warning(
             "No location found in dataframe manifest [ %s ] for dataset [ %s ],"
             " skipping loading of fixed points dataframe.",
-            fixed_points_dataframe_manifest_name,
+            fixed_points_3d_dataframe_manifest_name,
             dataset_name,
         )
-        stable_fixed_points = None
+        stable_fixed_points_3d = None
     else:
-        df_fixed_points = load_dataframe(fixed_points_dataframe_manifest.locations[dataset_name])
-        stable_fixed_points = df_fixed_points[
-            df_fixed_points[Column.VectorField.STABILITY] == StabilityLabel.STABLE
+        df_fixed_points_3d = load_dataframe(
+            fixed_points_3d_dataframe_manifest.locations[dataset_name]
+        )
+        stable_fixed_points_3d = df_fixed_points_3d[
+            df_fixed_points_3d[Column.VectorField.STABILITY] == StabilityLabel.STABLE
         ]
 
     # get drift in (r, rho) space
@@ -295,10 +303,10 @@ for dataset_name, panel_letters, y_position in [
         ylabel_kwargs=ylabel_kwargs,
     )
     # add stable fixed points to quiver plot if available
-    if stable_fixed_points is not None:
+    if stable_fixed_points_3d is not None:
         ax.plot(
-            stable_fixed_points[columns_r_rho[0]],
-            stable_fixed_points[columns_r_rho[1]],
+            stable_fixed_points_3d[columns_r_rho[0]],
+            stable_fixed_points_3d[columns_r_rho[1]],
             STABILITY_MARKER_DICT[StabilityLabel.STABLE],
             color=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
             markeredgecolor="k",
@@ -332,10 +340,10 @@ for dataset_name, panel_letters, y_position in [
         ylabel_kwargs=ylabel_kwargs,
     )
     # add stable fixed points in theta if available
-    if stable_fixed_points is not None:
+    if stable_fixed_points_3d is not None:
         ax.plot(
-            stable_fixed_points[column_theta],
-            np.zeros_like(stable_fixed_points[column_theta]),
+            stable_fixed_points_3d[column_theta],
+            np.zeros_like(stable_fixed_points_3d[column_theta]),
             STABILITY_MARKER_DICT[StabilityLabel.STABLE],
             color=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
             markeredgecolor="k",
