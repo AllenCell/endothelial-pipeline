@@ -21,7 +21,7 @@ from endo_pipeline.library.analyze.polar_coords import (
     rewrap_polar_angle,
     unwrap_nonsequential_array,
 )
-from endo_pipeline.settings.column_metadata import COLUMN_METADATA_DICT
+from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.density_comparison_plots import (
     DENSITY_PLOT_KDE_BANDWIDTH,
@@ -35,7 +35,6 @@ from endo_pipeline.settings.diffae_feature_dataframes import (
 )
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.plot_defaults import SHEAR_COLOR_DICT
-from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
 plt.style.use("endo_pipeline.figure")
@@ -579,7 +578,7 @@ def plot_per_position_average_over_time(
 
         if i == ndim - 1:
             ax.set_xlabel("frame number")
-        column_label = get_label_for_column(column_name, capitalize=False)
+        column_label = get_label_for_column(column_name)
         ax.set_ylabel(f"average of {column_label} over crops")
         ax.legend(title=f"{Column.POSITION}:")
 
@@ -729,66 +728,3 @@ def pc_loading_heatmap_workflow(
     ax_heatmap.set_ylabel("Latent Feature")
 
     return fig_heatmap
-
-
-def get_label_for_column(
-    column_name: str,
-    mapping_dict: dict[str, dict[str, Any]] | None = None,
-    capitalize: bool = False,
-) -> str:
-    """Convert dataframe column names to human-readable labels.
-
-    For example, "feat_0" becomes "Feature 0", and "pc_1" becomes "PC 1".
-
-    Parameters
-    ----------
-    column_name
-        Column name to convert.
-    mapping_dict
-        Optional dictionary mapping column names to human-readable labels.
-    capitalize
-        Capitalize the first letter of the label if True, otherwise leave as is.
-
-    Returns
-    -------
-    :
-        Human-readable label for the column name.
-
-    """
-    # check for other specific patterns, overriding default label
-    label = None
-
-    if column_name.startswith(f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}"):
-        feature_number = column_name.split("_")[1]
-        label = f"feature {feature_number}"
-    elif column_name.startswith(f"{Column.DiffAEData.PCA_FEATURE_PREFIX}"):
-        pc_number = column_name.split("_")[1]
-        label = f"PC {pc_number}"
-    elif column_name == Column.DiffAEData.POLAR_RADIUS:
-        label = "r"
-    elif column_name == Column.DiffAEData.POLAR_ANGLE:
-        label = f"{Unicode.THETA}"
-    elif column_name == Column.DiffAEData.PC3_FLIPPED:
-        label = f"{Unicode.RHO}"
-    elif column_name == Column.OpticalFlow.UNIT_VECTOR_MEAN:
-        label = "Migration Coherence"
-    elif column_name == Column.OpticalFlow.SPEED_MEAN:
-        label = "Mean Speed"
-    elif column_name == Column.OpticalFlow.ANGLE_MEAN:
-        label = "Optical Flow Mean Angle"
-
-    # check mapping dict for label override
-    if mapping_dict is None:
-        mapping_dict = COLUMN_METADATA_DICT
-    if column_name in mapping_dict:
-        label = mapping_dict[column_name]["label"]
-
-    # if no label found, return column name as is
-    if label is None:
-        return column_name
-
-    # else, take label found and capitalize if specified
-    if capitalize:
-        label = label.capitalize()
-
-    return label
