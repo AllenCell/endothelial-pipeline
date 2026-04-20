@@ -108,6 +108,7 @@ def main(
     import logging
     import os
     from concurrent.futures import ProcessPoolExecutor
+    from typing import cast
 
     import numpy as np
     import pandas as pd
@@ -118,6 +119,7 @@ def main(
     from endo_pipeline.io import (
         build_fms_annotations,
         get_output_path,
+        join_sorted_strings,
         load_dataframe,
         make_name_unique,
         upload_file_to_fms,
@@ -184,7 +186,7 @@ def main(
 
     dataframe_savedir = get_output_path(__file__, crop_pattern)
     # get dataframe manifest for baseline results to match against in bootstrapping
-    columns_str = "_".join(sorted(column_names))
+    columns_str = join_sorted_strings(cast(list[str], column_names))
     baseline_fixed_point_manifest_name = (
         f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{columns_str}_{base_name}"
     )
@@ -193,7 +195,7 @@ def main(
     # load or initialize dataframe manifest for bootstrap results
     demo_suffix = "_demo" if DEMO_MODE else ""
     bootstrap_results_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}{base_name}{demo_suffix}"
+        f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}{demo_suffix}"
     )
     bootstrap_results_manifest = create_dataframe_manifest(
         bootstrap_results_manifest_name, workflow_name=__file__
