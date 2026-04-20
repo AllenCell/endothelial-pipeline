@@ -183,7 +183,7 @@ for dataset_name, panel_letters, y_position in [
         )
         continue
 
-    fig_savedir = get_output_path(__file__, dataset_name)
+    fig_savedir = get_output_path("figure_2", dataset_name)
     dataset_config = load_dataset_config(dataset_name)
 
     # load dataframe and perform additional filtering (remove
