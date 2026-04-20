@@ -74,7 +74,7 @@ def main(
         compute_binned_variance_ratio_vs_time,
         compute_cumulative_variance_over_time,
     )
-    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
+    from endo_pipeline.library.visualize.columns import get_label_for_column
     from endo_pipeline.library.visualize.diffae_features.variation_analysis import (
         plot_ergodicity_test,
         plot_mean_feature_vs_time,
@@ -107,9 +107,7 @@ def main(
 
     # get labels for provided set of feature columns
     column_names = columns or list(DEFAULT_COV_ANALYSIS_COLUMNS)
-    variable_labels_dict = {
-        col: get_label_for_column(col).replace("polar ", "") for col in column_names
-    }
+    variable_labels_dict = {col: get_label_for_column(col) for col in column_names}
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
     # unpack default bin limits for each column, adjusting limits if rescaling theta

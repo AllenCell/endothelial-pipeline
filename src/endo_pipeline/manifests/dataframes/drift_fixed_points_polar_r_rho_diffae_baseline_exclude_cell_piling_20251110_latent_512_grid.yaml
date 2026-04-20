@@ -13,10 +13,10 @@ parameters:
   upper_percentile_for_filtering_fpts: 95.0
 locations:
   20250409_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/2026-04-18/generate_flow_field/grid/drift_fixed_points_20250409_20X_20260418_034520.parquet
+    fmsid: 6d8c4b0887b548f3a052ddf92c1189cf
+    path: null
     s3uri: null
   20251001_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/2026-04-18/generate_flow_field/grid/drift_fixed_points_20251001_20X_20260418_034533.parquet
+    fmsid: efb10d99784140eea298e1213cecf24a
+    path: null
     s3uri: null

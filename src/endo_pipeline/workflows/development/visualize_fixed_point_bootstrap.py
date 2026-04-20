@@ -90,6 +90,7 @@ def main(
         StabilityLabel,
         StabilityLegendHandle,
     )
+    from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -188,7 +189,7 @@ def main(
 
         # Per-dataset figures
         fig, axes = plt.subplots(NROWS_2D_FLOW_FIELD, 1, figsize=FIGSIZE_2D_FLOW_FIELD)
-        suptitle_str = f"{dataset_name} — Bootstrap-Validated Fixed Points\n(Detection Rate \u2265 {bootstrap_threshold:.2%}"
+        suptitle_str = f"{dataset_name} — Bootstrap-Validated Fixed Points\n(Detection Rate {Unicode.GEQ} {bootstrap_threshold:.2%}"
         suptitle_suffix = ")" if n_bootstrap is None else f", n bootstrap = {n_bootstrap})"
         fig.suptitle(f"{suptitle_str}{suptitle_suffix}")
 
@@ -277,7 +278,7 @@ def main(
     fig_combined, axes_combined = plt.subplots(
         NROWS_2D_FLOW_FIELD, 1, figsize=FIGSIZE_2D_FLOW_FIELD
     )
-    suptitle_str = f"Bootstrap-Validated Stable Fixed Points — All Datasets\n(Detection Rate \u2265 {bootstrap_threshold:.2%}"
+    suptitle_str = f"Bootstrap-Validated Stable Fixed Points — All Datasets\n(Detection Rate {Unicode.GEQ} {bootstrap_threshold:.2%}"
     fig_combined.suptitle(f"{suptitle_str}{suptitle_suffix}")
 
     for ax, column_x, column_y in [

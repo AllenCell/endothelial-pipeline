@@ -5,14 +5,11 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 
 from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_MEDIUM
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 # Colors matching the schematic design
 TEAL = "#008B8B"
 BLACK = "#000000"
-
-# Unicode symbols
-THETA = "\u03b8"  # theta
-RHO = "\u03c1"  # rho
 
 
 def create_intro_schematic(
@@ -129,7 +126,7 @@ def create_intro_schematic(
     ax.text(
         0.42 * w,
         0.78 * h,
-        f"(r, {THETA}, {RHO}) at t",
+        f"(r, {Unicode.THETA}, {Unicode.RHO}) at t",
         fontsize=FONTSIZE_LARGE,
         fontweight="bold",
         color=BLACK,
@@ -177,7 +174,7 @@ def create_intro_schematic(
     ax.text(
         0.42 * w,
         0.35 * h,
-        f"(r, {THETA}, {RHO}) at t+1",
+        f"(r, {Unicode.THETA}, {Unicode.RHO}) at t+1",
         fontsize=FONTSIZE_LARGE,
         fontweight="bold",
         color=BLACK,

@@ -64,8 +64,8 @@ def main(
     from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_binned_value
     from endo_pipeline.library.analyze.numerics.binning import get_histogram_by_component
     from endo_pipeline.library.process.image_processing import max_proj, std_dev
+    from endo_pipeline.library.visualize.columns import get_label_for_column
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
-        get_label_for_column,
         plot_component_histograms_over_time,
     )
     from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
