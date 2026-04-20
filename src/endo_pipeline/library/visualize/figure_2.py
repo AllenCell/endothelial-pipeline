@@ -170,7 +170,7 @@ def make_crop_example_contact_sheet(
         panels=[*generated_image_list, *real_gfp_list, *real_brightfield_list],
         max_rows=n_crop_examples,
         max_cols=3,
-        col_titles=["Reconstruction", "VE-Cadherin MIP", "BF Std. Dev. Proj"],
+        col_titles=["Reconstruction", "VE-Cad MIP", "BF Std. Dev. Proj"],
         row_titles=[f"Example {i+1}" for i in range(n_crop_examples)],
         direction="top-down first",
         gridspec_kwargs=gridspec_kwargs,

@@ -277,7 +277,12 @@ for dataset_name in [dataset_low, dataset_high]:
         if ax_index == 0:
             ax_.tick_params(labelbottom=False)
     save_plot_to_path(
-        fig, fig_savedir, contour_plot_filename, file_format=".svg", tight_layout=True
+        fig,
+        fig_savedir,
+        contour_plot_filename,
+        file_format=".svg",
+        tight_layout=True,
+        transparent=True,
     )
 
     fig, ax = plot_drift_quiver(
@@ -320,6 +325,7 @@ for dataset_name in [dataset_low, dataset_high]:
         quiver_plot_filename,
         file_format=".svg",
         tight_layout=False,
+        transparent=True,
     )
 
     # plot 1D drift in theta and save
@@ -354,7 +360,7 @@ for dataset_name in [dataset_low, dataset_high]:
         labels=["0", f"{unicode_pi}/4", f"{unicode_pi}/2", f"3{unicode_pi}/4", f"{unicode_pi}"],
     )
     ax.set_yticks([-0.3, 0.0, 0.3])
-    save_plot_to_path(fig, fig_savedir, theta_plot_filename, file_format=".svg")
+    save_plot_to_path(fig, fig_savedir, theta_plot_filename, file_format=".svg", transparent=True)
 
     # generate contact sheet of example crops at stable fixed points
     crop_contact_sheet_path = make_crop_example_contact_sheet(
@@ -368,7 +374,7 @@ for dataset_name in [dataset_low, dataset_high]:
         fig_filename=f"{dataset_name}_crop_examples",
         file_format=".svg",
         gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
-        fig_kwargs={"figsize": (MAX_FIGURE_WIDTH / 2 - 0.1, 2.0), "layout": "constrained"},
+        fig_kwargs={"figsize": (MAX_FIGURE_WIDTH / 2 - 0.3, 2), "layout": "constrained"},
         random_seed=7,
         num_gpus=NUM_GPUS,
     )
@@ -439,7 +445,7 @@ fig_savedir_high = get_output_path("figure_2", dataset_high)
 panels = [
     # --- Low flow dataset (row 1) ---
     FigurePanel(
-        letter="A 6 dyn/cm$\u00b2$",
+        letter="A",
         path=fig_savedir_low / f"{dataset_low}_{columns_r_rho_str}_contours.svg",
         x_position=0,
         y_position=0.0,
@@ -463,7 +469,7 @@ panels = [
         y_offset=0.0,
     ),
     FigurePanel(
-        letter="B 21 dyn/cm$\u00b2$",
+        letter="B",
         path=fig_savedir_low / f"{dataset_low}_{Column.DiffAEData.POLAR_ANGLE}_drift.svg",
         x_position=3 * MAX_FIGURE_WIDTH / 4 - 0.35,
         y_position=0.0,
@@ -475,7 +481,7 @@ panels = [
         letter="C",
         path=fig_savedir_high / f"{dataset_high}_{columns_r_rho_str}_contours.svg",
         x_position=0,
-        y_position=2.05,
+        y_position=1.85,
         x_offset=-0.05,
         y_offset=-0.1,
     ),
@@ -483,7 +489,7 @@ panels = [
         letter="",
         path=base_output_dir / "colorbar.svg",
         x_position=MAX_FIGURE_WIDTH / 4 - 0.3,
-        y_position=2.05,
+        y_position=1.85,
         x_offset=0.08,
         y_offset=0.00,
     ),
@@ -491,7 +497,7 @@ panels = [
         letter="",
         path=fig_savedir_high / f"{dataset_high}_{columns_r_rho_str}_quiver.svg",
         x_position=MAX_FIGURE_WIDTH / 4 + 0.65,
-        y_position=2.05,
+        y_position=1.85,
         x_offset=-0.1,
         y_offset=0.0,
     ),
@@ -499,7 +505,7 @@ panels = [
         letter="D",
         path=fig_savedir_high / f"{dataset_high}_{Column.DiffAEData.POLAR_ANGLE}_drift.svg",
         x_position=3 * MAX_FIGURE_WIDTH / 4 - 0.35,
-        y_position=2.05,
+        y_position=1.85,
         x_offset=0.4,
         y_offset=-0.2,
     ),
@@ -508,17 +514,17 @@ panels = [
         letter="E",
         path=fig_savedir_low / f"{dataset_low}_crop_examples.svg",
         x_position=0.0,
-        y_position=4.0,
-        x_offset=0.0,
-        y_offset=0.0,
+        y_position=3.75,
+        x_offset=0.2,
+        y_offset=0.08,
     ),
     FigurePanel(
         letter="F",
         path=fig_savedir_high / f"{dataset_high}_crop_examples.svg",
         x_position=MAX_FIGURE_WIDTH / 2,
-        y_position=4.0,
-        x_offset=0.0,
-        y_offset=0.0,
+        y_position=3.75,
+        x_offset=0.2,
+        y_offset=0.08,
     ),
     # --- Bottom row ---
     FigurePanel(
@@ -539,7 +545,6 @@ panels = [
     ),
 ]
 
-# %%
 build_figure_from_panels(
     panels, base_output_dir / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
 )
