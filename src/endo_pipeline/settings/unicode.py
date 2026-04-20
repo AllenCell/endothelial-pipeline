@@ -1,0 +1,31 @@
+"""Global settings for unicode characters used in the project."""
+
+from enum import StrEnum
+
+
+class UnicodeCharacters(StrEnum):
+    """Unicode characters used in the project."""
+
+    MU = "\u03bc"
+    """Unicode for lowercase mu."""
+
+    PI = "\u03c0"
+    """Unicode for lowercase pi."""
+
+    RHO = "\u03c1"
+    """Unicode for lowercase rho."""
+
+    SIGMA = "\u03c3"
+    """Unicode for lowercase sigma."""
+
+    THETA = "\u03b8"
+    """Unicode for lowercase theta."""
+
+    GEQ = "\u2265"
+    """Unicode for greater than or equal to (using LaTeX naming convention)."""
+
+    RIGHT_ARROW = "\u2192"
+    """Unicode for right arrow."""
+
+    SQUARED = "\u00b2"
+    """Unicode for superscript 2."""

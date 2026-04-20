@@ -62,7 +62,12 @@ def main(
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
+    from endo_pipeline.io import (
+        get_output_path,
+        join_sorted_strings,
+        load_dataframe,
+        save_plot_to_path,
+    )
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_flow_condition,
         filter_dataframe_to_steady_state,
@@ -76,11 +81,11 @@ def main(
         get_reshaped_vector_field_and_grid,
         mask_drift_vector_field_by_data_density,
     )
+    from endo_pipeline.library.visualize.columns import get_label_for_column
     from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
         plot_drift_contours,
         plot_drift_quiver,
     )
-    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
@@ -125,11 +130,10 @@ def main(
     feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
-    columns_sorted = sorted(column_names)
-    columns_str = f"_{'_'.join(columns_sorted)}_"
-    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}{columns_str}{base_name}"
+    columns_str = join_sorted_strings(cast(list[str], column_names))
+    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{columns_str}_{base_name}"
     fixed_points_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{columns_str}{base_name}"
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{columns_str}_{base_name}"
     )
     # Flexible DEMO_MODE loading pattern: first try to load the manifests with
     # the expected names, but if any of them are not found, then try to load the
@@ -162,6 +166,8 @@ def main(
             fixed_points_dataframe_manifest = load_dataframe_manifest(
                 f"{fixed_points_dataframe_manifest_name}{demo_suffix}"
             )
+        else:
+            raise
 
     # Use provided datasets or default if none provided.
     dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
