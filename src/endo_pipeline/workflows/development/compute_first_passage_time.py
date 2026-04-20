@@ -10,6 +10,7 @@ def main(
     minimum_track_length: int | None = None,
     run_FPT_threshold_parameter_sweep: bool = True,
     fixed_point_radius_threshold: float | None = None,
+    min_num_traj_per_bin: int = 10,
     bin_size_theta_deg: float | None = None,
     bin_size_radius: float | None = None,
     bin_size_rho: float | None = None,
@@ -49,13 +50,12 @@ def main(
         DYNAMICS_COLUMN_NAMES,
         LONG_TRACK_THRESHOLD_LENGTH,
     )
-    from endo_pipeline.settings.flow_field_3d import DATASET_COLLECTION_FOR_3D_DYNAMICS
     from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
     from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
 
     logger = logging.getLogger(__name__)
 
-    dataset_names = datasets or get_datasets_in_collection(DATASET_COLLECTION_FOR_3D_DYNAMICS)
+    dataset_names = datasets or get_datasets_in_collection("timelapse")
 
     if minimum_track_length is None:
         minimum_track_length = LONG_TRACK_THRESHOLD_LENGTH
@@ -296,13 +296,14 @@ def main(
             # 4. plot the cell FPT vs grid FPT data as a scatterplot with errors and a
             #    scatter with theta, r, rho as the axes and the FPT ratio as the color dimension
             # first the correlation scatter plots
-            for stat in ["mean", "median"]:
+            for metric in ["mean", "median"]:
                 plot_first_passage_time_correlation(
                     fixed_point_id=fp_idx,
                     fixed_point_stability=fp_stability,
                     dataset_config=dataset_config,
                     first_passage_time_df=fpt_stats_df,
-                    stat_to_plot=stat,
+                    metric_to_plot=metric,
+                    min_num_traj_per_bin=min_num_traj_per_bin,
                     out_dir=out_dir,
                 )
                 # histograms don't really work for 4D data (theta, r, rho, and FPT ratio),
@@ -315,7 +316,8 @@ def main(
                         dataset_config=dataset_config,
                         first_passage_time_df=fpt_stats_df,
                         fixed_points_df=fixed_points_df,
-                        stat_to_plot=stat,
+                        metric_to_plot=metric,
+                        min_num_traj_per_bin=min_num_traj_per_bin,
                         out_dir=out_dir,
                     )
                 # but if one of the features is collapsed, then we can plot the
@@ -327,7 +329,8 @@ def main(
                         dataset_config=dataset_config,
                         first_passage_time_df=fpt_stats_df,
                         fixed_points_df=fixed_points_df,
-                        stat_to_plot=stat,
+                        metric_to_plot=metric,
+                        min_num_traj_per_bin=min_num_traj_per_bin,
                         collapse_index=collapse_index,
                         feature_order_for_bin_edges=list(DYNAMICS_COLUMN_NAMES),
                         out_dir=out_dir,
@@ -339,9 +342,23 @@ def main(
                     fixed_point_stability=fp_stability,
                     dataset_config=dataset_config,
                     first_passage_time_df=fpt_stats_df,
-                    stat_to_plot=stat,
+                    metric_to_plot=metric,
+                    min_num_traj_per_bin=min_num_traj_per_bin,
+                    bin_width_for_hist=None,
                     out_dir=out_dir,
                 )
+
+            # plot histograms of the numbers of trajectories per bin
+            plot_first_passage_time_histogram(
+                fixed_point_id=fp_idx,
+                fixed_point_stability=fp_stability,
+                dataset_config=dataset_config,
+                first_passage_time_df=fpt_stats_df,
+                metric_to_plot="count",
+                min_num_traj_per_bin=min_num_traj_per_bin,
+                bin_width_for_hist=1,
+                out_dir=out_dir,
+            )
 
 
 if __name__ == "__main__":

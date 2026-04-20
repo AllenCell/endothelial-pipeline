@@ -1237,7 +1237,8 @@ def plot_first_passage_time_correlation(
     fixed_point_stability: str,
     dataset_config: DatasetConfig,
     first_passage_time_df: pd.DataFrame,
-    stat_to_plot: Literal["mean", "median"],
+    metric_to_plot: Literal["mean", "median"],
+    min_num_traj_per_bin: int,
     out_dir: Path,
 ) -> None:
     dataset_name = dataset_config.name
@@ -1247,15 +1248,22 @@ def plot_first_passage_time_correlation(
 
     # the column title is "50%" for 50th percentile in `pd.describe`` instead of
     # mean so correct that if "median" was chosen
-    stat = "50%" if stat_to_plot == "median" else stat_to_plot
+    metric = "50%" if metric_to_plot == "median" else metric_to_plot
 
     suffix = "_first_passage_time"
-    metric = f"{stat}{suffix}"
+    metric = f"{metric}{suffix}"
 
     # NaN values are unacceptable for the linear regression
     first_passage_time_df_no_nan = first_passage_time_df.copy().dropna(
         subset=[f"{metric}_grid", f"{metric}_tracked"]
     )
+    # keep only the bins with the minimum number of tracks per bin in them
+    first_passage_time_df_no_nan = first_passage_time_df_no_nan[
+        first_passage_time_df_no_nan["count_first_passage_time_grid"] >= min_num_traj_per_bin
+    ]
+    first_passage_time_df_no_nan = first_passage_time_df_no_nan[
+        first_passage_time_df_no_nan["count_first_passage_time_tracked"] >= min_num_traj_per_bin
+    ]
 
     # convert the FPT (which is in timepoints) to physical units
     # most but not all of the columns are based on time in `first_passage_time_df`
@@ -1298,7 +1306,7 @@ def plot_first_passage_time_correlation(
         color="black",
         edgecolor="white",
         lw=0.2,
-        label=f"FPT {stat_to_plot} ± STD",
+        label=f"FPT {metric_to_plot} ± STD",
     )
     ax.axline(xy1=(0, 0), slope=1, color="tab:red", linestyle="--", zorder=0, label="Unity")
     ax.axline(
@@ -1318,7 +1326,7 @@ def plot_first_passage_time_correlation(
     ax.legend()
     filename = (
         f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}"
-        f"_{stat_to_plot}_correlation.png"
+        f"_{metric_to_plot}_correlation.png"
     )
     save_plot_to_path(
         fig,
@@ -1334,7 +1342,8 @@ def plot_first_passage_time_3d_scatter(
     dataset_config: DatasetConfig,
     first_passage_time_df: pd.DataFrame,
     fixed_points_df: pd.DataFrame,
-    stat_to_plot: Literal["mean", "median"],
+    metric_to_plot: Literal["mean", "median"],
+    min_num_traj_per_bin: int,
     out_dir: Path,
 ) -> None:
     dataset_name = dataset_config.name
@@ -1344,15 +1353,22 @@ def plot_first_passage_time_3d_scatter(
 
     # the column title is "50%" for 50th percentile in `pd.describe`` instead of
     # mean so correct that if "median" was chosen
-    stat = "50%" if stat_to_plot == "median" else stat_to_plot
+    metric = "50%" if metric_to_plot == "median" else metric_to_plot
 
     suffix = "_first_passage_time"
-    metric = f"{stat}{suffix}"
+    metric = f"{metric}{suffix}"
 
-    # NaN values are unacceptable for the linear regression
+    # drop the bins with no entries
     first_passage_time_df_no_nan = first_passage_time_df.copy().dropna(
         subset=[f"{metric}_grid", f"{metric}_tracked"]
     )
+    # keep only the bins with the minimum number of tracks per bin in them
+    first_passage_time_df_no_nan = first_passage_time_df_no_nan[
+        first_passage_time_df_no_nan["count_first_passage_time_grid"] >= min_num_traj_per_bin
+    ]
+    first_passage_time_df_no_nan = first_passage_time_df_no_nan[
+        first_passage_time_df_no_nan["count_first_passage_time_tracked"] >= min_num_traj_per_bin
+    ]
 
     # convert the FPT (which is in timepoints) to physical units
     # most but not all of the columns are based on time in `first_passage_time_df`
@@ -1405,7 +1421,7 @@ def plot_first_passage_time_3d_scatter(
 
     filename = (
         f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}"
-        f"_{stat_to_plot}_3d_scatter.png"
+        f"_{metric_to_plot}_3d_scatter.png"
     )
     save_plot_to_path(
         fig,
@@ -1525,7 +1541,9 @@ def plot_first_passage_time_histogram(
     fixed_point_stability: str,
     dataset_config: DatasetConfig,
     first_passage_time_df: pd.DataFrame,
-    stat_to_plot: Literal["mean", "median"],
+    metric_to_plot: Literal["mean", "median", "count"],
+    min_num_traj_per_bin: int,
+    bin_width_for_hist: float | None,
     out_dir: Path,
 ) -> None:
 
@@ -1538,15 +1556,20 @@ def plot_first_passage_time_histogram(
 
     # the column title is "50%" for 50th percentile in `pd.describe`` instead of
     # mean so correct that if "median" was chosen
-    stat = "50%" if stat_to_plot == "median" else stat_to_plot
+    metric = "50%" if metric_to_plot == "median" else metric_to_plot
 
     suffix = "_first_passage_time"
-    metric = f"{stat}{suffix}"
+    metric = f"{metric}{suffix}"
 
-    # NaN values are unacceptable for the linear regression
-    first_passage_time_df_no_nan = first_passage_time_df.copy().dropna(
-        subset=[f"{metric}_grid", f"{metric}_tracked"]
-    )
+    # drop the NaN values
+    first_passage_time_df_no_nan = first_passage_time_df.copy().dropna()
+    # keep only bins with more than the minimum number of trajectories in them
+    first_passage_time_df_no_nan = first_passage_time_df_no_nan[
+        first_passage_time_df_no_nan["count_first_passage_time_grid"] >= min_num_traj_per_bin
+    ]
+    first_passage_time_df_no_nan = first_passage_time_df_no_nan[
+        first_passage_time_df_no_nan["count_first_passage_time_tracked"] >= min_num_traj_per_bin
+    ]
 
     # convert the FPT (which is in timepoints) to physical units
     # most but not all of the columns are based on time in `first_passage_time_df`
@@ -1564,12 +1587,22 @@ def plot_first_passage_time_histogram(
     # now we can convert all those time columns from timepoints to physical units
     first_passage_time_df_no_nan[time_cols] *= time_units
 
+    if metric_to_plot == "count":
+        xaxis_title = f"{metric_to_plot.title()} Number of Trajectories in Bin"
+        stat_for_hist = "count"
+        yaxis_title = "number of bins".title()
+    else:
+        xaxis_title = f"{metric_to_plot.title()} First Passage Time (hrs)"
+        stat_for_hist = "probability"
+        yaxis_title = "probability".title()
+
     fig, ax = plt.subplots(figsize=(3, 3))
-    ax.set_title(f"{dataset_name}".title())
+    ax.set_title(dataset_name.title())
     sns.histplot(
         data=first_passage_time_df_no_nan,
         x=f"{metric}_grid",
-        stat="probability",
+        stat=stat_for_hist,
+        binwidth=bin_width_for_hist,
         kde=True,
         facecolor="lightgrey",
         color="black",
@@ -1580,7 +1613,8 @@ def plot_first_passage_time_histogram(
     sns.histplot(
         data=first_passage_time_df_no_nan,
         x=f"{metric}_tracked",
-        stat="probability",
+        stat=stat_for_hist,
+        binwidth=bin_width_for_hist,
         kde=True,
         color=dataset_color,
         hatch="..",
@@ -1590,11 +1624,11 @@ def plot_first_passage_time_histogram(
         ax=ax,
     )
     ax.legend()
-    ax.set_xlim(0, 24)
-    ax.set_ylabel("Probability")
-    ax.set_xlabel(f"{stat_to_plot.title()} First Passage Time (hrs)")
+    ax.set_xlim(0)
+    ax.set_ylabel(yaxis_title)
+    ax.set_xlabel(xaxis_title)
 
-    filename = f"FPT_fp_{fixed_point_id}_{fixed_point_stability}_{stat_to_plot}_histogram.png"
+    filename = f"FPT_fp_{fixed_point_id}_{fixed_point_stability}_{metric_to_plot}_histogram.png"
     save_plot_to_path(fig, out_dir, filename, show_and_close=False)
 
 
@@ -1604,7 +1638,8 @@ def plot_first_passage_time_heatmap(
     dataset_config: DatasetConfig,
     first_passage_time_df: pd.DataFrame,
     fixed_points_df: pd.DataFrame,
-    stat_to_plot: Literal["mean", "median"],
+    metric_to_plot: Literal["mean", "median"],
+    min_num_traj_per_bin: int,
     collapse_index: int,
     feature_order_for_bin_edges: list[Column],
     out_dir: Path,
@@ -1616,12 +1651,23 @@ def plot_first_passage_time_heatmap(
 
     # the column title is "50%" for 50th percentile in `pd.describe`` instead of
     # mean so correct that if "median" was chosen
-    stat = "50%" if stat_to_plot == "median" else stat_to_plot
+    metric = "50%" if metric_to_plot == "median" else metric_to_plot
 
     suffix = "_first_passage_time"
-    metric = f"{stat}{suffix}"
+    metric = f"{metric}{suffix}"
 
     first_passage_time_df_local_copy = first_passage_time_df.copy()
+
+    # because the heatmap requires all the bin centers and bin edges to be in
+    # the dataframe, we will be setting bins that have fewer than
+    # min_num_traj_per_bin to be NaN instead of dropping them
+
+    first_passage_time_df_local_copy[
+        first_passage_time_df_local_copy["count_first_passage_time_grid"] < min_num_traj_per_bin
+    ][f"{metric}_grid"] = np.nan
+    first_passage_time_df_local_copy[
+        first_passage_time_df_local_copy["count_first_passage_time_tracked"] < min_num_traj_per_bin
+    ][f"{metric}_tracked"] = np.nan
 
     # convert the FPT (which is in timepoints) to physical units
     # most but not all of the columns are based on time in `first_passage_time_df`
@@ -1695,7 +1741,7 @@ def plot_first_passage_time_heatmap(
 
     filename = (
         f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}"
-        f"_{stat_to_plot}_heatmap.png"
+        f"_{metric_to_plot}_heatmap.png"
     )
     save_plot_to_path(
         fig,
