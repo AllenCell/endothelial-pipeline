@@ -21,10 +21,8 @@ def main(
         filter_dataframe_by_track_length,
         filter_dataframe_to_steady_state,
     )
-    from endo_pipeline.library.visualize.diffae_features.feature_viz import (
-        get_dataset_color,
-        get_label_for_column,
-    )
+    from endo_pipeline.library.visualize.columns import get_label_for_column
+    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
     from endo_pipeline.library.visualize.track_statistics import plot_histogram_and_kde
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName
@@ -48,9 +46,7 @@ def main(
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
     run_name = DEFAULT_MODEL_RUN_NAME
     column_names: list[ColumnName.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
-    variable_labels_dict = {
-        col: get_label_for_column(col).replace("polar ", "") for col in column_names
-    }
+    variable_labels_dict = {col: get_label_for_column(col) for col in column_names}
     columns_to_compute_grid = [*METADATA_COLUMNS_TO_KEEP["grid"], *column_names]
     columns_to_compute_tracked = [*METADATA_COLUMNS_TO_KEEP["tracked"], *column_names]
 

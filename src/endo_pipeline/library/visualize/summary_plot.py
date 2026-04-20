@@ -23,10 +23,8 @@ from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature impo
 from endo_pipeline.library.visualize.diffae_features.fixed_points import (
     make_legend_handles_for_fixed_pts,
 )
-from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
-    get_seg_feat_plot_args,
-)
 from endo_pipeline.manifests import DataframeManifest, get_dataframe_location_for_dataset
+from endo_pipeline.settings.column_metadata import COLUMN_METADATA_DICT
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
@@ -35,6 +33,7 @@ from endo_pipeline.settings.dynamics_workflows import (
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLOR_DICT, STABILITY_MARKER_DICT
 from endo_pipeline.settings.summary_plot import CELL_LINE_LABEL_MAP, COLOR_PALETTE
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
 
@@ -505,7 +504,7 @@ def plot_cross_dataset_summaries(
         layout="constrained",
         squeeze=False,
     )
-    all_column_info = get_seg_feat_plot_args()
+    all_column_info = COLUMN_METADATA_DICT
     for ax_i, var in zip(axs[0], column_names, strict=False):
         column_info = all_column_info.get(var)
         var_label: str = column_info["label"] if column_info else str(var)
@@ -524,7 +523,9 @@ def plot_cross_dataset_summaries(
     if x_axis_mode == "cell_line":
         fig.supxlabel("Cell Line", fontsize=FONTSIZE_MEDIUM, fontweight="bold")
     else:
-        fig.supxlabel("Shear Stress (dyn/cm\u00b2)", fontsize=FONTSIZE_MEDIUM, fontweight="bold")
+        fig.supxlabel(
+            f"Shear Stress (dyn/cm{Unicode.SQUARED})", fontsize=FONTSIZE_MEDIUM, fontweight="bold"
+        )
 
     # reduce spacing between axis labels and tick labels
     for ax in axs[0]:
