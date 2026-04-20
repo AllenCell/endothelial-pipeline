@@ -43,11 +43,11 @@ def main(
     from endo_pipeline.library.analyze.vector_field_estimation import (
         get_reshaped_vector_field_and_grid,
     )
-    from endo_pipeline.library.visualize.diffae_features.dynamics import plot_drift_1d
-    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
-    from endo_pipeline.library.visualize.diffae_features.fixed_points import (
+    from endo_pipeline.library.visualize.diffae_features.dynamics import (
         make_legend_handles_for_fixed_pts,
+        plot_drift_1d,
     )
+    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import DEFAULT_DATASETS_DYNAMICS_VIS
