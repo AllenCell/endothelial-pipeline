@@ -22,7 +22,8 @@ from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature impo
 from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.analyze.vector_field_estimation import (
     compute_drift_vector_field,
-    mask_drift_vector_field_by_data_density,
+    get_reshaped_vector_field_and_grid,
+    load_drift_dataframe_for_dataset,
 )
 from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
     plot_contour_colorbar,
@@ -40,7 +41,6 @@ from endo_pipeline.library.visualize.summary_plot import plot_cross_dataset_summ
 from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import (
-    BIN_LIMIT_PERCENTILE_CUTOFF,
     BIN_WIDTHS_DYNAMICS,
     KERNEL_BANDWIDTHS_DYNAMICS,
     KERNEL_NAMES_DYNAMICS,
@@ -57,7 +57,6 @@ from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_COLORMAP,
     DRIFT_CONTOUR_VMAX,
     DRIFT_CONTOUR_VMIN,
-    HISTOGRAM_THRESHOLD_FOR_MASKING,
 )
 from endo_pipeline.settings.flow_field_dataframes import (
     DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
@@ -218,28 +217,16 @@ for dataset_name, panel_letters, y_position in [
         ]
 
     # get drift in (r, rho) space
-    bins_r_rho, centers_r_rho = get_bins(
-        bin_widths=bin_widths_r_rho,
-        data=df_steady_state[columns_r_rho].to_numpy(),
-        lower_percentile=BIN_LIMIT_PERCENTILE_CUTOFF,
-        upper_percentile=100 - BIN_LIMIT_PERCENTILE_CUTOFF,
+    drift_r_rho_dataframe = load_drift_dataframe_for_dataset(dataset_name, columns=columns_r_rho)
+    if drift_r_rho_dataframe.empty:
+        raise ValueError(
+            f"No precomputed dataframe found for (r, rho) dynamics for dataset [ {dataset_name} ]."
+        )
+    drift_r_rho, centers_r_rho = get_reshaped_vector_field_and_grid(
+        drift_r_rho_dataframe,
+        column_names=columns_r_rho,
     )
     centers_mesh = np.meshgrid(*centers_r_rho, indexing="ij")
-    drift_r_rho = compute_drift_vector_field(
-        df_steady_state,
-        column_names=columns_r_rho,
-        bins=bins_r_rho,
-        kernel=kernels_r_rho,
-        time_step=TIME_STEP_IN_HOURS,
-    )
-    drift_r_rho = mask_drift_vector_field_by_data_density(
-        drift_coeffs=drift_r_rho,
-        dataframe=df_steady_state,
-        column_names=columns_r_rho,
-        histogram_bins=bins_r_rho,
-        histogram_kernel=kernels_r_rho,
-        probability_threshold=HISTOGRAM_THRESHOLD_FOR_MASKING,
-    )
 
     # get in 1D for theta
     bins_theta, centers_theta = get_bins(
