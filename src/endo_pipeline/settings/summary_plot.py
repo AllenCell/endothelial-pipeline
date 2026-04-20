@@ -16,7 +16,6 @@ SUMMARY_PLOT_DATASETS: dict[str, list[str]] = {
         "20250716_20X",  # 9 dyn / cm2
         "20250319_20X",  # 12 dyn / cm2
         "20250604_20X",  # 12 dyn / cm2
-        "20250625_20X",  # 12 dyn / cm2
         "20260121_20X",  # 12 dyn / cm2
         "20260126_20X",  # 12 dyn / cm2
         "20260209_20X",  # 12 dyn / cm2
@@ -38,12 +37,46 @@ SUMMARY_PLOT_DATASETS: dict[str, list[str]] = {
         "20250618_20X",  # 6 dyn / cm2
         "20250402_20X",  # 6 dyn / cm2
         "20250409_20X",  # 6 dyn / cm2
-        "20251022_20X",  # isogenic control CD31 sorted under low shear stress
         "20251105_20X",  # isogenic control CD31 sorted under low shear stress
         "20260309_20X",  # isogenic control CD144 sorted under low shear stress
-        "20250908_20X",  # CDH5 Ex2 deletion under low shear stress
+        "20251029_20X",  # CDH5 Ex2 deletion under low shear stress
+        "20251119_20X",  # CDH5 Ex2 deletion under low shear stress
+        "20260325_20X",  # CDH5 Ex2 deletion under low shear stress
+    ],
+    "perturbation_supp": [
+        "20250618_20X",  # 6 dyn / cm2
+        "20250402_20X",  # 6 dyn / cm2
+        "20250409_20X",  # 6 dyn / cm2
+        "20251022_20X",  # isogenic control CD31 sorted under low shear stress, exclude from main figure
+        "20251105_20X",  # isogenic control CD31 sorted under low shear stress
+        "20260309_20X",  # isogenic control CD144 sorted under low shear stress
+        "20250908_20X",  # CDH5 Ex2 deletion under low shear stress, exclude from main figure
         "20251029_20X",  # CDH5 Ex2 deletion under low shear stress
         "20251119_20X",  # CDH5 Ex2 deletion under low shear stress
         "20260325_20X",  # CDH5 Ex2 deletion under low shear stress
     ],
 }
+
+CELL_LINE_LABEL_MAP = {
+    "AICS-126 cl. 41": "Parental",
+    "AICS-177 cl. 12": "Control",
+    "AICS-177 cl. 41": "Control",
+    "AICS-177 cl. 26": "Ex2Del",
+}
+
+COLOR_PALETTE = [
+    "#0072B2",  # blue
+    "#E69F00",  # orange
+    "#009E73",  # bluish green
+    "#CC79A7",  # reddish purple
+    "#56B4E9",  # sky blue
+    "#D55E00",  # vermillion
+    "#F0E442",  # yellow
+    "#000000",  # black
+    "#332288",  # indigo
+    "#88CCEE",  # cyan
+    "#44AA99",  # teal
+    "#DDCC77",  # sand
+    "#882255",  # wine
+    "#AA4499",  # magenta
+]

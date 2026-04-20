@@ -106,7 +106,7 @@ def test_compute_forward_differences_along_trajectory_polar_angle_unwrapping():
     np.unwrap so that a wrap-around near the period boundary produces a small
     difference instead of a large jump.
     """
-    period = np.pi  # matches PERIOD_THETA_RESCALED
+    period = np.pi  # matches POLAR_ANGLE_PERIOD in settings
     eps = 0.05
     # angles [pi/2 - eps, -(pi/2 - eps), 0.0]:
     # without unwrapping: diff[0] = -(pi - 2*eps)  (large negative)

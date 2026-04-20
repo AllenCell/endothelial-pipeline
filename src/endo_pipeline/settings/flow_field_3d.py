@@ -1,11 +1,5 @@
 """Settings for 3D flow field estimation and visualization."""
 
-KERNEL_FUNCTION_NAME: str = "gaussian"
-"""Default kernel function name for 3D flow field estimation."""
-
-KERNEL_BANDWIDTH: float = 0.2
-"""Default kernel bandwidth for 3D flow field estimation."""
-
 BIN_WIDTH_DEFAULTS: tuple[float, float, float] = (0.05, 0.05, 0.05)
 """Default number of bins for 3D flow field estimation."""
 
@@ -63,26 +57,8 @@ FIGSIZE_2D_FLOW_FIELD: tuple[int, int] = (7, 10)
 FIGSIZE_FLOW_FIELD_STACK: tuple[int, int] = (7, 5)
 """Figure size for the flow field stack visualization figure."""
 
-TIME_STEP_IN_MINUTES: int = 5
-"""Time step in minutes between consecutive time points for flow field estimation."""
-
 INIT_POINT_3D: tuple[float, float, float] = (1.5, 0.2, -0.5)
 """Default initial point for 3D flow field trajectory visualization."""
 
 TRAJECTORY_TIME_SPAN: tuple[float, float] = (0.0, 5000.0)
 """Default time span for ODE solver in 3D flow field trajectory visualization."""
-
-NUM_INIT_SAMPLES: int = 250
-"""Number of sampled initial points for root finding in 3D flow field analysis."""
-
-SAMPLER_RANDOM_SEED: int = 47
-"""Random seed for initial point sampling in 3D flow field analysis."""
-
-UPPER_PERCENTILE_FOR_FILTERING_FPTS: float = 95.0
-"""Upper percentile threshold for stable fixed point identification in 3D flow field analysis."""
-
-LOWER_PERCENTILE_FOR_FILTERING_FPTS: float = 5.0
-"""Lower percentile threshold for stable fixed point identification in 3D flow field analysis."""
-
-DATASET_COLLECTION_FOR_3D_DYNAMICS: str = "3d_flow_field_analysis"
-"""Default dataset collection name for 3D dynamics analysis."""
