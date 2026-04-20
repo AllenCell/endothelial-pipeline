@@ -222,13 +222,11 @@ def main(
                 polar_angle_period if column_name == ColumnName.DiffAEData.POLAR_ANGLE else None
             )
             hist_alpha = 0.33
-            for crop_pattern, num_traj, line_style, hatch_style in [
-                ("grid", num_trajectories_grid, "-", ""),
-                ("tracked", num_trajectories_tracked_sampled, "--", "//"),
+            for crop_pattern, line_style, hatch_style in [
+                ("grid", "-", ""),
+                ("tracked", "--", "//"),
             ]:
                 # histogram and KDE for column average
-                # axes_title = f"Average {variable_label} Across Trajectories"
-                # axes_xlabel = f"$\\langle${variable_label}$\\rangle$"
                 axes_xlabel = f"Mean {variable_label} Per Trajectory"
                 axes_ylabel = f"P(Mean {variable_label})"
                 plot_histogram_and_kde(
