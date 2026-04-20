@@ -37,7 +37,7 @@ def main(
     from endo_pipeline.library.analyze.numerics.fixed_points import (
         load_fixed_points_dataframe_for_dataset,
     )
-    from endo_pipeline.library.visualize.integration.track_integration_viz import (  # plot_first_passage_time_heatmap,
+    from endo_pipeline.library.visualize.integration.track_integration_viz import (
         plot_first_passage_time_3d_scatter,
         plot_first_passage_time_correlation,
         plot_first_passage_time_heatmap,
