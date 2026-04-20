@@ -50,7 +50,6 @@ from endo_pipeline.settings.flow_field_3d import (
     INIT_POINT_3D,
     TRAJECTORY_TIME_SPAN,
 )
-from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_COLUMNS_TO_DROP,
     DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
@@ -793,7 +792,7 @@ def add_distance_to_fixed_points_columns(
     fp_stability_map = dict(
         zip(
             fixed_point_df.index,
-            fixed_point_df[STABILITY_COLUMN_NAME],
+            fixed_point_df[Column.VectorField.STABILITY],
             strict=True,
         )
     )

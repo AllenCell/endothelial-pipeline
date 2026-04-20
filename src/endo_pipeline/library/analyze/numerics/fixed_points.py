@@ -3,6 +3,7 @@
 import logging
 import re
 from collections.abc import Callable
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -488,6 +489,7 @@ def load_fixed_points_dataframe_for_dataset(
     dataset_name: str,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
+    fixed_point_dimensions: Literal["theta_r_rho", "r_rho", "theta"] = "theta_r_rho",
 ) -> pd.DataFrame:
     """
     Get the fixed points dataframe for a given dataset.
@@ -500,6 +502,9 @@ def load_fixed_points_dataframe_for_dataset(
         Name of the model manifest to use for locating the fixed points dataframe.
     run_name
         Name of the model run to use for locating the fixed points dataframe.
+    fixed_point_dimensions
+        The specific manifest used to load the fixed points dataframe.
+        Can be 3D ("theta_r_rho"), 2D ("r_rho"), or 1D ("theta") fixed points.
 
     Returns
     -------
@@ -507,8 +512,26 @@ def load_fixed_points_dataframe_for_dataset(
         DataFrame containing the fixed points for the specified dataset.
     """
 
+    if fixed_point_dimensions == "theta_r_rho":
+        manif = "_".join(
+            [
+                Column.DiffAEData.POLAR_RADIUS,
+                Column.DiffAEData.POLAR_ANGLE,
+                Column.DiffAEData.PC3_FLIPPED,
+            ]
+        )
+    elif fixed_point_dimensions == "r_rho":
+        manif = "_".join([Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED])
+    elif fixed_point_dimensions == "theta":
+        manif = Column.DiffAEData.POLAR_ANGLE.value
+    else:
+        raise ValueError(
+            f"Invalid value for fixed_point_dimensions: {fixed_point_dimensions}. "
+            f"Must be one of 'theta_r_rho', 'r_rho', or 'theta'."
+        )
+
     base_name = f"{model_manifest_name}_{run_name}_grid"
-    fixed_points_df_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
+    fixed_points_df_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{manif}_{base_name}"
     fixed_points_df_manifest = load_dataframe_manifest(fixed_points_df_manifest_name)
 
     if dataset_name not in fixed_points_df_manifest.locations:

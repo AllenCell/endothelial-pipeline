@@ -50,7 +50,6 @@ def main(
         DYNAMICS_COLUMN_NAMES,
         LONG_TRACK_THRESHOLD_LENGTH,
     )
-    from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
     from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
 
     logger = logging.getLogger(__name__)
@@ -167,7 +166,7 @@ def main(
         # find if and when a trajectory reaches a fixed point
         for fp_idx in fixed_points_df.index:
             # for now we will only look at first passage times to stable fixed points
-            fp_stability = fixed_points_df.loc[fp_idx, STABILITY_COLUMN_NAME]
+            fp_stability = fixed_points_df.loc[fp_idx, Column.VectorField.STABILITY]
             if fp_stability != "stable":
                 logger.info(
                     f"Fixed point {fp_idx} in dataset {dataset_name} is not stable (stability = "
