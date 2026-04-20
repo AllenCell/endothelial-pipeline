@@ -155,11 +155,10 @@ def main(
     feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
-    columns_sorted = sorted(column_names)
-    columns_str = f"_{'_'.join(columns_sorted)}_"
-    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}{columns_str}{base_name}"
+    columns_str = "_".join(sorted(column_names))
+    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{columns_str}_{base_name}"
     fixed_points_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{columns_str}{base_name}"
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{columns_str}_{base_name}"
     )
     # Flexible DEMO_MODE loading pattern: first try to load the manifests with
     # the expected names, but if any of them are not found, then try to load the

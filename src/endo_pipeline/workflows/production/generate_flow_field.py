@@ -163,13 +163,12 @@ def main(
     # conflicts with other runs.
     dataframe_savedir = get_output_path(__file__, crop_pattern)
     demo_suffix = "_demo" if DEMO_MODE else ""
-    columns_sorted = sorted(column_names)
-    columns_str = f"_{'_'.join(columns_sorted)}_"
+    columns_str = "_".join(sorted(column_names))
     drift_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}{columns_str}{base_name}{demo_suffix}"
+        f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{columns_str}_{base_name}{demo_suffix}"
     )
     fixed_points_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{columns_str}{base_name}{demo_suffix}"
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{columns_str}_{base_name}{demo_suffix}"
     )
     drift_dataframe_manifest = create_dataframe_manifest(
         drift_dataframe_manifest_name, workflow_name=__file__
