@@ -163,6 +163,8 @@ def main(
             fixed_points_dataframe_manifest = load_dataframe_manifest(
                 f"{fixed_points_dataframe_manifest_name}{demo_suffix}"
             )
+    else:
+        raise
 
     # Use provided datasets or default if none provided.
     dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
