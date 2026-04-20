@@ -27,16 +27,16 @@ def main(
         load_dataset_config,
     )
     from endo_pipeline.io import get_output_path
-    from endo_pipeline.library.analyze.integration.track_integration import (
+    from endo_pipeline.library.analyze.numerics.binning import adjust_limits_from_bin_size, get_bins
+    from endo_pipeline.library.analyze.numerics.fixed_points import (
+        load_fixed_points_dataframe_for_dataset,
+    )
+    from endo_pipeline.library.analyze.track_integration import (
         add_distance_to_fixed_points_columns,
         add_first_passage_time_column,
         compute_first_passage_time_parameter_sweep_df,
         compute_first_passage_time_stats_for_bins,
         load_filtered_trajectory_df_for_first_passage_time_workflow,
-    )
-    from endo_pipeline.library.analyze.numerics.binning import adjust_limits_from_bin_size, get_bins
-    from endo_pipeline.library.analyze.numerics.fixed_points import (
-        load_fixed_points_dataframe_for_dataset,
     )
     from endo_pipeline.library.visualize.integration.track_integration_viz import (
         plot_first_passage_time_3d_scatter,
