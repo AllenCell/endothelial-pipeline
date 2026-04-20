@@ -479,6 +479,7 @@ COLUMN_METADATA = {
     ),
     Column.OpticalFlow.ANGLE_MEAN: ColumnMetadata(
         name="Optical Flow Mean Angle",
+        unit="rad",
         min=0,
         max=8,
         type=ColumnType.CONTINUOUS,
@@ -492,6 +493,7 @@ COLUMN_METADATA = {
     Column.OpticalFlow.SPEED_MEAN: ColumnMetadata(
         name="Optical Flow Mean Speed",
         label="Mean Speed",
+        unit="pixels/frame",
         min=0,
         max=8,
         type=ColumnType.CONTINUOUS,
