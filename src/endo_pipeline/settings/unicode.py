@@ -21,6 +21,9 @@ class UnicodeCharacters(StrEnum):
     THETA = "\u03b8"
     """Unicode for lowercase theta."""
 
+    GEQ = "\u2265"
+    """Unicode for greater than or equal to (using LaTeX naming convention)."""
+
     RIGHT_ARROW = "\u2192"
     """Unicode for right arrow."""
 
