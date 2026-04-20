@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
 from endo_pipeline.configs import load_dataset_config
@@ -240,6 +241,19 @@ def plot_fixed_points_vs_shear_stress(
             ax.set_xlim(tick_positions[0] - pad, tick_positions[-1] + pad)
     if ylimits is not None:
         ax.set_ylim(ylimits)
+
+    if variable == ColumnName.DiffAEData.POLAR_ANGLE:
+        unicode_pi = "\u03c0"
+        ax.set_yticks(
+            [0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi],
+            labels=[
+                f"0={unicode_pi}",
+                f"{unicode_pi}/4",
+                f"{unicode_pi}/2",
+                f"3{unicode_pi}/4",
+                f"{unicode_pi}=0",
+            ],
+        )
 
     ax.set_ylabel(label)
     ax.grid(axis="y", alpha=0.3)
