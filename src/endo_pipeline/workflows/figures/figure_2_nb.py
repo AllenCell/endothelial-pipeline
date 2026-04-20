@@ -8,6 +8,7 @@ import math
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
 from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
@@ -100,17 +101,17 @@ feature_columns_str = f"_{'_'.join(sorted(feature_column_names))}_"
 base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
 feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
 feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
-fixed_points_3d_dataframe_manifest_name = (
-    f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{feature_columns_str}{base_name}"
-)
-fixed_points_3d_dataframe_manifest = load_dataframe_manifest(
-    fixed_points_3d_dataframe_manifest_name
-)
 fixed_points_r_rho_dataframe_manifest_name = (
     f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{r_rho_columns_str}{base_name}"
 )
 fixed_points_r_rho_dataframe_manifest = load_dataframe_manifest(
     fixed_points_r_rho_dataframe_manifest_name
+)
+fixed_points_theta_dataframe_manifest_name = (
+    f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{column_theta}_{base_name}"
+)
+fixed_points_theta_dataframe_manifest = load_dataframe_manifest(
+    fixed_points_theta_dataframe_manifest_name
 )
 bootstrap_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}"
 bootstrap_dataframe_manifest = load_dataframe_manifest(bootstrap_dataframe_manifest_name)
@@ -192,29 +193,28 @@ for dataset_name, panel_letters, y_position in [
     df = df_[dataframe_columns_to_compute].compute()
     df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
 
+    stable_fixed_points_dict: dict[
+        list[Column.DiffAEData] | Column.DiffAEData, pd.DataFrame | None
+    ] = {}
     # load fixed points dataframe for this dataset
-    if dataset_name not in fixed_points_r_rho_dataframe_manifest.locations:
-        logger.warning(
-            "No location found in dataframe manifest [ %s ] for dataset [ %s ],"
-            " skipping loading of fixed points dataframe.",
-            fixed_points_r_rho_dataframe_manifest_name,
-            dataset_name,
-        )
-        stable_fixed_points_r_rho = None
-        stable_fixed_points_theta = None
-    else:
-        df_fixed_points_r_rho = load_dataframe(
-            fixed_points_r_rho_dataframe_manifest.locations[dataset_name]
-        )
-        stable_fixed_points_r_rho = df_fixed_points_r_rho[
-            df_fixed_points_r_rho[Column.VectorField.STABILITY] == StabilityLabel.STABLE
-        ]
-        df_fixed_points_3d = load_dataframe(
-            fixed_points_3d_dataframe_manifest.locations[dataset_name]
-        )
-        stable_fixed_points_3d = df_fixed_points_3d[
-            df_fixed_points_3d[Column.VectorField.STABILITY] == StabilityLabel.STABLE
-        ]
+    for column_key, manifest in [
+        (columns_r_rho, fixed_points_r_rho_dataframe_manifest),
+        (column_theta, fixed_points_theta_dataframe_manifest),
+    ]:
+        if dataset_name in manifest.locations:
+            df_fixed_points = load_dataframe(manifest.locations[dataset_name])
+            # filter to just stable fixed points
+            df_stable_fixed_points = df_fixed_points[
+                df_fixed_points[Column.VectorField.STABILITY] == StabilityLabel.STABLE
+            ]
+            stable_fixed_points_dict[column_key] = df_stable_fixed_points
+        else:
+            logger.warning(
+                "No location found in dataframe manifest [ %s ] for dataset [ %s ], skipping loading of fixed points.",
+                manifest.name,
+                dataset_name,
+            )
+            stable_fixed_points_dict[column_key] = None
 
     # get drift in (r, rho) space
     drift_r_rho_dataframe = load_drift_dataframe_for_dataset(dataset_name, columns=columns_r_rho)
@@ -306,10 +306,10 @@ for dataset_name, panel_letters, y_position in [
         ylabel_kwargs=ylabel_kwargs,
     )
     # add stable fixed points to quiver plot if available
-    if stable_fixed_points_r_rho is not None:
+    if stable_fixed_points_dict[columns_r_rho] is not None:
         ax.plot(
-            stable_fixed_points_r_rho[columns_r_rho[0]],
-            stable_fixed_points_r_rho[columns_r_rho[1]],
+            stable_fixed_points_dict[columns_r_rho][columns_r_rho[0]],
+            stable_fixed_points_dict[columns_r_rho][columns_r_rho[1]],
             STABILITY_MARKER_DICT[StabilityLabel.STABLE],
             color=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
             markeredgecolor="k",
@@ -343,10 +343,10 @@ for dataset_name, panel_letters, y_position in [
         ylabel_kwargs=ylabel_kwargs,
     )
     # add stable fixed points in theta if available
-    if stable_fixed_points_3d is not None:
+    if stable_fixed_points_dict[column_theta] is not None:
         ax.plot(
-            stable_fixed_points_3d[column_theta],
-            np.zeros_like(stable_fixed_points_3d[column_theta]),
+            stable_fixed_points_dict[column_theta][column_theta],
+            np.zeros_like(stable_fixed_points_dict[column_theta][column_theta]),
             STABILITY_MARKER_DICT[StabilityLabel.STABLE],
             color=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
             markeredgecolor="k",
