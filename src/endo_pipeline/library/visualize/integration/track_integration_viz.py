@@ -389,39 +389,6 @@ def save_feature_flowfield_overlay(
         plt.close(flow_field_figure)
 
 
-# def plot_new_traj_overlay_on_grid_traj_and_flowfield(
-#     out_dir: Path,
-#     dataset_name: str,
-#     # fixed_points_df: pd.DataFrame | None,
-#     flow_field_dict_grids: dict,
-#     traj_tracks: np.ndarray,
-#     figure_format: Literal[".png", ".svg", ".pdf"] = ".png",
-#     use_global_pc_lims: bool = False,
-# ) -> None:
-#     fig, axs = plot_quiver_slices_from_flow_field_dict(dataset_name, flow_field_dict_grids)
-#     for j, ax in enumerate(axs):  # PC1 vs PC2, PC1 vs PC3
-#         ax.plot(traj_tracks[:, 0], traj_tracks[:, j + 1], lw=2, color="crimson")
-#         ax.scatter(
-#             traj_tracks[-1, 0],
-#             traj_tracks[-1, j + 1],
-#             s=50,
-#             color="black",
-#             marker="*",
-#             zorder=10,
-#         )
-#     if use_global_pc_lims:
-#         [ax.set_xlim(-3, 3) for ax in axs]
-#         [ax.set_ylim(-3, 3) for ax in axs]
-
-#     save_plot_to_path(
-#         figure=fig,
-#         output_path=out_dir,
-#         figure_name=f"{dataset_name}_trajectory_grids_vs_tracks",
-#         file_format=figure_format,
-#     )
-#     plt.close(fig)
-
-
 def overlay_trajectory_heatmap_on_flowfield(
     out_dir: Path,
     dataset_name: str,
