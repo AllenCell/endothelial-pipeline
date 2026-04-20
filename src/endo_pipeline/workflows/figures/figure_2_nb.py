@@ -173,14 +173,6 @@ for dataset_name, panel_letters, y_position in [
     (dataset_low, ("A", "B"), 0.0),
     (dataset_high, ("C", "D"), 2.05),
 ]:
-    if dataset_name not in feature_dataframe_manifest.locations:
-        logger.warning(
-            "No location found in dataframe manifest [ %s ] for dataset [ %s ], skipping visualization.",
-            feature_dataframe_manifest_name,
-            dataset_name,
-        )
-        continue
-
     fig_savedir = get_output_path("figure_2", dataset_name)
     dataset_config = load_dataset_config(dataset_name)
 
@@ -191,36 +183,20 @@ for dataset_name, panel_letters, y_position in [
     df = df_[dataframe_columns_to_compute].compute()
     df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
 
-    # load fixed points dataframe for this dataset
-    if dataset_name not in fixed_points_r_rho_dataframe_manifest.locations:
-        logger.warning(
-            "No location found in dataframe manifest [ %s ] for dataset [ %s ],"
-            " skipping loading of fixed points dataframe.",
-            fixed_points_r_rho_dataframe_manifest_name,
-            dataset_name,
-        )
-        stable_fixed_points_r_rho = None
-        stable_fixed_points_3d = None
-    else:
-        df_fixed_points_r_rho = load_dataframe(
-            fixed_points_r_rho_dataframe_manifest.locations[dataset_name]
-        )
-        stable_fixed_points_r_rho = df_fixed_points_r_rho[
-            df_fixed_points_r_rho[Column.VectorField.STABILITY] == StabilityLabel.STABLE
-        ]
-        df_fixed_points_3d = load_dataframe(
-            fixed_points_3d_dataframe_manifest.locations[dataset_name]
-        )
-        stable_fixed_points_3d = df_fixed_points_3d[
-            df_fixed_points_3d[Column.VectorField.STABILITY] == StabilityLabel.STABLE
-        ]
+    # load fixed point dataframes for this dataset
+    df_fixed_points_r_rho = load_dataframe(
+        fixed_points_r_rho_dataframe_manifest.locations[dataset_name]
+    )
+    stable_fixed_points_r_rho = df_fixed_points_r_rho[
+        df_fixed_points_r_rho[Column.VectorField.STABILITY] == StabilityLabel.STABLE
+    ]
+    df_fixed_points_3d = load_dataframe(fixed_points_3d_dataframe_manifest.locations[dataset_name])
+    stable_fixed_points_3d = df_fixed_points_3d[
+        df_fixed_points_3d[Column.VectorField.STABILITY] == StabilityLabel.STABLE
+    ]
 
     # get drift in (r, rho) space
     drift_r_rho_dataframe = load_drift_dataframe_for_dataset(dataset_name, columns=columns_r_rho)
-    if drift_r_rho_dataframe.empty:
-        raise ValueError(
-            f"No precomputed dataframe found for (r, rho) dynamics for dataset [ {dataset_name} ]."
-        )
     drift_r_rho, centers_r_rho = get_reshaped_vector_field_and_grid(
         drift_r_rho_dataframe,
         column_names=columns_r_rho,
@@ -304,17 +280,16 @@ for dataset_name, panel_letters, y_position in [
         xlabel_kwargs=xlabel_kwargs,
         ylabel_kwargs=ylabel_kwargs,
     )
-    # add stable fixed points to quiver plot if available
-    if stable_fixed_points_r_rho is not None:
-        ax.plot(
-            stable_fixed_points_r_rho[columns_r_rho[0]],
-            stable_fixed_points_r_rho[columns_r_rho[1]],
-            STABILITY_MARKER_DICT[StabilityLabel.STABLE],
-            color=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
-            markeredgecolor="k",
-            markeredgewidth=0.5,
-            markersize=5,
-        )
+    # add stable fixed points to quiver plot
+    ax.plot(
+        stable_fixed_points_r_rho[columns_r_rho[0]],
+        stable_fixed_points_r_rho[columns_r_rho[1]],
+        STABILITY_MARKER_DICT[StabilityLabel.STABLE],
+        color=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
+        markeredgecolor="k",
+        markeredgewidth=0.5,
+        markersize=5,
+    )
 
     # set plot formatting args and save
     ax.set_box_aspect(1.0)
@@ -341,17 +316,16 @@ for dataset_name, panel_letters, y_position in [
         xlabel_kwargs=xlabel_kwargs,
         ylabel_kwargs=ylabel_kwargs,
     )
-    # add stable fixed points in theta if available
-    if stable_fixed_points_3d is not None:
-        ax.plot(
-            stable_fixed_points_3d[column_theta],
-            np.zeros_like(stable_fixed_points_3d[column_theta]),
-            STABILITY_MARKER_DICT[StabilityLabel.STABLE],
-            color=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
-            markeredgecolor="k",
-            markeredgewidth=0.5,
-            markersize=5,
-        )
+    # add stable fixed point in theta
+    ax.plot(
+        stable_fixed_points_3d[column_theta],
+        np.zeros_like(stable_fixed_points_3d[column_theta]),
+        STABILITY_MARKER_DICT[StabilityLabel.STABLE],
+        color=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
+        markeredgecolor="k",
+        markeredgewidth=0.5,
+        markersize=5,
+    )
 
     # set plot formatting args and save
     ax.set_box_aspect(1.0)
