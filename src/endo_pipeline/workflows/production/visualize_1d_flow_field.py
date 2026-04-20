@@ -7,23 +7,18 @@ def main(
     """
     Workflow to compute and visualize 1D drift in a given variable.
 
+    #dynamical-systems #diffae-feature-analysis #visualization
+
     **Workflow defaults:**
 
     The defaults for the command line inputs are set to visualize drift in polar
-    angle for the features extracted from the grid-based crop pattern for the
-    dataset as set by `DEFAULT_DATASET_DYNAMICS_VIS`.
+    angle for the features extracted from the grid-based crop pattern.
 
-    The defaults for the model manifest name and run name are not exposed as
-    command line inputs for this workflow, and are set to
-    `DEFAULT_MODEL_MANIFEST_NAME` and `DEFAULT_MODEL_RUN_NAME`, respectively.
-
-    The default bin widths, limits, and kernel bandwidths for computing the
-    drift are set in the settings for dynamics workflows, and are determined
-    based on the column name (see `endo_pipeline.settings.dynamics_workflows`).
-
-    For non-polar angle columns, the limits are determined based on the data and
-    the `BIN_LIMIT_PERCENTILE_CUTOFF` value, which sets the lower and upper
-    percentiles to use for determining the limits.
+    The precomputed drift dataframes that this workflow loads by default were
+    generated using the default settings for the flow field estimation workflow,
+    which include using the grid-based crop pattern and computing drift in polar
+    angle. If you want to visualize drift for a different variable or crop
+    pattern, you must run `generate-flow-field` with the desired inputs.
 
     Parameters
     ----------
