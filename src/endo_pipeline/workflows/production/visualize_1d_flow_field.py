@@ -37,7 +37,6 @@ def main(
 
     import logging
 
-    import matplotlib.pyplot as plt
     import numpy as np
 
     from endo_pipeline.cli import DEMO_MODE
@@ -50,6 +49,7 @@ def main(
     from endo_pipeline.library.analyze.vector_field_estimation import (
         get_reshaped_vector_field_and_grid,
     )
+    from endo_pipeline.library.visualize.diffae_features.dynamics_viz import plot_drift_1d
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
@@ -70,7 +70,7 @@ def main(
 
     # get label for provided feature column
     column_name = column or Column.DiffAEData.POLAR_ANGLE
-    variable_label = get_label_for_column(column_name).replace("polar ", "")
+    column_label = get_label_for_column(column_name).replace("polar ", "")
     drift_column_name = f"{column_name}_{Column.VectorField.DRIFT}"
 
     # get dataframe manifest for precomputed drift and fixed points dataframes
@@ -193,11 +193,13 @@ def main(
                 column_names=[column_name],
             )
 
-            fig, ax = plt.subplots()
-            ax.plot(centers[-1], drift, "k-", linewidth=2)
-            ax.plot(centers[-1], np.zeros_like(centers[-1]), "b--", linewidth=1, alpha=0.7)
-            ax.set_xlabel(variable_label)
-            ax.set_ylabel(f"d{variable_label}/dt")
+            fig, ax = plot_drift_1d(
+                centers=centers[-1],
+                drift=drift,
+                axes_labels=[column_label, f"d{column_label}/dt"],
+                drift_line_kwargs={"color": "k", "linewidth": 2},
+                zero_line_kwargs={"linestyle": "--", "color": "gray", "linewidth": 1, "alpha": 0.7},
+            )
             ax.set_title(fig_title)
             save_plot_to_path(fig, fig_savedir, f"{dataset_name_flow}_drift_{column_name}.png")
 
