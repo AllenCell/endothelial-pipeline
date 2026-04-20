@@ -60,6 +60,34 @@ def slugify(string: str) -> str:
     return slug
 
 
+def join_sorted_strings(strings: list[str], separator: str = "_") -> str:
+    """
+    Join a list of strings into a single string with the strings sorted alphabetically.
+
+    Examples
+    --------
+    >>> join_sorted_strings(["banana", "apple", "cherry"])
+    apple_banana_cherry
+
+    >>> join_sorted_strings(["banana", "apple", "cherry"], separator="-")
+    apple-banana-cherry
+
+    Parameters
+    ----------
+    strings
+        List of strings to be joined.
+    separator
+        Separator to use between joined strings. Default is "_".
+
+    Returns
+    -------
+    :
+        Single string with input strings sorted and joined by separator.
+    """
+
+    return separator.join(sorted(strings))
+
+
 def get_timestamp() -> str:
     """
     Get current timestamp as YYYY-MM-DD.

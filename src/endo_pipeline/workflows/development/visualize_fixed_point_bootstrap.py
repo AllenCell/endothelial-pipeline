@@ -72,12 +72,7 @@ def main(
     )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.dynamics_workflows import (
-        BIN_LIMITS_DYNAMICS,
-        BIN_LIMITS_THETA_RESCALED,
-        DYNAMICS_COLUMN_NAMES,
-        RESCALE_THETA,
-    )
+    from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_DYNAMICS, DYNAMICS_COLUMN_NAMES
     from endo_pipeline.settings.flow_field_3d import (
         DATASET_COLLECTION_FOR_3D_DYNAMICS,
         FIGSIZE_2D_FLOW_FIELD,
@@ -86,11 +81,11 @@ def main(
     from endo_pipeline.settings.flow_field_dataframes import (
         DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
         STABILITY_COLOR_DICT,
-        STABILITY_COLUMN_NAME,
         STABILITY_MARKER_DICT,
         StabilityLabel,
         StabilityLegendHandle,
     )
+    from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -139,8 +134,6 @@ def main(
 
     # Axis bounds from global bin limits, one tuple (min, max) per column
     bounds_for_plots = BIN_LIMITS_DYNAMICS.copy()
-    if RESCALE_THETA:
-        bounds_for_plots[Column.DiffAEData.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
 
     all_high_confidence_dfs: list[pd.DataFrame] = []
 
@@ -189,7 +182,7 @@ def main(
 
         # Per-dataset figures
         fig, axes = plt.subplots(NROWS_2D_FLOW_FIELD, 1, figsize=FIGSIZE_2D_FLOW_FIELD)
-        suptitle_str = f"{dataset_name} — Bootstrap-Validated Fixed Points\n(Detection Rate \u2265 {bootstrap_threshold:.2%}"
+        suptitle_str = f"{dataset_name} — Bootstrap-Validated Fixed Points\n(Detection Rate {Unicode.GEQ} {bootstrap_threshold:.2%}"
         suptitle_suffix = ")" if n_bootstrap is None else f", n bootstrap = {n_bootstrap})"
         fig.suptitle(f"{suptitle_str}{suptitle_suffix}")
 
@@ -198,7 +191,7 @@ def main(
             (axes[1], column_names[0], column_names[2]),  # PC1 vs PC3
         ]:
             for _, row in high_confidence_df.iterrows():
-                stability = row[STABILITY_COLUMN_NAME]
+                stability = row[Column.VectorField.STABILITY]
                 detection_rate = row[Column.BootstrapAnalysis.DETECTION_RATE]
                 print(
                     f"Processing fixed point with stability {stability} and detection rate {detection_rate:.2f}"
@@ -250,7 +243,7 @@ def main(
             ax.set_title(f"{xlabel} vs {ylabel}")
 
         # Legend from the stability labels present in this dataset
-        present_stabilities = set(high_confidence_df[STABILITY_COLUMN_NAME].unique())
+        present_stabilities = set(high_confidence_df[Column.VectorField.STABILITY].unique())
         legend_handles = [
             StabilityLegendHandle(stability_label=s)
             for s in StabilityLabel
@@ -278,7 +271,7 @@ def main(
     fig_combined, axes_combined = plt.subplots(
         NROWS_2D_FLOW_FIELD, 1, figsize=FIGSIZE_2D_FLOW_FIELD
     )
-    suptitle_str = f"Bootstrap-Validated Stable Fixed Points — All Datasets\n(Detection Rate \u2265 {bootstrap_threshold:.2%}"
+    suptitle_str = f"Bootstrap-Validated Stable Fixed Points — All Datasets\n(Detection Rate {Unicode.GEQ} {bootstrap_threshold:.2%}"
     fig_combined.suptitle(f"{suptitle_str}{suptitle_suffix}")
 
     for ax, column_x, column_y in [
@@ -288,7 +281,7 @@ def main(
         for ds_name, ds_df in combined_df.groupby(Column.DATASET):
             ds_color = get_dataset_color(ds_name)
             for _, row in ds_df.iterrows():
-                stability = row[STABILITY_COLUMN_NAME]
+                stability = row[Column.VectorField.STABILITY]
                 # only plot stable fixed points in the combined figure for clearer comparison
                 if stability != StabilityLabel.STABLE:
                     continue

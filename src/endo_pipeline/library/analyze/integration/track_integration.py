@@ -41,13 +41,13 @@ from endo_pipeline.settings.dynamics_workflows import (
     KERNEL_BANDWIDTHS_DYNAMICS,
     KERNEL_NAMES_DYNAMICS,
     LONG_TRACK_THRESHOLD_LENGTH,
-    PERIOD_THETA_RESCALED,
+    POLAR_ANGLE_PERIOD,
     RESCALE_THETA,
+    TIME_STEP_IN_MINUTES,
 )
 from endo_pipeline.settings.flow_field_3d import (
     BIN_WIDTH_DEFAULTS,
     INIT_POINT_3D,
-    TIME_STEP_IN_MINUTES,
     TRAJECTORY_TIME_SPAN,
 )
 from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLUMN_NAME
@@ -68,7 +68,7 @@ logger = logging.getLogger(__name__)
 def get_flow_field_estimation_kernels(
     column_names: list[str | Column.DiffAEData] | None = None,
     rescale_theta: bool = RESCALE_THETA,
-    period_theta_rescaled: float = PERIOD_THETA_RESCALED,
+    period_theta_rescaled: float = POLAR_ANGLE_PERIOD,
     kernel_names_dynamics: dict[Column.DiffAEData, str] = KERNEL_NAMES_DYNAMICS,
     kernel_bandwidths_dynamics: dict[Column.DiffAEData, float] = KERNEL_BANDWIDTHS_DYNAMICS,
 ) -> list[KramersMoyalKernel]:
@@ -745,7 +745,7 @@ def add_distance_to_fixed_points_columns(
     # determine distance from each fixed point over time and add to the dataframe, along
     # with the signed difference along each axis (e.g. theta, r, rho) from each fixed point
     dist_from_fp_col_prefix = "dist_from_fp_"
-    rescaled_theta = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
+    rescaled_theta = POLAR_ANGLE_PERIOD + np.pi * (1 - RESCALE_THETA)
 
     for i in fixed_point_df.index:
         fpt = fixed_point_df.iloc[i]

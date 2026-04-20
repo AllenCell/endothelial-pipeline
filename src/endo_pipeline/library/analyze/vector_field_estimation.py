@@ -20,7 +20,8 @@ from endo_pipeline.library.analyze.vector_field_function import (
 )
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.dynamics_workflows import HISTOGRAM_THRESHOLD_FOR_MASKING
+from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
+from endo_pipeline.settings.flow_field_2d import HISTOGRAM_THRESHOLD_FOR_MASKING
 from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
 from endo_pipeline.settings.flow_field_dataframes import DATAFRAME_MANIFEST_PREFIX_DRIFT
 from endo_pipeline.settings.workflow_defaults import (
@@ -143,6 +144,12 @@ def compute_drift_vector_field(
         traj_list, d_traj_list, bins=bins, dt=time_step, kernel=kernel
     )[0]
 
+    # Ensure drift_coeffs always has a trailing components dimension
+    # (shape ..., N) so that downstream functions handle the 1D case
+    # (single column) the same as multi-dimensional cases.
+    if drift_coeffs.ndim == 1:
+        drift_coeffs = drift_coeffs[:, np.newaxis]
+
     return drift_coeffs
 
 
@@ -178,7 +185,7 @@ def create_drift_vector_field_df(
 
     # build dataframe with columns for grid points in each of the three
     # dimensions and the corresponding drift coefficients
-    drift_column_names: list[str] = [f"{name}_drift" for name in column_names]
+    drift_column_names: list[str] = [f"{name}_{Column.VectorField.DRIFT}" for name in column_names]
     vector_field_df = pd.DataFrame(columns=[Column.DATASET, *drift_column_names, *column_names])
 
     # make tuple for indexing the drift coefficients and feature grid
@@ -292,6 +299,7 @@ def get_drift_estimates_and_fixed_points(
 
 def load_drift_dataframe_for_dataset(
     dataset_name: str,
+    columns: list[str | Column.DiffAEData] | None = None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
 ) -> pd.DataFrame:
@@ -313,8 +321,11 @@ def load_drift_dataframe_for_dataset(
         Drift dataframe for the given dataset.
     """
 
+    column_names = columns or list(DYNAMICS_COLUMN_NAMES)
+    columns_str = f"_{'_'.join(sorted(column_names))}_"
+
     base_name = f"{model_manifest_name}_{run_name}_grid"
-    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{base_name}"
+    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}{columns_str}{base_name}"
     drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
 
     if dataset_name not in drift_dataframe_manifest.locations:
@@ -361,7 +372,7 @@ def get_reshaped_vector_field_and_grid(
 
     # restructure the drift dataframe into a flow field dictionary
     ndim = len(column_names)
-    drift_column_names = [f"{name}_drift" for name in column_names]
+    drift_column_names = [f"{name}_{Column.VectorField.DRIFT}" for name in column_names]
 
     grid_points_1d = [
         np.sort(flow_field_dataframe[column_name].unique()) for column_name in column_names
