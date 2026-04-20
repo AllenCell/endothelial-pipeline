@@ -21,9 +21,7 @@ from endo_pipeline.library.analyze.polar_coords import (
     rewrap_polar_angle,
     unwrap_nonsequential_array,
 )
-from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
-    get_seg_feat_plot_args,
-)
+from endo_pipeline.settings.column_metadata import COLUMN_METADATA_DICT
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.density_comparison_plots import (
     DENSITY_PLOT_KDE_BANDWIDTH,
@@ -781,7 +779,7 @@ def get_label_for_column(
 
     # check mapping dict for label override
     if mapping_dict is None:
-        mapping_dict = get_seg_feat_plot_args()
+        mapping_dict = COLUMN_METADATA_DICT
     if column_name in mapping_dict:
         label = mapping_dict[column_name]["label"]
 
