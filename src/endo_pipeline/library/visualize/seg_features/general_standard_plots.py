@@ -7,7 +7,6 @@ from matplotlib import pyplot as plt
 from matplotlib.colorbar import ColorbarBase
 
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 # set the plot shape to the golden ratio
 AX_WIDTH = 4.5
