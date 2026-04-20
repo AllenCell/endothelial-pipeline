@@ -20,6 +20,7 @@ from endo_pipeline.library.analyze.vector_field_function import (
 )
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.flow_field_2d import HISTOGRAM_THRESHOLD_FOR_MASKING
 from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
 from endo_pipeline.settings.flow_field_dataframes import DATAFRAME_MANIFEST_PREFIX_DRIFT
@@ -292,6 +293,7 @@ def get_drift_estimates_and_fixed_points(
 
 def load_drift_dataframe_for_dataset(
     dataset_name: str,
+    columns: list[str | Column.DiffAEData] | None = None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
 ) -> pd.DataFrame:
@@ -313,8 +315,11 @@ def load_drift_dataframe_for_dataset(
         Drift dataframe for the given dataset.
     """
 
+    column_names = columns or list(DYNAMICS_COLUMN_NAMES)
+    columns_str = f"_{'_'.join(sorted(column_names))}_"
+
     base_name = f"{model_manifest_name}_{run_name}_grid"
-    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{base_name}"
+    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}{columns_str}{base_name}"
     drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
 
     if dataset_name not in drift_dataframe_manifest.locations:
