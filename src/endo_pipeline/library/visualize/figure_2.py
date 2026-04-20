@@ -1,5 +1,6 @@
 """Helper functions for visualizations used in Figure 2."""
 
+import math
 from pathlib import Path
 from typing import Literal
 
@@ -204,12 +205,29 @@ def make_crop_example_contact_sheet(
         ha="right",
     )
 
+    shear_stress = math.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
+    shear_stress_label = f"{shear_stress} dyn/cm²"
+    # reserve left margin for the vertical label (rect = [left, bottom, right, top])
+    fig.get_layout_engine().set(rect=(0.02, 0, 1, 1))
+    # add vertical title to the left of the contact sheet spanning all rows
+    fig.text(
+        0,
+        0.5,
+        shear_stress_label,
+        va="center",
+        ha="center",
+        rotation="vertical",
+        fontsize=FONTSIZE_MEDIUM,
+        fontweight="bold",
+    )
+
     save_plot_to_path(
         fig,
         fig_savedir,
         fig_filename,
         file_format=file_format,
         tight_layout=False,
+        pad_inches=0,
     )
 
     return fig_savedir / f"{fig_filename}{file_format}"
