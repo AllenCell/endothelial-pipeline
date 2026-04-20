@@ -168,6 +168,7 @@ def generate_from_dataframe(
     num_gpus: int | None = None,
     random_seed: int | None = None,
     n_noise_samples: int = 1,
+    average: bool = False,
 ) -> np.ndarray:
     """
     Reconstruct crops from feature coordinates stored in a given dataframe.
@@ -190,6 +191,10 @@ def generate_from_dataframe(
         Number of noise samples to use for generating images. Each noise sample
         will result in a separate reconstructed image for each set of feature
         coordinates in the dataframe.
+    average
+        If True, average the generated images across noise samples for each set of
+        feature coordinates, resulting in a single reconstructed image per set of
+        feature coordinates. If False, return all generated images without averaging.
 
     Returns
     -------
@@ -221,15 +226,16 @@ def generate_from_dataframe(
     pc_column_names = DIFFAE_PC_COLUMN_NAMES[:num_pcs]
     latent_coords = pca.inverse_transform(dataframe[pc_column_names].to_numpy())
 
-    reconstructed_imgs = generate_from_coords(
+    reconstructed_image = generate_from_coords(
         model,
         latent_coords,
         num_gpus=num_gpus,
         random_seed=random_seed,
         n_noise_samples=n_noise_samples,
+        average=average,
     )
 
-    return reconstructed_imgs
+    return reconstructed_image
 
 
 def generate_from_coords(
@@ -282,7 +288,7 @@ def generate_from_coords(
     model_ = model.to(device)
 
     if isinstance(model_, DiffusionAutoEncoder):
-        walk_img = model_.generate_from_latent(
+        reconstructed_image = model_.generate_from_latent(
             coords_,
             n_noise_samples=n_noise_samples,
             average=average,
@@ -290,14 +296,31 @@ def generate_from_coords(
             random_seed=random_seed,
         )
     else:
-        walk_img = model_.generate_from_latent(
+        reconstructed_image = model_.generate_from_latent(
             coords_, n_noise_samples=n_noise_samples, average=average, save=False
         )
 
-    if isinstance(walk_img, torch.Tensor):
-        return walk_img.detach().cpu().numpy()
+    if isinstance(reconstructed_image, torch.Tensor):
+        reconstructed_image_array = reconstructed_image.detach().cpu().numpy()
+    elif isinstance(reconstructed_image, np.ndarray):
+        reconstructed_image_array = reconstructed_image
 
-    return walk_img
+    # remove any singleton dimensions
+    reconstructed_image_array = reconstructed_image_array.squeeze()
+
+    # reshape if n_noise_samples > 1; the image shape is returned as
+    # (width, height*num_noise_samples) if n_noise_samples > 1,
+    # so reshape to (num_noise_samples, width, height)
+    if n_noise_samples > 1:
+        image_sample_list = []
+        image_height = reconstructed_image_array.shape[-1] // n_noise_samples
+        for sample in range(n_noise_samples):
+            image_sample_list.append(
+                reconstructed_image_array[:, sample * image_height : (sample + 1) * image_height]
+            )
+        reconstructed_image_array = np.stack(image_sample_list, axis=0)
+
+    return reconstructed_image_array
 
 
 def generate_from_coords_batch(

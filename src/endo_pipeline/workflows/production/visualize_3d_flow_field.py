@@ -25,7 +25,7 @@ def main(
     By default, it uses estimates from timeseries features extracted from
     grid-based crops but can also be run using the estimates from tracked-based
     crops by setting the `crop_pattern` parameter to "tracked". Note that to do
-    so, the `generate_3d_flow_field` workflow must have been run with the same
+    so, the `generate_flow_field` workflow must have been run with the same
     `crop_pattern` setting to generate the appropriate flow field estimates for
     the tracked-based crops.
 
@@ -91,7 +91,7 @@ def main(
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import get_output_path, load_dataframe
+    from endo_pipeline.io import get_output_path, join_sorted_strings, load_dataframe
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_flow_condition,
         filter_dataframe_to_steady_state,
@@ -121,7 +121,7 @@ def main(
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
         METADATA_COLUMNS_TO_KEEP,
-        PERIOD_THETA_RESCALED,
+        POLAR_ANGLE_PERIOD,
         RESCALE_THETA,
     )
     from endo_pipeline.settings.flow_field_3d import (
@@ -132,7 +132,6 @@ def main(
     from endo_pipeline.settings.flow_field_dataframes import (
         DATAFRAME_MANIFEST_PREFIX_DRIFT,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
-        STABILITY_COLUMN_NAME,
         StabilityLabel,
     )
     from endo_pipeline.settings.workflow_defaults import (
@@ -147,8 +146,7 @@ def main(
     run_name = DEFAULT_MODEL_RUN_NAME
     column_names = list(DYNAMICS_COLUMN_NAMES)
     ndim = len(column_names)
-    drift_column_names = [f"{name}_drift" for name in column_names]
-    stability_label_column_name = STABILITY_COLUMN_NAME
+    drift_column_names = [f"{name}_{ColumnName.VectorField.DRIFT}" for name in column_names]
     # columns to keep when loading feature dataframes
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
@@ -157,8 +155,11 @@ def main(
     feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
-    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{base_name}"
-    fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
+    columns_str = join_sorted_strings(cast(list[str], column_names))
+    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{columns_str}_{base_name}"
+    fixed_points_dataframe_manifest_name = (
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{columns_str}_{base_name}"
+    )
     # Flexible DEMO_MODE loading pattern: first try to load the manifests with
     # the expected names, but if any of them are not found, then try to load the
     # corresponding demo manifests with the "_demo." This allows for both
@@ -190,6 +191,8 @@ def main(
             fixed_points_dataframe_manifest = load_dataframe_manifest(
                 f"{fixed_points_dataframe_manifest_name}{demo_suffix}"
             )
+        else:
+            raise
 
     # either run on specified datasets or all datasets in the manifest if no
     # specific datasets are provided restrict to datasets that are present in
@@ -223,7 +226,7 @@ def main(
     # bin limits if use_same_axes is False
     kernels = []
     bin_widths = []
-    rescaled_theta_period = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
+    rescaled_theta_period = POLAR_ANGLE_PERIOD + np.pi * (1 - RESCALE_THETA)
     bounds_for_plots = []
     for column_name in column_names:
         name = KERNEL_NAMES_DYNAMICS[column_name]
@@ -290,7 +293,7 @@ def main(
                     *column_names,
                     ColumnName.DATASET,
                     ColumnName.SHEAR_STRESS,
-                    stability_label_column_name,
+                    ColumnName.VectorField.STABILITY,
                 ],
             )
             dataset_has_fixed_points = True
@@ -317,7 +320,7 @@ def main(
                     fixed_points_dataframe[ColumnName.SHEAR_STRESS] == shear_stress
                 ]
                 stable_fixed_points = fixed_points_for_flow_condition[
-                    fixed_points_for_flow_condition[stability_label_column_name]
+                    fixed_points_for_flow_condition[ColumnName.VectorField.STABILITY]
                     == StabilityLabel.STABLE
                 ]
                 if not stable_fixed_points.empty:

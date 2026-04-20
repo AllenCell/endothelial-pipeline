@@ -31,10 +31,6 @@ FMS_ANNOTATION_NOTES_BOOTSTRAPPING: str = (
 )
 """Annotation notes for bootstrapped fixed point dataframes uploaded to FMS in 3D flow field analysis."""
 
-STABILITY_COLUMN_NAME: str = "stability"
-"""Column name for fixed point stability classification labels in fixed point
-dataframes from 3D flow field analysis."""
-
 
 class StabilityLabel(StrEnum):
     """Fixed point stability classification labels."""

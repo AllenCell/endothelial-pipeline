@@ -1,5 +1,6 @@
 from endo_pipeline.cli import CropPattern, Datasets
-from endo_pipeline.settings.dynamics_workflows import LONG_TRACK_THRESHOLD_LENGTH, MAX_MSD_LAG
+from endo_pipeline.settings.dynamics_workflows import LONG_TRACK_THRESHOLD_LENGTH
+from endo_pipeline.settings.msd import MAX_MSD_LAG
 
 
 def main(
@@ -83,7 +84,7 @@ def main(
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins
     from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
-    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
+    from endo_pipeline.library.visualize.columns import get_label_for_column
     from endo_pipeline.library.visualize.diffae_features.vis_msd import (
         plot_msd_with_exponential_fit,
     )
@@ -92,15 +93,13 @@ def main(
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMIT_PERCENTILE_CUTOFF,
         BIN_LIMITS_DYNAMICS,
-        BIN_LIMITS_THETA_RESCALED,
         BIN_WIDTHS_DYNAMICS,
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
         METADATA_COLUMNS_TO_KEEP,
-        MSD_Y_AXIS_LIMITS,
-        RESCALE_THETA,
     )
+    from endo_pipeline.settings.msd import MSD_Y_AXIS_LIMITS
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -110,15 +109,11 @@ def main(
 
     # get labels for provided set of feature columns
     column_names = list(DYNAMICS_COLUMN_NAMES)
-    variable_labels_dict = {
-        col: get_label_for_column(col).replace("polar ", "") for col in column_names
-    }
+    variable_labels_dict = {col: get_label_for_column(col) for col in column_names}
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
     # unpack default bin widths and limits for each column, adjusting limits if rescaling theta
     global_bin_limits_dict = BIN_LIMITS_DYNAMICS.copy()
-    if RESCALE_THETA:
-        global_bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
     polar_angle_period = (
         global_bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][1]
         - global_bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][0]
