@@ -10,19 +10,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
+from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
-from endo_pipeline.library.analyze.dataframe_filtering import (
-    filter_dataframe_by_annotations,
-    filter_dataframe_to_steady_state,
-)
-from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
+from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
 from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
     add_optical_flow_features,
 )
-from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.analyze.vector_field_estimation import (
-    compute_drift_vector_field,
     get_reshaped_vector_field_and_grid,
     load_drift_dataframe_for_dataset,
 )
@@ -41,15 +35,7 @@ from endo_pipeline.library.visualize.migration_coherence import plot_optical_flo
 from endo_pipeline.library.visualize.summary_plot import plot_cross_dataset_summaries
 from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.dynamics_workflows import (
-    BIN_WIDTHS_DYNAMICS,
-    KERNEL_BANDWIDTHS_DYNAMICS,
-    KERNEL_NAMES_DYNAMICS,
-    METADATA_COLUMNS_TO_KEEP,
-    POLAR_ANGLE_PERIOD,
-    POLAR_ANGLE_RANGE,
-    TIME_STEP_IN_HOURS,
-)
+from endo_pipeline.settings.dynamics_workflows import METADATA_COLUMNS_TO_KEEP, POLAR_ANGLE_RANGE
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
 from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.flow_field_2d import (
@@ -122,23 +108,6 @@ column_labels_r_rho = [get_label_for_column(col).replace("polar ", "") for col i
 column_label_theta = get_label_for_column(column_theta).replace("polar ", "")
 dataframe_columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *feature_column_names]
 
-# initialize kernels and bin widths for each of the three variables for flow
-# field estimation
-kernels_r_rho: list[KramersMoyalKernel] = []
-bin_widths_r_rho: list[float] = []
-for column_name in columns_r_rho:
-    name = KERNEL_NAMES_DYNAMICS[column_name]
-    bandwidth = KERNEL_BANDWIDTHS_DYNAMICS[column_name]
-    bin_width = BIN_WIDTHS_DYNAMICS[column_name]
-    kernels_r_rho.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=None))
-    bin_widths_r_rho.append(bin_width)
-
-kernel_theta = KramersMoyalKernel(
-    name=KERNEL_NAMES_DYNAMICS[column_theta],
-    bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_theta],
-    period=POLAR_ANGLE_PERIOD,
-)
-
 # global plotting kwargs / parameters
 gridspec_kwargs = {"wspace": 0.1, "hspace": 0.1}
 xlabel_kwargs = {"labelpad": 2}
@@ -186,17 +155,11 @@ for dataset_name, panel_letters, y_position in [
     fig_savedir = get_output_path("figure_2", dataset_name)
     dataset_config = load_dataset_config(dataset_name)
 
-    # load dataframe and perform additional filtering (remove
-    # non-steady-state timepoints based on annotations), computing
-    # only the columns needed for flow field estimation and analysis to save memory.
-    df_ = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
-    df = df_[dataframe_columns_to_compute].compute()
-    df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
-
+    # load fixed points dataframes (if available) for both (r, rho) and theta,
+    # filter to just stable fixed points, and store in dict for easy access when plotting
     stable_fixed_points_dict: dict[
         list[Column.DiffAEData] | Column.DiffAEData, pd.DataFrame | None
     ] = {}
-    # load fixed points dataframe for this dataset
     for column_key, manifest in [
         (columns_r_rho, fixed_points_r_rho_dataframe_manifest),
         (column_theta, fixed_points_theta_dataframe_manifest),
@@ -229,16 +192,14 @@ for dataset_name, panel_letters, y_position in [
     centers_mesh = np.meshgrid(*centers_r_rho, indexing="ij")
 
     # get in 1D for theta
-    bins_theta, centers_theta = get_bins(
-        bin_widths=(BIN_WIDTHS_DYNAMICS[column_theta],),
-        data=df_steady_state[column_theta].to_numpy(),
-    )
-    drift_theta = compute_drift_vector_field(
-        df_steady_state,
+    drift_theta_dataframe = load_drift_dataframe_for_dataset(dataset_name, columns=[column_theta])
+    if drift_theta_dataframe.empty:
+        raise ValueError(
+            f"No precomputed dataframe found for (theta) dynamics for dataset [ {dataset_name} ]."
+        )
+    drift_theta, centers_theta = get_reshaped_vector_field_and_grid(
+        drift_theta_dataframe,
         column_names=[column_theta],
-        bins=bins_theta,
-        kernel=kernel_theta,
-        time_step=TIME_STEP_IN_HOURS,
     )
 
     # make and save plots
@@ -426,11 +387,7 @@ for dataset_name in [dataset_low, dataset_high]:
     # load and filter data
     df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
     df_ = df[dataframe_columns_to_compute].compute()
-    df_steady_state = filter_dataframe_by_annotations(
-        df_,
-        dataset_config,
-        timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
-    )
+    df_steady_state = filter_dataframe_to_steady_state(df_, dataset_config)
 
     df_of = add_optical_flow_features(
         df_steady_state,
