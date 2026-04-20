@@ -25,7 +25,7 @@ def main(
     By default, it uses estimates from timeseries features extracted from
     grid-based crops but can also be run using the estimates from tracked-based
     crops by setting the `crop_pattern` parameter to "tracked". Note that to do
-    so, the `generate_3d_flow_field` workflow must have been run with the same
+    so, the `generate_flow_field` workflow must have been run with the same
     `crop_pattern` setting to generate the appropriate flow field estimates for
     the tracked-based crops.
 
