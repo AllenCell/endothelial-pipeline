@@ -8,7 +8,7 @@ def main(
     upload_to_fms: bool = False,
 ) -> None:
     """
-    Generate 3D (drift) flow fields for the dynamics of the crop-based DiffAE
+    Generate drift vector fields for the dynamics of the crop-based DiffAE
     features for a given set of datasets.
 
     #dynamical-systems #diffae-feature-analysis
@@ -24,13 +24,22 @@ def main(
     `crop_pattern` parameter to "tracked".
 
     The specific features used for flow field estimation and analysis are
-    determined by the `DYNAMICS_COLUMN_NAMES` setting, which specifies the names
-    of the three features to use for flow field estimation and analysis. By
-    default, these are set to be the polar angle, polar radius, and rho features
-    derived from the DiffAE features via a 3D PCA transformation. For more
-    details on the specific features used and how they are derived, see the
-    methods `fit_pca` and `project_features_to_pcs` in the
-    `pca` module.
+    determined by the input `columns`. By default, these are set to be the polar
+    angle, polar radius, and rho features derived from the DiffAE features via a
+    3D PCA transformation. For more details on the specific features used and
+    how they are derived, see the methods `fit_pca` and
+    `project_features_to_pcs` in the `pca` module.
+
+    Note that the number of input features determines the dimensionality of the
+    flow field and fixed point analysis. By default, the workflow is set to use
+    three features for a 3D flow field, which can then be visualized using the
+    `visualize_3d_flow_field` workflow. However, the workflow can also be run
+    using only a subset of these features (e.g., just the polar angle and polar
+    radius) for a 2D flow field analysis, which can be visualized using the
+    `visualize_2d_flow_field` workflow. If using a subset of the default three
+    features, make sure to specify the corresponding columns in the `columns`
+    parameter and to use the appropriate visualization workflow for the number
+    of features used.
 
     The workflow runs on the datasets specified via the `datasets` parameter,
     which can be a list of dataset names or dataset collection names. By
@@ -39,16 +48,13 @@ def main(
 
     **Flow field estimation and analysis**
 
-    Using the 3D feature space defined by the DiffAE + PC derived features:
+    Using the feature space defined by the specified input features, this
+    workflow does the following for each specified dataset:
 
-        (polar_theta, polar_r, rho)
-
-    this workflow will do the following for each specified dataset:
-
-    1. Estimate 3D flow fields using a kernel-based method for estimating
+    1. Estimate drift flow fields using a kernel-based method for estimating
        Kramers-Moyal coefficients from time series data.
     2. Use interpolation to get a callable flow field function.
-    3. Identify stable fixed points in the 3D flow field using a root-finding
+    3. Identify stable fixed points of the flow field using a root-finding
        method applied to the flow field function.
     4. Save the following outputs for each dataset as parquet files:
         - Dataframe with the estimated drift coefficients at each grid point for
@@ -63,10 +69,13 @@ def main(
         The crop pattern to use features from.
     datasets
         Optional, specific dataset(s) to run the workflow on.
+    columns
+        Optional, specific columns (features) to use for flow field estimation
+        and analysis.
     upload_to_fms
         If True, upload the output dataframes to FMS and update the
-        corresponding dataframe manifests with the FMS locations. If False,
-        save the output dataframes locally and log paths.
+        corresponding dataframe manifests with the FMS locations. If False, save
+        the output dataframes locally and log paths.
     """
     import logging
     from typing import cast
