@@ -68,6 +68,7 @@ from endo_pipeline.settings.flow_field_dataframes import (
     StabilityLabel,
 )
 from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -136,8 +137,6 @@ r_lims = (0.2, 2.0)
 rho_lims = (-1.15, 1.15)
 nullcline_r_style = "dashed"
 nullcline_rho_style = (0, (1, 1))  # dense dotted
-
-unicode_pi = "\u03c0"
 
 
 # %%
@@ -348,7 +347,7 @@ for dataset_name, panel_letters, y_position in [
     ax.set_box_aspect(1.0)
     ax.set_xticks(
         [0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi],
-        labels=["0", f"{unicode_pi}/4", f"{unicode_pi}/2", f"3{unicode_pi}/4", f"{unicode_pi}"],
+        labels=["0", f"{Unicode.PI}/4", f"{Unicode.PI}/2", f"3{Unicode.PI}/4", f"{Unicode.PI}"],
     )
     ax.set_yticks([-0.3, 0.0, 0.3])
     save_plot_to_path(fig, fig_savedir, theta_plot_filename, file_format=".svg")
@@ -433,7 +432,7 @@ for dataset_name in [dataset_low, dataset_high]:
         optical_flow_feature=optical_flow_feature,
         feature_label="Migration Coherence",
         feature_lim=(0, 1),
-        ss_label=f"{shear_stress} dyn/cm$\u00b2$",
+        ss_label=f"{shear_stress} dyn/cm{Unicode.SQUARED}",
         color=get_dataset_color(dataset_name),
         df_fp=None,
         binwidth=0.02,

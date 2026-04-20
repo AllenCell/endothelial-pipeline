@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 from matplotlib.colorbar import ColorbarBase
 
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 # set the plot shape to the golden ratio
 AX_WIDTH = 4.5
@@ -508,7 +509,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         },
         Column.DiffAEData.POLAR_ANGLE: {
             "column_name": Column.DiffAEData.POLAR_ANGLE,
-            "label": "\u03b8",
+            "label": Unicode.THETA,
             "lims": None,
             "bin_width": None,
             "ticks": None,
@@ -516,7 +517,7 @@ def get_seg_feat_plot_args() -> dict[str, dict[str, Any]]:
         },
         Column.DiffAEData.PC3_FLIPPED: {
             "column_name": Column.DiffAEData.PC3_FLIPPED,
-            "label": "\u03c1",
+            "label": Unicode.RHO,
             "lims": None,
             "bin_width": None,
             "ticks": None,

@@ -6,17 +6,20 @@ from enum import StrEnum
 class UnicodeCharacters(StrEnum):
     """Unicode characters used in the project."""
 
-    THETA = "\u03b8"
-    """Unicode for lowercase theta."""
+    MU = "\u03bc"
+    """Unicode for lowercase mu."""
+
+    PI = "\u03c0"
+    """Unicode for lowercase pi."""
 
     RHO = "\u03c1"
     """Unicode for lowercase rho."""
 
-    MU = "\u03bc"
-    """Unicode for lowercase mu."""
-
     SIGMA = "\u03c3"
     """Unicode for lowercase sigma."""
+
+    THETA = "\u03b8"
+    """Unicode for lowercase theta."""
 
     RIGHT_ARROW = "\u2192"
     """Unicode for right arrow."""

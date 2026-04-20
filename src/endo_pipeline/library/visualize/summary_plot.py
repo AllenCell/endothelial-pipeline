@@ -39,6 +39,7 @@ from endo_pipeline.settings.flow_field_dataframes import (
     STABILITY_MARKER_DICT,
 )
 from endo_pipeline.settings.summary_plot import CELL_LINE_LABEL_MAP, COLOR_PALETTE
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
 
@@ -528,7 +529,9 @@ def plot_cross_dataset_summaries(
     if x_axis_mode == "cell_line":
         fig.supxlabel("Cell Line", fontsize=FONTSIZE_MEDIUM, fontweight="bold")
     else:
-        fig.supxlabel("Shear Stress (dyn/cm\u00b2)", fontsize=FONTSIZE_MEDIUM, fontweight="bold")
+        fig.supxlabel(
+            f"Shear Stress (dyn/cm{Unicode.SQUARED})", fontsize=FONTSIZE_MEDIUM, fontweight="bold"
+        )
 
     # reduce spacing between axis labels and tick labels
     for ax in axs[0]:
