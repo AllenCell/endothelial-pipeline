@@ -39,7 +39,6 @@ def main(
     """
 
     import logging
-    from typing import cast
 
     import matplotlib.pyplot as plt
     import numpy as np
@@ -47,29 +46,24 @@ def main(
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
-    from endo_pipeline.library.analyze.dataframe_filtering import (
-        filter_dataframe_by_flow_condition,
-        filter_dataframe_to_steady_state,
+    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_flow_condition
+    from endo_pipeline.library.analyze.dataframe_validation import (
+        check_required_columns_in_dataframe,
     )
-    from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
-    from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
-    from endo_pipeline.library.analyze.numerics.binning import get_bins
-    from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
+    from endo_pipeline.library.analyze.vector_field_estimation import (
+        get_reshaped_vector_field_and_grid,
+    )
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
-    from endo_pipeline.manifests import load_dataframe_manifest
-    from endo_pipeline.settings.column_names import ColumnName
-    from endo_pipeline.settings.dynamics_workflows import (
-        BIN_LIMIT_PERCENTILE_CUTOFF,
-        BIN_LIMITS_DYNAMICS,
-        BIN_LIMITS_THETA_RESCALED,
-        BIN_WIDTHS_DYNAMICS,
-        DEFAULT_DATASETS_DYNAMICS_VIS,
-        KERNEL_BANDWIDTHS_DYNAMICS,
-        KERNEL_NAMES_DYNAMICS,
-        METADATA_COLUMNS_TO_KEEP,
-        RESCALE_THETA,
+    from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+    from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.dynamics_workflows import DEFAULT_DATASETS_DYNAMICS_VIS
+    from endo_pipeline.settings.flow_field_dataframes import (
+        DATAFRAME_MANIFEST_PREFIX_DRIFT,
+        DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+        STABILITY_COLOR_DICT,
+        STABILITY_MARKER_DICT,
+        StabilityLabel,
     )
-    from endo_pipeline.settings.flow_field_3d import TIME_STEP_IN_MINUTES
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -78,33 +72,60 @@ def main(
     logger = logging.getLogger(__name__)
 
     # get label for provided feature column
-    column_name = column or ColumnName.DiffAEData.POLAR_ANGLE
+    column_name = column or Column.DiffAEData.POLAR_ANGLE
     variable_label = get_label_for_column(column_name).replace("polar ", "")
-    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], column_name]
+    drift_column_name = f"{column_name}_{Column.VectorField.DRIFT}"
 
-    # cast global constant dicts to avoid type errors
-    bin_limits_dict = cast(
-        dict[str | ColumnName.DiffAEData, tuple[float, float]], BIN_LIMITS_DYNAMICS.copy()
-    )
-    bin_widths_dict = cast(dict[str | ColumnName.DiffAEData, float], BIN_WIDTHS_DYNAMICS.copy())
-    kernel_names_dict = cast(dict[str | ColumnName.DiffAEData, str], KERNEL_NAMES_DYNAMICS.copy())
-    kernel_bandwidths_dict = cast(
-        dict[str | ColumnName.DiffAEData, float], KERNEL_BANDWIDTHS_DYNAMICS.copy()
-    )
-
-    # unpack default bin widths and limits for each column, adjusting limits if
-    # rescaling theta
-    if RESCALE_THETA:
-        bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
-    polar_angle_period = (
-        bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][1]
-        - bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][0]
-    )
-
-    # get dataframe manifest for crop-based features
+    # get dataframe manifest for precomputed drift and fixed points dataframes
     base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
-    feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
-    feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
+    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{column_name}_{base_name}"
+    fixed_points_dataframe_manifest_name = (
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{column_name}_{base_name}"
+    )
+    # Flexible DEMO_MODE loading pattern: first try to load the manifests with
+    # the expected names, but if any of them are not found, then try to load the
+    # corresponding demo manifests with the "_demo." This allows for both
+    # running the full pipeline in DEMO_MODE with the demo manifests, and also
+    # for running this workflow in DEMO_MODE with the full manifests if the user
+    # has them available (i.e., just "demo" the visualization step without
+    # needing to also "demo" the flow field estimation step).
+    try:
+        # Default is to load the "production" manifests, even in DEMO_MODE, to
+        # allow for just "demoing" the visualization step if the full manifests
+        # are available.
+        drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
+        fixed_points_dataframe_manifest = load_dataframe_manifest(
+            fixed_points_dataframe_manifest_name
+        )
+    except FileNotFoundError:
+        # If the production manifests are not found, then in DEMO_MODE will try
+        # to load the demo manifests with the "_demo" suffix. Else, if not in
+        # DEMO_MODE, will raise the original FileNotFoundError.
+        logger.warning(
+            "Dataframe manifest(s) not found for production run. If you are running in DEMO_MODE, "
+            "the workflow will attempt to load the corresponding demo dataframe manifest(s)."
+        )
+        if DEMO_MODE:
+            demo_suffix = "_demo"
+            drift_dataframe_manifest = load_dataframe_manifest(
+                f"{drift_dataframe_manifest_name}{demo_suffix}"
+            )
+            fixed_points_dataframe_manifest = load_dataframe_manifest(
+                f"{fixed_points_dataframe_manifest_name}{demo_suffix}"
+            )
+
+    # Use provided datasets or default if none provided.
+    dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
+
+    if DEMO_MODE:
+        logger.warning(
+            "DEMO MODE: Processing no more than two of the provided datasets for quick visualization."
+        )
+        # take min of the number of datasets provided and 2, to limit to at most
+        # 2 datasets in DEMO_MODE for quick visualization (i.e., avoid error if
+        # only 1 dataset is provided)
+        num_datasets = min(len(dataset_names), 2)
+        dataset_names = dataset_names[:num_datasets]
 
     # Use provided datasets or default if none provided.
     dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
@@ -112,74 +133,99 @@ def main(
     # loop over datasets in collection, compute 1D drift for given variable, and
     # plot results, skipping datasets not found in manifest
     for dataset_name in dataset_names:
-        if dataset_name not in feature_dataframe_manifest.locations:
+        if dataset_name not in drift_dataframe_manifest.locations:
             logger.warning(
-                f"Dataset {dataset_name} not found in manifest {feature_dataframe_manifest_name}. Skipping."
+                f"Dataset {dataset_name} not found in manifest {drift_dataframe_manifest.name}. Skipping."
             )
             continue
         fig_savedir = get_output_path(__file__, crop_pattern, dataset_name)
         dataset_config = load_dataset_config(dataset_name)
 
-        # load dataframe and perform additional filtering (remove
-        # non-steady-state timepoints based on annotations), computing
-        # only the columns needed for flow field estimation and analysis to save memory.
-        df_ = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
-        df = df_[columns_to_compute].compute()
-        df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
+        drift_dataframe_location = get_dataframe_location_for_dataset(
+            drift_dataframe_manifest, dataset_name
+        )
+        drift_dataframe = load_dataframe(drift_dataframe_location, delay=False)
+        check_required_columns_in_dataframe(
+            drift_dataframe,
+            required_columns=[
+                column_name,
+                drift_column_name,
+                Column.DATASET,
+                Column.SHEAR_STRESS,
+            ],
+        )
+        # load fixed point dataframe if it exists, and check that required
+        # columns are present turn fixed point dataframe into list of arrays of
+        # stable fixed point coordinates for each dataset to use for plotting
+        dataset_has_fixed_points = False
+        try:
+            fixed_points_dataframe_location = get_dataframe_location_for_dataset(
+                fixed_points_dataframe_manifest, dataset_name
+            )
+            fixed_points_dataframe = load_dataframe(fixed_points_dataframe_location, delay=False)
+            check_required_columns_in_dataframe(
+                fixed_points_dataframe,
+                required_columns=[
+                    column_name,
+                    Column.DATASET,
+                    Column.SHEAR_STRESS,
+                    Column.VectorField.STABILITY,
+                ],
+            )
+            dataset_has_fixed_points = True
+        except KeyError:
+            logger.warning(
+                "No fixed point dataframe found for dataset [ %s ] in dataframe manifest [ %s ]. "
+                "Stable fixed points will not be overlaid on the flow field visualizations for this dataset.",
+                dataset_name,
+                fixed_points_dataframe_manifest.name,
+            )
 
         # compute on a per-shear stress condition basis
         for flow_condition in dataset_config.flow_conditions:
-            dataset_name_flow = f"{dataset_name}_shear_{int(flow_condition.shear_stress)}"
-            fig_title = f"{dataset_name} ({flow_condition.shear_stress} dym/cm$^2$)"
+            shear_stress = flow_condition.shear_stress
+            dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
+            fig_title = f"{dataset_name} ({shear_stress} dym/cm$^2$)"
 
-            df_flow = filter_dataframe_by_flow_condition(
-                df_steady_state, dataset_config, flow_condition
-            )
+            drift_dataframe_flow = drift_dataframe[
+                drift_dataframe[Column.SHEAR_STRESS] == shear_stress
+            ]
 
-            # get bins and centers for each variable based on bin widths and limits
-            if column_name == ColumnName.DiffAEData.POLAR_ANGLE:
-                bins, centers = get_bins(
-                    bin_widths=(bin_widths_dict[column_name],),
-                    bin_limits=[bin_limits_dict[column_name]],
-                )
-            else:
-                bins, centers = get_bins(
-                    bin_widths=(bin_widths_dict[column_name],),
-                    data=df_flow[column_name].to_numpy(),
-                    lower_percentile=BIN_LIMIT_PERCENTILE_CUTOFF,
-                    upper_percentile=100 - BIN_LIMIT_PERCENTILE_CUTOFF,
-                )
-
-            # get trajectories and differences for the given variable, adjusting
-            # polar angle differences for periodicity if needed
-            trajectories, differences = get_traj_and_diff(
-                df_flow, column_names=[column_name], polar_angle_period=polar_angle_period
-            )
-
-            kernel = KramersMoyalKernel(
-                name=kernel_names_dict[column_name],
-                bandwidth=kernel_bandwidths_dict[column_name],
-                period=(
-                    polar_angle_period if column_name == ColumnName.DiffAEData.POLAR_ANGLE else None
-                ),
-            )
-
-            drift, _ = get_kramers_moyal_coeffs(
-                trajectories=trajectories,
-                displacements=differences,
-                bins=bins,
-                dt=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
-                kernel=kernel,
+            drift, centers = get_reshaped_vector_field_and_grid(
+                drift_dataframe_flow,
+                column_names=[column_name],
             )
 
             fig, ax = plt.subplots()
             ax.plot(centers[-1], drift, "k-", linewidth=2)
             ax.plot(centers[-1], np.zeros_like(centers[-1]), "b--", linewidth=1, alpha=0.7)
             ax.set_xlabel(variable_label)
-            ax.set_ylabel(f"Drift in {variable_label}")
+            ax.set_ylabel(f"d{variable_label}/dt")
             ax.set_title(fig_title)
             save_plot_to_path(fig, fig_savedir, f"{dataset_name_flow}_drift_{column_name}.png")
-            plt.close(fig)
+
+            if dataset_has_fixed_points:
+                fixed_points_dataframe_flow = filter_dataframe_by_flow_condition(
+                    fixed_points_dataframe, dataset_name, shear_stress
+                )
+                stable_fixed_points = fixed_points_dataframe_flow[
+                    fixed_points_dataframe_flow[Column.VectorField.STABILITY]
+                    == StabilityLabel.STABLE
+                ]
+                ax.plot(
+                    stable_fixed_points[column_name],
+                    np.zeros_like(stable_fixed_points[column_name]),
+                    STABILITY_MARKER_DICT[StabilityLabel.STABLE],
+                    color=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
+                    markeredgecolor="k",
+                    markeredgewidth=0.5,
+                    markersize=5,
+                )
+                save_plot_to_path(
+                    fig,
+                    fig_savedir,
+                    f"{dataset_name_flow}_drift_{column_name}_stable_fixed_points.png",
+                )
 
         if DEMO_MODE:
             logger.warning("DEMO MODE: only running workflow on first available dataset.")
