@@ -75,7 +75,7 @@ dataset_summary_list = SUMMARY_PLOT_DATASETS["low_high"]
 # %%
 
 columns_r_rho = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
-r_rho_columns_str = f"_{'_'.join(sorted(columns_r_rho))}_"
+columns_r_rho_str = f"_{'_'.join(sorted(columns_r_rho))}_"
 column_theta = Column.DiffAEData.POLAR_ANGLE
 optical_flow_feature = Column.OpticalFlow.UNIT_VECTOR_MEAN
 feature_column_names = [column_theta, *columns_r_rho]
@@ -88,7 +88,7 @@ base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_patte
 feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
 feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 fixed_points_r_rho_dataframe_manifest_name = (
-    f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{r_rho_columns_str}{base_name}"
+    f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{columns_r_rho_str}{base_name}"
 )
 fixed_points_r_rho_dataframe_manifest = load_dataframe_manifest(
     fixed_points_r_rho_dataframe_manifest_name
@@ -158,10 +158,10 @@ for dataset_name, panel_letters, y_position in [
     # load fixed points dataframes (if available) for both (r, rho) and theta,
     # filter to just stable fixed points, and store in dict for easy access when plotting
     stable_fixed_points_dict: dict[
-        list[Column.DiffAEData] | Column.DiffAEData, pd.DataFrame | None
+        tuple[Column.DiffAEData] | Column.DiffAEData, pd.DataFrame | None
     ] = {}
     for column_key, manifest in [
-        (columns_r_rho, fixed_points_r_rho_dataframe_manifest),
+        (tuple(columns_r_rho), fixed_points_r_rho_dataframe_manifest),
         (column_theta, fixed_points_theta_dataframe_manifest),
     ]:
         if dataset_name in manifest.locations:
@@ -267,10 +267,10 @@ for dataset_name, panel_letters, y_position in [
         ylabel_kwargs=ylabel_kwargs,
     )
     # add stable fixed points to quiver plot if available
-    if stable_fixed_points_dict[columns_r_rho] is not None:
+    if stable_fixed_points_dict[tuple(columns_r_rho)] is not None:
         ax.plot(
-            stable_fixed_points_dict[columns_r_rho][columns_r_rho[0]],
-            stable_fixed_points_dict[columns_r_rho][columns_r_rho[1]],
+            stable_fixed_points_dict[tuple(columns_r_rho)][columns_r_rho[0]],
+            stable_fixed_points_dict[tuple(columns_r_rho)][columns_r_rho[1]],
             STABILITY_MARKER_DICT[StabilityLabel.STABLE],
             color=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
             markeredgecolor="k",
