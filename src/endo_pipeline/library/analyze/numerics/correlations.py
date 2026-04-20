@@ -1,6 +1,8 @@
 """Methods for computing autocorrelation and cross-correlation functions from time series data."""
 
 import logging
+from concurrent.futures import ProcessPoolExecutor
+from itertools import combinations
 from typing import Any, Literal
 
 import numpy as np
@@ -9,11 +11,7 @@ from scipy.optimize import curve_fit
 
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.cross_correlations import (
-    CROSS_CORR_INDEX_COMBINATIONS,
-    MAX_LAG_INTEGRATE,
-    NUM_TIMEPOINT_FRAC,
-)
+from endo_pipeline.settings.cross_correlations import MAX_LAG_INTEGRATE, NUM_TIMEPOINT_FRAC
 from endo_pipeline.settings.dynamics_workflows import PERIOD_THETA_RESCALED, RESCALE_THETA
 
 logger = logging.getLogger(__name__)
@@ -113,6 +111,14 @@ def cross_correlation_function(
         else:
             corr_sum = corr_sum + corr
 
+        if np.isnan(corr_sum).any():
+            logger.warning(
+                "NaN values found in CCF for trajectory index [ %s ]. "
+                "This may be due to zero standard deviation in one of the signals for this trajectory.",
+                traj_index,
+            )
+            break
+
     # Return average over number of trajectories.
     return corr_sum / num_traj
 
@@ -201,12 +207,40 @@ def cross_correlation_difference_norm(
     return integral_norm
 
 
+def compute_autocorrelation_and_relaxation_for_one_bootstrap_sample(
+    data: np.ndarray,
+    component_index: int,
+    lags: np.ndarray,
+) -> tuple[np.ndarray, float]:
+    """Compute the ACF and relaxation timescale for one bootstrap sample."""
+    # Random sampling with replacement to generate bootstrap samples
+    num_traj = data.shape[0]
+    inds = np.random.choice(num_traj, num_traj, replace=True)
+    data_resampled = data[inds]
+
+    # Calculate cross-correlation for each iteration of resampling and append to list
+    acf = autocorrelation_function(data_resampled, component_index)
+
+    # Fit exponential decay to ACF and get relaxation timescale
+    index_positive = lags > 0
+    positive_lags = lags[index_positive]
+    positive_lags_as_hours = 5 * positive_lags / 60  # convert from frames (5 minutes) to hours
+    acf_positive_lags = acf[index_positive]
+
+    _, relaxation_time = fit_exp_decay_and_get_relaxation_timescale(
+        acf_positive_lags, positive_lags_as_hours, exp_decay_func="exponential_decay"
+    )
+
+    return acf, relaxation_time
+
+
 def bootstrap_autocorrelation_confidence_intervals(
     data: np.ndarray,
     component_index: int,
     lags: np.ndarray,
     n_bootstraps: int = 200,
     confidence_level: float = 0.95,
+    max_cores: int | None = None,
 ) -> dict[str, tuple]:
     """Bootstrap the normalized autocorrelation function (ACF) computed from finite data.
 
@@ -233,6 +267,9 @@ def bootstrap_autocorrelation_confidence_intervals(
         Number of bootstrap samples to generate for the ACF.
     confidence_level
         Confidence interval level (e.g., 95%) to report for the ACF.
+    max_cores
+        Maximum number of CPU cores to use for parallel processing of bootstrap
+        samples. If None, will use all available cores.
 
     Returns
     -------
@@ -242,31 +279,15 @@ def bootstrap_autocorrelation_confidence_intervals(
         - relaxation_timescale: Decay coefficient from exponential fit to ACF.
 
     """
-    # Bootstrap the CCF using resampling with replacement
-    num_traj = data.shape[0]
-    bootstrap_autocorrelations = []
-    bootstrap_relaxation_timescales = []
-    for _ in range(n_bootstraps):
-        # Random sampling with replacement to generate bootstrap samples
-        inds = np.random.choice(num_traj, num_traj, replace=True)
-        data_resampled = data[inds]
-
-        # Calculate cross-correlation for each iteration of resampling and append to list
-        acf = autocorrelation_function(data_resampled, component_index)
-
-        # Fit exponential decay to ACF and get relaxation timescale
-        index_positive = lags > 0
-        positive_lags = lags[index_positive]
-        positive_lags_as_hours = 5 * positive_lags / 60  # convert from frames (5 minutes) to hours
-        acf_positive_lags = acf[index_positive]
-
-        _, relaxation_time = fit_exp_decay_and_get_relaxation_timescale(
-            acf_positive_lags, positive_lags_as_hours, exp_decay_func="exponential_decay"
+    # Bootstrap the ACF using resampling with replacement
+    with ProcessPoolExecutor(max_workers=max_cores) as executor:
+        results = executor.map(
+            compute_autocorrelation_and_relaxation_for_one_bootstrap_sample,
+            [data] * n_bootstraps,
+            [component_index] * n_bootstraps,
+            [lags] * n_bootstraps,
         )
-
-        # store results
-        bootstrap_autocorrelations.append(acf)
-        bootstrap_relaxation_timescales.append(relaxation_time)
+        bootstrap_autocorrelations, bootstrap_relaxation_timescales = zip(*results, strict=False)
 
     # Calculate the lower and upper bounds of the confidence interval
     percentile = (1 - confidence_level) / 2
@@ -286,12 +307,46 @@ def bootstrap_autocorrelation_confidence_intervals(
     return confidence_interval_bounds
 
 
+def compute_crosscorrelation_and_delta_crosscorrelation_for_one_bootstrap_sample(
+    data_feat1: np.ndarray,
+    data_feat2: np.ndarray,
+    max_lag_integrate: int = MAX_LAG_INTEGRATE,
+) -> tuple[np.ndarray, np.ndarray, float]:
+    """Compute the CCF, delta CCF, and delta CCF integral for one bootstrap sample."""
+
+    if data_feat1.shape[0] != data_feat2.shape[0]:
+        logger.error(
+            "Input data arrays must have the same number of trajectories. "
+            "Got [ %s ] and [ %s ].",
+            data_feat1.shape[0],
+            data_feat2.shape[0],
+        )
+        raise ValueError("Input data arrays must have the same number of trajectories.")
+
+    # Random sampling with replacement to generate bootstrap samples
+    num_traj = data_feat1.shape[0]
+    inds = np.random.choice(num_traj, num_traj, replace=True)
+    data_feat1_resampled = data_feat1[inds]
+    data_feat2_resampled = data_feat2[inds]
+
+    # Calculate cross-correlation for resampled data
+    ccf = cross_correlation_function(data_feat1_resampled, data_feat2_resampled)
+
+    # Calculate delta CCF and delta CCF integral for resampled data
+    num_lags = len(ccf)
+    delta_ccf = ccf[1 + num_lags // 2 :] - ccf[: num_lags // 2]
+    delta_ccf_integral = cross_correlation_difference_norm(delta_ccf, max_lag_integrate)
+
+    return ccf, delta_ccf, delta_ccf_integral
+
+
 def bootstrap_cross_correlation_confidence_intervals(
     data_feat1: np.ndarray,
     data_feat2: np.ndarray,
     n_bootstraps: int = 200,
     max_lag_integrate: int = MAX_LAG_INTEGRATE,
     confidence_level: float = 0.95,
+    max_cores: int | None = None,
 ) -> dict[str, tuple]:
     """Bootstrap the normalized cross-correlation function (CCF) computed from finite data.
 
@@ -320,6 +375,9 @@ def bootstrap_cross_correlation_confidence_intervals(
         Number of bootstrap samples to generate for the CCF.
     confidence_level
         Confidence interval level (e.g., 95%) to report for the CCF.
+    max_cores
+        Maximum number of CPU cores to use for parallel processing of bootstrap
+        samples. If None, will use all available cores.
 
     Returns
     -------
@@ -332,24 +390,18 @@ def bootstrap_cross_correlation_confidence_intervals(
 
     """
     # Bootstrap the CCF using resampling with replacement
-    num_traj = data_feat1.shape[0]
-    bootstrap_correlations = []
-    bootstrap_correlation_diffs = []
-    bootstrap_correlation_diff_integrals = []
-    for _ in range(n_bootstraps):
-        # Random sampling with replacement to generate bootstrap samples
-        inds = np.random.choice(num_traj, num_traj, replace=True)
-        ds1_resampled = data_feat1[inds]
-        ds2_resampled = data_feat2[inds]
-
-        # Calculate cross-correlation for each iteration of resampling and append to list
-        ccf = cross_correlation_function(ds1_resampled, ds2_resampled)
-        num_lags = len(ccf)
-        delta_ccf = ccf[1 + num_lags // 2 :] - ccf[: num_lags // 2]
-        delta_ccf_integral = cross_correlation_difference_norm(delta_ccf, max_lag_integrate)
-        bootstrap_correlations.append(ccf)
-        bootstrap_correlation_diffs.append(delta_ccf)
-        bootstrap_correlation_diff_integrals.append(delta_ccf_integral)
+    with ProcessPoolExecutor(max_workers=max_cores) as executor:
+        results = executor.map(
+            compute_crosscorrelation_and_delta_crosscorrelation_for_one_bootstrap_sample,
+            [data_feat1] * n_bootstraps,
+            [data_feat2] * n_bootstraps,
+            [max_lag_integrate] * n_bootstraps,
+        )
+        (
+            bootstrap_correlations,
+            bootstrap_correlation_diffs,
+            bootstrap_correlation_diff_integrals,
+        ) = zip(*results, strict=False)
 
     # Calculate the lower and upper bounds of the confidence interval
     percentile = (1 - confidence_level) / 2
@@ -381,10 +433,10 @@ def bootstrap_cross_correlation_confidence_intervals(
 def compute_correlations_for_one_dataset(
     dataframe: pd.DataFrame,
     column_names: list[str | Column.DiffAEData],
-    correlation_dict: dict,
     bootstrap_samples: int | None = None,
     max_lag_integrate: int = MAX_LAG_INTEGRATE,
     rescale_polar_angle: bool = RESCALE_THETA,
+    max_cores: int | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Compute cross-correlation and autocorrelation for features from one dataset.
 
@@ -408,6 +460,9 @@ def compute_correlations_for_one_dataset(
     rescale_polar_angle
         Whether the polar angle variable has been rescaled from [-pi,pi] to
         [0,pi] (used to set the polar angle period for unwrapping).
+    max_cores
+        Maximum number of CPU cores to use for parallel processing of bootstrap
+        samples. If None, will use all available cores.
 
     Returns
     -------
@@ -422,9 +477,6 @@ def compute_correlations_for_one_dataset(
         Column.DATASET,
     ]
     check_required_columns_in_dataframe(dataframe, required_columns)
-
-    # get dataset name from dataframe
-    dataset_name = dataframe[Column.DATASET].iloc[0]
 
     # unwrap angles if polar_angle is in feat_cols
     if Column.DiffAEData.POLAR_ANGLE in column_names:
@@ -471,22 +523,54 @@ def compute_correlations_for_one_dataset(
     acf = np.zeros((num_lags, num_feats))
     acf_lb = np.zeros((num_lags, num_feats))
     acf_ub = np.zeros((num_lags, num_feats))
+    relaxation_timescale = np.zeros(num_feats)
     relaxation_timescale_lb = np.zeros(num_feats)
     relaxation_timescale_ub = np.zeros(num_feats)
     # dataframe as array of shape (num_crops, num_timepoints, num_feats) for the
     # current feature, with missing timepoints filled with NaNs
     feats = dataframe_filled[column_names].to_numpy().reshape(-1, num_timepoints, num_feats)
+    num_crops = feats.shape[0]
+    acf_per_crop = np.zeros((num_crops, num_lags, num_feats))
+    relaxation_timescale_per_crop = np.zeros((num_crops, num_feats))
     for i in range(num_feats):
         acf[:, i] = autocorrelation_function(feats, i)
+
+        # Fit exponential decay to ACF and get relaxation timescale
+        index_positive = lags > 0
+        positive_lags = lags[index_positive]
+        positive_lags_as_hours = 5 * positive_lags / 60  # convert from frames (5 minutes) to hours
+        acf_positive_lags = acf[:, i][index_positive]
+
+        _, relaxation_time = fit_exp_decay_and_get_relaxation_timescale(
+            acf_positive_lags, positive_lags_as_hours, exp_decay_func="exponential_decay"
+        )
+        relaxation_timescale[i] = relaxation_time
         if bootstrap_samples is not None:
             # calculate bootstrap confidence intervals for ACF and relaxation timescale
             confidence_intervals = bootstrap_autocorrelation_confidence_intervals(
-                feats, i, lags, n_bootstraps=bootstrap_samples
+                feats, i, lags, n_bootstraps=bootstrap_samples, max_cores=max_cores
             )
             acf_lb[:, i], acf_ub[:, i] = confidence_intervals["autocorrelation"]
             (relaxation_timescale_lb[i], relaxation_timescale_ub[i]) = confidence_intervals[
                 "relaxation_timescale"
             ]
+
+        # find relaxation time for each trajectory
+        for j in range(feats.shape[0]):
+            acf_1_crop = autocorrelation_function(feats[j : j + 1], i)
+            acf_per_crop[j : j + 1, :, i] = acf_1_crop
+
+            index_positive_crop = lags > 0
+            positive_lags_crop = lags[index_positive_crop]
+            positive_lags_as_hours_crop = 5 * positive_lags_crop / 60
+            acf_positive_lags_crop = acf_1_crop[index_positive_crop]
+
+            _, relaxation_time_crop = fit_exp_decay_and_get_relaxation_timescale(
+                acf_positive_lags_crop,
+                positive_lags_as_hours_crop,
+                exp_decay_func="exponential_decay",
+            )
+            relaxation_timescale_per_crop[j, i] = relaxation_time_crop
 
     # cross-correlation
     ccf = np.zeros((num_lags, num_feats))
@@ -507,7 +591,15 @@ def compute_correlations_for_one_dataset(
     delta_ccf_integral_lb = np.zeros(num_feats)
     delta_ccf_integral_ub = np.zeros(num_feats)
 
-    for i, (j, k) in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
+    # get the combinations of features for the cross-correlations
+    # (we use the indices of the feature labels here because the features
+    # themselves are stored in an array)
+    feature_indices = range(len(column_names))
+    cross_corr_index_combinations = list(combinations(feature_indices, r=2))
+    # in `combinations` "r" is the number of elements to include in a combination
+
+    # TODO THIS FOR-LOOP IS SLOW; PARALLELIZE THIS IF POSSIBLE
+    for i, (j, k) in enumerate(cross_corr_index_combinations):
         data_feat1 = feats[..., j]
         data_feat2 = feats[..., k]
         ccf[:, i] = cross_correlation_function(data_feat1, data_feat2)
@@ -520,6 +612,7 @@ def compute_correlations_for_one_dataset(
                 data_feat2,
                 max_lag_integrate=max_lag_integrate,
                 n_bootstraps=bootstrap_samples,
+                max_cores=max_cores,
             )
             ccf_lb[:, i], ccf_ub[:, i] = confidence_intervals["cross_correlation"]
             delta_ccf_lb[:, i], delta_ccf_ub[:, i] = confidence_intervals["delta_cross_correlation"]
@@ -530,24 +623,64 @@ def compute_correlations_for_one_dataset(
 
     delta_ccf_integral = cross_correlation_difference_norm(delta_ccf)
 
-    # store results in dict of dicts and return updated dict
-    correlation_dict["features"][dataset_name] = column_names
-    correlation_dict["lags"][dataset_name] = lags
-    correlation_dict["acf"][dataset_name] = acf
-    correlation_dict["acf_ci_lower"][dataset_name] = acf_lb
-    correlation_dict["acf_ci_upper"][dataset_name] = acf_ub
-    correlation_dict["relaxation_timescales_ci_lower"][dataset_name] = relaxation_timescale_lb
-    correlation_dict["relaxation_timescales_ci_upper"][dataset_name] = relaxation_timescale_ub
-    correlation_dict["ccf"][dataset_name] = ccf
-    correlation_dict["ccf_ci_lower"][dataset_name] = ccf_lb
-    correlation_dict["ccf_ci_upper"][dataset_name] = ccf_ub
-    correlation_dict["delta_ccf"][dataset_name] = delta_ccf
-    correlation_dict["delta_ccf_ci_lower"][dataset_name] = delta_ccf_lb
-    correlation_dict["delta_ccf_ci_upper"][dataset_name] = delta_ccf_ub
-    correlation_dict["delta_ccf_integral"][dataset_name] = delta_ccf_integral
-    correlation_dict["delta_ccf_integral_ci_lower"][dataset_name] = delta_ccf_integral_lb
-    correlation_dict["delta_ccf_integral_ci_upper"][dataset_name] = delta_ccf_integral_ub
-    correlation_dict["max_lag_integrate"][dataset_name] = max_lag_integrate
+    # store results in dict and return that dict
+    correlation_dict: dict = {}
+    correlation_dict["features"] = column_names
+    correlation_dict["lags"] = lags
+    correlation_dict["acf"] = acf
+    correlation_dict[f"acf_{Column.BootstrapAnalysis.CI_LOWER}"] = acf_lb
+    correlation_dict[f"acf_{Column.BootstrapAnalysis.CI_UPPER}"] = acf_ub
+    correlation_dict["relaxation_timescales"] = relaxation_timescale
+    correlation_dict[f"relaxation_timescales_{Column.BootstrapAnalysis.CI_LOWER}"] = (
+        relaxation_timescale_lb
+    )
+    correlation_dict[f"relaxation_timescales_{Column.BootstrapAnalysis.CI_UPPER}"] = (
+        relaxation_timescale_ub
+    )
+    correlation_dict["ccf"] = ccf
+    correlation_dict[f"ccf_{Column.BootstrapAnalysis.CI_LOWER}"] = ccf_lb
+    correlation_dict[f"ccf_{Column.BootstrapAnalysis.CI_UPPER}"] = ccf_ub
+    correlation_dict["delta_ccf"] = delta_ccf
+    correlation_dict[f"delta_ccf_{Column.BootstrapAnalysis.CI_LOWER}"] = delta_ccf_lb
+    correlation_dict[f"delta_ccf_{Column.BootstrapAnalysis.CI_UPPER}"] = delta_ccf_ub
+    correlation_dict["delta_ccf_integral"] = delta_ccf_integral
+    correlation_dict[f"delta_ccf_integral_{Column.BootstrapAnalysis.CI_LOWER}"] = (
+        delta_ccf_integral_lb
+    )
+    correlation_dict[f"delta_ccf_integral_{Column.BootstrapAnalysis.CI_UPPER}"] = (
+        delta_ccf_integral_ub
+    )
+    correlation_dict["max_lag_integrate"] = max_lag_integrate
+    correlation_dict["acf_per_crop"] = acf_per_crop
+    correlation_dict["relaxation_timescale_per_crop"] = relaxation_timescale_per_crop
+
+    # if the lower confidence interval is higher than the value or the
+    # upper confidence interval is lower than the value for any of the
+    # metrics (which happens # in DEMO_MODE) then assign that bound to
+    # be equal to the value, so that plotting can continue, but log a
+    # warning about it
+    metrics = ["acf", "ccf", "relaxation_timescales", "delta_ccf", "delta_ccf_integral"]
+    for metric in metrics:
+        invalid_ci_lower = (
+            correlation_dict[metric]
+            < correlation_dict[f"{metric}_{Column.BootstrapAnalysis.CI_LOWER}"]
+        )
+        correlation_dict[f"{metric}_{Column.BootstrapAnalysis.CI_LOWER}"][invalid_ci_lower] = (
+            correlation_dict[metric][invalid_ci_lower]
+        )
+        invalid_ci_upper = (
+            correlation_dict[metric]
+            > correlation_dict[f"{metric}_{Column.BootstrapAnalysis.CI_UPPER}"]
+        )
+        correlation_dict[f"{metric}_{Column.BootstrapAnalysis.CI_UPPER}"][invalid_ci_upper] = (
+            correlation_dict[metric][invalid_ci_upper]
+        )
+        logger.warning(
+            "Invalid confidence interval bounds found for metric [ %s ] in dataset [ %s ]. "
+            "Setting invalid bounds to be equal to the metric value for plotting purposes.",
+            metric,
+            dataframe[Column.DATASET].iloc[0],
+        )
     return correlation_dict
 
 
