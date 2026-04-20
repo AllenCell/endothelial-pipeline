@@ -143,6 +143,12 @@ def compute_drift_vector_field(
         traj_list, d_traj_list, bins=bins, dt=time_step, kernel=kernel
     )[0]
 
+    # Ensure drift_coeffs always has a trailing components dimension
+    # (shape ..., N) so that downstream functions handle the 1D case
+    # (single column) the same as multi-dimensional cases.
+    if drift_coeffs.ndim == 1:
+        drift_coeffs = drift_coeffs[:, np.newaxis]
+
     return drift_coeffs
 
 
