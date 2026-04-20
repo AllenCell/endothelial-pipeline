@@ -1292,11 +1292,10 @@ def compute_first_passage_time_stats_for_bins(
 
     dataset_name = trajectory_df[Column.DATASET].unique().astype(str).item()
 
+    # create a meshgrid of the bin centers and edges for iterating through the bins
     bin_centers_mesh = np.meshgrid(*bin_centers, indexing="ij")
     bin_centers_all = list(zip(*[arr.ravel() for arr in bin_centers_mesh], strict=True))
-
-    bin_edges_mesh = np.meshgrid(*bin_edges, indexing="ij")
-    bin_edges_all = list(zip(*[arr.ravel() for arr in bin_edges_mesh], strict=True))
+    bin_indices_nd, _ = list(zip(*np.ndenumerate(bin_centers_mesh[0]), strict=True))
 
     results = []
     for bin_index, bin_center in tqdm(
@@ -1304,6 +1303,16 @@ def compute_first_passage_time_stats_for_bins(
         total=len(bin_centers_all),
         desc=f"{dataset_name} Computing first passage time statistics for each bin",
     ):
+        # I tried to avoid doing nd indexing because it gets a little hair, but
+        # it seems necessary to get the correct bin edges for each bin when
+        # filtering the trajectories to each bin
+        # the reason we can use + 2 below instead of + 1 is because the bin_edges_mesh
+        # includes the right edge of the last bin, so it has one more element than
+        # the bin_centers_mesh along each dimension
+        bin_index_nd = bin_indices_nd[bin_index]
+        bin_e = []
+        for dim, idx in enumerate(bin_index_nd):
+            bin_e.append(tuple(bin_edges[dim][idx : idx + 2]))
         first_passage_time_stats_df = compute_first_passage_time_stats_for_one_bin(
             bin_index=bin_index,
             bin_center=bin_center,
@@ -1312,16 +1321,12 @@ def compute_first_passage_time_stats_for_bins(
             time_to_first_passage_col_name=time_to_first_passage_col_name,
             feature_column_names=feature_column_names,
         )
+        first_passage_time_stats_df["bin_center"] = [bin_center]
+        first_passage_time_stats_df["bin_edges"] = [bin_e]
 
         results.append(first_passage_time_stats_df)
 
     first_passage_time_stats_df = pd.concat(results, ignore_index=True)
-    first_passage_time_stats_df["bin_center"] = first_passage_time_stats_df["bin_index"].transform(
-        lambda i: bin_centers_all[i]
-    )
-    first_passage_time_stats_df["bin_edges"] = first_passage_time_stats_df["bin_index"].transform(
-        lambda i: bin_edges_all[i]
-    )
 
     return first_passage_time_stats_df
 

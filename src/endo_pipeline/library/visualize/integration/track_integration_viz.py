@@ -12,7 +12,6 @@ from matplotlib.colorbar import ColorbarBase
 from matplotlib.colors import TwoSlopeNorm
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
-from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.stats import linregress
 
@@ -1254,7 +1253,7 @@ def plot_first_passage_time_correlation(
     metric = f"{stat}{suffix}"
 
     # NaN values are unacceptable for the linear regression
-    first_passage_time_df_no_nan = first_passage_time_df.dropna(
+    first_passage_time_df_no_nan = first_passage_time_df.copy().dropna(
         subset=[f"{metric}_grid", f"{metric}_tracked"]
     )
 
@@ -1351,7 +1350,7 @@ def plot_first_passage_time_3d_scatter(
     metric = f"{stat}{suffix}"
 
     # NaN values are unacceptable for the linear regression
-    first_passage_time_df_no_nan = first_passage_time_df.dropna(
+    first_passage_time_df_no_nan = first_passage_time_df.copy().dropna(
         subset=[f"{metric}_grid", f"{metric}_tracked"]
     )
 
@@ -1417,56 +1416,6 @@ def plot_first_passage_time_3d_scatter(
         show_and_close=False,
         bbox_inches="tight",
     )
-
-
-def plot_initial_conditions_histogram(
-    out_dir: Path,
-    df_first_timepoint: pd.DataFrame,
-    num_bins_polar_theta: int = 12,
-    num_bins_polar_r: int = 12,
-    num_bins_rho: int = 12,
-) -> None:
-    """Skips plotting the bin with 0 occurrences to better visualize the
-    distribution of initial conditions across the other bins.
-    """
-    bin_edges_theta = np.linspace(0, np.pi, num_bins_polar_theta + 1, endpoint=True)
-    bin_edges_r = np.linspace(0, 3, num_bins_polar_r + 1, endpoint=True)
-    bin_edges_rho = np.linspace(-3, 3, num_bins_rho + 1, endpoint=True)
-
-    # bin the initial conditions in a 3 dimensional histogram (theta, r, rho)
-    hist, _ = np.histogramdd(
-        df_first_timepoint[
-            [
-                Column.DiffAEData.POLAR_ANGLE,
-                Column.DiffAEData.POLAR_RADIUS,
-                Column.DiffAEData.PC3_FLIPPED,
-            ]
-        ].to_numpy(),
-        bins=[bin_edges_theta, bin_edges_r, bin_edges_rho],
-    )
-
-    # plot the histogram of initial conditions across the bins, such that
-    # the number of trajectories in each bin is on the x-axis and the
-    # number of bins with that number of trajectories is on the y-axis,
-    # (skipping the bin with 0 trajectories to better visualize the
-    # distribution of initial conditions across the other bins)
-    fig, ax = plt.subplots(figsize=(4, 4))
-    sns.histplot(
-        x=hist[np.nonzero(hist)].ravel(), binwidth=1, cumulative=True, discrete=True, ax=ax
-    )
-    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-    ax.yaxis.set_major_locator(MaxNLocator(integer=True))
-    ax.set_xlabel("num. trajectories".title())
-    ax.set_ylabel("num. bins".title())
-    ax.set_title(
-        f"num bins: theta: {num_bins_polar_theta}, r: {num_bins_polar_r}, rho: {num_bins_rho}"
-    )
-
-    filename = (
-        f"initial_conditions_histogram_theta_bins"
-        f"_{num_bins_polar_theta}_r_bins_{num_bins_polar_r}_rho_bins_{num_bins_rho}.png"
-    )
-    save_plot_to_path(fig, out_dir, filename, show_and_close=False)
 
 
 def plot_first_passage_time_parameter_sweep(
@@ -1595,7 +1544,7 @@ def plot_first_passage_time_histogram(
     metric = f"{stat}{suffix}"
 
     # NaN values are unacceptable for the linear regression
-    first_passage_time_df_no_nan = first_passage_time_df.dropna(
+    first_passage_time_df_no_nan = first_passage_time_df.copy().dropna(
         subset=[f"{metric}_grid", f"{metric}_tracked"]
     )
 
@@ -1621,7 +1570,6 @@ def plot_first_passage_time_histogram(
         data=first_passage_time_df_no_nan,
         x=f"{metric}_grid",
         stat="probability",
-        binwidth=1,
         kde=True,
         facecolor="lightgrey",
         color="black",
@@ -1633,7 +1581,6 @@ def plot_first_passage_time_histogram(
         data=first_passage_time_df_no_nan,
         x=f"{metric}_tracked",
         stat="probability",
-        binwidth=1,
         kde=True,
         color=dataset_color,
         hatch="..",
@@ -1674,6 +1621,8 @@ def plot_first_passage_time_heatmap(
     suffix = "_first_passage_time"
     metric = f"{stat}{suffix}"
 
+    first_passage_time_df_local_copy = first_passage_time_df.copy()
+
     # convert the FPT (which is in timepoints) to physical units
     # most but not all of the columns are based on time in `first_passage_time_df`
     not_time_columns = [
@@ -1685,18 +1634,18 @@ def plot_first_passage_time_heatmap(
     ]
     # the time columns are the set of columns in the dataframe that are not in
     # the not_time_columns list
-    time_cols = list(set(first_passage_time_df.columns) - set(not_time_columns))
+    time_cols = list(set(first_passage_time_df_local_copy.columns) - set(not_time_columns))
 
     # now we can convert all those time columns from timepoints to physical units
-    first_passage_time_df[time_cols] *= time_units
+    first_passage_time_df_local_copy[time_cols] *= time_units
 
     # unpack bin centers and bin edges for all three features (theta, r, rho),
     # then drop the collapsed dimension to get the two axes for the 2D heatmap
-    all_bin_centers = list(zip(*first_passage_time_df["bin_center"], strict=True))
-    all_bin_edges_vals = list(zip(*first_passage_time_df["bin_edges"], strict=True))
+    all_bin_centers = list(zip(*first_passage_time_df_local_copy["bin_center"], strict=True))
+    all_bin_edges_vals = list(zip(*first_passage_time_df_local_copy["bin_edges"], strict=True))
     all_dim_labels = [str(feature) for feature in feature_order_for_bin_edges]
 
-    remaining_indices = [i for i in range(3) if i != collapse_index]
+    remaining_indices = [i for i in range(len(feature_order_for_bin_edges)) if i != collapse_index]
     x_centers = np.array(all_bin_centers[remaining_indices[0]])
     y_centers = np.array(all_bin_centers[remaining_indices[1]])
     # unique values from the bin_edges meshgrid give the complete bin boundary arrays
@@ -1707,7 +1656,8 @@ def plot_first_passage_time_heatmap(
     # fold change is symmetric and the colors end up evenly spaced regardless of
     # whether the tracked or grid-based FPT is higher
     colors = np.log2(
-        first_passage_time_df[f"{metric}_tracked"] / first_passage_time_df[f"{metric}_grid"]
+        first_passage_time_df_local_copy[f"{metric}_tracked"]
+        / first_passage_time_df_local_copy[f"{metric}_grid"]
     )
     cmap_lim = float(np.nanmax(abs(colors)))
     cmap = "coolwarm_r"
