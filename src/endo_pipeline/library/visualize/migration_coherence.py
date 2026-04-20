@@ -23,6 +23,7 @@ from endo_pipeline.settings.migration_coherence import (
     MIGRATION_COHERENCE_COLORMAP,
     MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
 )
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
 
@@ -292,7 +293,7 @@ def plot_3d_scatter_or_binned(
     if legend_handles:
         ax.legend(
             handles=legend_handles,
-            title="stability (\u03b8, r, \u03c1, migration coherence)",
+            title=f"stability ({Unicode.THETA}, r, {Unicode.RHO}, migration coherence)",
             loc="upper right",
             bbox_to_anchor=(1.0, 1.05),
             fontsize=8,
@@ -361,7 +362,7 @@ def plot_optical_flow_histogram(
     )
 
     if legend_loc is not None:
-        stats_text = f"{ss_label}\nn={len(data)}\n\u03bc={mean:.2f}\nCV={cov:.2f}"
+        stats_text = f"{ss_label}\nn={len(data)}\n{Unicode.MU}={mean:.2f}\nCV={cov:.2f}"
         ax.text(
             0.02,
             0.98,
@@ -382,7 +383,7 @@ def plot_optical_flow_histogram(
         if bars:
             peak_bar = max(bars, key=lambda b: b.get_height())
             peak_x = peak_bar.get_x()
-            stats_text = f"n={len(data)}\n\u03bc={mean:.2f}\nCV={cov:.2f}"
+            stats_text = f"n={len(data)}\n{Unicode.MU}={mean:.2f}\nCV={cov:.2f}"
             x_loc = peak_x - 0.3  # shift left from the peak
             if x_loc < ax.get_xlim()[0]:
                 x_loc = (
