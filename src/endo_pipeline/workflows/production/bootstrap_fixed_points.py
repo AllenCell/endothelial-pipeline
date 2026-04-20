@@ -195,7 +195,7 @@ def main(
     # load or initialize dataframe manifest for bootstrap results
     demo_suffix = "_demo" if DEMO_MODE else ""
     bootstrap_results_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}{demo_suffix}"
+        f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}{base_name}{demo_suffix}"
     )
     bootstrap_results_manifest = create_dataframe_manifest(
         bootstrap_results_manifest_name, workflow_name=__file__
