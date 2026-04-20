@@ -12,6 +12,7 @@ from endo_pipeline.settings.optical_flow import (
     DEMO_SCAN_N_PAIRS,
     QUIVER_GRID_DIVISIONS,
 )
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 from .compute import _block_average_flow, compute_tvl1
 
@@ -269,7 +270,7 @@ def plot_demo_summary(
         ax.set_xlim(0, cx)
         ax.set_ylim(cy, 0)
         ax.set_aspect("equal")
-        ax.set_title(f"(b) Quiver  t={t0}\u2192{t1}", fontsize=9)
+        ax.set_title(f"(b) Quiver  t={t0}{Unicode.RIGHT_ARROW}{t1}", fontsize=9)
         ax.tick_params(labelsize=7)
 
         # (c) Angle histogram
@@ -279,11 +280,13 @@ def plot_demo_summary(
             ang_m = ang[mask]
             ax.hist(ang_m, bins=72, color="salmon", edgecolor="white", linewidth=0.3, density=True)
             cmean = float(np.arctan2(np.sin(ang_m).mean(), np.cos(ang_m).mean()))
-            ax.axvline(cmean, color="red", ls="--", lw=1.5, label=f"circ \u03bc = {cmean:.2f}")
+            ax.axvline(
+                cmean, color="red", ls="--", lw=1.5, label=f"circ {Unicode.MU} = {cmean:.2f}"
+            )
             ax.legend(fontsize=6, loc="upper right")
-        ax.set_xlabel("\u03b8 (rad)", fontsize=8)
+        ax.set_xlabel(f"{Unicode.THETA} (rad)", fontsize=8)
         ax.set_ylabel("Density", fontsize=8)
-        ax.set_title(f"(c) $\\theta$ distribution  $\\bar{{R}}$ = {rbar_val:.4f}", fontsize=9)
+        ax.set_title(f"(c) {Unicode.THETA} distribution  $\\bar{{R}}$ = {rbar_val:.4f}", fontsize=9)
         ax.tick_params(labelsize=7)
 
         # (d) & (e) — block-coherence bar charts or speed/R̄ histograms
@@ -343,7 +346,7 @@ def plot_demo_summary(
                     color="navy",
                     ls="--",
                     lw=1.5,
-                    label=f"\u03bc = {float(sp_m.mean()):.3f}",
+                    label=f"{Unicode.MU} = {float(sp_m.mean()):.3f}",
                 )
                 ax.axvline(
                     float(np.median(sp_m)),

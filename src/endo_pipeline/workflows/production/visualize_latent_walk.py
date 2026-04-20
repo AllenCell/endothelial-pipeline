@@ -108,11 +108,12 @@ def main(
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, load_dataframe, load_model
     from endo_pipeline.library.analyze.pca import fit_pca
-    from endo_pipeline.library.analyze.polar_coords import polar_to_pcs
     from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
+    from endo_pipeline.library.model.diffae.generate_image import generate_latent_walk_images
     from endo_pipeline.library.model.latent_walk_utils import (
-        generate_latent_walk_images,
+        add_pc_coordinates_to_dataframe,
         get_column_names_for_latent_walk_dataframe,
+        get_feature_coordinates_as_string,
         get_latent_walk,
         get_num_pcs_from_column_names,
     )
@@ -197,26 +198,10 @@ def main(
         n_steps,
         set_column_value,
     )
-    # if polar angle and radius are included in the column names, convert them
-    # to PC1 and PC2 coordinates for image generation (inverse PCA
-    # transformation cannot be performed with polar coordinates)
-    if (
-        Column.DiffAEData.POLAR_ANGLE.value in column_names
-        and Column.DiffAEData.POLAR_RADIUS.value in column_names
-    ):
-        pc1_column_name = f"{Column.DiffAEData.PCA_FEATURE_PREFIX}1"
-        pc2_column_name = f"{Column.DiffAEData.PCA_FEATURE_PREFIX}2"
-        angle = walk[Column.DiffAEData.POLAR_ANGLE.value].to_numpy()
-        radius = walk[Column.DiffAEData.POLAR_RADIUS.value].to_numpy()
-        pc1_values, pc2_values = polar_to_pcs(angle, radius)
-        walk[pc1_column_name] = pc1_values
-        walk[pc2_column_name] = pc2_values
 
-    # if flipped pc3 is included in the column names, convert it to regular pc3
-    # before performing inverse PCA transformation for image generation (inverse PCA
-    if Column.DiffAEData.PC3_FLIPPED.value in column_names:
-        pc3_column_name = f"{Column.DiffAEData.PCA_FEATURE_PREFIX}3"
-        walk[pc3_column_name] = -walk[Column.DiffAEData.PC3_FLIPPED.value].to_numpy()
+    # re-transform coordinates if they are in polar format (angle and radius) or
+    # if they include flipped pc3
+    walk = add_pc_coordinates_to_dataframe(walk, column_names)
 
     pc_column_names = DIFFAE_PC_COLUMN_NAMES[:num_pcs]
     walk = pca.inverse_transform(walk[pc_column_names].to_numpy())
@@ -229,12 +214,8 @@ def main(
     sigma_suffix = f"_{int(sigma)}sigma_" if sigma is not None else ""
     file_name = f"latent_walk{sigma_suffix}{axis_suffix}"
     if set_column_value is not None:
-        replace_str = "_".join(
-            [
-                f"{column_name}_setto_{str(val).replace('.', 'p').replace('-', 'neg')}"
-                for column_name, val in set_column_value.items()
-            ]
-        )
+        cols_setto = [f"{col}_setto" for col in set_column_names]
+        replace_str = get_feature_coordinates_as_string(cols_setto, list(set_column_value.values()))
         file_name += f"_with_{replace_str}"
 
     plot_latent_walk_as_grid(

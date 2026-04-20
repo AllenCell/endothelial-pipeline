@@ -42,7 +42,7 @@ def main(
         add_optical_flow_features,
     )
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
-    from endo_pipeline.library.visualize.diffae_features.pplane import (
+    from endo_pipeline.library.visualize.diffae_features.fixed_points import (
         make_legend_handles_for_fixed_pts,
     )
     from endo_pipeline.library.visualize.migration_coherence import (
@@ -58,13 +58,14 @@ def main(
         METADATA_COLUMNS_TO_KEEP,
     )
     from endo_pipeline.settings.flow_field_dataframes import (
+        DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
         STABILITY_COLOR_DICT,
-        STABILITY_COLUMN_NAME,
         STABILITY_MARKER_DICT,
     )
     from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
     from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
+    from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -82,6 +83,9 @@ def main(
     fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
     fixed_points_dataframe_manifest = load_dataframe_manifest(fixed_points_dataframe_manifest_name)
 
+    bootstrap_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}"
+    fixed_points_bootstrap_dataframe_manifest = load_dataframe_manifest(bootstrap_manifest_name)
+
     output_dir = get_output_path(__file__, dataset_summary_list)
 
     datasets = SUMMARY_PLOT_DATASETS[dataset_summary_list]
@@ -94,9 +98,9 @@ def main(
     plot_cross_dataset_summaries(
         dataset_names=datasets,
         feature_dataframe_manifest=feature_dataframe_manifest,
-        fixed_points_dataframe_manifest=fixed_points_dataframe_manifest,
+        fixed_points_bootstrap_dataframe_manifest=fixed_points_bootstrap_dataframe_manifest,
         output_dir=output_dir,
-        by_dataset=True,
+        x_axis_mode="dataset",
     )
 
     if not skip_individual_plots:
@@ -141,7 +145,7 @@ def main(
                     df_flow = filter_dataframe_by_flow_condition(
                         df_of, dataset_config, flow_condition
                     )
-                    plot_label = f"{dataset_name} ({int(flow_condition.shear_stress)} dyn/cm$^2$)"
+                    plot_label = f"{dataset_name} ({int(flow_condition.shear_stress)} dyn/cm{Unicode.SQUARED})"
                     hist_color = get_dataset_color(dataset_name)
 
                     # load fixed points once per dataset
@@ -159,7 +163,7 @@ def main(
                                 required_columns=[
                                     *DYNAMICS_COLUMN_NAMES,
                                     ColumnName.DATASET,
-                                    STABILITY_COLUMN_NAME,
+                                    ColumnName.VectorField.STABILITY,
                                 ],
                             )
                         except KeyError:
@@ -178,22 +182,25 @@ def main(
                         fp_for_feature = add_binned_mean_to_fixed_points(
                             fp_for_feature,
                             df_flow_no_nan,
-                            x_col=ColumnName.DiffAEData.POLAR_ANGLE,
-                            y_col=ColumnName.DiffAEData.POLAR_RADIUS,
-                            z_col=ColumnName.DiffAEData.PC3_FLIPPED,
+                            fp_x_col=ColumnName.DiffAEData.POLAR_ANGLE,
+                            fp_y_col=ColumnName.DiffAEData.POLAR_RADIUS,
+                            fp_z_col=ColumnName.DiffAEData.PC3_FLIPPED,
                             binned_col=optical_flow_feature,
                         )
 
                     # save individual histogram for this dataset and flow condition
-                    plot_optical_flow_histogram(
+                    fig = plot_optical_flow_histogram(
                         df=df_flow,
                         optical_flow_feature=optical_flow_feature,
-                        title=plot_label,
+                        feature_label="Migration Coherence",
+                        feature_lim=(0.1, vmax),
+                        ss_label=f"{int(flow_condition.shear_stress)} dyn/cm{Unicode.SQUARED}",
                         color=hist_color,
-                        output_dir=output_dir,
-                        filename=f"{dataset_name_flow}_{optical_flow_feature}_distribution",
                         df_fp=fp_for_feature,
                         binwidth=hist_binwidth,
+                    )
+                    save_plot_to_path(
+                        fig, output_dir, f"{dataset_name_flow}_{optical_flow_feature}_distribution"
                     )
 
                     # --- 2D plots ---
@@ -223,7 +230,7 @@ def main(
                         # if fixed points are available, overlay them on the scatter plot
                         if fixed_points_dataframe is not None:
                             for _, row in fixed_points_dataframe.iterrows():
-                                stability = row[STABILITY_COLUMN_NAME]
+                                stability = row[ColumnName.VectorField.STABILITY]
                                 marker = STABILITY_MARKER_DICT.get(stability, "o")
                                 color = STABILITY_COLOR_DICT.get(stability, "gray")
                                 axs[1].scatter(
@@ -237,7 +244,9 @@ def main(
                                 )
                             # add legend for fixed points
                             legend_handles = make_legend_handles_for_fixed_pts(
-                                fixed_points_dataframe[STABILITY_COLUMN_NAME].unique().tolist()
+                                fixed_points_dataframe[ColumnName.VectorField.STABILITY]
+                                .unique()
+                                .tolist()
                             )
                             fig.legend(
                                 handles=legend_handles,

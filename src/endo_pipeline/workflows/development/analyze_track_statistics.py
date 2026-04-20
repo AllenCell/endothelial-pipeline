@@ -21,21 +21,17 @@ def main(
         filter_dataframe_by_track_length,
         filter_dataframe_to_steady_state,
     )
-    from endo_pipeline.library.visualize.diffae_features.feature_viz import (
-        get_dataset_color,
-        get_label_for_column,
-    )
+    from endo_pipeline.library.visualize.columns import get_label_for_column
+    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
     from endo_pipeline.library.visualize.track_statistics import plot_histogram_and_kde
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_DYNAMICS,
-        BIN_LIMITS_THETA_RESCALED,
         DEFAULT_DATASETS_DYNAMICS_VIS,
         DYNAMICS_COLUMN_NAMES,
         KERNEL_NAMES_DYNAMICS,
         METADATA_COLUMNS_TO_KEEP,
-        RESCALE_THETA,
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -50,9 +46,7 @@ def main(
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
     run_name = DEFAULT_MODEL_RUN_NAME
     column_names: list[ColumnName.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
-    variable_labels_dict = {
-        col: get_label_for_column(col).replace("polar ", "") for col in column_names
-    }
+    variable_labels_dict = {col: get_label_for_column(col) for col in column_names}
     columns_to_compute_grid = [*METADATA_COLUMNS_TO_KEEP["grid"], *column_names]
     columns_to_compute_tracked = [*METADATA_COLUMNS_TO_KEEP["tracked"], *column_names]
 
@@ -80,8 +74,6 @@ def main(
 
     # unpack default bin widths and limits for each column, adjusting limits if rescaling theta
     bin_limits_dict = BIN_LIMITS_DYNAMICS.copy()
-    if RESCALE_THETA:
-        bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
     polar_angle_period = (
         bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][1]
         - bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][0]

@@ -108,6 +108,7 @@ def main(
     import logging
     import os
     from concurrent.futures import ProcessPoolExecutor
+    from typing import cast
 
     import numpy as np
     import pandas as pd
@@ -118,6 +119,7 @@ def main(
     from endo_pipeline.io import (
         build_fms_annotations,
         get_output_path,
+        join_sorted_strings,
         load_dataframe,
         make_name_unique,
         upload_file_to_fms,
@@ -127,7 +129,7 @@ def main(
         init_bootstrap_worker,
         match_bootstrap_fixed_points_to_baseline,
         run_one_bootstrap_iteration,
-        subsample_trajectories_and_displacements,
+        sample_trajectories_and_displacements_for_bootstrapping,
     )
     from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
@@ -149,7 +151,7 @@ def main(
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
         METADATA_COLUMNS_TO_KEEP,
-        PERIOD_THETA_RESCALED,
+        POLAR_ANGLE_PERIOD,
         RESCALE_THETA,
     )
     from endo_pipeline.settings.flow_field_3d import (
@@ -184,13 +186,16 @@ def main(
 
     dataframe_savedir = get_output_path(__file__, crop_pattern)
     # get dataframe manifest for baseline results to match against in bootstrapping
-    baseline_fixed_point_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
+    columns_str = join_sorted_strings(cast(list[str], column_names))
+    baseline_fixed_point_manifest_name = (
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{columns_str}_{base_name}"
+    )
     baseline_fixed_point_manifest = load_dataframe_manifest(baseline_fixed_point_manifest_name)
 
     # load or initialize dataframe manifest for bootstrap results
     demo_suffix = "_demo" if DEMO_MODE else ""
     bootstrap_results_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}{demo_suffix}"
+        f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}{base_name}{demo_suffix}"
     )
     bootstrap_results_manifest = create_dataframe_manifest(
         bootstrap_results_manifest_name, workflow_name=__file__
@@ -209,7 +214,7 @@ def main(
 
     kernels: list[KramersMoyalKernel] = []
     bin_widths: list[float] = []
-    rescaled_theta_period = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
+    rescaled_theta_period = POLAR_ANGLE_PERIOD + np.pi * (1 - RESCALE_THETA)
 
     polar_angle_period = (
         rescaled_theta_period if Column.DiffAEData.POLAR_ANGLE in column_names else None
@@ -223,11 +228,12 @@ def main(
         bin_widths.append(bin_width)
 
     # add parameters to the output manifest for traceability
+    column_names_yaml_safe = [f"{column}" for column in column_names]
     bootstrap_results_manifest.parameters = {
         "model_manifest_name": model_manifest_name,
         "run_name": run_name,
         "crop_pattern": crop_pattern,
-        "columns": [column.value for column in column_names],
+        "columns": column_names_yaml_safe,
         "kernel_names": [kernel.name for kernel in kernels],
         "kernel_bandwidths": [kernel.bandwidth for kernel in kernels],
         "bin_widths": bin_widths,
@@ -286,17 +292,16 @@ def main(
         # Compute trajectories and displacements once from the full steady-state
         # data; the same lists are reused for the baseline and subsampled for
         # each bootstrap iteration.
-        full_trajectories, full_displacements = get_traj_and_diff(df_steady_state, column_names)
+        trajectories, displacements = get_traj_and_diff(df_steady_state, column_names)
 
-        # Generate all subsamples up front to avoid redundant subsampling in
-        # each iteration and to ensure subsampling is not a bottleneck in the
-        # parallel loop. Note that the list comprehension steps through samples
-        # from the rng as expected (i.e., do indeed get distinct samples). Each
-        # element of `all_subsamples` is a tuple of (subsampled_trajectories,
-        # subsampled_displacements).
-        all_subsamples: list[tuple[list[np.ndarray], list[np.ndarray]]] = [
-            subsample_trajectories_and_displacements(
-                full_trajectories, full_displacements, subsample_fraction=0.5, rng=rng
+        # Generate all resampled lists of trajectories and displacements for the
+        # bootstrap iterations up front, to avoid overhead from repeatedly
+        # resampling in each worker process. Each element of `all_sampled_pairs`
+        # is a tuple of (resampled_trajectories, resampled_displacements) for
+        # one bootstrap iteration.
+        all_sampled_pairs: list[tuple[list[np.ndarray], list[np.ndarray]]] = [
+            sample_trajectories_and_displacements_for_bootstrapping(
+                trajectories, displacements, rng=rng
             )
             for _ in range(num_bootstrap_iterations)
         ]
@@ -336,7 +341,9 @@ def main(
         ) as executor:
             bootstrap_fixed_points: list[pd.DataFrame] = list(
                 tqdm(
-                    executor.map(run_one_bootstrap_iteration, all_subsamples, chunksize=batch_size),
+                    executor.map(
+                        run_one_bootstrap_iteration, all_sampled_pairs, chunksize=batch_size
+                    ),
                     total=num_bootstrap_iterations,
                     desc=f"Bootstrap iterations for dataset: {dataset_name}",
                 )

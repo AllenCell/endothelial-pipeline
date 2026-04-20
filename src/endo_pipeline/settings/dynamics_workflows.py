@@ -45,7 +45,7 @@ BIN_WIDTHS_DYNAMICS: dict[Column.DiffAEData, float] = {
 """Bin widths for each coordinate in dynamics analysis and visualization."""
 
 BIN_LIMITS_DYNAMICS: dict[Column.DiffAEData, tuple[float, float]] = {
-    Column.DiffAEData.POLAR_ANGLE: (-pi, pi),
+    Column.DiffAEData.POLAR_ANGLE: (0.0, pi),
     Column.DiffAEData.POLAR_RADIUS: (0.0, 3.5),
     Column.DiffAEData.PC3_FLIPPED: (-1.5, 2.5),
 }
@@ -54,15 +54,21 @@ BIN_LIMITS_DYNAMICS: dict[Column.DiffAEData, tuple[float, float]] = {
 DEFAULT_DATASETS_DYNAMICS_VIS: str = "diffae_model_training"
 """Default dataset collection for dynamics visualization workflows."""
 
+TIME_STEP_IN_MINUTES: int = 5
+"""Time step in minutes between consecutive time points for flow field estimation."""
+
+TIME_STEP_IN_HOURS: float = TIME_STEP_IN_MINUTES / 60
+"""Time step in hours between consecutive time points for flow field estimation."""
+
 RESCALE_THETA: bool = True
 """Whether to rescale polar angle coordinate to [0, pi] range for analysis and
 visualization."""
 
-BIN_LIMITS_THETA_RESCALED: tuple[float, float] = (0.0, pi)
-"""Bin limits for rescaled polar angle coordinate analysis and visualization."""
+POLAR_ANGLE_RANGE: tuple[float, float] = (0.0, pi)
+"""Range of polar angle coordinate (dependent on RESCALE_THETA) for analysis and visualization."""
 
-PERIOD_THETA_RESCALED: float = pi
-"""Period for rescaled polar angle coordinate."""
+POLAR_ANGLE_PERIOD: float = pi
+"""Period for polar angle coordinate (dependent on RESCALE_THETA)."""
 
 KERNEL_NAMES_DYNAMICS: dict[Column.DiffAEData, str] = {
     Column.DiffAEData.POLAR_ANGLE: "periodic",
@@ -81,15 +87,17 @@ BIN_LIMIT_PERCENTILE_CUTOFF: float = 2.5
 """Percentile cutoff for getting bin limits for computing Kramer-Moyal
 coefficients."""
 
-HISTOGRAM_THRESHOLD_FOR_MASKING: float = 0.05
-"""Histogram threshold for masking in dynamics visualization workflows."""
+NUM_INIT_SAMPLES: int = 250
+"""Number of sampled initial points for root finding in 3D flow field analysis."""
 
-MAX_MSD_LAG: int = 24
-"""Maximum time lag (in number of frames) to consider for mean squared
-displacement calculation."""
+SAMPLER_RANDOM_SEED: int = 47
+"""Random seed for initial point sampling in 3D flow field analysis."""
 
-MSD_Y_AXIS_LIMITS: tuple[float, float] = (2e-3, 1e0)
-"""Axes limits for mean squared displacement plots."""
+UPPER_PERCENTILE_FOR_FILTERING_FPTS: float = 95.0
+"""Upper percentile threshold for stable fixed point identification in 3D flow field analysis."""
+
+LOWER_PERCENTILE_FOR_FILTERING_FPTS: float = 5.0
+"""Lower percentile threshold for stable fixed point identification in 3D flow field analysis."""
 
 LONG_TRACK_THRESHOLD_LENGTH: int = 150
 """

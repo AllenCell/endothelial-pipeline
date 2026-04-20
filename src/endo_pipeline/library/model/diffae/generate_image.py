@@ -4,6 +4,7 @@ import logging
 import typing
 
 import numpy as np
+import pandas as pd
 import torch
 
 if typing.TYPE_CHECKING:
@@ -12,7 +13,13 @@ if typing.TYPE_CHECKING:
         DiffusionAutoEncoder as BaseDiffusionAutoEncoder,
     )
 
+from endo_pipeline.library.analyze.pca import fit_pca
 from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
+from endo_pipeline.library.model.latent_walk_utils import (
+    add_pc_coordinates_to_dataframe,
+    get_num_pcs_from_column_names,
+)
+from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
 
 logger = logging.getLogger(__name__)
 
@@ -154,6 +161,83 @@ def generate_from_coords_and_noised_image(
     return gen_img
 
 
+def generate_from_dataframe(
+    dataframe: pd.DataFrame,
+    column_names: list[str],
+    model: "DiffusionAutoEncoder",
+    num_gpus: int | None = None,
+    random_seed: int | None = None,
+    n_noise_samples: int = 1,
+    average: bool = False,
+) -> np.ndarray:
+    """
+    Reconstruct crops from feature coordinates stored in a given dataframe.
+
+    Parameters
+    ----------
+    dataframe
+        DataFrame containing the feature coordinates for image reconstruction.
+    column_names
+        List of column names corresponding to the feature coordinates in the
+        dataframe.
+    model
+        DiffusionAutoEncoder model to use for image reconstruction.
+    num_gpus
+        Optional, number of available GPUs.
+    random_seed
+        Random seed for reproducibility of image generation. If None, does not
+        set a random seed.
+    n_noise_samples
+        Number of noise samples to use for generating images. Each noise sample
+        will result in a separate reconstructed image for each set of feature
+        coordinates in the dataframe.
+    average
+        If True, average the generated images across noise samples for each set of
+        feature coordinates, resulting in a single reconstructed image per set of
+        feature coordinates. If False, return all generated images without averaging.
+
+    Returns
+    -------
+    :
+        Array of reconstructed images corresponding to the feature coordinates
+        in the dataframe. The shape of the array will be (num_samples,
+        img_width, img_height), where num_samples is equal to the number of rows
+        in the dataframe multiplied by n_noise_samples.
+
+    """
+
+    # get minimum number of pcs needed for the fit pca object based on the
+    # column names provided; for example, if "pc_11" is in the column names,
+    # then the fit pca object needs to be fit with at least 11 pcs
+    num_pcs = get_num_pcs_from_column_names(column_names)
+    if num_pcs == 0:
+        raise ValueError(f"No PC-related column names found in {column_names}.")
+
+    # Fit PCA object for given number of PCs
+    pca = fit_pca(num_pcs=num_pcs)
+
+    # re-transform coordinates if they are in polar format (angle and radius) or
+    # if they include flipped pc3
+    dataframe = add_pc_coordinates_to_dataframe(dataframe, column_names)
+
+    # get latent coordinates by performing inverse PCA transformation on the PC
+    # coordinates from the dataframe; only use the PC columns needed for the
+    # inverse transformation based on the number of PCs determined earlier
+    pc_column_names = DIFFAE_PC_COLUMN_NAMES[:num_pcs]
+    latent_coords = pca.inverse_transform(dataframe[pc_column_names].to_numpy())
+
+    reconstructed_image = generate_from_coords(
+        model,
+        latent_coords,
+        num_gpus=num_gpus,
+        random_seed=random_seed,
+        n_noise_samples=n_noise_samples,
+        average=average,
+    )
+
+    return reconstructed_image
+
+
 def generate_from_coords(
     model: "BaseDiffusionAutoEncoder | DiffusionAutoEncoder",
     coords: np.ndarray,
@@ -204,7 +288,7 @@ def generate_from_coords(
     model_ = model.to(device)
 
     if isinstance(model_, DiffusionAutoEncoder):
-        walk_img = model_.generate_from_latent(
+        reconstructed_image = model_.generate_from_latent(
             coords_,
             n_noise_samples=n_noise_samples,
             average=average,
@@ -212,14 +296,31 @@ def generate_from_coords(
             random_seed=random_seed,
         )
     else:
-        walk_img = model_.generate_from_latent(
+        reconstructed_image = model_.generate_from_latent(
             coords_, n_noise_samples=n_noise_samples, average=average, save=False
         )
 
-    if isinstance(walk_img, torch.Tensor):
-        return walk_img.detach().cpu().numpy()
+    if isinstance(reconstructed_image, torch.Tensor):
+        reconstructed_image_array = reconstructed_image.detach().cpu().numpy()
+    elif isinstance(reconstructed_image, np.ndarray):
+        reconstructed_image_array = reconstructed_image
 
-    return walk_img
+    # remove any singleton dimensions
+    reconstructed_image_array = reconstructed_image_array.squeeze()
+
+    # reshape if n_noise_samples > 1; the image shape is returned as
+    # (width, height*num_noise_samples) if n_noise_samples > 1,
+    # so reshape to (num_noise_samples, width, height)
+    if n_noise_samples > 1:
+        image_sample_list = []
+        image_height = reconstructed_image_array.shape[-1] // n_noise_samples
+        for sample in range(n_noise_samples):
+            image_sample_list.append(
+                reconstructed_image_array[:, sample * image_height : (sample + 1) * image_height]
+            )
+        reconstructed_image_array = np.stack(image_sample_list, axis=0)
+
+    return reconstructed_image_array
 
 
 def generate_from_coords_batch(
@@ -253,3 +354,52 @@ def generate_from_coords_batch(
     walk_imgs = [img[i] for i in range(len(coords_batch))]
 
     return walk_imgs
+
+
+def generate_latent_walk_images(
+    model: "DiffusionAutoEncoder",
+    walk: np.ndarray,
+    ranges: np.ndarray,
+    n_noise_samples: int = 1,
+    num_gpus: int | None = None,
+    random_seed: int | None = None,
+) -> np.ndarray:
+    """Generate images from a latent walk using the provided model.
+
+    Parameters
+    ----------
+    model
+        Model to use for image generation.
+    walk
+        Array of shape (num_steps, num_dims) containing the latent walk
+        coordinates.
+    ranges
+        Array of shape (num_dims, num_steps) containing the coordinate values
+        for each dimension and step. Used to reshape the array of generated
+        images.
+    n_noise_samples
+        Number of noise samples to use for generating images.
+    num_gpus
+        Number of GPUs to use for image generation. If None, uses CPU.
+    random_seed
+        Random seed for reproducibility of image generation. If None, does not
+        set a random seed.
+
+    Returns
+    -------
+    :
+        Array of stacked generated images from the latent walk, reshaped to
+        (n_dim, n_steps, img_width, img_height).
+
+    """
+    walk_img = generate_from_coords(
+        model, walk, n_noise_samples=n_noise_samples, num_gpus=num_gpus, random_seed=random_seed
+    )
+
+    # Reshape to (n_dim, n_steps, img_w, img_h)
+    n_dim = ranges.shape[0]
+    n_steps_actual = ranges.shape[1]
+    image_width = walk_img.shape[-2]
+    image_height = walk_img.shape[-1]
+
+    return walk_img.reshape(n_dim, n_steps_actual, image_width, image_height)
