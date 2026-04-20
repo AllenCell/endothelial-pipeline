@@ -1,5 +1,7 @@
 """This workflow computes the time of first passage for each track in the dataset."""
 
+from typing import Literal
+
 from endo_pipeline.cli import Datasets
 
 
@@ -8,6 +10,10 @@ def main(
     minimum_track_length: int | None = None,
     run_FPT_threshold_parameter_sweep: bool = True,
     fixed_point_radius_threshold: float | None = None,
+    bin_size_theta_deg: float | None = None,
+    bin_size_radius: float | None = None,
+    bin_size_rho: float | None = None,
+    collapse_feature: Literal["theta", "radius", "rho"] | None = None,
 ) -> None:
 
     import logging
@@ -31,9 +37,10 @@ def main(
     from endo_pipeline.library.analyze.numerics.fixed_points import (
         load_fixed_points_dataframe_for_dataset,
     )
-    from endo_pipeline.library.visualize.integration.track_integration_viz import (
+    from endo_pipeline.library.visualize.integration.track_integration_viz import (  # plot_first_passage_time_heatmap,
         plot_first_passage_time_3d_scatter,
         plot_first_passage_time_correlation,
+        plot_first_passage_time_heatmap,
         plot_first_passage_time_histogram,
         plot_first_passage_time_parameter_sweep,
     )
@@ -105,9 +112,13 @@ def main(
         # 1. bin (theta, r, rho) feature space
         # define the bin sizes for each feature to be binned
         bin_sizes = {
-            Column.DiffAEData.POLAR_ANGLE: np.deg2rad(15),
-            Column.DiffAEData.POLAR_RADIUS: 0.25,
-            Column.DiffAEData.PC3_FLIPPED: 0.5,
+            Column.DiffAEData.POLAR_ANGLE: (
+                np.deg2rad(bin_size_theta_deg) if bin_size_theta_deg is not None else np.deg2rad(15)
+            ),
+            Column.DiffAEData.POLAR_RADIUS: (
+                bin_size_radius if bin_size_radius is not None else 0.25
+            ),
+            Column.DiffAEData.PC3_FLIPPED: bin_size_rho if bin_size_rho is not None else 0.5,
         }
 
         # get the data limits for each feature to be binned
@@ -134,6 +145,23 @@ def main(
         bin_widths = [bin_sizes[col] for col in DYNAMICS_COLUMN_NAMES]
         bin_limits = [bin_limits[col] for col in DYNAMICS_COLUMN_NAMES]
         bin_edges, bin_centers = get_bins(bin_widths=bin_widths, bin_limits=bin_limits)
+
+        if collapse_feature is not None:
+            feature_to_column_map = {
+                "theta": Column.DiffAEData.POLAR_ANGLE,
+                "radius": Column.DiffAEData.POLAR_RADIUS,
+                "rho": Column.DiffAEData.PC3_FLIPPED,
+            }
+            feature_to_collapse = feature_to_column_map[collapse_feature]
+            collapse_index = DYNAMICS_COLUMN_NAMES.index(feature_to_collapse)
+            # convert the bin edges into a single bin with only 2 edges
+            bin_edges[collapse_index] = np.array(
+                [bin_edges[collapse_index].min(), bin_edges[collapse_index].max()]
+            )
+            # take the midpoint of the bin edges as the bin center for the collapsed feature
+            bin_centers[collapse_index] = np.array(
+                [(bin_edges[collapse_index][0] + bin_edges[collapse_index][1]) / 2]
+            )
 
         # 2. identify trajectories that pass a fixed point and filter df to only those trajectories
         # find if and when a trajectory reaches a fixed point
@@ -279,15 +307,31 @@ def main(
                 )
                 # histograms don't really work for 4D data (theta, r, rho, and FPT ratio),
                 # so we will use a 3D scatter with color-coded points instead
-                plot_first_passage_time_3d_scatter(
-                    fixed_point_id=fp_idx,
-                    fixed_point_stability=fp_stability,
-                    dataset_config=dataset_config,
-                    first_passage_time_df=fpt_stats_df,
-                    fixed_points_df=fixed_points_df,
-                    stat_to_plot=stat,
-                    out_dir=out_dir,
-                )
+                # if one of the columns is not being collapsed
+                if collapse_feature is None:
+                    plot_first_passage_time_3d_scatter(
+                        fixed_point_id=fp_idx,
+                        fixed_point_stability=fp_stability,
+                        dataset_config=dataset_config,
+                        first_passage_time_df=fpt_stats_df,
+                        fixed_points_df=fixed_points_df,
+                        stat_to_plot=stat,
+                        out_dir=out_dir,
+                    )
+                # but if one of the features is collapsed, then we can plot the
+                # FPT statistic in a proper heatmap
+                else:
+                    plot_first_passage_time_heatmap(
+                        fixed_point_id=fp_idx,
+                        fixed_point_stability=fp_stability,
+                        dataset_config=dataset_config,
+                        first_passage_time_df=fpt_stats_df,
+                        fixed_points_df=fixed_points_df,
+                        stat_to_plot=stat,
+                        collapse_index=collapse_index,
+                        feature_order_for_bin_edges=list(DYNAMICS_COLUMN_NAMES),
+                        out_dir=out_dir,
+                    )
 
                 # plot KDE of the first passage times for all of the bins thrown together
                 plot_first_passage_time_histogram(

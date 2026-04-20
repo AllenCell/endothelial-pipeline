@@ -1636,8 +1636,7 @@ def plot_first_passage_time_histogram(
         binwidth=1,
         kde=True,
         color=dataset_color,
-        linestyle="--",
-        hatch="//",
+        hatch="..",
         fill=False,
         alpha=1.0,
         label="tracked",
@@ -1650,3 +1649,107 @@ def plot_first_passage_time_histogram(
 
     filename = f"FPT_fp_{fixed_point_id}_{fixed_point_stability}_{stat_to_plot}_histogram.png"
     save_plot_to_path(fig, out_dir, filename, show_and_close=False)
+
+
+def plot_first_passage_time_heatmap(
+    fixed_point_id: int,
+    fixed_point_stability: str,
+    dataset_config: DatasetConfig,
+    first_passage_time_df: pd.DataFrame,
+    fixed_points_df: pd.DataFrame,
+    stat_to_plot: Literal["mean", "median"],
+    collapse_index: int,
+    feature_order_for_bin_edges: list[Column],
+    out_dir: Path,
+) -> None:
+    dataset_name = dataset_config.name
+    if dataset_config.time_interval_in_minutes is None:
+        raise ValueError("DatasetConfig must have time_interval_in_minutes defined.")
+    time_units = dataset_config.time_interval_in_minutes / 60  # convert timeframes to hours
+
+    # the column title is "50%" for 50th percentile in `pd.describe`` instead of
+    # mean so correct that if "median" was chosen
+    stat = "50%" if stat_to_plot == "median" else stat_to_plot
+
+    suffix = "_first_passage_time"
+    metric = f"{stat}{suffix}"
+
+    # convert the FPT (which is in timepoints) to physical units
+    # most but not all of the columns are based on time in `first_passage_time_df`
+    not_time_columns = [
+        f"count{suffix}_grid",
+        f"count{suffix}_tracked",
+        "bin_index",
+        "bin_center",
+        "bin_edges",
+    ]
+    # the time columns are the set of columns in the dataframe that are not in
+    # the not_time_columns list
+    time_cols = list(set(first_passage_time_df.columns) - set(not_time_columns))
+
+    # now we can convert all those time columns from timepoints to physical units
+    first_passage_time_df[time_cols] *= time_units
+
+    # unpack bin centers and bin edges for all three features (theta, r, rho),
+    # then drop the collapsed dimension to get the two axes for the 2D heatmap
+    all_bin_centers = list(zip(*first_passage_time_df["bin_center"], strict=True))
+    all_bin_edges_vals = list(zip(*first_passage_time_df["bin_edges"], strict=True))
+    all_dim_labels = [str(feature) for feature in feature_order_for_bin_edges]
+
+    remaining_indices = [i for i in range(3) if i != collapse_index]
+    x_centers = np.array(all_bin_centers[remaining_indices[0]])
+    y_centers = np.array(all_bin_centers[remaining_indices[1]])
+    # unique values from the bin_edges meshgrid give the complete bin boundary arrays
+    x_bin_edges = np.unique(all_bin_edges_vals[remaining_indices[0]])
+    y_bin_edges = np.unique(all_bin_edges_vals[remaining_indices[1]])
+
+    # we're using a base-2 log of the FPT-tracked to FPT-grid ratio so that the
+    # fold change is symmetric and the colors end up evenly spaced regardless of
+    # whether the tracked or grid-based FPT is higher
+    colors = np.log2(
+        first_passage_time_df[f"{metric}_tracked"] / first_passage_time_df[f"{metric}_grid"]
+    )
+    cmap_lim = float(np.nanmax(abs(colors)))
+    cmap = "coolwarm_r"
+    norm = TwoSlopeNorm(vcenter=0, vmin=-cmap_lim, vmax=cmap_lim)
+
+    fig, ax = plt.subplots(figsize=(3, 3.5))
+    ax.set_title(f"{dataset_name}".title())
+    # since the data is already aggregated (one value per bin), passing weights=colors
+    # to hist2d produces a heatmap where each cell is colored by the log2 FPT ratio
+    _, _, _, im = ax.hist2d(
+        x=x_centers,
+        y=y_centers,
+        bins=[x_bin_edges, y_bin_edges],
+        weights=colors,
+        edgecolors="grey",
+        cmap=cmap,
+        norm=norm,
+    )
+    divider = make_axes_locatable(ax)
+    ax_cb = divider.append_axes("right", size="5%", pad=0.05)
+    fig.colorbar(im, cax=ax_cb)
+    ax_cb.set_ylabel(r"$\log_2$(tracked FPT / grid FPT)", rotation=270, labelpad=15)
+    ax.set_xlabel(get_label_for_column(all_dim_labels[remaining_indices[0]]))
+    ax.set_ylabel(get_label_for_column(all_dim_labels[remaining_indices[1]]))
+
+    # lastly add the fixed point location as a black star on the heatmap
+    fixed_point_coords = fixed_points_df.iloc[fixed_point_id][all_dim_labels].values
+    ax.scatter(
+        fixed_point_coords[remaining_indices[0]],
+        fixed_point_coords[remaining_indices[1]],
+        color="black",
+        s=10,
+        marker="*",
+    )
+
+    filename = (
+        f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}"
+        f"_{stat_to_plot}_heatmap.png"
+    )
+    save_plot_to_path(
+        fig,
+        out_dir,
+        filename,
+        show_and_close=False,
+    )
