@@ -50,6 +50,9 @@ def main(
     )
     from endo_pipeline.library.visualize.diffae_features.dynamics_viz import plot_drift_1d
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
+    from endo_pipeline.library.visualize.diffae_features.fixed_points import (
+        make_legend_handles_for_fixed_pts,
+    )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import DEFAULT_DATASETS_DYNAMICS_VIS
@@ -196,6 +199,7 @@ def main(
                 centers=centers[-1],
                 drift=drift,
                 axes_labels=[column_label, f"d{column_label}/dt"],
+                figsize=(4, 4),
                 drift_line_kwargs={"color": "k", "linewidth": 2},
                 zero_line_kwargs={"linestyle": "--", "color": "gray", "linewidth": 1, "alpha": 0.7},
             )
@@ -219,6 +223,8 @@ def main(
                     markeredgewidth=0.5,
                     markersize=5,
                 )
+                legend_handles = make_legend_handles_for_fixed_pts([StabilityLabel.STABLE])
+                ax.legend(handles=legend_handles, loc="upper right", fontsize="small")
                 save_plot_to_path(
                     fig,
                     fig_savedir,
