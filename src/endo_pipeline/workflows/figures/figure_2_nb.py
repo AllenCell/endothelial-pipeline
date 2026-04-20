@@ -165,11 +165,7 @@ save_plot_to_path(fig, base_output_dir, "colorbar", file_format=".svg", transpar
 # %%
 # loop over datasets in collection, compute 2D drift coefficients for each
 # pairwise combination of polar coordinates, and plot contours of drift coefficients
-panels = []
-for dataset_name, panel_letters, y_position, contact_sheet_x_position in [
-    (dataset_low, ("A", "B", "E"), 0.0, 0.0),
-    (dataset_high, ("C", "D", "F"), 2.05, MAX_FIGURE_WIDTH / 2),
-]:
+for dataset_name in [dataset_low, dataset_high]:
     if dataset_name not in feature_dataframe_manifest.locations:
         logger.warning(
             "No location found in dataframe manifest [ %s ] for dataset [ %s ], skipping visualization.",
@@ -377,54 +373,6 @@ for dataset_name, panel_letters, y_position, contact_sheet_x_position in [
         num_gpus=NUM_GPUS,
     )
 
-    # build panels for this dataset's flow field visualizations
-    contour_plots = FigurePanel(
-        letter=panel_letters[0],
-        path=fig_savedir / f"{contour_plot_filename}.svg",
-        x_position=0,
-        y_position=y_position,
-        x_offset=-0.05,
-        y_offset=-0.1,
-    )
-
-    colorbar_panel = FigurePanel(
-        letter="",
-        path=base_output_dir / "colorbar.svg",
-        x_position=MAX_FIGURE_WIDTH / 4 - 0.3,
-        y_position=y_position,
-        x_offset=0.08,
-        y_offset=0.00,
-    )
-
-    quiver_plot = FigurePanel(
-        letter="",
-        path=fig_savedir / f"{quiver_plot_filename}.svg",
-        x_position=MAX_FIGURE_WIDTH / 4 + 0.65,
-        y_position=y_position,
-        x_offset=-0.1,
-        y_offset=0.0,
-    )
-
-    theta_plot = FigurePanel(
-        letter=panel_letters[1],
-        path=fig_savedir / f"{theta_plot_filename}.svg",
-        x_position=3 * MAX_FIGURE_WIDTH / 4 - 0.35,
-        y_position=y_position,
-        x_offset=0.4,
-        y_offset=-0.2,
-    )
-
-    contact_sheet_panel = FigurePanel(
-        letter=panel_letters[2],
-        path=crop_contact_sheet_path,
-        x_position=contact_sheet_x_position,
-        y_position=4.0,
-        x_offset=0.0,
-        y_offset=0.0,
-    )
-
-    panels.extend([contour_plots, colorbar_panel, quiver_plot, theta_plot, contact_sheet_panel])
-
 # %%
 # --- Cross-dataset summary plots ---
 plot_cross_dataset_summaries(
@@ -480,27 +428,116 @@ save_plot_to_path(
     tight_layout=False,
     file_format=".svg",
 )
+
 # %%
-panels.extend(
-    [
-        FigurePanel(
-            letter="G",
-            path=base_output_dir / "migration_coherence_distribution_high_low_flow_comparison.svg",
-            x_position=0,
-            y_position=6.0,
-            x_offset=0,
-            y_offset=0,
-        ),
-        FigurePanel(
-            letter="H",
-            path=base_output_dir / "fixed_points_vs_shear_stress.svg",
-            x_position=2.1,
-            y_position=6.0,
-            x_offset=0,
-            y_offset=0,
-        ),
-    ]
-)
+# --- Assemble all panels into final figure ---
+# Helper: construct per-dataset plot paths
+columns_r_rho_str = "_".join(columns_r_rho)
+fig_savedir_low = get_output_path("figure_2", dataset_low)
+fig_savedir_high = get_output_path("figure_2", dataset_high)
+
+panels = [
+    # --- Low flow dataset (row 1) ---
+    FigurePanel(
+        letter="A 6 dyn/cm$\u00b2$",
+        path=fig_savedir_low / f"{dataset_low}_{columns_r_rho_str}_contours.svg",
+        x_position=0,
+        y_position=0.0,
+        x_offset=-0.05,
+        y_offset=-0.1,
+    ),
+    FigurePanel(
+        letter="",
+        path=base_output_dir / "colorbar.svg",
+        x_position=MAX_FIGURE_WIDTH / 4 - 0.3,
+        y_position=0.0,
+        x_offset=0.08,
+        y_offset=0.00,
+    ),
+    FigurePanel(
+        letter="",
+        path=fig_savedir_low / f"{dataset_low}_{columns_r_rho_str}_quiver.svg",
+        x_position=MAX_FIGURE_WIDTH / 4 + 0.65,
+        y_position=0.0,
+        x_offset=-0.1,
+        y_offset=0.0,
+    ),
+    FigurePanel(
+        letter="B 21 dyn/cm$\u00b2$",
+        path=fig_savedir_low / f"{dataset_low}_{Column.DiffAEData.POLAR_ANGLE}_drift.svg",
+        x_position=3 * MAX_FIGURE_WIDTH / 4 - 0.35,
+        y_position=0.0,
+        x_offset=0.4,
+        y_offset=-0.2,
+    ),
+    # --- High flow dataset (row 2) ---
+    FigurePanel(
+        letter="C",
+        path=fig_savedir_high / f"{dataset_high}_{columns_r_rho_str}_contours.svg",
+        x_position=0,
+        y_position=2.05,
+        x_offset=-0.05,
+        y_offset=-0.1,
+    ),
+    FigurePanel(
+        letter="",
+        path=base_output_dir / "colorbar.svg",
+        x_position=MAX_FIGURE_WIDTH / 4 - 0.3,
+        y_position=2.05,
+        x_offset=0.08,
+        y_offset=0.00,
+    ),
+    FigurePanel(
+        letter="",
+        path=fig_savedir_high / f"{dataset_high}_{columns_r_rho_str}_quiver.svg",
+        x_position=MAX_FIGURE_WIDTH / 4 + 0.65,
+        y_position=2.05,
+        x_offset=-0.1,
+        y_offset=0.0,
+    ),
+    FigurePanel(
+        letter="D",
+        path=fig_savedir_high / f"{dataset_high}_{Column.DiffAEData.POLAR_ANGLE}_drift.svg",
+        x_position=3 * MAX_FIGURE_WIDTH / 4 - 0.35,
+        y_position=2.05,
+        x_offset=0.4,
+        y_offset=-0.2,
+    ),
+    # --- Contact sheets (row 3) ---
+    FigurePanel(
+        letter="E",
+        path=fig_savedir_low / f"{dataset_low}_crop_examples.svg",
+        x_position=0.0,
+        y_position=4.0,
+        x_offset=0.0,
+        y_offset=0.0,
+    ),
+    FigurePanel(
+        letter="F",
+        path=fig_savedir_high / f"{dataset_high}_crop_examples.svg",
+        x_position=MAX_FIGURE_WIDTH / 2,
+        y_position=4.0,
+        x_offset=0.0,
+        y_offset=0.0,
+    ),
+    # --- Bottom row ---
+    FigurePanel(
+        letter="G",
+        path=base_output_dir / "migration_coherence_distribution_high_low_flow_comparison.svg",
+        x_position=0,
+        y_position=6.0,
+        x_offset=0,
+        y_offset=0,
+    ),
+    FigurePanel(
+        letter="H",
+        path=base_output_dir / "fixed_points_vs_shear_stress.svg",
+        x_position=2.1,
+        y_position=6.0,
+        x_offset=0,
+        y_offset=0,
+    ),
+]
 
 # %%
 build_figure_from_panels(
