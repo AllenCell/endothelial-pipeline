@@ -23,6 +23,8 @@ def plot_histogram_and_kde(
     hist_color: str = "blue",
     hist_alpha: float = 0.5,
     hist_hatch: str = "",
+    hist_fill: bool = True,
+    hist_line_style: str = "-",
     kde_line_style: str = "-",
     kde_color: str = "k",
     kde_label: str | None = None,
@@ -105,19 +107,16 @@ def plot_histogram_and_kde(
     spline_list.append(one_spline)
     hist_kde_smooth_list.append(one_spline(interp_centers))
 
-    # plot histogram of the column variance with KDE overlaid
-    # set facecolor to none if using hatch to avoid double coloring
-    fill = False if hist_hatch else True
     # if not filling with color increase alpha to show hatched bars more clearly
-    hist_alpha = hist_alpha if fill else 1.0
     axes.bar(
         bins[0][:-1],
         hist,
         width=np.diff(bins[0]),
         facecolor=hist_color,
         edgecolor=hist_color,
-        fill=fill,
+        fill=hist_fill,
         hatch=hist_hatch,
+        linestyle=hist_line_style,
         alpha=hist_alpha,
         align="edge",
     )

@@ -222,9 +222,9 @@ def main(
                 polar_angle_period if column_name == ColumnName.DiffAEData.POLAR_ANGLE else None
             )
             hist_alpha = 0.33
-            for crop_pattern, line_style, hatch_style in [
-                ("grid", "-", ""),
-                ("tracked", "--", "//"),
+            for crop_pattern, line_style, hist_fill in [
+                ("grid", "-", True),
+                ("tracked", "--", False),
             ]:
                 # histogram and KDE for column average
                 axes_xlabel = f"Mean {variable_label} Per Trajectory"
@@ -237,8 +237,9 @@ def main(
                     kernel_bandwidth=1.5 * bin_width_averages,
                     kernel_period=period,
                     hist_color=hist_color,
-                    hist_hatch=hatch_style,
                     hist_alpha=hist_alpha,
+                    hist_fill=hist_fill,
+                    hist_line_style=line_style,
                     kde_line_style=line_style,
                     kde_label=crop_pattern,
                     axes_xlabel=axes_xlabel,
@@ -247,8 +248,6 @@ def main(
                 )
 
                 # histogram and KDE for column variance
-                # axes_title = f"Histogram of variance {variable_label} across trajectories"
-                # axes_xlabel = f"$\\mathrm{{Var}}({variable_label})$"
                 axes_xlabel = f"Variance of {variable_label} Per Trajectory"
                 axes_ylabel = f"P(Variance of {variable_label})"
                 plot_histogram_and_kde(
@@ -259,8 +258,9 @@ def main(
                     kernel_bandwidth=1.5 * bin_width_variances,
                     kernel_period=None,
                     hist_color=hist_color,
-                    hist_hatch=hatch_style,
+                    hist_fill=hist_fill,
                     hist_alpha=hist_alpha,
+                    hist_line_style=line_style,
                     kde_line_style=line_style,
                     kde_label=crop_pattern,
                     axes_xlabel=axes_xlabel,
