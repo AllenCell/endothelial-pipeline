@@ -143,8 +143,8 @@ gridspec_kwargs = {"wspace": 0.1, "hspace": 0.1}
 xlabel_kwargs = {"labelpad": 2}
 ylabel_kwargs = {"labelpad": -2}
 
-r_lims = (0.2, 2.0)
-rho_lims = (-1.15, 1.15)
+r_lims = (0.2, 1.8)
+rho_lims = (-1.05, 1.05)
 nullcline_r_style = "dashed"
 nullcline_rho_style = (0, (1, 1))  # dense dotted
 
@@ -278,7 +278,7 @@ for dataset_name, panel_letters, y_position in [
         # adjust label padding and drop tick labels on shared x axis
         ax_.set_box_aspect(1.0)
         ax_.set_xticks([0.25, 1.0, 1.75])
-        ax_.set_yticks([-1.0, 0.0, 1.0])
+        ax_.set_yticks([-0.75, 0.0, 0.75])
         if ax_index == 0:
             ax_.tick_params(labelbottom=False)
     save_plot_to_path(
