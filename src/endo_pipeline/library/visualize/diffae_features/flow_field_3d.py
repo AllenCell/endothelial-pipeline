@@ -23,7 +23,7 @@ from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
 )
-from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_THETA_RESCALED, RESCALE_THETA
+from endo_pipeline.settings.dynamics_workflows import POLAR_ANGLE_RANGE
 from endo_pipeline.settings.figures import (
     FONT_FAMILY,
     FONTSIZE_LARGE,
@@ -916,7 +916,7 @@ def visualize_3d_flow_field_for_one_dataset(
     # when plotting the trajectory over the flow field slices
     if Column.DiffAEData.POLAR_ANGLE in column_names:
         polar_angle_index = column_names.index(Column.DiffAEData.POLAR_ANGLE)
-        polar_angle_range = BIN_LIMITS_THETA_RESCALED if RESCALE_THETA else (-np.pi, np.pi)
+        polar_angle_range = POLAR_ANGLE_RANGE
         traj[:, polar_angle_index] = rewrap_polar_angle(
             traj[:, polar_angle_index], polar_angle_range
         )

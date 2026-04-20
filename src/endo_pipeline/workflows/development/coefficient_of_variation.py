@@ -85,13 +85,12 @@ def main(
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_DYNAMICS,
-        BIN_LIMITS_THETA_RESCALED,
         DEFAULT_DATASETS_DYNAMICS_VIS,
         METADATA_COLUMNS_TO_KEEP,
-        PERIOD_THETA_RESCALED,
-        RESCALE_THETA,
+        POLAR_ANGLE_PERIOD,
+        POLAR_ANGLE_RANGE,
+        TIME_STEP_IN_HOURS,
     )
-    from endo_pipeline.settings.flow_field_3d import TIME_STEP_IN_MINUTES
     from endo_pipeline.settings.plot_defaults import SHEAR_COLOR_DICT
     from endo_pipeline.settings.variation_analysis import (
         COV_VS_TIME_YLIM_DICT,
@@ -114,16 +113,13 @@ def main(
     global_bin_limits_dict = cast(
         dict[str | Column.DiffAEData, tuple[float, float]], BIN_LIMITS_DYNAMICS.copy()
     )
-    if RESCALE_THETA:
-        global_bin_limits_dict[Column.DiffAEData.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
-
     # get manifest for crop-based features
     base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
     feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # plotting timepoints in unit hours: conversion factor
-    time_conversion_factor = TIME_STEP_IN_MINUTES / 60
+    time_conversion_factor = TIME_STEP_IN_HOURS
 
     # dataset list from specified collection
     # Use provided datasets or default if none provided.
@@ -167,8 +163,8 @@ def main(
 
         # polar angle periodicity settings
         theta_col = Column.DiffAEData.POLAR_ANGLE
-        theta_range = BIN_LIMITS_THETA_RESCALED if RESCALE_THETA else (-np.pi, np.pi)
-        theta_period = PERIOD_THETA_RESCALED if RESCALE_THETA else 2 * np.pi
+        theta_range = POLAR_ANGLE_RANGE
+        theta_period = POLAR_ANGLE_PERIOD
 
         # split by flow conditions and collect unscaled mean ± std per flow
         # condition

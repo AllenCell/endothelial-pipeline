@@ -1,5 +1,6 @@
 from endo_pipeline.cli import CropPattern, Datasets
-from endo_pipeline.settings.dynamics_workflows import LONG_TRACK_THRESHOLD_LENGTH, MAX_MSD_LAG
+from endo_pipeline.settings.dynamics_workflows import LONG_TRACK_THRESHOLD_LENGTH
+from endo_pipeline.settings.msd import MAX_MSD_LAG
 
 
 def main(
@@ -92,15 +93,13 @@ def main(
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMIT_PERCENTILE_CUTOFF,
         BIN_LIMITS_DYNAMICS,
-        BIN_LIMITS_THETA_RESCALED,
         BIN_WIDTHS_DYNAMICS,
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
         METADATA_COLUMNS_TO_KEEP,
-        MSD_Y_AXIS_LIMITS,
-        RESCALE_THETA,
     )
+    from endo_pipeline.settings.msd import MSD_Y_AXIS_LIMITS
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -115,8 +114,6 @@ def main(
 
     # unpack default bin widths and limits for each column, adjusting limits if rescaling theta
     global_bin_limits_dict = BIN_LIMITS_DYNAMICS.copy()
-    if RESCALE_THETA:
-        global_bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
     polar_angle_period = (
         global_bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][1]
         - global_bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][0]

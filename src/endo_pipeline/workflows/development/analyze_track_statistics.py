@@ -28,12 +28,10 @@ def main(
     from endo_pipeline.settings.column_names import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_DYNAMICS,
-        BIN_LIMITS_THETA_RESCALED,
         DEFAULT_DATASETS_DYNAMICS_VIS,
         DYNAMICS_COLUMN_NAMES,
         KERNEL_NAMES_DYNAMICS,
         METADATA_COLUMNS_TO_KEEP,
-        RESCALE_THETA,
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -76,8 +74,6 @@ def main(
 
     # unpack default bin widths and limits for each column, adjusting limits if rescaling theta
     bin_limits_dict = BIN_LIMITS_DYNAMICS.copy()
-    if RESCALE_THETA:
-        bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
     polar_angle_period = (
         bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][1]
         - bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][0]

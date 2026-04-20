@@ -112,18 +112,16 @@ def main(
     from endo_pipeline.settings.column_names import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_WIDTHS_DYNAMICS,
+        DEFAULT_DATASETS_DYNAMICS_VIS,
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
-        METADATA_COLUMNS_TO_KEEP,
-        PERIOD_THETA_RESCALED,
-        RESCALE_THETA,
-    )
-    from endo_pipeline.settings.flow_field_3d import (
-        DATASET_COLLECTION_FOR_3D_DYNAMICS,
         LOWER_PERCENTILE_FOR_FILTERING_FPTS,
+        METADATA_COLUMNS_TO_KEEP,
         NUM_INIT_SAMPLES,
-        TIME_STEP_IN_MINUTES,
+        POLAR_ANGLE_PERIOD,
+        RESCALE_THETA,
+        TIME_STEP_IN_HOURS,
         UPPER_PERCENTILE_FOR_FILTERING_FPTS,
     )
     from endo_pipeline.settings.flow_field_dataframes import (
@@ -184,7 +182,7 @@ def main(
 
     # Default list of datasets if not provided. Filter by datasets available in
     # the manifest.
-    dataset_names = datasets or get_datasets_in_collection(DATASET_COLLECTION_FOR_3D_DYNAMICS)
+    dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
     if DEMO_MODE:
         logger.warning(
             "DEMO MODE: Processing no more than two of the provided datasets for quick testing."
@@ -199,7 +197,7 @@ def main(
     # field estimation
     kernels: list[KramersMoyalKernel] = []
     bin_widths: list[float] = []
-    rescaled_theta_period = PERIOD_THETA_RESCALED + np.pi * (1 - RESCALE_THETA)
+    rescaled_theta_period = POLAR_ANGLE_PERIOD + np.pi * (1 - RESCALE_THETA)
 
     # Get the corresponding kernels and bin widths for each variable. For the
     # polar angle variable, also specify the period for the kernel based on the
@@ -269,7 +267,7 @@ def main(
                 column_names=column_names,
                 bin_widths=bin_widths,
                 kernel=kernels,
-                time_step=TIME_STEP_IN_MINUTES / 60,  # convert to units of hours
+                time_step=TIME_STEP_IN_HOURS,
                 metadata_dict=metadata_dict,
             )
 

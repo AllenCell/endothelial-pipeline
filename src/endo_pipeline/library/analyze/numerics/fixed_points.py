@@ -15,10 +15,10 @@ from endo_pipeline.library.analyze.dataframe_validation import check_required_co
 from endo_pipeline.library.analyze.numerics.binning import circpercentile
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_THETA_RESCALED
-from endo_pipeline.settings.flow_field_3d import (
+from endo_pipeline.settings.dynamics_workflows import (
     LOWER_PERCENTILE_FOR_FILTERING_FPTS,
     NUM_INIT_SAMPLES,
+    POLAR_ANGLE_RANGE,
     SAMPLER_RANDOM_SEED,
     UPPER_PERCENTILE_FOR_FILTERING_FPTS,
 )
@@ -76,7 +76,7 @@ def _compute_percentile_values(
     data: pd.DataFrame,
     column_names: list[str],
     q: float,
-    polar_angle_range: tuple[float, float] = BIN_LIMITS_THETA_RESCALED,
+    polar_angle_range: tuple[float, float] = POLAR_ANGLE_RANGE,
 ) -> dict[str, float]:
     """Compute the lower and upper percentile bounds for each column in the data.
 
@@ -113,7 +113,7 @@ def is_point_within_percentile_bounds(
     column_names: list[str],
     lower_percentile_bounds: dict[str, float],
     upper_percentile_bounds: dict[str, float],
-    polar_angle_range: tuple[float, float] = BIN_LIMITS_THETA_RESCALED,
+    polar_angle_range: tuple[float, float] = POLAR_ANGLE_RANGE,
 ):
     """Check if a point is within a specified percentile range in each variable.
 
@@ -368,7 +368,7 @@ def get_fixed_points_within_bounds(
     num_inits_for_root_solver: int = NUM_INIT_SAMPLES,
     lower_percentile: float = LOWER_PERCENTILE_FOR_FILTERING_FPTS,
     upper_percentile: float = UPPER_PERCENTILE_FOR_FILTERING_FPTS,
-    polar_angle_range: tuple[float, float] = BIN_LIMITS_THETA_RESCALED,
+    polar_angle_range: tuple[float, float] = POLAR_ANGLE_RANGE,
     stability_label_column_name: Column.VectorField = Column.VectorField.STABILITY,
     metadata_dict: dict[str, str | float] | None = None,
 ) -> pd.DataFrame:

@@ -41,13 +41,13 @@ from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import (
     BIN_LIMIT_PERCENTILE_CUTOFF,
-    BIN_LIMITS_THETA_RESCALED,
     BIN_WIDTHS_DYNAMICS,
-    HISTOGRAM_THRESHOLD_FOR_MASKING,
     KERNEL_BANDWIDTHS_DYNAMICS,
     KERNEL_NAMES_DYNAMICS,
     METADATA_COLUMNS_TO_KEEP,
-    PERIOD_THETA_RESCALED,
+    POLAR_ANGLE_PERIOD,
+    POLAR_ANGLE_RANGE,
+    TIME_STEP_IN_HOURS,
 )
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
 from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
@@ -57,8 +57,8 @@ from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_COLORMAP,
     DRIFT_CONTOUR_VMAX,
     DRIFT_CONTOUR_VMIN,
+    HISTOGRAM_THRESHOLD_FOR_MASKING,
 )
-from endo_pipeline.settings.flow_field_3d import TIME_STEP_IN_MINUTES
 from endo_pipeline.settings.flow_field_dataframes import (
     DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
     DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
@@ -124,7 +124,7 @@ for column_name in columns_r_rho:
 kernel_theta = KramersMoyalKernel(
     name=KERNEL_NAMES_DYNAMICS[column_theta],
     bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_theta],
-    period=PERIOD_THETA_RESCALED,
+    period=POLAR_ANGLE_PERIOD,
 )
 
 # global plotting kwargs / parameters
@@ -207,7 +207,7 @@ for dataset_name, panel_letters, y_position in [
         column_names=columns_r_rho,
         bins=bins_r_rho,
         kernel=kernels_r_rho,
-        time_step=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
+        time_step=TIME_STEP_IN_HOURS,
     )
     drift_r_rho = mask_drift_vector_field_by_data_density(
         drift_coeffs=drift_r_rho,
@@ -228,7 +228,7 @@ for dataset_name, panel_letters, y_position in [
         column_names=[column_theta],
         bins=bins_theta,
         kernel=kernel_theta,
-        time_step=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
+        time_step=TIME_STEP_IN_HOURS,
     )
 
     # make and save plots
@@ -322,7 +322,7 @@ for dataset_name, panel_letters, y_position in [
         drift=drift_theta,
         centers=centers_theta[-1],
         figsize=(MAX_FIGURE_WIDTH / 4, MAX_FIGURE_HEIGHT / 4),
-        axes_limits=(BIN_LIMITS_THETA_RESCALED, (-0.4, 0.4)),
+        axes_limits=(POLAR_ANGLE_RANGE, (-0.4, 0.4)),
         axes_labels=[column_label_theta, f"d{column_label_theta}/dt"],
         gridspec_kwargs=gridspec_kwargs,
         drift_line_kwargs={"color": "k", "linewidth": 2},

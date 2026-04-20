@@ -21,12 +21,9 @@ def main(
     drift are set in the settings for dynamics workflows, and are determined
     based on the column name (see `endo_pipeline.settings.dynamics_workflows`).
 
-    The default limits for polar angle are adjusted if `RESCALE_THETA` is set to
-    True, in which case the limits are set to `BIN_LIMITS_THETA_RESCALED` and
-    the period for computing differences and kernel density estimation is set to
-    the width of the rescaled limits. For non-polar angle columns, the limits
-    are determined based on the data and the `BIN_LIMIT_PERCENTILE_CUTOFF`
-    value, which sets the lower and upper percentiles to use for determining the limits.
+    For non-polar angle columns, the limits are determined based on the data and
+    the `BIN_LIMIT_PERCENTILE_CUTOFF` value, which sets the lower and upper
+    percentiles to use for determining the limits.
 
     Parameters
     ----------
@@ -61,15 +58,13 @@ def main(
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMIT_PERCENTILE_CUTOFF,
         BIN_LIMITS_DYNAMICS,
-        BIN_LIMITS_THETA_RESCALED,
         BIN_WIDTHS_DYNAMICS,
         DEFAULT_DATASETS_DYNAMICS_VIS,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
         METADATA_COLUMNS_TO_KEEP,
-        RESCALE_THETA,
+        TIME_STEP_IN_HOURS,
     )
-    from endo_pipeline.settings.flow_field_3d import TIME_STEP_IN_MINUTES
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -91,11 +86,6 @@ def main(
     kernel_bandwidths_dict = cast(
         dict[str | ColumnName.DiffAEData, float], KERNEL_BANDWIDTHS_DYNAMICS.copy()
     )
-
-    # unpack default bin widths and limits for each column, adjusting limits if
-    # rescaling theta
-    if RESCALE_THETA:
-        bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE] = BIN_LIMITS_THETA_RESCALED
     polar_angle_period = (
         bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][1]
         - bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][0]
@@ -168,7 +158,7 @@ def main(
                 trajectories=trajectories,
                 displacements=differences,
                 bins=bins,
-                dt=TIME_STEP_IN_MINUTES / 60,  # convert to unit hours
+                dt=TIME_STEP_IN_HOURS,
                 kernel=kernel,
             )
 

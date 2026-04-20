@@ -12,11 +12,7 @@ from endo_pipeline.library.process.image_processing import max_proj, std_dev
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.manifests import get_zarr_location_for_position, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.dynamics_workflows import (
-    BIN_LIMITS_DYNAMICS,
-    BIN_LIMITS_THETA_RESCALED,
-    DYNAMICS_COLUMN_NAMES,
-)
+from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_DYNAMICS, DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
 from endo_pipeline.settings.plot_defaults import CROP_HIST_BIN_WIDTH
@@ -47,11 +43,7 @@ feat_cols = list(DYNAMICS_COLUMN_NAMES)
 
 bin_limits = []
 for col in feat_cols:
-    if col == Column.DiffAEData.POLAR_ANGLE:
-        col_min, col_max = BIN_LIMITS_THETA_RESCALED
-    else:
-        col_min, col_max = BIN_LIMITS_DYNAMICS.get(col, (df[col].min(), df[col].max()))
-
+    col_min, col_max = BIN_LIMITS_DYNAMICS.get(col, (df[col].min(), df[col].max()))
     bin_limits.append((col_min, col_max))
 
 # example point in (theta, r, rho) space to bin around to find nearby examples

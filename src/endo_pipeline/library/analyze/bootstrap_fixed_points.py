@@ -16,11 +16,11 @@ from endo_pipeline.library.analyze.vector_field_estimation import (
     get_fixed_points_within_bounds,
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_THETA_RESCALED
-from endo_pipeline.settings.flow_field_3d import (
+from endo_pipeline.settings.dynamics_workflows import (
     LOWER_PERCENTILE_FOR_FILTERING_FPTS,
     NUM_INIT_SAMPLES,
-    TIME_STEP_IN_MINUTES,
+    POLAR_ANGLE_RANGE,
+    TIME_STEP_IN_HOURS,
     UPPER_PERCENTILE_FOR_FILTERING_FPTS,
 )
 
@@ -74,7 +74,7 @@ def run_flow_field_and_fixed_points(
     column_names: list[str | Column.DiffAEData],
     kernels: list[KramersMoyalKernel],
     metadata_dict: dict | None = None,
-    polar_angle_range: tuple[float, float] = BIN_LIMITS_THETA_RESCALED,
+    polar_angle_range: tuple[float, float] = POLAR_ANGLE_RANGE,
     lower_percentile_for_filtering_fpts: float = LOWER_PERCENTILE_FOR_FILTERING_FPTS,
     upper_percentile_for_filtering_fpts: float = UPPER_PERCENTILE_FOR_FILTERING_FPTS,
     num_inits_for_root_solver: int = NUM_INIT_SAMPLES,
@@ -146,7 +146,7 @@ def run_flow_field_and_fixed_points(
         raise ValueError("No trajectories provided for flow field computation.")
 
     drift_coeffs = get_kramers_moyal_coeffs(
-        trajectories, displacements, bins=bins, dt=TIME_STEP_IN_MINUTES / 60, kernel=kernels
+        trajectories, displacements, bins=bins, dt=TIME_STEP_IN_HOURS, kernel=kernels
     )[0]
 
     extrapolated_vf = compute_extrapolated_vector_field(
