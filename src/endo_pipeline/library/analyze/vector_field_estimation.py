@@ -1,11 +1,12 @@
 """Methods related to flow field estimation and analysis."""
 
 import logging
+from typing import cast
 
 import numpy as np
 import pandas as pd
 
-from endo_pipeline.io import load_dataframe
+from endo_pipeline.io import join_sorted_strings, load_dataframe
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
     get_kernel_density_estimate_from_histogram,
     get_kramers_moyal_coeffs,
@@ -321,11 +322,11 @@ def load_drift_dataframe_for_dataset(
         Drift dataframe for the given dataset.
     """
 
-    column_names = columns or list(DYNAMICS_COLUMN_NAMES)
-    columns_str = f"_{'_'.join(sorted(column_names))}_"
+    column_names = columns or cast(list[str], list(DYNAMICS_COLUMN_NAMES))
+    columns_str = join_sorted_strings(column_names)
 
     base_name = f"{model_manifest_name}_{run_name}_grid"
-    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}{columns_str}{base_name}"
+    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{columns_str}_{base_name}"
     drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
 
     if dataset_name not in drift_dataframe_manifest.locations:
