@@ -191,6 +191,8 @@ def main(
             fixed_points_dataframe_manifest = load_dataframe_manifest(
                 f"{fixed_points_dataframe_manifest_name}{demo_suffix}"
             )
+        else:
+            raise
 
     # either run on specified datasets or all datasets in the manifest if no
     # specific datasets are provided restrict to datasets that are present in

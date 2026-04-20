@@ -243,6 +243,8 @@ def plot_drift_quiver(
     quiver_scale: float = 4,
     quiver_color: str = "dimgrey",
     quiver_downsample: int = 3,
+    vmin: float | None = None,
+    vmax: float | None = None,
     include_nullclines: bool = True,
     nullcline_styles: tuple = ("dashed", "dashdot"),
     nullcline_colors: tuple = ("k", "k"),
@@ -304,6 +306,14 @@ def plot_drift_quiver(
         customizing the y-axis label, e.g., to specify a font size or label padding.
 
     """
+
+    # if vmin and vmax are provided, rescale components of the drift to be
+    # between vmin and vmax for visualization purposes (e.g., to make arrows
+    # more visible if drift magnitudes are very small or very large)
+    if vmin is not None and vmax is not None:
+        for component in range(drift.shape[-1]):
+            drift[..., component] = np.clip(drift[..., component], vmin, vmax)
+
     fig, ax = fig_ax or plt.subplots(figsize=figsize, gridspec_kw=gridspec_kwargs)
     ax.quiver(
         meshgrid[0][::quiver_downsample, ::quiver_downsample],
