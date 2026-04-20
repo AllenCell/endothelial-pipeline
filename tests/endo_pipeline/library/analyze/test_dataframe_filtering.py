@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -12,6 +13,7 @@ from endo_pipeline.library.analyze.dataframe_filtering import (
     filter_dataframe_by_annotations,
     filter_dataframe_by_flow_condition,
     filter_dataframe_by_track_length,
+    filter_dataframe_to_binned_value,
     filter_dataframe_to_steady_state,
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
@@ -368,3 +370,120 @@ def test_filter_by_flow_condition_raises_when_dataset_name_mismatch(two_conditio
             two_condition_dataset,
             two_condition_dataset.flow_conditions[0],
         )
+
+
+@pytest.fixture
+def binned_dataframe():
+    """Simple 1-column dataframe with values spread across three equal bins [0, 1]."""
+    return pd.DataFrame({"feat": [0.1, 0.3, 0.6, 0.8, 0.9], "label": list("abcde")})
+
+
+@pytest.mark.parametrize(
+    "value, expected_labels",
+    [
+        # value 0.2 → bin [0, 0.33): rows 0 and 1
+        (0.2, ["a", "b"]),
+        # value 0.5 → bin [0.33, 0.66): rows 2
+        (0.5, ["c"]),
+        # value 0.7 → bin [0.66, 1]: rows 3 and 4
+        (0.7, ["d", "e"]),
+    ],
+)
+def test_filter_dataframe_to_binned_value_1d(binned_dataframe, value, expected_labels):
+    bin_edges = np.array([0.0, 1 / 3, 2 / 3, 1.0])
+    result = filter_dataframe_to_binned_value(binned_dataframe, "feat", value, bin_edges)
+    assert result["label"].tolist() == expected_labels
+
+
+def test_filter_dataframe_to_binned_value_1d_list_args(binned_dataframe):
+    """Passing lists instead of scalars/arrays for a 1-D case should work identically."""
+    bin_edges = np.array([0.0, 0.5, 1.0])
+    result_scalar = filter_dataframe_to_binned_value(binned_dataframe, "feat", 0.2, bin_edges)
+    result_list = filter_dataframe_to_binned_value(binned_dataframe, ["feat"], [0.2], [bin_edges])
+    pd.testing.assert_frame_equal(
+        result_scalar.reset_index(drop=True), result_list.reset_index(drop=True)
+    )
+
+
+def test_filter_dataframe_to_binned_value_2d():
+    """Filtering in 2-D feature space returns only rows whose bin matches in both dimensions."""
+    df = pd.DataFrame(
+        {
+            "dim_1": [0.1, 0.1, 0.7, 0.7],
+            "dim_2": [0.2, 0.8, 0.2, 0.8],
+            "label": ["a", "b", "c", "d"],
+        }
+    )
+    bin_edges_1 = np.array([0.0, 0.5, 1.0])
+    bin_edges_2 = np.array([0.0, 0.5, 1.0])
+
+    # target: dim_1 ~ 0.1 (bin 0) AND dim_2 ~ 0.8 (bin 1) → only row "b"
+    result = filter_dataframe_to_binned_value(
+        df,
+        columns=["dim_1", "dim_2"],
+        values=[0.1, 0.8],
+        bin_edges=[bin_edges_1, bin_edges_2],
+    )
+    assert result["label"].tolist() == ["b"]
+
+
+def test_filter_dataframe_to_binned_value_value_at_upper_boundary_clamped_to_last_bin():
+    """A target value exactly equal to the last bin edge maps to the last valid bin,
+    and dataframe rows whose feature value equals the upper edge are also included.
+    """
+    df = pd.DataFrame({"feat": [0.4, 0.6, 0.8, 1.0], "label": ["a", "b", "c", "d"]})
+    bin_edges = np.array([0.0, 0.5, 1.0])
+    # target 1.0 → clamped to bin 1; rows with feat in (0.5, 1.0] all match bin 1
+    result = filter_dataframe_to_binned_value(df, "feat", 1.0, bin_edges)
+    assert result["label"].tolist() == ["b", "c", "d"]
+
+
+def test_filter_dataframe_to_binned_value_value_below_lower_boundary_raises():
+    """A target value below the lower bin edge raises a ValueError."""
+    df = pd.DataFrame({"feat": [0.1, 0.3, 0.6], "label": ["a", "b", "c"]})
+    bin_edges = np.array([0.0, 0.5, 1.0])
+    with pytest.raises(ValueError, match="outside the range of bin edges"):
+        filter_dataframe_to_binned_value(df, "feat", -0.5, bin_edges)
+
+
+def test_filter_dataframe_to_binned_value_value_above_upper_boundary_raises():
+    """A target value above the upper bin edge raises a ValueError."""
+    df = pd.DataFrame({"feat": [0.1, 0.3, 0.6], "label": ["a", "b", "c"]})
+    bin_edges = np.array([0.0, 0.5, 1.0])
+    with pytest.raises(ValueError, match="outside the range of bin edges"):
+        filter_dataframe_to_binned_value(df, "feat", 1.5, bin_edges)
+
+
+def test_filter_dataframe_to_binned_value_no_matching_rows_returns_empty():
+    """When no rows fall in the target bin, an empty (but schema-correct) DataFrame is returned."""
+    df = pd.DataFrame({"feat": [0.1, 0.2, 0.3], "label": ["a", "b", "c"]})
+    bin_edges = np.array([0.0, 0.5, 1.0])
+    # all feat values are in bin 0; targeting bin 1 yields no rows
+    result = filter_dataframe_to_binned_value(df, "feat", 0.7, bin_edges)
+    assert result.empty
+    assert list(result.columns) == list(df.columns)
+
+
+def test_filter_dataframe_to_binned_value_preserves_original_index(binned_dataframe):
+    """The returned dataframe preserves the original row index (no implicit reset)."""
+    bin_edges = np.array([0.0, 0.5, 1.0])
+    result = filter_dataframe_to_binned_value(binned_dataframe, "feat", 0.6, bin_edges)
+    # rows 2, 3, 4 have feat values 0.6, 0.8, 0.9 → all in bin 1
+    assert result.index.tolist() == [2, 3, 4]
+
+
+@pytest.mark.parametrize(
+    "columns, values, bin_edges",
+    [
+        # 2 columns but only 1 value
+        (["dim_1", "dim_2"], [0.1], [np.array([0.0, 0.5, 1.0]), np.array([0.0, 0.5, 1.0])]),
+        # 1 column but 2 bin_edges arrays
+        (["dim_1"], [0.1, 0.2], [np.array([0.0, 0.5, 1.0])]),
+        # 2 columns but 0 bin_edges arrays
+        (["dim_1", "dim_2"], [0.1, 0.2], []),
+    ],
+)
+def test_filter_dataframe_to_binned_value_raises_on_length_mismatch(columns, values, bin_edges):
+    df = pd.DataFrame({"dim_1": [0.1, 0.4], "dim_2": [0.6, 0.9]})
+    with pytest.raises(ValueError, match="Length of columns, value, and bin_edges"):
+        filter_dataframe_to_binned_value(df, columns, values, bin_edges)

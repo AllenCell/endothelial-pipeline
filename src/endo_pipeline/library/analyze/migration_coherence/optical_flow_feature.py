@@ -1,5 +1,6 @@
 import logging
 
+import numpy as np
 import pandas as pd
 
 from endo_pipeline.configs import load_dataset_config
@@ -101,12 +102,19 @@ def add_binned_mean_to_fixed_points(
     of_y_col: str | None = None,
     of_z_col: str | None = None,
     bin_size_xyz: tuple[float, float, float] = (MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,) * 3,
+    n_bootstrap: int | None = 500,
+    ci_lower_percentile: float = 5,
+    ci_upper_percentile: float = 95,
+    seed: int | None = 42,
 ) -> pd.DataFrame:
     """Compute the mean of *binned_col* in the 3D bin surrounding each fixed point.
 
     For each row in *df_fp*, the function finds all rows in *df_of* that fall
     within a bin of size *bin_size_xyz* centered on the fixed point's
     coordinates and computes the mean of *binned_col* over those rows.
+
+    When *n_bootstrap* is provided, bootstrap confidence intervals for the
+    binned mean are also computed and added as additional columns.
 
     The fixed-points dataframe and optical-flow dataframe may use different
     column names for the same spatial axes. When the ``of_*`` column
@@ -131,19 +139,36 @@ def add_binned_mean_to_fixed_points(
     bin_size_xyz
         Half-widths ``(dx, dy, dz)`` defining the bin extent around each
         fixed point.
+    n_bootstrap
+        Number of bootstrap resamples for confidence intervals.  When
+        ``None`` (default), no CI columns are added.
+    ci_lower_percentile
+        Lower percentile for the confidence interval.
+    ci_upper_percentile
+        Upper percentile for the confidence interval.
+    seed
+        Random seed for reproducibility of bootstrap resampling.
 
     Returns
     -------
     :
         A copy of *df_fp* with an additional column ``mean_{binned_col}``
         containing the mean value of *binned_col* in each fixed point's bin.
+        When *n_bootstrap* is set, also adds
+        ``mean_{binned_col}_ci_lower`` and ``mean_{binned_col}_ci_upper``.
     """
     of_x = of_x_col if of_x_col is not None else fp_x_col
     of_y = of_y_col if of_y_col is not None else fp_y_col
     of_z = of_z_col if of_z_col is not None else fp_z_col
 
+    compute_ci = n_bootstrap is not None
+    rng = np.random.default_rng(seed) if compute_ci else None
+
     dx, dy, dz = bin_size_xyz
-    means = []
+    means: list[float] = []
+    ci_lows: list[float] = []
+    ci_highs: list[float] = []
+
     for _, row in df_fp.iterrows():
         mask = (
             (df_of[of_x] >= row[fp_x_col] - dx / 2)
@@ -153,10 +178,31 @@ def add_binned_mean_to_fixed_points(
             & (df_of[of_z] >= row[fp_z_col] - dz / 2)
             & (df_of[of_z] < row[fp_z_col] + dz / 2)
         )
-        means.append(df_of.loc[mask, binned_col].mean())
+        bin_values = df_of.loc[mask, binned_col].dropna().values
+        means.append(float(bin_values.mean()) if len(bin_values) > 0 else np.nan)
 
+        if compute_ci:
+            assert rng is not None
+            assert n_bootstrap is not None
+            if len(bin_values) < 2:
+                ci_lows.append(np.nan)
+                ci_highs.append(np.nan)
+            else:
+                boot_means = np.array(
+                    [
+                        rng.choice(bin_values, size=len(bin_values), replace=True).mean()
+                        for _ in range(n_bootstrap)
+                    ]
+                )
+                ci_lows.append(np.percentile(boot_means, ci_lower_percentile))
+                ci_highs.append(np.percentile(boot_means, ci_upper_percentile))
+
+    mean_col = f"mean_{binned_col}"
     result = df_fp.copy()
-    result[f"mean_{binned_col}"] = means
+    result[mean_col] = means
+    if compute_ci:
+        result[f"{mean_col}_{ColumnName.BootstrapAnalysis.CI_LOWER}"] = ci_lows
+        result[f"{mean_col}_{ColumnName.BootstrapAnalysis.CI_UPPER}"] = ci_highs
     return result
 
 

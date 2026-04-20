@@ -28,6 +28,7 @@ from endo_pipeline.settings import ColumnName as Column
 from endo_pipeline.settings.examples import ExampleImage
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
+from endo_pipeline.settings.summary_plot import CELL_LINE_LABEL_MAP
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
@@ -364,7 +365,7 @@ def create_panel_intermediate_examples(
         )
 
         image_panel_list.extend([gfp_max_proj, log_bf_std_dev])
-        shear_stress_titles.append(f"{shear_stress_value} dyn/cm\u00b2")
+        shear_stress_titles.append(f"{shear_stress_value} dyn/cm{Unicode.SQUARED}")
 
     fig = make_contact_sheet(
         image_panel_list,
@@ -395,7 +396,7 @@ def create_panel_intermediate_examples(
     fig.axes[0].text(
         0.96,
         0.08,
-        f"{scale_bar_um} \u03bcm",
+        f"{scale_bar_um} {Unicode.MU}m",
         color="white",
         transform=fig.axes[0].transAxes,
         fontsize=FONTSIZE_SMALL,
@@ -407,6 +408,103 @@ def create_panel_intermediate_examples(
         fig,
         save_dir,
         f"intermediate_examples_scale_bar_{scale_bar_um}um",
+        file_format=".svg",
+        tight_layout=False,
+        pad_inches=0,
+    )
+
+
+def create_panel_perturbation_examples(
+    examples: list[ExampleImage],
+    save_dir: Path,
+    crop_size: int = 1000,
+    scale_bar_um: int = 100,
+    figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH * 0.25, 3),
+) -> None:
+    """Create panel of perturbation example images.
+
+    Parameters
+    ----------
+    examples
+        List of example images to display (one per row).
+    save_dir
+        Directory to save the output figure.
+    crop_size
+        Crop size in pixels at resolution level 0.
+    scale_bar_um
+        Scale bar length in micrometers.
+    """
+    image_panel_list = []
+    cell_line_titles = []
+
+    for example in examples:
+        dataset_config = load_dataset_config(example.dataset_name)
+        cell_line = dataset_config.cell_lines[0]
+        location = get_zarr_location_for_position(dataset_config, position=example.position)
+        gfp_image = load_image(
+            location, timepoints=example.timepoint, channels=["EGFP"], squeeze=True
+        )
+        bf_image = load_image(location, timepoints=example.timepoint, channels=["BF"], squeeze=True)
+
+        gfp_max_proj = max_proj(gfp_image, axis=0)
+        bf_std_dev = std_dev(bf_image, axis=0)
+
+        log_bf_std_dev = log_normalize_image(bf_std_dev)
+
+        gfp_max_proj = contrast_stretching(gfp_max_proj)
+        log_bf_std_dev = contrast_stretching(log_bf_std_dev)
+
+        gfp_max_proj = crop_image(
+            gfp_max_proj, example.crop_x_start, example.crop_y_start, crop_size
+        )
+        log_bf_std_dev = crop_image(
+            log_bf_std_dev, example.crop_x_start, example.crop_y_start, crop_size
+        )
+
+        image_panel_list.extend([gfp_max_proj, log_bf_std_dev])
+        cell_line_titles.append(CELL_LINE_LABEL_MAP.get(cell_line, cell_line))
+
+    fig = make_contact_sheet(
+        image_panel_list,
+        max_rows=len(image_panel_list) // len(examples),
+        max_cols=len(examples),
+        col_titles=cell_line_titles,
+        row_titles=["VE-Cadherin MIP", "BF Std. Dev. Proj."],
+        direction="top-down first",
+        font_size=FONTSIZE_MEDIUM,
+        subplot_kwargs={"frame_on": False},
+        gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
+        fig_kwargs={"figsize": figure_size, "layout": "constrained"},
+    )
+
+    for ax in fig.axes:
+        ax.xaxis.labelpad = 3
+        ax.yaxis.labelpad = 3
+
+        add_scalebar(
+            ax,
+            scale_bar_um=scale_bar_um,
+            pixel_size=PIXEL_SIZE_3i_20x,
+            location="lower right",
+            bar_thickness=25,
+            padding=25,
+        )
+
+    fig.axes[0].text(
+        0.96,
+        0.08,
+        f"{scale_bar_um} {Unicode.MU}m",
+        color="white",
+        transform=fig.axes[0].transAxes,
+        fontsize=FONTSIZE_SMALL,
+        va="bottom",
+        ha="right",
+    )
+
+    save_plot_to_path(
+        fig,
+        save_dir,
+        f"perturbation_examples_scale_bar_{scale_bar_um}um",
         file_format=".svg",
         tight_layout=False,
         pad_inches=0,

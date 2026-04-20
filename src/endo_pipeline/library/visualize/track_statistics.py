@@ -84,8 +84,24 @@ def plot_histogram_and_kde(
     hist_kde = get_kernel_density_estimate_from_histogram(hist, bins=bins, kernel=kernel)
     # interpolate between histogram centers for smoother KDE plot
     interp_centers = np.linspace(bins[0][0], bins[0][-1], 2000)
-    spline = make_interp_spline(centers[0], hist_kde, k=3)  # k=3 for cubic spline
-    hist_kde_smooth = spline(interp_centers)
+    # in some datasets the kde hist can have nan values due to the probability densities
+    # being below a threshold specified in `_convolve_histogram_with_kernel`
+    # if there are nan values then split the array into multiple contiguous segments
+    # where the arrays are finite and perform spline interpolation on each segment separately,
+    # then plot each segment of the KDE separately
+    spline_list = []
+    hist_kde_smooth_list = []
+    centers_one_spline, hist_kde_one_spline = [], []
+    for i, val in enumerate(hist_kde.tolist()):
+        if np.isnan(val):
+            continue
+        else:
+            centers_one_spline.append(centers[0][i])
+            hist_kde_one_spline.append(val)
+    one_spline = make_interp_spline(centers_one_spline, hist_kde_one_spline, k=3)
+    # k=3 for cubic spline
+    spline_list.append(one_spline)
+    hist_kde_smooth_list.append(one_spline(interp_centers))
 
     # plot histogram of the column variance with KDE overlaid
     axes.bar(
@@ -96,14 +112,15 @@ def plot_histogram_and_kde(
         edgecolor=(*to_rgb("k"), 1.0),
         align="edge",
     )
-    axes.plot(
-        interp_centers,
-        hist_kde_smooth,
-        color=kde_color,
-        linewidth=1.5,
-        linestyle=kde_line_style,
-        label=kde_label,
-    )
+    for hist_kde_smooth in hist_kde_smooth_list:
+        axes.plot(
+            interp_centers,
+            hist_kde_smooth,
+            color=kde_color,
+            linewidth=1.5,
+            linestyle=kde_line_style,
+            label=kde_label,
+        )
     if axes_title is not None:
         axes.set_title(axes_title)
     if axes_xlimits is not None:

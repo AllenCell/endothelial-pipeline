@@ -61,10 +61,8 @@ def main(
 
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe, load_image, save_plot_to_path
-    from endo_pipeline.library.analyze.numerics.binning import (
-        get_df_by_bin_value,
-        get_histogram_by_component,
-    )
+    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_binned_value
+    from endo_pipeline.library.analyze.numerics.binning import get_histogram_by_component
     from endo_pipeline.library.process.image_processing import max_proj, std_dev
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
         get_label_for_column,
@@ -112,7 +110,7 @@ def main(
 
     feat_cols = DIFFAE_PC_COLUMN_NAMES[:n_pcs_to_analyze]
     bin_limits = [(df[feat_col].min(), df[feat_col].max()) for feat_col in feat_cols]
-    hist_array_lists, bin_edges, df_with_bins = get_histogram_by_component(
+    hist_array_lists, bin_edges = get_histogram_by_component(
         df,
         CROP_HIST_BIN_WIDTH,
         bin_limits,
@@ -131,24 +129,23 @@ def main(
             save_plot_to_path(fig, fig_savedir, f"{dataset_name}_pc_histogram")
 
     samples = []
-    for pc_axis in pc_axis_list:
+    for feat_col, bin_edge_array in zip(feat_cols, bin_edges, strict=True):
         for pc_val in pc_val_list:
-            df_filtered = get_df_by_bin_value(df_with_bins, pc_axis, pc_val, bin_edges)
+            df_filtered = filter_dataframe_to_binned_value(df, feat_col, pc_val, bin_edge_array)
 
-            logger.info("%d crops for PC %s around value %s", len(df_filtered), pc_axis, pc_val)
+            logger.info("%d crops for PC %s around value %s", len(df_filtered), feat_col, pc_val)
 
-            for i in range(NUM_PCS_TO_ANALYZE):
-                if i != pc_axis:
-                    pc_col = DIFFAE_PC_COLUMN_NAMES[i]
+            for other_feat_col in feat_cols:
+                if other_feat_col != feat_col:
                     df_filtered = df_filtered[
-                        (df_filtered[pc_col] >= -origin_tolerance)
-                        & (df_filtered[pc_col] <= origin_tolerance)
+                        (df_filtered[other_feat_col] >= -origin_tolerance)
+                        & (df_filtered[other_feat_col] <= origin_tolerance)
                     ]
             logger.info("%d crops for other PCs near zero", len(df_filtered))
             if len(df_filtered) == 0:
                 logger.warning(
                     "No crops found for PC %s value %s. Try increasing the origin_tolerance.",
-                    pc_axis,
+                    feat_col,
                     pc_val,
                 )
                 continue
@@ -158,13 +155,13 @@ def main(
             df_sample = df_filtered.sample(
                 n=num_crop_samples, random_state=random_seed, replace=False
             )
-            samples.append((pc_axis, pc_val, df_sample))
+            samples.append((feat_col, pc_val, df_sample))
 
     crops_bf_std_deviation = []
     crops_gfp_max_projection = []
 
-    for pc_axis, pc_val, df_sample in samples:
-        logger.info(f"Processing sample for PC {pc_axis} value {pc_val}")
+    for feat_col, pc_val, df_sample in samples:
+        logger.info(f"Processing sample for PC {feat_col} value {pc_val}")
         dataset_name = df_sample[Column.DATASET].iloc[0]
         dataset_config = load_dataset_config(dataset_name)
         position = df_sample[Column.POSITION].iloc[0]
@@ -173,10 +170,10 @@ def main(
         img_loc = get_zarr_location_for_position(dataset_config, position)
         img = load_image(img_loc, timepoints=[timepoint], level=1, squeeze=True)
         # crop
-        start_x = df_sample["start_x"].iloc[0]
-        start_y = df_sample["start_y"].iloc[0]
-        crop_size_x = df_sample["crop_size_x"].iloc[0]
-        crop_size_y = df_sample["crop_size_y"].iloc[0]
+        start_x = df_sample[Column.DiffAEData.START_X].iloc[0]
+        start_y = df_sample[Column.DiffAEData.START_Y].iloc[0]
+        crop_size_x = df_sample[Column.DiffAEData.CROP_SIZE_X].iloc[0]
+        crop_size_y = df_sample[Column.DiffAEData.CROP_SIZE_Y].iloc[0]
 
         crop = img[:, :, start_y : start_y + crop_size_y, start_x : start_x + crop_size_x]
 
@@ -199,7 +196,7 @@ def main(
 
     # Create panels doing the len of pc_val_list every other contrasted crop type
     panels = []
-    for i in range(len(pc_axis_list)):
+    for i in range(len(feat_cols)):
         for j in range(len(pc_val_list)):
             index = i * len(pc_val_list) + j
             panels.append(crops_bf_std_deviation[index])
@@ -208,17 +205,17 @@ def main(
             panels.append(crops_gfp_max_projection[index])
 
     row_titles = []
-    for pc_axis in pc_axis_list:
-        row_titles.append(f"PC{pc_axis + 1}\nBF Std Dev")
-        row_titles.append(f"PC{pc_axis + 1}\n VE-cad MIP")
+    for feat_col in feat_cols:
+        row_titles.append(f"{feat_col}\nBF Std Dev")
+        row_titles.append(f"{feat_col}\n VE-cad MIP")
 
     fig = make_contact_sheet(
         panels,
-        max_rows=len(pc_axis_list) * 2,
+        max_rows=len(feat_cols) * 2,
         max_cols=len(pc_val_list),
         col_titles=[str(val) for val in pc_val_list],
         row_titles=row_titles,
-        fig_kwargs={"layout": "tight", "figsize": (MAX_FIGURE_WIDTH, len(pc_axis_list) * 2)},
+        fig_kwargs={"layout": "tight", "figsize": (MAX_FIGURE_WIDTH, len(feat_cols) * 2)},
         font_size=FONTSIZE_SMALL,
     )
     for ax in fig.axes:

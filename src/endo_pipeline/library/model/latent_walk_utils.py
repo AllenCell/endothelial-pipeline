@@ -2,22 +2,99 @@
 
 import logging
 import re
-from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 
-from endo_pipeline.library.model.diffae import generate_from_coords
+from endo_pipeline.library.analyze.polar_coords import polar_to_pcs
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_FEATURE_COLUMN_NAMES,
     DIFFAE_PC_COLUMN_NAMES,
 )
 
-if TYPE_CHECKING:
-    from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
-
 logger = logging.getLogger(__name__)
+
+
+def get_feature_coordinates_as_string(
+    column_names: list[str], feature_coordinates: np.ndarray | list[float]
+) -> str:
+    """
+    Get a string representation of the feature coordinates for use in file names.
+
+    Parameters
+    ----------
+    column_names
+        List of column names corresponding to each dimension.
+    feature_coordinates
+        Array of feature coordinates corresponding to the column names.
+
+    Returns
+    -------
+    :
+        String representation of the feature coordinates for the given column
+        names and feature coordinates.
+
+    """
+
+    coordinate_strings = []
+    for column_name, coordinate in zip(column_names, feature_coordinates, strict=True):
+        coordinate_str = f"{coordinate:.2f}".replace(".", "p").replace("-", "neg")
+        coordinate_strings.append(f"{column_name}_{coordinate_str}")
+    return "_".join(coordinate_strings)
+
+
+def add_pc_coordinates_to_dataframe(
+    dataframe: pd.DataFrame, feature_column_names: list[str]
+) -> pd.DataFrame:
+    """
+    Add PC coordinates to the dataframe based on the provided feature column
+    names.
+
+    If the provided feature column names include any of the polar coordinate
+    columns or the flipped PC3 column, the corresponding PC coordinates will be
+    calculated and added to the dataframe as new columns.
+
+    The PC coordinates are needed for image generation since the inverse PCA
+    transformation is applied to get the latent coordinates for image
+    generation, and the polar coordinates and flipped PC3 coordinate cannot be
+    used directly for the inverse PCA transformation.
+
+    Parameters
+    ----------
+    dataframe
+        DataFrame containing the data to calculate PC coordinates from.
+    feature_column_names
+        List of column names corresponding to input features.
+
+    Returns
+    -------
+    :
+        DataFrame with added PC coordinate columns if any of the polar coordinate
+        or flipped PC3 columns are present.
+    """
+    # if polar angle and radius are included in the column names, convert them
+    # to PC1 and PC2 coordinates for image generation (inverse PCA
+    # transformation cannot be performed with polar coordinates)
+    if (
+        Column.DiffAEData.POLAR_ANGLE in feature_column_names
+        and Column.DiffAEData.POLAR_RADIUS in feature_column_names
+    ):
+        pc1_column_name = f"{Column.DiffAEData.PCA_FEATURE_PREFIX}1"
+        pc2_column_name = f"{Column.DiffAEData.PCA_FEATURE_PREFIX}2"
+        angle = dataframe[Column.DiffAEData.POLAR_ANGLE].to_numpy()
+        radius = dataframe[Column.DiffAEData.POLAR_RADIUS].to_numpy()
+        pc1_values, pc2_values = polar_to_pcs(angle, radius)
+        dataframe[pc1_column_name] = pc1_values
+        dataframe[pc2_column_name] = pc2_values
+
+    # if flipped pc3 is included in the column names, convert it to regular pc3
+    # before performing inverse PCA transformation for image generation
+    if Column.DiffAEData.PC3_FLIPPED in feature_column_names:
+        pc3_column_name = f"{Column.DiffAEData.PCA_FEATURE_PREFIX}3"
+        dataframe[pc3_column_name] = -dataframe[Column.DiffAEData.PC3_FLIPPED].to_numpy()
+
+    return dataframe
 
 
 def get_max_dim_in_column_names(column_names: list[str], feature_prefix: str) -> int:
@@ -364,52 +441,3 @@ def get_latent_walk(
     ranges_array = np.vstack(ranges)
 
     return walk_dataframe, ranges_array
-
-
-def generate_latent_walk_images(
-    model: "DiffusionAutoEncoder",
-    walk: np.ndarray,
-    ranges: np.ndarray,
-    n_noise_samples: int = 1,
-    num_gpus: int | None = None,
-    random_seed: int | None = None,
-) -> np.ndarray:
-    """Generate images from a latent walk using the provided model.
-
-    Parameters
-    ----------
-    model
-        Model to use for image generation.
-    walk
-        Array of shape (num_steps, num_dims) containing the latent walk
-        coordinates.
-    ranges
-        Array of shape (num_dims, num_steps) containing the coordinate values
-        for each dimension and step. Used to reshape the array of generated
-        images.
-    n_noise_samples
-        Number of noise samples to use for generating images.
-    num_gpus
-        Number of GPUs to use for image generation. If None, uses CPU.
-    random_seed
-        Random seed for reproducibility of image generation. If None, does not
-        set a random seed.
-
-    Returns
-    -------
-    :
-        Array of stacked generated images from the latent walk, reshaped to
-        (n_dim, n_steps, img_width, img_height).
-
-    """
-    walk_img = generate_from_coords(
-        model, walk, n_noise_samples=n_noise_samples, num_gpus=num_gpus, random_seed=random_seed
-    )
-
-    # Reshape to (n_dim, n_steps, img_w, img_h)
-    n_dim = ranges.shape[0]
-    n_steps_actual = ranges.shape[1]
-    image_width = walk_img.shape[-2]
-    image_height = walk_img.shape[-1]
-
-    return walk_img.reshape(n_dim, n_steps_actual, image_width, image_height)
