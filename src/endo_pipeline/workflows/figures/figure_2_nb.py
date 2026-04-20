@@ -9,6 +9,7 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 
+from endo_pipeline.cli import NUM_GPUS
 from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
 from endo_pipeline.io import get_output_path, load_dataframe, load_model, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import (
@@ -177,7 +178,7 @@ for dataset_name, panel_letters, y_position, contact_sheet_x_position in [
         )
         continue
 
-    fig_savedir = get_output_path(__file__, dataset_name)
+    fig_savedir = get_output_path("figure_2", dataset_name)
     dataset_config = load_dataset_config(dataset_name)
 
     # load dataframe and perform additional filtering (remove
@@ -359,9 +360,7 @@ for dataset_name, panel_letters, y_position, contact_sheet_x_position in [
     ax.set_yticks([-0.3, 0.0, 0.3])
     save_plot_to_path(fig, fig_savedir, theta_plot_filename, file_format=".svg")
 
-    # make contact sheet of example crops at stable fixed points for this
-    # dataset (panel below the flow field visualizations)
-
+    # generate contact sheet of example crops at stable fixed points
     crop_contact_sheet_path = make_crop_example_contact_sheet(
         dataset_config=dataset_config,
         stable_fixed_point_dataframe=stable_fixed_points,
@@ -372,13 +371,13 @@ for dataset_name, panel_letters, y_position, contact_sheet_x_position in [
         fig_savedir=fig_savedir,
         fig_filename=f"{dataset_name}_crop_examples",
         file_format=".svg",
-        gridspec_kwargs=gridspec_kwargs,
-        fig_kwargs={"figsize": (MAX_FIGURE_WIDTH / 2 - 0.1, 2.0)},
+        gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
+        fig_kwargs={"figsize": (MAX_FIGURE_WIDTH / 2 - 0.1, 2.0), "layout": "constrained"},
+        random_seed=7,
+        num_gpus=NUM_GPUS,
     )
 
-    # build panels for this dataset's visualizations, adjusting positions based
-    # on dataset to stack vertically in figure
-
+    # build panels for this dataset's flow field visualizations
     contour_plots = FigurePanel(
         letter=panel_letters[0],
         path=fig_savedir / f"{contour_plot_filename}.svg",
