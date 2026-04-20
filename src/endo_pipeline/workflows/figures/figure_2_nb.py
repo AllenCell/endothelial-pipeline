@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
+from endo_pipeline.io import get_output_path, join_sorted_strings, load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
 from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
     add_optical_flow_features,
@@ -53,6 +53,7 @@ from endo_pipeline.settings.flow_field_dataframes import (
     StabilityLabel,
 )
 from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -75,11 +76,11 @@ dataset_summary_list = SUMMARY_PLOT_DATASETS["low_high"]
 # %%
 
 columns_r_rho = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
-columns_r_rho_str = f"_{'_'.join(sorted(columns_r_rho))}_"
+columns_r_rho_str = join_sorted_strings(columns_r_rho)
 column_theta = Column.DiffAEData.POLAR_ANGLE
 optical_flow_feature = Column.OpticalFlow.UNIT_VECTOR_MEAN
 feature_column_names = [column_theta, *columns_r_rho]
-feature_columns_str = f"_{'_'.join(sorted(feature_column_names))}_"
+feature_columns_str = join_sorted_strings(feature_column_names)
 
 # load dataframe manifests for diffae features, fixed points, optical flow
 # features, and bootstrapped fixed points for this crop pattern, which will be
@@ -88,7 +89,7 @@ base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_patte
 feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
 feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 fixed_points_r_rho_dataframe_manifest_name = (
-    f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{columns_r_rho_str}{base_name}"
+    f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{columns_r_rho_str}_{base_name}"
 )
 fixed_points_r_rho_dataframe_manifest = load_dataframe_manifest(
     fixed_points_r_rho_dataframe_manifest_name
@@ -118,8 +119,6 @@ rho_lims = (-1.05, 1.05)
 nullcline_r_style = "dashed"
 nullcline_rho_style = (0, (1, 1))  # dense dotted
 
-unicode_pi = "\u03c0"
-
 
 # %%
 
@@ -144,14 +143,6 @@ for dataset_name, panel_letters, y_position in [
     (dataset_low, ("A", "B"), 0.0),
     (dataset_high, ("C", "D"), 2.05),
 ]:
-    if dataset_name not in feature_dataframe_manifest.locations:
-        logger.warning(
-            "No location found in dataframe manifest [ %s ] for dataset [ %s ], skipping visualization.",
-            feature_dataframe_manifest_name,
-            dataset_name,
-        )
-        continue
-
     fig_savedir = get_output_path("figure_2", dataset_name)
     dataset_config = load_dataset_config(dataset_name)
 
@@ -161,30 +152,16 @@ for dataset_name, panel_letters, y_position in [
         tuple[Column.DiffAEData] | Column.DiffAEData, pd.DataFrame | None
     ] = {}
     for column_key, manifest in [
-        (tuple(columns_r_rho), fixed_points_r_rho_dataframe_manifest),
+        (columns_r_rho_str, fixed_points_r_rho_dataframe_manifest),
         (column_theta, fixed_points_theta_dataframe_manifest),
     ]:
-        if dataset_name in manifest.locations:
-            df_fixed_points = load_dataframe(manifest.locations[dataset_name])
-            # filter to just stable fixed points
-            df_stable_fixed_points = df_fixed_points[
-                df_fixed_points[Column.VectorField.STABILITY] == StabilityLabel.STABLE
-            ]
-            stable_fixed_points_dict[column_key] = df_stable_fixed_points
-        else:
-            logger.warning(
-                "No location found in dataframe manifest [ %s ] for dataset [ %s ], skipping loading of fixed points.",
-                manifest.name,
-                dataset_name,
-            )
-            stable_fixed_points_dict[column_key] = None
-
+        df_fixed_points = load_dataframe(manifest.locations[dataset_name])
+        df_stable_fixed_points = df_fixed_points[
+            df_fixed_points[Column.VectorField.STABILITY] == StabilityLabel.STABLE
+        ]
+        stable_fixed_points_dict[column_key] = df_stable_fixed_points
     # get drift in (r, rho) space
     drift_r_rho_dataframe = load_drift_dataframe_for_dataset(dataset_name, columns=columns_r_rho)
-    if drift_r_rho_dataframe.empty:
-        raise ValueError(
-            f"No precomputed dataframe found for (r, rho) dynamics for dataset [ {dataset_name} ]."
-        )
     drift_r_rho, centers_r_rho = get_reshaped_vector_field_and_grid(
         drift_r_rho_dataframe,
         column_names=columns_r_rho,
@@ -193,13 +170,8 @@ for dataset_name, panel_letters, y_position in [
 
     # get in 1D for theta
     drift_theta_dataframe = load_drift_dataframe_for_dataset(dataset_name, columns=[column_theta])
-    if drift_theta_dataframe.empty:
-        raise ValueError(
-            f"No precomputed dataframe found for (theta) dynamics for dataset [ {dataset_name} ]."
-        )
     drift_theta, centers_theta = get_reshaped_vector_field_and_grid(
-        drift_theta_dataframe,
-        column_names=[column_theta],
+        drift_theta_dataframe, column_names=[column_theta]
     )
 
     # make and save plots
@@ -266,17 +238,16 @@ for dataset_name, panel_letters, y_position in [
         xlabel_kwargs=xlabel_kwargs,
         ylabel_kwargs=ylabel_kwargs,
     )
-    # add stable fixed points to quiver plot if available
-    if stable_fixed_points_dict[tuple(columns_r_rho)] is not None:
-        ax.plot(
-            stable_fixed_points_dict[tuple(columns_r_rho)][columns_r_rho[0]],
-            stable_fixed_points_dict[tuple(columns_r_rho)][columns_r_rho[1]],
-            STABILITY_MARKER_DICT[StabilityLabel.STABLE],
-            color=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
-            markeredgecolor="k",
-            markeredgewidth=0.5,
-            markersize=5,
-        )
+    # add stable fixed point to quiver plot
+    ax.plot(
+        stable_fixed_points_dict[columns_r_rho_str][columns_r_rho[0]],
+        stable_fixed_points_dict[columns_r_rho_str][columns_r_rho[1]],
+        STABILITY_MARKER_DICT[StabilityLabel.STABLE],
+        color=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
+        markeredgecolor="k",
+        markeredgewidth=0.5,
+        markersize=5,
+    )
 
     # set plot formatting args and save
     ax.set_box_aspect(1.0)
@@ -303,23 +274,22 @@ for dataset_name, panel_letters, y_position in [
         xlabel_kwargs=xlabel_kwargs,
         ylabel_kwargs=ylabel_kwargs,
     )
-    # add stable fixed points in theta if available
-    if stable_fixed_points_dict[column_theta] is not None:
-        ax.plot(
-            stable_fixed_points_dict[column_theta][column_theta],
-            np.zeros_like(stable_fixed_points_dict[column_theta][column_theta]),
-            STABILITY_MARKER_DICT[StabilityLabel.STABLE],
-            color=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
-            markeredgecolor="k",
-            markeredgewidth=0.5,
-            markersize=5,
-        )
+    # add stable fixed point in theta
+    ax.plot(
+        stable_fixed_points_dict[column_theta][column_theta],
+        np.zeros_like(stable_fixed_points_dict[column_theta][column_theta]),
+        STABILITY_MARKER_DICT[StabilityLabel.STABLE],
+        color=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
+        markeredgecolor="k",
+        markeredgewidth=0.5,
+        markersize=5,
+    )
 
     # set plot formatting args and save
     ax.set_box_aspect(1.0)
     ax.set_xticks(
         [0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi],
-        labels=["0", f"{unicode_pi}/4", f"{unicode_pi}/2", f"3{unicode_pi}/4", f"{unicode_pi}"],
+        labels=["0", f"{Unicode.PI}/4", f"{Unicode.PI}/2", f"3{Unicode.PI}/4", f"{Unicode.PI}"],
     )
     ax.set_yticks([-0.3, 0.0, 0.3])
     save_plot_to_path(fig, fig_savedir, theta_plot_filename, file_format=".svg")
@@ -400,7 +370,7 @@ for dataset_name in [dataset_low, dataset_high]:
         optical_flow_feature=optical_flow_feature,
         feature_label="Migration Coherence",
         feature_lim=(0, 1),
-        ss_label=f"{shear_stress} dyn/cm$\u00b2$",
+        ss_label=f"{shear_stress} dyn/cm{Unicode.SQUARED}",
         color=get_dataset_color(dataset_name),
         df_fp=None,
         binwidth=0.02,

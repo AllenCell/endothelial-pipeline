@@ -14,8 +14,7 @@ PC1 = DIFFAE_PC_COLUMN_NAMES[0]
 PC3 = DIFFAE_PC_COLUMN_NAMES[2]
 THETA = Column.DiffAEData.POLAR_ANGLE
 
-# The polar angle range for wraparound tests, using the default range from the
-# codebase.
+# The polar angle range for wraparound tests
 POLAR_RANGE = (0, np.pi)
 
 

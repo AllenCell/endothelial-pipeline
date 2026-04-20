@@ -1,11 +1,14 @@
 """Visualization methods for time series auto- and cross-correlation analyses."""
 
 import logging
+from itertools import combinations
 from pathlib import Path
 from typing import Any, Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import seaborn as sns
 from matplotlib.axes import Axes
 from matplotlib.colors import TABLEAU_COLORS
 from matplotlib.figure import Figure
@@ -13,11 +16,12 @@ from matplotlib.figure import Figure
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import get_output_path, save_plot_to_path
 from endo_pipeline.library.analyze.numerics.correlations import (
-    CROSS_CORR_INDEX_COMBINATIONS,
     double_exponential_decay,
     exponential_decay,
     fit_exp_decay_and_get_relaxation_timescale,
 )
+from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
+from endo_pipeline.settings.column_names import ColumnName as Column
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +50,7 @@ def _plot_single_acf_curve(
 
 
 def _plot_acf_curves_together(
-    dataset_name: str,
-    correlation_dict: dict[str, dict[str, Any]],
+    correlation_dict: dict[str, Any],
     bootstrap_samples: int | None = None,
     figsize: tuple[int, int] = (12, 6),
     component_labels: list[str] | None = None,
@@ -58,8 +61,8 @@ def _plot_acf_curves_together(
     """Plot multiple autocorrelation function (ACF) curves together for comparison."""
     fig, ax = plt.subplots(figsize=figsize)
 
-    lags: np.ndarray = correlation_dict["lags"][dataset_name]
-    acf_array: np.ndarray = correlation_dict["acf"][dataset_name]
+    lags: np.ndarray = correlation_dict["lags"]
+    acf_array: np.ndarray = correlation_dict["acf"]
 
     # plot only positive lags
     index_positive = lags > 0
@@ -82,8 +85,12 @@ def _plot_acf_curves_together(
 
         # add confidence intervals if available
         if bootstrap_samples is not None:
-            acf_ci_lower = correlation_dict["acf_ci_lower"][dataset_name][index_positive]
-            acf_ci_upper = correlation_dict["acf_ci_upper"][dataset_name][index_positive]
+            acf_ci_lower = correlation_dict[f"acf_{Column.BootstrapAnalysis.CI_LOWER}"][
+                index_positive
+            ]
+            acf_ci_upper = correlation_dict[f"acf_{Column.BootstrapAnalysis.CI_UPPER}"][
+                index_positive
+            ]
             ax.fill_between(
                 positive_lags_as_hours,
                 acf_ci_lower[:, i],
@@ -158,15 +165,17 @@ def _add_delta_ccf_integral_to_plot(
         Matplotlib Axes object with the text added.
 
     """
+    feature_indices = range(len(feature_labels))
+    cross_corr_index_combinations = list(combinations(feature_indices, 2))
     integral_upper_bound_hrs = round(5 * max_lag_integrate / 60, 2)  # convert from frames to hours
-    integral_srings = [
+    integral_strings = [
         rf"$|\int_{{0}}^{{{integral_upper_bound_hrs}}}\Delta C_{{{j+1}{k+1}}}(\tau) d\tau|$"
-        for (j, k) in CROSS_CORR_INDEX_COMBINATIONS
+        for (j, k) in cross_corr_index_combinations
     ]
     strings_per_pc = [
         f"{feature_labels[j]}, {feature_labels[k]}: {string} = {integral:.2f}"
         for (j, k), string, integral in zip(
-            CROSS_CORR_INDEX_COMBINATIONS, integral_srings, delta_ccf_integral, strict=True
+            cross_corr_index_combinations, integral_strings, delta_ccf_integral, strict=True
         )
     ]
     x_loc = 0.7  # place on upper right corner of plot
@@ -249,7 +258,9 @@ def _add_exp_fit_to_plot(
             relaxation_timescales.append(relaxation_time)
         except RuntimeError:
             logger.warning(
-                "Could not fit [ %s ] to ACF of PC%s, skipping plot step", exp_decay_func, i + 1
+                "Could not fit [ %s ] to ACF of feature '%s', skipping plot step",
+                exp_decay_func,
+                feature_labels[i],
             )
             relaxation_timescales.append(np.nan)
             continue
@@ -258,8 +269,8 @@ def _add_exp_fit_to_plot(
         if exp_decay_func == "exponential_decay":
             acf_fit = exponential_decay(lags, *exp_fit)
             logger.debug(
-                "Exponential fit for PC%s: [%.3f + %.3f exp(%.3f tau)]",
-                i + 1,
+                "Exponential fit for feature '%s': [%.3f + %.3f exp(%.3f tau)]",
+                feature_labels[i],
                 exp_fit[2],
                 exp_fit[0],
                 -exp_fit[1],
@@ -297,15 +308,15 @@ def _add_exp_fit_to_plot(
 
 def _make_all_acf_plots(
     dataset_name: str,
-    correlation_dict: dict[str, dict[str, Any]],
+    correlation_dict: dict[str, Any],
     output_path: Path,
     fit_double_exp: bool = True,
     bootstrap_samples: int | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Plot autocorrelation function (ACF) curves and fits for a single dataset."""
     # unpack results
-    lags: np.ndarray = correlation_dict["lags"][dataset_name]
-    acf: np.ndarray = correlation_dict["acf"][dataset_name]
+    lags: np.ndarray = correlation_dict["lags"]
+    acf: np.ndarray = correlation_dict["acf"]
 
     # get string for shear stress to include in plot title
     dataset_config = load_dataset_config(dataset_name)
@@ -324,10 +335,9 @@ def _make_all_acf_plots(
     lags_as_hours = 5 * lags_ / 60  # convert from frames (5 minutes) to hours
     acf_ = acf[index_positive]
     fig, ax = _plot_acf_curves_together(
-        dataset_name,
         correlation_dict,
         bootstrap_samples=bootstrap_samples,
-        component_labels=correlation_dict["features"][dataset_name],
+        component_labels=correlation_dict["features"],
         plot_title=f"Autocorrelation of PCA Components ({shear_stress} dyn/cm$^2$)",
         xlabel="Lag (hours)",
         linewidth=2.75,
@@ -338,39 +348,39 @@ def _make_all_acf_plots(
         fig,
         output_path,
         f"autocorrelation_{dataset_name}",
+        show_and_close=False,
     )
     plt.close(fig)
 
     # fit single exponential decay to ACF
     fig, ax = _plot_acf_curves_together(
-        dataset_name,
         correlation_dict,
         bootstrap_samples=bootstrap_samples,
-        component_labels=correlation_dict["features"][dataset_name],
+        component_labels=correlation_dict["features"],
         plot_title=f"Autocorrelation of PCA Components ({shear_stress} dyn/cm$^2$)",
         xlabel="Lag (hours)",
         linewidth=2.75,
     )
-    feats = correlation_dict["features"][dataset_name]
+    feats = correlation_dict["features"]
     ax, relaxation_timescales = _add_exp_fit_to_plot(
         acf_, lags_as_hours, ax, feats, exp_decay_func="exponential_decay"
     )
     # add relaxation timescales to correlation_dict for output
-    correlation_dict["relaxation_timescales"][dataset_name] = relaxation_timescales
+    correlation_dict["relaxation_timescales"] = relaxation_timescales
     save_plot_to_path(
         fig,
         output_path,
         f"autocorrelation_exp_fit_{dataset_name}",
+        show_and_close=False,
     )
     plt.close(fig)
 
     if fit_double_exp:
         # fit double exponential decay to ACF
         fig, ax = _plot_acf_curves_together(
-            dataset_name,
             correlation_dict,
             bootstrap_samples=bootstrap_samples,
-            component_labels=correlation_dict["features"][dataset_name],
+            component_labels=correlation_dict["features"],
             plot_title=f"Autocorrelation of PCA Components ({shear_stress} dyn/cm$^2$)",
             xlabel="Lag (hours)",
             linewidth=2.75,
@@ -380,13 +390,14 @@ def _make_all_acf_plots(
             acf_,
             lags_as_hours,
             ax,
-            correlation_dict["features"][dataset_name],
+            correlation_dict["features"],
             exp_decay_func="double_exponential_decay",
         )
         save_plot_to_path(
             fig,
             output_path,
             f"autocorrelation_double_exp_fit_{dataset_name}",
+            show_and_close=False,
         )
         plt.close(fig)
 
@@ -395,31 +406,42 @@ def _make_all_acf_plots(
 
 def _make_all_ccf_plots(
     dataset_name: str,
-    correlation_dict: dict[str, dict[str, Any]],
+    correlation_dict: dict[str, Any],
     output_path: Path,
     bootstrap_samples: int | None = None,
 ) -> None:
     """Plot cross-correlation function (CCF) curves and differences for a single dataset."""
     # unpack results
-    lags: np.ndarray = correlation_dict["lags"][dataset_name]
+    lags: np.ndarray = correlation_dict["lags"]
     num_lags = len(lags)
-    ccf: np.ndarray = correlation_dict["ccf"][dataset_name]
-    ccf_ci_lower: np.ndarray = correlation_dict["ccf_ci_lower"][dataset_name]
-    ccf_ci_upper: np.ndarray = correlation_dict["ccf_ci_upper"][dataset_name]
-    delta_ccf: np.ndarray = correlation_dict["delta_ccf"][dataset_name]
-    delta_ccf_ci_lower: np.ndarray = correlation_dict["delta_ccf_ci_lower"][dataset_name]
-    delta_ccf_ci_upper: np.ndarray = correlation_dict["delta_ccf_ci_upper"][dataset_name]
-    delta_ccf_integral: np.ndarray = correlation_dict["delta_ccf_integral"][dataset_name]
-    max_lag_integrate: int = correlation_dict["max_lag_integrate"][dataset_name]
-    feature_labels: list[str] = correlation_dict["features"][dataset_name]
+    ccf: np.ndarray = correlation_dict["ccf"]
+    ccf_ci_lower: np.ndarray = correlation_dict[f"ccf_{Column.BootstrapAnalysis.CI_LOWER}"]
+    ccf_ci_upper: np.ndarray = correlation_dict[f"ccf_{Column.BootstrapAnalysis.CI_UPPER}"]
+    delta_ccf: np.ndarray = correlation_dict["delta_ccf"]
+    delta_ccf_ci_lower: np.ndarray = correlation_dict[
+        f"delta_ccf_{Column.BootstrapAnalysis.CI_LOWER}"
+    ]
+    delta_ccf_ci_upper: np.ndarray = correlation_dict[
+        f"delta_ccf_{Column.BootstrapAnalysis.CI_UPPER}"
+    ]
+    delta_ccf_integral: np.ndarray = correlation_dict["delta_ccf_integral"]
+    max_lag_integrate: int = correlation_dict["max_lag_integrate"]
+    feature_labels: list[str] = correlation_dict["features"]
 
     # get string for shear stress to include in plot title
     dataset_config = load_dataset_config(dataset_name)
     shear_stress = dataset_config.flow_conditions[0].shear_stress
 
+    # get the combinations of features for the cross-correlation plots
+    # (we use the indices of the feature labels here because the features
+    # themselves are stored in an array)
+    feature_indices = range(len(feature_labels))
+    cross_corr_index_combinations = list(combinations(feature_indices, r=2))
+    # in `combinations` "r" is the number of elements to include in a combination
+
     # plot ccf with confidence intervals if available
     fig, ax = plt.subplots(figsize=(12, 6))
-    for i, (j, k) in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
+    for i, (j, k) in enumerate(cross_corr_index_combinations):
         lags_all_as_hours = 5 * lags / 60  # convert from frames (5 minutes) to hours
         ax.plot(lags_all_as_hours, ccf[:, i], label=f"({feature_labels[j]}, {feature_labels[k]})")
         if bootstrap_samples is not None:
@@ -440,12 +462,13 @@ def _make_all_ccf_plots(
         fig,
         output_path,
         f"cross_correlation_{dataset_name}",
+        show_and_close=False,
     )
     plt.close(fig)
 
     # plot delta ccf: difference between positive and negative lags
     fig, ax = plt.subplots(figsize=(12, 6))
-    for i, (j, k) in enumerate(CROSS_CORR_INDEX_COMBINATIONS):
+    for i, (j, k) in enumerate(cross_corr_index_combinations):
         # delta ccf is symmetric around zero
         lags_symmetric = lags[1 + num_lags // 2 :]
         lags_symmetric_as_hours = 5 * lags_symmetric / 60
@@ -472,8 +495,8 @@ def _make_all_ccf_plots(
     ci_bounds = None
     if bootstrap_samples is not None:
         ci_bounds = (
-            correlation_dict["delta_ccf_integral_ci_lower"][dataset_name],
-            correlation_dict["delta_ccf_integral_ci_upper"][dataset_name],
+            correlation_dict[f"delta_ccf_integral_{Column.BootstrapAnalysis.CI_LOWER}"],
+            correlation_dict[f"delta_ccf_integral_{Column.BootstrapAnalysis.CI_UPPER}"],
         )
     ax = _add_delta_ccf_integral_to_plot(
         delta_ccf_integral, max_lag_integrate, ci_bounds, feature_labels, ax
@@ -482,20 +505,21 @@ def _make_all_ccf_plots(
         fig,
         output_path,
         f"cross_correlation_diff_{dataset_name}",
+        show_and_close=False,
     )
     plt.close(fig)
 
 
 def _plot_full_correlation_curves(
     dataset_name: str,
-    correlation_dict: dict[str, dict[str, Any]],
+    correlation_dict: dict[str, Any],
     output_path: Path,
     bootstrap_samples: int | None = None,
-) -> dict[str, dict[str, Any]]:
+) -> None:
     """Plot correlation curves (auto- and cross-correlations) for a single dataset."""
     # plot acf and fit exponential decay
     # adds relaxation timescales to correlation_dict
-    correlation_dict = _make_all_acf_plots(
+    _make_all_acf_plots(
         dataset_name,
         correlation_dict,
         output_path,
@@ -509,8 +533,6 @@ def _plot_full_correlation_curves(
         output_path,
         bootstrap_samples=bootstrap_samples,
     )
-
-    return correlation_dict
 
 
 def _plot_single_correlation_metric_vs_shear_stress(
@@ -556,8 +578,10 @@ def _plot_single_correlation_metric_vs_shear_stress(
     fig, ax = plt.subplots(figsize=(8, 6))
 
     # set default labels if none provided
+    feature_indices = range(len(features))
+    cross_corr_index_combinations = list(combinations(feature_indices, 2))
     if labels is None:
-        labels = [f"({features[j]}, {features[k]})" for (j, k) in CROSS_CORR_INDEX_COMBINATIONS]
+        labels = [f"({features[j]}, {features[k]})" for (j, k) in cross_corr_index_combinations]
 
     # sort by ascending shear stress
     sorted_indices = np.argsort(shear_stresses)
@@ -604,7 +628,7 @@ def _plot_single_correlation_metric_vs_shear_stress(
 
 
 def _plot_correlation_metrics_vs_shear_stress(
-    correlation_dict: dict[str, dict[str, Any]],
+    correlation_dict_all: dict[str, dict[str, Any]],
     list_of_datasets: list[str],
     output_path: Path,
 ) -> None:
@@ -616,11 +640,11 @@ def _plot_correlation_metrics_vs_shear_stress(
 
     Parameters
     ----------
-    correlation_dict
+    correlation_dict_all
         Dictionary containing correlation results for multiple datasets, including
         the summary metrics to plot.
     list_of_datasets
-        List of dataset names corresponding to the keys in `correlation_dict` to
+        List of dataset names corresponding to the keys in `correlation_dict_all` to
         include in the plot.
     output_path
         Path to save the resulting plots.
@@ -635,30 +659,39 @@ def _plot_correlation_metrics_vs_shear_stress(
     # plot correlation metrics vs shear stress
     # with error bars if available
     delta_ccf_integral_values = [
-        correlation_dict["delta_ccf_integral"][dataset_name] for dataset_name in list_of_datasets
+        correlation_dict_all[dataset_name]["delta_ccf_integral"]
+        for dataset_name in list_of_datasets
     ]
     delta_ccf_integral_ci_bounds = [
         (
-            correlation_dict["delta_ccf_integral_ci_lower"][dataset_name],
-            correlation_dict["delta_ccf_integral_ci_upper"][dataset_name],
+            correlation_dict_all[dataset_name][
+                f"delta_ccf_integral_{Column.BootstrapAnalysis.CI_LOWER}"
+            ],
+            correlation_dict_all[dataset_name][
+                f"delta_ccf_integral_{Column.BootstrapAnalysis.CI_UPPER}"
+            ],
         )
         for dataset_name in list_of_datasets
     ]
     # also plot mean over PCs
     mean_delta_ccf_integral = [
-        np.array([np.mean(correlation_dict["delta_ccf_integral"][dataset_name])])
+        np.array([np.mean(correlation_dict_all[dataset_name]["delta_ccf_integral"])])
         for dataset_name in list_of_datasets
     ]
 
     # also plot relaxation timescales
     relaxation_timescale_values = [
-        np.array(correlation_dict["relaxation_timescales"][dataset_name])
+        np.array(correlation_dict_all[dataset_name]["relaxation_timescales"])
         for dataset_name in list_of_datasets
     ]
     relaxation_timescale_ci_bounds = [
         (
-            correlation_dict["relaxation_timescales_ci_lower"][dataset_name],
-            correlation_dict["relaxation_timescales_ci_upper"][dataset_name],
+            correlation_dict_all[dataset_name][
+                f"relaxation_timescales_{Column.BootstrapAnalysis.CI_LOWER}"
+            ],
+            correlation_dict_all[dataset_name][
+                f"relaxation_timescales_{Column.BootstrapAnalysis.CI_UPPER}"
+            ],
         )
         for dataset_name in list_of_datasets
     ]
@@ -668,7 +701,7 @@ def _plot_correlation_metrics_vs_shear_stress(
         [_get_shear_stress_from_dataset_name(dataset_name) for dataset_name in list_of_datasets]
     )
 
-    feature_names = correlation_dict["features"][list_of_datasets[0]]
+    feature_names = correlation_dict_all[list_of_datasets[0]]["features"]
 
     fig, ax = _plot_single_correlation_metric_vs_shear_stress(
         delta_ccf_integral_values,
@@ -683,6 +716,7 @@ def _plot_correlation_metrics_vs_shear_stress(
         fig,
         output_path,
         "delta_ccf_integral_vs_shear_stress",
+        show_and_close=False,
     )
     plt.close(fig)
 
@@ -699,6 +733,7 @@ def _plot_correlation_metrics_vs_shear_stress(
         fig,
         output_path,
         "mean_delta_ccf_integral_vs_shear_stress",
+        show_and_close=False,
     )
     plt.close(fig)
 
@@ -709,6 +744,7 @@ def _plot_correlation_metrics_vs_shear_stress(
         ci_bounds=relaxation_timescale_ci_bounds,
         labels=feature_names,
     )
+    ax.set_ylim(0, 8)
     ax.legend()
     ax.set_ylabel("Relaxation timescale (hours)")
     ax.set_xlabel("Shear Stress (dyn/cm$^2$)")
@@ -716,12 +752,85 @@ def _plot_correlation_metrics_vs_shear_stress(
         fig,
         output_path,
         "relaxation_time_vs_shear_stress",
+        show_and_close=False,
+    )
+    plt.close(fig)
+
+
+def _plot_relaxation_timescales_histogram(
+    dataset_name: str,
+    correlation_dict: dict[str, Any],
+    output_path: Path,
+    plot_hist_instead: bool = True,
+) -> None:
+    """Plot histograms of relaxation timescales from ACF fits to individual crop indices."""
+    feature_labels = correlation_dict["features"]
+    relaxation_timescales = correlation_dict["relaxation_timescale_per_crop"].copy()
+    df_relaxations = pd.DataFrame(data=relaxation_timescales, columns=feature_labels)
+    num_crops_per_feature: dict = {}
+    for feature in feature_labels:
+        # relax_max = df_relaxations[feature].quantile(0.75)  # use 75th percentile as upper bound
+        relax_max = 48  # cap at 48 hours (arbitrary choice; but is how long we imaged for)
+        relax_min = 0  # I think that a negative relaxation time is non-physical
+        valid_relaxation = df_relaxations[feature].between(relax_min, relax_max)
+        df_relaxations[feature] = df_relaxations[feature].where(valid_relaxation, np.nan)
+        num_crops_per_feature[feature] = {
+            "after_filter": valid_relaxation.sum(),
+            "before_filter": len(relaxation_timescales),
+        }
+    df_relaxations_long = df_relaxations.melt(var_name="Feature", value_name="Relaxation timescale")
+    df_relaxations_long = df_relaxations_long.dropna(subset=["Relaxation timescale"])
+
+    fig, ax = plt.subplots(figsize=(4, 4))
+    counts = []
+    for feature in num_crops_per_feature:
+        crop_count = (
+            f"{get_label_for_column(feature)}: "
+            f"{num_crops_per_feature[feature]['after_filter']}/"
+            f"{num_crops_per_feature[feature]['before_filter']}"
+        )
+        counts.append(crop_count)
+    title = ", ".join(counts)
+    ax.set_title(f"{dataset_name}\nnumber of crops before / after filter:\n".title() + f"{title}")
+    if plot_hist_instead:
+        kind = "hist"
+        sns.histplot(
+            data=df_relaxations_long,
+            x="Relaxation timescale",
+            hue="Feature",
+            binwidth=0.5,
+            stat="density",
+            alpha=0.5,
+            ax=ax,
+        )
+    else:
+        kind = "kde"
+        sns.kdeplot(
+            data=df_relaxations_long,
+            x="Relaxation timescale",
+            hue="Feature",
+            bw_adjust=0.5,
+            clip=(0, 48),  # cap at 48 hours (arbitrary choice; but is how long we imaged for)
+            alpha=0.5,
+            ax=ax,
+        )
+    ax.set_xlim(0, 24)
+    ax.xaxis.set_major_locator(plt.MaxNLocator(integer=True))
+    ax.set_xlabel("Relaxation timescale (hours)")
+    fname = f"relaxation_timescale_histogram_{dataset_name}_{kind}"
+    save_plot_to_path(
+        fig,
+        output_path,
+        fname,
+        show_and_close=False,
     )
     plt.close(fig)
 
 
 def plot_correlation_workflow_outputs(
-    correlation_dict: dict[str, dict[str, Any]], bootstrap_samples: int | None = None
+    correlation_dict_all: dict[str, dict[str, Any]],
+    bootstrap_samples: int | None = None,
+    crop_pattern: Literal["grid", "tracked"] = "grid",
 ) -> None:
     """Make and save plots for correlation workflow outputs.
 
@@ -730,11 +839,11 @@ def plot_correlation_workflow_outputs(
     Creates and saves a series of summary plots for the correlation analysis
     results:
         - Plots of the autocorrelation functions (ACFs) for each datset in
-          `correlation_dict`.
+          `correlation_dict_all`.
             - Fits exponential decay to ACFs to extract relaxation timescales
               and adds these to the ACF plots.
         - Plots of the cross-correlation functions (CCFs) for each dataset in
-          `correlation_dict` with confidence intervals if bootstrap samples were
+          `correlation_dict_all` with confidence intervals if bootstrap samples were
           provided.
         - Plots of the difference between positive and negative lag CCFs.
             - Computes integrals near lag = zero and adds to the plot.
@@ -745,31 +854,38 @@ def plot_correlation_workflow_outputs(
 
     Parameters
     ----------
-    correlation_dict
+    correlation_dict_all
         Dictionary containing correlation results for multiple datasets.
     bootstrap_samples
         Optional, number of bootstrap samples used to compute confidence
         intervals.
 
     """
-    list_of_datasets = list(correlation_dict["lags"].keys())
+    list_of_datasets = list(correlation_dict_all.keys())
 
-    output_path = get_output_path("correlations")
+    output_path = get_output_path("correlations", crop_pattern)
 
     # plot full correlation curves for each dataset
     for dataset_name in list_of_datasets:
         logger.info("Plotting correlation curves for dataset [ %s ]", dataset_name)
-        correlation_dict = _plot_full_correlation_curves(
+        _plot_full_correlation_curves(
             dataset_name,
-            correlation_dict,
+            correlation_dict_all[dataset_name],
             output_path,
             bootstrap_samples=bootstrap_samples,
+        )
+
+        _plot_relaxation_timescales_histogram(
+            dataset_name, correlation_dict_all[dataset_name], output_path, plot_hist_instead=True
+        )
+        _plot_relaxation_timescales_histogram(
+            dataset_name, correlation_dict_all[dataset_name], output_path, plot_hist_instead=False
         )
 
     # plot integrated difference between CCF for positive and
     # negative lags as a function of shear stress
     _plot_correlation_metrics_vs_shear_stress(
-        correlation_dict,
+        correlation_dict_all,
         list_of_datasets,
         output_path,
     )

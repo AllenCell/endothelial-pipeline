@@ -29,6 +29,7 @@ from endo_pipeline.settings.examples import ExampleImage
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
 from endo_pipeline.settings.summary_plot import CELL_LINE_LABEL_MAP
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
 )
@@ -85,7 +86,7 @@ def create_panel_biological_system_examples(
         )
 
         image_panel_list.extend([gfp_max_proj, bf_plane, log_bf_std_dev])
-        shear_stress_titles.append(f"{shear_stress_value} dyn/cm\u00b2")
+        shear_stress_titles.append(f"{shear_stress_value} dyn/cm{Unicode.SQUARED}")
 
     fig = make_contact_sheet(
         image_panel_list,
@@ -116,7 +117,7 @@ def create_panel_biological_system_examples(
     fig.axes[0].text(
         0.96,
         0.08,
-        f"{scale_bar_um} \u03bcm",
+        f"{scale_bar_um} {Unicode.MU}m",
         color="white",
         transform=fig.axes[0].transAxes,
         fontsize=FONTSIZE_SMALL,
@@ -239,7 +240,7 @@ def create_panel_patch_featurization(
     ax_bf.text(
         0.96,
         0.08,
-        f"{scale_bar_um} \u03bcm",
+        f"{scale_bar_um} {Unicode.MU}m",
         color="white",
         transform=ax_bf.transAxes,
         fontsize=FONTSIZE_SMALL,
@@ -364,7 +365,7 @@ def create_panel_intermediate_examples(
         )
 
         image_panel_list.extend([gfp_max_proj, log_bf_std_dev])
-        shear_stress_titles.append(f"{shear_stress_value} dyn/cm\u00b2")
+        shear_stress_titles.append(f"{shear_stress_value} dyn/cm{Unicode.SQUARED}")
 
     fig = make_contact_sheet(
         image_panel_list,
@@ -395,7 +396,7 @@ def create_panel_intermediate_examples(
     fig.axes[0].text(
         0.96,
         0.08,
-        f"{scale_bar_um} \u03bcm",
+        f"{scale_bar_um} {Unicode.MU}m",
         color="white",
         transform=fig.axes[0].transAxes,
         fontsize=FONTSIZE_SMALL,
@@ -492,7 +493,7 @@ def create_panel_perturbation_examples(
     fig.axes[0].text(
         0.96,
         0.08,
-        f"{scale_bar_um} \u03bcm",
+        f"{scale_bar_um} {Unicode.MU}m",
         color="white",
         transform=fig.axes[0].transAxes,
         fontsize=FONTSIZE_SMALL,

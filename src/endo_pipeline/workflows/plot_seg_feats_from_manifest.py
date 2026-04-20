@@ -38,12 +38,12 @@ def plot_seg_manifest_data(
     from matplotlib import pyplot as plt
 
     from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
-        get_seg_feat_plot_args,
         hist_2d_of_feats,
         lineplot_of_feats,
         mark_parallel,
         mark_perpendicular,
     )
+    from endo_pipeline.settings.column_metadata import COLUMN_METADATA_DICT
     from endo_pipeline.settings.column_names import ColumnName as Column
 
     # choose which features to put on the y-axis
@@ -71,7 +71,7 @@ def plot_seg_manifest_data(
 
     # get the plotting arguments for the features
     # (e.g. axis limits, axis titles, bin widths, etc.)
-    feats_plot_args = get_seg_feat_plot_args()
+    feats_plot_args = COLUMN_METADATA_DICT
 
     for feat in angular_feats + feats_to_plot_y + feats_to_plot_y_lineplot_only:
         filename_out = f"{dataset_name}_P{position}_{feat}.png"
