@@ -31,6 +31,8 @@ def main(datasets: Datasets) -> None:
     import logging
     from collections import namedtuple
 
+    import matplotlib.pyplot as plt
+
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
@@ -52,6 +54,7 @@ def main(datasets: Datasets) -> None:
     )
 
     logger = logging.getLogger(__name__)
+    plt.style.use("endo_pipeline.figure")
 
     # Set up list of features to plot and corresponding flags.
     PlotFlags = namedtuple("PlotFlags", ["make_line", "make_hist", "is_angular"])
@@ -150,6 +153,10 @@ def main(datasets: Datasets) -> None:
                         mark_perpendicular(ax_hist)
 
                     save_plot_to_path(fig_hist, output_path_hist, feature_filename)
+
+            if DEMO_MODE:
+                logger.info("Running in demo mode. Only processing first position.")
+                break
 
 
 if __name__ == "__main__":
