@@ -9,21 +9,18 @@ def main(
     import logging
     from typing import cast
 
-    import matplotlib.pyplot as plt
     import numpy as np
     import pandas as pd
     from scipy.stats import circmean, circvar
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
+    from endo_pipeline.io import load_dataframe
     from endo_pipeline.library.analyze.numerics.binning import get_bins
     from endo_pipeline.library.analyze.numerics.temporal_stats import (
+        compute_kde_on_bins,
         process_dataframe_for_track_statistics,
     )
-    from endo_pipeline.library.visualize.columns import get_label_for_column
-    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
-    from endo_pipeline.library.visualize.track_statistics import plot_histogram_and_kde
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
@@ -47,7 +44,6 @@ def main(
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
     run_name = DEFAULT_MODEL_RUN_NAME
     column_names: list[Column.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
-    variable_labels_dict = {col: get_label_for_column(col) for col in column_names}
     columns_to_compute_grid = [*METADATA_COLUMNS_TO_KEEP["grid"], *column_names]
     columns_to_compute_tracked = [*METADATA_COLUMNS_TO_KEEP["tracked"], *column_names]
 
@@ -99,12 +95,6 @@ def main(
                 dataset_config.shear_stress_regime,
             )
             continue
-
-        hist_color = get_dataset_color(dataset_name)
-        shear_stress = dataset_config.flow_conditions[0].shear_stress
-        dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
-        plot_label = f"{dataset_name} ({shear_stress} dyn/cm$^2$)"
-        fig_savedir = get_output_path(__file__, dataset_name)
 
         # load dataframe and perform additional filtering (e.g., remove
         # non-steady-state timepoints based on annotations), computing only the
@@ -230,63 +220,47 @@ def main(
                     var_bins[0][0], var_bins[0][-1], 2000
                 )
 
-        # plot histograms of the column averages and variances across
-        # trajectories for each column and crop pattern, with KDE overlaid
+        # Compute histogram and KDE for each column and crop pattern, storing
+        # the KDEs in a dictionary for later use in plotting and analysis.
+        grid_avg_kde_dict: dict = {}
+        grid_var_kde_dict: dict = {}
+        tracked_avg_kde_dict: dict = {}
+        tracked_var_kde_dict: dict = {}
         for column_name in column_names:
-            variable_label = variable_labels_dict[column_name]
-            fig, ax = plt.subplots(1, 2, figsize=(12, 5))
             period = polar_angle_period if column_name == Column.DiffAEData.POLAR_ANGLE else None
-            for crop_pattern, num_traj, line_style in [
-                ("grid", num_trajectories_grid, "-"),
-                ("tracked", num_trajectories_tracked, "--"),
+
+            for crop_pattern, avg_kde_dict, var_kde_dict in [
+                ("grid", grid_avg_kde_dict, grid_var_kde_dict),
+                ("tracked", tracked_avg_kde_dict, tracked_var_kde_dict),
             ]:
-                # histogram and KDE for column average
-                axes_title = f"Histogram of average {variable_label} across trajectories"
-                axes_xlabel = f"$\\langle${variable_label}$\\rangle$"
-                axes_ylabel = f"P({axes_xlabel})"
-                plot_histogram_and_kde(
-                    axes=ax[0],
-                    data=column_avg_df_dict[crop_pattern][column_name].to_numpy(),
+                avg_data_all = column_avg_df_dict[crop_pattern][column_name].dropna().to_numpy()
+                var_data_all = (
+                    column_variance_df_dict[crop_pattern][column_name].dropna().to_numpy()
+                )
+                avg_bin_centers, avg_kde_values = compute_kde_on_bins(
+                    data=avg_data_all,
                     bin_width=bin_width_averages,
                     kernel_name=kernel_names_dict[column_name],
                     kernel_bandwidth=1.5 * bin_width_averages,
                     kernel_period=period,
-                    hist_color=hist_color,
-                    kde_line_style=line_style,
-                    kde_label=crop_pattern,
-                    axes_title=axes_title,
-                    axes_xlabel=axes_xlabel,
-                    axes_ylabel=axes_ylabel,
-                    axes_xlimits=bin_limits_dict[column_name],
+                    bins=bins_avg_dict[crop_pattern][column_name],
                 )
-
-                # histogram and KDE for column variance
-                axes_title = f"Histogram of variance {variable_label} across trajectories"
-                axes_xlabel = f"$\\mathrm{{Var}}({variable_label})$"
-                axes_ylabel = f"P({axes_xlabel})"
-                plot_histogram_and_kde(
-                    axes=ax[1],
-                    data=column_variance_df_dict[crop_pattern][column_name].to_numpy(),
+                avg_kde_dict[column_name] = {
+                    "bin_centers": avg_bin_centers,
+                    "kde_values": avg_kde_values,
+                }
+                var_bin_centers, var_kde_values = compute_kde_on_bins(
+                    data=var_data_all,
                     bin_width=bin_width_variances,
-                    kernel_name="gaussian",
+                    kernel_name=kernel_names_dict[column_name],
                     kernel_bandwidth=1.5 * bin_width_variances,
                     kernel_period=None,
-                    hist_color=hist_color,
-                    kde_line_style=line_style,
-                    kde_label=crop_pattern,
-                    axes_title=axes_title,
-                    axes_xlabel=axes_xlabel,
-                    axes_ylabel=axes_ylabel,
-                    axes_xlimits=(-0.01, 0.8),
+                    bins=bins_var_dict[crop_pattern][column_name],
                 )
-
-            plt.suptitle(f"{plot_label}, grid vs. tracked crops (n={num_traj} trajectories)")
-            plt.tight_layout()
-            save_plot_to_path(
-                fig,
-                fig_savedir,
-                f"{dataset_name_flow}_{column_name}_statistics_histograms",
-            )
+                var_kde_dict[column_name] = {
+                    "bin_centers": var_bin_centers,
+                    "kde_values": var_kde_values,
+                }
 
         if DEMO_MODE:
             logger.warning(
