@@ -67,6 +67,7 @@ def main(
     # trajectories (currently hardcoded)
     bin_width_averages = 0.1
     bin_width_variances = 0.02
+    ci_line_kwargs = {"alpha": 0.25, "label": f"{int(ci_lower)}-{int(ci_upper)}% CI"}
 
     # Get dataframe manifest for filtered crop-based features
     base_name_grid = f"{model_manifest_name}_{run_name}_grid"
@@ -259,6 +260,8 @@ def main(
                     avg_kde_dict[column_name] = {
                         "bin_centers": avg_bin_centers,
                         "kde_values": avg_kde_values,
+                        "ci_lower": None,
+                        "ci_upper": None,
                     }
                     var_bin_centers, var_kde_values = compute_kde_on_bins(
                         data=var_data_all,
@@ -271,6 +274,8 @@ def main(
                     var_kde_dict[column_name] = {
                         "bin_centers": var_bin_centers,
                         "kde_values": var_kde_values,
+                        "ci_lower": None,
+                        "ci_upper": None,
                     }
                 elif crop_pattern == "tracked":
                     # use fixed bins derived from the full tracked data so all bootstrap
@@ -319,57 +324,45 @@ def main(
                     var_kdes_arr = np.array(var_kdes)
                     avg_kde_dict[column_name] = {
                         "bin_centers": tracked_avg_bin_centers,
-                        "mean": np.nanmean(avg_kdes_arr, axis=0),
+                        "kde_values": np.nanmean(avg_kdes_arr, axis=0),
                         "ci_lower": np.nanpercentile(avg_kdes_arr, ci_lower, axis=0),
                         "ci_upper": np.nanpercentile(avg_kdes_arr, ci_upper, axis=0),
                     }
                     var_kde_dict[column_name] = {
                         "bin_centers": tracked_var_bin_centers,
-                        "mean": np.nanmean(var_kdes_arr, axis=0),
+                        "kde_values": np.nanmean(var_kdes_arr, axis=0),
                         "ci_lower": np.nanpercentile(var_kdes_arr, ci_lower, axis=0),
                         "ci_upper": np.nanpercentile(var_kdes_arr, ci_upper, axis=0),
                     }
         for column_name in column_names:
             fig, ax = plt.subplots(1, 2, figsize=(12, 5))
-            for crop_pattern, kde_avg_dict, kde_var_dict, kde_key in [
-                ("grid", grid_avg_kde_dict, grid_var_kde_dict, "kde_values"),
-                ("tracked", tracked_avg_kde_dict, tracked_var_kde_dict, "mean"),
+            for crop_pattern, kde_avg_dict, kde_var_dict in [
+                ("grid", grid_avg_kde_dict, grid_var_kde_dict),
+                ("tracked", tracked_avg_kde_dict, tracked_var_kde_dict),
             ]:
-                kde_avg_ci_lower = (
-                    kde_avg_dict[column_name]["ci_lower"] if crop_pattern == "tracked" else None
-                )
-                kde_avg_ci_upper = (
-                    kde_avg_dict[column_name]["ci_upper"] if crop_pattern == "tracked" else None
-                )
                 plot_kde_for_track_statistics(
                     ax=ax[0],
-                    kde_values=kde_avg_dict[column_name][kde_key],
+                    kde_values=kde_avg_dict[column_name]["kde_values"],
                     bin_centers=kde_avg_dict[column_name]["bin_centers"],
                     x_eval=x_eval_avg_dict[crop_pattern][column_name],
-                    kde_ci_lower=kde_avg_ci_lower,
-                    kde_ci_upper=kde_avg_ci_upper,
+                    kde_ci_lower=kde_avg_dict[column_name]["ci_lower"],
+                    kde_ci_upper=kde_avg_dict[column_name]["ci_upper"],
                     axes_title=f"{column_name} average KDE - {crop_pattern}",
                     axes_xlabel=f"{column_name} average",
                     axes_ylabel="KDE",
-                    ci_line_kwargs={"alpha": 0.25, "label": f"{int(ci_lower)}-{int(ci_upper)}% CI"},
-                )
-                kde_var_ci_lower = (
-                    kde_var_dict[column_name]["ci_lower"] if crop_pattern == "tracked" else None
-                )
-                kde_var_ci_upper = (
-                    kde_var_dict[column_name]["ci_upper"] if crop_pattern == "tracked" else None
+                    ci_line_kwargs=ci_line_kwargs,
                 )
                 plot_kde_for_track_statistics(
                     ax=ax[1],
-                    kde_values=kde_var_dict[column_name][kde_key],
+                    kde_values=kde_var_dict[column_name]["kde_values"],
                     bin_centers=kde_var_dict[column_name]["bin_centers"],
                     x_eval=x_eval_var_dict[crop_pattern][column_name],
-                    kde_ci_lower=kde_var_ci_lower,
-                    kde_ci_upper=kde_var_ci_upper,
+                    kde_ci_lower=kde_var_dict[column_name]["ci_lower"],
+                    kde_ci_upper=kde_var_dict[column_name]["ci_upper"],
                     axes_title=f"{column_name} variance KDE - {crop_pattern}",
                     axes_xlabel=f"{column_name} variance",
                     axes_ylabel="KDE",
-                    ci_line_kwargs={"alpha": 0.25, "label": f"{int(ci_lower)}-{int(ci_upper)}% CI"},
+                    ci_line_kwargs=ci_line_kwargs,
                 )
             plt.suptitle(
                 f"{plot_label}, grid vs. tracked crops \n "
