@@ -22,8 +22,16 @@ def main(
         filter_dataframe_to_steady_state,
     )
     from endo_pipeline.library.visualize.columns import get_label_for_column
-    from endo_pipeline.library.visualize.track_statistics import plot_kde_of_histogram
+    from endo_pipeline.library.visualize.track_statistics import (
+        compute_interpolated_kde_spline,
+        plot_kde_of_histogram,
+    )
     from endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.settings.bootstrap_fixed_points import (
+        FP_CI_LOWER_PERCENTILE,
+        FP_CI_UPPER_PERCENTILE,
+        NUM_BOOTSTRAP_ITERATIONS,
+    )
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_DYNAMICS,
@@ -75,6 +83,13 @@ def main(
     # bin limits and polar angle period are constant
     bin_limits_dict = BIN_LIMITS_DYNAMICS.copy()
     polar_angle_period = POLAR_ANGLE_PERIOD
+
+    # precompute KDE evaluation grids per column (not dataset-dependent)
+    x_eval_avg_dict = {
+        col: np.linspace(bin_limits_dict[col][0], bin_limits_dict[col][1], 2000)
+        for col in column_names
+    }
+    x_eval_var = np.linspace(-0.01, 0.8, 2000)
 
     for dataset_name in dataset_names:
         if (
@@ -135,30 +150,14 @@ def main(
         )
         num_trajectories_tracked = df_steady_state_tracked[Column.CROP_INDEX].nunique()
 
-        # subsample trajectories if num_subsample is specified and there are
-        # more than num_subsample trajectories
-        if num_trajectories_grid < num_trajectories_tracked:
-            logger.info(
-                "Dataset [ %s ] has %d grid trajectories and %d tracked trajectories. "
-                "Subsampling tracked trajectories to match number of grid trajectories for comparison.",
-                dataset_name,
-                num_trajectories_grid,
-                num_trajectories_tracked,
-            )
-            sampled_traj_indices = rng.choice(
-                df_steady_state_tracked[Column.CROP_INDEX].unique(),
-                size=num_trajectories_grid,
-                replace=False,
-            )
-            df_steady_state_tracked = df_steady_state_tracked[
-                df_steady_state_tracked[Column.CROP_INDEX].isin(sampled_traj_indices)
-            ]
-        elif num_trajectories_tracked < num_trajectories_grid:
-            logger.warning(
-                "Dataset [ %s ] has more grid trajectories than tracked trajectories. "
-                "Not subsampling tracked trajectories, but this may affect comparison between grid and tracked statistics.",
-                dataset_name,
-            )
+        logger.info(
+            "Dataset [ %s ] has %d grid trajectories and %d tracked trajectories. "
+            "Bootstrap resampling tracked trajectories to match number of grid trajectories (%d) for comparison.",
+            dataset_name,
+            num_trajectories_grid,
+            num_trajectories_tracked,
+            num_trajectories_grid,
+        )
 
         # put together grid and tracked dataframes for easier processing, adding
         # a column to indicate crop pattern
@@ -203,60 +202,166 @@ def main(
                             np.nanvar(df_traj[column_name])
                         )
 
+        # Bootstrap KDE computation for tracked crops: resample (with replacement)
+        # tracked trajectories to the same size as grid trajectories, compute the
+        # KDE for each bootstrap sample, then report mean and (5, 95) CI.
+        grid_avg_kde_dict: dict = {}
+        grid_var_kde_dict: dict = {}
+        bootstrap_tracked_avg_kde: dict = {}
+        bootstrap_tracked_var_kde: dict = {}
+        for column_name in column_names:
+            period = polar_angle_period if column_name == Column.DiffAEData.POLAR_ANGLE else None
+            x_eval_avg = x_eval_avg_dict[column_name]
+
+            # compute grid KDE once on the shared evaluation grids
+            grid_avg_kde_dict[column_name] = compute_interpolated_kde_spline(
+                data=column_avg_df_dict["grid"][column_name].dropna().to_numpy(),
+                x_eval=x_eval_avg,
+                bin_width=bin_width_averages,
+                kernel_name=kernel_names_dict[column_name],
+                kernel_bandwidth=1.5 * bin_width_averages,
+                kernel_period=period,
+            )
+            grid_var_kde_dict[column_name] = compute_interpolated_kde_spline(
+                data=column_variance_df_dict["grid"][column_name].dropna().to_numpy(),
+                x_eval=x_eval_var,
+                bin_width=bin_width_variances,
+                kernel_name="gaussian",
+                kernel_bandwidth=1.5 * bin_width_variances,
+                kernel_period=None,
+            )
+
+            tracked_avg_all = column_avg_df_dict["tracked"][column_name].dropna().to_numpy()
+            tracked_var_all = column_variance_df_dict["tracked"][column_name].dropna().to_numpy()
+
+            avg_kdes: list[np.ndarray] = []
+            var_kdes: list[np.ndarray] = []
+            for _ in range(NUM_BOOTSTRAP_ITERATIONS):
+                sampled_indices = rng.choice(
+                    len(tracked_avg_all), size=num_trajectories_grid, replace=True
+                )
+                sample_avg = tracked_avg_all[sampled_indices]
+                avg_kdes.append(
+                    compute_interpolated_kde_spline(
+                        data=sample_avg,
+                        x_eval=x_eval_avg,
+                        bin_width=bin_width_averages,
+                        kernel_name=kernel_names_dict[column_name],
+                        kernel_bandwidth=1.5 * bin_width_averages,
+                        kernel_period=period,
+                    )
+                )
+                sample_var = tracked_var_all[sampled_indices]
+                var_kdes.append(
+                    compute_interpolated_kde_spline(
+                        data=sample_var,
+                        x_eval=x_eval_var,
+                        bin_width=bin_width_variances,
+                        kernel_name="gaussian",
+                        kernel_bandwidth=1.5 * bin_width_variances,
+                        kernel_period=None,
+                    )
+                )
+
+            avg_kdes_arr = np.array(avg_kdes)
+            var_kdes_arr = np.array(var_kdes)
+            bootstrap_tracked_avg_kde[column_name] = {
+                "mean": np.nanmean(avg_kdes_arr, axis=0),
+                "ci_lower": np.nanpercentile(avg_kdes_arr, FP_CI_LOWER_PERCENTILE, axis=0),
+                "ci_upper": np.nanpercentile(avg_kdes_arr, FP_CI_UPPER_PERCENTILE, axis=0),
+            }
+            bootstrap_tracked_var_kde[column_name] = {
+                "mean": np.nanmean(var_kdes_arr, axis=0),
+                "ci_lower": np.nanpercentile(var_kdes_arr, FP_CI_LOWER_PERCENTILE, axis=0),
+                "ci_upper": np.nanpercentile(var_kdes_arr, FP_CI_UPPER_PERCENTILE, axis=0),
+            }
+
         # plot histograms of the column averages and variances across
         # trajectories for each column and crop pattern, with KDE overlaid
         for column_name in column_names:
             variable_label = variable_labels_dict[column_name]
             fig, ax = plt.subplots(1, 2, figsize=(12, 5))
             period = polar_angle_period if column_name == Column.DiffAEData.POLAR_ANGLE else None
-            for crop_pattern, num_traj, line_style in [
-                ("grid", num_trajectories_grid, "-"),
-                ("tracked", num_trajectories_tracked, "--"),
-            ]:
-                # histogram and KDE for column average
-                axes_title = f"Histogram of average {variable_label} across trajectories"
-                axes_xlabel = f"$\\langle${variable_label}$\\rangle$"
-                axes_ylabel = f"P({axes_xlabel})"
-                plot_kde_of_histogram(
-                    axes=ax[0],
-                    data=column_avg_df_dict[crop_pattern][column_name].to_numpy(),
-                    bin_width=bin_width_averages,
-                    kernel_name=kernel_names_dict[column_name],
-                    kernel_bandwidth=1.5 * bin_width_averages,
-                    kernel_period=period,
-                    kde_line_style=line_style,
-                    kde_label=crop_pattern,
-                    axes_title=axes_title,
-                    axes_xlabel=axes_xlabel,
-                    axes_ylabel=axes_ylabel,
-                    axes_xlimits=bin_limits_dict[column_name],
-                )
+            x_eval_avg = x_eval_avg_dict[column_name]
 
-                # histogram and KDE for column variance
-                axes_title = f"Histogram of variance {variable_label} across trajectories"
-                axes_xlabel = f"$\\mathrm{{Var}}({variable_label})$"
-                axes_ylabel = f"P({axes_xlabel})"
-                plot_kde_of_histogram(
-                    axes=ax[1],
-                    data=column_variance_df_dict[crop_pattern][column_name].to_numpy(),
-                    bin_width=bin_width_variances,
-                    kernel_name="gaussian",
-                    kernel_bandwidth=1.5 * bin_width_variances,
-                    kernel_period=None,
-                    kde_line_style=line_style,
-                    kde_label=crop_pattern,
-                    axes_title=axes_title,
-                    axes_xlabel=axes_xlabel,
-                    axes_ylabel=axes_ylabel,
-                    axes_xlimits=(-0.01, 0.8),
-                )
+            # --- grid: single KDE ---
+            axes_title_avg = f"Histogram of average {variable_label} across trajectories"
+            axes_xlabel_avg = f"$\\langle${variable_label}$\\rangle$"
+            axes_ylabel_avg = f"P({axes_xlabel_avg})"
+            plot_kde_of_histogram(
+                axes=ax[0],
+                x_eval=x_eval_avg,
+                kde_values=grid_avg_kde_dict[column_name],
+                kde_line_style="-",
+                kde_label="grid",
+                axes_title=axes_title_avg,
+                axes_xlabel=axes_xlabel_avg,
+                axes_ylabel=axes_ylabel_avg,
+                axes_xlimits=bin_limits_dict[column_name],
+            )
+            axes_title_var = f"Histogram of variance {variable_label} across trajectories"
+            axes_xlabel_var = f"$\\mathrm{{Var}}({variable_label})$"
+            axes_ylabel_var = f"P({axes_xlabel_var})"
+            plot_kde_of_histogram(
+                axes=ax[1],
+                x_eval=x_eval_var,
+                kde_values=grid_var_kde_dict[column_name],
+                kde_line_style="-",
+                kde_label="grid",
+                axes_title=axes_title_var,
+                axes_xlabel=axes_xlabel_var,
+                axes_ylabel=axes_ylabel_var,
+                axes_xlimits=(-0.01, 0.8),
+            )
 
-            plt.suptitle(f"{plot_label}, grid vs. tracked crops (n={num_traj} trajectories)")
+            # --- tracked: bootstrap mean KDE + (5, 95) CI band ---
+            tracked_avg_boot = bootstrap_tracked_avg_kde[column_name]
+            tracked_var_boot = bootstrap_tracked_var_kde[column_name]
+            # --- tracked average: plot bootstrap mean, then shade CI with matching color ---
+            (tracked_avg_line,) = ax[0].plot(
+                x_eval_avg,
+                tracked_avg_boot["mean"],
+                linestyle="--",
+                linewidth=2.0,
+                label=f"tracked (bootstrap mean, n={num_trajectories_tracked})",
+            )
+            ax[0].fill_between(
+                x_eval_avg,
+                tracked_avg_boot["ci_lower"],
+                tracked_avg_boot["ci_upper"],
+                color=tracked_avg_line.get_color(),
+                alpha=0.25,
+                label=f"tracked ({int(FP_CI_LOWER_PERCENTILE)}-{int(FP_CI_UPPER_PERCENTILE)}% CI, {NUM_BOOTSTRAP_ITERATIONS} bootstrap samples)",
+            )
+            ax[0].legend(loc="upper right")
+            # --- tracked variance: same approach ---
+            (tracked_var_line,) = ax[1].plot(
+                x_eval_var,
+                tracked_var_boot["mean"],
+                linestyle="--",
+                linewidth=2.0,
+                label=f"tracked (bootstrap mean, n={num_trajectories_tracked})",
+            )
+            ax[1].fill_between(
+                x_eval_var,
+                tracked_var_boot["ci_lower"],
+                tracked_var_boot["ci_upper"],
+                color=tracked_var_line.get_color(),
+                alpha=0.25,
+                label=f"tracked ({int(FP_CI_LOWER_PERCENTILE)}-{int(FP_CI_UPPER_PERCENTILE)}% CI, {NUM_BOOTSTRAP_ITERATIONS} bootstrap samples)",
+            )
+            ax[1].legend(loc="upper right")
+
+            plt.suptitle(
+                f"{plot_label}, grid vs. tracked crops "
+                f"(grid n={num_trajectories_grid}, tracked n={num_trajectories_tracked}, "
+                f"bootstrap n={num_trajectories_grid} per sample)"
+            )
             plt.tight_layout()
             save_plot_to_path(
                 fig,
                 fig_savedir,
-                f"{dataset_name_flow}_{column_name}_kde",
+                f"{dataset_name_flow}_{column_name}",
             )
 
         if DEMO_MODE:
