@@ -49,6 +49,7 @@ def main(
         AXES_XLIM_FOR_VARIANCE,
         AXES_YLIM_FOR_AVERAGE,
         AXES_YLIM_FOR_VARIANCE,
+        BIN_PAD_FOR_VARIANCE,
         BIN_WIDTH_FOR_AVERAGE,
         BIN_WIDTH_FOR_VARIANCE,
         CI_FILL_OPACITY,
@@ -234,7 +235,9 @@ def main(
                     .to_numpy()
                     .reshape(-1, 1)
                 )
-                var_bins = get_bins(bin_widths=(BIN_WIDTH_FOR_VARIANCE,), data=var_data)[0]
+                var_bins = get_bins(
+                    bin_widths=(BIN_WIDTH_FOR_VARIANCE,), data=var_data, pad=BIN_PAD_FOR_VARIANCE
+                )[0]
                 bins_var_dict[crop_pattern][column_name] = var_bins[0]
                 x_eval_var_dict[crop_pattern][column_name] = np.linspace(
                     var_bins[0][0], var_bins[0][-1], NUM_POINTS_SMOOTH_KDE
