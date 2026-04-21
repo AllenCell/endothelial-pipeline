@@ -85,6 +85,41 @@ FIGURE_3_EXAMPLE_IMAGES: list[ExampleImage] = [
     ),
 ]
 
+FIGURE_4_EXAMPLE_IMAGES: list[ExampleImage] = [
+    ExampleImage(
+        dataset_name="20250402_20X",
+        description="parental_line",
+        position=0,
+        timepoint=70,
+        crop_x_start=0,  # res level 0
+        crop_y_start=0,  # res level 0
+    ),
+    ExampleImage(
+        dataset_name="20251105_20X",
+        description="isogenic_control",
+        position=0,
+        timepoint=275,
+        crop_x_start=0,  # res level 0
+        crop_y_start=0,  # res level 0
+    ),
+    ExampleImage(
+        dataset_name="20251029_20X",
+        description="knock_down",
+        position=0,
+        timepoint=165,
+        crop_x_start=0,  # res level 0
+        crop_y_start=0,  # res level 0
+    ),
+    ExampleImage(
+        dataset_name="20251119_20X",
+        description="knock_down",
+        position=0,
+        timepoint=185,
+        crop_x_start=0,  # res level 0
+        crop_y_start=0,  # res level 0
+    ),
+]
+
 CDH5_SEG_FIG_EXAMPLE: ExampleImage = ExampleImage(
     dataset_name="20250818_20X",
     position=4,
