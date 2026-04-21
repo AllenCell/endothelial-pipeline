@@ -56,7 +56,7 @@ def plot_kde_for_track_statistics(
     axes_xlabel: str | None = None,
     axes_ylabel: str | None = None,
     kde_line_kwargs: dict | None = None,
-    ci_line_kwargs: dict | None = {"alpha": 0.25},
+    ci_line_kwargs: dict | None = None,
 ) -> None:
     """
     Plot KDE for visualization of track statistic comparison results.
@@ -108,8 +108,11 @@ def plot_kde_for_track_statistics(
     # area to the plot
     if kde_ci_lower is not None and kde_ci_upper is not None:
         kde_color = kde_line[0].get_color()
-        if "color" not in ci_line_kwargs:
+        if ci_line_kwargs is None:
+            ci_line_kwargs = {"alpha": 0.25, "color": kde_color}
+        elif "color" not in ci_line_kwargs:
             ci_line_kwargs["color"] = kde_color
+
         kde_ci_lower_smooth = smooth_kde_with_spline(
             bin_centers=bin_centers,
             kde_values=kde_ci_lower,
@@ -124,7 +127,6 @@ def plot_kde_for_track_statistics(
             x_eval,
             kde_ci_lower_smooth,
             kde_ci_upper_smooth,
-            color=kde_line_kwargs.get("color", "k"),
             **ci_line_kwargs,
         )
 
