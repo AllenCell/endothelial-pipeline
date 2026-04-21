@@ -396,3 +396,27 @@ class ColumnName:
 
         RADIAL_COHERENCE_WEIGHTED = "optical_flow_radial_coherence_weighted_dt1"
         """Distance-weighted radial coherence."""
+
+    class VectorField(StrEnum):
+        """Column name suffixes used in vector field / dynamics analysis."""
+
+        STABILITY = "stability"
+        """Stability classification of a fixed point."""
+
+        DRIFT = "drift"
+        """Suffix for drift vector columns."""
+
+    class BootstrapAnalysis(StrEnum):
+        """Column name suffixes used in bootstrap fixed-point analysis."""
+
+        DETECTION_RATE = "bootstrap_detection_rate"
+        """Fraction of bootstrap iterations in which a matched fixed point was found."""
+
+        CLUSTER_MEAN = "cluster_mean"
+        """Mean coordinate of matched bootstrap fixed points."""
+
+        CI_LOWER = "ci_lower"
+        """Lower bound of the bootstrap confidence interval."""
+
+        CI_UPPER = "ci_upper"
+        """Upper bound of the bootstrap confidence interval."""
