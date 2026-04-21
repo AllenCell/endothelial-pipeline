@@ -1,230 +1,155 @@
-import logging
-from pathlib import Path
-
-import pandas as pd
-
 from endo_pipeline.cli import Datasets
-from endo_pipeline.settings import DEFAULT_SEG_FEATURE_MANIFEST_NAME
-
-logger = logging.getLogger(__name__)
 
 
-def plot_seg_manifest_data(
-    seg_feats_df_subset: pd.DataFrame,
-    dataset_name: str,
-    position: int,
-    out_dir: Path,
-    show_plot: bool = False,
-) -> None:
+def main(datasets: Datasets) -> None:
     """
-    Creates and saves line plots and histograms of select segmentation
-    features for a given dataset and position. Not all features are
-    plotted as histograms.
+    Plot segmentation features for given datasets as line plots and histograms.
 
-    The features that are plotted are:
+    The following features are plotted:
+
     - alignment
+    - orientation
+    - cell migration angle
+    - nuclei orientation relative to flow
+    - nuclei orientation relative to migration
     - nematic order
     - eccentricity
     - aspect ratio
-    - area
+    - cell area
     - number of neighbors
-    - centroid velocity magnitude
-    - centroid velocity orientation
-    - cell-nucleus distance
-    - cell-nucleus orientation
-    - number of nuclei (line plot only)
-    - number of tracks (line plot only)
+    - centroid velocity
+    - nuclei-cell centroid distance
+    - number of nuclei at each timepoint
+    - number of tracks after filtering
+
+    Parameters
+    ----------
+    datasets
+        List of datasets or dataset collections to plot.
     """
-    from matplotlib import pyplot as plt
 
-    from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
-        hist_2d_of_feats,
-        lineplot_of_feats,
-        mark_parallel,
-        mark_perpendicular,
-    )
-    from endo_pipeline.settings.column_metadata import COLUMN_METADATA_DICT
-    from endo_pipeline.settings.column_names import ColumnName as Column
+    import logging
+    from collections import namedtuple
 
-    # choose which features to put on the y-axis
-    # (we will put time on the x-axis)
-    angular_feats = [
-        Column.SegData.ALIGNMENT_DEG,
-        Column.SegData.ORIENTATION_DEG,
-        Column.SegData.CENTROID_VELOCITY_ANGLE_DEG,
-        Column.SegData.NUCLEI_POSITION_ANGLE_DEG,
-        Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG,
-    ]
-    feats_to_plot_y = [
-        Column.SegData.NEMATIC_ORDER,
-        Column.SegData.ECCENTRICITY,
-        Column.SegData.ASPECT_RATIO,
-        Column.SegData.AREA_UM_SQ,
-        Column.SegData.NUM_NEIGHBORS,
-        Column.SegData.CENTROID_VELOCITY_UM_PER_MIN,
-        Column.SegData.NUCLEI_POSITION_DISTANCE,
-    ]
-    feats_to_plot_y_lineplot_only = [
-        Column.SegData.NUM_NUCLEI_AT_TIMEPOINT,
-        Column.SegData.NUM_TRACKS_AFTER_FILTERING,
-    ]
-
-    # get the plotting arguments for the features
-    # (e.g. axis limits, axis titles, bin widths, etc.)
-    feats_plot_args = COLUMN_METADATA_DICT
-
-    for feat in angular_feats + feats_to_plot_y + feats_to_plot_y_lineplot_only:
-        filename_out = f"{dataset_name}_P{position}_{feat}.png"
-
-        # plot alignment vs time as line plots
-        out_subdir_lineplots = out_dir / "lineplots" / f"{feat}/{dataset_name}"
-        out_subdir_lineplots.mkdir(parents=True, exist_ok=True)
-
-        fig, ax = lineplot_of_feats(
-            df_group=seg_feats_df_subset,
-            x_column_name=feats_plot_args[Column.SegData.TIME_HRS]["column_name"],
-            y_column_name=feats_plot_args[feat]["column_name"],
-            x_label=feats_plot_args[Column.SegData.TIME_HRS]["label"],
-            y_label=feats_plot_args[feat]["label"],
-            y_lims=feats_plot_args[feat]["lims"],
-            set_xticks=feats_plot_args[Column.SegData.TIME_HRS]["ticks"],
-            set_yticks=feats_plot_args[feat]["ticks"],
-            discrete_xticks=feats_plot_args[Column.SegData.TIME_HRS]["discrete_ticks"],
-            discrete_yticks=feats_plot_args[feat]["discrete_ticks"],
-            minor_ticks="xy",
-        )
-        fig.savefig(out_subdir_lineplots / filename_out, bbox_inches="tight")
-
-        if not show_plot:
-            plt.close(fig)
-
-        if feat not in feats_to_plot_y_lineplot_only:
-            # plot alignment vs time as histograms
-            out_subdir_histplots = out_dir / "histplots" / f"{feat}/{dataset_name}"
-            out_subdir_histplots.mkdir(parents=True, exist_ok=True)
-            filename_out = f"{dataset_name}_P{position}_{feat}.png"
-
-            fig, ax = hist_2d_of_feats(
-                seg_feats_df_subset,
-                x_column_name=feats_plot_args[Column.SegData.TIME_HRS]["column_name"],
-                y_column_name=feats_plot_args[feat]["column_name"],
-                x_label=feats_plot_args[Column.SegData.TIME_HRS]["label"],
-                y_label=feats_plot_args[feat]["label"],
-                x_lims=feats_plot_args[Column.SegData.TIME_HRS]["lims"],
-                y_lims=feats_plot_args[feat]["lims"],
-                set_xticks=feats_plot_args[Column.SegData.TIME_HRS]["ticks"],
-                set_yticks=feats_plot_args[feat]["ticks"],
-                discrete_xticks=feats_plot_args[Column.SegData.TIME_HRS]["discrete_ticks"],
-                discrete_yticks=feats_plot_args[feat]["discrete_ticks"],
-                minor_ticks="xy",
-                bin_width=(
-                    feats_plot_args[Column.SegData.TIME_HRS]["bin_width"],
-                    feats_plot_args[feat]["bin_width"],
-                ),
-            )
-            if feat in angular_feats:
-                ax = mark_parallel(ax)
-                ax = mark_perpendicular(ax)
-            fig.savefig(out_subdir_histplots / filename_out, bbox_inches="tight")
-
-            if not show_plot:
-                plt.close(fig)
-
-
-def process_dataset(
-    dataset_name: str,
-    out_dir: Path,
-    seg_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
-) -> None:
-    """
-    Loads the segmentation features manifest for a given dataset,
-    calculates dynamic features, and generates and saves plots for
-    each position.
-    """
-    from tqdm import tqdm
-
-    from endo_pipeline.io import load_dataframe
+    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
         calculate_derived_data_dynamics_dependent,
     )
+    from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
+        mark_parallel,
+        mark_perpendicular,
+        plot_histogram_of_features,
+        plot_line_of_features,
+    )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
-    from endo_pipeline.settings import SEGMENTATION_FEATURE_COLUMNS
+    from endo_pipeline.settings.column_metadata import COLUMN_METADATA
     from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+        SEGMENTATION_FEATURE_COLUMNS,
+    )
 
-    # load the segmentation features table
-    segprops_manifest = load_dataframe_manifest(seg_feature_manifest_name)
-    segprops_location = get_dataframe_location_for_dataset(segprops_manifest, dataset_name)
-    segprops_dataframe = load_dataframe(segprops_location, delay=True)
+    logger = logging.getLogger(__name__)
 
-    # choose which features to plot (not all columns correspond to features for plotting)
-    cols_to_compute: list = []
-    for group in ["default", "supp", "dynamics_calculation_prereq", "filters"]:
-        cols_to_compute.extend(SEGMENTATION_FEATURE_COLUMNS[group])
-    cols_to_compute = list(set(cols_to_compute) & set(segprops_dataframe.columns))
-    segprops_dataframe = segprops_dataframe[cols_to_compute].compute().reset_index()
+    # Set up list of features to plot and corresponding flags.
+    PlotFlags = namedtuple("PlotFlags", ["make_line", "make_hist", "is_angular"])
+    plot_both_angular = PlotFlags(make_line=True, make_hist=True, is_angular=True)
+    plot_both = PlotFlags(make_line=True, make_hist=True, is_angular=False)
+    plot_line_only = PlotFlags(make_line=True, make_hist=False, is_angular=False)
+    features_to_plot = {
+        Column.SegData.ALIGNMENT_DEG: plot_both_angular,
+        Column.SegData.ORIENTATION_DEG: plot_both_angular,
+        Column.SegData.CENTROID_VELOCITY_ANGLE_DEG: plot_both_angular,
+        Column.SegData.NUCLEI_POSITION_ANGLE_DEG: plot_both_angular,
+        Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG: plot_both_angular,
+        Column.SegData.NEMATIC_ORDER: plot_both,
+        Column.SegData.ECCENTRICITY: plot_both,
+        Column.SegData.ASPECT_RATIO: plot_both,
+        Column.SegData.AREA_UM_SQ: plot_both,
+        Column.SegData.NUM_NEIGHBORS: plot_both,
+        Column.SegData.CENTROID_VELOCITY_UM_PER_MIN: plot_both,
+        Column.SegData.NUCLEI_POSITION_DISTANCE: plot_both,
+        Column.SegData.NUM_NUCLEI_AT_TIMEPOINT: plot_line_only,
+        Column.SegData.NUM_TRACKS_AFTER_FILTERING: plot_line_only,
+    }
 
-    # get the FMS ID for the live merged segmentation features
-    # and add it to the log
-    logger.info(f"Dataset {dataset_name} FMS ID: {segprops_location.fmsid}")
-
-    # apply the data filter
-    segprops_dataframe = segprops_dataframe[segprops_dataframe[Column.SegData.IS_INCLUDED]]
-
-    # iterate over each position in each dataset
-    for (dataset_nm, pos), df_group in tqdm(
-        segprops_dataframe.groupby([Column.DATASET, Column.POSITION]),
-        total=len(segprops_dataframe.groupby([Column.DATASET, Column.POSITION])),
-        desc=f"Plotting features: {dataset_name}",
-        unit="position",
-    ):
-        # calculate the dynamics-dependent features
-        df_group = calculate_derived_data_dynamics_dependent(df_group)
-
-        # make some plots
-        plot_seg_manifest_data(
-            seg_feats_df_subset=df_group,
-            dataset_name=dataset_nm,
-            position=pos,
-            out_dir=out_dir,
-        )
-
-
-def main(datasets: Datasets, n_proc: int = 1) -> None:
-    from concurrent.futures import ProcessPoolExecutor
-
-    from tqdm import tqdm
-
-    from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.io import get_output_path
-
-    logger.debug(f"Processing: {datasets}")
-
-    out_dir = get_output_path(__file__)
-
+    # If running in demo mode, only process the first dataset.
     if DEMO_MODE:
-        logger.info(f"Running in demo mode. Only processing first dataset {datasets[0]}.")
+        logger.info(f"Running in demo mode. Only processing first dataset '{datasets[0]}'.")
         datasets = datasets[:1]
 
-    if n_proc > 1:
-        with ProcessPoolExecutor(max_workers=n_proc) as executor:
-            list(
-                tqdm(
-                    executor.map(process_dataset, datasets, [out_dir] * len(datasets)),
-                    total=len(datasets),
-                    desc="Creating plots (MP)",
-                    unit="dataset",
-                )
-            )
+    # Create output directories
+    output_path_line = get_output_path(__file__, "lineplots")
+    output_path_hist = get_output_path(__file__, "histplots")
 
-    else:
-        for dataset in tqdm(
-            datasets,
-            total=len(datasets),
-            desc="Creating plots (SP)",
-            unit="dataset",
-        ):
-            # process dataset below will both load and plot the data
-            process_dataset(dataset, out_dir)
+    # Get list of columns to load including: columns required for calculating
+    # dynamics features, features to be plotted, and the IS_INCLUDED filter
+    all_column_names = set(
+        SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"]
+        + list(features_to_plot.keys())
+        + [Column.SegDataFilters.IS_INCLUDED]
+    )
+
+    for dataset_name in datasets:
+        # Load dataset config.
+        dataset_config = load_dataset_config(dataset_name)
+
+        # Load the segmentation features table
+        df_manifest = load_dataframe_manifest(DEFAULT_SEG_FEATURE_MANIFEST_NAME)
+        df_location = get_dataframe_location_for_dataset(df_manifest, dataset_name)
+        df_delay = load_dataframe(df_location, delay=True)
+
+        # Compute selected features from the dataframes
+        cols_to_compute = list(set(all_column_names) & set(df_delay.columns))
+        df = df_delay[cols_to_compute].compute().reset_index()
+
+        # Apply global "is included" filter and then calculate derived features
+        df = df[df[Column.SegDataFilters.IS_INCLUDED]]
+        df = calculate_derived_data_dynamics_dependent(df)
+
+        # Get metadata for x axis feature (time in hours)
+        x_feature = Column.SegData.TIME_HRS
+        x_metadata = COLUMN_METADATA[x_feature]
+
+        # Iterate over each position in the dataset and generate plots
+        for position in dataset_config.zarr_positions:
+            logger.info(f"Plotting features for dataset '{dataset_name}' position '{position}'")
+            df_for_position = df[df[Column.POSITION] == position]
+
+            for y_feature, plot_flags in features_to_plot.items():
+                y_metadata = COLUMN_METADATA[y_feature]
+                feature_filename = f"{dataset_name}_P{position}_{y_metadata.slug}"
+
+                if plot_flags.make_line:
+                    fig_line, _ = plot_line_of_features(
+                        df=df_for_position,
+                        x_column_name=x_feature,
+                        y_column_name=y_feature,
+                        x_feature_metadata=x_metadata,
+                        y_feature_metadata=y_metadata,
+                        x_minor_ticks=True,
+                        y_minor_ticks=True,
+                    )
+                    save_plot_to_path(fig_line, output_path_line, feature_filename)
+
+                if plot_flags.make_hist:
+                    fig_hist, ax_hist = plot_histogram_of_features(
+                        df=df_for_position,
+                        x_column_name=x_feature,
+                        y_column_name=y_feature,
+                        x_feature_metadata=x_metadata,
+                        y_feature_metadata=y_metadata,
+                        x_minor_ticks=True,
+                        y_minor_ticks=True,
+                    )
+
+                    if plot_flags.is_angular:
+                        mark_parallel(ax_hist)
+                        mark_perpendicular(ax_hist)
+
+                    save_plot_to_path(fig_hist, output_path_hist, feature_filename)
 
 
 if __name__ == "__main__":
