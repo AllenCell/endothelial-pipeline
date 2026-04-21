@@ -338,6 +338,23 @@ class ColumnName:
         SEGMENTATION_IMAGE_FILENAME = "seg_image"
         """Column name for the segmentation image filename (filename and suffix only; not full path)."""
 
+    class OpticalFlowCompute(StrEnum):
+        """Base feature names produced by compute_flow_statistics (before dt suffix)."""
+
+        SPEED_MEAN = "optical_flow_mean_speed"
+        UNIT_VECTOR_MEAN = "optical_flow_mean_unit_vector"
+        SPEED_STD = "optical_flow_std_speed"
+        ANGLE_MEAN = "optical_flow_mean_angle"
+        ANGLE_STD = "optical_flow_angle_std"
+        U_MEAN = "optical_flow_mean_u"
+        V_MEAN = "optical_flow_mean_v"
+        U_STD = "optical_flow_std_u"
+        V_STD = "optical_flow_std_v"
+        SPEED_ABOVE_1_COUNT = "speed_above_1_count"
+        UNIT_VECTOR_MEAN_FAST = "optical_flow_mean_unit_vector_fast"
+        RADIAL_COHERENCE = "optical_flow_radial_coherence"
+        RADIAL_COHERENCE_WEIGHTED = "optical_flow_radial_coherence_weighted"
+
     class OpticalFlow(StrEnum):
         """Dataframe column names used in the optical-flow feature workflow."""
 

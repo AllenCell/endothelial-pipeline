@@ -1,4 +1,4 @@
-name: optical_flow_bf
+name: optical_flow_bf_grid
 workflow: optical_flow
 parameters:
   channel: BF

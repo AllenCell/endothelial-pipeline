@@ -4,6 +4,7 @@ import numpy as np
 from scipy import stats
 from skimage.registration import optical_flow_tvl1
 
+from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.optical_flow import (
     COHERENCE_BOX_SIZES,
     OPTICAL_FLOW_COMPUTE_FEATURES,
@@ -101,7 +102,11 @@ def compute_flow_statistics(
     :
         Flat dictionary of scalar statistics with identifying fields.
     """
-    base: dict[str, int | float] = {"crop_index": crop_idx, "timepoint": timepoint, "dt": dt}
+    base: dict[str, int | float] = {
+        ColumnName.CROP_INDEX: crop_idx,
+        "timepoint": timepoint,
+        "dt": dt,
+    }
     mask = (crop0 > thresh) | (crop1 > thresh)
 
     # Build the NaN key set dynamically based on enabled features.
@@ -169,25 +174,27 @@ def compute_flow_statistics(
 
     base.update(
         {
-            "optical_flow_mean_speed": float(sp.mean()),
-            "optical_flow_mean_unit_vector": muv,
-            "optical_flow_std_speed": float(sp.std()),
-            "optical_flow_mean_angle": float(np.arctan2(np.sin(ang).mean(), np.cos(ang).mean())),
-            "optical_flow_angle_std": float(stats.circstd(ang)),
-            "optical_flow_mean_u": float(um.mean()),
-            "optical_flow_mean_v": float(vm.mean()),
-            "optical_flow_std_u": float(um.std()),
-            "optical_flow_std_v": float(vm.std()),
+            ColumnName.OpticalFlowCompute.SPEED_MEAN: float(sp.mean()),
+            ColumnName.OpticalFlowCompute.UNIT_VECTOR_MEAN: muv,
+            ColumnName.OpticalFlowCompute.SPEED_STD: float(sp.std()),
+            ColumnName.OpticalFlowCompute.ANGLE_MEAN: float(
+                np.arctan2(np.sin(ang).mean(), np.cos(ang).mean())
+            ),
+            ColumnName.OpticalFlowCompute.ANGLE_STD: float(stats.circstd(ang)),
+            ColumnName.OpticalFlowCompute.U_MEAN: float(um.mean()),
+            ColumnName.OpticalFlowCompute.V_MEAN: float(vm.mean()),
+            ColumnName.OpticalFlowCompute.U_STD: float(um.std()),
+            ColumnName.OpticalFlowCompute.V_STD: float(vm.std()),
         }
     )
 
     if compute_fast_coherence:
-        base["speed_above_1_count"] = n_fast
-        base["optical_flow_mean_unit_vector_fast"] = muv_fast
+        base[ColumnName.OpticalFlowCompute.SPEED_ABOVE_1_COUNT] = n_fast
+        base[ColumnName.OpticalFlowCompute.UNIT_VECTOR_MEAN_FAST] = muv_fast
 
     if compute_radial_coherence:
-        base["optical_flow_radial_coherence"] = radial_coh
-        base["optical_flow_radial_coherence_weighted"] = radial_coh_w
+        base[ColumnName.OpticalFlowCompute.RADIAL_COHERENCE] = radial_coh
+        base[ColumnName.OpticalFlowCompute.RADIAL_COHERENCE_WEIGHTED] = radial_coh_w
 
     # --- Optional Multi-scale coherence ---
     if compute_block_coherence:

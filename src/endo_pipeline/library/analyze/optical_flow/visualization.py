@@ -146,7 +146,6 @@ def plot_demo_summary(
     import matplotlib.pyplot as plt
     from matplotlib.patches import Patch
 
-    plt.style.use("endo_pipeline.figure")
     out_dir = Path(out_dir)
 
     sorted_tp = sorted(cache.keys())
@@ -477,7 +476,6 @@ def plot_tracked_crop_coherence_timeseries(
 
     import matplotlib.pyplot as plt
 
-    plt.style.use("endo_pipeline.figure")
     out_dir = Path(out_dir)
 
     crop_col = ColumnName.CROP_INDEX

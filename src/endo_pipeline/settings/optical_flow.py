@@ -72,7 +72,7 @@ overlay.
 DEFAULT_OPTICAL_FLOW_COLLECTION: str = "diffae_model_training"
 """Default dataset collection for the optical-flow feature workflow."""
 
-DEFAULT_OPTICAL_FLOW_MANIFEST_NAME: str = "optical_flow_bf"
+DEFAULT_OPTICAL_FLOW_MANIFEST_NAME: str = "optical_flow_bf_grid"
 """Default dataframe manifest name for optical-flow features."""
 
 DIFFAE_DATAFRAME_METADATA_TO_COMPUTE: tuple[str, ...] = (
@@ -101,27 +101,27 @@ OPTICAL_FLOW_COLUMNS_TO_COMPUTE: dict[str, tuple[str, ...]] = {
 # Feature names
 # ---------------------------------------------------------------------------
 OPTICAL_FLOW_COMPUTE_FEATURES: list[str] = [
-    "optical_flow_mean_speed",
-    "optical_flow_mean_unit_vector",
-    "optical_flow_std_speed",
-    "optical_flow_mean_angle",
-    "optical_flow_angle_std",
-    "optical_flow_mean_u",
-    "optical_flow_mean_v",
-    "optical_flow_std_u",
-    "optical_flow_std_v",
+    ColumnName.OpticalFlowCompute.SPEED_MEAN,
+    ColumnName.OpticalFlowCompute.UNIT_VECTOR_MEAN,
+    ColumnName.OpticalFlowCompute.SPEED_STD,
+    ColumnName.OpticalFlowCompute.ANGLE_MEAN,
+    ColumnName.OpticalFlowCompute.ANGLE_STD,
+    ColumnName.OpticalFlowCompute.U_MEAN,
+    ColumnName.OpticalFlowCompute.V_MEAN,
+    ColumnName.OpticalFlowCompute.U_STD,
+    ColumnName.OpticalFlowCompute.V_STD,
 ]
 """Core features always computed by :func:`compute_flow_statistics`."""
 
 OPTICAL_FLOW_FAST_FEATURES: list[str] = [
-    "optical_flow_mean_unit_vector_fast",
-    "speed_above_1_count",
+    ColumnName.OpticalFlowCompute.UNIT_VECTOR_MEAN_FAST,
+    ColumnName.OpticalFlowCompute.SPEED_ABOVE_1_COUNT,
 ]
 """Features gated on ``--compute-fast-coherence`` (speed > threshold)."""
 
 OPTICAL_FLOW_RADIAL_FEATURES: list[str] = [
-    "optical_flow_radial_coherence",
-    "optical_flow_radial_coherence_weighted",
+    ColumnName.OpticalFlowCompute.RADIAL_COHERENCE,
+    ColumnName.OpticalFlowCompute.RADIAL_COHERENCE_WEIGHTED,
 ]
 """Features gated on ``--compute-radial-coherence``."""
 
@@ -136,18 +136,18 @@ OPTICAL_FLOW_BASE_FEATURES: list[str] = (
 # EMA coherence feature stems (the alpha tag and _dt suffix are added
 # dynamically in the workflow and in :func:`build_optical_flow_feature_cols`).
 OPTICAL_FLOW_EMA_STEMS: list[str] = [
-    "optical_flow_mean_unit_vector",
+    ColumnName.OpticalFlowCompute.UNIT_VECTOR_MEAN,
 ]
 """Base coherence feature names that always receive EMA smoothing."""
 
 OPTICAL_FLOW_EMA_FAST_STEMS: list[str] = [
-    "optical_flow_mean_unit_vector_fast",
+    ColumnName.OpticalFlowCompute.UNIT_VECTOR_MEAN_FAST,
 ]
 """Coherence feature names that receive EMA smoothing only when fast coherence is enabled."""
 
 OPTICAL_FLOW_EMA_RADIAL_STEMS: list[str] = [
-    "optical_flow_radial_coherence",
-    "optical_flow_radial_coherence_weighted",
+    ColumnName.OpticalFlowCompute.RADIAL_COHERENCE,
+    ColumnName.OpticalFlowCompute.RADIAL_COHERENCE_WEIGHTED,
 ]
 """Coherence feature names that receive EMA smoothing only when radial coherence is enabled."""
 
