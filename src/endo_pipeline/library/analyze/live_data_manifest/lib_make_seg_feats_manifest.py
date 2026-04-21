@@ -368,6 +368,40 @@ def add_cell_piling_and_steady_state_annotation_columns(big_table: pd.DataFrame)
     return big_table
 
 
+def add_track_duration_to_dataframe(
+    dataframe: pd.DataFrame, grouping_columns: list[str | Column], time_column: str | Column
+) -> pd.DataFrame:
+    """Adds a column for the track duration to the dataframe.
+    Track duration is calculated as the difference between the maximum and minimum
+    timepoints for each track defined by the grouping columns.
+
+    Parameters
+    ----------
+    dataframe
+        The input dataframe containing the tracking data, which must include the columns specified in `grouping_columns` and `time_column`.
+    grouping_columns
+        The columns to group by when calculating the track duration.
+        This is expected to be either
+        [Column.DATASET, Column.POSITION, Column.TRACK_ID]
+        or
+        [Column.CROP_INDEX]
+        depending on the purpose of the computed track duration and which dataframe is used.
+    time_column
+        The column representing the timepoints for each track.
+        This is expected to be Column.TIMEPOINT, but is left as a parameter for
+        flexibility in case dimensional time is used (e.g. Column.SegData.TIME_HRS).
+
+    Returns
+    -------
+    pd.DataFrame
+         The input dataframe with an additional column for the track duration.
+    """
+    dataframe[Column.TRACK_LENGTH] = dataframe.groupby(grouping_columns)[time_column].transform(
+        lambda t: t.max() - t.min()
+    )
+    return dataframe
+
+
 def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.DataFrame:
     """
     This function uses the existing columns in the data table to calculate
@@ -446,9 +480,11 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
 
     # add the duration of each track
     logger.info("Calculating track durations...")
-    big_table[Column.TRACK_LENGTH] = big_table.groupby(
-        [Column.DATASET, Column.POSITION, Column.TRACK_ID]
-    )[Column.TIMEPOINT].transform(lambda t: t.max() - t.min())
+    big_table = add_track_duration_to_dataframe(
+        dataframe=big_table,
+        grouping_columns=[Column.DATASET, Column.POSITION, Column.TRACK_ID],
+        time_column=Column.TIMEPOINT,
+    )
 
     # add column for orientation in degrees of the
     # ellipse fitted to each segmentation in degrees

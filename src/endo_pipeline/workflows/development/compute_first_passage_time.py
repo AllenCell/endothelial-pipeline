@@ -37,6 +37,7 @@ def main(
         compute_first_passage_time_parameter_sweep_df,
         compute_first_passage_time_stats_for_bins,
         load_filtered_trajectory_df_for_first_passage_time_workflow,
+        merge_grid_and_tracked_first_passage_time_stats_dfs,
     )
     from endo_pipeline.library.visualize.integration.track_integration_viz import (
         plot_first_passage_time_3d_scatter,
@@ -270,40 +271,12 @@ def main(
             )
 
             # merge the grid and tracked first passage time stats dataframes
-            fpt_stats_df = fpt_stats_df_grid.merge(
-                fpt_stats_df_tracked,
-                on=[Column.VectorField.BIN_INDEX],
-                suffixes=("_grid", "_tracked"),
-                validate="one_to_one",
+            fpt_stats_df = merge_grid_and_tracked_first_passage_time_stats_dfs(
+                fpt_stats_df_grid=fpt_stats_df_grid,
+                fpt_stats_df_tracked=fpt_stats_df_tracked,
+                dataset_name=dataset_name,
+                fixed_point_index=fp_idx,
             )
-
-            # check that the bin centers and edges are the same for the grid and tracked dataframes
-            bin_centers_close = np.allclose(
-                np.array(
-                    list(zip(*fpt_stats_df[f"{Column.VectorField.BIN_CENTER}_grid"], strict=True))
-                ),
-                np.array(
-                    list(
-                        zip(*fpt_stats_df[f"{Column.VectorField.BIN_CENTER}_tracked"], strict=True)
-                    )
-                ),
-            )
-            bin_edges_close = np.allclose(
-                np.array(
-                    list(zip(*fpt_stats_df[f"{Column.VectorField.BIN_EDGES}_grid"], strict=True))
-                ),
-                np.array(
-                    list(zip(*fpt_stats_df[f"{Column.VectorField.BIN_EDGES}_tracked"], strict=True))
-                ),
-            )
-            if not bin_centers_close or not bin_edges_close:
-                error_message = (
-                    "Bin centers or edges are not the same for grid and tracked dataframes for "
-                    f"dataset {dataset_name} and fixed point {fp_idx}. This may indicate an issue "
-                    "with the binning or merging of the dataframes."
-                )
-                logger.error(error_message)
-                raise ValueError(error_message)
 
             # drop the duplicate bin center and edge columns from one of the dataframes
             # since they are the same and rename the columns to remove the suffixes

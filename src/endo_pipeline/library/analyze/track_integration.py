@@ -18,6 +18,9 @@ from endo_pipeline.library.analyze.dataframe_filtering import (
 )
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
+from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
+    add_track_duration_to_dataframe,
+)
 from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
@@ -909,10 +912,12 @@ def load_filtered_trajectory_df_for_first_passage_time_workflow(
         dataframe=trajectories_df, dataset_config=dataset_config
     )
 
-    # add the track durations
-    trajectories_df[Column.TRACK_LENGTH] = trajectories_df.groupby(Column.CROP_INDEX)[
-        Column.TIMEPOINT
-    ].transform(lambda t: t.max() - t.min())
+    # add the track durations post-filtering
+    trajectories_df = add_track_duration_to_dataframe(
+        dataframe=trajectories_df,
+        grouping_columns=[Column.CROP_INDEX],
+        time_column=Column.TIMEPOINT,
+    )
 
     # filter trajectories to only include long ones
     trajectories_df = filter_dataframe_by_track_length(
@@ -1024,3 +1029,79 @@ def compute_first_passage_time_parameter_sweep_df(
         sweep_results.append(trajectory_df_one_param)
 
     return pd.concat(sweep_results, ignore_index=True)
+
+
+def merge_grid_and_tracked_first_passage_time_stats_dfs(
+    fpt_stats_df_grid: pd.DataFrame,
+    fpt_stats_df_tracked: pd.DataFrame,
+    dataset_name: str,
+    fixed_point_index: int,
+) -> pd.DataFrame:
+    """Merges the grid and tracked first passage time stats dataframes on the bin index,
+    checking that the bin centers and edges are the same for both dataframes and
+    dropping duplicate columns after the merge.
+
+    Parameters
+    ----------
+    fpt_stats_df_grid
+        DataFrame containing the first passage time stats for the grid-based
+        trajectories, with columns for the bin index, bin centers, bin edges, and first
+        passage time stats.
+    fpt_stats_df_tracked
+        DataFrame containing the first passage time stats for the track-based
+        trajectories, with columns for the bin index, bin centers, bin edges, and first
+        passage time stats.
+    dataset_name
+        Name of the dataset corresponding to the dataframes, used for error messages.
+    fixed_point_index
+        Index of the fixed point used for first passage time stats, used for error messages.
+
+    Returns
+    -------
+    pd.DataFrame
+        A merged DataFrame containing the first passage time stats for both the grid-based
+        and track-based trajectories, with duplicate columns for bin centers and edges dropped
+        after verifying they are the same for both dataframes.
+    """
+    # merge the dataframes on the bin index, adding suffixes to duplicate columns
+
+    fpt_stats_df = fpt_stats_df_grid.merge(
+        fpt_stats_df_tracked,
+        on=[Column.VectorField.BIN_INDEX],
+        suffixes=("_grid", "_tracked"),
+        validate="one_to_one",
+    )
+
+    # check that the bin centers and edges are the same for the grid and tracked dataframes
+    bin_centers_close = np.allclose(
+        np.array(list(zip(*fpt_stats_df[f"{Column.VectorField.BIN_CENTER}_grid"], strict=True))),
+        np.array(
+            list(
+                zip(
+                    *fpt_stats_df[f"{Column.VectorField.BIN_CENTER}_tracked"],
+                    strict=True,
+                )
+            )
+        ),
+    )
+    bin_edges_close = np.allclose(
+        np.array(list(zip(*fpt_stats_df[f"{Column.VectorField.BIN_EDGES}_grid"], strict=True))),
+        np.array(
+            list(
+                zip(
+                    *fpt_stats_df[f"{Column.VectorField.BIN_EDGES}_tracked"],
+                    strict=True,
+                )
+            )
+        ),
+    )
+    if not bin_centers_close or not bin_edges_close:
+        error_message = (
+            "Bin centers or edges are not the same for grid and tracked dataframes for "
+            f"dataset {dataset_name} and fixed point {fixed_point_index}. This may indicate an issue "
+            "with the binning or merging of the dataframes."
+        )
+        logger.error(error_message)
+        raise ValueError(error_message)
+
+    return fpt_stats_df
