@@ -38,12 +38,11 @@ def main(
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, TIME_STEP_IN_HOURS
-    from endo_pipeline.settings.flow_field_3d import DATASET_COLLECTION_FOR_3D_DYNAMICS
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
     )
 
-    dataset_names = datasets or get_datasets_in_collection(DATASET_COLLECTION_FOR_3D_DYNAMICS)
+    dataset_names = datasets or get_datasets_in_collection("3d_flow_field_analysis")
 
     if DEMO_MODE:
         dataset_names = dataset_names[:1]
@@ -112,6 +111,7 @@ def main(
             crop_indices_and_initial_conditions = crop_indices_and_initial_conditions[:num_traj]
 
         ivp_args_mp: list[dict] = []
+        maximum_multiple_of_trajectory_duration_for_simulation = 6
         for (crop_i, track_duration, timepoint), init_df in crop_indices_and_initial_conditions:
             ivp_args_mp.append(
                 {
@@ -119,7 +119,8 @@ def main(
                     "flow_field_dict": extrapolated_flow_field_dict_reg,
                     "initial_condition": init_df.values.flatten(),
                     "timepoint_initial": timepoint,
-                    "trajectory_duration": track_duration * 6,
+                    "trajectory_duration": track_duration
+                    * maximum_multiple_of_trajectory_duration_for_simulation,
                     # convert time units to hours for the ODE solver
                     "time_units_for_solver": timepoint_units,
                     "simulation_results_column_names": list(DYNAMICS_COLUMN_NAMES),
