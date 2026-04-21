@@ -222,9 +222,9 @@ def main(
                 polar_angle_period if column_name == ColumnName.DiffAEData.POLAR_ANGLE else None
             )
             hist_alpha = 0.33
-            for crop_pattern, line_style, hist_fill in [
-                ("grid", "-", True),
-                ("tracked", "--", False),
+            for crop_pattern, kde_line_style, hist_line_style, hist_fill in [
+                ("grid", "-", "", True),
+                ("tracked", "--", "--", False),
             ]:
                 # histogram and KDE for column average
                 axes_xlabel = f"Mean {variable_label} Per Trajectory"
@@ -239,8 +239,8 @@ def main(
                     hist_color=hist_color,
                     hist_alpha=hist_alpha,
                     hist_fill=hist_fill,
-                    hist_line_style=line_style,
-                    kde_line_style=line_style,
+                    hist_line_style=hist_line_style,
+                    kde_line_style=kde_line_style,
                     kde_label=crop_pattern,
                     axes_xlabel=axes_xlabel,
                     axes_ylabel=axes_ylabel,
@@ -260,8 +260,8 @@ def main(
                     hist_color=hist_color,
                     hist_fill=hist_fill,
                     hist_alpha=hist_alpha,
-                    hist_line_style=line_style,
-                    kde_line_style=line_style,
+                    hist_line_style=hist_line_style,
+                    kde_line_style=kde_line_style,
                     kde_label=crop_pattern,
                     axes_xlabel=axes_xlabel,
                     axes_ylabel=axes_ylabel,
