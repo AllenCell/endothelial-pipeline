@@ -8,6 +8,7 @@ from numpy import pi
 
 from endo_pipeline.io import slugify
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.diffae_feature_dataframes import MAX_PCS_TO_COMPUTE, NUM_LATENT_FEATURES
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
@@ -93,7 +94,7 @@ class ColumnMetadata:
         self.limits = (self.min, self.max)
 
 
-COLUMN_METADATA: dict[str, ColumnMetadata] = {
+COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     # General information ======================================================
     Column.SegData.TIME_HRS: ColumnMetadata(
         name="Time",
