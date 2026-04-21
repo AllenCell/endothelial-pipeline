@@ -29,6 +29,7 @@ from endo_pipeline.settings.image_data import (
     PIXEL_SIZE_3i_20x_RESOLUTION_1,
 )
 from endo_pipeline.settings.plot_defaults import CROP_HIST_BIN_WIDTH
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
 
@@ -198,7 +199,7 @@ def make_crop_example_contact_sheet(
     fig.axes[0].text(
         0.96,
         0.08,
-        f"{scale_bar_um} \u03bcm",
+        f"{scale_bar_um} {Unicode.MU}m{Unicode.SQUARED}",
         color="white",
         transform=fig.axes[0].transAxes,
         fontsize=FONTSIZE_SMALL,
@@ -207,7 +208,7 @@ def make_crop_example_contact_sheet(
     )
 
     shear_stress = math.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
-    shear_stress_label = f"{shear_stress} dyn/cm²"
+    shear_stress_label = f"{shear_stress} dyn/cm{Unicode.SQUARED}"
     # reserve left margin for the vertical label (rect = [left, bottom, right, top])
     layout_engine = fig.get_layout_engine()
     if isinstance(layout_engine, ConstrainedLayoutEngine):

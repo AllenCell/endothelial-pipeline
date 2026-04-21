@@ -239,7 +239,7 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
             ax_.tick_params(labelbottom=False)
 
     shear_stress = math.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
-    shear_stress_label = f"{shear_stress} dyn/cm²"
+    shear_stress_label = f"{shear_stress} dyn/cm{Unicode.SQUARED}"
     # reserve left margin for the vertical label
     fig.subplots_adjust(left=0.08)
     # add vertical title to the left of the contour plot spanning all rows
