@@ -17,6 +17,7 @@ def main(
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
+    from endo_pipeline.library.analyze.numerics.binning import get_bins
     from endo_pipeline.library.analyze.numerics.temporal_stats import (
         process_dataframe_for_track_statistics,
     )
@@ -168,6 +169,12 @@ def main(
             "grid": base_df.copy(),
             "tracked": base_df.copy(),
         }
+        # Store bins and KDE evaluation points for each crop pattern and column
+        # for later use in plotting and analysis
+        x_eval_avg_dict: dict = {"grid": {}, "tracked": {}}
+        x_eval_var_dict: dict = {"grid": {}, "tracked": {}}
+        bins_avg_dict: dict = {"grid": {}, "tracked": {}}
+        bins_var_dict: dict = {"grid": {}, "tracked": {}}
         for crop_pattern in ["grid", "tracked"]:
             for traj_index, df_traj in df_steady_state_dict[crop_pattern].groupby(
                 Column.CROP_INDEX
@@ -194,6 +201,34 @@ def main(
                         column_variance_df_dict[crop_pattern].loc[traj_index, column_name] = (
                             np.nanvar(df_traj[column_name])
                         )
+
+            # After computing the average and variance for each trajectory, drop
+            # any remaining NaN values and use the resulting data to compute bin
+            # edges for histograms and evaluation points for KDE for each column and
+            # crop pattern. This ensures the bins and KDE evaluation points are
+            # well-suited to the actual distribution of the data for each crop
+            # pattern and column.
+            for column_name in column_names:
+                avg_data = (
+                    column_avg_df_dict[crop_pattern][column_name].dropna().to_numpy().reshape(-1, 1)
+                )
+                avg_bins = get_bins(bin_widths=(bin_width_averages,), data=avg_data)[0]
+                bins_avg_dict[crop_pattern][column_name] = avg_bins[0]
+                x_eval_avg_dict[crop_pattern][column_name] = np.linspace(
+                    avg_bins[0][0], avg_bins[0][-1], 2000
+                )
+
+                var_data = (
+                    column_variance_df_dict[crop_pattern][column_name]
+                    .dropna()
+                    .to_numpy()
+                    .reshape(-1, 1)
+                )
+                var_bins = get_bins(bin_widths=(bin_width_variances,), data=var_data)[0]
+                bins_var_dict[crop_pattern][column_name] = var_bins[0]
+                x_eval_var_dict[crop_pattern][column_name] = np.linspace(
+                    var_bins[0][0], var_bins[0][-1], 2000
+                )
 
         # plot histograms of the column averages and variances across
         # trajectories for each column and crop pattern, with KDE overlaid
