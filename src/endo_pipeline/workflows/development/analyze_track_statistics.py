@@ -30,6 +30,7 @@ def main(
         compute_kde_on_bins,
         process_dataframe_for_track_statistics,
     )
+    from endo_pipeline.library.visualize.columns import get_label_for_column
     from endo_pipeline.library.visualize.diffae_features.track_statistics import (
         plot_kde_for_track_statistics,
     )
@@ -335,6 +336,9 @@ def main(
                     }
         for column_name in column_names:
             fig, ax = plt.subplots(1, 2, figsize=(12, 5))
+            column_label = get_label_for_column(column_name)
+            avg_str = f"{Unicode.LANGLE}{column_label}{Unicode.RANGLE}"
+            var_str = f"Var({column_label})"
             for crop_pattern, kde_avg_dict, kde_var_dict in [
                 ("grid", grid_avg_kde_dict, grid_var_kde_dict),
                 ("tracked", tracked_avg_kde_dict, tracked_var_kde_dict),
@@ -356,9 +360,8 @@ def main(
                     x_eval=x_eval_avg_dict[crop_pattern][column_name],
                     kde_ci_lower=kde_avg_dict[column_name]["ci_lower"],
                     kde_ci_upper=kde_avg_dict[column_name]["ci_upper"],
-                    axes_title=f"{column_name} average KDE - {crop_pattern}",
-                    axes_xlabel=f"{column_name} average",
-                    axes_ylabel="KDE",
+                    axes_xlabel=avg_str,
+                    axes_ylabel=f"P({avg_str})",
                     kde_line_kwargs=kde_line_kwargs,
                     ci_line_kwargs=ci_line_kwargs,
                 )
@@ -369,9 +372,8 @@ def main(
                     x_eval=x_eval_var_dict[crop_pattern][column_name],
                     kde_ci_lower=kde_var_dict[column_name]["ci_lower"],
                     kde_ci_upper=kde_var_dict[column_name]["ci_upper"],
-                    axes_title=f"{column_name} variance KDE - {crop_pattern}",
-                    axes_xlabel=f"{column_name} variance",
-                    axes_ylabel="KDE",
+                    axes_xlabel=var_str,
+                    axes_ylabel=f"P({var_str})",
                     kde_line_kwargs=kde_line_kwargs,
                     ci_line_kwargs=ci_line_kwargs,
                 )
