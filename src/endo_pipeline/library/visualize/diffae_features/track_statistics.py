@@ -57,7 +57,7 @@ def plot_kde_for_track_statistics(
     axes_ylabel: str | None = None,
     kde_line_kwargs: dict | None = None,
     ci_line_kwargs: dict | None = {"alpha": 0.25},
-) -> plt.Axes:
+) -> None:
     """
     Plot KDE for visualization of track statistic comparison results.
 
@@ -90,11 +90,6 @@ def plot_kde_for_track_statistics(
         Optional, dictionary of keyword arguments to pass to the
         plt.fill_between call for the confidence interval shading (e.g, color,
         alpha).
-
-    Returns
-    -------
-    :
-        The matplotlib Axes object with the KDE plot added.
 
     """
     # Smooth the KDE values using spline interpolation for plotting
@@ -139,5 +134,3 @@ def plot_kde_for_track_statistics(
         ax.set_xlabel(axes_xlabel)
     if axes_ylabel is not None:
         ax.set_ylabel(axes_ylabel)
-
-    return ax
