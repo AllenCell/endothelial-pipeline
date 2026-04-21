@@ -40,7 +40,7 @@ KDE_LABEL_DICT: dict[str, str] = {
     "tracked": "tracked (bootstrap mean)",
 }
 
-KDE_LINE_KWARGS: dict[str, str] = {
+KDE_LINE_KWARGS: dict[str, str | float] = {
     "color": "k",
     "linewidth": 2,
 }
