@@ -478,3 +478,17 @@ class ColumnName:
 
         CI_UPPER = "ci_upper"
         """Upper bound of the bootstrap confidence interval."""
+
+ColumnNameType = (
+    str
+    | ColumnName
+    | ColumnName.DiffAEData
+    | ColumnName.SegData
+    | ColumnName.SegDataFilters
+    | ColumnName.SegDataWorkflowVerification
+    | ColumnName.Annotations
+    | ColumnName.OpticalFlow
+    | ColumnName.BootstrapAnalysis
+    | ColumnName.VectorField
+)
+"""Type hint for all column name enums."""
