@@ -24,7 +24,7 @@ def main(
     from endo_pipeline.library.visualize.columns import get_label_for_column
     from endo_pipeline.library.visualize.track_statistics import (
         compute_interpolated_kde_spline,
-        plot_kde_of_histogram,
+        plot_kde,
     )
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.bootstrap_fixed_points import (
@@ -288,7 +288,7 @@ def main(
             axes_title_avg = f"Histogram of average {variable_label} across trajectories"
             axes_xlabel_avg = f"$\\langle${variable_label}$\\rangle$"
             axes_ylabel_avg = f"P({axes_xlabel_avg})"
-            plot_kde_of_histogram(
+            plot_kde(
                 axes=ax[0],
                 x_eval=x_eval_avg,
                 kde_values=grid_avg_kde_dict[column_name],
@@ -300,9 +300,9 @@ def main(
                 axes_xlimits=bin_limits_dict[column_name],
             )
             axes_title_var = f"Histogram of variance {variable_label} across trajectories"
-            axes_xlabel_var = f"$\\mathrm{{Var}}({variable_label})$"
+            axes_xlabel_var = f"Var({variable_label})"
             axes_ylabel_var = f"P({axes_xlabel_var})"
-            plot_kde_of_histogram(
+            plot_kde(
                 axes=ax[1],
                 x_eval=x_eval_var,
                 kde_values=grid_var_kde_dict[column_name],

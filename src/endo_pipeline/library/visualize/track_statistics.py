@@ -13,7 +13,7 @@ from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalK
 from endo_pipeline.library.analyze.numerics.binning import get_bins
 
 
-def plot_kde_of_histogram(
+def plot_kde(
     axes: plt.Axes,
     x_eval: np.ndarray,
     kde_values: np.ndarray,
