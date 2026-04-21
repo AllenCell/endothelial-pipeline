@@ -44,6 +44,11 @@ def main(
         METADATA_COLUMNS_TO_KEEP,
         POLAR_ANGLE_PERIOD,
     )
+    from endo_pipeline.settings.track_statistics import (
+        BIN_WIDTH_FOR_AVERAGE,
+        BIN_WIDTH_FOR_VARIANCE,
+        CI_FILL_OPACITY,
+    )
     from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -66,10 +71,8 @@ def main(
 
     # bin widths for histograms of column averages and variances across
     # trajectories (currently hardcoded)
-    bin_width_averages = 0.1
-    bin_width_variances = 0.02
     ci_line_kwargs = {
-        "alpha": 0.15,
+        "alpha": CI_FILL_OPACITY,
         "label": f"tracked (boostrap {int(ci_lower)}-{int(ci_upper)}% CI)",
     }
 
@@ -216,7 +219,7 @@ def main(
                 avg_data = (
                     column_avg_df_dict[crop_pattern][column_name].dropna().to_numpy().reshape(-1, 1)
                 )
-                avg_bins = get_bins(bin_widths=(bin_width_averages,), data=avg_data)[0]
+                avg_bins = get_bins(bin_widths=(BIN_WIDTH_FOR_AVERAGE,), data=avg_data)[0]
                 bins_avg_dict[crop_pattern][column_name] = avg_bins[0]
                 x_eval_avg_dict[crop_pattern][column_name] = np.linspace(
                     avg_bins[0][0], avg_bins[0][-1], 2000
@@ -228,7 +231,7 @@ def main(
                     .to_numpy()
                     .reshape(-1, 1)
                 )
-                var_bins = get_bins(bin_widths=(bin_width_variances,), data=var_data)[0]
+                var_bins = get_bins(bin_widths=(BIN_WIDTH_FOR_VARIANCE,), data=var_data)[0]
                 bins_var_dict[crop_pattern][column_name] = var_bins[0]
                 x_eval_var_dict[crop_pattern][column_name] = np.linspace(
                     var_bins[0][0], var_bins[0][-1], 2000
@@ -254,9 +257,9 @@ def main(
                 if crop_pattern == "grid":
                     avg_bin_centers, avg_kde_values = compute_kde_on_bins(
                         data=avg_data_all,
-                        bin_width=bin_width_averages,
+                        bin_width=BIN_WIDTH_FOR_AVERAGE,
                         kernel_name=kernel_names_dict[column_name],
-                        kernel_bandwidth=1.5 * bin_width_averages,
+                        kernel_bandwidth=1.5 * BIN_WIDTH_FOR_AVERAGE,
                         kernel_period=period,
                         bins=bins_avg_dict[crop_pattern][column_name],
                     )
@@ -268,9 +271,9 @@ def main(
                     }
                     var_bin_centers, var_kde_values = compute_kde_on_bins(
                         data=var_data_all,
-                        bin_width=bin_width_variances,
+                        bin_width=BIN_WIDTH_FOR_VARIANCE,
                         kernel_name="gaussian",
-                        kernel_bandwidth=1.5 * bin_width_variances,
+                        kernel_bandwidth=1.5 * BIN_WIDTH_FOR_VARIANCE,
                         kernel_period=None,
                         bins=bins_var_dict[crop_pattern][column_name],
                     )
@@ -305,9 +308,9 @@ def main(
                         sample_avg = avg_data_all[sampled_indices]
                         _, avg_kde_values = compute_kde_on_bins(
                             data=sample_avg,
-                            bin_width=bin_width_averages,
+                            bin_width=BIN_WIDTH_FOR_AVERAGE,
                             kernel_name=kernel_names_dict[column_name],
-                            kernel_bandwidth=1.5 * bin_width_averages,
+                            kernel_bandwidth=1.5 * BIN_WIDTH_FOR_AVERAGE,
                             kernel_period=period,
                             bins=fixed_avg_bins,
                         )
@@ -315,9 +318,9 @@ def main(
                         sample_var = var_data_all[sampled_indices]
                         _, var_kde_values = compute_kde_on_bins(
                             data=sample_var,
-                            bin_width=bin_width_variances,
+                            bin_width=BIN_WIDTH_FOR_VARIANCE,
                             kernel_name="gaussian",
-                            kernel_bandwidth=1.5 * bin_width_variances,
+                            kernel_bandwidth=1.5 * BIN_WIDTH_FOR_VARIANCE,
                             kernel_period=None,
                             bins=fixed_var_bins,
                         )
