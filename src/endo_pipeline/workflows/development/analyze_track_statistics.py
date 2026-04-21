@@ -21,6 +21,7 @@ def main(
         filter_dataframe_by_track_length,
         filter_dataframe_to_steady_state,
     )
+    from endo_pipeline.library.analyze.numerics.binning import get_bins
     from endo_pipeline.library.visualize.columns import get_label_for_column
     from endo_pipeline.library.visualize.track_statistics import (
         compute_interpolated_kde_spline,
@@ -65,6 +66,7 @@ def main(
     # trajectories (currently hardcoded)
     bin_width_averages = 0.1
     bin_width_variances = 0.02
+    kde_eval_num_points = 2000
 
     # Get dataframe manifest for filtered crop-based features
     base_name_grid = f"{model_manifest_name}_{run_name}_grid"
@@ -83,13 +85,6 @@ def main(
     # bin limits and polar angle period are constant
     bin_limits_dict = BIN_LIMITS_DYNAMICS.copy()
     polar_angle_period = POLAR_ANGLE_PERIOD
-
-    # precompute KDE evaluation grids per column (not dataset-dependent)
-    x_eval_avg_dict = {
-        col: np.linspace(bin_limits_dict[col][0], bin_limits_dict[col][1], 2000)
-        for col in column_names
-    }
-    x_eval_var = np.linspace(-0.01, 0.8, 2000)
 
     for dataset_name in dataset_names:
         if (
@@ -152,11 +147,10 @@ def main(
 
         logger.info(
             "Dataset [ %s ] has %d grid trajectories and %d tracked trajectories. "
-            "Bootstrap resampling tracked trajectories to match number of grid trajectories (%d) for comparison.",
+            "Bootstrap resampling tracked trajectories to match number of grid trajectories for comparison.",
             dataset_name,
             num_trajectories_grid,
             num_trajectories_tracked,
-            num_trajectories_grid,
         )
 
         # put together grid and tracked dataframes for easier processing, adding
@@ -175,6 +169,8 @@ def main(
             "grid": base_df.copy(),
             "tracked": base_df.copy(),
         }
+        x_eval_avg_dict: dict = {"grid": {}, "tracked": {}}
+        x_eval_var_dict: dict = {"grid": {}, "tracked": {}}
         for crop_pattern in ["grid", "tracked"]:
             for traj_index, df_traj in df_steady_state_dict[crop_pattern].groupby(
                 Column.CROP_INDEX
@@ -202,6 +198,27 @@ def main(
                             np.nanvar(df_traj[column_name])
                         )
 
+            # compute data-based bin evaluation grids for this crop pattern
+            for column_name in column_names:
+                avg_data = (
+                    column_avg_df_dict[crop_pattern][column_name].dropna().to_numpy().reshape(-1, 1)
+                )
+                avg_bins = get_bins(bin_widths=(bin_width_averages,), data=avg_data)[0]
+                x_eval_avg_dict[crop_pattern][column_name] = np.linspace(
+                    avg_bins[0][0], avg_bins[0][-1], kde_eval_num_points
+                )
+
+                var_data = (
+                    column_variance_df_dict[crop_pattern][column_name]
+                    .dropna()
+                    .to_numpy()
+                    .reshape(-1, 1)
+                )
+                var_bins = get_bins(bin_widths=(bin_width_variances,), data=var_data)[0]
+                x_eval_var_dict[crop_pattern][column_name] = np.linspace(
+                    var_bins[0][0], var_bins[0][-1], kde_eval_num_points
+                )
+
         # Bootstrap KDE computation for tracked crops: resample (with replacement)
         # tracked trajectories to the same size as grid trajectories, compute the
         # KDE for each bootstrap sample, then report mean and (5, 95) CI.
@@ -211,12 +228,15 @@ def main(
         bootstrap_tracked_var_kde: dict = {}
         for column_name in column_names:
             period = polar_angle_period if column_name == Column.DiffAEData.POLAR_ANGLE else None
-            x_eval_avg = x_eval_avg_dict[column_name]
+            x_eval_avg_grid = x_eval_avg_dict["grid"][column_name]
+            x_eval_avg_tracked = x_eval_avg_dict["tracked"][column_name]
+            x_eval_var_grid = x_eval_var_dict["grid"][column_name]
+            x_eval_var_tracked = x_eval_var_dict["tracked"][column_name]
 
-            # compute grid KDE once on the shared evaluation grids
+            # compute grid KDE once on the grid-specific evaluation grids
             grid_avg_kde_dict[column_name] = compute_interpolated_kde_spline(
                 data=column_avg_df_dict["grid"][column_name].dropna().to_numpy(),
-                x_eval=x_eval_avg,
+                x_eval=x_eval_avg_grid,
                 bin_width=bin_width_averages,
                 kernel_name=kernel_names_dict[column_name],
                 kernel_bandwidth=1.5 * bin_width_averages,
@@ -224,7 +244,7 @@ def main(
             )
             grid_var_kde_dict[column_name] = compute_interpolated_kde_spline(
                 data=column_variance_df_dict["grid"][column_name].dropna().to_numpy(),
-                x_eval=x_eval_var,
+                x_eval=x_eval_var_grid,
                 bin_width=bin_width_variances,
                 kernel_name="gaussian",
                 kernel_bandwidth=1.5 * bin_width_variances,
@@ -244,7 +264,7 @@ def main(
                 avg_kdes.append(
                     compute_interpolated_kde_spline(
                         data=sample_avg,
-                        x_eval=x_eval_avg,
+                        x_eval=x_eval_avg_tracked,
                         bin_width=bin_width_averages,
                         kernel_name=kernel_names_dict[column_name],
                         kernel_bandwidth=1.5 * bin_width_averages,
@@ -255,7 +275,7 @@ def main(
                 var_kdes.append(
                     compute_interpolated_kde_spline(
                         data=sample_var,
-                        x_eval=x_eval_var,
+                        x_eval=x_eval_var_tracked,
                         bin_width=bin_width_variances,
                         kernel_name="gaussian",
                         kernel_bandwidth=1.5 * bin_width_variances,
@@ -282,7 +302,10 @@ def main(
             variable_label = variable_labels_dict[column_name]
             fig, ax = plt.subplots(1, 2, figsize=(12, 5))
             period = polar_angle_period if column_name == Column.DiffAEData.POLAR_ANGLE else None
-            x_eval_avg = x_eval_avg_dict[column_name]
+            x_eval_avg_grid = x_eval_avg_dict["grid"][column_name]
+            x_eval_avg_tracked = x_eval_avg_dict["tracked"][column_name]
+            x_eval_var_grid = x_eval_var_dict["grid"][column_name]
+            x_eval_var_tracked = x_eval_var_dict["tracked"][column_name]
 
             # --- grid: single KDE ---
             axes_title_avg = f"Histogram of average {variable_label} across trajectories"
@@ -290,7 +313,7 @@ def main(
             axes_ylabel_avg = f"P({axes_xlabel_avg})"
             plot_kde(
                 axes=ax[0],
-                x_eval=x_eval_avg,
+                x_eval=x_eval_avg_grid,
                 kde_values=grid_avg_kde_dict[column_name],
                 kde_line_style="-",
                 kde_label="grid",
@@ -304,7 +327,7 @@ def main(
             axes_ylabel_var = f"P({axes_xlabel_var})"
             plot_kde(
                 axes=ax[1],
-                x_eval=x_eval_var,
+                x_eval=x_eval_var_grid,
                 kde_values=grid_var_kde_dict[column_name],
                 kde_line_style="-",
                 kde_label="grid",
@@ -319,14 +342,14 @@ def main(
             tracked_var_boot = bootstrap_tracked_var_kde[column_name]
             # --- tracked average: plot bootstrap mean, then shade CI with matching color ---
             (tracked_avg_line,) = ax[0].plot(
-                x_eval_avg,
+                x_eval_avg_tracked,
                 tracked_avg_boot["mean"],
                 linestyle="--",
                 linewidth=2.0,
                 label=f"tracked (bootstrap mean, n={num_trajectories_tracked})",
             )
             ax[0].fill_between(
-                x_eval_avg,
+                x_eval_avg_tracked,
                 tracked_avg_boot["ci_lower"],
                 tracked_avg_boot["ci_upper"],
                 color=tracked_avg_line.get_color(),
@@ -336,14 +359,14 @@ def main(
             ax[0].legend(loc="upper right")
             # --- tracked variance: same approach ---
             (tracked_var_line,) = ax[1].plot(
-                x_eval_var,
+                x_eval_var_tracked,
                 tracked_var_boot["mean"],
                 linestyle="--",
                 linewidth=2.0,
                 label=f"tracked (bootstrap mean, n={num_trajectories_tracked})",
             )
             ax[1].fill_between(
-                x_eval_var,
+                x_eval_var_tracked,
                 tracked_var_boot["ci_lower"],
                 tracked_var_boot["ci_upper"],
                 color=tracked_var_line.get_color(),
