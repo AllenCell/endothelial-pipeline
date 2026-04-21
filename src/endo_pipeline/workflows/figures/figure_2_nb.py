@@ -52,7 +52,7 @@ from endo_pipeline.settings.dynamics_workflows import (
     PERIOD_THETA_RESCALED,
 )
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
-from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_CBAR_NUM_TICKS,
     DRIFT_CONTOUR_CBAR_ROUND,
@@ -165,7 +165,7 @@ save_plot_to_path(fig, base_output_dir, "colorbar", file_format=".svg", transpar
 # %%
 # loop over datasets in collection, compute 2D drift coefficients for each
 # pairwise combination of polar coordinates, and plot contours of drift coefficients
-for dataset_name in [dataset_low, dataset_high]:
+for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]:
     if dataset_name not in feature_dataframe_manifest.locations:
         logger.warning(
             "No location found in dataframe manifest [ %s ] for dataset [ %s ], skipping visualization.",
@@ -276,13 +276,31 @@ for dataset_name in [dataset_low, dataset_high]:
         ax_.set_yticks([-1.0, 0.0, 1.0])
         if ax_index == 0:
             ax_.tick_params(labelbottom=False)
+
+    shear_stress = math.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
+    shear_stress_label = f"{shear_stress} dyn/cm²"
+    # reserve left margin for the vertical label
+    fig.subplots_adjust(left=0.01)
+    # add vertical title to the left of the contour plot spanning all rows
+    fig.text(
+        0.0,
+        0.5,
+        shear_stress_label,
+        va="center",
+        ha="center",
+        rotation="vertical",
+        fontsize=FONTSIZE_MEDIUM,
+        fontweight="bold",
+    )
+
     save_plot_to_path(
         fig,
         fig_savedir,
         contour_plot_filename,
         file_format=".svg",
-        tight_layout=True,
+        tight_layout=False,
         transparent=True,
+        pad_inches=0,
     )
 
     fig, ax = plot_drift_quiver(
@@ -299,9 +317,17 @@ for dataset_name in [dataset_low, dataset_high]:
         nullcline_styles=(nullcline_r_style, nullcline_rho_style),
         nullcline_opacity=0.9,
         gridspec_kwargs=gridspec_kwargs,
-        legend_kwargs={"fontsize": "xx-small", "title_fontsize": "xx-small", "loc": (1.05, 0.7)},
+        legend_kwargs={
+            "fontsize": "xx-small",
+            "title_fontsize": "xx-small",
+            "loc": "upper center",
+            "bbox_to_anchor": (0.5, 1.25),
+            "ncol": 2,
+            "handletextpad": 0.3,
+        },
         xlabel_kwargs=xlabel_kwargs,
         ylabel_kwargs=ylabel_kwargs,
+        plot_legend=include_legend,
     )
     # add stable fixed points to quiver plot if available
     if stable_fixed_points is not None:
@@ -313,7 +339,22 @@ for dataset_name in [dataset_low, dataset_high]:
             markeredgecolor="k",
             markeredgewidth=0.5,
             markersize=5,
+            label="Stable fixed point",
         )
+        if include_legend:
+            handles, labels = ax.get_legend_handles_labels()
+            ax.legend(
+                handles,
+                labels,
+                fontsize="xx-small",
+                loc="upper center",
+                bbox_to_anchor=(0.5, 1.25),
+                ncol=2,
+                handletextpad=0.3,
+            )
+
+    # make room above axes for the legend
+    fig.subplots_adjust(top=0.82)
 
     # set plot formatting args and save
     ax.set_box_aspect(1.0)
@@ -357,7 +398,13 @@ for dataset_name in [dataset_low, dataset_high]:
     ax.set_box_aspect(1.0)
     ax.set_xticks(
         [0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi],
-        labels=["0", f"{unicode_pi}/4", f"{unicode_pi}/2", f"3{unicode_pi}/4", f"{unicode_pi}"],
+        labels=[
+            f"0={unicode_pi}",
+            f"{unicode_pi}/4",
+            f"{unicode_pi}/2",
+            f"3{unicode_pi}/4",
+            f"{unicode_pi}=0",
+        ],
     )
     ax.set_yticks([-0.3, 0.0, 0.3])
     save_plot_to_path(fig, fig_savedir, theta_plot_filename, file_format=".svg", transparent=True)
@@ -374,7 +421,7 @@ for dataset_name in [dataset_low, dataset_high]:
         fig_filename=f"{dataset_name}_crop_examples",
         file_format=".svg",
         gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
-        fig_kwargs={"figsize": (MAX_FIGURE_WIDTH / 2 - 0.3, 2), "layout": "constrained"},
+        fig_kwargs={"figsize": (MAX_FIGURE_WIDTH / 2 - 0.2, 2), "layout": "constrained"},
         random_seed=7,
         num_gpus=NUM_GPUS,
     )
@@ -449,13 +496,13 @@ panels = [
         path=fig_savedir_low / f"{dataset_low}_{columns_r_rho_str}_contours.svg",
         x_position=0,
         y_position=0.0,
-        x_offset=-0.05,
+        x_offset=0.15,
         y_offset=-0.1,
     ),
     FigurePanel(
         letter="",
         path=base_output_dir / "colorbar.svg",
-        x_position=MAX_FIGURE_WIDTH / 4 - 0.3,
+        x_position=MAX_FIGURE_WIDTH / 4 - 0.1,
         y_position=0.0,
         x_offset=0.08,
         y_offset=0.00,
@@ -463,7 +510,7 @@ panels = [
     FigurePanel(
         letter="",
         path=fig_savedir_low / f"{dataset_low}_{columns_r_rho_str}_quiver.svg",
-        x_position=MAX_FIGURE_WIDTH / 4 + 0.65,
+        x_position=MAX_FIGURE_WIDTH / 4 + 0.9,
         y_position=0.0,
         x_offset=-0.1,
         y_offset=0.0,
@@ -482,24 +529,24 @@ panels = [
         path=fig_savedir_high / f"{dataset_high}_{columns_r_rho_str}_contours.svg",
         x_position=0,
         y_position=1.85,
-        x_offset=-0.05,
-        y_offset=-0.1,
+        x_offset=0.15,
+        y_offset=0,
     ),
     FigurePanel(
         letter="",
         path=base_output_dir / "colorbar.svg",
-        x_position=MAX_FIGURE_WIDTH / 4 - 0.3,
+        x_position=MAX_FIGURE_WIDTH / 4 - 0.1,
         y_position=1.85,
         x_offset=0.08,
-        y_offset=0.00,
+        y_offset=0,
     ),
     FigurePanel(
         letter="",
         path=fig_savedir_high / f"{dataset_high}_{columns_r_rho_str}_quiver.svg",
-        x_position=MAX_FIGURE_WIDTH / 4 + 0.65,
+        x_position=MAX_FIGURE_WIDTH / 4 + 0.9,
         y_position=1.85,
         x_offset=-0.1,
-        y_offset=0.0,
+        y_offset=-0.1,
     ),
     FigurePanel(
         letter="D",
@@ -515,7 +562,7 @@ panels = [
         path=fig_savedir_low / f"{dataset_low}_crop_examples.svg",
         x_position=0.0,
         y_position=3.75,
-        x_offset=0.2,
+        x_offset=0.08,
         y_offset=0.08,
     ),
     FigurePanel(
@@ -523,7 +570,7 @@ panels = [
         path=fig_savedir_high / f"{dataset_high}_crop_examples.svg",
         x_position=MAX_FIGURE_WIDTH / 2,
         y_position=3.75,
-        x_offset=0.2,
+        x_offset=0.08,
         y_offset=0.08,
     ),
     # --- Bottom row ---
