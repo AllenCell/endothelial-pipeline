@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats as sp_stats
 
+from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.optical_flow import (
     COHERENCE_BOX_SIZES,
@@ -145,7 +146,6 @@ def plot_demo_summary(
     import matplotlib.pyplot as plt
     from matplotlib.patches import Patch
 
-    plt.style.use("endo_pipeline.figure")
     out_dir = Path(out_dir)
 
     sorted_tp = sorted(cache.keys())
@@ -413,11 +413,210 @@ def plot_demo_summary(
     )
     fig.tight_layout()
     out_dir.mkdir(parents=True, exist_ok=True)
-    fig.savefig(
-        out_dir
-        / f"demo_coherent_vs_incoherent_{ds_name}_{position}_{'_'.join(channel)}_{flow_scope}{block_tag}.png",
+    save_plot_to_path(
+        fig,
+        out_dir,
+        f"demo_coherent_vs_incoherent_{ds_name}_{position}_{'_'.join(channel)}_{flow_scope}{block_tag}",
         dpi=300,
-        facecolor="white",
+        show_and_close=False,
     )
     logger.info("Saved coherent-vs-incoherent figure to %s", out_dir)
+    plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
+# Tracked-crop coherence time series (demo mode)
+# ---------------------------------------------------------------------------
+def plot_tracked_crop_coherence_timeseries(
+    df: pd.DataFrame,
+    ds_name: str,
+    position: int,
+    out_dir,
+    ema_alphas: list[float] | tuple[float, ...] = (0.1,),
+    compute_fast_coherence: bool = False,
+    compute_radial_coherence: bool = False,
+    max_crops: int = 2,
+    max_dt: int = 1,
+) -> None:
+    """Plot coherence metrics over time for individual tracked crops.
+
+    Produces a multi-panel figure showing how optical-flow coherence
+    evolves across timepoints for a subset of tracked crops.  The
+    crops with the longest tracks are selected (up to *max_crops*).
+
+    Each panel plots the raw coherence metric together with its
+    EMA-smoothed variants.  When *compute_fast_coherence* or
+    *compute_radial_coherence* are True, additional panels are added
+    for those metrics.
+
+    Parameters
+    ----------
+    df
+        Merged position DataFrame with flow features and EMA columns
+        already computed.  Must contain ``crop_index``, ``frame_number``,
+        and the relevant flow feature columns.
+    ds_name
+        Dataset name for figure title and filename.
+    position
+        Integer position index.
+    out_dir
+        Directory where the PNG figure is saved.
+    ema_alphas
+        EMA alpha values used for smoothing (for column name generation).
+    compute_fast_coherence
+        Whether speed-thresholded coherence columns are present.
+    compute_radial_coherence
+        Whether radial coherence columns are present.
+    max_crops
+        Maximum number of tracked crops to plot.
+    max_dt
+        Maximum temporal gap to plot.
+    """
+    from pathlib import Path
+
+    import matplotlib.pyplot as plt
+
+    out_dir = Path(out_dir)
+
+    crop_col = ColumnName.CROP_INDEX
+    time_col = ColumnName.TIMEPOINT
+
+    if crop_col not in df.columns or time_col not in df.columns:
+        logger.warning("Missing %s or %s columns — skipping time series plot", crop_col, time_col)
+        return
+
+    # Select crops with the longest tracks
+    crop_lengths = df.groupby(crop_col)[time_col].nunique().sort_values(ascending=False)
+    selected_crops = crop_lengths.head(max_crops).index.tolist()
+    if not selected_crops:
+        logger.warning("No tracked crops found — skipping time series plot")
+        return
+
+    logger.info(
+        "Plotting coherence time series for %d tracked crop(s): %s",
+        len(selected_crops),
+        selected_crops,
+    )
+
+    # Build the list of (raw_col, label, ema_cols_and_labels) metric groups
+    # to plot. Each group gets its own subplot row.
+    metric_groups: list[tuple[str, str, list[tuple[str, str]]]] = []
+    for d in range(1, max_dt + 1):
+        dt_tag = f"_dt{d}"
+
+        # 1) Raw coherence (mean unit vector)
+        raw_col = f"optical_flow_mean_unit_vector{dt_tag}"
+        ema_variants = []
+        for alpha in ema_alphas:
+            atag = str(alpha).replace(".", "")
+            ema_col = f"ema{atag}_optical_flow_mean_unit_vector{dt_tag}"
+            ema_variants.append((ema_col, f"EMA \u03b1={alpha}"))
+        metric_groups.append((raw_col, rf"Coherence ($\bar{{R}}$, dt={d})", ema_variants))
+
+        # 2) Fast coherence (if enabled)
+        if compute_fast_coherence:
+            raw_fast = f"optical_flow_mean_unit_vector_fast{dt_tag}"
+            ema_fast = []
+            for alpha in ema_alphas:
+                atag = str(alpha).replace(".", "")
+                ema_col = f"ema{atag}_optical_flow_mean_unit_vector_fast{dt_tag}"
+                ema_fast.append((ema_col, f"EMA \u03b1={alpha}"))
+            metric_groups.append((raw_fast, f"Fast Coherence (speed > thr, dt={d})", ema_fast))
+
+        # 3) Radial coherence (if enabled)
+        if compute_radial_coherence:
+            raw_rad = f"optical_flow_radial_coherence{dt_tag}"
+            ema_rad = []
+            for alpha in ema_alphas:
+                atag = str(alpha).replace(".", "")
+                ema_col = f"ema{atag}_optical_flow_radial_coherence{dt_tag}"
+                ema_rad.append((ema_col, f"EMA \u03b1={alpha}"))
+            metric_groups.append((raw_rad, f"Radial Coherence (dt={d})", ema_rad))
+
+    # Filter to metric groups whose raw column actually exists
+    metric_groups = [(r, lbl, e) for r, lbl, e in metric_groups if r in df.columns]
+    if not metric_groups:
+        logger.warning("No coherence columns found in dataframe — skipping time series plot")
+        return
+
+    n_metrics = len(metric_groups)
+    n_crops = len(selected_crops)
+    fig, axes = plt.subplots(
+        n_metrics,
+        1,
+        figsize=(14, 4 * n_metrics),
+        facecolor="white",
+        squeeze=False,
+        sharex=True,
+    )
+
+    # Use the colour cycle from the active style so that this respects
+    # any axes.prop_cycle set in the endo_pipeline.figure mplstyle.
+    prop_cycle = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+
+    for row_idx, (raw_col, metric_label, ema_variants) in enumerate(metric_groups):
+        ax = axes[row_idx, 0]
+        ax.set_facecolor("white")
+
+        for ci, crop_id in enumerate(selected_crops):
+            color = prop_cycle[ci % len(prop_cycle)]
+            df_crop = df[df[crop_col] == crop_id].sort_values(time_col)
+            t = df_crop[time_col].values
+
+            # Raw (thin, more transparent)
+            if raw_col in df_crop.columns:
+                ax.plot(
+                    t,
+                    df_crop[raw_col].values,
+                    color=color,
+                    alpha=0.35,
+                    linewidth=0.8,
+                    label=f"crop {crop_id} (raw)" if row_idx == 0 else None,
+                )
+
+            # EMA (thicker, opaque)
+            for ema_col, ema_label in ema_variants:
+                if ema_col in df_crop.columns:
+                    ax.plot(
+                        t,
+                        df_crop[ema_col].values,
+                        color=color,
+                        alpha=0.9,
+                        linewidth=1.5,
+                        label=f"crop {crop_id} ({ema_label})" if row_idx == 0 else None,
+                    )
+
+        ax.set_ylabel(metric_label, fontsize=10)
+        ax.set_ylim(-0.05, 1.05)
+        ax.tick_params(labelsize=8)
+        ax.grid(True, alpha=0.3)
+
+    axes[-1, 0].set_xlabel("Timepoint", fontsize=10)
+
+    # Legend on first subplot only (can be large; place outside)
+    if n_crops <= 8:
+        axes[0, 0].legend(
+            fontsize=6,
+            loc="upper left",
+            bbox_to_anchor=(1.02, 1.0),
+            borderaxespad=0,
+            framealpha=0.7,
+        )
+
+    fig.suptitle(
+        f"Tracked Crop Coherence Over Time : {ds_name} / pos {position}\n"
+        f"({n_crops} crops, EMA \u03b1 = {list(ema_alphas)})",
+        fontsize=12,
+        fontweight="bold",
+    )
+    fig.tight_layout()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    save_plot_to_path(
+        fig,
+        out_dir,
+        f"demo_tracked_coherence_timeseries_{ds_name}_{position}",
+        dpi=300,
+        show_and_close=False,
+    )
+    logger.info("Saved tracked-crop coherence time series to %s", out_dir)
     plt.close(fig)

@@ -5,24 +5,69 @@ from collections.abc import Sequence
 import pandas as pd
 
 from endo_pipeline.settings.column_names import ColumnName
-from endo_pipeline.settings.optical_flow import COHERENCE_BOX_SIZES, OPTICAL_FLOW_BASE_FEATURES
+from endo_pipeline.settings.optical_flow import (
+    COHERENCE_BOX_SIZES,
+    DEFAULT_EMA_ALPHAS,
+    OPTICAL_FLOW_COMPUTE_FEATURES,
+    OPTICAL_FLOW_EMA_FAST_STEMS,
+    OPTICAL_FLOW_EMA_RADIAL_STEMS,
+    OPTICAL_FLOW_EMA_STEMS,
+    OPTICAL_FLOW_FAST_FEATURES,
+    OPTICAL_FLOW_RADIAL_FEATURES,
+)
 
 
 # ---------------------------------------------------------------------------
 # Feature column helpers
 # ---------------------------------------------------------------------------
+def build_ema_stems(
+    compute_fast_coherence: bool = False,
+    compute_radial_coherence: bool = False,
+) -> list[str]:
+    """Return the list of EMA stem names for the enabled coherence features.
+
+    Parameters
+    ----------
+    compute_fast_coherence
+        If True, include speed-thresholded coherence stems.
+    compute_radial_coherence
+        If True, include radial coherence stems.
+
+    Returns
+    -------
+    :
+        Stem names suitable for building ``ema{tag}_{stem}_dt{d}`` columns.
+    """
+    stems: list[str] = list(OPTICAL_FLOW_EMA_STEMS)
+    if compute_fast_coherence:
+        stems += OPTICAL_FLOW_EMA_FAST_STEMS
+    if compute_radial_coherence:
+        stems += OPTICAL_FLOW_EMA_RADIAL_STEMS
+    return stems
+
+
 def build_optical_flow_feature_cols(
     max_dt: int,
     compute_block_coherence: bool = False,
-    base_features: Sequence[str] = OPTICAL_FLOW_BASE_FEATURES,
+    compute_fast_coherence: bool = False,
+    compute_radial_coherence: bool = False,
+    ema_alphas: Sequence[float] = DEFAULT_EMA_ALPHAS,
     coherence_box_sizes: Sequence[int] = COHERENCE_BOX_SIZES,
 ) -> list[str]:
     """Return all optical-flow column names for dt = 1..max_dt.
 
-    Generates the Cartesian product of *base_features* and temporal
-    strides 1..max_dt, yielding names like
-    ``optical_flow_mean_speed_dt1``.  When *compute_block_coherence* is
-    True, also includes ``optical_flow_angle_std_box{N}_dt{d}`` columns.
+    Generates the Cartesian product of base features and temporal strides
+    1..max_dt, yielding names like ``optical_flow_mean_speed_dt1``.  The
+    feature list is assembled dynamically based on which optional feature
+    groups are enabled:
+
+    * Core features (always included) — from
+      :data:`~endo_pipeline.settings.optical_flow.OPTICAL_FLOW_COMPUTE_FEATURES`.
+    * Fast-coherence features — included when *compute_fast_coherence* is True.
+    * Radial-coherence features — included when *compute_radial_coherence* is True.
+    * Block-coherence features — included when *compute_block_coherence* is True.
+    * EMA-smoothed columns — ``ema{tag}_{stem}_dt{d}`` for each alpha in
+      *ema_alphas* and each enabled coherence stem.
 
     Parameters
     ----------
@@ -30,21 +75,43 @@ def build_optical_flow_feature_cols(
         Maximum temporal gap (inclusive).
     compute_block_coherence
         If True, include block-averaged coherence column names.
-    base_features
-        Base feature names.  Defaults to
-        :data:`~endo_pipeline.settings.optical_flow.OPTICAL_FLOW_BASE_FEATURES`.
+    compute_fast_coherence
+        If True, include speed-thresholded coherence column names and
+        their EMA-smoothed variants.
+    compute_radial_coherence
+        If True, include radial coherence column names and their
+        EMA-smoothed variants.
+    ema_alphas
+        EMA smoothing alpha values.  Defaults to
+        :data:`~endo_pipeline.settings.optical_flow.DEFAULT_EMA_ALPHAS`.
     coherence_box_sizes
         Box sizes for multi-scale coherence columns.  Defaults to
         :data:`~endo_pipeline.settings.optical_flow.COHERENCE_BOX_SIZES`.
 
     Returns
     -------
+    :
         List of ``{feature}_dt{d}`` column names.
     """
-    features = list(base_features)
+    # --- raw (non-EMA) features ---
+    features: list[str] = list(OPTICAL_FLOW_COMPUTE_FEATURES)
+    if compute_fast_coherence:
+        features += OPTICAL_FLOW_FAST_FEATURES
+    if compute_radial_coherence:
+        features += OPTICAL_FLOW_RADIAL_FEATURES
     if compute_block_coherence:
         features += [f"optical_flow_angle_std_box{box}" for box in coherence_box_sizes]
-    return [f"{f}_dt{d}" for d in range(1, max_dt + 1) for f in features]
+
+    # --- EMA-smoothed coherence columns ---
+    ema_stems = build_ema_stems(compute_fast_coherence, compute_radial_coherence)
+
+    ema_features: list[str] = []
+    for alpha in ema_alphas:
+        tag = str(alpha).replace(".", "")
+        ema_features += [f"ema{tag}_{stem}" for stem in ema_stems]
+
+    all_features = features + ema_features
+    return [f"{f}_dt{d}" for d in range(1, max_dt + 1) for f in all_features]
 
 
 # ---------------------------------------------------------------------------
@@ -67,6 +134,7 @@ def build_crop_grid(df: pd.DataFrame) -> pd.DataFrame:
 
     Returns
     -------
+    :
         One row per crop with columns ``START_X``, ``START_Y``,
         ``CROP_INDEX``, ``end_x``, and ``end_y``.
     """
@@ -114,7 +182,7 @@ def pivot_flow_records(records: list[dict]) -> pd.DataFrame:
 
     Returns
     -------
-    pd.DataFrame
+    :
         Wide-format DataFrame indexed by ``crop_index`` and
         ``timepoint``, with one column per feature-dt combination.
     """
