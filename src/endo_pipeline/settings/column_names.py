@@ -338,26 +338,50 @@ class ColumnName:
         SEGMENTATION_IMAGE_FILENAME = "seg_image"
         """Column name for the segmentation image filename (filename and suffix only; not full path)."""
 
-    class OpticalFlowCompute(StrEnum):
-        """Base feature names produced by compute_flow_statistics (before dt suffix)."""
-
-        SPEED_MEAN = "optical_flow_mean_speed"
-        UNIT_VECTOR_MEAN = "optical_flow_mean_unit_vector"
-        SPEED_STD = "optical_flow_std_speed"
-        ANGLE_MEAN = "optical_flow_mean_angle"
-        ANGLE_STD = "optical_flow_angle_std"
-        U_MEAN = "optical_flow_mean_u"
-        V_MEAN = "optical_flow_mean_v"
-        U_STD = "optical_flow_std_u"
-        V_STD = "optical_flow_std_v"
-        SPEED_ABOVE_1_COUNT = "speed_above_1_count"
-        UNIT_VECTOR_MEAN_FAST = "optical_flow_mean_unit_vector_fast"
-        RADIAL_COHERENCE = "optical_flow_radial_coherence"
-        RADIAL_COHERENCE_WEIGHTED = "optical_flow_radial_coherence_weighted"
-
     class OpticalFlow(StrEnum):
         """Dataframe column names used in the optical-flow feature workflow."""
 
+        # --- Base feature names (before dt suffix) produced by compute_flow_statistics ---
+        SPEED_MEAN_BASE = "optical_flow_mean_speed"
+        """Base name for mean speed (before dt suffix)."""
+
+        UNIT_VECTOR_MEAN_BASE = "optical_flow_mean_unit_vector"
+        """Base name for mean unit vector coherence (before dt suffix)."""
+
+        SPEED_STD_BASE = "optical_flow_std_speed"
+        """Base name for speed standard deviation (before dt suffix)."""
+
+        ANGLE_MEAN_BASE = "optical_flow_mean_angle"
+        """Base name for mean angle (before dt suffix)."""
+
+        ANGLE_STD_BASE = "optical_flow_angle_std"
+        """Base name for angle standard deviation (before dt suffix)."""
+
+        U_MEAN_BASE = "optical_flow_mean_u"
+        """Base name for mean u component (before dt suffix)."""
+
+        V_MEAN_BASE = "optical_flow_mean_v"
+        """Base name for mean v component (before dt suffix)."""
+
+        U_STD_BASE = "optical_flow_std_u"
+        """Base name for u standard deviation (before dt suffix)."""
+
+        V_STD_BASE = "optical_flow_std_v"
+        """Base name for v standard deviation (before dt suffix)."""
+
+        SPEED_ABOVE_1_COUNT_BASE = "speed_above_1_count"
+        """Base name for count of pixels above speed threshold (before dt suffix)."""
+
+        UNIT_VECTOR_MEAN_FAST_BASE = "optical_flow_mean_unit_vector_fast"
+        """Base name for fast-pixel unit vector coherence (before dt suffix)."""
+
+        RADIAL_COHERENCE_BASE = "optical_flow_radial_coherence"
+        """Base name for radial coherence (before dt suffix)."""
+
+        RADIAL_COHERENCE_WEIGHTED_BASE = "optical_flow_radial_coherence_weighted"
+        """Base name for distance-weighted radial coherence (before dt suffix)."""
+
+        # --- Final (suffixed) feature names used in dataframes ---
         SPEED_MEAN = "optical_flow_mean_speed_dt1"
         """Mean speed of the optical flow vectors in a crop."""
 
@@ -404,7 +428,41 @@ class ColumnName:
         """Stability classification of a fixed point."""
 
         DRIFT = "drift"
-        """Suffix for drift vector columns."""
+        """Column name denoting the drift in a given variable."""
+
+        DISTANCE_FROM_FP_PREFIX = "dist_from_fp_"
+        """Prefix for column names representing the distance from a fixed point in N-D space."""
+
+        DISTANCE_FROM_FP_1D_SIGNED_PREFIX = "diff_from_fp_"
+        """Prefix for column names representing the signed difference from a fixed point along a single dimension."""
+
+        IS_AT_FP_PREFIX = "is_at_fp_"
+        """Prefix for column names indicating whether a data point is at a fixed point."""
+
+        TRAJ_REACHED_FP_PREFIX = "traj_reached_fp_"
+        """Prefix for column names indicating whether a trajectory reached a fixed point."""
+
+        FIRST_PASSAGE_DIST_PREFIX = "first_passage_dist_from_fp_"
+        """Prefix for column names representing the distance from a fixed point at which a
+        trajectory first passed the threshold for being considered to have reached the fixed point."""
+
+        FIRST_PASSAGE_TIME_SUFFIX = "_first_passage_time"
+        """Suffix for column names representing the first passage time to a fixed point."""
+
+        FIRST_PASSAGE_PREFIX = "first_passage_"
+        """Prefix for column names representing the first passage distance or time to a fixed point."""
+
+        TIME_TO_FP_PREFIX = "time_to_fp_"
+        """Prefix for column names representing the time to until a fixed point is reached."""
+
+        BIN_CENTER = "bin_center"
+        """Column name for the center of bins used when discretizing feature space."""
+
+        BIN_EDGES = "bin_edges"
+        """Column name for the edges of bins used when discretizing feature space."""
+
+        BIN_INDEX = "bin_index"
+        """Column name for the index of the bin that a data point falls into when feature space is discretized."""
 
     class BootstrapAnalysis(StrEnum):
         """Column name suffixes used in bootstrap fixed-point analysis."""

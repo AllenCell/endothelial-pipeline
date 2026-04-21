@@ -13,7 +13,7 @@ from scipy.stats import binned_statistic_2d, binned_statistic_dd
 
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.figures import FONTSIZE_XSMALL
+from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_XSMALL
 from endo_pipeline.settings.flow_field_dataframes import (
     STABILITY_COLOR_DICT,
     STABILITY_MARKER_DICT,
@@ -435,8 +435,8 @@ def plot_optical_flow_histogram(
                         clip_on=False,
                     )
 
-    ax.set_xlabel(feature_label)
-    ax.set_ylabel("Count")
+    ax.set_xlabel(feature_label, fontsize=FONTSIZE_MEDIUM)
+    ax.set_ylabel("Count", fontsize=FONTSIZE_MEDIUM)
     if feature_lim is not None:
         ax.set_xlim(feature_lim)
 

@@ -37,24 +37,6 @@ from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
 
-# Unique color per dataset — colorblind-friendly palette (Wong 2011 + extensions)
-_COLORBLIND_PALETTE = [
-    "#0072B2",  # blue
-    "#E69F00",  # orange
-    "#009E73",  # bluish green
-    "#CC79A7",  # reddish purple
-    "#56B4E9",  # sky blue
-    "#D55E00",  # vermillion
-    "#F0E442",  # yellow
-    "#000000",  # black
-    "#332288",  # indigo
-    "#88CCEE",  # cyan
-    "#44AA99",  # teal
-    "#DDCC77",  # sand
-    "#882255",  # wine
-    "#AA4499",  # magenta
-]
-
 
 # --- Build jitter map (shared by numeric and categorical shear-stress modes) ---
 def _build_jitter_map(df: pd.DataFrame, jitter_width: float = 0.1) -> dict[tuple, float]:
@@ -337,6 +319,18 @@ def plot_fixed_points_vs_shear_stress(
     if ylimits is not None:
         ax.set_ylim(ylimits)
 
+    if variable == ColumnName.DiffAEData.POLAR_ANGLE:
+        ax.set_yticks(
+            [0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi],
+            labels=[
+                f"0={Unicode.PI}",
+                f"{Unicode.PI}/4",
+                f"{Unicode.PI}/2",
+                f"3{Unicode.PI}/4",
+                f"{Unicode.PI}=0",
+            ],
+        )
+
     ax.set_ylabel(label)
     ax.grid(axis="y", alpha=0.3)
 
@@ -428,7 +422,9 @@ def plot_cross_dataset_summaries(
 
         for flow_condition in dataset_config.flow_conditions:
             df_flow = filter_dataframe_by_flow_condition(df_of, dataset_config, flow_condition)
-            plot_label = f"{dataset_name} ({round(flow_condition.shear_stress)} dyn/cm$^2$)"
+            plot_label = (
+                f"{dataset_name} ({round(flow_condition.shear_stress)} dyn/cm{Unicode.SQUARED})"
+            )
 
             # Summary stats per optical flow feature
             for feature_key in optical_flow_features:
