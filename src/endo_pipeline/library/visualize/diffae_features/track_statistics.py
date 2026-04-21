@@ -55,6 +55,8 @@ def plot_kde_for_track_statistics(
     axes_title: str | None = None,
     axes_xlabel: str | None = None,
     axes_ylabel: str | None = None,
+    axes_xlim: tuple[float, float] | None = None,
+    axes_ylim: tuple[float, float] | None = None,
     kde_line_kwargs: dict | None = None,
     ci_line_kwargs: dict | None = None,
 ) -> None:
@@ -83,6 +85,10 @@ def plot_kde_for_track_statistics(
         Optional, label to set for the x-axis.
     axes_ylabel
         Optional, label to set for the y-axis.
+    axes_xlim
+        Optional, tuple specifying x-axis limits to set on the plot.
+    axes_ylim
+        Optional, tuple specifying y-axis limits to set on the plot.
     kde_line_kwargs
         Optional, dictionary of keyword arguments to pass to the plt.plot call
         for the KDE line (e.g, color, linestyle, linewidth).
@@ -138,3 +144,7 @@ def plot_kde_for_track_statistics(
         ax.set_xlabel(axes_xlabel)
     if axes_ylabel is not None:
         ax.set_ylabel(axes_ylabel)
+    if axes_xlim is not None:
+        ax.set_xlim(*axes_xlim)
+    if axes_ylim is not None:
+        ax.set_ylim(*axes_ylim)

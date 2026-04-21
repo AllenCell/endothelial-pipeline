@@ -43,8 +43,12 @@ def main(
         KERNEL_NAMES_DYNAMICS,
         METADATA_COLUMNS_TO_KEEP,
         POLAR_ANGLE_PERIOD,
+        POLAR_ANGLE_RANGE,
     )
     from endo_pipeline.settings.track_statistics import (
+        AXES_XLIM_FOR_VARIANCE,
+        AXES_YLIM_FOR_AVERAGE,
+        AXES_YLIM_FOR_VARIANCE,
         BIN_WIDTH_FOR_AVERAGE,
         BIN_WIDTH_FOR_VARIANCE,
         CI_FILL_OPACITY,
@@ -89,10 +93,6 @@ def main(
     # Default list of datasets if not provided. Filter by datasets available in
     # the manifest.
     dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
-
-    # default bin limits (used for axes limits) and period for circular
-    # variables (used for KDE computation)
-    bin_limits_dict = BIN_LIMITS_DYNAMICS
 
     for dataset_name in dataset_names:
         if (
@@ -191,14 +191,14 @@ def main(
                         # take circular mean for polar angle to account for periodicity
                         column_avg_df_dict[crop_pattern].loc[traj_index, column_name] = circmean(
                             df_traj[column_name],
-                            high=bin_limits_dict[Column.DiffAEData.POLAR_ANGLE][1],
-                            low=bin_limits_dict[Column.DiffAEData.POLAR_ANGLE][0],
+                            high=POLAR_ANGLE_RANGE[1],
+                            low=POLAR_ANGLE_RANGE[0],
                         )
                         column_variance_df_dict[crop_pattern].loc[traj_index, column_name] = (
                             circvar(
                                 df_traj[column_name],
-                                high=bin_limits_dict[Column.DiffAEData.POLAR_ANGLE][1],
-                                low=bin_limits_dict[Column.DiffAEData.POLAR_ANGLE][0],
+                                high=POLAR_ANGLE_RANGE[1],
+                                low=POLAR_ANGLE_RANGE[0],
                             )
                         )
                     else:
@@ -368,6 +368,8 @@ def main(
                     kde_ci_upper=kde_avg_dict[column_name]["ci_upper"],
                     axes_xlabel=avg_str,
                     axes_ylabel=f"P({avg_str})",
+                    axes_xlim=BIN_LIMITS_DYNAMICS[column_name],
+                    axes_ylim=AXES_YLIM_FOR_AVERAGE,
                     kde_line_kwargs=kde_line_kwargs,
                     ci_line_kwargs=ci_line_kwargs,
                 )
@@ -380,6 +382,8 @@ def main(
                     kde_ci_upper=kde_var_dict[column_name]["ci_upper"],
                     axes_xlabel=var_str,
                     axes_ylabel=f"P({var_str})",
+                    axes_xlim=AXES_XLIM_FOR_VARIANCE,
+                    axes_ylim=AXES_YLIM_FOR_VARIANCE,
                     kde_line_kwargs=kde_line_kwargs,
                     ci_line_kwargs=ci_line_kwargs,
                 )
