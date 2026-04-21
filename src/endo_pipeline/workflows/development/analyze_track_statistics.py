@@ -363,7 +363,7 @@ def main(
                 tracked_var_boot["mean"],
                 linestyle="--",
                 linewidth=2.0,
-                label=f"tracked (bootstrap mean, n={num_trajectories_tracked})",
+                label="tracked (bootstrap mean)",
             )
             ax[1].fill_between(
                 x_eval_var_tracked,
@@ -371,14 +371,14 @@ def main(
                 tracked_var_boot["ci_upper"],
                 color=tracked_var_line.get_color(),
                 alpha=0.25,
-                label=f"tracked ({int(FP_CI_LOWER_PERCENTILE)}-{int(FP_CI_UPPER_PERCENTILE)}% CI, {NUM_BOOTSTRAP_ITERATIONS} bootstrap samples)",
+                label=f"tracked ({int(FP_CI_LOWER_PERCENTILE)}-{int(FP_CI_UPPER_PERCENTILE)}% CI)",
             )
             ax[1].legend(loc="upper right")
 
             plt.suptitle(
-                f"{plot_label}, grid vs. tracked crops "
+                f"{plot_label}, grid vs. tracked crops \n "
                 f"(grid n={num_trajectories_grid}, tracked n={num_trajectories_tracked}, "
-                f"bootstrap n={num_trajectories_grid} per sample)"
+                f"n={NUM_BOOTSTRAP_ITERATIONS} bootstrap samples, tracked n={num_trajectories_grid} per sample)"
             )
             plt.tight_layout()
             save_plot_to_path(
