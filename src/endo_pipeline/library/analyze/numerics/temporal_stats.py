@@ -27,14 +27,9 @@ def compute_kde_on_bins(
     kernel_name: Literal["gaussian", "epanechnikov", "periodic"],
     kernel_bandwidth: float,
     kernel_period: float | None,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Compute a kernel density estimate (KDE) on the native histogram bin centers.
-
-    Unlike :func:`compute_interpolated_kde_spline`, this function returns KDE
-    values on the coarse bin-center grid without any spline smoothing.  This
-    is the right representation for accumulating bootstrap samples: average the
-    raw KDE values first, then apply spline smoothing only once at plot time
-    via :func:`smooth_kde_with_spline`.
+) -> np.ndarray:
+    """
+    Compute a kernel density estimate (KDE) on the native histogram bin centers.
 
     Parameters
     ----------
@@ -52,10 +47,10 @@ def compute_kde_on_bins(
     Returns
     -------
     :
-        ``(bin_centers, kde_values)`` — both 1D arrays of the same length.
+        Kernel density estimate (KDE) values corresponding to the centers of the
+        input bins.
 
     """
-    bin_centers = (bins[:-1] + bins[1:]) / 2
     hist = np.histogram(data, bins=bins, density=True)[0]
     kernel = KramersMoyalKernel(
         name=kernel_name,
@@ -63,7 +58,7 @@ def compute_kde_on_bins(
         period=kernel_period,
     )
     hist_kde = get_kernel_density_estimate_from_histogram(hist, bins=[bins], kernel=kernel)
-    return hist_kde, bin_centers
+    return hist_kde
 
 
 def process_dataframe_for_track_statistics(
@@ -101,6 +96,7 @@ def process_dataframe_for_track_statistics(
     :
         A filtered DataFrame that includes only steady state timepoints and tracks
         that meet the minimum track length criterion within the steady state period.
+
     """
     # filter to steady state timepoints only
     dataframe_steady_state = filter_dataframe_to_steady_state(dataframe, dataset_config)
@@ -119,7 +115,8 @@ def process_dataframe_for_track_statistics(
 def compute_cumulative_variance_over_time(
     crop_array: np.ndarray, variance_function: Callable[..., float], **var_func_kwargs
 ) -> np.ndarray:
-    """Compute per-crop cumulative variance of a feature over time.
+    """
+    Compute per-crop cumulative variance of a feature over time.
 
     **Handling of NaN values**
 

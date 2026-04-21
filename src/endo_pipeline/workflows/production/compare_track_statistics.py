@@ -311,7 +311,7 @@ def main(
                             len(avg_data_all), size=num_trajectories_grid, replace=True
                         )
                         sample_avg = avg_data_all[sampled_indices]
-                        _, avg_kde_values = compute_kde_on_bins(
+                        avg_kde_values = compute_kde_on_bins(
                             data=sample_avg,
                             bins=avg_bins,
                             kernel_name=kernel_names_dict[column_name],
@@ -320,7 +320,7 @@ def main(
                         )
                         avg_kdes.append(avg_kde_values)
                         sample_var = var_data_all[sampled_indices]
-                        _, var_kde_values = compute_kde_on_bins(
+                        var_kde_values = compute_kde_on_bins(
                             data=sample_var,
                             bins=var_bins,
                             kernel_name="gaussian",
