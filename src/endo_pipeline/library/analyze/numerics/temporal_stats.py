@@ -5,7 +5,6 @@ from typing import Literal
 
 import numpy as np
 import pandas as pd
-from scipy.interpolate import make_interp_spline
 
 from endo_pipeline.configs import DatasetConfig
 from endo_pipeline.library.analyze.dataframe_filtering import (
@@ -77,42 +76,6 @@ def compute_kde_on_bins(
     )
     hist_kde = get_kernel_density_estimate_from_histogram(hist, bins=computed_bins, kernel=kernel)
     return centers[0], hist_kde
-
-
-def smooth_kde_with_spline(
-    bin_centers: np.ndarray,
-    kde_values: np.ndarray,
-    x_eval: np.ndarray,
-) -> np.ndarray:
-    """Fit a cubic spline to a KDE and evaluate it on a fine grid.
-
-    Intended to be called at *plot time* on KDE values that were first computed
-    (and optionally averaged / CI-bounded) on a coarse bin-center grid via
-    :func:`compute_kde_on_bins`.
-
-    Parameters
-    ----------
-    bin_centers
-        1D array of bin-center x-values (the coarse grid).
-    kde_values
-        1D array of KDE values at each bin center.
-    x_eval
-        1D array of x-values at which to evaluate the smoothed spline.
-
-    Returns
-    -------
-    np.ndarray
-        KDE values evaluated at each point in ``x_eval``.  Positions where
-        ``kde_values`` is not finite are excluded from the spline fit.
-        Returns all-NaN if fewer than four finite values exist.
-
-    """
-    finite_mask = np.isfinite(kde_values)
-    if finite_mask.sum() < 4:
-        return np.full(len(x_eval), np.nan)
-    knot_x = bin_centers[finite_mask]
-    spline = make_interp_spline(knot_x, kde_values[finite_mask], k=3)
-    return spline(x_eval)
 
 
 def process_dataframe_for_track_statistics(

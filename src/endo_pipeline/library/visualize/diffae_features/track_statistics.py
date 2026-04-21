@@ -2,8 +2,47 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.interpolate import make_interp_spline
 
-from endo_pipeline.library.analyze.numerics.temporal_stats import smooth_kde_with_spline
+
+def smooth_kde_with_spline(
+    bin_centers: np.ndarray,
+    kde_values: np.ndarray,
+    x_eval: np.ndarray,
+) -> np.ndarray:
+    """
+    Fit a cubic spline to a KDE and evaluate it on a fine grid.
+
+    Intended to be called at *plot time* on KDE values that were first computed
+    (and optionally averaged / CI-bounded) on a coarse bin-center grid via
+    :func:`compute_kde_on_bins`.
+
+    **NaN handling**:
+
+    Only the finite values of `kde_values` are used for fitting the spline. If
+    fewer than four finite values exist, the function returns an array of NaNs.
+
+    Parameters
+    ----------
+    bin_centers
+        1D array of bin-center x-values (the coarse grid).
+    kde_values
+        1D array of KDE values at each bin center.
+    x_eval
+        1D array of x-values at which to evaluate the smoothed spline.
+
+    Returns
+    -------
+    :
+        KDE values evaluated at each point in `x_eval`.
+
+    """
+    finite_mask = np.isfinite(kde_values)
+    if finite_mask.sum() < 4:
+        return np.full(len(x_eval), np.nan)
+    knot_x = bin_centers[finite_mask]
+    spline = make_interp_spline(knot_x, kde_values[finite_mask], k=3)
+    return spline(x_eval)
 
 
 def plot_kde_for_track_statistics(
