@@ -704,6 +704,7 @@ def add_distance_to_fixed_points_columns(
     trajectory_columns: list[Column.DiffAEData | str],
     fixed_point_columns: list[Column.DiffAEData | str] | None = None,
     column_suffix: str = "",
+    polar_angle_period: float | None = None,
 ) -> pd.DataFrame:
     """
     Compute the distance from each point in the trajectory to the fixed points.
@@ -728,6 +729,10 @@ def add_distance_to_fixed_points_columns(
         If None, the trajectory_columns will be used.
     column_suffix
         Suffix to append to the new distance-from-fixed-point columns.
+    polar_angle_period
+        The period to use for the polar angle variable when computing differences, if applicable.
+        If None, the default POLAR_ANGLE_PERIOD will be used. The other expected
+        value for this parameter would be 2 * np.pi.
 
     Returns
     -------
@@ -743,24 +748,28 @@ def add_distance_to_fixed_points_columns(
 
     # determine distance from each fixed point over time and add to the dataframe, along
     # with the signed difference along each axis (e.g. theta, r, rho) from each fixed point
-    dist_from_fp_col_prefix = "dist_from_fp_"
-    rescaled_theta = POLAR_ANGLE_PERIOD + np.pi * (1 - RESCALE_THETA)
+    dist_from_fp_col_prefix = Column.VectorField.DISTANCE_FROM_FP_PREFIX
+    polar_angle_period = POLAR_ANGLE_PERIOD if polar_angle_period is None else polar_angle_period
 
     for i in fixed_point_df.index:
         fpt = fixed_point_df.iloc[i]
 
         for j, col in enumerate(fixed_point_columns):
+            # this lambda function computes the signed difference from the fixed point for a given
+            # column, taking into account the periodicity of the polar angle variable if applicable
             diff_func = lambda x, fpt=fpt, col=col: (
-                np.mod(x - fpt[col] + rescaled_theta / 2, rescaled_theta) - rescaled_theta / 2
+                np.mod(x - fpt[col] + polar_angle_period / 2, polar_angle_period)
+                - polar_angle_period / 2
                 if Column.DiffAEData.POLAR_ANGLE.value in col
                 else (x - fpt[col])
             )
-            trajectory_df[f"diff_from_fp_{i}_{col}{column_suffix}"] = diff_func(
-                trajectory_df[trajectory_columns[j]]
-            )
+            trajectory_df[
+                f"{Column.VectorField.DISTANCE_FROM_FP_1D_SIGNED_PREFIX}{i}_{col}{column_suffix}"
+            ] = diff_func(trajectory_df[trajectory_columns[j]])
 
         dynamics_diff_columns = [
-            f"diff_from_fp_{i}_{col}{column_suffix}" for col in fixed_point_columns
+            f"{Column.VectorField.DISTANCE_FROM_FP_1D_SIGNED_PREFIX}{i}_{col}{column_suffix}"
+            for col in fixed_point_columns
         ]
         trajectory_df[f"{dist_from_fp_col_prefix}{i}{column_suffix}"] = np.linalg.norm(
             trajectory_df[dynamics_diff_columns], axis=1
@@ -833,7 +842,7 @@ def add_first_passage_time_column(
         DataFrame containing the first passage time for each track.
     """
     # compute where the trajectory first passes the threshold distance to the fixed point
-    new_column_name = f"first_passage_{column}"
+    new_column_name = f"{Column.VectorField.FIRST_PASSAGE_PREFIX}{column}"
     trajectory_df[new_column_name] = (
         trajectory_df.groupby(Column.CROP_INDEX)
         .apply(
@@ -850,14 +859,14 @@ def add_first_passage_time_column(
     trajectory_df = trajectory_df[
         trajectory_df.apply(
             lambda row, fp_idx=fixed_point_index: row[Column.TIMEPOINT]
-            < row[f"first_passage_dist_from_fp_{fp_idx}"],
+            < row[f"{Column.VectorField.FIRST_PASSAGE_DIST_PREFIX}{fp_idx}"],
             axis=1,
         )
     ]
 
     # compute the time to the first passage time from each timepoint
-    trajectory_df[f"time_to_fp_{fixed_point_index}"] = (
-        trajectory_df[f"first_passage_dist_from_fp_{fixed_point_index}"]
+    trajectory_df[f"{Column.VectorField.TIME_TO_FP_PREFIX}{fixed_point_index}"] = (
+        trajectory_df[f"{Column.VectorField.FIRST_PASSAGE_DIST_PREFIX}{fixed_point_index}"]
         - trajectory_df[Column.TIMEPOINT]
     )
     return trajectory_df
@@ -932,7 +941,8 @@ def compute_first_passage_time_stats_for_one_bin(
         trajectory_df_one_bin[time_to_first_passage_col_name].describe().to_frame().T
     )
     new_col_names = {
-        col: col + "_first_passage_time" for col in first_passage_time_stats_df.columns
+        col: col + Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
+        for col in first_passage_time_stats_df.columns
     }
     first_passage_time_stats_df.rename(columns=new_col_names, inplace=True)
 
@@ -980,8 +990,8 @@ def compute_first_passage_time_stats_for_bins(
             time_to_first_passage_col_name=time_to_first_passage_col_name,
             feature_column_names=feature_column_names,
         )
-        first_passage_time_stats_df["bin_center"] = [bin_center]
-        first_passage_time_stats_df["bin_edges"] = [bin_e]
+        first_passage_time_stats_df[Column.VectorField.BIN_CENTER] = [bin_center]
+        first_passage_time_stats_df[Column.VectorField.BIN_EDGES] = [bin_e]
 
         results.append(first_passage_time_stats_df)
 
@@ -996,7 +1006,7 @@ def compute_first_passage_time_parameter_sweep_df(
 
     sweep_results: list = []
     for thresh in thresholds:
-        fp_dist_col = f"dist_from_fp_{fixed_point_index}"
+        fp_dist_col = f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fixed_point_index}"
         trajectory_df_one_param = trajectory_df.copy()
         trajectory_df_one_param["num_trajectories_before_fpt_filter"] = trajectory_df[
             Column.CROP_INDEX

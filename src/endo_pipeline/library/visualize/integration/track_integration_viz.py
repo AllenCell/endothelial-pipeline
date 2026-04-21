@@ -1082,121 +1082,6 @@ def plot_trajectory_measured_vs_simulation_over_flow_field(
     plt.close(fig)
 
 
-def plot_first_passage_time_histogram_measured_vs_simulated(
-    fixed_point_id: int,
-    fixed_point_stability: str,
-    dataset_config: DatasetConfig,
-    time_of_first_passage_df: pd.DataFrame,
-    out_dir: Path,
-    crop_pattern: Literal["grid", "tracked"] = "grid",
-) -> None:
-    """Plot the time of first passage for the given trajectory data.
-
-    Parameters
-    ----------
-    dataset_config
-        Configuration object for the dataset.
-    time_of_first_passage_df
-        DataFrame containing the time of first passage data.
-    columns
-        List of column names to consider for the time of first passage calculation.
-    threshold
-        Threshold value for determining the time of first passage.
-    out_dir
-        Directory to save the resulting plot.
-    """
-    dataset_name = dataset_config.name
-    time_units = TIME_STEP_IN_HOURS  # convert timeframes to hours
-
-    # replace the NaN values (which indicate there was never a first passage) with
-    # a large number because the NaNs cause incorrect histogram plotting
-    time_of_first_passage_df_sub = time_of_first_passage_df.copy()
-    time_of_first_passage_df_sub[
-        f"time_of_first_passage_dist_from_fp_{fixed_point_id}_{crop_pattern}"
-    ].replace({np.nan: time_units * (dataset_config.duration) + 10}, inplace=True)
-    time_of_first_passage_df_sub[
-        f"time_of_first_passage_dist_from_fp_{fixed_point_id}_simulated"
-    ].replace({np.nan: time_units * (dataset_config.duration) + 10}, inplace=True)
-
-    num_traj_approached_fp_meas = (
-        time_of_first_passage_df_sub[
-            f"time_of_first_passage_dist_from_fp_{fixed_point_id}_{crop_pattern}"
-        ]
-        < time_units * dataset_config.duration
-    ).sum()
-    num_traj_approached_fp_sim = (
-        time_of_first_passage_df_sub[
-            f"time_of_first_passage_dist_from_fp_{fixed_point_id}_simulated"
-        ]
-        < time_units * dataset_config.duration
-    ).sum()
-    num_crops = time_of_first_passage_df_sub[Column.CROP_INDEX].nunique()
-
-    fig, ax = plt.subplots(figsize=(5, 5))
-    ax.set_title(
-        (
-            f"{dataset_name} trajectories reaching fixed point {fixed_point_id}: "
-            f"\ngrid ({num_traj_approached_fp_meas} / {num_crops}) "
-            f"vs simulated ({num_traj_approached_fp_sim} / {num_crops})"
-        ).title()
-    )
-    # plot histogram for the grid-based times of first passage (if any)
-    if (
-        time_of_first_passage_df_sub[
-            f"time_of_first_passage_dist_from_fp_{fixed_point_id}_{crop_pattern}"
-        ].nunique()
-        > 1
-    ):
-        sns.histplot(
-            data=time_of_first_passage_df_sub,
-            x=f"time_of_first_passage_dist_from_fp_{fixed_point_id}_{crop_pattern}",
-            binwidth=1,
-            cumulative=True,
-            element="step",
-            fill=False,
-            stat="percent",
-            label=crop_pattern,
-            ax=ax,
-        )
-    # plot histogram for the simulation-based times of first passage (if any)
-    if (
-        time_of_first_passage_df_sub[
-            f"time_of_first_passage_dist_from_fp_{fixed_point_id}_simulated"
-        ].nunique()
-        > 1
-    ):
-        sns.histplot(
-            data=time_of_first_passage_df_sub,
-            x=f"time_of_first_passage_dist_from_fp_{fixed_point_id}_simulated",
-            binwidth=1,
-            cumulative=True,
-            element="step",
-            fill=False,
-            stat="percent",
-            label="simulated",
-            ax=ax,
-        )
-    ax.set_xlim(0, time_units * dataset_config.duration)
-    ax.set_ylim(0)
-    ax.axhline(100, ls="--", color="red")
-    ax.set_xlabel(f"{crop_pattern} trajectory first passage time (hrs)".title())
-    ax.set_ylabel(
-        (
-            f"cumulative percentage of trajectories\nthat reached fixed point {fixed_point_id}"
-        ).title()
-    )
-    ax.legend()
-    filename = (
-        f"{crop_pattern}_traj_reaching_fp_{fixed_point_id}_{fixed_point_stability}_histogram.png"
-    )
-    save_plot_to_path(
-        fig,
-        out_dir,
-        filename,
-        show_and_close=False,
-    )
-
-
 def plot_first_passage_time_correlation(
     fixed_point_id: int,
     fixed_point_stability: str,
@@ -1213,7 +1098,7 @@ def plot_first_passage_time_correlation(
     # mean so correct that if "median" was chosen
     metric = "50%" if metric_to_plot == "median" else metric_to_plot
 
-    suffix = "_first_passage_time"
+    suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
     metric = f"{metric}{suffix}"
 
     # NaN values are unacceptable for the linear regression
@@ -1233,9 +1118,9 @@ def plot_first_passage_time_correlation(
     not_time_columns = [
         f"count{suffix}_grid",
         f"count{suffix}_tracked",
-        "bin_index",
-        "bin_center",
-        "bin_edges",
+        Column.VectorField.BIN_INDEX,
+        Column.VectorField.BIN_CENTER,
+        Column.VectorField.BIN_EDGES,
     ]
     # the time columns are the set of columns in the dataframe that are not in
     # the not_time_columns list
@@ -1316,7 +1201,7 @@ def plot_first_passage_time_3d_scatter(
     # mean so correct that if "median" was chosen
     metric = "50%" if metric_to_plot == "median" else metric_to_plot
 
-    suffix = "_first_passage_time"
+    suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
     metric = f"{metric}{suffix}"
 
     # drop the bins with no entries
@@ -1336,9 +1221,9 @@ def plot_first_passage_time_3d_scatter(
     not_time_columns = [
         f"count{suffix}_grid",
         f"count{suffix}_tracked",
-        "bin_index",
-        "bin_center",
-        "bin_edges",
+        Column.VectorField.BIN_INDEX,
+        Column.VectorField.BIN_CENTER,
+        Column.VectorField.BIN_EDGES,
     ]
     # the time columns are the set of columns in the dataframe that are not in
     # the not_time_columns list
@@ -1349,7 +1234,9 @@ def plot_first_passage_time_3d_scatter(
 
     fig, ax = plt.subplots(figsize=(3, 3.5), subplot_kw={"projection": "3d"})
     ax.set_title(f"{dataset_name}".title())
-    thetas, rs, rhos = zip(*first_passage_time_df_no_nan["bin_center"], strict=True)
+    thetas, rs, rhos = zip(
+        *first_passage_time_df_no_nan[Column.VectorField.BIN_CENTER], strict=True
+    )
     # we're using a base-2 log of the FPT-tracked to FPT-grid ratio so that the
     # fold change is symmetric and the colors end up evenly spaced regardless of
     # whether the tracked or grid-based FPT is higher
@@ -1408,7 +1295,7 @@ def plot_first_passage_time_parameter_sweep(
     """
     dataset_name = dataset_config.name
     time_units = TIME_STEP_IN_HOURS  # convert timeframes to hours
-    first_passage_time_col = f"time_to_fp_{fixed_point_index}"
+    first_passage_time_col = f"{Column.VectorField.TIME_TO_FP_PREFIX}{fixed_point_index}"
     first_passage_time_param_sweep_df[first_passage_time_col] *= time_units
 
     # compute the summary statistics on the first passage time parameter sweep
@@ -1513,7 +1400,7 @@ def plot_first_passage_time_histogram(
     # mean so correct that if "median" was chosen
     metric = "50%" if metric_to_plot == "median" else metric_to_plot
 
-    suffix = "_first_passage_time"
+    suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
     metric = f"{metric}{suffix}"
 
     # drop the NaN values
@@ -1531,9 +1418,9 @@ def plot_first_passage_time_histogram(
     not_time_columns = [
         f"count{suffix}_grid",
         f"count{suffix}_tracked",
-        "bin_index",
-        "bin_center",
-        "bin_edges",
+        Column.VectorField.BIN_INDEX,
+        Column.VectorField.BIN_CENTER,
+        Column.VectorField.BIN_EDGES,
     ]
     # the time columns are the set of columns in the dataframe that are not in
     # the not_time_columns list
@@ -1606,7 +1493,7 @@ def plot_first_passage_time_heatmap(
     # mean so correct that if "median" was chosen
     metric = "50%" if metric_to_plot == "median" else metric_to_plot
 
-    suffix = "_first_passage_time"
+    suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
     metric = f"{metric}{suffix}"
 
     first_passage_time_df_local_copy = first_passage_time_df.copy()
@@ -1627,9 +1514,9 @@ def plot_first_passage_time_heatmap(
     not_time_columns = [
         f"count{suffix}_grid",
         f"count{suffix}_tracked",
-        "bin_index",
-        "bin_center",
-        "bin_edges",
+        Column.VectorField.BIN_INDEX,
+        Column.VectorField.BIN_CENTER,
+        Column.VectorField.BIN_EDGES,
     ]
     # the time columns are the set of columns in the dataframe that are not in
     # the not_time_columns list
@@ -1640,8 +1527,12 @@ def plot_first_passage_time_heatmap(
 
     # unpack bin centers and bin edges for all three features (theta, r, rho),
     # then drop the collapsed dimension to get the two axes for the 2D heatmap
-    all_bin_centers = list(zip(*first_passage_time_df_local_copy["bin_center"], strict=True))
-    all_bin_edges_vals = list(zip(*first_passage_time_df_local_copy["bin_edges"], strict=True))
+    all_bin_centers = list(
+        zip(*first_passage_time_df_local_copy[Column.VectorField.BIN_CENTER], strict=True)
+    )
+    all_bin_edges_vals = list(
+        zip(*first_passage_time_df_local_copy[Column.VectorField.BIN_EDGES], strict=True)
+    )
     all_dim_labels = [str(feature) for feature in feature_order_for_bin_edges]
 
     remaining_indices = [i for i in range(len(feature_order_for_bin_edges)) if i != collapse_index]

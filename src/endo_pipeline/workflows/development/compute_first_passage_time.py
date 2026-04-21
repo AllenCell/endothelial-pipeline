@@ -209,40 +209,50 @@ def main(
                     out_dir=out_dir,
                 )
 
-            traj_df_grid[f"is_at_fp_{fp_idx}"] = (
-                traj_df_grid[f"dist_from_fp_{fp_idx}"] <= fixed_point_radius_threshold
+            traj_df_grid[f"{Column.VectorField.IS_AT_FP_PREFIX}{fp_idx}"] = (
+                traj_df_grid[f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fp_idx}"]
+                <= fixed_point_radius_threshold
             )
-            traj_df_tracked[f"is_at_fp_{fp_idx}"] = (
-                traj_df_tracked[f"dist_from_fp_{fp_idx}"] <= fixed_point_radius_threshold
+            traj_df_tracked[f"{Column.VectorField.IS_AT_FP_PREFIX}{fp_idx}"] = (
+                traj_df_tracked[f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fp_idx}"]
+                <= fixed_point_radius_threshold
             )
 
-            traj_df_grid[f"traj_reached_fp_{fp_idx}"] = traj_df_grid.groupby(Column.CROP_INDEX)[
-                f"is_at_fp_{fp_idx}"
-            ].transform(any)
-            traj_df_tracked[f"traj_reached_fp_{fp_idx}"] = traj_df_tracked.groupby(
-                Column.CROP_INDEX
-            )[f"is_at_fp_{fp_idx}"].transform(any)
+            traj_df_grid[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fp_idx}"] = (
+                traj_df_grid.groupby(Column.CROP_INDEX)[
+                    f"{Column.VectorField.IS_AT_FP_PREFIX}{fp_idx}"
+                ].transform(any)
+            )
+            traj_df_tracked[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fp_idx}"] = (
+                traj_df_tracked.groupby(Column.CROP_INDEX)[
+                    f"{Column.VectorField.IS_AT_FP_PREFIX}{fp_idx}"
+                ].transform(any)
+            )
 
-            traj_df_grid_sub = traj_df_grid[traj_df_grid[f"traj_reached_fp_{fp_idx}"]]
-            traj_df_tracked_sub = traj_df_tracked[traj_df_tracked[f"traj_reached_fp_{fp_idx}"]]
+            traj_df_grid_sub = traj_df_grid[
+                traj_df_grid[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fp_idx}"]
+            ]
+            traj_df_tracked_sub = traj_df_tracked[
+                traj_df_tracked[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fp_idx}"]
+            ]
 
             # compute the timepoint at which each trajectory first reaches a fixed point
             traj_df_grid_sub = add_first_passage_time_column(
                 fixed_point_index=fp_idx,
                 trajectory_df=traj_df_grid_sub,
-                column=f"dist_from_fp_{fp_idx}",
+                column=f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fp_idx}",
                 threshold=fixed_point_radius_threshold,
             )
             traj_df_tracked_sub = add_first_passage_time_column(
                 fixed_point_index=fp_idx,
                 trajectory_df=traj_df_tracked_sub,
-                column=f"dist_from_fp_{fp_idx}",
+                column=f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fp_idx}",
                 threshold=fixed_point_radius_threshold,
             )
 
             # 3. for each bin (across all steady-state timepoints), compute the mean,
             #    median, and standard deviation of first-passage times for the trajectories
-            time_to_first_passage_col_name = f"time_to_fp_{fp_idx}"
+            time_to_first_passage_col_name = f"{Column.VectorField.TIME_TO_FP_PREFIX}{fp_idx}"
 
             fpt_stats_df_grid = compute_first_passage_time_stats_for_bins(
                 bin_centers=bin_centers,
@@ -262,19 +272,29 @@ def main(
             # merge the grid and tracked first passage time stats dataframes
             fpt_stats_df = fpt_stats_df_grid.merge(
                 fpt_stats_df_tracked,
-                on=["bin_index"],
+                on=[Column.VectorField.BIN_INDEX],
                 suffixes=("_grid", "_tracked"),
                 validate="one_to_one",
             )
 
             # check that the bin centers and edges are the same for the grid and tracked dataframes
             bin_centers_close = np.allclose(
-                np.array(list(zip(*fpt_stats_df["bin_center_grid"], strict=True))),
-                np.array(list(zip(*fpt_stats_df["bin_center_tracked"], strict=True))),
+                np.array(
+                    list(zip(*fpt_stats_df[f"{Column.VectorField.BIN_CENTER}_grid"], strict=True))
+                ),
+                np.array(
+                    list(
+                        zip(*fpt_stats_df[f"{Column.VectorField.BIN_CENTER}_tracked"], strict=True)
+                    )
+                ),
             )
             bin_edges_close = np.allclose(
-                np.array(list(zip(*fpt_stats_df["bin_edges_grid"], strict=True))),
-                np.array(list(zip(*fpt_stats_df["bin_edges_tracked"], strict=True))),
+                np.array(
+                    list(zip(*fpt_stats_df[f"{Column.VectorField.BIN_EDGES}_grid"], strict=True))
+                ),
+                np.array(
+                    list(zip(*fpt_stats_df[f"{Column.VectorField.BIN_EDGES}_tracked"], strict=True))
+                ),
             )
             if not bin_centers_close or not bin_edges_close:
                 error_message = (
@@ -287,9 +307,17 @@ def main(
 
             # drop the duplicate bin center and edge columns from one of the dataframes
             # since they are the same and rename the columns to remove the suffixes
-            fpt_stats_df = fpt_stats_df.drop(columns=["bin_center_tracked", "bin_edges_tracked"])
+            fpt_stats_df = fpt_stats_df.drop(
+                columns=[
+                    f"{Column.VectorField.BIN_CENTER}_tracked",
+                    f"{Column.VectorField.BIN_EDGES}_tracked",
+                ]
+            )
             fpt_stats_df = fpt_stats_df.rename(
-                columns={"bin_center_grid": "bin_center", "bin_edges_grid": "bin_edges"}
+                columns={
+                    f"{Column.VectorField.BIN_CENTER}_grid": Column.VectorField.BIN_CENTER,
+                    f"{Column.VectorField.BIN_EDGES}_grid": Column.VectorField.BIN_EDGES,
+                }
             )
 
             # 4. plot the cell FPT vs grid FPT data as a scatterplot with errors and a
