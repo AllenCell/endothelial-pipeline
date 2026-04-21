@@ -15,6 +15,9 @@ from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
     get_kernel_density_estimate_from_histogram,
 )
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
+from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
+    add_track_duration_to_dataframe,
+)
 from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.settings.column_names import ColumnName as Column
 
@@ -117,12 +120,13 @@ def process_dataframe_for_track_statistics(
     # filter to steady state timepoints only
     dataframe_steady_state = filter_dataframe_to_steady_state(dataframe, dataset_config)
 
-    dataframe_steady_state[Column.TRACK_LENGTH] = dataframe_steady_state.groupby(Column.CROP_INDEX)[
-        Column.TIMEPOINT
-    ].transform(lambda t: t.max() - t.min())
-    # Perform additional filtering by track length
+    # add track length column based on steady state timepoints only, then filter
+    # by track length
+    dataframe_with_duration = add_track_duration_to_dataframe(
+        dataframe_steady_state, grouping_columns=[Column.CROP_INDEX], time_column=Column.TIMEPOINT
+    )
     dataframe_min_length = filter_dataframe_by_track_length(
-        dataframe_steady_state, minimum_track_length
+        dataframe_with_duration, minimum_track_length
     )
     return dataframe_min_length
 
