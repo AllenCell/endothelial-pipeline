@@ -7,7 +7,7 @@ def main(datasets: Datasets, n_proc: int = 1) -> None:
 
     from tqdm import tqdm
 
-    from endo_pipeline.library.analyze.integration.track_integration import (
+    from endo_pipeline.library.analyze.track_integration import (
         get_and_save_pc_diffae_feats_liveseg_feats_merged_table,
     )
 

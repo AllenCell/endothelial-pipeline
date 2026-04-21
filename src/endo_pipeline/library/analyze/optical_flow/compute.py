@@ -4,7 +4,13 @@ import numpy as np
 from scipy import stats
 from skimage.registration import optical_flow_tvl1
 
-from endo_pipeline.settings.optical_flow import COHERENCE_BOX_SIZES, OPTICAL_FLOW_BASE_FEATURES
+from endo_pipeline.settings.column_names import ColumnName
+from endo_pipeline.settings.optical_flow import (
+    COHERENCE_BOX_SIZES,
+    OPTICAL_FLOW_COMPUTE_FEATURES,
+    OPTICAL_FLOW_FAST_FEATURES,
+    OPTICAL_FLOW_RADIAL_FEATURES,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +35,7 @@ def _block_average_flow(
 
     Returns
     -------
-    tuple[np.ndarray, np.ndarray]
+    :
         Block-averaged ``(u, v)`` arrays, shape ``(H // box, W // box)``.
     """
     if box == 1:
@@ -55,6 +61,9 @@ def compute_flow_statistics(
     dt: int,
     thresh: float,
     compute_block_coherence: bool = False,
+    compute_fast_coherence: bool = False,
+    compute_radial_coherence: bool = False,
+    speed_threshold: float = 1.0,
 ) -> dict:
     """Compute summary statistics from a 2-D optical-flow field (u, v).
 
@@ -78,14 +87,35 @@ def compute_flow_statistics(
     compute_block_coherence
         If True, compute multi-scale block-averaged coherence
         (``optical_flow_angle_std_box{N}``) for each box size.
-        Default False.
+    compute_fast_coherence
+        If True, compute coherence metrics only over pixels whose
+        speed exceeds *speed_threshold*.
+    compute_radial_coherence
+        If True, compute radial coherence metrics (dot product of
+        unit flow with unit radial vector from crop centre).
+    speed_threshold
+        Minimum pixel speed for the "fast" coherence features.
+        Only used when *compute_fast_coherence* is True.
 
     Returns
     -------
+    :
         Flat dictionary of scalar statistics with identifying fields.
     """
-    base: dict[str, int | float] = {"crop_index": crop_idx, "timepoint": timepoint, "dt": dt}
+    base: dict[str, int | float] = {
+        ColumnName.CROP_INDEX: crop_idx,
+        ColumnName.TIMEPOINT: timepoint,
+        "dt": dt,
+    }
     mask = (crop0 > thresh) | (crop1 > thresh)
+
+    # Build the NaN key set dynamically based on enabled features.
+    nan_keys: list[str] = list(OPTICAL_FLOW_COMPUTE_FEATURES)
+    if compute_fast_coherence:
+        nan_keys += OPTICAL_FLOW_FAST_FEATURES
+    if compute_radial_coherence:
+        nan_keys += OPTICAL_FLOW_RADIAL_FEATURES
+
     if not mask.any():
         logger.debug(
             "No foreground pixels above thresh=%.3g for crop_idx=%d, timepoint=%d; returning NaNs.",
@@ -93,7 +123,7 @@ def compute_flow_statistics(
             crop_idx,
             timepoint,
         )
-        base.update(dict.fromkeys(OPTICAL_FLOW_BASE_FEATURES, np.nan))
+        base.update(dict.fromkeys(nan_keys, np.nan))
         return base
 
     sp = np.sqrt(u[mask] ** 2 + v[mask] ** 2)
@@ -106,19 +136,65 @@ def compute_flow_statistics(
         if nz.any()
         else 0.0
     )
+
+    # --- Thresholded coherence (speed > threshold) ---
+    if compute_fast_coherence:
+        fast = sp > speed_threshold
+        n_fast = int(fast.sum())
+        if fast.any():
+            muv_fast = float(
+                np.sqrt(np.mean(um[fast] / sp[fast]) ** 2 + np.mean(vm[fast] / sp[fast]) ** 2)
+            )
+        else:
+            muv_fast = np.nan
+
+    # --- Radial coherence ---
+    if compute_radial_coherence:
+        H, W = u.shape
+        cy, cx = H / 2.0, W / 2.0
+        yy, xx = np.mgrid[:H, :W]
+        ry = (yy - cy).astype(np.float32)
+        rx = (xx - cx).astype(np.float32)
+        r_mag = np.sqrt(rx**2 + ry**2)
+        sp_full = np.sqrt(u**2 + v**2)
+        radial_mask = mask & (r_mag > 0) & (sp_full > 0)
+        if radial_mask.any():
+            rm = r_mag[radial_mask]
+            rx_hat = rx[radial_mask] / rm
+            ry_hat = ry[radial_mask] / rm
+            sp_rm = sp_full[radial_mask]
+            ux_hat = u[radial_mask] / sp_rm
+            uy_hat = v[radial_mask] / sp_rm
+            dot_products = ux_hat * rx_hat + uy_hat * ry_hat
+            radial_coh = float(dot_products.mean())
+            radial_coh_w = float(np.average(dot_products, weights=rm))
+        else:
+            radial_coh = np.nan
+            radial_coh_w = np.nan
+
     base.update(
         {
-            "optical_flow_mean_speed": float(sp.mean()),
-            "optical_flow_mean_unit_vector": muv,
-            "optical_flow_std_speed": float(sp.std()),
-            "optical_flow_mean_angle": float(np.arctan2(np.sin(ang).mean(), np.cos(ang).mean())),
-            "optical_flow_angle_std": float(stats.circstd(ang)),
-            "optical_flow_mean_u": float(um.mean()),
-            "optical_flow_mean_v": float(vm.mean()),
-            "optical_flow_std_u": float(um.std()),
-            "optical_flow_std_v": float(vm.std()),
+            ColumnName.OpticalFlow.SPEED_MEAN_BASE: float(sp.mean()),
+            ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_BASE: muv,
+            ColumnName.OpticalFlow.SPEED_STD_BASE: float(sp.std()),
+            ColumnName.OpticalFlow.ANGLE_MEAN_BASE: float(
+                np.arctan2(np.sin(ang).mean(), np.cos(ang).mean())
+            ),
+            ColumnName.OpticalFlow.ANGLE_STD_BASE: float(stats.circstd(ang)),
+            ColumnName.OpticalFlow.U_MEAN_BASE: float(um.mean()),
+            ColumnName.OpticalFlow.V_MEAN_BASE: float(vm.mean()),
+            ColumnName.OpticalFlow.U_STD_BASE: float(um.std()),
+            ColumnName.OpticalFlow.V_STD_BASE: float(vm.std()),
         }
     )
+
+    if compute_fast_coherence:
+        base[ColumnName.OpticalFlow.SPEED_ABOVE_1_COUNT_BASE] = n_fast
+        base[ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_FAST_BASE] = muv_fast
+
+    if compute_radial_coherence:
+        base[ColumnName.OpticalFlow.RADIAL_COHERENCE_BASE] = radial_coh
+        base[ColumnName.OpticalFlow.RADIAL_COHERENCE_WEIGHTED_BASE] = radial_coh_w
 
     # --- Optional Multi-scale coherence ---
     if compute_block_coherence:
@@ -163,7 +239,7 @@ def compute_tvl1(
         Subsequent frame.
     attachment
         TVL1 data-fidelity weight (λ).  Lower values yield smoother
-        flow fields.  Default ``7.5``.
+        flow fields.
 
     Returns
     -------
@@ -185,6 +261,9 @@ def compute_crop_flow(
     thresh: float = 0.0,
     attachment: float = 7.5,
     compute_block_coherence: bool = False,
+    compute_fast_coherence: bool = False,
+    compute_radial_coherence: bool = False,
+    speed_threshold: float = 1.0,
 ) -> dict:
     """Run TVL1 on a single crop pair and return summary statistics.
 
@@ -205,15 +284,22 @@ def compute_crop_flow(
     dt
         Temporal stride between the two frames.
     thresh
-        Intensity threshold for foreground masking.  Default ``0.0``.
+        Intensity threshold for foreground masking.
     attachment
-        TVL1 data-fidelity weight (λ).  Default ``7.5``.
+        TVL1 data-fidelity weight (λ).
     compute_block_coherence
         If True, compute multi-scale block-averaged coherence
-        statistics.  Default False.
+        statistics.
+    compute_fast_coherence
+        If True, compute speed-thresholded coherence.
+    compute_radial_coherence
+        If True, compute radial coherence.
+    speed_threshold
+        Speed threshold for fast-coherence features.
 
     Returns
     -------
+    :
         Flat dictionary of scalar flow statistics keyed by feature
         name, including ``crop_index``, ``timepoint``, and ``dt``.
     """
@@ -228,6 +314,9 @@ def compute_crop_flow(
         dt,
         thresh,
         compute_block_coherence,
+        compute_fast_coherence,
+        compute_radial_coherence,
+        speed_threshold,
     )
 
 
@@ -244,6 +333,9 @@ def compute_image_pair_flow(
     thresh: float,
     attachment: float = 7.5,
     compute_block_coherence: bool = False,
+    compute_fast_coherence: bool = False,
+    compute_radial_coherence: bool = False,
+    speed_threshold: float = 1.0,
 ) -> list[dict]:
     """Run TVL1 on a full-resolution frame pair, then compute per-crop stats.
 
@@ -275,10 +367,16 @@ def compute_image_pair_flow(
     thresh
         Intensity threshold for foreground masking.
     attachment
-        TVL1 data-fidelity weight (λ).  Default ``7.5``.
+        TVL1 data-fidelity weight (λ).
     compute_block_coherence
         If True, compute multi-scale block-averaged coherence
-        statistics for each crop.  Default False.
+        statistics for each crop.
+    compute_fast_coherence
+        If True, compute speed-thresholded coherence.
+    compute_radial_coherence
+        If True, compute radial coherence.
+    speed_threshold
+        Speed threshold for fast-coherence features.
 
     Returns
     -------
@@ -299,6 +397,9 @@ def compute_image_pair_flow(
             dt,
             thresh,
             compute_block_coherence,
+            compute_fast_coherence,
+            compute_radial_coherence,
+            speed_threshold,
         )
         for i in range(n_crops)
     ]

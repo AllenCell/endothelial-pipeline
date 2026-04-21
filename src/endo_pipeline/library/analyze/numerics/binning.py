@@ -206,7 +206,7 @@ def get_histogram_by_component(
     bin_limits: list[tuple[float, float]],
     feat_cols: list[str] | None = None,
 ) -> tuple[list[list[np.ndarray]], list[np.ndarray]]:
-    """Get histogram of feature data at for each latent component over time.
+    """Get histogram of feature data for each latent component over time.
 
     Parameters
     ----------
@@ -403,8 +403,46 @@ def histogramdd(sample: np.ndarray, bins: list[np.ndarray], weights: np.ndarray)
     core: tuple[slice, ...] = num_dims * (slice(1, -1),)
 
     # slice the histogram to remove outliers
-    # Tell MyPy to ignore the type error here,
-    # doesn't like indexing via ellipsis
-    hist = hist[..., *core]  # type: ignore
+    hist = hist[..., *core]
 
     return hist
+
+
+def adjust_limits_from_bin_size(
+    data_min_max: tuple[float, float],
+    defined_min_max: tuple[float | None, float | None],
+    bin_size: float,
+) -> tuple[float, float]:
+    """Adjust some (min, max) limits based on the data limits, bin size, and defined limits such
+    that the limits can fit a whole number of bins.
+    If the defined limits are not None, then use those. Otherwise, adjust the limits based on the
+    data limits and bin size.
+
+    Parameters
+    ----------
+    data_min_max
+        Tuple of (min, max) values for the data to be binned.
+    defined_min_max
+        Tuple of (min, max) values for the bin limits defined by the user. If None,
+        the limits will be adjusted based on the data limits and bin size.
+    bin_size
+        Size of the bins to be used for binning the data.
+    """
+    data_min, data_max = data_min_max
+    defined_min, defined_max = defined_min_max
+
+    if defined_min is not None and data_min < defined_min:
+        raise ValueError("Minimum bin value from data is less than defined bin minimum.")
+    if defined_max is not None and data_max > defined_max:
+        raise ValueError("Maximum bin value from data is greater than defined bin maximum.")
+
+    adjust_lim_min_from_bin_func = lambda bin_min, bin_min_lim: (
+        np.floor(bin_min / bin_size) * bin_size if bin_min_lim is None else bin_min_lim
+    )
+    adjust_lim_max_from_bin_func = lambda bin_max, bin_max_lim: (
+        np.ceil(bin_max / bin_size) * bin_size if bin_max_lim is None else bin_max_lim
+    )
+    bin_min = adjust_lim_min_from_bin_func(data_min, defined_min)
+    bin_max = adjust_lim_max_from_bin_func(data_max, defined_max)
+
+    return bin_min, bin_max

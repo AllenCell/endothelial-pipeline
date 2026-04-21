@@ -4,7 +4,6 @@ from typing import Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.colors import to_rgb
 from scipy.interpolate import make_interp_spline
 
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
@@ -23,6 +22,9 @@ def plot_histogram_and_kde(
     kernel_period: float | None,
     hist_color: str = "blue",
     hist_alpha: float = 0.5,
+    hist_hatch: str = "",
+    hist_fill: bool = True,
+    hist_line_style: str = "-",
     kde_line_style: str = "-",
     kde_color: str = "k",
     kde_label: str | None = None,
@@ -53,6 +55,8 @@ def plot_histogram_and_kde(
         The color to use for the histogram bars.
     hist_alpha
         The alpha (transparency) value to use for the histogram bars.
+    hist_hatch
+        The hatch pattern to use for the histogram bars (e.g. "/", "//", "-", "x", "o", ".", "*").
     kde_line_style
         The line style to use for the KDE plot.
     kde_color
@@ -103,13 +107,17 @@ def plot_histogram_and_kde(
     spline_list.append(one_spline)
     hist_kde_smooth_list.append(one_spline(interp_centers))
 
-    # plot histogram of the column variance with KDE overlaid
+    # if not filling with color increase alpha to show hatched bars more clearly
     axes.bar(
         bins[0][:-1],
         hist,
         width=np.diff(bins[0]),
-        color=(*to_rgb(hist_color), hist_alpha),
-        edgecolor=(*to_rgb("k"), 1.0),
+        facecolor=hist_color,
+        edgecolor=hist_color,
+        fill=hist_fill,
+        hatch=hist_hatch,
+        linestyle=hist_line_style,
+        alpha=hist_alpha,
         align="edge",
     )
     for hist_kde_smooth in hist_kde_smooth_list:
