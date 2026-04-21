@@ -360,12 +360,12 @@ def plot_drift_1d(
     drift: np.ndarray,
     x_values: np.ndarray,
     fig_ax: tuple[plt.Figure, plt.Axes] | None = None,
-    figsize: tuple[float, float] = (7, 4),
+    figsize: tuple[float, float] = (4, 4),
     axes_limits: list[tuple[float, float]] | None = None,
     axes_labels: list[str] | None = None,
     add_flow_arrows: bool = True,
-    flow_arrow_downsample: int = 4,
-    flow_arrow_kwargs: dict | None = None,
+    flow_arrow_downsample: int = 5,
+    flow_arrow_kwargs: dict | None = {"color": "dimgrey", "linewidth": 1.5},
     gridspec_kwargs: dict | None = None,
     drift_line_kwargs: dict | None = None,
     zero_line_kwargs: dict | None = None,
@@ -439,6 +439,21 @@ def plot_drift_1d(
         # in x (with "drift" in y = 0)
         y_values = np.zeros_like(x_values)
         drift_y = np.zeros_like(drift)
+
+        # if scale is not specified in flow_arrow_kwargs, set it automatically
+        # based on the maximum absolute value of the drift and the space between
+        # arrows, to make arrow lengths visually informative without being too
+        # small or too large
+        if flow_arrow_kwargs is None or "scale" not in flow_arrow_kwargs:
+            max_drift = np.max(np.abs(drift))
+            downsample_spacing = np.mean(np.diff(x_values[::flow_arrow_downsample]))
+            if max_drift > 0:
+                flow_arrow_kwargs = flow_arrow_kwargs or {}
+                flow_arrow_kwargs["scale"] = max_drift / downsample_spacing * 0.75
+            else:
+                flow_arrow_kwargs = flow_arrow_kwargs or {}
+                flow_arrow_kwargs["scale"] = 1.0
+
         ax.quiver(
             x_values[::flow_arrow_downsample],
             y_values[::flow_arrow_downsample],
