@@ -11,7 +11,13 @@ import numpy as np
 import pandas as pd
 
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.io import get_output_path, join_sorted_strings, load_dataframe, save_plot_to_path
+from endo_pipeline.io import (
+    get_output_path,
+    join_sorted_strings,
+    load_dataframe,
+    load_model,
+    save_plot_to_path,
+)
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
 from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
     add_optical_flow_features,
@@ -30,10 +36,11 @@ from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     get_dataset_color,
     get_label_for_column,
 )
+from endo_pipeline.library.visualize.figure_2 import make_crop_example_contact_sheet
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
 from endo_pipeline.library.visualize.migration_coherence import plot_optical_flow_histogram
 from endo_pipeline.library.visualize.summary_plot import plot_cross_dataset_summaries
-from endo_pipeline.manifests import load_dataframe_manifest
+from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import METADATA_COLUMNS_TO_KEEP, POLAR_ANGLE_RANGE
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
@@ -100,6 +107,12 @@ fixed_points_theta_dataframe_manifest_name = (
 fixed_points_theta_dataframe_manifest = load_dataframe_manifest(
     fixed_points_theta_dataframe_manifest_name
 )
+fixed_points_3d_dataframe_manifest_name = (
+    f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{feature_columns_str}_{base_name}"
+)
+fixed_points_3d_dataframe_manifest = load_dataframe_manifest(
+    fixed_points_3d_dataframe_manifest_name
+)
 bootstrap_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}"
 bootstrap_dataframe_manifest = load_dataframe_manifest(bootstrap_dataframe_manifest_name)
 
@@ -108,6 +121,12 @@ columns_for_summary_plots = [*feature_column_names, optical_flow_feature]
 column_labels_r_rho = [get_label_for_column(col).replace("polar ", "") for col in columns_r_rho]
 column_label_theta = get_label_for_column(column_theta).replace("polar ", "")
 dataframe_columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *feature_column_names]
+
+
+# load and instantiate model for generating synthetic images
+model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
+model_location = model_manifest.locations[DEFAULT_MODEL_RUN_NAME]
+model = load_model(model_location, instantiate=True)
 
 # global plotting kwargs / parameters
 gridspec_kwargs = {"wspace": 0.1, "hspace": 0.1}
@@ -118,8 +137,6 @@ r_lims = (0.2, 1.8)
 rho_lims = (-1.05, 1.05)
 nullcline_r_style = "dashed"
 nullcline_rho_style = (0, (1, 1))  # dense dotted
-
-
 # %%
 
 # make svg of just the colorbar with set ticks and extended on both sides
@@ -139,9 +156,9 @@ save_plot_to_path(fig, base_output_dir, "colorbar", file_format=".svg", transpar
 # loop over datasets in collection, compute 2D drift coefficients for each
 # pairwise combination of polar coordinates, and plot contours of drift coefficients
 panels = []
-for dataset_name, panel_letters, y_position in [
-    (dataset_low, ("A", "B"), 0.0),
-    (dataset_high, ("C", "D"), 2.05),
+for dataset_name, panel_letters, y_position, contact_sheet_x_position in [
+    (dataset_low, ("A", "B", "E"), 0.0, 0.0),
+    (dataset_high, ("C", "D", "F"), 2.05, MAX_FIGURE_WIDTH / 2),
 ]:
     fig_savedir = get_output_path("figure_2", dataset_name)
     dataset_config = load_dataset_config(dataset_name)
@@ -154,6 +171,7 @@ for dataset_name, panel_letters, y_position in [
     for column_key, manifest in [
         (columns_r_rho_str, fixed_points_r_rho_dataframe_manifest),
         (column_theta, fixed_points_theta_dataframe_manifest),
+        (feature_columns_str, fixed_points_3d_dataframe_manifest),
     ]:
         df_fixed_points = load_dataframe(manifest.locations[dataset_name])
         df_stable_fixed_points = df_fixed_points[
@@ -294,6 +312,24 @@ for dataset_name, panel_letters, y_position in [
     ax.set_yticks([-0.3, 0.0, 0.3])
     save_plot_to_path(fig, fig_savedir, theta_plot_filename, file_format=".svg")
 
+    # make contact sheet of example crops at stable fixed points for this
+    # dataset (panel below the flow field visualizations)
+    feature_dataframe = load_dataframe(feature_dataframe_manifest.locations[dataset_name])
+    dataframe_steady_state = filter_dataframe_to_steady_state(feature_dataframe, dataset_config)
+    crop_contact_sheet_path = make_crop_example_contact_sheet(
+        dataset_config=dataset_config,
+        stable_fixed_point_dataframe=stable_fixed_points_dict[feature_columns_str],
+        crop_features_dataframe=dataframe_steady_state,
+        feature_column_names=feature_column_names,
+        model=model,
+        n_crop_examples=2,
+        fig_savedir=fig_savedir,
+        fig_filename=f"{dataset_name}_crop_examples",
+        file_format=".svg",
+        gridspec_kwargs=gridspec_kwargs,
+        fig_kwargs={"figsize": (MAX_FIGURE_WIDTH / 2 - 0.1, 2.0)},
+    )
+
     # build panels for this dataset's visualizations, adjusting positions based
     # on dataset to stack vertically in figure
 
@@ -332,7 +368,17 @@ for dataset_name, panel_letters, y_position in [
         x_offset=0.4,
         y_offset=-0.2,
     )
-    panels.extend([contour_plots, colorbar_panel, quiver_plot, theta_plot])
+
+    contact_sheet_panel = FigurePanel(
+        letter=panel_letters[2],
+        path=crop_contact_sheet_path,
+        x_position=contact_sheet_x_position,
+        y_position=4.0,
+        x_offset=0.0,
+        y_offset=0.0,
+    )
+
+    panels.extend([contour_plots, colorbar_panel, quiver_plot, theta_plot, contact_sheet_panel])
 
 # %%
 # --- Cross-dataset summary plots ---
