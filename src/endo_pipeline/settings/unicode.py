@@ -24,6 +24,12 @@ class UnicodeCharacters(StrEnum):
     GEQ = "\u2265"
     """Unicode for greater than or equal to (using LaTeX naming convention)."""
 
+    LANGLE = "\u27e8"
+    """Unicode for left angle bracket (using LaTeX naming convention)."""
+
+    RANGLE = "\u27e9"
+    """Unicode for right angle bracket (using LaTeX naming convention)."""
+
     RIGHT_ARROW = "\u2192"
     """Unicode for right arrow."""
 
