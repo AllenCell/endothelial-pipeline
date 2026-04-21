@@ -332,12 +332,6 @@ class ColumnName:
         XY_SHIFT = "xy_shift"
         Z_SHIFT = "z_shift"
 
-    class TFE(StrEnum):
-        """Dataframe column names used in the timelapse feature explorer manifest."""
-
-        SEGMENTATION_IMAGE_FILENAME = "seg_image"
-        """Column name for the segmentation image filename (filename and suffix only; not full path)."""
-
     class OpticalFlow(StrEnum):
         """Dataframe column names used in the optical-flow feature workflow."""
 
