@@ -86,7 +86,6 @@ def main(
     # default bin limits (used for axes limits) and period for circular
     # variables (used for KDE computation)
     bin_limits_dict = BIN_LIMITS_DYNAMICS
-    polar_angle_period = POLAR_ANGLE_PERIOD
 
     for dataset_name in dataset_names:
         if (
@@ -238,7 +237,7 @@ def main(
         tracked_avg_kde_dict: dict = {}
         tracked_var_kde_dict: dict = {}
         for column_name in column_names:
-            period = polar_angle_period if column_name == Column.DiffAEData.POLAR_ANGLE else None
+            period = POLAR_ANGLE_PERIOD if column_name == Column.DiffAEData.POLAR_ANGLE else None
 
             for crop_pattern, avg_kde_dict, var_kde_dict in [
                 ("grid", grid_avg_kde_dict, grid_var_kde_dict),
@@ -266,7 +265,7 @@ def main(
                     var_bin_centers, var_kde_values = compute_kde_on_bins(
                         data=var_data_all,
                         bin_width=bin_width_variances,
-                        kernel_name=kernel_names_dict[column_name],
+                        kernel_name="gaussian",
                         kernel_bandwidth=1.5 * bin_width_variances,
                         kernel_period=None,
                         bins=bins_var_dict[crop_pattern][column_name],
