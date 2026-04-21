@@ -18,18 +18,15 @@ from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalK
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     add_track_duration_to_dataframe,
 )
-from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.settings.column_names import ColumnName as Column
 
 
 def compute_kde_on_bins(
     data: np.ndarray,
-    bin_width: float,
+    bins: np.ndarray,
     kernel_name: Literal["gaussian", "epanechnikov", "periodic"],
     kernel_bandwidth: float,
     kernel_period: float | None,
-    bins: np.ndarray | None = None,
-    pad_bins: float = 0.0,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Compute a kernel density estimate (KDE) on the native histogram bin centers.
 
@@ -43,42 +40,30 @@ def compute_kde_on_bins(
     ----------
     data
         1D array of data points to estimate the density for.
-    bin_width
-        The width of the histogram bins used to compute the KDE.
+    bins
+        Pre-computed bin edges (1D array) to use for the histogram and KDE.
     kernel_name
         The name of the kernel to use for the KDE.
     kernel_bandwidth
         The bandwidth parameter for the kernel density estimate.
     kernel_period
         The period for periodic kernels (pass None for non-periodic kernels).
-    bins
-        Pre-computed bin edges (1D array) to use instead of deriving them from
-        ``data``.  Pass this to ensure all bootstrap samples share the same
-        bin grid so their KDE arrays can be stacked and averaged.  When
-        ``None``, bin edges are derived from ``data``.
-    pad_bins
-        Amount to pad histogram bins on either side of the data range.
-        Ignored when ``bins`` is provided.
 
     Returns
     -------
-    tuple[np.ndarray, np.ndarray]
+    :
         ``(bin_centers, kde_values)`` — both 1D arrays of the same length.
 
     """
-    if bins is not None:
-        computed_bins = [bins]
-        centers = [(bins[:-1] + bins[1:]) / 2]
-    else:
-        computed_bins, centers = get_bins(bin_widths=(bin_width,), data=data, pad=pad_bins)
-    hist = np.histogram(data, bins=computed_bins[0], density=True)[0]
+    bin_centers = (bins[:-1] + bins[1:]) / 2
+    hist = np.histogram(data, bins=bins, density=True)[0]
     kernel = KramersMoyalKernel(
         name=kernel_name,
         bandwidth=kernel_bandwidth,
         period=kernel_period,
     )
-    hist_kde = get_kernel_density_estimate_from_histogram(hist, bins=computed_bins, kernel=kernel)
-    return centers[0], hist_kde
+    hist_kde = get_kernel_density_estimate_from_histogram(hist, bins=[bins], kernel=kernel)
+    return hist_kde, bin_centers
 
 
 def process_dataframe_for_track_statistics(

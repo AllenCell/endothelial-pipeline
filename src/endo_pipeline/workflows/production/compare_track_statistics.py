@@ -260,14 +260,21 @@ def main(
                 var_data_all = (
                     column_variance_df_dict[crop_pattern][column_name].dropna().to_numpy()
                 )
+                # using pre-computed bins for each crop pattern and column to
+                # compute KDEs for the average and variance, ensuring the KDEs
+                # are computed on the same bin grid for each bootstrap sample
+                # and crop pattern for easier comparison and plotting later.
+                avg_bins = bins_avg_dict[crop_pattern][column_name]
+                var_bins = bins_var_dict[crop_pattern][column_name]
+                avg_bin_centers = (avg_bins[:-1] + avg_bins[1:]) / 2
+                var_bin_centers = (var_bins[:-1] + var_bins[1:]) / 2
                 if crop_pattern == "grid":
-                    avg_bin_centers, avg_kde_values = compute_kde_on_bins(
+                    avg_kde_values = compute_kde_on_bins(
                         data=avg_data_all,
-                        bin_width=BIN_WIDTH_FOR_AVERAGE,
+                        bins=avg_bins,
                         kernel_name=kernel_names_dict[column_name],
                         kernel_bandwidth=1.5 * BIN_WIDTH_FOR_AVERAGE,
                         kernel_period=period,
-                        bins=bins_avg_dict[crop_pattern][column_name],
                     )
                     avg_kde_dict[column_name] = {
                         "bin_centers": avg_bin_centers,
@@ -275,13 +282,12 @@ def main(
                         "ci_lower": None,
                         "ci_upper": None,
                     }
-                    var_bin_centers, var_kde_values = compute_kde_on_bins(
+                    var_kde_values = compute_kde_on_bins(
                         data=var_data_all,
-                        bin_width=BIN_WIDTH_FOR_VARIANCE,
+                        bins=var_bins,
                         kernel_name="gaussian",
                         kernel_bandwidth=1.5 * BIN_WIDTH_FOR_VARIANCE,
                         kernel_period=None,
-                        bins=bins_var_dict[crop_pattern][column_name],
                     )
                     var_kde_dict[column_name] = {
                         "bin_centers": var_bin_centers,
@@ -290,13 +296,6 @@ def main(
                         "ci_upper": None,
                     }
                 elif crop_pattern == "tracked":
-                    # use fixed bins derived from the full tracked data so all bootstrap
-                    # samples share the same bin-center grid and can be stacked directly
-                    fixed_avg_bins = bins_avg_dict[crop_pattern][column_name]
-                    fixed_var_bins = bins_var_dict[crop_pattern][column_name]
-                    tracked_avg_bin_centers = (fixed_avg_bins[:-1] + fixed_avg_bins[1:]) / 2
-                    tracked_var_bin_centers = (fixed_var_bins[:-1] + fixed_var_bins[1:]) / 2
-
                     avg_kdes: list[np.ndarray] = []
                     var_kdes: list[np.ndarray] = []
                     # Begin bootstrap procedure
@@ -314,34 +313,32 @@ def main(
                         sample_avg = avg_data_all[sampled_indices]
                         _, avg_kde_values = compute_kde_on_bins(
                             data=sample_avg,
-                            bin_width=BIN_WIDTH_FOR_AVERAGE,
+                            bins=avg_bins,
                             kernel_name=kernel_names_dict[column_name],
                             kernel_bandwidth=1.5 * BIN_WIDTH_FOR_AVERAGE,
                             kernel_period=period,
-                            bins=fixed_avg_bins,
                         )
                         avg_kdes.append(avg_kde_values)
                         sample_var = var_data_all[sampled_indices]
                         _, var_kde_values = compute_kde_on_bins(
                             data=sample_var,
-                            bin_width=BIN_WIDTH_FOR_VARIANCE,
+                            bins=var_bins,
                             kernel_name="gaussian",
                             kernel_bandwidth=1.5 * BIN_WIDTH_FOR_VARIANCE,
                             kernel_period=None,
-                            bins=fixed_var_bins,
                         )
                         var_kdes.append(var_kde_values)
 
                     avg_kdes_arr = np.array(avg_kdes)
                     var_kdes_arr = np.array(var_kdes)
                     avg_kde_dict[column_name] = {
-                        "bin_centers": tracked_avg_bin_centers,
+                        "bin_centers": avg_bin_centers,
                         "kde_values": np.nanmean(avg_kdes_arr, axis=0),
                         "ci_lower": np.nanpercentile(avg_kdes_arr, ci_lower, axis=0),
                         "ci_upper": np.nanpercentile(avg_kdes_arr, ci_upper, axis=0),
                     }
                     var_kde_dict[column_name] = {
-                        "bin_centers": tracked_var_bin_centers,
+                        "bin_centers": var_bin_centers,
                         "kde_values": np.nanmean(var_kdes_arr, axis=0),
                         "ci_lower": np.nanpercentile(var_kdes_arr, ci_lower, axis=0),
                         "ci_upper": np.nanpercentile(var_kdes_arr, ci_upper, axis=0),
