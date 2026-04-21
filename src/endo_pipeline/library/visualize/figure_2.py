@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Literal
 
 import pandas as pd
+from matplotlib.layout_engine import ConstrainedLayoutEngine
 
 from endo_pipeline.configs import DatasetConfig
 from endo_pipeline.io import load_image, save_plot_to_path
@@ -208,7 +209,9 @@ def make_crop_example_contact_sheet(
     shear_stress = math.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
     shear_stress_label = f"{shear_stress} dyn/cm²"
     # reserve left margin for the vertical label (rect = [left, bottom, right, top])
-    fig.get_layout_engine().set(rect=(0.02, 0, 1, 1))
+    layout_engine = fig.get_layout_engine()
+    if isinstance(layout_engine, ConstrainedLayoutEngine):
+        layout_engine.set(rect=(0.02, 0, 1, 1))
     # add vertical title to the left of the contact sheet spanning all rows
     fig.text(
         0,

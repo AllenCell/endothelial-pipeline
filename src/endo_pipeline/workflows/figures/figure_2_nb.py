@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from endo_pipeline.cli import NUM_GPUS
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import (
     get_output_path,
@@ -37,7 +36,6 @@ from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     get_dataset_color,
     get_label_for_column,
 )
-from endo_pipeline.library.visualize.figure_2 import make_crop_example_contact_sheet
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
 from endo_pipeline.library.visualize.migration_coherence import plot_optical_flow_histogram
 from endo_pipeline.library.visualize.summary_plot import plot_cross_dataset_summaries
@@ -209,7 +207,7 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
         centers_mesh,
         drift_r_rho,
         variable_labels=column_labels_r_rho,
-        figsize=(1.75, 1.85),
+        figsize=(1.75, 1.9),
         axes_limits=(r_lims, rho_lims),
         axes_aspect=None,
         axes_titles=(f"d{column_labels_r_rho[0]}/dt", f"d{column_labels_r_rho[1]}/dt"),
@@ -241,7 +239,7 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
     shear_stress = math.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
     shear_stress_label = f"{shear_stress} dyn/cm²"
     # reserve left margin for the vertical label
-    fig.subplots_adjust(left=0.01)
+    fig.subplots_adjust(left=0.08)
     # add vertical title to the left of the contour plot spanning all rows
     fig.text(
         0.0,
@@ -372,23 +370,23 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
 
     # make contact sheet of example crops at stable fixed points for this
     # dataset (panel below the flow field visualizations)
-    feature_dataframe = load_dataframe(feature_dataframe_manifest.locations[dataset_name])
-    dataframe_steady_state = filter_dataframe_to_steady_state(feature_dataframe, dataset_config)
-    crop_contact_sheet_path = make_crop_example_contact_sheet(
-        dataset_config=dataset_config,
-        stable_fixed_point_dataframe=stable_fixed_points_dict[feature_columns_str],
-        crop_features_dataframe=dataframe_steady_state,
-        feature_column_names=feature_column_names,
-        model=model,
-        n_crop_examples=2,
-        fig_savedir=fig_savedir,
-        fig_filename=f"{dataset_name}_crop_examples",
-        file_format=".svg",
-        gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
-        fig_kwargs={"figsize": (MAX_FIGURE_WIDTH / 2 - 0.2, 2), "layout": "constrained"},
-        random_seed=7,
-        num_gpus=NUM_GPUS,
-    )
+    # feature_dataframe = load_dataframe(feature_dataframe_manifest.locations[dataset_name])
+    # dataframe_steady_state = filter_dataframe_to_steady_state(feature_dataframe, dataset_config)
+    # crop_contact_sheet_path = make_crop_example_contact_sheet(
+    #     dataset_config=dataset_config,
+    #     stable_fixed_point_dataframe=stable_fixed_points_dict[feature_columns_str],
+    #     crop_features_dataframe=dataframe_steady_state,
+    #     feature_column_names=feature_column_names,
+    #     model=model,
+    #     n_crop_examples=2,
+    #     fig_savedir=fig_savedir,
+    #     fig_filename=f"{dataset_name}_crop_examples",
+    #     file_format=".svg",
+    #     gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
+    #     fig_kwargs={"figsize": (MAX_FIGURE_WIDTH / 2 - 0.2, 2), "layout": "constrained"},
+    #     random_seed=7,
+    #     num_gpus=NUM_GPUS,
+    # )
 
 # %%
 # --- Cross-dataset summary plots ---
@@ -490,7 +488,7 @@ panels = [
         x_position=0,
         y_position=1.85,
         x_offset=0.15,
-        y_offset=0,
+        y_offset=-0.05,
     ),
     FigurePanel(
         letter="",
@@ -521,17 +519,17 @@ panels = [
         letter="E",
         path=fig_savedir_low / f"{dataset_low}_crop_examples.svg",
         x_position=0.0,
-        y_position=3.75,
+        y_position=3.8,
         x_offset=0.08,
-        y_offset=0.08,
+        y_offset=0.12,
     ),
     FigurePanel(
         letter="F",
         path=fig_savedir_high / f"{dataset_high}_crop_examples.svg",
         x_position=MAX_FIGURE_WIDTH / 2,
-        y_position=3.75,
+        y_position=3.8,
         x_offset=0.08,
-        y_offset=0.08,
+        y_offset=0.12,
     ),
     # --- Bottom row ---
     FigurePanel(
