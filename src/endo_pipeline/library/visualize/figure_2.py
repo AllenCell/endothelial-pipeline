@@ -1,9 +1,11 @@
 """Helper functions for visualizations used in Figure 2."""
 
+import math
 from pathlib import Path
 from typing import Literal
 
 import pandas as pd
+from matplotlib.layout_engine import ConstrainedLayoutEngine
 
 from endo_pipeline.configs import DatasetConfig
 from endo_pipeline.io import load_image, save_plot_to_path
@@ -18,11 +20,16 @@ from endo_pipeline.library.process.image_processing import (
     max_proj,
     std_dev,
 )
-from endo_pipeline.library.visualize.figure_utils import make_contact_sheet
+from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL
+from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL
+from endo_pipeline.settings.image_data import (
+    DIFFAE_ZARR_RESOLUTION_LEVEL,
+    PIXEL_SIZE_3i_20x_RESOLUTION_1,
+)
 from endo_pipeline.settings.plot_defaults import CROP_HIST_BIN_WIDTH
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
 
@@ -42,6 +49,7 @@ def make_crop_example_contact_sheet(
     image_loading_resolution_level: int = DIFFAE_ZARR_RESOLUTION_LEVEL,
     num_gpus: int | None = None,
     random_seed: int | None = RANDOM_SEED,
+    scale_bar_um: int = 10,
 ) -> Path:
     """
     Make figure panel plot showing example crops at stable fixed points.
@@ -88,6 +96,8 @@ def make_crop_example_contact_sheet(
     random_seed
         Random seed for reproducibility of image generation. If None, will use a
         random seed.
+    scale_bar_um
+        Length of the scale bar in micrometers.
 
     Returns
     -------
@@ -155,23 +165,73 @@ def make_crop_example_contact_sheet(
 
         gfp_crop = crop_image(gfp_max_proj, crop_x_start, crop_y_start, crop_size)
         bf_crop = crop_image(log_bf_std_dev, crop_x_start, crop_y_start, crop_size)
+
         real_gfp_list.append(gfp_crop)
         real_brightfield_list.append(bf_crop)
 
-    contact_sheet = make_contact_sheet(
+    fig = make_contact_sheet(
         panels=[*generated_image_list, *real_gfp_list, *real_brightfield_list],
         max_rows=n_crop_examples,
         max_cols=3,
+        col_titles=["Reconstruction", "VE-Cad MIP", "BF Std. Dev. Proj"],
+        row_titles=[f"Example {i+1}" for i in range(n_crop_examples)],
         direction="top-down first",
         gridspec_kwargs=gridspec_kwargs,
+        subplot_kwargs={"frame_on": False},
         fig_kwargs=fig_kwargs,
+        font_size=FONTSIZE_MEDIUM,
+    )
+
+    for ax in fig.axes:
+        ax.xaxis.labelpad = 2
+        ax.yaxis.labelpad = 2
+        ax.tick_params(axis="both", pad=2)
+
+        add_scalebar(
+            ax,
+            scale_bar_um=scale_bar_um,
+            pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
+            location="lower right",
+            bar_thickness=4,
+            padding=6,
+        )
+
+    fig.axes[0].text(
+        0.96,
+        0.08,
+        f"{scale_bar_um} {Unicode.MU}m",
+        color="white",
+        transform=fig.axes[0].transAxes,
+        fontsize=FONTSIZE_SMALL,
+        va="bottom",
+        ha="right",
+    )
+
+    shear_stress = math.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
+    shear_stress_label = f"{shear_stress} dyn/cm{Unicode.SQUARED}"
+    # reserve left margin for the vertical label (rect = [left, bottom, right, top])
+    layout_engine = fig.get_layout_engine()
+    if isinstance(layout_engine, ConstrainedLayoutEngine):
+        layout_engine.set(rect=(0.02, 0, 1, 1))
+    # add vertical title to the left of the contact sheet spanning all rows
+    fig.text(
+        0,
+        0.5,
+        shear_stress_label,
+        va="center",
+        ha="center",
+        rotation="vertical",
+        fontsize=FONTSIZE_MEDIUM,
+        fontweight="bold",
     )
 
     save_plot_to_path(
-        contact_sheet,
+        fig,
         fig_savedir,
         fig_filename,
         file_format=file_format,
+        tight_layout=False,
+        pad_inches=0,
     )
 
     return fig_savedir / f"{fig_filename}{file_format}"
