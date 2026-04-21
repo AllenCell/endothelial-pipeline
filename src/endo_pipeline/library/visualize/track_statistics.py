@@ -15,38 +15,28 @@ from endo_pipeline.library.analyze.numerics.binning import get_bins
 
 def plot_kde_of_histogram(
     axes: plt.Axes,
-    data: np.ndarray,
-    bin_width: float,
-    kernel_name: Literal["gaussian", "epanechnikov", "periodic"],
-    kernel_bandwidth: float,
-    kernel_period: float | None,
+    x_eval: np.ndarray,
+    kde_values: np.ndarray,
     kde_line_style: str = "-",
     kde_color: str = "k",
     kde_label: str | None = None,
-    kde_linewidth: float = 1.5,
-    pad_bins: float = 0.0,
+    kde_linewidth: float = 2.0,
     axes_title: str | None = None,
     axes_xlimits: tuple[float, float] | None = None,
     axes_xlabel: str | None = None,
     axes_ylabel: str | None = None,
 ) -> None:
-    """Add a histogram of input data with an overlaid kernel density estimate (KDE) to existing axes.
+    """Add a pre-computed kernel density estimate (KDE) to existing axes.
 
     Parameters
     ----------
     axes
         The matplotlib Axes object to plot on.
-    data
-        1D array of data points to plot the histogram and KDE for.
-    bin_width
-        The width of the bins to use for the histogram.
-    kernel_name
-        The name of the kernel to use for the KDE.
-    kernel_bandwidth
-        The bandwidth parameter for the kernel density estimate.
-    kernel_period
-        The period parameter for the kernel density estimate (only used for
-        periodic kernels).
+    x_eval
+        1D array of x-values at which the KDE was evaluated.
+    kde_values
+        1D array of KDE values at each point in ``x_eval``, as returned by
+        :func:`compute_interpolated_kde_spline`.
     kde_line_style
         The line style to use for the KDE plot.
     kde_color
@@ -54,8 +44,8 @@ def plot_kde_of_histogram(
     kde_label
         The label to use for the KDE plot in the legend (set to None to omit
         from legend).
-    pad_bins
-        The amount to pad the histogram bins on either side of the data range.
+    kde_linewidth
+        The line width to use for the KDE plot.
     axes_title
         The title to set for the axes (set to None to omit).
     axes_xlimits
@@ -66,47 +56,14 @@ def plot_kde_of_histogram(
         The label to set for the y-axis (set to None to omit).
 
     """
-    # get histogram of the column average using bin widths of 0.1,
-    # adjusting x-axis limits based on bin limits for the column
-    bins, centers = get_bins(bin_widths=(bin_width,), data=data, pad=pad_bins)
-    hist = np.histogram(data, bins=bins[0], density=True)[0]
-    kernel = KramersMoyalKernel(
-        name=kernel_name,
-        bandwidth=kernel_bandwidth,
-        period=kernel_period,
+    axes.plot(
+        x_eval,
+        kde_values,
+        color=kde_color,
+        linewidth=kde_linewidth,
+        linestyle=kde_line_style,
+        label=kde_label,
     )
-    hist_kde = get_kernel_density_estimate_from_histogram(hist, bins=bins, kernel=kernel)
-    # interpolate between histogram centers for smoother KDE plot
-    interp_centers = np.linspace(bins[0][0], bins[0][-1], 2000)
-    # in some datasets the kde hist can have nan values due to the probability densities
-    # being below a threshold specified in `_convolve_histogram_with_kernel`
-    # if there are nan values then split the array into multiple contiguous segments
-    # where the arrays are finite and perform spline interpolation on each segment separately,
-    # then plot each segment of the KDE separately
-    spline_list = []
-    hist_kde_smooth_list = []
-    centers_one_spline, hist_kde_one_spline = [], []
-    for i, val in enumerate(hist_kde.tolist()):
-        if np.isnan(val):
-            continue
-        else:
-            centers_one_spline.append(centers[0][i])
-            hist_kde_one_spline.append(val)
-    one_spline = make_interp_spline(centers_one_spline, hist_kde_one_spline, k=3)
-    # k=3 for cubic spline
-    spline_list.append(one_spline)
-    hist_kde_smooth_list.append(one_spline(interp_centers))
-
-    # plot just the KDE
-    for hist_kde_smooth in hist_kde_smooth_list:
-        axes.plot(
-            interp_centers,
-            hist_kde_smooth,
-            color=kde_color,
-            linewidth=1.5,
-            linestyle=kde_line_style,
-            label=kde_label,
-        )
     if axes_title is not None:
         axes.set_title(axes_title)
     if axes_xlimits is not None:
@@ -117,3 +74,53 @@ def plot_kde_of_histogram(
         axes.set_ylabel(axes_ylabel)
     if kde_label is not None:
         axes.legend(loc="upper right")
+
+
+def compute_interpolated_kde_spline(
+    data: np.ndarray,
+    x_eval: np.ndarray,
+    bin_width: float,
+    kernel_name: Literal["gaussian", "epanechnikov", "periodic"],
+    kernel_bandwidth: float,
+    kernel_period: float | None,
+    pad_bins: float = 0.0,
+) -> np.ndarray:
+    """Compute a kernel density estimate (KDE) for data, evaluated at fixed x_eval points.
+
+    Parameters
+    ----------
+    data
+        1D array of data points to estimate the density for.
+    x_eval
+        1D array of x-values at which to evaluate the KDE.
+    bin_width
+        The width of the histogram bins used to compute the KDE.
+    kernel_name
+        The name of the kernel to use for the KDE.
+    kernel_bandwidth
+        The bandwidth parameter for the kernel density estimate.
+    kernel_period
+        The period for periodic kernels (pass None for non-periodic kernels).
+    pad_bins
+        Amount to pad histogram bins on either side of the data range.
+
+    Returns
+    -------
+    np.ndarray
+        KDE values evaluated at each point in ``x_eval``. Points outside the
+        data range or where the spline cannot be computed are returned as NaN.
+
+    """
+    bins, centers = get_bins(bin_widths=(bin_width,), data=data, pad=pad_bins)
+    hist = np.histogram(data, bins=bins[0], density=True)[0]
+    kernel = KramersMoyalKernel(
+        name=kernel_name,
+        bandwidth=kernel_bandwidth,
+        period=kernel_period,
+    )
+    hist_kde = get_kernel_density_estimate_from_histogram(hist, bins=bins, kernel=kernel)
+    finite_mask = np.isfinite(hist_kde)
+    if finite_mask.sum() < 4:
+        return np.full(len(x_eval), np.nan)
+    spline = make_interp_spline(centers[0][finite_mask], hist_kde[finite_mask], k=3)
+    return spline(x_eval)
