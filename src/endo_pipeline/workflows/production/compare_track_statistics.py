@@ -52,6 +52,9 @@ def main(
         BIN_WIDTH_FOR_AVERAGE,
         BIN_WIDTH_FOR_VARIANCE,
         CI_FILL_OPACITY,
+        KDE_LABEL_DICT,
+        KDE_LINE_KWARGS,
+        KDE_LINESTYLE_DICT,
         NUM_POINTS_SMOOTH_KDE,
     )
     from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
@@ -74,8 +77,7 @@ def main(
     # kernel names for KDEs
     kernel_names_dict = cast(dict[str | Column.DiffAEData, str], KERNEL_NAMES_DYNAMICS.copy())
 
-    # bin widths for histograms of column averages and variances across
-    # trajectories (currently hardcoded)
+    # global plotting kwargs
     ci_line_kwargs = {
         "alpha": CI_FILL_OPACITY,
         "label": f"tracked (boostrap {int(ci_lower)}-{int(ci_upper)}% CI)",
@@ -350,16 +352,13 @@ def main(
                 ("grid", grid_avg_kde_dict, grid_var_kde_dict),
                 ("tracked", tracked_avg_kde_dict, tracked_var_kde_dict),
             ]:
-                kde_line_kwargs = {
-                    "color": "k",
-                    "linewidth": 2,
-                    "linestyle": "-" if crop_pattern == "grid" else "--",
-                    "label": (
-                        crop_pattern
-                        if crop_pattern == "grid"
-                        else f"{crop_pattern} (bootstrap mean)"
-                    ),
-                }
+                kde_line_kwargs = KDE_LINE_KWARGS.copy()
+                kde_line_kwargs.update(
+                    {
+                        "linestyle": KDE_LINESTYLE_DICT[crop_pattern],
+                        "label": KDE_LABEL_DICT[crop_pattern],
+                    }
+                )
                 plot_kde_for_track_statistics(
                     ax=ax[0],
                     kde_values=kde_avg_dict[column_name]["kde_values"],
