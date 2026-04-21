@@ -31,7 +31,7 @@ from endo_pipeline.library.visualize.diffae_features.flow_field_3d import (
     plot_one_slice_quiver,
 )
 from endo_pipeline.settings import ColumnName as Column
-from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
+from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, TIME_STEP_IN_HOURS
 from endo_pipeline.settings.flow_field_3d import QUIVER_COLORMAP
 
 logger = logging.getLogger(__name__)
@@ -1106,9 +1106,7 @@ def plot_first_passage_time_histogram_measured_vs_simulated(
         Directory to save the resulting plot.
     """
     dataset_name = dataset_config.name
-    if dataset_config.time_interval_in_minutes is None:
-        raise ValueError("DatasetConfig must have time_interval_in_minutes defined.")
-    time_units = dataset_config.time_interval_in_minutes / 60  # convert timeframes to hours
+    time_units = TIME_STEP_IN_HOURS  # convert timeframes to hours
 
     # replace the NaN values (which indicate there was never a first passage) with
     # a large number because the NaNs cause incorrect histogram plotting
@@ -1209,9 +1207,7 @@ def plot_first_passage_time_correlation(
     out_dir: Path,
 ) -> None:
     dataset_name = dataset_config.name
-    if dataset_config.time_interval_in_minutes is None:
-        raise ValueError("DatasetConfig must have time_interval_in_minutes defined.")
-    time_units = dataset_config.time_interval_in_minutes / 60  # convert timeframes to hours
+    time_units = TIME_STEP_IN_HOURS  # convert timeframes to hours
 
     # the column title is "50%" for 50th percentile in `pd.describe`` instead of
     # mean so correct that if "median" was chosen
@@ -1314,9 +1310,7 @@ def plot_first_passage_time_3d_scatter(
     out_dir: Path,
 ) -> None:
     dataset_name = dataset_config.name
-    if dataset_config.time_interval_in_minutes is None:
-        raise ValueError("DatasetConfig must have time_interval_in_minutes defined.")
-    time_units = dataset_config.time_interval_in_minutes / 60  # convert timeframes to hours
+    time_units = TIME_STEP_IN_HOURS  # convert timeframes to hours
 
     # the column title is "50%" for 50th percentile in `pd.describe`` instead of
     # mean so correct that if "median" was chosen
@@ -1413,10 +1407,7 @@ def plot_first_passage_time_parameter_sweep(
     initial conditions histogram and the choice of mean vs. median FPT to plot.
     """
     dataset_name = dataset_config.name
-    if dataset_config.time_interval_in_minutes is None:
-        raise ValueError("DatasetConfig must have time_interval_in_minutes defined.")
-
-    time_units = dataset_config.time_interval_in_minutes / 60  # convert timeframes to hours
+    time_units = TIME_STEP_IN_HOURS  # convert timeframes to hours
     first_passage_time_col = f"time_to_fp_{fixed_point_index}"
     first_passage_time_param_sweep_df[first_passage_time_col] *= time_units
 
@@ -1516,10 +1507,7 @@ def plot_first_passage_time_histogram(
 
     dataset_name = dataset_config.name
     dataset_color = get_dataset_color(dataset_name)
-
-    if dataset_config.time_interval_in_minutes is None:
-        raise ValueError("DatasetConfig must have time_interval_in_minutes defined.")
-    time_units = dataset_config.time_interval_in_minutes / 60  # convert timeframes to hours
+    time_units = TIME_STEP_IN_HOURS  # convert timeframes to hours
 
     # the column title is "50%" for 50th percentile in `pd.describe`` instead of
     # mean so correct that if "median" was chosen
@@ -1612,9 +1600,7 @@ def plot_first_passage_time_heatmap(
     out_dir: Path,
 ) -> None:
     dataset_name = dataset_config.name
-    if dataset_config.time_interval_in_minutes is None:
-        raise ValueError("DatasetConfig must have time_interval_in_minutes defined.")
-    time_units = dataset_config.time_interval_in_minutes / 60  # convert timeframes to hours
+    time_units = TIME_STEP_IN_HOURS  # convert timeframes to hours
 
     # the column title is "50%" for 50th percentile in `pd.describe`` instead of
     # mean so correct that if "median" was chosen

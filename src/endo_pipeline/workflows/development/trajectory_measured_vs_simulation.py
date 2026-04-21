@@ -37,7 +37,7 @@ def main(
     )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings import ColumnName as Column
-    from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
+    from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, TIME_STEP_IN_HOURS
     from endo_pipeline.settings.flow_field_3d import DATASET_COLLECTION_FOR_3D_DYNAMICS
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
@@ -53,7 +53,7 @@ def main(
 
         # load the dataset config to get the time interval in minutes for converting time units for the ODE solver
         dataset_config = load_dataset_config(dataset_name)
-        timepoint_units = dataset_config.time_interval_in_minutes / 60
+        timepoint_units = TIME_STEP_IN_HOURS
 
         # load the dynamics features from the grid-based dataframe
         dynamics_manifest_grid = load_dataframe_manifest(
