@@ -11,6 +11,7 @@ from scipy.optimize import fsolve
 from scipy.stats import gaussian_kde
 
 from endo_pipeline.io import load_dataframe
+from endo_pipeline.io.output import join_sorted_strings
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.numerics.binning import circpercentile
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
@@ -488,6 +489,7 @@ def load_fixed_points_dataframe_for_dataset(
     dataset_name: str,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
+    column_names: list[str | Column] | None = None,
 ) -> pd.DataFrame:
     """
     Get the fixed points dataframe for a given dataset.
@@ -500,6 +502,8 @@ def load_fixed_points_dataframe_for_dataset(
         Name of the model manifest to use for locating the fixed points dataframe.
     run_name
         Name of the model run to use for locating the fixed points dataframe.
+    column_names
+        List of columns to load from the fixed points dataframe. If None, loads theta, r, and rho.
 
     Returns
     -------
@@ -507,8 +511,18 @@ def load_fixed_points_dataframe_for_dataset(
         DataFrame containing the fixed points for the specified dataset.
     """
 
+    if column_names is None:
+        column_names = [
+            Column.DiffAEData.POLAR_ANGLE,
+            Column.DiffAEData.POLAR_RADIUS,
+            Column.DiffAEData.PC3_FLIPPED,
+        ]
+    columns_str = join_sorted_strings(column_names)
+
     base_name = f"{model_manifest_name}_{run_name}_grid"
-    fixed_points_df_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
+    fixed_points_df_manifest_name = (
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{columns_str}_{base_name}"
+    )
     fixed_points_df_manifest = load_dataframe_manifest(fixed_points_df_manifest_name)
 
     if dataset_name not in fixed_points_df_manifest.locations:

@@ -1,3 +1,4 @@
+import logging
 from collections import namedtuple
 from collections.abc import Sequence
 from pathlib import Path
@@ -12,20 +13,28 @@ from matplotlib.colors import TwoSlopeNorm
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from scipy.stats import linregress
 
+from endo_pipeline.configs.dataset_config import DatasetConfig
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     add_normalized_time,
 )
 from endo_pipeline.library.analyze.numerics.binning import get_bins
+from endo_pipeline.library.visualize.diffae_features.feature_viz import (
+    get_dataset_color,
+    get_label_for_column,
+)
 from endo_pipeline.library.visualize.diffae_features.flow_field_3d import (
     get_slice_indexes,
     plot_flow_field_slices,
     plot_one_slice_quiver,
 )
 from endo_pipeline.settings import ColumnName as Column
-from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
+from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, TIME_STEP_IN_HOURS
 from endo_pipeline.settings.flow_field_3d import QUIVER_COLORMAP
+
+logger = logging.getLogger(__name__)
 
 
 def set_global_pc_lims(axs: Sequence[plt.Axes], lim: int = 3) -> None:
@@ -378,39 +387,6 @@ def save_feature_flowfield_overlay(
     )
     if not show_plot:
         plt.close(flow_field_figure)
-
-
-# def plot_new_traj_overlay_on_grid_traj_and_flowfield(
-#     out_dir: Path,
-#     dataset_name: str,
-#     # fixed_points_df: pd.DataFrame | None,
-#     flow_field_dict_grids: dict,
-#     traj_tracks: np.ndarray,
-#     figure_format: Literal[".png", ".svg", ".pdf"] = ".png",
-#     use_global_pc_lims: bool = False,
-# ) -> None:
-#     fig, axs = plot_quiver_slices_from_flow_field_dict(dataset_name, flow_field_dict_grids)
-#     for j, ax in enumerate(axs):  # PC1 vs PC2, PC1 vs PC3
-#         ax.plot(traj_tracks[:, 0], traj_tracks[:, j + 1], lw=2, color="crimson")
-#         ax.scatter(
-#             traj_tracks[-1, 0],
-#             traj_tracks[-1, j + 1],
-#             s=50,
-#             color="black",
-#             marker="*",
-#             zorder=10,
-#         )
-#     if use_global_pc_lims:
-#         [ax.set_xlim(-3, 3) for ax in axs]
-#         [ax.set_ylim(-3, 3) for ax in axs]
-
-#     save_plot_to_path(
-#         figure=fig,
-#         output_path=out_dir,
-#         figure_name=f"{dataset_name}_trajectory_grids_vs_tracks",
-#         file_format=figure_format,
-#     )
-#     plt.close(fig)
 
 
 def overlay_trajectory_heatmap_on_flowfield(
@@ -1101,5 +1077,521 @@ def plot_trajectory_measured_vs_simulation_over_flow_field(
         figure=fig,
         output_path=out_dir,
         figure_name=f"{dataset_name}_fp{fixed_point_id}_crop{crop_index}_traj_meas_vs_sim.png",
+        show_and_close=False,
     )
     plt.close(fig)
+
+
+def plot_first_passage_time_correlation(
+    fixed_point_id: int,
+    fixed_point_stability: str,
+    dataset_config: DatasetConfig,
+    first_passage_time_df: pd.DataFrame,
+    metric_to_plot: Literal["mean", "median"],
+    min_num_traj_per_bin: int,
+    out_dir: Path,
+) -> None:
+    dataset_name = dataset_config.name
+    time_units = TIME_STEP_IN_HOURS  # convert timeframes to hours
+
+    # the column title is "50%" for 50th percentile in `pd.describe`` instead of
+    # mean so correct that if "median" was chosen
+    metric = "50%" if metric_to_plot == "median" else metric_to_plot
+
+    suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
+    metric = f"{metric}{suffix}"
+
+    # NaN values are unacceptable for the linear regression
+    first_passage_time_df_no_nan = first_passage_time_df.copy().dropna(
+        subset=[f"{metric}_grid", f"{metric}_tracked"]
+    )
+    # keep only the bins with the minimum number of tracks per bin in them
+    first_passage_time_df_no_nan = first_passage_time_df_no_nan[
+        first_passage_time_df_no_nan["count_first_passage_time_grid"] >= min_num_traj_per_bin
+    ]
+    first_passage_time_df_no_nan = first_passage_time_df_no_nan[
+        first_passage_time_df_no_nan["count_first_passage_time_tracked"] >= min_num_traj_per_bin
+    ]
+
+    # convert the FPT (which is in timepoints) to physical units
+    # most but not all of the columns are based on time in `first_passage_time_df`
+    not_time_columns = [
+        f"count{suffix}_grid",
+        f"count{suffix}_tracked",
+        Column.VectorField.BIN_INDEX,
+        Column.VectorField.BIN_CENTER,
+        Column.VectorField.BIN_EDGES,
+    ]
+    # the time columns are the set of columns in the dataframe that are not in
+    # the not_time_columns list
+    time_cols = list(set(first_passage_time_df_no_nan.columns) - set(not_time_columns))
+
+    # now we can convert all those time columns from timepoints to physical units
+    first_passage_time_df_no_nan[time_cols] *= time_units
+
+    # do a linear regression to see if the FPTs from the tracked and grid trajectories
+    # correlate depending on where they are in binned feature space
+    line_fit = linregress(
+        x=first_passage_time_df_no_nan[f"{metric}_grid"],
+        y=first_passage_time_df_no_nan[f"{metric}_tracked"],
+    )
+
+    num_bins = first_passage_time_df_no_nan[Column.VectorField.BIN_INDEX].nunique()
+
+    fig, ax = plt.subplots(figsize=(3, 3))
+    ax.set_title(f"{dataset_name}: {num_bins} bins".title())
+    ax.errorbar(
+        x=first_passage_time_df_no_nan[f"{metric}_grid"],
+        y=first_passage_time_df_no_nan[f"{metric}_tracked"],
+        xerr=first_passage_time_df_no_nan[f"std{suffix}_grid"],
+        yerr=first_passage_time_df_no_nan[f"std{suffix}_tracked"],
+        fmt="none",
+        ecolor="gray",
+        alpha=0.5,
+        zorder=0,
+    )
+    ax.scatter(
+        x=first_passage_time_df_no_nan[f"{metric}_grid"],
+        y=first_passage_time_df_no_nan[f"{metric}_tracked"],
+        color="black",
+        edgecolor="white",
+        lw=0.2,
+        label=f"FPT {metric_to_plot} ± STD",
+    )
+    ax.axline(xy1=(0, 0), slope=1, color="tab:red", linestyle="--", zorder=0, label="Unity")
+    ax.axline(
+        xy1=(0, line_fit.intercept),
+        slope=line_fit.slope,
+        color="tab:blue",
+        linestyle="--",
+        zorder=0,
+        label=f"Linear Fit (R={line_fit.rvalue:.2f})",
+    )
+    ax_min = min((*ax.get_xlim(), *ax.get_ylim()))
+    ax_max = max((*ax.get_xlim(), *ax.get_ylim()))
+    ax.set_xlim(ax_min, ax_max)
+    ax.set_ylim(ax_min, ax_max)
+    ax.set_xlabel("Grid Trajectory FPT (hrs)")
+    ax.set_ylabel("Tracked Trajectory FPT (hrs)")
+    ax.legend()
+    filename = (
+        f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}"
+        f"_{metric_to_plot}_correlation.png"
+    )
+    save_plot_to_path(
+        fig,
+        out_dir,
+        filename,
+        show_and_close=False,
+    )
+
+
+def plot_first_passage_time_3d_scatter(
+    fixed_point_id: int,
+    fixed_point_stability: str,
+    dataset_config: DatasetConfig,
+    first_passage_time_df: pd.DataFrame,
+    fixed_points_df: pd.DataFrame,
+    metric_to_plot: Literal["mean", "median"],
+    min_num_traj_per_bin: int,
+    out_dir: Path,
+) -> None:
+    dataset_name = dataset_config.name
+    time_units = TIME_STEP_IN_HOURS  # convert timeframes to hours
+
+    # the column title is "50%" for 50th percentile in `pd.describe`` instead of
+    # mean so correct that if "median" was chosen
+    metric = "50%" if metric_to_plot == "median" else metric_to_plot
+
+    suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
+    metric = f"{metric}{suffix}"
+
+    # drop the bins with no entries
+    first_passage_time_df_no_nan = first_passage_time_df.copy().dropna(
+        subset=[f"{metric}_grid", f"{metric}_tracked"]
+    )
+    # keep only the bins with the minimum number of tracks per bin in them
+    first_passage_time_df_no_nan = first_passage_time_df_no_nan[
+        first_passage_time_df_no_nan["count_first_passage_time_grid"] >= min_num_traj_per_bin
+    ]
+    first_passage_time_df_no_nan = first_passage_time_df_no_nan[
+        first_passage_time_df_no_nan["count_first_passage_time_tracked"] >= min_num_traj_per_bin
+    ]
+
+    # convert the FPT (which is in timepoints) to physical units
+    # most but not all of the columns are based on time in `first_passage_time_df`
+    not_time_columns = [
+        f"count{suffix}_grid",
+        f"count{suffix}_tracked",
+        Column.VectorField.BIN_INDEX,
+        Column.VectorField.BIN_CENTER,
+        Column.VectorField.BIN_EDGES,
+    ]
+    # the time columns are the set of columns in the dataframe that are not in
+    # the not_time_columns list
+    time_cols = list(set(first_passage_time_df_no_nan.columns) - set(not_time_columns))
+
+    # now we can convert all those time columns from timepoints to physical units
+    first_passage_time_df_no_nan[time_cols] *= time_units
+
+    fig, ax = plt.subplots(figsize=(3, 3.5), subplot_kw={"projection": "3d"})
+    ax.set_title(f"{dataset_name}".title())
+    thetas, rs, rhos = zip(
+        *first_passage_time_df_no_nan[Column.VectorField.BIN_CENTER], strict=True
+    )
+    # we're using a base-2 log of the FPT-tracked to FPT-grid ratio so that the
+    # fold change is symmetric and the colors end up evenly spaced regardless of
+    # whether the tracked or grid-based FPT is higher
+    colors = np.log2(
+        first_passage_time_df_no_nan[f"{metric}_tracked"]
+        / first_passage_time_df_no_nan[f"{metric}_grid"]
+    )
+    cmap_lim = max(abs(colors))
+    cmap = "coolwarm_r"
+    norm = TwoSlopeNorm(vcenter=0, vmin=-cmap_lim, vmax=cmap_lim)
+    scatter3d = ax.scatter(  # type: ignore[call-arg]
+        xs=thetas,
+        ys=rs,
+        zs=rhos,
+        c=colors,
+        cmap=cmap,
+        norm=norm,
+    )  # type: ignore[call-arg]
+    ax.scatter(*fixed_points_df.iloc[fixed_point_id][list(DYNAMICS_COLUMN_NAMES)].values, color="black", s=10, marker="*")  # type: ignore
+    ax.set_xlabel(get_label_for_column(Column.DiffAEData.POLAR_ANGLE))
+    ax.set_ylabel(get_label_for_column(Column.DiffAEData.POLAR_RADIUS))
+    ax.set_zlabel(get_label_for_column(Column.DiffAEData.PC3_FLIPPED))  # type:ignore[attr-defined]
+
+    # adjust the focal length of the 3D plot so that depth is easier to perceive
+    ax.set_proj_type("persp", focal_length=0.5)  # type: ignore[attr-defined]
+
+    # add colorbar
+    cax = fig.add_axes([1.15, 0.2, 0.05, 0.6])  # type: ignore[call-overload]
+    fig.colorbar(scatter3d, cax=cax)
+
+    filename = (
+        f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}"
+        f"_{metric_to_plot}_3d_scatter.png"
+    )
+    save_plot_to_path(
+        fig,
+        out_dir,
+        filename,
+        tight_layout=False,
+        pad_inches=0.2,
+        show_and_close=False,
+        bbox_inches="tight",
+    )
+
+
+def plot_first_passage_time_parameter_sweep(
+    dataset_config: DatasetConfig,
+    fixed_point_index: int,
+    fixed_point_stability: str,
+    first_passage_time_param_sweep_df: pd.DataFrame,
+    fixed_point_radius_threshold_in_workflow: float | None,
+    out_dir: Path,
+) -> None:
+    """Plot the results of the parameter sweep over the number of bins in the
+    initial conditions histogram and the choice of mean vs. median FPT to plot.
+    """
+    dataset_name = dataset_config.name
+    time_units = TIME_STEP_IN_HOURS  # convert timeframes to hours
+    first_passage_time_col = f"{Column.VectorField.TIME_TO_FP_PREFIX}{fixed_point_index}"
+    first_passage_time_param_sweep_df[first_passage_time_col] *= time_units
+
+    # compute the summary statistics on the first passage time parameter sweep
+    fpt_param_sweep_agg = (
+        first_passage_time_param_sweep_df.groupby("threshold")[first_passage_time_col]
+        .agg("describe")
+        .reset_index(drop=False)
+    )
+
+    for metric in ["mean", "median"]:
+        column_name = "50%" if metric == "median" else metric
+        fig, ax = plt.subplots(figsize=(4, 4))
+        ax.set_title(dataset_name.title())
+        ax.errorbar(
+            x=fpt_param_sweep_agg["threshold"],
+            y=fpt_param_sweep_agg[column_name],
+            yerr=fpt_param_sweep_agg["std"],
+            label=f"{metric} FPT ± STD",
+            fmt="o-",
+            color="black",
+            ecolor="gray",
+            elinewidth=1,
+            capsize=3,
+        )
+        if fixed_point_radius_threshold_in_workflow is not None:
+            ax.axvline(
+                fixed_point_radius_threshold_in_workflow,
+                ls="--",
+                color="red",
+                label="threshold in workflow",
+            )
+        ax.legend()
+        ax.set_xlim(0)
+        ax.set_ylim(0)
+        ax.set_xlabel(
+            f"Threshold distance from fixed point {fixed_point_index} ({fixed_point_stability})".title()
+        )
+        ax.set_ylabel(f"first passage time {metric} (hrs)".title())
+        filename = f"FPT_{metric}_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}.png"
+        save_plot_to_path(fig, out_dir, filename, show_and_close=False)
+
+    # also compute the fraction of trajectories that approached the fixed point for each
+    # parameter combination to see how the fixed point distance threshold affects the
+    # number of trajectories that are considered to have reached the fixed point
+    first_passage_time_param_sweep_df["percent_trajectories_approached_fp"] = (
+        first_passage_time_param_sweep_df["num_trajectories_after_fpt_filter"]
+        / first_passage_time_param_sweep_df["num_trajectories_before_fpt_filter"]
+    ) * 100
+    num_traj_param_sweep_agg = (
+        first_passage_time_param_sweep_df.groupby("threshold")["percent_trajectories_approached_fp"]
+        .agg(lambda x: np.unique(x).item())
+        .to_frame()
+    ).reset_index(drop=False)
+
+    fig, ax = plt.subplots(figsize=(3, 3))
+    ax.set_title(dataset_name.title())
+    ax.plot(
+        num_traj_param_sweep_agg["threshold"],
+        num_traj_param_sweep_agg["percent_trajectories_approached_fp"],
+        marker="o",
+        color="lightgrey",
+        markerfacecolor="black",
+        markeredgecolor="black",
+    )
+    if fixed_point_radius_threshold_in_workflow is not None:
+        ax.axvline(
+            fixed_point_radius_threshold_in_workflow,
+            ls="--",
+            color="red",
+            label="threshold in workflow",
+        )
+    ax.legend()
+    ax.set_xlim(0)
+    ax.set_ylim(0, 105)
+    ax.set_xlabel(
+        "Threshold distance from "
+        f"\nfixed point {fixed_point_index} ({fixed_point_stability})".title()
+    )
+    ax.set_ylabel("Trajectories reaching fixed point (%)".title())
+    filename = (
+        f"FPT_percent_trajectories_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}.png"
+    )
+    save_plot_to_path(fig, out_dir, filename, show_and_close=False)
+
+
+def plot_first_passage_time_histogram(
+    fixed_point_id: int,
+    fixed_point_stability: str,
+    dataset_config: DatasetConfig,
+    first_passage_time_df: pd.DataFrame,
+    metric_to_plot: Literal["mean", "median", "count"],
+    min_num_traj_per_bin: int,
+    bin_width_for_hist: float | None,
+    out_dir: Path,
+) -> None:
+
+    dataset_name = dataset_config.name
+    dataset_color = get_dataset_color(dataset_name)
+    time_units = TIME_STEP_IN_HOURS  # convert timeframes to hours
+
+    # the column title is "50%" for 50th percentile in `pd.describe`` instead of
+    # mean so correct that if "median" was chosen
+    metric = "50%" if metric_to_plot == "median" else metric_to_plot
+
+    suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
+    metric = f"{metric}{suffix}"
+
+    # drop the NaN values
+    first_passage_time_df_no_nan = first_passage_time_df.copy().dropna()
+    # keep only bins with more than the minimum number of trajectories in them
+    first_passage_time_df_no_nan = first_passage_time_df_no_nan[
+        first_passage_time_df_no_nan["count_first_passage_time_grid"] >= min_num_traj_per_bin
+    ]
+    first_passage_time_df_no_nan = first_passage_time_df_no_nan[
+        first_passage_time_df_no_nan["count_first_passage_time_tracked"] >= min_num_traj_per_bin
+    ]
+
+    # convert the FPT (which is in timepoints) to physical units
+    # most but not all of the columns are based on time in `first_passage_time_df`
+    not_time_columns = [
+        f"count{suffix}_grid",
+        f"count{suffix}_tracked",
+        Column.VectorField.BIN_INDEX,
+        Column.VectorField.BIN_CENTER,
+        Column.VectorField.BIN_EDGES,
+    ]
+    # the time columns are the set of columns in the dataframe that are not in
+    # the not_time_columns list
+    time_cols = list(set(first_passage_time_df_no_nan.columns) - set(not_time_columns))
+
+    # now we can convert all those time columns from timepoints to physical units
+    first_passage_time_df_no_nan[time_cols] *= time_units
+
+    if metric_to_plot == "count":
+        xaxis_title = f"{metric_to_plot.title()} Number of Trajectories in Bin"
+        stat_for_hist = "count"
+        yaxis_title = "number of bins".title()
+    else:
+        xaxis_title = f"{metric_to_plot.title()} First Passage Time (hrs)"
+        stat_for_hist = "probability"
+        yaxis_title = "probability".title()
+
+    fig, ax = plt.subplots(figsize=(3, 3))
+    ax.set_title(dataset_name.title())
+    sns.histplot(
+        data=first_passage_time_df_no_nan,
+        x=f"{metric}_grid",
+        stat=stat_for_hist,
+        binwidth=bin_width_for_hist,
+        kde=True,
+        facecolor="lightgrey",
+        color="black",
+        alpha=0.33,
+        label="grid",
+        ax=ax,
+    )
+    sns.histplot(
+        data=first_passage_time_df_no_nan,
+        x=f"{metric}_tracked",
+        stat=stat_for_hist,
+        binwidth=bin_width_for_hist,
+        kde=True,
+        color=dataset_color,
+        hatch="..",
+        fill=False,
+        alpha=1.0,
+        label="tracked",
+        ax=ax,
+    )
+    ax.legend()
+    ax.set_xlim(0)
+    ax.set_ylabel(yaxis_title)
+    ax.set_xlabel(xaxis_title)
+
+    filename = f"FPT_fp_{fixed_point_id}_{fixed_point_stability}_{metric_to_plot}_histogram.png"
+    save_plot_to_path(fig, out_dir, filename, show_and_close=False)
+
+
+def plot_first_passage_time_heatmap(
+    fixed_point_id: int,
+    fixed_point_stability: str,
+    dataset_config: DatasetConfig,
+    first_passage_time_df: pd.DataFrame,
+    fixed_points_df: pd.DataFrame,
+    metric_to_plot: Literal["mean", "median"],
+    min_num_traj_per_bin: int,
+    collapse_index: int,
+    feature_order_for_bin_edges: list[Column],
+    out_dir: Path,
+) -> None:
+    dataset_name = dataset_config.name
+    time_units = TIME_STEP_IN_HOURS  # convert timeframes to hours
+
+    # the column title is "50%" for 50th percentile in `pd.describe`` instead of
+    # mean so correct that if "median" was chosen
+    metric = "50%" if metric_to_plot == "median" else metric_to_plot
+
+    suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
+    metric = f"{metric}{suffix}"
+
+    first_passage_time_df_local_copy = first_passage_time_df.copy()
+
+    # because the heatmap requires all the bin centers and bin edges to be in
+    # the dataframe, we will be setting bins that have fewer than
+    # min_num_traj_per_bin to be NaN instead of dropping them
+
+    first_passage_time_df_local_copy[
+        first_passage_time_df_local_copy["count_first_passage_time_grid"] < min_num_traj_per_bin
+    ][f"{metric}_grid"] = np.nan
+    first_passage_time_df_local_copy[
+        first_passage_time_df_local_copy["count_first_passage_time_tracked"] < min_num_traj_per_bin
+    ][f"{metric}_tracked"] = np.nan
+
+    # convert the FPT (which is in timepoints) to physical units
+    # most but not all of the columns are based on time in `first_passage_time_df`
+    not_time_columns = [
+        f"count{suffix}_grid",
+        f"count{suffix}_tracked",
+        Column.VectorField.BIN_INDEX,
+        Column.VectorField.BIN_CENTER,
+        Column.VectorField.BIN_EDGES,
+    ]
+    # the time columns are the set of columns in the dataframe that are not in
+    # the not_time_columns list
+    time_cols = list(set(first_passage_time_df_local_copy.columns) - set(not_time_columns))
+
+    # now we can convert all those time columns from timepoints to physical units
+    first_passage_time_df_local_copy[time_cols] *= time_units
+
+    # unpack bin centers and bin edges for all three features (theta, r, rho),
+    # then drop the collapsed dimension to get the two axes for the 2D heatmap
+    all_bin_centers = list(
+        zip(*first_passage_time_df_local_copy[Column.VectorField.BIN_CENTER], strict=True)
+    )
+    all_bin_edges_vals = list(
+        zip(*first_passage_time_df_local_copy[Column.VectorField.BIN_EDGES], strict=True)
+    )
+    all_dim_labels = [str(feature) for feature in feature_order_for_bin_edges]
+
+    remaining_indices = [i for i in range(len(feature_order_for_bin_edges)) if i != collapse_index]
+    x_centers = np.array(all_bin_centers[remaining_indices[0]])
+    y_centers = np.array(all_bin_centers[remaining_indices[1]])
+    # unique values from the bin_edges meshgrid give the complete bin boundary arrays
+    x_bin_edges = np.unique(all_bin_edges_vals[remaining_indices[0]])
+    y_bin_edges = np.unique(all_bin_edges_vals[remaining_indices[1]])
+
+    # we're using a base-2 log of the FPT-tracked to FPT-grid ratio so that the
+    # fold change is symmetric and the colors end up evenly spaced regardless of
+    # whether the tracked or grid-based FPT is higher
+    colors = np.log2(
+        first_passage_time_df_local_copy[f"{metric}_tracked"]
+        / first_passage_time_df_local_copy[f"{metric}_grid"]
+    )
+    cmap_lim = float(np.nanmax(abs(colors)))
+    cmap = "coolwarm_r"
+    norm = TwoSlopeNorm(vcenter=0, vmin=-cmap_lim, vmax=cmap_lim)
+
+    fig, ax = plt.subplots(figsize=(3, 3.5))
+    ax.set_title(f"{dataset_name}".title())
+    # since the data is already aggregated (one value per bin), passing weights=colors
+    # to hist2d produces a heatmap where each cell is colored by the log2 FPT ratio
+    _, _, _, im = ax.hist2d(
+        x=x_centers,
+        y=y_centers,
+        bins=[x_bin_edges, y_bin_edges],
+        weights=colors,
+        edgecolors="grey",
+        cmap=cmap,
+        norm=norm,
+    )
+    divider = make_axes_locatable(ax)
+    ax_cb = divider.append_axes("right", size="5%", pad=0.05)
+    fig.colorbar(im, cax=ax_cb)
+    ax_cb.set_ylabel(r"$\log_2$(tracked FPT / grid FPT)", rotation=270, labelpad=15)
+    ax.set_xlabel(get_label_for_column(all_dim_labels[remaining_indices[0]]))
+    ax.set_ylabel(get_label_for_column(all_dim_labels[remaining_indices[1]]))
+
+    # lastly add the fixed point location as a black star on the heatmap
+    fixed_point_coords = fixed_points_df.iloc[fixed_point_id][all_dim_labels].values
+    ax.scatter(
+        fixed_point_coords[remaining_indices[0]],
+        fixed_point_coords[remaining_indices[1]],
+        color="black",
+        s=10,
+        marker="*",
+    )
+
+    filename = (
+        f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}"
+        f"_{metric_to_plot}_heatmap.png"
+    )
+    save_plot_to_path(
+        fig,
+        out_dir,
+        filename,
+        show_and_close=False,
+    )

@@ -1,15 +1,26 @@
 import logging
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from seaborn import color_palette
+from tqdm import tqdm
 
+from endo_pipeline.configs.dataset_config_io import load_dataset_config
 from endo_pipeline.io import get_output_path, load_dataframe
+from endo_pipeline.library.analyze.dataframe_filtering import (
+    filter_dataframe_by_track_length,
+    filter_dataframe_to_binned_value,
+    filter_dataframe_to_steady_state,
+)
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
+from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
+    add_track_duration_to_dataframe,
+)
 from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
@@ -32,6 +43,7 @@ from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
     KERNEL_BANDWIDTHS_DYNAMICS,
     KERNEL_NAMES_DYNAMICS,
+    LONG_TRACK_THRESHOLD_LENGTH,
     POLAR_ANGLE_PERIOD,
     RESCALE_THETA,
     TIME_STEP_IN_MINUTES,
@@ -43,10 +55,12 @@ from endo_pipeline.settings.flow_field_3d import (
 )
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_COLUMNS_TO_DROP,
+    DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
     DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_FILTERED,
     DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_UNFILTERED,
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
+    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
 )
 
@@ -93,346 +107,6 @@ def get_flow_field_estimation_bin_widths(
         bin_width = bin_widths_dynamics[column_name]
         bin_widths.append(bin_width)
     return bin_widths
-
-
-# def process_dataset_for_track_integration(
-#     dataset_name: str,
-#     merged_cellcentric_features_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
-#     diffae_grid_manifest_name: str = DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
-#     make_integrated_plots: bool = True,
-#     dynamics_columns: list[Column.DiffAEData] = list(DYNAMICS_COLUMN_NAMES),
-# ) -> None:
-#     logger.info("Processing dataset: [ %s ]", dataset_name)
-
-#     # set workflow defaults
-#     out_subdir = get_output_path(__file__, dataset_name)
-#     # column_names = list(DYNAMICS_COLUMN_NAMES)  # dynamics_column_names = theta, r, rho
-
-#     # load the track-based diffae + segmentation feature merged manifest
-#     # and the grid-based diffae manifest
-#     diffae_tracked_manifest = load_dataframe_manifest(merged_cellcentric_features_manifest_name)
-#     diffae_tracked_location = get_dataframe_location_for_dataset(
-#         diffae_tracked_manifest, dataset_name
-#     )
-#     diffae_tracked_df_delayed = load_dataframe(diffae_tracked_location, delay=True)
-
-#     diffae_grid_manifest = load_dataframe_manifest(diffae_grid_manifest_name)
-#     diffae_grid_location = get_dataframe_location_for_dataset(diffae_grid_manifest, dataset_name)
-#     diffae_grid_df_delayed = load_dataframe(diffae_grid_location, delay=True)
-
-#     # keep only the columns that are needed for the analysis to reduce memory usage
-#     cols_to_keep = [
-#         Column.DATASET,
-#         Column.POSITION,
-#         Column.TIMEPOINT,
-#         Column.TRACK_ID,
-#         Column.SegData.LABEL,
-#         Column.CROP_INDEX,
-#         Column.DiffAEData.MODEL_MANIFEST,
-#         Column.SegData.TIME_HRS,
-#         Column.SegData.TIME_MINS,
-#         Column.TRACK_LENGTH,
-#     ] + list(dynamics_columns)
-#     diffae_tracked_df = diffae_tracked_df_delayed[cols_to_keep].compute()
-#     diffae_grid_df = diffae_grid_df_delayed[cols_to_keep].compute()
-
-#     # load or compute the trajectories and flow fields for the grid-based
-#     # and cell-centric crops
-#     flow_field_dict_grids, fixed_points_df = get_flow_field_and_fixed_points(
-#         dataset_name=dataset_name,
-#         column_names=dynamics_columns,
-#         model_manifest_name=DEFAULT_MODEL_MANIFEST_NAME,
-#         run_name=DEFAULT_MODEL_RUN_NAME,
-#     )
-
-#     for i, fp_row in fixed_points_df.iterrows():
-#         flow_field_slices = (
-#             fp_row[dynamics_columns[2]],
-#             fp_row[dynamics_columns[1]],
-#         )  # feature 3, feature 2
-#         fixed_points_at_slices = (
-#             fp_row[list(map(str, dynamics_columns))].drop(index=[dynamics_columns[2]]),
-#             fp_row[list(map(str, dynamics_columns))].drop(index=[dynamics_columns[1]]),
-#         )
-#     # # get the slice indexes to use for plotting the flow fields
-#     # # (we will be setting PC3 to a constant, i.e. the z-axis here)
-#     # _, slice_indexes = get_valid_slice_indexes(diffae_grid_df, traj_grids, flow_field_dict_grids)
-
-#     # get flow field vectors and grid points to plot
-#     v1_grids, v2_grids, v3_grids = flow_field_dict_grids["vectors"]
-#     g1_grids, g2_grids, g3_grids = flow_field_dict_grids["grid"]
-#     v1_tracks, v2_tracks, v3_tracks = flow_field_dict_tracks["vectors"]
-#     g1_tracks, g2_tracks, g3_tracks = flow_field_dict_tracks["grid"]
-
-#     # Plot the quiver slices for the grid-based and cell-centric crops
-#     # at the full resolution:
-#     out_path = out_subdir / f"{dataset_name}_quiver_slice_comparison_full_quiver.png"
-#     fig, ax = plot_grid_vs_tracks_flow_field(
-#         v1_grids,
-#         v2_grids,
-#         g1_grids,
-#         g2_grids,
-#         v1_tracks,
-#         v2_tracks,
-#         g1_tracks,
-#         g2_tracks,
-#         slice_indexes=slice_indexes,
-#         ds=1,
-#         scale=60,
-#     )
-#     ax.set_xlabel("PC1")
-#     ax.set_ylabel("PC2")
-#     fig.savefig(out_path, dpi=300, bbox_inches="tight")
-#     plt.close(fig)
-
-#     # Plot the quiver slices for the grid-based and cell-centric crops
-#     # at the standard/default resolution and include the fixed points
-#     # for both the grid and cell-centric crops:
-#     out_path = out_subdir / f"{dataset_name}_quiver_slice_comparison_partial_quiver.png"
-#     fig, ax = plot_grid_vs_tracks_flow_field(
-#         v1_grids,
-#         v2_grids,
-#         g1_grids,
-#         g2_grids,
-#         v1_tracks,
-#         v2_tracks,
-#         g1_tracks,
-#         g2_tracks,
-#         slice_indexes=slice_indexes,
-#     )
-#     # add the grid crop based fixed point from the trajectory:
-#     ax.scatter(
-#         traj_grids[-1, 0],
-#         traj_grids[-1, 1],
-#         s=250,
-#         color="cyan",
-#         marker="*",
-#         lw=1,
-#         edgecolor="darkblue",
-#         zorder=10,
-#     )
-#     # add the cell-centric crop based fixed point from the trajectory:
-#     ax.scatter(
-#         traj_tracks[-1, 0],
-#         traj_tracks[-1, 1],
-#         s=250,
-#         color="yellow",
-#         marker="*",
-#         lw=1,
-#         edgecolor="darkred",
-#         zorder=10,
-#     )
-#     ax.set_xlabel("PC1")
-#     ax.set_ylabel("PC2")
-#     fig.savefig(out_path, dpi=300, bbox_inches="tight")
-#     plt.close(fig)
-
-#     # Plot the angular deviation between the grid and cell-centric crop-based
-#     # flow field vectors:
-#     angles = get_vector_angles_as_grid(
-#         v1_grids,
-#         v2_grids,
-#         v3_grids,
-#         v1_tracks,
-#         v2_tracks,
-#         v3_tracks,
-#         slice_indexes,
-#     )
-#     grid_vs_track_vec_angle_hist2d(
-#         angles,
-#         out_subdir,
-#         filename=f"{dataset_name}_vecvec_angles",
-#         extent=(*ax.get_xlim(), *ax.get_ylim()),
-#     )
-
-#     # Plot the dot product between the grid and cell-centric crop-based
-#     dot_prod = get_vector_dot_products_as_grid(
-#         v1_grids,
-#         v2_grids,
-#         v3_grids,
-#         v1_tracks,
-#         v2_tracks,
-#         v3_tracks,
-#         slice_indexes,
-#     )
-#     grid_vs_track_vec_dot_prod_hist2d(
-#         dot_prod,
-#         out_subdir,
-#         filename=f"{dataset_name}_vecvec_dot_products",
-#         extent=(*ax.get_xlim(), *ax.get_ylim()),
-#     )
-
-#     # Compare the angles between grid crop PC vectors
-#     # and the PC vectors of a single track
-#     diffae_tracked_df["dpc1"] = diffae_tracked_df.groupby(Column.CROP_INDEX)["pc_1"].diff()
-#     diffae_tracked_df["dpc2"] = diffae_tracked_df.groupby(Column.CROP_INDEX)["pc_2"].diff()
-#     diffae_tracked_df["dt"] = diffae_tracked_df.groupby(Column.CROP_INDEX)[
-#         Column.SegData.TIME_MINS
-#     ].diff()
-
-#     # create partial functions from get_approx_point_from_grid to pass
-#     # along to the groupby.apply() method
-#     get_approx_grid_bin = lambda pc1_pc2_arr: get_approx_point_from_grid(
-#         pc1_pc2_arr,
-#         g1_grids,
-#         g2_grids,
-#         v1_grids,
-#         v2_grids,
-#         slice_indexes,
-#     )
-#     get_approx_grid_bin_from_df = lambda df: pd.DataFrame(
-#         columns=[["pc_1", "pc_2"]], data=get_approx_grid_bin(df.to_numpy()), index=df.index
-#     )
-
-#     get_approx_grid_vec = lambda pc1_pc2_arr: get_approx_vec_from_grid(
-#         pc1_pc2_arr,
-#         g1_grids,
-#         g2_grids,
-#         v1_grids,
-#         v2_grids,
-#         slice_indexes,
-#     )
-#     get_approx_grid_vec_from_df = lambda df: pd.DataFrame(
-#         columns=[["pc_1", "pc_2"]], data=get_approx_grid_vec(df.to_numpy()), index=df.index
-#     )
-
-#     # Apply the partial functions to the DataFrame to get the approximate grid bin
-#     # and vector associated with each cell-centric PC1 and PC2 value
-#     diffae_tracked_df[["approx_bin_pc1", "approx_bin_pc2"]] = (
-#         diffae_tracked_df.groupby(Column.DATASET, as_index=False)
-#         .apply(lambda df: get_approx_grid_bin_from_df(df[["pc_1", "pc_2"]]))
-#         .droplevel(level=0)
-#     )
-#     diffae_tracked_df[["approx_vec_pc1", "approx_vec_pc2"]] = (
-#         diffae_tracked_df.groupby(Column.CROP_INDEX, as_index=False)
-#         .apply(lambda df: get_approx_grid_vec_from_df(df[["pc_1", "pc_2"]]))
-#         .droplevel(level=0)
-#     )
-
-#     # Compute the angle between the approximate grid vector
-#     # and the the vector from the cell-centric PC1 and PC2
-#     # both in radians and degrees
-#     diffae_tracked_df["track_angle_deviation_rad"] = get_vector_vector_angle_fast(
-#         diffae_tracked_df[["approx_vec_pc1", "approx_vec_pc2"]].values,
-#         diffae_tracked_df[["dpc1", "dpc2"]].values,
-#     )
-#     diffae_tracked_df["track_angular_deviation_deg"] = diffae_tracked_df[
-#         "track_angle_deviation_rad"
-#     ].transform(np.rad2deg)
-
-#     diffae_tracked_df["pc1_pc2_vec_mag"] = np.linalg.norm(
-#         diffae_tracked_df[["dpc1", "dpc2"]].values, axis=1
-#     )
-
-#     # group dataframe by a combination of dataset, position, and crop index
-#     # note that we have replaced the track id with the crop index in this
-#     # case because the crop index is unique throughout all 6 positions,
-#     # whereas the track id is only unique within a single position
-#     mean_track_deviation_dfs = (
-#         diffae_tracked_df.groupby(["dataset_name", "position_as_str", "crop_index"])[
-#             ["track_angular_deviation_deg", "pc1_pc2_vec_mag"]
-#         ]
-#         .agg("mean")
-#         .reset_index()
-#     )
-
-#     plot_and_save_track_flow_field_deviations(
-#         mean_track_deviation_dfs=mean_track_deviation_dfs,
-#         out_subdir=out_subdir,
-#         dataset_name=dataset_name,
-#     )
-
-#     # get the dot products
-#     diffae_tracked_df["dot_product_grid_vs_cell"] = np.einsum(
-#         "ij,ij->i",
-#         diffae_tracked_df[["approx_vec_pc1", "approx_vec_pc2"]],
-#         diffae_tracked_df[["dpc1", "dpc2"]],
-#     )
-#     # also aggregate the dot products by crop index (i.e. unique track id across all positions)
-#     diffae_tracked_dot_prod_agg = (
-#         diffae_tracked_df.groupby("crop_index")["dot_product_grid_vs_cell"]
-#         .agg(["mean", "median"])
-#         .reset_index()
-#     )
-
-#     plot_title = "Mean per track"
-#     col_name = "mean"
-#     plot_and_save_track_flow_field_dot_product_histogram(
-#         features_dataframe=diffae_tracked_dot_prod_agg,
-#         feature_column_name=col_name,
-#         out_dir=out_subdir,
-#         filename=f"{dataset_name}_dot_product_grid_vs_cell_{col_name}",
-#         plot_title=plot_title,
-#     )
-
-#     plot_title = "Non-aggregated dot products"
-#     col_name = "dot_product_grid_vs_cell"
-#     plot_and_save_track_flow_field_dot_product_histogram(
-#         features_dataframe=diffae_tracked_df,
-#         feature_column_name=col_name,
-#         out_dir=out_subdir,
-#         filename=f"{dataset_name}_dot_product_grid_vs_cell_{col_name}",
-#         plot_title=plot_title,
-#     )
-
-#     if make_integrated_plots:
-#         # NOTE: this is a very memory-intensive operation despite my attempts to
-#         # reduce memory needs here, so if you change the minimum track duration
-#         # then expect the workflow to require a lot more memory or crash if you
-#         # don't have enough
-#         diffae_tracked_df = diffae_tracked_df.query("track_duration > 180")
-#         groups = diffae_tracked_df.groupby([Column.DATASET, Column.POSITION, Column.CROP_INDEX])
-
-#         i = 0
-#         for nm, df in tqdm(groups, desc=dataset_name):
-#             ds_nm, pos, tid = nm
-#             assert (
-#                 tid % 1
-#             ) == 0, f"Track ID should be an integer or convertible to an integer. Got {tid}."
-#             hue_min = -1 * np.nanmax(diffae_tracked_df["dot_product_grid_vs_cell"].abs())
-#             hue_max = 1 * np.nanmax(diffae_tracked_df["dot_product_grid_vs_cell"].abs())
-#             hue_center = 0.0
-#             plot_pc_integrated_track_as_arrows(
-#                 dataset_name=str(ds_nm),
-#                 position_name=str(pos),
-#                 track_id=int(tid),
-#                 df=df,
-#                 v1_grids=v1_grids,
-#                 v2_grids=v2_grids,
-#                 g1_grids=g1_grids,
-#                 g2_grids=g2_grids,
-#                 slice_indexes=slice_indexes,
-#                 out_subdir=out_subdir,
-#                 hue_min=hue_min,
-#                 hue_max=hue_max,
-#                 hue_center=hue_center,
-#                 cmap_name="managua",
-#                 hued_feat_name="dot_product_grid_vs_cell",
-#                 track_alpha=0.5,
-#             )
-#             i += 1
-#             if i % 100 == 0:
-#                 # force garbage collection to keep memory free when
-#                 # creating plots from a loop every 100th iteration
-#                 gc.collect()
-
-#     # overlay flow fields on the histograms of the data to see where
-#     # most of the data being used to extrapolate flow fields is
-#     overlay_flow_fields_on_histograms(
-#         dataset_name,
-#         out_subdir,
-#         diffae_grid_df,
-#         diffae_tracked_df,
-#         v1_grids,
-#         v2_grids,
-#         g1_grids,
-#         g2_grids,
-#         v1_tracks,
-#         v2_tracks,
-#         g1_tracks,
-#         g2_tracks,
-#         slice_indexes,
-#     )
 
 
 def merge_diffae_feats_liveseg_feats_tables(
@@ -966,6 +640,7 @@ def solve_ddff_from_trajectory_initial_condition(
     initial_condition: np.ndarray,
     timepoint_initial: int,
     trajectory_duration: int,
+    time_units_for_solver: float,
     simulation_results_column_names: list[str | Column.DiffAEData],
     time_limit: float | None = None,
 ) -> dict:
@@ -985,6 +660,9 @@ def solve_ddff_from_trajectory_initial_condition(
         The initial timepoint corresponding to the start of the trajectory.
     trajectory_duration
         Duration of the trajectory to simulate.
+    time_units_for_solver
+        The time units to use for the ODE solver (e.g. if timepoint_initial and trajectory_duration
+        are in minutes but you want to solve in hours, this would be 1/60).
     simulation_results_column_names
         List of column names corresponding to the dynamics features to include in the simulation results.
     time_limit
@@ -1001,7 +679,7 @@ def solve_ddff_from_trajectory_initial_condition(
     trajectory_simulation = solve_ode_from_vector_field_dict(
         flow_field_dict=flow_field_dict,
         init=initial_condition,
-        t_span=(0, trajectory_duration + 1),
+        t_span=(0 * time_units_for_solver, (trajectory_duration + 1) * time_units_for_solver),
         num_t=trajectory_duration + 1,
         time_limit=time_limit,
     )
@@ -1021,3 +699,409 @@ def solve_ddff_from_trajectory_initial_condition(
     }
 
     return simulation_as_df_record
+
+
+def add_distance_to_fixed_points_columns(
+    trajectory_df: pd.DataFrame,
+    fixed_point_df: pd.DataFrame,
+    trajectory_columns: list[Column.DiffAEData | str],
+    fixed_point_columns: list[Column.DiffAEData | str] | None = None,
+    column_suffix: str = "",
+    polar_angle_period: float | None = None,
+) -> pd.DataFrame:
+    """
+    Compute the distance from each point in the trajectory to the fixed points.
+    This distance gets added as a new column to the trajectory dataframe for
+    each fixed point, along with the signed difference along each axis
+    (e.g. theta, r, rho) from each fixed point with the following column naming
+    convention:
+    `dist_from_fp_{i}{column_suffix}` for the distance
+    `diff_from_fp_{i}_{col}{column_suffix}` for the signed difference along each axis.
+
+    Parameters
+    ----------
+    trajectory_df
+        DataFrame containing the trajectory points.
+    fixed_point_df
+        DataFrame containing the fixed points.
+    trajectory_columns
+        List of column names in trajectory_df to use for distance computation.
+    fixed_point_columns
+        List of column names in fixed_point_df to use for distance computation.
+        Expected to be in the same order as trajectory_columns.
+        If None, the trajectory_columns will be used.
+    column_suffix
+        Suffix to append to the new distance-from-fixed-point columns.
+    polar_angle_period
+        The period to use for the polar angle variable when computing differences, if applicable.
+        If None, the default POLAR_ANGLE_PERIOD will be used. The other expected
+        value for this parameter would be 2 * np.pi.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing the distances to the nearest fixed point for each trajectory point.
+    """
+
+    if fixed_point_columns is None:
+        fixed_point_columns = trajectory_columns
+
+    if column_suffix and not column_suffix.startswith("_"):
+        column_suffix = f"_{column_suffix}"  # make sure the suffix starts with an underscore
+
+    # determine distance from each fixed point over time and add to the dataframe, along
+    # with the signed difference along each axis (e.g. theta, r, rho) from each fixed point
+    dist_from_fp_col_prefix = Column.VectorField.DISTANCE_FROM_FP_PREFIX
+    polar_angle_period = POLAR_ANGLE_PERIOD if polar_angle_period is None else polar_angle_period
+
+    for i in fixed_point_df.index:
+        fpt = fixed_point_df.iloc[i]
+
+        for j, col in enumerate(fixed_point_columns):
+            # this lambda function computes the signed difference from the fixed point for a given
+            # column, taking into account the periodicity of the polar angle variable if applicable
+            diff_func = lambda x, fpt=fpt, col=col: (
+                np.mod(x - fpt[col] + polar_angle_period / 2, polar_angle_period)
+                - polar_angle_period / 2
+                if Column.DiffAEData.POLAR_ANGLE.value in col
+                else (x - fpt[col])
+            )
+            trajectory_df[
+                f"{Column.VectorField.DISTANCE_FROM_FP_1D_SIGNED_PREFIX}{i}_{col}{column_suffix}"
+            ] = diff_func(trajectory_df[trajectory_columns[j]])
+
+        dynamics_diff_columns = [
+            f"{Column.VectorField.DISTANCE_FROM_FP_1D_SIGNED_PREFIX}{i}_{col}{column_suffix}"
+            for col in fixed_point_columns
+        ]
+        trajectory_df[f"{dist_from_fp_col_prefix}{i}{column_suffix}"] = np.linalg.norm(
+            trajectory_df[dynamics_diff_columns], axis=1
+        )
+
+        dd = (
+            trajectory_df[f"{dist_from_fp_col_prefix}{i}{column_suffix}"]
+            .groupby(trajectory_df[Column.CROP_INDEX])
+            .diff()
+        )
+        dt = trajectory_df[Column.TIMEPOINT].groupby(trajectory_df[Column.CROP_INDEX]).diff()
+        trajectory_df[f"{dist_from_fp_col_prefix}{i}{column_suffix}_veloc"] = dd / dt
+
+    # determine which fixed point is closest at each timepoint for each track
+    dist_from_fp_columns = [
+        f"{dist_from_fp_col_prefix}{i}{column_suffix}" for i in fixed_point_df.index
+    ]
+    trajectory_df[f"closest_fp{column_suffix}"] = (
+        trajectory_df[dist_from_fp_columns]
+        .idxmin(axis=1, skipna=True)
+        .transform(
+            lambda s: (
+                np.nan if pd.isna(s) else int(s.strip(dist_from_fp_col_prefix).strip(column_suffix))
+            )
+        )
+    )
+
+    # create a dictionary mapping a fixed point index to its stability
+    fp_stability_map = dict(
+        zip(
+            fixed_point_df.index,
+            fixed_point_df[Column.VectorField.STABILITY],
+            strict=True,
+        )
+    )
+
+    # add the stability as a column for the closest fixed point at each timepoint
+    trajectory_df[f"closest_fp_stability{column_suffix}"] = trajectory_df[
+        f"closest_fp{column_suffix}"
+    ].map(fp_stability_map)
+
+    return trajectory_df
+
+
+def add_first_passage_time_column(
+    fixed_point_index: int, trajectory_df: pd.DataFrame, column: str, threshold: float
+) -> pd.DataFrame:
+    """
+    Add the time of first passage for each track in the trajectory dataframe
+    using the column name pattern `first_passage_{column}`.
+    The first passage time is computed as the first timepoint (specified by
+    `Column.TIMEPOINT`) at which the value in `column` is less than or equal to
+    the given threshold for each track (grouped by `Column.CROP_INDEX`).
+
+    Parameters
+    ----------
+    fixed_point_index : int
+        Index of the fixed point corresponding to the row being used to compute first passage time.
+    trajectory_df : pd.DataFrame
+        DataFrame containing the trajectory points.
+    column : str
+        Column name in trajectory_df to use for the first passage computation.
+        Expected to be the distance from a fixed point.
+    threshold : float
+        Threshold value to determine the first passage.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing the first passage time for each track.
+    """
+    # compute where the trajectory first passes the threshold distance to the fixed point
+    new_column_name = f"{Column.VectorField.FIRST_PASSAGE_PREFIX}{column}"
+    trajectory_df[new_column_name] = (
+        trajectory_df.groupby(Column.CROP_INDEX)
+        .apply(
+            lambda grp: pd.DataFrame(
+                {new_column_name: grp[Column.TIMEPOINT][grp[column] <= threshold].min()},
+                index=grp.index,
+            ),
+            include_groups=False,
+        )
+        .droplevel(0)
+    )
+
+    # trim all trajectories to only include timepoints prior to reaching the fixed point
+    trajectory_df = trajectory_df[
+        trajectory_df.apply(
+            lambda row, fp_idx=fixed_point_index: row[Column.TIMEPOINT]
+            < row[f"{Column.VectorField.FIRST_PASSAGE_DIST_PREFIX}{fp_idx}"],
+            axis=1,
+        )
+    ]
+
+    # compute the time to the first passage time from each timepoint
+    trajectory_df[f"{Column.VectorField.TIME_TO_FP_PREFIX}{fixed_point_index}"] = (
+        trajectory_df[f"{Column.VectorField.FIRST_PASSAGE_DIST_PREFIX}{fixed_point_index}"]
+        - trajectory_df[Column.TIMEPOINT]
+    )
+    return trajectory_df
+
+
+def load_filtered_trajectory_df_for_first_passage_time_workflow(
+    dataset_name: str,
+    crop_pattern: Literal["grid", "tracked"],
+    minimum_track_length: int = LONG_TRACK_THRESHOLD_LENGTH,
+) -> pd.DataFrame:
+    if crop_pattern == "grid":
+        dynamics_manifest = load_dataframe_manifest(
+            DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED
+        )
+    elif crop_pattern == "tracked":
+        dynamics_manifest = load_dataframe_manifest(
+            DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED
+        )
+    else:
+        raise ValueError(f"Unsupported crop pattern: {crop_pattern}")
+
+    dynamics_loc = get_dataframe_location_for_dataset(dynamics_manifest, dataset_name)
+    trajectories_df_delayed = load_dataframe(dynamics_loc, delay=True)
+    columns_to_compute = [
+        Column.DATASET,
+        Column.POSITION,
+        Column.TIMEPOINT,
+        Column.CROP_INDEX,
+        *DYNAMICS_COLUMN_NAMES,
+    ]
+    trajectories_df = trajectories_df_delayed[columns_to_compute].compute().reset_index()
+
+    # the loaded grid-based dynamics dataframe is disordered by default so
+    # sort the grid-based dynamics dataframe by crop index and timepoint
+    trajectories_df = trajectories_df.sort_values(by=[Column.CROP_INDEX, Column.TIMEPOINT])
+
+    # filter the grid-based dynamics dataframe to only include timepoints from steady state
+    dataset_config = load_dataset_config(dataset_name)
+    trajectories_df = filter_dataframe_to_steady_state(
+        dataframe=trajectories_df, dataset_config=dataset_config
+    )
+
+    # add the track durations post-filtering
+    trajectories_df = add_track_duration_to_dataframe(
+        dataframe=trajectories_df,
+        grouping_columns=[Column.CROP_INDEX],
+        time_column=Column.TIMEPOINT,
+    )
+
+    # filter trajectories to only include long ones
+    trajectories_df = filter_dataframe_by_track_length(
+        dataframe=trajectories_df, minimum_track_length=minimum_track_length
+    )
+
+    return trajectories_df
+
+
+def compute_first_passage_time_stats_for_one_bin(
+    bin_index: int,
+    bin_center: Sequence[float],
+    bin_edges: list[np.ndarray],
+    trajectory_df: pd.DataFrame,
+    time_to_first_passage_col_name: str,
+    feature_column_names: list[str],
+) -> pd.DataFrame:
+
+    trajectory_df_one_bin = filter_dataframe_to_binned_value(
+        dataframe=trajectory_df,
+        columns=feature_column_names,
+        values=bin_center,
+        bin_edges=bin_edges,
+    )
+    first_passage_time_stats_df = (
+        trajectory_df_one_bin[time_to_first_passage_col_name].describe().to_frame().T
+    )
+    new_col_names = {
+        col: col + Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
+        for col in first_passage_time_stats_df.columns
+    }
+    first_passage_time_stats_df.rename(columns=new_col_names, inplace=True)
+
+    first_passage_time_stats_df = first_passage_time_stats_df.assign(bin_index=bin_index)
+
+    return first_passage_time_stats_df
+
+
+def compute_first_passage_time_stats_for_bins(
+    bin_centers: list[np.ndarray],
+    bin_edges: list[np.ndarray],
+    trajectory_df: pd.DataFrame,
+    time_to_first_passage_col_name: str,
+    feature_column_names: list[str],
+) -> pd.DataFrame:
+
+    dataset_name = trajectory_df[Column.DATASET].unique().astype(str).item()
+
+    # create a meshgrid of the bin centers and edges for iterating through the bins
+    bin_centers_mesh = np.meshgrid(*bin_centers, indexing="ij")
+    bin_centers_all = list(zip(*[arr.ravel() for arr in bin_centers_mesh], strict=True))
+    bin_indices_nd, _ = list(zip(*np.ndenumerate(bin_centers_mesh[0]), strict=True))
+
+    results = []
+    for bin_index, bin_center in tqdm(
+        enumerate(bin_centers_all),
+        total=len(bin_centers_all),
+        desc=f"{dataset_name} Computing first passage time statistics for each bin",
+    ):
+        # I tried to avoid doing nd indexing because it gets a little hair, but
+        # it seems necessary to get the correct bin edges for each bin when
+        # filtering the trajectories to each bin
+        # the reason we can use + 2 below instead of + 1 is because the bin_edges_mesh
+        # includes the right edge of the last bin, so it has one more element than
+        # the bin_centers_mesh along each dimension
+        bin_index_nd = bin_indices_nd[bin_index]
+        bin_e = []
+        for dim, idx in enumerate(bin_index_nd):
+            bin_e.append(tuple(bin_edges[dim][idx : idx + 2]))
+        first_passage_time_stats_df = compute_first_passage_time_stats_for_one_bin(
+            bin_index=bin_index,
+            bin_center=bin_center,
+            bin_edges=bin_edges,
+            trajectory_df=trajectory_df,
+            time_to_first_passage_col_name=time_to_first_passage_col_name,
+            feature_column_names=feature_column_names,
+        )
+        first_passage_time_stats_df[Column.VectorField.BIN_CENTER] = [bin_center]
+        first_passage_time_stats_df[Column.VectorField.BIN_EDGES] = [bin_e]
+
+        results.append(first_passage_time_stats_df)
+
+    first_passage_time_stats_df = pd.concat(results, ignore_index=True)
+
+    return first_passage_time_stats_df
+
+
+def compute_first_passage_time_parameter_sweep_df(
+    fixed_point_index: int, trajectory_df: pd.DataFrame, thresholds: Sequence[float]
+) -> pd.DataFrame:
+
+    sweep_results: list = []
+    for thresh in thresholds:
+        fp_dist_col = f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fixed_point_index}"
+        trajectory_df_one_param = trajectory_df.copy()
+        trajectory_df_one_param["num_trajectories_before_fpt_filter"] = trajectory_df[
+            Column.CROP_INDEX
+        ].nunique()
+        trajectory_df_one_param = add_first_passage_time_column(
+            fixed_point_index=fixed_point_index,
+            trajectory_df=trajectory_df_one_param,
+            column=fp_dist_col,
+            threshold=thresh,
+        )
+        trajectory_df_one_param["num_trajectories_after_fpt_filter"] = trajectory_df_one_param[
+            Column.CROP_INDEX
+        ].nunique()
+        trajectory_df_one_param = trajectory_df_one_param.assign(threshold=thresh)
+        sweep_results.append(trajectory_df_one_param)
+
+    return pd.concat(sweep_results, ignore_index=True)
+
+
+def merge_grid_and_tracked_first_passage_time_stats_dfs(
+    fpt_stats_df_grid: pd.DataFrame,
+    fpt_stats_df_tracked: pd.DataFrame,
+    dataset_name: str,
+    fixed_point_index: int,
+) -> pd.DataFrame:
+    """Merges the grid and tracked first passage time stats dataframes on the bin index,
+    checking that the bin centers and edges are the same for both dataframes and
+    dropping duplicate columns after the merge.
+
+    Parameters
+    ----------
+    fpt_stats_df_grid
+        DataFrame containing the first passage time stats for the grid-based
+        trajectories, with columns for the bin index, bin centers, bin edges, and first
+        passage time stats.
+    fpt_stats_df_tracked
+        DataFrame containing the first passage time stats for the track-based
+        trajectories, with columns for the bin index, bin centers, bin edges, and first
+        passage time stats.
+    dataset_name
+        Name of the dataset corresponding to the dataframes, used for error messages.
+    fixed_point_index
+        Index of the fixed point used for first passage time stats, used for error messages.
+
+    Returns
+    -------
+    pd.DataFrame
+        A merged DataFrame containing the first passage time stats for both the grid-based
+        and track-based trajectories, with duplicate columns for bin centers and edges dropped
+        after verifying they are the same for both dataframes.
+    """
+    # merge the dataframes on the bin index, adding suffixes to duplicate columns
+
+    fpt_stats_df = fpt_stats_df_grid.merge(
+        fpt_stats_df_tracked,
+        on=[Column.VectorField.BIN_INDEX],
+        suffixes=("_grid", "_tracked"),
+        validate="one_to_one",
+    )
+
+    # check that the bin centers and edges are the same for the grid and tracked dataframes
+    bin_centers_close = np.allclose(
+        np.array(list(zip(*fpt_stats_df[f"{Column.VectorField.BIN_CENTER}_grid"], strict=True))),
+        np.array(
+            list(
+                zip(
+                    *fpt_stats_df[f"{Column.VectorField.BIN_CENTER}_tracked"],
+                    strict=True,
+                )
+            )
+        ),
+    )
+    bin_edges_close = np.allclose(
+        np.array(list(zip(*fpt_stats_df[f"{Column.VectorField.BIN_EDGES}_grid"], strict=True))),
+        np.array(
+            list(
+                zip(
+                    *fpt_stats_df[f"{Column.VectorField.BIN_EDGES}_tracked"],
+                    strict=True,
+                )
+            )
+        ),
+    )
+    if not bin_centers_close or not bin_edges_close:
+        error_message = (
+            "Bin centers or edges are not the same for grid and tracked dataframes for "
+            f"dataset {dataset_name} and fixed point {fixed_point_index}. This may indicate an issue "
+            "with the binning or merging of the dataframes."
+        )
+        logger.error(error_message)
+        raise ValueError(error_message)
+
+    return fpt_stats_df

@@ -392,3 +392,37 @@ class ColumnName:
 
         DRIFT = "drift"
         """Column name denoting the drift in a given variable."""
+
+        DISTANCE_FROM_FP_PREFIX = "dist_from_fp_"
+        """Prefix for column names representing the distance from a fixed point in N-D space."""
+
+        DISTANCE_FROM_FP_1D_SIGNED_PREFIX = "diff_from_fp_"
+        """Prefix for column names representing the signed difference from a fixed point along a single dimension."""
+
+        IS_AT_FP_PREFIX = "is_at_fp_"
+        """Prefix for column names indicating whether a data point is at a fixed point."""
+
+        TRAJ_REACHED_FP_PREFIX = "traj_reached_fp_"
+        """Prefix for column names indicating whether a trajectory reached a fixed point."""
+
+        FIRST_PASSAGE_DIST_PREFIX = "first_passage_dist_from_fp_"
+        """Prefix for column names representing the distance from a fixed point at which a
+        trajectory first passed the threshold for being considered to have reached the fixed point."""
+
+        FIRST_PASSAGE_TIME_SUFFIX = "_first_passage_time"
+        """Suffix for column names representing the first passage time to a fixed point."""
+
+        FIRST_PASSAGE_PREFIX = "first_passage_"
+        """Prefix for column names representing the first passage distance or time to a fixed point."""
+
+        TIME_TO_FP_PREFIX = "time_to_fp_"
+        """Prefix for column names representing the time to until a fixed point is reached."""
+
+        BIN_CENTER = "bin_center"
+        """Column name for the center of bins used when discretizing feature space."""
+
+        BIN_EDGES = "bin_edges"
+        """Column name for the edges of bins used when discretizing feature space."""
+
+        BIN_INDEX = "bin_index"
+        """Column name for the index of the bin that a data point falls into when feature space is discretized."""
