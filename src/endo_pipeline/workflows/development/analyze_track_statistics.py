@@ -319,6 +319,17 @@ def main(
                         "ci_lower": np.nanpercentile(var_kdes_arr, ci_lower, axis=0),
                         "ci_upper": np.nanpercentile(var_kdes_arr, ci_upper, axis=0),
                     }
+        # plt.suptitle(
+        #     f"{plot_label}, grid vs. tracked crops \n "
+        #     f"(grid n={num_trajectories_grid}, tracked n={num_trajectories_tracked}, "
+        #     f"n={NUM_BOOTSTRAP_ITERATIONS} bootstrap samples, tracked n={num_trajectories_grid} per sample)"
+        # )
+        # plt.tight_layout()
+        # save_plot_to_path(
+        #     fig,
+        #     fig_savedir,
+        #     f"{dataset_name_flow}_{column_name}",
+        # )
 
         if DEMO_MODE:
             logger.warning(
