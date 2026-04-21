@@ -346,7 +346,7 @@ def main(
                 tracked_avg_boot["mean"],
                 linestyle="--",
                 linewidth=2.0,
-                label=f"tracked (bootstrap mean, n={num_trajectories_tracked})",
+                label="tracked (bootstrap mean)",
             )
             ax[0].fill_between(
                 x_eval_avg_tracked,
@@ -354,7 +354,7 @@ def main(
                 tracked_avg_boot["ci_upper"],
                 color=tracked_avg_line.get_color(),
                 alpha=0.25,
-                label=f"tracked ({int(FP_CI_LOWER_PERCENTILE)}-{int(FP_CI_UPPER_PERCENTILE)}% CI, {NUM_BOOTSTRAP_ITERATIONS} bootstrap samples)",
+                label=f"tracked ({int(FP_CI_LOWER_PERCENTILE)}-{int(FP_CI_UPPER_PERCENTILE)}% CI)",
             )
             ax[0].legend(loc="upper right")
             # --- tracked variance: same approach ---
