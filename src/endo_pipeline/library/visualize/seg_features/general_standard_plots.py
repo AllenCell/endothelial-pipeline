@@ -124,8 +124,10 @@ def plot_line_of_features(
         Feature metadata for the x-axis data.
     y_feature_metadata
         Feature metadata for the y-axis data.
-    minor_ticks
-        If "x", "y", or "xy", minor ticks will be added to the respective axes.
+    x_minor_ticks
+        True to include minor ticks on the x-axis, False otherwise.
+    y_minor_ticks
+        True to include minor ticks on the y-axis, False otherwise.
     kwargs
         Additional keyword arguments to pass to the seaborn lineplot function.
         This can include parameters like `color`, `style`, `markers`, etc.
@@ -174,7 +176,7 @@ def plot_histogram_of_features(
     x_minor_ticks: bool = False,
     y_minor_ticks: bool = False,
     figsize: tuple[float, float] | None = None,
-    cmap: str = "viridis",
+    colormap_name: str = "viridis",
 ) -> tuple[Figure, Axes]:
     """
     Plot 2D histogram of given features.
@@ -189,15 +191,15 @@ def plot_histogram_of_features(
         Feature metadata for the x-axis data.
     y_feature_metadata
         Feature metadata for the y-axis data.
-    minor_ticks
-        If "x", "y", or "xy", minor ticks will be added to the respective axes.
+    x_minor_ticks
+        True to include minor ticks on the x-axis, False otherwise.
+    y_minor_ticks
+        True to include minor ticks on the y-axis, False otherwise.
     figsize
         Set the figure size using a (width, height) tuple.
         If None, the default figure size will be used.
-    tight_layout
-        If True, plt.tight_layout() will be called to adjust the figure layout.
-    colormap
-        The colormap to use for the histogram.
+    colormap_name
+        Name of colormap to use for the histogram.
 
     Returns
     -------
@@ -228,7 +230,7 @@ def plot_histogram_of_features(
         x=x_column_name,
         y=y_column_name,
         binwidth=binwidth,
-        cmap=cmap,
+        cmap=colormap_name,
         ax=ax,
     )
 
