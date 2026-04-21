@@ -3,7 +3,6 @@
 import logging
 import re
 from collections.abc import Callable
-from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -12,6 +11,7 @@ from scipy.optimize import fsolve
 from scipy.stats import gaussian_kde
 
 from endo_pipeline.io import load_dataframe
+from endo_pipeline.io.output import join_sorted_strings
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.numerics.binning import circpercentile
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
@@ -489,7 +489,7 @@ def load_fixed_points_dataframe_for_dataset(
     dataset_name: str,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
-    fixed_point_dimensions: Literal["theta_r_rho", "r_rho", "theta"] = "theta_r_rho",
+    column_names: list[str | Column] | None = None,
 ) -> pd.DataFrame:
     """
     Get the fixed points dataframe for a given dataset.
@@ -502,9 +502,8 @@ def load_fixed_points_dataframe_for_dataset(
         Name of the model manifest to use for locating the fixed points dataframe.
     run_name
         Name of the model run to use for locating the fixed points dataframe.
-    fixed_point_dimensions
-        The specific manifest used to load the fixed points dataframe.
-        Can be 3D ("theta_r_rho"), 2D ("r_rho"), or 1D ("theta") fixed points.
+    column_names
+        List of columns to load from the fixed points dataframe. If None, loads theta, r, and rho.
 
     Returns
     -------
@@ -512,26 +511,18 @@ def load_fixed_points_dataframe_for_dataset(
         DataFrame containing the fixed points for the specified dataset.
     """
 
-    if fixed_point_dimensions == "theta_r_rho":
-        manif = "_".join(
-            [
-                Column.DiffAEData.POLAR_RADIUS,
-                Column.DiffAEData.POLAR_ANGLE,
-                Column.DiffAEData.PC3_FLIPPED,
-            ]
-        )
-    elif fixed_point_dimensions == "r_rho":
-        manif = "_".join([Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED])
-    elif fixed_point_dimensions == "theta":
-        manif = Column.DiffAEData.POLAR_ANGLE.value
-    else:
-        raise ValueError(
-            f"Invalid value for fixed_point_dimensions: {fixed_point_dimensions}. "
-            f"Must be one of 'theta_r_rho', 'r_rho', or 'theta'."
-        )
+    if column_names is None:
+        column_names = [
+            Column.DiffAEData.POLAR_ANGLE,
+            Column.DiffAEData.POLAR_RADIUS,
+            Column.DiffAEData.PC3_FLIPPED,
+        ]
+    columns_str = join_sorted_strings(column_names)
 
     base_name = f"{model_manifest_name}_{run_name}_grid"
-    fixed_points_df_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{manif}_{base_name}"
+    fixed_points_df_manifest_name = (
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{columns_str}_{base_name}"
+    )
     fixed_points_df_manifest = load_dataframe_manifest(fixed_points_df_manifest_name)
 
     if dataset_name not in fixed_points_df_manifest.locations:
