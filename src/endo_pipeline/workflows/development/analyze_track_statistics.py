@@ -22,8 +22,7 @@ def main(
         filter_dataframe_to_steady_state,
     )
     from endo_pipeline.library.visualize.columns import get_label_for_column
-    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
-    from endo_pipeline.library.visualize.track_statistics import plot_histogram_and_kde
+    from endo_pipeline.library.visualize.track_statistics import plot_kde_of_histogram
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
@@ -99,7 +98,6 @@ def main(
             )
             continue
 
-        hist_color = get_dataset_color(dataset_name)
         shear_stress = dataset_config.flow_conditions[0].shear_stress
         dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
         plot_label = f"{dataset_name} ({shear_stress} dyn/cm$^2$)"
@@ -219,14 +217,13 @@ def main(
                 axes_title = f"Histogram of average {variable_label} across trajectories"
                 axes_xlabel = f"$\\langle${variable_label}$\\rangle$"
                 axes_ylabel = f"P({axes_xlabel})"
-                plot_histogram_and_kde(
+                plot_kde_of_histogram(
                     axes=ax[0],
                     data=column_avg_df_dict[crop_pattern][column_name].to_numpy(),
                     bin_width=bin_width_averages,
                     kernel_name=kernel_names_dict[column_name],
                     kernel_bandwidth=1.5 * bin_width_averages,
                     kernel_period=period,
-                    hist_color=hist_color,
                     kde_line_style=line_style,
                     kde_label=crop_pattern,
                     axes_title=axes_title,
@@ -239,14 +236,13 @@ def main(
                 axes_title = f"Histogram of variance {variable_label} across trajectories"
                 axes_xlabel = f"$\\mathrm{{Var}}({variable_label})$"
                 axes_ylabel = f"P({axes_xlabel})"
-                plot_histogram_and_kde(
+                plot_kde_of_histogram(
                     axes=ax[1],
                     data=column_variance_df_dict[crop_pattern][column_name].to_numpy(),
                     bin_width=bin_width_variances,
                     kernel_name="gaussian",
                     kernel_bandwidth=1.5 * bin_width_variances,
                     kernel_period=None,
-                    hist_color=hist_color,
                     kde_line_style=line_style,
                     kde_label=crop_pattern,
                     axes_title=axes_title,
@@ -260,7 +256,7 @@ def main(
             save_plot_to_path(
                 fig,
                 fig_savedir,
-                f"{dataset_name_flow}_{column_name}_statistics_histograms",
+                f"{dataset_name_flow}_{column_name}_kde",
             )
 
         if DEMO_MODE:

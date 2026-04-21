@@ -4,7 +4,6 @@ from typing import Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.colors import to_rgb
 from scipy.interpolate import make_interp_spline
 
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
@@ -14,18 +13,17 @@ from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalK
 from endo_pipeline.library.analyze.numerics.binning import get_bins
 
 
-def plot_histogram_and_kde(
+def plot_kde_of_histogram(
     axes: plt.Axes,
     data: np.ndarray,
     bin_width: float,
     kernel_name: Literal["gaussian", "epanechnikov", "periodic"],
     kernel_bandwidth: float,
     kernel_period: float | None,
-    hist_color: str = "blue",
-    hist_alpha: float = 0.5,
     kde_line_style: str = "-",
     kde_color: str = "k",
     kde_label: str | None = None,
+    kde_linewidth: float = 1.5,
     pad_bins: float = 0.0,
     axes_title: str | None = None,
     axes_xlimits: tuple[float, float] | None = None,
@@ -49,10 +47,6 @@ def plot_histogram_and_kde(
     kernel_period
         The period parameter for the kernel density estimate (only used for
         periodic kernels).
-    hist_color
-        The color to use for the histogram bars.
-    hist_alpha
-        The alpha (transparency) value to use for the histogram bars.
     kde_line_style
         The line style to use for the KDE plot.
     kde_color
@@ -103,15 +97,7 @@ def plot_histogram_and_kde(
     spline_list.append(one_spline)
     hist_kde_smooth_list.append(one_spline(interp_centers))
 
-    # plot histogram of the column variance with KDE overlaid
-    axes.bar(
-        bins[0][:-1],
-        hist,
-        width=np.diff(bins[0]),
-        color=(*to_rgb(hist_color), hist_alpha),
-        edgecolor=(*to_rgb("k"), 1.0),
-        align="edge",
-    )
+    # plot just the KDE
     for hist_kde_smooth in hist_kde_smooth_list:
         axes.plot(
             interp_centers,
