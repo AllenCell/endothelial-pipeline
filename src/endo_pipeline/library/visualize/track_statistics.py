@@ -158,10 +158,9 @@ def smooth_kde_with_spline(
     Returns
     -------
     np.ndarray
-        KDE values evaluated at each point in ``x_eval``.  Points outside the
-        data support are clamped to the nearest knot rather than extrapolated,
-        and positions where ``kde_values`` is not finite are excluded from the
-        spline fit.  Returns all-NaN if fewer than four finite values exist.
+        KDE values evaluated at each point in ``x_eval``.  Positions where
+        ``kde_values`` is not finite are excluded from the spline fit.
+        Returns all-NaN if fewer than four finite values exist.
 
     """
     finite_mask = np.isfinite(kde_values)
@@ -169,10 +168,7 @@ def smooth_kde_with_spline(
         return np.full(len(x_eval), np.nan)
     knot_x = bin_centers[finite_mask]
     spline = make_interp_spline(knot_x, kde_values[finite_mask], k=3)
-    # Clamp x_eval to the knot range so the spline never extrapolates beyond
-    # the data support, which avoids polynomial divergence at the tails.
-    x_eval_clamped = np.clip(x_eval, knot_x[0], knot_x[-1])
-    return spline(x_eval_clamped)
+    return spline(x_eval)
 
 
 def compute_interpolated_kde_spline(
