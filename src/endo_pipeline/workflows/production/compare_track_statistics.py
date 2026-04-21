@@ -52,6 +52,7 @@ def main(
         BIN_WIDTH_FOR_AVERAGE,
         BIN_WIDTH_FOR_VARIANCE,
         CI_FILL_OPACITY,
+        NUM_POINTS_SMOOTH_KDE,
     )
     from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
     from endo_pipeline.settings.workflow_defaults import (
@@ -222,7 +223,7 @@ def main(
                 avg_bins = get_bins(bin_widths=(BIN_WIDTH_FOR_AVERAGE,), data=avg_data)[0]
                 bins_avg_dict[crop_pattern][column_name] = avg_bins[0]
                 x_eval_avg_dict[crop_pattern][column_name] = np.linspace(
-                    avg_bins[0][0], avg_bins[0][-1], 2000
+                    avg_bins[0][0], avg_bins[0][-1], NUM_POINTS_SMOOTH_KDE
                 )
 
                 var_data = (
@@ -234,7 +235,7 @@ def main(
                 var_bins = get_bins(bin_widths=(BIN_WIDTH_FOR_VARIANCE,), data=var_data)[0]
                 bins_var_dict[crop_pattern][column_name] = var_bins[0]
                 x_eval_var_dict[crop_pattern][column_name] = np.linspace(
-                    var_bins[0][0], var_bins[0][-1], 2000
+                    var_bins[0][0], var_bins[0][-1], NUM_POINTS_SMOOTH_KDE
                 )
 
         # Compute histogram and KDE for each column and crop pattern, storing
