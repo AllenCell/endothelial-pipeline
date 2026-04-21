@@ -24,8 +24,9 @@ def main(
     from endo_pipeline.library.analyze.numerics.binning import get_bins
     from endo_pipeline.library.visualize.columns import get_label_for_column
     from endo_pipeline.library.visualize.track_statistics import (
-        compute_interpolated_kde_spline,
+        compute_kde_on_bins,
         plot_kde,
+        smooth_kde_with_spline,
     )
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.bootstrap_fixed_points import (
@@ -171,6 +172,8 @@ def main(
         }
         x_eval_avg_dict: dict = {"grid": {}, "tracked": {}}
         x_eval_var_dict: dict = {"grid": {}, "tracked": {}}
+        bins_avg_dict: dict = {"grid": {}, "tracked": {}}
+        bins_var_dict: dict = {"grid": {}, "tracked": {}}
         for crop_pattern in ["grid", "tracked"]:
             for traj_index, df_traj in df_steady_state_dict[crop_pattern].groupby(
                 Column.CROP_INDEX
@@ -204,6 +207,7 @@ def main(
                     column_avg_df_dict[crop_pattern][column_name].dropna().to_numpy().reshape(-1, 1)
                 )
                 avg_bins = get_bins(bin_widths=(bin_width_averages,), data=avg_data)[0]
+                bins_avg_dict[crop_pattern][column_name] = avg_bins[0]
                 x_eval_avg_dict[crop_pattern][column_name] = np.linspace(
                     avg_bins[0][0], avg_bins[0][-1], kde_eval_num_points
                 )
@@ -215,44 +219,58 @@ def main(
                     .reshape(-1, 1)
                 )
                 var_bins = get_bins(bin_widths=(bin_width_variances,), data=var_data)[0]
+                bins_var_dict[crop_pattern][column_name] = var_bins[0]
                 x_eval_var_dict[crop_pattern][column_name] = np.linspace(
                     var_bins[0][0], var_bins[0][-1], kde_eval_num_points
                 )
 
         # Bootstrap KDE computation for tracked crops: resample (with replacement)
         # tracked trajectories to the same size as grid trajectories, compute the
-        # KDE for each bootstrap sample, then report mean and (5, 95) CI.
+        # KDE for each bootstrap sample on the non-interpolated bin-center grid,
+        # then report mean and (5, 95) CI on that same coarse grid.  Spline
+        # smoothing to the fine x_eval grid is deferred to the plotting step.
         grid_avg_kde_dict: dict = {}
         grid_var_kde_dict: dict = {}
         bootstrap_tracked_avg_kde: dict = {}
         bootstrap_tracked_var_kde: dict = {}
         for column_name in column_names:
             period = polar_angle_period if column_name == Column.DiffAEData.POLAR_ANGLE else None
-            x_eval_avg_grid = x_eval_avg_dict["grid"][column_name]
-            x_eval_avg_tracked = x_eval_avg_dict["tracked"][column_name]
-            x_eval_var_grid = x_eval_var_dict["grid"][column_name]
-            x_eval_var_tracked = x_eval_var_dict["tracked"][column_name]
 
-            # compute grid KDE once on the grid-specific evaluation grids
-            grid_avg_kde_dict[column_name] = compute_interpolated_kde_spline(
+            # compute grid KDEs on the native bin-center grid
+            grid_avg_bin_centers, grid_avg_kde_values = compute_kde_on_bins(
                 data=column_avg_df_dict["grid"][column_name].dropna().to_numpy(),
-                x_eval=x_eval_avg_grid,
                 bin_width=bin_width_averages,
                 kernel_name=kernel_names_dict[column_name],
                 kernel_bandwidth=1.5 * bin_width_averages,
                 kernel_period=period,
+                bins=bins_avg_dict["grid"][column_name],
             )
-            grid_var_kde_dict[column_name] = compute_interpolated_kde_spline(
+            grid_avg_kde_dict[column_name] = {
+                "bin_centers": grid_avg_bin_centers,
+                "kde_values": grid_avg_kde_values,
+            }
+            grid_var_bin_centers, grid_var_kde_values = compute_kde_on_bins(
                 data=column_variance_df_dict["grid"][column_name].dropna().to_numpy(),
-                x_eval=x_eval_var_grid,
                 bin_width=bin_width_variances,
                 kernel_name="gaussian",
                 kernel_bandwidth=1.5 * bin_width_variances,
                 kernel_period=None,
+                bins=bins_var_dict["grid"][column_name],
             )
+            grid_var_kde_dict[column_name] = {
+                "bin_centers": grid_var_bin_centers,
+                "kde_values": grid_var_kde_values,
+            }
 
             tracked_avg_all = column_avg_df_dict["tracked"][column_name].dropna().to_numpy()
             tracked_var_all = column_variance_df_dict["tracked"][column_name].dropna().to_numpy()
+
+            # use fixed bins derived from the full tracked data so all bootstrap
+            # samples share the same bin-center grid and can be stacked directly
+            fixed_avg_bins = bins_avg_dict["tracked"][column_name]
+            fixed_var_bins = bins_var_dict["tracked"][column_name]
+            tracked_avg_bin_centers = (fixed_avg_bins[:-1] + fixed_avg_bins[1:]) / 2
+            tracked_var_bin_centers = (fixed_var_bins[:-1] + fixed_var_bins[1:]) / 2
 
             avg_kdes: list[np.ndarray] = []
             var_kdes: list[np.ndarray] = []
@@ -261,60 +279,66 @@ def main(
                     len(tracked_avg_all), size=num_trajectories_grid, replace=True
                 )
                 sample_avg = tracked_avg_all[sampled_indices]
-                avg_kdes.append(
-                    compute_interpolated_kde_spline(
-                        data=sample_avg,
-                        x_eval=x_eval_avg_tracked,
-                        bin_width=bin_width_averages,
-                        kernel_name=kernel_names_dict[column_name],
-                        kernel_bandwidth=1.5 * bin_width_averages,
-                        kernel_period=period,
-                    )
+                _, avg_kde_values = compute_kde_on_bins(
+                    data=sample_avg,
+                    bin_width=bin_width_averages,
+                    kernel_name=kernel_names_dict[column_name],
+                    kernel_bandwidth=1.5 * bin_width_averages,
+                    kernel_period=period,
+                    bins=fixed_avg_bins,
                 )
+                avg_kdes.append(avg_kde_values)
                 sample_var = tracked_var_all[sampled_indices]
-                var_kdes.append(
-                    compute_interpolated_kde_spline(
-                        data=sample_var,
-                        x_eval=x_eval_var_tracked,
-                        bin_width=bin_width_variances,
-                        kernel_name="gaussian",
-                        kernel_bandwidth=1.5 * bin_width_variances,
-                        kernel_period=None,
-                    )
+                _, var_kde_values = compute_kde_on_bins(
+                    data=sample_var,
+                    bin_width=bin_width_variances,
+                    kernel_name="gaussian",
+                    kernel_bandwidth=1.5 * bin_width_variances,
+                    kernel_period=None,
+                    bins=fixed_var_bins,
                 )
+                var_kdes.append(var_kde_values)
 
             avg_kdes_arr = np.array(avg_kdes)
             var_kdes_arr = np.array(var_kdes)
             bootstrap_tracked_avg_kde[column_name] = {
+                "bin_centers": tracked_avg_bin_centers,
                 "mean": np.nanmean(avg_kdes_arr, axis=0),
                 "ci_lower": np.nanpercentile(avg_kdes_arr, FP_CI_LOWER_PERCENTILE, axis=0),
                 "ci_upper": np.nanpercentile(avg_kdes_arr, FP_CI_UPPER_PERCENTILE, axis=0),
             }
             bootstrap_tracked_var_kde[column_name] = {
+                "bin_centers": tracked_var_bin_centers,
                 "mean": np.nanmean(var_kdes_arr, axis=0),
                 "ci_lower": np.nanpercentile(var_kdes_arr, FP_CI_LOWER_PERCENTILE, axis=0),
                 "ci_upper": np.nanpercentile(var_kdes_arr, FP_CI_UPPER_PERCENTILE, axis=0),
             }
 
         # plot histograms of the column averages and variances across
-        # trajectories for each column and crop pattern, with KDE overlaid
+        # trajectories for each column and crop pattern, with KDE overlaid.
+        # Spline smoothing from the coarse bin-center grid to the fine x_eval
+        # grid is applied here, at plot time.
         for column_name in column_names:
             variable_label = variable_labels_dict[column_name]
             fig, ax = plt.subplots(1, 2, figsize=(12, 5))
-            period = polar_angle_period if column_name == Column.DiffAEData.POLAR_ANGLE else None
             x_eval_avg_grid = x_eval_avg_dict["grid"][column_name]
             x_eval_avg_tracked = x_eval_avg_dict["tracked"][column_name]
             x_eval_var_grid = x_eval_var_dict["grid"][column_name]
             x_eval_var_tracked = x_eval_var_dict["tracked"][column_name]
 
-            # --- grid: single KDE ---
+            # --- grid: spline-smooth the native-grid KDE to x_eval, then plot ---
+            grid_avg_smooth = smooth_kde_with_spline(
+                bin_centers=grid_avg_kde_dict[column_name]["bin_centers"],
+                kde_values=grid_avg_kde_dict[column_name]["kde_values"],
+                x_eval=x_eval_avg_grid,
+            )
             axes_title_avg = f"Histogram of average {variable_label} across trajectories"
             axes_xlabel_avg = f"$\\langle${variable_label}$\\rangle$"
             axes_ylabel_avg = f"P({axes_xlabel_avg})"
             plot_kde(
                 axes=ax[0],
                 x_eval=x_eval_avg_grid,
-                kde_values=grid_avg_kde_dict[column_name],
+                kde_values=grid_avg_smooth,
                 kde_line_style="-",
                 kde_label="grid",
                 axes_title=axes_title_avg,
@@ -322,13 +346,18 @@ def main(
                 axes_ylabel=axes_ylabel_avg,
                 axes_xlimits=bin_limits_dict[column_name],
             )
+            grid_var_smooth = smooth_kde_with_spline(
+                bin_centers=grid_var_kde_dict[column_name]["bin_centers"],
+                kde_values=grid_var_kde_dict[column_name]["kde_values"],
+                x_eval=x_eval_var_grid,
+            )
             axes_title_var = f"Histogram of variance {variable_label} across trajectories"
             axes_xlabel_var = f"Var({variable_label})"
             axes_ylabel_var = f"P({axes_xlabel_var})"
             plot_kde(
                 axes=ax[1],
                 x_eval=x_eval_var_grid,
-                kde_values=grid_var_kde_dict[column_name],
+                kde_values=grid_var_smooth,
                 kde_line_style="-",
                 kde_label="grid",
                 axes_title=axes_title_var,
@@ -337,38 +366,59 @@ def main(
                 axes_xlimits=(-0.01, 0.8),
             )
 
-            # --- tracked: bootstrap mean KDE + (5, 95) CI band ---
+            # --- tracked: spline-smooth the bootstrap mean and CI from the native
+            #     bin-center grid to x_eval, then plot ---
             tracked_avg_boot = bootstrap_tracked_avg_kde[column_name]
             tracked_var_boot = bootstrap_tracked_var_kde[column_name]
-            # --- tracked average: plot bootstrap mean, then shade CI with matching color ---
+            tracked_avg_centers = tracked_avg_boot["bin_centers"]
+            tracked_var_centers = tracked_var_boot["bin_centers"]
+
+            tracked_avg_mean_smooth = smooth_kde_with_spline(
+                tracked_avg_centers, tracked_avg_boot["mean"], x_eval_avg_tracked
+            )
+            tracked_avg_ci_lower_smooth = smooth_kde_with_spline(
+                tracked_avg_centers, tracked_avg_boot["ci_lower"], x_eval_avg_tracked
+            )
+            tracked_avg_ci_upper_smooth = smooth_kde_with_spline(
+                tracked_avg_centers, tracked_avg_boot["ci_upper"], x_eval_avg_tracked
+            )
             (tracked_avg_line,) = ax[0].plot(
                 x_eval_avg_tracked,
-                tracked_avg_boot["mean"],
+                tracked_avg_mean_smooth,
                 linestyle="--",
                 linewidth=2.0,
                 label="tracked (bootstrap mean)",
             )
             ax[0].fill_between(
                 x_eval_avg_tracked,
-                tracked_avg_boot["ci_lower"],
-                tracked_avg_boot["ci_upper"],
+                tracked_avg_ci_lower_smooth,
+                tracked_avg_ci_upper_smooth,
                 color=tracked_avg_line.get_color(),
                 alpha=0.25,
                 label=f"tracked ({int(FP_CI_LOWER_PERCENTILE)}-{int(FP_CI_UPPER_PERCENTILE)}% CI)",
             )
             ax[0].legend(loc="upper right")
-            # --- tracked variance: same approach ---
+
+            tracked_var_mean_smooth = smooth_kde_with_spline(
+                tracked_var_centers, tracked_var_boot["mean"], x_eval_var_tracked
+            )
+            tracked_var_ci_lower_smooth = smooth_kde_with_spline(
+                tracked_var_centers, tracked_var_boot["ci_lower"], x_eval_var_tracked
+            )
+            tracked_var_ci_upper_smooth = smooth_kde_with_spline(
+                tracked_var_centers, tracked_var_boot["ci_upper"], x_eval_var_tracked
+            )
             (tracked_var_line,) = ax[1].plot(
                 x_eval_var_tracked,
-                tracked_var_boot["mean"],
+                tracked_var_mean_smooth,
                 linestyle="--",
                 linewidth=2.0,
                 label="tracked (bootstrap mean)",
             )
             ax[1].fill_between(
                 x_eval_var_tracked,
-                tracked_var_boot["ci_lower"],
-                tracked_var_boot["ci_upper"],
+                tracked_var_ci_lower_smooth,
+                tracked_var_ci_upper_smooth,
                 color=tracked_var_line.get_color(),
                 alpha=0.25,
                 label=f"tracked ({int(FP_CI_LOWER_PERCENTILE)}-{int(FP_CI_UPPER_PERCENTILE)}% CI)",
