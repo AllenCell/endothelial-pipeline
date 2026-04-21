@@ -104,7 +104,7 @@ def compute_flow_statistics(
     """
     base: dict[str, int | float] = {
         ColumnName.CROP_INDEX: crop_idx,
-        "timepoint": timepoint,
+        ColumnName.TIMEPOINT: timepoint,
         "dt": dt,
     }
     mask = (crop0 > thresh) | (crop1 > thresh)
@@ -174,27 +174,27 @@ def compute_flow_statistics(
 
     base.update(
         {
-            ColumnName.OpticalFlowCompute.SPEED_MEAN: float(sp.mean()),
-            ColumnName.OpticalFlowCompute.UNIT_VECTOR_MEAN: muv,
-            ColumnName.OpticalFlowCompute.SPEED_STD: float(sp.std()),
-            ColumnName.OpticalFlowCompute.ANGLE_MEAN: float(
+            ColumnName.OpticalFlow.SPEED_MEAN_BASE: float(sp.mean()),
+            ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_BASE: muv,
+            ColumnName.OpticalFlow.SPEED_STD_BASE: float(sp.std()),
+            ColumnName.OpticalFlow.ANGLE_MEAN_BASE: float(
                 np.arctan2(np.sin(ang).mean(), np.cos(ang).mean())
             ),
-            ColumnName.OpticalFlowCompute.ANGLE_STD: float(stats.circstd(ang)),
-            ColumnName.OpticalFlowCompute.U_MEAN: float(um.mean()),
-            ColumnName.OpticalFlowCompute.V_MEAN: float(vm.mean()),
-            ColumnName.OpticalFlowCompute.U_STD: float(um.std()),
-            ColumnName.OpticalFlowCompute.V_STD: float(vm.std()),
+            ColumnName.OpticalFlow.ANGLE_STD_BASE: float(stats.circstd(ang)),
+            ColumnName.OpticalFlow.U_MEAN_BASE: float(um.mean()),
+            ColumnName.OpticalFlow.V_MEAN_BASE: float(vm.mean()),
+            ColumnName.OpticalFlow.U_STD_BASE: float(um.std()),
+            ColumnName.OpticalFlow.V_STD_BASE: float(vm.std()),
         }
     )
 
     if compute_fast_coherence:
-        base[ColumnName.OpticalFlowCompute.SPEED_ABOVE_1_COUNT] = n_fast
-        base[ColumnName.OpticalFlowCompute.UNIT_VECTOR_MEAN_FAST] = muv_fast
+        base[ColumnName.OpticalFlow.SPEED_ABOVE_1_COUNT_BASE] = n_fast
+        base[ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_FAST_BASE] = muv_fast
 
     if compute_radial_coherence:
-        base[ColumnName.OpticalFlowCompute.RADIAL_COHERENCE] = radial_coh
-        base[ColumnName.OpticalFlowCompute.RADIAL_COHERENCE_WEIGHTED] = radial_coh_w
+        base[ColumnName.OpticalFlow.RADIAL_COHERENCE_BASE] = radial_coh
+        base[ColumnName.OpticalFlow.RADIAL_COHERENCE_WEIGHTED_BASE] = radial_coh_w
 
     # --- Optional Multi-scale coherence ---
     if compute_block_coherence:

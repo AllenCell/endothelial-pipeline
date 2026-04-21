@@ -101,27 +101,27 @@ OPTICAL_FLOW_COLUMNS_TO_COMPUTE: dict[str, tuple[str, ...]] = {
 # Feature names
 # ---------------------------------------------------------------------------
 OPTICAL_FLOW_COMPUTE_FEATURES: list[str] = [
-    ColumnName.OpticalFlowCompute.SPEED_MEAN,
-    ColumnName.OpticalFlowCompute.UNIT_VECTOR_MEAN,
-    ColumnName.OpticalFlowCompute.SPEED_STD,
-    ColumnName.OpticalFlowCompute.ANGLE_MEAN,
-    ColumnName.OpticalFlowCompute.ANGLE_STD,
-    ColumnName.OpticalFlowCompute.U_MEAN,
-    ColumnName.OpticalFlowCompute.V_MEAN,
-    ColumnName.OpticalFlowCompute.U_STD,
-    ColumnName.OpticalFlowCompute.V_STD,
+    ColumnName.OpticalFlow.SPEED_MEAN_BASE,
+    ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_BASE,
+    ColumnName.OpticalFlow.SPEED_STD_BASE,
+    ColumnName.OpticalFlow.ANGLE_MEAN_BASE,
+    ColumnName.OpticalFlow.ANGLE_STD_BASE,
+    ColumnName.OpticalFlow.U_MEAN_BASE,
+    ColumnName.OpticalFlow.V_MEAN_BASE,
+    ColumnName.OpticalFlow.U_STD_BASE,
+    ColumnName.OpticalFlow.V_STD_BASE,
 ]
 """Core features always computed by :func:`compute_flow_statistics`."""
 
 OPTICAL_FLOW_FAST_FEATURES: list[str] = [
-    ColumnName.OpticalFlowCompute.UNIT_VECTOR_MEAN_FAST,
-    ColumnName.OpticalFlowCompute.SPEED_ABOVE_1_COUNT,
+    ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_FAST_BASE,
+    ColumnName.OpticalFlow.SPEED_ABOVE_1_COUNT_BASE,
 ]
 """Features gated on ``--compute-fast-coherence`` (speed > threshold)."""
 
 OPTICAL_FLOW_RADIAL_FEATURES: list[str] = [
-    ColumnName.OpticalFlowCompute.RADIAL_COHERENCE,
-    ColumnName.OpticalFlowCompute.RADIAL_COHERENCE_WEIGHTED,
+    ColumnName.OpticalFlow.RADIAL_COHERENCE_BASE,
+    ColumnName.OpticalFlow.RADIAL_COHERENCE_WEIGHTED_BASE,
 ]
 """Features gated on ``--compute-radial-coherence``."""
 
@@ -136,18 +136,18 @@ OPTICAL_FLOW_BASE_FEATURES: list[str] = (
 # EMA coherence feature stems (the alpha tag and _dt suffix are added
 # dynamically in the workflow and in :func:`build_optical_flow_feature_cols`).
 OPTICAL_FLOW_EMA_STEMS: list[str] = [
-    ColumnName.OpticalFlowCompute.UNIT_VECTOR_MEAN,
+    ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_BASE,
 ]
 """Base coherence feature names that always receive EMA smoothing."""
 
 OPTICAL_FLOW_EMA_FAST_STEMS: list[str] = [
-    ColumnName.OpticalFlowCompute.UNIT_VECTOR_MEAN_FAST,
+    ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_FAST_BASE,
 ]
 """Coherence feature names that receive EMA smoothing only when fast coherence is enabled."""
 
 OPTICAL_FLOW_EMA_RADIAL_STEMS: list[str] = [
-    ColumnName.OpticalFlowCompute.RADIAL_COHERENCE,
-    ColumnName.OpticalFlowCompute.RADIAL_COHERENCE_WEIGHTED,
+    ColumnName.OpticalFlow.RADIAL_COHERENCE_BASE,
+    ColumnName.OpticalFlow.RADIAL_COHERENCE_WEIGHTED_BASE,
 ]
 """Coherence feature names that receive EMA smoothing only when radial coherence is enabled."""
 
