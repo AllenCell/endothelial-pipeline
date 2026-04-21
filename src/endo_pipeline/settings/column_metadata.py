@@ -87,7 +87,7 @@ class ColumnMetadata:
         self.label_with_unit = f"{self.label}{unit}"
 
         # Create slug version of the name (useful for saving to files).
-        self.slug = slugify(self.name_with_unit)
+        self.slug = slugify(self.name)
 
         # Set limits using minimum and maximum.
         self.limits = (self.min, self.max)
