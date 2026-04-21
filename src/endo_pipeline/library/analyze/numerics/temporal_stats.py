@@ -4,13 +4,20 @@ from collections.abc import Callable
 from typing import Literal
 
 import numpy as np
+import pandas as pd
 from scipy.interpolate import make_interp_spline
 
+from endo_pipeline.configs import DatasetConfig
+from endo_pipeline.library.analyze.dataframe_filtering import (
+    filter_dataframe_by_track_length,
+    filter_dataframe_to_steady_state,
+)
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
     get_kernel_density_estimate_from_histogram,
 )
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics.binning import get_bins
+from endo_pipeline.settings.column_names import ColumnName as Column
 
 
 def compute_kde_on_bins(
@@ -106,6 +113,55 @@ def smooth_kde_with_spline(
     knot_x = bin_centers[finite_mask]
     spline = make_interp_spline(knot_x, kde_values[finite_mask], k=3)
     return spline(x_eval)
+
+
+def process_dataframe_for_track_statistics(
+    dataframe: pd.DataFrame, dataset_config: DatasetConfig, minimum_track_length: int | float
+) -> pd.DataFrame:
+    """
+    Pre-process a DataFrame to prepare for track statistics calculations.
+
+    This function performs the following steps:
+        1. Filters the input DataFrame to include only timepoints annotated as
+           "steady state" according to the provided dataset configuration.
+        2. Adds a "track length" column to the DataFrame, which computes the
+           length of each track (crop) as the difference between the maximum and
+           minimum timepoints for that track. This ensures filtering by track
+           length is done based on the track length within the steady state
+           period, rather than the full track length.
+        3. Filters the DataFrame to include only tracks that meet a minimum
+           track length criterion.
+
+    Parameters
+    ----------
+    dataframe
+        The input DataFrame containing the time series data for multiple tracks
+        (crops).
+    dataset_config
+        The dataset configuration object that contains information about the
+        steady state timepoints.
+    minimum_track_length
+        The minimum track length (in time units) required for a track to be
+        included in the final DataFrame. Tracks with a length shorter than this
+        threshold will be excluded.
+
+    Returns
+    -------
+    :
+        A filtered DataFrame that includes only steady state timepoints and tracks
+        that meet the minimum track length criterion within the steady state period.
+    """
+    # filter to steady state timepoints only
+    dataframe_steady_state = filter_dataframe_to_steady_state(dataframe, dataset_config)
+
+    dataframe_steady_state[Column.TRACK_LENGTH] = dataframe_steady_state.groupby(Column.CROP_INDEX)[
+        Column.TIMEPOINT
+    ].transform(lambda t: t.max() - t.min())
+    # Perform additional filtering by track length
+    dataframe_min_length = filter_dataframe_by_track_length(
+        dataframe_steady_state, minimum_track_length
+    )
+    return dataframe_min_length
 
 
 def compute_cumulative_variance_over_time(
