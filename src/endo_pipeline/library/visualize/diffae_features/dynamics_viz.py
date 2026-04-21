@@ -252,6 +252,7 @@ def plot_drift_quiver(
     legend_kwargs: dict | None = None,
     xlabel_kwargs: dict | None = None,
     ylabel_kwargs: dict | None = None,
+    plot_legend: bool = True,
 ):
     """
     Make and save quiver plot of the drift vector field over the 2D state space.
@@ -302,7 +303,8 @@ def plot_drift_quiver(
     ylabel_kwargs
         Optional dictionary of keyword arguments to pass to ax.set_ylabel for
         customizing the y-axis label, e.g., to specify a font size or label padding.
-
+    plot_legend
+        Whether to plot the legend for the nullclines.
     """
     fig, ax = fig_ax or plt.subplots(figsize=figsize, gridspec_kw=gridspec_kwargs)
     ax.quiver(
@@ -333,9 +335,10 @@ def plot_drift_quiver(
                 [],
                 color=nullcline_colors[var_index],
                 linestyle=nullcline_styles[var_index],
-                label=f"d{var_name}/dt",
+                label=f"Nullcline d{var_name}/dt=0",
             )
-        ax.legend(title="Nullclines", **(legend_kwargs or {}))
+        if plot_legend:
+            ax.legend(**(legend_kwargs or {}))
 
     ax.set_xlabel(variable_labels[0], **(xlabel_kwargs or {}))
     ax.set_ylabel(variable_labels[1], **(ylabel_kwargs or {}))
