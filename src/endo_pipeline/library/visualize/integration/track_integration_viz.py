@@ -1136,8 +1136,10 @@ def plot_first_passage_time_correlation(
         y=first_passage_time_df_no_nan[f"{metric}_tracked"],
     )
 
+    num_bins = first_passage_time_df_no_nan[Column.VectorField.BIN_INDEX].nunique()
+
     fig, ax = plt.subplots(figsize=(3, 3))
-    ax.set_title(f"{dataset_name}".title())
+    ax.set_title(f"{dataset_name}: {num_bins} bins".title())
     ax.errorbar(
         x=first_passage_time_df_no_nan[f"{metric}_grid"],
         y=first_passage_time_df_no_nan[f"{metric}_tracked"],
@@ -1169,8 +1171,8 @@ def plot_first_passage_time_correlation(
     ax_max = max((*ax.get_xlim(), *ax.get_ylim()))
     ax.set_xlim(ax_min, ax_max)
     ax.set_ylim(ax_min, ax_max)
-    ax.set_xlabel("Grid Trajectory FPT")
-    ax.set_ylabel("Tracked Trajectory FPT")
+    ax.set_xlabel("Grid Trajectory FPT (hrs)")
+    ax.set_ylabel("Tracked Trajectory FPT (hrs)")
     ax.legend()
     filename = (
         f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}"
