@@ -193,7 +193,7 @@ def main(
             )
 
             fig, ax = plot_drift_1d(
-                centers=centers[-1],
+                x_values=centers[-1],
                 drift=drift,
                 axes_labels=[column_label, f"d{column_label}/dt"],
                 figsize=(4, 4),
