@@ -68,7 +68,7 @@ def main(
     bin_width_averages = 0.1
     bin_width_variances = 0.02
     kde_eval_num_points = 2000
-    axes_ylim_avg = (0.0, 1.25)
+    axes_ylim_avg = (0.0, 1.75)
     axes_ylim_var = (0.0, 15.0)
 
     # Get dataframe manifest for filtered crop-based features
