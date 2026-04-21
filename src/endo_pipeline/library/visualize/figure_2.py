@@ -199,7 +199,7 @@ def make_crop_example_contact_sheet(
     fig.axes[0].text(
         0.96,
         0.08,
-        f"{scale_bar_um} {Unicode.MU}m{Unicode.SQUARED}",
+        f"{scale_bar_um} {Unicode.MU}m",
         color="white",
         transform=fig.axes[0].transAxes,
         fontsize=FONTSIZE_SMALL,
