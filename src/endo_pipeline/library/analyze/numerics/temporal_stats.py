@@ -1,8 +1,74 @@
 """Methods related to computing long-time-scale statistics of time series data."""
 
 from collections.abc import Callable
+from typing import Literal
 
 import numpy as np
+
+from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
+    get_kernel_density_estimate_from_histogram,
+)
+from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
+from endo_pipeline.library.analyze.numerics.binning import get_bins
+
+
+def compute_kde_on_bins(
+    data: np.ndarray,
+    bin_width: float,
+    kernel_name: Literal["gaussian", "epanechnikov", "periodic"],
+    kernel_bandwidth: float,
+    kernel_period: float | None,
+    bins: np.ndarray | None = None,
+    pad_bins: float = 0.0,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Compute a kernel density estimate (KDE) on the native histogram bin centers.
+
+    Unlike :func:`compute_interpolated_kde_spline`, this function returns KDE
+    values on the coarse bin-center grid without any spline smoothing.  This
+    is the right representation for accumulating bootstrap samples: average the
+    raw KDE values first, then apply spline smoothing only once at plot time
+    via :func:`smooth_kde_with_spline`.
+
+    Parameters
+    ----------
+    data
+        1D array of data points to estimate the density for.
+    bin_width
+        The width of the histogram bins used to compute the KDE.
+    kernel_name
+        The name of the kernel to use for the KDE.
+    kernel_bandwidth
+        The bandwidth parameter for the kernel density estimate.
+    kernel_period
+        The period for periodic kernels (pass None for non-periodic kernels).
+    bins
+        Pre-computed bin edges (1D array) to use instead of deriving them from
+        ``data``.  Pass this to ensure all bootstrap samples share the same
+        bin grid so their KDE arrays can be stacked and averaged.  When
+        ``None``, bin edges are derived from ``data``.
+    pad_bins
+        Amount to pad histogram bins on either side of the data range.
+        Ignored when ``bins`` is provided.
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray]
+        ``(bin_centers, kde_values)`` — both 1D arrays of the same length.
+
+    """
+    if bins is not None:
+        computed_bins = [bins]
+        centers = [(bins[:-1] + bins[1:]) / 2]
+    else:
+        computed_bins, centers = get_bins(bin_widths=(bin_width,), data=data, pad=pad_bins)
+    hist = np.histogram(data, bins=computed_bins[0], density=True)[0]
+    kernel = KramersMoyalKernel(
+        name=kernel_name,
+        bandwidth=kernel_bandwidth,
+        period=kernel_period,
+    )
+    hist_kde = get_kernel_density_estimate_from_histogram(hist, bins=computed_bins, kernel=kernel)
+    return centers[0], hist_kde
 
 
 def compute_cumulative_variance_over_time(
