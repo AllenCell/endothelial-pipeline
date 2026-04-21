@@ -138,10 +138,10 @@ def plot_line_of_features(
 
     unique_positions = df[Column.POSITION].unique()
     if len(unique_positions) != 1:
-        raise ValueError(f"Only a single position can be plotted. Given: '{unique_positions}'")
-    position = unique_positions[0]
+        fig_title = f"{dataset_name} P{unique_positions[0]}"
+    else:
+        fig_title = f"{dataset_name}"
 
-    fig_title = f"{dataset_name} P{position}"
     fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT))
     sns.lineplot(data=df, x=x_column_name, y=y_column_name, ax=ax, **kwargs)
 
@@ -212,23 +212,22 @@ def plot_histogram_of_features(
 
     unique_positions = df[Column.POSITION].unique()
     if len(unique_positions) != 1:
-        raise ValueError(f"Only a single position can be plotted. Given: '{unique_positions}'")
-    position = unique_positions[0]
+        fig_title = f"{dataset_name} P{unique_positions[0]}"
+    else:
+        fig_title = f"{dataset_name}"
 
-    if x_feature_metadata.bin_width is None:
-        raise ValueError(f"Feature '{x_column_name}' must provide a bin width")
-
-    if y_feature_metadata.bin_width is None:
-        raise ValueError(f"Feature '{y_column_name}' must provide a bin width")
-
-    fig_title = f"{dataset_name} P{position}"
     fig, ax = plt.subplots(figsize=figsize or (AX_WIDTH, AX_HEIGHT))
+
+    if x_feature_metadata.bin_width and y_feature_metadata.bin_width:
+        binwidth = (x_feature_metadata.bin_width, y_feature_metadata.bin_width)
+    else:
+        binwidth = None
 
     sns.histplot(
         data=df,
         x=x_column_name,
         y=y_column_name,
-        binwidth=(x_feature_metadata.bin_width, y_feature_metadata.bin_width),
+        binwidth=binwidth,
         cmap=cmap,
         ax=ax,
     )
