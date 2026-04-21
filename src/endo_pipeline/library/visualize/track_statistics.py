@@ -22,7 +22,8 @@ def plot_kde(
     kde_label: str | None = None,
     kde_linewidth: float = 2.0,
     axes_title: str | None = None,
-    axes_xlimits: tuple[float, float] | None = None,
+    axes_xlim: tuple[float, float] | None = None,
+    axes_ylim: tuple[float, float] | None = None,
     axes_xlabel: str | None = None,
     axes_ylabel: str | None = None,
 ) -> None:
@@ -48,8 +49,10 @@ def plot_kde(
         The line width to use for the KDE plot.
     axes_title
         The title to set for the axes (set to None to omit).
-    axes_xlimits
+    axes_xlim
         The x-axis limits to set for the plot (set to None to auto-scale).
+    axes_ylim
+        The y-axis limits to set for the plot (set to None to auto-scale).
     axes_xlabel
         The label to set for the x-axis (set to None to omit).
     axes_ylabel
@@ -66,8 +69,10 @@ def plot_kde(
     )
     if axes_title is not None:
         axes.set_title(axes_title)
-    if axes_xlimits is not None:
-        axes.set_xlim(axes_xlimits)
+    if axes_xlim is not None:
+        axes.set_xlim(axes_xlim)
+    if axes_ylim is not None:
+        axes.set_ylim(axes_ylim)
     if axes_xlabel is not None:
         axes.set_xlabel(axes_xlabel)
     if axes_ylabel is not None:

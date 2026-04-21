@@ -68,6 +68,8 @@ def main(
     bin_width_averages = 0.1
     bin_width_variances = 0.02
     kde_eval_num_points = 2000
+    axes_ylim_avg = (0.0, 1.25)
+    axes_ylim_var = (0.0, 15.0)
 
     # Get dataframe manifest for filtered crop-based features
     base_name_grid = f"{model_manifest_name}_{run_name}_grid"
@@ -344,7 +346,8 @@ def main(
                 axes_title=axes_title_avg,
                 axes_xlabel=axes_xlabel_avg,
                 axes_ylabel=axes_ylabel_avg,
-                axes_xlimits=bin_limits_dict[column_name],
+                axes_xlim=bin_limits_dict[column_name],
+                axes_ylim=axes_ylim_avg,
             )
             grid_var_smooth = smooth_kde_with_spline(
                 bin_centers=grid_var_kde_dict[column_name]["bin_centers"],
@@ -363,7 +366,8 @@ def main(
                 axes_title=axes_title_var,
                 axes_xlabel=axes_xlabel_var,
                 axes_ylabel=axes_ylabel_var,
-                axes_xlimits=(-0.01, 0.8),
+                axes_xlim=(-0.01, 0.8),
+                axes_ylim=axes_ylim_var,
             )
 
             # --- tracked: spline-smooth the bootstrap mean and CI from the native
