@@ -25,13 +25,14 @@ def main(
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
     from endo_pipeline.library.visualize.track_statistics import plot_histogram_and_kde
     from endo_pipeline.manifests import load_dataframe_manifest
-    from endo_pipeline.settings.column_names import ColumnName
+    from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_DYNAMICS,
         DEFAULT_DATASETS_DYNAMICS_VIS,
         DYNAMICS_COLUMN_NAMES,
         KERNEL_NAMES_DYNAMICS,
         METADATA_COLUMNS_TO_KEEP,
+        POLAR_ANGLE_PERIOD,
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -45,13 +46,13 @@ def main(
     # set workflow defaults
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
     run_name = DEFAULT_MODEL_RUN_NAME
-    column_names: list[ColumnName.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
+    column_names: list[Column.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
     variable_labels_dict = {col: get_label_for_column(col) for col in column_names}
     columns_to_compute_grid = [*METADATA_COLUMNS_TO_KEEP["grid"], *column_names]
     columns_to_compute_tracked = [*METADATA_COLUMNS_TO_KEEP["tracked"], *column_names]
 
     # kernel names for KDEs
-    kernel_names_dict = cast(dict[str | ColumnName.DiffAEData, str], KERNEL_NAMES_DYNAMICS.copy())
+    kernel_names_dict = cast(dict[str | Column.DiffAEData, str], KERNEL_NAMES_DYNAMICS.copy())
 
     # bin widths for histograms of column averages and variances across
     # trajectories (currently hardcoded)
@@ -72,12 +73,9 @@ def main(
     # the manifest.
     dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
 
-    # unpack default bin widths and limits for each column, adjusting limits if rescaling theta
+    # bin limits and polar angle period are constant
     bin_limits_dict = BIN_LIMITS_DYNAMICS.copy()
-    polar_angle_period = (
-        bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][1]
-        - bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][0]
-    )
+    polar_angle_period = POLAR_ANGLE_PERIOD
 
     for dataset_name in dataset_names:
         if (
@@ -116,18 +114,28 @@ def main(
         )
         df_grid: pd.DataFrame = df_grid_[columns_to_compute_grid].compute()
         df_steady_state_grid = filter_dataframe_to_steady_state(df_grid, dataset_config)
-        num_trajectories_grid = df_steady_state_grid[ColumnName.CROP_INDEX].nunique()
+        num_trajectories_grid = df_steady_state_grid[Column.CROP_INDEX].nunique()
+        df_steady_state_grid[Column.TRACK_LENGTH] = df_steady_state_grid.groupby(Column.CROP_INDEX)[
+            Column.TIMEPOINT
+        ].transform(lambda t: t.max() - t.min())
+        # Perform additional filtering by track length
+        df_steady_state_grid = filter_dataframe_by_track_length(
+            df_steady_state_grid, min_track_length
+        )
 
         df_tracked_ = load_dataframe(
             tracked_feature_dataframe_manifest.locations[dataset_name], delay=True
         )
         df_tracked: pd.DataFrame = df_tracked_[columns_to_compute_tracked].compute()
         df_steady_state_tracked = filter_dataframe_to_steady_state(df_tracked, dataset_config)
+        df_steady_state_tracked[Column.TRACK_LENGTH] = df_steady_state_tracked.groupby(
+            Column.CROP_INDEX
+        )[Column.TIMEPOINT].transform(lambda t: t.max() - t.min())
         # Perform additional filtering by track length
         df_steady_state_tracked = filter_dataframe_by_track_length(
             df_steady_state_tracked, min_track_length
         )
-        num_trajectories_tracked = df_steady_state_tracked[ColumnName.CROP_INDEX].nunique()
+        num_trajectories_tracked = df_steady_state_tracked[Column.CROP_INDEX].nunique()
 
         # subsample trajectories if num_subsample is specified and there are
         # more than num_subsample trajectories
@@ -140,12 +148,12 @@ def main(
                 num_trajectories_tracked,
             )
             sampled_traj_indices = rng.choice(
-                df_steady_state_tracked[ColumnName.CROP_INDEX].unique(),
+                df_steady_state_tracked[Column.CROP_INDEX].unique(),
                 size=num_trajectories_grid,
                 replace=False,
             )
             df_steady_state_tracked = df_steady_state_tracked[
-                df_steady_state_tracked[ColumnName.CROP_INDEX].isin(sampled_traj_indices)
+                df_steady_state_tracked[Column.CROP_INDEX].isin(sampled_traj_indices)
             ]
         elif num_trajectories_tracked < num_trajectories_grid:
             logger.warning(
@@ -161,7 +169,7 @@ def main(
             "tracked": df_steady_state_tracked,
         }
 
-        base_df = pd.DataFrame(columns=[ColumnName.CROP_INDEX, *column_names])
+        base_df = pd.DataFrame(columns=[Column.CROP_INDEX, *column_names])
         column_avg_df_dict: dict[str, pd.DataFrame] = {
             "grid": base_df.copy(),
             "tracked": base_df.copy(),
@@ -172,21 +180,21 @@ def main(
         }
         for crop_pattern in ["grid", "tracked"]:
             for traj_index, df_traj in df_steady_state_dict[crop_pattern].groupby(
-                ColumnName.CROP_INDEX
+                Column.CROP_INDEX
             ):
                 for column_name in column_names:
-                    if column_name == ColumnName.DiffAEData.POLAR_ANGLE:
+                    if column_name == Column.DiffAEData.POLAR_ANGLE:
                         # take circular mean for polar angle to account for periodicity
                         column_avg_df_dict[crop_pattern].loc[traj_index, column_name] = circmean(
                             df_traj[column_name],
-                            high=bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][1],
-                            low=bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][0],
+                            high=bin_limits_dict[Column.DiffAEData.POLAR_ANGLE][1],
+                            low=bin_limits_dict[Column.DiffAEData.POLAR_ANGLE][0],
                         )
                         column_variance_df_dict[crop_pattern].loc[traj_index, column_name] = (
                             circvar(
                                 df_traj[column_name],
-                                high=bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][1],
-                                low=bin_limits_dict[ColumnName.DiffAEData.POLAR_ANGLE][0],
+                                high=bin_limits_dict[Column.DiffAEData.POLAR_ANGLE][1],
+                                low=bin_limits_dict[Column.DiffAEData.POLAR_ANGLE][0],
                             )
                         )
                     else:
@@ -202,9 +210,7 @@ def main(
         for column_name in column_names:
             variable_label = variable_labels_dict[column_name]
             fig, ax = plt.subplots(1, 2, figsize=(12, 5))
-            period = (
-                polar_angle_period if column_name == ColumnName.DiffAEData.POLAR_ANGLE else None
-            )
+            period = polar_angle_period if column_name == Column.DiffAEData.POLAR_ANGLE else None
             for crop_pattern, num_traj, line_style in [
                 ("grid", num_trajectories_grid, "-"),
                 ("tracked", num_trajectories_tracked, "--"),
