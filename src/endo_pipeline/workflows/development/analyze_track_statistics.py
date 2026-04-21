@@ -67,7 +67,7 @@ def main(
     # trajectories (currently hardcoded)
     bin_width_averages = 0.1
     bin_width_variances = 0.02
-    ci_line_kwargs = {"alpha": 0.25, "label": f"{int(ci_lower)}-{int(ci_upper)}% CI"}
+    ci_line_kwargs = {"alpha": 0.15, "label": f"boostrap {int(ci_lower)}-{int(ci_upper)}% CI"}
 
     # Get dataframe manifest for filtered crop-based features
     base_name_grid = f"{model_manifest_name}_{run_name}_grid"
@@ -375,6 +375,7 @@ def main(
                     kde_line_kwargs=kde_line_kwargs,
                     ci_line_kwargs=ci_line_kwargs,
                 )
+                ax[1].legend()
             plt.suptitle(
                 f"{plot_label}, grid vs. tracked crops \n "
                 f"(grid n={num_trajectories_grid}, tracked n={num_trajectories_tracked}, "
