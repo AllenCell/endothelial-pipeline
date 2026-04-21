@@ -358,7 +358,7 @@ def plot_drift_quiver(
 
 def plot_drift_1d(
     drift: np.ndarray,
-    centers: np.ndarray,
+    x_values: np.ndarray,
     fig_ax: tuple[plt.Figure, plt.Axes] | None = None,
     figsize: tuple[float, float] = (7, 4),
     axes_limits: list[tuple[float, float]] | None = None,
@@ -375,9 +375,9 @@ def plot_drift_1d(
     Parameters
     ----------
     drift
-        1D array of the drift component evaluated at the corresponding centers.
-    centers
-        1D array of the centers of the bins corresponding to the drift values.
+        1D array of the drift component evaluated at the input `x_values`.
+    x_values
+        1D array of state variable values corresponding to the drift values.
     fig_ax
         Optional tuple of (Figure, Axes) to plot on. If None, a new figure and
         axes will be created; if provided, the plot will be made on the provided
@@ -415,8 +415,8 @@ def plot_drift_1d(
         a function of the state variable.
     """
     fig, ax = fig_ax or plt.subplots(figsize=figsize, gridspec_kw=gridspec_kwargs)
-    ax.plot(centers, drift, **(drift_line_kwargs or {}))
-    ax.plot(centers, np.zeros_like(centers), **(zero_line_kwargs or {}))
+    ax.plot(x_values, drift, **(drift_line_kwargs or {}))
+    ax.plot(x_values, np.zeros_like(x_values), **(zero_line_kwargs or {}))
 
     if axes_limits is not None:
         ax.set_xlim(axes_limits[0])
