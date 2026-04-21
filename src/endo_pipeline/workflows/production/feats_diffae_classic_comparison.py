@@ -26,7 +26,7 @@ def main(
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
-    from endo_pipeline.library.analyze.integration.track_integration import (
+    from endo_pipeline.library.analyze.track_integration import (
         get_flow_field_and_fixed_points,
         get_flow_field_estimation_bin_widths,
     )
