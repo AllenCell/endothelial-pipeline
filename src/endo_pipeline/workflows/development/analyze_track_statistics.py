@@ -340,6 +340,16 @@ def main(
                 ("grid", grid_avg_kde_dict, grid_var_kde_dict),
                 ("tracked", tracked_avg_kde_dict, tracked_var_kde_dict),
             ]:
+                kde_line_kwargs = {
+                    "color": "k",
+                    "linewidth": 2,
+                    "linestyle": "-" if crop_pattern == "grid" else "--",
+                    "label": (
+                        crop_pattern
+                        if crop_pattern == "grid"
+                        else f"{crop_pattern} (bootstrap mean)"
+                    ),
+                }
                 plot_kde_for_track_statistics(
                     ax=ax[0],
                     kde_values=kde_avg_dict[column_name]["kde_values"],
@@ -350,6 +360,7 @@ def main(
                     axes_title=f"{column_name} average KDE - {crop_pattern}",
                     axes_xlabel=f"{column_name} average",
                     axes_ylabel="KDE",
+                    kde_line_kwargs=kde_line_kwargs,
                     ci_line_kwargs=ci_line_kwargs,
                 )
                 plot_kde_for_track_statistics(
@@ -362,6 +373,7 @@ def main(
                     axes_title=f"{column_name} variance KDE - {crop_pattern}",
                     axes_xlabel=f"{column_name} variance",
                     axes_ylabel="KDE",
+                    kde_line_kwargs=kde_line_kwargs,
                     ci_line_kwargs=ci_line_kwargs,
                 )
             plt.suptitle(
