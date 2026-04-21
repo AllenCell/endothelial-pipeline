@@ -144,7 +144,7 @@ def plot_line_of_features(
     else:
         fig_title = f"{dataset_name}"
 
-    fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT))
+    fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT), layout="constrained")
     sns.lineplot(data=df, x=x_column_name, y=y_column_name, ax=ax, **kwargs)
 
     # adjust the axes limits and tick behavior
@@ -162,7 +162,6 @@ def plot_line_of_features(
     ax.set_title(fig_title)
     ax.set_xlabel(x_feature_metadata.label_with_unit or x_column_name)
     ax.set_ylabel(y_feature_metadata.label_with_unit or y_column_name)
-    plt.tight_layout()
 
     return fig, ax
 
@@ -218,7 +217,7 @@ def plot_histogram_of_features(
     else:
         fig_title = f"{dataset_name}"
 
-    fig, ax = plt.subplots(figsize=figsize or (AX_WIDTH, AX_HEIGHT))
+    fig, ax = plt.subplots(figsize=figsize or (AX_WIDTH, AX_HEIGHT), layout="constrained")
 
     if x_feature_metadata.bin_width and y_feature_metadata.bin_width:
         binwidth = (x_feature_metadata.bin_width, y_feature_metadata.bin_width)
@@ -252,7 +251,6 @@ def plot_histogram_of_features(
     ax.set_title(fig_title)
     ax.set_xlabel(x_feature_metadata.label_with_unit or x_column_name)
     ax.set_ylabel(y_feature_metadata.label_with_unit or y_column_name)
-    plt.tight_layout()
 
     return fig, ax
 

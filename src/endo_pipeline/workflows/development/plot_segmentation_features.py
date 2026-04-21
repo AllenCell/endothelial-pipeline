@@ -135,7 +135,9 @@ def main(datasets: Datasets) -> None:
                         x_minor_ticks=True,
                         y_minor_ticks=True,
                     )
-                    save_plot_to_path(fig_line, output_path_line, feature_filename)
+                    save_plot_to_path(
+                        fig_line, output_path_line, feature_filename, tight_layout=False
+                    )
 
                 if plot_flags.make_hist:
                     fig_hist, ax_hist = plot_histogram_of_features(
@@ -152,7 +154,9 @@ def main(datasets: Datasets) -> None:
                         mark_parallel(ax_hist)
                         mark_perpendicular(ax_hist)
 
-                    save_plot_to_path(fig_hist, output_path_hist, feature_filename)
+                    save_plot_to_path(
+                        fig_hist, output_path_hist, feature_filename, tight_layout=False
+                    )
 
             if DEMO_MODE:
                 logger.info("Running in demo mode. Only processing first position.")

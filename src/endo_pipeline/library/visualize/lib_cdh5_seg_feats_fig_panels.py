@@ -39,7 +39,7 @@ from endo_pipeline.settings.figures import FONT_FAMILY, FONTSIZE_SMALL, PDF_FONT
 from endo_pipeline.settings.workflow_defaults import SEGMENTATION_FEATURE_COLUMNS
 
 IMAGE_PANEL_SIZE = (3, 3)
-PLOT_PANEL_SIZE = (1.1, 1.1)
+PLOT_PANEL_SIZE = (1.35, 1.35)
 X_START = CDH5_SEG_FIG_EXAMPLE.crop_x_start
 Y_START = CDH5_SEG_FIG_EXAMPLE.crop_y_start
 CROP_YX = (slice(Y_START, -Y_START), slice(X_START, -X_START))  # centered crop
@@ -366,5 +366,5 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
                     output_path=out_subdir,
                     figure_name=figure_name,
                     file_format=cast(Literal[".pdf", ".png"], fmt),
-                    pad_inches=0.05,
+                    tight_layout=False,
                 )
