@@ -552,7 +552,7 @@ def plot_flow_field_slices(
     prob_kde: np.ndarray | None = None,
     log_norm_colormap: bool = True,
     column_names: list[str] | None = None,
-    shear_stress: float | None = None,
+    shear_stress: float | int | None = None,
 ) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
     """Plot 2D slices of the 3D flow field for the specified 2D slices.
 
@@ -691,7 +691,7 @@ def plot_flow_field_slices(
     )
 
     if fig_savedir is not None:
-        save_plot_to_path(fig, fig_savedir, f"flow_field_{dataset_name}_{shear_stress_}")
+        save_plot_to_path(fig, fig_savedir, f"flow_field_{dataset_name}_{int(shear_stress_)}")
 
     return fig, ax
 
@@ -772,7 +772,7 @@ def visualize_3d_flow_field_for_one_dataset(
     plot_bounds: list[np.ndarray],
     plot_stack: bool,
     fig_savedir: Path,
-    shear_stress: float | None = None,
+    shear_stress: int,
 ) -> None:
     """Make and save 2D summary plots for the computed 3D flow fields.
 
@@ -806,14 +806,13 @@ def visualize_3d_flow_field_for_one_dataset(
         Whether to plot stacks of flow field slices.
     fig_savedir
         Directory to save the figures.
+    shear_stress
+        Shear stress value as integer for the dataset/experimental condition
+        being plotted, used for labeling the plots setting filenames.
 
     """
     # dataset flow condition for saving the figures
     dataset_name = df[Column.DATASET].unique()[0]
-    shear_stress_: float = (
-        shear_stress or load_dataset_config(dataset_name).flow_conditions[0].shear_stress
-    )
-    shear_stress_int = int(shear_stress_)
 
     ###### additional plots for visualization of flow field #######
     # 1) plot stacks of flow field slices
@@ -848,7 +847,7 @@ def visualize_3d_flow_field_for_one_dataset(
                 plot_bounds[plot_axes[1]],
             ]
             # save to subdirectory of fig_savedir
-            stack_savedir = fig_savedir / f"{dataset_name}_{shear_stress_int}_{column_name}_stack"
+            stack_savedir = fig_savedir / f"{dataset_name}_{shear_stress}_{column_name}_stack"
             stack_savedir.mkdir(parents=True, exist_ok=True)
             plot_flow_field_stack(
                 flow_field_dict,
@@ -881,7 +880,7 @@ def visualize_3d_flow_field_for_one_dataset(
             prob_kde=prob_kde,
             feature_vals=feature_vals,
             column_names=column_names,
-            shear_stress=shear_stress_,
+            shear_stress=shear_stress,
         )
     else:
         for k, fpt in enumerate(stable_fixed_points):
@@ -895,15 +894,13 @@ def visualize_3d_flow_field_for_one_dataset(
                 prob_kde=prob_kde,
                 feature_vals=feature_vals,
                 column_names=column_names,
-                shear_stress=shear_stress_,
+                shear_stress=shear_stress,
             )
 
             for j, ax_ in enumerate(ax):  # feature 1 vs feature 2, feature 1 vs feature 3
                 ax_.scatter(fpt[0], fpt[j + 1], s=75, color="black")
             # save the figure
-            save_plot_to_path(
-                fig, fig_savedir, f"flow_field_{dataset_name}_{shear_stress_int}_fpt_{k}"
-            )
+            save_plot_to_path(fig, fig_savedir, f"flow_field_{dataset_name}_{shear_stress}_fpt_{k}")
 
     # 2) plot entire trajectory over flow field feature 1 vs feature 2, feature
     # 1 vs feature 3
@@ -944,7 +941,7 @@ def visualize_3d_flow_field_for_one_dataset(
             ax_.plot(traj[:, 0], traj[:, j + 1], linewidth=2.5, color="navy")
 
     # save the figure
-    save_plot_to_path(fig, fig_savedir, f"flow_field_{dataset_name}_{shear_stress_int}_traj")
+    save_plot_to_path(fig, fig_savedir, f"flow_field_{dataset_name}_{shear_stress}_traj")
 
     # 3) trajectory with equally spaced interpolated points
     for j, ax_ in enumerate(ax):
@@ -957,5 +954,5 @@ def visualize_3d_flow_field_for_one_dataset(
 
     # save the figure
     save_plot_to_path(
-        fig, fig_savedir, f"flow_field_{dataset_name}_{shear_stress_}_traj_interpolated"
+        fig, fig_savedir, f"flow_field_{dataset_name}_{shear_stress}_traj_interpolated"
     )

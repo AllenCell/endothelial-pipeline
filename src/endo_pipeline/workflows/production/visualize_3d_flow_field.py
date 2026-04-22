@@ -90,7 +90,11 @@ def main(
     import pandas as pd
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+    from endo_pipeline.configs import (
+        get_datasets_in_collection,
+        get_regime_for_shear_stress,
+        load_dataset_config,
+    )
     from endo_pipeline.io import get_output_path, join_sorted_strings, load_dataframe
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_flow_condition,
@@ -306,7 +310,14 @@ def main(
             )
 
         for flow_condition in dataset_config.flow_conditions:
+            # use target shear stress for easy labeling of plots, but use actual
+            # shear stress value for loading the data and computing the flow
+            # field, to ensure that the correct data is loaded and visualized
+            # even if the actual shear stress value does not exactly match the
+            # target value for the regime
             shear_stress = flow_condition.shear_stress
+            shear_stress_regime = get_regime_for_shear_stress(shear_stress)
+            target_shear_stress = shear_stress_regime.target
             feature_data_for_flow_condition = filter_dataframe_by_flow_condition(
                 feature_data, dataset_config, flow_condition
             )
@@ -434,7 +445,7 @@ def main(
                 bounds_for_plots,
                 plot_stack,
                 fig_savedir_dataset,
-                shear_stress=shear_stress,
+                shear_stress=target_shear_stress,
             )
 
     # finally, if fixed point data is available for at least two datasets, then
