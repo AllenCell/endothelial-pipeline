@@ -12,7 +12,6 @@ from matplotlib.colors import LogNorm, Normalize
 from matplotlib.patches import Patch
 from matplotlib.ticker import MaxNLocator
 
-from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.polar_coords import rewrap_polar_angle
@@ -552,7 +551,8 @@ def plot_flow_field_slices(
     prob_kde: np.ndarray | None = None,
     log_norm_colormap: bool = True,
     column_names: list[str] | None = None,
-    shear_stress: float | None = None,
+    fig_title: str | None = None,
+    filename: str | None = None,
 ) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
     """Plot 2D slices of the 3D flow field for the specified 2D slices.
 
@@ -601,11 +601,6 @@ def plot_flow_field_slices(
 
     """
     column_names_ = column_names or DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
-
-    shear_stress_ = (
-        shear_stress or load_dataset_config(dataset_name).flow_conditions[0].shear_stress
-    )
-
     column_labels = [get_label_for_column(col) for col in column_names_]
     # get grid and grid spacing
     meshgrid_tuple = flow_field_dict["grid"]
@@ -681,17 +676,17 @@ def plot_flow_field_slices(
     ax[1].set_title(f"{column_labels[1]} = {feature_y_val:.2f}")
     plt.tight_layout()
 
-    dataset_description = f"{dataset_name} ({shear_stress_} dyn/cm$^2$)"
-
-    fig.suptitle(
-        dataset_description,
-        fontsize=FONTSIZE_LARGE,
-        y=1.02,
-        fontfamily=FONT_FAMILY,
-    )
+    if fig_title is not None:
+        fig.suptitle(
+            fig_title,
+            fontsize=FONTSIZE_LARGE,
+            y=1.02,
+            fontfamily=FONT_FAMILY,
+        )
 
     if fig_savedir is not None:
-        save_plot_to_path(fig, fig_savedir, f"flow_field_{dataset_name}_{shear_stress_}")
+        file_name = filename or f"flow_field_{dataset_name}"
+        save_plot_to_path(fig, fig_savedir, file_name)
 
     return fig, ax
 
@@ -772,7 +767,8 @@ def visualize_3d_flow_field_for_one_dataset(
     plot_bounds: list[np.ndarray],
     plot_stack: bool,
     fig_savedir: Path,
-    shear_stress: float | None = None,
+    fig_title: str | None,
+    filename: str | None,
 ) -> None:
     """Make and save 2D summary plots for the computed 3D flow fields.
 
@@ -806,14 +802,14 @@ def visualize_3d_flow_field_for_one_dataset(
         Whether to plot stacks of flow field slices.
     fig_savedir
         Directory to save the figures.
+    fig_title
+        Optional, title for the figure. If None, no title is set.
+    filename
+        Optional, filename for saving the figure. If None, a default name is used.
 
     """
     # dataset flow condition for saving the figures
     dataset_name = df[Column.DATASET].unique()[0]
-    shear_stress_: float = (
-        shear_stress or load_dataset_config(dataset_name).flow_conditions[0].shear_stress
-    )
-    shear_stress_int = int(shear_stress_)
 
     ###### additional plots for visualization of flow field #######
     # 1) plot stacks of flow field slices
@@ -848,7 +844,7 @@ def visualize_3d_flow_field_for_one_dataset(
                 plot_bounds[plot_axes[1]],
             ]
             # save to subdirectory of fig_savedir
-            stack_savedir = fig_savedir / f"{dataset_name}_{shear_stress_int}_{column_name}_stack"
+            stack_savedir = fig_savedir / f"{filename}_{column_name}_stack"
             stack_savedir.mkdir(parents=True, exist_ok=True)
             plot_flow_field_stack(
                 flow_field_dict,
@@ -881,7 +877,7 @@ def visualize_3d_flow_field_for_one_dataset(
             prob_kde=prob_kde,
             feature_vals=feature_vals,
             column_names=column_names,
-            shear_stress=shear_stress_,
+            fig_title=fig_title,
         )
     else:
         for k, fpt in enumerate(stable_fixed_points):
@@ -895,15 +891,13 @@ def visualize_3d_flow_field_for_one_dataset(
                 prob_kde=prob_kde,
                 feature_vals=feature_vals,
                 column_names=column_names,
-                shear_stress=shear_stress_,
+                fig_title=fig_title,
             )
 
             for j, ax_ in enumerate(ax):  # feature 1 vs feature 2, feature 1 vs feature 3
                 ax_.scatter(fpt[0], fpt[j + 1], s=75, color="black")
             # save the figure
-            save_plot_to_path(
-                fig, fig_savedir, f"flow_field_{dataset_name}_{shear_stress_int}_fpt_{k}"
-            )
+            save_plot_to_path(fig, fig_savedir, f"{filename}_fpt_{k}")
 
     # 2) plot entire trajectory over flow field feature 1 vs feature 2, feature
     # 1 vs feature 3
@@ -944,7 +938,7 @@ def visualize_3d_flow_field_for_one_dataset(
             ax_.plot(traj[:, 0], traj[:, j + 1], linewidth=2.5, color="navy")
 
     # save the figure
-    save_plot_to_path(fig, fig_savedir, f"flow_field_{dataset_name}_{shear_stress_int}_traj")
+    save_plot_to_path(fig, fig_savedir, f"{filename}_traj")
 
     # 3) trajectory with equally spaced interpolated points
     for j, ax_ in enumerate(ax):
@@ -956,6 +950,4 @@ def visualize_3d_flow_field_for_one_dataset(
         )
 
     # save the figure
-    save_plot_to_path(
-        fig, fig_savedir, f"flow_field_{dataset_name}_{shear_stress_}_traj_interpolated"
-    )
+    save_plot_to_path(fig, fig_savedir, f"{filename}_traj_interpolated")
