@@ -161,14 +161,6 @@ save_plot_to_path(fig, base_output_dir, "colorbar", file_format=".svg", transpar
 # pairwise combination of polar coordinates, and plot contours of drift coefficients
 contour_plot_paths: dict[str, Path] = {}
 for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]:
-    if dataset_name not in feature_dataframe_manifest.locations:
-        logger.warning(
-            "No location found in dataframe manifest [ %s ] for dataset [ %s ], skipping visualization.",
-            feature_dataframe_manifest_name,
-            dataset_name,
-        )
-        continue
-
     fig_savedir = get_output_path("figure_2", dataset_name)
     dataset_config = load_dataset_config(dataset_name)
     shear_stress = math.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
