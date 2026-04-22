@@ -983,7 +983,7 @@ def compute_first_passage_time_stats_for_bins(
         enumerate(bin_centers_all),
         total=len(bin_centers_all),
         desc=f"{dataset_name} Computing first passage time statistics for each bin",
-        position=0,
+        position=1,
     ):
         # I tried to avoid doing nd indexing because it gets a little hair, but
         # it seems necessary to get the correct bin edges for each bin when

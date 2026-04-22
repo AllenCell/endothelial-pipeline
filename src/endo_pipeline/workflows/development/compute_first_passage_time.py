@@ -77,7 +77,7 @@ def main(
             as_completed(futures),
             total=len(futures),
             desc="Computing FPT for datasets",
-            position=1,
+            position=0,
         ):
             result = future.result()
             results.append(result)
