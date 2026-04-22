@@ -24,7 +24,7 @@ def main() -> None:
         get_reshaped_vector_field_and_grid,
         load_drift_dataframe_for_dataset,
     )
-    from endo_pipeline.library.visualize.diffae_features.dynamics_viz import plot_contour_colorbar
+    from endo_pipeline.library.visualize.diffae_features.dynamics import plot_contour_colorbar
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
         get_dataset_color,
         get_label_for_column,
