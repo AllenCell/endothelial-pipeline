@@ -157,7 +157,7 @@ save_plot_to_path(fig, base_output_dir, "colorbar", file_format=".svg", transpar
 # loop over datasets in collection, compute 2D drift coefficients for each
 # pairwise combination of polar coordinates, and plot contours of drift coefficients
 for dataset_name, include_legend, arrow_scale_1d in [
-    (dataset_low, True, 3.0),
+    (dataset_low, True, 3.25),
     (dataset_high, False, 1.0),
 ]:
     if dataset_name not in feature_dataframe_manifest.locations:
@@ -342,7 +342,7 @@ for dataset_name, include_legend, arrow_scale_1d in [
         axes_limits=(POLAR_ANGLE_RANGE, (-0.4, 0.4)),
         axes_labels=[column_label_theta, f"d{column_label_theta}/dt"],
         add_flow_arrows=True,
-        flow_arrow_kwargs={"color": "dimgrey", "linewidth": 1.5, "scale": arrow_scale_1d},
+        flow_arrow_kwargs={"color": "dimgrey", "scale": arrow_scale_1d},
         gridspec_kwargs=gridspec_kwargs,
         drift_line_kwargs={"color": "k", "linewidth": 2},
         zero_line_kwargs={"linestyle": "--", "color": "gray", "linewidth": 1, "alpha": 0.7},
