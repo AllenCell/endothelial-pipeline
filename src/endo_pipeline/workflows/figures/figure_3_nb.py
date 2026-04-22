@@ -147,11 +147,10 @@ make_crop_example_contact_sheet(
     fig_filename=f"reconstructed_fp_crop_examples_seed{seed}.svg",
     file_format=".svg",
     gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
-    fig_kwargs={"figsize": (MAX_FIGURE_WIDTH * 0.3, 4), "layout": "constrained"},
+    fig_kwargs={"figsize": (MAX_FIGURE_WIDTH * 0.35, 3.5), "layout": "constrained"},
 )
 
 # %%
-seed = 4
 panels = [
     FigurePanel(
         letter="A",
