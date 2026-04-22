@@ -14,7 +14,7 @@ from endo_pipeline.library.process.image_processing import (
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings.examples import FLOW_FIELD_CONSTRUCTION_EXAMPLE_IMAGES
-from endo_pipeline.settings.figures import FONTSIZE_XLARGE, MAX_FIGURE_HEIGHT
+from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_HEIGHT
 from endo_pipeline.settings.image_data import NATIVE_ZARR_RESOLUTION_CROP_SIZE, PIXEL_SIZE_3i_20x
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
@@ -22,7 +22,7 @@ from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 plt.style.use("endo_pipeline.figure")
 
 PANEL_CROP_SIZE = 2 * NATIVE_ZARR_RESOLUTION_CROP_SIZE
-SCALE_BAR_UM = 25
+SCALE_BAR_UM = 20
 CROP_START_X = 0
 CROP_START_Y = 0
 
@@ -70,7 +70,7 @@ for ax, img, label in zip(fig.axes, processed_images, labels, strict=True):
         scale_bar_um=SCALE_BAR_UM,
         pixel_size=PIXEL_SIZE_3i_20x,
         location="lower right",
-        bar_thickness=25,
+        bar_thickness=15,
         padding=25,
     )
 
@@ -88,11 +88,11 @@ for ax, img, label in zip(fig.axes, processed_images, labels, strict=True):
 
 fig.axes[-1].text(
     0.95,
-    0.1,
+    0.09,
     f"{SCALE_BAR_UM} {Unicode.MU}m",
     color="white",
     transform=fig.axes[-1].transAxes,
-    fontsize=FONTSIZE_XLARGE,
+    fontsize=FONTSIZE_MEDIUM,
     va="bottom",
     ha="right",
 )
