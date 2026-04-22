@@ -8,6 +8,7 @@ from endo_pipeline.configs import (
     DatasetConfig,
     FlowCondition,
     PositionAnnotation,
+    ShearStressRegime,
     TimepointAnnotation,
     load_dataset_config,
 )
@@ -20,6 +21,8 @@ from endo_pipeline.configs.dataset_config_utils import (
     get_frame_before_flow_change,
     get_position_integer_from_zarr_file_path,
     get_position_string_from_zarr_file_path,
+    get_regime_for_shear_stress,
+    get_target_shear_stress,
     get_unannotated_positions,
     get_unannotated_timepoints_for_position,
     make_filtered_dataset_collection,
@@ -360,3 +363,67 @@ def test_get_position_integer_from_zarr_file_path_valid_position(path, expected_
 def test_get_position_integer_from_zarr_file_path_invalid_position(path):
     with pytest.raises(ValueError):
         get_position_integer_from_zarr_file_path(path)
+
+
+@pytest.mark.parametrize(
+    "shear_stress,expected_regime",
+    [
+        (0.0, ShearStressRegime.NO),
+        (4.5, ShearStressRegime.MIN),
+        (6.0, ShearStressRegime.MIN),
+        (7.2, ShearStressRegime.MIN),
+        (8.5, ShearStressRegime.LOW),
+        (9.0, ShearStressRegime.LOW),
+        (9.1, ShearStressRegime.LOW),
+        (10.0, ShearStressRegime.MEDIUM),
+        (12.0, ShearStressRegime.MEDIUM),
+        (12.5, ShearStressRegime.MEDIUM),
+        (13.0, ShearStressRegime.HIGH),
+        (15.0, ShearStressRegime.HIGH),
+        (16.0, ShearStressRegime.HIGH),
+        (18.5, ShearStressRegime.MAX),
+        (20.0, ShearStressRegime.MAX),
+        (35.0, ShearStressRegime.MAX),
+    ],
+)
+def test_get_regime_for_shear_stress_valid(shear_stress, expected_regime):
+    assert get_regime_for_shear_stress(shear_stress) == expected_regime
+
+
+@pytest.mark.parametrize(
+    "shear_stress", [1.0, 4.4, 7.3, 8.4, 9.2, 9.9, 12.6, 16.1, 18.4, 35.1, 100.0]
+)
+def test_get_regime_for_shear_stress_invalid(shear_stress):
+    with pytest.raises(ValueError):
+        get_regime_for_shear_stress(shear_stress)
+
+
+@pytest.mark.parametrize(
+    "shear_stress,expected_target",
+    [
+        (5.7, 6.0),
+        (8.6, 9.0),
+        (12.2, 12.0),
+        (14.7, 15.0),
+        (22.0, 20.0),
+        # boundary values that still map to a regime
+        (0.0, 0.0),
+        (4.5, 6.0),
+        (7.2, 6.0),
+        (8.5, 9.0),
+        (9.1, 9.0),
+        (10.0, 12.0),
+        (12.5, 12.0),
+        (13.0, 15.0),
+        (16.0, 15.0),
+        (18.5, 20.0),
+        (35.0, 20.0),
+    ],
+)
+def test_get_target_shear_stress(shear_stress, expected_target):
+    assert get_target_shear_stress(shear_stress) == expected_target
+
+
+def test_get_target_shear_stress_invalid():
+    with pytest.raises(ValueError):
+        get_target_shear_stress(50.0)
