@@ -22,7 +22,6 @@ from endo_pipeline.configs.dataset_config_utils import (
     get_position_integer_from_zarr_file_path,
     get_position_string_from_zarr_file_path,
     get_regime_for_shear_stress,
-    get_target_shear_stress_as_integer,
     get_unannotated_positions,
     get_unannotated_timepoints_for_position,
     make_filtered_dataset_collection,
@@ -396,17 +395,3 @@ def test_get_regime_for_shear_stress_valid(shear_stress, expected_regime):
 def test_get_regime_for_shear_stress_invalid(shear_stress):
     with pytest.raises(ValueError):
         get_regime_for_shear_stress(shear_stress)
-
-
-@pytest.mark.parametrize(
-    "shear_stress_regime,expected_target",
-    [
-        (ShearStressRegime.MIN, 6),
-        (ShearStressRegime.LOW, 9),
-        (ShearStressRegime.MEDIUM, 12),
-        (ShearStressRegime.HIGH, 15),
-        (ShearStressRegime.MAX, 20),
-    ],
-)
-def test_get_target_shear_stress_as_integer(shear_stress_regime, expected_target):
-    assert get_target_shear_stress_as_integer(shear_stress_regime) == expected_target

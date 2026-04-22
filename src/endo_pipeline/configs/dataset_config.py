@@ -19,22 +19,22 @@ ObjectiveType = Literal["20X", "40X"]
 class ShearStressRegime(Enum):
     """Shear stress regime categories with target shear stress ranges."""
 
-    NO = ("no", 0.0, 0.0, 0.0)
+    NO = ("no", 0.0, 0.0, 0)
     """No shear stress."""
 
-    MIN = ("min", 4.5, 7.2, 6.0)
+    MIN = ("min", 4.5, 7.2, 6)
     """Minimum shear stress tested (target: 6 dyn/cm2)."""
 
-    LOW = ("low", 8.5, 9.1, 9.0)
+    LOW = ("low", 8.5, 9.1, 9)
     """Low shear stress (target: 9 dyn/cm2)"""
 
-    MEDIUM = ("medium", 10.0, 12.5, 12.0)
+    MEDIUM = ("medium", 10.0, 12.5, 12)
     """Medium shear stress (target: 12 dyn/cm2)."""
 
-    HIGH = ("high", 13.0, 16.0, 15.0)
+    HIGH = ("high", 13.0, 16.0, 15)
     """High shear stress (target: 15 dyn/cm2)."""
 
-    MAX = ("max", 18.5, 35.0, 20.0)
+    MAX = ("max", 18.5, 35.0, 20)
     """Maximum shear stress tested (target: 20 dyn/cm2)."""
 
     upper: float
@@ -43,10 +43,10 @@ class ShearStressRegime(Enum):
     lower: float
     """Lower bound of the shear stress regime."""
 
-    target: float
+    target: int
     """Target shear stress of the regime."""
 
-    def __new__(cls, value: str, lower: float, upper: float, target: float) -> "ShearStressRegime":
+    def __new__(cls, value: str, lower: float, upper: float, target: int) -> "ShearStressRegime":
         """Create a new shear stress regime."""
 
         obj = object.__new__(cls)
