@@ -28,7 +28,11 @@ def main(
     import pandas as pd
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
+    from endo_pipeline.configs import (
+        TimepointAnnotation,
+        get_shear_stress_label_for_dataset,
+        load_dataset_config,
+    )
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_annotations,
@@ -145,7 +149,7 @@ def main(
                     df_flow = filter_dataframe_by_flow_condition(
                         df_of, dataset_config, flow_condition
                     )
-                    plot_label = f"{dataset_name} ({int(flow_condition.shear_stress)} dyn/cm{Unicode.SQUARED})"
+                    plot_label = get_shear_stress_label_for_dataset(dataset_config, flow_condition)
                     hist_color = get_dataset_color(dataset_name)
 
                     # load fixed points once per dataset
