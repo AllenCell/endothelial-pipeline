@@ -386,6 +386,9 @@ class ColumnName:
     class VectorField(StrEnum):
         """Column names used in the various vector field analyses."""
 
+        FIXED_POINT_INDEX = "fixed_point_id"
+        """Column name for the index of the fixed point in the fixed point dataframe."""
+
         STABILITY = "stability"
         """Column name for the stability label assigned to a fixed point based
         on the eigenvalues of the Jacobian matrix."""
@@ -426,3 +429,6 @@ class ColumnName:
 
         BIN_INDEX = "bin_index"
         """Column name for the index of the bin that a data point falls into when feature space is discretized."""
+
+        FPT_METRIC = "fpt_metric"
+        """Column name for the metric used in the first passage time analysis."""
