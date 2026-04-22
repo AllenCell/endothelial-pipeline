@@ -63,7 +63,7 @@ def make_2d_contour_plot_panel(
     xlabel_kwargs: dict | None,
     ylabel_kwargs: dict | None,
     axes_title_kwargs: dict | None,
-) -> None:
+) -> Path:
     """
     Make and save plot of drift contours in (r, rho) space for a given dataset.
     """
@@ -233,7 +233,7 @@ def make_1d_drift_plot_panel(
         drift=drift,
         x_values=theta_values,
         figsize=figsize,
-        axes_limits=(axes_xlim, axes_ylim),
+        axes_limits=[axes_xlim, axes_ylim],
         axes_labels=[column_label, f"d{column_label}/dt"],
         gridspec_kwargs=gridspec_kwargs,
         drift_line_kwargs=drift_line_kwargs,
