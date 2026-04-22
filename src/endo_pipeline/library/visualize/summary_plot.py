@@ -130,22 +130,6 @@ def plot_fixed_points_vs_shear_stress(
     df_fp["shear_stress_numeric"] = df_fp["shear_stress"].apply(
         lambda s: max(float(v) for v in str(s).split("-"))
     )
-    # # Snap to ±1 bins; values outside any bin keep their rounded value
-    # _SHEAR_STRESS_BINS: dict[int, tuple[int, int]] = {
-    #     6: (5, 7),
-    #     9: (8, 10),
-    #     12: (11, 13),
-    #     15: (14, 16),
-    #     21: (20, 22),
-    # }
-
-    # def _snap_to_bin(val: float) -> int:
-    #     for center, (lo, hi) in _SHEAR_STRESS_BINS.items():
-    #         if lo <= val <= hi:
-    #             return center
-    #     return round(val)
-
-    # df_fp["shear_stress_numeric"] = df_fp["shear_stress_numeric"].apply(_snap_to_bin)
 
     if stable_only:
         df_fp = df_fp[df_fp[ColumnName.VectorField.STABILITY] == "stable"]
