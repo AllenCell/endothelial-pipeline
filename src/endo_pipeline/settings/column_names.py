@@ -473,6 +473,7 @@ class ColumnName:
         CI_UPPER = "ci_upper"
         """Upper bound of the bootstrap confidence interval."""
 
+
 ColumnNameType = (
     str
     | ColumnName
