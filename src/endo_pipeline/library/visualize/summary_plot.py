@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs import get_regime_for_shear_stress, load_dataset_config
 from endo_pipeline.io import load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import (
     filter_dataframe_by_flow_condition,
@@ -130,22 +130,22 @@ def plot_fixed_points_vs_shear_stress(
     df_fp["shear_stress_numeric"] = df_fp["shear_stress"].apply(
         lambda s: max(float(v) for v in str(s).split("-"))
     )
-    # Snap to ±1 bins; values outside any bin keep their rounded value
-    _SHEAR_STRESS_BINS: dict[int, tuple[int, int]] = {
-        6: (5, 7),
-        9: (8, 10),
-        12: (11, 13),
-        15: (14, 16),
-        21: (20, 22),
-    }
+    # # Snap to ±1 bins; values outside any bin keep their rounded value
+    # _SHEAR_STRESS_BINS: dict[int, tuple[int, int]] = {
+    #     6: (5, 7),
+    #     9: (8, 10),
+    #     12: (11, 13),
+    #     15: (14, 16),
+    #     21: (20, 22),
+    # }
 
-    def _snap_to_bin(val: float) -> int:
-        for center, (lo, hi) in _SHEAR_STRESS_BINS.items():
-            if lo <= val <= hi:
-                return center
-        return round(val)
+    # def _snap_to_bin(val: float) -> int:
+    #     for center, (lo, hi) in _SHEAR_STRESS_BINS.items():
+    #         if lo <= val <= hi:
+    #             return center
+    #     return round(val)
 
-    df_fp["shear_stress_numeric"] = df_fp["shear_stress_numeric"].apply(_snap_to_bin)
+    # df_fp["shear_stress_numeric"] = df_fp["shear_stress_numeric"].apply(_snap_to_bin)
 
     if stable_only:
         df_fp = df_fp[df_fp[ColumnName.VectorField.STABILITY] == "stable"]
@@ -180,7 +180,7 @@ def plot_fixed_points_vs_shear_stress(
         # Numeric x-axis: position by shear stress value, jittered by dataset
         unique_shear = sorted(df_fp["shear_stress_numeric"].unique())
         tick_positions = unique_shear
-        tick_labels = [str(round(s)) for s in unique_shear]
+        tick_labels = [str(s) for s in unique_shear]
         jitter_map = _build_jitter_map(df_fp, jitter_width=jitter_width)
         row_to_x = lambda row: row["shear_stress_numeric"] + jitter_map.get(  # noqa: E731
             (row["dataset"], row["shear_stress_numeric"]), 0.0
@@ -192,7 +192,7 @@ def plot_fixed_points_vs_shear_stress(
         tick_spacing = 0.5  # compress horizontal spacing between categories
         ss_to_pos = {ss: i * tick_spacing for i, ss in enumerate(unique_shear)}
         tick_positions = [i * tick_spacing for i in range(len(unique_shear))]
-        tick_labels = [str(round(s)) for s in unique_shear]
+        tick_labels = [str(s) for s in unique_shear]
         jitter_map = _build_jitter_map(df_fp, jitter_width=jitter_width)
         row_to_x = lambda row: ss_to_pos[  # noqa: E731
             row["shear_stress_numeric"]
@@ -422,9 +422,9 @@ def plot_cross_dataset_summaries(
 
         for flow_condition in dataset_config.flow_conditions:
             df_flow = filter_dataframe_by_flow_condition(df_of, dataset_config, flow_condition)
-            plot_label = (
-                f"{dataset_name} ({round(flow_condition.shear_stress)} dyn/cm{Unicode.SQUARED})"
-            )
+            shear_stress_regime = get_regime_for_shear_stress(flow_condition.shear_stress)
+            target_shear_stress = shear_stress_regime.target
+            plot_label = f"{dataset_name} ({target_shear_stress} dyn/cm{Unicode.SQUARED})"
 
             # Summary stats per optical flow feature
             for feature_key in optical_flow_features:
@@ -432,7 +432,7 @@ def plot_cross_dataset_summaries(
                 summary_stats[feature_key].append(
                     {
                         "label": plot_label,
-                        "shear_stress": round(flow_condition.shear_stress),
+                        "shear_stress": target_shear_stress,
                         "mean": mean_ft,
                     }
                 )

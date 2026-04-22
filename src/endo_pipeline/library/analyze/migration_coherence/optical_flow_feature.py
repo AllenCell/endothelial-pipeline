@@ -227,7 +227,9 @@ def add_shear_stress_to_df(df: pd.DataFrame) -> pd.DataFrame:
     result = df.copy()
     for dataset_name in result[ColumnName.DATASET].unique():
         dataset_config = load_dataset_config(dataset_name)
-        shear_stress_values = [fc.shear_stress for fc in dataset_config.flow_conditions]
-        shear_stress_label = "-".join(f"{v:g}" for v in shear_stress_values)
+        target_shear_stress_values = [
+            regime.target for regime in dataset_config.shear_stress_regime
+        ]
+        shear_stress_label = "-".join(f"{v:g}" for v in target_shear_stress_values)
         result.loc[result[ColumnName.DATASET] == dataset_name, "shear_stress"] = shear_stress_label
     return result
