@@ -15,7 +15,8 @@ def main(
     ci_upper: float = FP_CI_UPPER_PERCENTILE,
 ) -> None:
     import logging
-    from typing import cast
+    from collections import namedtuple
+    from typing import TypeAlias, cast
 
     import matplotlib.pyplot as plt
     import numpy as np
@@ -78,6 +79,11 @@ def main(
 
     # kernel names for KDEs
     kernel_names_dict = cast(dict[str | Column.DiffAEData, str], KERNEL_NAMES_DYNAMICS.copy())
+
+    # type alias and named tuple for storing KDE results for easier readability
+    # and maintainability
+    KDEResult = namedtuple("KDEResult", ["bin_centers", "kde_values", "ci_lower", "ci_upper"])
+    KDEResultDict: TypeAlias = dict[Column.DiffAEData, KDEResult]
 
     # global plotting kwargs
     ci_line_kwargs = {
@@ -246,16 +252,16 @@ def main(
 
         # Compute histogram and KDE for each column and crop pattern, storing
         # the KDEs in a dictionary for later use in plotting and analysis.
-        grid_avg_kde_dict: dict = {}
-        grid_var_kde_dict: dict = {}
-        tracked_avg_kde_dict: dict = {}
-        tracked_var_kde_dict: dict = {}
+        grid_avg_kde_result: KDEResultDict = {}
+        grid_var_kde_result: KDEResultDict = {}
+        tracked_avg_kde_result: KDEResultDict = {}
+        tracked_var_kde_result: KDEResultDict = {}
         for column_name in column_names:
             period = POLAR_ANGLE_PERIOD if column_name == Column.DiffAEData.POLAR_ANGLE else None
 
-            for crop_pattern, avg_kde_dict, var_kde_dict in [
-                ("grid", grid_avg_kde_dict, grid_var_kde_dict),
-                ("tracked", tracked_avg_kde_dict, tracked_var_kde_dict),
+            for crop_pattern, avg_kde_result, var_kde_result in [
+                ("grid", grid_avg_kde_result, grid_var_kde_result),
+                ("tracked", tracked_avg_kde_result, tracked_var_kde_result),
             ]:
                 avg_data_all = column_avg_df_dict[crop_pattern][column_name].dropna().to_numpy()
                 var_data_all = (
@@ -277,12 +283,12 @@ def main(
                         kernel_bandwidth=1.5 * BIN_WIDTH_FOR_AVERAGE,
                         kernel_period=period,
                     )
-                    avg_kde_dict[column_name] = {
-                        "bin_centers": avg_bin_centers,
-                        "kde_values": avg_kde_values,
-                        "ci_lower": None,
-                        "ci_upper": None,
-                    }
+                    avg_kde_result[column_name] = KDEResult(
+                        bin_centers=avg_bin_centers,
+                        kde_values=avg_kde_values,
+                        ci_lower=None,
+                        ci_upper=None,
+                    )
                     var_kde_values = compute_kde_on_bins(
                         data=var_data_all,
                         bins=var_bins,
@@ -290,12 +296,12 @@ def main(
                         kernel_bandwidth=1.5 * BIN_WIDTH_FOR_VARIANCE,
                         kernel_period=None,
                     )
-                    var_kde_dict[column_name] = {
-                        "bin_centers": var_bin_centers,
-                        "kde_values": var_kde_values,
-                        "ci_lower": None,
-                        "ci_upper": None,
-                    }
+                    var_kde_result[column_name] = KDEResult(
+                        bin_centers=var_bin_centers,
+                        kde_values=var_kde_values,
+                        ci_lower=None,
+                        ci_upper=None,
+                    )
                 elif crop_pattern == "tracked":
                     avg_kdes: list[np.ndarray] = []
                     var_kdes: list[np.ndarray] = []
@@ -332,26 +338,26 @@ def main(
 
                     avg_kdes_arr = np.array(avg_kdes)
                     var_kdes_arr = np.array(var_kdes)
-                    avg_kde_dict[column_name] = {
-                        "bin_centers": avg_bin_centers,
-                        "kde_values": np.nanmean(avg_kdes_arr, axis=0),
-                        "ci_lower": np.nanpercentile(avg_kdes_arr, ci_lower, axis=0),
-                        "ci_upper": np.nanpercentile(avg_kdes_arr, ci_upper, axis=0),
-                    }
-                    var_kde_dict[column_name] = {
-                        "bin_centers": var_bin_centers,
-                        "kde_values": np.nanmean(var_kdes_arr, axis=0),
-                        "ci_lower": np.nanpercentile(var_kdes_arr, ci_lower, axis=0),
-                        "ci_upper": np.nanpercentile(var_kdes_arr, ci_upper, axis=0),
-                    }
+                    avg_kde_result[column_name] = KDEResult(
+                        bin_centers=avg_bin_centers,
+                        kde_values=np.nanmean(avg_kdes_arr, axis=0),
+                        ci_lower=np.nanpercentile(avg_kdes_arr, ci_lower, axis=0),
+                        ci_upper=np.nanpercentile(avg_kdes_arr, ci_upper, axis=0),
+                    )
+                    var_kde_result[column_name] = KDEResult(
+                        bin_centers=var_bin_centers,
+                        kde_values=np.nanmean(var_kdes_arr, axis=0),
+                        ci_lower=np.nanpercentile(var_kdes_arr, ci_lower, axis=0),
+                        ci_upper=np.nanpercentile(var_kdes_arr, ci_upper, axis=0),
+                    )
         for column_name in column_names:
             fig, ax = plt.subplots(1, 2, figsize=(12, 5))
             column_label = get_label_for_column(column_name)
             avg_str = f"$\\langle${column_label}$\\rangle$"
             var_str = f"Var({column_label})"
-            for crop_pattern, kde_avg_dict, kde_var_dict in [
-                ("grid", grid_avg_kde_dict, grid_var_kde_dict),
-                ("tracked", tracked_avg_kde_dict, tracked_var_kde_dict),
+            for crop_pattern, kde_avg_result, kde_var_result in [
+                ("grid", grid_avg_kde_result, grid_var_kde_result),
+                ("tracked", tracked_avg_kde_result, tracked_var_kde_result),
             ]:
                 kde_line_kwargs = KDE_LINE_KWARGS.copy()
                 kde_line_kwargs.update(
@@ -362,11 +368,11 @@ def main(
                 )
                 plot_kde_for_track_statistics(
                     ax=ax[0],
-                    kde_values=kde_avg_dict[column_name]["kde_values"],
-                    bin_centers=kde_avg_dict[column_name]["bin_centers"],
+                    kde_values=kde_avg_result[column_name].kde_values,
+                    bin_centers=kde_avg_result[column_name].bin_centers,
                     x_eval=x_eval_avg_dict[crop_pattern][column_name],
-                    kde_ci_lower=kde_avg_dict[column_name]["ci_lower"],
-                    kde_ci_upper=kde_avg_dict[column_name]["ci_upper"],
+                    kde_ci_lower=kde_avg_result[column_name].ci_lower,
+                    kde_ci_upper=kde_avg_result[column_name].ci_upper,
                     axes_xlabel=avg_str,
                     axes_ylabel=f"P({avg_str})",
                     axes_xlim=BIN_LIMITS_DYNAMICS[column_name],
@@ -376,11 +382,11 @@ def main(
                 )
                 plot_kde_for_track_statistics(
                     ax=ax[1],
-                    kde_values=kde_var_dict[column_name]["kde_values"],
-                    bin_centers=kde_var_dict[column_name]["bin_centers"],
+                    kde_values=kde_var_result[column_name].kde_values,
+                    bin_centers=kde_var_result[column_name].bin_centers,
                     x_eval=x_eval_var_dict[crop_pattern][column_name],
-                    kde_ci_lower=kde_var_dict[column_name]["ci_lower"],
-                    kde_ci_upper=kde_var_dict[column_name]["ci_upper"],
+                    kde_ci_lower=kde_var_result[column_name].ci_lower,
+                    kde_ci_upper=kde_var_result[column_name].ci_upper,
                     axes_xlabel=var_str,
                     axes_ylabel=f"P({var_str})",
                     axes_xlim=AXES_XLIM_FOR_VARIANCE,
