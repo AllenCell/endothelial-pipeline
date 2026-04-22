@@ -33,6 +33,7 @@ from endo_pipeline.library.visualize.diffae_features.flow_field_3d import (
 from endo_pipeline.settings import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, TIME_STEP_IN_HOURS
 from endo_pipeline.settings.flow_field_3d import QUIVER_COLORMAP
+from endo_pipeline.settings.unicode import UnicodeCharacters
 
 logger = logging.getLogger(__name__)
 
@@ -1156,7 +1157,7 @@ def compute_and_plot_first_passage_time_correlation(
         color="black",
         edgecolor="white",
         lw=0.2,
-        label=f"FPT {metric_to_plot} ± STD",
+        label=f"FPT {metric_to_plot} {UnicodeCharacters.PLUS_MINUS} STD",
     )
     ax.axline(xy1=(0, 0), slope=1, color="tab:red", linestyle="--", zorder=0, label="Unity")
     ax.axline(
@@ -1443,7 +1444,7 @@ def plot_first_passage_time_histogram(
     first_passage_time_df_no_nan[time_cols] *= time_units
 
     if metric_to_plot == "count":
-        xaxis_title = f"{metric_to_plot.title()} Number of Trajectories in Bin"
+        xaxis_title = "Number of Trajectories in Bin"
         stat_for_hist = "count"
         yaxis_title = "number of bins".title()
     else:
