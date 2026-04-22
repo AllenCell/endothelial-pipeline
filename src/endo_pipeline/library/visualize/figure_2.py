@@ -157,7 +157,7 @@ def make_2d_quiver_plot_panel(
         vmax=vmax,
         variable_labels=column_labels,
         figsize=figsize,
-        axes_limits=(r_lims, rho_lims),
+        axes_limits=[r_lims, rho_lims],
         include_nullclines=True,
         nullcline_colors=("k", "k"),
         nullcline_styles=(nullcline_r_style, nullcline_rho_style),
