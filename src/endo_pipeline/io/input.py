@@ -105,7 +105,7 @@ def load_image_from_path(
     """
     Load image from path.
 
-    Currently supports files ending in .ome.zarr and .ome.tiff.
+    Currently supports OME Zarr, OME Tiff, and Tiff files.
 
     Parameters
     ----------
@@ -133,7 +133,13 @@ def load_image_from_path(
     """
 
     # Check for valid image extensions
-    if path.suffixes not in ([".ome", ".zarr"], [".ome", ".tiff"], [".ome", ".tif"]):
+    if path.suffixes not in (
+        [".ome", ".zarr"],
+        [".ome", ".tiff"],
+        [".ome", ".tif"],
+        [".tiff"],
+        [".tif"],
+    ):
         logger.error("Path [ %s ] cannot be loaded as image", path)
         raise ValueError(f"Invalid image file format '{path.suffix}'")
 
@@ -250,7 +256,7 @@ def load_image_from_s3(
     """
     Load image from S3 by object URI.
 
-    Currently supports files ending in .ome.zarr and .ome.tiff.
+    Currently supports OME Zarr, OME Tiff, and Tiff files.
 
     Parameters
     ----------
@@ -286,16 +292,31 @@ def load_image_from_s3(
     key = Path(s3uri[5:].split("/", 1)[1])
 
     # Check for valid image extensions
-    if key.suffixes not in ([".ome", ".zarr"], [".ome", ".tiff"], [".ome", ".tif"]):
+    if key.suffixes not in (
+        [".ome", ".zarr"],
+        [".ome", ".tiff"],
+        [".ome", ".tif"],
+        [".tiff"],
+        [".tif"],
+    ):
         logger.error("S3 URI [ %s ] cannot be loaded as image", s3uri)
         raise ValueError(f"Invalid image file format '{key.suffix}'")
 
     logger.debug("Loading S3 URI [ %s ] as %s file", key, "".join(key.suffixes).upper())
 
-    # Initialize image reader and reader arguments.
-    from bioio import BioImage
+    # Initialize image reader and reader arguments. Note we are using the OME
+    # Zarr reader directly because we are pinned to an older version of bioio
+    # where using BioImage does not correctly parse the URI.
+    if key.suffixes == [".ome", ".zarr"]:
+        from bioio import BioImage
+        from bioio_ome_zarr import Reader
 
-    reader = BioImage(s3uri, fs_kwargs={"anon": True})
+        reader = BioImage(s3uri, reader=Reader, fs_kwargs={"anon": True})
+    else:
+        from bioio import BioImage
+
+        reader = BioImage(s3uri, fs_kwargs={"anon": True})
+
     reader_arguments = {}
 
     # Check if resolution level is valid.
@@ -398,7 +419,7 @@ def load_image(
     """
     Load image from location.
 
-    Currently supports files ending in .ome.zarr and .ome.tiff.
+    Currently supports OME Zarr, OME Tiff, and Tiff files.
 
     This method will prefer loading from local path first, falling back to S3
     URI if it encouters an error. See the corresponding unit test for an
