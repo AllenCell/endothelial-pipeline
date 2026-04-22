@@ -4,6 +4,7 @@ import math
 from pathlib import Path
 from typing import Literal
 
+import numpy as np
 import pandas as pd
 from matplotlib.layout_engine import ConstrainedLayoutEngine
 
@@ -20,10 +21,20 @@ from endo_pipeline.library.process.image_processing import (
     max_proj,
     std_dev,
 )
+from endo_pipeline.library.visualize.diffae_features.dynamics import (
+    plot_drift_1d,
+    plot_drift_contours,
+    plot_drift_quiver,
+)
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL
+from endo_pipeline.settings.flow_field_dataframes import (
+    STABILITY_COLOR_DICT,
+    STABILITY_MARKER_DICT,
+    StabilityLabel,
+)
 from endo_pipeline.settings.image_data import (
     DIFFAE_ZARR_RESOLUTION_LEVEL,
     PIXEL_SIZE_3i_20x_RESOLUTION_1,
@@ -31,6 +42,226 @@ from endo_pipeline.settings.image_data import (
 from endo_pipeline.settings.plot_defaults import CROP_HIST_BIN_WIDTH
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
+
+
+def make_2d_contour_plot_panel(
+    drift: np.ndarray,
+    meshgrid: tuple[np.ndarray, np.ndarray],
+    column_labels: list[str],
+    figsize: tuple[float, float],
+    fig_savedir: Path,
+    filename: str,
+    shear_stress_label: str,
+    r_lims: tuple[float, float],
+    rho_lims: tuple[float, float],
+    r_ticks: list[float],
+    rho_ticks: list[float],
+    nullcline_r_style: str,
+    nullcline_rho_style: str,
+    nullcline_opacity: float,
+    gridspec_kwargs: dict | None,
+    xlabel_kwargs: dict | None,
+    ylabel_kwargs: dict | None,
+    axes_title_kwargs: dict | None,
+) -> Path:
+    """
+    Make and save plot of drift contours in (r, rho) space for a given dataset.
+    """
+    # plot drift contours and save
+    fig, ax = plot_drift_contours(
+        meshgrid=meshgrid,
+        drift=drift,
+        variable_labels=column_labels,
+        figsize=figsize,
+        axes_limits=[r_lims, rho_lims],
+        axes_aspect=None,
+        axes_titles=(f"d{column_labels[0]}/dt", f"d{column_labels[1]}/dt"),
+        include_colorbar=False,
+        include_nullclines=True,
+        nullcline_colors=("k", "k"),
+        nullcline_styles=(nullcline_r_style, nullcline_rho_style),
+        nullcline_opacity=nullcline_opacity,
+        gridspec_kwargs=gridspec_kwargs,
+        xlabel_kwargs=xlabel_kwargs,
+        ylabel_kwargs=ylabel_kwargs,
+        axes_title_kwargs=axes_title_kwargs,
+    )
+    for ax_index, ax_ in enumerate(list(ax)):
+        # adjust label padding and drop tick labels on shared x axis
+        ax_.set_box_aspect(1.0)
+        ax_.set_xticks(r_ticks)
+        ax_.set_yticks(rho_ticks)
+        if ax_index == 0:
+            ax_.tick_params(labelbottom=False)
+
+    # reserve left margin for the vertical label
+    fig.subplots_adjust(left=0.08)
+    # add vertical title to the left of the contour plot spanning all rows
+    fig.text(
+        0.0,
+        0.5,
+        shear_stress_label,
+        va="center",
+        ha="center",
+        rotation="vertical",
+        fontsize=FONTSIZE_MEDIUM,
+        fontweight="bold",
+    )
+
+    save_plot_to_path(
+        fig,
+        fig_savedir,
+        filename,
+        file_format=".svg",
+        tight_layout=False,
+        transparent=True,
+        pad_inches=0,
+    )
+
+    return fig_savedir / f"{filename}.svg"
+
+
+def make_2d_quiver_plot_panel(
+    drift: np.ndarray,
+    meshgrid: tuple[np.ndarray, np.ndarray],
+    column_labels: list[str],
+    stable_fixed_point: np.ndarray,
+    figsize: tuple[float, float],
+    fig_savedir: Path,
+    filename: str,
+    r_lims: tuple[float, float],
+    rho_lims: tuple[float, float],
+    r_ticks: list[float],
+    rho_ticks: list[float],
+    nullcline_r_style: str,
+    nullcline_rho_style: str,
+    nullcline_opacity: float,
+    quiver_color: str,
+    quiver_scale: float,
+    quiver_downsample: int,
+    vmin: float,
+    vmax: float,
+    include_legend: bool,
+    gridspec_kwargs: dict | None,
+    xlabel_kwargs: dict | None,
+    ylabel_kwargs: dict | None,
+    quiver_legend_kwargs: dict | None,
+) -> Path:
+    fig, ax = plot_drift_quiver(
+        drift=drift,
+        meshgrid=meshgrid,
+        quiver_scale=quiver_scale,
+        quiver_color=quiver_color,
+        quiver_downsample=quiver_downsample,
+        vmin=vmin,
+        vmax=vmax,
+        variable_labels=column_labels,
+        figsize=figsize,
+        axes_limits=[r_lims, rho_lims],
+        include_nullclines=True,
+        nullcline_colors=("k", "k"),
+        nullcline_styles=(nullcline_r_style, nullcline_rho_style),
+        nullcline_opacity=nullcline_opacity,
+        gridspec_kwargs=gridspec_kwargs,
+        legend_kwargs=quiver_legend_kwargs,
+        xlabel_kwargs=xlabel_kwargs,
+        ylabel_kwargs=ylabel_kwargs,
+        plot_legend=include_legend,
+    )
+
+    ax.plot(
+        stable_fixed_point[..., 0],
+        stable_fixed_point[..., 1],
+        STABILITY_MARKER_DICT[StabilityLabel.STABLE],
+        color=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
+        markeredgecolor="k",
+        markeredgewidth=0.5,
+        markersize=5,
+        label="Stable fixed point",
+    )
+    if include_legend:
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(
+            handles,
+            labels,
+            fontsize="xx-small",
+            loc="upper center",
+            bbox_to_anchor=(0.5, 1.25),
+            ncol=2,
+            handletextpad=0.3,
+        )
+
+    # make room above axes for the legend
+    fig.subplots_adjust(top=0.82)
+
+    # set plot formatting args and save
+    ax.set_box_aspect(1.0)
+    ax.set_xticks(r_ticks)
+    ax.set_yticks(rho_ticks)
+    save_plot_to_path(
+        fig,
+        fig_savedir,
+        filename,
+        file_format=".svg",
+        tight_layout=False,
+        transparent=True,
+    )
+
+    return fig_savedir / f"{filename}.svg"
+
+
+def make_1d_drift_plot_panel(
+    drift: np.ndarray,
+    theta_values: np.ndarray,
+    column_label: str,
+    stable_fixed_point: float,
+    figsize: tuple[float, float],
+    fig_savedir: Path,
+    filename: str,
+    axes_xlim: tuple[float, float],
+    axes_ylim: tuple[float, float],
+    axes_xticks: list[float],
+    axes_xtick_labels: list[str],
+    axes_yticks: list[float],
+    arrow_scale: float,
+    drift_line_kwargs: dict | None,
+    zero_line_kwargs: dict | None,
+    gridspec_kwargs: dict | None,
+    xlabel_kwargs: dict | None,
+    ylabel_kwargs: dict | None,
+) -> Path:
+    fig, ax = plot_drift_1d(
+        drift=drift,
+        x_values=theta_values,
+        figsize=figsize,
+        axes_limits=[axes_xlim, axes_ylim],
+        axes_labels=[column_label, f"d{column_label}/dt"],
+        add_flow_arrows=True,
+        flow_arrow_kwargs={"color": "dimgrey", "scale": arrow_scale},
+        gridspec_kwargs=gridspec_kwargs,
+        drift_line_kwargs=drift_line_kwargs,
+        zero_line_kwargs=zero_line_kwargs,
+        xlabel_kwargs=xlabel_kwargs,
+        ylabel_kwargs=ylabel_kwargs,
+    )
+    # add stable fixed point in theta
+    ax.plot(
+        stable_fixed_point,
+        np.zeros_like(stable_fixed_point),
+        STABILITY_MARKER_DICT[StabilityLabel.STABLE],
+        color=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
+        markeredgecolor="k",
+        markeredgewidth=0.5,
+        markersize=5,
+    )
+
+    # set plot formatting args and save
+    ax.set_box_aspect(1.0)
+    ax.set_xticks(axes_xticks, labels=axes_xtick_labels)
+    ax.set_yticks(axes_yticks)
+    save_plot_to_path(fig, fig_savedir, filename, file_format=".svg")
+
+    return fig_savedir / f"{filename}.svg"
 
 
 def make_crop_example_contact_sheet(
@@ -67,6 +298,9 @@ def make_crop_example_contact_sheet(
 
     Parameters
     ----------
+    dataset_config
+        DatasetConfig object containing metadata about the dataset, used to load
+        the real images.
     stable_fixed_point_dataframe
         DataFrame containing the coordinates of the stable fixed points.
     crop_features_dataframe
@@ -174,7 +408,7 @@ def make_crop_example_contact_sheet(
         max_rows=n_crop_examples,
         max_cols=3,
         col_titles=["Reconstruction", "VE-Cad MIP", "BF Std. Dev. Proj"],
-        row_titles=[f"Example {i+1}" for i in range(n_crop_examples)],
+        row_titles=[f"Example {i + 1}" for i in range(n_crop_examples)],
         direction="top-down first",
         gridspec_kwargs=gridspec_kwargs,
         subplot_kwargs={"frame_on": False},
