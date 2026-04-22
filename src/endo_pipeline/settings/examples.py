@@ -10,6 +10,13 @@ EXAMPLE_DATASET = {
 }
 """Dictionary of example datasets for specific figures."""
 
+FIGURE_3_RECONSTRUCTION_EXAMPLE_DATASETS = [
+    "20260114_20X",  # two fixed points (15 dyn)
+    "20260218_20X",  # two fixed points (15 dyn)
+    "20260225_20X",  # single fixed point (15 dyn)
+    "20260202_20X",  # single fixed point (15 dyn)
+]
+
 
 class ExampleImage(NamedTuple):
     """Structure for information about an example image used in a figure."""
