@@ -59,6 +59,13 @@ from endo_pipeline.settings.flow_field_dataframes import (
     DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
     StabilityLabel,
 )
+from endo_pipeline.settings.flow_field_figure import (
+    AXES_LIMITS_2D,
+    GRIDSPEC_KWARGS,
+    NULLCLINE_STYLES_2D,
+    XLABEL_KWARGS,
+    YLABEL_KWARGS,
+)
 from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import (
@@ -127,16 +134,6 @@ dataframe_columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *featur
 model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
 model_location = model_manifest.locations[DEFAULT_MODEL_RUN_NAME]
 model = load_model(model_location, instantiate=True)
-
-# global plotting kwargs / parameters
-gridspec_kwargs = {"wspace": 0.1, "hspace": 0.1}
-xlabel_kwargs = {"labelpad": 2}
-ylabel_kwargs = {"labelpad": -2}
-
-r_lims = (0.2, 1.8)
-rho_lims = (-1.05, 1.05)
-nullcline_r_style = "dashed"
-nullcline_rho_style = (0, (1, 1))  # dense dotted
 # %%
 
 # make svg of just the colorbar with set ticks and extended on both sides
@@ -203,16 +200,16 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
         fig_savedir=fig_savedir,
         filename=f"{dataset_name}_{columns_r_rho_str}_contours",
         shear_stress_label=shear_stress_label,
-        r_lims=r_lims,
-        rho_lims=rho_lims,
+        r_lims=AXES_LIMITS_2D[Column.DiffAEData.POLAR_RADIUS],
+        rho_lims=AXES_LIMITS_2D[Column.DiffAEData.PC3_FLIPPED],
         r_ticks=[0.25, 1.0, 1.75],
         rho_ticks=[-0.75, 0.0, 0.75],
-        nullcline_r_style=nullcline_r_style,
-        nullcline_rho_style=nullcline_rho_style,
+        nullcline_r_style=NULLCLINE_STYLES_2D[Column.DiffAEData.POLAR_RADIUS],
+        nullcline_rho_style=NULLCLINE_STYLES_2D[Column.DiffAEData.PC3_FLIPPED],
         nullcline_opacity=1.0,
-        gridspec_kwargs=gridspec_kwargs,
-        xlabel_kwargs=xlabel_kwargs,
-        ylabel_kwargs=ylabel_kwargs,
+        gridspec_kwargs=GRIDSPEC_KWARGS,
+        xlabel_kwargs=XLABEL_KWARGS,
+        ylabel_kwargs=YLABEL_KWARGS,
         axes_title_kwargs={
             "fontsize": "small",
             "x": 1.05,
@@ -231,12 +228,12 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
         figsize=(2.05, 1.65),
         fig_savedir=fig_savedir,
         filename=f"{dataset_name}_{columns_r_rho_str}_quiver",
-        r_lims=r_lims,
-        rho_lims=rho_lims,
+        r_lims=AXES_LIMITS_2D[Column.DiffAEData.POLAR_RADIUS],
+        rho_lims=AXES_LIMITS_2D[Column.DiffAEData.PC3_FLIPPED],
         r_ticks=[0.25, 0.75, 1.25, 1.75],
         rho_ticks=[-1.0, -0.5, 0.0, 0.5, 1.0],
-        nullcline_r_style=nullcline_r_style,
-        nullcline_rho_style=nullcline_rho_style,
+        nullcline_r_style=NULLCLINE_STYLES_2D[Column.DiffAEData.POLAR_RADIUS],
+        nullcline_rho_style=NULLCLINE_STYLES_2D[Column.DiffAEData.PC3_FLIPPED],
         nullcline_opacity=0.9,
         quiver_color="dimgrey",
         quiver_scale=3.5,
@@ -244,9 +241,9 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
         vmin=DRIFT_CONTOUR_VMIN,
         vmax=DRIFT_CONTOUR_VMAX,
         include_legend=include_legend,
-        gridspec_kwargs=gridspec_kwargs,
-        xlabel_kwargs=xlabel_kwargs,
-        ylabel_kwargs=ylabel_kwargs,
+        gridspec_kwargs=GRIDSPEC_KWARGS,
+        xlabel_kwargs=XLABEL_KWARGS,
+        ylabel_kwargs=YLABEL_KWARGS,
         quiver_legend_kwargs={
             "fontsize": "xx-small",
             "title_fontsize": "xx-small",
@@ -279,9 +276,9 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
         axes_yticks=[-0.3, 0.0, 0.3],
         drift_line_kwargs={"color": "k", "linewidth": 2},
         zero_line_kwargs={"linestyle": "--", "color": "gray", "linewidth": 1, "alpha": 0.7},
-        gridspec_kwargs=gridspec_kwargs,
-        xlabel_kwargs=xlabel_kwargs,
-        ylabel_kwargs=ylabel_kwargs,
+        gridspec_kwargs=GRIDSPEC_KWARGS,
+        xlabel_kwargs=XLABEL_KWARGS,
+        ylabel_kwargs=YLABEL_KWARGS,
     )
 
     # make contact sheet of example crops at stable fixed points for this

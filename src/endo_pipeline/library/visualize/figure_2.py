@@ -295,6 +295,9 @@ def make_crop_example_contact_sheet(
 
     Parameters
     ----------
+    dataset_config
+        DatasetConfig object containing metadata about the dataset, used to load
+        the real images.
     stable_fixed_point_dataframe
         DataFrame containing the coordinates of the stable fixed points.
     crop_features_dataframe
