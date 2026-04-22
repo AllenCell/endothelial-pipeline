@@ -158,6 +158,7 @@ save_plot_to_path(fig, base_output_dir, "colorbar", file_format=".svg", transpar
 contour_plot_paths: dict[str, Path] = {}
 quiver_plot_paths: dict[str, Path] = {}
 theta_plot_paths: dict[str, Path] = {}
+crop_contact_sheet_paths: dict[str, Path] = {}
 for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]:
     fig_savedir = get_output_path("figure_2", dataset_name)
     dataset_config = load_dataset_config(dataset_name)
@@ -194,17 +195,13 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
     )
     stable_fixed_point_theta = stable_fixed_points_dict[column_theta][column_theta].to_numpy()
 
-    contour_plot_filename = f"{dataset_name}_{columns_r_rho_str}_contours"
-    quiver_plot_filename = f"{dataset_name}_{columns_r_rho_str}_quiver"
-    theta_plot_filename = f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}_drift"
-
     contour_plot_paths[dataset_name] = make_2d_contour_plot_panel(
         drift=drift_r_rho,
         meshgrid=centers_mesh,
         column_labels=column_labels_r_rho,
         figsize=(1.75, 1.9),
         fig_savedir=fig_savedir,
-        filename=contour_plot_filename,
+        filename=f"{dataset_name}_{columns_r_rho_str}_contours",
         shear_stress_label=shear_stress_label,
         r_lims=r_lims,
         rho_lims=rho_lims,
@@ -233,7 +230,7 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
         stable_fixed_point=stable_fixed_point_r_rho,
         figsize=(2.05, 1.65),
         fig_savedir=fig_savedir,
-        filename=quiver_plot_filename,
+        filename=f"{dataset_name}_{columns_r_rho_str}_quiver",
         r_lims=r_lims,
         rho_lims=rho_lims,
         r_ticks=[0.25, 0.75, 1.25, 1.75],
@@ -268,7 +265,7 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
         stable_fixed_point=stable_fixed_point_theta,
         figsize=(MAX_FIGURE_WIDTH / 4, MAX_FIGURE_HEIGHT / 4),
         fig_savedir=fig_savedir,
-        filename=theta_plot_filename,
+        filename=f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}_drift",
         axes_xlim=POLAR_ANGLE_RANGE,
         axes_ylim=(-0.4, 0.4),
         axes_xticks=[0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi],
@@ -291,7 +288,7 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
     # dataset (panel below the flow field visualizations)
     feature_dataframe = load_dataframe(feature_dataframe_manifest.locations[dataset_name])
     dataframe_steady_state = filter_dataframe_to_steady_state(feature_dataframe, dataset_config)
-    crop_contact_sheet_path = make_crop_example_contact_sheet(
+    crop_contact_sheet_paths[dataset_name] = make_crop_example_contact_sheet(
         dataset_config=dataset_config,
         stable_fixed_point_dataframe=stable_fixed_points_dict[feature_columns_str],
         crop_features_dataframe=dataframe_steady_state,
@@ -361,11 +358,6 @@ save_plot_to_path(
 
 # %%
 # --- Assemble all panels into final figure ---
-# Helper: construct per-dataset plot paths
-columns_r_rho_str = "_".join(columns_r_rho)
-fig_savedir_low = get_output_path("figure_2", dataset_low)
-fig_savedir_high = get_output_path("figure_2", dataset_high)
-
 panels = [
     # --- Low flow dataset (row 1) ---
     FigurePanel(
@@ -394,7 +386,7 @@ panels = [
     ),
     FigurePanel(
         letter="B",
-        path=fig_savedir_low / f"{dataset_low}_{Column.DiffAEData.POLAR_ANGLE}_drift.svg",
+        path=theta_plot_paths[dataset_low],
         x_position=3 * MAX_FIGURE_WIDTH / 4 - 0.35,
         y_position=0.0,
         x_offset=0.4,
@@ -427,7 +419,7 @@ panels = [
     ),
     FigurePanel(
         letter="D",
-        path=fig_savedir_high / f"{dataset_high}_{Column.DiffAEData.POLAR_ANGLE}_drift.svg",
+        path=theta_plot_paths[dataset_high],
         x_position=3 * MAX_FIGURE_WIDTH / 4 - 0.35,
         y_position=1.85,
         x_offset=0.4,
@@ -436,7 +428,7 @@ panels = [
     # --- Contact sheets (row 3) ---
     FigurePanel(
         letter="E",
-        path=fig_savedir_low / f"{dataset_low}_crop_examples.svg",
+        path=crop_contact_sheet_paths[dataset_low],
         x_position=0.0,
         y_position=3.8,
         x_offset=0.08,
@@ -444,7 +436,7 @@ panels = [
     ),
     FigurePanel(
         letter="F",
-        path=fig_savedir_high / f"{dataset_high}_crop_examples.svg",
+        path=crop_contact_sheet_paths[dataset_high],
         x_position=MAX_FIGURE_WIDTH / 2,
         y_position=3.8,
         x_offset=0.08,
