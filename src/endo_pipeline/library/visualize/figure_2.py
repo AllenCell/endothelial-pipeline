@@ -22,6 +22,7 @@ from endo_pipeline.library.process.image_processing import (
     std_dev,
 )
 from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
+    plot_drift_1d,
     plot_drift_contours,
     plot_drift_quiver,
 )
@@ -209,6 +210,57 @@ def make_2d_quiver_plot_panel(
     return fig_savedir / f"{filename}.svg"
 
 
+def make_1d_drift_plot_panel(
+    drift: np.ndarray,
+    theta_values: np.ndarray,
+    column_label: str,
+    stable_fixed_point: float,
+    figsize: tuple[float, float],
+    fig_savedir: Path,
+    filename: str,
+    axes_xlim: tuple[float, float],
+    axes_ylim: tuple[float, float],
+    axes_xticks: list[float],
+    axes_xtick_labels: list[str],
+    axes_yticks: list[float],
+    drift_line_kwargs: dict | None,
+    zero_line_kwargs: dict | None,
+    gridspec_kwargs: dict | None,
+    xlabel_kwargs: dict | None,
+    ylabel_kwargs: dict | None,
+) -> Path:
+    fig, ax = plot_drift_1d(
+        drift=drift,
+        x_values=theta_values,
+        figsize=figsize,
+        axes_limits=(axes_xlim, axes_ylim),
+        axes_labels=[column_label, f"d{column_label}/dt"],
+        gridspec_kwargs=gridspec_kwargs,
+        drift_line_kwargs=drift_line_kwargs,
+        zero_line_kwargs=zero_line_kwargs,
+        xlabel_kwargs=xlabel_kwargs,
+        ylabel_kwargs=ylabel_kwargs,
+    )
+    # add stable fixed point in theta
+    ax.plot(
+        stable_fixed_point,
+        np.zeros_like(stable_fixed_point),
+        STABILITY_MARKER_DICT[StabilityLabel.STABLE],
+        color=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
+        markeredgecolor="k",
+        markeredgewidth=0.5,
+        markersize=5,
+    )
+
+    # set plot formatting args and save
+    ax.set_box_aspect(1.0)
+    ax.set_xticks(axes_xticks, labels=axes_xtick_labels)
+    ax.set_yticks(axes_yticks)
+    save_plot_to_path(fig, fig_savedir, filename, file_format=".svg")
+
+    return fig_savedir / f"{filename}.svg"
+
+
 def make_crop_example_contact_sheet(
     dataset_config: DatasetConfig,
     stable_fixed_point_dataframe: pd.DataFrame,
@@ -350,7 +402,7 @@ def make_crop_example_contact_sheet(
         max_rows=n_crop_examples,
         max_cols=3,
         col_titles=["Reconstruction", "VE-Cad MIP", "BF Std. Dev. Proj"],
-        row_titles=[f"Example {i+1}" for i in range(n_crop_examples)],
+        row_titles=[f"Example {i + 1}" for i in range(n_crop_examples)],
         direction="top-down first",
         gridspec_kwargs=gridspec_kwargs,
         subplot_kwargs={"frame_on": False},
