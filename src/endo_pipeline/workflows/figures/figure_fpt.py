@@ -21,16 +21,16 @@ def main():
         FigurePanel(
             letter="B",
             path=save_dir / "20250611_20X_FPT_fp_3_stable_mean_correlation.svg",
-            x_position=0,
-            y_position=2.5,
+            x_position=2,
+            y_position=0,
             x_offset=0,  # 0,
             y_offset=0,  # 0.2,
         ),
         FigurePanel(
             letter="C",
             path=save_dir / "20250813_20X_FPT_fp_0_stable_mean_correlation.svg",
-            x_position=0,
-            y_position=2.5,
+            x_position=4,
+            y_position=0,
             x_offset=0,  # 0,
             y_offset=0,  # 0.2,
         ),
@@ -38,7 +38,7 @@ def main():
             letter="D",
             path=save_dir / "FPT_correlation_summary.svg",
             x_position=0,
-            y_position=2.5,
+            y_position=3,
             x_offset=0,  # 0,
             y_offset=0,  # 0.2,
         ),
@@ -48,7 +48,7 @@ def main():
         figure_panels=panels,
         output_path=save_dir / "figure_4.svg",
         width=MAX_FIGURE_WIDTH,
-        height=4.75,
+        height=6,
     )
 
 

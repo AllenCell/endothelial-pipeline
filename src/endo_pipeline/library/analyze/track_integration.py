@@ -1110,7 +1110,7 @@ def merge_grid_and_tracked_first_passage_time_stats_dfs(
 def compute_and_plot_first_passage_times_one_dataset(
     dataset_name: str,
     out_dir: Path,
-    minimum_track_length: int | None = None,
+    minimum_track_length: int,
     run_FPT_threshold_parameter_sweep: bool = True,
     fixed_point_radius_threshold: float | None = None,
     min_num_traj_per_bin: int = 10,
@@ -1123,6 +1123,8 @@ def compute_and_plot_first_passage_times_one_dataset(
     logger = logging.getLogger(__name__)
 
     dataset_config = load_dataset_config(dataset_name)
+
+    examples_for_figure = ["20250618_20X", "20250611_20X", "20250813_20X"]
 
     line_fit_results: list[dict] = []
 
@@ -1367,8 +1369,20 @@ def compute_and_plot_first_passage_times_one_dataset(
                 metric_to_plot=metric,
                 min_num_traj_per_bin=min_num_traj_per_bin,
                 out_dir=out_subdir,
+                for_figure=False,
             )
             line_fit_results.append(line_fit)
+            if metric == "mean" and dataset_name in examples_for_figure:
+                compute_and_plot_first_passage_time_correlation(
+                    fixed_point_id=fp_idx,
+                    fixed_point_stability=fp_stability,
+                    dataset_config=dataset_config,
+                    first_passage_time_df=fpt_stats_df,
+                    metric_to_plot=metric,
+                    min_num_traj_per_bin=min_num_traj_per_bin,
+                    out_dir=out_subdir,
+                    for_figure=True,
+                )
             # histograms don't really work for 4D data (theta, r, rho, and FPT ratio),
             # so we will use a 3D scatter with color-coded points instead
             # if one of the columns is not being collapsed

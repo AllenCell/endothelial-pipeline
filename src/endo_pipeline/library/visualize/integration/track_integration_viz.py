@@ -32,10 +32,13 @@ from endo_pipeline.library.visualize.diffae_features.flow_field_3d import (
 )
 from endo_pipeline.settings import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, TIME_STEP_IN_HOURS
+from endo_pipeline.settings.figures import FONTSIZE_SMALL
 from endo_pipeline.settings.flow_field_3d import QUIVER_COLORMAP
 from endo_pipeline.settings.unicode import UnicodeCharacters
 
 logger = logging.getLogger(__name__)
+
+plt.style.use("endo_pipeline.figure")
 
 
 def set_global_pc_lims(axs: Sequence[plt.Axes], lim: int = 3) -> None:
@@ -1091,6 +1094,7 @@ def compute_and_plot_first_passage_time_correlation(
     metric_to_plot: Literal["mean", "median"],
     min_num_traj_per_bin: int,
     out_dir: Path,
+    for_figure: bool = False,
 ) -> dict:
     dataset_name = dataset_config.name
     time_units = TIME_STEP_IN_HOURS  # convert timeframes to hours
@@ -1139,8 +1143,11 @@ def compute_and_plot_first_passage_time_correlation(
 
     num_bins = first_passage_time_df_no_nan[Column.VectorField.BIN_INDEX].nunique()
 
-    fig, ax = plt.subplots(figsize=(3, 3))
-    ax.set_title(f"{dataset_name}: {num_bins} bins".title())
+    if for_figure:
+        fig, ax = plt.subplots(figsize=(1.6, 1.6))
+    else:
+        fig, ax = plt.subplots(figsize=(3, 3))
+        ax.set_title(f"{dataset_name}: {num_bins} bins".title())
     ax.errorbar(
         x=first_passage_time_df_no_nan[f"{metric}_grid"],
         y=first_passage_time_df_no_nan[f"{metric}_tracked"],
@@ -1172,12 +1179,19 @@ def compute_and_plot_first_passage_time_correlation(
     ax_max = max((*ax.get_xlim(), *ax.get_ylim()))
     ax.set_xlim(ax_min, ax_max)
     ax.set_ylim(ax_min, ax_max)
-    ax.set_xlabel("Grid Trajectory FPT (hrs)")
-    ax.set_ylabel("Tracked Trajectory FPT (hrs)")
-    ax.legend()
+    ax.set_xticks(range(0, int(ax_max), 4))
+    ax.set_yticks(range(0, int(ax_max), 4))
+    ax.tick_params(labelsize=FONTSIZE_SMALL)
+    ax.set_xlabel("Grid FPT (hrs)", fontsize=FONTSIZE_SMALL, labelpad=1.0)
+    ax.set_ylabel("Tracked FPT (hrs)", fontsize=FONTSIZE_SMALL, labelpad=1.0)
+    if not for_figure:
+        ax.legend()
+        fname_suff = ""
+    else:
+        fname_suff = "_for_figure"
     filename = (
         f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}"
-        f"_{metric_to_plot}_correlation"
+        f"_{metric_to_plot}_correlation{fname_suff}"
     )
     save_plot_to_path(
         fig,
@@ -1637,6 +1651,37 @@ def plot_first_passage_time_correlation_summary(
         fig,
         out_dir,
         "FPT_correlation_summary",
+        file_format=".svg",
+        show_and_close=False,
+    )
+
+
+def plot_first_passage_time_correlation_summary_for_figure(
+    first_passage_time_correlation_summary_df: pd.DataFrame,
+    out_dir: Path,
+) -> None:
+    """Plot a summary of the correlation results from the first passage time
+    analysis across all datasets and fixed points as it will appear in the figure.
+    """
+
+    fig, ax = plt.subplots(figsize=(6, 3))
+    sns.stripplot(
+        data=first_passage_time_correlation_summary_df,
+        x=Column.DATASET,
+        y="r_value",
+        color="black",
+        alpha=0.7,
+        ax=ax,
+    )
+    ax.set_ylim(0, 1)
+    ax.set_ylabel("Correlation Coefficient (R)", fontsize=FONTSIZE_SMALL)
+    plt.yticks(fontsize=FONTSIZE_SMALL)
+    plt.xticks(rotation=45, ha="right", fontsize=FONTSIZE_SMALL)
+    ax.set_xlabel("")
+    save_plot_to_path(
+        fig,
+        out_dir,
+        "FPT_correlation_summary_for_figure",
         file_format=".svg",
         show_and_close=False,
     )
