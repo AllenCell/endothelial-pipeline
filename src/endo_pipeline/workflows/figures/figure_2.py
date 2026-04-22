@@ -147,7 +147,10 @@ def main() -> None:
     quiver_plot_paths: dict[str, Path] = {}
     theta_plot_paths: dict[str, Path] = {}
     crop_contact_sheet_paths: dict[str, Path] = {}
-    for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]:
+    for dataset_name, include_legend, arrow_scale_1d in [
+        (dataset_low, True, 3.25),
+        (dataset_high, False, 1.0),
+    ]:
         fig_savedir = get_output_path("figure_2", dataset_name)
         dataset_config = load_dataset_config(dataset_name)
         shear_stress = math.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
@@ -271,6 +274,7 @@ def main() -> None:
                 f"{Unicode.PI}=0",
             ],
             axes_yticks=[-0.3, 0.0, 0.3],
+            arrow_scale=arrow_scale_1d,
             drift_line_kwargs={"color": "k", "linewidth": 2},
             zero_line_kwargs={"linestyle": "--", "color": "gray", "linewidth": 1, "alpha": 0.7},
             gridspec_kwargs=GRIDSPEC_KWARGS,

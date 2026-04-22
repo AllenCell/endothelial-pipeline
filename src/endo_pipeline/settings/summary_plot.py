@@ -79,4 +79,24 @@ COLOR_PALETTE = [
     "#DDCC77",  # sand
     "#882255",  # wine
     "#AA4499",  # magenta
+    "#117733",  # forest green
+    "#CC6677",  # rose
+    "#6699CC",  # steel blue
+    "#661100",  # dark brown
+    "#999933",  # olive
+    "#AA4466",  # raspberry
+    "#44BB99",  # mint
+    "#BBCC33",  # pear
+    "#EE8866",  # peach
 ]
+
+# Collect all unique datasets across all groups (preserving first-appearance order)
+_ALL_DATASETS: list[str] = []
+for _ds_list in SUMMARY_PLOT_DATASETS.values():
+    for _ds in _ds_list:
+        if _ds not in _ALL_DATASETS:
+            _ALL_DATASETS.append(_ds)
+
+DATASET_COLOR_MAP: dict[str, str] = {
+    ds: COLOR_PALETTE[i % len(COLOR_PALETTE)] for i, ds in enumerate(_ALL_DATASETS)
+}
