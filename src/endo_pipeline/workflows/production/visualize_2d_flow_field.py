@@ -50,6 +50,7 @@ def main(
     from endo_pipeline.configs import (
         get_datasets_in_collection,
         get_regime_for_shear_stress,
+        get_shear_stress_label_for_dataset,
         load_dataset_config,
     )
     from endo_pipeline.io import (
@@ -264,10 +265,9 @@ def main(
 
         for flow_condition in dataset_config.flow_conditions:
             shear_stress = flow_condition.shear_stress
-            shear_stress_regime = get_regime_for_shear_stress(shear_stress)
-            target_shear_stress = shear_stress_regime.target
-            dataset_name_flow = f"{dataset_name}_shear_{target_shear_stress}"
-            fig_title = f"{dataset_name} ({target_shear_stress} dym/cm$^2$)"
+            target_shear_stress = get_regime_for_shear_stress(flow_condition.shear_stress).target
+            fig_title = get_shear_stress_label_for_dataset(dataset_config, flow_condition)
+            dataset_name_flow = f"{dataset_name}_{target_shear_stress}"
 
             feature_data_for_flow_condition = filter_dataframe_by_flow_condition(
                 feature_data, dataset_config, flow_condition
