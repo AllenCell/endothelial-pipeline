@@ -4,7 +4,6 @@ Main function to create figure panels for Figure 2.
 """
 
 import logging
-import math
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -238,10 +237,8 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
         if ax_index == 0:
             ax_.tick_params(labelbottom=False)
 
-    shear_stress = math.ceil(
-        max(shear_regime.target for shear_regime in dataset_config.shear_stress_regime)
-    )
-    shear_stress_label = f"{shear_stress} dyn/cm{Unicode.SQUARED}"
+    target_shear_stress = dataset_config.shear_stress_regime[-1].target
+    shear_stress_label = f"{target_shear_stress} dyn/cm{Unicode.SQUARED}"
     # reserve left margin for the vertical label
     fig.subplots_adjust(left=0.08)
     # add vertical title to the left of the contour plot spanning all rows
@@ -383,6 +380,7 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
         feature_column_names=feature_column_names,
         model=model,
         n_crop_examples=2,
+        shear_stress_label=shear_stress_label,
         fig_savedir=fig_savedir,
         fig_filename=f"{dataset_name}_crop_examples",
         file_format=".svg",
@@ -410,7 +408,7 @@ fig, ax = plt.subplots(figsize=(2, 2), layout="constrained")
 for dataset_name in [dataset_low, dataset_high]:
     # get settings
     dataset_config = load_dataset_config(dataset_name)
-    shear_stress = math.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
+    target_shear_stress = dataset_config.shear_stress_regime[-1].target
 
     # load and filter data
     df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
@@ -428,7 +426,7 @@ for dataset_name in [dataset_low, dataset_high]:
         optical_flow_feature=optical_flow_feature,
         feature_label="Migration Coherence",
         feature_lim=(0, 1),
-        ss_label=f"{shear_stress} dyn/cm{Unicode.SQUARED}",
+        ss_label=f"{target_shear_stress} dyn/cm{Unicode.SQUARED}",
         color=get_dataset_color(dataset_name),
         df_fp=None,
         binwidth=0.02,

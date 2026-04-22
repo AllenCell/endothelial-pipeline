@@ -1,6 +1,5 @@
 """Helper functions for visualizations used in Figure 2."""
 
-import math
 from pathlib import Path
 from typing import Literal
 
@@ -40,6 +39,7 @@ def make_crop_example_contact_sheet(
     feature_column_names: list[str],
     model: DiffusionAutoEncoder,
     n_crop_examples: int,
+    shear_stress_label: str,
     fig_savedir: Path,
     fig_filename: str,
     file_format: Literal[".svg", ".png", ".pdf"] = ".svg",
@@ -207,8 +207,6 @@ def make_crop_example_contact_sheet(
         ha="right",
     )
 
-    shear_stress = math.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
-    shear_stress_label = f"{shear_stress} dyn/cm{Unicode.SQUARED}"
     # reserve left margin for the vertical label (rect = [left, bottom, right, top])
     layout_engine = fig.get_layout_engine()
     if isinstance(layout_engine, ConstrainedLayoutEngine):
