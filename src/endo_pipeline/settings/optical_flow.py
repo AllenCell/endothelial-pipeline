@@ -49,8 +49,11 @@ DEMO_MAX_DATASETS: int = 2
 DEMO_MAX_POSITIONS: int = 1
 """Maximum number of positions per dataset in demo mode."""
 
-DEMO_MAX_FRAMES: int = 5
+DEMO_MAX_FRAMES: int = 20
 """Maximum number of timepoints cached per position in demo mode."""
+
+DEMO_MAX_TRACKED_CROPS_TO_PLOT: int = 2
+"""Maximum number of tracked crops to plot in the coherence time series diagnostic."""
 
 # ---------------------------------------------------------------------------
 # Quiver plot
@@ -69,7 +72,7 @@ overlay.
 DEFAULT_OPTICAL_FLOW_COLLECTION: str = "diffae_model_training"
 """Default dataset collection for the optical-flow feature workflow."""
 
-DEFAULT_OPTICAL_FLOW_MANIFEST_NAME: str = "optical_flow_bf"
+DEFAULT_OPTICAL_FLOW_MANIFEST_NAME: str = "optical_flow_bf_grid"
 """Default dataframe manifest name for optical-flow features."""
 
 DIFFAE_DATAFRAME_METADATA_TO_COMPUTE: tuple[str, ...] = (
@@ -84,54 +87,78 @@ DIFFAE_DATAFRAME_METADATA_TO_COMPUTE: tuple[str, ...] = (
 )
 """Metadata columns from Diff AE feature dataframe needed for optical flow computations."""
 
+OPTICAL_FLOW_COLUMNS_TO_COMPUTE: dict[str, tuple[str, ...]] = {
+    "grid": DIFFAE_DATAFRAME_METADATA_TO_COMPUTE,
+    "tracked": DIFFAE_DATAFRAME_METADATA_TO_COMPUTE
+    + (
+        ColumnName.TRACK_ID,
+        ColumnName.DiffAEData.CROP_SIZE_X,
+    ),
+}
+"""Metadata columns keyed by crop pattern (``'grid'`` or ``'tracked'``)."""
+
 # ---------------------------------------------------------------------------
 # Feature names
 # ---------------------------------------------------------------------------
-OPTICAL_FLOW_BASE_FEATURES: list[str] = [
-    "optical_flow_mean_speed",
-    "optical_flow_mean_unit_vector",
-    "optical_flow_std_speed",
-    "optical_flow_mean_angle",
-    "optical_flow_angle_std",
-    "optical_flow_mean_u",
-    "optical_flow_mean_v",
-    "optical_flow_std_u",
-    "optical_flow_std_v",
-    "optical_flow_mean_unit_vector_fast",
-    "speed_above_1_count",
-    "ema005_optical_flow_mean_unit_vector",
-    "ema005_optical_flow_mean_unit_vector_fast",
-    "ema01_optical_flow_mean_unit_vector",
-    "ema01_optical_flow_mean_unit_vector_fast",
-    "ema02_optical_flow_mean_unit_vector",
-    "ema02_optical_flow_mean_unit_vector_fast",
+OPTICAL_FLOW_COMPUTE_FEATURES: list[str] = [
+    ColumnName.OpticalFlow.SPEED_MEAN_BASE,
+    ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_BASE,
+    ColumnName.OpticalFlow.SPEED_STD_BASE,
+    ColumnName.OpticalFlow.ANGLE_MEAN_BASE,
+    ColumnName.OpticalFlow.ANGLE_STD_BASE,
+    ColumnName.OpticalFlow.U_MEAN_BASE,
+    ColumnName.OpticalFlow.V_MEAN_BASE,
+    ColumnName.OpticalFlow.U_STD_BASE,
+    ColumnName.OpticalFlow.V_STD_BASE,
 ]
-"""Base feature names computed per (crop, timepoint, dt) by optical-flow extraction."""
+"""Core features always computed by :func:`compute_flow_statistics`."""
 
-OPTICAL_FLOW_FEATURE_COLUMNS_DT1: list[str] = [
-    "optical_flow_mean_speed_dt1",
-    "optical_flow_mean_unit_vector_dt1",
-    "optical_flow_std_speed_dt1",
-    "optical_flow_mean_angle_dt1",
-    "optical_flow_angle_std_dt1",
-    "optical_flow_mean_u_dt1",
-    "optical_flow_mean_v_dt1",
-    "optical_flow_std_u_dt1",
-    "optical_flow_std_v_dt1",
-    "optical_flow_mean_unit_vector_fast_dt1",
-    "speed_above_1_count_dt1",
-    "ema01_optical_flow_mean_unit_vector_dt1",
-    "ema01_optical_flow_mean_unit_vector_fast_dt1",
-    "ema01_optical_flow_radial_coherence_dt1",
-    "ema01_optical_flow_radial_coherence_weighted_dt1",
+OPTICAL_FLOW_FAST_FEATURES: list[str] = [
+    ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_FAST_BASE,
+    ColumnName.OpticalFlow.SPEED_ABOVE_1_COUNT_BASE,
 ]
-"""Optical-flow feature column names with dt=1 stride, as stored in dataframes."""
-# TO DO: temporarily remove features until new perturbation data has these columns
-# or we decide not to include them in the final TFE feature set
-# "ema005_optical_flow_mean_unit_vector_dt1",
-# "ema005_optical_flow_mean_unit_vector_fast_dt1",
-# "ema02_optical_flow_mean_unit_vector_dt1",
-# "ema02_optical_flow_mean_unit_vector_fast_dt1",
+"""Features gated on ``--compute-fast-coherence`` (speed > threshold)."""
+
+OPTICAL_FLOW_RADIAL_FEATURES: list[str] = [
+    ColumnName.OpticalFlow.RADIAL_COHERENCE_BASE,
+    ColumnName.OpticalFlow.RADIAL_COHERENCE_WEIGHTED_BASE,
+]
+"""Features gated on ``--compute-radial-coherence``."""
+
+# Backward-compatible union used by compute.py NaN-fallback when all
+# optional features are enabled.
+OPTICAL_FLOW_BASE_FEATURES: list[str] = (
+    OPTICAL_FLOW_COMPUTE_FEATURES + OPTICAL_FLOW_FAST_FEATURES + OPTICAL_FLOW_RADIAL_FEATURES
+)
+"""Union of all per-(crop, timepoint, dt) features returned by
+:func:`compute_flow_statistics` when every optional group is enabled."""
+
+# EMA coherence feature stems (the alpha tag and _dt suffix are added
+# dynamically in the workflow and in :func:`build_optical_flow_feature_cols`).
+OPTICAL_FLOW_EMA_STEMS: list[str] = [
+    ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_BASE,
+]
+"""Base coherence feature names that always receive EMA smoothing."""
+
+OPTICAL_FLOW_EMA_FAST_STEMS: list[str] = [
+    ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_FAST_BASE,
+]
+"""Coherence feature names that receive EMA smoothing only when fast coherence is enabled."""
+
+OPTICAL_FLOW_EMA_RADIAL_STEMS: list[str] = [
+    ColumnName.OpticalFlow.RADIAL_COHERENCE_BASE,
+    ColumnName.OpticalFlow.RADIAL_COHERENCE_WEIGHTED_BASE,
+]
+"""Coherence feature names that receive EMA smoothing only when radial coherence is enabled."""
+
+# ---------------------------------------------------------------------------
+# Default CLI flag values
+# ---------------------------------------------------------------------------
+DEFAULT_EMA_ALPHAS: tuple[float, ...] = (0.1,)
+"""Default EMA smoothing alpha values for temporal coherence smoothing."""
+
+DEFAULT_SPEED_THRESHOLD: float = 1.0
+"""Default speed threshold for fast-coherence feature computation."""
 
 # ---------------------------------------------------------------------------
 # Channel-aware parameters

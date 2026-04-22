@@ -27,6 +27,7 @@ def resolve_percentile(channel: str, explicit: int | None = None) -> int:
 
     Returns
     -------
+    :
         Percentile used to compute the intensity threshold.
 
     """
@@ -56,6 +57,7 @@ def resolve_attachment(channel: str, explicit: float | None = None) -> float:
 
     Returns
     -------
+    :
         Attachment value to pass to :func:`compute_tvl1`.
     """
     if explicit is not None:
@@ -100,6 +102,7 @@ def default_annotations_to_exclude(
 
     Returns
     -------
+    :
         Annotations whose timepoints should be filtered out.
     """
     annotations_to_ignore: list[TimepointAnnotation] = []

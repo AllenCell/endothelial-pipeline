@@ -341,6 +341,47 @@ class ColumnName:
     class OpticalFlow(StrEnum):
         """Dataframe column names used in the optical-flow feature workflow."""
 
+        # --- Base feature names (before dt suffix) produced by compute_flow_statistics ---
+        SPEED_MEAN_BASE = "optical_flow_mean_speed"
+        """Base name for mean speed (before dt suffix)."""
+
+        UNIT_VECTOR_MEAN_BASE = "optical_flow_mean_unit_vector"
+        """Base name for mean unit vector coherence (before dt suffix)."""
+
+        SPEED_STD_BASE = "optical_flow_std_speed"
+        """Base name for speed standard deviation (before dt suffix)."""
+
+        ANGLE_MEAN_BASE = "optical_flow_mean_angle"
+        """Base name for mean angle (before dt suffix)."""
+
+        ANGLE_STD_BASE = "optical_flow_angle_std"
+        """Base name for angle standard deviation (before dt suffix)."""
+
+        U_MEAN_BASE = "optical_flow_mean_u"
+        """Base name for mean u component (before dt suffix)."""
+
+        V_MEAN_BASE = "optical_flow_mean_v"
+        """Base name for mean v component (before dt suffix)."""
+
+        U_STD_BASE = "optical_flow_std_u"
+        """Base name for u standard deviation (before dt suffix)."""
+
+        V_STD_BASE = "optical_flow_std_v"
+        """Base name for v standard deviation (before dt suffix)."""
+
+        SPEED_ABOVE_1_COUNT_BASE = "speed_above_1_count"
+        """Base name for count of pixels above speed threshold (before dt suffix)."""
+
+        UNIT_VECTOR_MEAN_FAST_BASE = "optical_flow_mean_unit_vector_fast"
+        """Base name for fast-pixel unit vector coherence (before dt suffix)."""
+
+        RADIAL_COHERENCE_BASE = "optical_flow_radial_coherence"
+        """Base name for radial coherence (before dt suffix)."""
+
+        RADIAL_COHERENCE_WEIGHTED_BASE = "optical_flow_radial_coherence_weighted"
+        """Base name for distance-weighted radial coherence (before dt suffix)."""
+
+        # --- Final (suffixed) feature names used in dataframes ---
         SPEED_MEAN = "optical_flow_mean_speed_dt1"
         """Mean speed of the optical flow vectors in a crop."""
 
@@ -368,30 +409,26 @@ class ColumnName:
         V_STD = "optical_flow_std_v_dt1"
         """Standard deviation of the v (y) components of the optical flow vectors in a crop."""
 
-    class BootstrapAnalysis(StrEnum):
-        """Column names used in the bootstrap analysis of fixed points."""
+        SPEED_ABOVE_1_COUNT = "speed_above_1_count_dt1"
+        """Number of pixels whose speed exceeds the threshold (fast-coherence feature)."""
 
-        CI_LOWER = "ci_lower"
-        """Lower bound of the confidence interval for the bootstrap distribution."""
+        UNIT_VECTOR_MEAN_FAST = "optical_flow_mean_unit_vector_fast_dt1"
+        """Mean unit vector coherence computed only over fast pixels."""
 
-        CI_UPPER = "ci_upper"
-        """Upper bound of the confidence interval for the bootstrap distribution."""
+        RADIAL_COHERENCE = "optical_flow_radial_coherence_dt1"
+        """Mean dot product of unit flow with unit radial vector from crop centre."""
 
-        CLUSTER_MEAN = "cluster_mean"
-        """Center of the fixed point cluster (i.e., matched fixed points) across bootstrap iterations."""
-
-        DETECTION_RATE = "detection_rate"
-        """The rate at which the fixed point was detected in the bootstrap iterations."""
+        RADIAL_COHERENCE_WEIGHTED = "optical_flow_radial_coherence_weighted_dt1"
+        """Distance-weighted radial coherence."""
 
     class VectorField(StrEnum):
-        """Column names used in the various vector field analyses."""
+        """Column name suffixes used in vector field / dynamics analysis."""
 
         FIXED_POINT_INDEX = "fixed_point_id"
         """Column name for the index of the fixed point in the fixed point dataframe."""
 
         STABILITY = "stability"
-        """Column name for the stability label assigned to a fixed point based
-        on the eigenvalues of the Jacobian matrix."""
+        """Stability classification of a fixed point."""
 
         DRIFT = "drift"
         """Column name denoting the drift in a given variable."""
@@ -432,3 +469,18 @@ class ColumnName:
 
         FPT_METRIC = "fpt_metric"
         """Column name for the metric used in the first passage time analysis."""
+
+    class BootstrapAnalysis(StrEnum):
+        """Column name suffixes used in bootstrap fixed-point analysis."""
+
+        DETECTION_RATE = "bootstrap_detection_rate"
+        """Fraction of bootstrap iterations in which a matched fixed point was found."""
+
+        CLUSTER_MEAN = "cluster_mean"
+        """Mean coordinate of matched bootstrap fixed points."""
+
+        CI_LOWER = "ci_lower"
+        """Lower bound of the bootstrap confidence interval."""
+
+        CI_UPPER = "ci_upper"
+        """Upper bound of the bootstrap confidence interval."""
