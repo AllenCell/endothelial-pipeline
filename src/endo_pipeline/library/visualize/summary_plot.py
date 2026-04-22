@@ -480,11 +480,14 @@ def plot_cross_dataset_summaries(
                     high_confidence_df["cell_line_label"] = cell_line_label
 
                 df_fp_all_list.append(high_confidence_df)
-            except KeyError:
-                logger.warning(
-                    "No fixed point dataframe found for dataset [ %s ]. Skipping fixed points.",
-                    dataset_name,
-                )
+            except KeyError as e:
+                if str(e) == f"Unable to find dataset {dataset_name} in dataframe manifest.":
+                    logger.warning(
+                        "No fixed point dataframe found for dataset [ %s ]. Skipping fixed points.",
+                        dataset_name,
+                    )
+                else:
+                    raise
 
     # --- Fixed-points vs shear stress ---
     df_fp_all = pd.concat(df_fp_all_list, ignore_index=True)
