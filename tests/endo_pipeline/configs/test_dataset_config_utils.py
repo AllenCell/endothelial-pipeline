@@ -22,7 +22,7 @@ from endo_pipeline.configs.dataset_config_utils import (
     get_position_integer_from_zarr_file_path,
     get_position_string_from_zarr_file_path,
     get_regime_for_shear_stress,
-    get_target_shear_stress,
+    get_target_shear_stress_as_integer,
     get_unannotated_positions,
     get_unannotated_timepoints_for_position,
     make_filtered_dataset_collection,
@@ -399,31 +399,14 @@ def test_get_regime_for_shear_stress_invalid(shear_stress):
 
 
 @pytest.mark.parametrize(
-    "shear_stress,expected_target",
+    "shear_stress_regime,expected_target",
     [
-        (5.7, 6.0),
-        (8.6, 9.0),
-        (12.2, 12.0),
-        (14.7, 15.0),
-        (22.0, 20.0),
-        # boundary values that still map to a regime
-        (0.0, 0.0),
-        (4.5, 6.0),
-        (7.2, 6.0),
-        (8.5, 9.0),
-        (9.1, 9.0),
-        (10.0, 12.0),
-        (12.5, 12.0),
-        (13.0, 15.0),
-        (16.0, 15.0),
-        (18.5, 20.0),
-        (35.0, 20.0),
+        (ShearStressRegime.MIN, 6),
+        (ShearStressRegime.LOW, 9),
+        (ShearStressRegime.MEDIUM, 12),
+        (ShearStressRegime.HIGH, 15),
+        (ShearStressRegime.MAX, 20),
     ],
 )
-def test_get_target_shear_stress(shear_stress, expected_target):
-    assert get_target_shear_stress(shear_stress) == expected_target
-
-
-def test_get_target_shear_stress_invalid():
-    with pytest.raises(ValueError):
-        get_target_shear_stress(50.0)
+def test_get_target_shear_stress_as_integer(shear_stress_regime, expected_target):
+    assert get_target_shear_stress_as_integer(shear_stress_regime) == expected_target

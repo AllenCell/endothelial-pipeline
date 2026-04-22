@@ -31,12 +31,10 @@ def get_regime_for_shear_stress(shear_stress: float) -> ShearStressRegime:
     raise ValueError(f"No shear stress regime found for shear stress [ {shear_stress} ]")
 
 
-def get_target_shear_stress(shear_stress: float) -> float:
-    """Get target shear stress for given shear stress value."""
+def get_target_shear_stress_as_integer(shear_stress_regime: ShearStressRegime) -> int:
+    """Get target shear stress for given shear stress regime."""
 
-    regime = get_regime_for_shear_stress(shear_stress)
-
-    return regime.target
+    return int(shear_stress_regime.target)
 
 
 def get_position_string_from_zarr_file_path(zarr_file_path: str | Path) -> str:
