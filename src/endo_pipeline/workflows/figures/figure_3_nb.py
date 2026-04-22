@@ -1,22 +1,38 @@
 # %%
+import logging
 
 import matplotlib.pyplot as plt
+import pandas as pd
 
-from endo_pipeline.io import get_output_path
+from endo_pipeline.cli import NUM_GPUS
+from endo_pipeline.io import get_output_path, load_dataframe, load_model
 from endo_pipeline.library.visualize.data_example_figures import create_panel_intermediate_examples
+from endo_pipeline.library.visualize.figure_3 import (
+    generate_synthetic_images_at_stable_fixed_points,
+    make_crop_example_contact_sheet,
+)
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
 from endo_pipeline.library.visualize.summary_plot import plot_cross_dataset_summaries
-from endo_pipeline.manifests import load_dataframe_manifest
+from endo_pipeline.manifests import (
+    get_dataframe_location_for_dataset,
+    load_dataframe_manifest,
+    load_model_manifest,
+)
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.examples import FIGURE_3_EXAMPLE_IMAGES
-from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
-from endo_pipeline.settings.flow_field_dataframes import DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING
+from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.flow_field_dataframes import (
+    DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
+    StabilityLabel,
+)
 from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
 from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
 )
+
+logger = logging.getLogger(__name__)
 
 plt.style.use("endo_pipeline.figure")
 
@@ -45,6 +61,8 @@ fixed_points_bootstrap_dataframe_manifest = load_dataframe_manifest(
 
 dataset_summary_list = SUMMARY_PLOT_DATASETS["intermediate"]
 
+BOOTSTRAP_THRESHOLD = 0.4
+
 column_names: list[ColumnName.DiffAEData | ColumnName.OpticalFlow] = [
     ColumnName.DiffAEData.POLAR_ANGLE,
     ColumnName.DiffAEData.POLAR_RADIUS,
@@ -58,13 +76,79 @@ for column_name in column_names:
         feature_dataframe_manifest=feature_dataframe_manifest,
         fixed_points_bootstrap_dataframe_manifest=fixed_points_bootstrap_dataframe_manifest,
         output_dir=save_dir,
-        bootstrap_threshold=0.4,
+        bootstrap_threshold=BOOTSTRAP_THRESHOLD,
         column_names=[column_name],
         x_axis_mode="shear_stress_categorical",
         figure_size=(MAX_FIGURE_WIDTH / 2, 2),
         stable_only=True,
         jitter_width=0.2,
     )
+
+# %% Reconstruction of example images from stable fixed point coordinates
+example_datasets = [
+    "20250604_20X",  # single fixed point at an angle
+    "20260216_20X",  # two fixed points
+    "20260202_20X",  # two fixed points
+    "20260218_20X",  # single fixed point
+]
+
+df_reconstruction_examples = pd.DataFrame()
+for dataset_name in example_datasets:
+    if dataset_name not in feature_dataframe_manifest.locations:
+        logger.warning(
+            "No location found in dataframe manifest [ %s ] for dataset [ %s ], skipping visualization.",
+            feature_dataframe_manifest_name,
+            dataset_name,
+        )
+        continue
+
+    fp_bootstrap_location = get_dataframe_location_for_dataset(
+        fixed_points_bootstrap_dataframe_manifest, dataset_name
+    )
+    df_bootstrap = load_dataframe(fp_bootstrap_location, delay=False)
+
+    n_total = len(df_bootstrap)
+    high_confidence_df = df_bootstrap[
+        df_bootstrap[ColumnName.BootstrapAnalysis.DETECTION_RATE] >= BOOTSTRAP_THRESHOLD
+    ].copy()
+    df_stable_fixed_points = high_confidence_df[
+        high_confidence_df[ColumnName.VectorField.STABILITY] == StabilityLabel.STABLE
+    ]
+    df_reconstruction_examples = pd.concat(
+        [df_reconstruction_examples, df_stable_fixed_points], ignore_index=True
+    )
+
+# %% load and instantiate model for generating synthetic images
+model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
+model_location = model_manifest.locations[DEFAULT_MODEL_RUN_NAME]
+model = load_model(model_location, instantiate=True)
+
+# n_noise_seeds = 5
+# for seed in range(n_noise_seeds):
+seed = 4
+
+generated_image_list = generate_synthetic_images_at_stable_fixed_points(
+    stable_fixed_point_dataframe=df_reconstruction_examples,
+    feature_column_names=[
+        ColumnName.DiffAEData.POLAR_ANGLE,
+        ColumnName.DiffAEData.POLAR_RADIUS,
+        ColumnName.DiffAEData.PC3_FLIPPED,
+    ],
+    model=model,
+    num_gpus=NUM_GPUS,
+    random_seed=seed,
+)
+
+crop_contact_sheet_path = make_crop_example_contact_sheet(
+    stable_fixed_point_dataframe=df_reconstruction_examples,
+    generated_image_list=generated_image_list,
+    fig_savedir=save_dir,
+    fig_filename=f"reconstructed_fp_crop_examples_seed{seed}.svg",
+    file_format=".svg",
+    gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
+    fig_kwargs={"figsize": (MAX_FIGURE_WIDTH * 0.75, 2.5), "layout": "constrained"},
+)
+
 # %%
 panels = [
     FigurePanel(
@@ -107,90 +191,17 @@ panels = [
         x_offset=0,
         y_offset=0,
     ),
-]
-
-build_figure_from_panels(panels, save_dir / "figure_3.svg", width=MAX_FIGURE_WIDTH, height=6.5)
-# %%
-# --- Cross-dataset summary plots ---
-# Load diffae features
-base_name = (
-    f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{MIGRATION_COHERENCE_CROP_PATTERN}"
-)
-feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
-feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
-
-fixed_points_bootstrap_dataframe_manifest_name = (
-    f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}"
-)
-fixed_points_bootstrap_dataframe_manifest = load_dataframe_manifest(
-    fixed_points_bootstrap_dataframe_manifest_name
-)
-
-dataset_summary_list = SUMMARY_PLOT_DATASETS["intermediate"]
-
-column_names = [
-    ColumnName.DiffAEData.POLAR_ANGLE,
-    ColumnName.DiffAEData.POLAR_RADIUS,
-    ColumnName.DiffAEData.PC3_FLIPPED,
-    ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
-]
-# %%
-for column_name in column_names:
-    plot_cross_dataset_summaries(
-        dataset_names=dataset_summary_list,
-        feature_dataframe_manifest=feature_dataframe_manifest,
-        fixed_points_bootstrap_dataframe_manifest=fixed_points_bootstrap_dataframe_manifest,
-        output_dir=save_dir,
-        bootstrap_threshold=0.4,
-        column_names=[column_name],
-        x_axis_mode="shear_stress_categorical",
-        figure_size=(MAX_FIGURE_WIDTH / 2, 2),
-        stable_only=True,
-        jitter_width=0.2,
-    )
-# %%
-panels = [
     FigurePanel(
-        letter="A",
-        path=save_dir / "intermediate_examples_scale_bar_100um.svg",
+        letter="C",
+        path=crop_contact_sheet_path,
         x_position=0,
-        y_position=0,
+        y_position=6.5,
         x_offset=0.2,
         y_offset=0,
     ),
-    FigurePanel(
-        letter="B",
-        path=save_dir / "polar_theta_fp_vs_shear_stress.svg",
-        x_position=0,
-        y_position=2.5,
-        x_offset=0,
-        y_offset=0,
-    ),
-    FigurePanel(
-        letter="",
-        path=save_dir / "ema01_optical_flow_mean_unit_vector_dt1_fp_vs_shear_stress.svg",
-        x_position=MAX_FIGURE_WIDTH / 2,
-        y_position=2.5,
-        x_offset=0,
-        y_offset=0,
-    ),
-    FigurePanel(
-        letter="",
-        path=save_dir / "polar_r_fp_vs_shear_stress.svg",
-        x_position=0,
-        y_position=4.5,
-        x_offset=0,
-        y_offset=0,
-    ),
-    FigurePanel(
-        letter="",
-        path=save_dir / "rho_fp_vs_shear_stress.svg",
-        x_position=MAX_FIGURE_WIDTH / 2,
-        y_position=4.5,
-        x_offset=0,
-        y_offset=0,
-    ),
 ]
 
-build_figure_from_panels(panels, save_dir / "figure_3.svg", width=MAX_FIGURE_WIDTH, height=6.5)
+build_figure_from_panels(
+    panels, save_dir / "figure_3.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
+)
 # %%
