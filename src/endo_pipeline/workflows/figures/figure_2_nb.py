@@ -190,16 +190,28 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
     )
 
     # make and save plots
-    filename_prefix_r_rho = f"{dataset_name}_{'_'.join(columns_r_rho)}"
+    filename_prefix_r_rho = f"{dataset_name}_{columns_r_rho_str}"
     filename_prefix_theta = f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}"
-    quiver_plot_filename = f"{filename_prefix_r_rho}_quiver"
     theta_plot_filename = f"{filename_prefix_theta}_drift"
+
+    drift_r_rho_dataframe = load_drift_dataframe_for_dataset(dataset_name, columns=columns_r_rho)
+    drift_r_rho, centers_r_rho = get_reshaped_vector_field_and_grid(
+        drift_r_rho_dataframe,
+        column_names=columns_r_rho,
+    )
+    centers_mesh = np.meshgrid(*centers_r_rho, indexing="ij")
+
+    contour_plot_filename = f"{dataset_name}_{columns_r_rho_str}_contours"
+    quiver_plot_filename = f"{dataset_name}_{columns_r_rho_str}_quiver"
 
     # plot drift contours and save
     contour_plot_paths[dataset_name] = make_2d_contour_plot_panel(
-        dataset_name,
+        drift=drift_r_rho,
+        meshgrid=centers_mesh,
+        column_labels=column_labels_r_rho,
         figsize=(1.75, 1.9),
         fig_savedir=fig_savedir,
+        filename=contour_plot_filename,
         shear_stress_label=shear_stress_label,
         r_lims=r_lims,
         rho_lims=rho_lims,
@@ -221,11 +233,15 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
         },
     )
 
+    stable_fixed_point_array = stable_fixed_points_dict[columns_r_rho_str][columns_r_rho].to_numpy()
     quiver_plot_paths[dataset_name] = make_2d_quiver_plot_panel(
-        dataset_name,
-        stable_fixed_points=stable_fixed_points_dict[columns_r_rho_str],
+        drift=drift_r_rho,
+        meshgrid=centers_mesh,
+        column_labels=column_labels_r_rho,
+        stable_fixed_point=stable_fixed_point_array,
         figsize=(2.05, 1.65),
         fig_savedir=fig_savedir,
+        filename=quiver_plot_filename,
         r_lims=r_lims,
         rho_lims=rho_lims,
         r_ticks=[0.25, 0.75, 1.25, 1.75],
@@ -238,7 +254,7 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
         quiver_downsample=4,
         vmin=DRIFT_CONTOUR_VMIN,
         vmax=DRIFT_CONTOUR_VMAX,
-        include_legend=True,
+        include_legend=include_legend,
         gridspec_kwargs=gridspec_kwargs,
         xlabel_kwargs=xlabel_kwargs,
         ylabel_kwargs=ylabel_kwargs,

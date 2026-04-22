@@ -9,13 +9,9 @@ import pandas as pd
 from matplotlib.layout_engine import ConstrainedLayoutEngine
 
 from endo_pipeline.configs import DatasetConfig
-from endo_pipeline.io import join_sorted_strings, load_image, save_plot_to_path
+from endo_pipeline.io import load_image, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_binned_value
 from endo_pipeline.library.analyze.numerics.binning import get_bins
-from endo_pipeline.library.analyze.vector_field_estimation import (
-    get_reshaped_vector_field_and_grid,
-    load_drift_dataframe_for_dataset,
-)
 from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
 from endo_pipeline.library.model.diffae.generate_image import generate_from_dataframe
 from endo_pipeline.library.process.image_processing import (
@@ -25,7 +21,6 @@ from endo_pipeline.library.process.image_processing import (
     max_proj,
     std_dev,
 )
-from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
     plot_drift_contours,
     plot_drift_quiver,
@@ -49,9 +44,12 @@ from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
 
 def make_2d_contour_plot_panel(
-    dataset_name: str,
+    drift: np.ndarray,
+    meshgrid: tuple[np.ndarray, np.ndarray],
+    column_labels: list[str],
     figsize: tuple[float, float],
     fig_savedir: Path,
+    filename: str,
     shear_stress_label: str,
     r_lims: tuple[float, float],
     rho_lims: tuple[float, float],
@@ -68,28 +66,15 @@ def make_2d_contour_plot_panel(
     """
     Make and save plot of drift contours in (r, rho) space for a given dataset.
     """
-    columns_r_rho = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
-    column_labels_r_rho = [get_label_for_column(col) for col in columns_r_rho]
-    columns_r_rho_str = join_sorted_strings(columns_r_rho)
-    # get drift in (r, rho) space
-    drift_r_rho_dataframe = load_drift_dataframe_for_dataset(dataset_name, columns=columns_r_rho)
-    drift_r_rho, centers_r_rho = get_reshaped_vector_field_and_grid(
-        drift_r_rho_dataframe,
-        column_names=columns_r_rho,
-    )
-    centers_mesh = np.meshgrid(*centers_r_rho, indexing="ij")
-
-    contour_plot_filename = f"{dataset_name}_{columns_r_rho_str}_contours"
-
     # plot drift contours and save
     fig, ax = plot_drift_contours(
-        centers_mesh,
-        drift_r_rho,
-        variable_labels=column_labels_r_rho,
+        meshgrid=meshgrid,
+        drift=drift,
+        variable_labels=column_labels,
         figsize=figsize,
         axes_limits=[r_lims, rho_lims],
         axes_aspect=None,
-        axes_titles=(f"d{column_labels_r_rho[0]}/dt", f"d{column_labels_r_rho[1]}/dt"),
+        axes_titles=(f"d{column_labels[0]}/dt", f"d{column_labels[1]}/dt"),
         include_colorbar=False,
         include_nullclines=True,
         nullcline_colors=("k", "k"),
@@ -125,21 +110,24 @@ def make_2d_contour_plot_panel(
     save_plot_to_path(
         fig,
         fig_savedir,
-        contour_plot_filename,
+        filename,
         file_format=".svg",
         tight_layout=False,
         transparent=True,
         pad_inches=0,
     )
 
-    return fig_savedir / f"{contour_plot_filename}.svg"
+    return fig_savedir / f"{filename}.svg"
 
 
 def make_2d_quiver_plot_panel(
-    dataset_name: str,
-    stable_fixed_points: pd.DataFrame,
+    drift: np.ndarray,
+    meshgrid: tuple[np.ndarray, np.ndarray],
+    column_labels: list[str],
+    stable_fixed_point: np.ndarray,
     figsize: tuple[float, float],
     fig_savedir: Path,
+    filename: str,
     r_lims: tuple[float, float],
     rho_lims: tuple[float, float],
     r_ticks: list[float],
@@ -158,29 +146,15 @@ def make_2d_quiver_plot_panel(
     ylabel_kwargs: dict | None,
     quiver_legend_kwargs: dict | None,
 ) -> Path:
-
-    columns_r_rho = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
-    column_labels_r_rho = [get_label_for_column(col) for col in columns_r_rho]
-    columns_r_rho_str = join_sorted_strings(columns_r_rho)
-    # get drift in (r, rho) space
-    drift_r_rho_dataframe = load_drift_dataframe_for_dataset(dataset_name, columns=columns_r_rho)
-    drift_r_rho, centers_r_rho = get_reshaped_vector_field_and_grid(
-        drift_r_rho_dataframe,
-        column_names=columns_r_rho,
-    )
-    centers_mesh = np.meshgrid(*centers_r_rho, indexing="ij")
-
-    quiver_plot_filename = f"{dataset_name}_{columns_r_rho_str}_quiver"
-
     fig, ax = plot_drift_quiver(
-        centers_mesh,
-        drift_r_rho,
+        drift=drift,
+        meshgrid=meshgrid,
         quiver_scale=quiver_scale,
         quiver_color=quiver_color,
         quiver_downsample=quiver_downsample,
         vmin=vmin,
         vmax=vmax,
-        variable_labels=column_labels_r_rho,
+        variable_labels=column_labels,
         figsize=figsize,
         axes_limits=(r_lims, rho_lims),
         include_nullclines=True,
@@ -195,8 +169,8 @@ def make_2d_quiver_plot_panel(
     )
 
     ax.plot(
-        stable_fixed_points[columns_r_rho[0]],
-        stable_fixed_points[columns_r_rho[1]],
+        stable_fixed_point[..., 0],
+        stable_fixed_point[..., 1],
         STABILITY_MARKER_DICT[StabilityLabel.STABLE],
         color=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
         markeredgecolor="k",
@@ -226,11 +200,13 @@ def make_2d_quiver_plot_panel(
     save_plot_to_path(
         fig,
         fig_savedir,
-        quiver_plot_filename,
+        filename,
         file_format=".svg",
         tight_layout=False,
         transparent=True,
     )
+
+    return fig_savedir / f"{filename}.svg"
 
 
 def make_crop_example_contact_sheet(
