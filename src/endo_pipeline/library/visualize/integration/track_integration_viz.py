@@ -1627,7 +1627,7 @@ def plot_first_passage_time_correlation_summary(
     )
     ax.set_ylim(0, 1)
     ax.set_ylabel("Correlation Coefficient (R)")
-    plt.xticks(rotation=30, ha="right")
+    plt.xticks(rotation=45, ha="right")
     ax.set_xlabel("")
     save_plot_to_path(
         fig,
