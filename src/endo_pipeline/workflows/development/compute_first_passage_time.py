@@ -19,7 +19,7 @@ def main(
 ) -> None:
 
     import logging
-    from concurrent.futures import ProcessPoolExecutor
+    from concurrent.futures import ProcessPoolExecutor, as_completed
 
     import pandas as pd
     from tqdm import tqdm
@@ -55,9 +55,9 @@ def main(
         out_dir = get_output_path(__file__)
 
     with ProcessPoolExecutor(max_workers=n_proc) as executor:
-        results = []
-        for dataset_name in tqdm(dataset_names):
-            results.append(
+        futures = []
+        for dataset_name in dataset_names:
+            futures.append(
                 executor.submit(
                     compute_and_plot_first_passage_times_one_dataset,
                     dataset_name=dataset_name,
@@ -70,8 +70,17 @@ def main(
                     bin_size_radius=bin_size_radius,
                     bin_size_rho=bin_size_rho,
                     collapse_feature=collapse_feature,
-                ).result()
+                )
             )
+        results = []
+        for future in tqdm(
+            as_completed(futures),
+            total=len(futures),
+            desc="Computing FPT for datasets",
+            position=1,
+        ):
+            result = future.result()
+            results.append(result)
 
     # flatten the list of results and convert to a dataframe
     line_fit_results = [item for sublist in results for item in sublist]

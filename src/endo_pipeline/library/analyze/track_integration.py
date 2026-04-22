@@ -983,6 +983,7 @@ def compute_first_passage_time_stats_for_bins(
         enumerate(bin_centers_all),
         total=len(bin_centers_all),
         desc=f"{dataset_name} Computing first passage time statistics for each bin",
+        position=0,
     ):
         # I tried to avoid doing nd indexing because it gets a little hair, but
         # it seems necessary to get the correct bin edges for each bin when
@@ -1373,7 +1374,7 @@ def compute_and_plot_first_passage_times_one_dataset(
                 first_passage_time_df=fpt_stats_df,
                 metric_to_plot=metric,
                 min_num_traj_per_bin=min_num_traj_per_bin,
-                out_dir=out_dir,
+                out_dir=out_subdir,
             )
             line_fit_results.append(line_fit)
             # histograms don't really work for 4D data (theta, r, rho, and FPT ratio),
@@ -1388,7 +1389,7 @@ def compute_and_plot_first_passage_times_one_dataset(
                     fixed_points_df=fixed_points_df,
                     metric_to_plot=metric,
                     min_num_traj_per_bin=min_num_traj_per_bin,
-                    out_dir=out_dir,
+                    out_dir=out_subdir,
                 )
             # but if one of the features is collapsed, then we can plot the
             # FPT statistic in a proper heatmap
@@ -1403,7 +1404,7 @@ def compute_and_plot_first_passage_times_one_dataset(
                     min_num_traj_per_bin=min_num_traj_per_bin,
                     collapse_index=collapse_index,
                     feature_order_for_bin_edges=list(DYNAMICS_COLUMN_NAMES),
-                    out_dir=out_dir,
+                    out_dir=out_subdir,
                 )
 
             # plot KDE of the first passage times for all of the bins thrown together
@@ -1415,7 +1416,7 @@ def compute_and_plot_first_passage_times_one_dataset(
                 metric_to_plot=metric,
                 min_num_traj_per_bin=min_num_traj_per_bin,
                 bin_width_for_hist=None,
-                out_dir=out_dir,
+                out_dir=out_subdir,
             )
 
         # plot histograms of the numbers of trajectories per bin
@@ -1427,7 +1428,7 @@ def compute_and_plot_first_passage_times_one_dataset(
             metric_to_plot="count",
             min_num_traj_per_bin=min_num_traj_per_bin,
             bin_width_for_hist=1,
-            out_dir=out_dir,
+            out_dir=out_subdir,
         )
 
     return line_fit_results
