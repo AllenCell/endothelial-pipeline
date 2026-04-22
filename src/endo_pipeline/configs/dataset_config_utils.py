@@ -31,6 +31,14 @@ def get_regime_for_shear_stress(shear_stress: float) -> ShearStressRegime:
     raise ValueError(f"No shear stress regime found for shear stress [ {shear_stress} ]")
 
 
+def get_target_shear_stress(shear_stress: float) -> float:
+    """Get target shear stress for given shear stress value."""
+
+    regime = get_regime_for_shear_stress(shear_stress)
+
+    return regime.target
+
+
 def get_position_string_from_zarr_file_path(zarr_file_path: str | Path) -> str:
     """Extract position as 'P[x]' from the file path, if found."""
 
