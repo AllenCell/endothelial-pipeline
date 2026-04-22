@@ -1082,7 +1082,7 @@ def plot_trajectory_measured_vs_simulation_over_flow_field(
     plt.close(fig)
 
 
-def plot_first_passage_time_correlation(
+def compute_and_plot_first_passage_time_correlation(
     fixed_point_id: int,
     fixed_point_stability: str,
     dataset_config: DatasetConfig,
@@ -1090,7 +1090,7 @@ def plot_first_passage_time_correlation(
     metric_to_plot: Literal["mean", "median"],
     min_num_traj_per_bin: int,
     out_dir: Path,
-) -> None:
+) -> dict:
     dataset_name = dataset_config.name
     time_units = TIME_STEP_IN_HOURS  # convert timeframes to hours
 
@@ -1184,6 +1184,17 @@ def plot_first_passage_time_correlation(
         filename,
         show_and_close=False,
     )
+    return {
+        Column.DATASET: dataset_name,
+        Column.VectorField.FIXED_POINT_INDEX: fixed_point_id,
+        Column.VectorField.FPT_METRIC: metric_to_plot,
+        "slope": line_fit.slope,
+        "intercept": line_fit.intercept,
+        "r_value": line_fit.rvalue,
+        "p_value": line_fit.pvalue,
+        "std_err": line_fit.stderr,
+        "intercept_stderr": line_fit.intercept_stderr,
+    }
 
 
 def plot_first_passage_time_3d_scatter(
@@ -1593,5 +1604,35 @@ def plot_first_passage_time_heatmap(
         fig,
         out_dir,
         filename,
+        show_and_close=False,
+    )
+
+
+def plot_first_passage_time_correlation_summary(
+    first_passage_time_correlation_summary_df: pd.DataFrame,
+    out_dir: Path,
+) -> None:
+    """Plot a summary of the correlation results from the first passage time
+    analysis across all datasets and fixed points.
+    """
+
+    fig, ax = plt.subplots(figsize=(4, 2))
+    sns.scatterplot(
+        data=first_passage_time_correlation_summary_df,
+        x=Column.DATASET,
+        y="r_value",
+        color="black",
+        s=20,
+        alpha=0.7,
+        ax=ax,
+    )
+    ax.set_ylim(0, 1)
+    ax.set_ylabel("Correlation (R value)")
+    plt.xticks(rotation=30, ha="right")
+    ax.set_xlabel("")
+    save_plot_to_path(
+        fig,
+        out_dir,
+        "FPT_correlation_summary.png",
         show_and_close=False,
     )

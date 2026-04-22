@@ -424,6 +424,9 @@ class ColumnName:
     class VectorField(StrEnum):
         """Column name suffixes used in vector field / dynamics analysis."""
 
+        FIXED_POINT_INDEX = "fixed_point_id"
+        """Column name for the index of the fixed point in the fixed point dataframe."""
+
         STABILITY = "stability"
         """Stability classification of a fixed point."""
 
@@ -463,6 +466,9 @@ class ColumnName:
 
         BIN_INDEX = "bin_index"
         """Column name for the index of the bin that a data point falls into when feature space is discretized."""
+
+        FPT_METRIC = "fpt_metric"
+        """Column name for the metric used in the first passage time analysis."""
 
     class BootstrapAnalysis(StrEnum):
         """Column name suffixes used in bootstrap fixed-point analysis."""
