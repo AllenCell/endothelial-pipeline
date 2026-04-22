@@ -180,7 +180,7 @@ def plot_fixed_points_vs_shear_stress(
         # Numeric x-axis: position by shear stress value, jittered by dataset
         unique_shear = sorted(df_fp["shear_stress_numeric"].unique())
         tick_positions = unique_shear
-        tick_labels = [str(s) for s in unique_shear]
+        tick_labels = [str(int(s)) for s in unique_shear]
         jitter_map = _build_jitter_map(df_fp, jitter_width=jitter_width)
         row_to_x = lambda row: row["shear_stress_numeric"] + jitter_map.get(  # noqa: E731
             (row["dataset"], row["shear_stress_numeric"]), 0.0
@@ -192,7 +192,7 @@ def plot_fixed_points_vs_shear_stress(
         tick_spacing = 0.5  # compress horizontal spacing between categories
         ss_to_pos = {ss: i * tick_spacing for i, ss in enumerate(unique_shear)}
         tick_positions = [i * tick_spacing for i in range(len(unique_shear))]
-        tick_labels = [str(s) for s in unique_shear]
+        tick_labels = [str(int(s)) for s in unique_shear]
         jitter_map = _build_jitter_map(df_fp, jitter_width=jitter_width)
         row_to_x = lambda row: ss_to_pos[  # noqa: E731
             row["shear_stress_numeric"]
