@@ -25,10 +25,7 @@ def main() -> None:
         load_drift_dataframe_for_dataset,
     )
     from endo_pipeline.library.visualize.diffae_features.dynamics import plot_contour_colorbar
-    from endo_pipeline.library.visualize.diffae_features.feature_viz import (
-        get_dataset_color,
-        get_label_for_column,
-    )
+    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
     from endo_pipeline.library.visualize.figure_2 import (
         make_1d_drift_plot_panel,
         make_2d_contour_plot_panel,
@@ -39,6 +36,7 @@ def main() -> None:
     from endo_pipeline.library.visualize.migration_coherence import plot_optical_flow_histogram
     from endo_pipeline.library.visualize.summary_plot import plot_cross_dataset_summaries
     from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
+    from endo_pipeline.settings.column_metadata import COLUMN_METADATA
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
         METADATA_COLUMNS_TO_KEEP,
@@ -119,8 +117,8 @@ def main() -> None:
 
     # get labels for provided set of feature columns
     columns_for_summary_plots = [*feature_column_names, optical_flow_feature]
-    column_labels_r_rho = [get_label_for_column(col).replace("polar ", "") for col in columns_r_rho]
-    column_label_theta = get_label_for_column(column_theta).replace("polar ", "")
+    column_labels_r_rho = [COLUMN_METADATA[column].label for column in columns_r_rho]
+    column_label_theta = COLUMN_METADATA[column_theta].label
     dataframe_columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *feature_column_names]
 
     # load and instantiate model for generating synthetic images
