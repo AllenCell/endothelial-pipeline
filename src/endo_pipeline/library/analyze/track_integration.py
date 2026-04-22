@@ -7,7 +7,6 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from seaborn import color_palette
-from tqdm import tqdm
 
 from endo_pipeline.configs.dataset_config_io import load_dataset_config
 from endo_pipeline.io import get_output_path, load_dataframe
@@ -971,20 +970,13 @@ def compute_first_passage_time_stats_for_bins(
     feature_column_names: list[str],
 ) -> pd.DataFrame:
 
-    dataset_name = trajectory_df[Column.DATASET].unique().astype(str).item()
-
     # create a meshgrid of the bin centers and edges for iterating through the bins
     bin_centers_mesh = np.meshgrid(*bin_centers, indexing="ij")
     bin_centers_all = list(zip(*[arr.ravel() for arr in bin_centers_mesh], strict=True))
     bin_indices_nd, _ = list(zip(*np.ndenumerate(bin_centers_mesh[0]), strict=True))
 
     results = []
-    for bin_index, bin_center in tqdm(
-        enumerate(bin_centers_all),
-        total=len(bin_centers_all),
-        desc=f"{dataset_name} Computing first passage time statistics for each bin",
-        position=1,
-    ):
+    for bin_index, bin_center in enumerate(bin_centers_all):
         # I tried to avoid doing nd indexing because it gets a little hair, but
         # it seems necessary to get the correct bin edges for each bin when
         # filtering the trajectories to each bin

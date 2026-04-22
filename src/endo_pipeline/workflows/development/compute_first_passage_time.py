@@ -77,10 +77,8 @@ def main(
             as_completed(futures),
             total=len(futures),
             desc="Computing FPT for datasets",
-            position=0,
         ):
-            result = future.result()
-            results.append(result)
+            results.append(future.result())
 
     # flatten the list of results and convert to a dataframe
     line_fit_results = [item for sublist in results for item in sublist]
