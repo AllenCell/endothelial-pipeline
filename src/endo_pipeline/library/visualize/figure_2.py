@@ -21,7 +21,7 @@ from endo_pipeline.library.process.image_processing import (
     max_proj,
     std_dev,
 )
-from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
+from endo_pipeline.library.visualize.diffae_features.dynamics import (
     plot_drift_1d,
     plot_drift_contours,
     plot_drift_quiver,
