@@ -7,6 +7,7 @@ from pathlib import Path
 from endo_pipeline.configs import (
     DatasetCollectionConfig,
     DatasetConfig,
+    FlowCondition,
     MicroscopeType,
     ObjectiveType,
     PositionAnnotation,
@@ -16,6 +17,7 @@ from endo_pipeline.configs import (
     load_all_dataset_configs,
     load_dataset_collection_config,
 )
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +31,48 @@ def get_regime_for_shear_stress(shear_stress: float) -> ShearStressRegime:
 
     logger.error("No shear stress regime found for shear stress [ %f ]", shear_stress)
     raise ValueError(f"No shear stress regime found for shear stress [ {shear_stress} ]")
+
+
+def get_shear_stress_label_for_dataset(
+    dataset_config: DatasetConfig, flow_condition: FlowCondition | None = None
+) -> str:
+    """
+    Get shear stress label for given dataset config.
+
+    Label will be in format [ dataset date ] ([ shear stress value(s) ] dyn/cm^2).
+
+    **Flow switch datasets**:
+
+    If the dataset has two flow conditions, then by default, the label will
+    include both shear stress values (e.g. "0-12"). If *flow_condition* is
+    provided, then only the shear stress value for that flow condition will be
+    included in the label (e.g. "0" or "12").
+
+    **Non-flow switch datasets**:
+
+    If the dataset has only one flow condition, then the label will include that
+    shear stress value regardless of whether *flow_condition* is provided or not
+    (e.g. "12").
+    """
+    base_label_str = f"{dataset_config.date} (shear_stress dyn/cm{Unicode.SQUARED})"
+
+    if len(dataset_config.flow_conditions) == 1:
+        shear_stress_str = f"{dataset_config.flow_conditions[0].shear_stress}"
+    elif len(dataset_config.flow_conditions) == 2:
+        if flow_condition is None:
+            shear_stresses = [
+                condition.shear_stress for condition in dataset_config.flow_conditions
+            ]
+            shear_stress_str = "-".join(str(s) for s in shear_stresses)
+        else:
+            shear_stress_str = f"{flow_condition.shear_stress}"
+    else:
+        raise ValueError(
+            f"Dataset [ {dataset_config.name} ] must have only one or "
+            "two shear stress regimes to get shear stress label"
+        )
+    full_label_str = base_label_str.replace("shear_stress", shear_stress_str)
+    return full_label_str
 
 
 def get_position_string_from_zarr_file_path(zarr_file_path: str | Path) -> str:
