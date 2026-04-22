@@ -28,15 +28,13 @@ from endo_pipeline.library.analyze.vector_field_estimation import (
     get_reshaped_vector_field_and_grid,
     load_drift_dataframe_for_dataset,
 )
-from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
-    plot_contour_colorbar,
-    plot_drift_1d,
-)
+from endo_pipeline.library.visualize.diffae_features.dynamics_viz import plot_contour_colorbar
 from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     get_dataset_color,
     get_label_for_column,
 )
 from endo_pipeline.library.visualize.figure_2 import (
+    make_1d_drift_plot_panel,
     make_2d_contour_plot_panel,
     make_2d_quiver_plot_panel,
     make_crop_example_contact_sheet,
@@ -59,8 +57,6 @@ from endo_pipeline.settings.flow_field_2d import (
 from endo_pipeline.settings.flow_field_dataframes import (
     DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
     DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
-    STABILITY_COLOR_DICT,
-    STABILITY_MARKER_DICT,
     StabilityLabel,
 )
 from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
@@ -161,6 +157,7 @@ save_plot_to_path(fig, base_output_dir, "colorbar", file_format=".svg", transpar
 # pairwise combination of polar coordinates, and plot contours of drift coefficients
 contour_plot_paths: dict[str, Path] = {}
 quiver_plot_paths: dict[str, Path] = {}
+theta_plot_paths: dict[str, Path] = {}
 for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]:
     fig_savedir = get_output_path("figure_2", dataset_name)
     dataset_config = load_dataset_config(dataset_name)
@@ -183,28 +180,24 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
         ]
         stable_fixed_points_dict[column_key] = df_stable_fixed_points
 
-    # get in 1D for theta
-    drift_theta_dataframe = load_drift_dataframe_for_dataset(dataset_name, columns=[column_theta])
-    drift_theta, centers_theta = get_reshaped_vector_field_and_grid(
-        drift_theta_dataframe, column_names=[column_theta]
-    )
-
-    # make and save plots
-    filename_prefix_r_rho = f"{dataset_name}_{columns_r_rho_str}"
-    filename_prefix_theta = f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}"
-    theta_plot_filename = f"{filename_prefix_theta}_drift"
-
     drift_r_rho_dataframe = load_drift_dataframe_for_dataset(dataset_name, columns=columns_r_rho)
     drift_r_rho, centers_r_rho = get_reshaped_vector_field_and_grid(
         drift_r_rho_dataframe,
         column_names=columns_r_rho,
     )
     centers_mesh = np.meshgrid(*centers_r_rho, indexing="ij")
+    stable_fixed_point_r_rho = stable_fixed_points_dict[columns_r_rho_str][columns_r_rho].to_numpy()
+
+    drift_theta_dataframe = load_drift_dataframe_for_dataset(dataset_name, columns=[column_theta])
+    drift_theta, centers_theta = get_reshaped_vector_field_and_grid(
+        drift_theta_dataframe, column_names=[column_theta]
+    )
+    stable_fixed_point_theta = stable_fixed_points_dict[column_theta][column_theta].to_numpy()
 
     contour_plot_filename = f"{dataset_name}_{columns_r_rho_str}_contours"
     quiver_plot_filename = f"{dataset_name}_{columns_r_rho_str}_quiver"
+    theta_plot_filename = f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}_drift"
 
-    # plot drift contours and save
     contour_plot_paths[dataset_name] = make_2d_contour_plot_panel(
         drift=drift_r_rho,
         meshgrid=centers_mesh,
@@ -233,12 +226,11 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
         },
     )
 
-    stable_fixed_point_array = stable_fixed_points_dict[columns_r_rho_str][columns_r_rho].to_numpy()
     quiver_plot_paths[dataset_name] = make_2d_quiver_plot_panel(
         drift=drift_r_rho,
         meshgrid=centers_mesh,
         column_labels=column_labels_r_rho,
-        stable_fixed_point=stable_fixed_point_array,
+        stable_fixed_point=stable_fixed_point_r_rho,
         figsize=(2.05, 1.65),
         fig_savedir=fig_savedir,
         filename=quiver_plot_filename,
@@ -269,43 +261,31 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
     )
 
     # plot 1D drift in theta and save
-    fig, ax = plot_drift_1d(
+    theta_plot_paths[dataset_name] = make_1d_drift_plot_panel(
         drift=drift_theta,
-        x_values=centers_theta[-1],
+        theta_values=centers_theta[-1],
+        column_label=column_label_theta,
+        stable_fixed_point=stable_fixed_point_theta,
         figsize=(MAX_FIGURE_WIDTH / 4, MAX_FIGURE_HEIGHT / 4),
-        axes_limits=(POLAR_ANGLE_RANGE, (-0.4, 0.4)),
-        axes_labels=[column_label_theta, f"d{column_label_theta}/dt"],
-        gridspec_kwargs=gridspec_kwargs,
-        drift_line_kwargs={"color": "k", "linewidth": 2},
-        zero_line_kwargs={"linestyle": "--", "color": "gray", "linewidth": 1, "alpha": 0.7},
-        xlabel_kwargs=xlabel_kwargs,
-        ylabel_kwargs=ylabel_kwargs,
-    )
-    # add stable fixed point in theta
-    ax.plot(
-        stable_fixed_points_dict[column_theta][column_theta],
-        np.zeros_like(stable_fixed_points_dict[column_theta][column_theta]),
-        STABILITY_MARKER_DICT[StabilityLabel.STABLE],
-        color=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
-        markeredgecolor="k",
-        markeredgewidth=0.5,
-        markersize=5,
-    )
-
-    # set plot formatting args and save
-    ax.set_box_aspect(1.0)
-    ax.set_xticks(
-        [0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi],
-        labels=[
+        fig_savedir=fig_savedir,
+        filename=theta_plot_filename,
+        axes_xlim=POLAR_ANGLE_RANGE,
+        axes_ylim=(-0.4, 0.4),
+        axes_xticks=[0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi],
+        axes_xtick_labels=[
             f"0={Unicode.PI}",
             f"{Unicode.PI}/4",
             f"{Unicode.PI}/2",
             f"3{Unicode.PI}/4",
             f"{Unicode.PI}=0",
         ],
+        axes_yticks=[-0.3, 0.0, 0.3],
+        drift_line_kwargs={"color": "k", "linewidth": 2},
+        zero_line_kwargs={"linestyle": "--", "color": "gray", "linewidth": 1, "alpha": 0.7},
+        gridspec_kwargs=gridspec_kwargs,
+        xlabel_kwargs=xlabel_kwargs,
+        ylabel_kwargs=ylabel_kwargs,
     )
-    ax.set_yticks([-0.3, 0.0, 0.3])
-    save_plot_to_path(fig, fig_savedir, theta_plot_filename, file_format=".svg")
 
     # make contact sheet of example crops at stable fixed points for this
     # dataset (panel below the flow field visualizations)
