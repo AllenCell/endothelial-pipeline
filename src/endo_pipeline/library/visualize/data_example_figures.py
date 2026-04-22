@@ -372,7 +372,7 @@ def create_panel_intermediate_examples(
         max_rows=len(image_panel_list) // len(examples),
         max_cols=len(examples),
         col_titles=shear_stress_titles,
-        row_titles=["VE-Cadherin MIP", "BF Std. Dev. Proj."],
+        row_titles=["VE-Cad MIP", "BF Std. Dev. Proj."],
         direction="top-down first",
         font_size=FONTSIZE_MEDIUM,
         subplot_kwargs={"frame_on": False},

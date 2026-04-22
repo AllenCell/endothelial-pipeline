@@ -93,64 +93,58 @@ def make_crop_example_contact_sheet(
     scale_bar_um
         Length of the scale bar in micrometers.
     """
-    # Group images by dataset — each dataset gets its own column
+    # Group images by dataset — each dataset gets its own row
     datasets = stable_fixed_point_dataframe["dataset"].values
     unique_datasets = list(dict.fromkeys(datasets))  # preserve first-appearance order
     dataset_indices = {d: [i for i, ds in enumerate(datasets) if ds == d] for d in unique_datasets}
 
-    # Build column definitions: (column_title, [image_indices])
+    # Build row definitions: (row_title, [image_indices])
     # Multi-FP datasets first, then single-FP datasets
     multi_fp_datasets = [d for d in unique_datasets if len(dataset_indices[d]) > 1]
     single_fp_datasets = [d for d in unique_datasets if len(dataset_indices[d]) == 1]
     ordered_datasets = multi_fp_datasets + single_fp_datasets
 
-    columns: list[tuple[str, list[int]]] = []
+    rows: list[tuple[str, list[int]]] = []
     for dataset in ordered_datasets:
         dataset_config = load_dataset_config(dataset)
         shear_stress = math.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
         label = f"{dataset_config.date}\n{shear_stress} dyn/cm{Unicode.SQUARED}"
-        columns.append((label, dataset_indices[dataset]))
+        rows.append((label, dataset_indices[dataset]))
 
-    # Reorder panels column-by-column for top-down-first layout,
-    # padding shorter columns with blank images so the grid is rectangular
+    # Reorder panels row-by-row for left-right-first layout,
+    # padding shorter rows with blank images so the grid is rectangular
     ordered_panels = []
-    col_titles = []
+    row_titles = []
     blank_panel_indices: list[int] = []
-    max_rows = max(len(indices) for _, indices in columns)
+    max_cols = max(len(indices) for _, indices in rows)
     # Create a white placeholder image matching the shape/dtype of a real panel
     sample = generated_image_list[0]
     if np.issubdtype(sample.dtype, np.integer):
         blank_image = np.full_like(sample, fill_value=np.iinfo(sample.dtype).max)
     else:
         blank_image = np.ones_like(sample)
-    for label, indices in columns:
-        col_titles.append(label)
+    for label, indices in rows:
+        row_titles.append(label)
         for idx in indices:
             ordered_panels.append(generated_image_list[idx])
-        # Pad column to max_rows with blank (white) images
-        for _ in range(max_rows - len(indices)):
+        # Pad row to max_cols with blank (white) images
+        for _ in range(max_cols - len(indices)):
             blank_panel_indices.append(len(ordered_panels))
             ordered_panels.append(blank_image)
 
-    num_cols = len(columns)
-    row_titles = [f"Fixed point {i + 1}" for i in range(max_rows)]
+    num_rows = len(rows)
+    col_titles = [f"Fixed point {i + 1}" for i in range(max_cols)]
 
-    # Convert blank panel indices (column-major) to axes indices (row-major)
-    # For "top-down first": panel_idx -> row = panel_idx % max_rows, col = panel_idx // max_rows
-    # axes are row-major: axes_idx = row * num_cols + col
-    blank_axes_indices = set()
-    for panel_idx in blank_panel_indices:
-        row = panel_idx % max_rows
-        col = panel_idx // max_rows
-        blank_axes_indices.add(row * num_cols + col)
+    # For "left-right first", panel order matches axes order (both row-major)
+    blank_axes_indices = set(blank_panel_indices)
 
     fig = make_contact_sheet(
         panels=ordered_panels,
-        max_rows=max_rows,
-        max_cols=num_cols,
+        max_rows=num_rows,
+        max_cols=max_cols,
         col_titles=col_titles,
         row_titles=row_titles,
-        direction="top-down first",
+        direction="left-right first",
         gridspec_kwargs=gridspec_kwargs,
         subplot_kwargs={"frame_on": False},
         fig_kwargs=fig_kwargs,

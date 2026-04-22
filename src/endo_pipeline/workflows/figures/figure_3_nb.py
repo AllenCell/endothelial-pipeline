@@ -42,7 +42,7 @@ save_dir = get_output_path("figure_3")
 create_panel_intermediate_examples(
     examples=FIGURE_3_EXAMPLE_IMAGES,
     save_dir=save_dir,
-    figure_size=(MAX_FIGURE_WIDTH * 0.75, 2.5),
+    figure_size=(MAX_FIGURE_WIDTH * 0.65, 2.2),
 )
 
 # %% Load diffae features
@@ -65,24 +65,25 @@ BOOTSTRAP_THRESHOLD = 0.4
 
 column_names: list[ColumnName.DiffAEData | ColumnName.OpticalFlow] = [
     ColumnName.DiffAEData.POLAR_ANGLE,
+    ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
     ColumnName.DiffAEData.POLAR_RADIUS,
     ColumnName.DiffAEData.PC3_FLIPPED,
-    ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
 ]
 # %% Cross-dataset summary plots
-for column_name in column_names:
-    plot_cross_dataset_summaries(
-        dataset_names=dataset_summary_list,
-        feature_dataframe_manifest=feature_dataframe_manifest,
-        fixed_points_bootstrap_dataframe_manifest=fixed_points_bootstrap_dataframe_manifest,
-        output_dir=save_dir,
-        bootstrap_threshold=BOOTSTRAP_THRESHOLD,
-        column_names=[column_name],
-        x_axis_mode="shear_stress_categorical",
-        figure_size=(MAX_FIGURE_WIDTH / 2, 2),
-        stable_only=True,
-        jitter_width=0.2,
-    )
+plot_cross_dataset_summaries(
+    dataset_names=dataset_summary_list,
+    feature_dataframe_manifest=feature_dataframe_manifest,
+    fixed_points_bootstrap_dataframe_manifest=fixed_points_bootstrap_dataframe_manifest,
+    output_dir=save_dir,
+    bootstrap_threshold=BOOTSTRAP_THRESHOLD,
+    column_names=column_names,
+    x_axis_mode="shear_stress_categorical",
+    figure_size=(MAX_FIGURE_WIDTH * 0.6, 1.4),
+    stable_only=True,
+    jitter_width=0.2,
+    x_padding=0.2,
+    subplot_layout="vertical",
+)
 
 # %% Reconstruction of example images from stable fixed point coordinates
 example_datasets = [
@@ -146,10 +147,11 @@ make_crop_example_contact_sheet(
     fig_filename=f"reconstructed_fp_crop_examples_seed{seed}.svg",
     file_format=".svg",
     gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
-    fig_kwargs={"figsize": (MAX_FIGURE_WIDTH * 0.75, 2.5), "layout": "constrained"},
+    fig_kwargs={"figsize": (MAX_FIGURE_WIDTH * 0.3, 4), "layout": "constrained"},
 )
 
 # %%
+seed = 4
 panels = [
     FigurePanel(
         letter="A",
@@ -161,43 +163,20 @@ panels = [
     ),
     FigurePanel(
         letter="B",
-        path=save_dir / "polar_theta_fp_vs_shear_stress.svg",
+        path=save_dir
+        / "polar_theta_ema01_optical_flow_mean_unit_vector_dt1_polar_r_rho_fp_vs_shear_stress.svg",
         x_position=0,
-        y_position=2.5,
+        y_position=2.3,
         x_offset=0,
-        y_offset=0,
-    ),
-    FigurePanel(
-        letter="",
-        path=save_dir / "ema01_optical_flow_mean_unit_vector_dt1_fp_vs_shear_stress.svg",
-        x_position=MAX_FIGURE_WIDTH / 2,
-        y_position=2.5,
-        x_offset=0,
-        y_offset=0,
-    ),
-    FigurePanel(
-        letter="",
-        path=save_dir / "polar_r_fp_vs_shear_stress.svg",
-        x_position=0,
-        y_position=4.5,
-        x_offset=0,
-        y_offset=0,
-    ),
-    FigurePanel(
-        letter="",
-        path=save_dir / "rho_fp_vs_shear_stress.svg",
-        x_position=MAX_FIGURE_WIDTH / 2,
-        y_position=4.5,
-        x_offset=0,
-        y_offset=0,
+        y_offset=0.1,
     ),
     FigurePanel(
         letter="C",
         path=save_dir / f"reconstructed_fp_crop_examples_seed{seed}.svg",
-        x_position=0,
-        y_position=6.5,
-        x_offset=0.2,
-        y_offset=0,
+        x_position=MAX_FIGURE_WIDTH * 0.6,
+        y_position=2.3,
+        x_offset=0.1,
+        y_offset=0.1,
     ),
 ]
 
