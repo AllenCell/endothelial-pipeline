@@ -32,7 +32,11 @@ from endo_pipeline.settings.dynamics_workflows import (
 )
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLOR_DICT, STABILITY_MARKER_DICT
-from endo_pipeline.settings.summary_plot import CELL_LINE_LABEL_MAP, COLOR_PALETTE
+from endo_pipeline.settings.summary_plot import (
+    CELL_LINE_LABEL_MAP,
+    COLOR_PALETTE,
+    DATASET_COLOR_MAP,
+)
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
@@ -243,9 +247,12 @@ def plot_fixed_points_vs_shear_stress(
         fig = ax.figure  # type: ignore[assignment]
 
     if stable_only:
+        # Use global dataset color map for consistent colors across plots;
+        # fall back to palette cycling for unknown datasets.
         unique_datasets_list = df_fp["dataset"].unique()
         dataset_color_map = {
-            ds: COLOR_PALETTE[i % len(COLOR_PALETTE)] for i, ds in enumerate(unique_datasets_list)
+            ds: DATASET_COLOR_MAP.get(ds, COLOR_PALETTE[i % len(COLOR_PALETTE)])
+            for i, ds in enumerate(unique_datasets_list)
         }
 
         for _, row in df_fp.iterrows():

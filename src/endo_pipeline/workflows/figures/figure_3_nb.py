@@ -63,12 +63,6 @@ dataset_summary_list = SUMMARY_PLOT_DATASETS["intermediate"]
 
 BOOTSTRAP_THRESHOLD = 0.4
 
-column_names: list[ColumnName.DiffAEData | ColumnName.OpticalFlow] = [
-    ColumnName.DiffAEData.POLAR_ANGLE,
-    ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
-    ColumnName.DiffAEData.POLAR_RADIUS,
-    ColumnName.DiffAEData.PC3_FLIPPED,
-]
 # %% Cross-dataset summary plots
 plot_cross_dataset_summaries(
     dataset_names=dataset_summary_list,
@@ -76,7 +70,12 @@ plot_cross_dataset_summaries(
     fixed_points_bootstrap_dataframe_manifest=fixed_points_bootstrap_dataframe_manifest,
     output_dir=save_dir,
     bootstrap_threshold=BOOTSTRAP_THRESHOLD,
-    column_names=column_names,
+    column_names=[
+        ColumnName.DiffAEData.POLAR_ANGLE,
+        ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
+        ColumnName.DiffAEData.POLAR_RADIUS,
+        ColumnName.DiffAEData.PC3_FLIPPED,
+    ],
     x_axis_mode="shear_stress_categorical",
     figure_size=(MAX_FIGURE_WIDTH * 0.6, 1.4),
     stable_only=True,
