@@ -390,7 +390,7 @@ panels = [
     ),
     FigurePanel(
         letter="",
-        path=fig_savedir_low / f"{dataset_low}_{columns_r_rho_str}_quiver.svg",
+        path=quiver_plot_paths[dataset_low],
         x_position=MAX_FIGURE_WIDTH / 4 + 0.9,
         y_position=0.0,
         x_offset=-0.1,
@@ -423,7 +423,7 @@ panels = [
     ),
     FigurePanel(
         letter="",
-        path=fig_savedir_high / f"{dataset_high}_{columns_r_rho_str}_quiver.svg",
+        path=quiver_plot_paths[dataset_high],
         x_position=MAX_FIGURE_WIDTH / 4 + 0.9,
         y_position=1.85,
         x_offset=-0.1,
