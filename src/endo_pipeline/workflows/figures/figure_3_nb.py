@@ -19,7 +19,10 @@ from endo_pipeline.manifests import (
     load_model_manifest,
 )
 from endo_pipeline.settings.column_names import ColumnName
-from endo_pipeline.settings.examples import FIGURE_3_EXAMPLE_IMAGES
+from endo_pipeline.settings.examples import (
+    FIGURE_3_EXAMPLE_IMAGES,
+    FIGURE_3_RECONSTRUCTION_EXAMPLE_DATASETS,
+)
 from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.flow_field_dataframes import (
     DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
@@ -85,15 +88,9 @@ plot_cross_dataset_summaries(
 )
 
 # %% Reconstruction of example images from stable fixed point coordinates
-example_datasets = [
-    "20250604_20X",  # single fixed point at an angle
-    "20260216_20X",  # two fixed points
-    "20260202_20X",  # two fixed points
-    "20260218_20X",  # single fixed point
-]
 
 df_reconstruction_examples = pd.DataFrame()
-for dataset_name in example_datasets:
+for dataset_name in FIGURE_3_RECONSTRUCTION_EXAMPLE_DATASETS:
     if dataset_name not in feature_dataframe_manifest.locations:
         logger.warning(
             "No location found in dataframe manifest [ %s ] for dataset [ %s ], skipping visualization.",
@@ -123,10 +120,6 @@ model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
 model_location = model_manifest.locations[DEFAULT_MODEL_RUN_NAME]
 model = load_model(model_location, instantiate=True)
 
-# n_noise_seeds = 5
-# for seed in range(n_noise_seeds):
-seed = 4
-
 generated_image_list = generate_synthetic_images_at_stable_fixed_points(
     stable_fixed_point_dataframe=df_reconstruction_examples,
     feature_column_names=[
@@ -136,17 +129,17 @@ generated_image_list = generate_synthetic_images_at_stable_fixed_points(
     ],
     model=model,
     num_gpus=NUM_GPUS,
-    random_seed=seed,
+    random_seed=4,
 )
 
 make_crop_example_contact_sheet(
     stable_fixed_point_dataframe=df_reconstruction_examples,
     generated_image_list=generated_image_list,
     fig_savedir=save_dir,
-    fig_filename=f"reconstructed_fp_crop_examples_seed{seed}.svg",
+    fig_filename="reconstructed_fp_crop_examples.svg",
     file_format=".svg",
     gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
-    fig_kwargs={"figsize": (MAX_FIGURE_WIDTH * 0.35, 3.5), "layout": "constrained"},
+    fig_kwargs={"figsize": (MAX_FIGURE_WIDTH * 0.35, 4.5), "layout": "constrained"},
 )
 
 # %%
@@ -170,7 +163,7 @@ panels = [
     ),
     FigurePanel(
         letter="C",
-        path=save_dir / f"reconstructed_fp_crop_examples_seed{seed}.svg",
+        path=save_dir / "reconstructed_fp_crop_examples.svg",
         x_position=MAX_FIGURE_WIDTH * 0.6,
         y_position=2.3,
         x_offset=0.1,

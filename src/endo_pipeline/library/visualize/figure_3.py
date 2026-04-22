@@ -1,13 +1,11 @@
 """Helper functions for visualizations used in Figure 2."""
 
-import math
 from pathlib import Path
 from typing import Literal
 
 import numpy as np
 import pandas as pd
 
-from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
 from endo_pipeline.library.model.diffae.generate_image import generate_from_dataframe
@@ -105,10 +103,8 @@ def make_crop_example_contact_sheet(
     ordered_datasets = multi_fp_datasets + single_fp_datasets
 
     rows: list[tuple[str, list[int]]] = []
-    for dataset in ordered_datasets:
-        dataset_config = load_dataset_config(dataset)
-        shear_stress = math.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
-        label = f"{dataset_config.date}\n{shear_stress} dyn/cm{Unicode.SQUARED}"
+    for i, dataset in enumerate(ordered_datasets):
+        label = f"Example {i + 1}"
         rows.append((label, dataset_indices[dataset]))
 
     # Reorder panels row-by-row for left-right-first layout,

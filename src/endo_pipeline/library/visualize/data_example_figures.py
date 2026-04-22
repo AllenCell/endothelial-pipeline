@@ -341,8 +341,13 @@ def create_panel_intermediate_examples(
 
     for example in examples:
         dataset_config = load_dataset_config(example.dataset_name)
-        shear_stress_value = int(dataset_config.flow_conditions[0].shear_stress)
-        print(dataset_config.name, shear_stress_value)
+        shear_stress_value = dataset_config.flow_conditions[0].shear_stress
+        # if shear stress is within +/-1 of shear stress bins
+        if abs(shear_stress_value - 15) <= 1:
+            shear_stress_value = 15
+        if abs(shear_stress_value - 12) <= 1:
+            shear_stress_value = 12
+
         location = get_zarr_location_for_position(dataset_config, position=example.position)
         gfp_image = load_image(
             location, timepoints=example.timepoint, channels=["EGFP"], squeeze=True
