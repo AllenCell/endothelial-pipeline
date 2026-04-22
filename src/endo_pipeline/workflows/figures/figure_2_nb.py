@@ -5,6 +5,7 @@ Main function to create figure panels for Figure 2.
 
 import logging
 import math
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -30,14 +31,16 @@ from endo_pipeline.library.analyze.vector_field_estimation import (
 from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
     plot_contour_colorbar,
     plot_drift_1d,
-    plot_drift_contours,
     plot_drift_quiver,
 )
 from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     get_dataset_color,
     get_label_for_column,
 )
-from endo_pipeline.library.visualize.figure_2 import make_crop_example_contact_sheet
+from endo_pipeline.library.visualize.figure_2 import (
+    make_2d_contour_plot_panel,
+    make_crop_example_contact_sheet,
+)
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
 from endo_pipeline.library.visualize.migration_coherence import plot_optical_flow_histogram
 from endo_pipeline.library.visualize.summary_plot import plot_cross_dataset_summaries
@@ -45,7 +48,7 @@ from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import METADATA_COLUMNS_TO_KEEP, POLAR_ANGLE_RANGE
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
-from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_CBAR_NUM_TICKS,
     DRIFT_CONTOUR_CBAR_ROUND,
@@ -156,6 +159,7 @@ save_plot_to_path(fig, base_output_dir, "colorbar", file_format=".svg", transpar
 # %%
 # loop over datasets in collection, compute 2D drift coefficients for each
 # pairwise combination of polar coordinates, and plot contours of drift coefficients
+contour_plot_paths: dict[str, Path] = {}
 for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]:
     if dataset_name not in feature_dataframe_manifest.locations:
         logger.warning(
@@ -200,24 +204,19 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
     # make and save plots
     filename_prefix_r_rho = f"{dataset_name}_{'_'.join(columns_r_rho)}"
     filename_prefix_theta = f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}"
-    contour_plot_filename = f"{filename_prefix_r_rho}_contours"
     quiver_plot_filename = f"{filename_prefix_r_rho}_quiver"
     theta_plot_filename = f"{filename_prefix_theta}_drift"
 
     # plot drift contours and save
-    fig, ax = plot_drift_contours(
-        centers_mesh,
-        drift_r_rho,
-        variable_labels=column_labels_r_rho,
+    contour_plot_paths[dataset_name] = make_2d_contour_plot_panel(
+        dataset_name,
         figsize=(1.75, 1.9),
-        axes_limits=(r_lims, rho_lims),
-        axes_aspect=None,
-        axes_titles=(f"d{column_labels_r_rho[0]}/dt", f"d{column_labels_r_rho[1]}/dt"),
-        include_colorbar=False,
-        include_nullclines=True,
-        nullcline_colors=("k", "k"),
-        nullcline_styles=(nullcline_r_style, nullcline_rho_style),
-        nullcline_opacity=1.0,
+        r_lims=r_lims,
+        rho_lims=rho_lims,
+        r_ticks=[0.25, 1.0, 1.75],
+        rho_ticks=[-0.75, 0.0, 0.75],
+        nullcline_r_style=nullcline_r_style,
+        nullcline_rho_style=nullcline_rho_style,
         gridspec_kwargs=gridspec_kwargs,
         xlabel_kwargs=xlabel_kwargs,
         ylabel_kwargs=ylabel_kwargs,
@@ -229,39 +228,6 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
             "ha": "left",
             "va": "center",
         },
-    )
-    for ax_index, ax_ in enumerate(list(ax)):
-        # adjust label padding and drop tick labels on shared x axis
-        ax_.set_box_aspect(1.0)
-        ax_.set_xticks([0.25, 1.0, 1.75])
-        ax_.set_yticks([-0.75, 0.0, 0.75])
-        if ax_index == 0:
-            ax_.tick_params(labelbottom=False)
-
-    shear_stress = math.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
-    shear_stress_label = f"{shear_stress} dyn/cm{Unicode.SQUARED}"
-    # reserve left margin for the vertical label
-    fig.subplots_adjust(left=0.08)
-    # add vertical title to the left of the contour plot spanning all rows
-    fig.text(
-        0.0,
-        0.5,
-        shear_stress_label,
-        va="center",
-        ha="center",
-        rotation="vertical",
-        fontsize=FONTSIZE_MEDIUM,
-        fontweight="bold",
-    )
-
-    save_plot_to_path(
-        fig,
-        fig_savedir,
-        contour_plot_filename,
-        file_format=".svg",
-        tight_layout=False,
-        transparent=True,
-        pad_inches=0,
     )
 
     fig, ax = plot_drift_quiver(
@@ -453,7 +419,7 @@ panels = [
     # --- Low flow dataset (row 1) ---
     FigurePanel(
         letter="A",
-        path=fig_savedir_low / f"{dataset_low}_{columns_r_rho_str}_contours.svg",
+        path=contour_plot_paths[dataset_low],
         x_position=0,
         y_position=0.0,
         x_offset=0.15,
@@ -486,7 +452,7 @@ panels = [
     # --- High flow dataset (row 2) ---
     FigurePanel(
         letter="C",
-        path=fig_savedir_high / f"{dataset_high}_{columns_r_rho_str}_contours.svg",
+        path=contour_plot_paths[dataset_high],
         x_position=0,
         y_position=1.85,
         x_offset=0.15,
