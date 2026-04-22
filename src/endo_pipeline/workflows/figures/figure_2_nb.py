@@ -10,8 +10,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from endo_pipeline.cli import NUM_GPUS
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.io import get_output_path, join_sorted_strings, load_dataframe, save_plot_to_path
+from endo_pipeline.io import (
+    get_output_path,
+    join_sorted_strings,
+    load_dataframe,
+    load_model,
+    save_plot_to_path,
+)
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
 from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
     add_optical_flow_features,
@@ -30,14 +37,15 @@ from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     get_dataset_color,
     get_label_for_column,
 )
+from endo_pipeline.library.visualize.figure_2 import make_crop_example_contact_sheet
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
 from endo_pipeline.library.visualize.migration_coherence import plot_optical_flow_histogram
 from endo_pipeline.library.visualize.summary_plot import plot_cross_dataset_summaries
-from endo_pipeline.manifests import load_dataframe_manifest
+from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import METADATA_COLUMNS_TO_KEEP, POLAR_ANGLE_RANGE
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
-from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_CBAR_NUM_TICKS,
     DRIFT_CONTOUR_CBAR_ROUND,
@@ -100,6 +108,12 @@ fixed_points_theta_dataframe_manifest_name = (
 fixed_points_theta_dataframe_manifest = load_dataframe_manifest(
     fixed_points_theta_dataframe_manifest_name
 )
+fixed_points_3d_dataframe_manifest_name = (
+    f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{feature_columns_str}_{base_name}"
+)
+fixed_points_3d_dataframe_manifest = load_dataframe_manifest(
+    fixed_points_3d_dataframe_manifest_name
+)
 bootstrap_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}"
 bootstrap_dataframe_manifest = load_dataframe_manifest(bootstrap_dataframe_manifest_name)
 
@@ -108,6 +122,12 @@ columns_for_summary_plots = [*feature_column_names, optical_flow_feature]
 column_labels_r_rho = [get_label_for_column(col).replace("polar ", "") for col in columns_r_rho]
 column_label_theta = get_label_for_column(column_theta).replace("polar ", "")
 dataframe_columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *feature_column_names]
+
+
+# load and instantiate model for generating synthetic images
+model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
+model_location = model_manifest.locations[DEFAULT_MODEL_RUN_NAME]
+model = load_model(model_location, instantiate=True)
 
 # global plotting kwargs / parameters
 gridspec_kwargs = {"wspace": 0.1, "hspace": 0.1}
@@ -118,8 +138,6 @@ r_lims = (0.2, 1.8)
 rho_lims = (-1.05, 1.05)
 nullcline_r_style = "dashed"
 nullcline_rho_style = (0, (1, 1))  # dense dotted
-
-
 # %%
 
 # make svg of just the colorbar with set ticks and extended on both sides
@@ -138,11 +156,15 @@ save_plot_to_path(fig, base_output_dir, "colorbar", file_format=".svg", transpar
 # %%
 # loop over datasets in collection, compute 2D drift coefficients for each
 # pairwise combination of polar coordinates, and plot contours of drift coefficients
-panels = []
-for dataset_name, panel_letters, y_position in [
-    (dataset_low, ("A", "B"), 0.0),
-    (dataset_high, ("C", "D"), 2.05),
-]:
+for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]:
+    if dataset_name not in feature_dataframe_manifest.locations:
+        logger.warning(
+            "No location found in dataframe manifest [ %s ] for dataset [ %s ], skipping visualization.",
+            feature_dataframe_manifest_name,
+            dataset_name,
+        )
+        continue
+
     fig_savedir = get_output_path("figure_2", dataset_name)
     dataset_config = load_dataset_config(dataset_name)
 
@@ -154,6 +176,7 @@ for dataset_name, panel_letters, y_position in [
     for column_key, manifest in [
         (columns_r_rho_str, fixed_points_r_rho_dataframe_manifest),
         (column_theta, fixed_points_theta_dataframe_manifest),
+        (feature_columns_str, fixed_points_3d_dataframe_manifest),
     ]:
         df_fixed_points = load_dataframe(manifest.locations[dataset_name])
         df_stable_fixed_points = df_fixed_points[
@@ -186,7 +209,7 @@ for dataset_name, panel_letters, y_position in [
         centers_mesh,
         drift_r_rho,
         variable_labels=column_labels_r_rho,
-        figsize=(1.75, 1.85),
+        figsize=(1.75, 1.9),
         axes_limits=(r_lims, rho_lims),
         axes_aspect=None,
         axes_titles=(f"d{column_labels_r_rho[0]}/dt", f"d{column_labels_r_rho[1]}/dt"),
@@ -214,8 +237,31 @@ for dataset_name, panel_letters, y_position in [
         ax_.set_yticks([-0.75, 0.0, 0.75])
         if ax_index == 0:
             ax_.tick_params(labelbottom=False)
+
+    shear_stress = math.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
+    shear_stress_label = f"{shear_stress} dyn/cm{Unicode.SQUARED}"
+    # reserve left margin for the vertical label
+    fig.subplots_adjust(left=0.08)
+    # add vertical title to the left of the contour plot spanning all rows
+    fig.text(
+        0.0,
+        0.5,
+        shear_stress_label,
+        va="center",
+        ha="center",
+        rotation="vertical",
+        fontsize=FONTSIZE_MEDIUM,
+        fontweight="bold",
+    )
+
     save_plot_to_path(
-        fig, fig_savedir, contour_plot_filename, file_format=".svg", tight_layout=True
+        fig,
+        fig_savedir,
+        contour_plot_filename,
+        file_format=".svg",
+        tight_layout=False,
+        transparent=True,
+        pad_inches=0,
     )
 
     fig, ax = plot_drift_quiver(
@@ -234,11 +280,19 @@ for dataset_name, panel_letters, y_position in [
         nullcline_styles=(nullcline_r_style, nullcline_rho_style),
         nullcline_opacity=0.9,
         gridspec_kwargs=gridspec_kwargs,
-        legend_kwargs={"fontsize": "xx-small", "title_fontsize": "xx-small", "loc": (1.05, 0.7)},
+        legend_kwargs={
+            "fontsize": "xx-small",
+            "title_fontsize": "xx-small",
+            "loc": "upper center",
+            "bbox_to_anchor": (0.5, 1.25),
+            "ncol": 2,
+            "handletextpad": 0.3,
+        },
         xlabel_kwargs=xlabel_kwargs,
         ylabel_kwargs=ylabel_kwargs,
+        plot_legend=include_legend,
     )
-    # add stable fixed point to quiver plot
+
     ax.plot(
         stable_fixed_points_dict[columns_r_rho_str][columns_r_rho[0]],
         stable_fixed_points_dict[columns_r_rho_str][columns_r_rho[1]],
@@ -247,7 +301,22 @@ for dataset_name, panel_letters, y_position in [
         markeredgecolor="k",
         markeredgewidth=0.5,
         markersize=5,
+        label="Stable fixed point",
     )
+    if include_legend:
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(
+            handles,
+            labels,
+            fontsize="xx-small",
+            loc="upper center",
+            bbox_to_anchor=(0.5, 1.25),
+            ncol=2,
+            handletextpad=0.3,
+        )
+
+    # make room above axes for the legend
+    fig.subplots_adjust(top=0.82)
 
     # set plot formatting args and save
     ax.set_box_aspect(1.0)
@@ -259,12 +328,13 @@ for dataset_name, panel_letters, y_position in [
         quiver_plot_filename,
         file_format=".svg",
         tight_layout=False,
+        transparent=True,
     )
 
     # plot 1D drift in theta and save
     fig, ax = plot_drift_1d(
         drift=drift_theta,
-        centers=centers_theta[-1],
+        x_values=centers_theta[-1],
         figsize=(MAX_FIGURE_WIDTH / 4, MAX_FIGURE_HEIGHT / 4),
         axes_limits=(POLAR_ANGLE_RANGE, (-0.4, 0.4)),
         axes_labels=[column_label_theta, f"d{column_label_theta}/dt"],
@@ -289,50 +359,36 @@ for dataset_name, panel_letters, y_position in [
     ax.set_box_aspect(1.0)
     ax.set_xticks(
         [0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi],
-        labels=["0", f"{Unicode.PI}/4", f"{Unicode.PI}/2", f"3{Unicode.PI}/4", f"{Unicode.PI}"],
+        labels=[
+            f"0={Unicode.PI}",
+            f"{Unicode.PI}/4",
+            f"{Unicode.PI}/2",
+            f"3{Unicode.PI}/4",
+            f"{Unicode.PI}=0",
+        ],
     )
     ax.set_yticks([-0.3, 0.0, 0.3])
     save_plot_to_path(fig, fig_savedir, theta_plot_filename, file_format=".svg")
 
-    # build panels for this dataset's visualizations, adjusting positions based
-    # on dataset to stack vertically in figure
-
-    contour_plots = FigurePanel(
-        letter=panel_letters[0],
-        path=fig_savedir / f"{contour_plot_filename}.svg",
-        x_position=0,
-        y_position=y_position,
-        x_offset=-0.05,
-        y_offset=-0.1,
+    # make contact sheet of example crops at stable fixed points for this
+    # dataset (panel below the flow field visualizations)
+    feature_dataframe = load_dataframe(feature_dataframe_manifest.locations[dataset_name])
+    dataframe_steady_state = filter_dataframe_to_steady_state(feature_dataframe, dataset_config)
+    crop_contact_sheet_path = make_crop_example_contact_sheet(
+        dataset_config=dataset_config,
+        stable_fixed_point_dataframe=stable_fixed_points_dict[feature_columns_str],
+        crop_features_dataframe=dataframe_steady_state,
+        feature_column_names=feature_column_names,
+        model=model,
+        n_crop_examples=2,
+        fig_savedir=fig_savedir,
+        fig_filename=f"{dataset_name}_crop_examples",
+        file_format=".svg",
+        gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
+        fig_kwargs={"figsize": (MAX_FIGURE_WIDTH / 2 - 0.2, 2), "layout": "constrained"},
+        random_seed=7,
+        num_gpus=NUM_GPUS,
     )
-
-    colorbar_panel = FigurePanel(
-        letter="",
-        path=base_output_dir / "colorbar.svg",
-        x_position=MAX_FIGURE_WIDTH / 4 - 0.3,
-        y_position=y_position,
-        x_offset=0.08,
-        y_offset=0.00,
-    )
-
-    quiver_plot = FigurePanel(
-        letter="",
-        path=fig_savedir / f"{quiver_plot_filename}.svg",
-        x_position=MAX_FIGURE_WIDTH / 4 + 0.65,
-        y_position=y_position,
-        x_offset=-0.1,
-        y_offset=0.0,
-    )
-
-    theta_plot = FigurePanel(
-        letter=panel_letters[1],
-        path=fig_savedir / f"{theta_plot_filename}.svg",
-        x_position=3 * MAX_FIGURE_WIDTH / 4 - 0.35,
-        y_position=y_position,
-        x_offset=0.4,
-        y_offset=-0.2,
-    )
-    panels.extend([contour_plots, colorbar_panel, quiver_plot, theta_plot])
 
 # %%
 # --- Cross-dataset summary plots ---
@@ -385,30 +441,118 @@ save_plot_to_path(
     tight_layout=False,
     file_format=".svg",
 )
-# %%
-panels.extend(
-    [
-        FigurePanel(
-            letter="G",
-            path=base_output_dir / "migration_coherence_distribution_high_low_flow_comparison.svg",
-            x_position=0,
-            y_position=6.0,
-            x_offset=0,
-            y_offset=0,
-        ),
-        FigurePanel(
-            letter="H",
-            path=base_output_dir
-            / "polar_theta_polar_r_rho_ema01_optical_flow_mean_unit_vector_dt1_fp_vs_shear_stress.svg",
-            x_position=2.1,
-            y_position=6.0,
-            x_offset=0,
-            y_offset=0,
-        ),
-    ]
-)
 
 # %%
+# --- Assemble all panels into final figure ---
+# Helper: construct per-dataset plot paths
+columns_r_rho_str = "_".join(columns_r_rho)
+fig_savedir_low = get_output_path("figure_2", dataset_low)
+fig_savedir_high = get_output_path("figure_2", dataset_high)
+
+panels = [
+    # --- Low flow dataset (row 1) ---
+    FigurePanel(
+        letter="A",
+        path=fig_savedir_low / f"{dataset_low}_{columns_r_rho_str}_contours.svg",
+        x_position=0,
+        y_position=0.0,
+        x_offset=0.15,
+        y_offset=-0.1,
+    ),
+    FigurePanel(
+        letter="",
+        path=base_output_dir / "colorbar.svg",
+        x_position=MAX_FIGURE_WIDTH / 4 - 0.1,
+        y_position=0.0,
+        x_offset=0.08,
+        y_offset=0.00,
+    ),
+    FigurePanel(
+        letter="",
+        path=fig_savedir_low / f"{dataset_low}_{columns_r_rho_str}_quiver.svg",
+        x_position=MAX_FIGURE_WIDTH / 4 + 0.9,
+        y_position=0.0,
+        x_offset=-0.1,
+        y_offset=0.0,
+    ),
+    FigurePanel(
+        letter="B",
+        path=fig_savedir_low / f"{dataset_low}_{Column.DiffAEData.POLAR_ANGLE}_drift.svg",
+        x_position=3 * MAX_FIGURE_WIDTH / 4 - 0.35,
+        y_position=0.0,
+        x_offset=0.4,
+        y_offset=-0.2,
+    ),
+    # --- High flow dataset (row 2) ---
+    FigurePanel(
+        letter="C",
+        path=fig_savedir_high / f"{dataset_high}_{columns_r_rho_str}_contours.svg",
+        x_position=0,
+        y_position=1.85,
+        x_offset=0.15,
+        y_offset=-0.05,
+    ),
+    FigurePanel(
+        letter="",
+        path=base_output_dir / "colorbar.svg",
+        x_position=MAX_FIGURE_WIDTH / 4 - 0.1,
+        y_position=1.85,
+        x_offset=0.08,
+        y_offset=0,
+    ),
+    FigurePanel(
+        letter="",
+        path=fig_savedir_high / f"{dataset_high}_{columns_r_rho_str}_quiver.svg",
+        x_position=MAX_FIGURE_WIDTH / 4 + 0.9,
+        y_position=1.85,
+        x_offset=-0.1,
+        y_offset=-0.1,
+    ),
+    FigurePanel(
+        letter="D",
+        path=fig_savedir_high / f"{dataset_high}_{Column.DiffAEData.POLAR_ANGLE}_drift.svg",
+        x_position=3 * MAX_FIGURE_WIDTH / 4 - 0.35,
+        y_position=1.85,
+        x_offset=0.4,
+        y_offset=-0.2,
+    ),
+    # --- Contact sheets (row 3) ---
+    FigurePanel(
+        letter="E",
+        path=fig_savedir_low / f"{dataset_low}_crop_examples.svg",
+        x_position=0.0,
+        y_position=3.8,
+        x_offset=0.08,
+        y_offset=0.12,
+    ),
+    FigurePanel(
+        letter="F",
+        path=fig_savedir_high / f"{dataset_high}_crop_examples.svg",
+        x_position=MAX_FIGURE_WIDTH / 2,
+        y_position=3.8,
+        x_offset=0.08,
+        y_offset=0.12,
+    ),
+    # --- Bottom row ---
+    FigurePanel(
+        letter="G",
+        path=base_output_dir / "migration_coherence_distribution_high_low_flow_comparison.svg",
+        x_position=0,
+        y_position=6.0,
+        x_offset=0,
+        y_offset=0,
+    ),
+    FigurePanel(
+        letter="H",
+        path=base_output_dir
+        / "polar_theta_polar_r_rho_ema01_optical_flow_mean_unit_vector_dt1_fp_vs_shear_stress.svg",
+        x_position=2.1,
+        y_position=6.0,
+        x_offset=0,
+        y_offset=0,
+    ),
+]
+
 build_figure_from_panels(
     panels, base_output_dir / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
 )

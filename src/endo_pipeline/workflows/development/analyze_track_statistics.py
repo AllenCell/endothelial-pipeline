@@ -147,6 +147,9 @@ def main(
             df_steady_state_tracked = df_steady_state_tracked[
                 df_steady_state_tracked[ColumnName.CROP_INDEX].isin(sampled_traj_indices)
             ]
+            num_trajectories_tracked_sampled = df_steady_state_tracked[
+                ColumnName.CROP_INDEX
+            ].nunique()
         elif num_trajectories_tracked < num_trajectories_grid:
             logger.warning(
                 "Dataset [ %s ] has more grid trajectories than tracked trajectories. "
@@ -200,19 +203,24 @@ def main(
         # plot histograms of the column averages and variances across
         # trajectories for each column and crop pattern, with KDE overlaid
         for column_name in column_names:
+            if num_trajectories_grid != num_trajectories_tracked_sampled:
+                logger.warning(
+                    f"Number of trajectories for grid and tracked crops should be the same after subsampling,"
+                    f" but got {num_trajectories_grid} for grid and {num_trajectories_tracked_sampled} for tracked."
+                )
             variable_label = variable_labels_dict[column_name]
-            fig, ax = plt.subplots(1, 2, figsize=(12, 5))
+            fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(7, 3))
             period = (
                 polar_angle_period if column_name == ColumnName.DiffAEData.POLAR_ANGLE else None
             )
-            for crop_pattern, num_traj, line_style in [
-                ("grid", num_trajectories_grid, "-"),
-                ("tracked", num_trajectories_tracked, "--"),
+            hist_alpha = 0.33
+            for crop_pattern, kde_line_style, hist_line_style, hist_fill in [
+                ("grid", "-", "", True),
+                ("tracked", "--", "--", False),
             ]:
                 # histogram and KDE for column average
-                axes_title = f"Histogram of average {variable_label} across trajectories"
-                axes_xlabel = f"$\\langle${variable_label}$\\rangle$"
-                axes_ylabel = f"P({axes_xlabel})"
+                axes_xlabel = f"Mean {variable_label} Per Trajectory"
+                axes_ylabel = f"P(Mean {variable_label})"
                 plot_histogram_and_kde(
                     axes=ax[0],
                     data=column_avg_df_dict[crop_pattern][column_name].to_numpy(),
@@ -221,18 +229,19 @@ def main(
                     kernel_bandwidth=1.5 * bin_width_averages,
                     kernel_period=period,
                     hist_color=hist_color,
-                    kde_line_style=line_style,
+                    hist_alpha=hist_alpha,
+                    hist_fill=hist_fill,
+                    hist_line_style=hist_line_style,
+                    kde_line_style=kde_line_style,
                     kde_label=crop_pattern,
-                    axes_title=axes_title,
                     axes_xlabel=axes_xlabel,
                     axes_ylabel=axes_ylabel,
                     axes_xlimits=bin_limits_dict[column_name],
                 )
 
                 # histogram and KDE for column variance
-                axes_title = f"Histogram of variance {variable_label} across trajectories"
-                axes_xlabel = f"$\\mathrm{{Var}}({variable_label})$"
-                axes_ylabel = f"P({axes_xlabel})"
+                axes_xlabel = f"Variance of {variable_label} Per Trajectory"
+                axes_ylabel = f"P(Variance of {variable_label})"
                 plot_histogram_and_kde(
                     axes=ax[1],
                     data=column_variance_df_dict[crop_pattern][column_name].to_numpy(),
@@ -241,20 +250,26 @@ def main(
                     kernel_bandwidth=1.5 * bin_width_variances,
                     kernel_period=None,
                     hist_color=hist_color,
-                    kde_line_style=line_style,
+                    hist_fill=hist_fill,
+                    hist_alpha=hist_alpha,
+                    hist_line_style=hist_line_style,
+                    kde_line_style=kde_line_style,
                     kde_label=crop_pattern,
-                    axes_title=axes_title,
                     axes_xlabel=axes_xlabel,
                     axes_ylabel=axes_ylabel,
                     axes_xlimits=(-0.01, 0.8),
                 )
 
-            plt.suptitle(f"{plot_label}, grid vs. tracked crops (n={num_traj} trajectories)")
+            plt.suptitle(
+                f"{plot_label}, grid (n={num_trajectories_grid}) vs. "
+                f"tracked (n={num_trajectories_tracked_sampled}) crops"
+            )
             plt.tight_layout()
             save_plot_to_path(
                 fig,
                 fig_savedir,
                 f"{dataset_name_flow}_{column_name}_statistics_histograms",
+                show_and_close=False,
             )
 
         if DEMO_MODE:
