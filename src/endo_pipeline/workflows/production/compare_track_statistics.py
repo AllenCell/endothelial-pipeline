@@ -351,7 +351,7 @@ def main(
                         ci_upper=np.nanpercentile(var_kdes_arr, ci_upper, axis=0),
                     )
         for column_name in column_names:
-            fig, ax = plt.subplots(1, 2, figsize=(12, 5))
+            fig, ax = plt.subplots(1, 2, figsize=(12, 5), layout="constrained")
             column_label = get_label_for_column(column_name)
             avg_str = f"$\\langle${column_label}$\\rangle$"
             var_str = f"Var({column_label})"
@@ -400,11 +400,11 @@ def main(
                 f"(grid n={num_trajectories_grid}, tracked n={num_trajectories_tracked}, "
                 f"n={n_bootstrap} bootstrap samples, tracked n={num_trajectories_grid} per sample)"
             )
-            plt.tight_layout()
             save_plot_to_path(
                 fig,
                 fig_savedir,
                 f"{dataset_name_flow}_{column_name}",
+                tight_layout=False,
             )
 
         if DEMO_MODE:
