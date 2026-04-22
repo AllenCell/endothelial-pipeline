@@ -48,8 +48,8 @@ def main(
         fixed_point_radius_threshold = MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
 
     if DEMO_MODE:
-        dataset_names = dataset_names[:1]
-        logger.info(f"Running in demo mode, processing only the first dataset: {dataset_names}")
+        dataset_names = dataset_names[:3]
+        logger.info(f"Running in demo mode, processing only the first 3 datasets: {dataset_names}")
         out_dir = get_output_path(__file__, "demo")
     else:
         out_dir = get_output_path(__file__)
