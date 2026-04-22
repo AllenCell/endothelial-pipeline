@@ -26,11 +26,19 @@ from endo_pipeline.library.process.image_processing import (
     std_dev,
 )
 from endo_pipeline.library.visualize.columns import get_label_for_column
-from endo_pipeline.library.visualize.diffae_features.dynamics_viz import plot_drift_contours
+from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
+    plot_drift_contours,
+    plot_drift_quiver,
+)
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL
+from endo_pipeline.settings.flow_field_dataframes import (
+    STABILITY_COLOR_DICT,
+    STABILITY_MARKER_DICT,
+    StabilityLabel,
+)
 from endo_pipeline.settings.image_data import (
     DIFFAE_ZARR_RESOLUTION_LEVEL,
     PIXEL_SIZE_3i_20x_RESOLUTION_1,
@@ -51,6 +59,7 @@ def make_2d_contour_plot_panel(
     rho_ticks: list[float],
     nullcline_r_style: str,
     nullcline_rho_style: str,
+    nullcline_opacity: float,
     gridspec_kwargs: dict | None,
     xlabel_kwargs: dict | None,
     ylabel_kwargs: dict | None,
@@ -70,7 +79,6 @@ def make_2d_contour_plot_panel(
     )
     centers_mesh = np.meshgrid(*centers_r_rho, indexing="ij")
 
-    # make and save plots
     contour_plot_filename = f"{dataset_name}_{columns_r_rho_str}_contours"
 
     # plot drift contours and save
@@ -86,7 +94,7 @@ def make_2d_contour_plot_panel(
         include_nullclines=True,
         nullcline_colors=("k", "k"),
         nullcline_styles=(nullcline_r_style, nullcline_rho_style),
-        nullcline_opacity=1.0,
+        nullcline_opacity=nullcline_opacity,
         gridspec_kwargs=gridspec_kwargs,
         xlabel_kwargs=xlabel_kwargs,
         ylabel_kwargs=ylabel_kwargs,
@@ -125,6 +133,104 @@ def make_2d_contour_plot_panel(
     )
 
     return fig_savedir / f"{contour_plot_filename}.svg"
+
+
+def make_2d_quiver_plot_panel(
+    dataset_name: str,
+    stable_fixed_points: pd.DataFrame,
+    figsize: tuple[float, float],
+    fig_savedir: Path,
+    r_lims: tuple[float, float],
+    rho_lims: tuple[float, float],
+    r_ticks: list[float],
+    rho_ticks: list[float],
+    nullcline_r_style: str,
+    nullcline_rho_style: str,
+    nullcline_opacity: float,
+    quiver_color: str,
+    quiver_scale: float,
+    quiver_downsample: int,
+    vmin: float,
+    vmax: float,
+    include_legend: bool,
+    gridspec_kwargs: dict | None,
+    xlabel_kwargs: dict | None,
+    ylabel_kwargs: dict | None,
+    quiver_legend_kwargs: dict | None,
+) -> Path:
+
+    columns_r_rho = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
+    column_labels_r_rho = [get_label_for_column(col) for col in columns_r_rho]
+    columns_r_rho_str = join_sorted_strings(columns_r_rho)
+    # get drift in (r, rho) space
+    drift_r_rho_dataframe = load_drift_dataframe_for_dataset(dataset_name, columns=columns_r_rho)
+    drift_r_rho, centers_r_rho = get_reshaped_vector_field_and_grid(
+        drift_r_rho_dataframe,
+        column_names=columns_r_rho,
+    )
+    centers_mesh = np.meshgrid(*centers_r_rho, indexing="ij")
+
+    quiver_plot_filename = f"{dataset_name}_{columns_r_rho_str}_quiver"
+
+    fig, ax = plot_drift_quiver(
+        centers_mesh,
+        drift_r_rho,
+        quiver_scale=quiver_scale,
+        quiver_color=quiver_color,
+        quiver_downsample=quiver_downsample,
+        vmin=vmin,
+        vmax=vmax,
+        variable_labels=column_labels_r_rho,
+        figsize=figsize,
+        axes_limits=(r_lims, rho_lims),
+        include_nullclines=True,
+        nullcline_colors=("k", "k"),
+        nullcline_styles=(nullcline_r_style, nullcline_rho_style),
+        nullcline_opacity=nullcline_opacity,
+        gridspec_kwargs=gridspec_kwargs,
+        legend_kwargs=quiver_legend_kwargs,
+        xlabel_kwargs=xlabel_kwargs,
+        ylabel_kwargs=ylabel_kwargs,
+        plot_legend=include_legend,
+    )
+
+    ax.plot(
+        stable_fixed_points[columns_r_rho[0]],
+        stable_fixed_points[columns_r_rho[1]],
+        STABILITY_MARKER_DICT[StabilityLabel.STABLE],
+        color=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
+        markeredgecolor="k",
+        markeredgewidth=0.5,
+        markersize=5,
+        label="Stable fixed point",
+    )
+    if include_legend:
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(
+            handles,
+            labels,
+            fontsize="xx-small",
+            loc="upper center",
+            bbox_to_anchor=(0.5, 1.25),
+            ncol=2,
+            handletextpad=0.3,
+        )
+
+    # make room above axes for the legend
+    fig.subplots_adjust(top=0.82)
+
+    # set plot formatting args and save
+    ax.set_box_aspect(1.0)
+    ax.set_xticks(r_ticks)
+    ax.set_yticks(rho_ticks)
+    save_plot_to_path(
+        fig,
+        fig_savedir,
+        quiver_plot_filename,
+        file_format=".svg",
+        tight_layout=False,
+        transparent=True,
+    )
 
 
 def make_crop_example_contact_sheet(
