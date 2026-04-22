@@ -67,6 +67,7 @@ def main(
 
     logger = logging.getLogger(__name__)
     rng = np.random.default_rng(RANDOM_SEED)
+    plt.style.use("endo_pipeline.figure")
 
     # set workflow defaults
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME

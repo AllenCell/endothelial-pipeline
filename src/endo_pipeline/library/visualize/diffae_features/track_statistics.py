@@ -98,8 +98,6 @@ def plot_kde_for_track_statistics(
         alpha).
 
     """
-    plt.style.use("endo_pipeline.figure")
-
     # Smooth the KDE values using spline interpolation for plotting
     kde_smooth = smooth_kde_with_spline(
         bin_centers=bin_centers,
