@@ -20,7 +20,7 @@ AXES_LIMITS_2D: dict[Column.DiffAEData, tuple[float, float]] = {
 }
 """Axes limits for 2D plots in polar radius and rho variables."""
 
-NULLCLINE_STYLES_2D: dict[Column.DiffAEData, tuple[float, ...] | str] = {
+NULLCLINE_STYLES_2D: dict[Column.DiffAEData, tuple[int, tuple[int, int]] | str] = {
     Column.DiffAEData.POLAR_RADIUS: "dashed",
     Column.DiffAEData.PC3_FLIPPED: (0, (1, 1)),  # dense dotted
 }
