@@ -467,7 +467,7 @@ class ColumnName:
     class BootstrapAnalysis(StrEnum):
         """Column name suffixes used in bootstrap fixed-point analysis."""
 
-        DETECTION_RATE = "bootstrap_detection_rate"
+        DETECTION_RATE = "detection_rate"
         """Fraction of bootstrap iterations in which a matched fixed point was found."""
 
         CLUSTER_MEAN = "cluster_mean"
