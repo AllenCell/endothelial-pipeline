@@ -173,7 +173,7 @@ def plot_fixed_points_vs_shear_stress(
         ]  # noqa: E731
         tick_positions = list(range(len(unique_datasets)))
         tick_labels = [
-            f"{d} ({df_fp.loc[df_fp['dataset'] == d, 'shear_stress_numeric'].iloc[0]})"
+            f"{load_dataset_config(d).date} ({df_fp.loc[df_fp['dataset'] == d, 'shear_stress_numeric'].iloc[0]})"
             for d in unique_datasets
         ]
     elif x_axis_mode == "shear_stress_numeric":
@@ -419,12 +419,11 @@ def plot_cross_dataset_summaries(
         dataset_config = load_dataset_config(dataset_name)
         df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
         df_of = add_optical_flow_features(df_steady_state, datasets=[dataset_name])
+        date = dataset_config.date
 
         for flow_condition in dataset_config.flow_conditions:
             df_flow = filter_dataframe_by_flow_condition(df_of, dataset_config, flow_condition)
-            plot_label = (
-                f"{dataset_name} ({round(flow_condition.shear_stress)} dyn/cm{Unicode.SQUARED})"
-            )
+            plot_label = f"{date} ({round(flow_condition.shear_stress)} dyn/cm{Unicode.SQUARED})"
 
             # Summary stats per optical flow feature
             for feature_key in optical_flow_features:
@@ -518,6 +517,12 @@ def plot_cross_dataset_summaries(
         )
     if x_axis_mode == "cell_line":
         fig.supxlabel("Cell Line", fontsize=FONTSIZE_MEDIUM, fontweight="bold")
+    elif x_axis_mode == "dataset":
+        fig.supxlabel(
+            f"Dataset Date (Shear Stress dyn/cm{Unicode.SQUARED})",
+            fontsize=FONTSIZE_MEDIUM,
+            fontweight="bold",
+        )
     else:
         fig.supxlabel(
             f"Shear Stress (dyn/cm{Unicode.SQUARED})", fontsize=FONTSIZE_MEDIUM, fontweight="bold"
