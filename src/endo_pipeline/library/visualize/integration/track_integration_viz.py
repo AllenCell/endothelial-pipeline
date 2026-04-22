@@ -1664,7 +1664,7 @@ def plot_first_passage_time_correlation_summary_for_figure(
     analysis across all datasets and fixed points as it will appear in the figure.
     """
 
-    fig, ax = plt.subplots(figsize=(6, 3))
+    fig, ax = plt.subplots(figsize=(6, 2))
     sns.stripplot(
         data=first_passage_time_correlation_summary_df,
         x=Column.DATASET,
@@ -1682,6 +1682,24 @@ def plot_first_passage_time_correlation_summary_for_figure(
         fig,
         out_dir,
         "FPT_correlation_summary_for_figure",
+        file_format=".svg",
+        show_and_close=False,
+    )
+
+    fig, ax = plt.subplots(figsize=(1.5, 1.5))
+    sns.histplot(
+        data=first_passage_time_correlation_summary_df,
+        x="r_value",
+        bins=5,
+        color="black",
+        alpha=0.7,
+        ax=ax,
+    )
+    ax.set_xlabel("Correlation Coefficient (R)", fontsize=FONTSIZE_SMALL)
+    save_plot_to_path(
+        fig,
+        out_dir,
+        "FPT_correlation_r_value_histogram_for_figure",
         file_format=".svg",
         show_and_close=False,
     )

@@ -3,6 +3,7 @@ from pathlib import Path
 import numpy as np
 from matplotlib import pyplot as plt
 
+from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.io.output import get_output_path
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_binned_value
 from endo_pipeline.library.analyze.numerics.binning import adjust_limits_from_bin_size, get_bins
@@ -18,7 +19,8 @@ from endo_pipeline.library.analyze.track_integration import (
 )
 from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.settings import ColumnName as Column
-from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
+from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, POLAR_ANGLE_PERIOD
+from endo_pipeline.settings.figures import FONTSIZE_SMALL
 from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
 
 out_dir = get_output_path(__file__)
@@ -308,7 +310,7 @@ def generate_first_passage_time_example(
 
     for crop_id_tracked, df in trajectory_df_tracked_one_bin.groupby(Column.CROP_INDEX):
         df = df.sort_values(Column.TIMEPOINT)
-        bin_point_tracked = (
+        bin_tp_tracked, bin_theta_tracked, bin_r_tracked, bin_rho_tracked = (
             df.iloc[0][Column.TIMEPOINT],
             df.iloc[0][Column.DiffAEData.POLAR_ANGLE],
             df.iloc[0][Column.DiffAEData.POLAR_RADIUS],
@@ -317,7 +319,7 @@ def generate_first_passage_time_example(
         break
     for crop_id_grid, df in trajectory_df_grid_one_bin.groupby(Column.CROP_INDEX):
         df = df.sort_values(Column.TIMEPOINT)
-        bin_point_grid = (
+        bin_tp_grid, bin_theta_grid, bin_r_grid, bin_rho_grid = (
             df.iloc[0][Column.TIMEPOINT],
             df.iloc[0][Column.DiffAEData.POLAR_ANGLE],
             df.iloc[0][Column.DiffAEData.POLAR_RADIUS],
@@ -326,7 +328,8 @@ def generate_first_passage_time_example(
         break
 
     df_tracked_1_traj = traj_df_tracked_sub[
-        traj_df_tracked_sub[Column.CROP_INDEX] == crop_id_tracked
+        (traj_df_tracked_sub[Column.CROP_INDEX] == crop_id_tracked)
+        & (traj_df_tracked_sub[Column.TIMEPOINT] >= bin_tp_tracked)
     ]
     thetas_tracked, rs_tracked, rhos_tracked = zip(
         *df_tracked_1_traj[
@@ -338,7 +341,10 @@ def generate_first_passage_time_example(
         ].values,
         strict=True,
     )
-    df_grid_1_traj = traj_df_grid_sub[traj_df_grid_sub[Column.CROP_INDEX] == crop_id_grid]
+    df_grid_1_traj = traj_df_grid_sub[
+        (traj_df_grid_sub[Column.CROP_INDEX] == crop_id_grid)
+        & (traj_df_grid_sub[Column.TIMEPOINT] >= bin_tp_grid)
+    ]
     thetas_grid, rs_grid, rhos_grid = zip(
         *df_grid_1_traj[
             [
@@ -349,6 +355,8 @@ def generate_first_passage_time_example(
         ].values,
         strict=True,
     )
+    polar_angle_period = POLAR_ANGLE_PERIOD
+    thetas_grid_unwrapped = np.unwrap(thetas_grid, period=polar_angle_period)
 
     init_point_tracked = (
         traj_df_tracked_sub[traj_df_tracked_sub[Column.CROP_INDEX] == crop_id_tracked]
@@ -396,43 +404,69 @@ def generate_first_passage_time_example(
 
     # from matplotlib.ticker import AutoMinorLocator, MultipleLocator
 
-    fig, ax = plt.subplots(figsize=(3, 3), subplot_kw={"projection": "3d"}, layout="constrained")
+    fig, ax = plt.subplots(figsize=(2, 2), subplot_kw={"projection": "3d"})
     ax.plot(  # type: ignore[call-arg]
         xs=thetas_tracked,
         ys=rs_tracked,
         zs=rhos_tracked,
-        ls=":",
+        ls="-",
+        lw=1,
         marker=".",
         c="tab:red",
-        alpha=0.5,
+        alpha=0.4,
     )  # type: ignore[call-arg]
     ax.plot(  # type: ignore[call-arg]
-        xs=thetas_grid,
+        xs=thetas_grid_unwrapped,
         ys=rs_grid,
         zs=rhos_grid,
         ls="-",
+        lw=1,
         marker="d",
         c="tab:blue",
-        alpha=0.5,
+        alpha=0.4,
     )  # type: ignore[call-arg]
     # plot the trajectory start points as red and bluemarkers
-    ax.scatter(*bin_point_tracked.values, edgecolors="black", facecolors="none", lw=1, s=15, marker="o")  # type: ignore
-    ax.scatter(*bin_point_grid.values, edgecolors="black", facecolors="none", lw=1, s=15, marker="d")  # type: ignore
+    ax.scatter(bin_theta_tracked, bin_r_tracked, bin_rho_tracked, edgecolors="black", facecolors="none", lw=1, s=5, marker="o")  # type: ignore
+    ax.scatter(bin_theta_grid, bin_r_grid, bin_rho_grid, edgecolors="black", facecolors="none", lw=1, s=5, marker="d")  # type: ignore
     # plot the points from the trajectories in the bin as black markers
-    ax.scatter(*init_point_tracked.values, color="red", s=15, marker=".")  # type: ignore
-    ax.scatter(*init_point_grid.values, color="blue", s=15, marker="d")  # type: ignore
+    # ax.scatter(*init_point_tracked.values, color="red", s=5, marker=".")  # type: ignore
+    # ax.scatter(*init_point_grid.values, color="blue", s=5, marker="d")  # type: ignore
     # plot the fixed point in the 3D space as a black star
     ax.scatter(*fixed_points_df.iloc[fp_idx][list(DYNAMICS_COLUMN_NAMES)].values, color="black", s=15, marker="*")  # type: ignore
     # make the minor ticks on each axis correspond to the bin edges
-    # ax.set_xticks(bin_edges[0])  # , minor=True)  # type: ignore[call-arg]
-    # ax.set_yticks(bin_edges[1])  # , minor=True)  # type: ignore[call-arg]
-    # ax.set_zticks(bin_edges[2])  # , minor=True)  # type: ignore[call-arg]
+    theta_lims = ax.get_xlim()
+    r_lims = ax.get_ylim()
+    rho_lims = ax.get_zlim()  # type: ignore
+    theta_minor_ticks = bin_edges[0][
+        (bin_edges[0] > theta_lims[0]) & (bin_edges[0] < theta_lims[1])
+    ]
+    r_minor_ticks = bin_edges[1][(bin_edges[1] > r_lims[0]) & (bin_edges[1] < r_lims[1])]
+    rho_minor_ticks = bin_edges[2][(bin_edges[2] > rho_lims[0]) & (bin_edges[2] < rho_lims[1])]
+    ax.set_xticks(theta_minor_ticks)  # , minor=True)  # type: ignore[call-arg]
+    ax.set_yticks(r_minor_ticks)  # , minor=True)  # type: ignore[call-arg]
+    ax.set_zticks(rho_minor_ticks)  # , minor=True)  # type: ignore[call-arg]
+    ax.xaxis.set_major_formatter(plt.FormatStrFormatter("%.2f"))
+    ax.yaxis.set_major_formatter(plt.FormatStrFormatter("%.2f"))
+    ax.zaxis.set_major_formatter(plt.FormatStrFormatter("%.2f"))  # type: ignore[attr-defined]
     # ax.grid(which="minor", ls="--", alpha=0.5)  # type: ignore[call-arg]
     # ax.grid(visible=False, which="major", ls="-", alpha=0.5)  # type: ignore[call-arg]
     # make the axes labels pretty
-    ax.set_xlabel(get_label_for_column(Column.DiffAEData.POLAR_ANGLE))
-    ax.set_ylabel(get_label_for_column(Column.DiffAEData.POLAR_RADIUS))
-    ax.set_zlabel(get_label_for_column(Column.DiffAEData.PC3_FLIPPED))  # type:ignore[attr-defined]
+    # ax.tick_params(axis="x", labelsize=FONTSIZE_SMALL, rotation=45, pad=0)  # type: ignore[call-arg]
+    # plt.setp(ax.get_xticklabels(), va="center", ha="center")  # type: ignore[call-arg]
+    # ax.tick_params(axis="y", labelsize=FONTSIZE_SMALL, rotation=-15, pad=0)  # type: ignore[call-arg]
+    # plt.setp(ax.get_yticklabels(), va="center", ha="center")  # type: ignore[call-arg]
+    # ax.tick_params(axis="z", labelsize=FONTSIZE_SMALL, pad=0)  # type: ignore[call-arg]
+    ax.tick_params(axis="x", labelsize=FONTSIZE_SMALL, pad=-4)  # type: ignore[call-arg]
+    ax.tick_params(axis="y", labelsize=FONTSIZE_SMALL, pad=-2)  # type: ignore[call-arg]
+    ax.tick_params(axis="z", labelsize=FONTSIZE_SMALL, pad=0)  # type: ignore[call-arg]
+    ax.set_xlabel(get_label_for_column(Column.DiffAEData.POLAR_ANGLE), labelpad=-4)
+    ax.set_ylabel(get_label_for_column(Column.DiffAEData.POLAR_RADIUS), labelpad=-4)
+    ax.set_zlabel(
+        get_label_for_column(Column.DiffAEData.PC3_FLIPPED), labelpad=-5
+    )  # type:ignore[attr-defined]
+    ax_pos = ax.get_position()
+    ax_pos.x0 = ax_pos.x0 + 0.4
+    ax.set_position(ax_pos)
 
     # adjust the focal length of the 3D plot so that depth is easier to perceive
     # ax.set_proj_type("persp", focal_length=0.5)  # type: ignore[attr-defined]
@@ -442,3 +476,4 @@ def generate_first_passage_time_example(
     # fig.colorbar(scatter3d, cax=cax)
 
     filename = f"{dataset_name}_FPT_fp_{fp_idx}_mean_3d_scatter"
+    save_plot_to_path(fig, out_subdir, filename, file_format=".svg")

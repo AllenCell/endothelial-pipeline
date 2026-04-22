@@ -12,33 +12,33 @@ def main():
     panels = [
         FigurePanel(
             letter="A",
-            path=save_dir / "20250618_20X_FPT_fp_0_stable_mean_correlation.svg",
+            path=save_dir / "20250618_20X_FPT_fp_0_mean_3d_scatter.svg",
             x_position=0,
             y_position=0,
-            x_offset=0,  # 0.2,
-            y_offset=0,  # 0.08,
+            x_offset=-0.5,  # 0.2,
+            y_offset=-0.5,  # 0.08,
         ),
         FigurePanel(
             letter="B",
-            path=save_dir / "20250611_20X_FPT_fp_3_stable_mean_correlation.svg",
-            x_position=2,
+            path=save_dir / "20250618_20X_FPT_fp_0_stable_mean_correlation_for_figure.svg",
+            x_position=3.2,
             y_position=0,
             x_offset=0,  # 0,
             y_offset=0,  # 0.2,
         ),
         FigurePanel(
             letter="C",
-            path=save_dir / "20250813_20X_FPT_fp_0_stable_mean_correlation.svg",
-            x_position=4,
-            y_position=0,
+            path=save_dir / "20250611_20X_FPT_fp_3_stable_mean_correlation_for_figure.svg",
+            x_position=3.2,
+            y_position=1.7,
             x_offset=0,  # 0,
             y_offset=0,  # 0.2,
         ),
         FigurePanel(
             letter="D",
-            path=save_dir / "FPT_correlation_summary.svg",
+            path=save_dir / "FPT_correlation_summary_for_figure.svg",
             x_position=0,
-            y_position=3,
+            y_position=3.3,
             x_offset=0,  # 0,
             y_offset=0,  # 0.2,
         ),
@@ -48,7 +48,7 @@ def main():
         figure_panels=panels,
         output_path=save_dir / "figure_4.svg",
         width=MAX_FIGURE_WIDTH,
-        height=6,
+        height=6.3,
     )
 
 
