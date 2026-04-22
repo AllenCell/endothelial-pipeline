@@ -47,7 +47,11 @@ def main(
     import pandas as pd
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+    from endo_pipeline.configs import (
+        get_datasets_in_collection,
+        get_regime_for_shear_stress,
+        load_dataset_config,
+    )
     from endo_pipeline.io import (
         get_output_path,
         join_sorted_strings,
@@ -260,12 +264,18 @@ def main(
 
         for flow_condition in dataset_config.flow_conditions:
             shear_stress = flow_condition.shear_stress
-            dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
-            fig_title = f"{dataset_name} ({shear_stress} dym/cm$^2$)"
+            shear_stress_regime = get_regime_for_shear_stress(shear_stress)
+            target_shear_stress = shear_stress_regime.target
+            dataset_name_flow = f"{dataset_name}_shear_{target_shear_stress}"
+            fig_title = f"{dataset_name} ({target_shear_stress} dym/cm$^2$)"
 
             feature_data_for_flow_condition = filter_dataframe_by_flow_condition(
                 feature_data, dataset_config, flow_condition
             )
+            # use actual shear stress value for filtering the data to ensure
+            # that the correct data is visualized, even if the actual shear
+            # stress value does not exactly match the target value for the
+            # regime
             vector_field_for_flow_condition = vector_field_dataframe[
                 vector_field_dataframe[Column.SHEAR_STRESS] == shear_stress
             ]

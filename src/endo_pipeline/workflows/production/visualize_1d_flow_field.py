@@ -35,7 +35,11 @@ def main(
     import numpy as np
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+    from endo_pipeline.configs import (
+        get_datasets_in_collection,
+        get_regime_for_shear_stress,
+        load_dataset_config,
+    )
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.dataframe_validation import (
         check_required_columns_in_dataframe,
@@ -180,9 +184,15 @@ def main(
         # compute on a per-shear stress condition basis
         for flow_condition in dataset_config.flow_conditions:
             shear_stress = flow_condition.shear_stress
-            dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
-            fig_title = f"{dataset_name} ({shear_stress} dym/cm$^2$)"
+            shear_stress_regime = get_regime_for_shear_stress(shear_stress)
+            target_shear_stress = shear_stress_regime.target
+            dataset_name_flow = f"{dataset_name}_shear_{target_shear_stress}"
+            fig_title = f"{dataset_name} ({target_shear_stress} dym/cm$^2$)"
 
+            # use actual shear stress value for filtering the data to ensure
+            # that the correct data is visualized, even if the actual shear
+            # stress value does not exactly match the target value for the
+            # regime
             drift_dataframe_flow = drift_dataframe[
                 drift_dataframe[Column.SHEAR_STRESS] == shear_stress
             ]
