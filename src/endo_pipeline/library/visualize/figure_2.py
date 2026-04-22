@@ -4,13 +4,18 @@ import math
 from pathlib import Path
 from typing import Literal
 
+import numpy as np
 import pandas as pd
 from matplotlib.layout_engine import ConstrainedLayoutEngine
 
 from endo_pipeline.configs import DatasetConfig
-from endo_pipeline.io import load_image, save_plot_to_path
+from endo_pipeline.io import join_sorted_strings, load_image, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_binned_value
 from endo_pipeline.library.analyze.numerics.binning import get_bins
+from endo_pipeline.library.analyze.vector_field_estimation import (
+    get_reshaped_vector_field_and_grid,
+    load_drift_dataframe_for_dataset,
+)
 from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
 from endo_pipeline.library.model.diffae.generate_image import generate_from_dataframe
 from endo_pipeline.library.process.image_processing import (
@@ -20,6 +25,8 @@ from endo_pipeline.library.process.image_processing import (
     max_proj,
     std_dev,
 )
+from endo_pipeline.library.visualize.columns import get_label_for_column
+from endo_pipeline.library.visualize.diffae_features.dynamics_viz import plot_drift_contours
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings.column_names import ColumnName as Column
@@ -31,6 +38,93 @@ from endo_pipeline.settings.image_data import (
 from endo_pipeline.settings.plot_defaults import CROP_HIST_BIN_WIDTH
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
+
+
+def make_2d_contour_plot_panel(
+    dataset_name: str,
+    figsize: tuple[float, float],
+    fig_savedir: Path,
+    shear_stress_label: str,
+    r_lims: tuple[float, float],
+    rho_lims: tuple[float, float],
+    r_ticks: list[float],
+    rho_ticks: list[float],
+    nullcline_r_style: str,
+    nullcline_rho_style: str,
+    gridspec_kwargs: dict | None,
+    xlabel_kwargs: dict | None,
+    ylabel_kwargs: dict | None,
+    axes_title_kwargs: dict | None,
+) -> None:
+    """
+    Make and save plot of drift contours in (r, rho) space for a given dataset.
+    """
+    columns_r_rho = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
+    column_labels_r_rho = [get_label_for_column(col) for col in columns_r_rho]
+    columns_r_rho_str = join_sorted_strings(columns_r_rho)
+    # get drift in (r, rho) space
+    drift_r_rho_dataframe = load_drift_dataframe_for_dataset(dataset_name, columns=columns_r_rho)
+    drift_r_rho, centers_r_rho = get_reshaped_vector_field_and_grid(
+        drift_r_rho_dataframe,
+        column_names=columns_r_rho,
+    )
+    centers_mesh = np.meshgrid(*centers_r_rho, indexing="ij")
+
+    # make and save plots
+    contour_plot_filename = f"{dataset_name}_{columns_r_rho_str}_contours"
+
+    # plot drift contours and save
+    fig, ax = plot_drift_contours(
+        centers_mesh,
+        drift_r_rho,
+        variable_labels=column_labels_r_rho,
+        figsize=figsize,
+        axes_limits=[r_lims, rho_lims],
+        axes_aspect=None,
+        axes_titles=(f"d{column_labels_r_rho[0]}/dt", f"d{column_labels_r_rho[1]}/dt"),
+        include_colorbar=False,
+        include_nullclines=True,
+        nullcline_colors=("k", "k"),
+        nullcline_styles=(nullcline_r_style, nullcline_rho_style),
+        nullcline_opacity=1.0,
+        gridspec_kwargs=gridspec_kwargs,
+        xlabel_kwargs=xlabel_kwargs,
+        ylabel_kwargs=ylabel_kwargs,
+        axes_title_kwargs=axes_title_kwargs,
+    )
+    for ax_index, ax_ in enumerate(list(ax)):
+        # adjust label padding and drop tick labels on shared x axis
+        ax_.set_box_aspect(1.0)
+        ax_.set_xticks(r_ticks)
+        ax_.set_yticks(rho_ticks)
+        if ax_index == 0:
+            ax_.tick_params(labelbottom=False)
+
+    # reserve left margin for the vertical label
+    fig.subplots_adjust(left=0.08)
+    # add vertical title to the left of the contour plot spanning all rows
+    fig.text(
+        0.0,
+        0.5,
+        shear_stress_label,
+        va="center",
+        ha="center",
+        rotation="vertical",
+        fontsize=FONTSIZE_MEDIUM,
+        fontweight="bold",
+    )
+
+    save_plot_to_path(
+        fig,
+        fig_savedir,
+        contour_plot_filename,
+        file_format=".svg",
+        tight_layout=False,
+        transparent=True,
+        pad_inches=0,
+    )
+
+    return fig_savedir / f"{contour_plot_filename}.svg"
 
 
 def make_crop_example_contact_sheet(
