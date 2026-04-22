@@ -31,7 +31,6 @@ from endo_pipeline.library.analyze.vector_field_estimation import (
 from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
     plot_contour_colorbar,
     plot_drift_1d,
-    plot_drift_quiver,
 )
 from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     get_dataset_color,
@@ -39,6 +38,7 @@ from endo_pipeline.library.visualize.diffae_features.feature_viz import (
 )
 from endo_pipeline.library.visualize.figure_2 import (
     make_2d_contour_plot_panel,
+    make_2d_quiver_plot_panel,
     make_crop_example_contact_sheet,
 )
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
@@ -160,6 +160,7 @@ save_plot_to_path(fig, base_output_dir, "colorbar", file_format=".svg", transpar
 # loop over datasets in collection, compute 2D drift coefficients for each
 # pairwise combination of polar coordinates, and plot contours of drift coefficients
 contour_plot_paths: dict[str, Path] = {}
+quiver_plot_paths: dict[str, Path] = {}
 for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]:
     fig_savedir = get_output_path("figure_2", dataset_name)
     dataset_config = load_dataset_config(dataset_name)
@@ -181,13 +182,6 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
             df_fixed_points[Column.VectorField.STABILITY] == StabilityLabel.STABLE
         ]
         stable_fixed_points_dict[column_key] = df_stable_fixed_points
-    # get drift in (r, rho) space
-    drift_r_rho_dataframe = load_drift_dataframe_for_dataset(dataset_name, columns=columns_r_rho)
-    drift_r_rho, centers_r_rho = get_reshaped_vector_field_and_grid(
-        drift_r_rho_dataframe,
-        column_names=columns_r_rho,
-    )
-    centers_mesh = np.meshgrid(*centers_r_rho, indexing="ij")
 
     # get in 1D for theta
     drift_theta_dataframe = load_drift_dataframe_for_dataset(dataset_name, columns=[column_theta])
@@ -213,6 +207,7 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
         rho_ticks=[-0.75, 0.0, 0.75],
         nullcline_r_style=nullcline_r_style,
         nullcline_rho_style=nullcline_rho_style,
+        nullcline_opacity=1.0,
         gridspec_kwargs=gridspec_kwargs,
         xlabel_kwargs=xlabel_kwargs,
         ylabel_kwargs=ylabel_kwargs,
@@ -226,23 +221,28 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
         },
     )
 
-    fig, ax = plot_drift_quiver(
-        centers_mesh,
-        drift_r_rho,
-        quiver_scale=3.5,
+    quiver_plot_paths[dataset_name] = make_2d_quiver_plot_panel(
+        dataset_name,
+        stable_fixed_points=stable_fixed_points_dict[columns_r_rho_str],
+        figsize=(2.05, 1.65),
+        fig_savedir=fig_savedir,
+        r_lims=r_lims,
+        rho_lims=rho_lims,
+        r_ticks=[0.25, 0.75, 1.25, 1.75],
+        rho_ticks=[-1.0, -0.5, 0.0, 0.5, 1.0],
+        nullcline_r_style=nullcline_r_style,
+        nullcline_rho_style=nullcline_rho_style,
+        nullcline_opacity=0.9,
         quiver_color="dimgrey",
+        quiver_scale=3.5,
         quiver_downsample=4,
         vmin=DRIFT_CONTOUR_VMIN,
         vmax=DRIFT_CONTOUR_VMAX,
-        variable_labels=column_labels_r_rho,
-        figsize=(2.05, 1.65),
-        axes_limits=(r_lims, rho_lims),
-        include_nullclines=True,
-        nullcline_colors=("k", "k"),
-        nullcline_styles=(nullcline_r_style, nullcline_rho_style),
-        nullcline_opacity=0.9,
+        include_legend=True,
         gridspec_kwargs=gridspec_kwargs,
-        legend_kwargs={
+        xlabel_kwargs=xlabel_kwargs,
+        ylabel_kwargs=ylabel_kwargs,
+        quiver_legend_kwargs={
             "fontsize": "xx-small",
             "title_fontsize": "xx-small",
             "loc": "upper center",
@@ -250,47 +250,6 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
             "ncol": 2,
             "handletextpad": 0.3,
         },
-        xlabel_kwargs=xlabel_kwargs,
-        ylabel_kwargs=ylabel_kwargs,
-        plot_legend=include_legend,
-    )
-
-    ax.plot(
-        stable_fixed_points_dict[columns_r_rho_str][columns_r_rho[0]],
-        stable_fixed_points_dict[columns_r_rho_str][columns_r_rho[1]],
-        STABILITY_MARKER_DICT[StabilityLabel.STABLE],
-        color=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
-        markeredgecolor="k",
-        markeredgewidth=0.5,
-        markersize=5,
-        label="Stable fixed point",
-    )
-    if include_legend:
-        handles, labels = ax.get_legend_handles_labels()
-        ax.legend(
-            handles,
-            labels,
-            fontsize="xx-small",
-            loc="upper center",
-            bbox_to_anchor=(0.5, 1.25),
-            ncol=2,
-            handletextpad=0.3,
-        )
-
-    # make room above axes for the legend
-    fig.subplots_adjust(top=0.82)
-
-    # set plot formatting args and save
-    ax.set_box_aspect(1.0)
-    ax.set_xticks([0.25, 0.75, 1.25, 1.75])
-    ax.set_yticks([-1.0, -0.5, 0.0, 0.5, 1.0])
-    save_plot_to_path(
-        fig,
-        fig_savedir,
-        quiver_plot_filename,
-        file_format=".svg",
-        tight_layout=False,
-        transparent=True,
     )
 
     # plot 1D drift in theta and save
