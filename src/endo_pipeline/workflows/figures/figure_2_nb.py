@@ -27,7 +27,7 @@ from endo_pipeline.library.analyze.vector_field_estimation import (
     get_reshaped_vector_field_and_grid,
     load_drift_dataframe_for_dataset,
 )
-from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
+from endo_pipeline.library.visualize.diffae_features.dynamics import (
     plot_contour_colorbar,
     plot_drift_1d,
     plot_drift_contours,
@@ -156,7 +156,10 @@ save_plot_to_path(fig, base_output_dir, "colorbar", file_format=".svg", transpar
 # %%
 # loop over datasets in collection, compute 2D drift coefficients for each
 # pairwise combination of polar coordinates, and plot contours of drift coefficients
-for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]:
+for dataset_name, include_legend, arrow_scale_1d in [
+    (dataset_low, True, 3.25),
+    (dataset_high, False, 1.0),
+]:
     if dataset_name not in feature_dataframe_manifest.locations:
         logger.warning(
             "No location found in dataframe manifest [ %s ] for dataset [ %s ], skipping visualization.",
@@ -334,10 +337,12 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
     # plot 1D drift in theta and save
     fig, ax = plot_drift_1d(
         drift=drift_theta,
-        centers=centers_theta[-1],
+        x_values=centers_theta[-1],
         figsize=(MAX_FIGURE_WIDTH / 4, MAX_FIGURE_HEIGHT / 4),
         axes_limits=(POLAR_ANGLE_RANGE, (-0.4, 0.4)),
         axes_labels=[column_label_theta, f"d{column_label_theta}/dt"],
+        add_flow_arrows=True,
+        flow_arrow_kwargs={"color": "dimgrey", "scale": arrow_scale_1d},
         gridspec_kwargs=gridspec_kwargs,
         drift_line_kwargs={"color": "k", "linewidth": 2},
         zero_line_kwargs={"linestyle": "--", "color": "gray", "linewidth": 1, "alpha": 0.7},
