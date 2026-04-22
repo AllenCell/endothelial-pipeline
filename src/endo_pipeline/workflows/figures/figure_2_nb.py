@@ -238,7 +238,9 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
         if ax_index == 0:
             ax_.tick_params(labelbottom=False)
 
-    shear_stress = math.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
+    shear_stress = math.ceil(
+        max(shear_regime.target for shear_regime in dataset_config.shear_stress_regime)
+    )
     shear_stress_label = f"{shear_stress} dyn/cm{Unicode.SQUARED}"
     # reserve left margin for the vertical label
     fig.subplots_adjust(left=0.08)
