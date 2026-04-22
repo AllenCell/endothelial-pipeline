@@ -365,11 +365,14 @@ def plot_drift_quiver(
 
 def plot_drift_1d(
     drift: np.ndarray,
-    centers: np.ndarray,
+    x_values: np.ndarray,
     fig_ax: tuple[plt.Figure, plt.Axes] | None = None,
-    figsize: tuple[float, float] = (7, 4),
+    figsize: tuple[float, float] = (4, 4),
     axes_limits: list[tuple[float, float]] | None = None,
     axes_labels: list[str] | None = None,
+    add_flow_arrows: bool = True,
+    flow_arrow_downsample: int = 5,
+    flow_arrow_kwargs: dict | None = {"color": "dimgrey", "linewidth": 1.5},
     gridspec_kwargs: dict | None = None,
     drift_line_kwargs: dict | None = None,
     zero_line_kwargs: dict | None = None,
@@ -382,9 +385,9 @@ def plot_drift_1d(
     Parameters
     ----------
     drift
-        1D array of the drift component evaluated at the corresponding centers.
-    centers
-        1D array of the centers of the bins corresponding to the drift values.
+        1D array of the drift component evaluated at the input `x_values`.
+    x_values
+        1D array of state variable values corresponding to the drift values.
     fig_ax
         Optional tuple of (Figure, Axes) to plot on. If None, a new figure and
         axes will be created; if provided, the plot will be made on the provided
@@ -396,6 +399,16 @@ def plot_drift_1d(
     axes_labels
         Optional list of labels for the x and y axes, specified as a list of
         strings.
+    add_flow_arrows
+        If true, draw arrows along y = 0 to indicate the direction of flow,
+        pointing right if drift is positive and left if drift is negative.
+    flow_arrow_downsample
+        Integer specifying the downsampling factor for the flow arrows. Arrows
+        will be drawn at every nth center, where n is the downsampling factor.
+    flow_arrow_kwargs
+        Optional dictionary of keyword arguments to pass to ax.arrow for
+        customizing the appearance of the flow arrows, e.g., to specify color or
+        line width.
     gridspec_kwargs
         Optional dictionary of keyword arguments to pass to plt.subplots for
         creating the figure and axes, e.g., to specify a GridSpec layout.
@@ -422,8 +435,39 @@ def plot_drift_1d(
         a function of the state variable.
     """
     fig, ax = fig_ax or plt.subplots(figsize=figsize, gridspec_kw=gridspec_kwargs)
-    ax.plot(centers, drift, **(drift_line_kwargs or {}))
-    ax.plot(centers, np.zeros_like(centers), **(zero_line_kwargs or {}))
+    ax.plot(x_values, drift, **(drift_line_kwargs or {}))
+    ax.plot(x_values, np.zeros_like(x_values), **(zero_line_kwargs or {}))
+
+    # add arrows to indicate flow direction, pointing right if drift is
+    # positive and left if drift is negative (downsampled for vis)
+    if add_flow_arrows:
+        # make stand-in y values and drift in y direction for quiver plot: plot
+        # arrows along y=0, with length and direction determined by drift values
+        # in x (with "drift" in y = 0)
+        y_values = np.zeros_like(x_values)
+        drift_y = np.zeros_like(drift)
+
+        # if scale is not specified in flow_arrow_kwargs, set it automatically
+        # based on the maximum absolute value of the drift and the space between
+        # arrows, to make arrow lengths visually informative without being too
+        # small or too large
+        if flow_arrow_kwargs is None or "scale" not in flow_arrow_kwargs:
+            max_drift = np.max(np.abs(drift))
+            downsample_spacing = np.mean(np.diff(x_values[::flow_arrow_downsample]))
+            if max_drift > 0:
+                flow_arrow_kwargs = flow_arrow_kwargs or {}
+                flow_arrow_kwargs["scale"] = max_drift / downsample_spacing * 0.75
+            else:
+                flow_arrow_kwargs = flow_arrow_kwargs or {}
+                flow_arrow_kwargs["scale"] = 1.0
+
+        ax.quiver(
+            x_values[::flow_arrow_downsample],
+            y_values[::flow_arrow_downsample],
+            drift[::flow_arrow_downsample],
+            drift_y[::flow_arrow_downsample],
+            **(flow_arrow_kwargs or {}),
+        )
 
     if axes_limits is not None:
         ax.set_xlim(axes_limits[0])

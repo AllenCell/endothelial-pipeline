@@ -334,7 +334,7 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
     # plot 1D drift in theta and save
     fig, ax = plot_drift_1d(
         drift=drift_theta,
-        centers=centers_theta[-1],
+        x_values=centers_theta[-1],
         figsize=(MAX_FIGURE_WIDTH / 4, MAX_FIGURE_HEIGHT / 4),
         axes_limits=(POLAR_ANGLE_RANGE, (-0.4, 0.4)),
         axes_labels=[column_label_theta, f"d{column_label_theta}/dt"],
