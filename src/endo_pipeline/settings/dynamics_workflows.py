@@ -99,7 +99,7 @@ UPPER_PERCENTILE_FOR_FILTERING_FPTS: float = 95.0
 LOWER_PERCENTILE_FOR_FILTERING_FPTS: float = 5.0
 """Lower percentile threshold for stable fixed point identification in 3D flow field analysis."""
 
-LONG_TRACK_THRESHOLD_LENGTH: int = 150
+LONG_TRACK_THRESHOLD_LENGTH: int = 72
 """
 Minimum track length (in number of timepoints) to include in analyses of
 long-timescale statistics (e.g., mean squared displacement) in dynamics
