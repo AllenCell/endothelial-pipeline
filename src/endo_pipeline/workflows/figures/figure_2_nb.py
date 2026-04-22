@@ -171,6 +171,8 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
 
     fig_savedir = get_output_path("figure_2", dataset_name)
     dataset_config = load_dataset_config(dataset_name)
+    shear_stress = math.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
+    shear_stress_label = f"{shear_stress} dyn/cm{Unicode.SQUARED}"
 
     # load fixed points dataframes (if available) for both (r, rho) and theta,
     # filter to just stable fixed points, and store in dict for easy access when plotting
@@ -211,6 +213,8 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
     contour_plot_paths[dataset_name] = make_2d_contour_plot_panel(
         dataset_name,
         figsize=(1.75, 1.9),
+        fig_savedir=fig_savedir,
+        shear_stress_label=shear_stress_label,
         r_lims=r_lims,
         rho_lims=rho_lims,
         r_ticks=[0.25, 1.0, 1.75],
