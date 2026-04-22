@@ -1,13 +1,12 @@
 """Methods for visualizing the outputs of the DiffAE feature analysis workflows."""
 
 from collections.abc import Sequence
-from typing import Any, Literal, cast
+from typing import Literal, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import TwoSlopeNorm
-from mpl_toolkits.mplot3d import Axes3D
 
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_CBAR_NUM_TICKS,
@@ -17,7 +16,12 @@ from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_VMAX,
     DRIFT_CONTOUR_VMIN,
 )
-from endo_pipeline.settings.plot_defaults import SHEAR_COLOR_DICT
+from endo_pipeline.settings.flow_field_dataframes import (
+    STABILITY_COLOR_DICT,
+    STABILITY_MARKER_DICT,
+    StabilityLabel,
+    StabilityLegendHandle,
+)
 
 
 def plot_drift_contours(
@@ -361,11 +365,14 @@ def plot_drift_quiver(
 
 def plot_drift_1d(
     drift: np.ndarray,
-    centers: np.ndarray,
+    x_values: np.ndarray,
     fig_ax: tuple[plt.Figure, plt.Axes] | None = None,
-    figsize: tuple[float, float] = (7, 4),
+    figsize: tuple[float, float] = (4, 4),
     axes_limits: list[tuple[float, float]] | None = None,
     axes_labels: list[str] | None = None,
+    add_flow_arrows: bool = True,
+    flow_arrow_downsample: int = 5,
+    flow_arrow_kwargs: dict | None = {"color": "dimgrey", "linewidth": 1.5},
     gridspec_kwargs: dict | None = None,
     drift_line_kwargs: dict | None = None,
     zero_line_kwargs: dict | None = None,
@@ -378,9 +385,9 @@ def plot_drift_1d(
     Parameters
     ----------
     drift
-        1D array of the drift component evaluated at the corresponding centers.
-    centers
-        1D array of the centers of the bins corresponding to the drift values.
+        1D array of the drift component evaluated at the input `x_values`.
+    x_values
+        1D array of state variable values corresponding to the drift values.
     fig_ax
         Optional tuple of (Figure, Axes) to plot on. If None, a new figure and
         axes will be created; if provided, the plot will be made on the provided
@@ -392,6 +399,16 @@ def plot_drift_1d(
     axes_labels
         Optional list of labels for the x and y axes, specified as a list of
         strings.
+    add_flow_arrows
+        If true, draw arrows along y = 0 to indicate the direction of flow,
+        pointing right if drift is positive and left if drift is negative.
+    flow_arrow_downsample
+        Integer specifying the downsampling factor for the flow arrows. Arrows
+        will be drawn at every nth center, where n is the downsampling factor.
+    flow_arrow_kwargs
+        Optional dictionary of keyword arguments to pass to ax.arrow for
+        customizing the appearance of the flow arrows, e.g., to specify color or
+        line width.
     gridspec_kwargs
         Optional dictionary of keyword arguments to pass to plt.subplots for
         creating the figure and axes, e.g., to specify a GridSpec layout.
@@ -418,8 +435,39 @@ def plot_drift_1d(
         a function of the state variable.
     """
     fig, ax = fig_ax or plt.subplots(figsize=figsize, gridspec_kw=gridspec_kwargs)
-    ax.plot(centers, drift, **(drift_line_kwargs or {}))
-    ax.plot(centers, np.zeros_like(centers), **(zero_line_kwargs or {}))
+    ax.plot(x_values, drift, **(drift_line_kwargs or {}))
+    ax.plot(x_values, np.zeros_like(x_values), **(zero_line_kwargs or {}))
+
+    # add arrows to indicate flow direction, pointing right if drift is
+    # positive and left if drift is negative (downsampled for vis)
+    if add_flow_arrows:
+        # make stand-in y values and drift in y direction for quiver plot: plot
+        # arrows along y=0, with length and direction determined by drift values
+        # in x (with "drift" in y = 0)
+        y_values = np.zeros_like(x_values)
+        drift_y = np.zeros_like(drift)
+
+        # if scale is not specified in flow_arrow_kwargs, set it automatically
+        # based on the maximum absolute value of the drift and the space between
+        # arrows, to make arrow lengths visually informative without being too
+        # small or too large
+        if flow_arrow_kwargs is None or "scale" not in flow_arrow_kwargs:
+            max_drift = np.max(np.abs(drift))
+            downsample_spacing = np.mean(np.diff(x_values[::flow_arrow_downsample]))
+            if max_drift > 0:
+                flow_arrow_kwargs = flow_arrow_kwargs or {}
+                flow_arrow_kwargs["scale"] = max_drift / downsample_spacing * 0.75
+            else:
+                flow_arrow_kwargs = flow_arrow_kwargs or {}
+                flow_arrow_kwargs["scale"] = 1.0
+
+        ax.quiver(
+            x_values[::flow_arrow_downsample],
+            y_values[::flow_arrow_downsample],
+            drift[::flow_arrow_downsample],
+            drift_y[::flow_arrow_downsample],
+            **(flow_arrow_kwargs or {}),
+        )
 
     if axes_limits is not None:
         ax.set_xlim(axes_limits[0])
@@ -431,347 +479,55 @@ def plot_drift_1d(
     return fig, ax
 
 
-def plot_fixed_points_by_shear(
-    fpt_dict_list: list, shear_range: np.ndarray, pcs: list, plt_lims: list
-) -> tuple[list[plt.Figure], list[plt.Axes]]:
-    """Plot individual components of fixed points as a function of shear stress.
+def make_legend_handles_for_fixed_pts(
+    fpt_stabilities: list[str],
+    face_color_dict: dict[str, str] = STABILITY_COLOR_DICT,
+    marker_dict: dict[str, str] = STABILITY_MARKER_DICT,
+    marker_size: int = 10,
+    edge_color: str = "black",
+) -> list[StabilityLegendHandle]:
+    """Make a custom legend for the fixed point types, nullclines and trajectories.
 
-    **Input dictionary format**:
-
-    Each dictionary in `fpt_dict_list` should have the following keys:
-        - "shear": float, the shear stress value corresponding to the fixed
-          points in this dictionary
-        - "fixed_points": list of np.ndarray, each array is a fixed point in the
-          state space
-        - "fixed_point_stability": list of str, each string is the stability
-          type of the corresponding fixed point, e.g., "stable", "unstable",
-          "saddle", or "indeterminate"
+    Purpose of this method is to create a legend that only includes the fixed
+    point types that are present in the plot, since the number and type of fixed
+    points can vary across parameter space. That is, we want to avoid having
+    duplicate labels where we have multiple fixed points of the same type, but
+    we also want to avoid having labels for types that are not present.
 
     Parameters
     ----------
-    fpt_dict_list
-        List of dictionaries, each containing fixed points, the corresponding
-        types, and the shear stress value.
-    shear_range
-        Shear stress values corresponding to each dictionary in `fpt_dict_list`.
-    pcs
-        List of principal components used to fit the dynamical systems model.
-    plt_lims
-        List of tuples containing the axes y-limits for each plot.
+    fpt_stabilities
+        List of stability labels for the fixed points.
+    face_color_dict
+        Dictionary mapping stability labels to face colors.
+    marker_dict
+        Dictionary mapping stability labels to marker styles.
+    marker_size
+        Size of the markers for the legend handles.
+    edge_color
+        Color of the marker edges.
 
     Returns
     -------
     :
-        Tuple containing:
-            - List of matplotlib Figure objects for each component plot.
-            - List of corresponding Axes objects for each component plot.
+        List of StabilityLegendHandle objects representing the legend handles
+        for the fixed point types.
 
     """
-    if len(fpt_dict_list) != len(shear_range):
-        raise ValueError(
-            f"Length of fpt_dict_list ({len(fpt_dict_list)}) does not match length of shear_range ({len(shear_range)})."
-        )
-
-    # plot fixed points by shear stress
-    # initialize figure and axes
-    figs = []
-    axs = []
-
-    # loop over components
-    ndim = len(pcs)
-    for j in range(ndim):
-        # initialize figure and axes for the j-th component
-        fig, ax = plt.subplots(figsize=(7, 6))
-
-        # loop over shear stress values
-        for i, u in enumerate(shear_range):
-            # get fixed points and types for the i-th shear stress value
-            fpt_dict = fpt_dict_list[i]
-
-            # check that the dict corresponds to the correct shear stress value
-            if u != fpt_dict["shear"]:
-                raise ValueError(
-                    f"Shear stress value ({u}) does not match the value in the dictionary ({fpt_dict['shear']})."
+    my_handles = []
+    # get legend handles for the fixed point types that are present in given
+    # list of fixed point stabilities, in the order given by StabilityLabel enum
+    for stability_type in StabilityLabel:
+        if stability_type in fpt_stabilities:
+            my_handles.append(
+                StabilityLegendHandle(
+                    stability_label=stability_type,
+                    legend_label=stability_type,
+                    marker=marker_dict[stability_type],
+                    face_color=face_color_dict[stability_type],
+                    edge_color=edge_color,
+                    marker_size=marker_size,
                 )
+            )
 
-            # get fixed points and types
-            fpts = fpt_dict["fixed_points"]
-            fpt_stabilities = fpt_dict["fixed_point_stability"]
-
-            # check that we have a type for each fixed point
-            if len(fpts) != len(fpt_stabilities):
-                raise ValueError(
-                    f"Number of fixed points ({len(fpts)}) does not match number of "
-                    f"stability types ({len(fpt_stabilities)}) for shear stress {u}."
-                )
-
-            # plot component j of each fixed point (if any)
-            if len(fpts) > 0:
-                # color code by type (stability)
-                for ii, fpt in enumerate(fpts):
-                    # default to black if type not in dict
-                    color = SHEAR_COLOR_DICT.get(fpt_stabilities[ii], "k")
-                    # plot
-                    ax.plot(u, fpt[j], "o", color=color)
-                    ax.set_xlabel("Shear stress (dyn/cm$^2$)")
-                    ax.set_ylabel(f"PC{pcs[j] + 1}$^*$")
-        # set fig title and limits, and append to lists
-        ax.set_title("Fixed points by shear stress")
-        ax.set_ylim(plt_lims[j])
-        figs.append(fig)
-        axs.append(ax)
-
-    return figs, axs
-
-
-def plot_histogram_2d(ax: plt.Axes, p_hist: np.ndarray, bins: list, cmap: str) -> plt.Axes:
-    """Plot 2D histogram with specified colormap.
-
-    Parameters
-    ----------
-    ax
-        Axes to plot on.
-    p_hist
-        2D histogram data, e.g., obtained by np.histogram2d.
-    bins
-        List of bin edges used to compute the histogram for each dimension.
-    cmap
-        Colormap to use for the plot.
-
-    Returns
-    -------
-    :
-        The input Axes object with the histogram plotted on it.
-
-    """
-    # plot histogram, setting origin to lower left and
-    # setting the aspect ratio to be square
-    ax.imshow(
-        p_hist.T,
-        interpolation="nearest",
-        origin="lower",
-        extent=(bins[0][0], bins[0][-1], bins[1][0], bins[1][-1]),
-        cmap=cmap,
-        aspect=(bins[0][-1] - bins[0][0]) / (bins[1][-1] - bins[1][0]),
-    )
-
-    # label axes
-    ax.set_xlabel("$x_1$")
-    ax.set_ylabel("$x_2$")
-
-    return ax
-
-
-def kl_divergence(p: np.ndarray, q: np.ndarray, dx: list, tol: float = 1e-8) -> float:
-    """Approximate Kullback-Leibler divergence between two (possibly multivariate) distributions.
-
-    This method uses the formula `D_KL(p||q) = int p(x) log(p(x)/q(x)) dx`, where
-    the integral is approximated by numerical integration (trapezoidal rule)
-    over the grid defined by the bin edges corresponding to p and q.
-
-    Parameters
-    ----------
-    p
-        First probability distribution.
-    q
-        Second probability distribution.
-    dx
-        List of bin widths used to obtain the distributions for each dimension.
-    tol
-        Small value to avoid division by zero, by default 1e-8.
-
-    Returns
-    -------
-    :
-        The KL divergence D_KL(p||q) approximated by numerical integration.
-
-    """
-    ndim = len(dx)
-
-    # set small values to tol
-    p_ = p.copy()
-    p_[p_ < tol] = tol
-    q_ = q.copy()
-    q_[q_ < tol] = tol
-
-    kl_div = p_ * np.log(p_ / q_)  # initial KL divergence
-    for i in range(ndim):
-        kl_div = np.trapz(kl_div, dx=dx[i], axis=0)  # integrate over each dimension
-
-    return kl_div
-
-
-def compare_stationary_distributions(
-    p_model: np.ndarray, p_hist: np.ndarray, bins: list
-) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
-    """Compare predicted stationary distribution to histogram of data.
-
-    This function creates a side-by-side plot of the histogram of the data at
-    steady state (the "empirical PDF") and the numerical solution to the
-    stationary Fokker-Planck equation for the fit SDE model (the "model PDF").
-
-    The figure suptitle includes the Kullback-Leibler divergence between the two
-    distributions, computed using numerical integration over the grid defined by
-    the bin edges corresponding to p_hist and p_model. (See the `kl_divergence`
-    function for details on the numerical approximation method used.)
-
-    Parameters
-    ----------
-    p_model
-        Predicted stationary distribution from the model, evaluated on the same
-        grid as p_hist.
-    p_hist
-        Histogram of the data at steady state, evaluated on the same grid as
-        p_model.
-    bins
-        List of bin edges used to compute the histogram for each dimension,
-        which should be the same for p_hist and p_model.
-
-    Returns
-    -------
-    :
-        Tuple containing:
-            - The matplotlib Figure object containing the side-by-side plots.
-            - Array of the corresponding Axes objects for the empirical and model PDFs.
-
-    """
-    # check if 1D or 2D
-    ndim = len(bins)
-    if ndim == 2:  # call 2D histogram plot function
-        fig, ax = plt.subplots(1, 2, figsize=(12, 4))
-        ax[0] = plot_histogram_2d(ax[0], p_hist, bins, cmap="inferno")  # plot empirical PDF
-        ax[0].set_title("Empirical PDF")
-        ax[1] = plot_histogram_2d(ax[1], p_model, bins, cmap="inferno")  # plot model PDF
-        ax[1].set_title("Model PDF")
-
-    elif ndim == 1:  # call 1D histogram plot function
-        fig, ax = plt.subplots(1, 2, figsize=(12, 4))
-        ax[0].plot(bins[0][:-1], p_hist, "k", label="Empirical PDF")
-        ax[0].set_title("Empirical PDF")
-        ax[1].plot(bins[0][:-1], p_model, "k", label="Model PDF")
-        ax[1].set_title("Model PDF")
-
-    dx = [bins[i][1] - bins[i][0] for i in range(ndim)]  # bin widths
-    kl_div = kl_divergence(p_hist, p_model, dx)
-
-    fig.suptitle("$D_{KL}(p_{hist}||p_{model}) =$" + f"{kl_div:0.4f}", fontsize=16, y=1.05)
-
-    return fig, ax
-
-
-def plot_gen_potential_2d(
-    potential: np.ndarray,
-    xvec: np.ndarray,
-    yvec: np.ndarray,
-    cmap: str = "jet",
-    surf: bool = False,
-) -> tuple[plt.Figure, plt.Axes]:
-    """Plot 2D generalized potential energy landscape with specified colormap.
-
-    Parameters
-    ----------
-    potential
-        2D array representing the generalized potential energy landscape,
-        evaluated on the grid defined by xvec and yvec.
-    xvec
-        1D array of x-axis values corresponding to each point in the potential.
-    yvec
-        1D array of y-axis values corresponding to each point in the potential.
-    cmap
-        Colormap to use for the plot.
-    surf
-        Whether to plot as a surface (3D) or contour (2D). If True, plots a 3D
-        surface; if False, plots a 2D contour.
-
-    Returns
-    -------
-    :
-        Tuple containing:
-            - The matplotlib Figure object containing the plot.
-            - The corresponding Axes object for the plot.
-
-    """
-    if surf:
-        fig = plt.figure(figsize=plt.figaspect(1 / 3))
-        ax: Axes3D = fig.add_subplot(1, 2, 1, projection="3d")
-        x_, y_ = np.meshgrid(xvec, yvec, indexing="ij")
-        surf = ax.plot_surface(x_, y_, potential, cmap=cmap)
-        ax.set_zlabel("$-\ln P$")
-        plt.tight_layout()
-    else:
-        fig, ax = plt.subplots(figsize=(7, 6))
-        im = ax.imshow(
-            potential.T,
-            interpolation="nearest",
-            origin="lower",
-            extent=(xvec[0], xvec[-1], yvec[0], yvec[-1]),
-            cmap=cmap,
-            aspect=(xvec[-1] - xvec[0]) / (yvec[-1] - yvec[0]),
-        )
-        fig.colorbar(im, label="$-\ln P$")
-    return fig, ax
-
-
-def plot_grad_flux_decomposition(
-    potential: np.ndarray,
-    xvec: np.ndarray,
-    yvec: np.ndarray,
-    grad: np.ndarray,
-    flux: np.ndarray,
-    cmap: str = "jet",
-    normed: bool = False,
-    downsample: int = 10,
-) -> tuple[plt.Figure, plt.Axes]:
-    """Plot quiver plot of gradient and flux decomposition of a vector field.
-
-    Parameters
-    ----------
-    potential
-        2D array representing the generalized potential energy landscape,
-        evaluated on the grid defined by xvec and yvec.
-    xvec
-        1D array of x-axis values corresponding to each point in the potential.
-    yvec
-        1D array of y-axis values corresponding to each point in the potential.
-    grad
-        3D array of shape (2, nx, ny) representing the gradient component of
-        the vector field, evaluated on the same grid as potential.
-    flux
-        3D array of shape (2, nx, ny) representing the flux component of the
-        vector field, evaluated on the same grid as potential.
-    cmap
-        Colormap to use for the potential energy landscape.
-    normed
-        If True, each vector is normalized to have unit length; if False, the
-        vectors retain their original magnitude.
-    downsample
-        Factor by which to downsample the vectors for visualization.
-
-    Returns
-    -------
-    :
-        Tuple containing:
-            - The matplotlib Figure object containing the plot.
-            - The corresponding Axes object for the plot.
-
-    """
-    # contour plot of the potential energy landscape
-    fig, ax = plot_gen_potential_2d(potential, xvec, yvec, cmap=cmap, surf=False)
-
-    # quiver plot of gradient and flux decomposition
-    # normalize vectors if specified
-    if normed:
-        grad = grad / (np.sqrt(grad[0] ** 2 + grad[1] ** 2))
-        flux = flux / (np.sqrt(flux[0] ** 2 + flux[1] ** 2))
-
-    # downsample vectors for visualization
-    x_ = xvec[::downsample]
-    y_ = yvec[::downsample]
-    grad_ = grad[:, ::downsample, ::downsample]
-    flux_ = flux[:, ::downsample, ::downsample]
-
-    # plot quiver, color code by type (gradient or flux)
-    ax.quiver(x_, y_, grad_[0].T, grad_[1].T, color="w", pivot="tail")
-    ax.quiver(x_, y_, flux_[0].T, flux_[1].T, color="r", pivot="tail")
-
-    return fig, ax
+    return my_handles

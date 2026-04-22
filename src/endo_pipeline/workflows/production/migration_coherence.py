@@ -41,10 +41,10 @@ def main(
         add_binned_mean_to_fixed_points,
         add_optical_flow_features,
     )
-    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
-    from endo_pipeline.library.visualize.diffae_features.fixed_points import (
+    from endo_pipeline.library.visualize.diffae_features.dynamics import (
         make_legend_handles_for_fixed_pts,
     )
+    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
     from endo_pipeline.library.visualize.migration_coherence import (
         plot_3d_scatter_or_binned,
         plot_optical_flow_histogram,

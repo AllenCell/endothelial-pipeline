@@ -27,7 +27,7 @@ from endo_pipeline.library.analyze.vector_field_estimation import (
     get_reshaped_vector_field_and_grid,
     load_drift_dataframe_for_dataset,
 )
-from endo_pipeline.library.visualize.diffae_features.dynamics_viz import (
+from endo_pipeline.library.visualize.diffae_features.dynamics import (
     plot_contour_colorbar,
     plot_drift_1d,
     plot_drift_contours,
@@ -334,7 +334,7 @@ for dataset_name, include_legend in [(dataset_low, True), (dataset_high, False)]
     # plot 1D drift in theta and save
     fig, ax = plot_drift_1d(
         drift=drift_theta,
-        centers=centers_theta[-1],
+        x_values=centers_theta[-1],
         figsize=(MAX_FIGURE_WIDTH / 4, MAX_FIGURE_HEIGHT / 4),
         axes_limits=(POLAR_ANGLE_RANGE, (-0.4, 0.4)),
         axes_labels=[column_label_theta, f"d{column_label_theta}/dt"],
