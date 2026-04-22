@@ -128,9 +128,9 @@ def main(
             continue
 
         dataset_config = load_dataset_config(dataset_name)
-        shear_stress = dataset_config.flow_conditions[0].shear_stress
-        dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
-        plot_label = f"{dataset_name} ({shear_stress} dyn/cm{Unicode.SQUARED})"
+        target_shear_stress = dataset_config.shear_stress_regime[-1].target
+        dataset_name_flow = f"{dataset_name}_shear_{target_shear_stress}"
+        plot_label = f"{dataset_name} ({target_shear_stress} dyn/cm{Unicode.SQUARED})"
         fig_savedir = get_output_path(__file__, dataset_name)
 
         # load dataframe and perform additional filtering (e.g., remove
