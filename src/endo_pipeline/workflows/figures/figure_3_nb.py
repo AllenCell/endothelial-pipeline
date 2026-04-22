@@ -139,7 +139,7 @@ generated_image_list = generate_synthetic_images_at_stable_fixed_points(
     random_seed=seed,
 )
 
-crop_contact_sheet_path = make_crop_example_contact_sheet(
+make_crop_example_contact_sheet(
     stable_fixed_point_dataframe=df_reconstruction_examples,
     generated_image_list=generated_image_list,
     fig_savedir=save_dir,
@@ -193,7 +193,7 @@ panels = [
     ),
     FigurePanel(
         letter="C",
-        path=crop_contact_sheet_path,
+        path=save_dir / f"reconstructed_fp_crop_examples_seed{seed}.svg",
         x_position=0,
         y_position=6.5,
         x_offset=0.2,

@@ -69,7 +69,7 @@ def make_crop_example_contact_sheet(
     gridspec_kwargs: dict | None = None,
     fig_kwargs: dict | None = None,
     scale_bar_um: int = 10,
-) -> Path:
+) -> None:
     """
     Make figure panel plot showing example reconstructed crops at stable fixed points.
 
@@ -92,12 +92,6 @@ def make_crop_example_contact_sheet(
         Additional keyword arguments for the figure layout of the contact sheet.
     scale_bar_um
         Length of the scale bar in micrometers.
-
-    Returns
-    -------
-    :
-        Path to the saved figure.
-
     """
     # Group images by dataset — each dataset gets its own column
     datasets = stable_fixed_point_dataframe["dataset"].values
@@ -199,5 +193,3 @@ def make_crop_example_contact_sheet(
         tight_layout=False,
         pad_inches=0,
     )
-
-    return fig_savedir / f"{fig_filename}{file_format}"
