@@ -1616,18 +1616,17 @@ def plot_first_passage_time_correlation_summary(
     analysis across all datasets and fixed points.
     """
 
-    fig, ax = plt.subplots(figsize=(4, 2))
-    sns.scatterplot(
+    fig, ax = plt.subplots(figsize=(5, 3))
+    sns.stripplot(
         data=first_passage_time_correlation_summary_df,
         x=Column.DATASET,
         y="r_value",
         color="black",
-        s=20,
         alpha=0.7,
         ax=ax,
     )
     ax.set_ylim(0, 1)
-    ax.set_ylabel("Correlation (R value)")
+    ax.set_ylabel("Correlation Coefficient (R)")
     plt.xticks(rotation=30, ha="right")
     ax.set_xlabel("")
     save_plot_to_path(
