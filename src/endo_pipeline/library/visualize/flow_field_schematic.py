@@ -20,7 +20,7 @@ from endo_pipeline.settings.image_data import NATIVE_ZARR_RESOLUTION_CROP_SIZE, 
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 
-def build_real_image_panel(
+def make_real_image_panel(
     savedir: Path,
     figsize: tuple[float, float] = (MAX_FIGURE_HEIGHT // 4, MAX_FIGURE_HEIGHT // 2),
     scale_bar_um: int = 20,
