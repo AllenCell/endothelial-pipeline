@@ -367,7 +367,7 @@ def make_kernel_convolution_schematic(
     n_cols: int = 4,
     cmap: str = DRIFT_CONTOUR_COLORMAP,
     fig_kwargs: dict | None = None,
-) -> None:
+) -> Path:
     """
     Build the panel showing a schematic of the kernel convolution process for
     a single target bin in (r, rho) space.
@@ -451,3 +451,7 @@ def make_kernel_convolution_schematic(
         axes_title=f"4. Drift coefficient estimate in {axes_xlabel}",
         colorbar_label=f"drift in {axes_xlabel} (hr$^{{-1}}$)",
     )
+
+    filename = "kernel_convolution_schematic"
+    save_plot_to_path(fig, savedir, filename, file_format=".svg")
+    return savedir / f"{filename}.svg"
