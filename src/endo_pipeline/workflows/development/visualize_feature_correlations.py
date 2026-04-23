@@ -14,10 +14,9 @@ def main(
     segmentation_feature_group: str = "default",
     pc_group: str = "default",
     aggregate_only: bool = True,
-    skip_multi_feature_scatterplots: bool = True,
     plot_grid_migration_coherence_correlations: bool = False,
     plot_main_figure_correlations: bool = True,
-    figsize_cluster_heatmap: tuple[float, float] | None = None,
+    figsize_heatmap: tuple[float, float] | None = None,
 ) -> None:
     """
     Visualize correlation heatmaps and clustermaps for DiffAE features, PCs, and
@@ -49,8 +48,6 @@ def main(
         NUM_PCS_TO_ANALYZE.
     aggregate_only
         If True, only uses the aggregated dataset in the analysis.
-    skip_multi_feature_scatterplots
-        If True, skips generating multi-feature scatterplots.
     plot_migration_coherence_correlations
         If True, includes migration coherence features in the correlation
         analysis and plots.
@@ -111,7 +108,8 @@ def main(
                 f"{list(SEGMENTATION_FEATURE_COLUMNS.keys())}"
             )
         segmentation_feature_columns = SEGMENTATION_FEATURE_COLUMNS[segmentation_feature_group]
-        segmentation_feature_columns.remove(Column.SegData.NODE_FLUOR_MEAN)
+        if Column.SegData.NODE_FLUOR_MEAN in segmentation_feature_columns:
+            segmentation_feature_columns.remove(Column.SegData.NODE_FLUOR_MEAN)
     else:
         raise TypeError(
             "segmentation_feature_group must be a string preset name or None.\n"
@@ -208,9 +206,8 @@ def main(
             df_dataset=df_dataset,
             label_column_tuples=label_column_tuples,
             out_dir=out_dir,
-            skip_multi_feature_scatterplots=skip_multi_feature_scatterplots,
             cross_correlation_only=plot_main_figure_correlations,
-            figsize_cluster_heatmap=figsize_cluster_heatmap,
+            figsize_cluster_heatmap=figsize_heatmap,
         )
 
         if plot_grid_migration_coherence_correlations:
@@ -226,7 +223,6 @@ def main(
                 df_dataset=df_grid_dataset,
                 label_column_tuples=label_column_tuples_grid,
                 out_dir=out_dir,
-                skip_multi_feature_scatterplots=skip_multi_feature_scatterplots,
             )
 
     logger.info(
