@@ -31,14 +31,18 @@ from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import (
-    BIN_WIDTHS_DYNAMICS,
     KERNEL_BANDWIDTHS_DYNAMICS,
     KERNEL_NAMES_DYNAMICS,
+    POLAR_ANGLE_PERIOD,
     TIME_STEP_IN_HOURS,
 )
 from endo_pipeline.settings.examples import FLOW_FIELD_CONSTRUCTION_EXAMPLE_IMAGES
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_HEIGHT
-from endo_pipeline.settings.flow_field_2d import DRIFT_CONTOUR_COLORMAP
+from endo_pipeline.settings.flow_field_2d import (
+    DRIFT_CONTOUR_COLORMAP,
+    DRIFT_CONTOUR_VMAX,
+    DRIFT_CONTOUR_VMIN,
+)
 from endo_pipeline.settings.image_data import NATIVE_ZARR_RESOLUTION_CROP_SIZE, PIXEL_SIZE_3i_20x
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
@@ -233,15 +237,15 @@ def _make_weighted_displacement_histogram(
     # Set vmin and vmax for the colormap based on the 99th percentile of the
     # absolute values in the weighted histogram, to avoid outliers dominating
     # the color scale.
-    vmax2 = np.nanpercentile(np.abs(weighted_counts_delta_x), 99)
+    vmax = np.nanpercentile(np.abs(weighted_counts_delta_x), 99)
     pcm = _make_2d_pcolormesh(
         axes,
         weighted_counts_delta_x,
         bin_edges[0],
         bin_edges[1],
         cmap=cmap,
-        vmin=-vmax2,
-        vmax=vmax2,
+        vmin=-vmax,
+        vmax=vmax,
         axes_xlabel=axes_xlabel,
         axes_ylabel=axes_ylabel,
         axes_xlim=axes_xlim,
@@ -335,6 +339,8 @@ def _plot_km_coeff_at_target_bin(
         bin_edges[0],
         bin_edges[1],
         cmap=cmap,
+        vmin=DRIFT_CONTOUR_VMIN,
+        vmax=DRIFT_CONTOUR_VMAX,
         axes_xlabel=axes_xlabel,
         axes_ylabel=axes_ylabel,
         axes_xlim=axes_xlim,
@@ -388,9 +394,8 @@ def make_kernel_convolution_schematic(
         axes_ylim=axes_ylim,
         axes_xlabel=axes_xlabel,
         axes_ylabel=axes_ylabel,
-        axes_title="1. Displacement-weighted histogram",
         cmap=cmap,
-        colorbar_label=f"sum of $\\Delta$ {axes_xlabel} in bin",
+        colorbar_label=f"sum of $\\Delta$ {axes_xlabel}",
     )
 
     # get kernels for panel 2
@@ -398,7 +403,7 @@ def make_kernel_convolution_schematic(
         KramersMoyalKernel(
             name=KERNEL_NAMES_DYNAMICS[column_name],
             bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_name],
-            bin_width=BIN_WIDTHS_DYNAMICS[column_name],
+            period=POLAR_ANGLE_PERIOD if column_name == Column.DiffAEData.POLAR_ANGLE else None,
         )
         for column_name in column_names
     ]
@@ -412,25 +417,23 @@ def make_kernel_convolution_schematic(
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
         axes_xlabel=axes_xlabel,
-        axes_ylabel=axes_ylabel,
-        axes_title="2. Product kernel weights",
         colorbar_label="kernel weight (normalized)",
     )
 
     # panel 3 - kernel-weighted histogram (i.e. numerator of KM estimator)
     kernel_weighted_hist_delta_r = kernel_weights_2d * weighted_hist_delta_r
+    vmax = np.nanpercentile(np.abs(kernel_weighted_hist_delta_r), 99)
     pcm = _make_2d_pcolormesh(
         axes[2],
         kernel_weighted_hist_delta_r,
         bin_edges[0],
         bin_edges[1],
         cmap=cmap,
-        axes_xlabel=axes_xlabel,
-        axes_ylabel=axes_ylabel,
+        vmin=-vmax,
+        vmax=vmax,
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
-        axes_aspect="equal",
-        axes_title="3. Kernel-weighted histogram",
+        axes_xlabel=axes_xlabel,
     )
     fig.colorbar(pcm, ax=axes[2], label=f"kernel-weighted sum of $\\Delta$ {axes_xlabel}")
 
@@ -442,16 +445,15 @@ def make_kernel_convolution_schematic(
         column_names=column_names,
         kernels=kernels,
         bin_edges=bin_edges,
-        bin_centers=bin_centers,
         target_point=target_point,
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
         axes_xlabel=axes_xlabel,
-        axes_ylabel=axes_ylabel,
-        axes_title=f"4. Drift coefficient estimate in {axes_xlabel}",
         colorbar_label=f"drift in {axes_xlabel} (hr$^{{-1}}$)",
     )
 
     filename = "kernel_convolution_schematic"
-    save_plot_to_path(fig, savedir, filename, file_format=".svg")
+    save_plot_to_path(
+        fig, savedir, filename, file_format=".svg", tight_layout=False, transparent=True
+    )
     return savedir / f"{filename}.svg"
