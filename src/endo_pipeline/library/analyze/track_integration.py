@@ -1126,7 +1126,7 @@ def compute_and_plot_first_passage_times_one_dataset(
 
     dataset_config = load_dataset_config(dataset_name)
 
-    examples_for_figure = ["20250618_20X", "20250611_20X", "20250813_20X"]
+    examples_for_figure = ["20250618_20X", "20250611_20X"]
 
     line_fit_results: list[dict] = []
 

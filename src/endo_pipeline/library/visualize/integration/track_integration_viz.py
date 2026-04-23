@@ -1180,8 +1180,8 @@ def compute_and_plot_first_passage_time_correlation(
     ax_max = max((*ax.get_xlim(), *ax.get_ylim()))
     ax.set_xlim(ax_min, ax_max)
     ax.set_ylim(ax_min, ax_max)
-    ax.set_xticks(range(0, int(ax_max), 4))
-    ax.set_yticks(range(0, int(ax_max), 4))
+    ax.set_xticks(range(0, int(ax_max), 2))
+    ax.set_yticks(range(0, int(ax_max), 2))
     ax.tick_params(labelsize=FONTSIZE_SMALL)
     ax.set_xlabel("Grid FPT (hrs)", fontsize=FONTSIZE_SMALL, labelpad=1.0)
     ax.set_ylabel("Tracked FPT (hrs)", fontsize=FONTSIZE_SMALL, labelpad=1.0)
@@ -1668,7 +1668,7 @@ def plot_first_passage_time_correlation_summary_for_figure(
     analysis across all datasets and fixed points as it will appear in the figure.
     """
 
-    fig, ax = plt.subplots(figsize=(6, 2))
+    fig, ax = plt.subplots(figsize=(6, 2.5))
     sns.stripplot(
         data=first_passage_time_correlation_summary_df,
         x=Column.DATASET,
@@ -1690,13 +1690,13 @@ def plot_first_passage_time_correlation_summary_for_figure(
         show_and_close=False,
     )
 
-    fig, ax = plt.subplots(figsize=(1.5, 1.5))
+    fig, ax = plt.subplots(figsize=(2, 2))
     sns.histplot(
         data=first_passage_time_correlation_summary_df,
         x="r_value",
-        bins=5,
+        binwidth=0.1,
         color="black",
-        alpha=0.7,
+        fill=False,
         ax=ax,
     )
     ax.set_xlabel("Correlation Coefficient (R)", fontsize=FONTSIZE_SMALL)
