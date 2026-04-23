@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.collections import QuadMesh
-from matplotlib.patches import Rectangle
+from matplotlib.patches import FancyArrowPatch, Rectangle
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from endo_pipeline.configs import load_dataset_config
@@ -46,7 +46,7 @@ from endo_pipeline.settings.dynamics_workflows import (
     TIME_STEP_IN_HOURS,
 )
 from endo_pipeline.settings.examples import FLOW_FIELD_CONSTRUCTION_EXAMPLE_IMAGES
-from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_HEIGHT
+from endo_pipeline.settings.figures import FONTSIZE_MEDIUM
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_COLORMAP,
     DRIFT_CONTOUR_VMAX,
@@ -61,7 +61,7 @@ from endo_pipeline.settings.workflow_defaults import (
 
 def make_real_image_panel(
     savedir: Path,
-    figsize: tuple[float, float] = (MAX_FIGURE_HEIGHT // 4, MAX_FIGURE_HEIGHT // 2),
+    contact_figsize: tuple[float, float] = (4.8, 2.75),
     scale_bar_um: int = 20,
     grid_crop_position: tuple[int, int] = (0, 0),
 ) -> Path:
@@ -92,7 +92,7 @@ def make_real_image_panel(
         max_rows=len(processed_images),
         max_cols=1,
         row_titles=labels,
-        fig_kwargs={"figsize": figsize},
+        fig_kwargs={"figsize": contact_figsize, "layout": "constrained"},
     )
 
     fig.subplots_adjust(hspace=2.5)
@@ -137,6 +137,64 @@ def make_real_image_panel(
         va="bottom",
         ha="right",
     )
+
+    # ── Curved arrows to (theta,r,rho) labels and vertical arrow between them ──
+    ax_t = fig.axes[0]
+    ax_t1 = fig.axes[1]
+    bbox_t = ax_t.get_position()
+    bbox_t1 = ax_t1.get_position()
+
+    label_x = bbox_t.x1 + 0.10
+    label_y_t = bbox_t.y0 + 0.5 * bbox_t.height
+    label_y_t1 = bbox_t1.y0 + 0.5 * bbox_t1.height
+
+    # Text labels
+    fig.text(
+        label_x + 0.02,
+        label_y_t,
+        f"({Unicode.THETA}, r, {Unicode.RHO}) at t",
+        ha="left",
+        va="center",
+        fontsize=FONTSIZE_MEDIUM,
+    )
+    fig.text(
+        label_x + 0.02,
+        label_y_t1,
+        f"({Unicode.THETA}, r, {Unicode.RHO}) at t+1",
+        ha="left",
+        va="center",
+        fontsize=FONTSIZE_MEDIUM,
+    )
+
+    # Curved arrows from right edge of each image to its (theta, r, rho) label
+    for img_y, lbl_y, rad in [
+        (label_y_t, label_y_t, -0.3),
+        (label_y_t1, label_y_t1, 0.3),
+    ]:
+        arrow = FancyArrowPatch(
+            (bbox_t.x1 + 0.01, img_y),
+            (label_x + 0.01, lbl_y),
+            connectionstyle=f"arc3,rad={rad}",
+            arrowstyle="->,head_length=5,head_width=3",
+            color="black",
+            linewidth=1.5,
+            transform=fig.transFigure,
+            clip_on=False,
+        )
+        fig.add_artist(arrow)
+
+    # Vertical arrow between the two (theta, r, rho) labels
+    mid_x = label_x + 0.06
+    vertical_arrow = FancyArrowPatch(
+        (mid_x, label_y_t - 0.03),
+        (mid_x, label_y_t1 + 0.03),
+        arrowstyle="->,head_length=5,head_width=3",
+        color="black",
+        linewidth=1.5,
+        transform=fig.transFigure,
+        clip_on=False,
+    )
+    fig.add_artist(vertical_arrow)
 
     filename = "flow_field_example_t_to_tp1"
     save_plot_to_path(fig, savedir, filename, file_format=".svg")

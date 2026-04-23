@@ -25,7 +25,10 @@ plt.style.use("endo_pipeline.figure")
 
 output_path = get_output_path("supp_fig_flow_field")
 # %%
-image_panel_path = make_real_image_panel(output_path)
+image_panel_path = make_real_image_panel(
+    output_path,
+    contact_figsize=(4.8, 2.75),
+)
 
 # %% Use the dataset defined in the flow field construction examples for low
 # shear stress
