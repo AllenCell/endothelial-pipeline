@@ -16,6 +16,7 @@ from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
     _evaluate_multivariate_product_kernel,
     _get_weighted_histogram_for_convolution,
     get_cartesian_product,
+    get_kramers_moyal_coeffs,
 )
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
@@ -33,6 +34,7 @@ from endo_pipeline.settings.dynamics_workflows import (
     BIN_WIDTHS_DYNAMICS,
     KERNEL_BANDWIDTHS_DYNAMICS,
     KERNEL_NAMES_DYNAMICS,
+    TIME_STEP_IN_HOURS,
 )
 from endo_pipeline.settings.examples import FLOW_FIELD_CONSTRUCTION_EXAMPLE_IMAGES
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_HEIGHT
@@ -307,6 +309,51 @@ def _plot_kernel_at_target_bin(
     return kernel_weights_2d
 
 
+def _plot_km_coeff_at_target_bin(
+    axes: plt.Axes,
+    dataframe_steady_state: pd.DataFrame,
+    column_names: list[Column.DiffAEData],
+    kernels: list[KramersMoyalKernel],
+    bin_edges: list[np.ndarray],
+    target_point: tuple[float, float],
+    time_step=TIME_STEP_IN_HOURS,
+    axes_xlim: tuple[float, float] | None = None,
+    axes_ylim: tuple[float, float] | None = None,
+    axes_xlabel: str | None = None,
+    axes_ylabel: str | None = None,
+    axes_aspect: Literal["auto", "equal"] | float | None = "equal",
+    axes_title: str | None = None,
+    cmap: str = "RdBu_r",
+    colorbar_label: str | None = None,
+) -> None:
+    """Plot the Kramers-Moyal coefficient estimate at the target bin."""
+    traj_list, disp_list = get_traj_and_diff(dataframe_steady_state, column_names)
+    drift = get_kramers_moyal_coeffs(traj_list, disp_list, bin_edges, time_step, kernels)[0]
+    pcm = _make_2d_pcolormesh(
+        axes,
+        drift[..., 0],
+        bin_edges[0],
+        bin_edges[1],
+        cmap=cmap,
+        axes_xlabel=axes_xlabel,
+        axes_ylabel=axes_ylabel,
+        axes_xlim=axes_xlim,
+        axes_ylim=axes_ylim,
+        axes_aspect=axes_aspect,
+        axes_title=axes_title,
+    )
+
+    _add_target_bin_border(
+        axes,
+        target_point=target_point,
+        bin_edges=bin_edges,
+    )
+
+    fig = axes.get_figure()
+    fig.colorbar(pcm, ax=axes, label=colorbar_label)
+    return pcm
+
+
 def make_kernel_convolution_schematic(
     savedir: Path,
     dataframe_steady_state: pd.DataFrame,
@@ -386,3 +433,21 @@ def make_kernel_convolution_schematic(
         axes_title="3. Kernel-weighted histogram",
     )
     fig.colorbar(pcm, ax=axes[2], label=f"kernel-weighted sum of $\\Delta$ {axes_xlabel}")
+
+    # panel 4 - final KM coefficient estimate at target bin
+    # with KM estimates at surrounding bins shown for context
+    _plot_km_coeff_at_target_bin(
+        axes=axes[3],
+        dataframe_steady_state=dataframe_steady_state,
+        column_names=column_names,
+        kernels=kernels,
+        bin_edges=bin_edges,
+        bin_centers=bin_centers,
+        target_point=target_point,
+        axes_xlim=axes_xlim,
+        axes_ylim=axes_ylim,
+        axes_xlabel=axes_xlabel,
+        axes_ylabel=axes_ylabel,
+        axes_title=f"4. Drift coefficient estimate in {axes_xlabel}",
+        colorbar_label=f"drift in {axes_xlabel} (hr$^{{-1}}$)",
+    )
