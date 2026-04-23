@@ -1145,7 +1145,7 @@ def compute_and_plot_first_passage_time_correlation(
     num_bins = first_passage_time_df_no_nan[Column.VectorField.BIN_INDEX].nunique()
 
     if for_figure:
-        fig, ax = plt.subplots(figsize=(1.6, 1.6))
+        fig, ax = plt.subplots(figsize=(2, 2))
     else:
         fig, ax = plt.subplots(figsize=(3, 3))
         ax.set_title(f"{dataset_name}: {num_bins} bins".title())
@@ -1165,9 +1165,8 @@ def compute_and_plot_first_passage_time_correlation(
         color="black",
         edgecolor="white",
         lw=0.2,
-        label=f"FPT {metric_to_plot} {UnicodeCharacters.PLUS_MINUS} STD",
+        label=f"FPT {metric_to_plot} {UnicodeCharacters.PLUS_MINUS} STD (n={num_bins})",
     )
-    ax.axline(xy1=(0, 0), slope=1, color="tab:red", linestyle="--", zorder=0, label="Unity")
     ax.axline(
         xy1=(0, line_fit.intercept),
         slope=line_fit.slope,
@@ -1176,6 +1175,7 @@ def compute_and_plot_first_passage_time_correlation(
         zorder=0,
         label=f"Linear Fit (R={line_fit.rvalue:.2f})",
     )
+    ax.axline(xy1=(0, 0), slope=1, color="tab:red", linestyle="--", zorder=0, label="Unity")
     ax_min = min((*ax.get_xlim(), *ax.get_ylim()))
     ax_max = max((*ax.get_xlim(), *ax.get_ylim()))
     ax.set_xlim(ax_min, ax_max)
@@ -1185,8 +1185,8 @@ def compute_and_plot_first_passage_time_correlation(
     ax.tick_params(labelsize=FONTSIZE_SMALL)
     ax.set_xlabel("Grid FPT (hrs)", fontsize=FONTSIZE_SMALL, labelpad=1.0)
     ax.set_ylabel("Tracked FPT (hrs)", fontsize=FONTSIZE_SMALL, labelpad=1.0)
+    ax.legend()
     if not for_figure:
-        ax.legend()
         fname_suff = ""
     else:
         fname_suff = "_for_figure"

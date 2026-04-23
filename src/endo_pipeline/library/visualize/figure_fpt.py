@@ -398,13 +398,15 @@ def generate_first_passage_time_example(
     # # (these are easy to find since they will have a length greater than the bin edge)
     from itertools import combinations
 
+    list(combinations(list(zip(*bin_edges_1_bin)), r=3))
+
     edges = list(combinations(np.asarray(bin_edges_1_bin).ravel(), r=2))
     bin_edge_lengths = [np.diff(e) for e in edges]
     # test = [e for e in edges if abs(np.diff(e)) in bin_sizes.values()]
 
     # from matplotlib.ticker import AutoMinorLocator, MultipleLocator
 
-    fig, ax = plt.subplots(figsize=(2, 2), subplot_kw={"projection": "3d"})
+    fig, ax = plt.subplots(figsize=(2, 2), subplot_kw={"projection": "3d"})  # type: ignore[call-arg]
     ax.plot(  # type: ignore[call-arg]
         xs=thetas_tracked,
         ys=rs_tracked,
@@ -451,22 +453,23 @@ def generate_first_passage_time_example(
     # ax.grid(which="minor", ls="--", alpha=0.5)  # type: ignore[call-arg]
     # ax.grid(visible=False, which="major", ls="-", alpha=0.5)  # type: ignore[call-arg]
     # make the axes labels pretty
-    # ax.tick_params(axis="x", labelsize=FONTSIZE_SMALL, rotation=45, pad=0)  # type: ignore[call-arg]
-    # plt.setp(ax.get_xticklabels(), va="center", ha="center")  # type: ignore[call-arg]
-    # ax.tick_params(axis="y", labelsize=FONTSIZE_SMALL, rotation=-15, pad=0)  # type: ignore[call-arg]
-    # plt.setp(ax.get_yticklabels(), va="center", ha="center")  # type: ignore[call-arg]
+    ax.tick_params(axis="x", labelsize=FONTSIZE_SMALL, rotation=45, pad=4)  # type: ignore[call-arg]
+    plt.setp(ax.get_xticklabels(), va="bottom", ha="center")  # type: ignore[call-arg]
+    ax.tick_params(axis="y", labelsize=FONTSIZE_SMALL, rotation=-15, pad=-2)  # type: ignore[call-arg]
+    plt.setp(ax.get_yticklabels(), va="center", ha="left")  # type: ignore[call-arg]
+    ax.tick_params(axis="z", labelsize=FONTSIZE_SMALL, pad=-4)  # type: ignore[call-arg]
+    plt.setp(ax.get_zticklabels(), va="top", ha="left")  # type: ignore[call-arg]
+    # ax.tick_params(axis="x", labelsize=FONTSIZE_SMALL, pad=-4)  # type: ignore[call-arg]
+    # ax.tick_params(axis="y", labelsize=FONTSIZE_SMALL, pad=-2)  # type: ignore[call-arg]
     # ax.tick_params(axis="z", labelsize=FONTSIZE_SMALL, pad=0)  # type: ignore[call-arg]
-    ax.tick_params(axis="x", labelsize=FONTSIZE_SMALL, pad=-4)  # type: ignore[call-arg]
-    ax.tick_params(axis="y", labelsize=FONTSIZE_SMALL, pad=-2)  # type: ignore[call-arg]
-    ax.tick_params(axis="z", labelsize=FONTSIZE_SMALL, pad=0)  # type: ignore[call-arg]
-    ax.set_xlabel(get_label_for_column(Column.DiffAEData.POLAR_ANGLE), labelpad=-4)
-    ax.set_ylabel(get_label_for_column(Column.DiffAEData.POLAR_RADIUS), labelpad=-4)
+    ax.set_xlabel(get_label_for_column(Column.DiffAEData.POLAR_ANGLE), loc="center", labelpad=-4)
+    ax.set_ylabel(get_label_for_column(Column.DiffAEData.POLAR_RADIUS), loc="center", labelpad=-3)
     ax.set_zlabel(
-        get_label_for_column(Column.DiffAEData.PC3_FLIPPED), labelpad=-5
+        get_label_for_column(Column.DiffAEData.PC3_FLIPPED), labelpad=-4
     )  # type:ignore[attr-defined]
-    ax_pos = ax.get_position()
-    ax_pos.x0 = ax_pos.x0 + 0.4
-    ax.set_position(ax_pos)
+    # ax_pos = ax.get_position()
+    # ax_pos.x0 = ax_pos.x0 + 0.4
+    # ax.set_position(ax_pos)
 
     # adjust the focal length of the 3D plot so that depth is easier to perceive
     # ax.set_proj_type("persp", focal_length=0.5)  # type: ignore[attr-defined]
