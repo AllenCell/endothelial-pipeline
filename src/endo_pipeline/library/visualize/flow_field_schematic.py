@@ -141,12 +141,26 @@ def make_real_image_panel(
     # ── Curved arrows to (theta,r,rho) labels and vertical arrow between them ──
     ax_t = fig.axes[0]
     ax_t1 = fig.axes[1]
-    bbox_t = ax_t.get_position()
-    bbox_t1 = ax_t1.get_position()
 
+    # Finalize layout so data→figure transforms are accurate
+    fig.canvas.draw()
+
+    bbox_t = ax_t.get_position()
     label_x = bbox_t.x1 + 0.10
-    label_y_t = bbox_t.y0 + 0.5 * bbox_t.height
-    label_y_t1 = bbox_t1.y0 + 0.5 * bbox_t1.height
+
+    # Compute start point for each arrow from the right edge of the highlighted box
+    def _data_to_fig(ax: plt.Axes, x: float, y: float) -> tuple[float, float]:
+        display = ax.transData.transform((x, y))
+        return cast(tuple[float, float], tuple(fig.transFigure.inverted().transform(display)))
+
+    box_right_x = grid_crop_position[0] + NATIVE_ZARR_RESOLUTION_CROP_SIZE
+    box_mid_y = grid_crop_position[1] + NATIVE_ZARR_RESOLUTION_CROP_SIZE / 2
+    arrow_start_t = _data_to_fig(ax_t, box_right_x, box_mid_y)
+    arrow_start_t1 = _data_to_fig(ax_t1, box_right_x, box_mid_y)
+
+    # Align labels vertically with the midpoint of each highlighted box
+    label_y_t = arrow_start_t[1]
+    label_y_t1 = arrow_start_t1[1]
 
     # Text labels
     fig.text(
@@ -166,13 +180,13 @@ def make_real_image_panel(
         fontsize=FONTSIZE_MEDIUM,
     )
 
-    # Curved arrows from right edge of each image to its (theta, r, rho) label
-    for img_y, lbl_y, rad in [
-        (label_y_t, label_y_t, -0.3),
-        (label_y_t1, label_y_t1, 0.3),
+    # Curved arrows from right edge of highlighted box to its (theta, r, rho) label
+    for start, lbl_y, rad in [
+        (arrow_start_t, label_y_t, -0.3),
+        (arrow_start_t1, label_y_t1, 0.3),
     ]:
         arrow = FancyArrowPatch(
-            (bbox_t.x1 + 0.01, img_y),
+            start,
             (label_x + 0.01, lbl_y),
             connectionstyle=f"arc3,rad={rad}",
             arrowstyle="->,head_length=5,head_width=3",
@@ -197,7 +211,9 @@ def make_real_image_panel(
     fig.add_artist(vertical_arrow)
 
     filename = "flow_field_example_t_to_tp1"
-    save_plot_to_path(fig, savedir, filename, file_format=".svg")
+    save_plot_to_path(
+        fig, savedir, filename, file_format=".svg", transparent=True, tight_layout=False
+    )
     image_panel_path = savedir / f"{filename}.svg"
 
     return image_panel_path
