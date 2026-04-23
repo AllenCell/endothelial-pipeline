@@ -763,7 +763,7 @@ def add_distance_to_fixed_points_columns(
     polar_angle_period = POLAR_ANGLE_PERIOD if polar_angle_period is None else polar_angle_period
 
     for i in fixed_point_df.index:
-        fpt = fixed_point_df.iloc[i]
+        fpt = fixed_point_df.loc[i]
 
         for j, col in enumerate(fixed_point_columns):
             # this lambda function computes the signed difference from the fixed point for a given

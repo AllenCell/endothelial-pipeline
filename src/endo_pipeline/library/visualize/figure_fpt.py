@@ -398,9 +398,18 @@ def generate_first_passage_time_example(
     # # (these are easy to find since they will have a length greater than the bin edge)
     from itertools import combinations
 
-    list(combinations(list(zip(*bin_edges_1_bin)), r=3))
+    bin_start, bin_stop = list(zip(*bin_edges_1_bin))
+    edges = []
+    for start in bin_start:
+        for stop in bin_stop:
+            edges.append((start, stop))
 
-    edges = list(combinations(np.asarray(bin_edges_1_bin).ravel(), r=2))
+        if stop - start < 0:
+            stop += polar_angle_period
+
+    bin_edges_1_bin_arr = np.asarray(bin_edges_1_bin)
+    vertices = list(combinations(np.asarray(bin_edges_1_bin).ravel(), r=3))
+    edges = list(combinations(vertices, r=2))
     bin_edge_lengths = [np.diff(e) for e in edges]
     # test = [e for e in edges if abs(np.diff(e)) in bin_sizes.values()]
 
@@ -434,7 +443,7 @@ def generate_first_passage_time_example(
     # ax.scatter(*init_point_tracked.values, color="red", s=5, marker=".")  # type: ignore
     # ax.scatter(*init_point_grid.values, color="blue", s=5, marker="d")  # type: ignore
     # plot the fixed point in the 3D space as a black star
-    ax.scatter(*fixed_points_df.iloc[fp_idx][list(DYNAMICS_COLUMN_NAMES)].values, color="black", s=15, marker="*")  # type: ignore
+    ax.scatter(*fixed_points_df.loc[fp_idx][list(DYNAMICS_COLUMN_NAMES)].values, color="black", s=15, marker="*")  # type: ignore
     # make the minor ticks on each axis correspond to the bin edges
     theta_lims = ax.get_xlim()
     r_lims = ax.get_ylim()

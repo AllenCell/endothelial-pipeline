@@ -1285,7 +1285,7 @@ def plot_first_passage_time_3d_scatter(
         cmap=cmap,
         norm=norm,
     )  # type: ignore[call-arg]
-    ax.scatter(*fixed_points_df.iloc[fixed_point_id][list(DYNAMICS_COLUMN_NAMES)].values, color="black", s=10, marker="*")  # type: ignore
+    ax.scatter(*fixed_points_df.loc[fixed_point_id][list(DYNAMICS_COLUMN_NAMES)].values, color="black", s=10, marker="*")  # type: ignore
     ax.set_xlabel(get_label_for_column(Column.DiffAEData.POLAR_ANGLE))
     ax.set_ylabel(get_label_for_column(Column.DiffAEData.POLAR_RADIUS))
     ax.set_zlabel(get_label_for_column(Column.DiffAEData.PC3_FLIPPED))  # type:ignore[attr-defined]
@@ -1605,7 +1605,7 @@ def plot_first_passage_time_heatmap(
     ax.set_ylabel(get_label_for_column(all_dim_labels[remaining_indices[1]]))
 
     # lastly add the fixed point location as a black star on the heatmap
-    fixed_point_coords = fixed_points_df.iloc[fixed_point_id][all_dim_labels].values
+    fixed_point_coords = fixed_points_df.loc[fixed_point_id][all_dim_labels].values
     ax.scatter(
         fixed_point_coords[remaining_indices[0]],
         fixed_point_coords[remaining_indices[1]],
