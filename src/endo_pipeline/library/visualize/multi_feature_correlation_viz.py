@@ -114,7 +114,7 @@ def plot_and_save_clustermap(
 def get_df_for_feature_correlation_viz(
     dataset_name_list: list[str],
     dataset_info_columns: list[str],
-    segmentation_feature_columns: list[str],
+    segmentation_feature_columns: list[Column.SegData | Column.OpticalFlow] | list[str],
     pc_columns: list[str],
     merged_dataframe_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
 ) -> pd.DataFrame:
@@ -130,7 +130,7 @@ def get_df_for_feature_correlation_viz(
         List of columns containing dataset information.
     segmentation_feature_columns
         List of segmentation feature column names.
-    pc_columns
+    pc_columns`
         List of PCA component column names.
     merged_dataframe_manifest_name
         The manifest name for the merged DiffAE and segmentation features
@@ -213,8 +213,8 @@ def get_df_for_feature_correlation_viz(
             *dataset_info_columns,
             *segmentation_feature_columns,
             *pc_columns,
-            *optical_flow_columns,
         ]
+
         if not all(np.isin(cols_to_keep, merged_feats_df.columns)):
             missing_columns = set(cols_to_keep) - set(merged_feats_df.columns)
             raise ValueError(

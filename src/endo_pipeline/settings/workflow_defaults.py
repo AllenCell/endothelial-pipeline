@@ -85,7 +85,10 @@ IMAGE_METRIC_DATASET_COLORS = {
 """Color palette for image metric bar plots, keyed by dataset split name."""
 
 SegFeatureColumnDict: TypeAlias = dict[
-    str, list[Column.SegData] | list[str | Column.SegData] | list[Column.SegDataFilters]
+    str,
+    list[Column.SegData | Column.OpticalFlow]
+    | list[str | Column.SegData | Column.OpticalFlow]
+    | list[Column.SegDataFilters],
 ]
 
 SEGMENTATION_FEATURE_COLUMNS: SegFeatureColumnDict = {
@@ -99,6 +102,16 @@ SEGMENTATION_FEATURE_COLUMNS: SegFeatureColumnDict = {
         Column.SegData.NODE_FLUOR_MEAN,
         Column.SegData.NUM_NUCLEI_IN_CROP,
         Column.SegData.AREA_UM_SQ,
+    ],
+    "main_figure": [
+        Column.SegData.ORIENTATION,
+        Column.SegData.ASPECT_RATIO,
+        Column.SegData.NUM_NUCLEI_IN_CROP,
+        Column.SegData.AREA_UM_SQ,
+        Column.SegData.CELL_FLUOR_MEAN,
+        Column.SegData.EDGE_FLUOR_MEAN,
+        Column.OpticalFlow.UNIT_VECTOR_MEAN,
+        Column.OpticalFlow.SPEED_MEAN,
     ],
     "supp": [
         Column.SegData.ALIGNMENT_DEG,
