@@ -43,7 +43,17 @@ plt.style.use("endo_pipeline.figure")
 
 logger = logging.getLogger(__name__)
 
-# Crop pairs that we are using for the figures
+# Crop pairs that we are using for the figures.
+#
+# Each entry identifies a single crop/timepoint pair:
+#   - dataset, position, t0, t1: source frames (BF) at this position
+#     and the consecutive timepoints used to compute optical flow.
+#   - row, col: 1-indexed (row, col) of the crop within the
+#     position's regular crop grid (NOT pixel coordinates).
+#     Row 1 / col 1 is the top-left crop; rows increase downward
+#     (sorted by START_Y), cols increase rightward (sorted by START_X).
+#     Resolved to pixel bbox in :func:`_resolve_pick`.
+
 MANUAL_PICKS: dict[str, dict] = {
     "COHERENT": {
         "dataset": "20250409_20X",
