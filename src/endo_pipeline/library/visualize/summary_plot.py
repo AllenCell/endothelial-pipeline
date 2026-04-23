@@ -32,7 +32,11 @@ from endo_pipeline.settings.dynamics_workflows import (
 )
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLOR_DICT, STABILITY_MARKER_DICT
-from endo_pipeline.settings.summary_plot import CELL_LINE_LABEL_MAP, COLOR_PALETTE
+from endo_pipeline.settings.summary_plot import (
+    CELL_LINE_LABEL_MAP,
+    COLOR_PALETTE,
+    DATASET_COLOR_MAP,
+)
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
@@ -82,6 +86,7 @@ def plot_fixed_points_vs_shear_stress(
     stable_only: bool = True,
     ax: plt.Axes | None = None,
     jitter_width: float = 0.1,
+    x_padding: float = 0.5,
 ) -> plt.Figure:
     """Make and save plot of one component of fixed points vs shear stress.
 
@@ -117,6 +122,22 @@ def plot_fixed_points_vs_shear_stress(
         Size of the scatter markers for fixed points.
     marker_size_legend
         Size of the markers in the legend for fixed points.
+    figure_size
+        Size of the output figure.
+    stable_only
+        If ``True``, only fixed points classified as stable are included in the
+        plot, and colored by dataset.  If ``False``, all fixed points are
+        included and colored by stability classification.
+    ax
+        Optional matplotlib Axes to plot on.  If ``None``, a new figure
+        and axes are created.
+    jitter_width
+        Horizontal jitter applied to overlapping points sharing the same
+        x-axis position.  Larger values spread points further apart.
+    x_padding
+        Additional horizontal padding added to the left and right edges of the plot
+        to ensure jittered points aren't clipped.  Only applied for non-categorical
+        x-axis modes.
 
 
     Returns
@@ -173,7 +194,7 @@ def plot_fixed_points_vs_shear_stress(
         ]  # noqa: E731
         tick_positions = list(range(len(unique_datasets)))
         tick_labels = [
-            f"{d} ({df_fp.loc[df_fp['dataset'] == d, 'shear_stress_numeric'].iloc[0]})"
+            f"{load_dataset_config(d).date} ({df_fp.loc[df_fp['dataset'] == d, 'shear_stress_numeric'].iloc[0]})"
             for d in unique_datasets
         ]
     elif x_axis_mode == "shear_stress_numeric":
@@ -226,9 +247,12 @@ def plot_fixed_points_vs_shear_stress(
         fig = ax.figure  # type: ignore[assignment]
 
     if stable_only:
+        # Use global dataset color map for consistent colors across plots;
+        # fall back to palette cycling for unknown datasets.
         unique_datasets_list = df_fp["dataset"].unique()
         dataset_color_map = {
-            ds: COLOR_PALETTE[i % len(COLOR_PALETTE)] for i, ds in enumerate(unique_datasets_list)
+            ds: DATASET_COLOR_MAP.get(ds, COLOR_PALETTE[i % len(COLOR_PALETTE)])
+            for i, ds in enumerate(unique_datasets_list)
         }
 
         for _, row in df_fp.iterrows():
@@ -314,8 +338,8 @@ def plot_fixed_points_vs_shear_stress(
         ax.set_xticklabels(tick_labels)
     # Add edge padding so jittered points aren't clipped
     if tick_positions and x_axis_mode != "dataset":
-        pad = 0.5
-        ax.set_xlim(tick_positions[0] - pad, tick_positions[-1] + pad)
+        x_padding = x_padding
+        ax.set_xlim(tick_positions[0] - x_padding, tick_positions[-1] + x_padding)
     if ylimits is not None:
         ax.set_ylim(ylimits)
 
@@ -351,6 +375,8 @@ def plot_cross_dataset_summaries(
     dataset_order: list[str] | None = None,
     stable_only: bool = True,
     jitter_width: float = 0.1,
+    x_padding: float = 0.5,
+    subplot_layout: Literal["horizontal", "vertical"] = "horizontal",
 ) -> None:
     """Create a plot of cross-dataset summary visualizations for
     observable fixed-point locations vs shear-stress plots
@@ -386,6 +412,15 @@ def plot_cross_dataset_summaries(
     jitter_width
         Horizontal jitter applied to overlapping points sharing the same
         x-axis position.  Larger values spread points further apart.
+    x_padding
+        Additional horizontal padding added to the left and right edges of the fixed point vs shear stress plot
+        to ensure jittered points aren't clipped.  Only applied for non-categorical x-axis modes.
+    subplot_layout
+        Layout direction for multiple column panels:
+
+        - ``"horizontal"`` (default): panels side-by-side in a single row (1xn).
+        - ``"vertical"``: panels stacked vertically with a shared x-axis (nx1).
+          Only the bottom panel shows x-axis tick labels.
     """
     if column_names is None:
         column_names = [
@@ -419,12 +454,11 @@ def plot_cross_dataset_summaries(
         dataset_config = load_dataset_config(dataset_name)
         df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
         df_of = add_optical_flow_features(df_steady_state, datasets=[dataset_name])
+        date = dataset_config.date
 
         for flow_condition in dataset_config.flow_conditions:
             df_flow = filter_dataframe_by_flow_condition(df_of, dataset_config, flow_condition)
-            plot_label = (
-                f"{dataset_name} ({round(flow_condition.shear_stress)} dyn/cm{Unicode.SQUARED})"
-            )
+            plot_label = f"{date} ({round(flow_condition.shear_stress)} dyn/cm{Unicode.SQUARED})"
 
             # Summary stats per optical flow feature
             for feature_key in optical_flow_features:
@@ -480,28 +514,42 @@ def plot_cross_dataset_summaries(
                     high_confidence_df["cell_line_label"] = cell_line_label
 
                 df_fp_all_list.append(high_confidence_df)
-            except KeyError:
-                logger.warning(
-                    "No fixed point dataframe found for dataset [ %s ]. Skipping fixed points.",
-                    dataset_name,
-                )
+            except KeyError as e:
+                if str(e) == f"Unable to find dataset {dataset_name} in dataframe manifest.":
+                    logger.warning(
+                        "No fixed point dataframe found for dataset [ %s ]. Skipping fixed points.",
+                        dataset_name,
+                    )
+                else:
+                    raise
 
     # --- Fixed-points vs shear stress ---
     df_fp_all = pd.concat(df_fp_all_list, ignore_index=True)
     df_fp_all = add_shear_stress_to_df(df_fp_all)
 
-    # Plot all fixed-point variables in a single 1-row subplot
+    # Plot all fixed-point variables
     n_panels = len(column_names)
-    fig, axs = plt.subplots(
-        1,
-        n_panels,
-        figsize=(figure_size[0], figure_size[1]),
-        sharex=True,
-        layout="constrained",
-        squeeze=False,
-    )
+    if subplot_layout == "vertical":
+        fig, axs = plt.subplots(
+            n_panels,
+            1,
+            figsize=(figure_size[0], figure_size[1] * n_panels),
+            layout="constrained",
+            squeeze=False,
+        )
+        axes_list = [axs[i][0] for i in range(n_panels)]
+    else:
+        fig, axs = plt.subplots(
+            1,
+            n_panels,
+            figsize=(figure_size[0], figure_size[1]),
+            sharex=True,
+            layout="constrained",
+            squeeze=False,
+        )
+        axes_list = list(axs[0])
     all_column_info = COLUMN_METADATA_DICT
-    for ax_i, var in zip(axs[0], column_names, strict=False):
+    for ax_i, var in zip(axes_list, column_names, strict=False):
         column_info = all_column_info.get(var)
         var_label: str = column_info["label"] if column_info else str(var)
         col_name: str = f"mean_{var}" if var in optical_flow_features else str(var)
@@ -515,20 +563,38 @@ def plot_cross_dataset_summaries(
             stable_only=stable_only,
             ax=ax_i,
             jitter_width=jitter_width,
+            x_padding=x_padding,
         )
     if x_axis_mode == "cell_line":
         fig.supxlabel("Cell Line", fontsize=FONTSIZE_MEDIUM, fontweight="bold")
+    elif x_axis_mode == "dataset":
+        fig.supxlabel(
+            f"Dataset Date (Shear Stress dyn/cm{Unicode.SQUARED})",
+            fontsize=FONTSIZE_MEDIUM,
+            fontweight="bold",
+        )
     else:
         fig.supxlabel(
             f"Shear Stress (dyn/cm{Unicode.SQUARED})", fontsize=FONTSIZE_MEDIUM, fontweight="bold"
         )
 
     # reduce spacing between axis labels and tick labels
-    for ax in axs[0]:
+    for ax in axes_list:
         ax.xaxis.labelpad = 2
         ax.yaxis.labelpad = 2
         ax.tick_params(axis="x", pad=2)
         ax.tick_params(axis="y", pad=2)
+
+    # For vertical layout, sync x-axes and hide tick labels on all but the bottom panel
+    if subplot_layout == "vertical":
+        # Match xlims across all panels
+        all_xlims = [ax.get_xlim() for ax in axes_list]
+        shared_xlim = (min(lo for lo, _ in all_xlims), max(hi for _, hi in all_xlims))
+        for ax in axes_list:
+            ax.set_xlim(shared_xlim)
+        # Hide tick labels (but keep tick marks) on upper panels
+        for ax in axes_list[:-1]:
+            ax.tick_params(axis="x", labelbottom=False)
 
     # add variables being used to fname
     fname = f"{'_'.join(column_names)}_fp_vs_shear_stress"

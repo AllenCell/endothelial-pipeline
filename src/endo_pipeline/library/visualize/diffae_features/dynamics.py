@@ -372,7 +372,7 @@ def plot_drift_1d(
     axes_labels: list[str] | None = None,
     add_flow_arrows: bool = True,
     flow_arrow_downsample: int = 5,
-    flow_arrow_kwargs: dict | None = {"color": "dimgrey", "linewidth": 1.5},
+    flow_arrow_kwargs: dict | None = {"color": "dimgrey"},
     gridspec_kwargs: dict | None = None,
     drift_line_kwargs: dict | None = None,
     zero_line_kwargs: dict | None = None,
