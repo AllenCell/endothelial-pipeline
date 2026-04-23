@@ -117,6 +117,18 @@ def _build_frame_cache(
 
 
 def _rbar(uf: np.ndarray, vf: np.ndarray) -> float:
+    """Mean resultant length (a.k.a. migration coherence, R-bar) of a flow field.
+
+    Each pixel's flow vector ``(uf, vf)`` is reduced to its unit direction
+    (magnitude discarded), then averaged across all moving pixels.  The
+    returned value is the magnitude of that average direction:
+
+        R-bar = || mean( (uf, vf) / ||(uf, vf)|| ) ||,  range [0, 1].
+
+    R-bar = 1 -> every pixel moves in the same direction (perfectly
+    coherent migration); R-bar ~ 0 -> directions cancel out (incoherent /
+    isotropic flow).  Returns NaN if no pixel has non-zero flow.
+    """
     sp = np.sqrt(uf**2 + vf**2)
     nz = sp > 0
     if not nz.any():
