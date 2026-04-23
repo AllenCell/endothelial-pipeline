@@ -11,7 +11,6 @@ from endo_pipeline.library.visualize.flow_field_schematic import (
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import KERNEL_BANDWIDTHS_DYNAMICS
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
-from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
 from endo_pipeline.settings.flow_field_figure import (
     SUPP_FIG_TARGET_POINT,
     SUPP_FIG_ZOOM_FACTOR,
@@ -50,7 +49,9 @@ kernel_convolution_panel_path = make_kernel_convolution_schematic(
     n_rows=2,
     n_cols=2,
     gridspec_kwargs={"wspace": 0.3},
-    fig_kwargs={"figsize": (MAX_FIGURE_WIDTH, 5.25), "layout": "constrained"},
+    fig_kwargs={"figsize": (6.0, 5.25), "layout": "constrained"},
     xlabel_kwargs=XLABEL_KWARGS,
     ylabel_kwargs=YLABEL_KWARGS,
 )
+
+# %%
