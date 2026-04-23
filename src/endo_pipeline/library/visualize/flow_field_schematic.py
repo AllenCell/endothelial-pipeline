@@ -179,6 +179,7 @@ def _make_weighted_displacement_histogram(
     dataframe_steady_state: pd.DataFrame,
     column_names: list[Column.DiffAEData],
     bin_edges: list[np.ndarray],
+    target_point: tuple[float, float],
     axes: plt.Axes,
     axes_xlim: tuple[float, float] | None = None,
     axes_ylim: tuple[float, float] | None = None,
@@ -223,7 +224,15 @@ def _make_weighted_displacement_histogram(
         vmin=-vmax2,
         vmax=vmax2,
     )
-    _add_target_bin_border(axes)
+    bin_width_x = bin_edges[0][1] - bin_edges[0][0]
+    bin_width_y = bin_edges[1][1] - bin_edges[1][0]
+    _add_target_bin_border(
+        axes,
+        target_x=target_point[0],
+        target_y=target_point[1],
+        bin_width_x=bin_width_x,
+        bin_width_y=bin_width_y,
+    )
     if axes_xlim is not None:
         axes.set_xlim(axes_xlim)
     if axes_ylim is not None:
@@ -245,12 +254,11 @@ def make_kernel_convolution_schematic(
     savedir: Path,
     dataframe_steady_state: pd.DataFrame,
     column_names: list[Column.DiffAEData],
+    target_point: tuple[float, float],
     bin_edges: list[np.ndarray],
     bin_centers: list[np.ndarray],
     axes_xlim: tuple[float, float] | None = None,
     axes_ylim: tuple[float, float] | None = None,
-    target_r: float = 1.0,
-    target_rho: float = 0.0,
     n_rows: int = 1,
     n_cols: int = 4,
     cmap: str = DRIFT_CONTOUR_COLORMAP,
@@ -268,6 +276,7 @@ def make_kernel_convolution_schematic(
         dataframe_steady_state=dataframe_steady_state,
         column_names=column_names,
         bin_edges=bin_edges,
+        target_point=target_point,
         axes=axes[0],
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
