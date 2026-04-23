@@ -1668,11 +1668,14 @@ def plot_first_passage_time_correlation_summary_for_figure(
     analysis across all datasets and fixed points as it will appear in the figure.
     """
 
+    xs = first_passage_time_correlation_summary_df[Column.DATASET].tolist()
+    xs = [load_dataset_config(dataset_name).date for dataset_name in xs]
+    ys = first_passage_time_correlation_summary_df["r_value"]
+
     fig, ax = plt.subplots(figsize=(6, 2.5))
     sns.stripplot(
-        data=first_passage_time_correlation_summary_df,
-        x=Column.DATASET,
-        y="r_value",
+        x=xs,
+        y=ys,
         color="black",
         alpha=0.7,
         ax=ax,
