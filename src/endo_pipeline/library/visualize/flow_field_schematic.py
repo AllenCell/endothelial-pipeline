@@ -62,7 +62,7 @@ from endo_pipeline.settings.workflow_defaults import (
 def make_real_image_panel(
     savedir: Path,
     contact_figsize: tuple[float, float] = (5.0, 1.75),
-    fov_crop_size: float = 2 * NATIVE_ZARR_RESOLUTION_CROP_SIZE,
+    fov_crop_size: int = 2 * NATIVE_ZARR_RESOLUTION_CROP_SIZE,
     scale_bar_um: int = 20,
     grid_crop_position: tuple[int, int] = (0, 0),
     grid_crop_size: int = NATIVE_ZARR_RESOLUTION_CROP_SIZE,
