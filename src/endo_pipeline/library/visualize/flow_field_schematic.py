@@ -158,6 +158,8 @@ def _make_2d_pcolormesh(
     axes_ylim: tuple[float, float] | None = None,
     axes_aspect: Literal["auto", "equal"] | float | None = "equal",
     axes_title: str | None = None,
+    xlabel_kwargs: dict | None = None,
+    ylabel_kwargs: dict | None = None,
 ) -> QuadMesh:
     """Make a 2D pcolormesh plot with consistent styling."""
     pcm = axes.pcolormesh(
@@ -171,9 +173,9 @@ def _make_2d_pcolormesh(
         vmax=vmax,
     )
     if axes_xlabel is not None:
-        axes.set_xlabel(axes_xlabel)
+        axes.set_xlabel(axes_xlabel, **(xlabel_kwargs or {}))
     if axes_ylabel is not None:
-        axes.set_ylabel(axes_ylabel)
+        axes.set_ylabel(axes_ylabel, **(ylabel_kwargs or {}))
     if axes_xlim is not None:
         axes.set_xlim(axes_xlim)
     if axes_ylim is not None:
@@ -223,6 +225,8 @@ def _make_weighted_displacement_histogram(
     axes_title: str | None = None,
     cmap: str = "RdBu_r",
     colorbar_label: str | None = None,
+    xlabel_kwargs: dict | None = None,
+    ylabel_kwargs: dict | None = None,
 ) -> np.ndarray:
     """Compute and plot a 2D histogram of the data weighted by the sum of the displacements in each bin."""
 
@@ -263,6 +267,8 @@ def _make_weighted_displacement_histogram(
         axes_ylim=axes_ylim,
         axes_aspect=axes_aspect,
         axes_title=axes_title,
+        xlabel_kwargs=xlabel_kwargs,
+        ylabel_kwargs=ylabel_kwargs,
     )
 
     _add_target_bin_border(
@@ -290,6 +296,8 @@ def _plot_kernel_at_target_bin(
     axes_title: str | None = None,
     cmap: str = "Purples",
     colorbar_label: str | None = None,
+    xlabel_kwargs: dict | None = None,
+    ylabel_kwargs: dict | None = None,
 ) -> np.ndarray:
     """Plot the 2D product kernel weights centered at the target bin."""
     # evaluate 2D product kernel weights centered at the target bin
@@ -311,6 +319,8 @@ def _plot_kernel_at_target_bin(
         axes_ylim=axes_ylim,
         axes_aspect=axes_aspect,
         axes_title=axes_title,
+        xlabel_kwargs=xlabel_kwargs,
+        ylabel_kwargs=ylabel_kwargs,
     )
 
     _add_target_bin_border(
@@ -340,6 +350,8 @@ def _plot_km_coeff_at_target_bin(
     axes_title: str | None = None,
     cmap: str = "RdBu_r",
     colorbar_label: str | None = None,
+    xlabel_kwargs: dict | None = None,
+    ylabel_kwargs: dict | None = None,
 ) -> None:
     """Plot the Kramers-Moyal coefficient estimate at the target bin."""
     traj_list, disp_list = get_traj_and_diff(dataframe_steady_state, column_names)
@@ -358,6 +370,8 @@ def _plot_km_coeff_at_target_bin(
         axes_ylim=axes_ylim,
         axes_aspect=axes_aspect,
         axes_title=axes_title,
+        xlabel_kwargs=xlabel_kwargs,
+        ylabel_kwargs=ylabel_kwargs,
     )
 
     _add_target_bin_border(
@@ -381,7 +395,10 @@ def make_kernel_convolution_schematic(
     n_rows: int = 1,
     n_cols: int = 4,
     cmap: str = DRIFT_CONTOUR_COLORMAP,
+    gridspec_kwargs: dict | None = None,
     fig_kwargs: dict | None = None,
+    xlabel_kwargs: dict | None = None,
+    ylabel_kwargs: dict | None = None,
 ) -> Path:
     """
     Build the panel showing a schematic of the kernel convolution process for
@@ -405,7 +422,7 @@ def make_kernel_convolution_schematic(
     bin_widths = [BIN_WIDTHS_DYNAMICS[col] for col in column_names]
     bin_edges, bin_centers = get_bins(bin_widths, df[column_names].to_numpy())
 
-    fig, axes = plt.subplots(n_rows, n_cols, **(fig_kwargs or {}))
+    fig, axes = plt.subplots(n_rows, n_cols, gridspec_kw=gridspec_kwargs, **(fig_kwargs or {}))
     axes_xlabel = COLUMN_METADATA[column_names[0]].label
     axes_ylabel = COLUMN_METADATA[column_names[1]].label
 
@@ -420,6 +437,8 @@ def make_kernel_convolution_schematic(
         axes_ylim=axes_ylim,
         axes_xlabel=axes_xlabel,
         axes_ylabel=axes_ylabel,
+        xlabel_kwargs=xlabel_kwargs,
+        ylabel_kwargs=ylabel_kwargs,
         cmap=cmap,
         colorbar_label=f"sum of $\\Delta$ {axes_xlabel}",
     )
@@ -443,6 +462,7 @@ def make_kernel_convolution_schematic(
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
         axes_xlabel=axes_xlabel,
+        xlabel_kwargs=xlabel_kwargs,
         colorbar_label="kernel weight (normalized)",
     )
 
@@ -460,6 +480,7 @@ def make_kernel_convolution_schematic(
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
         axes_xlabel=axes_xlabel,
+        xlabel_kwargs=xlabel_kwargs,
     )
     fig.colorbar(pcm, ax=axes[2], label=f"kernel-weighted sum of $\\Delta$ {axes_xlabel}")
 
@@ -475,6 +496,7 @@ def make_kernel_convolution_schematic(
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
         axes_xlabel=axes_xlabel,
+        xlabel_kwargs=xlabel_kwargs,
         colorbar_label=f"drift in {axes_xlabel} (hr$^{{-1}}$)",
     )
 
