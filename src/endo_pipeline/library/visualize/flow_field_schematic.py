@@ -62,8 +62,10 @@ from endo_pipeline.settings.workflow_defaults import (
 def make_real_image_panel(
     savedir: Path,
     contact_figsize: tuple[float, float] = (5.0, 1.75),
+    fov_crop_size: float = 2 * NATIVE_ZARR_RESOLUTION_CROP_SIZE,
     scale_bar_um: int = 20,
     grid_crop_position: tuple[int, int] = (0, 0),
+    grid_crop_size: float = NATIVE_ZARR_RESOLUTION_CROP_SIZE,
     axes_title_xloc: float = 0.25,
     map_arrow_x_offset: float = 0.065,
     map_arrow_rad: float = 0.3,
@@ -74,7 +76,7 @@ def make_real_image_panel(
     horizontal_arrow_linewidth: float = 1.5,
     horizontal_arrow_arrowstyle: str = "->,head_length=5,head_width=3",
     text_y_offset: float = -0.22,
-    delta_text_y_offset: float = -0.2,
+    delta_text_y_offset: float = 0.05,
 ) -> Path:
     """Build the panel showing a grid crop from t to t+1 for a given example image."""
 
@@ -93,7 +95,7 @@ def make_real_image_panel(
             log_bf_std_dev,
             example.crop_x_start,
             example.crop_y_start,
-            2 * NATIVE_ZARR_RESOLUTION_CROP_SIZE,
+            fov_crop_size,
         )
         processed_images.append(log_bf_std_dev)
 
@@ -125,8 +127,8 @@ def make_real_image_panel(
         # add highlighted box to show crop region used for flow field construction
         rect = plt.Rectangle(
             grid_crop_position,
-            NATIVE_ZARR_RESOLUTION_CROP_SIZE,
-            NATIVE_ZARR_RESOLUTION_CROP_SIZE,
+            grid_crop_size,
+            grid_crop_size,
             edgecolor="magenta",
             facecolor="none",
             linewidth=2,
