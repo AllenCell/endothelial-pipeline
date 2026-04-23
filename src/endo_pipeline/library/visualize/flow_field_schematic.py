@@ -216,7 +216,7 @@ def _add_colorbar_for_quadmesh(
     fig: plt.Figure,
     axes: plt.Axes,
     quadmesh: QuadMesh,
-    label: str,
+    label: str | None = None,
 ) -> None:
     """Add a colorbar for a given QuadMesh plot."""
     divider = make_axes_locatable(axes)
