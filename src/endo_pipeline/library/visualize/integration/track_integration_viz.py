@@ -1766,7 +1766,7 @@ def plot_first_passage_time_correlation_summary_for_figure(
     ax.set_xticks(np.arange(0, 1.1, 0.2))
     ax.set_xlim(0, 1)
     ax.set_xlabel("Correlation Coefficient (R)", fontsize=FONTSIZE_SMALL)
-    ax.set_ylabel("number of datasets", fontsize=FONTSIZE_SMALL)
+    ax.set_ylabel("Number of Datasets", fontsize=FONTSIZE_SMALL)
     save_plot_to_path(
         fig,
         out_dir,
