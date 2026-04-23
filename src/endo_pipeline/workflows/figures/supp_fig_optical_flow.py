@@ -219,20 +219,23 @@ def _plot_pair(
         lo, hi = np.percentile(im, [2, 99.5])
         return np.clip((im - lo) / (hi - lo + 1e-9), 0, 1)
 
-    # Composite
+    # Composite (magenta/green).
+    # t -> magenta (R+B), t+1 -> green; pixels bright in both appear white.
     ax = axes[0]
     ax.set_facecolor("white")
     rgb = np.zeros((cy, cx, 3), dtype=np.float32)
-    rgb[..., 0] = _norm(c0)
+    t0_norm = _norm(c0)
+    rgb[..., 0] = t0_norm
     rgb[..., 1] = _norm(c1)
+    rgb[..., 2] = t0_norm
     ax.imshow(rgb, origin="upper")
     ax.set_title("Composite", fontweight="bold")
     ax.set_ylabel(label, fontweight="bold")
     ax.legend(
         handles=[
-            Patch(facecolor="red", label="t"),
+            Patch(facecolor="magenta", label="t"),
             Patch(facecolor="green", label="t+1"),
-            Patch(facecolor="yellow", label="overlap"),
+            Patch(facecolor="white", label="overlap"),
         ],
         loc="upper right",
         framealpha=0.0,
