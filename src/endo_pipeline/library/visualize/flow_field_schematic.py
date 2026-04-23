@@ -190,7 +190,7 @@ def _make_2d_pcolormesh(
 def _add_target_bin_border(
     ax: plt.Axes,
     target_point: tuple[float, float],
-    bin_edges: tuple[np.ndarray, np.ndarray],
+    bin_edges: list[np.ndarray],
     color: str = "magenta",
     linewidth: float = 2.5,
     label: str | None = "target bin",
@@ -382,7 +382,6 @@ def _plot_km_coeff_at_target_bin(
 
     fig = axes.get_figure()
     fig.colorbar(pcm, ax=axes, label=colorbar_label)
-    return pcm
 
 
 def make_kernel_convolution_schematic(
