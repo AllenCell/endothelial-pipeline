@@ -40,10 +40,6 @@ def generate_first_passage_time_example(
     if out_dir is None:
         out_dir = get_output_path(__file__)
 
-    # logger = logging.getLogger(__name__)
-
-    # dataset_config = load_dataset_config(dataset_name)
-
     out_subdir = out_dir / dataset_name
     out_subdir.mkdir(parents=True, exist_ok=True)
 
@@ -109,10 +105,12 @@ def generate_first_passage_time_example(
     bin_limits_list = [bin_limits[col] for col in DYNAMICS_COLUMN_NAMES]
     bin_edges, bin_centers = get_bins(bin_widths=bin_widths, bin_limits=bin_limits_list)
 
-    # fp_stability = fixed_points_df.loc[fp_idx, Column.VectorField.STABILITY]
     # this dataset only has a single stable fixed point, so we use fixed point index 0
     fp_idx = 0
 
+    # 2. mark each timepoint as "at the fixed point" if it is within the radius threshold,
+    #    then propagate that flag to all timepoints in the trajectory using a groupby-transform
+    #    so we can filter to only trajectories that ever reach the fixed point
     traj_df_grid[f"{Column.VectorField.IS_AT_FP_PREFIX}{fp_idx}"] = (
         traj_df_grid[f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fp_idx}"]
         <= fixed_point_radius_threshold
@@ -131,6 +129,7 @@ def generate_first_passage_time_example(
         ].transform(any)
     )
 
+    # keep only trajectories that eventually reach the fixed point
     traj_df_grid_sub = traj_df_grid[
         traj_df_grid[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fp_idx}"]
     ]
@@ -194,10 +193,9 @@ def generate_first_passage_time_example(
         }
     )
 
-    # 4. plot the cell FPT vs grid FPT data as a scatterplot with errors and a
-    #    scatter with theta, r, rho as the axes and the FPT ratio as the color dimension
-    # if there is 1 or fewer bins with enough trajectories, then skip the plotting for this
-    # dataset since it won't be meaningful
+    # 4. plot the example tracks used to get the cell FPT vs grid FPT
+    # remove bins that don't have enough trajectories in them from either the
+    # grid or tracked trajectories
     fpt_stats_df = fpt_stats_df[
         fpt_stats_df["count_first_passage_time_grid"] >= min_num_traj_per_bin
     ]
@@ -205,15 +203,9 @@ def generate_first_passage_time_example(
         fpt_stats_df["count_first_passage_time_tracked"] >= min_num_traj_per_bin
     ]
 
-    # def plot_tracks_from_bin_3d_example(
-    #     fixed_point_id: int,
-    #     fixed_point_stability: str,
-    #     first_passage_time_df: pd.DataFrame,
-    #     fixed_points_df: pd.DataFrame,
-    #     min_num_traj_per_bin: int,
-    #     out_dir: Path,
-    # ) -> None:
-
+    # pick the mean FPT metric and select the first well-populated bin as the
+    # example bin to visualize
+    # we take one representative trajectory from each crop pattern that starts inside that bin
     metric = "mean"
     suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
     metric = f"{metric}{suffix}"
@@ -230,10 +222,12 @@ def generate_first_passage_time_example(
         first_passage_time_df_no_nan["count_first_passage_time_tracked"] >= min_num_traj_per_bin
     ]
 
-    bin_index_1_bin, bin_center_1_bin, bin_edges_1_bin = first_passage_time_df_no_nan.head(1)[
-        [Column.VectorField.BIN_INDEX, Column.VectorField.BIN_CENTER, Column.VectorField.BIN_EDGES]
+    # get the center and edges of the first qualifying bin
+    bin_center_1_bin, bin_edges_1_bin = first_passage_time_df_no_nan.head(1)[
+        [Column.VectorField.BIN_CENTER, Column.VectorField.BIN_EDGES]
     ].iloc[0]
 
+    # filter trajectories to only those whose starting point falls in the example bin
     trajectory_df_tracked_one_bin = filter_dataframe_to_binned_value(
         dataframe=traj_df_tracked_sub,
         columns=list(DYNAMICS_COLUMN_NAMES),
@@ -247,34 +241,9 @@ def generate_first_passage_time_example(
         bin_edges=bin_edges,
     )
 
-    # for crop_id_grid, df_grid_1_traj in traj_df_grid_sub.groupby(Column.CROP_INDEX):
-    #     df_grid_1_traj = df_grid_1_traj.sort_values(Column.TIMEPOINT)
-    #     df_grid_1_traj_one_bin = filter_dataframe_to_binned_value(
-    #         dataframe=df_grid_1_traj,
-    #         columns=list(DYNAMICS_COLUMN_NAMES),
-    #         values=bin_center,
-    #         bin_edges=bin_edges,
-    #     )
-    #     theta_init_grid, r_init_grid, rho_init_grid = (
-    #         df_grid_1_traj_one_bin.iloc[0][Column.DiffAEData.POLAR_ANGLE],
-    #         df_grid_1_traj_one_bin.iloc[0][Column.DiffAEData.POLAR_RADIUS],
-    #         df_grid_1_traj_one_bin.iloc[0][Column.DiffAEData.PC3_FLIPPED],
-    #     )
-
-    # for crop_id_tracked, df_tracked_1_traj in traj_df_tracked_sub.groupby(Column.CROP_INDEX):
-    #     df_tracked_1_traj = df_tracked_1_traj.sort_values(Column.TIMEPOINT)
-    #     df_tracked_1_traj_one_bin = filter_dataframe_to_binned_value(
-    #         dataframe=df_tracked_1_traj,
-    #         columns=list(DYNAMICS_COLUMN_NAMES),
-    #         values=bin_center,
-    #         bin_edges=bin_edges,
-    #     )
-    #     theta_init_tracked, r_init_tracked, rho_init_tracked = (
-    #         df_tracked_1_traj_one_bin.iloc[0][Column.DiffAEData.POLAR_ANGLE],
-    #         df_tracked_1_traj_one_bin.iloc[0][Column.DiffAEData.POLAR_RADIUS],
-    #         df_tracked_1_traj_one_bin.iloc[0][Column.DiffAEData.PC3_FLIPPED],
-    #     )
-
+    # take the first trajectory (by crop index) from each crop pattern in the
+    # example bin; record its initial timepoint and feature-space position so
+    # we can mark where it enters the bin
     for crop_id_tracked, df in trajectory_df_tracked_one_bin.groupby(Column.CROP_INDEX):
         df = df.sort_values(Column.TIMEPOINT)
         bin_tp_tracked, bin_theta_tracked, bin_r_tracked, bin_rho_tracked = (
@@ -294,6 +263,7 @@ def generate_first_passage_time_example(
         )
         break
 
+    # extract the full trajectory from the bin entry point to the end of the track
     df_tracked_1_traj = traj_df_tracked_sub[
         (traj_df_tracked_sub[Column.CROP_INDEX] == crop_id_tracked)
         & (traj_df_tracked_sub[Column.TIMEPOINT] >= bin_tp_tracked)
@@ -322,32 +292,14 @@ def generate_first_passage_time_example(
         ].values,
         strict=True,
     )
+    # unwrap the polar angle for the grid trajectory to avoid discontinuous jumps
+    # across the 0/2*pi boundary when plotting
     polar_angle_period = POLAR_ANGLE_PERIOD
     thetas_grid_unwrapped = np.unwrap(thetas_grid, period=polar_angle_period)
 
-    # init_point_tracked = (
-    #     traj_df_tracked_sub[traj_df_tracked_sub[Column.CROP_INDEX] == crop_id_tracked]
-    #     .sort_values(Column.TIMEPOINT)
-    #     .iloc[0][
-    #         [
-    #             Column.DiffAEData.POLAR_ANGLE,
-    #             Column.DiffAEData.POLAR_RADIUS,
-    #             Column.DiffAEData.PC3_FLIPPED,
-    #         ]  # type: ignore[index]
-    #     ]
-    # )
-    # init_point_grid = (
-    #     traj_df_grid_sub[traj_df_grid_sub[Column.CROP_INDEX] == crop_id_grid]
-    #     .sort_values(Column.TIMEPOINT)
-    #     .iloc[0][
-    #         [
-    #             Column.DiffAEData.POLAR_ANGLE,
-    #             Column.DiffAEData.POLAR_RADIUS,
-    #             Column.DiffAEData.PC3_FLIPPED,
-    #         ]  # type: ignore[index]
-    #     ]
-    # )
-
+    # build the 8 corner vertices of the example bin (a rectangular cuboid in
+    # feature space), then identify the 12 axis-aligned edges by keeping only
+    # vertex pairs whose distance equals one of the three bin side lengths
     xs, ys, zs = np.meshgrid(*bin_edges_1_bin)
     xs = xs.ravel()
     ys = ys.ravel()
@@ -364,6 +316,8 @@ def generate_first_passage_time_example(
         elif np.isclose(edge_length, bin_sizes[Column.DiffAEData.PC3_FLIPPED]):
             edges.append((v1, v2))
 
+    # plot the tracked and grid trajectories in the 3D feature space with the
+    # fixed point, bin edges, and bin start points
     fig, ax = plt.subplots(figsize=(2, 2), subplot_kw={"projection": "3d"})  # type: ignore[call-arg]
     ax.plot(  # type: ignore[call-arg]
         xs=thetas_tracked,
@@ -430,11 +384,9 @@ def generate_first_passage_time_example(
     ax.tick_params(axis="z", labelsize=FONTSIZE_SMALL, pad=-4)  # type: ignore[arg-type]
     plt.setp(ax.get_zticklabels(), va="top", ha="left")  # type: ignore[attr-defined]
     ax.set_xlabel(get_label_for_column(Column.DiffAEData.POLAR_ANGLE), loc="center", labelpad=-4)
-    ax.set_ylabel(
-        get_label_for_column(Column.DiffAEData.POLAR_RADIUS), loc="center", labelpad=5
-    )  # -3)
+    ax.set_ylabel(get_label_for_column(Column.DiffAEData.POLAR_RADIUS), loc="center", labelpad=5)
     ax.set_zlabel(  # type:ignore[attr-defined]
-        get_label_for_column(Column.DiffAEData.PC3_FLIPPED), labelpad=5  # -4
+        get_label_for_column(Column.DiffAEData.PC3_FLIPPED), labelpad=5
     )
 
     # adjust the focal length of the 3D plot so that depth is easier to perceive
