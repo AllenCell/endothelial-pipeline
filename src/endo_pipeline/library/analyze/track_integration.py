@@ -70,6 +70,8 @@ from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
 )
 
+BOOTSTRAP_THRESHOLD = 0.4
+
 logger = logging.getLogger(__name__)
 
 
@@ -1143,6 +1145,11 @@ def compute_and_plot_first_passage_times_one_dataset(
 
     # load the flow field dictionaries and fixed points
     fixed_points_df = load_fixed_points_dataframe_for_dataset(dataset_name)
+    # filter the fixed points to only the ones with higher confidence
+    fixed_points_df = fixed_points_df[
+        fixed_points_df[Column.BootstrapAnalysis.DETECTION_RATE] >= BOOTSTRAP_THRESHOLD
+    ]
+    fixed_points_df = fixed_points_df[fixed_points_df[Column.VectorField.STABILITY] == "stable"]
 
     if fixed_points_df.empty:
         logger.warning(f"No fixed points found for dataset {dataset_name}, skipping dataset.")
@@ -1150,11 +1157,15 @@ def compute_and_plot_first_passage_times_one_dataset(
         line_fit_results.append({Column.DATASET: dataset_name})
         return line_fit_results
 
+    fp_cluster_mean_cols = [
+        f"{col}_{Column.BootstrapAnalysis.CLUSTER_MEAN}" for col in DYNAMICS_COLUMN_NAMES
+    ]
     # add the distances from the fixed points for the grid-based trajectories
     traj_df_grid = add_distance_to_fixed_points_columns(
         trajectory_df=traj_df_grid,
         fixed_point_df=fixed_points_df,
         trajectory_columns=DYNAMICS_COLUMN_NAMES,
+        fixed_point_columns=fp_cluster_mean_cols,
     )
 
     # add the distances from the fixed points for the track-based trajectories
@@ -1162,6 +1173,7 @@ def compute_and_plot_first_passage_times_one_dataset(
         trajectory_df=traj_df_tracked,
         fixed_point_df=fixed_points_df,
         trajectory_columns=DYNAMICS_COLUMN_NAMES,
+        fixed_point_columns=fp_cluster_mean_cols,
     )
 
     # 1. bin (theta, r, rho) feature space
