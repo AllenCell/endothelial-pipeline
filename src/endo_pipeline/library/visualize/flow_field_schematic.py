@@ -271,10 +271,29 @@ def _add_target_bin_border(
     label: str | None = "target bin",
 ) -> None:
     """Draw a square border around the target bin."""
-    bin_width_x = bin_edges[0][1] - bin_edges[0][0]
-    bin_width_y = bin_edges[1][1] - bin_edges[1][0]
+    # Find the bin cell that contains target_point using the actual edge arrays,
+    # so the rectangle aligns exactly with the pcolormesh grid regardless of
+    # whether target_point falls exactly on a bin center.
+    ix = int(
+        np.clip(
+            np.searchsorted(bin_edges[0], target_point[0], side="right") - 1,
+            0,
+            len(bin_edges[0]) - 2,
+        )
+    )
+    iy = int(
+        np.clip(
+            np.searchsorted(bin_edges[1], target_point[1], side="right") - 1,
+            0,
+            len(bin_edges[1]) - 2,
+        )
+    )
+    x_left = bin_edges[0][ix]
+    y_bottom = bin_edges[1][iy]
+    bin_width_x = bin_edges[0][ix + 1] - bin_edges[0][ix]
+    bin_width_y = bin_edges[1][iy + 1] - bin_edges[1][iy]
     rect = Rectangle(
-        (target_point[0] - bin_width_x / 2, target_point[1] - bin_width_y / 2),
+        (x_left, y_bottom),
         bin_width_x,
         bin_width_y,
         linewidth=linewidth,
