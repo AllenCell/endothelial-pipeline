@@ -14,7 +14,6 @@ def main(
     segmentation_feature_group: str = "default",
     pc_group: str = "default",
     aggregate_only: bool = True,
-    plot_grid_migration_coherence_correlations: bool = False,
     plot_main_figure_correlations: bool = True,
     figsize_heatmap: tuple[float, float] | None = None,
 ) -> None:
@@ -48,9 +47,6 @@ def main(
         NUM_PCS_TO_ANALYZE.
     aggregate_only
         If True, only uses the aggregated dataset in the analysis.
-    plot_migration_coherence_correlations
-        If True, includes migration coherence features in the correlation
-        analysis and plots.
     plot_main_figure_correlations
         If True, includes the main figure features in the correlation analysis
         and plots.
@@ -60,22 +56,16 @@ def main(
 
     import logging
 
-    import pandas as pd
     from tqdm import tqdm
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.cli.demo_mode_defaults import use_default_collection
-    from endo_pipeline.io import get_output_path, load_dataframe
-    from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
-        add_optical_flow_features,
-    )
+    from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.columns import get_label_for_column
     from endo_pipeline.library.visualize.multi_feature_correlation_viz import (
         get_df_for_feature_correlation_viz,
         visualize_correlation_heatmaps,
     )
-    from endo_pipeline.manifests import get_dataframe_location_for_dataset
-    from endo_pipeline.manifests.dataframe_manifest_io import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAME_GROUPS
     from endo_pipeline.settings.workflow_defaults import (
@@ -153,36 +143,6 @@ def main(
         ),
     ]
 
-    if plot_grid_migration_coherence_correlations:
-        # Get dataframe manifest for filtered crop-based features so we can add
-        # the optical flow features for correlation analysis and plotting.
-        base_name_grid = f"{model_manifest_name}_{run_name}_grid"
-        grid_feature_dataframe_manifest_name = f"{base_name_grid}_pca_filtered"
-        grid_feature_dataframe_manifest = load_dataframe_manifest(
-            grid_feature_dataframe_manifest_name
-        )
-        df_grid_list = []
-        for dataset_name in dataset_name_list:
-            df_location = get_dataframe_location_for_dataset(
-                grid_feature_dataframe_manifest, dataset_name
-            )
-            df_grid = load_dataframe(df_location)
-            df_grid = add_optical_flow_features(df_grid, datasets=[dataset_name])
-            df_grid_list.append(df_grid)
-        df_grid = pd.concat(df_grid_list, ignore_index=True)
-
-        optical_flow_features = [
-            Column.OpticalFlow.UNIT_VECTOR_MEAN,
-            Column.OpticalFlow.SPEED_MEAN,
-        ]
-
-        df_grid.rename(columns=get_label_for_column, inplace=True)
-
-        label_column_tuples_grid = [
-            ("Migration Coherence", [get_label_for_column(col) for col in optical_flow_features]),
-            ("PC", [get_label_for_column(col) for col in pc_columns]),
-        ]
-
     if aggregate_only:
         dataset_name_list = ["aggregate"]
     else:
@@ -209,26 +169,6 @@ def main(
             cross_correlation_only=plot_main_figure_correlations,
             figsize_cluster_heatmap=figsize_heatmap,
         )
-
-        if plot_grid_migration_coherence_correlations:
-            if dataset_name == "aggregate":
-                df_grid_dataset = df_grid
-            else:
-                df_grid_dataset = df_grid[df_grid[Column.DATASET] == dataset_name].copy()
-
-            out_dir = get_output_path(__file__, dataset_name, model_manifest_name, run_name, "grid")
-
-            visualize_correlation_heatmaps(
-                dataset_name=dataset_name,
-                df_dataset=df_grid_dataset,
-                label_column_tuples=label_column_tuples_grid,
-                out_dir=out_dir,
-            )
-
-    logger.info(
-        "Correlation heatmap workflow complete. Figures saved to [ %s ]",
-        out_dir,
-    )
 
 
 if __name__ == "__main__":
