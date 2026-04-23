@@ -78,10 +78,21 @@ def build_figure_from_panels(
 
     figure = build_empty_figure(width, height)
 
+    # Collect all <defs> (e.g. arrowhead markers) from panel SVGs into a single
+    # top-level <defs> block so that url(#id) references resolve correctly
+    # regardless of which renderer is used.  <defs> nested inside a <g> with a
+    # transform are not reliably honoured by all SVG viewers / Illustrator.
+    figure_defs = ET.SubElement(figure, "defs")
+
     for panel in figure_panels:
         group = build_panel_group(figure, panel.x_position, panel.y_position)
         offset = build_panel_group(group, panel.x_offset, panel.y_offset)
-        offset.extend(ET.parse(panel.path).getroot())
+        panel_root = ET.parse(panel.path).getroot()
+        for child in list(panel_root):
+            if child.tag in ("defs", "{http://www.w3.org/2000/svg}defs"):
+                figure_defs.extend(child)
+            else:
+                offset.append(child)
         add_panel_letter(group, panel.letter)
 
     ET.indent(figure, space="    ", level=0)

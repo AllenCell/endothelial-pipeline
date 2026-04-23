@@ -65,7 +65,7 @@ def make_real_image_panel(
     fov_crop_size: float = 2 * NATIVE_ZARR_RESOLUTION_CROP_SIZE,
     scale_bar_um: int = 20,
     grid_crop_position: tuple[int, int] = (0, 0),
-    grid_crop_size: float = NATIVE_ZARR_RESOLUTION_CROP_SIZE,
+    grid_crop_size: int = NATIVE_ZARR_RESOLUTION_CROP_SIZE,
     axes_title_xloc: float = 0.25,
     map_arrow_x_offset: float = 0.065,
     map_arrow_rad: float = 0.3,
