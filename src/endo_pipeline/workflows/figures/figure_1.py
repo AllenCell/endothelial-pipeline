@@ -47,6 +47,7 @@ def main():
     # Correlation heatmaps of ml learned and measured features
     visualize_feature_correlations(
         figsize_heatmap=(MAX_FIGURE_WIDTH - 2, 2.5),
+        y_axis_label_coords=(-0.1, 0.2),
     )
 
     # Latent walk visualization

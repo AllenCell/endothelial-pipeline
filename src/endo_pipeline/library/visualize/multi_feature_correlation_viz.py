@@ -40,6 +40,7 @@ def plot_and_save_clustermap(
     metric: str = "correlation",
     data_type: Literal["correlation", "samples"] = "samples",
     figsize: tuple[float, float] | None = None,
+    y_axis_label_coords: tuple[float, float] | None = None,
 ) -> None:
     """
     Plot and save a heatmap from the given DataFrame.
@@ -99,7 +100,8 @@ def plot_and_save_clustermap(
         ax.get_yticklabels(),
         rotation=0,
     )
-    ax.yaxis.set_label_coords(-0.1, 0.2)
+    if y_axis_label_coords is not None:
+        ax.yaxis.set_label_coords(*y_axis_label_coords)
 
     save_plot_to_path(
         figure=fig,
@@ -274,6 +276,7 @@ def visualize_correlation_heatmaps(
     out_dir: Path,
     cross_correlation_only: bool = False,
     figsize_cluster_heatmap: tuple[float, float] | None = None,
+    y_axis_label_coords=None,
 ) -> None:
     # Pre-compute full correlation matrix once per dataset
     all_feature_columns: list = []
@@ -336,4 +339,5 @@ def visualize_correlation_heatmaps(
             metric="cosine",
             data_type="correlation",
             figsize=figsize_cluster_heatmap,
+            y_axis_label_coords=y_axis_label_coords,
         )

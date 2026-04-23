@@ -115,6 +115,7 @@ SEGMENTATION_FEATURE_COLUMNS: SegFeatureColumnDict = {
     ],
     "supp_figure": [
         Column.SegData.ORIENTATION,
+        Column.SegData.ALIGNMENT_DEG,
         Column.SegData.ASPECT_RATIO,
         Column.SegData.NUM_NUCLEI_IN_CROP,
         Column.SegData.AREA_UM_SQ,
@@ -122,11 +123,9 @@ SEGMENTATION_FEATURE_COLUMNS: SegFeatureColumnDict = {
         Column.SegData.EDGE_FLUOR_MEAN,
         Column.OpticalFlow.UNIT_VECTOR_MEAN,
         Column.OpticalFlow.SPEED_MEAN,
-        Column.SegData.ALIGNMENT_DEG,
-        Column.SegData.NEMATIC_ORDER,
+        Column.SegData.CENTROID_VELOCITY_ANGLE_DEG,
         Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG,
         Column.SegData.NUCLEI_POSITION_ANGLE_DEG,
-        Column.SegData.CENTROID_VELOCITY_ANGLE_DEG,
     ],
     "dynamics_calculation_prereq": [
         Column.DATASET,

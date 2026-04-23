@@ -15,6 +15,7 @@ def main(
     pc_group: str = "main_figure",
     aggregate_only: bool = True,
     figsize_heatmap: tuple[float, float] | None = None,
+    y_axis_label_coords: tuple[float, float] | None = None,
 ) -> None:
     """
     Visualize correlation heatmaps and clustermaps for DiffAE features, PCs, and
@@ -137,6 +138,7 @@ def main(
             out_dir=out_dir,
             cross_correlation_only=True,
             figsize_cluster_heatmap=figsize_heatmap,
+            y_axis_label_coords=y_axis_label_coords,
         )
 
 

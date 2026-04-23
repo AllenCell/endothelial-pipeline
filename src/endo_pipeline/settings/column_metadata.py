@@ -134,7 +134,7 @@ COLUMN_METADATA: dict[str, ColumnMetadata] = {
     # Classic segmentation features ============================================
     Column.SegData.ALIGNMENT: ColumnMetadata(
         name="Alignment Relative to Flow",
-        label="Cell Alignment",
+        label="Cell Alignment Rel. to Flow",
         unit="rad",
         min=0,
         max=pi / 2,
@@ -142,7 +142,7 @@ COLUMN_METADATA: dict[str, ColumnMetadata] = {
     ),
     Column.SegData.ALIGNMENT_DEG: ColumnMetadata(
         name="Alignment Relative to Flow",
-        label="Cell Alignment",
+        label="Cell Alignment Rel. to Flow",
         unit="°",
         min=0,
         max=90,
@@ -281,7 +281,7 @@ COLUMN_METADATA: dict[str, ColumnMetadata] = {
     # Dynamic features =========================================================
     Column.SegData.CENTROID_VELOCITY_ANGLE_DEG: ColumnMetadata(
         name="Cell Migration Angle",
-        label="Migration Angle",
+        label=f"Cell Migration {Unicode.THETA}",
         unit="°",
         min=-180,
         max=180,
@@ -291,7 +291,7 @@ COLUMN_METADATA: dict[str, ColumnMetadata] = {
     ),
     Column.SegData.CENTROID_VELOCITY_UM_PER_MIN: ColumnMetadata(
         name="Cell Migration Speed",
-        label="Centroid Velocity\nMagnitude",
+        label="Cell Speed",
         unit=f"{Unicode.MU}m/min",
         min=0,
         max="max",
@@ -306,7 +306,7 @@ COLUMN_METADATA: dict[str, ColumnMetadata] = {
     ),
     Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG: ColumnMetadata(
         name="Nucleus Orientation Relative to Migration",
-        label="Cell-Nucleus Angle\nRel. Migration",
+        label=f"Cell-Nuc {Unicode.THETA} Rel. Migration",
         unit="°",
         min=-180,
         max=180,
@@ -316,12 +316,12 @@ COLUMN_METADATA: dict[str, ColumnMetadata] = {
     ),
     Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DOTPROD: ColumnMetadata(
         name="Cell-Nucleus vs. Migration Dot Product",
-        label="Cell-Nucleus vs.\nMigration Dot Prod.",
+        label="Cell-Nuc vs.\nMigration Dot Prod.",
         type=ColumnType.CONTINUOUS,
     ),
     Column.SegData.NUCLEI_POSITION_ANGLE_DEG: ColumnMetadata(
         name="Nucleus Orientation Relative to Flow Angle",
-        label="Cell-Nucleus Angle\nRel. to Flow",
+        label=f"Cell-Nuc {Unicode.THETA} Rel. to Flow",
         unit="°",
         min=-180,
         max=180,
