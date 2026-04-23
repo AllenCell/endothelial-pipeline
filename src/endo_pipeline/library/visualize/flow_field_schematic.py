@@ -65,8 +65,16 @@ def make_real_image_panel(
     scale_bar_um: int = 20,
     grid_crop_position: tuple[int, int] = (0, 0),
     axes_title_xloc: float = 0.25,
-    arrow_x_offset: float = 0.065,
-    text_y_offset: float = -0.2,
+    map_arrow_x_offset: float = 0.065,
+    map_arrow_rad: float = 0.3,
+    map_arrow_linewidth: float = 1.5,
+    map_arrow_arrowstyle: str = "->,head_length=5,head_width=3",
+    horizontal_arrow_x_offset: float = 0.08,
+    horizontal_arrow_y_offset: float = -0.06,
+    horizontal_arrow_linewidth: float = 1.5,
+    horizontal_arrow_arrowstyle: str = "->,head_length=5,head_width=3",
+    text_y_offset: float = -0.22,
+    delta_text_y_offset: float = -0.2,
 ) -> Path:
     """Build the panel showing a grid crop from t to t+1 for a given example image."""
 
@@ -148,7 +156,7 @@ def make_real_image_panel(
     def _data_to_fig(ax: plt.Axes, x: float, y: float) -> tuple[float, float]:
         display = ax.transData.transform((x, y))
         fig_coords = fig.transFigure.inverted().transform(display)
-        fig_coords[0] += arrow_x_offset
+        fig_coords[0] += map_arrow_x_offset
         return cast(tuple[float, float], tuple(fig_coords))
 
     box_mid_x = grid_crop_position[0] + NATIVE_ZARR_RESOLUTION_CROP_SIZE / 2
@@ -163,7 +171,7 @@ def make_real_image_panel(
     # Text labels
     fig.text(
         label_x_t,
-        label_y - 0.02,
+        label_y,
         f"({Unicode.THETA}, r, {Unicode.RHO}) at t",
         ha="center",
         va="top",
@@ -171,7 +179,7 @@ def make_real_image_panel(
     )
     fig.text(
         label_x_t1,
-        label_y - 0.02,
+        label_y,
         f"({Unicode.THETA}, r, {Unicode.RHO}) at t+1",
         ha="center",
         va="top",
@@ -180,38 +188,40 @@ def make_real_image_panel(
 
     # Curved arrows from bottom edge of highlighted box to its (theta, r, rho) label
     for start, lbl_x, rad in [
-        (arrow_start_t, label_x_t, 0.3),
-        (arrow_start_t1, label_x_t1, -0.3),
+        (arrow_start_t, label_x_t, map_arrow_rad),
+        (arrow_start_t1, label_x_t1, -map_arrow_rad),
     ]:
         arrow = FancyArrowPatch(
             start,
             (lbl_x, label_y - 0.01),
             connectionstyle=f"arc3,rad={rad}",
-            arrowstyle="->,head_length=5,head_width=3",
+            arrowstyle=map_arrow_arrowstyle,
             color="black",
-            linewidth=1.5,
+            linewidth=map_arrow_linewidth,
             transform=fig.transFigure,
             clip_on=False,
         )
         fig.add_artist(arrow)
 
     # Horizontal arrow between the two (theta, r, rho) labels
-    mid_y = label_y - 0.06
-    arrow_mid_x = (label_x_t + 0.08 + label_x_t1 - 0.08) / 2
+    mid_y = label_y + horizontal_arrow_y_offset
+    arrow_start_x = label_x_t + horizontal_arrow_x_offset
+    arrow_end_x = label_x_t1 - horizontal_arrow_x_offset
+    arrow_mid_x = (arrow_start_x + arrow_end_x) / 2
     fig.text(
         arrow_mid_x,
-        mid_y + 0.01,
+        mid_y + delta_text_y_offset,
         f"({Unicode.DELTA}{Unicode.THETA}, {Unicode.DELTA}r, {Unicode.DELTA}{Unicode.RHO})",
         ha="center",
         va="bottom",
         fontsize=FONTSIZE_MEDIUM,
     )
     horizontal_arrow = FancyArrowPatch(
-        (label_x_t + 0.08, mid_y),
-        (label_x_t1 - 0.08, mid_y),
-        arrowstyle="->,head_length=5,head_width=3",
+        (arrow_start_x, mid_y),
+        (arrow_end_x, mid_y),
+        arrowstyle=horizontal_arrow_arrowstyle,
         color="black",
-        linewidth=1.5,
+        linewidth=horizontal_arrow_linewidth,
         transform=fig.transFigure,
         clip_on=False,
     )
