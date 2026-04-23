@@ -156,7 +156,7 @@ def get_df_for_feature_correlation_viz(
         # instead  of just sets to determine columns to load to preserve column
         # order)
         dynamics_seg_columns = SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"]
-        supplementary_columns = SEGMENTATION_FEATURE_COLUMNS["supp"]
+        supplementary_columns = SEGMENTATION_FEATURE_COLUMNS["supp_figure"]
         optical_flow_columns = [
             Column.OpticalFlow.UNIT_VECTOR_MEAN,
             Column.OpticalFlow.SPEED_MEAN,
