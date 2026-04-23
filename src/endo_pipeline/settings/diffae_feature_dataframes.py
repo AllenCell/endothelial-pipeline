@@ -89,12 +89,18 @@ DIFFAE_PC_COLUMN_NAMES = [
 DIFFAE_PC_COLUMN_NAME_GROUPS: dict[str, list[str]] = {
     "default": DIFFAE_PC_COLUMN_NAMES[:3]
     + [
-        Column.DiffAEData.POLAR_RADIUS,
         Column.DiffAEData.POLAR_ANGLE,
+        Column.DiffAEData.POLAR_RADIUS,
+        Column.DiffAEData.PC3_FLIPPED,
+    ],
+    "main_figure": [
+        Column.DiffAEData.POLAR_ANGLE,
+        Column.DiffAEData.POLAR_RADIUS,
         Column.DiffAEData.PC3_FLIPPED,
     ],
     "polar_coord": [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.POLAR_ANGLE],
     "first_3_pcs": DIFFAE_PC_COLUMN_NAMES[:3],
+    "first_10_pcs": DIFFAE_PC_COLUMN_NAMES[:10],
     "first_100_pcs": DIFFAE_PC_COLUMN_NAMES[:100],
     "all": DIFFAE_PC_COLUMN_NAMES,
 }

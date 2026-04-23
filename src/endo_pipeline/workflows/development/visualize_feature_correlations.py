@@ -11,10 +11,9 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
     dataset_info_columns: list[str] = DATASET_INFO_COLUMNS,
-    segmentation_feature_group: str = "default",
-    pc_group: str = "default",
+    segmentation_feature_group: str = "main_figure",
+    pc_group: str = "main_figure",
     aggregate_only: bool = True,
-    plot_main_figure_correlations: bool = True,
     figsize_heatmap: tuple[float, float] | None = None,
 ) -> None:
     """
@@ -47,9 +46,6 @@ def main(
         NUM_PCS_TO_ANALYZE.
     aggregate_only
         If True, only uses the aggregated dataset in the analysis.
-    plot_main_figure_correlations
-        If True, includes the main figure features in the correlation analysis
-        and plots.
     figsize_cluster_heatmap
         Figure size for the cluster heatmap. If None, uses default size.
     """
@@ -115,32 +111,8 @@ def main(
     )
 
     label_column_tuples = [
-        ("Measurement", [get_label_for_column(col) for col in segmentation_feature_columns]),
-        ("PC", [get_label_for_column(col) for col in pc_columns]),
-    ]
-
-    label_column_tuples_main_figure = [
-        (
-            "Measured Features",
-            [
-                get_label_for_column(Column.SegData.ORIENTATION),
-                get_label_for_column(Column.SegData.ASPECT_RATIO),
-                get_label_for_column(Column.SegData.NUM_NUCLEI_IN_CROP),
-                get_label_for_column(Column.SegData.AREA_UM_SQ),
-                get_label_for_column(Column.SegData.CELL_FLUOR_MEAN),
-                get_label_for_column(Column.SegData.EDGE_FLUOR_MEAN),
-                get_label_for_column(Column.OpticalFlow.UNIT_VECTOR_MEAN),
-                get_label_for_column(Column.OpticalFlow.SPEED_MEAN),
-            ],
-        ),
-        (
-            "ML-based Features",
-            [
-                get_label_for_column(Column.DiffAEData.POLAR_ANGLE),
-                get_label_for_column(Column.DiffAEData.POLAR_RADIUS),
-                get_label_for_column(Column.DiffAEData.PC3_FLIPPED),
-            ],
-        ),
+        ("Measured Features", [get_label_for_column(col) for col in segmentation_feature_columns]),
+        ("ML-based Features", [get_label_for_column(col) for col in pc_columns]),
     ]
 
     if aggregate_only:
@@ -158,15 +130,12 @@ def main(
 
         out_dir = get_output_path(__file__, dataset_name, model_manifest_name, run_name, "tracked")
 
-        if plot_main_figure_correlations:
-            label_column_tuples = label_column_tuples_main_figure
-
         visualize_correlation_heatmaps(
             dataset_name=dataset_name,
             df_dataset=df_dataset,
             label_column_tuples=label_column_tuples,
             out_dir=out_dir,
-            cross_correlation_only=plot_main_figure_correlations,
+            cross_correlation_only=True,
             figsize_cluster_heatmap=figsize_heatmap,
         )
 
