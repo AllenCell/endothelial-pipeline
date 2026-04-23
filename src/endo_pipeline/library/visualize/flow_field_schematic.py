@@ -330,7 +330,6 @@ def _plot_kernel_at_target_bin(
         bin_edges=bin_edges,
     )
 
-    fig = axes.get_figure()
     fig.colorbar(pcm, ax=axes, label=colorbar_label)
     return kernel_weights_2d
 
