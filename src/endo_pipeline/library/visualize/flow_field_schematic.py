@@ -262,18 +262,11 @@ def _make_2d_pcolormesh(
     return pcm
 
 
-def _add_target_bin_border(
-    ax: plt.Axes,
+def _get_target_bin(
     target_point: tuple[float, float],
     bin_edges: list[np.ndarray],
-    color: str = "magenta",
-    linewidth: float = 1.5,
-    label: str | None = "target bin",
-) -> None:
-    """Draw a square border around the target bin."""
-    # Find the bin cell that contains target_point using the actual edge arrays,
-    # so the rectangle aligns exactly with the pcolormesh grid regardless of
-    # whether target_point falls exactly on a bin center.
+) -> tuple[int, int]:
+    """Return the (ix, iy) indices of the bin cell that contains target_point."""
     ix = int(
         np.clip(
             np.searchsorted(bin_edges[0], target_point[0], side="right") - 1,
@@ -288,6 +281,19 @@ def _add_target_bin_border(
             len(bin_edges[1]) - 2,
         )
     )
+    return ix, iy
+
+
+def _add_target_bin_border(
+    ax: plt.Axes,
+    target_bin: tuple[int, int],
+    bin_edges: list[np.ndarray],
+    color: str = "magenta",
+    linewidth: float = 1.5,
+    label: str | None = "target bin",
+) -> None:
+    """Draw a square border around the target bin."""
+    ix, iy = target_bin
     x_left = bin_edges[0][ix]
     y_bottom = bin_edges[1][iy]
     bin_width_x = bin_edges[0][ix + 1] - bin_edges[0][ix]
@@ -323,7 +329,7 @@ def _make_weighted_displacement_histogram(
     dataframe_steady_state: pd.DataFrame,
     column_names: list[Column.DiffAEData],
     bin_edges: list[np.ndarray],
-    target_point: tuple[float, float],
+    target_bin: tuple[int, int],
     axes_xlim: tuple[float, float] | None = None,
     axes_ylim: tuple[float, float] | None = None,
     axes_xlabel: str | None = None,
@@ -379,7 +385,7 @@ def _make_weighted_displacement_histogram(
     )
     _add_target_bin_border(
         axes,
-        target_point=target_point,
+        target_bin=target_bin,
         bin_edges=bin_edges,
     )
     _add_colorbar_for_quadmesh(
@@ -397,7 +403,7 @@ def _plot_kernel_at_target_bin(
     kernels: list[KramersMoyalKernel],
     bin_edges: list[np.ndarray],
     bin_centers: list[np.ndarray],
-    target_point: tuple[float, float],
+    target_bin: tuple[int, int],
     axes_xlim: tuple[float, float] | None = None,
     axes_ylim: tuple[float, float] | None = None,
     axes_xlabel: str | None = None,
@@ -411,9 +417,14 @@ def _plot_kernel_at_target_bin(
 ) -> np.ndarray:
     """Plot the 2D product kernel weights centered at the target bin."""
     # evaluate 2D product kernel weights centered at the target bin
+    ix, iy = target_bin
+    target_bin_center = (
+        (bin_edges[0][ix] + bin_edges[0][ix + 1]) / 2,
+        (bin_edges[1][iy] + bin_edges[1][iy + 1]) / 2,
+    )
     target_offsets = [
-        bin_centers[0] - target_point[0],
-        bin_centers[1] - target_point[1],
+        bin_centers[0] - target_bin_center[0],
+        bin_centers[1] - target_bin_center[1],
     ]
     offsets_grid = get_cartesian_product(target_offsets)
     kernel_weights_2d = _evaluate_multivariate_product_kernel(offsets_grid, kernels)
@@ -434,7 +445,7 @@ def _plot_kernel_at_target_bin(
     )
     _add_target_bin_border(
         axes,
-        target_point=target_point,
+        target_bin=target_bin,
         bin_edges=bin_edges,
     )
     _add_colorbar_for_quadmesh(
@@ -453,7 +464,7 @@ def _plot_km_coeff_at_target_bin(
     column_names: list[Column.DiffAEData],
     kernels: list[KramersMoyalKernel],
     bin_edges: list[np.ndarray],
-    target_point: tuple[float, float],
+    target_bin: tuple[int, int],
     time_step=TIME_STEP_IN_HOURS,
     axes_xlim: tuple[float, float] | None = None,
     axes_ylim: tuple[float, float] | None = None,
@@ -488,7 +499,7 @@ def _plot_km_coeff_at_target_bin(
     )
     _add_target_bin_border(
         axes,
-        target_point=target_point,
+        target_bin=target_bin,
         bin_edges=bin_edges,
     )
     _add_colorbar_for_quadmesh(
@@ -535,6 +546,7 @@ def make_kernel_convolution_schematic(
 
     bin_widths = tuple(BIN_WIDTHS_DYNAMICS[col] for col in column_names)
     bin_edges, bin_centers = get_bins(bin_widths, df[column_names].to_numpy())
+    target_bin = _get_target_bin(target_point, bin_edges)
 
     fig, ax = plt.subplots(n_rows, n_cols, gridspec_kw=gridspec_kwargs, **(fig_kwargs or {}))
     axes = ax.flatten() if isinstance(ax, np.ndarray) else [ax]
@@ -548,7 +560,7 @@ def make_kernel_convolution_schematic(
         dataframe_steady_state=dataframe_steady_state,
         column_names=column_names,
         bin_edges=bin_edges,
-        target_point=target_point,
+        target_bin=target_bin,
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
         axes_ylabel=axes_ylabel,
@@ -574,7 +586,7 @@ def make_kernel_convolution_schematic(
         kernels=kernels,
         bin_edges=bin_edges,
         bin_centers=bin_centers,
-        target_point=target_point,
+        target_bin=target_bin,
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
         colorbar_label="kernel weight (normalized)",
@@ -600,7 +612,7 @@ def make_kernel_convolution_schematic(
     )
     _add_target_bin_border(
         axes[2],
-        target_point=target_point,
+        target_bin=target_bin,
         bin_edges=bin_edges,
     )
     _add_colorbar_for_quadmesh(
@@ -619,7 +631,7 @@ def make_kernel_convolution_schematic(
         column_names=column_names,
         kernels=kernels,
         bin_edges=bin_edges,
-        target_point=target_point,
+        target_bin=target_bin,
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
         axes_xlabel=axes_xlabel,
