@@ -5,11 +5,17 @@ from typing import Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from matplotlib.collections import QuadMesh
 from matplotlib.patches import Rectangle
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_image, save_plot_to_path
+from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
+    _check_and_adjust_km_inputs,
+    _get_weighted_histogram_for_convolution,
+)
+from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
 from endo_pipeline.library.process.image_processing import (
     contrast_stretching,
     crop_image,
@@ -18,8 +24,11 @@ from endo_pipeline.library.process.image_processing import (
 )
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.manifests import get_zarr_location_for_position
+from endo_pipeline.settings.column_metadata import COLUMN_METADATA
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.examples import FLOW_FIELD_CONSTRUCTION_EXAMPLE_IMAGES
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_HEIGHT
+from endo_pipeline.settings.flow_field_2d import DRIFT_CONTOUR_COLORMAP
 from endo_pipeline.settings.image_data import NATIVE_ZARR_RESOLUTION_CROP_SIZE, PIXEL_SIZE_3i_20x
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
@@ -164,3 +173,106 @@ def _add_target_bin_border(
         zorder=5,
     )
     ax.add_patch(rect)
+
+
+def _make_weighted_displacement_histogram(
+    dataframe_steady_state: pd.DataFrame,
+    column_names: list[Column.DiffAEData],
+    bin_edges: list[np.ndarray],
+    axes: plt.Axes,
+    axes_xlim: tuple[float, float] | None = None,
+    axes_ylim: tuple[float, float] | None = None,
+    axes_xlabel: str | None = None,
+    axes_ylabel: str | None = None,
+    axes_aspect: Literal["auto", "equal"] | float | None = "equal",
+    axes_title: str | None = None,
+    cmap: str = "RdBu_r",
+    colorbar_label: str | None = None,
+) -> None:
+    """Compute and plot a 2D histogram of the data weighted by the sum of the displacements in each bin."""
+
+    # Get trajectories and displacements for the specified columns. The
+    # trajectory values are used for binning, and the displacements are used for
+    # weighting the histogram counts.
+    traj_list, disp_list = get_traj_and_diff(dataframe_steady_state, column_names)
+
+    # we only need density and drift in the first input column for this
+    # schematic, so the powers are set to select the appropriate displacements
+    # for weighting the histogram counts
+    powers = np.array([[0, 0], [1, 0]])
+    traj_list_, disp_list_, powers_ = _check_and_adjust_km_inputs(traj_list, disp_list, powers)
+
+    # Weighted_hist shape: (2, n_bins_x, n_bins_y), where the second entry along
+    # the first axis corresponds to the x-displacement-weighted counts
+    # (powers=[1,0])
+    weighted_hist = _get_weighted_histogram_for_convolution(
+        traj_list_, disp_list_, bin_edges, powers_
+    )
+    weighted_counts_delta_x = weighted_hist[1]
+
+    # Set vmin and vmax for the colormap based on the 99th percentile of the
+    # absolute values in the weighted histogram, to avoid outliers dominating
+    # the color scale.
+    vmax2 = np.nanpercentile(np.abs(weighted_counts_delta_x), 99)
+    pcm = _make_2d_pcolormesh(
+        axes,
+        weighted_counts_delta_x,
+        bin_edges[0],
+        bin_edges[1],
+        cmap=cmap,
+        vmin=-vmax2,
+        vmax=vmax2,
+    )
+    _add_target_bin_border(axes)
+    if axes_xlim is not None:
+        axes.set_xlim(axes_xlim)
+    if axes_ylim is not None:
+        axes.set_ylim(axes_ylim)
+    if axes_xlabel is not None:
+        axes.set_xlabel(axes_xlabel)
+    if axes_ylabel is not None:
+        axes.set_ylabel(axes_ylabel)
+    if axes_aspect is not None:
+        axes.set_aspect(axes_aspect)
+    if axes_title is not None:
+        axes.set_title(axes_title)
+
+    fig = axes.get_figure()
+    fig.colorbar(pcm, ax=axes, label=colorbar_label)
+
+
+def make_kernel_convolution_schematic(
+    savedir: Path,
+    dataframe_steady_state: pd.DataFrame,
+    column_names: list[Column.DiffAEData],
+    bin_edges: list[np.ndarray],
+    bin_centers: list[np.ndarray],
+    axes_xlim: tuple[float, float] | None = None,
+    axes_ylim: tuple[float, float] | None = None,
+    target_r: float = 1.0,
+    target_rho: float = 0.0,
+    n_rows: int = 1,
+    n_cols: int = 4,
+    cmap: str = DRIFT_CONTOUR_COLORMAP,
+    fig_kwargs: dict | None = None,
+) -> None:
+    """
+    Build the panel showing a schematic of the kernel convolution process for
+    a single target bin in (r, rho) space.
+    """
+
+    fig, axes = plt.subplots(n_rows, n_cols, **(fig_kwargs or {}))
+
+    # panel 1 - r-displacement-weighted 2D histogram
+    _make_weighted_displacement_histogram(
+        dataframe_steady_state=dataframe_steady_state,
+        column_names=column_names,
+        bin_edges=bin_edges,
+        axes=axes[0],
+        axes_xlim=axes_xlim,
+        axes_ylim=axes_ylim,
+        axes_xlabel=COLUMN_METADATA[column_names[0]].label,
+        axes_ylabel=COLUMN_METADATA[column_names[1]].label,
+        axes_title="1. Displacement-weighted histogram",
+        colorbar_label=f"sum of $\\Delta$ {COLUMN_METADATA[column_names[0]].label} in bin",
+    )
