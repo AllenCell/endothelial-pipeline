@@ -28,16 +28,17 @@ from endo_pipeline.settings.dynamics_workflows import (
 from endo_pipeline.settings.figures import FONTSIZE_SMALL
 from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
 
-out_dir = get_output_path(__file__)
-
 
 def generate_first_passage_time_example(
     dataset_name: str = "20250618_20X",
-    out_dir: Path = out_dir,
+    out_dir: Path | None = None,
     minimum_track_length: int = LONG_TRACK_THRESHOLD_LENGTH,
     fixed_point_radius_threshold: float = MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
     min_num_traj_per_bin: int = 10,
 ) -> None:
+
+    if out_dir is None:
+        out_dir = get_output_path(__file__)
 
     # logger = logging.getLogger(__name__)
 
