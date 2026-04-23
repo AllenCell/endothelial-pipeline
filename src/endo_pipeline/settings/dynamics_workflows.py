@@ -1,7 +1,5 @@
 """Default settings for polar coordinate analysis and visualization."""
 
-from typing import Literal
-
 from numpy import pi
 
 from endo_pipeline.settings.column_names import ColumnName as Column
@@ -72,7 +70,7 @@ POLAR_ANGLE_RANGE: tuple[float, float] = (0.0, pi)
 POLAR_ANGLE_PERIOD: float = pi
 """Period for polar angle coordinate (dependent on RESCALE_THETA)."""
 
-KERNEL_NAMES_DYNAMICS: dict[Column.DiffAEData, Literal["periodic", "gaussian", "epanechnikov"]] = {
+KERNEL_NAMES_DYNAMICS: dict[Column.DiffAEData, str] = {
     Column.DiffAEData.POLAR_ANGLE: "periodic",
     Column.DiffAEData.POLAR_RADIUS: "gaussian",
     Column.DiffAEData.PC3_FLIPPED: "gaussian",

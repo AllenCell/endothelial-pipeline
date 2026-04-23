@@ -1,7 +1,7 @@
 """Methods for constructing schematics for the flow field supplementary figure."""
 
 from pathlib import Path
-from typing import Literal
+from typing import Literal, TypeAlias, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -445,9 +445,10 @@ def make_kernel_convolution_schematic(
     )
 
     # get kernels for panel 2
+    KernelName: TypeAlias = Literal["periodic", "gaussian", "epanechnikov"]
     kernels = [
         KramersMoyalKernel(
-            name=KERNEL_NAMES_DYNAMICS[column_name],
+            name=cast(KernelName, KERNEL_NAMES_DYNAMICS[column_name]),
             bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_name],
             period=POLAR_ANGLE_PERIOD if column_name == Column.DiffAEData.POLAR_ANGLE else None,
         )
