@@ -50,7 +50,7 @@ panels = [
         x_position=0,
         y_position=6,
         x_offset=0,
-        y_offset=0,
+        y_offset=0.1,
     ),
 ]
 
