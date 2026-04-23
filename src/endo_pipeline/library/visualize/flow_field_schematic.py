@@ -13,8 +13,11 @@ from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_image, save_plot_to_path
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
     _check_and_adjust_km_inputs,
+    _evaluate_multivariate_product_kernel,
     _get_weighted_histogram_for_convolution,
+    get_cartesian_product,
 )
+from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
 from endo_pipeline.library.process.image_processing import (
     contrast_stretching,
@@ -26,6 +29,11 @@ from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_cont
 from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.dynamics_workflows import (
+    BIN_WIDTHS_DYNAMICS,
+    KERNEL_BANDWIDTHS_DYNAMICS,
+    KERNEL_NAMES_DYNAMICS,
+)
 from endo_pipeline.settings.examples import FLOW_FIELD_CONSTRUCTION_EXAMPLE_IMAGES
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_HEIGHT
 from endo_pipeline.settings.flow_field_2d import DRIFT_CONTOUR_COLORMAP
@@ -129,7 +137,10 @@ def _make_2d_pcolormesh(
     vmax: float | None = None,
     axes_xlabel: str | None = None,
     axes_ylabel: str | None = None,
+    axes_xlim: tuple[float, float] | None = None,
+    axes_ylim: tuple[float, float] | None = None,
     axes_aspect: Literal["auto", "equal"] | float | None = "equal",
+    axes_title: str | None = None,
 ) -> QuadMesh:
     """Make a 2D pcolormesh plot with consistent styling."""
     pcm = axes.pcolormesh(
@@ -146,24 +157,30 @@ def _make_2d_pcolormesh(
         axes.set_xlabel(axes_xlabel)
     if axes_ylabel is not None:
         axes.set_ylabel(axes_ylabel)
+    if axes_xlim is not None:
+        axes.set_xlim(axes_xlim)
+    if axes_ylim is not None:
+        axes.set_ylim(axes_ylim)
     if axes_aspect is not None:
         axes.set_aspect(axes_aspect)
+    if axes_title is not None:
+        axes.set_title(axes_title)
     return pcm
 
 
 def _add_target_bin_border(
     ax: plt.Axes,
-    target_x: float,
-    target_y: float,
-    bin_width_x: float,
-    bin_width_y: float,
+    target_point: tuple[float, float],
+    bin_edges: tuple[np.ndarray, np.ndarray],
     color: str = "magenta",
     linewidth: float = 2.5,
     label: str | None = "target bin",
 ) -> None:
     """Draw a square border around the target bin."""
+    bin_width_x = bin_edges[0][1] - bin_edges[0][0]
+    bin_width_y = bin_edges[1][1] - bin_edges[1][0]
     rect = Rectangle(
-        (target_x - bin_width_x / 2, target_y - bin_width_y / 2),
+        (target_point[0] - bin_width_x / 2, target_point[1] - bin_width_y / 2),
         bin_width_x,
         bin_width_y,
         linewidth=linewidth,
@@ -223,28 +240,66 @@ def _make_weighted_displacement_histogram(
         cmap=cmap,
         vmin=-vmax2,
         vmax=vmax2,
+        axes_xlabel=axes_xlabel,
+        axes_ylabel=axes_ylabel,
+        axes_xlim=axes_xlim,
+        axes_ylim=axes_ylim,
+        axes_aspect=axes_aspect,
+        axes_title=axes_title,
     )
-    bin_width_x = bin_edges[0][1] - bin_edges[0][0]
-    bin_width_y = bin_edges[1][1] - bin_edges[1][0]
+
     _add_target_bin_border(
         axes,
-        target_x=target_point[0],
-        target_y=target_point[1],
-        bin_width_x=bin_width_x,
-        bin_width_y=bin_width_y,
+        target_point=target_point,
+        bin_edges=bin_edges,
     )
-    if axes_xlim is not None:
-        axes.set_xlim(axes_xlim)
-    if axes_ylim is not None:
-        axes.set_ylim(axes_ylim)
-    if axes_xlabel is not None:
-        axes.set_xlabel(axes_xlabel)
-    if axes_ylabel is not None:
-        axes.set_ylabel(axes_ylabel)
-    if axes_aspect is not None:
-        axes.set_aspect(axes_aspect)
-    if axes_title is not None:
-        axes.set_title(axes_title)
+
+    fig = axes.get_figure()
+    fig.colorbar(pcm, ax=axes, label=colorbar_label)
+
+
+def _plot_kernel_at_target_bin(
+    axes: plt.Axes,
+    kernels: list[KramersMoyalKernel],
+    bin_edges: list[np.ndarray],
+    bin_centers: list[np.ndarray],
+    target_point: tuple[float, float],
+    axes_xlim: tuple[float, float] | None = None,
+    axes_ylim: tuple[float, float] | None = None,
+    axes_xlabel: str | None = None,
+    axes_ylabel: str | None = None,
+    axes_aspect: Literal["auto", "equal"] | float | None = "equal",
+    axes_title: str | None = None,
+    cmap: str = "Purples",
+    colorbar_label: str | None = None,
+) -> None:
+    """Plot the 2D product kernel weights centered at the target bin."""
+    # evaluate 2D product kernel weights centered at the target bin
+    target_offsets = [
+        bin_centers[0] - target_point[0],
+        bin_centers[1] - target_point[1],
+    ]
+    offsets_grid = get_cartesian_product(target_offsets)
+    kernel_weights_2d = _evaluate_multivariate_product_kernel(offsets_grid, kernels)
+    pcm = _make_2d_pcolormesh(
+        axes,
+        kernel_weights_2d / kernel_weights_2d.max(),
+        bin_edges[0],
+        bin_edges[1],
+        cmap=cmap,
+        axes_xlabel=axes_xlabel,
+        axes_ylabel=axes_ylabel,
+        axes_xlim=axes_xlim,
+        axes_ylim=axes_ylim,
+        axes_aspect=axes_aspect,
+        axes_title=axes_title,
+    )
+
+    _add_target_bin_border(
+        axes,
+        target_point=target_point,
+        bin_edges=bin_edges,
+    )
 
     fig = axes.get_figure()
     fig.colorbar(pcm, ax=axes, label=colorbar_label)
@@ -270,6 +325,8 @@ def make_kernel_convolution_schematic(
     """
 
     fig, axes = plt.subplots(n_rows, n_cols, **(fig_kwargs or {}))
+    axes_xlabel = COLUMN_METADATA[column_names[0]].label
+    axes_ylabel = COLUMN_METADATA[column_names[1]].label
 
     # panel 1 - r-displacement-weighted 2D histogram
     _make_weighted_displacement_histogram(
@@ -280,8 +337,33 @@ def make_kernel_convolution_schematic(
         axes=axes[0],
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
-        axes_xlabel=COLUMN_METADATA[column_names[0]].label,
-        axes_ylabel=COLUMN_METADATA[column_names[1]].label,
+        axes_xlabel=axes_xlabel,
+        axes_ylabel=axes_ylabel,
         axes_title="1. Displacement-weighted histogram",
-        colorbar_label=f"sum of $\\Delta$ {COLUMN_METADATA[column_names[0]].label} in bin",
+        cmap=cmap,
+        colorbar_label=f"sum of $\\Delta$ {axes_xlabel} in bin",
+    )
+
+    # get kernels for panel 2
+    kernels = [
+        KramersMoyalKernel(
+            name=KERNEL_NAMES_DYNAMICS[column_name],
+            bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_name],
+            bin_width=BIN_WIDTHS_DYNAMICS[column_name],
+        )
+        for column_name in column_names
+    ]
+    # panel 2 - kernel weights centered at target bin
+    _plot_kernel_at_target_bin(
+        axes=axes[1],
+        kernels=kernels,
+        bin_edges=bin_edges,
+        bin_centers=bin_centers,
+        target_point=target_point,
+        axes_xlim=axes_xlim,
+        axes_ylim=axes_ylim,
+        axes_xlabel=axes_xlabel,
+        axes_ylabel=axes_ylabel,
+        axes_title="2. Product kernel weights",
+        colorbar_label="kernel weight (normalized)",
     )
