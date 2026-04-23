@@ -443,18 +443,18 @@ EXAMPLES_DIFFAE_TRAINING_VALIDATION: list[ExampleImage] = [
 
 FLOW_FIELD_CONSTRUCTION_EXAMPLE_IMAGES: list[ExampleImage] = [
     ExampleImage(
-        dataset_name="20250402_20X",
+        dataset_name="20250409_20X",
         description="low_flow",
-        position=3,
-        timepoint=150,
+        position=0,
+        timepoint=290,
         crop_x_start=0,  # res level 0
         crop_y_start=0,  # res level 0
     ),
     ExampleImage(
-        dataset_name="20250402_20X",
+        dataset_name="20250409_20X",
         description="low_flow",
-        position=3,
-        timepoint=151,
+        position=0,
+        timepoint=291,
         crop_x_start=0,  # res level 0
         crop_y_start=0,  # res level 0
     ),
