@@ -6,6 +6,7 @@ from typing import Literal
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.collections import QuadMesh
+from matplotlib.patches import Rectangle
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_image, save_plot_to_path
@@ -114,7 +115,7 @@ def _make_2d_pcolormesh(
     data_2d: np.ndarray,
     x_edges: np.ndarray,
     y_edges: np.ndarray,
-    cmap: str,
+    cmap: str = "RdBu_r",
     vmin: float | None = None,
     vmax: float | None = None,
     axes_xlabel: str | None = None,
@@ -139,3 +140,27 @@ def _make_2d_pcolormesh(
     if axes_aspect is not None:
         axes.set_aspect(axes_aspect)
     return pcm
+
+
+def _add_target_bin_border(
+    ax: plt.Axes,
+    target_x: float,
+    target_y: float,
+    bin_width_x: float,
+    bin_width_y: float,
+    color: str = "magenta",
+    linewidth: float = 2.5,
+    label: str | None = "target bin",
+) -> None:
+    """Draw a square border around the target bin."""
+    rect = Rectangle(
+        (target_x - bin_width_x / 2, target_y - bin_width_y / 2),
+        bin_width_x,
+        bin_width_y,
+        linewidth=linewidth,
+        edgecolor=color,
+        facecolor="none",
+        label=label,
+        zorder=5,
+    )
+    ax.add_patch(rect)
