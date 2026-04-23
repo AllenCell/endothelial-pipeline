@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from matplotlib.collections import QuadMesh
 from matplotlib.patches import Rectangle
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_dataframe, load_image, save_plot_to_path
@@ -211,6 +212,18 @@ def _add_target_bin_border(
     ax.add_patch(rect)
 
 
+def _add_colorbar_for_quadmesh(
+    fig: plt.Figure,
+    axes: plt.Axes,
+    quadmesh: QuadMesh,
+    label: str,
+) -> None:
+    """Add a colorbar for a given QuadMesh plot."""
+    divider = make_axes_locatable(axes)
+    cax = divider.append_axes("right", size="5%", pad=0.05)
+    fig.colorbar(quadmesh, cax=cax, label=label)
+
+
 def _make_weighted_displacement_histogram(
     fig: plt.Figure,
     axes: plt.Axes,
@@ -271,14 +284,17 @@ def _make_weighted_displacement_histogram(
         xlabel_kwargs=xlabel_kwargs,
         ylabel_kwargs=ylabel_kwargs,
     )
-
     _add_target_bin_border(
         axes,
         target_point=target_point,
         bin_edges=bin_edges,
     )
-
-    fig.colorbar(pcm, ax=axes, label=colorbar_label)
+    _add_colorbar_for_quadmesh(
+        fig,
+        axes,
+        pcm,
+        label=colorbar_label,
+    )
     return weighted_counts_delta_x
 
 
@@ -323,14 +339,17 @@ def _plot_kernel_at_target_bin(
         xlabel_kwargs=xlabel_kwargs,
         ylabel_kwargs=ylabel_kwargs,
     )
-
     _add_target_bin_border(
         axes,
         target_point=target_point,
         bin_edges=bin_edges,
     )
-
-    fig.colorbar(pcm, ax=axes, label=colorbar_label)
+    _add_colorbar_for_quadmesh(
+        fig,
+        axes,
+        pcm,
+        label=colorbar_label,
+    )
     return kernel_weights_2d
 
 
@@ -374,14 +393,17 @@ def _plot_km_coeff_at_target_bin(
         xlabel_kwargs=xlabel_kwargs,
         ylabel_kwargs=ylabel_kwargs,
     )
-
     _add_target_bin_border(
         axes,
         target_point=target_point,
         bin_edges=bin_edges,
     )
-
-    fig.colorbar(pcm, ax=axes, label=colorbar_label)
+    _add_colorbar_for_quadmesh(
+        fig,
+        axes,
+        pcm,
+        label=colorbar_label,
+    )
 
 
 def make_kernel_convolution_schematic(
@@ -484,7 +506,17 @@ def make_kernel_convolution_schematic(
         axes_xlabel=axes_xlabel,
         xlabel_kwargs=xlabel_kwargs,
     )
-    fig.colorbar(pcm, ax=axes[2], label=f"kernel-weighted sum of $\\Delta$ {axes_xlabel}")
+    _add_target_bin_border(
+        axes[2],
+        target_point=target_point,
+        bin_edges=bin_edges,
+    )
+    _add_colorbar_for_quadmesh(
+        fig,
+        axes[2],
+        pcm,
+        label=f"kernel-weighted sum of $\\Delta$ {axes_xlabel}",
+    )
 
     # panel 4 - final KM coefficient estimate at target bin
     # with KM estimates at surrounding bins shown for context
