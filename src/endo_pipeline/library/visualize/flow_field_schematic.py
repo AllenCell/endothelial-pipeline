@@ -212,11 +212,12 @@ def _add_target_bin_border(
 
 
 def _make_weighted_displacement_histogram(
+    fig: plt.Figure,
+    axes: plt.Axes,
     dataframe_steady_state: pd.DataFrame,
     column_names: list[Column.DiffAEData],
     bin_edges: list[np.ndarray],
     target_point: tuple[float, float],
-    axes: plt.Axes,
     axes_xlim: tuple[float, float] | None = None,
     axes_ylim: tuple[float, float] | None = None,
     axes_xlabel: str | None = None,
@@ -277,12 +278,12 @@ def _make_weighted_displacement_histogram(
         bin_edges=bin_edges,
     )
 
-    fig = axes.get_figure()
     fig.colorbar(pcm, ax=axes, label=colorbar_label)
     return weighted_counts_delta_x
 
 
 def _plot_kernel_at_target_bin(
+    fig: plt.Figure,
     axes: plt.Axes,
     kernels: list[KramersMoyalKernel],
     bin_edges: list[np.ndarray],
@@ -335,6 +336,7 @@ def _plot_kernel_at_target_bin(
 
 
 def _plot_km_coeff_at_target_bin(
+    fig: plt.Figure,
     axes: plt.Axes,
     dataframe_steady_state: pd.DataFrame,
     column_names: list[Column.DiffAEData],
@@ -380,7 +382,6 @@ def _plot_km_coeff_at_target_bin(
         bin_edges=bin_edges,
     )
 
-    fig = axes.get_figure()
     fig.colorbar(pcm, ax=axes, label=colorbar_label)
 
 
@@ -418,7 +419,7 @@ def make_kernel_convolution_schematic(
     df: pd.DataFrame = df_raw[columns_to_load].compute()
     dataframe_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
 
-    bin_widths = [BIN_WIDTHS_DYNAMICS[col] for col in column_names]
+    bin_widths = tuple(BIN_WIDTHS_DYNAMICS[col] for col in column_names)
     bin_edges, bin_centers = get_bins(bin_widths, df[column_names].to_numpy())
 
     fig, axes = plt.subplots(n_rows, n_cols, gridspec_kw=gridspec_kwargs, **(fig_kwargs or {}))
@@ -427,11 +428,12 @@ def make_kernel_convolution_schematic(
 
     # panel 1 - r-displacement-weighted 2D histogram
     weighted_hist_delta_r = _make_weighted_displacement_histogram(
+        fig=fig,
+        axes=axes[0],
         dataframe_steady_state=dataframe_steady_state,
         column_names=column_names,
         bin_edges=bin_edges,
         target_point=target_point,
-        axes=axes[0],
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
         axes_xlabel=axes_xlabel,
@@ -453,6 +455,7 @@ def make_kernel_convolution_schematic(
     ]
     # panel 2 - kernel weights centered at target bin
     kernel_weights_2d = _plot_kernel_at_target_bin(
+        fig=fig,
         axes=axes[1],
         kernels=kernels,
         bin_edges=bin_edges,
@@ -486,6 +489,7 @@ def make_kernel_convolution_schematic(
     # panel 4 - final KM coefficient estimate at target bin
     # with KM estimates at surrounding bins shown for context
     _plot_km_coeff_at_target_bin(
+        fig=fig,
         axes=axes[3],
         dataframe_steady_state=dataframe_steady_state,
         column_names=column_names,
