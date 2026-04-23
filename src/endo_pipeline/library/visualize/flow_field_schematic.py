@@ -10,7 +10,8 @@ from matplotlib.collections import QuadMesh
 from matplotlib.patches import Rectangle
 
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.io import load_image, save_plot_to_path
+from endo_pipeline.io import load_dataframe, load_image, save_plot_to_path
+from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
     _check_and_adjust_km_inputs,
     _evaluate_multivariate_product_kernel,
@@ -19,6 +20,7 @@ from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
     get_kramers_moyal_coeffs,
 )
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
+from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
 from endo_pipeline.library.process.image_processing import (
     contrast_stretching,
@@ -27,12 +29,18 @@ from endo_pipeline.library.process.image_processing import (
     std_dev,
 )
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
-from endo_pipeline.manifests import get_zarr_location_for_position
+from endo_pipeline.manifests import (
+    get_dataframe_location_for_dataset,
+    get_zarr_location_for_position,
+    load_dataframe_manifest,
+)
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import (
+    BIN_WIDTHS_DYNAMICS,
     KERNEL_BANDWIDTHS_DYNAMICS,
     KERNEL_NAMES_DYNAMICS,
+    METADATA_COLUMNS_TO_KEEP,
     POLAR_ANGLE_PERIOD,
     TIME_STEP_IN_HOURS,
 )
@@ -45,6 +53,9 @@ from endo_pipeline.settings.flow_field_2d import (
 )
 from endo_pipeline.settings.image_data import NATIVE_ZARR_RESOLUTION_CROP_SIZE, PIXEL_SIZE_3i_20x
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
+from endo_pipeline.settings.workflow_defaults import (
+    DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
+)
 
 
 def make_real_image_panel(
@@ -362,11 +373,9 @@ def _plot_km_coeff_at_target_bin(
 
 def make_kernel_convolution_schematic(
     savedir: Path,
-    dataframe_steady_state: pd.DataFrame,
+    dataset_name: str,
     column_names: list[Column.DiffAEData],
     target_point: tuple[float, float],
-    bin_edges: list[np.ndarray],
-    bin_centers: list[np.ndarray],
     axes_xlim: tuple[float, float] | None = None,
     axes_ylim: tuple[float, float] | None = None,
     n_rows: int = 1,
@@ -378,6 +387,23 @@ def make_kernel_convolution_schematic(
     Build the panel showing a schematic of the kernel convolution process for
     a single target bin in (r, rho) space.
     """
+    # Load feature data for provided dataset and filter to steady-state time
+    # points and a single flow condition
+    dataset_config = load_dataset_config(dataset_name)
+
+    feature_manifest_name = DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED
+    feature_manifest = load_dataframe_manifest(feature_manifest_name)
+
+    dataset_location = get_dataframe_location_for_dataset(feature_manifest, dataset_name)
+
+    columns_to_load = [*METADATA_COLUMNS_TO_KEEP["grid"], *column_names]
+
+    df_raw = load_dataframe(dataset_location, delay=True)
+    df: pd.DataFrame = df_raw[columns_to_load].compute()
+    dataframe_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
+
+    bin_widths = [BIN_WIDTHS_DYNAMICS[col] for col in column_names]
+    bin_edges, bin_centers = get_bins(bin_widths, df[column_names].to_numpy())
 
     fig, axes = plt.subplots(n_rows, n_cols, **(fig_kwargs or {}))
     axes_xlabel = COLUMN_METADATA[column_names[0]].label
