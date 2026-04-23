@@ -33,13 +33,38 @@ from endo_pipeline.library.visualize.diffae_features.flow_field_3d import (
 )
 from endo_pipeline.settings import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, TIME_STEP_IN_HOURS
-from endo_pipeline.settings.figures import FONTSIZE_SMALL
+from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_SMALL
 from endo_pipeline.settings.flow_field_3d import QUIVER_COLORMAP
 from endo_pipeline.settings.unicode import UnicodeCharacters
 
 logger = logging.getLogger(__name__)
 
 plt.style.use("endo_pipeline.figure")
+
+
+def _snap_to_bin(val: float) -> int:
+    _SHEAR_STRESS_BINS: dict[int, tuple[int, int]] = {
+        6: (5, 7),
+        9: (8, 10),
+        12: (11, 13),
+        15: (14, 16),
+        21: (20, 22),
+    }
+    for center, (lo, hi) in _SHEAR_STRESS_BINS.items():
+        if lo <= val <= hi:
+            return center
+    return round(val)
+
+
+def _get_shear_stress_for_dataset(dataset_name: str) -> float:
+    dataset_config = load_dataset_config(dataset_name)
+    shear_stresses = tuple(flow.shear_stress for flow in dataset_config.flow_conditions)
+    if len(shear_stresses) > 1:
+        raise ValueError(
+            f"Dataset [{dataset_name}] has multiple flow conditions with shear stresses: {shear_stresses}. "
+            "This function expects only one flow condition per dataset."
+        )
+    return shear_stresses[0]
 
 
 def set_global_pc_lims(axs: Sequence[plt.Axes], lim: int = 3) -> None:
@@ -1144,8 +1169,15 @@ def compute_and_plot_first_passage_time_correlation(
 
     num_bins = first_passage_time_df_no_nan[Column.VectorField.BIN_INDEX].nunique()
 
+    shear_stress = _get_shear_stress_for_dataset(dataset_name)
+    shear_stress_rounded = _snap_to_bin(shear_stress)
+
     if for_figure:
         fig, ax = plt.subplots(figsize=(2, 2))
+        ax.set_title(
+            f"{shear_stress_rounded} dyn/cm{UnicodeCharacters.SQUARED}",
+            fontsize=FONTSIZE_SMALL,
+        )
     else:
         fig, ax = plt.subplots(figsize=(3, 3))
         ax.set_title(f"{dataset_name}: {num_bins} bins".title())
@@ -1325,6 +1357,7 @@ def plot_first_passage_time_parameter_sweep(
     initial conditions histogram and the choice of mean vs. median FPT to plot.
     """
     dataset_name = dataset_config.name
+    shear_stress_rounded = _snap_to_bin(_get_shear_stress_for_dataset(dataset_name))
     time_units = TIME_STEP_IN_HOURS  # convert timeframes to hours
     first_passage_time_col = f"{Column.VectorField.TIME_TO_FP_PREFIX}{fixed_point_index}"
     first_passage_time_param_sweep_df[first_passage_time_col] *= time_units
@@ -1336,15 +1369,16 @@ def plot_first_passage_time_parameter_sweep(
         .reset_index(drop=False)
     )
 
+    fig_title = f"{shear_stress_rounded} dyn/cm{UnicodeCharacters.SQUARED}"
     for metric in ["mean", "median"]:
         column_name = "50%" if metric == "median" else metric
-        fig, ax = plt.subplots(figsize=(4, 4))
-        ax.set_title(dataset_name.title())
+        fig, ax = plt.subplots(figsize=(3, 3))
+        ax.set_title(fig_title, fontsize=FONTSIZE_LARGE)
         ax.errorbar(
             x=fpt_param_sweep_agg["threshold"],
             y=fpt_param_sweep_agg[column_name],
             yerr=fpt_param_sweep_agg["std"],
-            label=f"{metric} FPT ± STD",
+            label=f"{metric} FPT {UnicodeCharacters.PLUS_MINUS} STD",
             fmt="o-",
             color="black",
             ecolor="gray",
@@ -1356,15 +1390,13 @@ def plot_first_passage_time_parameter_sweep(
                 fixed_point_radius_threshold_in_workflow,
                 ls="--",
                 color="red",
-                label="threshold in workflow",
+                label="radius used for correlations",
             )
         ax.legend()
         ax.set_xlim(0)
         ax.set_ylim(0)
-        ax.set_xlabel(
-            f"Threshold distance from fixed point {fixed_point_index} ({fixed_point_stability})".title()
-        )
-        ax.set_ylabel(f"first passage time {metric} (hrs)".title())
+        ax.set_xlabel("radius around fixed point".title(), fontsize=FONTSIZE_LARGE)
+        ax.set_ylabel(f"{metric} first passage time (hrs)".title(), fontsize=FONTSIZE_LARGE)
         filename = f"FPT_{metric}_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}"
         save_plot_to_path(fig, out_dir, filename, file_format=".svg", show_and_close=False)
 
@@ -1382,7 +1414,7 @@ def plot_first_passage_time_parameter_sweep(
     ).reset_index(drop=False)
 
     fig, ax = plt.subplots(figsize=(3, 3))
-    ax.set_title(dataset_name.title())
+    ax.set_title(fig_title, fontsize=FONTSIZE_LARGE)
     ax.plot(
         num_traj_param_sweep_agg["threshold"],
         num_traj_param_sweep_agg["percent_trajectories_approached_fp"],
@@ -1396,16 +1428,13 @@ def plot_first_passage_time_parameter_sweep(
             fixed_point_radius_threshold_in_workflow,
             ls="--",
             color="red",
-            label="threshold in workflow",
+            label="radius used for correlations",
         )
     ax.legend()
     ax.set_xlim(0)
     ax.set_ylim(0, 105)
-    ax.set_xlabel(
-        "Threshold distance from "
-        f"\nfixed point {fixed_point_index} ({fixed_point_stability})".title()
-    )
-    ax.set_ylabel("Trajectories reaching fixed point (%)".title())
+    ax.set_xlabel("radius around fixed point".title(), fontsize=FONTSIZE_LARGE)
+    ax.set_ylabel("Trajectories reaching fixed point (%)".title(), fontsize=FONTSIZE_LARGE)
     filename = (
         f"FPT_percent_trajectories_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}"
     )
@@ -1635,8 +1664,24 @@ def plot_first_passage_time_correlation_summary(
     analysis across all datasets and fixed points.
     """
 
-    xs = first_passage_time_correlation_summary_df[Column.DATASET].tolist()
-    xs = [load_dataset_config(dataset_name).date for dataset_name in xs]
+    # get the shear stress for the dataset and add that to the labels
+    # Snap to ±1 bins; values outside any bin keep their rounded value
+    first_passage_time_correlation_summary_df["shear_stress"] = (
+        first_passage_time_correlation_summary_df[Column.DATASET].transform(
+            lambda ds: _get_shear_stress_for_dataset(ds)
+        )
+    )
+    first_passage_time_correlation_summary_df.sort_values("shear_stress", inplace=True)
+    first_passage_time_correlation_summary_df["shear_stress_rounded"] = (
+        first_passage_time_correlation_summary_df["shear_stress"].transform(
+            lambda flow: _snap_to_bin(flow)
+        )
+    )
+
+    xs = first_passage_time_correlation_summary_df[
+        [Column.DATASET, "shear_stress_rounded"]
+    ].values.tolist()
+    xs = [f"{load_dataset_config(dataset_name).date} ({flow})" for dataset_name, flow in xs]
     ys = first_passage_time_correlation_summary_df["r_value"]
 
     fig, ax = plt.subplots(figsize=(5, 3))
@@ -1668,8 +1713,24 @@ def plot_first_passage_time_correlation_summary_for_figure(
     analysis across all datasets and fixed points as it will appear in the figure.
     """
 
-    xs = first_passage_time_correlation_summary_df[Column.DATASET].tolist()
-    xs = [load_dataset_config(dataset_name).date for dataset_name in xs]
+    # get the shear stress for the dataset and add that to the labels
+    # Snap to ±1 bins; values outside any bin keep their rounded value
+    first_passage_time_correlation_summary_df["shear_stress"] = (
+        first_passage_time_correlation_summary_df[Column.DATASET].transform(
+            lambda ds: _get_shear_stress_for_dataset(ds)
+        )
+    )
+    first_passage_time_correlation_summary_df.sort_values("shear_stress", inplace=True)
+    first_passage_time_correlation_summary_df["shear_stress_rounded"] = (
+        first_passage_time_correlation_summary_df["shear_stress"].transform(
+            lambda flow: _snap_to_bin(flow)
+        )
+    )
+
+    xs = first_passage_time_correlation_summary_df[
+        [Column.DATASET, "shear_stress_rounded"]
+    ].values.tolist()
+    xs = [f"{load_dataset_config(dataset_name).date} ({flow})" for dataset_name, flow in xs]
     ys = first_passage_time_correlation_summary_df["r_value"]
 
     fig, ax = plt.subplots(figsize=(6, 2.5))
