@@ -10,6 +10,7 @@ plt.style.use("endo_pipeline.figure")
 save_dir = get_output_path("supp_fig_fpt")
 "FPT_correlation_summary_for_figure.svg"
 
+fig_width = 6.1
 
 # %% Build figure panels and figure
 panels = [
@@ -24,8 +25,16 @@ panels = [
     FigurePanel(
         letter="B",
         path=save_dir / "FPT_percent_trajectories_vs_threshold_fp_0_stable.svg",
-        x_position=0,
+        x_position=3,
         y_position=0,
+        x_offset=0.1,
+        y_offset=0,
+    ),
+    FigurePanel(
+        letter="C",
+        path=save_dir / "FPT_correlation_summary_for_figure.svg",
+        x_position=0,
+        y_position=3,
         x_offset=0,
         y_offset=0,
     ),
@@ -34,6 +43,6 @@ panels = [
 build_figure_from_panels(
     figure_panels=panels,
     output_path=save_dir / "supp_fig_fpt.svg",
-    width=MAX_FIGURE_WIDTH,
+    width=min(fig_width, MAX_FIGURE_WIDTH),
     height=3,
 )

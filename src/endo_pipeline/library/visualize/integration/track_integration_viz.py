@@ -1215,8 +1215,8 @@ def compute_and_plot_first_passage_time_correlation(
     ax.set_xticks(range(0, int(ax_max), 2))
     ax.set_yticks(range(0, int(ax_max), 2))
     ax.tick_params(labelsize=FONTSIZE_SMALL)
-    ax.set_xlabel("Grid FPT (hrs)", fontsize=FONTSIZE_SMALL, labelpad=1.0)
-    ax.set_ylabel("Tracked FPT (hrs)", fontsize=FONTSIZE_SMALL, labelpad=1.0)
+    ax.set_xlabel("Grid FPT (hrs)".title(), fontsize=FONTSIZE_SMALL, labelpad=1.0)
+    ax.set_ylabel("Tracked FPT (hrs)".title(), fontsize=FONTSIZE_SMALL, labelpad=1.0)
     ax.legend()
     if not for_figure:
         fname_suff = ""
@@ -1494,7 +1494,7 @@ def plot_first_passage_time_histogram(
         stat_for_hist = "count"
         yaxis_title = "number of bins".title()
     else:
-        xaxis_title = f"{metric_to_plot.title()} First Passage Time (hrs)"
+        xaxis_title = f"{metric_to_plot} First Passage Time (hrs)".title()
         stat_for_hist = "probability"
         yaxis_title = "probability".title()
 
@@ -1763,8 +1763,10 @@ def plot_first_passage_time_correlation_summary_for_figure(
         fill=False,
         ax=ax,
     )
+    ax.set_xticks(np.arange(0, 1.1, 0.2))
     ax.set_xlim(0, 1)
     ax.set_xlabel("Correlation Coefficient (R)", fontsize=FONTSIZE_SMALL)
+    ax.set_ylabel("number of datasets", fontsize=FONTSIZE_SMALL)
     save_plot_to_path(
         fig,
         out_dir,

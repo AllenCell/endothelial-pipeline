@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from endo_pipeline.io import get_output_path
 from endo_pipeline.library.visualize.figure_fpt import generate_first_passage_time_example
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
-from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT
 
 plt.style.use("endo_pipeline.figure")
 
@@ -26,7 +26,7 @@ panels = [
         x_position=0,
         y_position=0,
         x_offset=0,
-        y_offset=0,
+        y_offset=-0.2,
     ),
     FigurePanel(
         letter="B",
@@ -34,7 +34,7 @@ panels = [
         x_position=0,
         y_position=2,
         x_offset=0,
-        y_offset=0.2,
+        y_offset=0.1,
     ),
     FigurePanel(
         letter="C",
@@ -42,7 +42,7 @@ panels = [
         x_position=0,
         y_position=4,
         x_offset=0,
-        y_offset=0.2,
+        y_offset=0.1,
     ),
     FigurePanel(
         letter="D",
@@ -57,6 +57,6 @@ panels = [
 build_figure_from_panels(
     figure_panels=panels,
     output_path=save_dir / "figure_4.svg",
-    width=MAX_FIGURE_WIDTH // 2,
-    height=8,
+    width=2,
+    height=MAX_FIGURE_HEIGHT,
 )
