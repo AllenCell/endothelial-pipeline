@@ -61,10 +61,12 @@ from endo_pipeline.settings.workflow_defaults import (
 
 def make_real_image_panel(
     savedir: Path,
-    contact_figsize: tuple[float, float] = (6.0, 2.75),
+    contact_figsize: tuple[float, float] = (5.0, 1.75),
     scale_bar_um: int = 20,
     grid_crop_position: tuple[int, int] = (0, 0),
-    text_x_offset: float = 0.075,
+    axes_title_xloc: float = 0.25,
+    arrow_x_offset: float = 0.065,
+    text_y_offset: float = -0.2,
 ) -> Path:
     """Build the panel showing a grid crop from t to t+1 for a given example image."""
 
@@ -98,10 +100,10 @@ def make_real_image_panel(
     ax_t1 = fig.axes[1]
     for ax, label in [
         (ax_t, "t"),
-        (fig.axes[1], "t+1"),
+        (ax_t1, "t+1"),
     ]:
         ax.set_frame_on(False)
-        ax.set_title(label, fontsize=FONTSIZE_LARGE, loc="left")
+        ax.set_title(label, fontsize=FONTSIZE_LARGE, x=axes_title_xloc)
 
         add_scalebar(
             ax,
@@ -140,12 +142,14 @@ def make_real_image_panel(
     fig.canvas.draw()
 
     bbox_t = ax_t.get_position()
-    label_y = bbox_t.y0 - 0.10
+    label_y = bbox_t.y0 + text_y_offset
 
     # Compute start point for each arrow from the bottom edge of the highlighted box
     def _data_to_fig(ax: plt.Axes, x: float, y: float) -> tuple[float, float]:
         display = ax.transData.transform((x, y))
-        return cast(tuple[float, float], tuple(fig.transFigure.inverted().transform(display)))
+        fig_coords = fig.transFigure.inverted().transform(display)
+        fig_coords[0] += arrow_x_offset
+        return cast(tuple[float, float], tuple(fig_coords))
 
     box_mid_x = grid_crop_position[0] + NATIVE_ZARR_RESOLUTION_CROP_SIZE / 2
     box_bottom_y = grid_crop_position[1] + NATIVE_ZARR_RESOLUTION_CROP_SIZE
@@ -153,8 +157,8 @@ def make_real_image_panel(
     arrow_start_t1 = _data_to_fig(ax_t1, box_mid_x, box_bottom_y)
 
     # Align labels horizontally with the midpoint of each highlighted box
-    label_x_t = arrow_start_t[0] + text_x_offset
-    label_x_t1 = arrow_start_t1[0] + text_x_offset
+    label_x_t = arrow_start_t[0]
+    label_x_t1 = arrow_start_t1[0]
 
     # Text labels
     fig.text(
@@ -193,6 +197,15 @@ def make_real_image_panel(
 
     # Horizontal arrow between the two (theta, r, rho) labels
     mid_y = label_y - 0.06
+    arrow_mid_x = (label_x_t + 0.08 + label_x_t1 - 0.08) / 2
+    fig.text(
+        arrow_mid_x,
+        mid_y + 0.01,
+        f"({Unicode.DELTA}{Unicode.THETA}, {Unicode.DELTA}r, {Unicode.DELTA}{Unicode.RHO})",
+        ha="center",
+        va="bottom",
+        fontsize=FONTSIZE_MEDIUM,
+    )
     horizontal_arrow = FancyArrowPatch(
         (label_x_t + 0.08, mid_y),
         (label_x_t1 - 0.08, mid_y),
