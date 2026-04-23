@@ -46,7 +46,7 @@ from endo_pipeline.settings.dynamics_workflows import (
     TIME_STEP_IN_HOURS,
 )
 from endo_pipeline.settings.examples import FLOW_FIELD_CONSTRUCTION_EXAMPLE_IMAGES
-from endo_pipeline.settings.figures import FONTSIZE_MEDIUM
+from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_MEDIUM
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_COLORMAP,
     DRIFT_CONTOUR_VMAX,
@@ -61,9 +61,10 @@ from endo_pipeline.settings.workflow_defaults import (
 
 def make_real_image_panel(
     savedir: Path,
-    contact_figsize: tuple[float, float] = (4.8, 2.75),
+    contact_figsize: tuple[float, float] = (6.0, 2.75),
     scale_bar_um: int = 20,
     grid_crop_position: tuple[int, int] = (0, 0),
+    text_x_offset: float = 0.075,
 ) -> Path:
     """Build the panel showing a grid crop from t to t+1 for a given example image."""
 
@@ -86,25 +87,21 @@ def make_real_image_panel(
         )
         processed_images.append(log_bf_std_dev)
 
-    labels = ["t", "t+1"]
     fig: plt.Figure = make_contact_sheet(
         processed_images,
-        max_rows=len(processed_images),
-        max_cols=1,
-        row_titles=labels,
+        max_cols=len(processed_images),
+        max_rows=1,
         fig_kwargs={"figsize": contact_figsize, "layout": "constrained"},
     )
 
-    fig.subplots_adjust(hspace=2.5)
-
-    for ax, img, label in zip(fig.axes, processed_images, labels, strict=True):
-        ax.imshow(img, cmap="gray")
-        ax.set_ylabel(label)
-        ax.xaxis.labelpad = 3
-        ax.yaxis.labelpad = 3
-        ax.set_xticks([])
-        ax.set_yticks([])
+    ax_t = fig.axes[0]
+    ax_t1 = fig.axes[1]
+    for ax, label in [
+        (ax_t, "t"),
+        (fig.axes[1], "t+1"),
+    ]:
         ax.set_frame_on(False)
+        ax.set_title(label, fontsize=FONTSIZE_LARGE, loc="left")
 
         add_scalebar(
             ax,
@@ -139,55 +136,52 @@ def make_real_image_panel(
     )
 
     # ── Curved arrows to (theta,r,rho) labels and vertical arrow between them ──
-    ax_t = fig.axes[0]
-    ax_t1 = fig.axes[1]
-
     # Finalize layout so data→figure transforms are accurate
     fig.canvas.draw()
 
     bbox_t = ax_t.get_position()
-    label_x = bbox_t.x1 + 0.10
+    label_y = bbox_t.y0 - 0.10
 
-    # Compute start point for each arrow from the right edge of the highlighted box
+    # Compute start point for each arrow from the bottom edge of the highlighted box
     def _data_to_fig(ax: plt.Axes, x: float, y: float) -> tuple[float, float]:
         display = ax.transData.transform((x, y))
         return cast(tuple[float, float], tuple(fig.transFigure.inverted().transform(display)))
 
-    box_right_x = grid_crop_position[0] + NATIVE_ZARR_RESOLUTION_CROP_SIZE
-    box_mid_y = grid_crop_position[1] + NATIVE_ZARR_RESOLUTION_CROP_SIZE / 2
-    arrow_start_t = _data_to_fig(ax_t, box_right_x, box_mid_y)
-    arrow_start_t1 = _data_to_fig(ax_t1, box_right_x, box_mid_y)
+    box_mid_x = grid_crop_position[0] + NATIVE_ZARR_RESOLUTION_CROP_SIZE / 2
+    box_bottom_y = grid_crop_position[1] + NATIVE_ZARR_RESOLUTION_CROP_SIZE
+    arrow_start_t = _data_to_fig(ax_t, box_mid_x, box_bottom_y)
+    arrow_start_t1 = _data_to_fig(ax_t1, box_mid_x, box_bottom_y)
 
-    # Align labels vertically with the midpoint of each highlighted box
-    label_y_t = arrow_start_t[1]
-    label_y_t1 = arrow_start_t1[1]
+    # Align labels horizontally with the midpoint of each highlighted box
+    label_x_t = arrow_start_t[0] + text_x_offset
+    label_x_t1 = arrow_start_t1[0] + text_x_offset
 
     # Text labels
     fig.text(
-        label_x + 0.02,
-        label_y_t,
+        label_x_t,
+        label_y - 0.02,
         f"({Unicode.THETA}, r, {Unicode.RHO}) at t",
-        ha="left",
-        va="center",
+        ha="center",
+        va="top",
         fontsize=FONTSIZE_MEDIUM,
     )
     fig.text(
-        label_x + 0.02,
-        label_y_t1,
+        label_x_t1,
+        label_y - 0.02,
         f"({Unicode.THETA}, r, {Unicode.RHO}) at t+1",
-        ha="left",
-        va="center",
+        ha="center",
+        va="top",
         fontsize=FONTSIZE_MEDIUM,
     )
 
-    # Curved arrows from right edge of highlighted box to its (theta, r, rho) label
-    for start, lbl_y, rad in [
-        (arrow_start_t, label_y_t, -0.3),
-        (arrow_start_t1, label_y_t1, 0.3),
+    # Curved arrows from bottom edge of highlighted box to its (theta, r, rho) label
+    for start, lbl_x, rad in [
+        (arrow_start_t, label_x_t, 0.3),
+        (arrow_start_t1, label_x_t1, -0.3),
     ]:
         arrow = FancyArrowPatch(
             start,
-            (label_x + 0.01, lbl_y),
+            (lbl_x, label_y - 0.01),
             connectionstyle=f"arc3,rad={rad}",
             arrowstyle="->,head_length=5,head_width=3",
             color="black",
@@ -197,18 +191,18 @@ def make_real_image_panel(
         )
         fig.add_artist(arrow)
 
-    # Vertical arrow between the two (theta, r, rho) labels
-    mid_x = label_x + 0.06
-    vertical_arrow = FancyArrowPatch(
-        (mid_x, label_y_t - 0.03),
-        (mid_x, label_y_t1 + 0.03),
+    # Horizontal arrow between the two (theta, r, rho) labels
+    mid_y = label_y - 0.06
+    horizontal_arrow = FancyArrowPatch(
+        (label_x_t + 0.08, mid_y),
+        (label_x_t1 - 0.08, mid_y),
         arrowstyle="->,head_length=5,head_width=3",
         color="black",
         linewidth=1.5,
         transform=fig.transFigure,
         clip_on=False,
     )
-    fig.add_artist(vertical_arrow)
+    fig.add_artist(horizontal_arrow)
 
     filename = "flow_field_example_t_to_tp1"
     save_plot_to_path(
