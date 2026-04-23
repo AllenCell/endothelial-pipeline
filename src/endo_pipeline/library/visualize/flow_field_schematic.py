@@ -206,7 +206,7 @@ def _make_weighted_displacement_histogram(
     axes_title: str | None = None,
     cmap: str = "RdBu_r",
     colorbar_label: str | None = None,
-) -> None:
+) -> np.ndarray:
     """Compute and plot a 2D histogram of the data weighted by the sum of the displacements in each bin."""
 
     # Get trajectories and displacements for the specified columns. The
@@ -256,6 +256,7 @@ def _make_weighted_displacement_histogram(
 
     fig = axes.get_figure()
     fig.colorbar(pcm, ax=axes, label=colorbar_label)
+    return weighted_counts_delta_x
 
 
 def _plot_kernel_at_target_bin(
@@ -272,7 +273,7 @@ def _plot_kernel_at_target_bin(
     axes_title: str | None = None,
     cmap: str = "Purples",
     colorbar_label: str | None = None,
-) -> None:
+) -> np.ndarray:
     """Plot the 2D product kernel weights centered at the target bin."""
     # evaluate 2D product kernel weights centered at the target bin
     target_offsets = [
@@ -303,6 +304,7 @@ def _plot_kernel_at_target_bin(
 
     fig = axes.get_figure()
     fig.colorbar(pcm, ax=axes, label=colorbar_label)
+    return kernel_weights_2d
 
 
 def make_kernel_convolution_schematic(
@@ -329,7 +331,7 @@ def make_kernel_convolution_schematic(
     axes_ylabel = COLUMN_METADATA[column_names[1]].label
 
     # panel 1 - r-displacement-weighted 2D histogram
-    _make_weighted_displacement_histogram(
+    weighted_hist_delta_r = _make_weighted_displacement_histogram(
         dataframe_steady_state=dataframe_steady_state,
         column_names=column_names,
         bin_edges=bin_edges,
@@ -354,7 +356,7 @@ def make_kernel_convolution_schematic(
         for column_name in column_names
     ]
     # panel 2 - kernel weights centered at target bin
-    _plot_kernel_at_target_bin(
+    kernel_weights_2d = _plot_kernel_at_target_bin(
         axes=axes[1],
         kernels=kernels,
         bin_edges=bin_edges,
@@ -367,3 +369,20 @@ def make_kernel_convolution_schematic(
         axes_title="2. Product kernel weights",
         colorbar_label="kernel weight (normalized)",
     )
+
+    # panel 3 - kernel-weighted histogram (i.e. numerator of KM estimator)
+    kernel_weighted_hist_delta_r = kernel_weights_2d * weighted_hist_delta_r
+    pcm = _make_2d_pcolormesh(
+        axes[2],
+        kernel_weighted_hist_delta_r,
+        bin_edges[0],
+        bin_edges[1],
+        cmap=cmap,
+        axes_xlabel=axes_xlabel,
+        axes_ylabel=axes_ylabel,
+        axes_xlim=axes_xlim,
+        axes_ylim=axes_ylim,
+        axes_aspect="equal",
+        axes_title="3. Kernel-weighted histogram",
+    )
+    fig.colorbar(pcm, ax=axes[2], label=f"kernel-weighted sum of $\\Delta$ {axes_xlabel}")
