@@ -11,7 +11,6 @@ from scipy.optimize import fsolve
 from scipy.stats import gaussian_kde
 
 from endo_pipeline.io import load_dataframe
-from endo_pipeline.io.output import join_sorted_strings
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.numerics.binning import circpercentile
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
@@ -24,7 +23,7 @@ from endo_pipeline.settings.dynamics_workflows import (
     UPPER_PERCENTILE_FOR_FILTERING_FPTS,
 )
 from endo_pipeline.settings.flow_field_dataframes import (
-    DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+    DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
     StabilityLabel,
 )
 from endo_pipeline.settings.workflow_defaults import (
@@ -517,12 +516,9 @@ def load_fixed_points_dataframe_for_dataset(
             Column.DiffAEData.POLAR_RADIUS,
             Column.DiffAEData.PC3_FLIPPED,
         ]
-    columns_str = join_sorted_strings(column_names)
 
     base_name = f"{model_manifest_name}_{run_name}_grid"
-    fixed_points_df_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{columns_str}_{base_name}"
-    )
+    fixed_points_df_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}"
     fixed_points_df_manifest = load_dataframe_manifest(fixed_points_df_manifest_name)
 
     if dataset_name not in fixed_points_df_manifest.locations:
