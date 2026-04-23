@@ -1,8 +1,11 @@
 """Methods for constructing schematics for the flow field supplementary figure."""
 
 from pathlib import Path
+from typing import Literal
 
 import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.collections import QuadMesh
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_image, save_plot_to_path
@@ -104,3 +107,35 @@ def make_real_image_panel(
     image_panel_path = savedir / f"{filename}.svg"
 
     return image_panel_path
+
+
+def _make_2d_pcolormesh(
+    axes: plt.Axes,
+    data_2d: np.ndarray,
+    x_edges: np.ndarray,
+    y_edges: np.ndarray,
+    cmap: str,
+    vmin: float | None = None,
+    vmax: float | None = None,
+    axes_xlabel: str | None = None,
+    axes_ylabel: str | None = None,
+    axes_aspect: Literal["auto", "equal"] | float | None = "equal",
+) -> QuadMesh:
+    """Make a 2D pcolormesh plot with consistent styling."""
+    pcm = axes.pcolormesh(
+        x_edges,
+        y_edges,
+        data_2d.T,
+        cmap=cmap,
+        shading="auto",
+        rasterized=True,
+        vmin=vmin,
+        vmax=vmax,
+    )
+    if axes_xlabel is not None:
+        axes.set_xlabel(axes_xlabel)
+    if axes_ylabel is not None:
+        axes.set_ylabel(axes_ylabel)
+    if axes_aspect is not None:
+        axes.set_aspect(axes_aspect)
+    return pcm
