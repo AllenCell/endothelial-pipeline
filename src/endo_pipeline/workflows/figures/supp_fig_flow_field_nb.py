@@ -26,7 +26,7 @@ plt.style.use("endo_pipeline.figure")
 
 output_path = get_output_path("supp_fig_flow_field")
 # %%
-image_panel_path = make_real_image_panel(output_path, contact_figsize=(6.3, 3.0))
+image_panel_path = make_real_image_panel(output_path, contact_figsize=(5.95, 2.75))
 
 # %% Use the dataset defined in the flow field construction examples for low
 # shear stress
@@ -61,15 +61,15 @@ panels = [
         path=image_panel_path,
         x_position=0.0,
         y_position=0.0,
-        x_offset=0.1,
-        y_offset=0.1,
+        x_offset=0.25,
+        y_offset=0.05,
     ),
     FigurePanel(
         letter="B",
         path=kernel_convolution_panel_path,
         x_position=0.0,
         y_position=2.75,
-        x_offset=0.1,
+        x_offset=0.075,
         y_offset=0.15,
     ),
 ]

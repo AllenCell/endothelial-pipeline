@@ -1,7 +1,7 @@
 """Methods for constructing schematics for the flow field supplementary figure."""
 
 from pathlib import Path
-from typing import Literal, TypeAlias, cast
+from typing import Any, Literal, TypeAlias, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -72,12 +72,13 @@ def make_real_image_panel(
     map_arrow_rad: float = 0.3,
     map_arrow_linewidth: float = 1.5,
     map_arrow_arrowstyle: str = "->,head_length=5,head_width=3",
-    horizontal_arrow_x_offset: float = 0.08,
-    horizontal_arrow_y_offset: float = -0.02,
+    horizontal_arrow_x_offset: float = 0.07,
+    horizontal_arrow_y_offset: float = -0.025,
     horizontal_arrow_linewidth: float = 1.5,
     horizontal_arrow_arrowstyle: str = "->,head_length=5,head_width=3",
-    text_y_offset: float = -0.15,
-    delta_text_y_offset: float = 0.01,
+    text_y_offset: float = -0.1,
+    delta_text_y_offset: float = 0.02,
+    layout_engine_kwargs: dict[str, Any] = {"rect": (0, 0.2, 1, 0.8)},
 ) -> Path:
     """Build the panel showing a grid crop from t to t+1 for a given example image."""
 
@@ -107,8 +108,8 @@ def make_real_image_panel(
         fig_kwargs={"figsize": contact_figsize, "layout": "constrained"},
     )
 
-    layout_engine: LayoutEngine = fig.get_layout_engine()
-    layout_engine.set(rect=(0, 0.2, 1, 0.8))
+    layout_engine = cast(LayoutEngine, fig.get_layout_engine())
+    layout_engine.set(**layout_engine_kwargs)
 
     ax_t = fig.axes[0]
     ax_t1 = fig.axes[1]
@@ -212,7 +213,7 @@ def make_real_image_panel(
     # Horizontal arrow between the two (theta, r, rho) labels
     mid_y = label_y + horizontal_arrow_y_offset
     arrow_start_x = label_x_t + horizontal_arrow_x_offset
-    arrow_end_x = label_x_t1 - horizontal_arrow_x_offset
+    arrow_end_x = label_x_t1 - horizontal_arrow_x_offset - 0.0085
     arrow_mid_x = (arrow_start_x + arrow_end_x) / 2
     fig.text(
         arrow_mid_x,
