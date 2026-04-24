@@ -635,9 +635,8 @@ def make_kernel_convolution_schematic(
         cmap=cmap,
         colorbar_label=f"sum of $\\Delta$ {axes_xlabel}",
     )
-    print(f"Max weighted count (delta r): {weighted_hist_delta_r.max():.3f}")
 
-    # get kernels for panel 2
+    # panel 2 - kernel weights centered at target bin
     KernelName: TypeAlias = Literal["periodic", "gaussian", "epanechnikov"]
     kernels = [
         KramersMoyalKernel(
@@ -647,7 +646,6 @@ def make_kernel_convolution_schematic(
         )
         for column_name in column_names
     ]
-    # panel 2 - kernel weights centered at target bin
     kernel_weights_2d = _plot_kernel_at_target_bin(
         fig=fig,
         axes=axes[1],
@@ -659,7 +657,36 @@ def make_kernel_convolution_schematic(
         axes_ylim=axes_ylim,
         colorbar_label="kernel weight (normalized)",
     )
-    print(f"Max kernel weight: {kernel_weights_2d.max():.3f}")
+
+    # panel 3 - kernel-weighted histogram (i.e. numerator of KM estimator)
+    kernel_weighted_hist_delta_r = kernel_weights_2d * weighted_hist_delta_r
+    vmax = np.nanpercentile(np.abs(kernel_weighted_hist_delta_r), 99)
+    pcm = _make_2d_pcolormesh(
+        axes[2],
+        kernel_weighted_hist_delta_r,
+        bin_edges[0],
+        bin_edges[1],
+        cmap=cmap,
+        vmin=-vmax,
+        vmax=vmax,
+        axes_xlim=axes_xlim,
+        axes_ylim=axes_ylim,
+        axes_xlabel=axes_xlabel,
+        axes_ylabel=axes_ylabel,
+        xlabel_kwargs=xlabel_kwargs,
+        ylabel_kwargs=ylabel_kwargs,
+    )
+    _add_target_bin_border(
+        axes[2],
+        target_bin=target_bin,
+        bin_edges=bin_edges,
+    )
+    _add_colorbar_for_quadmesh(
+        fig,
+        axes[2],
+        pcm,
+        label=f"kernel-weighted sum of $\\Delta$ {axes_xlabel}",
+    )
 
     filename = "kernel_convolution_schematic"
     save_plot_to_path(
