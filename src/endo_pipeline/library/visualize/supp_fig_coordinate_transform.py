@@ -178,4 +178,4 @@ def plot_2d_latent_walk(
     save_plot_to_path(
         fig, save_path, filename, file_format=".svg", transparent=True, tight_layout=False
     )
-    return save_path / filename
+    return save_path / f"{filename}.svg"
