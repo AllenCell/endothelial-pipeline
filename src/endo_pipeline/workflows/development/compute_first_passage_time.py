@@ -31,7 +31,6 @@ def main(
     )
     from endo_pipeline.library.visualize.integration.track_integration_viz import (
         plot_first_passage_time_correlation_summary,
-        plot_first_passage_time_correlation_summary_for_figure,
     )
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import LONG_TRACK_THRESHOLD_LENGTH
@@ -89,10 +88,12 @@ def main(
     first_passage_time_correlation_summary_df = first_passage_time_correlation_summary_df[
         first_passage_time_correlation_summary_df[Column.VectorField.FPT_METRIC] == "mean"
     ]
-    plot_first_passage_time_correlation_summary(first_passage_time_correlation_summary_df, out_dir)
-    plot_first_passage_time_correlation_summary_for_figure(
-        first_passage_time_correlation_summary_df, out_dir
-    )
+
+    out_dir_figure = out_dir / "for_figure"
+    out_dir_figure.mkdir(parents=True, exist_ok=True)
+    # make a summary plot in both the regular output folder and also the figure output folder
+    for fdir in [out_dir, out_dir_figure]:
+        plot_first_passage_time_correlation_summary(first_passage_time_correlation_summary_df, fdir)
 
 
 if __name__ == "__main__":

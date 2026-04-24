@@ -1114,13 +1114,12 @@ def plot_trajectory_measured_vs_simulation_over_flow_field(
 
 def compute_and_plot_first_passage_time_correlation(
     fixed_point_id: int,
-    fixed_point_stability: str,
     dataset_config: DatasetConfig,
     first_passage_time_df: pd.DataFrame,
     metric_to_plot: Literal["mean", "median"],
     min_num_traj_per_bin: int,
     out_dir: Path,
-    for_figure: bool = False,
+    filename: str,
 ) -> dict:
     dataset_name = dataset_config.name
     time_units = TIME_STEP_IN_HOURS  # convert timeframes to hours
@@ -1172,15 +1171,11 @@ def compute_and_plot_first_passage_time_correlation(
     shear_stress = _get_shear_stress_for_dataset(dataset_name)
     shear_stress_rounded = _snap_to_bin(shear_stress)
 
-    if for_figure:
-        fig, ax = plt.subplots(figsize=(2, 2))
-        ax.set_title(
-            f"{shear_stress_rounded} dyn/cm{UnicodeCharacters.SQUARED}",
-            fontsize=FONTSIZE_SMALL,
-        )
-    else:
-        fig, ax = plt.subplots(figsize=(3, 3))
-        ax.set_title(f"{dataset_name}: {num_bins} bins".title())
+    fig, ax = plt.subplots(figsize=(2, 2))
+    ax.set_title(
+        f"{shear_stress_rounded} dyn/cm{UnicodeCharacters.SQUARED}",
+        fontsize=FONTSIZE_SMALL,
+    )
     ax.errorbar(
         x=first_passage_time_df_no_nan[f"{metric}_grid"],
         y=first_passage_time_df_no_nan[f"{metric}_tracked"],
@@ -1218,14 +1213,6 @@ def compute_and_plot_first_passage_time_correlation(
     ax.set_xlabel("Grid FPT (hrs)".title(), fontsize=FONTSIZE_SMALL, labelpad=1.0)
     ax.set_ylabel("Tracked FPT (hrs)".title(), fontsize=FONTSIZE_SMALL, labelpad=1.0)
     ax.legend()
-    if not for_figure:
-        fname_suff = ""
-    else:
-        fname_suff = "_for_figure"
-    filename = (
-        f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}"
-        f"_{metric_to_plot}_correlation{fname_suff}"
-    )
     save_plot_to_path(
         fig,
         out_dir,
@@ -1349,7 +1336,8 @@ def plot_first_passage_time_parameter_sweep(
     dataset_config: DatasetConfig,
     fixed_point_index: int,
     fixed_point_stability: str,
-    first_passage_time_param_sweep_df: pd.DataFrame,
+    first_passage_time_param_sweep_df_grid: pd.DataFrame,
+    first_passage_time_param_sweep_df_tracked: pd.DataFrame,
     fixed_point_radius_threshold_in_workflow: float | None,
     out_dir: Path,
 ) -> None:
@@ -1360,11 +1348,17 @@ def plot_first_passage_time_parameter_sweep(
     shear_stress_rounded = _snap_to_bin(_get_shear_stress_for_dataset(dataset_name))
     time_units = TIME_STEP_IN_HOURS  # convert timeframes to hours
     first_passage_time_col = f"{Column.VectorField.TIME_TO_FP_PREFIX}{fixed_point_index}"
-    first_passage_time_param_sweep_df[first_passage_time_col] *= time_units
+    first_passage_time_param_sweep_df_grid[first_passage_time_col] *= time_units
+    first_passage_time_param_sweep_df_tracked[first_passage_time_col] *= time_units
 
     # compute the summary statistics on the first passage time parameter sweep
-    fpt_param_sweep_agg = (
-        first_passage_time_param_sweep_df.groupby("threshold")[first_passage_time_col]
+    fpt_param_sweep_agg_grid = (
+        first_passage_time_param_sweep_df_grid.groupby("threshold")[first_passage_time_col]
+        .agg("describe")
+        .reset_index(drop=False)
+    )
+    fpt_param_sweep_agg_tracked = (
+        first_passage_time_param_sweep_df_tracked.groupby("threshold")[first_passage_time_col]
         .agg("describe")
         .reset_index(drop=False)
     )
@@ -1375,21 +1369,33 @@ def plot_first_passage_time_parameter_sweep(
         fig, ax = plt.subplots(figsize=(3, 3))
         ax.set_title(fig_title, fontsize=FONTSIZE_LARGE)
         ax.errorbar(
-            x=fpt_param_sweep_agg["threshold"],
-            y=fpt_param_sweep_agg[column_name],
-            yerr=fpt_param_sweep_agg["std"],
-            label=f"{metric} FPT {UnicodeCharacters.PLUS_MINUS} STD",
+            x=fpt_param_sweep_agg_grid["threshold"],
+            y=fpt_param_sweep_agg_grid[column_name],
+            yerr=fpt_param_sweep_agg_grid["std"],
+            label=f"{metric} FPT {UnicodeCharacters.PLUS_MINUS} STD (grid)",
             fmt="o-",
-            color="black",
-            ecolor="gray",
+            color="tab:blue",
+            ecolor="tab:blue",
             elinewidth=1,
             capsize=3,
+        )
+        ax.errorbar(
+            x=fpt_param_sweep_agg_tracked["threshold"],
+            y=fpt_param_sweep_agg_tracked[column_name],
+            yerr=fpt_param_sweep_agg_tracked["std"],
+            label=f"{metric} FPT {UnicodeCharacters.PLUS_MINUS} STD (tracked)",
+            fmt="o-",
+            color="tab:red",
+            ecolor="tab:red",
+            elinewidth=1,
+            capsize=3,
+            alpha=0.7,
         )
         if fixed_point_radius_threshold_in_workflow is not None:
             ax.axvline(
                 fixed_point_radius_threshold_in_workflow,
                 ls="--",
-                color="red",
+                color="black",
                 label="radius used for correlations",
             )
         ax.legend()
@@ -1403,12 +1409,26 @@ def plot_first_passage_time_parameter_sweep(
     # also compute the fraction of trajectories that approached the fixed point for each
     # parameter combination to see how the fixed point distance threshold affects the
     # number of trajectories that are considered to have reached the fixed point
-    first_passage_time_param_sweep_df["percent_trajectories_approached_fp"] = (
-        first_passage_time_param_sweep_df["num_trajectories_after_fpt_filter"]
-        / first_passage_time_param_sweep_df["num_trajectories_before_fpt_filter"]
+    first_passage_time_param_sweep_df_grid["percent_trajectories_approached_fp"] = (
+        first_passage_time_param_sweep_df_grid["num_trajectories_after_fpt_filter"]
+        / first_passage_time_param_sweep_df_grid["num_trajectories_before_fpt_filter"]
     ) * 100
-    num_traj_param_sweep_agg = (
-        first_passage_time_param_sweep_df.groupby("threshold")["percent_trajectories_approached_fp"]
+    num_traj_param_sweep_agg_grid = (
+        first_passage_time_param_sweep_df_grid.groupby("threshold")[
+            "percent_trajectories_approached_fp"
+        ]
+        .agg(lambda x: np.unique(x).item())
+        .to_frame()
+    ).reset_index(drop=False)
+
+    first_passage_time_param_sweep_df_tracked["percent_trajectories_approached_fp"] = (
+        first_passage_time_param_sweep_df_tracked["num_trajectories_after_fpt_filter"]
+        / first_passage_time_param_sweep_df_tracked["num_trajectories_before_fpt_filter"]
+    ) * 100
+    num_traj_param_sweep_agg_tracked = (
+        first_passage_time_param_sweep_df_tracked.groupby("threshold")[
+            "percent_trajectories_approached_fp"
+        ]
         .agg(lambda x: np.unique(x).item())
         .to_frame()
     ).reset_index(drop=False)
@@ -1416,18 +1436,30 @@ def plot_first_passage_time_parameter_sweep(
     fig, ax = plt.subplots(figsize=(3, 3))
     ax.set_title(fig_title, fontsize=FONTSIZE_LARGE)
     ax.plot(
-        num_traj_param_sweep_agg["threshold"],
-        num_traj_param_sweep_agg["percent_trajectories_approached_fp"],
+        num_traj_param_sweep_agg_grid["threshold"],
+        num_traj_param_sweep_agg_grid["percent_trajectories_approached_fp"],
         marker="o",
-        color="lightgrey",
-        markerfacecolor="black",
-        markeredgecolor="black",
+        color="tab:blue",
+        markerfacecolor="tab:blue",
+        markeredgecolor="tab:blue",
+        ls="-",
+        label="grid",
+    )
+    ax.plot(
+        num_traj_param_sweep_agg_tracked["threshold"],
+        num_traj_param_sweep_agg_tracked["percent_trajectories_approached_fp"],
+        marker="o",
+        color="tab:red",
+        markerfacecolor="tab:red",
+        markeredgecolor="tab:red",
+        ls="-",
+        label="tracked",
     )
     if fixed_point_radius_threshold_in_workflow is not None:
         ax.axvline(
             fixed_point_radius_threshold_in_workflow,
             ls="--",
-            color="red",
+            color="black",
             label="radius used for correlations",
         )
     ax.legend()
@@ -1661,55 +1693,6 @@ def plot_first_passage_time_correlation_summary(
     out_dir: Path,
 ) -> None:
     """Plot a summary of the correlation results from the first passage time
-    analysis across all datasets and fixed points.
-    """
-
-    # get the shear stress for the dataset and add that to the labels
-    # Snap to ±1 bins; values outside any bin keep their rounded value
-    first_passage_time_correlation_summary_df["shear_stress"] = (
-        first_passage_time_correlation_summary_df[Column.DATASET].transform(
-            lambda ds: _get_shear_stress_for_dataset(ds)
-        )
-    )
-    first_passage_time_correlation_summary_df.sort_values("shear_stress", inplace=True)
-    first_passage_time_correlation_summary_df["shear_stress_rounded"] = (
-        first_passage_time_correlation_summary_df["shear_stress"].transform(
-            lambda flow: _snap_to_bin(flow)
-        )
-    )
-
-    xs = first_passage_time_correlation_summary_df[
-        [Column.DATASET, "shear_stress_rounded"]
-    ].values.tolist()
-    xs = [f"{load_dataset_config(dataset_name).date} ({flow})" for dataset_name, flow in xs]
-    ys = first_passage_time_correlation_summary_df["r_value"]
-
-    fig, ax = plt.subplots(figsize=(5, 3))
-    sns.stripplot(
-        x=xs,
-        y=ys,
-        color="black",
-        alpha=0.7,
-        ax=ax,
-    )
-    ax.set_ylim(0, 1)
-    ax.set_ylabel("Correlation Coefficient (R)")
-    plt.xticks(rotation=45, ha="right")
-    ax.set_xlabel("")
-    save_plot_to_path(
-        fig,
-        out_dir,
-        "FPT_correlation_summary",
-        file_format=".svg",
-        show_and_close=False,
-    )
-
-
-def plot_first_passage_time_correlation_summary_for_figure(
-    first_passage_time_correlation_summary_df: pd.DataFrame,
-    out_dir: Path,
-) -> None:
-    """Plot a summary of the correlation results from the first passage time
     analysis across all datasets and fixed points as it will appear in the figure.
     """
 
@@ -1749,7 +1732,7 @@ def plot_first_passage_time_correlation_summary_for_figure(
     save_plot_to_path(
         fig,
         out_dir,
-        "FPT_correlation_summary_for_figure",
+        "FPT_correlation_summary",
         file_format=".svg",
         show_and_close=False,
     )
@@ -1770,7 +1753,7 @@ def plot_first_passage_time_correlation_summary_for_figure(
     save_plot_to_path(
         fig,
         out_dir,
-        "FPT_correlation_r_value_histogram_for_figure",
+        "FPT_correlation_r_value_histogram",
         file_format=".svg",
         show_and_close=False,
     )

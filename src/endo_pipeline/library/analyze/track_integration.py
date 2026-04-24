@@ -54,6 +54,7 @@ from endo_pipeline.settings.dynamics_workflows import (
     RESCALE_THETA,
     TIME_STEP_IN_MINUTES,
 )
+from endo_pipeline.settings.examples import FPT_FIG_EXAMPLES
 from endo_pipeline.settings.flow_field_3d import (
     BIN_WIDTH_DEFAULTS,
     INIT_POINT_3D,
@@ -1126,12 +1127,13 @@ def compute_and_plot_first_passage_times_one_dataset(
 
     dataset_config = load_dataset_config(dataset_name)
 
-    examples_for_figure = ["20250618_20X", "20250611_20X"]
-
     line_fit_results: list[dict] = []
 
     out_subdir = out_dir / dataset_name
     out_subdir.mkdir(parents=True, exist_ok=True)
+
+    out_dir_figure = out_dir / "for_figure"
+    out_dir_figure.mkdir(parents=True, exist_ok=True)
 
     # load the dynamics features from the grid-based and track-based dataframes
     traj_df_grid = load_filtered_trajectory_df_for_first_passage_time_workflow(
@@ -1264,18 +1266,21 @@ def compute_and_plot_first_passage_times_one_dataset(
                 dataset_config=dataset_config,
                 fixed_point_index=fp_idx,
                 fixed_point_stability=fp_stability,
-                first_passage_time_param_sweep_df=traj_df_grid_param_sweep,
+                first_passage_time_param_sweep_df_grid=traj_df_grid_param_sweep,
+                first_passage_time_param_sweep_df_tracked=traj_df_tracked_param_sweep,
                 fixed_point_radius_threshold_in_workflow=fixed_point_radius_threshold,
                 out_dir=out_subdir,
             )
-            plot_first_passage_time_parameter_sweep(
-                dataset_config=dataset_config,
-                fixed_point_index=fp_idx,
-                fixed_point_stability=fp_stability,
-                first_passage_time_param_sweep_df=traj_df_tracked_param_sweep,
-                fixed_point_radius_threshold_in_workflow=fixed_point_radius_threshold,
-                out_dir=out_subdir,
-            )
+            if dataset_name in FPT_FIG_EXAMPLES:
+                plot_first_passage_time_parameter_sweep(
+                    dataset_config=dataset_config,
+                    fixed_point_index=fp_idx,
+                    fixed_point_stability=fp_stability,
+                    first_passage_time_param_sweep_df_grid=traj_df_grid_param_sweep,
+                    first_passage_time_param_sweep_df_tracked=traj_df_tracked_param_sweep,
+                    fixed_point_radius_threshold_in_workflow=fixed_point_radius_threshold,
+                    out_dir=out_dir_figure,
+                )
 
         traj_df_grid[f"{Column.VectorField.IS_AT_FP_PREFIX}{fp_idx}"] = (
             traj_df_grid[f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fp_idx}"]
@@ -1373,27 +1378,26 @@ def compute_and_plot_first_passage_times_one_dataset(
 
         # first the correlation scatter plots
         for metric in ["mean", "median"]:
+            filename = f"{dataset_name}_FPT_fp_{fp_idx}_{fp_stability}_{metric}_correlation"
             line_fit = compute_and_plot_first_passage_time_correlation(
                 fixed_point_id=fp_idx,
-                fixed_point_stability=fp_stability,
                 dataset_config=dataset_config,
                 first_passage_time_df=fpt_stats_df,
                 metric_to_plot=metric,
                 min_num_traj_per_bin=min_num_traj_per_bin,
                 out_dir=out_subdir,
-                for_figure=False,
+                filename=filename,
             )
             line_fit_results.append(line_fit)
-            if metric == "mean" and dataset_name in examples_for_figure:
+            if metric == "mean" and dataset_name in FPT_FIG_EXAMPLES:
                 compute_and_plot_first_passage_time_correlation(
                     fixed_point_id=fp_idx,
-                    fixed_point_stability=fp_stability,
                     dataset_config=dataset_config,
                     first_passage_time_df=fpt_stats_df,
                     metric_to_plot=metric,
                     min_num_traj_per_bin=min_num_traj_per_bin,
-                    out_dir=out_subdir,
-                    for_figure=True,
+                    out_dir=out_dir_figure,
+                    filename=filename + "_for_figure",
                 )
             # histograms don't really work for 4D data (theta, r, rho, and FPT ratio),
             # so we will use a 3D scatter with color-coded points instead
