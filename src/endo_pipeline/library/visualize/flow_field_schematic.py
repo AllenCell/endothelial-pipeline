@@ -639,7 +639,7 @@ def make_kernel_convolution_schematic(
         axes_ylabel=axes_ylabel,
         ylabel_kwargs=ylabel_kwargs,
         cmap=cmap,
-        colorbar_label=f"sum of $\\Delta$ {axes_xlabel}",
+        colorbar_label=f"Sum of {Unicode.DELTA} {axes_xlabel}",
     )
 
     # panel 2 - kernel weights centered at target bin
@@ -661,7 +661,7 @@ def make_kernel_convolution_schematic(
         target_bin=target_bin,
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
-        colorbar_label="kernel weight (normalized)",
+        colorbar_label="Kernel weight (normalized)",
     )
 
     # panel 3 - kernel-weighted histogram (i.e. numerator of KM estimator)
@@ -691,7 +691,7 @@ def make_kernel_convolution_schematic(
         fig,
         axes[2],
         pcm,
-        label=f"kernel-weighted sum of $\\Delta$ {axes_xlabel}",
+        label=f"Kernel-weighted sum of {Unicode.DELTA} {axes_xlabel}",
     )
 
     # panel 4 - final KM coefficient estimate at target bin
@@ -724,7 +724,7 @@ def make_kernel_convolution_schematic(
         fig,
         axes[3],
         pcm,
-        label=f"drift in {axes_xlabel} (hr$^{{-1}}$)",
+        label=f"Drift in {axes_xlabel} (hr$^{{-1}}$)",
     )
 
     filename = "kernel_convolution_schematic"
