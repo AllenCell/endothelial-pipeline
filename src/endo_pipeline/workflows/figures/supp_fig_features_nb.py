@@ -35,7 +35,6 @@ save_plot_to_path(fig, save_dir, "explained_variance_ratio", file_format=".svg",
 
 # %% Correlation heatmap of ML-based features vs. measured features
 dataset_name_list = use_default_collection(None, DEFAULT_PCA_DATASET_COLLECTION_NAME)
-dataset_name_list = dataset_name_list[0:1]
 ml_columns = DIFFAE_PC_COLUMN_NAME_GROUPS["supp_figure"]
 measured_feature_columns = SEGMENTATION_FEATURE_COLUMNS["supp_figure"]
 
