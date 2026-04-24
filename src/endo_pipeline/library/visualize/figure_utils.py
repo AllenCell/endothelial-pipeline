@@ -49,7 +49,7 @@ def add_scalebar(
 
     axes_values = ax.images[0].get_array()
     assert axes_values is not None
-    ny, nx = axes_values.shape  # image dimensions
+    ny, nx = axes_values.shape[:2]  # supports both grayscale (H, W) and RGB(A) (H, W, C)
 
     # Determine bar position
     if location == "upper left":
