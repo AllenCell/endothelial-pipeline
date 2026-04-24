@@ -155,6 +155,8 @@ def plot_2d_latent_walk(
     """
     n_steps = images_pc1.shape[0]
     center = n_steps // 2  # index of the origin (0 sigma)
+    # indices to skip on each axis: second-to-last from the end on both sides
+    skip_indices = {center - 2, center + 2}
 
     fig, axes = plt.subplots(n_steps, n_steps, gridspec_kw=gridspec_kwargs, **(fig_kwargs or {}))
     for row in range(n_steps):
@@ -164,13 +166,27 @@ def plot_2d_latent_walk(
             if row == center and col == center:
                 # origin: use the center image (shared by both walks)
                 ax.imshow(images_pc1[center], cmap="gray")
-            elif row == center:
-                # center row: PC1 walk (vary PC1, PC2 = 0)
+            elif row == center and col not in skip_indices:
+                # center row: PC1 walk (vary PC1, PC2 = 0); skip second-to-last
                 ax.imshow(images_pc1[col], cmap="gray")
-            elif col == center:
+            elif col == center and row not in skip_indices:
                 # center column: PC2 walk (vary PC2, PC1 = 0)
-                # flip row index so PC2 increases upward
+                # flip row index so PC2 increases upward; skip second-to-last
                 ax.imshow(images_pc2[n_steps - 1 - row], cmap="gray")
+
+    # draw PC axis lines through the center row and column
+    fig.canvas.draw()
+    center_ax = axes[center, center]
+    bbox = center_ax.get_position()
+    center_x = bbox.x0 + bbox.width / 2
+    center_y = bbox.y0 + bbox.height / 2
+
+    overlay = fig.add_axes([0, 0, 1, 1], facecolor="none", zorder=5)
+    overlay.set_xlim(0, 1)
+    overlay.set_ylim(0, 1)
+    overlay.axis("off")
+    overlay.axhline(center_y, color="white", linewidth=0.5, zorder=5)
+    overlay.axvline(center_x, color="white", linewidth=0.5, zorder=5)
 
     # label the PC axes using the center row/column
     axes[center, 0].set_ylabel(COLUMN_METADATA["pc_2"].label, fontsize=6)
