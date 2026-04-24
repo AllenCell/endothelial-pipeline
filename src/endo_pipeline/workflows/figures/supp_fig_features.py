@@ -17,7 +17,7 @@ def main() -> None:
         DIFFAE_PC_COLUMN_NAME_GROUPS,
         NUM_LATENT_FEATURES,
     )
-    from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
     from endo_pipeline.settings.workflow_defaults import (
         DATASET_INFO_COLUMNS,
         DEFAULT_PCA_DATASET_COLLECTION_NAME,
@@ -98,7 +98,7 @@ def main() -> None:
         ),
     ]
     build_figure_from_panels(
-        panels, save_dir / "supp_fig_features.svg", width=MAX_FIGURE_WIDTH, height=3
+        panels, save_dir / "supp_fig_features.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
     )
 
 
