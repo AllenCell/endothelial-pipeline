@@ -219,7 +219,7 @@ def get_df_for_feature_correlation_viz(
         # check that the chosen measurement column names
         # are actually in the DataFrame
         # keep only the columns that will be used
-        cols_to_keep = [
+        cols_to_keep: list[ColumnNameType] = [
             *dataset_info_columns,
             *segmentation_feature_columns,
             *pc_columns,
