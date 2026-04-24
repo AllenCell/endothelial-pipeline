@@ -25,3 +25,11 @@ NULLCLINE_STYLES_2D: dict[Column.DiffAEData, tuple[int, tuple[int, int]] | str] 
     Column.DiffAEData.PC3_FLIPPED: (0, (1, 1)),  # dense dotted
 }
 """Nullcline styles for 2D plots in polar radius and rho variables."""
+
+SUPP_FIG_TARGET_POINT = (1.0, -0.1)
+"""Highlighted target point for schematic panels in the supplementary figure
+detailing flow field construction."""
+
+SUPP_FIG_ZOOM_FACTOR = 3.5
+"""Factor to determine the zoomed-in region around the target point for the
+schematic panels in the supplementary figure detailing flow field construction."""
