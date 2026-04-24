@@ -165,12 +165,12 @@ def plot_2d_latent_walk(
     center_x = bbox.x0 + bbox.width / 2
     center_y = bbox.y0 + bbox.height / 2
 
-    overlay = fig.add_axes([0, 0, 1, 1], facecolor="none", zorder=5)
+    overlay = fig.add_axes([0, 0, 1, 1], facecolor="none", zorder=-1)
     overlay.set_xlim(0, 1)
     overlay.set_ylim(0, 1)
     overlay.axis("off")
-    overlay.axhline(center_y, color="black", linewidth=1.5, zorder=5)
-    overlay.axvline(center_x, color="black", linewidth=1.5, zorder=5)
+    overlay.axhline(center_y, color="black", linewidth=2.5, zorder=5)
+    overlay.axvline(center_x, color="black", linewidth=2.5, zorder=5)
 
     # add PC axis labels as text at the end of each axis line
     overlay.text(
