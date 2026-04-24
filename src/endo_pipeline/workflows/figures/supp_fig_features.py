@@ -30,7 +30,7 @@ save_dir = get_output_path("supp_fig_features")
 pca = fit_pca(num_pcs=NUM_LATENT_FEATURES)
 
 # %%
-fig, _ = feature_viz.plot_explained_variance(pca.explained_variance_ratio_, figsize=(2, 2.5))
+fig, _ = feature_viz.plot_explained_variance(pca.explained_variance_ratio_, figsize=(2.1, 2.5))
 save_plot_to_path(fig, save_dir, "explained_variance_ratio", file_format=".svg", pad_inches=0)
 
 # %% Correlation heatmap of ML-based features vs. measured features
@@ -58,7 +58,7 @@ visualize_correlation_heatmaps(
     label_column_tuples=label_column_tuples,
     out_dir=save_dir,
     cross_correlation_only=True,
-    figsize_cluster_heatmap=(MAX_FIGURE_WIDTH - 1.6, 3),
+    figsize_cluster_heatmap=(MAX_FIGURE_WIDTH - 1.6, 2.75),
     y_axis_label_coords=None,
 )
 
@@ -70,16 +70,16 @@ panels = [
         path=save_dir / "explained_variance_ratio.svg",
         x_position=0,
         y_position=0,
-        x_offset=-0.15,
-        y_offset=0.25,
+        x_offset=-0.1,
+        y_offset=0,
     ),
     FigurePanel(
         letter="B",
         path=save_dir / "correlation_ml-based_features_vs_measured_features_heatmap.svg",
-        x_position=1.8,
+        x_position=2,
         y_position=0,
         x_offset=-0.1,
-        y_offset=-0.05,
+        y_offset=-0.1,
     ),
 ]
 build_figure_from_panels(

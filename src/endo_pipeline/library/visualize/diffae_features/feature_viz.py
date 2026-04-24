@@ -134,14 +134,12 @@ def plot_explained_variance(
     )
     ax.set_ylim(0, 105)
     ax.set_xlabel("Number of\nPCA components")
-    ax.set_ylabel("Cumulative explained variance (%)")
+    ax.set_ylabel("Cumulative\nexplained variance (%)")
 
     ax.set_xticks(np.arange(0, 512, 100))
 
     ax.xaxis.labelpad = 2
     ax.yaxis.labelpad = 3
-
-    ax.yaxis.set_label_coords(-0.2, 0.44)
 
     # move tick labels closer to ticks
     ax.tick_params(axis="both", which="major", pad=2)
