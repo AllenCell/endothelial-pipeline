@@ -192,7 +192,9 @@ def get_df_for_feature_correlation_viz(
             *optical_flow_columns,
             *optical_flow_merge_prereq_columns,
         ]
-        cols_to_load_overlap = sorted(set(cols_to_load) & set(merged_feats_df_delayed.columns))
+        cols_to_load_overlap = sorted(
+            set(cols_to_load) & set(merged_feats_df_delayed.columns), key=str
+        )
         cols_to_load_unique = []
         for col in cols_to_load:
             if col not in cols_to_load_unique and col in cols_to_load_overlap:
@@ -226,7 +228,7 @@ def get_df_for_feature_correlation_viz(
             *pc_columns,
         ]
 
-        if not all(np.isin(cols_to_keep, merged_feats_df.columns)):
+        if not set(cols_to_keep).issubset(merged_feats_df.columns):
             missing_columns = set(cols_to_keep) - set(merged_feats_df.columns)
             raise ValueError(
                 f"Not all columns names are in merged_feats_df. Missing:\n{missing_columns}"
