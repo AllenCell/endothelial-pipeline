@@ -124,7 +124,7 @@ def _add_axes_lines(
     axes_linewidth: float,
 ) -> None:
     """Add horizontal and vertical axes lines with labels to the 2D latent walk plot."""
-    underlay = fig.add_axes([0, 0, 1, 1], facecolor="none", zorder=-1)
+    underlay = fig.add_axes((0.0, 0.0, 1.0, 1.0), facecolor="none", zorder=-1)
     underlay.set_xlim(0, 1)
     underlay.set_ylim(0, 1)
     underlay.axis("off")
