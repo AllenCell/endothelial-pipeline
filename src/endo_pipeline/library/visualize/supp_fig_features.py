@@ -1,7 +1,7 @@
 """Methods for building panels in the supplementary figure showing feature correlations and coordinate transformations."""
 
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -161,10 +161,12 @@ def _add_axes_lines(
     # PC2 label: large, to the left of the top image in the PC2 column
     top_ax = axes[0, center_index]
     top_bbox = top_ax.get_position()
+    pc1_label = cast(str, COLUMN_METADATA["pc_1"].label)
+    pc2_label = cast(str, COLUMN_METADATA["pc_2"].label)
     underlay.text(
         top_bbox.x0 - 0.1,
         top_bbox.y1,
-        COLUMN_METADATA["pc_2"].label,
+        pc2_label,
         fontsize=FONTSIZE_LARGE,
         fontweight="bold",
         ha="right",
@@ -177,7 +179,7 @@ def _add_axes_lines(
     underlay.text(
         right_bbox.x1 + right_bbox.width / 2 + 0.05,
         right_bbox.y0 - 0.05,
-        COLUMN_METADATA["pc_1"].label,
+        pc1_label,
         fontsize=FONTSIZE_LARGE,
         fontweight="bold",
         ha="left",
