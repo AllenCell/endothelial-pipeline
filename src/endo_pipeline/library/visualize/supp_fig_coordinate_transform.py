@@ -33,6 +33,26 @@ def perform_latent_walk_along_top_pcs(
 ) -> np.ndarray:
     """
     Perform a latent walk along the top principal 3 components of the data.
+
+    This method acts as a wrapper for the latent walk generation and plotting
+    functions. It uses the default model and dataset manifests to load the
+    necessary model and data, performs the latent walk along the top 3 PCs,
+    generates the corresponding images, and saves a contact sheet of the walk.
+
+    Parameters
+    ----------
+    save_path
+        Directory path to save the output figure.
+    filename
+        Name of the output figure file.
+    figsize
+        Figure size to use for the output figure.
+
+    Returns
+    -------
+    :
+        Array of shape (3, num_steps, h, w) containing the reconstructed image
+        crops.
     """
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
     run_name = DEFAULT_MODEL_RUN_NAME
@@ -148,5 +168,7 @@ def plot_2d_latent_walk(
     # label the PC axes using the center row/column
     axes[center, 0].set_ylabel(COLUMN_METADATA["pc_2"].label, fontsize=6)
     fig.text(0.5, 0.02, COLUMN_METADATA["pc_1"].label, ha="center", fontsize=6)
-    save_plot_to_path(fig, save_path, filename)
+    save_plot_to_path(
+        fig, save_path, filename, file_format=".svg", transparent=True, tight_layout=False
+    )
     return save_path / filename
