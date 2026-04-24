@@ -29,7 +29,7 @@ def main() -> None:
 
     plt.style.use("endo_pipeline.figure")
 
-    save_dir = get_output_path("supp_fig_features")
+    save_dir = get_output_path(__file__)
 
     # plot cumulative explained variance ratio of PCA components
     pca = fit_pca(num_pcs=NUM_LATENT_FEATURES)
