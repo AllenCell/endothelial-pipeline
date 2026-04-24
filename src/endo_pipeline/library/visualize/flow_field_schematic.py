@@ -709,11 +709,9 @@ def make_kernel_convolution_schematic(
         vmin=DRIFT_CONTOUR_VMIN,
         vmax=DRIFT_CONTOUR_VMAX,
         axes_xlabel=axes_xlabel,
-        axes_ylabel=axes_ylabel,
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
         xlabel_kwargs=xlabel_kwargs,
-        ylabel_kwargs=ylabel_kwargs,
     )
     _add_target_bin_border(
         axes[3],
