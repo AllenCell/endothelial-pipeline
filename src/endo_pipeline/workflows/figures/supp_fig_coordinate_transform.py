@@ -45,7 +45,7 @@ def main() -> None:
         FigurePanel(
             letter="C",
             path=latent_walk_path,
-            x_position=0,
+            x_position=0.1,
             y_position=3.25,
             x_offset=0.25,
             y_offset=0.0,
