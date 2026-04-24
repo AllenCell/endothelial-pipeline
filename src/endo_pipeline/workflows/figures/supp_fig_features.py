@@ -34,7 +34,14 @@ def main() -> None:
     # plot cumulative explained variance ratio of PCA components
     pca = fit_pca(num_pcs=NUM_LATENT_FEATURES)
     fig, _ = feature_viz.plot_explained_variance(pca.explained_variance_ratio_, figsize=(2.1, 2.5))
-    save_plot_to_path(fig, save_dir, "explained_variance_ratio", file_format=".svg", pad_inches=0)
+    save_plot_to_path(
+        fig,
+        save_dir,
+        "explained_variance_ratio",
+        file_format=".svg",
+        pad_inches=0,
+        transparent=True,
+    )
 
     # Correlation heatmap of ML-based features vs. measured features
     dataset_name_list = use_default_collection(None, DEFAULT_PCA_DATASET_COLLECTION_NAME)
