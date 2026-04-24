@@ -76,7 +76,7 @@ def make_real_image_panel(
     horizontal_arrow_y_offset: float = -0.025,
     horizontal_arrow_linewidth: float = 1.5,
     horizontal_arrow_arrowstyle: str = "->,head_length=5,head_width=3",
-    text_y_offset: float = -0.1,
+    text_y_offset: float = -0.125,
     delta_text_y_offset: float = 0.02,
     layout_engine_kwargs: dict[str, Any] = {"rect": (0, 0.2, 1, 0.8)},
 ) -> Path:
