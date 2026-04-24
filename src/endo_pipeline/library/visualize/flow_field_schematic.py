@@ -19,6 +19,7 @@ from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
     _evaluate_multivariate_product_kernel,
     _get_weighted_histogram_for_convolution,
     get_cartesian_product,
+    get_kramers_moyal_coeffs,
 )
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics.binning import get_bins
@@ -43,10 +44,15 @@ from endo_pipeline.settings.dynamics_workflows import (
     KERNEL_NAMES_DYNAMICS,
     METADATA_COLUMNS_TO_KEEP,
     POLAR_ANGLE_PERIOD,
+    TIME_STEP_IN_HOURS,
 )
 from endo_pipeline.settings.examples import FLOW_FIELD_CONSTRUCTION_EXAMPLE_IMAGES
 from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_MEDIUM, FONTSIZE_XLARGE
-from endo_pipeline.settings.flow_field_2d import DRIFT_CONTOUR_COLORMAP
+from endo_pipeline.settings.flow_field_2d import (
+    DRIFT_CONTOUR_COLORMAP,
+    DRIFT_CONTOUR_VMAX,
+    DRIFT_CONTOUR_VMIN,
+)
 from endo_pipeline.settings.image_data import NATIVE_ZARR_RESOLUTION_CROP_SIZE, PIXEL_SIZE_3i_20x
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import (
@@ -686,6 +692,39 @@ def make_kernel_convolution_schematic(
         axes[2],
         pcm,
         label=f"kernel-weighted sum of $\\Delta$ {axes_xlabel}",
+    )
+
+    # panel 4 - final KM coefficient estimate at target bin
+    # with KM estimates at surrounding bins shown for context
+    traj_list, disp_list = get_traj_and_diff(dataframe_steady_state, column_names)
+    drift = get_kramers_moyal_coeffs(traj_list, disp_list, bin_edges, TIME_STEP_IN_HOURS, kernels)[
+        0
+    ]
+    pcm = _make_2d_pcolormesh(
+        axes[3],
+        drift[..., 0],
+        bin_edges[0],
+        bin_edges[1],
+        cmap=cmap,
+        vmin=DRIFT_CONTOUR_VMIN,
+        vmax=DRIFT_CONTOUR_VMAX,
+        axes_xlabel=axes_xlabel,
+        axes_ylabel=axes_ylabel,
+        axes_xlim=axes_xlim,
+        axes_ylim=axes_ylim,
+        xlabel_kwargs=xlabel_kwargs,
+        ylabel_kwargs=ylabel_kwargs,
+    )
+    _add_target_bin_border(
+        axes[3],
+        target_bin=target_bin,
+        bin_edges=bin_edges,
+    )
+    _add_colorbar_for_quadmesh(
+        fig,
+        axes[3],
+        pcm,
+        label=f"drift in {axes_xlabel} (hr$^{{-1}}$)",
     )
 
     filename = "kernel_convolution_schematic"
