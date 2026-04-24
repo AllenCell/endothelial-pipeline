@@ -71,11 +71,11 @@ def make_real_image_panel(
     map_arrow_rad: float = 0.3,
     map_arrow_linewidth: float = 1.5,
     map_arrow_arrowstyle: str = "->,head_length=5,head_width=3",
-    horizontal_arrow_x_offset: float = 0.06,
-    horizontal_arrow_y_offset: float = -0.03,
+    horizontal_arrow_x_offset: float = 0.08,
+    horizontal_arrow_y_offset: float = -0.02,
     horizontal_arrow_linewidth: float = 1.5,
     horizontal_arrow_arrowstyle: str = "->,head_length=5,head_width=3",
-    text_y_offset: float = -0.22,
+    text_y_offset: float = -0.15,
     delta_text_y_offset: float = 0.05,
 ) -> Path:
     """Build the panel showing a grid crop from t to t+1 for a given example image."""
@@ -105,6 +105,8 @@ def make_real_image_panel(
         max_rows=1,
         fig_kwargs={"figsize": contact_figsize, "layout": "constrained"},
     )
+
+    fig.get_layout_engine().set(rect=(0, 0.2, 1, 0.8))
 
     ax_t = fig.axes[0]
     ax_t1 = fig.axes[1]
