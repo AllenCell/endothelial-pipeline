@@ -268,6 +268,16 @@ def plot_2d_latent_walk(
                     transform=ax.transAxes,
                     clip_on=False,
                 )
+                ax.plot(
+                    [0.5, 0.5],
+                    [-n_steps, n_steps],
+                    color=axes_color,
+                    linestyle="-",
+                    linewidth=axes_linewidth,
+                    zorder=0,
+                    transform=ax.transAxes,
+                    clip_on=False,
+                )
                 # origin: use the center image (shared by both walks)
                 ax.imshow(images_pc1[center], cmap="gray", zorder=1)
             elif row == center:
