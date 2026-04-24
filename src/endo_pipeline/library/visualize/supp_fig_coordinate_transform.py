@@ -173,8 +173,8 @@ def plot_2d_latent_walk(
     overlay.set_xlim(0, 1)
     overlay.set_ylim(0, 1)
     overlay.axis("off")
-    overlay.axhline(center_y, color="black", linewidth=0.5, zorder=5)
-    overlay.axvline(center_x, color="black", linewidth=0.5, zorder=5)
+    overlay.axhline(center_y, color="black", linewidth=1.5, zorder=5)
+    overlay.axvline(center_x, color="black", linewidth=1.5, zorder=5)
 
     # indices to skip on each axis: second-to-last from the end on both sides
     skip_indices = {center - 1, center + 1}
@@ -194,9 +194,9 @@ def plot_2d_latent_walk(
                 # flip row index so PC2 increases upward; skip second-to-last
                 ax.imshow(images_pc2[n_steps - 1 - row], cmap="gray")
 
-    # label the PC axes using the center row/column
-    axes[center, 0].set_ylabel(COLUMN_METADATA["pc_2"].label, fontsize=6)
-    fig.text(0.5, 0.02, COLUMN_METADATA["pc_1"].label, ha="center", fontsize=6)
+    # label the PC axes outside the image grid
+    fig.supxlabel(COLUMN_METADATA["pc_1"].label, fontsize=6)
+    fig.supylabel(COLUMN_METADATA["pc_2"].label, fontsize=6)
     save_plot_to_path(
         fig, save_path, filename, file_format=".svg", transparent=True, tight_layout=False
     )

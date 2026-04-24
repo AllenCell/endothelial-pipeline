@@ -32,7 +32,7 @@ def main() -> None:
         images_pc2,
         output_path,
         latent_walk_2d_filename,
-        fig_kwargs={"figsize": (4.5, 4.5), "layout": "constrained"},
+        fig_kwargs={"figsize": (5.5, 5.5), "layout": "constrained"},
         gridspec_kwargs={"wspace": 0, "hspace": 0},
     )
 
@@ -50,9 +50,9 @@ def main() -> None:
             letter="B",
             path=latent_walk_2d_path,
             x_position=0.0,
-            y_position=3.2,
-            x_offset=0.3,
-            y_offset=0.3,
+            y_position=3.0,
+            x_offset=0.0,
+            y_offset=0.0,
         ),
     ]
 
