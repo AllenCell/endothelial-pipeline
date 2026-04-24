@@ -138,8 +138,8 @@ def plot_explained_variance(
 
     ax.set_xticks(np.arange(0, 512, 100))
 
-    ax.xaxis.labelpad = 2
-    ax.yaxis.labelpad = 3
+    ax.xaxis.labelpad = 3
+    ax.yaxis.labelpad = 2
 
     # move tick labels closer to ticks
     ax.tick_params(axis="both", which="major", pad=2)

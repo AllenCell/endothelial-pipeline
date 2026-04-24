@@ -58,7 +58,7 @@ visualize_correlation_heatmaps(
     label_column_tuples=label_column_tuples,
     out_dir=save_dir,
     cross_correlation_only=True,
-    figsize_cluster_heatmap=(MAX_FIGURE_WIDTH - 1.6, 2.75),
+    figsize_cluster_heatmap=(MAX_FIGURE_WIDTH - 1.7, 2.75),
     y_axis_label_coords=None,
 )
 
@@ -71,12 +71,12 @@ panels = [
         x_position=0,
         y_position=0,
         x_offset=-0.1,
-        y_offset=0,
+        y_offset=-0.05,
     ),
     FigurePanel(
         letter="B",
         path=save_dir / "correlation_ml-based_features_vs_measured_features_heatmap.svg",
-        x_position=2,
+        x_position=1.9,
         y_position=0,
         x_offset=-0.1,
         y_offset=-0.1,
