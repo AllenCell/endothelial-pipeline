@@ -117,12 +117,19 @@ def plot_2d_latent_walk(
     images_pc2: np.ndarray,
     save_path: Path,
     filename: str,
+    axes_linewidth: float = 2.5,
+    axes_color: str = "dimgrey",
+    orientation_arrow_head_length: float = 0.85,
+    orientation_arrow_head_width: float = 0.5,
+    orientation_arrow_arc_rad: float = 0.5,
+    orientation_arrow_linewidth: float = 1.5,
+    orientation_label_offset: tuple[float, float] = (0.25, 0.1),
     gridspec_kwargs: dict | None = None,
     fig_kwargs: dict | None = None,
 ) -> Path:
     """
-    Plot a "2D" latent walk along the first two principal components by arranging
-    the images from the walks along PC 1 and PC 2 in a grid.
+    Plot a "2D" latent walk along the first two principal components by
+    arranging the images from the walks along PC 1 and PC 2 in a grid.
 
     The walk along PC 1 is arranged horizontally with PC 2 = 0, and the walk
     along PC 2 is arranged vertically with PC 1 = 0. The center image at the
@@ -140,9 +147,24 @@ def plot_2d_latent_walk(
         Directory path to save the output figure.
     filename
         Name of the output figure file.
+    axes_linewidth
+        Line width to use for the axes lines.
+    axes_color
+        Color to use for the axes lines.
+    orientation_arrow_head_length
+        Head length to use for the orientation arrow.
+    orientation_arrow_head_width
+        Head width to use for the orientation arrow.
+    orientation_arrow_arc_rad
+        Arc radius to use for the orientation arrow.
+    orientation_arrow_linewidth
+        Line width to use for the orientation arrow.
+    orientation_label_offset
+        Tuple of (x, y) offsets to apply to the position of the "orientation"
+        label relative to the midpoint of the orientation arrow.
     gridspec_kwargs
-        Optional dictionary of keyword arguments to pass to GridSpec
-        (e.g., {"wspace": 0, "hspace": 0}).
+        Optional dictionary of keyword arguments to pass to GridSpec (e.g.,
+        {"wspace": 0, "hspace": 0}).
     fig_kwargs
         Optional dictionary of keyword arguments to pass to plt.figure (e.g.,
         {"figsize": (3.5, 3.5)}).
@@ -201,6 +223,10 @@ def plot_2d_latent_walk(
         topmost_bbox.x1,
         topmost_bbox.y0 + topmost_bbox.height / 2,
     )  # center-right of topmost image
+    arrowstyle = (
+        f"->,head_length={orientation_arrow_head_length},head_width={orientation_arrow_head_width}"
+    )
+    connectionstyle = f"arc3,rad={orientation_arrow_arc_rad}"
     overlay.annotate(
         "",
         xy=arrow_end,
@@ -208,19 +234,19 @@ def plot_2d_latent_walk(
         xycoords="axes fraction",
         textcoords="axes fraction",
         arrowprops={
-            "arrowstyle": "->,head_length=0.85,head_width=0.5",
+            "arrowstyle": arrowstyle,
             "color": "black",
-            "lw": 1.5,
-            "connectionstyle": "arc3,rad=0.5",
+            "lw": orientation_arrow_linewidth,
+            "connectionstyle": connectionstyle,
         },
     )
     mid_x = (arrow_start[0] + arrow_end[0]) / 2
     mid_y = (arrow_start[1] + arrow_end[1]) / 2
     overlay.text(
-        mid_x + 0.25,
-        mid_y + 0.1,
+        mid_x + orientation_label_offset[0],
+        mid_y + orientation_label_offset[1],
         "orientation",
-        fontsize=10,
+        fontsize=FONTSIZE_LARGE,
         ha="center",
         va="center",
         transform=overlay.transAxes,
@@ -235,8 +261,9 @@ def plot_2d_latent_walk(
                 ax.plot(
                     [-n_steps, n_steps],
                     [0.5, 0.5],
-                    "k-",
-                    linewidth=2.5,
+                    color=axes_color,
+                    linestyle="-",
+                    linewidth=axes_linewidth,
                     zorder=0,
                     transform=ax.transAxes,
                     clip_on=False,

@@ -17,7 +17,7 @@ def main() -> None:
     latent_walk_filename = "latent_walk_top_3_pcs"
 
     walk_img_grid = perform_latent_walk_along_top_pcs(
-        output_path, latent_walk_filename, figsize=(6.25, 2.6)
+        output_path, latent_walk_filename, figsize=(6.0, 2.4)
     )
     latent_walk_path = output_path / f"{latent_walk_filename}_scale_bar_10um.svg"
 
@@ -36,7 +36,7 @@ def main() -> None:
         images_pc2,
         output_path,
         latent_walk_2d_filename,
-        fig_kwargs={"figsize": (2.5, 2.5), "layout": "constrained"},
+        fig_kwargs={"figsize": (2.0, 2.0), "layout": "constrained"},
         gridspec_kwargs={"wspace": 0, "hspace": 0},
     )
 
@@ -54,7 +54,7 @@ def main() -> None:
             letter="D",
             path=latent_walk_2d_path,
             x_position=0.0,
-            y_position=5.0,
+            y_position=5.2,
             x_offset=0.2,
             y_offset=0.2,
         ),
