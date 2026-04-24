@@ -3,12 +3,13 @@
 import logging
 
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA, ColumnMetadata
+from endo_pipeline.settings.column_names import ColumnNameType
 
 logger = logging.getLogger(__name__)
 
 
 def get_label_for_column(
-    column_name: str, column_metadata: dict[str, ColumnMetadata] = COLUMN_METADATA
+    column_name: str, column_metadata: dict[ColumnNameType, ColumnMetadata] = COLUMN_METADATA
 ) -> str:
     """
     Convert column name into label using column metadata.

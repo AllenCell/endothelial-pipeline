@@ -8,6 +8,7 @@ from numpy import pi
 
 from endo_pipeline.io import slugify
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.diffae_feature_dataframes import MAX_PCS_TO_COMPUTE, NUM_LATENT_FEATURES
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
@@ -87,13 +88,13 @@ class ColumnMetadata:
         self.label_with_unit = f"{self.label}{unit}"
 
         # Create slug version of the name (useful for saving to files).
-        self.slug = slugify(self.name_with_unit)
+        self.slug = slugify(self.name)
 
         # Set limits using minimum and maximum.
         self.limits = (self.min, self.max)
 
 
-COLUMN_METADATA: dict[str, ColumnMetadata] = {
+COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     # General information ======================================================
     Column.SegData.TIME_HRS: ColumnMetadata(
         name="Time",
@@ -117,6 +118,7 @@ COLUMN_METADATA: dict[str, ColumnMetadata] = {
     ),
     Column.SegData.TIME_HRS_SINCE_FLOW: ColumnMetadata(
         name="Time Under Flow",
+        label="Time",
         unit="hr",
         min="min",
         max="max",

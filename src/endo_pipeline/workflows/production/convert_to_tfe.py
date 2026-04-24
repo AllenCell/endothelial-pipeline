@@ -104,7 +104,6 @@ def main(
     from endo_pipeline.settings.tfe import (
         TFE_DEFAULT_DATASETS,
         TFE_DEFAULT_POSITIONS,
-        TFE_FEATURE_MAP,
         TFE_IMAGE_MANIFEST_NAME_MAP,
     )
 
@@ -136,7 +135,8 @@ def main(
             logger.info("Processing '%s' position '%d'", dataset_name, position)
 
             # Initialize dataset writer
-            writer = ColorizerDatasetWriter(output_dir, f"{dataset_name}_P{position}")
+            dataset_and_position = f"{dataset_name}_P{position}"
+            writer = ColorizerDatasetWriter(output_dir, dataset_and_position, force_overwrite=True)
 
             # Generate (or regenerate) frames if selected
             if generate_frames:
@@ -160,7 +160,7 @@ def main(
                 continue
 
             # Build the full TFE dataset
-            build_tfe_dataset(writer, data, TFE_FEATURE_MAP)
+            build_tfe_dataset(writer, data)
 
 
 if __name__ == "__main__":
