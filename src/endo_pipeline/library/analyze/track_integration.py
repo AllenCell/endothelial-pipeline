@@ -1270,6 +1270,7 @@ def compute_and_plot_first_passage_times_one_dataset(
                 first_passage_time_param_sweep_df_tracked=traj_df_tracked_param_sweep,
                 fixed_point_radius_threshold_in_workflow=fixed_point_radius_threshold,
                 out_dir=out_subdir,
+                metrics=["mean", "median"],
             )
             if dataset_name in FPT_FIG_EXAMPLES:
                 plot_first_passage_time_parameter_sweep(
@@ -1280,6 +1281,7 @@ def compute_and_plot_first_passage_times_one_dataset(
                     first_passage_time_param_sweep_df_tracked=traj_df_tracked_param_sweep,
                     fixed_point_radius_threshold_in_workflow=fixed_point_radius_threshold,
                     out_dir=out_dir_figure,
+                    metrics=["mean"],
                 )
 
         traj_df_grid[f"{Column.VectorField.IS_AT_FP_PREFIX}{fp_idx}"] = (

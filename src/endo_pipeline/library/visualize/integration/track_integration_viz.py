@@ -1340,6 +1340,7 @@ def plot_first_passage_time_parameter_sweep(
     first_passage_time_param_sweep_df_tracked: pd.DataFrame,
     fixed_point_radius_threshold_in_workflow: float | None,
     out_dir: Path,
+    metrics: list[Literal["mean", "median"]] = ["mean", "median"],
 ) -> None:
     """Plot the results of the parameter sweep over the number of bins in the
     initial conditions histogram and the choice of mean vs. median FPT to plot.
@@ -1364,7 +1365,7 @@ def plot_first_passage_time_parameter_sweep(
     )
 
     fig_title = f"{shear_stress_rounded} dyn/cm{UnicodeCharacters.SQUARED}"
-    for metric in ["mean", "median"]:
+    for metric in metrics:
         column_name = "50%" if metric == "median" else metric
         fig, ax = plt.subplots(figsize=(3, 3))
         ax.set_title(fig_title, fontsize=FONTSIZE_LARGE)
