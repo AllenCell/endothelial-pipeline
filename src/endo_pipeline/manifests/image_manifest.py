@@ -36,6 +36,31 @@ class ImageLocation:
         # returns location as ImageLocation(path=Path("P3/T10.ome.tiff"))
     """
 
+    s3uri: str | None = None
+    """S3 URI for image (starting with s3://).
+
+    The uri can be a template uri that uses {{position}} or {{timepoint}} as
+    placeholders for dynamic values of position or timepoint, respectively.
+    These placeholders will be replaced with given position or timepoint values
+    when accessing the location via ``get_image_location_for_dataset``.
+
+    .. code-block:: python
+
+        manifest = ImageManifest(
+            name="manifest_name",
+            workflow="workflow_name",
+            locations={
+                "dataset_name": ImageLocation(
+                    s3uri="s3://bucket-name/P{{position}}/T{{timepoint}}.ome.tiff")
+                )
+            },
+        )
+
+        dataset_config = load_dataset_config("dataset_name")
+        image_location = get_image_location_for_dataset(manifest, dataset_config, 3, 10)
+        # returns location as ImageLocation(s3uri="s3://bucket-name/P3/T10.ome.tiff")
+    """
+
 
 @dataclass
 class ImageManifest:
