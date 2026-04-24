@@ -1,11 +1,12 @@
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
 from endo_pipeline.cli import NUM_GPUS
 from endo_pipeline.configs import get_datasets_in_collection
-from endo_pipeline.io import load_dataframe, load_model
+from endo_pipeline.io import load_dataframe, load_model, save_plot_to_path
 from endo_pipeline.library.analyze.pca import fit_pca
 from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
 from endo_pipeline.library.model.diffae.generate_image import generate_latent_walk_images
@@ -16,6 +17,7 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
     load_model_manifest,
 )
+from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
 from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
 from endo_pipeline.settings.workflow_defaults import (
@@ -87,3 +89,64 @@ def perform_latent_walk_along_top_pcs(
     )
 
     return walk_img_grid
+
+
+def plot_2d_latent_walk(
+    images_pc1: np.ndarray,
+    images_pc2: np.ndarray,
+    save_path: Path,
+    filename: str,
+    gridspec_kwargs: dict | None = None,
+    fig_kwargs: dict | None = None,
+) -> Path:
+    """
+    Plot a "2D" latent walk along the first two principal components by arranging
+    the images from the walks along PC 1 and PC 2 in a grid.
+
+    The walk along PC 1 is arranged horizontally with PC 2 = 0, and the walk
+    along PC 2 is arranged vertically with PC 1 = 0. The center image at the
+    origin (0 sigma) is shared by both walks.
+
+    Parameters
+    ----------
+    images_pc1
+        Array of shape (num_steps, h, w) containing the reconstructed image
+        crops for the walk along PC 1.
+    images_pc2
+        Array of shape (num_steps, h, w) containing the reconstructed image
+        crops for the walk along PC 2.
+    save_path
+        Directory path to save the output figure.
+    filename
+        Name of the output figure file.
+    gridspec_kwargs
+        Optional dictionary of keyword arguments to pass to GridSpec
+        (e.g., {"wspace": 0, "hspace": 0}).
+    fig_kwargs
+        Optional dictionary of keyword arguments to pass to plt.figure (e.g.,
+        {"figsize": (3.5, 3.5)}).
+    """
+    n_steps = images_pc1.shape[0]
+    center = n_steps // 2  # index of the origin (0 sigma)
+
+    fig, axes = plt.subplots(n_steps, n_steps, gridspec_kw=gridspec_kwargs, **(fig_kwargs or {}))
+    for row in range(n_steps):
+        for col in range(n_steps):
+            ax: plt.Axes = axes[row, col]
+            ax.axis("off")
+            if row == center and col == center:
+                # origin: use the center image (shared by both walks)
+                ax.imshow(images_pc1[center], cmap="gray")
+            elif row == center:
+                # center row: PC1 walk (vary PC1, PC2 = 0)
+                ax.imshow(images_pc1[col], cmap="gray")
+            elif col == center:
+                # center column: PC2 walk (vary PC2, PC1 = 0)
+                # flip row index so PC2 increases upward
+                ax.imshow(images_pc2[n_steps - 1 - row], cmap="gray")
+
+    # label the PC axes using the center row/column
+    axes[center, 0].set_ylabel(COLUMN_METADATA["pc_2"].label, fontsize=6)
+    fig.text(0.5, 0.02, COLUMN_METADATA["pc_1"].label, ha="center", fontsize=6)
+    save_plot_to_path(fig, save_path, filename)
+    return save_path / filename
