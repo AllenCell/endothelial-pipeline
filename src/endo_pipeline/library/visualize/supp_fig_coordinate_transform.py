@@ -158,13 +158,7 @@ def plot_2d_latent_walk(
 
     fig, axes = plt.subplots(n_steps, n_steps, gridspec_kw=gridspec_kwargs, **(fig_kwargs or {}))
 
-    # draw PC axis lines through the center row and column
     fig.canvas.draw()
-    center_ax = axes[center, center]
-    bbox = center_ax.get_position()
-    center_x = bbox.x0 + bbox.width / 2
-    center_y = bbox.y0 + bbox.height / 2
-
     overlay = fig.add_axes([0, 0, 1, 1], facecolor="none", zorder=5)
     overlay.set_xlim(0, 1)
     overlay.set_ylim(0, 1)
@@ -182,12 +176,12 @@ def plot_2d_latent_walk(
         va="top",
         transform=overlay.transAxes,
     )
-    # PC1 label: large, to the right of the rightmost image in the PC1 row
+    # PC1 label: large, below the rightmost image in the PC1 row
     right_ax = axes[center, n_steps - 1]
     right_bbox = right_ax.get_position()
     overlay.text(
-        right_bbox.x1 + 0.1,
-        right_bbox.y0 + right_bbox.height / 2 + 0.1,
+        right_bbox.x1 + right_bbox.width / 2 + 0.05,
+        right_bbox.y0 - 0.05,
         COLUMN_METADATA["pc_1"].label,
         fontsize=FONTSIZE_LARGE,
         ha="left",
@@ -195,11 +189,18 @@ def plot_2d_latent_walk(
         transform=overlay.transAxes,
     )
 
-    # arced arrow from positive PC1 axis to positive PC2 axis (quadrant I)
+    # arced arrow from center-top of rightmost image to center-right of topmost image
     # with "orientation" label at the midpoint of the arc
-    arc_radius = 0.18  # distance from origin in figure fraction
-    arrow_start = (center_x + arc_radius, center_y)  # point on +PC1 axis
-    arrow_end = (center_x, center_y + arc_radius)  # point on +PC2 axis
+    rightmost_bbox = axes[center, n_steps - 1].get_position()
+    topmost_bbox = axes[0, center].get_position()
+    arrow_start = (
+        rightmost_bbox.x0 + rightmost_bbox.width / 2,
+        rightmost_bbox.y1,
+    )  # center-top of rightmost image
+    arrow_end = (
+        topmost_bbox.x1,
+        topmost_bbox.y0 + topmost_bbox.height / 2,
+    )  # center-right of topmost image
     overlay.annotate(
         "",
         xy=arrow_end,
@@ -207,15 +208,17 @@ def plot_2d_latent_walk(
         xycoords="axes fraction",
         textcoords="axes fraction",
         arrowprops={
-            "arrowstyle": "-|>",
+            "arrowstyle": "->,head_length=0.85,head_width=0.5",
             "color": "black",
-            "lw": 2.5,
-            "connectionstyle": "arc3,rad=0.4",
+            "lw": 1.5,
+            "connectionstyle": "arc3,rad=0.5",
         },
     )
+    mid_x = (arrow_start[0] + arrow_end[0]) / 2
+    mid_y = (arrow_start[1] + arrow_end[1]) / 2
     overlay.text(
-        center_x + arc_radius * 0.72,
-        center_y + arc_radius * 0.72,
+        mid_x + 0.25,
+        mid_y + 0.1,
         "orientation",
         fontsize=10,
         ha="center",
@@ -227,28 +230,17 @@ def plot_2d_latent_walk(
         for col in range(n_steps):
             ax: plt.Axes = axes[row, col]
             ax.axis("off")
-            # draw axis lines per-subplot behind the images (zorder=0)
-            if row == center:
-                ax.plot(
-                    [0, 1],
-                    [0.4, 0.4],
-                    color="black",
-                    linewidth=2.5,
-                    zorder=0,
-                    transform=ax.transAxes,
-                    clip_on=False,
-                )
-            if col == center:
-                ax.plot(
-                    [0.4, 0.4],
-                    [0, 1],
-                    color="black",
-                    linewidth=2.5,
-                    zorder=0,
-                    transform=ax.transAxes,
-                    clip_on=False,
-                )
             if row == center and col == center:
+                # draw axis lines behind images (zorder=0)
+                ax.plot(
+                    [-n_steps, n_steps],
+                    [0.5, 0.5],
+                    "k-",
+                    linewidth=2.5,
+                    zorder=0,
+                    transform=ax.transAxes,
+                    clip_on=False,
+                )
                 # origin: use the center image (shared by both walks)
                 ax.imshow(images_pc1[center], cmap="gray", zorder=1)
             elif row == center:

@@ -43,20 +43,20 @@ def main() -> None:
     panels = [
         # --- Low flow dataset (row 1) ---
         FigurePanel(
-            letter="A",
+            letter="C",
             path=latent_walk_path,
             x_position=0,
-            y_position=0.0,
-            x_offset=0.0,
-            y_offset=0.2,
+            y_position=3.0,
+            x_offset=0.15,
+            y_offset=0.0,
         ),
         FigurePanel(
-            letter="B",
+            letter="D",
             path=latent_walk_2d_path,
             x_position=0.0,
-            y_position=3.0,
-            x_offset=0.0,
-            y_offset=0.0,
+            y_position=5.0,
+            x_offset=0.2,
+            y_offset=0.2,
         ),
     ]
 
