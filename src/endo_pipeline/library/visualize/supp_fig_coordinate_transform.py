@@ -126,7 +126,7 @@ def _add_orientation_arrow(
     label_offset: tuple[float, float],
 ) -> None:
     """Add an arced arrow and "orientation" label to the 2D latent walk plot."""
-    overlay = fig.add_axes([0, 0, 1, 1], facecolor="none", zorder=5)
+    overlay = fig.add_axes((0.0, 0.0, 1.0, 1.0), facecolor="none", zorder=5)
     overlay.set_xlim(0, 1)
     overlay.set_ylim(0, 1)
     overlay.axis("off")
@@ -181,9 +181,11 @@ def _add_elongation_arrows(
     color: str,
     linewidth: float,
     label_offset: tuple[float, float],
+    horizontal_arrow_offsets: tuple[float, float] = (0.0, 0.0),
+    vertical_arrow_offsets: tuple[float, float] = (0.0, 0.0),
 ) -> None:
     """Add straight arrows from the origin leftward (decreasing PC1) and downward (PC2) with an 'elongation' label."""
-    overlay = fig.add_axes([0, 0, 1, 1], facecolor="none", zorder=5)
+    overlay = fig.add_axes((0.0, 0.0, 1.0, 1.0), facecolor="none", zorder=5)
     overlay.set_xlim(0, 1)
     overlay.set_ylim(0, 1)
     overlay.axis("off")
@@ -194,20 +196,24 @@ def _add_elongation_arrows(
         center_bbox.y0 + center_bbox.height / 2,
     )
 
-    # left arrow: origin → center-left of leftmost image in center row (decreasing PC1, quadrant 3)
+    # left arrow: decreasing PC1, quadrant 3
     left_bbox = axes[center_index, 0].get_position()
-    left_end = (left_bbox.x0, left_bbox.y0 + left_bbox.height / 2)
+    h_y = left_bbox.y0 + left_bbox.height / 2 + horizontal_arrow_offsets[1]
+    left_start = (origin[0] + horizontal_arrow_offsets[0], h_y)
+    left_end = (left_bbox.x0 + horizontal_arrow_offsets[0], h_y)
 
-    # down arrow: origin → center-bottom of bottom image in center column (PC2 quadrant 3)
+    # down arrow: decreasing PC2, quadrant 3
     bottom_bbox = axes[n_steps - 1, center_index].get_position()
-    down_end = (bottom_bbox.x0 + bottom_bbox.width / 2, bottom_bbox.y0)
+    v_x = bottom_bbox.x0 + bottom_bbox.width / 2 + vertical_arrow_offsets[0]
+    down_start = (v_x, origin[1] + vertical_arrow_offsets[1])
+    down_end = (v_x, bottom_bbox.y0 + vertical_arrow_offsets[1])
 
     arrowstyle = f"->,head_length={head_length},head_width={head_width}"
-    for arrow_end in [left_end, down_end]:
+    for arrow_start, arrow_end in [(left_start, left_end), (down_start, down_end)]:
         overlay.annotate(
             "",
             xy=arrow_end,
-            xytext=origin,
+            xytext=arrow_start,
             xycoords="axes fraction",
             textcoords="axes fraction",
             arrowprops={
@@ -219,8 +225,8 @@ def _add_elongation_arrows(
         )
 
     # single "elongation" label at the midpoint between the two arrow midpoints
-    label_x = (origin[0] + left_end[0]) / 2
-    label_y = (origin[1] + down_end[1]) / 2
+    label_x = (left_start[0] + left_end[0]) / 2
+    label_y = (down_start[1] + down_end[1]) / 2
     overlay.text(
         label_x + label_offset[0],
         label_y + label_offset[1],
@@ -241,7 +247,7 @@ def _add_axes_lines(
     axes_linewidth: float,
 ) -> None:
     """Add horizontal and vertical axes lines with labels to the 2D latent walk plot."""
-    underlay = fig.add_axes([0, 0, 1, 1], facecolor="none", zorder=-1)
+    underlay = fig.add_axes((0.0, 0.0, 1.0, 1.0), facecolor="none", zorder=-1)
     underlay.set_xlim(0, 1)
     underlay.set_ylim(0, 1)
     underlay.axis("off")
@@ -315,12 +321,14 @@ def plot_2d_latent_walk(
     orientation_arrow_arc_rad: float = 0.5,
     orientation_arrow_color: str = "darkred",
     orientation_arrow_linewidth: float = 1.5,
-    orientation_label_offset: tuple[float, float] = (0.275, 0.125),
+    orientation_label_offset: tuple[float, float] = (0.285, 0.125),
     elongation_arrow_head_length: float = 0.75,
     elongation_arrow_head_width: float = 0.4,
     elongation_arrow_color: str = "blue",
     elongation_arrow_linewidth: float = 1.5,
-    elongation_label_offset: tuple[float, float] = (0.05, -0.05),
+    elongation_label_offset: tuple[float, float] = (-0.005, 0.1125),
+    elongation_horizontal_arrow_offsets: tuple[float, float] = (-0.141, -0.156),
+    elongation_vertical_arrow_offsets: tuple[float, float] = (-0.15, -0.145),
     gridspec_kwargs: dict | None = None,
     fig_kwargs: dict | None = None,
 ) -> Path:
@@ -370,6 +378,12 @@ def plot_2d_latent_walk(
     elongation_label_offset
         Tuple of (x, y) offsets to apply to the position of the "elongation"
         label relative to the computed midpoint between the two arrow midpoints.
+    elongation_horizontal_arrow_offsets
+        Tuple of (x, y) offsets to apply to the position of the horizontal
+        elongation arrow (decreasing PC1) relative to the origin image.
+    elongation_vertical_arrow_offsets
+        Tuple of (x, y) offsets to apply to the position of the vertical
+        elongation arrow (decreasing PC2) relative to the origin image.
     gridspec_kwargs
         Optional dictionary of keyword arguments to pass to GridSpec (e.g.,
         {"wspace": 0, "hspace": 0}).
@@ -432,6 +446,8 @@ def plot_2d_latent_walk(
         color=elongation_arrow_color,
         linewidth=elongation_arrow_linewidth,
         label_offset=elongation_label_offset,
+        horizontal_arrow_offsets=elongation_horizontal_arrow_offsets,
+        vertical_arrow_offsets=elongation_vertical_arrow_offsets,
     )
 
     save_plot_to_path(
