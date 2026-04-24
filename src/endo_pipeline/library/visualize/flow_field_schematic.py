@@ -130,18 +130,22 @@ def _add_t_plus_1_arrow_to_plot(
     ax_t: plt.Axes,
     ax_t1: plt.Axes,
     box_position: tuple[float, float],
+    text_box_x_offset: float,
     arrow_y_position: float,
     arrow_text: str,
     arrow_x_offset: float = 0.07,
-    arrow_y_offset: float = -0.025,
     linewidth: float = 1.5,
     arrowstyle: str = "->,head_length=5,head_width=3",
     delta_text_y_offset: float = 0.02,
 ) -> None:
     """Add a straight arrow between the (theta, r, rho) labels for t and t+1."""
 
-    arrow_start_x = _data_to_fig(fig, ax_t, box_position, x_offset=arrow_x_offset)[0]
-    arrow_end_x = _data_to_fig(fig, ax_t1, box_position, x_offset=-arrow_x_offset)[0]
+    arrow_start_x = _data_to_fig(
+        fig, ax_t, box_position, x_offset=text_box_x_offset + arrow_x_offset
+    )[0]
+    arrow_end_x = _data_to_fig(
+        fig, ax_t1, box_position, x_offset=text_box_x_offset - arrow_x_offset - 0.0085
+    )[0]
     arrow_mid_x = (arrow_start_x + arrow_end_x) / 2
 
     fig.text(
@@ -286,10 +290,10 @@ def make_real_image_panel(
         ax_t,
         ax_t1,
         box_position=(box_mid_x, box_bottom_y),
+        text_box_x_offset=map_arrow_x_offset,
         arrow_y_position=mid_y,
         arrow_text=f"({Unicode.DELTA}{Unicode.THETA}, {Unicode.DELTA}r, {Unicode.DELTA}{Unicode.RHO})",
         arrow_x_offset=horizontal_arrow_x_offset,
-        arrow_y_offset=horizontal_arrow_y_offset,
         linewidth=horizontal_arrow_linewidth,
         arrowstyle=horizontal_arrow_arrowstyle,
         delta_text_y_offset=delta_text_y_offset,
