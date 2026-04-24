@@ -16,7 +16,9 @@ def main() -> None:
     # perform latent walk along top 3 PCs and save the resulting contact sheet
     latent_walk_filename = "latent_walk_top_3_pcs"
 
-    walk_img_grid = perform_latent_walk_along_top_pcs(output_path, latent_walk_filename)
+    walk_img_grid = perform_latent_walk_along_top_pcs(
+        output_path, latent_walk_filename, figsize=(6.25, 2.6)
+    )
     latent_walk_path = output_path / f"{latent_walk_filename}_scale_bar_10um.svg"
 
     # take the images from the latent walk along PCs 1 and 2 and plot them
@@ -34,7 +36,7 @@ def main() -> None:
         images_pc2,
         output_path,
         latent_walk_2d_filename,
-        fig_kwargs={"figsize": (5.5, 5.5), "layout": "constrained"},
+        fig_kwargs={"figsize": (2.5, 2.5), "layout": "constrained"},
         gridspec_kwargs={"wspace": 0, "hspace": 0},
     )
 

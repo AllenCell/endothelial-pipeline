@@ -19,7 +19,7 @@ from endo_pipeline.manifests import (
 )
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
-from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import FONTSIZE_LARGE, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -165,30 +165,33 @@ def plot_2d_latent_walk(
     center_x = bbox.x0 + bbox.width / 2
     center_y = bbox.y0 + bbox.height / 2
 
-    overlay = fig.add_axes([0, 0, 1, 1], facecolor="none", zorder=-1)
+    overlay = fig.add_axes([0, 0, 1, 1], facecolor="none", zorder=5)
     overlay.set_xlim(0, 1)
     overlay.set_ylim(0, 1)
     overlay.axis("off")
-    overlay.axhline(center_y, color="black", linewidth=2.5, zorder=5)
-    overlay.axvline(center_x, color="black", linewidth=2.5, zorder=5)
 
-    # add PC axis labels as text at the end of each axis line
+    # PC2 label: large, to the left of the top image in the PC2 column
+    top_ax = axes[0, center]
+    top_bbox = top_ax.get_position()
     overlay.text(
-        1.0,
-        center_y,
-        COLUMN_METADATA["pc_1"].label,
-        fontsize=6,
+        top_bbox.x0 - 0.1,
+        top_bbox.y1,
+        COLUMN_METADATA["pc_2"].label,
+        fontsize=FONTSIZE_LARGE,
         ha="right",
-        va="bottom",
+        va="top",
         transform=overlay.transAxes,
     )
+    # PC1 label: large, to the right of the rightmost image in the PC1 row
+    right_ax = axes[center, n_steps - 1]
+    right_bbox = right_ax.get_position()
     overlay.text(
-        center_x,
-        1.0,
-        COLUMN_METADATA["pc_2"].label,
-        fontsize=6,
+        right_bbox.x1 + 0.1,
+        right_bbox.y0 + right_bbox.height / 2 + 0.1,
+        COLUMN_METADATA["pc_1"].label,
+        fontsize=FONTSIZE_LARGE,
         ha="left",
-        va="top",
+        va="center",
         transform=overlay.transAxes,
     )
 
@@ -206,15 +209,15 @@ def plot_2d_latent_walk(
         arrowprops={
             "arrowstyle": "-|>",
             "color": "black",
-            "lw": 0.8,
-            "connectionstyle": "arc3,rad=-0.4",
+            "lw": 2.5,
+            "connectionstyle": "arc3,rad=0.4",
         },
     )
     overlay.text(
         center_x + arc_radius * 0.72,
         center_y + arc_radius * 0.72,
         "orientation",
-        fontsize=5,
+        fontsize=10,
         ha="center",
         va="center",
         transform=overlay.transAxes,
@@ -224,16 +227,37 @@ def plot_2d_latent_walk(
         for col in range(n_steps):
             ax: plt.Axes = axes[row, col]
             ax.axis("off")
+            # draw axis lines per-subplot behind the images (zorder=0)
+            if row == center:
+                ax.plot(
+                    [0, 1],
+                    [0.4, 0.4],
+                    color="black",
+                    linewidth=2.5,
+                    zorder=0,
+                    transform=ax.transAxes,
+                    clip_on=False,
+                )
+            if col == center:
+                ax.plot(
+                    [0.4, 0.4],
+                    [0, 1],
+                    color="black",
+                    linewidth=2.5,
+                    zorder=0,
+                    transform=ax.transAxes,
+                    clip_on=False,
+                )
             if row == center and col == center:
                 # origin: use the center image (shared by both walks)
-                ax.imshow(images_pc1[center], cmap="gray")
+                ax.imshow(images_pc1[center], cmap="gray", zorder=1)
             elif row == center:
                 # center row: PC1 walk (vary PC1, PC2 = 0)
-                ax.imshow(images_pc1[col], cmap="gray")
+                ax.imshow(images_pc1[col], cmap="gray", zorder=1)
             elif col == center:
                 # center column: PC2 walk (vary PC2, PC1 = 0)
                 # flip row index so PC2 increases upward
-                ax.imshow(images_pc2[n_steps - 1 - row], cmap="gray")
+                ax.imshow(images_pc2[n_steps - 1 - row], cmap="gray", zorder=1)
 
     save_plot_to_path(
         fig, save_path, filename, file_format=".svg", transparent=True, tight_layout=False
