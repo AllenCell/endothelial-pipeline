@@ -155,24 +155,12 @@ def plot_2d_latent_walk(
     """
     n_steps = images_pc1.shape[0]
     center = n_steps // 2  # index of the origin (0 sigma)
-    # indices to skip on each axis: second-to-last from the end on both sides
-    skip_indices = {center - 2, center + 2}
 
-    fig, axes = plt.subplots(n_steps, n_steps, gridspec_kw=gridspec_kwargs, **(fig_kwargs or {}))
-    for row in range(n_steps):
-        for col in range(n_steps):
-            ax: plt.Axes = axes[row, col]
-            ax.axis("off")
-            if row == center and col == center:
-                # origin: use the center image (shared by both walks)
-                ax.imshow(images_pc1[center], cmap="gray")
-            elif row == center and col not in skip_indices:
-                # center row: PC1 walk (vary PC1, PC2 = 0); skip second-to-last
-                ax.imshow(images_pc1[col], cmap="gray")
-            elif col == center and row not in skip_indices:
-                # center column: PC2 walk (vary PC2, PC1 = 0)
-                # flip row index so PC2 increases upward; skip second-to-last
-                ax.imshow(images_pc2[n_steps - 1 - row], cmap="gray")
+    # note: we use n_steps-1 for the number of rows and columns to skip last
+    # image on each side
+    fig, axes = plt.subplots(
+        n_steps - 1, n_steps - 1, gridspec_kw=gridspec_kwargs, **(fig_kwargs or {})
+    )
 
     # draw PC axis lines through the center row and column
     fig.canvas.draw()
@@ -187,6 +175,24 @@ def plot_2d_latent_walk(
     overlay.axis("off")
     overlay.axhline(center_y, color="black", linewidth=0.5, zorder=5)
     overlay.axvline(center_x, color="black", linewidth=0.5, zorder=5)
+
+    # indices to skip on each axis: second-to-last from the end on both sides
+    skip_indices = {center - 1, center + 1}
+
+    for row in range(n_steps - 1):
+        for col in range(n_steps - 1):
+            ax: plt.Axes = axes[row, col]
+            ax.axis("off")
+            if row == center and col == center:
+                # origin: use the center image (shared by both walks)
+                ax.imshow(images_pc1[center], cmap="gray")
+            elif row == center and col not in skip_indices:
+                # center row: PC1 walk (vary PC1, PC2 = 0); skip second-to-last
+                ax.imshow(images_pc1[col], cmap="gray")
+            elif col == center and row not in skip_indices:
+                # center column: PC2 walk (vary PC2, PC1 = 0)
+                # flip row index so PC2 increases upward; skip second-to-last
+                ax.imshow(images_pc2[n_steps - 1 - row], cmap="gray")
 
     # label the PC axes using the center row/column
     axes[center, 0].set_ylabel(COLUMN_METADATA["pc_2"].label, fontsize=6)
