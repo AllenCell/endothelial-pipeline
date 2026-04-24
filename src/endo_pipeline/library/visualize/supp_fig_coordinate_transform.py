@@ -156,11 +156,7 @@ def plot_2d_latent_walk(
     n_steps = images_pc1.shape[0]
     center = n_steps // 2  # index of the origin (0 sigma)
 
-    # note: we use n_steps-1 for the number of rows and columns to skip last
-    # image on each side
-    fig, axes = plt.subplots(
-        n_steps - 1, n_steps - 1, gridspec_kw=gridspec_kwargs, **(fig_kwargs or {})
-    )
+    fig, axes = plt.subplots(n_steps, n_steps, gridspec_kw=gridspec_kwargs, **(fig_kwargs or {}))
 
     # draw PC axis lines through the center row and column
     fig.canvas.draw()
@@ -176,27 +172,41 @@ def plot_2d_latent_walk(
     overlay.axhline(center_y, color="black", linewidth=1.5, zorder=5)
     overlay.axvline(center_x, color="black", linewidth=1.5, zorder=5)
 
-    # indices to skip on each axis: second-to-last from the end on both sides
-    skip_indices = {center - 1, center + 1}
+    # add PC axis labels as text at the end of each axis line
+    overlay.text(
+        1.0,
+        center_y,
+        COLUMN_METADATA["pc_1"].label,
+        fontsize=6,
+        ha="right",
+        va="bottom",
+        transform=overlay.transAxes,
+    )
+    overlay.text(
+        center_x,
+        1.0,
+        COLUMN_METADATA["pc_2"].label,
+        fontsize=6,
+        ha="left",
+        va="top",
+        transform=overlay.transAxes,
+    )
 
-    for row in range(n_steps - 1):
-        for col in range(n_steps - 1):
+    for row in range(n_steps):
+        for col in range(n_steps):
             ax: plt.Axes = axes[row, col]
             ax.axis("off")
             if row == center and col == center:
                 # origin: use the center image (shared by both walks)
                 ax.imshow(images_pc1[center], cmap="gray")
-            elif row == center and col not in skip_indices:
-                # center row: PC1 walk (vary PC1, PC2 = 0); skip second-to-last
+            elif row == center:
+                # center row: PC1 walk (vary PC1, PC2 = 0)
                 ax.imshow(images_pc1[col], cmap="gray")
-            elif col == center and row not in skip_indices:
+            elif col == center:
                 # center column: PC2 walk (vary PC2, PC1 = 0)
-                # flip row index so PC2 increases upward; skip second-to-last
-                ax.imshow(images_pc2[n_steps - 1 - row], cmap="gray")
+                # flip row index so PC2 increases upward
+                ax.imshow(images_pc2[n_steps - 2 - row], cmap="gray")
 
-    # label the PC axes outside the image grid
-    fig.supxlabel(COLUMN_METADATA["pc_1"].label, fontsize=6)
-    fig.supylabel(COLUMN_METADATA["pc_2"].label, fontsize=6)
     save_plot_to_path(
         fig, save_path, filename, file_format=".svg", transparent=True, tight_layout=False
     )

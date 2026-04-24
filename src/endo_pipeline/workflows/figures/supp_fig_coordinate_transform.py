@@ -23,8 +23,10 @@ def main() -> None:
     # as a "2D" walk to motivate the polar coordinate transform
     latent_walk_2d_filename = "latent_walk_pc1_pc2_2d"
 
-    images_pc1 = walk_img_grid[0]
-    images_pc2 = walk_img_grid[1]
+    # for the 2D walk, just include to 2 sigma (i.e., drop the first and last
+    # images) to avoid extreme outliers that are less visually informative
+    images_pc1 = walk_img_grid[0][1:-1]
+    images_pc2 = walk_img_grid[1][1:-1]
     # plot walk along PC 1 horizontally and along PC 2 vertically to create a "2D" walk
     # on the PC1 and PC2 axes with the center image for both at the origin
     latent_walk_2d_path = plot_2d_latent_walk(
