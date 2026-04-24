@@ -192,6 +192,34 @@ def plot_2d_latent_walk(
         transform=overlay.transAxes,
     )
 
+    # arced arrow from positive PC1 axis to positive PC2 axis (quadrant I)
+    # with "orientation" label at the midpoint of the arc
+    arc_radius = 0.18  # distance from origin in figure fraction
+    arrow_start = (center_x + arc_radius, center_y)  # point on +PC1 axis
+    arrow_end = (center_x, center_y + arc_radius)  # point on +PC2 axis
+    overlay.annotate(
+        "",
+        xy=arrow_end,
+        xytext=arrow_start,
+        xycoords="axes fraction",
+        textcoords="axes fraction",
+        arrowprops={
+            "arrowstyle": "-|>",
+            "color": "black",
+            "lw": 0.8,
+            "connectionstyle": "arc3,rad=-0.4",
+        },
+    )
+    overlay.text(
+        center_x + arc_radius * 0.72,
+        center_y + arc_radius * 0.72,
+        "orientation",
+        fontsize=5,
+        ha="center",
+        va="center",
+        transform=overlay.transAxes,
+    )
+
     for row in range(n_steps):
         for col in range(n_steps):
             ax: plt.Axes = axes[row, col]
@@ -205,7 +233,7 @@ def plot_2d_latent_walk(
             elif col == center:
                 # center column: PC2 walk (vary PC2, PC1 = 0)
                 # flip row index so PC2 increases upward
-                ax.imshow(images_pc2[n_steps - 2 - row], cmap="gray")
+                ax.imshow(images_pc2[n_steps - 1 - row], cmap="gray")
 
     save_plot_to_path(
         fig, save_path, filename, file_format=".svg", transparent=True, tight_layout=False
