@@ -1,11 +1,14 @@
 from pathlib import Path
-from typing import Literal
 
 import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
+from matplotlib.axes import Axes
 from matplotlib.colorbar import ColorbarBase
+from matplotlib.figure import Figure
+from matplotlib.ticker import MaxNLocator
 
+from endo_pipeline.settings.column_metadata import ColumnMetadata, ColumnType
 from endo_pipeline.settings.column_names import ColumnName as Column
 
 # set the plot shape to the golden ratio
@@ -37,190 +40,196 @@ def save_colorbar(
     fig.savefig(outdir / f"{filename}{colormap_name}{filetype}", bbox_inches="tight", pad_inches=0)
 
 
-def lineplot_of_feats(
-    df_group: pd.DataFrame,
-    x_column_name: str,
-    y_column_name: str,
-    x_label: str | None = None,
-    y_label: str | None = None,
-    x_lims: tuple[float | None | Literal["min"], float | None | Literal["max"]] = (None, None),
-    y_lims: tuple[float | None | Literal["min"], float | None | Literal["max"]] = (None, None),
-    set_xticks: range | None = None,
-    set_yticks: range | None = None,
-    discrete_xticks: bool = False,
-    discrete_yticks: bool = False,
-    minor_ticks: Literal["x", "y", "xy"] | None = None,
-    kwargs: dict = {},
-) -> tuple[plt.Figure, plt.Axes]:
+def adjust_axes_ticks(
+    ax: Axes,
+    x_data: pd.Series,
+    y_data: pd.Series,
+    x_feature_metadata: ColumnMetadata,
+    y_feature_metadata: ColumnMetadata,
+    x_minor_ticks: bool = False,
+    y_minor_ticks: bool = False,
+) -> None:
     """
-    This function will save a standardized lineplot from the dataframe df_group.
-    x_key and y_key are the column names that you want to plot along the x-axis
-    and y-axis, respectively.
-    df_group is expected to contain a single dataset and a single position.
+    Adjust axis ticks based on given feature data and metadata.
 
     Parameters
     ----------
-    df_group : pd.DataFrame
-        The dataframe containing the data to plot.
-        Should contain only a single dataset.
-    x_column_name : str
+    ax
+        The axes instance.
+    x_data
+        Data for the x-axis.
+    y_data
+        Data for the y-axis.
+    x_feature_metadata
+        Feature metadata for the x-axis data.
+    y_feature_metadata
+        Feature metadata for the y-axis data.
+    x_minor_ticks
+        True to include minor ticks on the x-axis, False otherwise.
+    y_minor_ticks
+        True to include minor ticks on the y-axis, False otherwise.
+    """
+
+    x_min = x_data.min() if x_feature_metadata.min == "min" else x_feature_metadata.min
+    x_max = x_data.max() if x_feature_metadata.max == "max" else x_feature_metadata.max
+    y_min = y_data.min() if y_feature_metadata.min == "min" else y_feature_metadata.min
+    y_max = y_data.max() if y_feature_metadata.max == "max" else y_feature_metadata.max
+
+    ax.set_xlim(x_min, x_max)
+    ax.set_ylim(y_min, y_max)
+
+    if x_minor_ticks:
+        ax.xaxis.minorticks_on()
+
+    if y_minor_ticks:
+        ax.yaxis.minorticks_on()
+
+    if x_feature_metadata.ticks is not None:
+        ax.set_xticks(x_feature_metadata.ticks)
+
+    if y_feature_metadata.ticks is not None:
+        ax.set_yticks(y_feature_metadata.ticks)
+
+    if x_feature_metadata.type == ColumnType.DISCRETE:
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+        ax.xaxis.set_minor_locator(MaxNLocator(integer=True))
+
+    if y_feature_metadata.type == ColumnType.DISCRETE:
+        ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+        ax.yaxis.set_minor_locator(MaxNLocator(integer=True))
+
+
+def plot_line_of_features(
+    df: pd.DataFrame,
+    x_column_name: str,
+    y_column_name: str,
+    x_feature_metadata: ColumnMetadata,
+    y_feature_metadata: ColumnMetadata,
+    x_minor_ticks: bool = False,
+    y_minor_ticks: bool = False,
+    kwargs: dict = {},
+) -> tuple[Figure, Axes]:
+    """
+    Plot line plot of given features.
+
+    Parameters
+    ----------
+    df
+        Dataframe containing data to plot. Should contain only a single dataset.
+    x_column_name
         The column name for the x-axis data.
-    y_column_name : str
+    y_column_name
         The column name for the y-axis data.
-    x_label : str | None, optional
-        The label for the x-axis, will use x_key as the default.
-    y_label : str | None, optional
-        The label for the y-axis, will use y_key as the default.
-    x_lims: tuple[float | None | Literal["min"], float | None | Literal["max"]]
-        Set the limits for the x-axis using a tuple of form (x_min, x_max).
-        If "min" or "max", the limits will be set to the data min or max.
-    y_lims: tuple[float | None | Literal["min"], float | None | Literal["max"]]
-        Set the limits for the y-axis using a tuple of form (y_min, y_max).
-        If "min" or "max", the limits will be set to the data min or max.
-    set_xticks: range | None
-        Set the x-ticks for the plot. If None, the default ticks will be used.
-    set_yticks: range | None
-        Set the y-ticks for the plot. If None, the default ticks will be used.
-    discrete_xticks: bool
-        If True, the x-ticks will be set to discrete values (integers).
-    discrete_yticks: bool
-        If True, the y-ticks will be set to discrete values (integers).
-    minor_ticks: Literal["x", "y", "xy"] | None
-        If "x", "y", or "xy", minor ticks will be added to the respective axes.
-    kwargs: dict
+    x_feature_metadata
+        Feature metadata for the x-axis data.
+    y_feature_metadata
+        Feature metadata for the y-axis data.
+    x_minor_ticks
+        True to include minor ticks on the x-axis, False otherwise.
+    y_minor_ticks
+        True to include minor ticks on the y-axis, False otherwise.
+    kwargs
         Additional keyword arguments to pass to the seaborn lineplot function.
         This can include parameters like `color`, `style`, `markers`, etc.
     """
 
-    assert (
-        len(df_group[Column.DATASET].unique()) == 1
-    ), f"Only a single dataset allowed in df_group, datasets found: {df_group[Column.DATASET].unique()}"
-    dataset_name = df_group[Column.DATASET].unique()[0]
+    unique_datasets = df[Column.DATASET].unique()
+    if len(unique_datasets) != 1:
+        raise ValueError(f"Only a single dataset can be plotted. Given: '{unique_datasets}'")
+    dataset_name = unique_datasets[0]
 
-    positions = tuple(pos for pos in df_group[Column.POSITION].unique())
-    if len(positions) == 1:
-        positions = positions[0]
-    fig_title = f"{dataset_name} P{positions}"
+    unique_positions = df[Column.POSITION].unique()
+    if len(unique_positions) != 1:
+        fig_title = f"{dataset_name} P{unique_positions[0]}"
+    else:
+        fig_title = f"{dataset_name}"
 
-    fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT))
-    sns.lineplot(data=df_group, x=x_column_name, y=y_column_name, ax=ax, **kwargs)
+    fig, ax = plt.subplots(figsize=(AX_WIDTH, AX_HEIGHT), layout="constrained")
+    sns.lineplot(data=df, x=x_column_name, y=y_column_name, ax=ax, **kwargs)
 
     # adjust the axes limits and tick behavior
-    x_min = df_group[x_column_name].min() if x_lims[0] == "min" else x_lims[0]
-    x_max = df_group[x_column_name].max() if x_lims[1] == "max" else x_lims[1]
-    y_min = df_group[y_column_name].min() if y_lims[0] == "min" else y_lims[0]
-    y_max = df_group[y_column_name].max() if y_lims[1] == "max" else y_lims[1]
-    ax.set_xlim(x_min, x_max)
-    ax.set_ylim(y_min, y_max)
-    if minor_ticks:
-        if "x" in minor_ticks:
-            ax.xaxis.minorticks_on()
-        if "y" in minor_ticks:
-            ax.yaxis.minorticks_on()
-    if set_xticks:
-        ax.set_xticks(set_xticks)
-    if set_yticks:
-        ax.set_yticks(set_yticks)
-    if discrete_xticks:
-        ax.xaxis.set_major_locator(plt.MaxNLocator(integer=True))
-        ax.xaxis.set_minor_locator(plt.MaxNLocator(integer=True))
-    if discrete_yticks:
-        ax.yaxis.set_major_locator(plt.MaxNLocator(integer=True))
-        ax.yaxis.set_minor_locator(plt.MaxNLocator(integer=True))
+    adjust_axes_ticks(
+        ax=ax,
+        x_data=df[x_column_name],
+        y_data=df[y_column_name],
+        x_feature_metadata=x_feature_metadata,
+        y_feature_metadata=y_feature_metadata,
+        x_minor_ticks=x_minor_ticks,
+        y_minor_ticks=y_minor_ticks,
+    )
 
     # set figure and axes titles
     ax.set_title(fig_title)
-    ax.set_xlabel(x_label or x_column_name)
-    ax.set_ylabel(y_label or y_column_name)
-    plt.tight_layout()
+    ax.set_xlabel(x_feature_metadata.label_with_unit or x_column_name)
+    ax.set_ylabel(y_feature_metadata.label_with_unit or y_column_name)
 
     return fig, ax
 
 
-def hist_2d_of_feats(
-    df_group: pd.DataFrame,
+def plot_histogram_of_features(
+    df: pd.DataFrame,
     x_column_name: str,
     y_column_name: str,
-    x_label: str | None = None,
-    y_label: str | None = None,
-    x_lims: tuple[float | None | Literal["min"], float | None | Literal["max"]] = (None, None),
-    y_lims: tuple[float | None | Literal["min"], float | None | Literal["max"]] = (None, None),
-    set_xticks: range | None = None,
-    set_yticks: range | None = None,
-    discrete_xticks: bool = False,
-    discrete_yticks: bool = False,
-    minor_ticks: Literal["x", "y", "xy"] | None = None,
-    bin_width: tuple[float, float] | None = None,
+    x_feature_metadata: ColumnMetadata,
+    y_feature_metadata: ColumnMetadata,
+    x_minor_ticks: bool = False,
+    y_minor_ticks: bool = False,
     figsize: tuple[float, float] | None = None,
-    tight_layout: bool = True,
-    cmap: str = "viridis",
-) -> tuple[plt.Figure, plt.Axes]:
+    colormap_name: str = "viridis",
+) -> tuple[Figure, Axes]:
     """
-    df_group : pd.DataFrame
-        The dataframe containing the data to plot.
-        Should contain only a single dataset.
-    x_column_name : str
+    Plot 2D histogram of given features.
+
+    df
+        Dataframe containing data to plot. Should contain only a single dataset.
+    x_column_name
         The column name for the x-axis data.
-    y_column_name : str
+    y_column_name
         The column name for the y-axis data.
-    x_label : str | None, optional
-        The label for the x-axis, will use x_key as the default.
-    y_label : str | None, optional
-        The label for the y-axis, will use y_key as the default.
-    x_lims: tuple[float | None | Literal["min"], float | None | Literal["max"]]
-        Set the limits for the x-axis using a tuple of form (x_min, x_max).
-        If "min" or "max", the limits will be set to the data min or max.
-    y_lims: tuple[float | None | Literal["min"], float | None | Literal["max"]]
-        Set the limits for the y-axis using a tuple of form (y_min, y_max).
-        If "min" or "max", the limits will be set to the data min or max.
-    set_xticks: range | None
-        Set the x-ticks for the plot. If None, the default ticks will be used.
-    set_yticks: range | None
-        Set the y-ticks for the plot. If None, the default ticks will be used.
-    discrete_xticks: bool
-        If True, the x-ticks will be set to discrete values (integers).
-    discrete_yticks: bool
-        If True, the y-ticks will be set to discrete values (integers).
-    minor_ticks: Literal["x", "y", "xy"] | None
-        If "x", "y", or "xy", minor ticks will be added to the respective axes.
-    bin_width: tuple[int, int] | None
-        Set the bin width for the histogram using a (width_x, width_y)
-        tuple. If None, the default bin width will be used.
-    figsize: tuple[float, float] | None
+    x_feature_metadata
+        Feature metadata for the x-axis data.
+    y_feature_metadata
+        Feature metadata for the y-axis data.
+    x_minor_ticks
+        True to include minor ticks on the x-axis, False otherwise.
+    y_minor_ticks
+        True to include minor ticks on the y-axis, False otherwise.
+    figsize
         Set the figure size using a (width, height) tuple.
         If None, the default figure size will be used.
-    tight_layout: bool
-        If True, plt.tight_layout() will be called to adjust the figure layout.
-    colormap: str
-        The colormap to use for the histogram.
+    colormap_name
+        Name of colormap to use for the histogram.
 
     Returns
     -------
-    tuple[plt.Figure, plt.Axes]
+    :
         The figure and axes objects.
     """
 
-    assert (
-        len(df_group[Column.DATASET].unique()) == 1
-    ), f"Only a single dataset allowed in df_group, datasets found: {df_group[Column.DATASET].unique()}"
-    dataset_name = df_group[Column.DATASET].unique()[0]
+    unique_datasets = df[Column.DATASET].unique()
+    if len(unique_datasets) != 1:
+        raise ValueError(f"Only a single dataset can be plotted. Given: '{unique_datasets}'")
+    dataset_name = unique_datasets[0]
 
-    positions = tuple(pos for pos in df_group[Column.POSITION].unique())
-    if len(positions) == 1:
-        positions = positions[0]
-    fig_title = f"{dataset_name} P{positions}"
-
-    if figsize is None:
-        figsize = (AX_WIDTH, AX_HEIGHT)
+    unique_positions = df[Column.POSITION].unique()
+    if len(unique_positions) != 1:
+        fig_title = f"{dataset_name} P{unique_positions[0]}"
     else:
-        figsize = figsize
-    fig, ax = plt.subplots(figsize=figsize)
+        fig_title = f"{dataset_name}"
+
+    fig, ax = plt.subplots(figsize=figsize or (AX_WIDTH, AX_HEIGHT), layout="constrained")
+
+    if x_feature_metadata.bin_width and y_feature_metadata.bin_width:
+        binwidth = (x_feature_metadata.bin_width, y_feature_metadata.bin_width)
+    else:
+        binwidth = None
+
     sns.histplot(
-        data=df_group,
+        data=df,
         x=x_column_name,
         y=y_column_name,
-        binwidth=bin_width,
-        cmap=cmap,
+        binwidth=binwidth,
+        cmap=colormap_name,
         ax=ax,
     )
 
@@ -228,75 +237,49 @@ def hist_2d_of_feats(
     ax.set_facecolor("grey")
 
     # adjust the axes limits and tick behavior
-    x_min = df_group[x_column_name].min() if x_lims[0] == "min" else x_lims[0]
-    x_max = df_group[x_column_name].max() if x_lims[1] == "max" else x_lims[1]
-    y_min = df_group[y_column_name].min() if y_lims[0] == "min" else y_lims[0]
-    y_max = df_group[y_column_name].max() if y_lims[1] == "max" else y_lims[1]
-    ax.set_xlim(x_min, x_max)
-    ax.set_ylim(y_min, y_max)
-    if minor_ticks:
-        if "x" in minor_ticks:
-            ax.xaxis.minorticks_on()
-        if "y" in minor_ticks:
-            ax.yaxis.minorticks_on()
-    if set_xticks:
-        ax.set_xticks(set_xticks)
-    if set_yticks:
-        ax.set_yticks(set_yticks)
-    if discrete_xticks:
-        ax.xaxis.set_major_locator(plt.MaxNLocator(integer=True))
-        ax.xaxis.set_minor_locator(plt.MaxNLocator(integer=True))
-    if discrete_yticks:
-        ax.yaxis.set_major_locator(plt.MaxNLocator(integer=True))
-        ax.yaxis.set_minor_locator(plt.MaxNLocator(integer=True))
+    adjust_axes_ticks(
+        ax=ax,
+        x_data=df[x_column_name],
+        y_data=df[y_column_name],
+        x_feature_metadata=x_feature_metadata,
+        y_feature_metadata=y_feature_metadata,
+        x_minor_ticks=x_minor_ticks,
+        y_minor_ticks=y_minor_ticks,
+    )
 
     # set figure and axes titles
     ax.set_title(fig_title)
-    ax.set_xlabel(x_label or x_column_name)
-    ax.set_ylabel(y_label or y_column_name)
-    if tight_layout:
-        plt.tight_layout()
+    ax.set_xlabel(x_feature_metadata.label_with_unit or x_column_name)
+    ax.set_ylabel(y_feature_metadata.label_with_unit or y_column_name)
 
     return fig, ax
 
 
-def mark_parallel(ax: plt.Axes, color: str = "black") -> plt.Axes:
+def mark_parallel(ax: Axes, color: str = "black") -> None:
     """
-    Draws horizontal lines at -180, 0, and 180 degrees
-    to mark the parallel angles.
+    Draws horizontal lines at -180, 0, and 180 degrees to mark parallel angles.
 
     Parameters
     ----------
-    ax : plt.Axes
+    Ax
         The axes object to mark the angles on.
-
-    Returns
-    -------
-    plt.Axes
-        The axes object with the marked angles.
     """
+
     parallel_angles = [-180, 0, 180]
     for ang in parallel_angles:
         ax.axhline(ang, color=color, linestyle="--", linewidth=1)
-    return ax
 
 
-def mark_perpendicular(ax: plt.Axes, color: str = "black") -> plt.Axes:
+def mark_perpendicular(ax: Axes, color: str = "black") -> None:
     """
-    Draws horizontal lines at -90 and 90 degrees to mark
-    the perpendicular angles.
+    Draws horizontal lines at -90 and 90 degrees to mark perpendicular angles.
 
     Parameters
     ----------
-    ax : plt.Axes
+    ax
         The axes object to mark the angles on.
-
-    Returns
-    -------
-    plt.Axes
-        The axes object with the marked angles.
     """
+
     perpendicular_angles = [-90, 90]
     for ang in perpendicular_angles:
         ax.axhline(ang, color=color, linestyle=":", linewidth=1)
-    return ax

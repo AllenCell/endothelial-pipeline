@@ -88,7 +88,7 @@ class ColumnMetadata:
         self.label_with_unit = f"{self.label}{unit}"
 
         # Create slug version of the name (useful for saving to files).
-        self.slug = slugify(self.name_with_unit)
+        self.slug = slugify(self.name)
 
         # Set limits using minimum and maximum.
         self.limits = (self.min, self.max)
@@ -118,6 +118,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.SegData.TIME_HRS_SINCE_FLOW: ColumnMetadata(
         name="Time Under Flow",
+        label="Time",
         unit="hr",
         min="min",
         max="max",
