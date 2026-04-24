@@ -12,7 +12,10 @@ def main() -> None:
         get_df_for_feature_correlation_viz,
         visualize_correlation_heatmaps,
     )
-    from endo_pipeline.library.visualize.supp_fig_features import perform_latent_walk_along_top_pcs
+    from endo_pipeline.library.visualize.supp_fig_features import (
+        perform_latent_walk_along_top_pcs,
+        plot_2d_latent_walk,
+    )
     from endo_pipeline.settings.diffae_feature_dataframes import (
         DIFFAE_PC_COLUMN_NAME_GROUPS,
         NUM_LATENT_FEATURES,
@@ -70,6 +73,22 @@ def main() -> None:
     print(walk_img_grid.shape)
     latent_walk_path = save_dir / f"{latent_walk_filename}_scale_bar_10um.svg"
 
+    # Take the images from the latent walk along PCs 1 and 2 and plot them as a
+    # "2D" walk to motivate the polar coordinate transform. Just include to 2
+    # sigma (i.e., drop the first and last images) to avoid extreme outliers
+    # that are less visually informative.
+    latent_walk_2d_filename = "latent_walk_pc1_pc2_2d"
+    images_pc1 = walk_img_grid[0][1:-1]
+    images_pc2 = walk_img_grid[1][1:-1]
+    latent_walk_2d_path = plot_2d_latent_walk(
+        images_pc1,
+        images_pc2,
+        save_dir,
+        latent_walk_2d_filename,
+        fig_kwargs={"figsize": (2.0, 2.0), "layout": "constrained"},
+        gridspec_kwargs={"wspace": 0, "hspace": 0},
+    )
+
     # build figure with panels
     panels = [
         FigurePanel(
@@ -95,6 +114,14 @@ def main() -> None:
             y_position=2.8,
             x_offset=0.25,
             y_offset=0.0,
+        ),
+        FigurePanel(
+            letter="D",
+            path=latent_walk_2d_path,
+            x_position=0.1,
+            y_position=5.35,
+            x_offset=0.2,
+            y_offset=0.1,
         ),
     ]
     build_figure_from_panels(
