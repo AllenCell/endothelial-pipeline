@@ -53,6 +53,7 @@ def perform_latent_walk_along_top_pcs(
     :
         Array of shape (3, num_steps, h, w) containing the reconstructed image
         crops.
+
     """
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
     run_name = DEFAULT_MODEL_RUN_NAME
@@ -145,6 +146,12 @@ def plot_2d_latent_walk(
     fig_kwargs
         Optional dictionary of keyword arguments to pass to plt.figure (e.g.,
         {"figsize": (3.5, 3.5)}).
+
+    Returns
+    -------
+    :
+        Path to the saved figure file.
+
     """
     n_steps = images_pc1.shape[0]
     center = n_steps // 2  # index of the origin (0 sigma)
