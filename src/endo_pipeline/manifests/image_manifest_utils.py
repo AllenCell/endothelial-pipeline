@@ -56,16 +56,16 @@ def get_image_location_for_dataset(
         return location
 
     # Check if the position is valid before making any replacements
-    if position and position not in dataset.zarr_positions:
+    if position is not None and position not in dataset.zarr_positions:
         logger.warning("Position [ %d ] not valid for dataset [ %s ]", position, dataset.name)
         position = None
 
     # If there is a path with a placeholder, make the replacement
-    if position and location.path and "{{position}}" in str(location.path):
+    if position is not None and location.path and "{{position}}" in str(location.path):
         location.path = Path(str(location.path).replace("{{position}}", str(position)))
 
     # If there is a uri with a placeholder, make the replacement
-    if position and location.s3uri and "{{position}}" in str(location.s3uri):
+    if position is not None and location.s3uri and "{{position}}" in str(location.s3uri):
         location.s3uri = str(location.s3uri).replace("{{position}}", str(position))
 
     # Raise an expection if position is not provided but placeholder exists in path
@@ -79,16 +79,16 @@ def get_image_location_for_dataset(
         raise ValueError(f"Position cannot be 'None' for location '{location.s3uri}'")
 
     # Check if the timepoint is valid before making any replacements
-    if timepoint and (timepoint < 0 or timepoint >= dataset.duration):
+    if timepoint is not None and (timepoint < 0 or timepoint >= dataset.duration):
         logger.warning("Timepoint [ %d ] not valid for dataset [ %s ]", timepoint, dataset.name)
         timepoint = None
 
     # If there is a path with a placeholder, make the replacement
-    if timepoint and location.path and "{{timepoint}}" in str(location.path):
+    if timepoint is not None and location.path and "{{timepoint}}" in str(location.path):
         location.path = Path(str(location.path).replace("{{timepoint}}", str(timepoint)))
 
     # If there is a uri with a placeholder, make the replacement
-    if timepoint and location.s3uri and "{{timepoint}}" in str(location.s3uri):
+    if timepoint is not None and location.s3uri and "{{timepoint}}" in str(location.s3uri):
         location.s3uri = str(location.s3uri).replace("{{timepoint}}", str(timepoint))
 
     # Raise an expection if timepoint is not provided but placeholder exists in path
