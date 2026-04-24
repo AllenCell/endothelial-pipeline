@@ -1,4 +1,5 @@
 from endo_pipeline.cli import Datasets
+from endo_pipeline.settings.figures import FONTSIZE_SMALL
 from endo_pipeline.settings.workflow_defaults import (
     DATASET_INFO_COLUMNS,
     DEFAULT_MODEL_MANIFEST_NAME,
@@ -16,6 +17,7 @@ def main(
     aggregate_only: bool = True,
     figsize_heatmap: tuple[float, float] | None = None,
     y_axis_label_coords: tuple[float, float] | None = None,
+    label_fontsize: int = FONTSIZE_SMALL,
 ) -> None:
     """
     Visualize correlation heatmaps and clustermaps for DiffAE features, PCs, and
@@ -49,6 +51,10 @@ def main(
         If True, only uses the aggregated dataset in the analysis.
     figsize_cluster_heatmap
         Figure size for the cluster heatmap. If None, uses default size.
+    y_axis_label_coords
+        Coordinates for the y-axis label. If None, uses default coordinates.
+    label_fontsize
+        Font size for the labels. If None, uses default size.
     """
 
     import logging
@@ -112,8 +118,8 @@ def main(
     )
 
     label_column_tuples = [
-        ("ML-based Features", [get_label_for_column(col) for col in pc_columns]),
         ("Measured Features", [get_label_for_column(col) for col in segmentation_feature_columns]),
+        ("ML-based Features", [get_label_for_column(col) for col in pc_columns]),
     ]
 
     if aggregate_only:
@@ -139,6 +145,7 @@ def main(
             cross_correlation_only=True,
             figsize_cluster_heatmap=figsize_heatmap,
             y_axis_label_coords=y_axis_label_coords,
+            label_fontsize=label_fontsize,
         )
 
 

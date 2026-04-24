@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 plt.style.use("endo_pipeline.figure")
 
 
-def plot_and_save_clustermap(
+def plot_and_save_heatmap(
     df: pd.DataFrame,
     output_folder: Path,
     filename: str,
@@ -42,6 +42,7 @@ def plot_and_save_clustermap(
     data_type: Literal["correlation", "samples"] = "samples",
     figsize: tuple[float, float] | None = None,
     y_axis_label_coords: tuple[float, float] | None = None,
+    label_fontsize: int = FONTSIZE_XSMALL,
 ) -> None:
     """
     Plot and save a heatmap from the given DataFrame.
@@ -101,12 +102,12 @@ def plot_and_save_clustermap(
         rotation=45,
         ha="right",
         rotation_mode="anchor",
-        fontsize=FONTSIZE_XSMALL,
+        fontsize=label_fontsize,
     )
     ax.set_yticklabels(
         ax.get_yticklabels(),
         rotation=0,
-        fontsize=FONTSIZE_XSMALL,
+        fontsize=label_fontsize,
     )
     if y_axis_label_coords is not None:
         ax.yaxis.set_label_coords(*y_axis_label_coords)
@@ -182,7 +183,7 @@ def get_df_for_feature_correlation_viz(
             and "SUFFIX" not in col.name
             and col not in list(DYNAMICS_COLUMN_NAMES)
         ]
-        cols_to_load_ = [
+        cols_to_load = [
             *dataset_info_columns,
             *dynamics_seg_columns,
             *supplementary_columns,
@@ -191,8 +192,10 @@ def get_df_for_feature_correlation_viz(
             *optical_flow_columns,
             *optical_flow_merge_prereq_columns,
         ]
-        cols_to_load = cast(list[str], cols_to_load_)
-        cols_to_load_overlap = sorted(set(cols_to_load) & set(merged_feats_df_delayed.columns))
+        cols_to_load_overlap = sorted(
+            set(cols_to_load) & set(merged_feats_df_delayed.columns), key=str
+        )
+
         cols_to_load_unique = []
         for col in cols_to_load:
             if col not in cols_to_load_unique and col in cols_to_load_overlap:
@@ -227,7 +230,7 @@ def get_df_for_feature_correlation_viz(
         ]
         cols_to_keep = cast(list[str], cols_to_keep_)
 
-        if not all(np.isin(cols_to_keep, merged_feats_df.columns)):
+        if not set(cols_to_keep).issubset(merged_feats_df.columns):
             missing_columns = set(cols_to_keep) - set(merged_feats_df.columns)
             raise ValueError(
                 f"Not all columns names are in merged_feats_df. Missing:\n{missing_columns}"
@@ -287,6 +290,7 @@ def visualize_correlation_heatmaps(
     cross_correlation_only: bool = False,
     figsize_cluster_heatmap: tuple[float, float] | None = None,
     y_axis_label_coords=None,
+    label_fontsize: int = FONTSIZE_XSMALL,
 ) -> None:
     # Pre-compute full correlation matrix once per dataset
     all_feature_columns: list = []
@@ -337,7 +341,7 @@ def visualize_correlation_heatmaps(
         correlation_df.to_csv(out_dir / f"{base_filename}_correlation_matrix.csv")
 
         # make correlation heatmap
-        plot_and_save_clustermap(
+        plot_and_save_heatmap(
             df=correlation_df,
             output_folder=out_dir,
             filename=base_filename,
@@ -345,4 +349,5 @@ def visualize_correlation_heatmaps(
             data_type="correlation",
             figsize=figsize_cluster_heatmap,
             y_axis_label_coords=y_axis_label_coords,
+            label_fontsize=label_fontsize,
         )
