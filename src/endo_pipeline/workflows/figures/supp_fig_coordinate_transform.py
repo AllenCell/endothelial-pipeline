@@ -54,9 +54,9 @@ def main() -> None:
             letter="D",
             path=latent_walk_2d_path,
             x_position=0.1,
-            y_position=5.75,
+            y_position=5.8,
             x_offset=0.2,
-            y_offset=0.0,
+            y_offset=0.1,
         ),
     ]
 

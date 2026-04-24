@@ -121,6 +121,7 @@ def _add_orientation_arrow(
     arc_rad: float,
     head_length: float,
     head_width: float,
+    color: str,
     linewidth: float,
     label_offset: tuple[float, float],
 ) -> None:
@@ -152,7 +153,7 @@ def _add_orientation_arrow(
         textcoords="axes fraction",
         arrowprops={
             "arrowstyle": arrowstyle,
-            "color": "black",
+            "color": color,
             "lw": linewidth,
             "connectionstyle": connectionstyle,
         },
@@ -163,6 +164,67 @@ def _add_orientation_arrow(
         mid_x + label_offset[0],
         mid_y + label_offset[1],
         "orientation",
+        fontsize=FONTSIZE_LARGE,
+        ha="center",
+        va="center",
+        transform=overlay.transAxes,
+    )
+
+
+def _add_elongation_arrows(
+    fig: plt.Figure,
+    axes: np.ndarray[plt.Axes, Any],
+    center_index: int,
+    n_steps: int,
+    head_length: float,
+    head_width: float,
+    color: str,
+    linewidth: float,
+    label_offset: tuple[float, float],
+) -> None:
+    """Add straight arrows from the origin leftward (decreasing PC1) and downward (PC2) with an 'elongation' label."""
+    overlay = fig.add_axes([0, 0, 1, 1], facecolor="none", zorder=5)
+    overlay.set_xlim(0, 1)
+    overlay.set_ylim(0, 1)
+    overlay.axis("off")
+
+    center_bbox = axes[center_index, center_index].get_position()
+    origin = (
+        center_bbox.x0 + center_bbox.width / 2,
+        center_bbox.y0 + center_bbox.height / 2,
+    )
+
+    # left arrow: origin → center-left of leftmost image in center row (decreasing PC1, quadrant 3)
+    left_bbox = axes[center_index, 0].get_position()
+    left_end = (left_bbox.x0, left_bbox.y0 + left_bbox.height / 2)
+
+    # down arrow: origin → center-bottom of bottom image in center column (PC2 quadrant 3)
+    bottom_bbox = axes[n_steps - 1, center_index].get_position()
+    down_end = (bottom_bbox.x0 + bottom_bbox.width / 2, bottom_bbox.y0)
+
+    arrowstyle = f"->,head_length={head_length},head_width={head_width}"
+    for arrow_end in [left_end, down_end]:
+        overlay.annotate(
+            "",
+            xy=arrow_end,
+            xytext=origin,
+            xycoords="axes fraction",
+            textcoords="axes fraction",
+            arrowprops={
+                "arrowstyle": arrowstyle,
+                "color": color,
+                "lw": linewidth,
+                "connectionstyle": "arc3,rad=0",
+            },
+        )
+
+    # single "elongation" label at the midpoint between the two arrow midpoints
+    label_x = (origin[0] + left_end[0]) / 2
+    label_y = (origin[1] + down_end[1]) / 2
+    overlay.text(
+        label_x + label_offset[0],
+        label_y + label_offset[1],
+        "elongation",
         fontsize=FONTSIZE_LARGE,
         ha="center",
         va="center",
@@ -221,6 +283,7 @@ def _add_axes_lines(
         top_bbox.y1,
         COLUMN_METADATA["pc_2"].label,
         fontsize=FONTSIZE_LARGE,
+        fontweight="bold",
         ha="right",
         va="top",
         transform=underlay.transAxes,
@@ -233,6 +296,7 @@ def _add_axes_lines(
         right_bbox.y0 - 0.05,
         COLUMN_METADATA["pc_1"].label,
         fontsize=FONTSIZE_LARGE,
+        fontweight="bold",
         ha="left",
         va="center",
         transform=underlay.transAxes,
@@ -249,8 +313,14 @@ def plot_2d_latent_walk(
     orientation_arrow_head_length: float = 0.75,
     orientation_arrow_head_width: float = 0.4,
     orientation_arrow_arc_rad: float = 0.5,
+    orientation_arrow_color: str = "darkred",
     orientation_arrow_linewidth: float = 1.5,
     orientation_label_offset: tuple[float, float] = (0.275, 0.125),
+    elongation_arrow_head_length: float = 0.75,
+    elongation_arrow_head_width: float = 0.4,
+    elongation_arrow_color: str = "blue",
+    elongation_arrow_linewidth: float = 1.5,
+    elongation_label_offset: tuple[float, float] = (0.05, -0.05),
     gridspec_kwargs: dict | None = None,
     fig_kwargs: dict | None = None,
 ) -> Path:
@@ -289,6 +359,17 @@ def plot_2d_latent_walk(
     orientation_label_offset
         Tuple of (x, y) offsets to apply to the position of the "orientation"
         label relative to the midpoint of the orientation arrow.
+    elongation_arrow_head_length
+        Head length to use for the elongation arrows.
+    elongation_arrow_head_width
+        Head width to use for the elongation arrows.
+    elongation_arrow_color
+        Color to use for the elongation arrows.
+    elongation_arrow_linewidth
+        Line width to use for the elongation arrows.
+    elongation_label_offset
+        Tuple of (x, y) offsets to apply to the position of the "elongation"
+        label relative to the computed midpoint between the two arrow midpoints.
     gridspec_kwargs
         Optional dictionary of keyword arguments to pass to GridSpec (e.g.,
         {"wspace": 0, "hspace": 0}).
@@ -335,8 +416,22 @@ def plot_2d_latent_walk(
         arc_rad=orientation_arrow_arc_rad,
         head_length=orientation_arrow_head_length,
         head_width=orientation_arrow_head_width,
+        color=orientation_arrow_color,
         linewidth=orientation_arrow_linewidth,
         label_offset=orientation_label_offset,
+    )
+
+    # Add straight arrows with label "elongation" from origin rightward (PC1) and downward (PC2)
+    _add_elongation_arrows(
+        fig,
+        axes,
+        center,
+        n_steps,
+        head_length=elongation_arrow_head_length,
+        head_width=elongation_arrow_head_width,
+        color=elongation_arrow_color,
+        linewidth=elongation_arrow_linewidth,
+        label_offset=elongation_label_offset,
     )
 
     save_plot_to_path(
