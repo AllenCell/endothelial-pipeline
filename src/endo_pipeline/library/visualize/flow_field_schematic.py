@@ -46,12 +46,18 @@ from endo_pipeline.settings.dynamics_workflows import (
     POLAR_ANGLE_PERIOD,
     TIME_STEP_IN_HOURS,
 )
-from endo_pipeline.settings.examples import FLOW_FIELD_CONSTRUCTION_EXAMPLE_IMAGES
+from endo_pipeline.settings.examples import EXAMPLE_DATASET, FLOW_FIELD_CONSTRUCTION_EXAMPLE_IMAGES
 from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_MEDIUM, FONTSIZE_XLARGE
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_COLORMAP,
     DRIFT_CONTOUR_VMAX,
     DRIFT_CONTOUR_VMIN,
+)
+from endo_pipeline.settings.flow_field_figure import (
+    SUPP_FIG_TARGET_POINT,
+    SUPP_FIG_ZOOM_FACTOR,
+    XLABEL_KWARGS,
+    YLABEL_KWARGS,
 )
 from endo_pipeline.settings.image_data import NATIVE_ZARR_RESOLUTION_CROP_SIZE, PIXEL_SIZE_3i_20x
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
@@ -350,7 +356,7 @@ def _make_2d_pcolormesh(
     data_2d: np.ndarray,
     x_edges: np.ndarray,
     y_edges: np.ndarray,
-    cmap: str = "RdBu_r",
+    cmap: str = DRIFT_CONTOUR_COLORMAP,
     vmin: float | None = None,
     vmax: float | None = None,
     axes_xlabel: str | None = None,
@@ -583,25 +589,21 @@ def _plot_kernel_at_target_bin(
     return kernel_weights_2d
 
 
-def make_kernel_convolution_schematic(
-    savedir: Path,
-    dataset_name: str,
-    column_names: list[Column.DiffAEData],
-    target_point: tuple[float, float],
-    axes_xlim: tuple[float, float] | None = None,
-    axes_ylim: tuple[float, float] | None = None,
-    n_rows: int = 1,
-    n_cols: int = 4,
-    cmap: str = DRIFT_CONTOUR_COLORMAP,
-    gridspec_kwargs: dict | None = None,
-    fig_kwargs: dict | None = None,
-    xlabel_kwargs: dict | None = None,
-    ylabel_kwargs: dict | None = None,
-) -> Path:
+def make_kernel_convolution_schematic(savedir: Path) -> Path:
     """
     Build the panel showing a schematic of the kernel convolution process for
     a single target bin in (r, rho) space.
     """
+    dataset_name = EXAMPLE_DATASET["FIGURE_2_LOW_FLOW_DATASET"]
+
+    column_names = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
+
+    target_point = SUPP_FIG_TARGET_POINT
+    r_half = SUPP_FIG_ZOOM_FACTOR * KERNEL_BANDWIDTHS_DYNAMICS[column_names[0]]
+    rho_half = SUPP_FIG_ZOOM_FACTOR * KERNEL_BANDWIDTHS_DYNAMICS[column_names[1]]
+    axes_xlim = (target_point[0] - r_half, target_point[0] + r_half)
+    axes_ylim = (target_point[1] - rho_half, target_point[1] + rho_half)
+
     # Load feature data for provided dataset and filter to steady-state time
     # points and a single flow condition
     dataset_config = load_dataset_config(dataset_name)
@@ -621,7 +623,9 @@ def make_kernel_convolution_schematic(
     bin_edges, bin_centers = get_bins(bin_widths, df[column_names].to_numpy())
     target_bin = _get_target_bin(target_point, bin_edges)
 
-    fig, ax = plt.subplots(n_rows, n_cols, gridspec_kw=gridspec_kwargs, **(fig_kwargs or {}))
+    fig, ax = plt.subplots(
+        2, 2, gridspec_kw={"wspace": 0.3}, figsize=(5.75, 5.05), layout="constrained"
+    )
     axes = ax.flatten() if isinstance(ax, np.ndarray) else [ax]
     axes_xlabel = COLUMN_METADATA[column_names[0]].label
     axes_ylabel = COLUMN_METADATA[column_names[1]].label
@@ -637,8 +641,7 @@ def make_kernel_convolution_schematic(
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
         axes_ylabel=axes_ylabel,
-        ylabel_kwargs=ylabel_kwargs,
-        cmap=cmap,
+        ylabel_kwargs=YLABEL_KWARGS,
         colorbar_label=f"Sum of {Unicode.DELTA} {axes_xlabel}",
     )
 
@@ -672,15 +675,14 @@ def make_kernel_convolution_schematic(
         kernel_weighted_hist_delta_r,
         bin_edges[0],
         bin_edges[1],
-        cmap=cmap,
         vmin=-vmax,
         vmax=vmax,
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
         axes_xlabel=axes_xlabel,
         axes_ylabel=axes_ylabel,
-        xlabel_kwargs=xlabel_kwargs,
-        ylabel_kwargs=ylabel_kwargs,
+        xlabel_kwargs=XLABEL_KWARGS,
+        ylabel_kwargs=YLABEL_KWARGS,
     )
     _add_target_bin_border(
         axes[2],
@@ -705,13 +707,12 @@ def make_kernel_convolution_schematic(
         drift[..., 0],
         bin_edges[0],
         bin_edges[1],
-        cmap=cmap,
         vmin=DRIFT_CONTOUR_VMIN,
         vmax=DRIFT_CONTOUR_VMAX,
         axes_xlabel=axes_xlabel,
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
-        xlabel_kwargs=xlabel_kwargs,
+        xlabel_kwargs=XLABEL_KWARGS,
     )
     _add_target_bin_border(
         axes[3],
