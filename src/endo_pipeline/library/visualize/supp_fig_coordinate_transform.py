@@ -72,7 +72,7 @@ def perform_latent_walk_along_top_pcs(
 
     # generate images from the latent walk
     walk_img_grid = generate_latent_walk_images(
-        model, walk_latent, ranges, num_gpus=NUM_GPUS, RANDOM_SEED=RANDOM_SEED
+        model, walk_latent, ranges, num_gpus=NUM_GPUS, random_seed=RANDOM_SEED
     )
 
     plot_latent_walk_as_grid(
