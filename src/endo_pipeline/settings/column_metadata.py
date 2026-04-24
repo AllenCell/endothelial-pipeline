@@ -160,7 +160,7 @@ COLUMN_METADATA: dict[str, ColumnMetadata] = {
     ),
     Column.SegData.ORIENTATION_DEG: ColumnMetadata(
         name="Cell Orientation",
-        label="Orientation",
+        label="Cell Orientation",
         unit="°",
         min=0,
         max=180,
@@ -183,7 +183,7 @@ COLUMN_METADATA: dict[str, ColumnMetadata] = {
         type=ColumnType.CONTINUOUS,
     ),
     Column.SegData.ASPECT_RATIO: ColumnMetadata(
-        name="Aspect Ratio",
+        name="Cell Aspect Ratio",
         min=1,
         max=10,
         type=ColumnType.CONTINUOUS,
@@ -209,7 +209,7 @@ COLUMN_METADATA: dict[str, ColumnMetadata] = {
     ),
     Column.SegData.CELL_FLUOR_MEAN: ColumnMetadata(
         name="Mean VE-Cad Fluorescence in Cell",
-        label="Cell Fluorescence Mean",
+        label="Mean Cell Fluorescence",
         unit="a.u.",
         min=120,
         max=150,
@@ -223,7 +223,7 @@ COLUMN_METADATA: dict[str, ColumnMetadata] = {
     ),
     Column.SegData.EDGE_FLUOR_MEAN: ColumnMetadata(
         name="Mean VE-Cad Fluorescence at Edges",
-        label="Edge Fluorescence Mean",
+        label="Mean Edge Fluorescence",
         unit="a.u.",
         min=100,
         max=200,
@@ -274,7 +274,7 @@ COLUMN_METADATA: dict[str, ColumnMetadata] = {
     ),
     Column.SegData.NUM_NUCLEI_IN_CROP: ColumnMetadata(
         name="Number of Nuclei in Crop",
-        label="Number of Nuclei\nin Crop",
+        label="Number of Nuclei in Patch",
         min=0,
         type=ColumnType.DISCRETE,
     ),
@@ -639,7 +639,7 @@ COLUMN_METADATA_DICT: dict[str, dict[str, Any]] = {
     },
     Column.SegData.AREA_UM_SQ: {
         "column_name": Column.SegData.AREA_UM_SQ,
-        "label": "Area",
+        "label": "Cell Area",
         "lims": (350, 2000),
         "bin_width": None,
         "ticks": None,
@@ -711,7 +711,7 @@ COLUMN_METADATA_DICT: dict[str, dict[str, Any]] = {
     },
     Column.SegData.EDGE_FLUOR_MEAN: {
         "column_name": Column.SegData.EDGE_FLUOR_MEAN,
-        "label": "Mean Edge Fluorescence",
+        "label": "Mean Cell Edge Fluorescence",
         "lims": (100, 200),
         "bin_width": None,
         "ticks": None,

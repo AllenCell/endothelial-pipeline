@@ -22,7 +22,7 @@ from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
-from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import FONTSIZE_XSMALL, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
     SEGMENTATION_FEATURE_COLUMNS,
@@ -87,18 +87,25 @@ def plot_and_save_clustermap(
         vmin=vmin,
         vmax=vmax,
         ax=ax,
-        annot_kws={"fontsize": FONTSIZE_SMALL},
+        annot_kws={"fontsize": FONTSIZE_XSMALL},
+        cbar=not annotate,
     )
+    # set label padding to 2
+    ax.xaxis.labelpad = 2
+    ax.yaxis.labelpad = 2
 
     # Set tick label rotation
     ax.set_xticklabels(
         ax.get_xticklabels(),
         rotation=45,
         ha="right",
+        rotation_mode="anchor",
+        fontsize=FONTSIZE_XSMALL,
     )
     ax.set_yticklabels(
         ax.get_yticklabels(),
         rotation=0,
+        fontsize=FONTSIZE_XSMALL,
     )
     if y_axis_label_coords is not None:
         ax.yaxis.set_label_coords(*y_axis_label_coords)
@@ -315,11 +322,6 @@ def visualize_correlation_heatmaps(
             y_axis_label,
             dataset_name,
         )
-
-        # Ensure the figure is in landscape orientation
-        if len(y_cols) > len(x_cols):
-            x_cols, y_cols = y_cols, x_cols
-            x_axis_label, y_axis_label = y_axis_label, x_axis_label
 
         x_filename = x_axis_label.replace(" ", "_").lower()
         y_filename = y_axis_label.replace(" ", "_").lower()

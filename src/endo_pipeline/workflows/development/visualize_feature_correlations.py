@@ -112,8 +112,8 @@ def main(
     )
 
     label_column_tuples = [
-        ("Measured Features", [get_label_for_column(col) for col in segmentation_feature_columns]),
         ("ML-based Features", [get_label_for_column(col) for col in pc_columns]),
+        ("Measured Features", [get_label_for_column(col) for col in segmentation_feature_columns]),
     ]
 
     if aggregate_only:

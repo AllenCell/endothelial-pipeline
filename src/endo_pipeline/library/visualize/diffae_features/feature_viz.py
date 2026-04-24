@@ -124,22 +124,29 @@ def plot_explained_variance(
 
     # plot explained variance ratio
     n_components = len(explained_variance_ratio)
-    ax.plot(np.arange(1, n_components + 1), np.cumsum(explained_variance_ratio), "k-o")
+    ax.plot(np.arange(1, n_components + 1), 100 * np.cumsum(explained_variance_ratio), "k-o")
     ax.plot(
         np.arange(1, n_components + 1),
-        0.95 * np.ones(n_components),
+        95 * np.ones(n_components),
         "r--",
         alpha=0.8,
         label="95% explained variance",
     )
-    ax.set_ylim(0, 1.05)
-    ax.set_xlabel("Number of PCA components")
-    ax.set_ylabel("Cumulative explained\nvariance ratio")
-    ax.legend(loc="lower right")
+    ax.set_ylim(0, 105)
+    ax.set_xlabel("Number of\nPCA components")
+    ax.set_ylabel("Cumulative explained variance (%)")
 
-    # set label pad to 2
+    ax.set_xticks(np.arange(0, 512, 100))
+
     ax.xaxis.labelpad = 2
-    ax.yaxis.labelpad = 2
+    ax.yaxis.labelpad = 3
+
+    ax.yaxis.set_label_coords(-0.2, 0.44)
+
+    # move tick labels closer to ticks
+    ax.tick_params(axis="both", which="major", pad=2)
+
+    ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), labelspacing=0.05)
 
     return fig, ax
 
