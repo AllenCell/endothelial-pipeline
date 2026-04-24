@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.collections import QuadMesh
+from matplotlib.layout_engine import LayoutEngine
 from matplotlib.patches import FancyArrowPatch, Rectangle
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -46,7 +47,7 @@ from endo_pipeline.settings.dynamics_workflows import (
     TIME_STEP_IN_HOURS,
 )
 from endo_pipeline.settings.examples import FLOW_FIELD_CONSTRUCTION_EXAMPLE_IMAGES
-from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_MEDIUM
+from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_MEDIUM, FONTSIZE_XLARGE
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_COLORMAP,
     DRIFT_CONTOUR_VMAX,
@@ -76,7 +77,7 @@ def make_real_image_panel(
     horizontal_arrow_linewidth: float = 1.5,
     horizontal_arrow_arrowstyle: str = "->,head_length=5,head_width=3",
     text_y_offset: float = -0.15,
-    delta_text_y_offset: float = 0.05,
+    delta_text_y_offset: float = 0.01,
 ) -> Path:
     """Build the panel showing a grid crop from t to t+1 for a given example image."""
 
@@ -106,7 +107,8 @@ def make_real_image_panel(
         fig_kwargs={"figsize": contact_figsize, "layout": "constrained"},
     )
 
-    fig.get_layout_engine().set(rect=(0, 0.2, 1, 0.8))
+    layout_engine: LayoutEngine = fig.get_layout_engine()
+    layout_engine.set(rect=(0, 0.2, 1, 0.8))
 
     ax_t = fig.axes[0]
     ax_t1 = fig.axes[1]
@@ -179,7 +181,7 @@ def make_real_image_panel(
         f"({Unicode.THETA}, r, {Unicode.RHO}) at t",
         ha="center",
         va="top",
-        fontsize=FONTSIZE_MEDIUM,
+        fontsize=FONTSIZE_XLARGE,
     )
     fig.text(
         label_x_t1,
@@ -187,7 +189,7 @@ def make_real_image_panel(
         f"({Unicode.THETA}, r, {Unicode.RHO}) at t+1",
         ha="center",
         va="top",
-        fontsize=FONTSIZE_MEDIUM,
+        fontsize=FONTSIZE_XLARGE,
     )
 
     # Curved arrows from bottom edge of highlighted box to its (theta, r, rho) label
@@ -218,7 +220,7 @@ def make_real_image_panel(
         f"({Unicode.DELTA}{Unicode.THETA}, {Unicode.DELTA}r, {Unicode.DELTA}{Unicode.RHO})",
         ha="center",
         va="bottom",
-        fontsize=FONTSIZE_MEDIUM,
+        fontsize=FONTSIZE_LARGE,
     )
     horizontal_arrow = FancyArrowPatch(
         (arrow_start_x, mid_y),
