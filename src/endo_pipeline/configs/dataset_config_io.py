@@ -169,6 +169,10 @@ def save_dataset_config(dataset: DatasetConfig) -> None:
         # Custom adjustment to combine shear stress regime into single string
         data["shear_stress_regime"] = "_to_".join(data["shear_stress_regime"])
 
+        # Custom adjustment to drop shear stress bin
+        for condition in data["flow_conditions"]:
+            del condition["shear_stress_bin"]
+
         # Encode data into YAML
         encode = yaml.safe_dump(data, default_flow_style=False, sort_keys=False, width=80, indent=2)
 
