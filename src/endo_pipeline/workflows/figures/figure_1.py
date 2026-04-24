@@ -15,7 +15,7 @@ def main():
         FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES,
         FIGURE_1_PATCH_FT_EXAMPLE_IMAGE,
     )
-    from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
     from endo_pipeline.workflows.development.visualize_feature_correlations import (
         main as visualize_feature_correlations,
     )
@@ -46,8 +46,9 @@ def main():
 
     # Correlation heatmaps of ml learned and measured features
     visualize_feature_correlations(
-        figsize_heatmap=(MAX_FIGURE_WIDTH - 2, 2.5),
+        figsize_heatmap=(MAX_FIGURE_WIDTH - 2.5, 2.5),
         y_axis_label_coords=(-0.1, 0.2),
+        label_fontsize=FONTSIZE_SMALL,
     )
 
     # Latent walk visualization
@@ -93,7 +94,7 @@ def main():
             path=save_dir2 / "correlation_measured_features_vs_ml-based_features_heatmap.svg",
             x_position=2.5,
             y_position=2.75,
-            x_offset=-0.08,
+            x_offset=0.08,
             y_offset=0.08,
         ),
         FigurePanel(
