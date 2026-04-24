@@ -1,7 +1,7 @@
 """Methods for constructing schematics for the flow field supplementary figure."""
 
 from pathlib import Path
-from typing import Any, Literal, cast
+from typing import Any, Literal, TypeAlias, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,8 +16,11 @@ from endo_pipeline.io import load_dataframe, load_image, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
     _check_and_adjust_km_inputs,
+    _evaluate_multivariate_product_kernel,
     _get_weighted_histogram_for_convolution,
+    get_cartesian_product,
 )
+from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
 from endo_pipeline.library.process.image_processing import (
@@ -34,7 +37,13 @@ from endo_pipeline.manifests import (
 )
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.dynamics_workflows import BIN_WIDTHS_DYNAMICS, METADATA_COLUMNS_TO_KEEP
+from endo_pipeline.settings.dynamics_workflows import (
+    BIN_WIDTHS_DYNAMICS,
+    KERNEL_BANDWIDTHS_DYNAMICS,
+    KERNEL_NAMES_DYNAMICS,
+    METADATA_COLUMNS_TO_KEEP,
+    POLAR_ANGLE_PERIOD,
+)
 from endo_pipeline.settings.examples import FLOW_FIELD_CONSTRUCTION_EXAMPLE_IMAGES
 from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_MEDIUM, FONTSIZE_XLARGE
 from endo_pipeline.settings.flow_field_2d import DRIFT_CONTOUR_COLORMAP
@@ -508,6 +517,66 @@ def _make_weighted_displacement_histogram(
     return weighted_counts_delta_x
 
 
+def _plot_kernel_at_target_bin(
+    fig: plt.Figure,
+    axes: plt.Axes,
+    kernels: list[KramersMoyalKernel],
+    bin_edges: list[np.ndarray],
+    bin_centers: list[np.ndarray],
+    target_bin: tuple[int, int],
+    axes_xlim: tuple[float, float] | None = None,
+    axes_ylim: tuple[float, float] | None = None,
+    axes_xlabel: str | None = None,
+    axes_ylabel: str | None = None,
+    axes_aspect: Literal["auto", "equal"] | float | None = "equal",
+    axes_title: str | None = None,
+    cmap: str = "Purples",
+    colorbar_label: str | None = None,
+    xlabel_kwargs: dict | None = None,
+    ylabel_kwargs: dict | None = None,
+) -> np.ndarray:
+    """Plot the 2D product kernel weights centered at the target bin."""
+    # evaluate 2D product kernel weights centered at the target bin
+    ix, iy = target_bin
+    target_bin_center = (
+        (bin_edges[0][ix] + bin_edges[0][ix + 1]) / 2,
+        (bin_edges[1][iy] + bin_edges[1][iy + 1]) / 2,
+    )
+    target_offsets = [
+        bin_centers[0] - target_bin_center[0],
+        bin_centers[1] - target_bin_center[1],
+    ]
+    offsets_grid = get_cartesian_product(target_offsets)
+    kernel_weights_2d = _evaluate_multivariate_product_kernel(offsets_grid, kernels)
+    pcm = _make_2d_pcolormesh(
+        axes,
+        kernel_weights_2d / kernel_weights_2d.max(),
+        bin_edges[0],
+        bin_edges[1],
+        cmap=cmap,
+        axes_xlabel=axes_xlabel,
+        axes_ylabel=axes_ylabel,
+        axes_xlim=axes_xlim,
+        axes_ylim=axes_ylim,
+        axes_aspect=axes_aspect,
+        axes_title=axes_title,
+        xlabel_kwargs=xlabel_kwargs,
+        ylabel_kwargs=ylabel_kwargs,
+    )
+    _add_target_bin_border(
+        axes,
+        target_bin=target_bin,
+        bin_edges=bin_edges,
+    )
+    _add_colorbar_for_quadmesh(
+        fig,
+        axes,
+        pcm,
+        label=colorbar_label,
+    )
+    return kernel_weights_2d
+
+
 def make_kernel_convolution_schematic(
     savedir: Path,
     dataset_name: str,
@@ -566,7 +635,31 @@ def make_kernel_convolution_schematic(
         cmap=cmap,
         colorbar_label=f"sum of $\\Delta$ {axes_xlabel}",
     )
-    print(weighted_hist_delta_r.shape)
+    print(f"Max weighted count (delta r): {weighted_hist_delta_r.max():.3f}")
+
+    # get kernels for panel 2
+    KernelName: TypeAlias = Literal["periodic", "gaussian", "epanechnikov"]
+    kernels = [
+        KramersMoyalKernel(
+            name=cast(KernelName, KERNEL_NAMES_DYNAMICS[column_name]),
+            bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_name],
+            period=POLAR_ANGLE_PERIOD if column_name == Column.DiffAEData.POLAR_ANGLE else None,
+        )
+        for column_name in column_names
+    ]
+    # panel 2 - kernel weights centered at target bin
+    kernel_weights_2d = _plot_kernel_at_target_bin(
+        fig=fig,
+        axes=axes[1],
+        kernels=kernels,
+        bin_edges=bin_edges,
+        bin_centers=bin_centers,
+        target_bin=target_bin,
+        axes_xlim=axes_xlim,
+        axes_ylim=axes_ylim,
+        colorbar_label="kernel weight (normalized)",
+    )
+    print(f"Max kernel weight: {kernel_weights_2d.max():.3f}")
 
     filename = "kernel_convolution_schematic"
     save_plot_to_path(
