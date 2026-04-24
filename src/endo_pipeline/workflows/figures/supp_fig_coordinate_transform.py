@@ -44,15 +44,15 @@ def main() -> None:
             x_position=0,
             y_position=0.0,
             x_offset=0.0,
-            y_offset=0.0,
+            y_offset=0.2,
         ),
         FigurePanel(
             letter="B",
             path=latent_walk_2d_path,
             x_position=0.0,
-            y_position=3.0,
-            x_offset=0.00,
-            y_offset=0.00,
+            y_position=3.2,
+            x_offset=0.3,
+            y_offset=0.3,
         ),
     ]
 

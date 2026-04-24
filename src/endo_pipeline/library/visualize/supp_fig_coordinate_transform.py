@@ -185,8 +185,8 @@ def plot_2d_latent_walk(
     overlay.set_xlim(0, 1)
     overlay.set_ylim(0, 1)
     overlay.axis("off")
-    overlay.axhline(center_y, color="white", linewidth=0.5, zorder=5)
-    overlay.axvline(center_x, color="white", linewidth=0.5, zorder=5)
+    overlay.axhline(center_y, color="black", linewidth=0.5, zorder=5)
+    overlay.axvline(center_x, color="black", linewidth=0.5, zorder=5)
 
     # label the PC axes using the center row/column
     axes[center, 0].set_ylabel(COLUMN_METADATA["pc_2"].label, fontsize=6)
