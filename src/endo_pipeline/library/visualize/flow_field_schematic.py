@@ -21,7 +21,7 @@ from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
     get_cartesian_product,
     get_kramers_moyal_coeffs,
 )
-from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KernelName, KramersMoyalKernel
+from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
 from endo_pipeline.library.process.image_processing import (
@@ -648,7 +648,7 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
     # panel 2 - kernel weights centered at target bin
     kernels = [
         KramersMoyalKernel(
-            name=cast(KernelName, KERNEL_NAMES_DYNAMICS[column_name]),
+            name=KERNEL_NAMES_DYNAMICS[column_name],
             bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_name],
             period=POLAR_ANGLE_PERIOD if column_name == Column.DiffAEData.POLAR_ANGLE else None,
         )
