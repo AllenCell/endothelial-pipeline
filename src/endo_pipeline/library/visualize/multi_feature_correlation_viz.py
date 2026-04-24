@@ -3,7 +3,7 @@
 import itertools
 import logging
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -182,7 +182,7 @@ def get_df_for_feature_correlation_viz(
             and "SUFFIX" not in col.name
             and col not in list(DYNAMICS_COLUMN_NAMES)
         ]
-        cols_to_load = [
+        cols_to_load_ = [
             *dataset_info_columns,
             *dynamics_seg_columns,
             *supplementary_columns,
@@ -191,6 +191,7 @@ def get_df_for_feature_correlation_viz(
             *optical_flow_columns,
             *optical_flow_merge_prereq_columns,
         ]
+        cols_to_load = cast(list[str], cols_to_load_)
         cols_to_load_overlap = sorted(set(cols_to_load) & set(merged_feats_df_delayed.columns))
         cols_to_load_unique = []
         for col in cols_to_load:
@@ -219,11 +220,12 @@ def get_df_for_feature_correlation_viz(
         # check that the chosen measurement column names
         # are actually in the DataFrame
         # keep only the columns that will be used
-        cols_to_keep: list[ColumnNameType] = [
+        cols_to_keep_ = [
             *dataset_info_columns,
             *segmentation_feature_columns,
             *pc_columns,
         ]
+        cols_to_keep = cast(list[str], cols_to_keep_)
 
         if not all(np.isin(cols_to_keep, merged_feats_df.columns)):
             missing_columns = set(cols_to_keep) - set(merged_feats_df.columns)
