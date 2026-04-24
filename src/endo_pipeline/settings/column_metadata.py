@@ -284,7 +284,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     # Dynamic features =========================================================
     Column.SegData.CENTROID_VELOCITY_ANGLE_DEG: ColumnMetadata(
         name="Cell Migration Angle",
-        label=f"Cell Migration {Unicode.THETA}",
+        label="Cell Migration Angle",
         unit="°",
         min=-180,
         max=180,
@@ -294,7 +294,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.SegData.CENTROID_VELOCITY_UM_PER_MIN: ColumnMetadata(
         name="Cell Migration Speed",
-        label="Cell Speed",
+        label="Cell Migration Speed",
         unit=f"{Unicode.MU}m/min",
         min=0,
         max="max",
@@ -309,7 +309,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG: ColumnMetadata(
         name="Nucleus Orientation Relative to Migration",
-        label=f"Cell-Nuc {Unicode.THETA} Rel. Migration",
+        label="Cell-Nuc Angle Rel. Migration",
         unit="°",
         min=-180,
         max=180,
@@ -324,7 +324,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.SegData.NUCLEI_POSITION_ANGLE_DEG: ColumnMetadata(
         name="Nucleus Orientation Relative to Flow Angle",
-        label=f"Cell-Nuc {Unicode.THETA} Rel. to Flow",
+        label="Cell-Nuc Angle Rel. to Flow",
         unit="°",
         min=-180,
         max=180,
@@ -495,7 +495,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.OpticalFlow.SPEED_MEAN: ColumnMetadata(
         name="Optical Flow Mean Speed",
-        label="Mean Speed",
+        label="Patch-based Migration Speed",
         unit="pixels/frame",
         min=0,
         max=8,
@@ -531,7 +531,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.OpticalFlow.UNIT_VECTOR_MEAN: ColumnMetadata(
         name="Coherent Migration (EMA 0.1, Optical Flow Mean Unit Vector)",
-        label="Migration Coherence",
+        label="Patch-based Migration Coherence",
         min=0,
         max=1,
         bin_width=0.02,

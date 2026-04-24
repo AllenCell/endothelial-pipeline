@@ -123,6 +123,7 @@ SEGMENTATION_FEATURE_COLUMNS: SegFeatureColumnDict = {
         Column.SegData.EDGE_FLUOR_MEAN,
         Column.OpticalFlow.UNIT_VECTOR_MEAN,
         Column.OpticalFlow.SPEED_MEAN,
+        Column.SegData.CENTROID_VELOCITY_UM_PER_MIN,
         Column.SegData.CENTROID_VELOCITY_ANGLE_DEG,
         Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG,
         Column.SegData.NUCLEI_POSITION_ANGLE_DEG,

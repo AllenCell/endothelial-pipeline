@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 plt.style.use("endo_pipeline.figure")
 
 
-def plot_and_save_clustermap(
+def plot_and_save_heatmap(
     df: pd.DataFrame,
     output_folder: Path,
     filename: str,
@@ -42,6 +42,7 @@ def plot_and_save_clustermap(
     data_type: Literal["correlation", "samples"] = "samples",
     figsize: tuple[float, float] | None = None,
     y_axis_label_coords: tuple[float, float] | None = None,
+    label_fontsize: int = FONTSIZE_XSMALL,
 ) -> None:
     """
     Plot and save a heatmap from the given DataFrame.
@@ -101,12 +102,12 @@ def plot_and_save_clustermap(
         rotation=45,
         ha="right",
         rotation_mode="anchor",
-        fontsize=FONTSIZE_XSMALL,
+        fontsize=label_fontsize,
     )
     ax.set_yticklabels(
         ax.get_yticklabels(),
         rotation=0,
-        fontsize=FONTSIZE_XSMALL,
+        fontsize=label_fontsize,
     )
     if y_axis_label_coords is not None:
         ax.yaxis.set_label_coords(*y_axis_label_coords)
@@ -285,6 +286,7 @@ def visualize_correlation_heatmaps(
     cross_correlation_only: bool = False,
     figsize_cluster_heatmap: tuple[float, float] | None = None,
     y_axis_label_coords=None,
+    label_fontsize: int = FONTSIZE_XSMALL,
 ) -> None:
     # Pre-compute full correlation matrix once per dataset
     all_feature_columns: list = []
@@ -335,7 +337,7 @@ def visualize_correlation_heatmaps(
         correlation_df.to_csv(out_dir / f"{base_filename}_correlation_matrix.csv")
 
         # make correlation heatmap
-        plot_and_save_clustermap(
+        plot_and_save_heatmap(
             df=correlation_df,
             output_folder=out_dir,
             filename=base_filename,
@@ -343,4 +345,5 @@ def visualize_correlation_heatmaps(
             data_type="correlation",
             figsize=figsize_cluster_heatmap,
             y_axis_label_coords=y_axis_label_coords,
+            label_fontsize=label_fontsize,
         )
