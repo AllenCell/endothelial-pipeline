@@ -1,7 +1,7 @@
 """Methods for constructing schematics for the flow field supplementary figure."""
 
 from pathlib import Path
-from typing import Literal, TypeAlias, cast
+from typing import Literal, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -21,7 +21,7 @@ from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
     get_cartesian_product,
     get_kramers_moyal_coeffs,
 )
-from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
+from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KernelName, KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
 from endo_pipeline.library.process.image_processing import (
@@ -646,7 +646,6 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
     )
 
     # panel 2 - kernel weights centered at target bin
-    KernelName: TypeAlias = Literal["periodic", "gaussian", "epanechnikov"]
     kernels = [
         KramersMoyalKernel(
             name=cast(KernelName, KERNEL_NAMES_DYNAMICS[column_name]),
