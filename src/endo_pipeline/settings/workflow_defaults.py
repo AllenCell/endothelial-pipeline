@@ -3,6 +3,7 @@
 from typing import Literal, TypeAlias
 
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameType
 
 DEFAULT_MODEL_MANIFEST_NAME: str = "diffae_baseline_exclude_cell_piling"
 """Default model manifest for loading models and model features."""
@@ -86,9 +87,7 @@ IMAGE_METRIC_DATASET_COLORS = {
 
 SegFeatureColumnDict: TypeAlias = dict[
     str,
-    list[Column.SegData | Column.OpticalFlow]
-    | list[str | Column.SegData | Column.OpticalFlow]
-    | list[Column.SegDataFilters],
+    list[str | ColumnNameType],
 ]
 
 SEGMENTATION_FEATURE_COLUMNS: SegFeatureColumnDict = {
