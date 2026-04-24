@@ -186,6 +186,64 @@ def _add_axes_lines(
     )
 
 
+def _add_orientation_arrow(
+    fig: plt.Figure,
+    axes: np.ndarray[plt.Axes, Any],
+    center_index: int,
+    n_steps: int,
+    arc_rad: float = 0.5,
+    head_length: float = 0.75,
+    head_width: float = 0.4,
+    color: str = "darkred",
+    linewidth: float = 1.5,
+    label_offset: tuple[float, float] = (0.285, 0.125),
+) -> None:
+    """Add an arced arrow and "orientation" label to the 2D latent walk plot."""
+    overlay = fig.add_axes((0.0, 0.0, 1.0, 1.0), facecolor="none", zorder=5)
+    overlay.set_xlim(0, 1)
+    overlay.set_ylim(0, 1)
+    overlay.axis("off")
+
+    # arced arrow from center-top of rightmost image to center-right of topmost image
+    # with "orientation" label at the midpoint of the arc
+    rightmost_bbox = axes[center_index, n_steps - 1].get_position()
+    topmost_bbox = axes[0, center_index].get_position()
+    arrow_start = (
+        rightmost_bbox.x0 + rightmost_bbox.width / 2,
+        rightmost_bbox.y1,
+    )  # center-top of rightmost image
+    arrow_end = (
+        topmost_bbox.x1,
+        topmost_bbox.y0 + topmost_bbox.height / 2,
+    )  # center-right of topmost image
+    arrowstyle = f"->,head_length={head_length},head_width={head_width}"
+    connectionstyle = f"arc3,rad={arc_rad}"
+    overlay.annotate(
+        "",
+        xy=arrow_end,
+        xytext=arrow_start,
+        xycoords="axes fraction",
+        textcoords="axes fraction",
+        arrowprops={
+            "arrowstyle": arrowstyle,
+            "color": color,
+            "lw": linewidth,
+            "connectionstyle": connectionstyle,
+        },
+    )
+    mid_x = (arrow_start[0] + arrow_end[0]) / 2
+    mid_y = (arrow_start[1] + arrow_end[1]) / 2
+    overlay.text(
+        mid_x + label_offset[0],
+        mid_y + label_offset[1],
+        "orientation",
+        fontsize=FONTSIZE_LARGE,
+        ha="center",
+        va="center",
+        transform=overlay.transAxes,
+    )
+
+
 def plot_2d_latent_walk(
     images_pc1: np.ndarray,
     images_pc2: np.ndarray,
@@ -193,6 +251,7 @@ def plot_2d_latent_walk(
     filename: str,
     axes_linewidth: float = 2.5,
     axes_color: str = "dimgrey",
+    orientation_arrow_kwargs: dict[str, Any] | None = None,
     gridspec_kwargs: dict | None = None,
     fig_kwargs: dict | None = None,
 ) -> Path:
@@ -256,6 +315,9 @@ def plot_2d_latent_walk(
 
     # Draw axis lines on a figure-level underlay so they appear behind all image axes.
     _add_axes_lines(fig, axes, center, n_steps, axes_color, axes_linewidth)
+
+    # Add arced arrow with label "orientation" going from PC1 to PC2
+    _add_orientation_arrow(fig, axes, center, n_steps, **(orientation_arrow_kwargs or {}))
 
     save_plot_to_path(
         fig, save_path, filename, file_format=".svg", transparent=True, tight_layout=False
