@@ -1,7 +1,7 @@
 """Methods for constructing schematics for the flow field supplementary figure."""
 
 from pathlib import Path
-from typing import Any, Literal, TypeAlias, cast
+from typing import Literal, TypeAlias, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -213,25 +213,25 @@ def _add_t_plus_1_arrow_to_plot(
 
 def make_real_image_panel(
     savedir: Path,
-    contact_figsize: tuple[float, float] = (5.0, 1.75),
-    fov_crop_size: int = 2 * NATIVE_ZARR_RESOLUTION_CROP_SIZE,
-    scale_bar_um: int = 20,
-    grid_crop_position: tuple[int, int] = (0, 0),
-    grid_crop_size: int = NATIVE_ZARR_RESOLUTION_CROP_SIZE,
     axes_title_xloc: float = 0.25,
     map_arrow_x_offset: float = 0.065,
     map_arrow_rad: float = 0.3,
     map_arrow_linewidth: float = 1.5,
-    map_arrow_arrowstyle: str = "->,head_length=5,head_width=3",
     horizontal_arrow_x_offset: float = 0.07,
     horizontal_arrow_y_offset: float = -0.025,
     horizontal_arrow_linewidth: float = 1.5,
-    horizontal_arrow_arrowstyle: str = "->,head_length=5,head_width=3",
     text_y_offset: float = -0.125,
     delta_text_y_offset: float = 0.02,
-    layout_engine_kwargs: dict[str, Any] = {"rect": (0, 0.2, 1, 0.8)},
 ) -> Path:
     """Build the panel showing a grid crop from t to t+1 for a given example image."""
+
+    contact_figsize = (5.95, 2.75)
+    arrowstyle = "->,head_length=5,head_width=3"
+
+    fov_crop_size = 2 * NATIVE_ZARR_RESOLUTION_CROP_SIZE
+    scale_bar_um = 20
+    grid_crop_position = (0, 0)
+    grid_crop_size = NATIVE_ZARR_RESOLUTION_CROP_SIZE
 
     processed_images = []
     for example in FLOW_FIELD_CONSTRUCTION_EXAMPLE_IMAGES:
@@ -260,7 +260,7 @@ def make_real_image_panel(
     )
 
     layout_engine = cast(LayoutEngine, fig.get_layout_engine())
-    layout_engine.set(**layout_engine_kwargs)
+    layout_engine.set(**{"rect": (0, 0.2, 1, 0.8)})
 
     ax_t = fig.axes[0]
     ax_t1 = fig.axes[1]
@@ -323,7 +323,7 @@ def make_real_image_panel(
             text_y_offset=text_y_offset,
             arrow_x_offset=map_arrow_x_offset,
             linewidth=map_arrow_linewidth,
-            arrowstyle=map_arrow_arrowstyle,
+            arrowstyle=arrowstyle,
         )
 
     # Horizontal arrow between the two (theta, r, rho) labels
@@ -338,7 +338,7 @@ def make_real_image_panel(
         arrow_text=f"({Unicode.DELTA}{Unicode.THETA}, {Unicode.DELTA}r, {Unicode.DELTA}{Unicode.RHO})",
         arrow_x_offset=horizontal_arrow_x_offset,
         linewidth=horizontal_arrow_linewidth,
-        arrowstyle=horizontal_arrow_arrowstyle,
+        arrowstyle=arrowstyle,
         delta_text_y_offset=delta_text_y_offset,
     )
 

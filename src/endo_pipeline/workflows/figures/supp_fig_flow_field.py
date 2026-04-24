@@ -15,7 +15,7 @@ def main() -> None:
 
     output_path = get_output_path("supp_fig_flow_field")
 
-    image_panel_path = make_real_image_panel(output_path, contact_figsize=(5.95, 2.75))
+    image_panel_path = make_real_image_panel(output_path)
 
     kernel_convolution_panel_path = make_kernel_convolution_schematic(output_path)
 
