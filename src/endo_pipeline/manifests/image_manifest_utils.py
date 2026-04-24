@@ -14,7 +14,11 @@ logger = logging.getLogger(__name__)
 def list_datasets_with_images(manifest: ImageManifest) -> list[str]:
     """Get list of dataset names that have valid image locations in the given manifest."""
 
-    return [name for name, location in manifest.locations.items() if location.path is not None]
+    return [
+        name
+        for name, location in manifest.locations.items()
+        if location.path is not None or location.s3uri is not None
+    ]
 
 
 def get_image_location_for_dataset(
@@ -35,40 +39,67 @@ def get_image_location_for_dataset(
 
     location = dataclasses.replace(manifest.locations[dataset.name])
 
-    # If location has no path defined, do not need to do position or timepoint
-    # replacements so return as is.
-    if location.path is None:
+    # If location has no path or uri defined, do not need to do position or
+    # timepoint replacements so return as is.
+    if location.path is None and location.s3uri is None:
         return location
 
-    # If position is provided, replace any uses of {{position}} with the given
-    # position (if valid for the dataset). If position is not provided and
-    # {{position}} is in the location, raise an exception.
-    if position is not None:
-        if position not in dataset.zarr_positions:
-            logger.error("Position [ %d ] not valid for dataset [ %s ]", position, dataset.name)
-            raise ValueError(f"Dataset {dataset.name} only has positions: {dataset.zarr_positions}")
-        elif "{{position}}" not in str(location.path):
-            logger.warning("Provided position [ %d ] not used for location key", position)
-        else:
-            location.path = Path(str(location.path).replace("{{position}}", str(position)))
-    elif "{{position}}" in str(location.path):
+    # If location does not have any placeholders, do not need to do position or
+    # timepoint replacements so return as is. If a replacement position or
+    # timepoint was provided, also raise a warning.
+    placeholders = ("{{position}}", "{{timepoint}}")
+    if all(ph not in str(location.path) and ph not in str(location.s3uri) for ph in placeholders):
+        if position is not None:
+            logger.warning("Position [ %d ] not used by location key", position)
+        if timepoint is not None:
+            logger.warning("Timepoint [ %d ] not used by location key", timepoint)
+        return location
+
+    # Check if the position is valid before making any replacements
+    if position and position not in dataset.zarr_positions:
+        logger.warning("Position [ %d ] not valid for dataset [ %s ]", position, dataset.name)
+        position = None
+
+    # If there is a path with a placeholder, make the replacement
+    if position and location.path and "{{position}}" in str(location.path):
+        location.path = Path(str(location.path).replace("{{position}}", str(position)))
+
+    # If there is a uri with a placeholder, make the replacement
+    if position and location.s3uri and "{{position}}" in str(location.s3uri):
+        location.s3uri = str(location.s3uri).replace("{{position}}", str(position))
+
+    # Raise an expection if position is not provided but placeholder exists in path
+    if "{{position}}" in str(location.path):
         logger.error("Dataset [ %s ] location requires position", dataset.name)
         raise ValueError(f"Position cannot be 'None' for location '{location.path}'")
 
-    # If timepoint is provided, replace any uses of {{timepoint}} with the given
-    # timepoint (if valid for the dataset). If timepoint is not provided and
-    # {{timepoint}} is in the location, raise an exception.
-    if timepoint is not None:
-        if timepoint < 0 or timepoint >= dataset.duration:
-            logger.error("Timepoint [ %d ] not valid for dataset [ %s ]", timepoint, dataset.name)
-            raise ValueError(f"Dataset {dataset.name} only has {dataset.duration} timepoints")
-        elif "{{timepoint}}" not in str(location.path):
-            logger.warning("Provided timepoint [ %d ] not used for location key", timepoint)
-        else:
-            location.path = Path(str(location.path).replace("{{timepoint}}", str(timepoint)))
-    elif "{{timepoint}}" in str(location.path):
+    # Raise an expection if position is not provided but placeholder exists in uri
+    if "{{position}}" in str(location.s3uri):
+        logger.error("Dataset [ %s ] location requires position", dataset.name)
+        raise ValueError(f"Position cannot be 'None' for location '{location.s3uri}'")
+
+    # Check if the timepoint is valid before making any replacements
+    if timepoint and (timepoint < 0 or timepoint >= dataset.duration):
+        logger.warning("Timepoint [ %d ] not valid for dataset [ %s ]", timepoint, dataset.name)
+        timepoint = None
+
+    # If there is a path with a placeholder, make the replacement
+    if timepoint and location.path and "{{timepoint}}" in str(location.path):
+        location.path = Path(str(location.path).replace("{{timepoint}}", str(timepoint)))
+
+    # If there is a uri with a placeholder, make the replacement
+    if timepoint and location.s3uri and "{{timepoint}}" in str(location.s3uri):
+        location.s3uri = str(location.s3uri).replace("{{timepoint}}", str(timepoint))
+
+    # Raise an expection if timepoint is not provided but placeholder exists in path
+    if "{{timepoint}}" in str(location.path):
         logger.error("Dataset [ %s ] location requires timepoint", dataset.name)
         raise ValueError(f"Timepoint cannot be 'None' for location '{location.path}'")
+
+    # Raise an expection if timepoint is not provided but placeholder exists in uri
+    if "{{timepoint}}" in str(location.s3uri):
+        logger.error("Dataset [ %s ] location requires timepoint", dataset.name)
+        raise ValueError(f"Timepoint cannot be 'None' for location '{location.s3uri}'")
 
     return location
 
