@@ -400,8 +400,10 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
     histogram_vmax = 0.7
 
     fig, ax = plt.subplots(
-        2, 2, figsize=(3.45, 2.5), layout="constrained", gridspec_kw={"hspace": 0.15}
+        2, 2, figsize=(3.25, 2.5), layout="constrained", gridspec_kw={"hspace": 0.15}
     )
+    # reserve left margin for the vertical label
+    fig.get_layout_engine().set(rect=[0.08, 0, 1, 1])
     time_column_label = COLUMN_METADATA[Column.TIMEPOINT].label
     for i, dataset in enumerate([dataset_low, dataset_high]):
         dataset_config = load_dataset_config(dataset)
@@ -457,9 +459,10 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
                 ax_ij.set_xlabel(time_column_label, labelpad=1, fontsize=FONTSIZE_SMALL)
             if j == 1:
                 # add vertical title to the left of the contour plot spanning all rows
+                y_position = 0.8 if i == 0 else 0.3
                 fig.text(
-                    0.0,
-                    0.5,
+                    0.05,
+                    y_position,
                     shear_stress_label,
                     va="center",
                     ha="center",
@@ -474,7 +477,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         norm=plt.Normalize(vmin=histogram_vmin, vmax=histogram_vmax), cmap="inferno"
     )
     cbar = fig.colorbar(cbar_mappable, ax=ax[:, 1], location="right", pad=0.1)
-    cbar.set_label("Histogram", labelpad=3)
+    cbar.set_label("Histogram", labelpad=3, fontsize=FONTSIZE_SMALL)
 
     filename = "theta_orientation_histograms"
     save_plot_to_path(

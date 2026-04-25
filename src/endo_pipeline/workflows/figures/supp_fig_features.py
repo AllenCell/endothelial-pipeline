@@ -133,9 +133,9 @@ def main() -> None:
         FigurePanel(
             letter="E",
             path=theta_orientation_path,
-            x_position=2.7,
+            x_position=2.75,
             y_position=5.4,
-            x_offset=0.2,
+            x_offset=0.15,
             y_offset=0.0,
         ),
     ]
