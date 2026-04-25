@@ -121,12 +121,12 @@ def _add_axes_lines(
     axes: np.ndarray[plt.Axes, Any],
     center_index: int,
     n_steps: int,
-    axes_color: str,
-    axes_linewidth: float,
-    arrow_head_length: float = 0.75,
-    arrow_head_width: float = 0.4,
-    axes_extend: float = 0.08,
-    arrow_mutation_scale: float = 15,
+    color: str,
+    linewidth: float,
+    head_length: float = 1.0,
+    head_width: float = 0.6,
+    mutation_scale: float = 15,
+    axes_extend: float = 0.14,
 ) -> None:
     """Add horizontal and vertical axes lines with labels to the 2D latent walk plot."""
     ax_center = axes[center_index, center_index]
@@ -139,7 +139,7 @@ def _add_axes_lines(
     cx = center_bbox.x0 + center_bbox.width / 2
     cy = center_bbox.y0 + center_bbox.height / 2
 
-    arrowstyle = f"<->,head_length={arrow_head_length},head_width={arrow_head_width}"
+    arrowstyle = f"<->,head_length={head_length},head_width={head_width}"
 
     for posA, posB in [
         ((left_bbox.x0 - axes_extend, cy), (right_bbox.x1 + axes_extend, cy)),  # horizontal
@@ -152,9 +152,9 @@ def _add_axes_lines(
             posB,
             arrowstyle=arrowstyle,
             connectionstyle="arc3,rad=0",
-            color=axes_color,
-            linewidth=axes_linewidth,
-            mutation_scale=arrow_mutation_scale,
+            color=color,
+            linewidth=linewidth,
+            mutation_scale=mutation_scale,
             transform=fig.transFigure,
             clip_on=False,
             zorder=4,
@@ -281,24 +281,16 @@ def plot_2d_latent_walk(
         Path to the saved figure file.
 
     """
-    gridspec_kwargs = {"wspace": 0, "hspace": 0}
-    fig_kwargs = {"figsize": (2.15, 2.15), "layout": "constrained"}
-    orientation_arrow_kwargs = {
-        "arc_rad": 0.5,
-        "head_length": 0.75,
-        "head_width": 0.4,
-        "color": "darkred",
-        "linewidth": 1.5,
-        "label_offset": (0.285, 0.125),
-    }
-
-    pc_axes_linewidth = 2.5
-    pc_axes_color = "blue"
-
     n_steps = images_pc1.shape[0]
     center = n_steps // 2  # index of the origin (0 sigma)
 
-    fig, axes = plt.subplots(n_steps, n_steps, gridspec_kw=gridspec_kwargs, **(fig_kwargs or {}))
+    fig, axes = plt.subplots(
+        n_steps,
+        n_steps,
+        gridspec_kw={"wspace": 0, "hspace": 0},
+        figsize=(2.15, 2.15),
+        layout="constrained",
+    )
 
     # Inset the subplot grid so the axis arrows that extend beyond the outermost
     # cells always land inside the figure canvas.  Setting rect here — before the
@@ -326,10 +318,21 @@ def plot_2d_latent_walk(
     fig.canvas.draw()
 
     # Draw axis lines on a figure-level underlay so they appear behind all image axes.
-    _add_axes_lines(fig, axes, center, n_steps, pc_axes_color, pc_axes_linewidth)
+    _add_axes_lines(fig, axes, center, n_steps, color="blue", linewidth=2.5)
 
     # Add arced arrow with label "orientation" going from PC1 to PC2
-    _add_orientation_arrow(fig, axes, center, n_steps, **(orientation_arrow_kwargs or {}))
+    _add_orientation_arrow(
+        fig,
+        axes,
+        center,
+        n_steps,
+        arc_rad=0.5,
+        head_length=0.5,
+        head_width=0.2,
+        color="darkred",
+        linewidth=1.5,
+        label_offset=(0.285, 0.125),
+    )
 
     save_plot_to_path(
         fig, save_path, filename, file_format=".svg", transparent=True, tight_layout=False
