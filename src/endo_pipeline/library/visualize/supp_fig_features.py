@@ -6,6 +6,7 @@ from typing import Any, cast
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.patches import FancyArrowPatch
 
 from endo_pipeline.cli import NUM_GPUS
 from endo_pipeline.configs import get_datasets_in_collection
@@ -122,14 +123,12 @@ def _add_axes_lines(
     n_steps: int,
     axes_color: str,
     axes_linewidth: float,
+    arrow_head_length: float = 0.75,
+    arrow_head_width: float = 0.4,
     axes_extend: float = 0.08,
+    arrow_mutation_scale: float = 15,
 ) -> None:
     """Add horizontal and vertical axes lines with labels to the 2D latent walk plot."""
-    underlay = fig.add_axes((0.0, 0.0, 1.0, 1.0), facecolor="none", zorder=-1)
-    underlay.set_xlim(0, 1)
-    underlay.set_ylim(0, 1)
-    underlay.axis("off")
-
     ax_center = axes[center_index, center_index]
     center_bbox = ax_center.get_position()
     left_bbox = axes[center_index, 0].get_position()
@@ -137,27 +136,30 @@ def _add_axes_lines(
     top_bbox = axes[0, center_index].get_position()
     bottom_bbox = axes[n_steps - 1, center_index].get_position()
 
-    cx = center_bbox.x0 + center_bbox.width / 2 - 0.025
-    cy = center_bbox.y0 + center_bbox.height / 2 - 0.05
+    cx = center_bbox.x0 + center_bbox.width / 2
+    cy = center_bbox.y0 + center_bbox.height / 2
 
-    underlay.plot(
-        [left_bbox.x0, right_bbox.x1],
-        [cy, cy],
-        color=axes_color,
-        linestyle="-",
-        linewidth=axes_linewidth,
-        transform=underlay.transAxes,
-        clip_on=False,
-    )
-    underlay.plot(
-        [cx, cx],
-        [bottom_bbox.y0, top_bbox.y1],
-        color=axes_color,
-        linestyle="-",
-        linewidth=axes_linewidth,
-        transform=underlay.transAxes,
-        clip_on=False,
-    )
+    arrowstyle = f"<->,head_length={arrow_head_length},head_width={arrow_head_width}"
+
+    for posA, posB in [
+        ((left_bbox.x0 - axes_extend, cy), (right_bbox.x1 + axes_extend, cy)),  # horizontal
+        ((cx, bottom_bbox.y0 - axes_extend), (cx, top_bbox.y1 + axes_extend)),  # vertical
+    ]:
+        # mutation_scale must be set explicitly (default=1 leads to sub-pixel
+        # arrowheads that render as empty paths in SVG).
+        arrow = FancyArrowPatch(
+            posA,
+            posB,
+            arrowstyle=arrowstyle,
+            connectionstyle="arc3,rad=0",
+            color=axes_color,
+            linewidth=axes_linewidth,
+            mutation_scale=arrow_mutation_scale,
+            transform=fig.transFigure,
+            clip_on=False,
+            zorder=4,
+        )
+        fig.add_artist(arrow)
 
     # PC2 label: large, to the left of the top image in the PC2 column
     top_ax = axes[0, center_index]
@@ -298,7 +300,14 @@ def plot_2d_latent_walk(
 
     fig, axes = plt.subplots(n_steps, n_steps, gridspec_kw=gridspec_kwargs, **(fig_kwargs or {}))
 
-    fig.canvas.draw()
+    # Inset the subplot grid so the axis arrows that extend beyond the outermost
+    # cells always land inside the figure canvas.  Setting rect here — before the
+    # first draw — also prevents the constrained layout engine from shifting
+    # subplot positions when savefig runs a second layout pass.
+    layout_engine = fig.get_layout_engine()
+    if layout_engine is not None:
+        layout_engine.set(**{"rect": (0.10, 0.10, 0.78, 0.80)})
+
     for row in range(n_steps):
         for col in range(n_steps):
             ax: plt.Axes = axes[row, col]
@@ -313,6 +322,8 @@ def plot_2d_latent_walk(
                 # center column: PC2 walk (vary PC2, PC1 = 0)
                 # flip row index so PC2 increases upward
                 ax.imshow(images_pc2[n_steps - 1 - row], cmap="gray", zorder=1)
+
+    fig.canvas.draw()
 
     # Draw axis lines on a figure-level underlay so they appear behind all image axes.
     _add_axes_lines(fig, axes, center, n_steps, pc_axes_color, pc_axes_linewidth)
