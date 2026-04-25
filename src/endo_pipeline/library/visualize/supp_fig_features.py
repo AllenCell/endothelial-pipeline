@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.patches import FancyArrowPatch
-from seaborn import histplot
 
 from endo_pipeline.cli import NUM_GPUS
 from endo_pipeline.configs import (
@@ -16,6 +15,7 @@ from endo_pipeline.configs import (
     load_dataset_config,
 )
 from endo_pipeline.io import load_dataframe, load_model, save_plot_to_path
+from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.analyze.pca import fit_pca
 from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
 from endo_pipeline.library.model.diffae.generate_image import generate_latent_walk_images
@@ -28,6 +28,7 @@ from endo_pipeline.manifests import (
 )
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
 from endo_pipeline.settings.figures import FONTSIZE_LARGE, MAX_FIGURE_WIDTH
@@ -390,33 +391,27 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED
     )
 
-    fig, ax = plt.subplots(2, 2, figsize=(2.25, 3.5), layout="constrained")
+    fig, ax = plt.subplots(2, 2, figsize=(3.5, 2.25), layout="constrained")
     for i, dataset in enumerate([dataset_low, dataset_high]):
         dataset_config = load_dataset_config(dataset)
         df_ = load_dataframe(
             get_dataframe_location_for_dataset(dataframe_manifest, dataset), delay=True
         )
 
-        columns_to_plot = [Column.DiffAEData.POLAR_ANGLE, Column.SegData.ORIENTATION]
+        columns_to_plot: list[ColumnNameType] = [
+            Column.DiffAEData.POLAR_ANGLE,
+            Column.SegData.ORIENTATION,
+        ]
         columns_to_compute = [*columns_to_plot, Column.TIMEPOINT]
-        df = df_[columns_to_compute].compute()
+        df: pd.DataFrame = df_[columns_to_compute].compute()
 
+        time_bins = np.arange(df[Column.TIMEPOINT].min(), df[Column.TIMEPOINT].max() + 2, 1) - 0.5
         for j, column in enumerate(columns_to_plot):
-            ax_ij = ax[i, j]
-            feature_column_metadata = COLUMN_METADATA[column]
-            time_column_metadata = COLUMN_METADATA[Column.TIMEPOINT]
-            if time_column_metadata.bin_width and feature_column_metadata.bin_width:
-                binwidth = (time_column_metadata.bin_width, feature_column_metadata.bin_width)
-            else:
-                binwidth = None
+            ax_ij = cast(plt.Axes, ax[i, j])
 
-            histplot(
-                data=df,
-                x=Column.TIMEPOINT,
-                y=column,
-                binwidth=binwidth,
-                cmap="inferno",
-                ax=ax_ij,
+            feature_bins = get_bins(bin_widths=(0.25,), data=df[column].to_numpy())[0][0]
+            ax_ij.hist2d(
+                df[Column.TIMEPOINT], df[column], bins=[time_bins, feature_bins], cmap="inferno"
             )
 
             # change the background color to grey
@@ -443,6 +438,6 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         filename,
         file_format=".svg",
         tight_layout=False,
-        transparent=True,
+        transparent=False,
     )
     return output_path / f"{filename}.svg"
