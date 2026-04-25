@@ -207,8 +207,11 @@ def get_annotated_timepoints_for_position(
 def get_start_of_steady_state_for_position(dataset: DatasetConfig, position: int) -> int | None:
     """Get the timepoint at which the steady state starts for the given position."""
 
-    if dataset.position_annotations is None:
-        logger.warning("Dataset [ %s ] does not have any position annotations", dataset.name)
+    if (
+        dataset.timepoint_annotations is None
+        or TimepointAnnotation.NOT_STEADY_STATE not in dataset.timepoint_annotations
+    ):
+        logger.warning("Dataset [ %s ] does not have any timepoint annotations", dataset.name)
         return None
 
     not_steady_state_timepoints = get_annotated_timepoints_for_position(
