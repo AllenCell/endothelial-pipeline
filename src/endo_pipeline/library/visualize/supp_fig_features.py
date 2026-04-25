@@ -190,8 +190,8 @@ def _add_axes_lines(
 
     # "elongation" label: near the bottom, to the left of the PC2 axis line
     fig.text(
-        left_bbox.x0 - 0.04,
-        bottom_bbox.y0 - axes_extend - 0.01,
+        left_bbox.x0 + 0.24,
+        bottom_bbox.y0 - axes_extend - 0.2,
         "elongation",
         fontsize=FONTSIZE_LARGE,
         fontweight="bold",
@@ -211,7 +211,7 @@ def _add_orientation_arrow(
     head_width: float = 0.4,
     color: str = "darkred",
     linewidth: float = 1.5,
-    label_offset: tuple[float, float] = (0.285, 0.125),
+    label_offset: tuple[float, float] = (0.275, 0.125),
 ) -> None:
     """Add an arced arrow and "orientation" label to the 2D latent walk plot."""
     overlay = fig.add_axes((0.0, 0.0, 1.0, 1.0), facecolor="none", zorder=5)
@@ -253,6 +253,7 @@ def _add_orientation_arrow(
         mid_y + label_offset[1],
         "orientation",
         fontsize=FONTSIZE_LARGE,
+        fontweight="bold",
         ha="center",
         va="center",
         transform=overlay.transAxes,
@@ -315,6 +316,8 @@ def plot_2d_latent_walk(
         for col in range(n_steps):
             ax: plt.Axes = axes[row, col]
             ax.axis("off")
+            ax.set_zorder(5)
+            ax.patch.set_visible(False)
             if row == center and col == center:
                 # origin: use the center image (shared by both walks)
                 ax.imshow(images_pc1[center], cmap="gray", zorder=1)
@@ -336,8 +339,8 @@ def plot_2d_latent_walk(
         n_steps,
         color="blue",
         linewidth=2.5,
-        head_length=0.8,
-        head_width=0.5,
+        head_length=0.5,
+        head_width=0.3,
         mutation_scale=15,
         axes_extend=0.14,
     )
