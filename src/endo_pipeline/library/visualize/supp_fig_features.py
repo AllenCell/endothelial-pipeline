@@ -123,8 +123,8 @@ def _add_axes_lines(
     n_steps: int,
     color: str,
     linewidth: float,
-    head_length: float = 1.0,
-    head_width: float = 0.6,
+    head_length: float = 0.75,
+    head_width: float = 0.4,
     mutation_scale: float = 15,
     axes_extend: float = 0.14,
 ) -> None:
@@ -161,7 +161,6 @@ def _add_axes_lines(
         )
         fig.add_artist(arrow)
 
-    # PC2 label: large, to the left of the top image in the PC2 column
     top_ax = axes[0, center_index]
     top_bbox = top_ax.get_position()
     pc1_label = cast(str, COLUMN_METADATA["pc_1"].label)
@@ -186,6 +185,18 @@ def _add_axes_lines(
         fontweight="bold",
         ha="left",
         va="center",
+        transform=fig.transFigure,
+    )
+
+    # "elongation" label: near the bottom, to the left of the PC2 axis line
+    fig.text(
+        left_bbox.x0 - 0.04,
+        bottom_bbox.y0 - axes_extend - 0.01,
+        "elongation",
+        fontsize=FONTSIZE_LARGE,
+        fontweight="bold",
+        ha="right",
+        va="top",
         transform=fig.transFigure,
     )
 
@@ -318,7 +329,18 @@ def plot_2d_latent_walk(
     fig.canvas.draw()
 
     # Draw axis lines on a figure-level underlay so they appear behind all image axes.
-    _add_axes_lines(fig, axes, center, n_steps, color="blue", linewidth=2.5)
+    _add_axes_lines(
+        fig,
+        axes,
+        center,
+        n_steps,
+        color="blue",
+        linewidth=2.5,
+        head_length=0.8,
+        head_width=0.5,
+        mutation_scale=15,
+        axes_extend=0.14,
+    )
 
     # Add arced arrow with label "orientation" going from PC1 to PC2
     _add_orientation_arrow(
@@ -327,8 +349,8 @@ def plot_2d_latent_walk(
         center,
         n_steps,
         arc_rad=0.5,
-        head_length=0.5,
-        head_width=0.2,
+        head_length=0.75,
+        head_width=0.4,
         color="darkred",
         linewidth=1.5,
         label_offset=(0.285, 0.125),
