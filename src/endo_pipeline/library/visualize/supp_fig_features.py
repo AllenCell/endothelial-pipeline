@@ -122,6 +122,7 @@ def _add_axes_lines(
     n_steps: int,
     axes_color: str,
     axes_linewidth: float,
+    axes_extend: float = 0.08,
 ) -> None:
     """Add horizontal and vertical axes lines with labels to the 2D latent walk plot."""
     underlay = fig.add_axes((0.0, 0.0, 1.0, 1.0), facecolor="none", zorder=-1)
@@ -163,28 +164,27 @@ def _add_axes_lines(
     top_bbox = top_ax.get_position()
     pc1_label = cast(str, COLUMN_METADATA["pc_1"].label)
     pc2_label = cast(str, COLUMN_METADATA["pc_2"].label)
-    underlay.text(
-        top_bbox.x0 - 0.1,
+    # PC2 label: to the left of the top image in the PC2 column
+    fig.text(
+        top_bbox.x0 - 0.04,
         top_bbox.y1,
         pc2_label,
         fontsize=FONTSIZE_LARGE,
         fontweight="bold",
         ha="right",
         va="top",
-        transform=underlay.transAxes,
+        transform=fig.transFigure,
     )
-    # PC1 label: large, below the rightmost image in the PC1 row
-    right_ax = axes[center_index, n_steps - 1]
-    right_bbox = right_ax.get_position()
-    underlay.text(
-        right_bbox.x1 + right_bbox.width / 2 + 0.05,
-        right_bbox.y0 - 0.05,
+    # PC1 label: to the right of the rightmost image, vertically centred on the axis
+    fig.text(
+        right_bbox.x1 + axes_extend + 0.01,
+        cy,
         pc1_label,
         fontsize=FONTSIZE_LARGE,
         fontweight="bold",
         ha="left",
         va="center",
-        transform=underlay.transAxes,
+        transform=fig.transFigure,
     )
 
 
