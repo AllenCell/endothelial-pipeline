@@ -86,23 +86,12 @@ def main() -> None:
     latent_walk_2d_filename = "latent_walk_pc1_pc2_2d"
     images_pc1 = walk_img_grid[0][1:-1]
     images_pc2 = walk_img_grid[1][1:-1]
-    orientation_arrow_kwargs = {
-        "arc_rad": 0.5,
-        "head_length": 0.75,
-        "head_width": 0.4,
-        "color": "darkred",
-        "linewidth": 1.5,
-        "label_offset": (0.285, 0.125),
-    }
 
     latent_walk_2d_path = plot_2d_latent_walk(
         images_pc1,
         images_pc2,
         save_dir,
         latent_walk_2d_filename,
-        orientation_arrow_kwargs=orientation_arrow_kwargs,
-        fig_kwargs={"figsize": (2.15, 2.15), "layout": "constrained"},
-        gridspec_kwargs={"wspace": 0, "hspace": 0},
     )
 
     # build figure with panels

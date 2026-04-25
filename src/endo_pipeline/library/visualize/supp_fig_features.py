@@ -251,11 +251,6 @@ def plot_2d_latent_walk(
     images_pc2: np.ndarray,
     save_path: Path,
     filename: str,
-    axes_linewidth: float = 2.5,
-    axes_color: str = "dimgrey",
-    orientation_arrow_kwargs: dict[str, Any] | None = None,
-    gridspec_kwargs: dict | None = None,
-    fig_kwargs: dict | None = None,
 ) -> Path:
     """
     Plot a "2D" latent walk along the first two principal components by
@@ -277,16 +272,6 @@ def plot_2d_latent_walk(
         Directory path to save the output figure.
     filename
         Name of the output figure file.
-    axes_linewidth
-        Line width to use for the axes lines.
-    axes_color
-        Color to use for the axes lines.
-    gridspec_kwargs
-        Optional dictionary of keyword arguments to pass to GridSpec (e.g.,
-        {"wspace": 0, "hspace": 0}).
-    fig_kwargs
-        Optional dictionary of keyword arguments to pass to plt.figure (e.g.,
-        {"figsize": (3.5, 3.5)}).
 
     Returns
     -------
@@ -294,6 +279,20 @@ def plot_2d_latent_walk(
         Path to the saved figure file.
 
     """
+    gridspec_kwargs = {"wspace": 0, "hspace": 0}
+    fig_kwargs = {"figsize": (2.15, 2.15), "layout": "constrained"}
+    orientation_arrow_kwargs = {
+        "arc_rad": 0.5,
+        "head_length": 0.75,
+        "head_width": 0.4,
+        "color": "darkred",
+        "linewidth": 1.5,
+        "label_offset": (0.285, 0.125),
+    }
+
+    pc_axes_linewidth = 2.5
+    pc_axes_color = "dimgrey"
+
     n_steps = images_pc1.shape[0]
     center = n_steps // 2  # index of the origin (0 sigma)
 
@@ -316,7 +315,7 @@ def plot_2d_latent_walk(
                 ax.imshow(images_pc2[n_steps - 1 - row], cmap="gray", zorder=1)
 
     # Draw axis lines on a figure-level underlay so they appear behind all image axes.
-    _add_axes_lines(fig, axes, center, n_steps, axes_color, axes_linewidth)
+    _add_axes_lines(fig, axes, center, n_steps, pc_axes_color, pc_axes_linewidth)
 
     # Add arced arrow with label "orientation" going from PC1 to PC2
     _add_orientation_arrow(fig, axes, center, n_steps, **(orientation_arrow_kwargs or {}))
