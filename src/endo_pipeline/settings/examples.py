@@ -481,3 +481,22 @@ SUPP_FIG_OPTICAL_FLOW_INCOHERENT_EXAMPLE: OpticalFlowExample = OpticalFlowExampl
     crop_row=2,
     crop_col=5,
 )
+FLOW_FIELD_CONSTRUCTION_EXAMPLE_IMAGES: list[ExampleImage] = [
+    ExampleImage(
+        dataset_name="20250409_20X",
+        description="low_flow",
+        position=0,
+        timepoint=290,
+        crop_x_start=0,  # res level 0
+        crop_y_start=0,  # res level 0
+    ),
+    ExampleImage(
+        dataset_name="20250409_20X",
+        description="low_flow",
+        position=0,
+        timepoint=291,
+        crop_x_start=0,  # res level 0
+        crop_y_start=0,  # res level 0
+    ),
+]
+"""Example images for illustrating flow field construction from trajectories."""
