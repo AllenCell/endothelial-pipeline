@@ -31,7 +31,7 @@ from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
-from endo_pipeline.settings.figures import FONTSIZE_LARGE, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_SMALL, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -390,8 +390,13 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
     dataframe_manifest = load_dataframe_manifest(
         DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED
     )
+    histogram_vmin = 0.0
+    histogram_vmax = 0.7
 
-    fig, ax = plt.subplots(2, 2, figsize=(3.5, 2.25), layout="constrained")
+    fig, ax = plt.subplots(
+        2, 2, figsize=(3.45, 2.5), layout="constrained", gridspec_kw={"hspace": 0.15}
+    )
+    time_column_label = COLUMN_METADATA[Column.TIMEPOINT].label
     for i, dataset in enumerate([dataset_low, dataset_high]):
         dataset_config = load_dataset_config(dataset)
         df_ = load_dataframe(
@@ -405,13 +410,20 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         columns_to_compute = [*columns_to_plot, Column.TIMEPOINT]
         df: pd.DataFrame = df_[columns_to_compute].compute()
 
-        time_bins = np.arange(df[Column.TIMEPOINT].min(), df[Column.TIMEPOINT].max() + 2, 1) - 0.5
+        time_bins = get_bins(bin_widths=(12,), data=df[Column.TIMEPOINT].to_numpy())[0][0]
         for j, column in enumerate(columns_to_plot):
+            feature_column_label = COLUMN_METADATA[column].label
             ax_ij = cast(plt.Axes, ax[i, j])
 
-            feature_bins = get_bins(bin_widths=(0.25,), data=df[column].to_numpy())[0][0]
+            feature_bins = get_bins(bin_widths=(0.05,), data=df[column].to_numpy())[0][0]
             ax_ij.hist2d(
-                df[Column.TIMEPOINT], df[column], bins=[time_bins, feature_bins], cmap="inferno"
+                df[Column.TIMEPOINT],
+                df[column],
+                bins=[time_bins, feature_bins],
+                cmap="inferno",
+                density=True,
+                cmin=histogram_vmin,
+                cmax=histogram_vmax,
             )
 
             # change the background color to grey
@@ -430,6 +442,19 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
                 linewidth=1.5,
                 zorder=3,
             )
+
+            ax_ij.set_ylabel(feature_column_label, labelpad=1, fontsize=FONTSIZE_SMALL)
+            # only set x-axis label for bottom row
+            if i == 1:
+                ax_ij.set_xlabel(time_column_label, labelpad=1, fontsize=FONTSIZE_SMALL)
+
+    # set the color limits to be the same across all histograms
+    # plot adjactent to the right of the rightmost histogram, spanning both rows
+    cbar_mappable = plt.cm.ScalarMappable(
+        norm=plt.Normalize(vmin=histogram_vmin, vmax=histogram_vmax), cmap="inferno"
+    )
+    cbar = fig.colorbar(cbar_mappable, ax=ax[:, 1], location="right", pad=0.1)
+    cbar.set_label("Histogram", labelpad=3)
 
     filename = "theta_orientation_histograms"
     save_plot_to_path(
