@@ -220,18 +220,18 @@ def _add_orientation_arrow(
     overlay.set_ylim(0, 1)
     overlay.axis("off")
 
-    # arced arrow from center-top of rightmost image to center-right of topmost image
-    # with "orientation" label at the midpoint of the arc
+    # arced arrow from rightmost image to topmost image with "orientation" label
+    # at the midpoint of the arc
     rightmost_bbox = axes[center_index, n_steps - 1].get_position()
     topmost_bbox = axes[0, center_index].get_position()
     arrow_start = (
-        rightmost_bbox.x0 + rightmost_bbox.width / 2,
+        rightmost_bbox.x1 - rightmost_bbox.width / 4,
         rightmost_bbox.y1,
-    )  # center-top of rightmost image
+    )
     arrow_end = (
         topmost_bbox.x1,
-        topmost_bbox.y0 + topmost_bbox.height / 2,
-    )  # center-right of topmost image
+        topmost_bbox.y1 - topmost_bbox.height / 4,
+    )
     arrowstyle = f"->,head_length={head_length},head_width={head_width}"
     connectionstyle = f"arc3,rad={arc_rad}"
     overlay.annotate(
@@ -300,8 +300,8 @@ def plot_2d_latent_walk(
     fig, axes = plt.subplots(
         n_steps,
         n_steps,
-        gridspec_kw={"wspace": 0, "hspace": 0},
-        figsize=(2.15, 2.15),
+        gridspec_kw={"wspace": 0.15, "hspace": 0.15},
+        figsize=(2.25, 2.25),
         layout="constrained",
     )
 
@@ -361,7 +361,7 @@ def plot_2d_latent_walk(
         head_width=0.4,
         color="darkred",
         linewidth=2.0,
-        label_offset=(0.285, 0.125),
+        label_offset=(0.275, 0.115),
     )
 
     save_plot_to_path(

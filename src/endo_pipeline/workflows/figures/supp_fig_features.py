@@ -82,12 +82,14 @@ def main() -> None:
     latent_walk_path = save_dir / f"{latent_walk_filename}_scale_bar_10um.svg"
 
     # Take the images from the latent walk along PCs 1 and 2 and plot them as a
-    # "2D" walk to motivate the polar coordinate transform. Just include to 2
-    # sigma (i.e., drop the first and last images) to avoid extreme outliers
-    # that are less visually informative.
+    # "2D" walk to motivate the polar coordinate transform. Just (-3 sigma, 0,
+    # +3 sigma) along each PC, so the grid is 3x3 with the center image repeated
+    # in the middle (showcase the extreme points along with the origin).
     latent_walk_2d_filename = "latent_walk_pc1_pc2_2d"
-    images_pc1 = walk_img_grid[0][1:-1]
-    images_pc2 = walk_img_grid[1][1:-1]
+    n_steps = walk_img_grid[0].shape[0]
+    center = n_steps // 2
+    images_pc1 = walk_img_grid[0][[0, center, -1]]
+    images_pc2 = walk_img_grid[1][[0, center, -1]]
 
     latent_walk_2d_path = plot_2d_latent_walk(
         images_pc1,
