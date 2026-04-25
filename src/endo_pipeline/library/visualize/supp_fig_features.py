@@ -31,7 +31,13 @@ from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
-from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_SMALL, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import (
+    FONTSIZE_LARGE,
+    FONTSIZE_MEDIUM,
+    FONTSIZE_SMALL,
+    MAX_FIGURE_WIDTH,
+)
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -399,10 +405,12 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
     time_column_label = COLUMN_METADATA[Column.TIMEPOINT].label
     for i, dataset in enumerate([dataset_low, dataset_high]):
         dataset_config = load_dataset_config(dataset)
+        shear_stress = np.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
+        shear_stress_label = f"{shear_stress} dyn/cm{Unicode.SQUARED}"
+
         df_ = load_dataframe(
             get_dataframe_location_for_dataset(dataframe_manifest, dataset), delay=True
         )
-
         columns_to_plot: list[ColumnNameType] = [
             Column.DiffAEData.POLAR_ANGLE,
             Column.SegData.ORIENTATION,
@@ -447,6 +455,18 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
             # only set x-axis label for bottom row
             if i == 1:
                 ax_ij.set_xlabel(time_column_label, labelpad=1, fontsize=FONTSIZE_SMALL)
+            if j == 1:
+                # add vertical title to the left of the contour plot spanning all rows
+                fig.text(
+                    0.0,
+                    0.5,
+                    shear_stress_label,
+                    va="center",
+                    ha="center",
+                    rotation="vertical",
+                    fontsize=FONTSIZE_MEDIUM,
+                    fontweight="bold",
+                )
 
     # set the color limits to be the same across all histograms
     # plot adjactent to the right of the rightmost histogram, spanning both rows
