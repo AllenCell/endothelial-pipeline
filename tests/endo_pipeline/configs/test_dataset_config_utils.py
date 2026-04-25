@@ -20,6 +20,7 @@ from endo_pipeline.configs.dataset_config_utils import (
     get_frame_before_flow_change,
     get_position_integer_from_zarr_file_path,
     get_position_string_from_zarr_file_path,
+    get_start_of_steady_state_for_position,
     get_unannotated_positions,
     get_unannotated_timepoints_for_position,
     make_filtered_dataset_collection,
@@ -220,6 +221,55 @@ def test_get_annotated_timepoints_for_position_with_annotations(
 
 def test_get_annotated_timepoints_for_position_no_annotations(dataset):
     assert get_annotated_timepoints_for_position(dataset, 0, None) == []
+
+
+# test get_start_of_steady_state_for_position
+@pytest.mark.parametrize(
+    "position,expected_timepoint",
+    [
+        (0, 5),
+        (1, 6),
+    ],
+)
+def test_get_start_of_steady_state_for_position(dataset, position, expected_timepoint):
+    dataset.duration = 10
+    dataset.timepoint_annotations = {
+        TimepointAnnotation.NOT_STEADY_STATE: {
+            0: [[0, 4]],
+            1: [[0, 5]],
+            2: [],
+        },
+    }
+
+    assert get_start_of_steady_state_for_position(dataset, position) == expected_timepoint
+
+
+def test_get_start_of_steady_state_for_position_no_annotation(dataset):
+    position = 2
+    expected_timepoint = None
+    dataset.duration = 10
+    dataset.timepoint_annotations = {
+        TimepointAnnotation.NOT_STEADY_STATE: {
+            0: [[0, 4]],
+            1: [[0, 5]],
+            2: [],
+        },
+    }
+
+    assert get_start_of_steady_state_for_position(dataset, position) == expected_timepoint
+
+
+def test_get_start_of_steady_state_for_position_exceeds_duration(dataset):
+    position = 0
+    expected_timepoint = None
+    dataset.duration = 4
+    dataset.timepoint_annotations = {
+        TimepointAnnotation.NOT_STEADY_STATE: {
+            0: [[0, 4]],
+        },
+    }
+
+    assert get_start_of_steady_state_for_position(dataset, position) == expected_timepoint
 
 
 @pytest.mark.parametrize(
