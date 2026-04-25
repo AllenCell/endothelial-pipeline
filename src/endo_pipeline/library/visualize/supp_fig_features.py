@@ -121,12 +121,13 @@ def _add_axes_lines(
     axes: np.ndarray[plt.Axes, Any],
     center_index: int,
     n_steps: int,
-    color: str,
-    linewidth: float,
+    color: str = "blue",
+    linewidth: float = 2.0,
     head_length: float = 0.75,
     head_width: float = 0.4,
     mutation_scale: float = 15,
     axes_extend: float = 0.14,
+    elongation_label_offsets: tuple[float, float] = (0.2, 0.05),
 ) -> None:
     """Add horizontal and vertical axes lines with labels to the 2D latent walk plot."""
     ax_center = axes[center_index, center_index]
@@ -188,10 +189,10 @@ def _add_axes_lines(
         transform=fig.transFigure,
     )
 
-    # "elongation" label: near the bottom, to the left of the PC2 axis line
+    # "elongation" label: to the left of the bottom axis arrow tip
     fig.text(
-        left_bbox.x0 + 0.24,
-        bottom_bbox.y0 - axes_extend - 0.2,
+        left_bbox.x0 + elongation_label_offsets[0],
+        bottom_bbox.y0 - axes_extend + elongation_label_offsets[1],
         "elongation",
         fontsize=FONTSIZE_LARGE,
         fontweight="bold",
@@ -210,7 +211,7 @@ def _add_orientation_arrow(
     head_length: float = 0.75,
     head_width: float = 0.4,
     color: str = "darkred",
-    linewidth: float = 1.5,
+    linewidth: float = 2.0,
     label_offset: tuple[float, float] = (0.275, 0.125),
 ) -> None:
     """Add an arced arrow and "orientation" label to the 2D latent walk plot."""
@@ -308,9 +309,12 @@ def plot_2d_latent_walk(
     # cells always land inside the figure canvas.  Setting rect here — before the
     # first draw — also prevents the constrained layout engine from shifting
     # subplot positions when savefig runs a second layout pass.
+    # The bottom margin must be large enough to accommodate both the axis
+    # arrow tips (which extend `axes_extend` below the grid) and the
+    # "elongation" text label below that.
     layout_engine = fig.get_layout_engine()
     if layout_engine is not None:
-        layout_engine.set(**{"rect": (0.10, 0.10, 0.78, 0.80)})
+        layout_engine.set(**{"rect": (0.10, 0.10, 0.78, 0.75)})
 
     for row in range(n_steps):
         for col in range(n_steps):
@@ -338,11 +342,12 @@ def plot_2d_latent_walk(
         center,
         n_steps,
         color="blue",
-        linewidth=2.5,
+        linewidth=2.0,
         head_length=0.5,
         head_width=0.3,
         mutation_scale=15,
         axes_extend=0.14,
+        elongation_label_offsets=(0.3, 0.075),
     )
 
     # Add arced arrow with label "orientation" going from PC1 to PC2
@@ -355,7 +360,7 @@ def plot_2d_latent_walk(
         head_length=0.75,
         head_width=0.4,
         color="darkred",
-        linewidth=1.5,
+        linewidth=2.0,
         label_offset=(0.285, 0.125),
     )
 
