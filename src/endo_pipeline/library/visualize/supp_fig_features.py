@@ -291,7 +291,7 @@ def plot_2d_latent_walk(
     }
 
     pc_axes_linewidth = 2.5
-    pc_axes_color = "dimgrey"
+    pc_axes_color = "blue"
 
     n_steps = images_pc1.shape[0]
     center = n_steps // 2  # index of the origin (0 sigma)
