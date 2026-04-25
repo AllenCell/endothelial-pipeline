@@ -14,6 +14,7 @@ def main() -> None:
         visualize_correlation_heatmaps,
     )
     from endo_pipeline.library.visualize.supp_fig_features import (
+        make_theta_orientation_histogram_panel,
         perform_latent_walk_along_top_pcs,
         plot_2d_latent_walk,
     )
@@ -98,6 +99,11 @@ def main() -> None:
         latent_walk_2d_filename,
     )
 
+    # panel E: visual comparison of theta (ML-based feature) and cell
+    # orientation (segmentation feature) as side-by-side histograms
+    # over time for a low shear stress and a high shear stress dataset.
+    theta_orientation_path = make_theta_orientation_histogram_panel(save_dir)
+
     # build figure with panels
     panels = [
         FigurePanel(
@@ -120,6 +126,14 @@ def main() -> None:
             letter="D",
             path=latent_walk_2d_path,
             x_position=0.1,
+            y_position=5.4,
+            x_offset=0.0,
+            y_offset=0.0,
+        ),
+        FigurePanel(
+            letter="E",
+            path=theta_orientation_path,
+            x_position=2.3,
             y_position=5.4,
             x_offset=0.0,
             y_offset=0.0,
