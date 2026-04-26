@@ -402,8 +402,12 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
     fig, ax = plt.subplots(
         2, 2, figsize=(3.25, 2.5), layout="constrained", gridspec_kw={"hspace": 0.15}
     )
-    # reserve left margin for the vertical label
-    fig.get_layout_engine().set(rect=[0.08, 0, 1, 1])
+
+    layout_engine = fig.get_layout_engine()
+    if layout_engine is not None:
+        # reserve left margin for the vertical label
+        layout_engine.set(rect=[0.08, 0, 1, 1])
+
     time_column_label = COLUMN_METADATA[Column.TIMEPOINT].label
     for i, dataset in enumerate([dataset_low, dataset_high]):
         dataset_config = load_dataset_config(dataset)
