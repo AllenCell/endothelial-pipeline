@@ -399,6 +399,10 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
     histogram_vmin = 0.0
     histogram_vmax = 0.7
 
+    axes_ylim = (0, np.pi)
+    axes_yticks = [0, np.pi / 2, np.pi]
+    axes_ytick_labels = [f"0={Unicode.PI}", f"{Unicode.PI}/2", f"{Unicode.PI}=0"]
+
     fig, ax = plt.subplots(
         2, 2, figsize=(3.25, 2.5), layout="constrained", gridspec_kw={"hspace": 0.15}
     )
@@ -462,23 +466,33 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
                 zorder=3,
             )
 
-            ax_ij.set_ylabel(feature_column_label, labelpad=1, fontsize=FONTSIZE_SMALL)
-            # only set x-axis label for bottom row
-            if i == 1:
+            # set y axes limits and ticks
+            ax_ij.set_ylim(axes_ylim)
+            ax_ij.set_yticks(axes_yticks)
+            # add tick labels for shared y axis just on leftmost plots
+            if j == 0:
+                ax_ij.set_yticklabels(axes_ytick_labels, fontsize=FONTSIZE_SMALL)
+            elif j == 1:
+                ax_ij.set_yticklabels([])
+            if i == 0:
+                # put label as column title for top row
+                ax_ij.set_title(feature_column_label, fontsize=FONTSIZE_SMALL)
+            elif i == 1:
+                # only set x-axis label for bottom row
                 ax_ij.set_xlabel(time_column_label, labelpad=1, fontsize=FONTSIZE_SMALL)
-            if j == 1:
-                # add vertical title to the left of the contour plot spanning all rows
-                y_position = 0.8 if i == 0 else 0.3
-                fig.text(
-                    0.05,
-                    y_position,
-                    shear_stress_label,
-                    va="center",
-                    ha="center",
-                    rotation="vertical",
-                    fontsize=FONTSIZE_MEDIUM,
-                    fontweight="bold",
-                )
+
+        # add vertical label for shear stress to the left of the contour plot
+        y_position = 0.8 if i == 0 else 0.3
+        fig.text(
+            0.05,
+            y_position,
+            shear_stress_label,
+            va="center",
+            ha="center",
+            rotation="vertical",
+            fontsize=FONTSIZE_MEDIUM,
+            fontweight="bold",
+        )
 
     # set the color limits to be the same across all histograms
     # plot adjactent to the right of the rightmost histogram, spanning both rows
