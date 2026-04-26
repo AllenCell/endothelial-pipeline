@@ -412,7 +412,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         # reserve left margin for the vertical label
         layout_engine.set(**{"rect": [0.08, 0, 1, 1]})
 
-    time_column_label = COLUMN_METADATA[Column.TIMEPOINT].label or "timepoint"
+    time_column_label = COLUMN_METADATA[Column.TIMEPOINT].label.capitalize() or "timepoint"
 
     columns_to_plot: list[ColumnNameType] = [
         Column.DiffAEData.POLAR_ANGLE,
@@ -440,6 +440,10 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         time_bins = get_bins(bin_widths=(12,), data=df[Column.TIMEPOINT].to_numpy())[0][0]
         for j, column in enumerate(columns_to_plot):
             feature_column_label = COLUMN_METADATA[column].label or column.value
+            if column == Column.DiffAEData.POLAR_ANGLE:
+                feature_column_label = f"Polar {feature_column_label}"
+            # convert to sentence case for better readability as a plot title
+            feature_column_label = feature_column_label.capitalize()
 
             ax_ij = cast(plt.Axes, ax[i, j])
 
