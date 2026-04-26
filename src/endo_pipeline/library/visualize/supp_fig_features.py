@@ -406,9 +406,15 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
     layout_engine = fig.get_layout_engine()
     if layout_engine is not None:
         # reserve left margin for the vertical label
-        layout_engine.set(rect=[0.08, 0, 1, 1])
+        layout_engine.set(**{"rect": [0.08, 0, 1, 1]})
 
     time_column_label = COLUMN_METADATA[Column.TIMEPOINT].label or "timepoint"
+
+    columns_to_plot: list[ColumnNameType] = [
+        Column.DiffAEData.POLAR_ANGLE,
+        Column.SegData.ORIENTATION,
+    ]
+    columns_to_compute = [*columns_to_plot, Column.TIMEPOINT]
 
     for i, dataset in enumerate([dataset_low, dataset_high]):
         dataset_config = load_dataset_config(dataset)
@@ -425,16 +431,11 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         df_ = load_dataframe(
             get_dataframe_location_for_dataset(dataframe_manifest, dataset), delay=True
         )
-        columns_to_plot: list[ColumnNameType] = [
-            Column.DiffAEData.POLAR_ANGLE,
-            Column.SegData.ORIENTATION,
-        ]
-        columns_to_compute = [*columns_to_plot, Column.TIMEPOINT]
         df: pd.DataFrame = df_[columns_to_compute].compute()
 
         time_bins = get_bins(bin_widths=(12,), data=df[Column.TIMEPOINT].to_numpy())[0][0]
         for j, column in enumerate(columns_to_plot):
-            feature_column_label = COLUMN_METADATA[column].label or column
+            feature_column_label = COLUMN_METADATA[column].label or column.value
 
             ax_ij = cast(plt.Axes, ax[i, j])
 
