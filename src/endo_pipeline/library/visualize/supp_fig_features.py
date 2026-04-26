@@ -408,11 +408,19 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         # reserve left margin for the vertical label
         layout_engine.set(rect=[0.08, 0, 1, 1])
 
-    time_column_label = COLUMN_METADATA[Column.TIMEPOINT].label
+    time_column_label = COLUMN_METADATA[Column.TIMEPOINT].label or "timepoint"
+
     for i, dataset in enumerate([dataset_low, dataset_high]):
         dataset_config = load_dataset_config(dataset)
         shear_stress = np.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
         shear_stress_label = f"{shear_stress} dyn/cm{Unicode.SQUARED}"
+
+        # use position 0 as a representative position for the dataset to get the
+        # timepoint corresponding to the start of steady state, which we will
+        # indicate with a vertical dashed line on the histogram
+        start_steady_state_timepoint = (
+            get_start_of_steady_state_for_position(dataset_config, position=0) or 0
+        )
 
         df_ = load_dataframe(
             get_dataframe_location_for_dataset(dataframe_manifest, dataset), delay=True
@@ -426,7 +434,8 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
 
         time_bins = get_bins(bin_widths=(12,), data=df[Column.TIMEPOINT].to_numpy())[0][0]
         for j, column in enumerate(columns_to_plot):
-            feature_column_label = COLUMN_METADATA[column].label
+            feature_column_label = COLUMN_METADATA[column].label or column
+
             ax_ij = cast(plt.Axes, ax[i, j])
 
             feature_bins = get_bins(bin_widths=(0.05,), data=df[column].to_numpy())[0][0]
@@ -443,12 +452,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
             # change the background color to grey
             ax_ij.set_facecolor("grey")
 
-            # draw cyan dashed line at start of steady state (use timepoint for
-            # fist position as a representative timepoint for start of steady
-            # state)
-            start_steady_state_timepoint = get_start_of_steady_state_for_position(
-                dataset_config, position=0
-            )
+            # draw cyan dashed line at start of steady state
             ax_ij.axvline(
                 x=start_steady_state_timepoint,
                 color="cyan",
