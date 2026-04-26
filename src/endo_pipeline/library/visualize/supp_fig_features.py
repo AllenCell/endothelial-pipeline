@@ -404,7 +404,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
     axes_ytick_labels = [f"0={Unicode.PI}", f"{Unicode.PI}/2", f"{Unicode.PI}=0"]
 
     fig, ax = plt.subplots(
-        2, 2, figsize=(3.25, 2.5), layout="constrained", gridspec_kw={"hspace": 0.15}
+        2, 2, figsize=(3.0, 2.5), layout="constrained", gridspec_kw={"hspace": 0.15}
     )
 
     layout_engine = fig.get_layout_engine()

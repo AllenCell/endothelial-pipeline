@@ -127,15 +127,15 @@ def main() -> None:
             path=latent_walk_2d_path,
             x_position=0.1,
             y_position=5.25,
-            x_offset=0.0,
+            x_offset=0.15,
             y_offset=0.0,
         ),
         FigurePanel(
             letter="E",
             path=theta_orientation_path,
-            x_position=2.75,
+            x_position=2.95,
             y_position=5.25,
-            x_offset=0.15,
+            x_offset=0.2,
             y_offset=0.0,
         ),
     ]
