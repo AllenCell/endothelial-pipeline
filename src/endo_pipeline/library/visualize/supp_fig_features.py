@@ -399,6 +399,9 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
     histogram_vmin = 0.0
     histogram_vmax = 0.7
 
+    axes_xlim = (0, 48)  # in hours, after converting from frames
+    axes_xticks = [0, 12, 24, 36, 48]
+    axes_xtick_labels = [f"{x}" for x in axes_xticks]
     axes_ylim = (0, np.pi)
     axes_yticks = [0, np.pi / 2, np.pi]
     axes_ytick_labels = [f"0={Unicode.PI}", f"{Unicode.PI}/2", f"{Unicode.PI}=0"]
@@ -412,7 +415,10 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         # reserve left margin for the vertical label
         layout_engine.set(**{"rect": [0.08, 0, 1, 1]})
 
-    time_column_label = COLUMN_METADATA[Column.TIMEPOINT].label.capitalize() or "timepoint"
+    time_column_label = "Time (hours)"
+    # convert frames to hours for better readability of x-axis
+    # (one frame = 5 minutes, so conversion factor is 5/60)
+    time_conversion_factor = 5 / 60
 
     columns_to_plot: list[ColumnNameType] = [
         Column.DiffAEData.POLAR_ANGLE,
@@ -430,7 +436,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         # indicate with a vertical dashed line on the histogram
         start_steady_state_timepoint = (
             get_start_of_steady_state_for_position(dataset_config, position=0) or 0
-        )
+        ) * time_conversion_factor
 
         df_ = load_dataframe(
             get_dataframe_location_for_dataset(dataframe_manifest, dataset), delay=True
@@ -438,8 +444,9 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         df: pd.DataFrame = df_[columns_to_compute].compute()
 
         time_bins = get_bins(bin_widths=(12,), data=df[Column.TIMEPOINT].to_numpy())[0][0]
+        time_bins = time_bins * time_conversion_factor
         for j, column in enumerate(columns_to_plot):
-            feature_column_label = COLUMN_METADATA[column].label or column.value
+            feature_column_label = COLUMN_METADATA[column].label or cast(str, column)
             if column == Column.DiffAEData.POLAR_ANGLE:
                 feature_column_label = f"Polar {feature_column_label}"
             # convert to sentence case for better readability as a plot title
@@ -449,7 +456,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
 
             feature_bins = get_bins(bin_widths=(0.05,), data=df[column].to_numpy())[0][0]
             ax_ij.hist2d(
-                df[Column.TIMEPOINT],
+                df[Column.TIMEPOINT] * time_conversion_factor,
                 df[column],
                 bins=[time_bins, feature_bins],
                 cmap="inferno",
@@ -470,19 +477,24 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
                 zorder=3,
             )
 
-            # set y axes limits and ticks
+            # set axes limits and ticks
+            ax_ij.set_xlim(axes_xlim)
+            ax_ij.set_xticks(axes_xticks)
             ax_ij.set_ylim(axes_ylim)
             ax_ij.set_yticks(axes_yticks)
-            # add tick labels for shared y axis just on leftmost plots
             if j == 0:
+                # add tick labels for shared y axis just on leftmost plots
                 ax_ij.set_yticklabels(axes_ytick_labels, fontsize=FONTSIZE_SMALL)
             elif j == 1:
+                # else, no y tick labels for right column
                 ax_ij.set_yticklabels([])
             if i == 0:
                 # put label as column title for top row
                 ax_ij.set_title(feature_column_label, fontsize=FONTSIZE_SMALL)
+                ax_ij.set_xticklabels([])  # no x tick labels for top row
             elif i == 1:
-                # only set x-axis label for bottom row
+                # only set x-axis tick labels and label for bottom row
+                ax_ij.set_xticklabels(axes_xtick_labels, fontsize=FONTSIZE_SMALL)
                 ax_ij.set_xlabel(time_column_label, labelpad=1, fontsize=FONTSIZE_SMALL)
 
         # add vertical label for shear stress to the left of the contour plot
