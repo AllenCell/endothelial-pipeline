@@ -118,7 +118,7 @@ def main() -> None:
             letter="C",
             path=latent_walk_path,
             x_position=0.1,
-            y_position=2.7,
+            y_position=2.5,
             x_offset=0.25,
             y_offset=0.0,
         ),
@@ -126,7 +126,7 @@ def main() -> None:
             letter="D",
             path=latent_walk_2d_path,
             x_position=0.1,
-            y_position=5.25,
+            y_position=5.1,
             x_offset=0.15,
             y_offset=0.0,
         ),
@@ -134,7 +134,7 @@ def main() -> None:
             letter="E",
             path=theta_orientation_path,
             x_position=2.95,
-            y_position=5.25,
+            y_position=5.1,
             x_offset=0.2,
             y_offset=0.0,
         ),
@@ -152,7 +152,7 @@ def main() -> None:
         panels.append(panel_b)
 
     build_figure_from_panels(
-        panels, save_dir / "supp_fig_features.svg", width=MAX_FIGURE_WIDTH, height=7.8
+        panels, save_dir / "supp_fig_features.svg", width=MAX_FIGURE_WIDTH, height=7.7
     )
 
 
