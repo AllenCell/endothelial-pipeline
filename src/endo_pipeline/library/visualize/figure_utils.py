@@ -14,6 +14,79 @@ from endo_pipeline.settings.figures import FIGURE_SAVE_DPI, FONTSIZE_LARGE
 logger = logging.getLogger(__name__)
 
 
+def _validate_axis_kwargs(kwargs: dict | None, required_key: str) -> None:
+    """
+    Validate that the given kwargs dictionary contains the required key.
+
+    If the kwargs dictionary is not None and does not contain the required key,
+    a ValueError is raised.
+
+    Parameters
+    ----------
+    kwargs
+        Dictionary of keyword arguments to validate.
+    required_key
+        The key that must be present in the kwargs dictionary.
+
+    """
+    if kwargs is not None and required_key not in kwargs:
+        raise ValueError(f"{required_key} key is required in kwargs.")
+
+
+def set_axes_properties(
+    axes: plt.Axes,
+    xlim: tuple[float, float] | None = None,
+    ylim: tuple[float, float] | None = None,
+    xtick_kwargs: dict | None = None,
+    ytick_kwargs: dict | None = None,
+    xlabel_kwargs: dict | None = None,
+    ylabel_kwargs: dict | None = None,
+    title_kwargs: dict | None = None,
+) -> None:
+    """
+    Set properties of the given axis, including limits, ticks, labels, and
+    title.
+
+    Parameters
+    ----------
+    axes
+        The axis to set properties for.
+    xlim
+        Optional, tuple specifying the limits for the x-axis (min, max).
+    ylim
+        Optional, tuple specifying the limits for the y-axis (min, max).
+    xtick_kwargs
+        Optional, dictionary of keyword arguments for setting x-ticks.
+    ytick_kwargs
+        Optional, dictionary of keyword arguments for setting y-ticks.
+    xlabel_kwargs
+        Optional, dictionary of keyword arguments for setting the x-axis label.
+    ylabel_kwargs
+        Optional, dictionary of keyword arguments for setting the y-axis label.
+    title_kwargs
+        Optional, dictionary of keyword arguments for setting the title.
+    """
+    if xlim is not None:
+        axes.set_xlim(xlim)
+    if ylim is not None:
+        axes.set_ylim(ylim)
+    if xtick_kwargs is not None:
+        _validate_axis_kwargs(xtick_kwargs, "ticks")
+        axes.set_xticks(**xtick_kwargs)
+    if ytick_kwargs is not None:
+        _validate_axis_kwargs(ytick_kwargs, "ticks")
+        axes.set_yticks(**ytick_kwargs)
+    if xlabel_kwargs is not None:
+        _validate_axis_kwargs(xlabel_kwargs, "xlabel")
+        axes.set_xlabel(**xlabel_kwargs)
+    if ylabel_kwargs is not None:
+        _validate_axis_kwargs(ylabel_kwargs, "ylabel")
+        axes.set_ylabel(**ylabel_kwargs)
+    if title_kwargs is not None:
+        _validate_axis_kwargs(title_kwargs, "label")
+        axes.set_title(**title_kwargs)
+
+
 def add_scalebar(
     ax: maxes.Axes,
     scale_bar_um: float,
