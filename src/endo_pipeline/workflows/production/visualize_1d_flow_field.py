@@ -40,7 +40,7 @@ def main(
         get_shear_stress_label_for_dataset,
         load_dataset_config,
     )
-    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
+    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path, slugify
     from endo_pipeline.library.analyze.dataframe_validation import (
         check_required_columns_in_dataframe,
     )
@@ -184,7 +184,7 @@ def main(
         # compute on a per-shear stress condition basis
         for flow_condition in dataset_config.flow_conditions:
             shear_stress = flow_condition.shear_stress
-            dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
+            dataset_name_flow = f"{dataset_name}_shear_{slugify(shear_stress)}"
             fig_title = get_shear_stress_label_for_dataset(dataset_config, flow_condition)
 
             drift_dataframe_flow = drift_dataframe[

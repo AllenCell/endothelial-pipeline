@@ -29,7 +29,7 @@ def main(
         get_shear_stress_label_for_dataset,
         load_dataset_config,
     )
-    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
+    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path, slugify
     from endo_pipeline.library.analyze.numerics.binning import get_bins
     from endo_pipeline.library.analyze.numerics.temporal_stats import (
         compute_kde_on_bins,
@@ -132,7 +132,7 @@ def main(
 
         dataset_config = load_dataset_config(dataset_name)
         shear_stress = dataset_config.flow_conditions[0].shear_stress
-        dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
+        dataset_name_flow = f"{dataset_name}_shear_{slugify(shear_stress)}"
         plot_label = get_shear_stress_label_for_dataset(dataset_config)
         fig_savedir = get_output_path(__file__, dataset_name)
 

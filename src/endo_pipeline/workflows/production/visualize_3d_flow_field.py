@@ -95,7 +95,7 @@ def main(
         get_shear_stress_label_for_dataset,
         load_dataset_config,
     )
-    from endo_pipeline.io import get_output_path, join_sorted_strings, load_dataframe
+    from endo_pipeline.io import get_output_path, join_sorted_strings, load_dataframe, slugify
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_flow_condition,
         filter_dataframe_to_steady_state,
@@ -121,6 +121,7 @@ def main(
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_DYNAMICS,
         BIN_WIDTHS_DYNAMICS,
+        DEFAULT_DATASETS_DYNAMICS_VIS,
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
@@ -128,11 +129,7 @@ def main(
         POLAR_ANGLE_PERIOD,
         RESCALE_THETA,
     )
-    from endo_pipeline.settings.flow_field_3d import (
-        DATASET_COLLECTION_FOR_3D_DYNAMICS,
-        INIT_POINT_3D,
-        TRAJECTORY_TIME_SPAN,
-    )
+    from endo_pipeline.settings.flow_field_3d import INIT_POINT_3D, TRAJECTORY_TIME_SPAN
     from endo_pipeline.settings.flow_field_dataframes import (
         DATAFRAME_MANIFEST_PREFIX_DRIFT,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
@@ -203,7 +200,7 @@ def main(
     # both the drift and feature dataframe manifests to avoid errors later on
     # when loading dataframes for specific datasets, and log an error if no
     # valid dataset names are provided after this filtering step
-    dataset_names = datasets or get_datasets_in_collection(DATASET_COLLECTION_FOR_3D_DYNAMICS)
+    dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
 
     if DEMO_MODE:
         logger.warning(
@@ -312,7 +309,7 @@ def main(
         for flow_condition in dataset_config.flow_conditions:
             shear_stress = flow_condition.shear_stress
             fig_title = get_shear_stress_label_for_dataset(dataset_config, flow_condition)
-            filename = f"{dataset_name}_{int(shear_stress)}"
+            filename = f"{dataset_name}_{slugify(shear_stress)}"
             feature_data_for_flow_condition = filter_dataframe_by_flow_condition(
                 feature_data, dataset_config, flow_condition
             )

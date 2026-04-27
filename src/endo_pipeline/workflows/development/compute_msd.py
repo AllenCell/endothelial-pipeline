@@ -75,7 +75,7 @@ def main(
         get_shear_stress_label_for_dataset,
         load_dataset_config,
     )
-    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
+    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path, slugify
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_flow_condition,
         filter_dataframe_by_track_length,
@@ -168,7 +168,7 @@ def main(
             dt_array = np.arange(1, max_lag + 1)
 
             fig_title = get_shear_stress_label_for_dataset(dataset_config, flow_condition)
-            dataset_name_flow = f"{dataset_name}_{int(flow_condition.shear_stress)}"
+            dataset_name_flow = f"{dataset_name}_{slugify(flow_condition.shear_stress)}"
 
             # compute MSD for each feature via Kramers-Moyal coefficient
             # estimation method
