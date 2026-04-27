@@ -16,7 +16,7 @@ def main(
 ) -> None:
     import logging
     from collections import namedtuple
-    from typing import TypeAlias, cast
+    from typing import TypeAlias
 
     import matplotlib.pyplot as plt
     import numpy as np
@@ -76,9 +76,6 @@ def main(
     column_names: list[Column.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
     columns_to_compute_grid = [*METADATA_COLUMNS_TO_KEEP["grid"], *column_names]
     columns_to_compute_tracked = [*METADATA_COLUMNS_TO_KEEP["tracked"], *column_names]
-
-    # kernel names for KDEs
-    kernel_names_dict = cast(dict[str | Column.DiffAEData, str], KERNEL_NAMES_DYNAMICS.copy())
 
     # type alias and named tuple for storing KDE results for easier readability
     # and maintainability
@@ -279,7 +276,7 @@ def main(
                     avg_kde_values = compute_kde_on_bins(
                         data=avg_data_all,
                         bins=avg_bins,
-                        kernel_name=kernel_names_dict[column_name],
+                        kernel_name=KERNEL_NAMES_DYNAMICS[column_name],
                         kernel_bandwidth=1.5 * BIN_WIDTH_FOR_AVERAGE,
                         kernel_period=period,
                     )
@@ -321,7 +318,7 @@ def main(
                         avg_kde_values = compute_kde_on_bins(
                             data=sample_avg,
                             bins=avg_bins,
-                            kernel_name=kernel_names_dict[column_name],
+                            kernel_name=KERNEL_NAMES_DYNAMICS[column_name],
                             kernel_bandwidth=1.5 * BIN_WIDTH_FOR_AVERAGE,
                             kernel_period=period,
                         )
