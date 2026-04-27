@@ -8,6 +8,7 @@ import numpy as np
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import TwoSlopeNorm
 
+from endo_pipeline.library.visualize.figure_utils import set_axes_properties
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_CBAR_NUM_TICKS,
     DRIFT_CONTOUR_CBAR_ROUND,
@@ -153,17 +154,20 @@ def plot_drift_contours(
             colorbar_ticks = np.linspace(vmin_, vmax_, cbar_num_ticks)
             colorbar_ticks = np.round(colorbar_ticks, cbar_tick_round)
             fig.colorbar(contour, ax=ax[var_index], label=f"d{var_name}/dt", ticks=colorbar_ticks)
-        if var_index == 1:
-            # add shared x-axis label only for the second subplot
-            ax[var_index].set_xlabel(variable_labels[0], **(xlabel_kwargs or {}))
-        ax[var_index].set_ylabel(variable_labels[1], **(ylabel_kwargs or {}))
-        if axes_limits:
-            ax[var_index].set_xlim(axes_limits[0])
-            ax[var_index].set_ylim(axes_limits[1])
-        if axes_titles:
-            ax[var_index].set_title(axes_titles[var_index], **(axes_title_kwargs or {}))
-        if axes_aspect:
-            ax[var_index].set_aspect(axes_aspect)
+
+        # set axis properties, only including x label for bottom plot
+        set_axes_properties(
+            ax[var_index],
+            xlim=axes_limits[0] if axes_limits else None,
+            ylim=axes_limits[1] if axes_limits else None,
+            xlabel=variable_labels[0] if var_index == 1 else None,
+            ylabel=variable_labels[1],
+            title=axes_titles[var_index] if axes_titles else None,
+            aspect=axes_aspect,
+            xlabel_kwargs=xlabel_kwargs,
+            ylabel_kwargs=ylabel_kwargs,
+            title_kwargs=axes_title_kwargs,
+        )
 
     return fig, ax
 
