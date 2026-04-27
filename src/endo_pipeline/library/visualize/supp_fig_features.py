@@ -3,9 +3,11 @@
 from pathlib import Path
 from typing import Any, cast
 
+import matplotlib.patheffects as pe
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.lines import Line2D
 from matplotlib.patches import FancyArrowPatch, Patch
 
 from endo_pipeline.cli import NUM_GPUS
@@ -499,8 +501,8 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
                 ax_ij.set_xlabel(time_column_label, labelpad=1, fontsize=FONTSIZE_SMALL)
 
         # add vertical label for shear stress to the left of the contour plot
-        # (y positions reflect the constrained-layout rect top of 0.87)
-        y_position = 0.665 if i == 0 else 0.285
+        # (y positions reflect the constrained-layout rect top of 0.94)
+        y_position = 0.72 if i == 0 else 0.31
         fig.text(
             0.05,
             y_position,
@@ -518,7 +520,17 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
     # constrained layout is not affected
     handles, labels = ax[0, 1].get_legend_handles_labels()
     # prepend a filled grey box for the grey background (no data / cell piling)
-    handles = [Patch(facecolor="grey", edgecolor="none"), *handles]
+    # replace the axvline handle with a Line2D proxy that has a black border for contrast
+    steady_state_handle = Line2D(
+        [0],
+        [0],
+        color="cyan",
+        linestyle="--",
+        linewidth=1.5,
+        dash_capstyle="butt",
+        path_effects=[pe.Stroke(linewidth=3, foreground="black", capstyle="butt"), pe.Normal()],
+    )
+    handles = [Patch(facecolor="grey", edgecolor="none"), steady_state_handle]
     labels = ["No data (cell piling)", *labels]
     fig.legend(
         handles,
