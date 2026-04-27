@@ -467,6 +467,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
 
             # change the background color to grey
             ax_ij.set_facecolor("grey")
+            ax_ij.plot([], [], color="grey", label="No data (cell piling)")
 
             # draw cyan dashed line at start of steady state
             ax_ij.axvline(
@@ -475,6 +476,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
                 linestyle="--",
                 linewidth=1.5,
                 zorder=3,
+                label="Start of steady state",
             )
 
             # set axes limits and ticks
@@ -496,6 +498,20 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
                 # only set x-axis tick labels and label for bottom row
                 ax_ij.set_xticklabels(axes_xtick_labels, fontsize=FONTSIZE_SMALL)
                 ax_ij.set_xlabel(time_column_label, labelpad=1, fontsize=FONTSIZE_SMALL)
+            if i == 0 and j == 1:
+                # add legend for the vertical dashed line indicating the start
+                # of steady state and grey background indicating cutoff for cell
+                # piling (no data)
+                handles, labels = ax_ij.get_legend_handles_labels()
+                ax_ij.legend(
+                    handles,
+                    labels,
+                    fontsize="xx-small",
+                    loc="upper center",
+                    bbox_to_anchor=(0.5, 1.25),
+                    ncol=2,
+                    handletextpad=0.3,
+                )
 
         # add vertical label for shear stress to the left of the contour plot
         y_position = 0.765 if i == 0 else 0.325
