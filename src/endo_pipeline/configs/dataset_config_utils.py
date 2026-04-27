@@ -55,6 +55,17 @@ def get_shear_stress_label_for_dataset(
     (e.g. "12").
     """
 
+    if flow_condition is not None and flow_condition not in dataset_config.flow_conditions:
+        logger.error(
+            "Provided flow condition [ %s ] is not in dataset [ %s ] flow conditions",
+            flow_condition,
+            dataset_config.name,
+        )
+        raise ValueError(
+            f"Provided flow condition [ {flow_condition} ] is not "
+            f"in dataset [ {dataset_config.name} ] flow conditions"
+        )
+
     if len(dataset_config.flow_conditions) == 1:
         shear_stress_str = f"{dataset_config.flow_conditions[0].shear_stress}"
     elif len(dataset_config.flow_conditions) == 2:
