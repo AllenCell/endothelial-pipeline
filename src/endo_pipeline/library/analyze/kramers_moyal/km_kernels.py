@@ -121,6 +121,7 @@ def periodic(x: np.ndarray) -> np.ndarray:
 
 
 KernelName: TypeAlias = Literal["periodic", "gaussian", "epanechnikov"]
+"""Type alias for the names of the available kernel functions."""
 
 AVAILABLE_KERNEL_FUNCTIONS: dict[
     KernelName, Callable[[np.ndarray, float, float | None], np.ndarray]
