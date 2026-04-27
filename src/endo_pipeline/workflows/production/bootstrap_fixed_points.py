@@ -150,6 +150,7 @@ def main(
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_WIDTHS_DYNAMICS,
+        DEFAULT_DATASETS_DYNAMICS_VIS,
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
@@ -157,10 +158,7 @@ def main(
         POLAR_ANGLE_PERIOD,
         RESCALE_THETA,
     )
-    from endo_pipeline.settings.flow_field_3d import (
-        DATASET_COLLECTION_FOR_3D_DYNAMICS,
-        PAD_BINS_FLOAT,
-    )
+    from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
     from endo_pipeline.settings.flow_field_dataframes import (
         DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
@@ -205,7 +203,7 @@ def main(
     )
     logger.info("Bootstrap fixed point dataframes will be saved to: [ %s ]", dataframe_savedir)
 
-    dataset_names = datasets or get_datasets_in_collection(DATASET_COLLECTION_FOR_3D_DYNAMICS)
+    dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
     if DEMO_MODE:
         logger.warning(
             "DEMO MODE: Processing no more than two datasets and limiting"
