@@ -117,6 +117,7 @@ def main(
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_DYNAMICS,
         BIN_WIDTHS_DYNAMICS,
+        DEFAULT_DATASETS_DYNAMICS_VIS,
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
@@ -124,11 +125,7 @@ def main(
         POLAR_ANGLE_PERIOD,
         RESCALE_THETA,
     )
-    from endo_pipeline.settings.flow_field_3d import (
-        DATASET_COLLECTION_FOR_3D_DYNAMICS,
-        INIT_POINT_3D,
-        TRAJECTORY_TIME_SPAN,
-    )
+    from endo_pipeline.settings.flow_field_3d import INIT_POINT_3D, TRAJECTORY_TIME_SPAN
     from endo_pipeline.settings.flow_field_dataframes import (
         DATAFRAME_MANIFEST_PREFIX_DRIFT,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
@@ -199,7 +196,7 @@ def main(
     # both the drift and feature dataframe manifests to avoid errors later on
     # when loading dataframes for specific datasets, and log an error if no
     # valid dataset names are provided after this filtering step
-    dataset_names = datasets or get_datasets_in_collection(DATASET_COLLECTION_FOR_3D_DYNAMICS)
+    dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
 
     if DEMO_MODE:
         logger.warning(
