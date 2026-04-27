@@ -72,12 +72,12 @@ def main(
     )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_DYNAMICS, DYNAMICS_COLUMN_NAMES
-    from endo_pipeline.settings.flow_field_3d import (
-        DATASET_COLLECTION_FOR_3D_DYNAMICS,
-        FIGSIZE_2D_FLOW_FIELD,
-        NROWS_2D_FLOW_FIELD,
+    from endo_pipeline.settings.dynamics_workflows import (
+        BIN_LIMITS_DYNAMICS,
+        DEFAULT_DATASETS_DYNAMICS_VIS,
+        DYNAMICS_COLUMN_NAMES,
     )
+    from endo_pipeline.settings.flow_field_3d import FIGSIZE_2D_FLOW_FIELD, NROWS_2D_FLOW_FIELD
     from endo_pipeline.settings.flow_field_dataframes import (
         DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
         STABILITY_COLOR_DICT,
@@ -125,7 +125,7 @@ def main(
             "not the number of bootstrap samples."
         )
 
-    dataset_names = datasets or get_datasets_in_collection(DATASET_COLLECTION_FOR_3D_DYNAMICS)
+    dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
     if DEMO_MODE:
         logger.warning("DEMO MODE: Processing no more than two datasets for quick visualization.")
         dataset_names = dataset_names[: min(len(dataset_names), 2)]
