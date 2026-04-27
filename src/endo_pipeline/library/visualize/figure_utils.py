@@ -77,11 +77,11 @@ def set_axes_properties(
         axes.set_xticks(xticks, **(xtick_kwargs or {}))
     if yticks is not None:
         axes.set_yticks(yticks, **(ytick_kwargs or {}))
-    if xlabel_kwargs is not None:
+    if xlabel is not None:
         axes.set_xlabel(xlabel, **(xlabel_kwargs or {}))
-    if ylabel_kwargs is not None:
+    if ylabel is not None:
         axes.set_ylabel(ylabel, **(ylabel_kwargs or {}))
-    if title_kwargs is not None:
+    if title is not None:
         axes.set_title(title, **(title_kwargs or {}))
     if aspect is not None:
         axes.set_aspect(aspect)
