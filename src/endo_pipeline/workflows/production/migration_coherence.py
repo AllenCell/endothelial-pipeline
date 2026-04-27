@@ -69,6 +69,7 @@ def main(
     )
     from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
     from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
+    from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -199,7 +200,7 @@ def main(
                         optical_flow_feature=optical_flow_feature,
                         feature_label="Migration Coherence",
                         feature_lim=(0.1, vmax),
-                        ss_label=plot_label,
+                        ss_label=f"{int(flow_condition.shear_stress)} dyn/cm{Unicode.SQUARED}",
                         color=hist_color,
                         df_fp=fp_for_feature,
                         binwidth=hist_binwidth,
