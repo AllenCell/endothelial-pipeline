@@ -497,18 +497,18 @@ def aggregate_bootstrapping_results(
     # build output dataframe rows with CIs and detection rates for each baseline
     # fixed point
     output_dataframe_rows = []
-    for i, baseline_fixed_point in baseline_fixed_points.iterrows():
+    for pos_idx, (_, baseline_fixed_point) in enumerate(baseline_fixed_points.iterrows()):
         dataframe_row: dict = {
             Column.VectorField.STABILITY: baseline_fixed_point[Column.VectorField.STABILITY],
         }
         for col in column_names:
             dataframe_row[col] = baseline_fixed_point[col]
 
-        num_hits = len(matched_coords[i])
+        num_hits = len(matched_coords[pos_idx])
         if num_hits >= 1:
             # reshape list of matched coords to the given baseline point
             # to (n_hits, n_dims) for percentile / mean computation
-            matched_coords_array = np.stack(matched_coords[i], axis=0)
+            matched_coords_array = np.stack(matched_coords[pos_idx], axis=0)
 
             # compute per-dimension cluster means, using circular mean for the
             # polar angle dimension
