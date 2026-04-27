@@ -6,7 +6,7 @@ from typing import Any, cast
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib.patches import FancyArrowPatch
+from matplotlib.patches import FancyArrowPatch, Patch
 
 from endo_pipeline.cli import NUM_GPUS
 from endo_pipeline.configs import (
@@ -412,8 +412,8 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
 
     layout_engine = fig.get_layout_engine()
     if layout_engine is not None:
-        # reserve left margin for the vertical label
-        layout_engine.set(**{"rect": [0.08, 0, 1, 1]})
+        # reserve left margin for the vertical label and top margin for the legend
+        layout_engine.set(**{"rect": [0.08, 0, 1, 0.87]})
 
     time_column_label = "Time (hours)"
     # convert frames to hours for better readability of x-axis
@@ -467,7 +467,6 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
 
             # change the background color to grey
             ax_ij.set_facecolor("grey")
-            ax_ij.plot([], [], color="grey", label="No data (cell piling)")
 
             # draw cyan dashed line at start of steady state
             ax_ij.axvline(
@@ -498,23 +497,10 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
                 # only set x-axis tick labels and label for bottom row
                 ax_ij.set_xticklabels(axes_xtick_labels, fontsize=FONTSIZE_SMALL)
                 ax_ij.set_xlabel(time_column_label, labelpad=1, fontsize=FONTSIZE_SMALL)
-            if i == 0 and j == 1:
-                # add legend for the vertical dashed line indicating the start
-                # of steady state and grey background indicating cutoff for cell
-                # piling (no data)
-                handles, labels = ax_ij.get_legend_handles_labels()
-                ax_ij.legend(
-                    handles,
-                    labels,
-                    fontsize="xx-small",
-                    loc="upper center",
-                    bbox_to_anchor=(0.5, 1.25),
-                    ncol=2,
-                    handletextpad=0.3,
-                )
 
         # add vertical label for shear stress to the left of the contour plot
-        y_position = 0.765 if i == 0 else 0.325
+        # (y positions reflect the constrained-layout rect top of 0.87)
+        y_position = 0.665 if i == 0 else 0.285
         fig.text(
             0.05,
             y_position,
@@ -525,6 +511,27 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
             fontsize=FONTSIZE_MEDIUM,
             fontweight="bold",
         )
+
+    # add legend for the vertical dashed line indicating the start of steady state
+    # and grey background indicating cutoff for cell piling (no data);
+    # placed in the reserved top margin using figure coordinates so that
+    # constrained layout is not affected
+    handles, labels = ax[0, 1].get_legend_handles_labels()
+    # prepend a filled grey box for the grey background (no data / cell piling)
+    handles = [Patch(facecolor="grey", edgecolor="none"), *handles]
+    labels = ["No data (cell piling)", *labels]
+    fig.legend(
+        handles,
+        labels,
+        fontsize="xx-small",
+        loc="upper center",
+        bbox_to_anchor=(0.53, 0.93),
+        ncol=2,
+        handletextpad=0.3,
+        borderpad=0.3,
+        columnspacing=0.8,
+        frameon=False,
+    )
 
     # set the color limits to be the same across all histograms
     # plot adjactent to the right of the rightmost histogram, spanning both rows
