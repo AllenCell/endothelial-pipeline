@@ -85,6 +85,8 @@ def set_axes_properties(
         axes.set_title(title, **(title_kwargs or {}))
     if aspect is not None:
         axes.set_aspect(aspect)
+    if facecolor is not None:
+        axes.set_facecolor(facecolor)
 
 
 def add_scalebar(
