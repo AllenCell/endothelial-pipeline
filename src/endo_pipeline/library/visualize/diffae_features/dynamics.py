@@ -477,12 +477,15 @@ def plot_drift_1d(
             **(flow_arrow_kwargs or {}),
         )
 
-    if axes_limits is not None:
-        ax.set_xlim(axes_limits[0])
-        ax.set_ylim(axes_limits[1])
-    if axes_labels is not None:
-        ax.set_xlabel(axes_labels[0], **(xlabel_kwargs or {}))
-        ax.set_ylabel(axes_labels[1], **(ylabel_kwargs or {}))
+    set_axes_properties(
+        ax,
+        xlim=axes_limits[0] if axes_limits else None,
+        ylim=axes_limits[1] if axes_limits else None,
+        xlabel=axes_labels[0] if axes_labels else None,
+        ylabel=axes_labels[1] if axes_labels else None,
+        xlabel_kwargs=xlabel_kwargs,
+        ylabel_kwargs=ylabel_kwargs,
+    )
 
     return fig, ax
 
