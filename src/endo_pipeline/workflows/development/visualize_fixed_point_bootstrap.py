@@ -117,7 +117,7 @@ def main(
         else:
             raise
 
-    n_bootstrap = bootstrap_fp_manifest.parameters.get("n_bootstrap_samples")
+    n_bootstrap = bootstrap_fp_manifest.parameters.get("num_bootstrap_iterations")
     if n_bootstrap is None:
         logger.warning(
             "Number of bootstrap samples not found in manifest parameters; "
