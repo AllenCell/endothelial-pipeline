@@ -498,7 +498,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
                 ax_ij.set_xlabel(time_column_label, labelpad=1, fontsize=FONTSIZE_SMALL)
 
         # add vertical label for shear stress to the left of the contour plot
-        y_position = 0.8 if i == 0 else 0.3
+        y_position = 0.765 if i == 0 else 0.325
         fig.text(
             0.05,
             y_position,
