@@ -414,6 +414,7 @@ def aggregate_bootstrapping_results(
     polar_angle_period: float | None,
     bootstrap_ci_lower_percentile: float,
     bootstrap_ci_upper_percentile: float,
+    metadata_dict: dict[str, str | float] | None = None,
 ) -> pd.DataFrame:
     """Build the output dataframe of baseline fixed points and their bootstrap matches.
 
@@ -498,7 +499,6 @@ def aggregate_bootstrapping_results(
     output_dataframe_rows = []
     for i, baseline_fixed_point in baseline_fixed_points.iterrows():
         dataframe_row: dict = {
-            Column.DATASET: baseline_fixed_point[Column.DATASET],
             Column.VectorField.STABILITY: baseline_fixed_point[Column.VectorField.STABILITY],
         }
         for col in column_names:
@@ -574,4 +574,9 @@ def aggregate_bootstrapping_results(
         dataframe_row[Column.BootstrapAnalysis.DETECTION_RATE] = float(num_hits) / n_bootstrap
         output_dataframe_rows.append(dataframe_row)
 
-    return pd.DataFrame(output_dataframe_rows)
+    output_dataframe = pd.DataFrame(output_dataframe_rows)
+    if metadata_dict is not None:
+        for key, value in metadata_dict.items():
+            output_dataframe[key] = value
+
+    return output_dataframe
