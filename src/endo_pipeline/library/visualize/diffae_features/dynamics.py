@@ -358,11 +358,15 @@ def plot_drift_quiver(
         if plot_legend:
             ax.legend(**(legend_kwargs or {}))
 
-    ax.set_xlabel(variable_labels[0], **(xlabel_kwargs or {}))
-    ax.set_ylabel(variable_labels[1], **(ylabel_kwargs or {}))
-    if axes_limits:
-        ax.set_xlim(axes_limits[0])
-        ax.set_ylim(axes_limits[1])
+    set_axes_properties(
+        ax,
+        xlim=axes_limits[0] if axes_limits else None,
+        ylim=axes_limits[1] if axes_limits else None,
+        xlabel=variable_labels[0],
+        ylabel=variable_labels[1],
+        xlabel_kwargs=xlabel_kwargs,
+        ylabel_kwargs=ylabel_kwargs,
+    )
 
     return fig, ax
 
