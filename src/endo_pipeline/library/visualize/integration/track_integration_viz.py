@@ -13,7 +13,6 @@ from matplotlib.colors import TwoSlopeNorm
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from scipy.stats import linregress
 
 from endo_pipeline.configs.dataset_config import DatasetConfig
 from endo_pipeline.configs.dataset_config_io import load_dataset_config
@@ -1121,52 +1120,52 @@ def compute_and_plot_first_passage_time_correlation(
     out_dir: Path,
     filename: str,
 ) -> dict:
-    dataset_name = dataset_config.name
-    time_units = TIME_STEP_IN_HOURS  # convert timeframes to hours
+    # dataset_name = dataset_config.name
+    # time_units = TIME_STEP_IN_HOURS  # convert timeframes to hours
 
-    # the column title is "50%" for 50th percentile in `pd.describe`` instead of
-    # mean so correct that if "median" was chosen
-    metric = "50%" if metric_to_plot == "median" else metric_to_plot
+    # # the column title is "50%" for 50th percentile in `pd.describe`` instead of
+    # # mean so correct that if "median" was chosen
+    # metric = "50%" if metric_to_plot == "median" else metric_to_plot
 
-    suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
-    metric = f"{metric}{suffix}"
+    # suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
+    # metric = f"{metric}{suffix}"
 
-    # NaN values are unacceptable for the linear regression
-    first_passage_time_df_no_nan = first_passage_time_df.copy().dropna(
-        subset=[f"{metric}_grid", f"{metric}_tracked"]
-    )
-    # keep only the bins with the minimum number of tracks per bin in them
-    first_passage_time_df_no_nan = first_passage_time_df_no_nan[
-        first_passage_time_df_no_nan["count_first_passage_time_grid"] >= min_num_traj_per_bin
-    ]
-    first_passage_time_df_no_nan = first_passage_time_df_no_nan[
-        first_passage_time_df_no_nan["count_first_passage_time_tracked"] >= min_num_traj_per_bin
-    ]
+    # # NaN values are unacceptable for the linear regression
+    # first_passage_time_df_no_nan = first_passage_time_df.copy().dropna(
+    #     subset=[f"{metric}_grid", f"{metric}_tracked"]
+    # )
+    # # keep only the bins with the minimum number of tracks per bin in them
+    # first_passage_time_df_no_nan = first_passage_time_df_no_nan[
+    #     first_passage_time_df_no_nan["count_first_passage_time_grid"] >= min_num_traj_per_bin
+    # ]
+    # first_passage_time_df_no_nan = first_passage_time_df_no_nan[
+    #     first_passage_time_df_no_nan["count_first_passage_time_tracked"] >= min_num_traj_per_bin
+    # ]
 
-    # convert the FPT (which is in timepoints) to physical units
-    # most but not all of the columns are based on time in `first_passage_time_df`
-    not_time_columns = [
-        f"count{suffix}_grid",
-        f"count{suffix}_tracked",
-        Column.VectorField.BIN_INDEX,
-        Column.VectorField.BIN_CENTER,
-        Column.VectorField.BIN_EDGES,
-    ]
-    # the time columns are the set of columns in the dataframe that are not in
-    # the not_time_columns list
-    time_cols = list(set(first_passage_time_df_no_nan.columns) - set(not_time_columns))
+    # # convert the FPT (which is in timepoints) to physical units
+    # # most but not all of the columns are based on time in `first_passage_time_df`
+    # not_time_columns = [
+    #     f"count{suffix}_grid",
+    #     f"count{suffix}_tracked",
+    #     Column.VectorField.BIN_INDEX,
+    #     Column.VectorField.BIN_CENTER,
+    #     Column.VectorField.BIN_EDGES,
+    # ]
+    # # the time columns are the set of columns in the dataframe that are not in
+    # # the not_time_columns list
+    # time_cols = list(set(first_passage_time_df_no_nan.columns) - set(not_time_columns))
 
-    # now we can convert all those time columns from timepoints to physical units
-    first_passage_time_df_no_nan[time_cols] *= time_units
+    # # now we can convert all those time columns from timepoints to physical units
+    # first_passage_time_df_no_nan[time_cols] *= time_units
 
-    # do a linear regression to see if the FPTs from the tracked and grid trajectories
-    # correlate depending on where they are in binned feature space
-    line_fit = linregress(
-        x=first_passage_time_df_no_nan[f"{metric}_grid"],
-        y=first_passage_time_df_no_nan[f"{metric}_tracked"],
-    )
+    # # do a linear regression to see if the FPTs from the tracked and grid trajectories
+    # # correlate depending on where they are in binned feature space
+    # line_fit = linregress(
+    #     x=first_passage_time_df_no_nan[f"{metric}_grid"],
+    #     y=first_passage_time_df_no_nan[f"{metric}_tracked"],
+    # )
 
-    num_bins = first_passage_time_df_no_nan[Column.VectorField.BIN_INDEX].nunique()
+    # num_bins = first_passage_time_df_no_nan[Column.VectorField.BIN_INDEX].nunique()
 
     shear_stress = _get_shear_stress_for_dataset(dataset_name)
     shear_stress_rounded = _snap_to_bin(shear_stress)
@@ -1336,8 +1335,7 @@ def plot_first_passage_time_parameter_sweep(
     dataset_config: DatasetConfig,
     fixed_point_index: int,
     fixed_point_stability: str,
-    first_passage_time_param_sweep_df_grid: pd.DataFrame,
-    first_passage_time_param_sweep_df_tracked: pd.DataFrame,
+    first_passage_time_param_sweep_df: pd.DataFrame,
     fixed_point_radius_threshold_in_workflow: float | None,
     out_dir: Path,
     metrics: list[Literal["mean", "median"]] = ["mean", "median"],
@@ -1347,32 +1345,16 @@ def plot_first_passage_time_parameter_sweep(
     """
     dataset_name = dataset_config.name
     shear_stress_rounded = _snap_to_bin(_get_shear_stress_for_dataset(dataset_name))
-    time_units = TIME_STEP_IN_HOURS  # convert timeframes to hours
-    first_passage_time_col = f"{Column.VectorField.TIME_TO_FP_PREFIX}{fixed_point_index}"
-    first_passage_time_param_sweep_df_grid[first_passage_time_col] *= time_units
-    first_passage_time_param_sweep_df_tracked[first_passage_time_col] *= time_units
-
-    # compute the summary statistics on the first passage time parameter sweep
-    fpt_param_sweep_agg_grid = (
-        first_passage_time_param_sweep_df_grid.groupby("threshold")[first_passage_time_col]
-        .agg("describe")
-        .reset_index(drop=False)
-    )
-    fpt_param_sweep_agg_tracked = (
-        first_passage_time_param_sweep_df_tracked.groupby("threshold")[first_passage_time_col]
-        .agg("describe")
-        .reset_index(drop=False)
-    )
 
     fig_title = f"{shear_stress_rounded} dyn/cm{UnicodeCharacters.SQUARED}"
     for metric in metrics:
-        column_name = "50%" if metric == "median" else metric
+        column_name_prefix = "50%" if metric == "median" else metric
         fig, ax = plt.subplots(figsize=(3, 3))
         ax.set_title(fig_title, fontsize=FONTSIZE_LARGE)
         ax.errorbar(
-            x=fpt_param_sweep_agg_grid["threshold"],
-            y=fpt_param_sweep_agg_grid[column_name],
-            yerr=fpt_param_sweep_agg_grid["std"],
+            x=first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
+            y=first_passage_time_param_sweep_df[f"{column_name_prefix}_grid"],
+            yerr=first_passage_time_param_sweep_df[f"{column_name_prefix}_grid_std"],
             label=f"{metric} FPT {UnicodeCharacters.PLUS_MINUS} STD (grid)",
             fmt="o-",
             color="tab:blue",
@@ -1381,9 +1363,9 @@ def plot_first_passage_time_parameter_sweep(
             capsize=3,
         )
         ax.errorbar(
-            x=fpt_param_sweep_agg_tracked["threshold"],
-            y=fpt_param_sweep_agg_tracked[column_name],
-            yerr=fpt_param_sweep_agg_tracked["std"],
+            x=first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
+            y=first_passage_time_param_sweep_df[f"{column_name_prefix}_tracked"],
+            yerr=first_passage_time_param_sweep_df[f"{column_name_prefix}_tracked_std"],
             label=f"{metric} FPT {UnicodeCharacters.PLUS_MINUS} STD (tracked)",
             fmt="o-",
             color="tab:red",
@@ -1404,41 +1386,20 @@ def plot_first_passage_time_parameter_sweep(
         ax.set_ylim(0)
         ax.set_xlabel("radius around fixed point".title(), fontsize=FONTSIZE_LARGE)
         ax.set_ylabel(f"{metric} first passage time (hrs)".title(), fontsize=FONTSIZE_LARGE)
-        filename = f"FPT_{metric}_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}"
+        filename = f"{dataset_name}_FPT_{metric}_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}"
         save_plot_to_path(fig, out_dir, filename, file_format=".svg", show_and_close=False)
 
-    # also compute the fraction of trajectories that approached the fixed point for each
-    # parameter combination to see how the fixed point distance threshold affects the
-    # number of trajectories that are considered to have reached the fixed point
-    first_passage_time_param_sweep_df_grid["percent_trajectories_approached_fp"] = (
-        first_passage_time_param_sweep_df_grid["num_trajectories_after_fpt_filter"]
-        / first_passage_time_param_sweep_df_grid["num_trajectories_before_fpt_filter"]
-    ) * 100
-    num_traj_param_sweep_agg_grid = (
-        first_passage_time_param_sweep_df_grid.groupby("threshold")[
-            "percent_trajectories_approached_fp"
-        ]
-        .agg(lambda x: np.unique(x).item())
-        .to_frame()
-    ).reset_index(drop=False)
-
-    first_passage_time_param_sweep_df_tracked["percent_trajectories_approached_fp"] = (
-        first_passage_time_param_sweep_df_tracked["num_trajectories_after_fpt_filter"]
-        / first_passage_time_param_sweep_df_tracked["num_trajectories_before_fpt_filter"]
-    ) * 100
-    num_traj_param_sweep_agg_tracked = (
-        first_passage_time_param_sweep_df_tracked.groupby("threshold")[
-            "percent_trajectories_approached_fp"
-        ]
-        .agg(lambda x: np.unique(x).item())
-        .to_frame()
-    ).reset_index(drop=False)
-
+    # also plot compute the fraction of trajectories that approached the fixed point
+    # for each parameter combination to see how the fixed point distance threshold
+    # affects the number of trajectories that are considered to have reached the
+    # fixed point
     fig, ax = plt.subplots(figsize=(3, 3))
     ax.set_title(fig_title, fontsize=FONTSIZE_LARGE)
     ax.plot(
-        num_traj_param_sweep_agg_grid["threshold"],
-        num_traj_param_sweep_agg_grid["percent_trajectories_approached_fp"],
+        first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
+        first_passage_time_param_sweep_df[
+            f"{Column.VectorField.PERCENT_TRAJECTORIES_APPROACHED_FP}_grid"
+        ],
         marker="o",
         color="tab:blue",
         markerfacecolor="tab:blue",
@@ -1447,8 +1408,10 @@ def plot_first_passage_time_parameter_sweep(
         label="grid",
     )
     ax.plot(
-        num_traj_param_sweep_agg_tracked["threshold"],
-        num_traj_param_sweep_agg_tracked["percent_trajectories_approached_fp"],
+        first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
+        first_passage_time_param_sweep_df[
+            f"{Column.VectorField.PERCENT_TRAJECTORIES_APPROACHED_FP}_tracked"
+        ],
         marker="o",
         color="tab:red",
         markerfacecolor="tab:red",
@@ -1468,10 +1431,70 @@ def plot_first_passage_time_parameter_sweep(
     ax.set_ylim(0, 105)
     ax.set_xlabel("radius around fixed point".title(), fontsize=FONTSIZE_LARGE)
     ax.set_ylabel("Trajectories reaching fixed point (%)".title(), fontsize=FONTSIZE_LARGE)
-    filename = (
-        f"FPT_percent_trajectories_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}"
-    )
+    filename = f"{dataset_name}_FPT_percent_trajectories_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}"
     save_plot_to_path(fig, out_dir, filename, file_format=".svg", show_and_close=False)
+
+
+def plot_first_passage_time_correlations(
+    dataset_name: str,
+    first_passage_time_stats_df: pd.DataFrame,
+    fixed_point_index: int,
+    fixed_point_stability: str,
+    out_dir: Path,
+) -> None:
+    shear_stress = _get_shear_stress_for_dataset(dataset_name)
+    shear_stress_rounded = _snap_to_bin(shear_stress)
+
+    fig, ax = plt.subplots(figsize=(2, 2))
+    ax.set_title(
+        f"{shear_stress_rounded} dyn/cm{UnicodeCharacters.SQUARED}",
+        fontsize=FONTSIZE_SMALL,
+    )
+    ax.errorbar(
+        x=first_passage_time_df_no_nan[f"{metric}_grid"],
+        y=first_passage_time_df_no_nan[f"{metric}_tracked"],
+        xerr=first_passage_time_df_no_nan[f"std{suffix}_grid"],
+        yerr=first_passage_time_df_no_nan[f"std{suffix}_tracked"],
+        fmt="none",
+        ecolor="gray",
+        alpha=0.5,
+        zorder=0,
+    )
+    ax.scatter(
+        x=first_passage_time_df_no_nan[f"{metric}_grid"],
+        y=first_passage_time_df_no_nan[f"{metric}_tracked"],
+        color="black",
+        edgecolor="white",
+        lw=0.2,
+        label=f"FPT {metric_to_plot} {UnicodeCharacters.PLUS_MINUS} STD (n={num_bins})",
+    )
+    ax.axline(
+        xy1=(0, line_fit.intercept),
+        slope=line_fit.slope,
+        color="tab:blue",
+        linestyle="--",
+        zorder=0,
+        label=f"Linear Fit (R={line_fit.rvalue:.2f})",
+    )
+    ax.axline(xy1=(0, 0), slope=1, color="tab:red", linestyle="--", zorder=0, label="Unity")
+    ax_min = min((*ax.get_xlim(), *ax.get_ylim()))
+    ax_max = max((*ax.get_xlim(), *ax.get_ylim()))
+    ax.set_xlim(ax_min, ax_max)
+    ax.set_ylim(ax_min, ax_max)
+    ax.set_xticks(range(0, int(ax_max), 2))
+    ax.set_yticks(range(0, int(ax_max), 2))
+    ax.tick_params(labelsize=FONTSIZE_SMALL)
+    ax.set_xlabel("Grid FPT (hrs)".title(), fontsize=FONTSIZE_SMALL, labelpad=1.0)
+    ax.set_ylabel("Tracked FPT (hrs)".title(), fontsize=FONTSIZE_SMALL, labelpad=1.0)
+    ax.legend()
+    save_plot_to_path(
+        fig,
+        out_dir,
+        filename,
+        file_format=".svg",
+        show_and_close=False,
+    )
+    return
 
 
 def plot_first_passage_time_histogram(
