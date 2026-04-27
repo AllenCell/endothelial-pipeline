@@ -55,33 +55,26 @@ all_datasets = [
     *get_datasets_in_collection("diffae_model_training"),
     *get_datasets_in_collection("replicate_2_datasets"),
 ]
-single_flow_datasets = [ds for ds in all_datasets if ds not in flow_switch_datasets]
 
 fig_savedir = get_output_path("flow_switch")
 
 # %%
 min_shear_stress_datasets = []
-for dataset_name in single_flow_datasets:
+for dataset_name in all_datasets:
     dataset_config = load_dataset_config(dataset_name)
     shear_stress_regime = dataset_config.shear_stress_regime
     if len(shear_stress_regime) > 1:
-        raise ValueError(
-            f"Expected single shear stress value for dataset [ {dataset_name} ], but got "
-            f"regime [ {shear_stress_regime} ]."
-        )
+        continue
     if shear_stress_regime[0] == ShearStressRegime.MIN:
         min_shear_stress_datasets.append(dataset_name)
 
 
 max_shear_stress_datasets = []
-for dataset_name in single_flow_datasets:
+for dataset_name in all_datasets:
     dataset_config = load_dataset_config(dataset_name)
     shear_stress_regime = dataset_config.shear_stress_regime
     if len(shear_stress_regime) > 1:
-        raise ValueError(
-            f"Expected single shear stress value for dataset [ {dataset_name} ], but got "
-            f"regime [ {shear_stress_regime} ]."
-        )
+        continue
     if shear_stress_regime[0] == ShearStressRegime.MAX:
         max_shear_stress_datasets.append(dataset_name)
 
