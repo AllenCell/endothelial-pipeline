@@ -413,7 +413,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
     layout_engine = fig.get_layout_engine()
     if layout_engine is not None:
         # reserve left margin for the vertical label and top margin for the legend
-        layout_engine.set(**{"rect": [0.08, 0, 1, 0.87]})
+        layout_engine.set(**{"rect": [0.08, 0, 1, 0.94]})
 
     time_column_label = "Time (hours)"
     # convert frames to hours for better readability of x-axis
@@ -525,7 +525,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         labels,
         fontsize="xx-small",
         loc="upper center",
-        bbox_to_anchor=(0.53, 0.93),
+        bbox_to_anchor=(0.53, 0.995),
         ncol=2,
         handletextpad=0.3,
         borderpad=0.3,
