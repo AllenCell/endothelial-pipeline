@@ -282,6 +282,10 @@ def main(
             df_flow = filter_dataframe_by_flow_condition(
                 df_steady_state, dataset_config, flow_condition
             )
+            metadata_dict = {
+                Column.DATASET: dataset_name,
+                Column.SHEAR_STRESS: shear_stress,
+            }
             fixed_points_for_flow_condition = baseline_fp_df[
                 baseline_fp_df[Column.SHEAR_STRESS] == shear_stress
             ]
@@ -380,8 +384,8 @@ def main(
                 polar_angle_period=polar_angle_period,
                 bootstrap_ci_lower_percentile=bootstrap_ci_lower_percentile,
                 bootstrap_ci_upper_percentile=bootstrap_ci_upper_percentile,
+                metadata_dict=metadata_dict,
             )
-            bootstrap_results_df_flow[Column.SHEAR_STRESS] = shear_stress
             bootstrap_dataframe_list.append(bootstrap_results_df_flow)
 
         # Concatenate results across flow conditions for this dataset
