@@ -14,33 +14,19 @@ from endo_pipeline.settings.figures import FIGURE_SAVE_DPI, FONTSIZE_LARGE
 logger = logging.getLogger(__name__)
 
 
-def _validate_axis_kwargs(kwargs: dict | None, required_key: str) -> None:
-    """
-    Validate that the given kwargs dictionary contains the required key.
-
-    If the kwargs dictionary is not None and does not contain the required key,
-    a ValueError is raised.
-
-    Parameters
-    ----------
-    kwargs
-        Dictionary of keyword arguments to validate.
-    required_key
-        The key that must be present in the kwargs dictionary.
-
-    """
-    if kwargs is not None and required_key not in kwargs:
-        raise ValueError(f"{required_key} key is required in kwargs.")
-
-
 def set_axes_properties(
     axes: plt.Axes,
     xlim: tuple[float, float] | None = None,
     ylim: tuple[float, float] | None = None,
+    xticks: list[float] | None = None,
+    yticks: list[float] | None = None,
     xtick_kwargs: dict | None = None,
     ytick_kwargs: dict | None = None,
+    xlabel: str | None = None,
+    ylabel: str | None = None,
     xlabel_kwargs: dict | None = None,
     ylabel_kwargs: dict | None = None,
+    title: str | None = None,
     title_kwargs: dict | None = None,
     aspect: Literal["auto", "equal"] | float | None = None,
 ) -> None:
@@ -56,36 +42,44 @@ def set_axes_properties(
         Optional, tuple specifying the limits for the x-axis (min, max).
     ylim
         Optional, tuple specifying the limits for the y-axis (min, max).
+    xticks
+        Optional, list of tick positions for the x-axis.
+    yticks
+        Optional, list of tick positions for the y-axis.
     xtick_kwargs
-        Optional, dictionary of keyword arguments for setting x-ticks.
+        Optional, dictionary of keyword arguments to pass to set_xticks.
     ytick_kwargs
-        Optional, dictionary of keyword arguments for setting y-ticks.
+        Optional, dictionary of keyword arguments to pass to set_yticks.
+    xlabel
+        Optional, label for the x-axis.
+    ylabel
+        Optional, label for the y-axis.
     xlabel_kwargs
-        Optional, dictionary of keyword arguments for setting the x-axis label.
+        Optional, dictionary of keyword arguments to pass to set_xlabel.
     ylabel_kwargs
-        Optional, dictionary of keyword arguments for setting the y-axis label.
+        Optional, dictionary of keyword arguments to pass to set_ylabel.
+    title
+        Optional, title for the axis.
     title_kwargs
-        Optional, dictionary of keyword arguments for setting the title.
+        Optional, dictionary of keyword arguments to pass to set_title.
+    aspect
+        Optional, aspect ratio for the axis.
+
     """
     if xlim is not None:
         axes.set_xlim(xlim)
     if ylim is not None:
         axes.set_ylim(ylim)
-    if xtick_kwargs is not None:
-        _validate_axis_kwargs(xtick_kwargs, "ticks")
-        axes.set_xticks(**xtick_kwargs)
-    if ytick_kwargs is not None:
-        _validate_axis_kwargs(ytick_kwargs, "ticks")
-        axes.set_yticks(**ytick_kwargs)
+    if xticks is not None:
+        axes.set_xticks(xticks, **(xtick_kwargs or {}))
+    if yticks is not None:
+        axes.set_yticks(yticks, **(ytick_kwargs or {}))
     if xlabel_kwargs is not None:
-        _validate_axis_kwargs(xlabel_kwargs, "xlabel")
-        axes.set_xlabel(**xlabel_kwargs)
+        axes.set_xlabel(xlabel, **(xlabel_kwargs or {}))
     if ylabel_kwargs is not None:
-        _validate_axis_kwargs(ylabel_kwargs, "ylabel")
-        axes.set_ylabel(**ylabel_kwargs)
+        axes.set_ylabel(ylabel, **(ylabel_kwargs or {}))
     if title_kwargs is not None:
-        _validate_axis_kwargs(title_kwargs, "label")
-        axes.set_title(**title_kwargs)
+        axes.set_title(title, **(title_kwargs or {}))
     if aspect is not None:
         axes.set_aspect(aspect)
 
