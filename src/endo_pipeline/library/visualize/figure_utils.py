@@ -29,6 +29,7 @@ def set_axes_properties(
     title: str | None = None,
     title_kwargs: dict | None = None,
     aspect: Literal["auto", "equal"] | float | None = None,
+    facecolor: str | None = None,
 ) -> None:
     """
     Set properties of the given axis, including limits, ticks, labels, and
@@ -64,6 +65,8 @@ def set_axes_properties(
         Optional, dictionary of keyword arguments to pass to set_title.
     aspect
         Optional, aspect ratio for the axis.
+    facecolor
+        Optional, background color for the axis.
 
     """
     if xlim is not None:
