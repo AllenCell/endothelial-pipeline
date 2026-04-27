@@ -54,7 +54,6 @@ def get_shear_stress_label_for_dataset(
     shear stress value regardless of whether *flow_condition* is provided or not
     (e.g. "12").
     """
-    base_label_str = f"{dataset_config.date} (shear_stress dyn/cm{Unicode.SQUARED})"
 
     if len(dataset_config.flow_conditions) == 1:
         shear_stress_str = f"{dataset_config.flow_conditions[0].shear_stress}"
@@ -71,8 +70,9 @@ def get_shear_stress_label_for_dataset(
             f"Dataset [ {dataset_config.name} ] must have only one or "
             "two shear stress regimes to get shear stress label"
         )
-    full_label_str = base_label_str.replace("shear_stress", shear_stress_str)
-    return full_label_str
+
+    shear_stress_label = f"{dataset_config.date} ({shear_stress_str} dyn/cm{Unicode.SQUARED})"
+    return shear_stress_label
 
 
 def get_position_string_from_zarr_file_path(zarr_file_path: str | Path) -> str:
