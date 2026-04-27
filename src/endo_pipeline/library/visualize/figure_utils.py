@@ -42,6 +42,7 @@ def set_axes_properties(
     xlabel_kwargs: dict | None = None,
     ylabel_kwargs: dict | None = None,
     title_kwargs: dict | None = None,
+    aspect: Literal["auto", "equal"] | float | None = None,
 ) -> None:
     """
     Set properties of the given axis, including limits, ticks, labels, and
@@ -85,6 +86,8 @@ def set_axes_properties(
     if title_kwargs is not None:
         _validate_axis_kwargs(title_kwargs, "label")
         axes.set_title(**title_kwargs)
+    if aspect is not None:
+        axes.set_aspect(aspect)
 
 
 def add_scalebar(
