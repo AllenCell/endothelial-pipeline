@@ -64,8 +64,8 @@ def main(
     from matplotlib.lines import Line2D
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import get_datasets_in_collection
-    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path, slugify
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
         get_dataset_color,
         get_label_for_column,
@@ -150,6 +150,7 @@ def main(
             )
             continue
 
+        dataset_config = load_dataset_config(dataset_name)
         logger.info("Loading bootstrap fixed point dataframe for dataset [ %s ].", dataset_name)
         location = get_dataframe_location_for_dataset(bootstrap_fp_manifest, dataset_name)
         df = load_dataframe(location, delay=False)
@@ -177,85 +178,103 @@ def main(
             bootstrap_threshold,
         )
 
-        high_confidence_df[Column.DATASET] = dataset_name
+        if Column.DATASET not in high_confidence_df.columns:
+            logger.debug(
+                "Adding dataset column to high-confidence dataframe for dataset [ %s ].",
+                dataset_name,
+            )
+            high_confidence_df[Column.DATASET] = dataset_name
+
         all_high_confidence_dfs.append(high_confidence_df)
 
-        # Per-dataset figures
-        fig, axes = plt.subplots(NROWS_2D_FLOW_FIELD, 1, figsize=FIGSIZE_2D_FLOW_FIELD)
-        suptitle_str = f"{dataset_name} — Bootstrap-Validated Fixed Points\n(Detection Rate {Unicode.GEQ} {bootstrap_threshold:.2%}"
-        suptitle_suffix = ")" if n_bootstrap is None else f", n bootstrap = {n_bootstrap})"
-        fig.suptitle(f"{suptitle_str}{suptitle_suffix}")
+        # Per-dataset, per flow condition figures
+        for flow_condition in dataset_config.flow_conditions:
+            shear_stress = flow_condition.shear_stress
 
-        for ax, column_x, column_y in [
-            (axes[0], column_names[0], column_names[1]),  # PC1 vs PC2
-            (axes[1], column_names[0], column_names[2]),  # PC1 vs PC3
-        ]:
-            for _, row in high_confidence_df.iterrows():
-                stability = row[Column.VectorField.STABILITY]
-                detection_rate = row[Column.BootstrapAnalysis.DETECTION_RATE]
-                print(
-                    f"Processing fixed point with stability {stability} and detection rate {detection_rate:.2f}"
-                )
-                color = STABILITY_COLOR_DICT.get(stability, "gray")
-                marker = STABILITY_MARKER_DICT.get(stability, "o")
+            high_confidence_df_flow = high_confidence_df[
+                high_confidence_df[Column.SHEAR_STRESS] == shear_stress
+            ]
+            fig, axes = plt.subplots(NROWS_2D_FLOW_FIELD, 1, figsize=FIGSIZE_2D_FLOW_FIELD)
+            suptitle_str = f"{dataset_name} — Bootstrap-Validated Fixed Points\n(Detection Rate {Unicode.GEQ} {bootstrap_threshold:.2%}"
+            suptitle_suffix = ")" if n_bootstrap is None else f", n bootstrap = {n_bootstrap})"
+            fig.suptitle(f"{suptitle_str}{suptitle_suffix}")
 
-                x = row[f"{column_x}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"]
-                y = row[f"{column_y}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"]
-                xlabel = get_label_for_column(column_x)
-                ylabel = get_label_for_column(column_y)
+            for ax, column_x, column_y in [
+                (axes[0], column_names[0], column_names[1]),  # PC1 vs PC2
+                (axes[1], column_names[0], column_names[2]),  # PC1 vs PC3
+            ]:
+                for _, row in high_confidence_df_flow.iterrows():
+                    stability = row[Column.VectorField.STABILITY]
+                    detection_rate = row[Column.BootstrapAnalysis.DETECTION_RATE]
+                    print(
+                        f"Processing fixed point with stability {stability} and detection rate {detection_rate:.2f}"
+                    )
+                    color = STABILITY_COLOR_DICT.get(stability, "gray")
+                    marker = STABILITY_MARKER_DICT.get(stability, "o")
 
-                x_lo = row[f"{column_x}_{Column.BootstrapAnalysis.CI_LOWER}"]
-                x_hi = row[f"{column_x}_{Column.BootstrapAnalysis.CI_UPPER}"]
-                y_lo = row[f"{column_y}_{Column.BootstrapAnalysis.CI_LOWER}"]
-                y_hi = row[f"{column_y}_{Column.BootstrapAnalysis.CI_UPPER}"]
-                print(x_lo, x_hi, y_lo, y_hi)
+                    x = row[f"{column_x}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"]
+                    y = row[f"{column_y}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"]
+                    xlabel = get_label_for_column(column_x)
+                    ylabel = get_label_for_column(column_y)
 
-                xerr = (
-                    [[max(0.0, x - x_lo)], [max(0.0, x_hi - x)]]
-                    if not (np.isnan(x_lo) or np.isnan(x_hi))
-                    else None
-                )
-                yerr = (
-                    [[max(0.0, y - y_lo)], [max(0.0, y_hi - y)]]
-                    if not (np.isnan(y_lo) or np.isnan(y_hi))
-                    else None
-                )
+                    x_lo = row[f"{column_x}_{Column.BootstrapAnalysis.CI_LOWER}"]
+                    x_hi = row[f"{column_x}_{Column.BootstrapAnalysis.CI_UPPER}"]
+                    y_lo = row[f"{column_y}_{Column.BootstrapAnalysis.CI_LOWER}"]
+                    y_hi = row[f"{column_y}_{Column.BootstrapAnalysis.CI_UPPER}"]
+                    print(x_lo, x_hi, y_lo, y_hi)
 
-                ax.errorbar(
-                    x,
-                    y,
-                    xerr=xerr,
-                    yerr=yerr,
-                    fmt=marker,
-                    color=color,
-                    markeredgecolor="black",
-                    markersize=8,
-                    capsize=4,
-                    elinewidth=1.2,
-                    ecolor=color,
-                    zorder=3,
-                )
+                    xerr = (
+                        [[max(0.0, x - x_lo)], [max(0.0, x_hi - x)]]
+                        if not (np.isnan(x_lo) or np.isnan(x_hi))
+                        else None
+                    )
+                    yerr = (
+                        [[max(0.0, y - y_lo)], [max(0.0, y_hi - y)]]
+                        if not (np.isnan(y_lo) or np.isnan(y_hi))
+                        else None
+                    )
 
-            ax.set_xlim(bounds_for_plots[column_x])
-            ax.set_ylim(bounds_for_plots[column_y])
-            ax.set_xlabel(xlabel)
-            ax.set_ylabel(ylabel)
-            ax.set_title(f"{xlabel} vs {ylabel}")
+                    ax.errorbar(
+                        x,
+                        y,
+                        xerr=xerr,
+                        yerr=yerr,
+                        fmt=marker,
+                        color=color,
+                        markeredgecolor="black",
+                        markersize=8,
+                        capsize=4,
+                        elinewidth=1.2,
+                        ecolor=color,
+                        zorder=3,
+                    )
 
-        # Legend from the stability labels present in this dataset
-        present_stabilities = set(high_confidence_df[Column.VectorField.STABILITY].unique())
-        legend_handles = [
-            StabilityLegendHandle(stability_label=s)
-            for s in StabilityLabel
-            if s in present_stabilities
-        ]
-        if legend_handles:
-            axes[-1].legend(handles=legend_handles, title="Stability", loc="best")
+                ax.set_xlim(bounds_for_plots[column_x])
+                ax.set_ylim(bounds_for_plots[column_y])
+                ax.set_xlabel(xlabel)
+                ax.set_ylabel(ylabel)
+                ax.set_title(f"{xlabel} vs {ylabel}")
 
-        plt.tight_layout()
+            # Legend from the stability labels present in this dataset
+            present_stabilities = set(
+                high_confidence_df_flow[Column.VectorField.STABILITY].unique()
+            )
+            legend_handles = [
+                StabilityLegendHandle(stability_label=s)
+                for s in StabilityLabel
+                if s in present_stabilities
+            ]
+            if legend_handles:
+                axes[-1].legend(handles=legend_handles, title="Stability", loc="best")
 
-        save_plot_to_path(fig, fig_savedir, f"bootstrap_fixed_points_ci_{dataset_name}")
-        plt.close(fig)
+            plt.tight_layout()
+
+            save_plot_to_path(
+                fig,
+                fig_savedir,
+                f"bootstrap_fixed_points_ci_{dataset_name}_shear_{slugify(shear_stress)}",
+            )
+            plt.close(fig)
 
     # Combined cross-dataset figure
     if len(all_high_confidence_dfs) < 2:
