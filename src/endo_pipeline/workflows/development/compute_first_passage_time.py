@@ -206,6 +206,9 @@ def main(
             ]
         ):
             dataset_name, fp_idx, fp_stability = nm
+            out_dir_dataset = out_dir / dataset_name
+            out_dir_dataset.mkdir(parents=True, exist_ok=True)
+
             plot_first_passage_time_parameter_sweep(
                 dataset_name=dataset_name,
                 fixed_point_index=fp_idx,
@@ -226,7 +229,7 @@ def main(
                     metric_to_plot=metric_to_plot,
                 )
 
-        if len(dataset_names) > 1:
+        if len(dataset_names) > 2:
             # make a summary plot in both the regular output folder and also the figure output folder
             filename = f"FPT_correlation_summary_{metric_to_plot}"
             plot_first_passage_time_correlation_summary(line_fit_df, out_dir, filename)
