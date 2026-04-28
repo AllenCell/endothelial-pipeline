@@ -13,7 +13,6 @@ from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_cont
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
-from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
 
@@ -162,18 +161,10 @@ def make_crop_example_contact_sheet(
             location="lower right",
             bar_thickness=4,
             padding=6,
+            include_label=True,
+            label_xy=(0.96, 0.08),
+            label_fontsize=FONTSIZE_SMALL,
         )
-
-    fig.axes[0].text(
-        0.96,
-        0.08,
-        f"{scale_bar_um} {Unicode.MU}m",
-        color="white",
-        transform=fig.axes[0].transAxes,
-        fontsize=FONTSIZE_SMALL,
-        va="bottom",
-        ha="right",
-    )
 
     save_plot_to_path(
         fig,
