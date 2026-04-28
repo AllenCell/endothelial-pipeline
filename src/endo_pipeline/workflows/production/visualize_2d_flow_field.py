@@ -47,15 +47,21 @@ def main(
     import pandas as pd
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+    from endo_pipeline.configs import (
+        get_datasets_in_collection,
+        get_shear_stress_label_for_dataset,
+        load_dataset_config,
+    )
     from endo_pipeline.io import (
         get_output_path,
         join_sorted_strings,
         load_dataframe,
         save_plot_to_path,
+        slugify,
     )
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_flow_condition,
+        filter_dataframe_by_stability,
         filter_dataframe_to_steady_state,
     )
     from endo_pipeline.library.analyze.dataframe_validation import (
@@ -260,8 +266,8 @@ def main(
 
         for flow_condition in dataset_config.flow_conditions:
             shear_stress = flow_condition.shear_stress
-            dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
-            fig_title = f"{dataset_name} ({shear_stress} dym/cm$^2$)"
+            dataset_name_flow = slugify(f"{dataset_name}_shear_{shear_stress}")
+            fig_title = get_shear_stress_label_for_dataset(dataset_config, flow_condition)
 
             feature_data_for_flow_condition = filter_dataframe_by_flow_condition(
                 feature_data, dataset_config, flow_condition
@@ -281,10 +287,9 @@ def main(
                 fixed_points_for_flow_condition = fixed_points_dataframe[
                     fixed_points_dataframe[Column.SHEAR_STRESS] == shear_stress
                 ]
-                stable_fixed_points = fixed_points_for_flow_condition[
-                    fixed_points_for_flow_condition[Column.VectorField.STABILITY]
-                    == StabilityLabel.STABLE
-                ]
+                stable_fixed_points = filter_dataframe_by_stability(
+                    fixed_points_for_flow_condition, stability_label=StabilityLabel.STABLE
+                )
 
             # get histogram for masking low-confidence regions of drift
             # estimates, using same kernels as for drift estimation, and set
