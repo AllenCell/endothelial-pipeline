@@ -14,15 +14,12 @@ from scipy.stats import binned_statistic_2d, binned_statistic_dd
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_XSMALL
-from endo_pipeline.settings.flow_field_dataframes import (
-    STABILITY_COLOR_DICT,
-    STABILITY_MARKER_DICT,
-    StabilityLegendHandle,
-)
+from endo_pipeline.settings.flow_field_dataframes import StabilityLegendHandle
 from endo_pipeline.settings.migration_coherence import (
     MIGRATION_COHERENCE_COLORMAP,
     MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
 )
+from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
@@ -267,8 +264,8 @@ def plot_3d_scatter_or_binned(
     if df_fp is not None:
         for _, row in df_fp.iterrows():
             stability = row[Column.VectorField.STABILITY]
-            mk = STABILITY_MARKER_DICT.get(stability, "o")
-            clr = STABILITY_COLOR_DICT.get(stability, "gray")
+            mk = FIXED_POINT_PLOT_STYLE.get(stability, {}).get("marker", "o")
+            clr = FIXED_POINT_PLOT_STYLE.get(stability, {}).get("color", "gray")
             theta, r, rho = row[x_col], row[y_col], row[z_col]
             mean_val = row.get(f"mean_{color_col}", float("nan"))
             ax.scatter(
@@ -419,8 +416,8 @@ def plot_optical_flow_histogram(
         if mean_col in df_fp.columns:
             for _, row in df_fp.iterrows():
                 stability = row[Column.VectorField.STABILITY]
-                mk = STABILITY_MARKER_DICT.get(stability, "o")
-                clr = STABILITY_COLOR_DICT.get(stability, "gray")
+                mk = FIXED_POINT_PLOT_STYLE.get(stability, {}).get("marker", "o")
+                clr = FIXED_POINT_PLOT_STYLE.get(stability, {}).get("color", "gray")
                 fp_val = row[mean_col]
                 if pd.notna(fp_val):
                     ax.scatter(
