@@ -739,6 +739,9 @@ def add_distance_to_fixed_points_columns(
         The period to use for the polar angle variable when computing differences, if applicable.
         If None, the default POLAR_ANGLE_PERIOD will be used. The other expected
         value for this parameter would be 2 * np.pi.
+    time_column : str
+        Column name in trajectory_df corresponding to the time variable
+        (e.g. `Column.TIMEPOINT` or `Column.SegData.TIME_HRS`).
 
     Returns
     -------
@@ -845,6 +848,9 @@ def add_first_passage_time_column(
         Expected to be the distance from a fixed point.
     threshold : float
         Threshold value to determine the first passage.
+    time_column : str
+        Column name in trajectory_df corresponding to the time variable
+        (e.g. `Column.TIMEPOINT` or `Column.SegData.TIME_HRS`).
 
     Returns
     -------

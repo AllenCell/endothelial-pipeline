@@ -145,12 +145,14 @@ def generate_first_passage_time_example(
         trajectory_df=traj_df_grid_sub,
         column=f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fp_idx}",
         threshold=fixed_point_radius_threshold,
+        time_column=Column.SegData.TIME_HRS,
     )
     traj_df_tracked_sub = add_first_passage_time_column(
         fixed_point_index=fp_idx,
         trajectory_df=traj_df_tracked_sub,
         column=f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fp_idx}",
         threshold=fixed_point_radius_threshold,
+        time_column=Column.SegData.TIME_HRS,
     )
 
     # 3. for each bin (across all steady-state timepoints), compute the mean,
