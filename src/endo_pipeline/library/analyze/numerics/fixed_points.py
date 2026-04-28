@@ -1,7 +1,6 @@
 """Methods related to finding and analyzing fixed points of a dynamical system."""
 
 import logging
-import re
 from collections.abc import Callable
 
 import numpy as np
@@ -324,36 +323,6 @@ def get_fixed_point_stability(jacobian: np.ndarray) -> StabilityLabel:
         stability = StabilityLabel.STABLE if np.real(eigvals).max() < 0 else StabilityLabel.UNSTABLE
 
     return stability
-
-
-def get_stability_label_from_fixed_point_type(fpt_type: str) -> str:
-    """Get the stability label from the fixed point type string.
-
-    Parses the input string to find the first word that matches one of the
-    stability labels defined in the StabilityLabel enum (e.g., "stable",
-    "unstable", "saddle", "indeterminate"). If a match is found, it returns that
-    stability label. If no match is found, it returns "unknown".
-
-    Parameters
-    ----------
-    fpt_type
-        String describing the type of fixed point, e.g., as returned by
-        get_fixed_point_type.
-
-    Returns
-    -------
-    :
-        String describing just the stability of the fixed point.
-
-    """
-    # use re.match so matching is case-insensitive (re.IGNORECASE) and
-    # anchored to the start of the string; the word boundary (\b) prevents a
-    # label like "stable" from matching a hypothetical "stableish ..." input
-    for stability in StabilityLabel:
-        if re.match(rf"^{re.escape(stability.value)}\b", fpt_type, re.IGNORECASE):
-            return stability.value
-    # if no stability label is found, return "unknown"
-    return "unknown"
 
 
 def get_fixed_points_within_bounds(
