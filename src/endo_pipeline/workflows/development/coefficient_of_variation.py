@@ -63,7 +63,11 @@ def main(
     from scipy.stats import circmean, circstd, circvar
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+    from endo_pipeline.configs import (
+        get_datasets_in_collection,
+        get_shear_stress_label_for_dataset,
+        load_dataset_config,
+    )
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_flow_condition,
@@ -172,7 +176,7 @@ def main(
             dataset_config.flow_conditions, dataset_config.shear_stress_regime, strict=True
         ):
             color = SHEAR_COLOR_DICT[(shear_regime,)]
-            label = f"{dataset_name} ({int(flow_condition.shear_stress)} dyn/cm$^2$)"
+            label = get_shear_stress_label_for_dataset(dataset_config, flow_condition)
 
             df_flow = filter_dataframe_by_flow_condition(df, dataset_config, flow_condition)
             t_min = df_flow[Column.TIMEPOINT].min()

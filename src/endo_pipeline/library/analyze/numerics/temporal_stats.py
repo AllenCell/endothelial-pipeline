@@ -1,7 +1,6 @@
 """Methods related to computing long-time-scale statistics of time series data."""
 
 from collections.abc import Callable
-from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -14,7 +13,7 @@ from endo_pipeline.library.analyze.dataframe_filtering import (
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
     get_kernel_density_estimate_from_histogram,
 )
-from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
+from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KernelName, KramersMoyalKernel
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     add_track_duration_to_dataframe,
 )
@@ -24,7 +23,7 @@ from endo_pipeline.settings.column_names import ColumnName as Column
 def compute_kde_on_bins(
     data: np.ndarray,
     bins: np.ndarray,
-    kernel_name: Literal["gaussian", "epanechnikov", "periodic"],
+    kernel_name: KernelName,
     kernel_bandwidth: float,
     kernel_period: float | None,
 ) -> np.ndarray:

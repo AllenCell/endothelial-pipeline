@@ -16,7 +16,7 @@ from endo_pipeline.library.analyze.dataframe_filtering import (
     filter_dataframe_to_steady_state,
 )
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
-from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
+from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KernelName, KramersMoyalKernel
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     add_track_duration_to_dataframe,
 )
@@ -79,7 +79,7 @@ def get_flow_field_estimation_kernels(
     column_names: list[str | Column.DiffAEData] | None = None,
     rescale_theta: bool = RESCALE_THETA,
     period_theta_rescaled: float = POLAR_ANGLE_PERIOD,
-    kernel_names_dynamics: dict[Column.DiffAEData, str] = KERNEL_NAMES_DYNAMICS,
+    kernel_names_dynamics: dict[Column.DiffAEData, KernelName] = KERNEL_NAMES_DYNAMICS,
     kernel_bandwidths_dynamics: dict[Column.DiffAEData, float] = KERNEL_BANDWIDTHS_DYNAMICS,
 ) -> list[KramersMoyalKernel]:
     """Return the kernels used for flow field estimation for the specified columns."""

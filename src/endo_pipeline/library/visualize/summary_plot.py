@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs import get_shear_stress_label_for_dataset, load_dataset_config
 from endo_pipeline.io import load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import (
     filter_dataframe_by_flow_condition,
@@ -24,7 +24,7 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
     make_legend_handles_for_fixed_pts,
 )
 from endo_pipeline.manifests import DataframeManifest, get_dataframe_location_for_dataset
-from endo_pipeline.settings.column_metadata import COLUMN_METADATA_DICT
+from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
@@ -454,11 +454,10 @@ def plot_cross_dataset_summaries(
         dataset_config = load_dataset_config(dataset_name)
         df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
         df_of = add_optical_flow_features(df_steady_state, datasets=[dataset_name])
-        date = dataset_config.date
 
         for flow_condition in dataset_config.flow_conditions:
             df_flow = filter_dataframe_by_flow_condition(df_of, dataset_config, flow_condition)
-            plot_label = f"{date} ({round(flow_condition.shear_stress)} dyn/cm{Unicode.SQUARED})"
+            plot_label = get_shear_stress_label_for_dataset(dataset_config, flow_condition)
 
             # Summary stats per optical flow feature
             for feature_key in optical_flow_features:
@@ -548,10 +547,8 @@ def plot_cross_dataset_summaries(
             squeeze=False,
         )
         axes_list = list(axs[0])
-    all_column_info = COLUMN_METADATA_DICT
     for ax_i, var in zip(axes_list, column_names, strict=False):
-        column_info = all_column_info.get(var)
-        var_label: str = column_info["label"] if column_info else str(var)
+        var_label = COLUMN_METADATA[var].label or str(var)
         col_name: str = f"mean_{var}" if var in optical_flow_features else str(var)
         plot_fixed_points_vs_shear_stress(
             df_fp_all,

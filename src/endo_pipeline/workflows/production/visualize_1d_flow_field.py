@@ -35,8 +35,13 @@ def main(
     import numpy as np
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
+    from endo_pipeline.configs import (
+        get_datasets_in_collection,
+        get_shear_stress_label_for_dataset,
+        load_dataset_config,
+    )
+    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path, slugify
+    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_stability
     from endo_pipeline.library.analyze.dataframe_validation import (
         check_required_columns_in_dataframe,
     )
@@ -180,8 +185,8 @@ def main(
         # compute on a per-shear stress condition basis
         for flow_condition in dataset_config.flow_conditions:
             shear_stress = flow_condition.shear_stress
-            dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
-            fig_title = f"{dataset_name} ({shear_stress} dym/cm$^2$)"
+            dataset_name_flow = slugify(f"{dataset_name}_shear_{shear_stress}")
+            fig_title = get_shear_stress_label_for_dataset(dataset_config, flow_condition)
 
             drift_dataframe_flow = drift_dataframe[
                 drift_dataframe[Column.SHEAR_STRESS] == shear_stress
@@ -207,10 +212,9 @@ def main(
                 fixed_points_dataframe_flow = fixed_points_dataframe[
                     fixed_points_dataframe[Column.SHEAR_STRESS] == shear_stress
                 ]
-                stable_fixed_points = fixed_points_dataframe_flow[
-                    fixed_points_dataframe_flow[Column.VectorField.STABILITY]
-                    == StabilityLabel.STABLE
-                ]
+                stable_fixed_points = filter_dataframe_by_stability(
+                    fixed_points_dataframe_flow, stability_label=StabilityLabel.STABLE
+                )
                 ax.plot(
                     stable_fixed_points[column_name],
                     np.zeros_like(stable_fixed_points[column_name]),
