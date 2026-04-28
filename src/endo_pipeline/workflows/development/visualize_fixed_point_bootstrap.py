@@ -272,7 +272,7 @@ def main(
             save_plot_to_path(
                 fig,
                 fig_savedir,
-                f"bootstrap_fixed_points_ci_{dataset_name}_shear_{slugify(shear_stress)}",
+                slugify(f"bootstrap_fixed_points_ci_{dataset_name}_shear_{shear_stress}"),
             )
             plt.close(fig)
 
