@@ -178,13 +178,6 @@ def main(
             bootstrap_threshold,
         )
 
-        if Column.DATASET not in high_confidence_df.columns:
-            logger.debug(
-                "Adding dataset column to high-confidence dataframe for dataset [ %s ].",
-                dataset_name,
-            )
-            high_confidence_df[Column.DATASET] = dataset_name
-
         all_high_confidence_dfs.append(high_confidence_df)
 
         # Per-dataset, per flow condition figures
