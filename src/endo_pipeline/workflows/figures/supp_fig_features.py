@@ -2,7 +2,7 @@ def main() -> None:
     """Main function to general Supp. Fig. showing PC-based feature derivation and interpretation."""
     import matplotlib.pyplot as plt
 
-    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE, NUM_GPUS
     from endo_pipeline.cli.demo_mode_defaults import use_default_collection
     from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.pca import fit_pca
@@ -78,7 +78,7 @@ def main() -> None:
     latent_walk_filename = "latent_walk_top_3_pcs"
 
     walk_img_grid = perform_latent_walk_along_top_pcs(
-        save_dir, latent_walk_filename, figsize=(6.0, 2.4)
+        save_dir, latent_walk_filename, figsize=(6.0, 2.4), num_gpus=NUM_GPUS
     )
     latent_walk_path = save_dir / f"{latent_walk_filename}_scale_bar_10um.svg"
 
