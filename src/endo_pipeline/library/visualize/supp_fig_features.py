@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 from matplotlib.patches import FancyArrowPatch
 
-from endo_pipeline.cli import NUM_GPUS
 from endo_pipeline.configs import get_datasets_in_collection
 from endo_pipeline.io import load_dataframe, load_model, save_plot_to_path
 from endo_pipeline.library.analyze.pca import fit_pca
@@ -33,7 +32,10 @@ from endo_pipeline.settings.workflow_defaults import (
 
 
 def perform_latent_walk_along_top_pcs(
-    save_path: Path, filename: str, figsize: tuple[float, float] = (MAX_FIGURE_WIDTH, 2.8)
+    save_path: Path,
+    filename: str,
+    figsize: tuple[float, float] = (MAX_FIGURE_WIDTH, 2.8),
+    num_gpus: int | None = None,
 ) -> np.ndarray:
     """
     Perform a latent walk along the top principal 3 components of the data.
@@ -99,7 +101,7 @@ def perform_latent_walk_along_top_pcs(
 
     # generate images from the latent walk
     walk_img_grid = generate_latent_walk_images(
-        model, walk_latent, ranges, num_gpus=NUM_GPUS, random_seed=RANDOM_SEED
+        model, walk_latent, ranges, num_gpus=num_gpus, random_seed=RANDOM_SEED
     )
 
     plot_latent_walk_as_grid(
