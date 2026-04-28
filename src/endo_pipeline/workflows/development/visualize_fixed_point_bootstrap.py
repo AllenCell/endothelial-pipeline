@@ -194,8 +194,8 @@ def main(
                 print(
                     f"Processing fixed point with stability {stability} and detection rate {detection_rate:.2f}"
                 )
-                color = FIXED_POINT_PLOT_STYLE.get(stability, {}).get("color", "gray")
-                marker = FIXED_POINT_PLOT_STYLE.get(stability, {}).get("marker", "o")
+                color = FIXED_POINT_PLOT_STYLE[stability]["color"]
+                marker = FIXED_POINT_PLOT_STYLE[stability]["marker"]
 
                 x = row[f"{column_x}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"]
                 y = row[f"{column_y}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"]

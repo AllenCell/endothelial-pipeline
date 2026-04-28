@@ -45,9 +45,8 @@ class StabilityLegendHandle(Line2D):
             [],
             [],
             label=legend_label or stability_label.value,
-            marker=marker or FIXED_POINT_PLOT_STYLE.get(stability_label, {}).get("marker", "o"),
-            color=face_color
-            or FIXED_POINT_PLOT_STYLE.get(stability_label, {}).get("color", "gray"),
+            marker=marker or FIXED_POINT_PLOT_STYLE[stability_label]["marker"],
+            color=face_color or FIXED_POINT_PLOT_STYLE[stability_label]["color"],
             markersize=marker_size,
             markeredgecolor=edge_color,
             linestyle="",

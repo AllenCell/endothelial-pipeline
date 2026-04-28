@@ -230,12 +230,8 @@ def main(
                         if fixed_points_dataframe is not None:
                             for _, row in fixed_points_dataframe.iterrows():
                                 stability = row[ColumnName.VectorField.STABILITY]
-                                marker = FIXED_POINT_PLOT_STYLE.get(stability, {}).get(
-                                    "marker", "o"
-                                )
-                                color = FIXED_POINT_PLOT_STYLE.get(stability, {}).get(
-                                    "color", "gray"
-                                )
+                                marker = FIXED_POINT_PLOT_STYLE[stability]["marker"]
+                                color = FIXED_POINT_PLOT_STYLE[stability]["color"]
                                 axs[1].scatter(
                                     row[x_col],
                                     row[y_col],

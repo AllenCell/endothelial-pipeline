@@ -291,8 +291,8 @@ def plot_fixed_points_vs_shear_stress(
         # Color by stability
         for _, row in df_fp.iterrows():
             stability = row[ColumnName.VectorField.STABILITY]
-            mk = FIXED_POINT_PLOT_STYLE.get(stability, {}).get("marker", "o")
-            clr = FIXED_POINT_PLOT_STYLE.get(stability, {}).get("color", "gray")
+            mk = FIXED_POINT_PLOT_STYLE[stability]["marker"]
+            clr = FIXED_POINT_PLOT_STYLE[stability]["color"]
             is_gray = stability not in FIXED_POINT_PLOT_STYLE
             y_val = row[variable]
             yerr = _compute_yerr(row, y_val, ci_lower_col, ci_upper_col)
