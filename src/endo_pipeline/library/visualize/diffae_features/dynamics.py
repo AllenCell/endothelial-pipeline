@@ -16,12 +16,8 @@ from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_VMAX,
     DRIFT_CONTOUR_VMIN,
 )
-from endo_pipeline.settings.flow_field_dataframes import (
-    STABILITY_COLOR_DICT,
-    STABILITY_MARKER_DICT,
-    StabilityLabel,
-)
-from endo_pipeline.settings.plot_defaults import StabilityLegendHandle
+from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
+from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, StabilityLegendHandle
 
 
 def plot_drift_contours(
@@ -481,8 +477,7 @@ def plot_drift_1d(
 
 def make_legend_handles_for_fixed_pts(
     fpt_stabilities: list[str],
-    face_color_dict: dict[str, str] = STABILITY_COLOR_DICT,
-    marker_dict: dict[str, str] = STABILITY_MARKER_DICT,
+    marker_style_dict: dict[str, dict[str, str | int | float]] = FIXED_POINT_PLOT_STYLE,
     marker_size: int = 10,
     edge_color: str = "black",
 ) -> list[StabilityLegendHandle]:
@@ -523,8 +518,8 @@ def make_legend_handles_for_fixed_pts(
                 StabilityLegendHandle(
                     stability_label=stability_type,
                     legend_label=stability_type,
-                    marker=marker_dict[stability_type],
-                    face_color=face_color_dict[stability_type],
+                    marker=marker_style_dict.get(stability_type, {}).get("marker", "o"),
+                    face_color=marker_style_dict.get(stability_type, {}).get("color", "gray"),
                     edge_color=edge_color,
                     marker_size=marker_size,
                 )
