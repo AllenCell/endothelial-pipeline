@@ -1339,12 +1339,12 @@ def plot_first_passage_time_correlations(
     ax.axline(
         xy1=(0, intercept),
         slope=slope,
-        color="tab:blue",
+        color="tab:green",
         linestyle="--",
         zorder=0,
         label=f"Linear Fit (R={r_value:.2f})",
     )
-    ax.axline(xy1=(0, 0), slope=1, color="tab:red", linestyle="--", zorder=0, label="Unity")
+    ax.axline(xy1=(0, 0), slope=1, color="black", linestyle="--", zorder=0, label="Unity")
     ax_min = min((*ax.get_xlim(), *ax.get_ylim()))
     ax_max = max((*ax.get_xlim(), *ax.get_ylim()))
     ax.set_xlim(ax_min, ax_max)

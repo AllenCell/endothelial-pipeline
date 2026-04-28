@@ -223,7 +223,7 @@ def generate_first_passage_time_example(
     ]
 
     # get the center and edges of the first qualifying bin
-    bin_center_1_bin, bin_edges_1_bin = first_passage_time_df_no_nan.head(1)[
+    bin_center_1_bin, bin_edges_1_bin = first_passage_time_df_no_nan[
         [Column.VectorField.BIN_CENTER, Column.VectorField.BIN_EDGES]
     ].iloc[0]
 
@@ -244,7 +244,7 @@ def generate_first_passage_time_example(
     # take the first trajectory (by crop index) from each crop pattern in the
     # example bin; record its initial timepoint and feature-space position so
     # we can mark where it enters the bin
-    # crop_id_tracked_example = 171
+    # example_tracked_crop_index = 36428
     for crop_id_tracked, df in trajectory_df_tracked_one_bin.groupby(Column.CROP_INDEX):
         df = df.sort_values(Column.TIMEPOINT)
         bin_tp_tracked, bin_theta_tracked, bin_r_tracked, bin_rho_tracked = (
@@ -256,7 +256,7 @@ def generate_first_passage_time_example(
         if example_tracked_crop_index is None or crop_id_tracked == example_tracked_crop_index:
             break
 
-    # crop_id_grid_example = 108
+    # example_grid_crop_index = 22
     for crop_id_grid, df in trajectory_df_grid_one_bin.groupby(Column.CROP_INDEX):
         df = df.sort_values(Column.TIMEPOINT)
         bin_tp_grid, bin_theta_grid, bin_r_grid, bin_rho_grid = (
@@ -336,6 +336,7 @@ def generate_first_passage_time_example(
         marker=".",
         c="tab:red",
         alpha=track_alpha,
+        label="tracked",
     )
     ax.plot(
         xs=thetas_grid_unwrapped,
@@ -346,6 +347,7 @@ def generate_first_passage_time_example(
         marker="d",
         c="tab:blue",
         alpha=track_alpha,
+        label="grid",
     )
     # plot the FPT start points as black markers with no fill
     ax.scatter(
@@ -378,6 +380,7 @@ def generate_first_passage_time_example(
         color="black",
         s=15,
         marker="*",
+        label="fixed point",
     )
     # plot a sphere around the fixed point with radius equal to the fixed_point_radius_threshold
     u = np.linspace(0, 2 * np.pi, 20)
@@ -439,6 +442,7 @@ def generate_first_passage_time_example(
     # adjust the focal length of the 3D plot so that depth is easier to perceive
     ax.set_proj_type("persp", focal_length=0.3)
     ax.view_init(elev=30, azim=-40)
+    ax.legend(ncols=3, loc="upper center")
 
     filename = f"{dataset_name}_FPT_fp_{example_fixed_point_index}_mean_3d_scatter"
     save_plot_to_path(fig, out_subdir, filename, file_format=".svg")

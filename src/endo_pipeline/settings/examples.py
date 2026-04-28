@@ -130,15 +130,15 @@ FIGURE_4_EXAMPLE_IMAGES: list[ExampleImage] = [
 ]
 
 FPT_CORRELATION_FIG_EXAMPLES: list[str] = [
-    "20250428_20X",
+    "20250409_20X",
     "20250611_20X",
 ]
 
 FPT_TRAJECTORY_FIG_EXAMPLES: dict = {
-    Column.DATASET: "20250428_20X",
+    Column.DATASET: "20250409_20X",
     Column.VectorField.FIXED_POINT_INDEX: 0,
-    "tracked_crop_index": 171,
-    "grid_crop_index": 108,
+    "tracked_crop_index": 36428,  # 171,
+    "grid_crop_index": 209,  # 108,
 }
 
 CDH5_SEG_FIG_EXAMPLE: ExampleImage = ExampleImage(
