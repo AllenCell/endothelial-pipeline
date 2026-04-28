@@ -283,7 +283,7 @@ def get_fixed_points(my_flow: Callable, inits: list[tuple] | list[np.ndarray]) -
     return list(map(np.array, set(map(tuple, np.round(fpts, 4)))))
 
 
-def get_fixed_point_type(jacobian: np.ndarray) -> StabilityLabel:
+def get_fixed_point_stability(jacobian: np.ndarray) -> StabilityLabel:
     """
     Classify the stability of a fixed point given the Jacobian matrix at that
     point.
@@ -444,11 +444,10 @@ def get_fixed_points_within_bounds(
             fpt, column_names, lower_percentile_bounds, upper_percentile_bounds, polar_angle_range
         )
         if within_percentile:
-            # get stability/type of the fixed point
-            fpt_type = get_fixed_point_type(vector_field_jacobian(fpt))
+            # get stability of the fixed point
+            fpt_stability_label = get_fixed_point_stability(vector_field_jacobian(fpt))
             fpt_string = f"({','.join(f'{coord:.2f}' for coord in fpt)})"
-            logger.debug("[ %s ] at [ %s ]", fpt_type, fpt_string)
-            fpt_stability_label = get_stability_label_from_fixed_point_type(fpt_type)
+            logger.debug("[ %s ] at [ %s ]", fpt_stability_label, fpt_string)
             fpts_high_confidence_list.append(
                 pd.DataFrame(
                     {
