@@ -354,7 +354,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         for i in range(1, MAX_PCS_TO_COMPUTE + 1)
     },
     Column.DiffAEData.POLAR_ANGLE: ColumnMetadata(
-        name="PC Polar Angle",
+        name=f"Polar {Unicode.THETA}",
         label=Unicode.THETA,
         description="Polar angle calculated by transforming PC 1 and PC 2 to polar coordinates",
         min=0,
@@ -362,7 +362,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         type=ColumnType.CONTINUOUS,
     ),
     Column.DiffAEData.POLAR_RADIUS: ColumnMetadata(
-        name="PC Polar Radius",
+        name="Polar r",
         label="r",
         description="Polar radius calculated by transforming PC 1 and PC 2 to polar coordinates",
         min=0,
