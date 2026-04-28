@@ -64,10 +64,9 @@ def main(
     from endo_pipeline.settings.flow_field_dataframes import (
         DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
-        STABILITY_COLOR_DICT,
-        STABILITY_MARKER_DICT,
     )
     from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
+    from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
     from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
     from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
     from endo_pipeline.settings.workflow_defaults import (
@@ -237,8 +236,8 @@ def main(
                         if fixed_points_dataframe is not None:
                             for _, row in fixed_points_dataframe.iterrows():
                                 stability = row[ColumnName.VectorField.STABILITY]
-                                marker = STABILITY_MARKER_DICT.get(stability, "o")
-                                color = STABILITY_COLOR_DICT.get(stability, "gray")
+                                marker = FIXED_POINT_PLOT_STYLE[stability].marker
+                                color = FIXED_POINT_PLOT_STYLE[stability].color
                                 axs[1].scatter(
                                     row[x_col],
                                     row[y_col],

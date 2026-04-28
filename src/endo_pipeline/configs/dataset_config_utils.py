@@ -259,6 +259,45 @@ def get_annotated_timepoints_for_position(
     return sorted(set(annotated_timepoints))
 
 
+def get_start_of_steady_state_for_position(dataset: DatasetConfig, position: int) -> int | None:
+    """Get the timepoint at which the steady state starts for the given position."""
+
+    if (
+        dataset.timepoint_annotations is None
+        or TimepointAnnotation.NOT_STEADY_STATE not in dataset.timepoint_annotations
+    ):
+        logger.warning("Dataset [ %s ] does not have any timepoint annotations", dataset.name)
+        return None
+
+    not_steady_state_timepoints = get_annotated_timepoints_for_position(
+        dataset, position, annotations=[TimepointAnnotation.NOT_STEADY_STATE]
+    )
+
+    if len(not_steady_state_timepoints) == 0:
+        logger.warning(
+            "Dataset [ %s ] does not have any [ %s ] annotations for position [ %d ]",
+            dataset.name,
+            TimepointAnnotation.NOT_STEADY_STATE.value,
+            position,
+        )
+        return None
+    else:
+        # steady state starts at the timepoint immediately after the last
+        # annotated "not steady state" timepoint
+        start_of_steady_state = max(not_steady_state_timepoints) + 1
+        if start_of_steady_state >= dataset.duration:
+            logger.warning(
+                "Start of steady state [ %d ] is greater than or equal to "
+                "dataset duration [ %d ] for dataset [ %s ] position [ %d ].",
+                start_of_steady_state,
+                dataset.duration,
+                dataset.name,
+                position,
+            )
+            return None
+        return start_of_steady_state
+
+
 def get_unannotated_timepoints_for_position(
     dataset: DatasetConfig, position: int, annotations: list[TimepointAnnotation] | None = None
 ) -> list[int]:

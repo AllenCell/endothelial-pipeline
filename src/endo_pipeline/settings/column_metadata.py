@@ -136,7 +136,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     # Classic segmentation features ============================================
     Column.SegData.ALIGNMENT: ColumnMetadata(
         name="Alignment relative to flow",
-        label="Cell alignment",
+        label="Cell alignment rel. to flow",
         unit="rad",
         min=0,
         max=pi / 2,
@@ -144,7 +144,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.SegData.ALIGNMENT_DEG: ColumnMetadata(
         name="Alignment relative to flow",
-        label="Cell alignment",
+        label="Cell alignment rel. to flow",
         unit="°",
         min=0,
         max=90,
@@ -154,7 +154,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.SegData.ORIENTATION: ColumnMetadata(
         name="Cell orientation",
-        label="Orientation",
+        label="Cell orientation",
         unit="rad",
         min=0,
         max=pi,
@@ -162,7 +162,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.SegData.ORIENTATION_DEG: ColumnMetadata(
         name="Cell orientation",
-        label="Orientation",
+        label="Cell orientation",
         unit="°",
         min=0,
         max=180,
@@ -178,27 +178,28 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.SegData.AREA_UM_SQ: ColumnMetadata(
         name="Cell area",
-        label="Area",
+        label="Cell area",
         unit=f"{Unicode.MU}m{Unicode.SQUARED}",
         min=350,
         max=2000,
         type=ColumnType.CONTINUOUS,
     ),
     Column.SegData.ASPECT_RATIO: ColumnMetadata(
-        name="Aspect ratio",
+        name="Cell aspect ratio",
+        label="Cell aspect ratio",
         min=1,
         max=10,
         type=ColumnType.CONTINUOUS,
     ),
     Column.SegData.PERIMETER_UM: ColumnMetadata(
         name="Cell perimeter",
-        label="Perimeter",
+        label="Cell perimeter",
         unit=f"{Unicode.MU}m",
         type=ColumnType.CONTINUOUS,
     ),
     Column.SegData.ECCENTRICITY: ColumnMetadata(
         name="Cell eccentricity",
-        label="Eccentricity",
+        label="Cell eccentricity",
         min=0,
         max=1,
         type=ColumnType.CONTINUOUS,
@@ -211,7 +212,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.SegData.CELL_FLUOR_MEAN: ColumnMetadata(
         name="Mean VE-Cad fluorescence in cell",
-        label="Cell fluorescence mean",
+        label="Cell mean fluorescence",
         unit="a.u.",
         min=120,
         max=150,
@@ -219,13 +220,13 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.SegData.CELL_FLUOR_MEDIAN: ColumnMetadata(
         name="Median VE-Cad fluorescence in cell",
-        label="Cell fluorescence median",
+        label="Cell median fluorescence",
         unit="a.u.",
         type=ColumnType.CONTINUOUS,
     ),
     Column.SegData.EDGE_FLUOR_MEAN: ColumnMetadata(
         name="Mean VE-Cad fluorescence at edges",
-        label="Edge fluorescence mean",
+        label="Cell edge mean fluorescence",
         unit="a.u.",
         min=100,
         max=200,
@@ -233,7 +234,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.SegData.NODE_FLUOR_MEAN: ColumnMetadata(
         name="Mean VE-Cad fluorescence at nodes",
-        label="Node fluorescence mean",
+        label="Cell node mean fluorescence",
         unit="a.u.",
         min=100,
         max=200,
@@ -241,7 +242,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.SegData.SOLIDITY: ColumnMetadata(
         name="Cell solidity",
-        label="Solidity",
+        label="Cell solidity",
         min=0,
         max=1,
         type=ColumnType.CONTINUOUS,
@@ -275,15 +276,15 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         type=ColumnType.DISCRETE,
     ),
     Column.SegData.NUM_NUCLEI_IN_CROP: ColumnMetadata(
-        name="Number of nuclei in crop",
-        label="Number of nuclei\nin crop",
+        name="Number of nuclei in patch",
+        label="Number of nuclei in patch",
         min=0,
         type=ColumnType.DISCRETE,
     ),
     # Dynamic features =========================================================
     Column.SegData.CENTROID_VELOCITY_ANGLE_DEG: ColumnMetadata(
         name="Cell migration angle",
-        label="Migration angle",
+        label="Cell migration angle",
         unit="°",
         min=-180,
         max=180,
@@ -293,7 +294,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.SegData.CENTROID_VELOCITY_UM_PER_MIN: ColumnMetadata(
         name="Cell migration speed",
-        label="Centroid velocity\nmagnitude",
+        label="Cell migration speed",
         unit=f"{Unicode.MU}m/min",
         min=0,
         max="max",
@@ -308,7 +309,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG: ColumnMetadata(
         name="Nucleus orientation relative to migration",
-        label="Cell-nucleus angle\nrel. migration",
+        label="Cell-nuc angle rel. migration",
         unit="°",
         min=-180,
         max=180,
@@ -318,12 +319,12 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DOTPROD: ColumnMetadata(
         name="Cell-nucleus vs. migration dot product",
-        label="Cell-nucleus vs.\nmigration dot prod.",
+        label="Cell-nuc vs.\nmigration dot prod.",
         type=ColumnType.CONTINUOUS,
     ),
     Column.SegData.NUCLEI_POSITION_ANGLE_DEG: ColumnMetadata(
         name="Nucleus orientation relative to flow angle",
-        label="Cell-nucleus angle\nrel. to flow",
+        label="Cell-nuc angle rel. to flow",
         unit="°",
         min=-180,
         max=180,
@@ -353,7 +354,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         for i in range(1, MAX_PCS_TO_COMPUTE + 1)
     },
     Column.DiffAEData.POLAR_ANGLE: ColumnMetadata(
-        name="PC polar angle",
+        name=f"Polar {Unicode.THETA}",
         label=Unicode.THETA,
         description="Polar angle calculated by transforming PC 1 and PC 2 to polar coordinates",
         min=0,
@@ -361,7 +362,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         type=ColumnType.CONTINUOUS,
     ),
     Column.DiffAEData.POLAR_RADIUS: ColumnMetadata(
-        name="PC polar radius",
+        name="Polar r",
         label="r",
         description="Polar radius calculated by transforming PC 1 and PC 2 to polar coordinates",
         min=0,
@@ -494,7 +495,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.OpticalFlow.SPEED_MEAN: ColumnMetadata(
         name="Optical flow mean speed",
-        label="Mean speed",
+        label="Patch-based migration speed",
         unit="pixels/frame",
         min=0,
         max=8,
@@ -530,7 +531,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.OpticalFlow.UNIT_VECTOR_MEAN: ColumnMetadata(
         name="Coherent migration (EMA 0.1, optical flow mean unit vector)",
-        label="Migration coherence",
+        label="Patch-based migration coherence",
         min=0,
         max=1,
         bin_width=0.02,

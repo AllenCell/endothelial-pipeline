@@ -264,9 +264,9 @@ def make_real_image_panel(
 
     ax_t = fig.axes[0]
     ax_t1 = fig.axes[1]
-    for ax, label in [
-        (ax_t, "t"),
-        (ax_t1, "t+1"),
+    for ax, label, include_label in [
+        (ax_t, "t", False),
+        (ax_t1, "t+1", True),
     ]:
         ax.set_frame_on(False)
         ax.set_title(label, fontsize=FONTSIZE_LARGE, x=axes_title_xloc)
@@ -278,6 +278,9 @@ def make_real_image_panel(
             location="lower right",
             bar_thickness=15,
             padding=25,
+            include_label=include_label,
+            label_xy=(0.95, 0.09),
+            label_fontsize=FONTSIZE_MEDIUM,
         )
 
         # add highlighted box to show crop region used for flow field construction
@@ -291,17 +294,6 @@ def make_real_image_panel(
             clip_on=False,
         )
         ax.add_patch(rect)
-
-    fig.axes[-1].text(
-        0.95,
-        0.09,
-        f"{scale_bar_um} {Unicode.MU}m",
-        color="white",
-        transform=fig.axes[-1].transAxes,
-        fontsize=FONTSIZE_MEDIUM,
-        va="bottom",
-        ha="right",
-    )
 
     # Curved arrows to (theta,r,rho) labels and straight arrow between them
     fig.canvas.draw()

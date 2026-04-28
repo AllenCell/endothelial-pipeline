@@ -31,7 +31,7 @@ from endo_pipeline.settings.dynamics_workflows import (
     METADATA_COLUMNS_TO_KEEP,
 )
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_WIDTH
-from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLOR_DICT, STABILITY_MARKER_DICT
+from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
 from endo_pipeline.settings.summary_plot import (
     CELL_LINE_LABEL_MAP,
     COLOR_PALETTE,
@@ -291,9 +291,9 @@ def plot_fixed_points_vs_shear_stress(
         # Color by stability
         for _, row in df_fp.iterrows():
             stability = row[ColumnName.VectorField.STABILITY]
-            mk = STABILITY_MARKER_DICT.get(stability, "o")
-            clr = STABILITY_COLOR_DICT.get(stability, "gray")
-            is_gray = stability not in STABILITY_COLOR_DICT
+            mk = FIXED_POINT_PLOT_STYLE[stability].marker
+            clr = FIXED_POINT_PLOT_STYLE[stability].color
+            is_gray = stability not in FIXED_POINT_PLOT_STYLE
             y_val = row[variable]
             yerr = _compute_yerr(row, y_val, ci_lower_col, ci_upper_col)
             if yerr is not None:

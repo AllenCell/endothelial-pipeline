@@ -93,11 +93,9 @@ def main(
     from endo_pipeline.settings.flow_field_dataframes import (
         DATAFRAME_MANIFEST_PREFIX_DRIFT,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
-        STABILITY_COLOR_DICT,
-        STABILITY_MARKER_DICT,
         StabilityLabel,
-        StabilityLegendHandle,
     )
+    from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, StabilityLegendHandle
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -347,8 +345,8 @@ def main(
                 ax.plot(
                     stable_fixed_points[column_names[0]],
                     stable_fixed_points[column_names[1]],
-                    STABILITY_MARKER_DICT[StabilityLabel.STABLE],
-                    color=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
+                    FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].marker,
+                    color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color,
                     markeredgecolor="k",
                     markeredgewidth=0.5,
                     markersize=5,
