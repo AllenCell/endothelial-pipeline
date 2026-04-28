@@ -226,27 +226,9 @@ def test_get_annotated_timepoints_for_position_no_annotations(dataset):
 # test get_start_of_steady_state_for_position
 @pytest.mark.parametrize(
     "position,expected_timepoint",
-    [
-        (0, 5),
-        (1, 6),
-    ],
+    [(0, 5), (1, 6), (2, None)],
 )
 def test_get_start_of_steady_state_for_position(dataset, position, expected_timepoint):
-    dataset.duration = 10
-    dataset.timepoint_annotations = {
-        TimepointAnnotation.NOT_STEADY_STATE: {
-            0: [[0, 4]],
-            1: [[0, 5]],
-            2: [],
-        },
-    }
-
-    assert get_start_of_steady_state_for_position(dataset, position) == expected_timepoint
-
-
-def test_get_start_of_steady_state_for_position_no_annotation(dataset):
-    position = 2
-    expected_timepoint = None
     dataset.duration = 10
     dataset.timepoint_annotations = {
         TimepointAnnotation.NOT_STEADY_STATE: {
