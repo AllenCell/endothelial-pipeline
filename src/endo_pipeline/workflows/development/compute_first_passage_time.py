@@ -153,6 +153,8 @@ def main(
                 ]
             ):
                 dataset_name, fp_idx, fp_stability = nm
+                out_dir_dataset = out_dir_figure / dataset_name
+                out_dir_dataset.mkdir(parents=True, exist_ok=True)
 
                 # extract the line fit results for this dataset and fixed point
                 line_fit_result = line_fit_df[
@@ -172,7 +174,7 @@ def main(
                     slope=slope,
                     intercept=intercept,
                     r_value=r_value,
-                    out_dir=out_dir,
+                    out_dir=out_dir_dataset,
                     metric_to_plot=metric_to_plot,
                 )
                 # histograms don't really work for 4D data (theta, r, rho, and FPT ratio),
@@ -184,7 +186,7 @@ def main(
                     fixed_point_stability=fp_stability,
                     first_passage_time_df=grp_df,
                     metric_to_plot=metric_to_plot,
-                    out_dir=out_dir,
+                    out_dir=out_dir_dataset,
                 )
                 # plot KDE of the first passage times for all of the bins thrown together
                 plot_first_passage_time_histogram(
@@ -194,7 +196,7 @@ def main(
                     first_passage_time_df=grp_df,
                     metric_to_plot=metric_to_plot,
                     bin_width_for_hist=None,
-                    out_dir=out_dir,
+                    out_dir=out_dir_dataset,
                 )
                 # plot histograms of the numbers of trajectories per bin
                 plot_first_passage_time_histogram(
@@ -204,7 +206,7 @@ def main(
                     first_passage_time_df=grp_df,
                     metric_to_plot="count",
                     bin_width_for_hist=1,
-                    out_dir=out_dir,
+                    out_dir=out_dir_dataset,
                 )
 
                 if dataset_name in FPT_FIG_EXAMPLES and metric_to_plot == "mean":
@@ -234,7 +236,7 @@ def main(
                     fixed_point_stability=fp_stability,
                     first_passage_time_param_sweep_df=grp_df,
                     fixed_point_radius_threshold=fixed_point_radius_threshold,
-                    out_dir=out_dir,
+                    out_dir=out_dir_dataset,
                     metric_to_plot=metric_to_plot,
                 )
                 if dataset_name in FPT_FIG_EXAMPLES and metric_to_plot == "mean":
@@ -251,8 +253,11 @@ def main(
             if len(dataset_names) > 1:
                 # make a summary plot in both the regular output folder and also the figure output folder
                 filename = f"FPT_correlation_summary_{metric_to_plot}"
-                for fdir in [out_dir, out_dir_figure]:
-                    plot_first_passage_time_correlation_summary(line_fit_df, fdir, filename)
+                plot_first_passage_time_correlation_summary(line_fit_df, out_dir, filename)
+                if metric_to_plot == "mean":
+                    plot_first_passage_time_correlation_summary(
+                        line_fit_df, out_dir_figure, filename
+                    )
 
 
 if __name__ == "__main__":

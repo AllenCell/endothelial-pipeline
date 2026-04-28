@@ -1427,7 +1427,9 @@ def plot_first_passage_time_histogram(
     ax.set_ylabel(yaxis_title)
     ax.set_xlabel(xaxis_title)
 
-    filename = f"FPT_fp_{fixed_point_id}_{fixed_point_stability}_{metric_to_plot}_histogram"
+    filename = (
+        f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}_{metric_to_plot}_histogram"
+    )
     save_plot_to_path(fig, out_dir, filename, file_format=".svg", show_and_close=False)
 
 
