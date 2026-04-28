@@ -3,6 +3,7 @@ from pathlib import Path
 
 import numpy as np
 from matplotlib import pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.io.output import get_output_path
@@ -24,13 +25,14 @@ from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
     LONG_TRACK_THRESHOLD_LENGTH,
     POLAR_ANGLE_PERIOD,
+    TIME_STEP_IN_HOURS,
 )
 from endo_pipeline.settings.figures import FONTSIZE_SMALL
 from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
 
 
 def generate_first_passage_time_example(
-    dataset_name: str = "20250618_20X",
+    dataset_name: str,
     out_dir: Path | None = None,
     minimum_track_length: int = LONG_TRACK_THRESHOLD_LENGTH,
     fixed_point_radius_threshold: float = MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
@@ -49,6 +51,8 @@ def generate_first_passage_time_example(
         crop_pattern="grid",
         minimum_track_length=minimum_track_length,
     )
+    traj_df_grid[Column.SegData.TIME_HRS] = traj_df_grid[Column.TIMEPOINT] * TIME_STEP_IN_HOURS
+
     traj_df_tracked = load_filtered_trajectory_df_for_first_passage_time_workflow(
         dataset_name,
         crop_pattern="tracked",
@@ -57,6 +61,9 @@ def generate_first_passage_time_example(
 
     # load the flow field dictionaries and fixed points
     fixed_points_df = load_fixed_points_dataframe_for_dataset(dataset_name)
+    traj_df_tracked[Column.SegData.TIME_HRS] = (
+        traj_df_tracked[Column.TIMEPOINT] * TIME_STEP_IN_HOURS
+    )
 
     # add the distances from the fixed points for the grid-based trajectories
     traj_df_grid = add_distance_to_fixed_points_columns(
@@ -107,7 +114,7 @@ def generate_first_passage_time_example(
     bin_limits_list = [bin_limits[col] for col in DYNAMICS_COLUMN_NAMES]
     bin_edges, bin_centers = get_bins(bin_widths=bin_widths, bin_limits=bin_limits_list)
 
-    # this dataset only has a single stable fixed point, so we use fixed point index 0
+    # # this dataset only has a single stable fixed point, so we use fixed point index 0
     fp_idx = 0
 
     # 2. mark each timepoint as "at the fixed point" if it is within the radius threshold,
@@ -182,22 +189,7 @@ def generate_first_passage_time_example(
         fixed_point_index=fp_idx,
     )
 
-    # drop the duplicate bin center and edge columns from one of the dataframes
-    # since they are the same and rename the columns to remove the suffixes
-    fpt_stats_df = fpt_stats_df.drop(
-        columns=[
-            f"{Column.VectorField.BIN_CENTER}_tracked",
-            f"{Column.VectorField.BIN_EDGES}_tracked",
-        ]
-    )
-    fpt_stats_df = fpt_stats_df.rename(
-        columns={
-            f"{Column.VectorField.BIN_CENTER}_grid": Column.VectorField.BIN_CENTER,
-            f"{Column.VectorField.BIN_EDGES}_grid": Column.VectorField.BIN_EDGES,
-        }
-    )
-
-    # 4. plot the example tracks used to get the cell FPT vs grid FPT
+    # plot the example tracks used to get the cell FPT vs grid FPT
     # remove bins that don't have enough trajectories in them from either the
     # grid or tracked trajectories
     fpt_stats_df = fpt_stats_df[
@@ -300,6 +292,7 @@ def generate_first_passage_time_example(
     # across the 0/2*pi boundary when plotting
     polar_angle_period = POLAR_ANGLE_PERIOD
     thetas_grid_unwrapped = np.unwrap(thetas_grid, period=polar_angle_period)
+    thetas_tracked_unwrapped = np.unwrap(thetas_tracked, period=polar_angle_period)
 
     # build the 8 corner vertices of the example bin (a rectangular cuboid in
     # feature space), then identify the 12 axis-aligned edges by keeping only
@@ -322,18 +315,20 @@ def generate_first_passage_time_example(
 
     # plot the tracked and grid trajectories in the 3D feature space with the
     # fixed point, bin edges, and bin start points
-    fig, ax = plt.subplots(figsize=(2, 2), subplot_kw={"projection": "3d"})  # type: ignore[call-arg]
-    ax.plot(  # type: ignore[call-arg]
-        xs=thetas_tracked,
+    track_alpha = 0.4
+    fig = plt.figure(figsize=(2, 2))
+    ax: Axes3D = fig.add_subplot(projection="3d")
+    ax.plot(
+        xs=thetas_tracked_unwrapped,
         ys=rs_tracked,
         zs=rhos_tracked,
         ls="-",
         lw=1,
         marker=".",
         c="tab:red",
-        alpha=0.4,
-    )  # type: ignore[call-arg]
-    ax.plot(  # type: ignore[call-arg]
+        alpha=track_alpha,
+    )
+    ax.plot(
         xs=thetas_grid_unwrapped,
         ys=rs_grid,
         zs=rhos_grid,
@@ -341,16 +336,40 @@ def generate_first_passage_time_example(
         lw=1,
         marker="d",
         c="tab:blue",
-        alpha=0.4,
-    )  # type: ignore[call-arg]
+        alpha=track_alpha,
+    )
     # plot the FPT start points as black markers with no fill
-    ax.scatter(bin_theta_tracked, bin_r_tracked, bin_rho_tracked, edgecolors="black", facecolors="none", lw=1, s=5, marker="o")  # type: ignore
-    ax.scatter(bin_theta_grid, bin_r_grid, bin_rho_grid, edgecolors="black", facecolors="none", lw=1, s=5, marker="d")  # type: ignore
+    ax.scatter(
+        bin_theta_tracked,
+        bin_r_tracked,
+        bin_rho_tracked,
+        edgecolors="black",
+        facecolors="none",
+        lw=1,
+        s=5,
+        marker="o",
+    )
+    ax.scatter(
+        bin_theta_grid,
+        bin_r_grid,
+        bin_rho_grid,
+        edgecolors="black",
+        facecolors="none",
+        lw=1,
+        s=5,
+        marker="d",
+    )
     # draw cube around bin edges
     for e_xyz in edges:
-        ax.plot(*list(zip(*e_xyz, strict=True)), ls="-", lw=0.5, c="black", alpha=0.7)  # type: ignore[call-arg]
+        ax.plot(*list(zip(*e_xyz, strict=True)), ls="-", lw=0.5, c="black", alpha=0.7)
     # plot the fixed point in the 3D space as a black star
-    ax.scatter(*fixed_points_df.loc[fp_idx][list(DYNAMICS_COLUMN_NAMES)].values, color="black", s=15, marker="*")  # type: ignore
+    fp_dynamic_cols = [str(col) for col in DYNAMICS_COLUMN_NAMES]
+    ax.scatter(
+        *fixed_points_df.loc[fp_idx][fp_dynamic_cols].values,
+        color="black",
+        s=15,
+        marker="*",
+    )
     # plot a sphere around the fixed point with radius equal to the fixed_point_radius_threshold
     u = np.linspace(0, 2 * np.pi, 20)
     v = np.linspace(0, np.pi, 20)
@@ -363,38 +382,37 @@ def generate_first_passage_time_example(
     z = fixed_points_df.loc[fp_idx][
         Column.DiffAEData.PC3_FLIPPED
     ] + fixed_point_radius_threshold * np.outer(np.ones_like(u), np.cos(v))
-    ax.plot_surface(x, y, z, color="black", alpha=0.1)  # type: ignore[attr-defined]
+    ax.plot_surface(x, y, z, color="black", alpha=0.1)
     ax.set_aspect("equal")
     # make the minor ticks on each axis correspond to the bin edges
     theta_lims = ax.get_xlim()
     r_lims = ax.get_ylim()
-    rho_lims = ax.get_zlim()  # type: ignore
+    rho_lims = ax.get_zlim()
     theta_minor_ticks = bin_edges[0][
         (bin_edges[0] > theta_lims[0]) & (bin_edges[0] < theta_lims[1])
     ]
     r_minor_ticks = bin_edges[1][(bin_edges[1] > r_lims[0]) & (bin_edges[1] < r_lims[1])]
     rho_minor_ticks = bin_edges[2][(bin_edges[2] > rho_lims[0]) & (bin_edges[2] < rho_lims[1])]
-    ax.set_xticks(theta_minor_ticks)  # type: ignore[call-arg]
-    ax.set_yticks(r_minor_ticks)  # type: ignore[call-arg]
-    ax.set_zticks(rho_minor_ticks)  # type: ignore[attr-defined]
+    ax.set_xticks(theta_minor_ticks)
+    ax.set_yticks(r_minor_ticks)
+    ax.set_zticks(rho_minor_ticks)
     ax.xaxis.set_major_formatter(plt.FormatStrFormatter("%.2f"))
     ax.yaxis.set_major_formatter(plt.FormatStrFormatter("%.2f"))
-    ax.zaxis.set_major_formatter(plt.FormatStrFormatter("%.2f"))  # type: ignore[attr-defined]
+    ax.zaxis.set_major_formatter(plt.FormatStrFormatter("%.2f"))
     # make the axes labels pretty
-    ax.tick_params(axis="x", labelsize=FONTSIZE_SMALL, rotation=45, pad=4)  # type: ignore[call-arg]
-    plt.setp(ax.get_xticklabels(), va="bottom", ha="center")  # type: ignore[call-arg]
-    ax.tick_params(axis="y", labelsize=FONTSIZE_SMALL, rotation=-15, pad=-2)  # type: ignore[call-arg]
-    plt.setp(ax.get_yticklabels(), va="center", ha="left")  # type: ignore[call-arg]
-    ax.tick_params(axis="z", labelsize=FONTSIZE_SMALL, pad=-4)  # type: ignore[arg-type]
-    plt.setp(ax.get_zticklabels(), va="top", ha="left")  # type: ignore[attr-defined]
+    ax.tick_params(axis="x", labelsize=FONTSIZE_SMALL, rotation=45, pad=4)
+    plt.setp(ax.get_xticklabels(), va="bottom", ha="center")
+    ax.tick_params(axis="y", labelsize=FONTSIZE_SMALL, rotation=-15, pad=-2)
+    plt.setp(ax.get_yticklabels(), va="center", ha="left")
+    ax.tick_params(axis="z", labelsize=FONTSIZE_SMALL, pad=-4)
+    plt.setp(ax.get_zticklabels(), va="top", ha="left")
     ax.set_xlabel(get_label_for_column(Column.DiffAEData.POLAR_ANGLE), loc="center", labelpad=-4)
     ax.set_ylabel(get_label_for_column(Column.DiffAEData.POLAR_RADIUS), loc="center", labelpad=5)
-    ax.set_zlabel(  # type:ignore[attr-defined]
-        get_label_for_column(Column.DiffAEData.PC3_FLIPPED), labelpad=5
-    )
+    ax.set_zlabel(get_label_for_column(Column.DiffAEData.PC3_FLIPPED), labelpad=5)
 
     # adjust the focal length of the 3D plot so that depth is easier to perceive
-    ax.set_proj_type("persp", focal_length=0.3)  # type: ignore[attr-defined]
+    ax.set_proj_type("persp", focal_length=0.3)
+    ax.view_init(elev=20, azim=-20)
 
     filename = f"{dataset_name}_FPT_fp_{fp_idx}_mean_3d_scatter"
     save_plot_to_path(fig, out_subdir, filename, file_format=".svg")
