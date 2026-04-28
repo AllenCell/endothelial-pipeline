@@ -168,7 +168,7 @@ def main(
             dt_array = np.arange(1, max_lag + 1)
 
             fig_title = get_shear_stress_label_for_dataset(dataset_config, flow_condition)
-            dataset_name_flow = f"{dataset_name}_{slugify(flow_condition.shear_stress)}"
+            dataset_name_flow = slugify(f"{dataset_name}_{flow_condition.shear_stress}")
 
             # compute MSD for each feature via Kramers-Moyal coefficient
             # estimation method

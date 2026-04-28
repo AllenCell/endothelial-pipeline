@@ -145,8 +145,8 @@ def main(
                 # split the dataframe by flow condition so we can plot the distribution
                 # of optical flow features for each flow condition separately
                 for flow_condition in dataset_config.flow_conditions:
-                    dataset_name_flow = (
-                        f"{dataset_name}_shear_{slugify(flow_condition.shear_stress)}"
+                    dataset_name_flow = slugify(
+                        f"{dataset_name}_shear_{flow_condition.shear_stress}"
                     )
                     df_flow = filter_dataframe_by_flow_condition(
                         df_of, dataset_config, flow_condition

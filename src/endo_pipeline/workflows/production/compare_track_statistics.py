@@ -132,7 +132,7 @@ def main(
 
         dataset_config = load_dataset_config(dataset_name)
         shear_stress = dataset_config.flow_conditions[0].shear_stress
-        dataset_name_flow = f"{dataset_name}_shear_{slugify(shear_stress)}"
+        dataset_name_flow = slugify(f"{dataset_name}_shear_{shear_stress}")
         plot_label = get_shear_stress_label_for_dataset(dataset_config)
         fig_savedir = get_output_path(__file__, dataset_name)
 

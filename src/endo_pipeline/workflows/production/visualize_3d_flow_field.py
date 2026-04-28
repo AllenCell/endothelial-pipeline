@@ -309,7 +309,7 @@ def main(
         for flow_condition in dataset_config.flow_conditions:
             shear_stress = flow_condition.shear_stress
             fig_title = get_shear_stress_label_for_dataset(dataset_config, flow_condition)
-            filename = f"{dataset_name}_{slugify(shear_stress)}"
+            filename = slugify(f"{dataset_name}_{shear_stress}")
             feature_data_for_flow_condition = filter_dataframe_by_flow_condition(
                 feature_data, dataset_config, flow_condition
             )
