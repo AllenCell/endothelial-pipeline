@@ -2,6 +2,7 @@
 
 from numpy import pi
 
+from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KernelName
 from endo_pipeline.settings.column_names import ColumnName as Column
 
 METADATA_COLUMNS_TO_KEEP: dict[str, tuple[str | Column.DiffAEData, ...]] = {
@@ -70,7 +71,7 @@ POLAR_ANGLE_RANGE: tuple[float, float] = (0.0, pi)
 POLAR_ANGLE_PERIOD: float = pi
 """Period for polar angle coordinate (dependent on RESCALE_THETA)."""
 
-KERNEL_NAMES_DYNAMICS: dict[Column.DiffAEData, str] = {
+KERNEL_NAMES_DYNAMICS: dict[Column.DiffAEData, KernelName] = {
     Column.DiffAEData.POLAR_ANGLE: "periodic",
     Column.DiffAEData.POLAR_RADIUS: "gaussian",
     Column.DiffAEData.PC3_FLIPPED: "gaussian",

@@ -195,7 +195,6 @@ def get_df_for_feature_correlation_viz(
         cols_to_load_overlap = sorted(
             set(cols_to_load) & set(merged_feats_df_delayed.columns), key=str
         )
-
         cols_to_load_unique = []
         for col in cols_to_load:
             if col not in cols_to_load_unique and col in cols_to_load_overlap:
