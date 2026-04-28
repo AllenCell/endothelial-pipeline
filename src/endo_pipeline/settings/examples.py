@@ -1,5 +1,7 @@
 from typing import NamedTuple
 
+from endo_pipeline.settings.column_names import ColumnName as Column
+
 EXAMPLE_DATASET = {
     "FIGURE_2_LOW_FLOW_DATASET": "20250409_20X",
     "FIGURE_2_HIGH_FLOW_DATASET": "20251001_20X",
@@ -127,10 +129,17 @@ FIGURE_4_EXAMPLE_IMAGES: list[ExampleImage] = [
     ),
 ]
 
-FPT_FIG_EXAMPLES: list[str] = [
+FPT_CORRELATION_FIG_EXAMPLES: list[str] = [
     "20250428_20X",
     "20250611_20X",
 ]
+
+FPT_TRAJECTORY_FIG_EXAMPLES: dict = {
+    Column.DATASET: "20250428_20X",
+    Column.VectorField.FIXED_POINT_INDEX: 0,
+    "tracked_crop_index": 171,
+    "grid_crop_index": 108,
+}
 
 CDH5_SEG_FIG_EXAMPLE: ExampleImage = ExampleImage(
     dataset_name="20250818_20X",

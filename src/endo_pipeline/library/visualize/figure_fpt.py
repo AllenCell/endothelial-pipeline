@@ -33,6 +33,9 @@ from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_COLOR
 
 def generate_first_passage_time_example(
     dataset_name: str,
+    example_fixed_point_index: int,
+    example_tracked_crop_index: int | None,
+    example_grid_crop_index: int | None,
     out_dir: Path | None = None,
     minimum_track_length: int = LONG_TRACK_THRESHOLD_LENGTH,
     fixed_point_radius_threshold: float = MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
@@ -114,57 +117,58 @@ def generate_first_passage_time_example(
     bin_limits_list = [bin_limits[col] for col in DYNAMICS_COLUMN_NAMES]
     bin_edges, bin_centers = get_bins(bin_widths=bin_widths, bin_limits=bin_limits_list)
 
-    # # this dataset only has a single stable fixed point, so we use fixed point index 0
-    fp_idx = 0
-
     # 2. mark each timepoint as "at the fixed point" if it is within the radius threshold,
     #    then propagate that flag to all timepoints in the trajectory using a groupby-transform
     #    so we can filter to only trajectories that ever reach the fixed point
-    traj_df_grid[f"{Column.VectorField.IS_AT_FP_PREFIX}{fp_idx}"] = (
-        traj_df_grid[f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fp_idx}"]
+    traj_df_grid[f"{Column.VectorField.IS_AT_FP_PREFIX}{example_fixed_point_index}"] = (
+        traj_df_grid[f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{example_fixed_point_index}"]
         <= fixed_point_radius_threshold
     )
-    traj_df_tracked[f"{Column.VectorField.IS_AT_FP_PREFIX}{fp_idx}"] = (
-        traj_df_tracked[f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fp_idx}"]
+    traj_df_tracked[f"{Column.VectorField.IS_AT_FP_PREFIX}{example_fixed_point_index}"] = (
+        traj_df_tracked[f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{example_fixed_point_index}"]
         <= fixed_point_radius_threshold
     )
 
-    traj_df_grid[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fp_idx}"] = traj_df_grid.groupby(
-        Column.CROP_INDEX
-    )[f"{Column.VectorField.IS_AT_FP_PREFIX}{fp_idx}"].transform(any)
-    traj_df_tracked[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fp_idx}"] = (
+    traj_df_grid[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{example_fixed_point_index}"] = (
+        traj_df_grid.groupby(Column.CROP_INDEX)[
+            f"{Column.VectorField.IS_AT_FP_PREFIX}{example_fixed_point_index}"
+        ].transform(any)
+    )
+    traj_df_tracked[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{example_fixed_point_index}"] = (
         traj_df_tracked.groupby(Column.CROP_INDEX)[
-            f"{Column.VectorField.IS_AT_FP_PREFIX}{fp_idx}"
+            f"{Column.VectorField.IS_AT_FP_PREFIX}{example_fixed_point_index}"
         ].transform(any)
     )
 
     # keep only trajectories that eventually reach the fixed point
     traj_df_grid_sub = traj_df_grid[
-        traj_df_grid[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fp_idx}"]
+        traj_df_grid[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{example_fixed_point_index}"]
     ]
     traj_df_tracked_sub = traj_df_tracked[
-        traj_df_tracked[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fp_idx}"]
+        traj_df_tracked[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{example_fixed_point_index}"]
     ]
 
     # compute the timepoint at which each trajectory first reaches a fixed point
     traj_df_grid_sub = add_first_passage_time_column(
-        fixed_point_index=fp_idx,
+        fixed_point_index=example_fixed_point_index,
         trajectory_df=traj_df_grid_sub,
-        column=f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fp_idx}",
+        column=f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{example_fixed_point_index}",
         threshold=fixed_point_radius_threshold,
         time_column=Column.SegData.TIME_HRS,
     )
     traj_df_tracked_sub = add_first_passage_time_column(
-        fixed_point_index=fp_idx,
+        fixed_point_index=example_fixed_point_index,
         trajectory_df=traj_df_tracked_sub,
-        column=f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fp_idx}",
+        column=f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{example_fixed_point_index}",
         threshold=fixed_point_radius_threshold,
         time_column=Column.SegData.TIME_HRS,
     )
 
     # 3. for each bin (across all steady-state timepoints), compute the mean,
     #    median, and standard deviation of first-passage times for the trajectories
-    time_to_first_passage_col_name = f"{Column.VectorField.TIME_TO_FP_PREFIX}{fp_idx}"
+    time_to_first_passage_col_name = (
+        f"{Column.VectorField.TIME_TO_FP_PREFIX}{example_fixed_point_index}"
+    )
 
     fpt_stats_df_grid = compute_first_passage_time_stats_for_bins(
         bin_centers=bin_centers,
@@ -186,7 +190,7 @@ def generate_first_passage_time_example(
         fpt_stats_df_grid=fpt_stats_df_grid,
         fpt_stats_df_tracked=fpt_stats_df_tracked,
         dataset_name=dataset_name,
-        fixed_point_index=fp_idx,
+        fixed_point_index=example_fixed_point_index,
     )
 
     # plot the example tracks used to get the cell FPT vs grid FPT
@@ -240,6 +244,7 @@ def generate_first_passage_time_example(
     # take the first trajectory (by crop index) from each crop pattern in the
     # example bin; record its initial timepoint and feature-space position so
     # we can mark where it enters the bin
+    # crop_id_tracked_example = 171
     for crop_id_tracked, df in trajectory_df_tracked_one_bin.groupby(Column.CROP_INDEX):
         df = df.sort_values(Column.TIMEPOINT)
         bin_tp_tracked, bin_theta_tracked, bin_r_tracked, bin_rho_tracked = (
@@ -248,7 +253,10 @@ def generate_first_passage_time_example(
             df.iloc[0][Column.DiffAEData.POLAR_RADIUS],
             df.iloc[0][Column.DiffAEData.PC3_FLIPPED],
         )
-        break
+        if example_tracked_crop_index is None or crop_id_tracked == example_tracked_crop_index:
+            break
+
+    # crop_id_grid_example = 108
     for crop_id_grid, df in trajectory_df_grid_one_bin.groupby(Column.CROP_INDEX):
         df = df.sort_values(Column.TIMEPOINT)
         bin_tp_grid, bin_theta_grid, bin_r_grid, bin_rho_grid = (
@@ -257,7 +265,8 @@ def generate_first_passage_time_example(
             df.iloc[0][Column.DiffAEData.POLAR_RADIUS],
             df.iloc[0][Column.DiffAEData.PC3_FLIPPED],
         )
-        break
+        if example_grid_crop_index is None or crop_id_grid == example_grid_crop_index:
+            break
 
     # extract the full trajectory from the bin entry point to the end of the track
     df_tracked_1_traj = traj_df_tracked_sub[
@@ -365,7 +374,7 @@ def generate_first_passage_time_example(
     # plot the fixed point in the 3D space as a black star
     fp_dynamic_cols = [str(col) for col in DYNAMICS_COLUMN_NAMES]
     ax.scatter(
-        *fixed_points_df.loc[fp_idx][fp_dynamic_cols].values,
+        *fixed_points_df.loc[example_fixed_point_index][fp_dynamic_cols].values,
         color="black",
         s=15,
         marker="*",
@@ -373,13 +382,13 @@ def generate_first_passage_time_example(
     # plot a sphere around the fixed point with radius equal to the fixed_point_radius_threshold
     u = np.linspace(0, 2 * np.pi, 20)
     v = np.linspace(0, np.pi, 20)
-    x = fixed_points_df.loc[fp_idx][
+    x = fixed_points_df.loc[example_fixed_point_index][
         Column.DiffAEData.POLAR_ANGLE
     ] + fixed_point_radius_threshold * np.outer(np.cos(u), np.sin(v))
-    y = fixed_points_df.loc[fp_idx][
+    y = fixed_points_df.loc[example_fixed_point_index][
         Column.DiffAEData.POLAR_RADIUS
     ] + fixed_point_radius_threshold * np.outer(np.sin(u), np.sin(v))
-    z = fixed_points_df.loc[fp_idx][
+    z = fixed_points_df.loc[example_fixed_point_index][
         Column.DiffAEData.PC3_FLIPPED
     ] + fixed_point_radius_threshold * np.outer(np.ones_like(u), np.cos(v))
     ax.plot_surface(x, y, z, color="black", alpha=0.1)
@@ -388,17 +397,32 @@ def generate_first_passage_time_example(
     theta_lims = ax.get_xlim()
     r_lims = ax.get_ylim()
     rho_lims = ax.get_zlim()
-    theta_minor_ticks = bin_edges[0][
-        (bin_edges[0] > theta_lims[0]) & (bin_edges[0] < theta_lims[1])
+    # bin_edges_theta_plot = bin_edges[0]
+    # extend theta bins to account for angle wrapping
+    bin_edges_theta_plot = np.concatenate((-1 * bin_edges[0][1:], bin_edges[0]))
+    bin_edges_r_plot = bin_edges[1]
+    bin_edges_rho_plot = bin_edges[2]
+    theta_minor_ticks = bin_edges_theta_plot[
+        (bin_edges_theta_plot > theta_lims[0]) & (bin_edges_theta_plot < theta_lims[1])
     ]
-    r_minor_ticks = bin_edges[1][(bin_edges[1] > r_lims[0]) & (bin_edges[1] < r_lims[1])]
-    rho_minor_ticks = bin_edges[2][(bin_edges[2] > rho_lims[0]) & (bin_edges[2] < rho_lims[1])]
+
+    r_minor_ticks = bin_edges_r_plot[
+        (bin_edges_r_plot > r_lims[0]) & (bin_edges_r_plot < r_lims[1])
+    ]
+    # r minor ticks are too close together, so skip every other LABEL (NOT TICK)
+    r_minor_ticklabels = [
+        f"{tick:.2f}" if tick in r_minor_ticks[::2] else "" for tick in r_minor_ticks
+    ]
+    rho_minor_ticks = bin_edges_rho_plot[
+        (bin_edges_rho_plot > rho_lims[0]) & (bin_edges_rho_plot < rho_lims[1])
+    ]
     ax.set_xticks(theta_minor_ticks)
     ax.set_yticks(r_minor_ticks)
     ax.set_zticks(rho_minor_ticks)
     ax.xaxis.set_major_formatter(plt.FormatStrFormatter("%.2f"))
-    ax.yaxis.set_major_formatter(plt.FormatStrFormatter("%.2f"))
+    ax.set_yticklabels(r_minor_ticklabels)
     ax.zaxis.set_major_formatter(plt.FormatStrFormatter("%.2f"))
+
     # make the axes labels pretty
     ax.tick_params(axis="x", labelsize=FONTSIZE_SMALL, rotation=45, pad=4)
     plt.setp(ax.get_xticklabels(), va="bottom", ha="center")
@@ -407,12 +431,14 @@ def generate_first_passage_time_example(
     ax.tick_params(axis="z", labelsize=FONTSIZE_SMALL, pad=-4)
     plt.setp(ax.get_zticklabels(), va="top", ha="left")
     ax.set_xlabel(get_label_for_column(Column.DiffAEData.POLAR_ANGLE), loc="center", labelpad=-4)
-    ax.set_ylabel(get_label_for_column(Column.DiffAEData.POLAR_RADIUS), loc="center", labelpad=5)
-    ax.set_zlabel(get_label_for_column(Column.DiffAEData.PC3_FLIPPED), labelpad=5)
+    ax.set_ylabel(
+        get_label_for_column(Column.DiffAEData.POLAR_RADIUS), loc="center", labelpad=0
+    )  # 5)
+    ax.set_zlabel(get_label_for_column(Column.DiffAEData.PC3_FLIPPED), labelpad=-1)  # 5)
 
     # adjust the focal length of the 3D plot so that depth is easier to perceive
     ax.set_proj_type("persp", focal_length=0.3)
-    ax.view_init(elev=20, azim=-20)
+    ax.view_init(elev=30, azim=-40)
 
-    filename = f"{dataset_name}_FPT_fp_{fp_idx}_mean_3d_scatter"
+    filename = f"{dataset_name}_FPT_fp_{example_fixed_point_index}_mean_3d_scatter"
     save_plot_to_path(fig, out_subdir, filename, file_format=".svg")

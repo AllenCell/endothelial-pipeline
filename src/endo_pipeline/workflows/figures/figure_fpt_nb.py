@@ -4,18 +4,26 @@ import matplotlib.pyplot as plt
 from endo_pipeline.io import get_output_path
 from endo_pipeline.library.visualize.figure_fpt import generate_first_passage_time_example
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
-from endo_pipeline.settings.examples import FPT_FIG_EXAMPLES
+from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.examples import FPT_TRAJECTORY_FIG_EXAMPLES
 from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT
 
 plt.style.use("endo_pipeline.figure")
 
 save_dir = get_output_path("figure_4")
 
-example_dataset_name = FPT_FIG_EXAMPLES[0]
+example_dataset_name = FPT_TRAJECTORY_FIG_EXAMPLES[Column.DATASET]
+example_fixed_point_index = FPT_TRAJECTORY_FIG_EXAMPLES[Column.VectorField.FIXED_POINT_INDEX]
 
 # %% Generate example of a tracked and grid-crop trajectory starting from the same bin
 # in feature space traveling to the fixed point
-generate_first_passage_time_example(dataset_name=example_dataset_name, out_dir=save_dir)
+generate_first_passage_time_example(
+    dataset_name=example_dataset_name,
+    example_fixed_point_index=example_fixed_point_index,
+    example_tracked_crop_index=FPT_TRAJECTORY_FIG_EXAMPLES["tracked_crop_index"],
+    example_grid_crop_index=FPT_TRAJECTORY_FIG_EXAMPLES["grid_crop_index"],
+    out_dir=save_dir,
+)
 
 # %% Build figure panels and figure
 panels = [
@@ -23,7 +31,7 @@ panels = [
         letter="A",
         path=save_dir
         / example_dataset_name
-        / f"{example_dataset_name}_FPT_fp_0_mean_3d_scatter.svg",
+        / f"{example_dataset_name}_FPT_fp_{example_fixed_point_index}_mean_3d_scatter.svg",
         x_position=0,
         y_position=0,
         x_offset=0,
