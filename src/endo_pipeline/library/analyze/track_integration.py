@@ -6,6 +6,7 @@ from typing import Any, Literal
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+from scipy.stats import linregress
 from seaborn import color_palette
 
 from endo_pipeline.configs.dataset_config_io import load_dataset_config
@@ -1433,3 +1434,67 @@ def compute_first_passage_times_one_dataset(
         param_sweep_df_list.append(parameter_sweep_df)
 
     return fpt_stats_df_list, param_sweep_df_list
+
+
+def filter_fpt_stats_df_by_min_num_trajectories(
+    fpt_stats_df: pd.DataFrame,
+    min_num_traj_per_bin: int,
+    metric_for_filter: Literal["mean", "median"],
+) -> pd.DataFrame:
+    # the column title is "50%" for 50th percentile in `pd.describe`` instead of
+    # mean so correct that if "median" was chosen
+    metric = "50%" if metric_for_filter == "median" else metric_for_filter
+    suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
+    metric = f"{metric}{suffix}"
+
+    # NaN values are unacceptable for the linear regression
+    fpt_stats_df_no_nan = fpt_stats_df.copy().dropna(subset=[f"{metric}_grid", f"{metric}_tracked"])
+    # keep only the bins with the minimum number of tracks per bin in them
+    fpt_stats_df_no_nan = fpt_stats_df_no_nan[
+        fpt_stats_df_no_nan["count_first_passage_time_grid"] >= min_num_traj_per_bin
+    ]
+    fpt_stats_df_no_nan = fpt_stats_df_no_nan[
+        fpt_stats_df_no_nan["count_first_passage_time_tracked"] >= min_num_traj_per_bin
+    ]
+
+    return fpt_stats_df_no_nan
+
+
+def build_fpt_line_fit_results_df(
+    fpt_stats_df_no_nan: pd.DataFrame, metric_to_fit: Literal["mean", "median"]
+) -> pd.DataFrame:
+    # the column title is "50%" for 50th percentile in `pd.describe`` instead of
+    # mean so correct that if "median" was chosen
+    metric = "50%" if metric_to_fit == "median" else metric_to_fit
+    suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
+    metric = f"{metric}{suffix}"
+
+    # do a linear regression to see if the FPTs from the tracked and grid trajectories
+    # correlate depending on where they are in binned feature space
+    line_fit_df = (
+        fpt_stats_df_no_nan.groupby(
+            [
+                Column.DATASET,
+                Column.VectorField.FIXED_POINT_INDEX,
+                Column.VectorField.STABILITY,
+            ]
+        )
+        .apply(
+            lambda df, metric=metric: pd.Series(
+                index=[
+                    "slope",
+                    "intercept",
+                    "r_value",
+                    "p_value",
+                    "std_err",
+                ],
+                data=linregress(
+                    x=df[f"{metric}_grid"],
+                    y=df[f"{metric}_tracked"],
+                ),
+            )
+        )
+        .reset_index()
+    )
+
+    return line_fit_df
