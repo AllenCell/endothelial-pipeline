@@ -29,7 +29,7 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL
+from endo_pipeline.settings.figures import FONTSIZE_MEDIUM
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.image_data import (
     DIFFAE_ZARR_RESOLUTION_LEVEL,
@@ -412,7 +412,7 @@ def make_crop_example_contact_sheet(
         font_size=FONTSIZE_MEDIUM,
     )
 
-    for ax in fig.axes:
+    for i, ax in enumerate(fig.axes):
         ax.xaxis.labelpad = 2
         ax.yaxis.labelpad = 2
         ax.tick_params(axis="both", pad=2)
@@ -424,18 +424,8 @@ def make_crop_example_contact_sheet(
             location="lower right",
             bar_thickness=4,
             padding=6,
+            include_label=True if i == 0 else False,
         )
-
-    fig.axes[0].text(
-        0.96,
-        0.08,
-        f"{scale_bar_um} {Unicode.MU}m",
-        color="white",
-        transform=fig.axes[0].transAxes,
-        fontsize=FONTSIZE_SMALL,
-        va="bottom",
-        ha="right",
-    )
 
     shear_stress = math.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
     shear_stress_label = f"{shear_stress} dyn/cm{Unicode.SQUARED}"
