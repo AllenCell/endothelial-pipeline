@@ -137,6 +137,20 @@ def load_dataset_config(dataset_name: str) -> DatasetConfig:
         )
 
         config = YAMLDecoder(DatasetConfig).decode(config_text)
+
+        # Log warning if any of the shear stress bins are more than +/- 1 away
+        # from the center of the bin
+        for flow_condition in config.flow_conditions:
+            delta = abs(flow_condition.shear_stress - flow_condition.shear_stress_bin)
+            if delta > 1:
+                logger.warning(
+                    "Dataset '%s' shear stress '%.2f' binned to '%d' (delta = '%.2f')",
+                    dataset_name,
+                    flow_condition.shear_stress,
+                    flow_condition.shear_stress_bin,
+                    delta,
+                )
+
         logger.debug("Loaded dataset config [ %s ] from [ %s ]", dataset_name, config_file)
         return config
 
