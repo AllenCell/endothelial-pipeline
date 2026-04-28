@@ -32,7 +32,6 @@ from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature impo
     add_optical_flow_features,
 )
 from endo_pipeline.library.visualize.columns import get_label_for_column
-from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings import RANDOM_SEED
 from endo_pipeline.settings.column_names import ColumnName as Column
@@ -573,7 +572,6 @@ def visualize_correlation_heatmaps(
     df_dataset: pd.DataFrame,
     label_column_tuples: list[tuple[str, list[str]]],
     out_dir: Path,
-    skip_multi_feature_scatterplots: bool = False,
     cross_correlation_only: bool = False,
     figsize_cluster_heatmap: tuple[float, float] | None = None,
 ) -> None:
@@ -598,12 +596,6 @@ def visualize_correlation_heatmaps(
         index=unique_feature_columns,
         columns=unique_feature_columns,
     )
-
-    # Pre-compute dataset color mapping once per dataset
-    dataset_color_mapping = {
-        ds_nm: get_dataset_color(ds_nm) for ds_nm in df_dataset[Column.DATASET].unique()
-    }
-    colors = df_dataset[Column.DATASET].map(dataset_color_mapping).to_list()
 
     pair_iter = (
         itertools.combinations(label_column_tuples, 2)
@@ -644,31 +636,4 @@ def visualize_correlation_heatmaps(
             metric="cosine",
             data_type="correlation",
             figsize=figsize_cluster_heatmap,
-        )
-
-        if skip_multi_feature_scatterplots:
-            continue
-
-        if len(x_cols) > 16 or len(y_cols) > 16:
-            logger.info(
-                "Skipping scatter plot for %s vs %s for dataset %s "
-                "due to large number of features (%s x %s).",
-                x_axis_label,
-                y_axis_label,
-                dataset_name,
-                len(x_cols),
-                len(y_cols),
-            )
-            continue
-
-        column_list = []
-        for col in x_cols + y_cols:
-            if col not in column_list:
-                column_list.append(col)  # this preserves column order
-
-        plot_multi_feature_correlations(
-            df=df_dataset[column_list],
-            output_folder=out_dir,
-            filename=f"{base_filename}_scatter",
-            color=colors,
         )
