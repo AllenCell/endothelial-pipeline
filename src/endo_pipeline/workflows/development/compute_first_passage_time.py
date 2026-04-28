@@ -153,7 +153,7 @@ def main(
                 ]
             ):
                 dataset_name, fp_idx, fp_stability = nm
-                out_dir_dataset = out_dir_figure / dataset_name
+                out_dir_dataset = out_dir / dataset_name
                 out_dir_dataset.mkdir(parents=True, exist_ok=True)
 
                 # extract the line fit results for this dataset and fixed point
