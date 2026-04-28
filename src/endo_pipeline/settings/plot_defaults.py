@@ -20,7 +20,7 @@ SHEAR_COLOR_DICT = {
 }
 """Color dictionary for shear stress levels to color code histogram plots."""
 
-FIXED_POINT_PLOT_STYLE: dict[str, dict[str, str | int | float]] = {
+FIXED_POINT_PLOT_STYLE: dict[str, dict[str, str]] = {
     StabilityLabel.STABLE: {"color": "blue", "marker": "o"},
     StabilityLabel.SADDLE: {"color": "grey", "marker": "^"},
     StabilityLabel.UNSTABLE: {"color": "red", "marker": "s"},
