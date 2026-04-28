@@ -121,7 +121,7 @@ def plot_latent_walk_as_grid(
                     ylabel = ylabel.upper()
                 ax.set_ylabel(ylabel, labelpad=5)
 
-    for ax in fig.axes:
+    for i, ax in enumerate(fig.axes):
         add_scalebar(
             ax,
             scale_bar_um=scale_bar_um,
@@ -129,7 +129,7 @@ def plot_latent_walk_as_grid(
             location="lower right",
             bar_thickness=2.5,
             padding=5,
-            include_label=True,
+            include_label=True if i == 0 else False,
             label_xy=(0.96, 0.08),
             label_fontsize=FONTSIZE_SMALL,
         )
