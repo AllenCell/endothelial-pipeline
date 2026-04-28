@@ -24,7 +24,7 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
     make_legend_handles_for_fixed_pts,
 )
 from endo_pipeline.manifests import DataframeManifest, get_dataframe_location_for_dataset
-from endo_pipeline.settings.column_metadata import COLUMN_METADATA_DICT
+from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
@@ -547,10 +547,8 @@ def plot_cross_dataset_summaries(
             squeeze=False,
         )
         axes_list = list(axs[0])
-    all_column_info = COLUMN_METADATA_DICT
     for ax_i, var in zip(axes_list, column_names, strict=False):
-        column_info = all_column_info.get(var)
-        var_label: str = column_info["label"] if column_info else str(var)
+        var_label = COLUMN_METADATA[var].label or str(var)
         col_name: str = f"mean_{var}" if var in optical_flow_features else str(var)
         plot_fixed_points_vs_shear_stress(
             df_fp_all,

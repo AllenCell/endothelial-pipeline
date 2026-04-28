@@ -2,12 +2,13 @@
 
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any, Literal
+from typing import Literal
 
 from numpy import pi
 
 from endo_pipeline.io import slugify
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.diffae_feature_dataframes import MAX_PCS_TO_COMPUTE, NUM_LATENT_FEATURES
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
@@ -87,13 +88,13 @@ class ColumnMetadata:
         self.label_with_unit = f"{self.label}{unit}"
 
         # Create slug version of the name (useful for saving to files).
-        self.slug = slugify(self.name_with_unit)
+        self.slug = slugify(self.name)
 
         # Set limits using minimum and maximum.
         self.limits = (self.min, self.max)
 
 
-COLUMN_METADATA: dict[str, ColumnMetadata] = {
+COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     # General information ======================================================
     Column.SegData.TIME_HRS: ColumnMetadata(
         name="Time",
@@ -117,6 +118,7 @@ COLUMN_METADATA: dict[str, ColumnMetadata] = {
     ),
     Column.SegData.TIME_HRS_SINCE_FLOW: ColumnMetadata(
         name="Time Under Flow",
+        label="Time",
         unit="hr",
         min="min",
         max="max",
@@ -570,239 +572,3 @@ COLUMN_METADATA: dict[str, ColumnMetadata] = {
     ),
 }
 """Mapping of column names to column metadata."""
-
-
-COLUMN_METADATA_DICT: dict[str, dict[str, Any]] = {
-    Column.SegData.TIME_HRS: {
-        "column_name": Column.SegData.TIME_HRS,
-        "label": "Time (h)",
-        "lims": (0, "max"),
-        "bin_width": 0.5,
-        "ticks": range(0, 49, 12),
-        "discrete_ticks": False,
-    },
-    Column.SegData.TIME_HRS_SINCE_FLOW: {
-        "column_name": Column.SegData.TIME_HRS_SINCE_FLOW,
-        "label": "Time Under Flow (h)",
-        "lims": ("min", "max"),
-        "bin_width": 0.5,
-        "ticks": range(0, 49, 12),
-        "discrete_ticks": False,
-    },
-    Column.SegData.ALIGNMENT_DEG: {
-        "column_name": Column.SegData.ALIGNMENT_DEG,
-        "label": "Alignment (deg)",
-        "lims": (0, 90),
-        "bin_width": 1,
-        "ticks": range(0, 91, 15),
-        "discrete_ticks": False,
-    },
-    Column.SegData.ORIENTATION_DEG: {
-        "column_name": Column.SegData.ORIENTATION_DEG,
-        "label": "Orientation (deg)",
-        "lims": (0, 180),
-        "bin_width": 5,
-        "ticks": range(0, 181, 90),
-        "discrete_ticks": False,
-    },
-    Column.SegData.ORIENTATION: {
-        "column_name": Column.SegData.ORIENTATION,
-        "label": "Orientation",
-        "lims": (0, 180),
-        "bin_width": 5,
-        "ticks": range(0, 181, 90),
-        "discrete_ticks": False,
-    },
-    Column.SegData.NEMATIC_ORDER: {
-        "column_name": Column.SegData.NEMATIC_ORDER,
-        "label": "Nematic Order",
-        "lims": (-1, 1),
-        "bin_width": None,
-        "ticks": None,
-        "discrete_ticks": False,
-    },
-    Column.SegData.ECCENTRICITY: {
-        "column_name": Column.SegData.ECCENTRICITY,
-        "label": "Eccentricity",
-        "lims": (0, 1),
-        "bin_width": None,
-        "ticks": None,
-        "discrete_ticks": False,
-    },
-    Column.SegData.ASPECT_RATIO: {
-        "column_name": Column.SegData.ASPECT_RATIO,
-        "label": "Aspect Ratio",
-        "lims": (1, 10),
-        "bin_width": None,
-        "ticks": None,
-        "discrete_ticks": False,
-    },
-    Column.SegData.AREA_UM_SQ: {
-        "column_name": Column.SegData.AREA_UM_SQ,
-        "label": "Area",
-        "lims": (350, 2000),
-        "bin_width": None,
-        "ticks": None,
-        "discrete_ticks": False,
-    },
-    Column.SegData.NUM_NEIGHBORS: {
-        "column_name": Column.SegData.NUM_NEIGHBORS,
-        "label": "Number of\nNeighbors",
-        "lims": (0, "max"),
-        "bin_width": 1,
-        "ticks": None,
-        "discrete_ticks": True,
-    },
-    Column.SegData.CENTROID_VELOCITY_UM_PER_MIN: {
-        "column_name": Column.SegData.CENTROID_VELOCITY_UM_PER_MIN,
-        "label": "Centroid Velocity\nMagnitude (μm/min)",
-        "lims": (0, "max"),
-        "bin_width": None,
-        "ticks": None,
-        "discrete_ticks": False,
-    },
-    Column.SegData.CENTROID_VELOCITY_ANGLE_DEG: {
-        "column_name": Column.SegData.CENTROID_VELOCITY_ANGLE_DEG,
-        "label": "Centroid Velocity\nOrientation (deg)",
-        "lims": (-180, 181),
-        "bin_width": 5,
-        "ticks": range(-180, 181, 90),
-        "discrete_ticks": False,
-    },
-    Column.SegData.NUCLEI_POSITION_ANGLE_DEG: {
-        "column_name": Column.SegData.NUCLEI_POSITION_ANGLE_DEG,
-        "label": "Nuclei Orientation\nRel. to Flow (deg)",
-        "lims": (-180, 180),
-        "bin_width": 5,
-        "ticks": range(-180, 181, 90),
-        "discrete_ticks": False,
-    },
-    Column.SegData.NUCLEI_POSITION_DISTANCE: {
-        "column_name": Column.SegData.NUCLEI_POSITION_DISTANCE,
-        "label": "Nuclei-Cell Centroid Distance (px)",
-        "lims": (0, "max"),
-        "bin_width": None,
-        "ticks": None,
-        "discrete_ticks": False,
-    },
-    Column.SegData.NUM_NUCLEI_AT_TIMEPOINT: {
-        "column_name": Column.SegData.NUM_NUCLEI_AT_TIMEPOINT,
-        "label": "Number of Nuclei",
-        "lims": (0, None),
-        "bin_width": None,
-        "ticks": None,
-        "discrete_ticks": True,
-    },
-    Column.SegData.NUM_NUCLEI_IN_CROP: {
-        "column_name": Column.SegData.NUM_NUCLEI_IN_CROP,
-        "label": "Number of Nuclei\nin Crop",
-        "lims": (0, None),
-        "bin_width": None,
-        "ticks": None,
-        "discrete_ticks": True,
-    },
-    Column.SegData.CELL_FLUOR_MEAN: {
-        "column_name": Column.SegData.CELL_FLUOR_MEAN,
-        "label": "Mean Cell Fluorescence",
-        "lims": (120, 150),
-        "bin_width": None,
-        "ticks": None,
-        "discrete_ticks": False,
-    },
-    Column.SegData.EDGE_FLUOR_MEAN: {
-        "column_name": Column.SegData.EDGE_FLUOR_MEAN,
-        "label": "Mean Edge Fluorescence",
-        "lims": (100, 200),
-        "bin_width": None,
-        "ticks": None,
-        "discrete_ticks": False,
-    },
-    Column.SegData.NODE_FLUOR_MEAN: {
-        "column_name": Column.SegData.NODE_FLUOR_MEAN,
-        "label": "Mean Node Fluorescence",
-        "lims": (100, 200),
-        "bin_width": None,
-        "ticks": None,
-        "discrete_ticks": False,
-    },
-    Column.SegData.SOLIDITY: {
-        "column_name": Column.SegData.SOLIDITY,
-        "label": "Cell Solidity",
-        "lims": (0, 1),
-        "bin_width": None,
-        "ticks": None,
-        "discrete_ticks": False,
-    },
-    Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG: {
-        "column_name": Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG,
-        "label": "Nuclei Orientation\nRel. to Migration (deg)",
-        "lims": (-180, 180),
-        "bin_width": 5,
-        "ticks": range(-180, 181, 90),
-        "discrete_ticks": False,
-    },
-    Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DOTPROD: {
-        "column_name": Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DOTPROD,
-        "label": "Cell-Nucleus vs.\nMigration Dot Product",
-        "lims": (None, None),
-        "bin_width": None,
-        "ticks": None,
-        "discrete_ticks": False,
-    },
-    Column.DiffAEData.POLAR_RADIUS: {
-        "column_name": Column.DiffAEData.POLAR_RADIUS,
-        "label": "r",
-        "lims": (0, None),
-        "bin_width": None,
-        "ticks": None,
-        "discrete_ticks": False,
-    },
-    Column.DiffAEData.POLAR_ANGLE: {
-        "column_name": Column.DiffAEData.POLAR_ANGLE,
-        "label": Unicode.THETA,
-        "lims": None,
-        "bin_width": None,
-        "ticks": None,
-        "discrete_ticks": False,
-    },
-    Column.DiffAEData.PC3_FLIPPED: {
-        "column_name": Column.DiffAEData.PC3_FLIPPED,
-        "label": Unicode.RHO,
-        "lims": None,
-        "bin_width": None,
-        "ticks": None,
-        "discrete_ticks": False,
-    },
-    Column.SegData.NUM_TRACKS_BEFORE_FILTERING: {
-        "column_name": Column.SegData.NUM_TRACKS_BEFORE_FILTERING,
-        "label": "Num. Segmentations\nBefore Filtering",
-        "lims": (0, None),
-        "bin_width": None,
-        "ticks": None,
-        "discrete_ticks": True,
-    },
-    Column.SegData.NUM_TRACKS_AFTER_FILTERING: {
-        "column_name": Column.SegData.NUM_TRACKS_AFTER_FILTERING,
-        "label": "Num. Segmentations\nAfter Filtering",
-        "lims": (0, None),
-        "bin_width": None,
-        "ticks": None,
-        "discrete_ticks": True,
-    },
-    Column.OpticalFlow.UNIT_VECTOR_MEAN: {
-        "column_name": Column.OpticalFlow.UNIT_VECTOR_MEAN,
-        "label": "Migration Coherence",
-        "lims": (0, 1),
-        "bin_width": 0.02,
-        "ticks": None,
-        "discrete_ticks": False,
-    },
-    Column.OpticalFlow.SPEED_MEAN: {
-        "column_name": Column.OpticalFlow.SPEED_MEAN,
-        "label": "Mean Speed",
-        "lims": (0, None),
-        "bin_width": None,
-        "ticks": None,
-        "discrete_ticks": False,
-    },
-}

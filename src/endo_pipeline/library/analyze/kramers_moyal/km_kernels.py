@@ -4,7 +4,7 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import wraps
-from typing import Literal
+from typing import Literal, TypeAlias
 
 import numpy as np
 from scipy.special import gamma
@@ -120,7 +120,12 @@ def periodic(x: np.ndarray) -> np.ndarray:
     return kernel
 
 
-AVAILABLE_KERNEL_FUNCTIONS = {
+KernelName: TypeAlias = Literal["periodic", "gaussian", "epanechnikov"]
+"""Type alias for the names of the available kernel functions."""
+
+AVAILABLE_KERNEL_FUNCTIONS: dict[
+    KernelName, Callable[[np.ndarray, float, float | None], np.ndarray]
+] = {
     "epanechnikov": epanechnikov,
     "gaussian": gaussian,
     "periodic": periodic,
@@ -131,7 +136,7 @@ AVAILABLE_KERNEL_FUNCTIONS = {
 class KramersMoyalKernel:
     """Structure for kernels used to calculate Kramers-Moyal coefficients."""
 
-    name: Literal["epanechnikov", "gaussian", "periodic"]
+    name: KernelName
     """Name of the kernel."""
 
     bandwidth: float

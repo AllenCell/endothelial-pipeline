@@ -61,6 +61,7 @@ def main(
     )
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_flow_condition,
+        filter_dataframe_by_stability,
         filter_dataframe_to_steady_state,
     )
     from endo_pipeline.library.analyze.dataframe_validation import (
@@ -286,10 +287,9 @@ def main(
                 fixed_points_for_flow_condition = fixed_points_dataframe[
                     fixed_points_dataframe[Column.SHEAR_STRESS] == shear_stress
                 ]
-                stable_fixed_points = fixed_points_for_flow_condition[
-                    fixed_points_for_flow_condition[Column.VectorField.STABILITY]
-                    == StabilityLabel.STABLE
-                ]
+                stable_fixed_points = filter_dataframe_by_stability(
+                    fixed_points_for_flow_condition, stability_label=StabilityLabel.STABLE
+                )
 
             # get histogram for masking low-confidence regions of drift
             # estimates, using same kernels as for drift estimation, and set

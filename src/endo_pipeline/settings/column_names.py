@@ -332,12 +332,6 @@ class ColumnName:
         XY_SHIFT = "xy_shift"
         Z_SHIFT = "z_shift"
 
-    class TFE(StrEnum):
-        """Dataframe column names used in the timelapse feature explorer manifest."""
-
-        SEGMENTATION_IMAGE_FILENAME = "seg_image"
-        """Column name for the segmentation image filename (filename and suffix only; not full path)."""
-
     class OpticalFlow(StrEnum):
         """Dataframe column names used in the optical-flow feature workflow."""
 
@@ -424,6 +418,9 @@ class ColumnName:
     class VectorField(StrEnum):
         """Column name suffixes used in vector field / dynamics analysis."""
 
+        FIXED_POINT_INDEX = "fixed_point_id"
+        """Column name for the index of the fixed point in the fixed point dataframe."""
+
         STABILITY = "stability"
         """Stability classification of a fixed point."""
 
@@ -464,6 +461,9 @@ class ColumnName:
         BIN_INDEX = "bin_index"
         """Column name for the index of the bin that a data point falls into when feature space is discretized."""
 
+        FPT_METRIC = "fpt_metric"
+        """Column name for the metric used in the first passage time analysis."""
+
     class BootstrapAnalysis(StrEnum):
         """Column name suffixes used in bootstrap fixed-point analysis."""
 
@@ -478,3 +478,18 @@ class ColumnName:
 
         CI_UPPER = "ci_upper"
         """Upper bound of the bootstrap confidence interval."""
+
+
+ColumnNameType = (
+    str
+    | ColumnName
+    | ColumnName.DiffAEData
+    | ColumnName.SegData
+    | ColumnName.SegDataFilters
+    | ColumnName.SegDataWorkflowVerification
+    | ColumnName.Annotations
+    | ColumnName.OpticalFlow
+    | ColumnName.BootstrapAnalysis
+    | ColumnName.VectorField
+)
+"""Type hint for all column name enums."""

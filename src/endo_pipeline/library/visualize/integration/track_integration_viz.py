@@ -16,6 +16,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.stats import linregress
 
 from endo_pipeline.configs.dataset_config import DatasetConfig
+from endo_pipeline.configs.dataset_config_io import load_dataset_config
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     add_normalized_time,
@@ -1082,7 +1083,7 @@ def plot_trajectory_measured_vs_simulation_over_flow_field(
     plt.close(fig)
 
 
-def plot_first_passage_time_correlation(
+def compute_and_plot_first_passage_time_correlation(
     fixed_point_id: int,
     fixed_point_stability: str,
     dataset_config: DatasetConfig,
@@ -1090,7 +1091,7 @@ def plot_first_passage_time_correlation(
     metric_to_plot: Literal["mean", "median"],
     min_num_traj_per_bin: int,
     out_dir: Path,
-) -> None:
+) -> dict:
     dataset_name = dataset_config.name
     time_units = TIME_STEP_IN_HOURS  # convert timeframes to hours
 
@@ -1176,14 +1177,26 @@ def plot_first_passage_time_correlation(
     ax.legend()
     filename = (
         f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}"
-        f"_{metric_to_plot}_correlation.png"
+        f"_{metric_to_plot}_correlation"
     )
     save_plot_to_path(
         fig,
         out_dir,
         filename,
+        file_format=".svg",
         show_and_close=False,
     )
+    return {
+        Column.DATASET: dataset_name,
+        Column.VectorField.FIXED_POINT_INDEX: fixed_point_id,
+        Column.VectorField.FPT_METRIC: metric_to_plot,
+        "slope": line_fit.slope,
+        "intercept": line_fit.intercept,
+        "r_value": line_fit.rvalue,
+        "p_value": line_fit.pvalue,
+        "std_err": line_fit.stderr,
+        "intercept_stderr": line_fit.intercept_stderr,
+    }
 
 
 def plot_first_passage_time_3d_scatter(
@@ -1271,7 +1284,7 @@ def plot_first_passage_time_3d_scatter(
 
     filename = (
         f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}"
-        f"_{metric_to_plot}_3d_scatter.png"
+        f"_{metric_to_plot}_3d_scatter"
     )
     save_plot_to_path(
         fig,
@@ -1280,6 +1293,7 @@ def plot_first_passage_time_3d_scatter(
         tight_layout=False,
         pad_inches=0.2,
         show_and_close=False,
+        file_format=".svg",
         bbox_inches="tight",
     )
 
@@ -1336,8 +1350,8 @@ def plot_first_passage_time_parameter_sweep(
             f"Threshold distance from fixed point {fixed_point_index} ({fixed_point_stability})".title()
         )
         ax.set_ylabel(f"first passage time {metric} (hrs)".title())
-        filename = f"FPT_{metric}_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}.png"
-        save_plot_to_path(fig, out_dir, filename, show_and_close=False)
+        filename = f"FPT_{metric}_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}"
+        save_plot_to_path(fig, out_dir, filename, file_format=".svg", show_and_close=False)
 
     # also compute the fraction of trajectories that approached the fixed point for each
     # parameter combination to see how the fixed point distance threshold affects the
@@ -1378,9 +1392,9 @@ def plot_first_passage_time_parameter_sweep(
     )
     ax.set_ylabel("Trajectories reaching fixed point (%)".title())
     filename = (
-        f"FPT_percent_trajectories_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}.png"
+        f"FPT_percent_trajectories_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}"
     )
-    save_plot_to_path(fig, out_dir, filename, show_and_close=False)
+    save_plot_to_path(fig, out_dir, filename, file_format=".svg", show_and_close=False)
 
 
 def plot_first_passage_time_histogram(
@@ -1472,8 +1486,8 @@ def plot_first_passage_time_histogram(
     ax.set_ylabel(yaxis_title)
     ax.set_xlabel(xaxis_title)
 
-    filename = f"FPT_fp_{fixed_point_id}_{fixed_point_stability}_{metric_to_plot}_histogram.png"
-    save_plot_to_path(fig, out_dir, filename, show_and_close=False)
+    filename = f"FPT_fp_{fixed_point_id}_{fixed_point_stability}_{metric_to_plot}_histogram"
+    save_plot_to_path(fig, out_dir, filename, file_format=".svg", show_and_close=False)
 
 
 def plot_first_passage_time_heatmap(
@@ -1587,11 +1601,44 @@ def plot_first_passage_time_heatmap(
 
     filename = (
         f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}"
-        f"_{metric_to_plot}_heatmap.png"
+        f"_{metric_to_plot}_heatmap"
     )
     save_plot_to_path(
         fig,
         out_dir,
         filename,
+        file_format=".svg",
+        show_and_close=False,
+    )
+
+
+def plot_first_passage_time_correlation_summary(
+    first_passage_time_correlation_summary_df: pd.DataFrame,
+    out_dir: Path,
+) -> None:
+    """Plot a summary of the correlation results from the first passage time
+    analysis across all datasets and fixed points.
+    """
+
+    xs = first_passage_time_correlation_summary_df[Column.DATASET].tolist()
+    xs = [load_dataset_config(dataset_name).date for dataset_name in xs]
+    ys = first_passage_time_correlation_summary_df["r_value"]
+    fig, ax = plt.subplots(figsize=(5, 3))
+    sns.stripplot(
+        x=xs,
+        y=ys,
+        color="black",
+        alpha=0.7,
+        ax=ax,
+    )
+    ax.set_ylim(0, 1)
+    ax.set_ylabel("Correlation Coefficient (R)")
+    plt.xticks(rotation=45, ha="right")
+    ax.set_xlabel("")
+    save_plot_to_path(
+        fig,
+        out_dir,
+        "FPT_correlation_summary",
+        file_format=".svg",
         show_and_close=False,
     )
