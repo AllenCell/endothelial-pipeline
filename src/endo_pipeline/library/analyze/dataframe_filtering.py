@@ -234,6 +234,30 @@ def filter_dataframe_by_flow_condition(
             return dataframe[dataframe[Column.TIMEPOINT] >= change_frame].copy()
 
 
+def filter_dataframe_by_shear_stress(dataframe: pd.DataFrame, shear_stress: float) -> pd.DataFrame:
+    """Filter dataframe to only include rows corresponding to a specified shear stress.
+
+    Parameters
+    ----------
+    dataframe
+        Dataframe of features for one dataset.
+    shear_stress
+        Shear stress value to filter by.
+
+    Returns
+    -------
+    :
+        Dataframe filtered to only include rows corresponding to the specified
+        shear stress.
+
+    """
+    # check that required columns are present
+    check_required_columns_in_dataframe(dataframe, [Column.SHEAR_STRESS])
+
+    # filter dataframe to only include rows corresponding to the specified shear stress
+    return dataframe[dataframe[Column.SHEAR_STRESS] == shear_stress].copy()
+
+
 def _get_index_from_value(val: float, bin_edges_1d: np.ndarray) -> int:
     """
     Given a value and a 1D array of bin edges, return the index of the bin that
