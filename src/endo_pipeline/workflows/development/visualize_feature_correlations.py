@@ -14,7 +14,6 @@ def main(
     segmentation_feature_group: str = "default",
     pc_group: str = "default",
     aggregate_only: bool = True,
-    skip_multi_feature_scatterplots: bool = True,
     plot_grid_migration_coherence_correlations: bool = False,
     plot_main_figure_correlations: bool = True,
     figsize_cluster_heatmap: tuple[float, float] | None = None,
@@ -49,8 +48,6 @@ def main(
         NUM_PCS_TO_ANALYZE.
     aggregate_only
         If True, only uses the aggregated dataset in the analysis.
-    skip_multi_feature_scatterplots
-        If True, skips generating multi-feature scatterplots.
     plot_migration_coherence_correlations
         If True, includes migration coherence features in the correlation
         analysis and plots.
@@ -208,7 +205,6 @@ def main(
             df_dataset=df_dataset,
             label_column_tuples=label_column_tuples,
             out_dir=out_dir,
-            skip_multi_feature_scatterplots=skip_multi_feature_scatterplots,
             cross_correlation_only=plot_main_figure_correlations,
             figsize_cluster_heatmap=figsize_cluster_heatmap,
         )
@@ -226,7 +222,6 @@ def main(
                 df_dataset=df_grid_dataset,
                 label_column_tuples=label_column_tuples_grid,
                 out_dir=out_dir,
-                skip_multi_feature_scatterplots=skip_multi_feature_scatterplots,
             )
 
     logger.info(
