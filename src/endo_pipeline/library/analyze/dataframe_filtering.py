@@ -175,10 +175,12 @@ def filter_dataframe_to_steady_state(
     return dataframe_steady_state
 
 
-def filter_dataframe_by_flow_condition(
+def filter_dataframe_to_flow_condition_by_timepoint(
     dataframe: pd.DataFrame, dataset_config: DatasetConfig, flow_condition: FlowCondition
 ) -> pd.DataFrame:
-    """Filter dataframe to only include timepoints corresponding to a specified flow condition.
+    """
+    Filter dataframe to only include timepoints corresponding to a specified
+    flow condition.
 
     Parameters
     ----------

@@ -32,7 +32,7 @@ def main(
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_annotations,
-        filter_dataframe_by_flow_condition,
+        filter_dataframe_to_flow_condition_by_timepoint,
     )
     from endo_pipeline.library.analyze.dataframe_validation import (
         check_required_columns_in_dataframe,
@@ -142,7 +142,7 @@ def main(
                 # of optical flow features for each flow condition separately
                 for flow_condition in dataset_config.flow_conditions:
                     dataset_name_flow = f"{dataset_name}_shear_{int(flow_condition.shear_stress)}"
-                    df_flow = filter_dataframe_by_flow_condition(
+                    df_flow = filter_dataframe_to_flow_condition_by_timepoint(
                         df_of, dataset_config, flow_condition
                     )
                     plot_label = f"{dataset_name} ({int(flow_condition.shear_stress)} dyn/cm{Unicode.SQUARED})"

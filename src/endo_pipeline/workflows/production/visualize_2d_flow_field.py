@@ -55,8 +55,8 @@ def main(
         save_plot_to_path,
     )
     from endo_pipeline.library.analyze.dataframe_filtering import (
-        filter_dataframe_by_flow_condition,
         filter_dataframe_by_shear_stress,
+        filter_dataframe_to_flow_condition_by_timepoint,
         filter_dataframe_to_steady_state,
     )
     from endo_pipeline.library.analyze.dataframe_validation import (
@@ -264,7 +264,7 @@ def main(
             dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
             fig_title = f"{dataset_name} ({shear_stress} dym/cm$^2$)"
 
-            feature_data_for_flow_condition = filter_dataframe_by_flow_condition(
+            feature_data_for_flow_condition = filter_dataframe_to_flow_condition_by_timepoint(
                 feature_data, dataset_config, flow_condition
             )
             vector_field_for_flow_condition = filter_dataframe_by_shear_stress(

@@ -73,8 +73,8 @@ def main(
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.dataframe_filtering import (
-        filter_dataframe_by_flow_condition,
         filter_dataframe_by_track_length,
+        filter_dataframe_to_flow_condition_by_timepoint,
         filter_dataframe_to_steady_state,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
@@ -156,7 +156,7 @@ def main(
         df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
 
         for flow_condition in dataset_config.flow_conditions:
-            df_flow = filter_dataframe_by_flow_condition(
+            df_flow = filter_dataframe_to_flow_condition_by_timepoint(
                 df_steady_state, dataset_config, flow_condition
             )
             if crop_pattern == "tracked":

@@ -93,7 +93,7 @@ def main(
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, join_sorted_strings, load_dataframe
     from endo_pipeline.library.analyze.dataframe_filtering import (
-        filter_dataframe_by_flow_condition,
+        filter_dataframe_to_flow_condition_by_timepoint,
         filter_dataframe_to_steady_state,
     )
     from endo_pipeline.library.analyze.dataframe_validation import (
@@ -304,7 +304,7 @@ def main(
 
         for flow_condition in dataset_config.flow_conditions:
             shear_stress = flow_condition.shear_stress
-            feature_data_for_flow_condition = filter_dataframe_by_flow_condition(
+            feature_data_for_flow_condition = filter_dataframe_to_flow_condition_by_timepoint(
                 feature_data, dataset_config, flow_condition
             )
             vector_field_for_flow_condition = vector_field_dataframe[

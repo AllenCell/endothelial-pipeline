@@ -11,10 +11,10 @@ from endo_pipeline.configs import (
 )
 from endo_pipeline.library.analyze.dataframe_filtering import (
     filter_dataframe_by_annotations,
-    filter_dataframe_by_flow_condition,
     filter_dataframe_by_shear_stress,
     filter_dataframe_by_track_length,
     filter_dataframe_to_binned_value,
+    filter_dataframe_to_flow_condition_by_timepoint,
     filter_dataframe_to_steady_state,
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
@@ -285,47 +285,55 @@ def test_filter_dataframe_to_steady_state_raises_with_missing_required_columns(d
         filter_dataframe_to_steady_state(dataframe, dataset)
 
 
-def test_filter_by_flow_condition_single_condition_returns_all_rows(dataframe, dataset):
+def test_filter_to_flow_condition_single_condition_returns_all_rows(dataframe, dataset):
     """When dataset has only one flow condition, all rows should be returned unchanged."""
     single_condition = FlowCondition(start=0, stop=5, shear_stress=1.0)
     dataset.flow_conditions = [single_condition]
-    result = filter_dataframe_by_flow_condition(dataframe, dataset, single_condition)
+    result = filter_dataframe_to_flow_condition_by_timepoint(dataframe, dataset, single_condition)
     assert result[Column.TIMEPOINT].tolist() == dataframe[Column.TIMEPOINT].tolist()
 
 
-def test_filter_by_flow_condition_first_condition_returns_frames_before_change(
+def test_filter_to_flow_condition_first_condition_returns_frames_before_change(
     dataframe, two_condition_dataset
 ):
     """First flow condition should include only frames before the change frame (< 2)."""
     first_condition = two_condition_dataset.flow_conditions[0]
-    result = filter_dataframe_by_flow_condition(dataframe, two_condition_dataset, first_condition)
+    result = filter_dataframe_to_flow_condition_by_timepoint(
+        dataframe, two_condition_dataset, first_condition
+    )
     assert result[Column.TIMEPOINT].tolist() == [0, 1] * 3
 
 
-def test_filter_by_flow_condition_second_condition_returns_frames_from_change(
+def test_filter_to_flow_condition_second_condition_returns_frames_from_change(
     dataframe, two_condition_dataset
 ):
     """Second flow condition should include only frames from the change frame onward (>= 2)."""
     second_condition = two_condition_dataset.flow_conditions[1]
-    result = filter_dataframe_by_flow_condition(dataframe, two_condition_dataset, second_condition)
+    result = filter_dataframe_to_flow_condition_by_timepoint(
+        dataframe, two_condition_dataset, second_condition
+    )
     assert result[Column.TIMEPOINT].tolist() == [2, 3] * 3
 
 
-def test_filter_by_flow_condition_returns_copy(dataframe, two_condition_dataset):
+def test_filter_to_flow_condition_returns_copy(dataframe, two_condition_dataset):
     """Returned dataframe should be a copy; mutating it should not affect the original."""
     first_condition = two_condition_dataset.flow_conditions[0]
-    result = filter_dataframe_by_flow_condition(dataframe, two_condition_dataset, first_condition)
+    result = filter_dataframe_to_flow_condition_by_timepoint(
+        dataframe, two_condition_dataset, first_condition
+    )
     result[Column.TIMEPOINT] = -1
     assert dataframe[Column.TIMEPOINT].tolist() == [0, 1, 2, 3] * 3
 
 
-def test_filter_by_flow_condition_raises_when_flow_condition_not_in_dataset(
+def test_filter_to_flow_condition_raises_when_flow_condition_not_in_dataset(
     dataframe, two_condition_dataset
 ):
     """Providing a FlowCondition not present in the dataset config should raise ValueError."""
     unrelated_condition = FlowCondition(start=20, stop=30, shear_stress=99.0)
     with pytest.raises(ValueError, match="does not match any of the flow conditions"):
-        filter_dataframe_by_flow_condition(dataframe, two_condition_dataset, unrelated_condition)
+        filter_dataframe_to_flow_condition_by_timepoint(
+            dataframe, two_condition_dataset, unrelated_condition
+        )
 
 
 @pytest.mark.parametrize(
@@ -345,19 +353,19 @@ def test_filter_by_flow_condition_raises_when_flow_condition_not_in_dataset(
         ),
     ],
 )
-def test_filter_by_flow_condition_raises_with_missing_required_columns(
+def test_filter_to_flow_condition_raises_with_missing_required_columns(
     bad_dataframe, two_condition_dataset
 ):
     """Missing required columns should raise a ValueError."""
     with pytest.raises(ValueError, match="DataFrame must contain column"):
-        filter_dataframe_by_flow_condition(
+        filter_dataframe_to_flow_condition_by_timepoint(
             bad_dataframe,
             two_condition_dataset,
             two_condition_dataset.flow_conditions[0],
         )
 
 
-def test_filter_by_flow_condition_raises_when_dataset_name_mismatch(two_condition_dataset):
+def test_filter_to_flow_condition_raises_when_dataset_name_mismatch(two_condition_dataset):
     """A dataframe whose dataset name differs from the config name should raise an error."""
     mismatched_df = pd.DataFrame(
         {
@@ -366,7 +374,7 @@ def test_filter_by_flow_condition_raises_when_dataset_name_mismatch(two_conditio
         }
     )
     with pytest.raises(ValueError):
-        filter_dataframe_by_flow_condition(
+        filter_dataframe_to_flow_condition_by_timepoint(
             mismatched_df,
             two_condition_dataset,
             two_condition_dataset.flow_conditions[0],

@@ -66,8 +66,8 @@ def main(
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.dataframe_filtering import (
-        filter_dataframe_by_flow_condition,
         filter_dataframe_by_track_length,
+        filter_dataframe_to_flow_condition_by_timepoint,
         filter_dataframe_to_steady_state,
     )
     from endo_pipeline.library.analyze.numerics.temporal_stats import (
@@ -174,7 +174,9 @@ def main(
             color = SHEAR_COLOR_DICT[(shear_regime,)]
             label = f"{dataset_name} ({int(flow_condition.shear_stress)} dyn/cm$^2$)"
 
-            df_flow = filter_dataframe_by_flow_condition(df, dataset_config, flow_condition)
+            df_flow = filter_dataframe_to_flow_condition_by_timepoint(
+                df, dataset_config, flow_condition
+            )
             t_min = df_flow[Column.TIMEPOINT].min()
             t_max = df_flow[Column.TIMEPOINT].max()
             all_timepoints = np.arange(t_min, t_max + 1)

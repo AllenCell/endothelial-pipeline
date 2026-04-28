@@ -132,8 +132,8 @@ def main(
         sample_trajectories_and_displacements_for_bootstrapping,
     )
     from endo_pipeline.library.analyze.dataframe_filtering import (
-        filter_dataframe_by_flow_condition,
         filter_dataframe_by_shear_stress,
+        filter_dataframe_to_flow_condition_by_timepoint,
         filter_dataframe_to_steady_state,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
@@ -278,7 +278,7 @@ def main(
         bootstrap_dataframe_list = []
         for flow_condition in dataset_config.flow_conditions:
             shear_stress = flow_condition.shear_stress
-            df_flow = filter_dataframe_by_flow_condition(
+            df_flow = filter_dataframe_to_flow_condition_by_timepoint(
                 df_steady_state, dataset_config, flow_condition
             )
             metadata_dict = {

@@ -12,7 +12,7 @@ import pandas as pd
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import (
-    filter_dataframe_by_flow_condition,
+    filter_dataframe_to_flow_condition_by_timepoint,
     filter_dataframe_to_steady_state,
 )
 from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
@@ -457,7 +457,9 @@ def plot_cross_dataset_summaries(
         date = dataset_config.date
 
         for flow_condition in dataset_config.flow_conditions:
-            df_flow = filter_dataframe_by_flow_condition(df_of, dataset_config, flow_condition)
+            df_flow = filter_dataframe_to_flow_condition_by_timepoint(
+                df_of, dataset_config, flow_condition
+            )
             plot_label = f"{date} ({round(flow_condition.shear_stress)} dyn/cm{Unicode.SQUARED})"
 
             # Summary stats per optical flow feature
