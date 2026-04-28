@@ -1,6 +1,7 @@
 """Default settings for plotting functions."""
 
 from endo_pipeline.configs import ShearStressRegime
+from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 
 CROP_HIST_BIN_WIDTH: float = 0.15
 """Bin width used in crop montage sampling."""
@@ -16,6 +17,14 @@ SHEAR_COLOR_DICT = {
     (ShearStressRegime.MAX, ShearStressRegime.MIN): "tab:olive",
 }
 """Color dictionary for shear stress levels to color code histogram plots."""
+
+FIXED_POINT_PLOT_STYLE: dict[str, dict[str, str | int | float]] = {
+    StabilityLabel.STABLE: {"color": "blue", "marker": "o"},
+    StabilityLabel.SADDLE: {"color": "grey", "marker": "^"},
+    StabilityLabel.UNSTABLE: {"color": "red", "marker": "s"},
+    StabilityLabel.INDETERMINATE: {"color": "khaki", "marker": "P"},
+}
+"""Dictionary mapping fixed point stability classification labels to plotting styles for visualizations."""
 
 MODEL_QC_SUBPLOT_KWARGS: dict = {"frame_on": False}
 """Default keyword arguments for subplots in model QC plots."""
