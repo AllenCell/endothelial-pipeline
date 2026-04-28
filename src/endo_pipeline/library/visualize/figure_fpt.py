@@ -442,7 +442,19 @@ def generate_first_passage_time_example(
     # adjust the focal length of the 3D plot so that depth is easier to perceive
     ax.set_proj_type("persp", focal_length=0.3)
     ax.view_init(elev=30, azim=-40)
-    ax.legend(ncols=3, loc="upper center")
+    ax.legend(ncols=3, loc="upper center", bbox_to_anchor=(0.5, 1.10))
+    # vertical_offset = 0.05
+    # horizontal_offset = -0.05
+    # scaling_factor = 0.9
+    # fig.subplots_adjust(
+    #     left=1 - 1 * scaling_factor + horizontal_offset,
+    #     right=1 * scaling_factor + horizontal_offset,
+    #     bottom=1 - 1 * scaling_factor + vertical_offset,
+    #     top=1 * scaling_factor + vertical_offset,
+    # )
+    ax_width = 0.7
+    ax_height = 0.7
+    ax.set_position([(1 - ax_width) / 2, (1 - ax_height) / 2, ax_width, ax_height])
 
     filename = f"{dataset_name}_FPT_fp_{example_fixed_point_index}_mean_3d_scatter"
     save_plot_to_path(fig, out_subdir, filename, file_format=".svg")

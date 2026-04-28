@@ -12,6 +12,7 @@ from matplotlib.colorbar import ColorbarBase
 from matplotlib.colors import TwoSlopeNorm
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
+from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -1349,12 +1350,12 @@ def plot_first_passage_time_correlations(
     ax_max = max((*ax.get_xlim(), *ax.get_ylim()))
     ax.set_xlim(ax_min, ax_max)
     ax.set_ylim(ax_min, ax_max)
-    ax.set_xticks(range(0, int(ax_max), 2))
-    ax.set_yticks(range(0, int(ax_max), 2))
+    ax.xaxis.set_major_locator(MaxNLocator(7, min_n_ticks=4, integer=True))
+    ax.yaxis.set_major_locator(MaxNLocator(7, min_n_ticks=4, integer=True))
     ax.tick_params(labelsize=FONTSIZE_SMALL)
     ax.set_xlabel("Grid FPT (hrs)".title(), fontsize=FONTSIZE_SMALL, labelpad=1.0)
     ax.set_ylabel("Tracked FPT (hrs)".title(), fontsize=FONTSIZE_SMALL, labelpad=1.0)
-    ax.legend()
+    ax.legend(loc="upper center")
 
     filename = f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}_{metric_to_plot}_correlation"
     save_plot_to_path(
@@ -1478,7 +1479,7 @@ def plot_first_passage_time_correlation_summary(
     save_plot_to_path(
         fig,
         out_dir,
-        "FPT_correlation_summary",
+        f"{filename}_histogram",
         file_format=".svg",
         show_and_close=False,
     )
