@@ -129,18 +129,10 @@ def plot_latent_walk_as_grid(
             location="lower right",
             bar_thickness=2.5,
             padding=5,
+            include_label=True,
+            label_xy=(0.96, 0.08),
+            label_fontsize=FONTSIZE_SMALL,
         )
-
-    fig.axes[0].text(
-        0.96,
-        0.08,
-        f"{scale_bar_um} {Unicode.MU}m",
-        color="white",
-        transform=fig.axes[0].transAxes,
-        fontsize=FONTSIZE_SMALL,
-        va="bottom",
-        ha="right",
-    )
 
     gs.tight_layout(fig, pad=0.25)
     plt.show()
