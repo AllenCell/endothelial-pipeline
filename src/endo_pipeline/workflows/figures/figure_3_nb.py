@@ -6,6 +6,7 @@ import pandas as pd
 
 from endo_pipeline.cli import NUM_GPUS
 from endo_pipeline.io import get_output_path, load_dataframe, load_model
+from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_stability
 from endo_pipeline.library.visualize.data_example_figures import create_panel_intermediate_examples
 from endo_pipeline.library.visualize.figure_3 import (
     generate_synthetic_images_at_stable_fixed_points,
@@ -108,9 +109,9 @@ for dataset_name in FIGURE_3_RECONSTRUCTION_EXAMPLE_DATASETS:
     high_confidence_df = df_bootstrap[
         df_bootstrap[ColumnName.BootstrapAnalysis.DETECTION_RATE] >= BOOTSTRAP_THRESHOLD
     ].copy()
-    df_stable_fixed_points = high_confidence_df[
-        high_confidence_df[ColumnName.VectorField.STABILITY] == StabilityLabel.STABLE
-    ]
+    df_stable_fixed_points = filter_dataframe_by_stability(
+        high_confidence_df, stability_label=StabilityLabel.STABLE
+    )
     df_reconstruction_examples = pd.concat(
         [df_reconstruction_examples, df_stable_fixed_points], ignore_index=True
     )
