@@ -1,5 +1,6 @@
 """Data structures for dataset configs."""
 
+from dataclasses import field
 from enum import Enum, StrEnum
 from typing import Literal
 
@@ -117,6 +118,17 @@ class FlowCondition:
 
     shear_stress: float
     """Shear stress in dynes/cm^2 for the flow condition."""
+
+    shear_stress_bin: int = field(init=False)
+    """Shear stress bin (bin size of 3)."""
+
+    def __post_init__(self):
+        """Post initialization steps for flow condition."""
+
+        # Bin shear stress with bin size of 3. Note that round uses bankers
+        # rounding, which rounds to the nearest even number in order to average
+        # out rounding errors.
+        self.shear_stress_bin = 3 * round(self.shear_stress / 3)
 
 
 @dataclass

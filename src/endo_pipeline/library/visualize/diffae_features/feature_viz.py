@@ -31,6 +31,7 @@ from endo_pipeline.settings.density_comparison_plots import (
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_FEATURE_COLUMN_NAMES,
     DIFFAE_PC_COLUMN_NAMES,
+    NUM_LATENT_FEATURES,
     NUM_PCS_TO_ANALYZE,
 )
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
@@ -136,7 +137,7 @@ def plot_explained_variance(
     ax.set_xlabel("Number of\nPCA components")
     ax.set_ylabel("Cumulative\nexplained variance (%)")
 
-    ax.set_xticks(np.arange(0, 512, 100))
+    ax.set_xticks(np.arange(0, NUM_LATENT_FEATURES, 100))
 
     ax.xaxis.labelpad = 3
     ax.yaxis.labelpad = 2

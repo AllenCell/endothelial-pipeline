@@ -13,10 +13,10 @@ parameters:
   upper_percentile_for_filtering_fpts: 95.0
 locations:
   20250409_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/2026-04-20/generate_flow_field/grid/drift_vector_field_20250409_20X_demo_20260420_194631.parquet
+    fmsid: dbef5be6b8bc439caf5d6208b69d35ce
+    path: null
     s3uri: null
   20251001_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/2026-04-20/generate_flow_field/grid/drift_vector_field_20251001_20X_demo_20260420_202224.parquet
+    fmsid: 5fe2196706ee4b11b965200410abb4ae
+    path: null
     s3uri: null

@@ -16,7 +16,7 @@ def main(
 ) -> None:
     import logging
     from collections import namedtuple
-    from typing import TypeAlias, cast
+    from typing import TypeAlias
 
     import matplotlib.pyplot as plt
     import numpy as np
@@ -24,8 +24,12 @@ def main(
     from scipy.stats import circmean, circvar
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
+    from endo_pipeline.configs import (
+        get_datasets_in_collection,
+        get_shear_stress_label_for_dataset,
+        load_dataset_config,
+    )
+    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path, slugify
     from endo_pipeline.library.analyze.numerics.binning import get_bins
     from endo_pipeline.library.analyze.numerics.temporal_stats import (
         compute_kde_on_bins,
@@ -59,7 +63,6 @@ def main(
         KDE_LINESTYLE_DICT,
         NUM_POINTS_SMOOTH_KDE,
     )
-    from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -76,9 +79,6 @@ def main(
     column_names: list[Column.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
     columns_to_compute_grid = [*METADATA_COLUMNS_TO_KEEP["grid"], *column_names]
     columns_to_compute_tracked = [*METADATA_COLUMNS_TO_KEEP["tracked"], *column_names]
-
-    # kernel names for KDEs
-    kernel_names_dict = cast(dict[str | Column.DiffAEData, str], KERNEL_NAMES_DYNAMICS.copy())
 
     # type alias and named tuple for storing KDE results for easier readability
     # and maintainability
@@ -129,8 +129,8 @@ def main(
 
         dataset_config = load_dataset_config(dataset_name)
         shear_stress = dataset_config.flow_conditions[0].shear_stress
-        dataset_name_flow = f"{dataset_name}_shear_{int(shear_stress)}"
-        plot_label = f"{dataset_name} ({shear_stress} dyn/cm{Unicode.SQUARED})"
+        dataset_name_flow = slugify(f"{dataset_name}_shear_{shear_stress}")
+        plot_label = get_shear_stress_label_for_dataset(dataset_config)
         fig_savedir = get_output_path(__file__, dataset_name)
 
         # load dataframe and perform additional filtering (e.g., remove
@@ -279,7 +279,7 @@ def main(
                     avg_kde_values = compute_kde_on_bins(
                         data=avg_data_all,
                         bins=avg_bins,
-                        kernel_name=kernel_names_dict[column_name],
+                        kernel_name=KERNEL_NAMES_DYNAMICS[column_name],
                         kernel_bandwidth=1.5 * BIN_WIDTH_FOR_AVERAGE,
                         kernel_period=period,
                     )
@@ -321,7 +321,7 @@ def main(
                         avg_kde_values = compute_kde_on_bins(
                             data=sample_avg,
                             bins=avg_bins,
-                            kernel_name=kernel_names_dict[column_name],
+                            kernel_name=KERNEL_NAMES_DYNAMICS[column_name],
                             kernel_bandwidth=1.5 * BIN_WIDTH_FOR_AVERAGE,
                             kernel_period=period,
                         )

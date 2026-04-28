@@ -28,8 +28,12 @@ def main(
     import pandas as pd
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
-    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
+    from endo_pipeline.configs import (
+        TimepointAnnotation,
+        get_shear_stress_label_for_dataset,
+        load_dataset_config,
+    )
+    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path, slugify
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_annotations,
         filter_dataframe_by_flow_condition,
@@ -60,10 +64,9 @@ def main(
     from endo_pipeline.settings.flow_field_dataframes import (
         DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
-        STABILITY_COLOR_DICT,
-        STABILITY_MARKER_DICT,
     )
     from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
+    from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
     from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
     from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
     from endo_pipeline.settings.workflow_defaults import (
@@ -141,11 +144,13 @@ def main(
                 # split the dataframe by flow condition so we can plot the distribution
                 # of optical flow features for each flow condition separately
                 for flow_condition in dataset_config.flow_conditions:
-                    dataset_name_flow = f"{dataset_name}_shear_{int(flow_condition.shear_stress)}"
+                    dataset_name_flow = slugify(
+                        f"{dataset_name}_shear_{flow_condition.shear_stress}"
+                    )
                     df_flow = filter_dataframe_by_flow_condition(
                         df_of, dataset_config, flow_condition
                     )
-                    plot_label = f"{dataset_name} ({int(flow_condition.shear_stress)} dyn/cm{Unicode.SQUARED})"
+                    plot_label = get_shear_stress_label_for_dataset(dataset_config, flow_condition)
                     hist_color = get_dataset_color(dataset_name)
 
                     # load fixed points once per dataset
@@ -231,8 +236,8 @@ def main(
                         if fixed_points_dataframe is not None:
                             for _, row in fixed_points_dataframe.iterrows():
                                 stability = row[ColumnName.VectorField.STABILITY]
-                                marker = STABILITY_MARKER_DICT.get(stability, "o")
-                                color = STABILITY_COLOR_DICT.get(stability, "gray")
+                                marker = FIXED_POINT_PLOT_STYLE[stability].marker
+                                color = FIXED_POINT_PLOT_STYLE[stability].color
                                 axs[1].scatter(
                                     row[x_col],
                                     row[y_col],
