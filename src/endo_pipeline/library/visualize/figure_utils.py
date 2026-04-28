@@ -171,6 +171,7 @@ def plot_image_thumbnail(
             location=scalebar_location,
             bar_thickness=bar_thickness,
             padding=bar_padding,
+            include_label=False,
         )
         image_name += f"_scalebar{scalebar_size_um}um"
 
