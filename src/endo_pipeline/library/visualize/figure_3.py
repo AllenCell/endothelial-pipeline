@@ -11,7 +11,7 @@ from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAu
 from endo_pipeline.library.model.diffae.generate_image import generate_from_dataframe
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.settings.column_names import ColumnName
-from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL
+from endo_pipeline.settings.figures import FONTSIZE_MEDIUM
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
@@ -162,8 +162,6 @@ def make_crop_example_contact_sheet(
             bar_thickness=4,
             padding=6,
             include_label=True if i == 0 else False,
-            label_xy=(0.96, 0.08),
-            label_fontsize=FONTSIZE_SMALL,
         )
 
     save_plot_to_path(

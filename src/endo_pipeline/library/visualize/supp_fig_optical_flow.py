@@ -192,8 +192,6 @@ def plot_optical_flow_composite(
         bar_thickness=2.5,
         padding=5,
         include_label=True,
-        label_xy=(0.96, 0.08),
-        label_fontsize=FONTSIZE_SMALL,
     )
     ax.set_xticks([])
     ax.set_yticks([])

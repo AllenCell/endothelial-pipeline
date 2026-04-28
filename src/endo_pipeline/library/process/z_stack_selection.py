@@ -349,7 +349,6 @@ def visualize_slice_selection(
         bar_thickness=10,
         padding=20,
         color="white",
-        include_label=False,
     )
 
     plt.tight_layout()
