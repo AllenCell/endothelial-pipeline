@@ -112,18 +112,10 @@ def create_panel_biological_system_examples(
             location="lower right",
             bar_thickness=25,
             padding=25,
+            include_label=True,
+            label_xy=(0.96, 0.08),
+            label_fontsize=FONTSIZE_SMALL,
         )
-
-    fig.axes[0].text(
-        0.96,
-        0.08,
-        f"{scale_bar_um} {Unicode.MU}m",
-        color="white",
-        transform=fig.axes[0].transAxes,
-        fontsize=FONTSIZE_SMALL,
-        va="bottom",
-        ha="right",
-    )
 
     save_plot_to_path(
         fig,
@@ -236,16 +228,9 @@ def create_panel_patch_featurization(
         location="lower right",
         bar_thickness=5,
         padding=10,
-    )
-    ax_bf.text(
-        0.96,
-        0.08,
-        f"{scale_bar_um} {Unicode.MU}m",
-        color="white",
-        transform=ax_bf.transAxes,
-        fontsize=FONTSIZE_SMALL,
-        va="bottom",
-        ha="right",
+        include_label=True,
+        label_xy=(0.96, 0.08),
+        label_fontsize=FONTSIZE_SMALL,
     )
 
     # Column 1: BF annotations (two arrows + text)
@@ -284,6 +269,7 @@ def create_panel_patch_featurization(
         location="lower right",
         bar_thickness=5,
         padding=10,
+        include_label=False,
     )
 
     # Column 3: GFP annotation (one magenta arrow + text)
@@ -396,18 +382,10 @@ def create_panel_intermediate_examples(
             location="lower right",
             bar_thickness=25,
             padding=25,
+            include_label=True,
+            label_xy=(0.96, 0.08),
+            label_fontsize=FONTSIZE_SMALL,
         )
-
-    fig.axes[0].text(
-        0.96,
-        0.08,
-        f"{scale_bar_um} {Unicode.MU}m",
-        color="white",
-        transform=fig.axes[0].transAxes,
-        fontsize=FONTSIZE_SMALL,
-        va="bottom",
-        ha="right",
-    )
 
     save_plot_to_path(
         fig,
@@ -493,18 +471,10 @@ def create_panel_perturbation_examples(
             location="lower right",
             bar_thickness=25,
             padding=25,
+            include_label=True,
+            label_xy=(0.96, 0.08),
+            label_fontsize=FONTSIZE_SMALL,
         )
-
-    fig.axes[0].text(
-        0.96,
-        0.08,
-        f"{scale_bar_um} {Unicode.MU}m",
-        color="white",
-        transform=fig.axes[0].transAxes,
-        fontsize=FONTSIZE_SMALL,
-        va="bottom",
-        ha="right",
-    )
 
     save_plot_to_path(
         fig,

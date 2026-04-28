@@ -9,7 +9,7 @@ import matplotlib.text
 import numpy as np
 
 from endo_pipeline.io.output import save_plot_to_path
-from endo_pipeline.settings.figures import FIGURE_SAVE_DPI, FONTSIZE_LARGE, FONTSIZE_MEDIUM
+from endo_pipeline.settings.figures import FIGURE_SAVE_DPI, FONTSIZE_LARGE, FONTSIZE_SMALL
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ def add_scalebar(
     color: str = "white",
     include_label: bool = False,
     label_xy: tuple[float, float] = (0.96, 0.08),
-    label_fontsize: int = FONTSIZE_MEDIUM,
+    label_fontsize: int = FONTSIZE_SMALL,
 ) -> None:
     """
     Add a scale bar to an image displayed with imshow (no text label).
