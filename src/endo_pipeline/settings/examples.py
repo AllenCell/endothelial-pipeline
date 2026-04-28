@@ -441,45 +441,24 @@ EXAMPLES_DIFFAE_TRAINING_VALIDATION: list[ExampleImage] = [
     ),
 ]
 
-
-class OpticalFlowExample(NamedTuple):
-    """Reference to a single (dataset, position, timepoint-pair, crop) example
-    used in optical-flow comparison figures.
-
-    The crop is identified by its 1-indexed (row, col) position within the
-    regular crop grid built for ``position`` -- row 1 / col 1 is the
-    top-left crop, rows increase downward (sorted by ``START_Y``), cols
-    increase rightward (sorted by ``START_X``).  Pixel bbox is resolved at
-    figure-build time from the position's crop grid.
-    """
-
-    dataset_name: str
-    description: str
-    position: int
-    t0: int
-    t1: int
-    crop_row: int
-    crop_col: int
-
-
-SUPP_FIG_OPTICAL_FLOW_COHERENT_EXAMPLE: OpticalFlowExample = OpticalFlowExample(
+SUPP_FIG_OPTICAL_FLOW_COHERENT_EXAMPLE: ExampleImage = ExampleImage(
     dataset_name="20250409_20X",
-    description="coherent (high migration coherence) example crop",
+    description="coherent (high migration coherence) example crop; "
+    "crop_x_start/crop_y_start are the 1-indexed (col, row) within the crop grid",
     position=2,
-    t0=150,
-    t1=151,
-    crop_row=5,
-    crop_col=4,
+    timepoint=150,
+    crop_x_start=4,
+    crop_y_start=5,
 )
 
-SUPP_FIG_OPTICAL_FLOW_INCOHERENT_EXAMPLE: OpticalFlowExample = OpticalFlowExample(
+SUPP_FIG_OPTICAL_FLOW_INCOHERENT_EXAMPLE: ExampleImage = ExampleImage(
     dataset_name="20251001_20X",
-    description="incoherent (low migration coherence) example crop",
+    description="incoherent (low migration coherence) example crop; "
+    "crop_x_start/crop_y_start are the 1-indexed (col, row) within the crop grid",
     position=1,
-    t0=198,
-    t1=199,
-    crop_row=2,
-    crop_col=5,
+    timepoint=198,
+    crop_x_start=5,
+    crop_y_start=2,
 )
 FLOW_FIELD_CONSTRUCTION_EXAMPLE_IMAGES: list[ExampleImage] = [
     ExampleImage(
