@@ -3,11 +3,9 @@
 from pathlib import Path
 from typing import Any, cast
 
-import matplotlib.patheffects as pe
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib.lines import Line2D
 from matplotlib.patches import FancyArrowPatch, Patch
 
 from endo_pipeline.configs import (
@@ -403,6 +401,8 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
     histogram_vmin = 0.0
     histogram_vmax = 0.7
 
+    steady_state_line_color = "darkturquoise"
+
     axes_xlim = (0, 48)  # in hours, after converting from frames
     axes_xticks = [0, 12, 24, 36, 48]
     axes_xtick_labels = [f"{x}" for x in axes_xticks]
@@ -473,7 +473,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
             # draw cyan dashed line at start of steady state
             ax_ij.axvline(
                 x=start_steady_state_timepoint,
-                color="cyan",
+                color=steady_state_line_color,
                 linestyle="--",
                 linewidth=1.5,
                 zorder=3,
@@ -518,20 +518,9 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
     # and grey background indicating cutoff for cell piling (no data);
     # placed in the reserved top margin using figure coordinates so that
     # constrained layout is not affected
-    handles, labels = ax[0, 1].get_legend_handles_labels()
-    # prepend a filled grey box for the grey background (no data / cell piling)
-    # replace the axvline handle with a Line2D proxy that has a black border for contrast
-    steady_state_handle = Line2D(
-        [0],
-        [0],
-        color="cyan",
-        linestyle="--",
-        linewidth=1.5,
-        dash_capstyle="butt",
-        path_effects=[pe.Stroke(linewidth=3, foreground="black", capstyle="butt"), pe.Normal()],
-    )
-    handles = [Patch(facecolor="grey", edgecolor="none"), steady_state_handle]
-    labels = ["No data (cell piling)", *labels]
+    handles, labels = ax_ij.get_legend_handles_labels()
+    handles.append(Patch(facecolor="grey", edgecolor="none"))
+    labels.append("No data (cell piling)")
     fig.legend(
         handles,
         labels,
