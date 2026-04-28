@@ -3,6 +3,7 @@
 from typing import Literal, TypeAlias
 
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameType
 
 DEFAULT_MODEL_MANIFEST_NAME: str = "diffae_baseline_exclude_cell_piling"
 """Default model manifest for loading models and model features."""
@@ -85,7 +86,8 @@ IMAGE_METRIC_DATASET_COLORS = {
 """Color palette for image metric bar plots, keyed by dataset split name."""
 
 SegFeatureColumnDict: TypeAlias = dict[
-    str, list[Column.SegData] | list[str | Column.SegData] | list[Column.SegDataFilters]
+    str,
+    list[str | ColumnNameType],
 ]
 
 SEGMENTATION_FEATURE_COLUMNS: SegFeatureColumnDict = {
@@ -100,20 +102,30 @@ SEGMENTATION_FEATURE_COLUMNS: SegFeatureColumnDict = {
         Column.SegData.NUM_NUCLEI_IN_CROP,
         Column.SegData.AREA_UM_SQ,
     ],
-    "supp": [
-        Column.SegData.ALIGNMENT_DEG,
-        Column.SegData.ORIENTATION,
+    "main_figure": [
         Column.SegData.ORIENTATION,
         Column.SegData.ASPECT_RATIO,
-        Column.SegData.NEMATIC_ORDER,
-        Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG,
-        Column.SegData.NUCLEI_POSITION_ANGLE_DEG,
-        Column.SegData.CENTROID_VELOCITY_ANGLE_DEG,
-        Column.SegData.CELL_FLUOR_MEAN,
-        Column.SegData.EDGE_FLUOR_MEAN,
-        Column.SegData.NODE_FLUOR_MEAN,
         Column.SegData.NUM_NUCLEI_IN_CROP,
         Column.SegData.AREA_UM_SQ,
+        Column.SegData.CELL_FLUOR_MEAN,
+        Column.SegData.EDGE_FLUOR_MEAN,
+        Column.OpticalFlow.UNIT_VECTOR_MEAN,
+        Column.OpticalFlow.SPEED_MEAN,
+    ],
+    "supp_figure": [
+        Column.SegData.ORIENTATION,
+        Column.SegData.ALIGNMENT_DEG,
+        Column.SegData.ASPECT_RATIO,
+        Column.SegData.NUM_NUCLEI_IN_CROP,
+        Column.SegData.AREA_UM_SQ,
+        Column.SegData.CELL_FLUOR_MEAN,
+        Column.SegData.EDGE_FLUOR_MEAN,
+        Column.OpticalFlow.UNIT_VECTOR_MEAN,
+        Column.OpticalFlow.SPEED_MEAN,
+        Column.SegData.CENTROID_VELOCITY_UM_PER_MIN,
+        Column.SegData.CENTROID_VELOCITY_ANGLE_DEG,
+        Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG,
+        Column.SegData.NUCLEI_POSITION_ANGLE_DEG,
     ],
     "dynamics_calculation_prereq": [
         Column.DATASET,
