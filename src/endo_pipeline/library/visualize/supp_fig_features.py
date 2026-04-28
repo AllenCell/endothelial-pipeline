@@ -6,6 +6,7 @@ from typing import Any, cast
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.patches import FancyArrowPatch
 
 from endo_pipeline.configs import get_datasets_in_collection
 from endo_pipeline.io import load_dataframe, load_model, save_plot_to_path
@@ -122,15 +123,15 @@ def _add_axes_lines(
     axes: np.ndarray[plt.Axes, Any],
     center_index: int,
     n_steps: int,
-    axes_color: str,
-    axes_linewidth: float,
+    color: str = "blue",
+    linewidth: float = 2.0,
+    head_length: float = 0.75,
+    head_width: float = 0.4,
+    mutation_scale: float = 15,
+    axes_extend: float = 0.14,
+    elongation_label_offsets: tuple[float, float] = (0.2, 0.05),
 ) -> None:
     """Add horizontal and vertical axes lines with labels to the 2D latent walk plot."""
-    underlay = fig.add_axes((0.0, 0.0, 1.0, 1.0), facecolor="none", zorder=-1)
-    underlay.set_xlim(0, 1)
-    underlay.set_ylim(0, 1)
-    underlay.axis("off")
-
     ax_center = axes[center_index, center_index]
     center_bbox = ax_center.get_position()
     left_bbox = axes[center_index, 0].get_position()
@@ -138,55 +139,68 @@ def _add_axes_lines(
     top_bbox = axes[0, center_index].get_position()
     bottom_bbox = axes[n_steps - 1, center_index].get_position()
 
-    cx = center_bbox.x0 + center_bbox.width / 2 - 0.025
-    cy = center_bbox.y0 + center_bbox.height / 2 - 0.05
+    cx = center_bbox.x0 + center_bbox.width / 2
+    cy = center_bbox.y0 + center_bbox.height / 2
 
-    underlay.plot(
-        [left_bbox.x0, right_bbox.x1],
-        [cy, cy],
-        color=axes_color,
-        linestyle="-",
-        linewidth=axes_linewidth,
-        transform=underlay.transAxes,
-        clip_on=False,
-    )
-    underlay.plot(
-        [cx, cx],
-        [bottom_bbox.y0, top_bbox.y1],
-        color=axes_color,
-        linestyle="-",
-        linewidth=axes_linewidth,
-        transform=underlay.transAxes,
-        clip_on=False,
-    )
+    arrowstyle = f"<->,head_length={head_length},head_width={head_width}"
 
-    # PC2 label: large, to the left of the top image in the PC2 column
+    for posA, posB in [
+        ((left_bbox.x0 - axes_extend, cy), (right_bbox.x1 + axes_extend, cy)),  # horizontal
+        ((cx, bottom_bbox.y0 - axes_extend), (cx, top_bbox.y1 + axes_extend)),  # vertical
+    ]:
+        # mutation_scale must be set explicitly (default=1 leads to sub-pixel
+        # arrowheads that render as empty paths in SVG).
+        arrow = FancyArrowPatch(
+            posA,
+            posB,
+            arrowstyle=arrowstyle,
+            connectionstyle="arc3,rad=0",
+            color=color,
+            linewidth=linewidth,
+            mutation_scale=mutation_scale,
+            transform=fig.transFigure,
+            clip_on=False,
+            zorder=4,
+        )
+        fig.add_artist(arrow)
+
     top_ax = axes[0, center_index]
     top_bbox = top_ax.get_position()
     pc1_label = cast(str, COLUMN_METADATA["pc_1"].label)
     pc2_label = cast(str, COLUMN_METADATA["pc_2"].label)
-    underlay.text(
-        top_bbox.x0 - 0.1,
+    # PC2 label: to the left of the top image in the PC2 column
+    fig.text(
+        top_bbox.x0 - 0.04,
         top_bbox.y1,
         pc2_label,
         fontsize=FONTSIZE_LARGE,
         fontweight="bold",
         ha="right",
         va="top",
-        transform=underlay.transAxes,
+        transform=fig.transFigure,
     )
-    # PC1 label: large, below the rightmost image in the PC1 row
-    right_ax = axes[center_index, n_steps - 1]
-    right_bbox = right_ax.get_position()
-    underlay.text(
-        right_bbox.x1 + right_bbox.width / 2 + 0.05,
-        right_bbox.y0 - 0.05,
+    # PC1 label: to the right of the rightmost image, vertically centred on the axis
+    fig.text(
+        right_bbox.x1 + axes_extend + 0.01,
+        cy,
         pc1_label,
         fontsize=FONTSIZE_LARGE,
         fontweight="bold",
         ha="left",
         va="center",
-        transform=underlay.transAxes,
+        transform=fig.transFigure,
+    )
+
+    # "elongation" label: to the left of the bottom axis arrow tip
+    fig.text(
+        left_bbox.x0 + elongation_label_offsets[0],
+        bottom_bbox.y0 - axes_extend + elongation_label_offsets[1],
+        "elongation",
+        fontsize=FONTSIZE_LARGE,
+        fontweight="bold",
+        ha="right",
+        va="top",
+        transform=fig.transFigure,
     )
 
 
@@ -199,8 +213,8 @@ def _add_orientation_arrow(
     head_length: float = 0.75,
     head_width: float = 0.4,
     color: str = "darkred",
-    linewidth: float = 1.5,
-    label_offset: tuple[float, float] = (0.285, 0.125),
+    linewidth: float = 2.0,
+    label_offset: tuple[float, float] = (0.275, 0.125),
 ) -> None:
     """Add an arced arrow and "orientation" label to the 2D latent walk plot."""
     overlay = fig.add_axes((0.0, 0.0, 1.0, 1.0), facecolor="none", zorder=5)
@@ -208,18 +222,18 @@ def _add_orientation_arrow(
     overlay.set_ylim(0, 1)
     overlay.axis("off")
 
-    # arced arrow from center-top of rightmost image to center-right of topmost image
-    # with "orientation" label at the midpoint of the arc
+    # arced arrow from rightmost image to topmost image with "orientation" label
+    # at the midpoint of the arc
     rightmost_bbox = axes[center_index, n_steps - 1].get_position()
     topmost_bbox = axes[0, center_index].get_position()
     arrow_start = (
-        rightmost_bbox.x0 + rightmost_bbox.width / 2,
+        rightmost_bbox.x1 - rightmost_bbox.width / 4,
         rightmost_bbox.y1,
-    )  # center-top of rightmost image
+    )
     arrow_end = (
         topmost_bbox.x1,
-        topmost_bbox.y0 + topmost_bbox.height / 2,
-    )  # center-right of topmost image
+        topmost_bbox.y1 - topmost_bbox.height / 4,
+    )
     arrowstyle = f"->,head_length={head_length},head_width={head_width}"
     connectionstyle = f"arc3,rad={arc_rad}"
     overlay.annotate(
@@ -242,6 +256,7 @@ def _add_orientation_arrow(
         mid_y + label_offset[1],
         "orientation",
         fontsize=FONTSIZE_LARGE,
+        fontweight="bold",
         ha="center",
         va="center",
         transform=overlay.transAxes,
@@ -253,11 +268,6 @@ def plot_2d_latent_walk(
     images_pc2: np.ndarray,
     save_path: Path,
     filename: str,
-    axes_linewidth: float = 2.5,
-    axes_color: str = "dimgrey",
-    orientation_arrow_kwargs: dict[str, Any] | None = None,
-    gridspec_kwargs: dict | None = None,
-    fig_kwargs: dict | None = None,
 ) -> Path:
     """
     Plot a "2D" latent walk along the first two principal components by
@@ -279,16 +289,6 @@ def plot_2d_latent_walk(
         Directory path to save the output figure.
     filename
         Name of the output figure file.
-    axes_linewidth
-        Line width to use for the axes lines.
-    axes_color
-        Color to use for the axes lines.
-    gridspec_kwargs
-        Optional dictionary of keyword arguments to pass to GridSpec (e.g.,
-        {"wspace": 0, "hspace": 0}).
-    fig_kwargs
-        Optional dictionary of keyword arguments to pass to plt.figure (e.g.,
-        {"figsize": (3.5, 3.5)}).
 
     Returns
     -------
@@ -299,13 +299,31 @@ def plot_2d_latent_walk(
     n_steps = images_pc1.shape[0]
     center = n_steps // 2  # index of the origin (0 sigma)
 
-    fig, axes = plt.subplots(n_steps, n_steps, gridspec_kw=gridspec_kwargs, **(fig_kwargs or {}))
+    fig, axes = plt.subplots(
+        n_steps,
+        n_steps,
+        gridspec_kw={"wspace": 0.15, "hspace": 0.15},
+        figsize=(2.25, 2.25),
+        layout="constrained",
+    )
 
-    fig.canvas.draw()
+    # Inset the subplot grid so the axis arrows that extend beyond the outermost
+    # cells always land inside the figure canvas.  Setting rect here — before the
+    # first draw — also prevents the constrained layout engine from shifting
+    # subplot positions when savefig runs a second layout pass.
+    # The bottom margin must be large enough to accommodate both the axis
+    # arrow tips (which extend `axes_extend` below the grid) and the
+    # "elongation" text label below that.
+    layout_engine = fig.get_layout_engine()
+    if layout_engine is not None:
+        layout_engine.set(**{"rect": (0.10, 0.10, 0.78, 0.75)})
+
     for row in range(n_steps):
         for col in range(n_steps):
             ax: plt.Axes = axes[row, col]
             ax.axis("off")
+            ax.set_zorder(5)
+            ax.patch.set_visible(False)
             if row == center and col == center:
                 # origin: use the center image (shared by both walks)
                 ax.imshow(images_pc1[center], cmap="gray", zorder=1)
@@ -317,11 +335,36 @@ def plot_2d_latent_walk(
                 # flip row index so PC2 increases upward
                 ax.imshow(images_pc2[n_steps - 1 - row], cmap="gray", zorder=1)
 
+    fig.canvas.draw()
+
     # Draw axis lines on a figure-level underlay so they appear behind all image axes.
-    _add_axes_lines(fig, axes, center, n_steps, axes_color, axes_linewidth)
+    _add_axes_lines(
+        fig,
+        axes,
+        center,
+        n_steps,
+        color="blue",
+        linewidth=2.0,
+        head_length=0.5,
+        head_width=0.3,
+        mutation_scale=15,
+        axes_extend=0.14,
+        elongation_label_offsets=(0.3, 0.075),
+    )
 
     # Add arced arrow with label "orientation" going from PC1 to PC2
-    _add_orientation_arrow(fig, axes, center, n_steps, **(orientation_arrow_kwargs or {}))
+    _add_orientation_arrow(
+        fig,
+        axes,
+        center,
+        n_steps,
+        arc_rad=0.5,
+        head_length=0.75,
+        head_width=0.4,
+        color="darkred",
+        linewidth=2.0,
+        label_offset=(0.275, 0.115),
+    )
 
     save_plot_to_path(
         fig, save_path, filename, file_format=".svg", transparent=True, tight_layout=False
