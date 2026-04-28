@@ -4,24 +4,23 @@ import matplotlib.pyplot as plt
 from endo_pipeline.io import get_output_path
 from endo_pipeline.library.visualize.figure_fpt import generate_first_passage_time_example
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
-from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.examples import FPT_TRAJECTORY_FIG_EXAMPLES
+from endo_pipeline.settings.examples import FPT_FIG_EXAMPLES
 from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT
 
 plt.style.use("endo_pipeline.figure")
 
 save_dir = get_output_path("figure_4")
 
-example_dataset_name = FPT_TRAJECTORY_FIG_EXAMPLES[Column.DATASET]
-example_fixed_point_index = FPT_TRAJECTORY_FIG_EXAMPLES[Column.VectorField.FIXED_POINT_INDEX]
+low_flow_dataset = FPT_FIG_EXAMPLES["low_flow"]
+high_flow_dataset = FPT_FIG_EXAMPLES["high_flow"]
 
 # %% Generate example of a tracked and grid-crop trajectory starting from the same bin
 # in feature space traveling to the fixed point
 generate_first_passage_time_example(
-    dataset_name=example_dataset_name,
-    example_fixed_point_index=example_fixed_point_index,
-    example_tracked_crop_index=FPT_TRAJECTORY_FIG_EXAMPLES["tracked_crop_index"],
-    example_grid_crop_index=FPT_TRAJECTORY_FIG_EXAMPLES["grid_crop_index"],
+    dataset_name=low_flow_dataset.dataset_name,
+    example_fixed_point_index=low_flow_dataset.fixed_point_index,
+    example_tracked_crop_index=low_flow_dataset.tracked_crop_index,
+    example_grid_crop_index=low_flow_dataset.grid_crop_index,
     out_dir=save_dir,
 )
 
@@ -30,8 +29,8 @@ panels = [
     FigurePanel(
         letter="A",
         path=save_dir
-        / example_dataset_name
-        / f"{example_dataset_name}_FPT_fp_{example_fixed_point_index}_mean_3d_scatter.svg",
+        / low_flow_dataset.dataset_name
+        / f"{low_flow_dataset.dataset_name}_FPT_fp_{low_flow_dataset.fixed_point_index}_stable_mean_3d_scatter.svg",
         x_position=0,
         y_position=0,
         x_offset=0,
@@ -39,7 +38,8 @@ panels = [
     ),
     FigurePanel(
         letter="B",
-        path=save_dir / "20250618_20X_FPT_fp_0_stable_mean_correlation_for_figure.svg",
+        path=save_dir
+        / f"{low_flow_dataset.dataset_name}_FPT_fp_{low_flow_dataset.fixed_point_index}_stable_mean_correlation_for_figure.svg",
         x_position=0,
         y_position=2,
         x_offset=0,
@@ -47,7 +47,8 @@ panels = [
     ),
     FigurePanel(
         letter="C",
-        path=save_dir / "20250611_20X_FPT_fp_3_stable_mean_correlation_for_figure.svg",
+        path=save_dir
+        / f"{high_flow_dataset.dataset_name}_FPT_fp_{high_flow_dataset.fixed_point_index}_stable_mean_correlation_for_figure.svg",
         x_position=0,
         y_position=4,
         x_offset=0,
@@ -55,7 +56,7 @@ panels = [
     ),
     FigurePanel(
         letter="D",
-        path=save_dir / "FPT_correlation_r_value_histogram_for_figure.svg",
+        path=save_dir / "FPT_correlation_summary_mean_histogram.svg",
         x_position=0,
         y_position=6,
         x_offset=0,
@@ -69,3 +70,5 @@ build_figure_from_panels(
     width=2,
     height=MAX_FIGURE_HEIGHT,
 )
+
+# %%

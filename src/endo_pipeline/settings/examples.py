@@ -1,7 +1,5 @@
 from typing import NamedTuple
 
-from endo_pipeline.settings.column_names import ColumnName as Column
-
 EXAMPLE_DATASET = {
     "FIGURE_2_LOW_FLOW_DATASET": "20250409_20X",
     "FIGURE_2_HIGH_FLOW_DATASET": "20251001_20X",
@@ -29,6 +27,16 @@ class ExampleImage(NamedTuple):
     timepoint: int
     crop_x_start: int  # res level 1
     crop_y_start: int  # res level 1
+
+
+class ExampleFPT(NamedTuple):
+    """Structure for information about an example used in the first passage time analysis."""
+
+    dataset_name: str
+    description: str
+    fixed_point_index: int
+    tracked_crop_index: int | None
+    grid_crop_index: int | None
 
 
 FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES: list[ExampleImage] = [
@@ -129,16 +137,21 @@ FIGURE_4_EXAMPLE_IMAGES: list[ExampleImage] = [
     ),
 ]
 
-FPT_CORRELATION_FIG_EXAMPLES: list[str] = [
-    "20250409_20X",
-    "20250611_20X",
-]
-
-FPT_TRAJECTORY_FIG_EXAMPLES: dict = {
-    Column.DATASET: "20250409_20X",
-    Column.VectorField.FIXED_POINT_INDEX: 0,
-    "tracked_crop_index": 36428,  # 171,
-    "grid_crop_index": 209,  # 108,
+FPT_FIG_EXAMPLES = {
+    "low_flow": ExampleFPT(
+        dataset_name="20250409_20X",
+        description="low_flow",
+        fixed_point_index=0,
+        tracked_crop_index=36428,
+        grid_crop_index=209,
+    ),
+    "high_flow": ExampleFPT(
+        dataset_name="20250611_20X",
+        description="high_flow",
+        fixed_point_index=3,
+        tracked_crop_index=None,
+        grid_crop_index=None,
+    ),
 }
 
 CDH5_SEG_FIG_EXAMPLE: ExampleImage = ExampleImage(
