@@ -108,3 +108,15 @@ plot_cross_dataset_summaries(
     stable_only=True,
 )
 # %%
+# plot MAX shear stress datasets together with MIN TO MAX flow switch datasets
+plot_cross_dataset_summaries(
+    dataset_names=[*max_shear_stress_datasets, *flow_switch_min_to_max],
+    feature_dataframe_manifest=feature_dataframe_manifest,
+    fixed_points_bootstrap_dataframe_manifest=bootstrap_dataframe_manifest,
+    output_dir=fig_savedir,
+    column_names=column_names,
+    x_axis_mode="shear_stress_categorical",
+    figure_size=(4.25, 2),
+    stable_only=True,
+)
+# %%
