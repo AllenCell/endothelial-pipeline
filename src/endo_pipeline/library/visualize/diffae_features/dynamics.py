@@ -20,8 +20,8 @@ from endo_pipeline.settings.flow_field_dataframes import (
     STABILITY_COLOR_DICT,
     STABILITY_MARKER_DICT,
     StabilityLabel,
-    StabilityLegendHandle,
 )
+from endo_pipeline.settings.plot_defaults import StabilityLegendHandle
 
 
 def plot_drift_contours(

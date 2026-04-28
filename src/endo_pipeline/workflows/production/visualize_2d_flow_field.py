@@ -88,9 +88,8 @@ def main(
         DATAFRAME_MANIFEST_PREFIX_DRIFT,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
         StabilityLabel,
-        StabilityLegendHandle,
     )
-    from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
+    from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, StabilityLegendHandle
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,

@@ -1,7 +1,5 @@
 from enum import StrEnum
 
-from matplotlib.lines import Line2D
-
 """Global constants and default settings for dataframe creation and processing in 3D flow field analysis."""
 
 DATAFRAME_MANIFEST_PREFIX_DRIFT: str = "drift_vector_field"
@@ -71,27 +69,3 @@ STABILITY_MARKER_DICT: dict[str, str] = {
     StabilityLabel.INDETERMINATE: "P",
 }
 """Dictionary mapping fixed point stability classification labels to marker styles for visualization."""
-
-
-class StabilityLegendHandle(Line2D):
-    """Custom legend handle for fixed point stability classifications in 3D dynamics analysis visualizations."""
-
-    def __init__(
-        self,
-        stability_label: StabilityLabel,
-        legend_label: str | None = None,
-        marker: str | None = None,
-        face_color: str | None = None,
-        marker_size: int = 10,
-        edge_color: str = "black",
-    ):
-        super().__init__(
-            [],
-            [],
-            label=legend_label or stability_label.value,
-            marker=marker or STABILITY_MARKER_DICT.get(stability_label, "o"),
-            color=face_color or STABILITY_COLOR_DICT.get(stability_label, "gray"),
-            markersize=marker_size,
-            markeredgecolor=edge_color,
-            linestyle="",
-        )
