@@ -14,6 +14,7 @@ def main() -> None:
         visualize_correlation_heatmaps,
     )
     from endo_pipeline.library.visualize.supp_fig_features import (
+        make_theta_orientation_histogram_panel,
         perform_latent_walk_along_top_pcs,
         plot_2d_latent_walk,
     )
@@ -21,7 +22,7 @@ def main() -> None:
         DIFFAE_PC_COLUMN_NAME_GROUPS,
         NUM_LATENT_FEATURES,
     )
-    from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
     from endo_pipeline.settings.workflow_defaults import (
         DATASET_INFO_COLUMNS,
         DEFAULT_PCA_DATASET_COLLECTION_NAME,
@@ -98,6 +99,11 @@ def main() -> None:
         latent_walk_2d_filename,
     )
 
+    # panel E: visual comparison of theta (ML-based feature) and cell
+    # orientation (segmentation feature) as side-by-side histograms
+    # over time for a low shear stress and a high shear stress dataset.
+    theta_orientation_path = make_theta_orientation_histogram_panel(save_dir)
+
     # build figure with panels
     panels = [
         FigurePanel(
@@ -112,7 +118,7 @@ def main() -> None:
             letter="C",
             path=latent_walk_path,
             x_position=0.1,
-            y_position=2.8,
+            y_position=2.5,
             x_offset=0.25,
             y_offset=0.0,
         ),
@@ -120,8 +126,16 @@ def main() -> None:
             letter="D",
             path=latent_walk_2d_path,
             x_position=0.1,
-            y_position=5.4,
-            x_offset=0.0,
+            y_position=5.1,
+            x_offset=0.15,
+            y_offset=0.0,
+        ),
+        FigurePanel(
+            letter="E",
+            path=theta_orientation_path,
+            x_position=2.95,
+            y_position=5.1,
+            x_offset=0.2,
             y_offset=0.0,
         ),
     ]
@@ -138,7 +152,7 @@ def main() -> None:
         panels.append(panel_b)
 
     build_figure_from_panels(
-        panels, save_dir / "supp_fig_features.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
+        panels, save_dir / "supp_fig_features.svg", width=MAX_FIGURE_WIDTH, height=7.7
     )
 
 

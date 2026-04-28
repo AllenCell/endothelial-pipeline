@@ -6,10 +6,15 @@ from typing import Any, cast
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib.patches import FancyArrowPatch
+from matplotlib.patches import FancyArrowPatch, Patch
 
-from endo_pipeline.configs import get_datasets_in_collection
+from endo_pipeline.configs import (
+    get_datasets_in_collection,
+    get_start_of_steady_state_for_position,
+    load_dataset_config,
+)
 from endo_pipeline.io import load_dataframe, load_model, save_plot_to_path
+from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.analyze.pca import fit_pca
 from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
 from endo_pipeline.library.model.diffae.generate_image import generate_latent_walk_images
@@ -21,11 +26,21 @@ from endo_pipeline.manifests import (
     load_model_manifest,
 )
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
+from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
-from endo_pipeline.settings.figures import FONTSIZE_LARGE, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.examples import EXAMPLE_DATASET
+from endo_pipeline.settings.figures import (
+    FONTSIZE_LARGE,
+    FONTSIZE_MEDIUM,
+    FONTSIZE_SMALL,
+    MAX_FIGURE_WIDTH,
+)
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
+    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
     RANDOM_SEED,
 )
@@ -370,3 +385,170 @@ def plot_2d_latent_walk(
         fig, save_path, filename, file_format=".svg", transparent=True, tight_layout=False
     )
     return save_path / f"{filename}.svg"
+
+
+def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
+    """
+    Make the panel showing the histogram over time of theta (patch-based ML
+    feature) side by side with orientation (cell-based segmentation feature).
+    """
+    dataset_low = EXAMPLE_DATASET["FIGURE_2_LOW_FLOW_DATASET"]
+    dataset_high = EXAMPLE_DATASET["FIGURE_2_HIGH_FLOW_DATASET"]
+
+    dataframe_manifest = load_dataframe_manifest(
+        DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED
+    )
+    histogram_vmin = 0.0
+    histogram_vmax = 0.7
+
+    steady_state_line_color = "darkturquoise"
+
+    axes_xlim = (0, 48)  # in hours, after converting from frames
+    axes_xticks = [0, 12, 24, 36, 48]
+    axes_xtick_labels = [f"{x}" for x in axes_xticks]
+    axes_ylim = (0, np.pi)
+    axes_yticks = [0, np.pi / 2, np.pi]
+    axes_ytick_labels = [f"0={Unicode.PI}", f"{Unicode.PI}/2", f"{Unicode.PI}=0"]
+
+    fig, ax = plt.subplots(
+        2, 2, figsize=(3.0, 2.5), layout="constrained", gridspec_kw={"hspace": 0.15}
+    )
+
+    layout_engine = fig.get_layout_engine()
+    if layout_engine is not None:
+        # reserve left margin for the vertical label and top margin for the legend
+        layout_engine.set(**{"rect": [0.08, 0, 1, 0.94]})
+
+    time_column_label = "Time (hours)"
+    # convert frames to hours for better readability of x-axis
+    # (one frame = 5 minutes, so conversion factor is 5/60)
+    time_conversion_factor = 5 / 60
+
+    columns_to_plot: list[ColumnNameType] = [
+        Column.DiffAEData.POLAR_ANGLE,
+        Column.SegData.ORIENTATION,
+    ]
+    columns_to_compute = [*columns_to_plot, Column.TIMEPOINT]
+
+    for i, dataset in enumerate([dataset_low, dataset_high]):
+        dataset_config = load_dataset_config(dataset)
+        shear_stress = np.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
+        shear_stress_label = f"{shear_stress} dyn/cm{Unicode.SQUARED}"
+
+        # use position 0 as a representative position for the dataset to get the
+        # timepoint corresponding to the start of steady state, which we will
+        # indicate with a vertical dashed line on the histogram
+        start_steady_state_timepoint = (
+            get_start_of_steady_state_for_position(dataset_config, position=0) or 0
+        ) * time_conversion_factor
+
+        df_ = load_dataframe(
+            get_dataframe_location_for_dataset(dataframe_manifest, dataset), delay=True
+        )
+        df: pd.DataFrame = df_[columns_to_compute].compute()
+
+        time_bins = get_bins(bin_widths=(12,), data=df[Column.TIMEPOINT].to_numpy())[0][0]
+        time_bins = time_bins * time_conversion_factor
+        for j, column in enumerate(columns_to_plot):
+            feature_column_label = COLUMN_METADATA[column].name or cast(str, column)
+            # convert to sentence case for better readability as a plot title
+            feature_column_label = feature_column_label.capitalize()
+
+            ax_ij = cast(plt.Axes, ax[i, j])
+
+            feature_bins = get_bins(bin_widths=(0.05,), data=df[column].to_numpy())[0][0]
+            ax_ij.hist2d(
+                df[Column.TIMEPOINT] * time_conversion_factor,
+                df[column],
+                bins=[time_bins, feature_bins],
+                cmap="inferno",
+                density=True,
+                cmin=histogram_vmin,
+                cmax=histogram_vmax,
+            )
+
+            # change the background color to grey
+            ax_ij.set_facecolor("grey")
+
+            # draw cyan dashed line at start of steady state
+            ax_ij.axvline(
+                x=start_steady_state_timepoint,
+                color=steady_state_line_color,
+                linestyle="--",
+                linewidth=1.5,
+                zorder=3,
+                label="Start of steady state",
+            )
+
+            # set axes limits and ticks
+            ax_ij.set_xlim(axes_xlim)
+            ax_ij.set_xticks(axes_xticks)
+            ax_ij.set_ylim(axes_ylim)
+            ax_ij.set_yticks(axes_yticks)
+            if j == 0:
+                # add tick labels for shared y axis just on leftmost plots
+                ax_ij.set_yticklabels(axes_ytick_labels, fontsize=FONTSIZE_SMALL)
+            elif j == 1:
+                # else, no y tick labels for right column
+                ax_ij.set_yticklabels([])
+            if i == 0:
+                # put label as column title for top row
+                ax_ij.set_title(feature_column_label, fontsize=FONTSIZE_SMALL)
+                ax_ij.set_xticklabels([])  # no x tick labels for top row
+            elif i == 1:
+                # only set x-axis tick labels and label for bottom row
+                ax_ij.set_xticklabels(axes_xtick_labels, fontsize=FONTSIZE_SMALL)
+                ax_ij.set_xlabel(time_column_label, labelpad=1, fontsize=FONTSIZE_SMALL)
+
+        # add vertical label for shear stress to the left of the contour plot
+        # (y positions reflect the constrained-layout rect top of 0.94)
+        y_position = 0.72 if i == 0 else 0.31
+        fig.text(
+            0.05,
+            y_position,
+            shear_stress_label,
+            va="center",
+            ha="center",
+            rotation="vertical",
+            fontsize=FONTSIZE_MEDIUM,
+            fontweight="bold",
+        )
+
+    # add legend for the vertical dashed line indicating the start of steady state
+    # and grey background indicating cutoff for cell piling (no data);
+    # placed in the reserved top margin using figure coordinates so that
+    # constrained layout is not affected
+    handles, labels = ax_ij.get_legend_handles_labels()
+    handles.append(Patch(facecolor="grey", edgecolor="none"))
+    labels.append("No data (cell piling)")
+    fig.legend(
+        handles,
+        labels,
+        fontsize="xx-small",
+        loc="upper center",
+        bbox_to_anchor=(0.53, 0.995),
+        ncol=2,
+        handletextpad=0.3,
+        borderpad=0.3,
+        columnspacing=0.8,
+        frameon=False,
+    )
+
+    # set the color limits to be the same across all histograms
+    # plot adjactent to the right of the rightmost histogram, spanning both rows
+    cbar_mappable = plt.cm.ScalarMappable(
+        norm=plt.Normalize(vmin=histogram_vmin, vmax=histogram_vmax), cmap="inferno"
+    )
+    cbar = fig.colorbar(cbar_mappable, ax=ax[:, 1], location="right", pad=0.1)
+    cbar.set_label("Histogram", labelpad=3, fontsize=FONTSIZE_SMALL)
+
+    filename = "theta_orientation_histograms"
+    save_plot_to_path(
+        fig,
+        output_path,
+        filename,
+        file_format=".svg",
+        tight_layout=False,
+        transparent=False,
+    )
+    return output_path / f"{filename}.svg"
