@@ -12,6 +12,7 @@ from endo_pipeline.configs import (
 from endo_pipeline.library.analyze.dataframe_filtering import (
     filter_dataframe_by_annotations,
     filter_dataframe_by_flow_condition,
+    filter_dataframe_by_shear_stress,
     filter_dataframe_by_track_length,
     filter_dataframe_to_binned_value,
     filter_dataframe_to_steady_state,
@@ -487,3 +488,42 @@ def test_filter_dataframe_to_binned_value_raises_on_length_mismatch(columns, val
     df = pd.DataFrame({"dim_1": [0.1, 0.4], "dim_2": [0.6, 0.9]})
     with pytest.raises(ValueError, match="Length of columns, value, and bin_edges"):
         filter_dataframe_to_binned_value(df, columns, values, bin_edges)
+
+
+@pytest.fixture
+def shear_stress_dataframe():
+    """Dataframe with three distinct shear stress values and an extra column."""
+    return pd.DataFrame(
+        {
+            Column.SHEAR_STRESS: [1.0, 1.0, 5.0, 5.0, 10.0],
+            "label": ["a", "b", "c", "d", "e"],
+        }
+    )
+
+
+def test_filter_dataframe_by_shear_stress_returns_matching_rows(shear_stress_dataframe):
+    """Only rows whose shear-stress value equals the requested value are returned."""
+    result = filter_dataframe_by_shear_stress(shear_stress_dataframe, 5.0)
+    assert result[Column.SHEAR_STRESS].tolist() == [5.0, 5.0]
+    assert result["label"].tolist() == ["c", "d"]
+
+
+def test_filter_dataframe_by_shear_stress_no_matching_rows_returns_empty(shear_stress_dataframe):
+    """When no rows match the shear stress, an empty but schema-correct DataFrame is returned."""
+    result = filter_dataframe_by_shear_stress(shear_stress_dataframe, 99.0)
+    assert result.empty
+    assert list(result.columns) == list(shear_stress_dataframe.columns)
+
+
+def test_filter_dataframe_by_shear_stress_missing_column_raises():
+    """A DataFrame that lacks Column.SHEAR_STRESS should raise a ValueError."""
+    df = pd.DataFrame({"other_column": [1.0, 2.0]})
+    with pytest.raises(ValueError, match="DataFrame must contain column"):
+        filter_dataframe_by_shear_stress(df, 1.0)
+
+
+def test_filter_dataframe_by_shear_stress_returns_copy(shear_stress_dataframe):
+    """Mutating the returned DataFrame must not affect the original."""
+    result = filter_dataframe_by_shear_stress(shear_stress_dataframe, 1.0)
+    result[Column.SHEAR_STRESS] = -1.0
+    assert shear_stress_dataframe[Column.SHEAR_STRESS].tolist() == [1.0, 1.0, 5.0, 5.0, 10.0]
