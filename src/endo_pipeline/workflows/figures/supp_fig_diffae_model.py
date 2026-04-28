@@ -254,6 +254,7 @@ def main() -> None:
             scale_bar_um=scalebar_um,
             bar_thickness=3,
             padding=5,
+            include_label=False,
         )
 
         save_plot_to_path(
