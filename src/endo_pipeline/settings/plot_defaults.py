@@ -1,5 +1,7 @@
 """Default settings for plotting functions."""
 
+from collections import namedtuple
+
 from matplotlib.lines import Line2D
 
 from endo_pipeline.configs import ShearStressRegime
@@ -20,11 +22,14 @@ SHEAR_COLOR_DICT = {
 }
 """Color dictionary for shear stress levels to color code histogram plots."""
 
-FIXED_POINT_PLOT_STYLE: dict[str, dict[str, str]] = {
-    StabilityLabel.STABLE: {"color": "blue", "marker": "o"},
-    StabilityLabel.SADDLE: {"color": "grey", "marker": "^"},
-    StabilityLabel.UNSTABLE: {"color": "red", "marker": "s"},
-    StabilityLabel.INDETERMINATE: {"color": "khaki", "marker": "P"},
+MarkerStyle = namedtuple("MarkerStyle", ["marker", "color"])
+"""Named tuple for defining marker style in plots."""
+
+FIXED_POINT_PLOT_STYLE: dict[str, MarkerStyle] = {
+    StabilityLabel.STABLE: MarkerStyle(marker="o", color="blue"),
+    StabilityLabel.SADDLE: MarkerStyle(marker="^", color="grey"),
+    StabilityLabel.UNSTABLE: MarkerStyle(marker="s", color="red"),
+    StabilityLabel.INDETERMINATE: MarkerStyle(marker="P", color="khaki"),
 }
 """Dictionary mapping fixed point stability classification labels to plotting styles for visualizations."""
 
@@ -45,8 +50,8 @@ class StabilityLegendHandle(Line2D):
             [],
             [],
             label=legend_label or stability_label.value,
-            marker=marker or FIXED_POINT_PLOT_STYLE[stability_label]["marker"],
-            color=face_color or FIXED_POINT_PLOT_STYLE[stability_label]["color"],
+            marker=marker or FIXED_POINT_PLOT_STYLE[stability_label].marker,
+            color=face_color or FIXED_POINT_PLOT_STYLE[stability_label].color,
             markersize=marker_size,
             markeredgecolor=edge_color,
             linestyle="",

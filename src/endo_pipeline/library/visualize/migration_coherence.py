@@ -263,8 +263,8 @@ def plot_3d_scatter_or_binned(
     if df_fp is not None:
         for _, row in df_fp.iterrows():
             stability = row[Column.VectorField.STABILITY]
-            mk = FIXED_POINT_PLOT_STYLE[stability]["marker"]
-            clr = FIXED_POINT_PLOT_STYLE[stability]["color"]
+            mk = FIXED_POINT_PLOT_STYLE[stability].marker
+            clr = FIXED_POINT_PLOT_STYLE[stability].color
             theta, r, rho = row[x_col], row[y_col], row[z_col]
             mean_val = row.get(f"mean_{color_col}", float("nan"))
             ax.scatter(
@@ -415,8 +415,8 @@ def plot_optical_flow_histogram(
         if mean_col in df_fp.columns:
             for _, row in df_fp.iterrows():
                 stability = row[Column.VectorField.STABILITY]
-                mk = FIXED_POINT_PLOT_STYLE[stability]["marker"]
-                clr = FIXED_POINT_PLOT_STYLE[stability]["color"]
+                mk = FIXED_POINT_PLOT_STYLE[stability].marker
+                clr = FIXED_POINT_PLOT_STYLE[stability].color
                 fp_val = row[mean_col]
                 if pd.notna(fp_val):
                     ax.scatter(

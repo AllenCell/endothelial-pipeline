@@ -340,8 +340,8 @@ def main(
                 ax.plot(
                     stable_fixed_points[column_names[0]],
                     stable_fixed_points[column_names[1]],
-                    FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE]["marker"],
-                    color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE]["color"],
+                    FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].marker,
+                    color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color,
                     markeredgecolor="k",
                     markeredgewidth=0.5,
                     markersize=5,

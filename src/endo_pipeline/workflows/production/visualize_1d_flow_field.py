@@ -213,8 +213,8 @@ def main(
                 ax.plot(
                     stable_fixed_points[column_name],
                     np.zeros_like(stable_fixed_points[column_name]),
-                    FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE]["marker"],
-                    color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE]["color"],
+                    FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].marker,
+                    color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color,
                     markeredgecolor="k",
                     markeredgewidth=0.5,
                     markersize=5,

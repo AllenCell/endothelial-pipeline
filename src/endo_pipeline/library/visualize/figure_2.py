@@ -168,8 +168,8 @@ def make_2d_quiver_plot_panel(
     ax.plot(
         stable_fixed_point[..., 0],
         stable_fixed_point[..., 1],
-        FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE]["marker"],
-        color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE]["color"],
+        FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].marker,
+        color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color,
         markeredgecolor="k",
         markeredgewidth=0.5,
         markersize=5,
@@ -244,8 +244,8 @@ def make_1d_drift_plot_panel(
     ax.plot(
         stable_fixed_point,
         np.zeros_like(stable_fixed_point),
-        FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE]["marker"],
-        color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE]["color"],
+        FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].marker,
+        color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color,
         markeredgecolor="k",
         markeredgewidth=0.5,
         markersize=5,
