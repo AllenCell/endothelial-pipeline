@@ -430,6 +430,9 @@ class ColumnName:
         STABILITY = "stability"
         """Stability classification of a fixed point."""
 
+        FIXED_POINT_PREFIX = "fp_"
+        """Prefix for column names representing coordinates of fixed points in feature space."""
+
         DRIFT = "drift"
         """Column name denoting the drift in a given variable."""
 

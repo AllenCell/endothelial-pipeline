@@ -4,13 +4,14 @@ import matplotlib.pyplot as plt
 from endo_pipeline.io import get_output_path
 from endo_pipeline.library.visualize.figure_fpt import generate_first_passage_time_example
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
+from endo_pipeline.settings.examples import FPT_FIG_EXAMPLES
 from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT
 
 plt.style.use("endo_pipeline.figure")
 
 save_dir = get_output_path("figure_4")
 
-example_dataset_name = "20250618_20X"
+example_dataset_name = FPT_FIG_EXAMPLES[0]
 
 # %% Generate example of a tracked and grid-crop trajectory starting from the same bin
 # in feature space traveling to the fixed point

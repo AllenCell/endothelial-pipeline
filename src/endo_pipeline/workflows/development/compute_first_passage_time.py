@@ -30,16 +30,17 @@ def main(
         compute_first_passage_times_one_dataset,
     )
     from endo_pipeline.library.visualize.integration.track_integration_viz import (
+        plot_first_passage_time_3d_scatter,
         plot_first_passage_time_correlation_summary,
         plot_first_passage_time_correlations,
+        plot_first_passage_time_histogram,
         plot_first_passage_time_parameter_sweep,
     )
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import LONG_TRACK_THRESHOLD_LENGTH
+    from endo_pipeline.settings.examples import FPT_FIG_EXAMPLES
     from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
     from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
-
-    # import odrpack
 
     logger = logging.getLogger(__name__)
 
@@ -57,6 +58,9 @@ def main(
         out_dir = get_output_path(__file__, "demo")
     else:
         out_dir = get_output_path(__file__)
+
+    out_dir_figure = out_dir / "for_figure"
+    out_dir_figure.mkdir(parents=True, exist_ok=True)
 
     with ProcessPoolExecutor(max_workers=min(n_proc, len(dataset_names))) as executor:
         futures: list = []
@@ -87,20 +91,11 @@ def main(
         ]
         fpt_stats_df = pd.concat(fpt_stats_df_list, ignore_index=True)
         parameter_sweep_df = pd.concat(parameter_sweep_df_list, ignore_index=True)
+
         # then compute correlation between grid and tracked first passage time
         # statistics for each dataset and fixed point and save results as a
         # dataframe for plotting
-
-        # NOTE START OF ROUGH
-
-        # dataset_name = dataset_config.name
-        # time_units = TIME_STEP_IN_HOURS  # convert timeframes to hours
-
         for metric_to_plot in ["mean", "median"]:
-            # NOTE MAKE LINE FIT DF
-            # NOTE PLOT LINE FIT RESULTS
-            # NOTE PLOT PARAM SWEEP RESULTS
-
             # the column title is "50%" for 50th percentile in `pd.describe`` instead of
             # mean so correct that if "median" was chosen
             metric = "50%" if metric_to_plot == "median" else metric_to_plot
@@ -120,43 +115,24 @@ def main(
                 fpt_stats_df_no_nan["count_first_passage_time_tracked"] >= min_num_traj_per_bin
             ]
 
-            # convert the FPT (which is in timepoints) to physical units
-            # most but not all of the columns are based on time in `first_passage_time_df`
-            not_time_columns = [
-                f"count{suffix}_grid",
-                f"count{suffix}_tracked",
-                Column.VectorField.BIN_INDEX,
-                Column.VectorField.BIN_CENTER,
-                Column.VectorField.BIN_EDGES,
-            ]
-            # the time columns are the set of columns in the dataframe that are not in
-            # the not_time_columns list
-            time_cols = list(set(fpt_stats_df_no_nan.columns) - set(not_time_columns))
-
-            # # now we can convert all those time columns from timepoints to physical units
-            # fpt_stats_df_no_nan[time_cols] *= time_units
-
             # do a linear regression to see if the FPTs from the tracked and grid trajectories
             # correlate depending on where they are in binned feature space
-            # linemodel = LinearRegression()
-            # linemodel.fit(
-            #     fpt_stats_df_no_nan[[f"{metric}_grid"]],
-            #     fpt_stats_df_no_nan[f"{metric}_tracked"],
-            #     sample_weight=fpt_stats_df_no_nan[f"std_"],
-            #     # sample_weight=fpt_stats_df_no_nan[Column.VectorField.BIN_COUNT],
-            # )
             line_fit_df = (
-                fpt_stats_df_no_nan.groupby([Column.DATASET, Column.VectorField.FIXED_POINT_INDEX])
+                fpt_stats_df_no_nan.groupby(
+                    [
+                        Column.DATASET,
+                        Column.VectorField.FIXED_POINT_INDEX,
+                        Column.VectorField.STABILITY,
+                    ]
+                )
                 .apply(
-                    lambda df: pd.Series(
+                    lambda df, metric=metric: pd.Series(
                         index=[
-                            [
-                                "slope",
-                                "intercept",
-                                "r_value",
-                                "p_value",
-                                "std_err",
-                            ]
+                            "slope",
+                            "intercept",
+                            "r_value",
+                            "p_value",
+                            "std_err",
                         ],
                         data=linregress(
                             x=df[f"{metric}_grid"],
@@ -167,52 +143,116 @@ def main(
                 .reset_index()
             )
 
-            num_bins_series = fpt_stats_df_no_nan.groupby(
-                [Column.DATASET, Column.VectorField.FIXED_POINT_INDEX]
-            )[Column.VectorField.BIN_INDEX].nunique()
-
-            for nm, grp_df in line_fit_df.groupby(
-                [Column.DATASET, Column.VectorField.FIXED_POINT_INDEX]
+            # plot the correlation and parameter sweep results for each fixed point
+            # (and add the figure examples to their own folder)
+            for nm, grp_df in fpt_stats_df_no_nan.groupby(
+                [
+                    Column.DATASET,
+                    Column.VectorField.FIXED_POINT_INDEX,
+                    Column.VectorField.STABILITY,
+                ]
             ):
-                dataset_name, fp_idx = nm
-                fixed_point_stability = fpt_stats_df_no_nan[
-                    (fpt_stats_df_no_nan[Column.DATASET] == dataset_name)
-                    & (fpt_stats_df_no_nan[Column.VectorField.FIXED_POINT_INDEX] == fp_idx)
-                ][Column.VectorField.FIXED_POINT_STABILITY].iloc[0]
+                dataset_name, fp_idx, fp_stability = nm
+
+                # extract the line fit results for this dataset and fixed point
+                line_fit_result = line_fit_df[
+                    (line_fit_df[Column.DATASET] == dataset_name)
+                    & (line_fit_df[Column.VectorField.FIXED_POINT_INDEX] == fp_idx)
+                ]
+                slope = line_fit_result["slope"].unique().item()
+                intercept = line_fit_result["intercept"].unique().item()
+                r_value = line_fit_result["r_value"].unique().item()
+
+                # plot the correlation results for this fixed point
                 plot_first_passage_time_correlations(
                     dataset_name=dataset_name,
                     first_passage_time_stats_df=grp_df,
-                    fixed_point_index=fp_idx,
-                    fixed_point_stability=fixed_point_stability,
-                    out_dir=out_dir_figure,
+                    fixed_point_id=fp_idx,
+                    fixed_point_stability=fp_stability,
+                    slope=slope,
+                    intercept=intercept,
+                    r_value=r_value,
+                    out_dir=out_dir,
+                    metric_to_plot=metric_to_plot,
                 )
+                # histograms don't really work for 4D data (theta, r, rho, and FPT ratio),
+                # so we will use a 3D scatter with color-coded points instead
+                # if one of the columns is not being collapsed
+                plot_first_passage_time_3d_scatter(
+                    fixed_point_id=fp_idx,
+                    dataset_name=dataset_name,
+                    fixed_point_stability=fp_stability,
+                    first_passage_time_df=grp_df,
+                    metric_to_plot=metric_to_plot,
+                    out_dir=out_dir,
+                )
+                # plot KDE of the first passage times for all of the bins thrown together
+                plot_first_passage_time_histogram(
+                    dataset_name=dataset_name,
+                    fixed_point_id=fp_idx,
+                    fixed_point_stability=fp_stability,
+                    first_passage_time_df=grp_df,
+                    metric_to_plot=metric_to_plot,
+                    bin_width_for_hist=None,
+                    out_dir=out_dir,
+                )
+                # plot histograms of the numbers of trajectories per bin
+                plot_first_passage_time_histogram(
+                    dataset_name=dataset_name,
+                    fixed_point_id=fp_idx,
+                    fixed_point_stability=fp_stability,
+                    first_passage_time_df=grp_df,
+                    metric_to_plot="count",
+                    bin_width_for_hist=1,
+                    out_dir=out_dir,
+                )
+
+                if dataset_name in FPT_FIG_EXAMPLES and metric_to_plot == "mean":
+                    plot_first_passage_time_correlations(
+                        dataset_name=dataset_name,
+                        first_passage_time_stats_df=grp_df,
+                        fixed_point_id=fp_idx,
+                        fixed_point_stability=fp_stability,
+                        slope=slope,
+                        intercept=intercept,
+                        r_value=r_value,
+                        out_dir=out_dir_figure,
+                        metric_to_plot=metric_to_plot,
+                    )
+            # plot the parameter sweep results (and add the figure examples to their own folder)
+            for nm, grp_df in parameter_sweep_df.groupby(
+                [
+                    Column.DATASET,
+                    Column.VectorField.FIXED_POINT_INDEX,
+                    Column.VectorField.STABILITY,
+                ]
+            ):
+                dataset_name, fp_idx, fp_stability = nm
                 plot_first_passage_time_parameter_sweep(
                     dataset_name=dataset_name,
-                    parameter_sweep_df=parameter_sweep_df_no_nan,
                     fixed_point_index=fp_idx,
-                    fixed_point_stability=fixed_point_stability,
-                    out_dir=out_dir_figure,
+                    fixed_point_stability=fp_stability,
+                    first_passage_time_param_sweep_df=grp_df,
+                    fixed_point_radius_threshold=fixed_point_radius_threshold,
+                    out_dir=out_dir,
+                    metric_to_plot=metric_to_plot,
                 )
-                # recommend to use orthogonal distance regression (ODR)
-                # instead of ordinary least squares linear regression
-                # TODO IMPLEMENT ODR INSTEAD OF OLS
+                if dataset_name in FPT_FIG_EXAMPLES and metric_to_plot == "mean":
+                    plot_first_passage_time_parameter_sweep(
+                        dataset_name=dataset_name,
+                        fixed_point_index=fp_idx,
+                        fixed_point_stability=fp_stability,
+                        first_passage_time_param_sweep_df=grp_df,
+                        fixed_point_radius_threshold=fixed_point_radius_threshold,
+                        out_dir=out_dir_figure,
+                        metric_to_plot=metric_to_plot,
+                    )
 
-                # NOTE END OF ROUGH
-
-    # flatten the list of results and convert to a dataframe
-    line_fit_results = [item for sublist in results for item in sublist]
-    first_passage_time_correlation_summary_df = pd.DataFrame(line_fit_results)
-    # we're only going to plot correlation results from the comparisons of the
-    # first passage time means per bin
-    first_passage_time_correlation_summary_df = first_passage_time_correlation_summary_df[
-        first_passage_time_correlation_summary_df[Column.VectorField.FPT_METRIC] == "mean"
-    ]
-
-    out_dir_figure = out_dir / "for_figure"
-    out_dir_figure.mkdir(parents=True, exist_ok=True)
-    # make a summary plot in both the regular output folder and also the figure output folder
-    for fdir in [out_dir, out_dir_figure]:
-        plot_first_passage_time_correlation_summary(first_passage_time_correlation_summary_df, fdir)
+            if len(dataset_names) > 1:
+                # make a summary plot in both the regular output folder and also the figure output folder
+                filename = f"FPT_correlation_summary_{metric_to_plot}"
+                for fdir in [out_dir, out_dir_figure]:
+                    plot_first_passage_time_correlation_summary(line_fit_df, fdir, filename)
 
 
 if __name__ == "__main__":

@@ -128,7 +128,7 @@ FIGURE_4_EXAMPLE_IMAGES: list[ExampleImage] = [
 ]
 
 FPT_FIG_EXAMPLES: list[str] = [
-    "20250618_20X",
+    "20250428_20X",
     "20250611_20X",
 ]
 

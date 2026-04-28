@@ -63,6 +63,7 @@ def generate_first_passage_time_example(
         trajectory_df=traj_df_grid,
         fixed_point_df=fixed_points_df,
         trajectory_columns=list(DYNAMICS_COLUMN_NAMES),
+        time_column=Column.SegData.TIME_HRS,
     )
 
     # add the distances from the fixed points for the track-based trajectories
@@ -70,6 +71,7 @@ def generate_first_passage_time_example(
         trajectory_df=traj_df_tracked,
         fixed_point_df=fixed_points_df,
         trajectory_columns=list(DYNAMICS_COLUMN_NAMES),
+        time_column=Column.SegData.TIME_HRS,
     )
 
     # 1. bin (theta, r, rho) feature space
