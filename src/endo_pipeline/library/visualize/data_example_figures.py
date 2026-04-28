@@ -460,7 +460,7 @@ def create_panel_perturbation_examples(
         fig_kwargs={"figsize": figure_size, "layout": "constrained"},
     )
 
-    for ax in fig.axes:
+    for i, ax in enumerate(fig.axes):
         ax.xaxis.labelpad = 3
         ax.yaxis.labelpad = 3
 
@@ -471,7 +471,7 @@ def create_panel_perturbation_examples(
             location="lower right",
             bar_thickness=25,
             padding=25,
-            include_label=True,
+            include_label=True if i == 0 else False,
             label_xy=(0.96, 0.08),
             label_fontsize=FONTSIZE_SMALL,
         )

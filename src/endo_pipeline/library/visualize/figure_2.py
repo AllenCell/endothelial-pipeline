@@ -416,7 +416,7 @@ def make_crop_example_contact_sheet(
         font_size=FONTSIZE_MEDIUM,
     )
 
-    for ax in fig.axes:
+    for i, ax in enumerate(fig.axes):
         ax.xaxis.labelpad = 2
         ax.yaxis.labelpad = 2
         ax.tick_params(axis="both", pad=2)
@@ -428,7 +428,7 @@ def make_crop_example_contact_sheet(
             location="lower right",
             bar_thickness=4,
             padding=6,
-            include_label=True,
+            include_label=True if i == 0 else False,
             label_xy=(0.96, 0.08),
             label_fontsize=FONTSIZE_SMALL,
         )
