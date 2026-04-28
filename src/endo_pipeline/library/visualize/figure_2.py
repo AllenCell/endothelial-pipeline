@@ -30,16 +30,12 @@ from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_cont
 from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL
-from endo_pipeline.settings.flow_field_dataframes import (
-    STABILITY_COLOR_DICT,
-    STABILITY_MARKER_DICT,
-    StabilityLabel,
-)
+from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.image_data import (
     DIFFAE_ZARR_RESOLUTION_LEVEL,
     PIXEL_SIZE_3i_20x_RESOLUTION_1,
 )
-from endo_pipeline.settings.plot_defaults import CROP_HIST_BIN_WIDTH
+from endo_pipeline.settings.plot_defaults import CROP_HIST_BIN_WIDTH, FIXED_POINT_PLOT_STYLE
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
@@ -172,8 +168,8 @@ def make_2d_quiver_plot_panel(
     ax.plot(
         stable_fixed_point[..., 0],
         stable_fixed_point[..., 1],
-        STABILITY_MARKER_DICT[StabilityLabel.STABLE],
-        color=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
+        FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].marker,
+        color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color,
         markeredgecolor="k",
         markeredgewidth=0.5,
         markersize=5,
@@ -248,8 +244,8 @@ def make_1d_drift_plot_panel(
     ax.plot(
         stable_fixed_point,
         np.zeros_like(stable_fixed_point),
-        STABILITY_MARKER_DICT[StabilityLabel.STABLE],
-        color=STABILITY_COLOR_DICT[StabilityLabel.STABLE],
+        FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].marker,
+        color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color,
         markeredgecolor="k",
         markeredgewidth=0.5,
         markersize=5,
