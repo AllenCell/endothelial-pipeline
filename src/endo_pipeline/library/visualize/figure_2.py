@@ -428,18 +428,10 @@ def make_crop_example_contact_sheet(
             location="lower right",
             bar_thickness=4,
             padding=6,
+            include_label=True,
+            label_xy=(0.96, 0.08),
+            label_fontsize=FONTSIZE_SMALL,
         )
-
-    fig.axes[0].text(
-        0.96,
-        0.08,
-        f"{scale_bar_um} {Unicode.MU}m",
-        color="white",
-        transform=fig.axes[0].transAxes,
-        fontsize=FONTSIZE_SMALL,
-        va="bottom",
-        ha="right",
-    )
 
     shear_stress = math.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
     shear_stress_label = f"{shear_stress} dyn/cm{Unicode.SQUARED}"
