@@ -1,6 +1,6 @@
 """Workflow default settings."""
 
-from typing import Literal, TypeAlias
+from typing import Literal
 
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
@@ -85,12 +85,7 @@ IMAGE_METRIC_DATASET_COLORS = {
 }
 """Color palette for image metric bar plots, keyed by dataset split name."""
 
-SegFeatureColumnDict: TypeAlias = dict[
-    str,
-    list[str | ColumnNameType],
-]
-
-SEGMENTATION_FEATURE_COLUMNS: SegFeatureColumnDict = {
+SEGMENTATION_FEATURE_COLUMNS: dict[str, list[ColumnNameType]] = {
     "default": [
         Column.SegData.ALIGNMENT_DEG,
         Column.SegData.ORIENTATION,
@@ -160,15 +155,7 @@ SEGMENTATION_FEATURE_COLUMNS: SegFeatureColumnDict = {
 }
 """Name of segmentation features to include in analyses."""
 
-SegColumnsDropDict: TypeAlias = dict[
-    str,
-    list[str]
-    | list[Column.SegData]
-    | list[Column.SegDataFilters]
-    | list[Column.DiffAEData]
-    | list[Column.SegDataWorkflowVerification],
-]
-DEFAULT_COLUMNS_TO_DROP: SegColumnsDropDict = {
+DEFAULT_COLUMNS_TO_DROP: dict[str, list[ColumnNameType]] = {
     "segmentation_features": [
         Column.SegData.EDGE_FLUOR,
         Column.SegData.NODE_FLUOR,
@@ -215,7 +202,7 @@ DEFAULT_COLUMNS_TO_DROP: SegColumnsDropDict = {
     ],
 }
 
-DATASET_INFO_COLUMNS: list[str | Column.SegData] = [
+DATASET_INFO_COLUMNS: list[ColumnNameType] = [
     Column.DATASET,
     Column.POSITION,
     Column.TIMEPOINT,

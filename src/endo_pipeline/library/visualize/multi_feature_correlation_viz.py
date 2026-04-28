@@ -3,7 +3,7 @@
 import itertools
 import logging
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -222,11 +222,12 @@ def get_df_for_feature_correlation_viz(
         # check that the chosen measurement column names
         # are actually in the DataFrame
         # keep only the columns that will be used
-        cols_to_keep = [
+        cols_to_keep_ = [
             *dataset_info_columns,
             *segmentation_feature_columns,
             *pc_columns,
         ]
+        cols_to_keep = cast(list[str], cols_to_keep_)
 
         if not set(cols_to_keep).issubset(merged_feats_df.columns):
             missing_columns = set(cols_to_keep) - set(merged_feats_df.columns)
