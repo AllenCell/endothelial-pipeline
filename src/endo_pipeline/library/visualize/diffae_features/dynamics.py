@@ -477,7 +477,7 @@ def plot_drift_1d(
 
 def make_legend_handles_for_fixed_pts(
     fpt_stabilities: list[str],
-    marker_style_dict: dict[str, dict[str, str | int | float]] = FIXED_POINT_PLOT_STYLE,
+    marker_style_dict: dict[str, dict[str, str]] = FIXED_POINT_PLOT_STYLE,
     marker_size: int = 10,
     edge_color: str = "black",
 ) -> list[StabilityLegendHandle]:
