@@ -228,6 +228,7 @@ def main(
         pixel_size=PIXEL_SIZE_3i_20x,
         bar_thickness=10,
         padding=10,
+        include_label=False,
     )
 
     plt.show()
