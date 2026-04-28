@@ -441,6 +441,25 @@ EXAMPLES_DIFFAE_TRAINING_VALIDATION: list[ExampleImage] = [
     ),
 ]
 
+SUPP_FIG_OPTICAL_FLOW_COHERENT_EXAMPLE: ExampleImage = ExampleImage(
+    dataset_name="20250409_20X",
+    description="coherent (high migration coherence) example crop; "
+    "crop_x_start/crop_y_start are the 1-indexed (col, row) within the crop grid",
+    position=2,
+    timepoint=150,
+    crop_x_start=4,
+    crop_y_start=5,
+)
+
+SUPP_FIG_OPTICAL_FLOW_INCOHERENT_EXAMPLE: ExampleImage = ExampleImage(
+    dataset_name="20251001_20X",
+    description="incoherent (low migration coherence) example crop; "
+    "crop_x_start/crop_y_start are the 1-indexed (col, row) within the crop grid",
+    position=1,
+    timepoint=198,
+    crop_x_start=5,
+    crop_y_start=2,
+)
 FLOW_FIELD_CONSTRUCTION_EXAMPLE_IMAGES: list[ExampleImage] = [
     ExampleImage(
         dataset_name="20250409_20X",
