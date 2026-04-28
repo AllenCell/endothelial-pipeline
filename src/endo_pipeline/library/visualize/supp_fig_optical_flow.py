@@ -25,7 +25,6 @@ from endo_pipeline.settings.optical_flow import (
     OPTICAL_FLOW_COLUMNS_TO_COMPUTE,
     QUIVER_GRID_DIVISIONS,
 )
-from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -192,16 +191,9 @@ def plot_optical_flow_composite(
         location="lower right",
         bar_thickness=2.5,
         padding=5,
-    )
-    ax.text(
-        0.96,
-        0.08,
-        f"{scale_bar_um} {Unicode.MU}m",
-        color="white",
-        transform=ax.transAxes,
-        fontsize=FONTSIZE_SMALL,
-        va="bottom",
-        ha="right",
+        include_label=True,
+        label_xy=(0.96, 0.08),
+        label_fontsize=FONTSIZE_SMALL,
     )
     ax.set_xticks([])
     ax.set_yticks([])
