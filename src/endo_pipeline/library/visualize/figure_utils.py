@@ -15,6 +15,81 @@ from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 logger = logging.getLogger(__name__)
 
 
+def set_axes_properties(
+    axes: plt.Axes,
+    xlim: tuple[float, float] | None = None,
+    ylim: tuple[float, float] | None = None,
+    xticks: list[float] | None = None,
+    yticks: list[float] | None = None,
+    xtick_kwargs: dict | None = None,
+    ytick_kwargs: dict | None = None,
+    xlabel: str | None = None,
+    ylabel: str | None = None,
+    xlabel_kwargs: dict | None = None,
+    ylabel_kwargs: dict | None = None,
+    title: str | None = None,
+    title_kwargs: dict | None = None,
+    aspect: Literal["auto", "equal"] | float | None = None,
+    facecolor: str | None = None,
+) -> None:
+    """
+    Set properties of the given axis, including limits, ticks, labels, and
+    title.
+
+    Parameters
+    ----------
+    axes
+        The axis to set properties for.
+    xlim
+        Optional, tuple specifying the limits for the x-axis (min, max).
+    ylim
+        Optional, tuple specifying the limits for the y-axis (min, max).
+    xticks
+        Optional, list of tick positions for the x-axis.
+    yticks
+        Optional, list of tick positions for the y-axis.
+    xtick_kwargs
+        Optional, dictionary of keyword arguments to pass to set_xticks.
+    ytick_kwargs
+        Optional, dictionary of keyword arguments to pass to set_yticks.
+    xlabel
+        Optional, label for the x-axis.
+    ylabel
+        Optional, label for the y-axis.
+    xlabel_kwargs
+        Optional, dictionary of keyword arguments to pass to set_xlabel.
+    ylabel_kwargs
+        Optional, dictionary of keyword arguments to pass to set_ylabel.
+    title
+        Optional, title for the axis.
+    title_kwargs
+        Optional, dictionary of keyword arguments to pass to set_title.
+    aspect
+        Optional, aspect ratio for the axis.
+    facecolor
+        Optional, background color for the axis.
+
+    """
+    if xlim is not None:
+        axes.set_xlim(xlim)
+    if ylim is not None:
+        axes.set_ylim(ylim)
+    if xticks is not None:
+        axes.set_xticks(xticks, **(xtick_kwargs or {}))
+    if yticks is not None:
+        axes.set_yticks(yticks, **(ytick_kwargs or {}))
+    if xlabel is not None:
+        axes.set_xlabel(xlabel, **(xlabel_kwargs or {}))
+    if ylabel is not None:
+        axes.set_ylabel(ylabel, **(ylabel_kwargs or {}))
+    if title is not None:
+        axes.set_title(title, **(title_kwargs or {}))
+    if aspect is not None:
+        axes.set_aspect(aspect)
+    if facecolor is not None:
+        axes.set_facecolor(facecolor)
+
+
 def add_scalebar(
     ax: maxes.Axes,
     scale_bar_um: float,
