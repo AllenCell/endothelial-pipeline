@@ -115,32 +115,32 @@ locations:
     path: null
     s3uri: null
   20260209_20X:
-    fmsid: 90264939f06d4bfda097f121a3c94001
-    path: null
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-04-29/calculate_pca_features/20260209_20X_grid_pca_filtered.parquet
     s3uri: null
   20260211_20X:
-    fmsid: 2d2c8efac51e49f29c47e01d05534a5c
-    path: null
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-04-29/calculate_pca_features/20260211_20X_grid_pca_filtered.parquet
     s3uri: null
   20260216_20X:
-    fmsid: dfb500b046c643bf97b6c142342bbae2
-    path: null
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-04-29/calculate_pca_features/20260216_20X_grid_pca_filtered.parquet
     s3uri: null
   20260218_20X:
-    fmsid: 1a6ef9d1ee574b78be0bdce0940c53a7
-    path: null
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-04-29/calculate_pca_features/20260218_20X_grid_pca_filtered.parquet
     s3uri: null
   20260225_20X:
-    fmsid: ff769576041048658a185578a157acf4
-    path: null
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-04-29/calculate_pca_features/20260225_20X_grid_pca_filtered.parquet
     s3uri: null
   20260302_20X:
-    fmsid: e956d72f81314b369d22cc6ab332a4cd
-    path: null
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-04-29/calculate_pca_features/20260302_20X_grid_pca_filtered.parquet
     s3uri: null
   20260304_20X:
-    fmsid: c10dc064992d4e98ac0bc7c42e988c15
-    path: null
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-04-29/calculate_pca_features/20260304_20X_grid_pca_filtered.parquet
     s3uri: null
   20260309_20X:
     fmsid: 678d3243a3a54f61a0181273e8cb8d75
