@@ -1,4 +1,20 @@
 def main(manifest_name: str) -> None:
+    """
+    Validate that the PCA feature dataframes for each dataset contain the
+    expected timepoints and positions based on the dataset config.
+
+    If "filtered" is in the manifest name, we expect all positions and
+    timepoints with annotations (except for "NOT_STEADY_STATE") to be excluded
+    from the dataframe. If "filtered" is not in the manifest name, we expect all
+    positions and timepoints to be included in the dataframe.
+
+    Parameters
+    ----------
+    manifest_name
+        The name of the dataframe manifest that specifies the locations of the
+        PCA feature dataframes to validate.
+
+    """
     import logging
 
     from endo_pipeline.configs import (
@@ -81,3 +97,9 @@ def main(manifest_name: str) -> None:
                     timepoints_in_df_pos,
                     expected_timepoints,
                 )
+
+
+if __name__ == "__main__":
+    from endo_pipeline.cli import workflow_cli
+
+    workflow_cli(main)
