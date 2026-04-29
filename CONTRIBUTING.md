@@ -103,7 +103,7 @@ def main(datasets: Datasets) -> None:
 ```bash
 endopipe workflow --datasets dataset1 dataset2
 endopipe workflow --datasets collection_name            # expanded automatically
-endopipe workflow --datasets dataset1 collection_name  # mix of both
+endopipe workflow --datasets dataset1 collection_name   # mix of both
 ```
 
 #### `CropPattern`
