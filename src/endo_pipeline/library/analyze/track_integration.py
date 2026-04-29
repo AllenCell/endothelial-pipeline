@@ -1750,7 +1750,6 @@ def build_fpt_line_fit_results_df(
     # mean so correct that if "median" was chosen
     metric = "50%" if metric_to_fit == "median" else metric_to_fit
     suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
-    # metric = f"{metric}{suffix}"
 
     # do a linear regression to see if the FPTs from the tracked and grid trajectories
     # correlate depending on where they are in binned feature space

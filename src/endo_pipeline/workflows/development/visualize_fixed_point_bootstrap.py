@@ -64,20 +64,21 @@ def main(
     from matplotlib.lines import Line2D
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import get_datasets_in_collection
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
+    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_shear_stress
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
         get_dataset_color,
         get_label_for_column,
     )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.dynamics_workflows import BIN_LIMITS_DYNAMICS, DYNAMICS_COLUMN_NAMES
-    from endo_pipeline.settings.flow_field_3d import (
-        DATASET_COLLECTION_FOR_3D_DYNAMICS,
-        FIGSIZE_2D_FLOW_FIELD,
-        NROWS_2D_FLOW_FIELD,
+    from endo_pipeline.settings.dynamics_workflows import (
+        BIN_LIMITS_DYNAMICS,
+        DEFAULT_DATASETS_DYNAMICS_VIS,
+        DYNAMICS_COLUMN_NAMES,
     )
+    from endo_pipeline.settings.flow_field_3d import FIGSIZE_2D_FLOW_FIELD, NROWS_2D_FLOW_FIELD
     from endo_pipeline.settings.flow_field_dataframes import (
         DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
         StabilityLabel,
@@ -115,7 +116,7 @@ def main(
         else:
             raise
 
-    n_bootstrap = bootstrap_fp_manifest.parameters.get("n_bootstrap_samples")
+    n_bootstrap = bootstrap_fp_manifest.parameters.get("num_bootstrap_iterations")
     if n_bootstrap is None:
         logger.warning(
             "Number of bootstrap samples not found in manifest parameters; "
@@ -123,7 +124,7 @@ def main(
             "not the number of bootstrap samples."
         )
 
-    dataset_names = datasets or get_datasets_in_collection(DATASET_COLLECTION_FOR_3D_DYNAMICS)
+    dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
     if DEMO_MODE:
         logger.warning("DEMO MODE: Processing no more than two datasets for quick visualization.")
         dataset_names = dataset_names[: min(len(dataset_names), 2)]
@@ -148,6 +149,7 @@ def main(
             )
             continue
 
+        dataset_config = load_dataset_config(dataset_name)
         logger.info("Loading bootstrap fixed point dataframe for dataset [ %s ].", dataset_name)
         location = get_dataframe_location_for_dataset(bootstrap_fp_manifest, dataset_name)
         df = load_dataframe(location, delay=False)
@@ -175,85 +177,92 @@ def main(
             bootstrap_threshold,
         )
 
-        high_confidence_df[Column.DATASET] = dataset_name
         all_high_confidence_dfs.append(high_confidence_df)
 
-        # Per-dataset figures
-        fig, axes = plt.subplots(NROWS_2D_FLOW_FIELD, 1, figsize=FIGSIZE_2D_FLOW_FIELD)
-        suptitle_str = f"{dataset_name} — Bootstrap-Validated Fixed Points\n(Detection Rate {Unicode.GEQ} {bootstrap_threshold:.2%}"
-        suptitle_suffix = ")" if n_bootstrap is None else f", n bootstrap = {n_bootstrap})"
-        fig.suptitle(f"{suptitle_str}{suptitle_suffix}")
+        # Per-dataset, per flow condition figures
+        for flow_condition in dataset_config.flow_conditions:
+            shear_stress = flow_condition.shear_stress
 
-        for ax, column_x, column_y in [
-            (axes[0], column_names[0], column_names[1]),  # PC1 vs PC2
-            (axes[1], column_names[0], column_names[2]),  # PC1 vs PC3
-        ]:
-            for _, row in high_confidence_df.iterrows():
-                stability = row[Column.VectorField.STABILITY]
-                detection_rate = row[Column.BootstrapAnalysis.DETECTION_RATE]
-                print(
-                    f"Processing fixed point with stability {stability} and detection rate {detection_rate:.2f}"
-                )
-                color = FIXED_POINT_PLOT_STYLE[stability].color
-                marker = FIXED_POINT_PLOT_STYLE[stability].marker
+            high_confidence_df_flow = filter_dataframe_by_shear_stress(
+                high_confidence_df, shear_stress
+            )
+            fig, axes = plt.subplots(NROWS_2D_FLOW_FIELD, 1, figsize=FIGSIZE_2D_FLOW_FIELD)
+            suptitle_str = f"{dataset_name} — Bootstrap-Validated Fixed Points\n(Detection Rate {Unicode.GEQ} {bootstrap_threshold:.2%}"
+            suptitle_suffix = ")" if n_bootstrap is None else f", n bootstrap = {n_bootstrap})"
+            fig.suptitle(f"{suptitle_str}{suptitle_suffix}")
 
-                x = row[f"{column_x}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"]
-                y = row[f"{column_y}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"]
-                xlabel = get_label_for_column(column_x)
-                ylabel = get_label_for_column(column_y)
+            for ax, column_x, column_y in [
+                (axes[0], column_names[0], column_names[1]),  # PC1 vs PC2
+                (axes[1], column_names[0], column_names[2]),  # PC1 vs PC3
+            ]:
+                for _, row in high_confidence_df_flow.iterrows():
+                    stability = row[Column.VectorField.STABILITY]
+                    color = FIXED_POINT_PLOT_STYLE[stability].color
+                    marker = FIXED_POINT_PLOT_STYLE[stability].marker
 
-                x_lo = row[f"{column_x}_{Column.BootstrapAnalysis.CI_LOWER}"]
-                x_hi = row[f"{column_x}_{Column.BootstrapAnalysis.CI_UPPER}"]
-                y_lo = row[f"{column_y}_{Column.BootstrapAnalysis.CI_LOWER}"]
-                y_hi = row[f"{column_y}_{Column.BootstrapAnalysis.CI_UPPER}"]
-                print(x_lo, x_hi, y_lo, y_hi)
+                    x = row[f"{column_x}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"]
+                    y = row[f"{column_y}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"]
+                    xlabel = get_label_for_column(column_x)
+                    ylabel = get_label_for_column(column_y)
 
-                xerr = (
-                    [[max(0.0, x - x_lo)], [max(0.0, x_hi - x)]]
-                    if not (np.isnan(x_lo) or np.isnan(x_hi))
-                    else None
-                )
-                yerr = (
-                    [[max(0.0, y - y_lo)], [max(0.0, y_hi - y)]]
-                    if not (np.isnan(y_lo) or np.isnan(y_hi))
-                    else None
-                )
+                    x_lo = row[f"{column_x}_{Column.BootstrapAnalysis.CI_LOWER}"]
+                    x_hi = row[f"{column_x}_{Column.BootstrapAnalysis.CI_UPPER}"]
+                    y_lo = row[f"{column_y}_{Column.BootstrapAnalysis.CI_LOWER}"]
+                    y_hi = row[f"{column_y}_{Column.BootstrapAnalysis.CI_UPPER}"]
+                    print(x_lo, x_hi, y_lo, y_hi)
 
-                ax.errorbar(
-                    x,
-                    y,
-                    xerr=xerr,
-                    yerr=yerr,
-                    fmt=marker,
-                    color=color,
-                    markeredgecolor="black",
-                    markersize=8,
-                    capsize=4,
-                    elinewidth=1.2,
-                    ecolor=color,
-                    zorder=3,
-                )
+                    xerr = (
+                        [[max(0.0, x - x_lo)], [max(0.0, x_hi - x)]]
+                        if not (np.isnan(x_lo) or np.isnan(x_hi))
+                        else None
+                    )
+                    yerr = (
+                        [[max(0.0, y - y_lo)], [max(0.0, y_hi - y)]]
+                        if not (np.isnan(y_lo) or np.isnan(y_hi))
+                        else None
+                    )
 
-            ax.set_xlim(bounds_for_plots[column_x])
-            ax.set_ylim(bounds_for_plots[column_y])
-            ax.set_xlabel(xlabel)
-            ax.set_ylabel(ylabel)
-            ax.set_title(f"{xlabel} vs {ylabel}")
+                    ax.errorbar(
+                        x,
+                        y,
+                        xerr=xerr,
+                        yerr=yerr,
+                        fmt=marker,
+                        color=color,
+                        markeredgecolor="black",
+                        markersize=8,
+                        capsize=4,
+                        elinewidth=1.2,
+                        ecolor=color,
+                        zorder=3,
+                    )
 
-        # Legend from the stability labels present in this dataset
-        present_stabilities = set(high_confidence_df[Column.VectorField.STABILITY].unique())
-        legend_handles = [
-            StabilityLegendHandle(stability_label=s)
-            for s in StabilityLabel
-            if s in present_stabilities
-        ]
-        if legend_handles:
-            axes[-1].legend(handles=legend_handles, title="Stability", loc="best")
+                ax.set_xlim(bounds_for_plots[column_x])
+                ax.set_ylim(bounds_for_plots[column_y])
+                ax.set_xlabel(xlabel)
+                ax.set_ylabel(ylabel)
+                ax.set_title(f"{xlabel} vs {ylabel}")
 
-        plt.tight_layout()
+            # Legend from the stability labels present in this dataset
+            present_stabilities = set(
+                high_confidence_df_flow[Column.VectorField.STABILITY].unique()
+            )
+            legend_handles = [
+                StabilityLegendHandle(stability_label=s)
+                for s in StabilityLabel
+                if s in present_stabilities
+            ]
+            if legend_handles:
+                axes[-1].legend(handles=legend_handles, title="Stability", loc="best")
 
-        save_plot_to_path(fig, fig_savedir, f"bootstrap_fixed_points_ci_{dataset_name}")
-        plt.close(fig)
+            plt.tight_layout()
+
+            save_plot_to_path(
+                fig,
+                fig_savedir,
+                f"bootstrap_fixed_points_ci_{dataset_name}_shear_{flow_condition.shear_stress_bin}",
+            )
+            plt.close(fig)
 
     # Combined cross-dataset figure
     if len(all_high_confidence_dfs) < 2:

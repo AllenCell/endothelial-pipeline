@@ -143,9 +143,9 @@ def main(
                 dataset_name=dataset_name,
                 first_passage_time_stats_df=grp_df,
                 line_fit_df=line_fit_result,
-                corr_type="ols",
                 fixed_point_id=fp_idx,
                 fixed_point_stability=fp_stability,
+                corr_type="ols",
                 out_dir=out_dir_dataset,
                 metric_to_plot=metric_to_plot,
             )
@@ -153,9 +153,9 @@ def main(
                 dataset_name=dataset_name,
                 first_passage_time_stats_df=grp_df,
                 line_fit_df=line_fit_result,
-                corr_type="odr",
                 fixed_point_id=fp_idx,
                 fixed_point_stability=fp_stability,
+                corr_type="odr",
                 out_dir=out_dir_dataset,
                 metric_to_plot=metric_to_plot,
             )
@@ -197,9 +197,9 @@ def main(
                     dataset_name=dataset_name,
                     first_passage_time_stats_df=grp_df,
                     line_fit_df=line_fit_result,
-                    corr_type="ols",
                     fixed_point_id=fp_idx,
                     fixed_point_stability=fp_stability,
+                    corr_type="ols",
                     out_dir=out_dir_figure,
                     metric_to_plot=metric_to_plot,
                 )

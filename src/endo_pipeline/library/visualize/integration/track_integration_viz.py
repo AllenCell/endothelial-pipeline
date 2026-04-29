@@ -1274,9 +1274,9 @@ def plot_first_passage_time_correlations(
     dataset_name: str,
     first_passage_time_stats_df: pd.DataFrame,
     line_fit_df: pd.DataFrame,
-    corr_type: str,
     fixed_point_id: int,
     fixed_point_stability: str,
+    corr_type: str,
     out_dir: Path,
     metric_to_plot: Literal["mean", "median"],
 ) -> None:
@@ -1501,8 +1501,10 @@ def plot_first_passage_time_correlation_summary(
     if corr_type == "ols":
         ax.set_xticks(np.arange(0, 1.1, 0.2))
         ax.set_xlim(0, 1)
-    else:
-        ax.set_xlim(0)
+    elif corr_type == "odr":
+        # use the larger of 1 or the current x axis max for x axis upper limit
+        # (1 has a special meaning for the reduced chi-squared metric)
+        ax.set_xlim(0, max(1, ax.get_xlim()[1]))
     ax.set_xlabel(corr_metric_label, fontsize=FONTSIZE_SMALL)
     ax.set_ylabel("Number of Datasets", fontsize=FONTSIZE_SMALL)
     save_plot_to_path(
