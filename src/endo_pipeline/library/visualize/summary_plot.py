@@ -45,8 +45,8 @@ logger = logging.getLogger(__name__)
 # --- Build jitter map (shared by numeric and categorical shear-stress modes) ---
 def _build_jitter_map(df: pd.DataFrame, jitter_width: float = 0.1) -> dict[tuple, float]:
     jmap: dict[tuple, float] = {}
-    for ss in df["shear_stress_numeric"].unique():
-        datasets_at_ss = df.loc[df["shear_stress_numeric"] == ss, "dataset"].unique()
+    for ss in df["flow_condition_shear_stress_bin"].unique():
+        datasets_at_ss = df.loc[df["flow_condition_shear_stress_bin"] == ss, "dataset"].unique()
         n = len(datasets_at_ss)
         if n <= 1:
             offsets = [0.0]
@@ -91,7 +91,7 @@ def _build_categorical_axis(
     tick_labels = [str(cat) for cat in unique_categories]
     jitter_map = _build_jitter_map(df_fp, jitter_width=jitter_width)
     row_to_x = lambda row: cat_to_pos[row[group_col]] + jitter_map.get(  # noqa: E731
-        (row["dataset"], row["shear_stress_numeric"]), 0.0
+        (row["dataset"], row["flow_condition_shear_stress_bin"]), 0.0
     )
     return row_to_x, tick_positions, tick_labels
 
@@ -108,23 +108,6 @@ def _compute_yerr(
     if lo is None or hi is None or np.isnan(lo) or np.isnan(hi):
         return None
     return [[max(0.0, y_val - lo)], [max(0.0, hi - y_val)]]
-
-
-# Snap to ±1 bins; values outside any bin keep their rounded value
-_SHEAR_STRESS_BINS: dict[int, tuple[int, int]] = {
-    6: (5, 7),
-    9: (8, 10),
-    12: (11, 13),
-    15: (14, 16),
-    21: (20, 22),
-}
-
-
-def _snap_to_bin(val: float) -> int:
-    for center, (lo, hi) in _SHEAR_STRESS_BINS.items():
-        if lo <= val <= hi:
-            return center
-    return round(val)
 
 
 def plot_fixed_points_vs_shear_stress(
@@ -166,8 +149,8 @@ def plot_fixed_points_vs_shear_stress(
         - ``"dataset"`` (default): one categorical tick per dataset, ordered by
           ``dataset_order`` or shear stress. Labels show
           ``"dataset_name (shear_stress)"``.
-        - ``"shear_stress_numeric"``: x positions are the actual numeric
-          shear-stress values, with jitter for datasets sharing the same value.
+        - ``"shear_stress_numeric"``: x positions are the numeric
+          shear-stress values (binned), with jitter for datasets sharing the same value.
         - ``"shear_stress_categorical"``: one evenly-spaced tick per unique
           shear-stress value (so 6 and 21 are adjacent), with jitter for
           datasets sharing the same value.
@@ -201,15 +184,6 @@ def plot_fixed_points_vs_shear_stress(
     plt.Figure
         The matplotlib figure object containing the plot.
     """
-    # Convert shear stress to numeric values
-    df_fp = df_fp.copy()
-    # Parse raw shear stress to the max numeric value in the label
-    df_fp["shear_stress_numeric"] = df_fp["shear_stress"].apply(
-        lambda s: max(float(v) for v in str(s).split("-"))
-    )
-
-    df_fp["shear_stress_numeric"] = df_fp["shear_stress_numeric"].apply(_snap_to_bin)
-
     if stable_only:
         df_fp = df_fp[df_fp[ColumnName.VectorField.STABILITY] == "stable"]
     else:
@@ -224,7 +198,7 @@ def plot_fixed_points_vs_shear_stress(
         df_fp["dataset"] = df_fp["dataset"].astype(dataset_cat)
         df_fp = df_fp.sort_values("dataset")
     else:
-        df_fp = df_fp.sort_values("shear_stress_numeric")
+        df_fp = df_fp.sort_values("flow_condition_shear_stress_bin")
 
     row_to_x: Any  # noqa: E731
     tick_positions: list[float]
@@ -233,7 +207,7 @@ def plot_fixed_points_vs_shear_stress(
         unique_datasets = df_fp["dataset"].unique()
         df_fp["_dataset_label"] = df_fp["dataset"].map(
             {
-                d: f"{load_dataset_config(d).date} ({df_fp.loc[df_fp['dataset'] == d, 'shear_stress_numeric'].iloc[0]})"
+                d: f"{load_dataset_config(d).date} ({df_fp.loc[df_fp['dataset'] == d, 'flow_condition_shear_stress_bin'].iloc[0]})"
                 for d in unique_datasets
             }
         )
@@ -242,16 +216,18 @@ def plot_fixed_points_vs_shear_stress(
         )
     elif x_axis_mode == "shear_stress_numeric":
         # Numeric x-axis: position by shear stress value, jittered by dataset
-        unique_shear = sorted(df_fp["shear_stress_numeric"].unique())
+        unique_shear = sorted(df_fp["flow_condition_shear_stress_bin"].unique())
         tick_positions = unique_shear
         tick_labels = [str(round(s)) for s in unique_shear]
         jitter_map = _build_jitter_map(df_fp, jitter_width=jitter_width)
-        row_to_x = lambda row: row["shear_stress_numeric"] + jitter_map.get(  # noqa: E731
-            (row["dataset"], row["shear_stress_numeric"]), 0.0
+        row_to_x = lambda row: row[
+            "flow_condition_shear_stress_bin"
+        ] + jitter_map.get(  # noqa: E731
+            (row["dataset"], row["flow_condition_shear_stress_bin"]), 0.0
         )
     elif x_axis_mode == "shear_stress_categorical":
         # Evenly-spaced categorical ticks for each unique shear stress value
-        df_fp["_ss_label"] = df_fp["shear_stress_numeric"].apply(lambda s: str(round(s)))
+        df_fp["_ss_label"] = df_fp["flow_condition_shear_stress_bin"].apply(lambda s: str(round(s)))
         row_to_x, tick_positions, tick_labels = _build_categorical_axis(
             df_fp, "_ss_label", jitter_width=jitter_width, tick_spacing=0.5
         )
@@ -268,12 +244,12 @@ def plot_fixed_points_vs_shear_stress(
             df_fp, "cell_line_label", jitter_width=jitter_width
         )
     elif x_axis_mode == "flow_switch":
-        # Label: "<shear_stress> (single flow)" or "<shear_stress> (flow switch)"
+        # Label: "<shear_stress_bin> (single flow)" or "<shear_stress_bin> (flow switch)"
         df_fp["flow_switch_label"] = df_fp.apply(
             lambda row: (
-                f"{int(row['flow_condition_shear_stress'])} (single flow)"
+                f"{int(row['flow_condition_shear_stress_bin'])} (single flow)"
                 if row["n_shear_stress_conditions"] == 1
-                else f"{int(row['flow_condition_shear_stress'])} (flow switch)"
+                else f"{int(row['flow_condition_shear_stress_bin'])} (flow switch)"
             ),
             axis=1,
         )
@@ -550,6 +526,11 @@ def plot_cross_dataset_summaries(
                 high_confidence_df["flow_condition_shear_stress"] = round(
                     flow_condition.shear_stress
                 )
+                high_confidence_df["flow_condition_shear_stress_bin"] = (
+                    flow_condition.shear_stress_bin
+                )
+
+                print(round(flow_condition.shear_stress), flow_condition.shear_stress_bin)
 
                 if x_axis_mode == "cell_line":
                     cell_line_label = CELL_LINE_LABEL_MAP.get(
