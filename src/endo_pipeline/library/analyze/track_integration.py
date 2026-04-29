@@ -20,6 +20,7 @@ from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_krame
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KernelName, KramersMoyalKernel
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     add_track_duration_to_dataframe,
+    calculate_derived_data_dynamics_dependent,
 )
 from endo_pipeline.library.analyze.numerics.binning import adjust_limits_from_bin_size, get_bins
 from endo_pipeline.library.analyze.numerics.fixed_points import (
@@ -217,6 +218,9 @@ def get_diffae_feats_liveseg_feats_merged_table(
         merged_feats_df.dropna(
             axis="index", how="any", subset=Column.DiffAEData.MODEL_MANIFEST, inplace=True
         )
+
+        # Calculate derived dynamic features
+        merged_feats_df = calculate_derived_data_dynamics_dependent(merged_feats_df)
 
         # remove columns that were kept for workflow validations
         default_cols_to_drop = [
