@@ -42,29 +42,15 @@ logger = logging.getLogger(__name__)
 plt.style.use("endo_pipeline.figure")
 
 
-def _snap_to_bin(val: float) -> int:
-    _SHEAR_STRESS_BINS: dict[int, tuple[int, int]] = {
-        6: (5, 7),
-        9: (8, 10),
-        12: (11, 13),
-        15: (14, 16),
-        21: (20, 22),
-    }
-    for center, (lo, hi) in _SHEAR_STRESS_BINS.items():
-        if lo <= val <= hi:
-            return center
-    return round(val)
-
-
-def _get_shear_stress_for_dataset(dataset_name: str) -> float:
+def _get_shear_stress_for_dataset(dataset_name: str, binned: bool) -> float | int:
     dataset_config = load_dataset_config(dataset_name)
-    shear_stresses = tuple(flow.shear_stress for flow in dataset_config.flow_conditions)
+    shear_stresses = dataset_config.flow_conditions
     if len(shear_stresses) > 1:
         raise ValueError(
             f"Dataset [{dataset_name}] has multiple flow conditions with shear stresses: {shear_stresses}. "
             "This function expects only one flow condition per dataset."
         )
-    return shear_stresses[0]
+    return shear_stresses[0].shear_stress_bin if binned else shear_stresses[0].shear_stress
 
 
 def set_global_pc_lims(axs: Sequence[plt.Axes], lim: int = 3) -> None:
@@ -383,7 +369,7 @@ def overlay_feature_on_flowfield(
     # but may lead to varying (sometimes large) amounts of empty space in each plot.
     # In the manuscript the PCs range from -3 to 3 standard deviations, so we are using lim=3.
     if use_global_pc_lims:
-        set_global_pc_lims(axs, lim=3)  # type:ignore[arg-type]
+        set_global_pc_lims(axs, lim=3)  # type: ignore[arg-type]
 
     return fig, axs
 
@@ -1196,7 +1182,7 @@ def plot_first_passage_time_parameter_sweep(
     """Plot the results of the parameter sweep over the number of bins in the
     initial conditions histogram and the choice of mean vs. median FPT to plot.
     """
-    shear_stress_rounded = _snap_to_bin(_get_shear_stress_for_dataset(dataset_name))
+    shear_stress_rounded = _get_shear_stress_for_dataset(dataset_name, binned=True)
 
     fig_title = f"{shear_stress_rounded} dyn/cm{UnicodeCharacters.SQUARED}"
     metric = "50%" if metric_to_plot == "median" else metric_to_plot
@@ -1295,8 +1281,7 @@ def plot_first_passage_time_correlations(
     out_dir: Path,
     metric_to_plot: Literal["mean", "median"],
 ) -> None:
-    shear_stress = _get_shear_stress_for_dataset(dataset_name)
-    shear_stress_rounded = _snap_to_bin(shear_stress)
+    shear_stress_rounded = _get_shear_stress_for_dataset(dataset_name, binned=True)
 
     metric = "50%" if metric_to_plot == "median" else metric_to_plot
     suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
@@ -1447,13 +1432,13 @@ def plot_first_passage_time_correlation_summary(
     # Snap to ±1 bins; values outside any bin keep their rounded value
     first_passage_time_correlation_summary_df["shear_stress"] = (
         first_passage_time_correlation_summary_df[Column.DATASET].transform(
-            lambda ds: _get_shear_stress_for_dataset(ds)
+            lambda ds: _get_shear_stress_for_dataset(ds, binned=False)
         )
     )
     first_passage_time_correlation_summary_df.sort_values("shear_stress", inplace=True)
     first_passage_time_correlation_summary_df["shear_stress_rounded"] = (
-        first_passage_time_correlation_summary_df["shear_stress"].transform(
-            lambda flow: _snap_to_bin(flow)
+        first_passage_time_correlation_summary_df[Column.DATASET].transform(
+            lambda ds: _get_shear_stress_for_dataset(ds, binned=True)
         )
     )
 
