@@ -8,7 +8,7 @@ import dask.array as da
 import imageio.v3 as iio
 import numpy as np
 import pandas as pd
-from colorizer_data import ColorizerDatasetWriter, FeatureType
+from colorizer_data import ColorizerDatasetWriter, FeatureInfo, FeatureType
 from colorizer_data.converter import ConverterConfig, _write_backdrops, _write_data, _write_features
 from colorizer_data.types import ColorizerMetadata
 from colorizer_data.utils import generate_frame_paths
@@ -40,8 +40,15 @@ from endo_pipeline.manifests import (
     get_image_location_for_dataset,
     load_dataframe_manifest,
 )
+from endo_pipeline.settings.column_metadata import COLUMN_METADATA, ColumnType
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.tfe import TFE_BACKDROP_TYPES, TFE_FEATURE_MAP, TFE_REQUIRED_COLUMNS
+from endo_pipeline.settings.column_names import ColumnNameType
+from endo_pipeline.settings.tfe import (
+    TFE_BACKDROP_TYPES,
+    TFE_FEATURES,
+    TFE_REQUIRED_COLUMNS,
+    TFE_TYPE_MAPPING,
+)
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -211,7 +218,7 @@ def get_cdh5_seg_data_for_tfe(
     # columns with the intersection between requested feature columns and the
     # columns available in the dataframe.
     columns = set(TFE_REQUIRED_COLUMNS)
-    columns.update(set(TFE_FEATURE_MAP.keys()) & set(df_delay.columns))
+    columns.update(set(TFE_FEATURES) & set(df_delay.columns))
     df = df_delay[list(columns)].compute().reset_index(drop=True)
 
     # Filter dataset down to position
@@ -268,7 +275,7 @@ def add_dynamic_features_with_filtering(df: pd.DataFrame) -> pd.DataFrame:
 def build_tfe_dataset(
     writer: ColorizerDatasetWriter,
     data: pd.DataFrame,
-    feature_map: dict,
+    features: list[ColumnNameType] = TFE_FEATURES,
     backdrops: list[str] = TFE_BACKDROP_TYPES,
 ):
     """Build TFE dataset from given feature data."""
@@ -282,24 +289,72 @@ def build_tfe_dataset(
         )
         backdrop_column_names.append(backdrop_column)
 
-    feature_info = {}
+    feature_infos = {}
     feature_column_names = []
 
-    for feature in feature_map:
+    columns_with_embedded_unit = [
+        Column.SegData.TIME_HRS,
+        Column.SegData.TIME_MINS,
+        Column.SegData.ALIGNMENT,
+        Column.SegData.ALIGNMENT_DEG,
+        Column.SegData.ORIENTATION,
+        Column.SegData.ORIENTATION_DEG,
+    ]
+
+    columns_with_auto_range = [
+        Column.SegData.AREA_UM_SQ,
+        Column.SegData.CELL_FLUOR_MEAN,
+        Column.SegData.EDGE_FLUOR_MEAN,
+        Column.SegData.NODE_FLUOR_MEAN,
+    ]
+
+    for feature in features:
+        feature_metadata = COLUMN_METADATA[feature]
+
         # Ignore feature if not found in the provided feature data
         if feature not in data.columns:
             logger.debug("Feature '%s' not found in data and will be skipped", feature)
             continue
 
+        # Build feature info object from feature metadata.
+        feature_metadata = COLUMN_METADATA[feature]
+        feature_description = feature_metadata.description or ""
+        feature_units = feature_metadata.unit or ""
+        feature_min = feature_metadata.min if feature_metadata.min != "min" else None
+        feature_max = feature_metadata.max if feature_metadata.max != "max" else None
+
+        # Special handling for feature that have the same name.
+        if feature in columns_with_embedded_unit:
+            feature_label = feature_metadata.name_with_unit
+            feature_units = ""
+        else:
+            feature_label = feature_metadata.name
+
+        # Auto detect min and max instead of using metadata
+        if feature in columns_with_auto_range:
+            feature_min = None
+            feature_max = None
+
+        feature_info = FeatureInfo(
+            label=feature_label,
+            type=TFE_TYPE_MAPPING[feature_metadata.type],
+            description=feature_description,
+            unit=feature_units,
+            min=feature_min,
+            max=feature_max,
+        )
+
+        # Assign categories for boolean features.
+        if feature_metadata.type == ColumnType.BOOLEAN:
+            feature_info.categories = ["False", "True"]
+
         # Remap any categorical features to 0 = False and 1 = True because of how
         # TFE handles categorical features if not already remapped.
-        if feature_map[feature].type == FeatureType.CATEGORICAL and not is_integer_dtype(
-            data[feature]
-        ):
+        if feature_info.type == FeatureType.CATEGORICAL and not is_integer_dtype(data[feature]):
             logger.debug("Feature '%s' being remapped to integer values", feature)
             data[feature] = data[feature].astype(int)
 
-        feature_info[feature] = feature_map[feature]
+        feature_infos[feature] = feature_info
         feature_column_names.append(feature)
 
     # Build TFE converter config
@@ -313,7 +368,7 @@ def build_tfe_dataset(
         outlier_column="Outlier",
         backdrop_column_names=backdrop_column_names,
         feature_column_names=feature_column_names,
-        feature_info=feature_info,
+        feature_info=feature_infos,
     )
 
     # Write out TFE data, features, and backdrops

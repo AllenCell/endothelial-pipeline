@@ -94,6 +94,7 @@ def main(
     from endo_pipeline.io import get_output_path, join_sorted_strings, load_dataframe
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_flow_condition,
+        filter_dataframe_by_stability,
         filter_dataframe_to_steady_state,
     )
     from endo_pipeline.library.analyze.dataframe_validation import (
@@ -117,6 +118,7 @@ def main(
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_DYNAMICS,
         BIN_WIDTHS_DYNAMICS,
+        DEFAULT_DATASETS_DYNAMICS_VIS,
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
@@ -124,11 +126,7 @@ def main(
         POLAR_ANGLE_PERIOD,
         RESCALE_THETA,
     )
-    from endo_pipeline.settings.flow_field_3d import (
-        DATASET_COLLECTION_FOR_3D_DYNAMICS,
-        INIT_POINT_3D,
-        TRAJECTORY_TIME_SPAN,
-    )
+    from endo_pipeline.settings.flow_field_3d import INIT_POINT_3D, TRAJECTORY_TIME_SPAN
     from endo_pipeline.settings.flow_field_dataframes import (
         DATAFRAME_MANIFEST_PREFIX_DRIFT,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
@@ -199,7 +197,7 @@ def main(
     # both the drift and feature dataframe manifests to avoid errors later on
     # when loading dataframes for specific datasets, and log an error if no
     # valid dataset names are provided after this filtering step
-    dataset_names = datasets or get_datasets_in_collection(DATASET_COLLECTION_FOR_3D_DYNAMICS)
+    dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
 
     if DEMO_MODE:
         logger.warning(
@@ -319,10 +317,9 @@ def main(
                 fixed_points_for_flow_condition = fixed_points_dataframe[
                     fixed_points_dataframe[ColumnName.SHEAR_STRESS] == shear_stress
                 ]
-                stable_fixed_points = fixed_points_for_flow_condition[
-                    fixed_points_for_flow_condition[ColumnName.VectorField.STABILITY]
-                    == StabilityLabel.STABLE
-                ]
+                stable_fixed_points = filter_dataframe_by_stability(
+                    fixed_points_for_flow_condition, stability_label=StabilityLabel.STABLE
+                )
                 if not stable_fixed_points.empty:
                     stable_fixed_point_dataframe_list.append(stable_fixed_points)
                     column_names_ = cast(list[str], column_names)

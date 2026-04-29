@@ -332,12 +332,6 @@ class ColumnName:
         XY_SHIFT = "xy_shift"
         Z_SHIFT = "z_shift"
 
-    class TFE(StrEnum):
-        """Dataframe column names used in the timelapse feature explorer manifest."""
-
-        SEGMENTATION_IMAGE_FILENAME = "seg_image"
-        """Column name for the segmentation image filename (filename and suffix only; not full path)."""
-
     class OpticalFlow(StrEnum):
         """Dataframe column names used in the optical-flow feature workflow."""
 
@@ -493,3 +487,18 @@ class ColumnName:
 
         CI_UPPER = "ci_upper"
         """Upper bound of the bootstrap confidence interval."""
+
+
+ColumnNameType = (
+    str
+    | ColumnName
+    | ColumnName.DiffAEData
+    | ColumnName.SegData
+    | ColumnName.SegDataFilters
+    | ColumnName.SegDataWorkflowVerification
+    | ColumnName.Annotations
+    | ColumnName.OpticalFlow
+    | ColumnName.BootstrapAnalysis
+    | ColumnName.VectorField
+)
+"""Type hint for all column name enums."""

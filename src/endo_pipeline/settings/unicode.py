@@ -21,6 +21,9 @@ class UnicodeCharacters(StrEnum):
     THETA = "\u03b8"
     """Unicode for lowercase theta."""
 
+    DELTA = "\u0394"
+    """Unicode for uppercase delta."""
+
     GEQ = "\u2265"
     """Unicode for greater than or equal to (using LaTeX naming convention)."""
 

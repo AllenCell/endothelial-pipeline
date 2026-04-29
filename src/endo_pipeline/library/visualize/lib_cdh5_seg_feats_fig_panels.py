@@ -10,7 +10,7 @@ from skimage.morphology import binary_dilation
 from tqdm import tqdm
 
 from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
-from endo_pipeline.io import get_output_path, load_dataframe, load_image, save_plot_to_path, slugify
+from endo_pipeline.io import get_output_path, load_dataframe, load_image, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_annotations
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
@@ -21,9 +21,9 @@ from endo_pipeline.library.process.general_image_preprocessing import (
 )
 from endo_pipeline.library.visualize.figure_utils import plot_image_thumbnail
 from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
-    hist_2d_of_feats,
     mark_parallel,
     mark_perpendicular,
+    plot_histogram_of_features,
 )
 from endo_pipeline.manifests import (
     get_dataframe_location_for_dataset,
@@ -32,14 +32,14 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
     load_image_manifest,
 )
-from endo_pipeline.settings.column_metadata import COLUMN_METADATA_DICT
+from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.examples import CDH5_SEG_FIG_EXAMPLE
 from endo_pipeline.settings.figures import FONT_FAMILY, FONTSIZE_SMALL, PDF_FONT_TYPE
 from endo_pipeline.settings.workflow_defaults import SEGMENTATION_FEATURE_COLUMNS
 
 IMAGE_PANEL_SIZE = (3, 3)
-PLOT_PANEL_SIZE = (1.1, 1.1)
+PLOT_PANEL_SIZE = (1.35, 1.35)
 X_START = CDH5_SEG_FIG_EXAMPLE.crop_x_start
 Y_START = CDH5_SEG_FIG_EXAMPLE.crop_y_start
 CROP_YX = (slice(Y_START, -Y_START), slice(X_START, -X_START))  # centered crop
@@ -307,69 +307,32 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
         # calculate features that are sensitive to how the dataframe is filtered
         live_seg_feats_df = calculate_derived_data_dynamics_dependent(live_seg_feats_df)
 
-        # get the plotting arguments for the features
-        # (e.g. axis limits, axis titles, bin widths, etc.)
-        feats_plot_args = COLUMN_METADATA_DICT
-
-        # update the y labels of the features being plotted to
-        # accomodate these panels being very very small
-        # (and/or to make them more informative)
-        feats_plot_args[time_col]["label"] = "Time (h)"
-        feats_plot_args[Column.SegData.ALIGNMENT_DEG]["label"] = "Cell Alignment (°)"
-        feats_plot_args[Column.SegData.NUCLEI_POSITION_ANGLE_DEG][
-            "label"
-        ] = "Cell-Nucleus Angle\nRel. to Flow (°)"
-        feats_plot_args[Column.SegData.CENTROID_VELOCITY_ANGLE_DEG]["label"] = "Migration Angle (°)"
-        feats_plot_args[Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG][
-            "label"
-        ] = "Cell-Nucleus Angle\nRel. Migration (°)"
-        feats_plot_args[Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DOTPROD][
-            "label"
-        ] = "Cell-Nucleus vs.\nMigration Dot Prod."
-        feats_plot_args[Column.SegData.ASPECT_RATIO]["label"] = "Aspect ratio"
-        feats_plot_args[Column.SegData.CELL_FLUOR_MEAN][
-            "label"
-        ] = "Mean VE-Cad Fluorescence\nin Cell (a.u.)"
-        feats_plot_args[Column.SegData.EDGE_FLUOR_MEAN][
-            "label"
-        ] = "Mean VE-Cad Fluorescence\nat Edges (a.u.)"
-        feats_plot_args[Column.SegData.NODE_FLUOR_MEAN][
-            "label"
-        ] = "Mean VE-Cad Fluorescence\nat Nodes (a.u.)"
-        feats_plot_args[Column.SegData.AREA_UM_SQ]["label"] = "Cell area (µm²)"
+        # Get feature metadata for time axis
+        time_metadata = COLUMN_METADATA[time_col]
 
         # create and save the panels of each of the features
         for feat in feats_to_plot:
-            figure_name = f"{dataset_name}_{slugify(feat)}"
+            feature_metadata = COLUMN_METADATA[feat]
+            figure_name = f"{dataset_name}_{feature_metadata.slug}"
 
             # create the 2D histogram panel
-            fig, ax = hist_2d_of_feats(
+            fig, ax = plot_histogram_of_features(
                 live_seg_feats_df,
-                x_column_name=feats_plot_args[time_col]["column_name"],
-                y_column_name=feats_plot_args[feat]["column_name"],
-                x_label=feats_plot_args[time_col]["label"].capitalize(),
-                y_label=feats_plot_args[feat]["label"].capitalize(),
-                x_lims=feats_plot_args[time_col]["lims"],
-                y_lims=feats_plot_args[feat]["lims"],
-                set_xticks=feats_plot_args[time_col]["ticks"],
-                set_yticks=feats_plot_args[feat]["ticks"],
-                discrete_xticks=feats_plot_args[time_col]["discrete_ticks"],
-                discrete_yticks=feats_plot_args[feat]["discrete_ticks"],
-                minor_ticks="xy",
-                bin_width=(
-                    feats_plot_args[time_col]["bin_width"],
-                    feats_plot_args[feat]["bin_width"],
-                ),
+                x_column_name=time_col,
+                y_column_name=feat,
+                x_feature_metadata=time_metadata,
+                y_feature_metadata=feature_metadata,
+                x_minor_ticks=True,
+                y_minor_ticks=True,
                 figsize=PLOT_PANEL_SIZE,
-                tight_layout=False,
-                cmap="inferno",
+                colormap_name="inferno",
             )
 
             # perform some additional adjustments to the panel
             ax.set_title("")
             if feat in periodic_feats:
-                ax = mark_parallel(ax, color="lightgrey")
-                ax = mark_perpendicular(ax, color="lightgrey")
+                mark_parallel(ax, color="lightgrey")
+                mark_perpendicular(ax, color="lightgrey")
             if feat == Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DOTPROD:
                 ax.axhline(0, color="lightgrey", linestyle="--", linewidth=1)
             # draw a line at the time where imaging started (i.e. negative of flow start time)
@@ -403,5 +366,5 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
                     output_path=out_subdir,
                     figure_name=figure_name,
                     file_format=cast(Literal[".pdf", ".png"], fmt),
-                    pad_inches=0.05,
+                    tight_layout=False,
                 )
