@@ -82,7 +82,7 @@ def main(manifest_name: str) -> None:
                     dataset_name,
                     sorted(set(positions_in_df) - set(expected_positions)),
                 )
-            elif set(expected_positions) - set(positions_in_df):
+            if set(expected_positions) - set(positions_in_df):
                 logger.warning(
                     "Expected positions for dataset [ %s ] that are not in dataframe: [ %s ].",
                     dataset_name,
@@ -110,7 +110,7 @@ def main(manifest_name: str) -> None:
                         position,
                         sorted(set(timepoints_in_df_pos) - set(expected_timepoints)),
                     )
-                elif set(expected_timepoints) - set(timepoints_in_df_pos):
+                if set(expected_timepoints) - set(timepoints_in_df_pos):
                     logger.warning(
                         "Expected timepoints for dataset [ %s ], position [ %s ] that are not in dataframe: [ %s ].",
                         dataset_name,
