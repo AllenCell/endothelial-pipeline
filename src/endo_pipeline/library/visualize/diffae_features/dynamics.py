@@ -8,6 +8,7 @@ import numpy as np
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import TwoSlopeNorm
 
+from endo_pipeline.library.visualize.figure_utils import set_axes_properties
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_CBAR_NUM_TICKS,
     DRIFT_CONTOUR_CBAR_ROUND,
@@ -16,12 +17,8 @@ from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_VMAX,
     DRIFT_CONTOUR_VMIN,
 )
-from endo_pipeline.settings.flow_field_dataframes import (
-    STABILITY_COLOR_DICT,
-    STABILITY_MARKER_DICT,
-    StabilityLabel,
-    StabilityLegendHandle,
-)
+from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
+from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, StabilityLegendHandle
 
 
 def plot_drift_contours(
@@ -153,17 +150,20 @@ def plot_drift_contours(
             colorbar_ticks = np.linspace(vmin_, vmax_, cbar_num_ticks)
             colorbar_ticks = np.round(colorbar_ticks, cbar_tick_round)
             fig.colorbar(contour, ax=ax[var_index], label=f"d{var_name}/dt", ticks=colorbar_ticks)
-        if var_index == 1:
-            # add shared x-axis label only for the second subplot
-            ax[var_index].set_xlabel(variable_labels[0], **(xlabel_kwargs or {}))
-        ax[var_index].set_ylabel(variable_labels[1], **(ylabel_kwargs or {}))
-        if axes_limits:
-            ax[var_index].set_xlim(axes_limits[0])
-            ax[var_index].set_ylim(axes_limits[1])
-        if axes_titles:
-            ax[var_index].set_title(axes_titles[var_index], **(axes_title_kwargs or {}))
-        if axes_aspect:
-            ax[var_index].set_aspect(axes_aspect)
+
+        # set axis properties, only including x label for bottom plot
+        set_axes_properties(
+            ax[var_index],
+            xlim=axes_limits[0] if axes_limits else None,
+            ylim=axes_limits[1] if axes_limits else None,
+            xlabel=variable_labels[0] if var_index == 1 else None,
+            ylabel=variable_labels[1],
+            title=axes_titles[var_index] if axes_titles else None,
+            aspect=axes_aspect,
+            xlabel_kwargs=xlabel_kwargs,
+            ylabel_kwargs=ylabel_kwargs,
+            title_kwargs=axes_title_kwargs,
+        )
 
     return fig, ax
 
@@ -354,11 +354,15 @@ def plot_drift_quiver(
         if plot_legend:
             ax.legend(**(legend_kwargs or {}))
 
-    ax.set_xlabel(variable_labels[0], **(xlabel_kwargs or {}))
-    ax.set_ylabel(variable_labels[1], **(ylabel_kwargs or {}))
-    if axes_limits:
-        ax.set_xlim(axes_limits[0])
-        ax.set_ylim(axes_limits[1])
+    set_axes_properties(
+        ax,
+        xlim=axes_limits[0] if axes_limits else None,
+        ylim=axes_limits[1] if axes_limits else None,
+        xlabel=variable_labels[0],
+        ylabel=variable_labels[1],
+        xlabel_kwargs=xlabel_kwargs,
+        ylabel_kwargs=ylabel_kwargs,
+    )
 
     return fig, ax
 
@@ -469,20 +473,21 @@ def plot_drift_1d(
             **(flow_arrow_kwargs or {}),
         )
 
-    if axes_limits is not None:
-        ax.set_xlim(axes_limits[0])
-        ax.set_ylim(axes_limits[1])
-    if axes_labels is not None:
-        ax.set_xlabel(axes_labels[0], **(xlabel_kwargs or {}))
-        ax.set_ylabel(axes_labels[1], **(ylabel_kwargs or {}))
+    set_axes_properties(
+        ax,
+        xlim=axes_limits[0] if axes_limits else None,
+        ylim=axes_limits[1] if axes_limits else None,
+        xlabel=axes_labels[0] if axes_labels else None,
+        ylabel=axes_labels[1] if axes_labels else None,
+        xlabel_kwargs=xlabel_kwargs,
+        ylabel_kwargs=ylabel_kwargs,
+    )
 
     return fig, ax
 
 
 def make_legend_handles_for_fixed_pts(
     fpt_stabilities: list[str],
-    face_color_dict: dict[str, str] = STABILITY_COLOR_DICT,
-    marker_dict: dict[str, str] = STABILITY_MARKER_DICT,
     marker_size: int = 10,
     edge_color: str = "black",
 ) -> list[StabilityLegendHandle]:
@@ -498,10 +503,6 @@ def make_legend_handles_for_fixed_pts(
     ----------
     fpt_stabilities
         List of stability labels for the fixed points.
-    face_color_dict
-        Dictionary mapping stability labels to face colors.
-    marker_dict
-        Dictionary mapping stability labels to marker styles.
     marker_size
         Size of the markers for the legend handles.
     edge_color
@@ -523,8 +524,8 @@ def make_legend_handles_for_fixed_pts(
                 StabilityLegendHandle(
                     stability_label=stability_type,
                     legend_label=stability_type,
-                    marker=marker_dict[stability_type],
-                    face_color=face_color_dict[stability_type],
+                    marker=FIXED_POINT_PLOT_STYLE[stability_type].marker,
+                    face_color=FIXED_POINT_PLOT_STYLE[stability_type].color,
                     edge_color=edge_color,
                     marker_size=marker_size,
                 )

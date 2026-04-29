@@ -28,40 +28,125 @@ If necessary, you may bypass the hooks for the commit:
 git commit --no-verify -m "commit message"
 ```
 
-### Multiple virtual environments
+### Custom CLI types
 
-If you want to run workflows on different systems with code stored at the same location, we recommend defining dedicated virtual environments for each system.
-This will ensure that `uv` correctly installs packages and, if needed, links them to system libraries.
+The `endo_pipeline.cli` module provides custom [cyclopts](https://cyclopts.readthedocs.io/) type annotations for workflow parameters.
 
-By default `uv` will create the virtual environment for the project at `.venv`.
-Instead, for each different system, specify the `UV_PROJECT_ENVIRONMENT` environment variable before syncing virtual environment.
-For example:
+#### List types
 
-**Slurm**
+`StrList`, `IntList`, and `FloatList` allow a parameter to accept multiple space- or flag-separated values from the CLI. The `UniqueStrList` and `UniqueIntList` variants additionally deduplicate and sort the values.
 
-```bash
-export UV_PROJECT_ENVIRONMENT=.venv_slurm
-uv sync
+```python
+from endo_pipeline.cli import UniqueStrList
+
+def main(names: UniqueStrList) -> None:
+    print(names)
 ```
 
-**A100s**
-
 ```bash
-export UV_PROJECT_ENVIRONMENT=.venv_a100s
-uv sync
+# equivalent ways to pass a list
+endopipe workflow a b c
+endopipe workflow --names a --names b --names c
+endopipe workflow --names a b c
+
+# duplicates are removed and the list is sorted
+endopipe workflow b c c a  # → ['a', 'b', 'c']
 ```
 
-This creates two separate environments, one for a Slurm cluster and one for A100s machines.
-You can then activate the appropriate environment, or use `uv run`, which will use the environment specified by `UV_PROJECT_ENVIRONMENT`.
-You can check which environment `uv` is using with:
+#### `Datasets`
 
-```bash
-echo $UV_PROJECT_ENVIRONMENT
+Accepts one or more dataset names **or** dataset collection names. Collections are automatically expanded into individual dataset names, duplicates are removed, and all names are validated against available dataset configs.
+
+```python
+from endo_pipeline.cli import Datasets
+from endo_pipeline.configs import load_dataset_config
+
+def main(datasets: Datasets) -> None:
+    dataset_configs = [load_dataset_config(d) for d in datasets]
 ```
 
-If no value is returned, `uv` will default to using `.venv`.
+```bash
+endopipe workflow --datasets dataset1 dataset2
+endopipe workflow --datasets collection_name            # expanded automatically
+endopipe workflow --datasets dataset1 collection_name   # mix of both
+```
 
-If you often switch between systems, it may be helpful to add the `export` statement in your `.bashrc` (or equivalent) shell configuration file to automatically set the environment variable.
+#### `CropPattern`
+
+Accepts a crop pattern string (`"grid"` or `"tracked"`). Input is converted to lowercase before validation.
+
+```python
+from endo_pipeline.cli import CropPattern
+
+def main(crop_pattern: CropPattern) -> None:
+    print(crop_pattern)
+```
+
+```bash
+endopipe workflow --crop-pattern grid
+endopipe workflow --crop-pattern Grid   # converted to lowercase automatically
+endopipe workflow --crop-pattern other  # raises an error
+```
+
+### Custom CLI types
+
+The `endo_pipeline.cli` module provides custom [cyclopts](https://cyclopts.readthedocs.io/) type annotations for workflow parameters.
+
+#### List types
+
+`StrList`, `IntList`, and `FloatList` allow a parameter to accept multiple space- or flag-separated values from the CLI. The `UniqueStrList` and `UniqueIntList` variants additionally deduplicate and sort the values.
+
+```python
+from endo_pipeline.cli import UniqueStrList
+
+def main(names: UniqueStrList) -> None:
+    print(names)
+```
+
+```bash
+# equivalent ways to pass a list
+endopipe workflow a b c
+endopipe workflow --names a --names b --names c
+endopipe workflow --names a b c
+
+# duplicates are removed and the list is sorted
+endopipe workflow b c c a  # → ['a', 'b', 'c']
+```
+
+#### `Datasets`
+
+Accepts one or more dataset names **or** dataset collection names. Collections are automatically expanded into individual dataset names, duplicates are removed, and all names are validated against available dataset configs.
+
+```python
+from endo_pipeline.cli import Datasets
+from endo_pipeline.configs import load_dataset_config
+
+def main(datasets: Datasets) -> None:
+    dataset_configs = [load_dataset_config(d) for d in datasets]
+```
+
+```bash
+endopipe workflow --datasets dataset1 dataset2
+endopipe workflow --datasets collection_name            # expanded automatically
+endopipe workflow --datasets dataset1 collection_name   # mix of both
+```
+
+#### `CropPattern`
+
+Accepts a crop pattern string (`"grid"` or `"tracked"`). Input is converted to lowercase before validation.
+
+```python
+from endo_pipeline.cli import CropPattern
+
+def main(crop_pattern: CropPattern) -> None:
+    print(crop_pattern)
+```
+
+```bash
+endopipe workflow --crop-pattern grid
+endopipe workflow --crop-pattern Grid   # converted to lowercase automatically
+endopipe workflow --crop-pattern other  # raises an error
+```
 
 ### Configs and manifests
 
