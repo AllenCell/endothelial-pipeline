@@ -12,12 +12,14 @@ from endo_pipeline.configs import (
 from endo_pipeline.library.analyze.dataframe_filtering import (
     filter_dataframe_by_annotations,
     filter_dataframe_by_shear_stress,
+    filter_dataframe_by_stability,
     filter_dataframe_by_track_length,
     filter_dataframe_to_binned_value,
     filter_dataframe_to_flow_condition_by_timepoint,
     filter_dataframe_to_steady_state,
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 
 
 @pytest.fixture()
@@ -535,3 +537,69 @@ def test_filter_dataframe_by_shear_stress_returns_copy(shear_stress_dataframe):
     result = filter_dataframe_by_shear_stress(shear_stress_dataframe, 1.0)
     result[Column.SHEAR_STRESS] = -1.0
     assert shear_stress_dataframe[Column.SHEAR_STRESS].tolist() == [1.0, 1.0, 5.0, 5.0, 10.0]
+
+
+@pytest.fixture()
+def stability_dataframe():
+    """DataFrame with rows covering all StabilityLabel values."""
+    return pd.DataFrame(
+        {
+            Column.VectorField.STABILITY: [
+                StabilityLabel.STABLE,
+                StabilityLabel.SADDLE,
+                StabilityLabel.UNSTABLE,
+                StabilityLabel.INDETERMINATE,
+                StabilityLabel.NODE,
+                StabilityLabel.SPIRAL,
+                StabilityLabel.STABLE,
+            ],
+            "x": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
+        }
+    )
+
+
+def test_filter_dataframe_by_stability_returns_matching_rows(stability_dataframe):
+    """Rows whose stability column matches the requested label are returned."""
+    result = filter_dataframe_by_stability(stability_dataframe, StabilityLabel.STABLE)
+    assert list(result[Column.VectorField.STABILITY]) == [
+        StabilityLabel.STABLE,
+        StabilityLabel.STABLE,
+    ]
+    assert result["x"].tolist() == [0.1, 0.7]
+
+
+def test_filter_dataframe_by_stability_each_label(stability_dataframe):
+    """Filtering by each valid StabilityLabel returns only rows with that label."""
+    for label in StabilityLabel:
+        result = filter_dataframe_by_stability(stability_dataframe, label)
+        assert all(result[Column.VectorField.STABILITY] == label)
+
+
+def test_filter_dataframe_by_stability_no_matching_rows_returns_empty(stability_dataframe):
+    """When no rows have the requested label, an empty DataFrame with all columns is returned."""
+    df_no_node = stability_dataframe[
+        stability_dataframe[Column.VectorField.STABILITY] != StabilityLabel.NODE
+    ].reset_index(drop=True)
+    result = filter_dataframe_by_stability(df_no_node, StabilityLabel.NODE)
+    assert result.empty
+    assert list(result.columns) == list(df_no_node.columns)
+
+
+def test_filter_dataframe_by_stability_preserves_original_index(stability_dataframe):
+    """The returned DataFrame preserves the original row indices (no implicit reset)."""
+    result = filter_dataframe_by_stability(stability_dataframe, StabilityLabel.STABLE)
+    assert result.index.tolist() == [0, 6]
+
+
+def test_filter_dataframe_by_stability_missing_column_raises():
+    """A ValueError is raised when the stability column is absent from the DataFrame."""
+    df = pd.DataFrame({"x": [1, 2, 3]})
+    with pytest.raises(ValueError):
+        filter_dataframe_by_stability(df, StabilityLabel.STABLE)
+
+
+def test_filter_dataframe_by_stability_does_not_mutate_input(stability_dataframe):
+    """The original DataFrame is not modified by the filtering operation."""
+    original_len = len(stability_dataframe)
+    filter_dataframe_by_stability(stability_dataframe, StabilityLabel.SADDLE)
+    assert len(stability_dataframe) == original_len

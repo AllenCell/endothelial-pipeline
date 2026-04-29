@@ -424,6 +424,9 @@ class ColumnName:
         STABILITY = "stability"
         """Stability classification of a fixed point."""
 
+        FIXED_POINT_PREFIX = "fp_"
+        """Prefix for column names representing coordinates of fixed points in feature space."""
+
         DRIFT = "drift"
         """Column name denoting the drift in a given variable."""
 
@@ -432,6 +435,9 @@ class ColumnName:
 
         DISTANCE_FROM_FP_1D_SIGNED_PREFIX = "diff_from_fp_"
         """Prefix for column names representing the signed difference from a fixed point along a single dimension."""
+
+        FPT_DISTANCE_THRESHOLD = "fpt_distance_threshold"
+        """Column name for the distance threshold used to determine whether a trajectory has reached a fixed point in first passage time analysis."""
 
         IS_AT_FP_PREFIX = "is_at_fp_"
         """Prefix for column names indicating whether a data point is at a fixed point."""
@@ -463,6 +469,9 @@ class ColumnName:
 
         FPT_METRIC = "fpt_metric"
         """Column name for the metric used in the first passage time analysis."""
+
+        PERCENT_TRAJ_APPROACHED_FP = "percent_trajectories_approached_fp"
+        """Column name for the percentage of trajectories that approached a fixed point within a certain distance threshold."""
 
     class BootstrapAnalysis(StrEnum):
         """Column name suffixes used in bootstrap fixed-point analysis."""

@@ -31,6 +31,7 @@ from endo_pipeline.settings.density_comparison_plots import (
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_FEATURE_COLUMN_NAMES,
     DIFFAE_PC_COLUMN_NAMES,
+    NUM_LATENT_FEATURES,
     NUM_PCS_TO_ANALYZE,
 )
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
@@ -102,13 +103,17 @@ def plot_kde_comparison(
     return fig, axs
 
 
-def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple[Figure, Axes]:
+def plot_explained_variance(
+    explained_variance_ratio: np.ndarray, figsize: tuple[float, float] = (3, 2)
+) -> tuple[Figure, Axes]:
     """Plot cumulative explained variance ratio of PCA components.
 
     Parameters
     ----------
     explained_variance_ratio
         Array of explained variance ratios for each PCA component.
+    figsize
+        Size of the figure to create.
 
     Returns
     -------
@@ -116,18 +121,31 @@ def plot_explained_variance(explained_variance_ratio: np.ndarray) -> tuple[Figur
         Figure and Axes objects for the plot.
 
     """
-    fig, ax = plt.subplots(figsize=(7, 6))  # initialize figure and axes
+    fig, ax = plt.subplots(figsize=figsize)  # initialize figure and axes
 
     # plot explained variance ratio
     n_components = len(explained_variance_ratio)
-    ax.plot(np.arange(1, n_components + 1), np.cumsum(explained_variance_ratio), "k-o")
+    ax.plot(np.arange(1, n_components + 1), 100 * np.cumsum(explained_variance_ratio), "k-o")
     ax.plot(
-        np.arange(1, n_components + 1), 0.95 * np.ones(n_components), "r--", alpha=0.8
-    )  # 95% explained variance line
-    ax.set_ylim(0, 1.05)
-    ax.set_xlabel("Number of components")
-    ax.set_ylabel("Cumulative explained variance")
-    ax.set_title("Explained variance ratio of PCA components")
+        np.arange(1, n_components + 1),
+        95 * np.ones(n_components),
+        "r--",
+        alpha=0.8,
+        label="95% explained variance",
+    )
+    ax.set_ylim(0, 105)
+    ax.set_xlabel("Number of\nPCA components")
+    ax.set_ylabel("Cumulative\nexplained variance (%)")
+
+    ax.set_xticks(np.arange(0, NUM_LATENT_FEATURES, 100))
+
+    ax.xaxis.labelpad = 3
+    ax.yaxis.labelpad = 2
+
+    # move tick labels closer to ticks
+    ax.tick_params(axis="both", which="major", pad=2)
+
+    ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), labelspacing=0.05)
 
     return fig, ax
 

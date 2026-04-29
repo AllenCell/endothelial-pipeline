@@ -20,6 +20,7 @@ from endo_pipeline.library.analyze.dataframe_validation import (
     check_required_columns_in_dataframe,
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 
 logger = logging.getLogger(__name__)
 
@@ -421,3 +422,32 @@ def filter_dataframe_to_binned_value(
         mask &= col_bins == bin_idx
 
     return dataframe.loc[mask]
+
+
+def filter_dataframe_by_stability(
+    dataframe: pd.DataFrame,
+    stability_label: StabilityLabel,
+) -> pd.DataFrame:
+    """
+    Filter dataframe to only include rows where the stability label matches the specified stability label.
+
+    Parameters
+    ----------
+    dataframe
+        Dataframe of features to filter, which must include a column for stability label.
+    stability_label
+        Stability label to filter by.
+
+    Returns
+    -------
+    :
+        Filtered dataframe containing only rows where the stability label matches the specified stability label.
+
+    """
+    # check that required columns are present in dataframe
+    check_required_columns_in_dataframe(dataframe, [Column.VectorField.STABILITY])
+
+    # filter dataframe to only include rows where the stability label matches the specified stability label
+    dataframe_filtered = dataframe[dataframe[Column.VectorField.STABILITY] == stability_label]
+
+    return dataframe_filtered

@@ -1,7 +1,6 @@
 """Methods related to finding and analyzing fixed points of a dynamical system."""
 
 import logging
-import re
 from collections.abc import Callable
 
 import numpy as np
@@ -283,20 +282,22 @@ def get_fixed_points(my_flow: Callable, inits: list[tuple] | list[np.ndarray]) -
     return list(map(np.array, set(map(tuple, np.round(fpts, 4)))))
 
 
-def get_fixed_point_type(jacobian: np.ndarray) -> str:
+def get_fixed_point_stability(jacobian: np.ndarray) -> StabilityLabel:
     """
-    Classify the type of a fixed point given the Jacobian matrix at that point.
+    Classify the stability of a fixed point given the Jacobian matrix at that
+    point.
 
     The point is classified as follows:
         - stable: all eigenvalues have negative real part
-            - Eigenvalues are real: classified as stable node
-            - Eigenvalues are complex conjugates: classified as stable spiral
         - unstable: all eigenvalues have positive real part
-            - Eigenvalues are real: classified as unstable node
-            - Eigenvalues are complex conjugates: classified as unstable spiral
         - saddle: eigenvalues have real parts of different signs
         - indeterminate: all eigenvalues have real part close to zero (within
           numerical precision)
+
+    Note that this function does not further classify fixed points as nodes vs
+    spirals (e.g. stable node vs stable spiral) since this classification is not
+    used in our downstream analyses, but this could be added in the future if
+    desired by also checking the imaginary part of the eigenvalues.
 
     Parameters
     ----------
@@ -307,8 +308,7 @@ def get_fixed_point_type(jacobian: np.ndarray) -> str:
     Returns
     -------
     :
-        String describing the type of fixed point, including its stability and
-        whether it is a node or spiral (if applicable).
+        Stability classification of the fixed point.
 
     """
     # get eigenvalues of the Jacobian
@@ -317,48 +317,12 @@ def get_fixed_point_type(jacobian: np.ndarray) -> str:
     # determine stability and type of fixed point
     if np.isclose(np.real(eigvals).max(), 0) and np.isclose(np.real(eigvals).min(), 0):
         stability = StabilityLabel.INDETERMINATE
-        fpt_type = f"{stability} stability"
     elif np.real(eigvals).min() < 0 < np.real(eigvals).max():
         stability = StabilityLabel.SADDLE
-        fpt_type = f"{stability} point"
     else:
         stability = StabilityLabel.STABLE if np.real(eigvals).max() < 0 else StabilityLabel.UNSTABLE
-        if np.imag(eigvals).any():
-            fpt_type = f"{stability} spiral"
-        else:
-            fpt_type = f"{stability} node"
 
-    return fpt_type
-
-
-def get_stability_label_from_fixed_point_type(fpt_type: str) -> str:
-    """Get the stability label from the fixed point type string.
-
-    Parses the input string to find the first word that matches one of the
-    stability labels defined in the StabilityLabel enum (e.g., "stable",
-    "unstable", "saddle", "indeterminate"). If a match is found, it returns that
-    stability label. If no match is found, it returns "unknown".
-
-    Parameters
-    ----------
-    fpt_type
-        String describing the type of fixed point, e.g., as returned by
-        get_fixed_point_type.
-
-    Returns
-    -------
-    :
-        String describing just the stability of the fixed point.
-
-    """
-    # use re.match so matching is case-insensitive (re.IGNORECASE) and
-    # anchored to the start of the string; the word boundary (\b) prevents a
-    # label like "stable" from matching a hypothetical "stableish ..." input
-    for stability in StabilityLabel:
-        if re.match(rf"^{re.escape(stability.value)}\b", fpt_type, re.IGNORECASE):
-            return stability.value
-    # if no stability label is found, return "unknown"
-    return "unknown"
+    return stability
 
 
 def get_fixed_points_within_bounds(
@@ -449,11 +413,10 @@ def get_fixed_points_within_bounds(
             fpt, column_names, lower_percentile_bounds, upper_percentile_bounds, polar_angle_range
         )
         if within_percentile:
-            # get stability/type of the fixed point
-            fpt_type = get_fixed_point_type(vector_field_jacobian(fpt))
+            # get stability of the fixed point
+            fpt_stability_label = get_fixed_point_stability(vector_field_jacobian(fpt))
             fpt_string = f"({','.join(f'{coord:.2f}' for coord in fpt)})"
-            logger.debug("[ %s ] at [ %s ]", fpt_type, fpt_string)
-            fpt_stability_label = get_stability_label_from_fixed_point_type(fpt_type)
+            logger.debug("[ %s ] at [ %s ]", fpt_stability_label, fpt_string)
             fpts_high_confidence_list.append(
                 pd.DataFrame(
                     {

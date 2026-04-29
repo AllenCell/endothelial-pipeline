@@ -16,7 +16,10 @@ def main() -> None:
         load_model,
         save_plot_to_path,
     )
-    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
+    from endo_pipeline.library.analyze.dataframe_filtering import (
+        filter_dataframe_by_stability,
+        filter_dataframe_to_steady_state,
+    )
     from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
         add_optical_flow_features,
     )
@@ -165,9 +168,9 @@ def main() -> None:
             (feature_columns_str, fixed_points_3d_dataframe_manifest),
         ]:
             df_fixed_points = load_dataframe(manifest.locations[dataset_name])
-            df_stable_fixed_points = df_fixed_points[
-                df_fixed_points[Column.VectorField.STABILITY] == StabilityLabel.STABLE
-            ]
+            df_stable_fixed_points = filter_dataframe_by_stability(
+                df_fixed_points, stability_label=StabilityLabel.STABLE
+            )
             stable_fixed_points_dict[column_key] = df_stable_fixed_points
 
         drift_r_rho_dataframe = load_drift_dataframe_for_dataset(

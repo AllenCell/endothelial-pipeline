@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from endo_pipeline.library.analyze.numerics.fixed_points import (
-    get_stability_label_from_fixed_point_type,
+    get_fixed_point_stability,
     is_point_within_percentile_bounds,
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
@@ -106,90 +106,30 @@ def test_mismatched_point_and_column_names_length_raises():
         )
 
 
-# test "easy cases" where the input string exactly matches expected patterns as
-# output by get_fixed_point_type method
 @pytest.mark.parametrize(
-    "fpt_type",
+    "jacobian, expected",
     [
-        "stable node",
-        "stable spiral",
+        # All negative real eigenvalues → stable
+        (np.diag([-1.0, -2.0]), StabilityLabel.STABLE),
+        # All negative real eigenvalues in 3-D → stable
+        (np.diag([-0.1, -3.0, -0.5]), StabilityLabel.STABLE),
+        # Complex conjugate eigenvalues with negative real part (stable spiral) → stable
+        (np.array([[-1.0, -2.0], [2.0, -1.0]]), StabilityLabel.STABLE),
+        # All positive real eigenvalues → unstable
+        (np.diag([1.0, 2.0]), StabilityLabel.UNSTABLE),
+        # All positive real eigenvalues in 3-D → unstable
+        (np.diag([0.5, 1.0, 3.0]), StabilityLabel.UNSTABLE),
+        # Complex conjugate eigenvalues with positive real part (unstable spiral) → unstable
+        (np.array([[1.0, -2.0], [2.0, 1.0]]), StabilityLabel.UNSTABLE),
+        # Mixed-sign real eigenvalues → saddle
+        (np.diag([-1.0, 1.0]), StabilityLabel.SADDLE),
+        # Mixed-sign real eigenvalues in 3-D -> saddle
+        (np.diag([-1.0, -0.5, 2.0]), StabilityLabel.SADDLE),
+        # All eigenvalues have real part ≈ 0 (pure rotation) → indeterminate
+        (np.array([[0.0, -1.0], [1.0, 0.0]]), StabilityLabel.INDETERMINATE),
+        # All eigenvalues are zero (zero matrix) → indeterminate
+        (np.zeros((2, 2)), StabilityLabel.INDETERMINATE),
     ],
 )
-def test_get_stability_label_stable(fpt_type: str) -> None:
-    assert get_stability_label_from_fixed_point_type(fpt_type) == StabilityLabel.STABLE
-
-
-@pytest.mark.parametrize(
-    "fpt_type",
-    [
-        "unstable node",
-        "unstable spiral",
-    ],
-)
-def test_get_stability_label_unstable(fpt_type: str) -> None:
-    assert get_stability_label_from_fixed_point_type(fpt_type) == StabilityLabel.UNSTABLE
-
-
-def test_get_stability_label_saddle() -> None:
-    assert get_stability_label_from_fixed_point_type("saddle point") == StabilityLabel.SADDLE
-
-
-def test_get_stability_label_indeterminate() -> None:
-    assert (
-        get_stability_label_from_fixed_point_type("indeterminate stability")
-        == StabilityLabel.INDETERMINATE
-    )
-
-
-# test ability to distinguish between stable vs. unstable
-
-
-def test_get_stability_label_stable_not_confused_with_unstable() -> None:
-    """'stable' must not match an 'unstable ...' string."""
-    assert get_stability_label_from_fixed_point_type("unstable node") != StabilityLabel.STABLE
-
-
-def test_get_stability_label_unstable_not_confused_with_stable() -> None:
-    """'unstable ...' must not return 'stable'."""
-    result = get_stability_label_from_fixed_point_type("unstable spiral")
-    assert result == StabilityLabel.UNSTABLE
-    assert result != StabilityLabel.STABLE
-
-
-# test case insensitivity
-
-
-@pytest.mark.parametrize(
-    "fpt_type, expected",
-    [
-        ("Stable node", StabilityLabel.STABLE),
-        ("STABLE node", StabilityLabel.STABLE),
-        ("Unstable node", StabilityLabel.UNSTABLE),
-        ("UNSTABLE spiral", StabilityLabel.UNSTABLE),
-        ("Saddle point", StabilityLabel.SADDLE),
-        ("Indeterminate stability", StabilityLabel.INDETERMINATE),
-    ],
-)
-def test_get_stability_label_case_insensitive(fpt_type: str, expected: StabilityLabel) -> None:
-    """The function is case-insensitive and always returns a lowercase label."""
-    result = get_stability_label_from_fixed_point_type(fpt_type)
-    assert result == expected
-    assert result == result.lower()
-
-
-# test word-boundary enforcement (regex-specific)
-
-
-def test_get_stability_label_partial_label_prefix_returns_unknown() -> None:
-    assert get_stability_label_from_fixed_point_type("stableish point") == "unknown"
-
-
-# test other unrecognized strings
-
-
-def test_get_stability_label_empty_string_returns_unknown() -> None:
-    assert get_stability_label_from_fixed_point_type("") == "unknown"
-
-
-def test_get_stability_label_unrecognised_string_returns_unknown() -> None:
-    assert get_stability_label_from_fixed_point_type("center point") == "unknown"
+def test_get_fixed_point_stability(jacobian, expected):
+    assert get_fixed_point_stability(jacobian) == expected

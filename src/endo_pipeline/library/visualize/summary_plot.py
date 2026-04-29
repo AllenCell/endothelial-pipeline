@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs import get_shear_stress_label_for_dataset, load_dataset_config
 from endo_pipeline.io import load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import (
     filter_dataframe_to_flow_condition_by_timepoint,
@@ -31,7 +31,7 @@ from endo_pipeline.settings.dynamics_workflows import (
     METADATA_COLUMNS_TO_KEEP,
 )
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_WIDTH
-from endo_pipeline.settings.flow_field_dataframes import STABILITY_COLOR_DICT, STABILITY_MARKER_DICT
+from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
 from endo_pipeline.settings.summary_plot import (
     CELL_LINE_LABEL_MAP,
     COLOR_PALETTE,
@@ -291,9 +291,9 @@ def plot_fixed_points_vs_shear_stress(
         # Color by stability
         for _, row in df_fp.iterrows():
             stability = row[ColumnName.VectorField.STABILITY]
-            mk = STABILITY_MARKER_DICT.get(stability, "o")
-            clr = STABILITY_COLOR_DICT.get(stability, "gray")
-            is_gray = stability not in STABILITY_COLOR_DICT
+            mk = FIXED_POINT_PLOT_STYLE[stability].marker
+            clr = FIXED_POINT_PLOT_STYLE[stability].color
+            is_gray = stability not in FIXED_POINT_PLOT_STYLE
             y_val = row[variable]
             yerr = _compute_yerr(row, y_val, ci_lower_col, ci_upper_col)
             if yerr is not None:
@@ -454,13 +454,12 @@ def plot_cross_dataset_summaries(
         dataset_config = load_dataset_config(dataset_name)
         df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
         df_of = add_optical_flow_features(df_steady_state, datasets=[dataset_name])
-        date = dataset_config.date
 
         for flow_condition in dataset_config.flow_conditions:
             df_flow = filter_dataframe_to_flow_condition_by_timepoint(
                 df_of, dataset_config, flow_condition
             )
-            plot_label = f"{date} ({round(flow_condition.shear_stress)} dyn/cm{Unicode.SQUARED})"
+            plot_label = get_shear_stress_label_for_dataset(dataset_config, flow_condition)
 
             # Summary stats per optical flow feature
             for feature_key in optical_flow_features:

@@ -357,7 +357,9 @@ def main(
                     )
                 )
 
-            n_iterations_with_fpts = sum(r.shape[0] > 0 for r in bootstrap_fixed_points)
+            # num iterations with fixed points = number of dataframes in
+            # `bootstrap_fixed_points` with at least one row
+            n_iterations_with_fpts = sum(len(result_df) > 0 for result_df in bootstrap_fixed_points)
             logger.info(
                 "Bootstrap complete for dataset [ %s ]: %d / %d iterations yielded fixed points.",
                 dataset_name,

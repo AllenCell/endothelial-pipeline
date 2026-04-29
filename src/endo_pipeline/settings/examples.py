@@ -29,6 +29,16 @@ class ExampleImage(NamedTuple):
     crop_y_start: int  # res level 1
 
 
+class ExampleFPT(NamedTuple):
+    """Structure for information about an example used in the first passage time analysis."""
+
+    dataset_name: str
+    description: str
+    fixed_point_index: int
+    tracked_crop_index: int | None
+    grid_crop_index: int | None
+
+
 FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES: list[ExampleImage] = [
     ExampleImage(
         dataset_name="20250402_20X",
@@ -126,6 +136,23 @@ FIGURE_4_EXAMPLE_IMAGES: list[ExampleImage] = [
         crop_y_start=0,  # res level 0
     ),
 ]
+
+FPT_FIG_EXAMPLES = {
+    "low_flow": ExampleFPT(
+        dataset_name="20250409_20X",
+        description="low_flow",
+        fixed_point_index=0,
+        tracked_crop_index=36428,
+        grid_crop_index=209,
+    ),
+    "high_flow": ExampleFPT(
+        dataset_name="20250611_20X",
+        description="high_flow",
+        fixed_point_index=3,
+        tracked_crop_index=None,
+        grid_crop_index=None,
+    ),
+}
 
 CDH5_SEG_FIG_EXAMPLE: ExampleImage = ExampleImage(
     dataset_name="20250818_20X",
@@ -441,6 +468,25 @@ EXAMPLES_DIFFAE_TRAINING_VALIDATION: list[ExampleImage] = [
     ),
 ]
 
+SUPP_FIG_OPTICAL_FLOW_COHERENT_EXAMPLE: ExampleImage = ExampleImage(
+    dataset_name="20250409_20X",
+    description="coherent (high migration coherence) example crop; "
+    "crop_x_start/crop_y_start are the 1-indexed (col, row) within the crop grid",
+    position=2,
+    timepoint=150,
+    crop_x_start=4,
+    crop_y_start=5,
+)
+
+SUPP_FIG_OPTICAL_FLOW_INCOHERENT_EXAMPLE: ExampleImage = ExampleImage(
+    dataset_name="20251001_20X",
+    description="incoherent (low migration coherence) example crop; "
+    "crop_x_start/crop_y_start are the 1-indexed (col, row) within the crop grid",
+    position=1,
+    timepoint=198,
+    crop_x_start=5,
+    crop_y_start=2,
+)
 FLOW_FIELD_CONSTRUCTION_EXAMPLE_IMAGES: list[ExampleImage] = [
     ExampleImage(
         dataset_name="20250409_20X",

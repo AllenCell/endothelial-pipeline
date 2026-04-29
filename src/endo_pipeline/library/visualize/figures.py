@@ -85,4 +85,4 @@ def build_figure_from_panels(
         add_panel_letter(group, panel.letter)
 
     ET.indent(figure, space="    ", level=0)
-    output_path.write_text(ET.tostring(figure, encoding="unicode"))
+    output_path.write_text(ET.tostring(figure, encoding="unicode"), encoding="utf-8")
