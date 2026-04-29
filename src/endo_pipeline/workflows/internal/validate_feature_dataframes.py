@@ -56,7 +56,6 @@ def main(manifest_name: str) -> None:
 
     for dataset_name in manifest.locations.keys():
         dataset_config = load_dataset_config(dataset_name)
-        print(dataset_config.duration)
 
         # load dataframe and check that it has the expected timepoints and positions
         # based on the dataset config
