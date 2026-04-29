@@ -9,9 +9,85 @@ import matplotlib.text
 import numpy as np
 
 from endo_pipeline.io.output import save_plot_to_path
-from endo_pipeline.settings.figures import FIGURE_SAVE_DPI, FONTSIZE_LARGE
+from endo_pipeline.settings.figures import FIGURE_SAVE_DPI, FONTSIZE_LARGE, FONTSIZE_SMALL
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
+
+
+def set_axes_properties(
+    axes: plt.Axes,
+    xlim: tuple[float, float] | None = None,
+    ylim: tuple[float, float] | None = None,
+    xticks: list[float] | None = None,
+    yticks: list[float] | None = None,
+    xtick_kwargs: dict | None = None,
+    ytick_kwargs: dict | None = None,
+    xlabel: str | None = None,
+    ylabel: str | None = None,
+    xlabel_kwargs: dict | None = None,
+    ylabel_kwargs: dict | None = None,
+    title: str | None = None,
+    title_kwargs: dict | None = None,
+    aspect: Literal["auto", "equal"] | float | None = None,
+    facecolor: str | None = None,
+) -> None:
+    """
+    Set properties of the given axis, including limits, ticks, labels, and
+    title.
+
+    Parameters
+    ----------
+    axes
+        The axis to set properties for.
+    xlim
+        Optional, tuple specifying the limits for the x-axis (min, max).
+    ylim
+        Optional, tuple specifying the limits for the y-axis (min, max).
+    xticks
+        Optional, list of tick positions for the x-axis.
+    yticks
+        Optional, list of tick positions for the y-axis.
+    xtick_kwargs
+        Optional, dictionary of keyword arguments to pass to set_xticks.
+    ytick_kwargs
+        Optional, dictionary of keyword arguments to pass to set_yticks.
+    xlabel
+        Optional, label for the x-axis.
+    ylabel
+        Optional, label for the y-axis.
+    xlabel_kwargs
+        Optional, dictionary of keyword arguments to pass to set_xlabel.
+    ylabel_kwargs
+        Optional, dictionary of keyword arguments to pass to set_ylabel.
+    title
+        Optional, title for the axis.
+    title_kwargs
+        Optional, dictionary of keyword arguments to pass to set_title.
+    aspect
+        Optional, aspect ratio for the axis.
+    facecolor
+        Optional, background color for the axis.
+
+    """
+    if xlim is not None:
+        axes.set_xlim(xlim)
+    if ylim is not None:
+        axes.set_ylim(ylim)
+    if xticks is not None:
+        axes.set_xticks(xticks, **(xtick_kwargs or {}))
+    if yticks is not None:
+        axes.set_yticks(yticks, **(ytick_kwargs or {}))
+    if xlabel is not None:
+        axes.set_xlabel(xlabel, **(xlabel_kwargs or {}))
+    if ylabel is not None:
+        axes.set_ylabel(ylabel, **(ylabel_kwargs or {}))
+    if title is not None:
+        axes.set_title(title, **(title_kwargs or {}))
+    if aspect is not None:
+        axes.set_aspect(aspect)
+    if facecolor is not None:
+        axes.set_facecolor(facecolor)
 
 
 def add_scalebar(
@@ -22,28 +98,37 @@ def add_scalebar(
     bar_thickness: float = 10,
     padding: float = 20,
     color: str = "white",
+    include_label: bool = False,
+    label_xy: tuple[float, float] = (0.96, 0.08),
+    label_fontsize: int = FONTSIZE_SMALL,
 ) -> None:
     """
     Add a scale bar to an image displayed with imshow (no text label).
 
     Parameters
     ----------
-    ax : matplotlib.axes.Axes
+    ax
         The axis to add the scale bar to.
-    scale_bar_um : float
+    scale_bar_um
         Length of the scale bar in micrometers.
-    pixel_size : float
+    pixel_size
         Size of a pixel in micrometers.
-    location : str, optional
+    location
         One of 'upper left', 'upper right', 'lower left', 'lower right'.
-    bar_thickness : float, optional
+    bar_thickness
         Thickness of the scale bar in pixels.
-    padding : float, optional
+    padding
         Padding from the edge of the image in pixels.
-    color : str, optional
+    color
         Color of the scale bar.
-    """
+    include_label
+        If True, adds a text label above the scale bar indicating the length in micrometers.
+    label_xy
+        Position (x, y) of the label in axis coordinates (0 to 1). Only used if include_label is True.
+    label_fontsize
+        Font size for the label text. Only used if include_label is True.
 
+    """
     scale_bar_px = scale_bar_um / pixel_size
     length_px = scale_bar_px
 
@@ -76,6 +161,18 @@ def add_scalebar(
         facecolor=color,
     )
     ax.add_patch(rect)
+
+    if include_label:
+        ax.text(
+            label_xy[0],
+            label_xy[1],
+            f"{scale_bar_um} {Unicode.MU}m",
+            color=color,
+            fontsize=label_fontsize,
+            ha="right",
+            va="bottom",
+            transform=ax.transAxes,
+        )
 
 
 def plot_image_thumbnail(

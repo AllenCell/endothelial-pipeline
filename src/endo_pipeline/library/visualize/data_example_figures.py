@@ -101,7 +101,7 @@ def create_panel_biological_system_examples(
         fig_kwargs={"figsize": figure_size, "layout": "constrained"},
     )
 
-    for ax in fig.axes:
+    for i, ax in enumerate(fig.axes):
         ax.xaxis.labelpad = 3
         ax.yaxis.labelpad = 3
 
@@ -112,18 +112,8 @@ def create_panel_biological_system_examples(
             location="lower right",
             bar_thickness=25,
             padding=25,
+            include_label=True if i == 0 else False,
         )
-
-    fig.axes[0].text(
-        0.96,
-        0.08,
-        f"{scale_bar_um} {Unicode.MU}m",
-        color="white",
-        transform=fig.axes[0].transAxes,
-        fontsize=FONTSIZE_SMALL,
-        va="bottom",
-        ha="right",
-    )
 
     save_plot_to_path(
         fig,
@@ -236,16 +226,7 @@ def create_panel_patch_featurization(
         location="lower right",
         bar_thickness=5,
         padding=10,
-    )
-    ax_bf.text(
-        0.96,
-        0.08,
-        f"{scale_bar_um} {Unicode.MU}m",
-        color="white",
-        transform=ax_bf.transAxes,
-        fontsize=FONTSIZE_SMALL,
-        va="bottom",
-        ha="right",
+        include_label=True,
     )
 
     # Column 1: BF annotations (two arrows + text)
@@ -385,7 +366,7 @@ def create_panel_intermediate_examples(
         fig_kwargs={"figsize": figure_size, "layout": "constrained"},
     )
 
-    for ax in fig.axes:
+    for i, ax in enumerate(fig.axes):
         ax.xaxis.labelpad = 3
         ax.yaxis.labelpad = 3
 
@@ -396,18 +377,8 @@ def create_panel_intermediate_examples(
             location="lower right",
             bar_thickness=25,
             padding=25,
+            include_label=True if i == 0 else False,
         )
-
-    fig.axes[0].text(
-        0.96,
-        0.08,
-        f"{scale_bar_um} {Unicode.MU}m",
-        color="white",
-        transform=fig.axes[0].transAxes,
-        fontsize=FONTSIZE_SMALL,
-        va="bottom",
-        ha="right",
-    )
 
     save_plot_to_path(
         fig,
@@ -482,7 +453,7 @@ def create_panel_perturbation_examples(
         fig_kwargs={"figsize": figure_size, "layout": "constrained"},
     )
 
-    for ax in fig.axes:
+    for i, ax in enumerate(fig.axes):
         ax.xaxis.labelpad = 3
         ax.yaxis.labelpad = 3
 
@@ -493,18 +464,8 @@ def create_panel_perturbation_examples(
             location="lower right",
             bar_thickness=25,
             padding=25,
+            include_label=True if i == 0 else False,
         )
-
-    fig.axes[0].text(
-        0.96,
-        0.08,
-        f"{scale_bar_um} {Unicode.MU}m",
-        color="white",
-        transform=fig.axes[0].transAxes,
-        fontsize=FONTSIZE_SMALL,
-        va="bottom",
-        ha="right",
-    )
 
     save_plot_to_path(
         fig,
