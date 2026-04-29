@@ -3,12 +3,15 @@ import matplotlib.pyplot as plt
 
 from endo_pipeline.io import get_output_path
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
+from endo_pipeline.settings.examples import FPT_FIG_EXAMPLES
 from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 
 plt.style.use("endo_pipeline.figure")
 
 save_dir = get_output_path("supp_fig_fpt")
-"FPT_correlation_summary_for_figure.svg"
+
+low_flow_dataset = FPT_FIG_EXAMPLES["low_flow"]
+high_flow_dataset = FPT_FIG_EXAMPLES["high_flow"]
 
 fig_width = 6.1
 fig_height = 5.5
@@ -17,7 +20,8 @@ fig_height = 5.5
 panels = [
     FigurePanel(
         letter="A",
-        path=save_dir / "FPT_mean_vs_threshold_fp_0_stable.svg",
+        path=save_dir
+        / f"{low_flow_dataset.dataset_name}_FPT_mean_vs_threshold_fp_{low_flow_dataset.fixed_point_index}_stable.svg",
         x_position=0,
         y_position=0,
         x_offset=0,
@@ -25,7 +29,8 @@ panels = [
     ),
     FigurePanel(
         letter="B",
-        path=save_dir / "FPT_percent_trajectories_vs_threshold_fp_0_stable.svg",
+        path=save_dir
+        / f"{low_flow_dataset.dataset_name}_FPT_percent_trajectories_vs_threshold_fp_{low_flow_dataset.fixed_point_index}_stable.svg",
         x_position=3,
         y_position=0,
         x_offset=0.1,
@@ -33,7 +38,7 @@ panels = [
     ),
     FigurePanel(
         letter="C",
-        path=save_dir / "FPT_correlation_summary_for_figure.svg",
+        path=save_dir / "FPT_correlation_summary_mean.svg",
         x_position=0,
         y_position=3,
         x_offset=0.1,
@@ -47,3 +52,5 @@ build_figure_from_panels(
     width=min(fig_width, MAX_FIGURE_WIDTH),
     height=min(fig_height, MAX_FIGURE_HEIGHT),
 )
+
+# %%

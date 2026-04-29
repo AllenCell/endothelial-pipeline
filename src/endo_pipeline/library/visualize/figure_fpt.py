@@ -45,9 +45,6 @@ def generate_first_passage_time_example(
     if out_dir is None:
         out_dir = get_output_path(__file__)
 
-    out_subdir = out_dir / dataset_name
-    out_subdir.mkdir(parents=True, exist_ok=True)
-
     # load the dynamics features from the grid-based and track-based dataframes
     traj_df_grid = load_filtered_trajectory_df_for_first_passage_time_workflow(
         dataset_name,
@@ -457,4 +454,4 @@ def generate_first_passage_time_example(
     ax.set_position([(1 - ax_width) / 2, (1 - ax_height) / 2, ax_width, ax_height])
 
     filename = f"{dataset_name}_FPT_fp_{example_fixed_point_index}_mean_3d_scatter"
-    save_plot_to_path(fig, out_subdir, filename, file_format=".svg")
+    save_plot_to_path(fig, out_dir, filename, file_format=".svg")

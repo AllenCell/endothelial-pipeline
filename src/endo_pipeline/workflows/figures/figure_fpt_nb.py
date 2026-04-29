@@ -29,30 +29,29 @@ panels = [
     FigurePanel(
         letter="A",
         path=save_dir
-        / low_flow_dataset.dataset_name
-        / f"{low_flow_dataset.dataset_name}_FPT_fp_{low_flow_dataset.fixed_point_index}_stable_mean_3d_scatter.svg",
+        / f"{low_flow_dataset.dataset_name}_FPT_fp_{low_flow_dataset.fixed_point_index}_mean_3d_scatter.svg",
         x_position=0,
         y_position=0,
         x_offset=0,
-        y_offset=-0.2,
+        y_offset=0.1,
     ),
     FigurePanel(
         letter="B",
         path=save_dir
-        / f"{low_flow_dataset.dataset_name}_FPT_fp_{low_flow_dataset.fixed_point_index}_stable_mean_correlation_for_figure.svg",
+        / f"{low_flow_dataset.dataset_name}_FPT_fp_{low_flow_dataset.fixed_point_index}_stable_mean_correlation.svg",
         x_position=0,
-        y_position=2,
+        y_position=2.2,
         x_offset=0,
-        y_offset=0.1,
+        y_offset=0,
     ),
     FigurePanel(
         letter="C",
         path=save_dir
-        / f"{high_flow_dataset.dataset_name}_FPT_fp_{high_flow_dataset.fixed_point_index}_stable_mean_correlation_for_figure.svg",
+        / f"{high_flow_dataset.dataset_name}_FPT_fp_{high_flow_dataset.fixed_point_index}_stable_mean_correlation.svg",
         x_position=0,
-        y_position=4,
+        y_position=4.1,
         x_offset=0,
-        y_offset=0.1,
+        y_offset=0,
     ),
     FigurePanel(
         letter="D",

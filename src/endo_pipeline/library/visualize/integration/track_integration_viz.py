@@ -1464,7 +1464,7 @@ def plot_first_passage_time_correlation_summary(
     save_plot_to_path(
         fig,
         out_dir,
-        f"{filename}_histogram",
+        filename,
         file_format=".svg",
         show_and_close=False,
     )
@@ -1485,7 +1485,7 @@ def plot_first_passage_time_correlation_summary(
     save_plot_to_path(
         fig,
         out_dir,
-        filename,
+        f"{filename}_histogram",
         file_format=".svg",
         show_and_close=False,
     )

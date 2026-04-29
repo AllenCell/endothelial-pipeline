@@ -14,7 +14,7 @@ def main(
     bin_size_radius: float | None = None,
     bin_size_rho: float | None = None,
     collapse_feature: Literal["theta", "radius", "rho"] | None = None,
-    n_proc: int = 4,
+    n_proc: int = 6,
 ) -> None:
 
     import logging
@@ -121,14 +121,14 @@ def main(
         )
         # plot the correlation and parameter sweep results for each fixed point
         # (and add the figure examples to their own folder)
-        for nm, grp_df in fpt_stats_df_no_nan.groupby(
+        for (dataset_name, fp_idx, fp_stability), grp_df in fpt_stats_df_no_nan.groupby(
             [
                 Column.DATASET,
                 Column.VectorField.FIXED_POINT_INDEX,
                 Column.VectorField.STABILITY,
             ]
         ):
-            dataset_name, fp_idx, fp_stability = nm
+            fp_idx = round(fp_idx)
             out_dir_dataset = out_dir / dataset_name
             out_dir_dataset.mkdir(parents=True, exist_ok=True)
 
@@ -198,14 +198,14 @@ def main(
                     metric_to_plot=metric_to_plot,
                 )
         # plot the parameter sweep results (and add the figure examples to their own folder)
-        for nm, grp_df in parameter_sweep_df.groupby(
+        for (dataset_name, fp_idx, fp_stability), grp_df in parameter_sweep_df.groupby(
             [
                 Column.DATASET,
                 Column.VectorField.FIXED_POINT_INDEX,
                 Column.VectorField.STABILITY,
             ]
         ):
-            dataset_name, fp_idx, fp_stability = nm
+            fp_idx = round(fp_idx)
             out_dir_dataset = out_dir / dataset_name
             out_dir_dataset.mkdir(parents=True, exist_ok=True)
 
