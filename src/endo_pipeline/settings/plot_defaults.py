@@ -1,6 +1,11 @@
 """Default settings for plotting functions."""
 
+from collections import namedtuple
+
+from matplotlib.lines import Line2D
+
 from endo_pipeline.configs import ShearStressRegime
+from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 
 CROP_HIST_BIN_WIDTH: float = 0.15
 """Bin width used in crop montage sampling."""
@@ -16,6 +21,42 @@ SHEAR_COLOR_DICT = {
     (ShearStressRegime.MAX, ShearStressRegime.MIN): "tab:olive",
 }
 """Color dictionary for shear stress levels to color code histogram plots."""
+
+MarkerStyle = namedtuple("MarkerStyle", ["marker", "color"])
+"""Named tuple for defining marker style in plots."""
+
+FIXED_POINT_PLOT_STYLE: dict[str, MarkerStyle] = {
+    StabilityLabel.STABLE: MarkerStyle(marker="o", color="blue"),
+    StabilityLabel.SADDLE: MarkerStyle(marker="^", color="grey"),
+    StabilityLabel.UNSTABLE: MarkerStyle(marker="s", color="red"),
+    StabilityLabel.INDETERMINATE: MarkerStyle(marker="P", color="khaki"),
+}
+"""Dictionary mapping fixed point stability classification labels to plotting styles for visualizations."""
+
+
+class StabilityLegendHandle(Line2D):
+    """Custom legend handle for fixed point stability classifications in dynamics analysis visualizations."""
+
+    def __init__(
+        self,
+        stability_label: StabilityLabel,
+        legend_label: str | None = None,
+        marker: str | None = None,
+        face_color: str | None = None,
+        marker_size: int = 10,
+        edge_color: str = "black",
+    ):
+        super().__init__(
+            [],
+            [],
+            label=legend_label or stability_label.value,
+            marker=marker or FIXED_POINT_PLOT_STYLE[stability_label].marker,
+            color=face_color or FIXED_POINT_PLOT_STYLE[stability_label].color,
+            markersize=marker_size,
+            markeredgecolor=edge_color,
+            linestyle="",
+        )
+
 
 MODEL_QC_SUBPLOT_KWARGS: dict = {"frame_on": False}
 """Default keyword arguments for subplots in model QC plots."""

@@ -80,11 +80,9 @@ def main(
     from endo_pipeline.settings.flow_field_3d import FIGSIZE_2D_FLOW_FIELD, NROWS_2D_FLOW_FIELD
     from endo_pipeline.settings.flow_field_dataframes import (
         DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
-        STABILITY_COLOR_DICT,
-        STABILITY_MARKER_DICT,
         StabilityLabel,
-        StabilityLegendHandle,
     )
+    from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, StabilityLegendHandle
     from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -198,12 +196,8 @@ def main(
             ]:
                 for _, row in high_confidence_df_flow.iterrows():
                     stability = row[Column.VectorField.STABILITY]
-                    detection_rate = row[Column.BootstrapAnalysis.DETECTION_RATE]
-                    print(
-                        f"Processing fixed point with stability {stability} and detection rate {detection_rate:.2f}"
-                    )
-                    color = STABILITY_COLOR_DICT.get(stability, "gray")
-                    marker = STABILITY_MARKER_DICT.get(stability, "o")
+                    color = FIXED_POINT_PLOT_STYLE[stability].color
+                    marker = FIXED_POINT_PLOT_STYLE[stability].marker
 
                     x = row[f"{column_x}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"]
                     y = row[f"{column_y}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"]

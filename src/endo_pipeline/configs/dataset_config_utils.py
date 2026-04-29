@@ -7,6 +7,7 @@ from pathlib import Path
 from endo_pipeline.configs import (
     DatasetCollectionConfig,
     DatasetConfig,
+    FlowCondition,
     MicroscopeType,
     ObjectiveType,
     PositionAnnotation,
@@ -16,6 +17,7 @@ from endo_pipeline.configs import (
     load_all_dataset_configs,
     load_dataset_collection_config,
 )
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +31,59 @@ def get_regime_for_shear_stress(shear_stress: float) -> ShearStressRegime:
 
     logger.error("No shear stress regime found for shear stress [ %f ]", shear_stress)
     raise ValueError(f"No shear stress regime found for shear stress [ {shear_stress} ]")
+
+
+def get_shear_stress_label_for_dataset(
+    dataset_config: DatasetConfig, flow_condition: FlowCondition | None = None
+) -> str:
+    """
+    Get shear stress label for given dataset config.
+
+    Label will be in format [ dataset date ] ([ shear stress value(s) ] dyn/cm^2).
+
+    **Flow switch datasets**:
+
+    If the dataset has two flow conditions, then by default, the label will
+    include both shear stress values (e.g. "0-12"). If *flow_condition* is
+    provided, then only the shear stress value for that flow condition will be
+    included in the label (e.g. "0" or "12").
+
+    **Non-flow switch datasets**:
+
+    If the dataset has only one flow condition, then the label will include that
+    shear stress value regardless of whether *flow_condition* is provided or not
+    (e.g. "12").
+    """
+
+    if flow_condition is not None and flow_condition not in dataset_config.flow_conditions:
+        logger.error(
+            "Provided flow condition [ %s ] is not in dataset [ %s ] flow conditions",
+            flow_condition,
+            dataset_config.name,
+        )
+        raise ValueError(
+            f"Provided flow condition [ {flow_condition} ] is not "
+            f"in dataset [ {dataset_config.name} ] flow conditions"
+        )
+
+    if len(dataset_config.flow_conditions) == 1:
+        shear_stress_str = f"{dataset_config.flow_conditions[0].shear_stress}"
+    elif len(dataset_config.flow_conditions) == 2:
+        if flow_condition is None:
+            shear_stresses = [
+                condition.shear_stress for condition in dataset_config.flow_conditions
+            ]
+            shear_stress_str = "-".join(str(s) for s in shear_stresses)
+        else:
+            shear_stress_str = f"{flow_condition.shear_stress}"
+    else:
+        raise ValueError(
+            f"Dataset [ {dataset_config.name} ] must have only one or "
+            "two shear stress regimes to get shear stress label"
+        )
+
+    shear_stress_label = f"{dataset_config.date} ({shear_stress_str} dyn/cm{Unicode.SQUARED})"
+    return shear_stress_label
 
 
 def get_position_string_from_zarr_file_path(zarr_file_path: str | Path) -> str:
@@ -202,6 +257,45 @@ def get_annotated_timepoints_for_position(
                     annotated_timepoints.extend(list(range(timepoint[0], timepoint[1] + 1)))
 
     return sorted(set(annotated_timepoints))
+
+
+def get_start_of_steady_state_for_position(dataset: DatasetConfig, position: int) -> int | None:
+    """Get the timepoint at which the steady state starts for the given position."""
+
+    if (
+        dataset.timepoint_annotations is None
+        or TimepointAnnotation.NOT_STEADY_STATE not in dataset.timepoint_annotations
+    ):
+        logger.warning("Dataset [ %s ] does not have any timepoint annotations", dataset.name)
+        return None
+
+    not_steady_state_timepoints = get_annotated_timepoints_for_position(
+        dataset, position, annotations=[TimepointAnnotation.NOT_STEADY_STATE]
+    )
+
+    if len(not_steady_state_timepoints) == 0:
+        logger.warning(
+            "Dataset [ %s ] does not have any [ %s ] annotations for position [ %d ]",
+            dataset.name,
+            TimepointAnnotation.NOT_STEADY_STATE.value,
+            position,
+        )
+        return None
+    else:
+        # steady state starts at the timepoint immediately after the last
+        # annotated "not steady state" timepoint
+        start_of_steady_state = max(not_steady_state_timepoints) + 1
+        if start_of_steady_state >= dataset.duration:
+            logger.warning(
+                "Start of steady state [ %d ] is greater than or equal to "
+                "dataset duration [ %d ] for dataset [ %s ] position [ %d ].",
+                start_of_steady_state,
+                dataset.duration,
+                dataset.name,
+                position,
+            )
+            return None
+        return start_of_steady_state
 
 
 def get_unannotated_timepoints_for_position(

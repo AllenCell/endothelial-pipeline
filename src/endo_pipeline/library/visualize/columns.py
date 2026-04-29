@@ -2,14 +2,17 @@
 
 import logging
 
-from endo_pipeline.settings.column_metadata import COLUMN_METADATA, ColumnMetadata
+from endo_pipeline.settings import column_metadata
 from endo_pipeline.settings.column_names import ColumnNameType
 
 logger = logging.getLogger(__name__)
 
 
 def get_label_for_column(
-    column_name: str, column_metadata: dict[ColumnNameType, ColumnMetadata] = COLUMN_METADATA
+    column_name: str,
+    column_metadata: dict[
+        ColumnNameType, column_metadata.ColumnMetadata
+    ] = column_metadata.COLUMN_METADATA,
 ) -> str:
     """
     Convert column name into label using column metadata.
@@ -18,7 +21,7 @@ def get_label_for_column(
     ----------
     column_name
         Column name to convert.
-    feature_metadata
+    column_metadata
         Mapping of column names to column metadata.
 
     Returns
