@@ -132,7 +132,8 @@ def main(
         sample_trajectories_and_displacements_for_bootstrapping,
     )
     from endo_pipeline.library.analyze.dataframe_filtering import (
-        filter_dataframe_by_flow_condition,
+        filter_dataframe_by_shear_stress,
+        filter_dataframe_to_flow_condition_by_timepoint,
         filter_dataframe_to_steady_state,
     )
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
@@ -277,16 +278,16 @@ def main(
         bootstrap_dataframe_list = []
         for flow_condition in dataset_config.flow_conditions:
             shear_stress = flow_condition.shear_stress
-            df_flow = filter_dataframe_by_flow_condition(
+            df_flow = filter_dataframe_to_flow_condition_by_timepoint(
                 df_steady_state, dataset_config, flow_condition
             )
             metadata_dict = {
                 Column.DATASET: dataset_name,
                 Column.SHEAR_STRESS: shear_stress,
             }
-            fixed_points_for_flow_condition = baseline_fp_df[
-                baseline_fp_df[Column.SHEAR_STRESS] == shear_stress
-            ]
+            fixed_points_for_flow_condition = filter_dataframe_by_shear_stress(
+                baseline_fp_df, shear_stress
+            )
 
             # Determine bins from the full steady-state data (shared across all
             # bootstrap iterations so the fixed-point search uses a consistent grid)

@@ -60,8 +60,9 @@ def main(
         slugify,
     )
     from endo_pipeline.library.analyze.dataframe_filtering import (
-        filter_dataframe_by_flow_condition,
+        filter_dataframe_by_shear_stress,
         filter_dataframe_by_stability,
+        filter_dataframe_to_flow_condition_by_timepoint,
         filter_dataframe_to_steady_state,
     )
     from endo_pipeline.library.analyze.dataframe_validation import (
@@ -267,12 +268,12 @@ def main(
             dataset_name_flow = slugify(f"{dataset_name}_shear_{shear_stress}")
             fig_title = get_shear_stress_label_for_dataset(dataset_config, flow_condition)
 
-            feature_data_for_flow_condition = filter_dataframe_by_flow_condition(
+            feature_data_for_flow_condition = filter_dataframe_to_flow_condition_by_timepoint(
                 feature_data, dataset_config, flow_condition
             )
-            vector_field_for_flow_condition = vector_field_dataframe[
-                vector_field_dataframe[Column.SHEAR_STRESS] == shear_stress
-            ]
+            vector_field_for_flow_condition = filter_dataframe_by_shear_stress(
+                vector_field_dataframe, shear_stress
+            )
 
             drift, centers = get_reshaped_vector_field_and_grid(
                 vector_field_for_flow_condition,
@@ -282,9 +283,9 @@ def main(
 
             stable_fixed_points = pd.DataFrame()
             if dataset_has_fixed_points:
-                fixed_points_for_flow_condition = fixed_points_dataframe[
-                    fixed_points_dataframe[Column.SHEAR_STRESS] == shear_stress
-                ]
+                fixed_points_for_flow_condition = filter_dataframe_by_shear_stress(
+                    fixed_points_dataframe, shear_stress
+                )
                 stable_fixed_points = filter_dataframe_by_stability(
                     fixed_points_for_flow_condition, stability_label=StabilityLabel.STABLE
                 )
