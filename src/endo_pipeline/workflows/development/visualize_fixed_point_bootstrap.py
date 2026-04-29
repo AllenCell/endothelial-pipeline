@@ -65,7 +65,7 @@ def main(
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path, slugify
+    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
         get_dataset_color,
         get_label_for_column,
@@ -259,7 +259,7 @@ def main(
             save_plot_to_path(
                 fig,
                 fig_savedir,
-                slugify(f"bootstrap_fixed_points_ci_{dataset_name}_shear_{shear_stress}"),
+                f"bootstrap_fixed_points_ci_{dataset_name}_shear_{flow_condition.shear_stress_bin}",
             )
             plt.close(fig)
 
