@@ -1055,6 +1055,7 @@ numpy==1.26.4 \
     #   numba
     #   numcodecs
     #   numdifftools
+    #   odrpack
     #   ome-zarr
     #   opencv-python
     #   opencv-python-headless
@@ -1109,6 +1110,14 @@ nvidia-nccl-cu11==2.14.3 ; platform_machine == 'x86_64' and sys_platform == 'lin
 nvidia-nvtx-cu11==11.7.91 ; platform_machine == 'x86_64' and sys_platform == 'linux' \
     --hash=sha256:b22c64eee426a62fc00952b507d6d29cf62b4c9df7a480fcc417e540e05fd5ac
     # via torch
+odrpack==0.5.0 \
+    --hash=sha256:0898475969cf4119a340879b99f632ffd9fbe1c88fdcbeea62eeb91fba1cda70 \
+    --hash=sha256:3497392a875e3c37039015544538543c8bedc09e24246768b08396a6dd40ee8f \
+    --hash=sha256:7776e4eadaeecbfad3f9b2e2df6baaeade099b4f245ad23111e41b4d63b60d74 \
+    --hash=sha256:81f44a680fb4c7a5c4eca4e5ed4000d9e8f9eaa121f361b3256337e808bfd275 \
+    --hash=sha256:b0312ff5b2f65946fedbe178e32ebdc396a8f14559628e2016c59aba9a354387 \
+    --hash=sha256:d4a593ce7a5f3dc36fdf19485692bc3a30c634d6733f6419c3479fbbf775d1b8
+    # via endo-pipeline
 ome-types==0.6.1 \
     --hash=sha256:128f9bd5f52212cf37dad087ee4a7df939ccbf40a328d986e0bf9ac564abd4e9 \
     --hash=sha256:49e7a79ac90f8e4c33392f285491cb2577d41f2583bb879307c4f5ba9436e721

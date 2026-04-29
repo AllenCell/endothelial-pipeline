@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = "==3.11.*"
 resolution-markers = [
     "sys_platform == 'darwin'",
@@ -1231,6 +1231,7 @@ dependencies = [
     { name = "notebook" },
     { name = "numdifftools" },
     { name = "numpy" },
+    { name = "odrpack" },
     { name = "opencv-python" },
     { name = "pandas" },
     { name = "pathlib" },
@@ -1322,6 +1323,7 @@ requires-dist = [
     { name = "notebook", specifier = "==7.2.1" },
     { name = "numdifftools", specifier = "==0.9.41" },
     { name = "numpy", specifier = ">=1.2.3" },
+    { name = "odrpack", specifier = ">=0.5.0" },
     { name = "opencv-python", specifier = ">=4.11.0" },
     { name = "pandas", specifier = "==2.2.2" },
     { name = "pathlib", specifier = ">=1.0.1" },
@@ -1696,6 +1698,7 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/26/80/a6ee52c59f75a387ec1f0c0075cf7981fb4644e4162afd3401dabeaa83ca/greenlet-3.2.1-cp311-cp311-macosx_11_0_universal2.whl", hash = "sha256:aa30066fd6862e1153eaae9b51b449a6356dcdb505169647f69e6ce315b9468b", size = 268609, upload-time = "2025-04-22T14:26:58.208Z" },
     { url = "https://files.pythonhosted.org/packages/ad/11/bd7a900629a4dd0e691dda88f8c2a7bfa44d0c4cffdb47eb5302f87a30d0/greenlet-3.2.1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:7b0f3a0a67786facf3b907a25db80efe74310f9d63cc30869e49c79ee3fcef7e", size = 628776, upload-time = "2025-04-22T14:53:43.036Z" },
     { url = "https://files.pythonhosted.org/packages/46/f1/686754913fcc2707addadf815c884fd49c9f00a88e6dac277a1e1a8b8086/greenlet-3.2.1-cp311-cp311-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:64a4d0052de53ab3ad83ba86de5ada6aeea8f099b4e6c9ccce70fb29bc02c6a2", size = 640827, upload-time = "2025-04-22T14:54:57.409Z" },
+    { url = "https://files.pythonhosted.org/packages/03/74/bef04fa04125f6bcae2c1117e52f99c5706ac6ee90b7300b49b3bc18fc7d/greenlet-3.2.1-cp311-cp311-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:852ef432919830022f71a040ff7ba3f25ceb9fe8f3ab784befd747856ee58530", size = 636752, upload-time = "2025-04-22T15:04:33.707Z" },
     { url = "https://files.pythonhosted.org/packages/aa/08/e8d493ab65ae1e9823638b8d0bf5d6b44f062221d424c5925f03960ba3d0/greenlet-3.2.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4818116e75a0dd52cdcf40ca4b419e8ce5cb6669630cb4f13a6c384307c9543f", size = 635993, upload-time = "2025-04-22T14:27:04.408Z" },
     { url = "https://files.pythonhosted.org/packages/1f/9d/3a3a979f2b019fb756c9a92cd5e69055aded2862ebd0437de109cf7472a2/greenlet-3.2.1-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:9afa05fe6557bce1642d8131f87ae9462e2a8e8c46f7ed7929360616088a3975", size = 583927, upload-time = "2025-04-22T14:25:55.896Z" },
     { url = "https://files.pythonhosted.org/packages/59/21/a00d27d9abb914c1213926be56b2a2bf47999cf0baf67d9ef5b105b8eb5b/greenlet-3.2.1-cp311-cp311-musllinux_1_1_aarch64.whl", hash = "sha256:5c12f0d17a88664757e81a6e3fc7c2452568cf460a2f8fb44f90536b2614000b", size = 1112891, upload-time = "2025-04-22T14:58:55.808Z" },
@@ -3212,6 +3215,22 @@ dependencies = [
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/23/d5/09493ff0e64fd77523afbbb075108f27a13790479efe86b9ffb4587671b5/nvidia_nvtx_cu11-11.7.91-py3-none-manylinux1_x86_64.whl", hash = "sha256:b22c64eee426a62fc00952b507d6d29cf62b4c9df7a480fcc417e540e05fd5ac", size = 98579, upload-time = "2022-08-03T20:59:22.605Z" },
+]
+
+[[package]]
+name = "odrpack"
+version = "0.5.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/99/4f/4a84fdeaeac67dc5a5d13fd2cb4fb9861bcb1a4045b547c58aa655c4ae93/odrpack-0.5.0.tar.gz", hash = "sha256:0898475969cf4119a340879b99f632ffd9fbe1c88fdcbeea62eeb91fba1cda70", size = 107336, upload-time = "2026-02-07T09:30:23.751Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/44/1a/b53510d820e7d6a671fe33017be061e004e218b60a73059d40941eca7cde/odrpack-0.5.0-cp311-cp311-macosx_14_0_arm64.whl", hash = "sha256:3497392a875e3c37039015544538543c8bedc09e24246768b08396a6dd40ee8f", size = 1916214, upload-time = "2026-02-07T09:29:29.088Z" },
+    { url = "https://files.pythonhosted.org/packages/46/97/c33453ab96b96bbee73db85a91d31535f4cf85d89c4a3a2217506ddf80af/odrpack-0.5.0-cp311-cp311-macosx_15_0_x86_64.whl", hash = "sha256:b0312ff5b2f65946fedbe178e32ebdc396a8f14559628e2016c59aba9a354387", size = 2634865, upload-time = "2026-02-07T09:29:30.534Z" },
+    { url = "https://files.pythonhosted.org/packages/f4/11/aa2f539a7451490a35d98cff6c90af65d66eb8063231f3350ac3ee8b3a1e/odrpack-0.5.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:d4a593ce7a5f3dc36fdf19485692bc3a30c634d6733f6419c3479fbbf775d1b8", size = 12149012, upload-time = "2026-02-07T09:29:32.158Z" },
+    { url = "https://files.pythonhosted.org/packages/34/7a/bb610445cfc576376a73f6568c6a516805e327594e22277bd3867173a79e/odrpack-0.5.0-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:81f44a680fb4c7a5c4eca4e5ed4000d9e8f9eaa121f361b3256337e808bfd275", size = 12997634, upload-time = "2026-02-07T09:29:34.841Z" },
+    { url = "https://files.pythonhosted.org/packages/0c/9c/d761fc9fb69435864f02c567388941934c986f647958071e27d964e41ac9/odrpack-0.5.0-cp311-cp311-win_amd64.whl", hash = "sha256:7776e4eadaeecbfad3f9b2e2df6baaeade099b4f245ad23111e41b4d63b60d74", size = 17514517, upload-time = "2026-02-07T09:29:37.454Z" },
 ]
 
 [[package]]

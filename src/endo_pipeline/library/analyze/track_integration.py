@@ -6,6 +6,7 @@ from typing import Any, Literal
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+from odrpack import odr_fit
 from scipy.stats import linregress
 from seaborn import color_palette
 
@@ -1467,10 +1468,73 @@ def build_fpt_line_fit_results_df(
     # mean so correct that if "median" was chosen
     metric = "50%" if metric_to_fit == "median" else metric_to_fit
     suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
-    metric = f"{metric}{suffix}"
+    # metric = f"{metric}{suffix}"
 
     # do a linear regression to see if the FPTs from the tracked and grid trajectories
     # correlate depending on where they are in binned feature space
+    # import numpy as np
+
+    # x = np.array([0, 1, 2.5, 2.9, 4.1, 5.1, 5.8, 7])
+    # y = np.array([0, 1, 2.2, 3, 4.3, 5.1, 6.4, 7.2])
+    # from matplotlib import pyplot as plt
+
+    # plt.scatter(x, y)
+
+    # linregress_result = linregress(x, y)
+
+    line = lambda x, p0: p0[0] * x + p0[1]
+    # beta0 = [1, 0]
+    # sol = odr_fit(f=line, xdata=x, ydata=y, beta0=beta0, task="OLS")
+    # sol.beta
+    # sol.res_var
+
+    # xerr = np.array([1000, 1000, 0, 0, 0, 0, 0, 0])
+    # yerr = np.array([1000, 1000, 0, 0, 0, 0, 0, 0])
+    # sol_w = odr_fit(f=line, xdata=x, ydata=y, weight_x=xerr, weight_y=yerr, beta0=beta0, task="OLS")
+    # sol_w.beta
+    # sol_w.res_var
+
+    # sol_odr = odr_fit(f=line, xdata=x, ydata=y, beta0=beta0, task="explicit-ODR")
+    # sol_odr.beta
+    # sol_odr.res_var
+
+    def get_odr_fit_results(
+        x: Sequence, y: Sequence, weight_x: Sequence | None = None, weight_y: Sequence | None = None
+    ) -> tuple:
+        slope_initial_guess = 1
+        intercept_initial_guess = 0
+        # p0 is the initial guess for the parameters of the function,
+        # in this case the slope and intercept of the line
+        # odr_fit requires this initial guess to be one object, which is why we
+        # are using p0 instead of passing slope and intercept more explicitly
+        line = lambda x, p0: p0[0] * x + p0[1]
+
+        if weight_x is not None and weight_y is not None:
+            line_fit = odr_fit(
+                f=line,
+                xdata=x,
+                ydata=y,
+                weight_x=weight_x,
+                weight_y=weight_y,
+                beta0=(slope_initial_guess, intercept_initial_guess),
+                task="explicit-ODR",
+            )
+        else:
+            line_fit = odr_fit(
+                f=line,
+                xdata=x,
+                ydata=y,
+                beta0=(slope_initial_guess, intercept_initial_guess),
+                task="OLS",
+            )
+        slope_fit = line_fit.beta[0]
+        intercept_fit = line_fit.beta[1]
+        slope_stdev = line_fit.sd_beta[0]
+        intercept_stdev = line_fit.sd_beta[1]
+        reduced_chi_squared = line_fit.res_var
+
+        return slope_fit, intercept_fit, slope_stdev, intercept_stdev, reduced_chi_squared, line_fit
+
     line_fit_df = (
         fpt_stats_df_no_nan.groupby(
             [
@@ -1489,12 +1553,108 @@ def build_fpt_line_fit_results_df(
                     "std_err",
                 ],
                 data=linregress(
-                    x=df[f"{metric}_grid"],
-                    y=df[f"{metric}_tracked"],
+                    x=df[f"{metric}{suffix}_grid"],
+                    y=df[f"{metric}{suffix}_tracked"],
                 ),
             )
         )
         .reset_index()
     )
 
-    return line_fit_df
+    line_fit_df_2 = (
+        fpt_stats_df_no_nan.groupby(
+            [
+                Column.DATASET,
+                Column.VectorField.FIXED_POINT_INDEX,
+                Column.VectorField.STABILITY,
+            ]
+        )
+        .apply(
+            lambda df, metric=metric, suffix=suffix: pd.Series(
+                index=[
+                    "slope",
+                    "intercept",
+                    "slope_stdev",
+                    "intercept_stdev",
+                    "reduced_chi_squared",
+                    "OdrResult",
+                ],
+                data=get_odr_fit_results(
+                    x=df[f"{metric}{suffix}_grid"],
+                    y=df[f"{metric}{suffix}_tracked"],
+                    weight_x=df[f"std{suffix}_grid"] ** -2,
+                    weight_y=df[f"std{suffix}_tracked"] ** -2,
+                ),
+            )
+        )
+        .reset_index()
+    )
+
+    line_fit_df_merge = line_fit_df.merge(
+        line_fit_df_2,
+        on=[Column.DATASET, Column.VectorField.FIXED_POINT_INDEX, Column.VectorField.STABILITY],
+        validate="one_to_one",
+        suffixes=("_ols", "_odr"),
+    )
+
+    # import seaborn as sns
+
+    fig, ax = plt.subplots()
+    ax.errorbar(
+        x=line_fit_df_merge[Column.DATASET],
+        y=line_fit_df_merge["slope_odr"],
+        yerr=line_fit_df_merge["slope_stdev"],
+        c="tab:blue",
+    )
+    sns.swarmplot(
+        data=line_fit_df_merge, x=Column.DATASET, y="slope_odr", c="tab:blue", label="ODR", ax=ax
+    )
+    sns.swarmplot(
+        data=line_fit_df_merge, x=Column.DATASET, y="slope_ols", c="tab:orange", label="OLS", ax=ax
+    )
+    plt.xticks(rotation=45)
+    ax.legend()
+
+    fig, ax = plt.subplots()
+    ax.errorbar(
+        x=line_fit_df_merge[Column.DATASET],
+        y=line_fit_df_merge["slope_odr"],
+        yerr=line_fit_df_merge["slope_stdev"],
+        c="tab:blue",
+    )
+
+    sns.swarmplot(
+        data=line_fit_df_merge,
+        x=Column.DATASET,
+        y="intercept_odr",
+        c="tab:blue",
+        label="ODR",
+        ax=ax,
+    )
+    sns.swarmplot(
+        data=line_fit_df_merge,
+        x=Column.DATASET,
+        y="intercept_ols",
+        c="tab:orange",
+        label="OLS",
+        ax=ax,
+    )
+    plt.xticks(rotation=45)
+    ax.legend()
+
+    fig, ax = plt.subplots()
+    sns.swarmplot(
+        data=line_fit_df_merge,
+        x=Column.DATASET,
+        y="reduced_chi_squared",
+        c="tab:blue",
+        label="ODR",
+        ax=ax,
+    )
+    sns.swarmplot(
+        data=line_fit_df_merge, x=Column.DATASET, y="r_value", c="tab:orange", label="OLS", ax=ax
+    )
+    plt.xticks(rotation=45)
+    ax.legend()
+
+    return line_fit_df_merge

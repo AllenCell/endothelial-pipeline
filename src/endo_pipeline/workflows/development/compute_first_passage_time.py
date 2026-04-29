@@ -137,9 +137,9 @@ def main(
                 (line_fit_df[Column.DATASET] == dataset_name)
                 & (line_fit_df[Column.VectorField.FIXED_POINT_INDEX] == fp_idx)
             ]
-            slope = line_fit_result["slope"].unique().item()
-            intercept = line_fit_result["intercept"].unique().item()
-            r_value = line_fit_result["r_value"].unique().item()
+            slope = line_fit_result["slope_odr"].unique().item()
+            intercept = line_fit_result["intercept_odr"].unique().item()
+            r_value = line_fit_result["reduced_chi_squared"].unique().item()
 
             # plot the correlation results for this fixed point
             plot_first_passage_time_correlations(
