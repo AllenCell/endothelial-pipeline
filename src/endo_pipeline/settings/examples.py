@@ -29,6 +29,16 @@ class ExampleImage(NamedTuple):
     crop_y_start: int  # res level 1
 
 
+class ExampleFPT(NamedTuple):
+    """Structure for information about an example used in the first passage time analysis."""
+
+    dataset_name: str
+    description: str
+    fixed_point_index: int
+    tracked_crop_index: int | None
+    grid_crop_index: int | None
+
+
 FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES: list[ExampleImage] = [
     ExampleImage(
         dataset_name="20250402_20X",
@@ -126,6 +136,23 @@ FIGURE_4_EXAMPLE_IMAGES: list[ExampleImage] = [
         crop_y_start=0,  # res level 0
     ),
 ]
+
+FPT_FIG_EXAMPLES = {
+    "low_flow": ExampleFPT(
+        dataset_name="20250409_20X",
+        description="low_flow",
+        fixed_point_index=0,
+        tracked_crop_index=36428,
+        grid_crop_index=209,
+    ),
+    "high_flow": ExampleFPT(
+        dataset_name="20250611_20X",
+        description="high_flow",
+        fixed_point_index=3,
+        tracked_crop_index=None,
+        grid_crop_index=None,
+    ),
+}
 
 CDH5_SEG_FIG_EXAMPLE: ExampleImage = ExampleImage(
     dataset_name="20250818_20X",
