@@ -38,7 +38,7 @@ def main(manifest_name: str) -> None:
     # positions for each dataset, so pass in None to get_unannotated_positions.
     # If "filtered" is not in the manifest name, want to get all positions
     # for each dataset, so pass in empty list to get_unannotated_positions.
-    position_annotations = None if is_filtered else []
+    position_annotations: list | None = None if is_filtered else []
 
     # If "filtered" is in the manifest name, want to get all un-annotated
     # timepoints for each position ignoring the NOT_STEADY_STATE annotation, so
@@ -46,9 +46,9 @@ def main(manifest_name: str) -> None:
     # get_unannotated_timepoints_for_position. If "filtered" is not in the
     # manifest name, want to get all timepoints for each position, so pass in
     # empty list to get_unannotated_timepoints_for_position.
-    timepoint_annotations = (
+    timepoint_annotations: list | None = (
         get_subset_of_timepoint_annotations(
-            exclude_annotations=[TimepointAnnotation.NOT_STEADY_STATE]
+            annotations_to_ignore=[TimepointAnnotation.NOT_STEADY_STATE]
         )
         if is_filtered
         else []
