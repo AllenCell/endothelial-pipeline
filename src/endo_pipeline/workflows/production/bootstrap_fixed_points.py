@@ -131,7 +131,10 @@ def main(
         run_one_bootstrap_iteration,
         sample_trajectories_and_displacements_for_bootstrapping,
     )
-    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
+    from endo_pipeline.library.analyze.dataframe_filtering import (
+        filter_dataframe_by_flow_condition,
+        filter_dataframe_to_steady_state,
+    )
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.numerics.binning import get_bins
     from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
@@ -147,6 +150,7 @@ def main(
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_WIDTHS_DYNAMICS,
+        DEFAULT_DATASETS_DYNAMICS_VIS,
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
@@ -154,10 +158,7 @@ def main(
         POLAR_ANGLE_PERIOD,
         RESCALE_THETA,
     )
-    from endo_pipeline.settings.flow_field_3d import (
-        DATASET_COLLECTION_FOR_3D_DYNAMICS,
-        PAD_BINS_FLOAT,
-    )
+    from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
     from endo_pipeline.settings.flow_field_dataframes import (
         DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
@@ -195,14 +196,14 @@ def main(
     # load or initialize dataframe manifest for bootstrap results
     demo_suffix = "_demo" if DEMO_MODE else ""
     bootstrap_results_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}{base_name}{demo_suffix}"
+        f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}{demo_suffix}"
     )
     bootstrap_results_manifest = create_dataframe_manifest(
         bootstrap_results_manifest_name, workflow_name=__file__
     )
     logger.info("Bootstrap fixed point dataframes will be saved to: [ %s ]", dataframe_savedir)
 
-    dataset_names = datasets or get_datasets_in_collection(DATASET_COLLECTION_FOR_3D_DYNAMICS)
+    dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
     if DEMO_MODE:
         logger.warning(
             "DEMO MODE: Processing no more than two datasets and limiting"
@@ -258,14 +259,6 @@ def main(
             continue
 
         dataset_config = load_dataset_config(dataset_name)
-        if len(dataset_config.shear_stress_regime) > 1:
-            logger.warning(
-                "Dataset [ %s ] has more than one shear stress condition: [ %s ]. "
-                "Skipping for bootstrap 3D flow field analysis.",
-                dataset_name,
-                dataset_config.shear_stress_regime,
-            )
-            continue
 
         # Load the baseline fixed point dataframe for this dataset
         baseline_fp_df = load_dataframe(baseline_fixed_point_manifest.locations[dataset_name])
@@ -281,102 +274,122 @@ def main(
         df = df_[columns_to_compute].compute()
         df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
 
-        # Determine bins from the full steady-state data (shared across all
-        # bootstrap iterations so the fixed-point search uses a consistent grid)
-        bins, centers = get_bins(
-            bin_widths,
-            data=df_steady_state[column_names].to_numpy(),
-            pad=PAD_BINS_FLOAT,
-        )
-
-        # Compute trajectories and displacements once from the full steady-state
-        # data; the same lists are reused for the baseline and subsampled for
-        # each bootstrap iteration.
-        trajectories, displacements = get_traj_and_diff(df_steady_state, column_names)
-
-        # Generate all resampled lists of trajectories and displacements for the
-        # bootstrap iterations up front, to avoid overhead from repeatedly
-        # resampling in each worker process. Each element of `all_sampled_pairs`
-        # is a tuple of (resampled_trajectories, resampled_displacements) for
-        # one bootstrap iteration.
-        all_sampled_pairs: list[tuple[list[np.ndarray], list[np.ndarray]]] = [
-            sample_trajectories_and_displacements_for_bootstrapping(
-                trajectories, displacements, rng=rng
+        bootstrap_dataframe_list = []
+        for flow_condition in dataset_config.flow_conditions:
+            shear_stress = flow_condition.shear_stress
+            df_flow = filter_dataframe_by_flow_condition(
+                df_steady_state, dataset_config, flow_condition
             )
-            for _ in range(num_bootstrap_iterations)
-        ]
+            metadata_dict = {
+                Column.DATASET: dataset_name,
+                Column.SHEAR_STRESS: shear_stress,
+            }
+            fixed_points_for_flow_condition = baseline_fp_df[
+                baseline_fp_df[Column.SHEAR_STRESS] == shear_stress
+            ]
 
-        # Determine worker and per-worker BLAS thread counts that together
-        # stay within the CPUs allocated by SLURM (or the OS).
-        try:
-            n_available_cpus = len(os.sched_getaffinity(0))
-        except AttributeError:  # Windows
-            n_available_cpus = os.cpu_count() or 1
-        n_workers = num_workers or n_available_cpus
-        blas_threads_per_worker = max(1, n_available_cpus // n_workers)
-        # Choose a chunksize that avoids both excessive queue overhead (too
-        # small) and uneven load balancing (too large).
-        batch_size = max(1, num_bootstrap_iterations // (n_workers * batch_size_factor))
-        logger.info(
-            "Running %d bootstrap iterations for dataset [ %s ] "
-            "with %d worker process(es), %d BLAS thread(s) per worker, batch size %d.",
-            num_bootstrap_iterations,
-            dataset_name,
-            n_workers,
-            blas_threads_per_worker,
-            batch_size,
-        )
+            # Determine bins from the full steady-state data (shared across all
+            # bootstrap iterations so the fixed-point search uses a consistent grid)
+            bins, centers = get_bins(
+                bin_widths,
+                data=df_flow[column_names].to_numpy(),
+                pad=PAD_BINS_FLOAT,
+            )
 
-        with ProcessPoolExecutor(
-            max_workers=n_workers,
-            initializer=init_bootstrap_worker,
-            initargs=(
-                df_steady_state,
-                bins,
-                centers,
-                column_names,
-                kernels,
-                blas_threads_per_worker,
-            ),
-        ) as executor:
-            bootstrap_fixed_points: list[pd.DataFrame] = list(
-                tqdm(
-                    executor.map(
-                        run_one_bootstrap_iteration, all_sampled_pairs, chunksize=batch_size
-                    ),
-                    total=num_bootstrap_iterations,
-                    desc=f"Bootstrap iterations for dataset: {dataset_name}",
+            # Compute trajectories and displacements once from the full steady-state
+            # data; the same lists are reused for the baseline and subsampled for
+            # each bootstrap iteration.
+            trajectories, displacements = get_traj_and_diff(df_flow, column_names)
+
+            # Generate all resampled lists of trajectories and displacements for the
+            # bootstrap iterations up front, to avoid overhead from repeatedly
+            # resampling in each worker process. Each element of `all_sampled_pairs`
+            # is a tuple of (resampled_trajectories, resampled_displacements) for
+            # one bootstrap iteration.
+            all_sampled_pairs: list[tuple[list[np.ndarray], list[np.ndarray]]] = [
+                sample_trajectories_and_displacements_for_bootstrapping(
+                    trajectories, displacements, rng=rng
                 )
+                for _ in range(num_bootstrap_iterations)
+            ]
+
+            # Determine worker and per-worker BLAS thread counts that together
+            # stay within the CPUs allocated by SLURM (or the OS).
+            try:
+                n_available_cpus = len(os.sched_getaffinity(0))
+            except AttributeError:  # Windows
+                n_available_cpus = os.cpu_count() or 1
+            n_workers = num_workers or n_available_cpus
+            blas_threads_per_worker = max(1, n_available_cpus // n_workers)
+            # Choose a chunksize that avoids both excessive queue overhead (too
+            # small) and uneven load balancing (too large).
+            batch_size = max(1, num_bootstrap_iterations // (n_workers * batch_size_factor))
+            logger.info(
+                "Running %d bootstrap iterations for dataset [ %s ] "
+                "with %d worker process(es), %d BLAS thread(s) per worker, batch size %d.",
+                num_bootstrap_iterations,
+                dataset_name,
+                n_workers,
+                blas_threads_per_worker,
+                batch_size,
             )
 
-        n_iterations_with_fpts = sum(r.shape[0] > 0 for r in bootstrap_fixed_points)
-        logger.info(
-            "Bootstrap complete for dataset [ %s ]: %d / %d iterations yielded fixed points.",
-            dataset_name,
-            n_iterations_with_fpts,
-            num_bootstrap_iterations,
-        )
+            with ProcessPoolExecutor(
+                max_workers=n_workers,
+                initializer=init_bootstrap_worker,
+                initargs=(
+                    df_flow,
+                    bins,
+                    centers,
+                    column_names,
+                    kernels,
+                    blas_threads_per_worker,
+                ),
+            ) as executor:
+                bootstrap_fixed_points: list[pd.DataFrame] = list(
+                    tqdm(
+                        executor.map(
+                            run_one_bootstrap_iteration, all_sampled_pairs, chunksize=batch_size
+                        ),
+                        total=num_bootstrap_iterations,
+                        desc=f"Bootstrap iterations for dataset: {dataset_name}",
+                    )
+                )
 
-        # Aggregate bootstrap results by matching fixed points across iterations
-        # to the baseline fixed points and computing confidence intervals and
-        # detection rates for each baseline fixed point
-        matched_coords = match_bootstrap_fixed_points_to_baseline(
-            baseline_fixed_points=baseline_fp_df,
-            bootstrap_fixed_points=bootstrap_fixed_points,
-            column_names=column_names,
-            polar_angle_period=polar_angle_period,
-            bootstrap_match_radius=bootstrap_match_radius,
-        )
-        bootstrap_results_df = aggregate_bootstrapping_results(
-            baseline_fixed_points=baseline_fp_df,
-            matched_coords=matched_coords,
-            column_names=column_names,
-            n_bootstrap=num_bootstrap_iterations,
-            polar_angle_period=polar_angle_period,
-            bootstrap_ci_lower_percentile=bootstrap_ci_lower_percentile,
-            bootstrap_ci_upper_percentile=bootstrap_ci_upper_percentile,
-        )
+            # num iterations with fixed points = number of dataframes in
+            # `bootstrap_fixed_points` with at least one row
+            n_iterations_with_fpts = sum(len(result_df) > 0 for result_df in bootstrap_fixed_points)
+            logger.info(
+                "Bootstrap complete for dataset [ %s ]: %d / %d iterations yielded fixed points.",
+                dataset_name,
+                n_iterations_with_fpts,
+                num_bootstrap_iterations,
+            )
 
+            # Aggregate bootstrap results by matching fixed points across iterations
+            # to the baseline fixed points and computing confidence intervals and
+            # detection rates for each baseline fixed point
+            matched_coords_flow = match_bootstrap_fixed_points_to_baseline(
+                baseline_fixed_points=fixed_points_for_flow_condition,
+                bootstrap_fixed_points=bootstrap_fixed_points,
+                column_names=column_names,
+                polar_angle_period=polar_angle_period,
+                bootstrap_match_radius=bootstrap_match_radius,
+            )
+            bootstrap_results_df_flow = aggregate_bootstrapping_results(
+                baseline_fixed_points=fixed_points_for_flow_condition,
+                matched_coords=matched_coords_flow,
+                column_names=column_names,
+                n_bootstrap=num_bootstrap_iterations,
+                polar_angle_period=polar_angle_period,
+                bootstrap_ci_lower_percentile=bootstrap_ci_lower_percentile,
+                bootstrap_ci_upper_percentile=bootstrap_ci_upper_percentile,
+                metadata_dict=metadata_dict,
+            )
+            bootstrap_dataframe_list.append(bootstrap_results_df_flow)
+
+        # Concatenate results across flow conditions for this dataset
+        bootstrap_results_df = pd.concat(bootstrap_dataframe_list, ignore_index=True)
         # Save results, upload to FMS (if specified), and update manifest
         output_file_name = (
             f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{dataset_name}{demo_suffix}.parquet"
