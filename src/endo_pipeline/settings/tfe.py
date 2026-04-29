@@ -81,7 +81,6 @@ TFE_FEATURES: list[ColumnNameType] = [
     # Dynamic features =========================================================
     Column.SegData.CENTROID_VELOCITY_ANGLE_DEG,
     Column.SegData.CENTROID_VELOCITY_UM_PER_MIN,
-    Column.SegData.CENTROID_VELOCITY_UM_PER_MIN_SMOOTHED,
     Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG,
     Column.SegData.NUCLEI_POSITION_ANGLE_DEG,
     Column.SegData.VECTOR_MEAN_FOR_CROP_MAGNITUDE,

@@ -261,8 +261,6 @@ def add_dynamic_features_with_filtering(df: pd.DataFrame) -> pd.DataFrame:
     df_calc = calculate_derived_data_dynamics_dependent(
         df_included,
         compute_per_crop_metrics=True,
-        timeframes_to_average_for_velocity=[5],
-        min_periods_for_averaging=3,
     )
     df_result = pd.concat([df_calc, df_excluded], ignore_index=True)
 
