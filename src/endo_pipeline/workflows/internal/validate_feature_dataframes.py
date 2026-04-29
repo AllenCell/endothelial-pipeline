@@ -56,6 +56,7 @@ def main(manifest_name: str) -> None:
 
     for dataset_name in manifest.locations.keys():
         dataset_config = load_dataset_config(dataset_name)
+        print(dataset_config.duration)
 
         # load dataframe and check that it has the expected timepoints and positions
         # based on the dataset config
@@ -73,12 +74,21 @@ def main(manifest_name: str) -> None:
 
         if positions_in_df != expected_positions:
             logger.warning(
-                "Positions in dataframe for dataset [ %s ] do not match expected positions. "
-                "Positions in dataframe: [ %s ]. Expected positions: [ %s ].",
+                "Positions in dataframe for dataset [ %s ] do not match expected positions.",
                 dataset_name,
-                positions_in_df,
-                expected_positions,
             )
+            if set(positions_in_df) - set(expected_positions):
+                logger.warning(
+                    "Positions in dataframe for dataset [ %s ] that are not expected: [ %s ].",
+                    dataset_name,
+                    sorted(set(positions_in_df) - set(expected_positions)),
+                )
+            elif set(expected_positions) - set(positions_in_df):
+                logger.warning(
+                    "Expected positions for dataset [ %s ] that are not in dataframe: [ %s ].",
+                    dataset_name,
+                    sorted(set(expected_positions) - set(positions_in_df)),
+                )
 
         for position, df_pos in df.groupby(Column.POSITION):
             timepoints_in_df_pos = sorted(df_pos[Column.TIMEPOINT].unique())
@@ -90,13 +100,24 @@ def main(manifest_name: str) -> None:
 
             if timepoints_in_df_pos != expected_timepoints:
                 logger.warning(
-                    "Timepoints in dataframe for dataset [ %s ], position [ %s ] do not match expected timepoints. "
-                    "Timepoints in dataframe: [ %s ]. Expected timepoints: [ %s ].",
+                    "Timepoints in dataframe for dataset [ %s ], position [ %s ] do not match expected timepoints.",
                     dataset_name,
                     position,
-                    timepoints_in_df_pos,
-                    expected_timepoints,
                 )
+                if set(timepoints_in_df_pos) - set(expected_timepoints):
+                    logger.warning(
+                        "Timepoints in dataframe for dataset [ %s ], position [ %s ] that are not expected: [ %s ].",
+                        dataset_name,
+                        position,
+                        sorted(set(timepoints_in_df_pos) - set(expected_timepoints)),
+                    )
+                elif set(expected_timepoints) - set(timepoints_in_df_pos):
+                    logger.warning(
+                        "Expected timepoints for dataset [ %s ], position [ %s ] that are not in dataframe: [ %s ].",
+                        dataset_name,
+                        position,
+                        sorted(set(expected_timepoints) - set(timepoints_in_df_pos)),
+                    )
 
 
 if __name__ == "__main__":
