@@ -1273,11 +1273,10 @@ def plot_first_passage_time_parameter_sweep(
 def plot_first_passage_time_correlations(
     dataset_name: str,
     first_passage_time_stats_df: pd.DataFrame,
+    line_fit_df: pd.DataFrame,
+    corr_type: str,
     fixed_point_id: int,
     fixed_point_stability: str,
-    slope: float,
-    intercept: float,
-    r_value: float,
     out_dir: Path,
     metric_to_plot: Literal["mean", "median"],
 ) -> None:
@@ -1286,6 +1285,19 @@ def plot_first_passage_time_correlations(
     metric = "50%" if metric_to_plot == "median" else metric_to_plot
     suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
     metric = f"{metric}{suffix}"
+
+    if corr_type == "ols":
+        slope = line_fit_df[Column.VectorField.LINEFIT_SLOPE_OLS].unique().item()
+        intercept = line_fit_df[Column.VectorField.LINEFIT_INTERCEPT_OLS].unique().item()
+        corr_metric_val = line_fit_df[Column.VectorField.LINEFIT_R_VALUE_OLS].unique().item()
+        corr_metric_label = f"Linear Fit (R={corr_metric_val:.2f})"
+    elif corr_type == "odr":
+        slope = line_fit_df[Column.VectorField.LINEFIT_SLOPE_ODR].unique().item()
+        intercept = line_fit_df[Column.VectorField.LINEFIT_INTERCEPT_ODR].unique().item()
+        corr_metric_val = (
+            line_fit_df[Column.VectorField.LINEFIT_REDUCED_CHI_SQUARED_ODR].unique().item()
+        )
+        corr_metric_label = f"Linear Fit (χ²ᵣ={corr_metric_val:.2f})"
 
     num_bins = (
         first_passage_time_stats_df.groupby(
@@ -1328,7 +1340,7 @@ def plot_first_passage_time_correlations(
         color="tab:green",
         linestyle="--",
         zorder=0,
-        label=f"Linear Fit (R={r_value:.2f})",
+        label=corr_metric_label,
     )
     ax.axline(xy1=(0, 0), slope=1, color="black", linestyle="--", zorder=0, label="Unity")
     ax_min = min((*ax.get_xlim(), *ax.get_ylim()))
@@ -1342,7 +1354,7 @@ def plot_first_passage_time_correlations(
     ax.set_ylabel("Tracked FPT (hrs)".title(), fontsize=FONTSIZE_SMALL, labelpad=1.0)
     ax.legend(loc="upper center")
 
-    filename = f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}_{metric_to_plot}_correlation"
+    filename = f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}_{metric_to_plot}_correlation_{corr_type}"
     save_plot_to_path(
         fig,
         out_dir,
@@ -1421,12 +1433,20 @@ def plot_first_passage_time_histogram(
 
 def plot_first_passage_time_correlation_summary(
     first_passage_time_correlation_summary_df: pd.DataFrame,
+    corr_type: str,
     out_dir: Path,
     filename: str,
 ) -> None:
     """Plot a summary of the correlation results from the first passage time
     analysis across all datasets and fixed points as it will appear in the figure.
     """
+
+    if corr_type == "ols":
+        corr_metric_column = Column.VectorField.LINEFIT_R_VALUE_OLS
+        corr_metric_label = "Correlation Coefficient (R)"
+    elif corr_type == "odr":
+        corr_metric_column = Column.VectorField.LINEFIT_REDUCED_CHI_SQUARED_ODR
+        corr_metric_label = "Reduced Chi-Squared (χ²ᵣ)"
 
     # get the shear stress for the dataset and add that to the labels
     # Snap to ±1 bins; values outside any bin keep their rounded value
@@ -1446,7 +1466,7 @@ def plot_first_passage_time_correlation_summary(
         [Column.DATASET, "shear_stress_rounded"]
     ].values.tolist()
     xs = [f"{load_dataset_config(dataset_name).date} ({flow})" for dataset_name, flow in xs]
-    ys = first_passage_time_correlation_summary_df["r_value"]
+    ys = first_passage_time_correlation_summary_df[corr_metric_column]
 
     fig, ax = plt.subplots(figsize=(6, 2.5))
     sns.stripplot(
@@ -1457,7 +1477,7 @@ def plot_first_passage_time_correlation_summary(
         ax=ax,
     )
     ax.set_ylim(0, 1)
-    ax.set_ylabel("Correlation Coefficient (R)", fontsize=FONTSIZE_SMALL)
+    ax.set_ylabel(corr_metric_label, fontsize=FONTSIZE_SMALL)
     plt.yticks(fontsize=FONTSIZE_SMALL)
     plt.xticks(rotation=45, ha="right", fontsize=FONTSIZE_SMALL)
     ax.set_xlabel("")
@@ -1472,15 +1492,18 @@ def plot_first_passage_time_correlation_summary(
     fig, ax = plt.subplots(figsize=(2, 2))
     sns.histplot(
         data=first_passage_time_correlation_summary_df,
-        x="r_value",
+        x=corr_metric_column,
         binwidth=0.1,
         color="black",
         fill=False,
         ax=ax,
     )
-    ax.set_xticks(np.arange(0, 1.1, 0.2))
-    ax.set_xlim(0, 1)
-    ax.set_xlabel("Correlation Coefficient (R)", fontsize=FONTSIZE_SMALL)
+    if corr_type == "ols":
+        ax.set_xticks(np.arange(0, 1.1, 0.2))
+        ax.set_xlim(0, 1)
+    else:
+        ax.set_xlim(0)
+    ax.set_xlabel(corr_metric_label, fontsize=FONTSIZE_SMALL)
     ax.set_ylabel("Number of Datasets", fontsize=FONTSIZE_SMALL)
     save_plot_to_path(
         fig,

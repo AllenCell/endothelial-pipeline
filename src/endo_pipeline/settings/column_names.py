@@ -473,6 +473,25 @@ class ColumnName:
         PERCENT_TRAJ_APPROACHED_FP = "percent_trajectories_approached_fp"
         """Column name for the percentage of trajectories that approached a fixed point within a certain distance threshold."""
 
+        LINEFIT_SLOPE_OLS = "slope_ols"
+        """Column name for the slope of a line fit to the relationship between first passage time and distance from the fixed point using ordinary least squares (OLS) regression."""
+
+        LINEFIT_INTERCEPT_OLS = "intercept_ols"
+        """Column name for the intercept of a line fit to the relationship between first passage time and distance from the fixed point using ordinary least squares (OLS) regression."""
+
+        LINEFIT_R_VALUE_OLS = "r_value_ols"
+        """Column name for the R value of a line fit to the relationship between first passage time
+        and distance from the fixed point using ordinary least squares (OLS) regression."""
+
+        LINEFIT_SLOPE_ODR = "slope_odr"
+        """Column name for the slope of a line fit to the relationship between first passage time and distance from the fixed point using orthogonal distance regression (ODR)."""
+
+        LINEFIT_INTERCEPT_ODR = "intercept_odr"
+        """Column name for the intercept of a line fit to the relationship between first passage time and distance from the fixed point using orthogonal distance regression (ODR)."""
+
+        LINEFIT_REDUCED_CHI_SQUARED_ODR = "reduced_chi_squared_odr"
+        """Column name for the reduced chi-squared value of a line fit to the relationship between first passage time and distance from the fixed point using orthogonal distance regression (ODR)."""
+
     class BootstrapAnalysis(StrEnum):
         """Column name suffixes used in bootstrap fixed-point analysis."""
 
