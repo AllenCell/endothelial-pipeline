@@ -38,7 +38,6 @@ def main(
     from typing import cast
 
     import pandas as pd
-    from tqdm import tqdm
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
@@ -129,7 +128,7 @@ def main(
         num_datasets = min(len(dataset_names), 2)
         dataset_names = dataset_names[:num_datasets]
 
-    for dataset_name in tqdm(dataset_names):
+    for dataset_name in dataset_names:
         if dataset_name not in feature_dataframe_manifest.locations:
             logger.warning(
                 "Dataset [ %s ] not found in the manifest, skipping for this workflow.",
