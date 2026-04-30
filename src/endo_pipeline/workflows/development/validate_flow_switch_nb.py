@@ -18,8 +18,6 @@ from endo_pipeline.settings.workflow_defaults import (
 
 logger = logging.getLogger(__name__)
 
-fig_savedir = get_output_path("flow_switch")
-
 model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
 run_name = DEFAULT_MODEL_RUN_NAME
 
@@ -57,6 +55,8 @@ if n_bootstrap is None:
 flow_switch_low_datasets = SUMMARY_PLOT_DATASETS["flow_switch_low"]
 flow_switch_high_datasets = SUMMARY_PLOT_DATASETS["flow_switch_high"]
 # %%
+fig_savedir = get_output_path("flow_switch_low")
+
 plot_cross_dataset_summaries(
     dataset_names=flow_switch_low_datasets,
     feature_dataframe_manifest=feature_dataframe_manifest,
@@ -73,6 +73,8 @@ plot_cross_dataset_summaries(
     stable_only=True,
 )
 # %%
+fig_savedir = get_output_path("flow_switch_high")
+
 plot_cross_dataset_summaries(
     dataset_names=flow_switch_high_datasets,
     feature_dataframe_manifest=feature_dataframe_manifest,
