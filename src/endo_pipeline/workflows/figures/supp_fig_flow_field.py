@@ -33,7 +33,7 @@ def main() -> None:
             letter="B",
             path=kernel_convolution_panel_path,
             x_position=0.0,
-            y_position=1.55,
+            y_position=1.90,
             x_offset=0.075,
             y_offset=0.15,
         ),
@@ -44,7 +44,7 @@ def main() -> None:
         panels,
         output_path / "supp_fig_flow_field.svg",
         width=MAX_FIGURE_WIDTH,
-        height=3.4,
+        height=3.75,
     )
 
 

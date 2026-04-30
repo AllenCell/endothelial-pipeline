@@ -230,7 +230,7 @@ def make_real_image_panel(
 ) -> Path:
     """Build the panel showing a grid crop from t to t+1 for a given example image."""
 
-    contact_figsize = (3.0, 1.4)
+    contact_figsize = (3.75, 1.75)
     arrowstyle = "->,head_length=5,head_width=3"
 
     fov_crop_size = 2 * NATIVE_ZARR_RESOLUTION_CROP_SIZE
@@ -625,8 +625,8 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
         1,
         4,
         gridspec_kw={"wspace": 0.1},
-        figsize=(5.9, 1.6),
-        layout=ConstrainedLayoutEngine(w_pad=0.05, h_pad=0.05),
+        figsize=(6.0, 1.65),
+        layout=ConstrainedLayoutEngine(w_pad=0.075, h_pad=0.05),
     )
     axes = ax.flatten() if isinstance(ax, np.ndarray) else [ax]
     axes_xlabel = COLUMN_METADATA[column_names[0]].label
@@ -674,7 +674,9 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
 
     # panel 3 - kernel-weighted histogram (i.e. numerator of KM estimator)
     kernel_weighted_hist_delta_r = kernel_weights_2d * weighted_hist_delta_r
-    vmax = np.nanpercentile(np.abs(kernel_weighted_hist_delta_r), 99)
+    # use same vmin and vmax for colormap as panel 1 to allow direct comparison
+    # of the effect of the kernel weighting on the histogram values
+    vmax = np.nanpercentile(np.abs(weighted_hist_delta_r), 99)
     pcm = _make_2d_pcolormesh(
         axes[2],
         kernel_weighted_hist_delta_r,
@@ -685,7 +687,7 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
         axes_xlabel=axes_xlabel,
-        axes_title=f"Kernel-weighted sum\nof {Unicode.DELTA} {axes_xlabel}",
+        axes_title=f"Kernel-weighted\nsum of {Unicode.DELTA} {axes_xlabel}",
         xlabel_kwargs=XLABEL_KWARGS,
     )
     _add_target_bin_border(
