@@ -12,7 +12,7 @@ from matplotlib.patches import FancyArrowPatch, Rectangle
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.io import load_dataframe, load_image, save_plot_to_path
+from endo_pipeline.io import join_sorted_strings, load_dataframe, load_image, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
     _check_and_adjust_km_inputs,
@@ -23,6 +23,10 @@ from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
 )
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics.binning import get_bins
+from endo_pipeline.library.analyze.numerics.correlations import (
+    exponential_decay,
+    fit_exp_decay_and_get_relaxation_timescale,
+)
 from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
 from endo_pipeline.library.process.image_processing import (
     contrast_stretching,
@@ -36,8 +40,10 @@ from endo_pipeline.manifests import (
     get_zarr_location_for_position,
     load_dataframe_manifest,
 )
+from endo_pipeline.settings.autocorrelations import AUTOCORRELATION_DATAFRAME_MANIFEST_PREFIX
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.dynamics_workflows import (
     BIN_WIDTHS_DYNAMICS,
     KERNEL_BANDWIDTHS_DYNAMICS,
@@ -68,6 +74,9 @@ from endo_pipeline.settings.image_data import NATIVE_ZARR_RESOLUTION_CROP_SIZE, 
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
+    RANDOM_SEED,
 )
 
 
@@ -351,6 +360,105 @@ def make_real_image_panel(
     image_panel_path = savedir / f"{filename}.svg"
 
     return image_panel_path
+
+
+def make_autocorrelation_panel(save_dir: Path) -> Path:
+    # example dataset for first subplot
+    dataset_name = EXAMPLE_DATASET["FIGURE_2_LOW_FLOW_DATASET"]
+
+    column_names = [
+        Column.DiffAEData.POLAR_ANGLE,
+        Column.DiffAEData.POLAR_RADIUS,
+        Column.DiffAEData.PC3_FLIPPED,
+    ]
+
+    # jitter random seed for R^2 plot
+    rng = np.random.default_rng(seed=RANDOM_SEED)
+
+    # Load feature data for provided dataset and filter to steady-state time
+    # points and a single flow condition
+
+    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_grid"
+    columns_str = join_sorted_strings(cast(list[str], column_names))
+    autocorrelation_manifest_name = (
+        f"{AUTOCORRELATION_DATAFRAME_MANIFEST_PREFIX}_{columns_str}_{base_name}"
+    )
+    autocorrelation_manifest = load_dataframe_manifest(autocorrelation_manifest_name)
+
+    acf_df = load_dataframe(autocorrelation_manifest.locations[dataset_name])
+
+    # Keep only positive lags for plotting (ACF is symmetric around zero).
+    acf_df_positive = acf_df[acf_df[Column.AutoCorrelation.LAG] > 0]
+
+    # plot acf for polar radius
+    column_for_plot = Column.DiffAEData.POLAR_RADIUS
+    column_label = COLUMN_METADATA[column_for_plot].label
+    acf_polar_r = acf_df_positive[
+        acf_df_positive[Column.AutoCorrelation.FEATURE] == column_for_plot
+    ]
+    lag_hours = acf_polar_r[Column.AutoCorrelation.LAG] * TIME_STEP_IN_HOURS
+    acf_mean = acf_polar_r[Column.AutoCorrelation.ACF_MEAN].to_numpy()
+    acf_lb = acf_polar_r[Column.AutoCorrelation.ACF_LOWER_PERCENTILE].to_numpy()
+    acf_ub = acf_polar_r[Column.AutoCorrelation.ACF_UPPER_PERCENTILE].to_numpy()
+
+    exp_fit, _, r_squared = fit_exp_decay_and_get_relaxation_timescale(
+        acf_mean, lag_hours, exp_decay_func="exponential_decay"
+    )
+
+    fig, ax = plt.subplots(2, 1, figsize=(3.0, 2.75), layout="constrained")
+    ax[0].plot(lag_hours, acf_mean, "k-", label="ACF (mean)")
+    ax[0].fill_between(lag_hours, acf_lb, acf_ub, color="gray", alpha=0.2, label="ACF (90% CI)")
+    ax[0].plot(
+        lag_hours,
+        exponential_decay(lag_hours, *exp_fit),
+        color="darkturquoise",
+        linestyle="--",
+        linewidth=1.25,
+        label=f"Exp. fit (R{Unicode.SQUARED} = {r_squared:.3f})",
+    )
+    ax[0].set_xlabel("Lag (hours)", fontsize=FONTSIZE_SMALL, **XLABEL_KWARGS)
+    ax[0].set_ylabel("ACF", fontsize=FONTSIZE_SMALL, **YLABEL_KWARGS)
+    ax[0].set_title(f"Autocorrelation\nfunction in {column_label}", fontsize=FONTSIZE_SMALL)
+
+    r_squared: dict[ColumnNameType, list[float]] = {key: [] for key in column_names}
+    for dataset_name in list(autocorrelation_manifest.locations.keys()):
+        for column_name in column_names:
+            acf_subset = acf_df_positive[
+                (acf_df_positive[Column.AutoCorrelation.FEATURE] == column_name)
+                & (acf_df_positive[Column.AutoCorrelation.DATASET_NAME] == dataset_name)
+            ]
+            lag_hours = acf_subset[Column.AutoCorrelation.LAG] * TIME_STEP_IN_HOURS
+            acf_mean = acf_subset[Column.AutoCorrelation.ACF_MEAN].to_numpy()
+            # fit exponential, return R^2
+            r_squared = fit_exp_decay_and_get_relaxation_timescale(
+                acf_mean, lag_hours, exp_decay_func="exponential_decay"
+            )[-1]
+            r_squared[column_name].append(r_squared)
+
+    for i, column_name in enumerate(column_names):
+        r2_values = r_squared[column_name]
+        jitter = rng.uniform(-0.075, 0.075, size=len(r2_values))
+        ax[1].scatter(
+            i + jitter,
+            r2_values,
+            c="black",
+            s=40,
+            alpha=0.3,
+            zorder=3,
+        )
+    ax[1].set_xticks(range(len(column_names)))
+    ax[1].set_xticklabels(
+        [COLUMN_METADATA[col].label for col in column_names], rotation=30, ha="right"
+    )
+    ax[1].set_ylabel(f"R{Unicode.SQUARED}", fontsize=FONTSIZE_SMALL)
+    ax[1].set_title(f"Exponential fit R{Unicode.SQUARED}\n(all datasets)", fontsize=FONTSIZE_SMALL)
+    ax[1].set_ylim(0.98, 1.005)
+
+    filename = "autocorrelation_analysis"
+    save_plot_to_path(
+        fig, save_dir, filename, file_format=".svg", transparent=True, tight_layout=True
+    )
+    return save_dir / f"{filename}.svg"
 
 
 def _make_2d_pcolormesh(
