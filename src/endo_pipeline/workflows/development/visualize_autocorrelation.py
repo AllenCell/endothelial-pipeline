@@ -77,6 +77,7 @@ def main(
         DEFAULT_MODEL_RUN_NAME,
     )
 
+    plt.style.use("endo_pipeline.figure")
     logger = logging.getLogger(__name__)
 
     # Reconstruct the manifest name produced by compute-autocorrelation.
