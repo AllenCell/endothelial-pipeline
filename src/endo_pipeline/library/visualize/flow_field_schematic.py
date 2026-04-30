@@ -376,6 +376,8 @@ def make_autocorrelation_panel(save_dir: Path) -> Path:
     # jitter random seed for R^2 plot
     rng = np.random.default_rng(seed=RANDOM_SEED)
 
+    y_labelpad = 0.5
+
     # Load feature data for provided dataset and filter to steady-state time
     # points and a single flow condition
 
@@ -418,7 +420,7 @@ def make_autocorrelation_panel(save_dir: Path) -> Path:
         label=f"Exp. fit (R{Unicode.SQUARED} = {r_squared:.3f})",
     )
     ax[0].set_xlabel("Lag (hours)", fontsize=FONTSIZE_SMALL, **XLABEL_KWARGS)
-    ax[0].set_ylabel("ACF", fontsize=FONTSIZE_SMALL, labelpad=-1)
+    ax[0].set_ylabel("ACF", fontsize=FONTSIZE_SMALL, labelpad=y_labelpad)
     ax[0].set_title(f"Autocorrelation function in {column_label}", fontsize=FONTSIZE_SMALL)
     ax[0].legend(loc="upper right", fontsize=FONTSIZE_XSMALL)
 
@@ -440,7 +442,7 @@ def make_autocorrelation_panel(save_dir: Path) -> Path:
 
     for i, column_name in enumerate(column_names):
         r2_values = r_squared[column_name]
-        jitter = rng.uniform(-0.075, 0.075, size=len(r2_values))
+        jitter = rng.uniform(-0.1, 0.1, size=len(r2_values))
         ax[1].scatter(
             i + jitter,
             r2_values,
@@ -451,7 +453,7 @@ def make_autocorrelation_panel(save_dir: Path) -> Path:
         )
     ax[1].set_xticks(range(len(column_names)))
     ax[1].set_xticklabels([COLUMN_METADATA[col].label for col in column_names], fontweight="bold")
-    ax[1].set_ylabel(f"R{Unicode.SQUARED}", fontsize=FONTSIZE_SMALL, labelpad=-1)
+    ax[1].set_ylabel(f"R{Unicode.SQUARED}", fontsize=FONTSIZE_SMALL, labelpad=y_labelpad)
     ax[1].set_title(f"Exponential fit R{Unicode.SQUARED} (all datasets)", fontsize=FONTSIZE_SMALL)
     ax[1].set_ylim(0.975, 1.005)
 

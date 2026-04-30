@@ -49,12 +49,11 @@ def main() -> None:
         ),
     ]
 
-    # %%
     build_figure_from_panels(
         panels,
         output_path / "supp_fig_flow_field.svg",
         width=MAX_FIGURE_WIDTH,
-        height=5.75,
+        height=5.0,
     )
 
 
