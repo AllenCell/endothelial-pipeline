@@ -3,7 +3,7 @@ workflow: compute_first_passage_time
 parameters:
   model_manifest_name: diffae_baseline_exclude_cell_piling
   run_name: 20251110_latent_512
-  datasets: [20250409_20X]
+  datasets: [20250618_20X, 20250402_20X, 20250409_20X, 20250611_20X, 20251001_20X]
   fixed_point_radius_threshold: 0.25
   minimum_track_length: 72
   min_num_traj_per_bin: 10

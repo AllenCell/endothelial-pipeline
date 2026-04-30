@@ -70,8 +70,8 @@ def main(
         fixed_point_radius_threshold = MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
 
     if DEMO_MODE:
-        dataset_names = dataset_names[:3]
-        logger.info(f"Running in demo mode, processing only the first 3 datasets: {dataset_names}")
+        dataset_names = list(set(fpt_fig_example_datasets) | set(SUMMARY_PLOT_DATASETS["low_high"]))
+        logger.info(f"Running in demo mode, only processing datasets [ {dataset_names} ]")
         out_dir = get_output_path(__file__, "demo")
     else:
         out_dir = get_output_path(__file__)
@@ -216,7 +216,7 @@ def main(
             ]
 
             # plot the correlation results for this fixed point
-            plot_first_passage_time_correlations(
+            _ = plot_first_passage_time_correlations(
                 dataset_name=dataset_name,
                 first_passage_time_stats_df=grp_df,
                 line_fit_df=line_fit_result,
@@ -258,17 +258,6 @@ def main(
                 out_dir=out_dir_dataset,
             )
 
-            if dataset_name in fpt_fig_example_datasets and metric_to_plot == "mean":
-                plot_first_passage_time_correlations(
-                    dataset_name=dataset_name,
-                    first_passage_time_stats_df=grp_df,
-                    line_fit_df=line_fit_result,
-                    fixed_point_id=fp_idx,
-                    fixed_point_stability=fp_stability,
-                    out_dir=out_dir_figure,
-                    metric_to_plot=metric_to_plot,
-                )
-
         # plot the parameter sweep results (and add the figure examples to their own folder)
         for (dataset_name, fp_idx, fp_stability), grp_df in parameter_sweep_df.groupby(
             [
@@ -281,7 +270,7 @@ def main(
             out_dir_dataset = out_dir / dataset_name
             out_dir_dataset.mkdir(parents=True, exist_ok=True)
 
-            plot_first_passage_time_parameter_sweep(
+            _ = plot_first_passage_time_parameter_sweep(
                 dataset_name=dataset_name,
                 fixed_point_index=fp_idx,
                 fixed_point_stability=fp_stability,
@@ -290,23 +279,11 @@ def main(
                 out_dir=out_dir_dataset,
                 metric_to_plot=metric_to_plot,
             )
-            if dataset_name in fpt_fig_example_datasets and metric_to_plot == "mean":
-                plot_first_passage_time_parameter_sweep(
-                    dataset_name=dataset_name,
-                    fixed_point_index=fp_idx,
-                    fixed_point_stability=fp_stability,
-                    first_passage_time_param_sweep_df=grp_df,
-                    fixed_point_radius_threshold=fixed_point_radius_threshold,
-                    out_dir=out_dir_figure,
-                    metric_to_plot=metric_to_plot,
-                )
 
         if len(dataset_names) > 2:
             # make a summary plot in both the regular output folder and also the figure output folder
             filename = f"FPT_correlation_summary_{metric_to_plot}"
             plot_first_passage_time_correlation_summary(line_fit_df, out_dir, filename)
-            if metric_to_plot == "mean":
-                plot_first_passage_time_correlation_summary(line_fit_df, out_dir_figure, filename)
 
 
 if __name__ == "__main__":

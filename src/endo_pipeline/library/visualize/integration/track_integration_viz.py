@@ -1178,7 +1178,7 @@ def plot_first_passage_time_parameter_sweep(
     fixed_point_radius_threshold: float | None,
     out_dir: Path,
     metric_to_plot: Literal["mean", "median"],
-) -> None:
+) -> tuple[Path, Path]:
     """Plot the results of the parameter sweep over the number of bins in the
     initial conditions histogram and the choice of mean vs. median FPT to plot.
     """
@@ -1223,8 +1223,10 @@ def plot_first_passage_time_parameter_sweep(
     ax.set_ylim(0)
     ax.set_xlabel("radius around fixed point".title(), fontsize=FONTSIZE_LARGE)
     ax.set_ylabel(f"{metric_to_plot} first passage time (hrs)".title(), fontsize=FONTSIZE_LARGE)
-    filename = f"{dataset_name}_FPT_{metric_to_plot}_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}"
-    save_plot_to_path(fig, out_dir, filename, file_format=".svg", show_and_close=False)
+    filename_param_sweep_fpt = f"{dataset_name}_FPT_{metric_to_plot}_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}"
+    save_plot_to_path(
+        fig, out_dir, filename_param_sweep_fpt, file_format=".svg", show_and_close=False
+    )
 
     # also plot compute the fraction of trajectories that approached the fixed point
     # for each parameter combination to see how the fixed point distance threshold
@@ -1266,8 +1268,15 @@ def plot_first_passage_time_parameter_sweep(
     ax.set_ylim(0, 105)
     ax.set_xlabel("radius around fixed point".title(), fontsize=FONTSIZE_LARGE)
     ax.set_ylabel("Trajectories reaching fixed point (%)".title(), fontsize=FONTSIZE_LARGE)
-    filename = f"{dataset_name}_FPT_percent_trajectories_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}"
-    save_plot_to_path(fig, out_dir, filename, file_format=".svg", show_and_close=False)
+    filename_param_sweep_num_traj = f"{dataset_name}_FPT_percent_trajectories_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}"
+    save_plot_to_path(
+        fig, out_dir, filename_param_sweep_num_traj, file_format=".svg", show_and_close=False
+    )
+
+    return (
+        out_dir / f"{filename_param_sweep_fpt}.svg",
+        out_dir / f"{filename_param_sweep_num_traj}.svg",
+    )
 
 
 def plot_first_passage_time_correlations(
@@ -1278,7 +1287,38 @@ def plot_first_passage_time_correlations(
     fixed_point_stability: str,
     out_dir: Path,
     metric_to_plot: Literal["mean", "median"],
-) -> None:
+) -> Path:
+    """Plot the correlation between the grid-based and track-based first passage
+        times for a given fixed point as a scatter plot with error bars, along with
+        a linear fit and the Pearson correlation coefficient.
+
+    Parameters
+    ----------
+        dataset_name
+            The name of the dataset being plotted.
+        first_passage_time_stats_df
+            A DataFrame containing the statistics of the first passage times for both
+            the grid-based and track-based methods, including the mean/median and standard
+            deviation for each bin of initial conditions.
+        line_fit_df
+            A DataFrame containing the results of the linear fit between the
+            grid-based and track-based first passage times, including the slope,
+            intercept, Pearson correlation coefficient, and reduced chi
+            squared value for the fitted line.
+        fixed_point_id
+            The ID of the fixed point for which the correlations are being plotted.
+        fixed_point_stability
+            The stability of the fixed point.
+        out_dir
+            The directory where the resulting plot should be saved.
+        metric_to_plot
+            The metric to plot on the axes, either "mean" or "median" first passage time.
+
+    Returns
+    -------
+        Path
+            The path to the saved plot.
+    """
     shear_stress_rounded = _get_shear_stress_for_dataset(dataset_name, binned=True)
     pearson_r = line_fit_df[Column.VectorField.PEARSON_R].unique().item()
 
@@ -1356,7 +1396,7 @@ def plot_first_passage_time_correlations(
         file_format=".svg",
         show_and_close=False,
     )
-    return
+    return out_dir / f"{filename}.svg"
 
 
 def plot_first_passage_time_histogram(

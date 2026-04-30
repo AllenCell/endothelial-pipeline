@@ -2,9 +2,21 @@
 import matplotlib.pyplot as plt
 
 from endo_pipeline.io import get_output_path
+from endo_pipeline.io.input import load_dataframe
+from endo_pipeline.library.analyze.track_integration import (
+    build_fpt_line_fit_results_df,
+    filter_fpt_stats_df_by_min_num_trajectories,
+)
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
+from endo_pipeline.library.visualize.integration.track_integration_viz import (
+    plot_first_passage_time_correlation_summary,
+    plot_first_passage_time_parameter_sweep,
+)
+from endo_pipeline.manifests.dataframe_manifest_io import load_dataframe_manifest
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.examples import FPT_FIG_EXAMPLES
 from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.workflow_defaults import FIRST_PASSAGE_TIME_MANIFEST_NAME
 
 plt.style.use("endo_pipeline.figure")
 
@@ -16,12 +28,60 @@ high_flow_dataset = FPT_FIG_EXAMPLES["high_flow"]
 fig_width = 6.1
 fig_height = 5.5
 
+# %% Load the first passage time statistics dataframe to make correlation plots from
+fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_MANIFEST_NAME)
+fpt_stats_df = load_dataframe(fpt_manifest.locations["first_passage_time_statistics"])
+fpt_param_sweep_df = load_dataframe(fpt_manifest.locations["first_passage_time_parameter_sweep"])
+# filter out nans and bins with too few trajectories for a certain measure
+# (either mean or median) for the correlation and line fitting steps
+metric_to_plot = "mean"
+fpt_stats_df_no_nan = filter_fpt_stats_df_by_min_num_trajectories(
+    fpt_stats_df=fpt_stats_df,
+    min_num_traj_per_bin=fpt_manifest.parameters["min_num_traj_per_bin"],
+    metric_for_filter=metric_to_plot,
+)
+# fit a line to the correlation between grid and tracked first passage
+# time statistics for each fixed point and dataset
+line_fit_df = build_fpt_line_fit_results_df(
+    fpt_stats_df_no_nan=fpt_stats_df_no_nan,
+    metric_to_fit=metric_to_plot,
+)
+# %% make the plots for the desired datasets
+dataset_name = low_flow_dataset.dataset_name
+fp_idx = low_flow_dataset.fixed_point_index
+
+# this check should be done in case the fixed point index is not an integer
+# because if it is a float then it will cause an issue when trying to save
+# a plot with `save_plot_to_path` (because the decimal point shows up in the filename)
+if not isinstance(fp_idx, int):
+    raise ValueError(
+        f"Expected fixed point index to be an integer, but got {fp_idx} for example {dataset_name}"
+    )
+
+df = fpt_param_sweep_df[
+    (fpt_param_sweep_df[Column.DATASET] == dataset_name)
+    & (fpt_param_sweep_df[Column.VectorField.FIXED_POINT_INDEX] == fp_idx)
+]
+fp_stability = df[Column.VectorField.STABILITY].unique().item()
+
+fp_param_sweep_fpt, fp_param_sweep_num_traj = plot_first_passage_time_parameter_sweep(
+    dataset_name=dataset_name,
+    fixed_point_index=fp_idx,
+    fixed_point_stability=fp_stability,
+    first_passage_time_param_sweep_df=df,
+    fixed_point_radius_threshold=fpt_manifest.parameters["fixed_point_radius_threshold"],
+    out_dir=save_dir,
+    metric_to_plot=metric_to_plot,
+)
+
+filename_summary = f"FPT_correlation_summary_{metric_to_plot}"
+plot_first_passage_time_correlation_summary(line_fit_df, save_dir, filename_summary)
+
 # %% Build figure panels and figure
 panels = [
     FigurePanel(
         letter="A",
-        path=save_dir
-        / f"{low_flow_dataset.dataset_name}_FPT_mean_vs_threshold_fp_{low_flow_dataset.fixed_point_index}_stable.svg",
+        path=fp_param_sweep_fpt,
         x_position=0,
         y_position=0,
         x_offset=0,
@@ -29,8 +89,7 @@ panels = [
     ),
     FigurePanel(
         letter="B",
-        path=save_dir
-        / f"{low_flow_dataset.dataset_name}_FPT_percent_trajectories_vs_threshold_fp_{low_flow_dataset.fixed_point_index}_stable.svg",
+        path=fp_param_sweep_num_traj,
         x_position=3,
         y_position=0,
         x_offset=0.1,
@@ -38,7 +97,7 @@ panels = [
     ),
     FigurePanel(
         letter="C",
-        path=save_dir / "FPT_correlation_summary_mean.svg",
+        path=save_dir / f"{filename_summary}.svg",
         x_position=0,
         y_position=3,
         x_offset=0.1,
