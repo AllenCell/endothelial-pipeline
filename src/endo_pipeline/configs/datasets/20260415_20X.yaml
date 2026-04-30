@@ -1,0 +1,77 @@
+name: 20260415_20X
+date: '20260415'
+original_path: //allen/programs/allencell/data/proj0/299/395/f7c/bbd/bb0/fba/c4b/907/533/797/92/20260415_GE00010758_20X_SLDY/20260415_GE00010758_20X_SLDY.sldy
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: 92797533907c4bfbabb0bbdf7c395299
+barcode: GE00010758
+cell_lines: [AICS-177 cl. 26]
+live_or_fixed_sample: live
+is_timelapse: true
+microscope: 3i
+objective: 20X
+shear_stress_regime: max
+pixel_size_xy_in_um: 0.382
+duration: 577
+time_interval_in_minutes: 5.0
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+channel_names: [EGFP, BF]
+flow_conditions:
+- start: -16
+  stop: 576
+  shear_stress: 20.03
+include_scenes: null
+notes: CDH5 Ex2Del mutant (AICS-177 cl.26) high SS. Notable gaps
+  between cells that open up over time. Lots of single cells in gaps through end of
+  timelapse. Parallel alignment, cells elongate. Prominent non-endo at center of FOV
+  5 (1-indexed). FOV 2 darkens at TP337. FOV 2 darkens with spinning disk striping
+  at TP573.
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  auto_bf_temp_artifact:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  not_steady_state:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  cell_piling:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+position_annotations: null
+center_z_plane: null
