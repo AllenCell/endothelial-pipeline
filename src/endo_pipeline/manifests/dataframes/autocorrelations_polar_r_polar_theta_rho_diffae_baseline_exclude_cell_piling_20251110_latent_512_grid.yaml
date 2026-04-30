@@ -1,0 +1,48 @@
+name: autocorrelations_polar_r_polar_theta_rho_diffae_baseline_exclude_cell_piling_20251110_latent_512_grid
+workflow: compute_autocorrelation
+parameters:
+  model_manifest_name: diffae_baseline_exclude_cell_piling
+  run_name: 20251110_latent_512
+  crop_pattern: grid
+  columns: [polar_theta, polar_r, rho]
+locations:
+  20250409_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-04-30/compute_autocorrelation/grid/autocorrelation_20250409_20X_20260430_062948.parquet
+    s3uri: null
+  20251001_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-04-30/compute_autocorrelation/grid/autocorrelation_20251001_20X_20260430_062949.parquet
+    s3uri: null
+  20250319_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-04-30/compute_autocorrelation/grid/autocorrelation_20250319_20X_20260430_063502.parquet
+    s3uri: null
+  20250428_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-04-30/compute_autocorrelation/grid/autocorrelation_20250428_20X_20260430_063504.parquet
+    s3uri: null
+  20250611_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-04-30/compute_autocorrelation/grid/autocorrelation_20250611_20X_20260430_063505.parquet
+    s3uri: null
+  20250618_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-04-30/compute_autocorrelation/grid/autocorrelation_20250618_20X_20260430_063506.parquet
+    s3uri: null
+  20250714_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-04-30/compute_autocorrelation/grid/autocorrelation_20250714_20X_20260430_063508.parquet
+    s3uri: null
+  20250813_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-04-30/compute_autocorrelation/grid/autocorrelation_20250813_20X_20260430_063509.parquet
+    s3uri: null
+  20250818_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-04-30/compute_autocorrelation/grid/autocorrelation_20250818_20X_20260430_063510.parquet
+    s3uri: null
+  20250827_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-04-30/compute_autocorrelation/grid/autocorrelation_20250827_20X_20260430_063512.parquet
+    s3uri: null
