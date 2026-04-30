@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from odrpack import odr_fit
-from scipy.stats import linregress
+from scipy.stats import pearsonr
 from seaborn import color_palette
 
 from endo_pipeline.configs.dataset_config_io import load_dataset_config
@@ -1751,35 +1751,7 @@ def build_fpt_line_fit_results_df(
     metric = "50%" if metric_to_fit == "median" else metric_to_fit
     suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
 
-    # do a linear regression to see if the FPTs from the tracked and grid trajectories
-    # correlate depending on where they are in binned feature space
-    line_fit_df_ols = (
-        fpt_stats_df_no_nan.groupby(
-            [
-                Column.DATASET,
-                Column.VectorField.FIXED_POINT_INDEX,
-                Column.VectorField.STABILITY,
-            ]
-        )
-        .apply(
-            lambda df, metric=metric: pd.Series(
-                index=[
-                    "slope_ols",
-                    "intercept_ols",
-                    "r_value_ols",
-                    "p_value_ols",
-                    "std_err_ols",
-                ],
-                data=linregress(
-                    x=df[f"{metric}{suffix}_grid"],
-                    y=df[f"{metric}{suffix}_tracked"],
-                ),
-            )
-        )
-        .reset_index()
-    )
-
-    line_fit_df_odr = (
+    line_fit_df = (
         fpt_stats_df_no_nan.groupby(
             [
                 Column.DATASET,
@@ -1808,11 +1780,27 @@ def build_fpt_line_fit_results_df(
         .reset_index()
     )
 
-    line_fit_df_merge = line_fit_df_ols.merge(
-        line_fit_df_odr,
+    pearson_df = (
+        fpt_stats_df_no_nan.groupby(
+            [
+                Column.DATASET,
+                Column.VectorField.FIXED_POINT_INDEX,
+                Column.VectorField.STABILITY,
+            ]
+        ).apply(
+            lambda df, metric=metric, suffix=suffix: pd.Series(
+                index=["r_value_pearson", "p_value_pearson"],
+                data=pearsonr(
+                    x=df[f"{metric}{suffix}_grid"],
+                    y=df[f"{metric}{suffix}_tracked"],
+                ),
+            )
+        )
+    ).reset_index()
+
+    line_fit_df = line_fit_df.merge(
+        pearson_df,
         on=[Column.DATASET, Column.VectorField.FIXED_POINT_INDEX, Column.VectorField.STABILITY],
         validate="one_to_one",
-        suffixes=("_ols", "_odr"),
     )
-
-    return line_fit_df_merge
+    return line_fit_df

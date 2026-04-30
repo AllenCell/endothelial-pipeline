@@ -1276,28 +1276,22 @@ def plot_first_passage_time_correlations(
     line_fit_df: pd.DataFrame,
     fixed_point_id: int,
     fixed_point_stability: str,
-    corr_type: str,
     out_dir: Path,
     metric_to_plot: Literal["mean", "median"],
 ) -> None:
     shear_stress_rounded = _get_shear_stress_for_dataset(dataset_name, binned=True)
+    pearson_r = line_fit_df[Column.VectorField.PEARSON_R].unique().item()
 
     metric = "50%" if metric_to_plot == "median" else metric_to_plot
     suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
     metric = f"{metric}{suffix}"
 
-    if corr_type == "ols":
-        slope = line_fit_df[Column.VectorField.LINEFIT_SLOPE_OLS].unique().item()
-        intercept = line_fit_df[Column.VectorField.LINEFIT_INTERCEPT_OLS].unique().item()
-        corr_metric_val = line_fit_df[Column.VectorField.LINEFIT_R_VALUE_OLS].unique().item()
-        corr_metric_label = f"Linear Fit (R={corr_metric_val:.2f})"
-    elif corr_type == "odr":
-        slope = line_fit_df[Column.VectorField.LINEFIT_SLOPE_ODR].unique().item()
-        intercept = line_fit_df[Column.VectorField.LINEFIT_INTERCEPT_ODR].unique().item()
-        corr_metric_val = (
-            line_fit_df[Column.VectorField.LINEFIT_REDUCED_CHI_SQUARED_ODR].unique().item()
-        )
-        corr_metric_label = f"Linear Fit (χ²ᵣ={corr_metric_val:.2f})"
+    slope = line_fit_df[Column.VectorField.LINEFIT_SLOPE_ODR].unique().item()
+    intercept = line_fit_df[Column.VectorField.LINEFIT_INTERCEPT_ODR].unique().item()
+    corr_metric_val = (
+        line_fit_df[Column.VectorField.LINEFIT_REDUCED_CHI_SQUARED_ODR].unique().item()
+    )
+    corr_metric_label = f"Linear Fit (χ²ᵣ={corr_metric_val:.2f})"
 
     num_bins = (
         first_passage_time_stats_df.groupby(
@@ -1313,7 +1307,7 @@ def plot_first_passage_time_correlations(
 
     fig, ax = plt.subplots(figsize=(2, 2))
     ax.set_title(
-        f"{shear_stress_rounded} dyn/cm{UnicodeCharacters.SQUARED}",
+        f"{shear_stress_rounded} dyn/cm{UnicodeCharacters.SQUARED} (R = {pearson_r:.2f})",
         fontsize=FONTSIZE_SMALL,
     )
     ax.errorbar(
@@ -1354,7 +1348,7 @@ def plot_first_passage_time_correlations(
     ax.set_ylabel("Tracked FPT (hrs)".title(), fontsize=FONTSIZE_SMALL, labelpad=1.0)
     ax.legend(loc="upper center")
 
-    filename = f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}_{metric_to_plot}_correlation_{corr_type}"
+    filename = f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}_{metric_to_plot}_correlation"
     save_plot_to_path(
         fig,
         out_dir,
@@ -1433,7 +1427,6 @@ def plot_first_passage_time_histogram(
 
 def plot_first_passage_time_correlation_summary(
     first_passage_time_correlation_summary_df: pd.DataFrame,
-    corr_type: str,
     out_dir: Path,
     filename: str,
 ) -> None:
@@ -1441,12 +1434,8 @@ def plot_first_passage_time_correlation_summary(
     analysis across all datasets and fixed points as it will appear in the figure.
     """
 
-    if corr_type == "ols":
-        corr_metric_column = Column.VectorField.LINEFIT_R_VALUE_OLS
-        corr_metric_label = "Correlation Coefficient (R)"
-    elif corr_type == "odr":
-        corr_metric_column = Column.VectorField.LINEFIT_REDUCED_CHI_SQUARED_ODR
-        corr_metric_label = "Reduced Chi-Squared (χ²ᵣ)"
+    corr_metric_column = Column.VectorField.PEARSON_R
+    corr_metric_label = "Correlation Coefficient (R)"
 
     # get the shear stress for the dataset and add that to the labels
     # Snap to ±1 bins; values outside any bin keep their rounded value
@@ -1476,13 +1465,7 @@ def plot_first_passage_time_correlation_summary(
         alpha=0.7,
         ax=ax,
     )
-    if corr_type == "ols":
-        ax.set_ylim(0, 1)
-    elif corr_type == "odr":
-        # use the larger of 1 or the current y axis max for y axis upper limit
-        # (1 has a special meaning for the reduced chi-squared metric)
-        ax.set_ylim(0, max(1, ax.get_ylim()[1]))
-
+    ax.set_ylim(0, 1)
     ax.set_ylabel(corr_metric_label, fontsize=FONTSIZE_SMALL)
     plt.yticks(fontsize=FONTSIZE_SMALL)
     plt.xticks(rotation=45, ha="right", fontsize=FONTSIZE_SMALL)
@@ -1504,14 +1487,8 @@ def plot_first_passage_time_correlation_summary(
         fill=False,
         ax=ax,
     )
-    if corr_type == "ols":
-        ax.set_xticks(np.arange(0, 1.1, 0.2))
-        ax.set_xlim(0, 1)
-    elif corr_type == "odr":
-        # use the larger of 1 or the current x axis max for x axis upper limit
-        # (1 has a special meaning for the reduced chi-squared metric)
-        ax.xaxis.minorticks_on()
-        ax.set_xlim(0, max(1, ax.get_xlim()[1]))
+    ax.set_xticks(np.arange(0, 1.1, 0.2))
+    ax.set_xlim(0, 1)
     ax.set_xlabel(corr_metric_label, fontsize=FONTSIZE_SMALL)
     ax.set_ylabel("Number of Datasets", fontsize=FONTSIZE_SMALL)
     save_plot_to_path(

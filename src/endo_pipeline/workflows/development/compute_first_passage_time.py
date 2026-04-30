@@ -145,7 +145,6 @@ def main(
                 line_fit_df=line_fit_result,
                 fixed_point_id=fp_idx,
                 fixed_point_stability=fp_stability,
-                corr_type="ols",
                 out_dir=out_dir_dataset,
                 metric_to_plot=metric_to_plot,
             )
@@ -155,7 +154,6 @@ def main(
                 line_fit_df=line_fit_result,
                 fixed_point_id=fp_idx,
                 fixed_point_stability=fp_stability,
-                corr_type="odr",
                 out_dir=out_dir_dataset,
                 metric_to_plot=metric_to_plot,
             )
@@ -199,7 +197,6 @@ def main(
                     line_fit_df=line_fit_result,
                     fixed_point_id=fp_idx,
                     fixed_point_stability=fp_stability,
-                    corr_type="ols",
                     out_dir=out_dir_figure,
                     metric_to_plot=metric_to_plot,
                 )
@@ -238,22 +235,18 @@ def main(
 
         if len(dataset_names) > 2:
             # make a summary plot in both the regular output folder and also the figure output folder
-            correlation_types = ["ols", "odr"]
-            for corr_type in correlation_types:
-                filename = f"FPT_correlation_summary_{metric_to_plot}_{corr_type}"
+            filename = f"FPT_correlation_summary_{metric_to_plot}"
+            plot_first_passage_time_correlation_summary(
+                first_passage_time_correlation_summary_df=line_fit_df,
+                out_dir=out_dir,
+                filename=filename,
+            )
+            if metric_to_plot == "mean":
                 plot_first_passage_time_correlation_summary(
                     first_passage_time_correlation_summary_df=line_fit_df,
-                    corr_type=corr_type,
-                    out_dir=out_dir,
+                    out_dir=out_dir_figure,
                     filename=filename,
                 )
-                if metric_to_plot == "mean" and corr_type == "ols":
-                    plot_first_passage_time_correlation_summary(
-                        first_passage_time_correlation_summary_df=line_fit_df,
-                        corr_type=corr_type,
-                        out_dir=out_dir_figure,
-                        filename=filename,
-                    )
 
 
 if __name__ == "__main__":
