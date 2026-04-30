@@ -26,16 +26,16 @@ def main() -> None:
             path=image_panel_path,
             x_position=0.0,
             y_position=0.0,
-            x_offset=0.15,
-            y_offset=0.10,
+            x_offset=0.1,
+            y_offset=0.1,
         ),
         FigurePanel(
             letter="B",
             path=kernel_convolution_panel_path,
             x_position=0.0,
-            y_position=2.30,
+            y_position=2.275,
             x_offset=0.075,
-            y_offset=0.35,
+            y_offset=0.65,
         ),
     ]
 

@@ -226,7 +226,7 @@ def make_real_image_panel(
     map_arrow_x_offset: float = 0.065,
     map_arrow_rad: float = 0.3,
     map_arrow_linewidth: float = 1.5,
-    horizontal_arrow_x_offset: float = 0.07,
+    horizontal_arrow_x_offset: float = 0.125,
     horizontal_arrow_y_offset: float = -0.025,
     horizontal_arrow_linewidth: float = 1.5,
     text_y_offset: float = -0.125,
