@@ -43,7 +43,7 @@ def main() -> None:
             letter="C",
             path=kernel_convolution_panel_path,
             x_position=0.0,
-            y_position=2.0,
+            y_position=2.7,
             x_offset=0.075,
             y_offset=0.65,
         ),

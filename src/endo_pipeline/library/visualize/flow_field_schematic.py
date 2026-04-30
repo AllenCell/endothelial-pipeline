@@ -58,6 +58,7 @@ from endo_pipeline.settings.figures import (
     FONTSIZE_MEDIUM,
     FONTSIZE_SMALL,
     FONTSIZE_XLARGE,
+    FONTSIZE_XSMALL,
 )
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_COLORMAP,
@@ -405,7 +406,7 @@ def make_autocorrelation_panel(save_dir: Path) -> Path:
         acf_mean, lag_hours, exp_decay_func="exponential_decay"
     )
 
-    fig, ax = plt.subplots(2, 1, figsize=(3.0, 2.75), layout="constrained")
+    fig, ax = plt.subplots(2, 1, figsize=(2.5, 2.75), layout="constrained")
     ax[0].plot(lag_hours, acf_mean, "k-", label="ACF (mean)")
     ax[0].fill_between(lag_hours, acf_lb, acf_ub, color="gray", alpha=0.2, label="ACF (90% CI)")
     ax[0].plot(
@@ -418,14 +419,16 @@ def make_autocorrelation_panel(save_dir: Path) -> Path:
     )
     ax[0].set_xlabel("Lag (hours)", fontsize=FONTSIZE_SMALL, **XLABEL_KWARGS)
     ax[0].set_ylabel("ACF", fontsize=FONTSIZE_SMALL, **YLABEL_KWARGS)
-    ax[0].set_title(f"Autocorrelation\nfunction in {column_label}", fontsize=FONTSIZE_SMALL)
+    ax[0].set_title(f"Autocorrelation function in {column_label}", fontsize=FONTSIZE_SMALL)
+    ax[0].legend(loc="upper right", fontsize=FONTSIZE_XSMALL)
 
     r_squared: dict[ColumnNameType, list[float]] = {key: [] for key in column_names}
     for dataset_name in list(autocorrelation_manifest.locations.keys()):
+        acf_dataset = load_dataframe(autocorrelation_manifest.locations[dataset_name])
+        acf_dataset_positive = acf_dataset[acf_dataset[Column.AutoCorrelation.LAG] > 0]
         for column_name in column_names:
-            acf_subset = acf_df_positive[
-                (acf_df_positive[Column.AutoCorrelation.FEATURE] == column_name)
-                & (acf_df_positive[Column.DATASET] == dataset_name)
+            acf_subset = acf_dataset_positive[
+                (acf_dataset_positive[Column.AutoCorrelation.FEATURE] == column_name)
             ]
             lag_hours = acf_subset[Column.AutoCorrelation.LAG] * TIME_STEP_IN_HOURS
             acf_mean = acf_subset[Column.AutoCorrelation.ACF_MEAN].to_numpy()
@@ -442,21 +445,19 @@ def make_autocorrelation_panel(save_dir: Path) -> Path:
             i + jitter,
             r2_values,
             c="black",
-            s=40,
-            alpha=0.3,
+            s=20,
+            alpha=0.7,
             zorder=3,
         )
     ax[1].set_xticks(range(len(column_names)))
-    ax[1].set_xticklabels(
-        [COLUMN_METADATA[col].label for col in column_names], rotation=30, ha="right"
-    )
-    ax[1].set_ylabel(f"R{Unicode.SQUARED}", fontsize=FONTSIZE_SMALL)
-    ax[1].set_title(f"Exponential fit R{Unicode.SQUARED}\n(all datasets)", fontsize=FONTSIZE_SMALL)
-    ax[1].set_ylim(0.98, 1.005)
+    ax[1].set_xticklabels([COLUMN_METADATA[col].label for col in column_names], fontweight="bold")
+    ax[1].set_ylabel(f"R{Unicode.SQUARED}", fontsize=FONTSIZE_SMALL, **YLABEL_KWARGS)
+    ax[1].set_title(f"Exponential fit R{Unicode.SQUARED} (all datasets)", fontsize=FONTSIZE_SMALL)
+    ax[1].set_ylim(0.975, 1.005)
 
     filename = "autocorrelation_analysis"
     save_plot_to_path(
-        fig, save_dir, filename, file_format=".svg", transparent=True, tight_layout=True
+        fig, save_dir, filename, file_format=".svg", transparent=True, tight_layout=False
     )
     return save_dir / f"{filename}.svg"
 
