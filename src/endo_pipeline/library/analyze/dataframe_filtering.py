@@ -176,10 +176,12 @@ def filter_dataframe_to_steady_state(
     return dataframe_steady_state
 
 
-def filter_dataframe_by_flow_condition(
+def filter_dataframe_to_flow_condition_by_timepoint(
     dataframe: pd.DataFrame, dataset_config: DatasetConfig, flow_condition: FlowCondition
 ) -> pd.DataFrame:
-    """Filter dataframe to only include timepoints corresponding to a specified flow condition.
+    """
+    Filter dataframe to only include timepoints corresponding to a specified
+    flow condition.
 
     Parameters
     ----------
@@ -233,6 +235,30 @@ def filter_dataframe_by_flow_condition(
             # if second flow condition specified, filter to timepoints after
             # the flow change frame
             return dataframe[dataframe[Column.TIMEPOINT] >= change_frame].copy()
+
+
+def filter_dataframe_by_shear_stress(dataframe: pd.DataFrame, shear_stress: float) -> pd.DataFrame:
+    """Filter dataframe to only include rows corresponding to a specified shear stress.
+
+    Parameters
+    ----------
+    dataframe
+        Dataframe of features for one dataset.
+    shear_stress
+        Shear stress value to filter by.
+
+    Returns
+    -------
+    :
+        Dataframe filtered to only include rows corresponding to the specified
+        shear stress.
+
+    """
+    # check that required columns are present
+    check_required_columns_in_dataframe(dataframe, [Column.SHEAR_STRESS])
+
+    # filter dataframe to only include rows corresponding to the specified shear stress
+    return dataframe[dataframe[Column.SHEAR_STRESS] == shear_stress].copy()
 
 
 def _get_index_from_value(val: float, bin_edges_1d: np.ndarray) -> int:

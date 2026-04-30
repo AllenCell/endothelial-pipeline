@@ -95,10 +95,11 @@ def main(
         get_shear_stress_label_for_dataset,
         load_dataset_config,
     )
-    from endo_pipeline.io import get_output_path, join_sorted_strings, load_dataframe, slugify
+    from endo_pipeline.io import get_output_path, join_sorted_strings, load_dataframe
     from endo_pipeline.library.analyze.dataframe_filtering import (
-        filter_dataframe_by_flow_condition,
+        filter_dataframe_by_shear_stress,
         filter_dataframe_by_stability,
+        filter_dataframe_to_flow_condition_by_timepoint,
         filter_dataframe_to_steady_state,
     )
     from endo_pipeline.library.analyze.dataframe_validation import (
@@ -310,19 +311,19 @@ def main(
         for flow_condition in dataset_config.flow_conditions:
             shear_stress = flow_condition.shear_stress
             fig_title = get_shear_stress_label_for_dataset(dataset_config, flow_condition)
-            filename = slugify(f"{dataset_name}_shear_{shear_stress}")
-            feature_data_for_flow_condition = filter_dataframe_by_flow_condition(
+            filename = f"{dataset_name}_shear_{flow_condition.shear_stress_bin}"
+            feature_data_for_flow_condition = filter_dataframe_to_flow_condition_by_timepoint(
                 feature_data, dataset_config, flow_condition
             )
-            vector_field_for_flow_condition = vector_field_dataframe[
-                vector_field_dataframe[ColumnName.SHEAR_STRESS] == shear_stress
-            ]
+            vector_field_for_flow_condition = filter_dataframe_by_shear_stress(
+                vector_field_dataframe, shear_stress
+            )
 
             stable_fixed_points_list = []
             if dataset_has_fixed_points:
-                fixed_points_for_flow_condition = fixed_points_dataframe[
-                    fixed_points_dataframe[ColumnName.SHEAR_STRESS] == shear_stress
-                ]
+                fixed_points_for_flow_condition = filter_dataframe_by_shear_stress(
+                    fixed_points_dataframe, shear_stress
+                )
                 stable_fixed_points = filter_dataframe_by_stability(
                     fixed_points_for_flow_condition, stability_label=StabilityLabel.STABLE
                 )

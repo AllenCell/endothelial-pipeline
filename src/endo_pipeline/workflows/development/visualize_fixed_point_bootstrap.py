@@ -66,6 +66,7 @@ def main(
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
+    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_shear_stress
     from endo_pipeline.library.visualize.diffae_features.feature_viz import (
         get_dataset_color,
         get_label_for_column,
@@ -182,9 +183,9 @@ def main(
         for flow_condition in dataset_config.flow_conditions:
             shear_stress = flow_condition.shear_stress
 
-            high_confidence_df_flow = high_confidence_df[
-                high_confidence_df[Column.SHEAR_STRESS] == shear_stress
-            ]
+            high_confidence_df_flow = filter_dataframe_by_shear_stress(
+                high_confidence_df, shear_stress
+            )
             fig, axes = plt.subplots(NROWS_2D_FLOW_FIELD, 1, figsize=FIGSIZE_2D_FLOW_FIELD)
             suptitle_str = f"{dataset_name} — Bootstrap-Validated Fixed Points\n(Detection Rate {Unicode.GEQ} {bootstrap_threshold:.2%}"
             suptitle_suffix = ")" if n_bootstrap is None else f", n bootstrap = {n_bootstrap})"

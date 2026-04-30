@@ -300,13 +300,6 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         max="max",
         type=ColumnType.CONTINUOUS,
     ),
-    Column.SegData.CENTROID_VELOCITY_UM_PER_MIN_SMOOTHED: ColumnMetadata(
-        name="Cell migration speed (smoothed)",
-        unit=f"{Unicode.MU}m/min",
-        min=0,
-        max="max",
-        type=ColumnType.CONTINUOUS,
-    ),
     Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG: ColumnMetadata(
         name="Nucleus orientation relative to migration",
         label="Cell-nuc angle rel. migration",
