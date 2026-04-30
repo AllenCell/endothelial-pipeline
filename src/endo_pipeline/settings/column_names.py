@@ -493,6 +493,9 @@ class ColumnName:
         LAG = "lag"
         """Column name for the lag at which the autocorrelation is computed."""
 
+        FEATURE = "feature"
+        """Column name for the feature for which autocorrelation is computed."""
+
         ACF_MEAN = "autocorrelation_mean"
         """Column name for the mean autocorrelation value across tracks at a given lag."""
 

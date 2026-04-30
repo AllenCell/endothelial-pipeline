@@ -316,8 +316,7 @@ def compute_crosscorrelation_and_delta_crosscorrelation_for_one_bootstrap_sample
 
     if data_feat1.shape[0] != data_feat2.shape[0]:
         logger.error(
-            "Input data arrays must have the same number of trajectories. "
-            "Got [ %s ] and [ %s ].",
+            "Input data arrays must have the same number of trajectories. Got [ %s ] and [ %s ].",
             data_feat1.shape[0],
             data_feat2.shape[0],
         )
@@ -428,6 +427,116 @@ def bootstrap_cross_correlation_confidence_intervals(
     }
 
     return confidence_interval_bounds
+
+
+def compute_autocorrelation_dataframe(
+    dataframe: pd.DataFrame,
+    column_names: list[str | Column.DiffAEData],
+    lower_percentile: float = 5,
+    upper_percentile: float = 95,
+) -> pd.DataFrame:
+    """
+    Compute autocorrelations for specified features, with bootstrap confidence
+    intervals.
+
+    For each trajectory in the dataframe (as indicated by `Column.CROP_INDEX`),
+    this method computes the autocorrelation function (ACF) for each feature
+    specified in column_names. It then saves the mean ACF across trajectories,
+    as well as the `lower_percentile` and `upper_percentile` for the ACF at each
+    lag, in a dataframe with columns for the dataset, crop index, lag, feature
+    name, mean ACF, and ACF confidence interval bounds.
+
+    Parameters
+    ----------
+    dataframe
+        DataFrame containing the time series data for one dataset, with columns
+        specified in column_names.
+    column_names
+        List of column names corresponding to the features for which to compute
+        autocorrelations.
+    lower_percentile
+        Lower percentile to compute for the ACF at each lag.
+    upper_percentile
+        Upper percentile to compute for the ACF at each lag.
+
+    """
+    # check that required columns are present in the dataframe
+    required_columns = [
+        *column_names,
+        Column.CROP_INDEX,
+        Column.DATASET,
+    ]
+    check_required_columns_in_dataframe(dataframe, required_columns)
+
+    dataset_name = dataframe[Column.DATASET].iloc[0]
+
+    # unwrap angles if polar_angle is in feat_cols
+    if Column.DiffAEData.POLAR_ANGLE in column_names:
+        for _, df_crop in dataframe.groupby(Column.CROP_INDEX):
+            dataframe.loc[df_crop.index, Column.DiffAEData.POLAR_ANGLE] = np.unwrap(
+                df_crop[Column.DiffAEData.POLAR_ANGLE], period=POLAR_ANGLE_PERIOD
+            )
+
+    # get feature data, filling missing timepoints with NaNs to ensure proper
+    # alignment for correlation calculations
+    t_min = dataframe[Column.TIMEPOINT].min()
+    t_max = dataframe[Column.TIMEPOINT].max()
+    all_timepoints = np.arange(t_min, t_max + 1)
+
+    # fill missing timepoints with NaN values for each crop to ensure
+    # consistent time axis across crops when computing population
+    # variance and cumulative variance per crop, which require a 2D
+    # array of shape (num_crops, num_timepoints)
+    data_filled_list = []
+    for _, data_crop in dataframe.groupby(Column.CROP_INDEX):
+        # sort by timepoint to ensure correct order before reindexing
+        data_crop = data_crop.sort_values(by=Column.TIMEPOINT)
+
+        # reindex dataframe to include all timepoints in full range
+        data_crop_filled = data_crop.set_index(Column.TIMEPOINT).reindex(all_timepoints)
+
+        # reset index to restore timepoint column
+        data_crop_filled = data_crop_filled.reset_index()
+
+        # append to list
+        data_filled_list.append(data_crop_filled)
+
+    dataframe_filled = pd.concat(data_filled_list, ignore_index=True)
+
+    num_feats = len(column_names)
+    num_timepoints = len(all_timepoints)
+    # make sure lags are symmetric around zero
+    max_lags = num_timepoints // NUM_TIMEPOINT_FRAC
+    lags = np.arange(-max_lags, max_lags + 1)
+    num_lags = len(lags)
+
+    # dataframe as array of shape (num_crops, num_timepoints, num_feats) for the
+    # current feature, with missing timepoints filled with NaNs
+    feats = dataframe_filled[column_names].to_numpy().reshape(-1, num_timepoints, num_feats)
+    num_crops = feats.shape[0]
+    acf_per_crop = np.zeros((num_crops, num_lags, num_feats))
+    acf_dataframe_list = []
+    for i in range(num_feats):
+        for crop_index in range(num_crops):
+            acf_per_crop[crop_index, :, i] = autocorrelation_function(feats, i)
+        acf_mean = acf_per_crop[:, :, i].mean(axis=0)
+        acf_lower_bound = np.percentile(acf_per_crop[:, :, i], lower_percentile, axis=0)
+        acf_upper_bound = np.percentile(acf_per_crop[:, :, i], upper_percentile, axis=0)
+        acf_dataframe_list.append(
+            pd.DataFrame(
+                {
+                    Column.DATASET: dataset_name,
+                    Column.AutoCorrelation.FEATURE: column_names[i],
+                    Column.AutoCorrelation.LAG: lags,
+                    Column.AutoCorrelation.ACF_MEAN: acf_mean,
+                    Column.AutoCorrelation.ACF_LOWER_PERCENTILE: acf_lower_bound,
+                    Column.AutoCorrelation.ACF_UPPER_PERCENTILE: acf_upper_bound,
+                }
+            )
+        )
+
+    acf_dataframe = pd.concat(acf_dataframe_list, ignore_index=True)
+    return acf_dataframe
 
 
 def compute_correlations_for_one_dataset(
