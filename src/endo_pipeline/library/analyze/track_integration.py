@@ -1729,7 +1729,8 @@ def build_fpt_line_fit_results_df(
 ) -> pd.DataFrame:
     """
     Build a dataframe of line-fit results comparing grid-based and track-based first passage
-    times using both ordinary least squares (OLS) and orthogonal distance regression (ODR).
+    times using weighted orthogonal distance regression (ODR).
+    The weights used are the inverse variances of the first passage times in each bin.
 
     Parameters
     ----------
@@ -1751,6 +1752,7 @@ def build_fpt_line_fit_results_df(
     metric = "50%" if metric_to_fit == "median" else metric_to_fit
     suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
 
+    # perform a linear regression comparing the grid and tracked metrics for each fixed point
     line_fit_df = (
         fpt_stats_df_no_nan.groupby(
             [
@@ -1780,6 +1782,7 @@ def build_fpt_line_fit_results_df(
         .reset_index()
     )
 
+    # perform a Pearson correlation test comparing the grid and tracked metrics for each fixed point
     pearson_df = (
         fpt_stats_df_no_nan.groupby(
             [

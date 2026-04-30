@@ -148,15 +148,6 @@ def main(
                 out_dir=out_dir_dataset,
                 metric_to_plot=metric_to_plot,
             )
-            plot_first_passage_time_correlations(
-                dataset_name=dataset_name,
-                first_passage_time_stats_df=grp_df,
-                line_fit_df=line_fit_result,
-                fixed_point_id=fp_idx,
-                fixed_point_stability=fp_stability,
-                out_dir=out_dir_dataset,
-                metric_to_plot=metric_to_plot,
-            )
 
             # histograms don't really work for 4D data (theta, r, rho, and FPT ratio),
             # so we will use a 3D scatter with color-coded points instead
@@ -236,17 +227,9 @@ def main(
         if len(dataset_names) > 2:
             # make a summary plot in both the regular output folder and also the figure output folder
             filename = f"FPT_correlation_summary_{metric_to_plot}"
-            plot_first_passage_time_correlation_summary(
-                first_passage_time_correlation_summary_df=line_fit_df,
-                out_dir=out_dir,
-                filename=filename,
-            )
+            plot_first_passage_time_correlation_summary(line_fit_df, out_dir, filename)
             if metric_to_plot == "mean":
-                plot_first_passage_time_correlation_summary(
-                    first_passage_time_correlation_summary_df=line_fit_df,
-                    out_dir=out_dir_figure,
-                    filename=filename,
-                )
+                plot_first_passage_time_correlation_summary(line_fit_df, out_dir_figure, filename)
 
 
 if __name__ == "__main__":
