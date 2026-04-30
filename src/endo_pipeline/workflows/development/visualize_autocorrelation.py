@@ -137,9 +137,8 @@ def main(
                 acf_lb = df_feat[Column.AutoCorrelation.ACF_LOWER_PERCENTILE].to_numpy()
                 acf_ub = df_feat[Column.AutoCorrelation.ACF_UPPER_PERCENTILE].to_numpy()
 
-                ax.plot(lags_hours, acf_mean, linewidth=2)
-                ax.fill_between(lags_hours, acf_lb, acf_ub, alpha=0.2)
-                ax.axhline(0, color="gray", linewidth=0.8, linestyle="--")
+                ax.plot(lags_hours, acf_mean, "k-", linewidth=2)
+                ax.fill_between(lags_hours, acf_lb, acf_ub, color="gray", alpha=0.2)
                 ax.set_xlabel("Lag (hours)")
                 ax.set_ylabel("ACF")
 
@@ -150,8 +149,9 @@ def main(
                 ax.plot(
                     lags_hours,
                     exponential_decay(lags_hours, *exp_fit),
+                    color="blue",
                     linestyle="--",
-                    linewidth=1.5,
+                    linewidth=1.25,
                     label="exp fit",
                 )
                 ax.set_title(
