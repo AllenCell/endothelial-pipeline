@@ -30,12 +30,19 @@ def main(
 
     """
     import logging
+    from typing import cast
 
     import pandas as pd
     from tqdm import tqdm
 
+    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import get_output_path, load_dataframe, make_name_unique
+    from endo_pipeline.io import (
+        get_output_path,
+        join_sorted_strings,
+        load_dataframe,
+        make_name_unique,
+    )
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_track_length,
         filter_dataframe_to_flow_condition_by_timepoint,
@@ -47,7 +54,13 @@ def main(
     from endo_pipeline.library.analyze.numerics.correlations import (
         compute_autocorrelation_dataframe,
     )
-    from endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.manifests import (
+        build_dataframe_location_from_path,
+        create_dataframe_manifest,
+        load_dataframe_manifest,
+        save_dataframe_manifest,
+    )
+    from endo_pipeline.settings.autocorrelations import AUTOCORRELATION_DATAFRAME_MANIFEST_PREFIX
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
         DYNAMICS_COLUMN_NAMES,
@@ -69,17 +82,43 @@ def main(
 
     dataframe_savedir = get_output_path(__file__, crop_pattern)
 
-    # Default list of datasets if not provided. Otherwise, use provided list.
-    dataset_names = datasets or get_datasets_in_collection("timelapse")
-
     # Load dataframe manifest for the features to be used in correlation analysis.
     base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
     feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
+    columns_str = join_sorted_strings(cast(list[str], column_names))
+    demo_suffix = "_demo" if DEMO_MODE else ""
+    autocorrelation_manifest_name = (
+        f"{AUTOCORRELATION_DATAFRAME_MANIFEST_PREFIX}_{columns_str}_{base_name}{demo_suffix}"
+    )
+    autocorrelation_dataframe_manifest = create_dataframe_manifest(
+        autocorrelation_manifest_name, workflow_name=__file__
+    )
+    # add parameters to dataframe manifest for traceability
+    column_names_yaml_safe = [f"{column}" for column in column_names]
+    autocorrelation_dataframe_manifest.parameters = {
+        "model_manifest_name": DEFAULT_MODEL_MANIFEST_NAME,
+        "run_name": DEFAULT_MODEL_RUN_NAME,
+        "crop_pattern": crop_pattern,
+        "columns": column_names_yaml_safe,
+    }
+    save_dataframe_manifest(autocorrelation_dataframe_manifest)
+
+    # Default list of datasets if not provided. Filter by datasets available in
+    # the manifest.
+    dataset_names = datasets or get_datasets_in_collection("timelapse")
+    if DEMO_MODE:
+        logger.warning(
+            "DEMO MODE: Processing no more than two of the provided datasets for quick testing."
+        )
+        # take min of the number of datasets provided and 2, to limit to at most
+        # 2 datasets in DEMO_MODE for quick visualization (i.e., avoid error if
+        # only 1 dataset is provided)
+        num_datasets = min(len(dataset_names), 2)
+        dataset_names = dataset_names[:num_datasets]
+
     for dataset_name in tqdm(dataset_names):
-        # try to get dataframe for the given dataset
-        # if it does not exist, skip this dataset, return dict as is
         if dataset_name not in feature_dataframe_manifest.locations:
             logger.warning(
                 "Dataset [ %s ] not found in the manifest, skipping for this workflow.",
@@ -119,15 +158,23 @@ def main(
             )
             autocorrelation_dataframe_list.append(autocorrelation_dataframe)
 
+        # concatenate autocorrelation dataframes for each flow condition, save
+        # to parquet, and update manifest
         autocorrelations_for_dataset = pd.concat(autocorrelation_dataframe_list, ignore_index=True)
         autocorrelation_file_name = f"autocorrelation_{dataset_name}.parquet"
         autocorrelation_save_path = make_name_unique(dataframe_savedir / autocorrelation_file_name)
         autocorrelations_for_dataset.to_parquet(autocorrelation_save_path)
+
         logger.info(
             "Saved autocorrelation dataframe for dataset [ %s ] to [ %s ].",
             dataset_name,
             autocorrelation_save_path,
         )
+
+        autocorrelation_dataframe_manifest.locations[dataset_name] = (
+            build_dataframe_location_from_path(autocorrelation_save_path)
+        )
+        save_dataframe_manifest(autocorrelation_dataframe_manifest)
 
 
 if __name__ == "__main__":
