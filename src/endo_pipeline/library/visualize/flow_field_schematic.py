@@ -425,7 +425,7 @@ def make_autocorrelation_panel(save_dir: Path) -> Path:
     ax[0].set_title(f"Autocorrelation function in {column_label}", fontsize=FONTSIZE_SMALL)
     ax[0].legend(loc="upper right", fontsize=FONTSIZE_XSMALL)
 
-    r_squared: dict[ColumnNameType, list[float]] = {key: [] for key in column_names}
+    r_squared_dict: dict[ColumnNameType, list[float]] = {key: [] for key in column_names}
     for dataset_name in list(autocorrelation_manifest.locations.keys()):
         acf_dataset = load_dataframe(autocorrelation_manifest.locations[dataset_name])
         acf_dataset_positive = acf_dataset[acf_dataset[Column.AutoCorrelation.LAG] > 0]
@@ -439,10 +439,10 @@ def make_autocorrelation_panel(save_dir: Path) -> Path:
             r2_value = fit_exp_decay_and_get_relaxation_timescale(
                 acf_mean, lag_hours, exp_decay_func="exponential_decay"
             )[-1]
-            r_squared[column_name].append(r2_value)
+            r_squared_dict[column_name].append(r2_value)
 
     for i, column_name in enumerate(column_names):
-        r2_values = r_squared[column_name]
+        r2_values = r_squared_dict[column_name]
         jitter = rng.uniform(-0.1, 0.1, size=len(r2_values))
         ax[1].scatter(
             i + jitter,
