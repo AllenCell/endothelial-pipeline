@@ -72,18 +72,6 @@ def main(
     # Default list of datasets if not provided. Otherwise, use provided list.
     dataset_names = datasets or get_datasets_in_collection("timelapse")
 
-    # drop any no flow datasets from the list of datasets
-    for dataset_name in dataset_names:
-        dataset_config = load_dataset_config(dataset_name)
-        flow_conditions = dataset_config.flow_conditions
-        if int(flow_conditions[0].shear_stress) == 0:
-            logger.warning(
-                "Dataset [ %s ] has no flow conditions (shear stress = 0). "
-                "Skipping this dataset for correlation analysis.",
-                dataset_name,
-            )
-            dataset_names.remove(dataset_name)
-
     # Load dataframe manifest for the features to be used in correlation analysis.
     base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
     feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
