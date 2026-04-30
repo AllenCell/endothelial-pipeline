@@ -433,7 +433,7 @@ def make_autocorrelation_panel(save_dir: Path) -> Path:
             acf_subset = acf_dataset_positive[
                 (acf_dataset_positive[Column.AutoCorrelation.FEATURE] == column_name)
             ]
-            lag_hours = acf_subset[Column.AutoCorrelation.LAG] * TIME_STEP_IN_HOURS
+            lag_hours = acf_subset[Column.AutoCorrelation.LAG].to_numpy() * TIME_STEP_IN_HOURS
             acf_mean = acf_subset[Column.AutoCorrelation.ACF_MEAN].to_numpy()
             # fit exponential, return R^2
             r2_value = fit_exp_decay_and_get_relaxation_timescale(
