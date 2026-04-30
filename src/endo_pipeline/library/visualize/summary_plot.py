@@ -218,7 +218,7 @@ def plot_fixed_points_vs_shear_stress(
         # Numeric x-axis: position by shear stress value, jittered by dataset
         unique_shear = sorted(df_fp["flow_condition_shear_stress_bin"].unique())
         tick_positions = unique_shear
-        tick_labels = [str(round(s)) for s in unique_shear]
+        tick_labels = list(map(str, unique_shear))
         jitter_map = _build_jitter_map(df_fp, jitter_width=jitter_width)
         row_to_x = lambda row: row[
             "flow_condition_shear_stress_bin"
@@ -227,7 +227,7 @@ def plot_fixed_points_vs_shear_stress(
         )
     elif x_axis_mode == "shear_stress_categorical":
         # Evenly-spaced categorical ticks for each unique shear stress value
-        df_fp["_ss_label"] = df_fp["flow_condition_shear_stress_bin"].apply(lambda s: str(round(s)))
+        df_fp["_ss_label"] = df_fp["flow_condition_shear_stress_bin"].transform(str)
         row_to_x, tick_positions, tick_labels = _build_categorical_axis(
             df_fp, "_ss_label", jitter_width=jitter_width, tick_spacing=0.5
         )
@@ -524,9 +524,6 @@ def plot_cross_dataset_summaries(
 
                 high_confidence_df["n_shear_stress_conditions"] = len(
                     dataset_config.flow_conditions
-                )
-                high_confidence_df["flow_condition_shear_stress"] = round(
-                    flow_condition.shear_stress
                 )
                 high_confidence_df["flow_condition_shear_stress_bin"] = (
                     flow_condition.shear_stress_bin
