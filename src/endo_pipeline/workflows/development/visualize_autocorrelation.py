@@ -169,6 +169,7 @@ def main(
                     {
                         "feature": feature,
                         "relaxation_time": relaxation_time,
+                        "r_squared": r_squared,
                         "shear_stress_numeric": flow_condition.shear_stress_bin,
                         "label": fig_title,
                         "color": dataset_color_map[dataset_name],
@@ -200,7 +201,15 @@ def main(
 
     df_relaxation = pd.DataFrame(
         relaxation_rows,
-        columns=["feature", "relaxation_time", "shear_stress_numeric", "label", "color", "dataset"],
+        columns=[
+            "feature",
+            "relaxation_time",
+            "r_squared",
+            "shear_stress_numeric",
+            "label",
+            "color",
+            "dataset",
+        ],
     )
 
     # Plot a histogram of relaxation times for each feature across all datasets.
@@ -263,6 +272,36 @@ def main(
         )
         plt.close(fig_summary)
         logger.info("Saved cross-dataset relaxation time summary figure.")
+
+    # Scatter plot of R² values across all datasets, one column per feature with x-axis jitter.
+    if not df_relaxation.empty:
+        features_r2 = df_relaxation["feature"].unique().tolist()
+        fig_r2, ax_r2 = plt.subplots(figsize=(max(6, 2.5 * len(features_r2)), 5))
+        rng = np.random.default_rng(seed=0)
+        for feat_idx, feature in enumerate(features_r2):
+            r2_values = df_relaxation.loc[
+                df_relaxation["feature"] == feature, "r_squared"
+            ].to_numpy()
+            jitter = rng.uniform(-0.075, 0.075, size=len(r2_values))
+            ax_r2.scatter(
+                feat_idx + jitter,
+                r2_values,
+                c="black",
+                s=40,
+                alpha=0.3,
+                zorder=3,
+            )
+        ax_r2.set_xticks(range(len(features_r2)))
+        ax_r2.set_xticklabels(
+            [get_label_for_column(f) for f in features_r2], rotation=30, ha="right"
+        )
+        ax_r2.set_ylabel(r"$R^2$")
+        ax_r2.set_title(r"Exponential Fit $R^2$ — All Datasets", fontsize=12)
+        ax_r2.set_ylim(0.98, 1.005)
+        fig_r2.tight_layout()
+        save_plot_to_path(fig_r2, output_path, "acf_r2_scatter", show_and_close=False)
+        plt.close(fig_r2)
+        logger.info("Saved R² scatter plot.")
 
 
 if __name__ == "__main__":
