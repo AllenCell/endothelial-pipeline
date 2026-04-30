@@ -1479,9 +1479,9 @@ def plot_first_passage_time_correlation_summary(
     if corr_type == "ols":
         ax.set_ylim(0, 1)
     elif corr_type == "odr":
-        # use the larger of 1 or the current x axis max for x axis upper limit
+        # use the larger of 1 or the current y axis max for y axis upper limit
         # (1 has a special meaning for the reduced chi-squared metric)
-        ax.set_ylim(0, max(1, ax.get_xlim()[1]))
+        ax.set_ylim(0, max(1, ax.get_ylim()[1]))
 
     ax.set_ylabel(corr_metric_label, fontsize=FONTSIZE_SMALL)
     plt.yticks(fontsize=FONTSIZE_SMALL)
