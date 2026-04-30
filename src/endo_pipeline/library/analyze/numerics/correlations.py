@@ -10,8 +10,8 @@ import pandas as pd
 from scipy.optimize import curve_fit
 
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
+from endo_pipeline.settings.autocorrelations import MAX_LAG_INTEGRATE, NUM_TIMEPOINT_FRAC
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.cross_correlations import MAX_LAG_INTEGRATE, NUM_TIMEPOINT_FRAC
 from endo_pipeline.settings.dynamics_workflows import POLAR_ANGLE_PERIOD, RESCALE_THETA
 
 logger = logging.getLogger(__name__)
