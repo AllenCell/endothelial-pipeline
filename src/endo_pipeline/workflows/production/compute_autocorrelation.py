@@ -5,6 +5,7 @@ def main(
     crop_pattern: CropPattern = "grid",
     datasets: Datasets | None = None,
     columns: StrList | None = None,
+    upload_to_fms: bool = False,
 ) -> None:
     """
     Run auto and cross correlation analysis on DiffAE feature time series data.
@@ -27,6 +28,10 @@ def main(
         Specific list of datasets or dataset collections to use in workflow.
     columns
         Specific list of feature column names to use for correlation analysis.
+    upload_to_fms
+        If True, will upload resulting autocorrelation dataframes to FMS and
+        update manifest with FMS locations. If False, will only save dataframes
+        locally and update manifest with local paths.
 
     """
     import logging
@@ -38,10 +43,12 @@ def main(
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import (
+        build_fms_annotations,
         get_output_path,
         join_sorted_strings,
         load_dataframe,
         make_name_unique,
+        upload_file_to_fms,
     )
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_track_length,
@@ -55,12 +62,16 @@ def main(
         compute_autocorrelation_dataframe,
     )
     from endo_pipeline.manifests import (
+        DataframeLocation,
         build_dataframe_location_from_path,
         create_dataframe_manifest,
         load_dataframe_manifest,
         save_dataframe_manifest,
     )
-    from endo_pipeline.settings.autocorrelations import AUTOCORRELATION_DATAFRAME_MANIFEST_PREFIX
+    from endo_pipeline.settings.autocorrelations import (
+        AUTOCORRELATION_DATAFRAME_MANIFEST_PREFIX,
+        AUTOCORRELATION_FMS_ANNOTATION_NOTES,
+    )
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
         DYNAMICS_COLUMN_NAMES,
@@ -171,9 +182,25 @@ def main(
             autocorrelation_save_path,
         )
 
-        autocorrelation_dataframe_manifest.locations[dataset_name] = (
-            build_dataframe_location_from_path(autocorrelation_save_path)
-        )
+        if upload_to_fms:
+            autocorrelation_annotations = build_fms_annotations(
+                dataset_config,
+                model_manifest=DEFAULT_MODEL_MANIFEST_NAME,
+                run_name=DEFAULT_MODEL_RUN_NAME,
+                additional_notes=AUTOCORRELATION_FMS_ANNOTATION_NOTES,
+            )
+            autocorrelation_fmsid = upload_file_to_fms(
+                autocorrelation_save_path,
+                annotations=autocorrelation_annotations,
+                file_type="parquet",
+            )
+            autocorrelation_dataframe_manifest.locations[dataset_name] = DataframeLocation(
+                fmsid=autocorrelation_fmsid
+            )
+        else:
+            autocorrelation_dataframe_manifest.locations[dataset_name] = (
+                build_dataframe_location_from_path(autocorrelation_save_path)
+            )
         save_dataframe_manifest(autocorrelation_dataframe_manifest)
 
 
