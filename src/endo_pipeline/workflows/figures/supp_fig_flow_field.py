@@ -33,7 +33,7 @@ def main() -> None:
             letter="B",
             path=kernel_convolution_panel_path,
             x_position=0.0,
-            y_position=2.275,
+            y_position=2.0,
             x_offset=0.075,
             y_offset=0.65,
         ),
