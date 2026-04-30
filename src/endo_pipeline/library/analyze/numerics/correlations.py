@@ -537,7 +537,9 @@ def compute_autocorrelation_dataframe(
     acf_dataframe_list = []
     for i in range(num_feats):
         for crop_index in range(num_crops):
-            acf_per_crop[crop_index, :, i] = autocorrelation_function(feats, i)
+            acf_per_crop[crop_index, :, i] = autocorrelation_function(
+                feats[crop_index : crop_index + 1], i
+            )
         acf_mean = np.nanmean(acf_per_crop[:, :, i], axis=0)
         acf_lower_bound = np.nanpercentile(acf_per_crop[:, :, i], lower_percentile, axis=0)
         acf_upper_bound = np.nanpercentile(acf_per_crop[:, :, i], upper_percentile, axis=0)
