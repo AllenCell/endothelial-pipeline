@@ -1,12 +1,10 @@
-from typing import Literal
-
-from endo_pipeline.cli import Datasets, StrList
+from endo_pipeline.cli import CropPattern, Datasets, StrList
 
 
 def main(
+    crop_pattern: CropPattern = "grid",
     datasets: Datasets | None = None,
     columns: StrList | None = None,
-    crop_pattern: Literal["grid", "tracked"] = "grid",
 ) -> None:
     """
     Run auto and cross correlation analysis on DiffAE feature time series data.
@@ -17,27 +15,18 @@ def main(
         - model_manifest_name: DEFAULT_MODEL_MANIFEST_NAME
         - run_name: DEFAULT_MODEL_RUN_NAME
         - crop_pattern: "grid"
-        - datasets: all datasets in "3d_flow_field_analysis" collection except
-          for no-flow datasets (shear stress = 0)
-        - columns: first NUM_PCS_TO_ANALYZE DiffAE PC features and all "dynamics
-          analyses" features (DYNAMICS_COLUMN_NAMES)
+        - datasets: all datasets in "timelapse" collection except for no-flow
+          datasets (shear stress = 0)
+        - columns: "dynamics analyses" features (DYNAMICS_COLUMN_NAMES)
 
     Parameters
     ----------
-    datasets
-        Optional, specific list of datasets or dataset collections to use in
-        workflow.
-    columns
-        Optional, specific list of feature column names to use for correlation
-        analysis. If not provided, will use all three "dynamics analyses" features
-        polar theta, polar r, and rho.
-    bootstrap_samples
-        Optional, number of bootstrap samples to use for correlation analysis.
     crop_pattern
-        Optional, crop pattern of the features to analyze. Must be either "grid" or "tracked".
-    max_cores
-        Optional, maximum number of CPU cores to use for parallel processing of bootstrap
-        samples. If None, will use all available cores.
+        Crop pattern of the features to analyze.
+    datasets
+        Specific list of datasets or dataset collections to use in workflow.
+    columns
+        Specific list of feature column names to use for correlation analysis.
 
     """
     import logging
