@@ -532,8 +532,6 @@ def plot_cross_dataset_summaries(
                     flow_condition.shear_stress_bin
                 )
 
-                print(round(flow_condition.shear_stress), flow_condition.shear_stress_bin)
-
                 if x_axis_mode == "cell_line":
                     cell_line_label = CELL_LINE_LABEL_MAP.get(
                         dataset_config.cell_lines[0], dataset_config.cell_lines[0]
