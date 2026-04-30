@@ -214,13 +214,13 @@ def get_diffae_feats_liveseg_feats_merged_table(
         # filter the merged table
         merged_feats_df = merged_feats_df[merged_feats_df[Column.SegDataFilters.IS_INCLUDED]]
 
+        # Calculate derived dynamic features
+        merged_feats_df = calculate_derived_data_dynamics_dependent(merged_feats_df)
+
         # remove any rows that were not evaluated by the model and thus have no model_manifest_name
         merged_feats_df.dropna(
             axis="index", how="any", subset=Column.DiffAEData.MODEL_MANIFEST, inplace=True
         )
-
-        # Calculate derived dynamic features
-        merged_feats_df = calculate_derived_data_dynamics_dependent(merged_feats_df)
 
         # remove columns that were kept for workflow validations
         default_cols_to_drop = [
