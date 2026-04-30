@@ -400,7 +400,7 @@ def make_autocorrelation_panel(save_dir: Path) -> Path:
     acf_polar_r = acf_df_positive[
         acf_df_positive[Column.AutoCorrelation.FEATURE] == column_for_plot
     ]
-    lag_hours = acf_polar_r[Column.AutoCorrelation.LAG] * TIME_STEP_IN_HOURS
+    lag_hours = acf_polar_r[Column.AutoCorrelation.LAG].to_numpy() * TIME_STEP_IN_HOURS
     acf_mean = acf_polar_r[Column.AutoCorrelation.ACF_MEAN].to_numpy()
     acf_lb = acf_polar_r[Column.AutoCorrelation.ACF_LOWER_PERCENTILE].to_numpy()
     acf_ub = acf_polar_r[Column.AutoCorrelation.ACF_UPPER_PERCENTILE].to_numpy()
