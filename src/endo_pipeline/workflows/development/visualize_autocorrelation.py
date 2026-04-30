@@ -277,7 +277,7 @@ def main(
     # Scatter plot of R² values across all datasets, one column per feature with x-axis jitter.
     if not df_relaxation.empty:
         features_r2 = df_relaxation["feature"].unique().tolist()
-        fig_r2, ax_r2 = plt.subplots(figsize=(max(6, 2.5 * len(features_r2)), 5))
+        fig_r2, ax_r2 = plt.subplots(figsize=(max(6, 1.5 * len(features_r2)), 5))
         rng = np.random.default_rng(seed=0)
         for feat_idx, feature in enumerate(features_r2):
             r2_values = df_relaxation.loc[
