@@ -6,9 +6,7 @@ from endo_pipeline.cli import Datasets, StrList
 def main(
     datasets: Datasets | None = None,
     columns: StrList | None = None,
-    bootstrap_samples: int | None = 1000,
     crop_pattern: Literal["grid", "tracked"] = "grid",
-    max_cores: int | None = None,
 ) -> None:
     """
     Run auto and cross correlation analysis on DiffAE feature time series data.
@@ -44,11 +42,11 @@ def main(
     """
     import logging
 
+    import pandas as pd
     from tqdm import tqdm
 
-    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import load_dataframe
+    from endo_pipeline.io import get_output_path, load_dataframe, make_name_unique
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_track_length,
         filter_dataframe_to_flow_condition_by_timepoint,
@@ -58,7 +56,7 @@ def main(
         add_track_duration_to_dataframe,
     )
     from endo_pipeline.library.analyze.numerics.correlations import (
-        compute_correlations_for_one_dataset,
+        compute_autocorrelation_dataframe,
     )
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
@@ -85,6 +83,8 @@ def main(
         *column_names,
     ]
 
+    dataframe_savedir = get_output_path(__file__, crop_pattern)
+
     # Default list of datasets if not provided. Otherwise, use provided list.
     dataset_names = datasets or get_datasets_in_collection("timelapse")
 
@@ -105,16 +105,6 @@ def main(
     feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
-    # if demo mode, limit bootstrap samples to 50 if > 50
-    if DEMO_MODE and bootstrap_samples is not None:
-        if bootstrap_samples > 50:
-            logger.warning(
-                "Running workflow in demo mode, reducing bootstrap samples from [ %s ] to 50.",
-                bootstrap_samples,
-            )
-            bootstrap_samples = 50
-
-    correlation_dict_all: dict = {}
     for dataset_name in tqdm(dataset_names):
         # try to get dataframe for the given dataset
         # if it does not exist, skip this dataset, return dict as is
@@ -130,11 +120,18 @@ def main(
         df = df_delayed[columns_to_compute].compute()
         dataset_config = load_dataset_config(dataset_name)
         df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
+
+        # process on a per-flow condition basis
+        autocorrelation_dataframe_list = []
         for flow_condition in dataset_config.flow_conditions:
             shear_stress = flow_condition.shear_stress
             df_flow = filter_dataframe_to_flow_condition_by_timepoint(
                 df_steady_state, dataset_config, flow_condition
             )
+            metadata_dict = {
+                Column.DATASET: dataset_name,
+                Column.SHEAR_STRESS: shear_stress,
+            }
             steady_state_duration = (
                 df_flow[Column.TIMEPOINT].max() - df_flow[Column.TIMEPOINT].min()
             )
@@ -145,10 +142,20 @@ def main(
             df_flow = filter_dataframe_by_track_length(
                 dataframe=df_flow, minimum_track_length=track_duration_filter
             )
-            correlation_dict = compute_correlations_for_one_dataset(
-                df_flow, column_names, bootstrap_samples, max_cores=max_cores
+            autocorrelation_dataframe = compute_autocorrelation_dataframe(
+                df_flow, column_names, metadata_dict=metadata_dict
             )
-            correlation_dict_all[f"{dataset_name}_{shear_stress}"] = correlation_dict
+            autocorrelation_dataframe_list.append(autocorrelation_dataframe)
+
+        autocorrelations_for_dataset = pd.concat(autocorrelation_dataframe_list, ignore_index=True)
+        autocorrelation_file_name = f"autocorrelation_{dataset_name}.parquet"
+        autocorrelation_save_path = make_name_unique(dataframe_savedir / autocorrelation_file_name)
+        autocorrelations_for_dataset.to_parquet(autocorrelation_save_path)
+        logger.info(
+            "Saved autocorrelation dataframe for dataset [ %s ] to [ %s ].",
+            dataset_name,
+            autocorrelation_save_path,
+        )
 
 
 if __name__ == "__main__":
