@@ -432,8 +432,9 @@ def bootstrap_cross_correlation_confidence_intervals(
 def compute_autocorrelation_dataframe(
     dataframe: pd.DataFrame,
     column_names: list[str | Column.DiffAEData],
-    lower_percentile: float = 5,
-    upper_percentile: float = 95,
+    lower_percentile: float = 5.0,
+    upper_percentile: float = 95.0,
+    metadata_dict: dict[str, str | float] | None = None,
 ) -> pd.DataFrame:
     """
     Compute autocorrelations for specified features, with bootstrap confidence
@@ -467,8 +468,6 @@ def compute_autocorrelation_dataframe(
         Column.DATASET,
     ]
     check_required_columns_in_dataframe(dataframe, required_columns)
-
-    dataset_name = dataframe[Column.DATASET].iloc[0]
 
     # unwrap angles if polar_angle is in feat_cols
     if Column.DiffAEData.POLAR_ANGLE in column_names:
@@ -525,7 +524,6 @@ def compute_autocorrelation_dataframe(
         acf_dataframe_list.append(
             pd.DataFrame(
                 {
-                    Column.DATASET: dataset_name,
                     Column.AutoCorrelation.FEATURE: column_names[i],
                     Column.AutoCorrelation.LAG: lags,
                     Column.AutoCorrelation.ACF_MEAN: acf_mean,
@@ -536,6 +534,13 @@ def compute_autocorrelation_dataframe(
         )
 
     acf_dataframe = pd.concat(acf_dataframe_list, ignore_index=True)
+
+    # add specified metadata columns to the dataframe (e.g. dataset name, shear
+    # stress)
+    if metadata_dict is not None:
+        for key in metadata_dict:
+            acf_dataframe[key] = metadata_dict[key]
+
     return acf_dataframe
 
 
