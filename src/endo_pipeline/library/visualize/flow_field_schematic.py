@@ -261,6 +261,7 @@ def make_real_image_panel(
         processed_images,
         max_cols=len(processed_images),
         max_rows=1,
+        gridspec_kwargs={"wspace": 0},
         fig_kwargs={"figsize": contact_figsize, "layout": "constrained"},
     )
 
@@ -449,8 +450,10 @@ def _add_colorbar_for_quadmesh(
 ) -> None:
     """Add a colorbar for a given QuadMesh plot."""
     divider = make_axes_locatable(axes)
-    cax = divider.append_axes("right", size="5%", pad=pad)
-    fig.colorbar(quadmesh, cax=cax, label=label)
+    cax = divider.append_axes("top", size="5%", pad=pad)
+    fig.colorbar(quadmesh, cax=cax, label=label, orientation="horizontal")
+    cax.xaxis.set_ticks_position("top")
+    cax.xaxis.set_label_position("top")
 
 
 def _make_weighted_displacement_histogram(
