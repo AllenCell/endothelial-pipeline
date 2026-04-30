@@ -1622,8 +1622,14 @@ def compute_first_passage_times_one_dataset(
         first_passage_time_stats_df[fp_dynamics_cols] = fp_row[list(DYNAMICS_COLUMN_NAMES)]
 
         # add the bin sizes and bin limits to the dataframes for transparency
-        first_passage_time_stats_df[Column.VectorField.BIN_SIZES] = [bin_sizes]
-        first_passage_time_stats_df[Column.VectorField.BIN_LIMITS] = [bin_limits]
+        for col in DYNAMICS_COLUMN_NAMES:
+            first_passage_time_stats_df = first_passage_time_stats_df.assign(
+                **{
+                    f"{Column.VectorField.BIN_SIZE_PREFIX}{col}": bin_sizes[col],
+                    f"{Column.VectorField.BIN_LIMITS_PREFIX}{col}": [bin_limits[col]]
+                    * len(first_passage_time_stats_df),
+                }
+            )
 
         fpt_stats_df_list.append(first_passage_time_stats_df)
         param_sweep_df_list.append(parameter_sweep_df)
