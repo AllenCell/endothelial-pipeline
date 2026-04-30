@@ -425,15 +425,15 @@ def make_autocorrelation_panel(save_dir: Path) -> Path:
         for column_name in column_names:
             acf_subset = acf_df_positive[
                 (acf_df_positive[Column.AutoCorrelation.FEATURE] == column_name)
-                & (acf_df_positive[Column.AutoCorrelation.DATASET_NAME] == dataset_name)
+                & (acf_df_positive[Column.DATASET] == dataset_name)
             ]
             lag_hours = acf_subset[Column.AutoCorrelation.LAG] * TIME_STEP_IN_HOURS
             acf_mean = acf_subset[Column.AutoCorrelation.ACF_MEAN].to_numpy()
             # fit exponential, return R^2
-            r_squared = fit_exp_decay_and_get_relaxation_timescale(
+            r2_value = fit_exp_decay_and_get_relaxation_timescale(
                 acf_mean, lag_hours, exp_decay_func="exponential_decay"
             )[-1]
-            r_squared[column_name].append(r_squared)
+            r_squared[column_name].append(r2_value)
 
     for i, column_name in enumerate(column_names):
         r2_values = r_squared[column_name]
