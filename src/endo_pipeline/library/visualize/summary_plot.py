@@ -12,6 +12,7 @@ import pandas as pd
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import (
+    filter_dataframe_by_shear_stress,
     filter_dataframe_by_stability,
     filter_dataframe_to_flow_condition_by_timepoint,
     filter_dataframe_to_steady_state,
@@ -32,6 +33,7 @@ from endo_pipeline.settings.dynamics_workflows import (
     METADATA_COLUMNS_TO_KEEP,
 )
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
 from endo_pipeline.settings.summary_plot import (
     CELL_LINE_LABEL_MAP,
@@ -188,7 +190,7 @@ def plot_fixed_points_vs_shear_stress(
         The matplotlib figure object containing the plot.
     """
     if stable_only:
-        df_fp = filter_dataframe_by_stability(df_fp, stabilities=["stable"])
+        df_fp = filter_dataframe_by_stability(df_fp, stability_label=StabilityLabel.STABLE)
     else:
         legend_handles = make_legend_handles_for_fixed_pts(
             fpt_stabilities=df_fp[ColumnName.VectorField.STABILITY].unique().tolist(),
@@ -230,9 +232,8 @@ def plot_fixed_points_vs_shear_stress(
         )
     elif x_axis_mode == "shear_stress_categorical":
         # Evenly-spaced categorical ticks for each unique shear stress value
-        df_fp["ss_label"] = df_fp["flow_condition_shear_stress_bin"].transform(str)
         row_to_x, tick_positions, tick_labels = _build_categorical_axis(
-            df_fp, "ss_label", jitter_width=jitter_width, tick_spacing=0.5
+            df_fp, "flow_condition_shear_stress_bin", jitter_width=jitter_width, tick_spacing=0.5
         )
     elif x_axis_mode == "cell_line":
         # Order by Parental → Control → VE-Cad KD
@@ -492,9 +493,9 @@ def plot_cross_dataset_summaries(
                     fixed_points_bootstrap_dataframe_manifest, dataset_name
                 )
                 df_bootstrap = load_dataframe(fp_bootstrap_location, delay=False)
-                df_bootstrap = df_bootstrap[
-                    df_bootstrap["shear_stress"] == flow_condition.shear_stress
-                ]
+                df_bootstrap = filter_dataframe_by_shear_stress(
+                    df_bootstrap, flow_condition.shear_stress
+                )
 
                 n_total = len(df_bootstrap)
                 high_confidence_df = df_bootstrap[
