@@ -50,6 +50,7 @@ def main(
 
     import matplotlib.pyplot as plt
     import numpy as np
+    import pandas as pd
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_shear_stress_label_for_dataset, load_dataset_config
@@ -65,10 +66,12 @@ def main(
         fit_exp_decay_and_get_relaxation_timescale,
     )
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
+    from endo_pipeline.library.visualize.summary_plot import _build_jitter_map
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.autocorrelations import AUTOCORRELATION_DATAFRAME_MANIFEST_PREFIX
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
+    from endo_pipeline.settings.summary_plot import COLOR_PALETTE, DATASET_COLOR_MAP
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -97,6 +100,14 @@ def main(
 
     global_xlim = (0.0, 8.5)
     global_ylim = (-0.25, 1.1)
+
+    # Accumulate relaxation times and per-dataset metadata per feature.
+    relaxation_rows: list[dict] = []
+
+    dataset_color_map = {
+        ds: DATASET_COLOR_MAP.get(ds, COLOR_PALETTE[i % len(COLOR_PALETTE)])
+        for i, ds in enumerate(dataset_names)
+    }
 
     for dataset_name in dataset_names:
         if dataset_name not in autocorrelation_manifest.locations:
@@ -149,11 +160,22 @@ def main(
                 ax.plot(
                     lags_hours,
                     exponential_decay(lags_hours, *exp_fit),
-                    color="blue",
+                    color="darkturquoise",
                     linestyle="--",
                     linewidth=1.25,
                     label="exp fit",
                 )
+                relaxation_rows.append(
+                    {
+                        "feature": feature,
+                        "relaxation_time": relaxation_time,
+                        "shear_stress_numeric": flow_condition.shear_stress_bin,
+                        "label": fig_title,
+                        "color": dataset_color_map[dataset_name],
+                        "dataset": dataset_name,
+                    }
+                )
+
                 ax.set_title(
                     f"{get_label_for_column(feature)}\n"
                     rf"$\tau$ = {relaxation_time:.2f} hr, $R^2$ = {r_squared:.2f}",
@@ -175,6 +197,72 @@ def main(
                 dataset_name,
                 fig_title,
             )
+
+    df_relaxation = pd.DataFrame(
+        relaxation_rows,
+        columns=["feature", "relaxation_time", "shear_stress_numeric", "label", "color", "dataset"],
+    )
+
+    # Plot a histogram of relaxation times for each feature across all datasets.
+    if not df_relaxation.empty:
+        features_all = df_relaxation["feature"].unique().tolist()
+        n_cols = min(3, len(features_all))
+        n_rows = int(np.ceil(len(features_all) / n_cols))
+        fig_hist, axes_hist = plt.subplots(
+            n_rows, n_cols, figsize=(5 * n_cols, 4 * n_rows), squeeze=False
+        )
+        for feat_idx, feature in enumerate(features_all):
+            ax_hist: plt.Axes = axes_hist[feat_idx // n_cols][feat_idx % n_cols]
+            tau_values = df_relaxation.loc[df_relaxation["feature"] == feature, "relaxation_time"]
+            ax_hist.hist(tau_values, bins="auto", color="steelblue", edgecolor="white")
+            ax_hist.set_xlabel(r"Relaxation time $\tau$ (hours)")
+            ax_hist.set_ylabel("Count")
+            ax_hist.set_title(get_label_for_column(feature), fontsize=10)
+
+        fig_hist.suptitle("Relaxation Time Distributions", fontsize=12, y=1.01)
+        save_plot_to_path(
+            fig_hist, output_path, "acf_relaxation_time_histograms", show_and_close=False
+        )
+        plt.close(fig_hist)
+        logger.info("Saved relaxation time histogram figure.")
+
+    # Cross-dataset summary: scatter of relaxation times vs shear stress, one panel per feature.
+    if not df_relaxation.empty:
+        features_summary = df_relaxation["feature"].unique().tolist()
+        n_cols = min(3, len(features_summary))
+        n_rows = int(np.ceil(len(features_summary) / n_cols))
+        fig_summary, axes_summary = plt.subplots(
+            n_rows, n_cols, figsize=(5 * n_cols, 4 * n_rows), squeeze=False
+        )
+        for feat_idx, feature in enumerate(features_summary):
+            ax_s: plt.Axes = axes_summary[feat_idx // n_cols][feat_idx % n_cols]
+            df_feat = df_relaxation[df_relaxation["feature"] == feature].copy()
+            jitter_map = _build_jitter_map(df_feat, jitter_width=0.4)
+            for _, row in df_feat.iterrows():
+                x_jittered = row["shear_stress_numeric"] + jitter_map.get(
+                    (row["dataset"], row["shear_stress_numeric"]), 0.0
+                )
+                ax_s.scatter(
+                    x_jittered,
+                    row["relaxation_time"],
+                    color=row["color"],
+                    s=60,
+                    alpha=0.85,
+                    zorder=3,
+                )
+            shear_ticks = sorted(df_feat["shear_stress_numeric"].unique())
+            ax_s.set_xticks(shear_ticks)
+            ax_s.set_xticklabels([str(v) for v in shear_ticks])
+            ax_s.set_xlabel(r"Shear stress (dyn/cm$^2$)")
+            ax_s.set_ylabel(r"Relaxation time $\tau$ (hours)")
+            ax_s.set_title(get_label_for_column(feature), fontsize=10)
+
+        fig_summary.suptitle(r"Relaxation Times $\tau$ — All Datasets", fontsize=12, y=1.01)
+        save_plot_to_path(
+            fig_summary, output_path, "acf_relaxation_time_cross_dataset", show_and_close=False
+        )
+        plt.close(fig_summary)
+        logger.info("Saved cross-dataset relaxation time summary figure.")
 
 
 if __name__ == "__main__":
