@@ -239,12 +239,12 @@ def make_real_image_panel(
     horizontal_arrow_x_offset: float = 0.125,
     horizontal_arrow_y_offset: float = -0.025,
     horizontal_arrow_linewidth: float = 1.5,
-    text_y_offset: float = -0.125,
+    text_y_offset: float = -0.175,
     delta_text_y_offset: float = 0.02,
 ) -> Path:
     """Build the panel showing a grid crop from t to t+1 for a given example image."""
 
-    contact_figsize = (3.75, 1.75)
+    contact_figsize = (3.65, 2.4)
     arrowstyle = "->,head_length=5,head_width=3"
 
     fov_crop_size = 2 * NATIVE_ZARR_RESOLUTION_CROP_SIZE
@@ -276,10 +276,11 @@ def make_real_image_panel(
         max_cols=len(processed_images),
         max_rows=1,
         fig_kwargs={"figsize": contact_figsize, "layout": "constrained"},
+        gridspec_kwargs={"wspace": -1, "hspace": 0.05},
     )
 
     layout_engine = cast(LayoutEngine, fig.get_layout_engine())
-    layout_engine.set(**{"rect": (0, 0.2, 1, 0.80)})
+    layout_engine.set(**{"rect": (0, 0.2, 1, 0.8)})
 
     ax_t = fig.axes[0]
     ax_t1 = fig.axes[1]
