@@ -252,7 +252,7 @@ def _add_exp_fit_to_plot(
     relaxation_timescales = []
     for i in range(len(feature_labels)):
         try:
-            exp_fit, relaxation_time = fit_exp_decay_and_get_relaxation_timescale(
+            exp_fit, relaxation_time, _ = fit_exp_decay_and_get_relaxation_timescale(
                 acf[:, i], lags, exp_decay_func=exp_decay_func
             )
             relaxation_timescales.append(relaxation_time)

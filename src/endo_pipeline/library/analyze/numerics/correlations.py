@@ -160,8 +160,21 @@ def fit_exp_decay_and_get_relaxation_timescale(
     lags: np.ndarray,
     exp_decay_func: Literal["exponential_decay", "double_exponential_decay"],
     maxfev: int = 10000,
-) -> tuple[np.ndarray, float]:
-    """Fit exponential decay to ACF and return fit parameters and relaxation timescale."""
+) -> tuple[np.ndarray, float, float]:
+    """Fit exponential decay to ACF and return fit parameters, relaxation timescale, and R².
+
+    Returns
+    -------
+    :
+        Fitted parameters for the exponential decay function.
+    :
+        Relaxation timescale (1 / decay rate) in the same units as `lags`.
+    :
+        Coefficient of determination (R²) measuring goodness of fit. Values
+        close to 1 indicate a good fit; values near 0 or negative indicate a
+        poor fit.
+
+    """
     # check to make sure valid function is provided
     if exp_decay_func not in ["exponential_decay", "double_exponential_decay"]:
         logger.error(
@@ -175,27 +188,34 @@ def fit_exp_decay_and_get_relaxation_timescale(
 
     # get indices where both lags and acf are finite, as required for input to curve_fit function
     valid_indices = np.isfinite(acf) & np.isfinite(lags)
+    acf_valid = acf[valid_indices]
+    lags_valid = lags[valid_indices]
 
     if exp_decay_func == "exponential_decay":
         p0 = [0.5, 0.5, 0.5]  # initial guess for a, b, and c
-        exp_fit, _ = curve_fit(
-            exponential_decay, lags[valid_indices], acf[valid_indices], maxfev=maxfev, p0=p0
-        )
+        exp_fit, _ = curve_fit(exponential_decay, lags_valid, acf_valid, maxfev=maxfev, p0=p0)
         relaxation_time = 1 / exp_fit[1]
+        acf_pred = exponential_decay(lags_valid, *exp_fit)
     else:
         p0 = [0.5, 0.5, 0.5, 0.5, 0.5]  # initial guess for a1, b1, a2, b2, and c
         exp_fit, _ = curve_fit(
             double_exponential_decay,
-            lags[valid_indices],
-            acf[valid_indices],
+            lags_valid,
+            acf_valid,
             maxfev=maxfev,
             p0=p0,
         )
         # choose the relaxation time corresponding to the larger weight
         which_weight_is_larger = np.argmax(np.abs(exp_fit[[0, 2]]))
         relaxation_time = 1 / exp_fit[[1, 3][which_weight_is_larger]]
+        acf_pred = double_exponential_decay(lags_valid, *exp_fit)
 
-    return exp_fit, relaxation_time
+    # compute R² as goodness-of-fit metric
+    ss_res = np.sum((acf_valid - acf_pred) ** 2)
+    ss_tot = np.sum((acf_valid - np.mean(acf_valid)) ** 2)
+    r_squared = float(1 - ss_res / ss_tot) if ss_tot > 0 else float("nan")
+
+    return exp_fit, relaxation_time, r_squared
 
 
 def cross_correlation_difference_norm(
@@ -227,7 +247,7 @@ def compute_autocorrelation_and_relaxation_for_one_bootstrap_sample(
     positive_lags_as_hours = 5 * positive_lags / 60  # convert from frames (5 minutes) to hours
     acf_positive_lags = acf[index_positive]
 
-    _, relaxation_time = fit_exp_decay_and_get_relaxation_timescale(
+    _, relaxation_time, _ = fit_exp_decay_and_get_relaxation_timescale(
         acf_positive_lags, positive_lags_as_hours, exp_decay_func="exponential_decay"
     )
 
@@ -655,7 +675,7 @@ def compute_correlations_for_one_dataset(
         positive_lags_as_hours = 5 * positive_lags / 60  # convert from frames (5 minutes) to hours
         acf_positive_lags = acf[:, i][index_positive]
 
-        _, relaxation_time = fit_exp_decay_and_get_relaxation_timescale(
+        _, relaxation_time, _ = fit_exp_decay_and_get_relaxation_timescale(
             acf_positive_lags, positive_lags_as_hours, exp_decay_func="exponential_decay"
         )
         relaxation_timescale[i] = relaxation_time
@@ -679,7 +699,7 @@ def compute_correlations_for_one_dataset(
             positive_lags_as_hours_crop = 5 * positive_lags_crop / 60
             acf_positive_lags_crop = acf_1_crop[index_positive_crop]
 
-            _, relaxation_time_crop = fit_exp_decay_and_get_relaxation_timescale(
+            _, relaxation_time_crop, _ = fit_exp_decay_and_get_relaxation_timescale(
                 acf_positive_lags_crop,
                 positive_lags_as_hours_crop,
                 exp_decay_func="exponential_decay",
