@@ -418,7 +418,7 @@ def make_autocorrelation_panel(save_dir: Path) -> Path:
         label=f"Exp. fit (R{Unicode.SQUARED} = {r_squared:.3f})",
     )
     ax[0].set_xlabel("Lag (hours)", fontsize=FONTSIZE_SMALL, **XLABEL_KWARGS)
-    ax[0].set_ylabel("ACF", fontsize=FONTSIZE_SMALL, **YLABEL_KWARGS)
+    ax[0].set_ylabel("ACF", fontsize=FONTSIZE_SMALL, labelpad=-1)
     ax[0].set_title(f"Autocorrelation function in {column_label}", fontsize=FONTSIZE_SMALL)
     ax[0].legend(loc="upper right", fontsize=FONTSIZE_XSMALL)
 
@@ -445,13 +445,13 @@ def make_autocorrelation_panel(save_dir: Path) -> Path:
             i + jitter,
             r2_values,
             c="black",
-            s=20,
-            alpha=0.7,
+            s=10,
+            alpha=0.5,
             zorder=3,
         )
     ax[1].set_xticks(range(len(column_names)))
     ax[1].set_xticklabels([COLUMN_METADATA[col].label for col in column_names], fontweight="bold")
-    ax[1].set_ylabel(f"R{Unicode.SQUARED}", fontsize=FONTSIZE_SMALL, **YLABEL_KWARGS)
+    ax[1].set_ylabel(f"R{Unicode.SQUARED}", fontsize=FONTSIZE_SMALL, labelpad=-1)
     ax[1].set_title(f"Exponential fit R{Unicode.SQUARED} (all datasets)", fontsize=FONTSIZE_SMALL)
     ax[1].set_ylim(0.975, 1.005)
 
