@@ -61,6 +61,7 @@ def main(
     )
     from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_shear_stress
     from endo_pipeline.library.analyze.numerics.correlations import (
+        exponential_decay,
         fit_exp_decay_and_get_relaxation_timescale,
     )
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
@@ -143,8 +144,15 @@ def main(
                 ax.set_ylabel("ACF")
 
                 # Fit single exponential decay and annotate relaxation timescale + R².
-                _, relaxation_time, r_squared = fit_exp_decay_and_get_relaxation_timescale(
+                exp_fit, relaxation_time, r_squared = fit_exp_decay_and_get_relaxation_timescale(
                     acf_mean, lags_hours, exp_decay_func="exponential_decay"
+                )
+                ax.plot(
+                    lags_hours,
+                    exponential_decay(lags_hours, *exp_fit),
+                    linestyle="--",
+                    linewidth=1.5,
+                    label="exp fit",
                 )
                 ax.set_title(
                     f"{get_label_for_column(feature)}\n"
