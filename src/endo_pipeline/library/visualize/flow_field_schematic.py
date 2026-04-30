@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.collections import QuadMesh
-from matplotlib.layout_engine import LayoutEngine
+from matplotlib.layout_engine import ConstrainedLayoutEngine, LayoutEngine
 from matplotlib.patches import FancyArrowPatch, Rectangle
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -47,7 +47,12 @@ from endo_pipeline.settings.dynamics_workflows import (
     TIME_STEP_IN_HOURS,
 )
 from endo_pipeline.settings.examples import EXAMPLE_DATASET, FLOW_FIELD_CONSTRUCTION_EXAMPLE_IMAGES
-from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_MEDIUM, FONTSIZE_XLARGE
+from endo_pipeline.settings.figures import (
+    FONTSIZE_LARGE,
+    FONTSIZE_MEDIUM,
+    FONTSIZE_SMALL,
+    FONTSIZE_XLARGE,
+)
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_COLORMAP,
     DRIFT_CONTOUR_VMAX,
@@ -225,7 +230,7 @@ def make_real_image_panel(
 ) -> Path:
     """Build the panel showing a grid crop from t to t+1 for a given example image."""
 
-    contact_figsize = (5.95, 2.75)
+    contact_figsize = (3.0, 1.4)
     arrowstyle = "->,head_length=5,head_width=3"
 
     fov_crop_size = 2 * NATIVE_ZARR_RESOLUTION_CROP_SIZE
@@ -382,7 +387,7 @@ def _make_2d_pcolormesh(
     if axes_aspect is not None:
         axes.set_aspect(axes_aspect)
     if axes_title is not None:
-        axes.set_title(axes_title)
+        axes.set_title(axes_title, fontdict={"fontsize": FONTSIZE_SMALL})
     return pcm
 
 
@@ -440,10 +445,11 @@ def _add_colorbar_for_quadmesh(
     axes: plt.Axes,
     quadmesh: QuadMesh,
     label: str | None = None,
+    pad: float = 0.03,
 ) -> None:
     """Add a colorbar for a given QuadMesh plot."""
     divider = make_axes_locatable(axes)
-    cax = divider.append_axes("right", size="5%", pad=0.05)
+    cax = divider.append_axes("right", size="5%", pad=pad)
     fig.colorbar(quadmesh, cax=cax, label=label)
 
 
@@ -616,7 +622,11 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
     target_bin = _get_target_bin(target_point, bin_edges)
 
     fig, ax = plt.subplots(
-        2, 2, gridspec_kw={"wspace": 0.3}, figsize=(5.75, 5.05), layout="constrained"
+        1,
+        4,
+        gridspec_kw={"wspace": 0.1},
+        figsize=(5.9, 1.6),
+        layout=ConstrainedLayoutEngine(w_pad=0.05, h_pad=0.05),
     )
     axes = ax.flatten() if isinstance(ax, np.ndarray) else [ax]
     axes_xlabel = COLUMN_METADATA[column_names[0]].label
@@ -633,8 +643,10 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
         axes_ylabel=axes_ylabel,
+        axes_xlabel=axes_xlabel,
+        axes_title=f"Sum of {Unicode.DELTA} {axes_xlabel}",
         ylabel_kwargs=YLABEL_KWARGS,
-        colorbar_label=f"Sum of {Unicode.DELTA} {axes_xlabel}",
+        xlabel_kwargs=XLABEL_KWARGS,
     )
 
     # panel 2 - kernel weights centered at target bin
@@ -655,7 +667,9 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
         target_bin=target_bin,
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
-        colorbar_label="Kernel weight (normalized)",
+        axes_xlabel=axes_xlabel,
+        axes_title="Kernel weight\n(normalized)",
+        xlabel_kwargs=XLABEL_KWARGS,
     )
 
     # panel 3 - kernel-weighted histogram (i.e. numerator of KM estimator)
@@ -671,9 +685,8 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
         axes_xlabel=axes_xlabel,
-        axes_ylabel=axes_ylabel,
+        axes_title=f"Kernel-weighted sum\nof {Unicode.DELTA} {axes_xlabel}",
         xlabel_kwargs=XLABEL_KWARGS,
-        ylabel_kwargs=YLABEL_KWARGS,
     )
     _add_target_bin_border(
         axes[2],
@@ -684,7 +697,6 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
         fig,
         axes[2],
         pcm,
-        label=f"Kernel-weighted sum of {Unicode.DELTA} {axes_xlabel}",
     )
 
     # panel 4 - final KM coefficient estimate at target bin
@@ -701,6 +713,7 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
         vmin=DRIFT_CONTOUR_VMIN,
         vmax=DRIFT_CONTOUR_VMAX,
         axes_xlabel=axes_xlabel,
+        axes_title=f"Drift in {axes_xlabel} (hr$^{{-1}}$)",
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
         xlabel_kwargs=XLABEL_KWARGS,
@@ -714,10 +727,11 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
         fig,
         axes[3],
         pcm,
-        label=f"Drift in {axes_xlabel} (hr$^{{-1}}$)",
     )
 
     filename = "kernel_convolution_schematic"
+    for ax in axes[1:]:
+        ax.yaxis.set_tick_params(labelleft=False)
     save_plot_to_path(
         fig, savedir, filename, file_format=".svg", tight_layout=False, transparent=True
     )
