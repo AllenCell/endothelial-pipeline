@@ -27,15 +27,15 @@ def main() -> None:
             x_position=0.0,
             y_position=0.0,
             x_offset=0.15,
-            y_offset=0.05,
+            y_offset=0.10,
         ),
         FigurePanel(
             letter="B",
             path=kernel_convolution_panel_path,
             x_position=0.0,
-            y_position=1.90,
+            y_position=2.30,
             x_offset=0.075,
-            y_offset=0.15,
+            y_offset=0.35,
         ),
     ]
 
@@ -44,7 +44,7 @@ def main() -> None:
         panels,
         output_path / "supp_fig_flow_field.svg",
         width=MAX_FIGURE_WIDTH,
-        height=3.75,
+        height=5.75,
     )
 
 

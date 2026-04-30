@@ -109,6 +109,7 @@ def _add_map_arrow_to_plot(
     arrow_x_offset: float = 0.05,
     linewidth: float = 1.5,
     arrowstyle: str = "->,head_length=5,head_width=3",
+    label_y: float | None = None,
 ) -> None:
     """
     Add a curved arrow from a highlighted box to a text label, with the label
@@ -134,7 +135,7 @@ def _add_map_arrow_to_plot(
         The text that the arrow points to.
     text_y_offset
         Vertical offset for the text label from the top of the box in figure
-        coordinate units.
+        coordinate units. Used only when label_y is None.
     arrow_x_offset
         Horizontal offset for the start of the arrow from the box in figure
         coordinate units.
@@ -142,10 +143,13 @@ def _add_map_arrow_to_plot(
         Line width for the arrow.
     arrowstyle
         Arrow style string for the arrow.
+    label_y
+        Explicit y position for the text label in figure coordinates. If None,
+        falls back to ``ax.get_position().y0 + text_y_offset``.
 
     """
-    bbox = ax.get_position()
-    label_y = bbox.y0 + text_y_offset
+    if label_y is None:
+        label_y = ax.get_position().y0 + text_y_offset
     # Align labels horizontally with the midpoint of each highlighted box
     arrow_start = _data_to_fig(fig, ax, box_position, x_offset=arrow_x_offset)
     label_x = arrow_start[0]
@@ -261,12 +265,11 @@ def make_real_image_panel(
         processed_images,
         max_cols=len(processed_images),
         max_rows=1,
-        gridspec_kwargs={"wspace": 0},
         fig_kwargs={"figsize": contact_figsize, "layout": "constrained"},
     )
 
     layout_engine = cast(LayoutEngine, fig.get_layout_engine())
-    layout_engine.set(**{"rect": (0, 0.2, 1, 0.8)})
+    layout_engine.set(**{"rect": (0, 0.2, 1, 0.80)})
 
     ax_t = fig.axes[0]
     ax_t1 = fig.axes[1]
@@ -319,6 +322,7 @@ def make_real_image_panel(
             rad=arrow_rad,
             text=f"({Unicode.THETA}, r, {Unicode.RHO}) at {label}",
             text_y_offset=text_y_offset,
+            label_y=bbox_t.y0 + text_y_offset,
             arrow_x_offset=map_arrow_x_offset,
             linewidth=map_arrow_linewidth,
             arrowstyle=arrowstyle,
@@ -447,6 +451,7 @@ def _add_colorbar_for_quadmesh(
     quadmesh: QuadMesh,
     label: str | None = None,
     pad: float = 0.03,
+    colorbar_title: str | None = None,
 ) -> None:
     """Add a colorbar for a given QuadMesh plot."""
     divider = make_axes_locatable(axes)
@@ -454,6 +459,8 @@ def _add_colorbar_for_quadmesh(
     fig.colorbar(quadmesh, cax=cax, label=label, orientation="horizontal")
     cax.xaxis.set_ticks_position("top")
     cax.xaxis.set_label_position("top")
+    if colorbar_title is not None:
+        cax.set_title(colorbar_title, fontsize=FONTSIZE_MEDIUM, pad=2)
 
 
 def _make_weighted_displacement_histogram(
@@ -471,6 +478,7 @@ def _make_weighted_displacement_histogram(
     axes_title: str | None = None,
     cmap: str = "RdBu_r",
     colorbar_label: str | None = None,
+    colorbar_title: str | None = None,
     xlabel_kwargs: dict | None = None,
     ylabel_kwargs: dict | None = None,
 ) -> np.ndarray:
@@ -526,6 +534,7 @@ def _make_weighted_displacement_histogram(
         axes,
         pcm,
         label=colorbar_label,
+        colorbar_title=colorbar_title,
     )
     return weighted_counts_delta_x
 
@@ -545,6 +554,7 @@ def _plot_kernel_at_target_bin(
     axes_title: str | None = None,
     cmap: str = "Purples",
     colorbar_label: str | None = None,
+    colorbar_title: str | None = None,
     xlabel_kwargs: dict | None = None,
     ylabel_kwargs: dict | None = None,
 ) -> np.ndarray:
@@ -586,6 +596,7 @@ def _plot_kernel_at_target_bin(
         axes,
         pcm,
         label=colorbar_label,
+        colorbar_title=colorbar_title,
     )
     return kernel_weights_2d
 
@@ -627,9 +638,9 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
     fig, ax = plt.subplots(
         1,
         4,
-        gridspec_kw={"wspace": 0.1},
+        gridspec_kw={"wspace": 0.05},
         figsize=(6.0, 1.65),
-        layout=ConstrainedLayoutEngine(w_pad=0.075, h_pad=0.05),
+        layout=ConstrainedLayoutEngine(w_pad=0.03, h_pad=0.03),
     )
     axes = ax.flatten() if isinstance(ax, np.ndarray) else [ax]
     axes_xlabel = COLUMN_METADATA[column_names[0]].label
@@ -647,7 +658,7 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
         axes_ylim=axes_ylim,
         axes_ylabel=axes_ylabel,
         axes_xlabel=axes_xlabel,
-        axes_title=f"Sum of {Unicode.DELTA} {axes_xlabel}",
+        colorbar_title=f"Sum of {Unicode.DELTA} {axes_xlabel}",
         ylabel_kwargs=YLABEL_KWARGS,
         xlabel_kwargs=XLABEL_KWARGS,
     )
@@ -671,7 +682,7 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
         axes_xlabel=axes_xlabel,
-        axes_title="Kernel weight\n(normalized)",
+        colorbar_title="Kernel weight\n(normalized)",
         xlabel_kwargs=XLABEL_KWARGS,
     )
 
@@ -690,7 +701,6 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
         axes_xlabel=axes_xlabel,
-        axes_title=f"Kernel-weighted\nsum of {Unicode.DELTA} {axes_xlabel}",
         xlabel_kwargs=XLABEL_KWARGS,
     )
     _add_target_bin_border(
@@ -702,6 +712,7 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
         fig,
         axes[2],
         pcm,
+        colorbar_title=f"Kernel-weighted\nsum of {Unicode.DELTA} {axes_xlabel}",
     )
 
     # panel 4 - final KM coefficient estimate at target bin
@@ -718,7 +729,6 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
         vmin=DRIFT_CONTOUR_VMIN,
         vmax=DRIFT_CONTOUR_VMAX,
         axes_xlabel=axes_xlabel,
-        axes_title=f"Drift in {axes_xlabel} (hr$^{{-1}}$)",
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
         xlabel_kwargs=XLABEL_KWARGS,
@@ -732,6 +742,7 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
         fig,
         axes[3],
         pcm,
+        colorbar_title=f"Drift in {axes_xlabel} (hr$^{{-1}}$)",
     )
 
     filename = "kernel_convolution_schematic"
