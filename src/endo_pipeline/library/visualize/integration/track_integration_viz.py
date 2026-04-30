@@ -1476,7 +1476,13 @@ def plot_first_passage_time_correlation_summary(
         alpha=0.7,
         ax=ax,
     )
-    ax.set_ylim(0, 1)
+    if corr_type == "ols":
+        ax.set_ylim(0, 1)
+    elif corr_type == "odr":
+        # use the larger of 1 or the current x axis max for x axis upper limit
+        # (1 has a special meaning for the reduced chi-squared metric)
+        ax.set_ylim(0, max(1, ax.get_xlim()[1]))
+
     ax.set_ylabel(corr_metric_label, fontsize=FONTSIZE_SMALL)
     plt.yticks(fontsize=FONTSIZE_SMALL)
     plt.xticks(rotation=45, ha="right", fontsize=FONTSIZE_SMALL)
@@ -1504,6 +1510,7 @@ def plot_first_passage_time_correlation_summary(
     elif corr_type == "odr":
         # use the larger of 1 or the current x axis max for x axis upper limit
         # (1 has a special meaning for the reduced chi-squared metric)
+        ax.xaxis.minorticks_on()
         ax.set_xlim(0, max(1, ax.get_xlim()[1]))
     ax.set_xlabel(corr_metric_label, fontsize=FONTSIZE_SMALL)
     ax.set_ylabel("Number of Datasets", fontsize=FONTSIZE_SMALL)
