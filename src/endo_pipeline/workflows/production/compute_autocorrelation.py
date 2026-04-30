@@ -52,6 +52,7 @@ def main(
     from endo_pipeline.settings.dynamics_workflows import (
         DYNAMICS_COLUMN_NAMES,
         LONG_TRACK_THRESHOLD_LENGTH,
+        METADATA_COLUMNS_TO_KEEP,
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -64,13 +65,7 @@ def main(
     # Default list of feature column names to use for correlation analysis if
     # not provided. Otherwise, use provided list.
     column_names = columns or list(DYNAMICS_COLUMN_NAMES)
-    columns_to_compute = [
-        Column.DATASET,
-        Column.POSITION,
-        Column.TIMEPOINT,
-        Column.CROP_INDEX,
-        *column_names,
-    ]
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
     dataframe_savedir = get_output_path(__file__, crop_pattern)
 
