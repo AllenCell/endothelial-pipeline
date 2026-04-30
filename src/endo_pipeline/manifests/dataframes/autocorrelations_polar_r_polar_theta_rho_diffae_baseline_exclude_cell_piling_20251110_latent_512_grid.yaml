@@ -38,10 +38,6 @@ locations:
     fmsid: null
     path: /allen/aics/users/erin.angelini/2026-04-30/compute_autocorrelation/grid/autocorrelation_20250813_20X_20260430_064535.parquet
     s3uri: null
-  20250818_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/2026-04-30/compute_autocorrelation/grid/autocorrelation_20250818_20X_20260430_064536.parquet
-    s3uri: null
   20250827_20X:
     fmsid: null
     path: /allen/aics/users/erin.angelini/2026-04-30/compute_autocorrelation/grid/autocorrelation_20250827_20X_20260430_064537.parquet
@@ -65,10 +61,6 @@ locations:
   20250716_20X:
     fmsid: null
     path: /allen/aics/users/erin.angelini/2026-04-30/compute_autocorrelation/grid/autocorrelation_20250716_20X_20260430_064531.parquet
-    s3uri: null
-  20250728_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/2026-04-30/compute_autocorrelation/grid/autocorrelation_20250728_20X_20260430_064532.parquet
     s3uri: null
   20250806_20X:
     fmsid: null
