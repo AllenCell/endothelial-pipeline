@@ -103,6 +103,7 @@ def _add_map_arrow_to_plot(
     text_y_position: float,
     arrow_x_offset: float = 0.05,
     linewidth: float = 1.5,
+    color: str = "black",
     arrowstyle: str = "->,head_length=5,head_width=3",
 ) -> None:
     """
@@ -134,6 +135,8 @@ def _add_map_arrow_to_plot(
         coordinate units.
     linewidth
         Line width for the arrow.
+    color
+        Color for the arrow.
     arrowstyle
         Arrow style string for the arrow.
 
@@ -157,7 +160,7 @@ def _add_map_arrow_to_plot(
         (text_x_position, text_y_position - 0.01),
         connectionstyle=f"arc3,rad={rad}",
         arrowstyle=arrowstyle,
-        color="black",
+        color=color,
         linewidth=linewidth,
         transform=fig.transFigure,
         clip_on=False,
