@@ -155,8 +155,8 @@ def build_crop_grid(df: pd.DataFrame) -> pd.DataFrame:
         if ColumnName.DiffAEData.CROP_SIZE_X in df.columns
         else 128
     )
-    crop_df["end_x"] = crop_df[ColumnName.DiffAEData.START_X] + sz
-    crop_df["end_y"] = crop_df[ColumnName.DiffAEData.START_Y] + sz
+    crop_df[ColumnName.DiffAEData.END_X] = crop_df[ColumnName.DiffAEData.START_X] + sz
+    crop_df[ColumnName.DiffAEData.END_Y] = crop_df[ColumnName.DiffAEData.START_Y] + sz
     return crop_df
 
 

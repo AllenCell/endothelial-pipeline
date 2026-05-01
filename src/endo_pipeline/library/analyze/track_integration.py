@@ -21,6 +21,7 @@ from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_krame
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KernelName, KramersMoyalKernel
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     add_track_duration_to_dataframe,
+    calculate_derived_data_dynamics_dependent,
 )
 from endo_pipeline.library.analyze.numerics.binning import adjust_limits_from_bin_size, get_bins
 from endo_pipeline.library.analyze.numerics.fixed_points import (
@@ -214,6 +215,9 @@ def get_diffae_feats_liveseg_feats_merged_table(
         # filter the merged table
         merged_feats_df = merged_feats_df[merged_feats_df[Column.SegDataFilters.IS_INCLUDED]]
 
+        # Calculate derived dynamic features
+        merged_feats_df = calculate_derived_data_dynamics_dependent(merged_feats_df)
+
         # remove any rows that were not evaluated by the model and thus have no model_manifest_name
         merged_feats_df.dropna(
             axis="index", how="any", subset=Column.DiffAEData.MODEL_MANIFEST, inplace=True
@@ -373,12 +377,6 @@ def get_flow_field_and_fixed_points(
     return flow_field_dict, fixed_points_df
 
 
-def get_vector_vector_angle(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
-    """Return the angle in radians between two vectors."""
-    angle_rad = np.arccos(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2)))
-    return angle_rad
-
-
 def get_vector_vector_angle_fast(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
     """
     Return the element-wise angles in radians between rows of two 2-D vector arrays.
@@ -395,6 +393,7 @@ def get_vector_vector_angle_fast(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
     :
         Array of shape ``(N,)`` containing the angle between each pair of corresponding vectors.
     """
+    v1, v2 = np.atleast_2d(v1), np.atleast_2d(v2)
     dot_prod = np.einsum("ij,ij->i", v1, v2)
     norm1 = np.linalg.norm(v1, axis=1)
     norm2 = np.linalg.norm(v2, axis=1)
@@ -1106,6 +1105,10 @@ def compute_first_passage_time_stats_for_one_bin(
     first_passage_time_stats_df = (
         trajectory_df_one_bin[time_to_first_passage_col_name].describe().to_frame().T
     )
+    # compute standard error of the mean and add it to the dataframe
+    first_passage_time_stats_df["sem"] = first_passage_time_stats_df["std"] / np.sqrt(
+        first_passage_time_stats_df["count"]
+    )
     new_col_names = {
         col: col + Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
         for col in first_passage_time_stats_df.columns
@@ -1781,11 +1784,13 @@ def build_fpt_line_fit_results_df(
                     "reduced_chi_squared_odr",
                     "OdrResult",
                 ],
+                # use the inverse of the variance of the mean (sampling variance)
+                # as the weights for the ODR fit, which is the square of the standard error
                 data=get_odr_fit_results(
                     x=df[f"{metric}{suffix}_grid"],
                     y=df[f"{metric}{suffix}_tracked"],
-                    weight_x=df[f"std{suffix}_grid"] ** -2,
-                    weight_y=df[f"std{suffix}_tracked"] ** -2,
+                    weight_x=df[f"sem{suffix}_grid"] ** -2,
+                    weight_y=df[f"sem{suffix}_tracked"] ** -2,
                 ),
             )
         )

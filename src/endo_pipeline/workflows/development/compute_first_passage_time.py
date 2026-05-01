@@ -66,8 +66,6 @@ def main(
 
     dataset_names = datasets or SUMMARY_PLOT_DATASETS["intermediate"]
 
-    fpt_fig_example_datasets = tuple(example.dataset_name for example in FPT_FIG_EXAMPLES.values())
-
     if minimum_track_length is None:
         minimum_track_length = LONG_TRACK_THRESHOLD_LENGTH
 
@@ -75,7 +73,8 @@ def main(
         fixed_point_radius_threshold = MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
 
     if DEMO_MODE:
-        dataset_names = list(set(fpt_fig_example_datasets) | set(SUMMARY_PLOT_DATASETS["low_high"]))
+        fpt_fig_example_datasets = {ex.dataset_name for ex in FPT_FIG_EXAMPLES.values()}
+        dataset_names = list(fpt_fig_example_datasets | set(SUMMARY_PLOT_DATASETS["low_high"]))
         logger.info(f"Running in demo mode, only processing datasets [ {dataset_names} ]")
         out_dir = get_output_path(__file__, "demo")
     else:

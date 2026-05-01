@@ -109,8 +109,8 @@ def resolve_grid_crop(
         )
     sx = int(target.iloc[0][Column.DiffAEData.START_X])
     sy = int(target.iloc[0][Column.DiffAEData.START_Y])
-    ex = int(target.iloc[0]["end_x"])
-    ey = int(target.iloc[0]["end_y"])
+    ex = int(target.iloc[0][Column.DiffAEData.END_X])
+    ey = int(target.iloc[0][Column.DiffAEData.END_Y])
     return sx, sy, ex, ey
 
 
