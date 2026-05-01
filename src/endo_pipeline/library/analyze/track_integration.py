@@ -1106,6 +1106,10 @@ def compute_first_passage_time_stats_for_one_bin(
     first_passage_time_stats_df = (
         trajectory_df_one_bin[time_to_first_passage_col_name].describe().to_frame().T
     )
+    # compute standard error of the mean and add it to the dataframe
+    first_passage_time_stats_df["sem"] = first_passage_time_stats_df["std"] / np.sqrt(
+        first_passage_time_stats_df["count"]
+    )
     new_col_names = {
         col: col + Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
         for col in first_passage_time_stats_df.columns
@@ -1771,11 +1775,13 @@ def build_fpt_line_fit_results_df(
                     "reduced_chi_squared_odr",
                     "OdrResult",
                 ],
+                # use the inverse of the variance of the mean (sampling variance)
+                # as the weights for the ODR fit, which is the square of the standard error
                 data=get_odr_fit_results(
                     x=df[f"{metric}{suffix}_grid"],
                     y=df[f"{metric}{suffix}_tracked"],
-                    weight_x=df[f"std{suffix}_grid"] ** -2,
-                    weight_y=df[f"std{suffix}_tracked"] ** -2,
+                    weight_x=df[f"sem{suffix}_grid"] ** -2,
+                    weight_y=df[f"sem{suffix}_tracked"] ** -2,
                 ),
             )
         )

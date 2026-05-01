@@ -1313,8 +1313,8 @@ def plot_first_passage_time_correlations(
     ax.errorbar(
         x=first_passage_time_stats_df[f"{metric}_grid"],
         y=first_passage_time_stats_df[f"{metric}_tracked"],
-        xerr=first_passage_time_stats_df[f"std{suffix}_grid"],
-        yerr=first_passage_time_stats_df[f"std{suffix}_tracked"],
+        xerr=first_passage_time_stats_df[f"sem{suffix}_grid"],
+        yerr=first_passage_time_stats_df[f"sem{suffix}_tracked"],
         fmt="none",
         ecolor="gray",
         alpha=0.5,
@@ -1326,7 +1326,7 @@ def plot_first_passage_time_correlations(
         color="black",
         edgecolor="white",
         lw=0.2,
-        label=f"FPT {metric_to_plot} {UnicodeCharacters.PLUS_MINUS} STD (n={num_bins})",
+        label=f"FPT {metric_to_plot} {UnicodeCharacters.PLUS_MINUS} SEM (n={num_bins})",
     )
     ax.axline(
         xy1=(0, intercept),
