@@ -683,7 +683,9 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
 
     # panel 3 - kernel-weighted histogram (i.e. numerator of KM estimator)
     kernel_weighted_hist_delta_r = kernel_weights_2d * weighted_hist_delta_r
-    vmax = np.nanpercentile(np.abs(kernel_weighted_hist_delta_r), 99)
+    # use same vmin and vmax for colormap as panel 1 to allow direct comparison
+    # of the effect of the kernel weighting on the histogram values
+    vmax = np.nanpercentile(np.abs(weighted_hist_delta_r), 99)
     pcm = _make_2d_pcolormesh(
         axes[2],
         kernel_weighted_hist_delta_r,
