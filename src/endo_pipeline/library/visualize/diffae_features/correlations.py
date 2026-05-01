@@ -15,10 +15,7 @@ from matplotlib.figure import Figure
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import get_output_path, save_plot_to_path
-from endo_pipeline.library.analyze.numerics.correlations import (
-    exponential_decay,
-    fit_exp_decay_and_get_relaxation_timescale,
-)
+from endo_pipeline.library.analyze.numerics.correlations import exponential_decay, fit_exp_decay
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
 from endo_pipeline.settings.column_names import ColumnName as Column
 
@@ -168,7 +165,7 @@ def _add_delta_ccf_integral_to_plot(
     cross_corr_index_combinations = list(combinations(feature_indices, 2))
     integral_upper_bound_hrs = round(5 * max_lag_integrate / 60, 2)  # convert from frames to hours
     integral_strings = [
-        rf"$|\int_{{0}}^{{{integral_upper_bound_hrs}}}\Delta C_{{{j+1}{k+1}}}(\tau) d\tau|$"
+        rf"$|\int_{{0}}^{{{integral_upper_bound_hrs}}}\Delta C_{{{j + 1}{k + 1}}}(\tau) d\tau|$"
         for (j, k) in cross_corr_index_combinations
     ]
     strings_per_pc = [
@@ -239,7 +236,8 @@ def _add_exp_fit_to_plot(
     relaxation_timescales = []
     for i in range(len(feature_labels)):
         try:
-            exp_fit, relaxation_time = fit_exp_decay_and_get_relaxation_timescale(acf[:, i], lags)
+            exp_fit = fit_exp_decay(acf[:, i], lags)[0]
+            relaxation_time = 1 / exp_fit[1]
             relaxation_timescales.append(relaxation_time)
         except RuntimeError:
             logger.warning(
