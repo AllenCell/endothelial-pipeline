@@ -11,7 +11,7 @@ from matplotlib.layout_engine import LayoutEngine
 from matplotlib.patches import FancyArrowPatch, Rectangle
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
 from endo_pipeline.io import join_sorted_strings, load_dataframe, load_image, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
@@ -74,6 +74,7 @@ from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
+    RANDOM_SEED,
 )
 
 
@@ -413,6 +414,62 @@ def _make_example_acf_plot(
     axes.legend(loc="upper right", fontsize=FONTSIZE_XSMALL)
 
 
+def _make_acf_r_squared_plot(
+    axes: plt.Axes,
+    column_names: list[ColumnNameType],
+    autocorrelation_manifest: DataframeManifest,
+    y_labelpad: float = 0.5,
+    jitter_random_seed: int = RANDOM_SEED,
+    axes_ylim: tuple[float, float] = (0.975, 1.005),
+    scatter_kwargs: dict | None = None,
+) -> None:
+    """
+    Plot the R^2 values for the exponential fits to the ACFs for all datasets
+    and specified columns as a scatter plot with jitter on the column axis.
+    """
+    rng = np.random.default_rng(jitter_random_seed)
+    r_squared_dict: dict[ColumnNameType, list[float]] = {key: [] for key in column_names}
+
+    # loop over datasets and compute R^2 values for each specified column,
+    # storing in r_squared_dict
+    dataset_names = get_datasets_in_collection("timelapse")
+    for dataset_name in dataset_names:
+        acf_dataset = load_dataframe(autocorrelation_manifest.locations[dataset_name])
+        # make sure FEATURE entries are sorted in the same order as column_names
+        acf_dataset_sorted = acf_dataset.copy()
+        acf_dataset_sorted[Column.AutoCorrelation.FEATURE] = pd.Categorical(
+            acf_dataset_sorted[Column.AutoCorrelation.FEATURE],
+            categories=column_names,
+            ordered=True,
+        )
+        acf_dataset_sorted = acf_dataset_sorted.sort_values(
+            by=[Column.AutoCorrelation.FEATURE, Column.AutoCorrelation.LAG]
+        )
+        for column_name, acf_column in acf_dataset_sorted.groupby(Column.AutoCorrelation.FEATURE):
+            acf_mean = acf_column[Column.AutoCorrelation.ACF_MEAN].to_numpy()
+            exponential_decay_curve = acf_column[Column.AutoCorrelation.EXPONENTIAL_FIT].to_numpy()
+            # get r_squared for exponential fit
+            r_squared_dict[column_name].append(
+                _compute_r_squared(acf_mean, exponential_decay_curve)
+            )
+
+    # plot R^2 values with jitter on x axis for better visualization of
+    # overlapping points
+    for i, column_name in enumerate(column_names):
+        r2_values = r_squared_dict[column_name]
+        jitter = rng.uniform(-0.1, 0.1, size=len(r2_values))
+        axes.scatter(
+            i + jitter,
+            r2_values,
+            **(scatter_kwargs or {}),
+        )
+    axes.set_xticks(range(len(column_names)))
+    axes.set_xticklabels([COLUMN_METADATA[col].label for col in column_names], fontweight="bold")
+    axes.set_ylabel(f"R{Unicode.SQUARED}", fontsize=FONTSIZE_SMALL, labelpad=y_labelpad)
+    axes.set_title(f"Exponential fit R{Unicode.SQUARED} (all datasets)", fontsize=FONTSIZE_SMALL)
+    axes.set_ylim(axes_ylim)
+
+
 def make_autocorrelation_panel(save_dir: Path) -> Path:
     # example dataset for first subplot
     dataset_name = EXAMPLE_DATASET["FIGURE_2_LOW_FLOW_DATASET"]
@@ -444,6 +501,16 @@ def make_autocorrelation_panel(save_dir: Path) -> Path:
         Column.DiffAEData.POLAR_RADIUS,
         autocorrelation_manifest,
         y_labelpad=y_labelpad,
+    )
+
+    # Suplot 2: R^2 values for exponential fits to ACFs for all datasets and
+    # specified features as a scatter plot
+    _make_acf_r_squared_plot(
+        ax[1],
+        column_names,
+        autocorrelation_manifest,
+        y_labelpad=y_labelpad,
+        scatter_kwargs={"color": "black", "alpha": 0.5, "edgecolor": "k", "s": 10, "zorder": 3},
     )
 
     filename = "autocorrelation_analysis"
