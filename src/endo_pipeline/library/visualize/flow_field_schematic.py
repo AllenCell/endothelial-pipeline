@@ -535,7 +535,7 @@ def _make_weighted_displacement_histogram(
         fig,
         axes,
         pcm,
-        label=colorbar_label,
+        colorbar_label=colorbar_label,
     )
     return weighted_counts_delta_x
 
@@ -595,7 +595,7 @@ def _plot_kernel_at_target_bin(
         fig,
         axes,
         pcm,
-        label=colorbar_label,
+        colorbar_label=colorbar_label,
     )
     return kernel_weights_2d
 
@@ -707,7 +707,7 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
         fig,
         axes[2],
         pcm,
-        label=f"Kernel-weighted\nsum of {Unicode.DELTA} {axes_xlabel}",
+        colorbar_label=f"Kernel-weighted\nsum of {Unicode.DELTA} {axes_xlabel}",
     )
 
     # panel 4 - final KM coefficient estimate at target bin
@@ -737,7 +737,7 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
         fig,
         axes[3],
         pcm,
-        label=f"Drift in {axes_xlabel} (hr$^{{-1}}$)",
+        colorbar_label=f"Drift in {axes_xlabel} (hr$^{{-1}}$)",
     )
 
     # only show y-axis tick labels on the first panel to avoid clutter, since
