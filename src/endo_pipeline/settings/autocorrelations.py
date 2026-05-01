@@ -1,4 +1,4 @@
-"""Method settings for computing the cross correlation function of time series data."""
+"""Method settings for computing the auto- and cross-correlation functions of time series data."""
 
 NUM_TIMEPOINT_FRAC = 3
 """Fraction of total number of time points to use as the maximum lag for
