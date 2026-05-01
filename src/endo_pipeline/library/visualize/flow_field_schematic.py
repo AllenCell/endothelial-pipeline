@@ -441,9 +441,10 @@ def _make_acf_r_squared_plot(
         acf_dataset_sorted = acf_dataset_sorted.sort_values(
             by=[Column.AutoCorrelation.FEATURE, Column.AutoCorrelation.LAG]
         )
-        for column_name, acf_column in acf_dataset_sorted.groupby(
+        for column_name_, acf_column in acf_dataset_sorted.groupby(
             Column.AutoCorrelation.FEATURE, observed=True
         ):
+            column_name = cast(Column.DiffAEData, column_name_)
             acf_mean = acf_column[Column.AutoCorrelation.ACF_MEAN].to_numpy()
             exponential_decay_curve = acf_column[Column.AutoCorrelation.EXPONENTIAL_FIT].to_numpy()
             # get r_squared for exponential fit
