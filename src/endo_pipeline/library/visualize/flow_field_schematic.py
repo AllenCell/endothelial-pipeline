@@ -424,7 +424,7 @@ def make_autocorrelation_panel(save_dir: Path) -> Path:
         color="darkturquoise",
         linestyle="--",
         linewidth=1.25,
-        label=f"Exp. fit (R{Unicode.SQUARED} = {r_squared:.3f})",
+        label=f"Exp. fit (R{Unicode.SQUARED} = {r_squared:.2f})",
     )
     ax[0].set_xlabel("Lag (hours)", fontsize=FONTSIZE_SMALL, **XLABEL_KWARGS)
     ax[0].set_ylabel("ACF", fontsize=FONTSIZE_SMALL, labelpad=y_labelpad)
