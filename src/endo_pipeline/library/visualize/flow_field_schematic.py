@@ -40,7 +40,6 @@ from endo_pipeline.manifests import (
 from endo_pipeline.settings.autocorrelations import AUTOCORRELATION_DATAFRAME_MANIFEST_PREFIX
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.dynamics_workflows import (
     BIN_WIDTHS_DYNAMICS,
     KERNEL_BANDWIDTHS_DYNAMICS,
@@ -370,7 +369,7 @@ def _compute_r_squared(data: np.ndarray, fit: np.ndarray) -> float:
 def _make_example_acf_plot(
     axes: plt.Axes,
     dataset_name: str,
-    column_name: ColumnNameType,
+    column_name: Column.DiffAEData,
     autocorrelation_manifest: DataframeManifest,
     y_labelpad: float = 0.5,
 ) -> None:
@@ -384,11 +383,8 @@ def _make_example_acf_plot(
     acf_df_positive = acf_df[acf_df[Column.AutoCorrelation.LAG] > 0]
 
     # plot acf for polar radius
-    column_for_plot = Column.DiffAEData.POLAR_RADIUS
-    column_label = COLUMN_METADATA[column_for_plot].label
-    acf_polar_r = acf_df_positive[
-        acf_df_positive[Column.AutoCorrelation.FEATURE] == column_for_plot
-    ]
+    column_label = COLUMN_METADATA[column_name].label
+    acf_polar_r = acf_df_positive[acf_df_positive[Column.AutoCorrelation.FEATURE] == column_name]
     lag_hours = acf_polar_r[Column.AutoCorrelation.LAG].to_numpy() * TIME_STEP_IN_HOURS
     acf_mean = acf_polar_r[Column.AutoCorrelation.ACF_MEAN].to_numpy()
     acf_lb = acf_polar_r[Column.AutoCorrelation.ACF_LOWER_PERCENTILE].to_numpy()
@@ -416,7 +412,7 @@ def _make_example_acf_plot(
 
 def _make_acf_r_squared_plot(
     axes: plt.Axes,
-    column_names: list[ColumnNameType],
+    column_names: list[Column.DiffAEData],
     autocorrelation_manifest: DataframeManifest,
     y_labelpad: float = 0.5,
     jitter_random_seed: int = RANDOM_SEED,
@@ -428,7 +424,7 @@ def _make_acf_r_squared_plot(
     and specified columns as a scatter plot with jitter on the column axis.
     """
     rng = np.random.default_rng(jitter_random_seed)
-    r_squared_dict: dict[ColumnNameType, list[float]] = {key: [] for key in column_names}
+    r_squared_dict: dict[Column.DiffAEData, list[float]] = {key: [] for key in column_names}
 
     # loop over datasets and compute R^2 values for each specified column,
     # storing in r_squared_dict
