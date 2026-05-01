@@ -1,0 +1,168 @@
+name: autocorrelations_polar_r_polar_theta_rho_diffae_baseline_exclude_cell_piling_20251110_latent_512_grid
+workflow: compute_autocorrelation
+parameters:
+  model_manifest_name: diffae_baseline_exclude_cell_piling
+  run_name: 20251110_latent_512
+  crop_pattern: grid
+  columns: [polar_theta, polar_r, rho]
+locations:
+  20250224_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20250224_20X_20260501_220511.parquet
+    s3uri: null
+  20250319_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20250319_20X_20260501_220512.parquet
+    s3uri: null
+  20250326_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20250326_20X_20260501_220514.parquet
+    s3uri: null
+  20250402_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20250402_20X_20260501_220515.parquet
+    s3uri: null
+  20250409_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20250409_20X_20260501_220516.parquet
+    s3uri: null
+  20250428_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20250428_20X_20260501_220518.parquet
+    s3uri: null
+  20250604_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20250604_20X_20260501_220519.parquet
+    s3uri: null
+  20250611_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20250611_20X_20260501_220521.parquet
+    s3uri: null
+  20250618_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20250618_20X_20260501_220522.parquet
+    s3uri: null
+  20250714_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20250714_20X_20260501_220524.parquet
+    s3uri: null
+  20250716_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20250716_20X_20260501_220526.parquet
+    s3uri: null
+  20250728_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20250728_20X_20260501_220527.parquet
+    s3uri: null
+  20250806_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20250806_20X_20260501_220528.parquet
+    s3uri: null
+  20250813_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20250813_20X_20260501_220530.parquet
+    s3uri: null
+  20250818_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20250818_20X_20260501_220532.parquet
+    s3uri: null
+  20250827_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20250827_20X_20260501_220533.parquet
+    s3uri: null
+  20250908_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20250908_20X_20260501_220534.parquet
+    s3uri: null
+  20251001_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20251001_20X_20260501_220536.parquet
+    s3uri: null
+  20251022_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20251022_20X_20260501_220537.parquet
+    s3uri: null
+  20251029_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20251029_20X_20260501_220539.parquet
+    s3uri: null
+  20251105_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20251105_20X_20260501_220540.parquet
+    s3uri: null
+  20251119_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20251119_20X_20260501_220542.parquet
+    s3uri: null
+  20260114_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20260114_20X_20260501_220543.parquet
+    s3uri: null
+  20260121_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20260121_20X_20260501_220544.parquet
+    s3uri: null
+  20260126_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20260126_20X_20260501_220546.parquet
+    s3uri: null
+  20260128_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20260128_20X_20260501_220547.parquet
+    s3uri: null
+  20260202_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20260202_20X_20260501_220549.parquet
+    s3uri: null
+  20260204_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20260204_20X_20260501_220550.parquet
+    s3uri: null
+  20260209_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20260209_20X_20260501_220551.parquet
+    s3uri: null
+  20260211_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20260211_20X_20260501_220552.parquet
+    s3uri: null
+  20260216_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20260216_20X_20260501_220554.parquet
+    s3uri: null
+  20260218_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20260218_20X_20260501_220555.parquet
+    s3uri: null
+  20260225_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20260225_20X_20260501_220556.parquet
+    s3uri: null
+  20260302_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20260302_20X_20260501_220558.parquet
+    s3uri: null
+  20260304_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20260304_20X_20260501_220559.parquet
+    s3uri: null
+  20260309_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20260309_20X_20260501_220601.parquet
+    s3uri: null
+  20260316_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20260316_20X_20260501_220603.parquet
+    s3uri: null
+  20260318_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20260318_20X_20260501_220605.parquet
+    s3uri: null
+  20260323_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20260323_20X_20260501_220607.parquet
+    s3uri: null
+  20260325_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-01/compute_autocorrelation/grid/autocorrelation_20260325_20X_20260501_220608.parquet
+    s3uri: null
