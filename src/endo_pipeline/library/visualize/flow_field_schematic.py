@@ -217,16 +217,18 @@ def make_real_image_panel(
     map_arrow_x_offset: float = 0.065,
     map_arrow_rad: float = 0.3,
     map_arrow_linewidth: float = 1.5,
-    horizontal_arrow_x_offset: float = 0.07,
+    horizontal_arrow_x_offset: float = 0.125,
     horizontal_arrow_y_offset: float = -0.025,
     horizontal_arrow_linewidth: float = 1.5,
-    text_y_offset: float = -0.125,
+    text_y_offset: float = -0.175,
     delta_text_y_offset: float = 0.02,
 ) -> Path:
     """Build the panel showing a grid crop from t to t+1 for a given example image."""
 
-    contact_figsize = (5.95, 2.75)
+    contact_figsize = (3.65, 2.4)
     arrowstyle = "->,head_length=5,head_width=3"
+    box_color = "deepskyblue"
+    map_arrow_color = "deepskyblue"
 
     fov_crop_size = 2 * NATIVE_ZARR_RESOLUTION_CROP_SIZE
     scale_bar_um = 20
@@ -257,6 +259,7 @@ def make_real_image_panel(
         max_cols=len(processed_images),
         max_rows=1,
         fig_kwargs={"figsize": contact_figsize, "layout": "constrained"},
+        gridspec_kwargs={"hspace": 0.05},
     )
 
     layout_engine = cast(LayoutEngine, fig.get_layout_engine())
@@ -288,7 +291,7 @@ def make_real_image_panel(
             grid_crop_position,
             grid_crop_size,
             grid_crop_size,
-            edgecolor="magenta",
+            edgecolor=box_color,
             facecolor="none",
             linewidth=2,
             clip_on=False,
@@ -312,9 +315,10 @@ def make_real_image_panel(
             box_position=(box_mid_x, box_bottom_y),
             rad=arrow_rad,
             text=f"({Unicode.THETA}, r, {Unicode.RHO}) at {label}",
-            text_y_offset=text_y_offset,
+            text_y_position=bbox_t.y0 + text_y_offset,
             arrow_x_offset=map_arrow_x_offset,
             linewidth=map_arrow_linewidth,
+            color=map_arrow_color,
             arrowstyle=arrowstyle,
         )
 
