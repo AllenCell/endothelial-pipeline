@@ -6,6 +6,7 @@ def main() -> None:
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
     from endo_pipeline.library.visualize.flow_field_schematic import (
+        make_autocorrelation_panel,
         make_kernel_convolution_schematic,
         make_real_image_panel,
     )
@@ -17,14 +18,23 @@ def main() -> None:
 
     image_panel_path = make_real_image_panel(output_path)
 
+    acf_panel_path = make_autocorrelation_panel(output_path)
+
     kernel_convolution_panel_path = make_kernel_convolution_schematic(output_path)
 
     panels = [
-        # --- Low flow dataset (row 1) ---
         FigurePanel(
             letter="A",
             path=image_panel_path,
             x_position=0.0,
+            y_position=0.0,
+            x_offset=0.1,
+            y_offset=0.1,
+        ),
+        FigurePanel(
+            letter="B",
+            path=acf_panel_path,
+            x_position=3.75,
             y_position=0.0,
             x_offset=0.1,
             y_offset=0.1,
