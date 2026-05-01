@@ -100,7 +100,7 @@ def _add_map_arrow_to_plot(
     box_position: tuple[float, float],
     rad: float,
     text: str,
-    text_y_offset: float,
+    text_y_position: float,
     arrow_x_offset: float = 0.05,
     linewidth: float = 1.5,
     arrowstyle: str = "->,head_length=5,head_width=3",
@@ -127,9 +127,8 @@ def _add_map_arrow_to_plot(
         negative values curve to the left.
     text
         The text that the arrow points to.
-    text_y_offset
-        Vertical offset for the text label from the top of the box in figure
-        coordinate units.
+    text_y_position
+        The y-coordinate for the text label in figure coordinate units.
     arrow_x_offset
         Horizontal offset for the start of the arrow from the box in figure
         coordinate units.
@@ -139,16 +138,14 @@ def _add_map_arrow_to_plot(
         Arrow style string for the arrow.
 
     """
-    bbox = ax.get_position()
-    label_y = bbox.y0 + text_y_offset
     # Align labels horizontally with the midpoint of each highlighted box
     arrow_start = _data_to_fig(fig, ax, box_position, x_offset=arrow_x_offset)
-    label_x = arrow_start[0]
+    text_x_position = arrow_start[0]
 
     # Text labels
     fig.text(
-        label_x,
-        label_y,
+        text_x_position,
+        text_y_position,
         text,
         ha="center",
         va="top",
@@ -157,7 +154,7 @@ def _add_map_arrow_to_plot(
 
     arrow = FancyArrowPatch(
         arrow_start,
-        (label_x, label_y - 0.01),
+        (text_x_position, text_y_position - 0.01),
         connectionstyle=f"arc3,rad={rad}",
         arrowstyle=arrowstyle,
         color="black",
