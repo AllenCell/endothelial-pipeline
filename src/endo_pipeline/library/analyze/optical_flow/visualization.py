@@ -35,8 +35,8 @@ def _scan_crop_pairs(
     cids = crop_grid[ColumnName.CROP_INDEX].values
     sx_arr = crop_grid[ColumnName.DiffAEData.START_X].values.astype(int)
     sy_arr = crop_grid[ColumnName.DiffAEData.START_Y].values.astype(int)
-    ex_arr = crop_grid["end_x"].values.astype(int)
-    ey_arr = crop_grid["end_y"].values.astype(int)
+    ex_arr = crop_grid[ColumnName.DiffAEData.END_X].values.astype(int)
+    ey_arr = crop_grid[ColumnName.DiffAEData.END_Y].values.astype(int)
 
     crop_step = max(1, len(cids) // DEMO_SCAN_N_CROPS)
     scan_cids = range(0, len(cids), crop_step)
