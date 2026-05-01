@@ -248,8 +248,8 @@ def make_real_image_panel(
     """Build the panel showing a grid crop from t to t+1 for a given example image."""
 
     contact_figsize = (3.65, 2.4)
-    box_color = "darkturquoise"
-    map_arrow_color = "darkturquoise"
+    box_color = "deepskyblue"
+    map_arrow_color = "deepskyblue"
     arrowstyle = "->,head_length=5,head_width=3"
 
     fov_crop_size = 2 * NATIVE_ZARR_RESOLUTION_CROP_SIZE
