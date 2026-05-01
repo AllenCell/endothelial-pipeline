@@ -200,7 +200,6 @@ def save_summary_figure(
     num_examples: int,
     label_for_conditioning: str,
     example_set_label: str,
-    model_idx: int,
     compute_metrics: bool,
     output_path: Path,
     model_label: str | None = None,
@@ -211,6 +210,10 @@ def save_summary_figure(
     :func:`~endo_pipeline.library.visualize.model_qc_plots.create_contact_sheet_with_metrics_column`
     (when metrics are available) or
     :func:`~endo_pipeline.library.visualize.model_qc_plots.create_summary_contact_sheet`.
+
+    The output filename is the same regardless of whether metrics are
+    computed.  Per-model disambiguation is handled by ``output_path``,
+    which already includes the manifest and resolved run name.
 
     Parameters
     ----------
@@ -224,14 +227,13 @@ def save_summary_figure(
         Label for the conditioning channel.
     example_set_label
         Human-readable name for the example set (e.g. ``"validation_positions"``).
-    model_idx
-        Zero-based model index.
     compute_metrics
         Whether to include a metrics column in the figure.
     output_path
         Directory where the figure will be saved.
     model_label
-        Human-readable model name for the title.
+        Human-readable model name for the title.  Required when
+        ``compute_metrics`` is True.
     """
     _ensure_dir(output_path)
 
@@ -258,13 +260,13 @@ def save_summary_figure(
             fig_kwargs={"figsize": ((num_img_cols + 1) * 2, num_examples * 1.8)},
             direction="left-right first",
         )
-        title_model = model_label or f"Model {model_idx + 1}"
+        if model_label is None:
+            raise ValueError("model_label is required when compute_metrics is True")
         fig.suptitle(
-            f"100% Noise Denoising - {example_set_label} - {title_model}",
+            f"100% Noise Denoising - {example_set_label} - {model_label}",
             fontsize=FONTSIZE_LARGE,
             y=0.995,
         )
-        filename = f"contact_sheet_predict_all_examples_model{model_idx + 1}"
     else:
         fig = create_summary_contact_sheet(
             example_results=example_results_100,
@@ -272,7 +274,6 @@ def save_summary_figure(
             label_for_conditioning=label_for_conditioning,
             font_size_medium=FONTSIZE_MEDIUM,
         )
-        filename = "contact_sheet_predict_all_examples"
 
-    save_plot_to_path(fig, output_path, filename)
+    save_plot_to_path(fig, output_path, "contact_sheet_predict_all_examples")
     plt.close(fig)

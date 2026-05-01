@@ -93,8 +93,8 @@ def compute_baseline_for_example(
 
 
 def aggregate_seed_metrics(
-    all_seed_results: dict[int, dict[int, dict]],
-    model_manifest_names: list[str],
+    all_seed_results: dict[tuple[str, str], dict[int, dict]],
+    model_keys: list[tuple[str, str]],
     example_sets_for_metrics: set[str],
     seeds_to_evaluate: list[int],
 ) -> tuple[dict[str, list[dict]], list[str]]:
@@ -106,14 +106,16 @@ def aggregate_seed_metrics(
     Parameters
     ----------
     all_seed_results
-        Nested mapping ``{model_idx: {seed: result_dict}}``.  Each
-        ``result_dict`` contains per-example-set metric lists keyed by
-        ``"correlations_100"``, ``"ssims_100"``, ``"lpips_100"``,
+        Nested mapping ``{model_key: {seed: result_dict}}``.  Each
+        ``model_key`` is a ``(manifest_name, resolved_run_name)`` tuple.
+        Each ``result_dict`` contains per-example-set metric lists keyed
+        by ``"correlations_100"``, ``"ssims_100"``, ``"lpips_100"``,
         ``"baseline_correlations"``, ``"baseline_ssims"``, and
         ``"baseline_lpips"`` (the last 3 are when baselines are computed).
-    model_manifest_names
-        Manifest names, one per model.  Only the length is used to iterate
-        over model indices.
+    model_keys
+        Ordered list of ``(manifest_name, resolved_run_name)`` keys.  The
+        iteration order determines the order of entries in the returned
+        per-example-set lists (and therefore the bar-plot ordering).
     example_sets_for_metrics
         Example-set labels to aggregate
         (e.g. ``{"validation_positions", "rep_2_positions"}``).
@@ -124,15 +126,15 @@ def aggregate_seed_metrics(
     -------
     all_metrics
         Each aggregated dict has flat lists of all per-example, per-seed metric
-        values plus metadata (``model_idx``, ``model_label``, ``num_seeds``).
+        values plus metadata (``model_key``, ``model_label``, ``num_seeds``).
     model_labels
         Ordered human-readable model labels (one per model).
     """
     all_metrics: dict[str, list[dict]] = {label: [] for label in example_sets_for_metrics}
     model_labels: list[str] = []
 
-    for model_idx in range(len(model_manifest_names)):
-        seed_results = all_seed_results[model_idx]
+    for model_key in model_keys:
+        seed_results = all_seed_results[model_key]
         first_result = next(iter(seed_results.values()))
         model_labels.append(first_result["model_label"])
 
@@ -154,7 +156,7 @@ def aggregate_seed_metrics(
                     all_baseline_lpips.extend(result[example_set_label]["baseline_lpips"])
 
             aggregated_metrics = {
-                "model_idx": model_idx,
+                "model_key": model_key,
                 "model_label": first_result["model_label"],
                 "example_set": example_set_label,
                 "correlations_100": all_corrs,
@@ -247,7 +249,7 @@ def compute_baseline_data(
 
 def build_models_data(
     all_metrics: dict[str, list[dict]],
-    model_manifest_names: list[str],
+    model_keys: list[tuple[str, str]],
     baseline_data: dict[str, dict[str, float]],
     compute_baseline: bool,
 ) -> list[dict[str, Any]]:
@@ -263,8 +265,9 @@ def build_models_data(
         Aggregated per-model metric dictionaries keyed by example-set label.
         Each inner dict contains ``"correlations_100"``, ``"ssims_100"``,
         and ``"lpips_100"`` float lists.
-    model_manifest_names
-        Manifest names, one per model.
+    model_keys
+        Ordered list of ``(manifest_name, resolved_run_name)`` tuples.  The
+        order determines the order of entries in the returned list.
     baseline_data
         Pre-computed baseline mean/std statistics for ``"validation"`` and
         ``"rep2"`` splits.  Attached to each model entry for convenience.
@@ -274,7 +277,7 @@ def build_models_data(
     Returns
     -------
     models_data
-        One dict per model with keys ``"model_idx"``, ``"model_label"``,
+        One dict per model with keys ``"model_key"``, ``"model_label"``,
         ``"validation"``, ``"rep2"``, ``"baseline_validation"``,
         ``"baseline_rep2"``.  The split dicts contain ``*_mean`` / ``*_std``
         floats for correlation, SSIM, and LPIPS.
@@ -289,9 +292,9 @@ def build_models_data(
     }
     models_data: list[dict[str, Any]] = []
 
-    for model_idx in range(len(model_manifest_names)):
+    for model_key in model_keys:
         model_entry: dict[str, Any] = {
-            "model_idx": model_idx,
+            "model_key": model_key,
             "model_label": None,
             "validation": dict(_zero),
             "rep2": dict(_zero),
@@ -304,7 +307,7 @@ def build_models_data(
             ("rep2", "rep_2_positions"),
         ]:
             for data in all_metrics[metric_key]:
-                if data["model_idx"] == model_idx:
+                if data["model_key"] == model_key:
                     if model_entry["model_label"] is None:
                         model_entry["model_label"] = data["model_label"]
                     model_entry[split_key] = {
@@ -329,8 +332,7 @@ def build_models_data(
 
 def create_comparison_plots_and_summary(
     models_data: list[dict[str, Any]],
-    model_manifest_names: list[str],
-    run_names: list[str | None],
+    model_keys: list[tuple[str, str]],
     seeds_to_evaluate: list[int],
     baseline_data: dict[str, dict[str, float]],
     compute_baseline: bool,
@@ -346,12 +348,10 @@ def create_comparison_plots_and_summary(
     models_data
         Per-model summary dicts each containing ``"validation"`` and
         ``"rep2"`` sub-dicts with ``*_mean`` / ``*_std`` floats.
-    model_manifest_names
-        Manifest names, one per model.  Used for axis labels and the
-        legend text in each bar plot.
-    run_names
-        Run names, one per model.  ``None`` entries are displayed as
-        ``"latest"`` in the legend.
+    model_keys
+        Ordered list of ``(manifest_name, resolved_run_name)`` tuples,
+        one per model.  Used for axis labels and the legend text in each
+        bar plot.  Must align positionally with ``models_data``.
     seeds_to_evaluate
         Seeds used during evaluation; displayed in titles when >1.
     baseline_data
@@ -368,7 +368,7 @@ def create_comparison_plots_and_summary(
     comparison_output_path = get_output_path(
         "model_qc",
         "comparison",
-        f"models_{len(model_manifest_names)}{seed_suffix}",
+        f"models_{len(model_keys)}{seed_suffix}",
     )
 
     # Determine model labels
@@ -381,9 +381,8 @@ def create_comparison_plots_and_summary(
         f" (averaged over {len(seeds_to_evaluate)} seeds)" if len(seeds_to_evaluate) > 1 else ""
     )
     legend_text = f"Model Details{seeds_info}:\n" + "\n".join(
-        f"{model_labels[i]}: "
-        f"{model_manifest_names[i]}\n         Run: {run_names[i] if run_names[i] else 'latest'}"
-        for i in range(len(models_data))
+        f"{model_labels[i]}: {manifest_name}\n         Run: {run_name}"
+        for i, (manifest_name, run_name) in enumerate(model_keys)
     )
 
     metric_configs: list[tuple[str, str, str, dict[str, Any]]] = [
