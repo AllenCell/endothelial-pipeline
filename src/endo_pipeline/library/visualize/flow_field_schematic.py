@@ -463,7 +463,9 @@ def _make_acf_r_squared_plot(
             **(scatter_kwargs or {}),
         )
     axes.set_xticks(range(len(column_names)))
-    axes.set_xticklabels([COLUMN_METADATA[col].label for col in column_names], fontweight="bold")
+    axes.set_xticklabels(
+        [COLUMN_METADATA[col].label or col for col in column_names], fontweight="bold"
+    )
     axes.set_ylabel(f"R{Unicode.SQUARED}", fontsize=FONTSIZE_SMALL, labelpad=y_labelpad)
     axes.set_title(f"Exponential fit R{Unicode.SQUARED} (all datasets)", fontsize=FONTSIZE_SMALL)
     axes.set_ylim(axes_ylim)
