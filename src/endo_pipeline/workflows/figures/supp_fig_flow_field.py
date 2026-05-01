@@ -9,7 +9,7 @@ def main() -> None:
         make_kernel_convolution_schematic,
         make_real_image_panel,
     )
-    from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
 
     plt.style.use("endo_pipeline.figure")
 
@@ -30,12 +30,12 @@ def main() -> None:
             y_offset=0.1,
         ),
         FigurePanel(
-            letter="B",
+            letter="C",
             path=kernel_convolution_panel_path,
             x_position=0.0,
-            y_position=2.75,
-            x_offset=0.075,
-            y_offset=0.15,
+            y_position=2.8,
+            x_offset=0.175,
+            y_offset=0.55,
         ),
     ]
 
@@ -44,7 +44,7 @@ def main() -> None:
         panels,
         output_path / "supp_fig_flow_field.svg",
         width=MAX_FIGURE_WIDTH,
-        height=MAX_FIGURE_HEIGHT,
+        height=5.0,
     )
 
 
