@@ -373,12 +373,6 @@ def get_flow_field_and_fixed_points(
     return flow_field_dict, fixed_points_df
 
 
-def get_vector_vector_angle(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
-    """Return the angle in radians between two vectors."""
-    angle_rad = np.arccos(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2)))
-    return angle_rad
-
-
 def get_vector_vector_angle_fast(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
     """
     Return the element-wise angles in radians between rows of two 2-D vector arrays.
@@ -395,6 +389,7 @@ def get_vector_vector_angle_fast(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
     :
         Array of shape ``(N,)`` containing the angle between each pair of corresponding vectors.
     """
+    v1, v2 = np.atleast_2d(v1), np.atleast_2d(v2)
     dot_prod = np.einsum("ij,ij->i", v1, v2)
     norm1 = np.linalg.norm(v1, axis=1)
     norm2 = np.linalg.norm(v2, axis=1)
