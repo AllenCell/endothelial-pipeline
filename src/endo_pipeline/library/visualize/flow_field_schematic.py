@@ -635,7 +635,7 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
     target_bin = _get_target_bin(target_point, bin_edges)
 
     fig, ax = plt.subplots(
-        2, 2, gridspec_kw={"wspace": 0.3}, figsize=(5.75, 5.05), layout="constrained"
+        1, 4, gridspec_kw={"wspace": 0.075}, figsize=(6.0, 1.65), layout="constrained"
     )
     axes = ax.flatten() if isinstance(ax, np.ndarray) else [ax]
     axes_xlabel = COLUMN_METADATA[column_names[0]].label
@@ -651,8 +651,10 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
         target_bin=target_bin,
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
+        axes_xlabel=axes_xlabel,
         axes_ylabel=axes_ylabel,
         ylabel_kwargs=YLABEL_KWARGS,
+        xlabel_kwargs=XLABEL_KWARGS,
         colorbar_label=f"Sum of {Unicode.DELTA} {axes_xlabel}",
     )
 
@@ -674,7 +676,9 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
         target_bin=target_bin,
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
-        colorbar_label="Kernel weight (normalized)",
+        axes_xlabel=axes_xlabel,
+        xlabel_kwargs=XLABEL_KWARGS,
+        colorbar_label="Kernel weight\n(normalized)",
     )
 
     # panel 3 - kernel-weighted histogram (i.e. numerator of KM estimator)
@@ -690,9 +694,7 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
         axes_xlabel=axes_xlabel,
-        axes_ylabel=axes_ylabel,
         xlabel_kwargs=XLABEL_KWARGS,
-        ylabel_kwargs=YLABEL_KWARGS,
     )
     _add_target_bin_border(
         axes[2],
@@ -703,7 +705,7 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
         fig,
         axes[2],
         pcm,
-        label=f"Kernel-weighted sum of {Unicode.DELTA} {axes_xlabel}",
+        label=f"Kernel-weighted\nsum of {Unicode.DELTA} {axes_xlabel}",
     )
 
     # panel 4 - final KM coefficient estimate at target bin
@@ -735,6 +737,11 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
         pcm,
         label=f"Drift in {axes_xlabel} (hr$^{{-1}}$)",
     )
+
+    # only show y-axis tick labels on the first panel to avoid clutter, since
+    # all panels share the same y-axis limits
+    for ax in axes[1:]:
+        ax.yaxis.set_tick_params(labelleft=False)
 
     filename = "kernel_convolution_schematic"
     save_plot_to_path(
