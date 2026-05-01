@@ -29,8 +29,8 @@ def main(
     from endo_pipeline.io import (
         build_fms_annotations,
         get_output_path,
-        upload_file_to_fms,
         make_name_unique,
+        upload_file_to_fms,
     )
     from endo_pipeline.library.analyze.track_integration import (
         build_fpt_line_fit_results_df,
@@ -119,7 +119,9 @@ def main(
     # save the first passage time statistics and parameter sweep results as dataframes for plotting
     fpt_stats_df_savepath = make_name_unique(out_dir / "first_passage_time_stats.parquet")
     fpt_stats_df.to_parquet(fpt_stats_df_savepath)
-    fpt_param_sweep_df_savepath = make_name_unique(out_dir / "first_passage_time_parameter_sweep.parquet")
+    fpt_param_sweep_df_savepath = make_name_unique(
+        out_dir / "first_passage_time_parameter_sweep.parquet"
+    )
     parameter_sweep_df.to_parquet(fpt_param_sweep_df_savepath)
 
     # If upload_to_fms is True, upload the parquet file to FMS and
