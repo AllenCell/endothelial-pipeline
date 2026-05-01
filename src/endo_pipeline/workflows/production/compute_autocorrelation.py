@@ -171,7 +171,7 @@ def main(
         # concatenate autocorrelation dataframes for each flow condition, save
         # to parquet, and update manifest
         autocorrelations_for_dataset = pd.concat(autocorrelation_dataframe_list, ignore_index=True)
-        autocorrelation_file_name = f"autocorrelation_{dataset_name}.parquet"
+        autocorrelation_file_name = f"autocorrelation_{dataset_name}_{crop_pattern}.parquet"
         autocorrelation_save_path = make_name_unique(dataframe_savedir / autocorrelation_file_name)
         autocorrelations_for_dataset.to_parquet(autocorrelation_save_path)
 
