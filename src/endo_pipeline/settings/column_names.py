@@ -499,6 +499,27 @@ class ColumnName:
         CI_UPPER = "ci_upper"
         """Upper bound of the bootstrap confidence interval."""
 
+    class AutoCorrelation(StrEnum):
+        """Column name suffixes used in autocorrelation analysis."""
+
+        LAG = "lag"
+        """Column name for the lag at which the autocorrelation is computed."""
+
+        FEATURE = "feature"
+        """Column name indicating the feature variable for which autocorrelation is computed."""
+
+        ACF_MEAN = "autocorrelation_mean"
+        """Column name for the mean autocorrelation value across tracks at a given lag."""
+
+        ACF_LOWER_PERCENTILE = "autocorrelation_lower_percentile"
+        """Column name for the lower percentile of autocorrelation values across tracks at a given lag."""
+
+        ACF_UPPER_PERCENTILE = "autocorrelation_upper_percentile"
+        """Column name for the upper percentile of autocorrelation values across tracks at a given lag."""
+
+        EXPONENTIAL_FIT = "exponential_fit"
+        """Column name for the values of the evaluated exponential fit curve at a given lag."""
+
 
 ColumnNameType = (
     str
@@ -511,5 +532,6 @@ ColumnNameType = (
     | ColumnName.OpticalFlow
     | ColumnName.BootstrapAnalysis
     | ColumnName.VectorField
+    | ColumnName.AutoCorrelation
 )
 """Type hint for all column name enums."""

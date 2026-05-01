@@ -1,17 +1,18 @@
 """Methods for computing autocorrelation and cross-correlation functions from time series data."""
 
 import logging
+from collections.abc import Sequence
 from concurrent.futures import ProcessPoolExecutor
 from itertools import combinations
-from typing import Any, Literal
+from typing import Any
 
 import numpy as np
 import pandas as pd
 from scipy.optimize import curve_fit
 
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
+from endo_pipeline.settings.autocorrelations import MAX_LAG_INTEGRATE, NUM_TIMEPOINT_FRAC
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.cross_correlations import MAX_LAG_INTEGRATE, NUM_TIMEPOINT_FRAC
 from endo_pipeline.settings.dynamics_workflows import POLAR_ANGLE_PERIOD, RESCALE_THETA
 
 logger = logging.getLogger(__name__)
@@ -151,51 +152,181 @@ def autocorrelation_function(
     # Extract the specified component from the data array.
     x_t_j = data[..., component_index]
 
+    # Ensure x_t_j is 2D (num_samples, num_timepoints). If a single trajectory
+    # is passed with shape (num_timepoints,), reshape to (1, num_timepoints).
+    if x_t_j.ndim == 1:
+        x_t_j = x_t_j[np.newaxis, :]
+
     # Pass to cross_correlation_function with itself to get ACF.
     return cross_correlation_function(x_t_j, x_t_j, lag_cutoff_fraction=lag_cutoff_fraction)
 
 
-def fit_exp_decay_and_get_relaxation_timescale(
+def fit_exp_decay(
     acf: np.ndarray,
     lags: np.ndarray,
-    exp_decay_func: Literal["exponential_decay", "double_exponential_decay"],
     maxfev: int = 10000,
-) -> tuple[np.ndarray, float]:
+    p0: Sequence[float] = (0.5, 0.5, 0.5),
+) -> np.ndarray:
     """Fit exponential decay to ACF and return fit parameters and relaxation timescale."""
-    # check to make sure valid function is provided
-    if exp_decay_func not in ["exponential_decay", "double_exponential_decay"]:
-        logger.error(
-            "Invalid exp_decay_func provided: [ %s ]. "
-            "Must be 'exponential_decay' or 'double_exponential_decay'.",
-            exp_decay_func,
-        )
-        raise ValueError(
-            "Invalid exp_decay_func provided to _fit_exp_decay_and_get_relaxation_timescale."
-        )
 
     # get indices where both lags and acf are finite, as required for input to curve_fit function
     valid_indices = np.isfinite(acf) & np.isfinite(lags)
 
-    if exp_decay_func == "exponential_decay":
-        p0 = [0.5, 0.5, 0.5]  # initial guess for a, b, and c
-        exp_fit, _ = curve_fit(
-            exponential_decay, lags[valid_indices], acf[valid_indices], maxfev=maxfev, p0=p0
-        )
-        relaxation_time = 1 / exp_fit[1]
-    else:
-        p0 = [0.5, 0.5, 0.5, 0.5, 0.5]  # initial guess for a1, b1, a2, b2, and c
-        exp_fit, _ = curve_fit(
-            double_exponential_decay,
-            lags[valid_indices],
-            acf[valid_indices],
-            maxfev=maxfev,
-            p0=p0,
-        )
-        # choose the relaxation time corresponding to the larger weight
-        which_weight_is_larger = np.argmax(np.abs(exp_fit[[0, 2]]))
-        relaxation_time = 1 / exp_fit[[1, 3][which_weight_is_larger]]
+    acf_valid = acf[valid_indices]
+    lags_valid = lags[valid_indices]
 
-    return exp_fit, relaxation_time
+    exp_fit, _ = curve_fit(exponential_decay, lags_valid, acf_valid, maxfev=maxfev, p0=p0)
+
+    return exp_fit
+
+
+def _fill_missing_timepoints_with_nans(
+    data_crop: pd.DataFrame, all_timepoints: np.ndarray
+) -> pd.DataFrame:
+    """Fill missing timepoints in a crop dataframe with NaN values."""
+    if data_crop[Column.CROP_INDEX].nunique() != 1:
+        raise ValueError("Dataframe contains multiple crop indices.")
+
+    # sort by timepoint to ensure correct order before reindexing
+    data_crop = data_crop.sort_values(by=Column.TIMEPOINT)
+
+    # preserve the crop index value so it survives the reindex step
+    crop_index_value = data_crop[Column.CROP_INDEX].iloc[0]
+
+    # reindex dataframe to include all timepoints in full range
+    data_crop_filled = data_crop.set_index(Column.TIMEPOINT).reindex(all_timepoints)
+
+    # restore timepoint column and fill CROP_INDEX for NaN-inserted rows
+    data_crop_filled = data_crop_filled.reset_index()
+    data_crop_filled[Column.CROP_INDEX] = crop_index_value
+
+    return data_crop_filled
+
+
+def compute_autocorrelation_dataframe(
+    dataframe: pd.DataFrame,
+    column_names: list[str | Column.DiffAEData],
+    lower_percentile: float = 5.0,
+    upper_percentile: float = 95.0,
+    metadata_dict: dict[str, str | float] | None = None,
+) -> pd.DataFrame:
+    """
+    Compute autocorrelations for specified features, with bootstrap confidence
+    intervals.
+
+    For each trajectory in the dataframe (as indicated by `Column.CROP_INDEX`),
+    this method computes the autocorrelation function (ACF) for each feature
+    specified in column_names. It then saves the mean ACF across trajectories,
+    as well as the `lower_percentile` and `upper_percentile` for the ACF at each
+    lag, in a dataframe with columns for the dataset, crop index, lag, feature
+    name, mean ACF, and ACF confidence interval bounds.
+
+    Parameters
+    ----------
+    dataframe
+        DataFrame containing the time series data for one dataset, with columns
+        specified in column_names.
+    column_names
+        List of column names corresponding to the features for which to compute
+        autocorrelations.
+    lower_percentile
+        Lower percentile to compute for the ACF at each lag.
+    upper_percentile
+        Upper percentile to compute for the ACF at each lag.
+    metadata_dict
+        Optional dictionary of additional metadata to add as columns to the output
+        dataframe (e.g. dataset name, shear stress).
+
+    """
+    # check that required columns are present in the dataframe
+    required_columns = [*column_names, Column.CROP_INDEX, Column.DATASET]
+    check_required_columns_in_dataframe(dataframe, required_columns)
+
+    # unwrap angles if polar_angle is in feat_cols
+    if Column.DiffAEData.POLAR_ANGLE in column_names:
+        for _, df_crop in dataframe.groupby(Column.CROP_INDEX):
+            dataframe.loc[df_crop.index, Column.DiffAEData.POLAR_ANGLE] = np.unwrap(
+                df_crop[Column.DiffAEData.POLAR_ANGLE], period=POLAR_ANGLE_PERIOD
+            )
+
+    # get feature data, filling missing timepoints with NaNs to ensure proper
+    # alignment for correlation calculations
+    t_min = dataframe[Column.TIMEPOINT].min()
+    t_max = dataframe[Column.TIMEPOINT].max()
+    all_timepoints = np.arange(t_min, t_max + 1)
+
+    # fill missing timepoints with NaN values for each crop to ensure
+    # consistent time axis across crops when computing population
+    # variance and cumulative variance per crop, which require a 2D
+    # array of shape (num_crops, num_timepoints)
+    data_filled_list = []
+    for _, data_crop in dataframe.groupby(Column.CROP_INDEX):
+        data_crop_filled = _fill_missing_timepoints_with_nans(data_crop, all_timepoints)
+        data_filled_list.append(data_crop_filled)
+
+    dataframe_filled = pd.concat(data_filled_list, ignore_index=True)
+
+    # use default lag cutoff fraction to determine lags for ACF calculation,
+    # which determines the number of lags to include in the output dataframe
+    num_timepoints = len(all_timepoints)
+    max_lags = num_timepoints // NUM_TIMEPOINT_FRAC
+    lags = np.arange(-max_lags, max_lags + 1)
+
+    # dataframe as array of shape (num_crops, num_timepoints, num_feats) for the
+    # current feature, with missing timepoints filled with NaNs
+    acf_dataframe_list = []
+    for i, column_name in enumerate(column_names):
+        acf_per_crop = []
+        for _, df_crop in dataframe_filled.groupby(Column.CROP_INDEX):
+            feats = df_crop[column_name].to_numpy()[np.newaxis, :, np.newaxis]
+            acf_per_crop.append(
+                autocorrelation_function(feats, 0, lag_cutoff_fraction=NUM_TIMEPOINT_FRAC)
+            )
+
+        # take mean and percentiles across crops for each lag to get mean and
+        # confidence intervals for the ACF at each lag across the population of
+        # single crop trajectories
+        acf_mean_all_lags = np.nanmean(acf_per_crop, axis=0)
+        acf_lower_bound_all_lags = np.nanpercentile(acf_per_crop, lower_percentile, axis=0)
+        acf_upper_bound_all_lags = np.nanpercentile(acf_per_crop, upper_percentile, axis=0)
+
+        # only keep positive lags for the output dataframe since the ACF is
+        # symmetric around zero and we are primarily interested in the decay of
+        # the ACF at positive lags
+        positive_lags = lags[lags > 0]
+        acf_mean = acf_mean_all_lags[lags > 0]
+        acf_lower_bound = acf_lower_bound_all_lags[lags > 0]
+        acf_upper_bound = acf_upper_bound_all_lags[lags > 0]
+
+        # fit exponential decay to the mean ACF at positive lags and get the
+        # evaluated exponential fit curve at the positive lags to add to the
+        # output dataframe
+        exp_fit = fit_exp_decay(acf_mean, positive_lags)
+        exp_fit_evaluated = exponential_decay(positive_lags, *exp_fit)
+
+        acf_dataframe_list.append(
+            pd.DataFrame(
+                {
+                    Column.AutoCorrelation.FEATURE: column_names[i],
+                    Column.AutoCorrelation.LAG: positive_lags,
+                    Column.AutoCorrelation.ACF_MEAN: acf_mean,
+                    Column.AutoCorrelation.ACF_LOWER_PERCENTILE: acf_lower_bound,
+                    Column.AutoCorrelation.ACF_UPPER_PERCENTILE: acf_upper_bound,
+                    Column.AutoCorrelation.EXPONENTIAL_FIT: exp_fit_evaluated,
+                }
+            )
+        )
+
+    acf_dataframe = pd.concat(acf_dataframe_list, ignore_index=True)
+
+    if metadata_dict is not None:
+        for key in metadata_dict:
+            acf_dataframe[key] = metadata_dict[key]
+
+    return acf_dataframe
+
+
+# ----- Remainder of methods specific to time-series-correlations workflow -----
 
 
 def cross_correlation_difference_norm(
@@ -227,9 +358,8 @@ def compute_autocorrelation_and_relaxation_for_one_bootstrap_sample(
     positive_lags_as_hours = 5 * positive_lags / 60  # convert from frames (5 minutes) to hours
     acf_positive_lags = acf[index_positive]
 
-    _, relaxation_time = fit_exp_decay_and_get_relaxation_timescale(
-        acf_positive_lags, positive_lags_as_hours, exp_decay_func="exponential_decay"
-    )
+    exp_fit = fit_exp_decay(acf_positive_lags, positive_lags_as_hours)
+    relaxation_time = 1 / exp_fit[1]
 
     return acf, relaxation_time
 
@@ -316,8 +446,7 @@ def compute_crosscorrelation_and_delta_crosscorrelation_for_one_bootstrap_sample
 
     if data_feat1.shape[0] != data_feat2.shape[0]:
         logger.error(
-            "Input data arrays must have the same number of trajectories. "
-            "Got [ %s ] and [ %s ].",
+            "Input data arrays must have the same number of trajectories. Got [ %s ] and [ %s ].",
             data_feat1.shape[0],
             data_feat2.shape[0],
         )
@@ -541,10 +670,8 @@ def compute_correlations_for_one_dataset(
         positive_lags_as_hours = 5 * positive_lags / 60  # convert from frames (5 minutes) to hours
         acf_positive_lags = acf[:, i][index_positive]
 
-        _, relaxation_time = fit_exp_decay_and_get_relaxation_timescale(
-            acf_positive_lags, positive_lags_as_hours, exp_decay_func="exponential_decay"
-        )
-        relaxation_timescale[i] = relaxation_time
+        exp_fit = fit_exp_decay(acf_positive_lags, positive_lags_as_hours)
+        relaxation_timescale[i] = 1 / exp_fit[1]
         if bootstrap_samples is not None:
             # calculate bootstrap confidence intervals for ACF and relaxation timescale
             confidence_intervals = bootstrap_autocorrelation_confidence_intervals(
@@ -565,12 +692,8 @@ def compute_correlations_for_one_dataset(
             positive_lags_as_hours_crop = 5 * positive_lags_crop / 60
             acf_positive_lags_crop = acf_1_crop[index_positive_crop]
 
-            _, relaxation_time_crop = fit_exp_decay_and_get_relaxation_timescale(
-                acf_positive_lags_crop,
-                positive_lags_as_hours_crop,
-                exp_decay_func="exponential_decay",
-            )
-            relaxation_timescale_per_crop[j, i] = relaxation_time_crop
+            exp_fit = fit_exp_decay(acf_positive_lags_crop, positive_lags_as_hours_crop)
+            relaxation_timescale_per_crop[j, i] = 1 / exp_fit[1]
 
     # cross-correlation
     ccf = np.zeros((num_lags, num_feats))

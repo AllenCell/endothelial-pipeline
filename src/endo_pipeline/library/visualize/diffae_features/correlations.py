@@ -15,11 +15,7 @@ from matplotlib.figure import Figure
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import get_output_path, save_plot_to_path
-from endo_pipeline.library.analyze.numerics.correlations import (
-    double_exponential_decay,
-    exponential_decay,
-    fit_exp_decay_and_get_relaxation_timescale,
-)
+from endo_pipeline.library.analyze.numerics.correlations import exponential_decay, fit_exp_decay
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
 from endo_pipeline.settings.column_names import ColumnName as Column
 
@@ -169,7 +165,7 @@ def _add_delta_ccf_integral_to_plot(
     cross_corr_index_combinations = list(combinations(feature_indices, 2))
     integral_upper_bound_hrs = round(5 * max_lag_integrate / 60, 2)  # convert from frames to hours
     integral_strings = [
-        rf"$|\int_{{0}}^{{{integral_upper_bound_hrs}}}\Delta C_{{{j+1}{k+1}}}(\tau) d\tau|$"
+        rf"$|\int_{{0}}^{{{integral_upper_bound_hrs}}}\Delta C_{{{j + 1}{k + 1}}}(\tau) d\tau|$"
         for (j, k) in cross_corr_index_combinations
     ]
     strings_per_pc = [
@@ -213,7 +209,6 @@ def _add_exp_fit_to_plot(
     lags: np.ndarray,
     ax: Axes,
     feature_labels: list[str],
-    exp_decay_func: Literal["exponential_decay", "double_exponential_decay"],
 ) -> tuple[Axes, list[float]]:
     """Fit exponential decay to autocorrelation function (ACF) and add curve to existing plot.
 
@@ -227,9 +222,6 @@ def _add_exp_fit_to_plot(
         Matplotlib Axes object to add the fit curve to.
     feature_labels
         List of feature labels corresponding to the ACF curves being plotted.
-    exp_decay_func
-        String specifying which exponential decay function to fit (single or
-        double exponential decay).
 
     Returns
     -------
@@ -239,61 +231,31 @@ def _add_exp_fit_to_plot(
         List of relaxation timescales extracted from the fit for each feature/component.
 
     """
-    # check to make sure valid function is provided
-    if exp_decay_func not in ["exponential_decay", "double_exponential_decay"]:
-        logger.error(
-            "Invalid exp_decay_func provided: [ %s ]. "
-            "Must be 'exponential_decay' or 'double_exponential_decay'.",
-            exp_decay_func,
-        )
-        raise ValueError("Invalid exp_decay_func provided to _add_exp_fit_to_plot.")
 
     # fit exponential decay to each PC's ACF and plot on existing axes
     relaxation_timescales = []
     for i in range(len(feature_labels)):
         try:
-            exp_fit, relaxation_time = fit_exp_decay_and_get_relaxation_timescale(
-                acf[:, i], lags, exp_decay_func=exp_decay_func
-            )
+            exp_fit = fit_exp_decay(acf[:, i], lags)[0]
+            relaxation_time = 1 / exp_fit[1]
             relaxation_timescales.append(relaxation_time)
         except RuntimeError:
             logger.warning(
-                "Could not fit [ %s ] to ACF of feature '%s', skipping plot step",
-                exp_decay_func,
+                "Could not fit exponential_decay to ACF of feature '%s', skipping plot step",
                 feature_labels[i],
             )
             relaxation_timescales.append(np.nan)
             continue
 
         # get curve of fit exponential decay
-        if exp_decay_func == "exponential_decay":
-            acf_fit = exponential_decay(lags, *exp_fit)
-            logger.debug(
-                "Exponential fit for feature '%s': [%.3f + %.3f exp(%.3f tau)]",
-                feature_labels[i],
-                exp_fit[2],
-                exp_fit[0],
-                -exp_fit[1],
-            )
-        else:
-            acf_fit = double_exponential_decay(lags, *exp_fit)
-            which_weight_is_larger = np.argmax(np.abs(exp_fit[[0, 2]]))
-            logger.debug(
-                "Full double exponential fit for PC%s: "
-                "[%.3f + %.3f exp(%.3f tau) + %.3f exp(%.3f tau) ]",
-                i + 1,
-                exp_fit[4],
-                exp_fit[0],
-                -exp_fit[1],
-                exp_fit[2],
-                -exp_fit[3],
-            )
-            logger.debug(
-                "Dominant exponent in multi-exponential fit for PC%s: [ %.3f exp(%.3f tau) ]",
-                i + 1,
-                exp_fit[[0, 2][which_weight_is_larger]],
-                -exp_fit[[1, 3][which_weight_is_larger]],
-            )
+        acf_fit = exponential_decay(lags, *exp_fit)
+        logger.debug(
+            "Exponential fit for feature '%s': [%.3f + %.3f exp(%.3f tau)]",
+            feature_labels[i],
+            exp_fit[2],
+            exp_fit[0],
+            -exp_fit[1],
+        )
         # plot fit curve on existing axes
         ax.plot(lags, acf_fit, "k--", linewidth=2.0, alpha=0.85, label="")
 
@@ -310,7 +272,6 @@ def _make_all_acf_plots(
     dataset_name: str,
     correlation_dict: dict[str, Any],
     output_path: Path,
-    fit_double_exp: bool = True,
     bootstrap_samples: int | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Plot autocorrelation function (ACF) curves and fits for a single dataset."""
@@ -362,9 +323,7 @@ def _make_all_acf_plots(
         linewidth=2.75,
     )
     feats = correlation_dict["features"]
-    ax, relaxation_timescales = _add_exp_fit_to_plot(
-        acf_, lags_as_hours, ax, feats, exp_decay_func="exponential_decay"
-    )
+    ax, relaxation_timescales = _add_exp_fit_to_plot(acf_, lags_as_hours, ax, feats)
     # add relaxation timescales to correlation_dict for output
     correlation_dict["relaxation_timescales"] = relaxation_timescales
     save_plot_to_path(
@@ -374,32 +333,6 @@ def _make_all_acf_plots(
         show_and_close=False,
     )
     plt.close(fig)
-
-    if fit_double_exp:
-        # fit double exponential decay to ACF
-        fig, ax = _plot_acf_curves_together(
-            correlation_dict,
-            bootstrap_samples=bootstrap_samples,
-            component_labels=correlation_dict["features"],
-            plot_title=f"Autocorrelation of PCA Components ({shear_stress} dyn/cm$^2$)",
-            xlabel="Lag (hours)",
-            linewidth=2.75,
-            linestyle="-",
-        )
-        ax, _ = _add_exp_fit_to_plot(
-            acf_,
-            lags_as_hours,
-            ax,
-            correlation_dict["features"],
-            exp_decay_func="double_exponential_decay",
-        )
-        save_plot_to_path(
-            fig,
-            output_path,
-            f"autocorrelation_double_exp_fit_{dataset_name}",
-            show_and_close=False,
-        )
-        plt.close(fig)
 
     return correlation_dict
 
