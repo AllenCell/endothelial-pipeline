@@ -161,7 +161,7 @@ def fit_exp_decay(
     lags: np.ndarray,
     maxfev: int = 10000,
     p0: Sequence[float] = (0.5, 0.5, 0.5),
-) -> tuple[np.ndarray, float]:
+) -> np.ndarray:
     """Fit exponential decay to ACF and return fit parameters and relaxation timescale."""
 
     # get indices where both lags and acf are finite, as required for input to curve_fit function
@@ -172,13 +172,7 @@ def fit_exp_decay(
 
     exp_fit, _ = curve_fit(exponential_decay, lags_valid, acf_valid, maxfev=maxfev, p0=p0)
 
-    # compute R² as goodness-of-fit metric
-    acf_pred = exponential_decay(lags_valid, *exp_fit)
-    ss_res = np.sum((acf_valid - acf_pred) ** 2)
-    ss_tot = np.sum((acf_valid - np.mean(acf_valid)) ** 2)
-    r_squared = 1 - ss_res / ss_tot if ss_tot > 0 else np.nan
-
-    return exp_fit, r_squared
+    return exp_fit
 
 
 def cross_correlation_difference_norm(
@@ -210,7 +204,7 @@ def compute_autocorrelation_and_relaxation_for_one_bootstrap_sample(
     positive_lags_as_hours = 5 * positive_lags / 60  # convert from frames (5 minutes) to hours
     acf_positive_lags = acf[index_positive]
 
-    exp_fit = fit_exp_decay(acf_positive_lags, positive_lags_as_hours)[0]
+    exp_fit = fit_exp_decay(acf_positive_lags, positive_lags_as_hours)
     relaxation_time = 1 / exp_fit[1]
 
     return acf, relaxation_time
@@ -522,7 +516,7 @@ def compute_correlations_for_one_dataset(
         positive_lags_as_hours = 5 * positive_lags / 60  # convert from frames (5 minutes) to hours
         acf_positive_lags = acf[:, i][index_positive]
 
-        exp_fit = fit_exp_decay(acf_positive_lags, positive_lags_as_hours)[0]
+        exp_fit = fit_exp_decay(acf_positive_lags, positive_lags_as_hours)
         relaxation_timescale[i] = 1 / exp_fit[1]
         if bootstrap_samples is not None:
             # calculate bootstrap confidence intervals for ACF and relaxation timescale
@@ -544,7 +538,7 @@ def compute_correlations_for_one_dataset(
             positive_lags_as_hours_crop = 5 * positive_lags_crop / 60
             acf_positive_lags_crop = acf_1_crop[index_positive_crop]
 
-            exp_fit = fit_exp_decay(acf_positive_lags_crop, positive_lags_as_hours_crop)[0]
+            exp_fit = fit_exp_decay(acf_positive_lags_crop, positive_lags_as_hours_crop)
             relaxation_timescale_per_crop[j, i] = 1 / exp_fit[1]
 
     # cross-correlation
