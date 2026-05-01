@@ -152,6 +152,11 @@ def autocorrelation_function(
     # Extract the specified component from the data array.
     x_t_j = data[..., component_index]
 
+    # Ensure x_t_j is 2D (num_samples, num_timepoints). If a single trajectory
+    # is passed with shape (num_timepoints,), reshape to (1, num_timepoints).
+    if x_t_j.ndim == 1:
+        x_t_j = x_t_j[np.newaxis, :]
+
     # Pass to cross_correlation_function with itself to get ACF.
     return cross_correlation_function(x_t_j, x_t_j, lag_cutoff_fraction=lag_cutoff_fraction)
 
@@ -266,7 +271,7 @@ def compute_autocorrelation_dataframe(
     for i, column_name in enumerate(column_names):
         acf_per_crop = []
         for _, df_crop in dataframe_filled.groupby(Column.CROP_INDEX):
-            feats = df_crop[column_name].to_numpy()[..., np.newaxis]
+            feats = df_crop[column_name].to_numpy()[np.newaxis, :, np.newaxis]
             acf_per_crop.append(
                 autocorrelation_function(feats, 0, lag_cutoff_fraction=NUM_TIMEPOINT_FRAC)
             )
