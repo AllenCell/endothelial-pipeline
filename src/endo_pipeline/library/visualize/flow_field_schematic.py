@@ -12,7 +12,7 @@ from matplotlib.patches import FancyArrowPatch, Rectangle
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.io import load_dataframe, load_image, save_plot_to_path
+from endo_pipeline.io import join_sorted_strings, load_dataframe, load_image, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
     _check_and_adjust_km_inputs,
@@ -32,12 +32,15 @@ from endo_pipeline.library.process.image_processing import (
 )
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.manifests import (
+    DataframeManifest,
     get_dataframe_location_for_dataset,
     get_zarr_location_for_position,
     load_dataframe_manifest,
 )
+from endo_pipeline.settings.autocorrelations import AUTOCORRELATION_DATAFRAME_MANIFEST_PREFIX
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.dynamics_workflows import (
     BIN_WIDTHS_DYNAMICS,
     KERNEL_BANDWIDTHS_DYNAMICS,
@@ -47,7 +50,13 @@ from endo_pipeline.settings.dynamics_workflows import (
     TIME_STEP_IN_HOURS,
 )
 from endo_pipeline.settings.examples import EXAMPLE_DATASET, FLOW_FIELD_CONSTRUCTION_EXAMPLE_IMAGES
-from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_MEDIUM, FONTSIZE_XLARGE
+from endo_pipeline.settings.figures import (
+    FONTSIZE_LARGE,
+    FONTSIZE_MEDIUM,
+    FONTSIZE_SMALL,
+    FONTSIZE_XLARGE,
+    FONTSIZE_XSMALL,
+)
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_COLORMAP,
     DRIFT_CONTOUR_VMAX,
@@ -63,6 +72,8 @@ from endo_pipeline.settings.image_data import NATIVE_ZARR_RESOLUTION_CROP_SIZE, 
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
 )
 
 
@@ -345,6 +356,101 @@ def make_real_image_panel(
     image_panel_path = savedir / f"{filename}.svg"
 
     return image_panel_path
+
+
+def _compute_r_squared(data: np.ndarray, fit: np.ndarray) -> float:
+    """Compute the R^2 value for a given fit to data."""
+    sum_sq_res = np.sum((data - fit) ** 2)
+    sum_sq_tot = np.sum((data - np.mean(data)) ** 2)
+    r_squared = 1 - sum_sq_res / sum_sq_tot if sum_sq_tot > 0 else np.nan
+    return r_squared
+
+
+def _make_example_acf_plot(
+    axes: plt.Axes,
+    dataset_name: str,
+    column_name: ColumnNameType,
+    autocorrelation_manifest: DataframeManifest,
+    y_labelpad: float = 0.5,
+) -> None:
+    """
+    Make an example plot of the autocorrelation function with exponential fit
+    for a given dataset and feature column.
+    """
+    acf_df = load_dataframe(autocorrelation_manifest.locations[dataset_name])
+
+    # Keep only positive lags for plotting (ACF is symmetric around zero).
+    acf_df_positive = acf_df[acf_df[Column.AutoCorrelation.LAG] > 0]
+
+    # plot acf for polar radius
+    column_for_plot = Column.DiffAEData.POLAR_RADIUS
+    column_label = COLUMN_METADATA[column_for_plot].label
+    acf_polar_r = acf_df_positive[
+        acf_df_positive[Column.AutoCorrelation.FEATURE] == column_for_plot
+    ]
+    lag_hours = acf_polar_r[Column.AutoCorrelation.LAG].to_numpy() * TIME_STEP_IN_HOURS
+    acf_mean = acf_polar_r[Column.AutoCorrelation.ACF_MEAN].to_numpy()
+    acf_lb = acf_polar_r[Column.AutoCorrelation.ACF_LOWER_PERCENTILE].to_numpy()
+    acf_ub = acf_polar_r[Column.AutoCorrelation.ACF_UPPER_PERCENTILE].to_numpy()
+
+    # get exponential fit of acf_mean and compute R^2
+    exponential_decay_curve = acf_polar_r[Column.AutoCorrelation.EXPONENTIAL_FIT].to_numpy()
+    r_squared = _compute_r_squared(acf_mean, exponential_decay_curve)
+
+    axes.plot(lag_hours, acf_mean, "k-", label="ACF (mean)")
+    axes.fill_between(lag_hours, acf_lb, acf_ub, color="gray", alpha=0.2, label="ACF (90% CI)")
+    axes.plot(
+        lag_hours,
+        exponential_decay_curve,
+        color="darkturquoise",
+        linestyle="--",
+        linewidth=1.25,
+        label=f"Exp. fit (R{Unicode.SQUARED} = {r_squared:.2f})",
+    )
+    axes.set_xlabel("Lag (hours)", fontsize=FONTSIZE_SMALL, **XLABEL_KWARGS)
+    axes.set_ylabel("ACF", fontsize=FONTSIZE_SMALL, labelpad=y_labelpad)
+    axes.set_title(f"Autocorrelation function in {column_label}", fontsize=FONTSIZE_SMALL)
+    axes.legend(loc="upper right", fontsize=FONTSIZE_XSMALL)
+
+
+def make_autocorrelation_panel(save_dir: Path) -> Path:
+    # example dataset for first subplot
+    dataset_name = EXAMPLE_DATASET["FIGURE_2_LOW_FLOW_DATASET"]
+
+    column_names = [
+        Column.DiffAEData.POLAR_ANGLE,
+        Column.DiffAEData.POLAR_RADIUS,
+        Column.DiffAEData.PC3_FLIPPED,
+    ]
+
+    y_labelpad = 0.5
+
+    # load dataframe manifest for outputs of autocorrelation analysis workflow
+    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_grid"
+    columns_str = join_sorted_strings(cast(list[str], column_names))
+    autocorrelation_manifest_name = (
+        f"{AUTOCORRELATION_DATAFRAME_MANIFEST_PREFIX}_{columns_str}_{base_name}"
+    )
+    autocorrelation_manifest = load_dataframe_manifest(autocorrelation_manifest_name)
+
+    # init figure for autocorrelation panel
+    fig, ax = plt.subplots(2, 1, figsize=(2.5, 2.75), layout="constrained")
+
+    # Suplot 1: example ACF plot for one dataset and one feature to illustrate
+    # the exponential fit and R^2 value
+    _make_example_acf_plot(
+        ax[0],
+        dataset_name,
+        Column.DiffAEData.POLAR_RADIUS,
+        autocorrelation_manifest,
+        y_labelpad=y_labelpad,
+    )
+
+    filename = "autocorrelation_analysis"
+    save_plot_to_path(
+        fig, save_dir, filename, file_format=".svg", transparent=True, tight_layout=False
+    )
+    return save_dir / f"{filename}.svg"
 
 
 def _make_2d_pcolormesh(
