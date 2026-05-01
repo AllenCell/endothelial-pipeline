@@ -323,9 +323,7 @@ def _make_all_acf_plots(
         linewidth=2.75,
     )
     feats = correlation_dict["features"]
-    ax, relaxation_timescales = _add_exp_fit_to_plot(
-        acf_, lags_as_hours, ax, feats, exp_decay_func="exponential_decay"
-    )
+    ax, relaxation_timescales = _add_exp_fit_to_plot(acf_, lags_as_hours, ax, feats)
     # add relaxation timescales to correlation_dict for output
     correlation_dict["relaxation_timescales"] = relaxation_timescales
     save_plot_to_path(
