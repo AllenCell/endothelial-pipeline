@@ -32,34 +32,26 @@ flow_conditions:
   stop: 576
   shear_stress: 20.03
 include_scenes: null
-notes: CDH5 Ex2Del mutant (AICS-177 cl.26) high SS. Notable gaps
-  between cells that open up over time. Lots of single cells in gaps through end of
-  timelapse. Parallel alignment, cells elongate. Prominent non-endo at center of FOV
-  5 (1-indexed). FOV 2 darkens at TP337. FOV 2 darkens with spinning disk striping
-  at TP573.
+notes: CDH5 Ex2Del mutant (AICS-177 cl.26) high SS. Notable gaps between cells that
+  open up over time. Lots of single cells in gaps through end of timelapse. Parallel
+  alignment, cells elongate. Prominent non-endo at center of FOV 5 (1-indexed). FOV
+  2 darkens at TP337. FOV 2 darkens with spinning disk striping at TP573.
 timepoint_annotations:
   auto_bf_scope_error:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
-    5: []
+    0: [297]
+    1: [297, 336, 371]
+    2: [297, 336, 361, 369]
+    3: [349, 559]
+    4: [297, 321]
+    5: [61, 296]
   auto_bf_temp_artifact:
-    0: []
-    1: []
-    2: []
+    0: [361, 368, 371]
+    1: [371, 572]
+    2: [349, 572]
     3: []
-    4: []
-    5: []
+    4: [572, 573]
+    5: [296, 573]
   auto_gfp_scope_error:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
-    5: []
-  not_steady_state:
     0: []
     1: []
     2: []
@@ -73,5 +65,18 @@ timepoint_annotations:
     3: []
     4: []
     5: []
+  not_steady_state:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 10
+  1: 9
+  2: 9
+  3: 9
+  4: 9
+  5: 10

@@ -41,7 +41,7 @@ timepoint_annotations:
     0: []
     1: []
     2: []
-    3: []
+    3: [536, 576]
     4: []
     5: []
   auto_bf_temp_artifact:
@@ -49,16 +49,9 @@ timepoint_annotations:
     1: []
     2: []
     3: []
-    4: []
+    4: [149]
     5: []
   auto_gfp_scope_error:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
-    5: []
-  not_steady_state:
     0: []
     1: []
     2: []
@@ -72,5 +65,18 @@ timepoint_annotations:
     3: []
     4: []
     5: []
+  not_steady_state:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 8
+  1: 8
+  2: 7
+  3: 8
+  4: 8
+  5: 9

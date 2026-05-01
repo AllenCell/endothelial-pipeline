@@ -32,25 +32,34 @@ flow_conditions:
   stop: 576
   shear_stress: 6.07
 include_scenes: null
-notes: AICS-177 cl.12 isogenic control, low SS 48h. GFP looks good. FOV 5 and 6
-  (1-indexed) have notable debris on slide persisting throughout timelapse. FOV 4
-  darkens at TP184 just for that timepoint.
+notes: AICS-177 cl.12 isogenic control, low SS 48h. GFP looks good. FOV 5 and 6 (1-indexed)
+  have notable debris on slide persisting throughout timelapse. FOV 4 darkens at TP184
+  just for that timepoint.
 timepoint_annotations:
   auto_bf_scope_error:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
-    5: []
+    0: [43, 45, 235, 405, 441, 487, 520]
+    1: [10, 45, 191, 307, 525, 556, 574]
+    2: [45, 104, 177, 307, 405, 455, 574]
+    3: [0, 39, 45, 181, 183, 318, 351, 567, 574]
+    4: [45, 306, 318, 562]
+    5: [0, 42, 45, 89, 306]
   auto_bf_temp_artifact:
+    0: [87, 552]
+    1: [23, 84, 144, 248, 452]
+    2: [39, 96, 307, 313, 429, 482, 522, 523]
+    3: [0, 52, 146, 408, 414, 446, 452, 478, 521]
+    4: [36, 53, 235, 306, 403, 448, 451]
+    5: [84, 185, 306, 404, 407, 446]
+  auto_gfp_scope_error:
     0: []
     1: []
     2: []
     3: []
     4: []
     5: []
-  auto_gfp_scope_error:
+  bf_scope_error:
+    3: [183]
+  cell_piling:
     0: []
     1: []
     2: []
@@ -64,12 +73,11 @@ timepoint_annotations:
     3: []
     4: []
     5: []
-  cell_piling:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
-    5: []
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 10
+  1: 9
+  2: 9
+  3: 9
+  4: 10
+  5: 10

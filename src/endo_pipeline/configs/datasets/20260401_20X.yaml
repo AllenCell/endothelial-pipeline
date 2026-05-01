@@ -42,27 +42,20 @@ notes: Low to high SS 48h. GFP good signal. Small gaps at top of FOV 5 open arou
   TP232 onward.
 timepoint_annotations:
   auto_bf_scope_error:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
-    5: []
+    0: [177, 186, 216]
+    1: [2, 125, 137]
+    2: [24, 185, 263]
+    3: [24, 104, 154]
+    4: [115, 250]
+    5: [121, 264]
   auto_bf_temp_artifact:
-    0: []
+    0: [173]
     1: []
-    2: []
-    3: []
-    4: []
-    5: []
+    2: [192]
+    3: [123, 186, 261, 269]
+    4: [16]
+    5: [146]
   auto_gfp_scope_error:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
-    5: []
-  not_steady_state:
     0: []
     1: []
     2: []
@@ -76,5 +69,18 @@ timepoint_annotations:
     3: []
     4: []
     5: []
+  not_steady_state:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 12
+  1: 12
+  2: 12
+  3: 12
+  4: 12
+  5: 12

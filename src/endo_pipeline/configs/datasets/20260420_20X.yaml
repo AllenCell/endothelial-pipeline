@@ -30,29 +30,36 @@ channel_names: [EGFP, BF]
 flow_conditions:
 - start: 0
   stop: 576
-  shear_stress: 0
+  shear_stress: 0.0
 include_scenes: null
-notes: No flow condition with regular media changes during timelapse.
-  Lint floating between FOV3 and FOV4, some xy shifting during media changes, blackout
-  timepoints due to scope/computer miscommunication. TP249, TP283, TP318 complete
-  blackout all FOVs. Timelapse very bright after TP71 likely due to inner incubator
-  cover removed overnight. Floating lint in FOVs TP325-351.
+notes: No flow condition with regular media changes during timelapse. Lint floating
+  between FOV3 and FOV4, some xy shifting during media changes, blackout timepoints
+  due to scope/computer miscommunication. TP249, TP283, TP318 complete blackout all
+  FOVs. Timelapse very bright after TP71 likely due to inner incubator cover removed
+  overnight. Floating lint in FOVs TP325-351.
 timepoint_annotations:
   auto_bf_scope_error:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
-    5: []
+    0: [25, 29, 35, 36, 38, 39]
+    1: [29, 36, 39, 45, 548]
+    2: [13, 25, 27, 36, 39, 548]
+    3: [13, 25, 29, 34, 36, 39, 45, 548]
+    4: [25, 29, 33, 34, 36, 45, 544]
+    5: [25, 28, 29, 34, 44, 81, 173]
   auto_bf_temp_artifact:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
-    5: []
+    0: [12, 13, 248, 282, 317]
+    1: [12, 13, 71, 248, 282, 317]
+    2: [12, 13, 248, 282, 317]
+    3: [12, 71, 248, 282, 317]
+    4: [12, 71, 248, 282, 317]
+    5: [12, 71, 248, 282, 317]
   auto_gfp_scope_error:
+    0: [282]
+    1: [548]
+    2: [548]
+    3: [548]
+    4: [548]
+    5: []
+  cell_piling:
     0: []
     1: []
     2: []
@@ -66,12 +73,11 @@ timepoint_annotations:
     3: []
     4: []
     5: []
-  cell_piling:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
-    5: []
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 9
+  1: 8
+  2: 8
+  3: 8
+  4: 8
+  5: 9
