@@ -118,6 +118,7 @@ def _add_map_arrow_to_plot(
     text_y_offset: float,
     arrow_x_offset: float = 0.05,
     linewidth: float = 1.5,
+    color="darkturquoise",
     arrowstyle: str = "->,head_length=5,head_width=3",
     label_y: float | None = None,
 ) -> None:
@@ -151,6 +152,8 @@ def _add_map_arrow_to_plot(
         coordinate units.
     linewidth
         Line width for the arrow.
+    color
+        The color of the arrow.
     arrowstyle
         Arrow style string for the arrow.
     label_y
@@ -179,7 +182,7 @@ def _add_map_arrow_to_plot(
         (label_x, label_y - 0.01),
         connectionstyle=f"arc3,rad={rad}",
         arrowstyle=arrowstyle,
-        color="black",
+        color=color,
         linewidth=linewidth,
         transform=fig.transFigure,
         clip_on=False,
@@ -245,6 +248,8 @@ def make_real_image_panel(
     """Build the panel showing a grid crop from t to t+1 for a given example image."""
 
     contact_figsize = (3.65, 2.4)
+    box_color = "darkturquoise"
+    map_arrow_color = "darkturquoise"
     arrowstyle = "->,head_length=5,head_width=3"
 
     fov_crop_size = 2 * NATIVE_ZARR_RESOLUTION_CROP_SIZE
@@ -308,7 +313,7 @@ def make_real_image_panel(
             grid_crop_position,
             grid_crop_size,
             grid_crop_size,
-            edgecolor="magenta",
+            edgecolor=box_color,
             facecolor="none",
             linewidth=2,
             clip_on=False,
@@ -337,6 +342,7 @@ def make_real_image_panel(
             arrow_x_offset=map_arrow_x_offset,
             linewidth=map_arrow_linewidth,
             arrowstyle=arrowstyle,
+            color=map_arrow_color,
         )
 
     # Horizontal arrow between the two (theta, r, rho) labels
