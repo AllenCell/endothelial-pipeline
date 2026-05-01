@@ -184,14 +184,21 @@ def _fill_missing_timepoints_with_nans(
     data_crop: pd.DataFrame, all_timepoints: np.ndarray
 ) -> pd.DataFrame:
     """Fill missing timepoints in a crop dataframe with NaN values."""
+    if data_crop[Column.CROP_INDEX].nunique() != 1:
+        raise ValueError("Dataframe contains multiple crop indices.")
+
     # sort by timepoint to ensure correct order before reindexing
     data_crop = data_crop.sort_values(by=Column.TIMEPOINT)
+
+    # preserve the crop index value so it survives the reindex step
+    crop_index_value = data_crop[Column.CROP_INDEX].iloc[0]
 
     # reindex dataframe to include all timepoints in full range
     data_crop_filled = data_crop.set_index(Column.TIMEPOINT).reindex(all_timepoints)
 
-    # reset index to restore timepoint column
+    # restore timepoint column and fill CROP_INDEX for NaN-inserted rows
     data_crop_filled = data_crop_filled.reset_index()
+    data_crop_filled[Column.CROP_INDEX] = crop_index_value
 
     return data_crop_filled
 
