@@ -161,18 +161,26 @@ def fit_exp_decay_and_get_relaxation_timescale(
     lags: np.ndarray,
     maxfev: int = 10000,
     p0: Sequence[float] = (0.5, 0.5, 0.5),
-) -> tuple[np.ndarray, float]:
-    """Fit exponential decay to ACF and return fit parameters and relaxation timescale."""
+) -> tuple[np.ndarray, float, float]:
+    """Fit exponential decay to ACF and return fit parameters, relaxation timescale, and R²."""
 
     # get indices where both lags and acf are finite, as required for input to curve_fit function
     valid_indices = np.isfinite(acf) & np.isfinite(lags)
 
-    exp_fit, _ = curve_fit(
-        exponential_decay, lags[valid_indices], acf[valid_indices], maxfev=maxfev, p0=p0
-    )
+    acf_valid = acf[valid_indices]
+    lags_valid = lags[valid_indices]
+
+    exp_fit, _ = curve_fit(exponential_decay, lags_valid, acf_valid, maxfev=maxfev, p0=p0)
+
     relaxation_time = 1 / exp_fit[1]
 
-    return exp_fit, relaxation_time
+    # compute R² as goodness-of-fit metric
+    acf_pred = exponential_decay(lags_valid, *exp_fit)
+    ss_res = np.sum((acf_valid - acf_pred) ** 2)
+    ss_tot = np.sum((acf_valid - np.mean(acf_valid)) ** 2)
+    r_squared = 1 - ss_res / ss_tot if ss_tot > 0 else np.nan
+
+    return exp_fit, relaxation_time, r_squared
 
 
 def cross_correlation_difference_norm(
@@ -205,7 +213,7 @@ def compute_autocorrelation_and_relaxation_for_one_bootstrap_sample(
     acf_positive_lags = acf[index_positive]
 
     _, relaxation_time = fit_exp_decay_and_get_relaxation_timescale(
-        acf_positive_lags, positive_lags_as_hours, exp_decay_func="exponential_decay"
+        acf_positive_lags, positive_lags_as_hours
     )
 
     return acf, relaxation_time
@@ -293,8 +301,7 @@ def compute_crosscorrelation_and_delta_crosscorrelation_for_one_bootstrap_sample
 
     if data_feat1.shape[0] != data_feat2.shape[0]:
         logger.error(
-            "Input data arrays must have the same number of trajectories. "
-            "Got [ %s ] and [ %s ].",
+            "Input data arrays must have the same number of trajectories. Got [ %s ] and [ %s ].",
             data_feat1.shape[0],
             data_feat2.shape[0],
         )
