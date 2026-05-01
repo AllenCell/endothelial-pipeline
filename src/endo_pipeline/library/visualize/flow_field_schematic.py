@@ -443,12 +443,27 @@ def _add_colorbar_for_quadmesh(
     fig: plt.Figure,
     axes: plt.Axes,
     quadmesh: QuadMesh,
-    label: str | None = None,
+    cax_position: str = "top",
+    pad: float = 0.03,
+    orientation: str = "horizontal",
+    colorbar_label: str | None = None,
+    colorbar_title_kwargs: dict | None = {"fontsize": FONTSIZE_MEDIUM, "pad": 2},
 ) -> None:
     """Add a colorbar for a given QuadMesh plot."""
     divider = make_axes_locatable(axes)
-    cax = divider.append_axes("right", size="5%", pad=0.05)
-    fig.colorbar(quadmesh, cax=cax, label=label)
+    cax = divider.append_axes(cax_position, size="5%", pad=pad)
+
+    # use title instead of label if orientation is horizontal to avoid issues
+    # with label positioning on top of the colorbar
+    label = None if orientation == "horizontal" else colorbar_label
+    fig.colorbar(quadmesh, cax=cax, label=label, orientation=orientation)
+
+    tick_axis = cax.xaxis if orientation == "horizontal" else cax.yaxis
+    tick_axis.set_ticks_position(cax_position)
+    tick_axis.set_label_position(cax_position)
+
+    if colorbar_label is not None and orientation == "horizontal":
+        cax.set_title(colorbar_label, **(colorbar_title_kwargs or {}))
 
 
 def _make_weighted_displacement_histogram(
