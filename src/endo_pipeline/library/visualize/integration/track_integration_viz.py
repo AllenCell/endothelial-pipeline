@@ -1522,7 +1522,8 @@ def plot_first_passage_time_correlation_summary(
     sns.histplot(
         data=first_passage_time_correlation_summary_df,
         x=corr_metric_column,
-        binwidth=0.1,
+        binwidth=0.05,
+        binrange=(0, 1),
         color="black",
         fill=False,
         ax=ax,
