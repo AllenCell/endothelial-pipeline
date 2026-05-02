@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Literal
+from typing import Any, Literal
 
 from numpy import pi
 
@@ -92,6 +92,168 @@ class ColumnMetadata:
 
         # Set limits using minimum and maximum.
         self.limits = (self.min, self.max)
+
+
+# ---------------------------------------------------------------------------
+# Optical-flow column metadata generator
+# ---------------------------------------------------------------------------
+# All optical-flow column metadata entries are dynamically built at module
+# import from a small per-base specification table plus a per-(base, dt,
+# ema_alpha) variant table.  A handful of bespoke entries are layered on top
+# via an overrides dict keyed by the fully-qualified column name.  All of the
+# scaffolding below lives inside ``_build_optical_flow_metadata`` so it is
+# garbage-collected as soon as ``COLUMN_METADATA`` is constructed.
+
+
+def _build_optical_flow_metadata() -> dict[ColumnNameType, ColumnMetadata]:
+    """Generate the optical-flow column metadata dictionary.
+
+    All lookup tables are scoped to this function so they are freed
+    immediately after ``COLUMN_METADATA`` is built; only the resulting
+    ``ColumnMetadata`` instances persist.
+    """
+
+    @dataclass(frozen=True)
+    class BaseSpec:
+        """Per-base specification used to render optical-flow column metadata."""
+
+        base_label: str
+        is_coherence: bool
+        unit: str | None = None
+        min: float | MIN_VALUE | None = None
+        max: float | MAX_VALUE | None = None
+        type: ColumnType = ColumnType.CONTINUOUS
+
+    bases: dict[str, BaseSpec] = {
+        Column.OpticalFlow.UNIT_VECTOR_MEAN_BASE: BaseSpec(
+            base_label="optical flow mean unit vector",
+            is_coherence=True,
+            min=0,
+            max=1,
+        ),
+        Column.OpticalFlow.UNIT_VECTOR_MEAN_FAST_BASE: BaseSpec(
+            base_label="optical flow mean unit vector fast",
+            is_coherence=True,
+            min=0,
+            max=1,
+        ),
+        Column.OpticalFlow.RADIAL_COHERENCE_BASE: BaseSpec(
+            base_label="optical flow radial coherence",
+            is_coherence=True,
+        ),
+        Column.OpticalFlow.RADIAL_COHERENCE_WEIGHTED_BASE: BaseSpec(
+            base_label="optical flow radial coherence weighted",
+            is_coherence=True,
+        ),
+        Column.OpticalFlow.ANGLE_MEAN_BASE: BaseSpec(
+            base_label="optical flow mean angle",
+            is_coherence=False,
+            unit="rad",
+            min=0,
+            max=8,
+        ),
+        Column.OpticalFlow.ANGLE_STD_BASE: BaseSpec(
+            # Renders as "Coherent migration (optical flow angle std dev)" to
+            # match the historical sentence-case label.
+            base_label="optical flow angle std dev",
+            is_coherence=True,
+            min=0,
+            max=4,
+        ),
+        Column.OpticalFlow.SPEED_MEAN_BASE: BaseSpec(
+            base_label="optical flow mean speed",
+            is_coherence=False,
+            unit="pixels/frame",
+            min=0,
+            max=8,
+        ),
+        Column.OpticalFlow.SPEED_STD_BASE: BaseSpec(
+            base_label="optical flow speed std dev",
+            is_coherence=False,
+            min=0,
+            max=10,
+        ),
+        Column.OpticalFlow.SPEED_ABOVE_1_COUNT_BASE: BaseSpec(
+            base_label="N vectors with speed above 1",
+            is_coherence=False,
+            type=ColumnType.DISCRETE,
+        ),
+    }
+
+    # Variants per base: tuples of ``(dt, ema_alpha)``.  ``None`` for either
+    # field omits the corresponding suffix/prefix from the generated key,
+    # mirroring the legacy column names.
+    variants: dict[str, tuple[tuple[int | None, float | None], ...]] = {
+        Column.OpticalFlow.UNIT_VECTOR_MEAN_BASE: (
+            (1, None),
+            (1, 0.05),
+            (1, 0.1),
+            (1, 0.2),
+        ),
+        Column.OpticalFlow.UNIT_VECTOR_MEAN_FAST_BASE: (
+            (None, None),
+            (1, 0.05),
+            (1, 0.1),
+            (1, 0.2),
+        ),
+        Column.OpticalFlow.RADIAL_COHERENCE_BASE: ((1, None), (1, 0.1)),
+        Column.OpticalFlow.RADIAL_COHERENCE_WEIGHTED_BASE: ((1, None), (1, 0.1)),
+        Column.OpticalFlow.ANGLE_MEAN_BASE: ((1, None),),
+        Column.OpticalFlow.ANGLE_STD_BASE: ((1, None),),
+        Column.OpticalFlow.SPEED_MEAN_BASE: ((1, None),),
+        Column.OpticalFlow.SPEED_STD_BASE: ((1, None),),
+        Column.OpticalFlow.SPEED_ABOVE_1_COUNT_BASE: ((None, None),),
+    }
+
+    # EMA alpha to key prefix mapping (drops the leading "0.").
+    ema_tags: dict[float, str] = {0.05: "ema005", 0.1: "ema01", 0.2: "ema02"}
+
+    overrides: dict[str, dict[str, Any]] = {
+        Column.OpticalFlow.SPEED_MEAN: {
+            "label": "Patch-based migration speed",
+        },
+        Column.OpticalFlow.UNIT_VECTOR_MEAN: {
+            "label": "Patch-based\nmigration coherence",
+            "bin_width": 0.02,
+        },
+        # Preserve the legacy verbose name for the unsuffixed fast-coherence entry.
+        "optical_flow_mean_unit_vector_fast": {
+            "name": "Coherent migration fast (optical flow unit vectors greater than 1 speed)",
+        },
+    }
+
+    def format_key(base: str, dt: int | None, alpha: float | None) -> str:
+        prefix = f"{ema_tags[alpha]}_" if alpha is not None else ""
+        suffix = f"_dt{dt}" if dt is not None else ""
+        return f"{prefix}{base}{suffix}"
+
+    def format_name(spec: BaseSpec, alpha: float | None) -> str:
+        if spec.is_coherence:
+            if alpha is None:
+                return f"Coherent migration ({spec.base_label})"
+            return f"Coherent migration (EMA {alpha}, {spec.base_label})"
+        # Non-coherence features use the base label sentence-cased.
+        return spec.base_label[:1].upper() + spec.base_label[1:]
+
+    entries: dict[ColumnNameType, ColumnMetadata] = {}
+    for base, spec in bases.items():
+        for dt, alpha in variants[base]:
+            key = format_key(base, dt, alpha)
+            kwargs: dict[str, Any] = {
+                "name": format_name(spec, alpha),
+                "unit": spec.unit,
+                "min": spec.min,
+                "max": spec.max,
+                "type": spec.type,
+            }
+            kwargs.update(overrides.get(key, {}))
+            entries[key] = ColumnMetadata(**kwargs)
+
+    # Sanity check: every override must target a generated entry.
+    missing = set(overrides).difference(str(k) for k in entries)
+    if missing:
+        raise KeyError(f"Optical-flow overrides target unknown keys: {sorted(missing)}")
+    return entries
 
 
 COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
@@ -467,102 +629,6 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         type=ColumnType.BOOLEAN,
     ),
     # Optical flow features ====================================================
-    "optical_flow_mean_unit_vector_dt1": ColumnMetadata(
-        name="Coherent migration (optical flow mean unit vector)",
-        min=0,
-        max=1,
-        type=ColumnType.CONTINUOUS,
-    ),
-    Column.OpticalFlow.ANGLE_MEAN: ColumnMetadata(
-        name="Optical flow mean angle",
-        unit="rad",
-        min=0,
-        max=8,
-        type=ColumnType.CONTINUOUS,
-    ),
-    Column.OpticalFlow.ANGLE_STD: ColumnMetadata(
-        name="Coherent migration (optical flow angle std dev)",
-        min=0,
-        max=4,
-        type=ColumnType.CONTINUOUS,
-    ),
-    Column.OpticalFlow.SPEED_MEAN: ColumnMetadata(
-        name="Optical flow mean speed",
-        label="Patch-based migration speed",
-        unit="pixels/frame",
-        min=0,
-        max=8,
-        type=ColumnType.CONTINUOUS,
-    ),
-    Column.OpticalFlow.SPEED_STD: ColumnMetadata(
-        name="Optical flow speed std dev",
-        min=0,
-        max=10,
-        type=ColumnType.CONTINUOUS,
-    ),
-    "optical_flow_mean_unit_vector_fast": ColumnMetadata(
-        name="Coherent migration fast (optical flow unit vectors greater than 1 speed)",
-        min=0,
-        max=1,
-        type=ColumnType.CONTINUOUS,
-    ),
-    "speed_above_1_count": ColumnMetadata(
-        name="N vectors with speed above 1",
-        type=ColumnType.DISCRETE,
-    ),
-    "ema005_optical_flow_mean_unit_vector_dt1": ColumnMetadata(
-        name="Coherent migration (EMA 0.05, optical flow mean unit vector)",
-        min=0,
-        max=1,
-        type=ColumnType.CONTINUOUS,
-    ),
-    "ema005_optical_flow_mean_unit_vector_fast_dt1": ColumnMetadata(
-        name="Coherent migration (EMA 0.05, optical flow mean unit vector fast)",
-        min=0,
-        max=1,
-        type=ColumnType.CONTINUOUS,
-    ),
-    Column.OpticalFlow.UNIT_VECTOR_MEAN: ColumnMetadata(
-        name="Coherent migration (EMA 0.1, optical flow mean unit vector)",
-        label="Patch-based\nmigration coherence",
-        min=0,
-        max=1,
-        bin_width=0.02,
-        type=ColumnType.CONTINUOUS,
-    ),
-    "ema01_optical_flow_mean_unit_vector_fast_dt1": ColumnMetadata(
-        name="Coherent migration (EMA 0.1, optical flow mean unit vector fast)",
-        min=0,
-        max=1,
-        type=ColumnType.CONTINUOUS,
-    ),
-    "ema02_optical_flow_mean_unit_vector_dt1": ColumnMetadata(
-        name="Coherent migration (EMA 0.2, optical flow mean unit vector)",
-        min=0,
-        max=1,
-        type=ColumnType.CONTINUOUS,
-    ),
-    "ema02_optical_flow_mean_unit_vector_fast_dt1": ColumnMetadata(
-        name="Coherent migration (EMA 0.2, optical flow mean unit vector fast)",
-        min=0,
-        max=1,
-        type=ColumnType.CONTINUOUS,
-    ),
-    "ema01_optical_flow_radial_coherence_dt1": ColumnMetadata(
-        name="Coherent migration (EMA 0.1, optical flow radial coherence)",
-        type=ColumnType.CONTINUOUS,
-    ),
-    "ema01_optical_flow_radial_coherence_weighted_dt1": ColumnMetadata(
-        name="Coherent migration (EMA 0.1, optical flow radial coherence weighted)",
-        type=ColumnType.CONTINUOUS,
-    ),
-    "optical_flow_radial_coherence_dt1": ColumnMetadata(
-        name="Coherent migration (optical flow radial coherence)",
-        type=ColumnType.CONTINUOUS,
-    ),
-    "optical_flow_radial_coherence_weighted_dt1": ColumnMetadata(
-        name="Coherent migration (optical flow radial coherence weighted)",
-        type=ColumnType.CONTINUOUS,
-    ),
+    **_build_optical_flow_metadata(),
 }
 """Mapping of column names to column metadata."""
