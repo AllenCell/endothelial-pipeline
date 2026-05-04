@@ -101,7 +101,12 @@ def _make_result_skeleton(
 
 
 def _make_model_label(manifest_name: str, run_name: str) -> str:
-    """Create a human-readable model label from manifest and run names.
+    """Create a human-readable model label by stacking manifest and run names.
+
+    Used as the suptitle suffix for per-model summary figures and, when no
+    curated short labels are available (see
+    :data:`~endo_pipeline.settings.workflow_defaults.DEFAULT_MODEL_QC_LABELS`),
+    as the x-axis tick label for comparison bar plots.
 
     Parameters
     ----------
@@ -113,11 +118,15 @@ def _make_model_label(manifest_name: str, run_name: str) -> str:
     Returns
     -------
     label
-        Formatted label, truncated if the manifest name exceeds 30 characters.
+        Two-line string ``"{manifest_name}<newline>{run_name}"``. Returning a
+        wrapped label (rather than truncating either field) lets matplotlib
+        render the full identifiers across two lines for both suptitles and
+        tick labels, avoiding lossy mid-word elision while still fitting
+        reasonable widths. This label is used only for display; on-disk
+        filenames continue to be derived from ``output_path`` (which already
+        encodes manifest + run).
     """
-    if len(manifest_name) > 30:
-        return f"{manifest_name[:30]}..._{run_name[:10]}"
-    return f"{manifest_name}_{run_name}"
+    return f"{manifest_name}\n{run_name}"
 
 
 # ---------------------------------------------------------------------------

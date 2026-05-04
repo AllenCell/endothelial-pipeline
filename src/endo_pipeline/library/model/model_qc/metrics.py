@@ -371,19 +371,30 @@ def create_comparison_plots_and_summary(
         f"models_{len(model_keys)}{seed_suffix}",
     )
 
-    # Determine model labels
-    if len(models_data) == len(DEFAULT_MODEL_QC_LABELS):
-        model_labels = DEFAULT_MODEL_QC_LABELS
+    # Determine model labels for bar-plot x-axis ticks.
+    # The curated DEFAULT_MODEL_QC_LABELS list is tuned for the 10-model latent-
+    # dimension sweep; only use it when the run includes exactly that many
+    # models. Otherwise fall back to each model's own ``model_label`` (a
+    # two-line ``manifest\nrun`` string from ``_make_model_label``) so the
+    # ticks carry meaningful identifiers instead of generic ``"Model N"``.
+    using_default_labels = len(models_data) == len(DEFAULT_MODEL_QC_LABELS)
+    if using_default_labels:
+        model_labels = list(DEFAULT_MODEL_QC_LABELS)
     else:
-        model_labels = [f"Model {i + 1}" for i in range(len(models_data))]
+        model_labels = [m["model_label"] for m in models_data]
 
     seeds_info = (
         f" (averaged over {len(seeds_to_evaluate)} seeds)" if len(seeds_to_evaluate) > 1 else ""
     )
-    legend_text = f"Model Details{seeds_info}:\n" + "\n".join(
-        f"{model_labels[i]}: {manifest_name}\n         Run: {run_name}"
-        for i, (manifest_name, run_name) in enumerate(model_keys)
-    )
+    if using_default_labels:
+        legend_text = f"Model Details{seeds_info}:\n" + "\n".join(
+            f"{model_labels[i]}: {manifest_name}\n         Run: {run_name}"
+            for i, (manifest_name, run_name) in enumerate(model_keys)
+        )
+    else:
+        # The fallback labels already encode manifest + run on two lines, so
+        # repeating them in the legend would be redundant.
+        legend_text = f"Model Details{seeds_info}"
 
     metric_configs: list[tuple[str, str, str, dict[str, Any]]] = [
         ("corr", "Pearson Correlation (100% Noise)", "Correlation", {}),
