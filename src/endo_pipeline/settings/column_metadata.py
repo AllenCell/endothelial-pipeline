@@ -370,7 +370,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     Column.DiffAEData.NEMATIC_ORDER: ColumnMetadata(
         name="Nematic order",
         label="Nematic order",
-        description="Nematic order calculated as cos(2*polar_theta)",
+        description="Nematic order calculated as -cos(2*polar_theta - pi)",
         min=-1,
         max=1,
         type=ColumnType.CONTINUOUS,
