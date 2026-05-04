@@ -37,7 +37,6 @@ SUMMARY_PLOT_DATASETS: dict[str, list[str]] = {
         "20250618_20X",  # 6 dyn / cm2
         "20250402_20X",  # 6 dyn / cm2
         "20250409_20X",  # 6 dyn / cm2
-        "20251105_20X",  # isogenic control CD31 sorted under low shear stress
         "20260309_20X",  # isogenic control CD144 sorted under low shear stress
         "20251029_20X",  # CDH5 Ex2 deletion under low shear stress
         "20251119_20X",  # CDH5 Ex2 deletion under low shear stress
@@ -48,7 +47,6 @@ SUMMARY_PLOT_DATASETS: dict[str, list[str]] = {
         "20250402_20X",  # 6 dyn / cm2
         "20250409_20X",  # 6 dyn / cm2
         "20251022_20X",  # isogenic control CD31 sorted under low shear stress, exclude from main figure
-        "20251105_20X",  # isogenic control CD31 sorted under low shear stress
         "20260309_20X",  # isogenic control CD144 sorted under low shear stress
         "20250908_20X",  # CDH5 Ex2 deletion under low shear stress, exclude from main figure
         "20251029_20X",  # CDH5 Ex2 deletion under low shear stress

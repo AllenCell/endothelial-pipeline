@@ -54,8 +54,6 @@ locations:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_segmentations/P{{position}}/P{{position}}_T{{timepoint}}_grid_segmentation.ome.tiff
   20251029_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_segmentations/P{{position}}/P{{position}}_T{{timepoint}}_grid_segmentation.ome.tiff
-  20251105_20X:
-    path: //allen/aics/endothelial/morphological_features/segmentations/grid_segmentations/P{{position}}/P{{position}}_T{{timepoint}}_grid_segmentation.ome.tiff
   20251119_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_segmentations/P{{position}}/P{{position}}_T{{timepoint}}_grid_segmentation.ome.tiff
   20260209_20X:
