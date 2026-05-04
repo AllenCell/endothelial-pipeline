@@ -466,7 +466,7 @@ def _make_acf_r_squared_plot(
     axes.set_xticklabels(
         [COLUMN_METADATA[col].label or col for col in column_names], fontweight="bold"
     )
-    axes.set_ylabel(f"R{Unicode.SQUARED}", fontsize=FONTSIZE_SMALL, labelpad=y_labelpad)
+    axes.set_ylabel(f"R{Unicode.SQUARED}", fontsize=FONTSIZE_SMALL, labelpad=y_labelpad, rotation=0)
     axes.set_title(f"Exponential fit R{Unicode.SQUARED} (all datasets)", fontsize=FONTSIZE_SMALL)
     axes.set_ylim(axes_ylim)
 
@@ -481,7 +481,7 @@ def make_autocorrelation_panel(save_dir: Path) -> Path:
         Column.DiffAEData.PC3_FLIPPED,
     ]
 
-    y_labelpad = 0.5
+    y_labelpad = 4
 
     # load dataframe manifest for outputs of autocorrelation analysis workflow
     base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_grid"

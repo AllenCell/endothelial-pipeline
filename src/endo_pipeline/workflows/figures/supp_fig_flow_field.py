@@ -14,7 +14,7 @@ def main() -> None:
 
     plt.style.use("endo_pipeline.figure")
 
-    output_path = get_output_path("supp_fig_flow_field")
+    output_path = get_output_path(__file__)
 
     image_panel_path = make_real_image_panel(output_path)
 
