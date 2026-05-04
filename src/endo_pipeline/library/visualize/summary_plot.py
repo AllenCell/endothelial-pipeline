@@ -402,7 +402,7 @@ def _process_bootstrap_dataframe_for_plot(
     bootstrap_threshold: float,
     dataset_name: str,
     flow_condition: FlowCondition,
-    optical_flow_features: list[str],
+    optical_flow_features: list[ColumnName.OpticalFlow],
     convert_angle_to_nematic: bool,
     column_names: list[ColumnName.DiffAEData | ColumnName.OpticalFlow | StrEnum],
     x_axis_mode: Literal[
