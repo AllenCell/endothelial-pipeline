@@ -454,7 +454,6 @@ def _process_bootstrap_dataframe_for_plot(
     if convert_angle_to_nematic and ColumnName.DiffAEData.POLAR_ANGLE in column_names:
         # Add nematic order columns to the dataframe
         high_confidence_df = _convert_polar_angle_to_nematic_order(high_confidence_df)
-        print(dataset_name, "converted polar angle to nematic order for fixed points")
 
     if x_axis_mode == "cell_line":
         cell_line_label = CELL_LINE_LABEL_MAP.get(
