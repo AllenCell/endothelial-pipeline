@@ -12,9 +12,6 @@ import seaborn as sns
 from tqdm import tqdm
 
 from endo_pipeline.io import load_dataframe, save_plot_to_path
-from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
-    calculate_derived_data_dynamics_dependent,
-)
 from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
     add_optical_flow_features,
 )
@@ -208,9 +205,6 @@ def get_df_for_feature_correlation_viz(
         angle_cols = [Column.SegData.ORIENTATION, Column.DiffAEData.POLAR_ANGLE]
         for ang_col in angle_cols:
             merged_feats_df[ang_col] = np.unwrap(merged_feats_df[ang_col], period=angle_period)
-
-        # get dynamics dependent features
-        merged_feats_df = calculate_derived_data_dynamics_dependent(merged_feats_df)
 
         merged_feats_df = add_optical_flow_features(
             merged_feats_df,
