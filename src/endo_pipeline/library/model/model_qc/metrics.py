@@ -387,14 +387,20 @@ def create_comparison_plots_and_summary(
         f" (averaged over {len(seeds_to_evaluate)} seeds)" if len(seeds_to_evaluate) > 1 else ""
     )
     if using_default_labels:
+        # Curated short labels (e.g. "8 BF") need the manifest/run mapping
+        # spelled out in the legend so readers know which model is which.
         legend_text = f"Model Details{seeds_info}:\n" + "\n".join(
             f"{model_labels[i]}: {manifest_name}\n         Run: {run_name}"
             for i, (manifest_name, run_name) in enumerate(model_keys)
         )
     else:
-        # The fallback labels already encode manifest + run on two lines, so
-        # repeating them in the legend would be redundant.
-        legend_text = f"Model Details{seeds_info}"
+        # Fallback labels already contain the wrapped manifest/run on the tick
+        # itself, so the legend uses a simple sequential prefix and lists the
+        # same info on a single line per model for readability.
+        legend_text = f"Model Details{seeds_info}:\n" + "\n".join(
+            f"Model {i + 1}: {manifest_name}\n         Run: {run_name}"
+            for i, (manifest_name, run_name) in enumerate(model_keys)
+        )
 
     metric_configs: list[tuple[str, str, str, dict[str, Any]]] = [
         ("corr", "Pearson Correlation (100% Noise)", "Correlation", {}),
