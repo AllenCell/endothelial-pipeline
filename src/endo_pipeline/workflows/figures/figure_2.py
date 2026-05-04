@@ -140,7 +140,9 @@ def main() -> None:
         colormap=DRIFT_CONTOUR_COLORMAP,
         orientation="vertical",
     )
-    save_plot_to_path(fig, base_output_dir, "colorbar", file_format=".svg", transparent=True)
+    save_plot_to_path(
+        fig, base_output_dir, "colorbar", file_format=".svg", transparent=True, tight_layout=False
+    )
 
     # loop over datasets in collection, compute 2D drift coefficients for each
     # pairwise combination of polar coordinates, and plot contours of drift coefficients
