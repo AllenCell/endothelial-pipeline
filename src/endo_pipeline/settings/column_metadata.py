@@ -488,7 +488,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.OpticalFlow.SPEED_MEAN: ColumnMetadata(
         name="Optical flow mean speed",
-        label="Patch-based migration speed",
+        label="Patch-based\nmigration speed",
         unit="pixels/frame",
         min=0,
         max=8,
