@@ -377,8 +377,7 @@ def create_comparison_plots_and_summary(
     # models. Otherwise fall back to each model's own ``model_label`` (a
     # two-line ``manifest\nrun`` string from ``_make_model_label``) so the
     # ticks carry meaningful identifiers instead of generic ``"Model N"``.
-    using_default_labels = len(models_data) == len(DEFAULT_MODEL_QC_LABELS)
-    if using_default_labels:
+    if len(models_data) == len(DEFAULT_MODEL_QC_LABELS):
         model_labels = list(DEFAULT_MODEL_QC_LABELS)
     else:
         model_labels = [m["model_label"] for m in models_data]
@@ -386,21 +385,6 @@ def create_comparison_plots_and_summary(
     seeds_info = (
         f" (averaged over {len(seeds_to_evaluate)} seeds)" if len(seeds_to_evaluate) > 1 else ""
     )
-    if using_default_labels:
-        # Curated short labels (e.g. "8 BF") need the manifest/run mapping
-        # spelled out in the legend so readers know which model is which.
-        legend_text = f"Model Details{seeds_info}:\n" + "\n".join(
-            f"{model_labels[i]}: {manifest_name}\n         Run: {run_name}"
-            for i, (manifest_name, run_name) in enumerate(model_keys)
-        )
-    else:
-        # Fallback labels already contain the wrapped manifest/run on the tick
-        # itself, so the legend uses a simple sequential prefix and lists the
-        # same info on a single line per model for readability.
-        legend_text = f"Model Details{seeds_info}:\n" + "\n".join(
-            f"Model {i + 1}: {manifest_name}\n         Run: {run_name}"
-            for i, (manifest_name, run_name) in enumerate(model_keys)
-        )
 
     metric_configs: list[tuple[str, str, str, dict[str, Any]]] = [
         ("corr", "Pearson Correlation (100% Noise)", "Correlation", {}),
@@ -417,7 +401,6 @@ def create_comparison_plots_and_summary(
             title=f"{title_base}{seeds_info}",
             output_path=comparison_output_path,
             filename=f"{metric_key}_comparison_100_noise",
-            legend_text=legend_text,
             model_labels=model_labels,
             show_baseline=compute_baseline,
             **extra_kw,

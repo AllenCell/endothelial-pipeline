@@ -148,7 +148,6 @@ def evaluate_single_model(
     compute_baseline: bool = True,
     is_default_seed: bool = True,
     num_gpus: int | None = None,
-    display_position: tuple[int, int] | None = None,
 ) -> dict:
     """Evaluate a single model and return its metrics.
 
@@ -192,9 +191,6 @@ def evaluate_single_model(
         Whether this is the default seed (controls plot/crop saving).
     num_gpus
         Number of GPUs to use for model inference.  ``None`` uses CPU.
-    display_position
-        Optional ``(index, total)`` 1-based pair used purely for
-        human-readable progress logging (e.g. ``"model 3/10"``).
 
     Returns
     -------
@@ -219,18 +215,7 @@ def evaluate_single_model(
     model_label = _make_model_label(manifest_name, run_name)
     model_key = (manifest_name, run_name)
 
-    if display_position is not None:
-        position_idx, position_total = display_position
-        logger.info(
-            "Processing model %d/%d: %s [%s] (seed=%d)",
-            position_idx,
-            position_total,
-            manifest_name,
-            run_name,
-            random_seed,
-        )
-    else:
-        logger.info("Processing model: %s [%s] (seed=%d)", manifest_name, run_name, random_seed)
+    logger.info("Processing model: %s [%s] (seed=%d)", manifest_name, run_name, random_seed)
 
     if model_location.mlflowid is not None:
         model_config = cast(DictConfig, get_config_dict_from_mlflow(model_location.mlflowid))

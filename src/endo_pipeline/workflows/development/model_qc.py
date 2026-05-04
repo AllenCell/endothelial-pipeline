@@ -226,8 +226,7 @@ def main(
     all_seed_results: dict[tuple[str, str], dict[int, dict[str, list[dict]]]] = {}
 
     logger.info("Running model evaluations...")
-    total_models = len(model_keys)
-    for idx, (manifest_name, resolved_run_name) in enumerate(model_keys, start=1):
+    for manifest_name, resolved_run_name in model_keys:
         model_key = (manifest_name, resolved_run_name)
         all_seed_results[model_key] = {}
         for seed in seeds_to_evaluate:
@@ -246,7 +245,6 @@ def main(
                 compute_baseline=compute_baseline,
                 is_default_seed=is_default,
                 num_gpus=NUM_GPUS,
-                display_position=(idx, total_models),
             )
             all_seed_results[model_key][seed] = result
 
