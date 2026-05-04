@@ -20,7 +20,6 @@ from endo_pipeline.library.analyze.dataframe_filtering import (
 from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
     add_binned_mean_to_fixed_points,
     add_optical_flow_features,
-    add_shear_stress_to_df,
 )
 from endo_pipeline.library.visualize.diffae_features.dynamics import (
     make_legend_handles_for_fixed_pts,
@@ -551,7 +550,6 @@ def plot_cross_dataset_summaries(
 
     # --- Fixed-points vs shear stress ---
     df_fp_all = pd.concat(df_fp_all_list, ignore_index=True)
-    df_fp_all = add_shear_stress_to_df(df_fp_all)
 
     # Plot all fixed-point variables
     n_panels = len(column_names)
