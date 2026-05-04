@@ -53,7 +53,6 @@ from endo_pipeline.settings.figures import (
     FONTSIZE_LARGE,
     FONTSIZE_MEDIUM,
     FONTSIZE_SMALL,
-    FONTSIZE_XLARGE,
     FONTSIZE_XSMALL,
 )
 from endo_pipeline.settings.flow_field_2d import (
@@ -112,6 +111,7 @@ def _add_map_arrow_to_plot(
     rad: float,
     text: str,
     text_y_position: float,
+    text_x_offset: float = 0.0,
     arrow_x_offset: float = 0.05,
     linewidth: float = 1.5,
     color: str = "black",
@@ -141,6 +141,9 @@ def _add_map_arrow_to_plot(
         The text that the arrow points to.
     text_y_position
         The y-coordinate for the text label in figure coordinate units.
+    text_x_offset
+        Horizontal offset for the text label from the arrow in figure coordinate
+        units.
     arrow_x_offset
         Horizontal offset for the start of the arrow from the box in figure
         coordinate units.
@@ -154,7 +157,7 @@ def _add_map_arrow_to_plot(
     """
     # Align labels horizontally with the midpoint of each highlighted box
     arrow_start = _data_to_fig(fig, ax, box_position, x_offset=arrow_x_offset)
-    text_x_position = arrow_start[0]
+    text_x_position = arrow_start[0] + text_x_offset
 
     # Text labels
     fig.text(
@@ -163,7 +166,7 @@ def _add_map_arrow_to_plot(
         text,
         ha="center",
         va="top",
-        fontsize=FONTSIZE_XLARGE,
+        fontsize=FONTSIZE_LARGE,
     )
 
     arrow = FancyArrowPatch(
@@ -190,7 +193,8 @@ def _add_t_plus_1_arrow_to_plot(
     arrow_x_offset: float = 0.07,
     linewidth: float = 1.5,
     arrowstyle: str = "->,head_length=5,head_width=3",
-    delta_text_y_offset: float = 0.02,
+    delta_text_x_offset: float = -0.01,
+    delta_text_y_offset: float = 0.03,
 ) -> None:
     """Add a straight arrow between the (theta, r, rho) labels for t and t+1."""
 
@@ -198,17 +202,17 @@ def _add_t_plus_1_arrow_to_plot(
         fig, ax_t, box_position, x_offset=text_box_x_offset + arrow_x_offset
     )[0]
     arrow_end_x = _data_to_fig(
-        fig, ax_t1, box_position, x_offset=text_box_x_offset - arrow_x_offset - 0.0085
+        fig, ax_t1, box_position, x_offset=text_box_x_offset - arrow_x_offset - 0.02
     )[0]
     arrow_mid_x = (arrow_start_x + arrow_end_x) / 2
 
     fig.text(
-        arrow_mid_x,
+        arrow_mid_x + delta_text_x_offset,
         arrow_y_position + delta_text_y_offset,
         arrow_text,
         ha="center",
         va="bottom",
-        fontsize=FONTSIZE_LARGE,
+        fontsize=FONTSIZE_SMALL,
     )
     horizontal_arrow = FancyArrowPatch(
         (arrow_start_x, arrow_y_position),
@@ -232,11 +236,11 @@ def make_real_image_panel(
     horizontal_arrow_y_offset: float = -0.025,
     horizontal_arrow_linewidth: float = 1.5,
     text_y_offset: float = -0.175,
-    delta_text_y_offset: float = 0.02,
+    delta_text_y_offset: float = 0.025,
 ) -> Path:
     """Build the panel showing a grid crop from t to t+1 for a given example image."""
 
-    contact_figsize = (3.65, 2.4)
+    contact_figsize = (2.5, 1.7)
     arrowstyle = "->,head_length=5,head_width=3"
     box_color = "deepskyblue"
     map_arrow_color = "deepskyblue"
@@ -316,9 +320,9 @@ def make_real_image_panel(
     box_mid_x = grid_crop_position[0] + NATIVE_ZARR_RESOLUTION_CROP_SIZE / 2
     box_bottom_y = grid_crop_position[1] + NATIVE_ZARR_RESOLUTION_CROP_SIZE
 
-    for ax, label, arrow_rad in [
-        (ax_t, "t", map_arrow_rad),
-        (ax_t1, "t+1", -map_arrow_rad),
+    for ax, label, text_x_offset, arrow_rad in [
+        (ax_t, "t", -0.025, map_arrow_rad),
+        (ax_t1, "t+1", 0.025, -map_arrow_rad),
     ]:
         _add_map_arrow_to_plot(
             fig,
@@ -327,6 +331,7 @@ def make_real_image_panel(
             rad=arrow_rad,
             text=f"({Unicode.THETA}, r, {Unicode.RHO}) at {label}",
             text_y_position=bbox_t.y0 + text_y_offset,
+            text_x_offset=text_x_offset,
             arrow_x_offset=map_arrow_x_offset,
             linewidth=map_arrow_linewidth,
             color=map_arrow_color,
@@ -402,12 +407,13 @@ def _make_example_acf_plot(
         color="darkturquoise",
         linestyle="--",
         linewidth=1.25,
-        label=f"Exp. fit (R{Unicode.SQUARED} = {r_squared:.2f})",
+        label=f"Exp. fit\n(R{Unicode.SQUARED} = {r_squared:.2f})",
     )
     axes.set_xlabel("Lag (hours)", fontsize=FONTSIZE_SMALL, **XLABEL_KWARGS)
     axes.set_ylabel("ACF", fontsize=FONTSIZE_SMALL, labelpad=y_labelpad)
-    axes.set_title(f"Autocorrelation function in {column_label}", fontsize=FONTSIZE_SMALL)
+    axes.set_title(f"Autocorrelation\nfunction (ACF) in {column_label}", fontsize=FONTSIZE_SMALL)
     axes.legend(loc="upper right", fontsize=FONTSIZE_XSMALL)
+    axes.set_box_aspect(1)
 
 
 def _make_acf_r_squared_plot(
@@ -419,6 +425,7 @@ def _make_acf_r_squared_plot(
     jitter_radius: float = 0.1,
     axes_ylim: tuple[float, float] = (0.975, 1.005),
     scatter_kwargs: dict | None = None,
+    include_ylabel: bool = False,
 ) -> None:
     """
     Plot the R^2 values for the exponential fits to the ACFs for all datasets
@@ -467,9 +474,13 @@ def _make_acf_r_squared_plot(
     axes.set_xticklabels(
         [COLUMN_METADATA[col].label or col for col in column_names], fontweight="bold"
     )
-    axes.set_ylabel(f"R{Unicode.SQUARED}", fontsize=FONTSIZE_SMALL, labelpad=y_labelpad, rotation=0)
-    axes.set_title(f"Exponential fit R{Unicode.SQUARED} (all datasets)", fontsize=FONTSIZE_SMALL)
+    if include_ylabel:
+        axes.set_ylabel(
+            f"R{Unicode.SQUARED}", fontsize=FONTSIZE_SMALL, labelpad=y_labelpad, rotation=0
+        )
+    axes.set_title(f"Exponential fit R{Unicode.SQUARED}\n(all datasets)", fontsize=FONTSIZE_SMALL)
     axes.set_ylim(axes_ylim)
+    axes.set_box_aspect(1)
 
 
 def make_autocorrelation_panel(save_dir: Path) -> Path:
@@ -482,8 +493,6 @@ def make_autocorrelation_panel(save_dir: Path) -> Path:
         Column.DiffAEData.PC3_FLIPPED,
     ]
 
-    y_labelpad = 4
-
     # load dataframe manifest for outputs of autocorrelation analysis workflow
     base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_grid"
     columns_str = join_sorted_strings(cast(list[str], column_names))
@@ -493,7 +502,7 @@ def make_autocorrelation_panel(save_dir: Path) -> Path:
     autocorrelation_manifest = load_dataframe_manifest(autocorrelation_manifest_name)
 
     # init figure for autocorrelation panel
-    fig, ax = plt.subplots(2, 1, figsize=(2.5, 2.75), layout="constrained")
+    fig, ax = plt.subplots(1, 2, figsize=(3.75, 1.9), layout="constrained")
 
     # Suplot 1: example ACF plot for one dataset and one feature to illustrate
     # the exponential fit and R^2 value
@@ -502,7 +511,7 @@ def make_autocorrelation_panel(save_dir: Path) -> Path:
         dataset_name,
         Column.DiffAEData.POLAR_RADIUS,
         autocorrelation_manifest,
-        y_labelpad=y_labelpad,
+        y_labelpad=0.5,
     )
 
     # Suplot 2: R^2 values for exponential fits to ACFs for all datasets and
@@ -511,7 +520,7 @@ def make_autocorrelation_panel(save_dir: Path) -> Path:
         ax[1],
         column_names,
         autocorrelation_manifest,
-        y_labelpad=y_labelpad,
+        y_labelpad=4,
         jitter_radius=0.15,
         scatter_kwargs={"color": "black", "alpha": 0.75, "linewidths": 0, "s": 3, "zorder": 3},
     )
