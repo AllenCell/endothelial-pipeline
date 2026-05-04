@@ -141,7 +141,7 @@ def main() -> None:
         orientation="vertical",
     )
     save_plot_to_path(
-        fig, base_output_dir, "colorbar", file_format=".svg", transparent=True, tight_layout=False
+        fig, base_output_dir, "colorbar", file_format=".svg", transparent=True, tight_layout=True
     )
 
     # loop over datasets in collection, compute 2D drift coefficients for each
