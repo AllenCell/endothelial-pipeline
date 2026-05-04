@@ -267,6 +267,8 @@ def save_summary_figure(
             fontsize=FONTSIZE_LARGE,
             y=0.995,
         )
+        # legacy layout path: keep plt.tight_layout() applied by save_plot_to_path
+        tight_layout = True
     else:
         fig = create_summary_contact_sheet(
             example_results=example_results_100,
@@ -274,6 +276,12 @@ def save_summary_figure(
             label_for_conditioning=label_for_conditioning,
             font_size_medium=FONTSIZE_MEDIUM,
         )
+        # create_summary_contact_sheet builds the figure with constrained layout;
+        # mixing plt.tight_layout() emits a UserWarning and disables constrained
+        # layout, so opt out here.
+        tight_layout = False
 
-    save_plot_to_path(fig, output_path, "contact_sheet_predict_all_examples")
+    save_plot_to_path(
+        fig, output_path, "contact_sheet_predict_all_examples", tight_layout=tight_layout
+    )
     plt.close(fig)

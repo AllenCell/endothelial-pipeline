@@ -158,6 +158,7 @@ def create_summary_contact_sheet(
         subplot_kwargs=MODEL_QC_SUBPLOT_KWARGS,
         gridspec_kwargs=MODEL_QC_GRIDSPEC_KWARGS,
         fig_kwargs={"figsize": (num_cols * 1.5, num_examples * 1.5)},
+        use_constrained_layout=True,
     )
 
     return fig
