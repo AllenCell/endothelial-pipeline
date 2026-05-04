@@ -131,36 +131,56 @@ def plot_fixed_points_vs_shear_stress(
     jitter_width: float = 0.1,
     x_padding: float = 0.5,
 ) -> plt.Figure:
-    """Make and save plot of one component of fixed points vs shear stress.
+    """
+    Make and save plot of one component of fixed points vs shear stress.
+
+    **X-axis modes**
+
+    The input `x_axis_mode` controls the layout and grouping of the x-axis:
+        - `"dataset"`: one categorical tick per dataset, ordered by
+          ``dataset_order`` or shear stress. Labels show ``"dataset_name
+          (shear_stress)"``.
+        - `"shear_stress_numeric"`: x positions are the numeric shear-stress
+          values (binned), with jitter for datasets sharing the same value.
+        - `"shear_stress_categorical"`: one evenly-spaced tick per unique
+          shear-stress value (so 6 and 21 are adjacent), with jitter for
+          datasets sharing the same value.
+        - `"cell_line"`: one categorical tick per cell-line label (e.g. WT,
+          Control, KD), ordered as WT → Control → KD, with jitter for datasets
+          sharing the same shear-stress value.
+
+    **Input dataframe columns**
+
+    If the x-axis mode is one of:
+        - `"shear_stress_numeric"`
+        - `"shear_stress_categorical"`
+        - `"flow_switch"`
+        - `"dataset"`
+    the input dataframe of fixed points must contain a column named
+    `"flow_condition_shear_stress_bin"`. This column is used to determine the
+    x-axis positions and labels for the plot.
+
+    If the x-axis mode is `"cell_line"`, the input dataframe must contain a
+    column named `"cell_line_label"`.
+
+    If the x-axis mode is `"dataset"`, the input dataframe must additionally
+    contain a column named `"dataset"`.
 
     Parameters
     ----------
     df_fp
-        Concatenated fixed-points dataframe with a ``"shear_stress"`` column
-        (e.g. from :func:`add_shear_stress_to_df`).
+        Concatenated fixed-points dataframe.
     variable
         Column name to plot on the y-axis.
     label
         Display label for the y-axis.
     dataset_order
-        Optional list of dataset names specifying the desired x-axis order.
-        If ``None``, falls back to sorting by shear stress.
+        Optional list of dataset names specifying the desired x-axis order. If
+        ``None``, falls back to sorting by shear stress.
     ylimits
         Optional ``(ymin, ymax)`` limits for the y-axis.
     x_axis_mode
-        Controls x-axis layout:
-
-        - ``"dataset"`` (default): one categorical tick per dataset, ordered by
-          ``dataset_order`` or shear stress. Labels show
-          ``"dataset_name (shear_stress)"``.
-        - ``"shear_stress_numeric"``: x positions are the numeric
-          shear-stress values (binned), with jitter for datasets sharing the same value.
-        - ``"shear_stress_categorical"``: one evenly-spaced tick per unique
-          shear-stress value (so 6 and 21 are adjacent), with jitter for
-          datasets sharing the same value.
-        - ``"cell_line"``: one categorical tick per cell-line label
-          (e.g. WT, Control, KD), ordered as WT → Control → KD, with
-          jitter for datasets sharing the same shear-stress value.
+        Specification of x-axis layout and grouping.
     marker_size_scatter
         Size of the scatter markers for fixed points.
     marker_size_legend
@@ -168,19 +188,19 @@ def plot_fixed_points_vs_shear_stress(
     figure_size
         Size of the output figure.
     stable_only
-        If ``True``, only fixed points classified as stable are included in the
-        plot, and colored by dataset.  If ``False``, all fixed points are
+        If `True`, only fixed points classified as stable are included in the
+        plot, and colored by dataset.  If `False`, all fixed points are
         included and colored by stability classification.
     ax
-        Optional matplotlib Axes to plot on.  If ``None``, a new figure
-        and axes are created.
+        Optional matplotlib Axes to plot on.  If `None`, a new figure and axes
+        are created.
     jitter_width
-        Horizontal jitter applied to overlapping points sharing the same
-        x-axis position.  Larger values spread points further apart.
+        Horizontal jitter applied to overlapping points sharing the same x-axis
+        position.  Larger values spread points further apart.
     x_padding
-        Additional horizontal padding added to the left and right edges of the plot
-        to ensure jittered points aren't clipped.  Only applied for non-categorical
-        x-axis modes.
+        Additional horizontal padding added to the left and right edges of the
+        plot to ensure jittered points aren't clipped.  Only applied for
+        non-categorical x-axis modes.
 
 
     Returns
