@@ -416,6 +416,7 @@ def _make_acf_r_squared_plot(
     autocorrelation_manifest: DataframeManifest,
     y_labelpad: float = 0.5,
     jitter_random_seed: int = RANDOM_SEED,
+    jitter_radius: float = 0.1,
     axes_ylim: tuple[float, float] = (0.975, 1.005),
     scatter_kwargs: dict | None = None,
 ) -> None:
@@ -456,7 +457,7 @@ def _make_acf_r_squared_plot(
     # overlapping points
     for i, column_name in enumerate(column_names):
         r2_values = r_squared_dict[column_name]
-        jitter = rng.uniform(-0.1, 0.1, size=len(r2_values))
+        jitter = rng.uniform(-jitter_radius, jitter_radius, size=len(r2_values))
         axes.scatter(
             i + jitter,
             r2_values,
@@ -511,7 +512,8 @@ def make_autocorrelation_panel(save_dir: Path) -> Path:
         column_names,
         autocorrelation_manifest,
         y_labelpad=y_labelpad,
-        scatter_kwargs={"color": "black", "alpha": 0.5, "edgecolor": "k", "s": 10, "zorder": 3},
+        jitter_radius=0.15,
+        scatter_kwargs={"color": "black", "alpha": 0.75, "linewidths": 0, "s": 3, "zorder": 3},
     )
 
     filename = "autocorrelation_analysis"
