@@ -100,9 +100,10 @@ def _add_map_arrow_to_plot(
     box_position: tuple[float, float],
     rad: float,
     text: str,
-    text_y_offset: float,
+    text_y_position: float,
     arrow_x_offset: float = 0.05,
     linewidth: float = 1.5,
+    color: str = "black",
     arrowstyle: str = "->,head_length=5,head_width=3",
 ) -> None:
     """
@@ -127,28 +128,27 @@ def _add_map_arrow_to_plot(
         negative values curve to the left.
     text
         The text that the arrow points to.
-    text_y_offset
-        Vertical offset for the text label from the top of the box in figure
-        coordinate units.
+    text_y_position
+        The y-coordinate for the text label in figure coordinate units.
     arrow_x_offset
         Horizontal offset for the start of the arrow from the box in figure
         coordinate units.
     linewidth
         Line width for the arrow.
+    color
+        Color for the arrow.
     arrowstyle
         Arrow style string for the arrow.
 
     """
-    bbox = ax.get_position()
-    label_y = bbox.y0 + text_y_offset
     # Align labels horizontally with the midpoint of each highlighted box
     arrow_start = _data_to_fig(fig, ax, box_position, x_offset=arrow_x_offset)
-    label_x = arrow_start[0]
+    text_x_position = arrow_start[0]
 
     # Text labels
     fig.text(
-        label_x,
-        label_y,
+        text_x_position,
+        text_y_position,
         text,
         ha="center",
         va="top",
@@ -157,10 +157,10 @@ def _add_map_arrow_to_plot(
 
     arrow = FancyArrowPatch(
         arrow_start,
-        (label_x, label_y - 0.01),
+        (text_x_position, text_y_position - 0.01),
         connectionstyle=f"arc3,rad={rad}",
         arrowstyle=arrowstyle,
-        color="black",
+        color=color,
         linewidth=linewidth,
         transform=fig.transFigure,
         clip_on=False,
@@ -217,16 +217,18 @@ def make_real_image_panel(
     map_arrow_x_offset: float = 0.065,
     map_arrow_rad: float = 0.3,
     map_arrow_linewidth: float = 1.5,
-    horizontal_arrow_x_offset: float = 0.07,
+    horizontal_arrow_x_offset: float = 0.125,
     horizontal_arrow_y_offset: float = -0.025,
     horizontal_arrow_linewidth: float = 1.5,
-    text_y_offset: float = -0.125,
+    text_y_offset: float = -0.175,
     delta_text_y_offset: float = 0.02,
 ) -> Path:
     """Build the panel showing a grid crop from t to t+1 for a given example image."""
 
-    contact_figsize = (5.95, 2.75)
+    contact_figsize = (3.65, 2.4)
     arrowstyle = "->,head_length=5,head_width=3"
+    box_color = "deepskyblue"
+    map_arrow_color = "deepskyblue"
 
     fov_crop_size = 2 * NATIVE_ZARR_RESOLUTION_CROP_SIZE
     scale_bar_um = 20
@@ -257,6 +259,7 @@ def make_real_image_panel(
         max_cols=len(processed_images),
         max_rows=1,
         fig_kwargs={"figsize": contact_figsize, "layout": "constrained"},
+        gridspec_kwargs={"hspace": 0.05},
     )
 
     layout_engine = cast(LayoutEngine, fig.get_layout_engine())
@@ -288,7 +291,7 @@ def make_real_image_panel(
             grid_crop_position,
             grid_crop_size,
             grid_crop_size,
-            edgecolor="magenta",
+            edgecolor=box_color,
             facecolor="none",
             linewidth=2,
             clip_on=False,
@@ -312,9 +315,10 @@ def make_real_image_panel(
             box_position=(box_mid_x, box_bottom_y),
             rad=arrow_rad,
             text=f"({Unicode.THETA}, r, {Unicode.RHO}) at {label}",
-            text_y_offset=text_y_offset,
+            text_y_position=bbox_t.y0 + text_y_offset,
             arrow_x_offset=map_arrow_x_offset,
             linewidth=map_arrow_linewidth,
+            color=map_arrow_color,
             arrowstyle=arrowstyle,
         )
 
@@ -439,12 +443,27 @@ def _add_colorbar_for_quadmesh(
     fig: plt.Figure,
     axes: plt.Axes,
     quadmesh: QuadMesh,
-    label: str | None = None,
+    cax_position: str = "top",
+    pad: float = 0.03,
+    orientation: str = "horizontal",
+    colorbar_label: str | None = None,
+    colorbar_title_kwargs: dict | None = {"fontsize": FONTSIZE_MEDIUM, "pad": 2},
 ) -> None:
     """Add a colorbar for a given QuadMesh plot."""
     divider = make_axes_locatable(axes)
-    cax = divider.append_axes("right", size="5%", pad=0.05)
-    fig.colorbar(quadmesh, cax=cax, label=label)
+    cax = divider.append_axes(cax_position, size="5%", pad=pad)
+
+    # use title instead of label if orientation is horizontal to avoid issues
+    # with label positioning on top of the colorbar
+    label = None if orientation == "horizontal" else colorbar_label
+    fig.colorbar(quadmesh, cax=cax, label=label, orientation=orientation)
+
+    tick_axis = cax.xaxis if orientation == "horizontal" else cax.yaxis
+    tick_axis.set_ticks_position(cax_position)
+    tick_axis.set_label_position(cax_position)
+
+    if colorbar_label is not None and orientation == "horizontal":
+        cax.set_title(colorbar_label, **(colorbar_title_kwargs or {}))
 
 
 def _make_weighted_displacement_histogram(
@@ -516,7 +535,7 @@ def _make_weighted_displacement_histogram(
         fig,
         axes,
         pcm,
-        label=colorbar_label,
+        colorbar_label=colorbar_label,
     )
     return weighted_counts_delta_x
 
@@ -576,7 +595,7 @@ def _plot_kernel_at_target_bin(
         fig,
         axes,
         pcm,
-        label=colorbar_label,
+        colorbar_label=colorbar_label,
     )
     return kernel_weights_2d
 
@@ -616,7 +635,7 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
     target_bin = _get_target_bin(target_point, bin_edges)
 
     fig, ax = plt.subplots(
-        2, 2, gridspec_kw={"wspace": 0.3}, figsize=(5.75, 5.05), layout="constrained"
+        1, 4, gridspec_kw={"wspace": 0.075}, figsize=(6.0, 1.65), layout="constrained"
     )
     axes = ax.flatten() if isinstance(ax, np.ndarray) else [ax]
     axes_xlabel = COLUMN_METADATA[column_names[0]].label
@@ -632,8 +651,10 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
         target_bin=target_bin,
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
+        axes_xlabel=axes_xlabel,
         axes_ylabel=axes_ylabel,
         ylabel_kwargs=YLABEL_KWARGS,
+        xlabel_kwargs=XLABEL_KWARGS,
         colorbar_label=f"Sum of {Unicode.DELTA} {axes_xlabel}",
     )
 
@@ -655,12 +676,16 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
         target_bin=target_bin,
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
-        colorbar_label="Kernel weight (normalized)",
+        axes_xlabel=axes_xlabel,
+        xlabel_kwargs=XLABEL_KWARGS,
+        colorbar_label="Kernel weight\n(normalized)",
     )
 
     # panel 3 - kernel-weighted histogram (i.e. numerator of KM estimator)
     kernel_weighted_hist_delta_r = kernel_weights_2d * weighted_hist_delta_r
-    vmax = np.nanpercentile(np.abs(kernel_weighted_hist_delta_r), 99)
+    # use same vmin and vmax for colormap as panel 1 to allow direct comparison
+    # of the effect of the kernel weighting on the histogram values
+    vmax = np.nanpercentile(np.abs(weighted_hist_delta_r), 99)
     pcm = _make_2d_pcolormesh(
         axes[2],
         kernel_weighted_hist_delta_r,
@@ -671,9 +696,7 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
         axes_xlim=axes_xlim,
         axes_ylim=axes_ylim,
         axes_xlabel=axes_xlabel,
-        axes_ylabel=axes_ylabel,
         xlabel_kwargs=XLABEL_KWARGS,
-        ylabel_kwargs=YLABEL_KWARGS,
     )
     _add_target_bin_border(
         axes[2],
@@ -684,7 +707,7 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
         fig,
         axes[2],
         pcm,
-        label=f"Kernel-weighted sum of {Unicode.DELTA} {axes_xlabel}",
+        colorbar_label=f"Kernel-weighted\nsum of {Unicode.DELTA} {axes_xlabel}",
     )
 
     # panel 4 - final KM coefficient estimate at target bin
@@ -714,8 +737,13 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
         fig,
         axes[3],
         pcm,
-        label=f"Drift in {axes_xlabel} (hr$^{{-1}}$)",
+        colorbar_label=f"Drift in {axes_xlabel} (hr$^{{-1}}$)",
     )
+
+    # only show y-axis tick labels on the first panel to avoid clutter, since
+    # all panels share the same y-axis limits
+    for ax in axes[1:]:
+        ax.yaxis.set_tick_params(labelleft=False)
 
     filename = "kernel_convolution_schematic"
     save_plot_to_path(
