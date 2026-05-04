@@ -6,7 +6,8 @@ from typing import Any, Literal
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-from scipy.stats import linregress
+from odrpack import odr_fit
+from scipy.stats import pearsonr
 from seaborn import color_palette
 
 from endo_pipeline.configs.dataset_config_io import load_dataset_config
@@ -20,6 +21,7 @@ from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_krame
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KernelName, KramersMoyalKernel
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     add_track_duration_to_dataframe,
+    calculate_derived_data_dynamics_dependent,
 )
 from endo_pipeline.library.analyze.numerics.binning import adjust_limits_from_bin_size, get_bins
 from endo_pipeline.library.analyze.numerics.fixed_points import (
@@ -213,6 +215,9 @@ def get_diffae_feats_liveseg_feats_merged_table(
         # filter the merged table
         merged_feats_df = merged_feats_df[merged_feats_df[Column.SegDataFilters.IS_INCLUDED]]
 
+        # Calculate derived dynamic features
+        merged_feats_df = calculate_derived_data_dynamics_dependent(merged_feats_df)
+
         # remove any rows that were not evaluated by the model and thus have no model_manifest_name
         merged_feats_df.dropna(
             axis="index", how="any", subset=Column.DiffAEData.MODEL_MANIFEST, inplace=True
@@ -245,7 +250,28 @@ def get_traj_and_flowfield(
     column_names: list[str | Column.DiffAEData] | None = None,
     load_precomputed_trajectories: Path | None = None,
 ) -> tuple[np.ndarray, dict]:
+    """
+    Estimate the data-driven flow field from a dataframe of dynamics features and compute a
+    single integrated trajectory from that flow field starting from a fixed initial condition.
 
+    Parameters
+    ----------
+    df
+        DataFrame containing the dynamics features for each crop and timepoint.
+    column_names
+        List of column names corresponding to the dynamics features to use for flow field
+        estimation and trajectory integration. Defaults to DYNAMICS_COLUMN_NAMES.
+    load_precomputed_trajectories
+        Optional path to a .npy file containing a precomputed trajectory array. If provided,
+        the trajectory is loaded from this file instead of being solved from the flow field.
+
+    Returns
+    -------
+    :
+        A tuple of (trajectory array, flow field dictionary), where the trajectory array has
+        shape ``(num_timepoints, num_features)`` and the flow field dictionary contains the
+        drift vector field and the corresponding grid.
+    """
     if column_names is None:
         column_names = list(DYNAMICS_COLUMN_NAMES)
 
@@ -351,12 +377,23 @@ def get_flow_field_and_fixed_points(
     return flow_field_dict, fixed_points_df
 
 
-def get_vector_vector_angle(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
-    angle_rad = np.arccos(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2)))
-    return angle_rad
-
-
 def get_vector_vector_angle_fast(v1: np.ndarray, v2: np.ndarray) -> np.ndarray:
+    """
+    Return the element-wise angles in radians between rows of two 2-D vector arrays.
+
+    Parameters
+    ----------
+    v1
+        Array of shape ``(N, D)`` containing N vectors.
+    v2
+        Array of shape ``(N, D)`` containing N vectors.
+
+    Returns
+    -------
+    :
+        Array of shape ``(N,)`` containing the angle between each pair of corresponding vectors.
+    """
+    v1, v2 = np.atleast_2d(v1), np.atleast_2d(v2)
     dot_prod = np.einsum("ij,ij->i", v1, v2)
     norm1 = np.linalg.norm(v1, axis=1)
     norm2 = np.linalg.norm(v2, axis=1)
@@ -372,6 +409,30 @@ def get_approx_vec_from_grid(
     v2_grids: np.ndarray,
     slice_indexes: tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
 ) -> np.ndarray:
+    """
+    Return the grid vector (v1, v2) at the grid point nearest to each query point.
+
+    Parameters
+    ----------
+    pc1_pc2_points
+        Array of shape ``(N, 2)`` containing the query points in 2-D feature space.
+    g1_grids
+        Grid values along the first axis.
+    g2_grids
+        Grid values along the second axis.
+    v1_grids
+        Vector component along the first axis at each grid point.
+    v2_grids
+        Vector component along the second axis at each grid point.
+    slice_indexes
+        Index tuple used to select a subset of grid points (e.g. from ``np.where``).
+
+    Returns
+    -------
+    :
+        Array of shape ``(N, 2)`` containing the (v1, v2) vector at the nearest grid point
+        for each query point.
+    """
     # create a distance mapping
     point_grids_pc1pc2 = np.asarray(
         list(zip(g1_grids[slice_indexes], g2_grids[slice_indexes], strict=True))
@@ -396,6 +457,32 @@ def get_approx_point_from_grid(
     v2_grids: np.ndarray,
     slice_indexes: tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
 ) -> np.ndarray:
+    """
+    Return the grid coordinates (g1, g2) of the grid point nearest to each query point.
+
+    Parameters
+    ----------
+    pc1_pc2_points
+        Array of shape ``(N, 2)`` containing the query points in 2-D feature space.
+    g1_grids
+        Grid values along the first axis.
+    g2_grids
+        Grid values along the second axis.
+    v1_grids
+        Vector component along the first axis at each grid point (used to define the grid
+        shape; not used in the distance computation).
+    v2_grids
+        Vector component along the second axis at each grid point (used to define the grid
+        shape; not used in the distance computation).
+    slice_indexes
+        Index tuple used to select a subset of grid points (e.g. from ``np.where``).
+
+    Returns
+    -------
+    :
+        Array of shape ``(N, 2)`` containing the (g1, g2) coordinates of the nearest grid
+        point for each query point.
+    """
     # create a distance mapping
     point_grids_pc1pc2 = np.asarray(
         list(zip(g1_grids[slice_indexes], g2_grids[slice_indexes], strict=True))
@@ -461,6 +548,17 @@ def get_vector_dot_products_as_grid(
 
 
 def make_angular_deviation_test(out_dir: Path) -> None:
+    """
+    Generate a diagnostic plot that visualises the angular deviation between a set of
+    test vectors and the nearest vector in a synthetic one-direction flow field.
+
+    The plot is saved as ``get_angular_deviation_deg_test.png`` in ``out_dir``.
+
+    Parameters
+    ----------
+    out_dir
+        Directory in which to save the output figure.
+    """
     test_flow_field = one_direction_vector_field_example()
 
     test_vectors = np.array(
@@ -895,6 +993,28 @@ def load_filtered_trajectory_df_for_first_passage_time_workflow(
     crop_pattern: Literal["grid", "tracked"],
     minimum_track_length: int = LONG_TRACK_THRESHOLD_LENGTH,
 ) -> pd.DataFrame:
+    """
+    Load and filter the trajectory dataframe for the first passage time analysis workflow.
+
+    Trajectories are loaded from the appropriate manifest for the given crop pattern,
+    filtered to steady-state timepoints, and then filtered to only include tracks that
+    meet the minimum track length requirement.
+
+    Parameters
+    ----------
+    dataset_name
+        Name of the dataset to load trajectories for.
+    crop_pattern
+        Whether to load grid-based (``"grid"``) or cell-centric tracked (``"tracked"``) crops.
+    minimum_track_length
+        Minimum number of timepoints a track must span to be included in the output.
+
+    Returns
+    -------
+    :
+        DataFrame containing the filtered trajectories with dynamics feature columns
+        and track metadata.
+    """
     if crop_pattern == "grid":
         dynamics_manifest = load_dataframe_manifest(
             DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED
@@ -950,7 +1070,32 @@ def compute_first_passage_time_stats_for_one_bin(
     time_to_first_passage_col_name: str,
     feature_column_names: list[str],
 ) -> pd.DataFrame:
+    """
+    Compute summary statistics for the first passage time for all trajectories that fall
+    within a single spatial bin.
 
+    Parameters
+    ----------
+    bin_index
+        Integer index identifying this bin, assigned as a column in the returned dataframe.
+    bin_center
+        Coordinates of the bin centre along each feature dimension.
+    bin_edges
+        List of arrays, one per feature dimension, specifying the left and right edges of
+        this bin.
+    trajectory_df
+        DataFrame containing the trajectory data with a first-passage-time column.
+    time_to_first_passage_col_name
+        Name of the column in ``trajectory_df`` that stores the time-to-first-passage value.
+    feature_column_names
+        List of feature column names used to filter trajectories to this bin.
+
+    Returns
+    -------
+    :
+        Single-row DataFrame containing ``pd.describe``-style summary statistics for the
+        first passage times in this bin, with the bin index appended as a column.
+    """
     trajectory_df_one_bin = filter_dataframe_to_binned_value(
         dataframe=trajectory_df,
         columns=feature_column_names,
@@ -959,6 +1104,10 @@ def compute_first_passage_time_stats_for_one_bin(
     )
     first_passage_time_stats_df = (
         trajectory_df_one_bin[time_to_first_passage_col_name].describe().to_frame().T
+    )
+    # compute standard error of the mean and add it to the dataframe
+    first_passage_time_stats_df["sem"] = first_passage_time_stats_df["std"] / np.sqrt(
+        first_passage_time_stats_df["count"]
     )
     new_col_names = {
         col: col + Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
@@ -978,7 +1127,28 @@ def compute_first_passage_time_stats_for_bins(
     time_to_first_passage_col_name: str,
     feature_column_names: list[str],
 ) -> pd.DataFrame:
+    """
+    Compute first passage time summary statistics for every bin in the feature-space grid.
 
+    Parameters
+    ----------
+    bin_centers
+        List of 1-D arrays, one per feature dimension, containing the bin centre coordinates.
+    bin_edges
+        List of 1-D arrays, one per feature dimension, containing the bin edge coordinates.
+    trajectory_df
+        DataFrame containing the trajectory data with a first-passage-time column.
+    time_to_first_passage_col_name
+        Name of the column in ``trajectory_df`` that stores the time-to-first-passage value.
+    feature_column_names
+        List of feature column names used to assign trajectories to bins.
+
+    Returns
+    -------
+    :
+        DataFrame with one row per bin containing summary statistics for the first passage
+        time and the corresponding bin centre and edge coordinates.
+    """
     # create a meshgrid of the bin centers and edges for iterating through the bins
     bin_centers_mesh = np.meshgrid(*bin_centers, indexing="ij")
     bin_centers_all = list(zip(*[arr.ravel() for arr in bin_centers_mesh], strict=True))
@@ -1017,7 +1187,31 @@ def compute_first_passage_time_stats_for_bins(
 def compute_first_passage_time_parameter_sweep_df(
     fixed_point_index: int, trajectory_df: pd.DataFrame, thresholds: Sequence[float]
 ) -> pd.DataFrame:
+    """
+    Run a parameter sweep over first passage time distance thresholds and return aggregated
+    summary statistics for each threshold value.
 
+    For each threshold, trajectories that reach within that distance of the fixed point are
+    identified, the first passage time is computed, and summary statistics (mean, std, etc.)
+    are collected. The fraction of trajectories that approached the fixed point under each
+    threshold is also recorded.
+
+    Parameters
+    ----------
+    fixed_point_index
+        Index of the fixed point to compute first passage times for.
+    trajectory_df
+        DataFrame containing the trajectory data with pre-computed distance-from-fixed-point
+        columns.
+    thresholds
+        Sequence of distance threshold values to sweep over.
+
+    Returns
+    -------
+    :
+        DataFrame with one row per threshold value containing aggregated first passage time
+        statistics and the fraction of trajectories that approached the fixed point.
+    """
     sweep_results: list = []
     for thresh in thresholds:
         fp_dist_col = f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fixed_point_index}"
@@ -1441,6 +1635,27 @@ def filter_fpt_stats_df_by_min_num_trajectories(
     min_num_traj_per_bin: int,
     metric_for_filter: Literal["mean", "median"],
 ) -> pd.DataFrame:
+    """
+    Filter a first passage time stats dataframe to only retain bins that have at least
+    ``min_num_traj_per_bin`` trajectories and a non-NaN value for the chosen metric in
+    both the grid and tracked columns.
+
+    Parameters
+    ----------
+    fpt_stats_df
+        DataFrame containing first passage time summary statistics per bin, as produced
+        by :func:`compute_first_passage_time_stats_for_bins`.
+    min_num_traj_per_bin
+        Minimum number of trajectories required in a bin for it to be retained.
+    metric_for_filter
+        Which central-tendency metric to require to be non-NaN: ``"mean"`` or ``"median"``.
+
+    Returns
+    -------
+    :
+        Filtered DataFrame containing only bins that satisfy the trajectory-count and
+        non-NaN requirements.
+    """
     # the column title is "50%" for 50th percentile in `pd.describe`` instead of
     # mean so correct that if "median" was chosen
     metric = "50%" if metric_for_filter == "median" else metric_for_filter
@@ -1460,17 +1675,87 @@ def filter_fpt_stats_df_by_min_num_trajectories(
     return fpt_stats_df_no_nan
 
 
+def get_odr_fit_results(
+    x: Sequence, y: Sequence, weight_x: Sequence | None = None, weight_y: Sequence | None = None
+) -> tuple:
+    """
+    Fit a line to (x, y) data using orthogonal distance regression (ODR).
+
+    Parameters
+    ----------
+    x
+        Sequence of x-axis values.
+    y
+        Sequence of y-axis values.
+    weight_x
+        Optional sequence of weights for the x data (e.g. inverse variance).
+    weight_y
+        Optional sequence of weights for the y data (e.g. inverse variance).
+
+    Returns
+    -------
+    :
+        Tuple of ``(slope_fit, intercept_fit, slope_stdev, intercept_stdev,
+        reduced_chi_squared, OdrResult)`` from the ODR fit.
+    """
+    # use a line function for the ODR fit
+    # p0 is the initial guess for the parameters of the function,
+    # in this case the slope and intercept of the line
+    # odr_fit requires this initial guess to be one object, which is why we
+    # are using p0 instead of passing slope and intercept more explicitly
+    line_func = lambda x, p0: p0[0] * x + p0[1]
+
+    # need some initial guesses for the function parameters
+    slope_initial_guess = 1
+    intercept_initial_guess = 0
+
+    line_fit = odr_fit(
+        f=line_func,
+        xdata=x,
+        ydata=y,
+        weight_x=weight_x,
+        weight_y=weight_y,
+        beta0=(slope_initial_guess, intercept_initial_guess),
+        task="explicit-ODR",
+    )
+    slope_fit = line_fit.beta[0]
+    intercept_fit = line_fit.beta[1]
+    slope_stdev = line_fit.sd_beta[0]
+    intercept_stdev = line_fit.sd_beta[1]
+    reduced_chi_squared = line_fit.res_var
+
+    return slope_fit, intercept_fit, slope_stdev, intercept_stdev, reduced_chi_squared, line_fit
+
+
 def build_fpt_line_fit_results_df(
     fpt_stats_df_no_nan: pd.DataFrame, metric_to_fit: Literal["mean", "median"]
 ) -> pd.DataFrame:
+    """
+    Build a dataframe of line-fit results comparing grid-based and track-based first passage
+    times using weighted orthogonal distance regression (ODR).
+    The weights used are the inverse variances of the first passage times in each bin.
+
+    Parameters
+    ----------
+    fpt_stats_df_no_nan
+        Pre-filtered first passage time stats dataframe (no NaN values in the metric
+        columns), as returned by :func:`filter_fpt_stats_df_by_min_num_trajectories`.
+    metric_to_fit
+        Which central-tendency metric to use as the value to regress: ``"mean"`` or
+        ``"median"``.
+
+    Returns
+    -------
+    :
+        DataFrame with one row per (dataset, fixed-point, stability) group containing
+        the OLS and ODR slope, intercept, and goodness-of-fit statistics.
+    """
     # the column title is "50%" for 50th percentile in `pd.describe`` instead of
     # mean so correct that if "median" was chosen
     metric = "50%" if metric_to_fit == "median" else metric_to_fit
     suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
-    metric = f"{metric}{suffix}"
 
-    # do a linear regression to see if the FPTs from the tracked and grid trajectories
-    # correlate depending on where they are in binned feature space
+    # perform a linear regression comparing the grid and tracked metrics for each fixed point
     line_fit_df = (
         fpt_stats_df_no_nan.groupby(
             [
@@ -1480,21 +1765,50 @@ def build_fpt_line_fit_results_df(
             ]
         )
         .apply(
-            lambda df, metric=metric: pd.Series(
+            lambda df, metric=metric, suffix=suffix: pd.Series(
                 index=[
-                    "slope",
-                    "intercept",
-                    "r_value",
-                    "p_value",
-                    "std_err",
+                    "slope_odr",
+                    "intercept_odr",
+                    "slope_stdev_odr",
+                    "intercept_stdev_odr",
+                    "reduced_chi_squared_odr",
+                    "OdrResult",
                 ],
-                data=linregress(
-                    x=df[f"{metric}_grid"],
-                    y=df[f"{metric}_tracked"],
+                # use the inverse of the variance of the mean (sampling variance)
+                # as the weights for the ODR fit, which is the square of the standard error
+                data=get_odr_fit_results(
+                    x=df[f"{metric}{suffix}_grid"],
+                    y=df[f"{metric}{suffix}_tracked"],
+                    weight_x=df[f"sem{suffix}_grid"] ** -2,
+                    weight_y=df[f"sem{suffix}_tracked"] ** -2,
                 ),
             )
         )
         .reset_index()
     )
 
+    # perform a Pearson correlation test comparing the grid and tracked metrics for each fixed point
+    pearson_df = (
+        fpt_stats_df_no_nan.groupby(
+            [
+                Column.DATASET,
+                Column.VectorField.FIXED_POINT_INDEX,
+                Column.VectorField.STABILITY,
+            ]
+        ).apply(
+            lambda df, metric=metric, suffix=suffix: pd.Series(
+                index=["r_value_pearson", "p_value_pearson"],
+                data=pearsonr(
+                    x=df[f"{metric}{suffix}_grid"],
+                    y=df[f"{metric}{suffix}_tracked"],
+                ),
+            )
+        )
+    ).reset_index()
+
+    line_fit_df = line_fit_df.merge(
+        pearson_df,
+        on=[Column.DATASET, Column.VectorField.FIXED_POINT_INDEX, Column.VectorField.STABILITY],
+        validate="one_to_one",
+    )
     return line_fit_df

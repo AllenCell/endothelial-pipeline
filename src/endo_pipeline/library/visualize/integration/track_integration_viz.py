@@ -1273,19 +1273,25 @@ def plot_first_passage_time_parameter_sweep(
 def plot_first_passage_time_correlations(
     dataset_name: str,
     first_passage_time_stats_df: pd.DataFrame,
+    line_fit_df: pd.DataFrame,
     fixed_point_id: int,
     fixed_point_stability: str,
-    slope: float,
-    intercept: float,
-    r_value: float,
     out_dir: Path,
     metric_to_plot: Literal["mean", "median"],
 ) -> None:
     shear_stress_rounded = _get_shear_stress_for_dataset(dataset_name, binned=True)
+    pearson_r = line_fit_df[Column.VectorField.PEARSON_R].unique().item()
 
     metric = "50%" if metric_to_plot == "median" else metric_to_plot
     suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
     metric = f"{metric}{suffix}"
+
+    slope = line_fit_df[Column.VectorField.LINEFIT_SLOPE_ODR].unique().item()
+    intercept = line_fit_df[Column.VectorField.LINEFIT_INTERCEPT_ODR].unique().item()
+    corr_metric_val = (
+        line_fit_df[Column.VectorField.LINEFIT_REDUCED_CHI_SQUARED_ODR].unique().item()
+    )
+    corr_metric_label = f"Linear Fit (χ²ᵣ={corr_metric_val:.2f})"
 
     num_bins = (
         first_passage_time_stats_df.groupby(
@@ -1301,14 +1307,14 @@ def plot_first_passage_time_correlations(
 
     fig, ax = plt.subplots(figsize=(2, 2))
     ax.set_title(
-        f"{shear_stress_rounded} dyn/cm{UnicodeCharacters.SQUARED}",
+        f"{shear_stress_rounded} dyn/cm{UnicodeCharacters.SQUARED} (R = {pearson_r:.2f})",
         fontsize=FONTSIZE_SMALL,
     )
     ax.errorbar(
         x=first_passage_time_stats_df[f"{metric}_grid"],
         y=first_passage_time_stats_df[f"{metric}_tracked"],
-        xerr=first_passage_time_stats_df[f"std{suffix}_grid"],
-        yerr=first_passage_time_stats_df[f"std{suffix}_tracked"],
+        xerr=first_passage_time_stats_df[f"sem{suffix}_grid"],
+        yerr=first_passage_time_stats_df[f"sem{suffix}_tracked"],
         fmt="none",
         ecolor="gray",
         alpha=0.5,
@@ -1320,7 +1326,7 @@ def plot_first_passage_time_correlations(
         color="black",
         edgecolor="white",
         lw=0.2,
-        label=f"FPT {metric_to_plot} {UnicodeCharacters.PLUS_MINUS} STD (n={num_bins})",
+        label=f"FPT {metric_to_plot} {UnicodeCharacters.PLUS_MINUS} SEM (n={num_bins})",
     )
     ax.axline(
         xy1=(0, intercept),
@@ -1328,7 +1334,7 @@ def plot_first_passage_time_correlations(
         color="tab:green",
         linestyle="--",
         zorder=0,
-        label=f"Linear Fit (R={r_value:.2f})",
+        label=corr_metric_label,
     )
     ax.axline(xy1=(0, 0), slope=1, color="black", linestyle="--", zorder=0, label="Unity")
     ax_min = min((*ax.get_xlim(), *ax.get_ylim()))
@@ -1428,6 +1434,9 @@ def plot_first_passage_time_correlation_summary(
     analysis across all datasets and fixed points as it will appear in the figure.
     """
 
+    corr_metric_column = Column.VectorField.PEARSON_R
+    corr_metric_label = "Correlation Coefficient (R)"
+
     # get the shear stress for the dataset and add that to the labels
     # Snap to ±1 bins; values outside any bin keep their rounded value
     first_passage_time_correlation_summary_df["shear_stress"] = (
@@ -1446,7 +1455,7 @@ def plot_first_passage_time_correlation_summary(
         [Column.DATASET, "shear_stress_rounded"]
     ].values.tolist()
     xs = [f"{load_dataset_config(dataset_name).date} ({flow})" for dataset_name, flow in xs]
-    ys = first_passage_time_correlation_summary_df["r_value"]
+    ys = first_passage_time_correlation_summary_df[corr_metric_column]
 
     fig, ax = plt.subplots(figsize=(6, 2.5))
     sns.stripplot(
@@ -1457,7 +1466,7 @@ def plot_first_passage_time_correlation_summary(
         ax=ax,
     )
     ax.set_ylim(0, 1)
-    ax.set_ylabel("Correlation Coefficient (R)", fontsize=FONTSIZE_SMALL)
+    ax.set_ylabel(corr_metric_label, fontsize=FONTSIZE_SMALL)
     plt.yticks(fontsize=FONTSIZE_SMALL)
     plt.xticks(rotation=45, ha="right", fontsize=FONTSIZE_SMALL)
     ax.set_xlabel("")
@@ -1472,7 +1481,7 @@ def plot_first_passage_time_correlation_summary(
     fig, ax = plt.subplots(figsize=(2, 2))
     sns.histplot(
         data=first_passage_time_correlation_summary_df,
-        x="r_value",
+        x=corr_metric_column,
         binwidth=0.1,
         color="black",
         fill=False,
@@ -1480,7 +1489,7 @@ def plot_first_passage_time_correlation_summary(
     )
     ax.set_xticks(np.arange(0, 1.1, 0.2))
     ax.set_xlim(0, 1)
-    ax.set_xlabel("Correlation Coefficient (R)", fontsize=FONTSIZE_SMALL)
+    ax.set_xlabel(corr_metric_label, fontsize=FONTSIZE_SMALL)
     ax.set_ylabel("Number of Datasets", fontsize=FONTSIZE_SMALL)
     save_plot_to_path(
         fig,

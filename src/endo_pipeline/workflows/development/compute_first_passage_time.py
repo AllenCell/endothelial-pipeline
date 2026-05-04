@@ -137,22 +137,18 @@ def main(
                 (line_fit_df[Column.DATASET] == dataset_name)
                 & (line_fit_df[Column.VectorField.FIXED_POINT_INDEX] == fp_idx)
             ]
-            slope = line_fit_result["slope"].unique().item()
-            intercept = line_fit_result["intercept"].unique().item()
-            r_value = line_fit_result["r_value"].unique().item()
 
             # plot the correlation results for this fixed point
             plot_first_passage_time_correlations(
                 dataset_name=dataset_name,
                 first_passage_time_stats_df=grp_df,
+                line_fit_df=line_fit_result,
                 fixed_point_id=fp_idx,
                 fixed_point_stability=fp_stability,
-                slope=slope,
-                intercept=intercept,
-                r_value=r_value,
                 out_dir=out_dir_dataset,
                 metric_to_plot=metric_to_plot,
             )
+
             # histograms don't really work for 4D data (theta, r, rho, and FPT ratio),
             # so we will use a 3D scatter with color-coded points instead
             # if one of the columns is not being collapsed
@@ -189,14 +185,13 @@ def main(
                 plot_first_passage_time_correlations(
                     dataset_name=dataset_name,
                     first_passage_time_stats_df=grp_df,
+                    line_fit_df=line_fit_result,
                     fixed_point_id=fp_idx,
                     fixed_point_stability=fp_stability,
-                    slope=slope,
-                    intercept=intercept,
-                    r_value=r_value,
                     out_dir=out_dir_figure,
                     metric_to_plot=metric_to_plot,
                 )
+
         # plot the parameter sweep results (and add the figure examples to their own folder)
         for (dataset_name, fp_idx, fp_stability), grp_df in parameter_sweep_df.groupby(
             [

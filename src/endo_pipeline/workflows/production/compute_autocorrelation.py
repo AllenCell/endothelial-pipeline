@@ -65,6 +65,7 @@ def main(
         build_dataframe_location_from_path,
         create_dataframe_manifest,
         load_dataframe_manifest,
+        load_model_manifest,
         save_dataframe_manifest,
     )
     from endo_pipeline.settings.autocorrelations import (
@@ -171,7 +172,7 @@ def main(
         # concatenate autocorrelation dataframes for each flow condition, save
         # to parquet, and update manifest
         autocorrelations_for_dataset = pd.concat(autocorrelation_dataframe_list, ignore_index=True)
-        autocorrelation_file_name = f"autocorrelation_{dataset_name}.parquet"
+        autocorrelation_file_name = f"autocorrelation_{dataset_name}_{crop_pattern}.parquet"
         autocorrelation_save_path = make_name_unique(dataframe_savedir / autocorrelation_file_name)
         autocorrelations_for_dataset.to_parquet(autocorrelation_save_path)
 
@@ -184,7 +185,7 @@ def main(
         if upload_to_fms:
             autocorrelation_annotations = build_fms_annotations(
                 dataset_config,
-                model_manifest=DEFAULT_MODEL_MANIFEST_NAME,
+                model_manifest=load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME),
                 run_name=DEFAULT_MODEL_RUN_NAME,
                 additional_notes=AUTOCORRELATION_FMS_ANNOTATION_NOTES,
             )
