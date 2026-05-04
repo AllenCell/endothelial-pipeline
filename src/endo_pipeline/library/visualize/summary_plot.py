@@ -390,17 +390,9 @@ def _convert_polar_angle_to_nematic_order(df: pd.DataFrame) -> pd.DataFrame:
         f"_{ColumnName.BootstrapAnalysis.CI_LOWER}",
         f"_{ColumnName.BootstrapAnalysis.CI_UPPER}",
     ]:
-        print(
-            df[f"{ColumnName.DiffAEData.POLAR_ANGLE}{column_suffix}"].min(),
-            df[f"{ColumnName.DiffAEData.POLAR_ANGLE}{column_suffix}"].max(),
-        )
         df[f"{ColumnName.DiffAEData.NEMATIC_ORDER}{column_suffix}"] = df[
             f"{ColumnName.DiffAEData.POLAR_ANGLE}{column_suffix}"
         ].apply(lambda theta: -np.cos(2 * theta - np.pi))
-        print(
-            df[f"{ColumnName.DiffAEData.NEMATIC_ORDER}{column_suffix}"].min(),
-            df[f"{ColumnName.DiffAEData.NEMATIC_ORDER}{column_suffix}"].max(),
-        )
     return df
 
 
