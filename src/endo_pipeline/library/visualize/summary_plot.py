@@ -392,7 +392,7 @@ def _convert_polar_angle_to_nematic_order(df: pd.DataFrame) -> pd.DataFrame:
     ]:
         df[f"{ColumnName.DiffAEData.NEMATIC_ORDER}{column_suffix}"] = df[
             f"{ColumnName.DiffAEData.POLAR_ANGLE}{column_suffix}"
-        ].apply(lambda theta: (3 * np.cos(theta) ** 2 - 1) / 2)
+        ].apply(lambda theta: (2 * np.cos(theta))
         # -np.cos(2 * theta - np.pi))
     return df
 
