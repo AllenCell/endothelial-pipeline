@@ -19,7 +19,6 @@ plt.style.use("endo_pipeline.figure")
 
 save_dir = get_output_path("supp_fig_fpt")
 
-low_flow_dataset = FPT_FIG_EXAMPLES["low_flow"]
 high_flow_dataset = FPT_FIG_EXAMPLES["high_flow"]
 
 fig_width = 6.1
@@ -34,8 +33,8 @@ line_fit_df, _ = get_line_fit_and_filtered_df(
 )
 fpt_param_sweep_df = load_dataframe(fpt_manifest.locations["first_passage_time_parameter_sweep"])
 # %% make the plots for the desired datasets
-dataset_name = low_flow_dataset.dataset_name
-fp_idx = low_flow_dataset.fixed_point_index
+dataset_name = high_flow_dataset.dataset_name
+fp_idx = high_flow_dataset.fixed_point_index
 
 # this check should be done in case the fixed point index is not an integer
 # because if it is a float then it will cause an issue when trying to save
