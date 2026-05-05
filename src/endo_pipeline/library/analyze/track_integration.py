@@ -35,6 +35,7 @@ from endo_pipeline.library.analyze.vector_field_estimation import (
 )
 from endo_pipeline.library.analyze.vector_field_function import solve_ode_from_vector_field_dict
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+from endo_pipeline.manifests.dataframe_manifest import DataframeManifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
@@ -1624,6 +1625,16 @@ def compute_first_passage_times_one_dataset(
         ]
         first_passage_time_stats_df[fp_dynamics_cols] = fp_row[list(DYNAMICS_COLUMN_NAMES)]
 
+        # add the bin sizes and bin limits to the dataframes for transparency
+        for col in DYNAMICS_COLUMN_NAMES:
+            first_passage_time_stats_df = first_passage_time_stats_df.assign(
+                **{
+                    f"{Column.VectorField.BIN_SIZE_PREFIX}{col}": bin_sizes[col],
+                    f"{Column.VectorField.BIN_LIMITS_PREFIX}{col}": [bin_limits[col]]
+                    * len(first_passage_time_stats_df),
+                }
+            )
+
         fpt_stats_df_list.append(first_passage_time_stats_df)
         param_sweep_df_list.append(parameter_sweep_df)
 
@@ -1812,3 +1823,30 @@ def build_fpt_line_fit_results_df(
         validate="one_to_one",
     )
     return line_fit_df
+
+
+def get_line_fit_and_filtered_df(
+    first_passage_time_manifest: DataframeManifest,
+    metric_to_fit: Literal["mean", "median"] = "mean",
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+
+    # Load the first passage time statistics dataframe to make correlation plots from
+    fpt_stats_df = load_dataframe(
+        first_passage_time_manifest.locations["first_passage_time_statistics"]
+    )
+
+    # filter out nans and bins with too few trajectories for a certain measure
+    # (either mean or median) for the correlation and line fitting steps
+    fpt_stats_df_no_nan = filter_fpt_stats_df_by_min_num_trajectories(
+        fpt_stats_df=fpt_stats_df,
+        min_num_traj_per_bin=first_passage_time_manifest.parameters["min_num_traj_per_bin"],
+        metric_for_filter=metric_to_fit,
+    )
+    # fit a line to the correlation between grid and tracked first passage
+    # time statistics for each fixed point and dataset
+    line_fit_df = build_fpt_line_fit_results_df(
+        fpt_stats_df_no_nan=fpt_stats_df_no_nan,
+        metric_to_fit=metric_to_fit,
+    )
+
+    return line_fit_df, fpt_stats_df_no_nan

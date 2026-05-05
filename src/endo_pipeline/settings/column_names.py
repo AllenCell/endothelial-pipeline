@@ -457,6 +457,12 @@ class ColumnName:
         TIME_TO_FP_PREFIX = "time_to_fp_"
         """Prefix for column names representing the time to until a fixed point is reached."""
 
+        BIN_SIZE_PREFIX = "bin_size_"
+        """Column name for the sizes of bins used when discretizing feature space."""
+
+        BIN_LIMITS_PREFIX = "bin_limits_"
+        """Column name for the limits of bins used when discretizing feature space."""
+
         BIN_CENTER = "bin_center"
         """Column name for the center of bins used when discretizing feature space."""
 
@@ -483,6 +489,9 @@ class ColumnName:
 
         PEARSON_R = "r_value_pearson"
         """Column name for the Pearson correlation coefficient between first passage time and distance from the fixed point."""
+
+        LINEFIT_SLOPE = "slope_odr"
+        """Column name for the slope of a line fit to the relationship between first passage time to the fixed point for grid and tracked crops."""
 
     class BootstrapAnalysis(StrEnum):
         """Column name suffixes used in bootstrap fixed-point analysis."""
