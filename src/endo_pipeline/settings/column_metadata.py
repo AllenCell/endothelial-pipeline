@@ -369,8 +369,8 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.DiffAEData.NEMATIC_ORDER: ColumnMetadata(
         name="Nematic order parameter",
-        label="Nematic order\nparameter",
-        description="Nematic order calculated as (3*cos^2(polar_theta - pi) - 1)/2",
+        label="S",
+        description="Nematic order calculated as cos(2*polar_theta)",
         min=-1,
         max=1,
         type=ColumnType.CONTINUOUS,
