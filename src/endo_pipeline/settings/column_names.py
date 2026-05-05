@@ -490,6 +490,9 @@ class ColumnName:
         PEARSON_R = "r_value_pearson"
         """Column name for the Pearson correlation coefficient between first passage time and distance from the fixed point."""
 
+        LINEFIT_SLOPE = "slope_odr"
+        """Column name for the slope of a line fit to the relationship between first passage time to the fixed point for grid and tracked crops."""
+
     class BootstrapAnalysis(StrEnum):
         """Column name suffixes used in bootstrap fixed-point analysis."""
 

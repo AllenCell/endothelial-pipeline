@@ -1480,6 +1480,8 @@ def plot_first_passage_time_correlation_summary(
 
     corr_metric_column = Column.VectorField.PEARSON_R
     corr_metric_label = "Correlation Coefficient (R)"
+    slope_column = Column.VectorField.LINEFIT_SLOPE
+    slope_label = "Line Fit Slope"
 
     # get the shear stress for the dataset and add that to the labels
     # Snap to ±1 bins; values outside any bin keep their rounded value
@@ -1500,6 +1502,7 @@ def plot_first_passage_time_correlation_summary(
     ].values.tolist()
     xs = [f"{load_dataset_config(dataset_name).date} ({flow})" for dataset_name, flow in xs]
     ys = first_passage_time_correlation_summary_df[corr_metric_column]
+    ys2 = first_passage_time_correlation_summary_df[slope_column]
 
     fig, ax = plt.subplots(figsize=(6, 2.5))
     sns.stripplot(
@@ -1509,10 +1512,24 @@ def plot_first_passage_time_correlation_summary(
         alpha=0.7,
         ax=ax,
     )
+    ax2 = ax.twinx()
+    sns.stripplot(
+        x=xs,
+        y=ys2,
+        marker="D",
+        facecolor="none",
+        edgecolor="tab:orange",
+        linewidth=1,
+        alpha=0.7,
+        ax=ax2,
+    )
     ax.set_ylim(0, 1)
     ax.set_ylabel(corr_metric_label, fontsize=FONTSIZE_SMALL)
-    plt.yticks(fontsize=FONTSIZE_SMALL)
-    plt.xticks(rotation=45, ha="right", fontsize=FONTSIZE_SMALL)
+    ax2.set_ylim(0)
+    ax2.set_ylabel(
+        slope_label, fontsize=FONTSIZE_SMALL, rotation=270, labelpad=15, color="tab:orange"
+    )
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right", fontsize=FONTSIZE_SMALL)
     ax.set_xlabel("")
     save_plot_to_path(
         fig,
