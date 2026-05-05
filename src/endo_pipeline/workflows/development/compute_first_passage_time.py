@@ -154,16 +154,15 @@ def main(
         fpt_manifest.locations["first_passage_time_parameter_sweep"] = DataframeLocation(
             fmsid=fms_id_fpt_param_sweep
         )
-    elif (
-        fpt_manifest.locations.get("first_passage_time_statistics") is None
-        or fpt_manifest.locations["first_passage_time_statistics"].fmsid is None
-    ):
-        fpt_manifest.locations["first_passage_time_statistics"] = (
-            build_dataframe_location_from_path(fpt_stats_df_savepath)
-        )
-        fpt_manifest.locations["first_passage_time_parameter_sweep"] = (
-            build_dataframe_location_from_path(fpt_param_sweep_df_savepath)
-        )
+    else:
+        stats_loc = fpt_manifest.locations.get("first_passage_time_statistics")
+        if stats_loc is None or stats_loc.fmsid is None:
+            fpt_manifest.locations["first_passage_time_statistics"] = (
+                build_dataframe_location_from_path(fpt_stats_df_savepath)
+            )
+            fpt_manifest.locations["first_passage_time_parameter_sweep"] = (
+                build_dataframe_location_from_path(fpt_param_sweep_df_savepath)
+            )
     # register the parameters that the worfklow was run with in the manifest for
     # provenance tracking and reproducibility, even if not uploading to FMS
     fpt_manifest.parameters = {

@@ -3,10 +3,7 @@ import matplotlib.pyplot as plt
 
 from endo_pipeline.io import get_output_path
 from endo_pipeline.io.input import load_dataframe
-from endo_pipeline.library.analyze.track_integration import (
-    build_fpt_line_fit_results_df,
-    filter_fpt_stats_df_by_min_num_trajectories,
-)
+from endo_pipeline.library.analyze.track_integration import get_line_fit_and_filtered_df
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
 from endo_pipeline.library.visualize.integration.track_integration_viz import (
     plot_first_passage_time_correlation_summary,
@@ -28,24 +25,14 @@ high_flow_dataset = FPT_FIG_EXAMPLES["high_flow"]
 fig_width = 6.1
 fig_height = 5.5
 
-# %% Load the first passage time statistics dataframe to make correlation plots from
+# %% Load the first passage time statistics dataframe to make correlation plots
+# from and get the fitted lines
 fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_MANIFEST_NAME)
-fpt_stats_df = load_dataframe(fpt_manifest.locations["first_passage_time_statistics"])
-fpt_param_sweep_df = load_dataframe(fpt_manifest.locations["first_passage_time_parameter_sweep"])
-# filter out nans and bins with too few trajectories for a certain measure
-# (either mean or median) for the correlation and line fitting steps
 metric_to_plot = "mean"
-fpt_stats_df_no_nan = filter_fpt_stats_df_by_min_num_trajectories(
-    fpt_stats_df=fpt_stats_df,
-    min_num_traj_per_bin=fpt_manifest.parameters["min_num_traj_per_bin"],
-    metric_for_filter=metric_to_plot,
+line_fit_df, _ = get_line_fit_and_filtered_df(
+    first_passage_time_manifest=fpt_manifest, metric_to_fit=metric_to_plot
 )
-# fit a line to the correlation between grid and tracked first passage
-# time statistics for each fixed point and dataset
-line_fit_df = build_fpt_line_fit_results_df(
-    fpt_stats_df_no_nan=fpt_stats_df_no_nan,
-    metric_to_fit=metric_to_plot,
-)
+fpt_param_sweep_df = load_dataframe(fpt_manifest.locations["first_passage_time_parameter_sweep"])
 # %% make the plots for the desired datasets
 dataset_name = low_flow_dataset.dataset_name
 fp_idx = low_flow_dataset.fixed_point_index
