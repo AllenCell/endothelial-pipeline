@@ -38,3 +38,9 @@ class UnicodeCharacters(StrEnum):
 
     MINUS = "\u2212"
     """Unicode for minus sign (using LaTeX naming convention)."""
+
+    CHI = "\u03c7"
+    """Unicode for lowercase chi."""
+
+    R_SUBSCRIPT = "\u1d63"
+    """Unicode for subscript r."""

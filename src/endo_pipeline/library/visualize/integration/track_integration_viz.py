@@ -1331,7 +1331,11 @@ def plot_first_passage_time_correlations(
     corr_metric_val = (
         line_fit_df[Column.VectorField.LINEFIT_REDUCED_CHI_SQUARED_ODR].unique().item()
     )
-    corr_metric_label = f"Linear Fit (χ²ᵣ={corr_metric_val:.2f})"
+    corr_metric_label = (
+        f"Linear Fit "
+        f"({UnicodeCharacters.CHI}{UnicodeCharacters.SQUARED}{UnicodeCharacters.R_SUBSCRIPT}"
+        f"={corr_metric_val:.2f})"
+    )
 
     num_bins = (
         first_passage_time_stats_df.groupby(

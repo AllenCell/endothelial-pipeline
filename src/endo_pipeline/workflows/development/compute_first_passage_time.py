@@ -80,9 +80,6 @@ def main(
     else:
         out_dir = get_output_path(__file__)
 
-    out_dir_figure = out_dir / "for_figure"
-    out_dir_figure.mkdir(parents=True, exist_ok=True)
-
     with ProcessPoolExecutor(max_workers=min(n_proc, len(dataset_names))) as executor:
         futures: list = []
         for dataset_name in dataset_names:

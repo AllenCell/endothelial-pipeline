@@ -58,9 +58,6 @@ DEFAULT_SEG_FEATURE_WORKFLOW_DATASETS: str = "pca_reference"
 FIRST_PASSAGE_TIME_MANIFEST_NAME: str = "first_passage_time_statistics"
 """Manifest name for first passage time statistics dataframe."""
 
-FIRST_PASSAGE_TIME_PARAM_SWEEP_MANIFEST_NAME: str = "first_passage_time_parameter_sweep"
-"""Manifest name for first passage time parameter sweep dataframe."""
-
 DEFAULT_IMAGE_TYPE_FOR_SEMANTIC_CONDITIONING: Literal["bf", "cdh5"] = "bf"
 """Default image type to condition DiffAE models on."""
 
