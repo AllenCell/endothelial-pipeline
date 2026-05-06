@@ -12,7 +12,6 @@ EXAMPLE_DATASET = {
 
 FIGURE_3_RECONSTRUCTION_EXAMPLE_DATASETS = [
     "20260114_20X",  # two fixed points (15 dyn)
-    "20260218_20X",  # two fixed points (15 dyn)
     "20260225_20X",  # single fixed point (15 dyn)
     "20260202_20X",  # single fixed point (15 dyn)
 ]
