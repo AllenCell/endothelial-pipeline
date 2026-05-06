@@ -352,10 +352,10 @@ def main() -> None:
         FigurePanel(
             letter="",
             path=theta_plot_paths[dataset_low],
-            x_position=MAX_FIGURE_WIDTH / 2,
+            x_position=MAX_FIGURE_WIDTH / 2 + 0.2,
             y_position=0.0,
             x_offset=0.4,
-            y_offset=0.5,
+            y_offset=0.325,
         ),
         FigurePanel(
             letter="",
@@ -363,7 +363,7 @@ def main() -> None:
             x_position=MAX_FIGURE_WIDTH - 1.25,
             y_position=0.0,
             x_offset=0.15,
-            y_offset=0.05,
+            y_offset=0.15,
         ),
         # --- High flow dataset (row 2) ---
         FigurePanel(
@@ -377,7 +377,7 @@ def main() -> None:
         FigurePanel(
             letter="",
             path=quiver_plot_paths[dataset_high],
-            x_position=MAX_FIGURE_WIDTH / 4,
+            x_position=MAX_FIGURE_WIDTH / 4 + 0.2,
             y_position=2.1,
             x_offset=-0.1,
             y_offset=0.05,
@@ -385,10 +385,10 @@ def main() -> None:
         FigurePanel(
             letter="",
             path=theta_plot_paths[dataset_high],
-            x_position=MAX_FIGURE_WIDTH / 2,
+            x_position=MAX_FIGURE_WIDTH / 2 + 0.2,
             y_position=2.1,
             x_offset=0.4,
-            y_offset=0.1,
+            y_offset=0.175,
         ),
         FigurePanel(
             letter="",
@@ -396,7 +396,7 @@ def main() -> None:
             x_position=MAX_FIGURE_WIDTH - 1.25,
             y_position=2.1,
             x_offset=0.15,
-            y_offset=0.05,
+            y_offset=0.25,
         ),
         # --- Bottom row: migration coherence and summary plot ---
         FigurePanel(

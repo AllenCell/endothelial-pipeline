@@ -62,7 +62,7 @@ def _add_colorbar_to_contour_plot(
     orientation: Literal["vertical", "horizontal"] = "horizontal",
     cax_position: Literal["top", "bottom", "left", "right"] = "top",
     extend: Literal["neither", "both", "min", "max"] = "both",
-    pad: float = 0.05,
+    pad: float = 0.03,
 ) -> None:
     """
     Add a colorbar to a contour plot with specified formatting.
