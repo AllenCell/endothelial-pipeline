@@ -1481,7 +1481,7 @@ def plot_first_passage_time_correlation_summary(
     analysis across all datasets and fixed points as it will appear in the figure.
     """
 
-    corr_metric_label = COLUMN_METADATA[corr_metric_column].label
+    corr_metric_label = COLUMN_METADATA[corr_metric_column].label or corr_metric_column
     slope_label = COLUMN_METADATA[slope_column].label or slope_column
 
     # get the shear stress for the dataset and add that to the labels
