@@ -11,6 +11,7 @@ def main() -> None:
     from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import get_output_path, join_sorted_strings, load_dataframe, load_model
     from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_stability
+    from endo_pipeline.library.analyze.track_integration import get_line_fit_and_filtered_df
     from endo_pipeline.library.analyze.vector_field_estimation import (
         get_reshaped_vector_field_and_grid,
         load_drift_dataframe_for_dataset,
@@ -22,6 +23,9 @@ def main() -> None:
         make_crop_example_contact_sheet,
     )
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
+    from endo_pipeline.library.visualize.integration.track_integration_viz import (
+        plot_first_passage_time_correlation_summary,
+    )
     from endo_pipeline.library.visualize.summary_plot import plot_cross_dataset_summaries
     from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
     from endo_pipeline.settings.column_metadata import COLUMN_METADATA
@@ -47,6 +51,7 @@ def main() -> None:
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
+        FIRST_PASSAGE_TIME_MANIFEST_NAME,
     )
 
     plt.style.use("endo_pipeline.figure")
@@ -275,6 +280,15 @@ def main() -> None:
         stable_only=True,
     )
 
+    # --- Histogram of first passage time correlation ---
+    fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_MANIFEST_NAME)
+    metric_to_plot = "mean"
+    line_fit_df = get_line_fit_and_filtered_df(
+        first_passage_time_manifest=fpt_manifest, metric_to_fit=metric_to_plot
+    )[0]
+    filename_summary = f"FPT_correlation_summary_{metric_to_plot}"
+    plot_first_passage_time_correlation_summary(line_fit_df, base_output_dir, filename_summary)
+
     # --- Assemble all panels into final figure ---
     panels = [
         # --- Low flow dataset (row 1) ---
@@ -345,13 +359,21 @@ def main() -> None:
         ),
         # --- Bottom row: first passage time and summary plot ---
         FigurePanel(
-            letter="E",
+            letter="D",
             path=base_output_dir
             / "polar_theta_polar_r_rho_ema01_optical_flow_mean_unit_vector_dt1_fp_vs_shear_stress.svg",
-            x_position=2.1,
+            x_position=0.0,
             y_position=4.0,
             x_offset=0,
             y_offset=0.2,
+        ),
+        FigurePanel(
+            letter="E",
+            path=base_output_dir / f"{filename_summary}_histogram.svg",
+            x_position=4.0,
+            y_position=4.0,
+            x_offset=0,
+            y_offset=0.1,
         ),
     ]
 
