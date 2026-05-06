@@ -1,17 +1,17 @@
-name: 20250415_SlideH_20X
+name: 20250415_SlideE_20X
 date: '20250415'
-original_path: //allen/programs/allencell/data/proj0/655/ee7/c58/80c/e02/60a/c44/308/307/a3c/eb/20250415_GE00006885_slideH_20X_sldy/20250415_GE00006885_slideH_20X_sldy.sldy
+original_path: //allen/programs/allencell/data/proj0/653/104/f43/da2/33f/5aa/e46/507/826/cfe/db/20250416_GE00007101_slideE_20X_sldy/20250416_GE00007101_slideE_20X_sldy.sldy
 zarr_positions: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
   19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38,
   39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49]
-fmsid: eba3c307308c4460ae0280cc58ee7655
-barcode: GE00006885
+fmsid: dbcfe826507e465aa33fda2f43104653
+barcode: GE00007101
 cell_lines: [AICS-126 cl. 41]
 live_or_fixed_sample: fixed
 is_timelapse: false
 microscope: 3i
 objective: 20X
-shear_stress_regime: min
+shear_stress_regime: min_to_max
 pixel_size_xy_in_um: 0.382
 duration: 1
 time_interval_in_minutes: null
@@ -31,8 +31,11 @@ zarr_channel_indices:
 channel_names: [EGFP, BF, '405']
 flow_conditions:
 - start: -576
+  stop: -288
+  shear_stress: 6.17
+- start: -288
   stop: 0
-  shear_stress: 5.47
+  shear_stress: 21.7
 include_scenes: null
 notes: NucViolet + BF only (acquired for nuclear segmentation ground truth). Sample was also used to
   test Sox17 antibody optimization and NR2F2 detection.
