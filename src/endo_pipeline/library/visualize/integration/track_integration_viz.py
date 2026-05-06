@@ -1574,12 +1574,19 @@ def plot_first_passage_time_correlation_histogram(
         fig.subplots_adjust(top=0.72)
         ax.set_title(title, fontsize=FONTSIZE_SMALL)
 
+    tight_layout = True
+    if fig_kwargs is not None:
+        layout = fig_kwargs.get("layout", None)
+        if layout == "constrained":
+            tight_layout = False
+
     save_plot_to_path(
         fig,
         out_dir,
         filename,
         file_format=".svg",
         show_and_close=False,
+        tight_layout=tight_layout,
     )
 
     return out_dir / f"{filename}.svg"
