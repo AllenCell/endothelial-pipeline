@@ -29,7 +29,7 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL
+from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_XSMALL
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.image_data import (
     DIFFAE_ZARR_RESOLUTION_LEVEL,
@@ -346,12 +346,10 @@ def make_crop_example_contact_sheet(
         panels=generated_image_list,
         max_rows=n_crop_examples,
         max_cols=1,
-        col_titles=[title] if title is not None else None,
         direction="top-down first",
         gridspec_kwargs=gridspec_kwargs,
         subplot_kwargs={"frame_on": False},
         fig_kwargs=fig_kwargs,
-        font_size=FONTSIZE_SMALL,
     )
 
     for i, ax in enumerate(fig.axes):
@@ -367,6 +365,24 @@ def make_crop_example_contact_sheet(
             bar_thickness=4,
             padding=6,
             include_label=True if i == 0 else False,
+        )
+
+    # if `title` is provided, add title above the first panel
+    if title is not None:
+        layout_engine = fig.get_layout_engine()
+        # make room above the first panel for the title (rect = [left, bottom, right, top])
+        # so that the figsize is not changed when the title is added
+        if isinstance(layout_engine, ConstrainedLayoutEngine):
+            layout_engine.set(rect=(0.00, 0, 1, 0.95))
+        fig.text(
+            0.5,
+            1.0,
+            title,
+            va="center",
+            ha="center",
+            rotation="horizontal",
+            fontsize=FONTSIZE_XSMALL,
+            fontweight="bold",
         )
 
     save_plot_to_path(
