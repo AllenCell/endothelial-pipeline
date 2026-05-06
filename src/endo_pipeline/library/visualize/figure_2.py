@@ -495,13 +495,13 @@ def make_first_passage_time_panel(
     fig_kwargs: dict | None = None,
 ) -> Path:
     """Plot a summary of the correlation results from the first passage time analysis."""
-    metric_to_plot = "mean"
     line_fit_df = get_line_fit_and_filtered_df(
-        first_passage_time_manifest=first_passage_time_manifest, metric_to_fit=metric_to_plot
+        first_passage_time_manifest=first_passage_time_manifest
     )[0]
     # filter to just the datasets included in the summary plot
     line_fit_df = line_fit_df[line_fit_df[Column.DATASET].isin(datasets)]
-    for dataset_name, df_dataset in line_fit_df.groupby(Column.DATASET):
+    for dataset, df_dataset in line_fit_df.groupby(Column.DATASET):
+        dataset_name = cast(str, dataset)  # for type checking purposes
         dataset_config = load_dataset_config(dataset_name)
         shear_stress_bin = dataset_config.flow_conditions[-1].shear_stress_bin
         line_fit_df.loc[df_dataset.index, "flow_condition_shear_stress_bin"] = shear_stress_bin
@@ -544,4 +544,13 @@ def make_first_passage_time_panel(
     ax.set_xticklabels(tick_labels)
     ax.set_xlim(tick_positions[0] - 0.5, tick_positions[-1] + 0.5)
     ax.set_ylabel(correlation_label)
+
+    save_plot_to_path(
+        fig,
+        fig_savedir,
+        filename_summary,
+        file_format=".svg",
+        tight_layout=False,
+        transparent=True,
+    )
     return fig_savedir / f"{filename_summary}.svg"
