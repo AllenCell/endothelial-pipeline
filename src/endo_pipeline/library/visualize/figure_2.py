@@ -369,14 +369,22 @@ def make_crop_example_contact_sheet(
 
     # if `title` is provided, add title above the first panel
     if title is not None:
+        # expand the figure height to make room for the title so the axes
+        # content is not squashed
+        fig_width, fig_height = fig.get_size_inches()
+        title_space_in = 0.25  # inches of extra height reserved for the title
+        new_height = fig_height + title_space_in
+        fig.set_size_inches(fig_width, new_height)
+
+        # axes content occupies the bottom `content_top` fraction of the new height
+        content_top = fig_height / new_height
         layout_engine = fig.get_layout_engine()
-        # make room above the first panel for the title (rect = [left, bottom, right, top])
-        # so that the figsize is not changed when the title is added
         if isinstance(layout_engine, ConstrainedLayoutEngine):
-            layout_engine.set(rect=(0.00, 0, 1, 0.95))
+            layout_engine.set(rect=(0.0, 0, 1, content_top))
+
         fig.text(
             0.5,
-            1.0,
+            content_top + (1 - content_top) / 2,  # centred in the title band
             title,
             va="center",
             ha="center",

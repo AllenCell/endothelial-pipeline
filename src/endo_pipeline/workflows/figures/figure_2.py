@@ -149,7 +149,7 @@ def main() -> None:
     theta_plot_paths: dict[str, Path] = {}
     crop_contact_sheet_paths: dict[str, Path] = {}
     for dataset_name, include_legend, arrow_scale_1d, contact_sheet_title in [
-        (dataset_low, True, 3.25, "Reconstructed VE-cadherin\nat stable fixed points"),
+        (dataset_low, True, 3.25, "Reconstructed \nVE-cadherin at\nstable fixed point"),
         (dataset_high, False, 1.0, None),
     ]:
         fig_savedir = get_output_path("figure_2", dataset_name)
