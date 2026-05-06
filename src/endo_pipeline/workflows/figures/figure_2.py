@@ -24,7 +24,7 @@ def main() -> None:
     )
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
     from endo_pipeline.library.visualize.integration.track_integration_viz import (
-        plot_first_passage_time_correlation_summary,
+        plot_first_passage_time_correlation_histogram,
     )
     from endo_pipeline.library.visualize.summary_plot import plot_cross_dataset_summaries
     from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
@@ -286,8 +286,10 @@ def main() -> None:
     line_fit_df = get_line_fit_and_filtered_df(
         first_passage_time_manifest=fpt_manifest, metric_to_fit=metric_to_plot
     )[0]
-    filename_summary = f"FPT_correlation_summary_{metric_to_plot}"
-    plot_first_passage_time_correlation_summary(line_fit_df, base_output_dir, filename_summary)
+    filename_summary = f"first_passage_time_{metric_to_plot}_histogram"
+    fpt_hist_path = plot_first_passage_time_correlation_histogram(
+        line_fit_df, base_output_dir, filename_summary
+    )
 
     # --- Assemble all panels into final figure ---
     panels = [
@@ -369,8 +371,8 @@ def main() -> None:
         ),
         FigurePanel(
             letter="E",
-            path=base_output_dir / f"{filename_summary}_histogram.svg",
-            x_position=4.0,
+            path=fpt_hist_path,
+            x_position=4.5,
             y_position=4.0,
             x_offset=0,
             y_offset=0.1,

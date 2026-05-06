@@ -1539,6 +1539,19 @@ def plot_first_passage_time_correlation_summary(
         show_and_close=False,
     )
 
+    _ = plot_first_passage_time_correlation_histogram(
+        first_passage_time_correlation_summary_df, out_dir, f"{filename}_histogram"
+    )
+
+
+def plot_first_passage_time_correlation_histogram(
+    first_passage_time_correlation_summary_df: pd.DataFrame,
+    out_dir: Path,
+    filename: str,
+) -> Path:
+    corr_metric_column = Column.VectorField.PEARSON_R
+    corr_metric_label = "Pearson correlation coefficient"
+
     fig, ax = plt.subplots(figsize=(2, 2))
     sns.histplot(
         data=first_passage_time_correlation_summary_df,
@@ -1556,7 +1569,9 @@ def plot_first_passage_time_correlation_summary(
     save_plot_to_path(
         fig,
         out_dir,
-        f"{filename}_histogram",
+        filename,
         file_format=".svg",
         show_and_close=False,
     )
+
+    return out_dir / f"{filename}.svg"
