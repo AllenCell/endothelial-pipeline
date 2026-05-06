@@ -12,6 +12,7 @@ from matplotlib.layout_engine import ConstrainedLayoutEngine
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 from endo_pipeline.io import save_plot_to_path
+from endo_pipeline.library.analyze.track_integration import get_line_fit_and_filtered_df
 from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
 from endo_pipeline.library.model.diffae.generate_image import generate_from_dataframe
 from endo_pipeline.library.visualize.diffae_features.dynamics import (
@@ -20,6 +21,11 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
     plot_drift_quiver,
 )
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
+from endo_pipeline.library.visualize.integration.track_integration_viz import (
+    plot_first_passage_time_correlation_summary,
+)
+from endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_XSMALL
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_CBAR_NUM_TICKS,
@@ -479,3 +485,25 @@ def make_crop_example_contact_sheet(
     )
 
     return fig_savedir / f"{fig_filename}{file_format}"
+
+
+def make_first_passage_time_panel(
+    first_passage_time_manifest: DataframeManifest,
+    datasets: list[str],
+    fig_savedir: Path,
+) -> Path:
+    """Plot a summary of the correlation results from the first passage time analysis."""
+    metric_to_plot = "mean"
+    line_fit_df = get_line_fit_and_filtered_df(
+        first_passage_time_manifest=first_passage_time_manifest, metric_to_fit=metric_to_plot
+    )[0]
+    # filter to just the datasets included in the summary plot
+    line_fit_df = line_fit_df[line_fit_df[Column.DATASET].isin(datasets)]
+    filename_summary = "first_passage_time_correlation_summary"
+    plot_first_passage_time_correlation_summary(
+        line_fit_df,
+        fig_savedir,
+        filename_summary,
+        summary_fig_kwargs={"figsize": (2.0, 2.0), "layout": "constrained"},
+    )
+    return fig_savedir / f"{filename_summary}.svg"

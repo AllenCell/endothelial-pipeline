@@ -11,7 +11,6 @@ def main() -> None:
     from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import get_output_path, join_sorted_strings, load_dataframe, load_model
     from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_stability
-    from endo_pipeline.library.analyze.track_integration import get_line_fit_and_filtered_df
     from endo_pipeline.library.analyze.vector_field_estimation import (
         get_reshaped_vector_field_and_grid,
         load_drift_dataframe_for_dataset,
@@ -21,11 +20,9 @@ def main() -> None:
         make_2d_contour_plot_panel,
         make_2d_quiver_plot_panel,
         make_crop_example_contact_sheet,
+        make_first_passage_time_panel,
     )
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
-    from endo_pipeline.library.visualize.integration.track_integration_viz import (
-        plot_first_passage_time_correlation_summary,
-    )
     from endo_pipeline.library.visualize.summary_plot import plot_cross_dataset_summaries
     from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
     from endo_pipeline.settings.column_metadata import COLUMN_METADATA
@@ -282,18 +279,10 @@ def main() -> None:
 
     # --- Histogram of first passage time correlation ---
     fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_MANIFEST_NAME)
-    metric_to_plot = "mean"
-    line_fit_df = get_line_fit_and_filtered_df(
-        first_passage_time_manifest=fpt_manifest, metric_to_fit=metric_to_plot
-    )[0]
-    # filter to just the datasets included in the summary plot
-    line_fit_df = line_fit_df[line_fit_df[Column.DATASET].isin(dataset_summary_list)]
-    filename_summary = "first_passage_time_correlation_summary"
-    plot_first_passage_time_correlation_summary(
-        line_fit_df,
-        base_output_dir,
-        filename_summary,
-        summary_fig_kwargs={"figsize": (2.0, 2.0), "layout": "constrained"},
+    first_passage_path = make_first_passage_time_panel(
+        first_passage_time_manifest=fpt_manifest,
+        datasets=dataset_summary_list,
+        fig_savedir=base_output_dir,
     )
 
     # --- Assemble all panels into final figure ---
@@ -376,7 +365,7 @@ def main() -> None:
         ),
         FigurePanel(
             letter="E",
-            path=base_output_dir / f"{filename_summary}.svg",
+            path=first_passage_path,
             x_position=4.5,
             y_position=4.0,
             x_offset=0,
