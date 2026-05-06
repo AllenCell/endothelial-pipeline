@@ -82,7 +82,7 @@ def main() -> None:
         (dataset_low, True, True, 3.25, "Reconstructed \nVE-cadherin at\nstable fixed point"),
         (dataset_high, False, False, 1.0, None),
     ]:
-        fig_savedir = get_output_path("figure_2", dataset_name)
+        fig_savedir = get_output_path(__file__, dataset_name)
         dataset_config = load_dataset_config(dataset_name)
 
         feature_dataframe = load_dataframe(feature_dataframe_manifest.locations[dataset_name])
