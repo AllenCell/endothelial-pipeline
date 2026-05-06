@@ -377,7 +377,7 @@ def main() -> None:
         FigurePanel(
             letter="E",
             path=base_output_dir / f"{filename_summary}.svg",
-            x_position=4.25,
+            x_position=4.5,
             y_position=4.0,
             x_offset=0,
             y_offset=0.1,
