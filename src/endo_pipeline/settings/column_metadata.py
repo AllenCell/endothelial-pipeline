@@ -564,5 +564,15 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         name="Coherent migration (optical flow radial coherence weighted)",
         type=ColumnType.CONTINUOUS,
     ),
+    Column.VectorField.PEARSON_R: ColumnMetadata(
+        name="Pearson correlation coefficient",
+        label="Pearson r",
+        type=ColumnType.CONTINUOUS,
+    ),
+    Column.VectorField.LINEFIT_SLOPE: ColumnMetadata(
+        name="Line fit slope",
+        label="Line fit slope",
+        type=ColumnType.CONTINUOUS,
+    ),
 }
 """Mapping of column names to column metadata."""
