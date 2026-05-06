@@ -283,14 +283,11 @@ def main() -> None:
             ylabel_kwargs=YLABEL_KWARGS,
         )
 
-        # make contact sheet of example crops at stable fixed points for this
-        # dataset (panel below the flow field visualizations)
-        feature_dataframe = load_dataframe(feature_dataframe_manifest.locations[dataset_name])
-        dataframe_steady_state = filter_dataframe_to_steady_state(feature_dataframe, dataset_config)
+        # make contact sheet of example ve-cadherin reconstruction at stable
+        # fixed points for this dataset
         crop_contact_sheet_paths[dataset_name] = make_crop_example_contact_sheet(
             dataset_config=dataset_config,
             stable_fixed_point_dataframe=stable_fixed_points_dict[feature_columns_str],
-            crop_features_dataframe=dataframe_steady_state,
             feature_column_names=feature_column_names,
             model=model,
             n_crop_examples=2,
