@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
     from endo_pipeline.settings.examples import ExampleImage
 
+    from .evaluation import ModelKey
     from .image_metrics import LPIPSCalculator
 
 
@@ -93,29 +94,29 @@ def compute_baseline_for_example(
 
 
 def aggregate_seed_metrics(
-    all_seed_results: dict[tuple[str, str], dict[int, dict]],
-    model_keys: list[tuple[str, str]],
+    all_seed_results: dict["ModelKey", dict[int, dict]],
+    model_keys: list["ModelKey"],
     example_sets_for_metrics: set[str],
     seeds_to_evaluate: list[int],
 ) -> tuple[dict[str, list[dict]], list[str]]:
     """Aggregate per-seed metrics into combined metric dictionaries per model.
 
     Flattens the per-seed, per-example correlation / SSIM / LPIPS lists into
-    a single aggregated dictionary per (model, example_set) combination.
+    a single aggregated dictionary per model.
 
     Parameters
     ----------
     all_seed_results
         Nested mapping ``{model_key: {seed: result_dict}}``.  Each
-        ``model_key`` is a ``(manifest_name, resolved_run_name)`` tuple.
-        Each ``result_dict`` contains per-example-set metric lists keyed
-        by ``"correlations_100"``, ``"ssims_100"``, ``"lpips_100"``,
-        ``"baseline_correlations"``, ``"baseline_ssims"``, and
-        ``"baseline_lpips"`` (the last 3 are when baselines are computed).
+        ``model_key`` is a ``ModelKey``.  Each ``result_dict`` contains
+        per-example-set metric lists keyed by ``"correlations_100"``,
+        ``"ssims_100"``, ``"lpips_100"``, ``"baseline_correlations"``,
+        ``"baseline_ssims"``, and ``"baseline_lpips"`` (the last 3 are
+        when baselines are computed).
     model_keys
-        Ordered list of ``(manifest_name, resolved_run_name)`` keys.  The
-        iteration order determines the order of entries in the returned
-        per-example-set lists (and therefore the bar-plot ordering).
+        Ordered list of ``ModelKey``.  The iteration order determines the
+        order of entries in the returned per-example-set lists (and
+        therefore the bar-plot ordering).
     example_sets_for_metrics
         Example-set labels to aggregate
         (e.g. ``{"validation_positions", "rep_2_positions"}``).
@@ -249,7 +250,7 @@ def compute_baseline_data(
 
 def build_models_data(
     all_metrics: dict[str, list[dict]],
-    model_keys: list[tuple[str, str]],
+    model_keys: list["ModelKey"],
     baseline_data: dict[str, dict[str, float]],
     compute_baseline: bool,
 ) -> list[dict[str, Any]]:
@@ -257,7 +258,7 @@ def build_models_data(
 
     Collapses the flat metric lists from :func:`aggregate_seed_metrics` into
     ``{corr_mean, corr_std, ssim_mean, ssim_std, lpips_mean, lpips_std}``
-    for each (model, data-split) pair.
+    for each model/data-split pair.
 
     Parameters
     ----------
@@ -266,8 +267,8 @@ def build_models_data(
         Each inner dict contains ``"correlations_100"``, ``"ssims_100"``,
         and ``"lpips_100"`` float lists.
     model_keys
-        Ordered list of ``(manifest_name, resolved_run_name)`` tuples.  The
-        order determines the order of entries in the returned list.
+        Ordered list of ``ModelKey``.  The order determines the order of
+        entries in the returned list.
     baseline_data
         Pre-computed baseline mean/std statistics for ``"validation"`` and
         ``"rep2"`` splits.  Attached to each model entry for convenience.
@@ -332,7 +333,7 @@ def build_models_data(
 
 def create_comparison_plots_and_summary(
     models_data: list[dict[str, Any]],
-    model_keys: list[tuple[str, str]],
+    model_keys: list["ModelKey"],
     seeds_to_evaluate: list[int],
     baseline_data: dict[str, dict[str, float]],
     compute_baseline: bool,
@@ -349,9 +350,9 @@ def create_comparison_plots_and_summary(
         Per-model summary dicts each containing ``"validation"`` and
         ``"rep2"`` sub-dicts with ``*_mean`` / ``*_std`` floats.
     model_keys
-        Ordered list of ``(manifest_name, resolved_run_name)`` tuples,
-        one per model.  Used for axis labels and the legend text in each
-        bar plot.  Must align positionally with ``models_data``.
+        Ordered list of ``ModelKey``, one per model.  Used for axis labels
+        and the legend text in each bar plot.  Must align positionally with
+        ``models_data``.
     seeds_to_evaluate
         Seeds used during evaluation; displayed in titles when >1.
     baseline_data
@@ -362,7 +363,13 @@ def create_comparison_plots_and_summary(
     """
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.model_qc_plots import create_comparison_bar_plot
-    from endo_pipeline.settings.workflow_defaults import DEFAULT_MODEL_QC_LABELS
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_MODEL_QC_LABELS,
+        DEFAULT_MODEL_QC_MANIFEST_NAMES,
+        DEFAULT_MODEL_QC_RUN_NAMES,
+    )
+
+    from .evaluation import ModelKey
 
     seed_suffix = f"_seeds_{len(seeds_to_evaluate)}" if len(seeds_to_evaluate) > 1 else ""
     comparison_output_path = get_output_path(
@@ -372,15 +379,32 @@ def create_comparison_plots_and_summary(
     )
 
     # Determine model labels for bar-plot x-axis ticks.
-    # The curated DEFAULT_MODEL_QC_LABELS list is tuned for the 10-model latent-
-    # dimension sweep; only use it when the run includes exactly that many
-    # models. Otherwise fall back to each model's own ``model_label`` (a
-    # two-line ``manifest\nrun`` string from ``_make_model_label``) so the
-    # ticks carry meaningful identifiers instead of generic ``"Model N"``.
-    if len(models_data) == len(DEFAULT_MODEL_QC_LABELS):
-        model_labels = list(DEFAULT_MODEL_QC_LABELS)
+    # The curated DEFAULT_MODEL_QC_LABELS list is a display override for the
+    # specific 10-model latent-dimension sweep (pairs of manifest/run in
+    # DEFAULT_MODEL_QC_MANIFEST_NAMES / DEFAULT_MODEL_QC_RUN_NAMES).  Only
+    # use curated labels when *all* model keys are members of that sweep;
+    # otherwise fall back to each model's own ``ModelKey.label`` (a two-line
+    # ``manifest\nrun`` string) so ticks carry meaningful identifiers instead
+    # of generic ``"Model N"``.
+    _default_sweep_keys = {
+        ModelKey(m, r)
+        for m, r in zip(DEFAULT_MODEL_QC_MANIFEST_NAMES, DEFAULT_MODEL_QC_RUN_NAMES, strict=True)
+    }
+    if all(k in _default_sweep_keys for k in model_keys):
+        # All models belong to the curated sweep; map each key to its
+        # corresponding short label by positional order within the sweep.
+        sweep_label_map = {
+            ModelKey(m, r): lbl
+            for m, r, lbl in zip(
+                DEFAULT_MODEL_QC_MANIFEST_NAMES,
+                DEFAULT_MODEL_QC_RUN_NAMES,
+                DEFAULT_MODEL_QC_LABELS,
+                strict=True,
+            )
+        }
+        model_labels = [sweep_label_map[k] for k in model_keys]
     else:
-        model_labels = [m["model_label"] for m in models_data]
+        model_labels = [k.label for k in model_keys]
 
     seeds_info = (
         f" (averaged over {len(seeds_to_evaluate)} seeds)" if len(seeds_to_evaluate) > 1 else ""

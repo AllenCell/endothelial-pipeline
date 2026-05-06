@@ -1,7 +1,7 @@
 """Core model evaluation logic for model QC."""
 
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, NamedTuple, cast
 
 from numpy.random import default_rng
 from omegaconf import DictConfig
@@ -31,6 +31,28 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
+# ModelKey - stable identity used for dict keys, output paths, and plot labels
+# ---------------------------------------------------------------------------
+
+
+class ModelKey(NamedTuple):
+    """Manifest + run name pair uniquely identifying a model in an evaluation run.
+
+    Hashable so it can serve as a dict key, and provides a ``.label`` property
+    for display on figures (two-line ``manifest`` / ``run`` format used in
+    suptitles and tick labels).
+    """
+
+    manifest_name: str
+    run_name: str
+
+    @property
+    def label(self) -> str:
+        """Human-readable label for display on figures."""
+        return f"{self.manifest_name}\n{self.run_name}"
+
+
+# ---------------------------------------------------------------------------
 # Result dict helpers
 # ---------------------------------------------------------------------------
 
@@ -54,9 +76,7 @@ def _empty_metric_bucket() -> dict[str, list]:
 
 
 def _make_result_skeleton(
-    model_key: tuple[str, str],
-    model_label: str,
-    run_name: str,
+    model_key: ModelKey,
     random_seed: int,
     example_set_labels: list[str],
 ) -> dict:
@@ -69,12 +89,8 @@ def _make_result_skeleton(
     Parameters
     ----------
     model_key
-        ``(manifest_name, resolved_run_name)`` tuple uniquely identifying
-        this model within the evaluation batch.
-    model_label
-        Label for the model (e.g. ``"diffae_baseline_20251110_latent_512"``).
-    run_name
-        MLflow run name used to load the model.
+        ``ModelKey`` uniquely identifying this model within the evaluation
+        batch.
     random_seed
         Random seed used for noise generation in this evaluation.
     example_set_labels
@@ -90,8 +106,8 @@ def _make_result_skeleton(
     """
     result = {
         "model_key": model_key,
-        "model_label": model_label,
-        "run_name": run_name,
+        "model_label": model_key.label,
+        "run_name": model_key.run_name,
         "random_seed": random_seed,
         "example_set_labels": example_set_labels,
     }
@@ -100,43 +116,13 @@ def _make_result_skeleton(
     return result
 
 
-def _make_model_label(manifest_name: str, run_name: str) -> str:
-    """Create a human-readable model label by stacking manifest and run names.
-
-    Used as the suptitle suffix for per-model summary figures and, when no
-    curated short labels are available (see
-    :data:`~endo_pipeline.settings.workflow_defaults.DEFAULT_MODEL_QC_LABELS`),
-    as the x-axis tick label for comparison bar plots.
-
-    Parameters
-    ----------
-    manifest_name
-        The model manifest name.
-    run_name
-        The MLflow run name.
-
-    Returns
-    -------
-    label
-        Two-line string ``"{manifest_name}<newline>{run_name}"``. Returning a
-        wrapped label (rather than truncating either field) lets matplotlib
-        render the full identifiers across two lines for both suptitles and
-        tick labels, avoiding lossy mid-word elision while still fitting
-        reasonable widths. This label is used only for display; on-disk
-        filenames continue to be derived from ``output_path`` (which already
-        encodes manifest + run).
-    """
-    return f"{manifest_name}\n{run_name}"
-
-
 # ---------------------------------------------------------------------------
 # Core evaluation
 # ---------------------------------------------------------------------------
 
 
 def evaluate_single_model(
-    manifest_name: str,
-    run_name: str,
+    model_key: ModelKey,
     random_seed: int,
     example_sets_all: list[tuple[list["ExampleImage"], str]],
     example_sets_for_metrics: set[str],
@@ -156,12 +142,10 @@ def evaluate_single_model(
 
     Parameters
     ----------
-    manifest_name
-        Name of the model manifest to load.
-    run_name
-        Resolved MLflow run name for this model.  Callers should resolve
-        ``None`` (most-recent) to a concrete run name before invocation
-        so that the ``(manifest_name, run_name)`` pair is a stable key.
+    model_key
+        ``ModelKey`` (manifest + resolved run name) identifying the model to
+        evaluate.  The run name should already be resolved by the caller
+        (e.g. ``None`` → most-recent run) so that the pair is a stable key.
     random_seed
         Random seed for noise generation reproducibility.
     example_sets_all
@@ -197,6 +181,9 @@ def evaluate_single_model(
     result
         Result dictionary containing per-example-set metrics.
     """
+    manifest_name = model_key.manifest_name
+    run_name = model_key.run_name
+
     # Conditional import for metrics
     lpips_calculator = None
     _compute_denoising_metrics = None
@@ -212,8 +199,6 @@ def evaluate_single_model(
 
     model_manifest = load_model_manifest(manifest_name)
     model_location = model_manifest.locations[run_name]
-    model_label = _make_model_label(manifest_name, run_name)
-    model_key = (manifest_name, run_name)
 
     logger.info("Processing model: %s [%s] (seed=%d)", manifest_name, run_name, random_seed)
 
@@ -229,8 +214,6 @@ def evaluate_single_model(
 
     result = _make_result_skeleton(
         model_key,
-        model_label,
-        run_name,
         random_seed,
         example_set_labels=[label for _, label in example_sets_all],
     )
@@ -416,9 +399,9 @@ def evaluate_single_model(
                 len(example_set),
                 label_for_conditioning,
                 example_set_label,
+                model_key,
                 has_metrics,
                 output_path,
-                model_label=model_label,
             )
 
     return result

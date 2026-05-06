@@ -25,6 +25,7 @@ from endo_pipeline.settings.plot_defaults import (
 )
 
 if TYPE_CHECKING:
+    from endo_pipeline.library.model.model_qc.evaluation import ModelKey
     from endo_pipeline.settings.examples import ExampleImage
 
 logger = logging.getLogger(__name__)
@@ -200,9 +201,9 @@ def save_summary_figure(
     num_examples: int,
     label_for_conditioning: str,
     example_set_label: str,
+    model_key: "ModelKey",
     compute_metrics: bool,
     output_path: Path,
-    model_label: str | None = None,
 ) -> None:
     """Create and save the per-example-set summary figure.
 
@@ -227,13 +228,12 @@ def save_summary_figure(
         Label for the conditioning channel.
     example_set_label
         Human-readable name for the example set (e.g. ``"validation_positions"``).
+    model_key
+        ``ModelKey`` providing both identity and a human-readable ``.label``.
     compute_metrics
         Whether to include a metrics column in the figure.
     output_path
         Directory where the figure will be saved.
-    model_label
-        Human-readable model name for the title.  Required when
-        ``compute_metrics`` is True.
     """
     _ensure_dir(output_path)
 
@@ -260,10 +260,8 @@ def save_summary_figure(
             fig_kwargs={"figsize": ((num_img_cols + 1) * 2, num_examples * 1.8)},
             direction="left-right first",
         )
-        if model_label is None:
-            raise ValueError("model_label is required when compute_metrics is True")
         fig.suptitle(
-            f"100% Noise Denoising - {example_set_label} - {model_label}",
+            f"100% Noise Denoising - {example_set_label} - {model_key.label}",
             fontsize=FONTSIZE_LARGE,
             y=0.995,
         )

@@ -114,6 +114,7 @@ def main(
     """
     from endo_pipeline.cli import DEMO_MODE, NUM_GPUS
     from endo_pipeline.library.model.model_qc import (
+        ModelKey,
         aggregate_seed_metrics,
         build_models_data,
         compute_baseline_data,
@@ -202,15 +203,15 @@ def main(
     logger.info(f"Default seed for saving crops/plots: {random_seed}")
 
     # Eagerly resolve any None run names to the most-recent run, so each
-    # model has a stable (manifest_name, run_name) key.  This is the single
-    # source of truth used for dict keys, output paths, and plot labels.
-    model_keys: list[tuple[str, str]] = []
+    # model has a stable ``ModelKey``.  This is the single source of truth
+    # used for dict keys, output paths, and plot labels.
+    model_keys: list[ModelKey] = []
     for manifest_name, run_name_input in zip(model_manifest_names, run_names, strict=True):
         if run_name_input is None:
             resolved_run_name = get_most_recent_run_name(load_model_manifest(manifest_name))
         else:
             resolved_run_name = run_name_input
-        model_keys.append((manifest_name, resolved_run_name))
+        model_keys.append(ModelKey(manifest_name, resolved_run_name))
 
     # Reject duplicate (manifest, run) pairs: they would collide on output
     # paths and collapse silently in downstream dict-keyed structures.
@@ -222,18 +223,16 @@ def main(
         )
 
     # Storage for all results across seeds
-    # Structure: {(manifest_name, run_name): {seed: {example_set_label: [per-example metrics]}}}
-    all_seed_results: dict[tuple[str, str], dict[int, dict[str, list[dict]]]] = {}
+    # Structure: {ModelKey: {seed: {example_set_label: [per-example metrics]}}}
+    all_seed_results: dict[ModelKey, dict[int, dict[str, list[dict]]]] = {}
 
     logger.info("Running model evaluations...")
-    for manifest_name, resolved_run_name in model_keys:
-        model_key = (manifest_name, resolved_run_name)
+    for model_key in model_keys:
         all_seed_results[model_key] = {}
         for seed in seeds_to_evaluate:
             is_default = seed == random_seed
             result = evaluate_single_model(
-                manifest_name=manifest_name,
-                run_name=resolved_run_name,
+                model_key=model_key,
                 random_seed=seed,
                 example_sets_all=example_sets_all,
                 example_sets_for_metrics=example_sets_for_metrics,
