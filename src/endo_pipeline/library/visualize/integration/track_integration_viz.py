@@ -1482,7 +1482,7 @@ def plot_first_passage_time_correlation_summary(
     """
 
     corr_metric_label = COLUMN_METADATA[corr_metric_column].label
-    slope_label = COLUMN_METADATA[slope_column].label
+    slope_label = COLUMN_METADATA[slope_column].label or slope_column
 
     # get the shear stress for the dataset and add that to the labels
     # Snap to ±1 bins; values outside any bin keep their rounded value
@@ -1551,10 +1551,11 @@ def plot_first_passage_time_correlation_histogram(
     filename: str,
     corr_metric_column: Column.VectorField = Column.VectorField.PEARSON_R,
     title: str | None = None,
+    fig_kwargs: dict | None = {"figsize": (2, 2)},
 ) -> Path:
     corr_metric_label = COLUMN_METADATA[corr_metric_column].label
 
-    fig, ax = plt.subplots(figsize=(2, 2))
+    fig, ax = plt.subplots(**(fig_kwargs or {}))
     sns.histplot(
         data=first_passage_time_correlation_summary_df,
         x=corr_metric_column,
@@ -1569,6 +1570,8 @@ def plot_first_passage_time_correlation_histogram(
     ax.set_xlabel(corr_metric_label, fontsize=FONTSIZE_SMALL)
     ax.set_ylabel("Number of datasets", fontsize=FONTSIZE_SMALL)
     if title is not None:
+        # make sure title doesn't change figure sizing
+        fig.subplots_adjust(top=0.72)
         ax.set_title(title, fontsize=FONTSIZE_SMALL)
 
     save_plot_to_path(
