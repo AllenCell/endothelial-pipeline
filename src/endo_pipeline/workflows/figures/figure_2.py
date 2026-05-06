@@ -283,6 +283,7 @@ def main() -> None:
         first_passage_time_manifest=fpt_manifest,
         datasets=dataset_summary_list,
         fig_savedir=base_output_dir,
+        fig_kwargs={"figsize": (2.0, 2.0), "layout": "constrained"},
     )
 
     # --- Assemble all panels into final figure ---
