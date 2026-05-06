@@ -93,7 +93,7 @@ def main():
             letter="D",
             path=save_dir3 / "latent_walk_along_polar_theta_polar_r_rho_scale_bar_10um.svg",
             x_position=0,
-            y_position=4.1,
+            y_position=4.5,
             x_offset=0,
             y_offset=0.2,
         ),
