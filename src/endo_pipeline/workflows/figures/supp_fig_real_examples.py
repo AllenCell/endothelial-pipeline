@@ -32,7 +32,7 @@ def main() -> None:
 
     plt.style.use("endo_pipeline.figure")
 
-    base_output_dir = get_output_path("figure_2")
+    base_output_dir = get_output_path(__file__)
 
     # figure is for grid based crops
     crop_pattern = "grid"
@@ -129,8 +129,8 @@ def main() -> None:
             path=crop_contact_sheet_paths[dataset_low],
             x_position=0.0,
             y_position=0.0,
-            x_offset=0.15,
-            y_offset=-0.05,
+            x_offset=0.08,
+            y_offset=0.12,
         ),
         # --- High flow dataset  ---
         FigurePanel(
