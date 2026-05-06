@@ -1568,6 +1568,9 @@ def plot_first_passage_time_correlation_histogram(
     ax.set_xlim(0, 1)
     ax.set_xlabel(corr_metric_label, fontsize=FONTSIZE_SMALL)
     ax.set_ylabel("Number of datasets", fontsize=FONTSIZE_SMALL)
+    if title is not None:
+        ax.set_title(title, fontsize=FONTSIZE_SMALL)
+
     save_plot_to_path(
         fig,
         out_dir,
@@ -1575,8 +1578,5 @@ def plot_first_passage_time_correlation_histogram(
         file_format=".svg",
         show_and_close=False,
     )
-
-    if title is not None:
-        ax.set_title(title, fontsize=FONTSIZE_SMALL)
 
     return out_dir / f"{filename}.svg"

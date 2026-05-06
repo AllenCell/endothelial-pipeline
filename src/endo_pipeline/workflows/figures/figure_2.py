@@ -376,7 +376,7 @@ def main() -> None:
             x_position=4.5,
             y_position=4.0,
             x_offset=0,
-            y_offset=0.1,
+            y_offset=0.25,
         ),
     ]
 
