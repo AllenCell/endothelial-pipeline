@@ -292,7 +292,7 @@ def main() -> None:
         line_fit_df,
         base_output_dir,
         filename_fpt,
-        fig_kwargs={"figsize": (2, 2), "layout": "constrained"},
+        fig_kwargs={"figsize": (2, 2.5), "layout": "constrained"},
         title=fpt_hist_title,
     )
 
@@ -380,7 +380,7 @@ def main() -> None:
             x_position=4.5,
             y_position=4.0,
             x_offset=0,
-            y_offset=0.25,
+            y_offset=0.1,
         ),
     ]
 
