@@ -46,7 +46,7 @@ def main() -> None:
         POLAR_ANGLE_RANGE,
     )
     from endo_pipeline.settings.examples import EXAMPLE_DATASET
-    from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
     from endo_pipeline.settings.flow_field_2d import (
         DRIFT_CONTOUR_CBAR_NUM_TICKS,
         DRIFT_CONTOUR_CBAR_ROUND,
@@ -438,23 +438,23 @@ def main() -> None:
             letter="D",
             path=base_output_dir / "migration_coherence_distribution_high_low_flow_comparison.svg",
             x_position=0,
-            y_position=3.9,
+            y_position=3.8,
             x_offset=0,
-            y_offset=0.1,
+            y_offset=0.2,
         ),
         FigurePanel(
             letter="E",
             path=base_output_dir
             / "polar_theta_polar_r_rho_ema01_optical_flow_mean_unit_vector_dt1_fp_vs_shear_stress.svg",
             x_position=2.1,
-            y_position=3.9,
+            y_position=3.8,
             x_offset=0,
-            y_offset=0.1,
+            y_offset=0.2,
         ),
     ]
 
     build_figure_from_panels(
-        panels, base_output_dir / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
+        panels, base_output_dir / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=6.0
     )
 
 
