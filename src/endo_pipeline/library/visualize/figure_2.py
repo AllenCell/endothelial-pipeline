@@ -22,7 +22,7 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
     plot_drift_quiver,
 )
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
-from endo_pipeline.library.visualize.summary_plot import _build_jitter_map
+from endo_pipeline.library.visualize.summary_plot import _build_categorical_axis
 from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
@@ -513,17 +513,10 @@ def make_first_passage_time_panel(
     }
 
     fig, ax = plt.subplots(**(fig_kwargs or {}))
-    # Numeric x-axis: position by shear stress value, jittered by dataset
-    unique_shear = sorted(line_fit_df["flow_condition_shear_stress_bin"].unique())
-    tick_positions = unique_shear
-    tick_labels = list(map(str, unique_shear))
-    jitter_map = _build_jitter_map(line_fit_df, jitter_width=0.1)
-
-    def row_to_x(row: pd.Series) -> float:
-        jitter_value = jitter_map.get(
-            (row[Column.DATASET], row["flow_condition_shear_stress_bin"]), 0.0
-        )
-        return row["flow_condition_shear_stress_bin"] + jitter_value
+    # Evenly-spaced categorical ticks for each unique shear stress value
+    row_to_x, tick_positions, tick_labels = _build_categorical_axis(
+        line_fit_df, "flow_condition_shear_stress_bin", jitter_width=0.1, tick_spacing=1
+    )
 
     correlation_column_name = Column.VectorField.PEARSON_R
     correlation_label = cast(str, COLUMN_METADATA[correlation_column_name].label)
@@ -544,6 +537,7 @@ def make_first_passage_time_panel(
     ax.set_xticklabels(tick_labels)
     ax.set_xlim(tick_positions[0] - 0.5, tick_positions[-1] + 0.5)
     ax.set_ylabel(correlation_label)
+    ax.grid(axis="y", alpha=0.3)
 
     save_plot_to_path(
         fig,
