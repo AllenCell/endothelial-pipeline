@@ -438,18 +438,18 @@ def main() -> None:
             letter="D",
             path=base_output_dir / "migration_coherence_distribution_high_low_flow_comparison.svg",
             x_position=0,
-            y_position=6.0,
+            y_position=3.9,
             x_offset=0,
-            y_offset=0,
+            y_offset=0.1,
         ),
         FigurePanel(
             letter="E",
             path=base_output_dir
             / "polar_theta_polar_r_rho_ema01_optical_flow_mean_unit_vector_dt1_fp_vs_shear_stress.svg",
             x_position=2.1,
-            y_position=6.0,
+            y_position=3.9,
             x_offset=0,
-            y_offset=0,
+            y_offset=0.1,
         ),
     ]
 
