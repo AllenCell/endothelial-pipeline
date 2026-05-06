@@ -261,7 +261,7 @@ def main() -> None:
             theta_values=centers_theta[-1],
             column_label=column_label_theta,
             stable_fixed_point=stable_fixed_point_theta,
-            figsize=(MAX_FIGURE_WIDTH / 4, MAX_FIGURE_HEIGHT / 4),
+            figsize=(2.05, 1.65),
             fig_savedir=fig_savedir,
             filename=f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}_drift",
             axes_xlim=POLAR_ANGLE_RANGE,
@@ -385,7 +385,7 @@ def main() -> None:
             y_offset=-0.15,
         ),
         FigurePanel(
-            letter="B",
+            letter="",
             path=crop_contact_sheet_paths[dataset_low],
             x_position=MAX_FIGURE_WIDTH - 1.25,
             y_position=0.0,
@@ -394,7 +394,7 @@ def main() -> None:
         ),
         # --- High flow dataset (row 2) ---
         FigurePanel(
-            letter="C",
+            letter="B",
             path=contour_plot_paths[dataset_high],
             x_position=0,
             y_position=1.85,
@@ -426,7 +426,7 @@ def main() -> None:
             y_offset=-0.1,
         ),
         FigurePanel(
-            letter="D",
+            letter="",
             path=crop_contact_sheet_paths[dataset_high],
             x_position=MAX_FIGURE_WIDTH - 1.25,
             y_position=1.85,
@@ -435,7 +435,7 @@ def main() -> None:
         ),
         # --- Bottom row: migration coherence and summary plot ---
         FigurePanel(
-            letter="E",
+            letter="D",
             path=base_output_dir / "migration_coherence_distribution_high_low_flow_comparison.svg",
             x_position=0,
             y_position=6.0,
@@ -443,7 +443,7 @@ def main() -> None:
             y_offset=0,
         ),
         FigurePanel(
-            letter="F",
+            letter="E",
             path=base_output_dir
             / "polar_theta_polar_r_rho_ema01_optical_flow_mean_unit_vector_dt1_fp_vs_shear_stress.svg",
             x_position=2.1,
