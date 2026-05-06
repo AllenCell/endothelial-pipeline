@@ -286,9 +286,10 @@ def main() -> None:
     line_fit_df = get_line_fit_and_filtered_df(
         first_passage_time_manifest=fpt_manifest, metric_to_fit=metric_to_plot
     )[0]
-    filename_summary = f"first_passage_time_{metric_to_plot}_histogram"
+    filename_fpt = f"first_passage_time_{metric_to_plot}_histogram"
+    fpt_hist_title = "First passage time of grid- versus\ntrack-based patch trajectories"
     fpt_hist_path = plot_first_passage_time_correlation_histogram(
-        line_fit_df, base_output_dir, filename_summary
+        line_fit_df, base_output_dir, filename_fpt, title=fpt_hist_title
     )
 
     # --- Assemble all panels into final figure ---
