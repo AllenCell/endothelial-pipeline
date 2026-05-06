@@ -536,8 +536,23 @@ def make_first_passage_time_panel(
     ax.set_xticks(tick_positions)
     ax.set_xticklabels(tick_labels)
     ax.set_xlim(tick_positions[0] - 0.5, tick_positions[-1] + 0.5)
-    ax.set_ylabel(correlation_label)
+    ax.set_ylabel(f"{correlation_label} of MFPT", labelpad=2)
     ax.grid(axis="y", alpha=0.3)
+
+    # add title without resizing figure using constrained layout
+    layout_engine = fig.get_layout_engine()
+    if isinstance(layout_engine, ConstrainedLayoutEngine):
+        layout_engine.set(rect=(0, 0, 1, 0.95))
+    ax.text(
+        0.5,
+        0.85,
+        "Grid- versus track-based\npatch trajectories",
+        va="bottom",
+        ha="center",
+        fontsize=FONTSIZE_XSMALL,
+        fontweight="bold",
+        transform=ax.transAxes,
+    )
 
     save_plot_to_path(
         fig,
