@@ -10,7 +10,7 @@ import pandas as pd
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import TwoSlopeNorm
 from matplotlib.layout_engine import ConstrainedLayoutEngine
-from mpl_toolkits.axes_grid1 import make_axes_locatable
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 from endo_pipeline.configs import DatasetConfig
 from endo_pipeline.io import load_image, save_plot_to_path
@@ -62,7 +62,7 @@ def _add_colorbar_to_contour_plot(
     orientation: Literal["vertical", "horizontal"] = "horizontal",
     cax_position: Literal["top", "bottom", "left", "right"] = "top",
     extend: Literal["neither", "both", "min", "max"] = "both",
-    pad: float = 0.03,
+    pad: float = 0.05,
 ) -> None:
     """
     Add a colorbar to a contour plot with specified formatting.
@@ -94,8 +94,15 @@ def _add_colorbar_to_contour_plot(
         Padding between the main axes and the colorbar axes, in inches.
 
     """
-    divider = make_axes_locatable(axes)
-    cax = divider.append_axes(cax_position, size="5%", pad=pad)
+    cax = inset_axes(
+        axes,
+        width="100%",
+        height="5%",
+        loc="lower left",
+        bbox_to_anchor=(0, 1.0 + pad, 1, 1),
+        bbox_transform=axes.transAxes,
+        borderpad=0,
+    )
 
     color_mappable = ScalarMappable(
         norm=TwoSlopeNorm(vmin=vmin, vmax=vmax, vcenter=0), cmap=colormap

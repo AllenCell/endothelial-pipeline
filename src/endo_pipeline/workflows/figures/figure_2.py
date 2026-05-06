@@ -275,7 +275,7 @@ def main() -> None:
             fig_filename=f"{dataset_name}_crop_examples",
             file_format=".svg",
             gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
-            fig_kwargs={"figsize": (1.1, 1.6), "layout": "constrained"},
+            fig_kwargs={"figsize": (1.0, 1.4), "layout": "constrained"},
             random_seed=7,
             num_gpus=NUM_GPUS,
             title=contact_sheet_title,
@@ -339,23 +339,23 @@ def main() -> None:
             x_position=0,
             y_position=0.0,
             x_offset=0.15,
-            y_offset=-0.1,
+            y_offset=0.1,
         ),
         FigurePanel(
             letter="",
             path=quiver_plot_paths[dataset_low],
-            x_position=MAX_FIGURE_WIDTH / 4 + 0.7,
+            x_position=MAX_FIGURE_WIDTH / 4 + 0.2,
             y_position=0.0,
             x_offset=-0.1,
-            y_offset=0.0,
+            y_offset=0.2,
         ),
         FigurePanel(
             letter="",
             path=theta_plot_paths[dataset_low],
-            x_position=3 * MAX_FIGURE_WIDTH / 4 - 1.15,
+            x_position=MAX_FIGURE_WIDTH / 2,
             y_position=0.0,
             x_offset=0.4,
-            y_offset=0.0,
+            y_offset=0.5,
         ),
         FigurePanel(
             letter="",
@@ -370,31 +370,31 @@ def main() -> None:
             letter="B",
             path=contour_plot_paths[dataset_high],
             x_position=0,
-            y_position=1.85,
+            y_position=2.1,
             x_offset=0.15,
             y_offset=-0.05,
         ),
         FigurePanel(
             letter="",
             path=quiver_plot_paths[dataset_high],
-            x_position=MAX_FIGURE_WIDTH / 4 + 0.7,
-            y_position=1.85,
+            x_position=MAX_FIGURE_WIDTH / 4,
+            y_position=2.1,
             x_offset=-0.1,
             y_offset=0.05,
         ),
         FigurePanel(
             letter="",
             path=theta_plot_paths[dataset_high],
-            x_position=3 * MAX_FIGURE_WIDTH / 4 - 1.15,
-            y_position=1.85,
+            x_position=MAX_FIGURE_WIDTH / 2,
+            y_position=2.1,
             x_offset=0.4,
-            y_offset=0.0,
+            y_offset=0.1,
         ),
         FigurePanel(
             letter="",
             path=crop_contact_sheet_paths[dataset_high],
             x_position=MAX_FIGURE_WIDTH - 1.25,
-            y_position=1.85,
+            y_position=2.1,
             x_offset=0.15,
             y_offset=0.05,
         ),
@@ -403,7 +403,7 @@ def main() -> None:
             letter="D",
             path=base_output_dir / "migration_coherence_distribution_high_low_flow_comparison.svg",
             x_position=0,
-            y_position=3.8,
+            y_position=4.0,
             x_offset=0,
             y_offset=0.2,
         ),
@@ -412,14 +412,14 @@ def main() -> None:
             path=base_output_dir
             / "polar_theta_polar_r_rho_ema01_optical_flow_mean_unit_vector_dt1_fp_vs_shear_stress.svg",
             x_position=2.1,
-            y_position=3.8,
+            y_position=4.0,
             x_offset=0,
             y_offset=0.2,
         ),
     ]
 
     build_figure_from_panels(
-        panels, base_output_dir / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=6.0
+        panels, base_output_dir / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=6.2
     )
 
 
