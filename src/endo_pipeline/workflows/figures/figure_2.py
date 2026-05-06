@@ -9,25 +9,12 @@ def main() -> None:
 
     from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.configs import load_dataset_config
-    from endo_pipeline.io import (
-        get_output_path,
-        join_sorted_strings,
-        load_dataframe,
-        load_model,
-        save_plot_to_path,
-    )
-    from endo_pipeline.library.analyze.dataframe_filtering import (
-        filter_dataframe_by_stability,
-        filter_dataframe_to_steady_state,
-    )
-    from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
-        add_optical_flow_features,
-    )
+    from endo_pipeline.io import get_output_path, join_sorted_strings, load_dataframe, load_model
+    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_stability
     from endo_pipeline.library.analyze.vector_field_estimation import (
         get_reshaped_vector_field_and_grid,
         load_drift_dataframe_for_dataset,
     )
-    from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
     from endo_pipeline.library.visualize.figure_2 import (
         make_1d_drift_plot_panel,
         make_2d_contour_plot_panel,
@@ -35,15 +22,11 @@ def main() -> None:
         make_crop_example_contact_sheet,
     )
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
-    from endo_pipeline.library.visualize.migration_coherence import plot_optical_flow_histogram
     from endo_pipeline.library.visualize.summary_plot import plot_cross_dataset_summaries
     from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
     from endo_pipeline.settings.column_metadata import COLUMN_METADATA
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.dynamics_workflows import (
-        METADATA_COLUMNS_TO_KEEP,
-        POLAR_ANGLE_RANGE,
-    )
+    from endo_pipeline.settings.dynamics_workflows import POLAR_ANGLE_RANGE
     from endo_pipeline.settings.examples import EXAMPLE_DATASET
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
     from endo_pipeline.settings.flow_field_2d import DRIFT_CONTOUR_VMAX, DRIFT_CONTOUR_VMIN
@@ -115,7 +98,6 @@ def main() -> None:
     columns_for_summary_plots = [*feature_column_names, optical_flow_feature]
     column_labels_r_rho = [COLUMN_METADATA[column].label for column in columns_r_rho]
     column_label_theta = COLUMN_METADATA[column_theta].label
-    dataframe_columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *feature_column_names]
 
     # load and instantiate model for generating synthetic images
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
@@ -293,43 +275,6 @@ def main() -> None:
         stable_only=True,
     )
 
-    fig, ax = plt.subplots(figsize=(2, 2), layout="constrained")
-    for dataset_name in [dataset_low, dataset_high]:
-        # get settings
-        dataset_config = load_dataset_config(dataset_name)
-        shear_stress = math.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
-
-        # load and filter data
-        df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
-        df_ = df[dataframe_columns_to_compute].compute()
-        df_steady_state = filter_dataframe_to_steady_state(df_, dataset_config)
-
-        df_of = add_optical_flow_features(
-            df_steady_state,
-            datasets=[dataset_name],
-        )
-
-        fig = plot_optical_flow_histogram(
-            df=df_of,
-            optical_flow_feature=optical_flow_feature,
-            feature_label="Migration Coherence",
-            feature_lim=(0, 1),
-            ss_label=f"{shear_stress} dyn/cm{Unicode.SQUARED}",
-            color=get_dataset_color(dataset_name),
-            df_fp=None,
-            binwidth=0.02,
-            figure=(fig, ax),
-            legend_loc=None,
-        )
-    save_plot_to_path(
-        fig,
-        base_output_dir,
-        "migration_coherence_distribution_high_low_flow_comparison",
-        pad_inches=0,
-        tight_layout=False,
-        file_format=".svg",
-    )
-
     # --- Assemble all panels into final figure ---
     panels = [
         # --- Low flow dataset (row 1) ---
@@ -398,15 +343,7 @@ def main() -> None:
             x_offset=0.15,
             y_offset=0.25,
         ),
-        # --- Bottom row: migration coherence and summary plot ---
-        FigurePanel(
-            letter="D",
-            path=base_output_dir / "migration_coherence_distribution_high_low_flow_comparison.svg",
-            x_position=0,
-            y_position=4.0,
-            x_offset=0,
-            y_offset=0.2,
-        ),
+        # --- Bottom row: first passage time and summary plot ---
         FigurePanel(
             letter="E",
             path=base_output_dir
