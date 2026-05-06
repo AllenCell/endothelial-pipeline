@@ -350,7 +350,6 @@ def make_crop_example_contact_sheet(
         max_rows=n_crop_examples,
         max_cols=1,
         col_titles=["Reconstructed\nVE-cadherin"],
-        row_titles=[f"Example {i + 1}" for i in range(n_crop_examples)],
         direction="top-down first",
         gridspec_kwargs=gridspec_kwargs,
         subplot_kwargs={"frame_on": False},
