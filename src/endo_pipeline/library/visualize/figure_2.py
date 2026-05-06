@@ -4,9 +4,13 @@ import math
 from pathlib import Path
 from typing import Literal
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.cm import ScalarMappable
+from matplotlib.colors import TwoSlopeNorm
 from matplotlib.layout_engine import ConstrainedLayoutEngine
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from endo_pipeline.configs import DatasetConfig
 from endo_pipeline.io import load_image, save_plot_to_path
@@ -30,6 +34,13 @@ from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_cont
 from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_XSMALL
+from endo_pipeline.settings.flow_field_2d import (
+    DRIFT_CONTOUR_CBAR_NUM_TICKS,
+    DRIFT_CONTOUR_CBAR_ROUND,
+    DRIFT_CONTOUR_COLORMAP,
+    DRIFT_CONTOUR_VMAX,
+    DRIFT_CONTOUR_VMIN,
+)
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.image_data import (
     DIFFAE_ZARR_RESOLUTION_LEVEL,
@@ -38,6 +49,75 @@ from endo_pipeline.settings.image_data import (
 from endo_pipeline.settings.plot_defaults import CROP_HIST_BIN_WIDTH, FIXED_POINT_PLOT_STYLE
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
+
+
+def _add_colorbar_to_contour_plot(
+    fig: plt.Figure,
+    axes: plt.Axes,
+    vmin: float = DRIFT_CONTOUR_VMIN,
+    vmax: float = DRIFT_CONTOUR_VMAX,
+    ticks: np.ndarray | None = None,
+    tick_label_round: int = DRIFT_CONTOUR_CBAR_ROUND,
+    colormap: str = DRIFT_CONTOUR_COLORMAP,
+    orientation: Literal["vertical", "horizontal"] = "horizontal",
+    cax_position: Literal["top", "bottom", "left", "right"] = "top",
+    extend: Literal["neither", "both", "min", "max"] = "both",
+    pad: float = 0.03,
+) -> None:
+    """
+    Add a colorbar to a contour plot with specified formatting.
+
+    Parameters
+    ----------
+    fig
+        Matplotlib figure object containing the contour plot.
+    axes
+        Matplotlib axes object containing the contour plot.
+    vmin
+        Minimum value for the colorbar.
+    vmax
+        Maximum value for the colorbar.
+    ticks
+        Array of tick values for the colorbar. If None, ticks will be generated
+        automatically based on `vmin`, `vmax`, and
+        `DRIFT_CONTOUR_CBAR_NUM_TICKS`.
+    tick_label_round
+        Number of decimal places to round colorbar tick labels to.
+    colormap
+        Colormap to use for the colorbar.
+    orientation
+        Orientation of the colorbar, either "vertical" or "horizontal".
+    cax_position
+        Position of the colorbar axes relative to the main axes, one of "top",
+        "bottom", "left", or "right".
+    pad
+        Padding between the main axes and the colorbar axes, in inches.
+
+    """
+    divider = make_axes_locatable(axes)
+    cax = divider.append_axes(cax_position, size="5%", pad=pad)
+
+    color_mappable = ScalarMappable(
+        norm=TwoSlopeNorm(vmin=vmin, vmax=vmax, vcenter=0), cmap=colormap
+    )
+    colorbar_ticks = (
+        ticks
+        if ticks is not None
+        else np.linspace(
+            np.round(vmin, tick_label_round),
+            np.round(vmax, tick_label_round),
+            DRIFT_CONTOUR_CBAR_NUM_TICKS,
+        )
+    )
+    colorbar_ticks = np.round(colorbar_ticks, tick_label_round)
+
+    fig.colorbar(
+        color_mappable, cax=cax, orientation=orientation, ticks=colorbar_ticks, extend=extend
+    )
+
+    tick_axis = cax.xaxis if orientation == "horizontal" else cax.yaxis
+    tick_axis.set_ticks_position(cax_position)
+    tick_axis.set_label_position(cax_position)
 
 
 def make_2d_contour_plot_panel(
@@ -59,6 +139,7 @@ def make_2d_contour_plot_panel(
     xlabel_kwargs: dict | None,
     ylabel_kwargs: dict | None,
     axes_title_kwargs: dict | None,
+    include_colorbar: bool = False,
 ) -> Path:
     """
     Make and save plot of drift contours in (r, rho) space for a given dataset.
@@ -103,6 +184,11 @@ def make_2d_contour_plot_panel(
         fontsize=FONTSIZE_MEDIUM,
         fontweight="bold",
     )
+
+    # if indicated, add colorbar to the top of the first subplot with ticks and
+    # label formatting
+    if include_colorbar:
+        _add_colorbar_to_contour_plot(fig, ax[0])
 
     save_plot_to_path(
         fig,

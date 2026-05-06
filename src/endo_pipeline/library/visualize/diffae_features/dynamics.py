@@ -5,7 +5,6 @@ from typing import Literal, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.cm import ScalarMappable
 from matplotlib.colors import TwoSlopeNorm
 
 from endo_pipeline.library.visualize.figure_utils import set_axes_properties
@@ -165,75 +164,6 @@ def plot_drift_contours(
             title_kwargs=axes_title_kwargs,
         )
 
-    return fig, ax
-
-
-def plot_contour_colorbar(
-    figsize: tuple[float, float] = (2, 4),
-    label: str | None = None,
-    vmin: float = DRIFT_CONTOUR_VMIN,
-    vmax: float = DRIFT_CONTOUR_VMAX,
-    num_ticks: int = DRIFT_CONTOUR_CBAR_NUM_TICKS,
-    tick_label_round: int = DRIFT_CONTOUR_CBAR_ROUND,
-    center_zero: bool = True,
-    orientation: Literal["vertical", "horizontal"] = "vertical",
-    extend: Literal["neither", "both", "min", "max"] = "both",
-    colormap: str = DRIFT_CONTOUR_COLORMAP,
-) -> tuple[plt.Figure, plt.Axes]:
-    """
-    Plot contour plot colorbar as a standalone figure.
-
-    Parameters
-    ----------
-    figsize
-        Size of the figure for the colorbar, specified as a tuple (width,
-        height).
-    label
-        Label for the colorbar, e.g., "d$x_1$/dt".
-    vmin
-        Minimum value for the colorbar.
-    vmax
-        Maximum value for the colorbar.
-    num_ticks
-        Number of ticks to use in the colorbar.
-    tick_label_round
-        Number of decimal places to round colorbar tick labels to.
-    center_zero
-        Whether to center the colormap at zero.
-    orientation
-        Orientation of the colorbar, either "vertical" or "horizontal".
-    colormap
-        Colormap to use for the colorbar, which should match the colormap used
-        in the contour plot.
-
-    Returns
-    -------
-    :
-        The input Axes object with the colorbar added to it.
-
-    """
-    fig, ax = plt.subplots(figsize=figsize)
-
-    if label:
-        ax.set_title(label)
-
-    if center_zero:
-        color_mappable = ScalarMappable(
-            norm=TwoSlopeNorm(vmin=vmin, vmax=vmax, vcenter=0), cmap=colormap
-        )
-    else:
-        color_mappable = ScalarMappable(norm=plt.Normalize(vmin=vmin, vmax=vmax), cmap=colormap)
-
-    colorbar_ticks = np.linspace(vmin, vmax, num_ticks)
-    colorbar_ticks = np.round(colorbar_ticks, tick_label_round)
-
-    fig.colorbar(
-        color_mappable,
-        cax=ax,
-        orientation=orientation,
-        ticks=colorbar_ticks,
-        extend=extend,
-    )
     return fig, ax
 
 

@@ -27,7 +27,6 @@ def main() -> None:
         get_reshaped_vector_field_and_grid,
         load_drift_dataframe_for_dataset,
     )
-    from endo_pipeline.library.visualize.diffae_features.dynamics import plot_contour_colorbar
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
     from endo_pipeline.library.visualize.figure_2 import (
         make_1d_drift_plot_panel,
@@ -47,13 +46,7 @@ def main() -> None:
     )
     from endo_pipeline.settings.examples import EXAMPLE_DATASET
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
-    from endo_pipeline.settings.flow_field_2d import (
-        DRIFT_CONTOUR_CBAR_NUM_TICKS,
-        DRIFT_CONTOUR_CBAR_ROUND,
-        DRIFT_CONTOUR_COLORMAP,
-        DRIFT_CONTOUR_VMAX,
-        DRIFT_CONTOUR_VMIN,
-    )
+    from endo_pipeline.settings.flow_field_2d import DRIFT_CONTOUR_VMAX, DRIFT_CONTOUR_VMIN
     from endo_pipeline.settings.flow_field_dataframes import (
         DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
@@ -129,28 +122,15 @@ def main() -> None:
     model_location = model_manifest.locations[DEFAULT_MODEL_RUN_NAME]
     model = load_model(model_location, instantiate=True)
 
-    # make svg of just the colorbar with set ticks and extended on both sides
-    fig, ax = plot_contour_colorbar(
-        figsize=(0.75, MAX_FIGURE_WIDTH / 4),
-        vmin=DRIFT_CONTOUR_VMIN,
-        vmax=DRIFT_CONTOUR_VMAX,
-        num_ticks=DRIFT_CONTOUR_CBAR_NUM_TICKS,
-        tick_label_round=DRIFT_CONTOUR_CBAR_ROUND,
-        extend="both",
-        colormap=DRIFT_CONTOUR_COLORMAP,
-        orientation="vertical",
-    )
-    save_plot_to_path(fig, base_output_dir, "colorbar", file_format=".svg", transparent=True)
-
     # loop over datasets in collection, compute 2D drift coefficients for each
     # pairwise combination of polar coordinates, and plot contours of drift coefficients
     contour_plot_paths: dict[str, Path] = {}
     quiver_plot_paths: dict[str, Path] = {}
     theta_plot_paths: dict[str, Path] = {}
     crop_contact_sheet_paths: dict[str, Path] = {}
-    for dataset_name, include_legend, arrow_scale_1d, contact_sheet_title in [
-        (dataset_low, True, 3.25, "Reconstructed \nVE-cadherin at\nstable fixed point"),
-        (dataset_high, False, 1.0, None),
+    for dataset_name, include_colorbar, include_legend, arrow_scale_1d, contact_sheet_title in [
+        (dataset_low, True, True, 3.25, "Reconstructed \nVE-cadherin at\nstable fixed point"),
+        (dataset_high, False, False, 1.0, None),
     ]:
         fig_savedir = get_output_path("figure_2", dataset_name)
         dataset_config = load_dataset_config(dataset_name)
@@ -219,6 +199,7 @@ def main() -> None:
                 "ha": "left",
                 "va": "center",
             },
+            include_colorbar=include_colorbar,
         )
 
         quiver_plot_paths[dataset_name] = make_2d_quiver_plot_panel(
@@ -261,7 +242,7 @@ def main() -> None:
             theta_values=centers_theta[-1],
             column_label=column_label_theta,
             stable_fixed_point=stable_fixed_point_theta,
-            figsize=(2.05, 1.65),
+            figsize=(1.5, 1.5),
             fig_savedir=fig_savedir,
             filename=f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}_drift",
             axes_xlim=POLAR_ANGLE_RANGE,
@@ -362,14 +343,6 @@ def main() -> None:
         ),
         FigurePanel(
             letter="",
-            path=base_output_dir / "colorbar.svg",
-            x_position=MAX_FIGURE_WIDTH / 4 - 0.1,
-            y_position=0.0,
-            x_offset=0.08,
-            y_offset=0.05,
-        ),
-        FigurePanel(
-            letter="",
             path=quiver_plot_paths[dataset_low],
             x_position=MAX_FIGURE_WIDTH / 4 + 0.7,
             y_position=0.0,
@@ -379,10 +352,10 @@ def main() -> None:
         FigurePanel(
             letter="",
             path=theta_plot_paths[dataset_low],
-            x_position=3 * MAX_FIGURE_WIDTH / 4 - 0.95,
+            x_position=3 * MAX_FIGURE_WIDTH / 4 - 1.15,
             y_position=0.0,
             x_offset=0.4,
-            y_offset=-0.15,
+            y_offset=0.0,
         ),
         FigurePanel(
             letter="",
@@ -403,14 +376,6 @@ def main() -> None:
         ),
         FigurePanel(
             letter="",
-            path=base_output_dir / "colorbar.svg",
-            x_position=MAX_FIGURE_WIDTH / 4 - 0.1,
-            y_position=1.85,
-            x_offset=0.08,
-            y_offset=0.1,
-        ),
-        FigurePanel(
-            letter="",
             path=quiver_plot_paths[dataset_high],
             x_position=MAX_FIGURE_WIDTH / 4 + 0.7,
             y_position=1.85,
@@ -420,10 +385,10 @@ def main() -> None:
         FigurePanel(
             letter="",
             path=theta_plot_paths[dataset_high],
-            x_position=3 * MAX_FIGURE_WIDTH / 4 - 0.95,
+            x_position=3 * MAX_FIGURE_WIDTH / 4 - 1.15,
             y_position=1.85,
             x_offset=0.4,
-            y_offset=-0.1,
+            y_offset=0.0,
         ),
         FigurePanel(
             letter="",
