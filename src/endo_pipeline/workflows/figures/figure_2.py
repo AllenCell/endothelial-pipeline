@@ -148,9 +148,9 @@ def main() -> None:
     quiver_plot_paths: dict[str, Path] = {}
     theta_plot_paths: dict[str, Path] = {}
     crop_contact_sheet_paths: dict[str, Path] = {}
-    for dataset_name, include_legend, arrow_scale_1d in [
-        (dataset_low, True, 3.25),
-        (dataset_high, False, 1.0),
+    for dataset_name, include_legend, arrow_scale_1d, contact_sheet_title in [
+        (dataset_low, True, 3.25, "Reconstructed VE-cadherin\nat stable fixed points"),
+        (dataset_high, False, 1.0, None),
     ]:
         fig_savedir = get_output_path("figure_2", dataset_name)
         dataset_config = load_dataset_config(dataset_name)
@@ -298,6 +298,7 @@ def main() -> None:
             fig_kwargs={"figsize": (1.1, 1.6), "layout": "constrained"},
             random_seed=7,
             num_gpus=NUM_GPUS,
+            title=contact_sheet_title,
         )
 
     # --- Cross-dataset summary plots ---

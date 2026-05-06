@@ -29,7 +29,7 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.figures import FONTSIZE_MEDIUM
+from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.image_data import (
     DIFFAE_ZARR_RESOLUTION_LEVEL,
@@ -261,7 +261,6 @@ def make_1d_drift_plot_panel(
 
 
 def make_crop_example_contact_sheet(
-    dataset_config: DatasetConfig,
     stable_fixed_point_dataframe: pd.DataFrame,
     feature_column_names: list[str],
     model: DiffusionAutoEncoder,
@@ -274,6 +273,7 @@ def make_crop_example_contact_sheet(
     num_gpus: int | None = None,
     random_seed: int | None = RANDOM_SEED,
     scale_bar_um: int = 10,
+    title: str | None = None,
 ) -> Path:
     """
     Make figure panel plot showing example crops at stable fixed points.
@@ -291,9 +291,6 @@ def make_crop_example_contact_sheet(
 
     Parameters
     ----------
-    dataset_config
-        DatasetConfig object containing metadata about the dataset, used to load
-        the real images.
     stable_fixed_point_dataframe
         DataFrame containing the coordinates of the stable fixed points.
     feature_column_names
@@ -349,12 +346,12 @@ def make_crop_example_contact_sheet(
         panels=generated_image_list,
         max_rows=n_crop_examples,
         max_cols=1,
-        col_titles=["Reconstructed\nVE-cadherin"],
+        col_titles=[title] if title is not None else None,
         direction="top-down first",
         gridspec_kwargs=gridspec_kwargs,
         subplot_kwargs={"frame_on": False},
         fig_kwargs=fig_kwargs,
-        font_size=FONTSIZE_MEDIUM,
+        font_size=FONTSIZE_SMALL,
     )
 
     for i, ax in enumerate(fig.axes):
