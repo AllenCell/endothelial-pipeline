@@ -377,12 +377,20 @@ def main() -> None:
             y_offset=0.0,
         ),
         FigurePanel(
-            letter="B",
+            letter="",
             path=theta_plot_paths[dataset_low],
             x_position=3 * MAX_FIGURE_WIDTH / 4 - 0.35,
             y_position=0.0,
             x_offset=0.4,
             y_offset=-0.2,
+        ),
+        FigurePanel(
+            letter="B",
+            path=crop_contact_sheet_paths[dataset_low],
+            x_position=0.0,
+            y_position=3.8,
+            x_offset=0.08,
+            y_offset=0.12,
         ),
         # --- High flow dataset (row 2) ---
         FigurePanel(
@@ -410,33 +418,24 @@ def main() -> None:
             y_offset=-0.1,
         ),
         FigurePanel(
-            letter="D",
+            letter="",
             path=theta_plot_paths[dataset_high],
             x_position=3 * MAX_FIGURE_WIDTH / 4 - 0.35,
             y_position=1.85,
             x_offset=0.4,
             y_offset=-0.2,
         ),
-        # --- Contact sheets (row 3) ---
         FigurePanel(
-            letter="E",
-            path=crop_contact_sheet_paths[dataset_low],
-            x_position=0.0,
-            y_position=3.8,
-            x_offset=0.08,
-            y_offset=0.12,
-        ),
-        FigurePanel(
-            letter="F",
+            letter="D",
             path=crop_contact_sheet_paths[dataset_high],
             x_position=MAX_FIGURE_WIDTH / 2,
             y_position=3.8,
             x_offset=0.08,
             y_offset=0.12,
         ),
-        # --- Bottom row ---
+        # --- Bottom row: migration coherence and summary plot ---
         FigurePanel(
-            letter="G",
+            letter="E",
             path=base_output_dir / "migration_coherence_distribution_high_low_flow_comparison.svg",
             x_position=0,
             y_position=6.0,
@@ -444,7 +443,7 @@ def main() -> None:
             y_offset=0,
         ),
         FigurePanel(
-            letter="H",
+            letter="F",
             path=base_output_dir
             / "polar_theta_polar_r_rho_ema01_optical_flow_mean_unit_vector_dt1_fp_vs_shear_stress.svg",
             x_position=2.1,
