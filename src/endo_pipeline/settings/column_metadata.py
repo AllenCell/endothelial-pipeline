@@ -565,7 +565,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         type=ColumnType.CONTINUOUS,
     ),
     Column.VectorField.PEARSON_R: ColumnMetadata(
-        name="Pearson correlation coefficient",
+        name="Pearson r of MFPT\n(grid versus track-based)",
         label="Pearson r",
         type=ColumnType.CONTINUOUS,
     ),
