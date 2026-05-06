@@ -105,6 +105,7 @@ def plot_and_save_heatmap(
     ax.set_yticklabels(
         ax.get_yticklabels(),
         rotation=0,
+        ha="right",
         fontsize=label_fontsize,
     )
     if y_axis_label_coords is not None:
