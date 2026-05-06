@@ -96,7 +96,7 @@ def plot_and_save_heatmap(
     # Set tick label rotation
     ax.set_xticklabels(
         ax.get_xticklabels(),
-        rotation=45,
+        rotation=0, #60,
         ha="right",
         rotation_mode="anchor",
         fontsize=label_fontsize,
