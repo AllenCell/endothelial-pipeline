@@ -289,7 +289,12 @@ def main() -> None:
     # filter to just the datasets included in the summary plot
     line_fit_df = line_fit_df[line_fit_df[Column.DATASET].isin(dataset_summary_list)]
     filename_summary = "first_passage_time_correlation_summary"
-    plot_first_passage_time_correlation_summary(line_fit_df, base_output_dir, filename_summary)
+    plot_first_passage_time_correlation_summary(
+        line_fit_df,
+        base_output_dir,
+        filename_summary,
+        summary_fig_kwargs={"figsize": (2.0, 2.0), "layout": "constrained"},
+    )
 
     # --- Assemble all panels into final figure ---
     panels = [

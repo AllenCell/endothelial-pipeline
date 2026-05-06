@@ -1476,6 +1476,7 @@ def plot_first_passage_time_correlation_summary(
     filename: str,
     corr_metric_column: Column.VectorField = Column.VectorField.PEARSON_R,
     slope_column: Column.VectorField = Column.VectorField.LINEFIT_SLOPE,
+    summary_fig_kwargs: dict | None = {"figsize": (6, 2.5)},
 ) -> None:
     """Plot a summary of the correlation results from the first passage time
     analysis across all datasets and fixed points as it will appear in the figure.
@@ -1505,7 +1506,7 @@ def plot_first_passage_time_correlation_summary(
     ys = first_passage_time_correlation_summary_df[corr_metric_column]
     ys2 = first_passage_time_correlation_summary_df[slope_column]
 
-    fig, ax = plt.subplots(figsize=(6, 2.5))
+    fig, ax = plt.subplots(**(summary_fig_kwargs or {}))
     sns.stripplot(
         x=xs,
         y=ys,
