@@ -41,7 +41,7 @@ def main():
     create_panel_patch_featurization(
         example=FIGURE_1_PATCH_FT_EXAMPLE_IMAGE,
         save_dir=save_dir,
-        figure_size=(2.2, 2.1),
+        figure_size=(2.0, 1.8),
     )
 
     # Correlation heatmaps of ml learned and measured features
@@ -101,7 +101,7 @@ def main():
             letter="E",
             path=save_dir2 / "correlation_ml_based_features_vs_measured_features_heatmap.svg",
             x_position=4,
-            y_position=4.1,
+            y_position=3.75,
             x_offset=-0.08,
             y_offset=0,
         ),

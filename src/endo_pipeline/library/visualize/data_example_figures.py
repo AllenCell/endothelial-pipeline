@@ -213,7 +213,7 @@ def create_panel_patch_featurization(
     # Plot as 1 row, 4 columns: BF image | arrows+text | GFP+seg image | arrow+text
 
     fig = plt.figure(figsize=figure_size)
-    gs = GridSpec(2, 2, width_ratios=[1, 0.8], wspace=0.02)
+    gs = GridSpec(2, 2, width_ratios=[1, 0.8], wspace=0.02, hspace=0.02)
 
     # Column 0: BF std dev image
     ax_bf = fig.add_subplot(gs[0, 0])
