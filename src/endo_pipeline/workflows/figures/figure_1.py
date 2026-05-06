@@ -52,7 +52,7 @@ def main():
     )
 
     # Latent walk visualization
-    visualize_latent_walk(figsize=(4, 2.5))
+    visualize_latent_walk(figsize=(4, 1.8))
 
     # Build figure from panels
     save_dir2 = get_output_path(
@@ -95,7 +95,7 @@ def main():
             x_position=0,
             y_position=4.1,
             x_offset=0,
-            y_offset=-0.08,
+            y_offset=0.2,
         ),
         FigurePanel(
             letter="E",
@@ -103,7 +103,7 @@ def main():
             x_position=4,
             y_position=4.1,
             x_offset=-0.08,
-            y_offset=0.2,
+            y_offset=0,
         ),
     ]
     build_figure_from_panels(
