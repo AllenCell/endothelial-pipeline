@@ -46,13 +46,13 @@ def main():
 
     # Correlation heatmaps of ml learned and measured features
     visualize_feature_correlations(
-        figsize_heatmap=(2.5, 3.5),
-        y_axis_label_coords=(-0.1, 0.2),
+        figsize_heatmap=(2.5, 3.0),
+        y_axis_label_coords=None,
         label_fontsize=FONTSIZE_SMALL,
     )
 
     # Latent walk visualization
-    visualize_latent_walk(figsize=(3.75, 1.5))
+    visualize_latent_walk(figsize=(4, 1.5))
 
     # Build figure from panels
     save_dir2 = get_output_path(
@@ -99,8 +99,8 @@ def main():
         ),
         FigurePanel(
             letter="E",
-            path=save_dir2 / "correlation_measured_features_vs_ml-based_features_heatmap.svg",
-            x_position=3.75,
+            path=save_dir2 / "correlation_ml_based_features_vs_measured_features_heatmap.svg",
+            x_position=4,
             y_position=4.1,
             x_offset=-0.08,
             y_offset=0.08,
