@@ -34,14 +34,14 @@ def main():
     create_panel_biological_system_examples(
         examples=FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES,
         save_dir=save_dir,
-        figure_size=(3.5, 2.4),
+        figure_size=(3.9, 2.7),
     )
 
     # Patch featurization example
     create_panel_patch_featurization(
         example=FIGURE_1_PATCH_FT_EXAMPLE_IMAGE,
         save_dir=save_dir,
-        figure_size=(2.2, 2.2),
+        figure_size=(2.2, 2.1),
     )
 
     # Correlation heatmaps of ml learned and measured features
@@ -84,7 +84,7 @@ def main():
         FigurePanel(
             letter="C",
             path=save_dir / "patch_based_featurization_scale_bar_10um.svg",
-            x_position=3.6,
+            x_position=4.0,
             y_position=1.62,
             x_offset=0.08,
             y_offset=0.25,
