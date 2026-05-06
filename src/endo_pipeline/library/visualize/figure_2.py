@@ -528,7 +528,7 @@ def make_first_passage_time_panel(
     correlation_column_name = Column.VectorField.PEARSON_R
     correlation_label = cast(str, COLUMN_METADATA[correlation_column_name].label)
     for _, row in line_fit_df.iterrows():
-        y_val = row[metric_to_plot]
+        y_val = row[correlation_column_name]
         ax.scatter(
             row_to_x(row),
             y_val,
