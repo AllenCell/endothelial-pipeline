@@ -286,7 +286,6 @@ def main() -> None:
         # make contact sheet of example ve-cadherin reconstruction at stable
         # fixed points for this dataset
         crop_contact_sheet_paths[dataset_name] = make_crop_example_contact_sheet(
-            dataset_config=dataset_config,
             stable_fixed_point_dataframe=stable_fixed_points_dict[feature_columns_str],
             feature_column_names=feature_column_names,
             model=model,
