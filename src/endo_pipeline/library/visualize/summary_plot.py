@@ -31,6 +31,7 @@ from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
     METADATA_COLUMNS_TO_KEEP,
+    POLAR_ANGLE_PERIOD,
 )
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
@@ -430,8 +431,11 @@ def _convert_polar_angle_to_nematic_order(df: pd.DataFrame) -> pd.DataFrame:
             nematic_mean = row[nematic_mean_col]
             # Compute the derivative f'(theta) at the mean angle
             f_prime = -2 * np.sin(2 * theta_mean)
+            # Compute the circular/unwrapped difference between the CI angle and
+            # the mean angle to avoid issues with angle wrapping around the periodic boundary.
+            circ_diff = np.diff(np.unwrap([theta_mean, theta_ci], period=POLAR_ANGLE_PERIOD))[-1]
             # Approximate the nematic order CI using the chain rule
-            df.at[idx, nematic_ci_col] = nematic_mean + f_prime * (theta_ci - theta_mean)
+            df.at[idx, nematic_ci_col] = nematic_mean + f_prime * circ_diff
 
     return df
 
