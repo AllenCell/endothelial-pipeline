@@ -275,7 +275,7 @@ def main() -> None:
             fig_filename=f"{dataset_name}_crop_examples",
             file_format=".svg",
             gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
-            fig_kwargs={"figsize": (1.0, 1.4), "layout": "constrained"},
+            fig_kwargs={"figsize": (1.15, 1.75), "layout": "constrained"},
             random_seed=7,
             num_gpus=NUM_GPUS,
         )
@@ -395,7 +395,7 @@ def main() -> None:
             x_position=MAX_FIGURE_WIDTH - 1.25,
             y_position=2.1,
             x_offset=0.15,
-            y_offset=0.25,
+            y_offset=0.15,
         ),
         # --- Bottom row: migration coherence and summary plot ---
         FigurePanel(

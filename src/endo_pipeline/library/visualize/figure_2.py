@@ -348,7 +348,9 @@ def make_1d_drift_plot_panel(
     ax.set_box_aspect(1.0)
     ax.set_xticks(axes_xticks, labels=axes_xtick_labels)
     ax.set_yticks(axes_yticks)
-    save_plot_to_path(fig, fig_savedir, filename, file_format=".svg")
+    save_plot_to_path(
+        fig, fig_savedir, filename, file_format=".svg", tight_layout=False, transparent=True
+    )
 
     return fig_savedir / f"{filename}.svg"
 
