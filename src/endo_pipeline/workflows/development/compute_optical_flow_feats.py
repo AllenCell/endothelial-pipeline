@@ -552,14 +552,16 @@ def main(  # noqa: C901
             df_position = df_position.merge(
                 df_flow_pivoted,
                 left_on=[Column.CROP_INDEX, Column.TIMEPOINT],
-                right_on=["crop_index", "timepoint"],
+                right_on=["crop_index", Column.TIMEPOINT],
                 how="left",
-            ).drop(columns=["crop_index_y", "timepoint_y"], errors="ignore")
+            ).drop(columns=["crop_index_y", f"{Column.TIMEPOINT}_y"], errors="ignore")
             # rename back if pandas suffixed them
             if "crop_index_x" in df_position.columns:
                 df_position.rename(columns={"crop_index_x": Column.CROP_INDEX}, inplace=True)
-            if "timepoint_x" in df_position.columns:
-                df_position.rename(columns={"timepoint_x": Column.TIMEPOINT}, inplace=True)
+            if f"{Column.TIMEPOINT}_x" in df_position.columns:
+                df_position.rename(
+                    columns={f"{Column.TIMEPOINT}_x": Column.TIMEPOINT}, inplace=True
+                )
 
             for col in flow_columns:
                 if col not in df_position.columns:
