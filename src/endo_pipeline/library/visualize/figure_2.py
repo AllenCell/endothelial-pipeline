@@ -537,7 +537,7 @@ def make_first_passage_time_panel(
     ax.set_xticks(tick_positions)
     ax.set_xticklabels(tick_labels)
     ax.set_xlim(tick_positions[0] - 0.5, tick_positions[-1] + 0.5)
-    ax.set_xlabel(f"Shear stress (dyn/cm{Unicode.SQUARED})", labelpad=2)
+    ax.set_xlabel(f"Shear stress (dyn/cm{Unicode.SQUARED})", fontsize=FONTSIZE_XSMALL)
     ax.set_ylabel(correlation_label, labelpad=2)
     ax.grid(axis="y", alpha=0.3)
 
