@@ -509,6 +509,10 @@ def make_first_passage_time_panel(
         shear_stress_bin = dataset_config.flow_conditions[-1].shear_stress_bin
         line_fit_df.loc[df_dataset.index, "flow_condition_shear_stress_bin"] = shear_stress_bin
 
+    line_fit_df["flow_condition_shear_stress_bin"] = line_fit_df[
+        "flow_condition_shear_stress_bin"
+    ].astype(int)
+
     filename_summary = "first_passage_time_correlation_summary"
     dataset_color_map = {
         ds: DATASET_COLOR_MAP.get(ds, COLOR_PALETTE[i % len(COLOR_PALETTE)])
@@ -539,8 +543,8 @@ def make_first_passage_time_panel(
     ax.set_xticks(tick_positions)
     ax.set_xticklabels(tick_labels)
     ax.set_xlim(tick_positions[0] - 0.5, tick_positions[-1] + 0.5)
-    ax.set_xlabel(f"Shear stress (dyn/cm{Unicode.SQUARED})", fontsize=FONTSIZE_XSMALL)
-    ax.set_ylabel(correlation_label, labelpad=2)
+    ax.set_xlabel(f"Shear stress (dyn/cm{Unicode.SQUARED})", fontsize=FONTSIZE_MEDIUM)
+    ax.set_ylabel(correlation_label, labelpad=1)
     ax.grid(axis="y", alpha=0.3)
 
     save_plot_to_path(
