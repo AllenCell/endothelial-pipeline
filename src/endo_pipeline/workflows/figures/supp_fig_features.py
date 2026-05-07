@@ -2,7 +2,7 @@ def main() -> None:
     """Main function to general Supp. Fig. showing PC-based feature derivation and interpretation."""
     import matplotlib.pyplot as plt
 
-    from endo_pipeline.cli import DEMO_MODE, NUM_GPUS
+    from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.cli.demo_mode_defaults import use_default_collection
     from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.pca import fit_pca
@@ -50,29 +50,27 @@ def main() -> None:
     ml_columns = DIFFAE_PC_COLUMN_NAME_GROUPS["supp_figure"]
     measured_feature_columns = SEGMENTATION_FEATURE_COLUMNS["supp_figure"]
 
-    if not DEMO_MODE:
-        # Long operation: takes several minutes
-        df = get_df_for_feature_correlation_viz(
-            dataset_name_list=dataset_name_list,
-            dataset_info_columns=DATASET_INFO_COLUMNS,
-            segmentation_feature_columns=measured_feature_columns,
-            pc_columns=ml_columns,
-        )
+    df = get_df_for_feature_correlation_viz(
+        dataset_name_list=dataset_name_list,
+        dataset_info_columns=DATASET_INFO_COLUMNS,
+        segmentation_feature_columns=measured_feature_columns,
+        pc_columns=ml_columns,
+    )
 
-        label_column_tuples = [
-            ("ML-based Features", [get_label_for_column(col) for col in ml_columns]),
-            ("Measured Features", [get_label_for_column(col) for col in measured_feature_columns]),
-        ]
+    label_column_tuples = [
+        ("ML-based Features", [get_label_for_column(col) for col in ml_columns]),
+        ("Measured Features", [get_label_for_column(col) for col in measured_feature_columns]),
+    ]
 
-        visualize_correlation_heatmaps(
-            dataset_name="aggregate",
-            df_dataset=df,
-            label_column_tuples=label_column_tuples,
-            out_dir=save_dir,
-            cross_correlation_only=True,
-            figsize_cluster_heatmap=(MAX_FIGURE_WIDTH - 1.7, 2.75),
-            y_axis_label_coords=None,
-        )
+    visualize_correlation_heatmaps(
+        dataset_name="aggregate",
+        df_dataset=df,
+        label_column_tuples=label_column_tuples,
+        out_dir=save_dir,
+        cross_correlation_only=True,
+        figsize_cluster_heatmap=(MAX_FIGURE_WIDTH - 1.7, 2.75),
+        y_axis_label_coords=None,
+    )
 
     # perform latent walk along top 3 PCs and save the resulting contact sheet
     latent_walk_filename = "latent_walk_top_3_pcs"
@@ -123,6 +121,14 @@ def main() -> None:
             y_offset=0.0,
         ),
         FigurePanel(
+            letter="B",
+            path=save_dir / "correlation_ml-based_features_vs_measured_features_heatmap.svg",
+            x_position=1.9,
+            y_position=0.0,
+            x_offset=-0.1,
+            y_offset=-0.1,
+        ),
+        FigurePanel(
             letter="D",
             path=latent_walk_2d_path,
             x_position=0.1,
@@ -139,17 +145,6 @@ def main() -> None:
             y_offset=0.0,
         ),
     ]
-    panel_b_path = save_dir / "correlation_ml-based_features_vs_measured_features_heatmap.svg"
-    if not DEMO_MODE or (DEMO_MODE and panel_b_path.exists()):
-        panel_b = FigurePanel(
-            letter="B",
-            path=panel_b_path,
-            x_position=1.9,
-            y_position=0,
-            x_offset=-0.1,
-            y_offset=-0.1,
-        )
-        panels.append(panel_b)
 
     build_figure_from_panels(
         panels, save_dir / "supp_fig_features.svg", width=MAX_FIGURE_WIDTH, height=7.7
