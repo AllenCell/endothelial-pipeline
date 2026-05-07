@@ -10,10 +10,10 @@ DRIFT_CONTOUR_LEVELS: int = 50
 DRIFT_CONTOUR_COLORMAP: str = "RdBu_r"
 """Colormap to use for contour plots of drift components."""
 
-DRIFT_CONTOUR_CBAR_NUM_TICKS: int = 7
+DRIFT_CONTOUR_CBAR_NUM_TICKS: int = 3
 """Number of ticks to use in colorbar for contour plots of drift components."""
 
-DRIFT_CONTOUR_CBAR_ROUND: int = 2
+DRIFT_CONTOUR_CBAR_ROUND: int = 1
 """Number of decimal places to round colorbar ticks to in contour plots of drift
 components."""
 

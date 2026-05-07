@@ -4,9 +4,13 @@ import math
 from pathlib import Path
 from typing import Literal
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.cm import ScalarMappable
+from matplotlib.colors import TwoSlopeNorm
 from matplotlib.layout_engine import ConstrainedLayoutEngine
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 from endo_pipeline.configs import DatasetConfig
 from endo_pipeline.io import load_image, save_plot_to_path
@@ -29,7 +33,14 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.figures import FONTSIZE_MEDIUM
+from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_XSMALL
+from endo_pipeline.settings.flow_field_2d import (
+    DRIFT_CONTOUR_CBAR_NUM_TICKS,
+    DRIFT_CONTOUR_CBAR_ROUND,
+    DRIFT_CONTOUR_COLORMAP,
+    DRIFT_CONTOUR_VMAX,
+    DRIFT_CONTOUR_VMIN,
+)
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.image_data import (
     DIFFAE_ZARR_RESOLUTION_LEVEL,
@@ -38,6 +49,82 @@ from endo_pipeline.settings.image_data import (
 from endo_pipeline.settings.plot_defaults import CROP_HIST_BIN_WIDTH, FIXED_POINT_PLOT_STYLE
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
+
+
+def _add_colorbar_to_contour_plot(
+    fig: plt.Figure,
+    axes: plt.Axes,
+    vmin: float = DRIFT_CONTOUR_VMIN,
+    vmax: float = DRIFT_CONTOUR_VMAX,
+    ticks: np.ndarray | None = None,
+    tick_label_round: int = DRIFT_CONTOUR_CBAR_ROUND,
+    colormap: str = DRIFT_CONTOUR_COLORMAP,
+    orientation: Literal["vertical", "horizontal"] = "horizontal",
+    cax_position: Literal["top", "bottom", "left", "right"] = "top",
+    extend: Literal["neither", "both", "min", "max"] = "both",
+    pad: float = 0.03,
+) -> None:
+    """
+    Add a colorbar to a contour plot with specified formatting.
+
+    Parameters
+    ----------
+    fig
+        Matplotlib figure object containing the contour plot.
+    axes
+        Matplotlib axes object containing the contour plot.
+    vmin
+        Minimum value for the colorbar.
+    vmax
+        Maximum value for the colorbar.
+    ticks
+        Array of tick values for the colorbar. If None, ticks will be generated
+        automatically based on `vmin`, `vmax`, and
+        `DRIFT_CONTOUR_CBAR_NUM_TICKS`.
+    tick_label_round
+        Number of decimal places to round colorbar tick labels to.
+    colormap
+        Colormap to use for the colorbar.
+    orientation
+        Orientation of the colorbar, either "vertical" or "horizontal".
+    cax_position
+        Position of the colorbar axes relative to the main axes, one of "top",
+        "bottom", "left", or "right".
+    pad
+        Padding between the main axes and the colorbar axes, in inches.
+
+    """
+    cax = inset_axes(
+        axes,
+        width="100%",
+        height="5%",
+        loc="lower left",
+        bbox_to_anchor=(0, 1.0 + pad, 1, 1),
+        bbox_transform=axes.transAxes,
+        borderpad=0,
+    )
+
+    color_mappable = ScalarMappable(
+        norm=TwoSlopeNorm(vmin=vmin, vmax=vmax, vcenter=0), cmap=colormap
+    )
+    colorbar_ticks = (
+        ticks
+        if ticks is not None
+        else np.linspace(
+            np.round(vmin, tick_label_round),
+            np.round(vmax, tick_label_round),
+            DRIFT_CONTOUR_CBAR_NUM_TICKS,
+        )
+    )
+    colorbar_ticks = np.round(colorbar_ticks, tick_label_round)
+
+    fig.colorbar(
+        color_mappable, cax=cax, orientation=orientation, ticks=colorbar_ticks, extend=extend
+    )
+
+    tick_axis = cax.xaxis if orientation == "horizontal" else cax.yaxis
+    tick_axis.set_ticks_position(cax_position)
+    tick_axis.set_label_position(cax_position)
 
 
 def make_2d_contour_plot_panel(
@@ -59,6 +146,7 @@ def make_2d_contour_plot_panel(
     xlabel_kwargs: dict | None,
     ylabel_kwargs: dict | None,
     axes_title_kwargs: dict | None,
+    include_colorbar: bool = False,
 ) -> Path:
     """
     Make and save plot of drift contours in (r, rho) space for a given dataset.
@@ -103,6 +191,11 @@ def make_2d_contour_plot_panel(
         fontsize=FONTSIZE_MEDIUM,
         fontweight="bold",
     )
+
+    # if indicated, add colorbar to the top of the first subplot with ticks and
+    # label formatting
+    if include_colorbar:
+        _add_colorbar_to_contour_plot(fig, ax[0])
 
     save_plot_to_path(
         fig,
@@ -255,12 +348,163 @@ def make_1d_drift_plot_panel(
     ax.set_box_aspect(1.0)
     ax.set_xticks(axes_xticks, labels=axes_xtick_labels)
     ax.set_yticks(axes_yticks)
-    save_plot_to_path(fig, fig_savedir, filename, file_format=".svg")
+    save_plot_to_path(
+        fig, fig_savedir, filename, file_format=".svg", tight_layout=False, transparent=True
+    )
 
     return fig_savedir / f"{filename}.svg"
 
 
 def make_crop_example_contact_sheet(
+    stable_fixed_point_dataframe: pd.DataFrame,
+    feature_column_names: list[str],
+    model: DiffusionAutoEncoder,
+    n_crop_examples: int,
+    fig_savedir: Path,
+    fig_filename: str,
+    file_format: Literal[".svg", ".png", ".pdf"] = ".svg",
+    gridspec_kwargs: dict | None = None,
+    fig_kwargs: dict | None = None,
+    num_gpus: int | None = None,
+    random_seed: int | None = RANDOM_SEED,
+    scale_bar_um: int = 10,
+    title: str | None = None,
+) -> Path:
+    """
+    Make figure panel plot showing example crops at stable fixed points.
+
+    Three types of image crops are shown:
+        1. Synthetic "VE-cadherin" images generated by the DiffAE from the
+           stable fixed point coordinates.
+        2. Real VE-cadherin (max. intensity projection) images corresponding to
+           the stable fixed point coordinates.
+        3. Real brightfield (standard deviation projection) images corresponding
+           to the stable fixed point coordinates.
+
+    The examples are assembled as a contact sheet with 3 columns and
+    n_crop_examples rows.
+
+    Parameters
+    ----------
+    stable_fixed_point_dataframe
+        DataFrame containing the coordinates of the stable fixed points.
+    feature_column_names
+        List of column names in the DataFrame corresponding to the stable fixed
+        point coordinates.
+    model
+        DiffusionAutoEncoder model used to generate synthetic images.
+    n_crop_examples
+        Number of crop examples of each type to show in the figure panel.
+    fig_savedir
+        Directory to save the figure to.
+    fig_filename
+        Filename to save the figure as.
+    file_format
+        File format to save the figure as.
+    gridspec_kwargs
+        Additional keyword arguments for the gridspec layout of the contact
+        sheet.
+    fig_kwargs
+        Additional keyword arguments for the figure layout of the contact sheet.
+    num_gpus
+        Number of GPUs to use for image generation. If None, will use all
+        available GPUs.
+    random_seed
+        Random seed for reproducibility of image generation. If None, will use a
+        random seed.
+    scale_bar_um
+        Length of the scale bar in micrometers.
+
+    Returns
+    -------
+    :
+        Path to the saved figure.
+
+    """
+    if len(stable_fixed_point_dataframe) > 1:
+        raise ValueError(
+            "Expected stable_fixed_point_dataframe to contain only one row, but it contains "
+            f"{len(stable_fixed_point_dataframe)} rows."
+        )
+
+    generated_images = generate_from_dataframe(
+        stable_fixed_point_dataframe,
+        feature_column_names,
+        model,
+        num_gpus=num_gpus,
+        random_seed=random_seed,
+        n_noise_samples=n_crop_examples,
+    )
+    generated_image_list = [generated_images[i] for i in range(len(generated_images))]
+
+    fig = make_contact_sheet(
+        panels=generated_image_list,
+        max_rows=n_crop_examples,
+        max_cols=1,
+        direction="top-down first",
+        gridspec_kwargs=gridspec_kwargs,
+        subplot_kwargs={"frame_on": False},
+        fig_kwargs=fig_kwargs,
+    )
+
+    for i, ax in enumerate(fig.axes):
+        ax.xaxis.labelpad = 2
+        ax.yaxis.labelpad = 2
+        ax.tick_params(axis="both", pad=2)
+
+        add_scalebar(
+            ax,
+            scale_bar_um=scale_bar_um,
+            pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
+            location="lower right",
+            bar_thickness=4,
+            padding=6,
+            include_label=True if i == 0 else False,
+        )
+
+    # if `title` is provided, add title above the first panel
+    if title is not None:
+        # expand the figure height to make room for the title so the axes
+        # content is not squashed
+        fig_width, fig_height = fig.get_size_inches()
+        title_space_in = 0.25  # inches of extra height reserved for the title
+        new_height = fig_height + title_space_in
+        fig.set_size_inches(fig_width, new_height)
+
+        # axes content occupies the bottom `content_top` fraction of the new height
+        content_top = fig_height / new_height
+        layout_engine = fig.get_layout_engine()
+        if isinstance(layout_engine, ConstrainedLayoutEngine):
+            layout_engine.set(rect=(0.0, 0, 1, content_top))
+
+        fig.text(
+            0.5,
+            content_top + (1 - content_top) / 2,  # centred in the title band
+            title,
+            va="center",
+            ha="center",
+            rotation="horizontal",
+            fontsize=FONTSIZE_XSMALL,
+            fontweight="bold",
+        )
+
+    save_plot_to_path(
+        fig,
+        fig_savedir,
+        fig_filename,
+        file_format=file_format,
+        tight_layout=False,
+        pad_inches=0,
+    )
+
+    return fig_savedir / f"{fig_filename}{file_format}"
+
+
+# -----------------------------------------------------------------------
+# deprecated function for figure 2 workflow, to be moved to corresponding
+# supplementary figure workflow module
+# -----------------------------------------------------------------------
+def _make_crop_example_contact_sheet(
     dataset_config: DatasetConfig,
     stable_fixed_point_dataframe: pd.DataFrame,
     crop_features_dataframe: pd.DataFrame,
@@ -320,6 +564,11 @@ def make_crop_example_contact_sheet(
         sheet.
     fig_kwargs
         Additional keyword arguments for the figure layout of the contact sheet.
+    bin_width_real_crops
+        Bin width in feature space to use when filtering real crops to those
+        near the stable fixed point coordinates.
+    image_loading_resolution_level
+        Resolution level to load the real images at.
     num_gpus
         Number of GPUs to use for image generation. If None, will use all
         available GPUs.
