@@ -384,15 +384,55 @@ def plot_fixed_points_vs_shear_stress(
 
 
 def _convert_polar_angle_to_nematic_order(df: pd.DataFrame) -> pd.DataFrame:
-    """Convert polar angle to nematic order in the dataframe."""
+    """
+    Convert polar angle to nematic order in the given dataframe.
+
+    Converts polar angle columns (e.g. `"polar_angle"`,
+    `"polar_angle_cluster_mean"`) to nematic order using the transformation:
+
+    ..math::
+        S = cos(2*theta)
+
+    Also applies the chain rule to approximate confidence intervals for the
+    nematic order based on the polar angle confidence intervals. For example,
+    the upper CI for the nematic order is approximated as:
+
+    ..math::
+        CI_{upper}^S = S_{mean} + f'(theta_{mean}) * (theta_{CI_{upper}} - theta_{mean})
+    """
     for column_suffix in [
         "",
-        f"_{ColumnName.BootstrapAnalysis.CI_LOWER}",
-        f"_{ColumnName.BootstrapAnalysis.CI_UPPER}",
+        f"_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
     ]:
         df[f"{ColumnName.DiffAEData.NEMATIC_ORDER}{column_suffix}"] = df[
             f"{ColumnName.DiffAEData.POLAR_ANGLE}{column_suffix}"
         ].apply(lambda theta: (np.cos(2 * theta)))
+
+    # Use chain rule to approximate transformed confidence intervals for nematic
+    # order based on polar angle CIs:
+    #    S_CI_upper = S_mean + f'(theta_mean) * (theta_CI_upper - theta_mean)
+    #    S_CI_lower = S_mean + f'(theta_mean) * (theta_CI_lower - theta_mean)
+    # where S_mean = cos(2*theta_mean) is the nematic order at the mean angle, and
+    # f'(theta) = -2*sin(2*theta) is the derivative of the nematic order function.
+    for ci_type in [ColumnName.BootstrapAnalysis.CI_LOWER, ColumnName.BootstrapAnalysis.CI_UPPER]:
+        angle_mean_col = (
+            f"{ColumnName.DiffAEData.POLAR_ANGLE}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}"
+        )
+        angle_ci_col = f"{ColumnName.DiffAEData.POLAR_ANGLE}_{ci_type}"
+        nematic_mean_col = (
+            f"{ColumnName.DiffAEData.NEMATIC_ORDER}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}"
+        )
+        nematic_ci_col = f"{ColumnName.DiffAEData.NEMATIC_ORDER}_{ci_type}"
+
+        for idx, row in df.iterrows():
+            theta_mean = row[angle_mean_col]
+            theta_ci = row[angle_ci_col]
+            nematic_mean = row[nematic_mean_col]
+            # Compute the derivative f'(theta) at the mean angle
+            f_prime = -2 * np.sin(2 * theta_mean)
+            # Approximate the nematic order CI using the chain rule
+            df.at[idx, nematic_ci_col] = nematic_mean + f_prime * (theta_ci - theta_mean)
+
     return df
 
 
