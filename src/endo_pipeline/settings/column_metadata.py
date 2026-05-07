@@ -212,7 +212,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.SegData.CELL_FLUOR_MEAN: ColumnMetadata(
         name="Mean VE-Cad fluorescence in cell",
-        label="Cell mean fluorescence",
+        label="Cell mean\nfluorescence",
         unit="a.u.",
         min=120,
         max=150,
@@ -226,7 +226,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.SegData.EDGE_FLUOR_MEAN: ColumnMetadata(
         name="Mean VE-Cad fluorescence at edges",
-        label="Cell edge mean fluorescence",
+        label="Cell edge mean\nfluorescence",
         unit="a.u.",
         min=100,
         max=200,
@@ -277,7 +277,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.SegData.NUM_NUCLEI_IN_CROP: ColumnMetadata(
         name="Number of nuclei in patch",
-        label="Number of nuclei in patch",
+        label="Number of nuclei\nin patch",
         min=0,
         type=ColumnType.DISCRETE,
     ),

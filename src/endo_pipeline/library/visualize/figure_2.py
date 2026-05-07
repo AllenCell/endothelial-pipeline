@@ -397,6 +397,11 @@ def make_crop_example_contact_sheet(
         sheet.
     fig_kwargs
         Additional keyword arguments for the figure layout of the contact sheet.
+    bin_width_real_crops
+        Bin width in feature space to use when filtering real crops to those
+        near the stable fixed point coordinates.
+    image_loading_resolution_level
+        Resolution level to load the real images at.
     num_gpus
         Number of GPUs to use for image generation. If None, will use all
         available GPUs.

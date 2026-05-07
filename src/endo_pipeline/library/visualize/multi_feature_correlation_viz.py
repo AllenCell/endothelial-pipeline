@@ -12,6 +12,7 @@ import seaborn as sns
 from tqdm import tqdm
 
 from endo_pipeline.io import load_dataframe, save_plot_to_path
+from endo_pipeline.io.output import slugify
 from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
     add_optical_flow_features,
 )
@@ -96,14 +97,15 @@ def plot_and_save_heatmap(
     # Set tick label rotation
     ax.set_xticklabels(
         ax.get_xticklabels(),
-        rotation=45,
-        ha="right",
+        rotation=0,
+        ha="center",
         rotation_mode="anchor",
         fontsize=label_fontsize,
     )
     ax.set_yticklabels(
         ax.get_yticklabels(),
         rotation=0,
+        ha="right",
         fontsize=label_fontsize,
     )
     if y_axis_label_coords is not None:
@@ -323,8 +325,8 @@ def visualize_correlation_heatmaps(
             dataset_name,
         )
 
-        x_filename = x_axis_label.replace(" ", "_").lower()
-        y_filename = y_axis_label.replace(" ", "_").lower()
+        x_filename = slugify(x_axis_label)
+        y_filename = slugify(y_axis_label)
         base_filename = f"correlation_{x_filename}_vs_{y_filename}"
 
         # Extract correlation submatrix from pre-computed correlation matrix
