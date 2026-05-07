@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import logging
 
+import numpy as np
 import pandas as pd
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_dataframe
@@ -125,3 +128,154 @@ def assemble_fixed_points_dataframe(
     if not df_fp_all_list:
         return pd.DataFrame()
     return pd.concat(df_fp_all_list, ignore_index=True)
+
+
+# Coherence column produced by add_binned_mean_to_fixed_points for the
+# UNIT_VECTOR_MEAN optical-flow feature. Defined as a module-level constant so
+# both regression and plotting helpers stay in sync.
+COHERENCE_COLUMN = f"mean_{ColumnName.OpticalFlow.UNIT_VECTOR_MEAN}"
+COHERENCE_CI_LOWER = f"{COHERENCE_COLUMN}_{ColumnName.BootstrapAnalysis.CI_LOWER}"
+COHERENCE_CI_UPPER = f"{COHERENCE_COLUMN}_{ColumnName.BootstrapAnalysis.CI_UPPER}"
+
+
+def build_feature_sets(df: pd.DataFrame) -> dict[str, pd.DataFrame]:
+    """
+    Build named feature matrices for regressing migration coherence.
+
+    Polar angle is encoded as ``(cos theta, sin theta)`` to respect angular
+    periodicity; nematic order is included as the head-tail-symmetric scalar
+    ``cos(2*theta)`` already produced by the assembly step.
+
+    Parameters
+    ----------
+    df
+        Per-fixed-point dataframe produced by
+        :func:`assemble_fixed_points_dataframe`.
+
+    Returns
+    -------
+    dict[str, pandas.DataFrame]
+        Mapping from feature-set name to feature matrix (rows aligned with
+        ``df``).
+    """
+    theta = df[f"{ColumnName.DiffAEData.POLAR_ANGLE}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}"]
+    r = df[f"{ColumnName.DiffAEData.POLAR_RADIUS}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}"]
+    rho = df[f"{ColumnName.DiffAEData.PC3_FLIPPED}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}"]
+    nematic = df[
+        f"{ColumnName.DiffAEData.NEMATIC_ORDER}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}"
+    ]
+    theta_x = np.cos(theta)
+    theta_y = np.sin(theta)
+
+    return {
+        "theta_only": pd.DataFrame({"theta_x": theta_x, "theta_y": theta_y}),
+        "theta_r": pd.DataFrame({"theta_x": theta_x, "theta_y": theta_y, "polar_r": r}),
+        "theta_rho": pd.DataFrame({"theta_x": theta_x, "theta_y": theta_y, "rho": rho}),
+        "full_3d": pd.DataFrame(
+            {"theta_x": theta_x, "theta_y": theta_y, "polar_r": r, "rho": rho}
+        ),
+        "nematic_only": pd.DataFrame({"nematic_order": nematic}),
+        "n_r_rho": pd.DataFrame({"nematic_order": nematic, "polar_r": r, "rho": rho}),
+    }
+
+
+def estimate_noise_floor_mse(df: pd.DataFrame) -> float:
+    """
+    Estimate per-point measurement-noise variance from coherence bootstrap CIs.
+
+    Treats the bootstrap 95%-style CI half-width as ``~1.96 * sigma`` and
+    averages ``sigma**2`` across fixed points. This gives a lower bound on the
+    held-out MSE achievable by any coherence predictor.
+    """
+    half_width = 0.5 * (df[COHERENCE_CI_UPPER] - df[COHERENCE_CI_LOWER])
+    sigma = half_width / 1.96
+    return float(np.mean(sigma**2))
+
+
+def leave_one_dataset_out_regression(
+    df: pd.DataFrame,
+    feature_sets: dict[str, pd.DataFrame] | None = None,
+    target_column: str = COHERENCE_COLUMN,
+    dataset_column: str = ColumnName.DATASET,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Run leave-one-dataset-out linear regression of coherence on each feature set.
+
+    Each fold trains a linear regression on all datasets except one and
+    predicts the held-out dataset's stable points. Predictions are pooled
+    across folds and metrics (R^2, MSE, RMSE) are reported on the pooled
+    held-out predictions.
+
+    Parameters
+    ----------
+    df
+        Per-fixed-point dataframe (already filtered to stable points and to
+        rows with a non-NaN target).
+    feature_sets
+        Mapping from feature-set name to feature matrix. If ``None``, uses
+        :func:`build_feature_sets`.
+    target_column
+        Name of the coherence column.
+    dataset_column
+        Name of the dataset-id column used to define folds.
+
+    Returns
+    -------
+    benchmark : pandas.DataFrame
+        One row per feature set with columns
+        ``["feature_set", "n_features", "n_points", "n_folds", "cv_r2",
+        "cv_mse", "cv_rmse"]``.
+    predictions : pandas.DataFrame
+        Per-point held-out predictions with columns
+        ``["feature_set", dataset_column, "y_true", "y_pred"]``.
+    """
+    if feature_sets is None:
+        feature_sets = build_feature_sets(df)
+
+    datasets = df[dataset_column].unique()
+    if len(datasets) < 2:
+        raise ValueError(
+            f"Leave-one-dataset-out CV requires >=2 datasets, got {len(datasets)}."
+        )
+
+    benchmark_rows: list[dict] = []
+    prediction_frames: list[pd.DataFrame] = []
+    y_full = df[target_column].to_numpy()
+
+    for name, X in feature_sets.items():
+        y_pred = np.full_like(y_full, np.nan, dtype=float)
+        X_arr = X.to_numpy()
+        for held in datasets:
+            train_mask = (df[dataset_column] != held).to_numpy()
+            test_mask = ~train_mask
+            if test_mask.sum() == 0 or train_mask.sum() == 0:
+                continue
+            model = LinearRegression()
+            model.fit(X_arr[train_mask], y_full[train_mask])
+            y_pred[test_mask] = model.predict(X_arr[test_mask])
+
+        valid = ~np.isnan(y_pred)
+        cv_mse = float(mean_squared_error(y_full[valid], y_pred[valid]))
+        benchmark_rows.append(
+            {
+                "feature_set": name,
+                "n_features": X.shape[1],
+                "n_points": int(valid.sum()),
+                "n_folds": int(len(datasets)),
+                "cv_r2": float(r2_score(y_full[valid], y_pred[valid])),
+                "cv_mse": cv_mse,
+                "cv_rmse": float(np.sqrt(cv_mse)),
+            }
+        )
+        prediction_frames.append(
+            pd.DataFrame(
+                {
+                    "feature_set": name,
+                    dataset_column: df[dataset_column].to_numpy()[valid],
+                    "y_true": y_full[valid],
+                    "y_pred": y_pred[valid],
+                }
+            )
+        )
+
+    return pd.DataFrame(benchmark_rows), pd.concat(prediction_frames, ignore_index=True)
