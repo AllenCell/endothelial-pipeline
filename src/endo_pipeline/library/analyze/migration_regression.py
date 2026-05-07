@@ -273,6 +273,7 @@ def leave_one_dataset_out_regression(
                 {
                     "feature_set": name,
                     dataset_column: df[dataset_column].to_numpy()[valid],
+                    "shear_stress": df["flow_condition_shear_stress_bin"].to_numpy()[valid],
                     "y_true": y_full[valid],
                     "y_pred": y_pred[valid],
                 }
@@ -307,7 +308,13 @@ def plot_predictions_scatter(
     ncols = min(3, n)
     nrows = int(np.ceil(n / ncols))
     fig, axs = plt.subplots(
-        nrows, ncols, figsize=(3.0 * ncols, 3.0 * nrows), sharex=True, sharey=True, squeeze=False
+        nrows,
+        ncols,
+        figsize=(3.0 * ncols + 0.6, 3.0 * nrows),
+        sharex=True,
+        sharey=True,
+        squeeze=False,
+        layout="constrained",
     )
 
     y_min = float(min(predictions["y_true"].min(), predictions["y_pred"].min()))
@@ -322,8 +329,17 @@ def plot_predictions_scatter(
         ax = axs[i // ncols][i % ncols]
         sub = predictions[predictions["feature_set"] == fs]
         ax.plot(lim, lim, "k--", linewidth=0.8, alpha=0.5)
-        ax.scatter(
-            sub["y_true"], sub["y_pred"], s=20, edgecolor="black", linewidths=0.4, alpha=0.8
+        scatter = ax.scatter(
+            sub["y_true"],
+            sub["y_pred"],
+            c=sub["shear_stress"],
+            cmap="viridis",
+            vmin=float(predictions["shear_stress"].min()),
+            vmax=float(predictions["shear_stress"].max()),
+            s=20,
+            edgecolor="black",
+            linewidths=0.4,
+            alpha=0.9,
         )
         ax.set_title(f"{fs}\nR² = {r2_by_set[fs]:.3f}  (n = {n_pts_by_set[fs]})", fontsize=10)
         ax.set_xlim(lim)
@@ -338,5 +354,6 @@ def plot_predictions_scatter(
     for j in range(n, nrows * ncols):
         axs[j // ncols][j % ncols].axis("off")
 
-    fig.tight_layout()
+    cbar = fig.colorbar(scatter, ax=axs.ravel().tolist(), shrink=0.8, pad=0.02)
+    cbar.set_label("shear stress (dyn/cm²)")
     return fig
