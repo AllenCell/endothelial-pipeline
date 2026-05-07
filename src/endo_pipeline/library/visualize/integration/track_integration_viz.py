@@ -31,7 +31,8 @@ from endo_pipeline.library.visualize.diffae_features.flow_field_3d import (
     plot_flow_field_slices,
     plot_one_slice_quiver,
 )
-from endo_pipeline.settings import ColumnName as Column
+from endo_pipeline.settings.column_metadata import COLUMN_METADATA
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_SMALL
 from endo_pipeline.settings.flow_field_3d import QUIVER_COLORMAP
@@ -1473,38 +1474,39 @@ def plot_first_passage_time_correlation_summary(
     first_passage_time_correlation_summary_df: pd.DataFrame,
     out_dir: Path,
     filename: str,
+    corr_metric_column: Column.VectorField = Column.VectorField.PEARSON_R,
+    slope_column: Column.VectorField = Column.VectorField.LINEFIT_SLOPE,
+    summary_fig_kwargs: dict | None = {"figsize": (6, 2.5)},
 ) -> None:
     """Plot a summary of the correlation results from the first passage time
     analysis across all datasets and fixed points as it will appear in the figure.
     """
 
-    corr_metric_column = Column.VectorField.PEARSON_R
-    corr_metric_label = "Correlation Coefficient (R)"
-    slope_column = Column.VectorField.LINEFIT_SLOPE
-    slope_label = "Line Fit Slope"
+    corr_metric_label = COLUMN_METADATA[corr_metric_column].label or corr_metric_column
+    slope_label = COLUMN_METADATA[slope_column].label or slope_column
 
     # get the shear stress for the dataset and add that to the labels
     # Snap to ±1 bins; values outside any bin keep their rounded value
-    first_passage_time_correlation_summary_df["shear_stress"] = (
+    first_passage_time_correlation_summary_df[Column.SHEAR_STRESS] = (
         first_passage_time_correlation_summary_df[Column.DATASET].transform(
             lambda ds: _get_shear_stress_for_dataset(ds, binned=False)
         )
     )
-    first_passage_time_correlation_summary_df.sort_values("shear_stress", inplace=True)
-    first_passage_time_correlation_summary_df["shear_stress_rounded"] = (
+    first_passage_time_correlation_summary_df.sort_values(Column.SHEAR_STRESS, inplace=True)
+    first_passage_time_correlation_summary_df[f"{Column.SHEAR_STRESS}_rounded"] = (
         first_passage_time_correlation_summary_df[Column.DATASET].transform(
             lambda ds: _get_shear_stress_for_dataset(ds, binned=True)
         )
     )
 
     xs = first_passage_time_correlation_summary_df[
-        [Column.DATASET, "shear_stress_rounded"]
+        [Column.DATASET, f"{Column.SHEAR_STRESS}_rounded"]
     ].values.tolist()
     xs = [f"{load_dataset_config(dataset_name).date} ({flow})" for dataset_name, flow in xs]
     ys = first_passage_time_correlation_summary_df[corr_metric_column]
     ys2 = first_passage_time_correlation_summary_df[slope_column]
 
-    fig, ax = plt.subplots(figsize=(6, 2.5))
+    fig, ax = plt.subplots(**(summary_fig_kwargs or {}))
     sns.stripplot(
         x=xs,
         y=ys,
