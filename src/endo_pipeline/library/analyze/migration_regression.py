@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression
@@ -279,3 +280,63 @@ def leave_one_dataset_out_regression(
         )
 
     return pd.DataFrame(benchmark_rows), pd.concat(prediction_frames, ignore_index=True)
+
+
+def plot_predictions_scatter(
+    predictions: pd.DataFrame,
+    benchmark: pd.DataFrame,
+) -> plt.Figure:
+    """
+    Plot held-out true vs predicted migration coherence per feature set.
+
+    One subplot per feature set, with a y = x reference line and the CV R^2
+    annotated in the title. Axes are shared so feature sets are visually
+    comparable.
+
+    Parameters
+    ----------
+    predictions
+        Per-point held-out predictions returned by
+        :func:`leave_one_dataset_out_regression`.
+    benchmark
+        Benchmark dataframe returned by
+        :func:`leave_one_dataset_out_regression`. Used for R^2 annotations.
+    """
+    feature_sets = list(benchmark["feature_set"])
+    n = len(feature_sets)
+    ncols = min(3, n)
+    nrows = int(np.ceil(n / ncols))
+    fig, axs = plt.subplots(
+        nrows, ncols, figsize=(3.0 * ncols, 3.0 * nrows), sharex=True, sharey=True, squeeze=False
+    )
+
+    y_min = float(min(predictions["y_true"].min(), predictions["y_pred"].min()))
+    y_max = float(max(predictions["y_true"].max(), predictions["y_pred"].max()))
+    pad = 0.05 * (y_max - y_min)
+    lim = (y_min - pad, y_max + pad)
+
+    r2_by_set = dict(zip(benchmark["feature_set"], benchmark["cv_r2"], strict=False))
+    n_pts_by_set = dict(zip(benchmark["feature_set"], benchmark["n_points"], strict=False))
+
+    for i, fs in enumerate(feature_sets):
+        ax = axs[i // ncols][i % ncols]
+        sub = predictions[predictions["feature_set"] == fs]
+        ax.plot(lim, lim, "k--", linewidth=0.8, alpha=0.5)
+        ax.scatter(
+            sub["y_true"], sub["y_pred"], s=20, edgecolor="black", linewidths=0.4, alpha=0.8
+        )
+        ax.set_title(f"{fs}\nR² = {r2_by_set[fs]:.3f}  (n = {n_pts_by_set[fs]})", fontsize=10)
+        ax.set_xlim(lim)
+        ax.set_ylim(lim)
+        ax.grid(alpha=0.3)
+        if i % ncols == 0:
+            ax.set_ylabel("predicted coherence")
+        if i // ncols == nrows - 1:
+            ax.set_xlabel("true coherence")
+
+    # Hide any unused axes
+    for j in range(n, nrows * ncols):
+        axs[j // ncols][j % ncols].axis("off")
+
+    fig.tight_layout()
+    return fig

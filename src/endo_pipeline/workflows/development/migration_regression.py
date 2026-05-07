@@ -25,11 +25,12 @@ def main(
     import logging
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.io import get_output_path
+    from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.migration_regression import (
         assemble_fixed_points_dataframe,
         estimate_noise_floor_mse,
         leave_one_dataset_out_regression,
+        plot_predictions_scatter,
     )
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName
@@ -103,6 +104,9 @@ def main(
         noise_floor,
         float(noise_floor**0.5),
     )
+
+    fig = plot_predictions_scatter(predictions, benchmark)
+    save_plot_to_path(fig, output_dir, "regression_true_vs_predicted")
 
 
 if __name__ == "__main__":
