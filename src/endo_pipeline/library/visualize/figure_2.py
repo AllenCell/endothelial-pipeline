@@ -520,6 +520,7 @@ def make_first_passage_time_panel(
     }
 
     fig, ax = plt.subplots(**(fig_kwargs or {}))
+    ax = cast(plt.Axes, ax)  # for pylance + type checking purposes
     # Evenly-spaced categorical ticks for each unique shear stress value
     row_to_x, tick_positions, tick_labels = _build_categorical_axis(
         line_fit_df, "flow_condition_shear_stress_bin", jitter_width=0.1, tick_spacing=1
@@ -543,8 +544,10 @@ def make_first_passage_time_panel(
     ax.set_xticks(tick_positions)
     ax.set_xticklabels(tick_labels)
     ax.set_xlim(tick_positions[0] - 0.5, tick_positions[-1] + 0.5)
-    ax.set_xlabel(f"Shear stress (dyn/cm{Unicode.SQUARED})", fontsize=FONTSIZE_MEDIUM)
-    ax.set_ylabel(correlation_label, labelpad=1)
+    ax.set_ylim(0.0, 1.0)
+    ax.set_yticks(np.linspace(0.0, 1.0, 5))
+    ax.set_xlabel(f"Shear stress (dyn/cm{Unicode.SQUARED})", fontsize=FONTSIZE_MEDIUM, labelpad=2)
+    ax.set_ylabel(correlation_label, labelpad=5)
     ax.grid(axis="y", alpha=0.3)
 
     save_plot_to_path(
