@@ -1,8 +1,10 @@
-TAGS = ["validation", "manifests"]
-
-
 def main(dataframe_manifest_name: str) -> None:
-    """Validate a given dataframe manifest."""
+    """
+    Validate a given dataframe manifest.
+
+    #validation #manifests
+    """
+
     import logging
 
     from endo_pipeline.io import load_dataframe

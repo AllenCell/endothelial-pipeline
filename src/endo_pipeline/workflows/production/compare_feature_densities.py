@@ -8,7 +8,7 @@ def main(
     """
     Compare feature densities between cell-centric and grid-based crops.
 
-    #diffae_features #track_integration
+    #diffae-features #track-integration
 
     **Workflow defaults**
     - `datasets`: `DENSITY_PLOT_DEFAULT_DATASET` from `settings.density_comparison_plots`

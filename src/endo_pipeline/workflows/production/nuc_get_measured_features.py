@@ -1,6 +1,4 @@
-from endo_pipeline.cli import Datasets, tags
-
-TAGS = [tags.TEST_READY, tags.CPU_ONLY]
+from endo_pipeline.cli import Datasets
 
 
 def main(
@@ -10,6 +8,8 @@ def main(
     concatenate_tables_only: bool = False,
 ) -> None:
     """Run workflow to measure features from label-free nuclei predictions.
+
+    #test-ready #cpu-only
 
     Measures the label-free nuclei segmentation labels brightfield intensity and centroids and
     matches them to existing cell segmentation labels.

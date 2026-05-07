@@ -1,6 +1,4 @@
-from endo_pipeline.cli import Datasets, tags
-
-TAGS = ["cdh5_segmentation", "tracking", tags.CPU_ONLY, tags.TEST_READY]
+from endo_pipeline.cli import Datasets
 
 
 def main(
@@ -11,6 +9,8 @@ def main(
     """Run the tracking workflow on a dataset, a list of datasets, or a dataset collection.
     Saves a table as a .parquet file containing the cell tracks for each dataset analyzed as well
     as their associated segmentation labels.
+
+    #cdh5-segmentation #tracking #test-ready #cpu-only
 
     The tracking workflow loads the CDH5 segmentations from a single position in a single dataset
     and builds cell tracks by finding which cell segmentations at a given timepoint T and T+1 are

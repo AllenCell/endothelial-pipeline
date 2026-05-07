@@ -1,9 +1,8 @@
-tags = ["validation", "datasets"]
-
-
 def main() -> None:
     """
     Categorizes shear stress regime based on actual values in flow conditions.
+
+    #validation #datasets
 
     If any invalid shear regime annotations are found, the dataset config will
     be re-saved with the correct regime.

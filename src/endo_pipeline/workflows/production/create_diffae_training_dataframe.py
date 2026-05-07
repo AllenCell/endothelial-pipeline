@@ -2,14 +2,14 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-TAGS = ["diffae_model_training"]
-
 
 def main(
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
 ) -> None:
     """
     Generate dataframes with paths to zarr files for training a DiffAE model.
+
+    #diffae #model-training
 
     This script collects zarr file paths from multiple datasets, splits them
     into training and validation sets, and saves them as .csv files in a

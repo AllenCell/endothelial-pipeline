@@ -1,6 +1,4 @@
-from endo_pipeline.cli import Datasets, tags
-
-TAGS = [tags.TEST_READY, tags.CPU_ONLY]
+from endo_pipeline.cli import Datasets
 
 
 def main(
@@ -9,6 +7,8 @@ def main(
     save_output: bool = True,
 ) -> None:
     """Run the CDH5-based measured features extraction workflow.
+
+    #test-ready #cpu-only
 
     Measures cell segmentation alignment to flow, elongation, edge intensity, etc.
 
