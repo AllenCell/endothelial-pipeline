@@ -38,6 +38,7 @@ from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
 from endo_pipeline.settings.summary_plot import COLOR_PALETTE, DATASET_COLOR_MAP
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
 
@@ -536,6 +537,7 @@ def make_first_passage_time_panel(
     ax.set_xticks(tick_positions)
     ax.set_xticklabels(tick_labels)
     ax.set_xlim(tick_positions[0] - 0.5, tick_positions[-1] + 0.5)
+    ax.set_xlabel(f"Shear stress (dyn/cm{Unicode.SQUARED})", labelpad=2)
     ax.set_ylabel(correlation_label, labelpad=2)
     ax.grid(axis="y", alpha=0.3)
 

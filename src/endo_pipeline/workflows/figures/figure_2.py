@@ -283,7 +283,7 @@ def main() -> None:
         first_passage_time_manifest=fpt_manifest,
         datasets=dataset_summary_list,
         fig_savedir=base_output_dir,
-        fig_kwargs={"figsize": (1.45, 2.0), "layout": "constrained"},
+        fig_kwargs={"figsize": (1.45, 1.9), "layout": "constrained"},
     )
 
     # --- Assemble all panels into final figure ---
@@ -370,7 +370,7 @@ def main() -> None:
             x_position=4.6,
             y_position=4.0,
             x_offset=0.25,
-            y_offset=0.1,
+            y_offset=0.15,
         ),
     ]
 
