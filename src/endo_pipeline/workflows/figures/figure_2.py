@@ -140,7 +140,9 @@ def main() -> None:
         colormap=DRIFT_CONTOUR_COLORMAP,
         orientation="vertical",
     )
-    save_plot_to_path(fig, base_output_dir, "colorbar", file_format=".svg", transparent=True)
+    save_plot_to_path(
+        fig, base_output_dir, "colorbar", file_format=".svg", transparent=True, tight_layout=True
+    )
 
     # loop over datasets in collection, compute 2D drift coefficients for each
     # pairwise combination of polar coordinates, and plot contours of drift coefficients
@@ -449,7 +451,7 @@ def main() -> None:
         FigurePanel(
             letter="H",
             path=base_output_dir
-            / "polar_theta_polar_r_rho_ema01_optical_flow_mean_unit_vector_dt1_fp_vs_shear_stress.svg",
+            / "nematic_order_polar_r_rho_ema01_optical_flow_mean_unit_vector_dt1_fp_vs_shear_stress.svg",
             x_position=2.1,
             y_position=6.0,
             x_offset=0,
