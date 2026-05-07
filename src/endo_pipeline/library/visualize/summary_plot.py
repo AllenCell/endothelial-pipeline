@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from endo_pipeline.configs import FlowCondition, load_dataset_config
+from endo_pipeline.configs import DatasetConfig, FlowCondition, load_dataset_config
 from endo_pipeline.io import load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import (
     filter_dataframe_by_shear_stress,
@@ -448,7 +448,7 @@ def _process_bootstrap_dataframe_for_plot(
     x_axis_mode: Literal[
         "dataset", "shear_stress_numeric", "shear_stress_categorical", "cell_line", "flow_switch"
     ],
-    dataset_config,
+    dataset_config: DatasetConfig,
 ) -> pd.DataFrame:
     # Fixed points with binned means for each feature
     n_total = len(df_bootstrap)
