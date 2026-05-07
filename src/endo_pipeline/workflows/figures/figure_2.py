@@ -128,9 +128,9 @@ def main() -> None:
     quiver_plot_paths: dict[str, Path] = {}
     theta_plot_paths: dict[str, Path] = {}
     crop_contact_sheet_paths: dict[str, Path] = {}
-    for dataset_name, include_colorbar, include_legend, arrow_scale_1d, contact_sheet_title in [
-        (dataset_low, True, True, 3.25, "Reconstructed \nVE-cadherin at\nstable fixed point"),
-        (dataset_high, False, False, 1.0, None),
+    for dataset_name, include_colorbar, include_legend, arrow_scale_1d in [
+        (dataset_low, True, True, 3.25),
+        (dataset_high, False, False, 1.0),
     ]:
         fig_savedir = get_output_path("figure_2", dataset_name)
         dataset_config = load_dataset_config(dataset_name)
@@ -275,10 +275,9 @@ def main() -> None:
             fig_filename=f"{dataset_name}_crop_examples",
             file_format=".svg",
             gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
-            fig_kwargs={"figsize": (1.0, 1.4), "layout": "constrained"},
+            fig_kwargs={"figsize": (1.15, 1.75), "layout": "constrained"},
             random_seed=7,
             num_gpus=NUM_GPUS,
-            title=contact_sheet_title,
         )
 
     # --- Cross-dataset summary plots ---
@@ -337,37 +336,37 @@ def main() -> None:
             letter="A",
             path=contour_plot_paths[dataset_low],
             x_position=0,
-            y_position=0.0,
+            y_position=0.15,
             x_offset=0.15,
-            y_offset=0.1,
+            y_offset=-0.05,
         ),
         FigurePanel(
             letter="",
             path=quiver_plot_paths[dataset_low],
             x_position=MAX_FIGURE_WIDTH / 4 + 0.2,
-            y_position=0.0,
+            y_position=0.15,
             x_offset=-0.1,
-            y_offset=0.2,
+            y_offset=0.05,
         ),
         FigurePanel(
             letter="",
             path=theta_plot_paths[dataset_low],
             x_position=MAX_FIGURE_WIDTH / 2 + 0.2,
-            y_position=0.0,
+            y_position=0.15,
             x_offset=0.4,
-            y_offset=0.325,
+            y_offset=0.175,
         ),
         FigurePanel(
-            letter="",
+            letter="B",
             path=crop_contact_sheet_paths[dataset_low],
             x_position=MAX_FIGURE_WIDTH - 1.25,
-            y_position=0.0,
+            y_position=0.15,
             x_offset=0.15,
-            y_offset=0.15,
+            y_offset=0.05,
         ),
         # --- High flow dataset (row 2) ---
         FigurePanel(
-            letter="B",
+            letter="C",
             path=contour_plot_paths[dataset_high],
             x_position=0,
             y_position=2.1,
@@ -391,16 +390,16 @@ def main() -> None:
             y_offset=0.175,
         ),
         FigurePanel(
-            letter="",
+            letter="D",
             path=crop_contact_sheet_paths[dataset_high],
             x_position=MAX_FIGURE_WIDTH - 1.25,
             y_position=2.1,
             x_offset=0.15,
-            y_offset=0.25,
+            y_offset=0.05,
         ),
         # --- Bottom row: migration coherence and summary plot ---
         FigurePanel(
-            letter="D",
+            letter="E",
             path=base_output_dir / "migration_coherence_distribution_high_low_flow_comparison.svg",
             x_position=0,
             y_position=4.0,
@@ -408,7 +407,7 @@ def main() -> None:
             y_offset=0.2,
         ),
         FigurePanel(
-            letter="E",
+            letter="F",
             path=base_output_dir
             / "polar_theta_polar_r_rho_ema01_optical_flow_mean_unit_vector_dt1_fp_vs_shear_stress.svg",
             x_position=2.1,
