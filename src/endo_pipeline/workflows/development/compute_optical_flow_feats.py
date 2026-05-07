@@ -195,7 +195,6 @@ def main(  # noqa: C901
         DEFAULT_OMP_NUM_THREADS,
         DEFAULT_OPENBLAS_NUM_THREADS,
         DEFAULT_OPTICAL_FLOW_COLLECTION,
-        DEFAULT_OPTICAL_FLOW_MANIFEST_NAME,
         DEMO_MAX_DATASETS,
         DEMO_MAX_FRAMES,
         DEMO_MAX_POSITIONS,
@@ -297,7 +296,7 @@ def main(  # noqa: C901
     # with partial demo results.
     demo_suffix = "_demo" if DEMO_MODE else ""
     optical_flow_manifest = create_dataframe_manifest(
-        f"{DEFAULT_OPTICAL_FLOW_MANIFEST_NAME}_{crop_pattern}{demo_suffix}",
+        f"optical_flow_bf_{crop_pattern}{demo_suffix}",
         workflow_name=__file__,
     )
     optical_flow_manifest.parameters = {
