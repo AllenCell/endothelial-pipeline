@@ -3,10 +3,6 @@ import re
 from cyclopts import App
 from termcolor import colored
 
-TEST_READY = "test-ready"
-GPU = "gpu"
-CPU_ONLY = "cpu-only"
-
 
 def get_app_tags(app: App) -> list[str]:
     """Extract tags from app help message (defaults to docstring)."""
