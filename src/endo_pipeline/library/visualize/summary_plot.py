@@ -394,12 +394,14 @@ def _convert_polar_angle_to_nematic_order(df: pd.DataFrame) -> pd.DataFrame:
     ..math::
         S = cos(2*theta)
 
-    Also applies the chain rule to approximate confidence intervals for the
-    nematic order based on the polar angle confidence intervals. For example,
-    the upper CI for the nematic order is approximated as:
+    Also applies the chain rule for error propagation to approximate confidence
+    intervals for the nematic order based on the polar angle confidence
+    intervals. For example, the upper CI for the nematic order is approximated
+    as:
 
     ..math::
-        CI_{upper}^S = S_{mean} + f'(theta_{mean}) * (theta_{CI_{upper}} - theta_{mean})
+        CI_{upper}^S = S_{mean} + |f'(theta_{mean})| * (theta_{CI_{upper}} -
+        theta_{mean})
     """
     for column_suffix in [
         "",
@@ -411,8 +413,8 @@ def _convert_polar_angle_to_nematic_order(df: pd.DataFrame) -> pd.DataFrame:
 
     # Use chain rule to approximate transformed confidence intervals for nematic
     # order based on polar angle CIs:
-    #    S_CI_upper = S_mean + f'(theta_mean) * (theta_CI_upper - theta_mean)
-    #    S_CI_lower = S_mean + f'(theta_mean) * (theta_CI_lower - theta_mean)
+    #    S_CI_upper = S_mean + |f'(theta_mean)| * (theta_CI_upper - theta_mean)
+    #    S_CI_lower = S_mean + |f'(theta_mean)| * (theta_CI_lower - theta_mean)
     # where S_mean = cos(2*theta_mean) is the nematic order at the mean angle, and
     # f'(theta) = -2*sin(2*theta) is the derivative of the nematic order function.
     for ci_type in [ColumnName.BootstrapAnalysis.CI_LOWER, ColumnName.BootstrapAnalysis.CI_UPPER]:
@@ -430,7 +432,7 @@ def _convert_polar_angle_to_nematic_order(df: pd.DataFrame) -> pd.DataFrame:
             theta_ci = row[angle_ci_col]
             nematic_mean = row[nematic_mean_col]
             # Compute the derivative f'(theta) at the mean angle
-            f_prime = -2 * np.sin(2 * theta_mean)
+            f_prime = np.abs(-2 * np.sin(2 * theta_mean))
             # Compute the circular/unwrapped difference between the CI angle and
             # the mean angle to avoid issues with angle wrapping around the periodic boundary.
             circ_diff = np.diff(np.unwrap([theta_mean, theta_ci], period=POLAR_ANGLE_PERIOD))[-1]
