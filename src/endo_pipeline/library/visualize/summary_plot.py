@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs import DatasetConfig, FlowCondition, load_dataset_config
 from endo_pipeline.io import load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import (
     filter_dataframe_by_shear_stress,
@@ -24,12 +24,13 @@ from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature impo
 from endo_pipeline.library.visualize.diffae_features.dynamics import (
     make_legend_handles_for_fixed_pts,
 )
-from endo_pipeline.manifests import DataframeManifest, get_dataframe_location_for_dataset
+from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
     METADATA_COLUMNS_TO_KEEP,
+    POLAR_ANGLE_PERIOD,
 )
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
@@ -402,6 +403,124 @@ def plot_fixed_points_vs_shear_stress(
     return fig
 
 
+def _convert_polar_angle_to_nematic_order(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Convert polar angle to nematic order in the given dataframe.
+
+    Converts polar angle columns (e.g. `"polar_angle"`,
+    `"polar_angle_cluster_mean"`) to nematic order using the transformation:
+
+    ..math::
+        S = cos(2*theta)
+
+    Also applies the chain rule for error propagation to approximate confidence
+    intervals for the nematic order based on the polar angle confidence
+    intervals. For example, the upper CI for the nematic order is approximated
+    as:
+
+    ..math::
+        CI_{upper}^S = S_{mean} + |f'(theta_{mean})| * (theta_{CI_{upper}} -
+        theta_{mean})
+    """
+    for column_suffix in [
+        "",
+        f"_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
+    ]:
+        df[f"{ColumnName.DiffAEData.NEMATIC_ORDER}{column_suffix}"] = df[
+            f"{ColumnName.DiffAEData.POLAR_ANGLE}{column_suffix}"
+        ].apply(lambda theta: (np.cos(2 * theta)))
+
+    # Use chain rule to approximate transformed confidence intervals for nematic
+    # order based on polar angle CIs:
+    #    S_CI_upper = S_mean + |f'(theta_mean)| * (theta_CI_upper - theta_mean)
+    #    S_CI_lower = S_mean + |f'(theta_mean)| * (theta_CI_lower - theta_mean)
+    # where S_mean = cos(2*theta_mean) is the nematic order at the mean angle, and
+    # f'(theta) = -2*sin(2*theta) is the derivative of the nematic order function.
+    for ci_type in [ColumnName.BootstrapAnalysis.CI_LOWER, ColumnName.BootstrapAnalysis.CI_UPPER]:
+        angle_mean_col = (
+            f"{ColumnName.DiffAEData.POLAR_ANGLE}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}"
+        )
+        angle_ci_col = f"{ColumnName.DiffAEData.POLAR_ANGLE}_{ci_type}"
+        nematic_mean_col = (
+            f"{ColumnName.DiffAEData.NEMATIC_ORDER}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}"
+        )
+        nematic_ci_col = f"{ColumnName.DiffAEData.NEMATIC_ORDER}_{ci_type}"
+
+        for idx, row in df.iterrows():
+            theta_mean = row[angle_mean_col]
+            theta_ci = row[angle_ci_col]
+            nematic_mean = row[nematic_mean_col]
+            # Compute the derivative f'(theta) at the mean angle
+            f_prime = np.abs(-2 * np.sin(2 * theta_mean))
+            # Compute the circular/unwrapped difference between the CI angle and
+            # the mean angle to avoid issues with angle wrapping around the periodic boundary.
+            circ_diff = np.diff(np.unwrap([theta_mean, theta_ci], period=POLAR_ANGLE_PERIOD))[-1]
+            # Approximate the nematic order CI using the chain rule
+            df.at[idx, nematic_ci_col] = nematic_mean + f_prime * circ_diff
+
+    return df
+
+
+def _process_bootstrap_dataframe_for_plot(
+    df_bootstrap: pd.DataFrame,
+    df_features: pd.DataFrame,
+    bootstrap_threshold: float,
+    dataset_name: str,
+    flow_condition: FlowCondition,
+    optical_flow_features: list[ColumnName.OpticalFlow],
+    convert_angle_to_nematic: bool,
+    column_names: list[ColumnName.DiffAEData | ColumnName.OpticalFlow | StrEnum],
+    x_axis_mode: Literal[
+        "dataset", "shear_stress_numeric", "shear_stress_categorical", "cell_line", "flow_switch"
+    ],
+    dataset_config: DatasetConfig,
+) -> pd.DataFrame:
+    # Fixed points with binned means for each feature
+    n_total = len(df_bootstrap)
+    high_confidence_df = df_bootstrap[
+        df_bootstrap[ColumnName.BootstrapAnalysis.DETECTION_RATE] >= bootstrap_threshold
+    ].copy()
+
+    if high_confidence_df.empty:
+        logger.warning(
+            "No fixed points with bootstrap_detection_rate >= %.2f for dataset "
+            "[ %s ] (%d fixed points in total). Skipping plot for this dataset.",
+            bootstrap_threshold,
+            dataset_name,
+            n_total,
+        )
+        return pd.DataFrame()
+
+    for feature_key in optical_flow_features:
+        df_flow_no_nan = df_features.dropna(subset=[feature_key])
+        high_confidence_df = add_binned_mean_to_fixed_points(
+            high_confidence_df,
+            df_flow_no_nan,
+            fp_x_col=f"{ColumnName.DiffAEData.POLAR_ANGLE}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
+            fp_y_col=f"{ColumnName.DiffAEData.POLAR_RADIUS}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
+            fp_z_col=f"{ColumnName.DiffAEData.PC3_FLIPPED}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
+            binned_col=feature_key,
+            of_x_col=ColumnName.DiffAEData.POLAR_ANGLE,
+            of_y_col=ColumnName.DiffAEData.POLAR_RADIUS,
+            of_z_col=ColumnName.DiffAEData.PC3_FLIPPED,
+        )
+
+    high_confidence_df["n_shear_stress_conditions"] = len(dataset_config.flow_conditions)
+    high_confidence_df["flow_condition_shear_stress_bin"] = flow_condition.shear_stress_bin
+
+    if convert_angle_to_nematic and ColumnName.DiffAEData.POLAR_ANGLE in column_names:
+        # Add nematic order columns to the dataframe
+        high_confidence_df = _convert_polar_angle_to_nematic_order(high_confidence_df)
+
+    if x_axis_mode == "cell_line":
+        cell_line_label = CELL_LINE_LABEL_MAP.get(
+            dataset_config.cell_lines[0], dataset_config.cell_lines[0]
+        )
+        high_confidence_df["cell_line_label"] = cell_line_label
+
+    return high_confidence_df
+
+
 def plot_cross_dataset_summaries(
     dataset_names: list[str],
     feature_dataframe_manifest: DataframeManifest,
@@ -418,12 +537,22 @@ def plot_cross_dataset_summaries(
     jitter_width: float = 0.1,
     x_padding: float = 0.5,
     subplot_layout: Literal["horizontal", "vertical"] = "horizontal",
+    convert_angle_to_nematic: bool = True,
 ) -> None:
-    """Create a plot of cross-dataset summary visualizations for
-    observable fixed-point locations vs shear-stress plots
+    """
+    Create a plot of cross-dataset summary visualizations for observable
+    fixed-point locations vs shear-stress plots
         - polar angle, polar radius, rho
-        - maps mean optical-flow features onto fixed points as binned means for given
-            polar angle/radius/rho bins
+        - maps mean optical-flow features onto fixed points as binned means for
+          given polar angle/radius/rho bins
+
+    **Subplot layout specification**
+
+    The `subplot_layout` parameter controls the arrangement of multiple panels
+    when plotting multiple variables. The options are:
+        - `"horizontal"`: panels side-by-side in a single row (1xn).
+        - `"vertical"`: panels stacked vertically with a shared x-axis (nx1).
+           Only the bottom panel shows x-axis tick labels.
 
     Parameters
     ----------
@@ -432,36 +561,38 @@ def plot_cross_dataset_summaries(
     feature_dataframe_manifest
         Manifest containing per-dataset feature dataframe locations.
     fixed_points_bootstrap_dataframe_manifest
-        Manifest containing per-dataset fixed-points and confidence intervals found from
-        precomputed bootstrapping.
+        Manifest containing per-dataset fixed-points and confidence intervals
+        found from precomputed bootstrapping.
     output_dir
         Directory where the figures are saved.
     column_names
-        List of column names to plot in the fixed-point vs shear-stress plot.
-        If None, defaults to polar angle, polar radius, PC3 flipped, migration coherence, and speed.
+        List of column names to plot in the fixed-point vs shear-stress plot. If
+        None, defaults to polar angle, polar radius, PC3 flipped, migration
+        coherence, and speed.
     x_axis_mode
-        Controls x-axis layout of the fixed-point vs shear-stress plot.
-        See :func:`plot_fixed_points_vs_shear_stress` for details.
+        Controls x-axis layout of the fixed-point vs shear-stress plot. See
+        :func:`plot_fixed_points_vs_shear_stress` for details.
     figure_size
         Size of the output figure for the fixed point vs shear stress plot.
     dataset_order
-        Optional list of dataset names specifying the desired x-axis order in the fixed point vs shear stress plot.
-        If ``None``, falls back to sorting by shear stress.
+        Optional list of dataset names specifying the desired x-axis order in
+        the fixed point vs shear stress plot. If `None`, falls back to sorting
+        by shear stress.
     stable_only
-        If ``True``, only fixed points classified as stable are included in the
+        If `True`, only fixed points classified as stable are included in the
         fixed point vs shear stress plot.
     jitter_width
-        Horizontal jitter applied to overlapping points sharing the same
-        x-axis position.  Larger values spread points further apart.
+        Horizontal jitter applied to overlapping points sharing the same x-axis
+        position.  Larger values spread points further apart.
     x_padding
-        Additional horizontal padding added to the left and right edges of the fixed point vs shear stress plot
-        to ensure jittered points aren't clipped.  Only applied for non-categorical x-axis modes.
+        Additional horizontal padding added to the left and right edges of the
+        fixed point vs shear stress plot to ensure jittered points aren't
+        clipped.  Only applied for non-categorical x-axis modes.
     subplot_layout
-        Layout direction for multiple column panels:
-
-        - ``"horizontal"`` (default): panels side-by-side in a single row (1xn).
-        - ``"vertical"``: panels stacked vertically with a shared x-axis (nx1).
-          Only the bottom panel shows x-axis tick labels.
+        Layout direction for multiple column panels.
+    convert_angle_to_nematic
+        If `True`, converts polar angle to nematic order (cos(2*theta)) before
+        plotting.
     """
     if column_names is None:
         column_names = [
@@ -486,6 +617,12 @@ def plot_cross_dataset_summaries(
                 dataset_name,
             )
             continue
+        elif dataset_name not in fixed_points_bootstrap_dataframe_manifest.locations:
+            logger.warning(
+                "No fixed point bootstrap dataframe found for dataset [ %s ]. Skipping.",
+                dataset_name,
+            )
+            continue
 
         # Load, filter, and enrich the feature dataframe
         df_ = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
@@ -494,6 +631,11 @@ def plot_cross_dataset_summaries(
         dataset_config = load_dataset_config(dataset_name)
         df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
         df_of = add_optical_flow_features(df_steady_state, datasets=[dataset_name])
+
+        # Load bootstrap results
+        df_bootstrap = load_dataframe(
+            fixed_points_bootstrap_dataframe_manifest.locations[dataset_name], delay=False
+        )
 
         # For flow_switch mode with multiple conditions, skip the first (pre-switch) condition
         if x_axis_mode == "flow_switch" and len(dataset_config.flow_conditions) > 1:
@@ -505,68 +647,31 @@ def plot_cross_dataset_summaries(
             df_flow = filter_dataframe_to_flow_condition_by_timepoint(
                 df_of, dataset_config, flow_condition
             )
+            df_bootstrap_flow = filter_dataframe_by_shear_stress(
+                df_bootstrap, flow_condition.shear_stress
+            )
+            df_fp = _process_bootstrap_dataframe_for_plot(
+                df_bootstrap_flow,
+                df_flow,
+                bootstrap_threshold,
+                dataset_name,
+                flow_condition,
+                optical_flow_features,
+                convert_angle_to_nematic,
+                column_names,
+                x_axis_mode,
+                dataset_config,
+            )
+            if not df_fp.empty:
+                df_fp_all_list.append(df_fp)
 
-            # Fixed points with binned means for each feature
-            try:
-                fp_bootstrap_location = get_dataframe_location_for_dataset(
-                    fixed_points_bootstrap_dataframe_manifest, dataset_name
-                )
-                df_bootstrap = load_dataframe(fp_bootstrap_location, delay=False)
-                df_bootstrap = filter_dataframe_by_shear_stress(
-                    df_bootstrap, flow_condition.shear_stress
-                )
-
-                n_total = len(df_bootstrap)
-                high_confidence_df = df_bootstrap[
-                    df_bootstrap[ColumnName.BootstrapAnalysis.DETECTION_RATE] >= bootstrap_threshold
-                ].copy()
-
-                if high_confidence_df.empty:
-                    logger.warning(
-                        "No fixed points with bootstrap_detection_rate >= %.2f for dataset "
-                        "[ %s ] (%d fixed points in total). Skipping plot for this dataset.",
-                        bootstrap_threshold,
-                        dataset_name,
-                        n_total,
-                    )
-                    continue
-
-                for feature_key in optical_flow_features:
-                    df_flow_no_nan = df_flow.dropna(subset=[feature_key])
-                    high_confidence_df = add_binned_mean_to_fixed_points(
-                        high_confidence_df,
-                        df_flow_no_nan,
-                        fp_x_col=f"{ColumnName.DiffAEData.POLAR_ANGLE}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
-                        fp_y_col=f"{ColumnName.DiffAEData.POLAR_RADIUS}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
-                        fp_z_col=f"{ColumnName.DiffAEData.PC3_FLIPPED}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
-                        binned_col=feature_key,
-                        of_x_col=ColumnName.DiffAEData.POLAR_ANGLE,
-                        of_y_col=ColumnName.DiffAEData.POLAR_RADIUS,
-                        of_z_col=ColumnName.DiffAEData.PC3_FLIPPED,
-                    )
-
-                high_confidence_df["n_shear_stress_conditions"] = len(
-                    dataset_config.flow_conditions
-                )
-                high_confidence_df["flow_condition_shear_stress_bin"] = (
-                    flow_condition.shear_stress_bin
-                )
-
-                if x_axis_mode == "cell_line":
-                    cell_line_label = CELL_LINE_LABEL_MAP.get(
-                        dataset_config.cell_lines[0], dataset_config.cell_lines[0]
-                    )
-                    high_confidence_df["cell_line_label"] = cell_line_label
-
-                df_fp_all_list.append(high_confidence_df)
-            except KeyError as e:
-                if str(e) == f"Unable to find dataset {dataset_name} in dataframe manifest.":
-                    logger.warning(
-                        "No fixed point dataframe found for dataset [ %s ]. Skipping fixed points.",
-                        dataset_name,
-                    )
-                else:
-                    raise
+    # update column names to pass to plotting function based on whether we're
+    # plotting polar angle or nematic order
+    if convert_angle_to_nematic and ColumnName.DiffAEData.POLAR_ANGLE in column_names:
+        column_names = [
+            ColumnName.DiffAEData.NEMATIC_ORDER if col == ColumnName.DiffAEData.POLAR_ANGLE else col
+            for col in column_names
+        ]
 
     # --- Fixed-points vs shear stress ---
     df_fp_all = pd.concat(df_fp_all_list, ignore_index=True)

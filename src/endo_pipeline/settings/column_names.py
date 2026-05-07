@@ -67,6 +67,9 @@ class ColumnName:
         POLAR_ANGLE = "polar_theta"
         """Column name for polar angle coordinate computed from PC1 and PC2."""
 
+        NEMATIC_ORDER = "nematic_order"
+        """Column name for nematic order (computed as `cos(2*theta)`)."""
+
         PC3_FLIPPED = "rho"
         """Column name for PC3 value with sign flipped as proxy measure of cell density."""
 

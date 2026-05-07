@@ -367,6 +367,14 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         description="Negative value of PC 3",
         type=ColumnType.CONTINUOUS,
     ),
+    Column.DiffAEData.NEMATIC_ORDER: ColumnMetadata(
+        name="Nematic order parameter",
+        label=f"cos(2{Unicode.THETA})",
+        description="Nematic order calculated as cos(2*polar_theta)",
+        min=-1,
+        max=1,
+        type=ColumnType.CONTINUOUS,
+    ),
     # Segmentation filters =====================================================
     Column.SegDataFilters.IS_EDGE_SEGMENTATION: ColumnMetadata(
         name="Filter: Touches edge of field of view",
