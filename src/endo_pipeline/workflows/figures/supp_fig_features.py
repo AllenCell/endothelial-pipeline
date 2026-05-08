@@ -68,7 +68,7 @@ def main() -> None:
         label_column_tuples=label_column_tuples,
         out_dir=save_dir,
         cross_correlation_only=True,
-        figsize_cluster_heatmap=(4.1, 2.75),
+        figsize_cluster_heatmap=(4.2, 2.75),
         y_axis_label_coords=None,
     )
 
@@ -131,7 +131,7 @@ def main() -> None:
         FigurePanel(
             letter="D",
             path=latent_walk_2d_path,
-            x_position=3.9,
+            x_position=4.1,
             y_position=2.5,
             x_offset=0.075,
             y_offset=-0.075,
