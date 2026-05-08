@@ -31,6 +31,7 @@ def main(
         estimate_noise_floor_mse,
         leave_one_dataset_out_regression,
         plot_predictions_scatter,
+        plot_single_feature_scatter,
     )
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName
@@ -105,8 +106,23 @@ def main(
         float(noise_floor**0.5),
     )
 
+    # save scatterplot of all features
     fig = plot_predictions_scatter(predictions, benchmark)
     save_plot_to_path(fig, output_dir, "regression_true_vs_predicted", tight_layout=False)
+
+    # save scatterplots for select features
+    for feature_set in benchmark["feature_set"].unique():
+        fig = plot_single_feature_scatter(
+            predictions[predictions["feature_set"] == feature_set],
+            benchmark[benchmark["feature_set"] == feature_set],
+            feature_set=feature_set,
+        )
+        save_plot_to_path(
+            fig,
+            output_dir,
+            f"regression_true_vs_predicted_{feature_set}",
+            tight_layout=False,
+        )
 
 
 if __name__ == "__main__":

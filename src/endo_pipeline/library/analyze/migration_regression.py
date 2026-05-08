@@ -7,6 +7,7 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 
@@ -20,15 +21,14 @@ from endo_pipeline.library.analyze.dataframe_filtering import (
 from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
     add_optical_flow_features,
 )
-from endo_pipeline.library.visualize.summary_plot import (
-    _process_bootstrap_dataframe_for_plot,
-)
+from endo_pipeline.library.visualize.summary_plot import _process_bootstrap_dataframe_for_plot
 from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
     METADATA_COLUMNS_TO_KEEP,
 )
+from endo_pipeline.settings.unicode import UnicodeCharacters
 
 logger = logging.getLogger(__name__)
 
@@ -172,9 +172,7 @@ def build_feature_sets(df: pd.DataFrame) -> dict[str, pd.DataFrame]:
         "theta_only": pd.DataFrame({"theta_x": theta_x, "theta_y": theta_y}),
         "theta_r": pd.DataFrame({"theta_x": theta_x, "theta_y": theta_y, "polar_r": r}),
         "theta_rho": pd.DataFrame({"theta_x": theta_x, "theta_y": theta_y, "rho": rho}),
-        "full_3d": pd.DataFrame(
-            {"theta_x": theta_x, "theta_y": theta_y, "polar_r": r, "rho": rho}
-        ),
+        "full_3d": pd.DataFrame({"theta_x": theta_x, "theta_y": theta_y, "polar_r": r, "rho": rho}),
         "nematic_only": pd.DataFrame({"nematic_order": nematic}),
         "n_r_rho": pd.DataFrame({"nematic_order": nematic, "polar_r": r, "rho": rho}),
     }
@@ -204,7 +202,7 @@ def leave_one_dataset_out_regression(
 
     Each fold trains a linear regression on all datasets except one and
     predicts the held-out dataset's stable points. Predictions are pooled
-    across folds and metrics (R^2, MSE, RMSE) are reported on the pooled
+    across folds and metrics (R², MSE, RMSE) are reported on the pooled
     held-out predictions.
 
     Parameters
@@ -235,9 +233,7 @@ def leave_one_dataset_out_regression(
 
     datasets = df[dataset_column].unique()
     if len(datasets) < 2:
-        raise ValueError(
-            f"Leave-one-dataset-out CV requires >=2 datasets, got {len(datasets)}."
-        )
+        raise ValueError(f"Leave-one-dataset-out CV requires >=2 datasets, got {len(datasets)}.")
 
     benchmark_rows: list[dict] = []
     prediction_frames: list[pd.DataFrame] = []
@@ -262,7 +258,7 @@ def leave_one_dataset_out_regression(
                 "feature_set": name,
                 "n_features": X.shape[1],
                 "n_points": int(valid.sum()),
-                "n_folds": int(len(datasets)),
+                "n_folds": len(datasets),
                 "cv_r2": float(r2_score(y_full[valid], y_pred[valid])),
                 "cv_mse": cv_mse,
                 "cv_rmse": float(np.sqrt(cv_mse)),
@@ -283,6 +279,107 @@ def leave_one_dataset_out_regression(
     return pd.DataFrame(benchmark_rows), pd.concat(prediction_frames, ignore_index=True)
 
 
+def _plot_scatter_ax(
+    ax: plt.Axes,
+    sub: pd.DataFrame,
+    lim: tuple[float, float],
+    vmin: float,
+    vmax: float,
+    title: str,
+    show_ylabel: bool,
+    show_xlabel: bool,
+) -> plt.PathCollection:
+    """
+    Draw a single true-vs-predicted scatter panel onto *ax*.
+
+    Parameters
+    ----------
+    ax
+        Axes to draw on.
+    sub
+        Rows of the predictions dataframe for one feature set.
+    lim
+        Shared (min, max) axis limits.
+    vmin, vmax
+        Colormap range for the shear-stress colour encoding.
+    title
+        Axes title string (typically feature-set name plus R² annotation).
+    show_ylabel
+        Whether to label the y axis ``"predicted coherence"``.
+    show_xlabel
+        Whether to label the x axis ``"true coherence"``.
+
+    Returns
+    -------
+    matplotlib.collections.PathCollection
+        The scatter artist, needed by the caller to attach a colorbar.
+    """
+    ax.plot(lim, lim, "k--", linewidth=0.8, alpha=0.5)
+    scatter = ax.scatter(
+        sub["y_true"],
+        sub["y_pred"],
+        c=sub["shear_stress"],
+        cmap="viridis",
+        vmin=vmin,
+        vmax=vmax,
+        s=20,
+        edgecolor="black",
+        linewidths=0.4,
+        alpha=0.9,
+    )
+    ax.set_title(title, fontsize=10)
+    ax.set_xlim(lim)
+    ax.set_ylim(lim)
+    ax.grid(alpha=0.3)
+    if show_ylabel:
+        ax.set_ylabel("predicted coherence")
+    if show_xlabel:
+        ax.set_xlabel("true coherence")
+    return scatter
+
+
+def plot_single_feature_scatter(
+    predictions: pd.DataFrame,
+    benchmark: pd.DataFrame,
+    feature_set: str,
+) -> plt.Figure:
+    """
+    Plot true vs predicted coherence for a single feature set.
+
+    Parameters
+    ----------
+    predictions
+        Per-point held-out predictions returned by
+        :func:`leave_one_dataset_out_regression`.
+    benchmark
+        Benchmark dataframe returned by
+        :func:`leave_one_dataset_out_regression`. Used for R² annotations.
+    feature_set
+        Name of the feature set to plot (must appear in ``benchmark``).
+    """
+    row = benchmark.loc[benchmark["feature_set"] == feature_set].iloc[0]
+    title = (
+        f"{feature_set}\nR{UnicodeCharacters.SQUARED} = {row['cv_r2']:.3f}  (n = {row['n_points']})"
+    )
+
+    sub = predictions[predictions["feature_set"] == feature_set]
+    y_min = float(min(sub["y_true"].min(), sub["y_pred"].min()))
+    y_max = float(max(sub["y_true"].max(), sub["y_pred"].max()))
+    pad = 0.05 * (y_max - y_min)
+    lim = (y_min - pad, y_max + pad)
+    vmin = float(predictions["shear_stress"].min())
+    vmax = float(predictions["shear_stress"].max())
+
+    fig, ax = plt.subplots(figsize=(4.2, 3.6))
+    ax.set_aspect("equal")
+    scatter = _plot_scatter_ax(ax, sub, lim, vmin, vmax, title, show_ylabel=True, show_xlabel=True)
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.08)
+    cbar = fig.colorbar(scatter, cax=cax)
+    cbar.set_label(f"shear stress (dyn/cm{UnicodeCharacters.SQUARED})")
+    return fig
+
+
 def plot_predictions_scatter(
     predictions: pd.DataFrame,
     benchmark: pd.DataFrame,
@@ -301,7 +398,7 @@ def plot_predictions_scatter(
         :func:`leave_one_dataset_out_regression`.
     benchmark
         Benchmark dataframe returned by
-        :func:`leave_one_dataset_out_regression`. Used for R^2 annotations.
+        :func:`leave_one_dataset_out_regression`. Used for R² annotations.
     """
     feature_sets = list(benchmark["feature_set"])
     n = len(feature_sets)
@@ -321,6 +418,8 @@ def plot_predictions_scatter(
     y_max = float(max(predictions["y_true"].max(), predictions["y_pred"].max()))
     pad = 0.05 * (y_max - y_min)
     lim = (y_min - pad, y_max + pad)
+    vmin = float(predictions["shear_stress"].min())
+    vmax = float(predictions["shear_stress"].max())
 
     r2_by_set = dict(zip(benchmark["feature_set"], benchmark["cv_r2"], strict=False))
     n_pts_by_set = dict(zip(benchmark["feature_set"], benchmark["n_points"], strict=False))
@@ -328,32 +427,24 @@ def plot_predictions_scatter(
     for i, fs in enumerate(feature_sets):
         ax = axs[i // ncols][i % ncols]
         sub = predictions[predictions["feature_set"] == fs]
-        ax.plot(lim, lim, "k--", linewidth=0.8, alpha=0.5)
-        scatter = ax.scatter(
-            sub["y_true"],
-            sub["y_pred"],
-            c=sub["shear_stress"],
-            cmap="viridis",
-            vmin=float(predictions["shear_stress"].min()),
-            vmax=float(predictions["shear_stress"].max()),
-            s=20,
-            edgecolor="black",
-            linewidths=0.4,
-            alpha=0.9,
+        title = (
+            f"{fs}\nR{UnicodeCharacters.SQUARED} = {r2_by_set[fs]:.3f}  (n = {n_pts_by_set[fs]})"
         )
-        ax.set_title(f"{fs}\nR² = {r2_by_set[fs]:.3f}  (n = {n_pts_by_set[fs]})", fontsize=10)
-        ax.set_xlim(lim)
-        ax.set_ylim(lim)
-        ax.grid(alpha=0.3)
-        if i % ncols == 0:
-            ax.set_ylabel("predicted coherence")
-        if i // ncols == nrows - 1:
-            ax.set_xlabel("true coherence")
+        scatter = _plot_scatter_ax(
+            ax,
+            sub,
+            lim,
+            vmin,
+            vmax,
+            title,
+            show_ylabel=(i % ncols == 0),
+            show_xlabel=(i // ncols == nrows - 1),
+        )
 
     # Hide any unused axes
     for j in range(n, nrows * ncols):
         axs[j // ncols][j % ncols].axis("off")
 
     cbar = fig.colorbar(scatter, ax=axs.ravel().tolist(), shrink=0.8, pad=0.02)
-    cbar.set_label("shear stress (dyn/cm²)")
+    cbar.set_label(f"shear stress (dyn/cm{UnicodeCharacters.SQUARED})")
     return fig
