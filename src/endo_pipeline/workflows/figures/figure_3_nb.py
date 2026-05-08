@@ -163,8 +163,7 @@ panels = [
     ),
     FigurePanel(
         letter="B",
-        path=save_dir
-        / "nematic_order_ema01_optical_flow_mean_unit_vector_dt1_polar_r_rho_fp_vs_shear_stress.svg",
+        path=summary_plot_path,
         x_position=0,
         y_position=2.3,
         x_offset=0,
