@@ -166,9 +166,9 @@ def build_crop_grid(df: pd.DataFrame) -> pd.DataFrame:
 def pivot_flow_records(records: list[dict]) -> pd.DataFrame:
     """Pivot a list of flow-stat dicts into a wide DataFrame.
 
-    Each input dict has keys ``crop_index``, ``timepoint``, ``dt``, and
+    Each input dict has keys ``crop_index``, ``frame_number``, ``dt``, and
     one entry per base feature.  The function pivots on ``dt`` so that
-    the output has one row per ``(crop_index, timepoint)`` and columns
+    the output has one row per ``(crop_index, frame_number)`` and columns
     named ``{feature}_dt{n}``.
 
     Block-coherence columns (``optical_flow_angle_std_box{N}``) are
@@ -184,10 +184,10 @@ def pivot_flow_records(records: list[dict]) -> pd.DataFrame:
     -------
     :
         Wide-format DataFrame indexed by ``crop_index`` and
-        ``timepoint``, with one column per feature-dt combination.
+        ``frame_number``, with one column per feature-dt combination.
     """
     df = pd.DataFrame(records)
-    index_cols = ["crop_index", "timepoint"]
+    index_cols = [ColumnName.CROP_INDEX, ColumnName.TIMEPOINT]
     # Discover all feature columns (everything except index + dt)
     feature_names = [c for c in df.columns if c not in (*index_cols, "dt")]
     parts = []
