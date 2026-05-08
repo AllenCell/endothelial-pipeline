@@ -134,7 +134,7 @@ def main() -> None:
             x_position=4.1,
             y_position=2.5,
             x_offset=0.075,
-            y_offset=-0.075,
+            y_offset=0.0,
         ),
         FigurePanel(
             letter="E",

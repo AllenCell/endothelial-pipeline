@@ -185,7 +185,7 @@ def _add_axes_lines(
     pc2_label = cast(str, COLUMN_METADATA["pc_2"].label)
     # PC2 label: to the left of the top image in the PC2 column
     fig.text(
-        top_bbox.x0 + 0.05,
+        top_bbox.x0 + 0.04,
         top_bbox.y1 + 0.1,
         pc2_label,
         fontsize=FONTSIZE_LARGE,
@@ -196,8 +196,8 @@ def _add_axes_lines(
     )
     # PC1 label: to the right of the rightmost image, vertically centred on the axis
     fig.text(
-        right_bbox.x1 + axes_extend - 0.075,
-        cy - 0.1,
+        right_bbox.x1 + axes_extend - 0.085,
+        cy - 0.09,
         pc1_label,
         fontsize=FONTSIZE_LARGE,
         fontweight="bold",
@@ -229,7 +229,7 @@ def _add_orientation_arrow(
     head_width: float = 0.4,
     color: str = "darkred",
     linewidth: float = 2.0,
-    label_offset: tuple[float, float] = (0.275, 0.125),
+    label_offset: tuple[float, float] = (0.075, 0.125),
 ) -> None:
     """Add an arced arrow and "orientation" label to the 2D latent walk plot."""
     overlay = fig.add_axes((0.0, 0.0, 1.0, 1.0), facecolor="none", zorder=5)
