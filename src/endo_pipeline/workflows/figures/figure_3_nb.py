@@ -13,7 +13,10 @@ from endo_pipeline.library.visualize.figure_3 import (
     make_crop_example_contact_sheet,
 )
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
-from endo_pipeline.library.visualize.summary_plot import plot_cross_dataset_summaries
+from endo_pipeline.library.visualize.summary_plot import (
+    build_dataframe_for_fixed_point_dataset_summary,
+    plot_cross_dataset_summaries,
+)
 from endo_pipeline.manifests import (
     get_dataframe_location_for_dataset,
     load_dataframe_manifest,
@@ -68,23 +71,28 @@ dataset_summary_list = SUMMARY_PLOT_DATASETS["intermediate"]
 BOOTSTRAP_THRESHOLD = 0.4
 
 # %% Cross-dataset summary plots
-plot_cross_dataset_summaries(
+columns_for_summary_plots = [
+    ColumnName.DiffAEData.POLAR_ANGLE,
+    ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
+    ColumnName.DiffAEData.POLAR_RADIUS,
+    ColumnName.DiffAEData.PC3_FLIPPED,
+]
+dataset_summary_df = build_dataframe_for_fixed_point_dataset_summary(
     dataset_names=dataset_summary_list,
     feature_dataframe_manifest=feature_dataframe_manifest,
-    fixed_points_bootstrap_dataframe_manifest=fixed_points_bootstrap_dataframe_manifest,
-    output_dir=save_dir,
-    bootstrap_threshold=BOOTSTRAP_THRESHOLD,
-    column_names=[
-        ColumnName.DiffAEData.POLAR_ANGLE,
-        ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
-        ColumnName.DiffAEData.POLAR_RADIUS,
-        ColumnName.DiffAEData.PC3_FLIPPED,
-    ],
-    x_axis_mode="shear_stress_categorical",
-    figure_size=(MAX_FIGURE_WIDTH * 0.6, 1.4),
+    bootstrap_dataframe_manifest=fixed_points_bootstrap_dataframe_manifest,
+    column_names=columns_for_summary_plots,
+    convert_angle_to_nematic=True,
     stable_only=True,
+    bootstrap_threshold=BOOTSTRAP_THRESHOLD,
+)
+summary_plot_path = plot_cross_dataset_summaries(
+    dataset_summary_df,
+    output_dir=save_dir,
+    column_names=columns_for_summary_plots,
+    axis_mode="shear_stress",
+    figure_size=(MAX_FIGURE_WIDTH * 0.6, 1.4),
     jitter_width=0.2,
-    x_padding=0.2,
     subplot_layout="vertical",
 )
 
