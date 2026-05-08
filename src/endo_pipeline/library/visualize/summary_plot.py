@@ -437,16 +437,16 @@ def plot_cross_dataset_summaries(
     # Build figure layout with one subplot for each column name
     n_panels = len(column_names)
     if subplot_layout == "vertical":
-        fig, axes = plt.subplots(
+        fig, axes_ = plt.subplots(
             n_panels,
             1,
             figsize=(figure_size[0], figure_size[1] * n_panels),
             layout="constrained",
             squeeze=False,
         )
-        axes = [axes[i][0] for i in range(n_panels)]
+        axes = [axes_[i][0] for i in range(n_panels)]
     elif subplot_layout == "horizontal":
-        fig, axes = plt.subplots(
+        fig, axes_ = plt.subplots(
             1,
             n_panels,
             figsize=(figure_size[0], figure_size[1]),
@@ -454,7 +454,7 @@ def plot_cross_dataset_summaries(
             layout="constrained",
             squeeze=False,
         )
-        axes = list(axes[0])
+        axes = list(axes_[0])
     else:
         raise ValueError(f"Subplot layout '{subplot_layout}' is not supported")
 
@@ -616,7 +616,7 @@ def build_dataframe_for_fixed_point_dataset_summary(
                 df_fixed_points,
                 df_features_flow_no_nan,
                 binned_col=feature_key,
-                **columns_to_bin,
+                **columns_to_bin,  # type: ignore[arg-type]
             )
 
         if convert_angle_to_nematic and ColumnName.DiffAEData.POLAR_ANGLE in column_names:
