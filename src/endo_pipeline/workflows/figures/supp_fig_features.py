@@ -140,14 +140,14 @@ def main() -> None:
             letter="E",
             path=theta_orientation_path,
             x_position=0.0,
-            y_position=4.75,
+            y_position=4.9,
             x_offset=0.2,
             y_offset=0.0,
         ),
     ]
 
     build_figure_from_panels(
-        panels, save_dir / "supp_fig_features.svg", width=MAX_FIGURE_WIDTH, height=7.7
+        panels, save_dir / "supp_fig_features.svg", width=MAX_FIGURE_WIDTH, height=7.5
     )
 
 
