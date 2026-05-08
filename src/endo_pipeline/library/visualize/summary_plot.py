@@ -306,7 +306,7 @@ def _plot_cross_dataset_summary_for_column(
     ax.set_xticks(category_positions)
 
     # Rotate x axis category labels if the label is more than 10 characters
-    if len(str(tick_labels[0])) > 10:
+    if len(str(tick_labels[0])) > 5:
         ax.set_xticklabels(tick_labels, rotation=45, ha="right")
     else:
         ax.set_xticklabels(tick_labels)
