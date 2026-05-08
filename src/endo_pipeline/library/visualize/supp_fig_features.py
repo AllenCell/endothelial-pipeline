@@ -639,15 +639,30 @@ def make_r_aspect_ratio_histogram_panel(output_path: Path) -> Path:
         shared_y_axis=False,
     )
 
+    # datasets have different natural ranges for r and aspect ratio, so set
+    # y-limits per dataset row rather than per feature column;
+    r_ylim_dataset_1 = (0.0, 2.3)
+    aspect_ratio_ylim_dataset_1 = (1.0, 5.95)
+    r_ylim_dataset_2 = (0.0, 2.8)
+    aspect_ratio_ylim_dataset_2 = (1.0, 7.25)
     # Reconcile y-limits per feature column so that both dataset rows (low-flow
     # and high-flow) share the same scale for that feature.
     num_columns = ax.shape[1]
     for j in range(num_columns):
-        col_axes = [cast(plt.Axes, ax[i, j]) for i in range(ax.shape[0])]
-        y_min = min(a.get_ylim()[0] for a in col_axes)
-        y_max = max(a.get_ylim()[1] for a in col_axes)
-        for a in col_axes:
-            a.set_ylim(y_min, y_max)
+        for i in range(ax.shape[0]):
+            ax_ij = cast(plt.Axes, ax[i, j])
+            if j == 0:
+                # r column
+                if i == 0:
+                    ax_ij.set_ylim(r_ylim_dataset_1)
+                elif i == 1:
+                    ax_ij.set_ylim(r_ylim_dataset_2)
+            elif j == 1:
+                # aspect ratio column
+                if i == 0:
+                    ax_ij.set_ylim(aspect_ratio_ylim_dataset_1)
+                elif i == 1:
+                    ax_ij.set_ylim(aspect_ratio_ylim_dataset_2)
 
     filename = "r_aspect_ratio_histograms"
     save_plot_to_path(
