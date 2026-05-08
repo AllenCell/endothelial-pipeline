@@ -29,7 +29,7 @@ from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
-from endo_pipeline.settings.dynamics_workflows import TIME_STEP_IN_HOURS, TIME_STEP_IN_MINUTES
+from endo_pipeline.settings.dynamics_workflows import TIME_STEP_IN_HOURS
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
 from endo_pipeline.settings.figures import (
     FONTSIZE_LARGE,
@@ -463,8 +463,8 @@ def _make_feature_pair_histogram_panel(
         layout_engine.set(**{"rect": [0.08, 0, 1, 0.94]})
 
     time_column_label = "Time (hours)"
-    # convert frames to hours for better readability of x-axis
-    time_conversion_factor = TIME_STEP_IN_MINUTES / TIME_STEP_IN_HOURS
+    # convert frame numbers to hours for better readability of x-axis
+    time_conversion_factor = TIME_STEP_IN_HOURS
 
     columns_to_compute = [*columns_to_plot, Column.TIMEPOINT]
 
