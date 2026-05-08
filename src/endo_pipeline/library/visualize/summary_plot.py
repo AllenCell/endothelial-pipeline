@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from endo_pipeline.configs import DatasetConfig, FlowCondition, load_dataset_config
+from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import (
     filter_dataframe_by_shear_stress,
@@ -26,7 +26,7 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
 )
 from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
-from endo_pipeline.settings.column_names import ColumnName
+from endo_pipeline.settings.column_names import ColumnName, ColumnNameType
 from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
     METADATA_COLUMNS_TO_KEEP,
@@ -35,14 +35,26 @@ from endo_pipeline.settings.dynamics_workflows import (
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
-from endo_pipeline.settings.summary_plot import (
-    CELL_LINE_LABEL_MAP,
-    COLOR_PALETTE,
-    DATASET_COLOR_MAP,
-)
+from endo_pipeline.settings.summary_plot import COLOR_PALETTE, DATASET_COLOR_MAP
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
+
+
+DEFAULT_SUMMARY_COLUMN_NAMES: list[ColumnNameType] = [
+    ColumnName.DiffAEData.POLAR_ANGLE,
+    ColumnName.DiffAEData.POLAR_RADIUS,
+    ColumnName.DiffAEData.PC3_FLIPPED,
+    ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
+    ColumnName.OpticalFlow.SPEED_MEAN,
+]
+"""List of default summary plot column names."""
+
+BINNED_MEAN_FEATURES = [
+    ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
+    ColumnName.OpticalFlow.SPEED_MEAN,
+]
+"""List of columns where mean is calculated for bin around the fixed point."""
 
 
 # --- Build jitter map (shared by numeric and categorical shear-stress modes) ---
@@ -461,66 +473,6 @@ def _convert_polar_angle_to_nematic_order(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def _process_bootstrap_dataframe_for_plot(
-    df_bootstrap: pd.DataFrame,
-    df_features: pd.DataFrame,
-    bootstrap_threshold: float,
-    dataset_name: str,
-    flow_condition: FlowCondition,
-    optical_flow_features: list[ColumnName.OpticalFlow],
-    convert_angle_to_nematic: bool,
-    column_names: list[ColumnName.DiffAEData | ColumnName.OpticalFlow | StrEnum],
-    x_axis_mode: Literal[
-        "dataset", "shear_stress_numeric", "shear_stress_categorical", "cell_line", "flow_switch"
-    ],
-    dataset_config: DatasetConfig,
-) -> pd.DataFrame:
-    # Fixed points with binned means for each feature
-    n_total = len(df_bootstrap)
-    high_confidence_df = df_bootstrap[
-        df_bootstrap[ColumnName.BootstrapAnalysis.DETECTION_RATE] >= bootstrap_threshold
-    ].copy()
-
-    if high_confidence_df.empty:
-        logger.warning(
-            "No fixed points with bootstrap_detection_rate >= %.2f for dataset "
-            "[ %s ] (%d fixed points in total). Skipping plot for this dataset.",
-            bootstrap_threshold,
-            dataset_name,
-            n_total,
-        )
-        return pd.DataFrame()
-
-    for feature_key in optical_flow_features:
-        df_flow_no_nan = df_features.dropna(subset=[feature_key])
-        high_confidence_df = add_binned_mean_to_fixed_points(
-            high_confidence_df,
-            df_flow_no_nan,
-            fp_x_col=f"{ColumnName.DiffAEData.POLAR_ANGLE}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
-            fp_y_col=f"{ColumnName.DiffAEData.POLAR_RADIUS}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
-            fp_z_col=f"{ColumnName.DiffAEData.PC3_FLIPPED}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
-            binned_col=feature_key,
-            of_x_col=ColumnName.DiffAEData.POLAR_ANGLE,
-            of_y_col=ColumnName.DiffAEData.POLAR_RADIUS,
-            of_z_col=ColumnName.DiffAEData.PC3_FLIPPED,
-        )
-
-    high_confidence_df["n_shear_stress_conditions"] = len(dataset_config.flow_conditions)
-    high_confidence_df["flow_condition_shear_stress_bin"] = flow_condition.shear_stress_bin
-
-    if convert_angle_to_nematic and ColumnName.DiffAEData.POLAR_ANGLE in column_names:
-        # Add nematic order columns to the dataframe
-        high_confidence_df = _convert_polar_angle_to_nematic_order(high_confidence_df)
-
-    if x_axis_mode == "cell_line":
-        cell_line_label = CELL_LINE_LABEL_MAP.get(
-            dataset_config.cell_lines[0], dataset_config.cell_lines[0]
-        )
-        high_confidence_df["cell_line_label"] = cell_line_label
-
-    return high_confidence_df
-
-
 def plot_cross_dataset_summaries(
     dataset_names: list[str],
     feature_dataframe_manifest: DataframeManifest,
@@ -754,3 +706,135 @@ def plot_cross_dataset_summaries(
         tight_layout=False,
         pad_inches=0,
     )
+
+
+def build_dataframe_for_fixed_point_dataset_summary(
+    dataset_names: list[str],
+    feature_dataframe_manifest: DataframeManifest,
+    bootstrap_dataframe_manifest: DataframeManifest,
+    column_names: list[ColumnNameType] | None = None,
+    bootstrap_threshold: float = 0.4,
+    convert_angle_to_nematic: bool = True,
+    stable_only: bool = True,
+) -> pd.DataFrame:
+    """
+    Build dataframe for plotting fixed point dataset summary.
+
+    Parameters
+    ----------
+    dataset_names
+        List of dataset names to include in summary.
+    feature_dataframe_manifest
+        Dataframe manifest for feature values.
+    bootstrap_dataframe_manifest
+        Dataframe manifest for bootstrapped fixed points.
+    column_names
+        List of feature column names to include in summary.
+    bootstrap_threshold
+        Threshold for high confidence fixed points.
+    convert_angle_to_nematic
+        True to convert polar angle to nematic order.
+    stable_only
+        True to only include stable fixed points.
+
+    Returns
+    -------
+    :
+        Dataframe to use for making cross dataset summary plots.
+    """
+
+    if column_names is None:
+        column_names = DEFAULT_SUMMARY_COLUMN_NAMES
+
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid"], *DYNAMICS_COLUMN_NAMES]
+    columns_to_bin = {
+        "fp_x_col": f"{ColumnName.DiffAEData.POLAR_ANGLE}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
+        "fp_y_col": f"{ColumnName.DiffAEData.POLAR_RADIUS}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
+        "fp_z_col": f"{ColumnName.DiffAEData.PC3_FLIPPED}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
+        "of_x_col": ColumnName.DiffAEData.POLAR_ANGLE,
+        "of_y_col": ColumnName.DiffAEData.POLAR_RADIUS,
+        "of_z_col": ColumnName.DiffAEData.PC3_FLIPPED,
+    }
+
+    df_fixed_points_list: list[pd.DataFrame] = []
+
+    for dataset_name in dataset_names:
+        # Skip including dataset if no feature dataframe is found
+        if dataset_name not in feature_dataframe_manifest.locations:
+            logger.warning(
+                "No feature dataframe found for dataset [ %s ]. Skipping.",
+                dataset_name,
+            )
+            continue
+
+        # Skip including dataset if no fixed point bootstrap dataframe is found
+        if dataset_name not in bootstrap_dataframe_manifest.locations:
+            logger.warning(
+                "No fixed point bootstrap dataframe found for dataset [ %s ]. Skipping.",
+                dataset_name,
+            )
+            continue
+
+        # Load dataset config for dataset
+        dataset_config = load_dataset_config(dataset_name)
+
+        # Load selected columns from feature dataframe
+        df_delay = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
+        df_features = df_delay[columns_to_compute].compute()
+        df_features = filter_dataframe_to_steady_state(df_features, dataset_config)
+        df_features = add_optical_flow_features(df_features, datasets=[dataset_name])
+
+        # Load bootstrap results dataframe
+        df_bootstrap = load_dataframe(
+            bootstrap_dataframe_manifest.locations[dataset_name], delay=False
+        )
+
+        # If the dataset has multiple flow conditions, only use final condition
+        flow_condition = dataset_config.flow_conditions[-1]
+        df_features_flow = filter_dataframe_to_flow_condition_by_timepoint(
+            df_features, dataset_config, flow_condition
+        )
+        df_bootstrap_flow = filter_dataframe_by_shear_stress(
+            df_bootstrap, flow_condition.shear_stress
+        )
+
+        # Filter bootstrap dataframe to only include high confidence values
+        df_fixed_points = df_bootstrap_flow[
+            df_bootstrap_flow[ColumnName.BootstrapAnalysis.DETECTION_RATE] >= bootstrap_threshold
+        ].copy()
+
+        if df_fixed_points.empty:
+            logger.warning(
+                "No fixed points with bootstrap_detection_rate >= %.2f for dataset "
+                "[ %s ] with shear stress [ %.2f ] (%d fixed points in total). "
+                "Skipping plot for this dataset.",
+                bootstrap_threshold,
+                dataset_name,
+                flow_condition.shear_stress,
+                len(df_bootstrap_flow),
+            )
+            return pd.DataFrame()
+
+        for feature_key in BINNED_MEAN_FEATURES:
+            df_features_flow_no_nan = df_features_flow.dropna(subset=[feature_key])
+            df_fixed_points = add_binned_mean_to_fixed_points(
+                df_fixed_points,
+                df_features_flow_no_nan,
+                binned_col=feature_key,
+                **columns_to_bin,
+            )
+
+        if convert_angle_to_nematic and ColumnName.DiffAEData.POLAR_ANGLE in column_names:
+            df_fixed_points = _convert_polar_angle_to_nematic_order(df_fixed_points)
+
+        if df_fixed_points.empty:
+            continue
+
+        if stable_only:
+            df_fixed_points = filter_dataframe_by_stability(
+                df_fixed_points, stability_label=StabilityLabel.STABLE
+            )
+
+        df_fixed_points_list.append(df_fixed_points)
+
+    return pd.concat(df_fixed_points_list, ignore_index=True)
