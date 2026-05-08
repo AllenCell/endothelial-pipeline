@@ -29,6 +29,7 @@ from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
+from endo_pipeline.settings.dynamics_workflows import TIME_STEP_IN_HOURS, TIME_STEP_IN_MINUTES
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
 from endo_pipeline.settings.figures import (
     FONTSIZE_LARGE,
@@ -387,31 +388,73 @@ def plot_2d_latent_walk(
     return save_path / f"{filename}.svg"
 
 
-def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
+def _make_feature_pair_histogram_panel(
+    columns_to_plot: list[ColumnNameType],
+    axes_ylim: tuple[float, float] | None = None,
+    axes_yticks: list[float] | None = None,
+    axes_ytick_labels: list[str] | None = None,
+    shared_y_axis: bool = True,
+    histogram_vmin: float = 0.0,
+    histogram_vmax: float = 0.7,
+    figsize: tuple[float, float] = (3.0, 2.5),
+) -> tuple[plt.Figure, np.ndarray]:
     """
-    Make the panel showing the histogram over time of theta (patch-based ML
-    feature) side by side with orientation (cell-based segmentation feature).
+    Build a 2x2 grid of 2-D histograms (time x feature) for two datasets and
+    two feature columns.
+
+    Rows correspond to low- and high-flow datasets; columns correspond to the
+    two entries in *columns_to_plot*.
+
+    Parameters
+    ----------
+    columns_to_plot
+        Exactly two column names to compare side-by-side (left then right).
+    axes_ylim
+        Shared y-axis limits applied to every subplot.  ``None`` lets
+        Matplotlib auto-scale each axis independently.
+    axes_yticks
+        Shared y-axis tick positions.  ``None`` uses Matplotlib defaults.
+    axes_ytick_labels
+        Tick label strings corresponding to *axes_yticks*.  ``None`` uses
+        default numeric labels.
+    shared_y_axis
+        When ``True`` the two feature columns share the same y range, so tick
+        labels are shown only on the left column.  When ``False`` each column
+        keeps its own tick labels.
+    histogram_vmin
+        Lower colour-scale limit for the 2-D histogram density.
+    histogram_vmax
+        Upper colour-scale limit for the 2-D histogram density.
+    figsize
+        Figure size passed to :func:`matplotlib.pyplot.subplots`.
+
+    Returns
+    -------
+    :
+        The :class:`~matplotlib.figure.Figure` and its 2x2 :class:`~numpy.ndarray`
+        of :class:`~matplotlib.axes.Axes`, ready for further customisation or
+        saving.
     """
+    if len(columns_to_plot) != 2:
+        raise ValueError(
+            f"columns_to_plot must contain exactly 2 columns, got {len(columns_to_plot)}."
+        )
+
     dataset_low = EXAMPLE_DATASET["FIGURE_2_LOW_FLOW_DATASET"]
     dataset_high = EXAMPLE_DATASET["FIGURE_2_HIGH_FLOW_DATASET"]
 
     dataframe_manifest = load_dataframe_manifest(
         DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED
     )
-    histogram_vmin = 0.0
-    histogram_vmax = 0.7
 
     steady_state_line_color = "darkturquoise"
 
     axes_xlim = (0, 48)  # in hours, after converting from frames
     axes_xticks = [0, 12, 24, 36, 48]
     axes_xtick_labels = [f"{x}" for x in axes_xticks]
-    axes_ylim = (0, np.pi)
-    axes_yticks = [0, np.pi / 2, np.pi]
-    axes_ytick_labels = [f"0={Unicode.PI}", f"{Unicode.PI}/2", f"{Unicode.PI}=0"]
 
     fig, ax = plt.subplots(
-        2, 2, figsize=(3.0, 2.5), layout="constrained", gridspec_kw={"hspace": 0.15}
+        2, 2, figsize=figsize, layout="constrained", gridspec_kw={"hspace": 0.15}
     )
 
     layout_engine = fig.get_layout_engine()
@@ -421,13 +464,8 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
 
     time_column_label = "Time (hours)"
     # convert frames to hours for better readability of x-axis
-    # (one frame = 5 minutes, so conversion factor is 5/60)
-    time_conversion_factor = 5 / 60
+    time_conversion_factor = TIME_STEP_IN_MINUTES / TIME_STEP_IN_HOURS
 
-    columns_to_plot: list[ColumnNameType] = [
-        Column.DiffAEData.POLAR_ANGLE,
-        Column.SegData.ORIENTATION,
-    ]
     columns_to_compute = [*columns_to_plot, Column.TIMEPOINT]
 
     for i, dataset in enumerate([dataset_low, dataset_high]):
@@ -449,6 +487,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
 
         time_bins = get_bins(bin_widths=(12,), data=df[Column.TIMEPOINT].to_numpy())[0][0]
         time_bins = time_bins * time_conversion_factor
+
         for j, column in enumerate(columns_to_plot):
             feature_column_label = COLUMN_METADATA[column].name or cast(str, column)
             # convert to sentence case for better readability as a plot title
@@ -483,14 +522,22 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
             # set axes limits and ticks
             ax_ij.set_xlim(axes_xlim)
             ax_ij.set_xticks(axes_xticks)
-            ax_ij.set_ylim(axes_ylim)
-            ax_ij.set_yticks(axes_yticks)
+            if axes_ylim is not None:
+                ax_ij.set_ylim(axes_ylim)
+            if axes_yticks is not None:
+                ax_ij.set_yticks(axes_yticks)
             if j == 0:
-                # add tick labels for shared y axis just on leftmost plots
-                ax_ij.set_yticklabels(axes_ytick_labels, fontsize=FONTSIZE_SMALL)
+                # add tick labels for the left column
+                if axes_ytick_labels is not None:
+                    ax_ij.set_yticklabels(axes_ytick_labels, fontsize=FONTSIZE_SMALL)
+                else:
+                    ax_ij.tick_params(axis="y", labelsize=FONTSIZE_SMALL)
             elif j == 1:
-                # else, no y tick labels for right column
-                ax_ij.set_yticklabels([])
+                if shared_y_axis:
+                    # omit redundant y tick labels when both columns share the same range
+                    ax_ij.set_yticklabels([])
+                else:
+                    ax_ij.tick_params(axis="y", labelsize=FONTSIZE_SMALL)
             if i == 0:
                 # put label as column title for top row
                 ax_ij.set_title(feature_column_label, fontsize=FONTSIZE_SMALL)
@@ -535,20 +582,34 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
     )
 
     # set the color limits to be the same across all histograms
-    # plot adjactent to the right of the rightmost histogram, spanning both rows
+    # plot adjacent to the right of the rightmost histogram, spanning both rows
     cbar_mappable = plt.cm.ScalarMappable(
         norm=plt.Normalize(vmin=histogram_vmin, vmax=histogram_vmax), cmap="inferno"
     )
     cbar = fig.colorbar(cbar_mappable, ax=ax[:, 1], location="right", pad=0.1)
     cbar.set_label("Histogram", labelpad=3, fontsize=FONTSIZE_SMALL)
 
+    return fig, ax
+
+
+def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
+    """
+    Make the panel showing the histogram over time of theta (patch-based ML
+    feature) side by side with orientation (cell-based segmentation feature).
+    """
+    axes_ylim = (0, np.pi)
+    axes_yticks = [0, np.pi / 2, np.pi]
+    axes_ytick_labels = [f"0={Unicode.PI}", f"{Unicode.PI}/2", f"{Unicode.PI}=0"]
+
+    fig, _ = _make_feature_pair_histogram_panel(
+        columns_to_plot=[Column.DiffAEData.POLAR_ANGLE, Column.SegData.ORIENTATION],
+        axes_ylim=axes_ylim,
+        axes_yticks=axes_yticks,
+        axes_ytick_labels=axes_ytick_labels,
+        shared_y_axis=True,
+    )
     filename = "theta_orientation_histograms"
     save_plot_to_path(
-        fig,
-        output_path,
-        filename,
-        file_format=".svg",
-        tight_layout=False,
-        transparent=False,
+        fig, output_path, filename, file_format=".svg", tight_layout=False, transparent=False
     )
     return output_path / f"{filename}.svg"
