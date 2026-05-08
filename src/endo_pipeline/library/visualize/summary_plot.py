@@ -1,12 +1,13 @@
-"""Methods for visualizing migration coherence metrics and their relationships to morphology dynamics."""
+"""Methods for plotting summaries of values across datasets."""
 
 import logging
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.axes import Axes
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import join_sorted_strings, load_dataframe, save_plot_to_path
@@ -24,16 +25,21 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
     make_legend_handles_for_fixed_pts,
 )
 from endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName, ColumnNameType
 from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
     METADATA_COLUMNS_TO_KEEP,
     POLAR_ANGLE_PERIOD,
 )
-from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
-from endo_pipeline.settings.summary_plot import COLOR_PALETTE, DATASET_COLOR_MAP
+from endo_pipeline.settings.summary_plot import (
+    CELL_LINE_LABEL_MAP,
+    COLOR_PALETTE,
+    DATASET_COLOR_MAP,
+)
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
@@ -66,363 +72,12 @@ SUMMARY_MODE_X_AXIS_SUP_LABELS: dict[SummaryPlotAxisMode, str] = {
 }
 """Mapping of summary plot axis mode to X axis super labels."""
 
-
-# --- Build jitter map (shared by numeric and categorical shear-stress modes) ---
-def _build_jitter_map(df: pd.DataFrame, jitter_width: float = 0.1) -> dict[tuple, float]:
-    jmap: dict[tuple, float] = {}
-    for ss in df["flow_condition_shear_stress_bin"].unique():
-        datasets_at_ss = df.loc[
-            df["flow_condition_shear_stress_bin"] == ss, ColumnName.DATASET
-        ].unique()
-        n = len(datasets_at_ss)
-        if n <= 1:
-            offsets = [0.0]
-        else:
-            offsets = [jitter_width * (i / (n - 1) - 0.5) for i in range(n)]
-        for ds, off in zip(datasets_at_ss, offsets, strict=False):
-            jmap[(ds, ss)] = off
-    return jmap
-
-
-def _build_categorical_axis(
-    df_fp: pd.DataFrame,
-    group_col: str,
-    jitter_width: float,
-    tick_spacing: float = 1.0,
-) -> tuple[Any, list[float], list[str]]:
-    """Build row_to_x, tick_positions, and tick_labels for a categorical x-axis.
-
-    Parameters
-    ----------
-    df_fp
-        Dataframe with ``group_col`` already populated and sorted in desired order.
-    group_col
-        Column whose unique values define the x-axis categories.
-    jitter_width
-        Horizontal jitter spread for datasets sharing the same category.
-    tick_spacing
-        Distance between adjacent categories on the x-axis.
-
-    Returns
-    -------
-    row_to_x
-        Callable mapping a row to its x position.
-    tick_positions
-        List of x positions for axis ticks.
-    tick_labels
-        List of labels for each tick.
-    """
-    unique_categories = df_fp[group_col].unique()
-    cat_to_pos = {cat: i * tick_spacing for i, cat in enumerate(unique_categories)}
-    tick_positions = [i * tick_spacing for i in range(len(unique_categories))]
-    tick_labels = [str(cat) for cat in unique_categories]
-    jitter_map = _build_jitter_map(df_fp, jitter_width=jitter_width)
-    row_to_x = lambda row: cat_to_pos[row[group_col]] + jitter_map.get(  # noqa: E731
-        (row[ColumnName.DATASET], row["flow_condition_shear_stress_bin"]), 0.0
-    )
-    return row_to_x, tick_positions, tick_labels
-
-
-def _compute_yerr(
-    row: pd.Series,  # type: ignore[type-arg]
-    y_val: float,
-    ci_lower_col: str,
-    ci_upper_col: str,
-) -> list[list[float]] | None:
-    """Return asymmetric *yerr* for :func:`~matplotlib.axes.Axes.errorbar`, or ``None``."""
-    lo = row.get(ci_lower_col)
-    hi = row.get(ci_upper_col)
-    if lo is None or hi is None or np.isnan(lo) or np.isnan(hi):
-        return None
-    return [[max(0.0, y_val - lo)], [max(0.0, hi - y_val)]]
-
-
-def plot_fixed_points_vs_shear_stress(
-    df_fp: pd.DataFrame,
-    variable: str,
-    label: str,
-    dataset_order: list[str] | None = None,
-    ylimits: tuple[float, float] | None = None,
-    x_axis_mode: Literal[
-        "dataset", "shear_stress_numeric", "shear_stress_categorical", "cell_line", "flow_switch"
-    ] = "dataset",
-    marker_size_scatter: int = 15,
-    marker_size_legend: int = 5,
-    figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 3),
-    stable_only: bool = True,
-    ax: plt.Axes | None = None,
-    jitter_width: float = 0.1,
-    x_padding: float = 0.5,
-) -> plt.Figure:
-    """
-    Make and save plot of one component of fixed points vs shear stress.
-
-    **X-axis modes**
-
-    The input `x_axis_mode` controls the layout and grouping of the x-axis:
-        - `"dataset"`: one categorical tick per dataset, ordered by
-          ``dataset_order`` or shear stress. Labels show ``"dataset_name
-          (shear_stress)"``.
-        - `"shear_stress_numeric"`: x positions are the numeric shear-stress
-          values (binned), with jitter for datasets sharing the same value.
-        - `"shear_stress_categorical"`: one evenly-spaced tick per unique
-          shear-stress value (so 6 and 21 are adjacent), with jitter for
-          datasets sharing the same value.
-        - `"cell_line"`: one categorical tick per cell-line label (e.g. WT,
-          Control, KD), ordered as WT → Control → KD, with jitter for datasets
-          sharing the same shear-stress value.
-
-    **Input dataframe columns**
-
-    If the x-axis mode is one of:
-        - `"shear_stress_numeric"`
-        - `"shear_stress_categorical"`
-        - `"flow_switch"`
-        - `"dataset"`
-    the input dataframe of fixed points must contain a column named
-    `"flow_condition_shear_stress_bin"`. This column is used to determine the
-    x-axis positions and labels for the plot.
-
-    If the x-axis mode is `"cell_line"`, the input dataframe must contain a
-    column named `"cell_line_label"`.
-
-    If the x-axis mode is `"dataset"`, the input dataframe must additionally
-    contain a column named `"dataset"`.
-
-    Parameters
-    ----------
-    df_fp
-        Concatenated fixed-points dataframe.
-    variable
-        Column name to plot on the y-axis.
-    label
-        Display label for the y-axis.
-    dataset_order
-        Optional list of dataset names specifying the desired x-axis order. If
-        ``None``, falls back to sorting by shear stress.
-    ylimits
-        Optional ``(ymin, ymax)`` limits for the y-axis.
-    x_axis_mode
-        Specification of x-axis layout and grouping.
-    marker_size_scatter
-        Size of the scatter markers for fixed points.
-    marker_size_legend
-        Size of the markers in the legend for fixed points.
-    figure_size
-        Size of the output figure.
-    stable_only
-        If `True`, only fixed points classified as stable are included in the
-        plot, and colored by dataset.  If `False`, all fixed points are
-        included and colored by stability classification.
-    ax
-        Optional matplotlib Axes to plot on.  If `None`, a new figure and axes
-        are created.
-    jitter_width
-        Horizontal jitter applied to overlapping points sharing the same x-axis
-        position.  Larger values spread points further apart.
-    x_padding
-        Additional horizontal padding added to the left and right edges of the
-        plot to ensure jittered points aren't clipped.  Only applied for
-        non-categorical x-axis modes.
-
-
-    Returns
-    -------
-    plt.Figure
-        The matplotlib figure object containing the plot.
-    """
-    if stable_only:
-        df_fp = filter_dataframe_by_stability(df_fp, stability_label=StabilityLabel.STABLE)
-    else:
-        legend_handles = make_legend_handles_for_fixed_pts(
-            fpt_stabilities=df_fp[ColumnName.VectorField.STABILITY].unique().tolist(),
-            marker_size=marker_size_legend,
-        )
-
-    # Order by specified dataset list, or fall back to shear stress sorting
-    if dataset_order is not None:
-        dataset_cat = pd.CategoricalDtype(categories=dataset_order, ordered=True)
-        df_fp[ColumnName.DATASET] = df_fp[ColumnName.DATASET].astype(dataset_cat)
-        df_fp = df_fp.sort_values(ColumnName.DATASET)
-    else:
-        df_fp = df_fp.sort_values("flow_condition_shear_stress_bin")
-
-    row_to_x: Any  # noqa: E731
-    tick_positions: list[float]
-    if x_axis_mode == "dataset":
-        # Categorical x-axis: one tick per dataset, custom labels
-        unique_datasets = df_fp[ColumnName.DATASET].unique()
-        df_fp["_dataset_label"] = df_fp[ColumnName.DATASET].map(
-            {
-                d: f"{load_dataset_config(d).date} ({df_fp.loc[df_fp[ColumnName.DATASET] == d, 'flow_condition_shear_stress_bin'].iloc[0]})"
-                for d in unique_datasets
-            }
-        )
-        row_to_x, tick_positions, tick_labels = _build_categorical_axis(
-            df_fp, "_dataset_label", jitter_width=jitter_width
-        )
-    elif x_axis_mode == "shear_stress_numeric":
-        # Numeric x-axis: position by shear stress value, jittered by dataset
-        unique_shear = sorted(df_fp["flow_condition_shear_stress_bin"].unique())
-        tick_positions = unique_shear
-        tick_labels = list(map(str, unique_shear))
-        jitter_map = _build_jitter_map(df_fp, jitter_width=jitter_width)
-        row_to_x = lambda row: row[
-            "flow_condition_shear_stress_bin"
-        ] + jitter_map.get(  # noqa: E731
-            (row[ColumnName.DATASET], row["flow_condition_shear_stress_bin"]), 0.0
-        )
-    elif x_axis_mode == "shear_stress_categorical":
-        # Evenly-spaced categorical ticks for each unique shear stress value
-        row_to_x, tick_positions, tick_labels = _build_categorical_axis(
-            df_fp, "flow_condition_shear_stress_bin", jitter_width=jitter_width, tick_spacing=0.5
-        )
-    elif x_axis_mode == "cell_line":
-        # Order by Parental → Control → VE-Cad KD
-        cell_line_order = sorted(
-            df_fp["cell_line_label"].unique(),
-            key=lambda x: (0 if x == "Parental" else 1 if x == "Control" else 2),
-        )
-        cell_line_dtype = pd.CategoricalDtype(categories=cell_line_order, ordered=True)
-        df_fp["cell_line_label"] = df_fp["cell_line_label"].astype(cell_line_dtype)
-        df_fp = df_fp.sort_values("cell_line_label")
-        row_to_x, tick_positions, tick_labels = _build_categorical_axis(
-            df_fp, "cell_line_label", jitter_width=jitter_width
-        )
-    elif x_axis_mode == "flow_switch":
-        # Label: "<shear_stress_bin> (single flow)" or "<shear_stress_bin> (flow switch)"
-        df_fp["flow_switch_label"] = df_fp.apply(
-            lambda row: (
-                f"{int(row['flow_condition_shear_stress_bin'])} (single flow)"
-                if row["n_shear_stress_conditions"] == 1
-                else f"{int(row['flow_condition_shear_stress_bin'])} (flow switch)"
-            ),
-            axis=1,
-        )
-        row_to_x, tick_positions, tick_labels = _build_categorical_axis(
-            df_fp, "flow_switch_label", jitter_width=jitter_width
-        )
-    else:
-        raise ValueError(f"Unknown x_axis_mode: {x_axis_mode!r}")
-
-    if ax is None:
-        fig, ax = plt.subplots(figsize=figure_size)
-    else:
-        fig = ax.figure  # type: ignore[assignment]
-
-    if stable_only:
-        # Use global dataset color map for consistent colors across plots;
-        # fall back to palette cycling for unknown datasets.
-        unique_datasets_list = df_fp[ColumnName.DATASET].unique()
-        dataset_color_map = {
-            ds: DATASET_COLOR_MAP.get(ds, COLOR_PALETTE[i % len(COLOR_PALETTE)])
-            for i, ds in enumerate(unique_datasets_list)
-        }
-
-        for _, row in df_fp.iterrows():
-            y_val = row[variable]
-            ci_lower_col = f"{variable}_{ColumnName.BootstrapAnalysis.CI_LOWER}"
-            ci_upper_col = f"{variable}_{ColumnName.BootstrapAnalysis.CI_UPPER}"
-            yerr = _compute_yerr(row, y_val, ci_lower_col, ci_upper_col)
-            if yerr is not None:
-                ax.errorbar(
-                    row_to_x(row),
-                    y_val,
-                    yerr=yerr,
-                    fmt="o",
-                    color=dataset_color_map[row[ColumnName.DATASET]],
-                    markeredgecolor="black",
-                    markeredgewidth=0.5,
-                    markersize=marker_size_scatter**0.5,
-                    capsize=2,
-                    elinewidth=0.8,
-                    ecolor=dataset_color_map[row[ColumnName.DATASET]],
-                    zorder=3,
-                )
-            else:
-                ax.scatter(
-                    row_to_x(row),
-                    y_val,
-                    marker="o",
-                    color=dataset_color_map[row[ColumnName.DATASET]],
-                    edgecolor="black",
-                    linewidths=0.5,
-                    s=marker_size_scatter,
-                    zorder=3,
-                )
-
-    else:
-        # Color by stability
-        for _, row in df_fp.iterrows():
-            stability = row[ColumnName.VectorField.STABILITY]
-            mk = FIXED_POINT_PLOT_STYLE[stability].marker
-            clr = FIXED_POINT_PLOT_STYLE[stability].color
-            is_gray = stability not in FIXED_POINT_PLOT_STYLE
-            y_val = row[variable]
-            yerr = _compute_yerr(row, y_val, ci_lower_col, ci_upper_col)
-            if yerr is not None:
-                ax.errorbar(
-                    row_to_x(row),
-                    y_val,
-                    yerr=yerr,
-                    fmt=mk,
-                    color=clr,
-                    markeredgecolor="black",
-                    markeredgewidth=0.8,
-                    markersize=marker_size_scatter**0.5,
-                    capsize=2,
-                    elinewidth=0.8,
-                    ecolor=clr,
-                    alpha=0.35 if is_gray else 1.0,
-                    zorder=1 if is_gray else 3,
-                )
-            else:
-                ax.scatter(
-                    row_to_x(row),
-                    y_val,
-                    marker=mk,
-                    color=clr,
-                    edgecolor="black",
-                    linewidths=0.8,
-                    s=marker_size_scatter,
-                    alpha=0.35 if is_gray else 1.0,
-                    zorder=1 if is_gray else 3,
-                )
-        ax.legend(
-            handles=legend_handles,
-            loc="center left",
-            bbox_to_anchor=(1, 0.5),
-            title="stability",
-        )
-
-    ax.set_xticks(tick_positions)
-    if x_axis_mode in ("dataset", "cell_line", "flow_switch"):
-        ax.set_xticklabels(tick_labels, rotation=45, ha="right")
-    else:
-        ax.set_xticklabels(tick_labels)
-    # Add edge padding so jittered points aren't clipped
-    if tick_positions and x_axis_mode != "dataset":
-        x_padding = x_padding
-        ax.set_xlim(tick_positions[0] - x_padding, tick_positions[-1] + x_padding)
-    if ylimits is not None:
-        ax.set_ylim(ylimits)
-
-    if variable == ColumnName.DiffAEData.POLAR_ANGLE:
-        ax.set_yticks(
-            [0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi],
-            labels=[
-                f"0={Unicode.PI}",
-                f"{Unicode.PI}/4",
-                f"{Unicode.PI}/2",
-                f"3{Unicode.PI}/4",
-                f"{Unicode.PI}=0",
-            ],
-        )
-
-    ax.set_ylabel(label)
-    ax.grid(axis="y", alpha=0.3)
-
-    return fig
+SUMMARY_MODE_COLUMN_NAME: dict[SummaryPlotAxisMode, str] = {
+    "dataset": ColumnName.DATASET,
+    "shear_stress": "_shear_stress_category",
+    "cell_line": "_cell_line_category",
+}
+"""Mapping of summary plot axis mode to column names."""
 
 
 def _convert_polar_angle_to_nematic_order(df: pd.DataFrame) -> pd.DataFrame:
@@ -483,13 +138,201 @@ def _convert_polar_angle_to_nematic_order(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _plot_cross_dataset_summary_for_column(
+    df: pd.DataFrame,
+    ax: Axes,
+    column_name: ColumnNameType,
+    category_order: list[str] | None = None,
+    axis_mode: SummaryPlotAxisMode = "dataset",
+    style_mode: SummaryPlotStyleMode = "dataset",
+    marker_size_plot: int = 7,
+    marker_size_legend: int = 5,
+    jitter_width: float = 0.05,
+) -> None:
+    """
+    Plot cross dataset summary for given column name and summary mode.
+
+    Parameters
+    ----------
+    df
+        Dataframe containing features for summary plot.
+    ax
+        Axes instance for plotting summary.
+    column_name
+        Feature column name.
+    category_order
+        Optional order for the categories in the plot.
+    axis_mode
+        Select the axis mode for the summary plot.
+    style_mode
+        Select the style mode for the summary plot.
+    marker_size_plot
+        Size of the markers in the plot.
+    marker_size_legend
+        Size of the markers in the legend.
+    jitter_width
+        Width of the jitter applied to points in the same category bin.
+    """
+
+    # Load dataset configs for all unique datasets in summary data
+    unique_datasets = df[ColumnName.DATASET].unique()
+    dataset_configs = {dataset: load_dataset_config(dataset) for dataset in unique_datasets}
+
+    # Create color and marker mapping based on selected style mode
+    if style_mode == "dataset":
+        style_column = ColumnName.DATASET
+        color_map = {
+            dataset: DATASET_COLOR_MAP.get(dataset, COLOR_PALETTE[i % len(COLOR_PALETTE)])
+            for i, dataset in enumerate(unique_datasets)
+        }
+        marker_map = dict.fromkeys(unique_datasets, "o")
+    elif style_mode == "stability":
+        style_column = ColumnName.VectorField.STABILITY
+        color_map = {key: style.color for key, style in FIXED_POINT_PLOT_STYLE.items()}
+        marker_map = {key: style.marker for key, style in FIXED_POINT_PLOT_STYLE.items()}
+    else:
+        raise ValueError(f"Summary plot style mode '{style_mode}' is not supported")
+
+    # Get the category column name for the selected axis mode
+    category_column = SUMMARY_MODE_COLUMN_NAME.get(axis_mode)
+    if category_column is None:
+        raise ValueError(f"Summary plot axis mode '{axis_mode}' is not supported")
+
+    # Add category column for selected axis mode based on dataset (if needed)
+    if axis_mode == "shear_stress":
+        shear_stress_map = {
+            dataset_config.name: dataset_config.flow_conditions[-1].shear_stress_bin
+            for dataset_config in dataset_configs.values()
+        }
+        df[category_column] = df[ColumnName.DATASET].map(shear_stress_map)
+    elif axis_mode == "cell_line":
+        cell_line_map = {
+            dataset_config.name: dataset_config.cell_lines[0]
+            for dataset_config in dataset_configs.values()
+        }
+        df[category_column] = df[ColumnName.DATASET].map(cell_line_map)
+
+    # If category order is provided, remap the data type to preserve given order
+    if category_order is not None:
+        dataset_category = pd.CategoricalDtype(categories=category_order, ordered=True)
+        df[category_column] = df[category_column].astype(dataset_category)
+
+    # Sort the data by the category and get final order for categories
+    df = df.sort_values(category_column)
+    unique_categories = list(df[category_column].unique())
+
+    # Get category labels for the selected axis mode
+    if axis_mode == "dataset":
+        tick_labels = [
+            f"{dataset_configs[cat].date} ({dataset_configs[cat].flow_conditions[-1].shear_stress_bin})"
+            for cat in unique_categories
+        ]
+    elif axis_mode == "cell_line":
+        tick_labels = [CELL_LINE_LABEL_MAP[cat] for cat in unique_categories]
+    else:
+        tick_labels = unique_categories
+
+    # Get column metadata from base name and then adjust column name if the
+    # column is a binned mean feature
+    column_metadata = COLUMN_METADATA[column_name]
+    column_name = f"mean_{column_name}" if column_name in BINNED_MEAN_FEATURES else column_name
+
+    # Get column names for confidence interval
+    ci_lower_col = f"{column_name}_{ColumnName.BootstrapAnalysis.CI_LOWER}"
+    ci_upper_col = f"{column_name}_{ColumnName.BootstrapAnalysis.CI_UPPER}"
+
+    # If both confidence interval columns exist, calculate upper and lower bounds
+    if ci_lower_col in df and ci_upper_col in df:
+        df["_lower_bound"] = (df[column_name] - df[ci_lower_col]).clip(lower=0)
+        df["_upper_bound"] = (df[ci_upper_col] - df[column_name]).clip(lower=0)
+    else:
+        df["_lower_bound"] = 0
+        df["_upper_bound"] = 0
+
+    # Iterate through each category to plot points and (if available) error
+    # bars. Points are colored based on selected style mode while position on
+    # the x axis is determined by the selected axis mode
+    for category, category_df in df.groupby(category_column, observed=True):
+        # Get position for the dataset based on index in category list
+        index = unique_categories.index(category)
+
+        # Calculate jitter off index based on number of points in the category
+        num_points = len(category_df)
+        offsets = [0] if num_points == 1 else np.linspace(-jitter_width, jitter_width, num_points)
+        x_values = [index + offset for offset in offsets]
+
+        # Get y values based on feature column
+        y_values = category_df[column_name]
+
+        # Get marker based on style column
+        colors = [color_map[col] for col in category_df[style_column]]
+        markers = [marker_map[col] for col in category_df[style_column]]
+
+        # Get lower and upper bounds for points in the category
+        lower_bounds = category_df["_lower_bound"]
+        upper_bounds = category_df["_upper_bound"]
+
+        for x, y, color, marker, lower, upper in zip(
+            x_values, y_values, colors, markers, lower_bounds, upper_bounds, strict=True
+        ):
+            ax.errorbar(
+                x,
+                y,
+                yerr=[[lower], [upper]],
+                fmt=marker,
+                color=color,
+                markeredgecolor="black",
+                markeredgewidth=0.5,
+                markersize=marker_size_plot,
+                capsize=2,
+                elinewidth=0.8,
+                ecolor=color,
+                zorder=3,
+            )
+
+    # Include legend if using stability style mode
+    if style_mode == "stability":
+        legend_handles = make_legend_handles_for_fixed_pts(
+            fpt_stabilities=df[ColumnName.VectorField.STABILITY].unique().tolist(),
+            marker_size=marker_size_legend,
+        )
+        ax.legend(handles=legend_handles, fontsize=FONTSIZE_SMALL)
+
+    # Set x axis ticks to category positions
+    category_positions = range(len(unique_categories))
+    ax.set_xticks(category_positions)
+
+    # Rotate x axis category labels if the label is more than 10 characters
+    if len(str(tick_labels[0])) > 10:
+        ax.set_xticklabels(tick_labels, rotation=45, ha="right")
+    else:
+        ax.set_xticklabels(tick_labels)
+
+    # Set the x axis limits with padding to avoid cutting of jittered points
+    x_padding = 0.3
+    ax.set_xlim(category_positions[0] - x_padding, category_positions[-1] + x_padding)
+
+    # Set y ticks if they are available for the given column
+    if column_metadata.ticks is not None:
+        ax.set_yticks(column_metadata.ticks)
+
+    # Set y labels if they are available for the given column
+    if column_metadata.tick_labels is not None:
+        ax.set_yticklabels(column_metadata.tick_labels)
+
+    # Add y axis label and grid lines
+    y_axis_label = column_metadata.label or str(column_name)
+    ax.set_ylabel(y_axis_label)
+    ax.grid(axis="y", alpha=0.3)
+
+
 def plot_cross_dataset_summaries(
     df: pd.DataFrame,
     output_dir: Path,
     column_names: list[ColumnNameType] | None = None,
     axis_mode: SummaryPlotAxisMode = "dataset",
     style_mode: SummaryPlotStyleMode = "dataset",
-    dataset_order: list[str] | None = None,
+    category_order: list[str] | None = None,
     subplot_layout: Literal["horizontal", "vertical"] = "horizontal",
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 3),
     jitter_width: float = 0.05,
@@ -539,13 +382,13 @@ def plot_cross_dataset_summaries(
         Select the axis mode for the summary plot.
     style_mode
         Select the style mode for the summary plot.
-    dataset_order
-        Optional order for the categories.
+    category_order
+        Optional order for the categories in the plot.
     subplot_layout
         Layout direction for summary plots of multiple columns.
     figure_size
         Size of output figure.
-    jitter_width : float, optional
+    jitter_width
         Width of the jitter applied to points in the same category bin.
     convert_angle_to_nematic
         True to swap polar angle column to nemetic order column.
@@ -596,7 +439,7 @@ def plot_cross_dataset_summaries(
         _plot_cross_dataset_summary_for_column(
             df=df,
             ax=ax,
-            category_order=dataset_order,
+            category_order=category_order,
             column_name=column_name,
             axis_mode=axis_mode,
             style_mode=style_mode,

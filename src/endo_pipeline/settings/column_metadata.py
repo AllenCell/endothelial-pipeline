@@ -60,8 +60,11 @@ class ColumnMetadata:
     bin_width: float | None = None
     """Width of bins."""
 
-    ticks: range | None = None
+    ticks: range | list[int] | list[float] | None = None
     """Range for ticks."""
+
+    tick_labels: list[str] | None = None
+    """Tick labels."""
 
     slug: str = field(init=False)
     """Slug version of name."""
@@ -352,6 +355,14 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         description="Polar angle calculated by transforming PC 1 and PC 2 to polar coordinates",
         min=0,
         max=pi,
+        ticks=[0, pi / 4, pi / 2, 3 * pi / 4, pi],
+        tick_labels=[
+            f"0={Unicode.PI}",
+            f"{Unicode.PI}/4",
+            f"{Unicode.PI}/2",
+            f"3{Unicode.PI}/4",
+            f"{Unicode.PI}=0",
+        ],
         type=ColumnType.CONTINUOUS,
     ),
     Column.DiffAEData.POLAR_RADIUS: ColumnMetadata(
