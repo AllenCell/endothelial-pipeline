@@ -129,7 +129,7 @@ def plot_explained_variance(
         "Explained variance ratio for first 10 components: [ %s ]", explained_variance_ratio[:10]
     )
     logger.debug(
-        "Number of components needed to explain 95% variance: %d",
+        "Number of components needed to explain 95pct variance: %d",
         np.searchsorted(np.cumsum(explained_variance_ratio), 0.95) + 1,
     )
     ax.plot(np.arange(1, n_components + 1), 100 * np.cumsum(explained_variance_ratio), "k-o")
