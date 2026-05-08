@@ -38,10 +38,10 @@ SUMMARY_PLOT_DATASETS: dict[str, list[str]] = {
         "20250402_20X",  # 6 dyn / cm2
         "20250409_20X",  # 6 dyn / cm2
         "20260309_20X",  # CDH5 CD31-sorted under low shear stress
-        "20250908_20X",  # CDH5 Ex2 deletion under low shear stress, not migratory
-        "20251029_20X",  # CDH5 Ex2 deletion under low shear stress
-        "20251119_20X",  # CDH5 Ex2 deletion under low shear stress
-        "20260325_20X",  # CDH5 Ex2 deletion under low shear stress
+        "20250908_20X",  # CDH5 Ex3 deletion under low shear stress, not migratory
+        "20251029_20X",  # CDH5 Ex3 deletion under low shear stress
+        "20251119_20X",  # CDH5 Ex3 deletion under low shear stress
+        "20260325_20X",  # CDH5 Ex3 deletion under low shear stress
     ],
     "flow_switch_low": [
         "20250618_20X",  # 6 dyn / cm2
