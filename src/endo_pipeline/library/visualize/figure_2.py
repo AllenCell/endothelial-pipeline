@@ -1,7 +1,7 @@
 """Helper functions for visualizations used in Figure 2."""
 
 from pathlib import Path
-from typing import Literal, cast
+from typing import Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,9 +11,7 @@ from matplotlib.colors import TwoSlopeNorm
 from matplotlib.layout_engine import ConstrainedLayoutEngine
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
-from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import save_plot_to_path
-from endo_pipeline.library.analyze.track_integration import get_line_fit_and_filtered_df
 from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
 from endo_pipeline.library.model.diffae.generate_image import generate_from_dataframe
 from endo_pipeline.library.visualize.diffae_features.dynamics import (
@@ -22,10 +20,6 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
     plot_drift_quiver,
 )
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
-from endo_pipeline.library.visualize.summary_plot import _build_categorical_axis
-from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings.column_metadata import COLUMN_METADATA
-from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_XSMALL
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_CBAR_NUM_TICKS,
@@ -37,8 +31,6 @@ from endo_pipeline.settings.flow_field_2d import (
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
-from endo_pipeline.settings.summary_plot import COLOR_PALETTE, DATASET_COLOR_MAP
-from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
 
@@ -494,73 +486,3 @@ def make_crop_example_contact_sheet(
     )
 
     return fig_savedir / f"{fig_filename}{file_format}"
-
-
-def make_first_passage_time_panel(
-    first_passage_time_manifest: DataframeManifest,
-    datasets: list[str],
-    fig_savedir: Path,
-    fig_kwargs: dict | None = None,
-) -> Path:
-    """Plot a summary of the correlation results from the first passage time analysis."""
-    line_fit_df = get_line_fit_and_filtered_df(
-        first_passage_time_manifest=first_passage_time_manifest
-    )[0]
-    # filter to just the datasets included in the summary plot
-    line_fit_df = line_fit_df[line_fit_df[Column.DATASET].isin(datasets)]
-    for dataset, df_dataset in line_fit_df.groupby(Column.DATASET):
-        dataset_name = cast(str, dataset)  # for type checking purposes
-        dataset_config = load_dataset_config(dataset_name)
-        shear_stress_bin = dataset_config.flow_conditions[-1].shear_stress_bin
-        line_fit_df.loc[df_dataset.index, "flow_condition_shear_stress_bin"] = shear_stress_bin
-
-    line_fit_df["flow_condition_shear_stress_bin"] = line_fit_df[
-        "flow_condition_shear_stress_bin"
-    ].astype(int)
-
-    filename_summary = "first_passage_time_correlation_summary"
-    dataset_color_map = {
-        ds: DATASET_COLOR_MAP.get(ds, COLOR_PALETTE[i % len(COLOR_PALETTE)])
-        for i, ds in enumerate(datasets)
-    }
-
-    fig, ax = plt.subplots(**(fig_kwargs or {}))
-    ax = cast(plt.Axes, ax)  # for pylance + type checking purposes
-    # Evenly-spaced categorical ticks for each unique shear stress value
-    row_to_x, tick_positions, tick_labels = _build_categorical_axis(
-        line_fit_df, "flow_condition_shear_stress_bin", jitter_width=0.1, tick_spacing=1
-    )
-
-    correlation_column_name = Column.VectorField.PEARSON_R
-    correlation_label = cast(str, COLUMN_METADATA[correlation_column_name].name)
-    for _, row in line_fit_df.iterrows():
-        y_val = row[correlation_column_name]
-        ax.scatter(
-            row_to_x(row),
-            y_val,
-            marker="o",
-            color=dataset_color_map[row[Column.DATASET]],
-            edgecolor="black",
-            linewidths=0.5,
-            s=15,
-            zorder=3,
-        )
-
-    ax.set_xticks(tick_positions)
-    ax.set_xticklabels(tick_labels)
-    ax.set_xlim(tick_positions[0] - 0.5, tick_positions[-1] + 0.5)
-    ax.set_ylim(0.0, 1.0)
-    ax.set_yticks(np.linspace(0.0, 1.0, 5))
-    ax.set_xlabel(f"Shear stress (dyn/cm{Unicode.SQUARED})", fontsize=FONTSIZE_MEDIUM, labelpad=2)
-    ax.set_ylabel(correlation_label, labelpad=5)
-    ax.grid(axis="y", alpha=0.3)
-
-    save_plot_to_path(
-        fig,
-        fig_savedir,
-        filename_summary,
-        file_format=".svg",
-        tight_layout=False,
-        transparent=True,
-    )
-    return fig_savedir / f"{filename_summary}.svg"

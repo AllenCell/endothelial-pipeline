@@ -145,9 +145,10 @@ def _plot_cross_dataset_summary_for_column(
     category_order: list[str] | None = None,
     axis_mode: SummaryPlotAxisMode = "dataset",
     style_mode: SummaryPlotStyleMode = "dataset",
-    marker_size_plot: int = 7,
-    marker_size_legend: int = 5,
+    marker_size_plot: int = 4,
+    marker_size_legend: int = 4,
     jitter_width: float = 0.05,
+    set_y_lims: bool = False,
 ) -> None:
     """
     Plot cross dataset summary for given column name and summary mode.
@@ -172,6 +173,8 @@ def _plot_cross_dataset_summary_for_column(
         Size of the markers in the legend.
     jitter_width
         Width of the jitter applied to points in the same category bin.
+    set_y_lims
+        True to set y limits based on column metadata, False otherwise.
     """
 
     # Load dataset configs for all unique datasets in summary data
@@ -309,7 +312,7 @@ def _plot_cross_dataset_summary_for_column(
         ax.set_xticklabels(tick_labels)
 
     # Set the x axis limits with padding to avoid cutting of jittered points
-    x_padding = 0.3
+    x_padding = 0.5
     ax.set_xlim(category_positions[0] - x_padding, category_positions[-1] + x_padding)
 
     # Set y ticks if they are available for the given column
@@ -319,6 +322,12 @@ def _plot_cross_dataset_summary_for_column(
     # Set y labels if they are available for the given column
     if column_metadata.tick_labels is not None:
         ax.set_yticklabels(column_metadata.tick_labels)
+
+    # Set y limits if they are available for the given column
+    if set_y_lims and column_metadata.limits is not None:
+        y_min = df[category_column].min() if column_metadata.min == "min" else column_metadata.min
+        y_max = df[category_column].max() if column_metadata.max == "max" else column_metadata.max
+        ax.set_ylim(y_min, y_max)
 
     # Add y axis label and grid lines
     y_axis_label = column_metadata.label or str(column_name)
@@ -337,6 +346,7 @@ def plot_cross_dataset_summaries(
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 3),
     jitter_width: float = 0.05,
     convert_angle_to_nematic: bool = True,
+    set_y_lims: bool = False,
 ) -> Path:
     """
     Plot cross dataset summaries for given columns in selected plot mode.
@@ -444,6 +454,7 @@ def plot_cross_dataset_summaries(
             axis_mode=axis_mode,
             style_mode=style_mode,
             jitter_width=jitter_width,
+            set_y_lims=set_y_lims,
         )
 
     # Add super x axis label

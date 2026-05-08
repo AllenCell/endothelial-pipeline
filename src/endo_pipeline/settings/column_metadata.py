@@ -587,6 +587,8 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         name="Pearson r of MFPT\n(grid versus track-based)",
         label="Pearson r",
         type=ColumnType.CONTINUOUS,
+        min=0,
+        max=1,
     ),
     Column.VectorField.LINEFIT_SLOPE: ColumnMetadata(
         name="Line fit slope",
