@@ -106,7 +106,7 @@ def main(
     )
 
     fig = plot_predictions_scatter(predictions, benchmark)
-    save_plot_to_path(fig, output_dir, "regression_true_vs_predicted")
+    save_plot_to_path(fig, output_dir, "regression_true_vs_predicted", tight_layout=False)
 
 
 if __name__ == "__main__":
