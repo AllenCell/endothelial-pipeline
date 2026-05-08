@@ -68,7 +68,7 @@ def main() -> None:
         label_column_tuples=label_column_tuples,
         out_dir=save_dir,
         cross_correlation_only=True,
-        figsize_cluster_heatmap=(4.2, 2.75),
+        figsize_cluster_heatmap=(4.35, 2.75),
         y_axis_label_coords=None,
     )
 
@@ -122,19 +122,19 @@ def main() -> None:
         ),
         FigurePanel(
             letter="C",
-            path=save_dir / "correlation_ml_based_features_vs_measured_features_heatmap.svg",
-            x_position=0.0,
-            y_position=2.5,
-            x_offset=-0.1,
-            y_offset=-0.1,
-        ),
-        FigurePanel(
-            letter="D",
             path=latent_walk_2d_path,
-            x_position=4.1,
+            x_position=0.0,
             y_position=2.5,
             x_offset=0.075,
             y_offset=0.0,
+        ),
+        FigurePanel(
+            letter="D",
+            path=save_dir / "correlation_ml_based_features_vs_measured_features_heatmap.svg",
+            x_position=2.25,
+            y_position=2.5,
+            x_offset=-0.1,
+            y_offset=-0.1,
         ),
         FigurePanel(
             letter="E",

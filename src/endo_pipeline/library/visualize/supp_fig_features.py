@@ -318,7 +318,7 @@ def plot_2d_latent_walk(
         n_steps,
         n_steps,
         gridspec_kw={"wspace": 0.15, "hspace": 0.15},
-        figsize=(2.15, 2.15),
+        figsize=(2.1, 2.1),
         layout="constrained",
     )
 
@@ -378,7 +378,7 @@ def plot_2d_latent_walk(
         head_width=0.4,
         color="darkred",
         linewidth=2.0,
-        label_offset=(0.275, 0.115),
+        label_offset=(0.175, 0.115),
     )
 
     save_plot_to_path(
