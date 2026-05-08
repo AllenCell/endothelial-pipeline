@@ -68,7 +68,7 @@ def main() -> None:
         label_column_tuples=label_column_tuples,
         out_dir=save_dir,
         cross_correlation_only=True,
-        figsize_cluster_heatmap=(MAX_FIGURE_WIDTH - 1.7, 2.75),
+        figsize_cluster_heatmap=(4.1, 2.75),
         y_axis_label_coords=None,
     )
 
@@ -76,7 +76,7 @@ def main() -> None:
     latent_walk_filename = "latent_walk_top_3_pcs"
 
     walk_img_grid = perform_latent_walk_along_top_pcs(
-        save_dir, latent_walk_filename, figsize=(6.0, 2.4), num_gpus=NUM_GPUS
+        save_dir, latent_walk_filename, figsize=(4.45, 2.3), num_gpus=NUM_GPUS
     )
     latent_walk_path = save_dir / f"{latent_walk_filename}_scale_bar_10um.svg"
 
@@ -117,7 +117,7 @@ def main() -> None:
             path=latent_walk_path,
             x_position=2.0,
             y_position=0.0,
-            x_offset=0.25,
+            x_offset=0.05,
             y_offset=0.0,
         ),
         FigurePanel(
@@ -131,15 +131,15 @@ def main() -> None:
         FigurePanel(
             letter="D",
             path=latent_walk_2d_path,
-            x_position=0.1,
-            y_position=5.1,
-            x_offset=0.15,
-            y_offset=0.0,
+            x_position=3.9,
+            y_position=2.5,
+            x_offset=0.075,
+            y_offset=-0.075,
         ),
         FigurePanel(
             letter="E",
             path=theta_orientation_path,
-            x_position=2.95,
+            x_position=0.0,
             y_position=5.1,
             x_offset=0.2,
             y_offset=0.0,

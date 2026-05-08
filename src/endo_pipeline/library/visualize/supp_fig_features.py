@@ -185,8 +185,8 @@ def _add_axes_lines(
     pc2_label = cast(str, COLUMN_METADATA["pc_2"].label)
     # PC2 label: to the left of the top image in the PC2 column
     fig.text(
-        top_bbox.x0 - 0.04,
-        top_bbox.y1,
+        top_bbox.x0 + 0.05,
+        top_bbox.y1 + 0.1,
         pc2_label,
         fontsize=FONTSIZE_LARGE,
         fontweight="bold",
@@ -196,8 +196,8 @@ def _add_axes_lines(
     )
     # PC1 label: to the right of the rightmost image, vertically centred on the axis
     fig.text(
-        right_bbox.x1 + axes_extend + 0.01,
-        cy,
+        right_bbox.x1 + axes_extend - 0.075,
+        cy - 0.1,
         pc1_label,
         fontsize=FONTSIZE_LARGE,
         fontweight="bold",
@@ -318,7 +318,7 @@ def plot_2d_latent_walk(
         n_steps,
         n_steps,
         gridspec_kw={"wspace": 0.15, "hspace": 0.15},
-        figsize=(2.25, 2.25),
+        figsize=(2.15, 2.15),
         layout="constrained",
     )
 
