@@ -613,3 +613,44 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         fig, output_path, filename, file_format=".svg", tight_layout=False, transparent=False
     )
     return output_path / f"{filename}.svg"
+
+
+def make_r_aspect_ratio_histogram_panel(output_path: Path) -> Path:
+    """
+    Make the panel showing the histogram over time of polar radius r
+    (patch-based ML feature) side by side with cell aspect ratio (cell-based
+    segmentation feature).
+
+    Both features capture cell elongation: *r* encodes the magnitude of the
+    alignment signal in the DiffAE latent space while aspect ratio is a direct
+    morphological measurement.  Placing them side by side reveals how the two
+    representations co-vary across the time course and across shear-stress
+    conditions.
+
+    The two features have different natural ranges, so each column (feature)
+    is given its own consistent y-axis limits derived from the union of both
+    dataset rows rather than using a shared range.
+    """
+    fig, ax = _make_feature_pair_histogram_panel(
+        columns_to_plot=[Column.DiffAEData.POLAR_RADIUS, Column.SegData.ASPECT_RATIO],
+        axes_ylim=None,
+        axes_yticks=None,
+        axes_ytick_labels=None,
+        shared_y_axis=False,
+    )
+
+    # Reconcile y-limits per feature column so that both dataset rows (low-flow
+    # and high-flow) share the same scale for that feature.
+    num_columns = ax.shape[1]
+    for j in range(num_columns):
+        col_axes = [cast(plt.Axes, ax[i, j]) for i in range(ax.shape[0])]
+        y_min = min(a.get_ylim()[0] for a in col_axes)
+        y_max = max(a.get_ylim()[1] for a in col_axes)
+        for a in col_axes:
+            a.set_ylim(y_min, y_max)
+
+    filename = "r_aspect_ratio_histograms"
+    save_plot_to_path(
+        fig, output_path, filename, file_format=".svg", tight_layout=False, transparent=False
+    )
+    return output_path / f"{filename}.svg"
