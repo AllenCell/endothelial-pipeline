@@ -1,7 +1,6 @@
 """Methods for visualizing migration coherence metrics and their relationships to morphology dynamics."""
 
 import logging
-from enum import StrEnum
 from pathlib import Path
 from typing import Any, Literal
 
@@ -10,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.io import load_dataframe, save_plot_to_path
+from endo_pipeline.io import join_sorted_strings, load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import (
     filter_dataframe_by_shear_stress,
     filter_dataframe_by_stability,
@@ -25,7 +24,6 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
     make_legend_handles_for_fixed_pts,
 )
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName, ColumnNameType
 from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
@@ -40,6 +38,11 @@ from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
 
+SummaryPlotAxisMode = Literal["dataset", "shear_stress", "cell_line"]
+"""Type hint for summary plot axis modes."""
+
+SummaryPlotStyleMode = Literal["dataset", "stability"]
+"""Type hint for summary plot style modes."""
 
 DEFAULT_SUMMARY_COLUMN_NAMES: list[ColumnNameType] = [
     ColumnName.DiffAEData.POLAR_ANGLE,
@@ -55,6 +58,13 @@ BINNED_MEAN_FEATURES = [
     ColumnName.OpticalFlow.SPEED_MEAN,
 ]
 """List of columns where mean is calculated for bin around the fixed point."""
+
+SUMMARY_MODE_X_AXIS_SUP_LABELS: dict[SummaryPlotAxisMode, str] = {
+    "dataset": f"Dataset Date (Shear Stress dyn/cm{Unicode.SQUARED})",
+    "shear_stress": f"Shear Stress (dyn/cm{Unicode.SQUARED})",
+    "cell_line": "Cell Line",
+}
+"""Mapping of summary plot axis mode to X axis super labels."""
 
 
 # --- Build jitter map (shared by numeric and categorical shear-stress modes) ---
@@ -474,173 +484,102 @@ def _convert_polar_angle_to_nematic_order(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def plot_cross_dataset_summaries(
-    dataset_names: list[str],
-    feature_dataframe_manifest: DataframeManifest,
-    fixed_points_bootstrap_dataframe_manifest: DataframeManifest,
+    df: pd.DataFrame,
     output_dir: Path,
-    bootstrap_threshold: float = 0.4,
-    column_names: list[ColumnName.DiffAEData | ColumnName.OpticalFlow | StrEnum] | None = None,
-    x_axis_mode: Literal[
-        "dataset", "shear_stress_numeric", "shear_stress_categorical", "cell_line", "flow_switch"
-    ] = "dataset",
-    figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 3),
+    column_names: list[ColumnNameType] | None = None,
+    axis_mode: SummaryPlotAxisMode = "dataset",
+    style_mode: SummaryPlotStyleMode = "dataset",
     dataset_order: list[str] | None = None,
-    stable_only: bool = True,
-    jitter_width: float = 0.1,
-    x_padding: float = 0.5,
     subplot_layout: Literal["horizontal", "vertical"] = "horizontal",
+    figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 3),
+    jitter_width: float = 0.05,
     convert_angle_to_nematic: bool = True,
-) -> None:
+) -> Path:
     """
-    Create a plot of cross-dataset summary visualizations for observable
-    fixed-point locations vs shear-stress plots
-        - polar angle, polar radius, rho
-        - maps mean optical-flow features onto fixed points as binned means for
-          given polar angle/radius/rho bins
+    Plot cross dataset summaries for given columns in selected plot mode.
+
+    **Summary plot axis modes**
+
+    The `axis_mode` parameter controls the categories used on the x axis of the
+    summary plot. The options are:
+
+    - `dataset` = each dataset is a separate category
+    - `shear_stress` = each shear stress bin is a separate category (multiple
+      datasets may fall into the same shear stress bin)
+    - `cell_line` = each cell line is a separate category (multiple datasets may
+      fall into the same cell line bin)
+
+    **Summary plot style modes**
+
+    The `style_mode` parameter controls how the points in the summary plot are
+    styled. The options are:
+
+    - `dataset` = each point is uniquely colored by dataset
+    - `stability` = each point is assigned a color and marker shape based on
+      stability (dataframe must a `ColumnName.VectorField.STABILITY` column)
 
     **Subplot layout specification**
 
     The `subplot_layout` parameter controls the arrangement of multiple panels
-    when plotting multiple variables. The options are:
-        - `"horizontal"`: panels side-by-side in a single row (1xn).
-        - `"vertical"`: panels stacked vertically with a shared x-axis (nx1).
-           Only the bottom panel shows x-axis tick labels.
+    when plotting multiple columns. The options are:
+
+    - `horizontal` = panels stacked horizontally in a single row (1 x n)
+    - `vertical` = panels stacked vertically with a shared x-axis (n x 1) where
+      only the bottom panel shows x-axis tick labels
 
     Parameters
     ----------
-    dataset_names
-        List of dataset names to include in the summaries.
-    feature_dataframe_manifest
-        Manifest containing per-dataset feature dataframe locations.
-    fixed_points_bootstrap_dataframe_manifest
-        Manifest containing per-dataset fixed-points and confidence intervals
-        found from precomputed bootstrapping.
+    df
+        Dataframe containing features for summary plot.
     output_dir
-        Directory where the figures are saved.
+        Output directory to save plot.
     column_names
-        List of column names to plot in the fixed-point vs shear-stress plot. If
-        None, defaults to polar angle, polar radius, PC3 flipped, migration
-        coherence, and speed.
-    x_axis_mode
-        Controls x-axis layout of the fixed-point vs shear-stress plot. See
-        :func:`plot_fixed_points_vs_shear_stress` for details.
-    figure_size
-        Size of the output figure for the fixed point vs shear stress plot.
+        List of feature column names.
+    axis_mode
+        Select the axis mode for the summary plot.
+    style_mode
+        Select the style mode for the summary plot.
     dataset_order
-        Optional list of dataset names specifying the desired x-axis order in
-        the fixed point vs shear stress plot. If `None`, falls back to sorting
-        by shear stress.
-    stable_only
-        If `True`, only fixed points classified as stable are included in the
-        fixed point vs shear stress plot.
-    jitter_width
-        Horizontal jitter applied to overlapping points sharing the same x-axis
-        position.  Larger values spread points further apart.
-    x_padding
-        Additional horizontal padding added to the left and right edges of the
-        fixed point vs shear stress plot to ensure jittered points aren't
-        clipped.  Only applied for non-categorical x-axis modes.
+        Optional order for the categories.
     subplot_layout
-        Layout direction for multiple column panels.
+        Layout direction for summary plots of multiple columns.
+    figure_size
+        Size of output figure.
+    jitter_width : float, optional
+        Width of the jitter applied to points in the same category bin.
     convert_angle_to_nematic
-        If `True`, converts polar angle to nematic order (cos(2*theta)) before
-        plotting.
+        True to swap polar angle column to nemetic order column.
+
+    Returns
+    -------
+    :
+        Path to saved summary plot.
     """
+
+    # If specific column names are not provided, use defaults
     if column_names is None:
-        column_names = [
-            ColumnName.DiffAEData.POLAR_ANGLE,
-            ColumnName.DiffAEData.POLAR_RADIUS,
-            ColumnName.DiffAEData.PC3_FLIPPED,
-            ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
-            ColumnName.OpticalFlow.SPEED_MEAN,
-        ]
+        column_names = DEFAULT_SUMMARY_COLUMN_NAMES
 
-    optical_flow_features = [
-        ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
-        ColumnName.OpticalFlow.SPEED_MEAN,
-    ]
-
-    df_fp_all_list: list[pd.DataFrame] = []
-
-    for dataset_name in dataset_names:
-        if dataset_name not in feature_dataframe_manifest.locations:
-            logger.warning(
-                "No feature dataframe found for dataset [ %s ]. Skipping.",
-                dataset_name,
-            )
-            continue
-        elif dataset_name not in fixed_points_bootstrap_dataframe_manifest.locations:
-            logger.warning(
-                "No fixed point bootstrap dataframe found for dataset [ %s ]. Skipping.",
-                dataset_name,
-            )
-            continue
-
-        # Load, filter, and enrich the feature dataframe
-        df_ = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
-        columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid"], *DYNAMICS_COLUMN_NAMES]
-        df = df_[columns_to_compute].compute()
-        dataset_config = load_dataset_config(dataset_name)
-        df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
-        df_of = add_optical_flow_features(df_steady_state, datasets=[dataset_name])
-
-        # Load bootstrap results
-        df_bootstrap = load_dataframe(
-            fixed_points_bootstrap_dataframe_manifest.locations[dataset_name], delay=False
-        )
-
-        # For flow_switch mode with multiple conditions, skip the first (pre-switch) condition
-        if x_axis_mode == "flow_switch" and len(dataset_config.flow_conditions) > 1:
-            flow_conditions_to_process = dataset_config.flow_conditions[1:]
-        else:
-            flow_conditions_to_process = dataset_config.flow_conditions
-
-        for flow_condition in flow_conditions_to_process:
-            df_flow = filter_dataframe_to_flow_condition_by_timepoint(
-                df_of, dataset_config, flow_condition
-            )
-            df_bootstrap_flow = filter_dataframe_by_shear_stress(
-                df_bootstrap, flow_condition.shear_stress
-            )
-            df_fp = _process_bootstrap_dataframe_for_plot(
-                df_bootstrap_flow,
-                df_flow,
-                bootstrap_threshold,
-                dataset_name,
-                flow_condition,
-                optical_flow_features,
-                convert_angle_to_nematic,
-                column_names,
-                x_axis_mode,
-                dataset_config,
-            )
-            if not df_fp.empty:
-                df_fp_all_list.append(df_fp)
-
-    # update column names to pass to plotting function based on whether we're
-    # plotting polar angle or nematic order
-    if convert_angle_to_nematic and ColumnName.DiffAEData.POLAR_ANGLE in column_names:
+    # If converting polar angle to nematic order, swap the column name
+    if convert_angle_to_nematic:
         column_names = [
             ColumnName.DiffAEData.NEMATIC_ORDER if col == ColumnName.DiffAEData.POLAR_ANGLE else col
             for col in column_names
         ]
 
-    # --- Fixed-points vs shear stress ---
-    df_fp_all = pd.concat(df_fp_all_list, ignore_index=True)
-
-    # Plot all fixed-point variables
+    # Build figure layout with one subplot for each column name
     n_panels = len(column_names)
     if subplot_layout == "vertical":
-        fig, axs = plt.subplots(
+        fig, axes = plt.subplots(
             n_panels,
             1,
             figsize=(figure_size[0], figure_size[1] * n_panels),
             layout="constrained",
             squeeze=False,
         )
-        axes_list = [axs[i][0] for i in range(n_panels)]
-    else:
-        fig, axs = plt.subplots(
+        axes = [axes[i][0] for i in range(n_panels)]
+    elif subplot_layout == "horizontal":
+        fig, axes = plt.subplots(
             1,
             n_panels,
             figsize=(figure_size[0], figure_size[1]),
@@ -648,64 +587,52 @@ def plot_cross_dataset_summaries(
             layout="constrained",
             squeeze=False,
         )
-        axes_list = list(axs[0])
-    for ax_i, var in zip(axes_list, column_names, strict=False):
-        var_label = COLUMN_METADATA[var].label or str(var)
-        col_name: str = f"mean_{var}" if var in optical_flow_features else str(var)
-        plot_fixed_points_vs_shear_stress(
-            df_fp_all,
-            col_name,
-            var_label,
-            dataset_order=dataset_order,
-            x_axis_mode=x_axis_mode,
-            figure_size=figure_size,
-            stable_only=stable_only,
-            ax=ax_i,
-            jitter_width=jitter_width,
-            x_padding=x_padding,
-        )
-    if x_axis_mode == "cell_line":
-        fig.supxlabel("Cell Line", fontsize=FONTSIZE_MEDIUM, fontweight="bold")
-    elif x_axis_mode == "dataset":
-        fig.supxlabel(
-            f"Dataset Date (Shear Stress dyn/cm{Unicode.SQUARED})",
-            fontsize=FONTSIZE_MEDIUM,
-            fontweight="bold",
-        )
+        axes = list(axes[0])
     else:
-        fig.supxlabel(
-            f"Shear Stress (dyn/cm{Unicode.SQUARED})", fontsize=FONTSIZE_MEDIUM, fontweight="bold"
+        raise ValueError(f"Subplot layout '{subplot_layout}' is not supported")
+
+    # Iterate through each column and plot dataset summary
+    for ax, column_name in zip(axes, column_names, strict=True):
+        _plot_cross_dataset_summary_for_column(
+            df=df,
+            ax=ax,
+            category_order=dataset_order,
+            column_name=column_name,
+            axis_mode=axis_mode,
+            style_mode=style_mode,
+            jitter_width=jitter_width,
         )
 
-    # reduce spacing between axis labels and tick labels
-    for ax in axes_list:
+    # Add super x axis label
+    fig.supxlabel(
+        SUMMARY_MODE_X_AXIS_SUP_LABELS[axis_mode],
+        fontsize=FONTSIZE_MEDIUM,
+        fontweight="bold",
+    )
+
+    # Reduce spacing between axis labels and tick labels
+    for ax in axes:
         ax.xaxis.labelpad = 2
         ax.yaxis.labelpad = 2
         ax.tick_params(axis="x", pad=2)
         ax.tick_params(axis="y", pad=2)
 
-    # For vertical layout, sync x-axes and hide tick labels on all but the bottom panel
+    # For vertical layout, match the x limits across all panels and hide the
+    # x tick labels for all but the bottom panel.
     if subplot_layout == "vertical":
-        # Match xlims across all panels
-        all_xlims = [ax.get_xlim() for ax in axes_list]
+        all_xlims = [ax.get_xlim() for ax in axes]
         shared_xlim = (min(lo for lo, _ in all_xlims), max(hi for _, hi in all_xlims))
-        for ax in axes_list:
+        for ax in axes:
             ax.set_xlim(shared_xlim)
-        # Hide tick labels (but keep tick marks) on upper panels
-        for ax in axes_list[:-1]:
+        for ax in axes[:-1]:
             ax.tick_params(axis="x", labelbottom=False)
 
-    # add variables being used to fname
-    fname = f"{'_'.join(column_names)}_fp_vs_shear_stress"
+    # Save figure with name including all column names
+    column_name_str = [str(column_name) for column_name in column_names]
+    figure_name = f"summary_{axis_mode}_{join_sorted_strings(column_name_str)}"
+    save_plot_to_path(fig, output_dir, figure_name, file_format=".svg", tight_layout=False)
 
-    save_plot_to_path(
-        fig,
-        output_dir,
-        fname,
-        file_format=".svg",
-        tight_layout=False,
-        pad_inches=0,
-    )
+    return output_dir / f"{figure_name}.svg"
 
 
 def build_dataframe_for_fixed_point_dataset_summary(
