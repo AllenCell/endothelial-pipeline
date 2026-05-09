@@ -69,42 +69,6 @@ def load_dataframe_from_path(path: Path, *, delay: bool = False) -> pd.DataFrame
     raise ValueError(f"Invalid dataframe file format '{path.suffix}'")
 
 
-def get_local_path_from_fmsid(fmsid: str) -> Path:
-    """
-    Get local path for a given FMS file ID.
-
-    This method requires the workflow to be run on the AICS intranet and have
-    the optional dependency `aicsfiles` installed.
-
-    Parameters
-    ----------
-    fmsid
-        FMS file ID.
-
-    Returns
-    -------
-    :
-        Local path to FMS file.
-    """
-
-    if not Path("//allen").exists():
-        logger.error("Workflow unable to access [ /allen ] drive")
-        raise ConnectionError("Workflow does not have access to AICS intranet")
-
-    from endo_pipeline.io.fms import FMS, FMS_BUCKET_NAME, FMS_ENV, FMS_FILE_ID, FMS_LOCAL_PATH
-
-    annotations = {FMS_FILE_ID: fmsid}
-    record = list(FMS.find(annotations=annotations))
-
-    if not record:
-        logger.error("Record for FMS ID [ %s ] in FMS [ %s ] environment not found", fmsid, FMS_ENV)
-        raise LookupError(f"cannot find file id '{fmsid}' in FMS [ {FMS_ENV} ] environment")
-
-    local_path = Path(record[0].path.replace(FMS_BUCKET_NAME, FMS_LOCAL_PATH))
-
-    return local_path
-
-
 @overload
 def load_dataframe_from_fms(fmsid: str, *, delay: Literal[False] = False) -> pd.DataFrame: ...
 
@@ -136,6 +100,8 @@ def load_dataframe_from_fms(fmsid: str, *, delay: bool = False) -> pd.DataFrame 
     :
         Dataframe loaded from FMS.
     """
+
+    from endo_pipeline.io.fms import get_local_path_from_fmsid
 
     local_path = get_local_path_from_fmsid(fmsid)
 
@@ -279,6 +245,8 @@ def resolve_dataframe_location(location: DataframeLocation) -> str:
     """
 
     if location.fmsid is not None:
+        from endo_pipeline.io.fms import get_local_path_from_fmsid
+
         return get_local_path_from_fmsid(location.fmsid).as_posix()
 
     if location.path is not None:
