@@ -75,7 +75,7 @@ def load_model_from_fms(
     Returns
     -------
     :
-        Model loaded from path.
+        Model loaded from FMS.
     """
 
     from endo_pipeline.io.fms import get_local_path_from_fmsid
@@ -90,6 +90,77 @@ def load_model_from_fms(
 
     logger.error("Argument '%s' must be of type 'str' or 'tuple[str, str]'", fmsid)
     raise ValueError("Unable to determine model from fmsid type.")
+
+
+def load_model_from_s3(
+    s3uri: str | tuple[str, str], *, instantiate: bool = False
+) -> "CytoDLModel | BaseDiffusionAutoEncoder | DiffusionAutoEncoder | CellposeModel":
+    """
+    Load model from S3 by object URI.
+
+    The model type is determined by the type of path:
+
+    - single object URI is assumed to be a Cellpose model
+    - tuple of object URI (checkpoint and config) is assumed to be a CytoDL model
+
+    This method requires the workflow to be run on the AICS intranet and have
+    the optional dependency `aicsfiles` installed.
+
+    Parameters
+    ----------
+    s3uri
+        S3 object URI for model checkpoint and (optionally) config files.
+    instantiate
+        True to instantiate the model object, False otherwise.
+
+    Returns
+    -------
+    :
+        Model loaded from S3.
+    """
+
+    from endo_pipeline.io.aws import download_s3_file_to_path
+
+    if isinstance(s3uri, str):
+        checkpoint_path = download_s3_file_to_path(s3uri)
+        return load_cellpose_model_from_path(checkpoint_path)
+    elif isinstance(s3uri, tuple):
+        checkpoint_path = download_s3_file_to_path(s3uri[0])
+        config_path = download_s3_file_to_path(s3uri[1])
+        return load_cytodl_model_from_path(checkpoint_path, config_path, instantiate=instantiate)
+
+    logger.error("Argument '%s' must be of type 'str' or 'tuple[str, str]'", s3uri)
+    raise ValueError("Unable to determine model from fmsid type.")
+
+
+def load_model_from_mlflow(
+    mlflowid: str, *, instantiate: bool = False
+) -> "CytoDLModel | BaseDiffusionAutoEncoder | DiffusionAutoEncoder":
+    """
+    Load model from MLFlow by run ID.
+
+    This method requires the workflow to be run on the AICS intranet and have
+    the optional dependency `mlflow` installed.
+
+    Parameters
+    ----------
+    mlflowid
+        MLFlow run ID.
+    instantiate
+        True to instantiate the model object, False otherwise.
+
+    Returns
+    -------
+    :
+        Model loaded from MLflow.
+    """
+
+    from endo_pipeline.io.mlflow import get_checkpoint_path_from_mlflow, get_config_path_from_mlflow
+
+    checkpoint_path = get_checkpoint_path_from_mlflow(mlflowid)
+    config_path = get_config_path_from_mlflow(mlflowid)
+
+    return load_cytodl_model_from_path(checkpoint_path, config_path, instantiate=instantiate)
 
 
 def load_cellpose_model_from_path(path: Path) -> "CellposeModel":
@@ -154,36 +225,6 @@ def load_cytodl_model_from_path(
     return model
 
 
-def load_model_from_mlflow(
-    mlflowid: str, *, instantiate: bool = False
-) -> "CytoDLModel | BaseDiffusionAutoEncoder | DiffusionAutoEncoder":
-    """
-    Load model from MLFlow by run ID.
-
-    This method requires the workflow to be run on the AICS intranet and have
-    the optional dependency `mlflow` installed.
-
-    Parameters
-    ----------
-    mlflowid
-        MLFlow run ID.
-    instantiate
-        True to instantiate the model object, False otherwise.
-
-    Returns
-    -------
-    :
-        Model loaded from MLflow.
-    """
-
-    from endo_pipeline.io.mlflow import get_checkpoint_path_from_mlflow, get_config_path_from_mlflow
-
-    checkpoint_path = get_checkpoint_path_from_mlflow(mlflowid)
-    config_path = get_config_path_from_mlflow(mlflowid)
-
-    return load_cytodl_model_from_path(checkpoint_path, config_path, instantiate=instantiate)
-
-
 def load_model(
     location: ModelLocation, instantiate: bool = False
 ) -> "CytoDLModel | BaseDiffusionAutoEncoder | DiffusionAutoEncoder":
@@ -208,8 +249,10 @@ def load_model(
     """
 
     preferred_loader_order = [
+        (location.fmsid, load_model_from_fms),
         (location.mlflowid, load_model_from_mlflow),
         (location.path, load_model_from_path),
+        (location.s3uri, load_model_from_s3),
     ]
 
     available_loaders = [loader for loader in preferred_loader_order if loader[0] is not None]
