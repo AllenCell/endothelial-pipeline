@@ -26,13 +26,13 @@ def load_model_from_path(
 
     The model type is determined by the type of path:
 
-    - single Path is assumed to be a Cellpose model
-    - tuple of Path is assumed to be a CytoDL model (checkpoint and config path)
+    - single path is assumed to be a Cellpose model
+    - tuple of path (checkpoint, config) is assumed to be a CytoDL model
 
     Parameters
     ----------
     path
-        Path to model checkpoint file and (optionally) the model config file.
+       Paths for model checkpoint and (optionally) config files.
     instantiate
         True to instantiate the model object, False otherwise.
 
@@ -47,8 +47,49 @@ def load_model_from_path(
     elif isinstance(path, tuple):
         return load_cytodl_model_from_path(path[0], path[1], instantiate=instantiate)
 
-    logger.error("Path '%s' must be of type 'Path' or 'tuple[Path, Path]'", path)
+    logger.error("Argument '%s' must be of type 'Path' or 'tuple[Path, Path]'", path)
     raise ValueError("Unable to determine model from path type.")
+
+
+def load_model_from_fms(
+    fmsid: str | tuple[str, str], *, instantiate: bool = False
+) -> "CytoDLModel | BaseDiffusionAutoEncoder | DiffusionAutoEncoder | CellposeModel":
+    """
+    Load model from FMS by file ID.
+
+    The model type is determined by the type of path:
+
+    - single file ID is assumed to be a Cellpose model
+    - tuple of file ID (checkpoint and config) is assumed to be a CytoDL model
+
+    This method requires the workflow to be run on the AICS intranet and have
+    the optional dependency `aicsfiles` installed.
+
+    Parameters
+    ----------
+    fmsid
+        FMS file ID for model checkpoint and (optionally) config files.
+    instantiate
+        True to instantiate the model object, False otherwise.
+
+    Returns
+    -------
+    :
+        Model loaded from path.
+    """
+
+    from endo_pipeline.io.fms import get_local_path_from_fmsid
+
+    if isinstance(fmsid, str):
+        checkpoint_path = get_local_path_from_fmsid(fmsid)
+        return load_cellpose_model_from_path(checkpoint_path)
+    elif isinstance(fmsid, tuple):
+        checkpoint_path = get_local_path_from_fmsid(fmsid[0])
+        config_path = get_local_path_from_fmsid(fmsid[1])
+        return load_cytodl_model_from_path(checkpoint_path, config_path, instantiate=instantiate)
+
+    logger.error("Argument '%s' must be of type 'str' or 'tuple[str, str]'", fmsid)
+    raise ValueError("Unable to determine model from fmsid type.")
 
 
 def load_cellpose_model_from_path(path: Path) -> "CellposeModel":

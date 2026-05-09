@@ -16,5 +16,11 @@ parameters:
 locations:
   20260130_latent_512:
     mlflowid: b072c78e9cc641e7ba73572482afec65
+    fmsid: null
+    path: null
+    s3uri: null
   20251110_latent_1024:
     mlflowid: 57e8b8571e31487ea0d56b012613174d
+    fmsid: null
+    path: null
+    s3uri: null
