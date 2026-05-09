@@ -4,12 +4,11 @@ from .input import (
     get_repository_root_dir,
     instantiate_model_target_class,
     load_dataframe,
-    load_image,
-    load_image_from_path,
     load_model,
     load_model_from_mlflow,
     resolve_dataframe_location,
 )
+from .load_images import load_image
 from .output import (
     build_fms_annotations,
     cache_fms_files,
@@ -34,7 +33,6 @@ __all__ = [
     "join_sorted_strings",
     "load_dataframe",
     "load_image",
-    "load_image_from_path",
     "load_model",
     "load_model_from_mlflow",
     "make_name_unique",
