@@ -430,10 +430,20 @@ def load_image(
         Loaded image.
     """
 
-    if location.path is not None:
+    preferred_loader_order = [
+        (location.path, load_image_from_path),
+        (location.s3uri, load_image_from_s3),
+    ]
+
+    available_loaders = [loader for loader in preferred_loader_order if loader[0] is not None]
+
+    while available_loaders:
+        field, loader = available_loaders.pop(0)
+        assert field is not None
+
         try:
-            return load_image_from_path(
-                location.path,
+            return loader(
+                field,
                 read=read,
                 compute=compute,
                 squeeze=squeeze,
@@ -441,29 +451,11 @@ def load_image(
                 timepoints=timepoints,
                 level=level,
             )
-        except:
-            if location.s3uri is not None:
-                return load_image_from_s3(
-                    location.s3uri,
-                    read=read,
-                    compute=compute,
-                    squeeze=squeeze,
-                    channels=channels,
-                    timepoints=timepoints,
-                    level=level,
-                )
-            raise
-
-    if location.s3uri is not None:
-        return load_image_from_s3(
-            location.s3uri,
-            read=read,
-            compute=compute,
-            squeeze=squeeze,
-            channels=channels,
-            timepoints=timepoints,
-            level=level,
-        )
+        except Exception as e:
+            if available_loaders:
+                continue
+            else:
+                raise e
 
     logger.error("Location does not have a local path or S3 URI.")
     raise FileNotFoundError("Unable to load image; no available locations.")

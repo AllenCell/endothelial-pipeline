@@ -203,32 +203,25 @@ def load_dataframe(
         Loaded dataframe.
     """
 
-    if location.fmsid is not None:
+    preferred_loader_order = [
+        (location.fmsid, load_dataframe_from_fms),
+        (location.path, load_dataframe_from_path),
+        (location.s3uri, load_dataframe_from_s3),
+    ]
+
+    available_loaders = [loader for loader in preferred_loader_order if loader[0] is not None]
+
+    while available_loaders:
+        field, loader = available_loaders.pop(0)
+        assert field is not None
+
         try:
-            return load_dataframe_from_fms(location.fmsid, delay=delay)
-        except:
-            if location.path is not None:
-                try:
-                    return load_dataframe_from_path(location.path, delay=delay)
-                except:
-                    if location.s3uri is not None:
-                        return load_dataframe_from_s3(location.s3uri, delay=delay)
-                    raise
-
-            if location.s3uri is not None:
-                return load_dataframe_from_s3(location.s3uri, delay=delay)
-            raise
-
-    if location.path is not None:
-        try:
-            return load_dataframe_from_path(location.path, delay=delay)
-        except:
-            if location.s3uri is not None:
-                return load_dataframe_from_s3(location.s3uri, delay=delay)
-            raise
-
-    if location.s3uri is not None:
-        return load_dataframe_from_s3(location.s3uri, delay=delay)
+            return loader(field, delay=delay)
+        except Exception as e:
+            if available_loaders:
+                continue
+            else:
+                raise e
 
     logger.error("Location does not have a FMS ID or local path or S3 URI.")
     raise FileNotFoundError("Unable to load dataframe; no available locations.")
