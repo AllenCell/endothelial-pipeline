@@ -1,13 +1,7 @@
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING
-
-from omegaconf import OmegaConf
 
 from endo_pipeline.io.output import get_output_path
-
-if TYPE_CHECKING:
-    from omegaconf import DictConfig, ListConfig
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +16,9 @@ MLFLOW_TRACKING_URI = "https://production.int.allencell.org/mlflow/"
 MLFLOW.set_tracking_uri(MLFLOW_TRACKING_URI)
 
 
-def get_config_dict_from_mlflow(mlflowid: str) -> "DictConfig | ListConfig":
+def get_config_path_from_mlflow(mlflowid: str) -> Path:
     """
-    Get config dict from given MLFlow run ID.
+    Get local path to config file from given MLFlow run ID.
 
     This method requires the workflow to be run on the AICS intranet and have
     the optional dependency `mlflow` installed.
@@ -37,8 +31,21 @@ def get_config_dict_from_mlflow(mlflowid: str) -> "DictConfig | ListConfig":
     Returns
     -------
     :
-        Loaded config dict.
+        Local path to config file.
     """
+
+    # Check if checkpoint is already downloaded.
+    path = get_output_path("model_configs", mlflowid, include_timestamp=False)
+    config_path = path / "train.yaml"
+
+    if config_path.exists():
+        logger.warning(
+            "Config for run [ %s ] available at [ %s ]. "
+            "Using this config. If you want to redownload the artifact, delete this file.",
+            mlflowid,
+            config_path,
+        )
+        return config_path
 
     # Check if config artifact exists
     configs = MLFLOW.artifacts.list_artifacts(run_id=mlflowid, artifact_path="config")
@@ -57,7 +64,9 @@ def get_config_dict_from_mlflow(mlflowid: str) -> "DictConfig | ListConfig":
 
     # Define config URI for loading the artifact
     config_uri = f"runs:/{mlflowid}/{configs[0].path}"
-    return OmegaConf.create(MLFLOW.artifacts.load_text(config_uri))
+    return Path(
+        MLFLOW.artifacts.download_artifacts(artifact_uri=config_uri, dst_path=path.as_posix())
+    )
 
 
 def get_checkpoint_path_from_mlflow(mlflowid: str) -> Path:

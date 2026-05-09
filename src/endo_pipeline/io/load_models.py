@@ -11,13 +11,14 @@ if TYPE_CHECKING:
 
     from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
 
+
 from endo_pipeline.manifests import ModelLocation
 
 logger = logging.getLogger(__name__)
 
 
 def load_model_from_mlflow(
-    mlflowid: str, instantiate: bool = False
+    mlflowid: str, *, instantiate: bool = False
 ) -> "CytoDLModel | BaseDiffusionAutoEncoder | DiffusionAutoEncoder":
     """
     Load model from MLFlow by run ID.
@@ -40,13 +41,13 @@ def load_model_from_mlflow(
 
     from cyto_dl.api import CytoDLModel
 
-    from endo_pipeline.io.mlflow import get_checkpoint_path_from_mlflow, get_config_dict_from_mlflow
+    from endo_pipeline.io.mlflow import get_checkpoint_path_from_mlflow, get_config_path_from_mlflow
 
-    config_dict = get_config_dict_from_mlflow(mlflowid)
+    config_path = get_config_path_from_mlflow(mlflowid)
     checkpoint_path = get_checkpoint_path_from_mlflow(mlflowid)
 
     model = CytoDLModel()
-    model.load_config_from_dict(config_dict)
+    model.load_config_from_file(config_path.as_posix())
     model.override_config(
         {
             "checkpoint.ckpt_path": checkpoint_path.as_posix(),
@@ -84,8 +85,23 @@ def load_model(
         Loaded model.
     """
 
-    if location.mlflowid is not None:
-        return load_model_from_mlflow(location.mlflowid, instantiate)
+    preferred_loader_order = [
+        (location.mlflowid, load_model_from_mlflow),
+    ]
+
+    available_loaders = [loader for loader in preferred_loader_order if loader[0] is not None]
+
+    while available_loaders:
+        field, loader = available_loaders.pop(0)
+        assert field is not None
+
+        try:
+            return loader(field, instantiate=instantiate)
+        except Exception as e:
+            if available_loaders:
+                continue
+            else:
+                raise e
 
     logger.error("Location does not have an MLFlow run ID.")
     raise FileNotFoundError("Unable to load model; no available locations.")
