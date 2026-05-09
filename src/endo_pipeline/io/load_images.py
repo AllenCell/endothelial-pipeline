@@ -1,14 +1,13 @@
 """Methods for loading images."""
 
 import logging
-import typing
 from pathlib import Path
-from typing import Literal, overload
+from typing import TYPE_CHECKING, Literal, overload
 
 from endo_pipeline.manifests import ImageLocation
 from endo_pipeline.settings import DIMENSION_ORDER
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     import dask.array as da
     import numpy as np
     from bioio import BioImage

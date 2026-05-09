@@ -1,13 +1,8 @@
 """Methods for loading dataframes."""
 
 import logging
-import typing
 from pathlib import Path
 from typing import Literal, overload
-
-if typing.TYPE_CHECKING:
-
-    pass
 
 import dask.dataframe as dd
 import pandas as pd
