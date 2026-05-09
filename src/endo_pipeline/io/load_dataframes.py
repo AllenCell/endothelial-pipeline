@@ -182,13 +182,13 @@ def load_dataframe_from_s3(s3uri: str, *, delay: bool = False) -> pd.DataFrame |
 
     if s3uri.endswith(".csv"):
         logger.debug("Loading path [ %s ] as CSV file", s3uri)
-        return reader.read_csv(s3uri)
+        return reader.read_csv(s3uri, storage_options={"anon": True})
     if s3uri.endswith(".parquet"):
         logger.debug("Loading path [ %s ] as Parquet file", s3uri)
-        return reader.read_parquet(s3uri)
+        return reader.read_parquet(s3uri, storage_options={"anon": True})
     if s3uri.endswith(".tsv"):
         logger.debug("Loading path [ %s ] as TSV file", s3uri)
-        return reader.read_csv(s3uri, sep="\t")
+        return reader.read_csv(s3uri, sep="\t", storage_options={"anon": True})
 
     logger.error("Path [ %s ] cannot be loaded as dataframe", s3uri)
     raise ValueError(f"Invalid dataframe file format '{s3uri.split('.')[-1]}'")
