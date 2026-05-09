@@ -3,11 +3,10 @@ from .input import (
     get_config_dict_from_mlflow,
     get_repository_root_dir,
     instantiate_model_target_class,
-    load_dataframe,
     load_model,
     load_model_from_mlflow,
-    resolve_dataframe_location,
 )
+from .load_dataframes import load_dataframe, resolve_dataframe_location
 from .load_images import load_image
 from .output import (
     build_fms_annotations,

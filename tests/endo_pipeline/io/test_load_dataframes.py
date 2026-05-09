@@ -5,7 +5,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from endo_pipeline.io.input import load_dataframe, load_dataframe_from_path, load_dataframe_from_s3
+from endo_pipeline.io.load_dataframes import (
+    load_dataframe,
+    load_dataframe_from_path,
+    load_dataframe_from_s3,
+)
 from endo_pipeline.manifests import DataframeLocation
 
 
@@ -15,15 +19,15 @@ def mock_dataframe_loaders(mocker):
         raise Exception
 
     def _mocker():
-        mock_fms_loader = mocker.patch("endo_pipeline.io.input.load_dataframe_from_fms")
+        mock_fms_loader = mocker.patch("endo_pipeline.io.load_dataframes.load_dataframe_from_fms")
         mock_fms_loader.side_effect = lambda *arg, **_: "FMSID" if arg[0] == "valid" else _raise()
 
-        mock_path_loader = mocker.patch("endo_pipeline.io.input.load_dataframe_from_path")
+        mock_path_loader = mocker.patch("endo_pipeline.io.load_dataframes.load_dataframe_from_path")
         mock_path_loader.side_effect = lambda *arg, **_: (
             "PATH" if arg[0].name == "valid" else _raise()
         )
 
-        mock_s3_loader = mocker.patch("endo_pipeline.io.input.load_dataframe_from_s3")
+        mock_s3_loader = mocker.patch("endo_pipeline.io.load_dataframes.load_dataframe_from_s3")
         mock_s3_loader.side_effect = lambda *arg, **_: "S3URI" if arg[0] == "valid" else _raise()
 
     return _mocker
@@ -73,8 +77,8 @@ def test_load_dataframe(fmsid, path, s3uri, expected, mock_dataframe_loaders):
 @pytest.fixture
 def mock_dataframe_readers(mocker):
     def _mocker(extension):
-        pandas_mock = mocker.patch("endo_pipeline.io.input.pd")
-        dask_mock = mocker.patch("endo_pipeline.io.input.dd")
+        pandas_mock = mocker.patch("endo_pipeline.io.load_dataframes.pd")
+        dask_mock = mocker.patch("endo_pipeline.io.load_dataframes.dd")
 
         if extension == "csv" or extension == "tsv":
             pandas_mock.read_csv.return_value = pd.DataFrame()
