@@ -1,9 +1,11 @@
 """Methods for loading models."""
 
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from cellpose.models import CellposeModel
     from cyto_dl.api import CytoDLModel
     from cyto_dl.models.im2im.diffusion_autoencoder import (
         DiffusionAutoEncoder as BaseDiffusionAutoEncoder,
@@ -11,10 +13,104 @@ if TYPE_CHECKING:
 
     from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
 
-
 from endo_pipeline.manifests import ModelLocation
 
 logger = logging.getLogger(__name__)
+
+
+def load_model_from_path(
+    path: Path | tuple[Path, Path], *, instantiate: bool = False
+) -> "CytoDLModel | BaseDiffusionAutoEncoder | DiffusionAutoEncoder | CellposeModel":
+    """
+    Load model from path.
+
+    The model type is determined by the type of path:
+
+    - single Path is assumed to be a Cellpose model
+    - tuple of Path is assumed to be a CytoDL model (checkpoint and config path)
+
+    Parameters
+    ----------
+    path
+        Path to model checkpoint file and (optionally) the model config file.
+    instantiate
+        True to instantiate the model object, False otherwise.
+
+    Returns
+    -------
+    :
+        Model loaded from path.
+    """
+
+    if isinstance(path, Path):
+        return load_cellpose_model_from_path(path)
+    elif isinstance(path, tuple):
+        return load_cytodl_model_from_path(path[0], path[1], instantiate=instantiate)
+
+    logger.error("Path '%s' must be of type 'Path' or 'tuple[Path, Path]'", path)
+    raise ValueError("Unable to determine model from path type.")
+
+
+def load_cellpose_model_from_path(path: Path) -> "CellposeModel":
+    """
+    Load Cellpose model from path.
+
+    Parameters
+    ----------
+    path
+        Path to model checkpoint file.
+
+    Returns
+    -------
+    :
+        Cellpose model loaded from path.
+    """
+
+    from cellpose import models
+
+    if not path.exists():
+        raise ValueError(f"Checkpoint path '{path}' does not exist")
+
+    return models.CellposeModel(gpu=True, pretrained_model=path.as_posix())
+
+
+def load_cytodl_model_from_path(
+    checkpoint_path: Path, config_path: Path, *, instantiate: bool = False
+) -> "CytoDLModel | BaseDiffusionAutoEncoder | DiffusionAutoEncoder":
+    """
+    Load CytoDL model from path.
+
+    Parameters
+    ----------
+    checkpoint_path
+        Path to model checkpoint file
+    config_path
+        Path to model config file.
+    instantiate
+        True to instantiate the model object, False otherwise.
+
+    Returns
+    -------
+    :
+        CytoDL model loaded from path.
+    """
+
+    from cyto_dl.api import CytoDLModel
+
+    model = CytoDLModel()
+    model.load_config_from_file(config_path.as_posix())
+    model.override_config(
+        {
+            "checkpoint.ckpt_path": checkpoint_path.as_posix(),
+            "checkpoint.strict": True,
+        }
+    )
+
+    # Instantiate model if requested.
+    if instantiate:
+        model = instantiate_model_target_class(model)
+
+    return model
 
 
 def load_model_from_mlflow(
@@ -39,27 +135,12 @@ def load_model_from_mlflow(
         Model loaded from MLflow.
     """
 
-    from cyto_dl.api import CytoDLModel
-
     from endo_pipeline.io.mlflow import get_checkpoint_path_from_mlflow, get_config_path_from_mlflow
 
-    config_path = get_config_path_from_mlflow(mlflowid)
     checkpoint_path = get_checkpoint_path_from_mlflow(mlflowid)
+    config_path = get_config_path_from_mlflow(mlflowid)
 
-    model = CytoDLModel()
-    model.load_config_from_file(config_path.as_posix())
-    model.override_config(
-        {
-            "checkpoint.ckpt_path": checkpoint_path.as_posix(),
-            "checkpoint.strict": True,
-        }
-    )
-
-    # Instantiate model if requested.
-    if instantiate:
-        model = instantiate_model_target_class(model)
-
-    return model
+    return load_cytodl_model_from_path(checkpoint_path, config_path, instantiate=instantiate)
 
 
 def load_model(
@@ -87,6 +168,7 @@ def load_model(
 
     preferred_loader_order = [
         (location.mlflowid, load_model_from_mlflow),
+        (location.path, load_model_from_path),
     ]
 
     available_loaders = [loader for loader in preferred_loader_order if loader[0] is not None]
@@ -103,7 +185,7 @@ def load_model(
             else:
                 raise e
 
-    logger.error("Location does not have an MLFlow run ID.")
+    logger.error("Location does not have an MLFlow run ID or local path ")
     raise FileNotFoundError("Unable to load model; no available locations.")
 
 

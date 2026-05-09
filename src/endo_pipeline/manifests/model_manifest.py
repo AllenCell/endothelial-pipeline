@@ -14,7 +14,7 @@ class ModelLocation:
     mlflowid: str | None = None
     """MLFlow run id for model."""
 
-    path: Path | None = None
+    path: Path | tuple[Path, Path] | None = None
     """Local path to model."""
 
 
