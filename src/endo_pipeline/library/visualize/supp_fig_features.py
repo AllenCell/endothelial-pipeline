@@ -558,7 +558,7 @@ def _make_feature_pair_histogram_panel(
                     ax_ij.tick_params(axis="y", labelsize=FONTSIZE_XSMALL)
             if i == 0:
                 # put label as column title for top row
-                ax_ij.set_title(feature_column_label, fontsize=FONTSIZE_XSMALL)
+                ax_ij.set_title(feature_column_label, fontsize=FONTSIZE_SMALL)
                 ax_ij.set_xticklabels([])  # no x tick labels for top row
             elif i == 1:
                 # only set x-axis tick labels and label for bottom row
@@ -605,7 +605,7 @@ def _make_feature_pair_histogram_panel(
         norm=plt.Normalize(vmin=histogram_vmin, vmax=histogram_vmax), cmap="inferno"
     )
     cbar = fig.colorbar(cbar_mappable, ax=ax[:, 1], location="right", pad=0.1)
-    cbar.set_label("Histogram", labelpad=3, fontsize=FONTSIZE_SMALL)
+    cbar.set_label("Density", labelpad=3, fontsize=FONTSIZE_SMALL)
 
     return fig, ax
 
