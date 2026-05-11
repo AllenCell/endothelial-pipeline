@@ -12,7 +12,7 @@ This package provides helpers for:
 """
 
 from .denoising import run_denoising_experiments
-from .evaluation import evaluate_single_model
+from .evaluation import ModelKey, evaluate_single_model
 from .image_loading import load_and_preprocess_example_crop, load_transformed_image
 from .image_metrics import (
     ImageMetrics,
@@ -39,6 +39,7 @@ from .tiff_io import save_denoising_crops, save_image_as_tiff
 __all__ = [
     "ImageMetrics",
     "LPIPSCalculator",
+    "ModelKey",
     "aggregate_seed_metrics",
     "build_models_data",
     "compute_all_metrics",
