@@ -1,7 +1,6 @@
 name: live_cdh5_seg_based_feat_datasets
 description: Live 20X datasets used for extracting tracked CDH5-based segmentation features.
 datasets:
-- 20250224_20X
 - 20250319_20X
 - 20250326_20X
 - 20250402_20X
@@ -13,7 +12,6 @@ datasets:
 - 20250714_20X
 - 20250716_20X
 - 20250728_20X
-- 20250806_20X
 - 20250813_20X
 - 20250818_20X
 - 20250827_20X
