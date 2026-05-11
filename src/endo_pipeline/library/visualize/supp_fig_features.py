@@ -402,7 +402,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
     histogram_vmin = 0.0
     histogram_vmax = 0.7
 
-    start_imaging_line_color = "lime"
+    start_imaging_line_color = "limegreen"
     steady_state_line_color = "darkturquoise"
 
     axes_xlim = (0, 48)  # in hours, after converting from frames
