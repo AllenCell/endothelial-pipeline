@@ -1,6 +1,7 @@
 """Methods for loading images."""
 
 import logging
+from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, overload
 
@@ -429,7 +430,7 @@ def load_image(
         Loaded image.
     """
 
-    preferred_loader_order = [
+    preferred_loader_order: list[tuple[str | Path | None, Callable]] = [
         (location.path, load_image_from_path),
         (location.s3uri, load_image_from_s3),
     ]

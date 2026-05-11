@@ -1,6 +1,7 @@
 """Methods for loading dataframes."""
 
 import logging
+from collections.abc import Callable
 from pathlib import Path
 from typing import Literal, overload
 
@@ -198,7 +199,7 @@ def load_dataframe(
         Loaded dataframe.
     """
 
-    preferred_loader_order = [
+    preferred_loader_order: list[tuple[str | Path | None, Callable]] = [
         (location.fmsid, load_dataframe_from_fms),
         (location.path, load_dataframe_from_path),
         (location.s3uri, load_dataframe_from_s3),
