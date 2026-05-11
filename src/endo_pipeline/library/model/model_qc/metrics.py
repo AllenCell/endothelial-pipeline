@@ -368,8 +368,6 @@ def create_comparison_plots_and_summary(
         DEFAULT_MODEL_QC_RUN_NAMES,
     )
 
-    from .evaluation import ModelKey
-
     seed_suffix = f"_seeds_{len(seeds_to_evaluate)}" if len(seeds_to_evaluate) > 1 else ""
     comparison_output_path = get_output_path(
         "model_qc",
@@ -385,15 +383,20 @@ def create_comparison_plots_and_summary(
     # otherwise fall back to each model's own ``ModelKey.label`` (a two-line
     # ``manifest\nrun`` string) so ticks carry meaningful identifiers instead
     # of generic ``"Model N"``.
-    _default_sweep_keys = {
-        ModelKey(m, r)
-        for m, r in zip(DEFAULT_MODEL_QC_MANIFEST_NAMES, DEFAULT_MODEL_QC_RUN_NAMES, strict=True)
-    }
-    if all(k in _default_sweep_keys for k in model_keys):
+    #
+    # Membership is checked with plain ``(manifest_name, run_name)`` tuples
+    # rather than constructing ``ModelKey`` instances: ``ModelKey`` is a
+    # ``NamedTuple``, so it compares and hashes equal to a plain tuple of the
+    # same field values.  Avoiding the constructor lets ``ModelKey`` be
+    # imported only under ``TYPE_CHECKING`` at module top.
+    _default_sweep_pairs: set[tuple[str, str]] = set(
+        zip(DEFAULT_MODEL_QC_MANIFEST_NAMES, DEFAULT_MODEL_QC_RUN_NAMES, strict=True)
+    )
+    if all((k.manifest_name, k.run_name) in _default_sweep_pairs for k in model_keys):
         # All models belong to the curated sweep; map each key to its
         # corresponding short label by positional order within the sweep.
-        sweep_label_map = {
-            ModelKey(m, r): lbl
+        sweep_label_map: dict[tuple[str, str], str] = {
+            (m, r): lbl
             for m, r, lbl in zip(
                 DEFAULT_MODEL_QC_MANIFEST_NAMES,
                 DEFAULT_MODEL_QC_RUN_NAMES,
@@ -401,7 +404,7 @@ def create_comparison_plots_and_summary(
                 strict=True,
             )
         }
-        model_labels = [sweep_label_map[k] for k in model_keys]
+        model_labels = [sweep_label_map[(k.manifest_name, k.run_name)] for k in model_keys]
     else:
         model_labels = [k.label for k in model_keys]
 
