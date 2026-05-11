@@ -29,6 +29,7 @@ from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
+from endo_pipeline.settings.dynamics_workflows import TIME_STEP_IN_HOURS
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
 from endo_pipeline.settings.figures import (
     FONTSIZE_LARGE,
@@ -401,6 +402,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
     histogram_vmin = 0.0
     histogram_vmax = 0.7
 
+    start_imaging_line_color = "lime"
     steady_state_line_color = "darkturquoise"
 
     axes_xlim = (0, 48)  # in hours, after converting from frames
@@ -419,10 +421,9 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         # reserve left margin for the vertical label and top margin for the legend
         layout_engine.set(**{"rect": [0.08, 0, 1, 0.94]})
 
-    time_column_label = "Time (hours)"
+    time_column_label = "Time under flow (hours)"
     # convert frames to hours for better readability of x-axis
-    # (one frame = 5 minutes, so conversion factor is 5/60)
-    time_conversion_factor = 5 / 60
+    time_conversion_factor = TIME_STEP_IN_HOURS
 
     columns_to_plot: list[ColumnNameType] = [
         Column.DiffAEData.POLAR_ANGLE,
@@ -432,6 +433,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
 
     for i, dataset in enumerate([dataset_low, dataset_high]):
         dataset_config = load_dataset_config(dataset)
+        frames_before_imaging = dataset_config.flow_conditions[0].start
         shear_stress = np.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
         shear_stress_label = f"{shear_stress} dyn/cm{Unicode.SQUARED}"
 
@@ -440,7 +442,11 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         # indicate with a vertical dashed line on the histogram
         start_steady_state_timepoint = (
             get_start_of_steady_state_for_position(dataset_config, position=0) or 0
-        ) * time_conversion_factor
+        )
+        # shift so that time = 0 corresponds to the start of flow, and convert
+        # from frames to hours
+        start_steady_state_timepoint += frames_before_imaging
+        start_steady_state_timepoint = start_steady_state_timepoint * time_conversion_factor
 
         df_ = load_dataframe(
             get_dataframe_location_for_dataset(dataframe_manifest, dataset), delay=True
@@ -458,7 +464,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
 
             feature_bins = get_bins(bin_widths=(0.05,), data=df[column].to_numpy())[0][0]
             ax_ij.hist2d(
-                df[Column.TIMEPOINT] * time_conversion_factor,
+                (df[Column.TIMEPOINT] + frames_before_imaging) * time_conversion_factor,
                 df[column],
                 bins=[time_bins, feature_bins],
                 cmap="inferno",
@@ -470,7 +476,18 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
             # change the background color to grey
             ax_ij.set_facecolor("grey")
 
-            # draw cyan dashed line at start of steady state
+            # draw dashed line at start of imaging (time =
+            # -frames_before_imaging)
+            ax_ij.axvline(
+                x=-frames_before_imaging * time_conversion_factor,
+                color=start_imaging_line_color,
+                linestyle="--",
+                linewidth=1.5,
+                zorder=3,
+                label="Start of imaging",
+            )
+
+            # draw dashed line at start of steady state
             ax_ij.axvline(
                 x=start_steady_state_timepoint,
                 color=steady_state_line_color,
@@ -520,7 +537,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
     # constrained layout is not affected
     handles, labels = ax_ij.get_legend_handles_labels()
     handles.append(Patch(facecolor="grey", edgecolor="none"))
-    labels.append("No data (cell piling)")
+    labels.append("No data")
     fig.legend(
         handles,
         labels,
