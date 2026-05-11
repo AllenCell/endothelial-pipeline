@@ -234,7 +234,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.SegData.NODE_FLUOR_MEAN: ColumnMetadata(
         name="Mean VE-Cad fluorescence at nodes",
-        label="Cell node mean fluorescence",
+        label="Cell node mean\nfluorescence",
         unit="a.u.",
         min=100,
         max=200,

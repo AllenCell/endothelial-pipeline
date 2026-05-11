@@ -360,7 +360,7 @@ def make_classic_feature_panels(dataset_name: str, out_dir: Path) -> dict[str, P
             mark_perpendicular(ax, color="lightgrey")
         if feat == Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DOTPROD:
             ax.axhline(0, color="lightgrey", linestyle="--", linewidth=1)
-        ax.axvline(imaging_start_time, color="lime", linestyle="--", linewidth=1)
+        ax.axvline(imaging_start_time, color="limegreen", linestyle="--", linewidth=1)
         ax.axvline(steady_state_time_shifted, color="darkturquoise", linestyle="--", linewidth=1)
 
         # save the panel in high quality and as a PNG thumbnail
@@ -502,7 +502,7 @@ def make_feature_contact_sheet(
                 y_minor_ticks=True,
             )
 
-            ax.axvline(imaging_start_time, color="lime", linestyle="--", linewidth=1)
+            ax.axvline(imaging_start_time, color="limegreen", linestyle="--", linewidth=1)
             ax.axvline(
                 steady_state_time_shifted, color="darkturquoise", linestyle="--", linewidth=1
             )

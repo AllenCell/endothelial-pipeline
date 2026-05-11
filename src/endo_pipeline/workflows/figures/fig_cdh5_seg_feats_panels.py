@@ -61,11 +61,12 @@ def main(datasets: Datasets | None | Literal["figure"] = "figure") -> None:
         datasets=list(datasets),
         features=features,
         out_dir=out_dir / "feature_contact_sheet",
-        figure_width=MAX_FIGURE_WIDTH,
+        figure_width=MAX_FIGURE_WIDTH - 0.1,
     )
 
     schematic_dir = [Path(fp) for fp in figure_assets.__path__]
     schematic_name = "cdh5_classic_seg_schematic.svg"
+    # schematic_name = "cdh5_classic_seg_schematic copy ai.svg"
     schematic_fps = [fp for fdir in schematic_dir for fp in fdir.rglob(schematic_name)]
     if len(schematic_fps) == 1:
         schematic_fp = schematic_fps[0]
@@ -73,7 +74,7 @@ def main(datasets: Datasets | None | Literal["figure"] = "figure") -> None:
         raise FileNotFoundError(
             f"Expected to find exactly one file matching {schematic_name} in {schematic_dir}, but found {len(schematic_fps)}: {schematic_fps}"
         )
-    panel_A_height = 3
+    panel_A_height = 3.2
 
     figure_panels = [
         FigurePanel(
@@ -82,7 +83,7 @@ def main(datasets: Datasets | None | Literal["figure"] = "figure") -> None:
             x_position=0,
             y_position=0,
             x_offset=0,
-            y_offset=0.2,
+            y_offset=0.1,
         ),
         FigurePanel(
             letter="B",
