@@ -32,7 +32,7 @@ flow_conditions:
   stop: 576
   shear_stress: 6.13
 include_scenes: null
-notes: Collect low SS 48h timelapse of CDH5 Ex2 del -/- endothelial cells. Starting
+notes: Collect low SS 48h timelapse of CDH5 Ex3 del -/- endothelial cells. Starting
   density medium-high; higher than 20250903 and 20250908 starting densities. Gaps
   in cell monolayer that appear appear beyond 24h in timelapse
 timepoint_annotations:

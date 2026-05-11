@@ -1,7 +1,4 @@
-from endo_pipeline.cli import Datasets, tags
-
-# GPU is optional, but the workflow is much faster with it
-TAGS = [tags.TEST_READY, tags.CPU_ONLY]
+from endo_pipeline.cli import Datasets
 
 
 def main(
@@ -12,6 +9,8 @@ def main(
 ) -> None:
     """
     Run the label-free nuclear prediction workflow on a dataset, list of datasets, or collection.
+
+    #test-ready #gpu
 
     Label-free nuclei predictions are generated using a CellPose 3 model retrained from the
     default "nuclei" model.

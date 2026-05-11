@@ -1,3 +1,9 @@
+"""
+Visualize the selection of Z slices for image preprocessing.
+
+#supfig #preprocessing
+"""
+
 # %%
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,10 +22,6 @@ from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
 from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
 from endo_pipeline.settings.image_data import LOWER_Z_SLICE_OFFSET, UPPER_Z_SLICE_OFFSET
-
-# %%
-DESCRIPTION = "Visualize the selection of Z slices for image preprocessing."
-TAGS = ["supfig", "preprocessing"]
 
 # %%
 plt.style.use("endo_pipeline.figure")

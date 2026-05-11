@@ -1,3 +1,9 @@
+"""
+Visualize the automatic detection of outlier timepoints in BF and EGFP channels.
+
+#supfig #preprocessing
+"""
+
 # %%
 import matplotlib.pyplot as plt
 
@@ -17,10 +23,6 @@ from endo_pipeline.settings.examples import EXAMPLE_DATASET
 from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
 
 plt.style.use("endo_pipeline.figure")
-
-# %%
-DESCRIPTION = "Visualize the automatic detection of outlier timepoints in BF and EGFP channels."
-TAGS = ["supfig", "preprocessing"]
 
 # %% Load example datasets
 FIGURE_ID = "SUPP_FIG_SINGLE_TP"

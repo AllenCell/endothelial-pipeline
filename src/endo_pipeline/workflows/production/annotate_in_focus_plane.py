@@ -1,11 +1,11 @@
-from endo_pipeline.cli import Datasets, tags
-
-TAGS = ["quality-control", "preprocessing", tags.TEST_READY, tags.CPU_ONLY]
+from endo_pipeline.cli import Datasets
 
 
 def main(datasets: Datasets | None = None) -> None:
     """
     Detect and annotate the in-focus z-plane index for each position.
+
+    #quality-control #preprocessing #test-ready #cpu-only
 
     Parameters
     ----------

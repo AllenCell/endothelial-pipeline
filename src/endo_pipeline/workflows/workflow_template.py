@@ -5,12 +5,31 @@
 # `main` method, rather than at the top of the module.
 # ==============================================================================
 
+
+# ================================== LOGGING ===================================
+# We recommend using logging instead of print statements in almost all cases.
+# Logging allows you to specify the "severity" of the message, which can be
+# controlled using the `--verbose` and `--debug` flags. These logs are also
+# saved to the `logs` folder.
+#
+# By default, workflows show logs at the WARNING, ERROR, and SEVERE levels. With
+# the `--verbose` flag, workflows will also show logs at the INFO level. With
+# the `--debug` flag, workflows will additionally show logs at the DEBUG level.
+#
+#   endopipe workflow-template X 10 false Y
+#   endopipe workflow-template X 10 false Y -v
+#   endopipe workflow-template X 10 false Y -vv
+# ==============================================================================
+
+
 # =============================== WORKFLOW TAGS ================================
-# Workflows may optionally include a list of tags to categorize the workflow
-# and group related workflows. These tags are automatically pulled from TAGS
-# when registering workflows to the CLI. Users can then use the `--show-tags`
-# flag to include these tags in the workflow descriptions or `--filter-tag=TAG`
-# to filter and show only workflows with a specific tag `TAG`.
+# Workflows may optionally include a list of tags to categorize the workflow and
+# group related workflows. These tags are automatically found by parsing the
+# docstring for any text that matches the pattern #[a-z0-9\-].
+#
+# Users can then use the `--show-tags` flag to include these tags in the
+# workflow descriptions or `--filter-tag=TAG` to filter and show only workflows
+# with a specific tag `TAG`.
 #
 # For example, these tags would be displayed in the following help message:
 #
@@ -22,9 +41,6 @@
 # hyphen (-), use no more than three words per tag, avoid more than three tags
 # per workflow.
 # ==============================================================================
-from endo_pipeline.cli import tags
-
-TAGS = ["tag1", "tag2", tags.TEST_READY, tags.GPU]  # tags.CPU_ONLY
 
 
 # ============================== MAIN ENTRYPOINT ===============================
@@ -40,6 +56,8 @@ TAGS = ["tag1", "tag2", tags.TEST_READY, tags.GPU]  # tags.CPU_ONLY
 #
 #   Additional description for the workflow here. This text will be displayed as
 #   part of the --help message.
+#
+#   #tag1 #tag2
 #
 #   ╭─ Parameters ───────────────────────────────────────────────────────────╮
 #   │ *  PARAM1 --param1              Description for param 1. [required]    │
@@ -76,6 +94,8 @@ def main(param1: str, param2: int, param3: bool, param4: str = "X") -> None:
     Additional description for the workflow here. This text will be displayed as
     part of the `--help` message.
 
+    #tag1 #tag2
+
     Parameters
     ----------
     param1
@@ -92,22 +112,27 @@ def main(param1: str, param2: int, param3: bool, param4: str = "X") -> None:
     # imports are only imported when the main method is called.
     import logging
 
-    from endo_pipeline.cli import DEMO_MODE, NUM_GPUS
+    # The DEMO_MODE variable is False by default, and set to True when the user
+    # passes `--demo-mode` or `-d` to the CLI. Note that this only works if the
+    # import is inside the main method.
+    from endo_pipeline.cli import DEMO_MODE
 
     logger = logging.getLogger(__name__)
 
     # Call workflow methods here. All methods should be located in the library,
-    # config, or io packages. No methods should be defined in the workflow.
+    # config, manifest, or io packages. Avoid defining methods in the workflow.
     logger.debug(f"debug message: {param1} {param2} {param3} {param4}")
     logger.info(f"info message: {param1} {param2} {param3} {param4}")
     logger.warning(f"warn message: {param1} {param2} {param3} {param4}")
     logger.error(f"error message: {param1} {param2} {param3} {param4}")
     logger.critical(f"critical message: {param1} {param2} {param3} {param4}")
 
+    # To support review and testing, you can use the DEMO_MODE flag to alter
+    # workflow behavior so that it runs faster. For example, if you are
+    # iterating through and processing a list of datasets, consider exiting the
+    # loop early when running in demo mode.
     if DEMO_MODE:
         logger.info("Running in demo mode.")
-
-    logger.info(f"Number of GPUs available: {NUM_GPUS}")
 
 
 # =============================== WORKFLOW CLI =================================

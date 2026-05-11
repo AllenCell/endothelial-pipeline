@@ -1,14 +1,14 @@
 from typing import Literal
 
-from endo_pipeline.cli import Datasets, tags
-
-TAGS = [tags.TEST_READY, tags.CPU_ONLY]
+from endo_pipeline.cli import Datasets
 
 
 def main(datasets: Datasets | None | Literal["figure"] = "figure") -> None:
     """Produces figure panels for the CDH5 segmentation and classic feature workflow figure.
     This includes imaging panels showing the segmentation steps and 2D histograms of classic
     features for each of the PCA reference datasets.
+
+    #test-ready #cpu-only
     """
     from pathlib import Path
 
@@ -66,7 +66,6 @@ def main(datasets: Datasets | None | Literal["figure"] = "figure") -> None:
 
     schematic_dir = [Path(fp) for fp in figure_assets.__path__]
     schematic_name = "cdh5_classic_seg_schematic.svg"
-    # schematic_name = "cdh5_classic_seg_schematic copy ai.svg"
     schematic_fps = [fp for fdir in schematic_dir for fp in fdir.rglob(schematic_name)]
     if len(schematic_fps) == 1:
         schematic_fp = schematic_fps[0]
