@@ -136,8 +136,7 @@ def aggregate_seed_metrics(
 
     for model_key in model_keys:
         seed_results = all_seed_results[model_key]
-        first_result = next(iter(seed_results.values()))
-        model_labels.append(first_result["model_label"])
+        model_labels.append(model_key.label)
 
         for example_set_label in example_sets_for_metrics:
             all_corrs: list[float] = []
@@ -158,7 +157,7 @@ def aggregate_seed_metrics(
 
             aggregated_metrics = {
                 "model_key": model_key,
-                "model_label": first_result["model_label"],
+                "model_label": model_key.label,
                 "example_set": example_set_label,
                 "correlations_100": all_corrs,
                 "ssims_100": all_ssims,

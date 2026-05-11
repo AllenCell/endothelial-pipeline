@@ -100,14 +100,14 @@ def _make_result_skeleton(
     Returns
     -------
     result
-        Skeleton with keys ``"model_key"``, ``"model_label"``,
-        ``"run_name"``, ``"random_seed"``, and one key per example set
-        label containing empty metric lists.
+        Skeleton with keys ``"model_key"``, ``"random_seed"``,
+        ``"example_set_labels"``, and one key per example set label
+        containing empty metric lists.  Downstream consumers should
+        derive ``model_label`` and ``run_name`` from ``model_key`` via
+        ``model_key.label`` and ``model_key.run_name``.
     """
     result = {
         "model_key": model_key,
-        "model_label": model_key.label,
-        "run_name": model_key.run_name,
         "random_seed": random_seed,
         "example_set_labels": example_set_labels,
     }
