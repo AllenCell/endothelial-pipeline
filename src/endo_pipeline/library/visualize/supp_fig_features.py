@@ -35,6 +35,7 @@ from endo_pipeline.settings.figures import (
     FONTSIZE_LARGE,
     FONTSIZE_MEDIUM,
     FONTSIZE_SMALL,
+    FONTSIZE_XSMALL,
     MAX_FIGURE_WIDTH,
 )
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
@@ -447,14 +448,15 @@ def _make_feature_pair_histogram_panel(
         DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED
     )
 
+    start_imaging_line_color = "limegreen"
     steady_state_line_color = "darkturquoise"
 
-    axes_xlim = (0, 48)  # in hours, after converting from frames
+    axes_xlim = (0, 50)  # in hours, after converting from frames
     axes_xticks = [0, 12, 24, 36, 48]
     axes_xtick_labels = [f"{x}" for x in axes_xticks]
 
     fig, ax = plt.subplots(
-        2, 2, figsize=figsize, layout="constrained", gridspec_kw={"hspace": 0.15}
+        2, 2, figsize=(2.9, 2.45), layout="constrained", gridspec_kw={"hspace": 0.1}
     )
 
     layout_engine = fig.get_layout_engine()
@@ -462,14 +464,15 @@ def _make_feature_pair_histogram_panel(
         # reserve left margin for the vertical label and top margin for the legend
         layout_engine.set(**{"rect": [0.08, 0, 1, 0.94]})
 
-    time_column_label = "Time (hours)"
-    # convert frame numbers to hours for better readability of x-axis
+    time_column_label = "Time under flow (hours)"
+    # convert frames to hours for better readability of x-axis
     time_conversion_factor = TIME_STEP_IN_HOURS
 
     columns_to_compute = [*columns_to_plot, Column.TIMEPOINT]
 
     for i, dataset in enumerate([dataset_low, dataset_high]):
         dataset_config = load_dataset_config(dataset)
+        frames_before_imaging = abs(dataset_config.flow_conditions[0].start)
         shear_stress = np.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
         shear_stress_label = f"{shear_stress} dyn/cm{Unicode.SQUARED}"
 
@@ -478,12 +481,18 @@ def _make_feature_pair_histogram_panel(
         # indicate with a vertical dashed line on the histogram
         start_steady_state_timepoint = (
             get_start_of_steady_state_for_position(dataset_config, position=0) or 0
-        ) * time_conversion_factor
+        )
+        # shift so that time = 0 corresponds to the start of flow, and convert
+        # from frames to hours
+        start_steady_state_timepoint += frames_before_imaging
+        start_steady_state_timepoint_hrs = start_steady_state_timepoint * time_conversion_factor
 
         df_ = load_dataframe(
             get_dataframe_location_for_dataset(dataframe_manifest, dataset), delay=True
         )
         df: pd.DataFrame = df_[columns_to_compute].compute()
+        # shift timepoints so that time = 0 corresponds to the start of flow
+        df[Column.TIMEPOINT] = df[Column.TIMEPOINT] + frames_before_imaging
 
         time_bins = get_bins(bin_widths=(12,), data=df[Column.TIMEPOINT].to_numpy())[0][0]
         time_bins = time_bins * time_conversion_factor
@@ -509,9 +518,20 @@ def _make_feature_pair_histogram_panel(
             # change the background color to grey
             ax_ij.set_facecolor("grey")
 
-            # draw cyan dashed line at start of steady state
+            # draw dashed line at start of imaging (time =
+            # -frames_before_imaging)
             ax_ij.axvline(
-                x=start_steady_state_timepoint,
+                x=frames_before_imaging * time_conversion_factor,
+                color=start_imaging_line_color,
+                linestyle="--",
+                linewidth=1.5,
+                zorder=3,
+                label="Start of imaging",
+            )
+
+            # draw dashed line at start of steady state
+            ax_ij.axvline(
+                x=start_steady_state_timepoint_hrs,
                 color=steady_state_line_color,
                 linestyle="--",
                 linewidth=1.5,
@@ -529,23 +549,23 @@ def _make_feature_pair_histogram_panel(
             if j == 0:
                 # add tick labels for the left column
                 if axes_ytick_labels is not None:
-                    ax_ij.set_yticklabels(axes_ytick_labels, fontsize=FONTSIZE_SMALL)
+                    ax_ij.set_yticklabels(axes_ytick_labels, fontsize=FONTSIZE_XSMALL)
                 else:
-                    ax_ij.tick_params(axis="y", labelsize=FONTSIZE_SMALL)
+                    ax_ij.tick_params(axis="y", labelsize=FONTSIZE_XSMALL)
             elif j == 1:
                 if shared_y_axis:
                     # omit redundant y tick labels when both columns share the same range
                     ax_ij.set_yticklabels([])
                 else:
-                    ax_ij.tick_params(axis="y", labelsize=FONTSIZE_SMALL)
+                    ax_ij.tick_params(axis="y", labelsize=FONTSIZE_XSMALL)
             if i == 0:
                 # put label as column title for top row
-                ax_ij.set_title(feature_column_label, fontsize=FONTSIZE_SMALL)
+                ax_ij.set_title(feature_column_label, fontsize=FONTSIZE_XSMALL)
                 ax_ij.set_xticklabels([])  # no x tick labels for top row
             elif i == 1:
                 # only set x-axis tick labels and label for bottom row
-                ax_ij.set_xticklabels(axes_xtick_labels, fontsize=FONTSIZE_SMALL)
-                ax_ij.set_xlabel(time_column_label, labelpad=1, fontsize=FONTSIZE_SMALL)
+                ax_ij.set_xticklabels(axes_xtick_labels, fontsize=FONTSIZE_XSMALL)
+                ax_ij.set_xlabel(time_column_label, labelpad=1, fontsize=FONTSIZE_XSMALL)
 
         # add vertical label for shear stress to the left of the contour plot
         # (y positions reflect the constrained-layout rect top of 0.94)
@@ -567,14 +587,14 @@ def _make_feature_pair_histogram_panel(
     # constrained layout is not affected
     handles, labels = ax_ij.get_legend_handles_labels()
     handles.append(Patch(facecolor="grey", edgecolor="none"))
-    labels.append("No data (cell piling)")
+    labels.append("No data")
     fig.legend(
         handles,
         labels,
         fontsize="xx-small",
         loc="upper center",
-        bbox_to_anchor=(0.53, 0.995),
-        ncol=2,
+        bbox_to_anchor=(0.53, 1.0),
+        ncol=3,
         handletextpad=0.3,
         borderpad=0.3,
         columnspacing=0.8,
