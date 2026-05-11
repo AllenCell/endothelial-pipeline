@@ -35,6 +35,7 @@ from endo_pipeline.settings.figures import (
     FONTSIZE_LARGE,
     FONTSIZE_MEDIUM,
     FONTSIZE_SMALL,
+    FONTSIZE_XSMALL,
     MAX_FIGURE_WIDTH,
 )
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
@@ -445,7 +446,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         )
         # shift so that time = 0 corresponds to the start of flow, and convert
         # from frames to hours
-        start_steady_state_timepoint += frames_before_imaging
+        start_steady_state_timepoint -= frames_before_imaging
         start_steady_state_timepoint_hrs = start_steady_state_timepoint * time_conversion_factor
 
         df_ = load_dataframe(
@@ -453,7 +454,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         )
         df: pd.DataFrame = df_[columns_to_compute].compute()
         # shift timepoints so that time = 0 corresponds to the start of flow
-        df[Column.TIMEPOINT] = df[Column.TIMEPOINT] + frames_before_imaging
+        df[Column.TIMEPOINT] = df[Column.TIMEPOINT] - frames_before_imaging
 
         time_bins = get_bins(bin_widths=(12,), data=df[Column.TIMEPOINT].to_numpy())[0][0]
         time_bins = time_bins * time_conversion_factor
@@ -506,18 +507,18 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
             ax_ij.set_yticks(axes_yticks)
             if j == 0:
                 # add tick labels for shared y axis just on leftmost plots
-                ax_ij.set_yticklabels(axes_ytick_labels, fontsize=FONTSIZE_SMALL)
+                ax_ij.set_yticklabels(axes_ytick_labels, fontsize=FONTSIZE_XSMALL)
             elif j == 1:
                 # else, no y tick labels for right column
                 ax_ij.set_yticklabels([])
             if i == 0:
                 # put label as column title for top row
-                ax_ij.set_title(feature_column_label, fontsize=FONTSIZE_SMALL)
+                ax_ij.set_title(feature_column_label, fontsize=FONTSIZE_XSMALL)
                 ax_ij.set_xticklabels([])  # no x tick labels for top row
             elif i == 1:
                 # only set x-axis tick labels and label for bottom row
                 ax_ij.set_xticklabels(axes_xtick_labels, fontsize=FONTSIZE_SMALL)
-                ax_ij.set_xlabel(time_column_label, labelpad=1, fontsize=FONTSIZE_SMALL)
+                ax_ij.set_xlabel(time_column_label, labelpad=1, fontsize=FONTSIZE_XSMALL)
 
         # add vertical label for shear stress to the left of the contour plot
         # (y positions reflect the constrained-layout rect top of 0.94)
@@ -546,7 +547,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         fontsize="xx-small",
         loc="upper center",
         bbox_to_anchor=(0.53, 1.0),
-        ncol=2,
+        ncol=3,
         handletextpad=0.3,
         borderpad=0.3,
         columnspacing=0.8,
