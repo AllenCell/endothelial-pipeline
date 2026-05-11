@@ -122,7 +122,7 @@ def plot_fixed_points_vs_shear_stress(
     dataset_order: list[str] | None = None,
     ylimits: tuple[float, float] | None = None,
     x_axis_mode: Literal[
-        "dataset", "shear_stress_numeric", "shear_stress_categorical", "cell_line", "flow_switch"
+        "dataset", "shear_stress_numeric", "shear_stress_categorical", "cell_line"
     ] = "dataset",
     marker_size_scatter: int = 15,
     marker_size_legend: int = 5,
@@ -155,7 +155,6 @@ def plot_fixed_points_vs_shear_stress(
     If the x-axis mode is one of:
         - `"shear_stress_numeric"`
         - `"shear_stress_categorical"`
-        - `"flow_switch"`
         - `"dataset"`
     the input dataframe of fixed points must contain a column named
     `"flow_condition_shear_stress_bin"`. This column is used to determine the
@@ -267,19 +266,6 @@ def plot_fixed_points_vs_shear_stress(
         row_to_x, tick_positions, tick_labels = _build_categorical_axis(
             df_fp, "cell_line_label", jitter_width=jitter_width
         )
-    elif x_axis_mode == "flow_switch":
-        # Label: "<shear_stress_bin> (single flow)" or "<shear_stress_bin> (flow switch)"
-        df_fp["flow_switch_label"] = df_fp.apply(
-            lambda row: (
-                f"{int(row['flow_condition_shear_stress_bin'])} (single flow)"
-                if row["n_shear_stress_conditions"] == 1
-                else f"{int(row['flow_condition_shear_stress_bin'])} (flow switch)"
-            ),
-            axis=1,
-        )
-        row_to_x, tick_positions, tick_labels = _build_categorical_axis(
-            df_fp, "flow_switch_label", jitter_width=jitter_width
-        )
     else:
         raise ValueError(f"Unknown x_axis_mode: {x_axis_mode!r}")
 
@@ -374,7 +360,7 @@ def plot_fixed_points_vs_shear_stress(
         )
 
     ax.set_xticks(tick_positions)
-    if x_axis_mode in ("dataset", "cell_line", "flow_switch"):
+    if x_axis_mode in ("dataset", "cell_line"):
         ax.set_xticklabels(tick_labels, rotation=45, ha="right")
     else:
         ax.set_xticklabels(tick_labels)
@@ -471,7 +457,7 @@ def _process_bootstrap_dataframe_for_plot(
     convert_angle_to_nematic: bool,
     column_names: list[ColumnName.DiffAEData | ColumnName.OpticalFlow | StrEnum],
     x_axis_mode: Literal[
-        "dataset", "shear_stress_numeric", "shear_stress_categorical", "cell_line", "flow_switch"
+        "dataset", "shear_stress_numeric", "shear_stress_categorical", "cell_line"
     ],
     dataset_config: DatasetConfig,
 ) -> pd.DataFrame:
@@ -529,7 +515,7 @@ def plot_cross_dataset_summaries(
     bootstrap_threshold: float = 0.4,
     column_names: list[ColumnName.DiffAEData | ColumnName.OpticalFlow | StrEnum] | None = None,
     x_axis_mode: Literal[
-        "dataset", "shear_stress_numeric", "shear_stress_categorical", "cell_line", "flow_switch"
+        "dataset", "shear_stress_numeric", "shear_stress_categorical", "cell_line"
     ] = "dataset",
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 3),
     dataset_order: list[str] | None = None,
@@ -637,13 +623,7 @@ def plot_cross_dataset_summaries(
             fixed_points_bootstrap_dataframe_manifest.locations[dataset_name], delay=False
         )
 
-        # For flow_switch mode with multiple conditions, skip the first (pre-switch) condition
-        if x_axis_mode == "flow_switch" and len(dataset_config.flow_conditions) > 1:
-            flow_conditions_to_process = dataset_config.flow_conditions[1:]
-        else:
-            flow_conditions_to_process = dataset_config.flow_conditions
-
-        for flow_condition in flow_conditions_to_process:
+        for flow_condition in dataset_config.flow_conditions:
             df_flow = filter_dataframe_to_flow_condition_by_timepoint(
                 df_of, dataset_config, flow_condition
             )
