@@ -395,7 +395,7 @@ def _make_feature_pair_histogram_panel(
     axes_yticks: list[float] | None = None,
     axes_ytick_labels: list[str] | None = None,
     shared_y_axis: bool = True,
-    histogram_vmin: float = 0.01,
+    histogram_vmin: float = 0.00,
     histogram_vmax: float = 0.7,
     figsize: tuple[float, float] = (2.9, 2.45),
 ) -> tuple[plt.Figure, np.ndarray]:
