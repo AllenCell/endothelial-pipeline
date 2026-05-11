@@ -4,9 +4,16 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
+from endo_pipeline.io import get_output_path
 from endo_pipeline.library.process.image_processing import crop_image
 from endo_pipeline.library.visualize.model_inputs.image_preprocessing_steps import (
     get_target_image_from_sample,
+)
+from endo_pipeline.library.visualize.model_qc_plots import create_comparison_bar_plot
+from endo_pipeline.settings.workflow_defaults import (
+    DEFAULT_MODEL_QC_LABELS,
+    DEFAULT_MODEL_QC_MANIFEST_NAMES,
+    DEFAULT_MODEL_QC_RUN_NAMES,
 )
 
 from .image_loading import load_transformed_image
@@ -360,14 +367,6 @@ def create_comparison_plots_and_summary(
     compute_baseline
         Whether to overlay baseline reference lines on the bar plots.
     """
-    from endo_pipeline.io import get_output_path
-    from endo_pipeline.library.visualize.model_qc_plots import create_comparison_bar_plot
-    from endo_pipeline.settings.workflow_defaults import (
-        DEFAULT_MODEL_QC_LABELS,
-        DEFAULT_MODEL_QC_MANIFEST_NAMES,
-        DEFAULT_MODEL_QC_RUN_NAMES,
-    )
-
     seed_suffix = f"_seeds_{len(seeds_to_evaluate)}" if len(seeds_to_evaluate) > 1 else ""
     comparison_output_path = get_output_path(
         "model_qc",
