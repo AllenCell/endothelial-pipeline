@@ -395,7 +395,7 @@ def _make_feature_pair_histogram_panel(
     axes_yticks: list[float] | None = None,
     axes_ytick_labels: list[str] | None = None,
     shared_y_axis: bool = True,
-    histogram_vmin: float = 0.0,
+    histogram_vmin: float = 0.01,
     histogram_vmax: float = 0.7,
     figsize: tuple[float, float] = (2.9, 2.45),
 ) -> tuple[plt.Figure, np.ndarray]:
@@ -659,10 +659,8 @@ def make_r_aspect_ratio_histogram_panel(output_path: Path) -> Path:
 
     # datasets have different natural ranges for r and aspect ratio, so set
     # y-limits per dataset row rather than per feature column;
-    r_ylim_dataset_1 = (0.0, 2.3)
-    aspect_ratio_ylim_dataset_1 = (1.0, 5.95)
-    r_ylim_dataset_2 = (0.0, 2.8)
-    aspect_ratio_ylim_dataset_2 = (1.0, 7.25)
+    r_ylim = (0.0, 2.8)
+    aspect_ratio_ylim = (1.0, 7.25)
     # Reconcile y-limits per feature column so that both dataset rows (low-flow
     # and high-flow) share the same scale for that feature.
     num_columns = ax.shape[1]
@@ -671,16 +669,10 @@ def make_r_aspect_ratio_histogram_panel(output_path: Path) -> Path:
             ax_ij = cast(plt.Axes, ax[i, j])
             if j == 0:
                 # r column
-                if i == 0:
-                    ax_ij.set_ylim(r_ylim_dataset_1)
-                elif i == 1:
-                    ax_ij.set_ylim(r_ylim_dataset_2)
+                ax_ij.set_ylim(r_ylim)
             elif j == 1:
                 # aspect ratio column
-                if i == 0:
-                    ax_ij.set_ylim(aspect_ratio_ylim_dataset_1)
-                elif i == 1:
-                    ax_ij.set_ylim(aspect_ratio_ylim_dataset_2)
+                ax_ij.set_ylim(aspect_ratio_ylim)
 
     filename = "r_aspect_ratio_histograms"
     save_plot_to_path(
