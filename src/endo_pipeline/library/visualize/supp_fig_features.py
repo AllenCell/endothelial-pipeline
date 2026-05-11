@@ -452,10 +452,10 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
             get_dataframe_location_for_dataset(dataframe_manifest, dataset), delay=True
         )
         df: pd.DataFrame = df_[columns_to_compute].compute()
+        # shift timepoints so that time = 0 corresponds to the start of flow
+        df[Column.TIMEPOINT] = df[Column.TIMEPOINT] + frames_before_imaging
 
-        time_bins = get_bins(
-            bin_widths=(12,), data=df[Column.TIMEPOINT].to_numpy() + frames_before_imaging
-        )[0][0]
+        time_bins = get_bins(bin_widths=(12,), data=df[Column.TIMEPOINT].to_numpy())[0][0]
         time_bins = time_bins * time_conversion_factor
         for j, column in enumerate(columns_to_plot):
             feature_column_label = COLUMN_METADATA[column].name or cast(str, column)
@@ -466,7 +466,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
 
             feature_bins = get_bins(bin_widths=(0.05,), data=df[column].to_numpy())[0][0]
             ax_ij.hist2d(
-                (df[Column.TIMEPOINT] + frames_before_imaging) * time_conversion_factor,
+                df[Column.TIMEPOINT] * time_conversion_factor,
                 df[column],
                 bins=[time_bins, feature_bins],
                 cmap="inferno",
