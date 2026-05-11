@@ -372,7 +372,7 @@ MODEL_QC_EXAMPLES_REP_2_POSITIONS: list[ExampleImage] = [
         crop_y_start=335,
         description="3. UNALIGNED, beginning of high flow.",
     ),
-    ExampleImage(
+    ExampleImage(  # this is currently used, could/should be dropped
         dataset_name="20250224_20X",
         position=0,
         timepoint=0,
