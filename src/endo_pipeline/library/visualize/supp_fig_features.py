@@ -453,7 +453,9 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         )
         df: pd.DataFrame = df_[columns_to_compute].compute()
 
-        time_bins = get_bins(bin_widths=(12,), data=df[Column.TIMEPOINT].to_numpy())[0][0]
+        time_bins = get_bins(
+            bin_widths=(12,), data=df[Column.TIMEPOINT].to_numpy() + frames_before_imaging
+        )[0][0]
         time_bins = time_bins * time_conversion_factor
         for j, column in enumerate(columns_to_plot):
             feature_column_label = COLUMN_METADATA[column].name or cast(str, column)
