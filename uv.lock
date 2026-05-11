@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = "==3.11.*"
 resolution-markers = [
     "sys_platform == 'darwin'",
@@ -11,7 +11,7 @@ resolution-markers = [
 [[package]]
 name = "aicsfiles"
 version = "8.1.1"
-source = { registry = "https://artifactory.corp.alleninstitute.org/artifactory/api/pypi/pypi-virtual/simple" }
+source = { registry = "https://production-pypi-proxy.int.allencell.org/simple" }
 dependencies = [
     { name = "jsonpickle" },
     { name = "packaging" },
@@ -21,9 +21,9 @@ dependencies = [
     { name = "requests" },
     { name = "tenacity" },
 ]
-sdist = { url = "https://artifactory.corp.alleninstitute.org/artifactory/api/pypi/pypi-virtual/aicsfiles/8.1.1/aicsfiles-8.1.1.tar.gz", hash = "md5:1044fbacbcef7b242d57234a1fb256b7" }
+sdist = { url = "https://production-pypi-proxy.int.allencell.org/simple/aicsfiles/8.1.1/aicsfiles-8.1.1.tar.gz", hash = "sha256:17d510104b503eb97d1e0b64801ffa4187260a9d6b614ba3435622b542c3761d" }
 wheels = [
-    { url = "https://artifactory.corp.alleninstitute.org/artifactory/api/pypi/pypi-virtual/aicsfiles/8.1.1/aicsfiles-8.1.1-py3-none-any.whl", hash = "md5:a0152ffaeb04adcf9fc9c44c6d4af7ad" },
+    { url = "https://production-pypi-proxy.int.allencell.org/simple/aicsfiles/8.1.1/aicsfiles-8.1.1-py3-none-any.whl", hash = "sha256:0dc70ff79aee0e41ff647ee2bd93456fa37c1732d0fb8d22da6ae218ceb53a6e" },
 ]
 
 [[package]]
@@ -1294,7 +1294,7 @@ types = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aicsfiles", marker = "extra == 'internal'", specifier = ">=8.1.1", index = "https://artifactory.corp.alleninstitute.org/artifactory/api/pypi/pypi-virtual/simple" },
+    { name = "aicsfiles", marker = "extra == 'internal'", specifier = "==8.1.1", index = "https://production-pypi-proxy.int.allencell.org/simple" },
     { name = "bioio", specifier = ">=1.4.0" },
     { name = "bioio-base", specifier = ">=1.0.5" },
     { name = "bioio-imageio", specifier = ">=1.1.0" },
@@ -1698,7 +1698,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/26/80/a6ee52c59f75a387ec1f0c0075cf7981fb4644e4162afd3401dabeaa83ca/greenlet-3.2.1-cp311-cp311-macosx_11_0_universal2.whl", hash = "sha256:aa30066fd6862e1153eaae9b51b449a6356dcdb505169647f69e6ce315b9468b", size = 268609, upload-time = "2025-04-22T14:26:58.208Z" },
     { url = "https://files.pythonhosted.org/packages/ad/11/bd7a900629a4dd0e691dda88f8c2a7bfa44d0c4cffdb47eb5302f87a30d0/greenlet-3.2.1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:7b0f3a0a67786facf3b907a25db80efe74310f9d63cc30869e49c79ee3fcef7e", size = 628776, upload-time = "2025-04-22T14:53:43.036Z" },
     { url = "https://files.pythonhosted.org/packages/46/f1/686754913fcc2707addadf815c884fd49c9f00a88e6dac277a1e1a8b8086/greenlet-3.2.1-cp311-cp311-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:64a4d0052de53ab3ad83ba86de5ada6aeea8f099b4e6c9ccce70fb29bc02c6a2", size = 640827, upload-time = "2025-04-22T14:54:57.409Z" },
-    { url = "https://files.pythonhosted.org/packages/03/74/bef04fa04125f6bcae2c1117e52f99c5706ac6ee90b7300b49b3bc18fc7d/greenlet-3.2.1-cp311-cp311-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:852ef432919830022f71a040ff7ba3f25ceb9fe8f3ab784befd747856ee58530", size = 636752, upload-time = "2025-04-22T15:04:33.707Z" },
     { url = "https://files.pythonhosted.org/packages/aa/08/e8d493ab65ae1e9823638b8d0bf5d6b44f062221d424c5925f03960ba3d0/greenlet-3.2.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4818116e75a0dd52cdcf40ca4b419e8ce5cb6669630cb4f13a6c384307c9543f", size = 635993, upload-time = "2025-04-22T14:27:04.408Z" },
     { url = "https://files.pythonhosted.org/packages/1f/9d/3a3a979f2b019fb756c9a92cd5e69055aded2862ebd0437de109cf7472a2/greenlet-3.2.1-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:9afa05fe6557bce1642d8131f87ae9462e2a8e8c46f7ed7929360616088a3975", size = 583927, upload-time = "2025-04-22T14:25:55.896Z" },
     { url = "https://files.pythonhosted.org/packages/59/21/a00d27d9abb914c1213926be56b2a2bf47999cf0baf67d9ef5b105b8eb5b/greenlet-3.2.1-cp311-cp311-musllinux_1_1_aarch64.whl", hash = "sha256:5c12f0d17a88664757e81a6e3fc7c2452568cf460a2f8fb44f90536b2614000b", size = 1112891, upload-time = "2025-04-22T14:58:55.808Z" },

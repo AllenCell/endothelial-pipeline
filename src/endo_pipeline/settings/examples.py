@@ -112,10 +112,10 @@ FIGURE_4_EXAMPLE_IMAGES: list[ExampleImage] = [
         crop_y_start=0,  # res level 0
     ),
     ExampleImage(
-        dataset_name="20251105_20X",
-        description="isogenic_control",
+        dataset_name="20260309_20X",
+        description="sorting_control",
         position=0,
-        timepoint=275,
+        timepoint=180,
         crop_x_start=0,  # res level 0
         crop_y_start=0,  # res level 0
     ),

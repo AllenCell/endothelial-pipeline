@@ -1,0 +1,26 @@
+name: first_passage_time_statistics
+workflow: compute_first_passage_time
+parameters:
+  model_manifest_name: diffae_baseline_exclude_cell_piling
+  run_name: 20251110_latent_512
+  datasets: [20250618_20X, 20250402_20X, 20250409_20X, 20250428_20X, 20250716_20X,
+    20250319_20X, 20250604_20X, 20260121_20X, 20260126_20X, 20260209_20X, 20260216_20X,
+    20250326_20X, 20250813_20X, 20260114_20X, 20260128_20X, 20260202_20X, 20260204_20X,
+    20260211_20X, 20260218_20X, 20260225_20X, 20260302_20X, 20250611_20X, 20251001_20X]
+  fixed_point_radius_threshold: 0.25
+  minimum_track_length: 72
+  min_num_traj_per_bin: 10
+  bin_size_theta_deg: null
+  bin_size_radius: null
+  bin_size_rho: null
+  collapse_feature: null
+  n_proc: 23
+locations:
+  first_passage_time_statistics:
+    fmsid: cc8e65341e4342c18243b88a69dcb795
+    path: null
+    s3uri: null
+  first_passage_time_parameter_sweep:
+    fmsid: e85d7d1a063140db8145406851b1ebf9
+    path: null
+    s3uri: null

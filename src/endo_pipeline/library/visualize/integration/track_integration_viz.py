@@ -31,7 +31,8 @@ from endo_pipeline.library.visualize.diffae_features.flow_field_3d import (
     plot_flow_field_slices,
     plot_one_slice_quiver,
 )
-from endo_pipeline.settings import ColumnName as Column
+from endo_pipeline.settings.column_metadata import COLUMN_METADATA
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_SMALL
 from endo_pipeline.settings.flow_field_3d import QUIVER_COLORMAP
@@ -1178,7 +1179,7 @@ def plot_first_passage_time_parameter_sweep(
     fixed_point_radius_threshold: float | None,
     out_dir: Path,
     metric_to_plot: Literal["mean", "median"],
-) -> None:
+) -> tuple[Path, Path]:
     """Plot the results of the parameter sweep over the number of bins in the
     initial conditions histogram and the choice of mean vs. median FPT to plot.
     """
@@ -1223,8 +1224,10 @@ def plot_first_passage_time_parameter_sweep(
     ax.set_ylim(0)
     ax.set_xlabel("radius around fixed point".title(), fontsize=FONTSIZE_LARGE)
     ax.set_ylabel(f"{metric_to_plot} first passage time (hrs)".title(), fontsize=FONTSIZE_LARGE)
-    filename = f"{dataset_name}_FPT_{metric_to_plot}_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}"
-    save_plot_to_path(fig, out_dir, filename, file_format=".svg", show_and_close=False)
+    filename_param_sweep_fpt = f"{dataset_name}_FPT_{metric_to_plot}_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}"
+    save_plot_to_path(
+        fig, out_dir, filename_param_sweep_fpt, file_format=".svg", show_and_close=False
+    )
 
     # also plot compute the fraction of trajectories that approached the fixed point
     # for each parameter combination to see how the fixed point distance threshold
@@ -1266,8 +1269,15 @@ def plot_first_passage_time_parameter_sweep(
     ax.set_ylim(0, 105)
     ax.set_xlabel("radius around fixed point".title(), fontsize=FONTSIZE_LARGE)
     ax.set_ylabel("Trajectories reaching fixed point (%)".title(), fontsize=FONTSIZE_LARGE)
-    filename = f"{dataset_name}_FPT_percent_trajectories_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}"
-    save_plot_to_path(fig, out_dir, filename, file_format=".svg", show_and_close=False)
+    filename_param_sweep_num_traj = f"{dataset_name}_FPT_percent_trajectories_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}"
+    save_plot_to_path(
+        fig, out_dir, filename_param_sweep_num_traj, file_format=".svg", show_and_close=False
+    )
+
+    return (
+        out_dir / f"{filename_param_sweep_fpt}.svg",
+        out_dir / f"{filename_param_sweep_num_traj}.svg",
+    )
 
 
 def plot_first_passage_time_correlations(
@@ -1278,7 +1288,38 @@ def plot_first_passage_time_correlations(
     fixed_point_stability: str,
     out_dir: Path,
     metric_to_plot: Literal["mean", "median"],
-) -> None:
+) -> Path:
+    """Plot the correlation between the grid-based and track-based first passage
+        times for a given fixed point as a scatter plot with error bars, along with
+        a linear fit and the Pearson correlation coefficient.
+
+    Parameters
+    ----------
+        dataset_name
+            The name of the dataset being plotted.
+        first_passage_time_stats_df
+            A DataFrame containing the statistics of the first passage times for both
+            the grid-based and track-based methods, including the mean/median and standard
+            deviation for each bin of initial conditions.
+        line_fit_df
+            A DataFrame containing the results of the linear fit between the
+            grid-based and track-based first passage times, including the slope,
+            intercept, Pearson correlation coefficient, and reduced chi
+            squared value for the fitted line.
+        fixed_point_id
+            The ID of the fixed point for which the correlations are being plotted.
+        fixed_point_stability
+            The stability of the fixed point.
+        out_dir
+            The directory where the resulting plot should be saved.
+        metric_to_plot
+            The metric to plot on the axes, either "mean" or "median" first passage time.
+
+    Returns
+    -------
+        Path
+            The path to the saved plot.
+    """
     shear_stress_rounded = _get_shear_stress_for_dataset(dataset_name, binned=True)
     pearson_r = line_fit_df[Column.VectorField.PEARSON_R].unique().item()
 
@@ -1291,7 +1332,11 @@ def plot_first_passage_time_correlations(
     corr_metric_val = (
         line_fit_df[Column.VectorField.LINEFIT_REDUCED_CHI_SQUARED_ODR].unique().item()
     )
-    corr_metric_label = f"Linear Fit (χ²ᵣ={corr_metric_val:.2f})"
+    corr_metric_label = (
+        f"Linear Fit "
+        f"({UnicodeCharacters.CHI}{UnicodeCharacters.SQUARED}{UnicodeCharacters.R_SUBSCRIPT}"
+        f"={corr_metric_val:.2f})"
+    )
 
     num_bins = (
         first_passage_time_stats_df.groupby(
@@ -1356,7 +1401,7 @@ def plot_first_passage_time_correlations(
         file_format=".svg",
         show_and_close=False,
     )
-    return
+    return out_dir / f"{filename}.svg"
 
 
 def plot_first_passage_time_histogram(
@@ -1429,35 +1474,39 @@ def plot_first_passage_time_correlation_summary(
     first_passage_time_correlation_summary_df: pd.DataFrame,
     out_dir: Path,
     filename: str,
+    corr_metric_column: Column.VectorField = Column.VectorField.PEARSON_R,
+    slope_column: Column.VectorField = Column.VectorField.LINEFIT_SLOPE,
+    summary_fig_kwargs: dict | None = {"figsize": (6, 2.5)},
 ) -> None:
     """Plot a summary of the correlation results from the first passage time
     analysis across all datasets and fixed points as it will appear in the figure.
     """
 
-    corr_metric_column = Column.VectorField.PEARSON_R
-    corr_metric_label = "Correlation Coefficient (R)"
+    corr_metric_label = COLUMN_METADATA[corr_metric_column].label or corr_metric_column
+    slope_label = COLUMN_METADATA[slope_column].label or slope_column
 
     # get the shear stress for the dataset and add that to the labels
     # Snap to ±1 bins; values outside any bin keep their rounded value
-    first_passage_time_correlation_summary_df["shear_stress"] = (
+    first_passage_time_correlation_summary_df[Column.SHEAR_STRESS] = (
         first_passage_time_correlation_summary_df[Column.DATASET].transform(
             lambda ds: _get_shear_stress_for_dataset(ds, binned=False)
         )
     )
-    first_passage_time_correlation_summary_df.sort_values("shear_stress", inplace=True)
-    first_passage_time_correlation_summary_df["shear_stress_rounded"] = (
+    first_passage_time_correlation_summary_df.sort_values(Column.SHEAR_STRESS, inplace=True)
+    first_passage_time_correlation_summary_df[f"{Column.SHEAR_STRESS}_rounded"] = (
         first_passage_time_correlation_summary_df[Column.DATASET].transform(
             lambda ds: _get_shear_stress_for_dataset(ds, binned=True)
         )
     )
 
     xs = first_passage_time_correlation_summary_df[
-        [Column.DATASET, "shear_stress_rounded"]
+        [Column.DATASET, f"{Column.SHEAR_STRESS}_rounded"]
     ].values.tolist()
     xs = [f"{load_dataset_config(dataset_name).date} ({flow})" for dataset_name, flow in xs]
     ys = first_passage_time_correlation_summary_df[corr_metric_column]
+    ys2 = first_passage_time_correlation_summary_df[slope_column]
 
-    fig, ax = plt.subplots(figsize=(6, 2.5))
+    fig, ax = plt.subplots(**(summary_fig_kwargs or {}))
     sns.stripplot(
         x=xs,
         y=ys,
@@ -1465,10 +1514,24 @@ def plot_first_passage_time_correlation_summary(
         alpha=0.7,
         ax=ax,
     )
+    ax2 = ax.twinx()
+    sns.stripplot(
+        x=xs,
+        y=ys2,
+        marker="D",
+        facecolor="none",
+        edgecolor="tab:orange",
+        linewidth=1,
+        alpha=0.7,
+        ax=ax2,
+    )
     ax.set_ylim(0, 1)
     ax.set_ylabel(corr_metric_label, fontsize=FONTSIZE_SMALL)
-    plt.yticks(fontsize=FONTSIZE_SMALL)
-    plt.xticks(rotation=45, ha="right", fontsize=FONTSIZE_SMALL)
+    ax2.set_ylim(0)
+    ax2.set_ylabel(
+        slope_label, fontsize=FONTSIZE_SMALL, rotation=270, labelpad=15, color="tab:orange"
+    )
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right", fontsize=FONTSIZE_SMALL)
     ax.set_xlabel("")
     save_plot_to_path(
         fig,
@@ -1482,7 +1545,8 @@ def plot_first_passage_time_correlation_summary(
     sns.histplot(
         data=first_passage_time_correlation_summary_df,
         x=corr_metric_column,
-        binwidth=0.1,
+        binwidth=0.05,
+        binrange=(0, 1),
         color="black",
         fill=False,
         ax=ax,

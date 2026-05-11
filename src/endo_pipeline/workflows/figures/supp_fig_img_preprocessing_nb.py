@@ -1,3 +1,9 @@
+"""
+Visualize the image preprocessing steps for the DiffAE model.
+
+#supfig #preprocessing #diffae
+"""
+
 # %%
 import logging
 
@@ -17,10 +23,6 @@ from endo_pipeline.settings.examples import EXAMPLE_DATASET
 from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
 
 logger = logging.getLogger(__name__)
-
-# %%
-DESCRIPTION = "Visualize the image preprocessing steps for the DiffAE model."
-TAGS = ["supfig", "preprocessing", "diffae"]
 
 # %%
 plt.style.use("endo_pipeline.figure")

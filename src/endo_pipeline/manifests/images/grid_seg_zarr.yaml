@@ -50,11 +50,7 @@ locations:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
   20250908_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-  20251022_20X:
-    path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
   20251029_20X:
-    path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-  20251105_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
   20251119_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr

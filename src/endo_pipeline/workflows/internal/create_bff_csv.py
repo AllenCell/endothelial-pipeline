@@ -39,11 +39,11 @@ def main():
         # this covers biological entity
         cell_line = dataset_config.cell_lines[0]
         if cell_line == "AICS-126 cl. 41":
-            structure = "Vascular endothelial (VE)-cadherin"
-        if cell_line == "AICS-177 cl. 12":
-            structure = "Vascular endothelial (VE)-cadherin (isogenic control for AICS-177 cl. 26)"
+            structure = "Vascular endothelial (VE)-cadherin (CD144-sorted)"
+        if cell_line == "AICS-126 cl. 41 CD31-sorted":
+            structure = "Vascular endothelial (VE)-cadherin (CD31-sorted)"
         if cell_line == "AICS-177 cl. 26":
-            structure = "Mutant: Vascular endothelial (VE)-cadherin knock down"
+            structure = "Mutant: Vascular endothelial (VE)-cadherin knock down (CD31-sorted)"
 
         # Channel metadata lookup tables
         channel_wavelength = {

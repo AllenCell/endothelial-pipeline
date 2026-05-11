@@ -1,10 +1,8 @@
 name: perturbation
-description: Datasets for perturbation experiments (CDH5 Ex2 deletion) and their controls
+description: Datasets for perturbation experiments (CDH5 Ex3 deletion) and their controls
 datasets:
-- 20250908_20X # CDH5 Ex2 deletion under low shear stress
-- 20251022_20X # isogenic control CD31 sorted under low shear stress
-- 20251029_20X # CDH5 Ex2 deletion under low shear stress
-- 20251105_20X # isogenic control CD31 sorted under low shear stress
-- 20251119_20X # CDH5 Ex2 deletion under low shear stress
-- 20260309_20X # isogenic control CD144 sorted under low shear stress
-- 20260325_20X # CDH5 Ex2 deletion under low shear stress
+- 20250908_20X # CDH5 Ex3 deletion under low shear stress
+- 20251029_20X # CDH5 Ex3 deletion under low shear stress
+- 20251119_20X # CDH5 Ex3 deletion under low shear stress
+- 20260309_20X # CDH5 CD31-sorted under low shear stress
+- 20260325_20X # CDH5 Ex3 deletion under low shear stress

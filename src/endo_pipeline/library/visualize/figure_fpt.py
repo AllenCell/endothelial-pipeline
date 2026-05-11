@@ -40,7 +40,7 @@ def generate_first_passage_time_example(
     minimum_track_length: int = LONG_TRACK_THRESHOLD_LENGTH,
     fixed_point_radius_threshold: float = MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
     min_num_traj_per_bin: int = 10,
-) -> None:
+) -> Path:
 
     if out_dir is None:
         out_dir = get_output_path(__file__)
@@ -241,7 +241,6 @@ def generate_first_passage_time_example(
     # take the first trajectory (by crop index) from each crop pattern in the
     # example bin; record its initial timepoint and feature-space position so
     # we can mark where it enters the bin
-    # example_tracked_crop_index = 36428
     for crop_id_tracked, df in trajectory_df_tracked_one_bin.groupby(Column.CROP_INDEX):
         df = df.sort_values(Column.TIMEPOINT)
         bin_tp_tracked, bin_theta_tracked, bin_r_tracked, bin_rho_tracked = (
@@ -253,7 +252,6 @@ def generate_first_passage_time_example(
         if example_tracked_crop_index is None or crop_id_tracked == example_tracked_crop_index:
             break
 
-    # example_grid_crop_index = 22
     for crop_id_grid, df in trajectory_df_grid_one_bin.groupby(Column.CROP_INDEX):
         df = df.sort_values(Column.TIMEPOINT)
         bin_tp_grid, bin_theta_grid, bin_r_grid, bin_rho_grid = (
@@ -397,7 +395,6 @@ def generate_first_passage_time_example(
     theta_lims = ax.get_xlim()
     r_lims = ax.get_ylim()
     rho_lims = ax.get_zlim()
-    # bin_edges_theta_plot = bin_edges[0]
     # extend theta bins to account for angle wrapping
     bin_edges_theta_plot = np.concatenate((-1 * bin_edges[0][1:], bin_edges[0]))
     bin_edges_r_plot = bin_edges[1]
@@ -440,18 +437,11 @@ def generate_first_passage_time_example(
     ax.set_proj_type("persp", focal_length=0.3)
     ax.view_init(elev=30, azim=-40)
     ax.legend(ncols=3, loc="upper center", bbox_to_anchor=(0.5, 1.10))
-    # vertical_offset = 0.05
-    # horizontal_offset = -0.05
-    # scaling_factor = 0.9
-    # fig.subplots_adjust(
-    #     left=1 - 1 * scaling_factor + horizontal_offset,
-    #     right=1 * scaling_factor + horizontal_offset,
-    #     bottom=1 - 1 * scaling_factor + vertical_offset,
-    #     top=1 * scaling_factor + vertical_offset,
-    # )
     ax_width = 0.7
     ax_height = 0.7
     ax.set_position([(1 - ax_width) / 2, (1 - ax_height) / 2, ax_width, ax_height])
 
     filename = f"{dataset_name}_FPT_fp_{example_fixed_point_index}_mean_3d_scatter"
     save_plot_to_path(fig, out_dir, filename, file_format=".svg")
+
+    return out_dir / f"{filename}.svg"

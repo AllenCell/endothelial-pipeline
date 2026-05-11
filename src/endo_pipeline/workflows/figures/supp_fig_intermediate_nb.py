@@ -68,7 +68,7 @@ panels = [
     FigurePanel(
         letter="A",
         path=save_dir
-        / "polar_theta_ema01_optical_flow_mean_unit_vector_dt1_polar_r_rho_fp_vs_shear_stress.svg",
+        / "nematic_order_ema01_optical_flow_mean_unit_vector_dt1_polar_r_rho_fp_vs_shear_stress.svg",
         x_position=0,
         y_position=0,
         x_offset=0,

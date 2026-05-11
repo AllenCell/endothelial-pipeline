@@ -34,25 +34,25 @@ def main():
     create_panel_biological_system_examples(
         examples=FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES,
         save_dir=save_dir,
-        figure_size=(2.4, 3.5),
+        figure_size=(3.9, 2.7),
     )
 
     # Patch featurization example
     create_panel_patch_featurization(
         example=FIGURE_1_PATCH_FT_EXAMPLE_IMAGE,
         save_dir=save_dir,
-        figure_size=(MAX_FIGURE_WIDTH - 2.5, 0.9),
+        figure_size=(2.0, 1.8),
     )
 
     # Correlation heatmaps of ml learned and measured features
     visualize_feature_correlations(
-        figsize_heatmap=(MAX_FIGURE_WIDTH - 2.5, 2.5),
-        y_axis_label_coords=(-0.1, 0.2),
+        figsize_heatmap=(2.5, 3.0),
+        y_axis_label_coords=None,
         label_fontsize=FONTSIZE_SMALL,
     )
 
     # Latent walk visualization
-    visualize_latent_walk(figsize=(MAX_FIGURE_WIDTH, 2.8))
+    visualize_latent_walk(figsize=(4, 1.8))
 
     # Build figure from panels
     save_dir2 = get_output_path(
@@ -70,7 +70,7 @@ def main():
             path=save_dir / "intro_schematic.svg",
             x_position=0,
             y_position=0,
-            x_offset=-0.08,
+            x_offset=0.1,
             y_offset=0,
         ),
         FigurePanel(
@@ -84,25 +84,25 @@ def main():
         FigurePanel(
             letter="C",
             path=save_dir / "patch_based_featurization_scale_bar_10um.svg",
-            x_position=2.5,
+            x_position=4.0,
             y_position=1.62,
             x_offset=0.08,
-            y_offset=0.2,
+            y_offset=0.25,
         ),
         FigurePanel(
             letter="D",
-            path=save_dir2 / "correlation_measured_features_vs_ml-based_features_heatmap.svg",
-            x_position=2.5,
-            y_position=2.75,
-            x_offset=0.08,
-            y_offset=0.08,
+            path=save_dir3 / "latent_walk_along_polar_theta_polar_r_rho_scale_bar_10um.svg",
+            x_position=0,
+            y_position=4.5,
+            x_offset=0,
+            y_offset=0.2,
         ),
         FigurePanel(
             letter="E",
-            path=save_dir3 / "latent_walk_along_polar_theta_polar_r_rho_scale_bar_10um.svg",
-            x_position=0,
-            y_position=5.2,
-            x_offset=0,
+            path=save_dir2 / "correlation_ml_based_features_vs_measured_features_heatmap.svg",
+            x_position=4,
+            y_position=3.75,
+            x_offset=-0.08,
             y_offset=0,
         ),
     ]

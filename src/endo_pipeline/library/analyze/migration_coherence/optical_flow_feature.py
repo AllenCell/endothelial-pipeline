@@ -3,7 +3,6 @@ import logging
 import numpy as np
 import pandas as pd
 
-from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.optical_flow import build_optical_flow_feature_cols
@@ -21,7 +20,7 @@ logger = logging.getLogger(__name__)
 def add_optical_flow_features(
     df: pd.DataFrame,
     datasets: list[str] | None = None,
-    optical_flow_manifest_name: str = DEFAULT_OPTICAL_FLOW_MANIFEST_NAME,
+    optical_flow_manifest_name: str = f"{DEFAULT_OPTICAL_FLOW_MANIFEST_NAME}_grid",
     optical_flow_feature_columns: list[ColumnName.OpticalFlow] | None = None,
     merge_columns: list[str | ColumnName.DiffAEData] | None = None,
 ) -> pd.DataFrame:
@@ -203,31 +202,4 @@ def add_binned_mean_to_fixed_points(
     if compute_ci:
         result[f"{mean_col}_{ColumnName.BootstrapAnalysis.CI_LOWER}"] = ci_lows
         result[f"{mean_col}_{ColumnName.BootstrapAnalysis.CI_UPPER}"] = ci_highs
-    return result
-
-
-def add_shear_stress_to_df(df: pd.DataFrame) -> pd.DataFrame:
-    """Add a ``shear_stress`` column to *df* based on each row's dataset config.
-
-    For each unique dataset in the ``dataset`` column, the corresponding
-    :class:`DatasetConfig` is loaded and the shear-stress values from its
-    flow conditions are joined into a label string (e.g. ``"12"`` or
-    ``"0-12"``).
-
-    Parameters
-    ----------
-    df
-        Dataframe with a ``dataset`` column.
-
-    Returns
-    -------
-    :
-        A copy of *df* with an added ``shear_stress`` column.
-    """
-    result = df.copy()
-    for dataset_name in result[ColumnName.DATASET].unique():
-        dataset_config = load_dataset_config(dataset_name)
-        shear_stress_values = [fc.shear_stress for fc in dataset_config.flow_conditions]
-        shear_stress_label = "-".join(f"{v:g}" for v in shear_stress_values)
-        result.loc[result[ColumnName.DATASET] == dataset_name, "shear_stress"] = shear_stress_label
     return result

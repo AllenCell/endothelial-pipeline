@@ -60,7 +60,7 @@ license = { text = "AISL" }
 
 [project.optional-dependencies]
 internal = [
-    "aicsfiles>=8.1.1",
+    "aicsfiles==8.1.1",
     "s3-tools",
 ]
 ml_workflows = [
@@ -104,8 +104,7 @@ types = [
 ]
 
 [project.scripts]
-endopipe = "endo_pipeline.__main__:pipeline_cli"
-endopipe2 = "endo_pipeline.cli:pipeline_cli"
+endopipe = "endo_pipeline.cli:pipeline_cli"
 
 [build-system]
 requires = ["uv_build>=0.8.12,<0.9.0"]
@@ -116,13 +115,13 @@ default-groups = ["dev", "lint", "test", "docs", "types"]
 cache-dir = ".cache/uv"
 
 [tool.uv.sources]
-aicsfiles = { index = "artifactory" }
+aicsfiles = { index = "codeartifact" }
 colorizer-data = { git = "https://github.com/allen-cell-animated/colorizer-data.git", rev = "v1.6.3" }
 s3-tools = { git = "https://github.com/aics-int/aws-s3-upload-tools", rev = "v0.2.1" }
 
 [[tool.uv.index]]
-name = "artifactory"
-url = "https://artifactory.corp.alleninstitute.org/artifactory/api/pypi/pypi-virtual/simple"
+name = "codeartifact"
+url = "https://production-pypi-proxy.int.allencell.org/simple"
 explicit = true
 
 [tool.black]

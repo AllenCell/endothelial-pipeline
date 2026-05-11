@@ -3,15 +3,12 @@
 import logging
 from typing import Literal
 
-from endo_pipeline.cli import tags
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_QC_MANIFEST_NAMES,
     DEFAULT_MODEL_QC_RUN_NAMES,
     MODEL_QC_NOISE_LEVELS,
     RANDOM_SEED,
 )
-
-TAGS = ["diffae", tags.TEST_READY, tags.GPU]
 
 
 def main(
@@ -28,6 +25,8 @@ def main(
 ) -> None:
     r"""
     Run quality check assessment for trained Diffusion Autoencoder models.
+
+    #diffae #test-ready #gpu
 
     This workflow combines:
 
@@ -114,12 +113,14 @@ def main(
     """
     from endo_pipeline.cli import DEMO_MODE, NUM_GPUS
     from endo_pipeline.library.model.model_qc import (
+        ModelKey,
         aggregate_seed_metrics,
         build_models_data,
         compute_baseline_data,
         create_comparison_plots_and_summary,
         evaluate_single_model,
     )
+    from endo_pipeline.manifests import get_most_recent_run_name, load_model_manifest
     from endo_pipeline.settings.examples import (
         MODEL_QC_EXAMPLES_REP_2_POSITIONS,
         MODEL_QC_EXAMPLES_TRAINING_POSITIONS,
@@ -200,24 +201,37 @@ def main(
     logger.info(f"Evaluating with {len(seeds_to_evaluate)} seed(s): {seeds_to_evaluate}")
     logger.info(f"Default seed for saving crops/plots: {random_seed}")
 
+    # Eagerly resolve any None run names to the most-recent run, so each
+    # model has a stable ``ModelKey``.  This is the single source of truth
+    # used for dict keys, output paths, and plot labels.
+    model_keys: list[ModelKey] = []
+    for manifest_name, run_name_input in zip(model_manifest_names, run_names, strict=True):
+        if run_name_input is None:
+            resolved_run_name = get_most_recent_run_name(load_model_manifest(manifest_name))
+        else:
+            resolved_run_name = run_name_input
+        model_keys.append(ModelKey(manifest_name, resolved_run_name))
+
+    # Reject duplicate (manifest, run) pairs: they would collide on output
+    # paths and collapse silently in downstream dict-keyed structures.
+    duplicates = [key for key in model_keys if model_keys.count(key) > 1]
+    if duplicates:
+        raise ValueError(
+            f"Duplicate (manifest_name, run_name) entries are not allowed: "
+            f"{sorted(set(duplicates))}"
+        )
+
     # Storage for all results across seeds
-    # Structure: {model_idx: {seed: {example_set_label: [per-example metrics]}}}
-    all_seed_results: dict[int, dict[int, dict[str, list[dict]]]] = {}
+    # Structure: {ModelKey: {seed: {example_set_label: [per-example metrics]}}}
+    all_seed_results: dict[ModelKey, dict[int, dict[str, list[dict]]]] = {}
 
     logger.info("Running model evaluations...")
-    # Setting up strict to be True is another safety net that ensures
-    # length of run names is the same as length of the model manifest
-    # names if provided
-    for model_idx, (manifest_name, run_name_input) in enumerate(
-        zip(model_manifest_names, run_names, strict=True)
-    ):
-        all_seed_results[model_idx] = {}
+    for model_key in model_keys:
+        all_seed_results[model_key] = {}
         for seed in seeds_to_evaluate:
             is_default = seed == random_seed
             result = evaluate_single_model(
-                model_idx=model_idx,
-                manifest_name=manifest_name,
-                run_name_input=run_name_input,
+                model_key=model_key,
                 random_seed=seed,
                 example_sets_all=example_sets_all,
                 example_sets_for_metrics=example_sets_for_metrics,
@@ -230,26 +244,23 @@ def main(
                 is_default_seed=is_default,
                 num_gpus=NUM_GPUS,
             )
-            all_seed_results[model_idx][seed] = result
+            all_seed_results[model_key][seed] = result
 
     # Aggregate metrics and create plots / summary
     if compute_metrics:
         logger.info("Aggregating metrics across seeds...")
 
         all_metrics, _ = aggregate_seed_metrics(
-            all_seed_results, model_manifest_names, example_sets_for_metrics, seeds_to_evaluate
+            all_seed_results, model_keys, example_sets_for_metrics, seeds_to_evaluate
         )
         baseline_data = compute_baseline_data(all_metrics, compute_baseline)
-        models_data = build_models_data(
-            all_metrics, model_manifest_names, baseline_data, compute_baseline
-        )
+        models_data = build_models_data(all_metrics, model_keys, baseline_data, compute_baseline)
 
         if is_comparison_mode:
             logger.info("Creating comparison plots across models...")
         create_comparison_plots_and_summary(
             models_data,
-            model_manifest_names,
-            run_names,
+            model_keys,
             seeds_to_evaluate,
             baseline_data,
             compute_baseline,

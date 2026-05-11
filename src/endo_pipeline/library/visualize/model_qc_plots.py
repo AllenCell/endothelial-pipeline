@@ -11,7 +11,7 @@ from matplotlib.gridspec import GridSpec
 
 from endo_pipeline.io.output import save_plot_to_path
 from endo_pipeline.library.visualize.figure_utils import make_contact_sheet
-from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_MEDIUM, FONTSIZE_SMALL
+from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_MEDIUM
 from endo_pipeline.settings.plot_defaults import (
     MODEL_QC_FIG_KWARGS,
     MODEL_QC_GRIDSPEC_KWARGS,
@@ -158,6 +158,7 @@ def create_summary_contact_sheet(
         subplot_kwargs=MODEL_QC_SUBPLOT_KWARGS,
         gridspec_kwargs=MODEL_QC_GRIDSPEC_KWARGS,
         fig_kwargs={"figsize": (num_cols * 1.5, num_examples * 1.5)},
+        use_constrained_layout=True,
     )
 
     return fig
@@ -170,7 +171,6 @@ def create_comparison_bar_plot(
     title: str,
     output_path: Path,
     filename: str,
-    legend_text: str,
     model_labels: list[str] | None = None,
     ylim: tuple[float, float] | None = None,
     show_baseline: bool = False,
@@ -192,8 +192,6 @@ def create_comparison_bar_plot(
         Path to save the plot.
     filename
         Filename for the saved plot.
-    legend_text
-        Text for the model details legend box.
     model_labels
         List of labels for each model on the x-axis. If None, uses generic
         "Model 1", "Model 2", etc. labels.
@@ -284,17 +282,6 @@ def create_comparison_bar_plot(
         framealpha=0.9,
     )
 
-    # Model details text box on the right, vertically centered with the axes
-    ax.text(
-        1.04,
-        0.4,
-        legend_text,
-        transform=ax.transAxes,
-        fontsize=FONTSIZE_SMALL - 2,
-        verticalalignment="top",
-        horizontalalignment="left",
-        bbox=METRIC_TEXT_BOX_PROPS,
-    )
     save_plot_to_path(fig, output_path, filename)
     plt.close(fig)
 

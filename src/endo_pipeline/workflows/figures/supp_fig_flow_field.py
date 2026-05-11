@@ -6,36 +6,46 @@ def main() -> None:
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
     from endo_pipeline.library.visualize.flow_field_schematic import (
+        make_autocorrelation_panel,
         make_kernel_convolution_schematic,
         make_real_image_panel,
     )
-    from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
 
     plt.style.use("endo_pipeline.figure")
 
-    output_path = get_output_path("supp_fig_flow_field")
+    output_path = get_output_path(__file__)
 
     image_panel_path = make_real_image_panel(output_path)
+
+    acf_panel_path = make_autocorrelation_panel(output_path)
 
     kernel_convolution_panel_path = make_kernel_convolution_schematic(output_path)
 
     panels = [
-        # --- Low flow dataset (row 1) ---
         FigurePanel(
             letter="A",
             path=image_panel_path,
             x_position=0.0,
             y_position=0.0,
-            x_offset=0.25,
-            y_offset=0.05,
+            x_offset=0.225,
+            y_offset=0.1,
         ),
         FigurePanel(
             letter="B",
+            path=acf_panel_path,
+            x_position=2.7,
+            y_position=0.0,
+            x_offset=0.0,
+            y_offset=0.05,
+        ),
+        FigurePanel(
+            letter="C",
             path=kernel_convolution_panel_path,
             x_position=0.0,
-            y_position=2.75,
-            x_offset=0.075,
-            y_offset=0.15,
+            y_position=2.0,
+            x_offset=0.175,
+            y_offset=0.55,
         ),
     ]
 
@@ -44,7 +54,7 @@ def main() -> None:
         panels,
         output_path / "supp_fig_flow_field.svg",
         width=MAX_FIGURE_WIDTH,
-        height=MAX_FIGURE_HEIGHT,
+        height=4.3,
     )
 
 

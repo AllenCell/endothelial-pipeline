@@ -37,23 +37,11 @@ SUMMARY_PLOT_DATASETS: dict[str, list[str]] = {
         "20250618_20X",  # 6 dyn / cm2
         "20250402_20X",  # 6 dyn / cm2
         "20250409_20X",  # 6 dyn / cm2
-        "20251105_20X",  # isogenic control CD31 sorted under low shear stress
-        "20260309_20X",  # isogenic control CD144 sorted under low shear stress
-        "20251029_20X",  # CDH5 Ex2 deletion under low shear stress
-        "20251119_20X",  # CDH5 Ex2 deletion under low shear stress
-        "20260325_20X",  # CDH5 Ex2 deletion under low shear stress
-    ],
-    "perturbation_supp": [
-        "20250618_20X",  # 6 dyn / cm2
-        "20250402_20X",  # 6 dyn / cm2
-        "20250409_20X",  # 6 dyn / cm2
-        "20251022_20X",  # isogenic control CD31 sorted under low shear stress, exclude from main figure
-        "20251105_20X",  # isogenic control CD31 sorted under low shear stress
-        "20260309_20X",  # isogenic control CD144 sorted under low shear stress
-        "20250908_20X",  # CDH5 Ex2 deletion under low shear stress, exclude from main figure
-        "20251029_20X",  # CDH5 Ex2 deletion under low shear stress
-        "20251119_20X",  # CDH5 Ex2 deletion under low shear stress
-        "20260325_20X",  # CDH5 Ex2 deletion under low shear stress
+        "20260309_20X",  # CDH5 CD31-sorted under low shear stress
+        "20250908_20X",  # CDH5 Ex3 deletion under low shear stress, not migratory
+        "20251029_20X",  # CDH5 Ex3 deletion under low shear stress
+        "20251119_20X",  # CDH5 Ex3 deletion under low shear stress
+        "20260325_20X",  # CDH5 Ex3 deletion under low shear stress
     ],
     "flow_switch_low": [
         "20250618_20X",  # 6 dyn / cm2
@@ -73,9 +61,8 @@ SUMMARY_PLOT_DATASETS: dict[str, list[str]] = {
 
 CELL_LINE_LABEL_MAP = {
     "AICS-126 cl. 41": "Parental",
-    "AICS-177 cl. 12": "Control",
-    "AICS-177 cl. 41": "Control",
-    "AICS-177 cl. 26": "Ex2Del",
+    "AICS-126 cl. 41 CD31-sorted": "Control",
+    "AICS-177 cl. 26": "Ex3Del",
 }
 
 COLOR_PALETTE = [
