@@ -5,9 +5,9 @@ import numpy as np
 from bioio import BioImage
 from cellpose import core, models
 
-from endo_pipeline.io import load_image_from_path
+from endo_pipeline.io import load_image
 from endo_pipeline.library.process.general_image_preprocessing import save_image_output
-from endo_pipeline.manifests import get_model_location_for_run, load_model_manifest
+from endo_pipeline.manifests import ImageLocation, get_model_location_for_run, load_model_manifest
 from endo_pipeline.settings import DIMENSION_ORDER
 
 device_used_printed_global = False
@@ -41,12 +41,8 @@ def generate_labelfree_nuclei_predictions(args: dict) -> None:
         return
 
     else:
-        img_arr = load_image_from_path(
-            path=img_path,
-            channels=["BF"],
-            timepoints=tp,
-            level=0,
-        )
+        location = ImageLocation(path=img_path)
+        img_arr = load_image(location, channels=["BF"], timepoints=tp, level=0)
         voxel_size = BioImage(img_path).physical_pixel_sizes
 
         # Load the retrained CellPose label-free nuclear prediction model
