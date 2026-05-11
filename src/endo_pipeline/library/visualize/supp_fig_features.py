@@ -434,7 +434,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
 
     for i, dataset in enumerate([dataset_low, dataset_high]):
         dataset_config = load_dataset_config(dataset)
-        frames_before_imaging = dataset_config.flow_conditions[0].start
+        frames_before_imaging = abs(dataset_config.flow_conditions[0].start)
         shear_stress = np.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
         shear_stress_label = f"{shear_stress} dyn/cm{Unicode.SQUARED}"
 
@@ -446,7 +446,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         )
         # shift so that time = 0 corresponds to the start of flow, and convert
         # from frames to hours
-        start_steady_state_timepoint -= frames_before_imaging
+        start_steady_state_timepoint += frames_before_imaging
         start_steady_state_timepoint_hrs = start_steady_state_timepoint * time_conversion_factor
 
         df_ = load_dataframe(
@@ -454,7 +454,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         )
         df: pd.DataFrame = df_[columns_to_compute].compute()
         # shift timepoints so that time = 0 corresponds to the start of flow
-        df[Column.TIMEPOINT] = df[Column.TIMEPOINT] - frames_before_imaging
+        df[Column.TIMEPOINT] = df[Column.TIMEPOINT] + frames_before_imaging
 
         time_bins = get_bins(bin_widths=(12,), data=df[Column.TIMEPOINT].to_numpy())[0][0]
         time_bins = time_bins * time_conversion_factor
@@ -482,7 +482,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
             # draw dashed line at start of imaging (time =
             # -frames_before_imaging)
             ax_ij.axvline(
-                x=-frames_before_imaging * time_conversion_factor,
+                x=frames_before_imaging * time_conversion_factor,
                 color=start_imaging_line_color,
                 linestyle="--",
                 linewidth=1.5,
