@@ -12,20 +12,17 @@ logger = logging.getLogger(__name__)
 
 def download_s3_file_to_path(s3uri: str) -> Path:
     """
-    Get local path to config file from given MLFlow run ID.
-
-    This method requires the workflow to be run on the AICS intranet and have
-    the optional dependency `mlflow` installed.
+    Download S3 file to path given S3 object URI.
 
     Parameters
     ----------
-    mlflowid
-        MLFlow run ID.
+    s3uri
+        S3 object URI.
 
     Returns
     -------
     :
-        Local path to config file.
+        Local path to downloaded file.
     """
 
     bucket, _, key = s3uri[5:].partition("/")

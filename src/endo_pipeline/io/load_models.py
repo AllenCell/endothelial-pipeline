@@ -104,9 +104,6 @@ def load_model_from_s3(
     - single object URI is assumed to be a Cellpose model
     - tuple of object URI (checkpoint and config) is assumed to be a CytoDL model
 
-    This method requires the workflow to be run on the AICS intranet and have
-    the optional dependency `aicsfiles` installed.
-
     Parameters
     ----------
     s3uri
@@ -164,13 +161,13 @@ def load_model_from_mlflow(
     return load_cytodl_model_from_path(checkpoint_path, config_path, instantiate=instantiate)
 
 
-def load_cellpose_model_from_path(path: Path) -> "CellposeModel":
+def load_cellpose_model_from_path(checkpoint_path: Path) -> "CellposeModel":
     """
     Load Cellpose model from path.
 
     Parameters
     ----------
-    path
+    checkpoint_path
         Path to model checkpoint file.
 
     Returns
@@ -181,10 +178,10 @@ def load_cellpose_model_from_path(path: Path) -> "CellposeModel":
 
     from cellpose import models
 
-    if not path.exists():
-        raise ValueError(f"Checkpoint path '{path}' does not exist")
+    if not checkpoint_path.exists():
+        raise ValueError(f"Checkpoint path '{checkpoint_path}' does not exist")
 
-    return models.CellposeModel(gpu=True, pretrained_model=path.as_posix())
+    return models.CellposeModel(gpu=True, pretrained_model=checkpoint_path.as_posix())
 
 
 def load_cytodl_model_from_path(
