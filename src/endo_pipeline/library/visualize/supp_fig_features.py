@@ -446,7 +446,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         # shift so that time = 0 corresponds to the start of flow, and convert
         # from frames to hours
         start_steady_state_timepoint += frames_before_imaging
-        start_steady_state_timepoint = start_steady_state_timepoint * time_conversion_factor
+        start_steady_state_timepoint_hrs = start_steady_state_timepoint * time_conversion_factor
 
         df_ = load_dataframe(
             get_dataframe_location_for_dataset(dataframe_manifest, dataset), delay=True
@@ -491,7 +491,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
 
             # draw dashed line at start of steady state
             ax_ij.axvline(
-                x=start_steady_state_timepoint,
+                x=start_steady_state_timepoint_hrs,
                 color=steady_state_line_color,
                 linestyle="--",
                 linewidth=1.5,
