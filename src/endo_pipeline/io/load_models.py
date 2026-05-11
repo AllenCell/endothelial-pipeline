@@ -1,6 +1,7 @@
 """Methods for loading models."""
 
 import logging
+from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -248,7 +249,9 @@ def load_model(
         Loaded model.
     """
 
-    preferred_loader_order = [
+    preferred_loader_order: list[
+        tuple[str | Path | tuple[str, str] | tuple[Path, Path] | None, Callable]
+    ] = [
         (location.fmsid, load_model_from_fms),
         (location.mlflowid, load_model_from_mlflow),
         (location.path, load_model_from_path),
