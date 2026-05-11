@@ -469,8 +469,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     # Optical flow features ====================================================
     # Only optical-flow columns that are actually rendered by a plotting or TFE
     # consumer are listed here.  Every key is a `Column.OpticalFlow.*` enum
-    # member; entries are grouped by base feature.  See
-    # `workflows/testing/print_column_metadata.py` for an interactive dump.
+    # member; entries are grouped by base feature.
     Column.OpticalFlow.UNIT_VECTOR_MEAN_RAW: ColumnMetadata(
         name="Coherent migration (optical flow mean unit vector)",
         min=0,
