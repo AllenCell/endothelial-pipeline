@@ -397,7 +397,7 @@ def _make_feature_pair_histogram_panel(
     shared_y_axis: bool = True,
     histogram_vmin: float = 0.0,
     histogram_vmax: float = 0.7,
-    figsize: tuple[float, float] = (3.0, 2.5),
+    figsize: tuple[float, float] = (2.9, 2.45),
 ) -> tuple[plt.Figure, np.ndarray]:
     """
     Build a 2x2 grid of 2-D histograms (time x feature) for two datasets and
@@ -455,9 +455,7 @@ def _make_feature_pair_histogram_panel(
     axes_xticks = [0, 12, 24, 36, 48]
     axes_xtick_labels = [f"{x}" for x in axes_xticks]
 
-    fig, ax = plt.subplots(
-        2, 2, figsize=(2.9, 2.45), layout="constrained", gridspec_kw={"hspace": 0.1}
-    )
+    fig, ax = plt.subplots(2, 2, figsize=figsize, layout="constrained", gridspec_kw={"hspace": 0.1})
 
     layout_engine = fig.get_layout_engine()
     if layout_engine is not None:
