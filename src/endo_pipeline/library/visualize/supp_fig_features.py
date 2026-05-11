@@ -406,7 +406,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
     start_imaging_line_color = "limegreen"
     steady_state_line_color = "darkturquoise"
 
-    axes_xlim = (0, 48)  # in hours, after converting from frames
+    axes_xlim = (0, 50)  # in hours, after converting from frames
     axes_xticks = [0, 12, 24, 36, 48]
     axes_xtick_labels = [f"{x}" for x in axes_xticks]
     axes_ylim = (0, np.pi)
@@ -414,7 +414,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
     axes_ytick_labels = [f"0={Unicode.PI}", f"{Unicode.PI}/2", f"{Unicode.PI}=0"]
 
     fig, ax = plt.subplots(
-        2, 2, figsize=(3.0, 2.5), layout="constrained", gridspec_kw={"hspace": 0.15}
+        2, 2, figsize=(2.9, 2.45), layout="constrained", gridspec_kw={"hspace": 0.1}
     )
 
     layout_engine = fig.get_layout_engine()
