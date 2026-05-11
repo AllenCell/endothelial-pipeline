@@ -3,9 +3,9 @@ from pathlib import Path
 
 import numpy as np
 from bioio import BioImage
-from cellpose import core, models
+from cellpose import core
 
-from endo_pipeline.io import load_image
+from endo_pipeline.io import load_image, load_model
 from endo_pipeline.library.process.general_image_preprocessing import save_image_output
 from endo_pipeline.manifests import ImageLocation, get_model_location_for_run, load_model_manifest
 from endo_pipeline.settings import DIMENSION_ORDER
@@ -56,8 +56,7 @@ def generate_labelfree_nuclei_predictions(args: dict) -> None:
             logger.info(f" - using device: {'GPU' if gpu else 'CPU'}")
             device_used_printed_global = True
 
-        model_path = model_location.path.as_posix()  # type: ignore[union-attr]
-        model_bf_stdproject = models.CellposeModel(gpu=gpu, pretrained_model=model_path)
+        model_bf_stdproject = load_model(model_location)
 
         # Calculate the brightfield standard deviation projection
         bf_std_dask_arr = img_arr.std(axis=DIMENSION_ORDER.index("Z"), keepdims=True)
