@@ -1,9 +1,5 @@
 from typing import Any
 
-from endo_pipeline.cli import tags
-
-TAGS = [tags.TEST_READY, tags.GPU]
-
 
 def main(
     n_proc: int = 1,
@@ -12,6 +8,8 @@ def main(
     """
     Run the workflow to retrain a Cellpose model to predict nuclei from brightfield standard
     deviation projections.
+
+    #test-ready #gpu
 
     To enter a list of datasets to analyze, use the following format:
 

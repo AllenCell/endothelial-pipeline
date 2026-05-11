@@ -1,9 +1,8 @@
-TAGS = ["diffae", "model_training"]
-
-
 def main(model_manifest_name: str, run_name: str | None = None) -> None:
     """
     Train a DiffAE model using the provided configuration.
+
+    #diffae #model-training
 
     **Workflow output**
 

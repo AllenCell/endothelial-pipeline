@@ -3,15 +3,12 @@
 import logging
 from typing import Literal
 
-from endo_pipeline.cli import tags
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_QC_MANIFEST_NAMES,
     DEFAULT_MODEL_QC_RUN_NAMES,
     MODEL_QC_NOISE_LEVELS,
     RANDOM_SEED,
 )
-
-TAGS = ["diffae", tags.TEST_READY, tags.GPU]
 
 
 def main(
@@ -28,6 +25,8 @@ def main(
 ) -> None:
     r"""
     Run quality check assessment for trained Diffusion Autoencoder models.
+
+    #diffae #test-ready #gpu
 
     This workflow combines:
 
