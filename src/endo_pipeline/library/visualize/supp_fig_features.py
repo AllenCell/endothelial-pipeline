@@ -659,7 +659,7 @@ def make_r_aspect_ratio_histogram_panel(output_path: Path) -> Path:
 
     # datasets have different natural ranges for r and aspect ratio, so set
     # y-limits per dataset row rather than per feature column;
-    r_ylim = (0.0, 2.8)
+    r_ylim = (0.0, 2.5)
     aspect_ratio_ylim = (1.0, 7.25)
     # Reconcile y-limits per feature column so that both dataset rows (low-flow
     # and high-flow) share the same scale for that feature.
