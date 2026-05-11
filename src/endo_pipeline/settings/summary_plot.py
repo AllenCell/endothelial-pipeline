@@ -43,20 +43,6 @@ SUMMARY_PLOT_DATASETS: dict[str, list[str]] = {
         "20251119_20X",  # CDH5 Ex3 deletion under low shear stress
         "20260325_20X",  # CDH5 Ex3 deletion under low shear stress
     ],
-    "flow_switch_low": [
-        "20250618_20X",  # 6 dyn / cm2
-        "20250402_20X",  # 6 dyn / cm2
-        "20250409_20X",  # 6 dyn / cm2
-        "20260316_20X",  # 21 to 6 dyn / cm2
-        "20260318_20X",  # 20 to 6 dyn / cm2
-        "20260323_20X",  # 20 to 6 dyn / cm2
-    ],
-    "flow_switch_high": [
-        "20250611_20X",  # 20 dyn / cm2
-        "20251001_20X",  # 20 dyn / cm2
-        "20250224_20X",  # 6 to 22 dyn / cm2
-        "20250714_20X",  # 6 to 20 dyn / cm2
-    ],
 }
 
 CELL_LINE_LABEL_MAP = {
