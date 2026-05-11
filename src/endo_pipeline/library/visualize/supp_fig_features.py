@@ -545,7 +545,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         labels,
         fontsize="xx-small",
         loc="upper center",
-        bbox_to_anchor=(0.53, 0.995),
+        bbox_to_anchor=(0.53, 1.0),
         ncol=2,
         handletextpad=0.3,
         borderpad=0.3,
