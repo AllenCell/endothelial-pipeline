@@ -17,7 +17,6 @@ def main(datasets: Datasets | None | Literal["figure"] = "figure") -> None:
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
     from endo_pipeline.library.visualize.lib_cdh5_seg_feats_fig_panels import (
-        MAX_FIGURE_WIDTH,
         make_classic_feature_panels,
         make_feature_contact_sheet,
         make_imaging_panels,
@@ -27,6 +26,7 @@ def main(datasets: Datasets | None | Literal["figure"] = "figure") -> None:
         CDH5_SEG_FIG_CLASSIC_FEAT_EXAMPLES,
         CDH5_SEG_FIG_EXAMPLE,
     )
+    from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
     from endo_pipeline.settings.workflow_defaults import DEFAULT_SEG_FEATURE_WORKFLOW_DATASETS
 
     if datasets is None:
