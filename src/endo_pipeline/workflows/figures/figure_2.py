@@ -1,6 +1,5 @@
 def main() -> None:
     """Compile panels for Figure 2."""
-    import math
     from pathlib import Path
 
     import matplotlib.pyplot as plt
@@ -121,7 +120,7 @@ def main() -> None:
     ]:
         fig_savedir = get_output_path("figure_2", dataset_name)
         dataset_config = load_dataset_config(dataset_name)
-        shear_stress = math.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
+        shear_stress = dataset_config.flow_conditions[-1].shear_stress_bin
         shear_stress_label = f"{shear_stress} dyn/cm{Unicode.SQUARED}"
 
         # load fixed points dataframes (if available) for both (r, rho) and theta,
