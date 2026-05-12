@@ -23,6 +23,10 @@ def set_axes_properties(
     yticks: list[float] | None = None,
     xtick_kwargs: dict | None = None,
     ytick_kwargs: dict | None = None,
+    xtick_labels: list[str] | None = None,
+    ytick_labels: list[str] | None = None,
+    xtick_label_kwargs: dict | None = None,
+    ytick_label_kwargs: dict | None = None,
     xlabel: str | None = None,
     ylabel: str | None = None,
     xlabel_kwargs: dict | None = None,
@@ -78,6 +82,10 @@ def set_axes_properties(
         axes.set_xticks(xticks, **(xtick_kwargs or {}))
     if yticks is not None:
         axes.set_yticks(yticks, **(ytick_kwargs or {}))
+    if xtick_labels is not None:
+        axes.set_xticklabels(xtick_labels, **(xtick_label_kwargs or {}))
+    if ytick_labels is not None:
+        axes.set_yticklabels(ytick_labels, **(ytick_label_kwargs or {}))
     if xlabel is not None:
         axes.set_xlabel(xlabel, **(xlabel_kwargs or {}))
     if ylabel is not None:
