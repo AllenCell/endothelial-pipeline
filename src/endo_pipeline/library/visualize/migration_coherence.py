@@ -1,6 +1,8 @@
 """Methods for visualizing migration coherence metrics and their relationships to morphology dynamics."""
 
 import logging
+from itertools import combinations
+from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
@@ -11,15 +13,38 @@ from matplotlib.patches import Rectangle
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.stats import binned_statistic_2d, binned_statistic_dd
 
+from endo_pipeline.configs.dataset_config import TimepointAnnotation
+from endo_pipeline.configs.dataset_config_io import load_dataset_config
+from endo_pipeline.io.input import load_dataframe
+from endo_pipeline.io.output import save_plot_to_path
+from endo_pipeline.library.analyze.dataframe_filtering import (
+    filter_dataframe_by_annotations,
+    filter_dataframe_to_flow_condition_by_timepoint,
+)
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
+from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
+    add_optical_flow_features,
+)
+from endo_pipeline.library.analyze.numerics.fixed_points import (
+    load_fixed_points_dataframe_for_dataset,
+)
+from endo_pipeline.library.visualize.columns import get_label_for_column
+from endo_pipeline.manifests.dataframe_manifest_io import load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_XSMALL
+from endo_pipeline.settings.dynamics_workflows import (
+    DYNAMICS_COLUMN_NAMES,
+    METADATA_COLUMNS_TO_KEEP,
+)
+from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL, FONTSIZE_XSMALL
 from endo_pipeline.settings.migration_coherence import (
     MIGRATION_COHERENCE_COLORMAP,
     MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
 )
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, StabilityLegendHandle
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
+from endo_pipeline.settings.workflow_defaults import (
+    DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -163,6 +188,7 @@ def plot_3d_scatter_or_binned(
     cmap: str = MIGRATION_COHERENCE_COLORMAP,
     vmin: float = 0,
     vmax: float = 1,
+    figsize: tuple[float, float] = (8, 8),
 ) -> tuple[plt.Figure, Axes3D]:
     """Plot a 3D scatter or 3D binned heatmap with optional fixed-point overlay.
 
@@ -205,7 +231,12 @@ def plot_3d_scatter_or_binned(
     x_bin_size, y_bin_size, z_bin_size = bin_size_xyz
 
     ax: Axes3D
-    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={"projection": "3d"})
+    fig = plt.figure(figsize=figsize)
+    gs = fig.add_gridspec(
+        nrows=1, ncols=3, width_ratios=[15, 3, 1], left=0.0, right=0.8, wspace=0.1
+    )
+    ax = fig.add_subplot(gs[0, 0], projection="3d")
+    cax = fig.add_subplot(gs[0, 2])
     ax.computed_zorder = False
 
     if not binned:
@@ -215,13 +246,15 @@ def plot_3d_scatter_or_binned(
             zs=z,
             c=c,
             cmap=cmap,
-            s=5,
+            s=2,
+            lw=0,
+            marker=".",
             vmin=vmin,
             vmax=vmax,
             alpha=0.6,
             zorder=1,
         )
-        cbar_label = color_col
+        cbar_label = get_label_for_column(color_col).replace("\n", " ")
     else:
         # Bin the data in 3D and compute the mean of c per bin
         x_bins = np.arange(x.min(), x.max() + x_bin_size, x_bin_size)
@@ -266,7 +299,7 @@ def plot_3d_scatter_or_binned(
             mk = FIXED_POINT_PLOT_STYLE[stability].marker
             clr = FIXED_POINT_PLOT_STYLE[stability].color
             theta, r, rho = row[x_col], row[y_col], row[z_col]
-            mean_val = row.get(f"mean_{color_col}", float("nan"))
+            # mean_val = row.get(f"mean_{color_col}", float("nan"))
             ax.scatter(
                 xs=[theta],
                 ys=[r],
@@ -274,33 +307,33 @@ def plot_3d_scatter_or_binned(
                 marker=mk,
                 color=clr,
                 edgecolor="black",
-                linewidths=1.5,
-                s=200,
+                linewidths=0.5,
+                s=10,
                 depthshade=False,
                 zorder=10,
             )
-            label = f"{stability} ({theta:.2f}, {r:.2f}, {rho:.2f}, {mean_val:.2f})"
+            label = f"{stability} fixed point ({theta:.2f}, {r:.2f}, {rho:.2f})"
             legend_handles.append(
                 StabilityLegendHandle(
                     stability_label=stability,
                     legend_label=label,
+                    marker_size=5,
                 )
             )
     if legend_handles:
         ax.legend(
             handles=legend_handles,
-            title=f"stability ({Unicode.THETA}, r, {Unicode.RHO}, migration coherence)",
-            loc="upper right",
-            bbox_to_anchor=(1.0, 1.05),
-            fontsize=8,
+            title=f"stability ({Unicode.THETA}, r, {Unicode.RHO})",
+            loc="upper left",
+            bbox_to_anchor=(0.0, 1.15),
+            fontsize=FONTSIZE_SMALL,
         )
 
-    ax.set_xlabel(x_col, labelpad=2)
-    ax.set_ylabel(y_col, labelpad=2)
-    ax.set_zlabel(z_col, rotation=90, labelpad=2)
+    ax.set_xlabel(get_label_for_column(x_col), labelpad=2)
+    ax.set_ylabel(get_label_for_column(y_col), labelpad=2)
+    ax.set_zlabel(get_label_for_column(z_col), rotation=0, labelpad=0)
 
-    fig.colorbar(sc, ax=ax, label=cbar_label, shrink=0.6)
-    fig.subplots_adjust(left=0.05, right=0.95)
+    fig.colorbar(sc, cax=cax, label=cbar_label)
     return fig, ax
 
 
@@ -443,3 +476,101 @@ def plot_optical_flow_histogram(
     ax.tick_params(axis="y", pad=2)
 
     return fig
+
+
+def build_box_for_3d_plot(
+    bin_edges: tuple[tuple[float, float], ...],
+) -> tuple:
+    """Build the 8 corner vertices of the example bin (a rectangular cuboid in
+    feature space), then identify the 12 axis-aligned edges by keeping only
+    vertex pairs whose distance equals one of the three bin side lengths.
+    """
+
+    bin_sizes = np.absolute(np.subtract.reduce(bin_edges, axis=1))
+
+    xs, ys, zs = np.meshgrid(*bin_edges)
+    xs = xs.ravel()
+    ys = ys.ravel()
+    zs = zs.ravel()
+
+    vertices = list(zip(xs, ys, zs, strict=True))
+    edges = []
+    for v1, v2 in combinations(vertices, r=2):
+        edge_length = np.linalg.norm(np.array(v1) - np.array(v2))
+        if np.isclose(edge_length, bin_sizes).any():
+            edges.append((v1, v2))
+    return vertices, edges
+
+
+def make_example_migration_coherence(
+    dataset_name: str,
+    figure_size: tuple[float, float],
+    output_dir: Path,
+    fig_name: str | None = None,
+) -> None:
+
+    dataset_config = load_dataset_config(dataset_name)
+
+    feature_column_names = list(DYNAMICS_COLUMN_NAMES)
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid"], *feature_column_names]
+
+    optical_flow_feature = Column.OpticalFlow.UNIT_VECTOR_MEAN
+    vmax = 1
+    fig_name = fig_name or f"{dataset_name}_3D_scatter_{optical_flow_feature}"
+
+    # load dataframe and perform additional filtering (remove
+    # non-steady-state timepoints based on annotations), computing
+    # only the columns needed for visualization/analysis
+    feature_dataframe_manifest_name = DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED
+    feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
+    df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
+
+    df_ = df[columns_to_compute].compute()
+    df_steady_state = filter_dataframe_by_annotations(
+        df_,
+        dataset_config,
+        timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
+    )
+
+    df_of = add_optical_flow_features(
+        df_steady_state,
+        datasets=[dataset_name],
+    )
+
+    fixed_points_df = load_fixed_points_dataframe_for_dataset(dataset_name)
+    for flow_condition in dataset_config.flow_conditions:
+
+        x_col_name, y_col_name, z_col_name = feature_column_names
+
+        bin_edges: tuple[tuple[float, float], ...] = tuple(
+            (
+                float(fixed_points_df[col].item() - MIGRATION_COHERENCE_COLORMAP_BIN_SIZE / 2),
+                float(fixed_points_df[col].item() + MIGRATION_COHERENCE_COLORMAP_BIN_SIZE / 2),
+            )
+            for col in (x_col_name, y_col_name, z_col_name)
+        )
+        _, edges = build_box_for_3d_plot(bin_edges=bin_edges)
+
+        df_flow = filter_dataframe_to_flow_condition_by_timepoint(
+            df_of, dataset_config, flow_condition
+        )
+        df_flow_no_nan = df_flow.dropna(subset=[optical_flow_feature])
+
+        # 3D Scatter
+        fig, ax = plot_3d_scatter_or_binned(
+            df_flow_no_nan,
+            x_col=x_col_name,
+            y_col=y_col_name,
+            z_col=z_col_name,
+            color_col=optical_flow_feature,
+            df_fp=fixed_points_df,
+            binned=False,
+            vmax=vmax,
+            figsize=figure_size,
+        )
+        # draw cube around bin edges
+        for e_xyz in edges:
+            ax.plot(*list(zip(*e_xyz, strict=True)), ls="-", lw=1, c="black", alpha=0.6)
+
+        save_plot_to_path(fig, output_dir, fig_name, file_format=".svg")
+        plt.close(fig)
