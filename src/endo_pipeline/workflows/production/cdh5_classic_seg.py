@@ -1,6 +1,4 @@
-from endo_pipeline.cli import Datasets, tags
-
-TAGS = ["cdh5_segmentation", tags.CPU_ONLY, tags.TEST_READY]
+from endo_pipeline.cli import Datasets
 
 
 def main(
@@ -10,6 +8,8 @@ def main(
     overwrite: bool = True,
 ) -> None:
     """Run the cdh5 segmentation workflow on a dataset, list of datasets, or dataset collection.
+
+    #cdh5-segmentation #test-ready #cpu-only
 
     A summary of the segmentation process is as follows:
     1. load a Z-stack of the raw CDH5 signal for 1 timepoint from the timelapse

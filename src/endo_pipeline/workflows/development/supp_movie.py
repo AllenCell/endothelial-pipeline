@@ -1,9 +1,7 @@
 from pathlib import Path
 from typing import Literal
 
-from endo_pipeline.cli import Datasets, tags
-
-TAGS = ["visualization", tags.TEST_READY, tags.CPU_ONLY]
+from endo_pipeline.cli import Datasets
 
 
 def main(
@@ -18,6 +16,8 @@ def main(
 ) -> None:
     """
     Create supplemental timelapse movies single fov or stitched.
+
+    #visualization #test-ready #cpu-only
 
     Three movie types are available:
 

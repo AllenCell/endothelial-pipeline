@@ -60,8 +60,11 @@ class ColumnMetadata:
     bin_width: float | None = None
     """Width of bins."""
 
-    ticks: range | None = None
+    ticks: range | list[int] | list[float] | None = None
     """Range for ticks."""
+
+    tick_labels: list[str] | None = None
+    """Tick labels."""
 
     slug: str = field(init=False)
     """Slug version of name."""
@@ -117,7 +120,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         type=ColumnType.CONTINUOUS,
     ),
     Column.SegData.TIME_HRS_SINCE_FLOW: ColumnMetadata(
-        name="Time under flow",
+        name="Time under flow (hours)",
         label="Time",
         unit="hr",
         min="min",
@@ -352,6 +355,14 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         description="Polar angle calculated by transforming PC 1 and PC 2 to polar coordinates",
         min=0,
         max=pi,
+        ticks=[0, pi / 4, pi / 2, 3 * pi / 4, pi],
+        tick_labels=[
+            f"0={Unicode.PI}",
+            f"{Unicode.PI}/4",
+            f"{Unicode.PI}/2",
+            f"3{Unicode.PI}/4",
+            f"{Unicode.PI}=0",
+        ],
         type=ColumnType.CONTINUOUS,
     ),
     Column.DiffAEData.POLAR_RADIUS: ColumnMetadata(
@@ -576,6 +587,8 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         name="Pearson r of MFPT\n(grid versus track-based)",
         label="Pearson r",
         type=ColumnType.CONTINUOUS,
+        min=0,
+        max=1,
     ),
     Column.VectorField.LINEFIT_SLOPE: ColumnMetadata(
         name="Line fit slope",

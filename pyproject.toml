@@ -104,8 +104,7 @@ types = [
 ]
 
 [project.scripts]
-endopipe = "endo_pipeline.__main__:pipeline_cli"
-endopipe2 = "endo_pipeline.cli:pipeline_cli"
+endopipe = "endo_pipeline.cli:pipeline_cli"
 
 [build-system]
 requires = ["uv_build>=0.8.12,<0.9.0"]
