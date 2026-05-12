@@ -3,7 +3,10 @@ import logging
 
 from endo_pipeline.cli import DEMO_MODE
 from endo_pipeline.io import get_output_path
-from endo_pipeline.library.visualize.summary_plot import plot_cross_dataset_summaries
+from endo_pipeline.library.visualize.summary_plot import (
+    build_dataframe_for_fixed_point_dataset_summary,
+    plot_cross_dataset_summaries,
+)
 from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
@@ -54,40 +57,51 @@ if n_bootstrap is None:
 # %%
 flow_switch_low_datasets = SUMMARY_PLOT_DATASETS["flow_switch_low"]
 flow_switch_high_datasets = SUMMARY_PLOT_DATASETS["flow_switch_high"]
+
+# %%
+column_names = [
+    ColumnName.DiffAEData.POLAR_ANGLE,
+    ColumnName.DiffAEData.POLAR_RADIUS,
+    ColumnName.DiffAEData.PC3_FLIPPED,
+    ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
+]
+
 # %%
 fig_savedir = get_output_path("flow_switch_low")
 
-plot_cross_dataset_summaries(
+fixed_point_summary_df = build_dataframe_for_fixed_point_dataset_summary(
     dataset_names=flow_switch_low_datasets,
     feature_dataframe_manifest=feature_dataframe_manifest,
-    fixed_points_bootstrap_dataframe_manifest=bootstrap_dataframe_manifest,
-    output_dir=fig_savedir,
-    column_names=[
-        ColumnName.DiffAEData.POLAR_ANGLE,
-        ColumnName.DiffAEData.POLAR_RADIUS,
-        ColumnName.DiffAEData.PC3_FLIPPED,
-        ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
-    ],
-    x_axis_mode="flow_switch",
-    figure_size=(MAX_FIGURE_WIDTH, 3),
+    bootstrap_dataframe_manifest=bootstrap_dataframe_manifest,
+    column_names=column_names,
+    convert_angle_to_nematic=True,
     stable_only=True,
 )
+summary_plot_path = plot_cross_dataset_summaries(
+    fixed_point_summary_df,
+    output_dir=fig_savedir,
+    column_names=column_names,
+    axis_mode="flow_switch",
+    figure_size=(MAX_FIGURE_WIDTH, 3),
+)
+
 # %%
 fig_savedir = get_output_path("flow_switch_high")
 
-plot_cross_dataset_summaries(
+fixed_point_summary_df = build_dataframe_for_fixed_point_dataset_summary(
     dataset_names=flow_switch_high_datasets,
     feature_dataframe_manifest=feature_dataframe_manifest,
-    fixed_points_bootstrap_dataframe_manifest=bootstrap_dataframe_manifest,
-    output_dir=fig_savedir,
-    column_names=[
-        ColumnName.DiffAEData.POLAR_ANGLE,
-        ColumnName.DiffAEData.POLAR_RADIUS,
-        ColumnName.DiffAEData.PC3_FLIPPED,
-        ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
-    ],
-    x_axis_mode="flow_switch",
-    figure_size=(MAX_FIGURE_WIDTH, 3),
+    bootstrap_dataframe_manifest=bootstrap_dataframe_manifest,
+    column_names=column_names,
+    convert_angle_to_nematic=True,
     stable_only=True,
 )
+summary_plot_path = plot_cross_dataset_summaries(
+    fixed_point_summary_df,
+    output_dir=fig_savedir,
+    column_names=column_names,
+    axis_mode="flow_switch",
+    figure_size=(MAX_FIGURE_WIDTH, 3),
+)
+
 # %%
