@@ -395,7 +395,6 @@ def _make_feature_pair_histogram_panel(
     axes_ylim: tuple[float, float] | None = None,
     axes_yticks: list[float] | None = None,
     axes_ytick_labels: list[str] | None = None,
-    shared_y_axis: bool = True,
     histogram_vmin: float = 0.00,
     histogram_vmax: float = 0.7,
     figsize: tuple[float, float] = (2.9, 2.45),
@@ -419,10 +418,6 @@ def _make_feature_pair_histogram_panel(
     axes_ytick_labels
         Tick label strings corresponding to *axes_yticks*.  ``None`` uses
         default numeric labels.
-    shared_y_axis
-        When ``True`` the two feature columns share the same y range, so tick
-        labels are shown only on the left column.  When ``False`` each column
-        keeps its own tick labels.
     histogram_vmin
         Lower colour-scale limit for the 2-D histogram density.
     histogram_vmax
@@ -456,6 +451,7 @@ def _make_feature_pair_histogram_panel(
     axes_xticks = [0, 12, 24, 36, 48]
     axes_xtick_labels = [f"{x}" for x in axes_xticks]
 
+    # figure layout: datasets are columns, features are rows
     fig, ax = plt.subplots(2, 2, figsize=figsize, layout="constrained", gridspec_kw={"hspace": 0.1})
 
     layout_engine = fig.get_layout_engine()
@@ -470,7 +466,7 @@ def _make_feature_pair_histogram_panel(
 
     columns_to_compute = [*columns_to_plot, time_under_flow_col]
 
-    for i, dataset in enumerate([dataset_low, dataset_high]):
+    for j, dataset in enumerate([dataset_low, dataset_high]):
         dataset_config = load_dataset_config(dataset)
         frames_before_imaging = abs(dataset_config.flow_conditions[0].start)
         shear_stress = dataset_config.flow_conditions[0].shear_stress_bin
@@ -493,7 +489,7 @@ def _make_feature_pair_histogram_panel(
         df: pd.DataFrame = df_[columns_to_compute].compute()
 
         time_bins = get_bins(bin_widths=(1,), data=df[time_under_flow_col].to_numpy())[0][0]
-        for j, column in enumerate(columns_to_plot):
+        for i, column in enumerate(columns_to_plot):
             feature_column_label = COLUMN_METADATA[column].name or cast(str, column)
             # convert to sentence case for better readability as a plot title
             feature_column_label = feature_column_label.capitalize()
@@ -544,39 +540,37 @@ def _make_feature_pair_histogram_panel(
                 yticks=axes_yticks,
             )
             if j == 0:
-                # add tick labels for the left column
-                if axes_ytick_labels is not None:
-                    ax_ij.set_yticklabels(axes_ytick_labels, fontsize=FONTSIZE_XSMALL)
-                else:
+                # add tick labels and ylabel for the left column
+                set_axes_properties(
+                    ax_ij,
+                    ylabel=feature_column_label,
+                    ylabel_kwargs={"labelpad": 1, "fontsize": FONTSIZE_SMALL},
+                    ytick_labels=axes_ytick_labels,
+                    ytick_label_kwargs={"fontsize": FONTSIZE_XSMALL},
+                )
+                if axes_ytick_labels is None:
                     ax_ij.tick_params(axis="y", labelsize=FONTSIZE_XSMALL)
             elif j == 1:
-                if shared_y_axis:
-                    # omit redundant y tick labels when both columns share the same range
-                    ax_ij.set_yticklabels([])
-                else:
-                    ax_ij.tick_params(axis="y", labelsize=FONTSIZE_XSMALL)
+                # omit tick labels for the right column
+                ax_ij.set_yticklabels([])
             if i == 0:
-                # put label as column title for top row
-                ax_ij.set_title(feature_column_label, fontsize=FONTSIZE_SMALL)
-                ax_ij.set_xticklabels([])  # no x tick labels for top row
+                # put shear stress label as column title for top row, and
+                # no x labeling for the top row
+                set_axes_properties(
+                    ax_ij,
+                    title=shear_stress_label,
+                    title_kwargs={"fontsize": FONTSIZE_MEDIUM, "pad": 1},
+                    xtick_labels=[],
+                )
             elif i == 1:
                 # only set x-axis tick labels and label for bottom row
-                ax_ij.set_xticklabels(axes_xtick_labels, fontsize=FONTSIZE_XSMALL)
-                ax_ij.set_xlabel(time_column_label, labelpad=1, fontsize=FONTSIZE_XSMALL)
-
-        # add vertical label for shear stress to the left of the contour plot
-        # (y positions reflect the constrained-layout rect top of 0.94)
-        y_position = 0.72 if i == 0 else 0.31
-        fig.text(
-            0.05,
-            y_position,
-            shear_stress_label,
-            va="center",
-            ha="center",
-            rotation="vertical",
-            fontsize=FONTSIZE_MEDIUM,
-            fontweight="bold",
-        )
+                set_axes_properties(
+                    ax_ij,
+                    xtick_labels=axes_xtick_labels,
+                    xtick_label_kwargs={"fontsize": FONTSIZE_XSMALL},
+                    xlabel=time_column_label,
+                    xlabel_kwargs={"labelpad": 1, "fontsize": FONTSIZE_XSMALL},
+                )
 
     # add legend for the vertical dashed line indicating the start of steady state
     # and grey background indicating cutoff for cell piling (no data);
@@ -623,7 +617,6 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         axes_ylim=axes_ylim,
         axes_yticks=axes_yticks,
         axes_ytick_labels=axes_ytick_labels,
-        shared_y_axis=True,
     )
     filename = "theta_orientation_histograms"
     save_plot_to_path(
@@ -653,7 +646,6 @@ def make_r_aspect_ratio_histogram_panel(output_path: Path) -> Path:
         axes_ylim=None,
         axes_yticks=None,
         axes_ytick_labels=None,
-        shared_y_axis=False,
     )
 
     # datasets have different natural ranges for r and aspect ratio, so set
