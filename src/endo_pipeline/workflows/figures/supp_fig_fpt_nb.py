@@ -3,16 +3,19 @@ import matplotlib.pyplot as plt
 
 from endo_pipeline.io import get_output_path
 from endo_pipeline.io.input import load_dataframe
-from endo_pipeline.library.analyze.track_integration import get_line_fit_and_filtered_df
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
 from endo_pipeline.library.visualize.integration.track_integration_viz import (
-    plot_first_passage_time_correlation_summary,
     plot_first_passage_time_parameter_sweep,
+)
+from endo_pipeline.library.visualize.summary_plot import (
+    build_dataframe_for_first_passage_time_dataset_summary,
+    plot_cross_dataset_summaries,
 )
 from endo_pipeline.manifests.dataframe_manifest_io import load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.examples import FPT_FIG_EXAMPLES
 from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
 from endo_pipeline.settings.workflow_defaults import FIRST_PASSAGE_TIME_MANIFEST_NAME
 
 plt.style.use("endo_pipeline.figure")
@@ -28,9 +31,6 @@ fig_height = 5.5
 # from and get the fitted lines
 fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_MANIFEST_NAME)
 metric_to_plot = "mean"
-line_fit_df, _ = get_line_fit_and_filtered_df(
-    first_passage_time_manifest=fpt_manifest, metric_to_fit=metric_to_plot
-)
 fpt_param_sweep_df = load_dataframe(fpt_manifest.locations["first_passage_time_parameter_sweep"])
 # %% make the plots for the desired datasets
 dataset_name = high_flow_dataset.dataset_name
@@ -60,8 +60,20 @@ fp_param_sweep_fpt, fp_param_sweep_num_traj = plot_first_passage_time_parameter_
     metric_to_plot=metric_to_plot,
 )
 
-filename_summary = f"FPT_correlation_summary_{metric_to_plot}"
-plot_first_passage_time_correlation_summary(line_fit_df, save_dir, filename_summary)
+# --- Histogram of first passage time correlation ---
+dataset_summary_list = SUMMARY_PLOT_DATASETS["intermediate"]
+first_passage_summary_df = build_dataframe_for_first_passage_time_dataset_summary(
+    dataset_names=dataset_summary_list, first_passage_time_manifest=fpt_manifest
+)
+first_passage_path = plot_cross_dataset_summaries(
+    first_passage_summary_df,
+    output_dir=save_dir,
+    column_names=[Column.VectorField.PEARSON_R],
+    axis_mode="dataset",
+    figure_size=(6, 2.5),
+    set_y_lims=True,
+    category_order=dataset_summary_list,
+)
 
 # %% Build figure panels and figure
 panels = [
@@ -83,7 +95,7 @@ panels = [
     ),
     FigurePanel(
         letter="C",
-        path=save_dir / f"{filename_summary}.svg",
+        path=first_passage_path,
         x_position=0,
         y_position=3,
         x_offset=0.1,
