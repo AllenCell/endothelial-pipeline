@@ -117,7 +117,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         type=ColumnType.CONTINUOUS,
     ),
     Column.SegData.TIME_HRS_SINCE_FLOW: ColumnMetadata(
-        name="Time under flow",
+        name="Time under flow (hours)",
         label="Time",
         unit="hr",
         min="min",
