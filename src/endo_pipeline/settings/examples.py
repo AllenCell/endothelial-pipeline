@@ -4,7 +4,7 @@ EXAMPLE_DATASET = {
     "FIGURE_2_LOW_FLOW_DATASET": "20250409_20X",
     "FIGURE_2_HIGH_FLOW_DATASET": "20251001_20X",
     "SUPP_FIG_Z_SLICE": "20250428_20X",
-    "SUPP_FIG_IMG_PROC": "20250402_20X",  # currently used
+    "SUPP_FIG_IMG_PROC": "20250402_20X",
     "SUPP_FIG_SINGLE_TP_GFP_OUTLIER": "20250319_20X",
 }
 """Dictionary of example datasets for specific figures."""
@@ -371,8 +371,8 @@ MODEL_QC_EXAMPLES_REP_2_POSITIONS: list[ExampleImage] = [
         crop_y_start=335,
         description="3. UNALIGNED, beginning of high flow.",
     ),
-    ExampleImage(  # this is currently used, could/should be dropped
-        dataset_name="20250224_20X",
+    ExampleImage(
+        dataset_name="20250402_20X",
         position=0,
         timepoint=0,
         crop_x_start=100,
