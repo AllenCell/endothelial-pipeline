@@ -19,6 +19,7 @@ from endo_pipeline.library.analyze.pca import fit_pca
 from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
 from endo_pipeline.library.model.diffae.generate_image import generate_latent_walk_images
 from endo_pipeline.library.model.latent_walk_utils import get_latent_walk
+from endo_pipeline.library.visualize.figure_utils import set_axes_properties
 from endo_pipeline.library.visualize.latent_walk import plot_latent_walk_as_grid
 from endo_pipeline.manifests import (
     get_dataframe_location_for_dataset,
@@ -535,12 +536,13 @@ def _make_feature_pair_histogram_panel(
             )
 
             # set axes limits and ticks
-            ax_ij.set_xlim(axes_xlim)
-            ax_ij.set_xticks(axes_xticks)
-            if axes_ylim is not None:
-                ax_ij.set_ylim(axes_ylim)
-            if axes_yticks is not None:
-                ax_ij.set_yticks(axes_yticks)
+            set_axes_properties(
+                ax_ij,
+                xlim=axes_xlim,
+                ylim=axes_ylim,
+                xticks=axes_xticks,
+                yticks=axes_yticks,
+            )
             if j == 0:
                 # add tick labels for the left column
                 if axes_ytick_labels is not None:
