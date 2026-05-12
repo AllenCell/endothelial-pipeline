@@ -486,29 +486,6 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.OpticalFlow.EMA005_UNIT_VECTOR_MEAN: ColumnMetadata(
         name="Coherent migration (EMA 0.05, optical flow mean unit vector)",
-    Column.OpticalFlow.ANGLE_MEAN: ColumnMetadata(
-        name="Optical flow mean angle",
-        unit="rad",
-        min=0,
-        max=8,
-        type=ColumnType.CONTINUOUS,
-    ),
-    Column.OpticalFlow.ANGLE_STD: ColumnMetadata(
-        name="Coherent migration (optical flow angle std dev)",
-        min=0,
-        max=4,
-        type=ColumnType.CONTINUOUS,
-    ),
-    Column.OpticalFlow.SPEED_MEAN: ColumnMetadata(
-        name="Optical flow mean speed",
-        label="Patch-based\nmigration speed",
-        unit="pixels/frame",
-        min=0,
-        max=8,
-        type=ColumnType.CONTINUOUS,
-    ),
-    Column.OpticalFlow.SPEED_STD: ColumnMetadata(
-        name="Optical flow speed std dev",
         min=0,
         max=1,
         type=ColumnType.CONTINUOUS,
@@ -575,7 +552,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.OpticalFlow.SPEED_MEAN: ColumnMetadata(
         name="Optical flow mean speed",
-        label="Patch-based migration speed",
+        label="Patch-based\nmigration speed",
         unit="pixels/frame",
         min=0,
         max=8,
@@ -590,6 +567,8 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     Column.OpticalFlow.SPEED_ABOVE_1_COUNT: ColumnMetadata(
         name="N vectors with speed above 1",
         type=ColumnType.DISCRETE,
+    ),
+    # Vector-field / dynamics analysis =========================================
     Column.VectorField.PEARSON_R: ColumnMetadata(
         name="Pearson r of MFPT\n(grid versus track-based)",
         label="Pearson r",
