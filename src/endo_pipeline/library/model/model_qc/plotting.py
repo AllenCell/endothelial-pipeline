@@ -25,6 +25,7 @@ from endo_pipeline.settings.plot_defaults import (
 )
 
 if TYPE_CHECKING:
+    from endo_pipeline.library.model.model_qc.evaluation import ModelKey
     from endo_pipeline.settings.examples import ExampleImage
 
 logger = logging.getLogger(__name__)
@@ -200,10 +201,9 @@ def save_summary_figure(
     num_examples: int,
     label_for_conditioning: str,
     example_set_label: str,
-    model_idx: int,
+    model_key: "ModelKey",
     compute_metrics: bool,
     output_path: Path,
-    model_label: str | None = None,
 ) -> None:
     """Create and save the per-example-set summary figure.
 
@@ -211,6 +211,10 @@ def save_summary_figure(
     :func:`~endo_pipeline.library.visualize.model_qc_plots.create_contact_sheet_with_metrics_column`
     (when metrics are available) or
     :func:`~endo_pipeline.library.visualize.model_qc_plots.create_summary_contact_sheet`.
+
+    The output filename is the same regardless of whether metrics are
+    computed.  Per-model disambiguation is handled by ``output_path``,
+    which already includes the manifest and resolved run name.
 
     Parameters
     ----------
@@ -224,14 +228,12 @@ def save_summary_figure(
         Label for the conditioning channel.
     example_set_label
         Human-readable name for the example set (e.g. ``"validation_positions"``).
-    model_idx
-        Zero-based model index.
+    model_key
+        ``ModelKey`` providing both identity and a human-readable ``.label``.
     compute_metrics
         Whether to include a metrics column in the figure.
     output_path
         Directory where the figure will be saved.
-    model_label
-        Human-readable model name for the title.
     """
     _ensure_dir(output_path)
 
@@ -258,13 +260,13 @@ def save_summary_figure(
             fig_kwargs={"figsize": ((num_img_cols + 1) * 2, num_examples * 1.8)},
             direction="left-right first",
         )
-        title_model = model_label or f"Model {model_idx + 1}"
         fig.suptitle(
-            f"100% Noise Denoising - {example_set_label} - {title_model}",
+            f"100% Noise Denoising - {example_set_label} - {model_key.label}",
             fontsize=FONTSIZE_LARGE,
             y=0.995,
         )
-        filename = f"contact_sheet_predict_all_examples_model{model_idx + 1}"
+        # legacy layout path: keep plt.tight_layout() applied by save_plot_to_path
+        tight_layout = True
     else:
         fig = create_summary_contact_sheet(
             example_results=example_results_100,
@@ -272,7 +274,12 @@ def save_summary_figure(
             label_for_conditioning=label_for_conditioning,
             font_size_medium=FONTSIZE_MEDIUM,
         )
-        filename = "contact_sheet_predict_all_examples"
+        # create_summary_contact_sheet builds the figure with constrained layout;
+        # mixing plt.tight_layout() emits a UserWarning and disables constrained
+        # layout, so opt out here.
+        tight_layout = False
 
-    save_plot_to_path(fig, output_path, filename)
+    save_plot_to_path(
+        fig, output_path, "contact_sheet_predict_all_examples", tight_layout=tight_layout
+    )
     plt.close(fig)

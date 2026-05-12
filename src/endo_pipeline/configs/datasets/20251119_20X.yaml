@@ -32,7 +32,7 @@ flow_conditions:
   stop: 576
   shear_stress: 5.9
 include_scenes: null
-notes: Collect low SS 48h timelapse of CDH5 Ex2 del -/- endothelial cells. Mostly
+notes: Collect low SS 48h timelapse of CDH5 Ex3 del -/- endothelial cells. Mostly
   parallel alignment by 24h into the timelapse, then unalign and some gaps open up.
 timepoint_annotations:
   auto_bf_scope_error:

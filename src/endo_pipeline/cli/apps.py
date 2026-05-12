@@ -38,16 +38,22 @@ TESTING_WORKFLOWS = Group("Testing Workflows", sort_key=3)
 INTERNAL_WORKFLOWS = Group("Internal Workflows", sort_key=4)
 
 
-def pipeline_cli() -> None:
-    """Pipeline CLI."""
-
-    pipeline_app["--help"].group = "Options"
+def build_command_groups() -> None:
+    """Build command groups."""
 
     build_command_group(pipeline_app, FIGURE_WORKFLOWS, "figures", True)
     build_command_group(pipeline_app, PRODUCTION_WORKFLOWS, "production", True)
     build_command_group(pipeline_app, DEVELOPMENT_WORKFLOWS, "development", True)
     build_command_group(pipeline_app, TESTING_WORKFLOWS, "testing", True)
     build_command_group(pipeline_app, INTERNAL_WORKFLOWS, "internal", True)
+
+
+def pipeline_cli() -> None:
+    """Pipeline CLI."""
+
+    pipeline_app["--help"].group = "Options"
+
+    build_command_groups()
 
     pipeline_app.meta.default(pipeline_entrypoint)
     pipeline_app.meta()
