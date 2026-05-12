@@ -472,7 +472,7 @@ def _make_feature_pair_histogram_panel(
     for i, dataset in enumerate([dataset_low, dataset_high]):
         dataset_config = load_dataset_config(dataset)
         frames_before_imaging = abs(dataset_config.flow_conditions[0].start)
-        shear_stress = np.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
+        shear_stress = dataset_config.flow_conditions[0].shear_stress_bin
         shear_stress_label = f"{shear_stress} dyn/cm{Unicode.SQUARED}"
 
         # use position 0 as a representative position for the dataset to get the
