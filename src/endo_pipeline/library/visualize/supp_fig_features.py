@@ -29,11 +29,13 @@ from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
+from endo_pipeline.settings.dynamics_workflows import TIME_STEP_IN_HOURS
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
 from endo_pipeline.settings.figures import (
     FONTSIZE_LARGE,
     FONTSIZE_MEDIUM,
     FONTSIZE_SMALL,
+    FONTSIZE_XSMALL,
     MAX_FIGURE_WIDTH,
 )
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
@@ -185,8 +187,8 @@ def _add_axes_lines(
     pc2_label = cast(str, COLUMN_METADATA["pc_2"].label)
     # PC2 label: to the left of the top image in the PC2 column
     fig.text(
-        top_bbox.x0 - 0.04,
-        top_bbox.y1,
+        top_bbox.x0 + 0.04,
+        top_bbox.y1 + 0.1,
         pc2_label,
         fontsize=FONTSIZE_LARGE,
         fontweight="bold",
@@ -196,8 +198,8 @@ def _add_axes_lines(
     )
     # PC1 label: to the right of the rightmost image, vertically centred on the axis
     fig.text(
-        right_bbox.x1 + axes_extend + 0.01,
-        cy,
+        right_bbox.x1 + axes_extend - 0.085,
+        cy - 0.09,
         pc1_label,
         fontsize=FONTSIZE_LARGE,
         fontweight="bold",
@@ -229,7 +231,7 @@ def _add_orientation_arrow(
     head_width: float = 0.4,
     color: str = "darkred",
     linewidth: float = 2.0,
-    label_offset: tuple[float, float] = (0.275, 0.125),
+    label_offset: tuple[float, float] = (0.075, 0.125),
 ) -> None:
     """Add an arced arrow and "orientation" label to the 2D latent walk plot."""
     overlay = fig.add_axes((0.0, 0.0, 1.0, 1.0), facecolor="none", zorder=5)
@@ -318,7 +320,7 @@ def plot_2d_latent_walk(
         n_steps,
         n_steps,
         gridspec_kw={"wspace": 0.15, "hspace": 0.15},
-        figsize=(2.25, 2.25),
+        figsize=(2.1, 2.1),
         layout="constrained",
     )
 
@@ -378,7 +380,7 @@ def plot_2d_latent_walk(
         head_width=0.4,
         color="darkred",
         linewidth=2.0,
-        label_offset=(0.275, 0.115),
+        label_offset=(0.175, 0.115),
     )
 
     save_plot_to_path(
@@ -401,9 +403,10 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
     histogram_vmin = 0.0
     histogram_vmax = 0.7
 
+    start_imaging_line_color = "limegreen"
     steady_state_line_color = "darkturquoise"
 
-    axes_xlim = (0, 48)  # in hours, after converting from frames
+    axes_xlim = (0, 50)  # in hours, after converting from frames
     axes_xticks = [0, 12, 24, 36, 48]
     axes_xtick_labels = [f"{x}" for x in axes_xticks]
     axes_ylim = (0, np.pi)
@@ -411,7 +414,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
     axes_ytick_labels = [f"0={Unicode.PI}", f"{Unicode.PI}/2", f"{Unicode.PI}=0"]
 
     fig, ax = plt.subplots(
-        2, 2, figsize=(3.0, 2.5), layout="constrained", gridspec_kw={"hspace": 0.15}
+        2, 2, figsize=(2.9, 2.45), layout="constrained", gridspec_kw={"hspace": 0.1}
     )
 
     layout_engine = fig.get_layout_engine()
@@ -419,19 +422,20 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         # reserve left margin for the vertical label and top margin for the legend
         layout_engine.set(**{"rect": [0.08, 0, 1, 0.94]})
 
-    time_column_label = "Time (hours)"
+    time_under_flow_col = Column.SegData.TIME_HRS_SINCE_FLOW
+    time_column_label = COLUMN_METADATA[time_under_flow_col].name or cast(str, time_under_flow_col)
     # convert frames to hours for better readability of x-axis
-    # (one frame = 5 minutes, so conversion factor is 5/60)
-    time_conversion_factor = 5 / 60
+    time_conversion_factor = TIME_STEP_IN_HOURS
 
     columns_to_plot: list[ColumnNameType] = [
         Column.DiffAEData.POLAR_ANGLE,
         Column.SegData.ORIENTATION,
     ]
-    columns_to_compute = [*columns_to_plot, Column.TIMEPOINT]
+    columns_to_compute = [*columns_to_plot, time_under_flow_col]
 
     for i, dataset in enumerate([dataset_low, dataset_high]):
         dataset_config = load_dataset_config(dataset)
+        frames_before_imaging = abs(dataset_config.flow_conditions[0].start)
         shear_stress = np.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
         shear_stress_label = f"{shear_stress} dyn/cm{Unicode.SQUARED}"
 
@@ -440,15 +444,18 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         # indicate with a vertical dashed line on the histogram
         start_steady_state_timepoint = (
             get_start_of_steady_state_for_position(dataset_config, position=0) or 0
-        ) * time_conversion_factor
+        )
+        # shift so that time = 0 corresponds to the start of flow, and convert
+        # from frames to hours
+        start_steady_state_timepoint += frames_before_imaging
+        start_steady_state_timepoint_hrs = start_steady_state_timepoint * time_conversion_factor
 
         df_ = load_dataframe(
             get_dataframe_location_for_dataset(dataframe_manifest, dataset), delay=True
         )
         df: pd.DataFrame = df_[columns_to_compute].compute()
 
-        time_bins = get_bins(bin_widths=(12,), data=df[Column.TIMEPOINT].to_numpy())[0][0]
-        time_bins = time_bins * time_conversion_factor
+        time_bins = get_bins(bin_widths=(1,), data=df[time_under_flow_col].to_numpy())[0][0]
         for j, column in enumerate(columns_to_plot):
             feature_column_label = COLUMN_METADATA[column].name or cast(str, column)
             # convert to sentence case for better readability as a plot title
@@ -458,7 +465,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
 
             feature_bins = get_bins(bin_widths=(0.05,), data=df[column].to_numpy())[0][0]
             ax_ij.hist2d(
-                df[Column.TIMEPOINT] * time_conversion_factor,
+                df[time_under_flow_col],
                 df[column],
                 bins=[time_bins, feature_bins],
                 cmap="inferno",
@@ -470,9 +477,20 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
             # change the background color to grey
             ax_ij.set_facecolor("grey")
 
-            # draw cyan dashed line at start of steady state
+            # draw dashed line at start of imaging (time =
+            # -frames_before_imaging)
             ax_ij.axvline(
-                x=start_steady_state_timepoint,
+                x=frames_before_imaging * time_conversion_factor,
+                color=start_imaging_line_color,
+                linestyle="--",
+                linewidth=1.5,
+                zorder=3,
+                label="Start of imaging",
+            )
+
+            # draw dashed line at start of steady state
+            ax_ij.axvline(
+                x=start_steady_state_timepoint_hrs,
                 color=steady_state_line_color,
                 linestyle="--",
                 linewidth=1.5,
@@ -487,18 +505,18 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
             ax_ij.set_yticks(axes_yticks)
             if j == 0:
                 # add tick labels for shared y axis just on leftmost plots
-                ax_ij.set_yticklabels(axes_ytick_labels, fontsize=FONTSIZE_SMALL)
+                ax_ij.set_yticklabels(axes_ytick_labels, fontsize=FONTSIZE_XSMALL)
             elif j == 1:
                 # else, no y tick labels for right column
                 ax_ij.set_yticklabels([])
             if i == 0:
                 # put label as column title for top row
-                ax_ij.set_title(feature_column_label, fontsize=FONTSIZE_SMALL)
+                ax_ij.set_title(feature_column_label, fontsize=FONTSIZE_XSMALL)
                 ax_ij.set_xticklabels([])  # no x tick labels for top row
             elif i == 1:
                 # only set x-axis tick labels and label for bottom row
                 ax_ij.set_xticklabels(axes_xtick_labels, fontsize=FONTSIZE_SMALL)
-                ax_ij.set_xlabel(time_column_label, labelpad=1, fontsize=FONTSIZE_SMALL)
+                ax_ij.set_xlabel(time_column_label, labelpad=1, fontsize=FONTSIZE_XSMALL)
 
         # add vertical label for shear stress to the left of the contour plot
         # (y positions reflect the constrained-layout rect top of 0.94)
@@ -520,14 +538,14 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
     # constrained layout is not affected
     handles, labels = ax_ij.get_legend_handles_labels()
     handles.append(Patch(facecolor="grey", edgecolor="none"))
-    labels.append("No data (cell piling)")
+    labels.append("No data")
     fig.legend(
         handles,
         labels,
         fontsize="xx-small",
         loc="upper center",
-        bbox_to_anchor=(0.53, 0.995),
-        ncol=2,
+        bbox_to_anchor=(0.53, 1.0),
+        ncol=3,
         handletextpad=0.3,
         borderpad=0.3,
         columnspacing=0.8,
