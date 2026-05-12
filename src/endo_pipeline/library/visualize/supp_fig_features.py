@@ -655,14 +655,14 @@ def make_r_aspect_ratio_histogram_panel(output_path: Path) -> Path:
     # Reconcile y-limits per feature column so that both dataset rows (low-flow
     # and high-flow) share the same scale for that feature.
     num_columns = ax.shape[1]
-    for j in range(num_columns):
-        for i in range(ax.shape[0]):
+    for i in range(num_columns):
+        for j in range(ax.shape[0]):
             ax_ij = cast(plt.Axes, ax[i, j])
-            if j == 0:
-                # r column
+            if i == 0:
+                # r row
                 ax_ij.set_ylim(r_ylim)
-            elif j == 1:
-                # aspect ratio column
+            elif i == 1:
+                # aspect ratio row
                 ax_ij.set_ylim(aspect_ratio_ylim)
 
     filename = "r_aspect_ratio_histograms"
