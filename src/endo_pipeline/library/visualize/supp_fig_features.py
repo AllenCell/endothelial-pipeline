@@ -422,7 +422,8 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         # reserve left margin for the vertical label and top margin for the legend
         layout_engine.set(**{"rect": [0.08, 0, 1, 0.94]})
 
-    time_column_label = "Time under flow (hours)"
+    time_under_flow_col = Column.SegData.TIME_HRS_SINCE_FLOW
+    time_column_label = COLUMN_METADATA[time_under_flow_col].name or cast(str, time_under_flow_col)
     # convert frames to hours for better readability of x-axis
     time_conversion_factor = TIME_STEP_IN_HOURS
 
@@ -430,7 +431,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         Column.DiffAEData.POLAR_ANGLE,
         Column.SegData.ORIENTATION,
     ]
-    columns_to_compute = [*columns_to_plot, Column.TIMEPOINT]
+    columns_to_compute = [*columns_to_plot, time_under_flow_col]
 
     for i, dataset in enumerate([dataset_low, dataset_high]):
         dataset_config = load_dataset_config(dataset)
@@ -453,11 +454,8 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
             get_dataframe_location_for_dataset(dataframe_manifest, dataset), delay=True
         )
         df: pd.DataFrame = df_[columns_to_compute].compute()
-        # shift timepoints so that time = 0 corresponds to the start of flow
-        df[Column.TIMEPOINT] = df[Column.TIMEPOINT] + frames_before_imaging
 
-        time_bins = get_bins(bin_widths=(12,), data=df[Column.TIMEPOINT].to_numpy())[0][0]
-        time_bins = time_bins * time_conversion_factor
+        time_bins = get_bins(bin_widths=(1,), data=df[time_under_flow_col].to_numpy())[0][0]
         for j, column in enumerate(columns_to_plot):
             feature_column_label = COLUMN_METADATA[column].name or cast(str, column)
             # convert to sentence case for better readability as a plot title
@@ -467,7 +465,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
 
             feature_bins = get_bins(bin_widths=(0.05,), data=df[column].to_numpy())[0][0]
             ax_ij.hist2d(
-                df[Column.TIMEPOINT] * time_conversion_factor,
+                df[time_under_flow_col],
                 df[column],
                 bins=[time_bins, feature_bins],
                 cmap="inferno",
