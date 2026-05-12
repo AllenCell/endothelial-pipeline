@@ -275,12 +275,22 @@ def main() -> None:
         convert_angle_to_nematic=True,
         stable_only=True,
     )
-    summary_plot_path = plot_cross_dataset_summaries(
+    # panel E: summary plot of fixed point locations across datasets
+    fixed_point_summary_plot_path = plot_cross_dataset_summaries(
         fixed_point_summary_df,
         output_dir=base_output_dir,
-        column_names=columns_for_summary_plots,
+        column_names=feature_column_names,
         axis_mode="shear_stress",
-        figure_size=(MAX_FIGURE_WIDTH - 2.1, 2),
+        figure_size=(3.5, 2),
+    )
+    # panel F: summary plot of migration coherence at fixed points across
+    # datasets
+    migration_summary_plot_path = plot_cross_dataset_summaries(
+        fixed_point_summary_df,
+        output_dir=base_output_dir,
+        column_names=[optical_flow_feature],
+        axis_mode="shear_stress",
+        figure_size=(1.15, 2),
     )
 
     # --- Histogram of first passage time correlation ---
@@ -293,7 +303,7 @@ def main() -> None:
         output_dir=base_output_dir,
         column_names=[Column.VectorField.PEARSON_R],
         axis_mode="shear_stress",
-        figure_size=(1.45, 2.0),
+        figure_size=(1.15, 2.0),
         set_y_lims=True,
     )
 
@@ -365,10 +375,10 @@ def main() -> None:
             x_offset=0.15,
             y_offset=0.05,
         ),
-        # --- Bottom row: first passage time and summary plot ---
+        # --- Bottom row: first passage time and summary plots ---
         FigurePanel(
             letter="E",
-            path=summary_plot_path,
+            path=fixed_point_summary_plot_path,
             x_position=0.0,
             y_position=4.0,
             x_offset=0,
@@ -376,10 +386,18 @@ def main() -> None:
         ),
         FigurePanel(
             letter="F",
-            path=first_passage_path,
-            x_position=4.6,
+            path=migration_summary_plot_path,
+            x_position=3.6,
             y_position=4.0,
-            x_offset=0.1,
+            x_offset=0.0,
+            y_offset=0.2,
+        ),
+        FigurePanel(
+            letter="G",
+            path=first_passage_path,
+            x_position=4.8,
+            y_position=4.0,
+            x_offset=0.0,
             y_offset=0.2,
         ),
     ]
