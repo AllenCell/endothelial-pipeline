@@ -1,9 +1,4 @@
-from typing import Literal
-
-from endo_pipeline.cli import Datasets
-
-
-def main(datasets: Datasets | None | Literal["figure"] = "figure") -> None:
+def main() -> None:
     """Produces figure panels for the CDH5 segmentation and classic feature workflow figure.
     This includes imaging panels showing the segmentation steps and 2D histograms of classic
     features for each of the PCA reference datasets.
@@ -12,7 +7,6 @@ def main(datasets: Datasets | None | Literal["figure"] = "figure") -> None:
     """
     from pathlib import Path
 
-    from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
     from endo_pipeline.library.visualize.lib_cdh5_seg_feats_fig_panels import (
@@ -25,13 +19,9 @@ def main(datasets: Datasets | None | Literal["figure"] = "figure") -> None:
         CDH5_SEG_FIG_EXAMPLE,
     )
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
-    from endo_pipeline.settings.workflow_defaults import DEFAULT_SEG_FEATURE_WORKFLOW_DATASETS
     from endo_pipeline.workflows.figures import assets as figure_assets
 
-    if datasets is None:
-        datasets = get_datasets_in_collection(DEFAULT_SEG_FEATURE_WORKFLOW_DATASETS)
-    elif datasets == "figure":
-        datasets = CDH5_SEG_FIG_CLASSIC_FEAT_EXAMPLES
+    datasets = CDH5_SEG_FIG_CLASSIC_FEAT_EXAMPLES
 
     out_dir = get_output_path(__file__)
 
