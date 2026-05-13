@@ -41,21 +41,29 @@ def convert_dataset(
 
     img = BioImage(dataset_config.original_path)
 
+    # Determine physical pixel size based on microscope.
     if dataset_config.microscope == "3i":
         physical_pixel_sizes = get_sldy_pixel_sizes(img.metadata)
-    if dataset_config.microscope == "Nikon":
+    elif dataset_config.microscope == "Nikon":
         physical_pixel_sizes = img.physical_pixel_sizes
+    else:
+        raise ValueError("Unable to determine physical pixel size for '%s'", dataset_config.name)
 
+    # Determine time interval in minutes
     interval_min = dataset_config.time_interval_in_minutes
-    n_positions = dataset_config.n_total_positions
+    if interval_min is None:
+        raise ValueError("Unable to determine time interval for '%s'", dataset_config.name)
+
+    # Validate number of positions and number of scenes
+    num_positions = dataset_config.n_total_positions
     num_scenes = len(img.scenes)
+    if num_positions % num_scenes != 0:
+        raise ValueError(
+            f"Number of positions ({num_positions}) in dataset config must be divisible by "
+            f"number of scenes ({num_scenes}) in the image file for '{dataset_config.name}'"
+        )
 
-    assert n_positions % num_scenes == 0, (
-        f"Number of positions ({n_positions}) in dataset config must be divisible by "
-        f"number of scenes ({num_scenes}) in the image file for dataset '{dataset_config.name}'"
-    )
-
-    num_pos_in_t = n_positions // num_scenes
+    num_pos_in_t = num_positions // num_scenes
     num_pos_in_s = num_scenes
 
     # Select which scenes to include in the converted file. By default,
@@ -66,6 +74,10 @@ def convert_dataset(
 
     # Define output zarr key using dataset name and FMS id
     zarr_key = f"{dataset_config.date}_{dataset_config.fmsid}"
+
+    # Set max timepoints to dataset duration if not provided.
+    if max_timepoints is None:
+        max_timepoints = dataset_config.duration
 
     count = 0
     for scene_index in range(num_pos_in_s):
@@ -80,7 +92,12 @@ def convert_dataset(
             logger.info("Writing zarr to '%s'", full_zarr_path)
 
             scene = get_delayed_array_for_position(
-                position_index, dataset_config, channel_names, num_pos_in_t, scene_index, img
+                position_index=position_index,
+                dataset_config=dataset_config,
+                channel_names=channel_names,
+                num_positions=num_pos_in_t,
+                scene_index=scene_index,
+                img=img,
             )
             write_scene(
                 img=scene,
@@ -93,6 +110,6 @@ def convert_dataset(
             )
             count += 1
 
-            if count >= max_positions:
+            if max_positions is not None and count >= max_positions:
                 print("Demo mode is ON. Processing only the first scene.")
                 return
