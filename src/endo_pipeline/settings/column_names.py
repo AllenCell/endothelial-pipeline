@@ -405,10 +405,10 @@ class ColumnName:
         V_STD = "optical_flow_std_v_dt1"
         """Standard deviation of the v (y) components of the optical flow vectors in a crop."""
 
-        SPEED_ABOVE_1_COUNT = "speed_above_1_count"
+        SPEED_ABOVE_1_COUNT = "speed_above_1_count_dt1"
         """Number of pixels whose speed exceeds the threshold (fast-coherence feature)."""
 
-        UNIT_VECTOR_MEAN_FAST = "optical_flow_mean_unit_vector_fast"
+        UNIT_VECTOR_MEAN_FAST = "optical_flow_mean_unit_vector_fast_dt1"
         """Mean unit vector coherence computed only over fast pixels."""
 
         RADIAL_COHERENCE = "optical_flow_radial_coherence_dt1"
