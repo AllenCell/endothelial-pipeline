@@ -3,10 +3,10 @@ from typing import Any
 import dask.array as da
 from bioio import BioImage
 
-from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs import DatasetConfig
 
 
-def get_included_scenes(dataset_name: str) -> list | range:
+def get_included_scenes(dataset_config: DatasetConfig) -> list | range:
     """
     Retrieve the list of scenes to include for a given dataset if specified
     in the dataset config file.
@@ -24,7 +24,6 @@ def get_included_scenes(dataset_name: str) -> list | range:
         all scenes are included by default.
     """
 
-    dataset_config = load_dataset_config(dataset_name)
     include_scenes = dataset_config.include_scenes
 
     # by default, include all scenes
@@ -36,7 +35,7 @@ def get_included_scenes(dataset_name: str) -> list | range:
 
 def get_delayed_array_for_position(
     pos: int,
-    dataset_name: str,
+    dataset_config: DatasetConfig,
     channel_names: list,
     number_positions: int = 6,
     scene_index: int = 0,
@@ -71,8 +70,6 @@ def get_delayed_array_for_position(
         the given position.
     """
 
-    dataset_config = load_dataset_config(dataset_name)
-
     # Load the dataset as a BioImage object
     img = img if img else BioImage(dataset_config.original_path)
     # Set the scene of the image
@@ -82,7 +79,7 @@ def get_delayed_array_for_position(
     timepoints = range(pos, t_final, number_positions)
     # Get the indices of the GFP and brightfield channels
 
-    indices = load_dataset_config(dataset_name).original_channel_indices
+    indices = dataset_config.original_channel_indices
     channels = [indices.channel_488, indices.brightfield]
 
     if indices.channel_405 is not None:

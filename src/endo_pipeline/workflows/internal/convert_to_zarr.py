@@ -80,8 +80,7 @@ def main(
 
         dataset_config = load_dataset_config(dataset_name)
         convert_dataset(
-            dataset=dataset_config.name,
-            output_dataset_name=dataset_config.date,
+            dataset_config=dataset_config,
             output_path=output_path,
             channel_names=channel_names,
             demo_mode=DEMO_MODE,
