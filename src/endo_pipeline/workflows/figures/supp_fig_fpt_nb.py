@@ -1,10 +1,12 @@
 # %% import libraries and set preliminary variables
 import matplotlib.pyplot as plt
 
-from endo_pipeline.io import get_output_path
-from endo_pipeline.io.input import load_dataframe
+from endo_pipeline.io import get_output_path, load_dataframe
+from endo_pipeline.library.analyze.track_integration import get_line_fit_and_filtered_df
+from endo_pipeline.library.visualize.figure_fpt import generate_first_passage_time_example
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
 from endo_pipeline.library.visualize.integration.track_integration_viz import (
+    plot_first_passage_time_correlations,
     plot_first_passage_time_parameter_sweep,
 )
 from endo_pipeline.library.visualize.summary_plot import (
@@ -22,10 +24,65 @@ plt.style.use("endo_pipeline.figure")
 
 save_dir = get_output_path("supp_fig_fpt")
 
+low_flow_dataset = FPT_FIG_EXAMPLES["low_flow"]
 high_flow_dataset = FPT_FIG_EXAMPLES["high_flow"]
 
 fig_width = 6.1
-fig_height = 5.5
+fig_height = 7.7
+
+
+# %% Generate example of a tracked and grid-crop trajectory starting from the same bin
+# in feature space traveling to the fixed point
+trajectory_example_filepath = generate_first_passage_time_example(
+    dataset_name=low_flow_dataset.dataset_name,
+    example_fixed_point_index=low_flow_dataset.fixed_point_index,
+    example_tracked_crop_index=low_flow_dataset.tracked_crop_index,
+    example_grid_crop_index=low_flow_dataset.grid_crop_index,
+    out_dir=save_dir,
+)
+
+# %% Load the first passage time statistics dataframe to make correlation plots
+# from and fit lines to the points in the correlation plots
+fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_MANIFEST_NAME)
+metric_to_plot = "mean"
+line_fit_df, fpt_stats_df_no_nan = get_line_fit_and_filtered_df(
+    first_passage_time_manifest=fpt_manifest, metric_to_fit=metric_to_plot
+)
+
+# %% make correlation plots for low and high flow examples
+correlation_plot_filepaths: dict = {}
+for example in FPT_FIG_EXAMPLES:
+    dataset_name = FPT_FIG_EXAMPLES[example].dataset_name
+    fp_idx = FPT_FIG_EXAMPLES[example].fixed_point_index
+
+    # this check should be done in case the fixed point index is not an integer
+    # because if it is a float then it will cause an issue when trying to save
+    # a plot with `save_plot_to_path` (because the decimal point shows up in the filename)
+    if not isinstance(fp_idx, int):
+        raise ValueError(
+            f"Expected fixed point index to be an integer, but got {fp_idx} for example {example}"
+        )
+
+    # extract the line fit results for this dataset and fixed point
+    line_fit_result = line_fit_df[
+        (line_fit_df[Column.DATASET] == dataset_name)
+        & (line_fit_df[Column.VectorField.FIXED_POINT_INDEX] == fp_idx)
+    ]
+    df = fpt_stats_df_no_nan[
+        (fpt_stats_df_no_nan[Column.DATASET] == dataset_name)
+        & (fpt_stats_df_no_nan[Column.VectorField.FIXED_POINT_INDEX] == fp_idx)
+    ]
+    fp_stability = df[Column.VectorField.STABILITY].unique().item()
+    filename = plot_first_passage_time_correlations(
+        dataset_name=dataset_name,
+        first_passage_time_stats_df=df,
+        line_fit_df=line_fit_result,
+        fixed_point_id=fp_idx,
+        fixed_point_stability=fp_stability,
+        out_dir=save_dir,
+        metric_to_plot=metric_to_plot,
+    )
+    correlation_plot_filepaths[example] = filename
 
 # %% Load the first passage time statistics dataframe to make correlation plots
 # from and get the fitted lines
@@ -79,27 +136,51 @@ first_passage_path = plot_cross_dataset_summaries(
 panels = [
     FigurePanel(
         letter="A",
-        path=fp_param_sweep_fpt,
+        path=trajectory_example_filepath,
         x_position=0,
         y_position=0,
+        x_offset=0,
+        y_offset=0.1,
+    ),
+    FigurePanel(
+        letter="B",
+        path=correlation_plot_filepaths["low_flow"],
+        x_position=2.1,
+        y_position=0,
+        x_offset=0,
+        y_offset=0.1,
+    ),
+    FigurePanel(
+        letter="C",
+        path=correlation_plot_filepaths["high_flow"],
+        x_position=4.1,
+        y_position=0,
+        x_offset=0,
+        y_offset=0.1,
+    ),
+    FigurePanel(
+        letter="D",
+        path=fp_param_sweep_fpt,
+        x_position=0,
+        y_position=2.2,
         x_offset=0,
         y_offset=0,
     ),
     FigurePanel(
-        letter="B",
+        letter="E",
         path=fp_param_sweep_num_traj,
         x_position=3,
-        y_position=0,
+        y_position=2.2,
         x_offset=0.1,
         y_offset=0,
     ),
     FigurePanel(
-        letter="C",
+        letter="F",
         path=first_passage_path,
         x_position=0,
-        y_position=3,
+        y_position=5.1,
         x_offset=0.1,
-        y_offset=0,
+        y_offset=0.1,
     ),
 ]
 
