@@ -350,7 +350,7 @@ def convert_dataset_to_zarr(
     # include all available scenes.
     include_scenes = dataset_config.include_scenes
     if include_scenes is None:
-        include_scenes = range(num_scenes)
+        include_scenes = list(range(num_scenes))
 
     # Define output zarr key using dataset name and FMS id
     zarr_key = f"{dataset_config.date}_{dataset_config.fmsid}"
