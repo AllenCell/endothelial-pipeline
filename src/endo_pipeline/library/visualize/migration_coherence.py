@@ -481,9 +481,31 @@ def plot_optical_flow_histogram(
 def build_box_for_3d_plot(
     bin_edges: tuple[tuple[float, float], ...],
 ) -> tuple:
-    """Build the 8 corner vertices of the example bin (a rectangular cuboid in
-    feature space), then identify the 12 axis-aligned edges by keeping only
-    vertex pairs whose distance equals one of the three bin side lengths.
+    """Build the 8 corner vertices and 12 edges of a bin defined by the provided bin edges.
+
+    Constructs a rectangular cuboid in feature space from the provided bin
+    edges, then identifies the 12 axis-aligned edges by keeping only vertex
+    pairs whose distance equals one of the three bin side lengths.
+
+    Parameters
+    ----------
+    bin_edges
+        A tuple of three ``(min, max)`` pairs defining the extent of the bin
+        along each of the three feature axes. Expected to be a tuple of the form:
+        ```
+        (
+            (x_min, x_max),
+            (y_min, y_max),
+            (z_min, z_max),
+        )
+        ```
+
+    Returns
+    -------
+    vertices : list[tuple[float, float, float]]
+        The 8 corner vertices of the cuboid.
+    edges : list[tuple[tuple, tuple]]
+        The 12 axis-aligned edges, each represented as a pair of vertices.
     """
 
     bin_sizes = np.absolute(np.subtract.reduce(bin_edges, axis=1))
@@ -542,12 +564,12 @@ def make_example_migration_coherence(
 
         x_col_name, y_col_name, z_col_name = feature_column_names
 
+        half_bin_size = MIGRATION_COHERENCE_COLORMAP_BIN_SIZE / 2
+        bin_centers = tuple(
+            float(fixed_points_df[col].item()) for col in (x_col_name, y_col_name, z_col_name)
+        )
         bin_edges: tuple[tuple[float, float], ...] = tuple(
-            (
-                float(fixed_points_df[col].item() - MIGRATION_COHERENCE_COLORMAP_BIN_SIZE / 2),
-                float(fixed_points_df[col].item() + MIGRATION_COHERENCE_COLORMAP_BIN_SIZE / 2),
-            )
-            for col in (x_col_name, y_col_name, z_col_name)
+            (center - half_bin_size, center + half_bin_size) for center in bin_centers
         )
         _, edges = build_box_for_3d_plot(bin_edges=bin_edges)
 
