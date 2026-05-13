@@ -6,8 +6,9 @@ from bioio_base.types import PhysicalPixelSizes
 from skimage.measure import regionprops
 from tqdm import tqdm
 
-from endo_pipeline.io import load_image_from_path
+from endo_pipeline.io import load_image
 from endo_pipeline.library.process.general_image_preprocessing import save_image_output
+from endo_pipeline.manifests import ImageLocation
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.image_data import (
     IMG_SHAPE_RESOLUTION_1_3i_X,
@@ -127,7 +128,8 @@ def check_crop_indices_against_existing_segmentations(df: pd.DataFrame, out_dir:
     tp = np.unique(df[Column.TIMEPOINT]).item()
     fp = out_dir / str(pos) / make_grid_seg_filename(pos, tp)
 
-    segmentation = load_image_from_path(fp)
+    location = ImageLocation(path=fp)
+    segmentation = load_image(location)
 
     segprops = regionprops(label_image=segmentation.squeeze())
     for prop in segprops:
