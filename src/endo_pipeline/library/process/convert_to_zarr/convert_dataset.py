@@ -79,7 +79,7 @@ def convert_dataset(
     if max_timepoints is None:
         max_timepoints = dataset_config.duration
 
-    count = 0
+    position_count = 0
     for scene_index in range(num_pos_in_s):
         # If current scene index is not in list of scenes to include, skip.
         if scene_index not in include_scenes:
@@ -88,7 +88,7 @@ def convert_dataset(
         logger.info("Processing scene '%s'", img.scenes[scene_index])
 
         for position_index in range(num_pos_in_t):
-            full_zarr_path = output_path / zarr_key / f"{zarr_key}_P{count}.ome.zarr"
+            full_zarr_path = output_path / zarr_key / f"{zarr_key}_P{position_count}.ome.zarr"
             logger.info("Writing zarr to '%s'", full_zarr_path)
 
             scene = get_delayed_array_for_position(
@@ -108,8 +108,8 @@ def convert_dataset(
                 physical_pixel_sizes=physical_pixel_sizes,
                 interval_min=interval_min,
             )
-            count += 1
+            position_count += 1
 
-            if max_positions is not None and count >= max_positions:
-                print("Demo mode is ON. Processing only the first scene.")
+            if max_positions is not None and position_count >= max_positions:
+                logger.info("Max number of positions reached. Skipping remaining positions.")
                 return

@@ -8,33 +8,6 @@ from endo_pipeline.configs import DatasetConfig
 logger = logging.getLogger(__name__)
 
 
-def get_included_scenes(dataset_config: DatasetConfig) -> list | range:
-    """
-    Retrieve the list of scenes to include for a given dataset if specified
-    in the dataset config file.
-
-    Parameters
-    ----------
-    dataset_name : str
-        The name of the dataset for which to retrieve included scenes.
-
-    Returns
-    -------
-    list
-        A list of scene indices to include. If no specific scenes are defined
-        in the dataset config file,
-        all scenes are included by default.
-    """
-
-    include_scenes = dataset_config.include_scenes
-
-    # by default, include all scenes
-    if include_scenes is None:
-        include_scenes = range(len(BioImage(dataset_config.original_path).scenes))
-
-    return include_scenes
-
-
 def get_delayed_array_for_position(
     position_index: int,
     dataset_config: DatasetConfig,

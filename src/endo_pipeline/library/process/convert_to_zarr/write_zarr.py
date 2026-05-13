@@ -3,11 +3,9 @@ from pathlib import Path
 
 import dask.array as da
 import numpy as np
-from bioio import BioImage
 from bioio.writers import ome_zarr_writer_2 as ome_zarr_writer
 from bioio_base.types import PhysicalPixelSizes
 
-from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.settings.image_data import AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x
 
 logger = logging.getLogger(__name__)
@@ -19,42 +17,22 @@ DEFAULT_Z_SCALING = [1.0, 1.0]
 """Default scaling factors for the Z dimension."""
 
 
-def get_sldy_metadata(dataset: str) -> dict:
-    """
-    Retrieve sldy metadata for the given dataset.
-
-    Parameters
-    ----------
-    dataset : str
-        The name of the dataset.
-
-    Returns
-    -------
-    dict
-        The metadata for the dataset as a dictionary of dictionaries.
-    """
-
-    dataset_config = load_dataset_config(dataset)
-    im = BioImage(dataset_config.original_path)
-    metadata = im.metadata
-    return metadata
-
-
 def get_sldy_pixel_sizes(metadata: dict) -> PhysicalPixelSizes:
     """
     Retrieve the physical pixel sizes for the given sldy metadata.
 
     Parameters
     ----------
-    metadata : dict
+    metadata
         The metadata as a dictionary of dictionaries from a .sldy file
         opened with BioImage.
 
     Returns
     -------
-    PhysicalPixelSizes
+    :
         The physical pixel sizes for the dataset.
     """
+
     xy_pixel_size_in_um = metadata["image_record"]["CLensDef70"]["mMicronPerPixel"]
     optovar_mag = metadata["image_record"]["COptovarDef70"]["mMagnification"]
     z_step_um = metadata["channel_record"]["CExposureRecord70"][0]["mInterplaneSpacing"]
@@ -68,6 +46,7 @@ def get_sldy_pixel_sizes(metadata: dict) -> PhysicalPixelSizes:
         Y=xy_pixel_size_in_um / optovar_mag,
         X=xy_pixel_size_in_um / optovar_mag,
     )
+
     return physical_pixel_sizes
 
 
@@ -192,7 +171,7 @@ def write_scene(
     if interval_min is None:
         interval_min = -1
 
-    image_shape = tuple(max_timepoints, *img.shape[1:])
+    image_shape = (max_timepoints, *img.shape[1:])
     zarr_level_shapes = get_zarr_level_shapes(image_shape, xy_scaling, z_scaling)
     zarr_chunk_dims = get_zarr_chunk_dimensions(zarr_level_shapes)
 
@@ -205,7 +184,8 @@ def write_scene(
     )
 
     logger.debug("Writing image in batches of timepoint")
-    channels_to_use = list(range(image_shape[1]))
+    num_channels = int(image_shape[1])
+    channels_to_use = list(range(num_channels))
     writer.write_t_batches_array(
         img[:max_timepoints, :, :, :, :], channels=channels_to_use, tbatch=4
     )
@@ -230,6 +210,6 @@ def write_scene(
         channel_names=channel_names,
         physical_dims=physical_scale,
         physical_units=physical_units,
-        channel_colors=[0xFFFFFF for i in range(image_shape[1])],
+        channel_colors=[0xFFFFFF for i in range(num_channels)],
     )
     writer.write_metadata(meta)

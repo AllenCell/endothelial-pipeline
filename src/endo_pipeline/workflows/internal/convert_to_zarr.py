@@ -69,7 +69,10 @@ def main(
         datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
 
     if DEMO_MODE:
-        logger.info("Running in DEMO MODE. Only converting the first dataset.")
+        logger.info(
+            "Running in DEMO MODE. "
+            "Only converting the first 10 timepoints of the first scene in the first dataset."
+        )
         output_path = get_output_path("zarr_conversion_demo")
         datasets = datasets[:1]
         max_timepoints = 10
@@ -79,7 +82,7 @@ def main(
         max_positions = None
 
     if output_path is None:
-        logger.info("DEMO_MODE is ON or no output path provided. Using default output path.")
+        logger.info("No output path provided. Using default output path.")
         output_path = get_output_path("zarr_conversion")
 
     for dataset_name in datasets:
