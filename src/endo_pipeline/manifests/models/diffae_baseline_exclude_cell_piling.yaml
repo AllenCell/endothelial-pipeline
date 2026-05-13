@@ -16,21 +16,51 @@ parameters:
 locations:
   20250927_no_log_norm:
     mlflowid: 00edfbc56e4a4c788a62cd6194db1c35
+    fmsid: null
+    path: null
+    s3uri: null
   20250926_with_log_norm:
     mlflowid: 924b23d33f3f48fc8e8545e34ed1ee34
+    fmsid: null
+    path: null
+    s3uri: null
   20260207_latent_8:
     mlflowid: bfad1b1919a54a3dbaaeafae21e19417
+    fmsid: null
+    path: null
+    s3uri: null
   20260205_latent_16:
     mlflowid: bcebb9a42b4e40868e5fefa1e8a7f741
+    fmsid: null
+    path: null
+    s3uri: null
   20260203_latent_32:
     mlflowid: 08d6e818cf81403789b26662db7372ab
+    fmsid: null
+    path: null
+    s3uri: null
   20260206_latent_64:
     mlflowid: 68bed8f48996415fb6492cd3692d7b64
+    fmsid: null
+    path: null
+    s3uri: null
   20260127_latent_128:
     mlflowid: 38e56279c6c34de5b65ac41f65088f69
+    fmsid: null
+    path: null
+    s3uri: null
   20260122_latent_256:
     mlflowid: 5d44dc8573324a00a8ab15609bac2603
+    fmsid: null
+    path: null
+    s3uri: null
   20251110_latent_512:
     mlflowid: 1fe9d12ed4db459d900b947ce0702a45
+    fmsid: null
+    path: null
+    s3uri: null
   20251110_latent_1024:
     mlflowid: 0b18c1dfe1124d2595ef28fca0ca7440
+    fmsid: null
+    path: null
+    s3uri: null
