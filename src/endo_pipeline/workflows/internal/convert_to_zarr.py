@@ -22,16 +22,23 @@ def main(
 
     ## Example usage
 
+    To run the workflow in demo mode:
+
     ```bash
-    # run workflow in demo mode
-    endopipe convert-to-zarr -vd
+    uv run endopipe convert-to-zarr -vd
+    ```
 
-    # run workflow for single dataset
-    endopipe convert-to-zarr --datasets 20250224_20X
+    To run the workflow for a single dataset:
 
-    # run workflow to converted files to program location
+    ```bash
+    uv run endopipe convert-to-zarr --datasets 20250224_20X
+    ```
+
+    To run the workflow and save converted Zarrs to the internal location:
+
+    ```bash
     export OUTPUT_PATH=//allen/aics/endothelial/morphological_features/image_data/converted_zarrs
-    endopipe convert-to-zarr --output-path $OUTPUT_PATH
+    uv run endopipe convert-to-zarr --output-path $OUTPUT_PATH
     ```
 
     ## Workflow demo
