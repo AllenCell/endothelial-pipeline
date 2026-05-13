@@ -12,7 +12,7 @@ def main(
     """
     Validate Zarr conversion by checking image shapes and channels.
 
-    #validation #zarr-conversion
+    #zarr-conversion #validation
 
     Parameters
     ----------
