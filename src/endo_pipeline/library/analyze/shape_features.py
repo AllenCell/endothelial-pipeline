@@ -10,6 +10,8 @@ import pandas as pd
 from dask.array import Array
 from skimage import draw, filters, graph, measure, morphology, segmentation
 
+from endo_pipeline.library.process.general_image_preprocessing import ImageProcessingArgs
+
 logger = logging.getLogger(__name__)
 
 
@@ -1828,7 +1830,6 @@ def get_nuclei_features_from_dataset_at_timepoint(
     position: int,
     tp: int,
     out_dir: Path,
-    channel_names: tuple = ("EGFP", "BF"),
     save_output: bool = True,
 ) -> pd.DataFrame:
     """
@@ -1848,6 +1849,7 @@ def get_nuclei_features_from_dataset_at_timepoint(
     # Load segmentations and image
     dim_order = DIMENSION_ORDER
     dataset_config = load_dataset_config(dataset_name)
+    channel_names = dataset_config.channel_names
 
     nuc_manifest = load_image_manifest("nuclear_labelfree_seg_zarr")
     nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_config, position)
@@ -1901,22 +1903,16 @@ def get_nuclei_features_from_dataset_at_timepoint(
     return nuc_feats_df
 
 
-def build_cdh5_measured_features_tables_multiproc_wrapper(args: dict) -> None:
+def build_cdh5_measured_features_tables_multiproc_wrapper(args: ImageProcessingArgs) -> None:
     """Build and save measured features tables using multiprocessing."""
 
-    dataset_name = args["dataset_name"]
-    position = args["position"]
-    tp = args["T"]
-    save_output = args["save_output"]
-    out_dir = args["output_dir"]
-    create_validation_image = args["is_validation_image"]
     build_cdh5_measured_features_tables(
-        dataset_name,
-        tp,
-        out_dir,
-        position,
-        save_output=save_output,
-        create_validation_image=create_validation_image,
+        out_dir=args.output_dir,
+        dataset_name=args.dataset_name,
+        tp=args.timepoint,
+        position=args.position,
+        save_output=args.save_output,
+        create_validation_image=args.is_validation_image,
     )
 
 
