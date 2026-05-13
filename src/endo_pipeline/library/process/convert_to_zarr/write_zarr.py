@@ -143,6 +143,7 @@ def write_scene(
     full_zarr_path: str,
     dataset: str,
     position: int,
+    max_timepoints: int,
     physical_pixel_sizes: PhysicalPixelSizes,
     interval_min: float,
     xy_scaling: list[float] | None = None,
@@ -163,6 +164,8 @@ def write_scene(
         The name of the dataset.
     position : int
         The position index.
+    max_timepoints
+        Maximum number of timepoints to convert
     physical_pixel_sizes : PhysicalPixelSizes
         The physical pixel sizes for the dataset.
     interval_min : float
@@ -183,21 +186,24 @@ def write_scene(
     if interval_min is None:
         interval_min = -1
 
-    zarr_chunk_dims_tuples = get_zarr_chunk_dims(im.shape, xy_scaling, z_scaling)
+    image_shape = tuple(max_timepoints, *im.shape[1:])
+    zarr_chunk_dims_tuples = get_zarr_chunk_dims(image_shape, xy_scaling, z_scaling)
 
     writer = ome_zarr_writer.OmeZarrWriter()
     writer.init_store(
         output_path=full_zarr_path,
-        shapes=get_level_shapes(im.shape, xy_scaling, z_scaling),
+        shapes=get_level_shapes(image_shape, xy_scaling, z_scaling),
         chunk_sizes=zarr_chunk_dims_tuples,
         dtype=im.dtype,
     )
 
     # Use all channels, if channels are not specific by user
-    channels_to_use = list(range(im.shape[1]))
+    channels_to_use = list(range(image_shape[1]))
 
     print("Writing images...")
-    writer.write_t_batches_array(im, channels=channels_to_use, tbatch=4)
+    writer.write_t_batches_array(
+        im[:max_timepoints, :, :, :, :], channels=channels_to_use, tbatch=4
+    )
 
     physical_scale = {
         "c": 1.0,  # default value for channel
@@ -220,7 +226,7 @@ def write_scene(
         channel_names=channels,
         physical_dims=physical_scale,
         physical_units=physical_units,
-        channel_colors=[0xFFFFFF for i in range(im.shape[1])],
+        channel_colors=[0xFFFFFF for i in range(image_shape[1])],
     )
     print("Writing metadata...")
     writer.write_metadata(meta)

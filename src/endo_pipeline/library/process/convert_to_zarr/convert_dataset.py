@@ -47,6 +47,7 @@ def convert_dataset(
     interval_min = dataset_config.time_interval_in_minutes
     fmsid = dataset_config.fmsid
     n_positions = dataset_config.n_total_positions
+    max_timepoints = 10 if demo_mode else dataset_config.duration
 
     assert n_positions % len(img.scenes) == 0, (
         f"Number of positions ({n_positions}) in data_config.yaml must be divisible by "
@@ -78,11 +79,12 @@ def convert_dataset(
                 output,
                 dataset,
                 position,
+                max_timepoints,
                 physical_pixel_sizes,
                 interval_min,
             )
             count += 1
 
-        if demo_mode:
-            print("Demo mode is ON. Processing only the first scene.")
-            break
+            if demo_mode and count > 0:
+                print("Demo mode is ON. Processing only the first scene.")
+                return
