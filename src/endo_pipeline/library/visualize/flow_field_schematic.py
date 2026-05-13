@@ -438,6 +438,9 @@ def _make_acf_r_squared_plot(
     # storing in r_squared_dict
     dataset_names = get_datasets_in_collection("timelapse")
     for dataset_name in dataset_names:
+        # temporary until flow switch deprecation goes through
+        if dataset_name not in autocorrelation_manifest.locations:
+            continue
         acf_dataset = load_dataframe(autocorrelation_manifest.locations[dataset_name])
         # make sure FEATURE entries are sorted in the same order as column_names
         acf_dataset_sorted = acf_dataset.copy()
