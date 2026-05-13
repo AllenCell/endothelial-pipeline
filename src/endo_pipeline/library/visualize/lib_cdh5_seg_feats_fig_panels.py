@@ -1,3 +1,4 @@
+import textwrap
 from pathlib import Path
 from typing import Literal, cast
 
@@ -6,6 +7,7 @@ import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
 from matplotlib.layout_engine import ConstrainedLayoutEngine
+from matplotlib.patches import Patch
 from skimage.color import label2rgb
 from skimage.color.colorlabel import DEFAULT_COLORS
 from skimage.exposure import rescale_intensity
@@ -40,6 +42,7 @@ from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.examples import CDH5_SEG_FIG_EXAMPLE
 from endo_pipeline.settings.figures import FONT_FAMILY, FONTSIZE_SMALL, PDF_FONT_TYPE
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import SEGMENTATION_FEATURE_COLUMNS
 
 IMAGE_PANEL_SIZE = (3, 3)
@@ -278,7 +281,7 @@ def make_classic_feature_panels(dataset_name: str, out_dir: Path) -> dict[str, P
 
     # Set some global plotting parameters to be consistent
     # with the other plots in the manuscript
-    plt.style.use("default")
+    plt.style.use("endo_pipeline.figure")
     plt.rcParams.update(
         {
             "pdf.fonttype": PDF_FONT_TYPE,
@@ -360,8 +363,20 @@ def make_classic_feature_panels(dataset_name: str, out_dir: Path) -> dict[str, P
             mark_perpendicular(ax, color="lightgrey")
         if feat == Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DOTPROD:
             ax.axhline(0, color="lightgrey", linestyle="--", linewidth=1)
-        ax.axvline(imaging_start_time, color="limegreen", linestyle="--", linewidth=1)
-        ax.axvline(steady_state_time_shifted, color="darkturquoise", linestyle="--", linewidth=1)
+        ax.axvline(
+            imaging_start_time,
+            color="limegreen",
+            linestyle="--",
+            linewidth=1,
+            label="Start of imaging",
+        )
+        ax.axvline(
+            steady_state_time_shifted,
+            color="darkturquoise",
+            linestyle="--",
+            linewidth=1,
+            label="Start of steady state",
+        )
 
         # save the panel in high quality and as a PNG thumbnail
         # (PNG thumbnail is for convenient use in presentations)
@@ -379,8 +394,9 @@ def make_classic_feature_panels(dataset_name: str, out_dir: Path) -> dict[str, P
 
 
 def make_feature_contact_sheet(
-    datasets: list[str],
+    dataset_name: str,
     features: list[ColumnNameType],
+    ncols: int,
     out_dir: Path,
     figure_width: float | None = None,
     figure_height: float | None = None,
@@ -410,28 +426,15 @@ def make_feature_contact_sheet(
     :
         Path to the saved SVG figure.
     """
-    plt.style.use("default")
-    plt.rcParams.update(
-        {
-            "pdf.fonttype": PDF_FONT_TYPE,
-            "font.family": FONT_FAMILY,
-            "axes.labelsize": FONTSIZE_SMALL,
-            "xtick.labelsize": FONTSIZE_SMALL,
-            "ytick.labelsize": FONTSIZE_SMALL,
-        }
-    )
+    plt.style.use(
+        "endo_pipeline.figure"
+    )  # set some global plotting parameters to be consistent with the other plots in the manuscript
 
     time_col = Column.SegData.TIME_HRS_SINCE_FLOW
     time_metadata = COLUMN_METADATA[time_col]
 
-    periodic_feats = [
-        Column.SegData.NUCLEI_POSITION_ANGLE_DEG,
-        Column.SegData.CENTROID_VELOCITY_ANGLE_DEG,
-        Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG,
-    ]
-
-    nrows = len(datasets)
-    ncols = len(features)
+    nrows = len(features) // ncols
+    nrows += 1 if len(features) % ncols > 0 else 0
     panel_w, _ = PLOT_PANEL_SIZE
     if figure_width:
         panel_w = figure_width / ncols
@@ -440,98 +443,138 @@ def make_feature_contact_sheet(
     else:
         panel_h = panel_w  # make panels square
 
+    fig_width = panel_w * ncols
+    fig_height = panel_h * nrows
     fig, axes = plt.subplots(
         nrows,
         ncols,
-        figsize=(panel_w * ncols, panel_h * nrows),
+        figsize=(fig_width, fig_height * 0.65),
         sharex=True,
         squeeze=False,
     )
-    fig.set_layout_engine(ConstrainedLayoutEngine(w_pad=0.05, h_pad=0.05, hspace=0.05, wspace=0.05))
+    fig.set_layout_engine(ConstrainedLayoutEngine(w_pad=0.1, h_pad=0.1, hspace=0.05, wspace=0.05))
+    layout_engine = fig.get_layout_engine()
+    if layout_engine is not None:
+        # reserve left margin for the vertical label and top margin for the legend
+        layout_engine.set(**{"rect": [0.08, 0, 1, 0.94]})
 
-    for i, dataset_name in enumerate(datasets):
-        dataset_config = load_dataset_config(dataset_name)
-        df = _load_seg_feats_df(dataset_config, set(features))
+    features_reshaped: np.ndarray = np.reshape(list(features), newshape=(nrows, ncols))
+    dataset_config = load_dataset_config(dataset_name)
+    df = _load_seg_feats_df(dataset_config, set(features))
 
-        assert dataset_config.time_interval_in_minutes is not None
-        assert dataset_config.timepoint_annotations is not None
+    assert dataset_config.time_interval_in_minutes is not None
+    assert dataset_config.timepoint_annotations is not None
 
-        flow_start_time_hrs = (
-            dataset_config.flow_conditions[0].start * dataset_config.time_interval_in_minutes / 60.0
+    flow_start_time_hrs = (
+        dataset_config.flow_conditions[0].start * dataset_config.time_interval_in_minutes / 60.0
+    )
+    imaging_start_time = -flow_start_time_hrs
+    steady_state_time_p0 = cast(
+        tuple[int, int],
+        dataset_config.timepoint_annotations[TimepointAnnotation.NOT_STEADY_STATE][0][0],
+    )
+    steady_state_time_shifted = (
+        steady_state_time_p0[1] * dataset_config.time_interval_in_minutes / 60.0
+        - flow_start_time_hrs
+    )
+
+    for (i, j), feat in np.ndenumerate(features_reshaped):
+        ax = axes[i, j]
+        feature_metadata = COLUMN_METADATA[feat]
+
+        if feat not in df.columns:
+            ax.set_visible(False)
+            continue
+
+        binwidth = None
+        if time_metadata.bin_width and feature_metadata.bin_width:
+            binwidth = (time_metadata.bin_width, feature_metadata.bin_width)
+
+        sns.histplot(
+            data=df,
+            x=time_col,
+            y=str(feat),
+            binwidth=binwidth,
+            cmap="inferno",
+            stat="density",
+            ax=ax,
+            vmin=0,
         )
-        imaging_start_time = -flow_start_time_hrs
-        steady_state_time_p0 = cast(
-            tuple[int, int],
-            dataset_config.timepoint_annotations[TimepointAnnotation.NOT_STEADY_STATE][0][0],
+        cax = ax.inset_axes([1.05, 0, 0.05, 1])
+        mappable = ax.collections[-1]
+        fig.colorbar(mappable, cax=cax)  # , label="Density")
+        cax.tick_params(labelsize=FONTSIZE_SMALL)
+        ax.set_box_aspect(1)
+        ax.set_facecolor("grey")
+
+        adjust_axes_ticks(
+            ax=ax,
+            x_data=df[time_col],
+            y_data=df[feat],
+            x_feature_metadata=time_metadata,
+            y_feature_metadata=feature_metadata,
+            x_minor_ticks=True,
+            y_minor_ticks=True,
         )
-        steady_state_time_shifted = (
-            steady_state_time_p0[1] * dataset_config.time_interval_in_minutes / 60.0
-            - flow_start_time_hrs
+
+        ax.axvline(
+            imaging_start_time,
+            color="limegreen",
+            linestyle="--",
+            linewidth=1,
+            label="Start of imaging",
+        )
+        ax.axvline(
+            steady_state_time_shifted,
+            color="darkturquoise",
+            linestyle="--",
+            linewidth=1,
+            label="Start of steady state",
         )
 
-        for j, feat in enumerate(features):
-            ax = axes[i, j]
-            feature_metadata = COLUMN_METADATA[feat]
-
-            if feat not in df.columns:
-                ax.set_visible(False)
-                continue
-
-            binwidth = None
-            if time_metadata.bin_width and feature_metadata.bin_width:
-                binwidth = (time_metadata.bin_width, feature_metadata.bin_width)
-
-            sns.histplot(
-                data=df,
-                x=time_col,
-                y=str(feat),
-                binwidth=binwidth,
-                cmap="inferno",
-                ax=ax,
+        # Feature label at top of each column (first row only)
+        if feat == "centroid_velocity_angle_deg":
+            feat_label = textwrap.fill(
+                COLUMN_METADATA["centroid_velocity_angle_deg"].label_with_unit, width=16
             )
-            ax.set_box_aspect(1)
-            ax.set_facecolor("grey")
+            ax.set_ylabel(feat_label, fontsize=FONTSIZE_SMALL, labelpad=2)
+        else:
+            ax.set_ylabel(feature_metadata.label_with_unit, fontsize=FONTSIZE_SMALL, labelpad=2)
 
-            adjust_axes_ticks(
-                ax=ax,
-                x_data=df[time_col],
-                y_data=df[feat],
-                x_feature_metadata=time_metadata,
-                y_feature_metadata=feature_metadata,
-                x_minor_ticks=True,
-                y_minor_ticks=True,
-            )
+        # Time axis label at the bottom of each column (last row only)
+        ax.set_xlabel(time_metadata.label_with_unit, fontsize=FONTSIZE_SMALL, labelpad=2)
 
-            ax.axvline(imaging_start_time, color="limegreen", linestyle="--", linewidth=1)
-            ax.axvline(
-                steady_state_time_shifted, color="darkturquoise", linestyle="--", linewidth=1
-            )
+        if j == ncols - 1:
+            cax.set_ylabel("Density", fontsize=FONTSIZE_SMALL, labelpad=4)
 
-            if feat in periodic_feats:
-                mark_parallel(ax, color="lightgrey")
-                mark_perpendicular(ax, color="lightgrey")
-            if feat == Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DOTPROD:
-                ax.axhline(0, color="lightgrey", linestyle="--", linewidth=1)
+    # Shear stress label on the left of each row
+    shear_stress = dataset_config.flow_conditions[0].shear_stress_bin
+    fig.text(
+        0.05,
+        0.5,
+        f"{shear_stress} dyn/cm{Unicode.SQUARED}",
+        va="center",
+        rotation="vertical",
+        fontdict={"fontsize": FONTSIZE_SMALL, "fontweight": "bold"},
+    )
 
-            # Clear individual axis titles and labels
-            ax.set_title("")
-            ax.set_xlabel("")
-            ax.set_ylabel("")
-
-            # Feature label at top of each column (first row only)
-            if i == 0:
-                ax.set_title(feature_metadata.label_with_unit, fontsize=FONTSIZE_SMALL)
-
-            # Time axis label at the bottom of each column (last row only)
-            if i == nrows - 1:
-                ax.set_xlabel(time_metadata.label_with_unit, fontsize=FONTSIZE_SMALL)
-
-            # Dataset label on the left of each row (first column only)
-            if j == 0:
-                ax.set_ylabel(dataset_config.date, fontsize=FONTSIZE_SMALL)
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    handles.append(Patch(facecolor="grey", edgecolor="none"))
+    labels.append("No data")
+    fig.legend(
+        handles,
+        labels,
+        fontsize=FONTSIZE_SMALL,
+        loc="upper left",
+        bbox_to_anchor=(0.15, 1.02),
+        ncol=3,
+        handletextpad=0.3,
+        columnspacing=0.8,
+        frameon=False,
+    )
 
     out_dir.mkdir(exist_ok=True, parents=True)
-    figure_name = "feature_contact_sheet"
+    figure_name = f"{dataset_name}_feature_contact_sheet"
     for fmt in [".svg", ".png"]:
         save_plot_to_path(
             figure=fig,

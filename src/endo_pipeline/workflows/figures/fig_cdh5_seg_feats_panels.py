@@ -12,12 +12,10 @@ def main(datasets: Datasets | None | Literal["figure"] = "figure") -> None:
     """
     from pathlib import Path
 
-    from endo_pipeline import figure_assets
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
     from endo_pipeline.library.visualize.lib_cdh5_seg_feats_fig_panels import (
-        make_classic_feature_panels,
         make_feature_contact_sheet,
         make_imaging_panels,
     )
@@ -28,6 +26,7 @@ def main(datasets: Datasets | None | Literal["figure"] = "figure") -> None:
     )
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
     from endo_pipeline.settings.workflow_defaults import DEFAULT_SEG_FEATURE_WORKFLOW_DATASETS
+    from endo_pipeline.workflows.figures import assets as figure_assets
 
     if datasets is None:
         datasets = get_datasets_in_collection(DEFAULT_SEG_FEATURE_WORKFLOW_DATASETS)
@@ -36,16 +35,14 @@ def main(datasets: Datasets | None | Literal["figure"] = "figure") -> None:
 
     out_dir = get_output_path(__file__)
 
+    # the panels produced by make_classic_feature_panels are arranged into
+    # the schematic in panel A using Adobe Illustrator, not here in the code
     make_imaging_panels(
         CDH5_SEG_FIG_EXAMPLE.dataset_name,
         CDH5_SEG_FIG_EXAMPLE.position,
         CDH5_SEG_FIG_EXAMPLE.timepoint,
         __file__,
     )
-
-    panels = {}
-    for dataset in datasets:
-        panels[dataset] = make_classic_feature_panels(dataset, out_dir / "classic_feature_panels")
 
     # make_contact_sheet of select features
     features = [
@@ -57,12 +54,16 @@ def main(datasets: Datasets | None | Literal["figure"] = "figure") -> None:
         Column.SegData.EDGE_FLUOR_MEAN,
     ]
 
-    classic_feat_fig_example_path = make_feature_contact_sheet(
-        datasets=list(datasets),
-        features=features,
-        out_dir=out_dir / "feature_contact_sheet",
-        figure_width=MAX_FIGURE_WIDTH - 0.1,
-    )
+    classic_feat_fig_example_paths = {}
+    for dataset in datasets:
+        classic_feat_fig_example_path = make_feature_contact_sheet(
+            dataset_name=dataset,
+            features=features,
+            ncols=3,
+            out_dir=out_dir / "feature_contact_sheet",
+            figure_width=5.5,
+        )
+        classic_feat_fig_example_paths[dataset] = classic_feat_fig_example_path
 
     schematic_dir = [Path(fp) for fp in figure_assets.__path__]
     schematic_name = "cdh5_classic_seg_schematic.svg"
@@ -73,7 +74,9 @@ def main(datasets: Datasets | None | Literal["figure"] = "figure") -> None:
         raise FileNotFoundError(
             f"Expected to find exactly one file matching {schematic_name} in {schematic_dir}, but found {len(schematic_fps)}: {schematic_fps}"
         )
-    panel_A_height = 3.2
+    panel_A_height = 3.05
+    panel_B_height = 2.3
+    panel_C_height = panel_B_height
 
     figure_panels = [
         FigurePanel(
@@ -82,15 +85,23 @@ def main(datasets: Datasets | None | Literal["figure"] = "figure") -> None:
             x_position=0,
             y_position=0,
             x_offset=0,
-            y_offset=0.1,
+            y_offset=0.0,
         ),
         FigurePanel(
             letter="B",
-            path=classic_feat_fig_example_path,
+            path=classic_feat_fig_example_paths[datasets[0]],
             x_position=0,
             y_position=panel_A_height,
             x_offset=0,
-            y_offset=0,
+            y_offset=0.05,
+        ),
+        FigurePanel(
+            letter="C",
+            path=classic_feat_fig_example_paths[datasets[1]],
+            x_position=0,
+            y_position=panel_A_height + panel_B_height + 0.05,
+            x_offset=0,
+            y_offset=0.05,
         ),
     ]
 
@@ -98,7 +109,7 @@ def main(datasets: Datasets | None | Literal["figure"] = "figure") -> None:
         figure_panels,
         out_dir / "cdh5_seg_feats_panels.svg",
         width=MAX_FIGURE_WIDTH,
-        height=panel_A_height + MAX_FIGURE_WIDTH * len(datasets) / len(features),
+        height=panel_A_height + panel_B_height + panel_C_height + 0.1,
     )
 
 
