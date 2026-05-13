@@ -57,7 +57,7 @@ def main(
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path
-    from endo_pipeline.library.process.convert_to_zarr.convert_dataset import convert_dataset
+    from endo_pipeline.library.process.zarr_conversion import convert_dataset_to_zarr
 
     logger = logging.getLogger(__name__)
 
@@ -89,7 +89,7 @@ def main(
         logger.info(f"Converting dataset: {dataset_name}")
 
         dataset_config = load_dataset_config(dataset_name)
-        convert_dataset(
+        convert_dataset_to_zarr(
             dataset_config=dataset_config,
             output_path=output_path,
             channel_names=channel_names,
