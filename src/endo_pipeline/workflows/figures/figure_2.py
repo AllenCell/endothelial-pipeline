@@ -290,7 +290,7 @@ def main() -> None:
         output_dir=base_output_dir,
         column_names=[optical_flow_feature],
         axis_mode="shear_stress",
-        figure_size=(1.15, 2),
+        figure_size=(1.25, 2),
     )
 
     # --- Histogram of first passage time correlation ---
@@ -303,7 +303,7 @@ def main() -> None:
         output_dir=base_output_dir,
         column_names=[Column.VectorField.PEARSON_R],
         axis_mode="shear_stress",
-        figure_size=(1.15, 2.0),
+        figure_size=(1.125, 2.05),
         set_y_lims=True,
     )
 
@@ -389,16 +389,16 @@ def main() -> None:
             path=migration_summary_plot_path,
             x_position=3.6,
             y_position=4.0,
-            x_offset=0.0,
+            x_offset=0.1,
             y_offset=0.2,
         ),
         FigurePanel(
             letter="G",
             path=first_passage_path,
-            x_position=4.8,
+            x_position=5.175,
             y_position=4.0,
-            x_offset=0.0,
-            y_offset=0.2,
+            x_offset=0.05,
+            y_offset=0.15,
         ),
     ]
 
