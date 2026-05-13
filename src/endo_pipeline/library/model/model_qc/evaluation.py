@@ -4,9 +4,10 @@ import logging
 from typing import TYPE_CHECKING, NamedTuple, cast
 
 from numpy.random import default_rng
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
-from endo_pipeline.io import get_config_dict_from_mlflow, get_output_path, load_model
+from endo_pipeline.io import get_output_path, load_model
+from endo_pipeline.io.mlflow import get_config_path_from_mlflow
 from endo_pipeline.library.model.diffae.eval_diffae import get_latent_vector_from_crop
 from endo_pipeline.library.model.diffae.generate_image import (
     add_noise_to_image,
@@ -203,7 +204,8 @@ def evaluate_single_model(
     logger.info("Processing model: %s [%s] (seed=%d)", manifest_name, run_name, random_seed)
 
     if model_location.mlflowid is not None:
-        model_config = cast(DictConfig, get_config_dict_from_mlflow(model_location.mlflowid))
+        config_path = get_config_path_from_mlflow(model_location.mlflowid)
+        model_config = cast(DictConfig, OmegaConf.create(config_path.read_text()))
     else:
         raise ValueError("mlflowid is None")
     crop_size = model_config.model.image_shape[-1]

@@ -198,6 +198,8 @@ disable_error_code = ["no-untyped-def"]
 # This section should not be removed: we don't have control over these external packages
 module = [
     "aicsfiles.*",
+    "boto3.*",
+    "botocore.*",
     "cellpose.*",
     "colorizer_data.*",
     "cv2.*",
