@@ -70,6 +70,11 @@ def main(
         logger.info("Running in DEMO MODE. Only converting the first dataset.")
         output_path = get_output_path("zarr_conversion_demo").as_posix()
         datasets = datasets[:1]
+        max_timepoints = 10
+        max_positions = 1
+    else:
+        max_timepoints = None
+        max_positions = None
 
     if output_path is None:
         logger.info("DEMO_MODE is ON or no output path provided. Using default output path.")
@@ -83,7 +88,8 @@ def main(
             dataset_config=dataset_config,
             output_path=output_path,
             channel_names=channel_names,
-            demo_mode=DEMO_MODE,
+            max_timepoints=max_timepoints,
+            max_positions=max_positions,
         )
 
 

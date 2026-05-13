@@ -78,7 +78,6 @@ def get_delayed_array_for_position(
 
     # Set the scene of the image
     img.set_scene(scene_index)
-    logger.info("Using scene '%s'", img.scenes[scene_index])
 
     # Get the timepoints for the specified position using the position index and
     # the total number of timepoints in the image.
