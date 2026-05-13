@@ -1,10 +1,12 @@
-from endo_pipeline.cli import Datasets
+from pathlib import Path
+
+from endo_pipeline.cli import Datasets, StrList
 
 
 def main(
     datasets: Datasets | None = None,
-    output_path: str | None = None,
-    channel_names: list[str] = ["EGFP", "BF"],
+    output_path: Path | None = None,
+    channel_names: StrList = ["EGFP", "BF"],
 ) -> None:
     """
     Convert datasets to Zarr format.
@@ -68,7 +70,7 @@ def main(
 
     if DEMO_MODE:
         logger.info("Running in DEMO MODE. Only converting the first dataset.")
-        output_path = get_output_path("zarr_conversion_demo").as_posix()
+        output_path = get_output_path("zarr_conversion_demo")
         datasets = datasets[:1]
         max_timepoints = 10
         max_positions = 1
@@ -78,7 +80,7 @@ def main(
 
     if output_path is None:
         logger.info("DEMO_MODE is ON or no output path provided. Using default output path.")
-        output_path = get_output_path("zarr_conversion").as_posix()
+        output_path = get_output_path("zarr_conversion")
 
     for dataset_name in datasets:
         logger.info(f"Converting dataset: {dataset_name}")

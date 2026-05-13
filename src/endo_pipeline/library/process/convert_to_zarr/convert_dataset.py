@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 from bioio import BioImage
 
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 def convert_dataset(
     dataset_config: DatasetConfig,
-    output_path: str,
+    output_path: Path,
     channel_names: list[str],
     max_timepoints: int | None = None,
     max_positions: int | None = None,
@@ -46,7 +47,6 @@ def convert_dataset(
         physical_pixel_sizes = img.physical_pixel_sizes
 
     interval_min = dataset_config.time_interval_in_minutes
-    fmsid = dataset_config.fmsid
     n_positions = dataset_config.n_total_positions
     num_scenes = len(img.scenes)
 
@@ -64,6 +64,9 @@ def convert_dataset(
     if include_scenes is None:
         include_scenes = range(num_scenes)
 
+    # Define output zarr key using dataset name and FMS id
+    zarr_key = f"{dataset_config.date}_{dataset_config.fmsid}"
+
     count = 0
     for scene_index in range(num_pos_in_s):
         # If current scene index is not in list of scenes to include, skip.
@@ -73,17 +76,15 @@ def convert_dataset(
         logger.info("Processing scene '%s'", img.scenes[scene_index])
 
         for position_index in range(num_pos_in_t):
-            output = (
-                f"{output_path}/{dataset_config.date}_{fmsid}/"
-                f"{dataset_config.date}_{fmsid}_P{count}.ome.zarr"
-            )
-            print(f"Writing to {output}")
+            full_zarr_path = output_path / zarr_key / f"{zarr_key}_P{count}.ome.zarr"
+            logger.info("Writing zarr to '%s'", full_zarr_path)
+
             scene = get_delayed_array_for_position(
                 position_index, dataset_config, channel_names, num_pos_in_t, scene_index, img
             )
             write_scene(
                 img=scene,
-                full_zarr_path=output,
+                full_zarr_path=full_zarr_path,
                 image_name=f"{dataset_config.name}_{position_index}",
                 channel_names=channel_names,
                 max_timepoints=max_timepoints,

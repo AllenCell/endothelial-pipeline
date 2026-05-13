@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 import dask.array as da
 import numpy as np
@@ -148,7 +149,7 @@ def get_zarr_chunk_dimensions(level_shapes: list[tuple]) -> list[tuple]:
 
 def write_scene(
     img: np.ndarray | da.Array,
-    full_zarr_path: str,
+    full_zarr_path: Path,
     image_name: str,
     channel_names: list[str],
     max_timepoints: int,
@@ -197,7 +198,7 @@ def write_scene(
 
     writer = ome_zarr_writer.OmeZarrWriter()
     writer.init_store(
-        output_path=full_zarr_path,
+        output_path=full_zarr_path.as_posix(),
         shapes=zarr_level_shapes,
         chunk_sizes=zarr_chunk_dims,
         dtype=img.dtype,
