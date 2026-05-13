@@ -1916,24 +1916,17 @@ def build_cdh5_measured_features_tables_multiproc_wrapper(args: ImageProcessingA
     )
 
 
-def get_and_save_nuclei_features_arg_unpacker(args: dict) -> None:
+def get_and_save_nuclei_features_arg_unpacker(args: ImageProcessingArgs) -> None:
     """Unpack arguments from an argument dictionary and call
     get_nuclei_features_from_dataset_at_timepoint.
     """
-    dataset_name = args["dataset_name"]
-    position = args["position"]
-    tp = args["T"]
-    out_dir = args["output_dir"]
-    save_output = args["save_output"]
-    channel_names = args["channel_names"]
 
     get_nuclei_features_from_dataset_at_timepoint(
-        dataset_name=dataset_name,
-        position=position,
-        tp=tp,
-        out_dir=out_dir,
-        channel_names=channel_names,
-        save_output=save_output,
+        out_dir=args.output_dir,
+        dataset_name=args.dataset_name,
+        tp=args.timepoint,
+        position=args.position,
+        save_output=args.save_output,
     )
 
 
