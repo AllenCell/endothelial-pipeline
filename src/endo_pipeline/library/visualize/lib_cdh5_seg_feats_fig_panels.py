@@ -1,3 +1,4 @@
+import logging
 import textwrap
 from pathlib import Path
 from typing import Literal, cast
@@ -43,7 +44,12 @@ from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.examples import CDH5_SEG_FIG_EXAMPLE
 from endo_pipeline.settings.figures import FONT_FAMILY, FONTSIZE_SMALL, PDF_FONT_TYPE
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
-from endo_pipeline.settings.workflow_defaults import SEGMENTATION_FEATURE_COLUMNS
+from endo_pipeline.settings.workflow_defaults import (
+    ANNOTATIONS_TO_FILTER_OUT_FOR_SEGMENTATIONS,
+    SEGMENTATION_FEATURE_COLUMNS,
+)
+
+logger = logging.getLogger(__name__)
 
 IMAGE_PANEL_SIZE = (3, 3)
 PLOT_PANEL_SIZE = (1.35, 1.35)
@@ -86,12 +92,9 @@ def _load_seg_feats_df(
     )
     df = live_seg_feats_df_delayed[list(cols_to_compute)].compute()
     df = df[df[Column.SegDataFilters.IS_INCLUDED]]
-    _ANNOTATIONS_TO_FILTER_OUT = [
-        TimepointAnnotation.AUTO_GFP_SCOPE_ERROR,
-        TimepointAnnotation.GFP_SCOPE_ERROR,
-    ]
+
     df = filter_dataframe_by_annotations(
-        df, dataset_config, timepoint_annotations=_ANNOTATIONS_TO_FILTER_OUT
+        df, dataset_config, timepoint_annotations=ANNOTATIONS_TO_FILTER_OUT_FOR_SEGMENTATIONS
     )
     return calculate_derived_data_dynamics_dependent(df)
 
@@ -462,8 +465,12 @@ def make_feature_contact_sheet(
     dataset_config = load_dataset_config(dataset_name)
     df = _load_seg_feats_df(dataset_config, set(features))
 
-    assert dataset_config.time_interval_in_minutes is not None
-    assert dataset_config.timepoint_annotations is not None
+    if dataset_config.time_interval_in_minutes is None:
+        logger.warning(f"time_interval_in_minutes is not set for dataset '{dataset_name}'")
+        raise ValueError(f"time_interval_in_minutes is required for dataset '{dataset_name}'")
+    if dataset_config.timepoint_annotations is None:
+        logger.warning(f"timepoint_annotations is not set for dataset '{dataset_name}'")
+        raise ValueError(f"timepoint_annotations is required for dataset '{dataset_name}'")
 
     flow_start_time_hrs = (
         dataset_config.flow_conditions[0].start * dataset_config.time_interval_in_minutes / 60.0
@@ -486,15 +493,15 @@ def make_feature_contact_sheet(
             ax.set_visible(False)
             continue
 
-        binwidth = None
-        if time_metadata.bin_width and feature_metadata.bin_width:
-            binwidth = (time_metadata.bin_width, feature_metadata.bin_width)
+        binwidth = (time_metadata.bin_width, feature_metadata.bin_width)
 
         sns.histplot(
             data=df,
             x=time_col,
             y=str(feat),
-            binwidth=binwidth,
+            # the binwidth parameter has incorrectly restrictive typing in seaborn
+            # (it says it doesn't accept tuple[float|None, float|None] when in fact it does)
+            binwidth=binwidth,  # type: ignore[arg-type]
             cmap="inferno",
             stat="density",
             ax=ax,
@@ -502,7 +509,7 @@ def make_feature_contact_sheet(
         )
         cax = ax.inset_axes([1.05, 0, 0.05, 1])
         mappable = ax.collections[-1]
-        fig.colorbar(mappable, cax=cax)  # , label="Density")
+        fig.colorbar(mappable, cax=cax)
         cax.tick_params(labelsize=FONTSIZE_SMALL)
         ax.set_box_aspect(1)
         ax.set_facecolor("grey")
