@@ -1394,8 +1394,10 @@ def plot_first_passage_time_correlations(
     ax.xaxis.set_major_locator(MaxNLocator(7, min_n_ticks=4, integer=True))
     ax.yaxis.set_major_locator(MaxNLocator(7, min_n_ticks=4, integer=True))
     ax.tick_params(labelsize=FONTSIZE_SMALL)
-    ax.set_xlabel("Grid FPT (hrs)".title(), fontsize=FONTSIZE_SMALL, labelpad=1.0)
-    ax.set_ylabel("Tracked FPT (hrs)".title(), fontsize=FONTSIZE_SMALL, labelpad=1.0)
+    ax.set_xlabel("Grid FPT (hrs)".title(), fontsize=FONTSIZE_SMALL, labelpad=1.0, color="tab:blue")
+    ax.set_ylabel(
+        "Tracked FPT (hrs)".title(), fontsize=FONTSIZE_SMALL, labelpad=1.0, color="tab:red"
+    )
     ax.legend(loc="upper center")
 
     filename = f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}_{metric_to_plot}_correlation"
