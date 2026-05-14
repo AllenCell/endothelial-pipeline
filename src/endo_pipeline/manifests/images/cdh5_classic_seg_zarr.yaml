@@ -1,5 +1,5 @@
 name: cdh5_classic_seg_zarr
-workflow: tiff_to_zarr_conversion (manifest updated manually)
+workflow: convert_tiff_to_zarr (manifest updated manually)
 parameters: {}
 locations:
   20250224_20X:

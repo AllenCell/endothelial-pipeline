@@ -1,5 +1,5 @@
 name: image_zarr
-workflow: (manifest updated manually)
+workflow: convert_to_zarr (manifest updated manually)
 parameters: {}
 locations:
   20240328_T01_001:
