@@ -112,7 +112,6 @@ SEGMENTATION_FEATURE_COLUMNS: dict[str, list[ColumnNameType]] = {
     ],
     "supp_figure": [
         Column.SegData.ORIENTATION,
-        Column.SegData.ALIGNMENT_DEG,
         Column.SegData.ASPECT_RATIO,
         Column.SegData.NUM_NUCLEI_IN_CROP,
         Column.SegData.AREA_UM_SQ,

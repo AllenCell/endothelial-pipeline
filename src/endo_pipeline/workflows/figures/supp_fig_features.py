@@ -1,6 +1,9 @@
 def main() -> None:
     """Main function to general Supp. Fig. showing PC-based feature derivation and interpretation."""
+    import logging
+
     import matplotlib.pyplot as plt
+    import pandas as pd
 
     from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.cli.demo_mode_defaults import use_default_collection
@@ -29,6 +32,8 @@ def main() -> None:
         SEGMENTATION_FEATURE_COLUMNS,
     )
 
+    logger = logging.getLogger(__name__)
+
     plt.style.use("endo_pipeline.figure")
 
     save_dir = get_output_path(__file__)
@@ -49,6 +54,42 @@ def main() -> None:
     dataset_name_list = use_default_collection(None, DEFAULT_PCA_DATASET_COLLECTION_NAME)
     ml_columns = DIFFAE_PC_COLUMN_NAME_GROUPS["supp_figure"]
     measured_feature_columns = SEGMENTATION_FEATURE_COLUMNS["supp_figure"]
+    ml_columns_100_pcs = (
+        DIFFAE_PC_COLUMN_NAME_GROUPS["main_figure"] + DIFFAE_PC_COLUMN_NAME_GROUPS["first_100_pcs"]
+    )
+
+    df = get_df_for_feature_correlation_viz(
+        dataset_name_list=dataset_name_list,
+        dataset_info_columns=DATASET_INFO_COLUMNS,
+        segmentation_feature_columns=measured_feature_columns,
+        pc_columns=ml_columns_100_pcs,
+    )
+
+    label_column_tuples = [
+        ("ML-based Features 100", [get_label_for_column(col) for col in ml_columns_100_pcs]),
+        ("Measured Features", [get_label_for_column(col) for col in measured_feature_columns]),
+    ]
+
+    visualize_correlation_heatmaps(
+        dataset_name="aggregate",
+        df_dataset=df,
+        label_column_tuples=label_column_tuples,
+        out_dir=save_dir,
+        cross_correlation_only=True,
+        figsize_cluster_heatmap=(4.35, 2.75),
+        y_axis_label_coords=None,
+    )
+    # report the max correlation value in the heatmap for all PCs vs measured features
+    # that are not in the supplementary figure
+    corr_matrix_100pcs = (
+        save_dir / "correlation_ml_based_features_100_vs_measured_features_correlation_matrix.csv"
+    )
+    df_100_pcs = pd.read_csv(corr_matrix_100pcs)
+    non_fig_pcs = set(ml_columns_100_pcs) - set(ml_columns)
+    biggest_corr_mag = (
+        df_100_pcs[[get_label_for_column(col) for col in non_fig_pcs]].abs().max().max()
+    )
+    logger.info(biggest_corr_mag)
 
     df = get_df_for_feature_correlation_viz(
         dataset_name_list=dataset_name_list,
