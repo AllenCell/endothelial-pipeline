@@ -5,6 +5,7 @@ from endo_pipeline.cli import Datasets
 
 def main(
     table_type: Literal[
+        "cdh5_seg_tracking",
         "cdh5_seg_measurements",
         "nuclei_labelfree",
     ],
@@ -19,6 +20,7 @@ def main(
 
     | Table                   | Workflow                       |
     | ----------------------- | ------------------------------ |
+    | `cdh5_seg_tracking`     | `run_cdh5_tracking`            |
     | `cdh5_seg_measurements` | `get_cdh5_measured_features`   |
     | `nuclei_labelfree`      | `get_nuclei_measured_features` |
 
@@ -66,6 +68,12 @@ def main(
             suffix="_nuclei_labelfree_features.parquet",
             manifest="nuclei_labelfree_segmentation",
             workflow="get_nuclei_measured_features",
+        ),
+        "cdh5_seg_tracking": TableUploadArgs(
+            subdir="cdh5_classic_seg_tracking",
+            suffix="_tracking.parquet",
+            manifest="cdh5_classic_segmentation_tracking",
+            workflow="run_cdh5_tracking",
         ),
     }
 
