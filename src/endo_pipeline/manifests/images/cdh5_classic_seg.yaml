@@ -1,5 +1,5 @@
 name: cdh5_classic_seg
-workflow: unknown
+workflow: run_cdh5_classic_segmentation (manifest updated manually)
 parameters: {}
 locations:
   20250224_20X:
