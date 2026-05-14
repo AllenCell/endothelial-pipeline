@@ -1179,6 +1179,7 @@ def plot_first_passage_time_parameter_sweep(
     fixed_point_radius_threshold: float | None,
     out_dir: Path,
     metric_to_plot: Literal["mean", "median"],
+    figsize=(3, 3),
 ) -> tuple[Path, Path]:
     """Plot the results of the parameter sweep over the number of bins in the
     initial conditions histogram and the choice of mean vs. median FPT to plot.
@@ -1187,7 +1188,7 @@ def plot_first_passage_time_parameter_sweep(
 
     fig_title = f"{shear_stress_rounded} dyn/cm{UnicodeCharacters.SQUARED}"
     metric = "50%" if metric_to_plot == "median" else metric_to_plot
-    fig, ax = plt.subplots(figsize=(3, 3))
+    fig, ax = plt.subplots(figsize=figsize)
     ax.set_title(fig_title, fontsize=FONTSIZE_LARGE)
     ax.errorbar(
         x=first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
@@ -1217,13 +1218,15 @@ def plot_first_passage_time_parameter_sweep(
             fixed_point_radius_threshold,
             ls="--",
             color="black",
-            label="radius used for correlations",
+            label="radius used in analysis",
         )
-    ax.legend()
+    ax.legend(frameon=True, facecolor="white", loc="upper center")
     ax.set_xlim(0)
     ax.set_ylim(0)
-    ax.set_xlabel("radius around fixed point".title(), fontsize=FONTSIZE_LARGE)
-    ax.set_ylabel(f"{metric_to_plot} first passage time (hrs)".title(), fontsize=FONTSIZE_LARGE)
+    ax.set_xlabel("radius around\nfixed point".title(), fontsize=FONTSIZE_LARGE, labelpad=2)
+    ax.set_ylabel(
+        f"{metric_to_plot} first passage\ntime (hrs)".title(), fontsize=FONTSIZE_LARGE, labelpad=2
+    )
     filename_param_sweep_fpt = f"{dataset_name}_FPT_{metric_to_plot}_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}"
     save_plot_to_path(
         fig, out_dir, filename_param_sweep_fpt, file_format=".svg", show_and_close=False
@@ -1233,7 +1236,7 @@ def plot_first_passage_time_parameter_sweep(
     # for each parameter combination to see how the fixed point distance threshold
     # affects the number of trajectories that are considered to have reached the
     # fixed point
-    fig, ax = plt.subplots(figsize=(3, 3))
+    fig, ax = plt.subplots(figsize=figsize)
     ax.set_title(fig_title, fontsize=FONTSIZE_LARGE)
     ax.plot(
         first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
@@ -1262,13 +1265,15 @@ def plot_first_passage_time_parameter_sweep(
             fixed_point_radius_threshold,
             ls="--",
             color="black",
-            label="radius used for correlations",
+            label="radius used in analysis",
         )
-    ax.legend()
+    ax.legend(frameon=True, facecolor="white", loc="upper center")
     ax.set_xlim(0)
     ax.set_ylim(0, 105)
-    ax.set_xlabel("radius around fixed point".title(), fontsize=FONTSIZE_LARGE)
-    ax.set_ylabel("Trajectories reaching fixed point (%)".title(), fontsize=FONTSIZE_LARGE)
+    ax.set_xlabel("radius around\nfixed point".title(), fontsize=FONTSIZE_LARGE, labelpad=2)
+    ax.set_ylabel(
+        "Trajectories reaching\nfixed point (%)".title(), fontsize=FONTSIZE_LARGE, labelpad=2
+    )
     filename_param_sweep_num_traj = f"{dataset_name}_FPT_percent_trajectories_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}"
     save_plot_to_path(
         fig, out_dir, filename_param_sweep_num_traj, file_format=".svg", show_and_close=False
@@ -1327,7 +1332,7 @@ def plot_first_passage_time_correlations(
     suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
     metric = f"{metric}{suffix}"
 
-    slope = line_fit_df[Column.VectorField.LINEFIT_SLOPE_ODR].unique().item()
+    slope = line_fit_df[Column.VectorField.LINEFIT_SLOPE].unique().item()
     intercept = line_fit_df[Column.VectorField.LINEFIT_INTERCEPT_ODR].unique().item()
     corr_metric_val = (
         line_fit_df[Column.VectorField.LINEFIT_REDUCED_CHI_SQUARED_ODR].unique().item()
