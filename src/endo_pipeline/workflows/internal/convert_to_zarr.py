@@ -15,11 +15,6 @@ def main(
 
     Zarrs are saved in the following channel order: 488, BF, 405, 561, 640
 
-    ## Dataset collection
-
-    If datasets are not provided, the workflow will process the
-    `live_20X_objective_3i_microscope` dataset collection.
-
     ## Example usage
 
     To run the workflow in demo mode:
@@ -31,7 +26,7 @@ def main(
     To run the workflow for a single dataset:
 
     ```bash
-    uv run endopipe convert-to-zarr --datasets 20250224_20X
+    uv run endopipe convert-to-zarr --datasets DATASET_NAME
     ```
 
     To run the workflow and save converted Zarrs to the internal location:
@@ -40,6 +35,10 @@ def main(
     export OUTPUT_PATH=//allen/aics/endothelial/morphological_features/image_data/converted_zarrs
     uv run endopipe convert-to-zarr --output-path $OUTPUT_PATH
     ```
+    ## Dataset collection
+
+    If datasets are not provided, the workflow will process the
+    `live_20X_objective_3i_microscope` dataset collection.
 
     ## Workflow demo
 
