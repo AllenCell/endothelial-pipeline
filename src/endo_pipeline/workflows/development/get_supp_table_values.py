@@ -25,7 +25,7 @@ def main():
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
-        DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+        DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
     )
 
     logger = logging.getLogger(__name__)
@@ -81,6 +81,8 @@ def main():
             num_nuc_pred = np.nan
             num_cell_seg_before_filt = np.nan
             num_cell_seg_after_filt = np.nan
+            num_tracks_before_filt = np.nan
+            num_tracks_left_after_filter = np.nan
             num_timepoints_left_after_filter = np.nan
             seg_lengths_px_mean = np.nan
             seg_lengths_px_std = np.nan
@@ -91,9 +93,21 @@ def main():
 
         else:
             # load segmentation features dataframe
-            live_seg_manifest = load_dataframe_manifest(DEFAULT_SEG_FEATURE_MANIFEST_NAME)
+            live_seg_manifest = load_dataframe_manifest(DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME)
             live_seg_location = get_dataframe_location_for_dataset(live_seg_manifest, dataset_name)
-            live_seg_feats_df = load_dataframe(live_seg_location)
+            live_seg_feats_df_delayed = load_dataframe(live_seg_location, delay=True)
+            cols_to_compute = [
+                Column.DATASET,
+                Column.POSITION,
+                Column.TIMEPOINT,
+                Column.TRACK_ID,
+                Column.SegData.NUM_NUCLEI_AT_TIMEPOINT,
+                Column.SegData.NUM_TRACKS_BEFORE_FILTERING,
+                Column.SegData.NUM_TRACKS_AFTER_FILTERING,
+                Column.SegData.MAJOR_AXIS,
+                Column.SegDataFilters.IS_INCLUDED,
+            ]
+            live_seg_feats_df = live_seg_feats_df_delayed[cols_to_compute].compute()
 
             # segmentation counts recorded in the table were done at each timepoint
             # (a.k.a. the image_index) for one position at a time, therefore we need
