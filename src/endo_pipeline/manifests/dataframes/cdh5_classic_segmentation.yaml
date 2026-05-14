@@ -1,5 +1,5 @@
 name: cdh5_classic_segmentation
-workflow: live_feat_workflows_to_fms
+workflow: get_cdh5_measured_features
 parameters: {}
 locations:
   20250319_20X:
