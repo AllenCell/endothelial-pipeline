@@ -429,9 +429,6 @@ def make_feature_contact_sheet(
     :
         Path to the saved SVG figure.
     """
-    plt.style.use(
-        "endo_pipeline.figure"
-    )  # set some global plotting parameters to be consistent with the other plots in the manuscript
 
     time_col = Column.SegData.TIME_HRS_SINCE_FLOW
     time_metadata = COLUMN_METADATA[time_col]

@@ -7,6 +7,8 @@ def main() -> None:
     """
     from pathlib import Path
 
+    from matplotlib import pyplot as plt
+
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
     from endo_pipeline.library.visualize.lib_cdh5_seg_feats_fig_panels import (
@@ -20,6 +22,9 @@ def main() -> None:
     )
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
     from endo_pipeline.workflows.figures import assets as figure_assets
+
+    # set global plotting parameters to be consistent with the other plots in the manuscript
+    plt.style.use("endo_pipeline.figure")
 
     datasets = CDH5_SEG_FIG_CLASSIC_FEAT_EXAMPLES
 
