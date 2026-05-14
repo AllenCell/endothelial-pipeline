@@ -20,13 +20,13 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe run-label-free-nuclei-prediction -vd
+    uv run endopipe run-labelfree-nuclei-prediction -vd
     ```
 
     To run the workflow for a single dataset:
 
     ```bash
-    uv run endopipe run-label-free-nuclei-prediction --datasets DATASET_NAME
+    uv run endopipe run-labelfree-nuclei-prediction --datasets DATASET_NAME
     ```
 
     ## Dataset collection
@@ -64,7 +64,7 @@ def main(
 
     logger = logging.getLogger(__name__)
 
-    out_dir = get_output_path("label_free_nuclei_pred")
+    out_dir = get_output_path("labelfree_nuclei_pred")
 
     datasets = use_default_collection(datasets, "live_cdh5_seg_based_feat_datasets")
 
