@@ -26,6 +26,7 @@ def main():
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
+        DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
     )
 
     logger = logging.getLogger(__name__)
@@ -49,6 +50,8 @@ def main():
         "major_axis_length_mean_px": [],
         "major_axis_length_std_px": [],
         "major_axis_length_median_px": [],
+        "cell_displacement_mean_px": [],
+        "cell_displacement_median_px": [],
     }
 
     # generate sequence of unique datasets to process and add to the seg_counts dictionary
@@ -192,6 +195,47 @@ def main():
             # delete the segmentation features dataframe to keep memory usage down
             del live_seg_feats_df
 
+            live_seg_filtered_manifest = load_dataframe_manifest(
+                DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED
+            )
+            live_seg_filtered_location = get_dataframe_location_for_dataset(
+                live_seg_filtered_manifest, dataset_name
+            )
+            live_seg_feats_filtered_df_delayed = load_dataframe(
+                live_seg_filtered_location, delay=True
+            )
+            cols_to_compute_filtered = [
+                Column.DATASET,
+                Column.POSITION,
+                Column.TIMEPOINT,
+                Column.TRACK_ID,
+                Column.SegData.CENTROID_VELOCITY_UM_PER_MIN,
+            ]
+            live_seg_feats_filtered_df = live_seg_feats_filtered_df_delayed[
+                cols_to_compute_filtered
+            ].compute()
+
+            cell_seg_speed_mean = (
+                live_seg_feats_filtered_df[Column.SegData.CENTROID_VELOCITY_UM_PER_MIN]
+                .dropna()
+                .mean()
+            )
+            cell_seg_displacement_mean = (
+                dataset_config.time_interval_in_minutes
+                / dataset_config.pixel_size_xy_in_um
+                * cell_seg_speed_mean
+            )
+            cell_seg_speed_median = (
+                live_seg_feats_filtered_df[Column.SegData.CENTROID_VELOCITY_UM_PER_MIN]
+                .dropna()
+                .median()
+            )
+            cell_seg_displacement_median = (
+                dataset_config.time_interval_in_minutes
+                / dataset_config.pixel_size_xy_in_um
+                * cell_seg_speed_median
+            )
+
         # add identifying information and segmentation counts to the seg_counts dictionary
         seg_counts["dataset_name"].append(dataset_name.split("_")[0])
         seg_counts["shear_stress_dyn/cm**2"].append(shear_stress)
@@ -213,6 +257,9 @@ def main():
         seg_counts["major_axis_length_mean_um"].append(seg_lengths_um_mean)
         seg_counts["major_axis_length_std_um"].append(seg_lengths_um_std)
         seg_counts["major_axis_length_median_um"].append(seg_lengths_um_median)
+        # add the cell displacements (in pixels) between timepoints based on the segmentations
+        seg_counts["cell_displacement_mean_px"].append(cell_seg_displacement_mean)
+        seg_counts["cell_displacement_median_px"].append(cell_seg_displacement_median)
 
     # convert the seg_counts dictionary to a dataframe and save the results
     seg_counts_df = pd.DataFrame(seg_counts)
