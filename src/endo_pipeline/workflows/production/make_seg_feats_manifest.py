@@ -34,7 +34,7 @@ def create_segmentation_measured_feature_manifest(
     segprops_location = get_dataframe_location_for_dataset(segprops_manifest, dataset_name)
     segprops_df = load_dataframe(segprops_location)
 
-    nuc_seg_manifest_name = "nuclei_label_free_segmentation"
+    nuc_seg_manifest_name = "nuclei_labelfree_segmentation"
     nucprops_manifest = load_dataframe_manifest(nuc_seg_manifest_name)
     nucprops_location = get_dataframe_location_for_dataset(nucprops_manifest, dataset_name)
     nucprops_df = load_dataframe(nucprops_location)

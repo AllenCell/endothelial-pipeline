@@ -4,7 +4,10 @@ from endo_pipeline.cli import Datasets
 
 
 def main(
-    table_type: Literal["cdh5_seg_measurements",],
+    table_type: Literal[
+        "cdh5_seg_measurements",
+        "nuclei_labelfree",
+    ],
     datasets: Datasets,
 ) -> None:
     """
@@ -17,6 +20,7 @@ def main(
     | Table                   | Workflow                       |
     | ----------------------- | ------------------------------ |
     | `cdh5_seg_measurements` | `get_cdh5_measured_features`   |
+    | `nuclei_labelfree`      | `get_nuclei_measured_features` |
 
     Tables are produced by the listed workflow, and must be copied to Vast at
     `//allen/aics/endothelial/morphological_features/analysis` before running
@@ -56,6 +60,12 @@ def main(
             suffix="_cdh5_segprops.parquet",
             manifest="cdh5_classic_segmentation",
             workflow="get_cdh5_measured_features",
+        ),
+        "nuclei_labelfree": TableUploadArgs(
+            subdir="nuc_labelfree_get_measured_features",
+            suffix="_nuclei_labelfree_features.parquet",
+            manifest="nuclei_labelfree_segmentation",
+            workflow="get_nuclei_measured_features",
         ),
     }
 
