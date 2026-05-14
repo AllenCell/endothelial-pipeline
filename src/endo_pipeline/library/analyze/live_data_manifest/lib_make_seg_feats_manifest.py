@@ -37,12 +37,11 @@ def merge_measured_segmentation_features_tables(
     nucprops_df: pd.DataFrame,
 ) -> pd.DataFrame:
     """
-    This function merges the outputs from the tracking
-    workflow (cdh5_classic_seg_tracking.py), the
-    segmentation measurement workflow
-    (cdh5_get_measured_features.py), and the labelfree
-    nuclei measurement workflow (nuc_get_measured_features.py).
+    Merge dataframes output by the tracking workflow (run_cdh5_tracking.py), the
+    segmentation measurement workflow (get_cdh5_measured_features.py), and the
+    labelfree nuclei measurement workflow (get_nuclei_measured_features.py).
     """
+
     big_table = pd.merge(
         left=tracking_df,
         right=cellprops_df,
