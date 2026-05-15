@@ -9,6 +9,8 @@ def main(
         "cdh5_seg_measurements",
         "nuclei_labelfree",
         "merged_live_data_manifests",
+        "merge_pc_diffae_seg_features",
+        "merge_pc_diffae_seg_features_filtered",
     ],
     datasets: Datasets,
 ) -> None:
@@ -19,12 +21,14 @@ def main(
 
     This workflow supports uploads for the following table types.
 
-    | Table                        | Workflow                            |
-    | ---------------------------- | ----------------------------------- |
-    | `cdh5_seg_tracking`          | `run_cdh5_tracking`                 |
-    | `cdh5_seg_measurements`      | `get_cdh5_measured_features`        |
-    | `nuclei_labelfree`           | `get_nuclei_measured_features`      |
-    | `merged_live_data_manifests` | `merge_segmentation_feature_tables` |
+    | Table                                   | Workflow                            |
+    | --------------------------------------- | ----------------------------------- |
+    | `cdh5_seg_tracking`                     | `run_cdh5_tracking`                 |
+    | `cdh5_seg_measurements`                 | `get_cdh5_measured_features`        |
+    | `nuclei_labelfree`                      | `get_nuclei_measured_features`      |
+    | `merged_live_data_manifests`            | `merge_segmentation_feature_tables` |
+    | `merge_pc_diffae_seg_features`          | `combine_cell_centered_features`    |
+    | `merge_pc_diffae_seg_features_filtered` | `combine_cell_centered_features`    |
 
     Tables are produced by the listed workflow, and must be copied to Vast at
     `//allen/aics/endothelial/morphological_features/analysis` before running
@@ -82,6 +86,18 @@ def main(
             suffix="_live_segmentation_features.parquet",
             manifest="merged_segmentation_features",
             workflow="merge_segmentation_feature_tables",
+        ),
+        "merge_pc_diffae_seg_features": TableUploadArgs(
+            subdir="pc_diffae_seg_features",
+            suffix="_pc_diffae_seg_feats_merged.parquet",
+            manifest="cell_centered_features",
+            workflow="combine_cell_centered_features",
+        ),
+        "merge_pc_diffae_seg_features)filtered": TableUploadArgs(
+            subdir="pc_diffae_seg_features",
+            suffix="_pc_diffae_seg_feats_merged_filtered.parquet",
+            manifest="cell_centered_features_filtered",
+            workflow="combine_cell_centered_features",
         ),
     }
 
