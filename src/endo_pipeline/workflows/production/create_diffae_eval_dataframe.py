@@ -44,7 +44,7 @@ def main(
     ## Workflow demo
 
     Running the workflow in demo mode (`-d` or `--demo-mode`) will build
-    evaluation dataframes for only the first position and X timepoints of a
+    evaluation dataframes for only the first position and first timepoint of a
     single dataset.
 
     Parameters
