@@ -299,7 +299,6 @@ def plot_3d_scatter_or_binned(
             mk = FIXED_POINT_PLOT_STYLE[stability].marker
             clr = FIXED_POINT_PLOT_STYLE[stability].color
             theta, r, rho = row[x_col], row[y_col], row[z_col]
-            # mean_val = row.get(f"mean_{color_col}", float("nan"))
             ax.scatter(
                 xs=[theta],
                 ys=[r],
