@@ -6,15 +6,29 @@ def main(
     datasets: Datasets | None = None,
 ) -> None:
     """
-    Generate dataframes with paths to zarr files for evaluating a DiffAE model.
+    Generate dataframes with zarr file locations for evaluating a DiffAE model.
 
     #diffae #model-evaluation
 
-    This workflow collects zarr file paths for each of the given datasets and
-    saves them as Parquet files, along with metadata such as channel and
+    This workflow collects zarr file locations for each of the given datasets
+    and saves them as Parquet files, along with metadata such as channel and
     resolution level, which can then be used by the DiffAE model data loader for
     model evaluation. These files are uploaded to FMS and tracked in a
     corresponding dataframe manifest.
+
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe create-diffae-eval-dataframe CROP_PATTERN -vd
+    ```
+
+    To run the workflow for a single dataset:
+
+    ```bash
+    uv run endopipe create-diffae-eval-dataframes CROP_PATTERN --datasets DATASET_NAME
+    ```
 
     ## Crop patterns
 
@@ -22,12 +36,16 @@ def main(
     `tracked`. When creating the data loading dataframe, the crop pattern
     defines the locations of crops to be evaluated.
 
+    ## Dataset collection
+
+    If datasets are not provided, the workflow will use datasets in the
+    `diffae_model_training` dataset collection.
+
     ## Workflow demo
 
-    The ``--demo-mode`` (aka ``-d``) flag can be used to run a simplified
-    version of this workflow for testing purposes (e.g. during code review). The
-    workflow will only create the data loading dataframe for one dataset with
-    only the first position and first few timepoints.
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will build
+    evaluation dataframes for only the first position and X timepoints of a
+    single dataset.
 
     Parameters
     ----------

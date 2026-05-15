@@ -7,44 +7,64 @@ def main(
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
 ) -> None:
     """
-    Generate dataframes with paths to zarr files for training a DiffAE model.
+    Generate dataframes with zarr file locations for training a DiffAE model.
 
     #diffae #model-training
 
-    This script collects zarr file paths from multiple datasets, splits them
-    into training and validation sets, and saves them as .csv files in a
+    This workflow collects zarr file locations from multiple datasets, splits
+    them into training and validation sets, and saves them as .csv files in a
     specified directory. It also includes metadata such as channel and
     resolution level. These dataframes are accessed by the data loader in the
     DiffAE model training script.
 
+    ## Example usage
 
-    **Dataset collection**
+    To run the workflow in demo mode:
 
-    The datasets are defined in the ``diffae_model_training`` dataset collection
-    configuration.
+    ```bash
+    uv run endopipe create-diffae-training-dataframe -vd
+    ```
 
-    **Cell piling exclusion**
+    To run the workflow with cell piling annotations included:
 
-    By default, timepoints marked as having cell piling annotations are not included in the training
-    and validation datasets (``include_cell_piling`` set to ``False``). This behavior can be changed
-    by using the command line flag `--include-cell-piling`. This allows for toggling between
-    training a model that "sees" cell piling versus one that does not.
+    ```bash
+    uv run endopipe create-diffae-training-dataframe --include-cell-piling
+    ```
 
-    When ``include_cell_piling`` is set to False, the output dataframe manifest name will include
-    the suffix ``_exclude_cell_piling``. When set to True, the suffix will be
-    ``_include_cell_piling``.
+    To run the workflow with cell piling annotations excluded:
 
-    **Workflow demo**
+    ```bash
+    uv run endopipe create-diffae-training-dataframe --exclude-cell-piling
+    ```
 
-    The ``--demo-mode`` (aka ``-d``) flag can be used to run a simplified version of this
-    workflow for testing purposes (e.g. during code review). The training and validation datasets
-    will only keep one position and minimal timepoints, which speeds up the data loading process
-    during model training.
+    ## Cell piling
+
+    By default, timepoints marked as having cell piling annotations are not
+    included in the training and validation datasets (``include_cell_piling``
+    set to ``False``). This behavior can be changed by using the command line
+    flag `--include-cell-piling`. This allows for toggling between training a
+    model that "sees" cell piling versus one that does not.
+
+    When ``include_cell_piling`` is set to False, the output dataframe manifest
+    name will include the suffix ``_exclude_cell_piling``. When set to True, the
+    suffix will be ``_include_cell_piling``.
+
+    ## Dataset collection
+
+    Dataset used for training are listed in the `diffae_model_training` dataset
+    collection.
+
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will build a
+    training dataframe that only contains one position and the first 10
+    timepoints, which speeds up the data loading process during model training.
 
     Parameters
     ----------
     include_cell_piling
-        True to include timepoints with cell piling in data used for training, False to exclude.
+        True to include timepoints with cell piling in data used for training,
+        False to exclude.
     """
 
     import pandas as pd
