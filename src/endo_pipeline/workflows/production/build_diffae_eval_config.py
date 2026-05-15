@@ -22,17 +22,35 @@ def main(
     configuration. These configurations are saved locally, and can then be used
     by the `eval-diffae` workflow to calculate latent features.
 
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe build-diffae-eval-config CROP_PATTERN -vd
+    ```
+
+    To run the workflow with for a single dataset:
+
+    ```bash
+    uv run endopipe build-diffae-eval-config CROP_PATTERN --datasets DATASET_NAME
+    ```
+
     ## Crop patterns
 
     Two types of crop patterns are supported for model evaluation: `grid` or
     `tracked`. Specific configuration for model evaluation on grid-based vs.
     track-based crops are applied to the base model configuration.
 
+    ## Dataset collection
+
+    If datasets are not provided, the workflow will use datasets in the
+    `diffae_model_training` dataset collection.
+
     ## Workflow demo
 
-    The `--demo-mode` (aka `-d`) flag can be used to run a simplified version of
-    this workflow for testing purposes (e.g. during code review). The workflow
-    will only create the config for a single dataset.
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will set up the
+    evaluation config for a single dataset.
 
     Parameters
     ----------
@@ -87,14 +105,14 @@ def main(
 
     # Build dataframe manifest name to load evaluation dataframes.
     name_suffix = "_demo" if DEMO_MODE else ""
-    dataframe_manifest_name = f"{DIFFAE_EVAL_DATAFRAME_MANIFEST_PREFIX}{crop_pattern}{name_suffix}"
+    dataframe_manifest_name = f"{DIFFAE_EVAL_DATAFRAME_MANIFEST_PREFIX}_{crop_pattern}{name_suffix}"
 
     try:
         dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
     except FileNotFoundError:
         logger.error(
-            "Dataframe manifest [ %s ] not found. "
-            "Please run the create_diffae_eval_dataframe script first "
+            "Dataframe manifest '%s' not found. "
+            "Please run the create_diffae_eval_dataframe workflow first "
             "with matching settings for crop pattern.",
             dataframe_manifest_name,
         )

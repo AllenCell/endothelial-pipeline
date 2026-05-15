@@ -27,6 +27,20 @@ def main(
     These configurations are saved locally, and then be used by the
     `train-diffae` workflow to train models.
 
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe build-diffae-train-config -vd
+    ```
+
+    To run the workflow with modified crop size:
+
+    ```bash
+    uv run endopipe build-diffae-train-config  CROP_PATTERN --datasets DATASET_NAME
+    ```
+
     ## Training run naming
 
     If a model manifest name is not given, it will be automatically constructed
@@ -53,25 +67,24 @@ def main(
     the `latent_dim` parameter. The default is `DEFAULT_NUM_LATENT_DIMENSIONS`
     from `endo_pipeline.settings.workflow_defaults.`
 
-    **Cell piling exclusion**
+    ## Cell piling
 
     By default, timepoints with cell piling annotations are excluded in the
-    training and validation datasets from `create-diffae-training-dataframe`,
+    training and validation datasets from `create-diffae-train-dataframe`,
     unless `include_cell_piling` is True. This means that by default, the model
     will be trained on data that does not include cell piling. To train a model
-    that does "see" cell piling,  run `create-diffae-training-dataframe` with
-    the flag `--include-cell-piling` and then run this training script with the
-    same flag.
+    that does "see" cell piling,  run `create-diffae-train-dataframe` with the
+    flag `--include-cell-piling` and then run this workflow with the same flag.
 
-    When `include_cell_piling` is True, the workflow will use the "standard"
-    dataframe manifest `diffae_training_dataframe` for training with the suffix
-    `_include_cell_piling`. When False, the suffix is `_exclude_cell_piling`.
+    When `include_cell_piling` is True, the workflow will use the dataframe
+    manifest with the suffix `_include_cell_piling`. When False, the suffix is
+    `_exclude_cell_piling`.
 
     ## Workflow demo
 
-    If demo mode is enabled, this workflow will set up the training config with
-    reduced epochs and modified cache and replaces rates. The config will have
-    the suffix `_demo`.
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will set up the
+    training config with reduced epochs and modified cache and replaces rates.
+    The config will have the suffix `_demo`.
 
     Parameters
     ----------
@@ -107,7 +120,10 @@ def main(
         save_model_manifest,
     )
     from endo_pipeline.settings.diffae_configs import DIFFAE_MODEL_TRAIN_CONFIG
-    from endo_pipeline.settings.workflow_defaults import DIFFAE_IMAGE_LOADING_KEY_PREFIX
+    from endo_pipeline.settings.workflow_defaults import (
+        DIFFAE_IMAGE_LOADING_KEY_PREFIX,
+        DIFFAE_TRAIN_DATAFRAME_MANIFEST_PREFIX,
+    )
 
     logger = logging.getLogger(__name__)
 
@@ -138,15 +154,15 @@ def main(
     # Build dataframe manifest name to load training and validation dataframes.
     # Note that the dataframe manifest name does not include the patch size or
     # conditioning type, as these are not relevant for the dataframe itself.
-    dataframe_manifest_name = f"diffae_training_dataframe{piling_name}{name_suffix}"
+    dataframe_manifest_name = f"{DIFFAE_TRAIN_DATAFRAME_MANIFEST_PREFIX}{piling_name}{name_suffix}"
 
     try:
         dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
     except FileNotFoundError:
         logger.error(
-            "Dataframe manifest [ %s ] not found. "
-            "Please run the create_diffae_training_dataframe script first "
-            "with matching settings for resolution level and cell piling.",
+            "Dataframe manifest '%s' not found. "
+            "Please run the create_diffae_train_dataframe workflow first "
+            "with matching settings for cell piling.",
             dataframe_manifest_name,
         )
         raise
