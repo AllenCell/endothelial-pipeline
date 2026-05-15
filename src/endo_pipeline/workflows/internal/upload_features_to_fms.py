@@ -57,7 +57,7 @@ def main(
 
     root_path = Path("//allen/aics/endothelial/morphological_features/analysis").resolve()
 
-    TableUploadArgs = namedtuple("ManifestUploadArgs", ["subdir", "suffix", "manifest", "workflow"])
+    TableUploadArgs = namedtuple("TableUploadArgs", ["subdir", "suffix", "manifest", "workflow"])
     table_upload_args = {
         "cdh5_seg_measurements": TableUploadArgs(
             subdir="cdh5_get_measured_features",
