@@ -48,11 +48,9 @@ def build_command_groups() -> None:
 
     build_command_group(pipeline_app, FIGURE_WORKFLOWS, "figures", True)
     build_command_group(pipeline_app, PRODUCTION_WORKFLOWS, "production", True)
-
-    if IS_INTERNAL:
-        build_command_group(pipeline_app, DEVELOPMENT_WORKFLOWS, "development", True)
-        build_command_group(pipeline_app, TESTING_WORKFLOWS, "testing", True)
-        build_command_group(pipeline_app, INTERNAL_WORKFLOWS, "internal", True)
+    build_command_group(pipeline_app, DEVELOPMENT_WORKFLOWS, "development", IS_INTERNAL)
+    build_command_group(pipeline_app, TESTING_WORKFLOWS, "testing", IS_INTERNAL)
+    build_command_group(pipeline_app, INTERNAL_WORKFLOWS, "internal", IS_INTERNAL)
 
 
 def pipeline_cli() -> None:
