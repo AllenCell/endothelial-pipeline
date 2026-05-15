@@ -89,7 +89,7 @@ def main(
 
     # Create dataframe manifest and add workflow parameters.
     name_suffix = "_demo" if DEMO_MODE else ""
-    manifest_name = f"{DIFFAE_EVAL_DATAFRAME_MANIFEST_PREFIX}{crop_pattern}{name_suffix}"
+    manifest_name = f"{DIFFAE_EVAL_DATAFRAME_MANIFEST_PREFIX}_{crop_pattern}{name_suffix}"
     manifest = create_dataframe_manifest(manifest_name, __file__)
     manifest.parameters = {
         "crop_pattern": crop_pattern,

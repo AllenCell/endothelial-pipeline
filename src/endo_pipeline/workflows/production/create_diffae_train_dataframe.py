@@ -108,7 +108,7 @@ def main(
     # Create dataframe manifest and add workflow parameters.
     name_suffix = "_demo" if DEMO_MODE else ""
     name_suffix = f"{'include' if include_cell_piling else 'exclude'}_cell_piling{name_suffix}"
-    manifest_name = f"{DIFFAE_TRAIN_DATAFRAME_MANIFEST_PREFIX}{name_suffix}"
+    manifest_name = f"{DIFFAE_TRAIN_DATAFRAME_MANIFEST_PREFIX}_{name_suffix}"
     manifest = create_dataframe_manifest(manifest_name, __file__)
     manifest.parameters = {
         "include_cell_piling": include_cell_piling,
