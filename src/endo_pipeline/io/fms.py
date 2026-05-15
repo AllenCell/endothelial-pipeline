@@ -9,10 +9,10 @@ logger = logging.getLogger(__name__)
 try:
     from aicsfiles import FileLevelMetadataKeys, FileManagementSystem
 except ModuleNotFoundError:
-    logger.error("Required dependency [ aicsfiles ] not found")
+    logger.error("Required dependency 'aicsfiles' not found")
     raise
 except ImportError:
-    logger.error("Unable to import [ FileManagementSystem ] from [ aicsfiles ]")
+    logger.error("Unable to import 'FileManagementSystem' from 'aicsfiles'")
     raise
 
 if FMS_ENVIRONMENT == "stg":
@@ -22,14 +22,14 @@ elif FMS_ENVIRONMENT == "prod":
     FMS_BUCKET_NAME = "production.files.allencell.org"
     FMS_LOCAL_PATH = "//allen/programs/allencell/data/proj0/"
 else:
-    logger.error("Invalid FMS environment [ %s ]", FMS_ENVIRONMENT)
+    logger.error("Invalid FMS environment '%s'", FMS_ENVIRONMENT)
     raise ValueError(f"Cannot initialize '{FMS_ENVIRONMENT}' FMS environment")
 
 FMS = FileManagementSystem.from_env(FMS_ENVIRONMENT)
 FMS_FILE_ID = FileLevelMetadataKeys.FILE_ID.value
 FMS_FILE_NAME = FileLevelMetadataKeys.FILE_NAME.value
 
-logger.info("Initialized FMS environment [ %s ]", FMS_ENVIRONMENT)
+logger.info("Initialized FMS '%s' environment", FMS_ENVIRONMENT)
 
 
 def get_local_path_from_fmsid(fmsid: str) -> Path:
@@ -51,7 +51,7 @@ def get_local_path_from_fmsid(fmsid: str) -> Path:
     """
 
     if not Path("//allen").exists():
-        logger.error("Workflow unable to access [ /allen ] drive")
+        logger.error("Workflow unable to access '/allen' drive")
         raise ConnectionError("Workflow does not have access to AICS intranet")
 
     annotations = {FMS_FILE_ID: fmsid}
