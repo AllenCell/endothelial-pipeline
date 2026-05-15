@@ -49,10 +49,6 @@ DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED: str = (
 """Default manifest name for PCA-reduced DiffAE tracked-cell features merged with
 DiffAE tracked-cell features and CDH5 segmentation features after filtering."""
 
-FIXED_SEG_FEATURE_MANIFEST_NAME: str = "fixed_merged_seg_features"
-"""Default manifest name for merged CDH5 segmentation, CDH5 tracking and
-NucViolet-stained nuclei segmentation features for fixed samples."""
-
 DEFAULT_SEG_FEATURE_WORKFLOW_DATASETS: str = "pca_reference"
 """Default dataset collection name for the segmentation feature workflow."""
 
