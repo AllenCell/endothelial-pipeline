@@ -286,6 +286,82 @@ def create_comparison_bar_plot(
     plt.close(fig)
 
 
+def create_rep2_correlation_bar_plot(
+    models_data: list[dict],
+    model_labels: list[str],
+    output_path: Path,
+    filename: str,
+    title: str = "Pearson Correlation (Rep 2)",
+    ylabel: str = "Pearson Correlation (100% Noise)",
+    ylim: tuple[float, float] | None = None,
+) -> None:
+    """Single-series Rep-2 Pearson-correlation bar chart for the supp. figure.
+
+    Lean variant of :func:`create_comparison_bar_plot` used by the
+    ``fig-model-qc-plot`` workflow:
+
+    - Only Rep 2 bars (no Validation series).
+    - No baseline horizontal lines.
+    - No legend.
+
+    Parameters
+    ----------
+    models_data
+        Per-model summary dicts as produced by
+        :func:`endo_pipeline.library.model.model_qc.metrics.build_models_data`.
+    model_labels
+        Short x-axis labels (one per model), e.g. ``["8 BF", "16 BF", ...,
+        "1024 CDH5"]``.
+    output_path
+        Directory to save the figure into.
+    filename
+        Filename (without extension) for the saved figure.
+    title
+        Plot title.
+    ylabel
+        Y-axis label.
+    ylim
+        Optional explicit y-axis limits.
+    """
+    if len(model_labels) != len(models_data):
+        raise ValueError(
+            f"model_labels length ({len(model_labels)}) must match models_data "
+            f"length ({len(models_data)})"
+        )
+
+    num_models = len(models_data)
+    x_pos = np.arange(num_models)
+    rep2_means = [m["rep2"]["corr_mean"] for m in models_data]
+    rep2_stds = [m["rep2"]["corr_std"] for m in models_data]
+
+    with plt.style.context("endo_pipeline.figure"):
+        fig, ax = plt.subplots(figsize=(max(12, num_models * 1.5 + 1), 7))
+
+    ax.bar(
+        x_pos,
+        rep2_means,
+        0.6,
+        yerr=rep2_stds,
+        capsize=5,
+        color=IMAGE_METRIC_DATASET_COLORS["rep_2_positions"],
+        alpha=0.85,
+    )
+
+    ax.set_xlabel("Latent Size / Conditioning", fontsize=FONTSIZE_MEDIUM)
+    ax.set_ylabel(ylabel, fontsize=FONTSIZE_MEDIUM)
+    ax.set_title(title, fontsize=FONTSIZE_LARGE)
+    ax.set_xticks(x_pos)
+    rotation = 45 if num_models > 4 else 0
+    ha_labels = "right" if num_models > 4 else "center"
+    ax.set_xticklabels(model_labels, fontsize=FONTSIZE_MEDIUM, rotation=rotation, ha=ha_labels)
+    ax.grid(True, alpha=0.3, axis="y")
+    if ylim is not None:
+        ax.set_ylim(*ylim)
+
+    save_plot_to_path(fig, output_path, filename, file_format=".svg")
+    plt.close(fig)
+
+
 def create_contact_sheet_with_metrics_column(
     panels: list,
     metrics: list[dict],
