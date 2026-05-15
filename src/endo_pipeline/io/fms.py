@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from endo_pipeline.cli import USE_STAGING
+from endo_pipeline.cli import FMS_ENV
 
 logger = logging.getLogger(__name__)
 
@@ -15,14 +15,15 @@ except ImportError:
     logger.error("Unable to import [ FileManagementSystem ] from [ aicsfiles ]")
     raise
 
-if USE_STAGING:
-    FMS_ENV = "stg"
+if FMS_ENV == "staging":
     FMS_BUCKET_NAME = "staging.files.allencell.org"
     FMS_LOCAL_PATH = "//allen/aics/fms/staging/fss"
-else:
-    FMS_ENV = "prod"
+elif FMS_ENV == "production":
     FMS_BUCKET_NAME = "production.files.allencell.org"
     FMS_LOCAL_PATH = "//allen/programs/allencell/data/proj0/"
+else:
+    logger.error("Invalid FMS environment [ %s ]", FMS_ENV)
+    raise ValueError(f"Cannot initialize '{FMS_ENV}' FMS environment")
 
 FMS = FileManagementSystem.from_env(FMS_ENV)
 FMS_FILE_ID = FileLevelMetadataKeys.FILE_ID.value
