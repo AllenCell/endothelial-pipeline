@@ -46,8 +46,8 @@ from endo_pipeline.settings.figures import FONT_FAMILY, FONTSIZE_SMALL, PDF_FONT
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import (
     ANNOTATIONS_TO_FILTER_OUT_FOR_SEGMENTATIONS,
-    SEGMENTATION_FEATURE_COLUMNS,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    SEGMENTATION_FEATURE_COLUMNS,
 )
 
 logger = logging.getLogger(__name__)
