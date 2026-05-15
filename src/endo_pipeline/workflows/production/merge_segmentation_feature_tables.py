@@ -29,7 +29,8 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
     ## Workflow demo
 
     Running the workflow in demo mode (`-d` or `--demo-mode`) will merge
-    dataframes for the first dataset.
+    dataframes for the first dataset using only the first 100 rows of each
+    dataframe.
 
     Parameters
     ----------
@@ -75,9 +76,19 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
         nucprops_location = get_dataframe_location_for_dataset(nucprops_manifest, dataset_name)
 
         # Load dataframes for current dataset
-        segprops_df = load_dataframe(segprops_location)
-        tracking_df = load_dataframe(tracking_location)
-        nucprops_df = load_dataframe(nucprops_location)
+        segprops_df_ = load_dataframe(segprops_location, delay=True)
+        tracking_df_ = load_dataframe(tracking_location, delay=True)
+        nucprops_df_ = load_dataframe(nucprops_location, delay=True)
+
+        # If running in demo mode, only merge the first 100 rows
+        if DEMO_MODE:
+            segprops_df = segprops_df_.head(100)
+            tracking_df = tracking_df_.head(100)
+            nucprops_df = nucprops_df_.head(100)
+        else:
+            segprops_df = segprops_df_.compute()
+            tracking_df = tracking_df_.compute()
+            nucprops_df = nucprops_df_.compute()
 
         # Skip this dataset if any of the above dataframes are empty
         if segprops_df.empty:
