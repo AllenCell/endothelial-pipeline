@@ -15,7 +15,7 @@ from scipy.stats import binned_statistic_2d, binned_statistic_dd
 
 from endo_pipeline.configs.dataset_config import TimepointAnnotation
 from endo_pipeline.configs.dataset_config_io import load_dataset_config
-from endo_pipeline.io.input import load_dataframe
+from endo_pipeline.io import load_dataframe
 from endo_pipeline.io.output import save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import (
     filter_dataframe_by_annotations,
