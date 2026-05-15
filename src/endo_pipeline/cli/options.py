@@ -28,8 +28,17 @@ class WorkflowOptions:
     demo_mode: Annotated[bool, Parameter(alias="-d", group=OPTIONS)] = False
     """Run workflows in demo mode."""
 
+
+@Parameter(name="*")
+@dataclass
+class InternalOptions:
+    """CLI options for workflows (for internal use only)."""
+
+    upload_to_fms: Annotated[bool, Parameter(group=OPTIONS)] = False
+    """Upload workflow outputs to FMS."""
+
     use_staging: Annotated[bool, Parameter(alias="-u", group=OPTIONS)] = False
-    """Use staging environments."""
+    """Use staging FMS environment."""
 
 
 @Parameter(name="*")
