@@ -15,10 +15,10 @@ except ImportError:
     logger.error("Unable to import [ FileManagementSystem ] from [ aicsfiles ]")
     raise
 
-if FMS_ENVIRONMENT == "staging":
+if FMS_ENVIRONMENT == "stg":
     FMS_BUCKET_NAME = "staging.files.allencell.org"
     FMS_LOCAL_PATH = "//allen/aics/fms/staging/fss"
-elif FMS_ENVIRONMENT == "production":
+elif FMS_ENVIRONMENT == "prod":
     FMS_BUCKET_NAME = "production.files.allencell.org"
     FMS_LOCAL_PATH = "//allen/programs/allencell/data/proj0/"
 else:
