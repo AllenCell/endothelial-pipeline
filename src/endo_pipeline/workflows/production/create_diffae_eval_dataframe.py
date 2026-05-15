@@ -57,7 +57,7 @@ def main(
 
     import logging
 
-    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE, UPLOAD_TO_FMS
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
     from endo_pipeline.library.model.eval_model import preprocess_tracking_manifest_for_model_eval
@@ -82,9 +82,9 @@ def main(
     if datasets is None:
         datasets = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
 
-    # When running workflow in demo mode, only evaluate the first dataset.
+    # When running workflow in demo mode, only include the first dataset.
     if DEMO_MODE:
-        logger.warning("DEMO MODE - Only evaluating first dataset")
+        logger.warning("DEMO MODE - Only the first dataset will be included")
         datasets = datasets[:1]
 
     # Create dataframe manifest and add workflow parameters.
@@ -122,7 +122,7 @@ def main(
 
         # Use default z slice offsets to calculate z slice bounds per position.
         z_slice_bounds_per_position = get_z_slice_bounds_per_position(
-            dataset_config, Z_SLICE_OFFSETS
+            dataset_config, z_slice_offsets=Z_SLICE_OFFSETS
         )
 
         # Build the data loading dataframe based on crop pattern. The 'grid'
@@ -151,12 +151,17 @@ def main(
         output_file = output_path / f"dataset_{dataset_config.name}_{file_suffix}.parquet"
         df.to_parquet(output_file, index=False)
 
-        # Upload dataframe to FMS and add to dataframe manifest.
-        annotations = build_fms_annotations(dataset_config)
-        fmsid = upload_file_to_fms(output_file, annotations=annotations, file_type="parquet")
+        # Create location object with output path
+        location = DataframeLocation(path=output_file)
 
-        # Add dataframe location to dataframe manifest.
-        manifest.locations[dataset] = DataframeLocation(fmsid=fmsid)
+        # Upload to FMS (internal only) and update location object with FMS id
+        if UPLOAD_TO_FMS:
+            annotations = build_fms_annotations(dataset=dataset_config)
+            fmsid = upload_file_to_fms(output_file, annotations=annotations, file_type="parquet")
+            location.fmsid = fmsid
+
+        # Add dataframe location to dataframe manifest and save.
+        manifest.locations[dataset] = location
         save_dataframe_manifest(manifest)
 
 
