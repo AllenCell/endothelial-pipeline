@@ -1,6 +1,7 @@
 import logging
 import os
 from collections.abc import Callable
+from pathlib import Path
 from typing import Annotated
 
 from cyclopts import App, Group, Parameter
@@ -9,11 +10,14 @@ from rich.console import Console
 from endo_pipeline.cli.commands import build_command_group
 from endo_pipeline.cli.gpu import setup_gpu
 from endo_pipeline.cli.logs import setup_logging, silence_external_loggers
-from endo_pipeline.cli.options import PipelineOptions, WorkflowOptions
+from endo_pipeline.cli.options import InternalOptions, PipelineOptions, WorkflowOptions
 from endo_pipeline.cli.tags import check_workflow_tags, get_app_tags
 
 IS_MAIN_PROCESS: bool = int(os.environ.get("LOCAL_RANK", "0")) == 0
 """True if the current process is the main process, False otherwise."""
+
+IS_INTERNAL: bool = Path("//allen/aics").exists()
+"""True if internal storage is reachable (proxy for internal use), False otherwise."""
 
 logger = logging.getLogger("")
 
@@ -30,6 +34,7 @@ workflow_app = App(
 
 WORKFLOW_OPTIONS = WorkflowOptions()
 PIPELINE_OPTIONS = PipelineOptions()
+INTERNAL_OPTIONS = InternalOptions()
 
 FIGURE_WORKFLOWS = Group("Figure Workflows", sort_key=0)
 PRODUCTION_WORKFLOWS = Group("Production Workflows", sort_key=1)
