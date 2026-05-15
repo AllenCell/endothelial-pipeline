@@ -8,6 +8,7 @@ def main(
         "cdh5_seg_tracking",
         "cdh5_seg_measurements",
         "nuclei_labelfree",
+        "merged_live_data_manifests",
     ],
     datasets: Datasets,
 ) -> None:
@@ -18,11 +19,12 @@ def main(
 
     This workflow supports uploads for the following table types.
 
-    | Table                   | Workflow                       |
-    | ----------------------- | ------------------------------ |
-    | `cdh5_seg_tracking`     | `run_cdh5_tracking`            |
-    | `cdh5_seg_measurements` | `get_cdh5_measured_features`   |
-    | `nuclei_labelfree`      | `get_nuclei_measured_features` |
+    | Table                        | Workflow                            |
+    | ---------------------------- | ----------------------------------- |
+    | `cdh5_seg_tracking`          | `run_cdh5_tracking`                 |
+    | `cdh5_seg_measurements`      | `get_cdh5_measured_features`        |
+    | `nuclei_labelfree`           | `get_nuclei_measured_features`      |
+    | `merged_live_data_manifests` | `merge_segmentation_feature_tables` |
 
     Tables are produced by the listed workflow, and must be copied to Vast at
     `//allen/aics/endothelial/morphological_features/analysis` before running
@@ -74,6 +76,12 @@ def main(
             suffix="_tracking.parquet",
             manifest="cdh5_classic_segmentation_tracking",
             workflow="run_cdh5_tracking",
+        ),
+        "merged_live_data_manifests": TableUploadArgs(
+            subdir="cdh5_live_seg_features",
+            suffix="_live_segmentation_features.parquet",
+            manifest="merged_segmentation_features",
+            workflow="merge_segmentation_feature_tables",
         ),
     }
 
