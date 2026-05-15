@@ -35,7 +35,7 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
     ## Workflow demo
 
     Running the workflow in demo mode (`-d` or `--demo-mode`) will combine
-    feature for only the first dataset.
+    features for only the first dataset.
 
     Parameters
     ----------
