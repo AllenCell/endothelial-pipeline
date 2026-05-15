@@ -22,19 +22,19 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe create-diffae-training-dataframe -vd
+    uv run endopipe create-diffae-train-dataframe -vd
     ```
 
     To run the workflow with cell piling annotations included:
 
     ```bash
-    uv run endopipe create-diffae-training-dataframe --include-cell-piling
+    uv run endopipe create-diffae-train-dataframe --include-cell-piling
     ```
 
     To run the workflow with cell piling annotations excluded:
 
     ```bash
-    uv run endopipe create-diffae-training-dataframe --exclude-cell-piling
+    uv run endopipe create-diffae-train-dataframe --exclude-cell-piling
     ```
 
     ## Cell piling
@@ -115,8 +115,9 @@ def main(
         "z_slice_offsets": Z_SLICE_OFFSETS,
     }
 
-    # Create directory for saving training and validation dataframes
-    file_suffix = f"resolution_{DIFFAE_ZARR_RESOLUTION_LEVEL}_z_stack_{Z_SLICE_OFFSETS[0]}_{Z_SLICE_OFFSETS[1]}{name_suffix}"
+    # Create directories for saving training and validation dataframes
+    offsets_name = f"z_stack_{Z_SLICE_OFFSETS[0]}_{Z_SLICE_OFFSETS[1]}"
+    file_suffix = f"resolution_{DIFFAE_ZARR_RESOLUTION_LEVEL}_{offsets_name}_{name_suffix}"
     output_paths = {
         "training": get_output_path("model_train_dataframes"),
         "validation": get_output_path("model_val_dataframes"),
