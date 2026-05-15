@@ -80,7 +80,7 @@ def main(
         save_output=save_output,
     )
 
-    logger.debug("Starting feature extraction...")
+    logger.info("Starting feature extraction...")
 
     process_task_queue(
         get_and_save_nuclei_features_arg_unpacker,

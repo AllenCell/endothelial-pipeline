@@ -88,7 +88,7 @@ def main(
         max_positions=2 if DEMO_MODE else None,
     )
 
-    logger.debug("Starting tracking...")
+    logger.info("Starting tracking...")
 
     # Group analysis queue by dataset and position
     analysis_queue_per_position = []

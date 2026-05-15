@@ -99,7 +99,7 @@ def main(
         overwrite=True,
     )
 
-    logger.debug("Starting image segmentation...")
+    logger.info("Starting image segmentation...")
 
     process_task_queue(
         generate_cdh5_segmentation_refined_multiproc_wrapper,
@@ -109,7 +109,7 @@ def main(
         chunksize=5,
     )
 
-    logger.debug("Finished segmenting images!")
+    logger.info("Finished segmenting images!")
 
 
 if __name__ == "__main__":

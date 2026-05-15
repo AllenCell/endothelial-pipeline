@@ -81,7 +81,7 @@ def main(
         save_output=save_output,
     )
 
-    logger.debug("Starting feature extraction...")
+    logger.info("Starting feature extraction...")
 
     process_task_queue(
         build_cdh5_measured_features_tables_multiproc_wrapper,

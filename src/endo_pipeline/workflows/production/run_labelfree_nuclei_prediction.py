@@ -78,7 +78,7 @@ def main(
         overwrite=overwrite,
     )
 
-    logger.debug("Starting nuclei prediction...")
+    logger.info("Starting nuclei prediction...")
 
     process_task_queue(
         generate_labelfree_nuclei_predictions,
@@ -88,7 +88,7 @@ def main(
         chunksize=5,
     )
 
-    logger.debug("Finished predicting nuclei!")
+    logger.info("Finished predicting nuclei!")
 
 
 if __name__ == "__main__":
