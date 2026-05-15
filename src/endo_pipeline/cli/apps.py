@@ -238,9 +238,9 @@ def apply_internal_options(options: InternalOptions):
 
     if options.use_staging:
         logger.info("Using staging environments")
-        endo_pipeline.cli.FMS_ENV = "stg"
+        endo_pipeline.cli.FMS_ENVIRONMENT = "stg"
     else:
-        endo_pipeline.cli.FMS_ENV = "prod"
+        endo_pipeline.cli.FMS_ENVIRONMENT = "prod"
 
 
 def apply_pipeline_options(apps: dict[str, App], options: PipelineOptions) -> None:

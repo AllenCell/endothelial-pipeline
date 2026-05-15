@@ -26,5 +26,5 @@ NUM_GPUS: int | None = None
 UPLOAD_TO_FMS = False
 """True to upload outputs to FMS, False otherwise."""
 
-FMS_ENV: Literal["prod", "stg", "dev"] = "prod"
+FMS_ENVIRONMENT: Literal["prod", "stg", "dev"] = "prod"
 """FMS environment to upload to."""
