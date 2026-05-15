@@ -1,5 +1,5 @@
-name: pc_diffae_tracked_seg_features
-workflow: merge_pc_diffae_seg_features
+name: cell_centered_features
+workflow: combine_cell_centered_features
 parameters: {}
 locations:
   20250319_20X:

@@ -39,13 +39,11 @@ DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED: str = (
 )
 """Default manifest names for PCA-reduced DiffAE features for grid-based crops after filtering."""
 
-DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME: str = "pc_diffae_tracked_seg_features"
+DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME: str = "cell_centered_features"
 """Default manifest name for PCA-reduced DiffAE tracked-cell features merged with
 DiffAE tracked-cell features and CDH5 segmentation features."""
 
-DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED: str = (
-    "pc_diffae_tracked_seg_features_filtered"
-)
+DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED: str = "cell_centered_features_filtered"
 """Default manifest name for PCA-reduced DiffAE tracked-cell features merged with
 DiffAE tracked-cell features and CDH5 segmentation features after filtering."""
 
