@@ -160,7 +160,11 @@ def workflow_entrypoint_external(
 ) -> None:
     """External workflow CLI entrypoint."""
 
-    workflow_entrypoint(*tokens, workflow_options=workflow_options)
+    workflow_entrypoint(
+        *tokens,
+        workflow_options=workflow_options,
+        internal_options=None,
+    )
 
 
 def workflow_entrypoint_internal(
