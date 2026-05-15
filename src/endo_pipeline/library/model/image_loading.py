@@ -684,13 +684,19 @@ def build_zarr_image_loading_dataframe(
         which can be used to create a `MultiDimImageDataset`.
 
     """
-    # generate csv with paths to zarr files for each position in the dataset
-    available_zarr_locs = get_available_zarr_locations(dataset_config)
-    zarr_file_paths = [
-        zarr_loc.path.as_posix() for zarr_loc in available_zarr_locs if zarr_loc.path is not None
-    ]
 
-    df = pd.DataFrame({CytoDLLoadDataKeys.FILE_PATH: zarr_file_paths})
+    # Build list of zarr locations for each position in the dataset. Prefer
+    # grabbing local paths first, which is faster to load, if it exists.
+    # Otherwise, try to grab the S3 URI.
+    available_zarr_locs = get_available_zarr_locations(dataset_config)
+    zarr_file_locs = []
+    for loc in available_zarr_locs:
+        if loc.path is not None and loc.path.exists():
+            zarr_file_locs.append(loc.path.as_posix())
+        elif loc.s3uri is not None:
+            zarr_file_locs.append(loc.s3uri)
+
+    df = pd.DataFrame({CytoDLLoadDataKeys.FILE_PATH: zarr_file_locs})
     df[CytoDLLoadDataKeys.RESOLUTION] = resolution_level
     if isinstance(channel, int):
         df[CytoDLLoadDataKeys.CHANNELS] = channel
