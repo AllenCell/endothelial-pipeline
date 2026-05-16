@@ -84,7 +84,6 @@ def main(
 
     Running the workflow in demo mode (`-d` or `--demo-mode`) will set up the
     training config with reduced epochs and modified cache and replaces rates.
-    The config will have the suffix `_demo`.
 
     Parameters
     ----------
@@ -180,6 +179,7 @@ def main(
     # Build the model manifest name, if not provided.
     if model_manifest_name is None:
         model_manifest_name = f"diffae{patch_name}{condition_name}{latent_name}{piling_name}"
+        model_manifest_name = f"{model_manifest_name}{name_suffix}"
 
     # Create or load the model manifest.
     manifest = create_model_manifest(model_manifest_name, __file__)
@@ -198,7 +198,7 @@ def main(
     config_path = get_output_path(
         "models", model_manifest_name, run_name, "configs", include_timestamp=False
     )
-    config_file = config_path / "train.yaml"
+    config_file = config_path / f"train{name_suffix}.yaml"
 
     # Build the training config overrides.
     overrides = ModelConfigOverrideTrain(
@@ -216,7 +216,7 @@ def main(
         num_gpus=NUM_GPUS,
     )
 
-    # # Initialize the model with training template and overrides and save config.
+    # Initialize the model with training template and overrides and save config.
     cytodl_model = CytoDLModel()
     cytodl_model.load_config_from_dict(template_config)
     cytodl_model.override_config(overrides.to_dict())
