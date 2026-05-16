@@ -30,8 +30,8 @@ class ModelConfigOverrideEval:
     template_config: str = DIFFAE_MODEL_EVAL_CONFIG
     """Name of model config template."""
 
-    eval_dataframe_path: Path | None = None
-    """Path to the evaluation dataset (image loading metadata) parquet file."""
+    eval_dataframe_path: str | None = None
+    """Path or URI to the evaluation dataset (image loading metadata) parquet file."""
 
     cache_rate: float | None = Field(default=None, ge=0, le=1)
     """Fraction of the dataset to cache in memory for evaluation."""
@@ -55,9 +55,12 @@ class ModelConfigOverrideEval:
                 logger.error("Evaluation dataframe could not be found in config")
                 raise ValueError("Evaluation dataframe is required and not found in the config")
             else:
-                self.eval_dataframe_path = Path(eval_path)
+                self.eval_dataframe_path = eval_path
 
-            if self.eval_dataframe_path.exists():
+            if (
+                not self.eval_dataframe_path.startswith("s3://")
+                and Path(self.eval_dataframe_path).exists()
+            ):
                 logger.error(
                     "Evaluation dataframe does not exist at [ %s ]", self.eval_dataframe_path
                 )
@@ -110,7 +113,7 @@ class ModelConfigOverrideEval:
             # remove the validation dataloader (Which is not needed for eval)
             "data.val_dataloaders": None,
             # set evaluation dataframe paths and caching parameters
-            "data.predict_dataloaders.dataset.dataframe_path": self.eval_dataframe_path.as_posix(),
+            "data.predict_dataloaders.dataset.dataframe_path": self.eval_dataframe_path,
             "data.predict_dataloaders.dataset.cache_rate": self.cache_rate,
             "data.predict_dataloaders.dataset.replace_rate": self.replace_rate,
             # turn off all callbacks and add prediction saver callback

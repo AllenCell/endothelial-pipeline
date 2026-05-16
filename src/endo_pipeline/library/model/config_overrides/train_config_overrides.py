@@ -37,11 +37,11 @@ class ModelConfigOverrideTrain:
     latent_dim: int | None = Field(default=None, gt=0)
     """Number of dimensions for the latent space of the semantic encoder."""
 
-    train_dataframe_path: Path | None = None
-    """Path to the training dataset (image loading metadata) parquet file."""
+    train_dataframe_path: str | None = None
+    """Path or URI to the training dataset (image loading metadata) parquet file."""
 
-    val_dataframe_path: Path | None = None
-    """Path to the validation dataset (image loading metadata) parquet file."""
+    val_dataframe_path: str | None = None
+    """Path or URI to the validation dataset (image loading metadata) parquet file."""
 
     max_epochs: int | None = Field(default=None, gt=0)
     """Maximum number of epochs to train the model for."""
@@ -71,9 +71,12 @@ class ModelConfigOverrideTrain:
                 logger.error("Training dataframe could not be found in config")
                 raise ValueError("Training dataframe is required and not found in the config")
             else:
-                self.train_dataframe_path = Path(train_path)
+                self.train_dataframe_path = train_path
 
-            if self.train_dataframe_path.exists():
+            if (
+                not self.train_dataframe_path.startswith("s3://")
+                and Path(self.train_dataframe_path).exists()
+            ):
                 logger.error(
                     "Training dataframe does not exist at [ %s ]", self.train_dataframe_path
                 )
@@ -86,9 +89,12 @@ class ModelConfigOverrideTrain:
                 logger.error("Validation dataframe could not be found in config")
                 raise ValueError("Validation dataframe is required and not found in the config")
             else:
-                self.val_dataframe_path = Path(val_path)
+                self.val_dataframe_path = val_path
 
-            if self.val_dataframe_path.exists():
+            if (
+                not self.val_dataframe_path.startswith("s3://")
+                and Path(self.val_dataframe_path).exists()
+            ):
                 logger.error(
                     "Validation dataframe does not exist at [ %s ]", self.val_dataframe_path
                 )
@@ -187,10 +193,10 @@ class ModelConfigOverrideTrain:
             # set number of latent dimensions
             "lat_dim": self.latent_dim,
             # set training and validation dataframe paths and caching parameters
-            "data.train_dataloaders.dataset.dataframe_path": self.train_dataframe_path.as_posix(),
+            "data.train_dataloaders.dataset.dataframe_path": self.train_dataframe_path,
             "data.train_dataloaders.dataset.cache_rate": self.cache_rate,
             "data.train_dataloaders.dataset.replace_rate": self.replace_rate,
-            "data.val_dataloaders.dataset.dataframe_path": self.val_dataframe_path.as_posix(),
+            "data.val_dataloaders.dataset.dataframe_path": self.val_dataframe_path,
             "data.val_dataloaders.dataset.cache_rate": self.cache_rate,
             "data.val_dataloaders.dataset.replace_rate": self.replace_rate,
             # override the effective epochs calculations

@@ -104,7 +104,6 @@ def main(
     """
 
     import logging
-    from pathlib import Path
 
     from cyto_dl.api import CytoDLModel
 
@@ -208,8 +207,8 @@ def main(
         crop_size=crop_size,
         condition_key=f"{DIFFAE_IMAGE_LOADING_KEY_PREFIX}{condition_on}",
         latent_dim=latent_dim,
-        train_dataframe_path=Path(train_dataframe_path),
-        val_dataframe_path=Path(val_dataframe_path),
+        train_dataframe_path=train_dataframe_path,
+        val_dataframe_path=val_dataframe_path,
         max_epochs=max_num_epochs,
         cache_rate=cache_rate,
         replace_rate=replace_rate,

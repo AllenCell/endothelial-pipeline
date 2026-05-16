@@ -67,7 +67,6 @@ def main(
     """
 
     import logging
-    from pathlib import Path
 
     from cyto_dl.api import CytoDLModel
 
@@ -152,7 +151,7 @@ def main(
         # Build the evaluation config overrides.
         overrides = ModelConfigOverrideEval(
             model_manifest_name=model_manifest_name,
-            eval_dataframe_path=Path(dataframe_path),
+            eval_dataframe_path=dataframe_path,
             run_name=run_name,
             num_gpus=NUM_GPUS,
         )
