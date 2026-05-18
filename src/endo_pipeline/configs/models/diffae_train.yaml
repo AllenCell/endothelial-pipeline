@@ -208,10 +208,10 @@ model:
   lr_scheduler:
     _partial_: true
     _target_: torch.optim.lr_scheduler.OneCycleLR
-    max_lr: 0.0002
+    max_lr: 0.0001
     epochs: ${trainer.max_epochs}
-    steps_per_epoch: 279 # this works with a batch size of 12 with 4 GPUs
-    pct_start: 0.06 # with max epochs of 7500 this will have LR increase until 750 epochs!
+    steps_per_epoch: 1
+    pct_start: 0.01
   diffusion_inferer:
     _target_: monai.inferers.DiffusionInferer
     _partial_: true

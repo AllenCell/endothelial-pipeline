@@ -138,7 +138,7 @@ def main(
         replace_rate = 0.1
     else:
         name_suffix = ""
-        max_num_epochs = 1000
+        max_num_epochs = 20000
         log_every_n_steps = 50
         cache_rate = 1.0
         replace_rate = 0.5
