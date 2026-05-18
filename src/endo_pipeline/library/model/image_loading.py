@@ -5,24 +5,26 @@ import os
 import re
 import typing
 from collections.abc import Callable, Sequence
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import tqdm
-from bioio import BioImage
 from cyto_dl.utils.arg_checking import get_dtype
 from monai.data import MetaTensor, SmartCacheDataset
 from monai.transforms import Transform
 from numpy.typing import DTypeLike
 
 if typing.TYPE_CHECKING:
+    from bioio import BioImage
     from omegaconf import ListConfig
 
 from endo_pipeline.configs import DatasetConfig, get_position_integer_from_zarr_file_path
-from endo_pipeline.io import load_dataframe
+from endo_pipeline.io import load_dataframe, load_image
 from endo_pipeline.library.process.z_stack_selection import get_plane_indices
-from endo_pipeline.manifests import build_dataframe_location_from_path, get_available_zarr_locations
+from endo_pipeline.manifests import (
+    build_dataframe_location_from_string,
+    build_image_location_from_string,
+    get_available_zarr_locations,
+)
 from endo_pipeline.settings.diffae_feature_dataframes import CytoDLLoadDataKeys
 from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL, LOG_EPSILON, NUM_ZSLICES
 
@@ -191,7 +193,12 @@ class BioIOImageLoaderd(Transform):
             raise KeyError(f"Missing key {self.path_key} in data dictionary")
         path = data[self.path_key]
         logger.debug("Loading image from path: [ %s ]", path)
-        img = BioImage(path)
+
+        # Convert "path" (which may be local path or an S3 URI) into a location
+        # object so we can use built-in image loading.
+        img_loc = build_image_location_from_string(path)
+        img = load_image(img_loc, read=False)
+
         if self.scene_key in data:
             img.set_scene(data[self.scene_key])
         if self.resolution_key in data:
@@ -228,7 +235,7 @@ class MultiDimImageDataset(SmartCacheDataset):
 
     def __init__(
         self,
-        dataframe_path: Path | str,
+        dataframe_path: str,
         img_path_column: str = CytoDLLoadDataKeys.FILE_PATH,
         channel_column: str = CytoDLLoadDataKeys.CHANNELS,
         spatial_dims: int = 3,
@@ -387,7 +394,10 @@ class MultiDimImageDataset(SmartCacheDataset):
             Additional keyword arguments to pass to ``CacheDataset``.
 
         """
-        df_loc = build_dataframe_location_from_path(dataframe_path)
+
+        # Convert dataframe "path" (which may be local path or an S3 URI) into a
+        # location object so we can use built-in dataframe loading.
+        df_loc = build_dataframe_location_from_string(dataframe_path)
         df = load_dataframe(df_loc)
         rank = int(os.environ.get("LOCAL_RANK", 0))
         # Use WORLD_SIZE from environment, fallback to num_devices, then default to 1
@@ -446,7 +456,7 @@ class MultiDimImageDataset(SmartCacheDataset):
 
         super().__init__(data, transform, **cache_kwargs)
 
-    def _get_scenes(self, row: dict, img: BioImage) -> tuple:
+    def _get_scenes(self, row: dict, img: "BioImage") -> tuple:
         """Get scenes from the row data."""
         scenes = row.get(self.scene_column, -1)
         if scenes != -1:
@@ -468,7 +478,7 @@ class MultiDimImageDataset(SmartCacheDataset):
             scenes = img.scenes
         return scenes
 
-    def _get_timepoints(self, row: dict, img: BioImage) -> list:
+    def _get_timepoints(self, row: dict, img: "BioImage") -> list:
         """Get timepoints from the row data."""
         start = row.get(self.time_start_column, 0)
         stop = row.get(self.time_end_column, -1)
@@ -489,7 +499,7 @@ class MultiDimImageDataset(SmartCacheDataset):
         logger.debug("Loading image with timepoints: [ %s ]", timepoints_as_list)
         return sorted(timepoints_as_list)
 
-    def _get_z_slices(self, row: dict, img: BioImage) -> list:
+    def _get_z_slices(self, row: dict, img: "BioImage") -> list:
         """Get Z slices from the row data."""
         z_start = row.get(self.z_start_column, 0)
         z_stop = row.get(self.z_end_column, -1)
@@ -520,8 +530,10 @@ class MultiDimImageDataset(SmartCacheDataset):
         img_data = []
 
         for img_path, group in df.groupby(self.img_path_column):
-            # Load the image for the group.
-            img = BioImage(str(img_path))
+            # Convert image "path" (which may be local path or an S3 URI) into a
+            # location object so we can use built-in image loading.
+            img_loc = build_image_location_from_string(str(img_path))
+            img = load_image(img_loc, read=False)
 
             # We expect that input images are not multiscene. This check makes
             # sure that if scenes are specified in the dataframe, they are all
@@ -537,7 +549,7 @@ class MultiDimImageDataset(SmartCacheDataset):
 
             row_data = []
 
-            for row in tqdm.tqdm(group.itertuples()):
+            for row in group.itertuples():
                 row_dict: dict = row._asdict()  # type: ignore[operator]
                 channel = self._get_channel(row_dict)
                 timepoints = self._get_timepoints(row_dict, img)
