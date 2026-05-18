@@ -44,8 +44,9 @@ def main(
     ## Workflow demo
 
     Running the workflow in demo mode (`-d` or `--demo-mode`) will build
-    evaluation dataframes for only the first position and first timepoint of a
-    single dataset.
+    evaluation dataframes for only the first position and first two timepoints
+    of a single dataset. If the dataset is not a timelapse, only the first
+    timepoint is used).
 
     Parameters
     ----------
@@ -115,10 +116,12 @@ def main(
             frame_start = 0
             frame_stop = 1 if dataset_config.is_timelapse else 0
             only_include_positions = [0]
+            only_include_frames = {0: sorted({frame_start, frame_stop})}
         else:
             frame_start = None
             frame_stop = None
             only_include_positions = None
+            only_include_frames = None
 
         # Use default z slice offsets to calculate z slice bounds per position.
         z_slice_bounds_per_position = get_z_slice_bounds_per_position(
@@ -143,6 +146,7 @@ def main(
                 dataset_config,
                 z_slice_bounds_per_position=z_slice_bounds_per_position,
                 only_include_positions=only_include_positions,
+                only_include_frames=only_include_frames,
             )
 
         # Output dataframes are locally saved to:
