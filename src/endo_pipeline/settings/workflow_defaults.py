@@ -74,7 +74,7 @@ DIFFAE_EVAL_DATAFRAME_MANIFEST_PREFIX: str = "diffae_evaluation_dataframe"
 DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT: str = "raw_cdh5"
 """Default key for channel to use as diffusion image input to the model."""
 
-DEFAULT_NUM_LATENT_DIMENSIONS: int = 1024
+DEFAULT_NUM_LATENT_DIMENSIONS: int = 512
 """Default number of latent dimensions for DiffAE models."""
 
 RANDOM_SEED: int = 47
