@@ -89,8 +89,18 @@ def save_denoising_crops(
 
     save_image_as_tiff(noise_image, crops_output_path, "noised_100pct")
 
+    # Denoised outputs are produced at each fractional noise level plus a
+    # final 100% noise level.  When `evaluate_single_model` runs in
+    # metrics-only mode (no intermediate plots), only the 100% denoising is
+    # computed, so `denoised_images` is length 1 and corresponds to the
+    # 100% start.  The pct lookup must therefore key off whether we're at
+    # the last position, not whether ``idx`` happens to fall inside
+    # ``noise_levels`` — otherwise a lone 100% denoising would be mislabelled
+    # as the first fractional level.
+    num_denoised = len(denoised_images)
     for idx, denoised_img in enumerate(denoised_images):
-        pct = int(noise_levels[idx] * 100) if idx < len(noise_levels) else 100
+        is_last = idx == num_denoised - 1
+        pct = 100 if is_last else int(noise_levels[idx] * 100)
         save_image_as_tiff(denoised_img, crops_output_path, f"denoised_from_{pct:03d}pct_noise")
 
     logger.debug("Saved crops to %s", crops_output_path)
