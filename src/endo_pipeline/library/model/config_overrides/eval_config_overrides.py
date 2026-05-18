@@ -1,6 +1,7 @@
 """Model config override classes for model evaluation (inference) runs."""
 
 import logging
+import os
 from pathlib import Path
 from typing import Any, Literal
 
@@ -42,6 +43,9 @@ class ModelConfigOverrideEval:
     num_gpus: int | None = Field(default=None, gt=0)
     """Number of GPUs to use. None indicates that CPU should be used."""
 
+    num_workers: int | None = Field(default=None, gt=0)
+    """Number of workers to use. None indicates use all available on machine."""
+
     def __post_init__(self):
         """Post initialization steps for model config overrides."""
         self.task_name = "eval"
@@ -80,6 +84,9 @@ class ModelConfigOverrideEval:
             accelerator = OmegaConf.select(config, "trainer.accelerator")
             if accelerator == "gpu":
                 self.num_gpus = OmegaConf.select(config, "trainer.devices", default=1)
+
+        if self.num_workers is None:
+            self.num_workers = os.cpu_count()
 
     def to_dict(
         self, dataset_name: str, crop_pattern: Literal["grid", "tracked"], suffix: str = ""
@@ -137,6 +144,10 @@ class ModelConfigOverrideEval:
             "trainer.accelerator": "cpu" if self.num_gpus is None else "gpu",
             "trainer.devices": self.num_gpus or 1,
             "trainer.precision": "bf16-mixed" if self.num_gpus is None else "16-mixed",
+            # set number of workers
+            "data.predict_dataloaders.num_workers": self.num_workers,
+            "data.predict_dataloaders.dataset.num_init_workers": self.num_workers,
+            "data.predict_dataloaders.dataset.num_replace_workers": self.num_workers,
         }
 
         # Additional overrides specific to track-based crops

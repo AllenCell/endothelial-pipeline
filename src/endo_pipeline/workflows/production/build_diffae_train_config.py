@@ -16,6 +16,7 @@ def main(
     condition_on: Literal["bf", "cdh5"] = DEFAULT_IMAGE_TYPE_FOR_SEMANTIC_CONDITIONING,
     latent_dim: int = DEFAULT_NUM_LATENT_DIMENSIONS,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
+    num_workers: int | None = None,
 ) -> None:
     """
     Build config for training a DiffAE model.
@@ -100,6 +101,9 @@ def main(
     include_cell_piling
         True to include timepoints with cell piling in data used for training,
         False to exclude.
+    num_workers
+        Number of workers to use for loading data. If not given, estimate based
+        on total number of logical CPUs in the system.
     """
 
     import logging
@@ -214,6 +218,7 @@ def main(
         replace_rate=replace_rate,
         log_steps=log_every_n_steps,
         num_gpus=NUM_GPUS,
+        num_workers=num_workers,
     )
 
     # Initialize the model with training template and overrides and save config.

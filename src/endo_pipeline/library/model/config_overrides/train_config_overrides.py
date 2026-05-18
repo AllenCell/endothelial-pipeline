@@ -1,6 +1,7 @@
 """Model config override classes for model training runs."""
 
 import logging
+import os
 from pathlib import Path
 
 from omegaconf import OmegaConf
@@ -57,6 +58,9 @@ class ModelConfigOverrideTrain:
 
     num_gpus: int | None = Field(default=None, gt=0)
     """Number of GPUs to use. None indicates that CPU should be used."""
+
+    num_workers: int | None = Field(default=None, gt=0)
+    """Number of workers to use. None indicates use all available on machine."""
 
     def __post_init__(self):
         """Post initialization steps for model config overrides."""
@@ -139,6 +143,9 @@ class ModelConfigOverrideTrain:
                 f"[ {self.log_steps} > {self.max_epochs} ]"
             )
 
+        if self.num_workers is None:
+            self.num_workers = os.cpu_count()
+
     def to_dict(self):
         """Convert to overrides dict."""
         # Create output directories for checkpoints and logs if they do not exist.
@@ -210,6 +217,13 @@ class ModelConfigOverrideTrain:
             "trainer.accelerator": "cpu" if self.num_gpus is None else "gpu",
             "trainer.devices": self.num_gpus or 1,
             "trainer.precision": "bf16-mixed" if self.num_gpus is None else "16-mixed",
+            # set number of workers
+            "data.train_dataloaders.num_workers": self.num_workers,
+            "data.train_dataloaders.dataset.num_init_workers": self.num_workers,
+            "data.train_dataloaders.dataset.num_replace_workers": self.num_workers,
+            "data.val_dataloaders.num_workers": self.num_workers,
+            "data.val_dataloaders.dataset.num_init_workers": self.num_workers,
+            "data.val_dataloaders.dataset.num_replace_workers": self.num_workers,
         }
 
         # If single GPU or none, use "auto" strategy
