@@ -40,12 +40,15 @@ def main(model_manifest_name: str, run_name: str | None = None) -> None:
 
     from cyto_dl.api import CytoDLModel
 
+    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.io import get_output_path
     from endo_pipeline.manifests import ModelLocation, load_model_manifest, save_model_manifest
 
     logger = logging.getLogger(__name__)
 
     # Get available training runs from given model manifest.
+    name_suffix = "_demo" if DEMO_MODE else ""
+    model_manifest_name = f"{model_manifest_name}{name_suffix}"
     model_manifest = load_model_manifest(model_manifest_name)
     available_runs = [key for key, loc in model_manifest.locations.items() if loc.mlflowid is None]
 
@@ -83,7 +86,7 @@ def main(model_manifest_name: str, run_name: str | None = None) -> None:
         include_timestamp=False,
         create_directories=False,
     )
-    config_file = config_path / "train.yaml"
+    config_file = config_path / f"train{name_suffix}.yaml"
 
     # Initialize the model with training config.
     cytodl_model = CytoDLModel()
@@ -99,9 +102,8 @@ def main(model_manifest_name: str, run_name: str | None = None) -> None:
     logger.info("MLflow run ID [ %s ]", mflow_run_id)
 
     # Save MLflow run ID to model manifest
-    manifest = load_model_manifest(model_manifest_name)
-    manifest.locations[run_name] = ModelLocation(mlflowid=mflow_run_id)
-    save_model_manifest(manifest)
+    model_manifest.locations[run_name] = ModelLocation(mlflowid=mflow_run_id)
+    save_model_manifest(model_manifest)
 
 
 if __name__ == "__main__":
