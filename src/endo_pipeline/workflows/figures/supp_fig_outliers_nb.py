@@ -123,7 +123,6 @@ gfp_results = performance_stats(
 print(gfp_results)
 
 # %% Figure
-output_path = save_dir_1 / "supp_fig_z_slice_selection.svg"
 save_dir_2 = get_output_path("annotate_tp_outliers")
 panels = [
     FigurePanel(
@@ -176,4 +175,10 @@ panels = [
         y_offset=0.1,
     ),
 ]
+
+output_path = (
+    get_output_path("supp_fig_z_slice_outliers") / "supp_fig_z_slice_selection_outliers.svg"
+)
 build_figure_from_panels(panels, output_path, width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT)
+
+# %%
