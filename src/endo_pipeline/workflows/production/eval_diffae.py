@@ -58,7 +58,7 @@ def main(
 
     from cyto_dl.api import CytoDLModel
 
-    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE, UPLOAD_TO_FMS
     from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
     from endo_pipeline.library.model.eval_model import (
@@ -145,15 +145,21 @@ def main(
                 prediction_path=output_path,
             )
 
-        # Upload feature dataframe to FMS.
-        if upload_to_fms:
+        # Create location object with output path
+        location = DataframeLocation(path=output_path)
+
+        # Upload to FMS (internal only) and update location object with FMS id
+        if UPLOAD_TO_FMS:
             dataset_config = load_dataset_config(dataset)
             annotations = build_fms_annotations(
                 dataset_config, model_manifest=model_manifest, run_name=run_name
             )
             fmsid = upload_file_to_fms(output_path, annotations=annotations, file_type="parquet")
-            feature_manifest.locations[dataset] = DataframeLocation(fmsid=fmsid)
-            save_dataframe_manifest(feature_manifest)
+            location.fmsid = fmsid
+
+        # Add dataframe location to dataframe manifest and save.
+        feature_manifest.locations[dataset] = location
+        save_dataframe_manifest(feature_manifest)
 
 
 if __name__ == "__main__":
