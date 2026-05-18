@@ -150,3 +150,12 @@ def add_image_location_to_manifest(
         logger.warning("Dataset [ %s ] has existing location and will be overwritten", dataset.name)
 
     manifest.locations[dataset.name] = ImageLocation(path=path)
+
+
+def build_image_location_from_string(string: str) -> ImageLocation:
+    """Create a image location from given string."""
+
+    if string.startswith("s3://"):
+        return ImageLocation(s3uri=string)
+    else:
+        return ImageLocation(path=Path(string).resolve())
