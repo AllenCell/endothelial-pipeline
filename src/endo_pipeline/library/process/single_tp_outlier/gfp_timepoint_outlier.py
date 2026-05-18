@@ -50,7 +50,7 @@ def plot_gfp_outliers_rolling(
 
     fig, ax = plt.subplots(figsize=figure_size)
     ax.plot(tp_means, label="Intensity", color="black", alpha=0.7)
-    ax.plot(rolling_mean, label="Rolling Mean", color="blue", alpha=0.9)
+    ax.plot(rolling_mean, label="Rolling mean", color="blue", alpha=0.9)
     ax.plot(lower_threshold, color="red", linestyle="--", label=f"Lower {int(percent*100)}%")
     ax.plot(upper_threshold, color="orange", linestyle="--", label=f"Upper {int(percent*100)}%")
 
