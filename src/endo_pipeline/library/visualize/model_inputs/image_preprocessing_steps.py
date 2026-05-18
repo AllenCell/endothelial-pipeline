@@ -11,7 +11,12 @@ from matplotlib.ticker import MaxNLocator, ScalarFormatter
 from monai.data import MetaTensor
 
 from endo_pipeline.io.output import save_plot_to_path
-from endo_pipeline.library.visualize.figure_utils import plot_image_thumbnail
+from endo_pipeline.library.visualize.figure_utils import (
+    add_scalebar,
+    make_contact_sheet,
+    plot_image_thumbnail,
+)
+from endo_pipeline.settings.figures import FONTSIZE_XSMALL
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
 
 logger = logging.getLogger(__name__)
@@ -125,17 +130,18 @@ def plot_and_save_histogram(
         xlabel (str | None, optional): Label for the x-axis. Defaults to "Intensity".
         ylabel (str | None, optional): Label for the y-axis. Defaults to "Frequency".
     """
-    fig, ax = plt.subplots(figsize=figsize)
+    fig, ax = plt.subplots(figsize=figsize, layout="constrained")
     ax.hist(value_np.ravel(), bins=50, color="grey", alpha=0.7)
     if xlabel is not None:
         ax.set_xlabel(xlabel)
+        ax.xaxis.labelpad = 3
     if ylabel is not None:
         ax.set_ylabel(ylabel)
+        ax.yaxis.labelpad = 3
     ax.yaxis.set_major_locator(MaxNLocator(nbins=4))  # Set 4 y-ticks
     if scientific_notation_y_axis:
         ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
         ax.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
-    plt.show()
     save_plot_to_path(
         fig,
         save_dir,
@@ -143,8 +149,8 @@ def plot_and_save_histogram(
         dpi=300,
         file_format=".svg",
         transparent=True,
+        tight_layout=False,
     )
-    plt.close(fig)
 
 
 def create_data_dict_loaded_image(
@@ -224,20 +230,25 @@ def visualize_fov_transform_steps(
     sample: dict[str, Any],
     save_dir: Path,
     target_key: str,
+    figure_size: tuple = (1.5, 1.5),
 ) -> np.ndarray:
     """
-    Apply a sequence of transforms to a sample and optionally visualize.
+    Apply a sequence of transforms to a sample and visualize all steps
+    as a contact sheet (one row of images, one row of histograms).
 
     Args:
         transforms (List[Any]): Sequence of transforms to apply.
         sample (Dict[str, Any]): Input data dictionary.
         save_dir (Path): Directory where visualizations are saved.
         target_key (str): Key to visualize (e.g., 'raw_bf').
+        figure_size (tuple): Size per panel in inches (width, height).
 
     Returns:
         The transformed image as a NumPy array.
     """
-    processed_keys = set()
+    images: list[np.ndarray] = []
+    col_titles: list[str] = []
+
     for step_idx, transform in enumerate(transforms):
         transform_name = transform.__class__.__name__
         logger.info("Applying Transform %d: %s", step_idx + 1, transform_name)
@@ -249,38 +260,74 @@ def visualize_fov_transform_steps(
 
         sample = transform(sample)
 
-        # Visualize if target_key affected
+        # Collect if target_key affected
         if target_key in transform_keys and isinstance(sample, dict):
             value_np = get_target_image_from_sample(sample, target_key)
+            images.append(value_np.squeeze())
+            col_titles.append(transform_name)
 
-            first_time = target_key not in processed_keys
-            scalebar_size_um = 50 if first_time else None
-            pixel_size = PIXEL_SIZE_3i_20x if first_time else None
-            xlabel = "Intensity (a.u)" if first_time else None
-            ylabel = "Frequency" if first_time else None
+    # --- Image contact sheet ---
+    n = len(images)
+    fig_images = make_contact_sheet(
+        panels=images,
+        max_rows=1,
+        max_cols=n,
+        col_titles=col_titles,
+        font_size=FONTSIZE_XSMALL,
+        gridspec_kwargs={"wspace": 0, "hspace": 0},
+        fig_kwargs={"figsize": figure_size, "layout": "constrained"},
+    )
 
-            plot_image_thumbnail(
-                value_np.squeeze(),
-                f"{target_key}_{transform_name}",
-                save_dir,
-                figsize=(1.2, 1.2),
-                scalebar_size_um=scalebar_size_um,
-                pixel_size=pixel_size,
-                file_format=".svg",
-            )
+    for ax in fig_images.axes:
+        ax.xaxis.labelpad = 3
+        ax.yaxis.labelpad = 3
 
-            plot_and_save_histogram(
-                value_np.squeeze(),
-                transform_name,
-                target_key,
-                save_dir,
-                figsize=(1.5, 1.5),
-                scientific_notation_y_axis=True,
-                xlabel=xlabel,
-                ylabel=ylabel,
-            )
+    # Add scalebar to first panel only
+    first_ax = fig_images.axes[0]
+    add_scalebar(
+        first_ax,
+        scale_bar_um=50,
+        pixel_size=PIXEL_SIZE_3i_20x,
+        location="lower left",
+    )
 
-            processed_keys.add(target_key)
+    save_plot_to_path(
+        fig_images,
+        save_dir,
+        f"{target_key}_images",
+        file_format=".svg",
+        pad_inches=0,
+        tight_layout=False,
+    )
+
+    # --- Histogram contact sheet ---
+    # Same total width as images, taller aspect ratio
+    fig_hist, axes_hist = plt.subplots(1, n, figsize=figure_size, layout="constrained", sharey=True)
+    if n == 1:
+        axes_hist = [axes_hist]
+
+    for i, (img, title) in enumerate(zip(images, col_titles, strict=False)):
+        ax = axes_hist[i]
+        ax.hist(img.ravel(), bins=50, color="grey", alpha=0.7)
+        ax.yaxis.set_major_locator(MaxNLocator(nbins=4))
+        ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
+        ax.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
+        if i == 0:
+            ax.set_xlabel("Intensity (a.u)")
+            ax.set_ylabel("Frequency")
+            ax.xaxis.labelpad = 3
+            ax.yaxis.labelpad = 3
+        else:
+            ax.set_xlabel("")
+            ax.set_ylabel("")
+
+    save_plot_to_path(
+        fig_hist,
+        save_dir,
+        f"{target_key}_histograms",
+        file_format=".svg",
+        tight_layout=False,
+    )
 
     transformed_image = get_target_image_from_sample(sample, target_key)
     return transformed_image

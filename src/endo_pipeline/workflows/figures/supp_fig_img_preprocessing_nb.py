@@ -20,7 +20,7 @@ from endo_pipeline.library.visualize.model_inputs.image_preprocessing_steps impo
 from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings.diffae_configs import DIFFAE_MODEL_TRAIN_CONFIG
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
-from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 
 logger = logging.getLogger(__name__)
 
@@ -45,116 +45,54 @@ transforms = get_image_transforms(model_config)
 data = create_data_dict_loaded_image(img)
 
 # Step through each transformation and visualize the processing steps for each channel
-# Panel A - BF
-transformed_bf = visualize_fov_transform_steps(transforms, data, save_dir, target_key="raw_bf")
-# Panel B - CDH5
-transformed_cdh5 = visualize_fov_transform_steps(transforms, data, save_dir, target_key="raw_cdh5")
+PANEL_SIZE_BF = MAX_FIGURE_WIDTH * (2 / 3)
+transformed_bf = visualize_fov_transform_steps(
+    transforms, data, save_dir, target_key="raw_bf", figure_size=(PANEL_SIZE_BF, 1.5)
+)
+
+# %%
+PANEL_SIZE_CDH5 = MAX_FIGURE_WIDTH * (1 / 3)
+transformed_cdh5 = visualize_fov_transform_steps(
+    transforms, data, save_dir, target_key="raw_cdh5", figure_size=(PANEL_SIZE_CDH5, 1.5)
+)
 
 # %% Figure
-x_offset = 0.72
-x_crop_offset = 0.2
 output_path = save_dir / "supp_fig_img_preprocessing.svg"
 panels = [
-    # Top row: images
     FigurePanel(
         letter="A",
-        path=save_dir / "raw_bf_Projectd_scalebar50um.svg",
-        x_position=0 * x_offset,
+        path=save_dir / "raw_bf_images.svg",
+        x_position=0,
         y_position=0,
-        x_offset=x_crop_offset,
-        y_offset=0,
-    ),
-    FigurePanel(
-        letter="",
-        path=save_dir / "raw_bf_LogImaged.svg",
-        x_position=1 * x_offset,
-        y_position=0,
-        x_offset=x_crop_offset,
-        y_offset=0,
-    ),
-    FigurePanel(
-        letter="",
-        path=save_dir / "raw_bf_Clipd.svg",
-        x_position=2 * x_offset,
-        y_position=0,
-        x_offset=x_crop_offset,
-        y_offset=0,
-    ),
-    FigurePanel(
-        letter="",
-        path=save_dir / "raw_bf_NormalizeIntensityd.svg",
-        x_position=3 * x_offset,
-        y_position=0,
-        x_offset=x_crop_offset,
+        x_offset=0,
         y_offset=0,
     ),
     FigurePanel(
         letter="B",
-        path=save_dir / "raw_cdh5_Projectd_scalebar50um.svg",
-        x_position=4 * x_offset + 0.2,
+        path=save_dir / "raw_cdh5_images.svg",
+        x_position=PANEL_SIZE_BF,
         y_position=0,
-        x_offset=x_crop_offset,
+        x_offset=0,
         y_offset=0,
     ),
     FigurePanel(
-        letter="",
-        path=save_dir / "raw_cdh5_ScaleIntensityRangePercentilesd.svg",
-        x_position=5 * x_offset + 0.2,
-        y_position=0,
-        x_offset=x_crop_offset,
-        y_offset=0,
-    ),
-    # Bottom row: plots
-    FigurePanel(
-        letter="",
-        path=save_dir / "raw_bf_Projectd_histogram.svg",
+        letter="C",
+        path=save_dir / "raw_bf_histograms.svg",
         x_position=0,
-        y_position=0.7,
+        y_position=1.5,
         x_offset=0,
         y_offset=0,
     ),
     FigurePanel(
-        letter="",
-        path=save_dir / "raw_bf_LogImaged_histogram.svg",
-        x_position=1 * x_offset,
-        y_position=0.7,
-        x_offset=0.2,
-        y_offset=0,
-    ),
-    FigurePanel(
-        letter="",
-        path=save_dir / "raw_bf_Clipd_histogram.svg",
-        x_position=2 * x_offset,
-        y_position=0.7,
-        x_offset=0.2,
-        y_offset=0,
-    ),
-    FigurePanel(
-        letter="",
-        path=save_dir / "raw_bf_NormalizeIntensityd_histogram.svg",
-        x_position=3 * x_offset,
-        y_position=0.7,
-        x_offset=0.2,
-        y_offset=0,
-    ),
-    FigurePanel(
-        letter="",
-        path=save_dir / "raw_cdh5_Projectd_histogram.svg",
-        x_position=4 * x_offset + 0.2,
-        y_position=0.7,
+        letter="D",
+        path=save_dir / "raw_cdh5_histograms.svg",
+        x_position=PANEL_SIZE_BF,
+        y_position=1.5,
         x_offset=0,
-        y_offset=0,
-    ),
-    FigurePanel(
-        letter="",
-        path=save_dir / "raw_cdh5_ScaleIntensityRangePercentilesd_histogram.svg",
-        x_position=5 * x_offset + 0.2,
-        y_position=0.7,
-        x_offset=0.2,
         y_offset=0,
     ),
 ]
-# %%
-build_figure_from_panels(panels, output_path, width=MAX_FIGURE_WIDTH, height=2)
+
+build_figure_from_panels(panels, output_path, width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT)
 
 # %%
