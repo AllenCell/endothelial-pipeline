@@ -159,7 +159,7 @@ def main(
         # Initialize the model with evaluation base config, apply overrides, and save config.
         cytodl_model = CytoDLModel()
         cytodl_model.load_config_from_dict(base_config)
-        cytodl_model.override_config(overrides.to_dict(dataset, crop_pattern))
+        cytodl_model.override_config(overrides.to_dict(dataset, crop_pattern, name_suffix))
         cytodl_model.save_config(config_file)
         logger.info("Evaluation config saved to [ %s ]", config_file)
 

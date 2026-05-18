@@ -81,7 +81,9 @@ class ModelConfigOverrideEval:
             if accelerator == "gpu":
                 self.num_gpus = OmegaConf.select(config, "trainer.devices", default=1)
 
-    def to_dict(self, dataset_name: str, crop_pattern: Literal["grid", "tracked"]):
+    def to_dict(
+        self, dataset_name: str, crop_pattern: Literal["grid", "tracked"], suffix: str = ""
+    ):
         """Convert to overrides dict."""
         # Create directories for outputs if they do not exist.
         output_path = get_output_path(
@@ -94,7 +96,7 @@ class ModelConfigOverrideEval:
 
         # Build save suffix for outputs
         base_suffix = f"{dataset_name}_{self.model_manifest_name}_{self.run_name}"
-        save_suffix = f"{base_suffix}_{crop_pattern}_features"
+        save_suffix = f"{base_suffix}_{crop_pattern}_features{suffix}"
 
         assert self.eval_dataframe_path is not None
 
