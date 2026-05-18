@@ -8,6 +8,7 @@ from scipy.signal import find_peaks
 from endo_pipeline.configs import DatasetConfig
 from endo_pipeline.io import get_output_path, load_image, save_plot_to_path
 from endo_pipeline.manifests import get_zarr_location_for_position
+from endo_pipeline.settings.figures import FONTSIZE_XSMALL, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.image_data import NUM_ZSLICES
 from endo_pipeline.settings.method_constants import (
     BF_ROLLING_WINDOW,
@@ -30,6 +31,7 @@ def plot_bf_outliers(
     dataset_name: str,
     position: int,
     num_zslices: int = NUM_ZSLICES,
+    figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH / 2, 3),
 ) -> None:
     """
     Plot intensity data with thresholds and outliers, embedding outlier info on the plot.
@@ -58,52 +60,54 @@ def plot_bf_outliers(
         The position identifier within the dataset, used for labeling the plot.
     num_zslices:
         The number of z-slices per timepoint (default is NUM_ZSLICES).
+    figure_size:
+        The size of the figure to generate (default is (MAX_FIGURE_WIDTH/2
     """
 
-    fig, ax = plt.subplots(figsize=(5.3, 3))
+    fig, ax = plt.subplots(figsize=figure_size, layout="constrained")
 
     ax.plot(data_np, label="Intensity", color="black", alpha=0.5)
     ax.plot(
         rolling_median_np,
-        label="Rolling Median\n(window = 100 z-slices (4 tps))",
+        label="Rolling median",
         color="black",
         alpha=1,
         zorder=4,
     )
     ax.plot(
         dark_threshold,
-        label=f"Lower Threshold ({OUTLIER_THRESHOLD*100}%)",
+        label=f"Lower {OUTLIER_THRESHOLD*100}%",
         color="red",
         linestyle="--",
     )
     ax.plot(
         partial_dark_threshold,
-        label=f"Partial Dark Threshold ({PARTIAL_DARK_THRESHOLD*100}%)",
+        label=f"Partial {PARTIAL_DARK_THRESHOLD*100}%",
         color="purple",
         linestyle="--",
     )
     ax.plot(
         bright_threshold,
-        label=f"Upper Threshold ({OUTLIER_THRESHOLD*100}%)",
+        label=f"Upper {OUTLIER_THRESHOLD*100}%",
         color="orange",
         linestyle="--",
     )
 
-    ax.scatter(dark_outliers, data_np[dark_outliers], color="red", label="Dark Outliers", zorder=5)
+    ax.scatter(dark_outliers, data_np[dark_outliers], color="red", label="Dark outliers", zorder=5)
     ax.scatter(
         partial_dark_outliers,
         data_np[partial_dark_outliers],
         color="purple",
-        label="Partial Dark Outliers",
+        label="Partial dark outliers",
         zorder=5,
     )
     ax.scatter(
-        bright_outliers, data_np[bright_outliers], color="orange", label="Bright Outliers", zorder=5
+        bright_outliers, data_np[bright_outliers], color="orange", label="Bright outliers", zorder=5
     )
 
     outlier_groups = [
         ("Dark", dark_outliers),
-        ("Partial Dark", partial_dark_outliers),
+        ("Partial dark", partial_dark_outliers),
         ("Bright", bright_outliers),
     ]
 
@@ -121,7 +125,7 @@ def plot_bf_outliers(
 
     mean_for_lim = np.mean(data_np)
     ax.set_xlabel("Index (flattened Z-slices)")
-    ax.set_ylabel("Average bright-field intensity in Z-slice (a.u.)")
+    ax.set_ylabel("Mean BF intensity in Z-slice (a.u.)")
 
     ax.tick_params(axis="both", which="major")
     ax.tick_params(axis="both", which="minor")
@@ -144,18 +148,39 @@ def plot_bf_outliers(
     (lines, labels) = plt.gca().get_legend_handles_labels()
     lines.insert(2, plt.Line2D([0], [0], linestyle="none", marker="none"))
     labels.insert(2, "")
-    ax.legend(lines, labels, loc="lower center", bbox_to_anchor=(0.5, -0.45), ncol=3)
+    ax.legend(
+        lines,
+        labels,
+        loc="upper center",
+        ncol=3,
+        fontsize=FONTSIZE_XSMALL,
+        handlelength=1.1,
+        handletextpad=0.4,
+        columnspacing=1.0,
+    )
 
-    ax.set_ylim(mean_for_lim - mean_for_lim * 0.05, mean_for_lim + mean_for_lim * 0.05)
+    ax.set_ylim(mean_for_lim - mean_for_lim * 0.04, mean_for_lim + mean_for_lim * 0.04)
+
+    # reduce label padding
+    ax.xaxis.labelpad = 3
+    ax.yaxis.labelpad = 3
+    secax.xaxis.labelpad = 3
 
     save_dir = get_output_path("annotate_tp_outliers")
-    save_plot_to_path(fig, save_dir, f"bf_outliers_{dataset_name}_P{position}", file_format=".svg")
-    plt.show()
-    plt.close(fig)
+    save_plot_to_path(
+        fig,
+        save_dir,
+        f"bf_outliers_{dataset_name}_P{position}",
+        file_format=".svg",
+        tight_layout=False,
+    )
 
 
 def detect_bf_outliers(
-    dataset_config: DatasetConfig, position: int, visualize: bool = False
+    dataset_config: DatasetConfig,
+    position: int,
+    visualize: bool = False,
+    figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH / 2, 3),
 ) -> tuple[list[int], list[int]]:
     """
     Detect outliers in brightfield (BF) microscopy data based on intensity thresholds.
@@ -168,6 +193,8 @@ def detect_bf_outliers(
         The position index within the dataset to analyze.
     visualize:
         If True, generates and saves plots of the intensity data, thresholds, and outliers.
+    figure_size:
+        The size of the figure to generate if visualize is True (default is (MAX_FIGURE_WIDTH/2, 3)).
 
     Returns
     -------
@@ -228,6 +255,7 @@ def detect_bf_outliers(
             bright_outliers,
             dataset_config.name,
             position,
+            figure_size=figure_size,
         )
 
     return bf_scope_error, bf_temp_artifact
