@@ -165,7 +165,7 @@ def plot_standard_devs_per_slice(
     position: int,
     frame: int,
     output_dir: Path,
-    figure_size: tuple,
+    figure_size: tuple = (2.5, 2.15),
 ) -> None:
     """
     Plot the standard deviations of each slice vs plane index, highlighting the center plane.
@@ -259,7 +259,7 @@ def visualize_slice_selection(
     position: int,
     frame: int,
     output_dir: Path,
-    figure_size: tuple,
+    figure_size: tuple = (5.0, 3.0),
     lower_offset: int = LOWER_Z_SLICE_OFFSET,
     upper_offest: int = UPPER_Z_SLICE_OFFSET,
     pixel_size: float = PIXEL_SIZE_3i_20x_RESOLUTION_1,
@@ -388,7 +388,7 @@ def plot_global_center_plane(
     dataset: str,
     position: int,
     output_dir: Path,
-    figure_size: tuple,
+    figure_size: tuple = (2.5, 2.15),
     show_histogram: bool = True,
 ) -> tuple[float, float]:
     """
