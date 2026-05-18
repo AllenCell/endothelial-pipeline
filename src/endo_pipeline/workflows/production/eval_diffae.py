@@ -9,7 +9,6 @@ def main(
     crop_pattern: CropPattern,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
-    upload_to_fms: bool = True,
 ) -> None:
     """
     Evaluate a DiffAE model using the provided configuration.
@@ -21,10 +20,28 @@ def main(
     workflow will only run the evaluation for datasets that do not already have
     features calculated (based on the corresponding dataframe manifest).
 
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe eval-diffae CROP_PATTERN -vd
+    ```
+
+    To run the workflow for a specific model manifest name and run name:
+
+    ```bash
+    uv run endopipe eval-diffae CROP_PATTERN \
+        --model-manifest-name MODEL_MANIFEST_NAME \
+        --run-name RUN_NAME
+    ```
+
     ## Workflow demo
 
-    If demo mode is enabled, this workflow will use the config with the suffix
-    ``_demo`` and only evaluate a single dataset.
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will use the
+    dataframe manifest and model config with the `_demo` suffix produced by
+    also running `create-diffae-eval-dataframe` and `build-diffae-eval-config`
+    in demo mode. The workflow will only evaluate the first dataset.
 
     Parameters
     ----------
@@ -34,8 +51,6 @@ def main(
         Name for the model manifest to use for evaluation.
     run_name
         Name for the model run to use for evaluation.
-    upload_to_fms
-        True to upload model evaluation results to FMS, False otherwise.
     """
 
     import logging

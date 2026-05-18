@@ -4,22 +4,36 @@ def main(model_manifest_name: str, run_name: str | None = None) -> None:
 
     #diffae #model-training
 
-    **Workflow output**
-
     This workflow produces a trained DiffAE model that is logged to MLflow and
     tracked in a ModelManifest object.
 
-    **Workflow demo**
+    ## Example usage
 
-    If demo mode is enabled, this workflow will use the config with the suffix
-    ``_test_workflow`` and only train the model for one epoch.
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe train-diffae MODEL_MANIFEST_NAME -vd
+    ```
+
+    To run the workflow for given model manifest and run name:
+
+    ```bash
+    uv run endopipe train-diffae MODEL_MANIFEST_NAME RUN_NAME
+    ```
+
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will use the
+    dataframe manifest and model config with the `_demo` suffix produced by
+    also running `create-diffae-train-dataframe` and `build-diffae-train-config`
+    in demo mode.
 
     Parameters
     ----------
     model_manifest_name
-        Name of the model manifest for training.
+        Name for the model manifest to use for training.
     run_name
-        An optional name for the training run.
+        Name for the model run to use for training.
     """
 
     import logging
