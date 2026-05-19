@@ -271,7 +271,7 @@ callbacks:
 logger:
   mlflow:
     _target_: endo_pipeline.library.model.diffae.mlflow.MLFlowLogger
-    tracking_uri: https://production.int.allencell.org/mlflow/
+    tracking_uri: null
     experiment_name: ${experiment_name}
     run_name: ${run_name}
 trainer:

@@ -10,6 +10,7 @@ from pydantic.dataclasses import dataclass
 
 from endo_pipeline.configs import load_model_config
 from endo_pipeline.io import get_output_path, get_repository_root_dir
+from endo_pipeline.io.mlflow import MLFLOW_TRACKING_URI
 from endo_pipeline.settings.diffae_configs import DIFFAE_MODEL_TRAIN_CONFIG
 from endo_pipeline.settings.workflow_defaults import DEFAULT_NUM_LATENT_DIMENSIONS
 
@@ -233,6 +234,8 @@ class ModelConfigOverrideTrain:
             "data.val_dataloaders.num_workers": self.num_workers,
             "data.val_dataloaders.dataset.num_init_workers": self.num_workers,
             "data.val_dataloaders.dataset.num_replace_workers": self.num_workers,
+            # set logger uri
+            "logger.mlflow.tracking_uri": MLFLOW_TRACKING_URI,
         }
 
         # If no workers, turn off persistent workers.
