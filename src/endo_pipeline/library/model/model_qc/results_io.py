@@ -143,8 +143,10 @@ def _result_to_dataframe(
                 example_set_label,
             )
 
-        base_label = f"{model_key.manifest_name}/{model_key.run_name} " \
-                     f"seed={seed} set={example_set_label}"
+        base_label = (
+            f"{model_key.manifest_name}/{model_key.run_name} "
+            f"seed={seed} set={example_set_label}"
+        )
         baseline_corrs = _aligned_baseline_values(
             corrs, list(bucket.get("baseline_correlations", [])), base_label + " corr"
         )
@@ -216,16 +218,16 @@ def save_seed_result(
     return out_path
 
 
-def _dataframe_to_result(
-    df: pd.DataFrame, model_key: "ModelKey", seed: int
-) -> dict:
+def _dataframe_to_result(df: pd.DataFrame, model_key: "ModelKey", seed: int) -> dict:
     """Inverse of :func:`_result_to_dataframe` for one ``(model, seed)`` slice.
 
     Reconstructs the dict shape that :func:`aggregate_seed_metrics` expects.
     """
-    sub = df[(df["manifest_name"] == model_key.manifest_name)
-             & (df["run_name"] == model_key.run_name)
-             & (df["random_seed"] == seed)]
+    sub = df[
+        (df["manifest_name"] == model_key.manifest_name)
+        & (df["run_name"] == model_key.run_name)
+        & (df["random_seed"] == seed)
+    ]
     example_set_labels = sub["example_set"].drop_duplicates().tolist()
 
     result: dict = {
@@ -244,12 +246,8 @@ def _dataframe_to_result(
             bucket["baseline_correlations"] = [
                 float(v) for v in rows["baseline_correlation"] if not _is_nan(v)
             ]
-            bucket["baseline_ssims"] = [
-                float(v) for v in rows["baseline_ssim"] if not _is_nan(v)
-            ]
-            bucket["baseline_lpips"] = [
-                float(v) for v in rows["baseline_lpips"] if not _is_nan(v)
-            ]
+            bucket["baseline_ssims"] = [float(v) for v in rows["baseline_ssim"] if not _is_nan(v)]
+            bucket["baseline_lpips"] = [float(v) for v in rows["baseline_lpips"] if not _is_nan(v)]
         result[label] = bucket
     return result
 
@@ -282,28 +280,28 @@ def load_seed_results(
 
     df = _load_combined_or_glob(run_dir)
     if df.empty:
-        raise FileNotFoundError(
-            f"No metrics parquet files found under {run_dir}"
-        )
+        raise FileNotFoundError(f"No metrics parquet files found under {run_dir}")
 
     model_keys = [
-        ModelKey(row.manifest_name, row.run_name)
-        for row in df[["manifest_name", "run_name"]]
-        .drop_duplicates()
-        .itertuples(index=False)
+        ModelKey(str(row.manifest_name), str(row.run_name))
+        for row in df[["manifest_name", "run_name"]].drop_duplicates().itertuples(index=False)
     ]
     seeds = sorted(int(s) for s in df["random_seed"].unique())
 
     all_seed_results: dict[ModelKey, dict[int, dict]] = {key: {} for key in model_keys}
     for model_key in model_keys:
         for seed in seeds:
-            sub = df[(df["manifest_name"] == model_key.manifest_name)
-                     & (df["run_name"] == model_key.run_name)
-                     & (df["random_seed"] == seed)]
+            sub = df[
+                (df["manifest_name"] == model_key.manifest_name)
+                & (df["run_name"] == model_key.run_name)
+                & (df["random_seed"] == seed)
+            ]
             if sub.empty:
                 logger.warning(
-                    "Missing rows for %s/%s seed=%d", model_key.manifest_name,
-                    model_key.run_name, seed,
+                    "Missing rows for %s/%s seed=%d",
+                    model_key.manifest_name,
+                    model_key.run_name,
+                    seed,
                 )
                 continue
             all_seed_results[model_key][seed] = _dataframe_to_result(df, model_key, seed)

@@ -83,9 +83,7 @@ def main(resume: bool = False, upload_to_fms: bool = False) -> None:
         )
 
     run_dir = get_output_path("model_qc_supp", "metrics")
-    sample_images_dir = get_output_path(
-        "model_qc_supp", "sample_images", create_directories=True
-    )
+    sample_images_dir = get_output_path("model_qc_supp", "sample_images", create_directories=True)
     logger.info("Persisting inference metrics to: %s", run_dir)
     logger.info("Persisting sample-image crops to: %s", sample_images_dir)
 
@@ -137,9 +135,7 @@ def main(resume: bool = False, upload_to_fms: bool = False) -> None:
             "long-format (one row per model x seed x crop)."
         )
         annotations = build_fms_annotations(dataset_configs, additional_notes=notes)
-        fmsid = upload_file_to_fms(
-            combined_path, annotations=annotations, file_type="parquet"
-        )
+        fmsid = upload_file_to_fms(combined_path, annotations=annotations, file_type="parquet")
         logger.info("Uploaded %s to FMS as %s", combined_path.name, fmsid)
 
     logger.info("Inference complete. Run `endopipe fig-model-qc-plot` to render the figure.")
