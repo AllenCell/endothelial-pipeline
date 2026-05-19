@@ -102,6 +102,17 @@ def main(
     if DEMO_MODE:
         dataset_names = dataset_names[:1]
 
+    # Define output manifest name and list of required columns for selected
+    # crop pattern. Note the modified name for the cell centered features; the
+    # "full" set of features requires merging the outputs of the segmentation
+    # workflows, which is handled by `combine_cell_centered_features`.
+    if crop_pattern == "tracked":
+        required_columns = [Column.POSITION, Column.TRACK_ID]
+    elif crop_pattern == "grid":
+        required_columns = [Column.POSITION, Column.DiffAEData.START_X, Column.DiffAEData.START_Y]
+    else:
+        raise ValueError("Crop pattern '%s' is not supported", crop_pattern)
+
     feature_dataframe_manifest_name = (
         f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
     )
@@ -113,31 +124,23 @@ def main(
     for dataset_name in dataset_names:
         if dataset_name not in feature_manifest.locations:
             logger.warning(
-                "No location found in dataframe manifest '%s' for dataset '%s', skipping PCA feature calculation for this dataset.",
+                "No location found in dataframe manifest '%s' for dataset '%s'. "
+                "Skipping PCA feature calculation for this dataset.",
                 feature_dataframe_manifest_name,
                 dataset_name,
             )
             continue
+
         logger.info("Calculating PCA features for dataset '%s'", dataset_name)
 
+        # Load dataframe containing raw latent features
         dataset_config = load_dataset_config(dataset_name)
         location = get_dataframe_location_for_dataset(feature_manifest, dataset_name)
         df = load_dataframe(location)
 
-        # Add unique crop indices for downstream workflows
-        if crop_pattern == "tracked" and Column.TRACK_ID in df.columns:
-            required_columns = [Column.POSITION, Column.TRACK_ID]
-        elif crop_pattern == "grid":
-            required_columns = [
-                Column.POSITION,
-                Column.DiffAEData.START_X,
-                Column.DiffAEData.START_Y,
-            ]
-
+        # Group by the required columns and assign a unique integer (the crop
+        # index) to each group based on the index of that group
         check_required_columns_in_dataframe(df, required_columns)
-
-        # group by the required columns and assign a unique integer (the crop_index)
-        # to each group based on the index of that group
         df_with_crop_index = df.copy()
         df_with_crop_index[Column.CROP_INDEX] = (
             df_with_crop_index.groupby(required_columns, as_index=False).ngroup().astype(int)
@@ -185,7 +188,6 @@ def main(
         logger.info(
             "Filtering %s crop-based PCA features for dataset '%s'", crop_pattern, dataset_name
         )
-
         timepoint_annotations = get_subset_of_timepoint_annotations(
             annotations_to_ignore=[TimepointAnnotation.NOT_STEADY_STATE]
         )
