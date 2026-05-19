@@ -9,7 +9,7 @@ parquet file (one row per example image).  After a run completes, all
 per-seed files are concatenated into a single ``model_qc_metrics.parquet``
 that serves as the canonical FMS-uploadable artifact.
 
-Schema of the long-format dataframe (per row = one example × seed × model):
+Schema of the long-format dataframe (per row = one example x seed x model):
 
 - ``manifest_name``, ``run_name``     -- model identity
 - ``random_seed``                     -- noise/RNG seed used for this row
