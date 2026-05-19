@@ -47,6 +47,9 @@ class ModelConfigOverrideTrain:
     max_epochs: int | None = Field(default=None, gt=0)
     """Maximum number of epochs to train the model for."""
 
+    epoch_multiplier: bool = True
+    """Apply multiplier to number of epochs based on caching."""
+
     cache_rate: float | None = Field(default=None, ge=0, le=1)
     """Fraction of the dataset to cache in memory for training."""
 
@@ -170,13 +173,19 @@ class ModelConfigOverrideTrain:
         assert self.train_dataframe_path is not None
         assert self.val_dataframe_path is not None
 
-        # Calculate effective epochs.
-        multiplier = (1 - self.cache_rate) / (self.cache_rate * self.replace_rate) + 1
-        effective_min_epochs = int(5000 * multiplier)
-        effective_max_epochs = max(
-            int(self.max_epochs * multiplier), int(1.5 * effective_min_epochs)
-        )
-        effective_save_images_epochs = int(10 * multiplier)
+        # Calculate effective epochs, if requested. Otherwise, set min and max
+        # number of epochs to exactly the requested number.
+        if self.epoch_multiplier:
+            multiplier = (1 - self.cache_rate) / (self.cache_rate * self.replace_rate) + 1
+            effective_min_epochs = int(5000 * multiplier)
+            effective_max_epochs = max(
+                int(self.max_epochs * multiplier), int(1.5 * effective_min_epochs)
+            )
+            effective_save_images_epochs = int(10 * multiplier)
+        else:
+            effective_min_epochs = self.max_epochs
+            effective_max_epochs = self.max_epochs
+            effective_save_images_epochs = 1
 
         overrides = {
             # update experiment name and run name

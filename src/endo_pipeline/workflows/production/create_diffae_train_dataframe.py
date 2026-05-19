@@ -57,7 +57,7 @@ def main(
     ## Workflow demo
 
     Running the workflow in demo mode (`-d` or `--demo-mode`) will build a
-    training dataframe that only contains one position and the first 10
+    training dataframe that only contains two positions and the first 10
     timepoints, which speeds up the data loading process during model training.
 
     Parameters
@@ -146,7 +146,7 @@ def main(
             dataset_config, annotations=annotations
         )
 
-        # When running workflow in demo mode, only use the first three positions
+        # When running workflow in demo mode, only use the first two positions
         # from each dataset and first two timepoints to speed up the data
         # loading process (if dataset is not timelapse, then only one timepoint
         # is used). Otherwise, include all timepoints and all positions
@@ -154,7 +154,7 @@ def main(
             logger.warning("DEMO MODE - Only using first few timepoints of the first position")
             frame_start = 0
             frame_stop = 10 if dataset_config.is_timelapse else 0
-            only_include_positions = only_include_positions[0:3]
+            only_include_positions = only_include_positions[:2]
         else:
             frame_start = None
             frame_stop = None

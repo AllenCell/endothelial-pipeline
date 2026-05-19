@@ -137,12 +137,14 @@ def main(
     if DEMO_MODE:
         name_suffix = "_demo"
         max_num_epochs = 1
+        epoch_multiplier = False
         log_every_n_steps = 1
         cache_rate = 1.0
         replace_rate = 0.1
     else:
         name_suffix = ""
         max_num_epochs = 20000
+        epoch_multiplier = True
         log_every_n_steps = 50
         cache_rate = 1.0
         replace_rate = 0.5
@@ -214,6 +216,7 @@ def main(
         train_dataframe_path=train_dataframe_path,
         val_dataframe_path=val_dataframe_path,
         max_epochs=max_num_epochs,
+        epoch_multiplier=epoch_multiplier,
         cache_rate=cache_rate,
         replace_rate=replace_rate,
         log_steps=log_every_n_steps,
