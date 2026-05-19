@@ -14,20 +14,26 @@ development workflows) for ad-hoc multi-model QC.
 import logging
 
 
-def main(resume: bool = False) -> None:
-    """Run diffusion inference and persist per-(model, seed) JSON results.
+def main(resume: bool = False, upload_to_fms: bool = False) -> None:
+    """Run diffusion inference and persist per-(model, seed) parquet results.
 
     #diffae #figure #gpu
 
     Parameters
     ----------
     resume
-        Skip ``(model, seed)`` pairs whose result JSON already exists in the
-        target output directory.  Useful for restarting a partially completed
-        sweep without re-burning GPU time.  Default: ``False``.
+        Skip ``(model, seed)`` pairs whose result parquet already exists in
+        the target output directory.  Useful for restarting a partially
+        completed sweep without re-burning GPU time.  Default: ``False``.
+    upload_to_fms
+        If true, upload the consolidated ``model_qc_metrics.parquet`` to
+        FMS after inference completes.  The FMS notes annotation enumerates
+        the unique datasets touched by the example set so the asset is
+        traceable.  Default: ``False`` (the parquet stays local).
     """
     from endo_pipeline.cli import DEMO_MODE, NUM_GPUS
-    from endo_pipeline.io import get_output_path
+    from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
     from endo_pipeline.library.model.model_qc import (
         ModelKey,
         evaluate_single_model,
@@ -130,6 +136,26 @@ def main(resume: bool = False) -> None:
 
     combined_path = write_combined_dataframe(run_dir)
     logger.info("Wrote consolidated metrics dataframe: %s", combined_path)
+
+    if upload_to_fms:
+        unique_dataset_names = sorted({e.dataset_name for e in examples})
+        dataset_configs = [load_dataset_config(n) for n in unique_dataset_names]
+        notes = (
+            "Model-QC supplementary figure metrics (long-format). "
+            f"{len(model_keys)} models x {len(seeds_to_evaluate)} seeds x "
+            f"{len(examples)} {example_set_label} crops "
+            f"({len(model_keys) * len(seeds_to_evaluate) * len(examples)} rows). "
+            "Schema: manifest_name, run_name, random_seed, example_set, "
+            "example_idx, dataset_name, position, timepoint, crop_x_start, "
+            "crop_y_start, description, correlation_100, ssim_100, lpips_100, "
+            "baseline_correlation, baseline_ssim, baseline_lpips."
+        )
+        annotations = build_fms_annotations(dataset_configs, additional_notes=notes)
+        fmsid = upload_file_to_fms(
+            combined_path, annotations=annotations, file_type="parquet"
+        )
+        logger.info("Uploaded %s to FMS as %s", combined_path.name, fmsid)
+
     logger.info("Inference complete. Run `endopipe fig-model-qc-plot` to render the figure.")
 
 
