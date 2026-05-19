@@ -20,7 +20,7 @@ from endo_pipeline.library.visualize.model_inputs.image_preprocessing_steps impo
 from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings.diffae_configs import DIFFAE_MODEL_TRAIN_CONFIG
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
-from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +77,7 @@ panels = [
         x_position=0,
         y_position=0,
         x_offset=0,
-        y_offset=0,
+        y_offset=0.08,
     ),
     FigurePanel(
         letter="B",
@@ -85,13 +85,13 @@ panels = [
         x_position=PANEL_SIZE_BF,
         y_position=0,
         x_offset=0,
-        y_offset=0,
+        y_offset=0.08,
     ),
     FigurePanel(
         letter="C",
         path=save_dir / "raw_bf_histograms.svg",
         x_position=0,
-        y_position=1.5,
+        y_position=1.4,
         x_offset=0,
         y_offset=0,
     ),
@@ -99,12 +99,12 @@ panels = [
         letter="D",
         path=save_dir / "raw_cdh5_histograms.svg",
         x_position=PANEL_SIZE_BF,
-        y_position=1.5,
+        y_position=1.4,
         x_offset=0,
         y_offset=0,
     ),
 ]
 
-build_figure_from_panels(panels, output_path, width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT)
+build_figure_from_panels(panels, output_path, width=MAX_FIGURE_WIDTH, height=3)
 
 # %%

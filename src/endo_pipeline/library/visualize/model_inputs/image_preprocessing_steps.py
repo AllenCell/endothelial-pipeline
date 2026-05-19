@@ -325,7 +325,7 @@ def visualize_fov_transform_steps(
     if n == 1:
         axes_hist = [axes_hist]
 
-    for i, (img, title) in enumerate(zip(images, col_titles, strict=False)):
+    for i, img in enumerate(images):
         ax = axes_hist[i]
         ax.hist(img.ravel(), bins=50, color="grey", alpha=0.7)
         ax.yaxis.set_major_locator(MaxNLocator(nbins=4))
