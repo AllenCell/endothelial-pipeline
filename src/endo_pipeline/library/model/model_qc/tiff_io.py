@@ -91,9 +91,9 @@ def save_denoising_crops(
 
     # `denoised_images` is either (a) one image per fractional noise level
     # plus a trailing 100 % entry, or (b) a single 100 % entry (metrics-only
-    # mode).  Key the pct label off whether we're at the last position, not
-    # the index, so a lone 100 % denoising isn't mislabelled as the first
-    # fractional level.
+    # mode).  Base the percentage label on whether this is the last position
+    # rather than on the loop index, so a lone 100 % denoising step isn't
+    # mislabelled as the first fractional level.
     num_denoised = len(denoised_images)
     for idx, denoised_img in enumerate(denoised_images):
         is_last = idx == num_denoised - 1
