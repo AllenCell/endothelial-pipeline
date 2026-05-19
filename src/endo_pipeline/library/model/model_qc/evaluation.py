@@ -1,6 +1,7 @@
 """Core model evaluation logic for model QC."""
 
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING, NamedTuple, cast
 
 from numpy.random import default_rng
@@ -135,6 +136,7 @@ def evaluate_single_model(
     compute_baseline: bool = True,
     is_default_seed: bool = True,
     num_gpus: int | None = None,
+    output_root: "Path | None" = None,
 ) -> dict:
     """Evaluate a single model and return its metrics.
 
@@ -234,6 +236,8 @@ def evaluate_single_model(
             example_set_label,
             create_directories=False,
         )
+        if output_root is not None:
+            output_path = Path(output_root) / manifest_name / run_name / example_set_label
 
         for example in example_set:
 

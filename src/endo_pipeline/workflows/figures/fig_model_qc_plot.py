@@ -42,7 +42,7 @@ def main(inference_run_dir: str | None = None) -> None:
     logger = logging.getLogger(__name__)
 
     if inference_run_dir is None:
-        run_dir = find_latest_inference_run_dir("fig_model_qc_inference")
+        run_dir = find_latest_inference_run_dir("model_qc_supp/metrics")
         logger.info("Auto-discovered latest inference run dir: %s", run_dir)
     else:
         run_dir = Path(inference_run_dir)

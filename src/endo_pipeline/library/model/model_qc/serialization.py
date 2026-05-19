@@ -379,22 +379,25 @@ def read_inference_manifest(run_dir: Path) -> dict:
 def find_latest_inference_run_dir(workflow_stem: str) -> Path:
     """Return the most recent date-stamped output directory for an inference workflow.
 
-    Scans ``<results_root>/*/<workflow_stem>/`` (matching the layout produced
-    by :func:`endo_pipeline.io.output.get_output_path` with
+    Scans ``<results_root>/<date>/<workflow_stem>/`` (matching the layout
+    produced by :func:`endo_pipeline.io.output.get_output_path` with
     ``include_timestamp=True``) and returns the lexicographically largest
-    date that contains an ``inference_manifest.json``.
+    date that contains an ``inference_manifest.json``.  ``workflow_stem``
+    may itself contain ``/`` to point at a nested subdirectory
+    (e.g. ``"model_qc_supp/metrics"``).
     """
     from endo_pipeline.io.output import get_output_dir
 
     results_root = get_output_dir()
     candidates = sorted(
         results_root.glob(f"*/{workflow_stem}"),
-        key=lambda p: p.parent.name,
+        key=lambda p: p.relative_to(results_root).parts[0],
         reverse=True,
     )
     for candidate in candidates:
         if (candidate / MANIFEST_FILENAME).exists():
             return candidate
     raise FileNotFoundError(
-        f"No inference run with {MANIFEST_FILENAME!r} found under {results_root}/*/{workflow_stem}"
+        f"No inference run with {MANIFEST_FILENAME!r} found under "
+        f"{results_root}/*/{workflow_stem}"
     )

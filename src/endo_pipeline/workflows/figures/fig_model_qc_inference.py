@@ -78,8 +78,12 @@ def main(resume: bool = False) -> None:
             f"{sorted(set(duplicates))}"
         )
 
-    run_dir = get_output_path(__file__)
-    logger.info("Persisting inference results to: %s", run_dir)
+    run_dir = get_output_path("model_qc_supp", "metrics")
+    sample_images_dir = get_output_path(
+        "model_qc_supp", "sample_images", create_directories=True
+    )
+    logger.info("Persisting inference metrics to: %s", run_dir)
+    logger.info("Persisting sample-image crops to: %s", sample_images_dir)
 
     # Write manifest up-front so partial runs are still discoverable by the
     # plot workflow (which reads it to know which (model, seed) pairs to
@@ -114,6 +118,7 @@ def main(resume: bool = False) -> None:
                 compute_baseline=True,
                 is_default_seed=is_default,
                 num_gpus=NUM_GPUS,
+                output_root=sample_images_dir,
             )
             save_seed_result(
                 run_dir,
