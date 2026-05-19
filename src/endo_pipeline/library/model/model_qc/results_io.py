@@ -265,8 +265,10 @@ def load_seed_results(
     """Load all persisted ``(model_key, seed)`` results from ``run_dir``.
 
     Reads the consolidated ``model_qc_metrics.parquet`` (preferred) or
-    falls back to globbing per-seed parquets.  Returns the data shaped
-    like ``model_qc.py`` builds in memory:
+    falls back to globbing per-seed parquets.  ``run_dir`` may also point
+    directly at a parquet file (e.g. one resolved from FMS), in which
+    case that file is loaded as-is.  Returns the data shaped like
+    ``model_qc.py`` builds in memory:
 
     - ``all_seed_results``: ``{ModelKey: {seed: result_dict}}`` where each
       ``result_dict`` matches the shape produced by
@@ -310,14 +312,19 @@ def load_seed_results(
 
 
 def _load_combined_or_glob(run_dir: Path) -> pd.DataFrame:
-    combined = Path(run_dir) / COMBINED_DATAFRAME_FILENAME
+    run_dir = Path(run_dir)
+    if run_dir.is_file():
+        logger.info("Loading parquet file directly: %s", run_dir)
+        return pd.read_parquet(run_dir)
+
+    combined = run_dir / COMBINED_DATAFRAME_FILENAME
     if combined.exists():
         logger.info("Loading combined dataframe: %s", combined)
         return pd.read_parquet(combined)
 
     frames = [
         pd.read_parquet(p)
-        for p in sorted(Path(run_dir).glob("*.parquet"))
+        for p in sorted(run_dir.glob("*.parquet"))
         if p.name != COMBINED_DATAFRAME_FILENAME
     ]
     if not frames:

@@ -10,6 +10,7 @@ import logging
 
 def main(
     inference_run_dir: str | None = None,
+    fms_id: str | None = None,
     include_baseline: bool = False,
 ) -> None:
     """Render the Rep-2 correlation bar chart from a prior inference run.
@@ -22,9 +23,14 @@ def main(
         Path to the output directory of a prior ``fig-model-qc-inference``
         run (the directory containing the per-(model, seed) parquet files
         and the consolidated ``model_qc_metrics.parquet``).  When ``None``
-        (default), the most recent date-stamped output directory of
-        ``fig-model-qc-inference`` is auto-discovered under the standard
-        results root.
+        the next source in the precedence chain is used.
+    fms_id
+        FMS ID of a previously uploaded ``model_qc_metrics.parquet``.
+        Used only when ``inference_run_dir`` is not provided.  Defaults
+        to :data:`DEFAULT_MODEL_QC_FMS_ID` so reviewers can regenerate
+        the figure without re-running inference.  Pass an empty string
+        (``--fms-id ""``) to bypass FMS entirely and force local
+        auto-discovery.
     include_baseline
         If ``True``, also compute the next-timepoint baseline statistics
         and attach them to ``models_data`` (the current renderer does not
@@ -44,6 +50,7 @@ def main(
     )
     from endo_pipeline.library.visualize.model_qc_plots import create_rep2_correlation_bar_plot
     from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_MODEL_QC_FMS_ID,
         DEFAULT_MODEL_QC_LABELS,
         DEFAULT_MODEL_QC_MANIFEST_NAMES,
         DEFAULT_MODEL_QC_RUN_NAMES,
@@ -51,11 +58,23 @@ def main(
 
     logger = logging.getLogger(__name__)
 
-    if inference_run_dir is None:
-        run_dir = find_latest_inference_run_dir("model_qc_supp/metrics")
-        logger.info("Auto-discovered latest inference run dir: %s", run_dir)
+    # Source precedence:
+    #   1. --inference-run-dir (explicit local path)
+    #   2. --fms-id (defaults to DEFAULT_MODEL_QC_FMS_ID; pass "" to skip)
+    #   3. auto-discover the latest local fig-model-qc-inference output
+    if inference_run_dir is not None:
+        run_dir: Path = Path(inference_run_dir)
+        logger.info("Using explicit inference run dir: %s", run_dir)
     else:
-        run_dir = Path(inference_run_dir)
+        resolved_fms_id = DEFAULT_MODEL_QC_FMS_ID if fms_id is None else fms_id
+        if resolved_fms_id:
+            from endo_pipeline.io.fms import get_local_path_from_fmsid
+
+            run_dir = get_local_path_from_fmsid(resolved_fms_id)
+            logger.info("Resolved FMS ID %s -> %s", resolved_fms_id, run_dir)
+        else:
+            run_dir = find_latest_inference_run_dir("model_qc_supp/metrics")
+            logger.info("Auto-discovered latest inference run dir: %s", run_dir)
     if not run_dir.exists():
         raise FileNotFoundError(f"Inference run dir does not exist: {run_dir}")
 

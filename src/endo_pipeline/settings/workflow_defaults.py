@@ -274,3 +274,11 @@ DEFAULT_MODEL_QC_LABELS: list[str] = [
 Order: 8 BF, 16 BF, 32 BF, 64 BF, 128 BF, 256 BF, 512 BF, 1024 BF,
 512 CDH5, 1024 CDH5.
 """
+
+DEFAULT_MODEL_QC_FMS_ID: str = "36ea55d270b642ffa36eec15969e2625"
+"""FMS ID of the curated 10-model ``model_qc_metrics.parquet``.
+
+Default source for ``endopipe fig-model-qc-plot`` so reviewers can
+regenerate the supplementary figure without re-running inference.  Bump
+this constant whenever a new curated sweep is uploaded.
+"""
