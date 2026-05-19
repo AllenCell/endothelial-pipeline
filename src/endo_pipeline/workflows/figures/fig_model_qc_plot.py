@@ -82,13 +82,12 @@ def main(inference_run_dir: str | None = None) -> None:
     )
 
     output_path = get_output_path(__file__)
-    seeds_info = f" (averaged over {len(seeds)} seeds)" if len(seeds) > 1 else ""
     create_rep2_correlation_bar_plot(
         models_data=models_data,
         model_labels=model_labels,
         output_path=output_path,
         filename="rep2_correlation_100_noise",
-        title=f"Pearson Correlation (Rep 2){seeds_info}",
+        title="Correlation Analysis",
     )
     logger.info("Saved figure to %s", output_path)
 
