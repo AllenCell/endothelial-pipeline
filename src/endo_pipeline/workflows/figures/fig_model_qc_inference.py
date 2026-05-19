@@ -31,7 +31,7 @@ def main(resume: bool = False, upload_to_fms: bool = False) -> None:
         the unique datasets touched by the example set so the asset is
         traceable.  Default: ``False`` (the parquet stays local).
     """
-    from endo_pipeline.cli import DEMO_MODE, NUM_GPUS
+    from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
     from endo_pipeline.library.model.model_qc import (
@@ -59,9 +59,6 @@ def main(resume: bool = False, upload_to_fms: bool = False) -> None:
     example_sets_for_metrics = {example_set_label}
 
     examples = MODEL_QC_EXAMPLES_REP_2_POSITIONS
-    if DEMO_MODE:
-        logger.info("DEMO MODE: limiting Rep 2 examples to first entry")
-        examples = examples[:1]
     example_sets_all = [(examples, example_set_label)]
 
     # Seed expansion mirrors model_qc.py's logic so default-seed crops match.

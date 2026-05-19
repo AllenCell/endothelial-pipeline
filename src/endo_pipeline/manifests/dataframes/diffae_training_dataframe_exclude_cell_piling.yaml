@@ -1,14 +1,16 @@
 name: diffae_training_dataframe_exclude_cell_piling
 workflow: create_diffae_training_dataframe
 parameters:
-  z_slice_offsets: [4, 11]
   include_cell_piling: false
+  z_slice_offsets:
+  - 4
+  - 11
 locations:
   training:
-    fmsid: aa3a82d4b4004b35ad64021247a729ae
-    path: null
+    fmsid: null
+    path: /allen/aics/users/fatwir.mohammed/cellsmap/results/2026-05-18/model_train_dataframes/training_resolution_1_z_stack_4_11_exclude_cell_piling.parquet
     s3uri: null
   validation:
-    fmsid: c7511fd701134011b790a60e58bc3833
-    path: null
+    fmsid: null
+    path: /allen/aics/users/fatwir.mohammed/cellsmap/results/2026-05-18/model_val_dataframes/validation_resolution_1_z_stack_4_11_exclude_cell_piling.parquet
     s3uri: null
