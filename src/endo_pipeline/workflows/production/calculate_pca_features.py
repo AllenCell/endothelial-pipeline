@@ -106,17 +106,18 @@ def main(
     # "full" set of features requires merging the outputs of the segmentation
     # workflows, which is handled by `combine_cell_centered_features`.
     if crop_pattern == "tracked":
-        full_pca_manifest_name = "diffae_pca_features_tracked"
+        base_pca_manifest_name = "diffae_pca_features_tracked"
         required_columns = [Column.POSITION, Column.TRACK_ID]
     elif crop_pattern == "grid":
-        full_pca_manifest_name = "grid_based_features"
+        base_pca_manifest_name = "grid_based_features"
         required_columns = [Column.POSITION, Column.DiffAEData.START_X, Column.DiffAEData.START_Y]
     else:
         raise ValueError("Crop pattern '%s' is not supported", crop_pattern)
 
-    # Create manifest for full dataframes and add workflow parameters
-    full_pca_manifest = create_dataframe_manifest(full_pca_manifest_name, __file__)
-    full_pca_manifest.parameters = {
+    # Create manifest for unfiltered dataframes and add workflow parameters
+    unfiltered_pca_manifest_name = f"{base_pca_manifest_name}_unfiltered"
+    unfiltered_pca_manifest = create_dataframe_manifest(unfiltered_pca_manifest_name, __file__)
+    unfiltered_pca_manifest.parameters = {
         "model_manifest_name": DEFAULT_MODEL_MANIFEST_NAME,
         "run_name": DEFAULT_MODEL_RUN_NAME,
         "crop_pattern": crop_pattern,
@@ -124,7 +125,7 @@ def main(
     }
 
     # Create manifest for filtered dataframes and add workflow parameters
-    filtered_pca_manifest_name = f"{full_pca_manifest_name}_filtered"
+    filtered_pca_manifest_name = f"{base_pca_manifest_name}_filtered"
     filtered_pca_manifest = create_dataframe_manifest(filtered_pca_manifest_name, __file__)
     filtered_pca_manifest.parameters = {
         "model_manifest_name": DEFAULT_MODEL_MANIFEST_NAME,
@@ -179,7 +180,7 @@ def main(
         )
 
         # Drop original feature columns to save memory
-        full_pca_df = df_with_pcs.drop(columns=DIFFAE_FEATURE_COLUMN_NAMES)
+        unfiltered_pca_df = df_with_pcs.drop(columns=DIFFAE_FEATURE_COLUMN_NAMES)
 
         # Filter out annotated timepoints, except for timepoints flagged as "not
         # steady state" (those can be filtered out dynamically as necessary in
@@ -191,7 +192,7 @@ def main(
             annotations_to_ignore=[TimepointAnnotation.NOT_STEADY_STATE]
         )
         filtered_pca_df = filter_dataframe_by_annotations(
-            full_pca_df,
+            unfiltered_pca_df,
             dataset_config,
             timepoint_annotations=timepoint_annotations,
         )
@@ -223,7 +224,7 @@ def main(
                 Column.SegDataFilters.IS_INCLUDED,
             ]
             df_segmentations = df_segmentations_delayed[columns_to_compute].compute()
-            merged_full_pca_df = filtered_pca_df.merge(
+            merged_unfiltered_pca_df = filtered_pca_df.merge(
                 df_segmentations,
                 on=columns_to_merge_on,
                 how="left",
@@ -231,8 +232,8 @@ def main(
             )
             # Drop rows where "is_included" is False (i.e. segmentation didn't
             # pass QC filters).
-            filtered_pca_df = merged_full_pca_df[
-                merged_full_pca_df[Column.SegDataFilters.IS_INCLUDED]
+            filtered_pca_df = merged_unfiltered_pca_df[
+                merged_unfiltered_pca_df[Column.SegDataFilters.IS_INCLUDED]
             ]
             # Drop IS_INCLUDED column (no longer needed after filtering). Keep
             # TRACK_LENGTH column for potential downstream filtering based on
@@ -242,7 +243,7 @@ def main(
 
         # Save dataframes to path, and, if request, upload to FMS
         for manifest, pca_df, filtering_note in [
-            (full_pca_manifest, full_pca_df, "No filtering applied."),
+            (unfiltered_pca_manifest, unfiltered_pca_df, "No filtering applied."),
             (filtered_pca_manifest, filtered_pca_df, "Filtering by timepoint and position."),
         ]:
             # Save the dataframe to file
