@@ -43,7 +43,7 @@ class ModelConfigOverrideEval:
     num_gpus: int | None = Field(default=None, gt=0)
     """Number of GPUs to use. None indicates that CPU should be used."""
 
-    num_workers: int | None = Field(default=None, gt=0)
+    num_workers: int | None = Field(default=None, ge=0)
     """Number of workers to use. None indicates use all available on machine."""
 
     def __post_init__(self):

@@ -62,7 +62,7 @@ class ModelConfigOverrideTrain:
     num_gpus: int | None = Field(default=None, gt=0)
     """Number of GPUs to use. None indicates that CPU should be used."""
 
-    num_workers: int | None = Field(default=None, gt=0)
+    num_workers: int | None = Field(default=None, ge=0)
     """Number of workers to use. None indicates use all available on machine."""
 
     def __post_init__(self):
@@ -234,6 +234,11 @@ class ModelConfigOverrideTrain:
             "data.val_dataloaders.dataset.num_init_workers": self.num_workers,
             "data.val_dataloaders.dataset.num_replace_workers": self.num_workers,
         }
+
+        # If no workers, turn off persistent workers.
+        if self.num_workers == 0:
+            overrides["data.train_dataloaders.persistent_workers"] = False
+            overrides["data.val_dataloaders.persistent_workers"] = False
 
         # If single GPU or none, use "auto" strategy
         if self.num_gpus is None or self.num_gpus == 1:
