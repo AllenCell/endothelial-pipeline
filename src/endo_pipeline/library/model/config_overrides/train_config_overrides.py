@@ -183,7 +183,7 @@ class ModelConfigOverrideTrain:
             )
             effective_save_images_epochs = int(10 * multiplier)
         else:
-            effective_min_epochs = self.max_epochs
+            effective_min_epochs = 1
             effective_max_epochs = self.max_epochs
             effective_save_images_epochs = 1
 

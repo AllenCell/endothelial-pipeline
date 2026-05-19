@@ -136,7 +136,7 @@ def main(
     # rate for actual training can be adjusted if needed.
     if DEMO_MODE:
         name_suffix = "_demo"
-        max_num_epochs = 1
+        max_num_epochs = 3
         epoch_multiplier = False
         log_every_n_steps = 1
         cache_rate = 1.0

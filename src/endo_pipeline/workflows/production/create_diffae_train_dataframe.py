@@ -98,12 +98,14 @@ def main(
 
     # Get list of datasets from collection.
     datasets = get_datasets_in_collection("diffae_model_training")
-    dataset_configs = [load_dataset_config(dataset) for dataset in datasets]
 
     # When running workflow in demo mode, only include the first dataset.
     if DEMO_MODE:
         logger.warning("DEMO MODE - Only the first dataset will be included")
         datasets = datasets[:1]
+
+    # Load dataset configs
+    dataset_configs = [load_dataset_config(dataset) for dataset in datasets]
 
     # Create dataframe manifest and add workflow parameters.
     name_suffix = "_demo" if DEMO_MODE else ""
@@ -151,7 +153,7 @@ def main(
         # loading process (if dataset is not timelapse, then only one timepoint
         # is used). Otherwise, include all timepoints and all positions
         if DEMO_MODE:
-            logger.warning("DEMO MODE - Only using first few timepoints of the first position")
+            logger.warning("DEMO MODE - Only using first few timepoints of the first two positions")
             frame_start = 0
             frame_stop = 10 if dataset_config.is_timelapse else 0
             only_include_positions = only_include_positions[:2]
