@@ -74,11 +74,17 @@ def _aligned_baseline_values(
 ) -> list[float | None]:
     """Pad ``baseline_values`` to align with ``metric_values`` by index.
 
-    Baselines are appended in the same example loop as metrics, but can be
-    skipped on a per-example basis if the next-timepoint image fails to
-    load.  In current runs the lists always match length-wise; if they
-    don't, we fall back to NaN-padding so the dataframe stays rectangular
-    and log a warning so the misalignment is visible.
+    Per-example baselines can be skipped when the next-timepoint image
+    fails to load (the ``compute_baseline_for_example`` call is wrapped
+    in a ``try/except`` in :func:`evaluate_single_model`).  Model metrics
+    are *not* wrapped, so they can never be fewer than the baselines.
+    The two scenarios are therefore:
+
+    - ``len(baseline_values) == len(metric_values)`` -- normal case.
+    - ``len(baseline_values) <  len(metric_values)`` -- baseline lookup
+      failed on at least one example; pad the tail with ``None`` so the
+      output dataframe stays rectangular and the example indices still
+      line up.  A warning is logged so the misalignment is visible.
     """
     if not baseline_values:
         return [None] * len(metric_values)
@@ -93,7 +99,7 @@ def _aligned_baseline_values(
     )
     padded: list[float | None] = [float(v) for v in baseline_values]
     padded.extend([None] * (len(metric_values) - len(baseline_values)))
-    return padded[: len(metric_values)]
+    return padded
 
 
 def _result_to_dataframe(
