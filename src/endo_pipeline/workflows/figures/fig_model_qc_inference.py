@@ -40,7 +40,6 @@ def main(resume: bool = False, upload_to_fms: bool = False) -> None:
         save_seed_result,
         seed_result_path,
         write_combined_dataframe,
-        write_inference_manifest,
     )
     from endo_pipeline.manifests import get_most_recent_run_name, load_model_manifest
     from endo_pipeline.settings.examples import MODEL_QC_EXAMPLES_REP_2_POSITIONS
@@ -87,13 +86,6 @@ def main(resume: bool = False, upload_to_fms: bool = False) -> None:
     )
     logger.info("Persisting inference metrics to: %s", run_dir)
     logger.info("Persisting sample-image crops to: %s", sample_images_dir)
-
-    # Write manifest up-front so partial runs are still discoverable by the
-    # plot workflow (which reads it to know which (model, seed) pairs to
-    # look for).
-    write_inference_manifest(
-        run_dir, model_keys, seeds_to_evaluate, example_set_labels=[example_set_label]
-    )
 
     for model_key in model_keys:
         for seed in seeds_to_evaluate:

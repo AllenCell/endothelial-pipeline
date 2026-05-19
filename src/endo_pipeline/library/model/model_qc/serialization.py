@@ -22,9 +22,6 @@ Schema of the long-format dataframe (per row = one example × seed × model):
   -- next-timepoint baseline (nullable when baseline could not be computed)
 """
 
-from __future__ import annotations
-
-import json
 import logging
 import math
 from pathlib import Path
@@ -40,7 +37,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-MANIFEST_FILENAME = "inference_manifest.json"
 COMBINED_DATAFRAME_FILENAME = "model_qc_metrics.parquet"
 
 DATAFRAME_COLUMNS: list[str] = [
@@ -252,27 +248,33 @@ def load_seed_results(
 ) -> tuple[dict["ModelKey", dict[int, dict]], list["ModelKey"], list[int]]:
     """Load all persisted ``(model_key, seed)`` results from ``run_dir``.
 
-    Prefers the consolidated ``model_qc_metrics.parquet`` when present;
-    otherwise concatenates the per-seed parquet files listed by the
-    inference manifest.  Returns the data shaped like ``model_qc.py``
-    builds in memory:
+    Reads the consolidated ``model_qc_metrics.parquet`` (preferred) or
+    falls back to globbing per-seed parquets.  Returns the data shaped
+    like ``model_qc.py`` builds in memory:
 
     - ``all_seed_results``: ``{ModelKey: {seed: result_dict}}`` where each
       ``result_dict`` matches the shape produced by
       :func:`evaluate_single_model`.
-    - ``model_keys``: ordered list of ``ModelKey`` taken from the inference
-      manifest (preserves the curated 10-model sweep order).
+    - ``model_keys``: ordered list of ``ModelKey`` in first-occurrence
+      order in the parquet (matches the curated sweep order in which the
+      per-seed parquets were written and concatenated).
     - ``seeds``: sorted list of seeds discovered.
     """
     from .evaluation import ModelKey
 
-    manifest = read_inference_manifest(run_dir)
-    model_keys = [
-        ModelKey(entry["manifest_name"], entry["run_name"]) for entry in manifest["model_keys"]
-    ]
-    seeds = sorted(int(s) for s in manifest["seeds"])
+    df = _load_combined_or_glob(run_dir)
+    if df.empty:
+        raise FileNotFoundError(
+            f"No metrics parquet files found under {run_dir}"
+        )
 
-    df = _load_combined_or_glob(run_dir, model_keys, seeds)
+    model_keys = [
+        ModelKey(row.manifest_name, row.run_name)
+        for row in df[["manifest_name", "run_name"]]
+        .drop_duplicates()
+        .itertuples(index=False)
+    ]
+    seeds = sorted(int(s) for s in df["random_seed"].unique())
 
     all_seed_results: dict[ModelKey, dict[int, dict]] = {key: {} for key in model_keys}
     for model_key in model_keys:
@@ -291,22 +293,17 @@ def load_seed_results(
     return all_seed_results, model_keys, seeds
 
 
-def _load_combined_or_glob(
-    run_dir: Path, model_keys: list["ModelKey"], seeds: list[int]
-) -> pd.DataFrame:
+def _load_combined_or_glob(run_dir: Path) -> pd.DataFrame:
     combined = Path(run_dir) / COMBINED_DATAFRAME_FILENAME
     if combined.exists():
         logger.info("Loading combined dataframe: %s", combined)
         return pd.read_parquet(combined)
 
-    frames: list[pd.DataFrame] = []
-    for model_key in model_keys:
-        for seed in seeds:
-            path = seed_result_path(run_dir, model_key, seed)
-            if not path.exists():
-                logger.warning("Missing seed result file: %s", path)
-                continue
-            frames.append(pd.read_parquet(path))
+    frames = [
+        pd.read_parquet(p)
+        for p in sorted(Path(run_dir).glob("*.parquet"))
+        if p.name != COMBINED_DATAFRAME_FILENAME
+    ]
     if not frames:
         return pd.DataFrame(columns=DATAFRAME_COLUMNS)
     return pd.concat(frames, ignore_index=True)
@@ -316,24 +313,14 @@ def write_combined_dataframe(run_dir: Path) -> Path:
     """Concatenate all per-(model, seed) parquets into a single FMS-ready file.
 
     Writes ``<run_dir>/model_qc_metrics.parquet``.  Safe to call multiple
-    times (idempotent overwrite).
+    times (idempotent overwrite).  Discovers per-seed parquets by globbing
+    ``run_dir`` (excluding the consolidated file itself).
     """
-    manifest = read_inference_manifest(run_dir)
-    from .evaluation import ModelKey
-
-    model_keys = [
-        ModelKey(entry["manifest_name"], entry["run_name"]) for entry in manifest["model_keys"]
+    frames = [
+        pd.read_parquet(p)
+        for p in sorted(Path(run_dir).glob("*.parquet"))
+        if p.name != COMBINED_DATAFRAME_FILENAME
     ]
-    seeds = sorted(int(s) for s in manifest["seeds"])
-
-    frames: list[pd.DataFrame] = []
-    for model_key in model_keys:
-        for seed in seeds:
-            path = seed_result_path(run_dir, model_key, seed)
-            if not path.exists():
-                logger.warning("Skipping missing seed result file: %s", path)
-                continue
-            frames.append(pd.read_parquet(path))
     if not frames:
         raise FileNotFoundError(f"No per-seed parquet files found under {run_dir}")
     df = pd.concat(frames, ignore_index=True)
@@ -348,41 +335,13 @@ def read_combined_dataframe(run_dir: Path) -> pd.DataFrame:
     return pd.read_parquet(Path(run_dir) / COMBINED_DATAFRAME_FILENAME)
 
 
-def write_inference_manifest(
-    run_dir: Path,
-    model_keys: list["ModelKey"],
-    seeds: list[int],
-    example_set_labels: list[str],
-) -> Path:
-    """Write the manifest enumerating which ``(model_key, seed)`` files exist."""
-    payload = {
-        "model_keys": [
-            {"manifest_name": k.manifest_name, "run_name": k.run_name} for k in model_keys
-        ],
-        "seeds": [int(s) for s in seeds],
-        "example_set_labels": list(example_set_labels),
-    }
-    path = Path(run_dir) / MANIFEST_FILENAME
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w") as handle:
-        json.dump(payload, handle, indent=2)
-    return path
-
-
-def read_inference_manifest(run_dir: Path) -> dict:
-    """Read the manifest written by :func:`write_inference_manifest`."""
-    path = Path(run_dir) / MANIFEST_FILENAME
-    with path.open() as handle:
-        return json.load(handle)
-
-
 def find_latest_inference_run_dir(workflow_stem: str) -> Path:
     """Return the most recent date-stamped output directory for an inference workflow.
 
     Scans ``<results_root>/<date>/<workflow_stem>/`` (matching the layout
     produced by :func:`endo_pipeline.io.output.get_output_path` with
     ``include_timestamp=True``) and returns the lexicographically largest
-    date that contains an ``inference_manifest.json``.  ``workflow_stem``
+    date that contains a ``model_qc_metrics.parquet``.  ``workflow_stem``
     may itself contain ``/`` to point at a nested subdirectory
     (e.g. ``"model_qc_supp/metrics"``).
     """
@@ -395,9 +354,9 @@ def find_latest_inference_run_dir(workflow_stem: str) -> Path:
         reverse=True,
     )
     for candidate in candidates:
-        if (candidate / MANIFEST_FILENAME).exists():
+        if (candidate / COMBINED_DATAFRAME_FILENAME).exists():
             return candidate
     raise FileNotFoundError(
-        f"No inference run with {MANIFEST_FILENAME!r} found under "
+        f"No inference run with {COMBINED_DATAFRAME_FILENAME!r} found under "
         f"{results_root}/*/{workflow_stem}"
     )

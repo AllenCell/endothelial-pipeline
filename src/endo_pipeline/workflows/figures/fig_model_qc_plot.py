@@ -17,10 +17,11 @@ def main(inference_run_dir: str | None = None) -> None:
     ----------
     inference_run_dir
         Path to the output directory of a prior ``fig-model-qc-inference``
-        run (the directory containing ``inference_manifest.json`` and the
-        per-(model, seed) JSON files).  When ``None`` (default), the most
-        recent date-stamped output directory of ``fig-model-qc-inference``
-        is auto-discovered under the standard results root.
+        run (the directory containing the per-(model, seed) parquet files
+        and the consolidated ``model_qc_metrics.parquet``).  When ``None``
+        (default), the most recent date-stamped output directory of
+        ``fig-model-qc-inference`` is auto-discovered under the standard
+        results root.
     """
     from pathlib import Path
 
