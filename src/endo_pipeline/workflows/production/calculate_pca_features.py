@@ -9,40 +9,53 @@ def main(
     """
     Calculate PCA features from DiffAE latent features.
 
-    #diffae-features #dataframe-production #pca
+    #diffae #pca #cell-centered #grid-based
 
     This workflow calculates PCA using features from the default Diff AE model
-    from a default collection of datasets (see documentation for `fit_pca`).
+    from a default collection of datasets.
 
-    For each of the specified datasets, this workflow:
+    For each of the specified datasets, this workflow will:
 
-    - Loads the DiffAE feature dataframe as output by `eval-diffae`
-    - Adds a unique `crop_index` identifier for downstream workflows
-    - Projects the latent DiffAE features onto the principal components
-        of the fit PCA model (see above)
-    - Calculates additional features as transforms of the PC-projected
-        features (e.g., polar coordinates, see `project_features_to_pcs`)
-    - Performs additional timepoint- and position-based filtering.
-        - For track-based crops, also performs filtering based on the
-          "is_included" column in the segmentation features dataframe to remove
-          crops/tracks that don't pass segmentation QC filters.
+    - Load the DiffAE feature dataframe as output by `eval-diffae`
+    - Add a unique `crop_index` identifier for downstream workflows
+    - Project the latent DiffAE features onto the principal components of the
+      fit PCA model (see `fit_pca`)
+    - Calculate additional features such as transforms of the PC-projected
+      features (e.g., polar coordinates, see `project_features_to_pcs`)
+    - Perform additional timepoint-based and position-based filtering
+    - For cell-centered crops, perform filtering based on the "is_included"
+      column, which removes tracks that do not pass segmentation QC
 
-    **Dataframe output and tracking**
+    ## Example usage
 
-    By default, the final dataframe for each dataset is saved out locally with a
-    unique file path. If this workflow is run with `--upload-to-fms`, these
-    dataframes are uploaded to FMS instead. In both cases, the dataframe
-    manifest is updated with the corresponding location.
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe calculate-pca-features CROP_PATTERN -vd
+    ```
+
+    To run the workflow for a single dataset:
+
+    ```bash
+    uv run endopipe calculate-pca-features CROP_PATTERN --datasets DATASET_NAME
+    ```
+
+    ## Dataset collection
+
+    If datasets are not provided, the workflow will use datasets in the
+    `timelapse` dataset collection.
+
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will only
+    calculate PCA features for the first dataset.
 
     Parameters
     ----------
     crop_pattern
-        Crop pattern used to generate the feature dataframe.
+        Crop pattern used for model evaluation.
     datasets
-        Dataset(s) or dataset collections(s) to process.
-    upload_to_fms
-        If true, upload dataframe(s) to FMS and track FMS ID via dataframe
-        manifest. Else, save dataframe(s) locally.
+        List of datasets or dataset collections.
     """
 
     import logging
