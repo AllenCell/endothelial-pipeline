@@ -30,9 +30,8 @@ from typing import TYPE_CHECKING
 import pandas as pd
 
 if TYPE_CHECKING:
+    from endo_pipeline.library.model.model_qc.evaluation import ModelKey
     from endo_pipeline.settings.examples import ExampleImage
-
-    from .evaluation import ModelKey
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +102,15 @@ def _result_to_dataframe(
     result: dict,
     examples_by_set: dict[str, list["ExampleImage"]],
 ) -> pd.DataFrame:
-    """Flatten one ``evaluate_single_model`` result into a long-format dataframe."""
+    """Flatten one ``evaluate_single_model`` result into a long-format dataframe.
+
+    Returns
+    -------
+    :
+        One row per ``(example_set, example_idx)`` pair for the given
+        ``(model_key, seed)``, with the ExampleImage metadata columns
+        attached and baseline metrics aligned by index.
+    """
     rows: list[dict] = []
     for example_set_label in result["example_set_labels"]:
         bucket = result[example_set_label]
@@ -190,6 +197,11 @@ def save_seed_result(
         the metadata is unavailable (the metric columns will still be
         written; the ``dataset_name``/``position``/... columns will be
         null).
+
+    Returns
+    -------
+    :
+        Path of the parquet file written for this ``(model_key, seed)``.
     """
     df = _result_to_dataframe(model_key, seed, result, examples_by_set or {})
     out_path = seed_result_path(run_dir, model_key, seed)
@@ -260,7 +272,7 @@ def load_seed_results(
       per-seed parquets were written and concatenated).
     - ``seeds``: sorted list of seeds discovered.
     """
-    from .evaluation import ModelKey
+    from endo_pipeline.library.model.model_qc.evaluation import ModelKey
 
     df = _load_combined_or_glob(run_dir)
     if df.empty:
@@ -312,9 +324,14 @@ def _load_combined_or_glob(run_dir: Path) -> pd.DataFrame:
 def write_combined_dataframe(run_dir: Path) -> Path:
     """Concatenate all per-(model, seed) parquets into a single FMS-ready file.
 
-    Writes ``<run_dir>/model_qc_metrics.parquet``.  Safe to call multiple
-    times (idempotent overwrite).  Discovers per-seed parquets by globbing
+    Writes ``<run_dir>/model_qc_metrics.parquet``, overwriting any prior
+    file by the same name.  Discovers per-seed parquets by globbing
     ``run_dir`` (excluding the consolidated file itself).
+
+    Returns
+    -------
+    :
+        Path of the consolidated parquet that was just written.
     """
     frames = [
         pd.read_parquet(p)
@@ -344,6 +361,11 @@ def find_latest_inference_run_dir(workflow_stem: str) -> Path:
     date that contains a ``model_qc_metrics.parquet``.  ``workflow_stem``
     may itself contain ``/`` to point at a nested subdirectory
     (e.g. ``"model_qc_supp/metrics"``).
+
+    Returns
+    -------
+    :
+        Absolute path of the latest valid run directory.
     """
     from endo_pipeline.io.output import get_output_dir
 

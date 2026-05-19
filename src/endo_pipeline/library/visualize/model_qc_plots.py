@@ -297,13 +297,6 @@ def create_rep2_correlation_bar_plot(
 ) -> None:
     """Single-series Rep-2 Pearson-correlation bar chart for the supp. figure.
 
-    Lean variant of :func:`create_comparison_bar_plot` used by the
-    ``fig-model-qc-plot`` workflow:
-
-    - Only Rep 2 bars (no Validation series).
-    - No baseline horizontal lines.
-    - No legend.
-
     Parameters
     ----------
     models_data

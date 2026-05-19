@@ -22,9 +22,11 @@ def main(resume: bool = False, upload_to_fms: bool = False) -> None:
     Parameters
     ----------
     resume
-        Skip ``(model, seed)`` pairs whose result parquet already exists in
-        the target output directory.  Useful for restarting a partially
-        completed sweep without re-burning GPU time.  Default: ``False``.
+        Skip ``(model, seed)`` pairs whose result parquet already exists
+        in the target output directory.  Lets a partially-completed sweep
+        be restarted without re-burning GPU time on pairs already done
+        (resume key = the parquet filename, which is fully determined by
+        ``manifest_name``, ``run_name``, and ``seed``).  Default: ``False``.
     upload_to_fms
         If true, upload the consolidated ``model_qc_metrics.parquet`` to
         FMS after inference completes.  The FMS notes annotation enumerates
@@ -113,7 +115,7 @@ def main(resume: bool = False, upload_to_fms: bool = False) -> None:
                 compute_baseline=True,
                 is_default_seed=is_default,
                 num_gpus=NUM_GPUS,
-                output_root=sample_images_dir,
+                output_path=sample_images_dir,
             )
             save_seed_result(
                 run_dir,
@@ -130,14 +132,9 @@ def main(resume: bool = False, upload_to_fms: bool = False) -> None:
         unique_dataset_names = sorted({e.dataset_name for e in examples})
         dataset_configs = [load_dataset_config(n) for n in unique_dataset_names]
         notes = (
-            "Model-QC supplementary figure metrics (long-format). "
-            f"{len(model_keys)} models x {len(seeds_to_evaluate)} seeds x "
-            f"{len(examples)} {example_set_label} crops "
-            f"({len(model_keys) * len(seeds_to_evaluate) * len(examples)} rows). "
-            "Schema: manifest_name, run_name, random_seed, example_set, "
-            "example_idx, dataset_name, position, timepoint, crop_x_start, "
-            "crop_y_start, description, correlation_100, ssim_100, lpips_100, "
-            "baseline_correlation, baseline_ssim, baseline_lpips."
+            f"Model-QC supplementary figure metrics: {len(model_keys)} models "
+            f"x {len(seeds_to_evaluate)} seeds x {len(examples)} crops, "
+            "long-format (one row per model x seed x crop)."
         )
         annotations = build_fms_annotations(dataset_configs, additional_notes=notes)
         fmsid = upload_file_to_fms(

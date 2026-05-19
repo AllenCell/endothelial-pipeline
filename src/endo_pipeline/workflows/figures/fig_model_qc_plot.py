@@ -1,14 +1,17 @@
 """Plotting half of the supplementary Model-QC figure pipeline.
 
-Loads the per-(model, seed) JSON results written by
-``fig-model-qc-inference`` and renders the single Rep-2 Pearson-correlation
-bar chart used in the supplementary figure.  No GPU work; runs in seconds.
+Loads the per-(model, seed) parquets written by ``fig-model-qc-inference``
+and renders the single Rep-2 Pearson-correlation bar chart used in the
+supplementary figure.  No GPU work; runs in seconds.
 """
 
 import logging
 
 
-def main(inference_run_dir: str | None = None) -> None:
+def main(
+    inference_run_dir: str | None = None,
+    include_baseline: bool = False,
+) -> None:
     """Render the Rep-2 correlation bar chart from a prior inference run.
 
     #diffae #figure
@@ -22,6 +25,12 @@ def main(inference_run_dir: str | None = None) -> None:
         (default), the most recent date-stamped output directory of
         ``fig-model-qc-inference`` is auto-discovered under the standard
         results root.
+    include_baseline
+        If ``True``, also compute the next-timepoint baseline statistics
+        and attach them to ``models_data`` (the current renderer does not
+        draw them but downstream consumers can use them).  Default:
+        ``False`` -- skips the baseline aggregation entirely so the plot
+        run does no redundant work.
     """
     from pathlib import Path
 
@@ -76,10 +85,9 @@ def main(inference_run_dir: str | None = None) -> None:
     all_metrics, _ = aggregate_seed_metrics(
         all_seed_results, model_keys, example_sets_for_metrics, seeds
     )
-    # Baseline data is computed for completeness / future use but not drawn.
-    baseline_data = compute_baseline_data(all_metrics, compute_baseline=True)
+    baseline_data = compute_baseline_data(all_metrics, compute_baseline=include_baseline)
     models_data = build_models_data(
-        all_metrics, model_keys, baseline_data, compute_baseline=True
+        all_metrics, model_keys, baseline_data, compute_baseline=include_baseline
     )
 
     output_path = get_output_path(__file__)
