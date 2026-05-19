@@ -99,7 +99,18 @@ def main(
             "fig-model-qc-plot expects only the curated DEFAULT_MODEL_QC sweep "
             f"models. Unexpected entries: {missing}"
         )
-    model_labels = [sweep_label_map[(k.manifest_name, k.run_name)] for k in model_keys]
+
+    # Reorder model_keys / labels to follow the curated sweep order
+    # (8 BF -> 1024 BF, then CDH5) regardless of the parquet's
+    # first-occurrence order.
+    discovered = {(k.manifest_name, k.run_name): k for k in model_keys}
+    ordered_pairs = [
+        (m, r)
+        for m, r in zip(DEFAULT_MODEL_QC_MANIFEST_NAMES, DEFAULT_MODEL_QC_RUN_NAMES, strict=True)
+        if (m, r) in discovered
+    ]
+    model_keys = [discovered[p] for p in ordered_pairs]
+    model_labels = [sweep_label_map[p] for p in ordered_pairs]
 
     all_metrics, _ = aggregate_seed_metrics(
         all_seed_results, model_keys, example_sets_for_metrics, seeds
