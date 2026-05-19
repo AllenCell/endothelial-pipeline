@@ -1,5 +1,5 @@
 name: grid_seg_zarr
-workflow: tiff_to_zarr_conversion (manifest updated manually)
+workflow: convert_tiff_to_zarr (manifest updated manually)
 parameters: {}
 locations:
   20250224_20X:
@@ -59,8 +59,6 @@ locations:
   20260216_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
   20260211_20X:
-    path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-  20260218_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
   20260225_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr

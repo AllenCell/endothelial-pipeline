@@ -1,5 +1,5 @@
 name: nuclear_labelfree_seg_zarr
-workflow: tiff_to_zarr_conversion (manifest updated manually)
+workflow: convert_tiff_to_zarr (manifest updated manually)
 parameters: {}
 locations:
   20250224_20X:
@@ -54,8 +54,6 @@ locations:
     path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg_zarr/20260211_20b76dc8d0ca488ba88816793830f6ec/20260211_20b76dc8d0ca488ba88816793830f6ec_P{{position}}.ome.zarr
   20260216_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg_zarr/20260216_ed3743a1ee4c4cb096f5af90e3ebb9bd/20260216_ed3743a1ee4c4cb096f5af90e3ebb9bd_P{{position}}.ome.zarr
-  20260218_20X:
-    path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg_zarr/20260218_e387a692e3e443f897a6ce6cd4e7b1cf/20260218_e387a692e3e443f897a6ce6cd4e7b1cf_P{{position}}.ome.zarr
   20260225_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/nuclear_labelfree_seg_zarr/20260225_50afe3cb17cf4be099dc44e47f7a4ae4/20260225_50afe3cb17cf4be099dc44e47f7a4ae4_P{{position}}.ome.zarr
   20260302_20X:

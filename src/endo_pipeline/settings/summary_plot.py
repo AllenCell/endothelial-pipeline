@@ -27,7 +27,6 @@ SUMMARY_PLOT_DATASETS: dict[str, list[str]] = {
         "20260202_20X",  # 15 dyn / cm2
         "20260204_20X",  # 15 dyn / cm2
         "20260211_20X",  # 16 dyn / cm2
-        "20260218_20X",  # 16 dyn / cm2
         "20260225_20X",  # 16 dyn / cm2
         "20260302_20X",  # 16 dyn / cm2
         "20250611_20X",  # 20 dyn / cm2

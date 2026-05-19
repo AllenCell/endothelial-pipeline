@@ -217,7 +217,7 @@ def plot_histogram_of_features(
     else:
         fig_title = f"{dataset_name}"
 
-    fig, ax = plt.subplots(figsize=figsize or (AX_WIDTH, AX_HEIGHT), layout="constrained")
+    fig, ax = plt.subplots(figsize=figsize or (AX_WIDTH, AX_HEIGHT))
 
     if x_feature_metadata.bin_width and y_feature_metadata.bin_width:
         binwidth = (x_feature_metadata.bin_width, y_feature_metadata.bin_width)
@@ -232,6 +232,7 @@ def plot_histogram_of_features(
         cmap=colormap_name,
         ax=ax,
     )
+    ax.set_box_aspect(1)
 
     # change the background color to grey
     ax.set_facecolor("grey")

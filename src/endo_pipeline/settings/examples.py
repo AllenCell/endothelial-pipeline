@@ -12,7 +12,6 @@ EXAMPLE_DATASET = {
 
 FIGURE_3_RECONSTRUCTION_EXAMPLE_DATASETS = [
     "20260114_20X",  # two fixed points (15 dyn)
-    "20260218_20X",  # two fixed points (15 dyn)
     "20260225_20X",  # single fixed point (15 dyn)
     "20260202_20X",  # single fixed point (15 dyn)
 ]
@@ -162,6 +161,7 @@ CDH5_SEG_FIG_EXAMPLE: ExampleImage = ExampleImage(
     crop_y_start=500,
     description="no flow center crop for CDH5 segmentation figure",
 )
+CDH5_SEG_FIG_CLASSIC_FEAT_EXAMPLES: list[str] = ["20250409_20X", "20250611_20X"]
 
 MODEL_QC_EXAMPLES_TRAINING_POSITIONS: list[ExampleImage] = [
     ExampleImage(

@@ -22,10 +22,11 @@ def main() -> None:
     import matplotlib.pyplot as plt
 
     from endo_pipeline.io import get_output_path
-    from endo_pipeline.io.output import save_plot_to_path
+    from endo_pipeline.io.output import save_plot_to_path, slugify
     from endo_pipeline.library.analyze.optical_flow import resolve_attachment
     from endo_pipeline.library.analyze.optical_flow.compute import compute_tvl1
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
+    from endo_pipeline.library.visualize.migration_coherence import make_example_migration_coherence
     from endo_pipeline.library.visualize.supp_fig_optical_flow import (
         build_bf_frame_cache,
         load_optical_flow_feature_df,
@@ -39,25 +40,27 @@ def main() -> None:
         SUPP_FIG_OPTICAL_FLOW_COHERENT_EXAMPLE,
         SUPP_FIG_OPTICAL_FLOW_INCOHERENT_EXAMPLE,
     )
+    from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
 
     plt.style.use("endo_pipeline.figure")
     output_dir = get_output_path("supp_fig_optical_flow")
-    figure_size = (5.0, 5.0)
+    optical_flow_panel_size = (3.5, 3.5)
+    migration_coherence_panel_size = (3, 3)
 
     # The picks are ExampleImage instances whose
     # crop_x_start / crop_y_start fields are interpreted as the
     # 1-indexed (col, row) of the chosen crop within the position's regular
     # crop grid, and the timepoint pair is taken as (timepoint, timepoint + 1).
 
-    picks = [
-        (SUPP_FIG_OPTICAL_FLOW_COHERENT_EXAMPLE, "Coherent Example"),
-        (SUPP_FIG_OPTICAL_FLOW_INCOHERENT_EXAMPLE, "Incoherent Example"),
-    ]
+    picks = {
+        "Coherent Example": SUPP_FIG_OPTICAL_FLOW_COHERENT_EXAMPLE,
+        "Incoherent Example": SUPP_FIG_OPTICAL_FLOW_INCOHERENT_EXAMPLE,
+    }
     attachment = resolve_attachment("BF")
 
     # Load per-pick BF frames + crop bbox + flow.
     panels: list[dict] = []
-    for example, label in picks:
+    for label, example in picks.items():
         feature_df = load_optical_flow_feature_df(example.dataset_name)
         t0, t1 = example.timepoint, example.timepoint + 1
         cache, crop_grid = build_bf_frame_cache(
@@ -90,7 +93,7 @@ def main() -> None:
     fig, axes = plt.subplots(
         2,
         2,
-        figsize=figure_size,
+        figsize=optical_flow_panel_size,
         facecolor="white",
         squeeze=False,
         constrained_layout=True,
@@ -129,28 +132,47 @@ def main() -> None:
         output_dir,
         base_name,
         file_format=".svg",
-        dpi=300,
         show_and_close=False,
         tight_layout=False,
         bbox_inches=None,
     )
     plt.close(fig)
 
-    # Compose into the standard figure canvas (single panel, no letter).
+    # create and plot an example of the coherence data in theta, r, rho space
+    # with the bin drawn around the fixed point
+    example = "Coherent Example"
+    dataset_name = picks[example].dataset_name
+    coherence_example_fig_name = slugify(f"{dataset_name}_3D_scatter_{example}")
+    make_example_migration_coherence(
+        dataset_name=dataset_name,
+        figure_size=migration_coherence_panel_size,
+        output_dir=output_dir,
+        fig_name=coherence_example_fig_name,
+    )
+
+    # Put the panels together into a single figure
     build_figure_from_panels(
         [
             FigurePanel(
-                letter="",
+                letter="A",
                 path=output_dir / f"{base_name}.svg",
                 x_position=0,
+                y_position=0,
+                x_offset=0,
+                y_offset=0.1,
+            ),
+            FigurePanel(
+                letter="B",
+                path=output_dir / f"{coherence_example_fig_name}.svg",
+                x_position=3.5,
                 y_position=0,
                 x_offset=0,
                 y_offset=0,
             ),
         ],
         output_dir / "supp_fig_optical_flow.svg",
-        width=figure_size[0],
-        height=figure_size[1],
+        width=MAX_FIGURE_WIDTH,
+        height=optical_flow_panel_size[1] + 0.1,
     )
 
 

@@ -1,15 +1,20 @@
+import logging
+import textwrap
 from pathlib import Path
 from typing import Literal, cast
 
 import numpy as np
+import pandas as pd
+import seaborn as sns
 from matplotlib import pyplot as plt
+from matplotlib.layout_engine import ConstrainedLayoutEngine
+from matplotlib.patches import Patch
 from skimage.color import label2rgb
 from skimage.color.colorlabel import DEFAULT_COLORS
 from skimage.exposure import rescale_intensity
 from skimage.morphology import binary_dilation
-from tqdm import tqdm
 
-from endo_pipeline.configs import TimepointAnnotation, load_dataset_config
+from endo_pipeline.configs import DatasetConfig, TimepointAnnotation, load_dataset_config
 from endo_pipeline.io import get_output_path, load_dataframe, load_image, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_annotations
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
@@ -21,6 +26,7 @@ from endo_pipeline.library.process.general_image_preprocessing import (
 )
 from endo_pipeline.library.visualize.figure_utils import plot_image_thumbnail
 from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
+    adjust_axes_ticks,
     mark_parallel,
     mark_perpendicular,
     plot_histogram_of_features,
@@ -34,15 +40,63 @@ from endo_pipeline.manifests import (
 )
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.examples import CDH5_SEG_FIG_EXAMPLE
 from endo_pipeline.settings.figures import FONT_FAMILY, FONTSIZE_SMALL, PDF_FONT_TYPE
-from endo_pipeline.settings.workflow_defaults import SEGMENTATION_FEATURE_COLUMNS
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
+from endo_pipeline.settings.workflow_defaults import (
+    ANNOTATIONS_TO_FILTER_OUT_FOR_SEGMENTATIONS,
+    SEGMENTATION_FEATURE_COLUMNS,
+)
+
+logger = logging.getLogger(__name__)
 
 IMAGE_PANEL_SIZE = (3, 3)
 PLOT_PANEL_SIZE = (1.35, 1.35)
 X_START = CDH5_SEG_FIG_EXAMPLE.crop_x_start
 Y_START = CDH5_SEG_FIG_EXAMPLE.crop_y_start
 CROP_YX = (slice(Y_START, -Y_START), slice(X_START, -X_START))  # centered crop
+
+
+def _load_seg_feats_df(
+    dataset_config: DatasetConfig,
+    columns: set[ColumnNameType],
+) -> pd.DataFrame:
+    """Load, filter, and compute derived segmentation features for a dataset.
+
+    Parameters
+    ----------
+    dataset_config
+        Configuration for the dataset to load.
+    columns
+        Feature columns to load (the function always adds the mandatory filter and
+        dynamics prerequisite columns automatically).
+
+    Returns
+    -------
+    :
+        Filtered dataframe of segmentation features.
+    """
+    dataset_name = dataset_config.name
+
+    filter_cols = cast(list[str], SEGMENTATION_FEATURE_COLUMNS["filters"])
+    dynamics_cols = cast(list[str], SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"])
+
+    time_col = Column.SegData.TIME_HRS_SINCE_FLOW
+    live_seg_manifest = load_dataframe_manifest("live_merged_seg_features")
+    live_seg_location = get_dataframe_location_for_dataset(live_seg_manifest, dataset_name)
+    live_seg_feats_df_delayed = load_dataframe(live_seg_location, delay=True)
+
+    cols_to_compute = {time_col, *columns, *filter_cols, *dynamics_cols} & set(
+        live_seg_feats_df_delayed.columns
+    )
+    df = live_seg_feats_df_delayed[list(cols_to_compute)].compute()
+    df = df[df[Column.SegDataFilters.IS_INCLUDED]]
+
+    df = filter_dataframe_by_annotations(
+        df, dataset_config, timepoint_annotations=ANNOTATIONS_TO_FILTER_OUT_FOR_SEGMENTATIONS
+    )
+    return calculate_derived_data_dynamics_dependent(df)
 
 
 def make_imaging_panels(
@@ -60,7 +114,7 @@ def make_imaging_panels(
     # Load the validation image (which has some intermediate steps saved)
     val_manifest = load_image_manifest("cdh5_seg_validations")
     val_location = get_image_location_for_dataset(val_manifest, dataset_config, position, timeframe)
-    val_image = load_image(val_location, read=False)  # type:ignore[arg-type]
+    val_image = load_image(val_location, read=False)  # type: ignore[arg-type]
     channel_names = val_image.channel_names
     val_array = val_image.get_image_dask_data(DIMENSION_ORDER).compute()
 
@@ -103,7 +157,7 @@ def make_imaging_panels(
             cdh5_seg_location, compute=True, squeeze=False, timepoints=tf
         )
 
-    bf_center_Z = dataset_config.center_z_plane[position]  # type:ignore[index]
+    bf_center_Z = dataset_config.center_z_plane[position]  # type: ignore[index]
     zarr_loc = get_zarr_location_for_position(dataset_config, position)
     raw_bf = load_image(zarr_loc, channels=["BF"], timepoints=timeframe, level=0, compute=True)
 
@@ -183,7 +237,7 @@ def make_imaging_panels(
         }
 
     for panel_name in panel_dict:
-        image_name_list = list(panel_dict[panel_name]["images"])  # type:ignore[call-overload]
+        image_name_list = list(panel_dict[panel_name]["images"])  # type: ignore[call-overload]
         panel = [image_dict[image_name] for image_name in image_name_list]
         panel_metadata = {
             "image_name": f"{dataset_name}_P{position}_T{timeframe}_{panel_name}",
@@ -214,7 +268,7 @@ def make_imaging_panels(
                 label=label,
                 image=image,
                 bg_label=0,
-                colors=panel_dict[panel_name]["colors_thumbnail"],  # type:ignore[index]
+                colors=panel_dict[panel_name]["colors_thumbnail"],  # type: ignore[index]
                 alpha=0.5,
             )
             plot_image_thumbnail(
@@ -226,11 +280,11 @@ def make_imaging_panels(
             )
 
 
-def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
+def make_classic_feature_panels(dataset_name: str, out_dir: Path) -> dict[str, Path]:
 
     # Set some global plotting parameters to be consistent
     # with the other plots in the manuscript
-    plt.style.use("default")
+    plt.style.use("endo_pipeline.figure")
     plt.rcParams.update(
         {
             "pdf.fonttype": PDF_FONT_TYPE,
@@ -241,130 +295,298 @@ def make_classic_feature_panels(datasets: list[str], out_dir: Path) -> None:
         }
     )
 
-    for dataset_name in tqdm(datasets):
+    out_subdir = out_dir / dataset_name
+    out_subdir.mkdir(exist_ok=True, parents=True)
 
-        out_subdir = out_dir / dataset_name
-        out_subdir.mkdir(exist_ok=True, parents=True)
+    # pick the features you need:
+    # features to plot:
+    periodic_feats = [
+        Column.SegData.NUCLEI_POSITION_ANGLE_DEG,
+        Column.SegData.CENTROID_VELOCITY_ANGLE_DEG,
+        Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG,
+    ]
+    feats_to_plot = periodic_feats + [
+        Column.SegData.ALIGNMENT_DEG,
+        Column.SegData.ORIENTATION_DEG,
+        Column.SegData.ASPECT_RATIO,
+        Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DOTPROD,
+        Column.SegData.CELL_FLUOR_MEAN,
+        Column.SegData.EDGE_FLUOR_MEAN,
+        Column.SegData.NODE_FLUOR_MEAN,
+        Column.SegData.AREA_UM_SQ,
+    ]
 
-        # load dataset config
-        dataset_config = load_dataset_config(dataset_name)
+    time_col = Column.SegData.TIME_HRS_SINCE_FLOW
 
-        # Load the tables with cdh5 segmentation measurements
-        live_seg_manifest = load_dataframe_manifest("live_merged_seg_features")
-        live_seg_location = get_dataframe_location_for_dataset(live_seg_manifest, dataset_name)
-        live_seg_feats_df_delayed = load_dataframe(live_seg_location, delay=True)
+    dataset_config = load_dataset_config(dataset_name)
+    df = _load_seg_feats_df(dataset_config, set(feats_to_plot))
 
-        # pick the features you need:
-        # features to plot:
-        periodic_feats = [
-            Column.SegData.NUCLEI_POSITION_ANGLE_DEG,
-            Column.SegData.CENTROID_VELOCITY_ANGLE_DEG,
-            Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG,
-        ]
-        feats_to_plot = periodic_feats + [
-            Column.SegData.ALIGNMENT_DEG,
-            Column.SegData.ORIENTATION_DEG,
-            Column.SegData.ASPECT_RATIO,
-            Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DOTPROD,
-            Column.SegData.CELL_FLUOR_MEAN,
-            Column.SegData.EDGE_FLUOR_MEAN,
-            Column.SegData.NODE_FLUOR_MEAN,
-            Column.SegData.AREA_UM_SQ,
-        ]
+    assert dataset_config.time_interval_in_minutes is not None
+    assert dataset_config.timepoint_annotations is not None
 
-        time_col = Column.SegData.TIME_HRS_SINCE_FLOW
+    flow_start_time_hrs = (
+        dataset_config.flow_conditions[0].start * dataset_config.time_interval_in_minutes / 60.0
+    )
+    imaging_start_time = -flow_start_time_hrs
+    steady_state_time_p0 = cast(
+        tuple[int, int],
+        dataset_config.timepoint_annotations[TimepointAnnotation.NOT_STEADY_STATE][0][0],
+    )
+    steady_state_time_shifted = (
+        steady_state_time_p0[1] * dataset_config.time_interval_in_minutes / 60.0
+        - flow_start_time_hrs
+    )
 
-        # filtering features:
-        filter_cols = cast(list[str], SEGMENTATION_FEATURE_COLUMNS["filters"])
+    # Get feature metadata for time axis
+    time_metadata = COLUMN_METADATA[time_col]
 
-        # columns for calculating dynamic features
-        dynamics_cols = cast(list[str], SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"])
+    # create and save the panels of each of the features
+    panels = {}
+    for feat in feats_to_plot:
+        feature_metadata = COLUMN_METADATA[feat]
+        figure_name = f"{dataset_name}_{feature_metadata.slug}"
 
-        # figure out which columns to compute:
-        cols_to_compute = {
-            time_col,
-            *periodic_feats,
-            *feats_to_plot,
-            *filter_cols,
-            *dynamics_cols,
-        } & set(live_seg_feats_df_delayed.columns)
-
-        # compute the columns you need
-        live_seg_feats_df = live_seg_feats_df_delayed[list(cols_to_compute)].compute()
-
-        # filter out rows based on track-based features
-        live_seg_feats_df = live_seg_feats_df[live_seg_feats_df[Column.SegDataFilters.IS_INCLUDED]]
-
-        # filter out rows based on automatic and manual timepoint annotations
-        annotations_to_filter_out = [
-            TimepointAnnotation.AUTO_GFP_SCOPE_ERROR,
-            TimepointAnnotation.GFP_SCOPE_ERROR,
-        ]
-        live_seg_feats_df = filter_dataframe_by_annotations(
-            live_seg_feats_df, dataset_config, timepoint_annotations=annotations_to_filter_out
+        # create the 2D histogram panel
+        fig, ax = plot_histogram_of_features(
+            df,
+            x_column_name=time_col,
+            y_column_name=feat,
+            x_feature_metadata=time_metadata,
+            y_feature_metadata=feature_metadata,
+            x_minor_ticks=True,
+            y_minor_ticks=True,
+            figsize=PLOT_PANEL_SIZE,
+            colormap_name="inferno",
         )
 
-        # calculate features that are sensitive to how the dataframe is filtered
-        live_seg_feats_df = calculate_derived_data_dynamics_dependent(live_seg_feats_df)
+        # perform some additional adjustments to the panel
+        ax.set_title("")
+        if feat in periodic_feats:
+            mark_parallel(ax, color="lightgrey")
+            mark_perpendicular(ax, color="lightgrey")
+        if feat == Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DOTPROD:
+            ax.axhline(0, color="lightgrey", linestyle="--", linewidth=1)
+        ax.axvline(
+            imaging_start_time,
+            color="limegreen",
+            linestyle="--",
+            linewidth=1,
+            label="Start of imaging",
+        )
+        ax.axvline(
+            steady_state_time_shifted,
+            color="darkturquoise",
+            linestyle="--",
+            linewidth=1,
+            label="Start of steady state",
+        )
 
-        # Get feature metadata for time axis
-        time_metadata = COLUMN_METADATA[time_col]
-
-        # create and save the panels of each of the features
-        for feat in feats_to_plot:
-            feature_metadata = COLUMN_METADATA[feat]
-            figure_name = f"{dataset_name}_{feature_metadata.slug}"
-
-            # create the 2D histogram panel
-            fig, ax = plot_histogram_of_features(
-                live_seg_feats_df,
-                x_column_name=time_col,
-                y_column_name=feat,
-                x_feature_metadata=time_metadata,
-                y_feature_metadata=feature_metadata,
-                x_minor_ticks=True,
-                y_minor_ticks=True,
-                figsize=PLOT_PANEL_SIZE,
-                colormap_name="inferno",
+        # save the panel in high quality and as a PNG thumbnail
+        # (PNG thumbnail is for convenient use in presentations)
+        for fmt in [".svg", ".png"]:
+            save_plot_to_path(
+                figure=fig,
+                output_path=out_subdir,
+                figure_name=figure_name,
+                file_format=cast(Literal[".svg", ".png"], fmt),
+                tight_layout=False,
             )
+        panels[str(feat)] = out_subdir / f"{figure_name}.svg"
 
-            # perform some additional adjustments to the panel
-            ax.set_title("")
-            if feat in periodic_feats:
-                mark_parallel(ax, color="lightgrey")
-                mark_perpendicular(ax, color="lightgrey")
-            if feat == Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DOTPROD:
-                ax.axhline(0, color="lightgrey", linestyle="--", linewidth=1)
-            # draw a line at the time where imaging started (i.e. negative of flow start time)
-            # get the flow change times in hours (relative to imaging start time) and draw vertical lines at those times
-            flow_change_times = [flow.start for flow in dataset_config.flow_conditions]
-            flow_change_times_hrs = [
-                flow_start_time * dataset_config.time_interval_in_minutes / 60.0  # type:ignore
-                for flow_start_time in flow_change_times
-            ]
-            flow_start_time_hrs = flow_change_times_hrs[0]
+    return panels
 
-            # shift imaging start time (which is normally 0) to be relative to flow start time
-            imaging_start_time = 0 - flow_start_time_hrs
-            for i, flow_change_time in enumerate(flow_change_times_hrs):
-                if i == 0:
-                    ax.axvline(imaging_start_time, color="lime", linestyle="--", linewidth=1)
-                else:
-                    ax.axvline(
-                        # shift the flow change time (which is normally relative to imaging
-                        # start time) to be relative to flow start time
-                        flow_change_time - flow_start_time_hrs,
-                        color="cyan",
-                        linestyle="--",
-                        linewidth=1,
-                    )
-            # save the panel in high quality and as a PNG thumbnail
-            # (PNG thumbnail is for convenient use in presentations)
-            for fmt in [".pdf", ".png"]:
-                save_plot_to_path(
-                    figure=fig,
-                    output_path=out_subdir,
-                    figure_name=figure_name,
-                    file_format=cast(Literal[".pdf", ".png"], fmt),
-                    tight_layout=False,
-                )
+
+def make_feature_contact_sheet(
+    dataset_name: str,
+    features: list[ColumnNameType],
+    ncols: int,
+    out_dir: Path,
+    figure_width: float | None = None,
+    figure_height: float | None = None,
+) -> Path:
+    """Create a grid of 2D histograms with features as columns and datasets as rows.
+
+    Each column has a shared feature label at the top, each row has a dataset label at the
+    left, and the time axis label is shared along the bottom of all columns.
+
+    Parameters
+    ----------
+    datasets
+        List of dataset names to include as rows.
+    features
+        List of feature column names to include as columns.
+    out_dir
+        Output directory for the saved figure.
+    figure_width
+        Width of the figure in inches. Defaults to ``panel_w * ncols`` where
+        ``panel_w`` is taken from :data:`PLOT_PANEL_SIZE`.
+    figure_height
+        Height of the figure in inches. Defaults to ``panel_h * nrows`` where
+        ``panel_h`` is taken from :data:`PLOT_PANEL_SIZE`.
+
+    Returns
+    -------
+    :
+        Path to the saved SVG figure.
+    """
+
+    time_col = Column.SegData.TIME_HRS_SINCE_FLOW
+    time_metadata = COLUMN_METADATA[time_col]
+
+    nrows = len(features) // ncols
+    nrows += 1 if len(features) % ncols > 0 else 0
+    panel_w, _ = PLOT_PANEL_SIZE
+    if figure_width:
+        panel_w = figure_width / ncols
+    if figure_height:
+        panel_h = figure_height / nrows
+    else:
+        panel_h = panel_w  # make panels square
+
+    fig_width = panel_w * ncols
+    fig_height = panel_h * nrows
+    fig, axes = plt.subplots(
+        nrows,
+        ncols,
+        figsize=(fig_width, fig_height * 0.65),
+        sharex=True,
+        squeeze=False,
+    )
+    fig.set_layout_engine(ConstrainedLayoutEngine(w_pad=0.1, h_pad=0.1, hspace=0.05, wspace=0.05))
+    layout_engine = fig.get_layout_engine()
+    if layout_engine is not None:
+        # reserve left margin for the vertical label and top margin for the legend
+        layout_engine.set(**{"rect": [0.08, 0, 1, 0.94]})
+
+    features_reshaped: np.ndarray = np.reshape(list(features), newshape=(nrows, ncols))
+    dataset_config = load_dataset_config(dataset_name)
+    df = _load_seg_feats_df(dataset_config, set(features))
+
+    if dataset_config.time_interval_in_minutes is None:
+        logger.warning(f"time_interval_in_minutes is not set for dataset '{dataset_name}'")
+        raise ValueError(f"time_interval_in_minutes is required for dataset '{dataset_name}'")
+    if dataset_config.timepoint_annotations is None:
+        logger.warning(f"timepoint_annotations is not set for dataset '{dataset_name}'")
+        raise ValueError(f"timepoint_annotations is required for dataset '{dataset_name}'")
+
+    flow_start_time_hrs = (
+        dataset_config.flow_conditions[0].start * dataset_config.time_interval_in_minutes / 60.0
+    )
+    imaging_start_time = -flow_start_time_hrs
+    steady_state_time_p0 = cast(
+        tuple[int, int],
+        dataset_config.timepoint_annotations[TimepointAnnotation.NOT_STEADY_STATE][0][0],
+    )
+    steady_state_time_shifted = (
+        steady_state_time_p0[1] * dataset_config.time_interval_in_minutes / 60.0
+        - flow_start_time_hrs
+    )
+
+    for (i, j), feat in np.ndenumerate(features_reshaped):
+        ax = axes[i, j]
+        feature_metadata = COLUMN_METADATA[feat]
+
+        if feat not in df.columns:
+            ax.set_visible(False)
+            continue
+
+        binwidth = (time_metadata.bin_width, feature_metadata.bin_width)
+
+        sns.histplot(
+            data=df,
+            x=time_col,
+            y=str(feat),
+            # the binwidth parameter has incorrectly restrictive typing in seaborn
+            # (it says it doesn't accept tuple[float|None, float|None] when in fact it does)
+            binwidth=binwidth,  # type: ignore[arg-type]
+            cmap="inferno",
+            stat="density",
+            ax=ax,
+            vmin=0,
+        )
+        cax = ax.inset_axes([1.05, 0, 0.05, 1])
+        mappable = ax.collections[-1]
+        fig.colorbar(mappable, cax=cax)
+        cax.tick_params(labelsize=FONTSIZE_SMALL)
+        ax.set_box_aspect(1)
+        ax.set_facecolor("grey")
+
+        adjust_axes_ticks(
+            ax=ax,
+            x_data=df[time_col],
+            y_data=df[feat],
+            x_feature_metadata=time_metadata,
+            y_feature_metadata=feature_metadata,
+            x_minor_ticks=True,
+            y_minor_ticks=True,
+        )
+
+        ax.axvline(
+            imaging_start_time,
+            color="limegreen",
+            linestyle="--",
+            linewidth=1,
+            label="Start of imaging",
+        )
+        ax.axvline(
+            steady_state_time_shifted,
+            color="darkturquoise",
+            linestyle="--",
+            linewidth=1,
+            label="Start of steady state",
+        )
+
+        # Feature label at top of each column (first row only)
+        if feat == "centroid_velocity_angle_deg":
+            feat_label = textwrap.fill(
+                COLUMN_METADATA["centroid_velocity_angle_deg"].label_with_unit, width=16
+            )
+            ax.set_ylabel(feat_label, fontsize=FONTSIZE_SMALL, labelpad=2)
+        else:
+            ax.set_ylabel(feature_metadata.label_with_unit, fontsize=FONTSIZE_SMALL, labelpad=2)
+
+        # Time axis label at the bottom of each column (last row only)
+        ax.set_xlabel(time_metadata.label_with_unit, fontsize=FONTSIZE_SMALL, labelpad=2)
+
+        if j == ncols - 1:
+            cax.set_ylabel("Density", fontsize=FONTSIZE_SMALL, labelpad=4)
+
+    # Shear stress label on the left of each row
+    shear_stress = dataset_config.flow_conditions[0].shear_stress_bin
+    fig.text(
+        0.05,
+        0.5,
+        f"{shear_stress} dyn/cm{Unicode.SQUARED}",
+        va="center",
+        rotation="vertical",
+        fontdict={"fontsize": FONTSIZE_SMALL, "fontweight": "bold"},
+    )
+
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    handles.append(Patch(facecolor="grey", edgecolor="none"))
+    labels.append("No data")
+    fig.legend(
+        handles,
+        labels,
+        fontsize=FONTSIZE_SMALL,
+        loc="upper left",
+        bbox_to_anchor=(0.15, 1.02),
+        ncol=3,
+        handletextpad=0.3,
+        columnspacing=0.8,
+        frameon=False,
+    )
+
+    out_dir.mkdir(exist_ok=True, parents=True)
+    figure_name = f"{dataset_name}_feature_contact_sheet"
+    for fmt in [".svg", ".png"]:
+        save_plot_to_path(
+            figure=fig,
+            output_path=out_dir,
+            figure_name=figure_name,
+            file_format=cast(Literal[".svg", ".png"], fmt),
+            tight_layout=False,
+            show_and_close=fmt == ".png",
+        )
+
+    return out_dir / f"{figure_name}.svg"
