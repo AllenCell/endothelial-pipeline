@@ -11,13 +11,14 @@ from matplotlib.ticker import MaxNLocator, ScalarFormatter
 from monai.data import MetaTensor
 
 from endo_pipeline.io.output import save_plot_to_path
+from endo_pipeline.library.process.image_processing import crop_image
 from endo_pipeline.library.visualize.figure_utils import (
     add_scalebar,
     make_contact_sheet,
     plot_image_thumbnail,
 )
-from endo_pipeline.settings.figures import FONTSIZE_XSMALL
-from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
+from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_XSMALL
+from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ def save_stack_slices_as_thumbnails(img: Array, save_dir: Path) -> None:
                 save_dir,
                 figsize=(6, 6),
                 scalebar_size_um=50,
-                pixel_size=PIXEL_SIZE_3i_20x,
+                pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
             )
 
 
@@ -231,6 +232,8 @@ def visualize_fov_transform_steps(
     save_dir: Path,
     target_key: str,
     figure_size: tuple = (1.5, 1.5),
+    col_titles: list[str] | None = None,
+    row_title: str | None = None,
 ) -> np.ndarray:
     """
     Apply a sequence of transforms to a sample and visualize all steps
@@ -242,12 +245,14 @@ def visualize_fov_transform_steps(
         save_dir (Path): Directory where visualizations are saved.
         target_key (str): Key to visualize (e.g., 'raw_bf').
         figure_size (tuple): Size per panel in inches (width, height).
+        col_titles (list[str] | None): Custom column titles. If None, uses transform class names.
+        row_title (str | None): Row label (e.g., 'BF' or 'VE-cadherin').
 
     Returns:
         The transformed image as a NumPy array.
     """
     images: list[np.ndarray] = []
-    col_titles: list[str] = []
+    _col_titles: list[str] = []
 
     for step_idx, transform in enumerate(transforms):
         transform_name = transform.__class__.__name__
@@ -263,17 +268,24 @@ def visualize_fov_transform_steps(
         # Collect if target_key affected
         if target_key in transform_keys and isinstance(sample, dict):
             value_np = get_target_image_from_sample(sample, target_key)
+            value_np = crop_image(
+                value_np, start_x=0, start_y=0, crop_size=500
+            )  # Crop for visualization
             images.append(value_np.squeeze())
-            col_titles.append(transform_name)
+            _col_titles.append(transform_name)
 
     # --- Image contact sheet ---
     n = len(images)
+    # Use custom col_titles if provided, otherwise fall back to transform names
+    titles = col_titles if col_titles is not None else _col_titles
     fig_images = make_contact_sheet(
         panels=images,
         max_rows=1,
         max_cols=n,
-        col_titles=col_titles,
-        font_size=FONTSIZE_XSMALL,
+        col_titles=titles,
+        row_titles=[row_title] if row_title else None,
+        font_size=FONTSIZE_MEDIUM,
+        subplot_kwargs={"frame_on": False},
         gridspec_kwargs={"wspace": 0, "hspace": 0},
         fig_kwargs={"figsize": figure_size, "layout": "constrained"},
     )
@@ -283,13 +295,20 @@ def visualize_fov_transform_steps(
         ax.yaxis.labelpad = 3
 
     # Add scalebar to first panel only
-    first_ax = fig_images.axes[0]
-    add_scalebar(
-        first_ax,
-        scale_bar_um=50,
-        pixel_size=PIXEL_SIZE_3i_20x,
-        location="lower left",
-    )
+    scale_bar_um = 100
+    for i, ax in enumerate(fig_images.axes):
+        add_scalebar(
+            ax,
+            scale_bar_um=scale_bar_um,
+            pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
+            location="lower right",
+            color="white",
+            label_fontsize=FONTSIZE_XSMALL,
+            bar_thickness=10,
+            padding=20,
+            label_xy=(0.96, 0.08),
+            include_label=True if i == 0 else False,
+        )
 
     save_plot_to_path(
         fig_images,

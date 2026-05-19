@@ -44,16 +44,28 @@ model_config = load_model_config(DIFFAE_MODEL_TRAIN_CONFIG)
 transforms = get_image_transforms(model_config)
 data = create_data_dict_loaded_image(img)
 
-# Step through each transformation and visualize the processing steps for each channel
+# %% Step through each transformation and visualize the processing steps for each channel
 PANEL_SIZE_BF = MAX_FIGURE_WIDTH * (2 / 3)
 transformed_bf = visualize_fov_transform_steps(
-    transforms, data, save_dir, target_key="raw_bf", figure_size=(PANEL_SIZE_BF, 1.5)
+    transforms,
+    data,
+    save_dir,
+    target_key="raw_bf",
+    figure_size=(PANEL_SIZE_BF, 1.5),
+    col_titles=["Std. dev. Z-proj.", "Log norm.", "Clip (0.1, 0.98)", "Z-score norm."],
+    row_title="BF",
 )
 
 # %%
 PANEL_SIZE_CDH5 = MAX_FIGURE_WIDTH * (1 / 3)
 transformed_cdh5 = visualize_fov_transform_steps(
-    transforms, data, save_dir, target_key="raw_cdh5", figure_size=(PANEL_SIZE_CDH5, 1.5)
+    transforms,
+    data,
+    save_dir,
+    target_key="raw_cdh5",
+    figure_size=(PANEL_SIZE_CDH5, 1.5),
+    col_titles=["MIP", "Clip (0.1, 0.98), Rescale"],
+    row_title="VE-cadherin",
 )
 
 # %% Figure
