@@ -4,7 +4,6 @@ from endo_pipeline.cli import CropPattern, Datasets
 def main(
     crop_pattern: CropPattern = "grid",
     datasets: Datasets | None = None,
-    upload_to_fms: bool = False,
 ) -> None:
     """
     Calculate PCA features from DiffAE latent features.
@@ -60,7 +59,7 @@ def main(
 
     import logging
 
-    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE, UPLOAD_TO_FMS
     from endo_pipeline.configs import (
         TimepointAnnotation,
         get_datasets_in_collection,
@@ -107,12 +106,34 @@ def main(
     # "full" set of features requires merging the outputs of the segmentation
     # workflows, which is handled by `combine_cell_centered_features`.
     if crop_pattern == "tracked":
+        full_pca_manifest_name = "diffae_pca_features_tracked"
         required_columns = [Column.POSITION, Column.TRACK_ID]
     elif crop_pattern == "grid":
+        full_pca_manifest_name = "grid_based_features"
         required_columns = [Column.POSITION, Column.DiffAEData.START_X, Column.DiffAEData.START_Y]
     else:
         raise ValueError("Crop pattern '%s' is not supported", crop_pattern)
 
+    # Create manifest for full dataframes and add workflow parameters
+    full_pca_manifest = create_dataframe_manifest(full_pca_manifest_name, __file__)
+    full_pca_manifest.parameters = {
+        "model_manifest_name": DEFAULT_MODEL_MANIFEST_NAME,
+        "run_name": DEFAULT_MODEL_RUN_NAME,
+        "crop_pattern": crop_pattern,
+        "filtered": False,
+    }
+
+    # Create manifest for filtered dataframes and add workflow parameters
+    filtered_pca_manifest_name = f"{full_pca_manifest_name}_filtered"
+    filtered_pca_manifest = create_dataframe_manifest(filtered_pca_manifest_name, __file__)
+    filtered_pca_manifest.parameters = {
+        "model_manifest_name": DEFAULT_MODEL_MANIFEST_NAME,
+        "run_name": DEFAULT_MODEL_RUN_NAME,
+        "crop_pattern": crop_pattern,
+        "filtered": True,
+    }
+
+    # Load dataframe manifest containing raw latent features
     feature_dataframe_manifest_name = (
         f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
     )
@@ -159,28 +180,6 @@ def main(
 
         # Drop original feature columns to save memory
         full_pca_df = df_with_pcs.drop(columns=DIFFAE_FEATURE_COLUMN_NAMES)
-
-        full_pca_df_path = output_path / f"{dataset_name}_{crop_pattern}_pca.parquet"
-        full_pca_manifest_name = f"{feature_dataframe_manifest_name}_pca"
-        full_pca_manifest = create_dataframe_manifest(full_pca_manifest_name, __name__)
-
-        full_pca_df.to_parquet(full_pca_df_path, index=False)
-
-        if upload_to_fms:
-            additional_notes = f"Dataframe with PCA features calculated from DiffAE latent features for {crop_pattern} crops."
-            filter_note = "No filtering has been applied."
-            fms_annotations = build_fms_annotations(
-                dataset_config, additional_notes=f"{additional_notes} {filter_note}"
-            )
-            fmsid = upload_file_to_fms(
-                full_pca_df_path, annotations=fms_annotations, file_type="parquet"
-            )
-            full_pca_location = DataframeLocation(fmsid=fmsid)
-        else:
-            full_pca_location = DataframeLocation(path=full_pca_df_path)
-
-        full_pca_manifest.locations[dataset_name] = full_pca_location
-        save_dataframe_manifest(full_pca_manifest)
 
         # Filter out annotated timepoints, except for timepoints flagged as "not
         # steady state" (those can be filtered out dynamically as necessary in
@@ -241,28 +240,36 @@ def main(
             # the merged segmentation-PCA dataframe.
             filtered_pca_df = filtered_pca_df.drop(columns=[Column.SegDataFilters.IS_INCLUDED])
 
-        # Save filtered PCA dataframe and upload to FMS if specified.
-        filtered_pca_df_path = output_path / f"{dataset_name}_{crop_pattern}_pca_filtered.parquet"
-        filtered_pca_manifest_name = f"{feature_dataframe_manifest_name}_pca_filtered"
-        filtered_pca_manifest = create_dataframe_manifest(filtered_pca_manifest_name, __name__)
+        # Save dataframes to path, and, if request, upload to FMS
+        for manifest, pca_df, filtering_note in [
+            (full_pca_manifest, full_pca_df, "No filtering applied."),
+            (filtered_pca_manifest, filtered_pca_df, "Filtering by timepoint and position."),
+        ]:
+            # Save the dataframe to file
+            suffix = "_filtered" if manifest.parameters["filtered"] else ""
+            pca_df_path = output_path / f"{dataset_name}_{crop_pattern}_pca{suffix}.parquet"
+            pca_df.to_parquet(pca_df_path, index=False)
 
-        filtered_pca_df.to_parquet(filtered_pca_df_path, index=False)
+            # Create location object with output path
+            pca_location = DataframeLocation(path=pca_df_path)
 
-        if upload_to_fms:
-            notes = (
-                "Dataframe with PCA features calculated from DiffAE latent features "
-                f"for {crop_pattern} crops. Filtered by timepoint and position annotations."
-            )
-            fms_annotations = build_fms_annotations(dataset_config, additional_notes=notes)
-            fmsid = upload_file_to_fms(
-                filtered_pca_df_path, annotations=fms_annotations, file_type="parquet"
-            )
-            filtered_pca_location = DataframeLocation(fmsid=fmsid)
-        else:
-            filtered_pca_location = DataframeLocation(path=filtered_pca_df_path)
+            # Upload to FMS (internal only) and update location object with FMS id
+            if UPLOAD_TO_FMS:
+                annotations = build_fms_annotations(
+                    dataset=dataset_config,
+                    additional_notes=(
+                        "Dataframe with PCA features calculated from DiffAE latent features "
+                        f"for {crop_pattern} crops. {filtering_note}"
+                    ),
+                )
+                fmsid = upload_file_to_fms(
+                    pca_df_path, annotations=annotations, file_type="parquet"
+                )
+                pca_location.fmsid = fmsid
 
-        filtered_pca_manifest.locations[dataset_name] = filtered_pca_location
-        save_dataframe_manifest(filtered_pca_manifest)
+            # Add dataframe location to dataframe manifest and save.
+            manifest.locations[dataset_name] = pca_location
+            save_dataframe_manifest(manifest)
 
 
 if __name__ == "__main__":
