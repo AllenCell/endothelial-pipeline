@@ -35,16 +35,20 @@ from .plotting import (
     save_summary_figure,
 )
 from .serialization import (
+    COMBINED_DATAFRAME_FILENAME,
     find_latest_inference_run_dir,
     load_seed_results,
+    read_combined_dataframe,
     read_inference_manifest,
     save_seed_result,
     seed_result_path,
+    write_combined_dataframe,
     write_inference_manifest,
 )
 from .tiff_io import save_denoising_crops, save_image_as_tiff
 
 __all__ = [
+    "COMBINED_DATAFRAME_FILENAME",
     "ImageMetrics",
     "LPIPSCalculator",
     "ModelKey",
@@ -62,6 +66,7 @@ __all__ = [
     "load_and_preprocess_example_crop",
     "load_seed_results",
     "load_transformed_image",
+    "read_combined_dataframe",
     "read_inference_manifest",
     "run_denoising_experiments",
     "save_denoising_crops",
@@ -71,5 +76,6 @@ __all__ = [
     "save_seed_result",
     "save_summary_figure",
     "seed_result_path",
+    "write_combined_dataframe",
     "write_inference_manifest",
 ]

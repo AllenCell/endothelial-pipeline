@@ -33,6 +33,7 @@ def main(resume: bool = False) -> None:
         evaluate_single_model,
         save_seed_result,
         seed_result_path,
+        write_combined_dataframe,
         write_inference_manifest,
     )
     from endo_pipeline.manifests import get_most_recent_run_name, load_model_manifest
@@ -114,8 +115,16 @@ def main(resume: bool = False) -> None:
                 is_default_seed=is_default,
                 num_gpus=NUM_GPUS,
             )
-            save_seed_result(run_dir, model_key, seed, result)
+            save_seed_result(
+                run_dir,
+                model_key,
+                seed,
+                result,
+                examples_by_set={example_set_label: examples},
+            )
 
+    combined_path = write_combined_dataframe(run_dir)
+    logger.info("Wrote consolidated metrics dataframe: %s", combined_path)
     logger.info("Inference complete. Run `endopipe fig-model-qc-plot` to render the figure.")
 
 
