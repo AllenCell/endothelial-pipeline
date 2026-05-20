@@ -44,7 +44,7 @@ from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
 
-SummaryPlotAxisMode = Literal["dataset", "shear_stress", "cell_line", "flow_switch"]
+SummaryPlotAxisMode = Literal["dataset", "shear_stress", "cell_line"]
 """Type hint for summary plot axis modes."""
 
 SummaryPlotStyleMode = Literal["dataset", "stability"]
@@ -69,7 +69,6 @@ SUMMARY_MODE_X_AXIS_SUP_LABELS: dict[SummaryPlotAxisMode, str] = {
     "dataset": f"Dataset Date (Shear Stress dyn/cm{Unicode.SQUARED})",
     "shear_stress": f"Shear Stress (dyn/cm{Unicode.SQUARED})",
     "cell_line": "Cell Line",
-    "flow_switch": f"Shear Stress (dyn/cm{Unicode.SQUARED})",
 }
 """Mapping of summary plot axis mode to X axis super labels."""
 
@@ -77,7 +76,6 @@ SUMMARY_MODE_COLUMN_NAME: dict[SummaryPlotAxisMode, str] = {
     "dataset": ColumnName.DATASET,
     "shear_stress": "_shear_stress_category",
     "cell_line": "_cell_line_category",
-    "flow_switch": "_flow_switch_category",
 }
 """Mapping of summary plot axis mode to column names."""
 
@@ -216,15 +214,6 @@ def _plot_cross_dataset_summary_for_column(
             for dataset_config in dataset_configs.values()
         }
         df[category_column] = df[ColumnName.DATASET].map(cell_line_map)
-    elif axis_mode == "flow_switch":
-        flow_switch_map = {
-            dataset_config.name: (
-                dataset_config.flow_conditions[-1].shear_stress_bin,
-                len(dataset_config.flow_conditions),
-            )
-            for dataset_config in dataset_configs.values()
-        }
-        df[category_column] = df[ColumnName.DATASET].map(flow_switch_map)
 
     # If category order is provided, remap the data type to preserve given order
     if category_order is not None:
@@ -243,9 +232,6 @@ def _plot_cross_dataset_summary_for_column(
         ]
     elif axis_mode == "cell_line":
         tick_labels = [CELL_LINE_LABEL_MAP[cat] for cat in unique_categories]
-    elif axis_mode == "flow_switch":
-        switch_labels = ["single flow", "flow switch"]
-        tick_labels = [f"{cat[0]} ({switch_labels[cat[1] - 1]})" for cat in unique_categories]
     else:
         tick_labels = unique_categories
 
