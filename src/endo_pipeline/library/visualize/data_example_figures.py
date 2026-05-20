@@ -510,6 +510,10 @@ def create_panel_retraction_fiber_blob_example(
     dataset_config = load_dataset_config(example.dataset_name)
     location = get_zarr_location_for_position(dataset_config, position=example.position)
     interval_in_min = dataset_config.time_interval_in_minutes
+    if interval_in_min is None:
+        raise ValueError(
+            f"Dataset {example.dataset_name} does not have a time_interval_in_minutes."
+        )
 
     for timepoint in timepoints:
         gfp_image = load_image(
