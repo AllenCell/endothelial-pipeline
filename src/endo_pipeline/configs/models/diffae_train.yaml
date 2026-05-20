@@ -226,7 +226,7 @@ model:
       overlap: 0
     merger_cls: cyto_dl.models.im2im.utils.inferers.EmbeddingPatchMerger
     spatial_dims: 2
-    batch_size: 1
+    batch_size: 1000
 callbacks:
   model_checkpoint:
     _target_: lightning.pytorch.callbacks.ModelCheckpoint
