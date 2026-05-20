@@ -51,7 +51,7 @@ cdh5_stack = load_image(zarr_loc, channels=["EGFP"], timepoints=frame, level=1, 
 stdevs = [plane.std().compute() for plane in bf_stack]
 focal_plane_tp = max(0, np.argmin(stdevs))
 plot_standard_devs_per_slice(
-    stdevs, int(focal_plane_tp), dataset, position, frame, save_dir_1, (2.5, 2.15)
+    stdevs, int(focal_plane_tp), dataset, position, frame, save_dir_1, (2.4, 2.15)
 )
 
 # %% Panel - In focus Z slice selection per position over time
@@ -61,7 +61,7 @@ focal_plane_pos, std_dev = plot_global_center_plane(
     dataset_config.name,
     position,
     save_dir_1,
-    (2.5, 2.15),
+    (2.4, 2.15),
     show_histogram=False,
 )
 
@@ -144,10 +144,10 @@ panels = [
     FigurePanel(
         letter="C",
         path=save_dir_1 / "n_slices_above_in_focus_z_histogram.svg",
-        x_position=4.9,
+        x_position=4.85,
         y_position=0,
         x_offset=0.08,
-        y_offset=0.08,
+        y_offset=0.2,
     ),
     FigurePanel(
         letter="D",
@@ -169,9 +169,9 @@ panels = [
     FigurePanel(
         letter="G",
         path=save_dir_2 / f"gfp_outliers_{dataset_config_gfp.name}_P{position}.svg",
-        x_position=3.3,
+        x_position=3.45,
         y_position=5.4,
-        x_offset=0.1,
+        x_offset=-0.1,
         y_offset=0.1,
     ),
 ]
