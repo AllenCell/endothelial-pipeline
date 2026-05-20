@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.gridspec import GridSpec
 
 from endo_pipeline.configs import load_dataset_config
@@ -474,4 +475,112 @@ def create_panel_perturbation_examples(
         file_format=".svg",
         tight_layout=False,
         pad_inches=0,
+    )
+
+
+def create_panel_retraction_fiber_blob_example(
+    example: ExampleImage,
+    timepoints: list[int],
+    save_dir: Path,
+    crop_size: int = 400,
+    scale_bar_um: int = 20,
+    figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 4),
+) -> None:
+    """Create panel of perturbation example images.
+
+    Parameters
+    ----------
+    example
+        Example image to display.
+    timepoints
+        List of timepoints to display.
+    save_dir
+        Directory to save the output figure.
+    crop_size
+        Crop size in pixels at resolution level 0.
+    scale_bar_um
+        Scale bar length in micrometers.
+    figure_size
+        Size of the figure (width, height) in inches.
+    """
+    gfp_panels = []
+    bf_panels = []
+    merge_panels = []
+
+    dataset_config = load_dataset_config(example.dataset_name)
+    location = get_zarr_location_for_position(dataset_config, position=example.position)
+    interval_in_min = dataset_config.time_interval_in_minutes
+
+    for timepoint in timepoints:
+        gfp_image = load_image(
+            location,
+            timepoints=timepoint,
+            channels=["EGFP"],
+            squeeze=True,
+        )
+        bf_image = load_image(location, timepoints=timepoint, channels=["BF"], squeeze=True)
+
+        gfp_max_proj = max_proj(gfp_image, axis=0)
+        bf_plane = get_single_bf_plane(bf_image, offset=5)
+
+        gfp_max_proj = contrast_stretching(gfp_max_proj)
+        bf_plane = contrast_stretching(bf_plane)
+
+        gfp_max_proj = crop_image(
+            gfp_max_proj, example.crop_x_start, example.crop_y_start, crop_size
+        )
+        bf_plane = crop_image(bf_plane, example.crop_x_start, example.crop_y_start, crop_size)
+
+        # pseudo-color GFP as green
+        gfp_rgb = np.stack(
+            [np.zeros_like(gfp_max_proj), gfp_max_proj, np.zeros_like(gfp_max_proj)], axis=-1
+        )
+
+        # create RGB merge: GFP in green channel, BF in red and blue channels (magenta)
+        merge = np.stack([bf_plane, gfp_max_proj, bf_plane], axis=-1)
+
+        gfp_panels.append(gfp_rgb)
+        bf_panels.append(bf_plane)
+        merge_panels.append(merge)
+
+    panels = gfp_panels + bf_panels + merge_panels
+    n_timepoints = len(timepoints)
+    col_titles = [
+        f"{int((tp - timepoints[0]) * interval_in_min)} min" for tp in timepoints
+    ]  # elapsed time
+    row_titles = ["VE-cadherin MIP", "BF Z-slice", "Merge"]
+
+    fig = make_contact_sheet(
+        panels=panels,
+        max_rows=3,
+        max_cols=n_timepoints,
+        col_titles=col_titles,
+        row_titles=row_titles,
+        direction="left-right first",
+        gridspec_kwargs={"wspace": 0.02, "hspace": 0.02},
+        fig_kwargs={"figsize": figure_size, "layout": "constrained"},
+        use_constrained_layout=True,
+        font_size=FONTSIZE_MEDIUM,
+    )
+
+    scale_bar_um = 20
+    for ax in fig.axes:
+        add_scalebar(
+            ax,
+            scale_bar_um=scale_bar_um,
+            pixel_size=PIXEL_SIZE_3i_20x,
+            location="lower right",
+            bar_thickness=10,
+            padding=10,
+            label_xy=(0.98, 0.06),
+            include_label=True if ax == fig.axes[4] else False,  # only add label to first panel
+        )
+
+    save_plot_to_path(
+        fig,
+        save_dir,
+        "retraction_fiber_blob_example",
+        pad_inches=0,
+        tight_layout=False,
+        file_format=".svg",
     )

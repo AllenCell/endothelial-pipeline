@@ -506,3 +506,13 @@ FLOW_FIELD_CONSTRUCTION_EXAMPLE_IMAGES: list[ExampleImage] = [
     ),
 ]
 """Example images for illustrating flow field construction from trajectories."""
+
+SUPP_FIG_RETRACTION_FIBER_BLOB: ExampleImage = ExampleImage(
+    dataset_name="20250409_20X",
+    description="retraction fiber and blob spatial correlation example crop",
+    position=2,
+    timepoint=184,
+    crop_x_start=700,  # res level 0
+    crop_y_start=690,  # res level 0
+)
+"""Example image for illustrating spatial correlation of retraction fibers and bright blobs."""

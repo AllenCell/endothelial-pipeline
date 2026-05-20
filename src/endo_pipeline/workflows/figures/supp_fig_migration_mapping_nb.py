@@ -7,6 +7,9 @@ from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_t
 from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
     add_optical_flow_features,
 )
+from endo_pipeline.library.visualize.data_example_figures import (
+    create_panel_retraction_fiber_blob_example,
+)
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
 from endo_pipeline.library.visualize.migration_coherence import plot_optical_flow_histogram
@@ -14,7 +17,7 @@ from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import METADATA_COLUMNS_TO_KEEP
-from endo_pipeline.settings.examples import EXAMPLE_DATASET
+from endo_pipeline.settings.examples import EXAMPLE_DATASET, SUPP_FIG_RETRACTION_FIBER_BLOB
 from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import (
@@ -22,11 +25,10 @@ from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_RUN_NAME,
 )
 
-# %%
-
 plt.style.use("endo_pipeline.figure")
 
-base_output_dir = get_output_path("figure_2")
+# %%
+base_output_dir = get_output_path("migration_coherence_blob")
 
 # figure is for grid based crops
 crop_pattern = "grid"
@@ -50,7 +52,6 @@ feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
 feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
 # %%
-
 fig, ax = plt.subplots(figsize=(2, 2), layout="constrained")
 for dataset_name in [dataset_low, dataset_high]:
     # get settings
@@ -90,21 +91,40 @@ save_plot_to_path(
 )
 
 # %%
-# --- Assemble all panels into final figure ---
+t = SUPP_FIG_RETRACTION_FIBER_BLOB.timepoint
+create_panel_retraction_fiber_blob_example(
+    example=SUPP_FIG_RETRACTION_FIBER_BLOB,
+    timepoints=list(range(t, t + 15, 3)),
+    save_dir=base_output_dir,
+    figure_size=(MAX_FIGURE_WIDTH, 4),
+)
+
+# %% --- Assemble all panels into final figure ---
 panels = [
     FigurePanel(
         letter="A",
         path=base_output_dir / "migration_coherence_distribution_high_low_flow_comparison.svg",
         x_position=0,
         y_position=0.0,
+        x_offset=-0.2,
+        y_offset=0,
+    ),
+    FigurePanel(
+        letter="B",
+        path=base_output_dir / "retraction_fiber_blob_example.svg",
+        x_position=0,
+        y_position=2,
         x_offset=0,
         y_offset=0.2,
     ),
 ]
 
-# %%
+
 build_figure_from_panels(
-    panels, base_output_dir / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=6.2
+    panels,
+    base_output_dir / "supp_fig_migration_coherence_blob.svg",
+    width=MAX_FIGURE_WIDTH,
+    height=6.2,
 )
 
 # %%

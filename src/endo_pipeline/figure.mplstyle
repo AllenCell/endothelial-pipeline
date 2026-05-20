@@ -21,7 +21,7 @@ axes.linewidth:   0.5    # edge line width
 axes.titlesize:   12.0   # font size of the axes title
 axes.titleweight: bold   # font weight of title
 axes.labelsize:   10.0   # font size of the x and y labels
-axes.labelpad:    10.0   # space between label and axis
+axes.labelpad:    3.0   # space between label and axis
 axes.labelweight: bold   # weight of the x and y labels
 axes.labelcolor:  black  # color of labels
 
