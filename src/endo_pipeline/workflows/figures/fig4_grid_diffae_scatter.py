@@ -38,14 +38,13 @@ def main() -> None:
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
+        GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME,
     )
 
     outdir = get_output_path(__file__)
 
     # Load dataframe manifest for the features to visualize
-    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_grid"
-    feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
-    feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
+    feature_dataframe_manifest = load_dataframe_manifest(GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME)
 
     # fit the PCA for later use in image reconstruction from PC-space
     # coordinates

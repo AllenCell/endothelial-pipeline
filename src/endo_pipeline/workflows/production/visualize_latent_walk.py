@@ -129,6 +129,7 @@ def main(
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
         DEFAULT_PCA_DATASET_COLLECTION_NAME,
+        GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME,
     )
 
     # load model manifest, get run name, and load model
@@ -145,8 +146,7 @@ def main(
     save_path = get_output_path(__file__)
 
     # load model configuration and reference dataset manifests
-    dataframe_manifest_name = f"{model_manifest.name}_{run_name}_grid_pca_filtered"
-    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
+    dataframe_manifest = load_dataframe_manifest(GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME)
     dataset_names = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
 
     # default column names if none provided

@@ -37,6 +37,18 @@ CELL_CENTERED_FEATURES_UNFILTERED_MANIFEST_NAME: str = "cell_centered_features_u
 CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME: str = "cell_centered_features_filtered"
 """Dataframe manifest name for unfiltered cell-centered features."""
 
+FEATURES_UNFILTERED_MANIFEST_NAMES: dict[Literal["grid", "tracked"], str] = {
+    "grid": GRID_BASED_FEATURES_UNFILTERED_MANIFEST_NAME,
+    "tracked": CELL_CENTERED_FEATURES_UNFILTERED_MANIFEST_NAME,
+}
+"""Mapping of crop pattern to unfiltered feature dataframe manifest name."""
+
+FEATURES_FILTERED_MANIFEST_NAMES: dict[Literal["grid", "tracked"], str] = {
+    "grid": GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME,
+    "tracked": CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
+}
+"""Mapping of crop pattern to filtered feature dataframe manifest name."""
+
 DEFAULT_SEG_FEATURE_WORKFLOW_DATASETS: str = "pca_reference"
 """Default dataset collection name for the segmentation feature workflow."""
 

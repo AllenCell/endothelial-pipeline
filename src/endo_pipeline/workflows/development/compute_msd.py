@@ -104,10 +104,7 @@ def main(
         METADATA_COLUMNS_TO_KEEP,
     )
     from endo_pipeline.settings.msd import MSD_Y_AXIS_LIMITS
-    from endo_pipeline.settings.workflow_defaults import (
-        DEFAULT_MODEL_MANIFEST_NAME,
-        DEFAULT_MODEL_RUN_NAME,
-    )
+    from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
 
     logger = logging.getLogger(__name__)
 
@@ -127,8 +124,7 @@ def main(
     workflow_savedir_name = f"{Path(__file__).stem}{demo_suffix}"
 
     # get dataframe manifest for crop-based features
-    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
-    feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
+    feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[crop_pattern]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # Load default list of datasets if not provided

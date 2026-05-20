@@ -45,6 +45,7 @@ from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME,
     RANDOM_SEED,
 )
 
@@ -91,8 +92,7 @@ def perform_latent_walk_along_top_pcs(
     # set up output directory
 
     # load model configuration and reference dataset manifests
-    dataframe_manifest_name = f"{model_manifest.name}_{run_name}_grid_pca_filtered"
-    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
+    dataframe_manifest = load_dataframe_manifest(GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME)
     dataset_names = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
 
     num_pcs = 3

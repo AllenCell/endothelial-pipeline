@@ -202,10 +202,7 @@ def main(  # noqa: C901
         DEMO_MAX_TRACKED_CROPS_TO_PLOT,
         OPTICAL_FLOW_COLUMNS_TO_COMPUTE,
     )
-    from endo_pipeline.settings.workflow_defaults import (
-        DEFAULT_MODEL_MANIFEST_NAME,
-        DEFAULT_MODEL_RUN_NAME,
-    )
+    from endo_pipeline.settings.workflow_defaults import FEATURES_UNFILTERED_MANIFEST_NAMES
 
     # Pin OpenMP to 1 thread per worker
     os.environ.setdefault("OMP_NUM_THREADS", DEFAULT_OMP_NUM_THREADS)
@@ -284,8 +281,7 @@ def main(  # noqa: C901
 
     # Load dataframe with diffae feature metadata (no filtering yet) to get crop
     # coordinates and timepoints for each dataset/position.
-    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
-    feature_dataframe_manifest_name = f"{base_name}_pca"
+    feature_dataframe_manifest_name = FEATURES_UNFILTERED_MANIFEST_NAMES[crop_pattern]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # For tracked crops, we also need TRACK_ID, CROP_SIZE_X
