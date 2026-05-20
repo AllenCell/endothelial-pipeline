@@ -60,8 +60,11 @@ class ColumnMetadata:
     bin_width: float | None = None
     """Width of bins."""
 
-    ticks: range | None = None
+    ticks: range | list[int] | list[float] | None = None
     """Range for ticks."""
+
+    tick_labels: list[str] | None = None
+    """Tick labels."""
 
     slug: str = field(init=False)
     """Slug version of name."""
@@ -102,7 +105,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         description="Time in hours",
         min=0,
         max="max",
-        bin_width=0.5,
+        bin_width=1,
         ticks=range(0, 49, 12),
         type=ColumnType.CONTINUOUS,
     ),
@@ -122,7 +125,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         unit="hr",
         min="min",
         max="max",
-        bin_width=0.5,
+        bin_width=1,
         ticks=range(0, 49, 12),
         type=ColumnType.CONTINUOUS,
     ),
@@ -234,7 +237,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.SegData.NODE_FLUOR_MEAN: ColumnMetadata(
         name="Mean VE-Cad fluorescence at nodes",
-        label="Cell node mean fluorescence",
+        label="Cell node mean\nfluorescence",
         unit="a.u.",
         min=100,
         max=200,
@@ -302,7 +305,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG: ColumnMetadata(
         name="Nucleus orientation relative to migration",
-        label="Cell-nuc angle rel. migration",
+        label="Cell-nuc angle\nrel. migration",
         unit="°",
         min=-180,
         max=180,
@@ -352,6 +355,14 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         description="Polar angle calculated by transforming PC 1 and PC 2 to polar coordinates",
         min=0,
         max=pi,
+        ticks=[0, pi / 4, pi / 2, 3 * pi / 4, pi],
+        tick_labels=[
+            f"0={Unicode.PI}",
+            f"{Unicode.PI}/4",
+            f"{Unicode.PI}/2",
+            f"3{Unicode.PI}/4",
+            f"{Unicode.PI}=0",
+        ],
         type=ColumnType.CONTINUOUS,
     ),
     Column.DiffAEData.POLAR_RADIUS: ColumnMetadata(
@@ -475,17 +486,73 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         type=ColumnType.BOOLEAN,
     ),
     # Optical flow features ====================================================
-    "optical_flow_mean_unit_vector_dt1": ColumnMetadata(
+    # Only optical-flow columns that are actually rendered by a plotting or TFE
+    # consumer are listed here.  Every key is a `Column.OpticalFlow.*` enum
+    # member; entries are grouped by base feature.
+    Column.OpticalFlow.UNIT_VECTOR_MEAN_RAW: ColumnMetadata(
         name="Coherent migration (optical flow mean unit vector)",
         min=0,
         max=1,
         type=ColumnType.CONTINUOUS,
     ),
-    Column.OpticalFlow.ANGLE_MEAN: ColumnMetadata(
-        name="Optical flow mean angle",
-        unit="rad",
+    Column.OpticalFlow.EMA005_UNIT_VECTOR_MEAN: ColumnMetadata(
+        name="Coherent migration (EMA 0.05, optical flow mean unit vector)",
         min=0,
-        max=8,
+        max=1,
+        type=ColumnType.CONTINUOUS,
+    ),
+    Column.OpticalFlow.UNIT_VECTOR_MEAN: ColumnMetadata(
+        name="Coherent migration (EMA 0.1, optical flow mean unit vector)",
+        label="Patch-based\nmigration coherence",
+        min=0,
+        max=1,
+        bin_width=0.02,
+        type=ColumnType.CONTINUOUS,
+    ),
+    Column.OpticalFlow.EMA02_UNIT_VECTOR_MEAN: ColumnMetadata(
+        name="Coherent migration (EMA 0.2, optical flow mean unit vector)",
+        min=0,
+        max=1,
+        type=ColumnType.CONTINUOUS,
+    ),
+    Column.OpticalFlow.UNIT_VECTOR_MEAN_FAST: ColumnMetadata(
+        name="Coherent migration fast (optical flow unit vectors greater than 1 speed)",
+        min=0,
+        max=1,
+        type=ColumnType.CONTINUOUS,
+    ),
+    Column.OpticalFlow.EMA005_UNIT_VECTOR_MEAN_FAST: ColumnMetadata(
+        name="Coherent migration (EMA 0.05, optical flow mean unit vector fast)",
+        min=0,
+        max=1,
+        type=ColumnType.CONTINUOUS,
+    ),
+    Column.OpticalFlow.EMA01_UNIT_VECTOR_MEAN_FAST: ColumnMetadata(
+        name="Coherent migration (EMA 0.1, optical flow mean unit vector fast)",
+        min=0,
+        max=1,
+        type=ColumnType.CONTINUOUS,
+    ),
+    Column.OpticalFlow.EMA02_UNIT_VECTOR_MEAN_FAST: ColumnMetadata(
+        name="Coherent migration (EMA 0.2, optical flow mean unit vector fast)",
+        min=0,
+        max=1,
+        type=ColumnType.CONTINUOUS,
+    ),
+    Column.OpticalFlow.RADIAL_COHERENCE: ColumnMetadata(
+        name="Coherent migration (optical flow radial coherence)",
+        type=ColumnType.CONTINUOUS,
+    ),
+    Column.OpticalFlow.EMA01_RADIAL_COHERENCE: ColumnMetadata(
+        name="Coherent migration (EMA 0.1, optical flow radial coherence)",
+        type=ColumnType.CONTINUOUS,
+    ),
+    Column.OpticalFlow.RADIAL_COHERENCE_WEIGHTED: ColumnMetadata(
+        name="Coherent migration (optical flow radial coherence weighted)",
+        type=ColumnType.CONTINUOUS,
+    ),
+    Column.OpticalFlow.EMA01_RADIAL_COHERENCE_WEIGHTED: ColumnMetadata(
+        name="Coherent migration (EMA 0.1, optical flow radial coherence weighted)",
         type=ColumnType.CONTINUOUS,
     ),
     Column.OpticalFlow.ANGLE_STD: ColumnMetadata(
@@ -508,74 +575,17 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         max=10,
         type=ColumnType.CONTINUOUS,
     ),
-    "optical_flow_mean_unit_vector_fast": ColumnMetadata(
-        name="Coherent migration fast (optical flow unit vectors greater than 1 speed)",
-        min=0,
-        max=1,
-        type=ColumnType.CONTINUOUS,
-    ),
-    "speed_above_1_count": ColumnMetadata(
+    Column.OpticalFlow.SPEED_ABOVE_1_COUNT: ColumnMetadata(
         name="N vectors with speed above 1",
         type=ColumnType.DISCRETE,
     ),
-    "ema005_optical_flow_mean_unit_vector_dt1": ColumnMetadata(
-        name="Coherent migration (EMA 0.05, optical flow mean unit vector)",
-        min=0,
-        max=1,
-        type=ColumnType.CONTINUOUS,
-    ),
-    "ema005_optical_flow_mean_unit_vector_fast_dt1": ColumnMetadata(
-        name="Coherent migration (EMA 0.05, optical flow mean unit vector fast)",
-        min=0,
-        max=1,
-        type=ColumnType.CONTINUOUS,
-    ),
-    Column.OpticalFlow.UNIT_VECTOR_MEAN: ColumnMetadata(
-        name="Coherent migration (EMA 0.1, optical flow mean unit vector)",
-        label="Patch-based\nmigration coherence",
-        min=0,
-        max=1,
-        bin_width=0.02,
-        type=ColumnType.CONTINUOUS,
-    ),
-    "ema01_optical_flow_mean_unit_vector_fast_dt1": ColumnMetadata(
-        name="Coherent migration (EMA 0.1, optical flow mean unit vector fast)",
-        min=0,
-        max=1,
-        type=ColumnType.CONTINUOUS,
-    ),
-    "ema02_optical_flow_mean_unit_vector_dt1": ColumnMetadata(
-        name="Coherent migration (EMA 0.2, optical flow mean unit vector)",
-        min=0,
-        max=1,
-        type=ColumnType.CONTINUOUS,
-    ),
-    "ema02_optical_flow_mean_unit_vector_fast_dt1": ColumnMetadata(
-        name="Coherent migration (EMA 0.2, optical flow mean unit vector fast)",
-        min=0,
-        max=1,
-        type=ColumnType.CONTINUOUS,
-    ),
-    "ema01_optical_flow_radial_coherence_dt1": ColumnMetadata(
-        name="Coherent migration (EMA 0.1, optical flow radial coherence)",
-        type=ColumnType.CONTINUOUS,
-    ),
-    "ema01_optical_flow_radial_coherence_weighted_dt1": ColumnMetadata(
-        name="Coherent migration (EMA 0.1, optical flow radial coherence weighted)",
-        type=ColumnType.CONTINUOUS,
-    ),
-    "optical_flow_radial_coherence_dt1": ColumnMetadata(
-        name="Coherent migration (optical flow radial coherence)",
-        type=ColumnType.CONTINUOUS,
-    ),
-    "optical_flow_radial_coherence_weighted_dt1": ColumnMetadata(
-        name="Coherent migration (optical flow radial coherence weighted)",
-        type=ColumnType.CONTINUOUS,
-    ),
+    # Vector-field / dynamics analysis =========================================
     Column.VectorField.PEARSON_R: ColumnMetadata(
         name="Pearson r of MFPT\n(grid versus track-based)",
         label="Pearson r",
         type=ColumnType.CONTINUOUS,
+        min=0,
+        max=1,
     ),
     Column.VectorField.LINEFIT_SLOPE: ColumnMetadata(
         name="Line fit slope",

@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from bioio import BioImage
-from cellpose import models
 from scipy.ndimage import distance_transform_edt
 from skimage.color import label2rgb
 from skimage.exposure import rescale_intensity
@@ -19,7 +18,7 @@ from skimage.morphology import dilation, disk
 from skimage.segmentation import watershed
 
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.io import get_output_path, load_image
+from endo_pipeline.io import get_output_path, load_image, load_model
 from endo_pipeline.library.process import get_sldy_metadata as sldmd
 from endo_pipeline.manifests import (
     get_model_location_for_run,
@@ -177,8 +176,7 @@ out_dir = get_output_path(__file__)
 model_manifest = load_model_manifest("nuc_pred_labelfree")
 run_name = "finetuned_20250419"
 model_location = get_model_location_for_run(model_manifest, run_name)
-model_path = model_location.path.as_posix()  # type: ignore[union-attr]
-model_bf_stdproject = models.CellposeModel(gpu=False, pretrained_model=model_path)
+model_bf_stdproject = load_model(model_location)
 
 # CytoDL nuclei predictions from Benji:
 cytodl_nuc_pred_dir = list(Path(out_dir / "raw_seg").glob("*.tif*"))

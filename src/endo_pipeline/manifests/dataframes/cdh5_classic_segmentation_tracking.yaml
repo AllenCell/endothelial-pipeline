@@ -2,10 +2,6 @@ name: cdh5_classic_segmentation_tracking
 workflow: live_feat_workflows_to_fms
 parameters: {}
 locations:
-  20250224_20X:
-    fmsid: e0e93f40c2fc490c9128aeb19133df37
-    path: null
-    s3uri: null
   20250319_20X:
     fmsid: 85a9cd3c990b4bd39b71e26be0de9ee3
     path: null
@@ -44,10 +40,6 @@ locations:
     s3uri: null
   20250728_20X:
     fmsid: 01135af0829c493586b42b886900a24e
-    path: null
-    s3uri: null
-  20250806_20X:
-    fmsid: 27bc2aff75f348328523d4f7f22d0586
     path: null
     s3uri: null
   20250813_20X:
@@ -106,10 +98,6 @@ locations:
     fmsid: c5fe2b00d6b44df39432250f51059e81
     path: null
     s3uri: null
-  20260218_20X:
-    fmsid: 04641883b83c40cc99f258a5a2be7a7f
-    path: null
-    s3uri: null
   20260225_20X:
     fmsid: aa13f2eed9604e76a6dd6601fc55bf30
     path: null
@@ -120,17 +108,5 @@ locations:
     s3uri: null
   20260304_20X:
     fmsid: bc4f45f2c175486183d2144dad3a1919
-    path: null
-    s3uri: null
-  20260316_20X:
-    fmsid: 5d7fa16069d44c80aafa5dcdfb3baaa7
-    path: null
-    s3uri: null
-  20260318_20X:
-    fmsid: 33776f412b554c498b6e2e8e5d814829
-    path: null
-    s3uri: null
-  20260323_20X:
-    fmsid: 9729b01932be44a3a77f72a4ffeadbb7
     path: null
     s3uri: null

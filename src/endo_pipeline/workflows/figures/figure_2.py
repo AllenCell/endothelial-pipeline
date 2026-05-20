@@ -1,6 +1,5 @@
 def main() -> None:
     """Compile panels for Figure 2."""
-    import math
     from pathlib import Path
 
     import matplotlib.pyplot as plt
@@ -20,10 +19,13 @@ def main() -> None:
         make_2d_contour_plot_panel,
         make_2d_quiver_plot_panel,
         make_crop_example_contact_sheet,
-        make_first_passage_time_panel,
     )
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
-    from endo_pipeline.library.visualize.summary_plot import plot_cross_dataset_summaries
+    from endo_pipeline.library.visualize.summary_plot import (
+        build_dataframe_for_first_passage_time_dataset_summary,
+        build_dataframe_for_fixed_point_dataset_summary,
+        plot_cross_dataset_summaries,
+    )
     from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
     from endo_pipeline.settings.column_metadata import COLUMN_METADATA
     from endo_pipeline.settings.column_names import ColumnName as Column
@@ -118,7 +120,7 @@ def main() -> None:
     ]:
         fig_savedir = get_output_path("figure_2", dataset_name)
         dataset_config = load_dataset_config(dataset_name)
-        shear_stress = math.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
+        shear_stress = dataset_config.flow_conditions[-1].shear_stress_bin
         shear_stress_label = f"{shear_stress} dyn/cm{Unicode.SQUARED}"
 
         # load fixed points dataframes (if available) for both (r, rho) and theta,
@@ -265,24 +267,44 @@ def main() -> None:
         )
 
     # --- Cross-dataset summary plots ---
-    plot_cross_dataset_summaries(
+    fixed_point_summary_df = build_dataframe_for_fixed_point_dataset_summary(
         dataset_names=dataset_summary_list,
         feature_dataframe_manifest=feature_dataframe_manifest,
-        fixed_points_bootstrap_dataframe_manifest=bootstrap_dataframe_manifest,
-        output_dir=base_output_dir,
+        bootstrap_dataframe_manifest=bootstrap_dataframe_manifest,
         column_names=columns_for_summary_plots,
-        x_axis_mode="shear_stress_categorical",
-        figure_size=(MAX_FIGURE_WIDTH - 2.1, 2),
+        convert_angle_to_nematic=True,
         stable_only=True,
+    )
+    # panel E: summary plot of fixed point locations across datasets
+    fixed_point_summary_plot_path = plot_cross_dataset_summaries(
+        fixed_point_summary_df,
+        output_dir=base_output_dir,
+        column_names=feature_column_names,
+        axis_mode="shear_stress",
+        figure_size=(3.5, 2),
+    )
+    # panel F: summary plot of migration coherence at fixed points across
+    # datasets
+    migration_summary_plot_path = plot_cross_dataset_summaries(
+        fixed_point_summary_df,
+        output_dir=base_output_dir,
+        column_names=[optical_flow_feature],
+        axis_mode="shear_stress",
+        figure_size=(1.25, 2),
     )
 
     # --- Histogram of first passage time correlation ---
     fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_MANIFEST_NAME)
-    first_passage_path = make_first_passage_time_panel(
-        first_passage_time_manifest=fpt_manifest,
-        datasets=dataset_summary_list,
-        fig_savedir=base_output_dir,
-        fig_kwargs={"figsize": (1.45, 2.0), "layout": "constrained"},
+    first_passage_summary_df = build_dataframe_for_first_passage_time_dataset_summary(
+        dataset_names=dataset_summary_list, first_passage_time_manifest=fpt_manifest
+    )
+    first_passage_path = plot_cross_dataset_summaries(
+        first_passage_summary_df,
+        output_dir=base_output_dir,
+        column_names=[Column.VectorField.PEARSON_R],
+        axis_mode="shear_stress",
+        figure_size=(1.125, 2.05),
+        set_y_lims=True,
     )
 
     # --- Assemble all panels into final figure ---
@@ -353,11 +375,10 @@ def main() -> None:
             x_offset=0.15,
             y_offset=0.05,
         ),
-        # --- Bottom row: first passage time and summary plot ---
+        # --- Bottom row: first passage time and summary plots ---
         FigurePanel(
             letter="E",
-            path=base_output_dir
-            / "nematic_order_polar_r_rho_ema01_optical_flow_mean_unit_vector_dt1_fp_vs_shear_stress.svg",
+            path=fixed_point_summary_plot_path,
             x_position=0.0,
             y_position=4.0,
             x_offset=0,
@@ -365,11 +386,19 @@ def main() -> None:
         ),
         FigurePanel(
             letter="F",
-            path=first_passage_path,
-            x_position=4.6,
+            path=migration_summary_plot_path,
+            x_position=3.6,
             y_position=4.0,
             x_offset=0.1,
             y_offset=0.2,
+        ),
+        FigurePanel(
+            letter="G",
+            path=first_passage_path,
+            x_position=5.175,
+            y_position=4.0,
+            x_offset=0.05,
+            y_offset=0.15,
         ),
     ]
 

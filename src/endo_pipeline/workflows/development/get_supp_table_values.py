@@ -8,11 +8,7 @@ def main():
     import pandas as pd
     from tqdm import tqdm
 
-    from endo_pipeline.configs import (
-        TimepointAnnotation,
-        get_datasets_in_collection,
-        load_dataset_config,
-    )
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_annotations
     from endo_pipeline.library.model.train_model import get_included_frames_for_model
@@ -24,6 +20,7 @@ def main():
     )
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.workflow_defaults import (
+        ANNOTATIONS_TO_FILTER_OUT_FOR_SEGMENTATIONS,
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     )
@@ -118,12 +115,10 @@ def main():
             )
 
             # filter out rows based on automatic and manual timepoint annotations
-            annotations_to_filter_out = [
-                TimepointAnnotation.AUTO_GFP_SCOPE_ERROR,
-                TimepointAnnotation.GFP_SCOPE_ERROR,
-            ]
             live_seg_feats_df = filter_dataframe_by_annotations(
-                live_seg_feats_df, dataset_config, timepoint_annotations=annotations_to_filter_out
+                live_seg_feats_df,
+                dataset_config,
+                timepoint_annotations=ANNOTATIONS_TO_FILTER_OUT_FOR_SEGMENTATIONS,
             )
 
             # dropna is here to remove NaNs which will raise an error when trying to

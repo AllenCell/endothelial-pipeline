@@ -60,7 +60,10 @@ def main(
         plot_optical_flow_histogram,
         plot_scatter_and_binned_heatmap,
     )
-    from endo_pipeline.library.visualize.summary_plot import plot_cross_dataset_summaries
+    from endo_pipeline.library.visualize.summary_plot import (
+        build_dataframe_for_fixed_point_dataset_summary,
+        plot_cross_dataset_summaries,
+    )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
@@ -110,12 +113,18 @@ def main(
         logger.info("DEMO MODE, only processing first dataset [ %s ]", datasets[0])
 
     # --- Cross-dataset summary plots ---
-    plot_cross_dataset_summaries(
+    dataset_summary_df = build_dataframe_for_fixed_point_dataset_summary(
         dataset_names=datasets,
         feature_dataframe_manifest=feature_dataframe_manifest,
-        fixed_points_bootstrap_dataframe_manifest=fixed_points_bootstrap_dataframe_manifest,
+        bootstrap_dataframe_manifest=fixed_points_bootstrap_dataframe_manifest,
+        convert_angle_to_nematic=True,
+        stable_only=True,
+    )
+    plot_cross_dataset_summaries(
+        dataset_summary_df,
         output_dir=output_dir,
-        x_axis_mode="dataset",
+        axis_mode="dataset",
+        category_order=datasets,
     )
 
     if not skip_individual_plots:

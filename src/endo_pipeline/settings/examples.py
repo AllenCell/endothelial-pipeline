@@ -4,15 +4,14 @@ EXAMPLE_DATASET = {
     "FIGURE_2_LOW_FLOW_DATASET": "20250409_20X",
     "FIGURE_2_HIGH_FLOW_DATASET": "20251001_20X",
     "SUPP_FIG_Z_SLICE": "20250428_20X",
-    "SUPP_FIG_IMG_PROC": "20250224_20X",
-    "SUPP_FIG_SINGLE_TP_BF_OUTLIER": "20250224_20X",
+    "SUPP_FIG_IMG_PROC": "20250402_20X",
+    "SUPP_FIG_SINGLE_TP_BF_OUTLIER": "20250402_20X",
     "SUPP_FIG_SINGLE_TP_GFP_OUTLIER": "20250319_20X",
 }
 """Dictionary of example datasets for specific figures."""
 
 FIGURE_3_RECONSTRUCTION_EXAMPLE_DATASETS = [
     "20260114_20X",  # two fixed points (15 dyn)
-    "20260218_20X",  # two fixed points (15 dyn)
     "20260225_20X",  # single fixed point (15 dyn)
     "20260202_20X",  # single fixed point (15 dyn)
 ]
@@ -162,6 +161,7 @@ CDH5_SEG_FIG_EXAMPLE: ExampleImage = ExampleImage(
     crop_y_start=500,
     description="no flow center crop for CDH5 segmentation figure",
 )
+CDH5_SEG_FIG_CLASSIC_FEAT_EXAMPLES: list[str] = ["20250409_20X", "20250611_20X"]
 
 MODEL_QC_EXAMPLES_TRAINING_POSITIONS: list[ExampleImage] = [
     ExampleImage(
@@ -373,7 +373,7 @@ MODEL_QC_EXAMPLES_REP_2_POSITIONS: list[ExampleImage] = [
         description="3. UNALIGNED, beginning of high flow.",
     ),
     ExampleImage(
-        dataset_name="20250224_20X",
+        dataset_name="20250402_20X",
         position=0,
         timepoint=0,
         crop_x_start=100,

@@ -2,6 +2,7 @@
 
 from typing import Literal
 
+from endo_pipeline.configs.dataset_config import TimepointAnnotation
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
 
@@ -204,6 +205,12 @@ DEFAULT_COLUMNS_TO_DROP: dict[str, list[ColumnNameType]] = {
         Column.BF_CHANNEL_INDEX_ZARR,
     ],
 }
+
+ANNOTATIONS_TO_FILTER_OUT_FOR_SEGMENTATIONS = [
+    TimepointAnnotation.AUTO_GFP_SCOPE_ERROR,
+    TimepointAnnotation.GFP_SCOPE_ERROR,
+]
+"""Timepoint annotations that apply to segmentation feature datasets."""
 
 DATASET_INFO_COLUMNS: list[ColumnNameType] = [
     Column.DATASET,
