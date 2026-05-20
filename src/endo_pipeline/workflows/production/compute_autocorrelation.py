@@ -81,6 +81,7 @@ def main(
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
+        FEATURES_FILTERED_MANIFEST_NAMES,
     )
 
     # initialize logger
@@ -95,7 +96,7 @@ def main(
 
     # Load dataframe manifest for the features to be used in correlation analysis.
     base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
-    feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
+    feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[crop_pattern]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     columns_str = join_sorted_strings(cast(list[str], column_names))

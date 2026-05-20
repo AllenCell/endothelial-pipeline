@@ -69,9 +69,9 @@ from endo_pipeline.settings.flow_field_figure import (
 from endo_pipeline.settings.image_data import NATIVE_ZARR_RESOLUTION_CROP_SIZE, PIXEL_SIZE_3i_20x
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
+    GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME,
     RANDOM_SEED,
 )
 
@@ -807,7 +807,7 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
     # points and a single flow condition
     dataset_config = load_dataset_config(dataset_name)
 
-    feature_manifest_name = DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED
+    feature_manifest_name = GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME
     feature_manifest = load_dataframe_manifest(feature_manifest_name)
 
     dataset_location = get_dataframe_location_for_dataset(feature_manifest, dataset_name)

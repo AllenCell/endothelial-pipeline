@@ -46,9 +46,6 @@ class InternalOptions:
 class PipelineOptions:
     """CLI options for pipeline."""
 
-    show_archive: Annotated[bool, Parameter(alias="-a", group=OPTIONS)] = False
-    """Show available archived workflows."""
-
     show_tags: Annotated[bool, Parameter(alias="-t", group=OPTIONS)] = False
     """Show all available workflow tags."""
 

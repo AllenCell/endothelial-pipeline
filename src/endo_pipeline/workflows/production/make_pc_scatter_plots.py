@@ -36,16 +36,14 @@ def main(
         NUM_PCS_TO_ANALYZE,
     )
     from endo_pipeline.settings.workflow_defaults import (
-        DEFAULT_MODEL_MANIFEST_NAME,
-        DEFAULT_MODEL_RUN_NAME,
         DEFAULT_PCA_DATASET_COLLECTION_NAME,
+        GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME,
     )
 
     logger = logging.getLogger(__name__)
 
     # get dataframe manifest for grid crop-based features
-    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_grid"
-    feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
+    feature_dataframe_manifest_name = GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     fig_savedir = get_output_path(

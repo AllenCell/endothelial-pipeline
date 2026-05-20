@@ -23,7 +23,7 @@ from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.figures import FONTSIZE_XSMALL, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
+    CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
     SEGMENTATION_FEATURE_COLUMNS,
 )
 
@@ -126,7 +126,7 @@ def get_df_for_feature_correlation_viz(
     dataset_info_columns: list[str],
     segmentation_feature_columns: list[str | ColumnNameType],
     pc_columns: list[str],
-    merged_dataframe_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
+    merged_dataframe_manifest_name: str = CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
 ) -> pd.DataFrame:
     """
     Load, preprocess, and concatenate the merged DiffAE and segmentation

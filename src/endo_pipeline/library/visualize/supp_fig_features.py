@@ -41,10 +41,11 @@ from endo_pipeline.settings.figures import (
 )
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import (
+    CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
-    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME,
     RANDOM_SEED,
 )
 
@@ -91,8 +92,7 @@ def perform_latent_walk_along_top_pcs(
     # set up output directory
 
     # load model configuration and reference dataset manifests
-    dataframe_manifest_name = f"{model_manifest.name}_{run_name}_grid_pca_filtered"
-    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
+    dataframe_manifest = load_dataframe_manifest(GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME)
     dataset_names = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
 
     num_pcs = 3
@@ -462,9 +462,7 @@ def _make_feature_pair_histogram_panel(
     dataset_low = EXAMPLE_DATASET["FIGURE_2_LOW_FLOW_DATASET"]
     dataset_high = EXAMPLE_DATASET["FIGURE_2_HIGH_FLOW_DATASET"]
 
-    dataframe_manifest = load_dataframe_manifest(
-        DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED
-    )
+    dataframe_manifest = load_dataframe_manifest(CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME)
 
     start_imaging_line_color = "limegreen"
     steady_state_line_color = "darkturquoise"
