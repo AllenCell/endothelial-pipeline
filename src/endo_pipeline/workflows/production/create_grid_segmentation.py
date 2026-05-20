@@ -10,6 +10,25 @@ def main():
     This "crop index" is assigned as the "segmentation label" in the image,
     where "segmentation label" = 1 + "crop index" (becuase 0 is reserved for
     background).
+
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe create-grid-segmentation -vd
+    ```
+
+    To run the full workflow:
+
+    ```bash
+    uv run endopipe create-grid-segmentation
+    ```
+
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will only create
+    segmentations for one position and the first 10 timepoints.
     """
 
     import logging
@@ -45,7 +64,7 @@ def main():
     max_num_timepoints: int | None = None
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one dataset, one position, and 10 timepoints")
+        logger.warning("DEMO_MODE - Limiting to one position and 10 timepoints")
         max_num_positions = 1
         max_num_timepoints = 10
 
