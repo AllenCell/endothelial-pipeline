@@ -18,7 +18,7 @@ from endo_pipeline.settings.image_data import (
 
 
 def make_grid_seg_filename(position: int, timepoint: int) -> str:
-    return f"{position}_T{timepoint}_grid_segmentation.ome.tiff"
+    return f"P{position}_T{timepoint}_grid_segmentation.ome.tiff"
 
 
 def make_crop_index_to_slice_mapping(grid_df: pd.DataFrame) -> dict[int, tuple[slice, slice]]:
@@ -57,40 +57,36 @@ def create_grid_segmentation_images(
     img_shape_x: int = IMG_SHAPE_RESOLUTION_1_3i_X,
     pixel_size: float = PIXEL_SIZE_3i_20x,
 ) -> None:
-    """Creates and saves grid segmentation images to the specified output directory
+    """
+    Create and save grid segmentation images to the specified output directory
     for each position and timepoint in the grid-based DiffAE dataframe.
 
-    Note:
-    The segmentation labels in the image will be equal to 1 + the crop_index from the grid_df.
-    This is because 0 must be reserved for the background.
+    When creating the segmentation image, assign the crop_index from grid_df to
+    be the "segmentation" label. We will use the crop index as the segmentation
+    ID. The segmentation labels in the image will be equal to 1 + the crop_index
+    from the grid_df. This is because 0 must be reserved for the background.
     """
-    # when creating the segmentation image assign the crop_index from grid_df
-    # to be the "segmentation" label. We will use the crop index as the
-    # segmentation ID.
-    dataset_name = np.unique(grid_df[Column.DATASET]).item()
 
     crop_index_slices = make_crop_index_to_slice_mapping(grid_df)
 
     # check that the crops will fit in an initialized image
-    grid_seg = np.zeros((img_shape_y, img_shape_x), dtype=np.uint16)
+    img_shape = (img_shape_y, img_shape_x)
+    grid_seg = np.zeros(img_shape, dtype=np.uint16)
 
     if (
         grid_df[Column.DiffAEData.END_X].max() > img_shape_x
         or grid_df[Column.DiffAEData.END_Y].max() > img_shape_y
     ):
-        raise ValueError(
-            f"Grid crop locations exceed expected image shape of\
-            {(img_shape_y, img_shape_x)}"
-        )
+        raise ValueError(f"Grid crop locations exceed expected image shape of '{img_shape}'")
 
     # we can probably do the multiprocessing at the position level
-    for pos, df in grid_df.groupby(Column.POSITION):
-        out_subdir = out_dir / str(pos)
+    for position, df in grid_df.groupby(Column.POSITION):
+        out_subdir = out_dir / f"P{position}"
         out_subdir.mkdir(exist_ok=True)
 
         # each position has a unique set of crop index labels
         # intialize an empty image to hold the segmentation labels
-        grid_seg = np.zeros((img_shape_y, img_shape_x), dtype=np.uint16)
+        grid_seg = np.zeros(img_shape, dtype=np.uint16)
 
         for crop_i in df[Column.CROP_INDEX].unique():
             grid_seg[crop_index_slices[crop_i]] = (
@@ -98,18 +94,18 @@ def create_grid_segmentation_images(
             )  # add 1 so that background is 0 and first crop is label 1
 
         # save the grid segmentation image for this position and timepoint
-        for tp in tqdm(
+        for timepoint in tqdm(
             df[Column.TIMEPOINT].unique(),
-            desc=f"Saving grid segmentation for {dataset_name} {pos}",
+            desc=f"Saving grid segmentation for position {position}",
         ):
-            fname = make_grid_seg_filename(pos, tp)
+            fname = make_grid_seg_filename(position, timepoint)
 
             resolution_level = np.unique(df[Column.DiffAEData.RESOLUTION]).item()
             px_res_xy = pixel_size * 2**resolution_level
             px_res = PhysicalPixelSizes(Z=None, Y=px_res_xy, X=px_res_xy)
 
             metadata = {
-                "image_name": f"{dataset_name}_{tp}",
+                "image_name": f"grid_segmentation_{timepoint}",
                 "channel_colors": [(255, 255, 255)],
                 "channel_names": ["grid_segmentation"],
                 "physical_pixel_sizes": px_res,
