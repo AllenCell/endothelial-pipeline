@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Callable, Generator, Sequence
+from collections.abc import Callable, Generator
 from pathlib import Path
 from typing import Any, Literal
 
@@ -14,8 +14,8 @@ from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_image
 from endo_pipeline.library.analyze.shape_features import numpy_mesh_coords
 from endo_pipeline.library.process.general_image_preprocessing import (
+    ImageProcessingArgs,
     save_image_output,
-    sequence_to_scalar,
 )
 from endo_pipeline.manifests import (
     ImageLocation,
@@ -1313,18 +1313,18 @@ def get_cdh5_segmentation_location(dataset_name: str, position: int) -> ImageLoc
     return seg_location
 
 
-def run_tracking_multiproc_wrapper(queue: Sequence) -> None:
+def run_tracking_multiproc_wrapper(queue: tuple[tuple, list[ImageProcessingArgs]]) -> None:
     """
     Run the tracking workflow using a queue.
-    The queue is a tuple of (dataset_name, position) and a dataframe.
-    The dataframe contains the parameters for the workflow and is built using build_analysis_queue.
+
+    The queue is a tuple of (dataset_name, position) and a list of image
+    processing arguments built using build_analysis_queue.
     """
 
-    (dataset_name, position), queue_df = queue
-    timepoints_to_eval = sorted(queue_df["T"].tolist())
-    position = sequence_to_scalar(queue_df["position"])
-    out_dir = sequence_to_scalar(queue_df["output_dir"]) / f"{dataset_name}/P{position}"
+    (dataset_name, position, out_dir), args = queue
+    timepoints_to_eval = sorted([arg.timepoint for arg in args])
     out_filename_prefix = f"{dataset_name}_P{position}"
+    out_dir = out_dir / dataset_name / out_filename_prefix
 
     # get the segmentation images
     seg_location = get_cdh5_segmentation_location(dataset_name, position)

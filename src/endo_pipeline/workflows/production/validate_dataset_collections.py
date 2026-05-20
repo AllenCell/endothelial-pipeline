@@ -1,8 +1,9 @@
-TAGS = ["validation", "datasets"]
-
-
 def main() -> None:
-    """Validate datasets in dataset collections."""
+    """
+    Validate datasets in dataset collections.
+
+    #validation #datasets
+    """
 
     import logging
 

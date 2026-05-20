@@ -90,11 +90,11 @@ def create_panel_biological_system_examples(
 
     fig = make_contact_sheet(
         image_panel_list,
-        max_rows=len(image_panel_list) // len(examples),
-        max_cols=len(examples),
-        col_titles=shear_stress_titles,
-        row_titles=["VE-Cadherin MIP", "BF Z-slice", "BF Std. Dev. Proj."],
-        direction="top-down first",
+        max_cols=len(image_panel_list) // len(examples),
+        max_rows=len(examples),
+        row_titles=shear_stress_titles,
+        col_titles=["VE-Cadherin MIP", "BF Z-slice", "BF Std. Dev. Proj."],
+        direction="left-right first",
         font_size=FONTSIZE_MEDIUM,
         subplot_kwargs={"frame_on": False},
         gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
@@ -213,7 +213,7 @@ def create_panel_patch_featurization(
     # Plot as 1 row, 4 columns: BF image | arrows+text | GFP+seg image | arrow+text
 
     fig = plt.figure(figsize=figure_size)
-    gs = GridSpec(1, 4, width_ratios=[1, 0.8, 1, 1], wspace=0.02)
+    gs = GridSpec(2, 2, width_ratios=[1, 0.8], wspace=0.02, hspace=0.02)
 
     # Column 0: BF std dev image
     ax_bf = fig.add_subplot(gs[0, 0])
@@ -254,7 +254,7 @@ def create_panel_patch_featurization(
         )
 
     # Column 2: GFP + seg image
-    ax_gfp = fig.add_subplot(gs[0, 2])
+    ax_gfp = fig.add_subplot(gs[1, 0])
     ax_gfp.imshow(gfp_max_proj, cmap="gray")
     ax_gfp.contour(seg_mask, levels=[0.5], colors="magenta", linewidths=0.5)
     ax_gfp.axis("off")
@@ -268,7 +268,7 @@ def create_panel_patch_featurization(
     )
 
     # Column 3: GFP annotation (one magenta arrow + text)
-    ax_annot_gfp = fig.add_subplot(gs[0, 3])
+    ax_annot_gfp = fig.add_subplot(gs[1, 1])
     ax_annot_gfp.axis("off")
     ax_annot_gfp.set_xlim(0, 1)
     ax_annot_gfp.set_ylim(0, 1)

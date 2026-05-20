@@ -32,7 +32,7 @@ flow_conditions:
   stop: 576
   shear_stress: 15.6
 include_scenes: null
-notes: Better than 20260218 timelapse, minimal early piling (some ~TP 330 FOV 3, 1-indexed),
+notes: Minimal early piling (some ~TP 330 FOV 3, 1-indexed),
   no membrane gaps. GFP and BF look good.
 timepoint_annotations:
   auto_bf_scope_error:

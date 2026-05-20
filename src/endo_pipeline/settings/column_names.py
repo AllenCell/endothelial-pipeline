@@ -67,6 +67,9 @@ class ColumnName:
         POLAR_ANGLE = "polar_theta"
         """Column name for polar angle coordinate computed from PC1 and PC2."""
 
+        NEMATIC_ORDER = "nematic_order"
+        """Column name for nematic order (computed as `cos(2*theta)`)."""
+
         PC3_FLIPPED = "rho"
         """Column name for PC3 value with sign flipped as proxy measure of cell density."""
 
@@ -414,6 +417,31 @@ class ColumnName:
         RADIAL_COHERENCE_WEIGHTED = "optical_flow_radial_coherence_weighted_dt1"
         """Distance-weighted radial coherence."""
 
+        # --- EMA-smoothed and unsuffixed variants used in plotting / TFE viewer ---
+        UNIT_VECTOR_MEAN_RAW = "optical_flow_mean_unit_vector_dt1"
+        """Mean unit vector coherence (no EMA smoothing)."""
+
+        EMA005_UNIT_VECTOR_MEAN = "ema005_optical_flow_mean_unit_vector_dt1"
+        """Mean unit vector coherence with EMA smoothing, alpha=0.05."""
+
+        EMA02_UNIT_VECTOR_MEAN = "ema02_optical_flow_mean_unit_vector_dt1"
+        """Mean unit vector coherence with EMA smoothing, alpha=0.2."""
+
+        EMA005_UNIT_VECTOR_MEAN_FAST = "ema005_optical_flow_mean_unit_vector_fast_dt1"
+        """Mean unit vector coherence over fast pixels with EMA smoothing, alpha=0.05."""
+
+        EMA01_UNIT_VECTOR_MEAN_FAST = "ema01_optical_flow_mean_unit_vector_fast_dt1"
+        """Mean unit vector coherence over fast pixels with EMA smoothing, alpha=0.1."""
+
+        EMA02_UNIT_VECTOR_MEAN_FAST = "ema02_optical_flow_mean_unit_vector_fast_dt1"
+        """Mean unit vector coherence over fast pixels with EMA smoothing, alpha=0.2."""
+
+        EMA01_RADIAL_COHERENCE = "ema01_optical_flow_radial_coherence_dt1"
+        """Radial coherence with EMA smoothing, alpha=0.1."""
+
+        EMA01_RADIAL_COHERENCE_WEIGHTED = "ema01_optical_flow_radial_coherence_weighted_dt1"
+        """Distance-weighted radial coherence with EMA smoothing, alpha=0.1."""
+
     class VectorField(StrEnum):
         """Column name suffixes used in vector field / dynamics analysis."""
 
@@ -477,9 +505,6 @@ class ColumnName:
 
         PERCENT_TRAJ_APPROACHED_FP = "percent_trajectories_approached_fp"
         """Column name for the percentage of trajectories that approached a fixed point within a certain distance threshold."""
-
-        LINEFIT_SLOPE_ODR = "slope_odr"
-        """Column name for the slope of a line fit to the relationship between first passage time and distance from the fixed point using orthogonal distance regression (ODR)."""
 
         LINEFIT_INTERCEPT_ODR = "intercept_odr"
         """Column name for the intercept of a line fit to the relationship between first passage time and distance from the fixed point using orthogonal distance regression (ODR)."""

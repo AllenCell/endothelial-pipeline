@@ -1,0 +1,23 @@
+name: optical_flow_bf_grid_demo
+workflow: compute_optical_flow_feats
+parameters:
+  channel: BF
+  level: 1
+  max_dt: 1
+  flow_scope: image
+  crop_pattern: grid
+  intensity_percentile: 0
+  attachment: 2.5
+  compute_block_coherence: false
+  compute_fast_coherence: false
+  compute_radial_coherence: false
+  ema_alphas: [0.1]
+  speed_threshold: 1.0
+  annotations_excluded: [auto_bf_scope_error, auto_bf_temp_artifact, auto_gfp_scope_error,
+    bf_scope_error, bf_temp_artifact, cell_piling, gfp_scope_error, not_steady_state,
+    unfed, xy_shift, z_shift]
+locations:
+  20250618_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-05-08/optical_flow/dataframes/20250618_20X_optical_flow_dataframe_20260508_195252.parquet
+    s3uri: null

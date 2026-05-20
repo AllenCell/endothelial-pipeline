@@ -1,9 +1,7 @@
 name: grid_seg_zarr
-workflow: tiff_to_zarr_conversion (manifest updated manually)
+workflow: convert_tiff_to_zarr (manifest updated manually)
 parameters: {}
 locations:
-  20250224_20X:
-    path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
   20250319_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
   20250326_20X:
@@ -25,8 +23,6 @@ locations:
   20250716_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
   20250728_20X:
-    path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-  20250806_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
   20250813_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
@@ -60,8 +56,6 @@ locations:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
   20260211_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-  20260218_20X:
-    path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
   20260225_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
   20260302_20X:
@@ -69,12 +63,6 @@ locations:
   20260304_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
   20260309_20X:
-    path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-  20260316_20X:
-    path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-  20260318_20X:
-    path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-  20260323_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
   20260325_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr

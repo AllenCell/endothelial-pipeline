@@ -284,7 +284,7 @@ def make_real_image_panel(
     ax_t1 = fig.axes[1]
     for ax, label, include_label in [
         (ax_t, "t", False),
-        (ax_t1, "t+1", True),
+        (ax_t1, f"t+{Unicode.DELTA}t", True),
     ]:
         ax.set_frame_on(False)
         ax.set_title(label, fontsize=FONTSIZE_LARGE, x=axes_title_xloc)
@@ -322,7 +322,7 @@ def make_real_image_panel(
 
     for ax, label, text_x_offset, arrow_rad in [
         (ax_t, "t", -0.025, map_arrow_rad),
-        (ax_t1, "t+1", 0.025, -map_arrow_rad),
+        (ax_t1, f"t+{Unicode.DELTA}t", 0.025, -map_arrow_rad),
     ]:
         _add_map_arrow_to_plot(
             fig,
@@ -438,6 +438,9 @@ def _make_acf_r_squared_plot(
     # storing in r_squared_dict
     dataset_names = get_datasets_in_collection("timelapse")
     for dataset_name in dataset_names:
+        # temporary until flow switch deprecation goes through
+        if dataset_name not in autocorrelation_manifest.locations:
+            continue
         acf_dataset = load_dataframe(autocorrelation_manifest.locations[dataset_name])
         # make sure FEATURE entries are sorted in the same order as column_names
         acf_dataset_sorted = acf_dataset.copy()

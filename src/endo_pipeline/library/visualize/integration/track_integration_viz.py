@@ -31,7 +31,8 @@ from endo_pipeline.library.visualize.diffae_features.flow_field_3d import (
     plot_flow_field_slices,
     plot_one_slice_quiver,
 )
-from endo_pipeline.settings import ColumnName as Column
+from endo_pipeline.settings.column_metadata import COLUMN_METADATA
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_SMALL
 from endo_pipeline.settings.flow_field_3d import QUIVER_COLORMAP
@@ -1178,6 +1179,7 @@ def plot_first_passage_time_parameter_sweep(
     fixed_point_radius_threshold: float | None,
     out_dir: Path,
     metric_to_plot: Literal["mean", "median"],
+    figsize=(3, 3),
 ) -> tuple[Path, Path]:
     """Plot the results of the parameter sweep over the number of bins in the
     initial conditions histogram and the choice of mean vs. median FPT to plot.
@@ -1186,7 +1188,7 @@ def plot_first_passage_time_parameter_sweep(
 
     fig_title = f"{shear_stress_rounded} dyn/cm{UnicodeCharacters.SQUARED}"
     metric = "50%" if metric_to_plot == "median" else metric_to_plot
-    fig, ax = plt.subplots(figsize=(3, 3))
+    fig, ax = plt.subplots(figsize=figsize)
     ax.set_title(fig_title, fontsize=FONTSIZE_LARGE)
     ax.errorbar(
         x=first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
@@ -1216,13 +1218,15 @@ def plot_first_passage_time_parameter_sweep(
             fixed_point_radius_threshold,
             ls="--",
             color="black",
-            label="radius used for correlations",
+            label="radius used in analysis",
         )
-    ax.legend()
+    ax.legend(frameon=True, facecolor="white", loc="upper center")
     ax.set_xlim(0)
     ax.set_ylim(0)
-    ax.set_xlabel("radius around fixed point".title(), fontsize=FONTSIZE_LARGE)
-    ax.set_ylabel(f"{metric_to_plot} first passage time (hrs)".title(), fontsize=FONTSIZE_LARGE)
+    ax.set_xlabel("radius around\nfixed point".title(), fontsize=FONTSIZE_LARGE, labelpad=2)
+    ax.set_ylabel(
+        f"{metric_to_plot} first passage\ntime (hrs)".title(), fontsize=FONTSIZE_LARGE, labelpad=2
+    )
     filename_param_sweep_fpt = f"{dataset_name}_FPT_{metric_to_plot}_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}"
     save_plot_to_path(
         fig, out_dir, filename_param_sweep_fpt, file_format=".svg", show_and_close=False
@@ -1232,7 +1236,7 @@ def plot_first_passage_time_parameter_sweep(
     # for each parameter combination to see how the fixed point distance threshold
     # affects the number of trajectories that are considered to have reached the
     # fixed point
-    fig, ax = plt.subplots(figsize=(3, 3))
+    fig, ax = plt.subplots(figsize=figsize)
     ax.set_title(fig_title, fontsize=FONTSIZE_LARGE)
     ax.plot(
         first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
@@ -1261,13 +1265,15 @@ def plot_first_passage_time_parameter_sweep(
             fixed_point_radius_threshold,
             ls="--",
             color="black",
-            label="radius used for correlations",
+            label="radius used in analysis",
         )
-    ax.legend()
+    ax.legend(frameon=True, facecolor="white", loc="upper center")
     ax.set_xlim(0)
     ax.set_ylim(0, 105)
-    ax.set_xlabel("radius around fixed point".title(), fontsize=FONTSIZE_LARGE)
-    ax.set_ylabel("Trajectories reaching fixed point (%)".title(), fontsize=FONTSIZE_LARGE)
+    ax.set_xlabel("radius around\nfixed point".title(), fontsize=FONTSIZE_LARGE, labelpad=2)
+    ax.set_ylabel(
+        "Trajectories reaching\nfixed point (%)".title(), fontsize=FONTSIZE_LARGE, labelpad=2
+    )
     filename_param_sweep_num_traj = f"{dataset_name}_FPT_percent_trajectories_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}"
     save_plot_to_path(
         fig, out_dir, filename_param_sweep_num_traj, file_format=".svg", show_and_close=False
@@ -1326,7 +1332,7 @@ def plot_first_passage_time_correlations(
     suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
     metric = f"{metric}{suffix}"
 
-    slope = line_fit_df[Column.VectorField.LINEFIT_SLOPE_ODR].unique().item()
+    slope = line_fit_df[Column.VectorField.LINEFIT_SLOPE].unique().item()
     intercept = line_fit_df[Column.VectorField.LINEFIT_INTERCEPT_ODR].unique().item()
     corr_metric_val = (
         line_fit_df[Column.VectorField.LINEFIT_REDUCED_CHI_SQUARED_ODR].unique().item()
@@ -1388,8 +1394,10 @@ def plot_first_passage_time_correlations(
     ax.xaxis.set_major_locator(MaxNLocator(7, min_n_ticks=4, integer=True))
     ax.yaxis.set_major_locator(MaxNLocator(7, min_n_ticks=4, integer=True))
     ax.tick_params(labelsize=FONTSIZE_SMALL)
-    ax.set_xlabel("Grid FPT (hrs)".title(), fontsize=FONTSIZE_SMALL, labelpad=1.0)
-    ax.set_ylabel("Tracked FPT (hrs)".title(), fontsize=FONTSIZE_SMALL, labelpad=1.0)
+    ax.set_xlabel("Grid FPT (hrs)".title(), fontsize=FONTSIZE_SMALL, labelpad=1.0, color="tab:blue")
+    ax.set_ylabel(
+        "Tracked FPT (hrs)".title(), fontsize=FONTSIZE_SMALL, labelpad=1.0, color="tab:red"
+    )
     ax.legend(loc="upper center")
 
     filename = f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}_{metric_to_plot}_correlation"
@@ -1473,38 +1481,39 @@ def plot_first_passage_time_correlation_summary(
     first_passage_time_correlation_summary_df: pd.DataFrame,
     out_dir: Path,
     filename: str,
+    corr_metric_column: Column.VectorField = Column.VectorField.PEARSON_R,
+    slope_column: Column.VectorField = Column.VectorField.LINEFIT_SLOPE,
+    summary_fig_kwargs: dict | None = {"figsize": (6, 2.5)},
 ) -> None:
     """Plot a summary of the correlation results from the first passage time
     analysis across all datasets and fixed points as it will appear in the figure.
     """
 
-    corr_metric_column = Column.VectorField.PEARSON_R
-    corr_metric_label = "Correlation Coefficient (R)"
-    slope_column = Column.VectorField.LINEFIT_SLOPE
-    slope_label = "Line Fit Slope"
+    corr_metric_label = COLUMN_METADATA[corr_metric_column].label or corr_metric_column
+    slope_label = COLUMN_METADATA[slope_column].label or slope_column
 
     # get the shear stress for the dataset and add that to the labels
     # Snap to ±1 bins; values outside any bin keep their rounded value
-    first_passage_time_correlation_summary_df["shear_stress"] = (
+    first_passage_time_correlation_summary_df[Column.SHEAR_STRESS] = (
         first_passage_time_correlation_summary_df[Column.DATASET].transform(
             lambda ds: _get_shear_stress_for_dataset(ds, binned=False)
         )
     )
-    first_passage_time_correlation_summary_df.sort_values("shear_stress", inplace=True)
-    first_passage_time_correlation_summary_df["shear_stress_rounded"] = (
+    first_passage_time_correlation_summary_df.sort_values(Column.SHEAR_STRESS, inplace=True)
+    first_passage_time_correlation_summary_df[f"{Column.SHEAR_STRESS}_rounded"] = (
         first_passage_time_correlation_summary_df[Column.DATASET].transform(
             lambda ds: _get_shear_stress_for_dataset(ds, binned=True)
         )
     )
 
     xs = first_passage_time_correlation_summary_df[
-        [Column.DATASET, "shear_stress_rounded"]
+        [Column.DATASET, f"{Column.SHEAR_STRESS}_rounded"]
     ].values.tolist()
     xs = [f"{load_dataset_config(dataset_name).date} ({flow})" for dataset_name, flow in xs]
     ys = first_passage_time_correlation_summary_df[corr_metric_column]
     ys2 = first_passage_time_correlation_summary_df[slope_column]
 
-    fig, ax = plt.subplots(figsize=(6, 2.5))
+    fig, ax = plt.subplots(**(summary_fig_kwargs or {}))
     sns.stripplot(
         x=xs,
         y=ys,

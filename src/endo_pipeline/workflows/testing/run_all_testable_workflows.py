@@ -35,27 +35,26 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _testable_workflows(pipeline_app: "App", tags: dict[str, list[str]]):
-    from endo_pipeline.cli.tags import CPU_ONLY, GPU, TEST_READY
+def _testable_workflows(pipeline_app: "App"):
+    for name, app in pipeline_app.resolved_commands().items():
+        tags = get_app_tags(app)
 
-    for name in pipeline_app._commands.keys():
-        if name not in tags:
+        if "test-ready" not in tags:
             continue
 
-        these_tags = [tag.lower().replace("_", "-") for tag in tags[name]]
-
-        if TEST_READY not in these_tags:
-            continue
-        if CPU_ONLY not in these_tags and GPU not in these_tags:
+        if "cpu-only" not in tags and "gpu" not in tags:
             raise ValueError(
-                f"Workflow {name} claims to be test-ready, but does not have a GPU or CPU_ONLY tag."
+                f"Workflow '{name}' tagged #test-ready, but does not have a #gpu or #cpu-only tag."
             )
-        if CPU_ONLY in these_tags and GPU in these_tags:
+
+        if "cpu-only" in tags and "gpu" in tags:
             raise ValueError(
-                f"Workflow {name} claims to be test-ready, but has both GPU and CPU_ONLY tags."
+                f"Workflow '{name}' tagged #test-ready, but has both #gpu and #cpu-only tags."
             )
-        if endo_pipeline.cli.NUM_GPUS is None and GPU in these_tags:
+
+        if endo_pipeline.cli.NUM_GPUS is None and "gpu" in tags:
             continue
+
         yield name
 
 
@@ -120,7 +119,7 @@ def _make_command(app: str) -> tuple[str, list[str]]:
     if "-d" not in tokens and "--demo-mode" not in tokens:
         tokens.append("-d")
 
-    return (app, ["endopipe2", app, *tokens])
+    return (app, ["endopipe", app, *tokens])
 
 
 @dataclass
@@ -238,53 +237,23 @@ def _summarize(results: list[_WorkflowResult]):
     )
 
 
-async def _run_all(pipeline_app: "App", tags: dict[str, list[str]]) -> list[_WorkflowResult]:
-    commands = [_make_command(app) for app in _testable_workflows(pipeline_app, tags)]
+async def _run_all(pipeline_app: "App") -> list[_WorkflowResult]:
+    commands = [_make_command(app) for app in _testable_workflows(pipeline_app)]
     return await asyncio.gather(*[_manage_workflow(name, command) for name, command in commands])
 
 
 def main():
     """Run all workflows marked as test ready."""
 
-    from endo_pipeline.__main__ import tags
     from endo_pipeline.cli.apps import pipeline_app
 
     logger = logging.getLogger(__name__)
-
-    # Hacky way to detect if workflow was called via the "old" pipeline CLI
-    # (which means the pipeline_app instance imported from endo_pipeline.cli
-    # will not have any apps registered to it (other than two help commands).
-    # When detected, replace the pipeline_app instance with the version from
-    # __main__. Note that this is also triggered when running this workflow via
-    # the workflow CLI, but the two apps are effectively the same.
-    if len(pipeline_app._commands) < 3:
-        from endo_pipeline.__main__ import pipeline_app as old_pipeline_app
-
-        logger.debug("Detected running using old pipeline CLI.")
-        pipeline_app = old_pipeline_app
-
-    # While in the process of converting workflows from variable-based tagging
-    # using the TAG variable into the docstring-based tagging, we combine the
-    # tag dictionary extracted by the "old" pipeline CLI (variable-based) and
-    # append (or override) with any new docstring-based tags. When ready to
-    # fully switch over to the docstring-based tagging, we can embed the tag
-    # extraction directly in the loop in _testable_workflows.
-    for name, app in pipeline_app.resolved_commands().items():
-        # Ignore the help apps (which start with "-")
-        if name.startswith("-"):
-            continue
-
-        # Extract tags from the app docstring and only append to the tags
-        # dictionary if any are found.
-        app_tags = get_app_tags(app)
-        if app_tags:
-            tags[name] = get_app_tags(app)
 
     if not endo_pipeline.cli.DEMO_MODE:
         endo_pipeline.cli.DEMO_MODE = True
         logger.debug("Forcing demo mode on for testing.")
 
-    results = asyncio.run(_run_all(pipeline_app, tags))
+    results = asyncio.run(_run_all(pipeline_app))
     _summarize(results)
 
 

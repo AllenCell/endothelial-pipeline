@@ -14,8 +14,14 @@ class ModelLocation:
     mlflowid: str | None = None
     """MLFlow run id for model."""
 
-    path: Path | None = None
+    fmsid: str | tuple[str, str] | None = None
+    """FMS file id for model."""
+
+    path: Path | tuple[Path, Path] | None = None
     """Local path to model."""
+
+    s3uri: str | tuple[str, str] | None = None
+    """S3 URI for dataframe (starting with s3://)."""
 
 
 @dataclass

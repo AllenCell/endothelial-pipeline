@@ -19,10 +19,14 @@ def set_axes_properties(
     axes: plt.Axes,
     xlim: tuple[float, float] | None = None,
     ylim: tuple[float, float] | None = None,
-    xticks: list[float] | None = None,
-    yticks: list[float] | None = None,
+    xticks: list[float] | list[int] | None = None,
+    yticks: list[float] | list[int] | None = None,
     xtick_kwargs: dict | None = None,
     ytick_kwargs: dict | None = None,
+    xtick_labels: list[str] | None = None,
+    ytick_labels: list[str] | None = None,
+    xtick_label_kwargs: dict | None = None,
+    ytick_label_kwargs: dict | None = None,
     xlabel: str | None = None,
     ylabel: str | None = None,
     xlabel_kwargs: dict | None = None,
@@ -78,6 +82,10 @@ def set_axes_properties(
         axes.set_xticks(xticks, **(xtick_kwargs or {}))
     if yticks is not None:
         axes.set_yticks(yticks, **(ytick_kwargs or {}))
+    if xtick_labels is not None:
+        axes.set_xticklabels(xtick_labels, **(xtick_label_kwargs or {}))
+    if ytick_labels is not None:
+        axes.set_yticklabels(ytick_labels, **(ytick_label_kwargs or {}))
     if xlabel is not None:
         axes.set_xlabel(xlabel, **(xlabel_kwargs or {}))
     if ylabel is not None:
@@ -390,6 +398,7 @@ def make_contact_sheet(
     subplot_kwargs: dict | None = None,
     gridspec_kwargs: dict | None = None,
     fig_kwargs: dict | None = None,
+    use_constrained_layout: bool = False,
 ) -> plt.Figure:
     """Create and save a contact sheet of images.
     Sequentially plots images from "panels" in a grid layout with optional titles for rows and
@@ -435,6 +444,14 @@ def make_contact_sheet(
     fig_kwargs:
         Additional keyword arguments to pass to plt.subplots for the figure.
         Example includes 'figsize' to set the overall figure size.
+    use_constrained_layout:
+        If True, create the figure with matplotlib's "constrained" layout engine, which
+        fits subplots and decorations without modifying the requested figsize. When
+        enabled, any 'wspace' / 'hspace' entries in ``gridspec_kwargs`` are dropped
+        (constrained layout overrides them and emits a UserWarning otherwise); use
+        ``fig.get_layout_engine().set(w_pad=..., h_pad=...)`` on the returned figure
+        to tune spacing instead. Callers using constrained layout should also pass
+        ``tight_layout=False`` to ``save_plot_to_path`` to avoid mixing layout engines.
 
     Returns
     -------
@@ -464,12 +481,22 @@ def make_contact_sheet(
     row_titles = broadcast_title_list(row_titles, nrows)
 
     # create the figure and axes
+    effective_gridspec_kwargs = dict(gridspec_kwargs or {})
+    effective_fig_kwargs = dict(fig_kwargs or {})
+    if use_constrained_layout:
+        # constrained layout overrides explicit wspace/hspace and emits a
+        # UserWarning if they are present; drop them defensively.
+        effective_gridspec_kwargs.pop("wspace", None)
+        effective_gridspec_kwargs.pop("hspace", None)
+        # do not clobber an explicit caller-provided layout choice
+        effective_fig_kwargs.setdefault("layout", "constrained")
+
     fig, axs = plt.subplots(
         nrows=nrows,
         ncols=ncols,
         subplot_kw=subplot_kwargs or {},
-        gridspec_kw=gridspec_kwargs or {},
-        **(fig_kwargs or {}),
+        gridspec_kw=effective_gridspec_kwargs,
+        **effective_fig_kwargs,
     )
 
     ## iterate through your contact sheet axs to get the

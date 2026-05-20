@@ -1,0 +1,8 @@
+name: diffae_model_training
+description: Datasets used for retraining the CellPose label-free nuclei prediction model
+datasets:
+- 20240328_T01_001
+- 20240328_T02_001
+- 20250415_SlideA_20X
+- 20250415_SlideE_20X
+- 20250415_SlideH_20X

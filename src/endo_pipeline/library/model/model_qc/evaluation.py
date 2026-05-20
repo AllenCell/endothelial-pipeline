@@ -1,18 +1,19 @@
 """Core model evaluation logic for model QC."""
 
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, NamedTuple, cast
 
 from numpy.random import default_rng
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
-from endo_pipeline.io import get_config_dict_from_mlflow, get_output_path, load_model
+from endo_pipeline.io import get_output_path, load_model
+from endo_pipeline.io.mlflow import get_config_path_from_mlflow
 from endo_pipeline.library.model.diffae.eval_diffae import get_latent_vector_from_crop
 from endo_pipeline.library.model.diffae.generate_image import (
     add_noise_to_image,
     generate_from_coords_and_noised_image,
 )
-from endo_pipeline.manifests import get_most_recent_run_name, load_model_manifest
+from endo_pipeline.manifests import load_model_manifest
 from endo_pipeline.settings.workflow_defaults import DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT
 
 from .image_loading import load_and_preprocess_example_crop
@@ -28,6 +29,28 @@ if TYPE_CHECKING:
     from endo_pipeline.settings.examples import ExampleImage
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# ModelKey - stable identity used for dict keys, output paths, and plot labels
+# ---------------------------------------------------------------------------
+
+
+class ModelKey(NamedTuple):
+    """Manifest + run name pair uniquely identifying a model in an evaluation run.
+
+    Hashable so it can serve as a dict key, and provides a ``.label`` property
+    for display on figures (two-line ``manifest`` / ``run`` format used in
+    suptitles and tick labels).
+    """
+
+    manifest_name: str
+    run_name: str
+
+    @property
+    def label(self) -> str:
+        """Human-readable label for display on figures."""
+        return f"{self.manifest_name}\n{self.run_name}"
 
 
 # ---------------------------------------------------------------------------
@@ -54,9 +77,7 @@ def _empty_metric_bucket() -> dict[str, list]:
 
 
 def _make_result_skeleton(
-    model_idx: int,
-    model_label: str,
-    run_name: str,
+    model_key: ModelKey,
     random_seed: int,
     example_set_labels: list[str],
 ) -> dict:
@@ -68,13 +89,9 @@ def _make_result_skeleton(
 
     Parameters
     ----------
-    model_idx
-        Zero-based model index in the evaluation batch
-        (displayed as 1-based in log messages).
-    model_label
-        Label for the model (e.g. ``"diffae_baseline_20251110_latent_512"``).
-    run_name
-        MLflow run name used to load the model.
+    model_key
+        ``ModelKey`` uniquely identifying this model within the evaluation
+        batch.
     random_seed
         Random seed used for noise generation in this evaluation.
     example_set_labels
@@ -84,14 +101,14 @@ def _make_result_skeleton(
     Returns
     -------
     result
-        Skeleton with keys ``"model_idx"``, ``"model_label"``,
-        ``"run_name"``, ``"random_seed"``, and one key per example set
-        label containing empty metric lists.
+        Skeleton with keys ``"model_key"``, ``"random_seed"``,
+        ``"example_set_labels"``, and one key per example set label
+        containing empty metric lists.  Downstream consumers should
+        derive ``model_label`` and ``run_name`` from ``model_key`` via
+        ``model_key.label`` and ``model_key.run_name``.
     """
     result = {
-        "model_idx": model_idx,
-        "model_label": model_label,
-        "run_name": run_name,
+        "model_key": model_key,
         "random_seed": random_seed,
         "example_set_labels": example_set_labels,
     }
@@ -100,35 +117,13 @@ def _make_result_skeleton(
     return result
 
 
-def _make_model_label(manifest_name: str, run_name: str) -> str:
-    """Create a human-readable model label from manifest and run names.
-
-    Parameters
-    ----------
-    manifest_name
-        The model manifest name.
-    run_name
-        The MLflow run name.
-
-    Returns
-    -------
-    label
-        Formatted label, truncated if the manifest name exceeds 30 characters.
-    """
-    if len(manifest_name) > 30:
-        return f"{manifest_name[:30]}..._{run_name[:10]}"
-    return f"{manifest_name}_{run_name}"
-
-
 # ---------------------------------------------------------------------------
 # Core evaluation
 # ---------------------------------------------------------------------------
 
 
 def evaluate_single_model(
-    model_idx: int,
-    manifest_name: str,
-    run_name_input: str | None,
+    model_key: ModelKey,
     random_seed: int,
     example_sets_all: list[tuple[list["ExampleImage"], str]],
     example_sets_for_metrics: set[str],
@@ -148,12 +143,10 @@ def evaluate_single_model(
 
     Parameters
     ----------
-    model_idx
-        Zero-based index of this model in the evaluation batch.
-    manifest_name
-        Name of the model manifest to load.
-    run_name_input
-        Specific run name, or ``None`` to use the most recent run.
+    model_key
+        ``ModelKey`` (manifest + resolved run name) identifying the model to
+        evaluate.  The run name should already be resolved by the caller
+        (e.g. ``None`` → most-recent run) so that the pair is a stable key.
     random_seed
         Random seed for noise generation reproducibility.
     example_sets_all
@@ -189,6 +182,9 @@ def evaluate_single_model(
     result
         Result dictionary containing per-example-set metrics.
     """
+    manifest_name = model_key.manifest_name
+    run_name = model_key.run_name
+
     # Conditional import for metrics
     lpips_calculator = None
     _compute_denoising_metrics = None
@@ -203,16 +199,13 @@ def evaluate_single_model(
     rng = default_rng(seed=random_seed)
 
     model_manifest = load_model_manifest(manifest_name)
-    run_name_ = (
-        get_most_recent_run_name(model_manifest) if run_name_input is None else run_name_input
-    )
-    model_location = model_manifest.locations[run_name_]
-    model_label = _make_model_label(manifest_name, run_name_)
+    model_location = model_manifest.locations[run_name]
 
-    logger.info("Processing model %d: %s (seed=%d)", model_idx + 1, manifest_name, random_seed)
+    logger.info("Processing model: %s [%s] (seed=%d)", manifest_name, run_name, random_seed)
 
     if model_location.mlflowid is not None:
-        model_config = cast(DictConfig, get_config_dict_from_mlflow(model_location.mlflowid))
+        config_path = get_config_path_from_mlflow(model_location.mlflowid)
+        model_config = cast(DictConfig, OmegaConf.create(config_path.read_text()))
     else:
         raise ValueError("mlflowid is None")
     crop_size = model_config.model.image_shape[-1]
@@ -222,9 +215,7 @@ def evaluate_single_model(
     model = load_model(model_location, instantiate=True)
 
     result = _make_result_skeleton(
-        model_idx,
-        model_label,
-        run_name_,
+        model_key,
         random_seed,
         example_set_labels=[label for _, label in example_sets_all],
     )
@@ -239,7 +230,7 @@ def evaluate_single_model(
         output_path = get_output_path(
             "model_qc",
             manifest_name,
-            run_name_,
+            run_name,
             example_set_label,
             create_directories=False,
         )
@@ -410,10 +401,9 @@ def evaluate_single_model(
                 len(example_set),
                 label_for_conditioning,
                 example_set_label,
-                model_idx,
+                model_key,
                 has_metrics,
                 output_path,
-                model_label=model_label,
             )
 
     return result

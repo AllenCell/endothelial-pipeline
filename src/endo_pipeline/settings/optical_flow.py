@@ -72,8 +72,8 @@ overlay.
 DEFAULT_OPTICAL_FLOW_COLLECTION: str = "diffae_model_training"
 """Default dataset collection for the optical-flow feature workflow."""
 
-DEFAULT_OPTICAL_FLOW_MANIFEST_NAME: str = "optical_flow_bf_grid"
-"""Default dataframe manifest name for optical-flow features."""
+DEFAULT_OPTICAL_FLOW_MANIFEST_NAME: str = "optical_flow_bf"
+"""Default dataframe manifest name (prefix) for optical-flow features."""
 
 DIFFAE_DATAFRAME_METADATA_TO_COMPUTE: tuple[str, ...] = (
     ColumnName.DATASET,

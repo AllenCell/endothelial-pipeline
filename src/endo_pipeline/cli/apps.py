@@ -1,6 +1,7 @@
 import logging
 import os
 from collections.abc import Callable
+from pathlib import Path
 from typing import Annotated
 
 from cyclopts import App, Group, Parameter
@@ -9,11 +10,14 @@ from rich.console import Console
 from endo_pipeline.cli.commands import build_command_group
 from endo_pipeline.cli.gpu import setup_gpu
 from endo_pipeline.cli.logs import setup_logging, silence_external_loggers
-from endo_pipeline.cli.options import PipelineOptions, WorkflowOptions
+from endo_pipeline.cli.options import InternalOptions, PipelineOptions, WorkflowOptions
 from endo_pipeline.cli.tags import check_workflow_tags, get_app_tags
 
 IS_MAIN_PROCESS: bool = int(os.environ.get("LOCAL_RANK", "0")) == 0
 """True if the current process is the main process, False otherwise."""
+
+IS_INTERNAL: bool = Path("//allen/aics").exists()
+"""True if internal storage is reachable (proxy for internal use), False otherwise."""
 
 logger = logging.getLogger("")
 
@@ -30,6 +34,7 @@ workflow_app = App(
 
 WORKFLOW_OPTIONS = WorkflowOptions()
 PIPELINE_OPTIONS = PipelineOptions()
+INTERNAL_OPTIONS = InternalOptions()
 
 FIGURE_WORKFLOWS = Group("Figure Workflows", sort_key=0)
 PRODUCTION_WORKFLOWS = Group("Production Workflows", sort_key=1)
@@ -38,18 +43,28 @@ TESTING_WORKFLOWS = Group("Testing Workflows", sort_key=3)
 INTERNAL_WORKFLOWS = Group("Internal Workflows", sort_key=4)
 
 
+def build_command_groups() -> None:
+    """Build command groups."""
+
+    build_command_group(pipeline_app, FIGURE_WORKFLOWS, "figures", True)
+    build_command_group(pipeline_app, PRODUCTION_WORKFLOWS, "production", True)
+    build_command_group(pipeline_app, DEVELOPMENT_WORKFLOWS, "development", IS_INTERNAL)
+    build_command_group(pipeline_app, TESTING_WORKFLOWS, "testing", IS_INTERNAL)
+    build_command_group(pipeline_app, INTERNAL_WORKFLOWS, "internal", IS_INTERNAL)
+
+
 def pipeline_cli() -> None:
     """Pipeline CLI."""
 
     pipeline_app["--help"].group = "Options"
 
-    build_command_group(pipeline_app, FIGURE_WORKFLOWS, "figures", True)
-    build_command_group(pipeline_app, PRODUCTION_WORKFLOWS, "production", True)
-    build_command_group(pipeline_app, DEVELOPMENT_WORKFLOWS, "development", True)
-    build_command_group(pipeline_app, TESTING_WORKFLOWS, "testing", True)
-    build_command_group(pipeline_app, INTERNAL_WORKFLOWS, "internal", True)
+    build_command_groups()
 
-    pipeline_app.meta.default(pipeline_entrypoint)
+    if IS_INTERNAL:
+        pipeline_app.meta.default(pipeline_entrypoint_internal)
+    else:
+        pipeline_app.meta.default(pipeline_entrypoint_external)
+
     pipeline_app.meta()
 
 
@@ -71,40 +86,118 @@ def workflow_cli(workflow: Callable) -> None:
 
         workflow_app.default(workflow)
 
-        workflow_app.meta.default(workflow_entrypoint)
+        if IS_INTERNAL:
+            workflow_app.meta.default(workflow_entrypoint_internal)
+        else:
+            workflow_app.meta.default(workflow_entrypoint_external)
+
         workflow_app.meta()
 
 
-def pipeline_entrypoint(
+def pipeline_entrypoint_external(
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
     workflow_options: WorkflowOptions = WORKFLOW_OPTIONS,
     pipeline_options: PipelineOptions = PIPELINE_OPTIONS,
 ) -> None:
+    """External pipeline CLI entrypoint."""
+
+    pipeline_entrypoint(
+        *tokens,
+        workflow_options=workflow_options,
+        pipeline_options=pipeline_options,
+        internal_options=None,
+    )
+
+
+def pipeline_entrypoint_internal(
+    *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
+    workflow_options: WorkflowOptions = WORKFLOW_OPTIONS,
+    pipeline_options: PipelineOptions = PIPELINE_OPTIONS,
+    internal_options: InternalOptions = INTERNAL_OPTIONS,
+) -> None:
+    """Internal pipeline CLI entrypoint."""
+
+    pipeline_entrypoint(
+        *tokens,
+        workflow_options=workflow_options,
+        pipeline_options=pipeline_options,
+        internal_options=internal_options,
+    )
+
+
+def pipeline_entrypoint(
+    *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
+    workflow_options: WorkflowOptions | None,
+    pipeline_options: PipelineOptions | None,
+    internal_options: InternalOptions | None,
+) -> None:
     """Pipeline CLI entrypoint."""
 
-    # If pipeline CLI is called with a workflow, check for known workflow errors.
+    # If pipeline CLI is called with a workflow, check for known workflow errors
     if tokens:
         check_workflow_tags(pipeline_app[tokens[0]])
 
-    apply_workflow_options(workflow_options)
+    # If workflow options are provided, apply them
+    if workflow_options is not None:
+        apply_workflow_options(workflow_options)
+
+    # If internal options are provided, apply them
+    if internal_options is not None:
+        apply_internal_options(internal_options)
 
     # Only apply pipeline options if running the pipeline CLI without any
     # tokens. Otherwise, this call will cause all modules to be resolved (and
     # therefore trigger imports)
-    if not tokens:
+    if not tokens and pipeline_options is not None:
         apply_pipeline_options(pipeline_app._registered_commands, pipeline_options)
 
     pipeline_app(tokens)
 
 
-def workflow_entrypoint(
+def workflow_entrypoint_external(
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
     workflow_options: WorkflowOptions = WORKFLOW_OPTIONS,
+) -> None:
+    """External workflow CLI entrypoint."""
+
+    workflow_entrypoint(
+        *tokens,
+        workflow_options=workflow_options,
+        internal_options=None,
+    )
+
+
+def workflow_entrypoint_internal(
+    *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
+    workflow_options: WorkflowOptions = WORKFLOW_OPTIONS,
+    internal_options: InternalOptions = INTERNAL_OPTIONS,
+) -> None:
+    """Internal workflow CLI entrypoint."""
+
+    workflow_entrypoint(
+        *tokens,
+        workflow_options=workflow_options,
+        internal_options=internal_options,
+    )
+
+
+def workflow_entrypoint(
+    *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
+    workflow_options: WorkflowOptions | None,
+    internal_options: InternalOptions | None,
 ) -> None:
     """Workflow CLI entrypoint."""
 
     check_workflow_tags(workflow_app)
-    apply_workflow_options(workflow_options)
+
+    # If workflow options are provided, apply them
+    if workflow_options is not None:
+        apply_workflow_options(workflow_options)
+
+    # If internal options are provided, apply them
+    if internal_options is not None:
+        apply_internal_options(internal_options)
+
     workflow_app(tokens)
 
 
@@ -135,9 +228,21 @@ def apply_workflow_options(options: WorkflowOptions):
         logger.info("Running workflow in demo mode")
         endo_pipeline.cli.DEMO_MODE = True
 
+
+def apply_internal_options(options: InternalOptions):
+    """Apply internal options for running workflows."""
+
+    import endo_pipeline.cli
+
+    if options.upload_to_fms:
+        logger.info("Uploading outputs to FMS (if applicable)")
+        endo_pipeline.cli.UPLOAD_TO_FMS = True
+
     if options.use_staging:
         logger.info("Using staging environments")
-        endo_pipeline.cli.USE_STAGING = True
+        endo_pipeline.cli.FMS_ENVIRONMENT = "stg"
+    else:
+        endo_pipeline.cli.FMS_ENVIRONMENT = "prod"
 
 
 def apply_pipeline_options(apps: dict[str, App], options: PipelineOptions) -> None:

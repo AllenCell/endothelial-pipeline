@@ -19,6 +19,7 @@ from endo_pipeline.library.analyze.pca import fit_pca
 from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
 from endo_pipeline.library.model.diffae.generate_image import generate_latent_walk_images
 from endo_pipeline.library.model.latent_walk_utils import get_latent_walk
+from endo_pipeline.library.visualize.figure_utils import set_axes_properties
 from endo_pipeline.library.visualize.latent_walk import plot_latent_walk_as_grid
 from endo_pipeline.manifests import (
     get_dataframe_location_for_dataset,
@@ -29,11 +30,13 @@ from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
+from endo_pipeline.settings.dynamics_workflows import TIME_STEP_IN_HOURS
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
 from endo_pipeline.settings.figures import (
     FONTSIZE_LARGE,
     FONTSIZE_MEDIUM,
     FONTSIZE_SMALL,
+    FONTSIZE_XSMALL,
     MAX_FIGURE_WIDTH,
 )
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
@@ -185,8 +188,8 @@ def _add_axes_lines(
     pc2_label = cast(str, COLUMN_METADATA["pc_2"].label)
     # PC2 label: to the left of the top image in the PC2 column
     fig.text(
-        top_bbox.x0 - 0.04,
-        top_bbox.y1,
+        top_bbox.x0 + 0.04,
+        top_bbox.y1 + 0.1,
         pc2_label,
         fontsize=FONTSIZE_LARGE,
         fontweight="bold",
@@ -196,8 +199,8 @@ def _add_axes_lines(
     )
     # PC1 label: to the right of the rightmost image, vertically centred on the axis
     fig.text(
-        right_bbox.x1 + axes_extend + 0.01,
-        cy,
+        right_bbox.x1 + axes_extend - 0.085,
+        cy - 0.09,
         pc1_label,
         fontsize=FONTSIZE_LARGE,
         fontweight="bold",
@@ -229,7 +232,7 @@ def _add_orientation_arrow(
     head_width: float = 0.4,
     color: str = "darkred",
     linewidth: float = 2.0,
-    label_offset: tuple[float, float] = (0.275, 0.125),
+    label_offset: tuple[float, float] = (0.075, 0.125),
 ) -> None:
     """Add an arced arrow and "orientation" label to the 2D latent walk plot."""
     overlay = fig.add_axes((0.0, 0.0, 1.0, 1.0), facecolor="none", zorder=5)
@@ -237,35 +240,57 @@ def _add_orientation_arrow(
     overlay.set_ylim(0, 1)
     overlay.axis("off")
 
-    # arced arrow from rightmost image to topmost image with "orientation" label
-    # at the midpoint of the arc
+    # Bounding boxes for the four outermost cells on each axis arm
     rightmost_bbox = axes[center_index, n_steps - 1].get_position()
     topmost_bbox = axes[0, center_index].get_position()
-    arrow_start = (
-        rightmost_bbox.x1 - rightmost_bbox.width / 4,
-        rightmost_bbox.y1,
-    )
-    arrow_end = (
-        topmost_bbox.x1,
-        topmost_bbox.y1 - topmost_bbox.height / 4,
-    )
+    leftmost_bbox = axes[center_index, 0].get_position()
+    bottommost_bbox = axes[n_steps - 1, center_index].get_position()
+
     arrowstyle = f"->,head_length={head_length},head_width={head_width}"
     connectionstyle = f"arc3,rad={arc_rad}"
-    overlay.annotate(
-        "",
-        xy=arrow_end,
-        xytext=arrow_start,
-        xycoords="axes fraction",
-        textcoords="axes fraction",
-        arrowprops={
-            "arrowstyle": arrowstyle,
-            "color": color,
-            "lw": linewidth,
-            "connectionstyle": connectionstyle,
-        },
-    )
-    mid_x = (arrow_start[0] + arrow_end[0]) / 2
-    mid_y = (arrow_start[1] + arrow_end[1]) / 2
+
+    # Four curved arrows — one per quadrant — tracing a counterclockwise sweep
+    # that conveys continuous change in orientation around the origin.
+    #
+    # Q1 (top-right): rightmost → topmost  (existing)
+    # Q2 (top-left):  topmost  → leftmost
+    # Q3 (bottom-left): leftmost → bottommost
+    # Q4 (bottom-right): bottommost → rightmost
+    right_x_mid = rightmost_bbox.x1 - rightmost_bbox.width / 4
+    top_y_mid = topmost_bbox.y1 - topmost_bbox.height / 4
+    left_x_mid = leftmost_bbox.x0 + leftmost_bbox.width / 4
+    bot_y_mid = bottommost_bbox.y0 + bottommost_bbox.height / 4
+
+    quadrant_arrows = [
+        # Q1: top of rightmost cell → right of topmost cell
+        ((right_x_mid, rightmost_bbox.y1), (topmost_bbox.x1, top_y_mid)),
+        # Q2: left of topmost cell → top of leftmost cell
+        ((topmost_bbox.x0, top_y_mid), (left_x_mid, leftmost_bbox.y1)),
+        # Q3: bottom of leftmost cell → left of bottommost cell
+        ((left_x_mid, leftmost_bbox.y0), (bottommost_bbox.x0, bot_y_mid)),
+        # Q4: right of bottommost cell → bottom of rightmost cell
+        ((bottommost_bbox.x1, bot_y_mid), (right_x_mid, rightmost_bbox.y0)),
+    ]
+
+    for arrow_start, arrow_end in quadrant_arrows:
+        overlay.annotate(
+            "",
+            xy=arrow_end,
+            xytext=arrow_start,
+            xycoords="axes fraction",
+            textcoords="axes fraction",
+            arrowprops={
+                "arrowstyle": arrowstyle,
+                "color": color,
+                "lw": linewidth,
+                "connectionstyle": connectionstyle,
+            },
+        )
+
+    # "orientation" label placed at the midpoint of the Q1 arrow
+    q1_start, q1_end = quadrant_arrows[0]
+    mid_x = (q1_start[0] + q1_end[0]) / 2
+    mid_y = (q1_start[1] + q1_end[1]) / 2
     overlay.text(
         mid_x + label_offset[0],
         mid_y + label_offset[1],
@@ -318,7 +343,7 @@ def plot_2d_latent_walk(
         n_steps,
         n_steps,
         gridspec_kw={"wspace": 0.15, "hspace": 0.15},
-        figsize=(2.25, 2.25),
+        figsize=(2.1, 2.1),
         layout="constrained",
     )
 
@@ -378,7 +403,7 @@ def plot_2d_latent_walk(
         head_width=0.4,
         color="darkred",
         linewidth=2.0,
-        label_offset=(0.275, 0.115),
+        label_offset=(0.175, 0.115),
     )
 
     save_plot_to_path(
@@ -387,52 +412,86 @@ def plot_2d_latent_walk(
     return save_path / f"{filename}.svg"
 
 
-def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
+def _make_feature_pair_histogram_panel(
+    columns_to_plot: list[ColumnNameType],
+    axes_ylim: tuple[float, float] | None = None,
+    axes_yticks: list[float] | None = None,
+    axes_ytick_labels: list[str] | None = None,
+    histogram_vmin: float = 0.00,
+    histogram_vmax: float = 0.7,
+    figsize: tuple[float, float] = (2.9, 2.45),
+) -> tuple[plt.Figure, np.ndarray]:
     """
-    Make the panel showing the histogram over time of theta (patch-based ML
-    feature) side by side with orientation (cell-based segmentation feature).
+    Build a 2x2 grid of 2-D histograms (time x feature) for two datasets and
+    two feature columns.
+
+    Rows correspond to low- and high-flow datasets; columns correspond to the
+    two entries in *columns_to_plot*.
+
+    Parameters
+    ----------
+    columns_to_plot
+        Exactly two column names to compare side-by-side (left then right).
+    axes_ylim
+        Shared y-axis limits applied to every subplot.  ``None`` lets
+        Matplotlib auto-scale each axis independently.
+    axes_yticks
+        Shared y-axis tick positions.  ``None`` uses Matplotlib defaults.
+    axes_ytick_labels
+        Tick label strings corresponding to *axes_yticks*.  ``None`` uses
+        default numeric labels.
+    histogram_vmin
+        Lower colour-scale limit for the 2-D histogram density.
+    histogram_vmax
+        Upper colour-scale limit for the 2-D histogram density.
+    figsize
+        Figure size passed to :func:`matplotlib.pyplot.subplots`.
+
+    Returns
+    -------
+    :
+        The :class:`~matplotlib.figure.Figure` and its 2x2 :class:`~numpy.ndarray`
+        of :class:`~matplotlib.axes.Axes`, ready for further customisation or
+        saving.
     """
+    if len(columns_to_plot) != 2:
+        raise ValueError(
+            f"columns_to_plot must contain exactly 2 columns, got {len(columns_to_plot)}."
+        )
+
     dataset_low = EXAMPLE_DATASET["FIGURE_2_LOW_FLOW_DATASET"]
     dataset_high = EXAMPLE_DATASET["FIGURE_2_HIGH_FLOW_DATASET"]
 
     dataframe_manifest = load_dataframe_manifest(
         DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED
     )
-    histogram_vmin = 0.0
-    histogram_vmax = 0.7
 
+    start_imaging_line_color = "limegreen"
     steady_state_line_color = "darkturquoise"
 
-    axes_xlim = (0, 48)  # in hours, after converting from frames
+    axes_xlim = (0, 50)  # in hours, after converting from frames
     axes_xticks = [0, 12, 24, 36, 48]
     axes_xtick_labels = [f"{x}" for x in axes_xticks]
-    axes_ylim = (0, np.pi)
-    axes_yticks = [0, np.pi / 2, np.pi]
-    axes_ytick_labels = [f"0={Unicode.PI}", f"{Unicode.PI}/2", f"{Unicode.PI}=0"]
 
-    fig, ax = plt.subplots(
-        2, 2, figsize=(3.0, 2.5), layout="constrained", gridspec_kw={"hspace": 0.15}
-    )
+    # figure layout: datasets are columns, features are rows
+    fig, ax = plt.subplots(2, 2, figsize=figsize, layout="constrained", gridspec_kw={"hspace": 0.1})
 
     layout_engine = fig.get_layout_engine()
     if layout_engine is not None:
         # reserve left margin for the vertical label and top margin for the legend
         layout_engine.set(**{"rect": [0.08, 0, 1, 0.94]})
 
-    time_column_label = "Time (hours)"
+    time_under_flow_col = Column.SegData.TIME_HRS_SINCE_FLOW
+    time_column_label = COLUMN_METADATA[time_under_flow_col].name or cast(str, time_under_flow_col)
     # convert frames to hours for better readability of x-axis
-    # (one frame = 5 minutes, so conversion factor is 5/60)
-    time_conversion_factor = 5 / 60
+    time_conversion_factor = TIME_STEP_IN_HOURS
 
-    columns_to_plot: list[ColumnNameType] = [
-        Column.DiffAEData.POLAR_ANGLE,
-        Column.SegData.ORIENTATION,
-    ]
-    columns_to_compute = [*columns_to_plot, Column.TIMEPOINT]
+    columns_to_compute = [*columns_to_plot, time_under_flow_col]
 
-    for i, dataset in enumerate([dataset_low, dataset_high]):
+    for j, dataset in enumerate([dataset_low, dataset_high]):
         dataset_config = load_dataset_config(dataset)
-        shear_stress = np.ceil(max(fc.shear_stress for fc in dataset_config.flow_conditions))
+        frames_before_imaging = abs(dataset_config.flow_conditions[0].start)
+        shear_stress = dataset_config.flow_conditions[0].shear_stress_bin
         shear_stress_label = f"{shear_stress} dyn/cm{Unicode.SQUARED}"
 
         # use position 0 as a representative position for the dataset to get the
@@ -440,16 +499,19 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
         # indicate with a vertical dashed line on the histogram
         start_steady_state_timepoint = (
             get_start_of_steady_state_for_position(dataset_config, position=0) or 0
-        ) * time_conversion_factor
+        )
+        # shift so that time = 0 corresponds to the start of flow, and convert
+        # from frames to hours
+        start_steady_state_timepoint += frames_before_imaging
+        start_steady_state_timepoint_hrs = start_steady_state_timepoint * time_conversion_factor
 
         df_ = load_dataframe(
             get_dataframe_location_for_dataset(dataframe_manifest, dataset), delay=True
         )
         df: pd.DataFrame = df_[columns_to_compute].compute()
 
-        time_bins = get_bins(bin_widths=(12,), data=df[Column.TIMEPOINT].to_numpy())[0][0]
-        time_bins = time_bins * time_conversion_factor
-        for j, column in enumerate(columns_to_plot):
+        time_bins = get_bins(bin_widths=(1,), data=df[time_under_flow_col].to_numpy())[0][0]
+        for i, column in enumerate(columns_to_plot):
             feature_column_label = COLUMN_METADATA[column].name or cast(str, column)
             # convert to sentence case for better readability as a plot title
             feature_column_label = feature_column_label.capitalize()
@@ -458,7 +520,7 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
 
             feature_bins = get_bins(bin_widths=(0.05,), data=df[column].to_numpy())[0][0]
             ax_ij.hist2d(
-                df[Column.TIMEPOINT] * time_conversion_factor,
+                df[time_under_flow_col],
                 df[column],
                 bins=[time_bins, feature_bins],
                 cmap="inferno",
@@ -470,9 +532,20 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
             # change the background color to grey
             ax_ij.set_facecolor("grey")
 
-            # draw cyan dashed line at start of steady state
+            # draw dashed line at start of imaging (time =
+            # -frames_before_imaging)
             ax_ij.axvline(
-                x=start_steady_state_timepoint,
+                x=frames_before_imaging * time_conversion_factor,
+                color=start_imaging_line_color,
+                linestyle="--",
+                linewidth=1.5,
+                zorder=3,
+                label="Start of imaging",
+            )
+
+            # draw dashed line at start of steady state
+            ax_ij.axvline(
+                x=start_steady_state_timepoint_hrs,
                 color=steady_state_line_color,
                 linestyle="--",
                 linewidth=1.5,
@@ -481,38 +554,45 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
             )
 
             # set axes limits and ticks
-            ax_ij.set_xlim(axes_xlim)
-            ax_ij.set_xticks(axes_xticks)
-            ax_ij.set_ylim(axes_ylim)
-            ax_ij.set_yticks(axes_yticks)
+            set_axes_properties(
+                ax_ij,
+                xlim=axes_xlim,
+                ylim=axes_ylim,
+                xticks=axes_xticks,
+                yticks=axes_yticks,
+            )
             if j == 0:
-                # add tick labels for shared y axis just on leftmost plots
-                ax_ij.set_yticklabels(axes_ytick_labels, fontsize=FONTSIZE_SMALL)
+                # add tick labels and ylabel for the left column
+                set_axes_properties(
+                    ax_ij,
+                    ylabel=feature_column_label,
+                    ylabel_kwargs={"labelpad": 1, "fontsize": FONTSIZE_SMALL},
+                    ytick_labels=axes_ytick_labels,
+                    ytick_label_kwargs={"fontsize": FONTSIZE_XSMALL},
+                )
+                if axes_ytick_labels is None:
+                    ax_ij.tick_params(axis="y", labelsize=FONTSIZE_XSMALL)
             elif j == 1:
-                # else, no y tick labels for right column
+                # omit tick labels for the right column
                 ax_ij.set_yticklabels([])
             if i == 0:
-                # put label as column title for top row
-                ax_ij.set_title(feature_column_label, fontsize=FONTSIZE_SMALL)
-                ax_ij.set_xticklabels([])  # no x tick labels for top row
+                # put shear stress label as column title for top row, and
+                # no x labeling for the top row
+                set_axes_properties(
+                    ax_ij,
+                    title=shear_stress_label,
+                    title_kwargs={"fontsize": FONTSIZE_MEDIUM, "pad": 1},
+                    xtick_labels=[],
+                )
             elif i == 1:
                 # only set x-axis tick labels and label for bottom row
-                ax_ij.set_xticklabels(axes_xtick_labels, fontsize=FONTSIZE_SMALL)
-                ax_ij.set_xlabel(time_column_label, labelpad=1, fontsize=FONTSIZE_SMALL)
-
-        # add vertical label for shear stress to the left of the contour plot
-        # (y positions reflect the constrained-layout rect top of 0.94)
-        y_position = 0.72 if i == 0 else 0.31
-        fig.text(
-            0.05,
-            y_position,
-            shear_stress_label,
-            va="center",
-            ha="center",
-            rotation="vertical",
-            fontsize=FONTSIZE_MEDIUM,
-            fontweight="bold",
-        )
+                set_axes_properties(
+                    ax_ij,
+                    xtick_labels=axes_xtick_labels,
+                    xtick_label_kwargs={"fontsize": FONTSIZE_XSMALL},
+                    xlabel=time_column_label,
+                    xlabel_kwargs={"labelpad": 1, "fontsize": FONTSIZE_XSMALL},
+                )
 
     # add legend for the vertical dashed line indicating the start of steady state
     # and grey background indicating cutoff for cell piling (no data);
@@ -520,14 +600,14 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
     # constrained layout is not affected
     handles, labels = ax_ij.get_legend_handles_labels()
     handles.append(Patch(facecolor="grey", edgecolor="none"))
-    labels.append("No data (cell piling)")
+    labels.append("No data")
     fig.legend(
         handles,
         labels,
         fontsize="xx-small",
         loc="upper center",
-        bbox_to_anchor=(0.53, 0.995),
-        ncol=2,
+        bbox_to_anchor=(0.53, 1.0),
+        ncol=3,
         handletextpad=0.3,
         borderpad=0.3,
         columnspacing=0.8,
@@ -535,20 +615,80 @@ def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
     )
 
     # set the color limits to be the same across all histograms
-    # plot adjactent to the right of the rightmost histogram, spanning both rows
+    # plot adjacent to the right of the rightmost histogram, spanning both rows
     cbar_mappable = plt.cm.ScalarMappable(
         norm=plt.Normalize(vmin=histogram_vmin, vmax=histogram_vmax), cmap="inferno"
     )
     cbar = fig.colorbar(cbar_mappable, ax=ax[:, 1], location="right", pad=0.1)
-    cbar.set_label("Histogram", labelpad=3, fontsize=FONTSIZE_SMALL)
+    cbar.set_label("Density", labelpad=3, fontsize=FONTSIZE_SMALL)
 
+    return fig, ax
+
+
+def make_theta_orientation_histogram_panel(output_path: Path) -> Path:
+    """
+    Make the panel showing the histogram over time of theta (patch-based ML
+    feature) side by side with orientation (cell-based segmentation feature).
+    """
+    axes_ylim = (0, np.pi)
+    axes_yticks = [0, np.pi / 2, np.pi]
+    axes_ytick_labels = [f"0={Unicode.PI}", f"{Unicode.PI}/2", f"{Unicode.PI}=0"]
+
+    fig, _ = _make_feature_pair_histogram_panel(
+        columns_to_plot=[Column.DiffAEData.POLAR_ANGLE, Column.SegData.ORIENTATION],
+        axes_ylim=axes_ylim,
+        axes_yticks=axes_yticks,
+        axes_ytick_labels=axes_ytick_labels,
+    )
     filename = "theta_orientation_histograms"
     save_plot_to_path(
-        fig,
-        output_path,
-        filename,
-        file_format=".svg",
-        tight_layout=False,
-        transparent=False,
+        fig, output_path, filename, file_format=".svg", tight_layout=False, transparent=False
+    )
+    return output_path / f"{filename}.svg"
+
+
+def make_r_aspect_ratio_histogram_panel(output_path: Path) -> Path:
+    """
+    Make the panel showing the histogram over time of polar radius r
+    (patch-based ML feature) side by side with cell aspect ratio (cell-based
+    segmentation feature).
+
+    Both features capture cell elongation: *r* encodes the magnitude of the
+    alignment signal in the DiffAE latent space while aspect ratio is a direct
+    morphological measurement.  Placing them side by side reveals how the two
+    representations co-vary across the time course and across shear-stress
+    conditions.
+
+    The two features have different natural ranges, so each column (feature)
+    is given its own consistent y-axis limits derived from the union of both
+    dataset rows rather than using a shared range.
+    """
+    fig, ax = _make_feature_pair_histogram_panel(
+        columns_to_plot=[Column.DiffAEData.POLAR_RADIUS, Column.SegData.ASPECT_RATIO],
+        axes_ylim=None,
+        axes_yticks=None,
+        axes_ytick_labels=None,
+    )
+
+    # datasets have different natural ranges for r and aspect ratio, so set
+    # y-limits per dataset row rather than per feature column;
+    r_ylim = (0.0, 2.5)
+    aspect_ratio_ylim = (1.0, 7.25)
+    # Reconcile y-limits per feature column so that both dataset rows (low-flow
+    # and high-flow) share the same scale for that feature.
+    num_columns = ax.shape[1]
+    for i in range(num_columns):
+        for j in range(ax.shape[0]):
+            ax_ij = cast(plt.Axes, ax[i, j])
+            if i == 0:
+                # r row
+                ax_ij.set_ylim(r_ylim)
+            elif i == 1:
+                # aspect ratio row
+                ax_ij.set_ylim(aspect_ratio_ylim)
+
+    filename = "r_aspect_ratio_histograms"
+    save_plot_to_path(
+        fig, output_path, filename, file_format=".svg", tight_layout=False, transparent=False
     )
     return output_path / f"{filename}.svg"

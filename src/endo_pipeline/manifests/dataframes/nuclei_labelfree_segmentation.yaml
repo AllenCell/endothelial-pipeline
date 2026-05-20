@@ -1,0 +1,112 @@
+name: nuclei_labelfree_segmentation
+workflow: get_nuclei_measured_features
+parameters: {}
+locations:
+  20250319_20X:
+    fmsid: 73ecf55d8d71438fbcc83af4961b8fd1
+    path: null
+    s3uri: null
+  20250326_20X:
+    fmsid: 3905667a07604a1fb50dc0d548418d26
+    path: null
+    s3uri: null
+  20250409_20X:
+    fmsid: ef00323d805143cf840c1b9ae0cad5e1
+    path: null
+    s3uri: null
+  20250428_20X:
+    fmsid: ca19458c5bca492c891c812c73dffcbe
+    path: null
+    s3uri: null
+  20250604_20X:
+    fmsid: 31c5f05ff9e4451a97f12b00aee9ff67
+    path: null
+    s3uri: null
+  20250611_20X:
+    fmsid: d2f7d65e547b47348a119d2d7467e251
+    path: null
+    s3uri: null
+  20250618_20X:
+    fmsid: 9b337d2a596d4bbe911dfec00ad7cf7b
+    path: null
+    s3uri: null
+  20250714_20X:
+    fmsid: 74a5dda24a004348ab396bf7105c324d
+    path: null
+    s3uri: null
+  20250716_20X:
+    fmsid: cf975f1883e44bb79565ca8d64bc87ad
+    path: null
+    s3uri: null
+  20250728_20X:
+    fmsid: 7799be48e3504ddd9d2a0ea5db57882e
+    path: null
+    s3uri: null
+  20250813_20X:
+    fmsid: 35af4a3be56e4c9bb4742f535a35e467
+    path: null
+    s3uri: null
+  20250818_20X:
+    fmsid: a07d287e038046269e64af50bfc384e1
+    path: null
+    s3uri: null
+  20250827_20X:
+    fmsid: ffc4f2fc1bd646e2ae4f26c77ec6347b
+    path: null
+    s3uri: null
+  20251001_20X:
+    fmsid: 846e3820ef3241109ee6fa607892de31
+    path: null
+    s3uri: null
+  20250402_20X:
+    fmsid: 26a3ae0dcbee4d91b4978186717aca23
+    path: null
+    s3uri: null
+  20260114_20X:
+    fmsid: 4bc59da0afec49988093c68634519c72
+    path: null
+    s3uri: null
+  20260121_20X:
+    fmsid: 098bc282e87648e39eb5d6e45db11a84
+    path: null
+    s3uri: null
+  20260126_20X:
+    fmsid: 264a95080b6d4e37a315115647c91ff2
+    path: null
+    s3uri: null
+  20260128_20X:
+    fmsid: c34227b373ad4397838f522ec9752fb5
+    path: null
+    s3uri: null
+  20260202_20X:
+    fmsid: 39dc8f14de7f4f1cbc8f26013a2c2425
+    path: null
+    s3uri: null
+  20260204_20X:
+    fmsid: 7055885d3aac421586f8ef8c339a3c8e
+    path: null
+    s3uri: null
+  20260209_20X:
+    fmsid: 623c50878ca7481d9cdc686e3e74714e
+    path: null
+    s3uri: null
+  20260211_20X:
+    fmsid: 94b09b9c15c14f9c9627279d21c36341
+    path: null
+    s3uri: null
+  20260216_20X:
+    fmsid: 89908d6cc214445e866828c0296c08a1
+    path: null
+    s3uri: null
+  20260225_20X:
+    fmsid: 0952f57f3b204f5794c032e21e1d9a10
+    path: null
+    s3uri: null
+  20260302_20X:
+    fmsid: d5c0985f9807444a933a3dec8f09ebf6
+    path: null
+    s3uri: null
+  20260304_20X:
+    fmsid: bc6e8506ef344a8fa05d94b924f51077
+    path: null
+    s3uri: null

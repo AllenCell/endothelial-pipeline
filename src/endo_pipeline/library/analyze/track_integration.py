@@ -11,7 +11,7 @@ from scipy.stats import pearsonr
 from seaborn import color_palette
 
 from endo_pipeline.configs.dataset_config_io import load_dataset_config
-from endo_pipeline.io import get_output_path, load_dataframe
+from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.dataframe_filtering import (
     filter_dataframe_by_track_length,
     filter_dataframe_to_binned_value,
@@ -711,12 +711,18 @@ def get_merged_pc_and_seg_feature_tables(
     return merged_feats_df, merged_feats_df_filtered
 
 
-def get_and_save_pc_diffae_feats_liveseg_feats_merged_table(dataset_name: str) -> None:
+def get_and_save_pc_diffae_feats_liveseg_feats_merged_table_wrapper(args: tuple[str, Path]) -> None:
+    """Wrapper for calling combine cell-centered features method with multiprocessing."""
+
+    get_and_save_pc_diffae_feats_liveseg_feats_merged_table(*args)
+
+
+def get_and_save_pc_diffae_feats_liveseg_feats_merged_table(
+    dataset_name: str, out_dir: Path
+) -> None:
     """Loads the cell-centric DiffAE + segmentation features merged table, computes the PCs, and
     then saves the updated merged table with the PCs as a parquet file.
     """
-
-    out_dir = get_output_path(__file__)
 
     merged_df_full, merged_df_filtered = get_merged_pc_and_seg_feature_tables(
         dataset_name=dataset_name

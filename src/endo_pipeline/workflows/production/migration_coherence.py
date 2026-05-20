@@ -23,6 +23,7 @@ def main(
         If True, only the cross-dataset summary plots will be generated.
     """
     import logging
+    from typing import cast
 
     import matplotlib.pyplot as plt
     import pandas as pd
@@ -33,7 +34,12 @@ def main(
         get_shear_stress_label_for_dataset,
         load_dataset_config,
     )
-    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
+    from endo_pipeline.io import (
+        get_output_path,
+        join_sorted_strings,
+        load_dataframe,
+        save_plot_to_path,
+    )
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_annotations,
         filter_dataframe_to_flow_condition_by_timepoint,
@@ -54,7 +60,10 @@ def main(
         plot_optical_flow_histogram,
         plot_scatter_and_binned_heatmap,
     )
-    from endo_pipeline.library.visualize.summary_plot import plot_cross_dataset_summaries
+    from endo_pipeline.library.visualize.summary_plot import (
+        build_dataframe_for_fixed_point_dataset_summary,
+        plot_cross_dataset_summaries,
+    )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName
     from endo_pipeline.settings.dynamics_workflows import (
@@ -83,7 +92,13 @@ def main(
     feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
-    fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{base_name}"
+    feature_column_names = list(DYNAMICS_COLUMN_NAMES)
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid"], *feature_column_names]
+
+    columns_str = join_sorted_strings(cast(list[str], feature_column_names))
+    fixed_points_dataframe_manifest_name = (
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{columns_str}_{base_name}"
+    )
     fixed_points_dataframe_manifest = load_dataframe_manifest(fixed_points_dataframe_manifest_name)
 
     bootstrap_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}"
@@ -98,12 +113,18 @@ def main(
         logger.info("DEMO MODE, only processing first dataset [ %s ]", datasets[0])
 
     # --- Cross-dataset summary plots ---
-    plot_cross_dataset_summaries(
+    dataset_summary_df = build_dataframe_for_fixed_point_dataset_summary(
         dataset_names=datasets,
         feature_dataframe_manifest=feature_dataframe_manifest,
-        fixed_points_bootstrap_dataframe_manifest=fixed_points_bootstrap_dataframe_manifest,
+        bootstrap_dataframe_manifest=fixed_points_bootstrap_dataframe_manifest,
+        convert_angle_to_nematic=True,
+        stable_only=True,
+    )
+    plot_cross_dataset_summaries(
+        dataset_summary_df,
         output_dir=output_dir,
-        x_axis_mode="dataset",
+        axis_mode="dataset",
+        category_order=datasets,
     )
 
     if not skip_individual_plots:
@@ -128,7 +149,6 @@ def main(
                 # non-steady-state timepoints based on annotations), computing
                 # only the columns needed for visualization/analysis
                 df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
-                columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid"], *DYNAMICS_COLUMN_NAMES]
                 df_ = df[columns_to_compute].compute()
                 df_steady_state = filter_dataframe_by_annotations(
                     df_,
