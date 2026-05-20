@@ -337,7 +337,7 @@ def upload_file_to_fms(
         FMS file id for the uploaded file.
     """
 
-    from endo_pipeline.cli import DEMO_MODE, USE_STAGING
+    from endo_pipeline.cli import DEMO_MODE, FMS_ENVIRONMENT
     from endo_pipeline.io.fms import FMS, FMS_FILE_NAME
 
     if isinstance(file_path, str):
@@ -354,7 +354,7 @@ def upload_file_to_fms(
     record = list(FMS.find(annotations={FMS_FILE_NAME: file_path.name}))
     file_name = make_name_unique(file_path).name if record else file_path.name
 
-    if DEMO_MODE and not USE_STAGING:
+    if DEMO_MODE and FMS_ENVIRONMENT == "prod":
         logger.debug("Skipped FMS upload to production for demo mode")
         return "FakeFileIDForDemoMode"
 
