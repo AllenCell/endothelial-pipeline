@@ -133,7 +133,12 @@ def _convert_polar_angle_to_nematic_order(df: pd.DataFrame) -> pd.DataFrame:
             # the mean angle to avoid issues with angle wrapping around the periodic boundary.
             circ_diff = np.diff(np.unwrap([theta_mean, theta_ci], period=POLAR_ANGLE_PERIOD))[-1]
             # Approximate the nematic order CI using the chain rule
-            df.at[idx, nematic_ci_col] = nematic_mean + f_prime * circ_diff
+            nematic_bound = nematic_mean + f_prime * circ_diff
+            # clip the nematic CI to the valid range of [-1, 1]
+            if ci_type == ColumnName.BootstrapAnalysis.CI_LOWER:
+                df.at[idx, nematic_ci_col] = max(nematic_bound, -1)
+            else:
+                df.at[idx, nematic_ci_col] = min(nematic_bound, 1)
 
     return df
 
