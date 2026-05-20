@@ -29,8 +29,8 @@ DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_FILTERED: str = (
 )
 """Default manifest name for PCA-reduced DiffAE features for track-based crops after filtering."""
 
-DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_UNFILTERED: str = "grid_based_features_unfiltered"
-"""Default manifest name for PCA-reduced DiffAE features for grid-based crops before filtering."""
+GRID_BASED_FEATURES_UNFILTERED_MANIFEST_NAME: str = "grid_based_features_unfiltered"
+"""Dataframe manifest name for unfiltered grid-based features."""
 
 DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED: str = "grid_based_features_filtered"
 """Default manifest name for PCA-reduced DiffAE features for grid-based crops after filtering."""

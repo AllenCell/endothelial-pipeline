@@ -463,8 +463,6 @@ def _make_feature_pair_histogram_panel(
     dataset_high = EXAMPLE_DATASET["FIGURE_2_HIGH_FLOW_DATASET"]
 
     dataframe_manifest = load_dataframe_manifest(CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME)
-    histogram_vmin = 0.0
-    histogram_vmax = 0.7
 
     start_imaging_line_color = "limegreen"
     steady_state_line_color = "darkturquoise"
