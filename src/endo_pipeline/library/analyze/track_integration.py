@@ -58,13 +58,13 @@ from endo_pipeline.settings.flow_field_3d import (
     TRAJECTORY_TIME_SPAN,
 )
 from endo_pipeline.settings.workflow_defaults import (
+    CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
     DEFAULT_COLUMNS_TO_DROP,
     DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
     DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_FILTERED,
     DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_UNFILTERED,
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
-    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
 )
 
@@ -1027,9 +1027,7 @@ def load_filtered_trajectory_df_for_first_passage_time_workflow(
             DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED
         )
     elif crop_pattern == "tracked":
-        dynamics_manifest = load_dataframe_manifest(
-            DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED
-        )
+        dynamics_manifest = load_dataframe_manifest(CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME)
     else:
         raise ValueError(f"Unsupported crop pattern: {crop_pattern}")
 

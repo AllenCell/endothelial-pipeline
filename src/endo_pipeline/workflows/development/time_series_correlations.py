@@ -66,8 +66,8 @@ def main(
         LONG_TRACK_THRESHOLD_LENGTH,
     )
     from endo_pipeline.settings.workflow_defaults import (
+        CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
         DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
-        DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
     )
 
     # initialize logger
@@ -96,7 +96,7 @@ def main(
     if crop_pattern == "grid":
         feature_dataframe_manifest_name = DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED
     elif crop_pattern == "tracked":
-        feature_dataframe_manifest_name = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED
+        feature_dataframe_manifest_name = CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME
     else:
         raise ValueError(
             f"Crop_pattern must be one of [ 'grid', 'tracked' ], not '{crop_pattern}'."
