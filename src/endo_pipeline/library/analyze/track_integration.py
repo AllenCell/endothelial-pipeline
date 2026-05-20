@@ -5,10 +5,8 @@ from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt
 from odrpack import odr_fit
 from scipy.stats import pearsonr
-from seaborn import color_palette
 
 from endo_pipeline.configs.dataset_config_io import load_dataset_config
 from endo_pipeline.io import load_dataframe
@@ -28,7 +26,6 @@ from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
 )
 from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
-from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
 from endo_pipeline.library.analyze.vector_field_estimation import (
     get_vector_field_as_dict_from_dataframe,
     load_drift_dataframe_for_dataset,
@@ -546,123 +543,6 @@ def get_vector_dot_products_as_grid(
     dot_prod_arr = dot_prod_full.reshape(v1_grids.shape)
     dot_prod = dot_prod_arr[slice_indexes].reshape(my_shape)
     return dot_prod
-
-
-def make_angular_deviation_test(out_dir: Path) -> None:
-    """
-    Generate a diagnostic plot that visualises the angular deviation between a set of
-    test vectors and the nearest vector in a synthetic one-direction flow field.
-
-    The plot is saved as ``get_angular_deviation_deg_test.png`` in ``out_dir``.
-
-    Parameters
-    ----------
-    out_dir
-        Directory in which to save the output figure.
-    """
-    test_flow_field = one_direction_vector_field_example()
-
-    test_vectors = np.array(
-        [
-            [1.0, 0.0],
-            [0.0, 1.0],
-            [-1.0, 0.0],
-            [0.0, -1.0],
-            [1.0, 1.0],
-            [-1.0, 1.0],
-            [1.0, -1.0],
-            [-1.0, -1.0],
-        ]
-    )
-
-    test_points = np.array(
-        [
-            [-8.0, -4.0],
-            [-6.0, -3.0],
-            [-4.0, -2.0],
-            [-2.0, -1.0],
-            [2.0, 1.0],
-            [4.0, 2.0],
-            [6.0, 3.0],
-            [8.0, 4.0],
-        ]
-    )
-
-    slice_indexes = np.where(np.ones_like(test_flow_field[0][1]))
-    test_flow_field_points = get_approx_point_from_grid(
-        test_points,
-        test_flow_field[1][0],
-        test_flow_field[1][1],
-        test_flow_field[0][0],
-        test_flow_field[0][1],
-        slice_indexes,
-    )
-
-    test_flow_field_vectors = get_approx_vec_from_grid(
-        test_vectors,
-        test_flow_field[1][0],
-        test_flow_field[1][1],
-        test_flow_field[0][0],
-        test_flow_field[0][1],
-        slice_indexes,
-    )
-
-    test_angular_deviation = get_vector_vector_angle_fast(test_flow_field_vectors, test_vectors)
-    test_angular_deviation_deg = np.rad2deg(test_angular_deviation)
-
-    cmap = color_palette("dark:red", as_cmap=True)
-
-    fig, ax = plt.subplots(1, 1, figsize=(4, 4))
-    ax.quiver(
-        test_flow_field[1][0],
-        test_flow_field[1][1],
-        test_flow_field[0][0],
-        test_flow_field[0][1],
-        scale_units="xy",
-        angles="xy",
-        scale=1,
-        units="width",
-        width=0.005,
-        alpha=1,
-        color="lightgrey",
-    )
-    ax.quiver(
-        test_flow_field_points[:, 0],
-        test_flow_field_points[:, 1],
-        test_flow_field_vectors[:, 0],
-        test_flow_field_vectors[:, 1],
-        scale_units="xy",
-        angles="xy",
-        scale=1,
-        units="width",
-        width=0.005,
-        alpha=1,
-        color="grey",
-    )
-    ax.quiver(
-        test_points[:, 0],
-        test_points[:, 1],
-        test_vectors[:, 0],
-        test_vectors[:, 1],
-        scale_units="xy",
-        angles="xy",
-        scale=1,
-        units="width",
-        width=0.005,
-        alpha=1,
-        color=cmap(np.abs(test_angular_deviation_deg) / 180.0),  # convert angle to color
-    )
-    ax.set_xlim(-9, 9)
-    ax.set_ylim(-5, 5)
-    ax.set_aspect("equal")
-    ax.set_title("Angular deviation from\nflow field test")
-    fig.savefig(
-        out_dir / "get_angular_deviation_deg_test.png",
-        dpi=200,
-        bbox_inches="tight",
-    )
-    plt.close(fig)
-    return
 
 
 def get_merged_pc_and_seg_feature_tables(
