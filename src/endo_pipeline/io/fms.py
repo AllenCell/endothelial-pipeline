@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from endo_pipeline.cli import USE_STAGING
+from endo_pipeline.cli import FMS_ENVIRONMENT
 
 logger = logging.getLogger(__name__)
 
@@ -9,26 +9,27 @@ logger = logging.getLogger(__name__)
 try:
     from aicsfiles import FileLevelMetadataKeys, FileManagementSystem
 except ModuleNotFoundError:
-    logger.error("Required dependency [ aicsfiles ] not found")
+    logger.error("Required dependency 'aicsfiles' not found")
     raise
 except ImportError:
-    logger.error("Unable to import [ FileManagementSystem ] from [ aicsfiles ]")
+    logger.error("Unable to import 'FileManagementSystem' from 'aicsfiles'")
     raise
 
-if USE_STAGING:
-    FMS_ENV = "stg"
+if FMS_ENVIRONMENT == "stg":
     FMS_BUCKET_NAME = "staging.files.allencell.org"
     FMS_LOCAL_PATH = "//allen/aics/fms/staging/fss"
-else:
-    FMS_ENV = "prod"
+elif FMS_ENVIRONMENT == "prod":
     FMS_BUCKET_NAME = "production.files.allencell.org"
     FMS_LOCAL_PATH = "//allen/programs/allencell/data/proj0/"
+else:
+    logger.error("Invalid FMS environment '%s'", FMS_ENVIRONMENT)
+    raise ValueError(f"Cannot initialize '{FMS_ENVIRONMENT}' FMS environment")
 
-FMS = FileManagementSystem.from_env(FMS_ENV)
+FMS = FileManagementSystem.from_env(FMS_ENVIRONMENT)
 FMS_FILE_ID = FileLevelMetadataKeys.FILE_ID.value
 FMS_FILE_NAME = FileLevelMetadataKeys.FILE_NAME.value
 
-logger.info("Initialized FMS environment [ %s ]", FMS_ENV)
+logger.info("Initialized FMS '%s' environment", FMS_ENVIRONMENT)
 
 
 def get_local_path_from_fmsid(fmsid: str) -> Path:
@@ -50,15 +51,15 @@ def get_local_path_from_fmsid(fmsid: str) -> Path:
     """
 
     if not Path("//allen").exists():
-        logger.error("Workflow unable to access [ /allen ] drive")
+        logger.error("Workflow unable to access '/allen' drive")
         raise ConnectionError("Workflow does not have access to AICS intranet")
 
     annotations = {FMS_FILE_ID: fmsid}
     record = list(FMS.find(annotations=annotations))
 
     if not record:
-        logger.error("Record for FMS ID [ %s ] in FMS [ %s ] environment not found", fmsid, FMS_ENV)
-        raise LookupError(f"cannot find file id '{fmsid}' in FMS [ {FMS_ENV} ] environment")
+        logger.error("Record for FMS ID '%s' in '%s' environment not found", fmsid, FMS_ENVIRONMENT)
+        raise LookupError(f"Cannot find file id '{fmsid}' in FMS '{FMS_ENVIRONMENT}' environment")
 
     local_path = Path(record[0].path.replace(FMS_BUCKET_NAME, FMS_LOCAL_PATH))
 

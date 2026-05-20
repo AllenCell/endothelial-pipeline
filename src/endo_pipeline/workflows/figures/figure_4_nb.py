@@ -19,6 +19,7 @@ from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
+    FEATURES_FILTERED_MANIFEST_NAMES,
 )
 
 plt.style.use("endo_pipeline.figure")
@@ -36,7 +37,7 @@ create_panel_perturbation_examples(
 base_name = (
     f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{MIGRATION_COHERENCE_CROP_PATTERN}"
 )
-feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
+feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[MIGRATION_COHERENCE_CROP_PATTERN]
 feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
 fixed_points_bootstrap_dataframe_manifest_name = (

@@ -31,9 +31,7 @@ from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL, MAX_
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
 from endo_pipeline.settings.summary_plot import CELL_LINE_LABEL_MAP
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
-from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
-)
+from endo_pipeline.settings.workflow_defaults import CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME
 
 
 def create_panel_biological_system_examples(
@@ -154,9 +152,7 @@ def create_panel_patch_featurization(
     dataset_config = load_dataset_config(example.dataset_name)
 
     # Load tracking data to get cell coordinates
-    tracking_manifest = load_dataframe_manifest(
-        DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED
-    )
+    tracking_manifest = load_dataframe_manifest(CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME)
     df_location = get_dataframe_location_for_dataset(tracking_manifest, dataset_config.name)
     df_all = load_dataframe(df_location, delay=True)
 

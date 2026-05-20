@@ -41,14 +41,14 @@ def get_shear_stress_label_for_dataset(
 
     Label will be in format [ dataset date ] ([ shear stress value(s) ] dyn/cm^2).
 
-    **Flow switch datasets**:
+    **Multi-flow condition datasets**:
 
     If the dataset has two flow conditions, then by default, the label will
     include both shear stress values (e.g. "0-12"). If *flow_condition* is
     provided, then only the shear stress value for that flow condition will be
     included in the label (e.g. "0" or "12").
 
-    **Non-flow switch datasets**:
+    **Single-flow condition datasets**:
 
     If the dataset has only one flow condition, then the label will include that
     shear stress value regardless of whether *flow_condition* is provided or not

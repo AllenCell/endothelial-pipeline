@@ -42,9 +42,7 @@ from endo_pipeline.settings.migration_coherence import (
 )
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, StabilityLegendHandle
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
-from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
-)
+from endo_pipeline.settings.workflow_defaults import GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -542,7 +540,7 @@ def make_example_migration_coherence(
     # load dataframe and perform additional filtering (remove
     # non-steady-state timepoints based on annotations), computing
     # only the columns needed for visualization/analysis
-    feature_dataframe_manifest_name = DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED
+    feature_dataframe_manifest_name = GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
     df = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
 

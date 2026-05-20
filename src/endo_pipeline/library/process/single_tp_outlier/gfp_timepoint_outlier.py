@@ -5,6 +5,7 @@ import pandas as pd
 from endo_pipeline.configs import DatasetConfig
 from endo_pipeline.io import get_output_path, load_image, save_plot_to_path
 from endo_pipeline.manifests import get_zarr_location_for_position
+from endo_pipeline.settings.figures import FONTSIZE_XSMALL, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.method_constants import GFP_ROLLING_WINDOW, OUTLIER_THRESHOLD
 
 
@@ -17,8 +18,8 @@ def plot_gfp_outliers_rolling(
     bright_outliers: list[int],
     dataset_name: str,
     position: int,
-    window: int = GFP_ROLLING_WINDOW,
     percent: float = OUTLIER_THRESHOLD,
+    figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH / 2, 3),
 ) -> None:
     """
     Plot timepoint-level mean intensities with rolling mean ± percentage thresholds and outliers.
@@ -47,15 +48,15 @@ def plot_gfp_outliers_rolling(
         Threshold percentage for identifying outliers (default is THRESHOLD).
     """
 
-    fig, ax = plt.subplots(figsize=(5.3, 3))
-    ax.plot(tp_means, label="TP Mean Intensity", color="black", alpha=0.7)
-    ax.plot(rolling_mean, label=f"Rolling Mean\n(window = {window})", color="blue", alpha=0.9)
-    ax.plot(lower_threshold, color="red", linestyle="--", label=f"Lower ({int(percent*100)}%)")
-    ax.plot(upper_threshold, color="orange", linestyle="--", label=f"Upper ({int(percent*100)}%)")
+    fig, ax = plt.subplots(figsize=figure_size)
+    ax.plot(tp_means, label="Intensity", color="black", alpha=0.7)
+    ax.plot(rolling_mean, label="Rolling mean", color="blue", alpha=0.9)
+    ax.plot(lower_threshold, color="red", linestyle="--", label=f"Lower {int(percent*100)}%")
+    ax.plot(upper_threshold, color="orange", linestyle="--", label=f"Upper {int(percent*100)}%")
 
     if dark_outliers:
         ax.scatter(
-            dark_outliers, tp_means[dark_outliers], color="red", label="Dark Outliers", zorder=5
+            dark_outliers, tp_means[dark_outliers], color="red", label="Dark outliers", zorder=5
         )
 
     if bright_outliers:
@@ -63,30 +64,44 @@ def plot_gfp_outliers_rolling(
             bright_outliers,
             tp_means[bright_outliers],
             color="orange",
-            label="Bright Outliers",
+            label="Bright outliers",
             zorder=5,
         )
 
     info_lines = []
     if dark_outliers:
-        info_lines.append(f"Dark: {dark_outliers}")
+        info_lines.append(f"Dark outliers: {dark_outliers}")
     if bright_outliers:
-        info_lines.append(f"Bright: {bright_outliers}")
+        info_lines.append(f"Bright outliers: {bright_outliers}")
 
     if info_lines:
         print("\n".join(info_lines))
 
     ax.set_xlabel("Time (frames)")
-    ax.set_ylabel("Average mEGFP intensity in Z-stack (a.u.)")
+    ax.set_ylabel("Mean VE-cadherin\nintensity in Z-stack (a.u.)")
     ax.tick_params(axis="both", which="major")
 
     ncols = 4 if not dark_outliers and not bright_outliers else 3
-    ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.4), ncol=ncols)
+    (lines, labels) = plt.gca().get_legend_handles_labels()
+    ax.legend(
+        lines,
+        labels,
+        loc="upper left",
+        ncol=ncols,
+        fontsize=FONTSIZE_XSMALL,
+        handlelength=1.1,
+        handletextpad=0.4,
+        columnspacing=1.0,
+        borderpad=0.25,
+        borderaxespad=0.25,
+    )
+
+    # reduce label padding
+    ax.xaxis.labelpad = 3
+    ax.yaxis.labelpad = 3
 
     save_dir = get_output_path("annotate_tp_outliers")
     save_plot_to_path(fig, save_dir, f"gfp_outliers_{dataset_name}_P{position}", file_format=".svg")
-    plt.show()
-    plt.close(fig)
 
 
 def detect_egfp_scope_errors(
@@ -95,6 +110,7 @@ def detect_egfp_scope_errors(
     visualize: bool = False,
     window: int = GFP_ROLLING_WINDOW,
     percent: float = OUTLIER_THRESHOLD,
+    figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH / 2, 3),
 ) -> list[int]:
     """
     Detect EGFP scope errors based on per-timepoint mean with rolling mean ± percentage thresholds.
@@ -115,6 +131,8 @@ def detect_egfp_scope_errors(
         Size of the rolling window used for calculating the rolling mean (default is GFP_ROLLING_WINDOW).
     percent : float, optional
         Threshold percentage for identifying outliers (default is OUTLIER_THRESHOLD).
+    figure_size
+        The size of the figure to generate if visualize is True (default is (MAX_FIGURE_WIDTH/2, 3)).
 
     Returns
     -------
@@ -162,8 +180,8 @@ def detect_egfp_scope_errors(
             bright_outliers,
             dataset_config.name,
             position,
-            window=window,
             percent=percent,
+            figure_size=figure_size,
         )
 
     return egfp_scope_error

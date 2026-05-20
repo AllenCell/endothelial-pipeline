@@ -4,6 +4,7 @@ from cyclopts import Parameter
 
 from endo_pipeline.cli import CropPattern, Datasets, StrList
 from endo_pipeline.settings.dynamics_workflows import LONG_TRACK_THRESHOLD_LENGTH
+from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
 
 
 def main(
@@ -101,10 +102,6 @@ def main(
         DEFAULT_COV_ANALYSIS_COLUMNS,
         TIME_WINDOW_BIN_SIZE,
     )
-    from endo_pipeline.settings.workflow_defaults import (
-        DEFAULT_MODEL_MANIFEST_NAME,
-        DEFAULT_MODEL_RUN_NAME,
-    )
 
     logger = logging.getLogger(__name__)
 
@@ -118,8 +115,7 @@ def main(
         dict[str | Column.DiffAEData, tuple[float, float]], BIN_LIMITS_DYNAMICS.copy()
     )
     # get manifest for crop-based features
-    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
-    feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
+    feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[crop_pattern]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # plotting timepoints in unit hours: conversion factor
