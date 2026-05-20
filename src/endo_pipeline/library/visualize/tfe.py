@@ -50,9 +50,9 @@ from endo_pipeline.settings.tfe import (
     TFE_TYPE_MAPPING,
 )
 from endo_pipeline.settings.workflow_defaults import (
+    CELL_CENTERED_FEATURES_UNFILTERED_MANIFEST_NAME,
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
-    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
 )
 
 logger = logging.getLogger(__name__)
@@ -204,7 +204,7 @@ def get_cdh5_seg_data_for_tfe(
     dataset: DatasetConfig,
     position: int,
     max_timepoint: int | None = None,
-    dataframe_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
+    dataframe_manifest_name: str = CELL_CENTERED_FEATURES_UNFILTERED_MANIFEST_NAME,
 ) -> pd.DataFrame:
     """Get dataframe of CDH5 segmentation feature data for TFE."""
 
