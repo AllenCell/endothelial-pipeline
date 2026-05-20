@@ -1,4 +1,4 @@
-name: cell_centered_features
+name: cell_centered_features_unfiltered
 workflow: combine_cell_centered_features
 parameters: {}
 locations:
