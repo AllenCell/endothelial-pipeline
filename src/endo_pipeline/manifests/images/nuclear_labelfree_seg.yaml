@@ -1,5 +1,5 @@
 name: nuclear_labelfree_seg
-workflow: generate_label_free_nuc_pred (manifest updated manually)
+workflow: run_labelfree_nuclei_prediction (manifest updated manually)
 parameters: {}
 locations:
   20250319_20X:

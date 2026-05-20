@@ -3,27 +3,53 @@ from endo_pipeline.cli import Datasets
 
 def main(
     datasets: Datasets | None = None,
-    n_proc: int = 1,
+    num_processes: int = 1,
     save_output: bool = True,
 ) -> None:
-    """Run the CDH5-based measured features extraction workflow.
-
-    #test-ready #cpu-only
-
-    Measures cell segmentation alignment to flow, elongation, edge intensity, etc.
-
-    To enter a list of datasets to analyze, use the following format:
-
-    .. code-block:: bash
-
-        --datasets 20250818_20X 20250618_20X
-    **Workflow demo**
-
-    The ``--demo-mode`` (``-d``) flag can be used to run a simplified version of
-    this workflow for testing purposes (e.g. during code review). The workflow
-    will only extract measured features from the first two positions and the
-    first three timepoints for each of the given datasets.
     """
+    Extract measure features based on CDH5 segmentations.
+
+    #cdh5-segmentation #test-ready #cpu-only
+
+    Features extracted from CDH5-based cell segmentation include alignment to
+    flow, elongation, edge intensity, etc. Features are calculated for each
+    timepoint and then combined into a single dataframe.
+
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe get-cdh5-measured-features -vd
+    ```
+
+    To run the workflow for a single dataset:
+
+    ```bash
+    uv run endopipe get-cdh5-measured-features --datasets DATASET_NAME
+    ```
+
+    ## Dataset collection
+
+    If datasets are not provided, the workflow will use datasets in the
+    `live_cdh5_seg_based_feat_datasets` dataset collection.
+
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will extract
+    features for first three timepoints of the first two positions for the first
+    dataset.
+
+    Parameters
+    ----------
+    datasets
+        List of datasets or dataset collections to segment.
+    num_processes
+        Number of processes to use.
+    save_output
+        True to save outputs from workflow, False otherwise.
+    """
+
     import logging
 
     from endo_pipeline.cli import DEMO_MODE
@@ -40,33 +66,32 @@ def main(
 
     logger = logging.getLogger(__name__)
 
-    out_dir = get_output_path(__file__)
+    out_dir = get_output_path("cdh5_measured_features")
 
     datasets = use_default_collection(datasets, "live_cdh5_seg_based_feat_datasets")
-    logger.info(f"datasets analyzed: {datasets}")
 
     analysis_queue = build_analysis_queue(
         datasets,
-        save_output=save_output,
         out_dir=out_dir,
-        overwrite=True,
         image_validation_frequency=None,
-        is_test=DEMO_MODE,
         t_start=0,
         t_final=3 if DEMO_MODE else None,
+        max_positions=2 if DEMO_MODE else None,
+        overwrite=True,
+        save_output=save_output,
     )
 
-    # measure features from CDH5 segmentations and save as a .parquet table
+    logger.info("Starting feature extraction...")
+
     process_task_queue(
         build_cdh5_measured_features_tables_multiproc_wrapper,
         analysis_queue,
         description="Getting cell features",
-        num_processes=n_proc,
+        num_processes=num_processes,
         chunksize=2,
     )
 
-    # lastly, for each dataset concatenate the tables from each timepoint
-    # into a single output table for that dataset
+    # Concatenate outputs into a single output table for each dataset
     if save_output:
         for dataset_name in datasets:
             concatenate_and_save_feature_tables(
@@ -86,7 +111,7 @@ def main(
                 remove_initial_files_and_folders=True,
             )
 
-    logger.info("...done analysis!")
+    logger.info("Finished extracting features!")
 
 
 if __name__ == "__main__":

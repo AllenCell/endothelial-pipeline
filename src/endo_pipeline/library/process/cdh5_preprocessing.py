@@ -28,7 +28,10 @@ from skimage.segmentation import (
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_image
-from endo_pipeline.library.process.general_image_preprocessing import save_image_output
+from endo_pipeline.library.process.general_image_preprocessing import (
+    ImageProcessingArgs,
+    save_image_output,
+)
 from endo_pipeline.manifests import (
     get_image_location_for_dataset,
     get_zarr_location_for_position,
@@ -931,26 +934,20 @@ def generate_cdh5_segmentation_refined(
         pass
 
 
-def generate_cdh5_segmentation_refined_multiproc_wrapper(args: dict) -> None:
-    """Unpack arguments required for and call `generate_cdh5_segmentation_refined` function.
-    Produces cdh5 segmentations for a given dataset, position, and timepoint using
-    multiprocessing.
+def generate_cdh5_segmentation_refined_multiproc_wrapper(args: ImageProcessingArgs) -> None:
+    """
+    Unpack arguments and call `generate_cdh5_segmentation_refined` function.
+
+    Produces cdh5 segmentations for a given dataset, position, and timepoint
+    using multiprocessing.
     """
 
-    dataset_name = args["dataset_name"]
-    position = args["position"]
-    timepoint = args["T"]
-    img_bin_level = args["image_bin_level"]
-    save_output = args["save_output"]
-    out_dir = args["output_dir"]
-    create_validation_image = args["is_validation_image"]
-
     generate_cdh5_segmentation_refined(
-        out_dir=out_dir,
-        dataset_name=dataset_name,
-        timepoint=timepoint,
-        position=position,
-        img_bin_level=img_bin_level,
-        save_output=save_output,
-        create_validation_image=create_validation_image,
+        out_dir=args.output_dir,
+        dataset_name=args.dataset_name,
+        timepoint=args.timepoint,
+        position=args.position,
+        img_bin_level=args.img_bin_level,
+        save_output=args.save_output,
+        create_validation_image=args.is_validation_image,
     )
