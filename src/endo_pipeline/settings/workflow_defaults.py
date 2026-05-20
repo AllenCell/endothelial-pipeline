@@ -32,8 +32,8 @@ DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_FILTERED: str = (
 GRID_BASED_FEATURES_UNFILTERED_MANIFEST_NAME: str = "grid_based_features_unfiltered"
 """Dataframe manifest name for unfiltered grid-based features."""
 
-DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED: str = "grid_based_features_filtered"
-"""Default manifest name for PCA-reduced DiffAE features for grid-based crops after filtering."""
+GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME: str = "grid_based_features_filtered"
+"""Dataframe manifest name for filtered grid-based features."""
 
 CELL_CENTERED_FEATURES_UNFILTERED_MANIFEST_NAME: str = "cell_centered_features_unfiltered"
 """Dataframe manifest name for unfiltered cell-centered features."""

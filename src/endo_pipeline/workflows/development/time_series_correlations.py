@@ -67,7 +67,7 @@ def main(
     )
     from endo_pipeline.settings.workflow_defaults import (
         CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
-        DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
+        GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME,
     )
 
     # initialize logger
@@ -94,7 +94,7 @@ def main(
 
     # Load dataframe manifest for the features to be used in correlation analysis.
     if crop_pattern == "grid":
-        feature_dataframe_manifest_name = DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED
+        feature_dataframe_manifest_name = GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME
     elif crop_pattern == "tracked":
         feature_dataframe_manifest_name = CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME
     else:
