@@ -327,8 +327,7 @@ def create_rep2_correlation_bar_plot(
     rep2_means = [m["rep2"]["corr_mean"] for m in models_data]
     rep2_stds = [m["rep2"]["corr_std"] for m in models_data]
 
-    with plt.style.context("endo_pipeline.figure"):
-        fig, ax = plt.subplots(figsize=(max(12, num_models * 1.5 + 1), 7))
+    fig, ax = plt.subplots(figsize=(max(12, num_models * 1.5 + 1), 7))
 
     ax.bar(
         x_pos,

@@ -1,15 +1,26 @@
 """Parquet persistence for model QC inference results.
 
-Used to hand off per-(model, seed) evaluation output from the
-``fig-model-qc-inference`` workflow to the ``fig-model-qc-plot`` workflow,
-so that plotting can run without re-executing GPU diffusion inference.
+The supplementary Model-QC figure pipeline persists the per-(model, seed)
+evaluation output to disk so the companion plot workflow can render the
+bar chart without re-running GPU diffusion inference.
 
-On disk, each ``(model, seed)`` evaluation is stored as a small long-format
-parquet file (one row per example image).  After a run completes, all
-per-seed files are concatenated into a single ``model_qc_metrics.parquet``
-that serves as the canonical FMS-uploadable artifact.
+On-disk layout
+--------------
 
-Schema of the long-format dataframe (per row = one example x seed x model):
+- One **per-model** parquet per ``(manifest_name, run_name)`` pair, named
+  ``<manifest>__<run>.parquet``.  Each file holds rows for every seed
+  evaluated for that model.  The set of per-model parquets is what gets
+  enumerated in a :class:`DataframeManifest` and (optionally) uploaded
+  to FMS.
+
+- A transient ``shards/`` subdirectory holding per-seed parquets named
+  ``<manifest>__<run>__seed<N>.parquet``.  Shards are the finest-grained
+  resume unit: the inference workflow skips any seed whose shard already
+  exists.  Once every seed for a given model finishes, the shards are
+  concatenated into the per-model parquet and can be deleted.  Shards
+  never enter the ``DataframeManifest``.
+
+Long-format schema (per row = one example x seed x model):
 
 - ``manifest_name``, ``run_name``     -- model identity
 - ``random_seed``                     -- noise/RNG seed used for this row
@@ -31,12 +42,13 @@ import pandas as pd
 
 if TYPE_CHECKING:
     from endo_pipeline.library.model.model_qc.evaluation import ModelKey
+    from endo_pipeline.manifests import DataframeManifest
     from endo_pipeline.settings.examples import ExampleImage
 
 logger = logging.getLogger(__name__)
 
 
-COMBINED_DATAFRAME_FILENAME = "model_qc_metrics.parquet"
+SHARDS_SUBDIR = "shards"
 
 DATAFRAME_COLUMNS: list[str] = [
     "manifest_name",
@@ -59,14 +71,29 @@ DATAFRAME_COLUMNS: list[str] = [
 ]
 
 
-def seed_result_filename(model_key: "ModelKey", seed: int) -> str:
-    """Return the parquet filename used to persist one ``(model_key, seed)`` result."""
-    return f"{model_key.manifest_name}__{model_key.run_name}__seed{seed}.parquet"
+def model_key_str(model_key: "ModelKey") -> str:
+    """Return the canonical ``manifest__run`` string used in filenames and manifest keys."""
+    return f"{model_key.manifest_name}__{model_key.run_name}"
 
 
-def seed_result_path(run_dir: Path, model_key: "ModelKey", seed: int) -> Path:
-    """Absolute path of the persisted parquet for one ``(model_key, seed)`` result."""
-    return Path(run_dir) / seed_result_filename(model_key, seed)
+def model_result_filename(model_key: "ModelKey") -> str:
+    """Per-model parquet filename (one file per ``(manifest, run)`` pair)."""
+    return f"{model_key_str(model_key)}.parquet"
+
+
+def model_result_path(out_dir: Path, model_key: "ModelKey") -> Path:
+    """Absolute path of the per-model parquet under ``out_dir``."""
+    return Path(out_dir) / model_result_filename(model_key)
+
+
+def shard_filename(model_key: "ModelKey", seed: int) -> str:
+    """Per-(model, seed) shard filename used for resume granularity."""
+    return f"{model_key_str(model_key)}__seed{seed}.parquet"
+
+
+def shard_path(out_dir: Path, model_key: "ModelKey", seed: int) -> Path:
+    """Absolute path of a per-seed shard under ``out_dir / SHARDS_SUBDIR``."""
+    return Path(out_dir) / SHARDS_SUBDIR / shard_filename(model_key, seed)
 
 
 def _aligned_baseline_values(
@@ -184,37 +211,59 @@ def _result_to_dataframe(
     return pd.DataFrame(rows, columns=DATAFRAME_COLUMNS)
 
 
-def save_seed_result(
-    run_dir: Path,
+def save_shard(
+    out_dir: Path,
     model_key: "ModelKey",
     seed: int,
     result: dict,
     examples_by_set: dict[str, list["ExampleImage"]] | None = None,
 ) -> Path:
-    """Persist one ``evaluate_single_model`` result dict to parquet.
-
-    Parameters
-    ----------
-    run_dir
-        Directory holding all per-(model, seed) files for one inference run.
-    model_key, seed, result
-        Identity + payload coming back from :func:`evaluate_single_model`.
-    examples_by_set
-        Mapping ``{example_set_label: [ExampleImage, ...]}`` used to
-        decorate each row with the originating crop's metadata.  Omit when
-        the metadata is unavailable (the metric columns will still be
-        written; the ``dataset_name``/``position``/... columns will be
-        null).
+    """Persist one ``(model_key, seed)`` ``evaluate_single_model`` result to a shard parquet.
 
     Returns
     -------
     :
-        Path of the parquet file written for this ``(model_key, seed)``.
+        Path of the shard file written under ``out_dir / SHARDS_SUBDIR``.
     """
     df = _result_to_dataframe(model_key, seed, result, examples_by_set or {})
-    out_path = seed_result_path(run_dir, model_key, seed)
+    out_path = shard_path(out_dir, model_key, seed)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(out_path, index=False)
+    return out_path
+
+
+def write_model_parquet_from_shards(
+    out_dir: Path,
+    model_key: "ModelKey",
+    seeds: list[int],
+) -> Path:
+    """Concatenate the per-seed shards for one model into its per-model parquet.
+
+    Raises ``FileNotFoundError`` if any expected shard is missing.
+
+    Returns
+    -------
+    :
+        Path of the per-model parquet just written under ``out_dir``.
+    """
+    frames: list[pd.DataFrame] = []
+    for seed in seeds:
+        sp = shard_path(out_dir, model_key, seed)
+        if not sp.exists():
+            raise FileNotFoundError(
+                f"Missing shard for {model_key_str(model_key)} seed={seed}: {sp}"
+            )
+        frames.append(pd.read_parquet(sp))
+    df = pd.concat(frames, ignore_index=True)
+    out_path = model_result_path(out_dir, model_key)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_parquet(out_path, index=False)
+    logger.info(
+        "Wrote per-model parquet (%d rows, %d seeds) to %s",
+        len(df),
+        len(seeds),
+        out_path,
+    )
     return out_path
 
 
@@ -259,137 +308,60 @@ def _is_nan(v: object) -> bool:
         return False
 
 
-def load_seed_results(
-    run_dir: Path,
+def load_results_from_manifest(
+    manifest: "DataframeManifest",
 ) -> tuple[dict["ModelKey", dict[int, dict]], list["ModelKey"], list[int]]:
-    """Load all persisted ``(model_key, seed)`` results from ``run_dir``.
+    """Load per-(model, seed) results from a :class:`DataframeManifest`.
 
-    Reads the consolidated ``model_qc_metrics.parquet`` (preferred) or
-    falls back to globbing per-seed parquets.  ``run_dir`` may also point
-    directly at a parquet file (e.g. one resolved from FMS), in which
-    case that file is loaded as-is.  Returns the data shaped like
-    ``model_qc.py`` builds in memory:
+    Each entry in ``manifest.locations`` is expected to point at a
+    per-model parquet (one file per ``(manifest_name, run_name)`` pair)
+    written by the production inference workflow.  Locations are
+    resolved via :func:`endo_pipeline.io.load_dataframe`, so files can
+    come from FMS, local path, or S3.
 
-    - ``all_seed_results``: ``{ModelKey: {seed: result_dict}}`` where each
-      ``result_dict`` matches the shape produced by
-      :func:`evaluate_single_model`.
-    - ``model_keys``: ordered list of ``ModelKey`` in first-occurrence
-      order in the parquet (matches the curated sweep order in which the
-      per-seed parquets were written and concatenated).
-    - ``seeds``: sorted list of seeds discovered.
+    Returns
+    -------
+    all_seed_results
+        ``{ModelKey: {seed: result_dict}}`` reshaped to match the in-memory
+        layout produced by :func:`evaluate_single_model`.
+    model_keys
+        Model keys in the order they appear in ``manifest.locations``.
+    seeds
+        Sorted union of seeds found across all loaded per-model parquets.
     """
+    from endo_pipeline.io import load_dataframe
     from endo_pipeline.library.model.model_qc.evaluation import ModelKey
 
-    df = _load_combined_or_glob(run_dir)
-    if df.empty:
-        raise FileNotFoundError(f"No metrics parquet files found under {run_dir}")
+    all_seed_results: dict[ModelKey, dict[int, dict]] = {}
+    model_keys: list[ModelKey] = []
+    all_seeds: set[int] = set()
 
-    model_keys = [
-        ModelKey(str(row.manifest_name), str(row.run_name))
-        for row in df[["manifest_name", "run_name"]].drop_duplicates().itertuples(index=False)
-    ]
-    seeds = sorted(int(s) for s in df["random_seed"].unique())
+    for key, location in manifest.locations.items():
+        df = load_dataframe(location)
+        if df.empty:
+            logger.warning("Empty per-model parquet for key %r (location=%r)", key, location)
+            continue
 
-    all_seed_results: dict[ModelKey, dict[int, dict]] = {key: {} for key in model_keys}
-    for model_key in model_keys:
-        for seed in seeds:
-            sub = df[
-                (df["manifest_name"] == model_key.manifest_name)
-                & (df["run_name"] == model_key.run_name)
-                & (df["random_seed"] == seed)
-            ]
-            if sub.empty:
-                logger.warning(
-                    "Missing rows for %s/%s seed=%d",
-                    model_key.manifest_name,
-                    model_key.run_name,
-                    seed,
-                )
-                continue
-            all_seed_results[model_key][seed] = _dataframe_to_result(df, model_key, seed)
+        manifest_names = df["manifest_name"].unique().tolist()
+        run_names = df["run_name"].unique().tolist()
+        if len(manifest_names) != 1 or len(run_names) != 1:
+            raise ValueError(
+                f"Per-model parquet for key {key!r} must contain exactly one "
+                f"(manifest_name, run_name) pair; got "
+                f"manifest_names={manifest_names}, run_names={run_names}"
+            )
+        model_key = ModelKey(str(manifest_names[0]), str(run_names[0]))
+        model_keys.append(model_key)
 
-    return all_seed_results, model_keys, seeds
+        seeds_for_model = sorted(int(s) for s in df["random_seed"].unique())
+        all_seeds.update(seeds_for_model)
+        all_seed_results[model_key] = {
+            seed: _dataframe_to_result(df, model_key, seed) for seed in seeds_for_model
+        }
 
+    if not model_keys:
+        raise FileNotFoundError(
+            f"Dataframe manifest {manifest.name!r} resolved to zero usable per-model parquets."
+        )
 
-def _load_combined_or_glob(run_dir: Path) -> pd.DataFrame:
-    run_dir = Path(run_dir)
-    if run_dir.is_file():
-        logger.info("Loading parquet file directly: %s", run_dir)
-        return pd.read_parquet(run_dir)
-
-    combined = run_dir / COMBINED_DATAFRAME_FILENAME
-    if combined.exists():
-        logger.info("Loading combined dataframe: %s", combined)
-        return pd.read_parquet(combined)
-
-    frames = [
-        pd.read_parquet(p)
-        for p in sorted(run_dir.glob("*.parquet"))
-        if p.name != COMBINED_DATAFRAME_FILENAME
-    ]
-    if not frames:
-        return pd.DataFrame(columns=DATAFRAME_COLUMNS)
-    return pd.concat(frames, ignore_index=True)
-
-
-def write_combined_dataframe(run_dir: Path) -> Path:
-    """Concatenate all per-(model, seed) parquets into a single FMS-ready file.
-
-    Writes ``<run_dir>/model_qc_metrics.parquet``, overwriting any prior
-    file by the same name.  Discovers per-seed parquets by globbing
-    ``run_dir`` (excluding the consolidated file itself).
-
-    Returns
-    -------
-    :
-        Path of the consolidated parquet that was just written.
-    """
-    frames = [
-        pd.read_parquet(p)
-        for p in sorted(Path(run_dir).glob("*.parquet"))
-        if p.name != COMBINED_DATAFRAME_FILENAME
-    ]
-    if not frames:
-        raise FileNotFoundError(f"No per-seed parquet files found under {run_dir}")
-    df = pd.concat(frames, ignore_index=True)
-    out_path = Path(run_dir) / COMBINED_DATAFRAME_FILENAME
-    df.to_parquet(out_path, index=False)
-    logger.info("Wrote combined dataframe (%d rows) to %s", len(df), out_path)
-    return out_path
-
-
-def read_combined_dataframe(run_dir: Path) -> pd.DataFrame:
-    """Read the consolidated long-format dataframe written for FMS handoff."""
-    return pd.read_parquet(Path(run_dir) / COMBINED_DATAFRAME_FILENAME)
-
-
-def find_latest_inference_run_dir(workflow_stem: str) -> Path:
-    """Return the most recent date-stamped output directory for an inference workflow.
-
-    Scans ``<results_root>/<date>/<workflow_stem>/`` (matching the layout
-    produced by :func:`endo_pipeline.io.output.get_output_path` with
-    ``include_timestamp=True``) and returns the lexicographically largest
-    date that contains a ``model_qc_metrics.parquet``.  ``workflow_stem``
-    may itself contain ``/`` to point at a nested subdirectory
-    (e.g. ``"model_qc_supp/metrics"``).
-
-    Returns
-    -------
-    :
-        Absolute path of the latest valid run directory.
-    """
-    from endo_pipeline.io.output import get_output_dir
-
-    results_root = get_output_dir()
-    candidates = sorted(
-        results_root.glob(f"*/{workflow_stem}"),
-        key=lambda p: p.relative_to(results_root).parts[0],
-        reverse=True,
-    )
-    for candidate in candidates:
-        if (candidate / COMBINED_DATAFRAME_FILENAME).exists():
-            return candidate
-    raise FileNotFoundError(
-        f"No inference run with {COMBINED_DATAFRAME_FILENAME!r} found under "
-        f"{results_root}/*/{workflow_stem}"
-    )
+    return all_seed_results, model_keys, sorted(all_seeds)

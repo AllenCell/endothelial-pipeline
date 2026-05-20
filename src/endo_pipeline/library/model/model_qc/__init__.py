@@ -9,6 +9,8 @@ This package provides helpers for:
 - Image similarity metrics (correlation, SSIM, LPIPS) (:mod:`.image_metrics`)
 - Computing and aggregating evaluation metrics (:mod:`.metrics`)
 - Orchestrating single-model evaluation (:mod:`.evaluation`)
+- Persisting per-model parquets and loading them via dataframe manifests
+  (:mod:`.results_io`)
 """
 
 from .denoising import run_denoising_experiments
@@ -35,18 +37,13 @@ from .plotting import (
     save_summary_figure,
 )
 from .results_io import (
-    COMBINED_DATAFRAME_FILENAME,
-    find_latest_inference_run_dir,
-    load_seed_results,
-    read_combined_dataframe,
-    save_seed_result,
-    seed_result_path,
-    write_combined_dataframe,
+    load_results_from_manifest,
+    save_shard,
+    write_model_parquet_from_shards,
 )
 from .tiff_io import save_denoising_crops, save_image_as_tiff
 
 __all__ = [
-    "COMBINED_DATAFRAME_FILENAME",
     "ImageMetrics",
     "LPIPSCalculator",
     "ModelKey",
@@ -60,18 +57,15 @@ __all__ = [
     "compute_ssim",
     "create_comparison_plots_and_summary",
     "evaluate_single_model",
-    "find_latest_inference_run_dir",
     "load_and_preprocess_example_crop",
-    "load_seed_results",
+    "load_results_from_manifest",
     "load_transformed_image",
-    "read_combined_dataframe",
     "run_denoising_experiments",
     "save_denoising_crops",
     "save_image_as_tiff",
     "save_intermediate_contact_sheet",
     "save_negative_control_sheet",
-    "save_seed_result",
+    "save_shard",
     "save_summary_figure",
-    "seed_result_path",
-    "write_combined_dataframe",
+    "write_model_parquet_from_shards",
 ]
