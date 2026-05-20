@@ -15,7 +15,7 @@ DEFAULT_MODEL_RUN_NAME: str = "20251110_latent_512"
 DEFAULT_PCA_DATASET_COLLECTION_NAME: str = "diffae_model_training"
 """Default dataset collection name for fitting PCA models."""
 
-DEFAULT_SEG_FEATURE_MANIFEST_NAME: str = "live_merged_seg_features"
+DEFAULT_SEG_FEATURE_MANIFEST_NAME: str = "merged_segmentation_features"
 """Default manifest name for merged CDH5 segmentation, CDH5 tracking and
 label-free nuclei segmentation features."""
 
@@ -39,19 +39,13 @@ DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED: str = (
 )
 """Default manifest names for PCA-reduced DiffAE features for grid-based crops after filtering."""
 
-DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME: str = "pc_diffae_tracked_seg_features"
+DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME: str = "cell_centered_features_unfiltered"
 """Default manifest name for PCA-reduced DiffAE tracked-cell features merged with
 DiffAE tracked-cell features and CDH5 segmentation features."""
 
-DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED: str = (
-    "pc_diffae_tracked_seg_features_filtered"
-)
+DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED: str = "cell_centered_features_filtered"
 """Default manifest name for PCA-reduced DiffAE tracked-cell features merged with
 DiffAE tracked-cell features and CDH5 segmentation features after filtering."""
-
-FIXED_SEG_FEATURE_MANIFEST_NAME: str = "fixed_merged_seg_features"
-"""Default manifest name for merged CDH5 segmentation, CDH5 tracking and
-NucViolet-stained nuclei segmentation features for fixed samples."""
 
 DEFAULT_SEG_FEATURE_WORKFLOW_DATASETS: str = "pca_reference"
 """Default dataset collection name for the segmentation feature workflow."""

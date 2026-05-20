@@ -46,6 +46,7 @@ from endo_pipeline.settings.figures import FONT_FAMILY, FONTSIZE_SMALL, PDF_FONT
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import (
     ANNOTATIONS_TO_FILTER_OUT_FOR_SEGMENTATIONS,
+    DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     SEGMENTATION_FEATURE_COLUMNS,
 )
 
@@ -83,7 +84,7 @@ def _load_seg_feats_df(
     dynamics_cols = cast(list[str], SEGMENTATION_FEATURE_COLUMNS["dynamics_calculation_prereq"])
 
     time_col = Column.SegData.TIME_HRS_SINCE_FLOW
-    live_seg_manifest = load_dataframe_manifest("live_merged_seg_features")
+    live_seg_manifest = load_dataframe_manifest(DEFAULT_SEG_FEATURE_MANIFEST_NAME)
     live_seg_location = get_dataframe_location_for_dataset(live_seg_manifest, dataset_name)
     live_seg_feats_df_delayed = load_dataframe(live_seg_location, delay=True)
 

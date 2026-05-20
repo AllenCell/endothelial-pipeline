@@ -1512,7 +1512,7 @@ def build_cdh5_measured_features_tables(
     - edge_fluorescence_mean (a.u.)
     - edge_fluorescence_std (a.u.)
     - edge_fluorescence_median (a.u.)
-    - edge_fluoresnce_min (a.u.)
+    - edge_fluorescence_min (a.u.)
     - edge_fluorescence_pct25 (a.u.)
     - edge_fluorescence_pct75 (a.u.)
     - edge_fluorescence_max (a.u.)
@@ -1599,7 +1599,7 @@ def build_cdh5_measured_features_tables(
                 "edge_fluorescence_mean (a.u.)": neighbor_node_metrics["fluor_mean (au)"],
                 "edge_fluorescence_std (a.u.)": neighbor_node_metrics["fluor_std (au)"],
                 "edge_fluorescence_median (a.u.)": neighbor_node_metrics["fluor_median (au)"],
-                "edge_fluoresnce_min (a.u.)": neighbor_node_metrics["fluor_min (au)"],
+                "edge_fluorescence_min (a.u.)": neighbor_node_metrics["fluor_min (au)"],
                 "edge_fluorescence_pct25 (a.u.)": neighbor_node_metrics["fluor_pct25 (au)"],
                 "edge_fluorescence_pct75 (a.u.)": neighbor_node_metrics["fluor_pct75 (au)"],
                 "edge_fluorescence_max (a.u.)": neighbor_node_metrics["fluor_max (au)"],

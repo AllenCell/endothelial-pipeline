@@ -1,5 +1,5 @@
 name: cdh5_classic_segmentation_tracking
-workflow: live_feat_workflows_to_fms
+workflow: run_cdh5_tracking
 parameters: {}
 locations:
   20250319_20X:

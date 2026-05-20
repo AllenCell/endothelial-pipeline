@@ -1,5 +1,5 @@
-name: nuclei_label_free_segmentation
-workflow: live_feat_workflows_to_fms
+name: nuclei_labelfree_segmentation
+workflow: get_nuclei_measured_features
 parameters: {}
 locations:
   20250319_20X:
