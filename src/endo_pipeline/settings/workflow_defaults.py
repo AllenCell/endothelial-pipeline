@@ -20,24 +20,20 @@ DEFAULT_SEG_FEATURE_MANIFEST_NAME: str = "merged_segmentation_features"
 label-free nuclei segmentation features."""
 
 DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_UNFILTERED: str = (
-    "diffae_baseline_exclude_cell_piling_20251110_latent_512_tracked_pca"
+    "diffae_pca_features_tracked_unfiltered"
 )
-"""Default manifest names for PCA-reduced DiffAE features for track-based crops before filtering."""
+"""Default manifest name for PCA-reduced DiffAE features for track-based crops before filtering."""
 
 DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_FILTERED: str = (
-    "diffae_baseline_exclude_cell_piling_20251110_latent_512_tracked_pca_filtered"
+    "diffae_pca_features_tracked_filtered"
 )
-"""Default manifest names for PCA-reduced DiffAE features for track-based crops after filtering."""
+"""Default manifest name for PCA-reduced DiffAE features for track-based crops after filtering."""
 
-DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_UNFILTERED: str = (
-    "diffae_baseline_exclude_cell_piling_20251110_latent_512_grid_pca"
-)
-"""Default manifest names for PCA-reduced DiffAE features for grid-based crops before filtering."""
+DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_UNFILTERED: str = "grid_based_features_unfiltered"
+"""Default manifest name for PCA-reduced DiffAE features for grid-based crops before filtering."""
 
-DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED: str = (
-    "diffae_baseline_exclude_cell_piling_20251110_latent_512_grid_pca_filtered"
-)
-"""Default manifest names for PCA-reduced DiffAE features for grid-based crops after filtering."""
+DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED: str = "grid_based_features_filtered"
+"""Default manifest name for PCA-reduced DiffAE features for grid-based crops after filtering."""
 
 DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME: str = "cell_centered_features_unfiltered"
 """Default manifest name for PCA-reduced DiffAE tracked-cell features merged with
