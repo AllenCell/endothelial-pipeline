@@ -106,8 +106,8 @@ def main(datasets: Datasets | None = None, num_processes: int = 1):
 
     def task(args: ImageProcessingArgs):
         # Load grid-based feature dataframe for selected dataset
-        location = get_dataframe_location_for_dataset(feature_manifest, args.dataset_name)
-        df_ = load_dataframe(location, delay=True)
+        df_loc = get_dataframe_location_for_dataset(feature_manifest, args.dataset_name)
+        df_ = load_dataframe(df_loc, delay=True)
         df = df_[columns_to_compute].compute()
 
         # Filter down to requested position and timepoint
@@ -116,10 +116,11 @@ def main(datasets: Datasets | None = None, num_processes: int = 1):
 
         # Load grid segmentation image
         dataset = load_dataset_config(args.dataset_name)
-        location = get_image_location_for_dataset(image_manifest, dataset, position=args.position)
-        segmentation = load_image(location, compute=True, timepoints=args.timepoint)
+        seg_loc = get_image_location_for_dataset(image_manifest, dataset, position=args.position)
+        seg = load_image(seg_loc, squeeze=True, compute=True, timepoints=args.timepoint)
 
-        segprops = regionprops(label_image=segmentation.squeeze())
+        # Calculate region properties for segmentation image
+        segprops = regionprops(label_image=seg)
 
         for prop in segprops:
             crop_index_from_seg = prop.label - 1
