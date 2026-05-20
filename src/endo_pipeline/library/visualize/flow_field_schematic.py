@@ -400,7 +400,7 @@ def _make_example_acf_plot(
     r_squared = _compute_r_squared(acf_mean, exponential_decay_curve)
 
     axes.plot(lag_hours, acf_mean, "k-", label="ACF (mean)")
-    axes.fill_between(lag_hours, acf_lb, acf_ub, color="gray", alpha=0.2, label="ACF (90% CI)")
+    axes.fill_between(lag_hours, acf_lb, acf_ub, color="gray", alpha=0.2, label="ACF (P5-P95)")
     axes.plot(
         lag_hours,
         exponential_decay_curve,
