@@ -12,13 +12,14 @@ from matplotlib.ticker import MaxNLocator, MultipleLocator
 
 from endo_pipeline.configs import DatasetConfig, load_dataset_config
 from endo_pipeline.io import load_image, save_plot_to_path
-from endo_pipeline.library.process.image_processing import contrast_stretching
-from endo_pipeline.library.visualize.figure_utils import add_scalebar
+from endo_pipeline.library.process.image_processing import contrast_stretching, crop_image
+from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.manifests import ImageLocation, get_zarr_location_for_position
+from endo_pipeline.settings.figures import FONTSIZE_MEDIUM
 from endo_pipeline.settings.image_data import (
     LOWER_Z_SLICE_OFFSET,
     UPPER_Z_SLICE_OFFSET,
-    PIXEL_SIZE_3i_20x,
+    PIXEL_SIZE_3i_20x_RESOLUTION_1,
 )
 
 logger = logging.getLogger(__name__)
@@ -158,7 +159,13 @@ def get_plane_indices(
 
 
 def plot_standard_devs_per_slice(
-    stdevs: list, center_plane: int, dataset: str, position: int, frame: int, output_dir: Path
+    stdevs: list,
+    center_plane: int,
+    dataset: str,
+    position: int,
+    frame: int,
+    output_dir: Path,
+    figure_size: tuple = (2.5, 2.15),
 ) -> None:
     """
     Plot the standard deviations of each slice vs plane index, highlighting the center plane.
@@ -177,9 +184,11 @@ def plot_standard_devs_per_slice(
         The frame index.
     output_dir
         Directory where the plot will be saved.
+    figure_size
+        Size of the figure to be created (width, height).
     """
 
-    fig, ax = plt.subplots(figsize=(3, 3))
+    fig, ax = plt.subplots(figsize=figure_size, layout="constrained")
     ax.plot(stdevs)
 
     # Add a vertical line at the center plane index
@@ -190,13 +199,23 @@ def plot_standard_devs_per_slice(
         label=f"In-focus Z-slice\n(index = {center_plane})",
     )
 
-    ax.set_title("In-focus Z-slice per timepoint")
+    ax.set_title("In-focus Z-slice per timepoint", fontsize=FONTSIZE_MEDIUM)
     ax.set_xlabel("Z-slice (index)")
-    ax.set_ylabel("Standard deviation of\nbright-field pixel intensities (a.u.)")
-    ax.legend()  # Add legend for the center plane label
+    ax.set_ylabel("Std. dev. of BF\npixel intensities (a.u.)")
+    ax.legend(loc="lower right", handlelength=1.5, handletextpad=0.4)
+
+    # reduce label padding
+    ax.xaxis.labelpad = 3
+    ax.yaxis.labelpad = 3
 
     fname = f"standard_devs_{dataset}_P{position}_{frame}"
-    save_plot_to_path(fig, output_dir, fname, file_format=".svg")
+    save_plot_to_path(
+        fig,
+        output_dir,
+        fname,
+        file_format=".svg",
+        tight_layout=False,
+    )
     plt.show()
 
 
@@ -240,9 +259,13 @@ def visualize_slice_selection(
     position: int,
     frame: int,
     output_dir: Path,
+    figure_size: tuple = (5.0, 3.0),
     lower_offset: int = LOWER_Z_SLICE_OFFSET,
     upper_offest: int = UPPER_Z_SLICE_OFFSET,
-    pixel_size: float = PIXEL_SIZE_3i_20x,
+    pixel_size: float = PIXEL_SIZE_3i_20x_RESOLUTION_1,
+    example_crop_x_start: int = 100,
+    example_crop_y_start: int = 100,
+    crop_size: int = 500,
 ) -> None:
     """
     Plot the center z-slice with slices n planes above and below the center slice
@@ -268,6 +291,8 @@ def visualize_slice_selection(
         Frame index.
     output_dir
         Directory to save the output plot.
+    figure_size
+        Size of the figure to be created (width, height).
 
     Returns
     -------
@@ -310,60 +335,85 @@ def visualize_slice_selection(
         custom_range=(cdh5_low, cdh5_high),
     )
 
-    # Create subplots with a 2x3 grid
-    fig, axes = plt.subplots(2, 3, figsize=(9.75, 6.5))
+    im_center = crop_image(im_center, example_crop_x_start, example_crop_y_start, crop_size)
+    im_below = crop_image(im_below, example_crop_x_start, example_crop_y_start, crop_size)
+    im_above = crop_image(im_above, example_crop_x_start, example_crop_y_start, crop_size)
+    cdh5_center = crop_image(cdh5_center, example_crop_x_start, example_crop_y_start, crop_size)
+    cdh5_below = crop_image(cdh5_below, example_crop_x_start, example_crop_y_start, crop_size)
+    cdh5_above = crop_image(cdh5_above, example_crop_x_start, example_crop_y_start, crop_size)
 
-    # First row: BF stack
-    axes[0, 0].imshow(im_below, cmap="gray")
-    axes[0, 0].set_title(f"Lower Z-slice (-{lower_offset} offset)")
-    axes[0, 0].set_ylabel("Bright-field Slice")
+    panels = [im_below, im_center, im_above, cdh5_below, cdh5_center, cdh5_above]
 
-    axes[0, 1].imshow(im_center, cmap="gray")
-    axes[0, 1].set_title("In focus Z-slice")
-
-    axes[0, 2].imshow(im_above, cmap="gray")
-    axes[0, 2].set_title(f"Upper Z-slice (+{upper_offest} offset)")
-
-    # Second row: CDH5 stack
-    axes[1, 0].imshow(cdh5_below, cmap="gray")
-    axes[1, 0].set_ylabel("mEGFP-CDH5 Slice")
-    axes[1, 1].imshow(cdh5_center, cmap="gray")
-    axes[1, 2].imshow(cdh5_above, cmap="gray")
-
-    for ax in axes.flat:
-        ax.set_xticks([])  # remove x-axis ticks
-        ax.set_yticks([])  # remove y-axis ticks
-        ax.tick_params(
-            left=False, right=False, bottom=False, top=False, labelleft=False, labelbottom=False
-        )
-        for spine in ax.spines.values():  # remove the black outline
-            spine.set_visible(False)
-
-    scale_bar_um = 50
-
-    add_scalebar(
-        ax=axes[0, 0],
-        scale_bar_um=scale_bar_um,
-        pixel_size=pixel_size,
-        location="lower left",
-        bar_thickness=10,
-        padding=20,
-        color="white",
+    fig = make_contact_sheet(
+        panels=panels,
+        max_rows=2,
+        max_cols=3,
+        col_titles=[
+            f"Lower Z-slice (-{lower_offset} offset)",
+            "In focus Z-slice",
+            f"Upper Z-slice (+{upper_offest} offset)",
+        ],
+        row_titles=["BF", "VE-cadherin"],
+        font_size=FONTSIZE_MEDIUM,
+        subplot_kwargs={"frame_on": False},
+        gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
+        fig_kwargs={"figsize": figure_size, "layout": "constrained"},
     )
 
-    plt.tight_layout()
+    scale_bar_um = 100
+
+    for i, ax in enumerate(fig.axes):
+
+        ax.xaxis.labelpad = 3
+        ax.yaxis.labelpad = 3
+
+        add_scalebar(
+            ax,
+            scale_bar_um=scale_bar_um,
+            pixel_size=pixel_size,
+            location="lower right",
+            bar_thickness=12,
+            padding=12,
+            label_xy=(0.96, 0.06),
+            include_label=True if i == 0 else False,
+        )
 
     fname = f"plane_selection_vis_{dataset}_P{position}_{frame}_offset{lower_offset}_{upper_offest}_scalebar{scale_bar_um}um"
-    save_plot_to_path(fig, output_dir, fname, file_format=".svg")
+    save_plot_to_path(fig, output_dir, fname, tight_layout=False, file_format=".svg")
     plt.show()
 
 
 def plot_global_center_plane(
-    center_planes: list, dataset: str, position: int, output_dir: Path, show_histogram: bool = True
+    center_planes: list,
+    dataset: str,
+    position: int,
+    output_dir: Path,
+    figure_size: tuple = (2.5, 2.15),
+    show_histogram: bool = True,
 ) -> tuple[float, float]:
-    import matplotlib.pyplot as plt
-    import numpy as np
+    """
+    Plot the global center plane for a given dataset and position.
 
+    Parameters
+    ----------
+    center_planes : list
+        List of center planes for each timepoint.
+    dataset : str
+        Name of the dataset.
+    position : int
+        Position index.
+    output_dir : Path
+        Directory to save the output plot.
+    figure_size : tuple
+        Size of the figure.
+    show_histogram : bool, optional
+        Whether to show the histogram, by default True.
+
+    Returns
+    -------
+    tuple[float, float]
+        Mean and standard deviation of the center planes.
+    """
     mean_cp = np.mean(center_planes)
     std_cp = np.std(center_planes)
     y_min, y_max = 0, 25  # fixed y-axis range
@@ -372,11 +422,11 @@ def plot_global_center_plane(
         counts, bins = np.histogram(center_planes, bins=25)
         # 1 row, 2 cols, histogram narrower
         fig, ax = plt.subplots(
-            1, 2, figsize=(8, 6), sharey=True, gridspec_kw={"width_ratios": [3, 1]}
+            1, 2, figsize=figure_size, sharey=True, gridspec_kw={"width_ratios": [3, 1]}
         )
     else:
         # Only scatter plot
-        fig, ax = plt.subplots(figsize=(3.33, 3.33))
+        fig, ax = plt.subplots(figsize=figure_size, layout="constrained")
         ax = [ax]  # make it indexable like a list
 
     # Scatter plot
@@ -389,13 +439,16 @@ def plot_global_center_plane(
     )
     ax[0].set_xlabel("Timepoint (frames)")
     ax[0].set_ylabel("Z-slice (index)")
-    ax[0].set_title("In-focus Z-slice per position")
+    ax[0].set_title("In-focus Z-slice per position", fontsize=FONTSIZE_MEDIUM)
     ax[0].set_ylim(y_min, y_max)
-
     ax[0].axhline(
         mean_cp, color="black", linestyle="-", label=f"Mean in-focus Z-slice\n(index={mean_cp:.0f})"
     )
-    ax[0].legend()
+    ax[0].legend(handlelength=1.0, handletextpad=0.4)
+
+    # reduce label padding
+    ax[0].xaxis.labelpad = 3
+    ax[0].yaxis.labelpad = 3
 
     # Histogram (optional)
     if show_histogram:
@@ -407,11 +460,9 @@ def plot_global_center_plane(
 
         # Reduce whitespace
         fig.subplots_adjust(left=0.1, right=0.95, wspace=0.05)
-    else:
-        fig.tight_layout()
 
     fname = f"global_center_plane_{dataset}_P{position}"
-    save_plot_to_path(fig, output_dir, fname, file_format=".svg")
+    save_plot_to_path(fig, output_dir, fname, file_format=".svg", tight_layout=False)
     plt.show()
     plt.close(fig)
 
@@ -706,7 +757,9 @@ def visualize_z_slices_with_offsets(
     plt.close()
 
 
-def plot_histogram_upper_slices_available(datasets: list[str], save_dir: Path) -> None:
+def plot_histogram_upper_slices_available(
+    datasets: list[str], save_dir: Path, figure_size: tuple
+) -> None:
     """Plot histogram of available slices above center slice across datasets."""
     data = []
     for dataset in datasets:
@@ -738,7 +791,7 @@ def plot_histogram_upper_slices_available(datasets: list[str], save_dir: Path) -
 
     df = pd.DataFrame(data)
 
-    fig = plt.figure(figsize=(3.05, 3.05))
+    fig = plt.figure(figsize=figure_size, layout="constrained")
     plt.hist(
         df["available_slices_above"],
         bins=range(10, 18, 1),
@@ -749,16 +802,17 @@ def plot_histogram_upper_slices_available(datasets: list[str], save_dir: Path) -
     plt.gca().yaxis.set_major_locator(MaxNLocator(integer=True))
     plt.gca().xaxis.set_major_locator(MultipleLocator(1))  # Set x-axis ticks at every 1 interval
     plt.xlim(10, None)  # Set 10 as the minimum value on the x-axis
-    plt.xlabel("Number of slices above in-focus Z")
+    plt.xlabel("Number of slices\nabove in-focus Z")
     plt.ylabel("Number of positions")
 
-    df_11 = df[df["available_slices_above"] == 11]
-    limiting_datasets = df_11.dataset.unique()
-    text = "Datasets in 11:\n" + "\n".join(limiting_datasets)
-    print(text)
+    # reduce label padding
+    plt.gca().xaxis.labelpad = 3
+    plt.gca().yaxis.labelpad = 3
 
     plt.show()
-    save_plot_to_path(fig, save_dir, "n_slices_above_in_focus_z_histogram", file_format=".svg")
+    save_plot_to_path(
+        fig, save_dir, "n_slices_above_in_focus_z_histogram", file_format=".svg", tight_layout=False
+    )
 
 
 def compute_profiles(
