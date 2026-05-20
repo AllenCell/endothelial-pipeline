@@ -2,7 +2,12 @@ def main() -> None:
     """
     Validate datasets in dataset collections.
 
-    #validation #datasets
+    #datasets #validation
+
+    Dataset validations include:
+
+    - The live 20x 3i dataset collection contains all matching datasets
+    - The flow field analysis datasets are all single flow condition datasets
     """
 
     import logging
@@ -15,11 +20,10 @@ def main() -> None:
 
     logger = logging.getLogger(__name__)
 
-    logger.info("Starting validation of dataset collection configs")
-
+    print("Validating live 20x 3i dataset collection")
     validate_filtered_dataset_collection("live", "20X", "3i")
 
-    # validate 3d_flow_field_analysis collection
+    print("Validating flow field analysis datasets")
     flow_field_analysis_datasets = load_dataset_collection_config("3d_flow_field_analysis").datasets
 
     # confirm that they are all single flow condition datasets
@@ -30,8 +34,6 @@ def main() -> None:
                 "Dataset [ %s ] in [ 3d_flow_field_analysis ] has multiple flow conditions.",
                 dataset_name,
             )
-
-    logger.info("Finished validation of dataset collection configs")
 
 
 if __name__ == "__main__":
