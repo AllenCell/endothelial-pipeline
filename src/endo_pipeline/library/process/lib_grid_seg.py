@@ -3,22 +3,15 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from bioio_base.types import PhysicalPixelSizes
-from skimage.measure import regionprops
 from tqdm import tqdm
 
-from endo_pipeline.io import load_image
 from endo_pipeline.library.process.general_image_preprocessing import save_image_output
-from endo_pipeline.manifests import ImageLocation
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.image_data import (
     IMG_SHAPE_RESOLUTION_1_3i_X,
     IMG_SHAPE_RESOLUTION_1_3i_Y,
     PIXEL_SIZE_3i_20x,
 )
-
-
-def make_grid_seg_filename(position: int, timepoint: int) -> str:
-    return f"P{position}_T{timepoint}_grid_segmentation.ome.tiff"
 
 
 def make_crop_index_to_slice_mapping(grid_df: pd.DataFrame) -> dict[int, tuple[slice, slice]]:
@@ -98,7 +91,7 @@ def create_grid_segmentation_images(
             df[Column.TIMEPOINT].unique(),
             desc=f"Saving grid segmentation for position {position}",
         ):
-            fname = make_grid_seg_filename(position, timepoint)
+            fname = f"P{position}_T{timepoint}_grid_segmentation.ome.tiff"
 
             resolution_level = np.unique(df[Column.DiffAEData.RESOLUTION]).item()
             px_res_xy = pixel_size * 2**resolution_level
@@ -116,30 +109,4 @@ def create_grid_segmentation_images(
                 images=[grid_seg],
                 images_metadata=metadata,
                 dtype=np.uint16,
-            )
-
-
-def check_crop_indices_against_existing_segmentations(df: pd.DataFrame, out_dir: Path) -> None:
-    pos = np.unique(df[Column.POSITION]).item()
-    tp = np.unique(df[Column.TIMEPOINT]).item()
-    fp = out_dir / str(pos) / make_grid_seg_filename(pos, tp)
-
-    location = ImageLocation(path=fp)
-    segmentation = load_image(location)
-
-    segprops = regionprops(label_image=segmentation.squeeze())
-    for prop in segprops:
-        crop_index_from_seg = prop.label - 1
-        bbox_cols = [
-            Column.DiffAEData.START_Y,
-            Column.DiffAEData.START_X,
-            Column.DiffAEData.END_Y,
-            Column.DiffAEData.END_X,
-        ]
-
-        crop_loc_matched = df[df[Column.CROP_INDEX] == crop_index_from_seg][bbox_cols] == prop.bbox
-        if crop_loc_matched is False:
-            raise ValueError(
-                f"Crop index {crop_index_from_seg} in segmentation does not\
-                    match bbox in grid_df for position {pos} and timepoint {tp}"
             )
