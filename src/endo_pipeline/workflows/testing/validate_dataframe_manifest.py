@@ -9,6 +9,20 @@ def main(manifest_name: str) -> None:
     - Each dataset in the manifest has at least one valid location
     - The dataframe can be loaded
 
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe validate-dataframe-manifest MANIFEST_NAME -vd
+    ```
+
+    To run the full workflow:
+
+    ```bash
+    uv run endopipe validate-dataframe-manifest MANIFEST_NAME
+    ```
+
     ## Workflow demo
 
     Running the workflow in demo mode (`-d` or `--demo-mode`) will only run

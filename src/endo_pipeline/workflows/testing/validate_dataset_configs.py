@@ -17,6 +17,20 @@ def main(datasets: Datasets | None = None) -> None:
 
     If `datasets` is not provided, all datasets will be validated.
 
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe validate-dataset-configs -vd
+    ```
+
+    To run the workflow for a single dataset:
+
+    ```bash
+    uv run endopipe validate-dataset-configs --datasets DATASET_NAME
+    ```
+
     ## Workflow demo
 
     Running the workflow in demo mode (`-d` or `--demo-mode`) will only run

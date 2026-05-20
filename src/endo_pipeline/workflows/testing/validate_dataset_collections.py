@@ -8,6 +8,14 @@ def main() -> None:
 
     - The live 20x 3i dataset collection contains all matching datasets
     - The flow field analysis datasets are all single flow condition datasets
+
+    ## Example usage
+
+    To run the full workflow:
+
+    ```bash
+    uv run endopipe validate-dataset-collections
+    ```
     """
 
     import logging
