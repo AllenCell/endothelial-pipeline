@@ -1,6 +1,10 @@
-name: diffae_baseline_exclude_cell_piling_20251110_latent_512_grid_pca_filtered
+name: grid_based_features_filtered
 workflow: calculate-pca-features
-parameters: {}
+parameters:
+  model_manifest_name: diffae_baseline_exclude_cell_piling
+  run_name: 20251110_latent_512
+  crop_pattern: grid
+  filtered: true
 locations:
   20250319_20X:
     fmsid: d4f7f0467afe404aa70c76f4c6b1114c

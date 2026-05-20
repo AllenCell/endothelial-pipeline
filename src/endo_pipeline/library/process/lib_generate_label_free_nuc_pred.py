@@ -1,13 +1,19 @@
 import logging
-from pathlib import Path
 
 import numpy as np
-from bioio import BioImage
 from cellpose import core
 
+from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_image, load_model
-from endo_pipeline.library.process.general_image_preprocessing import save_image_output
-from endo_pipeline.manifests import ImageLocation, get_model_location_for_run, load_model_manifest
+from endo_pipeline.library.process.general_image_preprocessing import (
+    ImageProcessingArgs,
+    save_image_output,
+)
+from endo_pipeline.manifests import (
+    get_model_location_for_run,
+    get_zarr_location_for_position,
+    load_model_manifest,
+)
 from endo_pipeline.settings import DIMENSION_ORDER
 
 device_used_printed_global = False
@@ -15,16 +21,15 @@ device_used_printed_global = False
 logger = logging.getLogger(__name__)
 
 
-def generate_labelfree_nuclei_predictions(args: dict) -> None:
+def generate_labelfree_nuclei_predictions(args: ImageProcessingArgs) -> None:
     """Produce label-free nuclear predictions for a given dataset, position, and timepoint."""
-    dataset_name = args["dataset_name"]
-    position = args["position"]
-    tp = args["T"]
-    create_validation = args["is_validation_image"]
-    img_path = Path(args["input_path"])
-    out_dir = Path(args["output_dir"]) / dataset_name / f"P{position}"
+    dataset_name = args.dataset_name
+    position = args.position
+    tp = args.timepoint
+    create_validation = args.is_validation_image
+    out_dir = args.output_dir / dataset_name / f"P{position}"
     out_dir.mkdir(exist_ok=True, parents=True)
-    out_dir_validation = Path(args["output_dir"]) / "validation" / dataset_name / f"P{position}"
+    out_dir_validation = args.output_dir / "validation" / dataset_name / f"P{position}"
     out_dir_validation.mkdir(exist_ok=True, parents=True)
 
     out_path = out_dir / f"{dataset_name}_P{position}_T{tp}.ome.tiff"
@@ -32,18 +37,18 @@ def generate_labelfree_nuclei_predictions(args: dict) -> None:
         out_dir_validation / f"{dataset_name}_P{position}_T{tp}_cellpose_overlay.ome.tiff"
     )
 
-    logger.info(
-        f'Working on dataset {args["dataset_name"]}, T = {tp}, position = {args["position"]}...'
-    )
+    logger.info(f"Working on dataset {args.dataset_name}, T = {tp}, position = {args.position}...")
 
-    if (not args["overwrite"]) and out_path.exists():
+    if (not args.overwrite) and out_path.exists():
         logger.info(" - output already exists, skipping...")
         return
 
     else:
-        location = ImageLocation(path=img_path)
+        dataset_config = load_dataset_config(dataset_name)
+        location = get_zarr_location_for_position(dataset_config, position)
+        reader = load_image(location, read=False)
         img_arr = load_image(location, channels=["BF"], timepoints=tp, level=0)
-        voxel_size = BioImage(img_path).physical_pixel_sizes
+        voxel_size = reader.physical_pixel_sizes
 
         # Load the retrained CellPose label-free nuclear prediction model
         model_manifest = load_model_manifest("nuc_pred_labelfree")

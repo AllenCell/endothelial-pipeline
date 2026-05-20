@@ -25,16 +25,12 @@ from endo_pipeline.settings.optical_flow import (
     OPTICAL_FLOW_COLUMNS_TO_COMPUTE,
     QUIVER_GRID_DIVISIONS,
 )
-from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_MODEL_MANIFEST_NAME,
-    DEFAULT_MODEL_RUN_NAME,
-)
+from endo_pipeline.settings.workflow_defaults import GRID_BASED_FEATURES_UNFILTERED_MANIFEST_NAME
 
 
 def load_optical_flow_feature_df(dataset_name: str) -> pd.DataFrame:
     """Load the per-crop feature DataFrame used to build the crop grid."""
-    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_grid"
-    manifest = load_dataframe_manifest(f"{base_name}_pca")
+    manifest = load_dataframe_manifest(GRID_BASED_FEATURES_UNFILTERED_MANIFEST_NAME)
     cols = list(OPTICAL_FLOW_COLUMNS_TO_COMPUTE["grid"])
     return load_dataframe(manifest.locations[dataset_name], delay=True)[cols].compute()
 

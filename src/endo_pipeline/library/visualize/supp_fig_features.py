@@ -41,10 +41,11 @@ from endo_pipeline.settings.figures import (
 )
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import (
+    CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
-    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
+    GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME,
     RANDOM_SEED,
 )
 
@@ -91,8 +92,7 @@ def perform_latent_walk_along_top_pcs(
     # set up output directory
 
     # load model configuration and reference dataset manifests
-    dataframe_manifest_name = f"{model_manifest.name}_{run_name}_grid_pca_filtered"
-    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
+    dataframe_manifest = load_dataframe_manifest(GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME)
     dataset_names = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
 
     num_pcs = 3
@@ -240,35 +240,57 @@ def _add_orientation_arrow(
     overlay.set_ylim(0, 1)
     overlay.axis("off")
 
-    # arced arrow from rightmost image to topmost image with "orientation" label
-    # at the midpoint of the arc
+    # Bounding boxes for the four outermost cells on each axis arm
     rightmost_bbox = axes[center_index, n_steps - 1].get_position()
     topmost_bbox = axes[0, center_index].get_position()
-    arrow_start = (
-        rightmost_bbox.x1 - rightmost_bbox.width / 4,
-        rightmost_bbox.y1,
-    )
-    arrow_end = (
-        topmost_bbox.x1,
-        topmost_bbox.y1 - topmost_bbox.height / 4,
-    )
+    leftmost_bbox = axes[center_index, 0].get_position()
+    bottommost_bbox = axes[n_steps - 1, center_index].get_position()
+
     arrowstyle = f"->,head_length={head_length},head_width={head_width}"
     connectionstyle = f"arc3,rad={arc_rad}"
-    overlay.annotate(
-        "",
-        xy=arrow_end,
-        xytext=arrow_start,
-        xycoords="axes fraction",
-        textcoords="axes fraction",
-        arrowprops={
-            "arrowstyle": arrowstyle,
-            "color": color,
-            "lw": linewidth,
-            "connectionstyle": connectionstyle,
-        },
-    )
-    mid_x = (arrow_start[0] + arrow_end[0]) / 2
-    mid_y = (arrow_start[1] + arrow_end[1]) / 2
+
+    # Four curved arrows — one per quadrant — tracing a counterclockwise sweep
+    # that conveys continuous change in orientation around the origin.
+    #
+    # Q1 (top-right): rightmost → topmost  (existing)
+    # Q2 (top-left):  topmost  → leftmost
+    # Q3 (bottom-left): leftmost → bottommost
+    # Q4 (bottom-right): bottommost → rightmost
+    right_x_mid = rightmost_bbox.x1 - rightmost_bbox.width / 4
+    top_y_mid = topmost_bbox.y1 - topmost_bbox.height / 4
+    left_x_mid = leftmost_bbox.x0 + leftmost_bbox.width / 4
+    bot_y_mid = bottommost_bbox.y0 + bottommost_bbox.height / 4
+
+    quadrant_arrows = [
+        # Q1: top of rightmost cell → right of topmost cell
+        ((right_x_mid, rightmost_bbox.y1), (topmost_bbox.x1, top_y_mid)),
+        # Q2: left of topmost cell → top of leftmost cell
+        ((topmost_bbox.x0, top_y_mid), (left_x_mid, leftmost_bbox.y1)),
+        # Q3: bottom of leftmost cell → left of bottommost cell
+        ((left_x_mid, leftmost_bbox.y0), (bottommost_bbox.x0, bot_y_mid)),
+        # Q4: right of bottommost cell → bottom of rightmost cell
+        ((bottommost_bbox.x1, bot_y_mid), (right_x_mid, rightmost_bbox.y0)),
+    ]
+
+    for arrow_start, arrow_end in quadrant_arrows:
+        overlay.annotate(
+            "",
+            xy=arrow_end,
+            xytext=arrow_start,
+            xycoords="axes fraction",
+            textcoords="axes fraction",
+            arrowprops={
+                "arrowstyle": arrowstyle,
+                "color": color,
+                "lw": linewidth,
+                "connectionstyle": connectionstyle,
+            },
+        )
+
+    # "orientation" label placed at the midpoint of the Q1 arrow
+    q1_start, q1_end = quadrant_arrows[0]
+    mid_x = (q1_start[0] + q1_end[0]) / 2
+    mid_y = (q1_start[1] + q1_end[1]) / 2
     overlay.text(
         mid_x + label_offset[0],
         mid_y + label_offset[1],
@@ -440,9 +462,7 @@ def _make_feature_pair_histogram_panel(
     dataset_low = EXAMPLE_DATASET["FIGURE_2_LOW_FLOW_DATASET"]
     dataset_high = EXAMPLE_DATASET["FIGURE_2_HIGH_FLOW_DATASET"]
 
-    dataframe_manifest = load_dataframe_manifest(
-        DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED
-    )
+    dataframe_manifest = load_dataframe_manifest(CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME)
 
     start_imaging_line_color = "limegreen"
     steady_state_line_color = "darkturquoise"

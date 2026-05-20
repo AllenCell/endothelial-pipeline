@@ -1,5 +1,5 @@
-name: live_merged_seg_features
-workflow: live_feat_workflows_to_fms
+name: merged_segmentation_features
+workflow: merge_segmentation_feature_tables
 parameters: {}
 locations:
   20250319_20X:

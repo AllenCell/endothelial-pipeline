@@ -1,5 +1,6 @@
 import logging
 import math
+import multiprocessing
 from collections.abc import Sequence
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
@@ -37,12 +38,11 @@ def merge_measured_segmentation_features_tables(
     nucprops_df: pd.DataFrame,
 ) -> pd.DataFrame:
     """
-    This function merges the outputs from the tracking
-    workflow (cdh5_classic_seg_tracking.py), the
-    segmentation measurement workflow
-    (cdh5_get_measured_features.py), and the labelfree
-    nuclei measurement workflow (nuc_get_measured_features.py).
+    Merge dataframes output by the tracking workflow (run_cdh5_tracking.py), the
+    segmentation measurement workflow (get_cdh5_measured_features.py), and the
+    labelfree nuclei measurement workflow (get_nuclei_measured_features.py).
     """
+
     big_table = pd.merge(
         left=tracking_df,
         right=cellprops_df,
@@ -402,7 +402,9 @@ def add_track_duration_to_dataframe(
     return dataframe
 
 
-def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.DataFrame:
+def calculate_derived_data_dynamics_independent(
+    big_table: pd.DataFrame, num_processes: int | None = None
+) -> pd.DataFrame:
     """
     This function uses the existing columns in the data table to calculate
     other features about the data such as dimensionalizing data and
@@ -614,7 +616,7 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
         Column.SegDataFilters.IS_VALID_BBOX,
     ]
     num_nuclei_in_crop_df = add_num_nuclei_in_crop_column(
-        big_table[required_columns], use_precomputed=False
+        big_table[required_columns], use_precomputed=False, max_cores=num_processes
     )
     crops = [Column.DATASET, Column.POSITION, Column.TIMEPOINT, Column.TRACK_ID]
 
@@ -631,7 +633,7 @@ def calculate_derived_data_dynamics_independent(big_table: pd.DataFrame) -> pd.D
     # add column for the labels of other cells that are in the crop of each cell
     # so we can calculate mean migration vector of those other cells in the crop
     add_all_labels_in_crop_df = add_all_labels_in_crop_column(
-        big_table[required_columns], use_precomputed=False
+        big_table[required_columns], use_precomputed=False, max_cores=num_processes
     )
     added_cols = list(set(add_all_labels_in_crop_df.columns) - set(big_table.columns))
     big_table = pd.merge(
@@ -1217,7 +1219,8 @@ def add_num_nuclei_in_crop_column(
                 )
             ]
         else:
-            with ProcessPoolExecutor(max_workers=max_cores) as executor:
+            mp_context = multiprocessing.get_context("spawn")
+            with ProcessPoolExecutor(max_workers=max_cores, mp_context=mp_context) as executor:
                 results = list(
                     tqdm(
                         executor.map(compute_nuclei_centroids_multiproc, args),
@@ -1356,18 +1359,26 @@ def add_all_labels_in_crop_column(
         groupby_cols = [Column.DATASET, Column.POSITION, Column.TIMEPOINT]
         _, df_grps = zip(*df.groupby(groupby_cols), strict=True)
 
-        with ProcessPoolExecutor(max_workers=max_cores) as executor:
-            list(
-                tqdm(
-                    executor.map(
-                        create_labels_in_crop_columns,
-                        df_grps,
-                        [labels_in_crop_subdir] * len(df_grps),
-                    ),
-                    total=len(df_grps),
-                    desc=f"Creating labels in crop columns: {dataset}",
+        if max_cores == 1:
+            for df in tqdm(
+                df_grps,
+                desc="Creating labels in crop columns (SP)",
+            ):
+                create_labels_in_crop_columns(df, labels_in_crop_subdir)
+        else:
+            mp_context = multiprocessing.get_context("spawn")
+            with ProcessPoolExecutor(max_workers=max_cores, mp_context=mp_context) as executor:
+                list(
+                    tqdm(
+                        executor.map(
+                            create_labels_in_crop_columns,
+                            df_grps,
+                            [labels_in_crop_subdir] * len(df_grps),
+                        ),
+                        total=len(df_grps),
+                        desc=f"Creating labels in crop columns (MP): {dataset}",
+                    )
                 )
-            )
 
         # concatenate all the temporary tables into a single dataframe
         df_lab_in_crop = pd.concat(

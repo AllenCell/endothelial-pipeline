@@ -5,13 +5,11 @@ from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt
 from odrpack import odr_fit
 from scipy.stats import pearsonr
-from seaborn import color_palette
 
 from endo_pipeline.configs.dataset_config_io import load_dataset_config
-from endo_pipeline.io import get_output_path, load_dataframe
+from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.dataframe_filtering import (
     filter_dataframe_by_track_length,
     filter_dataframe_to_binned_value,
@@ -28,7 +26,6 @@ from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
 )
 from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
-from endo_pipeline.library.analyze.optical_flow_calculator import one_direction_vector_field_example
 from endo_pipeline.library.analyze.vector_field_estimation import (
     get_vector_field_as_dict_from_dataframe,
     load_drift_dataframe_for_dataset,
@@ -58,14 +55,14 @@ from endo_pipeline.settings.flow_field_3d import (
     TRAJECTORY_TIME_SPAN,
 )
 from endo_pipeline.settings.workflow_defaults import (
+    CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
     DEFAULT_COLUMNS_TO_DROP,
-    DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
-    DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_FILTERED,
-    DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_UNFILTERED,
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
-    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    DIFFAE_PCA_FEATURE_TRACKED_FILTERED_MANIFEST_NAME,
+    DIFFAE_PCA_FEATURE_TRACKED_UNFILTERED_MANIFEST_NAME,
+    GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME,
 )
 
 BOOTSTRAP_THRESHOLD = 0.4
@@ -548,128 +545,11 @@ def get_vector_dot_products_as_grid(
     return dot_prod
 
 
-def make_angular_deviation_test(out_dir: Path) -> None:
-    """
-    Generate a diagnostic plot that visualises the angular deviation between a set of
-    test vectors and the nearest vector in a synthetic one-direction flow field.
-
-    The plot is saved as ``get_angular_deviation_deg_test.png`` in ``out_dir``.
-
-    Parameters
-    ----------
-    out_dir
-        Directory in which to save the output figure.
-    """
-    test_flow_field = one_direction_vector_field_example()
-
-    test_vectors = np.array(
-        [
-            [1.0, 0.0],
-            [0.0, 1.0],
-            [-1.0, 0.0],
-            [0.0, -1.0],
-            [1.0, 1.0],
-            [-1.0, 1.0],
-            [1.0, -1.0],
-            [-1.0, -1.0],
-        ]
-    )
-
-    test_points = np.array(
-        [
-            [-8.0, -4.0],
-            [-6.0, -3.0],
-            [-4.0, -2.0],
-            [-2.0, -1.0],
-            [2.0, 1.0],
-            [4.0, 2.0],
-            [6.0, 3.0],
-            [8.0, 4.0],
-        ]
-    )
-
-    slice_indexes = np.where(np.ones_like(test_flow_field[0][1]))
-    test_flow_field_points = get_approx_point_from_grid(
-        test_points,
-        test_flow_field[1][0],
-        test_flow_field[1][1],
-        test_flow_field[0][0],
-        test_flow_field[0][1],
-        slice_indexes,
-    )
-
-    test_flow_field_vectors = get_approx_vec_from_grid(
-        test_vectors,
-        test_flow_field[1][0],
-        test_flow_field[1][1],
-        test_flow_field[0][0],
-        test_flow_field[0][1],
-        slice_indexes,
-    )
-
-    test_angular_deviation = get_vector_vector_angle_fast(test_flow_field_vectors, test_vectors)
-    test_angular_deviation_deg = np.rad2deg(test_angular_deviation)
-
-    cmap = color_palette("dark:red", as_cmap=True)
-
-    fig, ax = plt.subplots(1, 1, figsize=(4, 4))
-    ax.quiver(
-        test_flow_field[1][0],
-        test_flow_field[1][1],
-        test_flow_field[0][0],
-        test_flow_field[0][1],
-        scale_units="xy",
-        angles="xy",
-        scale=1,
-        units="width",
-        width=0.005,
-        alpha=1,
-        color="lightgrey",
-    )
-    ax.quiver(
-        test_flow_field_points[:, 0],
-        test_flow_field_points[:, 1],
-        test_flow_field_vectors[:, 0],
-        test_flow_field_vectors[:, 1],
-        scale_units="xy",
-        angles="xy",
-        scale=1,
-        units="width",
-        width=0.005,
-        alpha=1,
-        color="grey",
-    )
-    ax.quiver(
-        test_points[:, 0],
-        test_points[:, 1],
-        test_vectors[:, 0],
-        test_vectors[:, 1],
-        scale_units="xy",
-        angles="xy",
-        scale=1,
-        units="width",
-        width=0.005,
-        alpha=1,
-        color=cmap(np.abs(test_angular_deviation_deg) / 180.0),  # convert angle to color
-    )
-    ax.set_xlim(-9, 9)
-    ax.set_ylim(-5, 5)
-    ax.set_aspect("equal")
-    ax.set_title("Angular deviation from\nflow field test")
-    fig.savefig(
-        out_dir / "get_angular_deviation_deg_test.png",
-        dpi=200,
-        bbox_inches="tight",
-    )
-    plt.close(fig)
-    return
-
-
 def get_merged_pc_and_seg_feature_tables(
     dataset_name: str,
     classic_segmentation_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
-    diffae_tracked_feature_manifest_name_unfiltered: str = DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_UNFILTERED,
-    diffae_tracked_feature_manifest_name_filtered: str = DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_FILTERED,
+    diffae_tracked_feature_manifest_name_unfiltered: str = DIFFAE_PCA_FEATURE_TRACKED_UNFILTERED_MANIFEST_NAME,
+    diffae_tracked_feature_manifest_name_filtered: str = DIFFAE_PCA_FEATURE_TRACKED_FILTERED_MANIFEST_NAME,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Load and merge the track-based DiffAE and live segmentation feature tables for a given dataset.
@@ -711,12 +591,18 @@ def get_merged_pc_and_seg_feature_tables(
     return merged_feats_df, merged_feats_df_filtered
 
 
-def get_and_save_pc_diffae_feats_liveseg_feats_merged_table(dataset_name: str) -> None:
+def get_and_save_pc_diffae_feats_liveseg_feats_merged_table_wrapper(args: tuple[str, Path]) -> None:
+    """Wrapper for calling combine cell-centered features method with multiprocessing."""
+
+    get_and_save_pc_diffae_feats_liveseg_feats_merged_table(*args)
+
+
+def get_and_save_pc_diffae_feats_liveseg_feats_merged_table(
+    dataset_name: str, out_dir: Path
+) -> None:
     """Loads the cell-centric DiffAE + segmentation features merged table, computes the PCs, and
     then saves the updated merged table with the PCs as a parquet file.
     """
-
-    out_dir = get_output_path(__file__)
 
     merged_df_full, merged_df_filtered = get_merged_pc_and_seg_feature_tables(
         dataset_name=dataset_name
@@ -1017,13 +903,9 @@ def load_filtered_trajectory_df_for_first_passage_time_workflow(
         and track metadata.
     """
     if crop_pattern == "grid":
-        dynamics_manifest = load_dataframe_manifest(
-            DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED
-        )
+        dynamics_manifest = load_dataframe_manifest(GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME)
     elif crop_pattern == "tracked":
-        dynamics_manifest = load_dataframe_manifest(
-            DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED
-        )
+        dynamics_manifest = load_dataframe_manifest(CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME)
     else:
         raise ValueError(f"Unsupported crop pattern: {crop_pattern}")
 

@@ -1,86 +1,49 @@
 import logging
 from pathlib import Path
-from typing import Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
 from bioio import BioImage
-from cellpose import models
-from numpy.typing import ArrayLike
+from cellpose import core, models
+from matplotlib.figure import Figure
 from skimage.color import label2rgb
 from skimage.exposure import rescale_intensity
 
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.io import get_output_path, load_image
-from endo_pipeline.library.process.general_image_preprocessing import process_task_queue
+from endo_pipeline.io import load_image
+from endo_pipeline.library.process.general_image_preprocessing import (
+    ImageProcessingArgs,
+    process_task_queue,
+    save_image_output,
+)
 from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings import DIMENSION_ORDER
 
 logger = logging.getLogger(__name__)
 
 
-def get_scenes_to_use(dataset_name: str | None = None) -> dict:
-    """
-    Return the scenes to use for training a Cellpose model to predict nuclei from brightfield.
-    If no dataset name is provided, it returns scenes for all datasets that were used for training.
-    It is used to filter the analysis queue to only include the
-    scenes that are needed for the analysis.
-    This is needed because a couple of the older datasets have
-    scenes at different magnifications or scenes that are corrupted.
-    You can use dataset_name to return a single set of scenes.
-    """
-    scenes_to_use = {
-        "20240328_T02_001": [
-            "20240328_T02_001-1711659785-  8",
-            "20240328_T02_001-1711659785- 24",
-            "20240328_T02_001-1711659785- 39",
-            "20240328_T02_001-1711659785-990",
-        ],
-        "20240328_T01_001": [
-            "20240328_T01_001-1711663662-276",
-            "20240328_T01_001-1711663662-293",
-            "20240328_T01_001-1711663662-307",
-            "20240328_T01_001-1711663662-322",
-            "20240328_T01_001-1711663662-337",
-        ],
-        "20250415_SlideA_20X": ["20250415_GE00007488_slideA_20X - Position 1 [50]-1745428788-773"],
-        "20250415_SlideE_20X": ["20250416_GE00007101_slideE_20X - Position 1 [50]-1745428816-305"],
-        "20250415_SlideH_20X": ["20250415_GE00006885_slideH_20X - Position 1 [50]-1745428734-340"],
-    }
-    if dataset_name is None:
-        return scenes_to_use
-    if dataset_name in scenes_to_use:
-        return {dataset_name: scenes_to_use[dataset_name]}
-    else:
-        return {}
-
-
-def get_training_data_output_dirs(
-    kind: list[Literal["images", "labels"]] | None = None,
-) -> list:
+def get_training_data_output_dirs(output_dir: Path) -> dict[str, Path]:
     """Return the output directories for the training data."""
 
-    out_dir = get_output_path(__file__)
-    out_dir_labels = out_dir / "training_data/cellpose_base_nuclei_model_nuclei_segmentations/"
-    out_dir_images = out_dir / "training_data/cellpose_base_nuclei_model_brightfield_std/"
-    out_dirs = {"images": out_dir_images, "labels": out_dir_labels}
-    if kind is None:
-        return list(out_dirs.values())
-    else:
-        return [out_dirs[training_data_kind] for training_data_kind in kind]
+    return {
+        "labels": output_dir / "inputs" / "cellpose_base_nuclei_model_nuclei_segmentations",
+        "nuclei": output_dir / "inputs" / "cellpose_base_nuclei_model_nuclei_max",
+        "images": output_dir / "inputs" / "cellpose_base_nuclei_model_brightfield_std",
+    }
 
 
 def get_image_data_from_zarr(dataset_name: str, position: int, timepoint: int) -> tuple:
     """
-    Load the NucViolet and Brightfield channels from the zarr file for the given dataset, position,
-    and timepoint as well as the size of the voxel along the Z, Y, and X dimensions.
+    Load the NucViolet and Brightfield channels from the zarr file for the given
+    dataset, position, and timepoint as well as the size of the voxel along the
+    Z, Y, and X dimensions.
     """
 
     dataset_config = load_dataset_config(dataset_name)
     zarr_loc = get_zarr_location_for_position(dataset_config, position)
     voxel_size = load_image(zarr_loc, read=False).physical_pixel_sizes
 
-    nuc_chan: int = dataset_config.zarr_channel_indices.channel_405  # type: ignore[assignment]
+    nuc_chan = dataset_config.zarr_channel_indices.channel_405
     bf_chan = dataset_config.zarr_channel_indices.brightfield
 
     img = load_image(zarr_loc, timepoints=timepoint, level=0)
@@ -156,29 +119,28 @@ def save_labelfree_nuclei_example_image(
     return fig
 
 
-def generate_training_data(analysis_args: dict) -> None:
-    """Make training data for retraining a Cellpose model to predict nuclei from brightfield
-    standard deviation projections.
+def generate_training_data(args: ImageProcessingArgs) -> None:
+    """
+    Generate training data for retraining a Cellpose model to predict nuclei
+    from brightfield standard deviation projections.
 
     The training data consists of:
     - Brightfield standard deviation projections as the images
     - Nuclei segmentations from the Cellpose base nuclei model as the labels
     """
 
-    from endo_pipeline.library.process.general_image_preprocessing import save_image_output
-
     # unpack the analysis arguments
-    use_gpu = analysis_args["gpu"]
-    dataset_name = analysis_args["dataset_name"]
-    position = analysis_args["position"]
-    tp = analysis_args["T"]
-    out_dir_val = analysis_args["output_dir"] / f"training_data/validation_overlays/{dataset_name}/"
-    out_dir_nuclei = (
-        analysis_args["output_dir"] / "training_data/cellpose_base_nuclei_model_nuclei_max/"
-    )
-    out_dir_images, out_dir_labels = get_training_data_output_dirs(kind=["images", "labels"])
-    save_training_data = analysis_args["save_output"]
-    save_validation_images = analysis_args["is_validation_image"]
+    dataset_name = args.dataset_name
+    position = args.position
+    tp = args.timepoint
+    save_training_data = args.save_output
+    save_validation_images = args.is_validation_image
+
+    # build output paths
+    out_dirs = get_training_data_output_dirs(args.output_dir)
+    out_dirs["validation"] = args.output_dir / "validation_overlays" / dataset_name
+
+    use_gpu = core.use_gpu()
 
     # initialize the base Cellpose nuclei model
     logger.info("loading CellPose model...")
@@ -186,10 +148,9 @@ def generate_training_data(analysis_args: dict) -> None:
 
     # load and process brightfield and NucViolet channels of image data
     logger.info("loading image data...")
-    img_dask_arrs, voxel_size = get_image_data_from_zarr(dataset_name, position, tp)
+    (nuc_max, bf_std), voxel_size = get_image_data_from_zarr(dataset_name, position, tp)
 
     logger.info("processing image data...")
-    nuc_max, bf_std = img_dask_arrs
     nuc_max = nuc_max.compute().squeeze()
     bf_std = bf_std.compute().squeeze()
     normd_nuc = rescale_intensity(nuc_max, out_range=np.uint16)
@@ -199,7 +160,7 @@ def generate_training_data(analysis_args: dict) -> None:
 
     # create nuclei segmentations from the NucViolet channel
     logger.info("generating segmentations with CellPose model...")
-    seg, flows, styles = nuc_model.eval(
+    seg, _, _ = nuc_model.eval(
         normd_nuc_clipped,
         channels=[0, 0],
         min_size=500,
@@ -211,15 +172,17 @@ def generate_training_data(analysis_args: dict) -> None:
     if save_validation_images:
         # create an overlay to quickly check the accuracy of the Cellpose predictions
         # from NucViolet
-        out_dir_val.mkdir(exist_ok=True, parents=True)
-        out_name_val = out_dir_val / f"{dataset_name}_P{position}_classic_seg.png"
+        out_dirs["validation"].mkdir(exist_ok=True, parents=True)
+        out_name_val = out_dirs["validation"] / f"{dataset_name}_P{position}_classic_seg.png"
         save_overlay(seg, normd_nuc_clipped, out_name_val, outlines=True, face=True)
 
     if save_training_data:
+        out_key = f"{dataset_name}_P{position}_T{tp}"
+
         # save the labels used as ground truths for training
         # the label-free nuclei model
-        out_dir_labels.mkdir(exist_ok=True, parents=True)
-        out_name_label = out_dir_labels / f"{dataset_name}_P{position}_T{tp}_nuclei_seg.ome.tiff"
+        out_dirs["labels"].mkdir(exist_ok=True, parents=True)
+        out_name_label = out_dirs["labels"] / f"{out_key}_nuclei_seg.ome.tiff"
         images_out = [seg]
         images_out_metadata = {
             "image_name": dataset_name,
@@ -235,8 +198,8 @@ def generate_training_data(analysis_args: dict) -> None:
             images_metadata=images_out_metadata,
         )
 
-        out_dir_nuclei.mkdir(exist_ok=True, parents=True)
-        out_name_dapi = out_dir_nuclei / f"{dataset_name}_P{position}_T{tp}_nuclei_raw.ome.tiff"
+        out_dirs["nuclei"].mkdir(exist_ok=True, parents=True)
+        out_name_nuclei = out_dirs["nuclei"] / f"{out_key}_nuclei_raw.ome.tiff"
         images_out = [nuc_max]
         images_out_metadata = {
             "image_name": dataset_name,
@@ -247,13 +210,13 @@ def generate_training_data(analysis_args: dict) -> None:
             "dtype": None,
         }
         save_image_output(
-            out_path=out_name_dapi,
+            out_path=out_name_nuclei,
             images=images_out,
             images_metadata=images_out_metadata,
         )
 
-        out_dir_images.mkdir(exist_ok=True, parents=True)
-        out_name_images = out_dir_images / f"{dataset_name}_P{position}_T{tp}_bf_std.ome.tiff"
+        out_dirs["images"].mkdir(exist_ok=True, parents=True)
+        out_name_images = out_dirs["images"] / f"{out_key}_bf_std.ome.tiff"
         images_out = [bf_std]
         images_out_metadata = {
             "image_name": dataset_name,
@@ -268,64 +231,71 @@ def generate_training_data(analysis_args: dict) -> None:
             images=images_out,
             images_metadata=images_out_metadata,
         )
-    return
 
 
 def get_training_data_paths(
-    analysis_queue: list,
-    create_training_data: bool = False,
-    n_proc: int = 1,
-    gpu: bool = False,
+    out_dir: Path,
+    analysis_queue: list[ImageProcessingArgs],
+    num_processes: int = 1,
 ) -> tuple:
-    """Return the paths to the training data for retraining a Cellpose model to predict nuclei from
-    brightfield standard deviation projections.
+    """
+    Get paths to the training data for retraining a Cellpose model to predict
+    nuclei from brightfield standard deviation projections.
 
-    If create_training_data is True, it will create the training data, and if it is False, it will
-    return the paths to the training data that already exists.
-    The training data consists of:
+    The method will iterate through the provided analysis queue to determine if
+    the required images and labels exists. If not, it will generate the training
+    data:
+
     - Brightfield standard deviation projections as the images
     - Nuclei segmentations from the Cellpose base nuclei model as the labels
     """
 
-    # add the whether or not to use the GPU to the analysis queue
+    out_dirs = get_training_data_output_dirs(out_dir)
+
+    # check if training data exists and regenerate if not
+    analysis_queue_missing = []
     for arg in analysis_queue:
-        arg.update({"gpu": gpu})
+        out_key = f"{arg.dataset_name}_P{arg.position}_T{arg.timepoint}"
 
-    if create_training_data:
-        process_task_queue(
-            generate_training_data,
-            analysis_queue,
-            num_processes=n_proc,
-            description="Creating training data images",
-            chunksize=1,
+        out_name_label = out_dirs["labels"] / f"{out_key}_nuclei_seg.ome.tiff"
+        out_name_images = out_dirs["images"] / f"{out_key}_bf_std.ome.tiff"
+
+        if not out_name_label.exists() or not out_name_images.exists():
+            analysis_queue_missing.append(arg)
+
+    process_task_queue(
+        generate_training_data,
+        analysis_queue_missing,
+        num_processes=num_processes,
+        description="Creating training data images",
+        chunksize=1,
+    )
+
+    images_paths = list(out_dirs["images"].glob("**/*.ome.tiff"))
+    labels_paths = list(out_dirs["labels"].glob("**/*.ome.tiff"))
+
+    if len(labels_paths) != len(images_paths):
+        raise ValueError(
+            f"Number of images ({len(images_paths)}) must equal "
+            f"number of labels ({len(labels_paths)})"
         )
-    else:
-        pass
-
-    # Open the training data images and labels
-    # that were created in the previous step
-    (images_dir,) = get_training_data_output_dirs(kind=["images"])
-    (labels_dir,) = get_training_data_output_dirs(kind=["labels"])
-    images_paths = list(images_dir.glob("**/*.ome.tiff"))
-    labels_paths = list(labels_dir.glob("**/*.ome.tiff"))
-
-    assert len(images_paths) == len(
-        labels_paths
-    ), f"Number of images ({len(images_paths)}) must equal number of labels ({len(labels_paths)})"
 
     return (images_paths, labels_paths)
 
 
 def load_train_and_test_images(
-    analysis_queue, create_training_data: bool, n_proc: int, gpu: bool
-) -> list[ArrayLike]:
-    # Generate ground truths from nuclei labeled with DAPI
-    # using the Cellpose base nuclei model
+    out_dir: Path, analysis_queue: list[ImageProcessingArgs], num_processes: int
+) -> tuple[list, list, list, list]:
+    """
+    Load training and testing images for retraining Cellpose base nuclei model
+    on nuclei labeled with DAPI.
+    """
+
+    # get paths to images and labels
     images_paths, labels_paths = get_training_data_paths(
-        analysis_queue,
-        create_training_data=create_training_data,
-        n_proc=n_proc,
-        gpu=gpu,
+        out_dir=out_dir,
+        analysis_queue=analysis_queue,
+        num_processes=num_processes,
     )
 
     # split the images and labels into training and testing sets
@@ -353,7 +323,7 @@ def load_train_and_test_images(
 
 def save_training_test_loss_plot(
     train_losses: np.ndarray, test_losses: np.ndarray, model_name: str, out_dir: Path
-) -> plt.Figure:
+) -> Figure:
 
     fig, ax = plt.subplots(nrows=1, ncols=1)
     ax.plot(
