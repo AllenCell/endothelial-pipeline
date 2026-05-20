@@ -559,10 +559,13 @@ def create_panel_retraction_fiber_blob_example(
         direction="left-right first",
         gridspec_kwargs={"wspace": 0.005, "hspace": 0.005},
         fig_kwargs={"figsize": figure_size},
+        subplot_kwargs={"frame_on": False},
         use_constrained_layout=True,
         font_size=FONTSIZE_MEDIUM,
     )
-    fig.get_layout_engine().set(w_pad=0.01, h_pad=0.01, wspace=0.01, hspace=0.01)
+    layout_engine = fig.get_layout_engine()
+    if layout_engine is not None:
+        layout_engine.set(w_pad=0.01, h_pad=0.01, wspace=0.005, hspace=0.005)  # type: ignore[call-arg]
 
     scale_bar_um = 20
     for ax in fig.axes:
