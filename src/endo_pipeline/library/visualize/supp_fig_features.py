@@ -256,27 +256,20 @@ def _add_orientation_arrow(
     # Q2 (top-left):  topmost  → leftmost
     # Q3 (bottom-left): leftmost → bottommost
     # Q4 (bottom-right): bottommost → rightmost
+    right_x_mid = rightmost_bbox.x1 - rightmost_bbox.width / 4
+    top_y_mid = topmost_bbox.y1 - topmost_bbox.height / 4
+    left_x_mid = leftmost_bbox.x0 + leftmost_bbox.width / 4
+    bot_y_mid = bottommost_bbox.y0 + bottommost_bbox.height / 4
+
     quadrant_arrows = [
         # Q1: top of rightmost cell → right of topmost cell
-        (
-            (rightmost_bbox.x1 - rightmost_bbox.width / 4, rightmost_bbox.y1),
-            (topmost_bbox.x1, topmost_bbox.y1 - topmost_bbox.height / 4),
-        ),
+        ((right_x_mid, rightmost_bbox.y1), (topmost_bbox.x1, top_y_mid)),
         # Q2: left of topmost cell → top of leftmost cell
-        (
-            (topmost_bbox.x0, topmost_bbox.y1 - topmost_bbox.height / 4),
-            (leftmost_bbox.x0 + leftmost_bbox.width / 4, leftmost_bbox.y1),
-        ),
+        ((topmost_bbox.x0, top_y_mid), (left_x_mid, leftmost_bbox.y1)),
         # Q3: bottom of leftmost cell → left of bottommost cell
-        (
-            (leftmost_bbox.x0 + leftmost_bbox.width / 4, leftmost_bbox.y0),
-            (bottommost_bbox.x0, bottommost_bbox.y0 + bottommost_bbox.height / 4),
-        ),
+        ((left_x_mid, leftmost_bbox.y0), (bottommost_bbox.x0, bot_y_mid)),
         # Q4: right of bottommost cell → bottom of rightmost cell
-        (
-            (bottommost_bbox.x1, bottommost_bbox.y0 + bottommost_bbox.height / 4),
-            (rightmost_bbox.x1 - rightmost_bbox.width / 4, rightmost_bbox.y0),
-        ),
+        ((bottommost_bbox.x1, bot_y_mid), (right_x_mid, rightmost_bbox.y0)),
     ]
 
     for arrow_start, arrow_end in quadrant_arrows:
