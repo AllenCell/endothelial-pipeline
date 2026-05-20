@@ -552,7 +552,7 @@ def create_panel_retraction_fiber_blob_example(
     col_titles = [
         f"{int((tp - timepoints[0]) * interval_in_min)} min" for tp in timepoints
     ]  # elapsed time
-    row_titles = ["VE-cadherin MIP", "BF Z-slice", "Merge"]
+    row_titles = ["VE-cad MIP", "BF Z-slice", "Merge"]
 
     fig = make_contact_sheet(
         panels=panels,
@@ -561,11 +561,12 @@ def create_panel_retraction_fiber_blob_example(
         col_titles=col_titles,
         row_titles=row_titles,
         direction="left-right first",
-        gridspec_kwargs={"wspace": 0.02, "hspace": 0.02},
-        fig_kwargs={"figsize": figure_size, "layout": "constrained"},
+        gridspec_kwargs={"wspace": 0.005, "hspace": 0.005},
+        fig_kwargs={"figsize": figure_size},
         use_constrained_layout=True,
         font_size=FONTSIZE_MEDIUM,
     )
+    fig.get_layout_engine().set(w_pad=0.01, h_pad=0.01, wspace=0.01, hspace=0.01)
 
     scale_bar_um = 20
     for ax in fig.axes:
