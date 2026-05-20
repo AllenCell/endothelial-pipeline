@@ -1,6 +1,9 @@
 from endo_pipeline.cli import Datasets
 from endo_pipeline.settings.diffae_feature_dataframes import NUM_PCS_TO_ANALYZE
-from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
+from endo_pipeline.settings.workflow_defaults import (
+    GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME,
+    RANDOM_SEED,
+)
 
 
 def main(
@@ -75,11 +78,7 @@ def main(
     from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_WIDTH
     from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
     from endo_pipeline.settings.plot_defaults import CROP_HIST_BIN_WIDTH
-    from endo_pipeline.settings.workflow_defaults import (
-        DEFAULT_MODEL_MANIFEST_NAME,
-        DEFAULT_MODEL_RUN_NAME,
-        DEFAULT_PCA_DATASET_COLLECTION_NAME,
-    )
+    from endo_pipeline.settings.workflow_defaults import DEFAULT_PCA_DATASET_COLLECTION_NAME
 
     logger = logging.getLogger(__name__)
 
@@ -88,8 +87,7 @@ def main(
 
     # get dataframe manifest corresponding to the model that generated the features
     # get dataframe manifest for crop-based features
-    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_grid"
-    feature_dataframe_manifest_name = f"{base_name}_pca_filtered"
+    feature_dataframe_manifest_name = GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     fig_savedir = get_output_path(__file__)

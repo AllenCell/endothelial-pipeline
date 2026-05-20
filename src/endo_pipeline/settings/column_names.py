@@ -506,9 +506,6 @@ class ColumnName:
         PERCENT_TRAJ_APPROACHED_FP = "percent_trajectories_approached_fp"
         """Column name for the percentage of trajectories that approached a fixed point within a certain distance threshold."""
 
-        LINEFIT_SLOPE_ODR = "slope_odr"
-        """Column name for the slope of a line fit to the relationship between first passage time and distance from the fixed point using orthogonal distance regression (ODR)."""
-
         LINEFIT_INTERCEPT_ODR = "intercept_odr"
         """Column name for the intercept of a line fit to the relationship between first passage time and distance from the fixed point using orthogonal distance regression (ODR)."""
 

@@ -1,96 +1,100 @@
-from typing import Any
-
-
-def main(
-    n_proc: int = 1,
-    create_training_data: bool = False,
-) -> None:
+def main(num_processes: int = 1) -> None:
     """
-    Run the workflow to retrain a Cellpose model to predict nuclei from brightfield standard
-    deviation projections.
+    Retrain Cellpose model to predict nuclei from BF std dev projections.
 
-    #test-ready #gpu
+    #model-training #cellpose #test-ready #gpu
 
-    To enter a list of datasets to analyze, use the following format:
+    ## Example usage
 
-    .. code-block:: bash
+    To run the workflow in demo mode:
 
-        --datasets 20250818_20X 20250618_20X
+    ```bash
+    uv run endopipe retrain-nuclei-prediction-model -vd
+    ```
 
-    **Workflow demo**
+    ## Dataset collection
 
-    The ``--demo-mode`` (``-d``) flag can be used to run the workflow on a subset of the training
-    data for workflow testing purposes. The resulting model will be named with a ``_DEMO`` suffix
-    and does not produce a model that is suitable for label-free nuclei prediction. To produce
-    the model for label-free nuclei prediction, run the workflow without the demo mode flag.
+    This workflow uses datasets in the `cellpose_model_training` dataset
+    collection.
+
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will train on a
+    subset of the training data. The resulting model with have `_demo` prefix
+    and is not suitable for label-free nuclei prediction.
+
+    Parameters
+    ----------
+    num_processes
+        Number of processes to use.
     """
 
     import logging
 
     import matplotlib.pyplot as plt
-    from cellpose import core, models, train
+    from cellpose import models, train
     from cellpose.io import logger_setup
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import get_output_path, load_image, make_name_unique
+    from endo_pipeline.io import get_output_path, load_image, load_model, make_name_unique
     from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
     from endo_pipeline.library.process.lib_nuc_pred_from_bf_std_retraining import (
-        get_scenes_to_use,
         load_train_and_test_images,
         save_labelfree_nuclei_example_image,
         save_training_test_loss_plot,
     )
-    from endo_pipeline.manifests import get_zarr_location_for_position
+    from endo_pipeline.manifests import (
+        ModelLocation,
+        get_zarr_location_for_position,
+        load_model_manifest,
+        save_model_manifest,
+    )
     from endo_pipeline.settings import DIMENSION_ORDER
 
     logger = logging.getLogger(__name__)
 
     model_name = make_name_unique("labelfree_nuc_pred").stem
+    out_dir = get_output_path("models", "labelfree_nuc_pred", include_timestamp=False)
+
+    datasets_to_use = get_datasets_in_collection("cellpose_model_training")
 
     if DEMO_MODE:
-        create_training_data = True
-        model_name += "_DEMO"
-
-    # Create output directory.
-    out_dir = get_output_path("models", model_name, include_timestamp=False)
-
-    datasets_to_use = list(get_scenes_to_use().keys())
+        datasets_to_use = datasets_to_use[:1]
+        model_name += "_demo"
 
     analysis_queue = build_analysis_queue(
         datasets_to_use,
-        save_output=True,
-        image_validation_frequency=1,
-        overwrite=True,
         out_dir=out_dir,
-        is_test=DEMO_MODE,
+        image_validation_frequency=1,
+        t_start=0,
+        t_final=1,
+        max_positions=5 if DEMO_MODE else None,
+        save_output=True,
+        overwrite=True,
     )
-
-    # return whether or not to use a gpu with CellPose
-    gpu = core.use_gpu()
 
     # Load training and testing images
     images_training, labels_training, images_testing, labels_testing = load_train_and_test_images(
-        analysis_queue,
-        n_proc=n_proc,
-        create_training_data=create_training_data,
-        gpu=gpu,
+        out_dir=out_dir,
+        analysis_queue=analysis_queue,
+        num_processes=num_processes,
     )
 
     logger.info("Beginning training...")
     sgd = True
     learning_rate = 0.1
     weight_decay = 1e-4
-    n_epochs = 300
+    n_epochs = 10 if DEMO_MODE else 300
 
     # initiate the cellpose logger so that we
     # can extract the training and test losses
-    logger_setup(cp_path=out_dir, logfile_name=f"{model_name}.log")
+    logger_setup(cp_path=(out_dir / "logs").as_posix(), logfile_name=f"{model_name}.log")
 
     # will populate this dictionary as we go
-    run_record: dict[str, Any] = {}
+    run_record = {}
 
-    model_nuclei_original = models.CellposeModel(gpu=gpu, model_type="nuclei")
+    model_nuclei_original = models.CellposeModel(gpu=True, model_type="nuclei")
 
     model_path, train_losses, test_losses = train.train_seg(
         model_nuclei_original.net,
@@ -124,11 +128,15 @@ def main(
         )
         plt.close(fig)
 
+    # save the model to the model manifest
+    model_manifest = load_model_manifest("nuc_pred_labelfree")
+    model_location = ModelLocation(path=model_path)
+    model_manifest.locations[model_name] = model_location
+    save_model_manifest(model_manifest)
+
     # generate a test image to see how the model performs
     # on a live example that it has never seen
-    model_nuclei_original_finetuned = models.CellposeModel(
-        gpu=False, pretrained_model=str(model_path)
-    )
+    model_nuclei_original_finetuned = load_model(model_location)
 
     # load the brightfield channel of a test image
     test_dataset_name = get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")[0]

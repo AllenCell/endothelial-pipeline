@@ -1,5 +1,5 @@
-name: pc_diffae_tracked_seg_features
-workflow: merge_pc_diffae_seg_features
+name: cell_centered_features_unfiltered
+workflow: combine_cell_centered_features
 parameters: {}
 locations:
   20250319_20X:
@@ -34,10 +34,6 @@ locations:
     fmsid: 6eec4837624142169efef62550874626
     path: null
     s3uri: null
-  20250224_20X:
-    fmsid: f9287de934f847c4ad8c88cd68f4d7f0
-    path: null
-    s3uri: null
   20250326_20X:
     fmsid: 344f913e7ba4428bba8247da1c656406
     path: null
@@ -60,10 +56,6 @@ locations:
     s3uri: null
   20250728_20X:
     fmsid: dedb037ac9d74ca8a160267d17d864f3
-    path: null
-    s3uri: null
-  20250806_20X:
-    fmsid: 1ef2a44ec1f840cb89ed133315e0875b
     path: null
     s3uri: null
   20251001_20X:
@@ -116,17 +108,5 @@ locations:
     s3uri: null
   20260304_20X:
     fmsid: 15be27b6d7014ece9a8ae5568ec4ce1e
-    path: null
-    s3uri: null
-  20260316_20X:
-    fmsid: abc2f01052f948c0828ff414b507595f
-    path: null
-    s3uri: null
-  20260318_20X:
-    fmsid: 479991c72b9f4546a73bceb3c8d8a7a1
-    path: null
-    s3uri: null
-  20260323_20X:
-    fmsid: a213ef72b49a433e851175958f01fc99
     path: null
     s3uri: null

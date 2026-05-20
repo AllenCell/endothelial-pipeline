@@ -64,8 +64,7 @@ def main(
         NUM_POINTS_SMOOTH_KDE,
     )
     from endo_pipeline.settings.workflow_defaults import (
-        DEFAULT_MODEL_MANIFEST_NAME,
-        DEFAULT_MODEL_RUN_NAME,
+        FEATURES_FILTERED_MANIFEST_NAMES,
         RANDOM_SEED,
     )
 
@@ -74,8 +73,6 @@ def main(
     plt.style.use("endo_pipeline.figure")
 
     # set workflow defaults
-    model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
-    run_name = DEFAULT_MODEL_RUN_NAME
     column_names: list[Column.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
     columns_to_compute_grid = [*METADATA_COLUMNS_TO_KEEP["grid"], *column_names]
     columns_to_compute_tracked = [*METADATA_COLUMNS_TO_KEEP["tracked"], *column_names]
@@ -92,11 +89,9 @@ def main(
     }
 
     # Get dataframe manifest for filtered crop-based features
-    base_name_grid = f"{model_manifest_name}_{run_name}_grid"
-    grid_feature_dataframe_manifest_name = f"{base_name_grid}_pca_filtered"
+    grid_feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES["grid"]
     grid_feature_dataframe_manifest = load_dataframe_manifest(grid_feature_dataframe_manifest_name)
-    base_name_tracked = f"{model_manifest_name}_{run_name}_tracked"
-    tracked_feature_dataframe_manifest_name = f"{base_name_tracked}_pca_filtered"
+    tracked_feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES["tracked"]
     tracked_feature_dataframe_manifest = load_dataframe_manifest(
         tracked_feature_dataframe_manifest_name
     )

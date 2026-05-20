@@ -38,12 +38,16 @@ def main(
     from endo_pipeline.io import load_dataframe
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.workflow_defaults import (
+        FEATURES_FILTERED_MANIFEST_NAMES,
+        FEATURES_UNFILTERED_MANIFEST_NAMES,
+    )
 
     logger = logging.getLogger(__name__)
 
     base_feature_manifest_name = f"{model_manifest_name}_{model_run_name}_{crop_pattern}"
-    pca_feature_manifest_name = f"{base_feature_manifest_name}_pca"
-    pca_filtered_feature_manifest_name = f"{pca_feature_manifest_name}_filtered"
+    pca_feature_manifest_name = FEATURES_UNFILTERED_MANIFEST_NAMES[crop_pattern]
+    pca_filtered_feature_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[crop_pattern]
 
     for manifest_name, is_filtered in [
         (base_feature_manifest_name, False),

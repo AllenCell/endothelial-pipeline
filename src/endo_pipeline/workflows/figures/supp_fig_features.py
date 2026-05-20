@@ -1,6 +1,9 @@
 def main() -> None:
     """Main function to general Supp. Fig. showing PC-based feature derivation and interpretation."""
+    import logging
+
     import matplotlib.pyplot as plt
+    import pandas as pd
 
     from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.cli.demo_mode_defaults import use_default_collection
@@ -14,6 +17,7 @@ def main() -> None:
         visualize_correlation_heatmaps,
     )
     from endo_pipeline.library.visualize.supp_fig_features import (
+        make_r_aspect_ratio_histogram_panel,
         make_theta_orientation_histogram_panel,
         perform_latent_walk_along_top_pcs,
         plot_2d_latent_walk,
@@ -28,6 +32,8 @@ def main() -> None:
         DEFAULT_PCA_DATASET_COLLECTION_NAME,
         SEGMENTATION_FEATURE_COLUMNS,
     )
+
+    logger = logging.getLogger(__name__)
 
     plt.style.use("endo_pipeline.figure")
 
@@ -49,6 +55,42 @@ def main() -> None:
     dataset_name_list = use_default_collection(None, DEFAULT_PCA_DATASET_COLLECTION_NAME)
     ml_columns = DIFFAE_PC_COLUMN_NAME_GROUPS["supp_figure"]
     measured_feature_columns = SEGMENTATION_FEATURE_COLUMNS["supp_figure"]
+    ml_columns_100_pcs = (
+        DIFFAE_PC_COLUMN_NAME_GROUPS["main_figure"] + DIFFAE_PC_COLUMN_NAME_GROUPS["first_100_pcs"]
+    )
+
+    df = get_df_for_feature_correlation_viz(
+        dataset_name_list=dataset_name_list,
+        dataset_info_columns=DATASET_INFO_COLUMNS,
+        segmentation_feature_columns=measured_feature_columns,
+        pc_columns=ml_columns_100_pcs,
+    )
+
+    label_column_tuples = [
+        ("ML-based Features 100", [get_label_for_column(col) for col in ml_columns_100_pcs]),
+        ("Measured Features", [get_label_for_column(col) for col in measured_feature_columns]),
+    ]
+
+    visualize_correlation_heatmaps(
+        dataset_name="aggregate",
+        df_dataset=df,
+        label_column_tuples=label_column_tuples,
+        out_dir=save_dir,
+        cross_correlation_only=True,
+        figsize_cluster_heatmap=(4.35, 2.75),
+        y_axis_label_coords=None,
+    )
+    # report the max correlation value in the heatmap for all PCs vs measured features
+    # that are not in the supplementary figure
+    corr_matrix_100pcs = (
+        save_dir / "correlation_ml_based_features_100_vs_measured_features_correlation_matrix.csv"
+    )
+    df_100_pcs = pd.read_csv(corr_matrix_100pcs)
+    non_fig_pcs = set(ml_columns_100_pcs) - set(ml_columns)
+    biggest_corr_mag = (
+        df_100_pcs[[get_label_for_column(col) for col in non_fig_pcs]].abs().max().max()
+    )
+    logger.info(biggest_corr_mag)
 
     df = get_df_for_feature_correlation_viz(
         dataset_name_list=dataset_name_list,
@@ -102,6 +144,11 @@ def main() -> None:
     # over time for a low shear stress and a high shear stress dataset.
     theta_orientation_path = make_theta_orientation_histogram_panel(save_dir)
 
+    # panel F: visual comparison of r (ML-based feature) and cell aspect ratio
+    # (segmentation feature) as side-by-side histograms over time for a low
+    # shear stress and a high shear stress dataset.
+    r_aspect_ratio_path = make_r_aspect_ratio_histogram_panel(save_dir)
+
     # build figure with panels
     panels = [
         FigurePanel(
@@ -141,13 +188,21 @@ def main() -> None:
             path=theta_orientation_path,
             x_position=0.0,
             y_position=4.9,
-            x_offset=0.05,
-            y_offset=0.15,
+            x_offset=0.0,
+            y_offset=0.1,
+        ),
+        FigurePanel(
+            letter="F",
+            path=r_aspect_ratio_path,
+            x_position=3.26,
+            y_position=4.9,
+            x_offset=0.0,
+            y_offset=0.1,
         ),
     ]
 
     build_figure_from_panels(
-        panels, save_dir / "supp_fig_features.svg", width=MAX_FIGURE_WIDTH, height=7.5
+        panels, save_dir / "Supplemental_Figure_3.svg", width=MAX_FIGURE_WIDTH, height=7.5
     )
 
 

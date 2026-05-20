@@ -1,3 +1,5 @@
+from typing import Literal
+
 from endo_pipeline.settings.column_names import ColumnName
 
 OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS: tuple[str | ColumnName.DiffAEData, ...] = (
@@ -9,7 +11,7 @@ OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS: tuple[str | ColumnName.DiffAEData, ...] = 
 )
 """Column names to merge on when adding optical flow features to another dataframe."""
 
-MIGRATION_COHERENCE_CROP_PATTERN: str = "grid"
+MIGRATION_COHERENCE_CROP_PATTERN: Literal["grid", "tracked"] = "grid"
 """Crop pattern to use for migration coherence analyses."""
 
 MIGRATION_COHERENCE_HIST_PLOT_KDE: bool = True
