@@ -60,11 +60,11 @@ from endo_pipeline.settings.flow_field_3d import (
 from endo_pipeline.settings.workflow_defaults import (
     CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
     DEFAULT_COLUMNS_TO_DROP,
-    DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_FILTERED,
-    DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_UNFILTERED,
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+    DIFFAE_PCA_FEATURE_TRACKED_FILTERED_MANIFEST_NAME,
+    DIFFAE_PCA_FEATURE_TRACKED_UNFILTERED_MANIFEST_NAME,
     GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME,
 )
 
@@ -668,8 +668,8 @@ def make_angular_deviation_test(out_dir: Path) -> None:
 def get_merged_pc_and_seg_feature_tables(
     dataset_name: str,
     classic_segmentation_feature_manifest_name: str = DEFAULT_SEG_FEATURE_MANIFEST_NAME,
-    diffae_tracked_feature_manifest_name_unfiltered: str = DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_UNFILTERED,
-    diffae_tracked_feature_manifest_name_filtered: str = DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_FILTERED,
+    diffae_tracked_feature_manifest_name_unfiltered: str = DIFFAE_PCA_FEATURE_TRACKED_UNFILTERED_MANIFEST_NAME,
+    diffae_tracked_feature_manifest_name_filtered: str = DIFFAE_PCA_FEATURE_TRACKED_FILTERED_MANIFEST_NAME,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Load and merge the track-based DiffAE and live segmentation feature tables for a given dataset.

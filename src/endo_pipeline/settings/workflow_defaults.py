@@ -19,15 +19,11 @@ DEFAULT_SEG_FEATURE_MANIFEST_NAME: str = "merged_segmentation_features"
 """Default manifest name for merged CDH5 segmentation, CDH5 tracking and
 label-free nuclei segmentation features."""
 
-DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_UNFILTERED: str = (
-    "diffae_pca_features_tracked_unfiltered"
-)
-"""Default manifest name for PCA-reduced DiffAE features for track-based crops before filtering."""
+DIFFAE_PCA_FEATURE_TRACKED_UNFILTERED_MANIFEST_NAME: str = "diffae_pca_features_tracked_unfiltered"
+"""Dataframe manifest name for unfiltered PCA-reduced DiffAE features for track-based crops."""
 
-DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_FILTERED: str = (
-    "diffae_pca_features_tracked_filtered"
-)
-"""Default manifest name for PCA-reduced DiffAE features for track-based crops after filtering."""
+DIFFAE_PCA_FEATURE_TRACKED_FILTERED_MANIFEST_NAME: str = "diffae_pca_features_tracked_filtered"
+"""Dataframe manifest name for filtered PCA-reduced DiffAE features for track-based crops."""
 
 GRID_BASED_FEATURES_UNFILTERED_MANIFEST_NAME: str = "grid_based_features_unfiltered"
 """Dataframe manifest name for unfiltered grid-based features."""
