@@ -44,7 +44,7 @@ class ModelConfigOverrideEval:
     """Number of GPUs to use. None indicates that CPU should be used."""
 
     num_workers: int | None = Field(default=None, ge=0)
-    """Number of workers to use. None indicates use all available on machine."""
+    """Number of workers to use. None indicates use 50% available on machine."""
 
     def __post_init__(self):
         """Post initialization steps for model config overrides."""
@@ -86,7 +86,7 @@ class ModelConfigOverrideEval:
                 self.num_gpus = OmegaConf.select(config, "trainer.devices", default=1)
 
         if self.num_workers is None:
-            self.num_workers = os.cpu_count()
+            self.num_workers = int(0.5 * (os.cpu_count() or 0))
 
     def to_dict(
         self, dataset_name: str, crop_pattern: Literal["grid", "tracked"], suffix: str = ""
