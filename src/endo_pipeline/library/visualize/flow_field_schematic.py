@@ -236,7 +236,7 @@ def make_real_image_panel(
     horizontal_arrow_y_offset: float = -0.025,
     horizontal_arrow_linewidth: float = 1.5,
     text_y_offset: float = -0.175,
-    delta_text_y_offset: float = 0.025,
+    delta_text_y_offset: float = 0.05,
 ) -> Path:
     """Build the panel showing a grid crop from t to t+1 for a given example image."""
 
