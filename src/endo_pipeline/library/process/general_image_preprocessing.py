@@ -138,6 +138,23 @@ def run_task_queue_with_multiprocessing(
     num_processes: int,
     chunksize: int,
 ) -> None:
+    """
+    Process tasks in queue with multiprocessing.
+
+    Parameters
+    ----------
+    task
+        Method to be called for each task in queue.
+    queue
+        List of image processing arguments for each task.
+    description
+        Description for the progress bar.
+    num_processes
+        Number of processes to use.
+    chunksize
+        Number of items from queue to send to each process.
+    """
+
     logger.info("Starting multiprocessing...")
     with Pool(processes=num_processes) as pool:
         list(
@@ -152,6 +169,19 @@ def run_task_queue_with_multiprocessing(
 def run_task_queue_in_series(
     task: Callable, queue: list[ImageProcessingArgs], description: str
 ) -> None:
+    """
+    Process tasks in queue in series.
+
+    Parameters
+    ----------
+    task
+        Method to be called for each task in queue.
+    queue
+        List of image processing arguments for each task.
+    description
+        Description for the progress bar.
+    """
+
     logger.info("Starting single-core processing...")
     for item in tqdm(queue, desc=f"{description} (1P)", total=len(queue)):
         task(item)
@@ -164,6 +194,26 @@ def process_task_queue(
     num_processes: int,
     chunksize: int,
 ) -> None:
+    """
+    Process tasks in queue in series or with multiprocessing.
+
+    If requesting more than one process, use multiprocessing. Otherwise, process
+    the task queue in series.
+
+    Parameters
+    ----------
+    task
+        Method to be called for each task in queue.
+    queue
+        List of image processing arguments for each task.
+    description
+        Description for the progress bar.
+    num_processes
+        Number of processes to use.
+    chunksize
+        Number of items from queue to send to each process.
+    """
+
     if num_processes > 1:
         run_task_queue_with_multiprocessing(task, queue, description, num_processes, chunksize)
     else:

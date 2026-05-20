@@ -9,6 +9,18 @@ def use_default_collection(datasets: "Datasets | None", collection_name: str) ->
     Get datasets in default collection, if datasets are not provided.
 
     If running in demo mode, only return the first dataset in the collection.
+
+    Parameters
+    ----------
+    datasets
+        List of selected datasets.
+    collection_name
+        Name of collection if no datasets are provided.
+
+    Returns
+    -------
+    :
+        List of datasets.
     """
 
     from endo_pipeline.cli import DEMO_MODE
