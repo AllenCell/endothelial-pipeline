@@ -16,7 +16,7 @@ from endo_pipeline.library.process.general_image_preprocessing import sequence_t
 from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.workflow_defaults import DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME
+from endo_pipeline.settings.workflow_defaults import CELL_CENTERED_FEATURES_UNFILTERED_MANIFEST_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ def generate_test_angles() -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarr
 def create_summary_dfs(
     datasets: Datasets,
     cols_to_compute: list[str],
-    dataset_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
+    dataset_manifest_name: str = CELL_CENTERED_FEATURES_UNFILTERED_MANIFEST_NAME,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
 
     dataset_info_cols = [

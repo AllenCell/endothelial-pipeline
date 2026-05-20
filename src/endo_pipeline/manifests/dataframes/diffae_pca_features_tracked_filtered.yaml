@@ -1,6 +1,10 @@
-name: diffae_baseline_exclude_cell_piling_20251110_latent_512_tracked_pca_filtered
-workflow: endo_pipeline.workflows.production
-parameters: {}
+name: diffae_pca_features_tracked_filtered
+workflow: calculate-pca-features
+parameters:
+  model_manifest_name: diffae_baseline_exclude_cell_piling
+  run_name: 20251110_latent_512
+  crop_pattern: tracked
+  filtered: true
 locations:
   20250319_20X:
     fmsid: 24f6aa38ba9449b7814a4fdd7d2fc8ef

@@ -36,15 +36,13 @@ def main(datasets: Datasets | None = None, n_cores: int = 4):
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
     from endo_pipeline.settings.workflow_defaults import (
-        DEFAULT_MODEL_MANIFEST_NAME,
-        DEFAULT_MODEL_RUN_NAME,
+        GRID_BASED_FEATURES_UNFILTERED_MANIFEST_NAME,
     )
 
     logger = logging.getLogger(__name__)
 
     # Get dataframe manifest for the grid-based Diff AE features
-    dataframe_manifest_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_grid_pca"
-    dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
+    dataframe_manifest = load_dataframe_manifest(GRID_BASED_FEATURES_UNFILTERED_MANIFEST_NAME)
 
     datasets_all = get_datasets_in_collection("diffae_model_training")
     datasets_all.extend(get_datasets_in_collection("replicate_2_datasets"))
