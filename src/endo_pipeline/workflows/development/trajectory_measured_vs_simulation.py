@@ -38,9 +38,7 @@ def main(
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, TIME_STEP_IN_HOURS
-    from endo_pipeline.settings.workflow_defaults import (
-        DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED,
-    )
+    from endo_pipeline.settings.workflow_defaults import GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME
 
     dataset_names = datasets or get_datasets_in_collection("3d_flow_field_analysis")
 
@@ -55,9 +53,7 @@ def main(
         timepoint_units = TIME_STEP_IN_HOURS
 
         # load the dynamics features from the grid-based dataframe
-        dynamics_manifest_grid = load_dataframe_manifest(
-            DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED
-        )
+        dynamics_manifest_grid = load_dataframe_manifest(GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME)
         dynamics_loc_grid = get_dataframe_location_for_dataset(dynamics_manifest_grid, dataset_name)
         df_grid = load_dataframe(dynamics_loc_grid)
         # the loaded grid-based dynamics dataframe is disorderedby default so

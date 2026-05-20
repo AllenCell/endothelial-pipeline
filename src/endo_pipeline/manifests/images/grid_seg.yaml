@@ -32,10 +32,6 @@ locations:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_segmentations/P{{position}}/P{{position}}_T{{timepoint}}_grid_segmentation.ome.tiff
   20250728_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_segmentations/P{{position}}/P{{position}}_T{{timepoint}}_grid_segmentation.ome.tiff
-  20250224_20X:
-    path: //allen/aics/endothelial/morphological_features/segmentations/grid_segmentations/P{{position}}/P{{position}}_T{{timepoint}}_grid_segmentation.ome.tiff
-  20250806_20X:
-    path: //allen/aics/endothelial/morphological_features/segmentations/grid_segmentations/P{{position}}/P{{position}}_T{{timepoint}}_grid_segmentation.ome.tiff
   20260114_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_segmentations/P{{position}}/P{{position}}_T{{timepoint}}_grid_segmentation.ome.tiff
   20260121_20X:
@@ -60,8 +56,6 @@ locations:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_segmentations/P{{position}}/P{{position}}_T{{timepoint}}_grid_segmentation.ome.tiff
   20260211_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_segmentations/P{{position}}/P{{position}}_T{{timepoint}}_grid_segmentation.ome.tiff
-  20260218_20X:
-    path: //allen/aics/endothelial/morphological_features/segmentations/grid_segmentations/P{{position}}/P{{position}}_T{{timepoint}}_grid_segmentation.ome.tiff
   20260225_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_segmentations/P{{position}}/P{{position}}_T{{timepoint}}_grid_segmentation.ome.tiff
   20260302_20X:
@@ -69,12 +63,6 @@ locations:
   20260304_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_segmentations/P{{position}}/P{{position}}_T{{timepoint}}_grid_segmentation.ome.tiff
   20260309_20X:
-    path: //allen/aics/endothelial/morphological_features/segmentations/grid_segmentations/P{{position}}/P{{position}}_T{{timepoint}}_grid_segmentation.ome.tiff
-  20260316_20X:
-    path: //allen/aics/endothelial/morphological_features/segmentations/grid_segmentations/P{{position}}/P{{position}}_T{{timepoint}}_grid_segmentation.ome.tiff
-  20260318_20X:
-    path: //allen/aics/endothelial/morphological_features/segmentations/grid_segmentations/P{{position}}/P{{position}}_T{{timepoint}}_grid_segmentation.ome.tiff
-  20260323_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_segmentations/P{{position}}/P{{position}}_T{{timepoint}}_grid_segmentation.ome.tiff
   20260325_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_segmentations/P{{position}}/P{{position}}_T{{timepoint}}_grid_segmentation.ome.tiff

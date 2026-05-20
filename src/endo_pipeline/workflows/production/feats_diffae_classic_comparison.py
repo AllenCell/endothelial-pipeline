@@ -1,8 +1,6 @@
 from endo_pipeline.cli import Datasets, UniqueIntList
 from endo_pipeline.library.process.general_image_preprocessing import process_task_queue
-from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
-)
+from endo_pipeline.settings.workflow_defaults import CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME
 
 
 def main(
@@ -13,7 +11,7 @@ def main(
     use_global_pc_lims: bool = False,
     for_figures: bool = False,
     n_cores: int = 30,
-    cellcentric_features_manifest_name_for_flowfield: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
+    cellcentric_features_manifest_name_for_flowfield: str = CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
 ) -> None:
     """This workflow outputs plots of track-based cell trajectories integrated with grid-based DiffAE flow fields."""
 

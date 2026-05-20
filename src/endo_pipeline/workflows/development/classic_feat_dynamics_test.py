@@ -9,7 +9,7 @@ def main():
     )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.workflow_defaults import (
-        DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
+        CELL_CENTERED_FEATURES_UNFILTERED_MANIFEST_NAME,
         SEGMENTATION_FEATURE_COLUMNS,
     )
 
@@ -18,7 +18,7 @@ def main():
     dataset_name = "20251001_20X"
 
     cell_centric_feats_manifest = load_dataframe_manifest(
-        DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME
+        CELL_CENTERED_FEATURES_UNFILTERED_MANIFEST_NAME
     )
     cell_centric_feats_location = get_dataframe_location_for_dataset(
         cell_centric_feats_manifest, dataset_name

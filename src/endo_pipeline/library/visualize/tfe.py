@@ -50,9 +50,8 @@ from endo_pipeline.settings.tfe import (
     TFE_TYPE_MAPPING,
 )
 from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_MODEL_MANIFEST_NAME,
-    DEFAULT_MODEL_RUN_NAME,
-    DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
+    CELL_CENTERED_FEATURES_UNFILTERED_MANIFEST_NAME,
+    GRID_BASED_FEATURES_UNFILTERED_MANIFEST_NAME,
 )
 
 logger = logging.getLogger(__name__)
@@ -157,13 +156,12 @@ def get_grid_seg_data_for_tfe(
     dataset: DatasetConfig,
     position: int,
     max_timepoint: int | None = None,
-    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_name: str = DEFAULT_MODEL_RUN_NAME,
+    dataframe_manifest_name: str = GRID_BASED_FEATURES_UNFILTERED_MANIFEST_NAME,
 ) -> pd.DataFrame:
     """Get dataframe of grid segmentation feature data for TFE."""
 
     # Get dataframe of grid-based crop features
-    manifest = load_dataframe_manifest(f"{model_manifest_name}_{run_name}_grid_pca")
+    manifest = load_dataframe_manifest(dataframe_manifest_name)
     location = get_dataframe_location_for_dataset(manifest, dataset.name)
     df = load_dataframe(location, delay=False)
 
@@ -204,7 +202,7 @@ def get_cdh5_seg_data_for_tfe(
     dataset: DatasetConfig,
     position: int,
     max_timepoint: int | None = None,
-    dataframe_manifest_name: str = DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
+    dataframe_manifest_name: str = CELL_CENTERED_FEATURES_UNFILTERED_MANIFEST_NAME,
 ) -> pd.DataFrame:
     """Get dataframe of CDH5 segmentation feature data for TFE."""
 

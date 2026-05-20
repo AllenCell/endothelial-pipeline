@@ -37,10 +37,7 @@ def main(
         DENSITY_PLOT_METADATA_COLUMNS_TO_COMPUTE,
         SAVE_FIG_FILE_FORMATS,
     )
-    from endo_pipeline.settings.workflow_defaults import (
-        DEFAULT_MODEL_MANIFEST_NAME,
-        DEFAULT_MODEL_RUN_NAME,
-    )
+    from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
 
     logger = logging.getLogger(__name__)
 
@@ -51,13 +48,12 @@ def main(
 
     # Load dataframe manifest for the features to be used in flow field
     # estimation and analysis.
-    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}"
-    feature_dataframe_manifest_name_tracked = f"{base_name}_tracked_pca_filtered"
     feature_dataframe_manifest_tracked = load_dataframe_manifest(
-        feature_dataframe_manifest_name_tracked
+        FEATURES_FILTERED_MANIFEST_NAMES["tracked"]
     )
-    feature_dataframe_manifest_name_grid = f"{base_name}_grid_pca_filtered"
-    feature_dataframe_manifest_grid = load_dataframe_manifest(feature_dataframe_manifest_name_grid)
+    feature_dataframe_manifest_grid = load_dataframe_manifest(
+        FEATURES_FILTERED_MANIFEST_NAMES["grid"]
+    )
 
     fig_savedir = get_output_path(__file__)
 

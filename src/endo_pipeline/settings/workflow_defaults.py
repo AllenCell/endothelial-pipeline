@@ -2,6 +2,7 @@
 
 from typing import Literal
 
+from endo_pipeline.configs.dataset_config import TimepointAnnotation
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
 
@@ -14,43 +15,39 @@ DEFAULT_MODEL_RUN_NAME: str = "20251110_latent_512"
 DEFAULT_PCA_DATASET_COLLECTION_NAME: str = "diffae_model_training"
 """Default dataset collection name for fitting PCA models."""
 
-DEFAULT_SEG_FEATURE_MANIFEST_NAME: str = "live_merged_seg_features"
+DEFAULT_SEG_FEATURE_MANIFEST_NAME: str = "merged_segmentation_features"
 """Default manifest name for merged CDH5 segmentation, CDH5 tracking and
 label-free nuclei segmentation features."""
 
-DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_UNFILTERED: str = (
-    "diffae_baseline_exclude_cell_piling_20251110_latent_512_tracked_pca"
-)
-"""Default manifest names for PCA-reduced DiffAE features for track-based crops before filtering."""
+DIFFAE_PCA_FEATURE_TRACKED_UNFILTERED_MANIFEST_NAME: str = "diffae_pca_features_tracked_unfiltered"
+"""Dataframe manifest name for unfiltered PCA-reduced DiffAE features for track-based crops."""
 
-DEFAULT_DIFFAE_PCA_FEATURE_TRACKED_MANIFEST_NAME_FILTERED: str = (
-    "diffae_baseline_exclude_cell_piling_20251110_latent_512_tracked_pca_filtered"
-)
-"""Default manifest names for PCA-reduced DiffAE features for track-based crops after filtering."""
+DIFFAE_PCA_FEATURE_TRACKED_FILTERED_MANIFEST_NAME: str = "diffae_pca_features_tracked_filtered"
+"""Dataframe manifest name for filtered PCA-reduced DiffAE features for track-based crops."""
 
-DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_UNFILTERED: str = (
-    "diffae_baseline_exclude_cell_piling_20251110_latent_512_grid_pca"
-)
-"""Default manifest names for PCA-reduced DiffAE features for grid-based crops before filtering."""
+GRID_BASED_FEATURES_UNFILTERED_MANIFEST_NAME: str = "grid_based_features_unfiltered"
+"""Dataframe manifest name for unfiltered grid-based features."""
 
-DEFAULT_DIFFAE_PCA_FEATURE_GRID_MANIFEST_NAME_FILTERED: str = (
-    "diffae_baseline_exclude_cell_piling_20251110_latent_512_grid_pca_filtered"
-)
-"""Default manifest names for PCA-reduced DiffAE features for grid-based crops after filtering."""
+GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME: str = "grid_based_features_filtered"
+"""Dataframe manifest name for filtered grid-based features."""
 
-DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME: str = "pc_diffae_tracked_seg_features"
-"""Default manifest name for PCA-reduced DiffAE tracked-cell features merged with
-DiffAE tracked-cell features and CDH5 segmentation features."""
+CELL_CENTERED_FEATURES_UNFILTERED_MANIFEST_NAME: str = "cell_centered_features_unfiltered"
+"""Dataframe manifest name for unfiltered cell-centered features."""
 
-DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED: str = (
-    "pc_diffae_tracked_seg_features_filtered"
-)
-"""Default manifest name for PCA-reduced DiffAE tracked-cell features merged with
-DiffAE tracked-cell features and CDH5 segmentation features after filtering."""
+CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME: str = "cell_centered_features_filtered"
+"""Dataframe manifest name for unfiltered cell-centered features."""
 
-FIXED_SEG_FEATURE_MANIFEST_NAME: str = "fixed_merged_seg_features"
-"""Default manifest name for merged CDH5 segmentation, CDH5 tracking and
-NucViolet-stained nuclei segmentation features for fixed samples."""
+FEATURES_UNFILTERED_MANIFEST_NAMES: dict[Literal["grid", "tracked"], str] = {
+    "grid": GRID_BASED_FEATURES_UNFILTERED_MANIFEST_NAME,
+    "tracked": CELL_CENTERED_FEATURES_UNFILTERED_MANIFEST_NAME,
+}
+"""Mapping of crop pattern to unfiltered feature dataframe manifest name."""
+
+FEATURES_FILTERED_MANIFEST_NAMES: dict[Literal["grid", "tracked"], str] = {
+    "grid": GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME,
+    "tracked": CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
+}
+"""Mapping of crop pattern to filtered feature dataframe manifest name."""
 
 DEFAULT_SEG_FEATURE_WORKFLOW_DATASETS: str = "pca_reference"
 """Default dataset collection name for the segmentation feature workflow."""
@@ -203,6 +200,12 @@ DEFAULT_COLUMNS_TO_DROP: dict[str, list[ColumnNameType]] = {
         Column.BF_CHANNEL_INDEX_ZARR,
     ],
 }
+
+ANNOTATIONS_TO_FILTER_OUT_FOR_SEGMENTATIONS = [
+    TimepointAnnotation.AUTO_GFP_SCOPE_ERROR,
+    TimepointAnnotation.GFP_SCOPE_ERROR,
+]
+"""Timepoint annotations that apply to segmentation feature datasets."""
 
 DATASET_INFO_COLUMNS: list[ColumnNameType] = [
     Column.DATASET,

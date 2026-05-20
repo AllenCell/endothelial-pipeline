@@ -10,6 +10,8 @@ import pandas as pd
 from dask.array import Array
 from skimage import draw, filters, graph, measure, morphology, segmentation
 
+from endo_pipeline.library.process.general_image_preprocessing import ImageProcessingArgs
+
 logger = logging.getLogger(__name__)
 
 
@@ -1510,7 +1512,7 @@ def build_cdh5_measured_features_tables(
     - edge_fluorescence_mean (a.u.)
     - edge_fluorescence_std (a.u.)
     - edge_fluorescence_median (a.u.)
-    - edge_fluoresnce_min (a.u.)
+    - edge_fluorescence_min (a.u.)
     - edge_fluorescence_pct25 (a.u.)
     - edge_fluorescence_pct75 (a.u.)
     - edge_fluorescence_max (a.u.)
@@ -1597,7 +1599,7 @@ def build_cdh5_measured_features_tables(
                 "edge_fluorescence_mean (a.u.)": neighbor_node_metrics["fluor_mean (au)"],
                 "edge_fluorescence_std (a.u.)": neighbor_node_metrics["fluor_std (au)"],
                 "edge_fluorescence_median (a.u.)": neighbor_node_metrics["fluor_median (au)"],
-                "edge_fluoresnce_min (a.u.)": neighbor_node_metrics["fluor_min (au)"],
+                "edge_fluorescence_min (a.u.)": neighbor_node_metrics["fluor_min (au)"],
                 "edge_fluorescence_pct25 (a.u.)": neighbor_node_metrics["fluor_pct25 (au)"],
                 "edge_fluorescence_pct75 (a.u.)": neighbor_node_metrics["fluor_pct75 (au)"],
                 "edge_fluorescence_max (a.u.)": neighbor_node_metrics["fluor_max (au)"],
@@ -1828,7 +1830,6 @@ def get_nuclei_features_from_dataset_at_timepoint(
     position: int,
     tp: int,
     out_dir: Path,
-    channel_names: tuple = ("EGFP", "BF"),
     save_output: bool = True,
 ) -> pd.DataFrame:
     """
@@ -1848,6 +1849,7 @@ def get_nuclei_features_from_dataset_at_timepoint(
     # Load segmentations and image
     dim_order = DIMENSION_ORDER
     dataset_config = load_dataset_config(dataset_name)
+    channel_names = dataset_config.channel_names
 
     nuc_manifest = load_image_manifest("nuclear_labelfree_seg_zarr")
     nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_config, position)
@@ -1901,43 +1903,30 @@ def get_nuclei_features_from_dataset_at_timepoint(
     return nuc_feats_df
 
 
-def build_cdh5_measured_features_tables_multiproc_wrapper(args: dict) -> None:
+def build_cdh5_measured_features_tables_multiproc_wrapper(args: ImageProcessingArgs) -> None:
     """Build and save measured features tables using multiprocessing."""
 
-    dataset_name = args["dataset_name"]
-    position = args["position"]
-    tp = args["T"]
-    save_output = args["save_output"]
-    out_dir = args["output_dir"]
-    create_validation_image = args["is_validation_image"]
     build_cdh5_measured_features_tables(
-        dataset_name,
-        tp,
-        out_dir,
-        position,
-        save_output=save_output,
-        create_validation_image=create_validation_image,
+        out_dir=args.output_dir,
+        dataset_name=args.dataset_name,
+        tp=args.timepoint,
+        position=args.position,
+        save_output=args.save_output,
+        create_validation_image=args.is_validation_image,
     )
 
 
-def get_and_save_nuclei_features_arg_unpacker(args: dict) -> None:
+def get_and_save_nuclei_features_arg_unpacker(args: ImageProcessingArgs) -> None:
     """Unpack arguments from an argument dictionary and call
     get_nuclei_features_from_dataset_at_timepoint.
     """
-    dataset_name = args["dataset_name"]
-    position = args["position"]
-    tp = args["T"]
-    out_dir = args["output_dir"]
-    save_output = args["save_output"]
-    channel_names = args["channel_names"]
 
     get_nuclei_features_from_dataset_at_timepoint(
-        dataset_name=dataset_name,
-        position=position,
-        tp=tp,
-        out_dir=out_dir,
-        channel_names=channel_names,
-        save_output=save_output,
+        out_dir=args.output_dir,
+        dataset_name=args.dataset_name,
+        tp=args.timepoint,
+        position=args.position,
+        save_output=args.save_output,
     )
 
 
