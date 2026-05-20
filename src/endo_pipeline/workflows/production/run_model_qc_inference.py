@@ -13,10 +13,16 @@ development workflow for ad-hoc multi-model QC.
 """
 
 
-def main(resume: bool = False, upload_to_fms: bool = False) -> None:
+def main(resume: bool = False) -> None:
     """Run inference and emit a dataframe manifest of per-model parquets.
 
     #diffae #figure #gpu #production
+
+    Whether per-model parquets are uploaded to FMS (and to which
+    environment) is governed by the global ``--upload-to-fms`` /
+    ``--fms-environment`` CLI flags, which the entry-point app maps onto
+    the ``UPLOAD_TO_FMS`` / ``FMS_ENVIRONMENT`` module constants in
+    :mod:`endo_pipeline.cli`.
 
     Parameters
     ----------
@@ -25,14 +31,10 @@ def main(resume: bool = False, upload_to_fms: bool = False) -> None:
         under ``<outdir>/shards/``.  Lets a partially-completed sweep
         be restarted without re-burning GPU time on pairs already done.
         Default: ``False``.
-    upload_to_fms
-        If true, upload each per-model parquet to FMS and store the
-        ``fmsid`` in the dataframe manifest.  Otherwise the manifest
-        records local paths only.  Default: ``False``.
     """
     import logging
 
-    from endo_pipeline.cli import DEMO_MODE, NUM_GPUS
+    from endo_pipeline.cli import DEMO_MODE, NUM_GPUS, UPLOAD_TO_FMS
     from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
     from endo_pipeline.library.model.model_qc import (
@@ -162,7 +164,7 @@ def main(resume: bool = False, upload_to_fms: bool = False) -> None:
         model_parquet = write_model_parquet_from_shards(metrics_dir, model_key, seeds_to_evaluate)
 
         location_key = model_key_str(model_key)
-        if upload_to_fms:
+        if UPLOAD_TO_FMS:
             unique_dataset_names = sorted({e.dataset_name for e in examples})
             dataset_configs = [load_dataset_config(n) for n in unique_dataset_names]
             notes = (
