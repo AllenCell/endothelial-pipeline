@@ -121,8 +121,8 @@ def main(
         UPPER_PERCENTILE_FOR_FILTERING_FPTS,
     )
     from endo_pipeline.settings.flow_field_dataframes import (
-        DATAFRAME_MANIFEST_PREFIX_DRIFT,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+        DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD,
         FMS_ANNOTATION_NOTES_DRIFT,
         FMS_ANNOTATION_NOTES_FIXED_POINTS,
     )
@@ -176,10 +176,10 @@ def main(
     # columns used to generate the flow field.
     name_suffix = "_demo" if DEMO_MODE else ""
     name_suffix = f"_{join_sorted_strings(column_names)}_{crop_pattern}{name_suffix}"
-    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}{name_suffix}"
+    vector_field_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD}{name_suffix}"
     fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix}"
-    drift_dataframe_manifest = create_dataframe_manifest(
-        drift_dataframe_manifest_name, workflow_name=__file__
+    vector_field_dataframe_manifest = create_dataframe_manifest(
+        vector_field_dataframe_manifest_name, workflow_name=__file__
     )
     fixed_points_dataframe_manifest = create_dataframe_manifest(
         fixed_points_dataframe_manifest_name, workflow_name=__file__
@@ -200,7 +200,7 @@ def main(
 
     # Add parameters to dataframe manifests for traceability
     for output_dataframe_manifest in [
-        drift_dataframe_manifest,
+        vector_field_dataframe_manifest,
         fixed_points_dataframe_manifest,
     ]:
         output_dataframe_manifest.parameters = {
@@ -283,9 +283,9 @@ def main(
 
         for manifest, dataframe, name_prefix, additional_notes in [
             (
-                drift_dataframe_manifest,
+                vector_field_dataframe_manifest,
                 vector_field_for_dataset,
-                DATAFRAME_MANIFEST_PREFIX_DRIFT,
+                DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD,
                 FMS_ANNOTATION_NOTES_DRIFT,
             ),
             (

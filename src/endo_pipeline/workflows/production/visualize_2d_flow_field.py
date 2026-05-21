@@ -92,8 +92,8 @@ def main(
         RESCALE_THETA,
     )
     from endo_pipeline.settings.flow_field_dataframes import (
-        DATAFRAME_MANIFEST_PREFIX_DRIFT,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+        DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD,
         StabilityLabel,
     )
     from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, StabilityLegendHandle
@@ -123,7 +123,9 @@ def main(
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     columns_str = join_sorted_strings(cast(list[str], column_names))
-    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{columns_str}_{base_name}"
+    drift_dataframe_manifest_name = (
+        f"{DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD}_{columns_str}_{base_name}"
+    )
     fixed_points_dataframe_manifest_name = (
         f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{columns_str}_{base_name}"
     )

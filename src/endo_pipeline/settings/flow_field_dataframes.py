@@ -2,7 +2,7 @@ from enum import StrEnum
 
 """Global constants and default settings for dataframe creation and processing in 3D flow field analysis."""
 
-DATAFRAME_MANIFEST_PREFIX_DRIFT: str = "drift_vector_field"
+DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD: str = "drift_vector_field"
 """Prefix for setting and getting dataframe manifest name for drift dataframes
 in 3D flow field analysis."""
 

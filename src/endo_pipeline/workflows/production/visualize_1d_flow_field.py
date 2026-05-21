@@ -60,8 +60,8 @@ def main(
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import DEFAULT_DATASETS_DYNAMICS_VIS
     from endo_pipeline.settings.flow_field_dataframes import (
-        DATAFRAME_MANIFEST_PREFIX_DRIFT,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+        DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD,
         StabilityLabel,
     )
     from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
@@ -79,7 +79,9 @@ def main(
 
     # get dataframe manifest for precomputed drift and fixed points dataframes
     base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
-    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{column_name}_{base_name}"
+    drift_dataframe_manifest_name = (
+        f"{DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD}_{column_name}_{base_name}"
+    )
     fixed_points_dataframe_manifest_name = (
         f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{column_name}_{base_name}"
     )
