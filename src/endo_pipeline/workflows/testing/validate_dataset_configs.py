@@ -2,9 +2,10 @@ from endo_pipeline.cli import Datasets
 
 
 def main(datasets: Datasets | None = None) -> None:
-    """Validate dataset(s) by checking config schemas and loading files.
+    """
+    Validate dataset(s) by checking config schemas and loading files.
 
-    #test-ready #cpu-only
+    #datasets #validation #test-ready #cpu-only
 
     For each specified dataset, confirm:
 
@@ -16,12 +17,31 @@ def main(datasets: Datasets | None = None) -> None:
 
     If `datasets` is not provided, all datasets will be validated.
 
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe validate-dataset-configs -vd
+    ```
+
+    To run the workflow for a single dataset:
+
+    ```bash
+    uv run endopipe validate-dataset-configs --datasets DATASET_NAME
+    ```
+
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will only run
+    validation on the first two datasets.
+
     Parameters
     ----------
     datasets
-        The dataset(s) to validate. If None, all datasets will be validated.
-
+        List of datasets or dataset collections to validate.
     """
+
     import logging
     from pathlib import Path
 
@@ -38,12 +58,12 @@ def main(datasets: Datasets | None = None) -> None:
     logger = logging.getLogger(__name__)
 
     dataset_names = datasets or get_available_dataset_names()
+
     if DEMO_MODE:
-        # Each dataset takes 2-9 seconds to validate
         dataset_names = dataset_names[:2]
 
     for dataset_name in dataset_names:
-        logger.info(f"Running validation for dataset [ {dataset_name} ]")
+        print(f"Running validation for dataset '{dataset_name}'")
 
         # Validate dataset config schema.
         validate_dataset_config(dataset_name)
@@ -56,7 +76,7 @@ def main(datasets: Datasets | None = None) -> None:
             BioImage(Path(dataset_config.original_path))
         except FileNotFoundError:
             logger.error(
-                "Failed to open original for dataset [ %s ] at [ %s ]",
+                "Failed to open original for dataset '%s' at '%s'",
                 dataset_config.name,
                 dataset_config.original_path,
             )
@@ -67,11 +87,10 @@ def main(datasets: Datasets | None = None) -> None:
 
             try:
                 BioImage(zarr_file)
-            except:
+            except Exception:
                 logger.error(
-                    "Failed to load zarr for dataset [ %s ] at [ %s ]", dataset_name, zarr_file
+                    "Failed to load zarr for dataset '%s' at '%s'", dataset_name, zarr_file
                 )
-                raise
 
 
 if __name__ == "__main__":
