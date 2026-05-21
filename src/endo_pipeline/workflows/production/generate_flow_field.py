@@ -153,7 +153,7 @@ def main(
 
     logger.info("Generating flow field for columns: %s", column_names)
 
-    # Columns to keep when loading dataframes
+    # Columns to keep when loading feature dataframe
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
     # Load default model manifest and corresponding feature dataframe for
