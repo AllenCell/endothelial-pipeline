@@ -1,6 +1,6 @@
 """Default settings for polar coordinate analysis and visualization."""
 
-from numpy import pi
+from math import pi
 
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KernelName
 from endo_pipeline.settings.column_names import ColumnName as Column
@@ -76,13 +76,22 @@ KERNEL_NAMES_DYNAMICS: dict[Column.DiffAEData, KernelName] = {
     Column.DiffAEData.POLAR_RADIUS: "gaussian",
     Column.DiffAEData.PC3_FLIPPED: "gaussian",
 }
-"""Kernel names for each coordinate in dynamics analysis and visualization."""
+"""Map of column name to kernel names."""
 
 KERNEL_BANDWIDTHS_DYNAMICS: dict[Column.DiffAEData, float] = {
     Column.DiffAEData.POLAR_ANGLE: 0.15,
     Column.DiffAEData.POLAR_RADIUS: 0.15,
     Column.DiffAEData.PC3_FLIPPED: 0.15,
 }
+"""Map of column name to kernel bandwidths."""
+
+KERNEL_PERIODS_DYNAMICS: dict[Column.DiffAEData, float | None] = {
+    Column.DiffAEData.POLAR_ANGLE: POLAR_ANGLE_PERIOD + pi * (1 - RESCALE_THETA),
+    Column.DiffAEData.POLAR_RADIUS: None,
+    Column.DiffAEData.PC3_FLIPPED: None,
+}
+"""Map of column name to kernel periods."""
+
 
 BIN_LIMIT_PERCENTILE_CUTOFF: float = 2.5
 """Percentile cutoff for getting bin limits for computing Kramer-Moyal

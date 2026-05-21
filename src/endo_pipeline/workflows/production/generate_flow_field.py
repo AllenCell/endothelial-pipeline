@@ -84,7 +84,6 @@ def main(
     """
     import logging
 
-    import numpy as np
     import pandas as pd
 
     from endo_pipeline.cli import DEMO_MODE
@@ -120,11 +119,10 @@ def main(
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
+        KERNEL_PERIODS_DYNAMICS,
         LOWER_PERCENTILE_FOR_FILTERING_FPTS,
         METADATA_COLUMNS_TO_KEEP,
         NUM_INIT_SAMPLES,
-        POLAR_ANGLE_PERIOD,
-        RESCALE_THETA,
         TIME_STEP_IN_HOURS,
         UPPER_PERCENTILE_FOR_FILTERING_FPTS,
     )
@@ -194,23 +192,18 @@ def main(
         fixed_points_dataframe_manifest_name, workflow_name=__file__
     )
 
-    # initialize kernels and bin widths for each of the three variables for flow
-    # field estimation
+    # Initialize kernels and bin widths for each selected column
     kernels: list[KramersMoyalKernel] = []
     bin_widths: list[float] = []
-    rescaled_theta_period = POLAR_ANGLE_PERIOD + np.pi * (1 - RESCALE_THETA)
-
-    # Get the corresponding kernels and bin widths for each variable. For the
-    # polar angle variable, also specify the period for the kernel based on the
-    # rescaled theta range, to ensure that the periodicity of the polar angle is
-    # taken into account in the flow field estimation.
     for column_name in column_names:
-        name = KERNEL_NAMES_DYNAMICS[column_name]
-        bandwidth = KERNEL_BANDWIDTHS_DYNAMICS[column_name]
-        period = rescaled_theta_period if column_name == ColumnName.DiffAEData.POLAR_ANGLE else None
-        bin_width = BIN_WIDTHS_DYNAMICS[column_name]
-        kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
-        bin_widths.append(bin_width)
+        kernels.append(
+            KramersMoyalKernel(
+                name=KERNEL_NAMES_DYNAMICS[column_name],
+                bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_name],
+                period=KERNEL_PERIODS_DYNAMICS[column_name],
+            )
+        )
+        bin_widths.append(BIN_WIDTHS_DYNAMICS[column_name])
 
     # add parameters to dataframe manifests for traceability
     column_names_yaml_safe = [f"{column}" for column in column_names]
