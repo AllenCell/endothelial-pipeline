@@ -1,4 +1,4 @@
-def main(num_processes: int = 1, upload_to_fms: bool = True) -> None:
+def main(num_processes: int = 1) -> None:
     """
     Retrain Cellpose model to predict nuclei from BF std dev projections.
 
@@ -35,7 +35,7 @@ def main(num_processes: int = 1, upload_to_fms: bool = True) -> None:
     from cellpose import models, train
     from cellpose.io import logger_setup
 
-    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE, UPLOAD_TO_FMS
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import (
         build_fms_annotations,
@@ -145,8 +145,8 @@ def main(num_processes: int = 1, upload_to_fms: bool = True) -> None:
     model_manifest.parameters["training_datasets"] = datasets_to_use
     save_model_manifest(model_manifest)
 
-    # upload to FMS if desired
-    if upload_to_fms:
+    # upload to FMS if desired; note that this will always be false to the general public
+    if UPLOAD_TO_FMS:
         annotations = build_fms_annotations(
             dataset=[load_dataset_config(dataset) for dataset in datasets_to_use],
             model_manifest=model_manifest,
