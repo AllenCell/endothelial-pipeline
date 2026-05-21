@@ -25,6 +25,12 @@ def main(
     Make sure to run that workflow with the matching crop pattern and column
     names before visualizing.
 
+    Visualization outputs include:
+
+    - Contour plot of each component of the drift vector field
+    - Quiver plot of drift vector field over 2D state space (overlaid with
+      stable fixed points, if available)
+
     ## Example usage
 
     To run the workflow in demo mode:

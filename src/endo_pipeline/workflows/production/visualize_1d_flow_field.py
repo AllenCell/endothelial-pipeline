@@ -14,6 +14,11 @@ def main(
     Make sure to run that workflow with the matching crop pattern and column
     name before visualizing.
 
+    Visualization outputs include:
+
+    - Line plot of drift vector field across 1D state space (overlaid with
+      stable fixed points, if available)
+
     ## Example usage
 
     To run the workflow in demo mode:
@@ -180,12 +185,12 @@ def main(
             dataset_name_flow = slugify(f"{dataset_name}_shear_{shear_stress}")
             fig_title = get_shear_stress_label_for_dataset(dataset_config, flow_condition)
 
-            vector_field_dataframe_flow = filter_dataframe_by_shear_stress(
+            vector_field_for_flow_condition = filter_dataframe_by_shear_stress(
                 vector_field_dataframe, shear_stress
             )
 
             drift, centers = get_reshaped_vector_field_and_grid(
-                vector_field_dataframe_flow,
+                vector_field_for_flow_condition,
                 column_names=[column_name],
             )
 
@@ -202,11 +207,11 @@ def main(
             save_plot_to_path(fig, output_path, figure_name, file_format=".png")
 
             if fixed_points_dataframe is not None:
-                fixed_points_dataframe_flow = filter_dataframe_by_shear_stress(
+                fixed_points_for_flow_condition = filter_dataframe_by_shear_stress(
                     fixed_points_dataframe, shear_stress
                 )
                 stable_fixed_points = filter_dataframe_by_stability(
-                    fixed_points_dataframe_flow, stability_label=StabilityLabel.STABLE
+                    fixed_points_for_flow_condition, stability_label=StabilityLabel.STABLE
                 )
                 ax.plot(
                     stable_fixed_points[column_name],
