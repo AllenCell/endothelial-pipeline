@@ -1,6 +1,0 @@
-name: pca_reference
-description: Reference datasets used to compute principal component axes
-datasets:
-- 20250618_20X # 6 dyn/cm2
-- 20250611_20X # 20 dyn/cm2
-- 20250818_20X # 0 dyn/cm2
