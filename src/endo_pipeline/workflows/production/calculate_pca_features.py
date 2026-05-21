@@ -252,9 +252,10 @@ def main(
             pca_df.to_parquet(pca_df_path, index=False)
 
             # Create location object with output path
-            pca_location = DataframeLocation(path=pca_df_path)
+            pca_location = manifest.locations.get(dataset_name, DataframeLocation())
+            pca_location.path = pca_df_path
 
-            # Upload to FMS (internal only) and update location object with FMS id
+            # Upload to FMS (internal only) and replace local path with file id
             if UPLOAD_TO_FMS:
                 annotations = build_fms_annotations(
                     dataset=dataset_config,
@@ -267,6 +268,7 @@ def main(
                     pca_df_path, annotations=annotations, file_type="parquet"
                 )
                 pca_location.fmsid = fmsid
+                location.path = None
 
             # Add dataframe location to dataframe manifest and save.
             manifest.locations[dataset_name] = pca_location
