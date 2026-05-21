@@ -53,8 +53,8 @@ def main(num_processes: int = 1, upload_to_fms: bool = True) -> None:
     )
     from endo_pipeline.manifests import (
         ModelLocation,
-        get_zarr_location_for_position,
         create_model_manifest,
+        get_zarr_location_for_position,
         save_model_manifest,
     )
     from endo_pipeline.settings import DIMENSION_ORDER
@@ -137,7 +137,9 @@ def main(num_processes: int = 1, upload_to_fms: bool = True) -> None:
         plt.close(fig)
 
     # save the model to the model manifest
-    model_manifest = create_model_manifest(manifest_name=LABELFREE_NUCLEI_MODEL_MANIFEST_NAME, workflow_name="retrain_cellpose")
+    model_manifest = create_model_manifest(
+        manifest_name=LABELFREE_NUCLEI_MODEL_MANIFEST_NAME, workflow_name="retrain_cellpose"
+    )
     model_location = ModelLocation(path=model_path)
     model_manifest.locations[model_name] = model_location
     model_manifest.parameters["training_datasets"] = datasets_to_use
