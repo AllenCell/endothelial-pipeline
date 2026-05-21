@@ -63,6 +63,11 @@ def main(
           dataset.
         - Dataframe with the stable fixed point locations for each dataset.
 
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will generate the
+    flow field for the first dataset.
+
     Parameters
     ----------
     crop_pattern
@@ -137,6 +142,12 @@ def main(
 
     logger = logging.getLogger(__name__)
 
+    dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
+
+    if DEMO_MODE:
+        logger.warning("DEMO_MODE - Limiting to one dataset")
+        dataset_names = dataset_names[:1]
+
     # Workflow only supports generating flow fields from combinations of
     # three specific column names (as defined in DYNAMICS_COLUMN_NAMES). If
     # column names are provided, ensure they are a subset of these columns and
@@ -182,19 +193,6 @@ def main(
     fixed_points_dataframe_manifest = create_dataframe_manifest(
         fixed_points_dataframe_manifest_name, workflow_name=__file__
     )
-
-    # Default list of datasets if not provided. Filter by datasets available in
-    # the manifest.
-    dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
-    if DEMO_MODE:
-        logger.warning(
-            "DEMO MODE: Processing no more than two of the provided datasets for quick testing."
-        )
-        # take min of the number of datasets provided and 2, to limit to at most
-        # 2 datasets in DEMO_MODE for quick visualization (i.e., avoid error if
-        # only 1 dataset is provided)
-        num_datasets = min(len(dataset_names), 2)
-        dataset_names = dataset_names[:num_datasets]
 
     # initialize kernels and bin widths for each of the three variables for flow
     # field estimation
