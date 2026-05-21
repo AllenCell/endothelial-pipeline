@@ -209,8 +209,7 @@ def main(
         )
         bin_widths.append(BIN_WIDTHS_DYNAMICS[column_name])
 
-    # add parameters to dataframe manifests for traceability
-    column_names_yaml_safe = [f"{column}" for column in column_names]
+    # Add parameters to dataframe manifests for traceability
     for output_dataframe_manifest in [
         drift_dataframe_manifest,
         fixed_points_dataframe_manifest,
@@ -219,9 +218,15 @@ def main(
             "model_manifest_name": DEFAULT_MODEL_MANIFEST_NAME,
             "run_name": DEFAULT_MODEL_RUN_NAME,
             "crop_pattern": crop_pattern,
-            "columns": column_names_yaml_safe,
-            "kernel_names": [kernel.name for kernel in kernels],
-            "kernel_bandwidths": [kernel.bandwidth for kernel in kernels],
+            "kernels": [
+                {
+                    "column": str(column),
+                    "name": kernel.name,
+                    "bandwidth": kernel.bandwidth,
+                    "period": kernel.period,
+                }
+                for column, kernel in zip(column_names, kernels, strict=False)
+            ],
             "bin_widths": bin_widths,
             "num_init_samples_for_root_solver": NUM_INIT_SAMPLES,
             "lower_percentile_for_filtering_fpts": LOWER_PERCENTILE_FOR_FILTERING_FPTS,
