@@ -108,7 +108,6 @@ def main(
     import logging
     import os
     from concurrent.futures import ProcessPoolExecutor
-    from typing import cast
 
     import numpy as np
     import pandas as pd
@@ -189,10 +188,8 @@ def main(
 
     dataframe_savedir = get_output_path(__file__, crop_pattern)
     # get dataframe manifest for baseline results to match against in bootstrapping
-    columns_str = join_sorted_strings(cast(list[str], column_names))
-    baseline_fixed_point_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{columns_str}_{base_name}"
-    )
+    name_suffix = f"_{join_sorted_strings(column_names)}_{crop_pattern}"
+    baseline_fixed_point_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix}"
     baseline_fixed_point_manifest = load_dataframe_manifest(baseline_fixed_point_manifest_name)
 
     # load or initialize dataframe manifest for bootstrap results

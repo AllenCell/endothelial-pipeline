@@ -78,21 +78,25 @@ def main() -> None:
     base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
     feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[crop_pattern]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
+    name_suffix_2d = f"_{columns_r_rho_str}_{crop_pattern}"
     fixed_points_r_rho_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{columns_r_rho_str}_{base_name}"
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix_2d}"
     )
     fixed_points_r_rho_dataframe_manifest = load_dataframe_manifest(
         fixed_points_r_rho_dataframe_manifest_name
     )
+    name_suffix_1d = f"_{column_theta}_{crop_pattern}"
     fixed_points_theta_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{column_theta}_{base_name}"
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix_1d}"
     )
     fixed_points_theta_dataframe_manifest = load_dataframe_manifest(
         fixed_points_theta_dataframe_manifest_name
     )
+    name_suffix_3d = f"_{feature_columns_str}_{crop_pattern}"
     fixed_points_3d_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{feature_columns_str}_{base_name}"
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix_3d}"
     )
+
     fixed_points_3d_dataframe_manifest = load_dataframe_manifest(
         fixed_points_3d_dataframe_manifest_name
     )

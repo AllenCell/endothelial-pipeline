@@ -1,7 +1,6 @@
 """Methods related to flow field estimation and analysis."""
 
 import logging
-from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -25,10 +24,6 @@ from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.flow_field_2d import HISTOGRAM_THRESHOLD_FOR_MASKING
 from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
 from endo_pipeline.settings.flow_field_dataframes import DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD
-from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_MODEL_MANIFEST_NAME,
-    DEFAULT_MODEL_RUN_NAME,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -301,8 +296,6 @@ def get_drift_estimates_and_fixed_points(
 def load_drift_dataframe_for_dataset(
     dataset_name: str,
     columns: list[str | Column.DiffAEData] | None = None,
-    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_name: str = DEFAULT_MODEL_RUN_NAME,
 ) -> pd.DataFrame:
     """
     Get the drift dataframe of a data-driven flow field for a given dataset.
@@ -311,24 +304,27 @@ def load_drift_dataframe_for_dataset(
     ----------
     dataset_name
         Name of the dataset to get the drift dataframe for.
-    model_manifest_name
-        Name of the model manifest to use for locating the drift dataframe.
-    run_name
-        Name of the model run to use for locating the drift dataframe.
+    columns
+        List of columns the drift dataframe was calculated on.
 
     Returns
     -------
-    pd.DataFrame
+    :
         Drift dataframe for the given dataset.
     """
 
-    column_names = columns or cast(list[str], list(DYNAMICS_COLUMN_NAMES))
-    columns_str = join_sorted_strings(column_names)
+    column_names = []
+    if columns is not None:
+        for column in columns:
+            if column in DYNAMICS_COLUMN_NAMES:
+                column_names.append(Column.DiffAEData(column))
+            else:
+                logger.warning("Column '%s' not supported for flow fields. Skipping.", column)
+    else:
+        column_names = list(DYNAMICS_COLUMN_NAMES)
 
-    base_name = f"{model_manifest_name}_{run_name}_grid"
-    drift_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD}_{columns_str}_{base_name}"
-    )
+    name_suffix = f"_{join_sorted_strings(column_names)}_grid"
+    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD}{name_suffix}"
     drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
 
     if dataset_name not in drift_dataframe_manifest.locations:
