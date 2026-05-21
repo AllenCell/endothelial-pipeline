@@ -43,7 +43,7 @@ from endo_pipeline.settings.examples import (
     SUPP_FIG_OPTICAL_FLOW_INCOHERENT_EXAMPLE,
     SUPP_FIG_RETRACTION_FIBER_BLOB,
 )
-from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 
 plt.style.use("endo_pipeline.figure")
 output_dir = get_output_path("migration_coherence_blob")
@@ -153,6 +153,31 @@ make_example_migration_coherence(
     output_dir=output_dir,
     fig_name=coherence_example_fig_name,
 )
+
+import matplotlib.pyplot as plt
+
+# %% Save standalone colorbar to go with TFE examples
+from matplotlib.colors import LinearSegmentedColormap
+
+cmap = LinearSegmentedColormap.from_list("cyan_magenta", ["cyan", "magenta"])
+fig_cb, ax_cb = plt.subplots(figsize=(1.6, 0.1), layout="constrained")
+norm = plt.Normalize(vmin=0, vmax=1)
+sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+sm.set_array([])
+cbar = fig_cb.colorbar(sm, cax=ax_cb, orientation="horizontal")
+cbar.set_ticks([0, 0.5, 1])
+cbar.set_ticklabels(["0", "0.5", "1"])
+cbar.set_label("Patch-based\nmigration coherence", fontsize=FONTSIZE_MEDIUM)
+save_plot_to_path(
+    fig_cb,
+    output_dir,
+    "colorbar_cyan_magenta_0_1",
+    file_format=".svg",
+    tight_layout=False,
+    pad_inches=0,
+    transparent=True,
+)
+
 # %% create and plot an example of the retraction fibers and blobs
 t = SUPP_FIG_RETRACTION_FIBER_BLOB.timepoint
 create_panel_retraction_fiber_blob_example(
@@ -187,6 +212,14 @@ build_figure_from_panels(
             x_position=0,
             y_position=3.6,
             x_offset=0.1,
+            y_offset=0.1,
+        ),
+        FigurePanel(
+            letter="",
+            path=output_dir / "colorbar_cyan_magenta_0_1.svg",
+            x_position=0,
+            y_position=6.6,
+            x_offset=0,
             y_offset=0.1,
         ),
     ],
