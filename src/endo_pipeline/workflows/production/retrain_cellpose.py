@@ -140,6 +140,7 @@ def main(num_processes: int = 1, upload_to_fms: bool = False) -> None:
     model_manifest = load_model_manifest(LABELFREE_NUCLEI_MODEL_MANIFEST_NAME)
     model_location = ModelLocation(path=model_path)
     model_manifest.locations[model_name] = model_location
+    model_manifest.parameters["training_datasets"] = datasets_to_use
     save_model_manifest(model_manifest)
 
     # upload to FMS if desired
