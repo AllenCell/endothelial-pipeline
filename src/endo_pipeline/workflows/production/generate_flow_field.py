@@ -161,6 +161,10 @@ def main(
     else:
         column_names = list(DYNAMICS_COLUMN_NAMES)
 
+    if not column_names:
+        logger.error("No valid columns for generating flow field.")
+        return
+
     logger.info("Generating flow field for columns: %s", column_names)
 
     # Columns to keep when loading dataframes
