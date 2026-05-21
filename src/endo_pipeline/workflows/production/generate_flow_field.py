@@ -234,17 +234,16 @@ def main(
 
         dataset_config = load_dataset_config(dataset_name)
 
-        # load dataframe and perform additional filtering (remove
-        # non-steady-state timepoints based on annotations), computing
-        # only the columns needed for flow field estimation and analysis to save memory.
+        # Load feature dataframe for dataset with only the required columns and
+        # filter out non-steady-state timepoints
         df_ = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
         df = df_[columns_to_compute].compute()
-        dataset_config = load_dataset_config(dataset_name)
         df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
 
-        # process on a per-flow condition basis
+        # Generate vector field and calculate fixed points per flow condition
         vector_field_dataframe_list = []
         fixed_points_dataframe_list = []
+
         for flow_condition in dataset_config.flow_conditions:
             shear_stress = flow_condition.shear_stress
             df_flow = filter_dataframe_to_flow_condition_by_timepoint(
@@ -263,15 +262,14 @@ def main(
                 metadata_dict=metadata_dict,
             )
 
-            # Append to lists to be concatenated outside of flow condition loop
+            # Append vector field dataframe to list to be concatenated outside
+            # of flow condition loop
             vector_field_dataframe_list.append(vector_field_dataframe)
 
-            # (checking first if returned fixed point dataframe dataframe is
-            # empty to avoid issues with concatenation and saving an empty
-            # dataframe)
-            if fixed_points_dataframe.empty:
-                continue
-            fixed_points_dataframe_list.append(fixed_points_dataframe)
+            # Append fixed points dataframe to list to be concatenated outside
+            # of flow condition loop, if the dataframe is not empty
+            if not fixed_points_dataframe.empty:
+                fixed_points_dataframe_list.append(fixed_points_dataframe)
 
         # Concatenate vector fields for flow conditions into single dataframe.
         vector_field_for_dataset = pd.concat(vector_field_dataframe_list, ignore_index=True)
