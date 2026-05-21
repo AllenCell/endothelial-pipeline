@@ -71,6 +71,9 @@ POLAR_ANGLE_RANGE: tuple[float, float] = (0.0, pi)
 POLAR_ANGLE_PERIOD: float = pi
 """Period for polar angle coordinate (dependent on RESCALE_THETA)."""
 
+RESCALED_THETA_PERIOD: float = POLAR_ANGLE_PERIOD + pi * (1 - RESCALE_THETA)
+"""Rescaled period if polar angle is rescaled."""
+
 KERNEL_NAMES_DYNAMICS: dict[Column.DiffAEData, KernelName] = {
     Column.DiffAEData.POLAR_ANGLE: "periodic",
     Column.DiffAEData.POLAR_RADIUS: "gaussian",
@@ -86,7 +89,7 @@ KERNEL_BANDWIDTHS_DYNAMICS: dict[Column.DiffAEData, float] = {
 """Map of column name to kernel bandwidths."""
 
 KERNEL_PERIODS_DYNAMICS: dict[Column.DiffAEData, float | None] = {
-    Column.DiffAEData.POLAR_ANGLE: POLAR_ANGLE_PERIOD + pi * (1 - RESCALE_THETA),
+    Column.DiffAEData.POLAR_ANGLE: RESCALED_THETA_PERIOD,
     Column.DiffAEData.POLAR_RADIUS: None,
     Column.DiffAEData.PC3_FLIPPED: None,
 }
