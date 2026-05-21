@@ -15,7 +15,7 @@ from endo_pipeline.manifests import (
     load_model_manifest,
 )
 from endo_pipeline.settings import DIMENSION_ORDER
-from endopipeline.settings.workflow_defaults import (
+from endo_pipeline.settings.workflow_defaults import (
     LABELFREE_NUCLEI_MODEL_MANIFEST_NAME,
     LABELFREE_NUCLEI_MODEL_RUN_NAME,
 )
