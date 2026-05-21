@@ -11,7 +11,7 @@ def main(
 
     This workflow uses the precomputed drift vector field and fixed points
     output by the `generate_flow_field` workflow, run for a single column name.
-    Make sure to run that workflow with the matching crop patterna and column
+    Make sure to run that workflow with the matching crop pattern and column
     name before visualizing.
 
     ## Example usage
@@ -81,7 +81,6 @@ def main(
     )
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
-    from endo_pipeline.settings.column_names import ColumnName
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
         DEFAULT_DATASETS_DYNAMICS_VIS,
@@ -111,7 +110,7 @@ def main(
         logger.error("Column '%s' not supported for flow field visualization. Exiting.", column)
         return
     else:
-        column_name = ColumnName.DiffAEData(column)
+        column_name = Column.DiffAEData(column)
 
     # Get label and drift column name for selected column
     column_label = get_label_for_column(column_name)
@@ -131,6 +130,7 @@ def main(
         Column.VectorField.STABILITY,
     ]
 
+    # Load drift vector field and fixed points for selected column
     name_suffix = f"_{column_name}_{crop_pattern}"
     vector_field_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD}{name_suffix}"
     fixed_points_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix}"
@@ -138,6 +138,7 @@ def main(
     fixed_points_manifest = load_dataframe_manifest(fixed_points_manifest_name)
 
     for dataset_name in dataset_names:
+        # Check if dataset available in vector field manifest
         if dataset_name not in vector_field_manifest.locations:
             logger.warning(
                 "Dataset '%s' not found in manifest '%s'. Skipping.",
@@ -146,14 +147,17 @@ def main(
             )
             continue
 
+        # Load dataset config
         dataset_config = load_dataset_config(dataset_name)
 
+        # Load vector field dataframe and check required columns
         vector_field_dataframe_location = get_dataframe_location_for_dataset(
             vector_field_manifest, dataset_name
         )
         vector_field_dataframe = load_dataframe(vector_field_dataframe_location, delay=False)
         check_required_columns_in_dataframe(vector_field_dataframe, required_vector_field_columns)
 
+        # Load fixed points dataframe and check required columns, if available
         if dataset_name not in fixed_points_manifest.locations:
             logger.warning(
                 "Dataset '%s' not found in manifest '%s'. "
@@ -194,8 +198,8 @@ def main(
                 zero_line_kwargs={"linestyle": "--", "color": "gray", "linewidth": 1, "alpha": 0.7},
             )
             ax.set_title(fig_title)
-            figure_name = f"{dataset_name_flow}{name_suffix}_drift_vector_field.png"
-            save_plot_to_path(fig, output_path, figure_name)
+            figure_name = f"{dataset_name_flow}{name_suffix}_drift_vector_field"
+            save_plot_to_path(fig, output_path, figure_name, file_format=".png")
 
             if fixed_points_dataframe is not None:
                 fixed_points_dataframe_flow = filter_dataframe_by_shear_stress(
@@ -215,8 +219,8 @@ def main(
                 )
                 legend_handles = make_legend_handles_for_fixed_pts([StabilityLabel.STABLE])
                 ax.legend(handles=legend_handles, loc="upper right", fontsize="small")
-                figure_name = f"{dataset_name_flow}{name_suffix}_stable_fixed_points.png"
-                save_plot_to_path(fig, output_path, figure_name)
+                figure_name = f"{dataset_name_flow}{name_suffix}_stable_fixed_points"
+                save_plot_to_path(fig, output_path, figure_name, file_format=".png")
 
 
 if __name__ == "__main__":
