@@ -1,50 +1,72 @@
-from endo_pipeline.cli import CropPattern, Datasets, StrList
+from endo_pipeline.cli import CropPattern, Datasets
 from endo_pipeline.settings.flow_field_2d import HISTOGRAM_THRESHOLD_FOR_MASKING
 
 
 def main(
     crop_pattern: CropPattern = "grid",
     datasets: Datasets | None = None,
-    columns: StrList | None = None,
+    columns: tuple[str, str] | None = None,
     use_same_axes: bool = False,
     mask_threshold: float | None = HISTOGRAM_THRESHOLD_FOR_MASKING,
 ) -> None:
     """
-    Visualize DiffAE feature dynamics in 2D.
+    Visualize 2D drift vector field and fixed points.
 
-    #dynamical-systems #diffae-feature-analysis #visualization
+    #dynamical-systems #grid-based #cell-centered #visualization
 
-    **Workflow defaults:**
+    This workflow uses the precomputed drift vector field and fixed points
+    output by the `generate_flow_field` workflow, run for two column names.
+    Make sure to run that workflow with the matching crop pattern and column
+    names before visualizing.
 
-    The defaults for the command line inputs are set to visualize drift in the
-    polar radius and PC3 flipped (density proxy) for the features extracted from
-    the grid-based crop pattern.
+    ## Example usage
 
-    The precomputed drift dataframes that this workflow loads by default were
-    generated using the default settings for the flow field estimation workflow,
-    which include using the grid-based crop pattern and computing drift in polar
-    angle. If you want to visualize drift for a different variable or crop
-    pattern, you must run `generate-flow-field` with the desired inputs.
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe visualize-2d-flow-field -vd
+    ```
+
+    To run the workflow for a single dataset:
+
+    ```bash
+    uv run endopipe visualize-2d-flow-field --datasets DATASET_NAME
+    ```
+
+    To run the workflow for a specific columns:
+
+    ```bash
+    uv run endopipe visualize-2d-flow-field --columns COLUMN_NAME COLUMN_NAME
+    ```
+
+    ## Dataset collection
+
+    If datasets are not provided, the workflow will use datasets in the
+    `diffae_model_training` dataset collection.
+
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will visualize the
+    flow field for the first dataset.
 
     Parameters
     ----------
     crop_pattern
-        The crop pattern to get features for.
+        Crop pattern used to calculate the features.
     datasets
-        Specific datasets to run the workflow on.
-    global_limits
-        Whether to use global limits for all datasets when plotting drift
-        contours.
+        List of datasets or dataset collections to visualize.
+    columns
+        Specific columns to visualize.
+    use_same_axes
+        True to use global limits across all datasets, False otherwise.
     mask_threshold
         Threshold for masking low-confidence regions of drift estimates based on
         histogram of data points. If None, no masking is applied.
     """
 
     import logging
-    from typing import cast
 
     import numpy as np
-    import pandas as pd
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import (
@@ -85,11 +107,11 @@ def main(
         BIN_LIMITS_DYNAMICS,
         BIN_WIDTHS_DYNAMICS,
         DEFAULT_DATASETS_DYNAMICS_VIS,
+        DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
+        KERNEL_PERIODS_DYNAMICS,
         METADATA_COLUMNS_TO_KEEP,
-        POLAR_ANGLE_PERIOD,
-        RESCALE_THETA,
     )
     from endo_pipeline.settings.flow_field_dataframes import (
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
@@ -97,173 +119,121 @@ def main(
         StabilityLabel,
     )
     from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, StabilityLegendHandle
-    from endo_pipeline.settings.workflow_defaults import (
-        DEFAULT_MODEL_MANIFEST_NAME,
-        DEFAULT_MODEL_RUN_NAME,
-        FEATURES_FILTERED_MANIFEST_NAMES,
-    )
+    from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
 
     logger = logging.getLogger(__name__)
 
-    # get labels for provided set of feature columns
-    column_names_ = columns or [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
-    column_names = cast(list[Column.DiffAEData], column_names_)
-    ndim = len(column_names)
-    if ndim != 2:
-        raise ValueError(
-            f"Exactly 2 columns must be provided for 2D flow field visualization, but {ndim} were provided."
-        )
-    drift_column_names = [f"{name}_{Column.VectorField.DRIFT}" for name in column_names]
-    column_labels = [get_label_for_column(col).replace("polar ", "") for col in column_names]
-    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
+    output_path = get_output_path(__file__)
 
-    # get dataframe manifest for crop-based features
-    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
-    feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[crop_pattern]
-    feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
-
-    columns_str = join_sorted_strings(cast(list[str], column_names))
-    drift_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD}_{columns_str}_{base_name}"
-    )
-    fixed_points_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{columns_str}_{base_name}"
-    )
-    # Flexible DEMO_MODE loading pattern: first try to load the manifests with
-    # the expected names, but if any of them are not found, then try to load the
-    # corresponding demo manifests with the "_demo." This allows for both
-    # running the full pipeline in DEMO_MODE with the demo manifests, and also
-    # for running this workflow in DEMO_MODE with the full manifests if the user
-    # has them available (i.e., just "demo" the visualization step without
-    # needing to also "demo" the flow field estimation step).
-    try:
-        # Default is to load the "production" manifests, even in DEMO_MODE, to
-        # allow for just "demoing" the visualization step if the full manifests
-        # are available.
-        drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
-        fixed_points_dataframe_manifest = load_dataframe_manifest(
-            fixed_points_dataframe_manifest_name
-        )
-    except FileNotFoundError:
-        # If the production manifests are not found, then in DEMO_MODE will try
-        # to load the demo manifests with the "_demo" suffix. Else, if not in
-        # DEMO_MODE, will raise the original FileNotFoundError.
-        logger.warning(
-            "Dataframe manifest(s) not found for production run. If you are running in DEMO_MODE, "
-            "the workflow will attempt to load the corresponding demo dataframe manifest(s)."
-        )
-        if DEMO_MODE:
-            demo_suffix = "_demo"
-            drift_dataframe_manifest = load_dataframe_manifest(
-                f"{drift_dataframe_manifest_name}{demo_suffix}"
-            )
-            fixed_points_dataframe_manifest = load_dataframe_manifest(
-                f"{fixed_points_dataframe_manifest_name}{demo_suffix}"
-            )
-        else:
-            raise
-
-    # Use provided datasets or default if none provided.
     dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
 
     if DEMO_MODE:
-        logger.warning(
-            "DEMO MODE: Processing no more than two of the provided datasets for quick visualization."
-        )
-        # take min of the number of datasets provided and 2, to limit to at most
-        # 2 datasets in DEMO_MODE for quick visualization (i.e., avoid error if
-        # only 1 dataset is provided)
-        num_datasets = min(len(dataset_names), 2)
-        dataset_names = dataset_names[:num_datasets]
+        logger.warning("DEMO_MODE - Limiting to one dataset")
+        dataset_names = dataset_names[:1]
 
-    # Get the corresponding kernels and bin widths for each variable. For the
-    # polar angle variable, also specify the period for the kernel based on the
-    # rescaled theta range, to ensure that the periodicity of the polar angle is
-    # taken into account in the flow field estimation.
-    #
-    # Also initialize the plot bounds via the global bin limits dict, which will
-    # be used if use_same_axes is True, and will be updated to dataset-specific
-    # bin limits if use_same_axes is False
-    kernels = []
-    bin_widths = []
-    rescaled_theta_period = POLAR_ANGLE_PERIOD + np.pi * (1 - RESCALE_THETA)
-    bounds_for_plots = []
-    contour_axes_titles = []
+    # Ensure that selected columns are valid options
+    column_names = []
+    if columns is not None:
+        for column in columns:
+            if column in DYNAMICS_COLUMN_NAMES:
+                column_names.append(Column.DiffAEData(column))
+            else:
+                logger.error("Column '%s' not supported for flow fields. Exiting.", column)
+                return
+    else:
+        column_names = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
+
+    # Get label and drift column name for selected column
+    column_labels = [get_label_for_column(column) for column in column_names]
+    drift_column_names = [f"{column}_{Column.VectorField.DRIFT}" for column in column_names]
+
+    # Required columns for vector field and fixed point manifests
+    required_vector_field_columns = [
+        *column_names,
+        *drift_column_names,
+        Column.DATASET,
+        Column.SHEAR_STRESS,
+    ]
+    required_fixed_point_columns = [
+        *column_names,
+        Column.DATASET,
+        Column.SHEAR_STRESS,
+        Column.VectorField.STABILITY,
+    ]
+
+    # Columns to keep when loading feature dataframe
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
+
+    # Load feature dataframe for specified crop pattern
+    feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[crop_pattern]
+    feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
+
+    # Load drift vector field and fixed points for selected column
+    name_suffix = f"_{join_sorted_strings(column_names)}_{crop_pattern}"
+    vector_field_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD}{name_suffix}"
+    fixed_points_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix}"
+    vector_field_manifest = load_dataframe_manifest(vector_field_manifest_name)
+    fixed_points_manifest = load_dataframe_manifest(fixed_points_manifest_name)
+
+    # Initialize kernels and bin widths for each selected column
+    kernels: list[KramersMoyalKernel] = []
+    bin_widths: list[float] = []
+    bounds_for_plots: list[tuple[float, float]] = []
+    contour_axes_titles: list[str] = []
     for column_name, column_label in zip(column_names, column_labels, strict=True):
-        name = KERNEL_NAMES_DYNAMICS[column_name]
-        bandwidth = KERNEL_BANDWIDTHS_DYNAMICS[column_name]
-        period = rescaled_theta_period if column_name == Column.DiffAEData.POLAR_ANGLE else None
-        bin_width = BIN_WIDTHS_DYNAMICS[column_name]
-        bin_limits_col = BIN_LIMITS_DYNAMICS[column_name]
-        kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
-        bin_widths.append(bin_width)
-        bounds_for_plots.append(bin_limits_col)
+        kernels.append(
+            KramersMoyalKernel(
+                name=KERNEL_NAMES_DYNAMICS[column_name],
+                bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_name],
+                period=KERNEL_PERIODS_DYNAMICS[column_name],
+            )
+        )
+        bin_widths.append(BIN_WIDTHS_DYNAMICS[column_name])
+        bounds_for_plots.append(BIN_LIMITS_DYNAMICS[column_name])
         contour_axes_titles.append(f"Drift component: d{column_label}/dt")
 
-    # loop over datasets in collection, compute 2D drift coefficients for each
-    # pairwise combination of polar coordinates, and plot contours of drift coefficients
     for dataset_name in dataset_names:
-        if dataset_name not in drift_dataframe_manifest.locations:
+        # Check if dataset available in vector field manifest
+        if dataset_name not in vector_field_manifest.locations:
             logger.warning(
-                "No drift coefficient dataframe found in manifest [ %s ] for dataset [ %s ]. Skipping this dataset.",
-                drift_dataframe_manifest_name,
+                "Dataset '%s' not found in manifest '%s'. Skipping.",
                 dataset_name,
+                vector_field_manifest_name,
             )
             continue
 
-        logger.info(f"Visualizing flow field for dataset [ {dataset_name} ]")
-        fig_savedir = get_output_path(__file__, crop_pattern, dataset_name)
-
-        # load dataframe with feature data
-        # load dataframe and perform additional filtering (remove
-        # non-steady-state timepoints based on annotations), computing
-        # only the columns needed for flow field estimation and analysis to save memory.
+        # Load dataset config
         dataset_config = load_dataset_config(dataset_name)
+
+        # Load feature dataframe for dataset with only the required columns and
+        # filter out non-steady-state timepoints
         df_ = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
         df = df_[columns_to_compute].compute()
         feature_data = filter_dataframe_to_steady_state(df, dataset_config)
 
-        # load drift vector field dataframe and check that required columns are
-        # present
+        # Load vector field dataframe and check required columns
         vector_field_dataframe_location = get_dataframe_location_for_dataset(
-            drift_dataframe_manifest, dataset_name
+            vector_field_manifest, dataset_name
         )
         vector_field_dataframe = load_dataframe(vector_field_dataframe_location, delay=False)
-        check_required_columns_in_dataframe(
-            vector_field_dataframe,
-            required_columns=[
-                *column_names,
-                *drift_column_names,
-                Column.DATASET,
-                Column.SHEAR_STRESS,
-            ],
-        )
+        check_required_columns_in_dataframe(vector_field_dataframe, required_vector_field_columns)
 
-        # load fixed point dataframe if it exists, and check that required
-        # columns are present turn fixed point dataframe into list of arrays of
-        # stable fixed point coordinates for each dataset to use for plotting
-        dataset_has_fixed_points = False
-        try:
+        # Load fixed points dataframe and check required columns, if available
+        if dataset_name not in fixed_points_manifest.locations:
+            logger.warning(
+                "Dataset '%s' not found in manifest '%s'. "
+                "Stable fixed points will not be shown in output visualization.",
+                dataset_name,
+                vector_field_manifest_name,
+            )
+            fixed_points_dataframe = None
+        else:
             fixed_points_dataframe_location = get_dataframe_location_for_dataset(
-                fixed_points_dataframe_manifest, dataset_name
+                fixed_points_manifest, dataset_name
             )
             fixed_points_dataframe = load_dataframe(fixed_points_dataframe_location, delay=False)
             check_required_columns_in_dataframe(
-                fixed_points_dataframe,
-                required_columns=[
-                    *column_names,
-                    Column.DATASET,
-                    Column.SHEAR_STRESS,
-                    Column.VectorField.STABILITY,
-                ],
-            )
-            dataset_has_fixed_points = True
-        except KeyError:
-            logger.warning(
-                "No fixed point dataframe found for dataset [ %s ] in dataframe manifest [ %s ]. "
-                "Stable fixed points will not be overlaid on the flow field visualizations for this dataset.",
-                dataset_name,
-                fixed_points_dataframe_manifest.name,
+                fixed_points_dataframe, required_fixed_point_columns
             )
 
         for flow_condition in dataset_config.flow_conditions:
@@ -284,19 +254,10 @@ def main(
             )
             centers_mesh = np.meshgrid(*centers, indexing="ij")
 
-            stable_fixed_points = pd.DataFrame()
-            if dataset_has_fixed_points:
-                fixed_points_for_flow_condition = filter_dataframe_by_shear_stress(
-                    fixed_points_dataframe, shear_stress
-                )
-                stable_fixed_points = filter_dataframe_by_stability(
-                    fixed_points_for_flow_condition, stability_label=StabilityLabel.STABLE
-                )
-
             # get histogram for masking low-confidence regions of drift
             # estimates, using same kernels as for drift estimation, and set
-            # drift to nan in low-confidence regions
-            # get bin edges from bin centers and bin widths
+            # drift to nan in low-confidence regions get bin edges from bin
+            # centers and bin widths
             bin_limits = [
                 (centers[i].min() - bin_widths[i] / 2, centers[i].max() + bin_widths[i] / 2)
                 for i in range(len(column_names))
@@ -315,8 +276,7 @@ def main(
                     probability_threshold=mask_threshold,
                 )
 
-            filename_prefix = f"{dataset_name_flow}{columns_str}"
-            # plot drift contours and save
+            # Plot contours plot of drift and save
             fig, _ = plot_drift_contours(
                 centers_mesh,
                 drift,
@@ -325,27 +285,33 @@ def main(
                 axes_titles=contour_axes_titles,
             )
             fig.suptitle(fig_title, y=1.00)
-            save_plot_to_path(fig, fig_savedir, f"{filename_prefix}_contours")
+            figure_name = f"{dataset_name_flow}{name_suffix}_contours"
+            save_plot_to_path(fig, output_path, figure_name, file_format=".png")
 
-            # plot quiver plot of drift and save
+            # Plot quiver plot of drift and save
             fig, ax = plot_drift_quiver(
                 centers_mesh,
                 drift,
                 variable_labels=column_labels,
                 axes_limits=bounds_for_plots,
             )
-            fig.suptitle(
-                f"{fig_title} \n drift in ({column_labels[0]}, {column_labels[1]})",
-                y=1.00,
-            )
-            save_plot_to_path(fig, fig_savedir, f"{filename_prefix}_quiver")
+            fig.suptitle(f"{fig_title} \n drift in ({column_labels[0]}, {column_labels[1]})", y=1.0)
+            figure_name = f"{dataset_name_flow}{name_suffix}_quiver"
+            save_plot_to_path(fig, output_path, figure_name, file_format=".png")
 
-            # TO DO: turn this into a separate function
-            # add_fixed_points_to_plot() that takes in the fixed point
-            # dataframe, column names, and stability label to plot, and adds the
-            # fixed points to the provided axis with appropriate markers and
-            # legend entries based on stability
-            if not stable_fixed_points.empty:
+            if fixed_points_dataframe is not None:
+                # TODO: turn this into a separate function
+                # add_fixed_points_to_plot() that takes in the fixed point
+                # dataframe, column names, and stability label to plot, and adds
+                # the fixed points to the provided axis with appropriate markers
+                # and legend entries based on stability
+                fixed_points_for_flow_condition = filter_dataframe_by_shear_stress(
+                    fixed_points_dataframe, shear_stress
+                )
+                stable_fixed_points = filter_dataframe_by_stability(
+                    fixed_points_for_flow_condition, stability_label=StabilityLabel.STABLE
+                )
+
                 ax.plot(
                     stable_fixed_points[column_names[0]],
                     stable_fixed_points[column_names[1]],
@@ -377,7 +343,8 @@ def main(
                         labels=[stable_fixed_point_handle.get_label()],
                         loc="upper right",
                     )
-                save_plot_to_path(fig, fig_savedir, f"{filename_prefix}_quiver_fixed_points")
+                figure_name = f"{dataset_name_flow}{name_suffix}_quiver_fixed_points"
+                save_plot_to_path(fig, output_path, figure_name, file_format=".png")
 
 
 if __name__ == "__main__":
