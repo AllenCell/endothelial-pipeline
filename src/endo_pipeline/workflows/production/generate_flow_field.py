@@ -7,60 +7,51 @@ def main(
     datasets: Datasets | None = None,
 ) -> None:
     """
-    Generate drift vector fields for the dynamics of the crop-based DiffAE
-    features for a given set of datasets.
+    Generate drift vector field and estimate fixed points.
 
-    #dynamical-systems #diffae-feature-analysis
+    #dynamical-systems #grid-based #cell-centered
 
-    **Workflow defaults**
+    This workflow generates the flow field based on the following features
+    derived from evaluating the DiffAE model on specific patches of the data:
 
-    This workflow runs on features derived from the DiffAE model (specified by
-    the default settings `DEFAULT_MODEL_MANIFEST_NAME` and
-    `DEFAULT_MODEL_RUN_NAME`) as obtained from image crops of the specified
-    `crop_pattern` type (i.e., grid-based or tracked-based crops). By default,
-    it uses the time series of features extracted from grid-based crops but can
-    also be run using features extracted from tracked-based crops by setting the
-    `crop_pattern` parameter to "tracked".
+    - `polar_theta` = polar angle coordinate computed from PC1 and PC2
+    - `polar_r` = polar radius coordinate computed from PC1 and PC2
+    - `rho` = PC3 value with sign flipped
 
-    The specific features used for flow field estimation and analysis are
-    determined by the input `columns`. By default, these are set to be the polar
-    angle, polar radius, and rho features derived from the DiffAE features via a
-    3D PCA transformation. For more details on the specific features used and
-    how they are derived, see the methods `fit_pca` and
-    `project_features_to_pcs` in the `pca` module.
-
-    Note that the number of input features determines the dimensionality of the
-    flow field and fixed point analysis. By default, the workflow is set to use
-    three features for a 3D flow field, which can then be visualized using the
-    `visualize_3d_flow_field` workflow. However, the workflow can also be run
-    using only a subset of these features (e.g., just the polar angle and polar
-    radius) for a 2D flow field analysis, which can be visualized using the
-    `visualize_2d_flow_field` workflow. If using a subset of the default three
-    features, make sure to specify the corresponding columns in the `columns`
-    parameter and to use the appropriate visualization workflow for the number
-    of features used.
-
-    The workflow runs on the datasets specified via the `datasets` parameter,
-    which can be a list of dataset names or dataset collection names. By
-    default, it uses the datasets specified in the setting
-    `DATASET_COLLECTION_FOR_3D_DYNAMICS`.
-
-    **Flow field estimation and analysis**
+    Any combination of these features can be used to generate the flow field
+    with the corresponding dimensionality. By default, the workflow will
+    generate the a 3D flow field using all three features.
 
     Using the feature space defined by the specified input features, this
     workflow does the following for each specified dataset:
 
     1. Estimate drift flow fields using a kernel-based method for estimating
-       Kramers-Moyal coefficients from time series data.
-    2. Use interpolation to get a callable flow field function.
+       Kramers-Moyal coefficients from time series data
+    2. Use interpolation to get a callable flow field function
     3. Identify stable fixed points of the flow field using a root-finding
-       method applied to the flow field function.
+       method applied to the flow field function
     4. Save the following outputs for each dataset as parquet files:
-        - Dataframe with the estimated drift coefficients at each grid point for
-          each dataset.
-        - Dataframe with the corresponding grid point coordinates for each
-          dataset.
-        - Dataframe with the stable fixed point locations for each dataset.
+        - Dataframe with the drift vector field
+        - Dataframe with the drift fixed points
+
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe generate-flow-field -vd
+    ```
+
+    To run the workflow for a single dataset:
+
+    ```bash
+    uv run endopipe generate-flow-field --datasets DATASET_NAME
+    ```
+
+    ## Dataset collection
+
+    If datasets are not provided, the workflow will use datasets in the
+    `diffae_model_training` dataset collection.
 
     ## Workflow demo
 
@@ -70,12 +61,11 @@ def main(
     Parameters
     ----------
     crop_pattern
-        The crop pattern to use features from.
-    datasets
-        Optional, specific dataset(s) to run the workflow on.
+        Crop pattern used to calculate the features.
     columns
-        Optional, specific columns (features) to use for flow field estimation
-        and analysis.
+        Specific columns to use to generate flow field.
+    datasets
+        List of datasets or dataset collections to generate flow fields for.
     """
 
     import logging
