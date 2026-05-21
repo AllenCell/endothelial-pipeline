@@ -50,7 +50,7 @@ def main(
     MSD_Y_AXIS_LIMITS.
 
     Unless specified otherwise, the workflow will run on all datasets in the
-    "timelapse" collection that have the required dataframes available for the
+    "shear_stress" collection that have the required dataframes available for the
     specified crop pattern.
 
     Parameters
@@ -128,7 +128,7 @@ def main(
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # Load default list of datasets if not provided
-    dataset_names = datasets or get_datasets_in_collection("timelapse")
+    dataset_names = datasets or get_datasets_in_collection("shear_stress")
 
     if DEMO_MODE:
         dataset_names = dataset_names[:1]
