@@ -216,9 +216,9 @@ def main(
     for dataset_name in dataset_names:
         if dataset_name not in feature_dataframe_manifest.locations:
             logger.warning(
-                "No feature dataframe found in manifest [ %s ] for dataset [ %s ]. Skipping this dataset.",
-                feature_dataframe_manifest_name,
+                "Dataset '%s' not found in manifest '%s'. Skipping.",
                 dataset_name,
+                feature_dataframe_manifest_name,
             )
             continue
 
@@ -285,6 +285,10 @@ def main(
                 FMS_ANNOTATION_NOTES_FIXED_POINTS % len(column_names),
             ),
         ]:
+            # Skip if dataframe is None.
+            if dataframe is None:
+                continue
+
             # Save dataframe to file
             save_path = output_path / f"{name_prefix}_{dataset_name}{name_suffix}.parquet"
             dataframe.to_parquet(save_path, index=False)
