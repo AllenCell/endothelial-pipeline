@@ -2,10 +2,10 @@
 
 Runs diffusion-autoencoder denoising for the curated 10-model latent-dim
 sweep on the Rep-2 example positions, computes per-example correlation /
-SSIM / LPIPS plus a next-timepoint baseline, and persists everything as
-a :class:`DataframeManifest` of per-model parquets so the companion
-``fig-model-qc-plot`` workflow can render the bar chart without re-running
-GPU inference.
+SSIM / LPIPS plus a next-timepoint baseline, and persists everything to
+a single long-format parquet wrapped in a :class:`DataframeManifest` so
+the companion ``fig-model-qc-plot`` workflow can render the bar chart
+without re-running GPU inference.
 
 This is a publication-figure driver: model identities, example set, seed
 range, and noise levels are all hard-coded.  Use the ``model-qc``
@@ -13,24 +13,16 @@ development workflow for ad-hoc multi-model QC.
 """
 
 
-def main(resume: bool = False) -> None:
-    """Run inference and emit a dataframe manifest of per-model parquets.
+def main() -> None:
+    """Run inference and emit a dataframe manifest of the combined metrics parquet.
 
     #diffae #figure #gpu #production
 
-    Whether per-model parquets are uploaded to FMS (and to which
+    Whether the combined parquet is uploaded to FMS (and to which
     environment) is governed by the global ``--upload-to-fms`` /
     ``--fms-environment`` CLI flags, which the entry-point app maps onto
     the ``UPLOAD_TO_FMS`` / ``FMS_ENVIRONMENT`` module constants in
     :mod:`endo_pipeline.cli`.
-
-    Parameters
-    ----------
-    resume
-        Skip ``(model, seed)`` pairs whose shard parquet already exists
-        under ``<outdir>/shards/``.  Lets a partially-completed sweep
-        be restarted without re-burning GPU time on pairs already done.
-        Default: ``False``.
     """
     import logging
 
@@ -42,10 +34,8 @@ def main(resume: bool = False) -> None:
         evaluate_single_model,
     )
     from endo_pipeline.library.model.model_qc.results_io import (
-        model_key_str,
-        save_shard,
-        shard_path,
-        write_model_parquet_from_shards,
+        COMBINED_MANIFEST_LOCATION_KEY,
+        write_combined_parquet,
     )
     from endo_pipeline.manifests import (
         DataframeLocation,
@@ -102,39 +92,13 @@ def main(resume: bool = False) -> None:
 
     metrics_dir = get_output_path(__file__, "metrics")
     sample_images_dir = get_output_path(__file__, "sample_images", create_directories=True)
-    logger.info("Persisting per-model metrics parquets to: %s", metrics_dir)
-    logger.info("Persisting sample-image crops to:        %s", sample_images_dir)
+    logger.info("Persisting combined metrics parquet under: %s", metrics_dir)
+    logger.info("Persisting sample-image crops to:         %s", sample_images_dir)
 
-    # Initialize / load the output dataframe manifest up front so it
-    # exists on disk even if the run is interrupted before the first
-    # model finishes.
-    demo_suffix = "_demo" if DEMO_MODE else ""
-    out_manifest_name = f"{DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_NAME}{demo_suffix}"
-    out_manifest = create_dataframe_manifest(out_manifest_name, workflow_name=__file__)
-    out_manifest.parameters = {
-        "num_seeds": num_seeds,
-        "seeds": [int(s) for s in seeds_to_evaluate],
-        "random_seed": RANDOM_SEED,
-        "example_set": example_set_label,
-        "noise_levels": list(MODEL_QC_NOISE_LEVELS),
-        "manifest_names": list(DEFAULT_MODEL_QC_MANIFEST_NAMES),
-        "run_names": list(DEFAULT_MODEL_QC_RUN_NAMES),
-    }
-    save_dataframe_manifest(out_manifest)
-
-    # --- Per-model inference loop ---
+    # --- Per-(model, seed) inference loop ---
+    results: list[tuple[ModelKey, int, dict]] = []
     for model_key in model_keys:
         for seed in seeds_to_evaluate:
-            target = shard_path(metrics_dir, model_key, seed)
-            if resume and target.exists():
-                logger.info(
-                    "[resume] Skipping %s seed=%d (shard exists: %s)",
-                    model_key.label.replace("\n", " / "),
-                    seed,
-                    target.name,
-                )
-                continue
-
             is_default = seed == RANDOM_SEED
             result = evaluate_single_model(
                 model_key=model_key,
@@ -151,41 +115,46 @@ def main(resume: bool = False) -> None:
                 num_gpus=NUM_GPUS,
                 output_path=sample_images_dir,
             )
-            save_shard(
-                metrics_dir,
-                model_key,
-                seed,
-                result,
-                examples_by_set={example_set_label: examples},
-            )
+            results.append((model_key, seed, result))
 
-        # All shards for this model are on disk -- consolidate into the
-        # per-model parquet and add to the dataframe manifest.
-        model_parquet = write_model_parquet_from_shards(metrics_dir, model_key, seeds_to_evaluate)
+    # --- Persist combined parquet + dataframe manifest ---
+    combined_parquet = write_combined_parquet(
+        metrics_dir,
+        results,
+        examples_by_set={example_set_label: examples},
+    )
 
-        location_key = model_key_str(model_key)
-        if UPLOAD_TO_FMS:
-            unique_dataset_names = sorted({e.dataset_name for e in examples})
-            dataset_configs = [load_dataset_config(n) for n in unique_dataset_names]
-            notes = (
-                f"Model-QC supplementary figure metrics for "
-                f"{model_key.manifest_name}/{model_key.run_name}: "
-                f"{len(seeds_to_evaluate)} seeds x {len(examples)} crops, "
-                "long-format (one row per seed x crop)."
-            )
-            annotations = build_fms_annotations(dataset_configs, additional_notes=notes)
-            fmsid = upload_file_to_fms(model_parquet, annotations=annotations, file_type="parquet")
-            out_manifest.locations[location_key] = DataframeLocation(fmsid=fmsid)
-            logger.info("Uploaded %s to FMS as %s", model_parquet.name, fmsid)
-        elif (
-            out_manifest.locations.get(location_key) is None
-            or out_manifest.locations[location_key].fmsid is None
-        ):
-            out_manifest.locations[location_key] = build_dataframe_location_from_path(model_parquet)
+    demo_suffix = "_demo" if DEMO_MODE else ""
+    out_manifest_name = f"{DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_NAME}{demo_suffix}"
+    out_manifest = create_dataframe_manifest(out_manifest_name, workflow_name=__file__)
+    out_manifest.parameters = {
+        "num_seeds": num_seeds,
+        "seeds": [int(s) for s in seeds_to_evaluate],
+        "random_seed": RANDOM_SEED,
+        "example_set": example_set_label,
+        "noise_levels": list(MODEL_QC_NOISE_LEVELS),
+        "manifest_names": list(DEFAULT_MODEL_QC_MANIFEST_NAMES),
+        "run_names": list(DEFAULT_MODEL_QC_RUN_NAMES),
+    }
 
-        save_dataframe_manifest(out_manifest)
+    if UPLOAD_TO_FMS:
+        unique_dataset_names = sorted({e.dataset_name for e in examples})
+        dataset_configs = [load_dataset_config(n) for n in unique_dataset_names]
+        notes = (
+            f"Model-QC supplementary figure metrics: "
+            f"{len(model_keys)} models x {len(seeds_to_evaluate)} seeds x "
+            f"{len(examples)} crops, long-format (one row per model x seed x crop)."
+        )
+        annotations = build_fms_annotations(dataset_configs, additional_notes=notes)
+        fmsid = upload_file_to_fms(combined_parquet, annotations=annotations, file_type="parquet")
+        out_manifest.locations[COMBINED_MANIFEST_LOCATION_KEY] = DataframeLocation(fmsid=fmsid)
+        logger.info("Uploaded %s to FMS as %s", combined_parquet.name, fmsid)
+    else:
+        out_manifest.locations[COMBINED_MANIFEST_LOCATION_KEY] = build_dataframe_location_from_path(
+            combined_parquet
+        )
 
-    logger.info("Inference complete. Run `endopipe fig-model-qc-plot` to render the figure.")
+    save_dataframe_manifest(out_manifest)
 
 
 if __name__ == "__main__":

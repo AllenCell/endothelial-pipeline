@@ -38,8 +38,7 @@ from .plotting import (
 )
 from .results_io import (
     load_results_from_manifest,
-    save_shard,
-    write_model_parquet_from_shards,
+    write_combined_parquet,
 )
 from .tiff_io import save_denoising_crops, save_image_as_tiff
 
@@ -65,7 +64,6 @@ __all__ = [
     "save_image_as_tiff",
     "save_intermediate_contact_sheet",
     "save_negative_control_sheet",
-    "save_shard",
     "save_summary_figure",
-    "write_model_parquet_from_shards",
+    "write_combined_parquet",
 ]
