@@ -164,8 +164,7 @@ def main(
 
     # Build dataframe manifest names that include sorted list of selected
     # columns used to generate the flow field.
-    name_suffix = "_demo" if DEMO_MODE else ""
-    name_suffix = f"_{join_sorted_strings(column_names)}_{crop_pattern}{name_suffix}"
+    name_suffix = f"_{join_sorted_strings(column_names)}_{crop_pattern}"
     vector_field_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD}{name_suffix}"
     fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix}"
     vector_field_dataframe_manifest = create_dataframe_manifest(
