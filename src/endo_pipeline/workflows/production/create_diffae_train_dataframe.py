@@ -201,9 +201,10 @@ def main(
         df.to_parquet(output_file, index=False)
 
         # Create location object with output path
-        location = DataframeLocation(path=output_file)
+        location = manifest.locations.get(image_set, DataframeLocation())
+        location.path = output_file
 
-        # Upload to FMS (internal only) and update location object with FMS id
+        # Upload to FMS (internal only) and replace local path with file id
         if UPLOAD_TO_FMS:
             annotations = build_fms_annotations(
                 dataset=dataset_configs,
@@ -214,6 +215,7 @@ def main(
             )
             fmsid = upload_file_to_fms(output_file, annotations=annotations, file_type="parquet")
             location.fmsid = fmsid
+            location.path = None
 
         # Add dataframe location to dataframe manifest and save.
         manifest.locations[image_set] = location

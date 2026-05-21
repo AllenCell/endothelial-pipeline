@@ -146,9 +146,10 @@ def main(
             )
 
         # Create location object with output path
-        location = DataframeLocation(path=output_path)
+        location = feature_manifest.locations.get(dataset, DataframeLocation())
+        location.path = output_path
 
-        # Upload to FMS (internal only) and update location object with FMS id
+        # Upload to FMS (internal only) and replace local path with file id
         if UPLOAD_TO_FMS:
             dataset_config = load_dataset_config(dataset)
             annotations = build_fms_annotations(
@@ -156,6 +157,7 @@ def main(
             )
             fmsid = upload_file_to_fms(output_path, annotations=annotations, file_type="parquet")
             location.fmsid = fmsid
+            location.path = None
 
         # Add dataframe location to dataframe manifest and save.
         feature_manifest.locations[dataset] = location
