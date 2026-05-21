@@ -1,4 +1,4 @@
-def main(num_processes: int = 1, upload_to_fms: bool = False) -> None:
+def main(num_processes: int = 1, upload_to_fms: bool = True) -> None:
     """
     Retrain Cellpose model to predict nuclei from BF std dev projections.
 
@@ -54,7 +54,7 @@ def main(num_processes: int = 1, upload_to_fms: bool = False) -> None:
     from endo_pipeline.manifests import (
         ModelLocation,
         get_zarr_location_for_position,
-        load_model_manifest,
+        create_model_manifest,
         save_model_manifest,
     )
     from endo_pipeline.settings import DIMENSION_ORDER
@@ -137,7 +137,7 @@ def main(num_processes: int = 1, upload_to_fms: bool = False) -> None:
         plt.close(fig)
 
     # save the model to the model manifest
-    model_manifest = load_model_manifest(LABELFREE_NUCLEI_MODEL_MANIFEST_NAME)
+    model_manifest = create_model_manifest(manifest_name=LABELFREE_NUCLEI_MODEL_MANIFEST_NAME, workflow_name="retrain_cellpose")
     model_location = ModelLocation(path=model_path)
     model_manifest.locations[model_name] = model_location
     model_manifest.parameters["training_datasets"] = datasets_to_use
