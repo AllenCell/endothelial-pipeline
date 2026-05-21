@@ -88,6 +88,7 @@ def main(
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.vector_field_estimation import (
         get_drift_estimates_and_fixed_points,
+        get_valid_flow_field_column_names,
     )
     from endo_pipeline.manifests import (
         DataframeLocation,
@@ -100,7 +101,6 @@ def main(
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_WIDTHS_DYNAMICS,
         DEFAULT_DATASETS_DYNAMICS_VIS,
-        DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
         KERNEL_PERIODS_DYNAMICS,
@@ -137,15 +137,7 @@ def main(
     # column names are provided, ensure they are a subset of these columns and
     # skip any that are not. If no column names are provided, just use these
     # three columns.
-    column_names = []
-    if columns is not None:
-        for column in columns:
-            if column in DYNAMICS_COLUMN_NAMES:
-                column_names.append(ColumnName.DiffAEData(column))
-            else:
-                logger.warning("Column '%s' not supported for flow fields. Skipping.", column)
-    else:
-        column_names = list(DYNAMICS_COLUMN_NAMES)
+    column_names = get_valid_flow_field_column_names(columns)
 
     if not column_names:
         logger.error("No valid columns for generating flow field.")

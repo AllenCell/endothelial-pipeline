@@ -105,6 +105,7 @@ def main(
     from endo_pipeline.library.analyze.numerics.binning import get_bins
     from endo_pipeline.library.analyze.vector_field_estimation import (
         get_reshaped_vector_field_and_grid,
+        get_valid_flow_field_column_names,
         mask_drift_vector_field_by_data_density,
     )
     from endo_pipeline.library.visualize.columns import get_label_for_column
@@ -118,7 +119,6 @@ def main(
         BIN_LIMITS_DYNAMICS,
         BIN_WIDTHS_DYNAMICS,
         DEFAULT_DATASETS_DYNAMICS_VIS,
-        DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
         KERNEL_PERIODS_DYNAMICS,
@@ -143,16 +143,8 @@ def main(
         dataset_names = dataset_names[:1]
 
     # Ensure that selected columns are valid options
-    column_names = []
-    if columns is not None:
-        for column in columns:
-            if column in DYNAMICS_COLUMN_NAMES:
-                column_names.append(Column.DiffAEData(column))
-            else:
-                logger.error("Column '%s' not supported for flow fields. Exiting.", column)
-                return
-    else:
-        column_names = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
+    default_columns = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
+    column_names = get_valid_flow_field_column_names(columns, default_columns)
 
     # Get label and drift column name for selected column
     column_labels = [get_label_for_column(column) for column in column_names]

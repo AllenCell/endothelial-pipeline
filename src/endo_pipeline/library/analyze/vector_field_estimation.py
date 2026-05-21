@@ -28,6 +28,49 @@ from endo_pipeline.settings.flow_field_dataframes import DATAFRAME_MANIFEST_PREF
 logger = logging.getLogger(__name__)
 
 
+def get_valid_flow_field_column_names(
+    requested_columns: list[str] | tuple[str, ...] | None,
+    default_columns: list[Column.DiffAEData] | None = None,
+) -> list[Column.DiffAEData]:
+    """
+    Get valid flow field column names from list of requested columns.
+
+    Columns are considered valid if they exist in the `DYNAMICS_COLUMN_NAMES`
+    list. Columns are converted to `ColumnName` for standardization.
+
+    If requested columns is None, then return the default columns instead.
+
+    Parameters
+    ----------
+    requested_columns
+        List of requested flow field columns.
+    default_columns
+        Default list of columns, if requested columns is empty. Defaults to all
+        columns in `DYNAMICS_COLUMN_NAMES`.
+
+    Returns
+    -------
+    :
+        List of valid flow field columns.
+    """
+
+    if default_columns is None:
+        default_columns = list(DYNAMICS_COLUMN_NAMES)
+
+    if requested_columns is None:
+        return default_columns
+
+    column_names = []
+
+    for column in requested_columns:
+        if column in DYNAMICS_COLUMN_NAMES:
+            column_names.append(Column.DiffAEData(column))
+        else:
+            logger.warning("Column '%s' not supported for flow fields. Skipping.", column)
+
+    return column_names
+
+
 def mask_drift_vector_field_by_data_density(
     drift_coeffs: np.ndarray,
     dataframe: pd.DataFrame,
@@ -313,16 +356,7 @@ def load_drift_dataframe_for_dataset(
         Drift dataframe for the given dataset.
     """
 
-    column_names = []
-    if columns is not None:
-        for column in columns:
-            if column in DYNAMICS_COLUMN_NAMES:
-                column_names.append(Column.DiffAEData(column))
-            else:
-                logger.warning("Column '%s' not supported for flow fields. Skipping.", column)
-    else:
-        column_names = list(DYNAMICS_COLUMN_NAMES)
-
+    column_names = get_valid_flow_field_column_names(columns)
     name_suffix = f"_{join_sorted_strings(column_names)}_grid"
     drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD}{name_suffix}"
     drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
