@@ -212,7 +212,6 @@ def main(
     list_of_training_datasets = get_dataset_names_used_for_training(
         train_dataframe_location,
         val_dataframe_location,
-        "diffae_model_training",
     )
 
     # Populate manifest with training run location and parameters.
