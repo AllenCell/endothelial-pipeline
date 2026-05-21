@@ -1,3 +1,7 @@
+from typing import Annotated
+
+from cyclopts import Parameter
+
 from endo_pipeline.cli import CropPattern, Datasets
 from endo_pipeline.settings.flow_field_2d import HISTOGRAM_THRESHOLD_FOR_MASKING
 
@@ -5,9 +9,11 @@ from endo_pipeline.settings.flow_field_2d import HISTOGRAM_THRESHOLD_FOR_MASKING
 def main(
     crop_pattern: CropPattern = "grid",
     datasets: Datasets | None = None,
-    columns: tuple[str, str] | None = None,
-    use_same_axes: bool = False,
-    mask_threshold: float | None = HISTOGRAM_THRESHOLD_FOR_MASKING,
+    columns: Annotated[tuple[str, str] | None, Parameter(negative_iterable=[])] = None,
+    use_same_axes: Annotated[bool, Parameter(negative="--use-auto-axes")] = False,
+    mask_threshold: Annotated[
+        float | None, Parameter(negative_none="no-")
+    ] = HISTOGRAM_THRESHOLD_FOR_MASKING,
 ) -> None:
     """
     Visualize 2D drift vector field and fixed points.
