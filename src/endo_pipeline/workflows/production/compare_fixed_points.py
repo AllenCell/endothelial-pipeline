@@ -146,9 +146,7 @@ def main(datasets: Datasets | None = None) -> None:
             )
             absolute_errors.append(absolute_error)
 
-        print(
-            f"Maximum absolute error across all features and datasets: {max(absolute_errors):.4f}"
-        )
+    print(f"Maximum absolute error across all features and datasets: {max(absolute_errors):.4f}")
 
 
 if __name__ == "__main__":
