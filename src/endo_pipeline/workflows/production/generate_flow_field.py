@@ -141,10 +141,26 @@ def main(
     # set workflow defaults
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
     run_name = DEFAULT_MODEL_RUN_NAME
-    column_names_ = columns or list(DYNAMICS_COLUMN_NAMES)
-    column_names = cast(list[ColumnName.DiffAEData], column_names_)
+
+    # Workflow only supports generating flow fields from combinations of
+    # three specific column names (as defined in DYNAMICS_COLUMN_NAMES). If
+    # column names are provided, ensure they are a subset of these columns and
+    # skip any that are not. If no column names are provided, just use these
+    # three columns.
+    column_names = []
+    if columns is not None:
+        for column in columns:
+            if column in DYNAMICS_COLUMN_NAMES:
+                column_names.append(ColumnName.DiffAEData(column))
+            else:
+                logger.warning("Column '%s' not supported for flow fields. Skipping.", column)
+    else:
+        column_names = list(DYNAMICS_COLUMN_NAMES)
+
+    logger.info("Generating flow field for columns: %s", column_names)
+
+    # Columns to keep when loading dataframes
     ndim = len(column_names)
-    # columns to keep when loading dataframes
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
     # Load default model manifest and get corresponding feature dataframe
