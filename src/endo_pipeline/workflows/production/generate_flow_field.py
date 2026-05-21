@@ -78,7 +78,6 @@ def main(
         the output dataframes locally and log paths.
     """
     import logging
-    from typing import cast
 
     import numpy as np
     import pandas as pd
@@ -138,10 +137,6 @@ def main(
 
     logger = logging.getLogger(__name__)
 
-    # set workflow defaults
-    model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
-    run_name = DEFAULT_MODEL_RUN_NAME
-
     # Workflow only supports generating flow fields from combinations of
     # three specific column names (as defined in DYNAMICS_COLUMN_NAMES). If
     # column names are provided, ensure they are a subset of these columns and
@@ -163,14 +158,9 @@ def main(
     ndim = len(column_names)
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
-    # Load default model manifest and get corresponding feature dataframe
-    # manifest name for default run name and specified crop pattern.
-    model_manifest = load_model_manifest(model_manifest_name)
-
-    # Load dataframe manifest for the features to be used in flow field
-    # estimation and analysis.
-    base_name = f"{model_manifest_name}_{run_name}_{crop_pattern}"
-
+    # Load default model manifest and corresponding feature dataframe for
+    # specified crop pattern.
+    model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
     feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[crop_pattern]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
@@ -179,23 +169,18 @@ def main(
     # input dataframe manifest name for traceability and to avoid naming
     # conflicts with other runs.
     dataframe_savedir = get_output_path(__file__, crop_pattern)
-    demo_suffix = "_demo" if DEMO_MODE else ""
-    columns_str = join_sorted_strings(cast(list[str], column_names))
-    drift_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{columns_str}_{base_name}{demo_suffix}"
-    )
-    fixed_points_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{columns_str}_{base_name}{demo_suffix}"
-    )
+
+    # Build dataframe manifest names that include sorted list of selected
+    # columns used to generate the flow field.
+    name_suffix = "_demo" if DEMO_MODE else ""
+    name_suffix = f"_{join_sorted_strings(column_names)}_{crop_pattern}{name_suffix}"
+    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}{name_suffix}"
+    fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix}"
     drift_dataframe_manifest = create_dataframe_manifest(
         drift_dataframe_manifest_name, workflow_name=__file__
     )
     fixed_points_dataframe_manifest = create_dataframe_manifest(
         fixed_points_dataframe_manifest_name, workflow_name=__file__
-    )
-    logger.info(
-        "Dataframes with 3D flow field estimation results will be saved to: [ %s ]",
-        dataframe_savedir,
     )
 
     # Default list of datasets if not provided. Filter by datasets available in
@@ -236,8 +221,8 @@ def main(
         fixed_points_dataframe_manifest,
     ]:
         output_dataframe_manifest.parameters = {
-            "model_manifest_name": model_manifest_name,
-            "run_name": run_name,
+            "model_manifest_name": DEFAULT_MODEL_MANIFEST_NAME,
+            "run_name": DEFAULT_MODEL_RUN_NAME,
             "crop_pattern": crop_pattern,
             "columns": column_names_yaml_safe,
             "kernel_names": [kernel.name for kernel in kernels],
@@ -304,7 +289,7 @@ def main(
         # traceability and to avoid naming conflicts with other runs
         vector_field_for_dataset = pd.concat(vector_field_dataframe_list, ignore_index=True)
         vector_field_file_name = (
-            f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataset_name}{demo_suffix}.parquet"
+            f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataset_name}{name_suffix}.parquet"
         )
         vector_field_save_path = make_name_unique(dataframe_savedir / vector_field_file_name)
         vector_field_for_dataset.to_parquet(vector_field_save_path)
@@ -314,7 +299,7 @@ def main(
             drift_annotations = build_fms_annotations(
                 dataset_config,
                 model_manifest=model_manifest,
-                run_name=run_name,
+                run_name=DEFAULT_MODEL_RUN_NAME,
                 additional_notes=FMS_ANNOTATION_NOTES_DRIFT,
             )
             vector_field_fmsid = upload_file_to_fms(
@@ -345,7 +330,7 @@ def main(
 
         # save stable fixed points from this dataset to parquet file
         fixed_points_file_name = (
-            f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataset_name}{demo_suffix}.parquet"
+            f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataset_name}{name_suffix}.parquet"
         )
         fixed_points_save_path = make_name_unique(dataframe_savedir / fixed_points_file_name)
         fixed_points_for_dataset.to_parquet(fixed_points_save_path)
@@ -354,7 +339,7 @@ def main(
             fixed_points_annotations = build_fms_annotations(
                 dataset_config,
                 model_manifest=model_manifest,
-                run_name=run_name,
+                run_name=DEFAULT_MODEL_RUN_NAME,
                 additional_notes=FMS_ANNOTATION_NOTES_FIXED_POINTS[ndim],
             )
             fixed_points_fmsid = upload_file_to_fms(
