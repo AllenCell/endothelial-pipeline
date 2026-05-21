@@ -1,4 +1,4 @@
-def main(num_processes: int = 1) -> None:
+def main(num_processes: int = 1, upload_to_fms: bool = False) -> None:
     """
     Retrain Cellpose model to predict nuclei from BF std dev projections.
 
@@ -37,7 +37,14 @@ def main(num_processes: int = 1) -> None:
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import get_output_path, load_image, load_model, make_name_unique
+    from endo_pipeline.io import (
+        build_fms_annotations,
+        get_output_path,
+        load_image,
+        load_model,
+        make_name_unique,
+        upload_file_to_fms,
+    )
     from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
     from endo_pipeline.library.process.lib_nuc_pred_from_bf_std_retraining import (
         load_train_and_test_images,
@@ -133,6 +140,17 @@ def main(num_processes: int = 1) -> None:
     model_location = ModelLocation(path=model_path)
     model_manifest.locations[model_name] = model_location
     save_model_manifest(model_manifest)
+
+    # upload to FMS if desired
+    if upload_to_fms:
+        annotations = build_fms_annotations(
+            dataset=[load_dataset_config(dataset) for dataset in datasets_to_use],
+            model_manifest=model_manifest,
+            run_name=model_name,
+        )
+        fmsid = upload_file_to_fms(model_path, annotations=annotations, file_type="model")
+        model_manifest.locations[model_name] = ModelLocation(fmsid=fmsid)
+        save_model_manifest(model_manifest)
 
     # generate a test image to see how the model performs
     # on a live example that it has never seen

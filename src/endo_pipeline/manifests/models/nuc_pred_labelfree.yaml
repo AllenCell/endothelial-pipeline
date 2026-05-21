@@ -1,5 +1,5 @@
 name: nuc_pred_labelfree
-workflow: (unknown workflow)
+workflow: retrain_cellpose
 parameters: {}
 locations:
   finetuned_20250419:
