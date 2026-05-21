@@ -208,7 +208,7 @@ def get_dataset_names_used_for_training(
     training_dataset_superset = get_available_dataset_names()
 
     training_dataset_names = []
-    for dataset_name in training_dataset_superset.datasets:
+    for dataset_name in training_dataset_superset:
         for date in training_dataset_dates:
             if date in dataset_name:
                 training_dataset_names.append(dataset_name)
