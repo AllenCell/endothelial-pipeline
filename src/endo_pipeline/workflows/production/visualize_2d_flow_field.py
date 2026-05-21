@@ -91,7 +91,6 @@ def main(
         join_sorted_strings,
         load_dataframe,
         save_plot_to_path,
-        slugify,
     )
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_shear_stress,
@@ -250,7 +249,7 @@ def main(
 
         for flow_condition in dataset_config.flow_conditions:
             shear_stress = flow_condition.shear_stress
-            dataset_name_flow = slugify(f"{dataset_name}_shear_{shear_stress}")
+            dataset_name_flow = f"{dataset_name}_shear_{flow_condition.shear_stress_bin}"
             fig_title = get_shear_stress_label_for_dataset(dataset_config, flow_condition)
 
             feature_data_for_flow_condition = filter_dataframe_to_flow_condition_by_timepoint(
