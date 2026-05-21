@@ -109,16 +109,13 @@ def main(datasets: Datasets | None = None) -> None:
             else:
                 absolute_error = np.abs(coord_2_plus_1d - coord_3d_bootstrap)
 
-            logger.info(
-                "Dataset: %s, Feature: %s, Absolute Error: %.4f",
-                dataset_name,
-                column_name,
-                absolute_error,
+            print(
+                f"Dataset: {dataset_name}, Feature: {column_name}, Absolute Error: {absolute_error:.4f}"
             )
             absolute_errors.append(absolute_error)
 
-        logger.info(
-            "Maximum absolute error across all features and datasets: %.4f", max(absolute_errors)
+        print(
+            f"Maximum absolute error across all features and datasets: {max(absolute_errors):.4f}"
         )
 
 
