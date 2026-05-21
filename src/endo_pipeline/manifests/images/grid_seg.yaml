@@ -1,5 +1,5 @@
 name: grid_seg
-workflow: unknown
+workflow: create_grid_segmentation
 parameters: {}
 locations:
   20250618_20X:
