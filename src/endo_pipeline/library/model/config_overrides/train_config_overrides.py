@@ -45,6 +45,9 @@ class ModelConfigOverrideTrain:
     val_dataframe_path: str | None = None
     """Path or URI to the validation dataset (image loading metadata) parquet file."""
 
+    min_epochs: int | None = Field(default=None, gt=0)
+    """Minimum number of epochs to train the model for."""
+
     max_epochs: int | None = Field(default=None, gt=0)
     """Maximum number of epochs to train the model for."""
 
@@ -129,6 +132,9 @@ class ModelConfigOverrideTrain:
                 config, "model.semantic_encoder.num_classes", default=DEFAULT_NUM_LATENT_DIMENSIONS
             )
 
+        if self.min_epochs is None:
+            self.min_epochs = OmegaConf.select(config, "trainer.min_epochs", default=500)
+
         if self.max_epochs is None:
             self.max_epochs = OmegaConf.select(config, "trainer.max_epochs", default=1000)
 
@@ -170,6 +176,7 @@ class ModelConfigOverrideTrain:
 
         assert self.cache_rate is not None
         assert self.replace_rate is not None
+        assert self.min_epochs is not None
         assert self.max_epochs is not None
         assert self.train_dataframe_path is not None
         assert self.val_dataframe_path is not None
@@ -178,13 +185,13 @@ class ModelConfigOverrideTrain:
         # number of epochs to exactly the requested number.
         if self.epoch_multiplier:
             multiplier = (1 - self.cache_rate) / (self.cache_rate * self.replace_rate) + 1
-            effective_min_epochs = int(5000 * multiplier)
+            effective_min_epochs = int(self.min_epochs * multiplier)
             effective_max_epochs = max(
                 int(self.max_epochs * multiplier), int(1.5 * effective_min_epochs)
             )
             effective_save_images_epochs = int(10 * multiplier)
         else:
-            effective_min_epochs = 1
+            effective_min_epochs = self.min_epochs
             effective_max_epochs = self.max_epochs
             effective_save_images_epochs = 1
 

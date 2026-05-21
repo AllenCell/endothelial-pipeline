@@ -136,6 +136,7 @@ def main(
     # rate for actual training can be adjusted if needed.
     if DEMO_MODE:
         name_suffix = "_demo"
+        min_num_epochs = 1
         max_num_epochs = 3
         epoch_multiplier = False
         log_every_n_steps = 1
@@ -143,6 +144,7 @@ def main(
         replace_rate = 0.1
     else:
         name_suffix = ""
+        min_num_epochs = 5000
         max_num_epochs = 20000
         epoch_multiplier = True
         log_every_n_steps = 50
@@ -215,6 +217,7 @@ def main(
         latent_dim=latent_dim,
         train_dataframe_path=train_dataframe_path,
         val_dataframe_path=val_dataframe_path,
+        min_epochs=min_num_epochs,
         max_epochs=max_num_epochs,
         epoch_multiplier=epoch_multiplier,
         cache_rate=cache_rate,
