@@ -3,10 +3,42 @@ from endo_pipeline.cli import Datasets
 
 def main(datasets: Datasets | None = None) -> None:
     """
-    Validate fixed points identified in 2D in (r, rho) and 1D in theta against
-    the fixed points identified in the full 3D (r, rho, theta) space.
+    Validate fixed points identified in 2D + 1D versus 3D.
 
     #validation #fixed-points #dynamics
+
+    Validate fixed points as identified in 2D in (r, rho) and 1D in theta
+    against the fixed points identified in the full 3D (r, rho, theta) space.
+    This workflow computes the absolute error between the coordinates of the
+    fixed points identified in 2D + 1D and the coordinates of the fixed points
+    identified in 3D, and prints the results.
+
+    ## Example usage
+
+    To run the workflow with default settings:
+
+    ```bash
+    uv run endopipe validate-fixed-points -v
+    ```
+
+    To run the workflow for a single dataset:
+
+    ```bash
+    uv run endopipe validate-fixed-points --datasets DATASET_NAME
+    ```
+
+    ## Default datasets
+
+    If datasets are not provided, the workflow will run on the datasets
+    specified in the EXAMPLE_DATASET dictionary in
+    `endo_pipeline.settings.examples` under the keys "FIGURE_2_LOW_FLOW_DATASET"
+    and "FIGURE_2_HIGH_FLOW_DATASET".
+
+    Parameters
+    ----------
+    datasets
+        List of datasets or dataset collections to validate.
+
     """
     import logging
     from typing import cast
