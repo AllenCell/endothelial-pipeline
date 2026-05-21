@@ -26,6 +26,10 @@ from endo_pipeline.manifests import (
     load_model_manifest,
 )
 from endo_pipeline.settings import DIMENSION_ORDER
+from endo_pipeline.settings.workflow_defaults import (
+    LABELFREE_NUCLEI_MODEL_MANIFEST_NAME,
+    LABELFREE_NUCLEI_MODEL_RUN_NAME,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -173,8 +177,8 @@ get_s_from_path = lambda x: int(re.findall("S[0-9]+", x.stem)[-1].split("S")[-1]
 out_dir = get_output_path(__file__)
 
 # Load the retrained CellPose label-free nuclear prediction model
-model_manifest = load_model_manifest("nuc_pred_labelfree")
-run_name = "finetuned_20250419"
+model_manifest = load_model_manifest(LABELFREE_NUCLEI_MODEL_MANIFEST_NAME)
+run_name = LABELFREE_NUCLEI_MODEL_RUN_NAME
 model_location = get_model_location_for_run(model_manifest, run_name)
 model_bf_stdproject = load_model(model_location)
 

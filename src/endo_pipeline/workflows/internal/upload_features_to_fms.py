@@ -56,6 +56,10 @@ def main(
         load_model_manifest,
         save_dataframe_manifest,
     )
+    from endo_pipeline.settings.workflow_defaults import (
+        LABELFREE_NUCLEI_MODEL_MANIFEST_NAME,
+        LABELFREE_NUCLEI_MODEL_RUN_NAME,
+    )
 
     logger = logging.getLogger(__name__)
 
@@ -105,8 +109,8 @@ def main(
     upload_args = table_upload_args[table_type]
 
     # Specify label-free nuclei prediction model for upload annotations
-    model_manifest = load_model_manifest("nuc_pred_labelfree")
-    run_name = "finetuned_20250419"
+    model_manifest = load_model_manifest(LABELFREE_NUCLEI_MODEL_MANIFEST_NAME)
+    run_name = LABELFREE_NUCLEI_MODEL_RUN_NAME
 
     for dataset_name in tqdm(datasets):
         # Load dataset config

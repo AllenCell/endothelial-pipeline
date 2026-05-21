@@ -58,6 +58,7 @@ def main(num_processes: int = 1, upload_to_fms: bool = False) -> None:
         save_model_manifest,
     )
     from endo_pipeline.settings import DIMENSION_ORDER
+    from endo_pipeline.settings.workflow_defaults import LABELFREE_NUCLEI_MODEL_MANIFEST_NAME
 
     logger = logging.getLogger(__name__)
 
@@ -136,7 +137,7 @@ def main(num_processes: int = 1, upload_to_fms: bool = False) -> None:
         plt.close(fig)
 
     # save the model to the model manifest
-    model_manifest = load_model_manifest("nuc_pred_labelfree")
+    model_manifest = load_model_manifest(LABELFREE_NUCLEI_MODEL_MANIFEST_NAME)
     model_location = ModelLocation(path=model_path)
     model_manifest.locations[model_name] = model_location
     save_model_manifest(model_manifest)
