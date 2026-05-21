@@ -132,39 +132,39 @@ def main(
     ]
 
     name_suffix = f"_{column_name}_{crop_pattern}"
-    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD}{name_suffix}"
-    fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix}"
-    drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
-    fixed_points_dataframe_manifest = load_dataframe_manifest(fixed_points_dataframe_manifest_name)
+    vector_field_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD}{name_suffix}"
+    fixed_points_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix}"
+    vector_field_manifest = load_dataframe_manifest(vector_field_manifest_name)
+    fixed_points_manifest = load_dataframe_manifest(fixed_points_manifest_name)
 
     for dataset_name in dataset_names:
-        if dataset_name not in drift_dataframe_manifest.locations:
+        if dataset_name not in vector_field_manifest.locations:
             logger.warning(
                 "Dataset '%s' not found in manifest '%s'. Skipping.",
                 dataset_name,
-                drift_dataframe_manifest,
+                vector_field_manifest_name,
             )
             continue
 
         dataset_config = load_dataset_config(dataset_name)
 
-        drift_dataframe_location = get_dataframe_location_for_dataset(
-            drift_dataframe_manifest, dataset_name
+        vector_field_dataframe_location = get_dataframe_location_for_dataset(
+            vector_field_manifest, dataset_name
         )
-        drift_dataframe = load_dataframe(drift_dataframe_location, delay=False)
-        check_required_columns_in_dataframe(drift_dataframe, required_vector_field_columns)
+        vector_field_dataframe = load_dataframe(vector_field_dataframe_location, delay=False)
+        check_required_columns_in_dataframe(vector_field_dataframe, required_vector_field_columns)
 
-        if dataset_name not in fixed_points_dataframe_manifest.locations:
+        if dataset_name not in fixed_points_manifest.locations:
             logger.warning(
                 "Dataset '%s' not found in manifest '%s'. "
                 "Stable fixed points will not be shown in output visualization.",
                 dataset_name,
-                drift_dataframe_manifest,
+                vector_field_manifest_name,
             )
             fixed_points_dataframe = None
         else:
             fixed_points_dataframe_location = get_dataframe_location_for_dataset(
-                fixed_points_dataframe_manifest, dataset_name
+                fixed_points_manifest, dataset_name
             )
             fixed_points_dataframe = load_dataframe(fixed_points_dataframe_location, delay=False)
             check_required_columns_in_dataframe(
@@ -176,10 +176,12 @@ def main(
             dataset_name_flow = slugify(f"{dataset_name}_shear_{shear_stress}")
             fig_title = get_shear_stress_label_for_dataset(dataset_config, flow_condition)
 
-            drift_dataframe_flow = filter_dataframe_by_shear_stress(drift_dataframe, shear_stress)
+            vector_field_dataframe_flow = filter_dataframe_by_shear_stress(
+                vector_field_dataframe, shear_stress
+            )
 
             drift, centers = get_reshaped_vector_field_and_grid(
-                drift_dataframe_flow,
+                vector_field_dataframe_flow,
                 column_names=[column_name],
             )
 
