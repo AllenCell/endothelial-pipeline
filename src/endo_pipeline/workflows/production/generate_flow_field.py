@@ -123,8 +123,8 @@ def main(
     from endo_pipeline.settings.flow_field_dataframes import (
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
         DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD,
-        FMS_ANNOTATION_NOTES_DRIFT,
         FMS_ANNOTATION_NOTES_FIXED_POINTS,
+        FMS_ANNOTATION_NOTES_VECTOR_FIELD,
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -286,7 +286,7 @@ def main(
                 vector_field_dataframe_manifest,
                 vector_field_for_dataset,
                 DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD,
-                FMS_ANNOTATION_NOTES_DRIFT,
+                FMS_ANNOTATION_NOTES_VECTOR_FIELD,
             ),
             (
                 fixed_points_dataframe_manifest,

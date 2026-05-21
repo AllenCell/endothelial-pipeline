@@ -6,7 +6,7 @@ DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD: str = "drift_vector_field"
 """Prefix for setting and getting dataframe manifest name for drift dataframes
 in 3D flow field analysis."""
 
-FMS_ANNOTATION_NOTES_DRIFT: str = (
+FMS_ANNOTATION_NOTES_VECTOR_FIELD: str = (
     "Drift vectors and corresponding grid points for 3D flow field estimation."
 )
 """Annotation notes for drift coefficient dataframes uploaded to FMS in 3D flow field analysis."""
