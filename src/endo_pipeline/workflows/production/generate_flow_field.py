@@ -5,7 +5,6 @@ def main(
     crop_pattern: CropPattern = "grid",
     columns: StrList | None = None,
     datasets: Datasets | None = None,
-    upload_to_fms: bool = False,
 ) -> None:
     """
     Generate drift vector fields for the dynamics of the crop-based DiffAE
@@ -77,23 +76,19 @@ def main(
     columns
         Optional, specific columns (features) to use for flow field estimation
         and analysis.
-    upload_to_fms
-        If True, upload the output dataframes to FMS and update the
-        corresponding dataframe manifests with the FMS locations. If False, save
-        the output dataframes locally and log paths.
     """
+
     import logging
 
     import pandas as pd
 
-    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE, UPLOAD_TO_FMS
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import (
         build_fms_annotations,
         get_output_path,
         join_sorted_strings,
         load_dataframe,
-        make_name_unique,
         upload_file_to_fms,
     )
     from endo_pipeline.library.analyze.dataframe_filtering import (
@@ -106,7 +101,6 @@ def main(
     )
     from endo_pipeline.manifests import (
         DataframeLocation,
-        build_dataframe_location_from_path,
         create_dataframe_manifest,
         load_dataframe_manifest,
         load_model_manifest,
@@ -140,6 +134,8 @@ def main(
 
     logger = logging.getLogger(__name__)
 
+    output_path = get_output_path(__file__)
+
     dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
 
     if DEMO_MODE:
@@ -168,7 +164,6 @@ def main(
     logger.info("Generating flow field for columns: %s", column_names)
 
     # Columns to keep when loading dataframes
-    ndim = len(column_names)
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
     # Load default model manifest and corresponding feature dataframe for
@@ -176,12 +171,6 @@ def main(
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
     feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[crop_pattern]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
-
-    # Also build dataframe manifests for the outputs of this workflow (drift
-    # coefficients and identified fixed points) with names that include the
-    # input dataframe manifest name for traceability and to avoid naming
-    # conflicts with other runs.
-    dataframe_savedir = get_output_path(__file__, crop_pattern)
 
     # Build dataframe manifest names that include sorted list of selected
     # columns used to generate the flow field.
@@ -284,83 +273,51 @@ def main(
                 continue
             fixed_points_dataframe_list.append(fixed_points_dataframe)
 
-        # save drift coefficients and grid points dataframes to parquet files,
-        # with names that include the input dataframe manifest name for
-        # traceability and to avoid naming conflicts with other runs
+        # Concatenate vector fields for flow conditions into single dataframe.
         vector_field_for_dataset = pd.concat(vector_field_dataframe_list, ignore_index=True)
-        vector_field_file_name = (
-            f"{DATAFRAME_MANIFEST_PREFIX_DRIFT}_{dataset_name}{name_suffix}.parquet"
-        )
-        vector_field_save_path = make_name_unique(dataframe_savedir / vector_field_file_name)
-        vector_field_for_dataset.to_parquet(vector_field_save_path)
-        # Upload dataframes to FMS and update manifests
-        if upload_to_fms:
-            dataset_config = load_dataset_config(dataset_name)
-            drift_annotations = build_fms_annotations(
-                dataset_config,
-                model_manifest=model_manifest,
-                run_name=DEFAULT_MODEL_RUN_NAME,
-                additional_notes=FMS_ANNOTATION_NOTES_DRIFT,
-            )
-            vector_field_fmsid = upload_file_to_fms(
-                vector_field_save_path, annotations=drift_annotations, file_type="parquet"
-            )
-            drift_dataframe_manifest.locations[dataset_name] = DataframeLocation(
-                fmsid=vector_field_fmsid
-            )
-        # if not uploading to FMS, log only the path if there is no location for
-        # that dataset or if there is, but the FMS ID is None
-        elif (
-            drift_dataframe_manifest.locations.get(dataset_name) is None
-            or drift_dataframe_manifest.locations[dataset_name].fmsid is None
-        ):
-            drift_dataframe_manifest.locations[dataset_name] = build_dataframe_location_from_path(
-                vector_field_save_path
-            )
-        # save updated manifest with new locations (either FMS or local paths)
-        save_dataframe_manifest(drift_dataframe_manifest)
 
-        # if there are fixed points for this dataset, concatenate them into a
-        # single dataframe and add to list of dataframes of fixed points for all
-        # datasets
-        if not fixed_points_dataframe_list:
-            continue
+        # If there are any fixed points for the dataset, concatenate them into
+        # a single dataframe.
+        if fixed_points_dataframe_list:
+            fixed_points_for_dataset = pd.concat(fixed_points_dataframe_list, ignore_index=True)
+        else:
+            fixed_points_for_dataset = None
 
-        fixed_points_for_dataset = pd.concat(fixed_points_dataframe_list, ignore_index=True)
+        for manifest, dataframe, name_prefix, additional_notes in [
+            (
+                drift_dataframe_manifest,
+                vector_field_for_dataset,
+                DATAFRAME_MANIFEST_PREFIX_DRIFT,
+                FMS_ANNOTATION_NOTES_DRIFT,
+            ),
+            (
+                fixed_points_dataframe_manifest,
+                fixed_points_for_dataset,
+                DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+                FMS_ANNOTATION_NOTES_FIXED_POINTS % len(column_names),
+            ),
+        ]:
+            # Save dataframe to file
+            save_path = output_path / f"{name_prefix}_{dataset_name}{name_suffix}.parquet"
+            dataframe.to_parquet(save_path, index=False)
 
-        # save stable fixed points from this dataset to parquet file
-        fixed_points_file_name = (
-            f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{dataset_name}{name_suffix}.parquet"
-        )
-        fixed_points_save_path = make_name_unique(dataframe_savedir / fixed_points_file_name)
-        fixed_points_for_dataset.to_parquet(fixed_points_save_path)
-        # if uploading to FMS, update the dataframe manifest
-        if upload_to_fms:
-            fixed_points_annotations = build_fms_annotations(
-                dataset_config,
-                model_manifest=model_manifest,
-                run_name=DEFAULT_MODEL_RUN_NAME,
-                additional_notes=FMS_ANNOTATION_NOTES_FIXED_POINTS[ndim],
-            )
-            fixed_points_fmsid = upload_file_to_fms(
-                fixed_points_save_path,
-                annotations=fixed_points_annotations,
-                file_type="parquet",
-            )
-            fixed_points_dataframe_manifest.locations[dataset_name] = DataframeLocation(
-                fmsid=fixed_points_fmsid
-            )
-        # else, log only the path if there is no location for that dataset or if
-        # there is, but the FMS ID is None
-        elif (
-            fixed_points_dataframe_manifest.locations.get(dataset_name) is None
-            or fixed_points_dataframe_manifest.locations[dataset_name].fmsid is None
-        ):
-            fixed_points_dataframe_manifest.locations[dataset_name] = DataframeLocation(
-                path=fixed_points_save_path
-            )
-        # save updated manifest with new locations (either FMS or local paths)
-        save_dataframe_manifest(fixed_points_dataframe_manifest)
+            # Create location object with output path
+            location = DataframeLocation(path=save_path)
+
+            # Update to FMS (internal only) and update location with file id
+            if UPLOAD_TO_FMS:
+                annotations = build_fms_annotations(
+                    dataset_config,
+                    model_manifest=model_manifest,
+                    run_name=DEFAULT_MODEL_RUN_NAME,
+                    additional_notes=additional_notes,
+                )
+                fmsid = upload_file_to_fms(save_path, annotations=annotations, file_type="parquet")
+                location.fmsid = fmsid
+
+            # Add dataframe location to dataframe manifest and save
+            manifest.locations[dataset_name] = location
+            save_dataframe_manifest(manifest)
 
 
 if __name__ == "__main__":

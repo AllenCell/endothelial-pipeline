@@ -16,7 +16,7 @@ DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS: str = "drift_fixed_points"
 in 3D flow field analysis."""
 
 FMS_ANNOTATION_NOTES_FIXED_POINTS: str = (
-    "High-confidence fixed points identified from 3D flow field analysis."
+    "High-confidence fixed points identified from %dD flow field analysis."
 )
 """Annotation notes for fixed point dataframes uploaded to FMS in 3D flow field analysis."""
 
