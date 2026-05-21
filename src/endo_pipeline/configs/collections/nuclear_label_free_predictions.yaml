@@ -1,8 +1,0 @@
-name: nuclear_label_free_predictions
-description: Datasets used to train a nuclear segmentation model from brightfield images
-datasets:
-- 20240328_T01_001
-- 20240328_T02_001
-- 20250415_SlideA_20X
-- 20250415_SlideE_20X
-- 20250415_SlideH_20X
