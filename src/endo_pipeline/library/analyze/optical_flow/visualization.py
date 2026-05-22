@@ -23,7 +23,6 @@ def _scan_crop_pairs(
     cache: dict[int, np.ndarray],
     crop_grid: pd.DataFrame,
     thresh: float,
-    flow_scope: str,
     attachment: float,
 ) -> pd.DataFrame:
     """Subsample (crop, timepoint) pairs and compute R-bar for each.
@@ -54,13 +53,13 @@ def _scan_crop_pairs(
         for t0, t1 in scan_pairs:
             f0, f1 = cache[t0], cache[t1]
             c0, c1 = f0[_sy:_ey, _sx:_ex], f1[_sy:_ey, _sx:_ex]
-            if flow_scope == "image":
-                if (t0, t1) not in _image_flow_cache:
-                    _image_flow_cache[(t0, t1)] = compute_tvl1(f0, f1, attachment=attachment)
-                uf_full, vf_full = _image_flow_cache[(t0, t1)]
-                uf, vf = uf_full[_sy:_ey, _sx:_ex], vf_full[_sy:_ey, _sx:_ex]
-            else:
-                uf, vf = compute_tvl1(c0, c1, attachment=attachment)
+
+            if (t0, t1) not in _image_flow_cache:
+                _image_flow_cache[(t0, t1)] = compute_tvl1(f0, f1, attachment=attachment)
+
+            uf_full, vf_full = _image_flow_cache[(t0, t1)]
+            uf, vf = uf_full[_sy:_ey, _sx:_ex], vf_full[_sy:_ey, _sx:_ex]
+
             ang = np.arctan2(vf, uf)
             sp_scan = np.sqrt(uf**2 + vf**2)
             mask = (c0 > thresh) | (c1 > thresh)
@@ -101,7 +100,6 @@ def plot_demo_summary(
     thresh: float,
     out_dir,
     channel: list[str],
-    flow_scope: str,
     attachment: float = 7.5,
     compute_block_coherence: bool = False,
 ) -> None:
@@ -133,8 +131,6 @@ def plot_demo_summary(
         Directory where the PNG figure is saved.
     channel
         Imaging channel name(s) (e.g. ``["BF"]``).
-    flow_scope
-        ``"image"`` or ``"crop"``.
     attachment
         TVL1 attachment (lambda) value.
     compute_block_coherence
@@ -153,7 +149,7 @@ def plot_demo_summary(
         logger.warning("Only %d cached frame(s) — skipping demo plot", len(sorted_tp))
         return
 
-    scan_df = _scan_crop_pairs(cache, crop_grid, thresh, flow_scope, attachment)
+    scan_df = _scan_crop_pairs(cache, crop_grid, thresh, attachment)
     if len(scan_df) < 2:
         logger.warning("Scan produced <2 valid records — skipping demo plot")
         return
@@ -196,11 +192,9 @@ def plot_demo_summary(
 
         f0, f1 = cache[t0], cache[t1]
         c0, c1 = f0[_sy:_ey, _sx:_ex], f1[_sy:_ey, _sx:_ex]
-        if flow_scope == "image":
-            uf_full, vf_full = compute_tvl1(f0, f1, attachment=attachment)
-            uf, vf = uf_full[_sy:_ey, _sx:_ex], vf_full[_sy:_ey, _sx:_ex]
-        else:
-            uf, vf = compute_tvl1(c0, c1, attachment=attachment)
+        uf_full, vf_full = compute_tvl1(f0, f1, attachment=attachment)
+        uf, vf = uf_full[_sy:_ey, _sx:_ex], vf_full[_sy:_ey, _sx:_ex]
+
         sp = np.sqrt(uf**2 + vf**2)
         ang = np.arctan2(vf, uf)
         mask = (c0 > thresh) | (c1 > thresh)
@@ -407,7 +401,7 @@ def plot_demo_summary(
     block_tag = "_block" if compute_block_coherence else ""
 
     fig.suptitle(
-        f"Coherent vs Incoherent : {ds_name} / pos {position}  [{', '.join(channel)}]  (scope={flow_scope}{'  +block_coherence' if compute_block_coherence else ''})",
+        f"Coherent vs Incoherent : {ds_name} / pos {position}  [{', '.join(channel)}]  (scope={'  +block_coherence' if compute_block_coherence else ''})",
         fontsize=12,
         fontweight="bold",
     )
@@ -416,7 +410,7 @@ def plot_demo_summary(
     save_plot_to_path(
         fig,
         out_dir,
-        f"demo_coherent_vs_incoherent_{ds_name}_{position}_{'_'.join(channel)}_{flow_scope}{block_tag}",
+        f"demo_coherent_vs_incoherent_{ds_name}_{position}_{'_'.join(channel)}_{block_tag}",
         dpi=300,
         show_and_close=False,
     )

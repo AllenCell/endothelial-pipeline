@@ -22,9 +22,7 @@ def main(  # noqa: C901
     annotations_to_exclude: list[TimepointAnnotation] | None = None,
     max_dt: int = DEFAULT_OPTICAL_FLOW_MAX_DT,
     intensity_percentile: int | None = None,
-    n_jobs: int | None = None,
     n_io_workers: int = NUM_IO_WORKERS,
-    flow_scope: Literal["image", "crop"] = "image",
     crop_pattern: CropPattern = "grid",
     upload_to_fms: bool = False,
     visualize_optical_flow: bool = False,
@@ -44,12 +42,6 @@ def main(  # noqa: C901
     intensity falls below a channel-aware percentile threshold are masked
     before computing per-crop summary statistics (mean/median speed,
     circular mean/std of angle, etc.).
-
-    Flow scopes (flow_scope):
-        "image" (default) - Run TVL1 once on the full-resolution image
-            per frame pair, then slice flow vectors per crop.  Faster
-            and avoids boundary artefacts.
-        "crop" - Run TVL1 independently on each crop.
 
     Crop patterns (crop_pattern):
         "grid" (default) - Use the fixed-grid crop layout from the DiffAE
@@ -105,13 +97,9 @@ def main(  # noqa: C901
         Pixels below this percentile (computed across all cached frames)
         are masked out.  None -> auto-select based on channel
         (EGFP -> 95, BF -> 0).
-    n_jobs
-        Parallel workers used in "crop" flow scope (joblib/loky).
     n_io_workers
         Concurrent I/O workers for dask frame loading and
         ``ThreadPoolExecutor`` in image-scope flow.
-    flow_scope
-        "image" or "crop" (see Flow scopes above).
     crop_pattern
         "grid" or "tracked" (see Crop patterns above).
     upload_to_fms
@@ -152,7 +140,6 @@ def main(  # noqa: C901
     import dask.array as da
     import numpy as np
     import pandas as pd
-    from joblib import Parallel, delayed  # type: ignore[import-untyped]
     from tqdm.auto import tqdm
 
     from endo_pipeline.cli import DEMO_MODE
@@ -173,7 +160,6 @@ def main(  # noqa: C901
         build_crop_grid,
         build_ema_stems,
         build_optical_flow_feature_cols,
-        compute_crop_flow,
         compute_image_pair_flow,
         default_annotations_to_exclude,
         pivot_flow_records,
@@ -209,13 +195,6 @@ def main(  # noqa: C901
     os.environ.setdefault("OPENBLAS_NUM_THREADS", DEFAULT_OPENBLAS_NUM_THREADS)
 
     is_tracked = crop_pattern == "tracked"
-
-    # Tracked crops require image-scope TVL1 — reject early.
-    if is_tracked and flow_scope == "crop":
-        raise ValueError(
-            "crop_pattern='tracked' is not supported with flow_scope='crop'. "
-            "Use flow_scope='image' for tracked crops."
-        )
 
     if datasets is None:
         datasets = get_datasets_in_collection(DEFAULT_OPTICAL_FLOW_COLLECTION)
@@ -262,11 +241,10 @@ def main(  # noqa: C901
     is_bf = channel == "BF"
 
     logger.info(
-        "Optical-flow extraction --> scope=%s | crop_pattern=%s | dt=1..%d "
+        "Optical-flow extraction --> crop_pattern=%s | dt=1..%d "
         "| percentile=%d | attachment=%.1f | channel=%s "
         "| block_coherence=%s | fast_coherence=%s | radial_coherence=%s "
         "| ema_alphas=%s | speed_threshold=%.2f",
-        flow_scope,
         crop_pattern,
         max_dt,
         intensity_pctl,
@@ -300,7 +278,6 @@ def main(  # noqa: C901
         "channel": channel,
         "level": level,
         "max_dt": max_dt,
-        "flow_scope": flow_scope,
         "crop_pattern": crop_pattern,
         "intensity_percentile": intensity_pctl,
         "attachment": attachment,
@@ -461,72 +438,46 @@ def main(  # noqa: C901
 
             # Compute flow
             records: list[dict] = []
-            if flow_scope == "image":
-                desc = f"{dataset_name} pos={position}"
-                if is_tracked:
-                    desc += " (tracked)"
-                with ThreadPoolExecutor(max_workers=n_io_workers) as pool:
-                    futures: dict = {}
-                    for t0, t1, dt in frame_pairs:
-                        if is_tracked:
-                            crops = tracked_crops.get(t0)
-                            if crops is None:
-                                continue
-                            sy_, ey_, sx_, ex_, ci_ = crops
-                        else:
-                            sy_, ey_, sx_, ex_, ci_ = (
-                                start_y,
-                                end_y,
-                                start_x,
-                                end_x,
-                                crop_ids,
-                            )
-                        futures[
-                            pool.submit(
-                                _compute_flow,
-                                frame_cache[t0],
-                                frame_cache[t1],
-                                sy_,
-                                ey_,
-                                sx_,
-                                ex_,
-                                ci_,
-                                t0,
-                                dt,
-                                intensity_threshold,
-                            )
-                        ] = (t0, dt)
-                    for future in tqdm(
-                        as_completed(futures),
-                        total=len(futures),
-                        desc=desc,
-                    ):
-                        records.extend(future.result())
-            else:
-                # Crop scope: TVL1 per crop (grid only; tracked + crop
-                # is rejected before the loop).
-                crop_flow_args = [
-                    (
-                        frame_cache[t0][start_y[i] : end_y[i], start_x[i] : end_x[i]].copy(),
-                        frame_cache[t1][start_y[i] : end_y[i], start_x[i] : end_x[i]].copy(),
-                        crop_ids[i],
-                        t0,
-                        dt,
-                        intensity_threshold,
-                        attachment,
-                        compute_block_coherence,
-                        compute_fast_coherence,
-                        compute_radial_coherence,
-                        speed_threshold,
-                    )
-                    for t0, t1, dt in frame_pairs
-                    for i in range(num_crops)
-                ]
-                num_jobs = n_jobs or os.cpu_count() // 6
-                records = Parallel(n_jobs=num_jobs, backend="loky")(
-                    delayed(compute_crop_flow)(*a)
-                    for a in tqdm(crop_flow_args, desc=f"{dataset_name} pos={position}")
-                )
+            desc = f"{dataset_name} pos={position}"
+            if is_tracked:
+                desc += " (tracked)"
+            with ThreadPoolExecutor(max_workers=n_io_workers) as pool:
+                futures: dict = {}
+                for t0, t1, dt in frame_pairs:
+                    if is_tracked:
+                        crops = tracked_crops.get(t0)
+                        if crops is None:
+                            continue
+                        sy_, ey_, sx_, ex_, ci_ = crops
+                    else:
+                        sy_, ey_, sx_, ex_, ci_ = (
+                            start_y,
+                            end_y,
+                            start_x,
+                            end_x,
+                            crop_ids,
+                        )
+                    futures[
+                        pool.submit(
+                            _compute_flow,
+                            frame_cache[t0],
+                            frame_cache[t1],
+                            sy_,
+                            ey_,
+                            sx_,
+                            ex_,
+                            ci_,
+                            t0,
+                            dt,
+                            intensity_threshold,
+                        )
+                    ] = (t0, dt)
+                for future in tqdm(
+                    as_completed(futures),
+                    total=len(futures),
+                    desc=desc,
+                ):
+                    records.extend(future.result())
 
             if visualize_optical_flow:
                 plot_demo_summary(
@@ -537,7 +488,6 @@ def main(  # noqa: C901
                     intensity_threshold,
                     results_dir,
                     [channel],
-                    flow_scope,
                     attachment,
                     compute_block_coherence,
                 )
