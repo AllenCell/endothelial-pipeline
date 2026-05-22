@@ -95,6 +95,7 @@ def main(  # noqa: C901
         plot_tracked_crop_coherence_timeseries,
     )
     from endo_pipeline.library.analyze.optical_flow.compute import (
+        OpticalFlowImagePair,
         calculate_optical_flow_intensity_threshold,
     )
     from endo_pipeline.library.analyze.optical_flow.dataframe import build_tracked_crop_lookup_table
@@ -247,13 +248,13 @@ def main(  # noqa: C901
                 crop_ids = crop_grid[Column.CROP_INDEX].values
 
             # Build frame pairs from timepoint sets
-            frame_pairs = [
-                (t, t + d, d)
-                for d in range(1, max_dt + 1)
-                for t in valid_timepoints
-                if (t + d) in valid_timepoint_set
+            image_pairs = [
+                OpticalFlowImagePair(t0=t0, t1=t0 + dt, dt=dt)
+                for dt in range(1, max_dt + 1)
+                for t0 in valid_timepoints
+                if (t0 + dt) in valid_timepoint_set
             ]
-            needed_timepoints = sorted({t for pair in frame_pairs for t in pair[:2]})
+            needed_timepoints = sorted({t for pair in image_pairs for t in pair[:2]})
 
             # Cache frames for required timepoints
             cache_start = time.time()
