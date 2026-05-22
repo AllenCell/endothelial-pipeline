@@ -335,8 +335,8 @@ def build_image_pair_crops_for_tracked(
         Callable for image pair crop tuple.
     """
 
-    crop_size = int(
-        df[ColumnName.DiffAEData.CROP_SIZE_X].iloc[0]
+    crop_size = (
+        int(df[ColumnName.DiffAEData.CROP_SIZE_X].iloc[0])
         if ColumnName.DiffAEData.CROP_SIZE_X in df.columns
         else DIFFAE_DEFAULT_CROP_SIZE
     )
@@ -344,11 +344,10 @@ def build_image_pair_crops_for_tracked(
     tracked_crops: dict[int, OpticalFlowImagePairCrops] = {}
 
     for t, grp in df.groupby(ColumnName.TIMEPOINT):
-        ci_ = grp[ColumnName.CROP_INDEX].values.astype(int)
         tracked_crops[int(t)] = OpticalFlowImagePairCrops(
             start_x=grp[ColumnName.DiffAEData.START_X].values.astype(int),
             start_y=grp[ColumnName.DiffAEData.START_Y].values.astype(int),
-            crop_indices=ci_,
+            crop_indices=grp[ColumnName.CROP_INDEX].values.astype(int),
             crop_size=crop_size,
         )
 
@@ -375,6 +374,12 @@ def build_image_pair_crops_for_grid(df: pd.DataFrame) -> Callable[[int], Optical
         Callable for image pair crop tuple.
     """
 
+    crop_size = (
+        int(df[ColumnName.DiffAEData.CROP_SIZE_X].iloc[0])
+        if ColumnName.DiffAEData.CROP_SIZE_X in df.columns
+        else DIFFAE_DEFAULT_CROP_SIZE
+    )
+
     crop_df = (
         df[
             [
@@ -386,12 +391,6 @@ def build_image_pair_crops_for_grid(df: pd.DataFrame) -> Callable[[int], Optical
         .drop_duplicates(subset=[ColumnName.CROP_INDEX])
         .sort_values(by=[ColumnName.DiffAEData.START_Y, ColumnName.DiffAEData.START_X])
         .reset_index(drop=True)
-    )
-
-    crop_size = (
-        int(df[ColumnName.DiffAEData.CROP_SIZE_X].iloc[0])
-        if ColumnName.DiffAEData.CROP_SIZE_X in df.columns
-        else DIFFAE_DEFAULT_CROP_SIZE
     )
 
     return lambda _: OpticalFlowImagePairCrops(

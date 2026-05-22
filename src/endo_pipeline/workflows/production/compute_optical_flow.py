@@ -199,17 +199,18 @@ def main(
             valid_timepoint_set = set(valid_timepoints)
 
             # Filter dataframe down to selected position and timepoint
-            df_position = df_dataset_[
-                (df_dataset_[Column.POSITION] == position)
-                & (df_dataset_[Column.TIMEPOINT].isin(valid_timepoints))
-            ].copy()
+            df_position = (
+                df_dataset_[
+                    (df_dataset_[Column.POSITION] == position)
+                    & (df_dataset_[Column.TIMEPOINT].isin(valid_timepoints))
+                ]
+                .copy()
+                .dropna()
+            )
 
             # If there are no crops for the given position and timepoints, skip
             if df_position.empty:
                 continue
-
-            # Add dataset name to dataframe
-            df_position[Column.DATASET] = dataset_name
 
             # For tracked crops, build a per-timepoint crop lookup dict
             # mapping timepoint -> (start_y, end_y, start_x, end_x, crop_ids)
@@ -290,6 +291,7 @@ def main(
 
         # Save dataframe to file
         df_dataset_out = pd.concat(position_dataframes, ignore_index=True)
+        df_dataset_out[Column.DATASET] = dataset_name
         save_path = output_path / f"{name_prefix}_{dataset_name}{name_suffix}.parquet"
         df_dataset_out.to_parquet(save_path, index=False)
 
