@@ -84,18 +84,12 @@ def main(  # noqa: C901
         upload_file_to_fms,
     )
     from endo_pipeline.library.analyze.optical_flow import (
-        build_image_pair_crops_for_grid,
-        compute_image_pair_flow,
-        plot_demo_summary,
-        plot_tracked_crop_coherence_timeseries,
-    )
-    from endo_pipeline.library.analyze.optical_flow.compute import (
         OpticalFlowImagePair,
-        calculate_optical_flow_intensity_threshold,
-    )
-    from endo_pipeline.library.analyze.optical_flow.dataframe import (
+        build_image_pair_crops_for_grid,
         build_image_pair_crops_for_tracked,
         build_merged_optical_flow_dataframe,
+        calculate_optical_flow_intensity_threshold,
+        compute_image_pair_flow,
     )
     from endo_pipeline.library.visualize.supplemental_movies import (
         load_bf_std_dev_image,
@@ -111,7 +105,6 @@ def main(  # noqa: C901
     from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL
     from endo_pipeline.settings.optical_flow import (
         DEFAULT_OPTICAL_FLOW_COLLECTION,
-        DEMO_MAX_TRACKED_CROPS_TO_PLOT,
         OPTICAL_FLOW_CHANNEL_ATTACHMENT,
         OPTICAL_FLOW_CHANNEL_PERCENTILE,
         OPTICAL_FLOW_COLUMNS_TO_COMPUTE,
@@ -270,35 +263,11 @@ def main(  # noqa: C901
                 for future in tqdm(as_completed(futures), total=len(futures)):
                     records.extend(future.result())
 
-            if visualize_optical_flow:
-                plot_demo_summary(
-                    frame_cache,
-                    crop_grid,
-                    dataset_name,
-                    position,
-                    intensity_threshold,
-                    results_dir,
-                    [channel],
-                    attachment,
-                )
-
             # Append optical flow features from records to the position
             # dataframe, add any missing columns, and apply EMA smoothing
             df_position = build_merged_optical_flow_dataframe(
                 df_position, records, max_dt, ema_alphas
             )
-
-            # --- Crop coherence time series diagnostic ---
-            if visualize_optical_flow:
-                plot_tracked_crop_coherence_timeseries(
-                    df_position,
-                    ds_name=dataset_name,
-                    position=position,
-                    out_dir=results_dir,
-                    ema_alphas=ema_alphas,
-                    max_crops=DEMO_MAX_TRACKED_CROPS_TO_PLOT,
-                    max_dt=max_dt,
-                )
 
             position_dataframes.append(df_position)
 
