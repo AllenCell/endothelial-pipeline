@@ -27,7 +27,7 @@ def main(
     bootstrap_ci_upper_percentile: Annotated[
         float, Parameter(name="--ci-upper")
     ] = FP_CI_UPPER_PERCENTILE,
-    num_workers: int | None = None,
+    num_workers: int | None = 1,
     batch_size_factor: float = BATCH_SIZE_SCALING_FACTOR,
 ) -> None:
     """
