@@ -5,11 +5,7 @@ from scipy import stats
 from skimage.registration import optical_flow_tvl1
 
 from endo_pipeline.settings.column_names import ColumnName
-from endo_pipeline.settings.optical_flow import (
-    OPTICAL_FLOW_COMPUTE_FEATURES,
-    OPTICAL_FLOW_FAST_FEATURES,
-    OPTICAL_FLOW_RADIAL_FEATURES,
-)
+from endo_pipeline.settings.optical_flow import OPTICAL_FLOW_BASE_FEATURES
 
 logger = logging.getLogger(__name__)
 
@@ -63,9 +59,7 @@ def compute_flow_statistics(
     mask = (crop0 > thresh) | (crop1 > thresh)
 
     # Build the NaN key set dynamically based on enabled features.
-    nan_keys: list[str] = list(OPTICAL_FLOW_COMPUTE_FEATURES)
-    nan_keys += OPTICAL_FLOW_FAST_FEATURES
-    nan_keys += OPTICAL_FLOW_RADIAL_FEATURES
+    nan_keys = OPTICAL_FLOW_BASE_FEATURES
 
     if not mask.any():
         logger.debug(

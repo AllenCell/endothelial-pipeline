@@ -64,7 +64,7 @@ OPTICAL_FLOW_COLUMNS_TO_COMPUTE: dict[str, tuple[str, ...]] = {
 # ---------------------------------------------------------------------------
 # Feature names
 # ---------------------------------------------------------------------------
-OPTICAL_FLOW_COMPUTE_FEATURES: list[str] = [
+OPTICAL_FLOW_BASE_FEATURES: list[str] = [
     ColumnName.OpticalFlow.SPEED_MEAN_BASE,
     ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_BASE,
     ColumnName.OpticalFlow.SPEED_STD_BASE,
@@ -74,28 +74,12 @@ OPTICAL_FLOW_COMPUTE_FEATURES: list[str] = [
     ColumnName.OpticalFlow.V_MEAN_BASE,
     ColumnName.OpticalFlow.U_STD_BASE,
     ColumnName.OpticalFlow.V_STD_BASE,
-]
-"""Core features always computed by :func:`compute_flow_statistics`."""
-
-OPTICAL_FLOW_FAST_FEATURES: list[str] = [
     ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_FAST_BASE,
     ColumnName.OpticalFlow.SPEED_ABOVE_1_COUNT_BASE,
-]
-"""Features gated on ``--compute-fast-coherence`` (speed > threshold)."""
-
-OPTICAL_FLOW_RADIAL_FEATURES: list[str] = [
     ColumnName.OpticalFlow.RADIAL_COHERENCE_BASE,
     ColumnName.OpticalFlow.RADIAL_COHERENCE_WEIGHTED_BASE,
 ]
-"""Features gated on ``--compute-radial-coherence``."""
-
-# Backward-compatible union used by compute.py NaN-fallback when all
-# optional features are enabled.
-OPTICAL_FLOW_BASE_FEATURES: list[str] = (
-    OPTICAL_FLOW_COMPUTE_FEATURES + OPTICAL_FLOW_FAST_FEATURES + OPTICAL_FLOW_RADIAL_FEATURES
-)
-"""Union of all per-(crop, timepoint, dt) features returned by
-:func:`compute_flow_statistics` when every optional group is enabled."""
+"""List of compute optical flow features."""
 
 # EMA coherence feature stems (the alpha tag and _dt suffix are added
 # dynamically in the workflow and in :func:`build_optical_flow_feature_cols`).

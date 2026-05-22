@@ -7,12 +7,10 @@ import pandas as pd
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.optical_flow import (
     DEFAULT_EMA_ALPHAS,
-    OPTICAL_FLOW_COMPUTE_FEATURES,
+    OPTICAL_FLOW_BASE_FEATURES,
     OPTICAL_FLOW_EMA_FAST_STEMS,
     OPTICAL_FLOW_EMA_RADIAL_STEMS,
     OPTICAL_FLOW_EMA_STEMS,
-    OPTICAL_FLOW_FAST_FEATURES,
-    OPTICAL_FLOW_RADIAL_FEATURES,
 )
 
 
@@ -39,15 +37,8 @@ def build_optical_flow_feature_cols(
 ) -> list[str]:
     """Return all optical-flow column names for dt = 1..max_dt.
 
-    Generates the Cartesian product of base features and temporal strides
-    1..max_dt, yielding names like ``optical_flow_mean_speed_dt1``.  The
-    feature list is assembled dynamically based on which optional feature
-    groups are enabled:
-
-    * Core features (always included) — from
-      :data:`~endo_pipeline.settings.optical_flow.OPTICAL_FLOW_COMPUTE_FEATURES`.
-    * EMA-smoothed columns — ``ema{tag}_{stem}_dt{d}`` for each alpha in
-      *ema_alphas* and each enabled coherence stem.
+    Generates the Cartesian product of base features and temporal stride given
+    by `max_dt`, yielding names like ``optical_flow_mean_speed_dt1``.
 
     Parameters
     ----------
@@ -63,9 +54,7 @@ def build_optical_flow_feature_cols(
         List of ``{feature}_dt{d}`` column names.
     """
     # --- raw (non-EMA) features ---
-    features: list[str] = list(OPTICAL_FLOW_COMPUTE_FEATURES)
-    features += OPTICAL_FLOW_FAST_FEATURES
-    features += OPTICAL_FLOW_RADIAL_FEATURES
+    features = OPTICAL_FLOW_BASE_FEATURES
 
     # --- EMA-smoothed coherence columns ---
     ema_stems = build_ema_stems()
