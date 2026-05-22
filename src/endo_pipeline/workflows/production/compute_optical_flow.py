@@ -110,8 +110,6 @@ def main(  # noqa: C901
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL
     from endo_pipeline.settings.optical_flow import (
-        DEFAULT_OMP_NUM_THREADS,
-        DEFAULT_OPENBLAS_NUM_THREADS,
         DEFAULT_OPTICAL_FLOW_COLLECTION,
         DEMO_MAX_TRACKED_CROPS_TO_PLOT,
         OPTICAL_FLOW_CHANNEL_ATTACHMENT,
@@ -122,8 +120,8 @@ def main(  # noqa: C901
     from endo_pipeline.settings.workflow_defaults import FEATURES_UNFILTERED_MANIFEST_NAMES
 
     # Pin OpenMP to 1 thread per worker
-    os.environ.setdefault("OMP_NUM_THREADS", DEFAULT_OMP_NUM_THREADS)
-    os.environ.setdefault("OPENBLAS_NUM_THREADS", DEFAULT_OPENBLAS_NUM_THREADS)
+    os.environ.setdefault("OMP_NUM_THREADS", "1")
+    os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 
     logger = logging.getLogger(__name__)
 

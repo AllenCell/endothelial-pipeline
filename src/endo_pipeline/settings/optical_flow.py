@@ -125,12 +125,3 @@ weaker data-fidelity term avoids fitting noise."""
 # ---------------------------------------------------------------------------
 DEFAULT_OPTICAL_FLOW_MAX_DT: int = 1
 """Maximum frame gap for multi-scale optical-flow sweep (dt = 1 ... MAX_DT)."""
-
-# ---------------------------------------------------------------------------
-# Thread pinning
-# ---------------------------------------------------------------------------
-DEFAULT_OMP_NUM_THREADS: str = "1"
-"""Default OMP_NUM_THREADS for optical-flow workers (pinned to avoid over-subscription)."""
-
-DEFAULT_OPENBLAS_NUM_THREADS: str = "1"
-"""Default OPENBLAS_NUM_THREADS for optical-flow workers."""
