@@ -29,10 +29,7 @@ def main() -> None:
     from endo_pipeline.cli import DEMO_MODE, NUM_GPUS, UPLOAD_TO_FMS
     from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
-    from endo_pipeline.library.model.model_qc import (
-        ModelKey,
-        evaluate_single_model,
-    )
+    from endo_pipeline.library.model.model_qc import ModelKey, evaluate_single_model
     from endo_pipeline.library.model.model_qc.results_io import (
         COMBINED_MANIFEST_LOCATION_KEY,
         write_combined_parquet,
