@@ -175,61 +175,6 @@ def compute_tvl1(
     return u, v
 
 
-def compute_crop_flow(
-    c0: np.ndarray,
-    c1: np.ndarray,
-    crop_idx: int,
-    tp: int,
-    dt: int,
-    thresh: float = 0.0,
-    attachment: float = 7.5,
-    speed_threshold: float = 1.0,
-) -> dict:
-    """Run TVL1 on a single crop pair and return summary statistics.
-
-    Convenience wrapper that calls :func:`compute_tvl1` followed by
-    :func:`compute_flow_statistics` for the *crop-scope* strategy
-    (TVL1 is run independently on each crop).
-
-    Parameters
-    ----------
-    c0
-        Crop from the reference frame.
-    c1
-        Crop from the subsequent frame.
-    crop_idx
-        Spatial crop identifier.
-    tp
-        Timepoint index of the reference frame.
-    dt
-        Temporal stride between the two frames.
-    thresh
-        Intensity threshold for foreground masking.
-    attachment
-        TVL1 data-fidelity weight (λ).
-    speed_threshold
-        Speed threshold for fast-coherence features.
-
-    Returns
-    -------
-    :
-        Flat dictionary of scalar flow statistics keyed by feature
-        name, including ``crop_index``, ``timepoint``, and ``dt``.
-    """
-    u, v = compute_tvl1(c0, c1, attachment=attachment)
-    return compute_flow_statistics(
-        u,
-        v,
-        c0,
-        c1,
-        crop_idx,
-        tp,
-        dt,
-        thresh,
-        speed_threshold,
-    )
-
-
 def compute_image_pair_flow(
     f0: np.ndarray,
     f1: np.ndarray,
@@ -246,10 +191,10 @@ def compute_image_pair_flow(
 ) -> list[dict]:
     """Run TVL1 on a full-resolution frame pair, then compute per-crop stats.
 
-    This is the *image-scope* strategy: TVL1 runs once on the full image
-    and the resulting flow field is sliced per crop.  Compared to the
-    crop-scope approach (:func:`compute_crop_flow`), this avoids
-    boundary artifacts and is faster when many crops share one image.
+    This is the *image-scope* strategy: TVL1 runs once on the full image and the
+    resulting flow field is sliced per crop.  Compared to the crop-scope
+    approach, this avoids boundary artifacts and is faster when many crops share
+    one image.
 
     Parameters
     ----------
