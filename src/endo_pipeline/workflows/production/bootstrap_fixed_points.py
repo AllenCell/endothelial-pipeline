@@ -33,9 +33,7 @@ def main(
     """
     Bootstrap fixed point confidence intervals by subsampling data.
 
-    #dynamics #bootstrap #fixed-points #confidence-intervals
-
-    **Matching scheme**
+    #dynamical-systems #fixed-points #grid-based #cell-centered
 
     For each bootstrap iteration, baseline fixed points are processed in row
     order and each is offered the closest unassigned bootstrap fixed point that
@@ -44,38 +42,42 @@ def main(
     yield no fixed points, or no fixed points within radius of a given baseline
     fixed point, are counted as misses for that baseline fixed point.
 
-    **Parallel processing**
-
-    The bootstrap iterations are parallelized across CPU cores using
-    `concurrent.futures.ProcessPoolExecutor`. The number of worker processes can
-    be set with `num_workers` (default is to use all available CPUs). The number
-    of bootstrap iterations assigned to each worker at a time (i.e., the
-    `chunksize` argument to `executor.map`) is determined by the
-    `batch_size_factor` parameter, which scales the number of batches relative
-    to the number of workers. A smaller `batch_size_factor` (i.e., larger batch
-    size) reduces overhead from queuing tasks but may lead to less even load
-    balancing if the time per iteration is variable.
-
-    **Output dataframe**
-
-    This workflow produces one dataframe per dataset, which gets saved as a
-    `.parquet` file. These dataframe files are tracked via a dataframe manifest
-    with prefix `DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING`. If `upload_to_fms` is
-    True, the dataframe files are uploaded to FMS and the dataframe location is
-    tracked in the manifest by FMS ID. Otherwise, the dataframe files are saved
-    locally and the manifest tracks the local file path.
-
     Each dataframe contains one row per baseline fixed point, with columns for:
 
-    - `dataset`: dataset identifier.
-    - `stability`: stability classification of the baseline fixed point.
-    - `{col}`: baseline coordinate for each feature column.
-    - `{col}_ci_lower`, `{col}_ci_upper`: lower / upper bootstrap CI bounds for
-      each coordinate (at percentiles `bootstrap_ci_lower_percentile` and
-      `bootstrap_ci_upper_percentile`).
-    - `bootstrap_detection_rate`: fraction of bootstrap samples in which a
-      matched fixed point was found within `bootstrap_match_radius`.
-    - `n_bootstrap_samples`: number of bootstrap iterations performed.
+    - `dataset` = dataset identifier
+    - `stability` = stability classification of the baseline fixed point
+    - `{col}` = baseline coordinate for each feature column
+    - `{col}_ci_lower` = lower bootstrap CI bounds for each coordinate at
+      percentile `bootstrap_ci_lower_percentile`
+    - `{col}_ci_upper` = upper bootstrap CI bounds for each coordinate at
+      percentiles `bootstrap_ci_upper_percentile`
+    - `bootstrap_detection_rate` =  fraction of bootstrap samples in which a
+      matched fixed point was found within `bootstrap_match_radius`
+    - `n_bootstrap_samples` = number of bootstrap iterations performed
+
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe bootstrap-fixed-points -vd
+    ```
+
+    To run the workflow for a single dataset:
+
+    ```bash
+    uv run endopipe bootstrap-fixed-points --datasets DATASET_NAME
+    ```
+
+    ## Parallel processing
+
+    The bootstrap iterations are parallelized across CPU cores using based on
+    requested number of worker processes. The number of bootstrap iterations
+    assigned to each worker at a time is determined by the `batch_size_factor`
+    parameter, which scales the number of batches relative to the number of
+    workers. A smaller `batch_size_factor` (i.e., larger batch size) reduces
+    overhead from queuing tasks but may lead to less even load balancing if the
+    time per iteration is variable.
 
     ## Dataset collection
 
@@ -90,28 +92,22 @@ def main(
     Parameters
     ----------
     crop_pattern
-        The crop pattern to use features from.
+        Crop pattern used to calculate the features.
     datasets
-        Optional, specific dataset(s) to run the workflow on.
-    upload_to_fms
-        If true, upload results dataframe to FMS. If False, save locally only.
+        List of datasets or dataset collections to bootstrap fixed points for.
     num_bootstrap_iterations
         Number of bootstrap iterations to perform for each dataset.
     bootstrap_match_radius
         Maximum distance in feature space for a bootstrap fixed point to be
         considered a match to a given baseline fixed point in each iteration.
     bootstrap_ci_lower_percentile
-        Percentile used for defining the lower bound of the bootstrap confidence
-        intervals.
+        Percentile defining lower bound of the bootstrap confidence intervals.
     bootstrap_ci_upper_percentile
-        Percentile used for defining the upper bound of the bootstrap confidence
-        intervals.
+        Percentile defining upper bound of the bootstrap confidence intervals.
     num_workers
-        Number of worker processes to use for parallel bootstrap iterations. If
-        None, defaults to the number of CPUs available on the machine.
+        Number of worker processes to use. If None, use all available.
     batch_size_factor
-        Factor used to determine the number of bootstrap iterations to include
-        in each batch for parallel processing.
+        Factor used to determine size of batch for parallel processing.
     """
 
     import logging
