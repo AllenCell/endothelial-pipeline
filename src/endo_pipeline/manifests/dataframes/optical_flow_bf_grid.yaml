@@ -1,16 +1,13 @@
 name: optical_flow_bf_grid
 workflow: optical_flow
 parameters:
-  channel: BF
-  level: 1
-  max_dt: 1
-  flow_scope: image
   crop_pattern: grid
+  channel: BF
+  max_dt: 1
   intensity_percentile: 0
   attachment: 2.5
   ema_alphas: [0.1]
   speed_threshold: 1.0
-  annotations_excluded: []
 locations:
   20250319_20X:
     fmsid: 51335e92e96b49f9b2846c7bced32f3d

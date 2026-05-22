@@ -178,9 +178,9 @@ def main(  # noqa: C901
         workflow_name=__file__,
     )
     optical_flow_manifest.parameters = {
+        "crop_pattern": crop_pattern,
         "channel": channel,
         "max_dt": max_dt,
-        "crop_pattern": crop_pattern,
         "intensity_percentile": intensity_percentile,
         "attachment": attachment,
         "ema_alphas": list(ema_alphas),

@@ -1,14 +1,13 @@
 name: optical_flow_bf_tracked
 workflow: compute_optical_flow_feats
 parameters:
-  channel: BF
   crop_pattern: tracked
-  level: 1
+  channel: BF
   max_dt: 1
-  flow_scope: image
   intensity_percentile: 0
   attachment: 2.5
-  annotations_excluded: []
+  ema_alphas: [0.1]
+  speed_threshold: 1.0
 locations:
   20250319_20X:
     fmsid: 5fa14282d27f4d2090fc86cf7ea9eb67
