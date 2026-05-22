@@ -360,9 +360,7 @@ def get_flow_field_and_fixed_points(
 
     logger.info("Getting flow fields and fixed points for grid-based crops...")
 
-    fixed_points_df = load_fixed_points_dataframe_for_dataset(
-        dataset_name=dataset_name, model_manifest_name=model_manifest_name, run_name=run_name
-    )
+    fixed_points_df = load_fixed_points_dataframe_for_dataset(dataset_name=dataset_name)
 
     drift_df = load_drift_dataframe_for_dataset(dataset_name=dataset_name)
 
