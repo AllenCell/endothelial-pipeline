@@ -154,9 +154,8 @@ def main(
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
+        KERNEL_PERIODS_DYNAMICS,
         METADATA_COLUMNS_TO_KEEP,
-        POLAR_ANGLE_PERIOD,
-        RESCALE_THETA,
     )
     from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
     from endo_pipeline.settings.flow_field_dataframes import (
@@ -212,20 +211,18 @@ def main(
         dataset_names = dataset_names[:num_datasets]
         num_bootstrap_iterations = min(num_bootstrap_iterations, 10)
 
+    # Initialize kernels and bin widths for each selected column
     kernels: list[KramersMoyalKernel] = []
     bin_widths: list[float] = []
-    rescaled_theta_period = POLAR_ANGLE_PERIOD + np.pi * (1 - RESCALE_THETA)
-
-    polar_angle_period = (
-        rescaled_theta_period if Column.DiffAEData.POLAR_ANGLE in column_names else None
-    )
     for column_name in column_names:
-        name = KERNEL_NAMES_DYNAMICS[column_name]
-        bandwidth = KERNEL_BANDWIDTHS_DYNAMICS[column_name]
-        period = rescaled_theta_period if column_name == Column.DiffAEData.POLAR_ANGLE else None
-        bin_width = BIN_WIDTHS_DYNAMICS[column_name]
-        kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
-        bin_widths.append(bin_width)
+        kernels.append(
+            KramersMoyalKernel(
+                name=KERNEL_NAMES_DYNAMICS[column_name],
+                bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_name],
+                period=KERNEL_PERIODS_DYNAMICS[column_name],
+            )
+        )
+        bin_widths.append(BIN_WIDTHS_DYNAMICS[column_name])
 
     # add parameters to the output manifest for traceability
     column_names_yaml_safe = [f"{column}" for column in column_names]
@@ -372,7 +369,6 @@ def main(
                 baseline_fixed_points=fixed_points_for_flow_condition,
                 bootstrap_fixed_points=bootstrap_fixed_points,
                 column_names=column_names,
-                polar_angle_period=polar_angle_period,
                 bootstrap_match_radius=bootstrap_match_radius,
             )
             bootstrap_results_df_flow = aggregate_bootstrapping_results(
@@ -380,7 +376,6 @@ def main(
                 matched_coords=matched_coords_flow,
                 column_names=column_names,
                 n_bootstrap=num_bootstrap_iterations,
-                polar_angle_period=polar_angle_period,
                 bootstrap_ci_lower_percentile=bootstrap_ci_lower_percentile,
                 bootstrap_ci_upper_percentile=bootstrap_ci_upper_percentile,
                 metadata_dict=metadata_dict,
