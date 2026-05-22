@@ -66,6 +66,12 @@ def main(  # noqa: C901
     If datasets are not provided, the workflow will use datasets in the
     `diffae_model_training` dataset collection.
 
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will compute
+    optical flow features for the first position and first 10 timepoints of the
+    first dataset.
+
     Parameters
     ----------
     datasets
@@ -107,6 +113,7 @@ def main(  # noqa: C901
         Minimum pixel speed for the "fast" coherence features.
         Only used when *compute_fast_coherence* is True.
     """
+
     import os
     import time
     from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -152,9 +159,6 @@ def main(  # noqa: C901
         DEFAULT_OPENBLAS_NUM_THREADS,
         DEFAULT_OPTICAL_FLOW_COLLECTION,
         DEFAULT_OPTICAL_FLOW_MANIFEST_NAME,
-        DEMO_MAX_DATASETS,
-        DEMO_MAX_FRAMES,
-        DEMO_MAX_POSITIONS,
         DEMO_MAX_TRACKED_CROPS_TO_PLOT,
         OPTICAL_FLOW_COLUMNS_TO_COMPUTE,
     )
@@ -169,16 +173,13 @@ def main(  # noqa: C901
     datasets = datasets or get_datasets_in_collection(DEFAULT_OPTICAL_FLOW_COLLECTION)
 
     if DEMO_MODE:
-        datasets = datasets[:DEMO_MAX_DATASETS]
-        upload_to_fms = False
-        visualize_optical_flow = True
-        logger.info(
-            "DEMO_MODE is ON (tracked=%s). Processing %d dataset(s), %d position(s) each, "
-            "upload disabled.",
-            is_tracked,
-            DEMO_MAX_DATASETS,
-            DEMO_MAX_POSITIONS,
-        )
+        logger.warning("DEMO_MODE - Limiting to one dataset, one position, and 10 timepoints")
+        datasets = datasets[:1]
+        max_positions = 1
+        max_timepoints = 20
+    else:
+        max_positions = None
+        max_timepoints = None
 
     results_dir = get_output_path("optical_flow", "plots")
 
@@ -255,25 +256,19 @@ def main(  # noqa: C901
 
         # Get list of valid positions and subset if necessary
         position_list = dataset_config.zarr_positions
-        if DEMO_MODE:
-            position_list = position_list[:DEMO_MAX_POSITIONS]
-            logger.info("DEMO_MODE: limiting to position(s) %s", position_list)
+        if max_positions is not None:
+            position_list = position_list[:max_positions]
 
         dataset_parts: list[pd.DataFrame] = []
 
         for position in position_list:
             position_start = time.time()
+
             valid_timepoints = list(range(dataset_config.duration))
-            if DEMO_MODE:
-                valid_timepoints = valid_timepoints[:DEMO_MAX_FRAMES]
-                logger.info("DEMO_MODE: limiting to %d frame(s)", len(valid_timepoints))
+            if max_timepoints is not None:
+                valid_timepoints = valid_timepoints[:max_timepoints]
+
             valid_timepoint_set = set(valid_timepoints)
-            logger.info(
-                "Position %d, valid_timepoints = %d/%d",
-                position,
-                len(valid_timepoints),
-                dataset_config.duration,
-            )
 
             df_position = df_dataset_[
                 (df_dataset_[Column.POSITION] == position)
