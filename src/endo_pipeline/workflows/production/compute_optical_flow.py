@@ -2,7 +2,6 @@ import logging
 from typing import Literal
 
 from endo_pipeline.cli import CropPattern, Datasets, FloatList
-from endo_pipeline.configs import TimepointAnnotation
 from endo_pipeline.settings import DIFFAE_ZARR_RESOLUTION_LEVEL
 from endo_pipeline.settings.optical_flow import (
     DEFAULT_EMA_ALPHAS,
@@ -16,19 +15,14 @@ logger = logging.getLogger(__name__)
 
 def main(  # noqa: C901
     datasets: Datasets | None = None,
-    positions: list[int] | None = None,
     channel: Literal["BF", "EGFP"] = "BF",
     level: int = DIFFAE_ZARR_RESOLUTION_LEVEL,
-    annotations_to_exclude: list[TimepointAnnotation] | None = None,
     max_dt: int = DEFAULT_OPTICAL_FLOW_MAX_DT,
     intensity_percentile: int | None = None,
     n_io_workers: int = NUM_IO_WORKERS,
     crop_pattern: CropPattern = "grid",
     upload_to_fms: bool = False,
     visualize_optical_flow: bool = False,
-    include_cell_piling: bool = False,
-    include_pre_steady_state: bool = False,
-    include_all_conditions: bool = False,
     compute_block_coherence: bool = False,
     compute_fast_coherence: bool = False,
     compute_radial_coherence: bool = False,
@@ -62,11 +56,6 @@ def main(  # noqa: C901
         EGFP -> 95th percentile (sparse fluorescent signal; excludes background).
         BF   -> 0 (dense texture; all pixels contribute).
 
-    Timepoint filtering:
-        By default, timepoints annotated as cell-piling or pre-steady-state
-        are excluded.  Use include_cell_piling / include_pre_steady_state
-        to retain those frames, or pass an explicit annotations_to_exclude
-        list for full control.
 
     Output:
         Results are saved as one parquet file per dataset under
@@ -81,20 +70,10 @@ def main(  # noqa: C901
     ----------
     datasets
         List of datasets or dataset collections to compute optical flow on.
-    positions
-        Position indices to process (e.g. ``[0, 1]``).
-        ``None`` processes all positions in each dataset.
     channel
         Imaging channel to load (``"BF"`` or ``"EGFP"``).
     level
         Zarr resolution level.
-    annotations_to_exclude
-        Explicit list of timepoint annotations to exclude.  When ``None``
-        (default), the list is built from *include_cell_piling* and
-        *include_pre_steady_state*.  Pass an empty list ``[]`` to
-        bypass **all** annotation filtering (including quality
-        annotations).  Passing a non-empty list overrides both boolean
-        flags.
     max_dt
         Maximum temporal gap (inclusive).
     intensity_percentile
@@ -113,14 +92,6 @@ def main(  # noqa: C901
         If True, produce diagnostic plots (R/G composite, quiver,
         speed & angle histograms) for one randomly chosen crop per
         (dataset, position) pair.  Saved to results/optical_flow/.
-    include_cell_piling
-        If True, retain timepoints annotated as cell-piling.
-    include_pre_steady_state
-        If True, retain timepoints before visual steady state.
-    include_all_conditions
-        If True, bypass **all** annotation filtering — including quality
-        annotations (scope errors, temp artifacts, XY/Z shifts, unfed).
-        Overrides both *include_cell_piling* and *include_pre_steady_state*.
     compute_block_coherence
         If True, compute multi-scale block-averaged coherence statistics
         (``optical_flow_angle_std_box{N}``) for each box size.
@@ -147,11 +118,7 @@ def main(  # noqa: C901
     from tqdm.auto import tqdm
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import (
-        get_datasets_in_collection,
-        get_unannotated_timepoints_for_position,
-        load_dataset_config,
-    )
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import (
         build_fms_annotations,
         get_output_path,
@@ -165,7 +132,6 @@ def main(  # noqa: C901
         build_ema_stems,
         build_optical_flow_feature_cols,
         compute_image_pair_flow,
-        default_annotations_to_exclude,
         pivot_flow_records,
         plot_demo_summary,
         plot_tracked_crop_coherence_timeseries,
@@ -215,23 +181,7 @@ def main(  # noqa: C901
         )
 
     results_dir = get_output_path("optical_flow", "plots")
-    if annotations_to_exclude is None:
-        if include_all_conditions:
-            annotations_to_exclude = []
-        else:
-            annotations_to_exclude = default_annotations_to_exclude(
-                include_cell_piling, include_pre_steady_state
-            )
 
-    logger.info(
-        "annotations_to_exclude (%d): %s",
-        len(annotations_to_exclude),
-        (
-            [a.value for a in annotations_to_exclude]
-            if annotations_to_exclude
-            else "[] (no filtering)"
-        ),
-    )
     intensity_pctl = resolve_percentile(channel, intensity_percentile)
     attachment = resolve_attachment(channel)
     flow_columns = build_optical_flow_feature_cols(
@@ -289,7 +239,6 @@ def main(  # noqa: C901
         "compute_radial_coherence": compute_radial_coherence,
         "ema_alphas": list(ema_alphas),
         "speed_threshold": speed_threshold,
-        "annotations_excluded": [a.value for a in annotations_to_exclude],
     }
     save_dataframe_manifest(optical_flow_manifest)
 
@@ -304,9 +253,8 @@ def main(  # noqa: C901
         df_dataset = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
         df_dataset_: pd.DataFrame = df_dataset[columns_to_compute].compute()
 
-        position_list = sorted(df_dataset_[Column.POSITION].unique().tolist())
-        if positions:
-            position_list = [p for p in position_list if p in positions]
+        # Get list of valid positions and subset if necessary
+        position_list = dataset_config.zarr_positions
         if DEMO_MODE:
             position_list = position_list[:DEMO_MAX_POSITIONS]
             logger.info("DEMO_MODE: limiting to position(s) %s", position_list)
@@ -315,9 +263,7 @@ def main(  # noqa: C901
 
         for position in position_list:
             position_start = time.time()
-            valid_timepoints = get_unannotated_timepoints_for_position(
-                dataset_config, position, annotations_to_exclude
-            )
+            valid_timepoints = list(range(dataset_config.duration))
             if DEMO_MODE:
                 valid_timepoints = valid_timepoints[:DEMO_MAX_FRAMES]
                 logger.info("DEMO_MODE: limiting to %d frame(s)", len(valid_timepoints))
