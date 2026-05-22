@@ -11,11 +11,7 @@ def main() -> None:
 
     from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.configs import load_dataset_config
-    from endo_pipeline.io import (
-        get_output_path,
-        load_image,
-        load_model,
-    )
+    from endo_pipeline.io import get_output_path, load_image, load_model
     from endo_pipeline.io.mlflow import get_config_path_from_mlflow
     from endo_pipeline.io.output import save_plot_to_path
     from endo_pipeline.library.model.diffae.eval_diffae import get_latent_vector_from_crop

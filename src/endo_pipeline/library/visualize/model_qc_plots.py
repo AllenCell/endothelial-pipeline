@@ -11,7 +11,7 @@ from matplotlib.gridspec import GridSpec
 
 from endo_pipeline.io.output import save_plot_to_path
 from endo_pipeline.library.visualize.figure_utils import make_contact_sheet
-from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_MEDIUM
+from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_MEDIUM, FONTSIZE_SMALL
 from endo_pipeline.settings.plot_defaults import (
     MODEL_QC_FIG_KWARGS,
     MODEL_QC_GRIDSPEC_KWARGS,
@@ -298,6 +298,7 @@ def create_rep2_correlation_bar_plot(
     file_format: Literal[".png", ".svg", ".pdf"] = ".svg",
     label_fontsize: float = FONTSIZE_MEDIUM,
     title_fontsize: float = FONTSIZE_LARGE,
+    tick_fontsize: float = FONTSIZE_SMALL,
     save_kwargs: dict | None = None,
 ) -> None:
     """Single-series Rep-2 Pearson-correlation bar chart for the supp. figure.
@@ -358,7 +359,8 @@ def create_rep2_correlation_bar_plot(
     ax.set_xticks(x_pos)
     rotation = 45 if num_models > 4 else 0
     ha_labels = "right" if num_models > 4 else "center"
-    ax.set_xticklabels(model_labels, fontsize=label_fontsize, rotation=rotation, ha=ha_labels)
+    ax.set_xticklabels(model_labels, fontsize=tick_fontsize, rotation=rotation, ha=ha_labels)
+    ax.tick_params(axis="y", labelsize=tick_fontsize)
     ax.grid(True, alpha=0.3, axis="y")
     if ylim is not None:
         ax.set_ylim(*ylim)
