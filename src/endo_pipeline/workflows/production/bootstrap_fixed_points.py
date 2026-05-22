@@ -15,7 +15,6 @@ from endo_pipeline.settings.bootstrap_fixed_points import (
 def main(
     crop_pattern: CropPattern = "grid",
     datasets: Datasets | None = None,
-    upload_to_fms: bool = False,
     num_bootstrap_iterations: Annotated[
         int, Parameter(name="--num-iterations")
     ] = NUM_BOOTSTRAP_ITERATIONS,
@@ -181,17 +180,15 @@ def main(
     )
 
     logger = logging.getLogger(__name__)
+
+    output_path = get_output_path(__file__)
+
     rng = np.random.default_rng(RANDOM_SEED)
 
-    model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
-    model_manifest: ModelManifest | None = None
-    if upload_to_fms:
-        model_manifest = load_model_manifest(model_manifest_name)
-    run_name = DEFAULT_MODEL_RUN_NAME
-    column_names: list[Column.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
+    column_names = list(DYNAMICS_COLUMN_NAMES)
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
-    base_name = f"{model_manifest_name}_{run_name}_{crop_pattern}"
+    # Get feature dataframe manifest for select grid pattern
     feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[crop_pattern]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
@@ -402,31 +399,26 @@ def main(
         bootstrap_results_df.to_parquet(output_save_path)
         logger.info("Saved bootstrap fixed point CI dataframe locally to [ %s ].", output_save_path)
 
-        if upload_to_fms:
+        # Create location object with output path
+        location = bootstrap_results_manifest.locations.get(dataset_name, DataframeLocation())
+        location.path = output_save_path
+
+        # Upload to FMS (internal only) and replace local path with file id
+        if UPLOAD_TO_FMS:
             annotations = build_fms_annotations(
                 dataset_config,
-                model_manifest=model_manifest,
-                run_name=run_name,
+                model_manifest=load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME),
+                run_name=DEFAULT_MODEL_RUN_NAME,
                 additional_notes=FMS_ANNOTATION_NOTES_BOOTSTRAPPING,
             )
             fmsid = upload_file_to_fms(
                 output_save_path, annotations=annotations, file_type="parquet"
             )
-            bootstrap_results_manifest.locations[dataset_name] = DataframeLocation(fmsid=fmsid)
-            logger.info(
-                "Uploaded bootstrap fixed point CI dataframe for dataset [ %s ] to FMS "
-                "with FMS ID [ %s ].",
-                dataset_name,
-                fmsid,
-            )
-        elif (
-            bootstrap_results_manifest.locations.get(dataset_name) is None
-            or bootstrap_results_manifest.locations[dataset_name].fmsid is None
-        ):
-            bootstrap_results_manifest.locations[dataset_name] = build_dataframe_location_from_path(
-                output_save_path
-            )
+            location.fmsid = fmsid
+            location.path = None
 
+        # Add dataframe location to dataframe manifest and save
+        bootstrap_results_manifest.locations[dataset_name] = location
         save_dataframe_manifest(bootstrap_results_manifest)
 
 
