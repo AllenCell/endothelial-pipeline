@@ -8,7 +8,7 @@ from endo_pipeline.settings.optical_flow import (
 )
 
 
-def main(  # noqa: C901
+def main(
     datasets: Datasets | None = None,
     crop_pattern: CropPattern = "grid",
     channel: Literal["BF", "EGFP"] = "BF",
@@ -35,6 +35,20 @@ def main(  # noqa: C901
     | Transformation      | log(x + 1e-12) | None             |
     | Clipping            | [0.1, 99.9]    | [10, 98]         |
     | Normalization       | z-score        | scale to [-1, 1] |
+
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe compute-optical-flow -vd
+    ```
+
+    To run the workflow for a single dataset:
+
+    ```bash
+    uv run endopipe compute-optical-flow --datasets DATASET_NAME
+    ```
 
     ## Dataset collection
 
