@@ -149,8 +149,6 @@ def main(
     from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
     from endo_pipeline.manifests import (
         DataframeLocation,
-        ModelManifest,
-        build_dataframe_location_from_path,
         create_dataframe_manifest,
         load_dataframe_manifest,
         load_model_manifest,
@@ -192,7 +190,6 @@ def main(
     feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[crop_pattern]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
-    dataframe_savedir = get_output_path(__file__, crop_pattern)
     # get dataframe manifest for baseline results to match against in bootstrapping
     name_suffix = f"_{join_sorted_strings(column_names)}_{crop_pattern}"
     baseline_fixed_point_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix}"
@@ -396,9 +393,9 @@ def main(
         bootstrap_results_df = pd.concat(bootstrap_dataframe_list, ignore_index=True)
         # Save results, upload to FMS (if specified), and update manifest
         output_file_name = (
-            f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{dataset_name}{demo_suffix}.parquet"
+            f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{dataset_name}{name_suffix}.parquet"
         )
-        output_save_path = make_name_unique(dataframe_savedir / output_file_name)
+        output_save_path = make_name_unique(output_path / output_file_name)
         bootstrap_results_df.to_parquet(output_save_path)
         logger.info("Saved bootstrap fixed point CI dataframe locally to [ %s ].", output_save_path)
 
