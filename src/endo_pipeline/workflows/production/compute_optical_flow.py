@@ -6,7 +6,6 @@ from endo_pipeline.settings.optical_flow import (
     DEFAULT_EMA_ALPHAS,
     DEFAULT_OPTICAL_FLOW_MAX_DT,
     DEFAULT_SPEED_THRESHOLD,
-    NUM_IO_WORKERS,
 )
 
 logger = logging.getLogger(__name__)
@@ -14,46 +13,31 @@ logger = logging.getLogger(__name__)
 
 def main(  # noqa: C901
     datasets: Datasets | None = None,
+    crop_pattern: CropPattern = "grid",
     channel: Literal["BF", "EGFP"] = "BF",
     max_dt: int = DEFAULT_OPTICAL_FLOW_MAX_DT,
-    n_io_workers: int = NUM_IO_WORKERS,
-    crop_pattern: CropPattern = "grid",
-    upload_to_fms: bool = False,
-    visualize_optical_flow: bool = False,
     ema_alphas: FloatList = list(DEFAULT_EMA_ALPHAS),
     speed_threshold: float = DEFAULT_SPEED_THRESHOLD,
+    num_workers: int = 1,
 ) -> None:
-    """Optical-flow feature extraction with multi-scale temporal coherence.
+    """
+    Compute TVL1 optical flow features for crops.
 
-    Compute TVL1 optical flow between frame pairs at temporal gaps
-    dt = 1, 2, ..., max_dt for every crop and timepoint.  Pixels whose
-    intensity falls below a channel-aware percentile threshold are masked
-    before computing per-crop summary statistics (mean/median speed,
-    circular mean/std of angle, etc.).
+    This workflow compute TVL1 optical flow between frame pairs at temporal gaps
+    dt = 1, 2, ..., max_dt for every crop and timepoint. Pixels whose intensity
+    falls below a channel-aware percentile threshold are masked before computing
+    per-crop summary statistics.
 
-    Crop patterns (crop_pattern):
-        "grid" (default) - Use the fixed-grid crop layout from the DiffAE
-            feature dataframe.
-        "tracked" - Use per-frame tracked crop coordinates from the DiffAE
-            feature dataframe (requires ``TRACK_ID``, ``START_X``,
-            ``START_Y``, ``CROP_SIZE_X`` columns).
+    The following settings are channel-aware:
 
-    Z-projection & normalization (channel-aware, matches DiffAE training):
-        BF   -> std(axis=Z) -> log(x+1e-12) -> clip [0.1, 99.9] pctl -> z-score.
-        EGFP -> max(axis=Z) -> clip [10, 98] pctl -> scale to [-1, 1].
-
-    TVL1 attachment (lambda) is channel-aware:
-        EGFP -> 7.5 (half the skimage default 15; wider normalised range).
-        BF   -> 2.5 (z-score normalisation compresses dynamic range).
-
-    Intensity threshold (channel-aware):
-        EGFP -> 95th percentile (sparse fluorescent signal; excludes background).
-        BF   -> 0 (dense texture; all pixels contribute).
-
-
-    Output:
-        Results are saved as one parquet file per dataset under
-        results/optical_flow/ and (optionally) uploaded to FMS.
+    | Setting             | Channel = BF   | Channel = EGFP   |
+    | ------------------- | -------------- | ---------------- |
+    | Intensity threshold | 0              | 95               |
+    | TVL1 attachment     | 2.5            | 7.5              |
+    | Z-projection        | std(axis=Z)    | max(axis=Z)      |
+    | Transformation      | log(x + 1e-12) | None             |
+    | Clipping            | [0.1, 99.9]    | [10, 98]         |
+    | Normalization       | z-score        | scale to [-1, 1] |
 
     ## Dataset collection
 
@@ -70,26 +54,18 @@ def main(  # noqa: C901
     ----------
     datasets
         List of datasets or dataset collections to compute optical flow on.
+    crop_pattern
+        Crop pattern to use for computing features.
     channel
-        Imaging channel to load (``"BF"`` or ``"EGFP"``).
+        Imaging channel to use for computing features.
     max_dt
         Maximum temporal gap (inclusive).
-    n_io_workers
-        Concurrent I/O workers for dask frame loading and
-        ``ThreadPoolExecutor`` in image-scope flow.
-    crop_pattern
-        "grid" or "tracked" (see Crop patterns above).
-    upload_to_fms
-        If True, save parquet, upload to FMS, and register in the
-        dataframe manifest.
-    visualize_optical_flow
-        If True, produce diagnostic plots (R/G composite, quiver,
-        speed & angle histograms) for one randomly chosen crop per
-        (dataset, position) pair.  Saved to results/optical_flow/.
     ema_alphas
         EMA smoothing alpha values for temporal coherence smoothing.
     speed_threshold
         Minimum pixel speed for the "fast" coherence features.
+    num_workers
+        Number of worker processes to use.
     """
 
     import os
