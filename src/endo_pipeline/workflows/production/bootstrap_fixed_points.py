@@ -112,8 +112,8 @@ def main(
     batch_size_factor
         Factor used to determine the number of bootstrap iterations to include
         in each batch for parallel processing.
-
     """
+
     import logging
     import os
     from concurrent.futures import ProcessPoolExecutor
@@ -122,7 +122,7 @@ def main(
     import pandas as pd
     from tqdm import tqdm
 
-    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE, UPLOAD_TO_FMS
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import (
         build_fms_annotations,
@@ -248,16 +248,17 @@ def main(
     for dataset_name in dataset_names:
         if dataset_name not in feature_dataframe_manifest.locations:
             logger.warning(
-                "No feature dataframe found in manifest [ %s ] for dataset [ %s ]. Skipping.",
-                feature_dataframe_manifest_name,
+                "Dataset '%s' not found in manifest '%s'. Skipping.",
                 dataset_name,
+                feature_dataframe_manifest_name,
             )
             continue
-        elif dataset_name not in baseline_fixed_point_manifest.locations:
-            logger.info(
-                "No baseline fixed point dataframe found in manifest [ %s ] for dataset [ %s ]. Skipping.",
-                baseline_fixed_point_manifest_name,
+
+        if dataset_name not in baseline_fixed_point_manifest.locations:
+            logger.warning(
+                "Dataset '%s' not found in manifest '%s'. Skipping.",
                 dataset_name,
+                feature_dataframe_manifest_name,
             )
             continue
 
@@ -322,8 +323,10 @@ def main(
                 n_available_cpus = len(os.sched_getaffinity(0))
             except AttributeError:  # Windows
                 n_available_cpus = os.cpu_count() or 1
+
             n_workers = num_workers or n_available_cpus
             blas_threads_per_worker = max(1, n_available_cpus // n_workers)
+
             # Choose a chunksize that avoids both excessive queue overhead (too
             # small) and uneven load balancing (too large).
             batch_size = max(1, num_bootstrap_iterations // (n_workers * batch_size_factor))
