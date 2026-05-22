@@ -72,11 +72,15 @@ def main(  # noqa: C901
         Results are saved as one parquet file per dataset under
         results/optical_flow/ and (optionally) uploaded to FMS.
 
+    ## Dataset collection
+
+    If datasets are not provided, the workflow will use datasets in the
+    `diffae_model_training` dataset collection.
+
     Parameters
     ----------
     datasets
-        Dataset names to process.  None -> all datasets in the default
-        optical-flow collection.
+        List of datasets or dataset collections to compute optical flow on.
     positions
         Position indices to process (e.g. ``[0, 1]``).
         ``None`` processes all positions in each dataset.
@@ -196,8 +200,7 @@ def main(  # noqa: C901
 
     is_tracked = crop_pattern == "tracked"
 
-    if datasets is None:
-        datasets = get_datasets_in_collection(DEFAULT_OPTICAL_FLOW_COLLECTION)
+    datasets = datasets or get_datasets_in_collection(DEFAULT_OPTICAL_FLOW_COLLECTION)
 
     if DEMO_MODE:
         datasets = datasets[:DEMO_MAX_DATASETS]
