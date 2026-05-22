@@ -94,6 +94,9 @@ def main(  # noqa: C901
         plot_demo_summary,
         plot_tracked_crop_coherence_timeseries,
     )
+    from endo_pipeline.library.analyze.optical_flow.compute import (
+        calculate_optical_flow_intensity_threshold,
+    )
     from endo_pipeline.library.analyze.optical_flow.dataframe import build_tracked_crop_lookup_table
     from endo_pipeline.library.visualize.supplemental_movies import (
         load_bf_std_dev_image,
@@ -259,25 +262,16 @@ def main(  # noqa: C901
                 frame_cache[timepoint] = image_loader(
                     dataset_config, position, [timepoint], DIFFAE_ZARR_RESOLUTION_LEVEL
                 ).compute()
-            logger.debug("Cached %d frames in %.1fs", len(frame_cache), time.time() - cache_start)
+            logger.info("Cached %d frames in %.1fs", len(frame_cache), time.time() - cache_start)
 
-            # Intensity threshold
-            intensity_threshold = (
-                float(
-                    np.percentile(
-                        np.concatenate([f.ravel()[::10] for f in frame_cache.values()]),
-                        intensity_percentile,
-                    )
-                )
-                if intensity_percentile > 0
-                else -float("inf")
+            # Calculate intensity threshold based on intensity percentile
+            intensity_threshold = calculate_optical_flow_intensity_threshold(
+                intensity_percentile, list(frame_cache.values())
             )
             logger.info(
-                "threshold(%d-pctl)=%.6f pairs=%d crops=%d",
+                "Intensity threshold (%d percentile) = %.6f",
                 intensity_percentile,
                 intensity_threshold,
-                len(frame_pairs),
-                num_crops,
             )
 
             # Bind constant flow parameters once via partial.

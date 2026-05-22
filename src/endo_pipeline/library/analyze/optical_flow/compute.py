@@ -245,3 +245,16 @@ def compute_image_pair_flow(
         )
         for i in range(n_crops)
     ]
+
+
+def calculate_optical_flow_intensity_threshold(intensity_percentile: float, images: list[np.ndarray]) -> float:
+
+    if intensity_percentile <= 0:
+        return -float("inf")
+
+    return float(
+        np.percentile(
+            np.concatenate([image.ravel()[::10] for image in images]),
+            intensity_percentile,
+        )
+    )
