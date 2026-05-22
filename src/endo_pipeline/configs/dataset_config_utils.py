@@ -336,20 +336,6 @@ def get_all_unannotated_timepoints(
     }
 
 
-def get_filtered_dataset_collection_name(
-    sample_type: SampleType | None = None,
-    objective: ObjectiveType | None = None,
-    microscope: MicroscopeType | None = None,
-) -> str:
-    """Get name of dataset collection with various filters applied."""
-
-    name: list[str] = []
-    name.append(sample_type if sample_type is not None else "")
-    name.append(f"_{objective}_objective" if objective is not None else "")
-    name.append(f"_{microscope}_microscope" if microscope is not None else "")
-    return "".join(name)
-
-
 def get_filtered_dataset_collection_description(
     sample_type: SampleType | None = None,
     objective: ObjectiveType | None = None,
@@ -387,7 +373,7 @@ def make_filtered_dataset_collection(
         dataset_collection_names.append(dataset_config.name)
 
     dataset_collection = DatasetCollectionConfig(
-        name=get_filtered_dataset_collection_name(sample_type, objective, microscope),
+        name="null",
         description=get_filtered_dataset_collection_description(sample_type, objective, microscope),
         datasets=sorted(dataset_collection_names),
     )
@@ -402,7 +388,7 @@ def validate_filtered_dataset_collection(
 ) -> None:
     """Validate dataset collection filtered by sample type, objective, and microscope."""
 
-    collection_name = get_filtered_dataset_collection_name(sample_type, objective, microscope)
+    collection_name = "null"
     generated_collection = make_filtered_dataset_collection(sample_type, objective, microscope)
     loaded_collection = load_dataset_collection_config(collection_name)
 
