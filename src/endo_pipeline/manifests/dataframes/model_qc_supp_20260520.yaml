@@ -1,0 +1,48 @@
+name: model_qc_supp_20260520
+workflow: run_model_qc_inference
+parameters:
+  num_seeds: 10
+  seeds:
+  - 42
+  - 43
+  - 44
+  - 45
+  - 46
+  - 47
+  - 48
+  - 49
+  - 50
+  - 51
+  random_seed: 47
+  example_set: rep_2_positions
+  noise_levels:
+  - 0.25
+  - 0.5
+  - 0.75
+  manifest_names:
+  - diffae_baseline_exclude_cell_piling
+  - diffae_baseline_exclude_cell_piling
+  - diffae_baseline_exclude_cell_piling
+  - diffae_baseline_exclude_cell_piling
+  - diffae_baseline_exclude_cell_piling
+  - diffae_baseline_exclude_cell_piling
+  - diffae_baseline_exclude_cell_piling
+  - diffae_baseline_exclude_cell_piling
+  - diffae_cdh5_conditioned
+  - diffae_cdh5_conditioned
+  run_names:
+  - 20260207_latent_8
+  - 20260205_latent_16
+  - 20260203_latent_32
+  - 20260206_latent_64
+  - 20260127_latent_128
+  - 20260122_latent_256
+  - 20251110_latent_512
+  - 20251110_latent_1024
+  - 20260130_latent_512
+  - 20251110_latent_1024
+locations:
+  metrics:
+    fmsid: 996973cae7144345b09008cbb72c39dc
+    path: null
+    s3uri: null
