@@ -376,7 +376,6 @@ def plot_tracked_crop_coherence_timeseries(
     position: int,
     out_dir,
     ema_alphas: list[float] | tuple[float, ...] = (0.1,),
-    compute_fast_coherence: bool = False,
     compute_radial_coherence: bool = False,
     max_crops: int = 2,
     max_dt: int = 1,
@@ -388,9 +387,7 @@ def plot_tracked_crop_coherence_timeseries(
     crops with the longest tracks are selected (up to *max_crops*).
 
     Each panel plots the raw coherence metric together with its
-    EMA-smoothed variants.  When *compute_fast_coherence* or
-    *compute_radial_coherence* are True, additional panels are added
-    for those metrics.
+    EMA-smoothed variants.
 
     Parameters
     ----------
@@ -406,8 +403,6 @@ def plot_tracked_crop_coherence_timeseries(
         Directory where the PNG figure is saved.
     ema_alphas
         EMA alpha values used for smoothing (for column name generation).
-    compute_fast_coherence
-        Whether speed-thresholded coherence columns are present.
     compute_radial_coherence
         Whether radial coherence columns are present.
     max_crops
@@ -456,15 +451,14 @@ def plot_tracked_crop_coherence_timeseries(
             ema_variants.append((ema_col, f"EMA \u03b1={alpha}"))
         metric_groups.append((raw_col, rf"Coherence ($\bar{{R}}$, dt={d})", ema_variants))
 
-        # 2) Fast coherence (if enabled)
-        if compute_fast_coherence:
-            raw_fast = f"optical_flow_mean_unit_vector_fast{dt_tag}"
-            ema_fast = []
-            for alpha in ema_alphas:
-                atag = str(alpha).replace(".", "")
-                ema_col = f"ema{atag}_optical_flow_mean_unit_vector_fast{dt_tag}"
-                ema_fast.append((ema_col, f"EMA \u03b1={alpha}"))
-            metric_groups.append((raw_fast, f"Fast Coherence (speed > thr, dt={d})", ema_fast))
+        # 2) Fast coherence
+        raw_fast = f"optical_flow_mean_unit_vector_fast{dt_tag}"
+        ema_fast = []
+        for alpha in ema_alphas:
+            atag = str(alpha).replace(".", "")
+            ema_col = f"ema{atag}_optical_flow_mean_unit_vector_fast{dt_tag}"
+            ema_fast.append((ema_col, f"EMA \u03b1={alpha}"))
+        metric_groups.append((raw_fast, f"Fast Coherence (speed > thr, dt={d})", ema_fast))
 
         # 3) Radial coherence (if enabled)
         if compute_radial_coherence:

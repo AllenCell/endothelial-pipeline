@@ -23,7 +23,6 @@ def main(  # noqa: C901
     crop_pattern: CropPattern = "grid",
     upload_to_fms: bool = False,
     visualize_optical_flow: bool = False,
-    compute_fast_coherence: bool = False,
     compute_radial_coherence: bool = False,
     ema_alphas: FloatList = list(DEFAULT_EMA_ALPHAS),
     speed_threshold: float = DEFAULT_SPEED_THRESHOLD,
@@ -97,9 +96,6 @@ def main(  # noqa: C901
         If True, produce diagnostic plots (R/G composite, quiver,
         speed & angle histograms) for one randomly chosen crop per
         (dataset, position) pair.  Saved to results/optical_flow/.
-    compute_fast_coherence
-        If True, compute coherence metrics over pixels whose speed
-        exceeds *speed_threshold*.
     compute_radial_coherence
         If True, compute radial coherence metrics (dot product of
         unit flow with unit radial vector from crop centre).
@@ -107,7 +103,6 @@ def main(  # noqa: C901
         EMA smoothing alpha values for temporal coherence smoothing.
     speed_threshold
         Minimum pixel speed for the "fast" coherence features.
-        Only used when *compute_fast_coherence* is True.
     """
 
     import os
@@ -183,7 +178,6 @@ def main(  # noqa: C901
     attachment = resolve_attachment(channel)
     flow_columns = build_optical_flow_feature_cols(
         max_dt,
-        compute_fast_coherence=compute_fast_coherence,
         compute_radial_coherence=compute_radial_coherence,
         ema_alphas=ema_alphas,
     )
@@ -192,14 +186,13 @@ def main(  # noqa: C901
     logger.info(
         "Optical-flow extraction --> crop_pattern=%s | dt=1..%d "
         "| percentile=%d | attachment=%.1f | channel=%s "
-        "| fast_coherence=%s | radial_coherence=%s "
+        "| radial_coherence=%s "
         "| ema_alphas=%s | speed_threshold=%.2f",
         crop_pattern,
         max_dt,
         intensity_pctl,
         attachment,
         channel,
-        compute_fast_coherence,
         compute_radial_coherence,
         ema_alphas,
         speed_threshold,
@@ -229,7 +222,6 @@ def main(  # noqa: C901
         "crop_pattern": crop_pattern,
         "intensity_percentile": intensity_pctl,
         "attachment": attachment,
-        "compute_fast_coherence": compute_fast_coherence,
         "compute_radial_coherence": compute_radial_coherence,
         "ema_alphas": list(ema_alphas),
         "speed_threshold": speed_threshold,
@@ -367,7 +359,6 @@ def main(  # noqa: C901
             _compute_flow = partial(
                 compute_image_pair_flow,
                 attachment=attachment,
-                compute_fast_coherence=compute_fast_coherence,
                 compute_radial_coherence=compute_radial_coherence,
                 speed_threshold=speed_threshold,
             )
@@ -454,7 +445,7 @@ def main(  # noqa: C901
             # --- EMA smoothing of coherence metrics per crop ---
             df_position = df_position.sort_values([Column.CROP_INDEX, Column.TIMEPOINT])
 
-            ema_stems_to_smooth = build_ema_stems(compute_fast_coherence, compute_radial_coherence)
+            ema_stems_to_smooth = build_ema_stems(compute_radial_coherence)
 
             for alpha in ema_alphas:
                 alpha_tag = str(alpha).replace(".", "")
@@ -475,7 +466,6 @@ def main(  # noqa: C901
                     position=position,
                     out_dir=results_dir,
                     ema_alphas=ema_alphas,
-                    compute_fast_coherence=compute_fast_coherence,
                     compute_radial_coherence=compute_radial_coherence,
                     max_crops=DEMO_MAX_TRACKED_CROPS_TO_PLOT,
                     max_dt=max_dt,
