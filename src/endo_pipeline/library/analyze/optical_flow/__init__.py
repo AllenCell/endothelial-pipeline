@@ -6,7 +6,6 @@ can also import directly from this package or its submodules.
 
 Submodules
 ----------
-params         Channel-aware parameter resolution and annotation exclusion.
 compute        Core numerical work — TVL1, statistics, block averaging.
 dataframe      DataFrame wrangling — crop grids, pivoting, column names.
 io             Disk writes, FMS uploads, manifest registration.
@@ -15,7 +14,6 @@ visualization  Matplotlib diagnostic plots.
 
 from .compute import compute_image_pair_flow
 from .dataframe import build_crop_grid, build_optical_flow_feature_cols, pivot_flow_records
-from .params import resolve_attachment
 from .visualization import plot_demo_summary, plot_tracked_crop_coherence_timeseries
 
 __all__ = [
@@ -25,5 +23,4 @@ __all__ = [
     "pivot_flow_records",
     "plot_demo_summary",
     "plot_tracked_crop_coherence_timeseries",
-    "resolve_attachment",
 ]

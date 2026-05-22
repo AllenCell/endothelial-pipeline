@@ -119,7 +119,6 @@ def main(  # noqa: C901
         pivot_flow_records,
         plot_demo_summary,
         plot_tracked_crop_coherence_timeseries,
-        resolve_attachment,
     )
     from endo_pipeline.manifests import (
         DataframeLocation,
@@ -136,6 +135,7 @@ def main(  # noqa: C901
         DEFAULT_OPTICAL_FLOW_COLLECTION,
         DEFAULT_OPTICAL_FLOW_MANIFEST_NAME,
         DEMO_MAX_TRACKED_CROPS_TO_PLOT,
+        OPTICAL_FLOW_CHANNEL_ATTACHMENT,
         OPTICAL_FLOW_CHANNEL_PERCENTILE,
         OPTICAL_FLOW_COLUMNS_TO_COMPUTE,
         OPTICAL_FLOW_EMA_STEMS,
@@ -163,8 +163,8 @@ def main(  # noqa: C901
 
     # Set channel-aware options
     intensity_percentile = OPTICAL_FLOW_CHANNEL_PERCENTILE[channel]
+    attachment = OPTICAL_FLOW_CHANNEL_ATTACHMENT[channel]
 
-    attachment = resolve_attachment(channel)
     flow_columns = build_optical_flow_feature_cols(
         max_dt,
         ema_alphas=ema_alphas,

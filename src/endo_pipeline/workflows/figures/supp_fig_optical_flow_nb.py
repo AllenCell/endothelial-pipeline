@@ -20,7 +20,6 @@ import matplotlib.pyplot as plt
 
 from endo_pipeline.io import get_output_path
 from endo_pipeline.io.output import save_plot_to_path, slugify
-from endo_pipeline.library.analyze.optical_flow import resolve_attachment
 from endo_pipeline.library.analyze.optical_flow.compute import compute_tvl1
 
 # %%
@@ -44,6 +43,7 @@ from endo_pipeline.settings.examples import (
     SUPP_FIG_RETRACTION_FIBER_BLOB,
 )
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.optical_flow import OPTICAL_FLOW_CHANNEL_ATTACHMENT
 
 plt.style.use("endo_pipeline.figure")
 output_dir = get_output_path("migration_coherence_blob")
@@ -59,7 +59,7 @@ picks = {
     "Coherent Example": SUPP_FIG_OPTICAL_FLOW_COHERENT_EXAMPLE,
     "Incoherent Example": SUPP_FIG_OPTICAL_FLOW_INCOHERENT_EXAMPLE,
 }
-attachment = resolve_attachment("BF")
+attachment = OPTICAL_FLOW_CHANNEL_ATTACHMENT["BF"]
 
 # Load per-pick BF frames + crop bbox + flow.
 panels: list[dict] = []
