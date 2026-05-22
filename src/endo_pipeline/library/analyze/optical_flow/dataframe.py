@@ -2,6 +2,7 @@
 
 from collections.abc import Callable, Sequence
 
+import numpy as np
 import pandas as pd
 
 from endo_pipeline.library.analyze.optical_flow.compute import OpticalFlowImagePairCrops
@@ -12,6 +13,8 @@ from endo_pipeline.settings.optical_flow import (
     OPTICAL_FLOW_BASE_FEATURES,
     OPTICAL_FLOW_EMA_STEMS,
 )
+
+OPTICAL_FLOW_INDEX_COLUMNS = [ColumnName.CROP_INDEX, ColumnName.TIMEPOINT]
 
 
 def build_optical_flow_feature_cols(
@@ -141,44 +144,77 @@ def build_image_pair_crops_for_grid(df: pd.DataFrame) -> Callable[[int], Optical
     )
 
 
-# ---------------------------------------------------------------------------
-# Pivot helper
-# ---------------------------------------------------------------------------
-def pivot_flow_records(records: list[dict]) -> pd.DataFrame:
-    """Pivot a list of flow-stat dicts into a wide DataFrame.
-
-    Each input dict has keys ``crop_index``, ``frame_number``, ``dt``, and
-    one entry per base feature.  The function pivots on ``dt`` so that
-    the output has one row per ``(crop_index, frame_number)`` and columns
-    named ``{feature}_dt{n}``.
-
-    Block-coherence columns (``optical_flow_angle_std_box{N}``) are
-    also pivoted when present in the records.
+def build_merged_optical_flow_dataframe(
+    df_base: pd.DataFrame, records: list[dict], max_dt: int, ema_alphas: Sequence[float]
+) -> pd.DataFrame:
+    """
+    Build merged dataframe from optical flow records with EMA smoothing.
 
     Parameters
     ----------
+    df_base
+        Base dataframe to merge features into.
     records
-        List of dictionaries returned by
-        :func:`~optical_flow.compute.compute_flow_statistics`.
+        List of records of optical flow features.
+    max_dt
+        Maximum temporal gap (inclusive).
+    ema_alphas
+        EMA smoothing alpha values.
 
     Returns
     -------
     :
-        Wide-format DataFrame indexed by ``crop_index`` and
-        ``frame_number``, with one column per feature-dt combination.
+        Merged optical flow dataframe.
     """
-    df = pd.DataFrame(records)
-    index_cols = [ColumnName.CROP_INDEX, ColumnName.TIMEPOINT]
-    # Discover all feature columns (everything except index + dt)
-    feature_names = [c for c in df.columns if c not in (*index_cols, "dt")]
+
+    # Merge records into a dataframe
+    df_records = pd.DataFrame(records)
+    feature_names = [c for c in df_records.columns if c not in (*OPTICAL_FLOW_INDEX_COLUMNS, "dt")]
+
+    # Pivot dataframe on the dt field
     parts = []
     for feat in feature_names:
-        pv = df.pivot_table(
-            index=index_cols,
+        pv = df_records.pivot_table(
+            index=OPTICAL_FLOW_INDEX_COLUMNS,
             columns="dt",
             values=feat,
             aggfunc="first",
         )
         pv.columns = pd.Index([f"{feat}_dt{int(c)}" for c in pv.columns])
         parts.append(pv)
-    return pd.concat(parts, axis=1).reset_index()
+
+    df_pivoted = pd.concat(parts, axis=1).reset_index()
+
+    # Merge pivoted records with original dataframe
+    df_base = df_base.merge(
+        df_pivoted,
+        left_on=OPTICAL_FLOW_INDEX_COLUMNS,
+        right_on=OPTICAL_FLOW_INDEX_COLUMNS,
+        how="left",
+    )
+
+    # Fill in any missing columns with NaN
+    all_feature_column_names = build_optical_flow_feature_cols(max_dt=max_dt, ema_alphas=ema_alphas)
+    for col in all_feature_column_names:
+        if col not in df_base.columns:
+            df_base[col] = np.nan
+
+    # Sort data by index columns
+    df_base = df_base.sort_values(OPTICAL_FLOW_INDEX_COLUMNS)
+
+    # Apply EMA smoothing
+    for alpha in ema_alphas:
+        alpha_tag = str(alpha).replace(".", "")
+        for dt in range(1, max_dt + 1):
+            for stem in OPTICAL_FLOW_EMA_STEMS:
+                raw_col = f"{stem}_dt{dt}"
+                ema_col = f"ema{alpha_tag}_{stem}_dt{dt}"
+
+                if raw_col not in df_base.columns:
+                    continue
+
+                df_base[ema_col] = df_base.groupby(ColumnName.CROP_INDEX)[raw_col].transform(
+                    lambda s, a=alpha: s.ewm(alpha=a, adjust=False).mean()
+                )
+
+    return df_base

@@ -90,7 +90,6 @@ def main(  # noqa: C901
         build_image_pair_crops_for_grid,
         build_optical_flow_feature_cols,
         compute_image_pair_flow,
-        pivot_flow_records,
         plot_demo_summary,
         plot_tracked_crop_coherence_timeseries,
     )
@@ -100,6 +99,7 @@ def main(  # noqa: C901
     )
     from endo_pipeline.library.analyze.optical_flow.dataframe import (
         build_image_pair_crops_for_tracked,
+        build_merged_optical_flow_dataframe,
     )
     from endo_pipeline.library.visualize.supplemental_movies import (
         load_bf_std_dev_image,
@@ -122,7 +122,6 @@ def main(  # noqa: C901
         OPTICAL_FLOW_CHANNEL_ATTACHMENT,
         OPTICAL_FLOW_CHANNEL_PERCENTILE,
         OPTICAL_FLOW_COLUMNS_TO_COMPUTE,
-        OPTICAL_FLOW_EMA_STEMS,
     )
     from endo_pipeline.settings.workflow_defaults import FEATURES_UNFILTERED_MANIFEST_NAMES
 
@@ -250,9 +249,13 @@ def main(  # noqa: C901
             cache_start = time.time()
             frame_cache: dict[int, np.ndarray] = {}
             for timepoint in needed_timepoints:
-                frame_cache[timepoint] = image_loader(
-                    dataset_config, position, [timepoint], DIFFAE_ZARR_RESOLUTION_LEVEL
-                ).compute()
+                frame_cache[timepoint] = (
+                    image_loader(
+                        dataset_config, position, [timepoint], DIFFAE_ZARR_RESOLUTION_LEVEL
+                    )
+                    .squeeze()
+                    .compute()
+                )
             logger.info("Cached %d frames in %.1fs", len(frame_cache), time.time() - cache_start)
 
             # Calculate intensity threshold based on intensity percentile
@@ -302,43 +305,11 @@ def main(  # noqa: C901
                     attachment,
                 )
 
-            frame_cache.clear()
-
-            # Pivot & merge
-            df_flow_pivoted = pivot_flow_records(records)
-            df_position = df_position.merge(
-                df_flow_pivoted,
-                left_on=[Column.CROP_INDEX, Column.TIMEPOINT],
-                right_on=[Column.CROP_INDEX, Column.TIMEPOINT],
-                how="left",
-            ).drop(columns=[f"{Column.CROP_INDEX}_y", f"{Column.TIMEPOINT}_y"], errors="ignore")
-            # rename back if pandas suffixed them
-            if f"{Column.CROP_INDEX}_x" in df_position.columns:
-                df_position.rename(
-                    columns={f"{Column.CROP_INDEX}_x": Column.CROP_INDEX}, inplace=True
-                )
-            if f"{Column.TIMEPOINT}_x" in df_position.columns:
-                df_position.rename(
-                    columns={f"{Column.TIMEPOINT}_x": Column.TIMEPOINT}, inplace=True
-                )
-
-            for col in flow_columns:
-                if col not in df_position.columns:
-                    df_position[col] = np.nan
-
-            # --- EMA smoothing of coherence metrics per crop ---
-            df_position = df_position.sort_values([Column.CROP_INDEX, Column.TIMEPOINT])
-
-            for alpha in ema_alphas:
-                alpha_tag = str(alpha).replace(".", "")
-                for d in range(1, max_dt + 1):
-                    for stem in OPTICAL_FLOW_EMA_STEMS:
-                        raw_col = f"{stem}_dt{d}"
-                        ema_col = f"ema{alpha_tag}_{stem}_dt{d}"
-                        if raw_col in df_position.columns:
-                            df_position[ema_col] = df_position.groupby(Column.CROP_INDEX)[
-                                raw_col
-                            ].transform(lambda s, a=alpha: s.ewm(alpha=a, adjust=False).mean())
+            # Append optical flow features from records to the position
+            # dataframe, add any missing columns, and apply EMA smoothing
+            df_position = build_merged_optical_flow_dataframe(
+                df_position, records, max_dt, ema_alphas
+            )
 
             # --- Crop coherence time series diagnostic ---
             if visualize_optical_flow:

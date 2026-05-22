@@ -13,14 +13,13 @@ visualization  Matplotlib diagnostic plots.
 """
 
 from .compute import compute_image_pair_flow
-from .dataframe import build_image_pair_crops_for_grid, build_optical_flow_feature_cols, pivot_flow_records
+from .dataframe import build_image_pair_crops_for_grid, build_optical_flow_feature_cols
 from .visualization import plot_demo_summary, plot_tracked_crop_coherence_timeseries
 
 __all__ = [
     "build_image_pair_crops_for_grid",
     "build_optical_flow_feature_cols",
     "compute_image_pair_flow",
-    "pivot_flow_records",
     "plot_demo_summary",
     "plot_tracked_crop_coherence_timeseries",
 ]
