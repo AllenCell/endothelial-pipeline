@@ -17,8 +17,8 @@ class OpticalFlowImagePair(NamedTuple):
     t1: int
     dt: int
 
-class OpticalFlowImagePairCrop(NamedTuple):
-    """Structure for image pair crop."""
+class OpticalFlowImagePairCrops(NamedTuple):
+    """Structure for image pair crops."""
 
     start_x: np.ndarray
     start_y: np.ndarray
@@ -193,13 +193,8 @@ def compute_tvl1(
 def compute_image_pair_flow(
     f0: np.ndarray,
     f1: np.ndarray,
-    sy: np.ndarray,
-    ey: np.ndarray,
-    sx: np.ndarray,
-    ex: np.ndarray,
-    crop_indices: np.ndarray,
-    t0: int,
-    dt: int,
+    image_pair: OpticalFlowImagePair,
+    crops: OpticalFlowImagePairCrops,
     thresh: float,
     attachment: float = 7.5,
     speed_threshold: float = 1.0,
@@ -217,20 +212,10 @@ def compute_image_pair_flow(
         Full-resolution reference frame.
     f1
         Full-resolution subsequent frame.
-    sy
-        1-D array of crop start-row indices.
-    ey
-        1-D array of crop end-row indices.
-    sx
-        1-D array of crop start-column indices.
-    ex
-        1-D array of crop end-column indices.
-    crop_indices
-        1-D array of integer crop identifiers.
-    t0
-        Timepoint index of the reference frame.
-    dt
-        Temporal stride between the two frames.
+    image_pair
+        Timepoints and temporal stride for image pair.
+    crops
+        Crop indices and coordinates for image pair.
     thresh
         Intensity threshold for foreground masking.
     attachment
@@ -244,17 +229,25 @@ def compute_image_pair_flow(
         One dictionary per crop containing scalar flow statistics
         (see :func:`compute_flow_statistics`).
     """
+
+    sx = crops.start_x
+    sy = crops.start_y
+    ex = crops.start_x + crops.crop_size
+    ey = crops.start_y + crops.crop_size
+    crop_indices = crops.crop_indices
+
     u, v = compute_tvl1(f0, f1, attachment=attachment)
     n_crops = len(crop_indices)
+
     return [
         compute_flow_statistics(
             u[sy[i] : ey[i], sx[i] : ex[i]],
             v[sy[i] : ey[i], sx[i] : ex[i]],
             f0[sy[i] : ey[i], sx[i] : ex[i]],
             f1[sy[i] : ey[i], sx[i] : ex[i]],
-            int(crop_indices[i]),
-            t0,
-            dt,
+            crop_indices[i],
+            image_pair.t0,
+            image_pair.dt,
             thresh,
             speed_threshold,
         )
@@ -262,7 +255,9 @@ def compute_image_pair_flow(
     ]
 
 
-def calculate_optical_flow_intensity_threshold(intensity_percentile: float, images: list[np.ndarray]) -> float:
+def calculate_optical_flow_intensity_threshold(
+    intensity_percentile: float, images: list[np.ndarray]
+) -> float:
 
     if intensity_percentile <= 0:
         return -float("inf")

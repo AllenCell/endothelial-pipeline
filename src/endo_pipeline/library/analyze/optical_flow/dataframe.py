@@ -1,6 +1,6 @@
 """DataFrame wrangling — crop grids, pivoting, column names."""
 
-from collections.abc import Sequence
+from collections.abc import Sequence, Callable
 
 import pandas as pd
 
@@ -11,6 +11,7 @@ from endo_pipeline.settings.optical_flow import (
     OPTICAL_FLOW_BASE_FEATURES,
     OPTICAL_FLOW_EMA_STEMS,
 )
+from endo_pipeline.library.analyze.optical_flow.compute import OpticalFlowImagePairCrops
 
 
 def build_optical_flow_feature_cols(
@@ -90,27 +91,26 @@ def build_tracked_crop_lookup_table(df: pd.DataFrame) -> dict[int, tuple]:
 # ---------------------------------------------------------------------------
 # Crop helpers
 # ---------------------------------------------------------------------------
-def build_crop_grid(df: pd.DataFrame) -> pd.DataFrame:
-    """Return one row per unique crop index with spatial bounds.
+def build_image_pair_crops_for_grid(df: pd.DataFrame) -> Callable[[int], OpticalFlowImagePairCrops]:
+    """
+    Build image pair crop for grid crops as a function of timepoint.
 
-    Extracts distinct crops from the input DataFrame, sorted by spatial
-    position (top-to-bottom, left-to-right), and appends ``end_x`` /
-    ``end_y`` columns computed from the crop start coordinates plus
-    crop size.
+    For grid crops, crop coordinates and indices are the same across timepoints
+    so returned callable is just a wrapper around a single object. Dataframe
+    must include `CROP_INDEX`, `START_X`, `START_Y` columns. A `CROP_SIZE_X`
+    column is optional.
 
     Parameters
     ----------
     df
-        Feature DataFrame containing at least ``CROP_INDEX``,
-        ``START_X``, ``START_Y``, and (optionally) ``CROP_SIZE_X``
-        columns.
+        Dataframe containing grid-based features.
 
     Returns
     -------
     :
-        One row per crop with columns ``START_X``, ``START_Y``,
-        ``CROP_INDEX``, ``end_x``, and ``end_y``.
+        Callable for image pair crop tuple.
     """
+
     crop_df = (
         df[
             [
@@ -123,14 +123,19 @@ def build_crop_grid(df: pd.DataFrame) -> pd.DataFrame:
         .sort_values(by=[ColumnName.DiffAEData.START_Y, ColumnName.DiffAEData.START_X])
         .reset_index(drop=True)
     )
-    sz = (
+
+    crop_size = (
         int(df[ColumnName.DiffAEData.CROP_SIZE_X].iloc[0])
         if ColumnName.DiffAEData.CROP_SIZE_X in df.columns
-        else 128
+        else DIFFAE_DEFAULT_CROP_SIZE
     )
-    crop_df[ColumnName.DiffAEData.END_X] = crop_df[ColumnName.DiffAEData.START_X] + sz
-    crop_df[ColumnName.DiffAEData.END_Y] = crop_df[ColumnName.DiffAEData.START_Y] + sz
-    return crop_df
+
+    return lambda _ : OpticalFlowImagePairCrops(
+        start_x=crop_df[ColumnName.DiffAEData.START_X].values.astype(int),
+        start_y=crop_df[ColumnName.DiffAEData.START_Y].values.astype(int),
+        crop_indices=crop_df[ColumnName.CROP_INDEX].values.astype(int),
+        crop_size=crop_size,
+    )
 
 
 # ---------------------------------------------------------------------------

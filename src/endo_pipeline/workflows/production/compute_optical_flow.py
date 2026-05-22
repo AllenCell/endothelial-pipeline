@@ -87,7 +87,7 @@ def main(  # noqa: C901
         upload_file_to_fms,
     )
     from endo_pipeline.library.analyze.optical_flow import (
-        build_crop_grid,
+        build_image_pair_crops_for_grid,
         build_optical_flow_feature_cols,
         compute_image_pair_flow,
         pivot_flow_records,
@@ -230,10 +230,6 @@ def main(  # noqa: C901
                 continue
             df_position[Column.DATASET] = dataset_name
 
-            # Crop grid
-            crop_grid = build_crop_grid(df_position)
-            num_crops = len(crop_grid)
-
             # For tracked crops, build a per-timepoint crop lookup dict
             # mapping timepoint -> (start_y, end_y, start_x, end_x, crop_ids)
             # so that crop coordinates can change frame-to-frame.  For grid
@@ -241,11 +237,7 @@ def main(  # noqa: C901
             if is_tracked:
                 tracked_crops = build_tracked_crop_lookup_table(df_position)
             else:
-                start_x = crop_grid[Column.DiffAEData.START_X].values.astype(int)
-                start_y = crop_grid[Column.DiffAEData.START_Y].values.astype(int)
-                end_x = crop_grid[Column.DiffAEData.END_X].values.astype(int)
-                end_y = crop_grid[Column.DiffAEData.END_Y].values.astype(int)
-                crop_ids = crop_grid[Column.CROP_INDEX].values
+                get_crops_for_timepoint = build_image_pair_crops_for_grid(df_position)
 
             # Build frame pairs from timepoint sets
             image_pairs = [
