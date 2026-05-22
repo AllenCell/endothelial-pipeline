@@ -96,6 +96,7 @@ def main(  # noqa: C901
         plot_demo_summary,
         plot_tracked_crop_coherence_timeseries,
     )
+    from endo_pipeline.library.analyze.optical_flow.dataframe import build_tracked_crop_lookup_table
     from endo_pipeline.manifests import (
         DataframeLocation,
         create_dataframe_manifest,
@@ -232,19 +233,7 @@ def main(  # noqa: C901
             # so that crop coordinates can change frame-to-frame.  For grid
             # crops, the arrays are constant across all timepoints.
             if is_tracked:
-                crop_size = int(
-                    df_position[Column.DiffAEData.CROP_SIZE_X].iloc[0]
-                    if Column.DiffAEData.CROP_SIZE_X in df_position.columns
-                    else 128
-                )
-                tracked_crops: dict[int, tuple] = {}
-                for t, grp in df_position.groupby(Column.TIMEPOINT):
-                    sx_ = grp[Column.DiffAEData.START_X].values.astype(int)
-                    sy_ = grp[Column.DiffAEData.START_Y].values.astype(int)
-                    ex_ = sx_ + crop_size
-                    ey_ = sy_ + crop_size
-                    ci_ = grp[Column.CROP_INDEX].values
-                    tracked_crops[int(t)] = (sy_, ey_, sx_, ex_, ci_)
+                tracked_crops = build_tracked_crop_lookup_table(df_position)
             else:
                 start_x = crop_grid[Column.DiffAEData.START_X].values.astype(int)
                 start_y = crop_grid[Column.DiffAEData.START_Y].values.astype(int)

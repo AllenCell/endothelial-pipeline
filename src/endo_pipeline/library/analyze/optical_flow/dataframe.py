@@ -5,6 +5,7 @@ from collections.abc import Sequence
 import pandas as pd
 
 from endo_pipeline.settings.column_names import ColumnName
+from endo_pipeline.settings.image_data import DIFFAE_DEFAULT_CROP_SIZE
 from endo_pipeline.settings.optical_flow import (
     DEFAULT_EMA_ALPHAS,
     OPTICAL_FLOW_BASE_FEATURES,
@@ -47,6 +48,43 @@ def build_optical_flow_feature_cols(
 
     all_features = features + ema_features
     return [f"{f}_dt{d}" for d in range(1, max_dt + 1) for f in all_features]
+
+
+def build_tracked_crop_lookup_table(df: pd.DataFrame) -> dict[int, tuple]:
+    """
+    Build a per-timepoint crop lookup table mapping timepoint to coordinates.
+
+    Coordinates are stored as: (start_y, end_y, start_x, end_x, crop_ids). This
+    mapping is necessary because crop coordinates changes between timepoints.
+
+    Parameters
+    ----------
+    df
+        Dataframe containing crop locations for each timepoint.
+
+    Returns
+    -------
+    :
+        Map of timepoint to coordinate.
+    """
+
+    crop_size = int(
+        df[ColumnName.DiffAEData.CROP_SIZE_X].iloc[0]
+        if ColumnName.DiffAEData.CROP_SIZE_X in df.columns
+        else DIFFAE_DEFAULT_CROP_SIZE
+    )
+
+    tracked_crops: dict[int, tuple] = {}
+
+    for t, grp in df.groupby(ColumnName.TIMEPOINT):
+        sx_ = grp[ColumnName.DiffAEData.START_X].values.astype(int)
+        sy_ = grp[ColumnName.DiffAEData.START_Y].values.astype(int)
+        ex_ = sx_ + crop_size
+        ey_ = sy_ + crop_size
+        ci_ = grp[ColumnName.CROP_INDEX].values
+        tracked_crops[int(t)] = (sy_, ey_, sx_, ex_, ci_)
+
+    return tracked_crops
 
 
 # ---------------------------------------------------------------------------
