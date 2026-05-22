@@ -78,6 +78,16 @@ def main(
       matched fixed point was found within `bootstrap_match_radius`.
     - `n_bootstrap_samples`: number of bootstrap iterations performed.
 
+    ## Dataset collection
+
+    If datasets are not provided, the workflow will use datasets in the
+    `diffae_model_training` dataset collection.
+
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will perform
+    bootstrapping on the first dataset with at most 10 bootstrap iterations.
+
     Parameters
     ----------
     crop_pattern
@@ -197,16 +207,13 @@ def main(
     bootstrap_results_manifest = create_dataframe_manifest(
         bootstrap_results_manifest_name, workflow_name=__file__
     )
-    logger.info("Bootstrap fixed point dataframes will be saved to: [ %s ]", dataframe_savedir)
 
     dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
+
     if DEMO_MODE:
-        logger.warning(
-            "DEMO MODE: Processing no more than two datasets and limiting"
-            " bootstrap iterations to <= 10 for quick testing."
-        )
-        num_datasets = min(len(dataset_names), 2)
-        dataset_names = dataset_names[:num_datasets]
+        logger.warning("DEMO MODE - Limiting to one dataset")
+        logger.warning("DEMO MODE - Limiting bootstrap iterations to <= 10")
+        dataset_names = dataset_names[:1]
         num_bootstrap_iterations = min(num_bootstrap_iterations, 10)
 
     # Initialize kernels and bin widths for each selected column
