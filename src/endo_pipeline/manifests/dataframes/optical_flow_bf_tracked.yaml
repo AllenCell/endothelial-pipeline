@@ -8,7 +8,6 @@ parameters:
   flow_scope: image
   intensity_percentile: 0
   attachment: 2.5
-  compute_block_coherence: false
   annotations_excluded: []
 locations:
   20250319_20X:

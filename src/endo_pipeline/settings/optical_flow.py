@@ -8,33 +8,6 @@ compute, I/O, or visualisation code.
 from endo_pipeline.settings.column_names import ColumnName
 
 # ---------------------------------------------------------------------------
-# Multi-scale coherence
-# ---------------------------------------------------------------------------
-COHERENCE_BOX_SIZES: tuple[int, ...] = (
-    1,
-    2,
-    3,
-    4,
-    5,
-    6,
-    7,
-    8,
-    9,
-    10,
-    11,
-    12,
-    13,
-    14,
-    15,
-    16,
-    17,
-    18,
-    19,
-    20,
-)
-"""Non-overlapping box sizes (in pixels) for multi-scale coherence."""
-
-# ---------------------------------------------------------------------------
 # Demo / scan-mode diagnostic limits
 # ---------------------------------------------------------------------------
 DEMO_SCAN_N_CROPS: int = 6

@@ -23,7 +23,6 @@ def main(  # noqa: C901
     crop_pattern: CropPattern = "grid",
     upload_to_fms: bool = False,
     visualize_optical_flow: bool = False,
-    compute_block_coherence: bool = False,
     compute_fast_coherence: bool = False,
     compute_radial_coherence: bool = False,
     ema_alphas: FloatList = list(DEFAULT_EMA_ALPHAS),
@@ -98,9 +97,6 @@ def main(  # noqa: C901
         If True, produce diagnostic plots (R/G composite, quiver,
         speed & angle histograms) for one randomly chosen crop per
         (dataset, position) pair.  Saved to results/optical_flow/.
-    compute_block_coherence
-        If True, compute multi-scale block-averaged coherence statistics
-        (``optical_flow_angle_std_box{N}``) for each box size.
     compute_fast_coherence
         If True, compute coherence metrics over pixels whose speed
         exceeds *speed_threshold*.
@@ -187,7 +183,6 @@ def main(  # noqa: C901
     attachment = resolve_attachment(channel)
     flow_columns = build_optical_flow_feature_cols(
         max_dt,
-        compute_block_coherence=compute_block_coherence,
         compute_fast_coherence=compute_fast_coherence,
         compute_radial_coherence=compute_radial_coherence,
         ema_alphas=ema_alphas,
@@ -197,14 +192,13 @@ def main(  # noqa: C901
     logger.info(
         "Optical-flow extraction --> crop_pattern=%s | dt=1..%d "
         "| percentile=%d | attachment=%.1f | channel=%s "
-        "| block_coherence=%s | fast_coherence=%s | radial_coherence=%s "
+        "| fast_coherence=%s | radial_coherence=%s "
         "| ema_alphas=%s | speed_threshold=%.2f",
         crop_pattern,
         max_dt,
         intensity_pctl,
         attachment,
         channel,
-        compute_block_coherence,
         compute_fast_coherence,
         compute_radial_coherence,
         ema_alphas,
@@ -235,7 +229,6 @@ def main(  # noqa: C901
         "crop_pattern": crop_pattern,
         "intensity_percentile": intensity_pctl,
         "attachment": attachment,
-        "compute_block_coherence": compute_block_coherence,
         "compute_fast_coherence": compute_fast_coherence,
         "compute_radial_coherence": compute_radial_coherence,
         "ema_alphas": list(ema_alphas),
@@ -374,7 +367,6 @@ def main(  # noqa: C901
             _compute_flow = partial(
                 compute_image_pair_flow,
                 attachment=attachment,
-                compute_block_coherence=compute_block_coherence,
                 compute_fast_coherence=compute_fast_coherence,
                 compute_radial_coherence=compute_radial_coherence,
                 speed_threshold=speed_threshold,
@@ -433,7 +425,6 @@ def main(  # noqa: C901
                     results_dir,
                     [channel],
                     attachment,
-                    compute_block_coherence,
                 )
 
             frame_cache.clear()

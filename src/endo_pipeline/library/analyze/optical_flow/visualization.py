@@ -7,14 +7,13 @@ from scipy import stats as sp_stats
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.optical_flow import (
-    COHERENCE_BOX_SIZES,
     DEMO_SCAN_N_CROPS,
     DEMO_SCAN_N_PAIRS,
     QUIVER_GRID_DIVISIONS,
 )
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
-from .compute import _block_average_flow, compute_tvl1
+from .compute import compute_tvl1
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +100,6 @@ def plot_demo_summary(
     out_dir,
     channel: list[str],
     attachment: float = 7.5,
-    compute_block_coherence: bool = False,
 ) -> None:
     """Produce a multi-crop diagnostic figure (up to 3 rows x 5 cols).
 
@@ -133,9 +131,6 @@ def plot_demo_summary(
         Imaging channel name(s) (e.g. ``["BF"]``).
     attachment
         TVL1 attachment (lambda) value.
-    compute_block_coherence
-        Whether block-averaged coherence was computed.  Reflected
-        in the figure title and output filename.
     """
     from pathlib import Path
 
@@ -282,112 +277,68 @@ def plot_demo_summary(
         ax.set_title(f"(c) {Unicode.THETA} distribution  $\\bar{{R}}$ = {rbar_val:.4f}", fontsize=9)
         ax.tick_params(labelsize=7)
 
-        # (d) & (e) — block-coherence bar charts or speed/R̄ histograms
-        if compute_block_coherence:
-            # Compute block-averaged stats for this crop
-            u_2d, v_2d = uf.copy(), vf.copy()
-            u_2d[~mask] = 0.0
-            v_2d[~mask] = 0.0
-            box_cstds: list[float] = []
-            box_rbars: list[float] = []
-            for box in COHERENCE_BOX_SIZES:
-                ub, vb = _block_average_flow(u_2d, v_2d, box)
-                sp_b = np.sqrt(ub**2 + vb**2)
-                ang_b = np.arctan2(vb, ub)
-                nz_b = sp_b > 0
-                if nz_b.any():
-                    box_cstds.append(float(sp_stats.circstd(ang_b[nz_b])))
-                    C_b = float(np.mean(np.cos(ang_b[nz_b])))
-                    S_b = float(np.mean(np.sin(ang_b[nz_b])))
-                    box_rbars.append(min(float(np.sqrt(C_b**2 + S_b**2)), 1.0))
-                else:
-                    box_cstds.append(float("nan"))
-                    box_rbars.append(float("nan"))
+        # (d) Speed distribution
+        ax = axes[3]
+        ax.set_facecolor("white")
+        if mask.any():
+            sp_m = sp[mask] if sp.shape == mask.shape else sp
+            ax.hist(
+                sp_m, bins=60, color="steelblue", edgecolor="white", linewidth=0.3, density=True
+            )
+            ax.axvline(
+                float(sp_m.mean()),
+                color="navy",
+                ls="--",
+                lw=1.5,
+                label=f"{Unicode.MU} = {float(sp_m.mean()):.3f}",
+            )
+            ax.axvline(
+                float(np.median(sp_m)),
+                color="dodgerblue",
+                ls=":",
+                lw=1.5,
+                label=f"med = {float(np.median(sp_m)):.3f}",
+            )
+            ax.legend(fontsize=6, loc="upper right")
+        ax.set_xlabel("Speed (px/frame)", fontsize=8)
+        ax.set_ylabel("Density", fontsize=8)
+        ax.set_title("(d) Speed distribution", fontsize=9)
+        ax.tick_params(labelsize=7)
 
-            box_labels = [str(b) for b in COHERENCE_BOX_SIZES]
-
-            # (d) angle-std vs block size
-            ax = axes[3]
-            ax.set_facecolor("white")
-            colors_d = ["steelblue" if b <= 10 else "teal" for b in COHERENCE_BOX_SIZES]
-            ax.bar(box_labels, box_cstds, color=colors_d, edgecolor="white", linewidth=0.3)
-            ax.set_xlabel("Block size (px)", fontsize=8)
-            ax.set_ylabel(r"$\sigma_{\theta}$ (rad)", fontsize=8)
-            ax.set_title(r"(d) $\sigma_{\theta}$ vs block size", fontsize=9)
-            ax.tick_params(labelsize=6)
-
-            # (e) R̄ vs block size
-            ax = axes[4]
-            ax.set_facecolor("white")
-            colors_e = ["mediumseagreen" if b <= 10 else "yellowgreen" for b in COHERENCE_BOX_SIZES]
-            ax.bar(box_labels, box_rbars, color=colors_e, edgecolor="white", linewidth=0.3)
-            ax.set_xlabel("Block size (px)", fontsize=8)
-            ax.set_ylabel(r"Mean unit vector $\bar{R}$", fontsize=8)
-            ax.set_title(r"(e) Mean unit vector $\bar{R}$ vs block size", fontsize=9)
-            ax.tick_params(labelsize=6)
-        else:
-            # (d) Speed distribution
-            ax = axes[3]
-            ax.set_facecolor("white")
-            if mask.any():
-                sp_m = sp[mask] if sp.shape == mask.shape else sp
-                ax.hist(
-                    sp_m, bins=60, color="steelblue", edgecolor="white", linewidth=0.3, density=True
-                )
-                ax.axvline(
-                    float(sp_m.mean()),
-                    color="navy",
-                    ls="--",
-                    lw=1.5,
-                    label=f"{Unicode.MU} = {float(sp_m.mean()):.3f}",
-                )
-                ax.axvline(
-                    float(np.median(sp_m)),
-                    color="dodgerblue",
-                    ls=":",
-                    lw=1.5,
-                    label=f"med = {float(np.median(sp_m)):.3f}",
-                )
-                ax.legend(fontsize=6, loc="upper right")
-            ax.set_xlabel("Speed (px/frame)", fontsize=8)
-            ax.set_ylabel("Density", fontsize=8)
-            ax.set_title("(d) Speed distribution", fontsize=9)
-            ax.tick_params(labelsize=7)
-
-            # (e) R-bar distribution for this crop across all scanned time pairs
-            ax = axes[4]
-            ax.set_facecolor("white")
-            crop_rbar = scan_df.loc[scan_df["crop"] == _cidx, "rbar"].dropna().values
-            if len(crop_rbar) > 0:
-                ax.hist(
-                    crop_rbar,
-                    bins=max(8, len(crop_rbar) // 2),
-                    color="mediumseagreen",
-                    edgecolor="white",
-                    linewidth=0.3,
-                    density=True,
-                    rwidth=0.75,
-                )
-                ax.axvline(
-                    float(np.mean(crop_rbar)),
-                    color="black",
-                    ls="--",
-                    lw=1.5,
-                    label=f"mean $\\bar{{R}}$ = {float(np.mean(crop_rbar)):.3f}",
-                )
-                ax.axvline(
-                    float(np.median(crop_rbar)),
-                    color="forestgreen",
-                    ls=":",
-                    lw=1.5,
-                    label=f"median = {float(np.median(crop_rbar)):.3f}",
-                )
-                ax.legend(fontsize=6, loc="upper right")
-            ax.set_xlabel(r"$\bar{R}$", fontsize=8)
-            ax.set_ylabel("Density", fontsize=8)
-            ax.set_title(f"(e) $\\bar{{R}}$ distribution  crop {_cidx}", fontsize=9)
-            ax.set_xlim(0, 1.05)
-            ax.tick_params(labelsize=7)
+        # (e) R-bar distribution for this crop across all scanned time pairs
+        ax = axes[4]
+        ax.set_facecolor("white")
+        crop_rbar = scan_df.loc[scan_df["crop"] == _cidx, "rbar"].dropna().values
+        if len(crop_rbar) > 0:
+            ax.hist(
+                crop_rbar,
+                bins=max(8, len(crop_rbar) // 2),
+                color="mediumseagreen",
+                edgecolor="white",
+                linewidth=0.3,
+                density=True,
+                rwidth=0.75,
+            )
+            ax.axvline(
+                float(np.mean(crop_rbar)),
+                color="black",
+                ls="--",
+                lw=1.5,
+                label=f"mean $\\bar{{R}}$ = {float(np.mean(crop_rbar)):.3f}",
+            )
+            ax.axvline(
+                float(np.median(crop_rbar)),
+                color="forestgreen",
+                ls=":",
+                lw=1.5,
+                label=f"median = {float(np.median(crop_rbar)):.3f}",
+            )
+            ax.legend(fontsize=6, loc="upper right")
+        ax.set_xlabel(r"$\bar{R}$", fontsize=8)
+        ax.set_ylabel("Density", fontsize=8)
+        ax.set_title(f"(e) $\\bar{{R}}$ distribution  crop {_cidx}", fontsize=9)
+        ax.set_xlim(0, 1.05)
+        ax.tick_params(labelsize=7)
 
     # Build the figure
     n_rows = len(picks)
@@ -398,10 +349,8 @@ def plot_demo_summary(
     for row_idx, (row, label, _tag) in enumerate(picks):
         _plot_row(axes[row_idx], row, label)
 
-    block_tag = "_block" if compute_block_coherence else ""
-
     fig.suptitle(
-        f"Coherent vs Incoherent : {ds_name} / pos {position}  [{', '.join(channel)}]  (scope={'  +block_coherence' if compute_block_coherence else ''})",
+        f"Coherent vs Incoherent : {ds_name} / pos {position}  [{', '.join(channel)}]",
         fontsize=12,
         fontweight="bold",
     )
@@ -410,7 +359,7 @@ def plot_demo_summary(
     save_plot_to_path(
         fig,
         out_dir,
-        f"demo_coherent_vs_incoherent_{ds_name}_{position}_{'_'.join(channel)}_{block_tag}",
+        f"demo_coherent_vs_incoherent_{ds_name}_{position}_{'_'.join(channel)}",
         dpi=300,
         show_and_close=False,
     )

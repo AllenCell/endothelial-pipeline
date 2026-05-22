@@ -6,46 +6,12 @@ from skimage.registration import optical_flow_tvl1
 
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.optical_flow import (
-    COHERENCE_BOX_SIZES,
     OPTICAL_FLOW_COMPUTE_FEATURES,
     OPTICAL_FLOW_FAST_FEATURES,
     OPTICAL_FLOW_RADIAL_FEATURES,
 )
 
 logger = logging.getLogger(__name__)
-
-
-# ---------------------------------------------------------------------------
-# Low-level helpers
-# ---------------------------------------------------------------------------
-def _block_average_flow(
-    u: np.ndarray,
-    v: np.ndarray,
-    box: int,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Average (u, v) flow vectors within non-overlapping box*box blocks.
-
-    Parameters
-    ----------
-    u, v
-        Flow components, shape ``(H, W)``.
-    box
-        Side length of each square block.  When ``box == 1`` the arrays
-        are returned unchanged.
-
-    Returns
-    -------
-    :
-        Block-averaged ``(u, v)`` arrays, shape ``(H // box, W // box)``.
-    """
-    if box == 1:
-        return u, v
-    H, W = u.shape
-    Ht = (H // box) * box
-    Wt = (W // box) * box
-    u_b = u[:Ht, :Wt].reshape(Ht // box, box, Wt // box, box).mean(axis=(1, 3))
-    v_b = v[:Ht, :Wt].reshape(Ht // box, box, Wt // box, box).mean(axis=(1, 3))
-    return u_b, v_b
 
 
 # ---------------------------------------------------------------------------
@@ -60,7 +26,6 @@ def compute_flow_statistics(
     timepoint: int,
     dt: int,
     thresh: float,
-    compute_block_coherence: bool = False,
     compute_fast_coherence: bool = False,
     compute_radial_coherence: bool = False,
     speed_threshold: float = 1.0,
@@ -84,9 +49,6 @@ def compute_flow_statistics(
         Temporal stride between the two frames.
     thresh
         Intensity threshold for foreground masking.
-    compute_block_coherence
-        If True, compute multi-scale block-averaged coherence
-        (``optical_flow_angle_std_box{N}``) for each box size.
     compute_fast_coherence
         If True, compute coherence metrics only over pixels whose
         speed exceeds *speed_threshold*.
@@ -196,24 +158,6 @@ def compute_flow_statistics(
         base[ColumnName.OpticalFlow.RADIAL_COHERENCE_BASE] = radial_coh
         base[ColumnName.OpticalFlow.RADIAL_COHERENCE_WEIGHTED_BASE] = radial_coh_w
 
-    # --- Optional Multi-scale coherence ---
-    if compute_block_coherence:
-        u_2d = u.copy()
-        v_2d = v.copy()
-        u_2d[~mask] = 0.0
-        v_2d[~mask] = 0.0
-
-        for box in COHERENCE_BOX_SIZES:
-            ub, vb = _block_average_flow(u_2d, v_2d, box)
-            sp_b = np.sqrt(ub**2 + vb**2)
-            ang_b = np.arctan2(vb, ub)
-            nz_b = sp_b > 0
-            key = f"optical_flow_angle_std_box{box}"
-            if nz_b.any():
-                base[key] = float(stats.circstd(ang_b[nz_b]))
-            else:
-                base[key] = np.nan
-
     return base
 
 
@@ -260,7 +204,6 @@ def compute_crop_flow(
     dt: int,
     thresh: float = 0.0,
     attachment: float = 7.5,
-    compute_block_coherence: bool = False,
     compute_fast_coherence: bool = False,
     compute_radial_coherence: bool = False,
     speed_threshold: float = 1.0,
@@ -287,9 +230,6 @@ def compute_crop_flow(
         Intensity threshold for foreground masking.
     attachment
         TVL1 data-fidelity weight (λ).
-    compute_block_coherence
-        If True, compute multi-scale block-averaged coherence
-        statistics.
     compute_fast_coherence
         If True, compute speed-thresholded coherence.
     compute_radial_coherence
@@ -313,7 +253,6 @@ def compute_crop_flow(
         tp,
         dt,
         thresh,
-        compute_block_coherence,
         compute_fast_coherence,
         compute_radial_coherence,
         speed_threshold,
@@ -332,7 +271,6 @@ def compute_image_pair_flow(
     dt: int,
     thresh: float,
     attachment: float = 7.5,
-    compute_block_coherence: bool = False,
     compute_fast_coherence: bool = False,
     compute_radial_coherence: bool = False,
     speed_threshold: float = 1.0,
@@ -368,9 +306,6 @@ def compute_image_pair_flow(
         Intensity threshold for foreground masking.
     attachment
         TVL1 data-fidelity weight (λ).
-    compute_block_coherence
-        If True, compute multi-scale block-averaged coherence
-        statistics for each crop.
     compute_fast_coherence
         If True, compute speed-thresholded coherence.
     compute_radial_coherence
@@ -396,7 +331,6 @@ def compute_image_pair_flow(
             t0,
             dt,
             thresh,
-            compute_block_coherence,
             compute_fast_coherence,
             compute_radial_coherence,
             speed_threshold,

@@ -6,7 +6,6 @@ import pandas as pd
 
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.optical_flow import (
-    COHERENCE_BOX_SIZES,
     DEFAULT_EMA_ALPHAS,
     OPTICAL_FLOW_COMPUTE_FEATURES,
     OPTICAL_FLOW_EMA_FAST_STEMS,
@@ -48,11 +47,9 @@ def build_ema_stems(
 
 def build_optical_flow_feature_cols(
     max_dt: int,
-    compute_block_coherence: bool = False,
     compute_fast_coherence: bool = False,
     compute_radial_coherence: bool = False,
     ema_alphas: Sequence[float] = DEFAULT_EMA_ALPHAS,
-    coherence_box_sizes: Sequence[int] = COHERENCE_BOX_SIZES,
 ) -> list[str]:
     """Return all optical-flow column names for dt = 1..max_dt.
 
@@ -65,7 +62,6 @@ def build_optical_flow_feature_cols(
       :data:`~endo_pipeline.settings.optical_flow.OPTICAL_FLOW_COMPUTE_FEATURES`.
     * Fast-coherence features — included when *compute_fast_coherence* is True.
     * Radial-coherence features — included when *compute_radial_coherence* is True.
-    * Block-coherence features — included when *compute_block_coherence* is True.
     * EMA-smoothed columns — ``ema{tag}_{stem}_dt{d}`` for each alpha in
       *ema_alphas* and each enabled coherence stem.
 
@@ -73,8 +69,6 @@ def build_optical_flow_feature_cols(
     ----------
     max_dt
         Maximum temporal gap (inclusive).
-    compute_block_coherence
-        If True, include block-averaged coherence column names.
     compute_fast_coherence
         If True, include speed-thresholded coherence column names and
         their EMA-smoothed variants.
@@ -84,9 +78,6 @@ def build_optical_flow_feature_cols(
     ema_alphas
         EMA smoothing alpha values.  Defaults to
         :data:`~endo_pipeline.settings.optical_flow.DEFAULT_EMA_ALPHAS`.
-    coherence_box_sizes
-        Box sizes for multi-scale coherence columns.  Defaults to
-        :data:`~endo_pipeline.settings.optical_flow.COHERENCE_BOX_SIZES`.
 
     Returns
     -------
@@ -99,8 +90,6 @@ def build_optical_flow_feature_cols(
         features += OPTICAL_FLOW_FAST_FEATURES
     if compute_radial_coherence:
         features += OPTICAL_FLOW_RADIAL_FEATURES
-    if compute_block_coherence:
-        features += [f"optical_flow_angle_std_box{box}" for box in coherence_box_sizes]
 
     # --- EMA-smoothed coherence columns ---
     ema_stems = build_ema_stems(compute_fast_coherence, compute_radial_coherence)
