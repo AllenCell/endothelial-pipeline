@@ -6,9 +6,24 @@ from skimage.registration import optical_flow_tvl1
 
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.optical_flow import OPTICAL_FLOW_BASE_FEATURES
+from typing import  NamedTuple
 
 logger = logging.getLogger(__name__)
 
+class OpticalFlowImagePair(NamedTuple):
+    """Structure for optical flow image pair."""
+
+    t0: int
+    t1: int
+    dt: int
+
+class OpticalFlowImagePairCrop(NamedTuple):
+    """Structure for image pair crop."""
+
+    start_x: np.ndarray
+    start_y: np.ndarray
+    crop_indices: np.ndarray
+    crop_size: int
 
 # ---------------------------------------------------------------------------
 # Flow statistics
