@@ -5,16 +5,11 @@ import re
 from pathlib import Path
 
 from endo_pipeline.configs import (
-    DatasetCollectionConfig,
     DatasetConfig,
     FlowCondition,
-    MicroscopeType,
-    ObjectiveType,
     PositionAnnotation,
-    SampleType,
     ShearStressRegime,
     TimepointAnnotation,
-    load_all_dataset_configs,
 )
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
@@ -333,34 +328,3 @@ def get_all_unannotated_timepoints(
         position: get_unannotated_timepoints_for_position(dataset, position, annotations)
         for position in dataset.zarr_positions
     }
-
-
-def make_filtered_dataset_collection(
-    sample_type: SampleType | None = None,
-    objective: ObjectiveType | None = None,
-    microscope: MicroscopeType | None = None,
-) -> DatasetCollectionConfig:
-    """Create dataset collection filtered by sample type, objective, and microscope."""
-
-    dataset_configs = load_all_dataset_configs()
-    dataset_collection_names = []
-
-    for dataset_config in dataset_configs:
-        if sample_type is not None and dataset_config.live_or_fixed_sample != sample_type:
-            continue
-
-        if objective is not None and dataset_config.objective != objective:
-            continue
-
-        if microscope is not None and dataset_config.microscope != microscope:
-            continue
-
-        dataset_collection_names.append(dataset_config.name)
-
-    dataset_collection = DatasetCollectionConfig(
-        name="null",
-        description="",
-        datasets=sorted(dataset_collection_names),
-    )
-
-    return dataset_collection
