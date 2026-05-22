@@ -73,7 +73,6 @@ def main(  # noqa: C901
     from concurrent.futures import ThreadPoolExecutor, as_completed
     from functools import partial
 
-    import dask.array as da
     import numpy as np
     import pandas as pd
     from tqdm.auto import tqdm
@@ -84,7 +83,6 @@ def main(  # noqa: C901
         build_fms_annotations,
         get_output_path,
         load_dataframe,
-        load_image,
         make_name_unique,
         upload_file_to_fms,
     )
@@ -97,15 +95,18 @@ def main(  # noqa: C901
         plot_tracked_crop_coherence_timeseries,
     )
     from endo_pipeline.library.analyze.optical_flow.dataframe import build_tracked_crop_lookup_table
+    from endo_pipeline.library.visualize.supplemental_movies import (
+        load_bf_std_dev_image,
+        load_egfp_image,
+    )
     from endo_pipeline.manifests import (
         DataframeLocation,
         create_dataframe_manifest,
-        get_zarr_location_for_position,
         load_dataframe_manifest,
         save_dataframe_manifest,
     )
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL, DIMENSION_ORDER
+    from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL
     from endo_pipeline.settings.optical_flow import (
         DEFAULT_OMP_NUM_THREADS,
         DEFAULT_OPENBLAS_NUM_THREADS,
@@ -141,6 +142,7 @@ def main(  # noqa: C901
     # Set channel-aware options
     intensity_percentile = OPTICAL_FLOW_CHANNEL_PERCENTILE[channel]
     attachment = OPTICAL_FLOW_CHANNEL_ATTACHMENT[channel]
+    image_loader = load_bf_std_dev_image if channel == "BF" else load_egfp_image
 
     flow_columns = build_optical_flow_feature_cols(
         max_dt,
@@ -241,22 +243,7 @@ def main(  # noqa: C901
                 end_y = crop_grid[Column.DiffAEData.END_Y].values.astype(int)
                 crop_ids = crop_grid[Column.CROP_INDEX].values
 
-            # Z-project
-            zarr_path = get_zarr_location_for_position(
-                dataset_config,
-                position,
-            )
-            image_dask = load_image(
-                zarr_path, channels=[channel], level=DIFFAE_ZARR_RESOLUTION_LEVEL, compute=False
-            )
-            z_axis = DIMENSION_ORDER.index("Z")
-            z_projection = (
-                da.log(image_dask.std(axis=z_axis) + 1e-12)
-                if is_bf
-                else image_dask.max(axis=z_axis)
-            )
-
-            # Frame pairs
+            # Build frame pairs from timepoint sets
             frame_pairs = [
                 (t, t + d, d)
                 for d in range(1, max_dt + 1)
@@ -265,27 +252,14 @@ def main(  # noqa: C901
             ]
             needed_timepoints = sorted({t for pair in frame_pairs for t in pair[:2]})
 
-            # Cache frames
+            # Cache frames for required timepoints
             cache_start = time.time()
-            needed_indices = sorted(needed_timepoints)
-            needed_frames = z_projection[needed_indices, 0].compute(
-                scheduler="threads", num_workers=n_io_workers
-            )
             frame_cache: dict[int, np.ndarray] = {}
-            for j, t in enumerate(needed_indices):
-                frame = needed_frames[j].astype(np.float32, copy=False)
-                if is_bf:
-                    clip_low, clip_high = np.percentile(frame, [0.1, 99.9])
-                    frame = np.clip(frame, clip_low, clip_high)
-                    std = frame.std()
-                    frame = (frame - frame.mean()) / (std if std > 0 else 1.0)
-                else:
-                    clip_low, clip_high = np.percentile(frame, [10, 98])
-                    frame = np.clip(frame, clip_low, clip_high)
-                    frame = (frame - clip_low) / (clip_high - clip_low + 1e-8) * 2.0 - 1.0
-                frame_cache[t] = frame
-            del needed_frames
-            logger.info("Cached %d frames in %.1fs", len(frame_cache), time.time() - cache_start)
+            for timepoint in needed_timepoints:
+                frame_cache[timepoint] = image_loader(
+                    dataset_config, position, [timepoint], DIFFAE_ZARR_RESOLUTION_LEVEL
+                ).compute()
+            logger.debug("Cached %d frames in %.1fs", len(frame_cache), time.time() - cache_start)
 
             # Intensity threshold
             intensity_threshold = (
