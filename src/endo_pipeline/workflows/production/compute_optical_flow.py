@@ -16,7 +16,6 @@ def main(  # noqa: C901
     datasets: Datasets | None = None,
     channel: Literal["BF", "EGFP"] = "BF",
     max_dt: int = DEFAULT_OPTICAL_FLOW_MAX_DT,
-    intensity_percentile: int | None = None,
     n_io_workers: int = NUM_IO_WORKERS,
     crop_pattern: CropPattern = "grid",
     upload_to_fms: bool = False,
@@ -75,10 +74,6 @@ def main(  # noqa: C901
         Imaging channel to load (``"BF"`` or ``"EGFP"``).
     max_dt
         Maximum temporal gap (inclusive).
-    intensity_percentile
-        Pixels below this percentile (computed across all cached frames)
-        are masked out.  None -> auto-select based on channel
-        (EGFP -> 95, BF -> 0).
     n_io_workers
         Concurrent I/O workers for dask frame loading and
         ``ThreadPoolExecutor`` in image-scope flow.
@@ -125,7 +120,6 @@ def main(  # noqa: C901
         plot_demo_summary,
         plot_tracked_crop_coherence_timeseries,
         resolve_attachment,
-        resolve_percentile,
     )
     from endo_pipeline.manifests import (
         DataframeLocation,
@@ -142,6 +136,7 @@ def main(  # noqa: C901
         DEFAULT_OPTICAL_FLOW_COLLECTION,
         DEFAULT_OPTICAL_FLOW_MANIFEST_NAME,
         DEMO_MAX_TRACKED_CROPS_TO_PLOT,
+        OPTICAL_FLOW_CHANNEL_PERCENTILE,
         OPTICAL_FLOW_COLUMNS_TO_COMPUTE,
         OPTICAL_FLOW_EMA_STEMS,
     )
@@ -166,7 +161,9 @@ def main(  # noqa: C901
 
     results_dir = get_output_path("optical_flow", "plots")
 
-    intensity_pctl = resolve_percentile(channel, intensity_percentile)
+    # Set channel-aware options
+    intensity_percentile = OPTICAL_FLOW_CHANNEL_PERCENTILE[channel]
+
     attachment = resolve_attachment(channel)
     flow_columns = build_optical_flow_feature_cols(
         max_dt,
@@ -180,7 +177,7 @@ def main(  # noqa: C901
         "| ema_alphas=%s | speed_threshold=%.2f",
         crop_pattern,
         max_dt,
-        intensity_pctl,
+        intensity_percentile,
         attachment,
         channel,
         ema_alphas,
@@ -208,7 +205,7 @@ def main(  # noqa: C901
         "channel": channel,
         "max_dt": max_dt,
         "crop_pattern": crop_pattern,
-        "intensity_percentile": intensity_pctl,
+        "intensity_percentile": intensity_percentile,
         "attachment": attachment,
         "ema_alphas": list(ema_alphas),
         "speed_threshold": speed_threshold,
@@ -330,15 +327,15 @@ def main(  # noqa: C901
                 float(
                     np.percentile(
                         np.concatenate([f.ravel()[::10] for f in frame_cache.values()]),
-                        intensity_pctl,
+                        intensity_percentile,
                     )
                 )
-                if intensity_pctl > 0
+                if intensity_percentile > 0
                 else -float("inf")
             )
             logger.info(
                 "threshold(%d-pctl)=%.6f pairs=%d crops=%d",
-                intensity_pctl,
+                intensity_percentile,
                 intensity_threshold,
                 len(frame_pairs),
                 num_crops,

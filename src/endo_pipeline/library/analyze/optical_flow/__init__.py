@@ -15,7 +15,7 @@ visualization  Matplotlib diagnostic plots.
 
 from .compute import compute_image_pair_flow
 from .dataframe import build_crop_grid, build_optical_flow_feature_cols, pivot_flow_records
-from .params import resolve_attachment, resolve_percentile
+from .params import resolve_attachment
 from .visualization import plot_demo_summary, plot_tracked_crop_coherence_timeseries
 
 __all__ = [
@@ -26,5 +26,4 @@ __all__ = [
     "plot_demo_summary",
     "plot_tracked_crop_coherence_timeseries",
     "resolve_attachment",
-    "resolve_percentile",
 ]
