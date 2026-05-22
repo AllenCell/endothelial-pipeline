@@ -15,20 +15,15 @@ from endo_pipeline.library.analyze.numerics.binning import circpercentile
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import (
+    DYNAMICS_COLUMN_NAMES,
     LOWER_PERCENTILE_FOR_FILTERING_FPTS,
     NUM_INIT_SAMPLES,
     POLAR_ANGLE_RANGE,
     SAMPLER_RANDOM_SEED,
     UPPER_PERCENTILE_FOR_FILTERING_FPTS,
 )
-from endo_pipeline.settings.flow_field_dataframes import (
-    DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
-    StabilityLabel,
-)
-from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_MODEL_MANIFEST_NAME,
-    DEFAULT_MODEL_RUN_NAME,
-)
+from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
+from endo_pipeline.settings.workflow_defaults import GRID_BASED_BOOTSTRAPPING_MANIFEST_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -449,8 +444,6 @@ def get_fixed_points_within_bounds(
 
 def load_fixed_points_dataframe_for_dataset(
     dataset_name: str,
-    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_name: str = DEFAULT_MODEL_RUN_NAME,
     column_names: list[str | Column] | None = None,
 ) -> pd.DataFrame:
     """
@@ -474,14 +467,9 @@ def load_fixed_points_dataframe_for_dataset(
     """
 
     if column_names is None:
-        column_names = [
-            Column.DiffAEData.POLAR_ANGLE,
-            Column.DiffAEData.POLAR_RADIUS,
-            Column.DiffAEData.PC3_FLIPPED,
-        ]
+        column_names = list(DYNAMICS_COLUMN_NAMES)
 
-    base_name = f"{model_manifest_name}_{run_name}_grid"
-    fixed_points_df_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}"
+    fixed_points_df_manifest_name = GRID_BASED_BOOTSTRAPPING_MANIFEST_NAME
     fixed_points_df_manifest = load_dataframe_manifest(fixed_points_df_manifest_name)
 
     if dataset_name not in fixed_points_df_manifest.locations:

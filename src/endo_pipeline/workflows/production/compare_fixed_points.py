@@ -57,13 +57,9 @@ def main(datasets: Datasets | None = None) -> None:
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.examples import EXAMPLE_DATASET
     from endo_pipeline.settings.flow_field_dataframes import (
-        DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+        GRID_BASED_BOOTSTRAPPING_MANIFEST_NAME,
         StabilityLabel,
-    )
-    from endo_pipeline.settings.workflow_defaults import (
-        DEFAULT_MODEL_MANIFEST_NAME,
-        DEFAULT_MODEL_RUN_NAME,
     )
 
     logger = logging.getLogger(__name__)
@@ -89,9 +85,7 @@ def main(datasets: Datasets | None = None) -> None:
     fixed_points_1d_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix_1d}"
     fixed_points_1d_manifest = load_dataframe_manifest(fixed_points_1d_manifest_name)
 
-    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_grid"
-    bootstrap_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}"
-    bootstrap_dataframe_manifest = load_dataframe_manifest(bootstrap_dataframe_manifest_name)
+    bootstrap_dataframe_manifest = load_dataframe_manifest(GRID_BASED_BOOTSTRAPPING_MANIFEST_NAME)
 
     absolute_errors: list[float] = []
     for dataset_name in dataset_names:
