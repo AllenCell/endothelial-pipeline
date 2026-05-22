@@ -2,7 +2,6 @@ import logging
 from typing import Literal
 
 from endo_pipeline.cli import CropPattern, Datasets, FloatList
-from endo_pipeline.settings import DIFFAE_ZARR_RESOLUTION_LEVEL
 from endo_pipeline.settings.optical_flow import (
     DEFAULT_EMA_ALPHAS,
     DEFAULT_OPTICAL_FLOW_MAX_DT,
@@ -16,7 +15,6 @@ logger = logging.getLogger(__name__)
 def main(  # noqa: C901
     datasets: Datasets | None = None,
     channel: Literal["BF", "EGFP"] = "BF",
-    level: int = DIFFAE_ZARR_RESOLUTION_LEVEL,
     max_dt: int = DEFAULT_OPTICAL_FLOW_MAX_DT,
     intensity_percentile: int | None = None,
     n_io_workers: int = NUM_IO_WORKERS,
@@ -75,8 +73,6 @@ def main(  # noqa: C901
         List of datasets or dataset collections to compute optical flow on.
     channel
         Imaging channel to load (``"BF"`` or ``"EGFP"``).
-    level
-        Zarr resolution level.
     max_dt
         Maximum temporal gap (inclusive).
     intensity_percentile
@@ -138,8 +134,8 @@ def main(  # noqa: C901
         load_dataframe_manifest,
         save_dataframe_manifest,
     )
-    from endo_pipeline.settings import DIMENSION_ORDER
     from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL, DIMENSION_ORDER
     from endo_pipeline.settings.optical_flow import (
         DEFAULT_OMP_NUM_THREADS,
         DEFAULT_OPENBLAS_NUM_THREADS,
@@ -210,7 +206,6 @@ def main(  # noqa: C901
     )
     optical_flow_manifest.parameters = {
         "channel": channel,
-        "level": level,
         "max_dt": max_dt,
         "crop_pattern": crop_pattern,
         "intensity_percentile": intensity_pctl,
@@ -289,7 +284,9 @@ def main(  # noqa: C901
                 dataset_config,
                 position,
             )
-            image_dask = load_image(zarr_path, channels=[channel], level=level, compute=False)
+            image_dask = load_image(
+                zarr_path, channels=[channel], level=DIFFAE_ZARR_RESOLUTION_LEVEL, compute=False
+            )
             z_axis = DIMENSION_ORDER.index("Z")
             z_projection = (
                 da.log(image_dask.std(axis=z_axis) + 1e-12)
