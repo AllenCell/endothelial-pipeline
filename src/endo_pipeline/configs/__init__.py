@@ -41,7 +41,6 @@ from .dataset_config_utils import (
     get_unannotated_positions,
     get_unannotated_timepoints_for_position,
     make_filtered_dataset_collection,
-    validate_filtered_dataset_collection,
 )
 from .model_config import CytoDLModelConfig
 from .model_config_io import get_model_config_dir, load_model_config
@@ -90,5 +89,4 @@ __all__ = [
     "save_dataset_config",
     "validate_all_dataset_configs",
     "validate_dataset_config",
-    "validate_filtered_dataset_collection",
 ]

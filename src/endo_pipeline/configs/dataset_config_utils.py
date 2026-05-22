@@ -15,7 +15,6 @@ from endo_pipeline.configs import (
     ShearStressRegime,
     TimepointAnnotation,
     load_all_dataset_configs,
-    load_dataset_collection_config,
 )
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
@@ -365,31 +364,3 @@ def make_filtered_dataset_collection(
     )
 
     return dataset_collection
-
-
-def validate_filtered_dataset_collection(
-    sample_type: SampleType | None = None,
-    objective: ObjectiveType | None = None,
-    microscope: MicroscopeType | None = None,
-) -> None:
-    """Validate dataset collection filtered by sample type, objective, and microscope."""
-
-    collection_name = "null"
-    generated_collection = make_filtered_dataset_collection(sample_type, objective, microscope)
-    loaded_collection = load_dataset_collection_config(collection_name)
-
-    if sorted(loaded_collection.datasets) != sorted(generated_collection.datasets):
-        logger.error(
-            "Generated dataset collection [ %s ] does not match loaded dataset collection",
-            collection_name,
-        )
-        logger.info(
-            "Generated dataset collection [ %s ] contains datasets [ %s ]",
-            collection_name,
-            " | ".join(generated_collection.datasets),
-        )
-        logger.info(
-            "Loaded dataset collection [ %s ] contains datasets [ %s ]",
-            collection_name,
-            " | ".join(loaded_collection.datasets),
-        )
