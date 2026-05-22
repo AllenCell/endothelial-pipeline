@@ -8,7 +8,6 @@ parameters:
   crop_pattern: grid
   intensity_percentile: 0
   attachment: 2.5
-  compute_radial_coherence: true
   ema_alphas: [0.1]
   speed_threshold: 1.0
   annotations_excluded: []

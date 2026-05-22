@@ -376,7 +376,6 @@ def plot_tracked_crop_coherence_timeseries(
     position: int,
     out_dir,
     ema_alphas: list[float] | tuple[float, ...] = (0.1,),
-    compute_radial_coherence: bool = False,
     max_crops: int = 2,
     max_dt: int = 1,
 ) -> None:
@@ -403,8 +402,6 @@ def plot_tracked_crop_coherence_timeseries(
         Directory where the PNG figure is saved.
     ema_alphas
         EMA alpha values used for smoothing (for column name generation).
-    compute_radial_coherence
-        Whether radial coherence columns are present.
     max_crops
         Maximum number of tracked crops to plot.
     max_dt
@@ -460,15 +457,14 @@ def plot_tracked_crop_coherence_timeseries(
             ema_fast.append((ema_col, f"EMA \u03b1={alpha}"))
         metric_groups.append((raw_fast, f"Fast Coherence (speed > thr, dt={d})", ema_fast))
 
-        # 3) Radial coherence (if enabled)
-        if compute_radial_coherence:
-            raw_rad = f"optical_flow_radial_coherence{dt_tag}"
-            ema_rad = []
-            for alpha in ema_alphas:
-                atag = str(alpha).replace(".", "")
-                ema_col = f"ema{atag}_optical_flow_radial_coherence{dt_tag}"
-                ema_rad.append((ema_col, f"EMA \u03b1={alpha}"))
-            metric_groups.append((raw_rad, f"Radial Coherence (dt={d})", ema_rad))
+        # 3) Radial coherence
+        raw_rad = f"optical_flow_radial_coherence{dt_tag}"
+        ema_rad = []
+        for alpha in ema_alphas:
+            atag = str(alpha).replace(".", "")
+            ema_col = f"ema{atag}_optical_flow_radial_coherence{dt_tag}"
+            ema_rad.append((ema_col, f"EMA \u03b1={alpha}"))
+        metric_groups.append((raw_rad, f"Radial Coherence (dt={d})", ema_rad))
 
     # Filter to metric groups whose raw column actually exists
     metric_groups = [(r, lbl, e) for r, lbl, e in metric_groups if r in df.columns]

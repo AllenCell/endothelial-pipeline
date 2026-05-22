@@ -61,7 +61,6 @@ def add_optical_flow_features(
     merge_columns_ = merge_columns or list(OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS)
     optical_flow_feature_columns_ = optical_flow_feature_columns or build_optical_flow_feature_cols(
         max_dt=1,
-        compute_radial_coherence=True,
     )
     required_columns = merge_columns_ + optical_flow_feature_columns_
     check_required_columns_in_dataframe(df, merge_columns_)

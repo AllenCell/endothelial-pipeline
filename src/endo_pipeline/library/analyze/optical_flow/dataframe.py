@@ -19,15 +19,8 @@ from endo_pipeline.settings.optical_flow import (
 # ---------------------------------------------------------------------------
 # Feature column helpers
 # ---------------------------------------------------------------------------
-def build_ema_stems(
-    compute_radial_coherence: bool = False,
-) -> list[str]:
+def build_ema_stems() -> list[str]:
     """Return the list of EMA stem names for the enabled coherence features.
-
-    Parameters
-    ----------
-    compute_radial_coherence
-        If True, include radial coherence stems.
 
     Returns
     -------
@@ -36,14 +29,12 @@ def build_ema_stems(
     """
     stems: list[str] = list(OPTICAL_FLOW_EMA_STEMS)
     stems += OPTICAL_FLOW_EMA_FAST_STEMS
-    if compute_radial_coherence:
-        stems += OPTICAL_FLOW_EMA_RADIAL_STEMS
+    stems += OPTICAL_FLOW_EMA_RADIAL_STEMS
     return stems
 
 
 def build_optical_flow_feature_cols(
     max_dt: int,
-    compute_radial_coherence: bool = False,
     ema_alphas: Sequence[float] = DEFAULT_EMA_ALPHAS,
 ) -> list[str]:
     """Return all optical-flow column names for dt = 1..max_dt.
@@ -55,7 +46,6 @@ def build_optical_flow_feature_cols(
 
     * Core features (always included) — from
       :data:`~endo_pipeline.settings.optical_flow.OPTICAL_FLOW_COMPUTE_FEATURES`.
-    * Radial-coherence features — included when *compute_radial_coherence* is True.
     * EMA-smoothed columns — ``ema{tag}_{stem}_dt{d}`` for each alpha in
       *ema_alphas* and each enabled coherence stem.
 
@@ -63,9 +53,6 @@ def build_optical_flow_feature_cols(
     ----------
     max_dt
         Maximum temporal gap (inclusive).
-    compute_radial_coherence
-        If True, include radial coherence column names and their
-        EMA-smoothed variants.
     ema_alphas
         EMA smoothing alpha values.  Defaults to
         :data:`~endo_pipeline.settings.optical_flow.DEFAULT_EMA_ALPHAS`.
@@ -78,11 +65,10 @@ def build_optical_flow_feature_cols(
     # --- raw (non-EMA) features ---
     features: list[str] = list(OPTICAL_FLOW_COMPUTE_FEATURES)
     features += OPTICAL_FLOW_FAST_FEATURES
-    if compute_radial_coherence:
-        features += OPTICAL_FLOW_RADIAL_FEATURES
+    features += OPTICAL_FLOW_RADIAL_FEATURES
 
     # --- EMA-smoothed coherence columns ---
-    ema_stems = build_ema_stems(compute_radial_coherence)
+    ema_stems = build_ema_stems()
 
     ema_features: list[str] = []
     for alpha in ema_alphas:
