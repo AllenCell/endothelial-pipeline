@@ -35,9 +35,16 @@ def main(num_processes: int = 1) -> None:
     from cellpose import models, train
     from cellpose.io import logger_setup
 
-    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE, UPLOAD_TO_FMS
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import get_output_path, load_image, load_model, make_name_unique
+    from endo_pipeline.io import (
+        build_fms_annotations,
+        get_output_path,
+        load_image,
+        load_model,
+        make_name_unique,
+        upload_file_to_fms,
+    )
     from endo_pipeline.library.process.general_image_preprocessing import build_analysis_queue
     from endo_pipeline.library.process.lib_nuc_pred_from_bf_std_retraining import (
         load_train_and_test_images,
@@ -46,11 +53,12 @@ def main(num_processes: int = 1) -> None:
     )
     from endo_pipeline.manifests import (
         ModelLocation,
+        create_model_manifest,
         get_zarr_location_for_position,
-        load_model_manifest,
         save_model_manifest,
     )
     from endo_pipeline.settings import DIMENSION_ORDER
+    from endo_pipeline.settings.workflow_defaults import LABELFREE_NUCLEI_MODEL_MANIFEST_NAME
 
     logger = logging.getLogger(__name__)
 
@@ -129,10 +137,24 @@ def main(num_processes: int = 1) -> None:
         plt.close(fig)
 
     # save the model to the model manifest
-    model_manifest = load_model_manifest("nuc_pred_labelfree")
+    model_manifest = create_model_manifest(
+        manifest_name=LABELFREE_NUCLEI_MODEL_MANIFEST_NAME, workflow_name="retrain_cellpose"
+    )
     model_location = ModelLocation(path=model_path)
     model_manifest.locations[model_name] = model_location
+    model_manifest.parameters["training_datasets"] = datasets_to_use
     save_model_manifest(model_manifest)
+
+    # upload to FMS if desired; note that this will always be false to the general public
+    if UPLOAD_TO_FMS:
+        annotations = build_fms_annotations(
+            dataset=[load_dataset_config(dataset) for dataset in datasets_to_use],
+            model_manifest=model_manifest,
+            run_name=model_name,
+        )
+        fmsid = upload_file_to_fms(model_path, annotations=annotations, file_type="model")
+        model_manifest.locations[model_name] = ModelLocation(fmsid=fmsid)
+        save_model_manifest(model_manifest)
 
     # generate a test image to see how the model performs
     # on a live example that it has never seen
