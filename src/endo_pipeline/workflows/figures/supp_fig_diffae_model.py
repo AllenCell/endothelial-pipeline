@@ -59,12 +59,9 @@ def main() -> None:
 
     logger = logging.getLogger(__name__)
 
-    # Path of the cdh5-conditioned panel-A SVG, captured inside the per-model loop
-    # below so the final ``build_figure_from_panels`` call can composite it with
-    # panel B.  Panel A is rendered for both models so the baseline iteration
-    # still triggers ``create_model_training_schematic_images`` (a side effect
-    # consumed by figure 2), but only the cdh5 contact sheet enters the supp
-    # figure.
+    # Both models are rendered (each contact sheet is its own figure asset);
+    # only the cdh5-conditioned panel-A SVG path is captured here for use as
+    # panel A in this supp figure's composite below.
     panel_a_svg_path = None
 
     for model_manifest_name in ["diffae_baseline_exclude_cell_piling", "diffae_cdh5_conditioned"]:
