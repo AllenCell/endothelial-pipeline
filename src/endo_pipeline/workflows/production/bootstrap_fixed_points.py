@@ -192,10 +192,8 @@ def main(
     baseline_fixed_point_manifest = load_dataframe_manifest(baseline_fixed_point_manifest_name)
 
     # load or initialize dataframe manifest for bootstrap results
-    demo_suffix = "_demo" if DEMO_MODE else ""
-    bootstrap_results_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}{demo_suffix}"
-    )
+    name_suffix = f"_{crop_pattern}_demo" if DEMO_MODE else f"_{crop_pattern}"
+    bootstrap_results_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}{name_suffix}"
     bootstrap_results_manifest = create_dataframe_manifest(
         bootstrap_results_manifest_name, workflow_name=__file__
     )
@@ -224,15 +222,20 @@ def main(
         )
         bin_widths.append(BIN_WIDTHS_DYNAMICS[column_name])
 
-    # add parameters to the output manifest for traceability
-    column_names_yaml_safe = [f"{column}" for column in column_names]
+    # Add workflow parameters to the output manifest for traceability
     bootstrap_results_manifest.parameters = {
-        "model_manifest_name": model_manifest_name,
-        "run_name": run_name,
+        "model_manifest_name": DEFAULT_MODEL_MANIFEST_NAME,
+        "run_name": DEFAULT_MODEL_RUN_NAME,
         "crop_pattern": crop_pattern,
-        "columns": column_names_yaml_safe,
-        "kernel_names": [kernel.name for kernel in kernels],
-        "kernel_bandwidths": [kernel.bandwidth for kernel in kernels],
+        "kernels": [
+            {
+                "column": str(column),
+                "name": kernel.name,
+                "bandwidth": kernel.bandwidth,
+                "period": kernel.period,
+            }
+            for column, kernel in zip(column_names, kernels, strict=False)
+        ],
         "bin_widths": bin_widths,
         "num_bootstrap_iterations": num_bootstrap_iterations,
     }
