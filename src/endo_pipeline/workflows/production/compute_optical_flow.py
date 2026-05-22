@@ -88,7 +88,6 @@ def main(  # noqa: C901
     )
     from endo_pipeline.library.analyze.optical_flow import (
         build_image_pair_crops_for_grid,
-        build_optical_flow_feature_cols,
         compute_image_pair_flow,
         plot_demo_summary,
         plot_tracked_crop_coherence_timeseries,
@@ -147,25 +146,6 @@ def main(  # noqa: C901
     attachment = OPTICAL_FLOW_CHANNEL_ATTACHMENT[channel]
     image_loader = load_bf_std_dev_image if channel == "BF" else load_egfp_image
 
-    flow_columns = build_optical_flow_feature_cols(
-        max_dt,
-        ema_alphas=ema_alphas,
-    )
-    is_bf = channel == "BF"
-
-    logger.info(
-        "Optical-flow extraction --> crop_pattern=%s | dt=1..%d "
-        "| percentile=%d | attachment=%.1f | channel=%s "
-        "| ema_alphas=%s | speed_threshold=%.2f",
-        crop_pattern,
-        max_dt,
-        intensity_percentile,
-        attachment,
-        channel,
-        ema_alphas,
-        speed_threshold,
-    )
-
     # Load dataframe with DiffAE feature metadata (no filtering yet) to get crop
     # coordinates and timepoints for each dataset/position.
     feature_dataframe_manifest_name = FEATURES_UNFILTERED_MANIFEST_NAMES[crop_pattern]
@@ -195,9 +175,8 @@ def main(  # noqa: C901
     # set output directory for dataframes
     output_dir = get_output_path("optical_flow", "dataframes")
 
-    for dataset_idx, dataset_name in enumerate(datasets, 1):
-        dataset_start = time.time()
-        logger.info("Dataset %d/%d: %s", dataset_idx, len(datasets), dataset_name)
+    for dataset_name in datasets:
+        logger.info("Starting optical flow computation for dataset '%s'", dataset_name)
 
         dataset_config = load_dataset_config(dataset_name)
         df_dataset = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
@@ -219,12 +198,17 @@ def main(  # noqa: C901
 
             valid_timepoint_set = set(valid_timepoints)
 
+            # Filter dataframe down to selected position and timepoint
             df_position = df_dataset_[
                 (df_dataset_[Column.POSITION] == position)
                 & (df_dataset_[Column.TIMEPOINT].isin(valid_timepoints))
             ].copy()
+
+            # If there are no crops for the given position and timepoints, skip
             if df_position.empty:
                 continue
+
+            # Add dataset name to dataframe
             df_position[Column.DATASET] = dataset_name
 
             # For tracked crops, build a per-timepoint crop lookup dict
@@ -323,23 +307,14 @@ def main(  # noqa: C901
                     max_dt=max_dt,
                 )
 
-            logger.info(
-                "Position %d done in %.1fs for %d records",
-                position,
-                time.time() - position_start,
-                len(records),
-            )
             dataset_parts.append(df_position)
 
-        # if list is not empty, concat, save, and optionally upload before
-        # moving to the next dataset
         if dataset_parts:
             df_dataset_out = pd.concat(dataset_parts, ignore_index=True)
             parquet_path = make_name_unique(
                 output_dir / f"{dataset_name}_optical_flow_dataframe.parquet"
             )
             df_dataset_out.to_parquet(parquet_path, index=False)
-            logger.info("Saved parquet locally to [ %s ]", parquet_path)
             # If upload_to_fms is True, upload the parquet file to FMS and
             # register the FMS ID in the manifest; otherwise, register the local
             # path in the manifest
@@ -360,7 +335,8 @@ def main(  # noqa: C901
                 # accessible for downstream workflows
                 optical_flow_manifest.locations[dataset_name] = DataframeLocation(path=parquet_path)
             save_dataframe_manifest(optical_flow_manifest)
-        logger.info("Dataset done in [ %.1fs ]", time.time() - dataset_start)
+
+        logger.info("Finished computing optical flow for dataset '%s'", dataset_name)
 
 
 if __name__ == "__main__":
