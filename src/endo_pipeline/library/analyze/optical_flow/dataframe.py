@@ -8,27 +8,8 @@ from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.optical_flow import (
     DEFAULT_EMA_ALPHAS,
     OPTICAL_FLOW_BASE_FEATURES,
-    OPTICAL_FLOW_EMA_FAST_STEMS,
-    OPTICAL_FLOW_EMA_RADIAL_STEMS,
     OPTICAL_FLOW_EMA_STEMS,
 )
-
-
-# ---------------------------------------------------------------------------
-# Feature column helpers
-# ---------------------------------------------------------------------------
-def build_ema_stems() -> list[str]:
-    """Return the list of EMA stem names for the enabled coherence features.
-
-    Returns
-    -------
-    :
-        Stem names suitable for building ``ema{tag}_{stem}_dt{d}`` columns.
-    """
-    stems: list[str] = list(OPTICAL_FLOW_EMA_STEMS)
-    stems += OPTICAL_FLOW_EMA_FAST_STEMS
-    stems += OPTICAL_FLOW_EMA_RADIAL_STEMS
-    return stems
 
 
 def build_optical_flow_feature_cols(
@@ -57,7 +38,7 @@ def build_optical_flow_feature_cols(
     features = OPTICAL_FLOW_BASE_FEATURES
 
     # --- EMA-smoothed coherence columns ---
-    ema_stems = build_ema_stems()
+    ema_stems = OPTICAL_FLOW_EMA_STEMS
 
     ema_features: list[str] = []
     for alpha in ema_alphas:

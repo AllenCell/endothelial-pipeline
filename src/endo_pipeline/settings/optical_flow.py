@@ -81,23 +81,13 @@ OPTICAL_FLOW_BASE_FEATURES: list[str] = [
 ]
 """List of compute optical flow features."""
 
-# EMA coherence feature stems (the alpha tag and _dt suffix are added
-# dynamically in the workflow and in :func:`build_optical_flow_feature_cols`).
 OPTICAL_FLOW_EMA_STEMS: list[str] = [
     ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_BASE,
-]
-"""Base coherence feature names that always receive EMA smoothing."""
-
-OPTICAL_FLOW_EMA_FAST_STEMS: list[str] = [
     ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_FAST_BASE,
-]
-"""Coherence feature names that receive EMA smoothing only when fast coherence is enabled."""
-
-OPTICAL_FLOW_EMA_RADIAL_STEMS: list[str] = [
     ColumnName.OpticalFlow.RADIAL_COHERENCE_BASE,
     ColumnName.OpticalFlow.RADIAL_COHERENCE_WEIGHTED_BASE,
 ]
-"""Coherence feature names that receive EMA smoothing only when radial coherence is enabled."""
+"""List of optical flow feature stems that receive EMA smoothing."""
 
 # ---------------------------------------------------------------------------
 # Default CLI flag values

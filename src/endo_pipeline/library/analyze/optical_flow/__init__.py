@@ -14,18 +14,12 @@ visualization  Matplotlib diagnostic plots.
 """
 
 from .compute import compute_crop_flow, compute_image_pair_flow
-from .dataframe import (
-    build_crop_grid,
-    build_ema_stems,
-    build_optical_flow_feature_cols,
-    pivot_flow_records,
-)
+from .dataframe import build_crop_grid, build_optical_flow_feature_cols, pivot_flow_records
 from .params import resolve_attachment, resolve_percentile
 from .visualization import plot_demo_summary, plot_tracked_crop_coherence_timeseries
 
 __all__ = [
     "build_crop_grid",
-    "build_ema_stems",
     "build_optical_flow_feature_cols",
     "compute_crop_flow",
     "compute_image_pair_flow",

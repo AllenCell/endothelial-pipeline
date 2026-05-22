@@ -123,7 +123,6 @@ def main(  # noqa: C901
     )
     from endo_pipeline.library.analyze.optical_flow import (
         build_crop_grid,
-        build_ema_stems,
         build_optical_flow_feature_cols,
         compute_image_pair_flow,
         pivot_flow_records,
@@ -148,6 +147,7 @@ def main(  # noqa: C901
         DEFAULT_OPTICAL_FLOW_MANIFEST_NAME,
         DEMO_MAX_TRACKED_CROPS_TO_PLOT,
         OPTICAL_FLOW_COLUMNS_TO_COMPUTE,
+        OPTICAL_FLOW_EMA_STEMS,
     )
     from endo_pipeline.settings.workflow_defaults import FEATURES_UNFILTERED_MANIFEST_NAMES
 
@@ -436,12 +436,10 @@ def main(  # noqa: C901
             # --- EMA smoothing of coherence metrics per crop ---
             df_position = df_position.sort_values([Column.CROP_INDEX, Column.TIMEPOINT])
 
-            ema_stems_to_smooth = build_ema_stems()
-
             for alpha in ema_alphas:
                 alpha_tag = str(alpha).replace(".", "")
                 for d in range(1, max_dt + 1):
-                    for stem in ema_stems_to_smooth:
+                    for stem in OPTICAL_FLOW_EMA_STEMS:
                         raw_col = f"{stem}_dt{d}"
                         ema_col = f"ema{alpha_tag}_{stem}_dt{d}"
                         if raw_col in df_position.columns:
