@@ -98,7 +98,9 @@ def main(  # noqa: C901
         OpticalFlowImagePair,
         calculate_optical_flow_intensity_threshold,
     )
-    from endo_pipeline.library.analyze.optical_flow.dataframe import build_tracked_crop_lookup_table
+    from endo_pipeline.library.analyze.optical_flow.dataframe import (
+        build_image_pair_crops_for_tracked,
+    )
     from endo_pipeline.library.visualize.supplemental_movies import (
         load_bf_std_dev_image,
         load_egfp_image,
@@ -127,8 +129,6 @@ def main(  # noqa: C901
     # Pin OpenMP to 1 thread per worker
     os.environ.setdefault("OMP_NUM_THREADS", DEFAULT_OMP_NUM_THREADS)
     os.environ.setdefault("OPENBLAS_NUM_THREADS", DEFAULT_OPENBLAS_NUM_THREADS)
-
-    is_tracked = crop_pattern == "tracked"
 
     datasets = datasets or get_datasets_in_collection(DEFAULT_OPTICAL_FLOW_COLLECTION)
 
@@ -167,12 +167,10 @@ def main(  # noqa: C901
         speed_threshold,
     )
 
-    # Load dataframe with diffae feature metadata (no filtering yet) to get crop
+    # Load dataframe with DiffAE feature metadata (no filtering yet) to get crop
     # coordinates and timepoints for each dataset/position.
     feature_dataframe_manifest_name = FEATURES_UNFILTERED_MANIFEST_NAMES[crop_pattern]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
-
-    # For tracked crops, we also need TRACK_ID, CROP_SIZE_X
     columns_to_compute = list(OPTICAL_FLOW_COLUMNS_TO_COMPUTE[crop_pattern])
 
     # Load or create optical flow manifest and set parameters before the loop so
@@ -232,10 +230,10 @@ def main(  # noqa: C901
 
             # For tracked crops, build a per-timepoint crop lookup dict
             # mapping timepoint -> (start_y, end_y, start_x, end_x, crop_ids)
-            # so that crop coordinates can change frame-to-frame.  For grid
+            # so that crop coordinates can change frame-to-frame. For grid
             # crops, the arrays are constant across all timepoints.
-            if is_tracked:
-                tracked_crops = build_tracked_crop_lookup_table(df_position)
+            if crop_pattern == "tracked":
+                get_crops_for_timepoint = build_image_pair_crops_for_tracked(df_position)
             else:
                 get_crops_for_timepoint = build_image_pair_crops_for_grid(df_position)
 

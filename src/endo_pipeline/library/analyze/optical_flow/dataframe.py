@@ -1,9 +1,10 @@
 """DataFrame wrangling — crop grids, pivoting, column names."""
 
-from collections.abc import Sequence, Callable
+from collections.abc import Callable, Sequence
 
 import pandas as pd
 
+from endo_pipeline.library.analyze.optical_flow.compute import OpticalFlowImagePairCrops
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.image_data import DIFFAE_DEFAULT_CROP_SIZE
 from endo_pipeline.settings.optical_flow import (
@@ -11,7 +12,6 @@ from endo_pipeline.settings.optical_flow import (
     OPTICAL_FLOW_BASE_FEATURES,
     OPTICAL_FLOW_EMA_STEMS,
 )
-from endo_pipeline.library.analyze.optical_flow.compute import OpticalFlowImagePairCrops
 
 
 def build_optical_flow_feature_cols(
@@ -51,22 +51,24 @@ def build_optical_flow_feature_cols(
     return [f"{f}_dt{d}" for d in range(1, max_dt + 1) for f in all_features]
 
 
-def build_tracked_crop_lookup_table(df: pd.DataFrame) -> dict[int, tuple]:
+def build_image_pair_crops_for_tracked(
+    df: pd.DataFrame,
+) -> Callable[[int], OpticalFlowImagePairCrops]:
     """
-    Build a per-timepoint crop lookup table mapping timepoint to coordinates.
+    Build image pair crop for tracked crops as a function of timepoint.
 
-    Coordinates are stored as: (start_y, end_y, start_x, end_x, crop_ids). This
-    mapping is necessary because crop coordinates changes between timepoints.
+    For tracked crops, crop coordinates change between timepoints. Return
+    callable is a wrapper around the dictionary mapping timepoint to crops.
 
     Parameters
     ----------
     df
-        Dataframe containing crop locations for each timepoint.
+        Dataframe containing grid-based features.
 
     Returns
     -------
     :
-        Map of timepoint to coordinate.
+        Callable for image pair crop tuple.
     """
 
     crop_size = int(
@@ -75,17 +77,18 @@ def build_tracked_crop_lookup_table(df: pd.DataFrame) -> dict[int, tuple]:
         else DIFFAE_DEFAULT_CROP_SIZE
     )
 
-    tracked_crops: dict[int, tuple] = {}
+    tracked_crops: dict[int, OpticalFlowImagePairCrops] = {}
 
     for t, grp in df.groupby(ColumnName.TIMEPOINT):
-        sx_ = grp[ColumnName.DiffAEData.START_X].values.astype(int)
-        sy_ = grp[ColumnName.DiffAEData.START_Y].values.astype(int)
-        ex_ = sx_ + crop_size
-        ey_ = sy_ + crop_size
-        ci_ = grp[ColumnName.CROP_INDEX].values
-        tracked_crops[int(t)] = (sy_, ey_, sx_, ex_, ci_)
+        ci_ = grp[ColumnName.CROP_INDEX].values.astype(int)
+        tracked_crops[int(t)] = OpticalFlowImagePairCrops(
+            start_x=grp[ColumnName.DiffAEData.START_X].values.astype(int),
+            start_y=grp[ColumnName.DiffAEData.START_Y].values.astype(int),
+            crop_indices=ci_,
+            crop_size=crop_size,
+        )
 
-    return tracked_crops
+    return lambda tp: tracked_crops[tp]
 
 
 # ---------------------------------------------------------------------------
@@ -130,7 +133,7 @@ def build_image_pair_crops_for_grid(df: pd.DataFrame) -> Callable[[int], Optical
         else DIFFAE_DEFAULT_CROP_SIZE
     )
 
-    return lambda _ : OpticalFlowImagePairCrops(
+    return lambda _: OpticalFlowImagePairCrops(
         start_x=crop_df[ColumnName.DiffAEData.START_X].values.astype(int),
         start_y=crop_df[ColumnName.DiffAEData.START_Y].values.astype(int),
         crop_indices=crop_df[ColumnName.CROP_INDEX].values.astype(int),
