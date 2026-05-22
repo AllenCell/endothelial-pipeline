@@ -127,6 +127,10 @@ def main() -> None:
     demo_suffix = "_demo" if DEMO_MODE else ""
     out_manifest_name = f"{DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_NAME}{demo_suffix}"
     out_manifest = create_dataframe_manifest(out_manifest_name, workflow_name=__file__)
+    # If a previous run produced this manifest (possibly under an older
+    # per-model schema), discard its locations so we write a clean
+    # single-combined-parquet manifest rather than merging stale entries.
+    out_manifest.locations.clear()
     out_manifest.parameters = {
         "num_seeds": num_seeds,
         "seeds": [int(s) for s in seeds_to_evaluate],
