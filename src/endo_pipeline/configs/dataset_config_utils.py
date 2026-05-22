@@ -336,20 +336,6 @@ def get_all_unannotated_timepoints(
     }
 
 
-def get_filtered_dataset_collection_description(
-    sample_type: SampleType | None = None,
-    objective: ObjectiveType | None = None,
-    microscope: MicroscopeType | None = None,
-) -> str:
-    """Get description of dataset collection with various filtered applied."""
-
-    description: list[str] = ["Collection of"]
-    description.append(f" {sample_type} datasets" if sample_type is not None else " datasets")
-    description.append(f" with {objective} objective" if objective is not None else "")
-    description.append(f" from the {microscope} microscope" if microscope is not None else ".")
-    return "".join(description)
-
-
 def make_filtered_dataset_collection(
     sample_type: SampleType | None = None,
     objective: ObjectiveType | None = None,
@@ -374,7 +360,7 @@ def make_filtered_dataset_collection(
 
     dataset_collection = DatasetCollectionConfig(
         name="null",
-        description=get_filtered_dataset_collection_description(sample_type, objective, microscope),
+        description="",
         datasets=sorted(dataset_collection_names),
     )
 
