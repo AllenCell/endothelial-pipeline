@@ -265,54 +265,29 @@ def main(  # noqa: C901
                 intensity_threshold,
             )
 
-            # Bind constant flow parameters once via partial.
-            _compute_flow = partial(
+            # Bind constant flow parameters once via partial
+            compute_image_pair_flow_partial = partial(
                 compute_image_pair_flow,
+                thresh=intensity_threshold,
                 attachment=attachment,
                 speed_threshold=speed_threshold,
             )
 
-            # Compute flow
             records: list[dict] = []
-            desc = f"{dataset_name} pos={position}"
-            if is_tracked:
-                desc += " (tracked)"
-            with ThreadPoolExecutor(max_workers=n_io_workers) as pool:
-                futures: dict = {}
-                for t0, t1, dt in frame_pairs:
-                    if is_tracked:
-                        crops = tracked_crops.get(t0)
-                        if crops is None:
-                            continue
-                        sy_, ey_, sx_, ex_, ci_ = crops
-                    else:
-                        sy_, ey_, sx_, ex_, ci_ = (
-                            start_y,
-                            end_y,
-                            start_x,
-                            end_x,
-                            crop_ids,
-                        )
-                    futures[
-                        pool.submit(
-                            _compute_flow,
-                            frame_cache[t0],
-                            frame_cache[t1],
-                            sy_,
-                            ey_,
-                            sx_,
-                            ex_,
-                            ci_,
-                            t0,
-                            dt,
-                            intensity_threshold,
-                        )
-                    ] = (t0, dt)
-                for future in tqdm(
-                    as_completed(futures),
-                    total=len(futures),
-                    desc=desc,
-                ):
+
+            with ThreadPoolExecutor(max_workers=num_workers) as pool:
+                futures = [
+                    pool.submit(
+                        compute_image_pair_flow_partial,
+                        frame_cache[image_pair.t0],
+                        frame_cache[image_pair.t1],
+                        image_pair,
+                        get_crops_for_timepoint(image_pair.t0),
+                    )
+                    for image_pair in image_pairs
+                ]
+
+                for future in tqdm(as_completed(futures), total=len(futures)):
                     records.extend(future.result())
 
             if visualize_optical_flow:
