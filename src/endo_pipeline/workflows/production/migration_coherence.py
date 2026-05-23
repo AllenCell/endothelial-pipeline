@@ -23,7 +23,6 @@ def main(
         If True, only the cross-dataset summary plots will be generated.
     """
     import logging
-    from typing import cast
 
     import matplotlib.pyplot as plt
     import pandas as pd
@@ -98,10 +97,8 @@ def main(
     feature_column_names = list(DYNAMICS_COLUMN_NAMES)
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid"], *feature_column_names]
 
-    columns_str = join_sorted_strings(cast(list[str], feature_column_names))
-    fixed_points_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{columns_str}_{base_name}"
-    )
+    name_suffix = f"_{join_sorted_strings(feature_column_names)}_{MIGRATION_COHERENCE_CROP_PATTERN}"
+    fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix}"
     fixed_points_dataframe_manifest = load_dataframe_manifest(fixed_points_dataframe_manifest_name)
 
     bootstrap_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}"

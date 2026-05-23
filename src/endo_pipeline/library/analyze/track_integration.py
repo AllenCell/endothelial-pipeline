@@ -364,11 +364,7 @@ def get_flow_field_and_fixed_points(
         dataset_name=dataset_name, model_manifest_name=model_manifest_name, run_name=run_name
     )
 
-    drift_df = load_drift_dataframe_for_dataset(
-        dataset_name=dataset_name,
-        model_manifest_name=model_manifest_name,
-        run_name=run_name,
-    )
+    drift_df = load_drift_dataframe_for_dataset(dataset_name=dataset_name)
 
     flow_field_dict = get_vector_field_as_dict_from_dataframe(drift_df, column_names)
 
