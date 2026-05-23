@@ -1,7 +1,7 @@
 from typing import Literal
 
-from endo_pipeline.cli import CropPattern, Datasets
-from endo_pipeline.settings.optical_flow import DEFAULT_OPTICAL_FLOW_MAX_DT
+from endo_pipeline.cli import CropPattern, Datasets, FloatList
+from endo_pipeline.settings.optical_flow import DEFAULT_EMA_ALPHAS, DEFAULT_OPTICAL_FLOW_MAX_DT
 
 
 def main(
@@ -9,6 +9,7 @@ def main(
     crop_pattern: CropPattern = "grid",
     channel: Literal["BF", "EGFP"] = "BF",
     max_dt: int = DEFAULT_OPTICAL_FLOW_MAX_DT,
+    ema_alphas: FloatList = list(DEFAULT_EMA_ALPHAS),
 ) -> None:
     """
     Visualize TVL1 optical flow features for crops.
@@ -33,6 +34,8 @@ def main(
         Imaging channel to use for computing features.
     max_dt
         Maximum temporal gap (inclusive).
+    ema_alphas
+        EMA smoothing alpha values for temporal coherence smoothing.
     """
 
     import logging
@@ -42,11 +45,14 @@ def main(
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe
-    from endo_pipeline.library.analyze.optical_flow import (
+    from endo_pipeline.library.analyze.optical_flow import (  # build_image_pair_crops_for_grid,; compute_image_pair_flow,; calculate_optical_flow_intensity_threshold,; build_image_pair_crops_for_tracked,; build_merged_optical_flow_dataframe,
         OpticalFlowImagePair,
         calculate_optical_flow_intensity_threshold,
     )
-    from endo_pipeline.library.visualize.optical_flow import plot_optical_flow_summary
+    from endo_pipeline.library.visualize.optical_flow import (
+        plot_optical_flow_coherence_over_time,
+        plot_optical_flow_summary,
+    )
     from endo_pipeline.library.visualize.supplemental_movies import (
         load_bf_std_dev_image,
         load_egfp_image,
@@ -56,6 +62,7 @@ def main(
     from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL
     from endo_pipeline.settings.optical_flow import (
         DEFAULT_OPTICAL_FLOW_COLLECTION,
+        DEMO_MAX_TRACKED_CROPS_TO_PLOT,
         OPTICAL_FLOW_CHANNEL_ATTACHMENT,
         OPTICAL_FLOW_CHANNEL_PERCENTILE,
         OPTICAL_FLOW_MANIFEST_NAME_PREFIX,
@@ -68,7 +75,7 @@ def main(
     datasets = datasets or get_datasets_in_collection(DEFAULT_OPTICAL_FLOW_COLLECTION)
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one dataset, one position, and 10 timepoints")
+        logger.warning("DEMO_MODE - Limiting to one dataset and one position")
         datasets = datasets[:1]
         max_positions = 1
     else:
@@ -149,6 +156,16 @@ def main(
                 output_dir=output_path,
                 attachment=attachment,
                 thresh=intensity_threshold,
+            )
+
+            # Plot optical flow coherence over time
+            plot_optical_flow_coherence_over_time(
+                df_position,
+                output_name=output_name,
+                output_dir=output_path,
+                ema_alphas=ema_alphas,
+                max_crops=DEMO_MAX_TRACKED_CROPS_TO_PLOT,
+                max_dt=max_dt,
             )
 
 

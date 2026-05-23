@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Sequence
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -9,7 +10,7 @@ from matplotlib.patches import Patch
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.optical_flow import OpticalFlowImagePair, compute_tvl1
 from endo_pipeline.settings.column_names import ColumnName
-from endo_pipeline.settings.optical_flow import QUIVER_GRID_DIVISIONS
+from endo_pipeline.settings.optical_flow import DEFAULT_EMA_ALPHAS, QUIVER_GRID_DIVISIONS
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
@@ -54,8 +55,6 @@ def plot_optical_flow_summary(
         Plot output name.
     output_dir
         Plot output directory.
-    attachment
-        TVL1 attachment (lambda) value.
     attachment
         TVL1 data-fidelity weight (λ).
     thresh
@@ -266,12 +265,11 @@ def plot_optical_flow_summary(
     )
 
 
-def plot_tracked_crop_coherence_timeseries(
-    df: pd.DataFrame,
-    ds_name: str,
-    position: int,
-    out_dir,
-    ema_alphas: list[float] | tuple[float, ...] = (0.1,),
+def plot_optical_flow_coherence_over_time(
+    feature_data: pd.DataFrame,
+    output_name: str,
+    output_dir: Path,
+    ema_alphas: Sequence[float] = DEFAULT_EMA_ALPHAS,
     max_crops: int = 2,
     max_dt: int = 1,
 ) -> None:
@@ -286,38 +284,29 @@ def plot_tracked_crop_coherence_timeseries(
 
     Parameters
     ----------
-    df
-        Merged position DataFrame with flow features and EMA columns
-        already computed.  Must contain ``crop_index``, ``frame_number``,
-        and the relevant flow feature columns.
-    ds_name
-        Dataset name for figure title and filename.
-    position
-        Integer position index.
-    out_dir
-        Directory where the PNG figure is saved.
+    feature_data
+        Optical flow feature data.
+    output_name
+        Plot output name.
+    output_dir
+        Plot output directory.
     ema_alphas
         EMA alpha values used for smoothing (for column name generation).
     max_crops
-        Maximum number of tracked crops to plot.
+        Maximum number of crops to plot.
     max_dt
         Maximum temporal gap to plot.
     """
-    from pathlib import Path
-
-    import matplotlib.pyplot as plt
-
-    out_dir = Path(out_dir)
 
     crop_col = ColumnName.CROP_INDEX
     time_col = ColumnName.TIMEPOINT
 
-    if crop_col not in df.columns or time_col not in df.columns:
+    if crop_col not in feature_data.columns or time_col not in feature_data.columns:
         logger.warning("Missing %s or %s columns — skipping time series plot", crop_col, time_col)
         return
 
     # Select crops with the longest tracks
-    crop_lengths = df.groupby(crop_col)[time_col].nunique().sort_values(ascending=False)
+    crop_lengths = feature_data.groupby(crop_col)[time_col].nunique().sort_values(ascending=False)
     selected_crops = crop_lengths.head(max_crops).index.tolist()
     if not selected_crops:
         logger.warning("No tracked crops found — skipping time series plot")
@@ -363,7 +352,7 @@ def plot_tracked_crop_coherence_timeseries(
         metric_groups.append((raw_rad, f"Radial Coherence (dt={d})", ema_rad))
 
     # Filter to metric groups whose raw column actually exists
-    metric_groups = [(r, lbl, e) for r, lbl, e in metric_groups if r in df.columns]
+    metric_groups = [(r, lbl, e) for r, lbl, e in metric_groups if r in feature_data.columns]
     if not metric_groups:
         logger.warning("No coherence columns found in dataframe — skipping time series plot")
         return
@@ -377,6 +366,7 @@ def plot_tracked_crop_coherence_timeseries(
         facecolor="white",
         squeeze=False,
         sharex=True,
+        layout="constrained",
     )
 
     # Use the colour cycle from the active style so that this respects
@@ -389,7 +379,7 @@ def plot_tracked_crop_coherence_timeseries(
 
         for ci, crop_id in enumerate(selected_crops):
             color = prop_cycle[ci % len(prop_cycle)]
-            df_crop = df[df[crop_col] == crop_id].sort_values(time_col)
+            df_crop = feature_data[feature_data[crop_col] == crop_id].sort_values(time_col)
             t = df_crop[time_col].values
 
             # Raw (thin, more transparent)
@@ -433,19 +423,16 @@ def plot_tracked_crop_coherence_timeseries(
         )
 
     fig.suptitle(
-        f"Tracked Crop Coherence Over Time : {ds_name} / pos {position}\n"
+        f"Crop Coherence Over Time: {output_name}\n"
         f"({n_crops} crops, EMA \u03b1 = {list(ema_alphas)})",
         fontsize=12,
         fontweight="bold",
     )
-    fig.tight_layout()
-    out_dir.mkdir(parents=True, exist_ok=True)
     save_plot_to_path(
         fig,
-        out_dir,
-        f"demo_tracked_coherence_timeseries_{ds_name}_{position}",
+        output_dir,
+        f"{output_name}_coherence_over_time",
         dpi=300,
-        show_and_close=False,
+        show_and_close=True,
+        tight_layout=False,
     )
-    logger.info("Saved tracked-crop coherence time series to %s", out_dir)
-    plt.close(fig)
