@@ -64,15 +64,14 @@ def plot_optical_flow_summary(
     rbar_col = ColumnName.OpticalFlow.UNIT_VECTOR_MEAN
 
     # Helper: plot one row (5 panels)
-    def _plot_row(axes, crop, pair, label):  # noqa: C901
-        # t0, t1 = int(row["t0"]), int(row["t1"])
+    def _plot_row(axes, crop, pair, label):
         t0 = pair.t0
         t1 = pair.t1
-        _sx = crop[ColumnName.DiffAEData.START_X]
-        _sy = crop[ColumnName.DiffAEData.START_Y]
-        _ex = crop[ColumnName.DiffAEData.END_X]
-        _ey = crop[ColumnName.DiffAEData.END_Y]
-        _cidx = crop[ColumnName.CROP_INDEX]
+        _sx = int(crop[ColumnName.DiffAEData.START_X])
+        _sy = int(crop[ColumnName.DiffAEData.START_Y])
+        _ex = int(crop[ColumnName.DiffAEData.END_X])
+        _ey = int(crop[ColumnName.DiffAEData.END_Y])
+        _cidx = int(crop[ColumnName.CROP_INDEX])
         cy, cx = _ey - _sy, _ex - _sx
 
         f0, f1 = image_cache[t0], image_cache[t1]

@@ -96,7 +96,7 @@ def main(
     pick_labels = ["COHERENT", "MEDIAN", "INCOHERENT"]
 
     for dataset_name in datasets:
-        logger.info("Starting optical flow computation for dataset '%s'", dataset_name)
+        logger.info("Starting optical flow visualization for dataset '%s'", dataset_name)
 
         dataset_config = load_dataset_config(dataset_name)
 
