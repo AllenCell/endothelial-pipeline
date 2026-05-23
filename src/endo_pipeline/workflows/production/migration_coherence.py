@@ -70,25 +70,18 @@ def main(
         METADATA_COLUMNS_TO_KEEP,
     )
     from endo_pipeline.settings.flow_field_dataframes import (
-        DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
+        BOOTSTRAPPING_MANIFEST_NAMES,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
     )
     from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
     from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
     from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
     from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
-    from endo_pipeline.settings.workflow_defaults import (
-        DEFAULT_MODEL_MANIFEST_NAME,
-        DEFAULT_MODEL_RUN_NAME,
-        FEATURES_FILTERED_MANIFEST_NAMES,
-    )
+    from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
 
     logger = logging.getLogger(__name__)
 
     # Load diffae features
-    base_name = (
-        f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{MIGRATION_COHERENCE_CROP_PATTERN}"
-    )
     feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[
         MIGRATION_COHERENCE_CROP_PATTERN
     ]
@@ -101,7 +94,7 @@ def main(
     fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix}"
     fixed_points_dataframe_manifest = load_dataframe_manifest(fixed_points_dataframe_manifest_name)
 
-    bootstrap_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}"
+    bootstrap_manifest_name = BOOTSTRAPPING_MANIFEST_NAMES[MIGRATION_COHERENCE_CROP_PATTERN]
     fixed_points_bootstrap_dataframe_manifest = load_dataframe_manifest(bootstrap_manifest_name)
 
     output_dir = get_output_path(__file__, dataset_summary_list)

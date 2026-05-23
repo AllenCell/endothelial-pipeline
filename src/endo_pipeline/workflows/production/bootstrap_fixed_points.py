@@ -15,7 +15,6 @@ from endo_pipeline.settings.bootstrap_fixed_points import (
 def main(
     crop_pattern: CropPattern = "grid",
     datasets: Datasets | None = None,
-    upload_to_fms: bool = False,
     num_bootstrap_iterations: Annotated[
         int, Parameter(name="--num-iterations")
     ] = NUM_BOOTSTRAP_ITERATIONS,
@@ -28,15 +27,13 @@ def main(
     bootstrap_ci_upper_percentile: Annotated[
         float, Parameter(name="--ci-upper")
     ] = FP_CI_UPPER_PERCENTILE,
-    num_workers: int | None = None,
+    num_workers: int | None = 1,
     batch_size_factor: float = BATCH_SIZE_SCALING_FACTOR,
 ) -> None:
     """
     Bootstrap fixed point confidence intervals by subsampling data.
 
-    #dynamics #bootstrap #fixed-points #confidence-intervals
-
-    **Matching scheme**
+    #dynamical-systems #fixed-points #grid-based #cell-centered
 
     For each bootstrap iteration, baseline fixed points are processed in row
     order and each is offered the closest unassigned bootstrap fixed point that
@@ -45,66 +42,74 @@ def main(
     yield no fixed points, or no fixed points within radius of a given baseline
     fixed point, are counted as misses for that baseline fixed point.
 
-    **Parallel processing**
-
-    The bootstrap iterations are parallelized across CPU cores using
-    `concurrent.futures.ProcessPoolExecutor`. The number of worker processes can
-    be set with `num_workers` (default is to use all available CPUs). The number
-    of bootstrap iterations assigned to each worker at a time (i.e., the
-    `chunksize` argument to `executor.map`) is determined by the
-    `batch_size_factor` parameter, which scales the number of batches relative
-    to the number of workers. A smaller `batch_size_factor` (i.e., larger batch
-    size) reduces overhead from queuing tasks but may lead to less even load
-    balancing if the time per iteration is variable.
-
-    **Output dataframe**
-
-    This workflow produces one dataframe per dataset, which gets saved as a
-    `.parquet` file. These dataframe files are tracked via a dataframe manifest
-    with prefix `DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING`. If `upload_to_fms` is
-    True, the dataframe files are uploaded to FMS and the dataframe location is
-    tracked in the manifest by FMS ID. Otherwise, the dataframe files are saved
-    locally and the manifest tracks the local file path.
-
     Each dataframe contains one row per baseline fixed point, with columns for:
 
-    - `dataset`: dataset identifier.
-    - `stability`: stability classification of the baseline fixed point.
-    - `{col}`: baseline coordinate for each feature column.
-    - `{col}_ci_lower`, `{col}_ci_upper`: lower / upper bootstrap CI bounds for
-      each coordinate (at percentiles `bootstrap_ci_lower_percentile` and
-      `bootstrap_ci_upper_percentile`).
-    - `bootstrap_detection_rate`: fraction of bootstrap samples in which a
-      matched fixed point was found within `bootstrap_match_radius`.
-    - `n_bootstrap_samples`: number of bootstrap iterations performed.
+    - `dataset` = dataset identifier
+    - `stability` = stability classification of the baseline fixed point
+    - `{col}` = baseline coordinate for each feature column
+    - `{col}_ci_lower` = lower bootstrap CI bounds for each coordinate at
+      percentile `bootstrap_ci_lower_percentile`
+    - `{col}_ci_upper` = upper bootstrap CI bounds for each coordinate at
+      percentiles `bootstrap_ci_upper_percentile`
+    - `bootstrap_detection_rate` =  fraction of bootstrap samples in which a
+      matched fixed point was found within `bootstrap_match_radius`
+    - `n_bootstrap_samples` = number of bootstrap iterations performed
+
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe bootstrap-fixed-points -vd
+    ```
+
+    To run the workflow for a single dataset:
+
+    ```bash
+    uv run endopipe bootstrap-fixed-points --datasets DATASET_NAME
+    ```
+
+    ## Parallel processing
+
+    The bootstrap iterations are parallelized across CPU cores using based on
+    requested number of worker processes. The number of bootstrap iterations
+    assigned to each worker at a time is determined by the `batch_size_factor`
+    parameter, which scales the number of batches relative to the number of
+    workers. A smaller `batch_size_factor` (i.e., larger batch size) reduces
+    overhead from queuing tasks but may lead to less even load balancing if the
+    time per iteration is variable.
+
+    ## Dataset collection
+
+    If datasets are not provided, the workflow will use datasets in the
+    `diffae_model_training` dataset collection.
+
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will perform
+    bootstrapping on the first dataset with at most 10 bootstrap iterations.
 
     Parameters
     ----------
     crop_pattern
-        The crop pattern to use features from.
+        Crop pattern used to calculate the features.
     datasets
-        Optional, specific dataset(s) to run the workflow on.
-    upload_to_fms
-        If true, upload results dataframe to FMS. If False, save locally only.
+        List of datasets or dataset collections to bootstrap fixed points for.
     num_bootstrap_iterations
         Number of bootstrap iterations to perform for each dataset.
     bootstrap_match_radius
         Maximum distance in feature space for a bootstrap fixed point to be
         considered a match to a given baseline fixed point in each iteration.
     bootstrap_ci_lower_percentile
-        Percentile used for defining the lower bound of the bootstrap confidence
-        intervals.
+        Percentile defining lower bound of the bootstrap confidence intervals.
     bootstrap_ci_upper_percentile
-        Percentile used for defining the upper bound of the bootstrap confidence
-        intervals.
+        Percentile defining upper bound of the bootstrap confidence intervals.
     num_workers
-        Number of worker processes to use for parallel bootstrap iterations. If
-        None, defaults to the number of CPUs available on the machine.
+        Number of worker processes to use. If None, use all available.
     batch_size_factor
-        Factor used to determine the number of bootstrap iterations to include
-        in each batch for parallel processing.
-
+        Factor used to determine size of batch for parallel processing.
     """
+
     import logging
     import os
     from concurrent.futures import ProcessPoolExecutor
@@ -113,7 +118,7 @@ def main(
     import pandas as pd
     from tqdm import tqdm
 
-    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE, UPLOAD_TO_FMS
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import (
         build_fms_annotations,
@@ -140,8 +145,6 @@ def main(
     from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
     from endo_pipeline.manifests import (
         DataframeLocation,
-        ModelManifest,
-        build_dataframe_location_from_path,
         create_dataframe_manifest,
         load_dataframe_manifest,
         load_model_manifest,
@@ -154,9 +157,8 @@ def main(
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
         KERNEL_NAMES_DYNAMICS,
+        KERNEL_PERIODS_DYNAMICS,
         METADATA_COLUMNS_TO_KEEP,
-        POLAR_ANGLE_PERIOD,
-        RESCALE_THETA,
     )
     from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
     from endo_pipeline.settings.flow_field_dataframes import (
@@ -172,70 +174,65 @@ def main(
     )
 
     logger = logging.getLogger(__name__)
+
+    output_path = get_output_path(__file__)
+
     rng = np.random.default_rng(RANDOM_SEED)
 
-    model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
-    model_manifest: ModelManifest | None = None
-    if upload_to_fms:
-        model_manifest = load_model_manifest(model_manifest_name)
-    run_name = DEFAULT_MODEL_RUN_NAME
-    column_names: list[Column.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
+    column_names = list(DYNAMICS_COLUMN_NAMES)
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
-    base_name = f"{model_manifest_name}_{run_name}_{crop_pattern}"
+    # Get feature dataframe manifest for select grid pattern
     feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[crop_pattern]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
-    dataframe_savedir = get_output_path(__file__, crop_pattern)
     # get dataframe manifest for baseline results to match against in bootstrapping
     name_suffix = f"_{join_sorted_strings(column_names)}_{crop_pattern}"
     baseline_fixed_point_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix}"
     baseline_fixed_point_manifest = load_dataframe_manifest(baseline_fixed_point_manifest_name)
 
     # load or initialize dataframe manifest for bootstrap results
-    demo_suffix = "_demo" if DEMO_MODE else ""
-    bootstrap_results_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}{demo_suffix}"
-    )
+    name_suffix = f"_{crop_pattern}_demo" if DEMO_MODE else f"_{crop_pattern}"
+    bootstrap_results_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}{name_suffix}"
     bootstrap_results_manifest = create_dataframe_manifest(
         bootstrap_results_manifest_name, workflow_name=__file__
     )
-    logger.info("Bootstrap fixed point dataframes will be saved to: [ %s ]", dataframe_savedir)
 
     dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
+
     if DEMO_MODE:
-        logger.warning(
-            "DEMO MODE: Processing no more than two datasets and limiting"
-            " bootstrap iterations to <= 10 for quick testing."
-        )
-        num_datasets = min(len(dataset_names), 2)
-        dataset_names = dataset_names[:num_datasets]
+        logger.warning("DEMO MODE - Limiting to one dataset")
+        logger.warning("DEMO MODE - Limiting bootstrap iterations to <= 10")
+        dataset_names = dataset_names[:1]
         num_bootstrap_iterations = min(num_bootstrap_iterations, 10)
 
+    # Initialize kernels and bin widths for each selected column
     kernels: list[KramersMoyalKernel] = []
     bin_widths: list[float] = []
-    rescaled_theta_period = POLAR_ANGLE_PERIOD + np.pi * (1 - RESCALE_THETA)
-
-    polar_angle_period = (
-        rescaled_theta_period if Column.DiffAEData.POLAR_ANGLE in column_names else None
-    )
     for column_name in column_names:
-        name = KERNEL_NAMES_DYNAMICS[column_name]
-        bandwidth = KERNEL_BANDWIDTHS_DYNAMICS[column_name]
-        period = rescaled_theta_period if column_name == Column.DiffAEData.POLAR_ANGLE else None
-        bin_width = BIN_WIDTHS_DYNAMICS[column_name]
-        kernels.append(KramersMoyalKernel(name=name, bandwidth=bandwidth, period=period))
-        bin_widths.append(bin_width)
+        kernels.append(
+            KramersMoyalKernel(
+                name=KERNEL_NAMES_DYNAMICS[column_name],
+                bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_name],
+                period=KERNEL_PERIODS_DYNAMICS[column_name],
+            )
+        )
+        bin_widths.append(BIN_WIDTHS_DYNAMICS[column_name])
 
-    # add parameters to the output manifest for traceability
-    column_names_yaml_safe = [f"{column}" for column in column_names]
+    # Add workflow parameters to the output manifest for traceability
     bootstrap_results_manifest.parameters = {
-        "model_manifest_name": model_manifest_name,
-        "run_name": run_name,
+        "model_manifest_name": DEFAULT_MODEL_MANIFEST_NAME,
+        "run_name": DEFAULT_MODEL_RUN_NAME,
         "crop_pattern": crop_pattern,
-        "columns": column_names_yaml_safe,
-        "kernel_names": [kernel.name for kernel in kernels],
-        "kernel_bandwidths": [kernel.bandwidth for kernel in kernels],
+        "kernels": [
+            {
+                "column": str(column),
+                "name": kernel.name,
+                "bandwidth": kernel.bandwidth,
+                "period": kernel.period,
+            }
+            for column, kernel in zip(column_names, kernels, strict=False)
+        ],
         "bin_widths": bin_widths,
         "num_bootstrap_iterations": num_bootstrap_iterations,
     }
@@ -244,16 +241,17 @@ def main(
     for dataset_name in dataset_names:
         if dataset_name not in feature_dataframe_manifest.locations:
             logger.warning(
-                "No feature dataframe found in manifest [ %s ] for dataset [ %s ]. Skipping.",
-                feature_dataframe_manifest_name,
+                "Dataset '%s' not found in manifest '%s'. Skipping.",
                 dataset_name,
+                feature_dataframe_manifest_name,
             )
             continue
-        elif dataset_name not in baseline_fixed_point_manifest.locations:
-            logger.info(
-                "No baseline fixed point dataframe found in manifest [ %s ] for dataset [ %s ]. Skipping.",
-                baseline_fixed_point_manifest_name,
+
+        if dataset_name not in baseline_fixed_point_manifest.locations:
+            logger.warning(
+                "Dataset '%s' not found in manifest '%s'. Skipping.",
                 dataset_name,
+                feature_dataframe_manifest_name,
             )
             continue
 
@@ -318,8 +316,10 @@ def main(
                 n_available_cpus = len(os.sched_getaffinity(0))
             except AttributeError:  # Windows
                 n_available_cpus = os.cpu_count() or 1
+
             n_workers = num_workers or n_available_cpus
             blas_threads_per_worker = max(1, n_available_cpus // n_workers)
+
             # Choose a chunksize that avoids both excessive queue overhead (too
             # small) and uneven load balancing (too large).
             batch_size = max(1, num_bootstrap_iterations // (n_workers * batch_size_factor))
@@ -372,7 +372,6 @@ def main(
                 baseline_fixed_points=fixed_points_for_flow_condition,
                 bootstrap_fixed_points=bootstrap_fixed_points,
                 column_names=column_names,
-                polar_angle_period=polar_angle_period,
                 bootstrap_match_radius=bootstrap_match_radius,
             )
             bootstrap_results_df_flow = aggregate_bootstrapping_results(
@@ -380,7 +379,6 @@ def main(
                 matched_coords=matched_coords_flow,
                 column_names=column_names,
                 n_bootstrap=num_bootstrap_iterations,
-                polar_angle_period=polar_angle_period,
                 bootstrap_ci_lower_percentile=bootstrap_ci_lower_percentile,
                 bootstrap_ci_upper_percentile=bootstrap_ci_upper_percentile,
                 metadata_dict=metadata_dict,
@@ -391,37 +389,32 @@ def main(
         bootstrap_results_df = pd.concat(bootstrap_dataframe_list, ignore_index=True)
         # Save results, upload to FMS (if specified), and update manifest
         output_file_name = (
-            f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{dataset_name}{demo_suffix}.parquet"
+            f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{dataset_name}{name_suffix}.parquet"
         )
-        output_save_path = make_name_unique(dataframe_savedir / output_file_name)
+        output_save_path = make_name_unique(output_path / output_file_name)
         bootstrap_results_df.to_parquet(output_save_path)
         logger.info("Saved bootstrap fixed point CI dataframe locally to [ %s ].", output_save_path)
 
-        if upload_to_fms:
+        # Create location object with output path
+        location = bootstrap_results_manifest.locations.get(dataset_name, DataframeLocation())
+        location.path = output_save_path
+
+        # Upload to FMS (internal only) and replace local path with file id
+        if UPLOAD_TO_FMS:
             annotations = build_fms_annotations(
                 dataset_config,
-                model_manifest=model_manifest,
-                run_name=run_name,
+                model_manifest=load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME),
+                run_name=DEFAULT_MODEL_RUN_NAME,
                 additional_notes=FMS_ANNOTATION_NOTES_BOOTSTRAPPING,
             )
             fmsid = upload_file_to_fms(
                 output_save_path, annotations=annotations, file_type="parquet"
             )
-            bootstrap_results_manifest.locations[dataset_name] = DataframeLocation(fmsid=fmsid)
-            logger.info(
-                "Uploaded bootstrap fixed point CI dataframe for dataset [ %s ] to FMS "
-                "with FMS ID [ %s ].",
-                dataset_name,
-                fmsid,
-            )
-        elif (
-            bootstrap_results_manifest.locations.get(dataset_name) is None
-            or bootstrap_results_manifest.locations[dataset_name].fmsid is None
-        ):
-            bootstrap_results_manifest.locations[dataset_name] = build_dataframe_location_from_path(
-                output_save_path
-            )
+            location.fmsid = fmsid
+            location.path = None
 
+        # Add dataframe location to dataframe manifest and save
+        bootstrap_results_manifest.locations[dataset_name] = location
         save_dataframe_manifest(bootstrap_results_manifest)
 
 

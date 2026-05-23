@@ -80,24 +80,17 @@ def main(
     )
     from endo_pipeline.settings.flow_field_3d import FIGSIZE_2D_FLOW_FIELD, NROWS_2D_FLOW_FIELD
     from endo_pipeline.settings.flow_field_dataframes import (
-        DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
+        BOOTSTRAPPING_MANIFEST_NAMES,
         StabilityLabel,
     )
     from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, StabilityLegendHandle
     from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
-    from endo_pipeline.settings.workflow_defaults import (
-        DEFAULT_MODEL_MANIFEST_NAME,
-        DEFAULT_MODEL_RUN_NAME,
-    )
 
     logger = logging.getLogger(__name__)
 
-    model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
-    run_name = DEFAULT_MODEL_RUN_NAME
     column_names: list[Column.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
 
-    base_name = f"{model_manifest_name}_{run_name}_{crop_pattern}"
-    bootstrap_fp_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}"
+    bootstrap_fp_manifest_name = BOOTSTRAPPING_MANIFEST_NAMES[crop_pattern]
 
     # Flexible DEMO_MODE loading pattern: try without demo suffix first so this
     # workflow can visualise a full production run even when DEMO_MODE is set.
@@ -106,7 +99,7 @@ def main(
         bootstrap_fp_manifest = load_dataframe_manifest(bootstrap_fp_manifest_name)
     except FileNotFoundError:
         if DEMO_MODE:
-            fallback_name = f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}_demo"
+            fallback_name = f"{BOOTSTRAPPING_MANIFEST_NAMES[crop_pattern]}_demo"
             logger.warning(
                 "Bootstrap fixed point manifest [ %s ] not found; trying [ %s ].",
                 bootstrap_fp_manifest_name,

@@ -9,7 +9,7 @@ def main(
     """
     Generate drift vector field and estimate fixed points.
 
-    #dynamical-systems #grid-based #cell-centered
+    #dynamical-systems #fixed-points #grid-based #cell-centered
 
     This workflow generates the flow field based on the following features
     derived from evaluating the DiffAE model on specific patches of the data:

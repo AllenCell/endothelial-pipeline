@@ -1,4 +1,5 @@
 from enum import StrEnum
+from typing import Literal
 
 """Global constants and default settings for dataframe creation and processing in 3D flow field analysis."""
 
@@ -20,6 +21,14 @@ FMS_ANNOTATION_NOTES_FIXED_POINTS: str = (
 
 DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING: str = "bootstrapped_fixed_points"
 """Prefix for setting and getting dataframe manifest name for bootstrapped fixed point dataframes."""
+
+GRID_BASED_BOOTSTRAPPING_MANIFEST_NAME: str = f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_grid"
+"""Dataframe manifest name for grid-based bootstrapping results."""
+
+BOOTSTRAPPING_MANIFEST_NAMES: dict[Literal["grid", "tracked"], str] = {
+    "grid": GRID_BASED_BOOTSTRAPPING_MANIFEST_NAME,
+}
+"""Mapping of crop pattern to bootstrapping dataframe manifest name."""
 
 FMS_ANNOTATION_NOTES_BOOTSTRAPPING: str = (
     "Bootstrapped fixed points from 3D flow field analysis, including "
