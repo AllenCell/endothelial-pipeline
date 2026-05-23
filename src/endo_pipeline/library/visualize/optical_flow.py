@@ -1,105 +1,30 @@
 import logging
+from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy import stats as sp_stats
+from matplotlib.patches import Patch
 
 from endo_pipeline.io import save_plot_to_path
+from endo_pipeline.library.analyze.optical_flow import OpticalFlowImagePair, compute_tvl1
 from endo_pipeline.settings.column_names import ColumnName
-from endo_pipeline.settings.optical_flow import (
-    DEMO_SCAN_N_CROPS,
-    DEMO_SCAN_N_PAIRS,
-    QUIVER_GRID_DIVISIONS,
-)
+from endo_pipeline.settings.optical_flow import QUIVER_GRID_DIVISIONS
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
-
-from .compute import compute_tvl1
 
 logger = logging.getLogger(__name__)
 
 
-def _scan_crop_pairs(
-    cache: dict[int, np.ndarray],
-    crop_grid: pd.DataFrame,
-    thresh: float,
+def plot_optical_flow_summary(
+    crop_picks: list,
+    image_pairs: list[OpticalFlowImagePair],
+    pick_labels: list[str],
+    image_cache: dict[int, np.ndarray],
+    feature_data: pd.DataFrame,
+    output_name: str,
+    output_dir: Path,
     attachment: float,
-) -> pd.DataFrame:
-    """Subsample (crop, timepoint) pairs and compute R-bar for each.
-
-    Returns a DataFrame with columns ci_idx, crop, t0, t1, sx, sy, ex, ey,
-    circ_std, rbar — sorted by rbar descending.
-    """
-    sorted_tp = sorted(cache.keys())
-    cids = crop_grid[ColumnName.CROP_INDEX].values
-    sx_arr = crop_grid[ColumnName.DiffAEData.START_X].values.astype(int)
-    sy_arr = crop_grid[ColumnName.DiffAEData.START_Y].values.astype(int)
-    ex_arr = crop_grid[ColumnName.DiffAEData.END_X].values.astype(int)
-    ey_arr = crop_grid[ColumnName.DiffAEData.END_Y].values.astype(int)
-
-    crop_step = max(1, len(cids) // DEMO_SCAN_N_CROPS)
-    scan_cids = range(0, len(cids), crop_step)
-
-    all_pairs = [(sorted_tp[i], sorted_tp[i + 1]) for i in range(len(sorted_tp) - 1)]
-    pair_step = max(1, len(all_pairs) // DEMO_SCAN_N_PAIRS)
-    scan_pairs = all_pairs[::pair_step]
-
-    records: list[dict] = []
-    _image_flow_cache: dict[tuple[int, int], tuple[np.ndarray, np.ndarray]] = {}
-    for ci_idx in scan_cids:
-        _sx, _sy = int(sx_arr[ci_idx]), int(sy_arr[ci_idx])
-        _ex, _ey = int(ex_arr[ci_idx]), int(ey_arr[ci_idx])
-        _cidx = int(cids[ci_idx])
-        for t0, t1 in scan_pairs:
-            f0, f1 = cache[t0], cache[t1]
-            c0, c1 = f0[_sy:_ey, _sx:_ex], f1[_sy:_ey, _sx:_ex]
-
-            if (t0, t1) not in _image_flow_cache:
-                _image_flow_cache[(t0, t1)] = compute_tvl1(f0, f1, attachment=attachment)
-
-            uf_full, vf_full = _image_flow_cache[(t0, t1)]
-            uf, vf = uf_full[_sy:_ey, _sx:_ex], vf_full[_sy:_ey, _sx:_ex]
-
-            ang = np.arctan2(vf, uf)
-            sp_scan = np.sqrt(uf**2 + vf**2)
-            mask = (c0 > thresh) | (c1 > thresh)
-            cstd = float(sp_stats.circstd(ang[mask])) if mask.any() else float("nan")
-
-            nz_mask = mask & (sp_scan > 0)
-            if nz_mask.any():
-                unit_u = uf[nz_mask] / sp_scan[nz_mask]
-                unit_v = vf[nz_mask] / sp_scan[nz_mask]
-                rbar = float(np.sqrt(unit_u.mean() ** 2 + unit_v.mean() ** 2))
-            else:
-                rbar = float("nan")
-
-            records.append(
-                {
-                    "ci_idx": ci_idx,
-                    "crop": _cidx,
-                    "t0": t0,
-                    "t1": t1,
-                    "sx": _sx,
-                    "sy": _sy,
-                    "ex": _ex,
-                    "ey": _ey,
-                    "circ_std": cstd,
-                    "rbar": rbar,
-                }
-            )
-
-    scan_df = pd.DataFrame(records).dropna(subset=["rbar"])
-    return scan_df.sort_values("rbar", ascending=False).reset_index(drop=True)
-
-
-def plot_demo_summary(
-    cache: dict[int, np.ndarray],
-    crop_grid: pd.DataFrame,
-    ds_name: str,
-    position: int,
     thresh: float,
-    out_dir,
-    channel: list[str],
-    attachment: float = 7.5,
 ) -> None:
     """Produce a multi-crop diagnostic figure (up to 3 rows x 5 cols).
 
@@ -115,78 +40,45 @@ def plot_demo_summary(
 
     Parameters
     ----------
-    cache
+    crop_picks
+        List of crops to plot.
+    image_pairs
+        List of images pair timepoints and temporal strides.
+    pick_labels
+        Plot labels for each picked crop.
+    image_cache
         Mapping from timepoint index to its 2-D intensity frame.
-    crop_grid
-        One row per spatial crop (see :func:`build_crop_grid`).
-    ds_name
-        Dataset name for figure title and filename.
-    position
-        Integer position index.
-    thresh
-        Intensity threshold for foreground masking.
-    out_dir
-        Directory where the PNG figure is saved.
-    channel
-        Imaging channel name(s) (e.g. ``["BF"]``).
+    feature_data
+        Optical flow feature data.
+    output_name
+        Plot output name.
+    output_dir
+        Plot output directory.
     attachment
         TVL1 attachment (lambda) value.
+    attachment
+        TVL1 data-fidelity weight (λ).
+    thresh
+        Intensity threshold for foreground masking.
     """
-    from pathlib import Path
 
-    import matplotlib.pyplot as plt
-    from matplotlib.patches import Patch
-
-    out_dir = Path(out_dir)
-
-    sorted_tp = sorted(cache.keys())
-    if len(sorted_tp) < 2:
-        logger.warning("Only %d cached frame(s) — skipping demo plot", len(sorted_tp))
-        return
-
-    scan_df = _scan_crop_pairs(cache, crop_grid, thresh, attachment)
-    if len(scan_df) < 2:
-        logger.warning("Scan produced <2 valid records — skipping demo plot")
-        return
-    n_scanned = len(scan_df)
-
-    if n_scanned >= 3:
-        picks = [
-            (scan_df.iloc[0], r"COHERENT (high $\bar{R}$)", "COHERENT"),
-            (scan_df.iloc[n_scanned // 2], r"MEDIAN $\bar{R}$", "MEDIAN"),
-            (scan_df.iloc[-1], r"INCOHERENT (low $\bar{R}$)", "INCOHERENT"),
-        ]
-    else:
-        picks = [
-            (scan_df.iloc[0], r"COHERENT (high $\bar{R}$)", "COHERENT"),
-            (scan_df.iloc[-1], r"INCOHERENT (low $\bar{R}$)", "INCOHERENT"),
-        ]
-
-    logger.info(
-        "Demo scan: %d valid pairs, picked %d crops for plot",
-        n_scanned,
-        len(picks),
-    )
-    for row, _label, tag in picks:
-        logger.info(
-            "%s: R_bar=%.4f (crop %d, t=%d->%d)",
-            tag,
-            row["rbar"],
-            int(row["crop"]),
-            int(row["t0"]),
-            int(row["t1"]),
-        )
+    rbar_col = ColumnName.OpticalFlow.UNIT_VECTOR_MEAN
 
     # Helper: plot one row (5 panels)
-    def _plot_row(axes, row, label):  # noqa: C901
-        t0, t1 = int(row["t0"]), int(row["t1"])
-        _sx, _sy = int(row["sx"]), int(row["sy"])
-        _ex, _ey = int(row["ex"]), int(row["ey"])
-        _cidx = int(row["crop"])
+    def _plot_row(axes, crop, pair, label):  # noqa: C901
+        # t0, t1 = int(row["t0"]), int(row["t1"])
+        t0 = pair.t0
+        t1 = pair.t1
+        _sx = crop[ColumnName.DiffAEData.START_X]
+        _sy = crop[ColumnName.DiffAEData.START_Y]
+        _ex = crop[ColumnName.DiffAEData.END_X]
+        _ey = crop[ColumnName.DiffAEData.END_Y]
+        _cidx = crop[ColumnName.CROP_INDEX]
         cy, cx = _ey - _sy, _ex - _sx
 
-        f0, f1 = cache[t0], cache[t1]
+        f0, f1 = image_cache[t0], image_cache[t1]
         c0, c1 = f0[_sy:_ey, _sx:_ex], f1[_sy:_ey, _sx:_ex]
+
         uf_full, vf_full = compute_tvl1(f0, f1, attachment=attachment)
         uf, vf = uf_full[_sy:_ey, _sx:_ex], vf_full[_sy:_ey, _sx:_ex]
 
@@ -308,7 +200,9 @@ def plot_demo_summary(
         # (e) R-bar distribution for this crop across all scanned time pairs
         ax = axes[4]
         ax.set_facecolor("white")
-        crop_rbar = scan_df.loc[scan_df["crop"] == _cidx, "rbar"].dropna().values
+        crop_rbar = (
+            feature_data[feature_data[ColumnName.CROP_INDEX] == _cidx][rbar_col].dropna().values
+        )
         if len(crop_rbar) > 0:
             ax.hist(
                 crop_rbar,
@@ -336,40 +230,42 @@ def plot_demo_summary(
             ax.legend(fontsize=6, loc="upper right")
         ax.set_xlabel(r"$\bar{R}$", fontsize=8)
         ax.set_ylabel("Density", fontsize=8)
-        ax.set_title(f"(e) $\\bar{{R}}$ distribution  crop {_cidx}", fontsize=9)
+        ax.set_title(f"(e) $\\bar{{R}}$ distribution crop {_cidx}", fontsize=9)
         ax.set_xlim(0, 1.05)
         ax.tick_params(labelsize=7)
 
     # Build the figure
-    n_rows = len(picks)
+    n_rows = len(crop_picks)
     fig, axes = plt.subplots(
-        n_rows, 5, figsize=(30, 4.5 * n_rows), facecolor="white", squeeze=False
+        n_rows,
+        5,
+        figsize=(30, 4.5 * n_rows),
+        facecolor="white",
+        squeeze=False,
+        layout="constrained",
     )
 
-    for row_idx, (row, label, _tag) in enumerate(picks):
-        _plot_row(axes[row_idx], row, label)
+    for row_idx, (crop, pair, label) in enumerate(
+        zip(crop_picks, image_pairs, pick_labels, strict=False)
+    ):
+        _plot_row(axes[row_idx], crop, pair, label)
 
     fig.suptitle(
-        f"Coherent vs Incoherent : {ds_name} / pos {position}  [{', '.join(channel)}]",
+        f"Coherent vs. Incoherent: {output_name}",
         fontsize=12,
         fontweight="bold",
     )
-    fig.tight_layout()
-    out_dir.mkdir(parents=True, exist_ok=True)
+
     save_plot_to_path(
         fig,
-        out_dir,
-        f"demo_coherent_vs_incoherent_{ds_name}_{position}_{'_'.join(channel)}",
+        output_dir,
+        f"{output_name}_coherent_vs_incoherent",
         dpi=300,
-        show_and_close=False,
+        show_and_close=True,
+        tight_layout=False,
     )
-    logger.info("Saved coherent-vs-incoherent figure to %s", out_dir)
-    plt.close(fig)
 
 
-# ---------------------------------------------------------------------------
-# Tracked-crop coherence time series (demo mode)
-# ---------------------------------------------------------------------------
 def plot_tracked_crop_coherence_timeseries(
     df: pd.DataFrame,
     ds_name: str,

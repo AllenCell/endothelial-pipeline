@@ -7,15 +7,6 @@ compute, I/O, or visualisation code.
 
 from endo_pipeline.settings.column_names import ColumnName
 
-# ---------------------------------------------------------------------------
-# Demo / scan-mode diagnostic limits
-# ---------------------------------------------------------------------------
-DEMO_SCAN_N_CROPS: int = 6
-"""Number of crops to visualize in demo/scan mode diagnostic plots."""
-
-DEMO_SCAN_N_PAIRS: int = 10
-"""Number of frame pairs to visualize in demo/scan mode diagnostic plots."""
-
 DEMO_MAX_TRACKED_CROPS_TO_PLOT: int = 2
 """Maximum number of tracked crops to plot in the coherence time series diagnostic."""
 
