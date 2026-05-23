@@ -6,18 +6,20 @@ orchestrating these building blocks (loading picks, allocating axes,
 saving and composing the final figure).
 """
 
-import dask.array as da
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.patches import Patch
 
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.io import load_dataframe, load_image
-from endo_pipeline.library.analyze.optical_flow import build_crop_grid
+from endo_pipeline.io import load_dataframe
+from endo_pipeline.library.analyze.optical_flow import (
+    OpticalFlowImagePairCrops,
+    build_image_pair_crops_for_grid,
+)
 from endo_pipeline.library.visualize.figure_utils import add_scalebar
-from endo_pipeline.manifests import get_zarr_location_for_position, load_dataframe_manifest
-from endo_pipeline.settings import DIMENSION_ORDER
+from endo_pipeline.library.visualize.supplemental_movies import load_bf_std_dev_image
+from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
@@ -41,7 +43,7 @@ def build_bf_frame_cache(
     level: int,
     timepoints: list[int],
     df_dataset: pd.DataFrame,
-) -> tuple[dict[int, np.ndarray], pd.DataFrame]:
+) -> tuple[dict[int, np.ndarray], OpticalFlowImagePairCrops]:
     """Load and z-normalize the requested *timepoints* of a position's BF
     std-dev z-projection.
 
@@ -53,32 +55,26 @@ def build_bf_frame_cache(
         The position's crop grid (one row per crop, with START_X / START_Y /
         end_x / end_y / CROP_INDEX columns).
     """
+
+    # Build image pair crops
     dataset_config = load_dataset_config(dataset_name)
     df_position = df_dataset[
         (df_dataset[Column.POSITION] == position) & (df_dataset[Column.TIMEPOINT].isin(timepoints))
     ].copy()
-    crop_grid = build_crop_grid(df_position)
+    crop_grid = build_image_pair_crops_for_grid(df_position)(timepoints[0])
 
-    zarr_path = get_zarr_location_for_position(dataset_config, position)
-    image_dask = load_image(zarr_path, channels=["BF"], level=level, compute=False)
-    z_axis = DIMENSION_ORDER.index("Z")
-    z_projection = da.log(image_dask.std(axis=z_axis) + 1e-12)
+    # Build image cache
+    image_cache: dict[int, np.ndarray] = {}
+    for timepoint in timepoints:
+        image_cache[timepoint] = (
+            load_bf_std_dev_image(dataset_config, position, [timepoint], level).squeeze().compute()
+        )
 
-    needed_indices = sorted({int(t) for t in timepoints})
-    needed_frames = z_projection[needed_indices, 0].compute(scheduler="synchronous")
-    cache: dict[int, np.ndarray] = {}
-    for j, t in enumerate(needed_indices):
-        frame = needed_frames[j].astype(np.float32, copy=False)
-        lo, hi = np.percentile(frame, [0.1, 99.9])
-        frame = np.clip(frame, lo, hi)
-        std = frame.std()
-        frame = (frame - frame.mean()) / (std if std > 0 else 1.0)
-        cache[t] = frame
-    return cache, crop_grid
+    return image_cache, crop_grid
 
 
 def resolve_grid_crop(
-    crop_grid: pd.DataFrame,
+    crop_grid: OpticalFlowImagePairCrops,
     *,
     grid_row: int,
     grid_col: int,
@@ -89,24 +85,28 @@ def resolve_grid_crop(
     Row 1 / col 1 is the top-left crop; rows increase downward (sorted by
     ``START_Y``), cols increase rightward (sorted by ``START_X``).
     """
-    grid = crop_grid.copy()
-    sy_unique = sorted(grid[Column.DiffAEData.START_Y].unique().tolist())
-    sx_unique = sorted(grid[Column.DiffAEData.START_X].unique().tolist())
+
+    sy_unique = sorted(np.unique(crop_grid.start_y).tolist())
+    sx_unique = sorted(np.unique(crop_grid.start_x).tolist())
     sy_rank = {v: i for i, v in enumerate(sy_unique)}
     sx_rank = {v: i for i, v in enumerate(sx_unique)}
-    grid["_row"] = grid[Column.DiffAEData.START_Y].map(sy_rank)
-    grid["_col"] = grid[Column.DiffAEData.START_X].map(sx_rank)
 
-    target = grid[(grid["_row"] == grid_row - 1) & (grid["_col"] == grid_col - 1)]
-    if target.empty:
+    rows_cols = [
+        (sy_rank[y], sx_rank[x]) for y, x in zip(crop_grid.start_y, crop_grid.start_x, strict=True)
+    ]
+    target_row_col = (grid_row - 1, grid_col - 1)
+
+    if target_row_col not in rows_cols:
         raise RuntimeError(
             f"No crop at row={grid_row} col={grid_col} "
             f"(grid is {len(sy_unique)}x{len(sx_unique)})"
         )
-    sx = int(target.iloc[0][Column.DiffAEData.START_X])
-    sy = int(target.iloc[0][Column.DiffAEData.START_Y])
-    ex = int(target.iloc[0][Column.DiffAEData.END_X])
-    ey = int(target.iloc[0][Column.DiffAEData.END_Y])
+
+    target_index = rows_cols.index(target_row_col)
+    sx = int(crop_grid.start_x[target_index])
+    sy = int(crop_grid.start_y[target_index])
+    ex = int(sx + crop_grid.crop_size)
+    ey = int(sy + crop_grid.crop_size)
     return sx, sy, ex, ey
 
 
