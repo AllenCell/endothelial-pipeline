@@ -155,7 +155,7 @@ def main(
                 output_name=output_name,
                 output_dir=output_path,
                 attachment=attachment,
-                thresh=intensity_threshold,
+                intensity_threshold=intensity_threshold,
             )
 
             # Plot optical flow coherence over time

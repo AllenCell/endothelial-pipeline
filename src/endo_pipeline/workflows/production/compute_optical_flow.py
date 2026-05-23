@@ -256,7 +256,7 @@ def main(
             # Bind constant flow parameters once via partial
             compute_image_pair_flow_partial = partial(
                 compute_image_pair_flow,
-                thresh=intensity_threshold,
+                intensity_threshold=intensity_threshold,
                 attachment=attachment,
                 speed_threshold=speed_threshold,
             )

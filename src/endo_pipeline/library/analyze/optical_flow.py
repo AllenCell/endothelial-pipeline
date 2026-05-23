@@ -47,7 +47,7 @@ def compute_flow_statistics(
     crop_idx: int,
     timepoint: int,
     dt: int,
-    thresh: float,
+    intensity_threshold: float,
     speed_threshold: float = 1.0,
 ) -> dict:
     """Compute summary statistics from a 2-D optical-flow field (u, v).
@@ -67,7 +67,7 @@ def compute_flow_statistics(
         Frame index of ``crop0``.
     dt
         Temporal stride between the two frames.
-    thresh
+    intensity_threshold
         Intensity threshold for foreground masking.
     speed_threshold
         Minimum pixel speed for the "fast" coherence features.
@@ -82,7 +82,7 @@ def compute_flow_statistics(
         ColumnName.TIMEPOINT: timepoint,
         "dt": dt,
     }
-    mask = (crop0 > thresh) | (crop1 > thresh)
+    mask = (crop0 > intensity_threshold) | (crop1 > intensity_threshold)
 
     # Build the NaN key set dynamically based on enabled features.
     nan_keys = OPTICAL_FLOW_BASE_FEATURES
@@ -90,7 +90,7 @@ def compute_flow_statistics(
     if not mask.any():
         logger.debug(
             "No foreground pixels above thresh=%.3g for crop_idx=%d, timepoint=%d; returning NaNs.",
-            thresh,
+            intensity_threshold,
             crop_idx,
             timepoint,
         )
@@ -203,7 +203,7 @@ def compute_image_pair_flow(
     f1: np.ndarray,
     image_pair: OpticalFlowImagePair,
     crops: OpticalFlowImagePairCrops,
-    thresh: float,
+    intensity_threshold: float,
     attachment: float = 7.5,
     speed_threshold: float = 1.0,
 ) -> list[dict]:
@@ -224,7 +224,7 @@ def compute_image_pair_flow(
         Timepoints and temporal stride for image pair.
     crops
         Crop indices and coordinates for image pair.
-    thresh
+    intensity_threshold
         Intensity threshold for foreground masking.
     attachment
         TVL1 data-fidelity weight (λ).
@@ -256,7 +256,7 @@ def compute_image_pair_flow(
             crop_indices[i],
             image_pair.t0,
             image_pair.dt,
-            thresh,
+            intensity_threshold,
             speed_threshold,
         )
         for i in range(n_crops)

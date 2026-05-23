@@ -25,7 +25,7 @@ def plot_optical_flow_summary(
     output_name: str,
     output_dir: Path,
     attachment: float,
-    thresh: float,
+    intensity_threshold: float,
 ) -> None:
     """Produce a multi-crop diagnostic figure (up to 3 rows x 5 cols).
 
@@ -57,7 +57,7 @@ def plot_optical_flow_summary(
         Plot output directory.
     attachment
         TVL1 data-fidelity weight (λ).
-    thresh
+    intensity_threshold
         Intensity threshold for foreground masking.
     """
 
@@ -83,7 +83,7 @@ def plot_optical_flow_summary(
 
         sp = np.sqrt(uf**2 + vf**2)
         ang = np.arctan2(vf, uf)
-        mask = (c0 > thresh) | (c1 > thresh)
+        mask = (c0 > intensity_threshold) | (c1 > intensity_threshold)
 
         # Compute R̄ for this crop
         nz_mask = mask & (sp > 0)
