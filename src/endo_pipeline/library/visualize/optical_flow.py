@@ -212,18 +212,18 @@ def plot_optical_flow_summary(
                 rwidth=0.75,
             )
             ax.axvline(
-                float(np.mean(crop_rbar)),
+                float(np.mean(crop_rbar)),  # type: ignore[arg-type]
                 color="black",
                 ls="--",
                 lw=1.5,
-                label=f"mean $\\bar{{R}}$ = {float(np.mean(crop_rbar)):.3f}",
+                label=f"mean $\\bar{{R}}$ = {float(np.mean(crop_rbar)):.3f}",  # type: ignore[arg-type]
             )
             ax.axvline(
-                float(np.median(crop_rbar)),
+                float(np.median(crop_rbar)),  # type: ignore[arg-type]
                 color="forestgreen",
                 ls=":",
                 lw=1.5,
-                label=f"median = {float(np.median(crop_rbar)):.3f}",
+                label=f"median = {float(np.median(crop_rbar)):.3f}",  # type: ignore[arg-type]
             )
             ax.legend(fontsize=6, loc="upper right")
         ax.set_xlabel(r"$\bar{R}$", fontsize=8)
