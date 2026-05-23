@@ -20,6 +20,8 @@ def main(
     """
     Compute TVL1 optical flow features for crops.
 
+    #optical-flow #cell-centered #grid-based
+
     This workflow compute TVL1 optical flow between frame pairs at temporal gaps
     dt = 1, 2, ..., max_dt for every crop and timepoint. Pixels whose intensity
     falls below a channel-aware percentile threshold are masked before computing

@@ -14,6 +14,8 @@ def main(
     """
     Visualize TVL1 optical flow features for crops.
 
+    #optical-flow #cell-centered #grid-based #visualization
+
     ## Dataset collection
 
     If datasets are not provided, the workflow will use datasets in the
