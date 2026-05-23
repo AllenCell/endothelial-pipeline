@@ -9,6 +9,7 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 from matplotlib.layout_engine import ConstrainedLayoutEngine
 from matplotlib.patches import Patch
+from matplotlib.ticker import ScalarFormatter
 from skimage.color import label2rgb
 from skimage.color.colorlabel import DEFAULT_COLORS
 from skimage.exposure import rescale_intensity
@@ -404,6 +405,7 @@ def make_feature_contact_sheet(
     out_dir: Path,
     figure_width: float | None = None,
     figure_height: float | None = None,
+    figure_height_scaling: float = 1.0,
 ) -> Path:
     """Create a grid of 2D histograms with features as columns and datasets as rows.
 
@@ -449,11 +451,11 @@ def make_feature_contact_sheet(
     fig, axes = plt.subplots(
         nrows,
         ncols,
-        figsize=(fig_width, fig_height * 0.65),
+        figsize=(fig_width, fig_height * figure_height_scaling),
         sharex=True,
         squeeze=False,
     )
-    fig.set_layout_engine(ConstrainedLayoutEngine(w_pad=0.1, h_pad=0.1, hspace=0.05, wspace=0.05))
+    fig.set_layout_engine(ConstrainedLayoutEngine(w_pad=0, h_pad=0.05, hspace=0.05, wspace=0.05))
     layout_engine = fig.get_layout_engine()
     if layout_engine is not None:
         # reserve left margin for the vertical label and top margin for the legend
@@ -507,7 +509,11 @@ def make_feature_contact_sheet(
         )
         cax = ax.inset_axes([1.05, 0, 0.05, 1])
         mappable = ax.collections[-1]
-        fig.colorbar(mappable, cax=cax)
+        cb = fig.colorbar(mappable, cax=cax)
+        cb_formatter = ScalarFormatter()
+        cb_formatter.set_powerlimits((0, 0))
+        cb.ax.yaxis.set_major_formatter(cb_formatter)
+        cb.ax.yaxis.offsetText.set_fontsize(FONTSIZE_SMALL)
         cax.tick_params(labelsize=FONTSIZE_SMALL)
         ax.set_box_aspect(1)
         ax.set_facecolor("grey")
