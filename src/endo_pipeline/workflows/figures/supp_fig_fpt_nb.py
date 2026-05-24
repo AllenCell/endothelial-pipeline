@@ -17,8 +17,11 @@ from endo_pipeline.manifests.dataframe_manifest_io import load_dataframe_manifes
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.examples import FPT_FIG_EXAMPLES
 from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.first_passage_time import (
+    FIRST_PASSAGE_TIME_PARAMETER_SWEEP_MANIFEST_NAME,
+    FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME,
+)
 from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
-from endo_pipeline.settings.workflow_defaults import FIRST_PASSAGE_TIME_MANIFEST_NAME
 
 plt.style.use("endo_pipeline.figure")
 
@@ -43,10 +46,10 @@ trajectory_example_filepath = generate_first_passage_time_example(
 
 # %% Load the first passage time statistics dataframe to make correlation plots
 # from and fit lines to the points in the correlation plots
-fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_MANIFEST_NAME)
+fpt_stats_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME)
 metric_to_plot = "mean"
 line_fit_df, fpt_stats_df_no_nan = get_line_fit_and_filtered_df(
-    first_passage_time_manifest=fpt_manifest, metric_to_fit=metric_to_plot
+    first_passage_time_manifest=fpt_stats_manifest, metric_to_fit=metric_to_plot
 )
 
 # %% make correlation plots for low and high flow examples
@@ -86,12 +89,15 @@ for example in FPT_FIG_EXAMPLES:
 
 # %% Load the first passage time statistics dataframe to make correlation plots
 # from and get the fitted lines
-fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_MANIFEST_NAME)
+fpt_param_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_PARAMETER_SWEEP_MANIFEST_NAME)
 metric_to_plot = "mean"
-fpt_param_sweep_df = load_dataframe(fpt_manifest.locations["first_passage_time_parameter_sweep"])
+
 # %% make the plots for the desired datasets
 dataset_name = high_flow_dataset.dataset_name
 fp_idx = high_flow_dataset.fixed_point_index
+
+# Load parameter sweep dataframe for dataset
+fpt_param_sweep_df = load_dataframe(fpt_param_manifest.locations[dataset_name])
 
 # this check should be done in case the fixed point index is not an integer
 # because if it is a float then it will cause an issue when trying to save
@@ -101,10 +107,7 @@ if not isinstance(fp_idx, int):
         f"Expected fixed point index to be an integer, but got {fp_idx} for example {dataset_name}"
     )
 
-df = fpt_param_sweep_df[
-    (fpt_param_sweep_df[Column.DATASET] == dataset_name)
-    & (fpt_param_sweep_df[Column.VectorField.FIXED_POINT_INDEX] == fp_idx)
-]
+df = fpt_param_sweep_df[fpt_param_sweep_df[Column.VectorField.FIXED_POINT_INDEX] == fp_idx]
 fp_stability = df[Column.VectorField.STABILITY].unique().item()
 
 fp_param_sweep_fpt, fp_param_sweep_num_traj = plot_first_passage_time_parameter_sweep(
@@ -112,7 +115,7 @@ fp_param_sweep_fpt, fp_param_sweep_num_traj = plot_first_passage_time_parameter_
     fixed_point_index=fp_idx,
     fixed_point_stability=fp_stability,
     first_passage_time_param_sweep_df=df,
-    fixed_point_radius_threshold=fpt_manifest.parameters["fixed_point_radius_threshold"],
+    fixed_point_radius_threshold=fpt_param_manifest.parameters["fixed_point_radius_threshold"],
     out_dir=save_dir,
     metric_to_plot=metric_to_plot,
     figsize=(2.12, 2.12),
@@ -121,7 +124,7 @@ fp_param_sweep_fpt, fp_param_sweep_num_traj = plot_first_passage_time_parameter_
 # --- Histogram of first passage time correlation ---
 dataset_summary_list = SUMMARY_PLOT_DATASETS["intermediate"]
 first_passage_summary_df = build_dataframe_for_first_passage_time_dataset_summary(
-    dataset_names=dataset_summary_list, first_passage_time_manifest=fpt_manifest
+    dataset_names=dataset_summary_list, first_passage_time_manifest=fpt_stats_manifest
 )
 fpt_pearson_r_path = plot_cross_dataset_summaries(
     first_passage_summary_df,

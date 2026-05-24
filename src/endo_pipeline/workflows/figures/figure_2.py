@@ -32,6 +32,9 @@ def main() -> None:
     from endo_pipeline.settings.dynamics_workflows import POLAR_ANGLE_RANGE
     from endo_pipeline.settings.examples import EXAMPLE_DATASET
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.first_passage_time import (
+        FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME,
+    )
     from endo_pipeline.settings.flow_field_2d import DRIFT_CONTOUR_VMAX, DRIFT_CONTOUR_VMIN
     from endo_pipeline.settings.flow_field_dataframes import (
         BOOTSTRAPPING_MANIFEST_NAMES,
@@ -51,7 +54,6 @@ def main() -> None:
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
         FEATURES_FILTERED_MANIFEST_NAMES,
-        FIRST_PASSAGE_TIME_MANIFEST_NAME,
     )
 
     plt.style.use("endo_pipeline.figure")
@@ -298,7 +300,7 @@ def main() -> None:
     )
 
     # --- Histogram of first passage time correlation ---
-    fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_MANIFEST_NAME)
+    fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME)
     first_passage_summary_df = build_dataframe_for_first_passage_time_dataset_summary(
         dataset_names=dataset_summary_list, first_passage_time_manifest=fpt_manifest
     )
