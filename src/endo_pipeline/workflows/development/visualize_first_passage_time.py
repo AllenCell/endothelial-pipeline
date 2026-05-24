@@ -1,9 +1,12 @@
 from endo_pipeline.cli import Datasets
+from endo_pipeline.settings.first_passage_time import (
+    FIRST_PASSAGE_TIME_MIN_NUM_TRAJECTORIES_PER_BIN,
+)
 
 
 def main(
     datasets: Datasets | None = None,
-    min_num_traj_per_bin: int = 10,
+    min_num_traj_per_bin: int = FIRST_PASSAGE_TIME_MIN_NUM_TRAJECTORIES_PER_BIN,
 ) -> None:
     """
     Visualize first passage time results from `compute-first-passage-time`.

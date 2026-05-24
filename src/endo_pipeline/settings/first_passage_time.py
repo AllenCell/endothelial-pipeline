@@ -14,3 +14,6 @@ FIRST_PASSAGE_TIME_BIN_SIZES = {
     Column.DiffAEData.PC3_FLIPPED: 0.5,
 }
 """Bin sizes for first passage time analysis."""
+
+FIRST_PASSAGE_TIME_MIN_NUM_TRAJECTORIES_PER_BIN: int = 10
+"""Minimum number of trajectories per bin for first passage time filtering."""
