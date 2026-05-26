@@ -29,9 +29,9 @@ from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature impo
 )
 from endo_pipeline.library.process.image_processing import (
     convert_to_uint8,
-    load_bf_image,
-    load_bf_std_dev_image,
-    load_egfp_image,
+    load_processed_bf_image,
+    load_processed_bf_std_dev_image,
+    load_processed_egfp_image,
 )
 from endo_pipeline.manifests import (
     ImageLocation,
@@ -118,9 +118,13 @@ def generate_tfe_backdrops(
     # Partially initialize backdrop image loader methods with shared arguments.
     # The only remaining argument needed is timepoint.
     backdrop_image_loaders: dict[str, BackdropImageLoader] = {
-        "bf_slice": partial(load_bf_image, config=dataset, position=position, level=1),
-        "bf_std_dev": partial(load_bf_std_dev_image, config=dataset, position=position, level=1),
-        "gfp_max_proj": partial(load_egfp_image, config=dataset, position=position, level=1),
+        "bf_slice": partial(load_processed_bf_image, config=dataset, position=position, level=1),
+        "bf_std_dev": partial(
+            load_processed_bf_std_dev_image, config=dataset, position=position, level=1
+        ),
+        "gfp_max_proj": partial(
+            load_processed_egfp_image, config=dataset, position=position, level=1
+        ),
     }
 
     for backdrop_type in backdrop_types:

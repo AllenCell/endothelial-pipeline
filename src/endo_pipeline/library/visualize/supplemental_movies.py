@@ -13,9 +13,9 @@ from tqdm import tqdm
 from endo_pipeline.configs import DatasetConfig, get_flow_at_frame, load_dataset_config
 from endo_pipeline.library.process.image_processing import (
     convert_to_uint8,
-    load_bf_image,
-    load_bf_std_dev_image,
-    load_egfp_image,
+    load_processed_bf_image,
+    load_processed_bf_std_dev_image,
+    load_processed_egfp_image,
     stitch_with_overlap,
 )
 from endo_pipeline.settings.figures import MAX_SUPP_MOVIE_HEIGHT, MAX_SUPP_MOVIE_WIDTH
@@ -193,11 +193,11 @@ def create_timelapse_mp4(
 
     # Select the appropriate image loader for the selected channel type
     if channel_type == "EGFP":
-        image_loader = load_egfp_image
+        image_loader = load_processed_egfp_image
     elif channel_type == "BF":
-        image_loader = load_bf_image
+        image_loader = load_processed_bf_image
     elif channel_type == "BF_std_dev":
-        image_loader = load_bf_std_dev_image
+        image_loader = load_processed_bf_std_dev_image
 
     logger.info("Using the [ %s ] image loader", channel_type)
 

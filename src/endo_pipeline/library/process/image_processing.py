@@ -22,7 +22,7 @@ def convert_to_uint8(image: np.ndarray) -> np.ndarray:
     return image.astype(np.uint8)
 
 
-def load_egfp_image(
+def load_processed_egfp_image(
     config: DatasetConfig, position: int, timepoints: int | list[int], level: int = 0
 ) -> da.Array:
     """Load EGFP max projection image for given timepoint(s)."""
@@ -42,7 +42,7 @@ def load_egfp_image(
     return (image - low) / (high - low + 1e-8) * 2.0 - 1.0
 
 
-def load_bf_image(
+def load_processed_bf_image(
     config: DatasetConfig, position: int, timepoints: int | list[int], level: int = 0
 ) -> da.Array:
     """Load BF single focal plane image for given timepoint(s)."""
@@ -67,7 +67,7 @@ def load_bf_image(
     return (image - low) / (high - low + 1e-8) * 255
 
 
-def load_bf_std_dev_image(
+def load_processed_bf_std_dev_image(
     config: DatasetConfig, position: int, timepoints: int | list[int], level: int = 0
 ) -> da.Array:
     """Load BF log standard deviation projection image for given timepoint(s)."""
