@@ -57,7 +57,7 @@ def main(num_processes: int = 1) -> None:
     model_name = make_name_unique("labelfree_nuc_pred").stem
     out_dir = get_output_path("models", "labelfree_nuc_pred", include_timestamp=False)
 
-    datasets_to_use = get_datasets_in_collection("nuclear_label_free_model_training")
+    datasets_to_use = get_datasets_in_collection("nuclear_labelfree_model_training")
 
     if DEMO_MODE:
         datasets_to_use = datasets_to_use[:1]
