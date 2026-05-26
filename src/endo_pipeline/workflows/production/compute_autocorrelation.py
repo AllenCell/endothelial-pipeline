@@ -3,39 +3,49 @@ from endo_pipeline.cli import CropPattern, Datasets, StrList
 
 def main(
     crop_pattern: CropPattern = "grid",
-    datasets: Datasets | None = None,
     columns: StrList | None = None,
-    upload_to_fms: bool = False,
+    datasets: Datasets | None = None,
 ) -> None:
     """
-    Run auto and cross correlation analysis on DiffAE feature time series data.
+    Calculate auto- and cross-correlation on DiffAE feature time series data.
 
-    #diffae #correlation-analysis
+    #correlation-analysis #grid-based #cell-centered
 
-    **Workflow defaults**
-        - model_manifest_name: DEFAULT_MODEL_MANIFEST_NAME
-        - run_name: DEFAULT_MODEL_RUN_NAME
-        - crop_pattern: "grid"
-        - datasets: all datasets in "timelapse" collection except for no-flow
-          datasets (shear stress = 0)
-        - columns: "dynamics analyses" features (DYNAMICS_COLUMN_NAMES)
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe compute-autocorrelation -vd
+    ```
+
+    To run the workflow for a single dataset:
+
+    ```bash
+    uv run endopipe compute-autocorrelation --datasets DATASET_NAME
+    ```
+
+    ## Dataset collection
+
+    If datasets are not provided, the workflow will use datasets in the
+    `timelapse` dataset collection.
+
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will generate the
+    flow field for the first dataset.
 
     Parameters
     ----------
     crop_pattern
-        Crop pattern of the features to analyze.
-    datasets
-        Specific list of datasets or dataset collections to use in workflow.
+        Crop pattern used to compute correlations.
     columns
-        Specific list of feature column names to use for correlation analysis.
-    upload_to_fms
-        If True, will upload resulting autocorrelation dataframes to FMS and
-        update manifest with FMS locations. If False, will only save dataframes
-        locally and update manifest with local paths.
-
+        Specific columns to use for correlation analysis.
+    datasets
+        List of datasets or dataset collections to compute correlations for.
     """
+
     import logging
-    from typing import cast
 
     import pandas as pd
 
