@@ -17,58 +17,13 @@ from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings import LOG_EPSILON
 from endo_pipeline.settings.figures import MAX_SUPP_MOVIE_HEIGHT, MAX_SUPP_MOVIE_WIDTH
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
+from endo_pipeline.library.process.image_processing import (
+    load_bf_image,
+    load_bf_std_dev_image,
+    load_egfp_image
+)
 
 logger = logging.getLogger(__name__)
-
-
-def load_egfp_image(
-    config: DatasetConfig, position: int, timepoints: int | list[int], level: int = 0
-) -> da.Array:
-    """Load EGFP max projection image for given timepoint(s)."""
-
-    location = get_zarr_location_for_position(config, position=position)
-    image = load_image(location, channels=["EGFP"], timepoints=timepoints, level=level)
-
-    return image.max(axis=2)
-
-
-def load_bf_image(
-    config: DatasetConfig, position: int, timepoints: int | list[int], level: int = 0
-) -> da.Array:
-    """Load BF single focal plane image for given timepoint(s)."""
-
-    if config.center_z_plane is None:
-        raise ValueError("'center_z_plane' is None, cannot load single focal plane for BF channel")
-
-    location = get_zarr_location_for_position(config, position=position)
-    image = load_image(location, channels=["BF"], timepoints=timepoints, level=level)
-
-    focal_plane = config.center_z_plane[position]
-    visualize_plane = focal_plane - 5
-    return image[:, :, visualize_plane, :, :]
-
-
-def load_bf_std_dev_image(
-    config: DatasetConfig, position: int, timepoints: int | list[int], level: int = 0
-) -> da.Array:
-    """Load BF log standard deviation projection image for given timepoint(s)."""
-
-    location = get_zarr_location_for_position(config, position=position)
-    image = load_image(location, channels=["BF"], timepoints=timepoints, level=level)
-
-    # Compute std projection along z axis and apply log transform
-    image = image.std(axis=2)
-    image = da.log(image + LOG_EPSILON)
-
-    # Compute percentiles and clip
-    low = da.percentile(image, 1, axis=(2, 3), keepdims=True)
-    high = da.percentile(image, 99, axis=(2, 3), keepdims=True)
-    image = da.clip(image, low, high)
-
-    # Compute mean and std per timepoint and z-score normalize
-    mean = image.mean(axis=(2, 3), keepdims=True)
-    std = image.std(axis=(2, 3), keepdims=True)
-    return (image - mean) / std
 
 
 def load_stitched_image(
