@@ -45,9 +45,18 @@ def load_bf_image(
     location = get_zarr_location_for_position(config, position=position)
     image = load_image(location, channels=["BF"], timepoints=timepoints, level=level)
 
+    # Compute visualization plane from focal plane
     focal_plane = config.center_z_plane[position]
     visualize_plane = focal_plane - 5
-    return image[:, :, visualize_plane, :, :]
+    image = image[:, :, visualize_plane, :, :]
+
+    # Compute percentiles and clip
+    low = da.percentile(image, 1, axis=(2, 3), keepdims=True)
+    high = da.percentile(image, 99, axis=(2, 3), keepdims=True)
+    image = da.clip(image, low, high)
+
+    # Normalize between 0 and 255
+    return (image - low) / (high - low + 1e-8) * 255
 
 
 def load_bf_std_dev_image(
