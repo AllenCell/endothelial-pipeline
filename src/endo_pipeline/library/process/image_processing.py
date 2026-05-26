@@ -14,6 +14,14 @@ from endo_pipeline.settings import LOG_EPSILON
 from endo_pipeline.settings.image_data import CAMERA_OFFSET
 
 
+def convert_to_uint8(image: np.ndarray) -> np.ndarray:
+    """Rescale and convert input array to uint8."""
+
+    low, high = image.min(), image.max()
+    image = exposure.rescale_intensity(image, in_range=(low, high), out_range=(0, 255))
+    return image.astype(np.uint8)
+
+
 def load_egfp_image(
     config: DatasetConfig, position: int, timepoints: int | list[int], level: int = 0
 ) -> da.Array:

@@ -2,7 +2,7 @@ import logging
 from functools import partial
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Literal, Protocol
+from typing import Protocol
 
 import dask.array as da
 import imageio.v3 as iio
@@ -27,8 +27,8 @@ from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifes
 from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
     add_optical_flow_features,
 )
-from endo_pipeline.library.process.image_processing import contrast_stretching
-from endo_pipeline.library.visualize.supplemental_movies import (
+from endo_pipeline.library.process.image_processing import (
+    convert_to_uint8,
     load_bf_image,
     load_bf_std_dev_image,
     load_egfp_image,
@@ -102,9 +102,7 @@ def generate_tfe_backdrop(
 ) -> None:
     """Generate a single TFE backdrop image using given image loader method."""
 
-    backdrop = image_loader(timepoints=timepoint).squeeze().compute()
-    method: Literal["min-max", "percentile"] = "min-max" if "std_dev" in save_key else "percentile"
-    backdrop = contrast_stretching(backdrop, method=method)
+    backdrop = convert_to_uint8(image_loader(timepoints=timepoint).squeeze().compute())
     iio.imwrite(output_dir / f"backdrop_{save_key}_{timepoint}.png", backdrop)
 
 
