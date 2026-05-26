@@ -85,7 +85,7 @@ def main() -> None:
             path=classic_feat_fig_example_paths[datasets[0]],
             x_position=0,
             y_position=panel_A_height,
-            x_offset=-0.2,
+            x_offset=-0.1,
             y_offset=0.05,
         ),
         FigurePanel(
@@ -93,7 +93,7 @@ def main() -> None:
             path=classic_feat_fig_example_paths[datasets[1]],
             x_position=0,
             y_position=panel_A_height + panel_B_height + 0.05,
-            x_offset=-0.2,
+            x_offset=-0.1,
             y_offset=0.05,
         ),
         FigurePanel(
@@ -101,7 +101,7 @@ def main() -> None:
             path=feature_diagram_fp,
             x_position=panel_B_and_C_width + 0.2,
             y_position=panel_A_height,
-            x_offset=-0.05,
+            x_offset=-0.03,
             y_offset=0.05,
         ),
     ]

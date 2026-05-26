@@ -455,11 +455,13 @@ def make_feature_contact_sheet(
         sharex=True,
         squeeze=False,
     )
-    fig.set_layout_engine(ConstrainedLayoutEngine(w_pad=0, h_pad=0.05, hspace=0.05, wspace=0.05))
+    fig.set_layout_engine(
+        ConstrainedLayoutEngine(w_pad=0, h_pad=0.05, hspace=0.05, wspace=-0.1)  # , compress=True)
+    )
     layout_engine = fig.get_layout_engine()
     if layout_engine is not None:
         # reserve left margin for the vertical label and top margin for the legend
-        layout_engine.set(**{"rect": [0.08, 0, 1, 0.94]})
+        layout_engine.set(**{"rect": [0.06, 0, 1, 0.92]})
 
     features_reshaped: np.ndarray = np.reshape(list(features), newshape=(nrows, ncols))
     dataset_config = load_dataset_config(dataset_name)
@@ -561,7 +563,7 @@ def make_feature_contact_sheet(
     # Shear stress label on the left of each row
     shear_stress = dataset_config.flow_conditions[0].shear_stress_bin
     fig.text(
-        0.05,
+        0.03,
         0.5,
         f"{shear_stress} dyn/cm{Unicode.SQUARED}",
         va="center",
