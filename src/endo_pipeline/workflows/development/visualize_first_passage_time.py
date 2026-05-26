@@ -10,6 +10,39 @@ def main(
 ) -> None:
     """
     Visualize first passage time results from `compute-first-passage-time`.
+
+    #first-passage-time #grid-based #cell-centered #visualization
+
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe visualize-first-passage-time -vd
+    ```
+
+    To run the workflow for a single dataset:
+
+    ```bash
+    uv run endopipe visualize-first-passage-time --datasets DATASET_NAME
+    ```
+
+    ## Dataset collection
+
+    If datasets are not provided, the workflow will use datasets in the
+    `shear_stress` dataset collection.
+
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will visualize
+    first passage time for the first dataset.
+
+    Parameters
+    ----------
+    datasets
+        List of datasets or dataset collections to visualize first passage time.
+    min_num_traj_per_bin
+        Minimum number of trajectories per bin.
     """
 
     import logging
