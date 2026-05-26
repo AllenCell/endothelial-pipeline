@@ -56,7 +56,6 @@ def main(
         get_output_path,
         join_sorted_strings,
         load_dataframe,
-        make_name_unique,
         upload_file_to_fms,
     )
     from endo_pipeline.library.analyze.dataframe_filtering import (
@@ -72,7 +71,6 @@ def main(
     )
     from endo_pipeline.manifests import (
         DataframeLocation,
-        build_dataframe_location_from_path,
         create_dataframe_manifest,
         load_dataframe_manifest,
         load_model_manifest,
@@ -94,57 +92,49 @@ def main(
         FEATURES_FILTERED_MANIFEST_NAMES,
     )
 
-    # initialize logger
     logger = logging.getLogger(__name__)
+
+    output_path = get_output_path(__file__)
+
+    dataset_names = datasets or get_datasets_in_collection("timelapse")
+
+    if DEMO_MODE:
+        logger.warning("DEMO_MODE - Limiting to one dataset")
+        dataset_names = dataset_names[:1]
 
     # Default list of feature column names to use for correlation analysis if
     # not provided. Otherwise, use provided list.
     column_names = columns or list(DYNAMICS_COLUMN_NAMES)
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
-    dataframe_savedir = get_output_path(__file__, crop_pattern)
-
-    # Load dataframe manifest for the features to be used in correlation analysis.
-    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
+    # Load feature dataframe for specified crop pattern.
     feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[crop_pattern]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
-    columns_str = join_sorted_strings(cast(list[str], column_names))
-    demo_suffix = "_demo" if DEMO_MODE else ""
-    autocorrelation_manifest_name = (
-        f"{AUTOCORRELATION_DATAFRAME_MANIFEST_PREFIX}_{columns_str}_{base_name}{demo_suffix}"
-    )
-    autocorrelation_dataframe_manifest = create_dataframe_manifest(
+    # Build dataframe manifest names that include sorted list of selected
+    # columns used to generate the flow field.
+    name_prefix = AUTOCORRELATION_DATAFRAME_MANIFEST_PREFIX
+    name_suffix = f"{join_sorted_strings(column_names)}_{crop_pattern}"
+    autocorrelation_manifest_name = f"{name_prefix}_{name_suffix}"
+    autocorrelation_manifest = create_dataframe_manifest(
         autocorrelation_manifest_name, workflow_name=__file__
     )
-    # add parameters to dataframe manifest for traceability
-    column_names_yaml_safe = [f"{column}" for column in column_names]
-    autocorrelation_dataframe_manifest.parameters = {
+
+    # Add parameters to dataframe manifest for traceability
+    autocorrelation_manifest.parameters = {
         "model_manifest_name": DEFAULT_MODEL_MANIFEST_NAME,
         "run_name": DEFAULT_MODEL_RUN_NAME,
         "crop_pattern": crop_pattern,
-        "columns": column_names_yaml_safe,
+        "columns": [f"{column}" for column in column_names],
     }
-    save_dataframe_manifest(autocorrelation_dataframe_manifest)
-
-    # Default list of datasets if not provided. Filter by datasets available in
-    # the manifest.
-    dataset_names = datasets or get_datasets_in_collection("timelapse")
-    if DEMO_MODE:
-        logger.warning(
-            "DEMO MODE: Processing no more than two of the provided datasets for quick testing."
-        )
-        # take min of the number of datasets provided and 2, to limit to at most
-        # 2 datasets in DEMO_MODE for quick visualization (i.e., avoid error if
-        # only 1 dataset is provided)
-        num_datasets = min(len(dataset_names), 2)
-        dataset_names = dataset_names[:num_datasets]
+    save_dataframe_manifest(autocorrelation_manifest)
 
     for dataset_name in dataset_names:
         if dataset_name not in feature_dataframe_manifest.locations:
             logger.warning(
-                "Dataset [ %s ] not found in the manifest, skipping for this workflow.",
+                "Dataset '%s' not found in manifest '%s'. Skipping.",
                 dataset_name,
+                feature_dataframe_manifest_name,
             )
             continue
 
