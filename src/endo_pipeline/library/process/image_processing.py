@@ -22,7 +22,16 @@ def load_egfp_image(
     location = get_zarr_location_for_position(config, position=position)
     image = load_image(location, channels=["EGFP"], timepoints=timepoints, level=level)
 
-    return image.max(axis=2)
+    # Compute max projection along z axis
+    image = image.max(axis=2)
+
+    # Compute percentiles and clip
+    low = da.percentile(image, 10, axis=(2, 3), keepdims=True)
+    high = da.percentile(image, 98, axis=(2, 3), keepdims=True)
+    image = da.clip(image, low, high)
+
+    # Normalize between -1 and 1
+    return (image - low) / (high - low + 1e-8) * 2.0 - 1.0
 
 
 def load_bf_image(
@@ -54,8 +63,8 @@ def load_bf_std_dev_image(
     image = da.log(image + LOG_EPSILON)
 
     # Compute percentiles and clip
-    low = da.percentile(image, 1, axis=(2, 3), keepdims=True)
-    high = da.percentile(image, 99, axis=(2, 3), keepdims=True)
+    low = da.percentile(image, 0.1, axis=(2, 3), keepdims=True)
+    high = da.percentile(image, 99.9, axis=(2, 3), keepdims=True)
     image = da.clip(image, low, high)
 
     # Compute mean and std per timepoint and z-score normalize
