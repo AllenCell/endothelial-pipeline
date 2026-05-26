@@ -36,7 +36,7 @@ from .plotting import (
     save_negative_control_sheet,
     save_summary_figure,
 )
-from .results_io import load_results_from_manifest, write_combined_parquet
+from .results_io import load_results_from_manifests, write_per_model_parquets
 from .tiff_io import save_denoising_crops, save_image_as_tiff
 
 __all__ = [
@@ -54,7 +54,7 @@ __all__ = [
     "create_comparison_plots_and_summary",
     "evaluate_single_model",
     "load_and_preprocess_example_crop",
-    "load_results_from_manifest",
+    "load_results_from_manifests",
     "load_transformed_image",
     "run_denoising_experiments",
     "save_denoising_crops",
@@ -62,5 +62,5 @@ __all__ = [
     "save_intermediate_contact_sheet",
     "save_negative_control_sheet",
     "save_summary_figure",
-    "write_combined_parquet",
+    "write_per_model_parquets",
 ]

@@ -1,17 +1,21 @@
 """Parquet persistence for model QC inference results.
 
 The supplementary Model-QC figure pipeline persists every
-``(model, seed, example)`` evaluation row to a single long-format
-parquet so the companion plot workflow can render the bar chart
-without re-running GPU diffusion inference.
+``(model, seed, example)`` evaluation row to disk so the companion
+plot workflow can render the bar chart without re-running GPU
+diffusion inference.
 
 On-disk layout
 --------------
 
-A single ``model_qc_metrics.parquet`` under the workflow output
-directory holds all rows for every model x seed x example.  That one
-file is the sole entry of the emitted :class:`DataframeManifest` and
-the sole thing optionally uploaded to FMS.
+One long-format parquet per ``(manifest_name, run_name)`` is written
+under the workflow output directory using the filename pattern
+``{manifest_name}__{run_name}.parquet``.  All parquets for a given
+``manifest_name`` are catalogued in a single dataframe manifest named
+``diffae_model_comparison_metrics_<manifest_name>``, whose
+``locations`` dict is keyed by ``run_name``.  This per-manifest grouping
+mirrors the model-manifest layout and makes it easy to add or remove
+individual runs without re-running everything.
 
 Long-format schema (one row per example x seed x model):
 
@@ -28,10 +32,13 @@ Long-format schema (one row per example x seed x model):
 
 import logging
 import math
+from collections.abc import Iterable
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pandas as pd
+
+from endo_pipeline.settings.column_names import ColumnName
 
 if TYPE_CHECKING:
     from endo_pipeline.library.model.model_qc.evaluation import ModelKey
@@ -41,16 +48,23 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-COMBINED_PARQUET_FILENAME = "model_qc_metrics.parquet"
-COMBINED_MANIFEST_LOCATION_KEY = "metrics"
+def per_model_parquet_filename(manifest_name: str, run_name: str) -> str:
+    """Filename of the per-(manifest, run) metrics parquet."""
+    return f"{manifest_name}__{run_name}.parquet"
+
+
+def per_model_parquet_path(out_dir: Path, manifest_name: str, run_name: str) -> Path:
+    """Absolute path of the per-(manifest, run) metrics parquet under ``out_dir``."""
+    return Path(out_dir) / per_model_parquet_filename(manifest_name, run_name)
+
 
 DATAFRAME_COLUMNS: list[str] = [
     "manifest_name",
     "run_name",
-    "random_seed",
-    "example_set",
-    "example_idx",
-    "dataset_name",
+    ColumnName.ModelQC.RANDOM_SEED,
+    ColumnName.ModelQC.EXAMPLE_SET,
+    ColumnName.ModelQC.EXAMPLE_IDX,
+    ColumnName.ModelQC.DATASET_NAME,
     "position",
     "timepoint",
     "crop_x_start",
@@ -63,11 +77,6 @@ DATAFRAME_COLUMNS: list[str] = [
     "baseline_ssim",
     "baseline_lpips",
 ]
-
-
-def combined_parquet_path(out_dir: Path) -> Path:
-    """Absolute path of the single combined metrics parquet under ``out_dir``."""
-    return Path(out_dir) / COMBINED_PARQUET_FILENAME
 
 
 def _aligned_baseline_values(
@@ -164,10 +173,10 @@ def _result_to_dataframe(
                 {
                     "manifest_name": model_key.manifest_name,
                     "run_name": model_key.run_name,
-                    "random_seed": int(seed),
-                    "example_set": example_set_label,
-                    "example_idx": idx,
-                    "dataset_name": example.dataset_name if example else None,
+                    ColumnName.ModelQC.RANDOM_SEED: int(seed),
+                    ColumnName.ModelQC.EXAMPLE_SET: example_set_label,
+                    ColumnName.ModelQC.EXAMPLE_IDX: idx,
+                    ColumnName.ModelQC.DATASET_NAME: example.dataset_name if example else None,
                     "position": example.position if example else None,
                     "timepoint": example.timepoint if example else None,
                     "crop_x_start": example.crop_x_start if example else None,
@@ -185,26 +194,44 @@ def _result_to_dataframe(
     return pd.DataFrame(rows, columns=DATAFRAME_COLUMNS)
 
 
-def write_combined_parquet(
+def write_per_model_parquets(
     out_dir: Path,
     results: list[tuple["ModelKey", int, dict]],
     examples_by_set: dict[str, list["ExampleImage"]] | None = None,
-) -> Path:
-    """Persist every ``(model_key, seed, result)`` row to one combined parquet.
+) -> dict["ModelKey", Path]:
+    """Persist results to one parquet per ``(manifest_name, run_name)``.
+
+    All rows for the same ``ModelKey`` (across seeds and examples) are
+    concatenated into a single long-format parquet so each model can be
+    added/removed independently without re-running every other model.
 
     Returns
     -------
     :
-        Path of the combined parquet just written under ``out_dir``.
+        Mapping from each ``ModelKey`` to the parquet path just written
+        under ``out_dir``.
     """
+    from endo_pipeline.library.model.model_qc.evaluation import ModelKey
+
     eb = examples_by_set or {}
-    frames = [_result_to_dataframe(mk, seed, result, eb) for mk, seed, result in results]
-    df = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame(columns=DATAFRAME_COLUMNS)
-    out_path = combined_parquet_path(out_dir)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    df.to_parquet(out_path, index=False)
-    logger.info("Wrote combined metrics parquet (%d rows) to %s", len(df), out_path)
-    return out_path
+    rows_by_model: dict[ModelKey, list[pd.DataFrame]] = {}
+    for mk, seed, result in results:
+        rows_by_model.setdefault(mk, []).append(_result_to_dataframe(mk, seed, result, eb))
+
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    paths: dict[ModelKey, Path] = {}
+    for mk, frames in rows_by_model.items():
+        df = (
+            pd.concat(frames, ignore_index=True)
+            if frames
+            else pd.DataFrame(columns=DATAFRAME_COLUMNS)
+        )
+        out_path = per_model_parquet_path(out_dir, mk.manifest_name, mk.run_name)
+        df.to_parquet(out_path, index=False)
+        logger.info("Wrote per-model metrics parquet (%d rows) to %s", len(df), out_path)
+        paths[mk] = out_path
+    return paths
 
 
 def _dataframe_to_result(df: pd.DataFrame, model_key: "ModelKey", seed: int) -> dict:
@@ -248,16 +275,15 @@ def _is_nan(v: object) -> bool:
         return False
 
 
-def load_results_from_manifest(
-    manifest: "DataframeManifest",
+def load_results_from_manifests(
+    manifests: Iterable["DataframeManifest"],
 ) -> tuple[dict["ModelKey", dict[int, dict]], list["ModelKey"], list[int]]:
-    """Load every ``(model, seed)`` result from a :class:`DataframeManifest`.
+    """Load every ``(model, seed)`` result from one or more dataframe manifests.
 
-    ``manifest.locations`` is expected to hold a single entry pointing
-    at the combined metrics parquet written by the production inference
-    workflow.  The location is resolved via
-    :func:`endo_pipeline.io.load_dataframe`, so the file can come from
-    FMS, local path, or S3.
+    Each manifest is expected to catalogue the per-(manifest, run) parquets
+    for a single ``manifest_name``, with ``locations`` keyed by ``run_name``.
+    Each location is resolved via :func:`endo_pipeline.io.load_dataframe`,
+    so the underlying parquet can come from FMS, local path, or S3.
 
     Returns
     -------
@@ -265,30 +291,34 @@ def load_results_from_manifest(
         ``{ModelKey: {seed: result_dict}}`` reshaped to match the in-memory
         layout produced by :func:`evaluate_single_model`.
     model_keys
-        Model keys in the order they first appear in the parquet.
+        Model keys in the order they first appear across the manifests.
     seeds
-        Sorted union of seeds present in the parquet.
+        Sorted union of seeds present in the parquets.
     """
     from endo_pipeline.io import load_dataframe
     from endo_pipeline.library.model.model_qc.evaluation import ModelKey
 
-    if not manifest.locations:
-        raise FileNotFoundError(f"Dataframe manifest {manifest.name!r} has no locations.")
-    if len(manifest.locations) > 1:
-        logger.warning(
-            "Dataframe manifest %r has %d locations; expected a single combined "
-            "metrics parquet. Loading all and concatenating.",
-            manifest.name,
-            len(manifest.locations),
-        )
+    frames: list[pd.DataFrame] = []
+    for manifest in manifests:
+        if not manifest.locations:
+            raise FileNotFoundError(f"Dataframe manifest {manifest.name!r} has no locations.")
+        for run_name, loc in manifest.locations.items():
+            df_run = load_dataframe(loc)
+            if df_run.empty:
+                logger.warning(
+                    "Dataframe manifest %r entry %r resolved to an empty parquet.",
+                    manifest.name,
+                    run_name,
+                )
+                continue
+            frames.append(df_run)
 
-    frames = [load_dataframe(loc) for loc in manifest.locations.values()]
-    df = pd.concat([f for f in frames if not f.empty], ignore_index=True)
-    if df.empty:
+    if not frames:
         raise FileNotFoundError(
-            f"Dataframe manifest {manifest.name!r} resolved to an empty parquet."
+            "No non-empty parquets resolved from the supplied dataframe manifests."
         )
 
+    df = pd.concat(frames, ignore_index=True)
     pairs = df[["manifest_name", "run_name"]].drop_duplicates().itertuples(index=False)
     model_keys = [ModelKey(str(mn), str(rn)) for mn, rn in pairs]
     all_seeds = sorted(int(s) for s in df["random_seed"].unique())
