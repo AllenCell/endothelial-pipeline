@@ -49,7 +49,7 @@ def main(
 
     import pandas as pd
 
-    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE, UPLOAD_TO_FMS
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import (
         build_fms_annotations,
@@ -180,39 +180,32 @@ def main(
             )
             autocorrelation_dataframe_list.append(autocorrelation_dataframe)
 
-        # concatenate autocorrelation dataframes for each flow condition, save
-        # to parquet, and update manifest
+        # Concatenate autocorrelation dataframes for each flow condition
         autocorrelations_for_dataset = pd.concat(autocorrelation_dataframe_list, ignore_index=True)
-        autocorrelation_file_name = f"autocorrelation_{dataset_name}_{crop_pattern}.parquet"
-        autocorrelation_save_path = make_name_unique(dataframe_savedir / autocorrelation_file_name)
-        autocorrelations_for_dataset.to_parquet(autocorrelation_save_path)
 
-        logger.info(
-            "Saved autocorrelation dataframe for dataset [ %s ] to [ %s ].",
-            dataset_name,
-            autocorrelation_save_path,
-        )
+        # Save dataframe to file
+        save_path = output_path / f"{name_prefix}_{dataset_name}_{name_suffix}.parquet"
+        autocorrelations_for_dataset.to_parquet(save_path, index=False)
 
-        if upload_to_fms:
-            autocorrelation_annotations = build_fms_annotations(
+        # Create location object with output path
+        location = autocorrelation_manifest.locations.get(dataset_name, DataframeLocation())
+        location.path = save_path
+
+        # Upload to FMS (internal only) and replace local path with file id
+        if UPLOAD_TO_FMS:
+            annotations = build_fms_annotations(
                 dataset_config,
                 model_manifest=load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME),
                 run_name=DEFAULT_MODEL_RUN_NAME,
                 additional_notes=AUTOCORRELATION_FMS_ANNOTATION_NOTES,
             )
-            autocorrelation_fmsid = upload_file_to_fms(
-                autocorrelation_save_path,
-                annotations=autocorrelation_annotations,
-                file_type="parquet",
-            )
-            autocorrelation_dataframe_manifest.locations[dataset_name] = DataframeLocation(
-                fmsid=autocorrelation_fmsid
-            )
-        else:
-            autocorrelation_dataframe_manifest.locations[dataset_name] = (
-                build_dataframe_location_from_path(autocorrelation_save_path)
-            )
-        save_dataframe_manifest(autocorrelation_dataframe_manifest)
+            fmsid = upload_file_to_fms(save_path, annotations=annotations, file_type="parquet")
+            location.fmsid = fmsid
+            location.path = None
+
+        # Add dataframe location to dataframe manifest and save
+        autocorrelation_manifest.locations[dataset_name] = location
+        save_dataframe_manifest(autocorrelation_manifest)
 
 
 if __name__ == "__main__":
