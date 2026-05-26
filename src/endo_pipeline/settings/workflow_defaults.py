@@ -73,6 +73,12 @@ RANDOM_SEED: int = 47
 MODEL_QC_NOISE_LEVELS: tuple = (0.25, 0.5, 0.75)
 """Default noise levels to add to ground truth for the model QC workflow."""
 
+LABELFREE_NUCLEI_MODEL_MANIFEST_NAME: str = "nuc_pred_labelfree"
+"""Default manifest name for the label-free nuclei segmentation model."""
+
+LABELFREE_NUCLEI_MODEL_RUN_NAME: str = "finetuned_20250419"
+"""Default run name for the label-free nuclei segmentation model."""
+
 METRIC_TEXT_BOX_PROPS = {"boxstyle": "round", "facecolor": "wheat", "alpha": 0.3}
 """Matplotlib text-box properties for metric annotations in QC plots."""
 

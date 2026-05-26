@@ -360,15 +360,9 @@ def get_flow_field_and_fixed_points(
 
     logger.info("Getting flow fields and fixed points for grid-based crops...")
 
-    fixed_points_df = load_fixed_points_dataframe_for_dataset(
-        dataset_name=dataset_name, model_manifest_name=model_manifest_name, run_name=run_name
-    )
+    fixed_points_df = load_fixed_points_dataframe_for_dataset(dataset_name=dataset_name)
 
-    drift_df = load_drift_dataframe_for_dataset(
-        dataset_name=dataset_name,
-        model_manifest_name=model_manifest_name,
-        run_name=run_name,
-    )
+    drift_df = load_drift_dataframe_for_dataset(dataset_name=dataset_name)
 
     flow_field_dict = get_vector_field_as_dict_from_dataframe(drift_df, column_names)
 
@@ -613,80 +607,6 @@ def get_and_save_pc_diffae_feats_liveseg_feats_merged_table(
 
     filename_filtered = f"{dataset_name}_pc_diffae_seg_feats_merged_filtered.parquet"
     merged_df_filtered.to_parquet(out_dir / filename_filtered)
-
-
-def solve_ddff_from_trajectory_initial_condition_helper(args: dict) -> dict:
-    """Helper function to call solve_ddff_from_trajectory_initial_condition with
-    a dictionary of arguments.
-    """
-    return solve_ddff_from_trajectory_initial_condition(**args)
-
-
-def solve_ddff_from_trajectory_initial_condition(
-    crop_index: int,
-    flow_field_dict: dict,
-    initial_condition: np.ndarray,
-    timepoint_initial: int,
-    trajectory_duration: int,
-    time_units_for_solver: float,
-    simulation_results_column_names: list[str | Column.DiffAEData],
-    time_limit: float | None = None,
-) -> dict:
-    """
-    Solve the data-driven flow field (DDFF) ODE for a single trajectory given an initial condition.
-    Returns the simulated trajectory as a dictionary suitable for easy conversion to a DataFrame.
-
-    Parameters
-    ----------
-    crop_index
-        The crop index corresponding to the trajectory being simulated.
-    flow_field_dict
-        Dictionary representing the flow field to integrate over.
-    initial_condition
-        Initial condition for the trajectory integration.
-    timepoint_initial
-        The initial timepoint corresponding to the start of the trajectory.
-    trajectory_duration
-        Duration of the trajectory to simulate.
-    time_units_for_solver
-        The time units to use for the ODE solver (e.g. if timepoint_initial and trajectory_duration
-        are in minutes but you want to solve in hours, this would be 1/60).
-    simulation_results_column_names
-        List of column names corresponding to the dynamics features to include in the simulation results.
-    time_limit
-        Optional time limit in seconds for the ODE solver.
-
-    Returns
-    -------
-    dict
-        Dictionary containing the simulated trajectory as a record suitable for conversion to a DataFrame.
-    """
-    if time_limit is None:
-        time_limit = np.inf
-
-    trajectory_simulation = solve_ode_from_vector_field_dict(
-        flow_field_dict=flow_field_dict,
-        init=initial_condition,
-        t_span=(0 * time_units_for_solver, (trajectory_duration + 1) * time_units_for_solver),
-        num_t=trajectory_duration + 1,
-        time_limit=time_limit,
-    )
-    simulation_as_df_record = {
-        Column.CROP_INDEX: [crop_index] * len(trajectory_simulation),
-        Column.TRACK_LENGTH: [trajectory_duration] * len(trajectory_simulation),
-        Column.TIMEPOINT: list(
-            range(timepoint_initial, timepoint_initial + trajectory_duration + 1)
-        ),
-        **dict(
-            zip(
-                [f"{col_name}_simulated" for col_name in simulation_results_column_names],
-                trajectory_simulation.T,
-                strict=True,
-            )
-        ),
-    }
-
-    return simulation_as_df_record
 
 
 def add_distance_to_fixed_points_columns(

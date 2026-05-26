@@ -236,7 +236,7 @@ def make_real_image_panel(
     horizontal_arrow_y_offset: float = -0.025,
     horizontal_arrow_linewidth: float = 1.5,
     text_y_offset: float = -0.175,
-    delta_text_y_offset: float = 0.025,
+    delta_text_y_offset: float = 0.05,
 ) -> Path:
     """Build the panel showing a grid crop from t to t+1 for a given example image."""
 
@@ -400,7 +400,7 @@ def _make_example_acf_plot(
     r_squared = _compute_r_squared(acf_mean, exponential_decay_curve)
 
     axes.plot(lag_hours, acf_mean, "k-", label="ACF (mean)")
-    axes.fill_between(lag_hours, acf_lb, acf_ub, color="gray", alpha=0.2, label="ACF (90% CI)")
+    axes.fill_between(lag_hours, acf_lb, acf_ub, color="gray", alpha=0.2, label="ACF (P5-P95)")
     axes.plot(
         lag_hours,
         exponential_decay_curve,

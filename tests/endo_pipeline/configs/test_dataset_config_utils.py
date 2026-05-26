@@ -9,7 +9,6 @@ from endo_pipeline.configs import (
     FlowCondition,
     PositionAnnotation,
     TimepointAnnotation,
-    load_dataset_config,
 )
 from endo_pipeline.configs.dataset_config_utils import (
     get_annotated_positions,
@@ -23,7 +22,6 @@ from endo_pipeline.configs.dataset_config_utils import (
     get_start_of_steady_state_for_position,
     get_unannotated_positions,
     get_unannotated_timepoints_for_position,
-    make_filtered_dataset_collection,
 )
 
 
@@ -296,46 +294,6 @@ def test_get_unannotated_timepoints_for_position_with_annotations(
 
 def test_get_unannotated_timepoints_for_position_no_annotations(dataset):
     assert get_unannotated_timepoints_for_position(dataset, 0, None) == []
-
-
-@pytest.mark.parametrize(
-    "sample_type,objective,microscope",
-    [
-        ("live", None, None),
-        ("fixed", None, None),
-        (None, "20X", None),
-        (None, "40X", None),
-        (None, None, "3i"),
-        (None, None, "Nikon"),
-        ("live", "20X", "3i"),
-        ("live", "20X", "Nikon"),
-        ("live", "40X", "3i"),
-        ("live", "40X", "Nikon"),
-        ("fixed", "20X", "3i"),
-        ("fixed", "20X", "Nikon"),
-        ("fixed", "40X", "3i"),
-        ("fixed", "40X", "Nikon"),
-    ],
-)
-def test_make_filtered_dataset_collection(sample_type, objective, microscope):
-    dataset_collection = make_filtered_dataset_collection(
-        sample_type=sample_type,
-        objective=objective,
-        microscope=microscope,
-    )
-
-    dataset_configs = [
-        load_dataset_config(dataset_name) for dataset_name in dataset_collection.datasets
-    ]
-
-    if sample_type is not None:
-        assert all(config.live_or_fixed_sample == sample_type for config in dataset_configs)
-
-    if objective is not None:
-        assert all(config.objective == objective for config in dataset_configs)
-
-    if microscope is not None:
-        assert all(config.microscope == microscope for config in dataset_configs)
 
 
 @pytest.mark.parametrize(

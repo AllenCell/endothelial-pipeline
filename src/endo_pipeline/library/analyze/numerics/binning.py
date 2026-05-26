@@ -200,66 +200,6 @@ def _get_histogram_by_component_one_dataset(
     return hist_array_list
 
 
-def get_histogram_by_component(
-    df: pd.DataFrame,
-    bin_width: float,
-    bin_limits: list[tuple[float, float]],
-    feat_cols: list[str] | None = None,
-) -> tuple[list[list[np.ndarray]], list[np.ndarray]]:
-    """Get histogram of feature data for each latent component over time.
-
-    Parameters
-    ----------
-    df
-        Feature data for multiple datasets.
-    bin_width
-        Width of each histogram bin.
-    bin_limits
-        Bin limits for each component.
-    feat_cols
-        Optional, specific column names of the components to analyze.
-
-    Returns
-    -------
-    :
-        List of histogram values for each component as a function of time, one for each dataset.
-    :
-        List of bin edges for each component.
-    :
-        Updated dataframe with bin indices for each crop at each timepoint along each component.
-
-    """
-    # get column names for extracting feature data for a single dataset
-    if feat_cols is None:
-        # use all PCA feature columns in the dataframe
-        feat_cols_all = DIFFAE_PC_COLUMN_NAMES
-        feat_cols = [col for col in feat_cols_all if col in df.columns]
-
-    num_feats = len(feat_cols)
-
-    # check that bin_limits is provided and matches the number of features
-    if len(bin_limits) != num_feats:
-        raise ValueError(
-            f"Number of bin limits ({len(bin_limits)}) must match number of features ({num_feats})"
-        )
-
-    # get bin edges for each feature dimension
-    bin_edges = [
-        get_bins([bin_width], bin_limits=[bin_limits[dim]])[0][0] for dim in range(num_feats)
-    ]
-
-    # loop over each dataset in the dataframe
-    # get histogram / bin indices for each dataset
-    hist_array_list_all_datasets = []
-    for _, df_group in df.groupby(Column.DATASET):
-        hist_array_list_one_dataset = _get_histogram_by_component_one_dataset(
-            df_group, bin_edges, feat_cols
-        )
-        hist_array_list_all_datasets.append(hist_array_list_one_dataset)
-
-    return hist_array_list_all_datasets, bin_edges
-
-
 def get_normalization_constant(p: np.ndarray, dx: list) -> np.ndarray:
     """Get normalization constant for probability distribution p.
 

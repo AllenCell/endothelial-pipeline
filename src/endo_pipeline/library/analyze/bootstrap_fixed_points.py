@@ -20,6 +20,7 @@ from endo_pipeline.settings.dynamics_workflows import (
     LOWER_PERCENTILE_FOR_FILTERING_FPTS,
     NUM_INIT_SAMPLES,
     POLAR_ANGLE_RANGE,
+    RESCALED_THETA_PERIOD,
     TIME_STEP_IN_HOURS,
     UPPER_PERCENTILE_FOR_FILTERING_FPTS,
 )
@@ -273,8 +274,8 @@ def match_bootstrap_fixed_points_to_baseline(
     baseline_fixed_points: pd.DataFrame,
     bootstrap_fixed_points: list[pd.DataFrame],
     column_names: list[str | Column.DiffAEData],
-    polar_angle_period: float | None,
     bootstrap_match_radius: float,
+    polar_angle_period: float = RESCALED_THETA_PERIOD,
 ) -> dict[int, list[np.ndarray]]:
     """Match bootstrap fixed points to baseline fixed points within a specified radius.
 
@@ -411,9 +412,9 @@ def aggregate_bootstrapping_results(
     matched_coords: dict[int, list[np.ndarray]],
     column_names: list[str | Column.DiffAEData],
     n_bootstrap: int,
-    polar_angle_period: float | None,
     bootstrap_ci_lower_percentile: float,
     bootstrap_ci_upper_percentile: float,
+    polar_angle_period: float = RESCALED_THETA_PERIOD,
     metadata_dict: dict[str, str | float] | None = None,
 ) -> pd.DataFrame:
     """Build the output dataframe of baseline fixed points and their bootstrap matches.
