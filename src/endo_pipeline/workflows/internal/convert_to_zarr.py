@@ -38,7 +38,7 @@ def main(
     ## Dataset collection
 
     If datasets are not provided, the workflow will process the
-    `live_20X_objective_3i_microscope` dataset collection.
+    `shear_stress` dataset collection.
 
     ## Workflow demo
 
@@ -69,10 +69,9 @@ def main(
 
     if datasets is None:
         logger.info(
-            "No datasets provided. "
-            "Converting datasets in the 'live_20X_objective_3i_microscope' dataset collection."
+            "No datasets provided. " "Converting datasets in the 'shear_stress' dataset collection."
         )
-        datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
+        datasets = get_datasets_in_collection("shear_stress")
 
     if DEMO_MODE:
         logger.info(

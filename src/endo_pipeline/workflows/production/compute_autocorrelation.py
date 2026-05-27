@@ -16,8 +16,7 @@ def main(
         - model_manifest_name: DEFAULT_MODEL_MANIFEST_NAME
         - run_name: DEFAULT_MODEL_RUN_NAME
         - crop_pattern: "grid"
-        - datasets: all datasets in "timelapse" collection except for no-flow
-          datasets (shear stress = 0)
+        - datasets: all datasets in "shear_stress" and "perturbation" collections
         - columns: "dynamics analyses" features (DYNAMICS_COLUMN_NAMES)
 
     Parameters
@@ -119,7 +118,9 @@ def main(
 
     # Default list of datasets if not provided. Filter by datasets available in
     # the manifest.
-    dataset_names = datasets or get_datasets_in_collection("timelapse")
+    dataset_names = datasets or get_datasets_in_collection(
+        "shear_stress"
+    ) + get_datasets_in_collection("perturbation")
     if DEMO_MODE:
         logger.warning(
             "DEMO MODE: Processing no more than two of the provided datasets for quick testing."

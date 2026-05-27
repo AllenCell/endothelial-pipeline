@@ -10,8 +10,8 @@ from endo_pipeline.configs import (
     DatasetConfig,
     TimepointAnnotation,
     get_all_unannotated_timepoints,
+    get_available_dataset_names,
     get_subset_of_timepoint_annotations,
-    load_dataset_collection_config,
 )
 from endo_pipeline.io import build_fms_annotations, load_dataframe, upload_file_to_fms
 from endo_pipeline.manifests import (
@@ -165,7 +165,6 @@ def build_and_save_dataframe_manifest_for_training(
 def get_dataset_names_used_for_training(
     train_dataframe_location: DataframeLocation,
     val_dataframe_location: DataframeLocation,
-    dataset_collection_name: str,
 ) -> list[str]:
     """Get the list of dataset names used for model training.
 
@@ -181,9 +180,6 @@ def get_dataset_names_used_for_training(
     val_dataframe_location
         The location of the validation dataframe, used to load the dataframe and
         extract dataset names.
-    dataset_collection_name
-        The name of the dataset collection that contains the datasets used for
-        training, used to filter the dataset names extracted from the dataframes.
 
     Returns
     -------
@@ -209,10 +205,10 @@ def get_dataset_names_used_for_training(
     # get unique dataset names by looping over
     # the provided dataset collection name,
     # which should be a superset of the datasets used for training
+    training_dataset_superset = get_available_dataset_names()
 
-    training_dataset_superset = load_dataset_collection_config(dataset_collection_name)
     training_dataset_names = []
-    for dataset_name in training_dataset_superset.datasets:
+    for dataset_name in training_dataset_superset:
         for date in training_dataset_dates:
             if date in dataset_name:
                 training_dataset_names.append(dataset_name)

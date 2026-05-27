@@ -11,7 +11,7 @@ def main(datasets: Datasets | None = None) -> None:
     ----------
     datasets
         List of dataset names to process. If None, processes all datasets in the
-        "live_20X_objective_3i_microscope" collection. If DEMO_MODE is enabled,
+        "shear_stress" collection. If DEMO_MODE is enabled,
         only the first dataset will be processed.
     """
 
@@ -34,7 +34,7 @@ def main(datasets: Datasets | None = None) -> None:
     logger = logging.getLogger(__name__)
 
     if datasets is None:
-        datasets = get_datasets_in_collection("live_20X_objective_3i_microscope")
+        datasets = get_datasets_in_collection("shear_stress")
 
     if DEMO_MODE:
         logger.info("DEMO_MODE is ON. Processing only the first dataset.")
