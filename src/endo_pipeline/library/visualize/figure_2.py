@@ -20,7 +20,7 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
     plot_drift_quiver,
 )
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
-from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_XSMALL
+from endo_pipeline.settings.figures import FONTSIZE_XSMALL
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_CBAR_NUM_TICKS,
     DRIFT_CONTOUR_CBAR_ROUND,
@@ -160,20 +160,6 @@ def make_2d_contour_plot_panel(
         ax_.set_yticks(rho_ticks)
         if ax_index == 0:
             ax_.tick_params(labelbottom=False)
-
-    # reserve left margin for the vertical label
-    fig.subplots_adjust(left=0.08)
-    # add vertical title to the left of the contour plot spanning all rows
-    fig.text(
-        0.0,
-        0.5,
-        shear_stress_label,
-        va="center",
-        ha="center",
-        rotation="vertical",
-        fontsize=FONTSIZE_MEDIUM,
-        fontweight="bold",
-    )
 
     # if indicated, add colorbar to the top of the first subplot with ticks and
     # label formatting

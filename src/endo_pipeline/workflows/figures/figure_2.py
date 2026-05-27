@@ -327,7 +327,7 @@ def main() -> None:
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_low],
-            x_position=2.0,
+            x_position=1.85,
             y_position=0.15,
             x_offset=0.15,
             y_offset=-0.05,
@@ -335,7 +335,7 @@ def main() -> None:
         FigurePanel(
             letter="",
             path=quiver_plot_paths[dataset_low],
-            x_position=3.75,
+            x_position=3.6,
             y_position=0.15,
             x_offset=-0.1,
             y_offset=0.05,
@@ -360,7 +360,7 @@ def main() -> None:
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_high],
-            x_position=2.0,
+            x_position=1.85,
             y_position=2.1,
             x_offset=0.15,
             y_offset=-0.05,
@@ -368,7 +368,7 @@ def main() -> None:
         FigurePanel(
             letter="",
             path=quiver_plot_paths[dataset_high],
-            x_position=3.75,
+            x_position=3.6,
             y_position=2.1,
             x_offset=-0.1,
             y_offset=0.05,
