@@ -31,7 +31,7 @@ def main() -> None:
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import POLAR_ANGLE_RANGE
     from endo_pipeline.settings.examples import EXAMPLE_DATASET
-    from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.figures import FONTSIZE_XSMALL, MAX_FIGURE_WIDTH
     from endo_pipeline.settings.first_passage_time import (
         FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME,
     )
@@ -183,12 +183,18 @@ def main() -> None:
             xlabel_kwargs=XLABEL_KWARGS,
             ylabel_kwargs=YLABEL_KWARGS,
             axes_title_kwargs={
-                "fontsize": "small",
-                "x": 1.05,
-                "y": 0.5,
+                "fontsize": FONTSIZE_XSMALL,
+                "x": 0.05,
+                "y": 0.75,
                 "rotation": 0,
                 "ha": "left",
                 "va": "center",
+                "bbox": {
+                    "boxstyle": "round",
+                    "facecolor": "white",
+                    "edgecolor": "none",
+                    "alpha": 0.8,
+                },
             },
             include_colorbar=include_colorbar,
         )
@@ -327,7 +333,7 @@ def main() -> None:
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_low],
-            x_position=1.65,
+            x_position=1.75,
             y_position=0.15,
             x_offset=0.15,
             y_offset=-0.05,
@@ -360,7 +366,7 @@ def main() -> None:
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_high],
-            x_position=1.65,
+            x_position=1.75,
             y_position=2.1,
             x_offset=0.15,
             y_offset=-0.05,
