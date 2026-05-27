@@ -20,7 +20,7 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
     plot_drift_quiver,
 )
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
-from endo_pipeline.settings.figures import FONTSIZE_XSMALL
+from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_XSMALL
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_CBAR_NUM_TICKS,
     DRIFT_CONTOUR_CBAR_ROUND,
@@ -117,7 +117,6 @@ def make_2d_contour_plot_panel(
     figsize: tuple[float, float],
     fig_savedir: Path,
     filename: str,
-    shear_stress_label: str,
     r_lims: tuple[float, float],
     rho_lims: tuple[float, float],
     r_ticks: list[float],
@@ -276,6 +275,7 @@ def make_1d_drift_plot_panel(
     figsize: tuple[float, float],
     fig_savedir: Path,
     filename: str,
+    shear_stress_label: str,
     axes_xlim: tuple[float, float],
     axes_ylim: tuple[float, float],
     axes_xticks: list[float],
@@ -313,10 +313,25 @@ def make_1d_drift_plot_panel(
         markersize=5,
     )
 
-    # set plot formatting args and save
+    # set plot formatting args
     ax.set_box_aspect(1.0)
     ax.set_xticks(axes_xticks, labels=axes_xtick_labels)
     ax.set_yticks(axes_yticks)
+
+    # reserve left margin for the vertical label
+    fig.subplots_adjust(left=0.08)
+    # add vertical title to the left of the contour plot spanning all rows
+    fig.text(
+        0.0,
+        0.5,
+        shear_stress_label,
+        va="center",
+        ha="center",
+        rotation="vertical",
+        fontsize=FONTSIZE_MEDIUM,
+        fontweight="bold",
+    )
+
     save_plot_to_path(
         fig, fig_savedir, filename, file_format=".svg", tight_layout=False, transparent=True
     )
