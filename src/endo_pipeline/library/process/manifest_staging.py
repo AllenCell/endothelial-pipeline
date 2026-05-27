@@ -1,6 +1,7 @@
 """Methods for staging manifests to S3 bucket."""
 
 import logging
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -8,7 +9,12 @@ from s3_uploader import draft_rm_jobs, draft_sync_jobs, run_all_jobs
 from termcolor import colored
 
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.manifests import ImageManifest, get_image_location_for_dataset
+from endo_pipeline.manifests import (
+    ImageManifest,
+    get_image_location_for_dataset,
+    load_image_manifest,
+    save_image_manifest,
+)
 from endo_pipeline.settings.manifest_staging import (
     S3_STAGING_DIRECTORY,
     STAGING_SOURCE_COLUMN_NAME,
@@ -104,6 +110,8 @@ def draft_manifest_staging_job(
 
 
 def submit_manifest_staging_job(job_path: Path, output_path: Path, job_name: str) -> None:
+    """Submit manifest staging job to cluster."""
+
     # Submit job to cluster
     run_all_jobs(
         local=True,
@@ -119,3 +127,39 @@ def submit_manifest_staging_job(job_path: Path, output_path: Path, job_name: str
     # Print message for how to verify job completion
     check_command = colored(f"endopipe verify-manifest-staging {job_path}", attrs=["bold"])
     print(f"\N{BULLET} Run {check_command} after jobs are finished\n")
+
+
+def update_staged_manifest_locations(job_path: Path) -> None:
+    """Update manifest locations after staging jobs have completed."""
+
+    # Expect there to be a CSV containing the mapping between local paths and
+    # S3 URIs, with the name of the file matching the name of the manifest
+    csv_path = list(job_path.parent.glob("*csv"))[0]
+    manifest_name = csv_path.stem
+    df = pd.read_csv(csv_path)
+
+    # Check if the staging job was adding or removing files.
+    add_files = "local-to-s3" in job_path.name
+
+    path_to_s3uri = {}
+
+    # Iterate through the records in the CSV and build a mapping between local
+    # paths and S3 URIs. Replace instance of P# with P{{position}} placeholder
+    for entry in df.to_dict("records"):
+        path = entry["local_path_staging"]
+        path_with_placeholders = re.sub(r"_P[0-9]\.", "_P{{position}}.", path)
+
+        s3uri = entry["s3_uri_staging"]
+        s3uri_with_placeholders = re.sub(r"_P[0-9]\.", "_P{{position}}.", s3uri)
+
+        path_to_s3uri[Path(path_with_placeholders)] = s3uri_with_placeholders
+
+    # Iterate through locations and add or remove S3 URIs for matching paths
+    manifest = load_image_manifest(manifest_name)
+
+    for key, location in manifest.locations.items():
+        if location.path is not None and location.path in path_to_s3uri:
+            location.s3uri = path_to_s3uri[location.path] if add_files else None
+            logger.info("Setting '%s' S3 URI location to '%s'", key, location.s3uri)
+
+    save_image_manifest(manifest)
