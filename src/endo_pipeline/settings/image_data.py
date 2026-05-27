@@ -36,7 +36,7 @@ LOG_EPSILON: float = 1e-12
 NUM_ZSLICES: int = 25
 """Number of z-slices per timepoint."""
 
-PIXEL_SIZE_3i_20x: float = 0.325
+PIXEL_SIZE_3i_20x: float = 0.382
 """Pixel size for the 3i 20x objective in micrometers."""
 
 PIXEL_SIZE_3i_20x_RESOLUTION_1: float = PIXEL_SIZE_3i_20x * 2
