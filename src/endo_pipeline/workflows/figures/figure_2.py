@@ -318,8 +318,16 @@ def main() -> None:
         # --- Low flow dataset (row 1) ---
         FigurePanel(
             letter="A",
-            path=contour_plot_paths[dataset_low],
+            path=theta_plot_paths[dataset_low],
             x_position=0,
+            y_position=0.15,
+            x_offset=0.4,
+            y_offset=0.175,
+        ),
+        FigurePanel(
+            letter="",
+            path=contour_plot_paths[dataset_low],
+            x_position=2.0,
             y_position=0.15,
             x_offset=0.15,
             y_offset=-0.05,
@@ -327,18 +335,10 @@ def main() -> None:
         FigurePanel(
             letter="",
             path=quiver_plot_paths[dataset_low],
-            x_position=MAX_FIGURE_WIDTH / 4 + 0.2,
+            x_position=3.75,
             y_position=0.15,
             x_offset=-0.1,
             y_offset=0.05,
-        ),
-        FigurePanel(
-            letter="",
-            path=theta_plot_paths[dataset_low],
-            x_position=MAX_FIGURE_WIDTH / 2 + 0.2,
-            y_position=0.15,
-            x_offset=0.4,
-            y_offset=0.175,
         ),
         FigurePanel(
             letter="B",
@@ -351,8 +351,16 @@ def main() -> None:
         # --- High flow dataset (row 2) ---
         FigurePanel(
             letter="C",
-            path=contour_plot_paths[dataset_high],
+            path=theta_plot_paths[dataset_high],
             x_position=0,
+            y_position=2.1,
+            x_offset=0.4,
+            y_offset=0.175,
+        ),
+        FigurePanel(
+            letter="",
+            path=contour_plot_paths[dataset_high],
+            x_position=2.0,
             y_position=2.1,
             x_offset=0.15,
             y_offset=-0.05,
@@ -360,18 +368,10 @@ def main() -> None:
         FigurePanel(
             letter="",
             path=quiver_plot_paths[dataset_high],
-            x_position=MAX_FIGURE_WIDTH / 4 + 0.2,
+            x_position=3.75,
             y_position=2.1,
             x_offset=-0.1,
             y_offset=0.05,
-        ),
-        FigurePanel(
-            letter="",
-            path=theta_plot_paths[dataset_high],
-            x_position=MAX_FIGURE_WIDTH / 2 + 0.2,
-            y_position=2.1,
-            x_offset=0.4,
-            y_offset=0.175,
         ),
         FigurePanel(
             letter="D",
