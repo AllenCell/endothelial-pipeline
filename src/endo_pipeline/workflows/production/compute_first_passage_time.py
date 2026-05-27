@@ -88,7 +88,7 @@ def main(
     minimum_track_length = LONG_TRACK_THRESHOLD_LENGTH
     fixed_point_radius_threshold = MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
 
-    # Build dataframe manifest names that for results
+    # Build dataframe manifest names for results
     statistics_dataframe_manifest = create_dataframe_manifest(
         FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME, workflow_name=__file__
     )
