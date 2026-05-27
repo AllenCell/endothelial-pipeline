@@ -9,13 +9,21 @@ from s3_uploader import draft_rm_jobs, draft_sync_jobs, run_all_jobs
 from termcolor import colored
 
 from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.io import resolve_dataframe_location
 from endo_pipeline.manifests import (
+    DataframeManifest,
     ImageManifest,
+    get_available_dataframe_manifests,
+    get_available_image_manifests,
+    get_dataframe_location_for_dataset,
     get_image_location_for_dataset,
+    load_dataframe_manifest,
     load_image_manifest,
+    save_dataframe_manifest,
     save_image_manifest,
 )
 from endo_pipeline.settings.manifest_staging import (
+    FMS_FILE_ID_COLUMN_NAME,
     S3_STAGING_DIRECTORY,
     STAGING_SOURCE_COLUMN_NAME,
     STAGING_TARGET_COLUMN_NAME,
@@ -48,8 +56,28 @@ def build_image_manifest_staging_entries_for_dataset(
     return entries
 
 
+def build_dataframe_manifest_staging_entries_for_dataset(
+    manifest: DataframeManifest, location_key: str, folder: str
+) -> list[dict[str, str]]:
+    """Build dataframe manifest staging entries for given dataset."""
+
+    location = get_dataframe_location_for_dataset(manifest, location_key)
+
+    location.s3uri = None
+    source = resolve_dataframe_location(location)
+    target = f"{S3_STAGING_DIRECTORY}{folder}{Path(source).name}"
+
+    return [
+        {
+            STAGING_SOURCE_COLUMN_NAME: source,
+            STAGING_TARGET_COLUMN_NAME: target,
+            FMS_FILE_ID_COLUMN_NAME: location.fmsid or "",
+        }
+    ]
+
+
 def generate_manifest_staging_dataframe(
-    manifest: ImageManifest,
+    manifest: ImageManifest | DataframeManifest,
     dataset_names: list[str],
     folder: str,
     output_path: Path,
@@ -58,6 +86,7 @@ def generate_manifest_staging_dataframe(
 
     staging_entry_builders = {
         ImageManifest: build_image_manifest_staging_entries_for_dataset,
+        DataframeManifest: build_dataframe_manifest_staging_entries_for_dataset,
     }
     staging_entry_builder = staging_entry_builders[type(manifest)]
 
@@ -142,24 +171,49 @@ def update_staged_manifest_locations(job_path: Path) -> None:
     add_files = "local-to-s3" in job_path.name
 
     path_to_s3uri = {}
+    fmsid_to_s3uri = {}
 
     # Iterate through the records in the CSV and build a mapping between local
     # paths and S3 URIs. Replace instance of P# with P{{position}} placeholder
     for entry in df.to_dict("records"):
-        path = entry["local_path_staging"]
-        path_with_placeholders = re.sub(r"_P[0-9]\.", "_P{{position}}.", path)
+        if FMS_FILE_ID_COLUMN_NAME in entry:
+            fmsid = entry[FMS_FILE_ID_COLUMN_NAME]
+            s3uri = entry[STAGING_TARGET_COLUMN_NAME]
+            fmsid_to_s3uri[fmsid] = s3uri
+        if STAGING_SOURCE_COLUMN_NAME in entry:
+            path = entry[STAGING_SOURCE_COLUMN_NAME]
+            path_with_placeholders = re.sub(r"_P[0-9]\.", "_P{{position}}.", path)
+            s3uri = entry[STAGING_TARGET_COLUMN_NAME]
+            s3uri_with_placeholders = re.sub(r"_P[0-9]\.", "_P{{position}}.", s3uri)
+            path_to_s3uri[Path(path_with_placeholders)] = s3uri_with_placeholders
 
-        s3uri = entry["s3_uri_staging"]
-        s3uri_with_placeholders = re.sub(r"_P[0-9]\.", "_P{{position}}.", s3uri)
+    # Try to identify the manifest type
+    if manifest_name in get_available_image_manifests():
+        manifest_type = "image"
+        manifest = load_image_manifest(manifest_name)
+    elif manifest_name in get_available_dataframe_manifests():
+        manifest_type = "dataframe"
+    else:
+        raise ValueError("Unable to load manifest '%s'", manifest_name)
 
-        path_to_s3uri[Path(path_with_placeholders)] = s3uri_with_placeholders
+    manifest_loaders = {
+        "image": load_image_manifest,
+        "dataframe": load_dataframe_manifest,
+    }
+    manifest_savers = {
+        "image": save_image_manifest,
+        "dataframe": save_dataframe_manifest,
+    }
+
+    manifest = manifest_loaders[manifest_type](manifest_name)
 
     # Iterate through locations and add or remove S3 URIs for matching paths
-    manifest = load_image_manifest(manifest_name)
-
     for key, location in manifest.locations.items():
-        if location.path is not None and location.path in path_to_s3uri:
+        if location.fmsid is not None and location.fmsid in fmsid_to_s3uri:
+            location.s3uri = fmsid_to_s3uri[location.fmsid] if add_files else None
+            logger.info("Setting '%s' S3 URI location to '%s'", key, location.s3uri)
+        elif location.path is not None and location.path in path_to_s3uri:
             location.s3uri = path_to_s3uri[location.path] if add_files else None
             logger.info("Setting '%s' S3 URI location to '%s'", key, location.s3uri)
 
-    save_image_manifest(manifest)
+    manifest_savers[manifest_type](manifest)

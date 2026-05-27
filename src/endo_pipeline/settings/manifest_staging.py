@@ -3,11 +3,14 @@
 S3_STAGING_DIRECTORY: str = "s3://allencell-internal-quilt/endo_stg/"
 """Internal S3 directory."""
 
-STAGING_SOURCE_COLUMN_NAME: str = "local_path_staging"
+STAGING_SOURCE_COLUMN_NAME: str = "source"
 """Name of source column in staging CSV."""
 
-STAGING_TARGET_COLUMN_NAME: str = "s3_uri_staging"
+STAGING_TARGET_COLUMN_NAME: str = "target"
 """Name of target column in staging CSV."""
+
+FMS_FILE_ID_COLUMN_NAME: str = "fmsid"
+"""Name of FMS column name in staging CSV (used for updating manifests)."""
 
 IMAGE_MANIFEST_STAGING_FOLDERS = {
     "image_zarr": "",
@@ -15,3 +18,7 @@ IMAGE_MANIFEST_STAGING_FOLDERS = {
     "nuclear_labelfree_seg_zarr": "nuclear_segmentation_zarrs/",
 }
 """Mapping of image manifest names to subdirectories."""
+
+DATAFRAME_MANIFEST_STAGING_FOLDERS = {
+    "cdh5_classic_segmentation": "vecadherin_segmentation_features/"
+}
