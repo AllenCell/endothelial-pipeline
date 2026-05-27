@@ -4,13 +4,10 @@ S3_STAGING_DIRECTORY: str = "s3://allencell-internal-quilt/endo_stg/"
 """Internal S3 directory."""
 
 STAGING_SOURCE_COLUMN_NAME: str = "local_path_staging"
-"""Name of the column for local paths in staging CSV."""
+"""Name of source column in staging CSV."""
 
 STAGING_TARGET_COLUMN_NAME: str = "s3_uri_staging"
-"""Name of the column for S3 URIs in the staging CSV."""
-
-UNSTAGING_S3_COLUMN_NAME: str = "s3_uri_unstaging"
-"""Name of the column for S3 URIs in the staging CSV."""
+"""Name of target column in staging CSV."""
 
 IMAGE_MANIFEST_STAGING_FOLDERS = {
     "image_zarr": "",

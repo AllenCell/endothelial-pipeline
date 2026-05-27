@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 
 import pandas as pd
-from s3_uploader import draft_sync_jobs, run_all_jobs
+from s3_uploader import draft_rm_jobs, draft_sync_jobs, run_all_jobs
 from termcolor import colored
 
 from endo_pipeline.configs import load_dataset_config
@@ -71,17 +71,28 @@ def generate_manifest_staging_dataframe(
     return csv_path
 
 
-def draft_manifest_staging_job(csv_path: Path, output_path: Path, dry_run: bool) -> Path | None:
+def draft_manifest_staging_job(
+    csv_path: Path, output_path: Path, dry_run: bool, add_files: bool
+) -> Path | None:
     """Draft jobs for manifest staging."""
 
-    output_jobs = draft_sync_jobs(
-        input_path=str(csv_path),
-        src_column=STAGING_SOURCE_COLUMN_NAME,
-        dest_column=STAGING_TARGET_COLUMN_NAME,
-        output_dir=str(output_path),
-        log_dir=str(output_path),
-        dry_run=dry_run,
-    )
+    if add_files:
+        output_jobs = draft_sync_jobs(
+            input_path=str(csv_path),
+            src_column=STAGING_SOURCE_COLUMN_NAME,
+            dest_column=STAGING_TARGET_COLUMN_NAME,
+            output_dir=str(output_path),
+            log_dir=str(output_path),
+            dry_run=dry_run,
+        )
+    else:
+        output_jobs = draft_rm_jobs(
+            input_path=str(csv_path),
+            target_column=STAGING_TARGET_COLUMN_NAME,
+            output_dir=str(output_path),
+            log_dir=str(output_path),
+            dry_run=dry_run,
+        )
 
     # Skip submitting jobs if any errors were encountered
     if isinstance(output_jobs, pd.DataFrame):
@@ -89,7 +100,7 @@ def draft_manifest_staging_job(csv_path: Path, output_path: Path, dry_run: bool)
         logger.error("Error drafting jobs: %s", output_df[output_df["validation_error"].notnull()])
         return None
 
-    return output_jobs.pop()
+    return output_jobs.pop() if isinstance(output_jobs, set) else output_jobs
 
 
 def submit_manifest_staging_job(job_path: Path, output_path: Path, job_name: str) -> None:

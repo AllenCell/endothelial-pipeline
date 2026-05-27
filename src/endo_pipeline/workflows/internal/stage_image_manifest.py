@@ -8,6 +8,7 @@ from endo_pipeline.cli import Datasets
 def main(
     manifest_name: str,
     datasets: Datasets | None = None,
+    add_files: Annotated[bool, Parameter(negative="--remove-files")] = True,
     dry_run: Annotated[bool, Parameter(negative="--live-run")] = True,
 ) -> None:
     """
@@ -126,7 +127,7 @@ def main(
 
     # Generate manifest staging dataframe and draft manifest staging job
     csv_path = generate_manifest_staging_dataframe(manifest, dataset_names, folder, output_path)
-    job_path = draft_manifest_staging_job(csv_path, output_path, dry_run)
+    job_path = draft_manifest_staging_job(csv_path, output_path, dry_run, add_files)
 
     # Skip if no job path was returned
     if job_path is None:
