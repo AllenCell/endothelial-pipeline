@@ -73,7 +73,7 @@ OPTICAL_FLOW_BASE_FEATURES: list[str] = [
     ColumnName.OpticalFlow.RADIAL_COHERENCE_BASE,
     ColumnName.OpticalFlow.RADIAL_COHERENCE_WEIGHTED_BASE,
 ]
-"""List of compute optical flow features."""
+"""List of base computed optical flow features."""
 
 OPTICAL_FLOW_EMA_STEMS: list[str] = [
     ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_BASE,

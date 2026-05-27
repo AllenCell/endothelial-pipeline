@@ -266,6 +266,16 @@ def compute_image_pair_flow(
 def calculate_optical_flow_intensity_threshold(
     intensity_percentile: float, images: list[np.ndarray]
 ) -> float:
+    """
+    Calculate intensity threshold for across images for given percentile.
+
+    Parameters
+    ----------
+    intensity_percentile
+        Intensity percentile thresholds for optical flow masking.
+    images
+        List of image arrays.
+    """
 
     if intensity_percentile <= 0:
         return -float("inf")
