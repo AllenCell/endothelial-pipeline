@@ -32,9 +32,12 @@ def main() -> None:
     from endo_pipeline.settings.dynamics_workflows import POLAR_ANGLE_RANGE
     from endo_pipeline.settings.examples import EXAMPLE_DATASET
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.first_passage_time import (
+        FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME,
+    )
     from endo_pipeline.settings.flow_field_2d import DRIFT_CONTOUR_VMAX, DRIFT_CONTOUR_VMIN
     from endo_pipeline.settings.flow_field_dataframes import (
-        DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
+        BOOTSTRAPPING_MANIFEST_NAMES,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
         StabilityLabel,
     )
@@ -51,7 +54,6 @@ def main() -> None:
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
         FEATURES_FILTERED_MANIFEST_NAMES,
-        FIRST_PASSAGE_TIME_MANIFEST_NAME,
     )
 
     plt.style.use("endo_pipeline.figure")
@@ -75,28 +77,31 @@ def main() -> None:
     # load dataframe manifests for diffae features, fixed points, optical flow
     # features, and bootstrapped fixed points for this crop pattern, which will be
     # used for all visualizations in this figure
-    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
     feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[crop_pattern]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
+    name_suffix_2d = f"_{columns_r_rho_str}_{crop_pattern}"
     fixed_points_r_rho_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{columns_r_rho_str}_{base_name}"
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix_2d}"
     )
     fixed_points_r_rho_dataframe_manifest = load_dataframe_manifest(
         fixed_points_r_rho_dataframe_manifest_name
     )
+    name_suffix_1d = f"_{column_theta}_{crop_pattern}"
     fixed_points_theta_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{column_theta}_{base_name}"
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix_1d}"
     )
     fixed_points_theta_dataframe_manifest = load_dataframe_manifest(
         fixed_points_theta_dataframe_manifest_name
     )
+    name_suffix_3d = f"_{feature_columns_str}_{crop_pattern}"
     fixed_points_3d_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}_{feature_columns_str}_{base_name}"
+        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix_3d}"
     )
+
     fixed_points_3d_dataframe_manifest = load_dataframe_manifest(
         fixed_points_3d_dataframe_manifest_name
     )
-    bootstrap_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{base_name}"
+    bootstrap_dataframe_manifest_name = BOOTSTRAPPING_MANIFEST_NAMES[crop_pattern]
     bootstrap_dataframe_manifest = load_dataframe_manifest(bootstrap_dataframe_manifest_name)
 
     # get labels for provided set of feature columns
@@ -295,7 +300,7 @@ def main() -> None:
     )
 
     # --- Histogram of first passage time correlation ---
-    fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_MANIFEST_NAME)
+    fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME)
     first_passage_summary_df = build_dataframe_for_first_passage_time_dataset_summary(
         dataset_names=dataset_summary_list, first_passage_time_manifest=fpt_manifest
     )

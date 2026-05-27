@@ -13,7 +13,7 @@ from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.examples import FPT_FIG_EXAMPLES
 from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT
-from endo_pipeline.settings.workflow_defaults import FIRST_PASSAGE_TIME_MANIFEST_NAME
+from endo_pipeline.settings.first_passage_time import FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME
 
 plt.style.use("endo_pipeline.figure")
 
@@ -34,7 +34,7 @@ trajectory_example_filepath = generate_first_passage_time_example(
 
 # %% Load the first passage time statistics dataframe to make correlation plots
 # from and fit lines to the points in the correlation plots
-fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_MANIFEST_NAME)
+fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME)
 metric_to_plot = "mean"
 line_fit_df, fpt_stats_df_no_nan = get_line_fit_and_filtered_df(
     first_passage_time_manifest=fpt_manifest, metric_to_fit=metric_to_plot

@@ -1,5 +1,5 @@
 name: perturbation
-description: Datasets for perturbation experiments (CDH5 Ex3 deletion) and their controls
+description: Datasets for used for analysis of CDH5 Ex3 deletion and their controls
 datasets:
 - 20250908_20X # CDH5 Ex3 deletion under low shear stress
 - 20251029_20X # CDH5 Ex3 deletion under low shear stress

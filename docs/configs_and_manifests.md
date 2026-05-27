@@ -142,10 +142,11 @@ model = load_model(location)
 _Loading the CellPose model is currently handled directly and is not integrated into the `load_model` functionality. We will likely update this behavior to match how DiffAE models are loaded._
 
 ```python
-from cellpose.models import CellposeModel
+from endo_pipeline.io import load_model
 from endo_pipeline.manifests import load_model_manifest, get_model_location_for_run
+from endo_pipeline.settings.workflow_defaults import LABELFREE_NUCLEI_MODEL_MANIFEST_NAME, LABELFREE_NUCLEI_MODEL_RUN_NAME
 
-manifest = load_model_manifest("nuc_pred_labelfree")
-location = get_model_location_for_run(manifest, "finetuned_20250419")
-model = CellposeModel(pretrained_model=location.path.as_posix())
+manifest = load_model_manifest(LABELFREE_NUCLEI_MODEL_MANIFEST_NAME)
+location = get_model_location_for_run(manifest, LABELFREE_NUCLEI_MODEL_RUN_NAME)
+model = load_model(location)
 ```

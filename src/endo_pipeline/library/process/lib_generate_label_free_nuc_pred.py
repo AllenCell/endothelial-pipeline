@@ -15,6 +15,10 @@ from endo_pipeline.manifests import (
     load_model_manifest,
 )
 from endo_pipeline.settings import DIMENSION_ORDER
+from endo_pipeline.settings.workflow_defaults import (
+    LABELFREE_NUCLEI_MODEL_MANIFEST_NAME,
+    LABELFREE_NUCLEI_MODEL_RUN_NAME,
+)
 
 device_used_printed_global = False
 
@@ -51,8 +55,8 @@ def generate_labelfree_nuclei_predictions(args: ImageProcessingArgs) -> None:
         voxel_size = reader.physical_pixel_sizes
 
         # Load the retrained CellPose label-free nuclear prediction model
-        model_manifest = load_model_manifest("nuc_pred_labelfree")
-        run_name = "finetuned_20250419"
+        model_manifest = load_model_manifest(LABELFREE_NUCLEI_MODEL_MANIFEST_NAME)
+        run_name = LABELFREE_NUCLEI_MODEL_RUN_NAME
         model_location = get_model_location_for_run(model_manifest, run_name)
 
         gpu = core.use_gpu()

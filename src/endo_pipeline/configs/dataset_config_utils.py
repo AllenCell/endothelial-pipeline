@@ -5,17 +5,11 @@ import re
 from pathlib import Path
 
 from endo_pipeline.configs import (
-    DatasetCollectionConfig,
     DatasetConfig,
     FlowCondition,
-    MicroscopeType,
-    ObjectiveType,
     PositionAnnotation,
-    SampleType,
     ShearStressRegime,
     TimepointAnnotation,
-    load_all_dataset_configs,
-    load_dataset_collection_config,
 )
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
@@ -334,90 +328,3 @@ def get_all_unannotated_timepoints(
         position: get_unannotated_timepoints_for_position(dataset, position, annotations)
         for position in dataset.zarr_positions
     }
-
-
-def get_filtered_dataset_collection_name(
-    sample_type: SampleType | None = None,
-    objective: ObjectiveType | None = None,
-    microscope: MicroscopeType | None = None,
-) -> str:
-    """Get name of dataset collection with various filters applied."""
-
-    name: list[str] = []
-    name.append(sample_type if sample_type is not None else "")
-    name.append(f"_{objective}_objective" if objective is not None else "")
-    name.append(f"_{microscope}_microscope" if microscope is not None else "")
-    return "".join(name)
-
-
-def get_filtered_dataset_collection_description(
-    sample_type: SampleType | None = None,
-    objective: ObjectiveType | None = None,
-    microscope: MicroscopeType | None = None,
-) -> str:
-    """Get description of dataset collection with various filtered applied."""
-
-    description: list[str] = ["Collection of"]
-    description.append(f" {sample_type} datasets" if sample_type is not None else " datasets")
-    description.append(f" with {objective} objective" if objective is not None else "")
-    description.append(f" from the {microscope} microscope" if microscope is not None else ".")
-    return "".join(description)
-
-
-def make_filtered_dataset_collection(
-    sample_type: SampleType | None = None,
-    objective: ObjectiveType | None = None,
-    microscope: MicroscopeType | None = None,
-) -> DatasetCollectionConfig:
-    """Create dataset collection filtered by sample type, objective, and microscope."""
-
-    dataset_configs = load_all_dataset_configs()
-    dataset_collection_names = []
-
-    for dataset_config in dataset_configs:
-        if sample_type is not None and dataset_config.live_or_fixed_sample != sample_type:
-            continue
-
-        if objective is not None and dataset_config.objective != objective:
-            continue
-
-        if microscope is not None and dataset_config.microscope != microscope:
-            continue
-
-        dataset_collection_names.append(dataset_config.name)
-
-    dataset_collection = DatasetCollectionConfig(
-        name=get_filtered_dataset_collection_name(sample_type, objective, microscope),
-        description=get_filtered_dataset_collection_description(sample_type, objective, microscope),
-        datasets=sorted(dataset_collection_names),
-    )
-
-    return dataset_collection
-
-
-def validate_filtered_dataset_collection(
-    sample_type: SampleType | None = None,
-    objective: ObjectiveType | None = None,
-    microscope: MicroscopeType | None = None,
-) -> None:
-    """Validate dataset collection filtered by sample type, objective, and microscope."""
-
-    collection_name = get_filtered_dataset_collection_name(sample_type, objective, microscope)
-    generated_collection = make_filtered_dataset_collection(sample_type, objective, microscope)
-    loaded_collection = load_dataset_collection_config(collection_name)
-
-    if sorted(loaded_collection.datasets) != sorted(generated_collection.datasets):
-        logger.error(
-            "Generated dataset collection [ %s ] does not match loaded dataset collection",
-            collection_name,
-        )
-        logger.info(
-            "Generated dataset collection [ %s ] contains datasets [ %s ]",
-            collection_name,
-            " | ".join(generated_collection.datasets),
-        )
-        logger.info(
-            "Loaded dataset collection [ %s ] contains datasets [ %s ]",
-            collection_name,
-            " | ".join(loaded_collection.datasets),
-        )

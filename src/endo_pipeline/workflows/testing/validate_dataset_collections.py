@@ -20,16 +20,9 @@ def main() -> None:
 
     import logging
 
-    from endo_pipeline.configs import (
-        load_dataset_collection_config,
-        load_dataset_config,
-        validate_filtered_dataset_collection,
-    )
+    from endo_pipeline.configs import load_dataset_collection_config, load_dataset_config
 
     logger = logging.getLogger(__name__)
-
-    print("Validating live 20x 3i dataset collection")
-    validate_filtered_dataset_collection("live", "20X", "3i")
 
     print("Validating flow field analysis datasets")
     flow_field_analysis_datasets = load_dataset_collection_config("3d_flow_field_analysis").datasets

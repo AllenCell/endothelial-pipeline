@@ -1,8 +1,0 @@
-name: new_intermediates
-description: Newly handed off intermediate datasets.
-datasets:
-- 20260209_20X # 12 dyn / cm2
-- 20260211_20X # 16 dyn / cm2
-- 20260216_20X # 12 dyn / cm2
-- 20260225_20X # 16 dyn / cm2
-- 20260302_20X # 16 dyn / cm2

@@ -1,22 +1,28 @@
-name: drift_fixed_points_polar_theta_diffae_baseline_exclude_cell_piling_20251110_latent_512_grid_demo
+name: drift_vector_field_polar_r_rho_grid
 workflow: generate_flow_field
 parameters:
   model_manifest_name: diffae_baseline_exclude_cell_piling
   run_name: 20251110_latent_512
   crop_pattern: grid
-  columns: [polar_theta]
-  kernel_names: [periodic]
-  kernel_bandwidths: [0.15]
-  bin_widths: [0.05]
+  kernels:
+  - column: polar_r
+    name: gaussian
+    bandwidth: 0.15
+    period: null
+  - column: rho
+    name: gaussian
+    bandwidth: 0.15
+    period: null
+  bin_widths: [0.05, 0.05]
   num_init_samples_for_root_solver: 250
   lower_percentile_for_filtering_fpts: 5.0
   upper_percentile_for_filtering_fpts: 95.0
 locations:
   20250409_20X:
-    fmsid: 1a2c76e45cbd4a9887124125101d3e50
+    fmsid: 5a7e3da6e8ee4ef1bd9aa5558f78c364
     path: null
     s3uri: null
   20251001_20X:
-    fmsid: 7aabd2fdd1654cada4ec88872c4a4534
+    fmsid: c3825840abc34ff9a1767db8068c5691
     path: null
     s3uri: null

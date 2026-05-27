@@ -49,12 +49,6 @@ FEATURES_FILTERED_MANIFEST_NAMES: dict[Literal["grid", "tracked"], str] = {
 }
 """Mapping of crop pattern to filtered feature dataframe manifest name."""
 
-DEFAULT_SEG_FEATURE_WORKFLOW_DATASETS: str = "pca_reference"
-"""Default dataset collection name for the segmentation feature workflow."""
-
-FIRST_PASSAGE_TIME_MANIFEST_NAME: str = "first_passage_time_statistics"
-"""Manifest name for first passage time statistics dataframe."""
-
 DEFAULT_IMAGE_TYPE_FOR_SEMANTIC_CONDITIONING: Literal["bf", "cdh5"] = "bf"
 """Default image type to condition DiffAE models on."""
 
@@ -75,6 +69,12 @@ RANDOM_SEED: int = 47
 
 MODEL_QC_NOISE_LEVELS: tuple = (0.25, 0.5, 0.75)
 """Default noise levels to add to ground truth for the model QC workflow."""
+
+LABELFREE_NUCLEI_MODEL_MANIFEST_NAME: str = "nuc_pred_labelfree"
+"""Default manifest name for the label-free nuclei segmentation model."""
+
+LABELFREE_NUCLEI_MODEL_RUN_NAME: str = "finetuned_20250419"
+"""Default run name for the label-free nuclei segmentation model."""
 
 METRIC_TEXT_BOX_PROPS = {"boxstyle": "round", "facecolor": "wheat", "alpha": 0.3}
 """Matplotlib text-box properties for metric annotations in QC plots."""

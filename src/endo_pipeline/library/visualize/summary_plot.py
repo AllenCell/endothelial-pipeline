@@ -648,7 +648,6 @@ def build_dataframe_for_first_passage_time_dataset_summary(
 
     from endo_pipeline.library.analyze.track_integration import get_line_fit_and_filtered_df
 
-    line_fit_df, _ = get_line_fit_and_filtered_df(first_passage_time_manifest)
-    line_fit_df_filtered = line_fit_df[line_fit_df[ColumnName.DATASET].isin(dataset_names)]
+    line_fit_df, _ = get_line_fit_and_filtered_df(first_passage_time_manifest, dataset_names)
 
-    return line_fit_df_filtered
+    return line_fit_df
