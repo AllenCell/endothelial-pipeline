@@ -40,8 +40,8 @@ batch contains 10 rows (this can be changed in the workflow). If the batch index
 does not include any rows, the workflow will exit early.
 
 ```bash
-python src/endo_pipeline/workflows/tiff_to_zarr_conversion.py path/to/csv nuclear_labelfree_seg 0
-python src/endo_pipeline/workflows/tiff_to_zarr_conversion.py path/to/csv cdh5_classic_seg 3
+python src/endo_pipeline/workflows/convert_tiff_to_zarr.py path/to/csv nuclear_labelfree_seg 0
+python src/endo_pipeline/workflows/convert_tiff_to_zarr.py path/to/csv cdh5_classic_seg 3
 ```
 """
 
