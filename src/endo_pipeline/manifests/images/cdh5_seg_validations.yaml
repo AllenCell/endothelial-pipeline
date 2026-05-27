@@ -6,8 +6,8 @@ locations:
     path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_validations/20250319_20X/P{{position}}/20250319_20X_P{{position}}_T{{timepoint}}.ome.tiff
   20250326_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_validations/20250326_20X/P{{position}}/20250326_20X_P{{position}}_T{{timepoint}}.ome.tiff
-  20250331_20X:
-    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_validations/20250331_20X/P{{position}}/20250331_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20250402_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_validations/20250402_20X/P{{position}}/20250402_20X_P{{position}}_T{{timepoint}}.ome.tiff
   20250409_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_validations/20250409_20X/P{{position}}/20250409_20X_P{{position}}_T{{timepoint}}.ome.tiff
   20250428_20X:
@@ -30,3 +30,29 @@ locations:
     path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_validations/20250818_20X/P{{position}}/20250818_20X_P{{position}}_T{{timepoint}}.ome.tiff
   20250827_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_validations/20250827_20X/P{{position}}/20250827_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20251001_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_validations/20251001_20X/P{{position}}/20251001_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260114_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_validations/20260114_20X/P{{position}}/20260114_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260121_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_validations/20260121_20X/P{{position}}/20260121_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260126_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_validations/20260126_20X/P{{position}}/20260126_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260128_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_validations/20260128_20X/P{{position}}/20260128_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260202_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_validations/20260202_20X/P{{position}}/20260202_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260204_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_validations/20260204_20X/P{{position}}/20260204_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260209_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_validations/20260209_20X/P{{position}}/20260209_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260211_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_validations/20260211_20X/P{{position}}/20260211_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260216_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_validations/20260216_20X/P{{position}}/20260216_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260225_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_validations/20260225_20X/P{{position}}/20260225_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260302_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_validations/20260302_20X/P{{position}}/20260302_20X_P{{position}}_T{{timepoint}}.ome.tiff
+  20260304_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_validations/20260304_20X/P{{position}}/20260304_20X_P{{position}}_T{{timepoint}}.ome.tiff
