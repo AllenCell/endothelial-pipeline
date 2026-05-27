@@ -88,8 +88,22 @@ def write_timelapse_from_dir_explicit_levels_single(
 ) -> None:
     """Write individual timepoints into single OME Zarr at multiple levels."""
 
-    img = BioImage(source_zarr)
-    pps = [float(getattr(img.scale, k, 1.0) or 1.0) for k in ("T", "C", "Z", "Y", "X")]
+    img_raw_microscopy = BioImage(source_zarr)
+
+    # because the grid segmentation only has a single resolution level, and
+    # this resolution level is 1 and not 0, we have to adjust the resolution
+    # level that the raw microscopy image data is being loaded at to determine
+    # the correct physical pixel size metadata
+    for resolution_level, shape in img_raw_microscopy.resolution_level_dims.items():
+        raw_shape_y, raw_shape_x = shape[-2], shape[-1]
+        initial_level_shape_y, initial_level_shape_x = level_shapes[0][-2], level_shapes[0][-1]
+        if (raw_shape_y, raw_shape_x) == (initial_level_shape_y, initial_level_shape_x):
+            img_raw_microscopy.set_resolution_level(resolution_level)
+            break
+
+    pps = [
+        float(getattr(img_raw_microscopy.scale, k, 1.0) or 1.0) for k in ("T", "C", "Z", "Y", "X")
+    ]
 
     writer = OMEZarrWriter(
         store=Path(out_store),
