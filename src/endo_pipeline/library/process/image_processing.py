@@ -25,7 +25,7 @@ def convert_to_uint8(image: np.ndarray) -> np.ndarray:
 def load_processed_egfp_image(
     config: DatasetConfig, position: int, timepoints: int | list[int], level: int = 0
 ) -> da.Array:
-    """Load EGFP max projection image for given timepoint(s)."""
+    """Load processed EGFP max projection image."""
 
     location = get_zarr_location_for_position(config, position=position)
     image = load_image(location, channels=["EGFP"], timepoints=timepoints, level=level)
@@ -45,7 +45,7 @@ def load_processed_egfp_image(
 def load_processed_bf_image(
     config: DatasetConfig, position: int, timepoints: int | list[int], level: int = 0
 ) -> da.Array:
-    """Load BF single focal plane image for given timepoint(s)."""
+    """Load processed BF single focal plane image."""
 
     if config.center_z_plane is None:
         raise ValueError("'center_z_plane' is None, cannot load single focal plane for BF channel")
@@ -70,7 +70,7 @@ def load_processed_bf_image(
 def load_processed_bf_std_dev_image(
     config: DatasetConfig, position: int, timepoints: int | list[int], level: int = 0
 ) -> da.Array:
-    """Load BF log standard deviation projection image for given timepoint(s)."""
+    """Load processed BF log standard deviation projection image at specified crop."""
 
     location = get_zarr_location_for_position(config, position=position)
     image = load_image(location, channels=["BF"], timepoints=timepoints, level=level)
@@ -88,6 +88,51 @@ def load_processed_bf_std_dev_image(
     mean = image.mean(axis=(2, 3), keepdims=True)
     std = image.std(axis=(2, 3), keepdims=True)
     return (image - mean) / std
+
+
+def load_processed_egfp_image_crop(
+    config: DatasetConfig,
+    position: int,
+    timepoints: int | list[int],
+    start_x: int,
+    start_y: int,
+    crop_size: int,
+    level: int = 0,
+) -> np.ndarray:
+    """Load processed EGFP max projection image at specified crop."""
+
+    image = load_processed_egfp_image(config, position, timepoints, level)
+    return crop_image(image.squeeze().compute(), start_x, start_y, crop_size)
+
+
+def load_processed_bf_image_crop(
+    config: DatasetConfig,
+    position: int,
+    timepoints: int | list[int],
+    start_x: int,
+    start_y: int,
+    crop_size: int,
+    level: int = 0,
+) -> np.ndarray:
+    """Load processed BF single focal plane image at specified crop."""
+
+    image = load_processed_bf_image(config, position, timepoints, level)
+    return crop_image(image.squeeze().compute(), start_x, start_y, crop_size)
+
+
+def load_processed_bf_std_dev_image_crop(
+    config: DatasetConfig,
+    position: int,
+    timepoints: int | list[int],
+    start_x: int,
+    start_y: int,
+    crop_size: int,
+    level: int = 0,
+) -> np.ndarray:
+    """Load processed BF log standard deviation projection image at specified crop."""
+
+    image = load_processed_bf_std_dev_image(config, position, timepoints, level)
+    return crop_image(image.squeeze().compute(), start_x, start_y, crop_size)
 
 
 def bf_slice(img: BioImage, frame: int) -> np.ndarray:
