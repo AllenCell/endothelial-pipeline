@@ -28,7 +28,7 @@ def main(
     ## Dataset collection
 
     If datasets are not provided, the workflow will use datasets in the
-    `timelapse` dataset collection.
+    `shear_stress` and `perturbation` dataset collections.
 
     ## Workflow demo
 
@@ -96,7 +96,10 @@ def main(
 
     output_path = get_output_path(__file__)
 
-    dataset_names = datasets or get_datasets_in_collection("timelapse")
+    dataset_names = datasets or [
+        *get_datasets_in_collection("shear_stress"),
+        *get_datasets_in_collection("perturbation"),
+    ]
 
     if DEMO_MODE:
         logger.warning("DEMO_MODE - Limiting to one dataset")

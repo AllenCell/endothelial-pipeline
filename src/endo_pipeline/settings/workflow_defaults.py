@@ -49,9 +49,6 @@ FEATURES_FILTERED_MANIFEST_NAMES: dict[Literal["grid", "tracked"], str] = {
 }
 """Mapping of crop pattern to filtered feature dataframe manifest name."""
 
-DEFAULT_SEG_FEATURE_WORKFLOW_DATASETS: str = "pca_reference"
-"""Default dataset collection name for the segmentation feature workflow."""
-
 FIRST_PASSAGE_TIME_MANIFEST_NAME: str = "first_passage_time_statistics"
 """Manifest name for first passage time statistics dataframe."""
 
