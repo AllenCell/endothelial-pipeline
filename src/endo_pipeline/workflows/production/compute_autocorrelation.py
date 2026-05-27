@@ -3,49 +3,59 @@ from endo_pipeline.cli import CropPattern, Datasets, StrList
 
 def main(
     crop_pattern: CropPattern = "grid",
-    datasets: Datasets | None = None,
     columns: StrList | None = None,
-    upload_to_fms: bool = False,
+    datasets: Datasets | None = None,
 ) -> None:
     """
-    Run auto and cross correlation analysis on DiffAE feature time series data.
+    Calculate auto- and cross-correlation on DiffAE feature time series data.
 
-    #diffae #correlation-analysis
+    #correlation-analysis #grid-based #cell-centered
 
-    **Workflow defaults**
-        - model_manifest_name: DEFAULT_MODEL_MANIFEST_NAME
-        - run_name: DEFAULT_MODEL_RUN_NAME
-        - crop_pattern: "grid"
-        - datasets: all datasets in "shear_stress" and "perturbation" collections
-        - columns: "dynamics analyses" features (DYNAMICS_COLUMN_NAMES)
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe compute-autocorrelation -vd
+    ```
+
+    To run the workflow for a single dataset:
+
+    ```bash
+    uv run endopipe compute-autocorrelation --datasets DATASET_NAME
+    ```
+
+    ## Dataset collection
+
+    If datasets are not provided, the workflow will use datasets in the
+    `shear_stress` and `perturbation` dataset collections.
+
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will generate the
+    flow field for the first dataset.
 
     Parameters
     ----------
     crop_pattern
-        Crop pattern of the features to analyze.
-    datasets
-        Specific list of datasets or dataset collections to use in workflow.
+        Crop pattern used to compute correlations.
     columns
-        Specific list of feature column names to use for correlation analysis.
-    upload_to_fms
-        If True, will upload resulting autocorrelation dataframes to FMS and
-        update manifest with FMS locations. If False, will only save dataframes
-        locally and update manifest with local paths.
-
+        Specific columns to use for correlation analysis.
+    datasets
+        List of datasets or dataset collections to compute correlations for.
     """
+
     import logging
-    from typing import cast
 
     import pandas as pd
 
-    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE, UPLOAD_TO_FMS
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import (
         build_fms_annotations,
         get_output_path,
         join_sorted_strings,
         load_dataframe,
-        make_name_unique,
         upload_file_to_fms,
     )
     from endo_pipeline.library.analyze.dataframe_filtering import (
@@ -61,7 +71,6 @@ def main(
     )
     from endo_pipeline.manifests import (
         DataframeLocation,
-        build_dataframe_location_from_path,
         create_dataframe_manifest,
         load_dataframe_manifest,
         load_model_manifest,
@@ -83,59 +92,52 @@ def main(
         FEATURES_FILTERED_MANIFEST_NAMES,
     )
 
-    # initialize logger
     logger = logging.getLogger(__name__)
+
+    output_path = get_output_path(__file__)
+
+    dataset_names = datasets or [
+        *get_datasets_in_collection("shear_stress"),
+        *get_datasets_in_collection("perturbation"),
+    ]
+
+    if DEMO_MODE:
+        logger.warning("DEMO_MODE - Limiting to one dataset")
+        dataset_names = dataset_names[:1]
 
     # Default list of feature column names to use for correlation analysis if
     # not provided. Otherwise, use provided list.
     column_names = columns or list(DYNAMICS_COLUMN_NAMES)
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
 
-    dataframe_savedir = get_output_path(__file__, crop_pattern)
-
-    # Load dataframe manifest for the features to be used in correlation analysis.
-    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
+    # Load feature dataframe for specified crop pattern.
     feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[crop_pattern]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
-    columns_str = join_sorted_strings(cast(list[str], column_names))
-    demo_suffix = "_demo" if DEMO_MODE else ""
-    autocorrelation_manifest_name = (
-        f"{AUTOCORRELATION_DATAFRAME_MANIFEST_PREFIX}_{columns_str}_{base_name}{demo_suffix}"
-    )
-    autocorrelation_dataframe_manifest = create_dataframe_manifest(
+    # Build dataframe manifest names that include sorted list of selected
+    # columns used to generate the flow field.
+    name_prefix = AUTOCORRELATION_DATAFRAME_MANIFEST_PREFIX
+    name_suffix = f"{join_sorted_strings(column_names)}_{crop_pattern}"
+    autocorrelation_manifest_name = f"{name_prefix}_{name_suffix}"
+    autocorrelation_manifest = create_dataframe_manifest(
         autocorrelation_manifest_name, workflow_name=__file__
     )
-    # add parameters to dataframe manifest for traceability
-    column_names_yaml_safe = [f"{column}" for column in column_names]
-    autocorrelation_dataframe_manifest.parameters = {
+
+    # Add parameters to dataframe manifest for traceability
+    autocorrelation_manifest.parameters = {
         "model_manifest_name": DEFAULT_MODEL_MANIFEST_NAME,
         "run_name": DEFAULT_MODEL_RUN_NAME,
         "crop_pattern": crop_pattern,
-        "columns": column_names_yaml_safe,
+        "columns": [f"{column}" for column in column_names],
     }
-    save_dataframe_manifest(autocorrelation_dataframe_manifest)
-
-    # Default list of datasets if not provided. Filter by datasets available in
-    # the manifest.
-    dataset_names = datasets or get_datasets_in_collection(
-        "shear_stress"
-    ) + get_datasets_in_collection("perturbation")
-    if DEMO_MODE:
-        logger.warning(
-            "DEMO MODE: Processing no more than two of the provided datasets for quick testing."
-        )
-        # take min of the number of datasets provided and 2, to limit to at most
-        # 2 datasets in DEMO_MODE for quick visualization (i.e., avoid error if
-        # only 1 dataset is provided)
-        num_datasets = min(len(dataset_names), 2)
-        dataset_names = dataset_names[:num_datasets]
+    save_dataframe_manifest(autocorrelation_manifest)
 
     for dataset_name in dataset_names:
         if dataset_name not in feature_dataframe_manifest.locations:
             logger.warning(
-                "Dataset [ %s ] not found in the manifest, skipping for this workflow.",
+                "Dataset '%s' not found in manifest '%s'. Skipping.",
                 dataset_name,
+                feature_dataframe_manifest_name,
             )
             continue
 
@@ -171,39 +173,32 @@ def main(
             )
             autocorrelation_dataframe_list.append(autocorrelation_dataframe)
 
-        # concatenate autocorrelation dataframes for each flow condition, save
-        # to parquet, and update manifest
+        # Concatenate autocorrelation dataframes for each flow condition
         autocorrelations_for_dataset = pd.concat(autocorrelation_dataframe_list, ignore_index=True)
-        autocorrelation_file_name = f"autocorrelation_{dataset_name}_{crop_pattern}.parquet"
-        autocorrelation_save_path = make_name_unique(dataframe_savedir / autocorrelation_file_name)
-        autocorrelations_for_dataset.to_parquet(autocorrelation_save_path)
 
-        logger.info(
-            "Saved autocorrelation dataframe for dataset [ %s ] to [ %s ].",
-            dataset_name,
-            autocorrelation_save_path,
-        )
+        # Save dataframe to file
+        save_path = output_path / f"{name_prefix}_{dataset_name}_{name_suffix}.parquet"
+        autocorrelations_for_dataset.to_parquet(save_path, index=False)
 
-        if upload_to_fms:
-            autocorrelation_annotations = build_fms_annotations(
+        # Create location object with output path
+        location = autocorrelation_manifest.locations.get(dataset_name, DataframeLocation())
+        location.path = save_path
+
+        # Upload to FMS (internal only) and replace local path with file id
+        if UPLOAD_TO_FMS:
+            annotations = build_fms_annotations(
                 dataset_config,
                 model_manifest=load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME),
                 run_name=DEFAULT_MODEL_RUN_NAME,
                 additional_notes=AUTOCORRELATION_FMS_ANNOTATION_NOTES,
             )
-            autocorrelation_fmsid = upload_file_to_fms(
-                autocorrelation_save_path,
-                annotations=autocorrelation_annotations,
-                file_type="parquet",
-            )
-            autocorrelation_dataframe_manifest.locations[dataset_name] = DataframeLocation(
-                fmsid=autocorrelation_fmsid
-            )
-        else:
-            autocorrelation_dataframe_manifest.locations[dataset_name] = (
-                build_dataframe_location_from_path(autocorrelation_save_path)
-            )
-        save_dataframe_manifest(autocorrelation_dataframe_manifest)
+            fmsid = upload_file_to_fms(save_path, annotations=annotations, file_type="parquet")
+            location.fmsid = fmsid
+            location.path = None
+
+        # Add dataframe location to dataframe manifest and save
+        autocorrelation_manifest.locations[dataset_name] = location
+        save_dataframe_manifest(autocorrelation_manifest)
 
 
 if __name__ == "__main__":
