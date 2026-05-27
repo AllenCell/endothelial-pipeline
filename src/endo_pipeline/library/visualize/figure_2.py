@@ -313,16 +313,11 @@ def make_1d_drift_plot_panel(
         markersize=5,
     )
 
-    # set plot formatting args
-    ax.set_box_aspect(1.0)
-    ax.set_xticks(axes_xticks, labels=axes_xtick_labels)
-    ax.set_yticks(axes_yticks)
-
     # reserve left margin for the vertical label
     fig.subplots_adjust(left=0.08)
     # add vertical title to the left of the contour plot spanning all rows
     fig.text(
-        0.0,
+        -0.25,
         0.5,
         shear_stress_label,
         va="center",
@@ -331,6 +326,11 @@ def make_1d_drift_plot_panel(
         fontsize=FONTSIZE_MEDIUM,
         fontweight="bold",
     )
+
+    # set plot formatting args
+    ax.set_box_aspect(1.0)
+    ax.set_xticks(axes_xticks, labels=axes_xtick_labels)
+    ax.set_yticks(axes_yticks)
 
     save_plot_to_path(
         fig, fig_savedir, filename, file_format=".svg", tight_layout=False, transparent=True
