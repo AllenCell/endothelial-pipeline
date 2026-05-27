@@ -49,6 +49,9 @@ from endo_pipeline.settings.dynamics_workflows import (
     TIME_STEP_IN_HOURS,
     TIME_STEP_IN_MINUTES,
 )
+from endo_pipeline.settings.first_passage_time import (
+    FIRST_PASSAGE_TIME_MIN_NUM_TRAJECTORIES_PER_BIN,
+)
 from endo_pipeline.settings.flow_field_3d import (
     BIN_WIDTH_DEFAULTS,
     INIT_POINT_3D,
@@ -1629,19 +1632,24 @@ def build_fpt_line_fit_results_df(
 
 def get_line_fit_and_filtered_df(
     first_passage_time_manifest: DataframeManifest,
+    dataset_names: list[str] | None = None,
+    min_num_traj_per_bin: int = FIRST_PASSAGE_TIME_MIN_NUM_TRAJECTORIES_PER_BIN,
     metric_to_fit: Literal["mean", "median"] = "mean",
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
 
-    # Load the first passage time statistics dataframe to make correlation plots from
-    fpt_stats_df = load_dataframe(
-        first_passage_time_manifest.locations["first_passage_time_statistics"]
-    )
+    # Load the first passage time statistics dataframe. If given, only load
+    # the selected datasets. Otherwise, load all datasets.
+    if dataset_names is None:
+        dfs = [load_dataframe(loc) for loc in first_passage_time_manifest.locations.values()]
+    else:
+        dfs = [load_dataframe(first_passage_time_manifest.locations[d]) for d in dataset_names]
+    fpt_stats_df = pd.concat(dfs)
 
     # filter out nans and bins with too few trajectories for a certain measure
     # (either mean or median) for the correlation and line fitting steps
     fpt_stats_df_no_nan = filter_fpt_stats_df_by_min_num_trajectories(
         fpt_stats_df=fpt_stats_df,
-        min_num_traj_per_bin=first_passage_time_manifest.parameters["min_num_traj_per_bin"],
+        min_num_traj_per_bin=min_num_traj_per_bin,
         metric_for_filter=metric_to_fit,
     )
     # fit a line to the correlation between grid and tracked first passage

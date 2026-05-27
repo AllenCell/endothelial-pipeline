@@ -49,9 +49,6 @@ FEATURES_FILTERED_MANIFEST_NAMES: dict[Literal["grid", "tracked"], str] = {
 }
 """Mapping of crop pattern to filtered feature dataframe manifest name."""
 
-FIRST_PASSAGE_TIME_MANIFEST_NAME: str = "first_passage_time_statistics"
-"""Manifest name for first passage time statistics dataframe."""
-
 DEFAULT_IMAGE_TYPE_FOR_SEMANTIC_CONDITIONING: Literal["bf", "cdh5"] = "bf"
 """Default image type to condition DiffAE models on."""
 
