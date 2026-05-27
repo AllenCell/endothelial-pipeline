@@ -119,9 +119,9 @@ def compute_flow_statistics(
         muv_fast = np.nan
 
     # --- Radial coherence ---
-    H, W = u.shape
-    cy, cx = H / 2.0, W / 2.0
-    yy, xx = np.mgrid[:H, :W]
+    h, w = u.shape
+    cy, cx = h / 2.0, w / 2.0
+    yy, xx = np.mgrid[:h, :w]
     ry = (yy - cy).astype(np.float32)
     rx = (xx - cx).astype(np.float32)
     r_mag = np.sqrt(rx**2 + ry**2)
