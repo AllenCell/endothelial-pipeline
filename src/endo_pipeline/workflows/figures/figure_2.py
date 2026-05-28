@@ -122,9 +122,9 @@ def main() -> None:
     nullcline_reconstruction_paths: dict[str, list[Path]] = {}
     quiver_plot_paths: dict[str, Path] = {}
     crop_contact_sheet_paths: dict[str, Path] = {}
-    for dataset_name, include_legend, arrow_scale_1d in [
-        (dataset_low, True, 1.5),
-        (dataset_high, False, 1.25),
+    for dataset_name, arrow_scale_1d in [
+        (dataset_low, 1.5),
+        (dataset_high, 1.25),
     ]:
         fig_savedir = get_output_path("figure_2", dataset_name)
         dataset_config = load_dataset_config(dataset_name)
@@ -225,7 +225,6 @@ def main() -> None:
                     "alpha": 0.8,
                 },
             },
-            include_colorbar=True,
         )
 
         nullcline_reconstruction_paths[dataset_name] = reconstruct_along_nullcline(
@@ -256,7 +255,6 @@ def main() -> None:
             quiver_downsample=4,
             vmin=DRIFT_CONTOUR_VMIN,
             vmax=DRIFT_CONTOUR_VMAX,
-            include_legend=include_legend,
             gridspec_kwargs=GRIDSPEC_KWARGS,
             xlabel_kwargs=XLABEL_KWARGS,
             ylabel_kwargs=YLABEL_KWARGS,
@@ -335,7 +333,7 @@ def main() -> None:
             path=theta_plot_paths[dataset_low],
             x_position=0,
             y_position=0.00,
-            x_offset=0.1,
+            x_offset=0.2,
             y_offset=0.05,
         ),
         FigurePanel(
@@ -384,7 +382,7 @@ def main() -> None:
             path=theta_plot_paths[dataset_high],
             x_position=0,
             y_position=1.9,
-            x_offset=0.1,
+            x_offset=0.2,
             y_offset=0.05,
         ),
         FigurePanel(

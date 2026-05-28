@@ -232,7 +232,8 @@ def make_2d_contour_plot_panel(
     xlabel_kwargs: dict | None,
     ylabel_kwargs: dict | None,
     axes_title_kwargs: dict | None,
-    include_colorbar: bool = False,
+    include_colorbar: bool = True,
+    include_legend: bool = True,
 ) -> tuple[Path, dict[Column.DiffAEData, pd.DataFrame]]:
     """
     Make and save plot of drift contours in (r, rho) space for a given dataset.
@@ -277,10 +278,22 @@ def make_2d_contour_plot_panel(
     axes = cast(np.ndarray[plt.Axes, Any], axes_)
     nullcline_coords = _get_nullcline_coords_from_contour_axes(axes, column_names, r_lims, rho_lims)
 
-    # push the constrained layout rect up
-    layout_engine = fig.get_layout_engine()
-    if isinstance(layout_engine, ConstrainedLayoutEngine):
-        layout_engine.set(rect=(0.0, 0.05, 1.0, 1.0))
+    handles = []
+    labels = []
+    if include_legend:
+        for ax in list(axes_):
+            ax_handles, ax_labels = ax.get_legend_handles_labels()
+            handles.extend(ax_handles)
+            labels.extend(ax_labels)
+        fig.legend(
+            handles,
+            labels,
+            fontsize="xx-small",
+            loc="upper center",
+            bbox_to_anchor=(0.5, 1.25),
+            ncol=2,
+            handletextpad=0.3,
+        )
 
     save_plot_to_path(
         fig,
@@ -315,11 +328,11 @@ def make_2d_quiver_plot_panel(
     quiver_downsample: int,
     vmin: float,
     vmax: float,
-    include_legend: bool,
     gridspec_kwargs: dict | None,
     xlabel_kwargs: dict | None,
     ylabel_kwargs: dict | None,
     quiver_legend_kwargs: dict | None,
+    include_legend: bool = False,
 ) -> Path:
     fig, ax = plot_drift_quiver(
         drift=drift,
@@ -353,20 +366,6 @@ def make_2d_quiver_plot_panel(
         markersize=5,
         # label="Stable fixed point",
     )
-    if include_legend:
-        handles, labels = ax.get_legend_handles_labels()
-        ax.legend(
-            handles,
-            labels,
-            fontsize="xx-small",
-            loc="upper center",
-            bbox_to_anchor=(0.5, 1.25),
-            ncol=3,
-            handletextpad=0.3,
-        )
-
-    # make room above axes for the legend
-    fig.subplots_adjust(top=0.82)
 
     # set plot formatting args and save
     ax.set_box_aspect(1.0)
@@ -412,7 +411,7 @@ def make_1d_drift_plot_panel(
         axes_limits=[axes_xlim, axes_ylim],
         axes_labels=[column_label, f"d{column_label}/dt"],
         add_flow_arrows=True,
-        flow_arrow_kwargs={"color": "dimgrey", "scale": arrow_scale, "linewidths": 0.75},
+        flow_arrow_kwargs={"color": "dimgrey", "scale": arrow_scale, "width": 0.05},
         flow_arrow_downsample=10,
         gridspec_kwargs=gridspec_kwargs,
         drift_line_kwargs=drift_line_kwargs,
