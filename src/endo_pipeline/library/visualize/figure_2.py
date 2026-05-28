@@ -488,6 +488,10 @@ def reconstruct_along_nullcline(
         walk_array = generate_from_dataframe(
             full_coords_dataframe, column_names, model, num_gpus=num_gpus, random_seed=random_seed
         )
+        # reverse order so that images are generated in the direction of
+        # increasing r or rho (since nullcline coords are sorted by increasing r
+        # or rho)
+        walk_array = walk_array[::-1]
         fig_null_walk = make_contact_sheet(
             panels=[walk_array[i] for i in range(len(walk_array))],
             max_rows=len(walk_array),
@@ -503,7 +507,7 @@ def reconstruct_along_nullcline(
                 transform=ax.transAxes,
                 ha="right",
                 va="top",
-                fontsize=3,
+                fontsize=1,
                 color="white",
             )
         save_plot_to_path(
