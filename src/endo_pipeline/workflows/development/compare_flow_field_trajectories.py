@@ -1,19 +1,55 @@
 from endo_pipeline.cli import Datasets, UniqueIntList
-from endo_pipeline.library.process.general_image_preprocessing import process_task_queue
-from endo_pipeline.settings.workflow_defaults import CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME
 
 
 def main(
-    datasets: Datasets | None = None,
-    positions: list[int] | None = None,
+    dataset_names: Datasets | None = None,
     track_ids_to_overlay: UniqueIntList | None = None,
     make_trajectory_summary_plots: bool = True,
     use_global_pc_lims: bool = False,
-    for_figures: bool = False,
-    n_cores: int = 30,
-    cellcentric_features_manifest_name_for_flowfield: str = CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
+    num_processes: int = 1,
 ) -> None:
-    """This workflow outputs plots of track-based cell trajectories integrated with grid-based DiffAE flow fields."""
+    """
+    Compare cell-centered trajectories on grid-based flow fields.
+
+    #grid-based #cell-centered
+
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe compare-flow-field-trajectories -vd
+    ```
+
+    To run the workflow for a single dataset:
+
+    ```bash
+    uv run endopipe compare-flow-field-trajectories --datasets DATASET_NAME
+    ```
+
+    ## Dataset collection
+
+    If datasets are not provided, the workflow will use datasets in the
+    `diffae_model_training` dataset collection.
+
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will run the
+    comparison on a single position of a single dataset for 10 tracks.
+
+    Parameters
+    ----------
+    datasets
+        List of datasets or dataset collections to compare.
+    track_ids_to_overlay
+        Specific track IDs to overlay on flow fields.
+    make_trajectory_summary_plots
+        True to plot trajectory summaries, False otherwise.
+    use_global_pc_lims
+        True to use same PC limits for all datasets, False otherwise.
+    num_processes
+        Number of processes to use.
+    """
 
     import logging
     from collections import namedtuple
@@ -22,12 +58,13 @@ def main(
     from matplotlib import pyplot as plt
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import get_datasets_in_collection
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.track_integration import (
         get_flow_field_and_fixed_points,
         get_flow_field_estimation_bin_widths,
     )
+    from endo_pipeline.library.process.general_image_preprocessing import process_task_queue
     from endo_pipeline.library.visualize.integration.track_integration_viz import (
         PlotMeasFeatAndFlowFieldOverlayArgs,
         multiproc_plot_measured_feat_overlay_on_flowfield,
@@ -40,11 +77,12 @@ def main(
     from endo_pipeline.manifests.dataframe_manifest_io import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
+        DEFAULT_DATASETS_DYNAMICS_VIS,
         DYNAMICS_COLUMN_NAMES,
         LONG_TRACK_THRESHOLD_LENGTH,
     )
-    from endo_pipeline.settings.flow_field_3d import DATASET_COLLECTION_FOR_3D_DYNAMICS
     from endo_pipeline.settings.workflow_defaults import (
+        CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
         DATASET_INFO_COLUMNS,
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -53,14 +91,8 @@ def main(
     logger = logging.getLogger(__name__)
 
     out_dir = get_output_path(__file__)
-    if datasets is None:
-        datasets = get_datasets_in_collection(DATASET_COLLECTION_FOR_3D_DYNAMICS)
 
-    # create subdirectory to save track-based trajectories to
-    out_subdir_traj = out_dir / "trajectories_track_based"
-    out_subdir_traj.mkdir(parents=True, exist_ok=True)
-
-    positions = list(range(6)) if positions is None else positions
+    dataset_names = dataset_names or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
 
     dynamics_columns = list(DYNAMICS_COLUMN_NAMES)
     seg_feat_columns = [
@@ -71,11 +103,20 @@ def main(
     ]
 
     if DEMO_MODE:
-        datasets = datasets[:1]
-        positions = positions[:1]
-        n_cores = 1
+        logger.warning("DEMO_MODE - Limiting to one dataset, one position, and 10 tracks")
+        dataset_names = dataset_names[:1]
+        max_positions = 1
+        max_tracks = 10
+    else:
+        max_positions = None
+        max_tracks = None
 
-    for dataset_name in datasets:
+    for dataset_name in dataset_names:
+        dataset_config = load_dataset_config(dataset_name)
+
+        positions = dataset_config.zarr_positions
+        if max_positions is not None:
+            positions = positions[:max_positions]
 
         # define the columns to compute
         compute_cols = [
@@ -87,7 +128,7 @@ def main(
 
         # load and preprocess the different diffae manifests and PCA pipeline
         cellcentric_manifest = load_dataframe_manifest(
-            cellcentric_features_manifest_name_for_flowfield
+            CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME
         )
         cellcentric_df_location = get_dataframe_location_for_dataset(
             cellcentric_manifest, dataset_name
@@ -109,7 +150,7 @@ def main(
         # Define some initial parameters for plotting
         # save plots of the track-based crop trajectories and PCs overlaid
         # on the flow field and trajectories from the grid-based crops
-        figure_format: Literal[".png", ".svg", ".pdf"] = ".pdf" if for_figures else ".png"
+        figure_format: Literal[".png", ".svg", ".pdf"] = ".png"
 
         # create a subdirectory to save the plots to
         out_subdir = out_dir / dataset_name
@@ -241,8 +282,8 @@ def main(
             else:
                 track_ids = track_ids_to_overlay
 
-            if DEMO_MODE:
-                track_ids = track_ids[:10]
+            if max_tracks is not None:
+                track_ids = track_ids[:max_tracks]
 
             for i, fp_row in fixed_points_df.iterrows():
 
@@ -282,13 +323,13 @@ def main(
 
                 # make the plots
                 logger.info(
-                    f"Plotting track overlays for fixed point {i} (using {n_cores} cores)..."
+                    f"Plotting track overlays for fixed point {i} (using {num_processes} cores)..."
                 )
                 process_task_queue(
                     task=multiproc_plot_measured_feat_overlay_on_flowfield,
                     queue=arg_list,
                     description=f"Plotting tracks at {dataset_name} P{pos} - fixed point {i}",
-                    num_processes=n_cores,
+                    num_processes=num_processes,
                     chunksize=5,
                 )
                 logger.info("Plotting track overlays complete.")
