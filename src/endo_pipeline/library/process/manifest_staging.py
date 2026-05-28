@@ -150,7 +150,7 @@ def generate_manifest_staging_dataframe(
             logger.error("Key '%s' not found in manifest '%s'", location_key, manifest.name)
 
         logger.debug("Adding '%s' to staging dataframe", location_key)
-        entries, location = staging_entry_builder(manifest, location_key, folder)
+        entries, location = staging_entry_builder(manifest, location_key, folder)  # type: ignore[operator]
         all_entries.extend(entries)
         all_locations[location_key] = location
 
