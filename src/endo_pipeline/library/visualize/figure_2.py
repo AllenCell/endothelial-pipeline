@@ -252,12 +252,12 @@ def make_2d_contour_plot_panel(
         axes_title_kwargs=axes_title_kwargs,
     )
     for ax_index, ax_ in enumerate(list(axes_)):
-        # adjust label padding and drop tick labels on shared x axis
+        # adjust label padding and drop tick labels on shared y axis
         ax_.set_box_aspect(1.0)
         ax_.set_xticks(r_ticks)
         ax_.set_yticks(rho_ticks)
-        if ax_index == 0:
-            ax_.tick_params(labelbottom=False)
+        if ax_index == 1:
+            ax_.tick_params(labelleft=False)
 
     # if indicated, add colorbar to the top of the first subplot with ticks and
     # label formatting
