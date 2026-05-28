@@ -165,6 +165,35 @@ def main() -> None:
         )
         stable_fixed_point_theta = stable_fixed_points_dict[column_theta][column_theta].to_numpy()
 
+        # plot 1D drift in theta and save
+        theta_plot_paths[dataset_name] = make_1d_drift_plot_panel(
+            drift=drift_theta,
+            theta_values=centers_theta[-1],
+            column_label=column_label_theta,
+            stable_fixed_point=stable_fixed_point_theta,
+            figsize=(1.5, 1.5),
+            fig_savedir=fig_savedir,
+            filename=f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}_drift",
+            shear_stress_label=shear_stress_label,
+            axes_xlim=POLAR_ANGLE_RANGE,
+            axes_ylim=(-0.4, 0.4),
+            axes_xticks=[0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi],
+            axes_xtick_labels=[
+                f"0={Unicode.PI}",
+                f"{Unicode.PI}/4",
+                f"{Unicode.PI}/2",
+                f"3{Unicode.PI}/4",
+                f"{Unicode.PI}=0",
+            ],
+            axes_yticks=[-0.3, 0.0, 0.3],
+            arrow_scale=arrow_scale_1d,
+            drift_line_kwargs={"color": "k", "linewidth": 2},
+            zero_line_kwargs={"linestyle": "--", "color": "gray", "linewidth": 1, "alpha": 0.7},
+            gridspec_kwargs=GRIDSPEC_KWARGS,
+            xlabel_kwargs=XLABEL_KWARGS,
+            ylabel_kwargs=YLABEL_KWARGS,
+        )
+
         contour_plot_paths[dataset_name] = make_2d_contour_plot_panel(
             drift=drift_r_rho,
             meshgrid=centers_mesh,
@@ -231,35 +260,6 @@ def main() -> None:
                 "ncol": 2,
                 "handletextpad": 0.3,
             },
-        )
-
-        # plot 1D drift in theta and save
-        theta_plot_paths[dataset_name] = make_1d_drift_plot_panel(
-            drift=drift_theta,
-            theta_values=centers_theta[-1],
-            column_label=column_label_theta,
-            stable_fixed_point=stable_fixed_point_theta,
-            figsize=(1.5, 1.5),
-            fig_savedir=fig_savedir,
-            filename=f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}_drift",
-            shear_stress_label=shear_stress_label,
-            axes_xlim=POLAR_ANGLE_RANGE,
-            axes_ylim=(-0.4, 0.4),
-            axes_xticks=[0, np.pi / 4, np.pi / 2, 3 * np.pi / 4, np.pi],
-            axes_xtick_labels=[
-                f"0={Unicode.PI}",
-                f"{Unicode.PI}/4",
-                f"{Unicode.PI}/2",
-                f"3{Unicode.PI}/4",
-                f"{Unicode.PI}=0",
-            ],
-            axes_yticks=[-0.3, 0.0, 0.3],
-            arrow_scale=arrow_scale_1d,
-            drift_line_kwargs={"color": "k", "linewidth": 2},
-            zero_line_kwargs={"linestyle": "--", "color": "gray", "linewidth": 1, "alpha": 0.7},
-            gridspec_kwargs=GRIDSPEC_KWARGS,
-            xlabel_kwargs=XLABEL_KWARGS,
-            ylabel_kwargs=YLABEL_KWARGS,
         )
 
         # make contact sheet of example ve-cadherin reconstruction at stable
