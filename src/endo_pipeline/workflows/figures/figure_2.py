@@ -230,7 +230,7 @@ def main() -> None:
         )
 
         nullcline_reconstruction_paths = reconstruct_along_nullcline(
-            nullcline_coordinates=nullcline_coordinates,
+            nullcline_coords=nullcline_coordinates,
             theta_value=stable_fixed_point_theta[0],
             model=model,
             fig_savedir=fig_savedir,
