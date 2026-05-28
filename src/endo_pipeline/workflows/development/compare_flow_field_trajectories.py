@@ -2,7 +2,8 @@ from endo_pipeline.cli import Datasets, UniqueIntList
 
 
 def main(
-    dataset_names: Datasets | None = None,
+    datasets: Datasets | None = None,
+    positions: UniqueIntList | None = None,
     track_ids_to_overlay: UniqueIntList | None = None,
     make_trajectory_summary_plots: bool = True,
     use_global_pc_lims: bool = False,
@@ -41,12 +42,15 @@ def main(
     ----------
     datasets
         List of datasets or dataset collections to compare.
+    positions
+        List of positions to compare.
     track_ids_to_overlay
         Specific track IDs to overlay on flow fields.
     make_trajectory_summary_plots
         True to plot trajectory summaries, False otherwise.
     use_global_pc_lims
-        True to use same PC limits for all datasets, False otherwise.
+        True to use same PC limits for all datasets, False to set limit
+        individually for each dataset.
     num_processes
         Number of processes to use.
     """
@@ -92,7 +96,7 @@ def main(
 
     out_dir = get_output_path(__file__)
 
-    dataset_names = dataset_names or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
+    dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
 
     dynamics_columns = list(DYNAMICS_COLUMN_NAMES)
     seg_feat_columns = [
@@ -114,7 +118,7 @@ def main(
     for dataset_name in dataset_names:
         dataset_config = load_dataset_config(dataset_name)
 
-        positions = dataset_config.zarr_positions
+        positions = positions or dataset_config.zarr_positions
         if max_positions is not None:
             positions = positions[:max_positions]
 
