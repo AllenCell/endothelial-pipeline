@@ -35,6 +35,7 @@ from endo_pipeline.settings.flow_field_2d import (
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
 
@@ -437,9 +438,90 @@ def make_1d_drift_plot_panel(
     return fig_savedir / f"{filename}.svg"
 
 
+def reconstruct_along_nullcline(
+    nullcline_coords: dict[ColumnNameType, pd.DataFrame],
+    theta_value: float,
+    model: DiffusionAutoEncoder,
+    fig_savedir: Path,
+    num_gpus: int | None = None,
+    random_seed: int | None = RANDOM_SEED,
+) -> tuple[Path, Path]:
+    """
+    Generate reconstructed images along a nullcline given the coordinates of the
+    nullcline in feature space.
+
+    Parameters
+    ----------
+    nullcline_coords
+        Dictionary containing DataFrames with the coordinates of each nullcline.
+    theta_value
+        Value of the theta feature to use for generating the images along the
+        nullcline (since the nullcline coordinates only contain r and rho).
+    model
+        DiffusionAutoEncoder model used to generate synthetic images.
+    fig_savedir
+        Directory where the generated figures will be saved.
+    num_gpus
+        Number of GPUs to use for image generation. If None, will use all
+        available GPUs.
+    random_seed
+        Random seed for reproducibility of image generation. If None, will use a
+        random seed.
+    """
+    column_names = [
+        Column.DiffAEData.POLAR_RADIUS,
+        Column.DiffAEData.PC3_FLIPPED,
+        Column.DiffAEData.POLAR_ANGLE,
+    ]
+    output_paths: list[Path] = []
+    for column, coords_dataframe in nullcline_coords.items():
+        r_coords = coords_dataframe[Column.DiffAEData.POLAR_RADIUS]
+        rho_coords = coords_dataframe[Column.DiffAEData.PC3_FLIPPED]
+        full_coords_dataframe = pd.DataFrame(
+            {
+                Column.DiffAEData.POLAR_RADIUS: r_coords,
+                Column.DiffAEData.PC3_FLIPPED: rho_coords,
+                Column.DiffAEData.POLAR_ANGLE: theta_value * np.ones_like(r_coords),
+            }
+        )
+
+        walk_array = generate_from_dataframe(
+            full_coords_dataframe, column_names, model, num_gpus=num_gpus, random_seed=random_seed
+        )
+        fig_null_walk = make_contact_sheet(
+            panels=[walk_array[i] for i in range(len(walk_array))],
+            max_rows=len(walk_array),
+            max_cols=1,
+            fig_kwargs={"figsize": (0.5, 1.5)},
+            gridspec_kwargs={"wspace": 0.05, "hspace": 0.05},
+        )
+        for i, ax in enumerate(fig_null_walk.axes):
+            ax.text(
+                0.98,
+                0.98,
+                f"r={r_coords[i]:.3f}\n{Unicode.RHO}={rho_coords[i]:.3f}",
+                transform=ax.transAxes,
+                ha="right",
+                va="top",
+                fontsize=3,
+                color="white",
+            )
+        save_plot_to_path(
+            fig_null_walk,
+            fig_savedir,
+            f"walk_array_null_{column}",
+            file_format=".svg",
+            tight_layout=False,
+            pad_inches=0,
+        )
+        output_paths.append(fig_savedir / f"walk_array_null_{column}.svg")
+
+    return tuple(output_paths)
+
+
 def make_crop_example_contact_sheet(
     stable_fixed_point_dataframe: pd.DataFrame,
-    feature_column_names: list[str],
+    feature_column_names: list[ColumnNameType],
     model: DiffusionAutoEncoder,
     n_crop_examples: int,
     fig_savedir: Path,
