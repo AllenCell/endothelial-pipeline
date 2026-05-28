@@ -1,5 +1,6 @@
 """Helper functions for visualizations used in Figure 2."""
 
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
 
@@ -113,7 +114,7 @@ def _add_colorbar_to_contour_plot(
 
 
 def _get_nullcline_coords_from_contour_axes(
-    axes: plt.Axes,
+    axes: Sequence[plt.Axes],
     column_names: list[str],
     r_lims: tuple[float, float],
     rho_lims: tuple[float, float],
@@ -124,7 +125,7 @@ def _get_nullcline_coords_from_contour_axes(
     Parameters
     ----------
     axes
-        Matplotlib axes object containing the contour plot with nullclines.
+        Sequence of Matplotlib axes objects containing the contour plots with nullclines.
     column_names
         List of column names corresponding to the nullclines, in the same order as they are plotted in the axes.
     r_lims
@@ -163,6 +164,24 @@ def _get_nullcline_coords_from_contour_axes(
             sort_indices = np.argsort(path_coords[sort_arg])
             path_coords[0] = path_coords[0][sort_indices]
             path_coords[1] = path_coords[1][sort_indices]
+
+            # take only 5 evenly spaced coordinates along the nullcline to avoid
+            # generating too many points
+            example_indices = np.round(np.linspace(0, len(path_coords[0]) - 1, 5)).astype(int)
+            path_coords = path_coords[:, example_indices]
+
+            # add points to plot
+            axes[index].plot(
+                path_coords[0],
+                path_coords[1],
+                "o",
+                color="w",
+                markeredgecolor="k",
+                markeredgewidth=0.25,
+                markersize=3,
+            )
+
+            # append the coordinates to the DataFrame for the corresponding column
             nullcline_coords[column] = pd.concat(
                 [
                     nullcline_coords[column],
@@ -237,7 +256,7 @@ def make_2d_contour_plot_panel(
 
     # get (r, rho) coordinates of r- and rho-nullclines for generating images
     nullcline_coords = _get_nullcline_coords_from_contour_axes(ax, column_names, r_lims, rho_lims)
-    print(nullcline_coords.items())
+    print(nullcline_coords.keys())
 
     save_plot_to_path(
         fig,
