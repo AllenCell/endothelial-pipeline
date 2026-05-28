@@ -499,7 +499,7 @@ def reconstruct_along_nullcline(
             panels=[walk_array[i] for i in range(len(walk_array))],
             max_rows=len(walk_array),
             max_cols=1,
-            fig_kwargs={"figsize": (0.45, 1.9), "layout": "constrained"},
+            fig_kwargs={"figsize": (0.45, 1.85), "layout": "constrained"},
             gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
         )
         for i, ax in enumerate(fig_null_walk.axes):
@@ -605,7 +605,7 @@ def make_crop_example_contact_sheet(
 
     generated_images = generate_from_dataframe(
         stable_fixed_point_dataframe,
-        feature_column_names,
+        cast(list[str], feature_column_names),
         model,
         num_gpus=num_gpus,
         random_seed=random_seed,
