@@ -2,12 +2,9 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from endo_pipeline.cli import Datasets
-
 
 def main(
     manifest_name: str,
-    datasets: Datasets | None = None,
     add_files: Annotated[bool, Parameter(negative="--remove-files")] = True,
     dry_run: Annotated[bool, Parameter(negative="--live-run")] = True,
 ) -> None:
@@ -46,12 +43,6 @@ def main(
     uv run endopipe stage-image-manifest MANIFEST_NAME -vd
     ```
 
-    To run the workflow for a single dataset:
-
-    ```bash
-    uv run endopipe stage-image-manifest MANIFEST_NAME --datasets DATASET_NAME
-    ```
-
     To dry run the workflow:
 
     ```bash
@@ -83,8 +74,8 @@ def main(
     ----------
     manifest_name
         Name of image manifest containing images to stage.
-    datasets
-        List of datasets or dataset collections to stage.
+    add_files
+        True to add files to the staging location, False to remove files.
     dry_run
         True to submit jobs with the `--dryrun` flag, False otherwise.
     """
@@ -111,22 +102,21 @@ def main(
         logger.error("Manifest '%s' is not supported for staging to bucket", manifest_name)
         return
 
-    # Load image manifest and set staging subdirectory
+    # Load image manifest and set staging folder
     manifest = load_image_manifest(manifest_name)
     folder = IMAGE_MANIFEST_STAGING_FOLDERS[manifest_name]
 
-    # Get list of all available datasets from the manifest and use as default
-    # list of datasets, if no datasets are provided by the user
-    dataset_names = datasets or list(manifest.locations.keys())
+    # Get list of all available location keys from the manifest
+    location_keys = list(manifest.locations.keys())
 
-    # Limit number of datasets if running in demo mode.
+    # Limit number of locations and use demo folder if running in demo mode.
     if DEMO_MODE:
-        logger.warning("DEMO MODE - Staging single dataset to demo directory")
-        dataset_names = dataset_names[:1]
+        logger.warning("DEMO MODE - Staging single location to demo directory")
+        location_keys = location_keys[:1]
         folder = f"demo/{folder}"
 
     # Generate manifest staging dataframe and draft manifest staging job
-    csv_path = generate_manifest_staging_dataframe(manifest, dataset_names, folder, output_path)
+    csv_path = generate_manifest_staging_dataframe(manifest, location_keys, folder, output_path)
     job_path = draft_manifest_staging_job(csv_path, output_path, dry_run, add_files)
 
     # Skip if no job path was returned

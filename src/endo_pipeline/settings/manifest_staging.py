@@ -9,9 +9,6 @@ STAGING_SOURCE_COLUMN_NAME: str = "source"
 STAGING_TARGET_COLUMN_NAME: str = "target"
 """Name of target column in staging CSV."""
 
-FMS_FILE_ID_COLUMN_NAME: str = "fmsid"
-"""Name of FMS column name in staging CSV (used for updating manifests)."""
-
 IMAGE_MANIFEST_STAGING_FOLDERS = {
     "image_zarr": "",
     "cdh5_classic_seg_zarr": "vecadherin_segmentation_zarrs/",
