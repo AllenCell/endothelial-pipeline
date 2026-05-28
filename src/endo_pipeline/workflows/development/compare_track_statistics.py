@@ -10,10 +10,53 @@ from endo_pipeline.settings.dynamics_workflows import LONG_TRACK_THRESHOLD_LENGT
 def main(
     datasets: Datasets | None = None,
     min_track_length: int = LONG_TRACK_THRESHOLD_LENGTH,
-    n_bootstrap: int = NUM_BOOTSTRAP_ITERATIONS,
+    num_bootstrap_iterations: int = NUM_BOOTSTRAP_ITERATIONS,
     ci_lower: float = FP_CI_LOWER_PERCENTILE,
     ci_upper: float = FP_CI_UPPER_PERCENTILE,
 ) -> None:
+    """
+    Compare track statistics between cell-centered and grid-based crops.
+
+    #grid-based #cell-centered
+
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe compare-track-statistics -vd
+    ```
+
+    To run the workflow for a single dataset:
+
+    ```bash
+    uv run endopipe compare-track-statistics --datasets DATASET_NAME
+    ```
+
+    ## Dataset collection
+
+    If datasets are not provided, the workflow will use datasets in the
+    `diffae_model_training` dataset collection.
+
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will run the
+    comparison on a single dataset.
+
+    Parameters
+    ----------
+    datasets
+        List of datasets or dataset collections to compare.
+    min_track_length
+        Minimum track length for filtering.
+    num_bootstrap_iterations
+        Number of bootstrap iterations to perform for each dataset.
+    ci_lower
+        Lower percentile for fixed point confidence interval.
+    ci_upper
+        Upper percentile for fixed point confidence interval.
+    """
+
     import logging
     from collections import namedtuple
     from typing import TypeAlias
@@ -99,6 +142,10 @@ def main(
     # Default list of datasets if not provided. Filter by datasets available in
     # the manifest.
     dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
+
+    if DEMO_MODE:
+        logger.warning("DEMO_MODE - Limiting to one dataset")
+        dataset_names = dataset_names[:1]
 
     for dataset_name in dataset_names:
         if (
@@ -301,7 +348,7 @@ def main(
                     avg_kdes: list[np.ndarray] = []
                     var_kdes: list[np.ndarray] = []
                     # Begin bootstrap procedure
-                    for _ in range(n_bootstrap):
+                    for _ in range(num_bootstrap_iterations):
                         # Sample trajectories with replacement from the tracked
                         # data, then compute KDEs for the average and variance
                         # of the column across trajectories for this bootstrap
@@ -393,7 +440,8 @@ def main(
             plt.suptitle(
                 f"{plot_label}, grid vs. tracked crops \n "
                 f"(grid n={num_trajectories_grid}, tracked n={num_trajectories_tracked}, "
-                f"n={n_bootstrap} bootstrap samples, tracked n={num_trajectories_grid} per sample)"
+                f"n={num_bootstrap_iterations} bootstrap samples, "
+                f"tracked n={num_trajectories_grid} per sample)"
             )
             save_plot_to_path(
                 fig,
@@ -401,13 +449,6 @@ def main(
                 f"{dataset_name_flow}_{column_name}",
                 tight_layout=False,
             )
-
-        if DEMO_MODE:
-            logger.warning(
-                "DEMO MODE: only processing one dataset for quick testing. Stopping after first dataset [ %s ].",
-                dataset_name,
-            )
-            break
 
 
 if __name__ == "__main__":
