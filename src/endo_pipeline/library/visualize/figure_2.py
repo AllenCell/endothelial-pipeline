@@ -226,7 +226,7 @@ def make_2d_contour_plot_panel(
     """
     Make and save plot of drift contours in (r, rho) space for a given dataset.
     """
-    column_names = Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED
+    column_names = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
     column_labels = [COLUMN_METADATA[column].label or str(column) for column in column_names]
     # plot drift contours and save
     fig, axes_ = plot_drift_contours(
@@ -445,7 +445,7 @@ def reconstruct_along_nullcline(
     fig_savedir: Path,
     num_gpus: int | None = None,
     random_seed: int | None = RANDOM_SEED,
-) -> tuple[Path, Path]:
+) -> tuple[Path, ...]:
     """
     Generate reconstructed images along a nullcline given the coordinates of the
     nullcline in feature space.
@@ -468,11 +468,14 @@ def reconstruct_along_nullcline(
         Random seed for reproducibility of image generation. If None, will use a
         random seed.
     """
-    column_names = [
-        Column.DiffAEData.POLAR_RADIUS,
-        Column.DiffAEData.PC3_FLIPPED,
-        Column.DiffAEData.POLAR_ANGLE,
-    ]
+    column_names = cast(
+        list[str],
+        [
+            Column.DiffAEData.POLAR_RADIUS,
+            Column.DiffAEData.PC3_FLIPPED,
+            Column.DiffAEData.POLAR_ANGLE,
+        ],
+    )
     output_paths: list[Path] = []
     for column, coords_dataframe in nullcline_coords.items():
         r_coords = coords_dataframe[Column.DiffAEData.POLAR_RADIUS]
@@ -496,7 +499,7 @@ def reconstruct_along_nullcline(
             panels=[walk_array[i] for i in range(len(walk_array))],
             max_rows=len(walk_array),
             max_cols=1,
-            fig_kwargs={"figsize": (0.65, 1.25), "layout": "constrained"},
+            fig_kwargs={"figsize": (0.45, 1.9), "layout": "constrained"},
             gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
         )
         for i, ax in enumerate(fig_null_walk.axes):
@@ -525,7 +528,7 @@ def reconstruct_along_nullcline(
 
 def make_crop_example_contact_sheet(
     stable_fixed_point_dataframe: pd.DataFrame,
-    feature_column_names: list[ColumnNameType],
+    feature_column_names: list[Column.DiffAEData],
     model: DiffusionAutoEncoder,
     n_crop_examples: int,
     fig_savedir: Path,
