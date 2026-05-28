@@ -117,9 +117,10 @@ def main() -> None:
 
     # loop over datasets in collection, compute 2D drift coefficients for each
     # pairwise combination of polar coordinates, and plot contours of drift coefficients
-    contour_plot_paths: dict[str, Path] = {}
-    quiver_plot_paths: dict[str, Path] = {}
     theta_plot_paths: dict[str, Path] = {}
+    contour_plot_paths: dict[str, Path] = {}
+    nullcline_reconstruction_paths: dict[str, list[Path]] = {}
+    quiver_plot_paths: dict[str, Path] = {}
     crop_contact_sheet_paths: dict[str, Path] = {}
     for dataset_name, include_colorbar, include_legend, arrow_scale_1d in [
         (dataset_low, True, True, 3.25),
@@ -229,15 +230,12 @@ def main() -> None:
             include_colorbar=include_colorbar,
         )
 
-        nullcline_reconstruction_paths = reconstruct_along_nullcline(
+        nullcline_reconstruction_paths[dataset_name] = reconstruct_along_nullcline(
             nullcline_coords=nullcline_coordinates,
             theta_value=stable_fixed_point_theta[0],
             model=model,
             fig_savedir=fig_savedir,
             num_gpus=NUM_GPUS,
-        )
-        print(
-            f"Nullcline reconstruction paths for dataset {dataset_name}: {nullcline_reconstruction_paths}"
         )
 
         quiver_plot_paths[dataset_name] = make_2d_quiver_plot_panel(
