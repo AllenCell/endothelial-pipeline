@@ -335,8 +335,8 @@ def main() -> None:
             path=theta_plot_paths[dataset_low],
             x_position=0,
             y_position=0.00,
-            x_offset=0.05,
-            y_offset=-0.05,
+            x_offset=0.1,
+            y_offset=0.05,
         ),
         FigurePanel(
             letter="",
@@ -384,8 +384,8 @@ def main() -> None:
             path=theta_plot_paths[dataset_high],
             x_position=0,
             y_position=1.9,
-            x_offset=0.5,
-            y_offset=-0.05,
+            x_offset=0.1,
+            y_offset=0.05,
         ),
         FigurePanel(
             letter="",

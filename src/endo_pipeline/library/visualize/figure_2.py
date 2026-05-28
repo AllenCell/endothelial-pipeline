@@ -433,7 +433,7 @@ def make_1d_drift_plot_panel(
 
     # add vertical title to the left of the contour plot spanning all rows
     fig.text(
-        -0.075,
+        -0.095,
         0.6,
         shear_stress_label,
         va="center",
