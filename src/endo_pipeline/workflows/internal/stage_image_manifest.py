@@ -68,7 +68,7 @@ def main(
     ## Workflow demo
 
     Running the workflow in demo mode (`-d` or `--demo-mode`) will only run for
-    a single dataset and stage files to a top level `demo` subdirectory.
+    a single location and stage files to a top level `demo` subdirectory.
 
     Parameters
     ----------

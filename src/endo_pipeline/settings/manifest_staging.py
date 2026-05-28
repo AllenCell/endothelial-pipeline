@@ -19,3 +19,10 @@ IMAGE_MANIFEST_STAGING_FOLDERS = {
 DATAFRAME_MANIFEST_STAGING_FOLDERS = {
     "cdh5_classic_segmentation": "vecadherin_segmentation_features/"
 }
+"""Mapping of dataframe manifest names to subdirectories."""
+
+MODEL_MANIFEST_STAGING_FOLDERS = {
+    "diffae_baseline_exclude_cell_piling": "diffae_baseline_exclude_cell_piling/",
+    "nuc_pred_labelfree": "nuc_pred_labelfree/",
+}
+"""Mapping of model manifest names to subdirectories."""

@@ -9,18 +9,22 @@ from s3_uploader import draft_rm_jobs, draft_sync_jobs, run_all_jobs
 from termcolor import colored
 
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.io import resolve_dataframe_location
+from endo_pipeline.io import resolve_dataframe_location, resolve_model_location
 from endo_pipeline.manifests import (
     DataframeManifest,
     ImageManifest,
+    ModelManifest,
     get_available_dataframe_manifests,
     get_available_image_manifests,
+    get_available_model_manifests,
     get_dataframe_location_for_dataset,
     get_image_location_for_dataset,
     load_dataframe_manifest,
     load_image_manifest,
+    load_model_manifest,
     save_dataframe_manifest,
     save_image_manifest,
+    save_model_manifest,
 )
 from endo_pipeline.settings.manifest_staging import (
     S3_STAGING_DIRECTORY,
@@ -81,8 +85,50 @@ def build_dataframe_manifest_staging_entries_for_location(
     return entries, target
 
 
+def build_model_manifest_staging_entries_for_dataset(
+    manifest: ModelManifest, location_key: str, folder: str
+) -> tuple[list[dict[str, str]], str | tuple[str, str] | None]:
+    """Build model manifest staging entries for given location key."""
+
+    location = manifest.locations[location_key]
+    location.s3uri = None
+    source = resolve_model_location(location)
+
+    entries = []
+    update = None
+
+    if isinstance(source, str):
+        target = f"{S3_STAGING_DIRECTORY}{folder}{location_key}/{Path(source).name}"
+        update = target
+        entries.append(
+            {
+                STAGING_SOURCE_COLUMN_NAME: source,
+                STAGING_TARGET_COLUMN_NAME: target,
+            }
+        )
+    elif isinstance(source, tuple):
+        source_ckpt, source_cfg = source
+        target_ckpt = f"{S3_STAGING_DIRECTORY}{folder}{location_key}/{Path(source_ckpt).name}"
+        target_cfg = f"{S3_STAGING_DIRECTORY}{folder}{location_key}/{Path(source_cfg).name}"
+        update = (target_ckpt, target_cfg)
+        entries.append(
+            {
+                STAGING_SOURCE_COLUMN_NAME: source_ckpt,
+                STAGING_TARGET_COLUMN_NAME: target_ckpt,
+            }
+        )
+        entries.append(
+            {
+                STAGING_SOURCE_COLUMN_NAME: source_cfg,
+                STAGING_TARGET_COLUMN_NAME: target_cfg,
+            }
+        )
+
+    return entries, update
+
+
 def generate_manifest_staging_dataframe(
-    manifest: ImageManifest | DataframeManifest,
+    manifest: ImageManifest | DataframeManifest | ModelManifest,
     location_keys: list[str],
     folder: str,
     output_path: Path,
@@ -92,6 +138,7 @@ def generate_manifest_staging_dataframe(
     staging_entry_builders = {
         ImageManifest: build_image_manifest_staging_entries_for_location,
         DataframeManifest: build_dataframe_manifest_staging_entries_for_location,
+        ModelManifest: build_model_manifest_staging_entries_for_dataset,
     }
     staging_entry_builder = staging_entry_builders[type(manifest)]
 
@@ -191,6 +238,9 @@ def update_staged_manifest_locations(job_path: Path) -> None:
     elif manifest_name in get_available_dataframe_manifests():
         manifest_loader = load_dataframe_manifest
         manifest_saver = save_dataframe_manifest
+    elif manifest_name in get_available_model_manifests():
+        manifest_loader = load_model_manifest
+        manifest_saver = save_model_manifest
     else:
         raise ValueError("Unable to update manifest '%s'", manifest_name)
 

@@ -9,13 +9,13 @@ def main(
     dry_run: Annotated[bool, Parameter(negative="--live-run")] = True,
 ) -> None:
     """
-    Stage files from selected dataframe manifest to S3 bucket.
+    Stage files from selected model manifest to S3 bucket.
 
     #internal #vast
 
-    This workflow stages dataframes in the selected dataframe manifest to the
-    internal staging S3 bucket. It must be run internally on the HPC and you
-    must have write permissions to the bucket via SSO.
+    This workflow stages models in the selected model manifest to the internal
+    staging S3 bucket. It must be run internally on the HPC and you must have
+    write permissions to the bucket via SSO.
 
     To configure SSO, run `aws configure sso` and follow instructions. Ask a
     team member for the start URL, if you do not already have it.
@@ -40,19 +40,19 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe stage-dataframe-manifest MANIFEST_NAME -vd
+    uv run endopipe stage-model-manifest MANIFEST_NAME -vd
     ```
 
     To dry run the workflow:
 
     ```bash
-    uv run endopipe stage-dataframe-manifest MANIFEST_NAME --dry-run
+    uv run endopipe stage-model-manifest MANIFEST_NAME --dry-run
     ```
 
     To run the workflow live:
 
     ```bash
-    uv run endopipe stage-dataframe-manifest MANIFEST_NAME --live-run
+    uv run endopipe stage-model-manifest MANIFEST_NAME --live-run
     ```
 
     You may need to add the following to your .bashrc if jobs are failing due to
@@ -73,7 +73,7 @@ def main(
     Parameters
     ----------
     manifest_name
-        Name of dataframe manifest containing dataframes to stage.
+        Name of model manifest containing models to stage.
     add_files
         True to add files to the staging location, False to remove files.
     dry_run
@@ -89,8 +89,8 @@ def main(
         generate_manifest_staging_dataframe,
         submit_manifest_staging_job,
     )
-    from endo_pipeline.manifests import load_dataframe_manifest
-    from endo_pipeline.settings.manifest_staging import DATAFRAME_MANIFEST_STAGING_FOLDERS
+    from endo_pipeline.manifests import load_model_manifest
+    from endo_pipeline.settings.manifest_staging import MODEL_MANIFEST_STAGING_FOLDERS
 
     logger = logging.getLogger(__name__)
 
@@ -98,13 +98,13 @@ def main(
     output_path = get_output_path(__file__, unique_name)
 
     # Check if requested manifest is supported for staging to bucket
-    if manifest_name not in DATAFRAME_MANIFEST_STAGING_FOLDERS.keys():
+    if manifest_name not in MODEL_MANIFEST_STAGING_FOLDERS.keys():
         logger.error("Manifest '%s' is not supported for staging to bucket", manifest_name)
         return
 
-    # Load dataframe manifest and set staging folder
-    manifest = load_dataframe_manifest(manifest_name)
-    folder = DATAFRAME_MANIFEST_STAGING_FOLDERS[manifest_name]
+    # Load model manifest and set staging folder
+    manifest = load_model_manifest(manifest_name)
+    folder = MODEL_MANIFEST_STAGING_FOLDERS[manifest_name]
 
     # Get list of all available location keys from the manifest
     location_keys = list(manifest.locations.keys())
