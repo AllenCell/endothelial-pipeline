@@ -23,6 +23,7 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_XSMALL
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_CBAR_NUM_TICKS,
@@ -115,28 +116,33 @@ def _add_colorbar_to_contour_plot(
 
 def _get_nullcline_coords_from_contour_axes(
     axes: Sequence[plt.Axes],
-    column_names: list[str],
+    column_names: list[ColumnNameType],
     r_lims: tuple[float, float],
     rho_lims: tuple[float, float],
-) -> dict[str, pd.DataFrame]:
+) -> dict[ColumnNameType, pd.DataFrame]:
     """
-    Extract (r, rho) coordinates of nullclines from the contour collections in the given axes.
+    Extract (r, rho) coordinates along nullclines from the contour collections
+    in the given axes.
 
     Parameters
     ----------
     axes
-        Sequence of Matplotlib axes objects containing the contour plots with nullclines.
+        Axes objects containing the contour plots with nullclines.
     column_names
-        List of column names corresponding to the nullclines, in the same order as they are plotted in the axes.
+        List of column names corresponding to the nullclines, in the same order
+        as they are plotted in the axes.
     r_lims
-        Tuple specifying the limits of the r-axis, used to clip nullcline coordinates to the plotted range.
+        Tuple specifying the limits of the r-axis, used to clip nullcline
+        coordinates to the plotted range.
     rho_lims
-        Tuple specifying the limits of the rho-axis, used to clip nullcline coordinates to the plotted range.
+        Tuple specifying the limits of the rho-axis, used to clip nullcline
+        coordinates to the plotted range.
 
     Returns
     -------
-    dict[str, pd.DataFrame]
-        Dictionary mapping each column name to a DataFrame containing the (r, rho) coordinates of the corresponding nullcline.
+    :
+        Dictionary mapping each column name to a DataFrame containing the (r,
+        rho) coordinates of the corresponding nullcline.
 
     """
     nullcline_coords = {col: pd.DataFrame() for col in column_names}
@@ -216,7 +222,7 @@ def make_2d_contour_plot_panel(
     ylabel_kwargs: dict | None,
     axes_title_kwargs: dict | None,
     include_colorbar: bool = False,
-) -> Path:
+) -> tuple[Path, dict[ColumnNameType, pd.DataFrame]]:
     """
     Make and save plot of drift contours in (r, rho) space for a given dataset.
     """
@@ -256,7 +262,6 @@ def make_2d_contour_plot_panel(
 
     # get (r, rho) coordinates of r- and rho-nullclines for generating images
     nullcline_coords = _get_nullcline_coords_from_contour_axes(ax, column_names, r_lims, rho_lims)
-    print(nullcline_coords.keys())
 
     save_plot_to_path(
         fig,
@@ -268,7 +273,7 @@ def make_2d_contour_plot_panel(
         pad_inches=0,
     )
 
-    return fig_savedir / f"{filename}.svg"
+    return fig_savedir / f"{filename}.svg", nullcline_coords
 
 
 def make_2d_quiver_plot_panel(

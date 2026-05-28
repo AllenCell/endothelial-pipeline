@@ -194,7 +194,7 @@ def main() -> None:
             ylabel_kwargs=YLABEL_KWARGS,
         )
 
-        contour_plot_paths[dataset_name] = make_2d_contour_plot_panel(
+        contour_plot_paths[dataset_name], nullcline_coordinates = make_2d_contour_plot_panel(
             drift=drift_r_rho,
             meshgrid=centers_mesh,
             column_labels=column_labels_r_rho,
@@ -227,6 +227,7 @@ def main() -> None:
             },
             include_colorbar=include_colorbar,
         )
+        print(nullcline_coordinates.keys())
 
         quiver_plot_paths[dataset_name] = make_2d_quiver_plot_panel(
             drift=drift_r_rho,
