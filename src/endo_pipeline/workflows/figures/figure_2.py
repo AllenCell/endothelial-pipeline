@@ -173,7 +173,7 @@ def main() -> None:
             theta_values=centers_theta[-1],
             column_label=column_label_theta,
             stable_fixed_point=stable_fixed_point_theta,
-            figsize=(0.95, 1.5),
+            figsize=(1.25, 1.5),
             fig_savedir=fig_savedir,
             filename=f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}_drift",
             shear_stress_label=shear_stress_label,
@@ -203,7 +203,7 @@ def main() -> None:
             filename=f"{dataset_name}_{columns_r_rho_str}_contours",
             r_lims=AXES_LIMITS_2D[Column.DiffAEData.POLAR_RADIUS],
             rho_lims=AXES_LIMITS_2D[Column.DiffAEData.PC3_FLIPPED],
-            r_ticks=[0.3, 1.0, 1.7],
+            r_ticks=[0.4, 1.0, 1.6],
             rho_ticks=[-0.75, 0.0, 0.75],
             nullcline_r_style=NULLCLINE_STYLES_2D[Column.DiffAEData.POLAR_RADIUS],
             nullcline_rho_style=NULLCLINE_STYLES_2D[Column.DiffAEData.PC3_FLIPPED],
@@ -335,7 +335,7 @@ def main() -> None:
             path=theta_plot_paths[dataset_low],
             x_position=0,
             y_position=0.00,
-            x_offset=0.65,
+            x_offset=0.05,
             y_offset=-0.05,
         ),
         FigurePanel(
@@ -343,7 +343,7 @@ def main() -> None:
             path=contour_plot_paths[dataset_low],
             x_position=1.6,
             y_position=0.00,
-            x_offset=0.15,
+            x_offset=0.0,
             y_offset=-0.05,
         ),
         # FigurePanel(  # r nullcline for low flow dataset
@@ -384,7 +384,7 @@ def main() -> None:
             path=theta_plot_paths[dataset_high],
             x_position=0,
             y_position=1.9,
-            x_offset=0.65,
+            x_offset=0.5,
             y_offset=-0.05,
         ),
         FigurePanel(
@@ -392,7 +392,7 @@ def main() -> None:
             path=contour_plot_paths[dataset_high],
             x_position=1.6,
             y_position=1.9,
-            x_offset=0.15,
+            x_offset=0.0,
             y_offset=-0.05,
         ),
         # FigurePanel(  # r nullcline for high flow dataset

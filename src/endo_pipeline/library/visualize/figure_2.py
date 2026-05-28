@@ -173,9 +173,18 @@ def _get_nullcline_coords_from_contour_axes(
             path_coords[0] = path_coords[0][sort_indices]
             path_coords[1] = path_coords[1][sort_indices]
 
-            # take only 5 evenly spaced coordinates along the nullcline to avoid
-            # generating too many points
-            example_indices = np.round(np.linspace(0, len(path_coords[0]) - 1, 5)).astype(int)
+            # get 5 equally space (by arc length) coordinates along the nullcline to plot as points on top of the contour
+            example_indices = []
+            num_points = path_coords.shape[1]
+            if num_points >= 5:
+                arc_length = np.cumsum(np.sqrt(np.sum(np.diff(path_coords, axis=1) ** 2, axis=0)))
+                arc_length = np.insert(arc_length, 0, 0)
+                total_length = arc_length[-1]
+                example_arc_lengths = np.linspace(0, total_length, 5)
+                example_indices = [
+                    np.argmin(np.abs(arc_length - example_arc_length))
+                    for example_arc_length in example_arc_lengths
+                ]
             path_coords = path_coords[:, example_indices]
 
             # add points to plot
@@ -268,6 +277,11 @@ def make_2d_contour_plot_panel(
     axes = cast(np.ndarray[plt.Axes, Any], axes_)
     nullcline_coords = _get_nullcline_coords_from_contour_axes(axes, column_names, r_lims, rho_lims)
 
+    # push the constrained layout rect up
+    layout_engine = fig.get_layout_engine()
+    if isinstance(layout_engine, ConstrainedLayoutEngine):
+        layout_engine.set(rect=(0.0, 0.05, 1.0, 1.0))
+
     save_plot_to_path(
         fig,
         fig_savedir,
@@ -337,7 +351,7 @@ def make_2d_quiver_plot_panel(
         markeredgecolor="k",
         markeredgewidth=0.5,
         markersize=5,
-        label="Stable fixed point",
+        # label="Stable fixed point",
     )
     if include_legend:
         handles, labels = ax.get_legend_handles_labels()
@@ -347,7 +361,7 @@ def make_2d_quiver_plot_panel(
             fontsize="xx-small",
             loc="upper center",
             bbox_to_anchor=(0.5, 1.25),
-            ncol=2,
+            ncol=3,
             handletextpad=0.3,
         )
 
@@ -398,7 +412,7 @@ def make_1d_drift_plot_panel(
         axes_limits=[axes_xlim, axes_ylim],
         axes_labels=[column_label, f"d{column_label}/dt"],
         add_flow_arrows=True,
-        flow_arrow_kwargs={"color": "dimgrey", "scale": arrow_scale},
+        flow_arrow_kwargs={"color": "dimgrey", "scale": arrow_scale, "linewidths": 0.75},
         flow_arrow_downsample=10,
         gridspec_kwargs=gridspec_kwargs,
         drift_line_kwargs=drift_line_kwargs,
@@ -417,12 +431,10 @@ def make_1d_drift_plot_panel(
         markersize=5,
     )
 
-    # reserve left margin for the vertical label
-    fig.subplots_adjust(left=0.08)
     # add vertical title to the left of the contour plot spanning all rows
     fig.text(
-        -0.5,
-        0.5,
+        -0.075,
+        0.6,
         shear_stress_label,
         va="center",
         ha="center",
