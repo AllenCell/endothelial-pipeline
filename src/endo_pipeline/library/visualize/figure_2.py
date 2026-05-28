@@ -390,7 +390,6 @@ def make_1d_drift_plot_panel(
     gridspec_kwargs: dict | None,
     xlabel_kwargs: dict | None,
     ylabel_kwargs: dict | None,
-    include_legend: bool,
 ) -> Path:
     fig, ax = plot_drift_1d(
         drift=drift,
@@ -431,21 +430,6 @@ def make_1d_drift_plot_panel(
         fontsize=FONTSIZE_MEDIUM,
         fontweight="bold",
     )
-
-    if include_legend:
-        handles, labels = ax.get_legend_handles_labels()
-        ax.legend(
-            handles,
-            labels,
-            fontsize="xx-small",
-            loc="upper center",
-            bbox_to_anchor=(0.5, 1.25),
-            ncol=2,
-            handletextpad=0.3,
-        )
-
-    # make room above axes for the legend
-    fig.subplots_adjust(top=0.82)
 
     # set plot formatting args
     ax.set_xticks(axes_xticks, labels=axes_xtick_labels)

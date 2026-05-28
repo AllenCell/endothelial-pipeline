@@ -192,19 +192,18 @@ def main() -> None:
             gridspec_kwargs=GRIDSPEC_KWARGS,
             xlabel_kwargs=XLABEL_KWARGS,
             ylabel_kwargs=YLABEL_KWARGS,
-            include_legend=include_legend,
         )
 
         contour_plot_paths[dataset_name], nullcline_coordinates = make_2d_contour_plot_panel(
             drift=drift_r_rho,
             meshgrid=centers_mesh,
             column_labels=column_labels_r_rho,
-            figsize=(1.9, 1.75),
+            figsize=(1.9, 1.25),
             fig_savedir=fig_savedir,
             filename=f"{dataset_name}_{columns_r_rho_str}_contours",
             r_lims=AXES_LIMITS_2D[Column.DiffAEData.POLAR_RADIUS],
             rho_lims=AXES_LIMITS_2D[Column.DiffAEData.PC3_FLIPPED],
-            r_ticks=[0.25, 1.0, 1.75],
+            r_ticks=[0.3, 1.0, 1.7],
             rho_ticks=[-0.75, 0.0, 0.75],
             nullcline_r_style=NULLCLINE_STYLES_2D[Column.DiffAEData.POLAR_RADIUS],
             nullcline_rho_style=NULLCLINE_STYLES_2D[Column.DiffAEData.PC3_FLIPPED],
