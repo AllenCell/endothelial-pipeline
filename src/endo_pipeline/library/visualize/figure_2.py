@@ -226,8 +226,8 @@ def make_2d_contour_plot_panel(
     """
     Make and save plot of drift contours in (r, rho) space for a given dataset.
     """
-    column_names = cast(list[str], [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED])
-    column_labels = [COLUMN_METADATA[column].label for column in column_names]
+    column_names = Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED
+    column_labels = [COLUMN_METADATA[column].label or str(column) for column in column_names]
     # plot drift contours and save
     fig, axes_ = plot_drift_contours(
         meshgrid=meshgrid,
@@ -496,7 +496,7 @@ def reconstruct_along_nullcline(
             panels=[walk_array[i] for i in range(len(walk_array))],
             max_rows=len(walk_array),
             max_cols=1,
-            fig_kwargs={"figsize": (0.45, 1.5), "layout": "constrained"},
+            fig_kwargs={"figsize": (0.65, 1.25), "layout": "constrained"},
             gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
         )
         for i, ax in enumerate(fig_null_walk.axes):
