@@ -386,6 +386,7 @@ def make_1d_drift_plot_panel(
     gridspec_kwargs: dict | None,
     xlabel_kwargs: dict | None,
     ylabel_kwargs: dict | None,
+    include_legend: bool,
 ) -> Path:
     fig, ax = plot_drift_1d(
         drift=drift,
@@ -395,6 +396,7 @@ def make_1d_drift_plot_panel(
         axes_labels=[column_label, f"d{column_label}/dt"],
         add_flow_arrows=True,
         flow_arrow_kwargs={"color": "dimgrey", "scale": arrow_scale},
+        flow_arrow_downsample=10,
         gridspec_kwargs=gridspec_kwargs,
         drift_line_kwargs=drift_line_kwargs,
         zero_line_kwargs=zero_line_kwargs,
@@ -416,7 +418,7 @@ def make_1d_drift_plot_panel(
     fig.subplots_adjust(left=0.08)
     # add vertical title to the left of the contour plot spanning all rows
     fig.text(
-        -0.25,
+        -0.5,
         0.5,
         shear_stress_label,
         va="center",
@@ -426,8 +428,22 @@ def make_1d_drift_plot_panel(
         fontweight="bold",
     )
 
+    if include_legend:
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(
+            handles,
+            labels,
+            fontsize="xx-small",
+            loc="upper center",
+            bbox_to_anchor=(0.5, 1.25),
+            ncol=2,
+            handletextpad=0.3,
+        )
+
+    # make room above axes for the legend
+    fig.subplots_adjust(top=0.82)
+
     # set plot formatting args
-    ax.set_box_aspect(1.0)
     ax.set_xticks(axes_xticks, labels=axes_xtick_labels)
     ax.set_yticks(axes_yticks)
 
