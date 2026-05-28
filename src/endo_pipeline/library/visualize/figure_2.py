@@ -1,8 +1,7 @@
 """Helper functions for visualizations used in Figure 2."""
 
-from collections.abc import Sequence
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -116,7 +115,7 @@ def _add_colorbar_to_contour_plot(
 
 
 def _get_nullcline_coords_from_contour_axes(
-    axes: Sequence[plt.Axes],
+    axes: np.ndarray[plt.Axes, Any],
     column_names: list[ColumnNameType],
     r_lims: tuple[float, float],
     rho_lims: tuple[float, float],
@@ -496,8 +495,8 @@ def reconstruct_along_nullcline(
             panels=[walk_array[i] for i in range(len(walk_array))],
             max_rows=len(walk_array),
             max_cols=1,
-            fig_kwargs={"figsize": (0.5, 1.5)},
-            gridspec_kwargs={"wspace": 0.05, "hspace": 0.05},
+            fig_kwargs={"figsize": (0.65, 1.5), "layout": "constrained"},
+            gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
         )
         for i, ax in enumerate(fig_null_walk.axes):
             ax.text(
@@ -507,7 +506,7 @@ def reconstruct_along_nullcline(
                 transform=ax.transAxes,
                 ha="right",
                 va="top",
-                fontsize=1,
+                fontsize=2,
                 color="white",
             )
         save_plot_to_path(
