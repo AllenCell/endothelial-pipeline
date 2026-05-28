@@ -1,7 +1,7 @@
 """Helper functions for visualizations used in Figure 2."""
 
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -116,10 +116,10 @@ def _add_colorbar_to_contour_plot(
 
 def _get_nullcline_coords_from_contour_axes(
     axes: np.ndarray[plt.Axes, Any],
-    column_names: list[ColumnNameType],
+    column_names: list[Column.DiffAEData],
     r_lims: tuple[float, float],
     rho_lims: tuple[float, float],
-) -> dict[ColumnNameType, pd.DataFrame]:
+) -> dict[Column.DiffAEData, pd.DataFrame]:
     """
     Extract (r, rho) coordinates along nullclines from the contour collections
     in the given axes.
@@ -222,14 +222,14 @@ def make_2d_contour_plot_panel(
     ylabel_kwargs: dict | None,
     axes_title_kwargs: dict | None,
     include_colorbar: bool = False,
-) -> tuple[Path, dict[ColumnNameType, pd.DataFrame]]:
+) -> tuple[Path, dict[Column.DiffAEData, pd.DataFrame]]:
     """
     Make and save plot of drift contours in (r, rho) space for a given dataset.
     """
-    column_names = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
+    column_names = cast(list[str], [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED])
     column_labels = [COLUMN_METADATA[column].label for column in column_names]
     # plot drift contours and save
-    fig, ax = plot_drift_contours(
+    fig, axes_ = plot_drift_contours(
         meshgrid=meshgrid,
         drift=drift,
         variable_labels=column_labels,
@@ -247,7 +247,7 @@ def make_2d_contour_plot_panel(
         ylabel_kwargs=ylabel_kwargs,
         axes_title_kwargs=axes_title_kwargs,
     )
-    for ax_index, ax_ in enumerate(list(ax)):
+    for ax_index, ax_ in enumerate(list(axes_)):
         # adjust label padding and drop tick labels on shared x axis
         ax_.set_box_aspect(1.0)
         ax_.set_xticks(r_ticks)
@@ -258,10 +258,11 @@ def make_2d_contour_plot_panel(
     # if indicated, add colorbar to the top of the first subplot with ticks and
     # label formatting
     if include_colorbar:
-        _add_colorbar_to_contour_plot(fig, ax[0])
+        _add_colorbar_to_contour_plot(fig, axes_[0])
 
     # get (r, rho) coordinates of r- and rho-nullclines for generating images
-    nullcline_coords = _get_nullcline_coords_from_contour_axes(ax, column_names, r_lims, rho_lims)
+    axes = cast(np.ndarray[plt.Axes, Any], axes_)
+    nullcline_coords = _get_nullcline_coords_from_contour_axes(axes, column_names, r_lims, rho_lims)
 
     save_plot_to_path(
         fig,
