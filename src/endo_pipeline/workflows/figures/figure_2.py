@@ -122,9 +122,9 @@ def main() -> None:
     nullcline_reconstruction_paths: dict[str, list[Path]] = {}
     quiver_plot_paths: dict[str, Path] = {}
     crop_contact_sheet_paths: dict[str, Path] = {}
-    for dataset_name, arrow_scale_1d in [
-        (dataset_low, 1.5),
-        (dataset_high, 1.25),
+    for dataset_name, arrow_scale_1d, arrow_width_1d in [
+        (dataset_low, 1.5, 0.05),
+        (dataset_high, 1.25, 0.075),
     ]:
         fig_savedir = get_output_path("figure_2", dataset_name)
         dataset_config = load_dataset_config(dataset_name)
@@ -187,6 +187,7 @@ def main() -> None:
             ],
             axes_yticks=[-0.3, 0.0, 0.3],
             arrow_scale=arrow_scale_1d,
+            arrow_width=arrow_width_1d,
             drift_line_kwargs={"color": "k", "linewidth": 2},
             zero_line_kwargs={"linestyle": "--", "color": "gray", "linewidth": 1, "alpha": 0.7},
             gridspec_kwargs=GRIDSPEC_KWARGS,
