@@ -19,6 +19,7 @@ def main() -> None:
         make_2d_contour_plot_panel,
         make_2d_quiver_plot_panel,
         make_crop_example_contact_sheet,
+        reconstruct_along_nullcline,
     )
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
     from endo_pipeline.library.visualize.summary_plot import (
@@ -227,7 +228,17 @@ def main() -> None:
             },
             include_colorbar=include_colorbar,
         )
-        print(nullcline_coordinates.keys())
+
+        nullcline_reconstruction_paths = reconstruct_along_nullcline(
+            nullcline_coordinates=nullcline_coordinates,
+            theta_value=stable_fixed_point_theta[0],
+            model=model,
+            fig_savedir=fig_savedir,
+            num_gpus=NUM_GPUS,
+        )
+        print(
+            f"Nullcline reconstruction paths for dataset {dataset_name}: {nullcline_reconstruction_paths}"
+        )
 
         quiver_plot_paths[dataset_name] = make_2d_quiver_plot_panel(
             drift=drift_r_rho,
