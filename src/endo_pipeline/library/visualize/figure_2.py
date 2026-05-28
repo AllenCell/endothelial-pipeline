@@ -46,8 +46,8 @@ def _add_colorbar_to_contour_plot(
     ticks: np.ndarray | None = None,
     tick_label_round: int = DRIFT_CONTOUR_CBAR_ROUND,
     colormap: str = DRIFT_CONTOUR_COLORMAP,
-    orientation: Literal["vertical", "horizontal"] = "horizontal",
-    cax_position: Literal["top", "bottom", "left", "right"] = "top",
+    orientation: Literal["vertical", "horizontal"] = "vertical",
+    cax_position: Literal["top", "bottom", "left", "right"] = "right",
     extend: Literal["neither", "both", "min", "max"] = "both",
     pad: float = 0.03,
 ) -> None:
@@ -83,10 +83,12 @@ def _add_colorbar_to_contour_plot(
     """
     cax = inset_axes(
         axes,
-        width="100%",
-        height="5%",
+        width="100%" if orientation == "horizontal" else "5%",
+        height="5%" if orientation == "horizontal" else "100%",
         loc="lower left",
-        bbox_to_anchor=(0, 1.0 + pad, 1, 1),
+        bbox_to_anchor=(
+            (0, 1.0 + pad, 1, 1) if orientation == "horizontal" else (1.0 + pad, 0, 1, 1)
+        ),
         bbox_transform=axes.transAxes,
         borderpad=0,
     )
@@ -234,6 +236,8 @@ def make_2d_contour_plot_panel(
         drift=drift,
         variable_labels=column_labels,
         figsize=figsize,
+        n_rows=1,
+        n_cols=2,
         axes_limits=[r_lims, rho_lims],
         axes_aspect=None,
         axes_titles=(f"d{column_labels[0]}/dt", f"d{column_labels[1]}/dt"),
@@ -258,7 +262,7 @@ def make_2d_contour_plot_panel(
     # if indicated, add colorbar to the top of the first subplot with ticks and
     # label formatting
     if include_colorbar:
-        _add_colorbar_to_contour_plot(fig, axes_[0])
+        _add_colorbar_to_contour_plot(fig, axes_[1])
 
     # get (r, rho) coordinates of r- and rho-nullclines for generating images
     axes = cast(np.ndarray[plt.Axes, Any], axes_)
