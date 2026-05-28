@@ -9,6 +9,40 @@ parameters:
     polar_theta: 15
     polar_r: 0.25
     rho: 0.5
+columns:
+  dataset: ''
+  count_first_passage_time_grid: ''
+  mean_first_passage_time_grid: ''
+  std_first_passage_time_grid: ''
+  min_first_passage_time_grid: ''
+  25%_first_passage_time_grid: ''
+  50%_first_passage_time_grid: ''
+  75%_first_passage_time_grid: ''
+  max_first_passage_time_grid: ''
+  sem_first_passage_time_grid: ''
+  bin_index: ''
+  bin_center: ''
+  bin_edges: ''
+  count_first_passage_time_tracked: ''
+  mean_first_passage_time_tracked: ''
+  std_first_passage_time_tracked: ''
+  min_first_passage_time_tracked: ''
+  25%_first_passage_time_tracked: ''
+  50%_first_passage_time_tracked: ''
+  75%_first_passage_time_tracked: ''
+  max_first_passage_time_tracked: ''
+  sem_first_passage_time_tracked: ''
+  fixed_point_id: ''
+  stability: ''
+  fp_polar_theta: ''
+  fp_polar_r: ''
+  fp_rho: ''
+  bin_size_polar_theta: ''
+  bin_limits_polar_theta: ''
+  bin_size_polar_r: ''
+  bin_limits_polar_r: ''
+  bin_size_rho: ''
+  bin_limits_rho: ''
 locations:
   20250618_20X:
     fmsid: 30d3d83044a34c01942f30160fcbe160

@@ -1,6 +1,35 @@
 name: cdh5_classic_segmentation
 workflow: get_cdh5_measured_features
 parameters: {}
+columns:
+  filepath_raw_image: ''
+  filepath_segmentation_image: ''
+  dataset_name: ''
+  position: ''
+  T: ''
+  cell_label: ''
+  cell_centroid: ''
+  cell_area (px**2): ''
+  cell_perimeter (px): ''
+  cell_solidity: ''
+  major_axis_length: ''
+  minor_axis_length: ''
+  cell_eccentricity: ''
+  cell_orientation: ''
+  cell_fluorescence_mean (a.u.): ''
+  cell_fluorescence_std (a.u.): ''
+  cell_fluorescence_median (a.u.): ''
+  cell_fluorescence_min (a.u.): ''
+  cell_fluorescence_pct25 (a.u.): ''
+  cell_fluorescence_pct75 (a.u.): ''
+  cell_fluorescence_max (a.u.): ''
+  neighboring_cell_labels: ''
+  edge_labels: ''
+  node_labels: ''
+  node_pair_labels: ''
+  edge_fluorescences (a.u.): ''
+  node_fluorescences (a.u.): ''
+  touches_image_border: ''
 locations:
   20250319_20X:
     fmsid: 1f6f4e7206774e32a1e79dd6fb308414

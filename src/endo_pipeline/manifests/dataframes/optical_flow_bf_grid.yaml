@@ -8,6 +8,38 @@ parameters:
   attachment: 2.5
   ema_alphas: [0.1]
   speed_threshold: 1.0
+columns:
+  dataset: ''
+  position: ''
+  start_x: ''
+  start_y: ''
+  end_y: ''
+  end_x: ''
+  frame_number: ''
+  crop_index: ''
+  duration_minutes: ''
+  timepoint: ''
+  optical_flow_mean_speed_dt1: ''
+  optical_flow_mean_unit_vector_dt1: ''
+  optical_flow_std_speed_dt1: ''
+  optical_flow_mean_angle_dt1: ''
+  optical_flow_angle_std_dt1: ''
+  optical_flow_mean_u_dt1: ''
+  optical_flow_mean_v_dt1: ''
+  optical_flow_std_u_dt1: ''
+  optical_flow_std_v_dt1: ''
+  speed_above_1_count_dt1: ''
+  optical_flow_mean_unit_vector_fast_dt1: ''
+  optical_flow_radial_coherence_dt1: ''
+  optical_flow_radial_coherence_weighted_dt1: ''
+  ema005_optical_flow_mean_unit_vector_dt1: ''
+  ema005_optical_flow_mean_unit_vector_fast_dt1: ''
+  ema01_optical_flow_mean_unit_vector_dt1: ''
+  ema01_optical_flow_mean_unit_vector_fast_dt1: ''
+  ema02_optical_flow_mean_unit_vector_dt1: ''
+  ema02_optical_flow_mean_unit_vector_fast_dt1: ''
+  ema01_optical_flow_radial_coherence_dt1: ''
+  ema01_optical_flow_radial_coherence_weighted_dt1: ''
 locations:
   20250319_20X:
     fmsid: 51335e92e96b49f9b2846c7bced32f3d

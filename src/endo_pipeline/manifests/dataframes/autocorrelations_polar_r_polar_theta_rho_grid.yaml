@@ -5,6 +5,15 @@ parameters:
   run_name: 20251110_latent_512
   crop_pattern: grid
   columns: [polar_theta, polar_r, rho]
+columns:
+  feature: ''
+  lag: ''
+  autocorrelation_mean: ''
+  autocorrelation_lower_percentile: ''
+  autocorrelation_upper_percentile: ''
+  exponential_fit: ''
+  dataset: ''
+  shear_stress: ''
 locations:
   20250319_20X:
     fmsid: 3e9d76b2c974402ebcd35e04120bb139

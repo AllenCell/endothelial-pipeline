@@ -1,6 +1,25 @@
 name: cdh5_classic_segmentation_tracking
 workflow: run_cdh5_tracking
 parameters: {}
+columns:
+  image_index: ''
+  T: ''
+  track_id: ''
+  label: ''
+  reference_index: ''
+  matched_query_label: ''
+  optimized_metric_value: ''
+  centroid: ''
+  area: ''
+  perimeter: ''
+  orientation: ''
+  eccentricity: ''
+  matching_method: ''
+  touches_border: ''
+  centroid_Y: ''
+  centroid_X: ''
+  dataset_name: ''
+  position: ''
 locations:
   20250319_20X:
     fmsid: 85a9cd3c990b4bd39b71e26be0de9ee3

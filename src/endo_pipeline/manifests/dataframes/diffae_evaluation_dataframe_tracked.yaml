@@ -2,9 +2,22 @@ name: diffae_evaluation_dataframe_tracked
 workflow: create_diffae_eval_dataframe
 parameters:
   crop_pattern: tracked
-  z_slice_offsets:
-  - 4
-  - 11
+  z_slice_offsets: [4, 11]
+columns:
+  path: ''
+  T: ''
+  start_y: ''
+  start_x: ''
+  end_y: ''
+  end_x: ''
+  track_id: ''
+  channel: ''
+  resolution_level: ''
+  frame_start: ''
+  frame_stop: ''
+  z_start: ''
+  z_stop: ''
+  z_step: ''
 locations:
   20250402_20X:
     fmsid: 103db44ffd874be5be8bae8afcda2bc2

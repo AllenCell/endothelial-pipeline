@@ -9,6 +9,29 @@ parameters:
     polar_theta: 15
     polar_r: 0.25
     rho: 0.5
+columns:
+  dataset: ''
+  fpt_distance_threshold: ''
+  count_grid: ''
+  mean_grid: ''
+  std_grid: ''
+  min_grid: ''
+  25%_grid: ''
+  50%_grid: ''
+  75%_grid: ''
+  max_grid: ''
+  percent_trajectories_approached_fp_grid: ''
+  count_tracked: ''
+  mean_tracked: ''
+  std_tracked: ''
+  min_tracked: ''
+  25%_tracked: ''
+  50%_tracked: ''
+  75%_tracked: ''
+  max_tracked: ''
+  percent_trajectories_approached_fp_tracked: ''
+  fixed_point_id: ''
+  stability: ''
 locations:
   20250618_20X:
     fmsid: fd0b973991a64d88a6950a96aca0f91f

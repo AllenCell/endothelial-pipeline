@@ -21,6 +21,15 @@ parameters:
   num_init_samples_for_root_solver: 250
   lower_percentile_for_filtering_fpts: 5.0
   upper_percentile_for_filtering_fpts: 95.0
+columns:
+  dataset: ''
+  polar_theta_drift: ''
+  polar_r_drift: ''
+  rho_drift: ''
+  polar_theta: ''
+  polar_r: ''
+  rho: ''
+  shear_stress: ''
 locations:
   20250319_20X:
     fmsid: 988f648abfa24bfe9f448397d374c101

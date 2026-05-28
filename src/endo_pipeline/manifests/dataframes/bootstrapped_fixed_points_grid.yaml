@@ -19,6 +19,23 @@ parameters:
     period: null
   bin_widths: [0.05, 0.05, 0.05]
   num_bootstrap_iterations: 500
+columns:
+  dataset: ''
+  stability: ''
+  polar_theta: ''
+  polar_r: ''
+  rho: ''
+  polar_theta_cluster_mean: ''
+  polar_r_cluster_mean: ''
+  rho_cluster_mean: ''
+  polar_theta_ci_lower: ''
+  polar_theta_ci_upper: ''
+  polar_r_ci_lower: ''
+  polar_r_ci_upper: ''
+  rho_ci_lower: ''
+  rho_ci_upper: ''
+  detection_rate: ''
+  shear_stress: ''
 locations:
   20250319_20X:
     fmsid: d3202476525d4ace8babe16a8464065a

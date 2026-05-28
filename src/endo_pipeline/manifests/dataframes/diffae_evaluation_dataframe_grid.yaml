@@ -2,9 +2,14 @@ name: diffae_evaluation_dataframe_grid
 workflow: create_diffae_eval_dataframe
 parameters:
   crop_pattern: grid
-  z_slice_offsets:
-  - 4
-  - 11
+  z_slice_offsets: [4, 11]
+columns:
+  path: ''
+  resolution_level: ''
+  channel: ''
+  z_start: ''
+  z_stop: ''
+  z_step: ''
 locations:
   20251001_20X:
     fmsid: 32f7545c2b9f43e39cfbe48dc636e400
