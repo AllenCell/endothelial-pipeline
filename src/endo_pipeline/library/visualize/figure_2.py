@@ -355,7 +355,9 @@ def make_2d_contour_plot_panel(
         _add_colorbar_to_contour_plot(fig, axes_[1])
         # shrink the constrained-layout region so the inset colorbar axes
         # (which lives outside the main axes boundary) is not clipped on save
-        fig.get_layout_engine().set(rect=(0, 0, 0.9, 1))
+        layout_engine = fig.get_layout_engine()
+        if layout_engine is not None:
+            layout_engine.set(rect=(0, 0, 0.9, 1))
 
     handles = []
     labels = []
@@ -512,7 +514,7 @@ def reconstruct_along_nullcline(
             column_names,
             model,
             num_gpus=num_gpus,
-            random_seed=random_seed + 2,
+            random_seed=random_seed + 3,
         )
         fig_null_walk = make_contact_sheet(
             panels=[walk_array[i] for i in range(len(walk_array))],

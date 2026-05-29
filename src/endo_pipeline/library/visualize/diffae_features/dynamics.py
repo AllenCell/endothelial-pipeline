@@ -157,6 +157,8 @@ def plot_drift_contours(
         # set axis properties, only including label for edge plot of shared axes
         # (e.g., only xlabel for left column and only ylabel for bottom row if
         # multiple rows/columns of subplots)
+        xlabel: str | None
+        ylabel: str | None
         if n_rows > n_cols:
             # if more rows than columns, only set xlabel for bottom row
             xlabel = variable_labels[0] if var_index == n_rows - 1 else None
