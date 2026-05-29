@@ -288,7 +288,7 @@ def main() -> None:
             y_offset=-0.05,
         ),
         FigurePanel(  # r nullcline for low flow dataset
-            letter="",
+            letter="C",
             path=nullcline_reconstruction_paths[dataset_low][0],
             x_position=2.3,
             y_position=1.3,
@@ -305,7 +305,7 @@ def main() -> None:
         ),
         # --- High flow dataset (row 2) ---
         FigurePanel(
-            letter="D",
+            letter="E",
             path=theta_plot_paths[dataset_high],
             x_position=2.3,
             y_position=2.5,
@@ -321,7 +321,7 @@ def main() -> None:
             y_offset=-0.05,
         ),
         FigurePanel(  # r nullcline for high flow dataset
-            letter="",
+            letter="F",
             path=nullcline_reconstruction_paths[dataset_high][0],
             x_position=2.3,
             y_position=3.8,
@@ -338,7 +338,7 @@ def main() -> None:
         ),
         # --- Bottom row: first passage time and summary plots ---
         FigurePanel(
-            letter="E",
+            letter="G",
             path=fixed_point_summary_plot_path,
             x_position=0.0,
             y_position=5.3,
@@ -346,7 +346,7 @@ def main() -> None:
             y_offset=0.2,
         ),
         FigurePanel(
-            letter="F",
+            letter="H",
             path=migration_summary_plot_path,
             x_position=3.6,
             y_position=5.3,
@@ -354,7 +354,7 @@ def main() -> None:
             y_offset=0.2,
         ),
         FigurePanel(
-            letter="G",
+            letter="I",
             path=first_passage_path,
             x_position=5.175,
             y_position=5.3,
