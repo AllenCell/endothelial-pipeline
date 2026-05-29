@@ -284,7 +284,7 @@ def make_2d_contour_plot_panel(
     axes_title_kwargs: dict | None,
     include_colorbar: bool = True,
     include_legend: bool = True,
-) -> tuple[Path, dict[Column.DiffAEData, pd.DataFrame]]:
+) -> tuple[Path, dict[Column.DiffAEData, np.ndarray]]:
     """
     Make and save plot of drift contours in (r, rho) space for a given dataset.
     """
