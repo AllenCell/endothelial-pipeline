@@ -11,11 +11,12 @@ from endo_pipeline.library.analyze.dataframe_filtering import (
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
     get_kernel_density_estimate_from_histogram,
 )
-from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KernelName, KramersMoyalKernel
+from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     add_track_duration_to_dataframe,
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.dynamics_workflows import KernelName
 
 
 def compute_kde_on_bins(
