@@ -264,7 +264,9 @@ def plot_drift_quiver(
         for component in range(drift.shape[-1]):
             drift[..., component] = np.clip(drift[..., component], vmin, vmax)
 
-    fig, ax = fig_ax or plt.subplots(figsize=figsize, gridspec_kw=gridspec_kwargs)
+    fig, ax = fig_ax or plt.subplots(
+        figsize=figsize, layout="constrained", gridspec_kw=gridspec_kwargs
+    )
     ax.quiver(
         meshgrid[0][::quiver_downsample, ::quiver_downsample],
         meshgrid[1][::quiver_downsample, ::quiver_downsample],
