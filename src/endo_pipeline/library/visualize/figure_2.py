@@ -174,31 +174,6 @@ def _get_nullcline_coords_from_contour_axes(
             path_coords[0] = path_coords[0][sort_indices]
             path_coords[1] = path_coords[1][sort_indices]
 
-            # get 5 equally space (by arc length) coordinates along the nullcline to plot as points on top of the contour
-            example_indices = []
-            num_points = path_coords.shape[1]
-            if num_points >= 5:
-                arc_length = np.cumsum(np.sqrt(np.sum(np.diff(path_coords, axis=1) ** 2, axis=0)))
-                arc_length = np.insert(arc_length, 0, 0)
-                total_length = arc_length[-1]
-                example_arc_lengths = np.linspace(0, total_length, 5)
-                example_indices = [
-                    np.argmin(np.abs(arc_length - example_arc_length))
-                    for example_arc_length in example_arc_lengths
-                ]
-            path_coords = path_coords[:, example_indices]
-
-            # add points to plot
-            axes[index].plot(
-                path_coords[0],
-                path_coords[1],
-                "o",
-                color="w",
-                markeredgecolor="k",
-                markeredgewidth=0.25,
-                markersize=3,
-            )
-
             # append the coordinates to the DataFrame for the corresponding column
             nullcline_coords[column] = pd.concat(
                 [
@@ -215,10 +190,88 @@ def _get_nullcline_coords_from_contour_axes(
     return nullcline_coords
 
 
+def _get_example_points_along_nullcline(
+    nullcline_coords: dict[Column.DiffAEData, pd.DataFrame],
+    stable_fixed_point: np.ndarray,
+    num_points: int = 5,
+) -> dict[Column.DiffAEData, np.ndarray]:
+    """
+    Get coordinates of example points along each nullcline, selected to be
+    approximately equally spaced by arc length along the nullcline.
+
+    Parameters
+    ----------
+    nullcline_coords
+        Dictionary mapping each column name to a DataFrame containing the (r,
+        rho) coordinates of the corresponding nullcline.
+    stable_fixed_point
+        Coordinates of the stable fixed point, used as a reference point for
+        selecting example points along the nullcline.
+    num_points
+        Number of example points to select along each nullcline.
+
+    Returns
+    -------
+    :
+        Dictionary mapping each column name to an array of shape (2, num_points)
+        containing the (r, rho) coordinates of the selected example points
+        along the corresponding nullcline.
+
+    """
+    example_points = {}
+    for column, coords_dataframe in nullcline_coords.items():
+        path_coords = (
+            coords_dataframe[[Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]]
+            .to_numpy()
+            .T
+        )
+
+        # calculate arc length along the nullcline path, inserting a 0 at the
+        # beginning for the first point
+        arc_length = np.cumsum(np.sqrt(np.sum(np.diff(path_coords, axis=1) ** 2, axis=0)))
+        arc_length = np.insert(arc_length, 0, 0)
+
+        # starting with the fixed point as reference, find 4 additional points
+        # (on either side of the fixed point if possible) along the nullcline
+        # that are equally spaced by arc length
+        fixed_point_index = np.argmin(
+            np.sqrt(
+                np.sum((path_coords - stable_fixed_point.flatten()[:, np.newaxis]) ** 2, axis=0)
+            )
+        )
+        total_length = arc_length[-1]
+        example_arc_lengths = np.linspace(
+            max(0, arc_length[fixed_point_index] - total_length / 2),
+            min(total_length, arc_length[fixed_point_index] + total_length / 2),
+            num_points,
+        )
+        example_indices = [
+            np.argmin(np.abs(arc_length - example_arc_length))
+            for example_arc_length in example_arc_lengths
+        ]
+        # get coordinates of the selected example points
+        example_points[column] = path_coords[:, example_indices]
+
+        # replace the point closest to the stable fixed point with the stable
+        # fixed point
+        closest_index = np.argmin(
+            np.sqrt(
+                np.sum(
+                    (example_points[column] - stable_fixed_point.flatten()[:, np.newaxis]) ** 2,
+                    axis=0,
+                )
+            )
+        )
+        example_points[column][:, closest_index] = stable_fixed_point.flatten()
+
+    return example_points
+
+
 def make_2d_contour_plot_panel(
     drift: np.ndarray,
     meshgrid: tuple[np.ndarray, np.ndarray],
     column_labels: list[str],
+    stable_fixed_point: np.ndarray,
     figsize: tuple[float, float],
     fig_savedir: Path,
     filename: str,
@@ -262,7 +315,38 @@ def make_2d_contour_plot_panel(
         ylabel_kwargs=ylabel_kwargs,
         axes_title_kwargs=axes_title_kwargs,
     )
+    # get (r, rho) coordinates of r- and rho-nullclines for generating images
+    axes = cast(np.ndarray[plt.Axes, Any], axes_)
+    nullcline_coords_ = _get_nullcline_coords_from_contour_axes(
+        axes, column_names, r_lims, rho_lims
+    )
+
+    # get 5 equally space (by arc length) coordinates along the nullcline to
+    # plot as points on top of the contour, including the stable fixed point and
+    # 2 points on either side if possible
+    nullcline_coords = _get_example_points_along_nullcline(nullcline_coords_, stable_fixed_point)
+
     for ax_index, ax_ in enumerate(list(axes_)):
+        # add nullcline points on top of the contour plot
+        ax_.plot(
+            nullcline_coords[column_names[ax_index]][0],
+            nullcline_coords[column_names[ax_index]][1],
+            "o",
+            color="w",
+            markeredgecolor="k",
+            markeredgewidth=0.25,
+            markersize=3,
+        )
+        # add stable fixed point on top of the contour plot
+        ax_.plot(
+            stable_fixed_point[..., 0],
+            stable_fixed_point[..., 1],
+            FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].marker,
+            color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color,
+            markeredgecolor="k",
+            markeredgewidth=0.5,
+            markersize=5,
+        )
         # adjust label padding and drop tick labels on shared y axis
         ax_.set_box_aspect(1.0)
         ax_.set_xticks(r_ticks)
@@ -274,10 +358,6 @@ def make_2d_contour_plot_panel(
     # label formatting
     if include_colorbar:
         _add_colorbar_to_contour_plot(fig, axes_[1])
-
-    # get (r, rho) coordinates of r- and rho-nullclines for generating images
-    axes = cast(np.ndarray[plt.Axes, Any], axes_)
-    nullcline_coords = _get_nullcline_coords_from_contour_axes(axes, column_names, r_lims, rho_lims)
 
     handles = []
     labels = []
@@ -467,7 +547,7 @@ def make_1d_drift_plot_panel(
 
 
 def reconstruct_along_nullcline(
-    nullcline_coords: dict[ColumnNameType, pd.DataFrame],
+    nullcline_coords: dict[ColumnNameType, np.ndarray],
     theta_value: float,
     model: DiffusionAutoEncoder,
     fig_savedir: Path,
@@ -506,8 +586,8 @@ def reconstruct_along_nullcline(
     )
     output_paths: list[Path] = []
     for column, coords_dataframe in nullcline_coords.items():
-        r_coords = coords_dataframe[Column.DiffAEData.POLAR_RADIUS]
-        rho_coords = coords_dataframe[Column.DiffAEData.PC3_FLIPPED]
+        r_coords = coords_dataframe[0]
+        rho_coords = coords_dataframe[1]
         full_coords_dataframe = pd.DataFrame(
             {
                 Column.DiffAEData.POLAR_RADIUS: r_coords,
@@ -519,15 +599,11 @@ def reconstruct_along_nullcline(
         walk_array = generate_from_dataframe(
             full_coords_dataframe, column_names, model, num_gpus=num_gpus, random_seed=random_seed
         )
-        # reverse order so that images are generated in the direction of
-        # increasing r or rho (since nullcline coords are sorted by increasing r
-        # or rho)
-        walk_array = walk_array[::-1]
         fig_null_walk = make_contact_sheet(
             panels=[walk_array[i] for i in range(len(walk_array))],
-            max_rows=len(walk_array),
-            max_cols=1,
-            fig_kwargs={"figsize": (0.45, 1.85), "layout": "constrained"},
+            max_rows=1,
+            max_cols=len(walk_array),
+            fig_kwargs={"figsize": (2.0, 0.45), "layout": "constrained"},
             gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
         )
         for i, ax in enumerate(fig_null_walk.axes):

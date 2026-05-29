@@ -18,7 +18,6 @@ def main() -> None:
         make_1d_drift_plot_panel,
         make_2d_contour_plot_panel,
         make_2d_quiver_plot_panel,
-        make_crop_example_contact_sheet,
         reconstruct_along_nullcline,
     )
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
@@ -121,10 +120,10 @@ def main() -> None:
     contour_plot_paths: dict[str, Path] = {}
     nullcline_reconstruction_paths: dict[str, list[Path]] = {}
     quiver_plot_paths: dict[str, Path] = {}
-    crop_contact_sheet_paths: dict[str, Path] = {}
+    # crop_contact_sheet_paths: dict[str, Path] = {}
     for dataset_name, arrow_scale_1d, arrow_width_1d in [
         (dataset_low, 1.5, 0.05),
-        (dataset_high, 1.25, 0.075),
+        (dataset_high, 0.5, 0.05),
     ]:
         fig_savedir = get_output_path("figure_2", dataset_name)
         dataset_config = load_dataset_config(dataset_name)
@@ -199,6 +198,7 @@ def main() -> None:
             drift=drift_r_rho,
             meshgrid=centers_mesh,
             column_labels=column_labels_r_rho,
+            stable_fixed_point=stable_fixed_point_r_rho,
             figsize=(1.9, 1.25),
             fig_savedir=fig_savedir,
             filename=f"{dataset_name}_{columns_r_rho_str}_contours",
@@ -241,7 +241,7 @@ def main() -> None:
             meshgrid=centers_mesh,
             column_labels=column_labels_r_rho,
             stable_fixed_point=stable_fixed_point_r_rho,
-            figsize=(2.05, 1.65),
+            figsize=(1.5, 1.3),
             fig_savedir=fig_savedir,
             filename=f"{dataset_name}_{columns_r_rho_str}_quiver",
             r_lims=AXES_LIMITS_2D[Column.DiffAEData.POLAR_RADIUS],
@@ -271,19 +271,19 @@ def main() -> None:
 
         # make contact sheet of example ve-cadherin reconstruction at stable
         # fixed points for this dataset
-        crop_contact_sheet_paths[dataset_name] = make_crop_example_contact_sheet(
-            stable_fixed_point_dataframe=stable_fixed_points_dict[feature_columns_str],
-            feature_column_names=feature_column_names,
-            model=model,
-            n_crop_examples=2,
-            fig_savedir=fig_savedir,
-            fig_filename=f"{dataset_name}_crop_examples",
-            file_format=".svg",
-            gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
-            fig_kwargs={"figsize": (0.85, 1.45), "layout": "constrained"},
-            random_seed=7,
-            num_gpus=NUM_GPUS,
-        )
+        # crop_contact_sheet_paths[dataset_name] = make_crop_example_contact_sheet(
+        #     stable_fixed_point_dataframe=stable_fixed_points_dict[feature_columns_str],
+        #     feature_column_names=feature_column_names,
+        #     model=model,
+        #     n_crop_examples=2,
+        #     fig_savedir=fig_savedir,
+        #     fig_filename=f"{dataset_name}_crop_examples",
+        #     file_format=".svg",
+        #     gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
+        #     fig_kwargs={"figsize": (0.85, 1.45), "layout": "constrained"},
+        #     random_seed=7,
+        #     num_gpus=NUM_GPUS,
+        # )
 
     # --- Cross-dataset summary plots ---
     fixed_point_summary_df = build_dataframe_for_fixed_point_dataset_summary(
@@ -330,108 +330,108 @@ def main() -> None:
     panels = [
         # --- Low flow dataset (row 1) ---
         FigurePanel(
-            letter="A",
+            letter="B",
             path=theta_plot_paths[dataset_low],
-            x_position=0,
-            y_position=0.00,
+            x_position=2.5,
+            y_position=0.0,
             x_offset=0.2,
             y_offset=0.05,
         ),
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_low],
-            x_position=1.6,
-            y_position=0.00,
+            x_position=4.0,
+            y_position=0.0,
             x_offset=0.0,
             y_offset=-0.05,
         ),
-        # FigurePanel(  # r nullcline for low flow dataset
-        #     letter="",
-        #     path=nullcline_reconstruction_paths[dataset_low][0],
-        #     x_position=3.0,
-        #     y_position=0.1,
-        #     x_offset=0.1,
-        #     y_offset=0.0,
-        # ),
-        # FigurePanel(  # rho nullcline for low flow dataset
-        #     letter="",
-        #     path=nullcline_reconstruction_paths[dataset_low][1],
-        #     x_position=3.55,
-        #     y_position=0.1,
-        #     x_offset=0.1,
-        #     y_offset=0.0,
-        # ),
-        FigurePanel(
+        FigurePanel(  # r nullcline for low flow dataset
             letter="",
-            path=quiver_plot_paths[dataset_low],
-            x_position=3.9,
-            y_position=0.05,
-            x_offset=-0.1,
+            path=nullcline_reconstruction_paths[dataset_low][0],
+            x_position=4.0,
+            y_position=1.3,
+            x_offset=0.2,
             y_offset=0.0,
         ),
-        FigurePanel(
-            letter="B",
-            path=crop_contact_sheet_paths[dataset_low],
-            x_position=MAX_FIGURE_WIDTH - 1.0,
-            y_position=0.05,
-            x_offset=0.15,
+        FigurePanel(  # rho nullcline for low flow dataset
+            letter="",
+            path=nullcline_reconstruction_paths[dataset_low][1],
+            x_position=4.0,
+            y_position=1.7,
+            x_offset=0.2,
             y_offset=0.0,
         ),
+        # FigurePanel(
+        #     letter="",
+        #     path=quiver_plot_paths[dataset_low],
+        #     x_position=1.6,
+        #     y_position=1.0,
+        #     x_offset=0.0,
+        #     y_offset=0.0,
+        # ),
+        # FigurePanel(
+        #     letter="B",
+        #     path=crop_contact_sheet_paths[dataset_low],
+        #     x_position=MAX_FIGURE_WIDTH - 1.0,
+        #     y_position=0.05,
+        #     x_offset=0.15,
+        #     y_offset=0.0,
+        # ),
         # --- High flow dataset (row 2) ---
         FigurePanel(
-            letter="C",
+            letter="D",
             path=theta_plot_paths[dataset_high],
-            x_position=0,
-            y_position=1.9,
+            x_position=2.5,
+            y_position=2.5,
             x_offset=0.2,
             y_offset=0.05,
         ),
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_high],
-            x_position=1.6,
-            y_position=1.9,
+            x_position=4.0,
+            y_position=2.5,
             x_offset=0.0,
             y_offset=-0.05,
         ),
-        # FigurePanel(  # r nullcline for high flow dataset
-        #     letter="",
-        #     path=nullcline_reconstruction_paths[dataset_high][0],
-        #     x_position=3.0,
-        #     y_position=2.15,
-        #     x_offset=0.1,
-        #     y_offset=0.0,
-        # ),
-        # FigurePanel(  # rho nullcline for high flow dataset
-        #     letter="",
-        #     path=nullcline_reconstruction_paths[dataset_high][1],
-        #     x_position=3.5,
-        #     y_position=2.15,
-        #     x_offset=0.1,
-        #     y_offset=0.00,
-        # ),
-        FigurePanel(
+        FigurePanel(  # r nullcline for high flow dataset
             letter="",
-            path=quiver_plot_paths[dataset_high],
-            x_position=3.9,
-            y_position=2.05,
-            x_offset=-0.1,
+            path=nullcline_reconstruction_paths[dataset_high][0],
+            x_position=4.0,
+            y_position=3.8,
+            x_offset=0.2,
             y_offset=0.0,
         ),
-        FigurePanel(
-            letter="D",
-            path=crop_contact_sheet_paths[dataset_high],
-            x_position=MAX_FIGURE_WIDTH - 1.0,
-            y_position=2.05,
-            x_offset=0.15,
-            y_offset=0.05,
+        FigurePanel(  # rho nullcline for high flow dataset
+            letter="",
+            path=nullcline_reconstruction_paths[dataset_high][1],
+            x_position=4.0,
+            y_position=4.2,
+            x_offset=0.2,
+            y_offset=0.0,
         ),
+        # FigurePanel(
+        #     letter="",
+        #     path=quiver_plot_paths[dataset_high],
+        #     x_position=1.6,
+        #     y_position=3.5,
+        #     x_offset=0.0,
+        #     y_offset=0.0,
+        # ),
+        # FigurePanel(
+        #     letter="D",
+        #     path=crop_contact_sheet_paths[dataset_high],
+        #     x_position=MAX_FIGURE_WIDTH - 1.0,
+        #     y_position=2.05,
+        #     x_offset=0.15,
+        #     y_offset=0.05,
+        # ),
         # --- Bottom row: first passage time and summary plots ---
         FigurePanel(
             letter="E",
             path=fixed_point_summary_plot_path,
             x_position=0.0,
-            y_position=4.0,
+            y_position=4.75,
             x_offset=0,
             y_offset=0.2,
         ),
@@ -439,7 +439,7 @@ def main() -> None:
             letter="F",
             path=migration_summary_plot_path,
             x_position=3.6,
-            y_position=4.0,
+            y_position=4.75,
             x_offset=0.1,
             y_offset=0.2,
         ),
@@ -447,14 +447,14 @@ def main() -> None:
             letter="G",
             path=first_passage_path,
             x_position=5.175,
-            y_position=4.0,
+            y_position=4.75,
             x_offset=0.05,
             y_offset=0.15,
         ),
     ]
 
     build_figure_from_panels(
-        panels, base_output_dir / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=6.2
+        panels, base_output_dir / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=7.0
     )
 
 
