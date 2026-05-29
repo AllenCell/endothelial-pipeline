@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Any, Literal, cast
 
+import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -281,16 +282,27 @@ def make_2d_contour_plot_panel(
     handles = []
     labels = []
     if include_legend:
-        for ax in list(axes_):
-            ax_handles, ax_labels = ax.get_legend_handles_labels()
-            handles.extend(ax_handles)
-            labels.extend(ax_labels)
+        # plot_drift_contours draws nullclines via ax.contour(), which does not
+        # produce labeled artists. Add proxy Line2D handles so the legend has
+        # something to show.
+        nullcline_styles = (nullcline_r_style, nullcline_rho_style)
+        for col_idx, col in enumerate(column_names):
+            label = COLUMN_METADATA[col].label or str(col)
+            handle = mlines.Line2D(
+                [],
+                [],
+                color="k",
+                linestyle=nullcline_styles[col_idx],
+                label=f"Nullcline d{label}/dt=0",
+            )
+            handles.append(handle)
+            labels.append(f"Nullcline d{label}/dt=0")
         fig.legend(
             handles,
             labels,
             fontsize="xx-small",
             loc="upper center",
-            bbox_to_anchor=(0.5, 1.25),
+            bbox_to_anchor=(0.575, 0.95),
             ncol=2,
             handletextpad=0.3,
         )
