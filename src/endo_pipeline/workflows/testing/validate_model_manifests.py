@@ -29,7 +29,7 @@ def main(manifests: UniqueStrList | None = None) -> None:
     ## Workflow demo
 
     Running the workflow in demo mode (`-d` or `--demo-mode`) will only run
-    validation on at most two locations of the first manifest.
+    validation on at most two locations for two manifests.
 
     Parameters
     ----------
@@ -39,11 +39,9 @@ def main(manifests: UniqueStrList | None = None) -> None:
 
     import logging
 
-    from termcolor import colored
-    from tqdm import tqdm
-
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.io import load_model
+    from endo_pipeline.library.process.progress_bar import ProgressBar
     from endo_pipeline.manifests import get_available_model_manifests, load_model_manifest
 
     logger = logging.getLogger(__name__)
@@ -51,8 +49,8 @@ def main(manifests: UniqueStrList | None = None) -> None:
     manifest_names = manifests or get_available_model_manifests()
 
     if DEMO_MODE:
-        logger.warning("DEMO MODE - Only validating the first two locations of the first manifest")
-        manifest_names = manifest_names[:1]
+        logger.warning("DEMO MODE - Only validating the first two locations for two manifests")
+        manifest_names = manifest_names[:2]
         max_locations = 2
     else:
         max_locations = None
@@ -72,14 +70,13 @@ def main(manifests: UniqueStrList | None = None) -> None:
                 model_manifest.name,
             )
 
-        manifest_name_color = colored(manifest_name, color="cyan", attrs=["bold"])
-        progress_bar = tqdm(location_keys, desc=f"Validating {manifest_name_color}")
-
+        progress_bar = ProgressBar(location_keys, "Validating", manifest_name)
         for location_key in progress_bar:
-            progress_bar.set_postfix_str(colored(location_key, color="cyan"))
+            progress_bar.set_iteration_name(location_key)
             location = model_manifest.locations[location_key]
 
             # Confirm that at least one location in available
+            progress_bar.set_step_description("Checking that at least one location is available")
             if (
                 location.mlflowid is None
                 and location.fmsid is None
@@ -94,6 +91,7 @@ def main(manifests: UniqueStrList | None = None) -> None:
                 continue
 
             # Confirm the model can be loaded
+            progress_bar.set_step_description("Checking model can be loaded")
             try:
                 load_model(location, instantiate=False)
             except Exception:
@@ -102,3 +100,7 @@ def main(manifests: UniqueStrList | None = None) -> None:
                     manifest_name,
                     location_key,
                 )
+
+            if location_key == location_keys[-1]:
+                progress_bar.set_step_description("Finished validating all locations")
+                progress_bar.clear_iteration_name()
