@@ -945,6 +945,10 @@ mypy-extensions==1.1.0 \
 myst-parser==4.0.1 \
     --hash=sha256:5cfea715e4f3574138aecbf7d54132296bfd72bb614d31168f48c477a830a7c4 \
     --hash=sha256:9134e88959ec3b5780aedf8a99680ea242869d012e8821db3126d427edc9c95d
+narwhals==2.21.2 \
+    --hash=sha256:5c5b2d0b47aef7c73ea412cfcbcd467f2f2d5be73e3c2ab19d78f4a97718790a \
+    --hash=sha256:7bb57c3700486039215455b9bf2d64261915cc0fd845cc30272d631df696b251
+    # via plotly
 natsort==8.4.0 \
     --hash=sha256:45312c4a0e5507593da193dedd04abb1469253b601ecaf63445ad80f0a1ea581 \
     --hash=sha256:4732914fb471f56b5cce04d7bae6f164a592c7712e1c85f9ef585e197299521c
@@ -1176,6 +1180,7 @@ packaging==24.2 \
     #   marshmallow
     #   matplotlib
     #   nbconvert
+    #   plotly
     #   pytest
     #   scikit-image
     #   sphinx
@@ -1258,6 +1263,10 @@ platformdirs==4.3.7 \
     #   jupyter-core
     #   ngff-zarr
     #   virtualenv
+plotly==6.7.0 \
+    --hash=sha256:45eea0ff27e2a23ccd62776f77eb43aa1ca03df4192b76036e380bb479b892c6 \
+    --hash=sha256:ac8aca1c25c663a59b5b9140a549264a5badde2e057d79b8c772ae2920e32ff0
+    # via endo-pipeline
 pluggy==1.5.0 \
     --hash=sha256:2cffa88e94fdc978c4c574f15f9e59b7f4201d439195c3715ca9e2486f1d0cf1 \
     --hash=sha256:44e1ad92c8ca002de6377e165f3e0f1be63266ab4d554740532335b9d75ea669
