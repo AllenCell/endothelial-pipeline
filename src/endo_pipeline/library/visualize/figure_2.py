@@ -38,11 +38,7 @@ from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_VMAX,
     DRIFT_CONTOUR_VMIN,
 )
-from endo_pipeline.settings.flow_field_3d import (
-    NORMALIZE_QUIVER_VECTORS,
-    QUIVER_COLORMAP,
-    QUIVER_DOWNSAMPLE_FACTOR,
-)
+from endo_pipeline.settings.flow_field_3d import NORMALIZE_QUIVER_VECTORS, QUIVER_DOWNSAMPLE_FACTOR
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
@@ -558,7 +554,7 @@ def make_3d_vector_field_plot_panel(
     filename: str,
     downsample_factor: int = QUIVER_DOWNSAMPLE_FACTOR,
     normalize_vectors: bool = NORMALIZE_QUIVER_VECTORS,
-    colormap: str = QUIVER_COLORMAP,
+    colormap: str = "turbo",
 ) -> Path:
     """
     Render the 3D (theta, r, rho) drift vector field for a given dataset using
