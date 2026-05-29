@@ -29,7 +29,7 @@ def main() -> None:
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import POLAR_ANGLE_RANGE
     from endo_pipeline.settings.examples import EXAMPLE_DATASET
-    from endo_pipeline.settings.figures import FONTSIZE_XSMALL, MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_WIDTH
     from endo_pipeline.settings.first_passage_time import (
         FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME,
     )
@@ -204,7 +204,7 @@ def main() -> None:
             xlabel_kwargs=XLABEL_KWARGS,
             ylabel_kwargs=YLABEL_KWARGS,
             axes_title_kwargs={
-                "fontsize": FONTSIZE_XSMALL,
+                "fontsize": FONTSIZE_SMALL,
                 "x": 0.05,
                 "y": 0.75,
                 "rotation": 0,
@@ -282,10 +282,10 @@ def main() -> None:
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_low],
-            x_position=3.85,
+            x_position=3.8,
             y_position=0.0,
             x_offset=0.0,
-            y_offset=-0.05,
+            y_offset=-0.075,
         ),
         FigurePanel(  # r nullcline for low flow dataset
             letter="C",
@@ -315,10 +315,10 @@ def main() -> None:
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_high],
-            x_position=3.85,
+            x_position=3.8,
             y_position=2.7,
             x_offset=0.0,
-            y_offset=-0.05,
+            y_offset=-0.075,
         ),
         FigurePanel(  # r nullcline for high flow dataset
             letter="F",
