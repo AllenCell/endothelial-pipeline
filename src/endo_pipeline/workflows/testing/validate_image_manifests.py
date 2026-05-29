@@ -59,7 +59,7 @@ def main(manifests: UniqueStrList | None = None) -> None:
 
     if DEMO_MODE:
         logger.warning("DEMO MODE - Only validating the first two locations for two manifests")
-        manifest_names = manifest_names[:2]
+        # manifest_names = manifest_names[:2]
         max_locations = 2
         max_positions = 2
         max_timepoints = 10
@@ -89,6 +89,11 @@ def main(manifests: UniqueStrList | None = None) -> None:
             location = image_manifest.locations[location_key]
 
             dataset = load_dataset_config(location_key)
+
+            # Calculate expected pixel size
+            expected_pixel_size = dataset.pixel_size_xy_in_um
+            if "grid_seg" in manifest_name:
+                expected_pixel_size *= 2
 
             # Confirm that at least one location in available
             progress_bar.set_step_description("Checking that at least one location is available")
@@ -120,6 +125,7 @@ def main(manifests: UniqueStrList | None = None) -> None:
 
             # Confirm the image can be loaded for all placeholders
             progress_bar.set_step_description("Checking image can be loaded for all placeholders")
+            pixel_size_mismatchs = set()
             for position in tqdm(positions, desc="  Positions", leave=False):
                 for timepoint in tqdm(timepoints, desc="  Timepoints", leave=False):
                     location_placeholder = get_image_location_for_dataset(
@@ -127,13 +133,29 @@ def main(manifests: UniqueStrList | None = None) -> None:
                     )
 
                     try:
-                        load_image(location_placeholder, read=False)
+                        image = load_image(location_placeholder, read=False)
+
+                        # Check for any mismatches in pixel size
+                        if timepoint == 0 or timepoint is None:
+                            if not round(image.physical_pixel_sizes.X, 3) == expected_pixel_size:
+                                pixel_size_mismatchs.add(position)
+                            if not round(image.physical_pixel_sizes.Y, 3) == expected_pixel_size:
+                                pixel_size_mismatchs.add(position)
                     except Exception:
                         logger.error(
                             "Validation failed for manifest '%s' key '%s' - Unable to load image",
                             manifest_name,
                             location_key,
                         )
+
+            if any(pixel_size_mismatchs):
+                logger.error(
+                    "Manifest '%s' key '%s' pixel sizes in image metadata and dataset config "
+                    "do not match for positions: %s",
+                    manifest_name,
+                    location_key,
+                    sorted(pixel_size_mismatchs),
+                )
 
             if location_key == location_keys[-1]:
                 progress_bar.set_step_description("Finished validating all locations")

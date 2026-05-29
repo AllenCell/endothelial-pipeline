@@ -67,6 +67,8 @@ def main(datasets: Datasets | None = None) -> None:
         logger.warning("DEMO MODE - Only validating the first two datasets")
         dataset_names = dataset_names[:2]
 
+    expected_pixel_size = 0.382
+
     for dataset_name in dataset_names:
         progress_bar = ProgressBar([dataset_name], "Validating")
         progress_bar.set_iteration_name(dataset_name)
@@ -80,10 +82,20 @@ def main(datasets: Datasets | None = None) -> None:
             progress_bar.set_step_description("Unable to finish validation steps")
             continue
 
-        # Load dataset config.
+        # Load dataset config
         dataset_config = load_dataset_config(dataset_name)
 
-        # Check if file at original path exists and can be opened.
+        # Check pixel size
+        progress_bar.set_step_description("Checking pixel size")
+        if dataset_config.pixel_size_xy_in_um != expected_pixel_size:
+            logger.error(
+                "Dataset '%s' has config pixel size '%f' instead of '%f'",
+                dataset_name,
+                dataset_config.pixel_size_xy_in_um,
+                expected_pixel_size,
+            )
+
+        # Check if file at original path exists and can be opened
         progress_bar.set_step_description("Checking if original path can be opened")
         try:
             BioImage(Path(dataset_config.original_path))
@@ -94,7 +106,7 @@ def main(datasets: Datasets | None = None) -> None:
                 dataset_config.original_path,
             )
 
-        # For each position, check if the local zarr exists and can be opened.
+        # For each position, check if the local zarr exists and can be opened
         progress_bar.set_step_description("Checking if all zarrs exist and can be loaded")
         positions = dataset_config.zarr_positions
         for position in tqdm(positions, desc="  Position", leave=False):
