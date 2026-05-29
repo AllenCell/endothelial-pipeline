@@ -238,13 +238,6 @@ def get_df_for_feature_correlation_viz(
     # merge the DataFrames from all datasets
     df = pd.concat(df_list, ignore_index=True)
 
-    # if any nans or infs, log a warning and filter out
-    if df.isna().any().any() or np.isinf(df.to_numpy()).any():
-        logger.warning(
-            "DataFrame contains NaN or infinite values. These will be filtered out for correlation visualization."
-        )
-        df = df.replace([np.inf, -np.inf], np.nan).dropna()
-
     return df
 
 
@@ -300,14 +293,9 @@ def visualize_correlation_heatmaps(
             seen.add(col)
 
     logger.info("Computing full correlation matrix for dataset %s", dataset_name)
-    values_for_corr = df_dataset[unique_feature_columns].dropna().to_numpy()
-    # Use numpy to compute correlation matrix faster
-    corr_matrix = np.corrcoef(values_for_corr, rowvar=False)
-    corr_df = pd.DataFrame(
-        corr_matrix,
-        index=unique_feature_columns,
-        columns=unique_feature_columns,
-    )
+    # Use pandas to compute the correlation matrix even though it is slower than
+    # numpy because it handles the nan values
+    corr_df = df_dataset[unique_feature_columns].corr(method="pearson")
 
     pair_iter = (
         itertools.combinations(label_column_tuples, 2)
