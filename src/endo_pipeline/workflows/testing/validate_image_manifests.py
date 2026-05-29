@@ -29,7 +29,9 @@ def main(manifests: UniqueStrList | None = None) -> None:
     ## Workflow demo
 
     Running the workflow in demo mode (`-d` or `--demo-mode`) will only run
-    validation on at most two locations of the first manifest.
+    validation on at most two locations of the first manifest. If the location
+    has positions and/or timepoint placeholders, only run for a maximum of two
+    positions and 10 timepoints.
 
     Parameters
     ----------
@@ -59,8 +61,12 @@ def main(manifests: UniqueStrList | None = None) -> None:
         logger.warning("DEMO MODE - Only validating the first two locations of the first manifest")
         manifest_names = manifest_names[:1]
         max_locations = 2
+        max_positions = 2
+        max_timepoints = 10
     else:
         max_locations = None
+        max_positions = None
+        max_timepoints = None
 
     for manifest_name in manifest_names:
         # Load image manifest and location keys
@@ -95,18 +101,36 @@ def main(manifests: UniqueStrList | None = None) -> None:
                 )
                 continue
 
-            # Confirm the image can be loaded for all positions
-            for position in dataset.zarr_positions:
-                position_location = get_image_location_for_dataset(
-                    image_manifest, dataset, position
-                )
+            if (location.path is not None and "{{position}}" in location.path.name) or (
+                location.s3uri is not None and "{{position}}" in location.s3uri
+            ):
+                positions = dataset.zarr_positions
+                if max_positions is not None:
+                    positions = positions[:max_positions]
+            else:
+                positions = [None]
 
-                try:
-                    load_image(position_location, read=False)
-                except Exception:
-                    logger.error(
-                        "Validation failed for manifest '%s' key '%s' position '%d' - Unable to load image",
-                        manifest_name,
-                        location_key,
-                        position,
+            if (location.path is not None and "{{timepoint}}" in location.path.name) or (
+                location.s3uri is not None and "{{timepoint}}" in location.s3uri
+            ):
+                timepoints = list(range(dataset.duration))
+                if max_timepoints is not None:
+                    timepoints = timepoints[:max_timepoints]
+            else:
+                timepoints = [None]
+
+            # Confirm the image can be loaded for all placeholders
+            for position in tqdm(positions, desc="  Positions", leave=False):
+                for timepoint in tqdm(timepoints, desc="  Timepoints", leave=False):
+                    location_placeholder = get_image_location_for_dataset(
+                        image_manifest, dataset, position=position, timepoint=timepoint
                     )
+
+                    try:
+                        load_image(location_placeholder, read=False)
+                    except Exception:
+                        logger.error(
+                            "Validation failed for manifest '%s' key '%s' - Unable to load image",
+                            manifest_name,
+                            location_key,
+                        )
