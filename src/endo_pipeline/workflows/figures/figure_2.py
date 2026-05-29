@@ -17,7 +17,6 @@ def main() -> None:
     from endo_pipeline.library.visualize.figure_2 import (
         make_1d_drift_plot_panel,
         make_2d_contour_plot_panel,
-        make_2d_quiver_plot_panel,
         reconstruct_along_nullcline,
     )
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
@@ -35,7 +34,6 @@ def main() -> None:
     from endo_pipeline.settings.first_passage_time import (
         FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME,
     )
-    from endo_pipeline.settings.flow_field_2d import DRIFT_CONTOUR_VMAX, DRIFT_CONTOUR_VMIN
     from endo_pipeline.settings.flow_field_dataframes import (
         BOOTSTRAPPING_MANIFEST_NAMES,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
@@ -119,8 +117,6 @@ def main() -> None:
     theta_plot_paths: dict[str, Path] = {}
     contour_plot_paths: dict[str, Path] = {}
     nullcline_reconstruction_paths: dict[str, list[Path]] = {}
-    quiver_plot_paths: dict[str, Path] = {}
-    # crop_contact_sheet_paths: dict[str, Path] = {}
     for dataset_name, arrow_scale_1d, arrow_width_1d in [
         (dataset_low, 1.5, 0.05),
         (dataset_high, 0.5, 0.05),
@@ -236,55 +232,6 @@ def main() -> None:
             num_gpus=NUM_GPUS,
         )
 
-        quiver_plot_paths[dataset_name] = make_2d_quiver_plot_panel(
-            drift=drift_r_rho,
-            meshgrid=centers_mesh,
-            column_labels=column_labels_r_rho,
-            stable_fixed_point=stable_fixed_point_r_rho,
-            figsize=(1.5, 1.3),
-            fig_savedir=fig_savedir,
-            filename=f"{dataset_name}_{columns_r_rho_str}_quiver",
-            r_lims=AXES_LIMITS_2D[Column.DiffAEData.POLAR_RADIUS],
-            rho_lims=AXES_LIMITS_2D[Column.DiffAEData.PC3_FLIPPED],
-            r_ticks=[0.25, 0.75, 1.25, 1.75],
-            rho_ticks=[-1.0, -0.5, 0.0, 0.5, 1.0],
-            nullcline_r_style=NULLCLINE_STYLES_2D[Column.DiffAEData.POLAR_RADIUS],
-            nullcline_rho_style=NULLCLINE_STYLES_2D[Column.DiffAEData.PC3_FLIPPED],
-            nullcline_opacity=0.9,
-            quiver_color="dimgrey",
-            quiver_scale=3.5,
-            quiver_downsample=4,
-            vmin=DRIFT_CONTOUR_VMIN,
-            vmax=DRIFT_CONTOUR_VMAX,
-            gridspec_kwargs=GRIDSPEC_KWARGS,
-            xlabel_kwargs=XLABEL_KWARGS,
-            ylabel_kwargs=YLABEL_KWARGS,
-            quiver_legend_kwargs={
-                "fontsize": "xx-small",
-                "title_fontsize": "xx-small",
-                "loc": "upper center",
-                "bbox_to_anchor": (0.5, 1.25),
-                "ncol": 2,
-                "handletextpad": 0.3,
-            },
-        )
-
-        # make contact sheet of example ve-cadherin reconstruction at stable
-        # fixed points for this dataset
-        # crop_contact_sheet_paths[dataset_name] = make_crop_example_contact_sheet(
-        #     stable_fixed_point_dataframe=stable_fixed_points_dict[feature_columns_str],
-        #     feature_column_names=feature_column_names,
-        #     model=model,
-        #     n_crop_examples=2,
-        #     fig_savedir=fig_savedir,
-        #     fig_filename=f"{dataset_name}_crop_examples",
-        #     file_format=".svg",
-        #     gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
-        #     fig_kwargs={"figsize": (0.85, 1.45), "layout": "constrained"},
-        #     random_seed=7,
-        #     num_gpus=NUM_GPUS,
-        # )
-
     # --- Cross-dataset summary plots ---
     fixed_point_summary_df = build_dataframe_for_fixed_point_dataset_summary(
         dataset_names=dataset_summary_list,
@@ -361,22 +308,6 @@ def main() -> None:
             x_offset=0.2,
             y_offset=0.0,
         ),
-        # FigurePanel(
-        #     letter="",
-        #     path=quiver_plot_paths[dataset_low],
-        #     x_position=1.6,
-        #     y_position=1.0,
-        #     x_offset=0.0,
-        #     y_offset=0.0,
-        # ),
-        # FigurePanel(
-        #     letter="B",
-        #     path=crop_contact_sheet_paths[dataset_low],
-        #     x_position=MAX_FIGURE_WIDTH - 1.0,
-        #     y_position=0.05,
-        #     x_offset=0.15,
-        #     y_offset=0.0,
-        # ),
         # --- High flow dataset (row 2) ---
         FigurePanel(
             letter="D",
@@ -410,22 +341,6 @@ def main() -> None:
             x_offset=0.2,
             y_offset=0.0,
         ),
-        # FigurePanel(
-        #     letter="",
-        #     path=quiver_plot_paths[dataset_high],
-        #     x_position=1.6,
-        #     y_position=3.5,
-        #     x_offset=0.0,
-        #     y_offset=0.0,
-        # ),
-        # FigurePanel(
-        #     letter="D",
-        #     path=crop_contact_sheet_paths[dataset_high],
-        #     x_position=MAX_FIGURE_WIDTH - 1.0,
-        #     y_position=2.05,
-        #     x_offset=0.15,
-        #     y_offset=0.05,
-        # ),
         # --- Bottom row: first passage time and summary plots ---
         FigurePanel(
             letter="E",
