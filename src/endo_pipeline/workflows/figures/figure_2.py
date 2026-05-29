@@ -159,7 +159,7 @@ def main() -> None:
         )
         stable_fixed_point_theta = stable_fixed_points_dict[column_theta][column_theta].to_numpy()
 
-        make_3d_vector_field_plot_panel(dataset_name, fig_savedir, filename="3d_vector_field")
+        make_3d_vector_field_plot_panel(dataset_name, fig_savedir)
 
         # plot 1D drift in theta and save
         theta_plot_paths[dataset_name] = make_1d_drift_plot_panel(

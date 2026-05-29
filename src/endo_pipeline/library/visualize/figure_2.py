@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.cm import ScalarMappable
-from matplotlib.colors import TwoSlopeNorm
+from matplotlib.colors import LogNorm, TwoSlopeNorm
 from matplotlib.layout_engine import ConstrainedLayoutEngine
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
@@ -38,10 +38,15 @@ from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_VMAX,
     DRIFT_CONTOUR_VMIN,
 )
-from endo_pipeline.settings.flow_field_3d import NORMALIZE_QUIVER_VECTORS, QUIVER_DOWNSAMPLE_FACTOR
+from endo_pipeline.settings.flow_field_3d import (
+    CLIP_MAGNITUDES,
+    CLIP_MAX_MAGNITUDE_PERCENTILE,
+    CLIP_MIN_MAGNITUDE_PERCENTILE,
+    LOG_NORM_MAGNITUDES,
+    NORMALIZE_QUIVER_VECTORS,
+)
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
-from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
 
 def _add_colorbar_to_contour_plot(
@@ -476,7 +481,7 @@ def reconstruct_along_nullcline(
     model: DiffusionAutoEncoder,
     fig_savedir: Path,
     num_gpus: int | None = None,
-    random_seed: int | None = RANDOM_SEED,
+    random_seed: int | None = 5,
 ) -> tuple[Path, ...]:
     """
     Generate reconstructed images along a nullcline given the coordinates of the
@@ -525,7 +530,7 @@ def reconstruct_along_nullcline(
             column_names,
             model,
             num_gpus=num_gpus,
-            random_seed=5,
+            random_seed=random_seed,
         )
         fig_null_walk = make_contact_sheet(
             panels=[walk_array[i] for i in range(len(walk_array))],
@@ -551,10 +556,14 @@ def reconstruct_along_nullcline(
 def make_3d_vector_field_plot_panel(
     dataset_name: str,
     fig_savedir: Path,
-    filename: str,
-    downsample_factor: int = QUIVER_DOWNSAMPLE_FACTOR,
+    downsample_factor: int = 4,
     normalize_vectors: bool = NORMALIZE_QUIVER_VECTORS,
-    colormap: str = "turbo",
+    colormap: str = "turbo_r",
+    clip_magnitudes: bool = CLIP_MAGNITUDES,
+    clip_min_percentile: float | None = CLIP_MIN_MAGNITUDE_PERCENTILE,
+    clip_max_percentile: float | None = CLIP_MAX_MAGNITUDE_PERCENTILE,
+    log_norm_magnitudes: bool = LOG_NORM_MAGNITUDES,
+    arrow_alpha: float = 0.25,
 ) -> Path:
     """
     Render the 3D (theta, r, rho) drift vector field for a given dataset using
@@ -571,8 +580,6 @@ def make_3d_vector_field_plot_panel(
         Name of the dataset to visualize.
     fig_savedir
         Directory in which to save the figure as a static PNG file.
-    filename
-        Filename stem (without extension) for the saved PNG file.
     downsample_factor
         Factor by which to downsample the grid before plotting, to keep the
         figure responsive.
@@ -583,6 +590,22 @@ def make_3d_vector_field_plot_panel(
     colormap
         Matplotlib-compatible colormap name used to colour the arrows by vector
         magnitude.
+    clip_magnitudes
+        Whether to clip the colour range to percentiles of the magnitude
+        distribution, suppressing outliers.
+    clip_min_percentile
+        Lower percentile used to compute ``vmin`` when
+        ``clip_magnitudes`` is ``True``.  ``None`` keeps the true minimum.
+    clip_max_percentile
+        Upper percentile used to compute ``vmax`` when
+        ``clip_magnitudes`` is ``True``.  ``None`` keeps the true maximum.
+    log_norm_magnitudes
+        When ``True`` apply a logarithmic norm to the colour scale instead of a
+        linear one.  Useful when magnitude spans several orders of magnitude.
+    arrow_alpha
+        Opacity of the quiver arrows (0 = fully transparent, 1 = fully opaque).
+        Lowering this value lets the stable fixed point marker show through the
+        arrow field.
 
     Returns
     -------
@@ -625,11 +648,24 @@ def make_3d_vector_field_plot_panel(
     # ------------------------------------------------------------------
     # Compute vector magnitudes for colouring
     # ------------------------------------------------------------------
-    # Use the full pre-downsampled field to anchor cmin/cmax to the true
-    # data range (downsampling may miss the extremes).
+    # Use the full pre-downsampled field to anchor cmin/cmax so that
+    # downsampling doesn't miss the true extremes.
     full_magnitude = np.sqrt(u_field**2 + v_field**2 + w_field**2)
-    global_cmin = float(full_magnitude.min())
-    global_cmax = float(full_magnitude.max())
+
+    if clip_magnitudes:
+        global_cmin = float(
+            np.nanpercentile(full_magnitude, clip_min_percentile)
+            if clip_min_percentile is not None
+            else np.nanmin(full_magnitude)
+        )
+        global_cmax = float(
+            np.nanpercentile(full_magnitude, clip_max_percentile)
+            if clip_max_percentile is not None
+            else np.nanmax(full_magnitude)
+        )
+    else:
+        global_cmin = float(np.nanmin(full_magnitude))
+        global_cmax = float(np.nanmax(full_magnitude))
 
     # flatten — always use raw vectors so colour encodes magnitude
     x_flat = x_ds.ravel()
@@ -643,9 +679,15 @@ def make_3d_vector_field_plot_panel(
     # ------------------------------------------------------------------
     # Map magnitudes to colours
     # ------------------------------------------------------------------
-    norm = plt.Normalize(vmin=global_cmin, vmax=global_cmax)
+    eps = np.finfo(float).eps
+    if log_norm_magnitudes:
+        safe_cmin = max(global_cmin, eps)
+        safe_cmax = max(global_cmax, safe_cmin + eps)
+        norm = LogNorm(vmin=safe_cmin, vmax=safe_cmax)
+    else:
+        norm = plt.Normalize(vmin=global_cmin, vmax=global_cmax)
     cmap = plt.get_cmap(colormap)
-    colors = cmap(norm(mag_flat))
+    colors = cmap(norm(np.clip(mag_flat, global_cmin, global_cmax)))
 
     # ------------------------------------------------------------------
     # Build matplotlib 3D figure
@@ -659,33 +701,40 @@ def make_3d_vector_field_plot_panel(
     # size (so visual clutter from large-magnitude outliers is reduced) while
     # still colouring by magnitude.
     if normalize_vectors:
-        avg_spacing = float(np.mean(np.diff(np.unique(x_flat))))
-        arrow_length: float = avg_spacing * 0.8
-        eps = np.finfo(float).eps
+        avg_spacing = np.mean(np.diff(np.unique(x_flat)))
+        arrow_length = avg_spacing * 0.8
         u_plot = u_flat / (mag_flat + eps)
         v_plot = v_flat / (mag_flat + eps)
         w_plot = w_flat / (mag_flat + eps)
-        ax.quiver(
+        q = ax.quiver(
             x_flat,
             y_flat,
             z_flat,
             u_plot,
             v_plot,
             w_plot,
-            colors=colors,
             length=arrow_length,
             normalize=False,
         )
     else:
-        ax.quiver(
+        q = ax.quiver(
             x_flat,
             y_flat,
             z_flat,
             u_flat,
             v_flat,
             w_flat,
-            colors=colors,
         )
+
+    # Matplotlib 3D quiver decomposes each arrow into multiple line segments
+    # (shaft + arrowhead lines).  The colour array must be repeated to match
+    # the total segment count; derive that count dynamically so we don't
+    # hard-code a segment-per-arrow assumption.
+    n_segments = len(q.get_segments())
+    n_arrows = len(x_flat)
+    segments_per_arrow = max(1, n_segments // n_arrows)
+    q.set_color(np.repeat(colors, segments_per_arrow, axis=0))
+    q.set_alpha(arrow_alpha)
 
     # Colorbar
     sm = ScalarMappable(cmap=cmap, norm=norm)
@@ -722,11 +771,16 @@ def make_3d_vector_field_plot_panel(
     ax.set_title(f"3D drift vector field - {dataset_name}")
 
     # ------------------------------------------------------------------
-    # Save as static PNG
+    # Save as static SVG
     # ------------------------------------------------------------------
-    out_path = Path(fig_savedir) / f"{filename}.png"
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(str(out_path), dpi=150, bbox_inches="tight")
-    plt.close(fig)
+    filename = f"3d_vector_field_{dataset_name}"
+    save_plot_to_path(
+        fig,
+        fig_savedir,
+        filename,
+        file_format=".svg",
+        tight_layout=False,
+        transparent=False,
+    )
 
-    return out_path
+    return fig_savedir / f"{filename}.svg"
