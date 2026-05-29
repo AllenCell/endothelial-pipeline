@@ -59,7 +59,7 @@ def main(manifests: UniqueStrList | None = None) -> None:
 
     if DEMO_MODE:
         logger.warning("DEMO MODE - Only validating the first two locations for two manifests")
-        # manifest_names = manifest_names[:2]
+        manifest_names = manifest_names[:2]
         max_locations = 2
         max_positions = 2
         max_timepoints = 10
