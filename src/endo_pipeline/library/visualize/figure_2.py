@@ -514,7 +514,7 @@ def reconstruct_along_nullcline(
             panels=[walk_array[i] for i in range(len(walk_array))],
             max_rows=1,
             max_cols=len(walk_array),
-            fig_kwargs={"figsize": (3.0, 0.6), "layout": "constrained"},
+            fig_kwargs={"figsize": (3.125, 0.625), "layout": "constrained"},
             gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
         )
 
