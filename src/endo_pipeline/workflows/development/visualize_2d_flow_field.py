@@ -113,6 +113,7 @@ def main(
         plot_drift_contours,
         plot_drift_quiver,
     )
+    from endo_pipeline.library.visualize.fixed_points import StabilityLegendHandle
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
@@ -129,7 +130,7 @@ def main(
         DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD,
         StabilityLabel,
     )
-    from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, StabilityLegendHandle
+    from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
     from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
 
     logger = logging.getLogger(__name__)

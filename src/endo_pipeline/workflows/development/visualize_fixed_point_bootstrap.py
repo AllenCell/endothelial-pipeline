@@ -71,6 +71,7 @@ def main(
         get_dataset_color,
         get_label_for_column,
     )
+    from endo_pipeline.library.visualize.fixed_points import StabilityLegendHandle
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
@@ -83,7 +84,7 @@ def main(
         BOOTSTRAPPING_MANIFEST_NAMES,
         StabilityLabel,
     )
-    from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, StabilityLegendHandle
+    from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
     from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
     logger = logging.getLogger(__name__)
