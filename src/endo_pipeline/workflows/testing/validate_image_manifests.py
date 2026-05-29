@@ -154,7 +154,7 @@ def main(manifests: UniqueStrList | None = None) -> None:
                     "do not match for positions: %s",
                     manifest_name,
                     location_key,
-                    sorted(pixel_size_mismatchs),
+                    pixel_size_mismatchs,
                 )
 
             if location_key == location_keys[-1]:
