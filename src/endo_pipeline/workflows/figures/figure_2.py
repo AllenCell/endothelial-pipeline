@@ -172,7 +172,7 @@ def main() -> None:
             theta_values=centers_theta[-1],
             column_label=column_label_theta,
             stable_fixed_point=stable_fixed_point_theta,
-            figsize=(1.25, 1.5),
+            figsize=(1.45, 1.75),
             fig_savedir=fig_savedir,
             filename=f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}_drift",
             shear_stress_label=shear_stress_label,
@@ -199,7 +199,7 @@ def main() -> None:
             meshgrid=centers_mesh,
             column_labels=column_labels_r_rho,
             stable_fixed_point=stable_fixed_point_r_rho,
-            figsize=(1.9, 1.25),
+            figsize=(2.3, 1.4),
             fig_savedir=fig_savedir,
             filename=f"{dataset_name}_{columns_r_rho_str}_contours",
             r_lims=AXES_LIMITS_2D[Column.DiffAEData.POLAR_RADIUS],
@@ -332,7 +332,7 @@ def main() -> None:
         FigurePanel(
             letter="B",
             path=theta_plot_paths[dataset_low],
-            x_position=2.5,
+            x_position=2.3,
             y_position=0.0,
             x_offset=0.2,
             y_offset=0.05,
@@ -340,7 +340,7 @@ def main() -> None:
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_low],
-            x_position=4.0,
+            x_position=3.9,
             y_position=0.0,
             x_offset=0.0,
             y_offset=-0.05,
@@ -357,7 +357,7 @@ def main() -> None:
             letter="",
             path=nullcline_reconstruction_paths[dataset_low][1],
             x_position=4.0,
-            y_position=1.7,
+            y_position=2.0,
             x_offset=0.2,
             y_offset=0.0,
         ),
@@ -381,7 +381,7 @@ def main() -> None:
         FigurePanel(
             letter="D",
             path=theta_plot_paths[dataset_high],
-            x_position=2.5,
+            x_position=2.3,
             y_position=2.5,
             x_offset=0.2,
             y_offset=0.05,
@@ -389,7 +389,7 @@ def main() -> None:
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_high],
-            x_position=4.0,
+            x_position=3.9,
             y_position=2.5,
             x_offset=0.0,
             y_offset=-0.05,
@@ -406,7 +406,7 @@ def main() -> None:
             letter="",
             path=nullcline_reconstruction_paths[dataset_high][1],
             x_position=4.0,
-            y_position=4.2,
+            y_position=4.5,
             x_offset=0.2,
             y_offset=0.0,
         ),
@@ -431,7 +431,7 @@ def main() -> None:
             letter="E",
             path=fixed_point_summary_plot_path,
             x_position=0.0,
-            y_position=4.75,
+            y_position=5.3,
             x_offset=0,
             y_offset=0.2,
         ),
@@ -439,7 +439,7 @@ def main() -> None:
             letter="F",
             path=migration_summary_plot_path,
             x_position=3.6,
-            y_position=4.75,
+            y_position=5.3,
             x_offset=0.1,
             y_offset=0.2,
         ),
@@ -447,14 +447,14 @@ def main() -> None:
             letter="G",
             path=first_passage_path,
             x_position=5.175,
-            y_position=4.75,
+            y_position=5.3,
             x_offset=0.05,
             y_offset=0.15,
         ),
     ]
 
     build_figure_from_panels(
-        panels, base_output_dir / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=7.0
+        panels, base_output_dir / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=7.5
     )
 
 
