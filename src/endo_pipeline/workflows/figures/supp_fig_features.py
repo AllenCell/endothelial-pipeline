@@ -118,7 +118,7 @@ def main() -> None:
     latent_walk_filename = "latent_walk_top_3_pcs"
 
     walk_img_grid = perform_latent_walk_along_top_pcs(
-        save_dir, latent_walk_filename, figsize=(4.45, 2.3), num_gpus=NUM_GPUS
+        save_dir, latent_walk_filename, num_pcs=3, figsize=(4.45, 2.3), num_gpus=NUM_GPUS
     )
     latent_walk_path = save_dir / f"{latent_walk_filename}_scale_bar_10um.svg"
 

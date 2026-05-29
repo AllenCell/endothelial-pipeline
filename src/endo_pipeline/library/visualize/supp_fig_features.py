@@ -53,15 +53,17 @@ from endo_pipeline.settings.workflow_defaults import (
 def perform_latent_walk_along_top_pcs(
     save_path: Path,
     filename: str,
+    num_pcs: int = 3,
     figsize: tuple[float, float] = (MAX_FIGURE_WIDTH, 2.8),
     num_gpus: int | None = None,
 ) -> np.ndarray:
     """
-    Perform a latent walk along the top principal 3 components of the data.
+    Perform a latent walk along the top principal components of the data.
+    Default is to use top 3 PCs.
 
     This method acts as a wrapper for the latent walk generation and plotting
     functions. It uses the default model and dataset manifests to load the
-    necessary model and data, performs the latent walk along the top 3 PCs,
+    necessary model and data, performs the latent walk along the top PCs,
     generates the corresponding images, and saves a contact sheet of the walk.
 
     Parameters
@@ -95,7 +97,6 @@ def perform_latent_walk_along_top_pcs(
     dataframe_manifest = load_dataframe_manifest(GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME)
     dataset_names = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
 
-    num_pcs = 3
     walk_column_names = DIFFAE_PC_COLUMN_NAMES[:num_pcs]
     pca = fit_pca(num_pcs=num_pcs)
     dataframe_all_datasets = pd.concat(
