@@ -16,6 +16,7 @@ def main() -> None:
     from endo_pipeline.library.visualize.figure_2 import (
         make_1d_drift_plot_panel,
         make_2d_contour_plot_panel,
+        make_3d_vector_field_plot_panel,
         reconstruct_along_nullcline,
     )
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
@@ -157,6 +158,8 @@ def main() -> None:
             drift_theta_dataframe, column_names=[column_theta]
         )
         stable_fixed_point_theta = stable_fixed_points_dict[column_theta][column_theta].to_numpy()
+
+        make_3d_vector_field_plot_panel(dataset_name, fig_savedir, filename="3d_vector_field")
 
         # plot 1D drift in theta and save
         theta_plot_paths[dataset_name] = make_1d_drift_plot_panel(

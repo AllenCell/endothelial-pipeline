@@ -558,11 +558,11 @@ def make_3d_vector_field_plot_panel(
     filename: str,
     downsample_factor: int = QUIVER_DOWNSAMPLE_FACTOR,
     normalize_vectors: bool = NORMALIZE_QUIVER_VECTORS,
-    colorscale: str = QUIVER_COLORMAP,
+    colormap: str = QUIVER_COLORMAP,
 ) -> Path:
     """
     Render the 3D (theta, r, rho) drift vector field for a given dataset using
-    Plotly, with the stable fixed point overlaid as a scatter marker.
+    matplotlib, with the stable fixed point overlaid as a scatter marker.
 
     The drift vector field is loaded via
     :func:`~endo_pipeline.library.analyze.vector_field_estimation.load_drift_dataframe_for_dataset`
@@ -574,28 +574,28 @@ def make_3d_vector_field_plot_panel(
     dataset_name
         Name of the dataset to visualize.
     fig_savedir
-        Directory in which to save the figure as an interactive HTML file and a static SVG file.
+        Directory in which to save the figure as a static PNG file.
     filename
-        Filename stem (without extension) for the saved HTML and SVG files.
+        Filename stem (without extension) for the saved PNG file.
     downsample_factor
         Factor by which to downsample the grid before plotting, to keep the
-        interactive figure responsive.
+        figure responsive.
     normalize_vectors
-        Whether to normalize each cone vector to unit length before plotting.
+        Whether to normalize each arrow vector to unit length before plotting.
         When ``True`` all arrows have the same length and are coloured by the
         original vector magnitude instead.
-    colorscale
-        Plotly-compatible colorscale name used to colour the cones by vector
+    colormap
+        Matplotlib-compatible colormap name used to colour the arrows by vector
         magnitude.
 
     Returns
     -------
     :
-        Path to the saved SVG file containing the 3D vector field and the stable
+        Path to the saved PNG file containing the 3D vector field and the stable
         fixed point.
 
     """
-    import plotly.graph_objects as go  # type: ignore[import-untyped]
+    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
 
     column_names = list(DYNAMICS_COLUMN_NAMES)  # [theta, r, rho]
     col_labels = [(COLUMN_METADATA[col].label or str(col)) for col in DYNAMICS_COLUMN_NAMES]
@@ -629,50 +629,72 @@ def make_3d_vector_field_plot_panel(
     # ------------------------------------------------------------------
     # Compute vector magnitudes for colouring
     # ------------------------------------------------------------------
-    magnitude = np.sqrt(u_ds**2 + v_ds**2 + w_ds**2)
+    # Use the full pre-downsampled field to anchor cmin/cmax to the true
+    # data range (downsampling may miss the extremes).
+    full_magnitude = np.sqrt(u_field**2 + v_field**2 + w_field**2)
+    global_cmin = float(full_magnitude.min())
+    global_cmax = float(full_magnitude.max())
 
-    if normalize_vectors:
-        # avoid division by zero at zero-magnitude grid points
-        safe_mag = np.where(magnitude == 0, 1.0, magnitude)
-        u_plot = u_ds / safe_mag
-        v_plot = v_ds / safe_mag
-        w_plot = w_ds / safe_mag
-    else:
-        u_plot = u_ds
-        v_plot = v_ds
-        w_plot = w_ds
-
-    # flatten for Plotly
+    # flatten — always use raw vectors so colour encodes magnitude
     x_flat = x_ds.ravel()
     y_flat = y_ds.ravel()
     z_flat = z_ds.ravel()
-    u_flat = u_plot.ravel()
-    v_flat = v_plot.ravel()
-    w_flat = w_plot.ravel()
-    mag_flat = magnitude.ravel()
+    u_flat = u_ds.ravel()
+    v_flat = v_ds.ravel()
+    w_flat = w_ds.ravel()
+    mag_flat = np.sqrt(u_flat**2 + v_flat**2 + w_flat**2)
 
     # ------------------------------------------------------------------
-    # Build Plotly traces
+    # Map magnitudes to colours
     # ------------------------------------------------------------------
-    cone_trace = go.Cone(
-        x=x_flat,
-        y=y_flat,
-        z=z_flat,
-        u=u_flat,
-        v=v_flat,
-        w=w_flat,
-        colorscale=colorscale,
-        cmin=float(mag_flat.min()),
-        cmax=float(mag_flat.max()),
-        colorbar={"title": "drift magnitude"},
-        sizemode="scaled",
-        sizeref=0.5,
-        showscale=True,
-        opacity=0.8,
-        name="drift field",
-    )
+    norm = plt.Normalize(vmin=global_cmin, vmax=global_cmax)
+    cmap = plt.get_cmap(colormap)
+    colors = cmap(norm(mag_flat))
 
-    traces: list = [cone_trace]
+    # ------------------------------------------------------------------
+    # Build matplotlib 3D figure
+    # ------------------------------------------------------------------
+    fig = plt.figure()
+    ax: Axes3D = fig.add_subplot(111, projection="3d")
+    ax.set_facecolor("white")
+    fig.patch.set_facecolor("white")
+
+    # When normalize_vectors is True, render all arrows at the same absolute
+    # size (so visual clutter from large-magnitude outliers is reduced) while
+    # still colouring by magnitude.
+    if normalize_vectors:
+        avg_spacing = float(np.mean(np.diff(np.unique(x_flat))))
+        arrow_length: float = avg_spacing * 0.8
+        eps = np.finfo(float).eps
+        u_plot = u_flat / (mag_flat + eps)
+        v_plot = v_flat / (mag_flat + eps)
+        w_plot = w_flat / (mag_flat + eps)
+        ax.quiver(
+            x_flat,
+            y_flat,
+            z_flat,
+            u_plot,
+            v_plot,
+            w_plot,
+            colors=colors,
+            length=arrow_length,
+            normalize=False,
+        )
+    else:
+        ax.quiver(
+            x_flat,
+            y_flat,
+            z_flat,
+            u_flat,
+            v_flat,
+            w_flat,
+            colors=colors,
+        )
+
+    # Colorbar
+    sm = ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])
+    fig.colorbar(sm, ax=ax, label="drift magnitude", shrink=0.6, pad=0.1)
 
     # ------------------------------------------------------------------
     # Load and overlay stable fixed point
@@ -685,49 +707,30 @@ def make_3d_vector_field_plot_panel(
         ]
         if not stable_df.empty:
             fpt_coords = stable_df[column_names].to_numpy()
-            stable_trace = go.Scatter3d(
-                x=fpt_coords[:, 0],
-                y=fpt_coords[:, 1],
-                z=fpt_coords[:, 2],
-                mode="markers",
-                marker={
-                    "symbol": "circle",
-                    "size": 8,
-                    "color": FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color,
-                    "line": {"color": "black", "width": 1},
-                },
-                name="stable fixed point",
+            hex_color: str = FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color
+            ax.scatter(
+                fpt_coords[:, 0],
+                fpt_coords[:, 1],
+                fpt_coords[:, 2],
+                color=hex_color,
+                s=80,
+                zorder=5,
             )
-            traces.append(stable_trace)
 
     # ------------------------------------------------------------------
-    # Compose figure
+    # Axes labels and title
     # ------------------------------------------------------------------
-    fig = go.Figure(data=traces)
-    fig.update_layout(
-        title=f"3D drift vector field - {dataset_name}",
-        scene={
-            "xaxis_title": col_labels[0],
-            "yaxis_title": col_labels[1],
-            "zaxis_title": col_labels[2],
-        },
-        legend={"x": 0.01, "y": 0.99},
-    )
+    ax.set_xlabel(col_labels[0])
+    ax.set_ylabel(col_labels[1])
+    ax.set_zlabel(col_labels[2])
+    ax.set_title(f"3D drift vector field - {dataset_name}")
 
     # ------------------------------------------------------------------
-    # Save as interactive HTML and static SVG
+    # Save as static PNG
     # ------------------------------------------------------------------
-    out_path = Path(fig_savedir) / f"{filename}.html"
+    out_path = Path(fig_savedir) / f"{filename}.png"
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.write_html(str(out_path))
+    fig.savefig(str(out_path), dpi=150, bbox_inches="tight")
+    plt.close(fig)
 
-    save_plot_to_path(
-        fig,
-        fig_savedir,
-        filename,
-        file_format=".svg",
-        tight_layout=False,
-        transparent=True,
-    )
-
-    return fig_savedir / f"{filename}.svg"
+    return out_path

@@ -222,6 +222,10 @@ charset-normalizer==3.4.1 \
     --hash=sha256:f08ff5e948271dc7e18a35641d2f11a4cd8dfd5634f55228b691e62b37125eb3 \
     --hash=sha256:fd4ec41f914fa74ad1b8304bbc634b3de73d2a0889bd32076342a573e0779e00
     # via requests
+choreographer==1.3.0 \
+    --hash=sha256:6c44a0e48e9b37977344d40bfa5a9ed88575fe4bc0fd836771bf702bc24d6884 \
+    --hash=sha256:cea4cb739e4f61625e4b53888a8d3fa1d3bf73948b56753e460ab44da7d8d44f
+    # via kaleido
 click==8.1.8 \
     --hash=sha256:63c132bbbed01578a06712a2d1f497bb62d9c1c0d329b7903a866228027263b2 \
     --hash=sha256:ed53c9d8990d83c2a27deae68e4ee337473f6330c040a31d4225c9574d16096a
@@ -757,6 +761,10 @@ jupyterlab-widgets==3.0.14 \
 jupytext==1.17.0 \
     --hash=sha256:c74adf6d205a778f481189e986b6066af79bdeb69099f4138d933cc15c398fb6 \
     --hash=sha256:d75b7cd198b3640a12f9cdf4d610bb80c9f27a8c3318b00372f90d21466d40e1
+kaleido==1.3.0 \
+    --hash=sha256:52714dfd38e8f2a114831826200c40bb10d0ca0c11d4272f3f48ad499cd8f8ea \
+    --hash=sha256:5e0378a7475e98852773deeb6483dee91f8aa7b364dde7b5f2b3622cb468a3e6
+    # via endo-pipeline
 kiwisolver==1.4.8 \
     --hash=sha256:11e1022b524bd48ae56c9b4f9296bce77e15a2e42a502cceba602f804b32bb79 \
     --hash=sha256:16523b40aab60426ffdebe33ac374457cf62863e330a90a0383639ce14bf44b2 \
@@ -799,6 +807,12 @@ locket==1.0.0 \
     # via
     #   distributed
     #   partd
+logistro==2.0.1 \
+    --hash=sha256:06ffa127b9fb4ac8b1972ae6b2a9d7fde57598bf5939cd708f43ec5bba2d31eb \
+    --hash=sha256:8446affc82bab2577eb02bfcbcae196ae03129287557287b6a070f70c1985047
+    # via
+    #   choreographer
+    #   kaleido
 lxml==5.4.0 \
     --hash=sha256:0cef4feae82709eed352cd7e97ae062ef6ae9c7b5dbe3663f104cd2c0e8d94ba \
     --hash=sha256:0ea0252b51d296a75f6118ed0d8696888e7403408ad42345d7dfd0d1e93309a7 \
@@ -945,10 +959,6 @@ mypy-extensions==1.1.0 \
 myst-parser==4.0.1 \
     --hash=sha256:5cfea715e4f3574138aecbf7d54132296bfd72bb614d31168f48c477a830a7c4 \
     --hash=sha256:9134e88959ec3b5780aedf8a99680ea242869d012e8821db3126d427edc9c95d
-narwhals==2.21.2 \
-    --hash=sha256:5c5b2d0b47aef7c73ea412cfcbcd467f2f2d5be73e3c2ab19d78f4a97718790a \
-    --hash=sha256:7bb57c3700486039215455b9bf2d64261915cc0fd845cc30272d631df696b251
-    # via plotly
 natsort==8.4.0 \
     --hash=sha256:45312c4a0e5507593da193dedd04abb1469253b601ecaf63445ad80f0a1ea581 \
     --hash=sha256:4732914fb471f56b5cce04d7bae6f164a592c7712e1c85f9ef585e197299521c
@@ -1158,6 +1168,24 @@ opencv-python-headless==4.11.0.86 \
     --hash=sha256:a66c1b286a9de872c343ee7c3553b084244299714ebb50fbdcd76f07ebbe6c81 \
     --hash=sha256:f447d8acbb0b6f2808da71fddd29c1cdd448d2bc98f72d9bb78a7a898fc9621b
     # via cellpose
+orjson==3.11.9 \
+    --hash=sha256:03db380e3780fa0015ed776a90f20e8e20bb11dde13b216ce19e5718e3dfba62 \
+    --hash=sha256:147302878da387104b66bb4a8b0227d1d487e976ce41a8501916161072ed87b1 \
+    --hash=sha256:14ed654580c1ed2bc217352ec82f91b047aef82951aa71c7f64e0dcb03c0e180 \
+    --hash=sha256:16969c9d369c98eb084889c6e4d2d39b77c7eb38ceccf8da2a9fff62ae908980 \
+    --hash=sha256:19b72ed11572a2ee51a67a903afbe5af504f84ed6f529c0fe44b0ab3fb5cc697 \
+    --hash=sha256:277fefe9d76ee17eb14debf399e3533d4d63b5f677a4d3719eb763536af1f4bd \
+    --hash=sha256:33d7d766701847dc6729846362dc27895d2f2d2251264f9d10e7cb9878194877 \
+    --hash=sha256:3513550321f8c8c811a7c3297b8a630e82dc08e4c10216d07703c997776236cd \
+    --hash=sha256:3ebca4179031ee716ed076ffadc29428e900512f6fccee8614c9983157fcf19c \
+    --hash=sha256:48ee05097750de0ff69ed5b7bbcf0732182fd57a24043dcc2a1da780a5ead3a5 \
+    --hash=sha256:4fef17e1f8722c11587a6ef18e35902450221da0028e65dbaaa543619e68e48f \
+    --hash=sha256:57ea77fb70a448ce87d18fca050193202a3da5e54598f6501ca5476fb66cfe02 \
+    --hash=sha256:63e0efbc991250c0b3143488fa57d95affcabbfc63c99c48d625dd37779aafe2 \
+    --hash=sha256:a6082706765a95a6680d812e1daf1c0cfe8adec7831b3ff3b625693f3b461b1c \
+    --hash=sha256:c5d001196b89fa9cf0a4ab79766cd835b991a166e4b621ba95089edc50c429ff \
+    --hash=sha256:f01c4818b3fc9b0da8e096722a84318071eaa118df35f6ed2344da0e73a5444f
+    # via kaleido
 overrides==7.7.0 \
     --hash=sha256:55158fa3d93b98cc75299b1e67078ad9003ca27945c76162c1c0766d6f91820a \
     --hash=sha256:c7ed9d062f78b8e4c1a7b70bd8796b35ead4d9f510227ef9c5dc7626c60d7e49
@@ -1176,11 +1204,11 @@ packaging==24.2 \
     #   jupyterlab
     #   jupyterlab-server
     #   jupytext
+    #   kaleido
     #   lazy-loader
     #   marshmallow
     #   matplotlib
     #   nbconvert
-    #   plotly
     #   pytest
     #   scikit-image
     #   sphinx
@@ -1259,14 +1287,11 @@ platformdirs==4.3.7 \
     --hash=sha256:eb437d586b6a0986388f0d6f74aa0cde27b48d0e3d66843640bfb6bdcdb6e351
     # via
     #   black
+    #   choreographer
     #   itkwasm
     #   jupyter-core
     #   ngff-zarr
     #   virtualenv
-plotly==6.7.0 \
-    --hash=sha256:45eea0ff27e2a23ccd62776f77eb43aa1ca03df4192b76036e380bb479b892c6 \
-    --hash=sha256:ac8aca1c25c663a59b5b9140a549264a5badde2e057d79b8c772ae2920e32ff0
-    # via endo-pipeline
 pluggy==1.5.0 \
     --hash=sha256:2cffa88e94fdc978c4c574f15f9e59b7f4201d439195c3715ca9e2486f1d0cf1 \
     --hash=sha256:44e1ad92c8ca002de6377e165f3e0f1be63266ab4d554740532335b9d75ea669
@@ -1656,6 +1681,21 @@ setuptools==79.0.1 \
     #   nvidia-curand-cu11
     #   nvidia-cusparse-cu11
     #   nvidia-nvtx-cu11
+simplejson==4.1.1 \
+    --hash=sha256:0e4b23f71dd781f8830f1663dc01a4944d3dbf87a1f93d78fba1cf64722d0ccf \
+    --hash=sha256:2867c64d92abd1992c15666fae198203093f593e43d6b81adf176bae530d493a \
+    --hash=sha256:2ce92b3748f02423e26d2bfb636fb9d7a8f67c8f5854dcae69d350d123b2eee2 \
+    --hash=sha256:4c44ef6b02a4eb67ed17a72342341792149b3ff46f15426c26e970e49addf327 \
+    --hash=sha256:4c47c46e16c8ea9e4850061e6ed5aa2b9cd2074cb2274bfd9c138cba15ce7453 \
+    --hash=sha256:68e62eda21192c5ea9bb92d571ca46a4477fef48762f50d433de2b4253051551 \
+    --hash=sha256:78a3fe0995be42bed62a26aa78e0e0b4d87c6545785346b9cc898f3389569a35 \
+    --hash=sha256:7ce252b28fddbdd83db5bd7d93dad2a8a591d7ada098afec9c1b23d6b722a7a4 \
+    --hash=sha256:82bfca2b85a34178c25829c703f0a9e9f113a5af7539285bd3efb583a0bf1ba3 \
+    --hash=sha256:82fee635d7b73ad801030b05a75fbd34a098da0c2ecf600667a03636d09e1e42 \
+    --hash=sha256:c08eb9f7a90f77ae470e19a07472e9a79ebc0d1c2315d86a72767665bd5ba79f \
+    --hash=sha256:e294e33dbf316a9bbdd4030d46503c9b0f19470ae7ad6af5bae6c426bc2e869f \
+    --hash=sha256:ffd3d82294b47f5ec64050021ace95fd62628a0c1cc8bbf4d06d2d1fb697e055
+    # via choreographer
 six==1.17.0 \
     --hash=sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274 \
     --hash=sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81
