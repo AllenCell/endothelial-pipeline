@@ -15,6 +15,7 @@ from .dataframe_manifest_utils import (
 from .image_manifest import ImageLocation, ImageManifest
 from .image_manifest_io import (
     create_image_manifest,
+    get_available_image_manifests,
     get_image_manifest_dir,
     load_image_manifest,
     save_image_manifest,
@@ -29,6 +30,7 @@ from .image_manifest_utils import (
 from .model_manifest import ModelLocation, ModelManifest
 from .model_manifest_io import (
     create_model_manifest,
+    get_available_model_manifests,
     get_model_manifest_dir,
     load_model_manifest,
     save_model_manifest,
@@ -53,6 +55,8 @@ __all__ = [
     "create_image_manifest",
     "create_model_manifest",
     "get_available_dataframe_manifests",
+    "get_available_image_manifests",
+    "get_available_model_manifests",
     "get_available_zarr_locations",
     "get_dataframe_location_for_dataset",
     "get_dataframe_manifest_dir",
