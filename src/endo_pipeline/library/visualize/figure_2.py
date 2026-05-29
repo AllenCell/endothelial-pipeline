@@ -516,7 +516,7 @@ def reconstruct_along_nullcline(
             column_names,
             model,
             num_gpus=num_gpus,
-            random_seed=1,
+            random_seed=5,
         )
         fig_null_walk = make_contact_sheet(
             panels=[walk_array[i] for i in range(len(walk_array))],
