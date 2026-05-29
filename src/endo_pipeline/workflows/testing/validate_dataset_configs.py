@@ -10,8 +10,8 @@ def main(datasets: Datasets | None = None) -> None:
     For each dataset, confirm:
 
     - The dataset config exists and can be loaded
-    - All dataset configs follow the schema defined by `DatasetConfig`
-    - All original data paths exist and can be opened
+    - The dataset config follows the schema defined by `DatasetConfig`
+    - The original data paths exist and can be opened
     - All zarr data paths exist and can be opened
     - All shear stress regimes are valid based on the flow conditions
     - If timelapse, duration > 1 and time interval is set
@@ -73,7 +73,12 @@ def main(datasets: Datasets | None = None) -> None:
 
         # Validate dataset config schema
         progress_bar.set_step_description("Checking dataset config matches schema")
-        validate_dataset_config(dataset_name)
+        try:
+            validate_dataset_config(dataset_name)
+        except Exception:
+            logger.error("Dataset '%s' does not have valid schema", dataset_name)
+            progress_bar.set_step_description("Unable to finish validation steps")
+            continue
 
         # Load dataset config.
         dataset_config = load_dataset_config(dataset_name)
