@@ -6,26 +6,47 @@ def main(
     pool_datasets: bool = True,
 ):
     """
-    Compare feature densities between cell-centric and grid-based crops.
+    Compare feature densities between cell-centered and grid-based crops.
 
-    #diffae-features #track-integration
+    #grid-based #cell-centered
 
-    **Workflow defaults**
-    - `datasets`: `DENSITY_PLOT_DEFAULT_DATASET` from `settings.density_comparison_plots`
-    - `pool_datasets`: True (pool data across datasets for a single combined comparison)
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe compare-feature-densities -vd
+    ```
+
+    To run the workflow for a single dataset:
+
+    ```bash
+    uv run endopipe compare-feature-densities --datasets DATASET_NAME
+    ```
+
+    ## Dataset collection
+
+    If datasets are not provided, the workflow will run on dataset specified
+    by `DENSITY_PLOT_DEFAULT_DATASET`.
+
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will run the
+    comparison on a single dataset.
 
     Parameters
     ----------
     datasets
-        Optional, specific datasets to analyze.
+        List of datasets or dataset collections to compare.
     pool_datasets
-        Whether to pool data across datasets for a single combined comparison,
-        or to plot each dataset separately.
+        True to pool datasets into combined comparison, False to separate.
     """
+
     import logging
 
     import pandas as pd
 
+    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
@@ -41,10 +62,11 @@ def main(
 
     logger = logging.getLogger(__name__)
 
-    if datasets is None:
-        datasets_to_analyze = [DENSITY_PLOT_DEFAULT_DATASET]
-    else:
-        datasets_to_analyze = datasets
+    dataset_names = datasets or [DENSITY_PLOT_DEFAULT_DATASET]
+
+    if DEMO_MODE:
+        logger.warning("DEMO_MODE - Limiting to one dataset")
+        dataset_names = dataset_names[:1]
 
     # Load dataframe manifest for the features to be used in flow field
     # estimation and analysis.
@@ -65,7 +87,7 @@ def main(
         dataframe_list_grid = []
         dataframe_list_tracked = []
 
-    for dataset_name in datasets_to_analyze:
+    for dataset_name in dataset_names:
         if (
             dataset_name not in feature_dataframe_manifest_tracked.locations
             or dataset_name not in feature_dataframe_manifest_grid.locations
@@ -131,6 +153,6 @@ def main(
             feature_column_names,
         )
 
-        fig_filename = f"pooled_datasets_{'_'.join(datasets_to_analyze)}"
+        fig_filename = f"pooled_datasets_{'_'.join(dataset_names)}"
         for file_format in SAVE_FIG_FILE_FORMATS:
             save_plot_to_path(fig, fig_savedir, fig_filename, file_format=file_format)
