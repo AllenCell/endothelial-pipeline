@@ -22,7 +22,6 @@ from endo_pipeline.library.visualize.figure_utils import make_contact_sheet
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
-from endo_pipeline.settings.figures import FONTSIZE_MEDIUM
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_CBAR_NUM_TICKS,
     DRIFT_CONTOUR_CBAR_ROUND,
@@ -32,7 +31,6 @@ from endo_pipeline.settings.flow_field_2d import (
 )
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
-from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
 
@@ -355,6 +353,9 @@ def make_2d_contour_plot_panel(
     # label formatting
     if include_colorbar:
         _add_colorbar_to_contour_plot(fig, axes_[1])
+        # shrink the constrained-layout region so the inset colorbar axes
+        # (which lives outside the main axes boundary) is not clipped on save
+        fig.get_layout_engine().set(rect=(0, 0, 0.9, 1))
 
     handles = []
     labels = []
@@ -379,7 +380,7 @@ def make_2d_contour_plot_panel(
             labels,
             fontsize="xx-small",
             loc="upper center",
-            bbox_to_anchor=(0.575, 0.95),
+            bbox_to_anchor=(0.5, 0.925),
             ncol=2,
             handletextpad=0.3,
         )
@@ -405,7 +406,6 @@ def make_1d_drift_plot_panel(
     figsize: tuple[float, float],
     fig_savedir: Path,
     filename: str,
-    shear_stress_label: str,
     axes_xlim: tuple[float, float],
     axes_ylim: tuple[float, float],
     axes_xticks: list[float],
@@ -445,19 +445,8 @@ def make_1d_drift_plot_panel(
         markersize=5,
     )
 
-    # add vertical title to the left of the contour plot spanning all rows
-    fig.text(
-        -0.095,
-        0.6,
-        shear_stress_label,
-        va="center",
-        ha="center",
-        rotation="vertical",
-        fontsize=FONTSIZE_MEDIUM,
-        fontweight="bold",
-    )
-
     # set plot formatting args
+    ax.set_box_aspect(1.0)
     ax.set_xticks(axes_xticks, labels=axes_xtick_labels)
     ax.set_yticks(axes_yticks)
 
@@ -525,20 +514,10 @@ def reconstruct_along_nullcline(
             panels=[walk_array[i] for i in range(len(walk_array))],
             max_rows=1,
             max_cols=len(walk_array),
-            fig_kwargs={"figsize": (2.4, 0.65), "layout": "constrained"},
+            fig_kwargs={"figsize": (3.0, 0.6), "layout": "constrained"},
             gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
         )
-        for i, ax in enumerate(fig_null_walk.axes):
-            ax.text(
-                0.98,
-                0.98,
-                f"r={r_coords[i]:.3f}\n{Unicode.RHO}={rho_coords[i]:.3f}",
-                transform=ax.transAxes,
-                ha="right",
-                va="top",
-                fontsize=2,
-                color="white",
-            )
+
         save_plot_to_path(
             fig_null_walk,
             fig_savedir,

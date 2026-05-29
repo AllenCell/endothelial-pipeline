@@ -7,7 +7,6 @@ def main() -> None:
     import pandas as pd
 
     from endo_pipeline.cli import NUM_GPUS
-    from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import get_output_path, join_sorted_strings, load_dataframe, load_model
     from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_stability
     from endo_pipeline.library.analyze.vector_field_estimation import (
@@ -122,9 +121,6 @@ def main() -> None:
         (dataset_high, 0.5, 0.05),
     ]:
         fig_savedir = get_output_path("figure_2", dataset_name)
-        dataset_config = load_dataset_config(dataset_name)
-        shear_stress = dataset_config.flow_conditions[-1].shear_stress_bin
-        shear_stress_label = f"{shear_stress} dyn/cm{Unicode.SQUARED}"
 
         # load fixed points dataframes (if available) for both (r, rho) and theta,
         # filter to just stable fixed points, and store in dict for easy access when plotting
@@ -168,10 +164,9 @@ def main() -> None:
             theta_values=centers_theta[-1],
             column_label=column_label_theta,
             stable_fixed_point=stable_fixed_point_theta,
-            figsize=(1.45, 1.75),
+            figsize=(1.5, 1.5),
             fig_savedir=fig_savedir,
             filename=f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}_drift",
-            shear_stress_label=shear_stress_label,
             axes_xlim=POLAR_ANGLE_RANGE,
             axes_ylim=(-0.4, 0.4),
             axes_xticks=[0, np.pi / 2, np.pi],
@@ -195,7 +190,7 @@ def main() -> None:
             meshgrid=centers_mesh,
             column_labels=column_labels_r_rho,
             stable_fixed_point=stable_fixed_point_r_rho,
-            figsize=(2.3, 1.4),
+            figsize=(2.5, 1.5),
             fig_savedir=fig_savedir,
             filename=f"{dataset_name}_{columns_r_rho_str}_contours",
             r_lims=AXES_LIMITS_2D[Column.DiffAEData.POLAR_RADIUS],
@@ -295,7 +290,7 @@ def main() -> None:
         FigurePanel(  # r nullcline for low flow dataset
             letter="",
             path=nullcline_reconstruction_paths[dataset_low][0],
-            x_position=4.0,
+            x_position=2.3,
             y_position=1.3,
             x_offset=0.2,
             y_offset=0.0,
@@ -303,8 +298,8 @@ def main() -> None:
         FigurePanel(  # rho nullcline for low flow dataset
             letter="",
             path=nullcline_reconstruction_paths[dataset_low][1],
-            x_position=4.0,
-            y_position=2.0,
+            x_position=2.3,
+            y_position=1.9,
             x_offset=0.2,
             y_offset=0.0,
         ),
@@ -328,7 +323,7 @@ def main() -> None:
         FigurePanel(  # r nullcline for high flow dataset
             letter="",
             path=nullcline_reconstruction_paths[dataset_high][0],
-            x_position=4.0,
+            x_position=2.3,
             y_position=3.8,
             x_offset=0.2,
             y_offset=0.0,
@@ -336,8 +331,8 @@ def main() -> None:
         FigurePanel(  # rho nullcline for high flow dataset
             letter="",
             path=nullcline_reconstruction_paths[dataset_high][1],
-            x_position=4.0,
-            y_position=4.5,
+            x_position=2.3,
+            y_position=4.4,
             x_offset=0.2,
             y_offset=0.0,
         ),
