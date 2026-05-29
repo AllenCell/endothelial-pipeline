@@ -101,24 +101,22 @@ def main(manifests: UniqueStrList | None = None) -> None:
                 continue
 
             # Check if there are any position placeholders to iterate through
+            positions: list[int] | list[None] = [None]
             if (location.path is not None and "{{position}}" in location.path.name) or (
                 location.s3uri is not None and "{{position}}" in location.s3uri
             ):
                 positions = dataset.zarr_positions
                 if max_positions is not None:
                     positions = positions[:max_positions]
-            else:
-                positions = [None]
 
             # Check if there are any timepoint placeholders to iterate through
+            timepoints: list[int] | list[None] = [None]
             if (location.path is not None and "{{timepoint}}" in location.path.name) or (
                 location.s3uri is not None and "{{timepoint}}" in location.s3uri
             ):
                 timepoints = list(range(dataset.duration))
                 if max_timepoints is not None:
                     timepoints = timepoints[:max_timepoints]
-            else:
-                timepoints = [None]
 
             # Confirm the image can be loaded for all placeholders
             progress_bar.set_step_description("Checking image can be loaded for all placeholders")
