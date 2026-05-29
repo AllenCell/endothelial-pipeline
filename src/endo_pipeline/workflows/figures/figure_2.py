@@ -206,7 +206,7 @@ def main() -> None:
             axes_title_kwargs={
                 "fontsize": FONTSIZE_SMALL,
                 "x": 0.05,
-                "y": 0.75,
+                "y": 0.775,
                 "rotation": 0,
                 "ha": "left",
                 "va": "center",
@@ -282,7 +282,7 @@ def main() -> None:
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_low],
-            x_position=3.8,
+            x_position=3.75,
             y_position=0.0,
             x_offset=0.0,
             y_offset=-0.075,
@@ -315,7 +315,7 @@ def main() -> None:
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_high],
-            x_position=3.8,
+            x_position=3.75,
             y_position=2.7,
             x_offset=0.0,
             y_offset=-0.075,

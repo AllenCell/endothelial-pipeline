@@ -508,7 +508,11 @@ def reconstruct_along_nullcline(
         )
 
         walk_array = generate_from_dataframe(
-            full_coords_dataframe, column_names, model, num_gpus=num_gpus, random_seed=random_seed
+            full_coords_dataframe,
+            column_names,
+            model,
+            num_gpus=num_gpus,
+            random_seed=random_seed + 2,
         )
         fig_null_walk = make_contact_sheet(
             panels=[walk_array[i] for i in range(len(walk_array))],
