@@ -107,6 +107,23 @@ def validate_dataset_config(dataset_name: str) -> None:
             )
 
 
+def validate_dataset_collection_config(collection_name: str) -> None:
+    """Validate given dataset config against defined schema."""
+
+    config_dir = get_dataset_collection_config_dir()
+    config_file = config_dir / f"{collection_name}.yaml"
+
+    logger.debug("Validating dataset collection config file [ %s ]", collection_name)
+    config = load_dataset_collection_config(collection_name)
+
+    if config.name != config_file.stem:
+        logger.error(
+            "Config file name [ %s ] does not match name field [ %s ]",
+            config_file,
+            config.name,
+        )
+
+
 def load_all_dataset_configs() -> list[DatasetConfig]:
     """Load all dataset configs."""
 
