@@ -132,9 +132,5 @@ def plot_latent_walk_as_grid(
             include_label=True if i == 0 else False,
         )
 
-    # gs.tight_layout(fig, pad=0.25)
-    # plt.show()
-
     file_name = f"{file_name}_scale_bar_{scale_bar_um}um"
     save_plot_to_path(fig, save_path, file_name, file_format=file_format)
-    # plt.close(fig)
