@@ -26,7 +26,7 @@ def main() -> None:
         DIFFAE_PC_COLUMN_NAME_GROUPS,
         NUM_LATENT_FEATURES,
     )
-    from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH, MAX_FIGURE_HEIGHT
     from endo_pipeline.settings.workflow_defaults import (
         DATASET_INFO_COLUMNS,
         DEFAULT_PCA_DATASET_COLLECTION_NAME,
@@ -41,7 +41,7 @@ def main() -> None:
 
     # plot cumulative explained variance ratio of PCA components
     pca = fit_pca(num_pcs=NUM_LATENT_FEATURES)
-    fig, _ = feature_viz.plot_explained_variance(pca.explained_variance_ratio_, figsize=(2.1, 2.5))
+    fig, _ = feature_viz.plot_explained_variance(pca.explained_variance_ratio_, figsize=(2.3, 2.5))
     save_plot_to_path(
         fig,
         save_dir,
@@ -162,7 +162,7 @@ def main() -> None:
         FigurePanel(
             letter="B",
             path=latent_walk_path,
-            x_position=2.1,
+            x_position=2.3,
             y_position=0.0,
             x_offset=0.05,
             y_offset=0.1,
@@ -171,7 +171,7 @@ def main() -> None:
             letter="C",
             path=latent_walk_2d_path,
             x_position=0.0,
-            y_position=2.4,
+            y_position=2.5,
             x_offset=0.05,
             y_offset=0.1,
         ),
@@ -179,7 +179,7 @@ def main() -> None:
             letter="D",
             path=save_dir / "correlation_ml_based_features_vs_measured_features_heatmap.svg",
             x_position=0.0,
-            y_position=4.9,
+            y_position=5.2,
             x_offset=-0.05,
             y_offset=-0.1,
         ),
@@ -202,7 +202,10 @@ def main() -> None:
     ]
 
     build_figure_from_panels(
-        panels, save_dir / "Supplemental_Figure_3.svg", width=MAX_FIGURE_WIDTH, height=7.5
+        panels,
+        save_dir / "Supplemental_Figure_3.svg",
+        width=MAX_FIGURE_WIDTH,
+        height=MAX_FIGURE_HEIGHT,
     )
 
 
