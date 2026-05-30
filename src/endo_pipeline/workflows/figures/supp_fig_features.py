@@ -162,7 +162,7 @@ def main() -> None:
         FigurePanel(
             letter="B",
             path=latent_walk_path,
-            x_position=2.0,
+            x_position=2.1,
             y_position=0.0,
             x_offset=0.05,
             y_offset=0.1,
@@ -178,27 +178,27 @@ def main() -> None:
         FigurePanel(
             letter="D",
             path=save_dir / "correlation_ml_based_features_vs_measured_features_heatmap.svg",
-            x_position=2.3,
-            y_position=2.4,
+            x_position=0.0,
+            y_position=4.9,
             x_offset=-0.05,
             y_offset=-0.1,
         ),
-        FigurePanel(
-            letter="E",
-            path=theta_orientation_path,
-            x_position=0.0,
-            y_position=4.9,
-            x_offset=0.0,
-            y_offset=0.1,
-        ),
-        FigurePanel(
-            letter="F",
-            path=r_aspect_ratio_path,
-            x_position=3.26,
-            y_position=4.9,
-            x_offset=0.0,
-            y_offset=0.1,
-        ),
+        # FigurePanel(
+        #     letter="E",
+        #     path=theta_orientation_path,
+        #     x_position=0.0,
+        #     y_position=4.9,
+        #     x_offset=0.0,
+        #     y_offset=0.1,
+        # ),
+        # FigurePanel(
+        #     letter="F",
+        #     path=r_aspect_ratio_path,
+        #     x_position=3.26,
+        #     y_position=4.9,
+        #     x_offset=0.0,
+        #     y_offset=0.1,
+        # ),
     ]
 
     build_figure_from_panels(
