@@ -114,11 +114,11 @@ def main() -> None:
         y_axis_label_coords=None,
     )
 
-    # perform latent walk along top 3 PCs and save the resulting contact sheet
-    latent_walk_filename = "latent_walk_top_3_pcs"
+    # perform latent walk along top 10 PCs and save the resulting contact sheet
+    latent_walk_filename = "latent_walk_top_10_pcs"
 
     walk_img_grid = perform_latent_walk_along_top_pcs(
-        save_dir, latent_walk_filename, num_pcs=3, figsize=(4.45, 2.3), num_gpus=NUM_GPUS
+        save_dir, latent_walk_filename, num_pcs=10, figsize=(3.8, 5.2), num_gpus=NUM_GPUS
     )
     latent_walk_path = save_dir / f"{latent_walk_filename}_scale_bar_10um.svg"
 
