@@ -377,10 +377,6 @@ def main() -> None:
     # ------------------------------------------------------------------
     # Composite: panel A (cdh5 contact sheet) above panel B (Rep-2 bars).
     # ------------------------------------------------------------------
-    if panel_a_svg_path is None:
-        raise RuntimeError(
-            "Panel A SVG was not produced for diffae_cdh5_conditioned; cannot composite."
-        )
     figure_panels = [
         FigurePanel(
             letter="A",
