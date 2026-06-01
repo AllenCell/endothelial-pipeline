@@ -4,13 +4,12 @@ def main():
     """
     import matplotlib.pyplot as plt
 
-    from endo_pipeline.io.output import get_output_path, save_plot_to_path
+    from endo_pipeline.io.output import get_output_path
     from endo_pipeline.library.visualize.data_example_figures import (
         create_panel_biological_system_examples,
         create_panel_patch_featurization,
     )
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
-    from endo_pipeline.library.visualize.intro_schematic import create_intro_schematic
     from endo_pipeline.settings.examples import (
         FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES,
         FIGURE_1_PATCH_FT_EXAMPLE_IMAGE,
@@ -27,8 +26,6 @@ def main():
 
     # Intro schematic
     save_dir = get_output_path("figure_1")
-    fig, _ = create_intro_schematic(figure_size=(MAX_FIGURE_WIDTH, 1.8))
-    save_plot_to_path(fig, save_dir, "intro_schematic", file_format=".svg", dpi=900)
 
     # Example images from biological system at low and high shear stress
     create_panel_biological_system_examples(
