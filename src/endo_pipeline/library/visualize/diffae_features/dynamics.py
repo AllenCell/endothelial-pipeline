@@ -473,7 +473,7 @@ def make_legend_handles_for_fixed_pts(
             my_handles.append(
                 StabilityLegendHandle(
                     stability_label=stability_type,
-                    legend_label=stability_type,
+                    legend_label=f"{stability_type} fixed point",
                     marker=FIXED_POINT_PLOT_STYLE[stability_type].marker,
                     face_color=FIXED_POINT_PLOT_STYLE[stability_type].color,
                     edge_color=edge_color,

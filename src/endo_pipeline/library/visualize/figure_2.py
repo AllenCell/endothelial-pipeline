@@ -899,9 +899,10 @@ def make_3d_vector_field_plot_panel(
     # Build matplotlib 3D figure
     # ------------------------------------------------------------------
     figsize = (2.0, 2.5)
+    figsize_ratio = figsize[1] / figsize[0]
     fig = plt.figure(figsize=figsize)
     ax: Axes3D = fig.add_subplot(111, projection="3d")
-    ax.set_box_aspect((1, 1, figsize[1] / figsize[0]))
+    ax.set_box_aspect((figsize_ratio, 0.9 * figsize_ratio, figsize_ratio))
 
     # Render all arrows at the same absolute size (so visual clutter from
     # large-magnitude outliers is reduced) while still colouring by magnitude.
@@ -934,8 +935,8 @@ def make_3d_vector_field_plot_panel(
     )
     cbar.ax.tick_params(labelsize=FONTSIZE_XSMALL)
     cbar.set_label("$\Vert\mathbf{f}(\mathbf{x})\Vert$", fontsize=FONTSIZE_SMALL)
-    cbar_ax.xaxis.set_label_position("top")
-    cbar_ax.xaxis.tick_top()
+    cbar_ax.xaxis.set_label_position("bottom")
+    cbar_ax.xaxis.tick_bottom()
 
     # Legend to the right of the colorbar
     arrow_handle = mlines.Line2D(
