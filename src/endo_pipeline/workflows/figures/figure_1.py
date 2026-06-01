@@ -7,13 +7,9 @@ def main():
     from endo_pipeline.io.output import get_output_path
     from endo_pipeline.library.visualize.data_example_figures import (
         create_panel_biological_system_examples,
-        create_panel_patch_featurization,
     )
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
-    from endo_pipeline.settings.examples import (
-        FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES,
-        FIGURE_1_PATCH_FT_EXAMPLE_IMAGE,
-    )
+    from endo_pipeline.settings.examples import FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES
     from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
     from endo_pipeline.workflows.development.visualize_feature_correlations import (
         main as visualize_feature_correlations,
@@ -32,13 +28,6 @@ def main():
         examples=FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES,
         save_dir=save_dir,
         figure_size=(3.9, 2.7),
-    )
-
-    # Patch featurization example
-    create_panel_patch_featurization(
-        example=FIGURE_1_PATCH_FT_EXAMPLE_IMAGE,
-        save_dir=save_dir,
-        figure_size=(2.0, 1.8),
     )
 
     # Correlation heatmaps of ml learned and measured features
@@ -63,28 +52,12 @@ def main():
 
     panels = [
         FigurePanel(
-            letter="A",
-            path=save_dir / "intro_schematic.svg",
-            x_position=0,
-            y_position=0,
-            x_offset=0.1,
-            y_offset=0,
-        ),
-        FigurePanel(
             letter="B",
             path=save_dir / "biological_system_examples_scale_bar_100um.svg",
             x_position=0,
             y_position=1.62,
             x_offset=0.1,
             y_offset=0.1,
-        ),
-        FigurePanel(
-            letter="C",
-            path=save_dir / "patch_based_featurization_scale_bar_10um.svg",
-            x_position=4.0,
-            y_position=1.62,
-            x_offset=0.08,
-            y_offset=0.25,
         ),
         FigurePanel(
             letter="D",
