@@ -7,8 +7,6 @@ parameters:
   example_set: rep_2_positions
   noise_levels: [0.25, 0.5, 0.75]
   manifest_name: diffae_baseline_exclude_cell_piling
-  run_names: [20260207_latent_8, 20260205_latent_16, 20260203_latent_32, 20260206_latent_64,
-    20260127_latent_128, 20260122_latent_256, 20251110_latent_512, 20251110_latent_1024]
 locations:
   20260207_latent_8:
     fmsid: bd320e174b6040ee9847451592d97afb
