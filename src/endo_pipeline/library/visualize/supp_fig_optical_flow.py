@@ -17,8 +17,8 @@ from endo_pipeline.library.analyze.optical_flow import (
     OpticalFlowImagePairCrops,
     build_image_pair_crops_for_grid,
 )
+from endo_pipeline.library.process.image_processing import load_processed_bf_std_dev_image
 from endo_pipeline.library.visualize.figure_utils import add_scalebar
-from endo_pipeline.library.visualize.supplemental_movies import load_bf_std_dev_image
 from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL
@@ -67,7 +67,9 @@ def build_bf_frame_cache(
     image_cache: dict[int, np.ndarray] = {}
     for timepoint in timepoints:
         image_cache[timepoint] = (
-            load_bf_std_dev_image(dataset_config, position, [timepoint], level).squeeze().compute()
+            load_processed_bf_std_dev_image(dataset_config, position, [timepoint], level)
+            .squeeze()
+            .compute()
         )
 
     return image_cache, crop_grid
