@@ -7,51 +7,6 @@ compute, I/O, or visualisation code.
 
 from endo_pipeline.settings.column_names import ColumnName
 
-# ---------------------------------------------------------------------------
-# Multi-scale coherence
-# ---------------------------------------------------------------------------
-COHERENCE_BOX_SIZES: tuple[int, ...] = (
-    1,
-    2,
-    3,
-    4,
-    5,
-    6,
-    7,
-    8,
-    9,
-    10,
-    11,
-    12,
-    13,
-    14,
-    15,
-    16,
-    17,
-    18,
-    19,
-    20,
-)
-"""Non-overlapping box sizes (in pixels) for multi-scale coherence."""
-
-# ---------------------------------------------------------------------------
-# Demo / scan-mode diagnostic limits
-# ---------------------------------------------------------------------------
-DEMO_SCAN_N_CROPS: int = 6
-"""Number of crops to visualize in demo/scan mode diagnostic plots."""
-
-DEMO_SCAN_N_PAIRS: int = 10
-"""Number of frame pairs to visualize in demo/scan mode diagnostic plots."""
-
-DEMO_MAX_DATASETS: int = 2
-"""Maximum number of datasets processed in demo mode."""
-
-DEMO_MAX_POSITIONS: int = 1
-"""Maximum number of positions per dataset in demo mode."""
-
-DEMO_MAX_FRAMES: int = 20
-"""Maximum number of timepoints cached per position in demo mode."""
-
 DEMO_MAX_TRACKED_CROPS_TO_PLOT: int = 2
 """Maximum number of tracked crops to plot in the coherence time series diagnostic."""
 
@@ -71,6 +26,9 @@ overlay.
 # ---------------------------------------------------------------------------
 DEFAULT_OPTICAL_FLOW_COLLECTION: str = "diffae_model_training"
 """Default dataset collection for the optical-flow feature workflow."""
+
+OPTICAL_FLOW_MANIFEST_NAME_PREFIX: str = "optical_flow"
+"""Prefix for optical flow dataframe manifest name."""
 
 DEFAULT_OPTICAL_FLOW_MANIFEST_NAME: str = "optical_flow_bf"
 """Default dataframe manifest name (prefix) for optical-flow features."""
@@ -100,7 +58,7 @@ OPTICAL_FLOW_COLUMNS_TO_COMPUTE: dict[str, tuple[str, ...]] = {
 # ---------------------------------------------------------------------------
 # Feature names
 # ---------------------------------------------------------------------------
-OPTICAL_FLOW_COMPUTE_FEATURES: list[str] = [
+OPTICAL_FLOW_BASE_FEATURES: list[str] = [
     ColumnName.OpticalFlow.SPEED_MEAN_BASE,
     ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_BASE,
     ColumnName.OpticalFlow.SPEED_STD_BASE,
@@ -110,46 +68,20 @@ OPTICAL_FLOW_COMPUTE_FEATURES: list[str] = [
     ColumnName.OpticalFlow.V_MEAN_BASE,
     ColumnName.OpticalFlow.U_STD_BASE,
     ColumnName.OpticalFlow.V_STD_BASE,
-]
-"""Core features always computed by :func:`compute_flow_statistics`."""
-
-OPTICAL_FLOW_FAST_FEATURES: list[str] = [
     ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_FAST_BASE,
     ColumnName.OpticalFlow.SPEED_ABOVE_1_COUNT_BASE,
-]
-"""Features gated on ``--compute-fast-coherence`` (speed > threshold)."""
-
-OPTICAL_FLOW_RADIAL_FEATURES: list[str] = [
     ColumnName.OpticalFlow.RADIAL_COHERENCE_BASE,
     ColumnName.OpticalFlow.RADIAL_COHERENCE_WEIGHTED_BASE,
 ]
-"""Features gated on ``--compute-radial-coherence``."""
+"""List of base computed optical flow features."""
 
-# Backward-compatible union used by compute.py NaN-fallback when all
-# optional features are enabled.
-OPTICAL_FLOW_BASE_FEATURES: list[str] = (
-    OPTICAL_FLOW_COMPUTE_FEATURES + OPTICAL_FLOW_FAST_FEATURES + OPTICAL_FLOW_RADIAL_FEATURES
-)
-"""Union of all per-(crop, timepoint, dt) features returned by
-:func:`compute_flow_statistics` when every optional group is enabled."""
-
-# EMA coherence feature stems (the alpha tag and _dt suffix are added
-# dynamically in the workflow and in :func:`build_optical_flow_feature_cols`).
 OPTICAL_FLOW_EMA_STEMS: list[str] = [
     ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_BASE,
-]
-"""Base coherence feature names that always receive EMA smoothing."""
-
-OPTICAL_FLOW_EMA_FAST_STEMS: list[str] = [
     ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_FAST_BASE,
-]
-"""Coherence feature names that receive EMA smoothing only when fast coherence is enabled."""
-
-OPTICAL_FLOW_EMA_RADIAL_STEMS: list[str] = [
     ColumnName.OpticalFlow.RADIAL_COHERENCE_BASE,
     ColumnName.OpticalFlow.RADIAL_COHERENCE_WEIGHTED_BASE,
 ]
-"""Coherence feature names that receive EMA smoothing only when radial coherence is enabled."""
+"""List of optical flow feature stems that receive EMA smoothing."""
 
 # ---------------------------------------------------------------------------
 # Default CLI flag values
@@ -184,24 +116,3 @@ weaker data-fidelity term avoids fitting noise."""
 # ---------------------------------------------------------------------------
 DEFAULT_OPTICAL_FLOW_MAX_DT: int = 1
 """Maximum frame gap for multi-scale optical-flow sweep (dt = 1 ... MAX_DT)."""
-
-# ---------------------------------------------------------------------------
-# Thread pinning
-# ---------------------------------------------------------------------------
-DEFAULT_OMP_NUM_THREADS: str = "1"
-"""Default OMP_NUM_THREADS for optical-flow workers (pinned to avoid over-subscription)."""
-
-DEFAULT_OPENBLAS_NUM_THREADS: str = "1"
-"""Default OPENBLAS_NUM_THREADS for optical-flow workers."""
-
-NUM_IO_WORKERS: int = 16
-"""Concurrent I/O workers for dask compute and ThreadPoolExecutor.
-
-Determined empirically on compute nodes (512 GB RAM, 128 physical /
-256 logical CPU cores, 4x A100 80 GB GPUs).  TVL1 is pinned to one
-thread per call (OMP_NUM_THREADS=1), so the bottleneck is NFS read
-throughput rather than CPU.  At 16 concurrent workers, each holding
-~0.5 GB per frame, peak memory is ~8 GB — well within budget — while
-NFS throughput is fully saturated; beyond 16 workers wall-clock time
-plateaus but memory grows linearly with no additional speedup.
-"""
