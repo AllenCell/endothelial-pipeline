@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Literal
 
+import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -19,7 +20,9 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
     plot_drift_contours,
     plot_drift_quiver,
 )
-from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
+from endo_pipeline.library.visualize.figure_utils import make_contact_sheet
+from endo_pipeline.settings.column_metadata import COLUMN_METADATA
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_XSMALL
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_CBAR_NUM_TICKS,
@@ -29,7 +32,6 @@ from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_VMIN,
 )
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
-from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
@@ -42,8 +44,8 @@ def _add_colorbar_to_contour_plot(
     ticks: np.ndarray | None = None,
     tick_label_round: int = DRIFT_CONTOUR_CBAR_ROUND,
     colormap: str = DRIFT_CONTOUR_COLORMAP,
-    orientation: Literal["vertical", "horizontal"] = "horizontal",
-    cax_position: Literal["top", "bottom", "left", "right"] = "top",
+    orientation: Literal["vertical", "horizontal"] = "vertical",
+    cax_position: Literal["top", "bottom", "left", "right"] = "right",
     extend: Literal["neither", "both", "min", "max"] = "both",
     pad: float = 0.03,
 ) -> None:
@@ -79,10 +81,12 @@ def _add_colorbar_to_contour_plot(
     """
     cax = inset_axes(
         axes,
-        width="100%",
-        height="5%",
+        width="100%" if orientation == "horizontal" else "5%",
+        height="5%" if orientation == "horizontal" else "100%",
         loc="lower left",
-        bbox_to_anchor=(0, 1.0 + pad, 1, 1),
+        bbox_to_anchor=(
+            (0, 1.0 + pad, 1, 1) if orientation == "horizontal" else (1.0 + pad, 0, 1, 1)
+        ),
         bbox_transform=axes.transAxes,
         borderpad=0,
     )
@@ -114,6 +118,7 @@ def make_2d_contour_plot_panel(
     drift: np.ndarray,
     meshgrid: tuple[np.ndarray, np.ndarray],
     column_labels: list[str],
+    stable_fixed_point: np.ndarray,
     figsize: tuple[float, float],
     fig_savedir: Path,
     filename: str,
@@ -128,17 +133,22 @@ def make_2d_contour_plot_panel(
     xlabel_kwargs: dict | None,
     ylabel_kwargs: dict | None,
     axes_title_kwargs: dict | None,
-    include_colorbar: bool = False,
-) -> Path:
+    include_colorbar: bool = True,
+    include_legend: bool = True,
+) -> tuple[Path, dict[Column.DiffAEData, np.ndarray]]:
     """
     Make and save plot of drift contours in (r, rho) space for a given dataset.
     """
+    column_names = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
+    column_labels = [COLUMN_METADATA[column].label or str(column) for column in column_names]
     # plot drift contours and save
-    fig, ax = plot_drift_contours(
+    fig, axes_ = plot_drift_contours(
         meshgrid=meshgrid,
         drift=drift,
         variable_labels=column_labels,
         figsize=figsize,
+        n_rows=1,
+        n_cols=2,
         axes_limits=[r_lims, rho_lims],
         axes_aspect=None,
         axes_titles=(f"d{column_labels[0]}/dt", f"d{column_labels[1]}/dt"),
@@ -152,18 +162,62 @@ def make_2d_contour_plot_panel(
         ylabel_kwargs=ylabel_kwargs,
         axes_title_kwargs=axes_title_kwargs,
     )
-    for ax_index, ax_ in enumerate(list(ax)):
-        # adjust label padding and drop tick labels on shared x axis
+
+    for ax_index, ax_ in enumerate(list(axes_)):
+        ax_.plot(
+            stable_fixed_point[..., 0],
+            stable_fixed_point[..., 1],
+            FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].marker,
+            color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color,
+            markeredgecolor="k",
+            markeredgewidth=0.5,
+            markersize=5,
+        )
+        # adjust label padding and drop tick labels on shared y axis
         ax_.set_box_aspect(1.0)
         ax_.set_xticks(r_ticks)
         ax_.set_yticks(rho_ticks)
-        if ax_index == 0:
-            ax_.tick_params(labelbottom=False)
+        if ax_index == 1:
+            ax_.tick_params(labelleft=False)
 
     # if indicated, add colorbar to the top of the first subplot with ticks and
     # label formatting
     if include_colorbar:
-        _add_colorbar_to_contour_plot(fig, ax[0])
+        _add_colorbar_to_contour_plot(fig, axes_[1])
+        # shrink the constrained-layout region so the inset colorbar axes
+        # (which lives outside the main axes boundary) is not clipped on save
+
+        layout_engine = fig.get_layout_engine()
+        if isinstance(layout_engine, ConstrainedLayoutEngine):
+            layout_engine.set(rect=(0, 0, 0.9, 1))
+
+    handles = []
+    labels = []
+    if include_legend:
+        # plot_drift_contours draws nullclines via ax.contour(), which does not
+        # produce labeled artists. Add proxy Line2D handles so the legend has
+        # something to show.
+        nullcline_styles = (nullcline_r_style, nullcline_rho_style)
+        for col_idx, col in enumerate(column_names):
+            label = COLUMN_METADATA[col].label or str(col)
+            handle = mlines.Line2D(
+                [],
+                [],
+                color="k",
+                linestyle=nullcline_styles[col_idx],
+                label=f"Nullcline d{label}/dt=0",
+            )
+            handles.append(handle)
+            labels.append(f"Nullcline d{label}/dt=0")
+        fig.legend(
+            handles,
+            labels,
+            fontsize="xx-small",
+            loc="upper center",
+            bbox_to_anchor=(0.5, 0.925),
+            ncol=2,
+            handletextpad=0.3,
+        )
 
     save_plot_to_path(
         fig,
@@ -435,21 +489,6 @@ def make_crop_example_contact_sheet(
         subplot_kwargs={"frame_on": False},
         fig_kwargs=fig_kwargs,
     )
-
-    for i, ax in enumerate(fig.axes):
-        ax.xaxis.labelpad = 2
-        ax.yaxis.labelpad = 2
-        ax.tick_params(axis="both", pad=2)
-
-        add_scalebar(
-            ax,
-            scale_bar_um=scale_bar_um,
-            pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
-            location="lower right",
-            bar_thickness=4,
-            padding=6,
-            include_label=True if i == 0 else False,
-        )
 
     # if `title` is provided, add title above the first panel
     if title is not None:
