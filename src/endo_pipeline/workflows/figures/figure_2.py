@@ -231,6 +231,7 @@ def main() -> None:
             model=model,
             fig_savedir=fig_savedir,
             num_gpus=NUM_GPUS,
+            random_seed=4,
         )
 
     # --- Cross-dataset summary plots ---

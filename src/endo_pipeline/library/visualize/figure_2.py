@@ -10,6 +10,7 @@ import pandas as pd
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import LogNorm, TwoSlopeNorm
 from matplotlib.layout_engine import ConstrainedLayoutEngine
+from matplotlib.legend_handler import HandlerLine2D
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -558,7 +559,7 @@ def reconstruct_along_nullcline(
 def make_3d_vector_field_plot_panel(
     dataset_name: str,
     fig_savedir: Path,
-    downsample_factor: int = 9,
+    downsample_factor: int = 6,
     colormap: str = "viridis_r",
     clip_min_percentile: float | None = CLIP_MIN_MAGNITUDE_PERCENTILE,
     clip_max_percentile: float | None = CLIP_MAX_MAGNITUDE_PERCENTILE,
@@ -620,9 +621,9 @@ def make_3d_vector_field_plot_panel(
     theta_lims = (0, np.pi)
     theta_ticks = [0, np.pi / 2, np.pi]
     theta_tick_labels = [f"0={Unicode.PI}", f"{Unicode.PI}/2", f"{Unicode.PI}=0"]
-    r_lims = (0, 1.25)
-    r_ticks = [0, 0.5, 1.0]
-    rho_lims = (-1.25, 1.25)
+    r_lims = (0, 1.75)
+    r_ticks = [0.25, 0.75, 1.25]
+    rho_lims = (-1.5, 1.5)
     rho_ticks = [-1.0, 0, 1.0]
 
     # ------------------------------------------------------------------
@@ -637,8 +638,26 @@ def make_3d_vector_field_plot_panel(
     flow_field_dict = get_vector_field_as_dict_from_dataframe(drift_df, column_names)
 
     # grids and vectors are 3-D arrays shaped (n_theta, n_r, n_rho)
-    x_grid, y_grid, z_grid = flow_field_dict["grid"]
-    u_field, v_field, w_field = flow_field_dict["vectors"]
+    x_grid_, y_grid_, z_grid_ = flow_field_dict["grid"]
+    u_field_, v_field_, w_field_ = flow_field_dict["vectors"]
+
+    # mask vector field to be within the specified limits (take only grid points
+    # within limits), reshaping accordingly as 3D arrays of updated number of
+    # points within limits
+    x_in_bounds = (x_grid_ >= theta_lims[0]) & (x_grid_ <= theta_lims[1])
+    num_x_in_bounds = np.unique(np.sum(x_in_bounds, axis=0))[-1]
+    y_in_bounds = (y_grid_ >= r_lims[0]) & (y_grid_ <= r_lims[1])
+    num_y_in_bounds = np.unique(np.sum(y_in_bounds, axis=1))[-1]
+    z_in_bounds = (z_grid_ >= rho_lims[0]) & (z_grid_ <= rho_lims[1])
+    num_z_in_bounds = np.unique(np.sum(z_in_bounds, axis=2))[-1]
+    in_bounds_mask = x_in_bounds & y_in_bounds & z_in_bounds
+
+    x_grid = x_grid_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
+    y_grid = y_grid_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
+    z_grid = z_grid_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
+    u_field = u_field_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
+    v_field = v_field_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
+    w_field = w_field_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
 
     # ------------------------------------------------------------------
     # Downsample uniformly along every axis
@@ -694,18 +713,8 @@ def make_3d_vector_field_plot_panel(
     # ------------------------------------------------------------------
     # Build matplotlib 3D figure
     # ------------------------------------------------------------------
-    fig = plt.figure(figsize=(1.95, 2.25), layout="constrained")
-    # Shift the subplot area left within the figure frame so the 3D axes
-    # (which tend to float right due to the z-label) sit more centred.
-    fig.get_layout_engine().set(rect=(0.0, 0.0, 0.88, 1.0))
+    fig = plt.figure(figsize=(1.95, 2.25))
     ax: Axes3D = fig.add_subplot(111, projection="3d")
-
-    # Let the 3D box aspect reflect the actual data ranges rather than forcing
-    # a cube.  Compute ranges from the full (pre-downsampled) grids.
-    x_range = x_grid.max() - x_grid.min()
-    y_range = y_grid.max() - y_grid.min()
-    z_range = z_grid.max() - z_grid.min()
-    ax.set_box_aspect([x_range, y_range, z_range])
 
     # Render all arrows at the same absolute size (so visual clutter from
     # large-magnitude outliers is reduced) while still colouring by magnitude.
@@ -738,7 +747,7 @@ def make_3d_vector_field_plot_panel(
     # Colorbar - horizontal strip at the top, shifted left to leave room for legend
     sm = ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])
-    cbar_ax = fig.add_axes([0.05, 0.87, 0.48, 0.04])
+    cbar_ax = fig.add_axes([0.1, 0.87, 0.48, 0.04])
     cbar = fig.colorbar(
         sm,
         cax=cbar_ax,
@@ -754,9 +763,10 @@ def make_3d_vector_field_plot_panel(
         [],
         [],
         color="gray",
-        marker=">",
-        markersize=4,
-        linewidth=0.8,
+        marker="$\\rightarrow$",
+        markersize=18,
+        linewidth=0.1,
+        markevery=[0],
         label="$\mathbf{f}(\mathbf{x})$",
     )
     fp_handles = make_legend_handles_for_fixed_pts(
@@ -767,10 +777,11 @@ def make_3d_vector_field_plot_panel(
         handles=[arrow_handle, *fp_handles],
         fontsize=FONTSIZE_XSMALL,
         loc="upper left",
-        bbox_to_anchor=(0.57, 1.0),
+        bbox_to_anchor=(0.65, 1.0),
         frameon=False,
         handletextpad=0.3,
         labelspacing=0.4,
+        handler_map={arrow_handle: HandlerLine2D(numpoints=1)},
     )
 
     # ------------------------------------------------------------------
@@ -798,6 +809,7 @@ def make_3d_vector_field_plot_panel(
     # Axes labels and title
     # ------------------------------------------------------------------
     ax.tick_params(axis="both", pad=-4)
+    ax.tick_params(axis="y", pad=2)
     ax.set_xlabel(col_labels[0], labelpad=-6)
     ax.set_xticks(theta_ticks, labels=theta_tick_labels)
     ax.set_xlim(theta_lims)
