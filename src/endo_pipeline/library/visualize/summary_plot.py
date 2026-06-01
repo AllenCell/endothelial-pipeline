@@ -157,10 +157,15 @@ def _build_color_by_column_mappable(
     metadata object for labeling the colorbar.
     """
     color_column_metadata = COLUMN_METADATA.get(color_by_column)
+    original_color_by_column = color_by_column
     if color_by_column in BINNED_MEAN_FEATURES:
         color_by_column = f"mean_{color_by_column}"
     if color_by_column in df.columns:
-        cmap = mcolors.LinearSegmentedColormap.from_list("cyan_magenta", ["cyan", "magenta"])
+        # Use viridis for speed, cyan-to-magenta for everything else
+        if original_color_by_column == ColumnName.OpticalFlow.SPEED_MEAN:
+            cmap = cm.viridis
+        else:
+            cmap = mcolors.LinearSegmentedColormap.from_list("cyan_magenta", ["cyan", "magenta"])
         norm = mcolors.Normalize(vmin=df[color_by_column].min(), vmax=df[color_by_column].max())
         scalar_mappable = cm.ScalarMappable(norm=norm, cmap=cmap)
         scalar_mappable.set_array([])
