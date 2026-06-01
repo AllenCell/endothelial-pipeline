@@ -13,6 +13,7 @@ from matplotlib.layout_engine import ConstrainedLayoutEngine
 from matplotlib.legend_handler import HandlerLine2D
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d.art3d import Line3DCollection, Poly3DCollection
 
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.numerics.fixed_points import (
@@ -42,11 +43,7 @@ from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_VMAX,
     DRIFT_CONTOUR_VMIN,
 )
-from endo_pipeline.settings.flow_field_3d import (
-    CLIP_MAX_MAGNITUDE_PERCENTILE,
-    CLIP_MIN_MAGNITUDE_PERCENTILE,
-    LOG_NORM_MAGNITUDES,
-)
+from endo_pipeline.settings.flow_field_3d import LOG_NORM_MAGNITUDES
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
@@ -556,15 +553,179 @@ def reconstruct_along_nullcline(
     return tuple(output_paths)
 
 
+def _plot_quiver_3d_cones(
+    ax: Axes3D,
+    x: np.ndarray,
+    y: np.ndarray,
+    z: np.ndarray,
+    u: np.ndarray,
+    v: np.ndarray,
+    w: np.ndarray,
+    length: float,
+    colors: np.ndarray,
+    alpha: float = 0.8,
+    cone_fraction: float = 0.30,
+    cone_radius_ratio: float = 0.4,
+    n_facets: int = 8,
+) -> None:
+    """
+    Draw 3-D quiver arrows with cone-shaped arrowheads using
+    :class:`~mpl_toolkits.mplot3d.art3d.Line3DCollection` for the shafts and
+    :class:`~mpl_toolkits.mplot3d.art3d.Poly3DCollection` for the cone faces.
+
+    Unlike :meth:`~mpl_toolkits.mplot3d.axes3d.Axes3D.quiver`, every arrowhead
+    is a proper closed cone so arrows look volumetric from any viewing angle.
+
+    Each arrow is decomposed into:
+
+        - **shaft**: a single line segment from the tail to the cone base.
+        - **cone side faces**: ``n_facets`` triangles between the base circle
+          and the apex.
+        - **cone base disc**: ``n_facets`` triangles that cap the open base of
+          the cone so it appears solid when viewed from behind.
+
+    All geometry is batched into two
+    :class:`~mpl_toolkits.mplot3d.art3d.Poly3DCollection` objects (sides and
+    base) for efficient rendering.
+
+    Parameters
+    ----------
+    ax
+        The 3-D axes on which to draw.
+    x, y, z
+        Flat arrays of arrow tail positions.
+    u, v, w
+        Flat arrays of arrow direction components.  They are normalised
+        internally, so only the direction matters; overall arrow length is
+        controlled by ``length``.
+    length
+        Total arrow length in data units (shaft + cone).
+    colors
+        RGBA colour array of shape ``(N, 4)`` — one colour per arrow.
+    alpha
+        Overall opacity applied to both shaft lines and cone faces.
+    cone_fraction
+        Fraction of ``length`` occupied by the cone head.  The shaft fills the
+        remaining ``1 - cone_fraction`` portion.
+    cone_radius_ratio
+        Cone base radius expressed as a fraction of the cone height.  Larger
+        values produce stubbier, more visible heads.
+    n_facets
+        Number of triangular side faces on each cone.  8 gives a smooth
+        appearance without excessive vertex count.
+
+    """
+    eps = np.finfo(float).eps
+    mag = np.sqrt(u**2 + v**2 + w**2)
+
+    # unit direction vectors; fall back to z-axis for zero-magnitude vectors
+    with np.errstate(invalid="ignore", divide="ignore"):
+        ud = np.where(mag > eps, u / mag, 0.0)
+        vd = np.where(mag > eps, v / mag, 0.0)
+        wd = np.where(mag > eps, w / mag, np.ones_like(w))
+
+    shaft_length = length * (1.0 - cone_fraction)
+    cone_height = length * cone_fraction
+    cone_radius = cone_height * cone_radius_ratio
+
+    # tip (apex) and cone-base centre for every arrow
+    tip_x = x + ud * length
+    tip_y = y + vd * length
+    tip_z = z + wd * length
+    base_x = x + ud * shaft_length
+    base_y = y + vd * shaft_length
+    base_z = z + wd * shaft_length
+
+    # ------------------------------------------------------------------ shafts
+    shaft_segs = np.stack(
+        [
+            np.column_stack([x, y, z]),
+            np.column_stack([base_x, base_y, base_z]),
+        ],
+        axis=1,
+    )  # (N, 2, 3)
+    shaft_col = Line3DCollection(shaft_segs, colors=colors, alpha=alpha, linewidths=0.8)
+    ax.add_collection3d(shaft_col)
+
+    # ------------------------------------------------------------------ cones
+    # Build two orthonormal vectors perpendicular to each direction
+    # to parameterise the base circle.
+    arbitrary = np.where(
+        (np.abs(wd) < 0.9)[:, np.newaxis],
+        np.tile([0.0, 0.0, 1.0], (len(ud), 1)),
+        np.tile([1.0, 0.0, 0.0], (len(ud), 1)),
+    )  # (N, 3)
+    d_vec = np.column_stack([ud, vd, wd])  # (N, 3)
+    perp1 = np.cross(d_vec, arbitrary)
+    perp1 /= np.linalg.norm(perp1, axis=1, keepdims=True) + eps
+    perp2 = np.cross(d_vec, perp1)
+    perp2 /= np.linalg.norm(perp2, axis=1, keepdims=True) + eps
+
+    # angles for base-circle vertices
+    angles = np.linspace(0, 2 * np.pi, n_facets, endpoint=False)
+    cos_a = np.cos(angles)  # (n_facets,)
+    sin_a = np.sin(angles)  # (n_facets,)
+
+    # base circle points: shape (N, n_facets, 3)
+    circle = (
+        np.array([base_x, base_y, base_z]).T[:, np.newaxis, :]  # (N,1,3)
+        + cone_radius * cos_a[np.newaxis, :, np.newaxis] * perp1[:, np.newaxis, :]
+        + cone_radius * sin_a[np.newaxis, :, np.newaxis] * perp2[:, np.newaxis, :]
+    )
+
+    apex = np.column_stack([tip_x, tip_y, tip_z])  # (N, 3)
+
+    # side faces: triangles (apex, circle[i], circle[i+1])
+    next_i = (np.arange(n_facets) + 1) % n_facets
+    side_verts = np.stack(
+        [
+            apex[:, np.newaxis, :].repeat(n_facets, axis=1),  # (N, n_facets, 3)
+            circle,  # (N, n_facets, 3)
+            circle[:, next_i, :],  # (N, n_facets, 3)
+        ],
+        axis=2,
+    )  # (N, n_facets, 3-verts, 3-coords)
+    N = len(x)
+    side_verts_list = side_verts.reshape(N * n_facets, 3, 3).tolist()
+    side_colors = np.repeat(colors, n_facets, axis=0)
+
+    side_col = Poly3DCollection(
+        side_verts_list,
+        facecolors=side_colors,
+        edgecolors="none",
+        alpha=alpha,
+    )
+    ax.add_collection3d(side_col)
+
+    # base disc: triangles (base_centre, circle[i], circle[i+1])
+    base_centre = np.column_stack([base_x, base_y, base_z])
+    base_verts = np.stack(
+        [
+            base_centre[:, np.newaxis, :].repeat(n_facets, axis=1),
+            circle,
+            circle[:, next_i, :],
+        ],
+        axis=2,
+    )  # (N, n_facets, 3, 3)
+    base_verts_list = base_verts.reshape(N * n_facets, 3, 3).tolist()
+
+    base_col = Poly3DCollection(
+        base_verts_list,
+        facecolors=side_colors,
+        edgecolors="none",
+        alpha=alpha,
+    )
+    ax.add_collection3d(base_col)
+
+
 def make_3d_vector_field_plot_panel(
     dataset_name: str,
     fig_savedir: Path,
     downsample_factor: int = 6,
     colormap: str = "viridis_r",
-    clip_min_percentile: float | None = CLIP_MIN_MAGNITUDE_PERCENTILE,
-    clip_max_percentile: float | None = CLIP_MAX_MAGNITUDE_PERCENTILE,
+    magnitude_limits: tuple[float, float] | None = (5e-2, 1.5),
     log_norm_magnitudes: bool = LOG_NORM_MAGNITUDES,
-    arrow_alpha: float = 0.7,
+    arrow_alpha: float = 0.6,
 ) -> Path:
     """
     Render the 3D (theta, r, rho) drift vector field for a given dataset using
@@ -591,12 +752,16 @@ def make_3d_vector_field_plot_panel(
     colormap
         Matplotlib-compatible colormap name used to colour the arrows by vector
         magnitude.
-    clip_magnitudes
-        Whether to clip the colour range to percentiles of the magnitude
-        distribution, suppressing outliers.
-    clip_min_percentile
-        Lower percentile used to compute ``vmin`` when
-        ``clip_magnitudes`` is ``True``.  ``None`` keeps the true minimum.
+    magnitude_limits
+        Tuple specifying the minimum and maximum magnitude values for the colour
+        scale.  ``None`` uses the true minimum and maximum.
+    log_norm_magnitudes
+        When ``True`` apply a logarithmic norm to the colour scale instead of a
+        linear one.  Useful when magnitude spans several orders of magnitude.
+    arrow_alpha
+        Opacity of the quiver arrows (0 = fully transparent, 1 = fully opaque).
+        Lowering this value lets the stable fixed point marker show through the
+        arrow field.
     clip_max_percentile
         Upper percentile used to compute ``vmax`` when
         ``clip_magnitudes`` is ``True``.  ``None`` keeps the true maximum.
@@ -677,16 +842,8 @@ def make_3d_vector_field_plot_panel(
     # downsampling doesn't miss the true extremes.
     full_magnitude = np.sqrt(u_field**2 + v_field**2 + w_field**2)
 
-    global_cmin = float(
-        np.nanpercentile(full_magnitude, clip_min_percentile)
-        if clip_min_percentile is not None
-        else np.nanmin(full_magnitude)
-    )
-    global_cmax = float(
-        np.nanpercentile(full_magnitude, clip_max_percentile)
-        if clip_max_percentile is not None
-        else np.nanmax(full_magnitude)
-    )
+    global_cmin = magnitude_limits[0] if magnitude_limits is not None else np.nanmin(full_magnitude)
+    global_cmax = magnitude_limits[1] if magnitude_limits is not None else np.nanmax(full_magnitude)
 
     # flatten — always use raw vectors so colour encodes magnitude
     x_flat = x_ds.ravel()
@@ -723,7 +880,8 @@ def make_3d_vector_field_plot_panel(
     u_plot = u_flat / (mag_flat + eps)
     v_plot = v_flat / (mag_flat + eps)
     w_plot = w_flat / (mag_flat + eps)
-    q = ax.quiver(
+    _plot_quiver_3d_cones(
+        ax,
         x_flat,
         y_flat,
         z_flat,
@@ -731,18 +889,9 @@ def make_3d_vector_field_plot_panel(
         v_plot,
         w_plot,
         length=arrow_length,
-        normalize=False,
+        colors=colors,
+        alpha=arrow_alpha,
     )
-
-    # Matplotlib 3D quiver decomposes each arrow into multiple line segments
-    # (shaft + arrowhead lines).  The colour array must be repeated to match
-    # the total segment count; derive that count dynamically so we don't
-    # hard-code a segment-per-arrow assumption.
-    n_segments = len(q.get_segments())
-    n_arrows = len(x_flat)
-    segments_per_arrow = max(1, n_segments // n_arrows)
-    q.set_color(np.repeat(colors, segments_per_arrow, axis=0))
-    q.set_alpha(arrow_alpha)
 
     # Colorbar - horizontal strip at the top, shifted left to leave room for legend
     sm = ScalarMappable(cmap=cmap, norm=norm)
@@ -816,7 +965,7 @@ def make_3d_vector_field_plot_panel(
     ax.set_ylabel(col_labels[1], labelpad=-6)
     ax.set_yticks(r_ticks)
     for tick in ax.yaxis.get_majorticklabels():
-        tick.set_ha("right")
+        tick.set_ha("center")
     ax.set_ylim(r_lims)
     ax.set_zlabel(col_labels[2], labelpad=-6)
     ax.set_zticks(rho_ticks)

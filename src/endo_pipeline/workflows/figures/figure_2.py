@@ -283,8 +283,8 @@ def main() -> None:
             path=vector_field_plot_paths[dataset_low],
             x_position=0.0,
             y_position=0.0,
-            x_offset=0.05,
-            y_offset=0.05,
+            x_offset=0.2,
+            y_offset=0.15,
         ),
         FigurePanel(
             letter="B",
@@ -324,8 +324,8 @@ def main() -> None:
             path=vector_field_plot_paths[dataset_high],
             x_position=0.0,
             y_position=2.7,
-            x_offset=0.05,
-            y_offset=0.05,
+            x_offset=0.2,
+            y_offset=0.15,
         ),
         FigurePanel(
             letter="E",
