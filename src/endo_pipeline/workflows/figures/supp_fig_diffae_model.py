@@ -68,26 +68,30 @@ def main() -> None:
         run_name = get_most_recent_run_name(model_manifest)
         model_location = model_manifest.locations[run_name]
 
-        # Model config has info about image processing steps from training
-        # Also has the crop size
+        # Load model as instantiated Diff AE object. Crop size and the
+        # conditioning channel key come straight off ``model.hparams`` so we
+        # do not have to re-parse the training config for those two fields.
+        model = load_model(model_location, instantiate=True)
+        crop_size = model.hparams.image_shape[-1]  # assumes square crops
+
+        # Conditioning vs. diffusion channel keys, e.g.
+        # ``condition_key="raw_bf"`` + ``diffusion_key="raw_cdh5"`` means the
+        # model was trained to denoise CDH5 images conditioned on the
+        # semantic embedding of brightfield images.
+        channel_key_for_conditioning_input = model.hparams.condition_key
+        label_for_conditioning = (
+            "Brightfield" if channel_key_for_conditioning_input == "raw_bf" else "VE-cadherin"
+        )
+
+        # The image-preprocessing transforms still need the full training
+        # config from MLflow: ``data.train_dataloaders.dataset.transform`` is
+        # outside the ``model:`` block and is not persisted into
+        # ``model.hparams`` by Lightning's ``save_hyperparameters``.
         ml_flowid = model_location.mlflowid if model_location.mlflowid else None
         if ml_flowid is None:
             raise ValueError(f"Model location MLflow ID is None for model {model_manifest_name}")
         config_path = get_config_path_from_mlflow(ml_flowid)
         model_config = cast(DictConfig, OmegaConf.create(config_path.read_text()))
-        crop_size = model_config.model.image_shape[-1]  # assumes square crops
-
-        # Get the condition and diffusion image keys from model config
-        # e.g., model.condition_key = "raw_bf" and model.diffusion_key = "raw_cdh5"
-        # means that the model was trained to denoise CDH5 images
-        # conditioned on the semantic embedding of brightfield images
-        channel_key_for_conditioning_input = model_config.model.condition_key
-        label_for_conditioning = (
-            "Brightfield" if channel_key_for_conditioning_input == "raw_bf" else "VE-cadherin"
-        )
-
-        # Load model as instantiated Diff AE object
-        model = load_model(model_location, instantiate=True)
 
         cond_crop_list = []
         diffusion_input_crop_list = []
