@@ -44,3 +44,12 @@ class UnicodeCharacters(StrEnum):
 
     R_SUBSCRIPT = "\u1d63"
     """Unicode for subscript r."""
+
+    BOLD_MATH_F = "\u1d41f"
+    """Unicode for bold lowercase mathematical f."""
+
+    BOLD_MATH_X = "\u1d465"
+    """Unicode for bold lowercase mathematical x."""
+
+    DOUBLE_VERT = "\u2016"
+    """Unicode for double vertical line."""

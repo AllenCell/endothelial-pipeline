@@ -47,6 +47,7 @@ from endo_pipeline.settings.flow_field_3d import (
 )
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 
 def _add_colorbar_to_contour_plot(
@@ -556,14 +557,14 @@ def reconstruct_along_nullcline(
 def make_3d_vector_field_plot_panel(
     dataset_name: str,
     fig_savedir: Path,
-    downsample_factor: int = 4,
+    downsample_factor: int = 8,
     normalize_vectors: bool = NORMALIZE_QUIVER_VECTORS,
-    colormap: str = "turbo_r",
+    colormap: str = "viridis_r",
     clip_magnitudes: bool = CLIP_MAGNITUDES,
     clip_min_percentile: float | None = CLIP_MIN_MAGNITUDE_PERCENTILE,
     clip_max_percentile: float | None = CLIP_MAX_MAGNITUDE_PERCENTILE,
     log_norm_magnitudes: bool = LOG_NORM_MAGNITUDES,
-    arrow_alpha: float = 0.25,
+    arrow_alpha: float = 0.4,
 ) -> Path:
     """
     Render the 3D (theta, r, rho) drift vector field for a given dataset using
@@ -692,7 +693,7 @@ def make_3d_vector_field_plot_panel(
     # ------------------------------------------------------------------
     # Build matplotlib 3D figure
     # ------------------------------------------------------------------
-    fig = plt.figure()
+    fig = plt.figure(figsize=(2.5, 2.5), layout="constrained")
     ax: Axes3D = fig.add_subplot(111, projection="3d")
     ax.set_facecolor("white")
     fig.patch.set_facecolor("white")
@@ -736,10 +737,19 @@ def make_3d_vector_field_plot_panel(
     q.set_color(np.repeat(colors, segments_per_arrow, axis=0))
     q.set_alpha(arrow_alpha)
 
-    # Colorbar
+    # Colorbar - horizontal strip at the top
     sm = ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])
-    fig.colorbar(sm, ax=ax, label="drift magnitude", shrink=0.6, pad=0.1)
+    cbar_ax = fig.add_axes([0.1, 0.91, 0.65, 0.04])
+    fig.colorbar(
+        sm,
+        cax=cbar_ax,
+        orientation="horizontal",
+        label=f"{Unicode.DOUBLE_VERT} {Unicode.BOLD_MATH_F}({Unicode.BOLD_MATH_X}) {Unicode.DOUBLE_VERT}",
+    )
+    cbar_ax.tick_params(labelsize=6)
+    cbar_ax.xaxis.set_label_position("top")
+    cbar_ax.xaxis.tick_top()
 
     # ------------------------------------------------------------------
     # Load and overlay stable fixed point
@@ -768,7 +778,6 @@ def make_3d_vector_field_plot_panel(
     ax.set_xlabel(col_labels[0])
     ax.set_ylabel(col_labels[1])
     ax.set_zlabel(col_labels[2])
-    ax.set_title(f"3D drift vector field - {dataset_name}")
 
     # ------------------------------------------------------------------
     # Save as static SVG

@@ -117,6 +117,7 @@ def main() -> None:
     theta_plot_paths: dict[str, Path] = {}
     contour_plot_paths: dict[str, Path] = {}
     nullcline_reconstruction_paths: dict[str, list[Path]] = {}
+    vector_field_plot_paths: dict[str, Path] = {}
     for dataset_name, arrow_scale_1d, arrow_width_1d in [
         (dataset_low, 1.5, 0.05),
         (dataset_high, 0.5, 0.05),
@@ -159,7 +160,9 @@ def main() -> None:
         )
         stable_fixed_point_theta = stable_fixed_points_dict[column_theta][column_theta].to_numpy()
 
-        make_3d_vector_field_plot_panel(dataset_name, fig_savedir)
+        vector_field_plot_paths[dataset_name] = make_3d_vector_field_plot_panel(
+            dataset_name, fig_savedir
+        )
 
         # plot 1D drift in theta and save
         theta_plot_paths[dataset_name] = make_1d_drift_plot_panel(
@@ -275,6 +278,14 @@ def main() -> None:
     panels = [
         # --- Low flow dataset (row 1) ---
         FigurePanel(
+            letter="A",
+            path=vector_field_plot_paths[dataset_low],
+            x_position=0.0,
+            y_position=0.0,
+            x_offset=0.05,
+            y_offset=0.05,
+        ),
+        FigurePanel(
             letter="B",
             path=theta_plot_paths[dataset_low],
             x_position=2.3,
@@ -307,6 +318,14 @@ def main() -> None:
             y_offset=0.0,
         ),
         # --- High flow dataset (row 2) ---
+        FigurePanel(
+            letter="D",
+            path=vector_field_plot_paths[dataset_high],
+            x_position=0.0,
+            y_position=2.7,
+            x_offset=0.05,
+            y_offset=0.05,
+        ),
         FigurePanel(
             letter="E",
             path=theta_plot_paths[dataset_high],
