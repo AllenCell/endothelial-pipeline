@@ -1,38 +1,41 @@
-"""Production workflow: persist Model-QC inference metrics for the supp. figure.
-
-Runs diffusion-autoencoder denoising for the curated 10-model latent-dim
-sweep on the Rep-2 example positions, computes per-example correlation /
-SSIM / LPIPS plus a next-timepoint baseline, and persists everything to
-a single long-format parquet wrapped in a :class:`DataframeManifest` so
-the companion ``fig-model-qc-plot`` workflow can render the bar chart
-without re-running GPU inference.
-
-This is a publication-figure driver: model identities, example set, seed
-range, and noise levels are all hard-coded.  Use the ``model-qc``
-development workflow for ad-hoc multi-model QC.
-"""
-
-
 def main() -> None:
-    """Run inference and emit a dataframe manifest of the combined metrics parquet.
+    """
+    Calculate comparison metrics between DiffAE models.
 
-    #diffae #figure #gpu #production
+    #diffae #model-comparison #gpu
 
-    Whether the combined parquet is uploaded to FMS (and to which
-    environment) is governed by the global ``--upload-to-fms`` /
-    ``--fms-environment`` CLI flags, which the entry-point app maps onto
-    the ``UPLOAD_TO_FMS`` / ``FMS_ENVIRONMENT`` module constants in
-    :mod:`endo_pipeline.cli`.
+    This workflow compares DiffAE models trained with different semantic conditioning
+    image types and number of latent dimensions by calculating per-example
+    correlation, SSIM, and LPIPS metrics.
+
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe calculate-model-comparison-metrics -vd
+    ```
+
+    To run the full workflow:
+
+    ```bash
+    uv run endopipe calculate-model-comparison-metrics
+    ```
+
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will calculate
+    comparison metrics for only two models and two random seeds.
     """
     import logging
 
     from endo_pipeline.cli import DEMO_MODE, NUM_GPUS, UPLOAD_TO_FMS
     from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
-    from endo_pipeline.library.model.model_qc import ModelKey, evaluate_single_model
-    from endo_pipeline.library.model.model_qc.results_io import (
-        COMBINED_MANIFEST_LOCATION_KEY,
-        write_combined_parquet,
+    from endo_pipeline.library.model.model_qc import (
+        ModelKey,
+        evaluate_single_model,
+        write_per_model_parquets,
     )
     from endo_pipeline.manifests import (
         DataframeLocation,
@@ -44,7 +47,7 @@ def main() -> None:
     )
     from endo_pipeline.settings.examples import MODEL_QC_EXAMPLES_REP_2_POSITIONS
     from endo_pipeline.settings.workflow_defaults import (
-        DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_NAME,
+        DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_PREFIX,
         DEFAULT_MODEL_QC_MANIFEST_NAMES,
         DEFAULT_MODEL_QC_RUN_NAMES,
         MODEL_QC_NOISE_LEVELS,
@@ -89,8 +92,8 @@ def main() -> None:
 
     metrics_dir = get_output_path(__file__, "metrics")
     sample_images_dir = get_output_path(__file__, "sample_images", create_directories=True)
-    logger.info("Persisting combined metrics parquet under: %s", metrics_dir)
-    logger.info("Persisting sample-image crops to:         %s", sample_images_dir)
+    logger.info("Persisting per-model metrics parquets under: %s", metrics_dir)
+    logger.info("Persisting sample-image crops to:           %s", sample_images_dir)
 
     # --- Per-(model, seed) inference loop ---
     results: list[tuple[ModelKey, int, dict]] = []
@@ -114,48 +117,63 @@ def main() -> None:
             )
             results.append((model_key, seed, result))
 
-    # --- Persist combined parquet + dataframe manifest ---
-    combined_parquet = write_combined_parquet(
+    # --- Persist per-(model, run) parquets ---
+    parquet_paths = write_per_model_parquets(
         metrics_dir,
         results,
         examples_by_set={example_set_label: examples},
     )
 
     demo_suffix = "_demo" if DEMO_MODE else ""
-    out_manifest_name = f"{DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_NAME}{demo_suffix}"
-    out_manifest = create_dataframe_manifest(out_manifest_name, workflow_name=__file__)
-    # If a previous run produced this manifest (possibly under an older
-    # per-model schema), discard its locations so we write a clean
-    # single-combined-parquet manifest rather than merging stale entries.
-    out_manifest.locations.clear()
-    out_manifest.parameters = {
+    base_parameters = {
         "num_seeds": num_seeds,
         "seeds": [int(s) for s in seeds_to_evaluate],
         "random_seed": RANDOM_SEED,
         "example_set": example_set_label,
         "noise_levels": list(MODEL_QC_NOISE_LEVELS),
-        "manifest_names": list(DEFAULT_MODEL_QC_MANIFEST_NAMES),
-        "run_names": list(DEFAULT_MODEL_QC_RUN_NAMES),
     }
 
     if UPLOAD_TO_FMS:
         unique_dataset_names = sorted({e.dataset_name for e in examples})
         dataset_configs = [load_dataset_config(n) for n in unique_dataset_names]
-        notes = (
-            f"Model-QC supplementary figure metrics: "
-            f"{len(model_keys)} models x {len(seeds_to_evaluate)} seeds x "
-            f"{len(examples)} crops, long-format (one row per model x seed x crop)."
-        )
-        annotations = build_fms_annotations(dataset_configs, additional_notes=notes)
-        fmsid = upload_file_to_fms(combined_parquet, annotations=annotations, file_type="parquet")
-        out_manifest.locations[COMBINED_MANIFEST_LOCATION_KEY] = DataframeLocation(fmsid=fmsid)
-        logger.info("Uploaded %s to FMS as %s", combined_parquet.name, fmsid)
-    else:
-        out_manifest.locations[COMBINED_MANIFEST_LOCATION_KEY] = build_dataframe_location_from_path(
-            combined_parquet
-        )
 
-    save_dataframe_manifest(out_manifest)
+    # --- Emit one DataframeManifest per manifest_name ---
+    # Group by manifest_name to mirror the per-model-manifest structure;
+    # each output manifest's locations dict is keyed by run_name.
+    keys_by_manifest: dict[str, list[ModelKey]] = {}
+    for mk in model_keys:
+        keys_by_manifest.setdefault(mk.manifest_name, []).append(mk)
+
+    for manifest_name, keys in keys_by_manifest.items():
+        out_manifest_name = (
+            f"{DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_PREFIX}_{manifest_name}{demo_suffix}"
+        )
+        out_manifest = create_dataframe_manifest(out_manifest_name, workflow_name=__file__)
+        # Discard stale locations from any previous run so the rewritten
+        # manifest only references the parquets just produced.
+        out_manifest.locations.clear()
+        out_manifest.parameters = {
+            **base_parameters,
+            "manifest_name": manifest_name,
+            "run_names": [k.run_name for k in keys],
+        }
+
+        for mk in keys:
+            parquet = parquet_paths[mk]
+            if UPLOAD_TO_FMS:
+                notes = (
+                    f"Model-QC supplementary figure metrics for "
+                    f"{mk.manifest_name}/{mk.run_name}: {len(seeds_to_evaluate)} seeds x "
+                    f"{len(examples)} crops, long-format (one row per seed x crop)."
+                )
+                annotations = build_fms_annotations(dataset_configs, additional_notes=notes)
+                fmsid = upload_file_to_fms(parquet, annotations=annotations, file_type="parquet")
+                out_manifest.locations[mk.run_name] = DataframeLocation(fmsid=fmsid)
+                logger.info("Uploaded %s to FMS as %s", parquet.name, fmsid)
+            else:
+                out_manifest.locations[mk.run_name] = build_dataframe_location_from_path(parquet)
+
+        save_dataframe_manifest(out_manifest)
 
 
 if __name__ == "__main__":
