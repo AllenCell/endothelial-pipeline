@@ -11,6 +11,7 @@ from matplotlib.cm import ScalarMappable
 from matplotlib.colors import LogNorm, TwoSlopeNorm
 from matplotlib.layout_engine import ConstrainedLayoutEngine
 from matplotlib.legend_handler import HandlerLine2D
+from matplotlib.patches import Rectangle as MplRectangle
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Line3DCollection, Poly3DCollection
@@ -544,16 +545,33 @@ def reconstruct_along_nullcline(
         gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
     )
 
-    # add outline box around center column (stable fixed point) in the stable
-    # fixed point color
+    # add a single outline box spanning both rows of the center column (stable
+    # fixed point) in the stable fixed point color
     stable_color = FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color
     center_col = n_cols // 2
-    for row in range(2):
-        ax = fig_null_walks.axes[row * n_cols + center_col]
-        for spine in ax.spines.values():
-            spine.set_visible(True)
-            spine.set_edgecolor(stable_color)
-            spine.set_linewidth(1.5)
+    # trigger constrained layout so ax.get_position() reflects final geometry
+    fig_null_walks.canvas.draw()
+    ax_top = fig_null_walks.axes[0 * n_cols + center_col]
+    ax_bot = fig_null_walks.axes[1 * n_cols + center_col]
+    pos_top = ax_top.get_position()  # Bbox in figure fraction
+    pos_bot = ax_bot.get_position()
+    # combine: left/width from top (same column), y from bottom of lower axes,
+    # height spans from bottom of lower axes to top of upper axes
+    box_x = pos_top.x0
+    box_y = pos_bot.y0
+    box_w = pos_top.width
+    box_h = pos_top.y1 - pos_bot.y0
+    rect = MplRectangle(
+        (box_x, box_y),
+        box_w,
+        box_h,
+        linewidth=1.5,
+        edgecolor=stable_color,
+        facecolor="none",
+        transform=fig_null_walks.transFigure,
+        clip_on=False,
+    )
+    fig_null_walks.add_artist(rect)
 
     filename = "nullcline_walks"
     save_plot_to_path(
@@ -565,7 +583,7 @@ def reconstruct_along_nullcline(
         pad_inches=0,
     )
 
-    return (fig_savedir / f"{filename}.svg",)
+    return fig_savedir / f"{filename}.svg"
 
 
 def _plot_quiver_3d_cones(
@@ -973,7 +991,7 @@ def make_3d_vector_field_plot_panel(
     # Axes labels and title
     # ------------------------------------------------------------------
     ax.tick_params(axis="both", pad=-4)
-    ax.set_xlabel(col_labels[0], labelpad=-6)
+    ax.set_xlabel(col_labels[0], labelpad=-7)
     ax.set_xticks(theta_ticks, labels=theta_tick_labels)
     ax.set_xlim(theta_lims)
     for tick in ax.xaxis.get_majorticklabels():
@@ -985,7 +1003,7 @@ def make_3d_vector_field_plot_panel(
         tick.set_ha("center")
         tick.set_va("center")
     ax.set_ylim(r_lims)
-    ax.set_zlabel(col_labels[2], labelpad=-6)
+    ax.set_zlabel(col_labels[2], labelpad=-7)
     ax.set_zticks(rho_ticks)
     ax.set_zlim(rho_lims)
     ax.zaxis.set_rotate_label(False)
