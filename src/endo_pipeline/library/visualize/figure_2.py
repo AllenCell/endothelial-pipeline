@@ -556,11 +556,13 @@ def reconstruct_along_nullcline(
     pos_top = ax_top.get_position()  # Bbox in figure fraction
     pos_bot = ax_bot.get_position()
     # combine: left/width from top (same column), y from bottom of lower axes,
-    # height spans from bottom of lower axes to top of upper axes
-    box_x = pos_top.x0
-    box_y = pos_bot.y0
-    box_w = pos_top.width
-    box_h = pos_top.y1 - pos_bot.y0
+    # height spans from bottom of lower axes to top of upper axes; add a small
+    # padding (in figure-fraction units) so the box doesn't sit on the axes edge
+    pad = 0.01
+    box_x = pos_top.x0 - pad
+    box_y = pos_bot.y0 - pad
+    box_w = pos_top.width + 2 * pad
+    box_h = pos_top.y1 - pos_bot.y0 + 2 * pad
     rect = MplRectangle(
         (box_x, box_y),
         box_w,
