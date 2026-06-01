@@ -19,7 +19,6 @@ if typing.TYPE_CHECKING:
 
 from endo_pipeline.configs import DatasetConfig, get_position_integer_from_zarr_file_path
 from endo_pipeline.io import load_dataframe, load_image
-from endo_pipeline.library.process.z_stack_selection import get_plane_indices
 from endo_pipeline.manifests import (
     build_dataframe_location_from_string,
     build_image_location_from_string,
@@ -572,6 +571,45 @@ class MultiDimImageDataset(SmartCacheDataset):
                     row_data.append(extra_columns)
             img_data.extend(row_data)
         return img_data
+
+
+def get_plane_indices(
+    dataset_config: DatasetConfig,
+    position: int,
+    lower_offset: int,
+    upper_offset: int,
+) -> list[int]:
+    """
+    Get a list of plane indices based on the provided outputs about the global center.
+
+    The indices are constrained between 0 and 24.
+
+    Parameters
+    ----------
+    dataset_config
+        Configuration object containing dataset-specific information.
+    position
+        The position index for which the plane indices are calculated.
+    lower_offset
+        The number of planes below the center plane to include.
+    upper_offset
+        The number of planes above the center plane to include.
+
+    Returns
+    -------
+    list
+        A list of plane indices within the specified range, constrained between 0 and 24.
+    """
+    if dataset_config.center_z_plane is None:
+        logger.error(
+            "Center z-plane information is missing for dataset [ %s ].", dataset_config.name
+        )
+        raise ValueError("Center z-plane information is missing in the dataset configuration.")
+    global_center_plane = dataset_config.center_z_plane[position]
+    lower_bound = max(0, global_center_plane - lower_offset)
+    upper_bound = min(24, global_center_plane + upper_offset)
+
+    return list(range(lower_bound, upper_bound + 1))
 
 
 def get_z_slice_bounds_per_position(

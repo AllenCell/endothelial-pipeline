@@ -78,45 +78,6 @@ def calculate_global_center_plane(
     }
 
 
-def get_plane_indices(
-    dataset_config: DatasetConfig,
-    position: int,
-    lower_offset: int,
-    upper_offset: int,
-) -> list[int]:
-    """
-    Get a list of plane indices based on the provided outputs about the global center.
-
-    The indices are constrained between 0 and 24.
-
-    Parameters
-    ----------
-    dataset_config
-        Configuration object containing dataset-specific information.
-    position
-        The position index for which the plane indices are calculated.
-    lower_offset
-        The number of planes below the center plane to include.
-    upper_offset
-        The number of planes above the center plane to include.
-
-    Returns
-    -------
-    list
-        A list of plane indices within the specified range, constrained between 0 and 24.
-    """
-    if dataset_config.center_z_plane is None:
-        logger.error(
-            "Center z-plane information is missing for dataset [ %s ].", dataset_config.name
-        )
-        raise ValueError("Center z-plane information is missing in the dataset configuration.")
-    global_center_plane = dataset_config.center_z_plane[position]
-    lower_bound = max(0, global_center_plane - lower_offset)
-    upper_bound = min(24, global_center_plane + upper_offset)
-
-    return list(range(lower_bound, upper_bound + 1))
-
-
 def plot_standard_devs_per_slice(
     stdevs: list,
     center_plane: int,
