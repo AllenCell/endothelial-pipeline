@@ -1,0 +1,44 @@
+name: diffae_model_comparison_metrics_diffae_baseline_exclude_cell_piling
+workflow: calculate_model_comparison_metrics
+parameters:
+  num_seeds: 10
+  seeds: [42, 43, 44, 45, 46, 47, 48, 49, 50, 51]
+  random_seed: 47
+  example_set: rep_2_positions
+  noise_levels: [0.25, 0.5, 0.75]
+  manifest_name: diffae_baseline_exclude_cell_piling
+  run_names: [20260207_latent_8, 20260205_latent_16, 20260203_latent_32, 20260206_latent_64,
+    20260127_latent_128, 20260122_latent_256, 20251110_latent_512, 20251110_latent_1024]
+locations:
+  20260207_latent_8:
+    fmsid: bd320e174b6040ee9847451592d97afb
+    path: null
+    s3uri: null
+  20260205_latent_16:
+    fmsid: 1df2e418c1754af99867aa439a15c1a2
+    path: null
+    s3uri: null
+  20260203_latent_32:
+    fmsid: 49f01a60acfa4fa08e311df11f593b11
+    path: null
+    s3uri: null
+  20260206_latent_64:
+    fmsid: 74f9bddcf7d0495880c5f5e860d4745b
+    path: null
+    s3uri: null
+  20260127_latent_128:
+    fmsid: 3fc1ef8543154bc5a6efdfc9c179d310
+    path: null
+    s3uri: null
+  20260122_latent_256:
+    fmsid: 41f7313e2f764fe2825c7b89069f2845
+    path: null
+    s3uri: null
+  20251110_latent_512:
+    fmsid: 36cdc84e7d974446988354794f08161f
+    path: null
+    s3uri: null
+  20251110_latent_1024:
+    fmsid: 142d2fd198fa4c52a9f3580a9b64ac5a
+    path: null
+    s3uri: null
