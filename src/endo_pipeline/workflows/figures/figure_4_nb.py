@@ -63,8 +63,10 @@ fixed_points_summary_plot_path = plot_cross_dataset_summaries(
     output_dir=save_dir,
     column_names=diffae_features,
     axis_mode="cell_line",
-    figure_size=(3.75, 2),
-    color_by_column=Column.OpticalFlow.UNIT_VECTOR_MEAN,
+    jitter_width=0.2,
+    figure_size=(5, 2),
+    convert_angle_to_nematic=True,
+    color_by_column=Column.OpticalFlow.SPEED_MEAN,
 )
 
 # %%
