@@ -8,6 +8,27 @@ def main(model_manifest_name: str, run_names: list[str] | None = None) -> None:
     calculating per-example correlation, SSIM, and LPIPS metrics, and emits
     one ``DataframeManifest`` (with ``locations`` keyed by ``run_name``).
 
+    ## Example usage
+
+    Evaluate every run in a model manifest:
+
+    ```bash
+    uv run endopipe calculate-model-comparison-metrics diffae_baseline_exclude_cell_piling
+    ```
+
+    Evaluate a subset of runs:
+
+    ```bash
+    uv run endopipe calculate-model-comparison-metrics diffae_cdh5_conditioned \
+        --run-names 20260130_latent_512 --run-names 20251110_latent_1024
+    ```
+
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will calculate
+    comparison metrics for only the first two runs in the model manifest and
+    two random seeds.
+
     Parameters
     ----------
     model_manifest_name
@@ -15,26 +36,9 @@ def main(model_manifest_name: str, run_names: list[str] | None = None) -> None:
         (e.g. ``"diffae_baseline_exclude_cell_piling"``).
     run_names
         Optional subset of ``run_name`` entries from the model manifest to
-        evaluate. If ``None``, all runs in the model manifest are used.
-
-    ## Example usage
-
-    Evaluate every run in a model manifest:
-
-    ```bash
-    uv run endopipe calculate-model-comparison-metrics \\
-        --model-manifest-name diffae_baseline_exclude_cell_piling
-    ```
-
-    Evaluate a subset of runs:
-
-    ```bash
-    uv run endopipe calculate-model-comparison-metrics \\
-        --model-manifest-name diffae_cdh5_conditioned \\
-        --run-names 20260130_latent_512 --run-names 20251110_latent_1024
-    ```
-
-    Demo mode (``-d``) restricts to the first 2 runs and 2 seeds.
+        evaluate. If ``None``, defaults to the curated QC subset from
+        :data:`DEFAULT_MODEL_QC_RUN_NAMES` for this manifest (or all
+        ``locations`` if the manifest is not in the curated QC list).
     """
     import logging
 
@@ -56,6 +60,8 @@ def main(model_manifest_name: str, run_names: list[str] | None = None) -> None:
     from endo_pipeline.settings.examples import MODEL_QC_EXAMPLES_REP_2_POSITIONS
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_PREFIX,
+        DEFAULT_MODEL_QC_MANIFEST_NAMES,
+        DEFAULT_MODEL_QC_RUN_NAMES,
         MODEL_QC_NOISE_LEVELS,
         RANDOM_SEED,
     )
@@ -79,7 +85,19 @@ def main(model_manifest_name: str, run_names: list[str] | None = None) -> None:
     # plot labels.
     model_manifest = load_model_manifest(model_manifest_name)
     if run_names is None:
-        run_names = list(model_manifest.locations.keys())
+        # Default to the curated QC run subset for this manifest_name. Model
+        # manifests can contain legacy/non-QC runs (e.g. older architectures)
+        # whose checkpoints would crash evaluate_single_model if loaded
+        # blindly, so we only fall back to all locations when this manifest
+        # is not in the curated QC list.
+        curated = [
+            r
+            for m, r in zip(
+                DEFAULT_MODEL_QC_MANIFEST_NAMES, DEFAULT_MODEL_QC_RUN_NAMES, strict=True
+            )
+            if m == model_manifest_name
+        ]
+        run_names = curated if curated else list(model_manifest.locations.keys())
     else:
         missing = [r for r in run_names if r not in model_manifest.locations]
         if missing:
