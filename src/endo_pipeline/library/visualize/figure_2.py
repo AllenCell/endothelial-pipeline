@@ -513,7 +513,7 @@ def reconstruct_along_nullcline(
             Column.DiffAEData.POLAR_ANGLE,
         ],
     )
-    output_paths: list[Path] = []
+    walk_panels_all: list[np.ndarray] = []
     for column, coords_dataframe in nullcline_coords.items():
         r_coords = coords_dataframe[0]
         rho_coords = coords_dataframe[1]
@@ -532,25 +532,28 @@ def reconstruct_along_nullcline(
             num_gpus=num_gpus,
             random_seed=random_seed,
         )
-        fig_null_walk = make_contact_sheet(
-            panels=[walk_array[i] for i in range(len(walk_array))],
-            max_rows=1,
-            max_cols=len(walk_array),
-            fig_kwargs={"figsize": (3.125, 0.625), "layout": "constrained"},
-            gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
-        )
+        walk_panels = [walk_array[i] for i in range(len(walk_array))]
+        walk_panels_all.extend(walk_panels)
 
-        save_plot_to_path(
-            fig_null_walk,
-            fig_savedir,
-            f"walk_array_null_{column}",
-            file_format=".svg",
-            tight_layout=False,
-            pad_inches=0,
-        )
-        output_paths.append(fig_savedir / f"walk_array_null_{column}.svg")
+    fig_null_walks = make_contact_sheet(
+        panels=walk_panels_all,
+        max_rows=2,
+        max_cols=len(walk_array),
+        fig_kwargs={"figsize": (3.125, 1.3), "layout": "constrained"},
+        gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
+    )
 
-    return tuple(output_paths)
+    filename = "nullcline_walks"
+    save_plot_to_path(
+        fig_null_walks,
+        fig_savedir,
+        filename,
+        file_format=".svg",
+        tight_layout=False,
+        pad_inches=0,
+    )
+
+    return (fig_savedir / f"{filename}.svg",)
 
 
 def _plot_quiver_3d_cones(
@@ -958,14 +961,17 @@ def make_3d_vector_field_plot_panel(
     # Axes labels and title
     # ------------------------------------------------------------------
     ax.tick_params(axis="both", pad=-4)
-    ax.tick_params(axis="y", pad=2)
     ax.set_xlabel(col_labels[0], labelpad=-6)
     ax.set_xticks(theta_ticks, labels=theta_tick_labels)
     ax.set_xlim(theta_lims)
+    for tick in ax.xaxis.get_majorticklabels():
+        tick.set_ha("right")
+        tick.set_va("bottom")
     ax.set_ylabel(col_labels[1], labelpad=-6)
     ax.set_yticks(r_ticks)
     for tick in ax.yaxis.get_majorticklabels():
-        tick.set_ha("center")
+        tick.set_ha("left")
+        tick.set_va("center")
     ax.set_ylim(r_lims)
     ax.set_zlabel(col_labels[2], labelpad=-6)
     ax.set_zticks(rho_ticks)

@@ -116,7 +116,7 @@ def main() -> None:
     # pairwise combination of polar coordinates, and plot contours of drift coefficients
     theta_plot_paths: dict[str, Path] = {}
     contour_plot_paths: dict[str, Path] = {}
-    nullcline_reconstruction_paths: dict[str, list[Path]] = {}
+    nullcline_reconstruction_paths: dict[str, Path] = {}
     vector_field_plot_paths: dict[str, Path] = {}
     for dataset_name, arrow_scale_1d, arrow_width_1d in [
         (dataset_low, 1.5, 0.05),
@@ -302,19 +302,11 @@ def main() -> None:
             x_offset=0.0,
             y_offset=-0.075,
         ),
-        FigurePanel(  # r nullcline for low flow dataset
+        FigurePanel(  # r and rho nullclines for low flow dataset
             letter="C",
-            path=nullcline_reconstruction_paths[dataset_low][0],
+            path=nullcline_reconstruction_paths[dataset_low],
             x_position=2.3,
             y_position=1.4,
-            x_offset=0.4,
-            y_offset=0.0,
-        ),
-        FigurePanel(  # rho nullcline for low flow dataset
-            letter="",
-            path=nullcline_reconstruction_paths[dataset_low][1],
-            x_position=2.3,
-            y_position=2.0,
             x_offset=0.4,
             y_offset=0.0,
         ),
@@ -343,19 +335,11 @@ def main() -> None:
             x_offset=0.0,
             y_offset=-0.075,
         ),
-        FigurePanel(  # r nullcline for high flow dataset
+        FigurePanel(  # r and rho nullcline for high flow dataset
             letter="F",
-            path=nullcline_reconstruction_paths[dataset_high][0],
+            path=nullcline_reconstruction_paths[dataset_high],
             x_position=2.3,
             y_position=4.1,
-            x_offset=0.4,
-            y_offset=0.0,
-        ),
-        FigurePanel(  # rho nullcline for high flow dataset
-            letter="",
-            path=nullcline_reconstruction_paths[dataset_high][1],
-            x_position=2.3,
-            y_position=4.7,
             x_offset=0.4,
             y_offset=0.0,
         ),
