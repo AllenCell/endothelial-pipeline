@@ -482,7 +482,7 @@ def reconstruct_along_nullcline(
     fig_savedir: Path,
     num_gpus: int | None = None,
     random_seed: int | None = 5,
-) -> tuple[Path, ...]:
+) -> Path:
     """
     Generate reconstructed images along a nullcline given the coordinates of the
     nullcline in feature space.
@@ -535,13 +535,25 @@ def reconstruct_along_nullcline(
         walk_panels = [walk_array[i] for i in range(len(walk_array))]
         walk_panels_all.extend(walk_panels)
 
+    n_cols = len(walk_array)
     fig_null_walks = make_contact_sheet(
         panels=walk_panels_all,
         max_rows=2,
-        max_cols=len(walk_array),
+        max_cols=n_cols,
         fig_kwargs={"figsize": (3.125, 1.3), "layout": "constrained"},
         gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
     )
+
+    # add outline box around center column (stable fixed point) in the stable
+    # fixed point color
+    stable_color = FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color
+    center_col = n_cols // 2
+    for row in range(2):
+        ax = fig_null_walks.axes[row * n_cols + center_col]
+        for spine in ax.spines.values():
+            spine.set_visible(True)
+            spine.set_edgecolor(stable_color)
+            spine.set_linewidth(1.5)
 
     filename = "nullcline_walks"
     save_plot_to_path(
@@ -873,7 +885,7 @@ def make_3d_vector_field_plot_panel(
     # ------------------------------------------------------------------
     # Build matplotlib 3D figure
     # ------------------------------------------------------------------
-    fig = plt.figure(figsize=(1.95, 2.25))
+    fig = plt.figure(figsize=(2.0, 2.5))
     ax: Axes3D = fig.add_subplot(111, projection="3d")
 
     # Render all arrows at the same absolute size (so visual clutter from
@@ -970,7 +982,7 @@ def make_3d_vector_field_plot_panel(
     ax.set_ylabel(col_labels[1], labelpad=-6)
     ax.set_yticks(r_ticks)
     for tick in ax.yaxis.get_majorticklabels():
-        tick.set_ha("left")
+        tick.set_ha("center")
         tick.set_va("center")
     ax.set_ylim(r_lims)
     ax.set_zlabel(col_labels[2], labelpad=-6)
