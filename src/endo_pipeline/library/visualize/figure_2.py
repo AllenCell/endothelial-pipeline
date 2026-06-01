@@ -949,7 +949,7 @@ def make_3d_vector_field_plot_panel(
 
     # Colorbar - horizontal strip at the top, shifted left to leave room for legend
     scalar_mappable.set_array([])
-    cbar_ax = fig.add_axes((0.1, 0.95, 0.48, 0.04))
+    cbar_ax = fig.add_axes((0.1, 0.87, 0.48, 0.04))
     cbar = fig.colorbar(
         scalar_mappable,
         cax=cbar_ax,
@@ -957,8 +957,8 @@ def make_3d_vector_field_plot_panel(
     )
     cbar.ax.tick_params(labelsize=FONTSIZE_XSMALL, pad=2)
     cbar.set_label("$\Vert\mathbf{f}(\mathbf{x})\Vert$", fontsize=FONTSIZE_SMALL, labelpad=2)
-    cbar_ax.xaxis.set_label_position("bottom")
-    cbar_ax.xaxis.tick_bottom()
+    cbar_ax.xaxis.set_label_position("top")
+    cbar_ax.xaxis.tick_top()
 
     # Legend to the right of the colorbar
     arrow_handle = mlines.Line2D(
