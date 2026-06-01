@@ -313,10 +313,22 @@ def _plot_cross_dataset_summary_for_column(
         # Get position for the dataset based on index in category list
         index = unique_categories.index(category)
 
-        # Calculate jitter off index based on number of points in the category
-        num_points = len(category_df)
-        offsets = [0] if num_points == 1 else np.linspace(-jitter_width, jitter_width, num_points)
-        x_values = [index + offset for offset in offsets]
+        # Assign jitter offsets per-dataset so points from the same dataset
+        # share the same horizontal position within a category bin
+        unique_datasets_in_category = category_df[ColumnName.DATASET].unique()
+        num_datasets = len(unique_datasets_in_category)
+        dataset_offsets = (
+            {unique_datasets_in_category[0]: 0}
+            if num_datasets == 1
+            else dict(
+                zip(
+                    unique_datasets_in_category,
+                    np.linspace(-jitter_width, jitter_width, num_datasets),
+                    strict=True,
+                )
+            )
+        )
+        x_values = [index + dataset_offsets[ds] for ds in category_df[ColumnName.DATASET]]
 
         # Get y values based on feature column
         y_values = category_df[column_name]
