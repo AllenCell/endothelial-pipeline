@@ -885,10 +885,11 @@ def make_3d_vector_field_plot_panel(
     # ------------------------------------------------------------------
     # Map magnitudes to colours
     # ------------------------------------------------------------------
-    eps = np.finfo(float).eps
+    # small constant to avoid issues when normalizing magnitude
+    mag_eps = 1e-10
     if log_norm_magnitudes:
-        safe_cmin = max(magnitude_limits[0], eps)
-        safe_cmax = max(magnitude_limits[1], safe_cmin + eps)
+        safe_cmin = max(magnitude_limits[0], mag_eps)
+        safe_cmax = max(magnitude_limits[1], safe_cmin + mag_eps)
         norm = LogNorm(vmin=safe_cmin, vmax=safe_cmax)
     else:
         norm = plt.Normalize(vmin=magnitude_limits[0], vmax=magnitude_limits[1])
@@ -908,9 +909,9 @@ def make_3d_vector_field_plot_panel(
     # large-magnitude outliers is reduced) while still colouring by magnitude.
     avg_spacing = np.mean(np.diff(np.unique(x_flat)))
     arrow_length = avg_spacing * 0.8
-    u_plot = u_flat / (mag_flat + eps)
-    v_plot = v_flat / (mag_flat + eps)
-    w_plot = w_flat / (mag_flat + eps)
+    u_plot = u_flat / (mag_flat + mag_eps)
+    v_plot = v_flat / (mag_flat + mag_eps)
+    w_plot = w_flat / (mag_flat + mag_eps)
     _plot_quiver_3d_cones(
         ax,
         x_flat,
