@@ -27,7 +27,7 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
     make_legend_handles_for_fixed_pts,
 )
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings.column_metadata import COLUMN_METADATA
+from endo_pipeline.settings.column_metadata import COLUMN_METADATA, ColumnMetadata
 from endo_pipeline.settings.column_names import ColumnName, ColumnNameType
 from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
@@ -148,7 +148,7 @@ def _convert_polar_angle_to_nematic_order(df: pd.DataFrame) -> pd.DataFrame:
 def _build_color_by_column_mappable(
     df: pd.DataFrame,
     color_by_column: ColumnNameType,
-) -> tuple[cm.ScalarMappable | None, str, object]:
+) -> tuple[cm.ScalarMappable | None, str, ColumnMetadata | None]:
     """
     Build a ScalarMappable for continuous coloring by a dataframe column.
 
@@ -192,7 +192,7 @@ def _plot_cross_dataset_summary_for_column(
     category_order: list[str] | None = None,
     axis_mode: SummaryPlotAxisMode = "dataset",
     style_mode: SummaryPlotStyleMode = "dataset",
-    marker_size_plot: int = 4.2,
+    marker_size_plot: float = 4.2,
     marker_size_legend: int = 4,
     jitter_width: float = 0.05,
     set_y_lims: bool = False,
@@ -337,7 +337,7 @@ def _plot_cross_dataset_summary_for_column(
         if scalar_mappable is not None:
             colors = [scalar_mappable.to_rgba(val) for val in category_df[color_by_column]]
         else:
-            colors = [color_map[col] for col in category_df[style_column]]
+            colors = list(category_df[style_column].map(color_map))
         markers = [marker_map[col] for col in category_df[style_column]]
 
         # Get lower and upper bounds for points in the category
