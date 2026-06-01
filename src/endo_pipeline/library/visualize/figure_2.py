@@ -36,7 +36,7 @@ from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
-from endo_pipeline.settings.figures import FONTSIZE_XSMALL
+from endo_pipeline.settings.figures import FONTSIZE_SMALL, FONTSIZE_XSMALL
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_CBAR_NUM_TICKS,
     DRIFT_CONTOUR_CBAR_ROUND,
@@ -553,20 +553,16 @@ def reconstruct_along_nullcline(
     fig_null_walks.canvas.draw()
     ax_top = fig_null_walks.axes[0 * n_cols + center_col]
     ax_bot = fig_null_walks.axes[1 * n_cols + center_col]
-    pos_top = ax_top.get_position()  # Bbox in figure fraction
+    pos_top = ax_top.get_position()
     pos_bot = ax_bot.get_position()
     # combine: left/width from top (same column), y from bottom of lower axes,
     # height spans from bottom of lower axes to top of upper axes; add a small
     # padding (in figure-fraction units) so the box doesn't sit on the axes edge
-    pad = 0.01
-    box_x = pos_top.x0 - pad
-    box_y = pos_bot.y0 - pad
-    box_w = pos_top.width + 2 * pad
-    box_h = pos_top.y1 - pos_bot.y0 + 2 * pad
+    pad = 0.0125
     rect = MplRectangle(
-        (box_x, box_y),
-        box_w,
-        box_h,
+        (pos_top.x0 - pad, pos_bot.y0 - 2 * pad),
+        pos_top.width + 2 * pad,
+        pos_top.y1 - pos_bot.y0 + 4 * pad,
         linewidth=1.5,
         edgecolor=stable_color,
         facecolor="none",
@@ -937,8 +933,8 @@ def make_3d_vector_field_plot_panel(
         cax=cbar_ax,
         orientation="horizontal",
     )
-    cbar.ax.tick_params(labelsize=5)
-    cbar.set_label("$\Vert\mathbf{f}(\mathbf{x})\Vert$", fontsize=FONTSIZE_XSMALL)
+    cbar.ax.tick_params(labelsize=FONTSIZE_XSMALL)
+    cbar.set_label("$\Vert\mathbf{f}(\mathbf{x})\Vert$", fontsize=FONTSIZE_SMALL)
     cbar_ax.xaxis.set_label_position("top")
     cbar_ax.xaxis.tick_top()
 
@@ -992,12 +988,12 @@ def make_3d_vector_field_plot_panel(
     # ------------------------------------------------------------------
     # Axes labels and title
     # ------------------------------------------------------------------
-    ax.tick_params(axis="both", pad=-4)
-    ax.set_xlabel(col_labels[0], labelpad=-7)
+    ax.tick_params(axis="both", pad=-3)
+    ax.set_xlabel(col_labels[0], labelpad=-8)
     ax.set_xticks(theta_ticks, labels=theta_tick_labels)
     ax.set_xlim(theta_lims)
     for tick in ax.xaxis.get_majorticklabels():
-        tick.set_ha("right")
+        tick.set_ha("center")
         tick.set_va("bottom")
     ax.set_ylabel(col_labels[1], labelpad=-6)
     ax.set_yticks(r_ticks)
@@ -1005,7 +1001,7 @@ def make_3d_vector_field_plot_panel(
         tick.set_ha("center")
         tick.set_va("center")
     ax.set_ylim(r_lims)
-    ax.set_zlabel(col_labels[2], labelpad=-7)
+    ax.set_zlabel(col_labels[2], labelpad=-8)
     ax.set_zticks(rho_ticks)
     ax.set_zlim(rho_lims)
     ax.zaxis.set_rotate_label(False)
