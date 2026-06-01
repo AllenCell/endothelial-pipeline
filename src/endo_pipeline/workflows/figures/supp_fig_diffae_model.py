@@ -276,32 +276,43 @@ def main() -> None:
     # ------------------------------------------------------------------
     # Panel B: quantitative Rep-2 Pearson-correlation sweep across the
     # full DEFAULT_MODEL_QC roster (BF latent 8->1024 + CDH5 controls).
-    # Driven entirely by the dataframe manifest emitted by the
-    # ``run-model-qc-inference`` production workflow -- no GPU work
-    # here, just load + aggregate + plot.
+    # Driven entirely by the per-``manifest_name`` dataframe manifests
+    # emitted by the ``calculate-model-comparison-metrics`` production
+    # workflow -- no GPU work here, just load + aggregate + plot.
     # ------------------------------------------------------------------
     from endo_pipeline.library.model.model_qc import (
         aggregate_seed_metrics,
         build_models_data,
         compute_baseline_data,
     )
-    from endo_pipeline.library.model.model_qc.results_io import load_results_from_manifest
+    from endo_pipeline.library.model.model_qc.results_io import load_results_from_manifests
     from endo_pipeline.library.visualize.model_qc_plots import create_rep2_correlation_bar_plot
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.workflow_defaults import (
-        DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_NAME,
+        DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_PREFIX,
         DEFAULT_MODEL_QC_LABELS,
         DEFAULT_MODEL_QC_MANIFEST_NAMES,
         DEFAULT_MODEL_QC_RUN_NAMES,
     )
 
-    dataframe_manifest = load_dataframe_manifest(DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_NAME)
-    logger.info(
-        "Loaded dataframe manifest [ %s ] with %d locations.",
-        dataframe_manifest.name,
-        len(dataframe_manifest.locations),
+    # One dataframe manifest per unique sweep ``manifest_name`` (e.g.
+    # baseline + cdh5 positive control), produced by
+    # ``calculate-model-comparison-metrics``.  Preserve first-seen order
+    # so logging matches the curated sweep ordering.
+    unique_manifest_names = list(dict.fromkeys(DEFAULT_MODEL_QC_MANIFEST_NAMES))
+    dataframe_manifests = [
+        load_dataframe_manifest(f"{DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_PREFIX}_{mn}")
+        for mn in unique_manifest_names
+    ]
+    for dfm in dataframe_manifests:
+        logger.info(
+            "Loaded dataframe manifest [ %s ] with %d locations.",
+            dfm.name,
+            len(dfm.locations),
+        )
+    all_seed_results, discovered_model_keys, seeds = load_results_from_manifests(
+        dataframe_manifests
     )
-    all_seed_results, discovered_model_keys, seeds = load_results_from_manifest(dataframe_manifest)
 
     # Map (manifest_name, run_name) -> curated label so the bars come out
     # in the publication order regardless of how rows landed in the parquet.
