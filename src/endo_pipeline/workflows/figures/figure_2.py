@@ -348,7 +348,7 @@ def main() -> None:
             letter="G",
             path=fixed_point_summary_plot_path,
             x_position=0.0,
-            y_position=5.3,
+            y_position=5.4,
             x_offset=0,
             y_offset=0.2,
         ),
@@ -356,7 +356,7 @@ def main() -> None:
             letter="H",
             path=migration_summary_plot_path,
             x_position=3.6,
-            y_position=5.3,
+            y_position=5.4,
             x_offset=0.1,
             y_offset=0.2,
         ),
@@ -364,14 +364,14 @@ def main() -> None:
             letter="I",
             path=first_passage_path,
             x_position=5.175,
-            y_position=5.3,
+            y_position=5.4,
             x_offset=0.05,
             y_offset=0.15,
         ),
     ]
 
     build_figure_from_panels(
-        panels, base_output_dir / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=7.5
+        panels, base_output_dir / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=7.6
     )
 
 

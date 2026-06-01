@@ -10,18 +10,16 @@ from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_dataframe, load_image
 from endo_pipeline.io.output import save_plot_to_path
 from endo_pipeline.library.process.image_processing import (
-    contrast_stretching,
+    convert_to_uint8,
     crop_image,
-    get_single_bf_plane,
-    log_normalize_image,
-    max_proj,
-    std_dev,
+    load_processed_bf_image_crop,
+    load_processed_bf_std_dev_image_crop,
+    load_processed_egfp_image_crop,
 )
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.manifests import (
     get_dataframe_location_for_dataset,
     get_image_location_for_dataset,
-    get_zarr_location_for_position,
     load_dataframe_manifest,
     load_image_manifest,
 )
@@ -60,28 +58,30 @@ def create_panel_biological_system_examples(
     for example in examples:
         dataset_config = load_dataset_config(example.dataset_name)
         shear_stress_value = round(dataset_config.flow_conditions[0].shear_stress)
-        location = get_zarr_location_for_position(dataset_config, position=example.position)
-        gfp_image = load_image(
-            location, timepoints=example.timepoint, channels=["EGFP"], squeeze=True
+
+        gfp_max_proj = load_processed_egfp_image_crop(
+            dataset_config,
+            example.position,
+            example.timepoint,
+            example.crop_x_start,
+            example.crop_y_start,
+            crop_size,
         )
-        bf_image = load_image(location, timepoints=example.timepoint, channels=["BF"], squeeze=True)
-
-        gfp_max_proj = max_proj(gfp_image, axis=0)
-        bf_plane = get_single_bf_plane(bf_image)
-        bf_std_dev = std_dev(bf_image, axis=0)
-
-        log_bf_std_dev = log_normalize_image(bf_std_dev)
-
-        gfp_max_proj = contrast_stretching(gfp_max_proj)
-        bf_plane = contrast_stretching(bf_plane)
-        log_bf_std_dev = contrast_stretching(log_bf_std_dev)
-
-        gfp_max_proj = crop_image(
-            gfp_max_proj, example.crop_x_start, example.crop_y_start, crop_size
+        bf_plane = load_processed_bf_image_crop(
+            dataset_config,
+            example.position,
+            example.timepoint,
+            example.crop_x_start,
+            example.crop_y_start,
+            crop_size,
         )
-        bf_plane = crop_image(bf_plane, example.crop_x_start, example.crop_y_start, crop_size)
-        log_bf_std_dev = crop_image(
-            log_bf_std_dev, example.crop_x_start, example.crop_y_start, crop_size
+        log_bf_std_dev = load_processed_bf_std_dev_image_crop(
+            dataset_config,
+            example.position,
+            example.timepoint,
+            example.crop_x_start,
+            example.crop_y_start,
+            crop_size,
         )
 
         image_panel_list.extend([gfp_max_proj, bf_plane, log_bf_std_dev])
@@ -177,19 +177,22 @@ def create_panel_patch_featurization(
     start_y = df[Column.SegData.START_Y_RES_0].values[0]
 
     # Load and process images
-    location = get_zarr_location_for_position(dataset_config, position=example.position)
-    gfp_image = load_image(location, timepoints=example.timepoint, channels=["EGFP"], squeeze=True)
-    bf_image = load_image(location, timepoints=example.timepoint, channels=["BF"], squeeze=True)
-
-    gfp_max_proj = max_proj(gfp_image, axis=0)
-    bf_std_dev = std_dev(bf_image, axis=0)
-    log_bf_std_dev = log_normalize_image(bf_std_dev)
-
-    gfp_max_proj = contrast_stretching(gfp_max_proj)
-    log_bf_std_dev = contrast_stretching(log_bf_std_dev)
-
-    gfp_max_proj = crop_image(gfp_max_proj, start_x, start_y, crop_size)
-    log_bf_std_dev = crop_image(log_bf_std_dev, start_x, start_y, crop_size)
+    gfp_max_proj = load_processed_egfp_image_crop(
+        dataset_config,
+        example.position,
+        example.timepoint,
+        start_x,
+        start_y,
+        crop_size,
+    )
+    log_bf_std_dev = load_processed_bf_std_dev_image_crop(
+        dataset_config,
+        example.position,
+        example.timepoint,
+        start_x,
+        start_y,
+        crop_size,
+    )
 
     # Load segmentation image
     seg_image_manifest = load_image_manifest("cdh5_classic_seg_zarr")
@@ -326,25 +329,21 @@ def create_panel_intermediate_examples(
         if abs(shear_stress_value - 12) <= 1:
             shear_stress_value = 12
 
-        location = get_zarr_location_for_position(dataset_config, position=example.position)
-        gfp_image = load_image(
-            location, timepoints=example.timepoint, channels=["EGFP"], squeeze=True
+        gfp_max_proj = load_processed_egfp_image_crop(
+            dataset_config,
+            example.position,
+            example.timepoint,
+            example.crop_x_start,
+            example.crop_y_start,
+            crop_size,
         )
-        bf_image = load_image(location, timepoints=example.timepoint, channels=["BF"], squeeze=True)
-
-        gfp_max_proj = max_proj(gfp_image, axis=0)
-        bf_std_dev = std_dev(bf_image, axis=0)
-
-        log_bf_std_dev = log_normalize_image(bf_std_dev)
-
-        gfp_max_proj = contrast_stretching(gfp_max_proj)
-        log_bf_std_dev = contrast_stretching(log_bf_std_dev)
-
-        gfp_max_proj = crop_image(
-            gfp_max_proj, example.crop_x_start, example.crop_y_start, crop_size
-        )
-        log_bf_std_dev = crop_image(
-            log_bf_std_dev, example.crop_x_start, example.crop_y_start, crop_size
+        log_bf_std_dev = load_processed_bf_std_dev_image_crop(
+            dataset_config,
+            example.position,
+            example.timepoint,
+            example.crop_x_start,
+            example.crop_y_start,
+            crop_size,
         )
 
         image_panel_list.extend([gfp_max_proj, log_bf_std_dev])
@@ -413,25 +412,22 @@ def create_panel_perturbation_examples(
     for example in examples:
         dataset_config = load_dataset_config(example.dataset_name)
         cell_line = dataset_config.cell_lines[0]
-        location = get_zarr_location_for_position(dataset_config, position=example.position)
-        gfp_image = load_image(
-            location, timepoints=example.timepoint, channels=["EGFP"], squeeze=True
+
+        gfp_max_proj = load_processed_egfp_image_crop(
+            dataset_config,
+            example.position,
+            example.timepoint,
+            example.crop_x_start,
+            example.crop_y_start,
+            crop_size,
         )
-        bf_image = load_image(location, timepoints=example.timepoint, channels=["BF"], squeeze=True)
-
-        gfp_max_proj = max_proj(gfp_image, axis=0)
-        bf_std_dev = std_dev(bf_image, axis=0)
-
-        log_bf_std_dev = log_normalize_image(bf_std_dev)
-
-        gfp_max_proj = contrast_stretching(gfp_max_proj)
-        log_bf_std_dev = contrast_stretching(log_bf_std_dev)
-
-        gfp_max_proj = crop_image(
-            gfp_max_proj, example.crop_x_start, example.crop_y_start, crop_size
-        )
-        log_bf_std_dev = crop_image(
-            log_bf_std_dev, example.crop_x_start, example.crop_y_start, crop_size
+        log_bf_std_dev = load_processed_bf_std_dev_image_crop(
+            dataset_config,
+            example.position,
+            example.timepoint,
+            example.crop_x_start,
+            example.crop_y_start,
+            crop_size,
         )
 
         image_panel_list.extend([gfp_max_proj, log_bf_std_dev])
@@ -504,7 +500,6 @@ def create_panel_retraction_fiber_blob_example(
     merge_panels = []
 
     dataset_config = load_dataset_config(example.dataset_name)
-    location = get_zarr_location_for_position(dataset_config, position=example.position)
     interval_in_min = dataset_config.time_interval_in_minutes
     if interval_in_min is None:
         raise ValueError(
@@ -512,24 +507,26 @@ def create_panel_retraction_fiber_blob_example(
         )
 
     for timepoint in timepoints:
-        gfp_image = load_image(
-            location,
-            timepoints=timepoint,
-            channels=["EGFP"],
-            squeeze=True,
+        gfp_max_proj = convert_to_uint8(
+            load_processed_egfp_image_crop(
+                dataset_config,
+                example.position,
+                timepoint,
+                example.crop_x_start,
+                example.crop_y_start,
+                crop_size,
+            )
         )
-        bf_image = load_image(location, timepoints=timepoint, channels=["BF"], squeeze=True)
-
-        gfp_max_proj = max_proj(gfp_image, axis=0)
-        bf_plane = get_single_bf_plane(bf_image, offset=5)
-
-        gfp_max_proj = contrast_stretching(gfp_max_proj)
-        bf_plane = contrast_stretching(bf_plane)
-
-        gfp_max_proj = crop_image(
-            gfp_max_proj, example.crop_x_start, example.crop_y_start, crop_size
+        bf_plane = convert_to_uint8(
+            load_processed_bf_image_crop(
+                dataset_config,
+                example.position,
+                timepoint,
+                example.crop_x_start,
+                example.crop_y_start,
+                crop_size,
+            )
         )
-        bf_plane = crop_image(bf_plane, example.crop_x_start, example.crop_y_start, crop_size)
 
         # pseudo-color GFP as green
         gfp_rgb = np.stack(

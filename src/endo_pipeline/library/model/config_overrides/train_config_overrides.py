@@ -1,6 +1,7 @@
 """Model config override classes for model training runs."""
 
 import logging
+import os
 from pathlib import Path
 
 from omegaconf import OmegaConf
@@ -9,6 +10,7 @@ from pydantic.dataclasses import dataclass
 
 from endo_pipeline.configs import load_model_config
 from endo_pipeline.io import get_output_path, get_repository_root_dir
+from endo_pipeline.io.mlflow import MLFLOW_TRACKING_URI
 from endo_pipeline.settings.diffae_configs import DIFFAE_MODEL_TRAIN_CONFIG
 from endo_pipeline.settings.workflow_defaults import DEFAULT_NUM_LATENT_DIMENSIONS
 
@@ -37,14 +39,20 @@ class ModelConfigOverrideTrain:
     latent_dim: int | None = Field(default=None, gt=0)
     """Number of dimensions for the latent space of the semantic encoder."""
 
-    train_dataframe_path: Path | None = None
-    """Path to the training dataset (image loading metadata) parquet file."""
+    train_dataframe_path: str | None = None
+    """Path or URI to the training dataset (image loading metadata) parquet file."""
 
-    val_dataframe_path: Path | None = None
-    """Path to the validation dataset (image loading metadata) parquet file."""
+    val_dataframe_path: str | None = None
+    """Path or URI to the validation dataset (image loading metadata) parquet file."""
+
+    min_epochs: int | None = Field(default=None, gt=0)
+    """Minimum number of epochs to train the model for."""
 
     max_epochs: int | None = Field(default=None, gt=0)
     """Maximum number of epochs to train the model for."""
+
+    epoch_multiplier: bool = True
+    """Apply multiplier to number of epochs based on caching."""
 
     cache_rate: float | None = Field(default=None, ge=0, le=1)
     """Fraction of the dataset to cache in memory for training."""
@@ -57,6 +65,9 @@ class ModelConfigOverrideTrain:
 
     num_gpus: int | None = Field(default=None, gt=0)
     """Number of GPUs to use. None indicates that CPU should be used."""
+
+    num_workers: int | None = Field(default=None, ge=0)
+    """Number of workers to use. None indicates use 50% available on machine."""
 
     def __post_init__(self):
         """Post initialization steps for model config overrides."""
@@ -71,9 +82,12 @@ class ModelConfigOverrideTrain:
                 logger.error("Training dataframe could not be found in config")
                 raise ValueError("Training dataframe is required and not found in the config")
             else:
-                self.train_dataframe_path = Path(train_path)
+                self.train_dataframe_path = train_path
 
-            if self.train_dataframe_path.exists():
+            if (
+                not self.train_dataframe_path.startswith("s3://")
+                and Path(self.train_dataframe_path).exists()
+            ):
                 logger.error(
                     "Training dataframe does not exist at [ %s ]", self.train_dataframe_path
                 )
@@ -86,9 +100,12 @@ class ModelConfigOverrideTrain:
                 logger.error("Validation dataframe could not be found in config")
                 raise ValueError("Validation dataframe is required and not found in the config")
             else:
-                self.val_dataframe_path = Path(val_path)
+                self.val_dataframe_path = val_path
 
-            if self.val_dataframe_path.exists():
+            if (
+                not self.val_dataframe_path.startswith("s3://")
+                and Path(self.val_dataframe_path).exists()
+            ):
                 logger.error(
                     "Validation dataframe does not exist at [ %s ]", self.val_dataframe_path
                 )
@@ -115,6 +132,9 @@ class ModelConfigOverrideTrain:
                 config, "model.semantic_encoder.num_classes", default=DEFAULT_NUM_LATENT_DIMENSIONS
             )
 
+        if self.min_epochs is None:
+            self.min_epochs = OmegaConf.select(config, "trainer.min_epochs", default=500)
+
         if self.max_epochs is None:
             self.max_epochs = OmegaConf.select(config, "trainer.max_epochs", default=1000)
 
@@ -132,6 +152,9 @@ class ModelConfigOverrideTrain:
                 "Logging interval is great than max number of epochs "
                 f"[ {self.log_steps} > {self.max_epochs} ]"
             )
+
+        if self.num_workers is None:
+            self.num_workers = int(0.5 * (os.cpu_count() or 0))
 
     def to_dict(self):
         """Convert to overrides dict."""
@@ -153,17 +176,24 @@ class ModelConfigOverrideTrain:
 
         assert self.cache_rate is not None
         assert self.replace_rate is not None
+        assert self.min_epochs is not None
         assert self.max_epochs is not None
         assert self.train_dataframe_path is not None
         assert self.val_dataframe_path is not None
 
-        # Calculate effective epochs.
-        multiplier = (1 - self.cache_rate) / (self.cache_rate * self.replace_rate) + 1
-        effective_min_epochs = int(5000 * multiplier)
-        effective_max_epochs = max(
-            int(self.max_epochs * multiplier), int(1.5 * effective_min_epochs)
-        )
-        effective_save_images_epochs = int(10 * multiplier)
+        # Calculate effective epochs, if requested. Otherwise, set min and max
+        # number of epochs to exactly the requested number.
+        if self.epoch_multiplier:
+            multiplier = (1 - self.cache_rate) / (self.cache_rate * self.replace_rate) + 1
+            effective_min_epochs = int(self.min_epochs * multiplier)
+            effective_max_epochs = max(
+                int(self.max_epochs * multiplier), int(1.5 * effective_min_epochs)
+            )
+            effective_save_images_epochs = int(10 * multiplier)
+        else:
+            effective_min_epochs = self.min_epochs
+            effective_max_epochs = self.max_epochs
+            effective_save_images_epochs = 1
 
         overrides = {
             # update experiment name and run name
@@ -187,10 +217,10 @@ class ModelConfigOverrideTrain:
             # set number of latent dimensions
             "lat_dim": self.latent_dim,
             # set training and validation dataframe paths and caching parameters
-            "data.train_dataloaders.dataset.dataframe_path": self.train_dataframe_path.as_posix(),
+            "data.train_dataloaders.dataset.dataframe_path": self.train_dataframe_path,
             "data.train_dataloaders.dataset.cache_rate": self.cache_rate,
             "data.train_dataloaders.dataset.replace_rate": self.replace_rate,
-            "data.val_dataloaders.dataset.dataframe_path": self.val_dataframe_path.as_posix(),
+            "data.val_dataloaders.dataset.dataframe_path": self.val_dataframe_path,
             "data.val_dataloaders.dataset.cache_rate": self.cache_rate,
             "data.val_dataloaders.dataset.replace_rate": self.replace_rate,
             # override the effective epochs calculations
@@ -204,7 +234,21 @@ class ModelConfigOverrideTrain:
             "trainer.accelerator": "cpu" if self.num_gpus is None else "gpu",
             "trainer.devices": self.num_gpus or 1,
             "trainer.precision": "bf16-mixed" if self.num_gpus is None else "16-mixed",
+            # set number of workers
+            "data.train_dataloaders.num_workers": self.num_workers,
+            "data.train_dataloaders.dataset.num_init_workers": self.num_workers,
+            "data.train_dataloaders.dataset.num_replace_workers": self.num_workers,
+            "data.val_dataloaders.num_workers": self.num_workers,
+            "data.val_dataloaders.dataset.num_init_workers": self.num_workers,
+            "data.val_dataloaders.dataset.num_replace_workers": self.num_workers,
+            # set logger uri
+            "logger.mlflow.tracking_uri": MLFLOW_TRACKING_URI,
         }
+
+        # If no workers, turn off persistent workers.
+        if self.num_workers == 0:
+            overrides["data.train_dataloaders.persistent_workers"] = False
+            overrides["data.val_dataloaders.persistent_workers"] = False
 
         # If single GPU or none, use "auto" strategy
         if self.num_gpus is None or self.num_gpus == 1:

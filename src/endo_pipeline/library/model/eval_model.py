@@ -10,7 +10,11 @@ if typing.TYPE_CHECKING:
     from cyto_dl.api import CytoDLModel
     from omegaconf import DictConfig, ListConfig
 
-from endo_pipeline.configs import DatasetConfig, get_position_integer_from_zarr_file_path
+from endo_pipeline.configs import (
+    DatasetConfig,
+    get_position_integer_from_zarr_file_path,
+    load_dataset_config,
+)
 from endo_pipeline.io import load_dataframe, load_model
 from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
 from endo_pipeline.manifests import (
@@ -18,6 +22,7 @@ from endo_pipeline.manifests import (
     get_dataframe_location_for_dataset,
     get_model_location_for_run,
     get_most_recent_run_name,
+    get_zarr_location_for_position,
     load_dataframe_manifest,
 )
 from endo_pipeline.settings import (
@@ -251,7 +256,7 @@ def preprocess_tracking_manifest_for_model_eval(
 
     # define which columns to compute and keep from the dataframe
     columns_to_keep = [
-        Column.ZARR_PATH,
+        Column.DATASET,
         Column.POSITION,
         Column.TIMEPOINT,
         Column.TRACK_ID,
@@ -294,7 +299,7 @@ def preprocess_tracking_manifest_for_model_eval(
         df[col] = df[col] // (2**resolution)
     # group df by zarr_path and convert start and end coordinates to list
     grouped_df = (
-        df.groupby([Column.ZARR_PATH, Column.POSITION, Column.TIMEPOINT])
+        df.groupby([Column.DATASET, Column.POSITION, Column.TIMEPOINT])
         .agg(
             {
                 Column.SegData.START_Y_RES_0: lambda x: list(x),
@@ -315,7 +320,6 @@ def preprocess_tracking_manifest_for_model_eval(
     grouped_df[CytoDLLoadDataKeys.TIME_END] = grouped_df[Column.TIMEPOINT]
     grouped_df = grouped_df.rename(
         {
-            Column.ZARR_PATH: CytoDLLoadDataKeys.FILE_PATH,
             Column.TIMEPOINT: CytoDLLoadDataKeys.TIMEPOINT,
             Column.SegData.START_X_RES_0: CytoDLLoadDataKeys.START_X,
             Column.SegData.START_Y_RES_0: CytoDLLoadDataKeys.START_Y,
@@ -323,6 +327,26 @@ def preprocess_tracking_manifest_for_model_eval(
             Column.SegData.END_Y_RES_0: CytoDLLoadDataKeys.END_Y,
         },
         axis=1,
+    )
+
+    # Get mapping of dataset and position to zarr location. Prefer grabbing
+    # local paths first, which is faster to load, if it exists. Otherwise, try
+    # to grab the S3 URI.
+    unique_datasets = grouped_df[Column.DATASET].unique()
+    unique_positions = grouped_df[Column.POSITION].unique()
+    zarr_file_locs = {}
+    for dataset in unique_datasets:
+        dataset_config = load_dataset_config(dataset)
+        for position in unique_positions:
+            loc = get_zarr_location_for_position(dataset_config, position)
+            if loc.path is not None and loc.path.exists():
+                zarr_file_locs[(dataset, position)] = loc.path.as_posix()
+            elif loc.s3uri is not None:
+                zarr_file_locs[(dataset, position)] = loc.s3uri
+
+    # Add file path column based on dataset name and position
+    grouped_df[CytoDLLoadDataKeys.FILE_PATH] = grouped_df[[Column.DATASET, Column.POSITION]].apply(
+        lambda row: zarr_file_locs[row[Column.DATASET], row[Column.POSITION]], axis=1
     )
 
     # only load images for specified position indices
@@ -354,8 +378,8 @@ def preprocess_tracking_manifest_for_model_eval(
             lambda x: z_slice_bounds_per_position.get(x, {}).get(CytoDLLoadDataKeys.Z_STEP, 1)
         )
 
-    # remove temporary column with position index
-    grouped_df = grouped_df.drop(columns=[Column.POSITION])
+    # remove temporary column with dataset name and position index
+    grouped_df = grouped_df.drop(columns=[Column.DATASET, Column.POSITION])
 
     return grouped_df
 

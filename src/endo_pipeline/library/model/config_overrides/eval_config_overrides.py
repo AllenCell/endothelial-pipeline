@@ -1,6 +1,7 @@
 """Model config override classes for model evaluation (inference) runs."""
 
 import logging
+import os
 from pathlib import Path
 from typing import Any, Literal
 
@@ -30,8 +31,8 @@ class ModelConfigOverrideEval:
     template_config: str = DIFFAE_MODEL_EVAL_CONFIG
     """Name of model config template."""
 
-    eval_dataframe_path: Path | None = None
-    """Path to the evaluation dataset (image loading metadata) parquet file."""
+    eval_dataframe_path: str | None = None
+    """Path or URI to the evaluation dataset (image loading metadata) parquet file."""
 
     cache_rate: float | None = Field(default=None, ge=0, le=1)
     """Fraction of the dataset to cache in memory for evaluation."""
@@ -41,6 +42,9 @@ class ModelConfigOverrideEval:
 
     num_gpus: int | None = Field(default=None, gt=0)
     """Number of GPUs to use. None indicates that CPU should be used."""
+
+    num_workers: int | None = Field(default=None, ge=0)
+    """Number of workers to use. None indicates use 50% available on machine."""
 
     def __post_init__(self):
         """Post initialization steps for model config overrides."""
@@ -55,9 +59,12 @@ class ModelConfigOverrideEval:
                 logger.error("Evaluation dataframe could not be found in config")
                 raise ValueError("Evaluation dataframe is required and not found in the config")
             else:
-                self.eval_dataframe_path = Path(eval_path)
+                self.eval_dataframe_path = eval_path
 
-            if self.eval_dataframe_path.exists():
+            if (
+                not self.eval_dataframe_path.startswith("s3://")
+                and Path(self.eval_dataframe_path).exists()
+            ):
                 logger.error(
                     "Evaluation dataframe does not exist at [ %s ]", self.eval_dataframe_path
                 )
@@ -78,7 +85,12 @@ class ModelConfigOverrideEval:
             if accelerator == "gpu":
                 self.num_gpus = OmegaConf.select(config, "trainer.devices", default=1)
 
-    def to_dict(self, dataset_name: str, crop_pattern: Literal["grid", "tracked"]):
+        if self.num_workers is None:
+            self.num_workers = int(0.5 * (os.cpu_count() or 0))
+
+    def to_dict(
+        self, dataset_name: str, crop_pattern: Literal["grid", "tracked"], suffix: str = ""
+    ):
         """Convert to overrides dict."""
         # Create directories for outputs if they do not exist.
         output_path = get_output_path(
@@ -91,7 +103,7 @@ class ModelConfigOverrideEval:
 
         # Build save suffix for outputs
         base_suffix = f"{dataset_name}_{self.model_manifest_name}_{self.run_name}"
-        save_suffix = f"{base_suffix}_{crop_pattern}_features"
+        save_suffix = f"{base_suffix}_{crop_pattern}_features{suffix}"
 
         assert self.eval_dataframe_path is not None
 
@@ -110,7 +122,7 @@ class ModelConfigOverrideEval:
             # remove the validation dataloader (Which is not needed for eval)
             "data.val_dataloaders": None,
             # set evaluation dataframe paths and caching parameters
-            "data.predict_dataloaders.dataset.dataframe_path": self.eval_dataframe_path.as_posix(),
+            "data.predict_dataloaders.dataset.dataframe_path": self.eval_dataframe_path,
             "data.predict_dataloaders.dataset.cache_rate": self.cache_rate,
             "data.predict_dataloaders.dataset.replace_rate": self.replace_rate,
             # turn off all callbacks and add prediction saver callback
@@ -132,6 +144,10 @@ class ModelConfigOverrideEval:
             "trainer.accelerator": "cpu" if self.num_gpus is None else "gpu",
             "trainer.devices": self.num_gpus or 1,
             "trainer.precision": "bf16-mixed" if self.num_gpus is None else "16-mixed",
+            # set number of workers
+            "data.predict_dataloaders.num_workers": self.num_workers,
+            "data.predict_dataloaders.dataset.num_init_workers": self.num_workers,
+            "data.predict_dataloaders.dataset.num_replace_workers": self.num_workers,
         }
 
         # Additional overrides specific to track-based crops
