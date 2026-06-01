@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Callable
 from pathlib import Path
-from typing import Literal, cast
+from typing import Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -76,47 +76,6 @@ def calculate_global_center_plane(
         "mean_center_plane": round(mean),
         "std_dev_center_plane": round(std_dev),
     }
-
-
-def get_center_plane_for_position(dataset_config: DatasetConfig, position: int) -> int:
-    """
-    Calculate the global center plane for a single position across all frames.
-
-    This function determines the center plane of a brightfield (BF) z-stack for a given position
-    by analyzing the standard deviations of pixel intensities across all frames. The center plane
-    is calculated as the plane with the lowest standard deviation for each frame, and the global
-    center plane is determined as the average of these values across all frames.
-
-    Parameters
-    ----------
-    dataset_config
-        Configuration object with dataset-specific information.
-    position
-        The position index.
-
-    Returns
-    -------
-    int
-        The global center plane index for the specified position.
-    """
-
-    zarr_location = get_zarr_location_for_position(dataset_config, position)
-    bf_stack_all_frames = load_image(zarr_location, channels=["BF"], level=1)
-
-    center_planes = []
-
-    for frame in range(0, dataset_config.duration, 1):
-        bf_stack = bf_stack_all_frames[frame].squeeze()
-        stdevs = bf_stack.std(axis=(1, 2)).compute()
-        center_plane_selection = cast(float, max(0, np.argmin(stdevs)))
-        center_planes.append(center_plane_selection)
-
-    del bf_stack_all_frames, stdevs  # Free memory after processing
-
-    mean_center_plane = np.mean(center_planes)
-    global_center_plane = round(mean_center_plane, 0)
-
-    return int(global_center_plane)
 
 
 def get_plane_indices(
