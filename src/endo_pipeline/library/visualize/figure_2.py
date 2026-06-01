@@ -764,8 +764,8 @@ def make_3d_vector_field_plot_panel(
         [],
         color="gray",
         marker="$\\rightarrow$",
-        markersize=18,
-        linewidth=0.1,
+        markersize=8,
+        linewidth=0.0,
         markevery=[0],
         label="$\mathbf{f}(\mathbf{x})$",
     )
@@ -815,6 +815,8 @@ def make_3d_vector_field_plot_panel(
     ax.set_xlim(theta_lims)
     ax.set_ylabel(col_labels[1], labelpad=-6)
     ax.set_yticks(r_ticks)
+    for tick in ax.yaxis.get_majorticklabels():
+        tick.set_ha("right")
     ax.set_ylim(r_lims)
     ax.set_zlabel(col_labels[2], labelpad=-6)
     ax.set_zticks(rho_ticks)
