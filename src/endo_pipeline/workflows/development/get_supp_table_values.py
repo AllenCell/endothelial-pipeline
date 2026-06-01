@@ -21,9 +21,9 @@ def main():
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.workflow_defaults import (
         ANNOTATIONS_TO_FILTER_OUT_FOR_SEGMENTATIONS,
+        CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
+        CELL_CENTERED_FEATURES_UNFILTERED_MANIFEST_NAME,
         DEFAULT_MODEL_MANIFEST_NAME,
-        DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME,
-        DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED,
     )
 
     logger = logging.getLogger(__name__)
@@ -93,7 +93,9 @@ def main():
 
         else:
             # load segmentation features dataframe
-            live_seg_manifest = load_dataframe_manifest(DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME)
+            live_seg_manifest = load_dataframe_manifest(
+                CELL_CENTERED_FEATURES_UNFILTERED_MANIFEST_NAME
+            )
             live_seg_location = get_dataframe_location_for_dataset(live_seg_manifest, dataset_name)
             live_seg_feats_df_delayed = load_dataframe(live_seg_location, delay=True)
             cols_to_compute = [
@@ -191,7 +193,7 @@ def main():
             del live_seg_feats_df
 
             live_seg_filtered_manifest = load_dataframe_manifest(
-                DEFAULT_PC_DIFFAE_SEG_FEATURE_MANIFEST_NAME_FILTERED
+                CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME
             )
             live_seg_filtered_location = get_dataframe_location_for_dataset(
                 live_seg_filtered_manifest, dataset_name

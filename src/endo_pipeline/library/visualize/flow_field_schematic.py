@@ -12,7 +12,7 @@ from matplotlib.patches import FancyArrowPatch, Rectangle
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-from endo_pipeline.io import join_sorted_strings, load_dataframe, load_image, save_plot_to_path
+from endo_pipeline.io import join_sorted_strings, load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_steady_state
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
     _check_and_adjust_km_inputs,
@@ -24,17 +24,11 @@ from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
-from endo_pipeline.library.process.image_processing import (
-    contrast_stretching,
-    crop_image,
-    log_normalize_image,
-    std_dev,
-)
+from endo_pipeline.library.process.image_processing import load_processed_bf_std_dev_image_crop
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.manifests import (
     DataframeManifest,
     get_dataframe_location_for_dataset,
-    get_zarr_location_for_position,
     load_dataframe_manifest,
 )
 from endo_pipeline.settings.autocorrelations import AUTOCORRELATION_DATAFRAME_MANIFEST_PREFIX
@@ -253,16 +247,10 @@ def make_real_image_panel(
     processed_images = []
     for example in FLOW_FIELD_CONSTRUCTION_EXAMPLE_IMAGES:
         dataset_config = load_dataset_config(example.dataset_name)
-        location = get_zarr_location_for_position(dataset_config, position=example.position)
-        bf_image = load_image(location, timepoints=example.timepoint, channels=["BF"], squeeze=True)
-
-        bf_std_dev = std_dev(bf_image, axis=0)
-
-        log_bf_std_dev = log_normalize_image(bf_std_dev)
-        log_bf_std_dev = contrast_stretching(log_bf_std_dev)
-
-        log_bf_std_dev = crop_image(
-            log_bf_std_dev,
+        log_bf_std_dev = load_processed_bf_std_dev_image_crop(
+            dataset_config,
+            example.position,
+            example.timepoint,
             example.crop_x_start,
             example.crop_y_start,
             fov_crop_size,

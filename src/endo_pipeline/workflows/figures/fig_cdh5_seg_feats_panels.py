@@ -30,6 +30,12 @@ def main() -> None:
 
     out_dir = get_output_path(__file__)
 
+    # Set the panel sizes
+    panel_A_height = 3.05
+    panel_B_height = 2.3
+    panel_C_height = panel_B_height
+    panel_B_and_C_width = 4.8
+
     # the panels produced by make_classic_feature_panels are arranged into
     # the schematic in panel A using Adobe Illustrator, not here in the code
     make_imaging_panels(
@@ -56,22 +62,14 @@ def main() -> None:
             features=features,
             ncols=3,
             out_dir=out_dir / "feature_contact_sheet",
-            figure_width=5.5,
+            figure_width=panel_B_and_C_width,
+            figure_height_scaling=0.7,
         )
         classic_feat_fig_example_paths[dataset] = classic_feat_fig_example_path
 
-    schematic_dir = [Path(fp) for fp in figure_assets.__path__]
-    schematic_name = "cdh5_classic_seg_schematic.svg"
-    schematic_fps = [fp for fdir in schematic_dir for fp in fdir.rglob(schematic_name)]
-    if len(schematic_fps) == 1:
-        schematic_fp = schematic_fps[0]
-    else:
-        raise FileNotFoundError(
-            f"Expected to find exactly one file matching {schematic_name} in {schematic_dir}, but found {len(schematic_fps)}: {schematic_fps}"
-        )
-    panel_A_height = 3.05
-    panel_B_height = 2.3
-    panel_C_height = panel_B_height
+    assets_dir = Path(figure_assets.__path__[0])
+    schematic_fp = assets_dir / "cdh5_classic_seg_schematic.svg"
+    feature_diagram_fp = assets_dir / "cdh5_seg_feat_diagrams.svg"
 
     figure_panels = [
         FigurePanel(
@@ -87,7 +85,7 @@ def main() -> None:
             path=classic_feat_fig_example_paths[datasets[0]],
             x_position=0,
             y_position=panel_A_height,
-            x_offset=0,
+            x_offset=-0.1,
             y_offset=0.05,
         ),
         FigurePanel(
@@ -95,7 +93,15 @@ def main() -> None:
             path=classic_feat_fig_example_paths[datasets[1]],
             x_position=0,
             y_position=panel_A_height + panel_B_height + 0.05,
-            x_offset=0,
+            x_offset=-0.1,
+            y_offset=0.05,
+        ),
+        FigurePanel(
+            letter="D",
+            path=feature_diagram_fp,
+            x_position=panel_B_and_C_width + 0.2,
+            y_position=panel_A_height,
+            x_offset=-0.03,
             y_offset=0.05,
         ),
     ]

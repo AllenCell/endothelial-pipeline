@@ -11,7 +11,7 @@ parameters:
   - 20250818_20X
   - 20250827_20X
   crop_size: 128
-  resolution_level: 1
+  condition_on: bf
   include_cell_piling: false
 locations:
   20250927_no_log_norm:

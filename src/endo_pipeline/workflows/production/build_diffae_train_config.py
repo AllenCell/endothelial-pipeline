@@ -16,6 +16,7 @@ def main(
     condition_on: Literal["bf", "cdh5"] = DEFAULT_IMAGE_TYPE_FOR_SEMANTIC_CONDITIONING,
     latent_dim: int = DEFAULT_NUM_LATENT_DIMENSIONS,
     include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
+    num_workers: int | None = None,
 ) -> None:
     """
     Build config for training a DiffAE model.
@@ -26,6 +27,20 @@ def main(
     training config and overriding with training run-specific configuration.
     These configurations are saved locally, and then be used by the
     `train-diffae` workflow to train models.
+
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe build-diffae-train-config -vd
+    ```
+
+    To run the workflow with modified crop size:
+
+    ```bash
+    uv run endopipe build-diffae-train-config  CROP_PATTERN --datasets DATASET_NAME
+    ```
 
     ## Training run naming
 
@@ -53,25 +68,23 @@ def main(
     the `latent_dim` parameter. The default is `DEFAULT_NUM_LATENT_DIMENSIONS`
     from `endo_pipeline.settings.workflow_defaults.`
 
-    **Cell piling exclusion**
+    ## Cell piling
 
     By default, timepoints with cell piling annotations are excluded in the
-    training and validation datasets from `create-diffae-training-dataframe`,
+    training and validation datasets from `create-diffae-train-dataframe`,
     unless `include_cell_piling` is True. This means that by default, the model
     will be trained on data that does not include cell piling. To train a model
-    that does "see" cell piling,  run `create-diffae-training-dataframe` with
-    the flag `--include-cell-piling` and then run this training script with the
-    same flag.
+    that does "see" cell piling,  run `create-diffae-train-dataframe` with the
+    flag `--include-cell-piling` and then run this workflow with the same flag.
 
-    When `include_cell_piling` is True, the workflow will use the "standard"
-    dataframe manifest `diffae_training_dataframe` for training with the suffix
-    `_include_cell_piling`. When False, the suffix is `_exclude_cell_piling`.
+    When `include_cell_piling` is True, the workflow will use the dataframe
+    manifest with the suffix `_include_cell_piling`. When False, the suffix is
+    `_exclude_cell_piling`.
 
     ## Workflow demo
 
-    If demo mode is enabled, this workflow will set up the training config with
-    reduced epochs and modified cache and replaces rates. The config will have
-    the suffix `_demo`.
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will set up the
+    training config with reduced epochs and modified cache and replaces rates.
 
     Parameters
     ----------
@@ -88,10 +101,12 @@ def main(
     include_cell_piling
         True to include timepoints with cell piling in data used for training,
         False to exclude.
+    num_workers
+        Number of workers to use for loading data. If not given, estimate based
+        on total number of logical CPUs in the system.
     """
 
     import logging
-    from pathlib import Path
 
     from cyto_dl.api import CytoDLModel
 
@@ -107,7 +122,10 @@ def main(
         save_model_manifest,
     )
     from endo_pipeline.settings.diffae_configs import DIFFAE_MODEL_TRAIN_CONFIG
-    from endo_pipeline.settings.workflow_defaults import DIFFAE_IMAGE_LOADING_KEY_PREFIX
+    from endo_pipeline.settings.workflow_defaults import (
+        DIFFAE_IMAGE_LOADING_KEY_PREFIX,
+        DIFFAE_TRAIN_DATAFRAME_MANIFEST_PREFIX,
+    )
 
     logger = logging.getLogger(__name__)
 
@@ -118,13 +136,17 @@ def main(
     # rate for actual training can be adjusted if needed.
     if DEMO_MODE:
         name_suffix = "_demo"
-        max_num_epochs = 1
+        min_num_epochs = 1
+        max_num_epochs = 3
+        epoch_multiplier = False
         log_every_n_steps = 1
         cache_rate = 1.0
         replace_rate = 0.1
     else:
         name_suffix = ""
-        max_num_epochs = 1000
+        min_num_epochs = 5000
+        max_num_epochs = 20000
+        epoch_multiplier = True
         log_every_n_steps = 50
         cache_rate = 1.0
         replace_rate = 0.5
@@ -138,15 +160,15 @@ def main(
     # Build dataframe manifest name to load training and validation dataframes.
     # Note that the dataframe manifest name does not include the patch size or
     # conditioning type, as these are not relevant for the dataframe itself.
-    dataframe_manifest_name = f"diffae_training_dataframe{piling_name}{name_suffix}"
+    dataframe_manifest_name = f"{DIFFAE_TRAIN_DATAFRAME_MANIFEST_PREFIX}{piling_name}{name_suffix}"
 
     try:
         dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
     except FileNotFoundError:
         logger.error(
-            "Dataframe manifest [ %s ] not found. "
-            "Please run the create_diffae_training_dataframe script first "
-            "with matching settings for resolution level and cell piling.",
+            "Dataframe manifest '%s' not found. "
+            "Please run the create_diffae_train_dataframe workflow first "
+            "with matching settings for cell piling.",
             dataframe_manifest_name,
         )
         raise
@@ -165,6 +187,7 @@ def main(
     # Build the model manifest name, if not provided.
     if model_manifest_name is None:
         model_manifest_name = f"diffae{patch_name}{condition_name}{latent_name}{piling_name}"
+        model_manifest_name = f"{model_manifest_name}{name_suffix}"
 
     # Create or load the model manifest.
     manifest = create_model_manifest(model_manifest_name, __file__)
@@ -183,7 +206,7 @@ def main(
     config_path = get_output_path(
         "models", model_manifest_name, run_name, "configs", include_timestamp=False
     )
-    config_file = config_path / "train.yaml"
+    config_file = config_path / f"train{name_suffix}.yaml"
 
     # Build the training config overrides.
     overrides = ModelConfigOverrideTrain(
@@ -192,16 +215,19 @@ def main(
         crop_size=crop_size,
         condition_key=f"{DIFFAE_IMAGE_LOADING_KEY_PREFIX}{condition_on}",
         latent_dim=latent_dim,
-        train_dataframe_path=Path(train_dataframe_path),
-        val_dataframe_path=Path(val_dataframe_path),
+        train_dataframe_path=train_dataframe_path,
+        val_dataframe_path=val_dataframe_path,
+        min_epochs=min_num_epochs,
         max_epochs=max_num_epochs,
+        epoch_multiplier=epoch_multiplier,
         cache_rate=cache_rate,
         replace_rate=replace_rate,
         log_steps=log_every_n_steps,
         num_gpus=NUM_GPUS,
+        num_workers=num_workers,
     )
 
-    # # Initialize the model with training template and overrides and save config.
+    # Initialize the model with training template and overrides and save config.
     cytodl_model = CytoDLModel()
     cytodl_model.load_config_from_dict(template_config)
     cytodl_model.override_config(overrides.to_dict())

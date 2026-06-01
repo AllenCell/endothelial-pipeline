@@ -11,6 +11,7 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     config_name: str | None = None,
+    num_workers: int | None = None,
 ) -> None:
     """
     Build config for evaluating a DiffAE model.
@@ -22,17 +23,35 @@ def main(
     configuration. These configurations are saved locally, and can then be used
     by the `eval-diffae` workflow to calculate latent features.
 
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe build-diffae-eval-config CROP_PATTERN -vd
+    ```
+
+    To run the workflow with for a single dataset:
+
+    ```bash
+    uv run endopipe build-diffae-eval-config CROP_PATTERN --datasets DATASET_NAME
+    ```
+
     ## Crop patterns
 
     Two types of crop patterns are supported for model evaluation: `grid` or
     `tracked`. Specific configuration for model evaluation on grid-based vs.
     track-based crops are applied to the base model configuration.
 
+    ## Dataset collection
+
+    If datasets are not provided, the workflow will use datasets in the
+    `diffae_model_training` dataset collection.
+
     ## Workflow demo
 
-    The `--demo-mode` (aka `-d`) flag can be used to run a simplified version of
-    this workflow for testing purposes (e.g. during code review). The workflow
-    will only create the config for a single dataset.
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will set up the
+    evaluation config for a single dataset.
 
     Parameters
     ----------
@@ -46,10 +65,12 @@ def main(
         Name for the model run to use for evaluation.
     config_name
         Evaluation override config applied over the trained model config.
+    num_workers
+        Number of workers to use for loading data. If not given, estimate based
+        on total number of logical CPUs in the system.
     """
 
     import logging
-    from pathlib import Path
 
     from cyto_dl.api import CytoDLModel
 
@@ -87,14 +108,14 @@ def main(
 
     # Build dataframe manifest name to load evaluation dataframes.
     name_suffix = "_demo" if DEMO_MODE else ""
-    dataframe_manifest_name = f"{DIFFAE_EVAL_DATAFRAME_MANIFEST_PREFIX}{crop_pattern}{name_suffix}"
+    dataframe_manifest_name = f"{DIFFAE_EVAL_DATAFRAME_MANIFEST_PREFIX}_{crop_pattern}{name_suffix}"
 
     try:
         dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
     except FileNotFoundError:
         logger.error(
-            "Dataframe manifest [ %s ] not found. "
-            "Please run the create_diffae_eval_dataframe script first "
+            "Dataframe manifest '%s' not found. "
+            "Please run the create_diffae_eval_dataframe workflow first "
             "with matching settings for crop pattern.",
             dataframe_manifest_name,
         )
@@ -134,15 +155,16 @@ def main(
         # Build the evaluation config overrides.
         overrides = ModelConfigOverrideEval(
             model_manifest_name=model_manifest_name,
-            eval_dataframe_path=Path(dataframe_path),
+            eval_dataframe_path=dataframe_path,
             run_name=run_name,
             num_gpus=NUM_GPUS,
+            num_workers=num_workers,
         )
 
         # Initialize the model with evaluation base config, apply overrides, and save config.
         cytodl_model = CytoDLModel()
         cytodl_model.load_config_from_dict(base_config)
-        cytodl_model.override_config(overrides.to_dict(dataset, crop_pattern))
+        cytodl_model.override_config(overrides.to_dict(dataset, crop_pattern, name_suffix))
         cytodl_model.save_config(config_file)
         logger.info("Evaluation config saved to [ %s ]", config_file)
 

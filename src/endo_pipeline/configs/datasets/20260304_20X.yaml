@@ -11,7 +11,7 @@ microscope: 3i
 objective: 20X
 shear_stress_regime: medium
 pixel_size_xy_in_um: 0.382
-duration: 566
+duration: 564
 time_interval_in_minutes: 5.0
 n_total_positions: 6
 original_channel_indices:
@@ -29,7 +29,7 @@ zarr_channel_indices:
 channel_names: [EGFP, BF]
 flow_conditions:
 - start: -18
-  stop: 565
+  stop: 563
   shear_stress: 12.22
 include_scenes: null
 notes: TP 565-566 empty (no slide), timelapse ended ~1.5h early. High density, very
@@ -43,19 +43,19 @@ timepoint_annotations:
     4: [305]
     5: [305, 314]
   auto_bf_temp_artifact:
-    0: [314, 564]
-    1: [284, 314, 564]
-    2: [314, 564]
-    3: [564, 565]
-    4: [564, 565]
-    5: [564, 565]
+    0: [314]
+    1: [284, 314]
+    2: [314]
+    3: []
+    4: []
+    5: []
   auto_gfp_scope_error:
-    0: [564, 565, 566]
-    1: [564, 565, 566]
-    2: [564, 565, 566]
-    3: [564, 565]
-    4: [564, 565]
-    5: [564, 565]
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
   not_steady_state:
     0: [[0, 152]]
     1: [[0, 152]]
@@ -64,12 +64,12 @@ timepoint_annotations:
     4: [[0, 152]]
     5: [[0, 152]]
   cell_piling:
-    0: [[384, 576]]
-    1: [[432, 576]]
-    2: [[384, 576]]
-    3: [[384, 576]]
-    4: [[432, 576]]
-    5: [[384, 576]]
+    0: [[384, 563]]
+    1: [[432, 563]]
+    2: [[384, 563]]
+    3: [[384, 563]]
+    4: [[432, 563]]
+    5: [[384, 563]]
 position_annotations: null
 center_z_plane:
   0: 12

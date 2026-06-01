@@ -1,9 +1,11 @@
 from endo_pipeline.cli import Datasets
 
 
-def main(datasets: Datasets) -> None:
+def main(datasets: Datasets | None = None) -> None:
     """
-    Plot segmentation features for given datasets as line plots and histograms.
+    Plot segmentation features for given datasets.
+
+    #cdh5-segmentation #cdh5-tracking #nuclei-prediction
 
     The following features are plotted:
 
@@ -22,6 +24,30 @@ def main(datasets: Datasets) -> None:
     - number of nuclei at each timepoint
     - number of tracks after filtering
 
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe plot-segmentation-features -vd
+    ```
+
+    To run the workflow for a single dataset:
+
+    ```bash
+    uv run endopipe plot-segmentation-features --datasets DATASET_NAME
+    ```
+
+    ## Dataset collection
+
+    If datasets are not provided, the workflow will use datasets in the
+    `live_cdh5_seg_based_feat_datasets` dataset collection.
+
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will plot features
+    for a single position of a single dataset.
+
     Parameters
     ----------
     datasets
@@ -34,7 +60,7 @@ def main(datasets: Datasets) -> None:
     import matplotlib.pyplot as plt
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
         calculate_derived_data_dynamics_dependent,
@@ -78,10 +104,15 @@ def main(datasets: Datasets) -> None:
         Column.SegData.NUM_TRACKS_AFTER_FILTERING: plot_line_only,
     }
 
+    dataset_names = datasets or get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
+
     # If running in demo mode, only process the first dataset.
     if DEMO_MODE:
-        logger.info(f"Running in demo mode. Only processing first dataset '{datasets[0]}'.")
-        datasets = datasets[:1]
+        logger.warning("DEMO_MODE - Limiting to one dataset")
+        dataset_names = dataset_names[:1]
+        max_positions = 1
+    else:
+        max_positions = None
 
     # Create output directories
     output_path_line = get_output_path(__file__, "lineplots")
@@ -95,7 +126,7 @@ def main(datasets: Datasets) -> None:
         + [Column.SegDataFilters.IS_INCLUDED]
     )
 
-    for dataset_name in datasets:
+    for dataset_name in dataset_names:
         # Load dataset config.
         dataset_config = load_dataset_config(dataset_name)
 
@@ -116,8 +147,12 @@ def main(datasets: Datasets) -> None:
         x_feature = Column.SegData.TIME_HRS
         x_metadata = COLUMN_METADATA[x_feature]
 
+        positions = dataset_config.zarr_positions
+        if max_positions is not None:
+            positions = positions[:max_positions]
+
         # Iterate over each position in the dataset and generate plots
-        for position in dataset_config.zarr_positions:
+        for position in positions:
             logger.info(f"Plotting features for dataset '{dataset_name}' position '{position}'")
             df_for_position = df[df[Column.POSITION] == position]
 
@@ -157,10 +192,6 @@ def main(datasets: Datasets) -> None:
                     save_plot_to_path(
                         fig_hist, output_path_hist, feature_filename, tight_layout=False
                     )
-
-            if DEMO_MODE:
-                logger.info("Running in demo mode. Only processing first position.")
-                break
 
 
 if __name__ == "__main__":

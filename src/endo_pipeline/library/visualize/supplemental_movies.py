@@ -11,73 +11,17 @@ import numpy as np
 from tqdm import tqdm
 
 from endo_pipeline.configs import DatasetConfig, get_flow_at_frame, load_dataset_config
-from endo_pipeline.io import load_image
-from endo_pipeline.library.process.image_processing import contrast_stretching, stitch_with_overlap
-from endo_pipeline.manifests import get_zarr_location_for_position
-from endo_pipeline.settings import LOG_EPSILON
+from endo_pipeline.library.process.image_processing import (
+    convert_to_uint8,
+    load_processed_bf_image,
+    load_processed_bf_std_dev_image,
+    load_processed_egfp_image,
+    stitch_with_overlap,
+)
 from endo_pipeline.settings.figures import MAX_SUPP_MOVIE_HEIGHT, MAX_SUPP_MOVIE_WIDTH
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
 
 logger = logging.getLogger(__name__)
-
-
-def load_egfp_image(
-    config: DatasetConfig, position: int, timepoints: int | list[int], level: int = 0
-) -> da.Array:
-    """Load EGFP max projection image for given timepoint(s)."""
-
-    location = get_zarr_location_for_position(config, position=position)
-    image = load_image(location, channels=["EGFP"], timepoints=timepoints, level=level)
-
-    # Compute max projection along z axis
-    image = image.max(axis=2)
-
-    # Compute percentiles and clip
-    low = da.percentile(image, 10, axis=(2, 3), keepdims=True)
-    high = da.percentile(image, 98, axis=(2, 3), keepdims=True)
-    image = da.clip(image, low, high)
-
-    # Normalize between -1 and 1
-    return (image - low) / (high - low + 1e-8) * 2.0 - 1.0
-
-
-def load_bf_image(
-    config: DatasetConfig, position: int, timepoints: int | list[int], level: int = 0
-) -> da.Array:
-    """Load BF single focal plane image for given timepoint(s)."""
-
-    if config.center_z_plane is None:
-        raise ValueError("'center_z_plane' is None, cannot load single focal plane for BF channel")
-
-    location = get_zarr_location_for_position(config, position=position)
-    image = load_image(location, channels=["BF"], timepoints=timepoints, level=level)
-
-    focal_plane = config.center_z_plane[position]
-    visualize_plane = focal_plane - 5
-    return image[:, :, visualize_plane, :, :]
-
-
-def load_bf_std_dev_image(
-    config: DatasetConfig, position: int, timepoints: int | list[int], level: int = 0
-) -> da.Array:
-    """Load BF log standard deviation projection image for given timepoint(s)."""
-
-    location = get_zarr_location_for_position(config, position=position)
-    image = load_image(location, channels=["BF"], timepoints=timepoints, level=level)
-
-    # Compute std projection along z axis and apply log transform
-    image = image.std(axis=2)
-    image = da.log(image + LOG_EPSILON)
-
-    # Compute percentiles and clip
-    low = da.percentile(image, 0.1, axis=(2, 3), keepdims=True)
-    high = da.percentile(image, 99.9, axis=(2, 3), keepdims=True)
-    image = da.clip(image, low, high)
-
-    # Compute mean and std per timepoint and z-score normalize
-    mean = image.mean(axis=(2, 3), keepdims=True)
-    std = image.std(axis=(2, 3), keepdims=True)
-    return (image - mean) / std
 
 
 def load_stitched_image(
@@ -249,11 +193,11 @@ def create_timelapse_mp4(
 
     # Select the appropriate image loader for the selected channel type
     if channel_type == "EGFP":
-        image_loader = load_egfp_image
+        image_loader = load_processed_egfp_image
     elif channel_type == "BF":
-        image_loader = load_bf_image
+        image_loader = load_processed_bf_image
     elif channel_type == "BF_std_dev":
-        image_loader = load_bf_std_dev_image
+        image_loader = load_processed_bf_std_dev_image
 
     logger.info("Using the [ %s ] image loader", channel_type)
 
@@ -263,24 +207,8 @@ def create_timelapse_mp4(
         load_stitched_image, loader=image_loader, config=dataset_config, positions=positions
     )
 
-    # Estimate percentiles using first 10 timepoints if not using the standard
-    # deviation projection. If using the standard deviation projection, which
-    # already include percentile-based clipping, only load the first stitched
-    # image (for calculating sizes) and use min / max stretching instead.
-    method: Literal["min-max", "percentile"]
-    if "std_dev" not in channel_type:
-        stitched_images = load_stitched_image_at_timepoint(timepoints=list(range(10)))
-        percentile_image = da.concatenate(stitched_images).rechunk().ravel()
-        custom_range = da.percentile(percentile_image, [1, 99]).compute()
-        method = "percentile"
-        logger.info("Calculated custom range as [ %.1f - %.1f ] ", custom_range[0], custom_range[1])
-    else:
-        stitched_images = load_stitched_image_at_timepoint(timepoints=0)
-        custom_range = None
-        method = "min-max"
-        logger.info("Skipping custom range for standard deviation projection. Using min-max.")
-
     # Use first timepoint image for frame size calculations
+    stitched_images = load_stitched_image_at_timepoint(timepoints=0)
     first_image = stitched_images[0].squeeze()
     scale_factor, frame_padding = calculate_frame_sizing(first_image)
     pixel_size = PIXEL_SIZE_3i_20x / scale_factor
@@ -304,8 +232,7 @@ def create_timelapse_mp4(
         for tp in tqdm(timepoints, desc=f"{dataset_name}: Creating movie"):
             # Load image and apply contrast stretching and size adjustments
             image = load_stitched_image_at_timepoint(timepoints=tp).squeeze().compute()
-            image = contrast_stretching(image, custom_range=custom_range, method=method)
-            image = resize_and_pad_image(image, scale_factor, frame_padding)
+            image = convert_to_uint8(resize_and_pad_image(image, scale_factor, frame_padding))
 
             # Add scalebar and timestamp directly to image array
             add_scalebar_to_frame(image, scale_bar_um, pixel_size)
