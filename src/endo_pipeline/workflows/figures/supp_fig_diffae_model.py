@@ -18,6 +18,12 @@ def main() -> None:
     from endo_pipeline.library.model.diffae.generate_image import (
         generate_from_coords_and_noised_image,
     )
+    from endo_pipeline.library.model.model_qc import (
+        aggregate_seed_metrics,
+        build_models_data,
+        compute_baseline_data,
+    )
+    from endo_pipeline.library.model.model_qc.results_io import load_results_from_manifests
     from endo_pipeline.library.process.image_processing import crop_image
     from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
@@ -27,12 +33,14 @@ def main() -> None:
         get_image_transforms,
         get_target_image_from_sample,
     )
+    from endo_pipeline.library.visualize.model_qc_plots import create_rep2_correlation_bar_plot
     from endo_pipeline.library.visualize.model_training_schematic import (
         create_model_training_schematic_images,
     )
     from endo_pipeline.manifests import (
         get_most_recent_run_name,
         get_zarr_location_for_position,
+        load_dataframe_manifest,
         load_model_manifest,
     )
     from endo_pipeline.settings.examples import (
@@ -48,6 +56,10 @@ def main() -> None:
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT,
+        DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_PREFIX,
+        DEFAULT_MODEL_QC_LABELS,
+        DEFAULT_MODEL_QC_MANIFEST_NAMES,
+        DEFAULT_MODEL_QC_RUN_NAMES,
         RANDOM_SEED,
     )
 
@@ -284,20 +296,6 @@ def main() -> None:
     # emitted by the ``calculate-model-comparison-metrics`` production
     # workflow -- no GPU work here, just load + aggregate + plot.
     # ------------------------------------------------------------------
-    from endo_pipeline.library.model.model_qc import (
-        aggregate_seed_metrics,
-        build_models_data,
-        compute_baseline_data,
-    )
-    from endo_pipeline.library.model.model_qc.results_io import load_results_from_manifests
-    from endo_pipeline.library.visualize.model_qc_plots import create_rep2_correlation_bar_plot
-    from endo_pipeline.manifests import load_dataframe_manifest
-    from endo_pipeline.settings.workflow_defaults import (
-        DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_PREFIX,
-        DEFAULT_MODEL_QC_LABELS,
-        DEFAULT_MODEL_QC_MANIFEST_NAMES,
-        DEFAULT_MODEL_QC_RUN_NAMES,
-    )
 
     # One dataframe manifest per unique sweep ``manifest_name`` (e.g.
     # baseline + cdh5 positive control), produced by
