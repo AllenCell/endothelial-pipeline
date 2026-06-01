@@ -207,11 +207,11 @@ def compute_image_pair_flow(
     attachment: float = 7.5,
     speed_threshold: float = 1.0,
 ) -> list[dict]:
-    """Run TVL1 on a full-resolution frame pair, then compute per-crop stats.
+    """
+    Run TVL1 on a full-resolution frame pair, then compute per-crop stats.
 
-    This is the *image-scope* strategy: TVL1 runs once on the full image and the
-    resulting flow field is sliced per crop.  Compared to the crop-scope
-    approach, this avoids boundary artifacts and is faster when many crops share
+    TVL1 runs once on the full image and the resulting flow field is sliced per
+    crop, which avoids boundary artifacts and is faster when many crops share
     one image.
 
     Parameters
