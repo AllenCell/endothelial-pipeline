@@ -157,21 +157,23 @@ def _build_color_by_column_mappable(
     metadata object for labeling the colorbar.
     """
     color_column_metadata = COLUMN_METADATA.get(color_by_column)
-    original_color_by_column = color_by_column
-    if color_by_column in BINNED_MEAN_FEATURES:
-        color_by_column = f"mean_{color_by_column}"
-    if color_by_column in df.columns:
+    plotting_column: str = (
+        f"mean_{color_by_column}"
+        if color_by_column in BINNED_MEAN_FEATURES
+        else str(color_by_column)
+    )
+    if plotting_column in df.columns:
         # Use viridis for speed, cyan-to-magenta for everything else
-        if original_color_by_column == ColumnName.OpticalFlow.SPEED_MEAN:
-            cmap = cm.viridis
+        if color_by_column == ColumnName.OpticalFlow.SPEED_MEAN:
+            cmap = plt.get_cmap("viridis")
         else:
             cmap = mcolors.LinearSegmentedColormap.from_list("cyan_magenta", ["cyan", "magenta"])
-        norm = mcolors.Normalize(vmin=df[color_by_column].min(), vmax=df[color_by_column].max())
+        norm = mcolors.Normalize(vmin=df[plotting_column].min(), vmax=df[plotting_column].max())
         scalar_mappable = cm.ScalarMappable(norm=norm, cmap=cmap)
         scalar_mappable.set_array([])
     else:
         scalar_mappable = None
-    return scalar_mappable, color_by_column, color_column_metadata
+    return scalar_mappable, plotting_column, color_column_metadata
 
 
 def _get_tick_labels(
@@ -255,10 +257,9 @@ def _plot_cross_dataset_summary_for_column(
         raise ValueError(f"Summary plot style mode '{style_mode}' is not supported")
 
     # Build continuous colormap if color_by_column is provided (overrides style_mode colors)
+    plotting_column: str | None = None
     if color_by_column is not None:
-        scalar_mappable, color_by_column, color_column_metadata = _build_color_by_column_mappable(
-            df, color_by_column
-        )
+        scalar_mappable, plotting_column, _ = _build_color_by_column_mappable(df, color_by_column)
     else:
         scalar_mappable = None
 
@@ -338,10 +339,11 @@ def _plot_cross_dataset_summary_for_column(
         y_values = category_df[column_name]
 
         # Get marker and color based on style column or color_by_column
-        if scalar_mappable is not None:
-            colors = [scalar_mappable.to_rgba(val) for val in category_df[color_by_column]]
-        else:
-            colors = list(category_df[style_column].map(color_map))
+        colors: list = (
+            [scalar_mappable.to_rgba(val) for val in category_df[plotting_column]]
+            if scalar_mappable is not None and plotting_column is not None
+            else category_df[style_column].map(color_map).tolist()
+        )
         markers = [marker_map[col] for col in category_df[style_column]]
 
         # Get lower and upper bounds for points in the category
