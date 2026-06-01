@@ -10,7 +10,7 @@ On-disk layout
 
 One long-format parquet per ``(manifest_name, run_name)`` is written
 under the workflow output directory using the filename pattern
-``{manifest_name}__{run_name}.parquet``.  All parquets for a given
+``{manifest_name}_{run_name}.parquet``.  All parquets for a given
 ``manifest_name`` are catalogued in a single dataframe manifest named
 ``diffae_model_comparison_metrics_<manifest_name>``, whose
 ``locations`` dict is keyed by ``run_name``.  This per-manifest grouping
@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 
 def per_model_parquet_filename(manifest_name: str, run_name: str) -> str:
     """Filename of the per-(manifest, run) metrics parquet."""
-    return f"{manifest_name}__{run_name}.parquet"
+    return f"{manifest_name}_{run_name}.parquet"
 
 
 def per_model_parquet_path(out_dir: Path, manifest_name: str, run_name: str) -> Path:
