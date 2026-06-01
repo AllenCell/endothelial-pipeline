@@ -384,7 +384,9 @@ def plot_drift_1d(
         Tuple of figure and axes objects containing the plot of the 1D drift as
         a function of the state variable.
     """
-    fig, ax = fig_ax or plt.subplots(figsize=figsize, gridspec_kw=gridspec_kwargs)
+    fig, ax = fig_ax or plt.subplots(
+        figsize=figsize, layout="constrained", gridspec_kw=gridspec_kwargs
+    )
     ax.plot(x_values, drift, **(drift_line_kwargs or {}))
     ax.plot(x_values, np.zeros_like(x_values), **(zero_line_kwargs or {}))
 
