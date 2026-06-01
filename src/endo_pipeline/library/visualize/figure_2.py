@@ -24,6 +24,7 @@ from endo_pipeline.library.analyze.vector_field_estimation import (
 from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
 from endo_pipeline.library.model.diffae.generate_image import generate_from_dataframe
 from endo_pipeline.library.visualize.diffae_features.dynamics import (
+    make_legend_handles_for_fixed_pts,
     plot_drift_1d,
     plot_drift_contours,
 )
@@ -701,9 +702,9 @@ def make_3d_vector_field_plot_panel(
 
     # Let the 3D box aspect reflect the actual data ranges rather than forcing
     # a cube.  Compute ranges from the full (pre-downsampled) grids.
-    x_range = theta_lims[1] - theta_lims[0]
-    y_range = r_lims[1] - r_lims[0]
-    z_range = rho_lims[1] - rho_lims[0]
+    x_range = x_grid.max() - x_grid.min()
+    y_range = y_grid.max() - y_grid.min()
+    z_range = z_grid.max() - z_grid.min()
     ax.set_box_aspect([x_range, y_range, z_range])
 
     # Render all arrows at the same absolute size (so visual clutter from
@@ -734,10 +735,10 @@ def make_3d_vector_field_plot_panel(
     q.set_color(np.repeat(colors, segments_per_arrow, axis=0))
     q.set_alpha(arrow_alpha)
 
-    # Colorbar - horizontal strip at the top
+    # Colorbar - horizontal strip at the top, shifted left to leave room for legend
     sm = ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])
-    cbar_ax = fig.add_axes([0.1, 0.87, 0.65, 0.04])
+    cbar_ax = fig.add_axes([0.05, 0.87, 0.48, 0.04])
     cbar = fig.colorbar(
         sm,
         cax=cbar_ax,
@@ -747,6 +748,30 @@ def make_3d_vector_field_plot_panel(
     cbar.set_label("$\Vert\mathbf{f}(\mathbf{x})\Vert$", fontsize=FONTSIZE_XSMALL)
     cbar_ax.xaxis.set_label_position("top")
     cbar_ax.xaxis.tick_top()
+
+    # Legend to the right of the colorbar
+    arrow_handle = mlines.Line2D(
+        [],
+        [],
+        color="gray",
+        marker=">",
+        markersize=4,
+        linewidth=0.8,
+        label="$\mathbf{f}(\mathbf{x})$",
+    )
+    fp_handles = make_legend_handles_for_fixed_pts(
+        fpt_stabilities=[StabilityLabel.STABLE],
+        marker_size=4,
+    )
+    fig.legend(
+        handles=[arrow_handle, *fp_handles],
+        fontsize=FONTSIZE_XSMALL,
+        loc="upper left",
+        bbox_to_anchor=(0.57, 1.0),
+        frameon=False,
+        handletextpad=0.3,
+        labelspacing=0.4,
+    )
 
     # ------------------------------------------------------------------
     # Load and overlay stable fixed point
@@ -775,10 +800,13 @@ def make_3d_vector_field_plot_panel(
     ax.tick_params(axis="both", pad=-4)
     ax.set_xlabel(col_labels[0], labelpad=-6)
     ax.set_xticks(theta_ticks, labels=theta_tick_labels)
+    ax.set_xlim(theta_lims)
     ax.set_ylabel(col_labels[1], labelpad=-6)
     ax.set_yticks(r_ticks)
+    ax.set_ylim(r_lims)
     ax.set_zlabel(col_labels[2], labelpad=-6)
     ax.set_zticks(rho_ticks)
+    ax.set_zlim(rho_lims)
     ax.zaxis.set_rotate_label(False)
 
     # ------------------------------------------------------------------
