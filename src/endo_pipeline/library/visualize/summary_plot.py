@@ -256,7 +256,6 @@ def _plot_cross_dataset_summary_for_column(
         )
     else:
         scalar_mappable = None
-        color_column_metadata = None
 
     # Get the category column name for the selected axis mode
     category_column = SUMMARY_MODE_COLUMN_NAME.get(axis_mode)
@@ -361,17 +360,6 @@ def _plot_cross_dataset_summary_for_column(
                 ecolor="black",
                 zorder=3,
             )
-
-    # Add colorbar if color_by_column override is active
-    if scalar_mappable is not None:
-        assert color_by_column is not None
-        cbar_label = (
-            color_column_metadata.label
-            if color_column_metadata and color_column_metadata.label
-            else str(color_by_column)
-        )
-        cbar = ax.figure.colorbar(scalar_mappable, ax=ax, pad=0.02)
-        cbar.set_label(cbar_label, fontsize=FONTSIZE_SMALL)
 
     # Include legend if using stability style mode (only when not overridden)
     if style_mode == "stability" and scalar_mappable is None:
@@ -566,6 +554,21 @@ def plot_cross_dataset_summaries(
             ax.set_xlim(shared_xlim)
         for ax in axes[:-1]:
             ax.tick_params(axis="x", labelbottom=False)
+
+    # Add a single shared colorbar if color_by_column is active
+    if color_by_column is not None:
+        scalar_mappable, _, color_column_metadata = _build_color_by_column_mappable(
+            df, color_by_column
+        )
+        if scalar_mappable is not None:
+            cbar_label = (
+                color_column_metadata.label
+                if color_column_metadata and color_column_metadata.label
+                else str(color_by_column)
+            )
+            # Attach colorbar to last panel only so it spans one panel height
+            cbar = fig.colorbar(scalar_mappable, ax=axes[-1], pad=0.02)
+            cbar.set_label(cbar_label, fontsize=FONTSIZE_SMALL)
 
     # Save figure with name including all column names
     column_name_str = [str(column_name) for column_name in column_names]
