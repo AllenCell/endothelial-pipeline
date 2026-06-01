@@ -107,9 +107,9 @@ def main(
         calculate_optical_flow_intensity_threshold,
         compute_image_pair_flow,
     )
-    from endo_pipeline.library.visualize.supplemental_movies import (
-        load_bf_std_dev_image,
-        load_egfp_image,
+    from endo_pipeline.library.process.image_processing import (
+        load_processed_bf_std_dev_image,
+        load_processed_egfp_image,
     )
     from endo_pipeline.manifests import (
         DataframeLocation,
@@ -150,7 +150,7 @@ def main(
     # Set channel-aware options
     intensity_percentile = OPTICAL_FLOW_CHANNEL_PERCENTILE[channel]
     attachment = OPTICAL_FLOW_CHANNEL_ATTACHMENT[channel]
-    image_loader = load_bf_std_dev_image if channel == "BF" else load_egfp_image
+    image_loader = load_processed_bf_std_dev_image if channel == "BF" else load_processed_egfp_image
 
     # Load dataframe with DiffAE feature metadata (no filtering yet) to get crop
     # coordinates and timepoints for each dataset/position.
