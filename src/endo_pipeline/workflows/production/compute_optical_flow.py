@@ -54,14 +54,14 @@ def main(
 
     ## Worker processes
 
-    TVL1 is pinned to one thread per call (OMP_NUM_THREADS=1), so the bottleneck
-    is NFS read throughput rather than CPU. We recommend `--num-workers=16`
-    based on empirical testing when using compute hardware similar to the
-    following: 512 GB RAM, 128 physical / 256 logical CPU cores, 4x A100 80 GB
-    GPUs. At 16 concurrent workers, each holding ~0.5 GB per frame, peak memory
-    is ~8 GB while NFS throughput is fully saturated. Beyond 16 workers, the
-    wall-clock time plateaus but memory grows linearly with no additional
-    speedup.
+    TVL1 is pinned to one thread per call (OMP_NUM_THREADS=1 and
+    OPENBLAS_NUM_THREADS=1), so the bottleneck is NFS read throughput rather
+    than CPU. We recommend `--num-workers=16` based on empirical testing when
+    using compute hardware similar to the following: 512 GB RAM, 128 physical /
+    256 logical CPU cores, 4x A100 80 GB GPUs. At 16 concurrent workers, each
+    holding ~0.5 GB per frame, peak memory is ~8 GB while NFS throughput is
+    fully saturated. Beyond 16 workers, the wall-clock time plateaus but memory
+    grows linearly with no additional speedup.
 
     ## Dataset collection
 
