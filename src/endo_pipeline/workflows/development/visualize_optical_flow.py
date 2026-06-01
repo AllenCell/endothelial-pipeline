@@ -47,17 +47,17 @@ def main(
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe
-    from endo_pipeline.library.analyze.optical_flow import (  # build_image_pair_crops_for_grid,; compute_image_pair_flow,; calculate_optical_flow_intensity_threshold,; build_image_pair_crops_for_tracked,; build_merged_optical_flow_dataframe,
+    from endo_pipeline.library.analyze.optical_flow import (
         OpticalFlowImagePair,
         calculate_optical_flow_intensity_threshold,
+    )
+    from endo_pipeline.library.process.image_processing import (
+        load_processed_bf_std_dev_image,
+        load_processed_egfp_image,
     )
     from endo_pipeline.library.visualize.optical_flow import (
         plot_optical_flow_coherence_over_time,
         plot_optical_flow_summary,
-    )
-    from endo_pipeline.library.visualize.supplemental_movies import (
-        load_bf_std_dev_image,
-        load_egfp_image,
     )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
@@ -86,7 +86,7 @@ def main(
     # Set channel-aware options
     intensity_percentile = OPTICAL_FLOW_CHANNEL_PERCENTILE[channel]
     attachment = OPTICAL_FLOW_CHANNEL_ATTACHMENT[channel]
-    image_loader = load_bf_std_dev_image if channel == "BF" else load_egfp_image
+    image_loader = load_processed_bf_std_dev_image if channel == "BF" else load_processed_egfp_image
 
     # Load optical flow dataframe manifest
     name_prefix = OPTICAL_FLOW_MANIFEST_NAME_PREFIX
