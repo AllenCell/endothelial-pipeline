@@ -872,12 +872,6 @@ def make_3d_vector_field_plot_panel(
     # ------------------------------------------------------------------
     # Compute vector magnitudes for colouring
     # ------------------------------------------------------------------
-    # Use the full pre-downsampled field to anchor cmin/cmax so that
-    # downsampling doesn't miss the true extremes.
-    full_magnitude = np.sqrt(u_field**2 + v_field**2 + w_field**2)
-
-    global_cmin = magnitude_limits[0] if magnitude_limits is not None else np.nanmin(full_magnitude)
-    global_cmax = magnitude_limits[1] if magnitude_limits is not None else np.nanmax(full_magnitude)
 
     # flatten — always use raw vectors so colour encodes magnitude
     x_flat = x_ds.ravel()
@@ -893,13 +887,13 @@ def make_3d_vector_field_plot_panel(
     # ------------------------------------------------------------------
     eps = np.finfo(float).eps
     if log_norm_magnitudes:
-        safe_cmin = max(global_cmin, eps)
-        safe_cmax = max(global_cmax, safe_cmin + eps)
+        safe_cmin = max(magnitude_limits[0], eps)
+        safe_cmax = max(magnitude_limits[1], safe_cmin + eps)
         norm = LogNorm(vmin=safe_cmin, vmax=safe_cmax)
     else:
-        norm = plt.Normalize(vmin=global_cmin, vmax=global_cmax)
+        norm = plt.Normalize(vmin=magnitude_limits[0], vmax=magnitude_limits[1])
     cmap = plt.get_cmap(colormap)
-    colors = cmap(norm(np.clip(mag_flat, global_cmin, global_cmax)))
+    colors = cmap(norm(np.clip(mag_flat, magnitude_limits[0], magnitude_limits[1])))
 
     # ------------------------------------------------------------------
     # Build matplotlib 3D figure
