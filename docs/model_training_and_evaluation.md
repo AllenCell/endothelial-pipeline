@@ -57,7 +57,7 @@ There is currently one main model evaluation option. This options may be passed 
 
 ### 1. Build the training and validation dataframes
 
-- workflow = `create-diffae-training-dataframe`
+- workflow = `create-diffae-train-dataframe`
 - input (training options) = **cell piling timepoints**
 - :purple_circle: output = training dataframe manifest at `src/endo_pipeline/manifests/dataframes/diffae_training_dataframe_PILING`
 
