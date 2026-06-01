@@ -514,31 +514,34 @@ def reconstruct_along_nullcline(
             Column.DiffAEData.POLAR_ANGLE,
         ],
     )
-    walk_panels_all: list[np.ndarray] = []
-    for column, coords_dataframe in nullcline_coords.items():
+    coords_dataframes_: list[pd.DataFrame] = []
+    for _, coords_dataframe in nullcline_coords.items():
         r_coords = coords_dataframe[0]
         rho_coords = coords_dataframe[1]
-        full_coords_dataframe = pd.DataFrame(
+        full_coords_dataframe = pd.DataFrame(  # add theta values
             {
                 Column.DiffAEData.POLAR_RADIUS: r_coords,
                 Column.DiffAEData.PC3_FLIPPED: rho_coords,
                 Column.DiffAEData.POLAR_ANGLE: theta_value * np.ones_like(r_coords),
             }
         )
+        coords_dataframes_.append(full_coords_dataframe)
+    coords_dataframes = pd.concat(coords_dataframes_, ignore_index=True)
 
-        walk_array = generate_from_dataframe(
-            full_coords_dataframe,
-            column_names,
-            model,
-            num_gpus=num_gpus,
-            random_seed=random_seed,
-        )
-        walk_panels = [walk_array[i] for i in range(len(walk_array))]
-        walk_panels_all.extend(walk_panels)
+    # reconstruct images along the nullcline coordinates and make a contact
+    # sheet of the results
+    walk_array = generate_from_dataframe(
+        coords_dataframes,
+        column_names,
+        model,
+        num_gpus=num_gpus,
+        random_seed=random_seed,
+    )
+    walk_panels = [walk_array[i] for i in range(len(walk_array))]
 
-    n_cols = len(walk_array)
+    n_cols = len(walk_array) // 2
     fig_null_walks = make_contact_sheet(
-        panels=walk_panels_all,
+        panels=walk_panels,
         max_rows=2,
         max_cols=n_cols,
         fig_kwargs={"figsize": (3.125, 1.3), "layout": "constrained"},
@@ -901,8 +904,10 @@ def make_3d_vector_field_plot_panel(
     # ------------------------------------------------------------------
     # Build matplotlib 3D figure
     # ------------------------------------------------------------------
-    fig = plt.figure(figsize=(2.0, 2.5))
+    figsize = (2.0, 2.5)
+    fig = plt.figure(figsize=figsize)
     ax: Axes3D = fig.add_subplot(111, projection="3d")
+    ax.set_box_aspect((1, 1, figsize[1] / figsize[0]))
 
     # Render all arrows at the same absolute size (so visual clutter from
     # large-magnitude outliers is reduced) while still colouring by magnitude.
@@ -993,12 +998,12 @@ def make_3d_vector_field_plot_panel(
     ax.set_xticks(theta_ticks, labels=theta_tick_labels)
     ax.set_xlim(theta_lims)
     for tick in ax.xaxis.get_majorticklabels():
-        tick.set_ha("center")
-        tick.set_va("bottom")
-    ax.set_ylabel(col_labels[1], labelpad=-6)
+        tick.set_ha("right")
+        tick.set_va("center")
+    ax.set_ylabel(col_labels[1], labelpad=-5)
     ax.set_yticks(r_ticks)
     for tick in ax.yaxis.get_majorticklabels():
-        tick.set_ha("center")
+        tick.set_ha("left")
         tick.set_va("center")
     ax.set_ylim(r_lims)
     ax.set_zlabel(col_labels[2], labelpad=-8)
