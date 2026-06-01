@@ -579,7 +579,7 @@ def reconstruct_along_nullcline(
     ax_bot_right = fig_null_walks.axes[2 * n_cols - 1]
     pos_top_right = ax_top_right.get_position()
     pos_bot_right = ax_bot_right.get_position()
-    label_x = pos_top_right.x1 + 0.01
+    label_x = pos_top_right.x1 + 0.025
     for pos, label in [
         (pos_top_right, "r-nullcline"),
         (pos_bot_right, f"{Unicode.RHO}-nullcline"),
@@ -590,7 +590,8 @@ def reconstruct_along_nullcline(
             label,
             va="center",
             ha="left",
-            fontsize=FONTSIZE_XSMALL,
+            fontsize=FONTSIZE_SMALL,
+            fontweight="bold",
         )
 
     filename = "nullcline_walks"
@@ -925,7 +926,7 @@ def make_3d_vector_field_plot_panel(
     figsize_ratio = figsize[1] / figsize[0]
     fig = plt.figure(figsize=figsize)
     ax: Axes3D = fig.add_subplot(111, projection="3d")
-    ax.set_box_aspect((1.05 * figsize_ratio, 0.95 * figsize_ratio, figsize_ratio))
+    ax.set_box_aspect((1.1 * figsize_ratio, 0.98 * figsize_ratio, 1.05 * figsize_ratio))
 
     # Render all arrows at the same absolute size (so visual clutter from
     # large-magnitude outliers is reduced) while still colouring by magnitude.
@@ -956,7 +957,7 @@ def make_3d_vector_field_plot_panel(
         orientation="horizontal",
     )
     cbar.ax.tick_params(labelsize=FONTSIZE_XSMALL, pad=2)
-    cbar.set_label("$\Vert\mathbf{f}(\mathbf{x})\Vert$", fontsize=FONTSIZE_SMALL, labelpad=2)
+    cbar.set_label("$\Vert\mathbf{f}(\mathbf{x})\Vert$", fontsize=FONTSIZE_SMALL, labelpad=-1)
     cbar_ax.xaxis.set_label_position("top")
     cbar_ax.xaxis.tick_top()
 
