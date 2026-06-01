@@ -22,7 +22,7 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
 from endo_pipeline.library.visualize.figure_utils import make_contact_sheet
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_XSMALL
+from endo_pipeline.settings.figures import FONTSIZE_XSMALL
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_CBAR_NUM_TICKS,
     DRIFT_CONTOUR_CBAR_ROUND,
@@ -410,13 +410,13 @@ def make_1d_drift_plot_panel(
     figsize: tuple[float, float],
     fig_savedir: Path,
     filename: str,
-    shear_stress_label: str,
     axes_xlim: tuple[float, float],
     axes_ylim: tuple[float, float],
     axes_xticks: list[float],
     axes_xtick_labels: list[str],
     axes_yticks: list[float],
     arrow_scale: float,
+    arrow_width: float,
     drift_line_kwargs: dict | None,
     zero_line_kwargs: dict | None,
     gridspec_kwargs: dict | None,
@@ -430,7 +430,8 @@ def make_1d_drift_plot_panel(
         axes_limits=[axes_xlim, axes_ylim],
         axes_labels=[column_label, f"d{column_label}/dt"],
         add_flow_arrows=True,
-        flow_arrow_kwargs={"color": "dimgrey", "scale": arrow_scale},
+        flow_arrow_kwargs={"color": "dimgrey", "scale": arrow_scale, "width": arrow_width},
+        flow_arrow_downsample=10,
         gridspec_kwargs=gridspec_kwargs,
         drift_line_kwargs=drift_line_kwargs,
         zero_line_kwargs=zero_line_kwargs,
@@ -446,20 +447,6 @@ def make_1d_drift_plot_panel(
         markeredgecolor="k",
         markeredgewidth=0.5,
         markersize=5,
-    )
-
-    # reserve left margin for the vertical label
-    fig.subplots_adjust(left=0.08)
-    # add vertical title to the left of the contour plot spanning all rows
-    fig.text(
-        -0.25,
-        0.5,
-        shear_stress_label,
-        va="center",
-        ha="center",
-        rotation="vertical",
-        fontsize=FONTSIZE_MEDIUM,
-        fontweight="bold",
     )
 
     # set plot formatting args
