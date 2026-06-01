@@ -420,7 +420,7 @@ def get_reshaped_vector_field_and_grid(
 
 
 def get_vector_field_as_dict_from_dataframe(
-    flow_field_dataframe: pd.DataFrame, column_names: list[str | Column.DiffAEData]
+    flow_field_dataframe: pd.DataFrame, column_names: list[Column.DiffAEData]
 ) -> dict[str, tuple[np.ndarray]]:
     """
     Convert a drift flow field dataframe into a dictionary suitable for
