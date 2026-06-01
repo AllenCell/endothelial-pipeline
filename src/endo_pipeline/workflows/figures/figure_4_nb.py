@@ -56,20 +56,15 @@ diffae_features = [
     Column.DiffAEData.POLAR_RADIUS,
     Column.DiffAEData.PC3_FLIPPED,
 ]
-migration_features = [Column.OpticalFlow.UNIT_VECTOR_MEAN, Column.OpticalFlow.SPEED_MEAN]
+
+# %%
 fixed_points_summary_plot_path = plot_cross_dataset_summaries(
     dataset_summary_df,
     output_dir=save_dir,
     column_names=diffae_features,
     axis_mode="cell_line",
     figure_size=(3.75, 2),
-)
-migration_summary_plot_path = plot_cross_dataset_summaries(
-    dataset_summary_df,
-    output_dir=save_dir,
-    column_names=migration_features,
-    axis_mode="cell_line",
-    figure_size=(2.25, 2.05),
+    color_by_column=Column.OpticalFlow.UNIT_VECTOR_MEAN,
 )
 
 # %%
@@ -89,14 +84,6 @@ panels = [
         y_position=2.6,
         x_offset=0,
         y_offset=0.2,
-    ),
-    FigurePanel(
-        letter="C",
-        path=migration_summary_plot_path,
-        x_position=3.85,
-        y_position=2.6,
-        x_offset=0.1,
-        y_offset=0.15,
     ),
 ]
 

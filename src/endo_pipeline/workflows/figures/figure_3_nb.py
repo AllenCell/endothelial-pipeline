@@ -72,7 +72,6 @@ BOOTSTRAP_THRESHOLD = 0.4
 columns_for_summary_plots = [
     ColumnName.DiffAEData.POLAR_ANGLE,
     ColumnName.DiffAEData.POLAR_RADIUS,
-    ColumnName.DiffAEData.PC3_FLIPPED,
 ]
 dataset_summary_df = build_dataframe_for_fixed_point_dataset_summary(
     dataset_names=dataset_summary_list,
