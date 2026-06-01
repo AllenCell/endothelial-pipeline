@@ -11,6 +11,7 @@ from matplotlib.cm import ScalarMappable
 from matplotlib.colors import LogNorm, TwoSlopeNorm
 from matplotlib.layout_engine import ConstrainedLayoutEngine
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from mpl_toolkits.mplot3d import Axes3D
 
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.numerics.fixed_points import (
@@ -31,6 +32,7 @@ from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
+from endo_pipeline.settings.figures import FONTSIZE_XSMALL
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_CBAR_NUM_TICKS,
     DRIFT_CONTOUR_CBAR_ROUND,
@@ -39,11 +41,9 @@ from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_VMIN,
 )
 from endo_pipeline.settings.flow_field_3d import (
-    CLIP_MAGNITUDES,
     CLIP_MAX_MAGNITUDE_PERCENTILE,
     CLIP_MIN_MAGNITUDE_PERCENTILE,
     LOG_NORM_MAGNITUDES,
-    NORMALIZE_QUIVER_VECTORS,
 )
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
@@ -557,14 +557,12 @@ def reconstruct_along_nullcline(
 def make_3d_vector_field_plot_panel(
     dataset_name: str,
     fig_savedir: Path,
-    downsample_factor: int = 8,
-    normalize_vectors: bool = NORMALIZE_QUIVER_VECTORS,
+    downsample_factor: int = 9,
     colormap: str = "viridis_r",
-    clip_magnitudes: bool = CLIP_MAGNITUDES,
     clip_min_percentile: float | None = CLIP_MIN_MAGNITUDE_PERCENTILE,
     clip_max_percentile: float | None = CLIP_MAX_MAGNITUDE_PERCENTILE,
     log_norm_magnitudes: bool = LOG_NORM_MAGNITUDES,
-    arrow_alpha: float = 0.4,
+    arrow_alpha: float = 0.7,
 ) -> Path:
     """
     Render the 3D (theta, r, rho) drift vector field for a given dataset using
@@ -615,10 +613,16 @@ def make_3d_vector_field_plot_panel(
         fixed point.
 
     """
-    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
 
     column_names = list(DYNAMICS_COLUMN_NAMES)  # [theta, r, rho]
     col_labels = [(COLUMN_METADATA[col].label or str(col)) for col in DYNAMICS_COLUMN_NAMES]
+    theta_lims = (0, np.pi)
+    theta_ticks = [0, np.pi / 2, np.pi]
+    theta_tick_labels = [f"0={Unicode.PI}", f"{Unicode.PI}/2", f"{Unicode.PI}=0"]
+    r_lims = (0, 1.25)
+    r_ticks = [0, 0.5, 1.0]
+    rho_lims = (-1.25, 1.25)
+    rho_ticks = [-1.0, 0, 1.0]
 
     # ------------------------------------------------------------------
     # Load drift vector field
@@ -653,20 +657,16 @@ def make_3d_vector_field_plot_panel(
     # downsampling doesn't miss the true extremes.
     full_magnitude = np.sqrt(u_field**2 + v_field**2 + w_field**2)
 
-    if clip_magnitudes:
-        global_cmin = float(
-            np.nanpercentile(full_magnitude, clip_min_percentile)
-            if clip_min_percentile is not None
-            else np.nanmin(full_magnitude)
-        )
-        global_cmax = float(
-            np.nanpercentile(full_magnitude, clip_max_percentile)
-            if clip_max_percentile is not None
-            else np.nanmax(full_magnitude)
-        )
-    else:
-        global_cmin = float(np.nanmin(full_magnitude))
-        global_cmax = float(np.nanmax(full_magnitude))
+    global_cmin = float(
+        np.nanpercentile(full_magnitude, clip_min_percentile)
+        if clip_min_percentile is not None
+        else np.nanmin(full_magnitude)
+    )
+    global_cmax = float(
+        np.nanpercentile(full_magnitude, clip_max_percentile)
+        if clip_max_percentile is not None
+        else np.nanmax(full_magnitude)
+    )
 
     # flatten — always use raw vectors so colour encodes magnitude
     x_flat = x_ds.ravel()
@@ -693,39 +693,36 @@ def make_3d_vector_field_plot_panel(
     # ------------------------------------------------------------------
     # Build matplotlib 3D figure
     # ------------------------------------------------------------------
-    fig = plt.figure(figsize=(2.5, 2.5), layout="constrained")
+    fig = plt.figure(figsize=(1.95, 2.25), layout="constrained")
+    # Shift the subplot area left within the figure frame so the 3D axes
+    # (which tend to float right due to the z-label) sit more centred.
+    fig.get_layout_engine().set(rect=(0.0, 0.0, 0.88, 1.0))
     ax: Axes3D = fig.add_subplot(111, projection="3d")
-    ax.set_facecolor("white")
-    fig.patch.set_facecolor("white")
 
-    # When normalize_vectors is True, render all arrows at the same absolute
-    # size (so visual clutter from large-magnitude outliers is reduced) while
-    # still colouring by magnitude.
-    if normalize_vectors:
-        avg_spacing = np.mean(np.diff(np.unique(x_flat)))
-        arrow_length = avg_spacing * 0.8
-        u_plot = u_flat / (mag_flat + eps)
-        v_plot = v_flat / (mag_flat + eps)
-        w_plot = w_flat / (mag_flat + eps)
-        q = ax.quiver(
-            x_flat,
-            y_flat,
-            z_flat,
-            u_plot,
-            v_plot,
-            w_plot,
-            length=arrow_length,
-            normalize=False,
-        )
-    else:
-        q = ax.quiver(
-            x_flat,
-            y_flat,
-            z_flat,
-            u_flat,
-            v_flat,
-            w_flat,
-        )
+    # Let the 3D box aspect reflect the actual data ranges rather than forcing
+    # a cube.  Compute ranges from the full (pre-downsampled) grids.
+    x_range = theta_lims[1] - theta_lims[0]
+    y_range = r_lims[1] - r_lims[0]
+    z_range = rho_lims[1] - rho_lims[0]
+    ax.set_box_aspect([x_range, y_range, z_range])
+
+    # Render all arrows at the same absolute size (so visual clutter from
+    # large-magnitude outliers is reduced) while still colouring by magnitude.
+    avg_spacing = np.mean(np.diff(np.unique(x_flat)))
+    arrow_length = avg_spacing * 0.8
+    u_plot = u_flat / (mag_flat + eps)
+    v_plot = v_flat / (mag_flat + eps)
+    w_plot = w_flat / (mag_flat + eps)
+    q = ax.quiver(
+        x_flat,
+        y_flat,
+        z_flat,
+        u_plot,
+        v_plot,
+        w_plot,
+        length=arrow_length,
+        normalize=False,
+    )
 
     # Matplotlib 3D quiver decomposes each arrow into multiple line segments
     # (shaft + arrowhead lines).  The colour array must be repeated to match
@@ -740,14 +737,14 @@ def make_3d_vector_field_plot_panel(
     # Colorbar - horizontal strip at the top
     sm = ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])
-    cbar_ax = fig.add_axes([0.1, 0.91, 0.65, 0.04])
-    fig.colorbar(
+    cbar_ax = fig.add_axes([0.1, 0.87, 0.65, 0.04])
+    cbar = fig.colorbar(
         sm,
         cax=cbar_ax,
         orientation="horizontal",
-        label=f"{Unicode.DOUBLE_VERT} {Unicode.BOLD_MATH_F}({Unicode.BOLD_MATH_X}) {Unicode.DOUBLE_VERT}",
     )
-    cbar_ax.tick_params(labelsize=6)
+    cbar.ax.tick_params(labelsize=5)
+    cbar.set_label("$\Vert\mathbf{f}(\mathbf{x})\Vert$", fontsize=FONTSIZE_XSMALL)
     cbar_ax.xaxis.set_label_position("top")
     cbar_ax.xaxis.tick_top()
 
@@ -775,9 +772,14 @@ def make_3d_vector_field_plot_panel(
     # ------------------------------------------------------------------
     # Axes labels and title
     # ------------------------------------------------------------------
-    ax.set_xlabel(col_labels[0])
-    ax.set_ylabel(col_labels[1])
-    ax.set_zlabel(col_labels[2])
+    ax.tick_params(axis="both", pad=-4)
+    ax.set_xlabel(col_labels[0], labelpad=-6)
+    ax.set_xticks(theta_ticks, labels=theta_tick_labels)
+    ax.set_ylabel(col_labels[1], labelpad=-6)
+    ax.set_yticks(r_ticks)
+    ax.set_zlabel(col_labels[2], labelpad=-6)
+    ax.set_zticks(rho_ticks)
+    ax.zaxis.set_rotate_label(False)
 
     # ------------------------------------------------------------------
     # Save as static SVG
@@ -790,6 +792,7 @@ def make_3d_vector_field_plot_panel(
         file_format=".svg",
         tight_layout=False,
         transparent=False,
+        bbox_inches="tight",
     )
 
     return fig_savedir / f"{filename}.svg"
