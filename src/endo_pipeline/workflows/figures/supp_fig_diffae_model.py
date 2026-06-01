@@ -118,7 +118,20 @@ def main() -> None:
         denoised_images_by_random_cond_list = []
         denoised_images_by_random_cond_latent_scramble_list = []
 
-        example_set = EXAMPLES_DIFFAE_TRAINING_VALIDATION
+        # The baseline iteration only needs the single schematic example
+        # (its sole deliverable is the figure-2 training schematic PDFs);
+        # cdh5 iterates the full validation set for the panel-A contact
+        # sheet. Filtering here -- rather than after the inner-loop work
+        # has already run -- avoids ~3 wasted denoising forward passes
+        # for the baseline model.
+        if model_manifest_name == "diffae_baseline_exclude_cell_piling":
+            example_set = [
+                e
+                for e in EXAMPLES_DIFFAE_TRAINING_VALIDATION
+                if e.dataset_name == EXAMPLE_DIFFAE_TRAINING_SCHEMATIC
+            ]
+        else:
+            example_set = EXAMPLES_DIFFAE_TRAINING_VALIDATION
 
         output_path = get_output_path(
             "figure_2_model_qc",
