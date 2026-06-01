@@ -829,7 +829,7 @@ def make_3d_vector_field_plot_panel(
     # ------------------------------------------------------------------
     # Load drift vector field
     # ------------------------------------------------------------------
-    drift_df = load_drift_dataframe_for_dataset(dataset_name, columns=column_names)
+    drift_df = load_drift_dataframe_for_dataset(dataset_name)
     if drift_df.empty:
         raise ValueError(
             f"No drift dataframe found for dataset '{dataset_name}'. "
