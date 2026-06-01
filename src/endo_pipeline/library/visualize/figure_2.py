@@ -756,7 +756,7 @@ def make_3d_vector_field_plot_panel(
     fig_savedir: Path,
     downsample_factor: int = 6,
     colormap: str = "viridis_r",
-    magnitude_limits: tuple[float, float] | None = (5e-2, 1.5),
+    magnitude_limits: tuple[float, float] = (5e-2, 1.5),
     log_norm_magnitudes: bool = LOG_NORM_MAGNITUDES,
     arrow_alpha: float = 0.6,
 ) -> Path:
@@ -929,7 +929,7 @@ def make_3d_vector_field_plot_panel(
     # Colorbar - horizontal strip at the top, shifted left to leave room for legend
     sm = ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])
-    cbar_ax = fig.add_axes([0.1, 0.87, 0.48, 0.04])
+    cbar_ax = fig.add_axes((0.1, 0.87, 0.48, 0.04))
     cbar = fig.colorbar(
         sm,
         cax=cbar_ax,
