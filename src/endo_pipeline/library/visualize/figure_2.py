@@ -574,6 +574,25 @@ def reconstruct_along_nullcline(
     )
     fig_null_walks.add_artist(rect)
 
+    # add row labels to the right of each nullcline row
+    ax_top_right = fig_null_walks.axes[n_cols - 1]
+    ax_bot_right = fig_null_walks.axes[2 * n_cols - 1]
+    pos_top_right = ax_top_right.get_position()
+    pos_bot_right = ax_bot_right.get_position()
+    label_x = pos_top_right.x1 + 0.01
+    for pos, label in [
+        (pos_top_right, "r-nullcline"),
+        (pos_bot_right, f"{Unicode.RHO}-nullcline"),
+    ]:
+        fig_null_walks.text(
+            label_x,
+            pos.y0 + pos.height / 2,
+            label,
+            va="center",
+            ha="left",
+            fontsize=FONTSIZE_XSMALL,
+        )
+
     filename = "nullcline_walks"
     save_plot_to_path(
         fig_null_walks,
@@ -887,14 +906,17 @@ def make_3d_vector_field_plot_panel(
     # ------------------------------------------------------------------
     # small constant to avoid issues when normalizing magnitude
     mag_eps = 1e-10
+    cmap = plt.get_cmap(colormap)
     if log_norm_magnitudes:
         safe_cmin = max(magnitude_limits[0], mag_eps)
         safe_cmax = max(magnitude_limits[1], safe_cmin + mag_eps)
-        norm = LogNorm(vmin=safe_cmin, vmax=safe_cmax)
+        norm_log = LogNorm(vmin=safe_cmin, vmax=safe_cmax)
+        colors = cmap(norm_log(np.clip(mag_flat, safe_cmin, safe_cmax)))
+        scalar_mappable = ScalarMappable(cmap=cmap, norm=norm_log)
     else:
-        norm = plt.Normalize(vmin=magnitude_limits[0], vmax=magnitude_limits[1])
-    cmap = plt.get_cmap(colormap)
-    colors = cmap(norm(np.clip(mag_flat, magnitude_limits[0], magnitude_limits[1])))
+        norm_linear = plt.Normalize(vmin=magnitude_limits[0], vmax=magnitude_limits[1])
+        colors = cmap(norm_linear(np.clip(mag_flat, magnitude_limits[0], magnitude_limits[1])))
+        scalar_mappable = ScalarMappable(cmap=cmap, norm=norm_linear)
 
     # ------------------------------------------------------------------
     # Build matplotlib 3D figure
@@ -903,7 +925,7 @@ def make_3d_vector_field_plot_panel(
     figsize_ratio = figsize[1] / figsize[0]
     fig = plt.figure(figsize=figsize)
     ax: Axes3D = fig.add_subplot(111, projection="3d")
-    ax.set_box_aspect((figsize_ratio, 0.9 * figsize_ratio, figsize_ratio))
+    ax.set_box_aspect((1.05 * figsize_ratio, 0.95 * figsize_ratio, figsize_ratio))
 
     # Render all arrows at the same absolute size (so visual clutter from
     # large-magnitude outliers is reduced) while still colouring by magnitude.
@@ -926,16 +948,15 @@ def make_3d_vector_field_plot_panel(
     )
 
     # Colorbar - horizontal strip at the top, shifted left to leave room for legend
-    sm = ScalarMappable(cmap=cmap, norm=norm)
-    sm.set_array([])
-    cbar_ax = fig.add_axes((0.1, 0.87, 0.48, 0.04))
+    scalar_mappable.set_array([])
+    cbar_ax = fig.add_axes((0.1, 0.95, 0.48, 0.04))
     cbar = fig.colorbar(
-        sm,
+        scalar_mappable,
         cax=cbar_ax,
         orientation="horizontal",
     )
-    cbar.ax.tick_params(labelsize=FONTSIZE_XSMALL)
-    cbar.set_label("$\Vert\mathbf{f}(\mathbf{x})\Vert$", fontsize=FONTSIZE_SMALL)
+    cbar.ax.tick_params(labelsize=FONTSIZE_XSMALL, pad=2)
+    cbar.set_label("$\Vert\mathbf{f}(\mathbf{x})\Vert$", fontsize=FONTSIZE_SMALL, labelpad=2)
     cbar_ax.xaxis.set_label_position("bottom")
     cbar_ax.xaxis.tick_bottom()
 
