@@ -181,8 +181,10 @@ def plot_bf_outliers(
 def detect_bf_outliers(
     dataset_config: DatasetConfig,
     position: int,
-    visualize: bool = False,
-    figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH / 2, 3),
+    max_timepoints: int | None = None,
+    rolling_window: int = BF_ROLLING_WINDOW,
+    outlier_threshold: float = OUTLIER_THRESHOLD,
+    partial_threshold: float = PARTIAL_DARK_THRESHOLD,
 ) -> dict[ColumnNameType, int | list[int] | list[float] | np.ndarray]:
     """
     Detect outliers in brightfield (BF) microscopy data based on intensity
@@ -190,45 +192,50 @@ def detect_bf_outliers(
 
     Parameters
     ----------
-    dataset_config:
+    dataset_config
         Configuration object containing metadata and paths for the dataset.
-    position:
+    position
         The position index within the dataset to analyze.
-    visualize:
-        If True, generates and saves plots of the intensity data, thresholds, and outliers.
-    figure_size:
-        The size of the figure to generate if visualize is True (default is (MAX_FIGURE_WIDTH/2, 3)).
+    max_timepoints
+        Maximum number of timepoints to evaluate.
+    rolling_window
+        Size of the rolling window used for calculating the rolling mean.
+    outlier_threshold
+        Percentage to use for thresholding dark and bright BF outliers.
+    partial_threshold
+        Percentage to use for thresholding partial dark BF outliers.
 
     Returns
     -------
-    A tuple containing two lists:
-    - `bf_scope_error`: Sorted list of timepoints with partial dark outliers.
-    - `bf_temp_artifact`: Sorted list of timepoints with dark or bright outliers.
+    :
+        Dictionary of BF outlier detection results.
     """
 
     zarr_loc = get_zarr_location_for_position(dataset_config, position)
     bf_zarr = load_image(zarr_loc, channels=["BF"], level=1, squeeze=True)
 
-    # 1 Compute mean intensity over x/y axes
+    # Compute mean intensity over x/y axes
     intensity_array = bf_zarr.mean(axis=(-2, -1))
+    if max_timepoints is not None:
+        intensity_array = intensity_array[:max_timepoints, :]
     flattened_img_data = intensity_array.flatten()
 
-    # 2 Convert to pandas Series for rolling median
+    # Convert to pandas Series for rolling median
     data_np = flattened_img_data.compute()
     series = pd.Series(data_np)
-    rolling_median = series.rolling(BF_ROLLING_WINDOW, center=True).median()
+    rolling_median = series.rolling(rolling_window, center=True).median()
 
     # Pad edges
-    start_pad_value = np.median(data_np[:BF_ROLLING_WINDOW])
-    end_pad_value = np.median(data_np[-BF_ROLLING_WINDOW:])
-    rolling_median.iloc[: BF_ROLLING_WINDOW // 2] = start_pad_value
-    rolling_median.iloc[-BF_ROLLING_WINDOW // 2 :] = end_pad_value
+    start_pad_value = np.median(data_np[:rolling_window])
+    end_pad_value = np.median(data_np[-rolling_window:])
+    rolling_median.iloc[: rolling_window // 2] = start_pad_value
+    rolling_median.iloc[-rolling_window // 2 :] = end_pad_value
     rolling_median_np = rolling_median.to_numpy()
 
     # Thresholds
-    dark_threshold = rolling_median_np * (1 - OUTLIER_THRESHOLD)
-    partial_dark_threshold = rolling_median_np * (1 - PARTIAL_DARK_THRESHOLD)
-    bright_threshold = rolling_median_np * (1 + OUTLIER_THRESHOLD)
+    dark_threshold = rolling_median_np * (1 - outlier_threshold)
+    partial_dark_threshold = rolling_median_np * (1 - partial_threshold)
+    bright_threshold = rolling_median_np * (1 + outlier_threshold)
 
     # Peaks
     minima, _ = find_peaks(-data_np)  # dark

@@ -109,10 +109,9 @@ def plot_gfp_outliers_rolling(
 def detect_egfp_scope_errors(
     dataset_config: DatasetConfig,
     position: int,
-    visualize: bool = False,
-    window: int = GFP_ROLLING_WINDOW,
-    percent: float = OUTLIER_THRESHOLD,
-    figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH / 2, 3),
+    max_timepoints: int | None = None,
+    rolling_window: int = GFP_ROLLING_WINDOW,
+    outlier_threshold: float = OUTLIER_THRESHOLD,
 ) -> dict[ColumnNameType, int | list[int] | list[float] | np.ndarray]:
     """
     Detect EGFP scope errors based on per-timepoint mean with rolling mean ±
@@ -124,23 +123,21 @@ def detect_egfp_scope_errors(
 
     Parameters
     ----------
-    dataset_config : DatasetConfig
-        Configuration object containing dataset information and parameters.
-    position : int
-        Position index within the dataset to analyze.
-    visualize : bool, optional
-        If True, generates a visualization of the detected outliers (default is False).
-    window : int, optional
-        Size of the rolling window used for calculating the rolling mean (default is GFP_ROLLING_WINDOW).
-    percent : float, optional
-        Threshold percentage for identifying outliers (default is OUTLIER_THRESHOLD).
-    figure_size
-        The size of the figure to generate if visualize is True (default is (MAX_FIGURE_WIDTH/2, 3)).
+    dataset_config
+        Configuration object containing metadata and paths for the dataset.
+    position
+        The position index within the dataset to analyze.
+    max_timepoints
+        Maximum number of timepoints to evaluate.
+    window
+        Size of the rolling window used for calculating the rolling mean.
+    percent
+        Threshold percentage for identifying outliers.
 
     Returns
     -------
-    list of int
-        Indices of timepoints identified as outliers.
+    :
+        Dictionary of EGFR scope error detection results.
     """
 
     zarr_loc = get_zarr_location_for_position(dataset_config, position)
@@ -148,24 +145,26 @@ def detect_egfp_scope_errors(
 
     # Compute mean intensity across spatial dimensions (Y, X)
     intensity_array = gfp_zarr.mean(axis=(-2, -1))  # now (T, Z)
+    if max_timepoints is not None:
+        intensity_array = intensity_array[:max_timepoints, :]
 
     # Compute per-timepoint mean (across Z)
     tp_means = intensity_array.mean(axis=1).compute().astype(float)  # shape (T,)
 
     # Rolling median
     series = pd.Series(tp_means)
-    rolling_median = series.rolling(window, center=True).median()
+    rolling_median = series.rolling(rolling_window, center=True).median()
 
     # Pad edges
-    start_val = np.nanmedian(tp_means[:window])
-    end_val = np.nanmedian(tp_means[-window:])
-    rolling_median.iloc[: window // 2] = start_val
-    rolling_median.iloc[-window // 2 :] = end_val
+    start_val = np.nanmedian(tp_means[:rolling_window])
+    end_val = np.nanmedian(tp_means[-rolling_window:])
+    rolling_median.iloc[: rolling_window // 2] = start_val
+    rolling_median.iloc[-rolling_window // 2 :] = end_val
     rolling_median = rolling_median.to_numpy()
 
     # Thresholds
-    lower_threshold = rolling_median * (1 - percent)
-    upper_threshold = rolling_median * (1 + percent)
+    lower_threshold = rolling_median * (1 - outlier_threshold)
+    upper_threshold = rolling_median * (1 + outlier_threshold)
 
     # Outlier timepoints
     dark_outliers = np.where(tp_means < lower_threshold)[0].tolist()
