@@ -1,9 +1,13 @@
 """Default settings for polar coordinate analysis and visualization."""
 
 from math import pi
+from typing import Literal, TypeAlias
 
-from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KernelName
 from endo_pipeline.settings.column_names import ColumnName as Column
+
+KernelName: TypeAlias = Literal["periodic", "gaussian", "epanechnikov"]
+"""Type alias for the names of the available kernel functions."""
+
 
 METADATA_COLUMNS_TO_KEEP: dict[str, tuple[str | Column.DiffAEData, ...]] = {
     "grid": (

@@ -4,10 +4,11 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import wraps
-from typing import Literal, TypeAlias
 
 import numpy as np
 from scipy.special import gamma
+
+from endo_pipeline.settings.dynamics_workflows import KernelName
 
 logger = logging.getLogger(__name__)
 
@@ -119,9 +120,6 @@ def periodic(x: np.ndarray) -> np.ndarray:
     kernel = np.exp(-2 * (x**2))
     return kernel
 
-
-KernelName: TypeAlias = Literal["periodic", "gaussian", "epanechnikov"]
-"""Type alias for the names of the available kernel functions."""
 
 AVAILABLE_KERNEL_FUNCTIONS: dict[
     KernelName, Callable[[np.ndarray, float, float | None], np.ndarray]

@@ -8,6 +8,7 @@ import numpy as np
 from matplotlib.colors import TwoSlopeNorm
 
 from endo_pipeline.library.visualize.figure_utils import set_axes_properties
+from endo_pipeline.library.visualize.fixed_points import StabilityLegendHandle
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_CBAR_NUM_TICKS,
     DRIFT_CONTOUR_CBAR_ROUND,
@@ -17,7 +18,7 @@ from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_VMIN,
 )
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
-from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, StabilityLegendHandle
+from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
 
 
 def plot_drift_contours(
