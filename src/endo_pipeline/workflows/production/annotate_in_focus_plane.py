@@ -57,6 +57,7 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
         create_dataframe_manifest,
         save_dataframe_manifest,
     )
+    from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dataset_annotations import IN_FOCUS_PLANE_MANIFEST_NAME
 
     logger = logging.getLogger(__name__)
@@ -119,7 +120,9 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
             continue
 
         # Update dataset config
-        global_center_plane = {item["position"]: item["mean_center_plane"] for item in results}
+        global_center_plane = {
+            item[Column.POSITION]: item[Column.Annotations.CENTER_PLANE_MEAN] for item in results
+        }
         dataset_config.center_z_plane = global_center_plane
         save_dataset_config(dataset_config)
 
