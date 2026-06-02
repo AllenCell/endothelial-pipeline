@@ -12,7 +12,7 @@ from matplotlib.gridspec import GridSpec
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.library.visualize.figure_utils import add_scalebar
-from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import FONTSIZE_XSMALL, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
@@ -101,7 +101,7 @@ def plot_latent_walk_as_grid(
                     xycoords="axes fraction",
                     xytext=(+0.5, -0.5),
                     textcoords="offset fontsize",
-                    fontsize=8,
+                    fontsize=FONTSIZE_XSMALL,
                     verticalalignment="top",
                     color="white",
                     path_effects=[pe.withStroke(linewidth=2, foreground="black")],

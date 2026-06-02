@@ -65,8 +65,14 @@ def main() -> None:
     )
 
     label_column_tuples = [
-        ("ML-based Features 100", [get_label_for_column(col) for col in ml_columns_100_pcs]),
-        ("Measured Features", [get_label_for_column(col) for col in measured_feature_columns]),
+        (
+            "ML-based Features 100",
+            [get_label_for_column(col, single_line=True) for col in ml_columns_100_pcs],
+        ),
+        (
+            "Measured Features",
+            [get_label_for_column(col, single_line=True) for col in measured_feature_columns],
+        ),
     ]
 
     visualize_correlation_heatmaps(
@@ -86,7 +92,10 @@ def main() -> None:
     df_100_pcs = pd.read_csv(corr_matrix_100pcs)
     non_fig_pcs = set(ml_columns_100_pcs) - set(ml_columns)
     biggest_corr_mag = (
-        df_100_pcs[[get_label_for_column(col) for col in non_fig_pcs]].abs().max().max()
+        df_100_pcs[[get_label_for_column(col, single_line=True) for col in non_fig_pcs]]
+        .abs()
+        .max()
+        .max()
     )
     logger.info(biggest_corr_mag)
 
@@ -98,8 +107,11 @@ def main() -> None:
     )
 
     label_column_tuples = [
-        ("ML-based Features", [get_label_for_column(col) for col in ml_columns]),
-        ("Measured Features", [get_label_for_column(col) for col in measured_feature_columns]),
+        ("ML-based Features", [get_label_for_column(col, single_line=True) for col in ml_columns]),
+        (
+            "Measured Features",
+            [get_label_for_column(col, single_line=True) for col in measured_feature_columns],
+        ),
     ]
 
     visualize_correlation_heatmaps(

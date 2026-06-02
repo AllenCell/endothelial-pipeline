@@ -13,6 +13,7 @@ def get_label_for_column(
     column_metadata: dict[
         ColumnNameType, column_metadata.ColumnMetadata
     ] = column_metadata.COLUMN_METADATA,
+    single_line: bool = False,
 ) -> str:
     """
     Convert column name into label using column metadata.
@@ -38,4 +39,7 @@ def get_label_for_column(
         )
         return column_name
 
-    return column_metadata[column_name].label or column_name
+    label = column_metadata[column_name].label or column_name
+    if single_line:
+        label = label.replace("\n", " ")
+    return label
