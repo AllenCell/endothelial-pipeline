@@ -16,6 +16,7 @@ from endo_pipeline.library.analyze.pca import fit_pca
 from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
 from endo_pipeline.library.model.diffae.generate_image import generate_latent_walk_images
 from endo_pipeline.library.model.latent_walk_utils import (
+    add_pc_coordinates_to_dataframe,
     get_latent_walk,
     get_num_pcs_from_column_names,
 )
@@ -27,6 +28,7 @@ from endo_pipeline.manifests import (
     load_model_manifest,
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
 from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
@@ -243,7 +245,13 @@ def perform_and_plot_latent_walk_for_figures(
         n_steps=n_steps,
     )
 
-    walk_latent = pca.inverse_transform(walk[walk_column_names].to_numpy())
+    # re-transform coordinates if they are in polar format (angle and radius) or
+    # if they include flipped pc3
+    walk = add_pc_coordinates_to_dataframe(walk, walk_column_names)
+
+    pc_column_names = DIFFAE_PC_COLUMN_NAMES[:num_pcs]
+
+    walk_latent = pca.inverse_transform(walk[pc_column_names].to_numpy())
 
     # generate images from the latent walk
     walk_img_grid = generate_latent_walk_images(
