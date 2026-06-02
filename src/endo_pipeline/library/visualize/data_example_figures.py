@@ -144,7 +144,7 @@ def create_panel_biological_system_examples(
         max_cols=len(examples),
         max_rows=len(cropped_image_panel_list) // len(examples),
         col_titles=shear_stress_titles,
-        row_titles=["VE-Cadherin\nMIP", "BF\nZ-slice", "BF\nStd. Dev. Proj."],
+        row_titles=["VE-cadherin\nMIP", "BF\nZ-slice", "BF\nstd. dev. proj."],
         direction="top-down first",
         font_size=FONTSIZE_MEDIUM,
         subplot_kwargs={"frame_on": False},
