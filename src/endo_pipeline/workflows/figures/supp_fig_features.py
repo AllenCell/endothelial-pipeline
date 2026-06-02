@@ -9,7 +9,7 @@ def main() -> None:
     from endo_pipeline.cli.demo_mode_defaults import use_default_collection
     from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.pca import fit_pca
-    from endo_pipeline.library.visualize.columns import get_label_for_column
+    from endo_pipeline.library.visualize.columns import get_label_for_column, make_label_single_line
     from endo_pipeline.library.visualize.diffae_features import feature_viz
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
     from endo_pipeline.library.visualize.latent_walk import perform_and_plot_latent_walk_for_figures
@@ -62,25 +62,27 @@ def main() -> None:
         segmentation_feature_columns=measured_feature_columns,
         pc_columns=ml_columns_100_pcs,
     )
+    df.rename(columns=make_label_single_line, inplace=True)
 
     label_column_tuples = [
-        (
-            "ML-based Features 100",
-            [get_label_for_column(col, single_line=True) for col in ml_columns_100_pcs],
-        ),
-        (
-            "Measured Features",
-            [get_label_for_column(col, single_line=True) for col in measured_feature_columns],
-        ),
+        ("ML-based Features 100", [get_label_for_column(col) for col in ml_columns_100_pcs]),
+        ("Measured Features", [get_label_for_column(col) for col in measured_feature_columns]),
+    ]
+    label_column_tuples = [
+        (features, list(map(make_label_single_line, columns)))
+        for features, columns in label_column_tuples
     ]
 
+    # run the visualize_correlation_heatmaps function here on the 100 PCs vs measured features
+    # to get the correlation values as a .csv, which we will then use to get the biggest
+    # correlation value for the PCs that are not in the top 10 PCs
     visualize_correlation_heatmaps(
         dataset_name="aggregate",
         df_dataset=df,
         label_column_tuples=label_column_tuples,
         out_dir=save_dir,
         cross_correlation_only=True,
-        figsize_cluster_heatmap=(4.35, 2.75),
+        figsize_cluster_heatmap=(6, 2.75),
         y_axis_label_coords=None,
     )
     # report the max correlation value in the heatmap for all PCs vs measured features
@@ -91,12 +93,11 @@ def main() -> None:
     df_100_pcs = pd.read_csv(corr_matrix_100pcs)
     non_fig_pcs = set(ml_columns_100_pcs) - set(ml_columns)
     biggest_corr_mag = (
-        df_100_pcs[[get_label_for_column(col, single_line=True) for col in non_fig_pcs]]
-        .abs()
-        .max()
-        .max()
+        df_100_pcs[[get_label_for_column(col) for col in non_fig_pcs]].abs().max().max()
     )
-    logger.info(biggest_corr_mag)
+    logger.info(
+        f"Biggest correlation magnitude for non-figure PCs up to PC 100: {biggest_corr_mag}"
+    )
 
     df = get_df_for_feature_correlation_viz(
         dataset_name_list=dataset_name_list,
@@ -104,13 +105,15 @@ def main() -> None:
         segmentation_feature_columns=measured_feature_columns,
         pc_columns=ml_columns,
     )
+    df.rename(columns=make_label_single_line, inplace=True)
 
     label_column_tuples = [
-        ("ML-based Features", [get_label_for_column(col, single_line=True) for col in ml_columns]),
-        (
-            "Measured Features",
-            [get_label_for_column(col, single_line=True) for col in measured_feature_columns],
-        ),
+        ("ML-based Features", [get_label_for_column(col) for col in ml_columns]),
+        ("Measured Features", [get_label_for_column(col) for col in measured_feature_columns]),
+    ]
+    label_column_tuples = [
+        (features, list(map(make_label_single_line, columns)))
+        for features, columns in label_column_tuples
     ]
 
     visualize_correlation_heatmaps(
@@ -119,7 +122,7 @@ def main() -> None:
         label_column_tuples=label_column_tuples,
         out_dir=save_dir,
         cross_correlation_only=True,
-        figsize_cluster_heatmap=(4.35, 2.75),
+        figsize_cluster_heatmap=(6, 2.75),
         y_axis_label_coords=None,
     )
 

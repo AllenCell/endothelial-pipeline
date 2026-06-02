@@ -13,7 +13,6 @@ def get_label_for_column(
     column_metadata: dict[
         ColumnNameType, column_metadata.ColumnMetadata
     ] = column_metadata.COLUMN_METADATA,
-    single_line: bool = False,
 ) -> str:
     """
     Convert column name into label using column metadata.
@@ -39,7 +38,21 @@ def get_label_for_column(
         )
         return column_name
 
-    label = column_metadata[column_name].label or column_name
-    if single_line:
-        label = label.replace("\n", " ")
-    return label
+    return column_metadata[column_name].label or column_name
+
+
+def make_label_single_line(label: str) -> str:
+    """
+    Convert a multiline label to a single line by replacing newline characters with spaces.
+
+    Parameters
+    ----------
+    label
+        The multiline label to convert.
+
+    Returns
+    -------
+    :
+        The converted single-line label.
+    """
+    return label.replace("\n", " ")
