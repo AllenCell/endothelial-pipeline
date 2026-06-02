@@ -26,6 +26,8 @@ def plot_drift_contours(
     variable_labels: list[str],
     fig_ax: tuple[plt.Figure, Sequence[plt.Axes]] | None = None,
     figsize: tuple[float, float] = (7, 12),
+    n_rows: int = 2,
+    n_cols: int = 1,
     axes_limits: list[tuple[float, float]] | None = None,
     axes_aspect: Literal["auto", "equal"] | float | None = "equal",
     axes_titles: tuple[str, str] | None = None,
@@ -112,7 +114,9 @@ def plot_drift_contours(
         customizing the subplot titles, e.g., to specify a font size.
 
     """
-    fig, ax = fig_ax or plt.subplots(2, 1, figsize=figsize, gridspec_kw=gridspec_kwargs)
+    fig, ax = fig_ax or plt.subplots(
+        n_rows, n_cols, figsize=figsize, layout="constrained", gridspec_kw=gridspec_kwargs
+    )
     ax = cast(
         Sequence[plt.Axes], ax
     )  # for type checking, since ax is either a single Axes or a sequence of Axes
@@ -150,13 +154,25 @@ def plot_drift_contours(
             colorbar_ticks = np.round(colorbar_ticks, cbar_tick_round)
             fig.colorbar(contour, ax=ax[var_index], label=f"d{var_name}/dt", ticks=colorbar_ticks)
 
-        # set axis properties, only including x label for bottom plot
+        # set axis properties, only including label for edge plot of shared axes
+        # (e.g., only xlabel for left column and only ylabel for bottom row if
+        # multiple rows/columns of subplots)
+        xlabel: str | None
+        ylabel: str | None
+        if n_rows > n_cols:
+            # if more rows than columns, only set xlabel for bottom row
+            xlabel = variable_labels[0] if var_index == n_rows - 1 else None
+            ylabel = variable_labels[1]
+        elif n_cols >= n_rows:
+            # if more columns than rows, only set ylabel for left column
+            xlabel = variable_labels[0]
+            ylabel = variable_labels[1] if var_index == 0 else None
         set_axes_properties(
             ax[var_index],
             xlim=axes_limits[0] if axes_limits else None,
             ylim=axes_limits[1] if axes_limits else None,
-            xlabel=variable_labels[0] if var_index == 1 else None,
-            ylabel=variable_labels[1],
+            xlabel=xlabel,
+            ylabel=ylabel,
             title=axes_titles[var_index] if axes_titles else None,
             aspect=axes_aspect,
             xlabel_kwargs=xlabel_kwargs,
@@ -368,7 +384,9 @@ def plot_drift_1d(
         Tuple of figure and axes objects containing the plot of the 1D drift as
         a function of the state variable.
     """
-    fig, ax = fig_ax or plt.subplots(figsize=figsize, gridspec_kw=gridspec_kwargs)
+    fig, ax = fig_ax or plt.subplots(
+        figsize=figsize, layout="constrained", gridspec_kw=gridspec_kwargs
+    )
     ax.plot(x_values, drift, **(drift_line_kwargs or {}))
     ax.plot(x_values, np.zeros_like(x_values), **(zero_line_kwargs or {}))
 
@@ -453,7 +471,7 @@ def make_legend_handles_for_fixed_pts(
             my_handles.append(
                 StabilityLegendHandle(
                     stability_label=stability_type,
-                    legend_label=stability_type,
+                    legend_label=f"{stability_type} fixed point",
                     marker=FIXED_POINT_PLOT_STYLE[stability_type].marker,
                     face_color=FIXED_POINT_PLOT_STYLE[stability_type].color,
                     edge_color=edge_color,
