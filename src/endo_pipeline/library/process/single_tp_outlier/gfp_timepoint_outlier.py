@@ -5,6 +5,8 @@ import pandas as pd
 from endo_pipeline.configs import DatasetConfig
 from endo_pipeline.io import get_output_path, load_image, save_plot_to_path
 from endo_pipeline.manifests import get_zarr_location_for_position
+from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.figures import FONTSIZE_XSMALL, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.method_constants import GFP_ROLLING_WINDOW, OUTLIER_THRESHOLD
 
@@ -111,13 +113,14 @@ def detect_egfp_scope_errors(
     window: int = GFP_ROLLING_WINDOW,
     percent: float = OUTLIER_THRESHOLD,
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH / 2, 3),
-) -> list[int]:
+) -> dict[ColumnNameType, int | list[int] | list[float] | np.ndarray]:
     """
-    Detect EGFP scope errors based on per-timepoint mean with rolling mean ± percentage thresholds.
+    Detect EGFP scope errors based on per-timepoint mean with rolling mean ±
+    percentage thresholds.
 
-    This function computes the mean intensity for each timepoint using all z-slices and identifies
-    outlier timepoints based on a rolling mean and percentage thresholds. Optionally, it can
-    visualize the results.
+    This function computes the mean intensity for each timepoint using all
+    z-slices and identifies outlier timepoints based on a rolling mean and
+    percentage thresholds. Optionally, it can visualize the results.
 
     Parameters
     ----------
@@ -170,18 +173,13 @@ def detect_egfp_scope_errors(
 
     egfp_scope_error = sorted(set(dark_outliers + bright_outliers))
 
-    if visualize:
-        plot_gfp_outliers_rolling(
-            tp_means,
-            rolling_median,
-            lower_threshold,
-            upper_threshold,
-            dark_outliers,
-            bright_outliers,
-            dataset_config.name,
-            position,
-            percent=percent,
-            figure_size=figure_size,
-        )
-
-    return egfp_scope_error
+    return {
+        Column.POSITION: position,
+        Column.Annotations.GFP_TIMEPOINT_MEANS: tp_means,
+        Column.Annotations.GFP_ROLLING_MEDIAN: rolling_median,
+        Column.Annotations.GFP_LOWER_THRESHOLD: lower_threshold,
+        Column.Annotations.GFP_UPPER_THRESHOLD: upper_threshold,
+        Column.Annotations.GFP_DARK_OUTLIERS: dark_outliers,
+        Column.Annotations.GFP_BRIGHT_OUTLIERS: bright_outliers,
+        Column.Annotations.AUTO_GFP_SCOPE_ERROR: egfp_scope_error,
+    }

@@ -8,6 +8,8 @@ from scipy.signal import find_peaks
 from endo_pipeline.configs import DatasetConfig
 from endo_pipeline.io import get_output_path, load_image, save_plot_to_path
 from endo_pipeline.manifests import get_zarr_location_for_position
+from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.figures import FONTSIZE_XSMALL, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.image_data import NUM_ZSLICES
 from endo_pipeline.settings.method_constants import (
@@ -181,9 +183,10 @@ def detect_bf_outliers(
     position: int,
     visualize: bool = False,
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH / 2, 3),
-) -> tuple[list[int], list[int]]:
+) -> dict[ColumnNameType, int | list[int] | list[float] | np.ndarray]:
     """
-    Detect outliers in brightfield (BF) microscopy data based on intensity thresholds.
+    Detect outliers in brightfield (BF) microscopy data based on intensity
+    thresholds.
 
     Parameters
     ----------
@@ -243,19 +246,16 @@ def detect_bf_outliers(
         {int(idx // NUM_ZSLICES) for idx in (dark_outliers + bright_outliers)}
     )
 
-    if visualize:
-        plot_bf_outliers(
-            data_np,
-            rolling_median_np,
-            dark_threshold,
-            partial_dark_threshold,
-            bright_threshold,
-            dark_outliers,
-            partial_dark_outliers,
-            bright_outliers,
-            dataset_config.name,
-            position,
-            figure_size=figure_size,
-        )
-
-    return bf_scope_error, bf_temp_artifact
+    return {
+        Column.POSITION: position,
+        Column.Annotations.BF_MEAN_INTENSITY: data_np,
+        Column.Annotations.BF_ROLLING_MEDIAN: rolling_median_np,
+        Column.Annotations.BF_DARK_THRESHOLD: dark_threshold,
+        Column.Annotations.BF_PARTIAL_DARK_THRESHOLD: partial_dark_threshold,
+        Column.Annotations.BF_BRIGHT_THRESHOLD: bright_threshold,
+        Column.Annotations.BF_DARK_OUTLIERS: dark_outliers,
+        Column.Annotations.BF_PARTIAL_DARK_OUTLIERS: partial_dark_outliers,
+        Column.Annotations.BF_BRIGHT_OUTLIERS: bright_outliers,
+        Column.Annotations.AUTO_BF_SCOPE_ERROR: bf_scope_error,
+        Column.Annotations.AUTO_BF_TEMP_ARTIFACT: bf_temp_artifact,
+    }
