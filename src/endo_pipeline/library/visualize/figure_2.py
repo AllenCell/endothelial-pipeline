@@ -1012,7 +1012,7 @@ def make_3d_vector_field_plot_panel(
         markersize=8,
         linewidth=0.0,
         markevery=[0],
-        label="$\mathbf{f}(\mathbf{x})$",
+        label="$d\mathbf{x}/dt=\mathbf{f}(\mathbf{x})$",
     )
     fp_handles = make_legend_handles_for_fixed_pts(
         fpt_stabilities=[StabilityLabel.STABLE],
