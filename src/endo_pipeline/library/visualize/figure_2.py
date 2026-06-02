@@ -10,7 +10,8 @@ import pandas as pd
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import LogNorm, TwoSlopeNorm
 from matplotlib.layout_engine import ConstrainedLayoutEngine
-from matplotlib.legend_handler import HandlerLine2D
+from matplotlib.legend_handler import HandlerBase
+from matplotlib.patches import Polygon as MplPolygon
 from matplotlib.patches import Rectangle as MplRectangle
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mpl_toolkits.mplot3d import Axes3D
@@ -862,6 +863,44 @@ def _plot_quiver_3d_cones(
     ax.add_collection3d(base_col)
 
 
+class _HandlerConeArrow(HandlerBase):
+    """Legend handler that draws a shaft + filled triangular cone head."""
+
+    def __init__(self, color, cone_fraction: float = 0.45, cone_radius_ratio: float = 0.7):
+        self._color = color
+        self._cone_fraction = cone_fraction
+        self._cone_radius_ratio = cone_radius_ratio
+        super().__init__()
+
+    def create_artists(
+        self, _legend, _orig_handle, xdescent, _ydescent, width, height, _fontsize, trans
+    ):
+        shaft_y = height / 2
+        cone_base_x = width * (1.0 - self._cone_fraction) - xdescent
+        tip_x = width - xdescent
+        cone_half_h = height * self._cone_fraction * self._cone_radius_ratio
+
+        shaft = mlines.Line2D(
+            [0, cone_base_x],
+            [shaft_y, shaft_y],
+            color=self._color,
+            linewidth=0.8,
+            transform=trans,
+        )
+        cone = MplPolygon(
+            [
+                [cone_base_x, shaft_y - cone_half_h],
+                [tip_x, shaft_y],
+                [cone_base_x, shaft_y + cone_half_h],
+            ],
+            closed=True,
+            facecolor=self._color,
+            edgecolor="none",
+            transform=trans,
+        )
+        return [shaft, cone]
+
+
 def make_3d_vector_field_plot_panel(
     dataset_name: str,
     fig_savedir: Path,
@@ -1003,16 +1042,15 @@ def make_3d_vector_field_plot_panel(
     cbar_ax.xaxis.set_label_position("top")
     cbar_ax.xaxis.tick_top()
 
-    # Legend to the right of the colorbar
+    # Legend to the right of the colorbar. Draw the vector arrow handle as a
+    # shaft + filled triangular cone head (matching the plot style) coloured at
+    # a value in the center of the colormap, and add a proxy artist for the
+    # stable fixed point using the same marker and color as in the plot.
+    arrow_color = cmap(0.5)
     arrow_handle = mlines.Line2D(
         [],
         [],
-        color="gray",
-        marker="$\\rightarrow$",
-        markersize=8,
-        linewidth=0.0,
-        markevery=[0],
-        label="$d\mathbf{x}/dt=\mathbf{f}(\mathbf{x})$",
+        label="$d\\mathbf{x}/dt=\\mathbf{f}(\\mathbf{x})$",
     )
     fp_handles = make_legend_handles_for_fixed_pts(
         fpt_stabilities=[StabilityLabel.STABLE],
@@ -1026,7 +1064,7 @@ def make_3d_vector_field_plot_panel(
         frameon=False,
         handletextpad=0.3,
         labelspacing=0.4,
-        handler_map={arrow_handle: HandlerLine2D(numpoints=1)},
+        handler_map={arrow_handle: _HandlerConeArrow(color=arrow_color)},
     )
 
     # Load and overlay stable fixed point
