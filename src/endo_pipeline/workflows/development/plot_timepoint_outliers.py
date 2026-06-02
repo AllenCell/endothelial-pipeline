@@ -44,11 +44,9 @@ def main(datasets: Datasets | None = None) -> None:
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, load_dataframe
-    from endo_pipeline.library.process.single_tp_outlier.bf_timepoint_outlier import (
-        plot_bf_outliers,
-    )
-    from endo_pipeline.library.process.single_tp_outlier.gfp_timepoint_outlier import (
-        plot_gfp_outliers_rolling,
+    from endo_pipeline.library.process.timepoint_outliers import (
+        plot_single_timepoint_bf_outliers,
+        plot_single_timepoint_gfp_outliers,
     )
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
@@ -86,7 +84,7 @@ def main(datasets: Datasets | None = None) -> None:
         for row in annotations.to_dict("records"):
             position = row[Column.POSITION]
 
-            plot_bf_outliers(
+            plot_single_timepoint_bf_outliers(
                 mean_intensity=row[Column.Annotations.BF_MEAN_INTENSITY],
                 rolling_median=row[Column.Annotations.BF_ROLLING_MEDIAN],
                 dark_threshold=row[Column.Annotations.BF_DARK_THRESHOLD],
@@ -100,7 +98,7 @@ def main(datasets: Datasets | None = None) -> None:
                 save_dir=output_path,
             )
 
-            plot_gfp_outliers_rolling(
+            plot_single_timepoint_gfp_outliers(
                 timepoint_means=row[Column.Annotations.GFP_TIMEPOINT_MEANS],
                 rolling_median=row[Column.Annotations.GFP_ROLLING_MEDIAN],
                 lower_threshold=row[Column.Annotations.GFP_LOWER_THRESHOLD],
