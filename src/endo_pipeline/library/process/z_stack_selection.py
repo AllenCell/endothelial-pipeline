@@ -136,38 +136,6 @@ def plot_standard_devs_per_slice(
     plt.show()
 
 
-def calculate_center_planes_all_tp_for_pos(
-    dataset_config: DatasetConfig, position: int
-) -> list[int]:
-    """
-    Calculate the center plane for each frame in a brightfield (BF) z-stack for a given position.
-
-    Args:
-        dataset_config: Configuration object containing metadata for the dataset.
-        position: The position index within the dataset to analyze.
-
-    Returns:
-        center_plantes: A list of center planes for each frame in the dataset.
-    """
-
-    zarr_location = get_zarr_location_for_position(dataset_config, position)
-    bf_stack_all_frames = load_image(zarr_location, channels=["BF"], level=1)
-    center_planes = []
-
-    for frame in range(0, dataset_config.duration, 1):
-        # Extract the BF stack for the current frame
-        bf_stack = bf_stack_all_frames[frame].squeeze()
-
-        # Compute standard deviations for all slices in the current frame
-        stdevs = bf_stack.std(axis=(1, 2)).compute()
-
-        # Find the center plane with the minimum standard deviation
-        center_plane_tp = max(0, np.argmin(stdevs))
-        center_planes.append(center_plane_tp)
-
-    return center_planes
-
-
 def visualize_slice_selection(
     bf_stack: Array,
     cdh5_stack: Array,
