@@ -78,7 +78,8 @@ dataset_summary_df = build_dataframe_for_fixed_point_dataset_summary(
     feature_dataframe_manifest=feature_dataframe_manifest,
     bootstrap_dataframe_manifest=fixed_points_bootstrap_dataframe_manifest,
     column_names=columns_for_summary_plots,
-    convert_angle_to_nematic=True,
+    convert_angle_to_nematic=False,
+    unwrap_angle=True,
     stable_only=True,
     bootstrap_threshold=BOOTSTRAP_THRESHOLD,
 )

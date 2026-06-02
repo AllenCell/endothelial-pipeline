@@ -40,7 +40,6 @@ BOOTSTRAP_THRESHOLD = 0.4
 
 column_names: list[ColumnNameType] = [
     ColumnName.DiffAEData.POLAR_ANGLE,
-    ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
     ColumnName.DiffAEData.POLAR_RADIUS,
     ColumnName.DiffAEData.PC3_FLIPPED,
 ]
@@ -50,7 +49,8 @@ dataset_summary_df = build_dataframe_for_fixed_point_dataset_summary(
     feature_dataframe_manifest=feature_dataframe_manifest,
     bootstrap_dataframe_manifest=fixed_points_bootstrap_dataframe_manifest,
     column_names=column_names,
-    convert_angle_to_nematic=True,
+    convert_angle_to_nematic=False,
+    unwrap_angle=True,
     stable_only=True,
     bootstrap_threshold=BOOTSTRAP_THRESHOLD,
 )
@@ -61,7 +61,9 @@ summary_plot_path = plot_cross_dataset_summaries(
     axis_mode="dataset",
     figure_size=(MAX_FIGURE_WIDTH, 1.5),
     subplot_layout="vertical",
+    convert_angle_to_nematic=False,
     category_order=dataset_summary_list,
+    color_by_column=ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
 )
 
 # %%
