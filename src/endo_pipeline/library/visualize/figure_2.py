@@ -581,15 +581,15 @@ def reconstruct_along_nullcline(
     )
     fig_null_walks.add_artist(rect)
 
-    # add row labels to the right of each nullcline row
-    ax_top_right = fig_null_walks.axes[n_cols - 1]
-    ax_bot_right = fig_null_walks.axes[2 * n_cols - 1]
-    pos_top_right = ax_top_right.get_position()
-    pos_bot_right = ax_bot_right.get_position()
-    label_x = pos_top_right.x1 + 0.025
+    # add row labels to the left of each nullcline row
+    ax_top_left = fig_null_walks.axes[0]
+    ax_bot_left = fig_null_walks.axes[n_cols]
+    pos_top_left = ax_top_left.get_position()
+    pos_bot_left = ax_bot_left.get_position()
+    label_x = pos_top_left.x0 - 0.2
     for pos, label in [
-        (pos_top_right, "r-nullcline"),
-        (pos_bot_right, f"{Unicode.RHO}-nullcline"),
+        (pos_top_left, "r-nullcline"),
+        (pos_bot_left, f"{Unicode.RHO}-nullcline"),
     ]:
         fig_null_walks.text(
             label_x,

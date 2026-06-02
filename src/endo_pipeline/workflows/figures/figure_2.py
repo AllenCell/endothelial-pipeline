@@ -312,7 +312,7 @@ def main() -> None:
             path=nullcline_reconstruction_paths[dataset_low],
             x_position=2.3,
             y_position=1.4,
-            x_offset=0.4,
+            x_offset=0.85,
             y_offset=0.0,
         ),
         # --- High flow dataset (row 2) ---
@@ -345,7 +345,7 @@ def main() -> None:
             path=nullcline_reconstruction_paths[dataset_high],
             x_position=2.3,
             y_position=4.1,
-            x_offset=0.4,
+            x_offset=0.85,
             y_offset=0.0,
         ),
         # --- Bottom row: first passage time and summary plots ---
