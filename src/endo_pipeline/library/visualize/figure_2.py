@@ -44,7 +44,6 @@ from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_VMAX,
     DRIFT_CONTOUR_VMIN,
 )
-from endo_pipeline.settings.flow_field_3d import LOG_NORM_MAGNITUDES
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
@@ -600,6 +599,55 @@ def reconstruct_along_nullcline(
     return fig_savedir / f"{filename}.svg"
 
 
+def _load_and_process_vector_field(
+    dataset_name: str,
+    column_names: list[Column.DiffAEData],
+    theta_lims: tuple[float, float],
+    r_lims: tuple[float, float],
+    rho_lims: tuple[float, float],
+    downsample_factor: int,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Load the vector field data for the given dataset and process it to
+    extract the grid and vector components within the specified limits,
+    returning downsampled versions for plotting.
+    """
+    drift_df = load_drift_dataframe_for_dataset(dataset_name)
+    flow_field_dict = get_vector_field_as_dict_from_dataframe(drift_df, column_names)
+
+    # grids and vectors are 3-D arrays shaped (n_theta, n_r, n_rho)
+    x_grid_, y_grid_, z_grid_ = flow_field_dict["grid"]
+    u_field_, v_field_, w_field_ = flow_field_dict["vectors"]
+
+    # mask vector field to be within the specified limits (take only grid points
+    # within limits), reshaping accordingly as 3D arrays of updated number of
+    # points within limits
+    x_in_bounds = (x_grid_ >= theta_lims[0]) & (x_grid_ <= theta_lims[1])
+    num_x_in_bounds = np.unique(np.sum(x_in_bounds, axis=0))[-1]
+    y_in_bounds = (y_grid_ >= r_lims[0]) & (y_grid_ <= r_lims[1])
+    num_y_in_bounds = np.unique(np.sum(y_in_bounds, axis=1))[-1]
+    z_in_bounds = (z_grid_ >= rho_lims[0]) & (z_grid_ <= rho_lims[1])
+    num_z_in_bounds = np.unique(np.sum(z_in_bounds, axis=2))[-1]
+    in_bounds_mask = x_in_bounds & y_in_bounds & z_in_bounds
+
+    x_grid = x_grid_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
+    y_grid = y_grid_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
+    z_grid = z_grid_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
+    u_field = u_field_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
+    v_field = v_field_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
+    w_field = w_field_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
+
+    # Downsample uniformly along every axis
+    x_ds = x_grid[::downsample_factor, ::downsample_factor, ::downsample_factor]
+    y_ds = y_grid[::downsample_factor, ::downsample_factor, ::downsample_factor]
+    z_ds = z_grid[::downsample_factor, ::downsample_factor, ::downsample_factor]
+    u_ds = u_field[::downsample_factor, ::downsample_factor, ::downsample_factor]
+    v_ds = v_field[::downsample_factor, ::downsample_factor, ::downsample_factor]
+    w_ds = w_field[::downsample_factor, ::downsample_factor, ::downsample_factor]
+
+    return x_ds, y_ds, z_ds, u_ds, v_ds, w_ds
+
+
 def _plot_quiver_3d_cones(
     ax: Axes3D,
     x: np.ndarray,
@@ -765,13 +813,40 @@ def _plot_quiver_3d_cones(
     ax.add_collection3d(base_col)
 
 
+def _set_3d_axes_ticks_and_labels(
+    ax: plt.Axes,
+    x_label: str,
+    x_ticks: list[float],
+    x_tick_labels: list[str],
+    y_label: str,
+    y_ticks: list[float],
+    y_tick_labels: list[str],
+    z_label: str,
+    z_ticks: list[float],
+    z_tick_labels: list[str],
+) -> None:
+    ax.tick_params(axis="both", pad=-3)
+    ax.set_xlabel(x_label, labelpad=-8)
+    ax.set_xticks(x_ticks, labels=x_tick_labels)
+    for tick in ax.xaxis.get_majorticklabels():
+        tick.set_ha("right")
+        tick.set_va("center")
+    ax.set_ylabel(y_label, labelpad=-5)
+    ax.set_yticks(y_ticks, labels=y_tick_labels)
+    for tick in ax.yaxis.get_majorticklabels():
+        tick.set_ha("left")
+        tick.set_va("center")
+    ax.set_zlabel(z_label, labelpad=-8)
+    ax.set_zticks(z_ticks, labels=z_tick_labels)
+    ax.zaxis.set_rotate_label(False)
+
+
 def make_3d_vector_field_plot_panel(
     dataset_name: str,
     fig_savedir: Path,
     downsample_factor: int = 6,
     colormap: str = "viridis_r",
     magnitude_limits: tuple[float, float] = (5e-2, 1.5),
-    log_norm_magnitudes: bool = LOG_NORM_MAGNITUDES,
     arrow_alpha: float = 0.6,
 ) -> Path:
     """
@@ -792,29 +867,12 @@ def make_3d_vector_field_plot_panel(
     downsample_factor
         Factor by which to downsample the grid before plotting, to keep the
         figure responsive.
-    normalize_vectors
-        Whether to normalize each arrow vector to unit length before plotting.
-        When ``True`` all arrows have the same length and are coloured by the
-        original vector magnitude instead.
     colormap
         Matplotlib-compatible colormap name used to colour the arrows by vector
         magnitude.
     magnitude_limits
         Tuple specifying the minimum and maximum magnitude values for the colour
         scale.  ``None`` uses the true minimum and maximum.
-    log_norm_magnitudes
-        When ``True`` apply a logarithmic norm to the colour scale instead of a
-        linear one.  Useful when magnitude spans several orders of magnitude.
-    arrow_alpha
-        Opacity of the quiver arrows (0 = fully transparent, 1 = fully opaque).
-        Lowering this value lets the stable fixed point marker show through the
-        arrow field.
-    clip_max_percentile
-        Upper percentile used to compute ``vmax`` when
-        ``clip_magnitudes`` is ``True``.  ``None`` keeps the true maximum.
-    log_norm_magnitudes
-        When ``True`` apply a logarithmic norm to the colour scale instead of a
-        linear one.  Useful when magnitude spans several orders of magnitude.
     arrow_alpha
         Opacity of the quiver arrows (0 = fully transparent, 1 = fully opaque).
         Lowering this value lets the stable fixed point marker show through the
@@ -823,13 +881,14 @@ def make_3d_vector_field_plot_panel(
     Returns
     -------
     :
-        Path to the saved PNG file containing the 3D vector field and the stable
-        fixed point.
+        Path to the saved figure file.
 
     """
 
     column_names = list(DYNAMICS_COLUMN_NAMES)  # [theta, r, rho]
     col_labels = [(COLUMN_METADATA[col].label or str(col)) for col in DYNAMICS_COLUMN_NAMES]
+
+    figsize = (2.0, 2.5)
     theta_lims = (0, np.pi)
     theta_ticks = [0, np.pi / 2, np.pi]
     theta_tick_labels = [f"0={Unicode.PI}", f"{Unicode.PI}/2", f"{Unicode.PI}=0"]
@@ -838,55 +897,18 @@ def make_3d_vector_field_plot_panel(
     rho_lims = (-1.5, 1.5)
     rho_ticks = [-1.0, 0, 1.0]
 
-    # ------------------------------------------------------------------
-    # Load drift vector field
-    # ------------------------------------------------------------------
-    drift_df = load_drift_dataframe_for_dataset(dataset_name)
-    if drift_df.empty:
-        raise ValueError(
-            f"No drift dataframe found for dataset '{dataset_name}'. "
-            "Cannot create 3D vector field plot."
-        )
-    flow_field_dict = get_vector_field_as_dict_from_dataframe(drift_df, column_names)
+    # Load, clip, and downsample drift vector field
+    x_ds, y_ds, z_ds, u_ds, v_ds, w_ds = _load_and_process_vector_field(
+        dataset_name,
+        column_names,
+        theta_lims,
+        r_lims,
+        rho_lims,
+        downsample_factor,
+    )
 
-    # grids and vectors are 3-D arrays shaped (n_theta, n_r, n_rho)
-    x_grid_, y_grid_, z_grid_ = flow_field_dict["grid"]
-    u_field_, v_field_, w_field_ = flow_field_dict["vectors"]
-
-    # mask vector field to be within the specified limits (take only grid points
-    # within limits), reshaping accordingly as 3D arrays of updated number of
-    # points within limits
-    x_in_bounds = (x_grid_ >= theta_lims[0]) & (x_grid_ <= theta_lims[1])
-    num_x_in_bounds = np.unique(np.sum(x_in_bounds, axis=0))[-1]
-    y_in_bounds = (y_grid_ >= r_lims[0]) & (y_grid_ <= r_lims[1])
-    num_y_in_bounds = np.unique(np.sum(y_in_bounds, axis=1))[-1]
-    z_in_bounds = (z_grid_ >= rho_lims[0]) & (z_grid_ <= rho_lims[1])
-    num_z_in_bounds = np.unique(np.sum(z_in_bounds, axis=2))[-1]
-    in_bounds_mask = x_in_bounds & y_in_bounds & z_in_bounds
-
-    x_grid = x_grid_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
-    y_grid = y_grid_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
-    z_grid = z_grid_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
-    u_field = u_field_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
-    v_field = v_field_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
-    w_field = w_field_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
-
-    # ------------------------------------------------------------------
-    # Downsample uniformly along every axis
-    # ------------------------------------------------------------------
-    d = downsample_factor
-    x_ds = x_grid[::d, ::d, ::d]
-    y_ds = y_grid[::d, ::d, ::d]
-    z_ds = z_grid[::d, ::d, ::d]
-    u_ds = u_field[::d, ::d, ::d]
-    v_ds = v_field[::d, ::d, ::d]
-    w_ds = w_field[::d, ::d, ::d]
-
-    # ------------------------------------------------------------------
-    # Compute vector magnitudes for colouring
-    # ------------------------------------------------------------------
-
-    # flatten — always use raw vectors so colour encodes magnitude
+    # Compute vector magnitudes for colouring before normalizing to unit vectors
+    # for plotting
     x_flat = x_ds.ravel()
     y_flat = y_ds.ravel()
     z_flat = z_ds.ravel()
@@ -895,31 +917,23 @@ def make_3d_vector_field_plot_panel(
     w_flat = w_ds.ravel()
     mag_flat = np.sqrt(u_flat**2 + v_flat**2 + w_flat**2)
 
-    # ------------------------------------------------------------------
     # Map magnitudes to colours
-    # ------------------------------------------------------------------
-    # small constant to avoid issues when normalizing magnitude
     mag_eps = 1e-10
     cmap = plt.get_cmap(colormap)
-    if log_norm_magnitudes:
-        safe_cmin = max(magnitude_limits[0], mag_eps)
-        safe_cmax = max(magnitude_limits[1], safe_cmin + mag_eps)
-        norm_log = LogNorm(vmin=safe_cmin, vmax=safe_cmax)
-        colors = cmap(norm_log(np.clip(mag_flat, safe_cmin, safe_cmax)))
-        scalar_mappable = ScalarMappable(cmap=cmap, norm=norm_log)
-    else:
-        norm_linear = plt.Normalize(vmin=magnitude_limits[0], vmax=magnitude_limits[1])
-        colors = cmap(norm_linear(np.clip(mag_flat, magnitude_limits[0], magnitude_limits[1])))
-        scalar_mappable = ScalarMappable(cmap=cmap, norm=norm_linear)
+    safe_cmin = max(magnitude_limits[0], mag_eps)
+    safe_cmax = max(magnitude_limits[1], safe_cmin + mag_eps)
+    norm_log = LogNorm(vmin=safe_cmin, vmax=safe_cmax)
+    colors = cmap(norm_log(np.clip(mag_flat, safe_cmin, safe_cmax)))
+    scalar_mappable = ScalarMappable(cmap=cmap, norm=norm_log)
 
-    # ------------------------------------------------------------------
     # Build matplotlib 3D figure
-    # ------------------------------------------------------------------
-    figsize = (2.0, 2.5)
-    figsize_ratio = figsize[1] / figsize[0]
     fig = plt.figure(figsize=figsize)
     ax: Axes3D = fig.add_subplot(111, projection="3d")
+    figsize_ratio = figsize[1] / figsize[0]
     ax.set_box_aspect((1.1 * figsize_ratio, 0.98 * figsize_ratio, 1.05 * figsize_ratio))
+    ax.set_xlim(theta_lims)
+    ax.set_ylim(r_lims)
+    ax.set_zlim(rho_lims)
 
     # Render all arrows at the same absolute size (so visual clutter from
     # large-magnitude outliers is reduced) while still colouring by magnitude.
@@ -980,26 +994,22 @@ def make_3d_vector_field_plot_panel(
         handler_map={arrow_handle: HandlerLine2D(numpoints=1)},
     )
 
-    # ------------------------------------------------------------------
     # Load and overlay stable fixed point
-    # ------------------------------------------------------------------
     fixed_points_df = load_fixed_points_dataframe_for_dataset(dataset_name)
 
-    if not fixed_points_df.empty and Column.VectorField.STABILITY in fixed_points_df.columns:
-        stable_df = fixed_points_df[
-            fixed_points_df[Column.VectorField.STABILITY] == StabilityLabel.STABLE
-        ]
-        if not stable_df.empty:
-            fpt_coords = stable_df[column_names].to_numpy()
-            hex_color: str = FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color
-            ax.scatter(
-                fpt_coords[:, 0],
-                fpt_coords[:, 1],
-                fpt_coords[:, 2],
-                color=hex_color,
-                s=80,
-                zorder=5,
-            )
+    stable_df = fixed_points_df[
+        fixed_points_df[Column.VectorField.STABILITY] == StabilityLabel.STABLE
+    ]
+    fpt_coords = stable_df[column_names].to_numpy()
+    hex_color: str = FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color
+    ax.scatter(
+        fpt_coords[:, 0],
+        fpt_coords[:, 1],
+        fpt_coords[:, 2],
+        color=hex_color,
+        s=80,
+        zorder=5,
+    )
 
     # ------------------------------------------------------------------
     # Axes labels and title
@@ -1022,9 +1032,7 @@ def make_3d_vector_field_plot_panel(
     ax.set_zlim(rho_lims)
     ax.zaxis.set_rotate_label(False)
 
-    # ------------------------------------------------------------------
-    # Save as static SVG
-    # ------------------------------------------------------------------
+    # save as .svg file
     filename = f"3d_vector_field_{dataset_name}"
     save_plot_to_path(
         fig,
