@@ -1,5 +1,4 @@
 import logging
-from collections.abc import Callable
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -402,47 +401,6 @@ def save_projection_image(image: np.ndarray, save_path: Path) -> None:
         The file path where the image will be saved.
     """
     plt.imsave(save_path, image, cmap="gray")
-
-
-def append_projection_outputs(
-    stack: Array,
-    zslice: list[int],
-    process_fn: Callable,
-    image_list: list,
-    title_list: list,
-    bottom_list: list,
-    top_list: list,
-) -> None:
-    """
-    Process a z-slice from a stack and append outputs to given containers.
-
-    Parameters
-    ----------
-    stack
-        The full 3D image stack.
-    zslice
-        Start and end indices for slicing the z-axis (e.g., [5, 20]).
-    process_fn
-        A function that processes the sliced stack and returns outputs, with
-        the final output being the 2D projection.
-    image_list
-        List to collect the processed projection images.
-    title_list
-        List to collect slice label strings for titles.
-    bottom_list
-        List to collect the bottom slice of the projection range.
-    top_list
-        List to collect the top slice of the projection range.
-    """
-    slice_str = f"{zslice[0]}_{zslice[1]}"
-    sliced = stack[zslice[0] : zslice[1]]
-    outputs = process_fn(sliced)
-    processed = outputs[-1]
-
-    image_list.append(processed)
-    title_list.append(slice_str)
-    bottom_list.append(stack[zslice[0]])
-    top_list.append(stack[zslice[1]])
 
 
 def plot_histogram_upper_slices_available(
