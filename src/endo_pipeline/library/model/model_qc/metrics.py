@@ -234,6 +234,8 @@ def compute_baseline_data(
         ("validation", "validation_positions"),
         ("rep2", "rep_2_positions"),
     ]:
+        if metric_key not in all_metrics:
+            continue
         for data in all_metrics[metric_key]:
             if data["baseline_correlations"]:
                 baseline_data[split_key] = {
@@ -313,6 +315,8 @@ def build_models_data(
             ("validation", "validation_positions"),
             ("rep2", "rep_2_positions"),
         ]:
+            if metric_key not in all_metrics:
+                continue
             for data in all_metrics[metric_key]:
                 if data["model_key"] == model_key:
                     if model_entry["model_label"] is None:

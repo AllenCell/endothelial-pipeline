@@ -554,6 +554,21 @@ class ColumnName:
         EXPONENTIAL_FIT = "exponential_fit"
         """Column name for the values of the evaluated exponential fit curve at a given lag."""
 
+    class ModelQC(StrEnum):
+        """Dataframe column names used in the Model-QC metrics parquet."""
+
+        RANDOM_SEED = "random_seed"
+        """Column name for the noise/RNG seed used for a given inference row."""
+
+        EXAMPLE_SET = "example_set"
+        """Column name for the curated example-set label (e.g. ``rep_2_positions``)."""
+
+        EXAMPLE_IDX = "example_idx"
+        """Column name for the 0-based position of the example within its set."""
+
+        DATASET_NAME = "dataset_name"
+        """Column name for the source dataset name of the example image."""
+
 
 ColumnNameType = (
     str
@@ -567,5 +582,6 @@ ColumnNameType = (
     | ColumnName.BootstrapAnalysis
     | ColumnName.VectorField
     | ColumnName.AutoCorrelation
+    | ColumnName.ModelQC
 )
 """Type hint for all column name enums."""
