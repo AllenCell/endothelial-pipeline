@@ -3,11 +3,13 @@
 from pathlib import Path
 
 import numpy as np
+from matplotlib import pyplot as plt
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io.output import save_plot_to_path
 from endo_pipeline.library.process.image_processing import (
     convert_to_uint8,
+    crop_image,
     load_processed_bf_image_crop,
     load_processed_bf_std_dev_image_crop,
     load_processed_egfp_image_crop,
@@ -25,9 +27,11 @@ def create_panel_biological_system_examples(
     save_dir: Path,
     crop_size: int = 1000,
     scale_bar_um: int = 100,
-    figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH * 0.25, 3),
+    figure_size: tuple[float, float] = (3, 3),
+    inset_coordinates: tuple = (0, 0),
 ) -> None:
-    """Create panel of example images of the biological system at low and high shear stress.
+    """Create FOV and inset image panels of example images of the biological system
+    at low and high shear stress.
 
     Parameters
     ----------
@@ -39,6 +43,10 @@ def create_panel_biological_system_examples(
         Crop size in pixels at resolution level 0.
     scale_bar_um
         Scale bar length in micrometers.
+    figure_size
+        Size of the first figure (width, height) in inches.
+    inset_coordinates
+        Tuple of (x, y) coordinates in pixels at resolution level 0 for the top-left corner of the inset region.
     """
     image_panel_list = []
     shear_stress_titles = []
@@ -77,11 +85,11 @@ def create_panel_biological_system_examples(
 
     fig = make_contact_sheet(
         image_panel_list,
-        max_cols=len(image_panel_list) // len(examples),
-        max_rows=len(examples),
-        row_titles=shear_stress_titles,
-        col_titles=["VE-Cadherin MIP", "BF Z-slice", "BF Std. Dev. Proj."],
-        direction="left-right first",
+        max_cols=len(examples),
+        max_rows=len(image_panel_list) // len(examples),
+        col_titles=shear_stress_titles,
+        row_titles=["VE-Cadherin\nMIP", "BF\nZ-slice", "BF\nStd. Dev. Proj."],
+        direction="top-down first",
         font_size=FONTSIZE_MEDIUM,
         subplot_kwargs={"frame_on": False},
         gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
@@ -102,10 +110,66 @@ def create_panel_biological_system_examples(
             include_label=True if i == 0 else False,
         )
 
+        # draw box to indicate inset region to each image
+        inset_size_in_pixels = 256
+        rect = plt.Rectangle(
+            (inset_coordinates[0], inset_coordinates[1]),
+            inset_size_in_pixels,
+            inset_size_in_pixels,
+            edgecolor="yellow",
+            facecolor="none",
+            linewidth=1.5,
+        )
+        ax.add_patch(rect)
+
     save_plot_to_path(
         fig,
         save_dir,
         f"biological_system_examples_scale_bar_{scale_bar_um}um",
+        file_format=".svg",
+        tight_layout=False,
+        pad_inches=0,
+    )
+
+    # Create a panel with insets / crops of to show in more zoomed in detail
+    cropped_image_panel_list = []
+    for image in image_panel_list:
+        cropped_image = crop_image(image, inset_coordinates[0], inset_coordinates[1], 256)
+        cropped_image_panel_list.append(cropped_image)
+
+    figure_size_crops = (figure_size[0], figure_size[1])
+
+    fig_crops = make_contact_sheet(
+        cropped_image_panel_list,
+        max_cols=len(examples),
+        max_rows=len(cropped_image_panel_list) // len(examples),
+        col_titles=shear_stress_titles,
+        row_titles=["VE-Cadherin\nMIP", "BF\nZ-slice", "BF\nStd. Dev. Proj."],
+        direction="top-down first",
+        font_size=FONTSIZE_MEDIUM,
+        subplot_kwargs={"frame_on": False},
+        gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
+        fig_kwargs={"figsize": figure_size_crops, "layout": "constrained"},
+    )
+    for i, ax in enumerate(fig_crops.axes):
+        ax.xaxis.labelpad = 3
+        ax.yaxis.labelpad = 3
+
+        scale_bar_um = 20
+        add_scalebar(
+            ax,
+            scale_bar_um=scale_bar_um,  # since crop is 256x256 instead of 1000x1000
+            pixel_size=PIXEL_SIZE_3i_20x,
+            location="lower right",
+            bar_thickness=10,
+            padding=10,
+            include_label=True if i == 0 else False,
+        )
+
+    save_plot_to_path(
+        fig_crops,
+        save_dir,
+        f"biological_system_examples_inset_scale_bar_{scale_bar_um}um",
         file_format=".svg",
         tight_layout=False,
         pad_inches=0,
