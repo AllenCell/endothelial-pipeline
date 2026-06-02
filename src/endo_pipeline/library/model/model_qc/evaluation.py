@@ -1,6 +1,7 @@
 """Core model evaluation logic for model QC."""
 
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING, NamedTuple, cast
 
 from numpy.random import default_rng
@@ -135,6 +136,7 @@ def evaluate_single_model(
     compute_baseline: bool = True,
     is_default_seed: bool = True,
     num_gpus: int | None = None,
+    output_path: "Path | None" = None,
 ) -> dict:
     """Evaluate a single model and return its metrics.
 
@@ -227,13 +229,15 @@ def evaluate_single_model(
         example_results_100: list = []
         example_metrics_100: list = []
 
-        output_path = get_output_path(
+        example_set_dir = get_output_path(
             "model_qc",
             manifest_name,
             run_name,
             example_set_label,
             create_directories=False,
         )
+        if output_path is not None:
+            example_set_dir = Path(output_path) / manifest_name / run_name / example_set_label
 
         for example in example_set:
 
@@ -302,7 +306,7 @@ def evaluate_single_model(
                     denoised_scrambled_input,
                     label_for_conditioning,
                     list(noise_levels),
-                    output_path,
+                    example_set_dir,
                     example,
                 )
             else:
@@ -313,7 +317,7 @@ def evaluate_single_model(
             # Save crops - we do so only for the default random seed!
             if save_crops_as_tiff and is_default_seed and compute_metrics:
                 save_denoising_crops(
-                    output_path=output_path,
+                    output_path=example_set_dir,
                     dataset_name=example.dataset_name,
                     position=example.position,
                     timepoint=example.timepoint,
@@ -379,7 +383,7 @@ def evaluate_single_model(
                         metrics,
                         label_for_conditioning,
                         noise_labels,
-                        output_path,
+                        example_set_dir,
                         example,
                     )
 
@@ -403,7 +407,7 @@ def evaluate_single_model(
                 example_set_label,
                 model_key,
                 has_metrics,
-                output_path,
+                example_set_dir,
             )
 
     return result

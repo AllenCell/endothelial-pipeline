@@ -16,7 +16,7 @@ data:
     _target_: monai.data.DataLoader
     drop_last: True  # Critical for DDP - ensures consistent batch sizes across ranks
     num_workers: 24
-    batch_size: 2
+    batch_size: 1
     pin_memory: true
     persistent_workers: true  # Better for multi-epoch training
     shuffle: true
@@ -88,7 +88,7 @@ data:
     _target_: monai.data.DataLoader
     drop_last: True  # Critical for DDP - ensures consistent batch sizes across ranks
     num_workers: 16
-    batch_size: 2
+    batch_size: 1
     pin_memory: true
     persistent_workers: true  # Better for multi-epoch training
     shuffle: false
@@ -208,10 +208,10 @@ model:
   lr_scheduler:
     _partial_: true
     _target_: torch.optim.lr_scheduler.OneCycleLR
-    max_lr: 0.0002
+    max_lr: 0.0001
     epochs: ${trainer.max_epochs}
-    steps_per_epoch: 279 # this works with a batch size of 12 with 4 GPUs
-    pct_start: 0.06 # with max epochs of 7500 this will have LR increase until 750 epochs!
+    steps_per_epoch: 1
+    pct_start: 0.01
   diffusion_inferer:
     _target_: monai.inferers.DiffusionInferer
     _partial_: true
@@ -271,7 +271,7 @@ callbacks:
 logger:
   mlflow:
     _target_: endo_pipeline.library.model.diffae.mlflow.MLFlowLogger
-    tracking_uri: https://production.int.allencell.org/mlflow/
+    tracking_uri: null
     experiment_name: ${experiment_name}
     run_name: ${run_name}
 trainer:

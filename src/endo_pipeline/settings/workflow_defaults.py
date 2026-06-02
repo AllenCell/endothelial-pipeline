@@ -55,13 +55,16 @@ DEFAULT_IMAGE_TYPE_FOR_SEMANTIC_CONDITIONING: Literal["bf", "cdh5"] = "bf"
 DIFFAE_IMAGE_LOADING_KEY_PREFIX: str = "raw_"
 """Default key prefix for loading DiffAE model input images."""
 
-DIFFAE_EVAL_DATAFRAME_MANIFEST_PREFIX: str = "diffae_evaluation_dataframe_"
+DIFFAE_TRAIN_DATAFRAME_MANIFEST_PREFIX: str = "diffae_training_dataframe"
+"""Prefix for DiffAE model training image loading dataframe."""
+
+DIFFAE_EVAL_DATAFRAME_MANIFEST_PREFIX: str = "diffae_evaluation_dataframe"
 """Prefix for DiffAE model evaluation image loading dataframe."""
 
 DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT: str = "raw_cdh5"
 """Default key for channel to use as diffusion image input to the model."""
 
-DEFAULT_NUM_LATENT_DIMENSIONS: int = 1024
+DEFAULT_NUM_LATENT_DIMENSIONS: int = 512
 """Default number of latent dimensions for DiffAE models."""
 
 RANDOM_SEED: int = 47
@@ -268,4 +271,16 @@ DEFAULT_MODEL_QC_LABELS: list[str] = [
 
 Order: 8 BF, 16 BF, 32 BF, 64 BF, 128 BF, 256 BF, 512 BF, 1024 BF,
 512 CDH5, 1024 CDH5.
+"""
+
+DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_PREFIX: str = "diffae_model_comparison_metrics"
+"""Prefix for the dataframe manifests cataloguing the per-model QC parquets.
+
+The production workflow emits one dataframe manifest per
+``manifest_name`` in the curated sweep, named
+``{PREFIX}_{manifest_name}`` (with a ``_demo`` suffix when run in demo
+mode). Each manifest's ``locations`` dict is keyed by ``run_name`` and
+points at the per-(manifest, run) metrics parquet. The companion plot
+workflow loads all of these manifests and renders the supplementary
+bar chart without re-running inference.
 """

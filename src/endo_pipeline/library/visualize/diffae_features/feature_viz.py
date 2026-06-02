@@ -1,10 +1,8 @@
 """Methods for visualizing Diff AE features."""
 
 import logging
-from pathlib import Path
 from typing import Any
 
-import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -15,7 +13,6 @@ from matplotlib.ticker import MultipleLocator
 from seaborn import kdeplot
 
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.polar_coords import (
     rewrap_polar_angle,
@@ -32,11 +29,9 @@ from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_FEATURE_COLUMN_NAMES,
     DIFFAE_PC_COLUMN_NAMES,
     NUM_LATENT_FEATURES,
-    NUM_PCS_TO_ANALYZE,
 )
-from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import FONTSIZE_MEDIUM
 from endo_pipeline.settings.plot_defaults import SHEAR_COLOR_DICT
-from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
 plt.style.use("endo_pipeline.figure")
 
@@ -224,188 +219,6 @@ def get_dataset_color(dataset_name: str) -> str:
     color = SHEAR_COLOR_DICT[shear_stress_regime]
 
     return color
-
-
-def plot_pc_scatter(
-    dataframe: pd.DataFrame,
-    savedir: Path,
-    column_names: list[str] | None = None,
-    alpha: float = 0.2,
-    scatter_size: float = 1,
-) -> tuple[Figure, np.ndarray[Axes, Any]]:
-    """Plot scatter plot of PCA components for a list of datasets.
-
-    Parameters
-    ----------
-    dataframe
-        DataFrame containing the PCA components for all datasets to plot.
-    savedir
-        Directory to save the plots to.
-    column_names
-        List of feature column names to plot.
-    alpha
-        Alpha (opacity) value for scatter plot points.
-    scatter_size
-        Size of scatter plot points.
-
-    Returns
-    -------
-    :
-        Figure object and array of Axes objects for the
-        scatter plots.
-
-    """
-    # initialize color list for legend
-    patch_list_for_legend_combined_plot = []
-
-    # get list of dataset names from dataframe
-    dataset_names = dataframe[Column.DATASET].unique().tolist()
-
-    # add "color" as a column in the dataframe for plotting, based on dataset name
-    for dataset_name in dataset_names:
-        dataset_color = get_dataset_color(dataset_name)
-        dataframe.loc[dataframe[Column.DATASET] == dataset_name, "color"] = dataset_color
-
-    # input feature column names to plot (use PC column names by default)
-    column_names_ = column_names or DIFFAE_PC_COLUMN_NAMES[:NUM_PCS_TO_ANALYZE]
-
-    for highlighted_dataset in dataset_names:
-        # copy combined dataframe to modify for highlighting
-        df_highlighted = dataframe.copy()
-        # Separate highlighted and background data
-        mask_highlighted = df_highlighted[Column.DATASET] == highlighted_dataset
-        df_background = df_highlighted[~mask_highlighted].copy()
-        df_foreground = df_highlighted[mask_highlighted].copy()
-
-        # Set background color
-        df_background["color"] = "lightgray"
-
-        # Add color for highlighted dataset and add to patch list for legend
-        dataset_color = df_foreground["color"].iloc[0]
-        patch_list_for_legend_combined_plot.append(
-            mpatches.Patch(color=dataset_color, label=highlighted_dataset)
-        )
-
-        # Concatenate with highlighted data last (so it plots on top)
-        df_highlighted = pd.concat([df_background, df_foreground], ignore_index=True)
-
-        # Create figure to plot
-        fig, ax = plt.subplots(
-            2, 1, figsize=(MAX_FIGURE_WIDTH // 2, MAX_FIGURE_HEIGHT // 2), sharex=True
-        )
-        # Create patch list for legend with highlighted dataset colored and
-        # others light gray
-        patch_list_for_legend = [
-            (
-                mpatches.Patch(color=dataset_color, label=highlighted_dataset)
-                if dataset_name == highlighted_dataset
-                else mpatches.Patch(color="lightgray", label=dataset_name)
-            )
-            for dataset_name in dataset_names
-        ]
-
-        # initialize figure and axes
-        ax = plot_pc_scatter_from_df(
-            df_highlighted,
-            highlighted_dataset,
-            ax,
-            alpha,
-            scatter_size,
-            column_names_,
-            patch_list_for_legend,
-        )
-
-        if savedir is not None:
-            save_plot_to_path(
-                fig,
-                savedir,
-                f"pca_scatter_highlight_{highlighted_dataset}",
-            )
-
-    # plot combined figure with all datasets
-    fig_combined, ax_combined = plt.subplots(
-        2, 1, figsize=(MAX_FIGURE_WIDTH // 2, MAX_FIGURE_HEIGHT // 2), sharex=True
-    )
-    shuffled_indices = np.random.default_rng(RANDOM_SEED).permutation(len(dataframe))
-    dataframe_shuffled = dataframe.iloc[shuffled_indices]
-    plot_pc_scatter_from_df(
-        df=dataframe_shuffled,
-        dataset_name="reference",
-        ax=ax_combined,
-        alpha=alpha,
-        scatter_size=scatter_size,
-        pc_column_names=column_names_,
-        patch_list_for_legend=patch_list_for_legend_combined_plot,
-    )
-
-    if savedir is not None:
-        save_plot_to_path(fig_combined, savedir, "pca_scatter_ref")
-
-    return fig, ax
-
-
-def plot_pc_scatter_from_df(
-    df: pd.DataFrame,
-    dataset_name: str,
-    ax: np.ndarray[Axes, Any],
-    alpha: float,
-    scatter_size: float,
-    pc_column_names: list[str],
-    patch_list_for_legend: list[mpatches.Patch],
-) -> np.ndarray[Axes, Any]:
-    """Plot scatter plot of PCA components from a given dataframe.
-
-    Parameters
-    ----------
-    df
-        DataFrame containing the PCA components to plot.
-    dataset_name
-        Name of the dataset being plotted.
-    ax
-        Array of Axes objects to plot on.
-    alpha
-        Alpha (opacity) value for scatter plot points.
-    scatter_size
-        Size of scatter plot points.
-    pc_column_names
-        List of PCA column names to plot.
-    patch_list_for_legend
-        List of patches to include in the legend for the plot.
-
-    Returns
-    -------
-    :
-        Array of Axes objects for the scatter plots.
-
-    """
-    # first plot: PC1 v PC2
-    ax[0].scatter(
-        df[pc_column_names[0]],
-        df[pc_column_names[1]],
-        alpha=alpha,
-        s=scatter_size,
-        marker="o",
-        linewidths=0,
-        color=df["color"],
-        label=dataset_name,
-    )
-    ax[0].set_ylabel("PC2")
-
-    # second plot: PC1 v PC3
-    ax[1].scatter(
-        df[pc_column_names[0]],
-        df[pc_column_names[2]],
-        alpha=alpha,
-        s=scatter_size,
-        marker="o",
-        linewidths=0,
-        color=df["color"],
-        label=dataset_name,
-    )
-    ax[1].set_xlabel("PC1")
-    ax[1].set_ylabel("PC3")
-    ax[0].legend(bbox_to_anchor=(1.02, 1.02), title="Datasets", handles=patch_list_for_legend)
-    return ax
 
 
 def make_pc_scatter_fig4a(

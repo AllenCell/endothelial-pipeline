@@ -82,4 +82,15 @@ def get_dataframe_manifest_with_parameters(
 def build_dataframe_location_from_path(path: str | Path) -> DataframeLocation:
     """Create a dataframe location from path."""
 
+    # TODO: remove in favor of build_dataframe_location_from_string OR
+    # directly creating the DataframeLocation object
     return DataframeLocation(path=Path(path).resolve())
+
+
+def build_dataframe_location_from_string(string: str) -> DataframeLocation:
+    """Create a dataframe location from given string."""
+
+    if string.startswith("s3://"):
+        return DataframeLocation(s3uri=string)
+    else:
+        return DataframeLocation(path=Path(string).resolve())

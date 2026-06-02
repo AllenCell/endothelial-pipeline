@@ -1,6 +1,8 @@
 import logging
 from pathlib import Path
 
+import requests
+
 from endo_pipeline.io.output import get_output_path
 
 logger = logging.getLogger(__name__)
@@ -11,7 +13,16 @@ except ModuleNotFoundError:
     logger.error("Required dependency [ mlflow ] not found")
     raise
 
-MLFLOW_TRACKING_URI = "https://production.int.allencell.org/mlflow/"
+MLFLOW_INTERNAL_TRACKING_URI = "https://production.int.allencell.org/mlflow/"
+MLFLOW_EXTERNAL_TRACKING_URI = f"file://{get_output_path('mlflow', include_timestamp=False)}"
+
+try:
+    requests.head(MLFLOW_INTERNAL_TRACKING_URI)
+    MLFLOW_TRACKING_URI = MLFLOW_INTERNAL_TRACKING_URI
+    logger.info("Using internal MLFlow tracking instance")
+except Exception:
+    MLFLOW_TRACKING_URI = MLFLOW_EXTERNAL_TRACKING_URI
+    logger.info("Using local path for MLFlow tracking")
 
 MLFLOW.set_tracking_uri(MLFLOW_TRACKING_URI)
 

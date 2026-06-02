@@ -6,15 +6,29 @@ def main(
     datasets: Datasets | None = None,
 ) -> None:
     """
-    Generate dataframes with paths to zarr files for evaluating a DiffAE model.
+    Generate dataframes with zarr file locations for evaluating a DiffAE model.
 
     #diffae #model-evaluation
 
-    This workflow collects zarr file paths for each of the given datasets and
-    saves them as Parquet files, along with metadata such as channel and
+    This workflow collects zarr file locations for each of the given datasets
+    and saves them as Parquet files, along with metadata such as channel and
     resolution level, which can then be used by the DiffAE model data loader for
     model evaluation. These files are uploaded to FMS and tracked in a
     corresponding dataframe manifest.
+
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe create-diffae-eval-dataframe CROP_PATTERN -vd
+    ```
+
+    To run the workflow for a single dataset:
+
+    ```bash
+    uv run endopipe create-diffae-eval-dataframes CROP_PATTERN --datasets DATASET_NAME
+    ```
 
     ## Crop patterns
 
@@ -22,12 +36,17 @@ def main(
     `tracked`. When creating the data loading dataframe, the crop pattern
     defines the locations of crops to be evaluated.
 
+    ## Dataset collection
+
+    If datasets are not provided, the workflow will use datasets in the
+    `diffae_model_training` dataset collection.
+
     ## Workflow demo
 
-    The ``--demo-mode`` (aka ``-d``) flag can be used to run a simplified
-    version of this workflow for testing purposes (e.g. during code review). The
-    workflow will only create the data loading dataframe for one dataset with
-    only the first position and first few timepoints.
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will build
+    evaluation dataframes for only the first position and first two timepoints
+    of a single dataset. If the dataset is not a timelapse, only the first
+    timepoint is used).
 
     Parameters
     ----------
@@ -39,7 +58,7 @@ def main(
 
     import logging
 
-    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE, UPLOAD_TO_FMS
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
     from endo_pipeline.library.model.eval_model import preprocess_tracking_manifest_for_model_eval
@@ -64,14 +83,14 @@ def main(
     if datasets is None:
         datasets = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
 
-    # When running workflow in demo mode, only evaluate the first dataset.
+    # When running workflow in demo mode, only include the first dataset.
     if DEMO_MODE:
-        logger.warning("DEMO MODE - Only evaluating first dataset")
+        logger.warning("DEMO MODE - Only the first dataset will be included")
         datasets = datasets[:1]
 
     # Create dataframe manifest and add workflow parameters.
     name_suffix = "_demo" if DEMO_MODE else ""
-    manifest_name = f"{DIFFAE_EVAL_DATAFRAME_MANIFEST_PREFIX}{crop_pattern}{name_suffix}"
+    manifest_name = f"{DIFFAE_EVAL_DATAFRAME_MANIFEST_PREFIX}_{crop_pattern}{name_suffix}"
     manifest = create_dataframe_manifest(manifest_name, __file__)
     manifest.parameters = {
         "crop_pattern": crop_pattern,
@@ -97,14 +116,16 @@ def main(
             frame_start = 0
             frame_stop = 1 if dataset_config.is_timelapse else 0
             only_include_positions = [0]
+            only_include_frames = {0: sorted({frame_start, frame_stop})}
         else:
             frame_start = None
             frame_stop = None
             only_include_positions = None
+            only_include_frames = None
 
         # Use default z slice offsets to calculate z slice bounds per position.
         z_slice_bounds_per_position = get_z_slice_bounds_per_position(
-            dataset_config, Z_SLICE_OFFSETS
+            dataset_config, z_slice_offsets=Z_SLICE_OFFSETS
         )
 
         # Build the data loading dataframe based on crop pattern. The 'grid'
@@ -125,6 +146,7 @@ def main(
                 dataset_config,
                 z_slice_bounds_per_position=z_slice_bounds_per_position,
                 only_include_positions=only_include_positions,
+                only_include_frames=only_include_frames,
             )
 
         # Output dataframes are locally saved to:
@@ -133,12 +155,19 @@ def main(
         output_file = output_path / f"dataset_{dataset_config.name}_{file_suffix}.parquet"
         df.to_parquet(output_file, index=False)
 
-        # Upload dataframe to FMS and add to dataframe manifest.
-        annotations = build_fms_annotations(dataset_config)
-        fmsid = upload_file_to_fms(output_file, annotations=annotations, file_type="parquet")
+        # Create location object with output path
+        location = manifest.locations.get(dataset, DataframeLocation())
+        location.path = output_file
 
-        # Add dataframe location to dataframe manifest.
-        manifest.locations[dataset] = DataframeLocation(fmsid=fmsid)
+        # Upload to FMS (internal only) and replace local path with file id
+        if UPLOAD_TO_FMS:
+            annotations = build_fms_annotations(dataset=dataset_config)
+            fmsid = upload_file_to_fms(output_file, annotations=annotations, file_type="parquet")
+            location.fmsid = fmsid
+            location.path = None
+
+        # Add dataframe location to dataframe manifest and save.
+        manifest.locations[dataset] = location
         save_dataframe_manifest(manifest)
 
 

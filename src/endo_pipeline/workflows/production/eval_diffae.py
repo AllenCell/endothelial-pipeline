@@ -9,7 +9,6 @@ def main(
     crop_pattern: CropPattern,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
-    upload_to_fms: bool = True,
 ) -> None:
     """
     Evaluate a DiffAE model using the provided configuration.
@@ -21,10 +20,28 @@ def main(
     workflow will only run the evaluation for datasets that do not already have
     features calculated (based on the corresponding dataframe manifest).
 
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe eval-diffae CROP_PATTERN -vd
+    ```
+
+    To run the workflow for a specific model manifest name and run name:
+
+    ```bash
+    uv run endopipe eval-diffae CROP_PATTERN \
+        --model-manifest-name MODEL_MANIFEST_NAME \
+        --run-name RUN_NAME
+    ```
+
     ## Workflow demo
 
-    If demo mode is enabled, this workflow will use the config with the suffix
-    ``_demo`` and only evaluate a single dataset.
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will use the
+    dataframe manifest and model config with the `_demo` suffix produced by
+    also running `create-diffae-eval-dataframe` and `build-diffae-eval-config`
+    in demo mode. The workflow will only evaluate the first dataset.
 
     Parameters
     ----------
@@ -34,8 +51,6 @@ def main(
         Name for the model manifest to use for evaluation.
     run_name
         Name for the model run to use for evaluation.
-    upload_to_fms
-        True to upload model evaluation results to FMS, False otherwise.
     """
 
     import logging
@@ -43,7 +58,7 @@ def main(
 
     from cyto_dl.api import CytoDLModel
 
-    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE, UPLOAD_TO_FMS
     from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
     from endo_pipeline.library.model.eval_model import (
@@ -130,15 +145,23 @@ def main(
                 prediction_path=output_path,
             )
 
-        # Upload feature dataframe to FMS.
-        if upload_to_fms:
+        # Create location object with output path
+        location = feature_manifest.locations.get(dataset, DataframeLocation())
+        location.path = output_path
+
+        # Upload to FMS (internal only) and replace local path with file id
+        if UPLOAD_TO_FMS:
             dataset_config = load_dataset_config(dataset)
             annotations = build_fms_annotations(
                 dataset_config, model_manifest=model_manifest, run_name=run_name
             )
             fmsid = upload_file_to_fms(output_path, annotations=annotations, file_type="parquet")
-            feature_manifest.locations[dataset] = DataframeLocation(fmsid=fmsid)
-            save_dataframe_manifest(feature_manifest)
+            location.fmsid = fmsid
+            location.path = None
+
+        # Add dataframe location to dataframe manifest and save.
+        feature_manifest.locations[dataset] = location
+        save_dataframe_manifest(feature_manifest)
 
 
 if __name__ == "__main__":
