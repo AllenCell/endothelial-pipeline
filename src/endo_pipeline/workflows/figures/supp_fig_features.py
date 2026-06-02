@@ -24,6 +24,7 @@ def main() -> None:
     )
     from endo_pipeline.settings.diffae_feature_dataframes import (
         DIFFAE_PC_COLUMN_NAME_GROUPS,
+        DIFFAE_PC_COLUMN_NAMES,
         NUM_LATENT_FEATURES,
     )
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
@@ -121,7 +122,7 @@ def main() -> None:
     walk_img_grid = perform_and_plot_latent_walk_for_figures(
         save_path=save_dir,
         filename=latent_walk_filename,
-        walk_column_names=ml_columns[:3],
+        walk_column_names=DIFFAE_PC_COLUMN_NAMES[:3],
         figsize=(4.45, 2.3),
         sigma=3,
         n_steps=7,
