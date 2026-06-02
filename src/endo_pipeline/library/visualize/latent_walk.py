@@ -172,7 +172,7 @@ def perform_and_plot_latent_walk_for_figures(
     n_steps: int = 7,
     scale_bar_um: int = 10,
     num_gpus: int | None = None,
-) -> np.ndarray:
+) -> tuple[Path, np.ndarray]:
     """
     Perform and visualize a latent walk along specified dimensions.
 
@@ -207,6 +207,8 @@ def perform_and_plot_latent_walk_for_figures(
 
     Returns
     -------
+    :
+        Path to the saved figure.
     :
         Array of shape (3, num_steps, h, w) containing the reconstructed image
         crops.
@@ -269,4 +271,4 @@ def perform_and_plot_latent_walk_for_figures(
         file_format=".svg",
     )
 
-    return walk_img_grid
+    return save_path / f"{filename}_scale_bar_{scale_bar_um}um.svg", walk_img_grid

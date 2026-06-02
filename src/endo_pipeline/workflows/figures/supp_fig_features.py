@@ -116,20 +116,16 @@ def main() -> None:
     )
 
     # perform latent walk along top 3 PCs and save the resulting contact sheet
-    latent_walk_filename = "latent_walk_top_3_pcs"
-
-    scale_bar_um = 20
-    walk_img_grid = perform_and_plot_latent_walk_for_figures(
+    latent_walk_path, walk_img_grid = perform_and_plot_latent_walk_for_figures(
         save_path=save_dir,
-        filename=latent_walk_filename,
+        filename="latent_walk_top_3_pcs",
         walk_column_names=DIFFAE_PC_COLUMN_NAMES[:3],
         figsize=(4.45, 2.3),
         sigma=3,
         n_steps=7,
-        scale_bar_um=scale_bar_um,
+        scale_bar_um=20,
         num_gpus=NUM_GPUS,
     )
-    latent_walk_path = save_dir / f"{latent_walk_filename}_scale_bar_{scale_bar_um}um.svg"
 
     # Take the images from the latent walk along PCs 1 and 2 and plot them as a
     # "2D" walk to motivate the polar coordinate transform. Just (-3 sigma, 0,

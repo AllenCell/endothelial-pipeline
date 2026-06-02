@@ -54,7 +54,6 @@ def main():
     )
 
     # Latent walk visualization
-    scale_bar_um = 20
     walk_column_names = cast(
         list[str],
         [
@@ -63,18 +62,16 @@ def main():
             Column.DiffAEData.PC3_FLIPPED,
         ],
     )
-    latent_walk_filename = "latent_walk_along_polar_theta_polar_r_rho"
-    _ = perform_and_plot_latent_walk_for_figures(
+    latent_walk_path, _ = perform_and_plot_latent_walk_for_figures(
         save_path=save_dir,
-        filename=latent_walk_filename,
+        filename="latent_walk_along_polar_theta_polar_r_rho",
         walk_column_names=walk_column_names,
         figsize=(4, 1.8),
         sigma=None,
         n_steps=7,
-        scale_bar_um=scale_bar_um,
+        scale_bar_um=20,
         num_gpus=NUM_GPUS,
     )
-    latent_walk_path = save_dir / f"{latent_walk_filename}_scale_bar_{scale_bar_um}um.svg"
 
     # Build figure from panels
     save_dir2 = get_output_path(
