@@ -334,6 +334,48 @@ class ColumnName:
         XY_SHIFT = "xy_shift"
         Z_SHIFT = "z_shift"
 
+        BF_MEAN_INTENSITY = "bf_mean_intensity"
+        """Flattened mean BF intensity over XY."""
+
+        BF_ROLLING_MEDIAN = "bf_rolling_median"
+        """Rolling median over BF mean intensity."""
+
+        BF_DARK_THRESHOLD = "bf_dark_threshold"
+        """BF intensity dark outlier threshold."""
+
+        BF_PARTIAL_DARK_THRESHOLD = "bf_partial_dark_threshold"
+        """BF intensity partial dark outlier threshold."""
+
+        BF_BRIGHT_THRESHOLD = "bf_bright_threshold"
+        """BF intensity bright outlier threshold."""
+
+        BF_DARK_OUTLIERS = "bf_dark_outliers"
+        """ndices of BF intensity dark outliers."""
+
+        BF_PARTIAL_DARK_OUTLIERS = "bf_partial_dark_outliers"
+        """ndices of BF intensity partial dark outliers."""
+
+        BF_BRIGHT_OUTLIERS = "bf_bright_outliers"
+        """Indices of BF intensity bright outliers."""
+
+        GFP_TIMEPOINT_MEANS = "gfp_timepoint_means"
+        """Mean GFP intensity intensity over XY per timepoint."""
+
+        GFP_ROLLING_MEDIAN = "gfp_rolling_median"
+        """Rolling median over GFP mean intensity."""
+
+        GFP_LOWER_THRESHOLD = "gfp_lower_threshold"
+        """GFP intensity lower threshold."""
+
+        GFP_UPPER_THRESHOLD = "gfp_upper_threshold"
+        """GFP intensity upper threshold."""
+
+        GFP_DARK_OUTLIERS = "gfp_dark_outliers"
+        """Indices of GFP intensity dark outliers."""
+
+        GFP_BRIGHT_OUTLIERS = "gfp_bright_outliers"
+        """Indices of GFP intensity bright outliers."""
+
         CENTER_PLANES = "center_planes"
         """List of center planes determined by minimum standard deviation."""
 
