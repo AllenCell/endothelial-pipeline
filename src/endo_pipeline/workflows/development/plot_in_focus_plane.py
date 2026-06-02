@@ -3,7 +3,7 @@ from endo_pipeline.cli import Datasets
 
 def main(datasets: Datasets | None = None) -> None:
     """
-    Plot in-focus z-planes for select datasets and positions.
+    Plot in-focus z-planes for select datasets.
 
     #quality-control #preprocessing #test-ready #cpu-only
 
@@ -34,7 +34,7 @@ def main(datasets: Datasets | None = None) -> None:
     Parameters
     ----------
     datasets
-        List of datasets or dataset collections to annotate.
+        List of datasets or dataset collections to plot.
     """
 
     import logging
