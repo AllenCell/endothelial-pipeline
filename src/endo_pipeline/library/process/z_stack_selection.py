@@ -386,23 +386,6 @@ def plot_global_center_plane(
     return mean_cp, std_cp
 
 
-def save_projection_image(image: np.ndarray, save_path: Path) -> None:
-    """
-    Save a processed 2D image to disk using grayscale colormap.
-
-    Intentionally not using save_plot_to_path here to avoid saving as a figure and
-    keep the image at its original resolution.
-
-    Parameters
-    ----------
-    image
-        The processed image array to be saved.
-    save_path
-        The file path where the image will be saved.
-    """
-    plt.imsave(save_path, image, cmap="gray")
-
-
 def plot_histogram_upper_slices_available(
     datasets: list[str], save_dir: Path, figure_size: tuple
 ) -> None:
