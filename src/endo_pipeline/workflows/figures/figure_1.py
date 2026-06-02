@@ -4,6 +4,7 @@ def main():
     """
     import matplotlib.pyplot as plt
 
+    from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.io.output import get_output_path, save_plot_to_path
     from endo_pipeline.library.visualize.data_example_figures import (
         create_panel_biological_system_examples,
@@ -11,6 +12,8 @@ def main():
     )
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
     from endo_pipeline.library.visualize.intro_schematic import create_intro_schematic
+    from endo_pipeline.library.visualize.latent_walk import perform_and_plot_latent_walk_for_figures
+    from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.examples import (
         FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES,
         FIGURE_1_PATCH_FT_EXAMPLE_IMAGE,
@@ -18,9 +21,6 @@ def main():
     from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
     from endo_pipeline.workflows.development.visualize_feature_correlations import (
         main as visualize_feature_correlations,
-    )
-    from endo_pipeline.workflows.production.visualize_latent_walk import (
-        main as visualize_latent_walk,
     )
 
     plt.style.use("endo_pipeline.figure")
@@ -52,7 +52,23 @@ def main():
     )
 
     # Latent walk visualization
-    visualize_latent_walk(figsize=(4, 1.8))
+    scale_bar_um = 20
+    latent_walk_filename = "latent_walk_along_polar_theta_polar_r_rho"
+    _ = perform_and_plot_latent_walk_for_figures(
+        save_path=save_dir,
+        filename=latent_walk_filename,
+        walk_column_names=[
+            Column.DiffAEData.POLAR_ANGLE,
+            Column.DiffAEData.POLAR_RADIUS,
+            Column.DiffAEData.PC3_FLIPPED,
+        ],
+        figsize=(4, 1.8),
+        sigma=None,
+        n_steps=7,
+        scale_bar_um=scale_bar_um,
+        num_gpus=NUM_GPUS,
+    )
+    latent_walk_path = save_dir / f"{latent_walk_filename}_scale_bar_{scale_bar_um}um.svg"
 
     # Build figure from panels
     save_dir2 = get_output_path(
@@ -62,7 +78,6 @@ def main():
         "20251110_latent_512",
         "tracked",
     )
-    save_dir3 = get_output_path("visualize_latent_walk")
 
     panels = [
         FigurePanel(
@@ -91,7 +106,7 @@ def main():
         ),
         FigurePanel(
             letter="D",
-            path=save_dir3 / "latent_walk_along_polar_theta_polar_r_rho_scale_bar_10um.svg",
+            path=latent_walk_path,
             x_position=0,
             y_position=4.5,
             x_offset=0,
