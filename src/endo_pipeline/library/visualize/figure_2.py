@@ -398,15 +398,16 @@ def make_2d_contour_plot_panel(
         nullcline_styles = (nullcline_r_style, nullcline_rho_style)
         for col_idx, col in enumerate(column_names):
             label = COLUMN_METADATA[col].label or str(col)
+            legend_label = f"{label}-nullcline (d{label}/dt=0)"
             handle = mlines.Line2D(
                 [],
                 [],
                 color="k",
                 linestyle=nullcline_styles[col_idx],
-                label=f"Nullcline d{label}/dt=0",
+                label=legend_label,
             )
             handles.append(handle)
-            labels.append(f"Nullcline d{label}/dt=0")
+            labels.append(legend_label)
         fig.legend(
             handles,
             labels,
