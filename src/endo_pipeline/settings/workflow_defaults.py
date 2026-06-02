@@ -272,3 +272,15 @@ DEFAULT_MODEL_QC_LABELS: list[str] = [
 Order: 8 BF, 16 BF, 32 BF, 64 BF, 128 BF, 256 BF, 512 BF, 1024 BF,
 512 CDH5, 1024 CDH5.
 """
+
+DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_PREFIX: str = "diffae_model_comparison_metrics"
+"""Prefix for the dataframe manifests cataloguing the per-model QC parquets.
+
+The production workflow emits one dataframe manifest per
+``manifest_name`` in the curated sweep, named
+``{PREFIX}_{manifest_name}`` (with a ``_demo`` suffix when run in demo
+mode). Each manifest's ``locations`` dict is keyed by ``run_name`` and
+points at the per-(manifest, run) metrics parquet. The companion plot
+workflow loads all of these manifests and renders the supplementary
+bar chart without re-running inference.
+"""

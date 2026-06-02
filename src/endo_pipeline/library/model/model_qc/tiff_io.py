@@ -89,8 +89,15 @@ def save_denoising_crops(
 
     save_image_as_tiff(noise_image, crops_output_path, "noised_100pct")
 
+    # `denoised_images` is either (a) one image per fractional noise level
+    # plus a trailing 100 % entry, or (b) a single 100 % entry (metrics-only
+    # mode).  Base the percentage label on whether this is the last position
+    # rather than on the loop index, so a lone 100 % denoising step isn't
+    # mislabelled as the first fractional level.
+    num_denoised = len(denoised_images)
     for idx, denoised_img in enumerate(denoised_images):
-        pct = int(noise_levels[idx] * 100) if idx < len(noise_levels) else 100
+        is_last = idx == num_denoised - 1
+        pct = 100 if is_last else int(noise_levels[idx] * 100)
         save_image_as_tiff(denoised_img, crops_output_path, f"denoised_from_{pct:03d}pct_noise")
 
     logger.debug("Saved crops to %s", crops_output_path)
