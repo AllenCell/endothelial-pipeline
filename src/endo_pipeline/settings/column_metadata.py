@@ -355,7 +355,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         description="Polar angle calculated by transforming PC 1 and PC 2 to polar coordinates",
         min=0,
         max=pi,
-        ticks=[-pi / 4, 0, pi / 4, pi / 2, 3 * pi / 4],
+        ticks=[-pi / 6, 0, pi / 4, pi / 2, 3 * pi / 4],
         tick_labels=[
             "",
             f"0={Unicode.PI}",
