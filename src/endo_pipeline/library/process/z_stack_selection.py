@@ -12,7 +12,7 @@ from endo_pipeline.configs import DatasetConfig, load_dataset_config
 from endo_pipeline.io import load_image, save_plot_to_path
 from endo_pipeline.library.process.image_processing import contrast_stretching, crop_image
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
-from endo_pipeline.manifests import ImageLocation, get_zarr_location_for_position
+from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM
 from endo_pipeline.settings.image_data import (
     LOWER_Z_SLICE_OFFSET,
@@ -643,30 +643,3 @@ def plot_histogram_upper_slices_available(
     save_plot_to_path(
         fig, save_dir, "n_slices_above_in_focus_z_histogram", file_format=".svg", tight_layout=False
     )
-
-
-def compute_profiles(
-    zarr_location: ImageLocation, center_slice: int, timepoint: int
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Compute normalized BF std and CDH5 hist profiles for a given position/timepoint."""
-
-    # Load stacks
-    bf_stack = load_image(
-        zarr_location, channels=["BF"], timepoints=timepoint, level=1, squeeze=True
-    )
-    cdh5_stack = load_image(
-        zarr_location, channels=["EGFP"], timepoints=timepoint, level=1, squeeze=True
-    )
-
-    # Calculate histograms
-    cdh5_hist = np.array(
-        [np.sum(cdh5_stack[z, :, :].compute()) for z in range(cdh5_stack.shape[0])]
-    )
-    bf_std = np.array([np.std(bf_stack[z, :, :].compute()) for z in range(bf_stack.shape[0])])
-
-    # Normalize
-    normalized_x = np.arange(len(bf_std)) - center_slice
-    bf_std_norm = bf_std / bf_std[center_slice] if bf_std[center_slice] != 0 else bf_std
-    cdh5_hist_norm = cdh5_hist / np.max(cdh5_hist) if np.max(cdh5_hist) != 0 else cdh5_hist
-
-    return normalized_x, bf_std_norm, cdh5_hist_norm
