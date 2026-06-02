@@ -1,7 +1,7 @@
 from endo_pipeline.cli import Datasets
 
 
-def main(datasets: Datasets | None = None) -> None:
+def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
     """
     Detect and annotate outlier timepoints in BF and GFP channels.
 
@@ -35,10 +35,15 @@ def main(datasets: Datasets | None = None) -> None:
     ----------
     datasets
         List of datasets or dataset collections to annotate.
+    num_processes
+        Number of processes to use.
     """
 
     import logging
-    from endo_pipeline.settings.column_names import ColumnName as Column
+    from multiprocessing import Pool
+
+    import pandas as pd
+
     from endo_pipeline.cli import DEMO_MODE, UPLOAD_TO_FMS
     from endo_pipeline.configs import (
         TimepointAnnotation,
@@ -46,20 +51,14 @@ def main(datasets: Datasets | None = None) -> None:
         load_dataset_config,
         save_dataset_config,
     )
-    import pandas as pd
     from endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
-    from endo_pipeline.io import get_output_path
-    from endo_pipeline.library.process.single_tp_outlier.bf_timepoint_outlier import (
-        detect_bf_outliers,
-    )
-    from endo_pipeline.library.process.single_tp_outlier.gfp_timepoint_outlier import (
-        detect_egfp_scope_errors,
-    )
+    from endo_pipeline.library.process.timepoint_outliers import detect_single_timepoint_outliers
     from endo_pipeline.manifests import (
         DataframeLocation,
         create_dataframe_manifest,
         save_dataframe_manifest,
     )
+    from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dataset_annotations import TIMEPOINT_OUTLIERS_MANIFEST_NAME
 
     logger = logging.getLogger(__name__)
@@ -92,14 +91,10 @@ def main(datasets: Datasets | None = None) -> None:
         if max_positions is not None:
             positions = positions[:max_positions]
 
-        results = []
-
-        # Detect and annotate outliers for each position
-        for position in positions:
-            outliers = detect_bf_outliers(dataset_config, position, max_timepoints)
-            if dataset_config.duration > 1:
-                outliers.update(detect_egfp_scope_errors(dataset_config, position, max_timepoints))
-            results.append(outliers)
+        # Parallelize position processing
+        args = [(dataset_config, position, max_timepoints) for position in positions]
+        with Pool(processes=min(num_processes, len(args))) as pool:
+            results = pool.starmap(detect_single_timepoint_outliers, args)
 
         # Save dataframe to file
         save_path = output_path / f"{dataset_name}_timepoint_outliers{demo_suffix}.parquet"
