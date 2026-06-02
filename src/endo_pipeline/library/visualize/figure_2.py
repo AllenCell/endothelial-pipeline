@@ -648,7 +648,7 @@ def _load_and_process_vector_field(
         (pts[0] - bw / 2, pts[-1] + bw / 2)
         for pts, bw in zip(grid_points_1d, bin_widths, strict=True)
     ]
-    bins_3d = get_bins(bin_widths=bin_widths, bin_limits=bin_limits, pad=0)[0]
+    bins_3d = get_bins(bin_widths=tuple(bin_widths), bin_limits=bin_limits, pad=0)[0]
     kernels = [
         KramersMoyalKernel(
             name=KERNEL_NAMES_DYNAMICS[col],
