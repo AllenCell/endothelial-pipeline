@@ -4,7 +4,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from dask.array import Array
 from matplotlib.ticker import MaxNLocator, MultipleLocator
 
 from endo_pipeline.configs import DatasetConfig, load_dataset_config
@@ -95,7 +94,8 @@ def plot_standard_devs_per_slice(
     figure_size: tuple = (2.5, 2.15),
 ) -> None:
     """
-    Plot the standard deviations of each slice vs plane index, highlighting the center plane.
+    Plot the standard deviations of each slice vs plane index, highlighting the
+    center plane.
 
     Parameters
     ----------
@@ -147,10 +147,8 @@ def plot_standard_devs_per_slice(
 
 
 def visualize_slice_selection(
-    bf_stack: Array,
-    cdh5_stack: Array,
+    dataset_config: DatasetConfig,
     center_plane: int,
-    dataset: str,
     position: int,
     frame: int,
     output_dir: Path,
@@ -188,11 +186,12 @@ def visualize_slice_selection(
         Directory to save the output plot.
     figure_size
         Size of the figure to be created (width, height).
-
-    Returns
-    -------
-    None
     """
+
+    zarr_loc = get_zarr_location_for_position(dataset_config, position)
+    bf_stack = load_image(zarr_loc, channels=["BF"], timepoints=frame, level=1, squeeze=True)
+    cdh5_stack = load_image(zarr_loc, channels=["EGFP"], timepoints=frame, level=1, squeeze=True)
+
     method = "min-max"
     center_im = bf_stack[center_plane].compute()
     custom_low = np.percentile(center_im, 1.5)
@@ -273,6 +272,7 @@ def visualize_slice_selection(
             include_label=True if i == 0 else False,
         )
 
+    dataset = dataset_config.name
     fname = f"plane_selection_vis_{dataset}_P{position}_{frame}_offset{lower_offset}_{upper_offest}_scalebar{scale_bar_um}um"
     save_plot_to_path(fig, output_dir, fname, tight_layout=False, file_format=".svg")
     plt.show()
@@ -285,32 +285,27 @@ def plot_global_center_plane(
     output_dir: Path,
     figure_size: tuple = (2.5, 2.15),
     show_histogram: bool = True,
-) -> tuple[float, float]:
+) -> None:
     """
     Plot the global center plane for a given dataset and position.
 
     Parameters
     ----------
-    center_planes : list
+    center_planes
         List of center planes for each timepoint.
-    dataset : str
+    dataset
         Name of the dataset.
-    position : int
+    position
         Position index.
-    output_dir : Path
+    output_dir
         Directory to save the output plot.
-    figure_size : tuple
+    figure_size
         Size of the figure.
-    show_histogram : bool, optional
-        Whether to show the histogram, by default True.
-
-    Returns
-    -------
-    tuple[float, float]
-        Mean and standard deviation of the center planes.
+    show_histogram
+        True to include histogram, False to only show scatter plot.
     """
+
     mean_cp = np.mean(center_planes)
-    std_cp = np.std(center_planes)
     y_min, y_max = 0, 25  # fixed y-axis range
 
     if show_histogram:
@@ -360,8 +355,6 @@ def plot_global_center_plane(
     save_plot_to_path(fig, output_dir, fname, file_format=".svg", tight_layout=False)
     plt.show()
     plt.close(fig)
-
-    return mean_cp, std_cp
 
 
 def plot_histogram_upper_slices_available(
