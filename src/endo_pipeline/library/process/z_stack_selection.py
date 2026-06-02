@@ -493,65 +493,6 @@ def plot_image_row(
     save_plot_to_path(fig, save_dir, fname)
 
 
-def plot_bottom_top_slices(
-    bottoms: list,
-    tops: list,
-    titles: list[str],
-    dataset: str,
-    position: int,
-    timepoint: int,
-    save_dir: Path,
-    label: str,
-    figsize: tuple[int, int] = (16, 8),
-) -> None:
-    """
-    Plot two rows of images showing bottom and top z-slices from each projection range.
-
-    Parameters
-    ----------
-    bottoms
-        List of bottom slices (as dask arrays) from each projection range.
-    tops
-        List of top slices (as dask arrays) from each projection range.
-    titles
-        Slice range labels (e.g., "0_16", "9_24") for each column.
-    dataset
-        Name of the dataset for labeling the plot.
-    position
-        Position index for labeling the plot.
-    timepoint
-        Timepoint index for labeling the plot.
-    save_dir
-        Directory where the plot will be saved.
-    label
-        Label prefix to distinguish BF or CDH5 channels in titles.
-    figsize
-        Size of the figure to plot. Default is (16, 8).
-
-    Returns
-    -------
-    None
-    """
-    fig, axes = plt.subplots(2, len(bottoms), figsize=figsize)
-
-    for ax, img, title in zip(axes[0], bottoms, titles, strict=True):
-        ax.imshow(contrast_stretching(img.compute()), cmap="gray")
-        ax.set_title(f"{label} bottom {title}")
-        ax.axis("off")
-
-    for ax, img, title in zip(axes[1], tops, titles, strict=True):
-        ax.imshow(contrast_stretching(img.compute()), cmap="gray")
-        ax.set_title(f"{label} top {title}")
-        ax.axis("off")
-
-    plt.suptitle(f"{dataset} P{position}_T{timepoint}")
-    plt.tight_layout()
-    plt.show()
-
-    fname = f"{dataset}_P{position}_T{timepoint}_{label}_bottom_top_slices"
-    save_plot_to_path(fig, save_dir, fname)
-
-
 def plot_histogram_upper_slices_available(
     datasets: list[str], save_dir: Path, figure_size: tuple
 ) -> None:
