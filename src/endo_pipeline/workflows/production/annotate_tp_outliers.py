@@ -7,12 +7,34 @@ def main(datasets: Datasets | None = None) -> None:
 
     #quality-control #preprocessing #test-ready #cpu-only
 
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe annotate-timepoint-outliers -vd
+    ```
+
+    To run the workflow for a single dataset:
+
+    ```bash
+    uv run endopipe annotate-timepoint-outliers --datasets DATASET_NAME
+    ```
+
+    ## Dataset collection
+
+    If datasets are not provided, the workflow will use datasets in the
+    `shear_stress` dataset collection.
+
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will only annotate
+    two positions of the first dataset, using the first 10 timepoints.
+
     Parameters
     ----------
     datasets
-        List of dataset names to process. If None, processes all datasets in the
-        "shear_stress" collection. If DEMO_MODE is enabled,
-        only the first dataset will be processed.
+        List of datasets or dataset collections to annotate.
     """
 
     import logging
