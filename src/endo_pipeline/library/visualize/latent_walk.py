@@ -27,7 +27,6 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
     load_model_manifest,
 )
-from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
 from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
@@ -167,7 +166,7 @@ def plot_latent_walk_as_grid(
 def perform_and_plot_latent_walk_for_figures(
     save_path: Path,
     filename: str,
-    walk_column_names: list[str] | list[Column.DiffAEData],
+    walk_column_names: list[str],
     figsize: tuple[float, float] = (MAX_FIGURE_WIDTH, 2.8),
     sigma: float | None = 3,
     n_steps: int = 7,

@@ -2,6 +2,8 @@ def main():
     """
     Main function to create figure panels for Figure 1.
     """
+    from typing import cast
+
     import matplotlib.pyplot as plt
 
     from endo_pipeline.cli import NUM_GPUS
@@ -53,15 +55,19 @@ def main():
 
     # Latent walk visualization
     scale_bar_um = 20
-    latent_walk_filename = "latent_walk_along_polar_theta_polar_r_rho"
-    _ = perform_and_plot_latent_walk_for_figures(
-        save_path=save_dir,
-        filename=latent_walk_filename,
-        walk_column_names=[
+    walk_column_names = cast(
+        list[str],
+        [
             Column.DiffAEData.POLAR_ANGLE,
             Column.DiffAEData.POLAR_RADIUS,
             Column.DiffAEData.PC3_FLIPPED,
         ],
+    )
+    latent_walk_filename = "latent_walk_along_polar_theta_polar_r_rho"
+    _ = perform_and_plot_latent_walk_for_figures(
+        save_path=save_dir,
+        filename=latent_walk_filename,
+        walk_column_names=walk_column_names,
         figsize=(4, 1.8),
         sigma=None,
         n_steps=7,
