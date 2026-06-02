@@ -171,6 +171,7 @@ def perform_and_plot_latent_walk_for_figures(
     sigma: float | None = 3,
     n_steps: int = 7,
     scale_bar_um: int = 10,
+    random_seed: float = RANDOM_SEED,
     num_gpus: int | None = None,
 ) -> tuple[Path, np.ndarray]:
     """
@@ -200,6 +201,8 @@ def perform_and_plot_latent_walk_for_figures(
         Number of steps in the latent walk.
     scale_bar_um
         Length of the scale bar in micrometers to add to the figure.
+    random_seed
+        Random seed for reproducibility of the latent walk.
     num_gpus
         Number of GPUs to use for image generation. If None, will perform on
         CPU.
@@ -256,7 +259,7 @@ def perform_and_plot_latent_walk_for_figures(
 
     # generate images from the latent walk
     walk_img_grid = generate_latent_walk_images(
-        model, walk_latent, ranges, num_gpus=num_gpus, random_seed=RANDOM_SEED
+        model, walk_latent, ranges, num_gpus=num_gpus, random_seed=random_seed
     )
 
     plot_latent_walk_as_grid(
