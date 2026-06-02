@@ -132,7 +132,9 @@ def main(datasets: Datasets | None = None) -> None:
             (TimepointAnnotation.AUTO_BF_TEMP_ARTIFACT, Column.Annotations.AUTO_BF_TEMP_ARTIFACT),
             (TimepointAnnotation.AUTO_GFP_SCOPE_ERROR, Column.Annotations.AUTO_GFP_SCOPE_ERROR),
         ]:
-            tp_annotations[annotation] = {item[Column.POSITION]: item[column] for item in results}
+            tp_annotations[annotation] = {
+                result[Column.POSITION]: result[column].tolist() for result in results
+            }
 
         # Update dataset config
         dataset_config.timepoint_annotations = tp_annotations
