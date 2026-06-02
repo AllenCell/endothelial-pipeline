@@ -1011,9 +1011,7 @@ def make_3d_vector_field_plot_panel(
         zorder=5,
     )
 
-    # ------------------------------------------------------------------
-    # Axes labels and title
-    # ------------------------------------------------------------------
+    # set axes labels and ticks with custom formatting
     ax.tick_params(axis="both", pad=-3)
     ax.set_xlabel(col_labels[0], labelpad=-8)
     ax.set_xticks(theta_ticks, labels=theta_tick_labels)
