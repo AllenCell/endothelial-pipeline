@@ -83,7 +83,7 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
     save_dataframe_manifest(manifest)
 
     for dataset_name in dataset_names:
-        logger.info("Annotating in focus plane for dataset '%s'", dataset_name)
+        logger.info("Annotating timepoint outliers for dataset '%s'", dataset_name)
         dataset_config = load_dataset_config(dataset_name)
 
         # Get list of valid positions and subset if necessary
@@ -127,8 +127,11 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
             (TimepointAnnotation.AUTO_BF_TEMP_ARTIFACT, Column.Annotations.AUTO_BF_TEMP_ARTIFACT),
             (TimepointAnnotation.AUTO_GFP_SCOPE_ERROR, Column.Annotations.AUTO_GFP_SCOPE_ERROR),
         ]:
+            if column not in results[0]:
+                continue
+
             tp_annotations[annotation] = {
-                result[Column.POSITION]: result[column].tolist() for result in results
+                result[Column.POSITION]: [int(v) for v in result[column]] for result in results
             }
 
         # Update dataset config
