@@ -12,6 +12,8 @@ from endo_pipeline.io import load_image, save_plot_to_path
 from endo_pipeline.library.process.image_processing import contrast_stretching, crop_image
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.manifests import get_zarr_location_for_position
+from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.dataset_annotations import REPRESENTATIVE_ANNOTATION_TIMEPOINT
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM
 from endo_pipeline.settings.image_data import (
     LOWER_Z_SLICE_OFFSET,
@@ -23,15 +25,15 @@ logger = logging.getLogger(__name__)
 
 
 def calculate_global_center_plane(
-    dataset_config: DatasetConfig, position: int, save_dir: Path
-) -> dict[str, int]:
+    dataset_config: DatasetConfig, position: int, max_timepoints: int | None = None
+) -> dict[str, int | list[int]]:
     """
     Calculate the global center plane for a single position in a dataset.
 
-    This function computes the center plane for each frame in a brightfield (BF) z-stack
-    by finding the slice with the minimum standard deviation. It then calculates the
-    mean and standard deviation of the center planes across all frames and optionally
-    visualizes the results.
+    This function computes the center plane for each frame in a brightfield (BF)
+    z-stack by finding the slice with the minimum standard deviation. It then
+    calculates the mean and standard deviation of the center planes across all
+    frames.
 
     Parameters
     ----------
@@ -39,15 +41,13 @@ def calculate_global_center_plane(
         Configuration object containing metadata and paths for the dataset.
     position
         The position index within the dataset to analyze.
-    save_dir
-        Directory where the visualization of the global center plane will be saved.
+    max_timepoints
+        Maximum number of timepoints to use for calculating plane.
 
     Returns
     -------
-    A dictionary containing:
-    - "position": The analyzed position index.
-    - "mean_center_plane": The mean center plane across all frames.
-    - "std_dev_center_plane": The standard deviation of the center plane across all frames.
+    :
+        Dictionary containing calculated center plane information.
     """
 
     zarr_location = get_zarr_location_for_position(dataset_config, position)
@@ -55,7 +55,9 @@ def calculate_global_center_plane(
 
     center_planes = []
 
-    for frame in range(0, dataset_config.duration, 1):
+    timepoints = max_timepoints or dataset_config.duration
+
+    for frame in range(0, timepoints, 1):
         # Extract the BF stack for the current frame
         bf_stack = bf_stack_all_frames[frame].squeeze()
 
@@ -66,12 +68,20 @@ def calculate_global_center_plane(
         center_plane = max(0, np.argmin(stdevs))
         center_planes.append(center_plane)
 
-    mean, std_dev = plot_global_center_plane(center_planes, dataset_config.name, position, save_dir)
+    # Calculate mean and std dev for selected center planes across timepoints
+    mean = np.mean(center_planes)
+    std_dev = np.std(center_planes)
+
+    # Calculate std dev of each slice for first timepoint
+    representative_slices = bf_stack_all_frames[REPRESENTATIVE_ANNOTATION_TIMEPOINT].squeeze()
+    slice_std_devs = [plane.std().compute() for plane in representative_slices]
 
     return {
-        "position": position,
-        "mean_center_plane": round(mean),
-        "std_dev_center_plane": round(std_dev),
+        Column.POSITION: position,
+        Column.Annotations.CENTER_PLANES: center_planes,
+        Column.Annotations.CENTER_PLANE_SLICES_STD_DEVS: slice_std_devs,
+        Column.Annotations.CENTER_PLANE_MEAN: round(mean),
+        Column.Annotations.CENTER_PLANE_STD_DEV: round(std_dev),
     }
 
 
