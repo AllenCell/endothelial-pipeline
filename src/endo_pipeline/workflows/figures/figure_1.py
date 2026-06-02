@@ -27,12 +27,13 @@ def main():
     create_panel_biological_system_examples(
         examples=FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES,
         save_dir=save_dir,
-        figure_size=(3.9, 2.7),
+        figure_size=(2.7, 3.6),
+        inset_coordinates=(5, 500 - 128),
     )
 
     # Correlation heatmaps of ml learned and measured features
     visualize_feature_correlations(
-        figsize_heatmap=(2.5, 3.0),
+        figsize_heatmap=(2.5, 2.8),
         y_axis_label_coords=None,
         label_fontsize=FONTSIZE_SMALL,
     )
@@ -52,18 +53,26 @@ def main():
 
     panels = [
         FigurePanel(
-            letter="B",
+            letter="A",
             path=save_dir / "biological_system_examples_scale_bar_100um.svg",
             x_position=0,
-            y_position=1.62,
-            x_offset=0.1,
-            y_offset=0.1,
+            y_position=0,
+            x_offset=0,
+            y_offset=0,
+        ),
+        FigurePanel(
+            letter="B",
+            path=save_dir / "biological_system_examples_inset_scale_bar_20um.svg",
+            x_position=3,
+            y_position=0,
+            x_offset=0,
+            y_offset=0,
         ),
         FigurePanel(
             letter="D",
-            path=save_dir3 / "latent_walk_along_polar_theta_polar_r_rho_scale_bar_10um.svg",
+            path=save_dir3 / "latent_walk_along_polar_theta_polar_r_rho_scale_bar_20um.svg",
             x_position=0,
-            y_position=4.5,
+            y_position=6,
             x_offset=0,
             y_offset=0.2,
         ),
@@ -71,7 +80,7 @@ def main():
             letter="E",
             path=save_dir2 / "correlation_ml_based_features_vs_measured_features_heatmap.svg",
             x_position=4,
-            y_position=3.75,
+            y_position=5.3,
             x_offset=-0.08,
             y_offset=0,
         ),
