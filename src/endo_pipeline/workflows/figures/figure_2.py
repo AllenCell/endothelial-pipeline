@@ -251,15 +251,7 @@ def main() -> None:
         column_names=feature_column_names,
         axis_mode="shear_stress",
         figure_size=(3.5, 2),
-    )
-    # panel F: summary plot of migration coherence at fixed points across
-    # datasets
-    migration_summary_plot_path = plot_cross_dataset_summaries(
-        fixed_point_summary_df,
-        output_dir=base_output_dir,
-        column_names=[optical_flow_feature],
-        axis_mode="shear_stress",
-        figure_size=(1.25, 2),
+        color_by_column=Column.OpticalFlow.UNIT_VECTOR_MEAN,
     )
 
     # --- Histogram of first passage time correlation ---
@@ -351,14 +343,6 @@ def main() -> None:
             x_position=0.0,
             y_position=5.4,
             x_offset=0,
-            y_offset=0.2,
-        ),
-        FigurePanel(
-            letter="H",
-            path=migration_summary_plot_path,
-            x_position=3.6,
-            y_position=5.4,
-            x_offset=0.1,
             y_offset=0.2,
         ),
         FigurePanel(
