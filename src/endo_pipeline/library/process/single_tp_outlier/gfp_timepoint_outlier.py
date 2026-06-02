@@ -1,9 +1,11 @@
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
 from endo_pipeline.configs import DatasetConfig
-from endo_pipeline.io import get_output_path, load_image, save_plot_to_path
+from endo_pipeline.io import load_image, save_plot_to_path
 from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
@@ -12,59 +14,67 @@ from endo_pipeline.settings.method_constants import GFP_ROLLING_WINDOW, OUTLIER_
 
 
 def plot_gfp_outliers_rolling(
-    tp_means: np.ndarray,
-    rolling_mean: np.ndarray,
+    timepoint_means: np.ndarray,
+    rolling_median: np.ndarray,
     lower_threshold: np.ndarray,
     upper_threshold: np.ndarray,
     dark_outliers: list[int],
     bright_outliers: list[int],
     dataset_name: str,
     position: int,
+    save_dir: Path,
     percent: float = OUTLIER_THRESHOLD,
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH / 2, 3),
 ) -> None:
     """
-    Plot timepoint-level mean intensities with rolling mean ± percentage thresholds and outliers.
+    Plot timepoint-level mean intensities with rolling mean ± percentage
+    thresholds and outliers.
 
     Parameters
     ----------
-    tp_means : numpy.ndarray
+    timepoint_means
         Array of mean intensities for each timepoint.
-    rolling_mean : numpy.ndarray
-        Array of rolling mean values for the timepoints.
-    lower_threshold : numpy.ndarray
+    rolling_median
+        Array of rolling median values for the timepoints.
+    lower_threshold
         Array of lower threshold values for the timepoints.
-    upper_threshold : numpy.ndarray
+    upper_threshold
         Array of upper threshold values for the timepoints.
-    dark_outliers : list of int
+    dark_outliers
         Indices of timepoints identified as dark outliers.
-    bright_outliers : list of int
+    bright_outliers
         Indices of timepoints identified as bright outliers.
-    dataset_name : str
+    dataset_name
         Name of the dataset being analyzed.
-    position : int
+    position
         Position index within the dataset.
-    window : int, optional
-        Size of the rolling window used for calculating the rolling mean (default is GFP_ROLLING_WINDOW).
-    percent : float, optional
-        Threshold percentage for identifying outliers (default is THRESHOLD).
+    save_dir
+        The directory to save the plot to.
+    percent
+        Threshold percentage for identifying outliers.
+    figure_size
+        The size of the figure to generate.
     """
 
     fig, ax = plt.subplots(figsize=figure_size)
-    ax.plot(tp_means, label="Intensity", color="black", alpha=0.7)
-    ax.plot(rolling_mean, label="Rolling mean", color="blue", alpha=0.9)
+    ax.plot(timepoint_means, label="Intensity", color="black", alpha=0.7)
+    ax.plot(rolling_median, label="Rolling median", color="blue", alpha=0.9)
     ax.plot(lower_threshold, color="red", linestyle="--", label=f"Lower {int(percent*100)}%")
     ax.plot(upper_threshold, color="orange", linestyle="--", label=f"Upper {int(percent*100)}%")
 
     if dark_outliers:
         ax.scatter(
-            dark_outliers, tp_means[dark_outliers], color="red", label="Dark outliers", zorder=5
+            dark_outliers,
+            timepoint_means[dark_outliers],
+            color="red",
+            label="Dark outliers",
+            zorder=5,
         )
 
     if bright_outliers:
         ax.scatter(
             bright_outliers,
-            tp_means[bright_outliers],
+            timepoint_means[bright_outliers],
             color="orange",
             label="Bright outliers",
             zorder=5,
@@ -102,7 +112,6 @@ def plot_gfp_outliers_rolling(
     ax.xaxis.labelpad = 3
     ax.yaxis.labelpad = 3
 
-    save_dir = get_output_path("annotate_tp_outliers")
     save_plot_to_path(fig, save_dir, f"gfp_outliers_{dataset_name}_P{position}", file_format=".svg")
 
 
