@@ -171,7 +171,7 @@ def perform_and_plot_latent_walk_for_figures(
     sigma: float | None = 3,
     n_steps: int = 7,
     scale_bar_um: int = 10,
-    random_seed: float = RANDOM_SEED,
+    random_seed: int | None = RANDOM_SEED,
     num_gpus: int | None = None,
 ) -> tuple[Path, np.ndarray]:
     """
