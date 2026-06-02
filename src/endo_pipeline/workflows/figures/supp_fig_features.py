@@ -12,16 +12,15 @@ def main() -> None:
     from endo_pipeline.library.visualize.columns import get_label_for_column
     from endo_pipeline.library.visualize.diffae_features import feature_viz
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
+    from endo_pipeline.library.visualize.latent_walk import perform_and_plot_latent_walk_for_figures
     from endo_pipeline.library.visualize.multi_feature_correlation_viz import (
         get_df_for_feature_correlation_viz,
         visualize_correlation_heatmaps,
     )
-    from endo_pipeline.library.visualize.supp_fig_features import (
-        perform_latent_walk_along_top_pcs,
-        plot_2d_latent_walk,
-    )
+    from endo_pipeline.library.visualize.supp_fig_features import plot_2d_latent_walk
     from endo_pipeline.settings.diffae_feature_dataframes import (
         DIFFAE_PC_COLUMN_NAME_GROUPS,
+        DIFFAE_PC_COLUMN_NAMES,
         NUM_LATENT_FEATURES,
     )
     from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
@@ -124,13 +123,18 @@ def main() -> None:
         y_axis_label_coords=None,
     )
 
-    # perform latent walk along top 10 PCs and save the resulting contact sheet
+    # perform latent walk along top 3 PCs and save the resulting contact sheet
     latent_walk_filename = "latent_walk_top_10_pcs"
-
-    walk_img_grid = perform_latent_walk_along_top_pcs(
-        save_dir, latent_walk_filename, num_pcs=10, figsize=(3.8, 5.2), num_gpus=NUM_GPUS
+    latent_walk_path, walk_img_grid = perform_and_plot_latent_walk_for_figures(
+        save_path=save_dir,
+        filename=latent_walk_filename,
+        walk_column_names=DIFFAE_PC_COLUMN_NAMES[:10],  # walk along top 10 PCs
+        figsize=(3.8, 5.2),
+        sigma=3,
+        n_steps=7,
+        scale_bar_um=20,
+        num_gpus=NUM_GPUS,
     )
-    latent_walk_path = save_dir / f"{latent_walk_filename}_scale_bar_10um.svg"
 
     # Take the images from the latent walk along PCs 1 and 2 and plot them as a
     # "2D" walk to motivate the polar coordinate transform. Just (-3 sigma, 0,
