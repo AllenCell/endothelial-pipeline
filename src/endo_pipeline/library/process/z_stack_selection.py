@@ -64,7 +64,7 @@ def calculate_global_center_plane(
         stdevs = bf_stack.std(axis=(1, 2)).compute()
 
         # Find the center plane with the minimum standard deviation
-        center_plane = max(0, np.argmin(stdevs))
+        center_plane = max(0, np.argmin(stdevs).astype(int))
         center_planes.append(center_plane)
 
     # Calculate mean and std dev for selected center planes across timepoints
