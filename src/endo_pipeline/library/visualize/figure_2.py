@@ -55,7 +55,6 @@ from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_COLORMAP,
     DRIFT_CONTOUR_VMAX,
     DRIFT_CONTOUR_VMIN,
-    HISTOGRAM_THRESHOLD_FOR_MASKING,
 )
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
@@ -413,7 +412,7 @@ def make_2d_contour_plot_panel(
             labels,
             fontsize="xx-small",
             loc="upper center",
-            bbox_to_anchor=(0.5, 0.925),
+            bbox_to_anchor=(0.55, 0.925),
             ncol=2,
             handletextpad=0.3,
         )
@@ -870,7 +869,7 @@ def make_3d_vector_field_plot_panel(
     colormap: str = "viridis_r",
     magnitude_limits: tuple[float, float] = (5e-2, 1.5),
     arrow_alpha: float = 0.6,
-    mask_threshold: float = HISTOGRAM_THRESHOLD_FOR_MASKING,
+    mask_threshold: float = 0.025,
 ) -> Path:
     """
     Render the 3D (theta, r, rho) drift vector field for a given dataset using
@@ -1043,7 +1042,7 @@ def make_3d_vector_field_plot_panel(
         fpt_coords[:, 1],
         fpt_coords[:, 2],
         color=hex_color,
-        s=80,
+        s=60,
         zorder=5,
     )
 
