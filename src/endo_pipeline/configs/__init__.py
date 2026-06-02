@@ -22,6 +22,7 @@ from .dataset_config_io import (
     save_dataset_collection_config,
     save_dataset_config,
     validate_all_dataset_configs,
+    validate_dataset_collection_config,
     validate_dataset_config,
 )
 from .dataset_config_utils import (
@@ -86,5 +87,6 @@ __all__ = [
     "save_dataset_collection_config",
     "save_dataset_config",
     "validate_all_dataset_configs",
+    "validate_dataset_collection_config",
     "validate_dataset_config",
 ]
