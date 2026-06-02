@@ -445,54 +445,6 @@ def append_projection_outputs(
     top_list.append(stack[zslice[1]])
 
 
-def plot_image_row(
-    images: list[np.ndarray],
-    titles: list[str],
-    dataset: str,
-    position: int,
-    timepoint: int,
-    save_dir: Path,
-    row_title: str = "Image",
-    figsize: tuple[int, int] = (16, 4),
-) -> None:
-    """
-    Plot a single row of images with corresponding titles.
-
-    Parameters
-    ----------
-    images
-        List of images to display.
-    titles
-        Titles corresponding to each image.
-    dataset
-        Name of the dataset for labeling the plot.
-    position
-        Position index for labeling the plot.
-    timepoint
-        Timepoint index for labeling the plot.
-    save_dir
-        Directory where the plot will be saved.
-    row_title
-        Prefix for each subplot title. Default is "Image".
-    figsize
-        Figure size for the matplotlib plot. Default is (16, 4).
-
-    Returns
-    -------
-    None
-    """
-    fig, axes = plt.subplots(1, len(images), figsize=figsize)
-    for ax, img, title in zip(axes, images, titles, strict=True):
-        ax.imshow(img, cmap="gray")
-        ax.set_title(f"{row_title} {title}")
-        ax.axis("off")
-    plt.suptitle(f"{dataset} P{position}_T{timepoint}")
-    plt.tight_layout()
-    plt.show()
-    fname = f"{dataset}_P{position}_T{timepoint}_{row_title.replace(' ', '_').lower()}_comparison"
-    save_plot_to_path(fig, save_dir, fname)
-
-
 def plot_histogram_upper_slices_available(
     datasets: list[str], save_dir: Path, figure_size: tuple
 ) -> None:
