@@ -16,7 +16,12 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Line3DCollection, Poly3DCollection
 
-from endo_pipeline.io import save_plot_to_path
+from endo_pipeline.io import load_dataframe, save_plot_to_path
+from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
+    get_kernel_density_estimate_from_histogram,
+)
+from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
+from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
 )
@@ -32,10 +37,17 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
     plot_drift_contours,
 )
 from endo_pipeline.library.visualize.figure_utils import make_contact_sheet
+from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
-from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
+from endo_pipeline.settings.dynamics_workflows import (
+    BIN_WIDTHS_DYNAMICS,
+    DYNAMICS_COLUMN_NAMES,
+    KERNEL_BANDWIDTHS_DYNAMICS,
+    KERNEL_NAMES_DYNAMICS,
+    KERNEL_PERIODS_DYNAMICS,
+)
 from endo_pipeline.settings.figures import FONTSIZE_SMALL, FONTSIZE_XSMALL
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_CBAR_NUM_TICKS,
@@ -43,10 +55,12 @@ from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_COLORMAP,
     DRIFT_CONTOUR_VMAX,
     DRIFT_CONTOUR_VMIN,
+    HISTOGRAM_THRESHOLD_FOR_MASKING,
 )
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
+from endo_pipeline.settings.workflow_defaults import GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME
 
 
 def _add_colorbar_to_contour_plot(
@@ -606,6 +620,7 @@ def _load_and_process_vector_field(
     r_lims: tuple[float, float],
     rho_lims: tuple[float, float],
     downsample_factor: int,
+    mask_threshold: float,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Load the vector field data for the given dataset and process it to
@@ -618,6 +633,40 @@ def _load_and_process_vector_field(
     # grids and vectors are 3-D arrays shaped (n_theta, n_r, n_rho)
     x_grid_, y_grid_, z_grid_ = flow_field_dict["grid"]
     u_field_, v_field_, w_field_ = flow_field_dict["vectors"]
+
+    # mask grid points with low data density before clipping/downsampling
+    dataframe_manifest = load_dataframe_manifest(GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME)
+    feature_dataframe = load_dataframe(dataframe_manifest.locations[dataset_name])
+    grid_points_1d = [
+        np.unique(x_grid_[:, 0, 0]),
+        np.unique(y_grid_[0, :, 0]),
+        np.unique(z_grid_[0, 0, :]),
+    ]
+    bin_widths = [BIN_WIDTHS_DYNAMICS[col] for col in column_names]
+    bin_limits = [
+        (pts[0] - bw / 2, pts[-1] + bw / 2)
+        for pts, bw in zip(grid_points_1d, bin_widths, strict=True)
+    ]
+    bins_3d = get_bins(bin_widths=bin_widths, bin_limits=bin_limits, pad=0)[0]
+    kernels = [
+        KramersMoyalKernel(
+            name=KERNEL_NAMES_DYNAMICS[col],
+            bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[col],
+            period=KERNEL_PERIODS_DYNAMICS[col],
+        )
+        for col in column_names
+    ]
+    hist = np.histogramdd(feature_dataframe[column_names].to_numpy(), bins=bins_3d)[0]
+    hist_kde = get_kernel_density_estimate_from_histogram(
+        hist[None, ...], bins=bins_3d, kernel=kernels
+    )
+    low_density_mask = hist_kde < mask_threshold
+    u_field_ = u_field_.copy()
+    v_field_ = v_field_.copy()
+    w_field_ = w_field_.copy()
+    u_field_[low_density_mask] = np.nan
+    v_field_[low_density_mask] = np.nan
+    w_field_[low_density_mask] = np.nan
 
     # mask vector field to be within the specified limits (take only grid points
     # within limits), reshaping accordingly as 3D arrays of updated number of
@@ -813,34 +862,6 @@ def _plot_quiver_3d_cones(
     ax.add_collection3d(base_col)
 
 
-def _set_3d_axes_ticks_and_labels(
-    ax: plt.Axes,
-    x_label: str,
-    x_ticks: list[float],
-    x_tick_labels: list[str],
-    y_label: str,
-    y_ticks: list[float],
-    y_tick_labels: list[str],
-    z_label: str,
-    z_ticks: list[float],
-    z_tick_labels: list[str],
-) -> None:
-    ax.tick_params(axis="both", pad=-3)
-    ax.set_xlabel(x_label, labelpad=-8)
-    ax.set_xticks(x_ticks, labels=x_tick_labels)
-    for tick in ax.xaxis.get_majorticklabels():
-        tick.set_ha("right")
-        tick.set_va("center")
-    ax.set_ylabel(y_label, labelpad=-5)
-    ax.set_yticks(y_ticks, labels=y_tick_labels)
-    for tick in ax.yaxis.get_majorticklabels():
-        tick.set_ha("left")
-        tick.set_va("center")
-    ax.set_zlabel(z_label, labelpad=-8)
-    ax.set_zticks(z_ticks, labels=z_tick_labels)
-    ax.zaxis.set_rotate_label(False)
-
-
 def make_3d_vector_field_plot_panel(
     dataset_name: str,
     fig_savedir: Path,
@@ -848,6 +869,7 @@ def make_3d_vector_field_plot_panel(
     colormap: str = "viridis_r",
     magnitude_limits: tuple[float, float] = (5e-2, 1.5),
     arrow_alpha: float = 0.6,
+    mask_threshold: float = HISTOGRAM_THRESHOLD_FOR_MASKING,
 ) -> Path:
     """
     Render the 3D (theta, r, rho) drift vector field for a given dataset using
@@ -877,6 +899,8 @@ def make_3d_vector_field_plot_panel(
         Opacity of the quiver arrows (0 = fully transparent, 1 = fully opaque).
         Lowering this value lets the stable fixed point marker show through the
         arrow field.
+    mask_threshold
+        Probability density threshold below which grid points are suppressed.
 
     Returns
     -------
@@ -905,6 +929,7 @@ def make_3d_vector_field_plot_panel(
         r_lims,
         rho_lims,
         downsample_factor,
+        mask_threshold=mask_threshold,
     )
 
     # Compute vector magnitudes for colouring before normalizing to unit vectors
@@ -916,6 +941,16 @@ def make_3d_vector_field_plot_panel(
     v_flat = v_ds.ravel()
     w_flat = w_ds.ravel()
     mag_flat = np.sqrt(u_flat**2 + v_flat**2 + w_flat**2)
+
+    # Remove grid points that were masked by density filtering (NaN vectors)
+    valid = ~np.isnan(mag_flat)
+    x_flat = x_flat[valid]
+    y_flat = y_flat[valid]
+    z_flat = z_flat[valid]
+    u_flat = u_flat[valid]
+    v_flat = v_flat[valid]
+    w_flat = w_flat[valid]
+    mag_flat = mag_flat[valid]
 
     # Map magnitudes to colours
     mag_eps = 1e-10
