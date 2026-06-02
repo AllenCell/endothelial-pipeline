@@ -552,41 +552,6 @@ def plot_bottom_top_slices(
     save_plot_to_path(fig, save_dir, fname)
 
 
-def plot_vlines(
-    axis: plt.Axes,
-    center: int,
-    lower_offset: int,
-    upper_offset: int,
-    y_min: float,
-    y_max: float,
-) -> None:
-    """Plot vertical lines of global center and offsets."""
-    axis.vlines(
-        center,
-        ymin=y_min,
-        ymax=y_max,
-        colors="red",
-        linestyles="solid",
-        label=f"Global Center Slice {center}",
-    )
-    axis.vlines(
-        center - lower_offset,
-        ymin=y_min,
-        ymax=y_max,
-        colors="magenta",
-        linestyles="dashed",
-        label=f"Center - {lower_offset} Slices {center - lower_offset}",
-    )
-    axis.vlines(
-        center + upper_offset,
-        ymin=y_min,
-        ymax=y_max,
-        colors="black",
-        linestyles="dashed",
-        label=f"Center + {upper_offset} Slices {center + upper_offset}",
-    )
-
-
 def plot_histogram_upper_slices_available(
     datasets: list[str], save_dir: Path, figure_size: tuple
 ) -> None:
