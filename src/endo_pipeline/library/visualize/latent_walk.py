@@ -153,6 +153,7 @@ def plot_latent_walk_as_grid(
             bar_thickness=2.5,
             padding=5,
             include_label=True if i == 0 else False,
+            label_fontsize=FONTSIZE_XSMALL,
         )
 
     file_name = f"{file_name}_scale_bar_{scale_bar_um}um"
