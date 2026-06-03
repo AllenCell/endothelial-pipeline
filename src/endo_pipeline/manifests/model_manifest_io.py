@@ -61,3 +61,12 @@ def save_model_manifest(manifest: ModelManifest) -> None:
     except:
         logger.error("Model manifest [ %s ] could not be saved", manifest.name)
         raise
+
+
+def get_available_model_manifests() -> list[str]:
+    """Get list of available model manifest names."""
+
+    df_manifest_names = [path.stem for path in get_model_manifest_dir().iterdir()]
+    logger.info("Available model manifests: %s", " | ".join(df_manifest_names))
+
+    return df_manifest_names

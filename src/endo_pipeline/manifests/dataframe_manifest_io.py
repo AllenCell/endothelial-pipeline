@@ -88,6 +88,6 @@ def get_available_dataframe_manifests() -> list[str]:
     """Get list of available dataframe manifest names."""
 
     df_manifest_names = [path.stem for path in get_dataframe_manifest_dir().iterdir()]
-    logger.info("Available dataframe manifests: %s", " | ".join(df_manifest_names))
+    logger.debug("Available dataframe manifests: %s", " | ".join(df_manifest_names))
 
     return df_manifest_names

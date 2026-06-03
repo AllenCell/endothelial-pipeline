@@ -78,3 +78,12 @@ def save_image_manifest(manifest: ImageManifest) -> None:
     except:
         logger.error("Image manifest [ %s ] could not be saved", manifest.name)
         raise
+
+
+def get_available_image_manifests() -> list[str]:
+    """Get list of available image manifest names."""
+
+    df_manifest_names = [path.stem for path in get_image_manifest_dir().iterdir()]
+    logger.info("Available image manifests: %s", " | ".join(df_manifest_names))
+
+    return df_manifest_names

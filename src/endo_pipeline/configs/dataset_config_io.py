@@ -28,7 +28,7 @@ def get_available_dataset_names() -> list[str]:
     """Get list of available dataset names."""
 
     dataset_names = [path.stem for path in get_dataset_config_dir().iterdir()]
-    logger.info("Available datasets [ %s ]", " | ".join(dataset_names))
+    logger.debug("Available datasets [ %s ]", " | ".join(dataset_names))
 
     return dataset_names
 
@@ -37,7 +37,7 @@ def get_available_dataset_collection_names() -> list[str]:
     """Get list of available dataset collection names."""
 
     collection_names = [path.stem for path in get_dataset_collection_config_dir().iterdir()]
-    logger.info("Available dataset collections [ %s ]", " | ".join(collection_names))
+    logger.debug("Available dataset collections [ %s ]", " | ".join(collection_names))
 
     return collection_names
 
@@ -57,7 +57,7 @@ def validate_dataset_config(dataset_name: str) -> None:
     config_dir = get_dataset_config_dir()
     config_file = config_dir / f"{dataset_name}.yaml"
 
-    logger.info("Validating dataset config file [ %s ]", dataset_name)
+    logger.debug("Validating dataset config file [ %s ]", dataset_name)
     config = load_dataset_config(dataset_name)
 
     if config.name != config_file.stem:
@@ -107,13 +107,30 @@ def validate_dataset_config(dataset_name: str) -> None:
             )
 
 
+def validate_dataset_collection_config(collection_name: str) -> None:
+    """Validate given dataset config against defined schema."""
+
+    config_dir = get_dataset_collection_config_dir()
+    config_file = config_dir / f"{collection_name}.yaml"
+
+    logger.debug("Validating dataset collection config file [ %s ]", collection_name)
+    config = load_dataset_collection_config(collection_name)
+
+    if config.name != config_file.stem:
+        logger.error(
+            "Config file name [ %s ] does not match name field [ %s ]",
+            config_file,
+            config.name,
+        )
+
+
 def load_all_dataset_configs() -> list[DatasetConfig]:
     """Load all dataset configs."""
 
     dataset_names = get_available_dataset_names()
 
     datasets = [load_dataset_config(name) for name in dataset_names]
-    logger.info("Loaded all available datasets [ %s ]", " | ".join(dataset_names))
+    logger.debug("Loaded all available datasets [ %s ]", " | ".join(dataset_names))
 
     return datasets
 
