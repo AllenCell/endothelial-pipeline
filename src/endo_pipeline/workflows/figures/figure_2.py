@@ -244,13 +244,14 @@ def main() -> None:
         unwrap_angle=True,
         stable_only=True,
     )
-    # panel E: summary plot of fixed point locations across datasets
+    # summary plot of fixed point locations across datasets
     fixed_point_summary_plot_path = plot_cross_dataset_summaries(
         fixed_point_summary_df,
         output_dir=base_output_dir,
         column_names=feature_column_names,
         axis_mode="shear_stress",
-        figure_size=(3.5, 2),
+        subplot_layout="horizontal",
+        figure_size=(3.25, 2.25),
         color_by_column=Column.OpticalFlow.UNIT_VECTOR_MEAN,
     )
 
@@ -342,8 +343,8 @@ def main() -> None:
             path=fixed_point_summary_plot_path,
             x_position=0.0,
             y_position=5.4,
-            x_offset=0,
-            y_offset=0.2,
+            x_offset=0.0,
+            y_offset=0.1,
         ),
         FigurePanel(
             letter="I",
