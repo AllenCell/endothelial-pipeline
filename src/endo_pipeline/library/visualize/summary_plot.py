@@ -204,6 +204,7 @@ def _plot_cross_dataset_summary_for_column(
     jitter_width: float = 0.05,
     set_y_lims: bool = False,
     color_by_column: ColumnNameType | None = None,
+    ylabel_rotation: float = 0,
 ) -> None:
     """
     Plot cross dataset summary for given column name and summary mode.
@@ -235,6 +236,8 @@ def _plot_cross_dataset_summary_for_column(
         cyan-to-magenta colormap. When provided, overrides the discrete
         coloring from ``style_mode`` while preserving all other behavior
         (axis mode, markers, error bars, etc.).
+    ylabel_rotation
+        Rotation angle for y axis label.
     """
 
     # Load dataset configs for all unique datasets in summary data
@@ -406,7 +409,7 @@ def _plot_cross_dataset_summary_for_column(
 
     # Add y axis label and grid lines
     y_axis_label = column_metadata.label or str(column_name)
-    ax.set_ylabel(y_axis_label)
+    ax.set_ylabel(y_axis_label, rotation=ylabel_rotation)
     ax.grid(axis="y", alpha=0.3)
 
 
@@ -423,6 +426,7 @@ def plot_cross_dataset_summaries(
     convert_angle_to_nematic: bool = False,
     set_y_lims: bool = False,
     color_by_column: ColumnNameType | None = None,
+    ylabel_rotation: float = 0,
 ) -> Path:
     """
     Plot cross dataset summaries for given columns in selected plot mode.
@@ -482,6 +486,8 @@ def plot_cross_dataset_summaries(
         Optional column name whose values are mapped to a continuous
         cyan-to-magenta colormap. When provided, overrides the discrete coloring
         from ``style_mode``.
+    ylabel_rotation
+        Rotation angle for y axis label.
 
     Returns
     -------
@@ -536,6 +542,7 @@ def plot_cross_dataset_summaries(
             jitter_width=jitter_width,
             set_y_lims=set_y_lims,
             color_by_column=color_by_column,
+            ylabel_rotation=ylabel_rotation,
         )
 
     # Add super x axis label

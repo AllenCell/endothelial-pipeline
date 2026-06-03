@@ -17,11 +17,12 @@ def main() -> None:
         make_1d_drift_plot_panel,
         make_2d_contour_plot_panel,
         make_3d_vector_field_plot_panel,
+        make_first_passage_time_correlation_hist,
         reconstruct_along_nullcline,
     )
+    from endo_pipeline.library.visualize.figure_fpt import generate_first_passage_time_example
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
     from endo_pipeline.library.visualize.summary_plot import (
-        build_dataframe_for_first_passage_time_dataset_summary,
         build_dataframe_for_fixed_point_dataset_summary,
         plot_cross_dataset_summaries,
     )
@@ -29,11 +30,8 @@ def main() -> None:
     from endo_pipeline.settings.column_metadata import COLUMN_METADATA
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import POLAR_ANGLE_RANGE
-    from endo_pipeline.settings.examples import EXAMPLE_DATASET
+    from endo_pipeline.settings.examples import EXAMPLE_DATASET, FPT_FIG_EXAMPLES
     from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_WIDTH
-    from endo_pipeline.settings.first_passage_time import (
-        FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME,
-    )
     from endo_pipeline.settings.flow_field_dataframes import (
         BOOTSTRAPPING_MANIFEST_NAMES,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
@@ -208,7 +206,7 @@ def main() -> None:
             nullcline_opacity=1.0,
             gridspec_kwargs=GRIDSPEC_KWARGS,
             xlabel_kwargs=XLABEL_KWARGS,
-            ylabel_kwargs=YLABEL_KWARGS,
+            ylabel_kwargs={**YLABEL_KWARGS, "rotation": 0},
             axes_title_kwargs={
                 "fontsize": FONTSIZE_SMALL,
                 "x": 0.05,
@@ -244,36 +242,29 @@ def main() -> None:
         unwrap_angle=True,
         stable_only=True,
     )
-    # panel E: summary plot of fixed point locations across datasets
+    # summary plot of fixed point locations across datasets
     fixed_point_summary_plot_path = plot_cross_dataset_summaries(
         fixed_point_summary_df,
         output_dir=base_output_dir,
         column_names=feature_column_names,
         axis_mode="shear_stress",
-        figure_size=(3.5, 2),
+        subplot_layout="horizontal",
+        figure_size=(3.3, 2.0),
+        color_by_column=Column.OpticalFlow.UNIT_VECTOR_MEAN,
+        ylabel_rotation=0,
     )
-    # panel F: summary plot of migration coherence at fixed points across
-    # datasets
-    migration_summary_plot_path = plot_cross_dataset_summaries(
-        fixed_point_summary_df,
-        output_dir=base_output_dir,
-        column_names=[optical_flow_feature],
-        axis_mode="shear_stress",
-        figure_size=(1.25, 2),
+    # --- First passage time analysis schematic ---
+    low_flow_dataset = FPT_FIG_EXAMPLES["low_flow"]
+    trajectory_example_filepath = generate_first_passage_time_example(
+        dataset_name=low_flow_dataset.dataset_name,
+        example_fixed_point_index=low_flow_dataset.fixed_point_index,
+        example_tracked_crop_index=low_flow_dataset.tracked_crop_index,
+        example_grid_crop_index=low_flow_dataset.grid_crop_index,
+        out_dir=base_output_dir,
     )
-
     # --- Histogram of first passage time correlation ---
-    fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME)
-    first_passage_summary_df = build_dataframe_for_first_passage_time_dataset_summary(
-        dataset_names=dataset_summary_list, first_passage_time_manifest=fpt_manifest
-    )
-    first_passage_path = plot_cross_dataset_summaries(
-        first_passage_summary_df,
-        output_dir=base_output_dir,
-        column_names=[Column.VectorField.PEARSON_R],
-        axis_mode="shear_stress",
-        figure_size=(1.125, 2.05),
-        set_y_lims=True,
+    first_passage_path = make_first_passage_time_correlation_hist(
+        dataset_names=dataset_summary_list, figsize=(0.95, 2.0), fig_savedir=base_output_dir
     )
 
     # --- Assemble all panels into final figure ---
@@ -308,7 +299,7 @@ def main() -> None:
             path=nullcline_reconstruction_paths[dataset_low],
             x_position=2.3,
             y_position=1.4,
-            x_offset=0.4,
+            x_offset=0.85,
             y_offset=0.0,
         ),
         # --- High flow dataset (row 2) ---
@@ -341,7 +332,7 @@ def main() -> None:
             path=nullcline_reconstruction_paths[dataset_high],
             x_position=2.3,
             y_position=4.1,
-            x_offset=0.4,
+            x_offset=0.85,
             y_offset=0.0,
         ),
         # --- Bottom row: first passage time and summary plots ---
@@ -350,29 +341,29 @@ def main() -> None:
             path=fixed_point_summary_plot_path,
             x_position=0.0,
             y_position=5.4,
-            x_offset=0,
-            y_offset=0.2,
+            x_offset=0.0,
+            y_offset=0.25,
         ),
         FigurePanel(
             letter="H",
-            path=migration_summary_plot_path,
-            x_position=3.6,
+            path=trajectory_example_filepath,
+            x_position=3.3,
             y_position=5.4,
-            x_offset=0.1,
+            x_offset=0.0,
             y_offset=0.2,
         ),
         FigurePanel(
             letter="I",
             path=first_passage_path,
-            x_position=5.175,
+            x_position=5.3,
             y_position=5.4,
-            x_offset=0.05,
-            y_offset=0.15,
+            x_offset=0.075,
+            y_offset=0.25,
         ),
     ]
 
     build_figure_from_panels(
-        panels, base_output_dir / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=7.6
+        panels, base_output_dir / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=7.75
     )
 
 

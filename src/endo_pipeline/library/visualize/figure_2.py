@@ -10,8 +10,10 @@ import pandas as pd
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import LogNorm, TwoSlopeNorm
 from matplotlib.layout_engine import ConstrainedLayoutEngine
-from matplotlib.legend_handler import HandlerLine2D
+from matplotlib.legend_handler import HandlerBase
+from matplotlib.patches import Polygon as MplPolygon
 from matplotlib.patches import Rectangle as MplRectangle
+from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Line3DCollection, Poly3DCollection
@@ -25,6 +27,7 @@ from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
 )
+from endo_pipeline.library.analyze.track_integration import get_line_fit_and_filtered_df
 from endo_pipeline.library.analyze.vector_field_estimation import (
     get_vector_field_as_dict_from_dataframe,
     load_drift_dataframe_for_dataset,
@@ -49,6 +52,7 @@ from endo_pipeline.settings.dynamics_workflows import (
     KERNEL_PERIODS_DYNAMICS,
 )
 from endo_pipeline.settings.figures import FONTSIZE_SMALL, FONTSIZE_XSMALL
+from endo_pipeline.settings.first_passage_time import FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_CBAR_NUM_TICKS,
     DRIFT_CONTOUR_CBAR_ROUND,
@@ -580,15 +584,15 @@ def reconstruct_along_nullcline(
     )
     fig_null_walks.add_artist(rect)
 
-    # add row labels to the right of each nullcline row
-    ax_top_right = fig_null_walks.axes[n_cols - 1]
-    ax_bot_right = fig_null_walks.axes[2 * n_cols - 1]
-    pos_top_right = ax_top_right.get_position()
-    pos_bot_right = ax_bot_right.get_position()
-    label_x = pos_top_right.x1 + 0.025
+    # add row labels to the left of each nullcline row
+    ax_top_left = fig_null_walks.axes[0]
+    ax_bot_left = fig_null_walks.axes[n_cols]
+    pos_top_left = ax_top_left.get_position()
+    pos_bot_left = ax_bot_left.get_position()
+    label_x = pos_top_left.x0 - 0.2
     for pos, label in [
-        (pos_top_right, "r-nullcline"),
-        (pos_bot_right, f"{Unicode.RHO}-nullcline"),
+        (pos_top_left, "r-nullcline"),
+        (pos_bot_left, f"{Unicode.RHO}-nullcline"),
     ]:
         fig_null_walks.text(
             label_x,
@@ -862,6 +866,44 @@ def _plot_quiver_3d_cones(
     ax.add_collection3d(base_col)
 
 
+class _HandlerConeArrow(HandlerBase):
+    """Legend handler that draws a shaft + filled triangular cone head."""
+
+    def __init__(self, color, cone_fraction: float = 0.45, cone_radius_ratio: float = 0.7):
+        self._color = color
+        self._cone_fraction = cone_fraction
+        self._cone_radius_ratio = cone_radius_ratio
+        super().__init__()
+
+    def create_artists(
+        self, _legend, _orig_handle, xdescent, _ydescent, width, height, _fontsize, trans
+    ):
+        shaft_y = height / 2
+        cone_base_x = width * (1.0 - self._cone_fraction) - xdescent
+        tip_x = width - xdescent
+        cone_half_h = height * self._cone_fraction * self._cone_radius_ratio
+
+        shaft = mlines.Line2D(
+            [0, cone_base_x],
+            [shaft_y, shaft_y],
+            color=self._color,
+            linewidth=0.8,
+            transform=trans,
+        )
+        cone = MplPolygon(
+            [
+                [cone_base_x, shaft_y - cone_half_h],
+                [tip_x, shaft_y],
+                [cone_base_x, shaft_y + cone_half_h],
+            ],
+            closed=True,
+            facecolor=self._color,
+            edgecolor="none",
+            transform=trans,
+        )
+        return [shaft, cone]
+
+
 def make_3d_vector_field_plot_panel(
     dataset_name: str,
     fig_savedir: Path,
@@ -999,20 +1041,21 @@ def make_3d_vector_field_plot_panel(
         orientation="horizontal",
     )
     cbar.ax.tick_params(labelsize=FONTSIZE_XSMALL, pad=2)
-    cbar.set_label("$\Vert\mathbf{f}(\mathbf{x})\Vert$", fontsize=FONTSIZE_SMALL, labelpad=-1)
+    cbar.set_label(
+        "$\\left\\Vert\\mathbf{f}(\\mathbf{x})\\right\\Vert$", fontsize=FONTSIZE_SMALL, labelpad=-1
+    )
     cbar_ax.xaxis.set_label_position("top")
     cbar_ax.xaxis.tick_top()
 
-    # Legend to the right of the colorbar
+    # Legend to the right of the colorbar. Draw the vector arrow handle as a
+    # shaft + filled triangular cone head (matching the plot style) coloured at
+    # a value in the center of the colormap, and add a proxy artist for the
+    # stable fixed point using the same marker and color as in the plot.
+    arrow_color = cmap(0.5)
     arrow_handle = mlines.Line2D(
         [],
         [],
-        color="gray",
-        marker="$\\rightarrow$",
-        markersize=8,
-        linewidth=0.0,
-        markevery=[0],
-        label="$d\mathbf{x}/dt=\mathbf{f}(\mathbf{x})$",
+        label="$d\\mathbf{x}/dt=\\mathbf{f}(\\mathbf{x})$",
     )
     fp_handles = make_legend_handles_for_fixed_pts(
         fpt_stabilities=[StabilityLabel.STABLE],
@@ -1026,7 +1069,7 @@ def make_3d_vector_field_plot_panel(
         frameon=False,
         handletextpad=0.3,
         labelspacing=0.4,
-        handler_map={arrow_handle: HandlerLine2D(numpoints=1)},
+        handler_map={arrow_handle: _HandlerConeArrow(color=arrow_color)},
     )
 
     # Load and overlay stable fixed point
@@ -1042,7 +1085,7 @@ def make_3d_vector_field_plot_panel(
         fpt_coords[:, 1],
         fpt_coords[:, 2],
         color=hex_color,
-        s=60,
+        s=15,
         zorder=5,
     )
 
@@ -1077,4 +1120,37 @@ def make_3d_vector_field_plot_panel(
         bbox_inches="tight",
     )
 
+    return fig_savedir / f"{filename}.svg"
+
+
+def make_first_passage_time_correlation_hist(
+    dataset_names: list[str], figsize: tuple[float, float], fig_savedir: Path
+) -> Path:
+    fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME)
+    line_fit_df, _ = get_line_fit_and_filtered_df(fpt_manifest, dataset_names)
+
+    pearson_correlations = []
+    for _, df_dataset in line_fit_df.groupby(Column.DATASET):
+        pearson_r = df_dataset[Column.VectorField.PEARSON_R].iloc[0]
+        pearson_correlations.append(pearson_r)
+
+    fig, ax = plt.subplots(figsize=figsize, layout="constrained")
+    ax.hist(pearson_correlations, bins=list(np.linspace(-1, 1, 21)), edgecolor="k")
+    column_label = COLUMN_METADATA[Column.VectorField.PEARSON_R].label or str(
+        Column.VectorField.PEARSON_R
+    )
+    ax.set_xlabel(column_label)
+    ax.set_ylabel("Count")
+    # make sure y ticks are integers since this is a count histogram
+    ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+
+    filename = "fpt_hist"
+    save_plot_to_path(
+        fig,
+        fig_savedir,
+        filename,
+        file_format=".svg",
+        tight_layout=False,
+        transparent=True,
+    )
     return fig_savedir / f"{filename}.svg"
