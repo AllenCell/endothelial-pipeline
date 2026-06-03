@@ -13,6 +13,7 @@ from matplotlib.layout_engine import ConstrainedLayoutEngine
 from matplotlib.legend_handler import HandlerBase
 from matplotlib.patches import Polygon as MplPolygon
 from matplotlib.patches import Rectangle as MplRectangle
+from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Line3DCollection, Poly3DCollection
@@ -1040,7 +1041,9 @@ def make_3d_vector_field_plot_panel(
         orientation="horizontal",
     )
     cbar.ax.tick_params(labelsize=FONTSIZE_XSMALL, pad=2)
-    cbar.set_label("$\Vert\mathbf{f}(\mathbf{x})\Vert$", fontsize=FONTSIZE_SMALL, labelpad=-1)
+    cbar.set_label(
+        "$\\left\\Vert\\mathbf{f}(\\mathbf{x})\\right\\Vert$", fontsize=FONTSIZE_SMALL, labelpad=-1
+    )
     cbar_ax.xaxis.set_label_position("top")
     cbar_ax.xaxis.tick_top()
 
@@ -1138,6 +1141,8 @@ def make_first_passage_time_correlation_hist(
     )
     ax.set_xlabel(column_label)
     ax.set_ylabel("Count")
+    # make sure y ticks are integers since this is a count histogram
+    ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
     filename = "fpt_hist"
     save_plot_to_path(
