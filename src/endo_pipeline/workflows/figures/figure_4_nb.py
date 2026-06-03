@@ -47,7 +47,8 @@ dataset_summary_df = build_dataframe_for_fixed_point_dataset_summary(
     dataset_names=dataset_summary_list,
     feature_dataframe_manifest=feature_dataframe_manifest,
     bootstrap_dataframe_manifest=fixed_points_bootstrap_dataframe_manifest,
-    convert_angle_to_nematic=True,
+    convert_angle_to_nematic=False,
+    unwrap_angle=True,
     stable_only=True,
     bootstrap_threshold=0.4,
 )
@@ -56,20 +57,17 @@ diffae_features = [
     Column.DiffAEData.POLAR_RADIUS,
     Column.DiffAEData.PC3_FLIPPED,
 ]
-migration_features = [Column.OpticalFlow.UNIT_VECTOR_MEAN, Column.OpticalFlow.SPEED_MEAN]
+
+# %%
 fixed_points_summary_plot_path = plot_cross_dataset_summaries(
     dataset_summary_df,
     output_dir=save_dir,
     column_names=diffae_features,
     axis_mode="cell_line",
-    figure_size=(3.75, 2),
-)
-migration_summary_plot_path = plot_cross_dataset_summaries(
-    dataset_summary_df,
-    output_dir=save_dir,
-    column_names=migration_features,
-    axis_mode="cell_line",
-    figure_size=(2.25, 2.05),
+    jitter_width=0.2,
+    figure_size=(5, 2),
+    convert_angle_to_nematic=False,
+    color_by_column=Column.OpticalFlow.SPEED_MEAN,
 )
 
 # %%
@@ -89,14 +87,6 @@ panels = [
         y_position=2.6,
         x_offset=0,
         y_offset=0.2,
-    ),
-    FigurePanel(
-        letter="C",
-        path=migration_summary_plot_path,
-        x_position=3.85,
-        y_position=2.6,
-        x_offset=0.1,
-        y_offset=0.15,
     ),
 ]
 

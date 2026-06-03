@@ -16,7 +16,7 @@ from endo_pipeline.library.analyze.dataframe_filtering import (
     filter_dataframe_to_steady_state,
 )
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
-from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KernelName, KramersMoyalKernel
+from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     add_track_duration_to_dataframe,
     calculate_derived_data_dynamics_dependent,
@@ -48,6 +48,7 @@ from endo_pipeline.settings.dynamics_workflows import (
     RESCALE_THETA,
     TIME_STEP_IN_HOURS,
     TIME_STEP_IN_MINUTES,
+    KernelName,
 )
 from endo_pipeline.settings.first_passage_time import (
     FIRST_PASSAGE_TIME_MIN_NUM_TRAJECTORIES_PER_BIN,

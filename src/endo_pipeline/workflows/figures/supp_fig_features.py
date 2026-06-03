@@ -9,24 +9,21 @@ def main() -> None:
     from endo_pipeline.cli.demo_mode_defaults import use_default_collection
     from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.pca import fit_pca
-    from endo_pipeline.library.visualize.columns import get_label_for_column
+    from endo_pipeline.library.visualize.columns import get_label_for_column, make_label_single_line
     from endo_pipeline.library.visualize.diffae_features import feature_viz
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
+    from endo_pipeline.library.visualize.latent_walk import perform_and_plot_latent_walk_for_figures
     from endo_pipeline.library.visualize.multi_feature_correlation_viz import (
         get_df_for_feature_correlation_viz,
         visualize_correlation_heatmaps,
     )
-    from endo_pipeline.library.visualize.supp_fig_features import (
-        make_r_aspect_ratio_histogram_panel,
-        make_theta_orientation_histogram_panel,
-        perform_latent_walk_along_top_pcs,
-        plot_2d_latent_walk,
-    )
+    from endo_pipeline.library.visualize.supp_fig_features import plot_2d_latent_walk
     from endo_pipeline.settings.diffae_feature_dataframes import (
         DIFFAE_PC_COLUMN_NAME_GROUPS,
+        DIFFAE_PC_COLUMN_NAMES,
         NUM_LATENT_FEATURES,
     )
-    from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
     from endo_pipeline.settings.workflow_defaults import (
         DATASET_INFO_COLUMNS,
         DEFAULT_PCA_DATASET_COLLECTION_NAME,
@@ -41,7 +38,7 @@ def main() -> None:
 
     # plot cumulative explained variance ratio of PCA components
     pca = fit_pca(num_pcs=NUM_LATENT_FEATURES)
-    fig, _ = feature_viz.plot_explained_variance(pca.explained_variance_ratio_, figsize=(2.1, 2.5))
+    fig, _ = feature_viz.plot_explained_variance(pca.explained_variance_ratio_, figsize=(2.3, 2.5))
     save_plot_to_path(
         fig,
         save_dir,
@@ -65,19 +62,27 @@ def main() -> None:
         segmentation_feature_columns=measured_feature_columns,
         pc_columns=ml_columns_100_pcs,
     )
+    df.rename(columns=make_label_single_line, inplace=True)
 
     label_column_tuples = [
         ("ML-based Features 100", [get_label_for_column(col) for col in ml_columns_100_pcs]),
         ("Measured Features", [get_label_for_column(col) for col in measured_feature_columns]),
     ]
+    label_column_tuples = [
+        (features, list(map(make_label_single_line, columns)))
+        for features, columns in label_column_tuples
+    ]
 
+    # run the visualize_correlation_heatmaps function here on the 100 PCs vs measured features
+    # to get the correlation values as a .csv, which we will then use to get the biggest
+    # correlation value for the PCs that are not in the top 10 PCs
     visualize_correlation_heatmaps(
         dataset_name="aggregate",
         df_dataset=df,
         label_column_tuples=label_column_tuples,
         out_dir=save_dir,
         cross_correlation_only=True,
-        figsize_cluster_heatmap=(4.35, 2.75),
+        figsize_cluster_heatmap=(6, 2.75),
         y_axis_label_coords=None,
     )
     # report the max correlation value in the heatmap for all PCs vs measured features
@@ -90,7 +95,9 @@ def main() -> None:
     biggest_corr_mag = (
         df_100_pcs[[get_label_for_column(col) for col in non_fig_pcs]].abs().max().max()
     )
-    logger.info(biggest_corr_mag)
+    logger.info(
+        f"Biggest correlation magnitude for non-figure PCs up to PC 100: {biggest_corr_mag}"
+    )
 
     df = get_df_for_feature_correlation_viz(
         dataset_name_list=dataset_name_list,
@@ -98,10 +105,15 @@ def main() -> None:
         segmentation_feature_columns=measured_feature_columns,
         pc_columns=ml_columns,
     )
+    df.rename(columns=make_label_single_line, inplace=True)
 
     label_column_tuples = [
         ("ML-based Features", [get_label_for_column(col) for col in ml_columns]),
         ("Measured Features", [get_label_for_column(col) for col in measured_feature_columns]),
+    ]
+    label_column_tuples = [
+        (features, list(map(make_label_single_line, columns)))
+        for features, columns in label_column_tuples
     ]
 
     visualize_correlation_heatmaps(
@@ -110,17 +122,22 @@ def main() -> None:
         label_column_tuples=label_column_tuples,
         out_dir=save_dir,
         cross_correlation_only=True,
-        figsize_cluster_heatmap=(4.35, 2.75),
+        figsize_cluster_heatmap=(6, 2.75),
         y_axis_label_coords=None,
     )
 
     # perform latent walk along top 3 PCs and save the resulting contact sheet
-    latent_walk_filename = "latent_walk_top_3_pcs"
-
-    walk_img_grid = perform_latent_walk_along_top_pcs(
-        save_dir, latent_walk_filename, figsize=(4.45, 2.3), num_gpus=NUM_GPUS
+    latent_walk_filename = "latent_walk_top_10_pcs"
+    latent_walk_path, walk_img_grid = perform_and_plot_latent_walk_for_figures(
+        save_path=save_dir,
+        filename=latent_walk_filename,
+        walk_column_names=DIFFAE_PC_COLUMN_NAMES[:10],  # walk along top 10 PCs
+        figsize=(3.8, 5.2),
+        sigma=3,
+        n_steps=7,
+        scale_bar_um=20,
+        num_gpus=NUM_GPUS,
     )
-    latent_walk_path = save_dir / f"{latent_walk_filename}_scale_bar_10um.svg"
 
     # Take the images from the latent walk along PCs 1 and 2 and plot them as a
     # "2D" walk to motivate the polar coordinate transform. Just (-3 sigma, 0,
@@ -139,16 +156,6 @@ def main() -> None:
         latent_walk_2d_filename,
     )
 
-    # panel E: visual comparison of theta (ML-based feature) and cell
-    # orientation (segmentation feature) as side-by-side histograms
-    # over time for a low shear stress and a high shear stress dataset.
-    theta_orientation_path = make_theta_orientation_histogram_panel(save_dir)
-
-    # panel F: visual comparison of r (ML-based feature) and cell aspect ratio
-    # (segmentation feature) as side-by-side histograms over time for a low
-    # shear stress and a high shear stress dataset.
-    r_aspect_ratio_path = make_r_aspect_ratio_histogram_panel(save_dir)
-
     # build figure with panels
     panels = [
         FigurePanel(
@@ -162,7 +169,7 @@ def main() -> None:
         FigurePanel(
             letter="B",
             path=latent_walk_path,
-            x_position=2.0,
+            x_position=2.3,
             y_position=0.0,
             x_offset=0.05,
             y_offset=0.1,
@@ -171,38 +178,25 @@ def main() -> None:
             letter="C",
             path=latent_walk_2d_path,
             x_position=0.0,
-            y_position=2.4,
+            y_position=2.5,
             x_offset=0.05,
             y_offset=0.1,
         ),
         FigurePanel(
             letter="D",
             path=save_dir / "correlation_ml_based_features_vs_measured_features_heatmap.svg",
-            x_position=2.3,
-            y_position=2.4,
-            x_offset=-0.05,
-            y_offset=-0.1,
-        ),
-        FigurePanel(
-            letter="E",
-            path=theta_orientation_path,
-            x_position=0.0,
-            y_position=4.9,
-            x_offset=0.0,
-            y_offset=0.1,
-        ),
-        FigurePanel(
-            letter="F",
-            path=r_aspect_ratio_path,
-            x_position=3.26,
-            y_position=4.9,
-            x_offset=0.0,
-            y_offset=0.1,
+            x_position=0,
+            y_position=5.2,
+            x_offset=0.1,
+            y_offset=0,
         ),
     ]
 
     build_figure_from_panels(
-        panels, save_dir / "Supplemental_Figure_3.svg", width=MAX_FIGURE_WIDTH, height=7.5
+        panels,
+        save_dir / "Supplemental_Figure_3.svg",
+        width=MAX_FIGURE_WIDTH,
+        height=MAX_FIGURE_HEIGHT,
     )
 
 

@@ -173,7 +173,7 @@ def get_output_path(
 
     if create_directories:
         output_path.mkdir(parents=True, exist_ok=True)
-        logger.info("Created output directory [ %s ]", output_path)
+        logger.debug("Created output directory [ %s ]", output_path)
 
     return output_path
 

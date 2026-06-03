@@ -130,6 +130,7 @@ def create_validation_examples_contact_sheet(
     figure_width: float,
     figure_height: float = 3.4,
     scalebar_um: int = 10,
+    scalebar_location: str = "lower right",
     max_rows: int = 3,
     font_size: int = 10,
 ) -> matplotlib.figure.Figure:
@@ -170,6 +171,8 @@ def create_validation_examples_contact_sheet(
         Figure height in inches.
     scalebar_um
         Scale-bar length in microns.
+    scalebar_location
+        Corner of the first panel to place the scale bar in.
     max_rows
         Maximum number of example rows.
     font_size
@@ -229,6 +232,7 @@ def create_validation_examples_contact_sheet(
         scale_bar_um=scalebar_um,
         bar_thickness=3,
         padding=5,
+        location=scalebar_location,
     )
 
     return fig
@@ -407,13 +411,11 @@ def create_rep2_correlation_bar_plot(
     model_labels: list[str],
     output_path: Path,
     filename: str,
-    title: str = "Pearson Correlation",
-    ylabel: str = "Correlation Score",
+    ylabel: str = "Pearson correlation r value",
     ylim: tuple[float, float] | None = None,
     figsize: tuple[float, float] | None = None,
     file_format: Literal[".png", ".svg", ".pdf"] = ".svg",
     label_fontsize: float = FONTSIZE_MEDIUM,
-    title_fontsize: float = FONTSIZE_LARGE,
     tick_fontsize: float = FONTSIZE_SMALL,
     save_kwargs: dict | None = None,
 ) -> None:
@@ -430,12 +432,12 @@ def create_rep2_correlation_bar_plot(
     output_path, filename, file_format
         Where / how to write the figure.  ``filename`` should not include
         the extension; ``file_format`` provides it.
-    title, ylabel, ylim
+    ylabel, ylim
         Plot annotations.
     figsize
         Figure size in inches.  Defaults to a width that scales with the
         number of bars when omitted.
-    label_fontsize, title_fontsize
+    label_fontsize, tick_fontsize
         Override font sizes when this helper is used as a multi-panel
         figure component (so type sizes match the sibling panels).
     save_kwargs
@@ -469,9 +471,8 @@ def create_rep2_correlation_bar_plot(
         alpha=0.85,
     )
 
-    ax.set_xlabel("Latent Size / Conditioning", fontsize=label_fontsize)
+    ax.set_xlabel("Number of latent dimensions, conditioning channel", fontsize=label_fontsize)
     ax.set_ylabel(ylabel, fontsize=label_fontsize)
-    ax.set_title(title, fontsize=title_fontsize)
     ax.set_xticks(x_pos)
     rotation = 45 if num_models > 4 else 0
     ha_labels = "right" if num_models > 4 else "center"

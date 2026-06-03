@@ -127,13 +127,24 @@ def plot_explained_variance(
         "Number of components needed to explain 95pct variance: %d",
         np.searchsorted(np.cumsum(explained_variance_ratio), 0.95) + 1,
     )
-    ax.plot(np.arange(1, n_components + 1), 100 * np.cumsum(explained_variance_ratio), "k-o")
+    components = np.arange(1, n_components + 1)
+    cumulative_explained_variance = 100 * np.cumsum(explained_variance_ratio)
+    cumulative95th_component = components[np.argmax(cumulative_explained_variance >= 95)]
+
     ax.plot(
-        np.arange(1, n_components + 1),
-        95 * np.ones(n_components),
-        "r--",
+        components,
+        cumulative_explained_variance,
+        color="k",
+        ls="-",
+        marker=".",
+    )
+    ax.axhline(y=95, color="r", linestyle="--", alpha=0.8, label="95% explained variance")
+    ax.axvline(
+        x=cumulative95th_component,
+        color="gray",
+        linestyle=":",
         alpha=0.8,
-        label="95% explained variance",
+        label=f"PC {cumulative95th_component} (95% explained variance)",
     )
     ax.set_ylim(0, 105)
     ax.set_xlabel("Number of\nPCA components")

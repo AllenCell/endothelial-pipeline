@@ -52,7 +52,10 @@ def main() -> None:
         EXAMPLES_DIFFAE_TRAINING_VALIDATION,
     )
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
-    from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL, PIXEL_SIZE_3i_20x
+    from endo_pipeline.settings.image_data import (
+        DIFFAE_ZARR_RESOLUTION_LEVEL,
+        PIXEL_SIZE_3i_20x_RESOLUTION_1,
+    )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT,
         RANDOM_SEED,
@@ -64,8 +67,7 @@ def main() -> None:
 
     # Both deliverables come from the brightfield-conditioned baseline model.
     # Pin the latent-512 run explicitly: this is the variant used throughout
-    # the figure-2 schematic, and ``get_most_recent_run_name`` would otherwise
-    # resolve to a different latent-dimension run in the sweep manifest.
+    # the figure-2 schematic.
     model_manifest_name = "diffae_baseline_exclude_cell_piling"
     run_name = "20251110_latent_512"
     rng = default_rng(seed=RANDOM_SEED)
@@ -213,7 +215,7 @@ def main() -> None:
 
     # Brightfield QC contact sheet -- same figure-styled build as the
     # VE-cadherin panel in ``supp-fig-diffae-model``.
-    scalebar_um = 10
+    scalebar_um = 20
     fig = create_validation_examples_contact_sheet(
         cond_crop_list,
         diffusion_input_crop_list,
@@ -221,9 +223,10 @@ def main() -> None:
         denoised_scrambled_latent_list,
         denoised_scrambled_input_list,
         label_for_conditioning,
-        pixel_size=PIXEL_SIZE_3i_20x,
+        pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
         figure_width=MAX_FIGURE_WIDTH,
         scalebar_um=scalebar_um,
+        scalebar_location="lower right",
     )
     save_plot_to_path(
         fig,

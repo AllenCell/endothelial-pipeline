@@ -4,6 +4,8 @@ import logging
 from pathlib import Path
 from typing import Literal
 
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -25,7 +27,7 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
     make_legend_handles_for_fixed_pts,
 )
 from endo_pipeline.manifests import DataframeManifest
-from endo_pipeline.settings.column_metadata import COLUMN_METADATA
+from endo_pipeline.settings.column_metadata import COLUMN_METADATA, ColumnMetadata
 from endo_pipeline.settings.column_names import ColumnName, ColumnNameType
 from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
@@ -143,6 +145,53 @@ def _convert_polar_angle_to_nematic_order(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _build_color_by_column_mappable(
+    df: pd.DataFrame,
+    color_by_column: ColumnNameType,
+) -> tuple[cm.ScalarMappable | None, str, ColumnMetadata | None]:
+    """
+    Build a ScalarMappable for continuous coloring by a dataframe column.
+
+    Returns the scalar mappable (or None if the column isn't in df), the
+    resolved column name (with ``mean_`` prefix if needed), and the column
+    metadata object for labeling the colorbar.
+    """
+    color_column_metadata = COLUMN_METADATA.get(color_by_column)
+    plotting_column: str = (
+        f"mean_{color_by_column}"
+        if color_by_column in BINNED_MEAN_FEATURES
+        else str(color_by_column)
+    )
+    if plotting_column in df.columns:
+        # Use viridis for speed, cyan-to-magenta for everything else
+        if color_by_column == ColumnName.OpticalFlow.SPEED_MEAN:
+            cmap = plt.get_cmap("viridis")
+        else:
+            cmap = mcolors.LinearSegmentedColormap.from_list("cyan_magenta", ["cyan", "magenta"])
+        norm = mcolors.Normalize(vmin=df[plotting_column].min(), vmax=df[plotting_column].max())
+        scalar_mappable = cm.ScalarMappable(norm=norm, cmap=cmap)
+        scalar_mappable.set_array([])
+    else:
+        scalar_mappable = None
+    return scalar_mappable, plotting_column, color_column_metadata
+
+
+def _get_tick_labels(
+    axis_mode: SummaryPlotAxisMode,
+    unique_categories: list[str],
+    dataset_configs: dict,
+) -> list[str]:
+    """Get tick labels for the x axis based on the selected axis mode."""
+    if axis_mode == "dataset":
+        return [
+            f"{dataset_configs[cat].date} ({dataset_configs[cat].flow_conditions[-1].shear_stress_bin})"
+            for cat in unique_categories
+        ]
+    elif axis_mode == "cell_line":
+        return [CELL_LINE_LABEL_MAP[cat] for cat in unique_categories]
+    return unique_categories
+
+
 def _plot_cross_dataset_summary_for_column(
     df: pd.DataFrame,
     ax: Axes,
@@ -150,10 +199,12 @@ def _plot_cross_dataset_summary_for_column(
     category_order: list[str] | None = None,
     axis_mode: SummaryPlotAxisMode = "dataset",
     style_mode: SummaryPlotStyleMode = "dataset",
-    marker_size_plot: int = 4,
+    marker_size_plot: float = 4.2,
     marker_size_legend: int = 4,
     jitter_width: float = 0.05,
     set_y_lims: bool = False,
+    color_by_column: ColumnNameType | None = None,
+    ylabel_rotation: float = 0,
 ) -> None:
     """
     Plot cross dataset summary for given column name and summary mode.
@@ -180,6 +231,13 @@ def _plot_cross_dataset_summary_for_column(
         Width of the jitter applied to points in the same category bin.
     set_y_lims
         True to set y limits based on column metadata, False otherwise.
+    color_by_column
+        Optional column name whose values are mapped to a continuous
+        cyan-to-magenta colormap. When provided, overrides the discrete
+        coloring from ``style_mode`` while preserving all other behavior
+        (axis mode, markers, error bars, etc.).
+    ylabel_rotation
+        Rotation angle for y axis label.
     """
 
     # Load dataset configs for all unique datasets in summary data
@@ -200,6 +258,13 @@ def _plot_cross_dataset_summary_for_column(
         marker_map = {key: style.marker for key, style in FIXED_POINT_PLOT_STYLE.items()}
     else:
         raise ValueError(f"Summary plot style mode '{style_mode}' is not supported")
+
+    # Build continuous colormap if color_by_column is provided (overrides style_mode colors)
+    plotting_column: str | None = None
+    if color_by_column is not None:
+        scalar_mappable, plotting_column, _ = _build_color_by_column_mappable(df, color_by_column)
+    else:
+        scalar_mappable = None
 
     # Get the category column name for the selected axis mode
     category_column = SUMMARY_MODE_COLUMN_NAME.get(axis_mode)
@@ -230,15 +295,7 @@ def _plot_cross_dataset_summary_for_column(
     unique_categories = list(df[category_column].unique())
 
     # Get category labels for the selected axis mode
-    if axis_mode == "dataset":
-        tick_labels = [
-            f"{dataset_configs[cat].date} ({dataset_configs[cat].flow_conditions[-1].shear_stress_bin})"
-            for cat in unique_categories
-        ]
-    elif axis_mode == "cell_line":
-        tick_labels = [CELL_LINE_LABEL_MAP[cat] for cat in unique_categories]
-    else:
-        tick_labels = unique_categories
+    tick_labels = _get_tick_labels(axis_mode, unique_categories, dataset_configs)
 
     # Get column metadata from base name and then adjust column name if the
     # column is a binned mean feature
@@ -264,16 +321,32 @@ def _plot_cross_dataset_summary_for_column(
         # Get position for the dataset based on index in category list
         index = unique_categories.index(category)
 
-        # Calculate jitter off index based on number of points in the category
-        num_points = len(category_df)
-        offsets = [0] if num_points == 1 else np.linspace(-jitter_width, jitter_width, num_points)
-        x_values = [index + offset for offset in offsets]
+        # Assign jitter offsets per-dataset so points from the same dataset
+        # share the same horizontal position within a category bin
+        unique_datasets_in_category = category_df[ColumnName.DATASET].unique()
+        num_datasets = len(unique_datasets_in_category)
+        dataset_offsets = (
+            {unique_datasets_in_category[0]: 0}
+            if num_datasets == 1
+            else dict(
+                zip(
+                    unique_datasets_in_category,
+                    np.linspace(-jitter_width, jitter_width, num_datasets),
+                    strict=True,
+                )
+            )
+        )
+        x_values = [index + dataset_offsets[ds] for ds in category_df[ColumnName.DATASET]]
 
         # Get y values based on feature column
         y_values = category_df[column_name]
 
-        # Get marker based on style column
-        colors = [color_map[col] for col in category_df[style_column]]
+        # Get marker and color based on style column or color_by_column
+        colors: list = (
+            [scalar_mappable.to_rgba(val) for val in category_df[plotting_column]]
+            if scalar_mappable is not None and plotting_column is not None
+            else category_df[style_column].map(color_map).tolist()
+        )
         markers = [marker_map[col] for col in category_df[style_column]]
 
         # Get lower and upper bounds for points in the category
@@ -290,16 +363,16 @@ def _plot_cross_dataset_summary_for_column(
                 fmt=marker,
                 color=color,
                 markeredgecolor="black",
-                markeredgewidth=0.5,
+                markeredgewidth=0.6,
                 markersize=marker_size_plot,
-                capsize=2,
+                capsize=2.3,
                 elinewidth=0.8,
-                ecolor=color,
+                ecolor="black",
                 zorder=3,
             )
 
-    # Include legend if using stability style mode
-    if style_mode == "stability":
+    # Include legend if using stability style mode (only when not overridden)
+    if style_mode == "stability" and scalar_mappable is None:
         legend_handles = make_legend_handles_for_fixed_pts(
             fpt_stabilities=df[ColumnName.VectorField.STABILITY].unique().tolist(),
             marker_size=marker_size_legend,
@@ -336,7 +409,7 @@ def _plot_cross_dataset_summary_for_column(
 
     # Add y axis label and grid lines
     y_axis_label = column_metadata.label or str(column_name)
-    ax.set_ylabel(y_axis_label)
+    ax.set_ylabel(y_axis_label, rotation=ylabel_rotation)
     ax.grid(axis="y", alpha=0.3)
 
 
@@ -350,8 +423,10 @@ def plot_cross_dataset_summaries(
     subplot_layout: Literal["horizontal", "vertical"] = "horizontal",
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 3),
     jitter_width: float = 0.05,
-    convert_angle_to_nematic: bool = True,
+    convert_angle_to_nematic: bool = False,
     set_y_lims: bool = False,
+    color_by_column: ColumnNameType | None = None,
+    ylabel_rotation: float = 0,
 ) -> Path:
     """
     Plot cross dataset summaries for given columns in selected plot mode.
@@ -406,7 +481,13 @@ def plot_cross_dataset_summaries(
     jitter_width
         Width of the jitter applied to points in the same category bin.
     convert_angle_to_nematic
-        True to swap polar angle column to nemetic order column.
+        True to swap polar angle column to nematic order column.
+    color_by_column
+        Optional column name whose values are mapped to a continuous
+        cyan-to-magenta colormap. When provided, overrides the discrete coloring
+        from ``style_mode``.
+    ylabel_rotation
+        Rotation angle for y axis label.
 
     Returns
     -------
@@ -460,6 +541,8 @@ def plot_cross_dataset_summaries(
             style_mode=style_mode,
             jitter_width=jitter_width,
             set_y_lims=set_y_lims,
+            color_by_column=color_by_column,
+            ylabel_rotation=ylabel_rotation,
         )
 
     # Add super x axis label
@@ -486,6 +569,21 @@ def plot_cross_dataset_summaries(
         for ax in axes[:-1]:
             ax.tick_params(axis="x", labelbottom=False)
 
+    # Add a single shared colorbar if color_by_column is active
+    if color_by_column is not None:
+        scalar_mappable, _, color_column_metadata = _build_color_by_column_mappable(
+            df, color_by_column
+        )
+        if scalar_mappable is not None:
+            cbar_label = (
+                color_column_metadata.label
+                if color_column_metadata and color_column_metadata.label
+                else str(color_by_column)
+            )
+            # Attach colorbar to last panel only so it spans one panel height
+            cbar = fig.colorbar(scalar_mappable, ax=axes[-1], pad=0.02)
+            cbar.set_label(cbar_label, fontsize=FONTSIZE_SMALL)
+
     # Save figure with name including all column names
     column_name_str = [str(column_name) for column_name in column_names]
     figure_name = f"summary_{axis_mode}_{join_sorted_strings(column_name_str)}"
@@ -500,7 +598,8 @@ def build_dataframe_for_fixed_point_dataset_summary(
     bootstrap_dataframe_manifest: DataframeManifest,
     column_names: list[ColumnNameType] | None = None,
     bootstrap_threshold: float = 0.4,
-    convert_angle_to_nematic: bool = True,
+    convert_angle_to_nematic: bool = False,
+    unwrap_angle: bool = True,
     stable_only: bool = True,
 ) -> pd.DataFrame:
     """
@@ -520,6 +619,9 @@ def build_dataframe_for_fixed_point_dataset_summary(
         Threshold for high confidence fixed points.
     convert_angle_to_nematic
         True to convert polar angle to nematic order.
+    unwrap_angle
+        True to unwrap polar angle values to avoid discontinuities around the
+        periodic boundary.
     stable_only
         True to only include stable fixed points.
 
@@ -610,8 +712,24 @@ def build_dataframe_for_fixed_point_dataset_summary(
                 **columns_to_bin,  # type: ignore[arg-type]
             )
 
-        if convert_angle_to_nematic and ColumnName.DiffAEData.POLAR_ANGLE in column_names:
-            df_fixed_points = _convert_polar_angle_to_nematic_order(df_fixed_points)
+        if ColumnName.DiffAEData.POLAR_ANGLE in column_names:
+            if convert_angle_to_nematic:
+                df_fixed_points = _convert_polar_angle_to_nematic_order(df_fixed_points)
+            if unwrap_angle:
+                # unwrap baseline, bootstrapped cluster mean angle, and CI bounds
+                for suffix in [
+                    "",
+                    f"_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
+                    f"_{ColumnName.BootstrapAnalysis.CI_LOWER}",
+                    f"_{ColumnName.BootstrapAnalysis.CI_UPPER}",
+                ]:
+                    df_fixed_points[
+                        f"{ColumnName.DiffAEData.POLAR_ANGLE}{suffix}"
+                    ] = df_fixed_points[f"{ColumnName.DiffAEData.POLAR_ANGLE}{suffix}"].apply(
+                        lambda angle: (
+                            angle - POLAR_ANGLE_PERIOD if angle > (5 * np.pi / 6) else angle
+                        )
+                    )
 
         if df_fixed_points.empty:
             continue

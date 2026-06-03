@@ -71,19 +71,19 @@ BOOTSTRAP_THRESHOLD = 0.4
 # %% Cross-dataset summary plots
 columns_for_summary_plots = [
     ColumnName.DiffAEData.POLAR_ANGLE,
-    ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
     ColumnName.DiffAEData.POLAR_RADIUS,
-    ColumnName.DiffAEData.PC3_FLIPPED,
 ]
 dataset_summary_df = build_dataframe_for_fixed_point_dataset_summary(
     dataset_names=dataset_summary_list,
     feature_dataframe_manifest=feature_dataframe_manifest,
     bootstrap_dataframe_manifest=fixed_points_bootstrap_dataframe_manifest,
     column_names=columns_for_summary_plots,
-    convert_angle_to_nematic=True,
+    convert_angle_to_nematic=False,
+    unwrap_angle=True,
     stable_only=True,
     bootstrap_threshold=BOOTSTRAP_THRESHOLD,
 )
+# %%
 summary_plot_path = plot_cross_dataset_summaries(
     dataset_summary_df,
     output_dir=save_dir,
@@ -92,6 +92,7 @@ summary_plot_path = plot_cross_dataset_summaries(
     figure_size=(MAX_FIGURE_WIDTH * 0.6, 1.4),
     jitter_width=0.2,
     subplot_layout="vertical",
+    color_by_column=ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
 )
 
 # %% Reconstruction of example images from stable fixed point coordinates

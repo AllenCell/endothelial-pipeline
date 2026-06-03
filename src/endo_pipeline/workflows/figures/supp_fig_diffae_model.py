@@ -53,7 +53,10 @@ def main() -> None:
         EXAMPLES_DIFFAE_TRAINING_VALIDATION,
     )
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
-    from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL, PIXEL_SIZE_3i_20x
+    from endo_pipeline.settings.image_data import (
+        DIFFAE_ZARR_RESOLUTION_LEVEL,
+        PIXEL_SIZE_3i_20x_RESOLUTION_1,
+    )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT,
         DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_PREFIX,
@@ -218,7 +221,7 @@ def main() -> None:
         # Contact-sheet build + save for the cdh5-conditioned panel A. The
         # figure-styled build is shared with the brightfield schematic
         # workflow via ``create_validation_examples_contact_sheet``.
-        scalebar_um = 10
+        scalebar_um = 20
         fig = create_validation_examples_contact_sheet(
             cond_crop_list,
             diffusion_input_crop_list,
@@ -226,9 +229,10 @@ def main() -> None:
             denoised_images_by_random_cond_list,
             denoised_images_by_random_cond_latent_scramble_list,
             label_for_conditioning,
-            pixel_size=PIXEL_SIZE_3i_20x,
+            pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
             figure_width=MAX_FIGURE_WIDTH,
             scalebar_um=scalebar_um,
+            scalebar_location="lower right",
         )
 
         contact_sheet_name = f"Model_QC_Examples_scalebar{scalebar_um}"
@@ -318,11 +322,9 @@ def main() -> None:
         model_labels=sweep_model_labels,
         output_path=panel_b_output_path,
         filename=panel_b_filename,
-        title="Correlation Analysis",
         figsize=(MAX_FIGURE_WIDTH - 0.3, 3.6),
         file_format=".svg",
         label_fontsize=10,
-        title_fontsize=10,
         save_kwargs={"pad_inches": 0, "transparent": True},
     )
     panel_b_svg_path = panel_b_output_path / f"{panel_b_filename}.svg"

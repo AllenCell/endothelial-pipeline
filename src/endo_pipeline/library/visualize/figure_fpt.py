@@ -28,7 +28,9 @@ from endo_pipeline.settings.dynamics_workflows import (
     TIME_STEP_IN_HOURS,
 )
 from endo_pipeline.settings.figures import FONTSIZE_SMALL
+from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
+from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
 
 
 def generate_first_passage_time_example(
@@ -320,7 +322,7 @@ def generate_first_passage_time_example(
     # plot the tracked and grid trajectories in the 3D feature space with the
     # fixed point, bin edges, and bin start points
     track_alpha = 0.4
-    fig = plt.figure(figsize=(2, 2))
+    fig = plt.figure(figsize=(1.85, 1.95))
     ax: Axes3D = fig.add_subplot(projection="3d")
     ax.plot(
         xs=thetas_tracked_unwrapped,
@@ -331,7 +333,7 @@ def generate_first_passage_time_example(
         marker=".",
         c="tab:red",
         alpha=track_alpha,
-        label="tracked",
+        label="cell-centered",
     )
     ax.plot(
         xs=thetas_grid_unwrapped,
@@ -342,7 +344,7 @@ def generate_first_passage_time_example(
         marker="d",
         c="tab:blue",
         alpha=track_alpha,
-        label="grid",
+        label="grid-based",
     )
     # plot the FPT start points as black markers with no fill
     ax.scatter(
@@ -372,10 +374,10 @@ def generate_first_passage_time_example(
     fp_dynamic_cols = [str(col) for col in DYNAMICS_COLUMN_NAMES]
     ax.scatter(
         *fixed_points_df.loc[example_fixed_point_index][fp_dynamic_cols].values,
-        color="black",
+        marker=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].marker,
+        color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color,
         s=15,
-        marker="*",
-        label="fixed point",
+        label="stable fixed point",
     )
     # plot a sphere around the fixed point with radius equal to the fixed_point_radius_threshold
     u = np.linspace(0, 2 * np.pi, 20)
@@ -436,12 +438,12 @@ def generate_first_passage_time_example(
     # adjust the focal length of the 3D plot so that depth is easier to perceive
     ax.set_proj_type("persp", focal_length=0.3)
     ax.view_init(elev=30, azim=-40)
-    ax.legend(ncols=3, loc="upper center", bbox_to_anchor=(0.5, 1.10))
+    ax.legend(ncols=2, loc="upper center", bbox_to_anchor=(0.5, 1.10))
     ax_width = 0.7
     ax_height = 0.7
     ax.set_position([(1 - ax_width) / 2, (1 - ax_height) / 2, ax_width, ax_height])
 
     filename = f"{dataset_name}_FPT_fp_{example_fixed_point_index}_mean_3d_scatter"
-    save_plot_to_path(fig, out_dir, filename, file_format=".svg")
+    save_plot_to_path(fig, out_dir, filename, file_format=".svg", bbox_inches="tight")
 
     return out_dir / f"{filename}.svg"

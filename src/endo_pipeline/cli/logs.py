@@ -2,6 +2,8 @@ import logging
 from datetime import UTC, datetime
 from pathlib import Path
 
+from tqdm.std import tqdm as std_tqdm
+
 EXTERNAL_LOGGERS = {
     "aicsfiles.client.http.http_client": logging.WARNING,
     "cyto_dl": logging.ERROR,
@@ -44,6 +46,24 @@ class CustomStreamLoggingFormatter(logging.Formatter):
         return formatter.format(record)
 
 
+class CustomStreamHandler(logging.StreamHandler):
+    """Custom class for routing stream through tqdm."""
+
+    def __init__(self, stream=None):
+        super().__init__(stream=stream)
+        self.tqdm_class = std_tqdm
+
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            self.tqdm_class.write(msg, end=self.terminator, file=self.stream)
+            self.flush()
+        except RecursionError:
+            raise
+        except Exception:
+            self.handleError(record)
+
+
 def setup_logging(level: int, create_directory: bool = True) -> None:
     """Set up logging handlers and assign logging levels."""
 
@@ -62,7 +82,7 @@ def setup_logging(level: int, create_directory: bool = True) -> None:
         logger.addHandler(file_handler)
 
     stream_formatter = CustomStreamLoggingFormatter()
-    stream_handler = logging.StreamHandler()
+    stream_handler = CustomStreamHandler()
     stream_handler.setLevel(level)
     stream_handler.setFormatter(stream_formatter)
 
