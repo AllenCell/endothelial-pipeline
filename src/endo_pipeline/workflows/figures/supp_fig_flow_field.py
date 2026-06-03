@@ -1,10 +1,24 @@
-def main() -> None:
-    """Supplementary figure detailing computation of the drift vector fields from grid-based crop trajectories."""
+from endo_pipeline.cli import UniqueStrList
+
+
+def main(include_panels: UniqueStrList | None = None) -> None:
+    """
+    Estimation of a dynamical systems representations for "cell state" from
+    grid-based patch trajectories.
+
+    - **Panel A** - Definition of trajectories and single-frame displacement vectors
+    - **Panel B** - Characterization of trajectory fluctuations and correlation timescales
+    - **Panel C** - Kernel-convolution-based method for estimated drift coefficients
+    """
 
     import matplotlib.pyplot as plt
 
     from endo_pipeline.io import get_output_path
-    from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
+    from endo_pipeline.library.visualize.figures import (
+        FigurePanel,
+        build_figure_from_panels,
+        parse_placeholder_panels,
+    )
     from endo_pipeline.library.visualize.flow_field_schematic import (
         make_autocorrelation_panel,
         make_kernel_convolution_schematic,
@@ -16,11 +30,13 @@ def main() -> None:
 
     output_path = get_output_path(__file__)
 
-    image_panel_path = make_real_image_panel(output_path)
+    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C"])
 
-    acf_panel_path = make_autocorrelation_panel(output_path)
+    image_panel_path = make_real_image_panel(output_path, **placeholders["A"])
 
-    kernel_convolution_panel_path = make_kernel_convolution_schematic(output_path)
+    acf_panel_path = make_autocorrelation_panel(output_path, **placeholders["B"])
+
+    kernel_conv_panel_path = make_kernel_convolution_schematic(output_path, **placeholders["C"])
 
     panels = [
         FigurePanel(
@@ -41,7 +57,7 @@ def main() -> None:
         ),
         FigurePanel(
             letter="C",
-            path=kernel_convolution_panel_path,
+            path=kernel_conv_panel_path,
             x_position=0.0,
             y_position=2.0,
             x_offset=0.175,
@@ -49,7 +65,6 @@ def main() -> None:
         ),
     ]
 
-    # %%
     build_figure_from_panels(
         panels,
         output_path / "Supplemental_Figure_4.svg",
