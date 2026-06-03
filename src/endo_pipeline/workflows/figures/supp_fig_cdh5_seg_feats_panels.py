@@ -108,7 +108,7 @@ def main() -> None:
 
     build_figure_from_panels(
         figure_panels,
-        out_dir / "cdh5_seg_feats_panels.svg",
+        out_dir / "Figure_S2_segmentations.svg",
         width=MAX_FIGURE_WIDTH,
         height=panel_A_height + panel_B_height + panel_C_height + 0.1,
     )
