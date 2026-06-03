@@ -194,7 +194,7 @@ def main() -> None:
 
     build_figure_from_panels(
         panels,
-        save_dir / "Supplemental_Figure_5.svg",
+        save_dir / "Figure_S5_features.svg",
         width=MAX_FIGURE_WIDTH,
         height=MAX_FIGURE_HEIGHT,
     )
