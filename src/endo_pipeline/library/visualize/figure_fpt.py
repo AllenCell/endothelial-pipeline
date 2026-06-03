@@ -333,7 +333,7 @@ def generate_first_passage_time_example(
         marker=".",
         c="tab:red",
         alpha=track_alpha,
-        label="tracked",
+        label="cell-centered",
     )
     ax.plot(
         xs=thetas_grid_unwrapped,
@@ -344,7 +344,7 @@ def generate_first_passage_time_example(
         marker="d",
         c="tab:blue",
         alpha=track_alpha,
-        label="grid",
+        label="grid-based",
     )
     # plot the FPT start points as black markers with no fill
     ax.scatter(
