@@ -14,16 +14,6 @@ parameters:
   condition_on: bf
   include_cell_piling: false
 locations:
-  20250927_no_log_norm:
-    mlflowid: 00edfbc56e4a4c788a62cd6194db1c35
-    fmsid: null
-    path: null
-    s3uri: null
-  20250926_with_log_norm:
-    mlflowid: 924b23d33f3f48fc8e8545e34ed1ee34
-    fmsid: null
-    path: null
-    s3uri: null
   20260207_latent_8:
     mlflowid: bfad1b1919a54a3dbaaeafae21e19417
     fmsid: null
