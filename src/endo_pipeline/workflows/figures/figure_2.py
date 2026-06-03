@@ -252,7 +252,7 @@ def main() -> None:
         column_names=feature_column_names,
         axis_mode="shear_stress",
         subplot_layout="horizontal",
-        figure_size=(3.3, 2.00),
+        figure_size=(3.3, 2.0),
         color_by_column=Column.OpticalFlow.UNIT_VECTOR_MEAN,
         ylabel_rotation=0,
     )
@@ -275,7 +275,7 @@ def main() -> None:
         output_dir=base_output_dir,
         column_names=[Column.VectorField.PEARSON_R],
         axis_mode="shear_stress",
-        figure_size=(0.95, 2.05),
+        figure_size=(0.95, 2.0),
         set_y_lims=True,
         ylabel_rotation=90,
     )
@@ -353,30 +353,30 @@ def main() -> None:
             letter="G",
             path=fixed_point_summary_plot_path,
             x_position=0.0,
-            y_position=5.4,
+            y_position=5.35,
             x_offset=0.0,
-            y_offset=0.15,
+            y_offset=0.25,
         ),
         FigurePanel(
             letter="H",
             path=trajectory_example_filepath,
             x_position=3.4,
-            y_position=5.4,
-            x_offset=0.0,
-            y_offset=0.15,
+            y_position=5.35,
+            x_offset=-0.05,
+            y_offset=0.175,
         ),
         FigurePanel(
             letter="I",
             path=first_passage_path,
-            x_position=5.25,
-            y_position=5.4,
-            x_offset=0.05,
-            y_offset=0.15,
+            x_position=5.3,
+            y_position=5.35,
+            x_offset=0.0,
+            y_offset=0.25,
         ),
     ]
 
     build_figure_from_panels(
-        panels, base_output_dir / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=7.6
+        panels, base_output_dir / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=7.7
     )
 
 
