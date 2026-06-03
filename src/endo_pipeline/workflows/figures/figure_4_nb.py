@@ -47,7 +47,8 @@ dataset_summary_df = build_dataframe_for_fixed_point_dataset_summary(
     dataset_names=dataset_summary_list,
     feature_dataframe_manifest=feature_dataframe_manifest,
     bootstrap_dataframe_manifest=fixed_points_bootstrap_dataframe_manifest,
-    convert_angle_to_nematic=True,
+    convert_angle_to_nematic=False,
+    unwrap_angle=True,
     stable_only=True,
     bootstrap_threshold=0.4,
 )
@@ -65,7 +66,7 @@ fixed_points_summary_plot_path = plot_cross_dataset_summaries(
     axis_mode="cell_line",
     jitter_width=0.2,
     figure_size=(5, 2),
-    convert_angle_to_nematic=True,
+    convert_angle_to_nematic=False,
     color_by_column=Column.OpticalFlow.SPEED_MEAN,
 )
 

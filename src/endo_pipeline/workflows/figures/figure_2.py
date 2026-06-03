@@ -240,7 +240,8 @@ def main() -> None:
         feature_dataframe_manifest=feature_dataframe_manifest,
         bootstrap_dataframe_manifest=bootstrap_dataframe_manifest,
         column_names=columns_for_summary_plots,
-        convert_angle_to_nematic=True,
+        convert_angle_to_nematic=False,
+        unwrap_angle=True,
         stable_only=True,
     )
     # panel E: summary plot of fixed point locations across datasets

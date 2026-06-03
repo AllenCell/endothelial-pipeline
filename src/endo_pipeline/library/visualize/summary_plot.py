@@ -420,7 +420,7 @@ def plot_cross_dataset_summaries(
     subplot_layout: Literal["horizontal", "vertical"] = "horizontal",
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 3),
     jitter_width: float = 0.05,
-    convert_angle_to_nematic: bool = True,
+    convert_angle_to_nematic: bool = False,
     set_y_lims: bool = False,
     color_by_column: ColumnNameType | None = None,
 ) -> Path:
@@ -477,11 +477,11 @@ def plot_cross_dataset_summaries(
     jitter_width
         Width of the jitter applied to points in the same category bin.
     convert_angle_to_nematic
-        True to swap polar angle column to nemetic order column.
+        True to swap polar angle column to nematic order column.
     color_by_column
         Optional column name whose values are mapped to a continuous
-        cyan-to-magenta colormap. When provided, overrides the discrete
-        coloring from ``style_mode``.
+        cyan-to-magenta colormap. When provided, overrides the discrete coloring
+        from ``style_mode``.
 
     Returns
     -------
@@ -591,7 +591,8 @@ def build_dataframe_for_fixed_point_dataset_summary(
     bootstrap_dataframe_manifest: DataframeManifest,
     column_names: list[ColumnNameType] | None = None,
     bootstrap_threshold: float = 0.4,
-    convert_angle_to_nematic: bool = True,
+    convert_angle_to_nematic: bool = False,
+    unwrap_angle: bool = True,
     stable_only: bool = True,
 ) -> pd.DataFrame:
     """
@@ -611,6 +612,9 @@ def build_dataframe_for_fixed_point_dataset_summary(
         Threshold for high confidence fixed points.
     convert_angle_to_nematic
         True to convert polar angle to nematic order.
+    unwrap_angle
+        True to unwrap polar angle values to avoid discontinuities around the
+        periodic boundary.
     stable_only
         True to only include stable fixed points.
 
@@ -701,8 +705,24 @@ def build_dataframe_for_fixed_point_dataset_summary(
                 **columns_to_bin,  # type: ignore[arg-type]
             )
 
-        if convert_angle_to_nematic and ColumnName.DiffAEData.POLAR_ANGLE in column_names:
-            df_fixed_points = _convert_polar_angle_to_nematic_order(df_fixed_points)
+        if ColumnName.DiffAEData.POLAR_ANGLE in column_names:
+            if convert_angle_to_nematic:
+                df_fixed_points = _convert_polar_angle_to_nematic_order(df_fixed_points)
+            if unwrap_angle:
+                # unwrap baseline, bootstrapped cluster mean angle, and CI bounds
+                for suffix in [
+                    "",
+                    f"_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
+                    f"_{ColumnName.BootstrapAnalysis.CI_LOWER}",
+                    f"_{ColumnName.BootstrapAnalysis.CI_UPPER}",
+                ]:
+                    df_fixed_points[
+                        f"{ColumnName.DiffAEData.POLAR_ANGLE}{suffix}"
+                    ] = df_fixed_points[f"{ColumnName.DiffAEData.POLAR_ANGLE}{suffix}"].apply(
+                        lambda angle: (
+                            angle - POLAR_ANGLE_PERIOD if angle > (5 * np.pi / 6) else angle
+                        )
+                    )
 
         if df_fixed_points.empty:
             continue
