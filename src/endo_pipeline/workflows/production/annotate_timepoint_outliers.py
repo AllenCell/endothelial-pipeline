@@ -131,7 +131,7 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
                 continue
 
             tp_annotations[annotation] = {
-                result[Column.POSITION]: [int(v) for v in result[column]] for result in results
+                int(result[Column.POSITION]): [int(v) for v in result[column]] for result in results
             }
 
         # Update dataset config
