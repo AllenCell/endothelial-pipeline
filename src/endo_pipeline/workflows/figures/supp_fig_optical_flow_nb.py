@@ -37,6 +37,8 @@ from endo_pipeline.library.visualize.supp_fig_optical_flow import (
     resolve_grid_crop,
 )
 from endo_pipeline.settings import DIFFAE_ZARR_RESOLUTION_LEVEL
+from endo_pipeline.settings.column_metadata import COLUMN_METADATA
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.examples import (
     SUPP_FIG_OPTICAL_FLOW_COHERENT_EXAMPLE,
     SUPP_FIG_OPTICAL_FLOW_INCOHERENT_EXAMPLE,
@@ -155,15 +157,15 @@ for label, example in picks.items():
     )
 
 # %% Save standalone colorbar to go with TFE examples
+of_metadata = COLUMN_METADATA[Column.OpticalFlow.UNIT_VECTOR_MEAN]
 cmap = LinearSegmentedColormap.from_list("cyan_magenta", ["cyan", "magenta"])
 fig_cb, ax_cb = plt.subplots(figsize=(1.6, 0.1), layout="constrained")
-norm = plt.Normalize(vmin=0, vmax=1)
+norm = plt.Normalize(vmin=of_metadata.min, vmax=of_metadata.max)
 sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
 sm.set_array([])
 cbar = fig_cb.colorbar(sm, cax=ax_cb, orientation="horizontal")
-cbar.set_ticks([0, 0.5, 1])
-cbar.set_ticklabels(["0", "0.5", "1"])
-cbar.set_label("Patch-based\nmigration coherence", fontsize=FONTSIZE_MEDIUM)
+cbar.set_ticks(list(of_metadata.ticks))
+cbar.set_label(of_metadata.label, fontsize=FONTSIZE_MEDIUM)
 save_plot_to_path(
     fig_cb,
     output_dir,

@@ -186,7 +186,7 @@ def plot_3d_scatter_or_binned(
     binned: bool = False,
     bin_size_xyz: tuple[float, float, float] = (MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,) * 3,
     cmap: str = MIGRATION_COHERENCE_COLORMAP,
-    vmin: float = 0,
+    vmin: float = 0.3,
     vmax: float = 1,
     figsize: tuple[float, float] = (8, 8),
 ) -> tuple[plt.Figure, Axes3D]:
@@ -342,7 +342,14 @@ def plot_3d_scatter_or_binned(
                 if meta.tick_labels is not None:
                     getattr(ax, f"set_{axis}ticklabels")(meta.tick_labels, fontsize=FONTSIZE_XSMALL)
 
-    fig.colorbar(sc, cax=cax, label=cbar_label)
+    cbar = fig.colorbar(sc, cax=cax, label=cbar_label)
+
+    # Apply ticks from color_col metadata to the colorbar
+    if color_col in COLUMN_METADATA:
+        color_meta = COLUMN_METADATA[color_col]
+        if color_meta.ticks is not None:
+            cbar.set_ticks(list(color_meta.ticks))
+
     return fig, ax
 
 
@@ -546,7 +553,9 @@ def make_example_migration_coherence(
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid"], *feature_column_names]
 
     optical_flow_feature = Column.OpticalFlow.UNIT_VECTOR_MEAN
-    vmax = 1
+    of_metadata = COLUMN_METADATA[optical_flow_feature]
+    vmin = of_metadata.min
+    vmax = of_metadata.max
     fig_name = fig_name or f"{dataset_name}_3D_scatter_{optical_flow_feature}"
 
     # load dataframe and perform additional filtering (remove
@@ -597,6 +606,7 @@ def make_example_migration_coherence(
             df_fp=fixed_points_df,
             binned=False,
             vmax=vmax,
+            vmin=vmin,
             figsize=figure_size,
         )
         # draw cube around bin edges
