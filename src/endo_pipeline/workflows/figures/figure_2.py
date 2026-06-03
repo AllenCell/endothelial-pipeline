@@ -252,7 +252,7 @@ def main() -> None:
         column_names=feature_column_names,
         axis_mode="shear_stress",
         subplot_layout="horizontal",
-        figure_size=(3.15, 2.0),
+        figure_size=(3.15, 2.05),
         color_by_column=Column.OpticalFlow.UNIT_VECTOR_MEAN,
     )
     # --- First passage time analysis schematic ---
@@ -277,7 +277,7 @@ def main() -> None:
         output_dir=base_output_dir,
         column_names=[Column.VectorField.PEARSON_R],
         axis_mode="shear_stress",
-        figure_size=(1.125, 2.05),
+        figure_size=(0.95, 2.05),
         set_y_lims=True,
     )
 
@@ -356,7 +356,7 @@ def main() -> None:
             x_position=0.0,
             y_position=5.4,
             x_offset=0.0,
-            y_offset=0.1,
+            y_offset=0.15,
         ),
         FigurePanel(
             letter="H",
