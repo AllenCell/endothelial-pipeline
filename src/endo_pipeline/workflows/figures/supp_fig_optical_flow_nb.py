@@ -18,6 +18,7 @@ plotting helpers live in
 
 # %%
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 
 from endo_pipeline.io import get_output_path
 from endo_pipeline.io.output import save_plot_to_path, slugify
@@ -153,11 +154,7 @@ make_example_migration_coherence(
     fig_name=coherence_example_fig_name,
 )
 
-import matplotlib.pyplot as plt
-
 # %% Save standalone colorbar to go with TFE examples
-from matplotlib.colors import LinearSegmentedColormap
-
 cmap = LinearSegmentedColormap.from_list("cyan_magenta", ["cyan", "magenta"])
 fig_cb, ax_cb = plt.subplots(figsize=(1.6, 0.1), layout="constrained")
 norm = plt.Normalize(vmin=0, vmax=1)
