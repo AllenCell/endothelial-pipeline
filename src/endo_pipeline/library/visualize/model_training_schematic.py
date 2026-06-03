@@ -7,7 +7,7 @@ from endo_pipeline.configs import DatasetConfig
 from endo_pipeline.io.output import save_plot_to_path
 from endo_pipeline.library.process.image_processing import contrast_stretching
 from endo_pipeline.library.visualize.figure_utils import plot_image_thumbnail
-from endo_pipeline.settings.image_data import Z_SLICE_OFFSETS, PIXEL_SIZE_3i_20x
+from endo_pipeline.settings.image_data import Z_SLICE_OFFSETS, PIXEL_SIZE_3i_20x_RESOLUTION_1
 
 
 def create_model_training_schematic_images(
@@ -56,12 +56,13 @@ def create_model_training_schematic_images(
             f"{image_name}_{dataset_config.name}_T{timepoint}",
             output_path,
             figsize=(0.7, 0.7),
-            scalebar_size_um=50,
-            pixel_size=PIXEL_SIZE_3i_20x,
-            file_format=".pdf",
+            scalebar_size_um=100,
+            pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
+            file_format=".svg",
             outline_color=outline_color,
             bar_padding=30,
             bar_thickness=20,
+            scalebar_location="lower right",
         )
 
     for image, image_name in zip(
@@ -74,11 +75,12 @@ def create_model_training_schematic_images(
             f"{image_name}_{dataset_config.name}_T{timepoint}",
             None,
             figsize=(0.7, 0.7),
-            scalebar_size_um=50,
-            pixel_size=PIXEL_SIZE_3i_20x,
-            file_format=".pdf",
+            scalebar_size_um=100,
+            pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
+            file_format=".svg",
             bar_thickness=20,
             bar_padding=30,
+            scalebar_location="lower right",
         )
         rect = patches.Rectangle(
             (start_x, start_y),
@@ -89,11 +91,16 @@ def create_model_training_schematic_images(
             facecolor="none",
         )
         ax.add_patch(rect)
-        save_plot_to_path(fig, output_path, image_name, file_format=".pdf", pad_inches=0)
+        save_plot_to_path(fig, output_path, image_name, file_format=".svg", pad_inches=0)
 
     for image, image_name in zip(
-        [conditioning_input_crop, diffusion_input_crop],
-        ["conditioning_input_crop", "diffusion_input_crop"],
+        [conditioning_input_crop, diffusion_input_crop, denoised_image_by_bf_cond, noise_image],
+        [
+            "conditioning_input_crop",
+            "diffusion_input_crop",
+            "denoised_image_by_bf_cond",
+            "noise_image",
+        ],
         strict=True,
     ):
         plot_image_thumbnail(
@@ -101,32 +108,10 @@ def create_model_training_schematic_images(
             f"{image_name}_{dataset_config.name}_T{timepoint}",
             output_path,
             figsize=(0.7, 0.7),
-            scalebar_size_um=10,
+            scalebar_size_um=20,
             bar_padding=5,
             bar_thickness=5,
-            pixel_size=PIXEL_SIZE_3i_20x,
-            file_format=".pdf",
+            pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
+            file_format=".svg",
+            scalebar_location="lower right",
         )
-
-    plot_image_thumbnail(
-        denoised_image_by_bf_cond.squeeze(),
-        f"denoised_image_by_bf_cond_{dataset_config.name}_T{timepoint}",
-        output_path,
-        figsize=(0.7, 0.7),
-        scalebar_size_um=10,
-        bar_padding=5,
-        bar_thickness=5,
-        pixel_size=PIXEL_SIZE_3i_20x,
-        file_format=".pdf",
-    )
-    plot_image_thumbnail(
-        noise_image.squeeze(),
-        "noise_image",
-        output_path,
-        figsize=(0.7, 0.7),
-        scalebar_size_um=10,
-        bar_padding=5,
-        bar_thickness=5,
-        pixel_size=PIXEL_SIZE_3i_20x,
-        file_format=".pdf",
-    )

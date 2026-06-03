@@ -204,7 +204,7 @@ def plot_image_thumbnail(
     Save a thumbnail image to a specified file path.
 
     This function saves a given image as a thumbnail in the specified format
-    (e.g., PNG or PDF) with the desired resolution and figure size.
+    with the desired resolution and figure size.
 
     Parameters
     ----------
@@ -234,7 +234,8 @@ def plot_image_thumbnail(
     outline_color: str, optional
         Color of the outline around the image. If None, no outline is drawn.
     """
-    figure, ax = plt.subplots(figsize=figsize, frameon=False)
+    figure = plt.figure(figsize=figsize, frameon=False)
+    ax = figure.add_axes((0.0, 0.0, 1.0, 1.0), frameon=False)
 
     ax.imshow(image, cmap="gray")
     ax.axis("off")
@@ -264,9 +265,14 @@ def plot_image_thumbnail(
         return figure, ax
 
     save_plot_to_path(
-        figure, output_path, image_name, dpi=dpi, file_format=file_format, pad_inches=0
+        figure,
+        output_path,
+        image_name,
+        dpi=dpi,
+        file_format=file_format,
+        pad_inches=0,
+        tight_layout=True,
     )
-    plt.close(figure)
     return figure, ax
 
 

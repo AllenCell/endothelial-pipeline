@@ -52,7 +52,7 @@ def plot_latent_walk_as_grid(
     show_values: bool = True,
     label_sigmas: bool = True,
     figsize: tuple[float, float] | None = None,
-    scale_bar_um: int = 10,
+    scale_bar_um: int = 20,
 ) -> None:
     """Plot and save a grid of reconstructed image crops representing a latent walk.
 
@@ -150,7 +150,7 @@ def plot_latent_walk_as_grid(
             scale_bar_um=scale_bar_um,
             pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
             location="lower right",
-            bar_thickness=2.5,
+            bar_thickness=5,
             padding=5,
             include_label=True if i == 0 else False,
             label_fontsize=FONTSIZE_XSMALL,

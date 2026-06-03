@@ -291,13 +291,11 @@ def create_rep2_correlation_bar_plot(
     model_labels: list[str],
     output_path: Path,
     filename: str,
-    title: str = "Pearson Correlation",
-    ylabel: str = "Correlation Score",
+    ylabel: str = "Pearson correlation r value",
     ylim: tuple[float, float] | None = None,
     figsize: tuple[float, float] | None = None,
     file_format: Literal[".png", ".svg", ".pdf"] = ".svg",
     label_fontsize: float = FONTSIZE_MEDIUM,
-    title_fontsize: float = FONTSIZE_LARGE,
     tick_fontsize: float = FONTSIZE_SMALL,
     save_kwargs: dict | None = None,
 ) -> None:
@@ -314,12 +312,12 @@ def create_rep2_correlation_bar_plot(
     output_path, filename, file_format
         Where / how to write the figure.  ``filename`` should not include
         the extension; ``file_format`` provides it.
-    title, ylabel, ylim
+    ylabel, ylim
         Plot annotations.
     figsize
         Figure size in inches.  Defaults to a width that scales with the
         number of bars when omitted.
-    label_fontsize, title_fontsize
+    label_fontsize, tick_fontsize
         Override font sizes when this helper is used as a multi-panel
         figure component (so type sizes match the sibling panels).
     save_kwargs
@@ -353,9 +351,8 @@ def create_rep2_correlation_bar_plot(
         alpha=0.85,
     )
 
-    ax.set_xlabel("Latent Size / Conditioning", fontsize=label_fontsize)
+    ax.set_xlabel("Number of latent dimensions, conditioning channel", fontsize=label_fontsize)
     ax.set_ylabel(ylabel, fontsize=label_fontsize)
-    ax.set_title(title, fontsize=title_fontsize)
     ax.set_xticks(x_pos)
     rotation = 45 if num_models > 4 else 0
     ha_labels = "right" if num_models > 4 else "center"
