@@ -353,30 +353,30 @@ def main() -> None:
             letter="G",
             path=fixed_point_summary_plot_path,
             x_position=0.0,
-            y_position=5.35,
+            y_position=5.4,
             x_offset=0.0,
             y_offset=0.25,
         ),
         FigurePanel(
             letter="H",
             path=trajectory_example_filepath,
-            x_position=3.4,
-            y_position=5.35,
-            x_offset=-0.05,
-            y_offset=0.175,
+            x_position=3.3,
+            y_position=5.4,
+            x_offset=0.0,
+            y_offset=0.2,
         ),
         FigurePanel(
             letter="I",
             path=first_passage_path,
             x_position=5.3,
-            y_position=5.35,
+            y_position=5.4,
             x_offset=0.0,
             y_offset=0.25,
         ),
     ]
 
     build_figure_from_panels(
-        panels, base_output_dir / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=7.7
+        panels, base_output_dir / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=7.75
     )
 
 
