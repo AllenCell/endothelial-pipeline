@@ -320,7 +320,7 @@ def generate_first_passage_time_example(
     # plot the tracked and grid trajectories in the 3D feature space with the
     # fixed point, bin edges, and bin start points
     track_alpha = 0.4
-    fig = plt.figure(figsize=(1.95, 1.95))
+    fig = plt.figure(figsize=(1.85, 1.95))
     ax: Axes3D = fig.add_subplot(projection="3d")
     ax.plot(
         xs=thetas_tracked_unwrapped,
@@ -436,12 +436,12 @@ def generate_first_passage_time_example(
     # adjust the focal length of the 3D plot so that depth is easier to perceive
     ax.set_proj_type("persp", focal_length=0.3)
     ax.view_init(elev=30, azim=-40)
-    ax.legend(ncols=3, loc="upper center", bbox_to_anchor=(0.5, 1.10))
+    ax.legend(ncols=2, loc="upper center", bbox_to_anchor=(0.5, 1.10))
     ax_width = 0.7
     ax_height = 0.7
     ax.set_position([(1 - ax_width) / 2, (1 - ax_height) / 2, ax_width, ax_height])
 
     filename = f"{dataset_name}_FPT_fp_{example_fixed_point_index}_mean_3d_scatter"
-    save_plot_to_path(fig, out_dir, filename, file_format=".svg")
+    save_plot_to_path(fig, out_dir, filename, file_format=".svg", bbox_inches="tight")
 
     return out_dir / f"{filename}.svg"
