@@ -28,7 +28,9 @@ from endo_pipeline.settings.dynamics_workflows import (
     TIME_STEP_IN_HOURS,
 )
 from endo_pipeline.settings.figures import FONTSIZE_SMALL
+from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
+from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
 
 
 def generate_first_passage_time_example(
@@ -372,10 +374,10 @@ def generate_first_passage_time_example(
     fp_dynamic_cols = [str(col) for col in DYNAMICS_COLUMN_NAMES]
     ax.scatter(
         *fixed_points_df.loc[example_fixed_point_index][fp_dynamic_cols].values,
-        color="black",
+        marker=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].marker,
+        color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color,
         s=15,
-        marker="*",
-        label="fixed point",
+        label="stable fixed point",
     )
     # plot a sphere around the fixed point with radius equal to the fixed_point_radius_threshold
     u = np.linspace(0, 2 * np.pi, 20)

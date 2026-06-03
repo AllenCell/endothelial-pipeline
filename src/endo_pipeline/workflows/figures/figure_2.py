@@ -209,7 +209,7 @@ def main() -> None:
             nullcline_opacity=1.0,
             gridspec_kwargs=GRIDSPEC_KWARGS,
             xlabel_kwargs=XLABEL_KWARGS,
-            ylabel_kwargs=YLABEL_KWARGS,
+            ylabel_kwargs={**YLABEL_KWARGS, "rotation": 0},
             axes_title_kwargs={
                 "fontsize": FONTSIZE_SMALL,
                 "x": 0.05,
@@ -362,7 +362,7 @@ def main() -> None:
             path=trajectory_example_filepath,
             x_position=3.4,
             y_position=5.4,
-            x_offset=-0.025,
+            x_offset=0.0,
             y_offset=0.15,
         ),
         FigurePanel(
