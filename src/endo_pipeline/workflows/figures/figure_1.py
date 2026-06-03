@@ -80,7 +80,7 @@ def main():
             y_offset=0,
         ),
         FigurePanel(
-            letter="B",
+            letter="",
             path=save_dir / "biological_system_examples_inset_scale_bar_20um.svg",
             x_position=3,
             y_position=0,
@@ -88,7 +88,7 @@ def main():
             y_offset=0,
         ),
         FigurePanel(
-            letter="D",
+            letter="C",
             path=latent_walk_path,
             x_position=0,
             y_position=6,
@@ -96,7 +96,7 @@ def main():
             y_offset=0.2,
         ),
         FigurePanel(
-            letter="E",
+            letter="D",
             path=save_dir2 / "correlation_ml_based_features_vs_measured_features_heatmap.svg",
             x_position=4,
             y_position=5.3,
