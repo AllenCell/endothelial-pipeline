@@ -1080,7 +1080,7 @@ def make_3d_vector_field_plot_panel(
         fpt_coords[:, 1],
         fpt_coords[:, 2],
         color=hex_color,
-        s=60,
+        s=15,
         zorder=5,
     )
 
