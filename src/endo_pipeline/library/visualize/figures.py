@@ -72,7 +72,25 @@ def figure_panel(description: str):
     return decorator
 
 
+def parse_placeholder_panels(
+    include_panels: list[str] | None, all_panels: list[str]
+) -> dict[str, dict[str, bool]]:
+    """Parse included panels to placeholder indicator."""
+
+    # Default to all panels
+    if include_panels is None:
+        include_panels = all_panels
+
+    # Filter out invalid panels and convert to upper case
+    include_panels = [panel.upper() for panel in include_panels if panel.upper() in all_panels]
+
+    # Set placeholder to True for panel that are not included, False otherwise
+    return {panel: {"placeholder": panel not in include_panels} for panel in all_panels}
+
+
 def build_empty_panel(output_path: Path, description: str, width: float, height: float) -> Path:
+    """Build empty placeholder panel with description text."""
+
     # Convert inches to points.
     width = int(width * INCHES_TO_PIXELS * ILLUSTRATOR_SCALING_FACTOR)
     height = int(height * INCHES_TO_PIXELS * ILLUSTRATOR_SCALING_FACTOR)
