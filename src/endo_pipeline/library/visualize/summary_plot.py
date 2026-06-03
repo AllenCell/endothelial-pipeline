@@ -168,7 +168,18 @@ def _build_color_by_column_mappable(
             cmap = plt.get_cmap("viridis")
         else:
             cmap = mcolors.LinearSegmentedColormap.from_list("cyan_magenta", ["cyan", "magenta"])
-        norm = mcolors.Normalize(vmin=df[plotting_column].min(), vmax=df[plotting_column].max())
+        # Use column metadata min/max if available, else fall back to data range
+        vmin = (
+            color_column_metadata.min
+            if color_column_metadata and color_column_metadata.min is not None
+            else df[plotting_column].min()
+        )
+        vmax = (
+            color_column_metadata.max
+            if color_column_metadata and color_column_metadata.max is not None
+            else df[plotting_column].max()
+        )
+        norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
         scalar_mappable = cm.ScalarMappable(norm=norm, cmap=cmap)
         scalar_mappable.set_array([])
     else:
@@ -576,13 +587,16 @@ def plot_cross_dataset_summaries(
         )
         if scalar_mappable is not None:
             cbar_label = (
-                color_column_metadata.label
+                color_column_metadata.label.replace("\n", " ")
                 if color_column_metadata and color_column_metadata.label
                 else str(color_by_column)
             )
             # Attach colorbar to last panel only so it spans one panel height
             cbar = fig.colorbar(scalar_mappable, ax=axes[-1], pad=0.02)
             cbar.set_label(cbar_label, fontsize=FONTSIZE_SMALL)
+            # Apply ticks from column metadata if available
+            if color_column_metadata and color_column_metadata.ticks is not None:
+                cbar.set_ticks(list(color_column_metadata.ticks))
 
     # Save figure with name including all column names
     column_name_str = [str(column_name) for column_name in column_names]
