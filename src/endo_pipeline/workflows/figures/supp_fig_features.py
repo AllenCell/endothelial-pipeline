@@ -126,7 +126,7 @@ def main() -> None:
         y_axis_label_coords=None,
     )
 
-    # perform latent walk along top 3 PCs and save the resulting contact sheet
+    # perform latent walk along top 10 PCs and save the resulting contact sheet
     latent_walk_filename = "latent_walk_top_10_pcs"
     latent_walk_path, walk_img_grid = perform_and_plot_latent_walk_for_figures(
         save_path=save_dir,
@@ -194,7 +194,7 @@ def main() -> None:
 
     build_figure_from_panels(
         panels,
-        save_dir / "Supplemental_Figure_3.svg",
+        save_dir / "Figure_S5_features.svg",
         width=MAX_FIGURE_WIDTH,
         height=MAX_FIGURE_HEIGHT,
     )
