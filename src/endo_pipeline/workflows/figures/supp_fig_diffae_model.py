@@ -48,7 +48,10 @@ def main() -> None:
         EXAMPLES_DIFFAE_TRAINING_VALIDATION,
     )
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
-    from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL, PIXEL_SIZE_3i_20x
+    from endo_pipeline.settings.image_data import (
+        DIFFAE_ZARR_RESOLUTION_LEVEL,
+        PIXEL_SIZE_3i_20x_RESOLUTION_1,
+    )
     from endo_pipeline.settings.plot_defaults import (
         MODEL_QC_GRIDSPEC_KWARGS,
         MODEL_QC_PLOT_DIRECTION,
@@ -298,13 +301,14 @@ def main() -> None:
                 ha="center",
                 fontsize=10,
             )
-            scalebar_um = 10
+            scalebar_um = 20
             add_scalebar(
                 all_axes[0],
-                pixel_size=PIXEL_SIZE_3i_20x,
+                pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
                 scale_bar_um=scalebar_um,
                 bar_thickness=3,
                 padding=5,
+                location="lower right",
             )
 
             contact_sheet_name = f"Model_QC_Examples_scalebar{scalebar_um}"
@@ -394,11 +398,9 @@ def main() -> None:
         model_labels=sweep_model_labels,
         output_path=panel_b_output_path,
         filename=panel_b_filename,
-        title="Correlation Analysis",
         figsize=(MAX_FIGURE_WIDTH - 0.3, 3.6),
         file_format=".svg",
         label_fontsize=10,
-        title_fontsize=10,
         save_kwargs={"pad_inches": 0, "transparent": True},
     )
     panel_b_svg_path = panel_b_output_path / f"{panel_b_filename}.svg"
