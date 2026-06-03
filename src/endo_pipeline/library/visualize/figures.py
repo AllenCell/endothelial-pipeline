@@ -1,6 +1,11 @@
+import inspect
 import xml.etree.ElementTree as ET
+from functools import wraps
 from pathlib import Path
+from textwrap import shorten, wrap
 from typing import NamedTuple
+
+from endo_pipeline.io import get_output_path, slugify
 
 INCHES_TO_PIXELS = 96
 
@@ -28,6 +33,97 @@ class FigurePanel(NamedTuple):
 
     y_offset: float
     """Vertical offset of plot from panel position in inches."""
+
+
+def figure_panel(description: str):
+    """Decorator for figure panels that adds support for creating placeholders."""
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, placeholder: bool, **kwargs):
+            if placeholder:
+                # Try to identify an output path from the method arguments.
+                # First, check for "output_path" in the keyword arguments. Then,
+                # check for any instance of Path in the arguments. Then, as a
+                # fallback, create a new output path.
+                kwarg_output_path = kwargs.get("output_path", None)
+                arg_output_path = next((arg for arg in args if isinstance(arg, Path)), None)
+                output_path = kwarg_output_path or arg_output_path or get_output_path("placeholder")
+
+                # Try to identify figure size from method arguments. First,
+                # check for "figure_size" argument in keyword arguments. Then,
+                # check for a default "figure_size" argument in the signature.
+                # Finally, as a fallback, use figure size of 2 x 2.
+                kwarg_figure_size = kwargs.get("figure_size", None)
+                param = inspect.signature(func).parameters.get("figure_size", None)
+                default_figure_size = (
+                    param.default
+                    if param is not None and param.default is not inspect.Parameter.empty
+                    else None
+                )
+                figure_size = kwarg_figure_size or default_figure_size or (2, 2)
+
+                return build_empty_panel(output_path, description, *figure_size)
+            else:
+                return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def build_empty_panel(output_path: Path, description: str, width: float, height: float) -> Path:
+    # Convert inches to points.
+    width = int(width * INCHES_TO_PIXELS * ILLUSTRATOR_SCALING_FACTOR)
+    height = int(height * INCHES_TO_PIXELS * ILLUSTRATOR_SCALING_FACTOR)
+
+    # Register SVG namespaces.
+    ET.register_namespace("", "http://www.w3.org/2000/svg")
+
+    # Create empty panel of given size.
+    panel = ET.fromstring(
+        f'<svg width="{width}px" height="{height}px" xmlns="http://www.w3.org/2000/svg"></svg>'
+    )
+
+    # Add gray background
+    ET.SubElement(
+        panel,
+        "rect",
+        {
+            "width": f"{width}px",
+            "height": f"{height}px",
+            "fill": "#000",
+            "fill-opacity": "0.2",
+            "stroke": "#999",
+        },
+    )
+
+    # Add panel description
+    font_size = 14
+    characters_per_line = round(width / font_size / 0.6)
+    wrap_text = wrap(description, characters_per_line)
+    panel_text = ET.SubElement(
+        panel,
+        "g",
+        {
+            "transform": f"translate({width//2},{height//2 + font_size//4})",
+            "fill": "#999",
+            "font-size": f"{font_size}px",
+            "font-family": "Arial",
+            "text-anchor": "middle",
+        },
+    )
+    for index, text in enumerate(wrap_text):
+        offset = (index - len(wrap_text) / 2 + 0.5) * font_size
+        ET.SubElement(panel_text, "text", {"y": f"{offset}"}).text = text
+
+    # Write panel to path.
+    ET.indent(panel, space="    ", level=0)
+    slug = slugify(str(width), "x", str(height), shorten(description, 80))
+    output_file = output_path / f"placeholder_{slug}.svg"
+    output_file.write_text(ET.tostring(panel, encoding="unicode"), encoding="utf-8")
+
+    return output_file
 
 
 def build_empty_figure(width: float, height: float) -> ET.Element:
