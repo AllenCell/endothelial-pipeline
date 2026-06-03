@@ -185,10 +185,10 @@ def main() -> None:
         FigurePanel(
             letter="D",
             path=save_dir / "correlation_ml_based_features_vs_measured_features_heatmap.svg",
-            x_position=0.0,
+            x_position=0,
             y_position=5.2,
-            x_offset=-0.05,
-            y_offset=-0.1,
+            x_offset=0.1,
+            y_offset=0,
         ),
     ]
 
