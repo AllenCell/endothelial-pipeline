@@ -16,13 +16,12 @@ plotting helpers live in
 
 """
 
+# %%
 import matplotlib.pyplot as plt
 
 from endo_pipeline.io import get_output_path
 from endo_pipeline.io.output import save_plot_to_path, slugify
 from endo_pipeline.library.analyze.optical_flow import compute_tvl1
-
-# %%
 from endo_pipeline.library.visualize.data_example_figures import (
     create_panel_retraction_fiber_blob_example,
 )
