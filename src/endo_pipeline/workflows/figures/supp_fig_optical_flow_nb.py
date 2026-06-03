@@ -144,15 +144,15 @@ plt.close(fig)
 # %%
 # create and plot an example of the coherence data in theta, r, rho space
 # with the bin drawn around the fixed point
-example = "Coherent Example"
-dataset_name = picks[example].dataset_name
-coherence_example_fig_name = slugify(f"{dataset_name}_3D_scatter_{example}")
-make_example_migration_coherence(
-    dataset_name=dataset_name,
-    figure_size=migration_coherence_panel_size,
-    output_dir=output_dir,
-    fig_name=coherence_example_fig_name,
-)
+for label, example in picks.items():
+    dataset_name = example.dataset_name
+    coherence_example_fig_name = slugify(f"{dataset_name}_3D_scatter_{label}")
+    make_example_migration_coherence(
+        dataset_name=dataset_name,
+        figure_size=migration_coherence_panel_size,
+        output_dir=output_dir,
+        fig_name=coherence_example_fig_name,
+    )
 
 # %% Save standalone colorbar to go with TFE examples
 cmap = LinearSegmentedColormap.from_list("cyan_magenta", ["cyan", "magenta"])
@@ -196,9 +196,17 @@ build_figure_from_panels(
         ),
         FigurePanel(
             letter="B",
-            path=output_dir / f"{coherence_example_fig_name}.svg",
+            path=output_dir / "20250409_20x_3d_scatter_coherent_example.svg",
             x_position=3.5,
             y_position=0,
+            x_offset=0,
+            y_offset=-0.3,
+        ),
+        FigurePanel(
+            letter="",
+            path=output_dir / "20251001_20x_3d_scatter_incoherent_example.svg",
+            x_position=3.5,
+            y_position=2.1,
             x_offset=0,
             y_offset=0,
         ),
@@ -206,7 +214,7 @@ build_figure_from_panels(
             letter="C",
             path=output_dir / "retraction_fiber_blob_example.svg",
             x_position=0,
-            y_position=3.6,
+            y_position=5,
             x_offset=0.1,
             y_offset=0.1,
         ),
@@ -214,7 +222,7 @@ build_figure_from_panels(
             letter="",
             path=output_dir / "colorbar_cyan_magenta_0_1.svg",
             x_position=0,
-            y_position=6.6,
+            y_position=3.8,
             x_offset=0,
             y_offset=0.1,
         ),

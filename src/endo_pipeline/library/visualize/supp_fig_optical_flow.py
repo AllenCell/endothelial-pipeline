@@ -140,7 +140,7 @@ def plot_optical_flow_composite(
     frame_t1: np.ndarray,
     *,
     title: str,
-    scale_bar_um: int = 10,
+    scale_bar_um: int = 20,
     pixel_size_um: float = PIXEL_SIZE_3i_20x_RESOLUTION_1,
 ) -> None:
     """Render a purple/green composite of two consecutive frames on ``ax``.
