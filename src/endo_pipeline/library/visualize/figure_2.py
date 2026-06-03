@@ -1135,7 +1135,7 @@ def make_first_passage_time_correlation_hist(
         pearson_correlations.append(pearson_r)
 
     fig, ax = plt.subplots(figsize=figsize, layout="constrained")
-    ax.hist(pearson_correlations, bins=np.linspace(-1, 1, 21), edgecolor="k")
+    ax.hist(pearson_correlations, bins=list(np.linspace(-1, 1, 21)), edgecolor="k")
     column_label = COLUMN_METADATA[Column.VectorField.PEARSON_R].label or str(
         Column.VectorField.PEARSON_R
     )
