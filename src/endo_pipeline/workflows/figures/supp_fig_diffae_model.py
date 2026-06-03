@@ -1,6 +1,13 @@
 def main() -> None:
     """
-    Create figure 2 images
+    Create the VE-cadherin conditioned model validation figure.
+
+    Builds the composite supplemental DiffAE-model figure from two panels:
+      * Panel A: the cdh5-conditioned positive-control QC contact sheet.
+      * Panel B: the cross-model Rep-2 Pearson-correlation comparison bars.
+
+    The brightfield-conditioned baseline training/eval schematic assets are
+    produced by the separate ``supp-fig-diffae-schematic`` workflow.
     """
     import logging
     from typing import cast
@@ -25,7 +32,6 @@ def main() -> None:
     )
     from endo_pipeline.library.model.model_qc.results_io import load_results_from_manifests
     from endo_pipeline.library.process.image_processing import crop_image
-    from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
     from endo_pipeline.library.visualize.model_inputs.image_preprocessing_steps import (
         apply_img_transforms,
@@ -33,12 +39,11 @@ def main() -> None:
         get_image_transforms,
         get_target_image_from_sample,
     )
-    from endo_pipeline.library.visualize.model_qc_plots import create_rep2_correlation_bar_plot
-    from endo_pipeline.library.visualize.model_training_schematic import (
-        create_model_training_schematic_images,
+    from endo_pipeline.library.visualize.model_qc_plots import (
+        create_rep2_correlation_bar_plot,
+        create_validation_examples_contact_sheet,
     )
     from endo_pipeline.manifests import (
-        get_most_recent_run_name,
         get_zarr_location_for_position,
         load_dataframe_manifest,
         load_model_manifest,
@@ -49,11 +54,6 @@ def main() -> None:
     )
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
     from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL, PIXEL_SIZE_3i_20x
-    from endo_pipeline.settings.plot_defaults import (
-        MODEL_QC_GRIDSPEC_KWARGS,
-        MODEL_QC_PLOT_DIRECTION,
-        MODEL_QC_SUBPLOT_KWARGS,
-    )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT,
         DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_PREFIX,
@@ -67,24 +67,22 @@ def main() -> None:
 
     logger = logging.getLogger(__name__)
 
-    # The loop iterates over two models because each contributes a
-    # distinct manuscript asset:
-    #   * ``diffae_baseline_exclude_cell_piling`` produces the per-channel
-    #     z-slice + FOV PDFs used in the main figure-2 training schematic
-    #     (via ``create_model_training_schematic_images``).
-    #   * ``diffae_cdh5_conditioned`` produces the QC contact-sheet SVG
-    #     used as panel A of the composite below.
-    # The baseline iteration therefore short-circuits after the schematic
-    # example -- no point running denoising for the other examples since
-    # its contact sheet has no downstream consumer.
+    # Panel A renders the cdh5-conditioned positive-control contact
+    # sheet. The loop is retained as a single-element iterable so the
+    # per-model setup (manifest load, model instantiation, transforms)
+    # stays grouped; the baseline / BF-conditioned schematic assets for
+    # the main-text figure-2 diagram live in the ``supp-fig-diffae-schematic``
+    # workflow.
     panel_a_svg_path = None
 
-    for model_manifest_name in ["diffae_baseline_exclude_cell_piling", "diffae_cdh5_conditioned"]:
+    for model_manifest_name in ["diffae_cdh5_conditioned"]:
         rng = default_rng(seed=RANDOM_SEED)
 
-        # Load model manifest and get location for run_name
+        # Load model manifest and get location for the pinned run_name.
+        # Pin the latent-512 cdh5 run explicitly so the panel-A contact sheet
+        # is reproducible regardless of new runs landing in the sweep manifest.
         model_manifest = load_model_manifest(model_manifest_name)
-        run_name = get_most_recent_run_name(model_manifest)
+        run_name = "20260130_latent_512"
         model_location = model_manifest.locations[run_name]
 
         # Load model as instantiated Diff AE object. Crop size and the
@@ -118,20 +116,7 @@ def main() -> None:
         denoised_images_by_random_cond_list = []
         denoised_images_by_random_cond_latent_scramble_list = []
 
-        # The baseline iteration only needs the single schematic example
-        # (its sole deliverable is the figure-2 training schematic PDFs);
-        # cdh5 iterates the full validation set for the panel-A contact
-        # sheet. Filtering here -- rather than after the inner-loop work
-        # has already run -- avoids ~3 wasted denoising forward passes
-        # for the baseline model.
-        if model_manifest_name == "diffae_baseline_exclude_cell_piling":
-            example_set = [
-                e
-                for e in EXAMPLES_DIFFAE_TRAINING_VALIDATION
-                if e.dataset_name == EXAMPLE_DIFFAE_TRAINING_SCHEMATIC
-            ]
-        else:
-            example_set = EXAMPLES_DIFFAE_TRAINING_VALIDATION
+        example_set = EXAMPLES_DIFFAE_TRAINING_VALIDATION
 
         output_path = get_output_path(
             "figure_2_model_qc",
@@ -195,31 +180,11 @@ def main() -> None:
                 model, conditioning_crop_latent_vector, noise_image, num_gpus=NUM_GPUS
             )
 
+            # The schematic example is rendered by the ``supp-fig-diffae-schematic``
+            # workflow, not tiled into this contact sheet. Skip it here, but only
+            # after the ``noise_image`` draw above so the RNG sequence -- and thus
+            # the denoised outputs -- of the remaining examples is unchanged.
             if dataset_name == EXAMPLE_DIFFAE_TRAINING_SCHEMATIC:
-                if model_manifest_name == "diffae_baseline_exclude_cell_piling":
-                    create_model_training_schematic_images(
-                        dataset_config,
-                        img,
-                        position,
-                        timepoint,
-                        start_x,
-                        start_y,
-                        crop_size,
-                        transformed_diffusion_input_image,
-                        transformed_conditioning_input_image,
-                        conditioning_input_crop,
-                        diffusion_input_crop,
-                        denoised_image_by_bf_cond,
-                        noise_image,
-                        output_path,
-                    )
-
-                continue
-
-            # The baseline model's only deliverable is the training
-            # schematic above; skip the remaining denoising work (and the
-            # downstream contact-sheet build) for all other examples.
-            if model_manifest_name == "diffae_baseline_exclude_cell_piling":
                 continue
 
             # Do the same thing but with the conditioning vector randomly shuffled
@@ -250,73 +215,32 @@ def main() -> None:
                 denoised_images_by_random_cond_latent_scramble.squeeze()
             )
 
-        # Contact-sheet build + save runs only for cdh5: the baseline
-        # iteration short-circuits above, so cond_crop_list et al. are
-        # empty there and the SVG would be an orphan output anyway.
-        if model_manifest_name == "diffae_cdh5_conditioned":
-            titles = [
-                f"{label_for_conditioning}\nencoder input",
-                "Target\nVE-cadherin",
-                f"{label_for_conditioning}\nlatent vector",
-                "Scrambled\nlatent vector",
-                "Scrambled\ninput image",
-            ]
+        # Contact-sheet build + save for the cdh5-conditioned panel A. The
+        # figure-styled build is shared with the brightfield schematic
+        # workflow via ``create_validation_examples_contact_sheet``.
+        scalebar_um = 10
+        fig = create_validation_examples_contact_sheet(
+            cond_crop_list,
+            diffusion_input_crop_list,
+            denoised_image_by_bf_cond_list,
+            denoised_images_by_random_cond_list,
+            denoised_images_by_random_cond_latent_scramble_list,
+            label_for_conditioning,
+            pixel_size=PIXEL_SIZE_3i_20x,
+            figure_width=MAX_FIGURE_WIDTH,
+            scalebar_um=scalebar_um,
+        )
 
-            panels = [
-                img
-                for img_list in [
-                    cond_crop_list,
-                    diffusion_input_crop_list,
-                    denoised_image_by_bf_cond_list,
-                    denoised_images_by_random_cond_list,
-                    denoised_images_by_random_cond_latent_scramble_list,
-                ]
-                for img in img_list
-            ]
-
-            fig = make_contact_sheet(
-                panels=panels,
-                max_rows=3,
-                max_cols=5,
-                col_titles=titles,
-                row_titles=None,
-                direction=MODEL_QC_PLOT_DIRECTION,
-                font_size=10,
-                subplot_kwargs=MODEL_QC_SUBPLOT_KWARGS,
-                gridspec_kwargs=MODEL_QC_GRIDSPEC_KWARGS,
-                fig_kwargs={"figsize": (MAX_FIGURE_WIDTH, 3.4)},
-            )
-
-            fig.subplots_adjust(left=0, right=1, top=0.85, bottom=0)
-            all_axes = fig.get_axes()
-            col_3_pos = all_axes[3].get_position()
-            center_x = col_3_pos.x0 + (col_3_pos.width / 2)
-            fig.text(
-                x=center_x,
-                y=0.97,
-                s="Predicted VE-cadherin",
-                ha="center",
-                fontsize=10,
-            )
-            scalebar_um = 10
-            add_scalebar(
-                all_axes[0],
-                pixel_size=PIXEL_SIZE_3i_20x,
-                scale_bar_um=scalebar_um,
-                bar_thickness=3,
-                padding=5,
-            )
-
-            contact_sheet_name = f"Model_QC_Examples_scalebar{scalebar_um}"
-            save_plot_to_path(
-                fig,
-                output_path,
-                contact_sheet_name,
-                file_format=".svg",
-                pad_inches=0,
-                transparent=True,
-            )
-            panel_a_svg_path = output_path / f"{contact_sheet_name}.svg"
+        contact_sheet_name = f"Model_QC_Examples_scalebar{scalebar_um}"
+        save_plot_to_path(
+            fig,
+            output_path,
+            contact_sheet_name,
+            file_format=".svg",
+            pad_inches=0,
+            transparent=True,
+        )
+        panel_a_svg_path = output_path / f"{contact_sheet_name}.svg"
 
     # ------------------------------------------------------------------
     # Panel B: quantitative Rep-2 Pearson-correlation sweep across the
