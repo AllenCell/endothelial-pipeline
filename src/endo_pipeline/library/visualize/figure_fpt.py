@@ -320,7 +320,7 @@ def generate_first_passage_time_example(
     # plot the tracked and grid trajectories in the 3D feature space with the
     # fixed point, bin edges, and bin start points
     track_alpha = 0.4
-    fig = plt.figure(figsize=(2, 2))
+    fig = plt.figure(figsize=(1.95, 1.95))
     ax: Axes3D = fig.add_subplot(projection="3d")
     ax.plot(
         xs=thetas_tracked_unwrapped,

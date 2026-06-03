@@ -19,6 +19,7 @@ def main() -> None:
         make_3d_vector_field_plot_panel,
         reconstruct_along_nullcline,
     )
+    from endo_pipeline.library.visualize.figure_fpt import generate_first_passage_time_example
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
     from endo_pipeline.library.visualize.summary_plot import (
         build_dataframe_for_first_passage_time_dataset_summary,
@@ -29,7 +30,7 @@ def main() -> None:
     from endo_pipeline.settings.column_metadata import COLUMN_METADATA
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import POLAR_ANGLE_RANGE
-    from endo_pipeline.settings.examples import EXAMPLE_DATASET
+    from endo_pipeline.settings.examples import EXAMPLE_DATASET, FPT_FIG_EXAMPLES
     from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_WIDTH
     from endo_pipeline.settings.first_passage_time import (
         FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME,
@@ -251,10 +252,21 @@ def main() -> None:
         column_names=feature_column_names,
         axis_mode="shear_stress",
         subplot_layout="horizontal",
-        figure_size=(3.25, 2.25),
+        figure_size=(3.15, 2.0),
         color_by_column=Column.OpticalFlow.UNIT_VECTOR_MEAN,
     )
+    # --- First passage time analysis schematic ---
+    low_flow_dataset = FPT_FIG_EXAMPLES["low_flow"]
 
+    # Generate example of a tracked and grid-crop trajectory starting from the same bin
+    # in feature space traveling to the fixed point
+    trajectory_example_filepath = generate_first_passage_time_example(
+        dataset_name=low_flow_dataset.dataset_name,
+        example_fixed_point_index=low_flow_dataset.fixed_point_index,
+        example_tracked_crop_index=low_flow_dataset.tracked_crop_index,
+        example_grid_crop_index=low_flow_dataset.grid_crop_index,
+        out_dir=base_output_dir,
+    )
     # --- Histogram of first passage time correlation ---
     fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME)
     first_passage_summary_df = build_dataframe_for_first_passage_time_dataset_summary(
@@ -344,6 +356,14 @@ def main() -> None:
             x_position=0.0,
             y_position=5.4,
             x_offset=0.0,
+            y_offset=0.1,
+        ),
+        FigurePanel(
+            letter="H",
+            path=trajectory_example_filepath,
+            x_position=3.2,
+            y_position=5.4,
+            x_offset=0,
             y_offset=0.1,
         ),
         FigurePanel(
