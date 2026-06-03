@@ -170,14 +170,14 @@ def _build_color_by_column_mappable(
             cmap = mcolors.LinearSegmentedColormap.from_list("cyan_magenta", ["cyan", "magenta"])
         # Use column metadata min/max if available, else fall back to data range
         vmin = (
-            color_column_metadata.min
-            if color_column_metadata and color_column_metadata.min is not None
-            else df[plotting_column].min()
+            float(color_column_metadata.min)
+            if color_column_metadata and isinstance(color_column_metadata.min, (int, float))
+            else float(df[plotting_column].min())
         )
         vmax = (
-            color_column_metadata.max
-            if color_column_metadata and color_column_metadata.max is not None
-            else df[plotting_column].max()
+            float(color_column_metadata.max)
+            if color_column_metadata and isinstance(color_column_metadata.max, (int, float))
+            else float(df[plotting_column].max())
         )
         norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
         scalar_mappable = cm.ScalarMappable(norm=norm, cmap=cmap)

@@ -560,8 +560,8 @@ def make_example_migration_coherence(
             f"{optical_flow_feature} column metadata is missing required fields "
             f"(min={of_metadata.min}, max={of_metadata.max})."
         )
-    vmin: float = of_metadata.min
-    vmax: float = of_metadata.max
+    vmin: float = float(of_metadata.min)
+    vmax: float = float(of_metadata.max)
     fig_name = fig_name or f"{dataset_name}_3D_scatter_{optical_flow_feature}"
 
     # load dataframe and perform additional filtering (remove

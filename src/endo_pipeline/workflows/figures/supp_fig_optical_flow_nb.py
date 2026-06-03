@@ -170,10 +170,10 @@ if (
         f"(min={of_metadata.min}, max={of_metadata.max}, ticks={of_metadata.ticks}, label={of_metadata.label})."
     )
 
-vmin: float = of_metadata.min
-vmax: float = of_metadata.max
+vmin: float = float(of_metadata.min)
+vmax: float = float(of_metadata.max)
 ticks: list[float] = list(of_metadata.ticks)
-label: str = of_metadata.label
+cbar_label: str = of_metadata.label
 
 cmap = LinearSegmentedColormap.from_list("cyan_magenta", ["cyan", "magenta"])
 fig_cb, ax_cb = plt.subplots(figsize=(1.6, 0.1), layout="constrained")
@@ -182,7 +182,7 @@ sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
 sm.set_array([])
 cbar = fig_cb.colorbar(sm, cax=ax_cb, orientation="horizontal")
 cbar.set_ticks(ticks)
-cbar.set_label(label, fontsize=FONTSIZE_MEDIUM)
+cbar.set_label(cbar_label, fontsize=FONTSIZE_MEDIUM)
 save_plot_to_path(
     fig_cb,
     output_dir,
