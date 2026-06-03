@@ -31,6 +31,7 @@ from endo_pipeline.library.analyze.numerics.fixed_points import (
 from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.library.visualize.fixed_points import StabilityLegendHandle
 from endo_pipeline.manifests.dataframe_manifest_io import load_dataframe_manifest
+from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
@@ -330,6 +331,16 @@ def plot_3d_scatter_or_binned(
     ax.set_xlabel(get_label_for_column(x_col), labelpad=2)
     ax.set_ylabel(get_label_for_column(y_col), labelpad=2)
     ax.set_zlabel(get_label_for_column(z_col), rotation=0, labelpad=0)
+
+    # Apply ticks/tick_labels from column metadata when available
+    for axis, col in [("x", x_col), ("y", y_col), ("z", z_col)]:
+        if col in COLUMN_METADATA:
+            meta = COLUMN_METADATA[col]
+            if meta.ticks is not None:
+                ticks = list(meta.ticks)
+                getattr(ax, f"set_{axis}ticks")(ticks)
+                if meta.tick_labels is not None:
+                    getattr(ax, f"set_{axis}ticklabels")(meta.tick_labels, fontsize=FONTSIZE_XSMALL)
 
     fig.colorbar(sc, cax=cax, label=cbar_label)
     return fig, ax
