@@ -63,8 +63,6 @@ from endo_pipeline.settings.flow_field_figure import (
 from endo_pipeline.settings.image_data import NATIVE_ZARR_RESOLUTION_CROP_SIZE, PIXEL_SIZE_3i_20x
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_MODEL_MANIFEST_NAME,
-    DEFAULT_MODEL_RUN_NAME,
     GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME,
     RANDOM_SEED,
 )
@@ -406,7 +404,7 @@ def _make_example_acf_plot(
 
 def _make_acf_r_squared_plot(
     axes: plt.Axes,
-    column_names: list[Column.DiffAEData],
+    column_names: list[str],
     autocorrelation_manifest: DataframeManifest,
     y_labelpad: float = 0.5,
     jitter_random_seed: int = RANDOM_SEED,
@@ -420,7 +418,7 @@ def _make_acf_r_squared_plot(
     and specified columns as a scatter plot with jitter on the column axis.
     """
     rng = np.random.default_rng(jitter_random_seed)
-    r_squared_dict: dict[Column.DiffAEData, list[float]] = {key: [] for key in column_names}
+    r_squared_dict: dict[str, list[float]] = {key: [] for key in column_names}
 
     # loop over datasets and compute R^2 values for each specified column,
     # storing in r_squared_dict
@@ -480,18 +478,16 @@ def make_autocorrelation_panel(save_dir: Path) -> Path:
     # example dataset for first subplot
     dataset_name = EXAMPLE_DATASET["FIGURE_2_LOW_FLOW_DATASET"]
 
-    column_names = [
+    column_names: list[str] = [
         Column.DiffAEData.POLAR_ANGLE,
         Column.DiffAEData.POLAR_RADIUS,
         Column.DiffAEData.PC3_FLIPPED,
     ]
 
     # load dataframe manifest for outputs of autocorrelation analysis workflow
-    base_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_grid"
-    columns_str = join_sorted_strings(cast(list[str], column_names))
-    autocorrelation_manifest_name = (
-        f"{AUTOCORRELATION_DATAFRAME_MANIFEST_PREFIX}_{columns_str}_{base_name}"
-    )
+    name_prefix = AUTOCORRELATION_DATAFRAME_MANIFEST_PREFIX
+    name_suffix = f"{join_sorted_strings(column_names)}_grid"
+    autocorrelation_manifest_name = f"{name_prefix}_{name_suffix}"
     autocorrelation_manifest = load_dataframe_manifest(autocorrelation_manifest_name)
 
     # init figure for autocorrelation panel
