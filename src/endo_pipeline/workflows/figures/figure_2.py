@@ -252,14 +252,12 @@ def main() -> None:
         column_names=feature_column_names,
         axis_mode="shear_stress",
         subplot_layout="horizontal",
-        figure_size=(3.15, 2.05),
+        figure_size=(3.3, 2.00),
         color_by_column=Column.OpticalFlow.UNIT_VECTOR_MEAN,
+        ylabel_rotation=0,
     )
     # --- First passage time analysis schematic ---
     low_flow_dataset = FPT_FIG_EXAMPLES["low_flow"]
-
-    # Generate example of a tracked and grid-crop trajectory starting from the same bin
-    # in feature space traveling to the fixed point
     trajectory_example_filepath = generate_first_passage_time_example(
         dataset_name=low_flow_dataset.dataset_name,
         example_fixed_point_index=low_flow_dataset.fixed_point_index,
@@ -279,6 +277,7 @@ def main() -> None:
         axis_mode="shear_stress",
         figure_size=(0.95, 2.05),
         set_y_lims=True,
+        ylabel_rotation=90,
     )
 
     # --- Assemble all panels into final figure ---
@@ -361,15 +360,15 @@ def main() -> None:
         FigurePanel(
             letter="H",
             path=trajectory_example_filepath,
-            x_position=3.2,
+            x_position=3.4,
             y_position=5.4,
-            x_offset=0,
-            y_offset=0.1,
+            x_offset=-0.025,
+            y_offset=0.15,
         ),
         FigurePanel(
             letter="I",
             path=first_passage_path,
-            x_position=5.175,
+            x_position=5.25,
             y_position=5.4,
             x_offset=0.05,
             y_offset=0.15,
