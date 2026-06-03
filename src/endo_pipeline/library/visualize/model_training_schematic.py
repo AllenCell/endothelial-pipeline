@@ -10,63 +10,6 @@ from endo_pipeline.library.visualize.figure_utils import plot_image_thumbnail
 from endo_pipeline.settings.image_data import Z_SLICE_OFFSETS, PIXEL_SIZE_3i_20x_RESOLUTION_1
 
 
-def plot_model_crop_thumbnails(
-    conditioning_input_crop: np.ndarray,
-    diffusion_input_crop: np.ndarray,
-    denoised_image_by_bf_cond: np.ndarray,
-    dataset_name: str,
-    timepoint: int,
-    output_path: Path,
-) -> None:
-    """Plot conditioning input, diffusion input, and denoised crop thumbnails.
-
-    Parameters
-    ----------
-    conditioning_input_crop
-        Cropped conditioning input image.
-    diffusion_input_crop
-        Cropped diffusion input image.
-    denoised_image_by_bf_cond
-        Denoised image conditioned on brightfield.
-    dataset_name
-        Name of the dataset (used in filename).
-    timepoint
-        Timepoint index (used in filename).
-    output_path
-        Directory to save the output thumbnails.
-    """
-    for image, image_name in zip(
-        [conditioning_input_crop, diffusion_input_crop],
-        ["conditioning_input_crop", "diffusion_input_crop"],
-        strict=True,
-    ):
-        plot_image_thumbnail(
-            image.squeeze(),
-            f"{image_name}_{dataset_name}_T{timepoint}",
-            output_path,
-            figsize=(0.7, 0.7),
-            scalebar_size_um=20,
-            bar_padding=5,
-            bar_thickness=5,
-            pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
-            file_format=".svg",
-            scalebar_location="lower right",
-        )
-
-    plot_image_thumbnail(
-        denoised_image_by_bf_cond.squeeze(),
-        f"denoised_image_by_bf_cond_{dataset_name}_T{timepoint}",
-        output_path,
-        figsize=(0.7, 0.7),
-        scalebar_size_um=20,
-        bar_padding=5,
-        bar_thickness=5,
-        pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
-        file_format=".svg",
-        scalebar_location="lower right",
-    )
-
-
 def create_model_training_schematic_images(
     dataset_config: DatasetConfig,
     z_stack_img: np.ndarray,
@@ -150,23 +93,25 @@ def create_model_training_schematic_images(
         ax.add_patch(rect)
         save_plot_to_path(fig, output_path, image_name, file_format=".svg", pad_inches=0)
 
-    plot_model_crop_thumbnails(
-        conditioning_input_crop=conditioning_input_crop,
-        diffusion_input_crop=diffusion_input_crop,
-        denoised_image_by_bf_cond=denoised_image_by_bf_cond,
-        dataset_name=dataset_config.name,
-        timepoint=timepoint,
-        output_path=output_path,
-    )
-    plot_image_thumbnail(
-        noise_image.squeeze(),
-        "noise_image",
-        output_path,
-        figsize=(0.7, 0.7),
-        scalebar_size_um=20,
-        bar_padding=5,
-        bar_thickness=5,
-        pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
-        file_format=".svg",
-        scalebar_location="lower right",
-    )
+    for image, image_name in zip(
+        [conditioning_input_crop, diffusion_input_crop, denoised_image_by_bf_cond, noise_image],
+        [
+            "conditioning_input_crop",
+            "diffusion_input_crop",
+            "denoised_image_by_bf_cond",
+            "noise_image",
+        ],
+        strict=True,
+    ):
+        plot_image_thumbnail(
+            image.squeeze(),
+            f"{image_name}_{dataset_config.name}_T{timepoint}",
+            output_path,
+            figsize=(0.7, 0.7),
+            scalebar_size_um=20,
+            bar_padding=5,
+            bar_thickness=5,
+            pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
+            file_format=".svg",
+            scalebar_location="lower right",
+        )
