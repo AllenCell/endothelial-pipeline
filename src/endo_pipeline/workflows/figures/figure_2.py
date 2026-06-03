@@ -17,12 +17,12 @@ def main() -> None:
         make_1d_drift_plot_panel,
         make_2d_contour_plot_panel,
         make_3d_vector_field_plot_panel,
+        make_first_passage_time_correlation_hist,
         reconstruct_along_nullcline,
     )
     from endo_pipeline.library.visualize.figure_fpt import generate_first_passage_time_example
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
     from endo_pipeline.library.visualize.summary_plot import (
-        build_dataframe_for_first_passage_time_dataset_summary,
         build_dataframe_for_fixed_point_dataset_summary,
         plot_cross_dataset_summaries,
     )
@@ -32,9 +32,6 @@ def main() -> None:
     from endo_pipeline.settings.dynamics_workflows import POLAR_ANGLE_RANGE
     from endo_pipeline.settings.examples import EXAMPLE_DATASET, FPT_FIG_EXAMPLES
     from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_WIDTH
-    from endo_pipeline.settings.first_passage_time import (
-        FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME,
-    )
     from endo_pipeline.settings.flow_field_dataframes import (
         BOOTSTRAPPING_MANIFEST_NAMES,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
@@ -266,18 +263,8 @@ def main() -> None:
         out_dir=base_output_dir,
     )
     # --- Histogram of first passage time correlation ---
-    fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME)
-    first_passage_summary_df = build_dataframe_for_first_passage_time_dataset_summary(
-        dataset_names=dataset_summary_list, first_passage_time_manifest=fpt_manifest
-    )
-    first_passage_path = plot_cross_dataset_summaries(
-        first_passage_summary_df,
-        output_dir=base_output_dir,
-        column_names=[Column.VectorField.PEARSON_R],
-        axis_mode="shear_stress",
-        figure_size=(0.95, 2.0),
-        set_y_lims=True,
-        ylabel_rotation=90,
+    first_passage_path = make_first_passage_time_correlation_hist(
+        dataset_names=dataset_summary_list, figsize=(0.95, 2.0), fig_savedir=base_output_dir
     )
 
     # --- Assemble all panels into final figure ---
@@ -370,7 +357,7 @@ def main() -> None:
             path=first_passage_path,
             x_position=5.3,
             y_position=5.4,
-            x_offset=0.0,
+            x_offset=0.075,
             y_offset=0.25,
         ),
     ]

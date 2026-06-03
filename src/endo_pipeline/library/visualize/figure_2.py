@@ -26,6 +26,7 @@ from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
 )
+from endo_pipeline.library.analyze.track_integration import get_line_fit_and_filtered_df
 from endo_pipeline.library.analyze.vector_field_estimation import (
     get_vector_field_as_dict_from_dataframe,
     load_drift_dataframe_for_dataset,
@@ -50,6 +51,7 @@ from endo_pipeline.settings.dynamics_workflows import (
     KERNEL_PERIODS_DYNAMICS,
 )
 from endo_pipeline.settings.figures import FONTSIZE_SMALL, FONTSIZE_XSMALL
+from endo_pipeline.settings.first_passage_time import FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_CBAR_NUM_TICKS,
     DRIFT_CONTOUR_CBAR_ROUND,
@@ -1115,4 +1117,35 @@ def make_3d_vector_field_plot_panel(
         bbox_inches="tight",
     )
 
+    return fig_savedir / f"{filename}.svg"
+
+
+def make_first_passage_time_correlation_hist(
+    dataset_names: list[str], figsize: tuple[float, float], fig_savedir: Path
+) -> Path:
+    fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME)
+    line_fit_df, _ = get_line_fit_and_filtered_df(fpt_manifest, dataset_names)
+
+    pearson_correlations = []
+    for _, df_dataset in line_fit_df.groupby(Column.DATASET):
+        pearson_r = df_dataset[Column.VectorField.PEARSON_R].iloc[0]
+        pearson_correlations.append(pearson_r)
+
+    fig, ax = plt.subplots(figsize=figsize, layout="constrained")
+    ax.hist(pearson_correlations, bins=np.linspace(-1, 1, 21), edgecolor="k")
+    column_label = COLUMN_METADATA[Column.VectorField.PEARSON_R].label or str(
+        Column.VectorField.PEARSON_R
+    )
+    ax.set_xlabel(column_label)
+    ax.set_ylabel("Count")
+
+    filename = "fpt_hist"
+    save_plot_to_path(
+        fig,
+        fig_savedir,
+        filename,
+        file_format=".svg",
+        tight_layout=False,
+        transparent=True,
+    )
     return fig_savedir / f"{filename}.svg"
