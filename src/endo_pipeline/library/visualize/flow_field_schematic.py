@@ -26,6 +26,7 @@ from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
 from endo_pipeline.library.process.image_processing import load_processed_bf_std_dev_image_crop
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
+from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.manifests import (
     DataframeManifest,
     get_dataframe_location_for_dataset,
@@ -218,6 +219,7 @@ def _add_t_plus_1_arrow_to_plot(
     fig.add_artist(horizontal_arrow)
 
 
+@figure_panel("Definition of trajectories and single-frame displacement vectors")
 def make_real_image_panel(
     savedir: Path,
     axes_title_xloc: float = 0.25,
@@ -229,10 +231,10 @@ def make_real_image_panel(
     horizontal_arrow_linewidth: float = 1.5,
     text_y_offset: float = -0.175,
     delta_text_y_offset: float = 0.05,
+    figure_size: tuple[float, float] = (2.5, 1.7),
 ) -> Path:
     """Build the panel showing a grid crop from t to t+1 for a given example image."""
 
-    contact_figsize = (2.5, 1.7)
     arrowstyle = "->,head_length=5,head_width=3"
     box_color = "deepskyblue"
     map_arrow_color = "deepskyblue"
@@ -259,7 +261,7 @@ def make_real_image_panel(
         processed_images,
         max_cols=len(processed_images),
         max_rows=1,
-        fig_kwargs={"figsize": contact_figsize, "layout": "constrained"},
+        fig_kwargs={"figsize": figure_size, "layout": "constrained"},
         gridspec_kwargs={"hspace": 0.05},
     )
 
@@ -474,7 +476,10 @@ def _make_acf_r_squared_plot(
     axes.set_box_aspect(1)
 
 
-def make_autocorrelation_panel(save_dir: Path) -> Path:
+@figure_panel("Characterization of trajectory fluctuations and correlation timescales")
+def make_autocorrelation_panel(
+    save_dir: Path, figure_size: tuple[float, float] = (3.75, 1.9)
+) -> Path:
     # example dataset for first subplot
     dataset_name = EXAMPLE_DATASET["FIGURE_2_LOW_FLOW_DATASET"]
 
@@ -491,7 +496,7 @@ def make_autocorrelation_panel(save_dir: Path) -> Path:
     autocorrelation_manifest = load_dataframe_manifest(autocorrelation_manifest_name)
 
     # init figure for autocorrelation panel
-    fig, ax = plt.subplots(1, 2, figsize=(3.75, 1.9), layout="constrained")
+    fig, ax = plt.subplots(1, 2, figsize=figure_size, layout="constrained")
 
     # Suplot 1: example ACF plot for one dataset and one feature to illustrate
     # the exponential fit and R^2 value
@@ -774,7 +779,10 @@ def _plot_kernel_at_target_bin(
     return kernel_weights_2d
 
 
-def make_kernel_convolution_schematic(savedir: Path) -> Path:
+@figure_panel("Kernel-convolution-based method for estimated drift coefficients")
+def make_kernel_convolution_schematic(
+    savedir: Path, figure_size: tuple[float, float] = (6.0, 1.65)
+) -> Path:
     """
     Build the panel showing a schematic of the kernel convolution process for
     a single target bin in (r, rho) space.
@@ -809,7 +817,7 @@ def make_kernel_convolution_schematic(savedir: Path) -> Path:
     target_bin = _get_target_bin(target_point, bin_edges)
 
     fig, ax = plt.subplots(
-        1, 4, gridspec_kw={"wspace": 0.075}, figsize=(6.0, 1.65), layout="constrained"
+        1, 4, gridspec_kw={"wspace": 0.075}, figsize=figure_size, layout="constrained"
     )
     axes = ax.flatten() if isinstance(ax, np.ndarray) else [ax]
     axes_xlabel = COLUMN_METADATA[column_names[0]].label
