@@ -253,6 +253,7 @@ def plot_3d_scatter_or_binned(
             vmax=vmax,
             alpha=0.6,
             zorder=1,
+            rasterized=True,
         )
         cbar_label = get_label_for_column(color_col).replace("\n", " ")
     else:
@@ -618,5 +619,5 @@ def make_example_migration_coherence(
         for e_xyz in edges:
             ax.plot(*list(zip(*e_xyz, strict=True)), ls="-", lw=1, c="black", alpha=0.6)
 
-        save_plot_to_path(fig, output_dir, fig_name, file_format=".svg", transparent=True)
+        save_plot_to_path(fig, output_dir, fig_name, file_format=".svg", transparent=True, dpi=300)
         plt.close(fig)
