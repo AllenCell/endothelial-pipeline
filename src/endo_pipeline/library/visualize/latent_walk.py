@@ -28,7 +28,7 @@ from endo_pipeline.manifests import (
     load_model_manifest,
 )
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
-from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import FONTSIZE_XSMALL, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import (
@@ -124,7 +124,7 @@ def plot_latent_walk_as_grid(
                     xycoords="axes fraction",
                     xytext=(+0.5, -0.5),
                     textcoords="offset fontsize",
-                    fontsize=8,
+                    fontsize=FONTSIZE_XSMALL,
                     verticalalignment="top",
                     color="white",
                     path_effects=[pe.withStroke(linewidth=2, foreground="black")],
@@ -153,14 +153,11 @@ def plot_latent_walk_as_grid(
             bar_thickness=2.5,
             padding=5,
             include_label=True if i == 0 else False,
+            label_fontsize=FONTSIZE_XSMALL,
         )
-
-    gs.tight_layout(fig, pad=0.25)
-    plt.show()
 
     file_name = f"{file_name}_scale_bar_{scale_bar_um}um"
     save_plot_to_path(fig, save_path, file_name, file_format=file_format)
-    plt.close(fig)
 
 
 def perform_and_plot_latent_walk_for_figures(

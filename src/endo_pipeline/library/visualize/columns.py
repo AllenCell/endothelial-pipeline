@@ -39,3 +39,20 @@ def get_label_for_column(
         return column_name
 
     return column_metadata[column_name].label or column_name
+
+
+def make_label_single_line(label: str) -> str:
+    """
+    Convert a multiline label to a single line by replacing newline characters with spaces.
+
+    Parameters
+    ----------
+    label
+        The multiline label to convert.
+
+    Returns
+    -------
+    :
+        The converted single-line label.
+    """
+    return label.replace("\n", " ")
