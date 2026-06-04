@@ -2,9 +2,12 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
+from endo_pipeline.cli import UniqueStrList
+
 
 def main(
     manifest_name: str,
+    location_keys: UniqueStrList | None = None,
     add_files: Annotated[bool, Parameter(negative="--remove-files")] = True,
     dry_run: Annotated[bool, Parameter(negative="--live-run")] = True,
 ) -> None:
@@ -55,6 +58,12 @@ def main(
     uv run endopipe stage-dataframe-manifest MANIFEST_NAME --live-run
     ```
 
+    To run the workflow for specific keys in the manifest:
+
+    ```bash
+    uv run endopipe stage-dataframe-manifest MANIFEST_NAME KEY_1 KEY_2
+    ```
+
     You may need to add the following to your .bashrc if jobs are failing due to
     metadata service timeouts:
 
@@ -74,6 +83,8 @@ def main(
     ----------
     manifest_name
         Name of dataframe manifest containing dataframes to stage.
+    location_keys
+        List of location keys to stage. If not provided, stage all keys.
     add_files
         True to add files to the staging location, False to remove files.
     dry_run
@@ -106,8 +117,9 @@ def main(
     manifest = load_dataframe_manifest(manifest_name)
     folder = DATAFRAME_MANIFEST_STAGING_FOLDERS[manifest_name]
 
-    # Get list of all available location keys from the manifest
-    location_keys = list(manifest.locations.keys())
+    # Get list of keys to stage, if provided. Otherwise, get all available
+    # location keys from the manifest
+    location_keys = location_keys or list(manifest.locations.keys())
 
     # Limit number of locations and use demo folder if running in demo mode.
     if DEMO_MODE:
