@@ -424,9 +424,8 @@ def _make_acf_r_squared_plot(
 
     # loop over datasets and compute R^2 values for each specified column,
     # storing in r_squared_dict
-    dataset_names = get_datasets_in_collection("shear_stress") + get_datasets_in_collection(
-        "perturbation"
-    )
+    dataset_names = get_datasets_in_collection("shear_stress", "perturbation")
+
     for dataset_name in dataset_names:
         # temporary until flow switch deprecation goes through
         if dataset_name not in autocorrelation_manifest.locations:

@@ -98,7 +98,7 @@ _ = detect_bf_outliers(dataset_config_bf, position, visualize=True, figure_size=
 _ = detect_egfp_scope_errors(dataset_config_gfp, position, visualize=True, figure_size=(3.2, 2.5))
 
 # %% Performance statistics reported across datasets in collection
-datasets = get_datasets_in_collection("shear_stress") + get_datasets_in_collection("perturbation")
+datasets = get_datasets_in_collection("shear_stress", "perturbation")
 
 bf_results = performance_stats(
     datasets=datasets,
