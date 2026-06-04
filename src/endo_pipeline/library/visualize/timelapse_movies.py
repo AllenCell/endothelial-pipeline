@@ -135,10 +135,10 @@ def add_scalebar_to_frame(
     cv2.rectangle(image, [x1, y1], [x2, y2], color, -1)
 
 
-def create_timelapse_mp4(
+def create_timelapse_movie(
     dataset_name: str,
     channel_type: Literal["EGFP", "BF", "BF_std_dev"],
-    output_dir: Path,
+    output_path: Path,
     timepoints: list[int] | None = None,
     positions: list[int] | None = None,
     frames_per_second: int = 7,
@@ -214,7 +214,7 @@ def create_timelapse_mp4(
     pixel_size = PIXEL_SIZE_3i_20x / scale_factor
 
     with imageio.get_writer(
-        output_dir / file_name,
+        output_path / file_name,
         fps=frames_per_second,
         codec="libx264",
         format="FFMPEG",  # type: ignore[arg-type]

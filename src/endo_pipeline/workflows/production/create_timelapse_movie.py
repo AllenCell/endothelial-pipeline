@@ -7,7 +7,7 @@ from endo_pipeline.cli import Datasets
 def main(
     datasets: Datasets | None = None,
     channel_type: Literal["EGFP", "BF", "BF_std_dev"] = "EGFP",
-    output_dir: Path | None = None,
+    output_path: Path | None = None,
     timepoints: list[int] | None = None,
     positions: list[int] | None = None,
     fps: int = 7,
@@ -15,7 +15,7 @@ def main(
     scale_bar_um: int = 100,
 ) -> None:
     """
-    Create supplemental timelapse movies single fov or stitched.
+    Create timelapse movies of single FOV or stitched.
 
     #visualization #test-ready #cpu-only
 
@@ -25,14 +25,35 @@ def main(
     - ``BF`` shows a single focal plane offset from center for the BF channel
     - ``BF_std_dev`` shows the standard deviation projection for the BF channel
 
-    **CLI example usage**
+    ## Example usage
 
-    .. code-block:: bash
+    To run the workflow in demo mode:
 
-        endopipe supp-movie -v --output-dir //allen/aics/endothelial/morphological_features/image_data/stitched_timelapse_mp4/CDH5/
+    ```bash
+    uv run endopipe create-timelapse-movie -vd
+    ```
 
-        or ../BF_STD_DEV/
+    To run the workflow for a single dataset:
 
+    ```bash
+    uv run endopipe create-timelapse-movie --datasets DATASET_NAME
+    ```
+
+    To run the workflow for a different channel type:
+
+    ```bash
+    uv run endopipe create-timelapse-movie --channel-type CHANNEL_TYPE
+    ```
+
+    ## Dataset collection
+
+    If datasets are not provided, the workflow will use datasets in the
+    `shear_stress` and `perturbation` dataset collections.
+
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will create a
+    movie for the first 10 timepoints of the first dataset.
 
     Parameters
     ----------
@@ -40,7 +61,7 @@ def main(
         List of datasets or dataset collections to create movies for.
     channel_type
         Channel type to visualize. Valid option: EGFP | BF | BF_std_dev
-    output_dir
+    output_path
         Directory to save output movie. If None, saves to default location.
     timepoints
         Timepoints to include in the movie. If None, include all timepoints.
@@ -59,7 +80,7 @@ def main(
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
-    from endo_pipeline.library.visualize.supplemental_movies import create_timelapse_mp4
+    from endo_pipeline.library.visualize.timelapse_movies import create_timelapse_movie
 
     logger = logging.getLogger(__name__)
 
@@ -69,22 +90,22 @@ def main(
 
     # Demo mode: first dataset, first 10 timepoints
     if DEMO_MODE:
-        logger.info("DEMO MODE: Using first 10 timepoints of first dataset")
+        logger.info("DEMO MODE - Using first 10 timepoints of first dataset")
         datasets = datasets[:1]
         timepoints = list(range(10))
 
     # Set output directory
-    if output_dir is None:
-        output_dir = get_output_path("stitched_timelapse")
+    if output_path is None:
+        output_path = get_output_path(__file__)
     else:
-        Path(output_dir).mkdir(parents=True, exist_ok=True)
+        Path(output_path).mkdir(parents=True, exist_ok=True)
 
     # Process each dataset sequentially
     for dataset_name in datasets:
-        create_timelapse_mp4(
+        create_timelapse_movie(
             dataset_name=dataset_name,
             channel_type=channel_type,
-            output_dir=output_dir,
+            output_path=output_path,
             timepoints=timepoints,
             positions=positions,
             frames_per_second=fps,
