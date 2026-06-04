@@ -94,14 +94,12 @@ def main() -> None:
     model = load_model(model_location, instantiate=True)
     crop_size = model.hparams.image_shape[-1]  # assumes square crops
 
-    # Conditioning vs. diffusion channel keys, e.g.
-    # ``condition_key="raw_bf"`` + ``diffusion_key="raw_cdh5"`` means the
-    # model was trained to denoise CDH5 images conditioned on the
-    # semantic embedding of brightfield images.
+    # Conditioning vs. diffusion channel keys. This is the VE-cadherin (CDH5)
+    # positive control: ``condition_key="raw_cdh5"`` + ``diffusion_key="raw_cdh5"``
+    # means the model denoises CDH5 images conditioned on the semantic embedding
+    # of the CDH5 channel.
     channel_key_for_conditioning_input = model.hparams.condition_key
-    label_for_conditioning = (
-        "Brightfield" if channel_key_for_conditioning_input == "raw_bf" else "VE-cadherin"
-    )
+    label_for_conditioning = "VE-cadherin"
 
     # The image-preprocessing transforms still need the full training
     # config from MLflow: ``data.train_dataloaders.dataset.transform`` is
@@ -115,7 +113,7 @@ def main() -> None:
 
     cond_crop_list = []
     diffusion_input_crop_list = []
-    denoised_image_by_bf_cond_list = []
+    denoised_image_by_cond_list = []
     denoised_images_by_random_cond_list = []
     denoised_images_by_random_cond_latent_scramble_list = []
 
@@ -171,35 +169,39 @@ def main() -> None:
             transformed_diffusion_input_image, start_x, start_y, crop_size
         )
 
+        # Sample the random noise image up front. ``rng.standard_normal`` is the
+        # only call in this loop that advances the RNG -- the latent-vector and
+        # denoising steps below are deterministic GPU forward passes -- so
+        # drawing it here keeps the random sequence identical whether or not we
+        # run inference on a given example.
+        noise_image = rng.standard_normal(size=diffusion_input_crop.shape)
+
+        # The schematic FOV lives in the shared ``EXAMPLES_DIFFAE_TRAINING_VALIDATION``
+        # list only because the ``supp-fig-diffae-schematic`` workflow drives the
+        # main-text figure-2 diagram from it. This workflow doesn't tile it into
+        # the contact sheet, so skip the (expensive) GPU inference + tiling here;
+        # the noise draw above keeps the remaining examples' outputs unchanged.
+        if dataset_name == EXAMPLE_DIFFAE_TRAINING_SCHEMATIC:
+            continue
+
         # Get latent vector embedding of the crop used for conditioning the denoising process
         conditioning_crop_latent_vector = get_latent_vector_from_crop(
             model, conditioning_input_crop, num_gpus=NUM_GPUS
         )
-
-        # Sample random noise image with fixed seed
-        noise_image = rng.standard_normal(size=diffusion_input_crop.shape)
-
-        denoised_image_by_bf_cond = generate_from_coords_and_noised_image(
+        denoised_image_by_cond = generate_from_coords_and_noised_image(
             model, conditioning_crop_latent_vector, noise_image, num_gpus=NUM_GPUS
         )
 
-        # The schematic example is rendered by the ``supp-fig-diffae-schematic``
-        # workflow, not tiled into this contact sheet. Skip it here, but only
-        # after the ``noise_image`` draw above so the RNG sequence -- and thus
-        # the denoised outputs -- of the remaining examples is unchanged.
-        if dataset_name == EXAMPLE_DIFFAE_TRAINING_SCHEMATIC:
-            continue
-
-        # Do the same thing but with the conditioning vector randomly shuffled
-        # This is our negative control for the BF conditioning
+        # Do the same thing but with the conditioning vector randomly shuffled.
+        # This is our negative control for the conditioning.
         latent_vector_scrambled = rng.permuted(conditioning_crop_latent_vector)
         denoised_images_by_random_cond = generate_from_coords_and_noised_image(
             model, latent_vector_scrambled, noise_image, num_gpus=NUM_GPUS
         )
 
         # Do the same thing but with the conditioning vector retrieved from a
-        # randomly shuffled version of the brightfield image
-        # This is another negative control for the BF conditioning
+        # randomly shuffled version of the conditioning image.
+        # This is another negative control for the conditioning.
         img_scrambled = rng.permuted(conditioning_input_crop.ravel()).reshape(
             conditioning_input_crop.shape
         )
@@ -212,7 +214,7 @@ def main() -> None:
 
         cond_crop_list.append(conditioning_input_crop.squeeze())
         diffusion_input_crop_list.append(diffusion_input_crop.squeeze())
-        denoised_image_by_bf_cond_list.append(denoised_image_by_bf_cond.squeeze())
+        denoised_image_by_cond_list.append(denoised_image_by_cond.squeeze())
         denoised_images_by_random_cond_list.append(denoised_images_by_random_cond.squeeze())
         denoised_images_by_random_cond_latent_scramble_list.append(
             denoised_images_by_random_cond_latent_scramble.squeeze()
@@ -225,7 +227,7 @@ def main() -> None:
     fig = create_validation_examples_contact_sheet(
         cond_crop_list,
         diffusion_input_crop_list,
-        denoised_image_by_bf_cond_list,
+        denoised_image_by_cond_list,
         denoised_images_by_random_cond_list,
         denoised_images_by_random_cond_latent_scramble_list,
         label_for_conditioning,

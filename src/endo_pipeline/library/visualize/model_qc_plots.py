@@ -172,7 +172,8 @@ def create_validation_examples_contact_sheet(
     scalebar_um
         Scale-bar length in microns.
     scalebar_location
-        Corner of the first panel to place the scale bar in.
+        Corner of each panel to place the scale bar in (every image gets a
+        bar; only the top-left panel is annotated with the length label).
     max_rows
         Maximum number of example rows.
     font_size
@@ -226,14 +227,20 @@ def create_validation_examples_contact_sheet(
         ha="center",
         fontsize=font_size,
     )
-    add_scalebar(
-        all_axes[0],
-        pixel_size=pixel_size,
-        scale_bar_um=scalebar_um,
-        bar_thickness=3,
-        padding=5,
-        location=scalebar_location,
-    )
+    # Scale bar on every image; only the top-left panel carries the text label
+    # so the sheet isn't cluttered with the length repeated on every tile.
+    for i, ax in enumerate(all_axes):
+        if not ax.images:
+            continue
+        add_scalebar(
+            ax,
+            pixel_size=pixel_size,
+            scale_bar_um=scalebar_um,
+            bar_thickness=3,
+            padding=5,
+            location=scalebar_location,
+            include_label=(i == 0),
+        )
 
     return fig
 
