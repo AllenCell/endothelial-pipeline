@@ -1,27 +1,48 @@
-from typing import Literal
+from typing import Annotated, Literal
+
+from cyclopts import Parameter
 
 
 def main(
-    dataset_summary_list: Literal["low_high", "intermediate", "perturbation"] = "intermediate",
-    plot_fixed_points: bool = True,
-    skip_individual_plots: bool = False,
+    dataset_group: Literal["low_high", "intermediate", "perturbation"] = "intermediate",
+    include_fixed_points: Annotated[bool, Parameter(negative="--exclude-fixed-points")] = True,
+    skip_individual_plots: Annotated[bool, Parameter(negative="--make-individual-plots")] = False,
 ) -> None:
     """
-    Analyze the coherence of migration in relation to fixed points identified in the structure
-    feature space.
+    Visualize migration coherence relative to fixed points.
+
+    #migration-coherence #fixed-points
+
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe plot-migration-coherence -vd
+    ```
+
+    To run the workflow for a specific dataset group:
+
+    ```bash
+    uv run endopipe plot-migration-coherence --dataset-group DATASET_GROUP
+    ```
+
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will plot
+    migration coherence for the first dataset in the group.
 
     Parameters
     ----------
-    dataset_summary_list:
-        List of dataset names to include in the analysis.
-        Can be one of "low_high", "intermediate", or "perturbation".
-        Defaults to all datasets in the "intermediate" collection.
-    plot_fixed_points:
-        Whether to overlay fixed points on the migration coherence plots.
-    skip_individual_plots:
-        Whether to skip generating individual plots for each dataset and flow condition.
-        If True, only the cross-dataset summary plots will be generated.
+    dataset_group
+        Group of datasets to include in analysis.
+    include_fixed_points
+        True to overlay fixed points on the plots, False otherwise.
+    skip_individual_plots
+        True to skip generating individual plots for each dataset and flow
+        condition, False otherwise.
     """
+
     import logging
 
     import matplotlib.pyplot as plt
@@ -97,13 +118,13 @@ def main(
     bootstrap_manifest_name = BOOTSTRAPPING_MANIFEST_NAMES[MIGRATION_COHERENCE_CROP_PATTERN]
     fixed_points_bootstrap_dataframe_manifest = load_dataframe_manifest(bootstrap_manifest_name)
 
-    output_dir = get_output_path(__file__, dataset_summary_list)
+    output_dir = get_output_path(__file__, dataset_group)
 
-    datasets = SUMMARY_PLOT_DATASETS[dataset_summary_list]
+    datasets = SUMMARY_PLOT_DATASETS[dataset_group]
 
     if DEMO_MODE:
+        logger.warning("DEMO_MODE - Limiting to one dataset")
         datasets = datasets[:1]
-        logger.info("DEMO MODE, only processing first dataset [ %s ]", datasets[0])
 
     # --- Cross-dataset summary plots ---
     dataset_summary_df = build_dataframe_for_fixed_point_dataset_summary(
@@ -118,6 +139,8 @@ def main(
         output_dir=output_dir,
         axis_mode="dataset",
         category_order=datasets,
+        subplot_layout="vertical",
+        ylabel_rotation=90,
     )
 
     if skip_individual_plots:
