@@ -77,174 +77,174 @@ def main() -> None:
     # the main-text figure-2 diagram live in the ``supp-fig-diffae-schematic``
     # workflow.
     panel_a_svg_path = None
+    model_manifest_name = "diffae_cdh5_conditioned"
 
-    for model_manifest_name in ["diffae_cdh5_conditioned"]:
-        rng = default_rng(seed=RANDOM_SEED)
+    rng = default_rng(seed=RANDOM_SEED)
 
-        # Load model manifest and get location for the pinned run_name.
-        # Pin the latent-512 cdh5 run explicitly so the panel-A contact sheet
-        # is reproducible regardless of new runs landing in the sweep manifest.
-        model_manifest = load_model_manifest(model_manifest_name)
-        run_name = "20260130_latent_512"
-        model_location = model_manifest.locations[run_name]
+    # Load model manifest and get location for the pinned run_name.
+    # Pin the latent-512 cdh5 run explicitly so the panel-A contact sheet
+    # is reproducible regardless of new runs landing in the sweep manifest.
+    model_manifest = load_model_manifest(model_manifest_name)
+    run_name = "20260130_latent_512"
+    model_location = model_manifest.locations[run_name]
 
-        # Load model as instantiated Diff AE object. Crop size and the
-        # conditioning channel key come straight off ``model.hparams`` so we
-        # do not have to re-parse the training config for those two fields.
-        model = load_model(model_location, instantiate=True)
-        crop_size = model.hparams.image_shape[-1]  # assumes square crops
+    # Load model as instantiated Diff AE object. Crop size and the
+    # conditioning channel key come straight off ``model.hparams`` so we
+    # do not have to re-parse the training config for those two fields.
+    model = load_model(model_location, instantiate=True)
+    crop_size = model.hparams.image_shape[-1]  # assumes square crops
 
-        # Conditioning vs. diffusion channel keys, e.g.
-        # ``condition_key="raw_bf"`` + ``diffusion_key="raw_cdh5"`` means the
-        # model was trained to denoise CDH5 images conditioned on the
-        # semantic embedding of brightfield images.
-        channel_key_for_conditioning_input = model.hparams.condition_key
-        label_for_conditioning = (
-            "Brightfield" if channel_key_for_conditioning_input == "raw_bf" else "VE-cadherin"
+    # Conditioning vs. diffusion channel keys, e.g.
+    # ``condition_key="raw_bf"`` + ``diffusion_key="raw_cdh5"`` means the
+    # model was trained to denoise CDH5 images conditioned on the
+    # semantic embedding of brightfield images.
+    channel_key_for_conditioning_input = model.hparams.condition_key
+    label_for_conditioning = (
+        "Brightfield" if channel_key_for_conditioning_input == "raw_bf" else "VE-cadherin"
+    )
+
+    # The image-preprocessing transforms still need the full training
+    # config from MLflow: ``data.train_dataloaders.dataset.transform`` is
+    # outside the ``model:`` block and is not persisted into
+    # ``model.hparams`` by Lightning's ``save_hyperparameters``.
+    ml_flowid = model_location.mlflowid if model_location.mlflowid else None
+    if ml_flowid is None:
+        raise ValueError(f"Model location MLflow ID is None for model {model_manifest_name}")
+    config_path = get_config_path_from_mlflow(ml_flowid)
+    model_config = cast(DictConfig, OmegaConf.create(config_path.read_text()))
+
+    cond_crop_list = []
+    diffusion_input_crop_list = []
+    denoised_image_by_bf_cond_list = []
+    denoised_images_by_random_cond_list = []
+    denoised_images_by_random_cond_latent_scramble_list = []
+
+    example_set = EXAMPLES_DIFFAE_TRAINING_VALIDATION
+
+    output_path = get_output_path(
+        "figure_2_model_qc",
+        model_manifest_name,
+        run_name,
+    )
+
+    for example in example_set:
+        dataset_name = example.dataset_name
+        logger.info(f"Processing model QC for dataset: {dataset_name}")
+
+        position = example.position
+        timepoint = example.timepoint
+        start_x = example.crop_x_start
+        start_y = example.crop_y_start
+
+        dataset_config = load_dataset_config(dataset_name)
+        zarr_loc = get_zarr_location_for_position(dataset_config, position)
+        img = load_image(
+            zarr_loc,
+            level=DIFFAE_ZARR_RESOLUTION_LEVEL,
+            timepoints=timepoint,
+            squeeze=True,
+            compute=True,
         )
 
-        # The image-preprocessing transforms still need the full training
-        # config from MLflow: ``data.train_dataloaders.dataset.transform`` is
-        # outside the ``model:`` block and is not persisted into
-        # ``model.hparams`` by Lightning's ``save_hyperparameters``.
-        ml_flowid = model_location.mlflowid if model_location.mlflowid else None
-        if ml_flowid is None:
-            raise ValueError(f"Model location MLflow ID is None for model {model_manifest_name}")
-        config_path = get_config_path_from_mlflow(ml_flowid)
-        model_config = cast(DictConfig, OmegaConf.create(config_path.read_text()))
+        # Get zarr loading dictionary, get image processing steps
+        # and apply the transforms for each channel
+        data = create_data_dict_loaded_image(img)
+        transforms = get_image_transforms(model_config)
+        sample = apply_img_transforms(transforms, data)
 
-        cond_crop_list = []
-        diffusion_input_crop_list = []
-        denoised_image_by_bf_cond_list = []
-        denoised_images_by_random_cond_list = []
-        denoised_images_by_random_cond_latent_scramble_list = []
-
-        example_set = EXAMPLES_DIFFAE_TRAINING_VALIDATION
-
-        output_path = get_output_path(
-            "figure_2_model_qc",
-            model_manifest_name,
-            run_name,
+        # Extract the processed conditioning and diffusion images
+        # based on the output key from the transforms
+        # Conditioning image can be brightfield or CDH5 depending on model,
+        # but diffusion image is always CDH5 in our use case
+        transformed_conditioning_input_image = get_target_image_from_sample(
+            sample, target_key=channel_key_for_conditioning_input
+        )
+        transformed_diffusion_input_image = get_target_image_from_sample(
+            sample, target_key=DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT
         )
 
-        for example in example_set:
-            dataset_name = example.dataset_name
-            logger.info(f"Processing model QC for dataset: {dataset_name}")
-
-            position = example.position
-            timepoint = example.timepoint
-            start_x = example.crop_x_start
-            start_y = example.crop_y_start
-
-            dataset_config = load_dataset_config(dataset_name)
-            zarr_loc = get_zarr_location_for_position(dataset_config, position)
-            img = load_image(
-                zarr_loc,
-                level=DIFFAE_ZARR_RESOLUTION_LEVEL,
-                timepoints=timepoint,
-                squeeze=True,
-                compute=True,
-            )
-
-            # Get zarr loading dictionary, get image processing steps
-            # and apply the transforms for each channel
-            data = create_data_dict_loaded_image(img)
-            transforms = get_image_transforms(model_config)
-            sample = apply_img_transforms(transforms, data)
-
-            # Extract the processed conditioning and diffusion images
-            # based on the output key from the transforms
-            # Conditioning image can be brightfield or CDH5 depending on model,
-            # but diffusion image is always CDH5 in our use case
-            transformed_conditioning_input_image = get_target_image_from_sample(
-                sample, target_key=channel_key_for_conditioning_input
-            )
-            transformed_diffusion_input_image = get_target_image_from_sample(
-                sample, target_key=DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT
-            )
-
-            # Crop
-            conditioning_input_crop = crop_image(
-                transformed_conditioning_input_image, start_x, start_y, crop_size
-            )
-            diffusion_input_crop = crop_image(
-                transformed_diffusion_input_image, start_x, start_y, crop_size
-            )
-
-            # Get latent vector embedding of the crop used for conditioning the denoising process
-            conditioning_crop_latent_vector = get_latent_vector_from_crop(
-                model, conditioning_input_crop, num_gpus=NUM_GPUS
-            )
-
-            # Sample random noise image with fixed seed
-            noise_image = rng.standard_normal(size=diffusion_input_crop.shape)
-
-            denoised_image_by_bf_cond = generate_from_coords_and_noised_image(
-                model, conditioning_crop_latent_vector, noise_image, num_gpus=NUM_GPUS
-            )
-
-            # The schematic example is rendered by the ``supp-fig-diffae-schematic``
-            # workflow, not tiled into this contact sheet. Skip it here, but only
-            # after the ``noise_image`` draw above so the RNG sequence -- and thus
-            # the denoised outputs -- of the remaining examples is unchanged.
-            if dataset_name == EXAMPLE_DIFFAE_TRAINING_SCHEMATIC:
-                continue
-
-            # Do the same thing but with the conditioning vector randomly shuffled
-            # This is our negative control for the BF conditioning
-            latent_vector_scrambled = rng.permuted(conditioning_crop_latent_vector)
-            denoised_images_by_random_cond = generate_from_coords_and_noised_image(
-                model, latent_vector_scrambled, noise_image, num_gpus=NUM_GPUS
-            )
-
-            # Do the same thing but with the conditioning vector retrieved from a
-            # randomly shuffled version of the brightfield image
-            # This is another negative control for the BF conditioning
-            img_scrambled = rng.permuted(conditioning_input_crop.ravel()).reshape(
-                conditioning_input_crop.shape
-            )
-            latent_vector_from_img_scrambled = get_latent_vector_from_crop(
-                model, img_scrambled, num_gpus=NUM_GPUS
-            )
-            denoised_images_by_random_cond_latent_scramble = generate_from_coords_and_noised_image(
-                model, latent_vector_from_img_scrambled, noise_image, num_gpus=NUM_GPUS
-            )
-
-            cond_crop_list.append(conditioning_input_crop.squeeze())
-            diffusion_input_crop_list.append(diffusion_input_crop.squeeze())
-            denoised_image_by_bf_cond_list.append(denoised_image_by_bf_cond.squeeze())
-            denoised_images_by_random_cond_list.append(denoised_images_by_random_cond.squeeze())
-            denoised_images_by_random_cond_latent_scramble_list.append(
-                denoised_images_by_random_cond_latent_scramble.squeeze()
-            )
-
-        # Contact-sheet build + save for the cdh5-conditioned panel A. The
-        # figure-styled build is shared with the brightfield schematic
-        # workflow via ``create_validation_examples_contact_sheet``.
-        scalebar_um = 20
-        fig = create_validation_examples_contact_sheet(
-            cond_crop_list,
-            diffusion_input_crop_list,
-            denoised_image_by_bf_cond_list,
-            denoised_images_by_random_cond_list,
-            denoised_images_by_random_cond_latent_scramble_list,
-            label_for_conditioning,
-            pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
-            figure_width=MAX_FIGURE_WIDTH,
-            scalebar_um=scalebar_um,
-            scalebar_location="lower right",
+        # Crop
+        conditioning_input_crop = crop_image(
+            transformed_conditioning_input_image, start_x, start_y, crop_size
+        )
+        diffusion_input_crop = crop_image(
+            transformed_diffusion_input_image, start_x, start_y, crop_size
         )
 
-        contact_sheet_name = f"Model_QC_Examples_scalebar{scalebar_um}"
-        save_plot_to_path(
-            fig,
-            output_path,
-            contact_sheet_name,
-            file_format=".svg",
-            pad_inches=0,
-            transparent=True,
+        # Get latent vector embedding of the crop used for conditioning the denoising process
+        conditioning_crop_latent_vector = get_latent_vector_from_crop(
+            model, conditioning_input_crop, num_gpus=NUM_GPUS
         )
-        panel_a_svg_path = output_path / f"{contact_sheet_name}.svg"
+
+        # Sample random noise image with fixed seed
+        noise_image = rng.standard_normal(size=diffusion_input_crop.shape)
+
+        denoised_image_by_bf_cond = generate_from_coords_and_noised_image(
+            model, conditioning_crop_latent_vector, noise_image, num_gpus=NUM_GPUS
+        )
+
+        # The schematic example is rendered by the ``supp-fig-diffae-schematic``
+        # workflow, not tiled into this contact sheet. Skip it here, but only
+        # after the ``noise_image`` draw above so the RNG sequence -- and thus
+        # the denoised outputs -- of the remaining examples is unchanged.
+        if dataset_name == EXAMPLE_DIFFAE_TRAINING_SCHEMATIC:
+            continue
+
+        # Do the same thing but with the conditioning vector randomly shuffled
+        # This is our negative control for the BF conditioning
+        latent_vector_scrambled = rng.permuted(conditioning_crop_latent_vector)
+        denoised_images_by_random_cond = generate_from_coords_and_noised_image(
+            model, latent_vector_scrambled, noise_image, num_gpus=NUM_GPUS
+        )
+
+        # Do the same thing but with the conditioning vector retrieved from a
+        # randomly shuffled version of the brightfield image
+        # This is another negative control for the BF conditioning
+        img_scrambled = rng.permuted(conditioning_input_crop.ravel()).reshape(
+            conditioning_input_crop.shape
+        )
+        latent_vector_from_img_scrambled = get_latent_vector_from_crop(
+            model, img_scrambled, num_gpus=NUM_GPUS
+        )
+        denoised_images_by_random_cond_latent_scramble = generate_from_coords_and_noised_image(
+            model, latent_vector_from_img_scrambled, noise_image, num_gpus=NUM_GPUS
+        )
+
+        cond_crop_list.append(conditioning_input_crop.squeeze())
+        diffusion_input_crop_list.append(diffusion_input_crop.squeeze())
+        denoised_image_by_bf_cond_list.append(denoised_image_by_bf_cond.squeeze())
+        denoised_images_by_random_cond_list.append(denoised_images_by_random_cond.squeeze())
+        denoised_images_by_random_cond_latent_scramble_list.append(
+            denoised_images_by_random_cond_latent_scramble.squeeze()
+        )
+
+    # Contact-sheet build + save for the cdh5-conditioned panel A. The
+    # figure-styled build is shared with the brightfield schematic
+    # workflow via ``create_validation_examples_contact_sheet``.
+    scalebar_um = 20
+    fig = create_validation_examples_contact_sheet(
+        cond_crop_list,
+        diffusion_input_crop_list,
+        denoised_image_by_bf_cond_list,
+        denoised_images_by_random_cond_list,
+        denoised_images_by_random_cond_latent_scramble_list,
+        label_for_conditioning,
+        pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
+        figure_width=MAX_FIGURE_WIDTH,
+        scalebar_um=scalebar_um,
+        scalebar_location="lower right",
+    )
+
+    contact_sheet_name = f"Model_QC_Examples_scalebar{scalebar_um}"
+    save_plot_to_path(
+        fig,
+        output_path,
+        contact_sheet_name,
+        file_format=".svg",
+        pad_inches=0,
+        transparent=True,
+    )
+    panel_a_svg_path = output_path / f"{contact_sheet_name}.svg"
 
     # ------------------------------------------------------------------
     # Panel B: quantitative Rep-2 Pearson-correlation sweep across the
