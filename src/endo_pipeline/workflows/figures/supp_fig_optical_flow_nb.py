@@ -16,13 +16,13 @@ plotting helpers live in
 
 """
 
+# %%
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 
 from endo_pipeline.io import get_output_path
 from endo_pipeline.io.output import save_plot_to_path, slugify
 from endo_pipeline.library.analyze.optical_flow import compute_tvl1
-
-# %%
 from endo_pipeline.library.visualize.data_example_figures import (
     create_panel_retraction_fiber_blob_example,
 )
@@ -37,6 +37,8 @@ from endo_pipeline.library.visualize.supp_fig_optical_flow import (
     resolve_grid_crop,
 )
 from endo_pipeline.settings import DIFFAE_ZARR_RESOLUTION_LEVEL
+from endo_pipeline.settings.column_metadata import COLUMN_METADATA
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.examples import (
     SUPP_FIG_OPTICAL_FLOW_COHERENT_EXAMPLE,
     SUPP_FIG_OPTICAL_FLOW_INCOHERENT_EXAMPLE,
@@ -144,30 +146,43 @@ plt.close(fig)
 # %%
 # create and plot an example of the coherence data in theta, r, rho space
 # with the bin drawn around the fixed point
-example = "Coherent Example"
-dataset_name = picks[example].dataset_name
-coherence_example_fig_name = slugify(f"{dataset_name}_3D_scatter_{example}")
-make_example_migration_coherence(
-    dataset_name=dataset_name,
-    figure_size=migration_coherence_panel_size,
-    output_dir=output_dir,
-    fig_name=coherence_example_fig_name,
-)
-
-import matplotlib.pyplot as plt
+for label, example in picks.items():
+    dataset_name = example.dataset_name
+    coherence_example_fig_name = slugify(f"{dataset_name}_3D_scatter_{label}")
+    make_example_migration_coherence(
+        dataset_name=dataset_name,
+        figure_size=migration_coherence_panel_size,
+        output_dir=output_dir,
+        fig_name=coherence_example_fig_name,
+    )
 
 # %% Save standalone colorbar to go with TFE examples
-from matplotlib.colors import LinearSegmentedColormap
+of_metadata = COLUMN_METADATA[Column.OpticalFlow.UNIT_VECTOR_MEAN]
+
+if (
+    of_metadata.min is None
+    or of_metadata.max is None
+    or of_metadata.ticks is None
+    or of_metadata.label is None
+):
+    raise ValueError(
+        "UNIT_VECTOR_MEAN column metadata is missing required fields "
+        f"(min={of_metadata.min}, max={of_metadata.max}, ticks={of_metadata.ticks}, label={of_metadata.label})."
+    )
+
+vmin: float = float(of_metadata.min)
+vmax: float = float(of_metadata.max)
+ticks: list[float] = list(of_metadata.ticks)
+cbar_label: str = of_metadata.label
 
 cmap = LinearSegmentedColormap.from_list("cyan_magenta", ["cyan", "magenta"])
 fig_cb, ax_cb = plt.subplots(figsize=(1.6, 0.1), layout="constrained")
-norm = plt.Normalize(vmin=0, vmax=1)
+norm = plt.Normalize(vmin=vmin, vmax=vmax)
 sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
 sm.set_array([])
 cbar = fig_cb.colorbar(sm, cax=ax_cb, orientation="horizontal")
-cbar.set_ticks([0, 0.5, 1])
-cbar.set_ticklabels(["0", "0.5", "1"])
-cbar.set_label("Patch-based\nmigration coherence", fontsize=FONTSIZE_MEDIUM)
+cbar.set_ticks(ticks)
+cbar.set_label(cbar_label, fontsize=FONTSIZE_MEDIUM)
 save_plot_to_path(
     fig_cb,
     output_dir,
@@ -200,9 +215,17 @@ build_figure_from_panels(
         ),
         FigurePanel(
             letter="B",
-            path=output_dir / f"{coherence_example_fig_name}.svg",
+            path=output_dir / "20250409_20x_3d_scatter_coherent_example.svg",
             x_position=3.5,
             y_position=0,
+            x_offset=0,
+            y_offset=-0.3,
+        ),
+        FigurePanel(
+            letter="",
+            path=output_dir / "20251001_20x_3d_scatter_incoherent_example.svg",
+            x_position=3.5,
+            y_position=2.1,
             x_offset=0,
             y_offset=0,
         ),
@@ -210,7 +233,7 @@ build_figure_from_panels(
             letter="C",
             path=output_dir / "retraction_fiber_blob_example.svg",
             x_position=0,
-            y_position=3.6,
+            y_position=5,
             x_offset=0.1,
             y_offset=0.1,
         ),
@@ -218,7 +241,7 @@ build_figure_from_panels(
             letter="",
             path=output_dir / "colorbar_cyan_magenta_0_1.svg",
             x_position=0,
-            y_position=6.6,
+            y_position=3.8,
             x_offset=0,
             y_offset=0.1,
         ),

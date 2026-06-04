@@ -503,9 +503,10 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     Column.OpticalFlow.UNIT_VECTOR_MEAN: ColumnMetadata(
         name="Coherent migration (EMA 0.1, optical flow mean unit vector)",
         label="Patch-based\nmigration coherence",
-        min=0,
-        max=1,
+        min=0.25,
+        max=1.0,
         bin_width=0.02,
+        ticks=[0.25, 0.5, 0.75, 1],
         type=ColumnType.CONTINUOUS,
     ),
     Column.OpticalFlow.EMA02_UNIT_VECTOR_MEAN: ColumnMetadata(

@@ -140,14 +140,14 @@ def plot_optical_flow_composite(
     frame_t1: np.ndarray,
     *,
     title: str,
-    scale_bar_um: int = 10,
+    scale_bar_um: int = 20,
     pixel_size_um: float = PIXEL_SIZE_3i_20x_RESOLUTION_1,
 ) -> None:
-    """Render a magenta/green composite of two consecutive frames on ``ax``.
+    """Render a purple/green composite of two consecutive frames on ``ax``.
 
-    ``frame_t0`` is shown in magenta, ``frame_t1`` in green; pixels
-    bright in both appear white.  A scale bar is drawn in the lower-right
-    corner.  Both frames must be 2D and the same shape.
+    ``frame_t0`` is shown in purple, ``frame_t1`` in green; pixels
+    bright in both appear near-white.  A scale bar is drawn in the
+    lower-right corner.  Both frames must be 2D and the same shape.
     """
 
     def _norm(im: np.ndarray) -> np.ndarray:
@@ -157,7 +157,7 @@ def plot_optical_flow_composite(
     cy, cx = frame_t0.shape
     rgb = np.zeros((cy, cx, 3), dtype=np.float32)
     t0_norm = _norm(frame_t0)
-    rgb[..., 0] = t0_norm
+    rgb[..., 0] = 0.6 * t0_norm
     rgb[..., 1] = _norm(frame_t1)
     rgb[..., 2] = t0_norm
 
@@ -166,7 +166,7 @@ def plot_optical_flow_composite(
     ax.set_title(title, fontweight="bold", fontsize=FONTSIZE_MEDIUM)
     ax.legend(
         handles=[
-            Patch(facecolor="magenta", label="t"),
+            Patch(facecolor=(0.6, 0, 1), label="t"),
             Patch(facecolor="green", label="t+1"),
             Patch(facecolor="white", label="overlap"),
         ],

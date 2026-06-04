@@ -31,6 +31,7 @@ from endo_pipeline.library.analyze.numerics.fixed_points import (
 from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.library.visualize.fixed_points import StabilityLegendHandle
 from endo_pipeline.manifests.dataframe_manifest_io import load_dataframe_manifest
+from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
@@ -185,7 +186,7 @@ def plot_3d_scatter_or_binned(
     binned: bool = False,
     bin_size_xyz: tuple[float, float, float] = (MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,) * 3,
     cmap: str = MIGRATION_COHERENCE_COLORMAP,
-    vmin: float = 0,
+    vmin: float = 0.3,
     vmax: float = 1,
     figsize: tuple[float, float] = (8, 8),
 ) -> tuple[plt.Figure, Axes3D]:
@@ -252,6 +253,7 @@ def plot_3d_scatter_or_binned(
             vmax=vmax,
             alpha=0.6,
             zorder=1,
+            rasterized=True,
         )
         cbar_label = get_label_for_column(color_col).replace("\n", " ")
     else:
@@ -331,7 +333,24 @@ def plot_3d_scatter_or_binned(
     ax.set_ylabel(get_label_for_column(y_col), labelpad=2)
     ax.set_zlabel(get_label_for_column(z_col), rotation=0, labelpad=0)
 
-    fig.colorbar(sc, cax=cax, label=cbar_label)
+    # Apply ticks/tick_labels from column metadata when available
+    for axis, col in [("x", x_col), ("y", y_col), ("z", z_col)]:
+        if col in COLUMN_METADATA:
+            meta = COLUMN_METADATA[col]
+            if meta.ticks is not None:
+                ticks = list(meta.ticks)
+                getattr(ax, f"set_{axis}ticks")(ticks)
+                if meta.tick_labels is not None:
+                    getattr(ax, f"set_{axis}ticklabels")(meta.tick_labels, fontsize=FONTSIZE_XSMALL)
+
+    cbar = fig.colorbar(sc, cax=cax, label=cbar_label)
+
+    # Apply ticks from color_col metadata to the colorbar
+    if color_col in COLUMN_METADATA:
+        color_meta = COLUMN_METADATA[color_col]
+        if color_meta.ticks is not None:
+            cbar.set_ticks(list(color_meta.ticks))
+
     return fig, ax
 
 
@@ -535,7 +554,14 @@ def make_example_migration_coherence(
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid"], *feature_column_names]
 
     optical_flow_feature = Column.OpticalFlow.UNIT_VECTOR_MEAN
-    vmax = 1
+    of_metadata = COLUMN_METADATA[optical_flow_feature]
+    if of_metadata.min is None or of_metadata.max is None:
+        raise ValueError(
+            f"{optical_flow_feature} column metadata is missing required fields "
+            f"(min={of_metadata.min}, max={of_metadata.max})."
+        )
+    vmin: float = float(of_metadata.min)
+    vmax: float = float(of_metadata.max)
     fig_name = fig_name or f"{dataset_name}_3D_scatter_{optical_flow_feature}"
 
     # load dataframe and perform additional filtering (remove
@@ -586,11 +612,12 @@ def make_example_migration_coherence(
             df_fp=fixed_points_df,
             binned=False,
             vmax=vmax,
+            vmin=vmin,
             figsize=figure_size,
         )
         # draw cube around bin edges
         for e_xyz in edges:
             ax.plot(*list(zip(*e_xyz, strict=True)), ls="-", lw=1, c="black", alpha=0.6)
 
-        save_plot_to_path(fig, output_dir, fig_name, file_format=".svg")
+        save_plot_to_path(fig, output_dir, fig_name, file_format=".svg", transparent=True, dpi=300)
         plt.close(fig)

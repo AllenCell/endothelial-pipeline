@@ -412,8 +412,9 @@ def create_panel_retraction_fiber_blob_example(
             [np.zeros_like(gfp_max_proj), gfp_max_proj, np.zeros_like(gfp_max_proj)], axis=-1
         )
 
-        # create RGB merge: GFP in green channel, BF in red and blue channels (magenta)
-        merge = np.stack([bf_plane, gfp_max_proj, bf_plane], axis=-1)
+        # create RGB merge: BF as grayscale with GFP overlaid via max in green channel
+        g_channel = np.maximum(bf_plane, gfp_max_proj)
+        merge = np.stack([bf_plane, g_channel, bf_plane], axis=-1)
 
         gfp_panels.append(gfp_rgb)
         bf_panels.append(bf_plane)
