@@ -39,7 +39,7 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
     plot_drift_1d,
     plot_drift_contours,
 )
-from endo_pipeline.library.visualize.figure_utils import make_contact_sheet
+from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
@@ -61,6 +61,7 @@ from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_VMIN,
 )
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
+from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME
@@ -557,6 +558,20 @@ def reconstruct_along_nullcline(
         fig_kwargs={"figsize": (3.125, 1.3), "layout": "constrained"},
         gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
     )
+
+    # add scalebars to each panel, only label the top left one to avoid
+    # redundancy
+    for i, ax in enumerate(fig_null_walks.axes):
+        add_scalebar(
+            ax,
+            scale_bar_um=20,
+            pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
+            location="lower right",
+            bar_thickness=5,
+            padding=5,
+            include_label=True if i == 0 else False,
+            label_fontsize=FONTSIZE_XSMALL,
+        )
 
     # add a single outline box spanning both rows of the center column (stable
     # fixed point) in the stable fixed point color
