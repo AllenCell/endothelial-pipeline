@@ -18,7 +18,7 @@ from endo_pipeline.settings.figures import FIGURE_SAVE_DPI
 logger = logging.getLogger(__name__)
 
 
-def slugify(string: str) -> str:
+def slugify(*string: str) -> str:
     """
     Convert input string into a URL- and filename-friendly slug.
 
@@ -48,8 +48,11 @@ def slugify(string: str) -> str:
         Output slug.
     """
 
+    # Join with underscore in case multiple entries are provided
+    slug = "_".join(string)
+
     # Convert to lowercase and remove any leading or trailing whitespaces
-    slug = string.lower().strip()
+    slug = slug.lower().strip()
 
     # Only keep alphanumeric characters or underscores (\w), spaces (\w), and hyphens (-)
     slug = re.sub(r"[^\w\s-]", "", slug)
