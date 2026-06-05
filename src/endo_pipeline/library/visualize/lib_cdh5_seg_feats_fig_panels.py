@@ -400,6 +400,7 @@ def make_classic_feature_panels(dataset_name: str, out_dir: Path) -> dict[str, P
 
 def make_feature_contact_sheet(
     dataset_name: str,
+    positions: list[int] | None,
     features: list[ColumnNameType],
     ncols: int,
     out_dir: Path,
@@ -414,10 +415,14 @@ def make_feature_contact_sheet(
 
     Parameters
     ----------
-    datasets
-        List of dataset names to include as rows.
+    dataset_name
+        Name of the dataset to include as a row.
+    position
+        Position of the dataset in the grid. If None, the dataset will be added to the next available position.
     features
         List of feature column names to include as columns.
+    ncols
+        Number of columns in the grid.
     out_dir
         Output directory for the saved figure.
     figure_width
@@ -467,6 +472,11 @@ def make_feature_contact_sheet(
     dataset_config = load_dataset_config(dataset_name)
     df = _load_seg_feats_df(dataset_config, set(features))
 
+    if positions is None:
+        positions = sorted(df[Column.POSITION].unique())
+
+    df = df[df[Column.POSITION].isin(positions)]
+
     if dataset_config.time_interval_in_minutes is None:
         logger.warning(f"time_interval_in_minutes is not set for dataset '{dataset_name}'")
         raise ValueError(f"time_interval_in_minutes is required for dataset '{dataset_name}'")
@@ -478,14 +488,29 @@ def make_feature_contact_sheet(
         dataset_config.flow_conditions[0].start * dataset_config.time_interval_in_minutes / 60.0
     )
     imaging_start_time = -flow_start_time_hrs
-    steady_state_time_p0 = cast(
-        tuple[int, int],
-        dataset_config.timepoint_annotations[TimepointAnnotation.NOT_STEADY_STATE][0][0],
-    )
-    steady_state_time_shifted = (
-        steady_state_time_p0[1] * dataset_config.time_interval_in_minutes / 60.0
-        - flow_start_time_hrs
-    )
+    steady_state_times = [
+        cast(
+            tuple[int, int],
+            dataset_config.timepoint_annotations[TimepointAnnotation.NOT_STEADY_STATE][pos][0],
+        )
+        for pos in positions
+    ]
+    steady_state_times_shifted = [
+        (sst[1] * dataset_config.time_interval_in_minutes / 60.0 - flow_start_time_hrs)
+        for sst in steady_state_times
+    ]
+
+    piling_times = [
+        cast(
+            tuple[int, int],
+            dataset_config.timepoint_annotations[TimepointAnnotation.CELL_PILING][pos][0],
+        )
+        for pos in positions
+    ]
+    piling_times_shifted = [
+        (pt[0] * dataset_config.time_interval_in_minutes / 60.0 - flow_start_time_hrs)
+        for pt in piling_times
+    ]
 
     for (i, j), feat in np.ndenumerate(features_reshaped):
         ax = axes[i, j]
@@ -537,13 +562,22 @@ def make_feature_contact_sheet(
             linewidth=1,
             label="Start of imaging",
         )
-        ax.axvline(
-            steady_state_time_shifted,
-            color="darkturquoise",
-            linestyle="--",
-            linewidth=1,
-            label="Start of steady state",
-        )
+        for sst_shifted in steady_state_times_shifted:
+            ax.axvline(
+                sst_shifted,
+                color="darkturquoise",
+                linestyle="--",
+                linewidth=1,
+                label="Start of steady state",
+            )
+        for piling_time in piling_times_shifted:
+            ax.axvline(
+                piling_time,
+                color="red",
+                linestyle="--",
+                linewidth=1,
+                label="Start of cell piling",
+            )
 
         # Feature label at top of each column (first row only)
         if feat == "centroid_velocity_angle_deg":
@@ -579,8 +613,8 @@ def make_feature_contact_sheet(
         labels,
         fontsize=FONTSIZE_SMALL,
         loc="upper left",
-        bbox_to_anchor=(0.15, 1.02),
-        ncol=3,
+        bbox_to_anchor=(0.1, 1.02),
+        ncol=4,
         handletextpad=0.3,
         columnspacing=0.8,
         frameon=False,

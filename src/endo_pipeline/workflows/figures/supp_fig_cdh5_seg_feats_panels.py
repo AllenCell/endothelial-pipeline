@@ -59,6 +59,7 @@ def main() -> None:
     for dataset in datasets:
         classic_feat_fig_example_path = make_feature_contact_sheet(
             dataset_name=dataset,
+            positions=[0],
             features=features,
             ncols=3,
             out_dir=out_dir / "feature_contact_sheet",
