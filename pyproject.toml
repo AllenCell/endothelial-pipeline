@@ -61,7 +61,6 @@ dependencies = [
     "scikit-learn==1.5.1",
     "scipy==1.13.1",
     "seaborn>=0.13.2",
-    "sympy==1.13.1",
     "termcolor>=3.0.1",
     "threadpoolctl>=3.6.0",
     "tifffile>=2025.1.10",
