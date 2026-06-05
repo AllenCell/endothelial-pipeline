@@ -234,13 +234,16 @@ blinker==1.9.0 \
 boto3==1.37.1 \
     --hash=sha256:4320441f904435a1b85e6ecb81793192e522c737cc9ed6566014e29f0a11cb22 \
     --hash=sha256:96d18f7feb0c1fcb95f8837b74b6c8880e1b4e35ce5f8a8f8cb243a090c278ed
-    # via cyto-dl
+    # via
+    #   cyto-dl
+    #   endo-pipeline
 botocore==1.37.1 \
     --hash=sha256:b194db8fb2a0ffba53568c364ae26166e7eec0445496b2ac86a6e142f3dd982f \
     --hash=sha256:c1db1bfc5d8c6b3b6d1ca6794f605294b4264e82a7e727b88e0fef9c2b9fbb9c
     # via
     #   aiobotocore
     #   boto3
+    #   endo-pipeline
     #   s3transfer
 cachetools==5.5.2 \
     --hash=sha256:1a661caa9175d26759571b2e19580f9d6393969e5dfca11fdb1f947a23e640d4 \
@@ -458,6 +461,7 @@ dask==2025.4.0 \
     #   bioio-sldy
     #   bioio-tifffile
     #   distributed
+    #   endo-pipeline
     #   ngff-zarr
     #   ome-zarr
     #   resource-backed-dask-array
@@ -800,6 +804,7 @@ imageio==2.27.0 \
     # via
     #   bioio
     #   bioio-imageio
+    #   endo-pipeline
     #   scikit-image
 imageio-ffmpeg==0.6.0 \
     --hash=sha256:02fa47c83703c37df6bfe4896aab339013f62bf02c5ebf2dce6da56af04ffc0a \
@@ -1026,7 +1031,9 @@ lazy-loader==0.4 \
 lightning==2.3.3 \
     --hash=sha256:5b4950f20b5117f30aad7820709cfa56669567cf4ded93df502b3dee443a6a5d \
     --hash=sha256:7f454711895c1c6e455766f01fa39522e25e5ab54c15c5e5fbad342fa92bc93c
-    # via cyto-dl
+    # via
+    #   cyto-dl
+    #   endo-pipeline
 lightning-utilities==0.14.3 \
     --hash=sha256:37e2f83f273890052955a44054382c211a303012ee577619efbaa5df9e65e9f5 \
     --hash=sha256:4ab9066aa36cd7b93a05713808901909e96cc3f187ea6fd3052b2fd91313b468
@@ -1166,7 +1173,9 @@ mlflow-skinny==2.22.0 \
 monai==1.4.0 \
     --hash=sha256:2fff631dd78afc166ccbafb89d7dde06f3d3b287860fb6f2d6cddd6bcc72caa8 \
     --hash=sha256:a715ca9ff8a068e36efdd147420f0ff02ead744909e7ea0998f31129c4997c9b
-    # via cyto-dl
+    # via
+    #   cyto-dl
+    #   endo-pipeline
 mpmath==1.3.0 \
     --hash=sha256:7a28eb2a9774d00c7bc92411c19a89209d5da7c4c9a9e227be8330a23a25b91f \
     --hash=sha256:a0b2b9fe80bbcd81a6647ff13108738cfb482d481d826cc0e02f5b35e5c88d2c
@@ -1264,6 +1273,7 @@ networkx==3.4.2 \
     --hash=sha256:307c3669428c5362aab27c8a1260aa8f47c4e91d3891f48be0141738d8d053e1 \
     --hash=sha256:df5d4365b724cf81b8c6a7312509d0c22386097011ad1abe274afd5e9d3bbc5f
     # via
+    #   endo-pipeline
     #   scikit-image
     #   torch
 ngff-zarr==0.8.2 \
@@ -1445,6 +1455,7 @@ omegaconf==2.3.0 \
     --hash=sha256:d5d4b6d29955cc50ad50c46dc269bcd92c6e00f5f90d23ab5fee7bfca4ba4cc7
     # via
     #   cyto-dl
+    #   endo-pipeline
     #   hydra-core
 online-stats==2023.6 \
     --hash=sha256:5cf15b049fd6d1c2c93dd7ec31501c06922d93f7b16914a0c61ff6cf9068593a \
@@ -1728,6 +1739,7 @@ pydantic==2.11.3 \
     --hash=sha256:a082753436a07f9ba1289c6ffa01cd93db3548776088aa917cc43b63f68fa60f
     # via
     #   bioio-ome-tiff
+    #   endo-pipeline
     #   fastapi
     #   mlflow-skinny
     #   ome-types
@@ -1892,6 +1904,7 @@ pyyaml==6.0.2 \
     #   cyto-dl
     #   dask
     #   distributed
+    #   endo-pipeline
     #   huggingface-hub
     #   jupyter-events
     #   jupytext
@@ -1941,6 +1954,7 @@ requests==2.32.3 \
     #   colorizer-data
     #   databricks-sdk
     #   docker
+    #   endo-pipeline
     #   huggingface-hub
     #   jupyterlab-server
     #   mlflow-skinny
@@ -1973,6 +1987,7 @@ rich==14.0.0 \
     # via
     #   cyclopts
     #   cyto-dl
+    #   endo-pipeline
     #   ngff-zarr
     #   rich-rst
 rich-rst==1.3.1 \
@@ -2247,7 +2262,9 @@ terminado==0.18.1 \
 threadpoolctl==3.6.0 \
     --hash=sha256:43a0b8fd5a2928500110039e43a5eed8480b918967083ea48dc3ab9f13c4a7fb \
     --hash=sha256:8ab8b4aa3491d812b623328249fab5302a68d2d71745c8a4c719a2fcaba9f44e
-    # via scikit-learn
+    # via
+    #   endo-pipeline
+    #   scikit-learn
 tifffile==2025.1.10 \
     --hash=sha256:baaf0a3b87bf7ec375fa1537503353f70497eabe1bdde590f2e41cc0346e612f \
     --hash=sha256:ed24cf4c99fb13b4f5fb29f8a0d5605e60558c950bccbdca2a6470732a27cfb3
@@ -2257,6 +2274,7 @@ tifffile==2025.1.10 \
     #   bioio-tifffile
     #   cellpose
     #   cyto-dl
+    #   endo-pipeline
     #   scikit-image
 timm==1.0.15 \
     --hash=sha256:5a3dc460c24e322ecc7fd1f3e3eb112423ddee320cb059cc1956fbc9731748ef \
@@ -2311,6 +2329,7 @@ torchmetrics==1.7.1 \
     --hash=sha256:0ac1a0e90d2375866ceb5d3868720c6df7d7d0c5729b7ad36e92c897c6af70c2 \
     --hash=sha256:9a4c45edbd0a1844cc1540c9e71bfbe0ee783a2ed997344d947fefecac90dbb9
     # via
+    #   endo-pipeline
     #   lightning
     #   pytorch-lightning
 torchvision==0.15.2 \
