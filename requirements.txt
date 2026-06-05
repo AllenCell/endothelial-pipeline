@@ -370,30 +370,6 @@ coverage==7.8.0 \
     --hash=sha256:e75a2ad7b647fd8046d58c3132d7eaf31b12d8a53c0e4b21fa9c4d23d6ee6d3c \
     --hash=sha256:e7ac22a0bb2c7c49f441f7a6d46c9c80d96e56f5a8bc6972529ed43c8b694e27
     # via pytest-cov
-cramjam==2.10.0 \
-    --hash=sha256:1a200b74220dcd80c2bb99e3bfe1cdb1e4ed0f5c071959f4316abd65f9ef1e39 \
-    --hash=sha256:1e826469cfbb6dcd5b967591e52855073267835229674cfa3d327088805855da \
-    --hash=sha256:2c1eb6e6c3d5c1cc3f7c7f8a52e034340a3c454641f019687fa94077c05da5c2 \
-    --hash=sha256:2e419b65538786fc1f0cf776612262d4bf6c9449983d3fc0d0acfd86594fe551 \
-    --hash=sha256:3484f1595eef64cefed05804d7ec8a88695f89086c49b086634e44c16f3d4769 \
-    --hash=sha256:3596b6ceaf85f872c1e56295c6ec80bb15fdd71e7ed9e0e5c3e654563dcc40a2 \
-    --hash=sha256:38fba4594dd0e2b7423ef403039e63774086ebb0696d9060db20093f18a2f43e \
-    --hash=sha256:3e0b70fe7796b63b87cb7ebfaad0ebaca7574fdf177311952f74b8bda6522fb8 \
-    --hash=sha256:5b21b1672814ecce88f1da76635f0483d2d877d4cb8998db3692792f46279bf1 \
-    --hash=sha256:7699d61c712bc77907c48fe63a21fffa03c4dd70401e1d14e368af031fde7c21 \
-    --hash=sha256:91ab85752a08dc875a05742cfda0234d7a70fadda07dd0b0582cfe991911f332 \
-    --hash=sha256:9e20ebea6ec77232cd12e4084c8be6d03534dc5f3d027d365b32766beafce6c3 \
-    --hash=sha256:a04376601c8f9714fb3a6a0a1699b85aab665d9d952a2a31fb37cf70e1be1fba \
-    --hash=sha256:acef0e2c4d9f38428721a0ec878dee3fb73a35e640593d99c9803457dbb65214 \
-    --hash=sha256:adf484b06063134ae604d4fc826d942af7e751c9d0b2fcab5bf1058a8ebe242b \
-    --hash=sha256:b07fe3e48c881a75a11f722e1d5b052173b5e7c78b22518f659b8c9b4ac4c937 \
-    --hash=sha256:bf1321a40da930edeff418d561dfb03e6d59d5b8ab5cbab1c4b03ff0aa4c6d21 \
-    --hash=sha256:c6afff7e9da53afb8d11eae27a20ee5709e2943b39af6c949b38424d0f271569 \
-    --hash=sha256:d61a21e4153589bd53ffe71b553f93f2afbc8fb7baf63c91a83c933347473083 \
-    --hash=sha256:e1c03360c1760f8608dc5ce1ddd7e5491180765360cae8104b428d5f86fbe1b9 \
-    --hash=sha256:e821dd487384ae8004e977c3b13135ad6665ccf8c9874e68441cad1146e66d8a \
-    --hash=sha256:fb73ee9616e3efd2cf3857b019c66f9bf287bb47139ea48425850da2ae508670
-    # via fastparquet
 cycler==0.12.1 \
     --hash=sha256:85cef7cff222d8644161529808465972e51340599459b8ac3ccbac5a854e0d30 \
     --hash=sha256:88bb128f02ba341da8ef447245a9e138fae777f6a23943da4540077d3601eb1c
@@ -526,17 +502,6 @@ fastjsonschema==2.21.1 \
     --hash=sha256:794d4f0a58f848961ba16af7b9c85a3e88cd360df008c59aac6fc5ae9323b5d4 \
     --hash=sha256:c9e5b7e908310918cf494a434eeb31384dd84a98b57a30bcb1f535015b554667
     # via nbformat
-fastparquet==2024.11.0 \
-    --hash=sha256:053695c2f730b78a2d3925df7cd5c6444d6c1560076af907993361cc7accf3e2 \
-    --hash=sha256:0a52eecc6270ae15f0d51347c3f762703dd667ca486f127dc0a21e7e59856ae5 \
-    --hash=sha256:374cdfa745aa7d5188430528d5841cf823eb9ad16df72ad6dadd898ccccce3be \
-    --hash=sha256:4c8401bfd86cccaf0ab7c0ade58c91ae19317ff6092e1d4ad96c2178197d8124 \
-    --hash=sha256:6595d3771b3d587a31137e985f751b4d599d5c8e9af9c4858e373fdf5c3f8720 \
-    --hash=sha256:9a9387e77ac608d8978774caaf1e19de67eaa1386806e514dcb19f741b19cfe5 \
-    --hash=sha256:e29ff7a367fafa57c6896fb6abc84126e2466811aefd3e4ad4070b9e18820e54 \
-    --hash=sha256:e3b1fc73fd3e1b70b0de254bae7feb890436cb67e99458b88cb9bd3cc44db419 \
-    --hash=sha256:f9cca4c6b5969df5561c13786f9d116300db1ec22c7941e237cfca4ce602f59b
-    # via endo-pipeline
 fastremap==1.15.2 \
     --hash=sha256:34485d293d39a523bd9bc909eacfd38f115496042e81c779eaafbfcf3bc78975 \
     --hash=sha256:6ade21c529a5f9bc65548aff6085046e255a8d7e1445a3e198f530254aea2968 \
@@ -613,7 +578,6 @@ fsspec==2025.3.2 \
     #   bioio-sldy
     #   bioio-tifffile
     #   dask
-    #   fastparquet
     #   huggingface-hub
     #   lightning
     #   ome-zarr
@@ -1153,7 +1117,6 @@ numpy==1.26.4 \
     #   dask
     #   edt
     #   endo-pipeline
-    #   fastparquet
     #   fastremap
     #   h5py
     #   imagecodecs
@@ -1318,7 +1281,6 @@ packaging==24.2 \
     #   dask
     #   deptry
     #   distributed
-    #   fastparquet
     #   gunicorn
     #   huggingface-hub
     #   hydra-core
@@ -1353,7 +1315,6 @@ pandas==2.2.2 \
     #   colorizer-data
     #   cyto-dl
     #   endo-pipeline
-    #   fastparquet
     #   mlflow
     #   seaborn
     #   xarray
