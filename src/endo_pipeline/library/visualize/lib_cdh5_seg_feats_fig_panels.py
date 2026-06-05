@@ -3,6 +3,7 @@ import textwrap
 from pathlib import Path
 from typing import Literal, cast
 
+import colorcet as cc
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -11,7 +12,6 @@ from matplotlib.layout_engine import ConstrainedLayoutEngine
 from matplotlib.patches import Patch
 from matplotlib.ticker import ScalarFormatter
 from skimage.color import label2rgb
-from skimage.color.colorlabel import DEFAULT_COLORS
 from skimage.exposure import rescale_intensity
 from skimage.morphology import binary_dilation
 
@@ -55,6 +55,7 @@ logger = logging.getLogger(__name__)
 
 IMAGE_PANEL_SIZE = (3, 3)
 PLOT_PANEL_SIZE = (1.35, 1.35)
+
 X_START = CDH5_SEG_FIG_EXAMPLE.crop_x_start
 Y_START = CDH5_SEG_FIG_EXAMPLE.crop_y_start
 CROP_YX = (slice(Y_START, -Y_START), slice(X_START, -X_START))  # centered crop
@@ -144,6 +145,7 @@ def make_imaging_panels(
     image_dict["cdh5_segmentations_split_by_nuclei_borders"] = binary_dilation(
         image_dict["cdh5_segmentations_split_by_nuclei_borders"]
     )
+    image_dict["zeros"] = np.zeros_like(image_dict["cdh5_mip"])
 
     # Load the nuclei predictions image (this one is nuclei predictions only)
     nuc_manifest = load_image_manifest("nuclear_labelfree_seg_zarr")
@@ -188,46 +190,55 @@ def make_imaging_panels(
     image_dict = {chan_name: image.squeeze()[CROP_YX] for chan_name, image in image_dict.items()}
 
     # Define the panels to create
+    glasbey_cmap = cc.cm.glasbey
     panel_dict = {
         "cdh5_mip": {
             "images": ["cdh5_mip"],
             "colors": [(255, 255, 255)],
-            "colors_thumbnail": None,
+            "colors_thumbnail": "gray",
+            "colors_alpha": 0.7,
         },
         "cdh5_seg_initial": {
-            "images": ["cdh5_seg_initial"],
-            "colors": [(255, 255, 255)],
-            "colors_thumbnail": DEFAULT_COLORS,
+            "images": ["zeros", "cdh5_seg_initial"],
+            "colors": [(255, 255, 255), (255, 255, 255)],
+            "colors_thumbnail": glasbey_cmap.colors,
+            "colors_alpha": 1.0,
         },
         "bf_center_slice": {
             "images": ["bf_center"],
             "colors": [(255, 255, 255)],
-            "colors_thumbnail": None,
+            "colors_thumbnail": "gray",
+            "colors_alpha": 0.7,
         },
         "nuc_pred_overlay": {
             "images": ["bf_std", "nuc_pred"],
             "colors": [(255, 255, 255), (0, 255, 255)],
-            "colors_thumbnail": DEFAULT_COLORS,
+            "colors_thumbnail": glasbey_cmap.colors,
+            "colors_alpha": 0.7,
         },
         "cdh5_seg_merge_overlay": {
             "images": ["cdh5_mip", "cdh5_seg_merged"],
             "colors": [(255, 255, 255), (255, 0, 255)],
             "colors_thumbnail": ["magenta"],
+            "colors_alpha": 0.7,
         },
         "nuc_pred_cdh5_seg_overlay": {
             "images": ["cdh5_mip", "nuc_pred", "cdh5_seg_merged"],
             "colors": [(255, 255, 255), (0, 255, 255), (255, 0, 255)],
             "colors_thumbnail": ["cyan", "magenta"],
+            "colors_alpha": 0.7,
         },
         "seed_cdh5_seg_overlay": {
             "images": ["cdh5_mip", "seeds", "cdh5_seg_merged"],
             "colors": [(255, 255, 255), (0, 255, 255), (255, 0, 255)],
             "colors_thumbnail": ["cyan", "magenta"],
+            "colors_alpha": 0.7,
         },
         "cdh5_seg_final_overlay": {
             "images": ["cdh5_mip", "cdh5_segmentations_split_by_nuclei_borders"],
             "colors": [(255, 255, 255), (255, 255, 0)],
             "colors_thumbnail": ["yellow"],
+            "colors_alpha": 0.7,
         },
     }
 
@@ -235,8 +246,17 @@ def make_imaging_panels(
         panel_dict[f"cdh5_seg_final_overlay_{tf}"] = {
             "images": [f"cdh5_seg_split_{tf}"],
             "colors": [(255, 255, 255)],
-            "colors_thumbnail": DEFAULT_COLORS,
+            "colors_thumbnail": glasbey_cmap,
+            "colors_alpha": 0.7,
         }
+
+    # define insets for certain panels
+    inset_images = ["seed_cdh5_seg_overlay", "cdh5_seg_final_overlay"]
+    inset_x_start = 270
+    inset_x_stop = 600
+    inset_y_start = 110
+    inset_y_stop = 440
+    inset_YX = (slice(inset_x_start, inset_x_stop), slice(inset_y_start, inset_y_stop))
 
     for panel_name in panel_dict:
         image_name_list = list(panel_dict[panel_name]["images"])  # type: ignore[call-overload]
@@ -256,6 +276,14 @@ def make_imaging_panels(
             images_metadata=panel_metadata,
         )
 
+        # pixel sizes should be square, but just in case, check and raise error if not
+        if val_image.physical_pixel_sizes.X == val_image.physical_pixel_sizes.Y:
+            pixel_size_um = val_image.physical_pixel_sizes.X
+        else:
+            raise ValueError(
+                f"Pixel sizes are not square (X: {val_image.physical_pixel_sizes.X}, Y: {val_image.physical_pixel_sizes.Y})."
+            )
+
         # flatten multichannel images to single-channel overlays
         if len(panel) > 1:
             if len(panel) > 2:
@@ -271,14 +299,44 @@ def make_imaging_panels(
                 image=image,
                 bg_label=0,
                 colors=panel_dict[panel_name]["colors_thumbnail"],  # type: ignore[index]
-                alpha=0.5,
+                bg_color=None,
+                kind="overlay",
+                alpha=panel_dict[panel_name]["colors_alpha"],  # type: ignore[index]
             )
             plot_image_thumbnail(
                 image=panel_overlay,
                 image_name=f"{dataset_name}_P{position}_T{timeframe}_{panel_name}",
                 output_path=out_dir_thumb,
                 figsize=IMAGE_PANEL_SIZE,
+                scalebar_size_um=50,
+                pixel_size=pixel_size_um,
+                scalebar_location="lower right",
                 show_plot=False,
+            )
+
+            if panel_name in inset_images:
+                plot_image_thumbnail(
+                    image=panel_overlay[inset_YX],
+                    image_name=f"{dataset_name}_P{position}_T{timeframe}_{panel_name}_inset",
+                    output_path=out_dir_thumb,
+                    figsize=IMAGE_PANEL_SIZE,
+                    scalebar_size_um=50,
+                    pixel_size=pixel_size_um,
+                    scalebar_location="lower right",
+                    show_plot=False,
+                )
+
+        else:
+            plot_image_thumbnail(
+                image=panel[0],
+                image_name=f"{dataset_name}_P{position}_T{timeframe}_{panel_name}",
+                output_path=out_dir_thumb,
+                figsize=IMAGE_PANEL_SIZE,
+                scalebar_size_um=50,
+                pixel_size=pixel_size_um,
+                scalebar_location="lower right",
+                show_plot=False,
+                image_colormap=panel_dict[panel_name]["colors_thumbnail"],
             )
 
 

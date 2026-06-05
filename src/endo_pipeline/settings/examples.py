@@ -157,7 +157,7 @@ CDH5_SEG_FIG_EXAMPLE: ExampleImage = ExampleImage(
     dataset_name="20250818_20X",
     position=4,
     timepoint=0,
-    crop_x_start=500,
+    crop_x_start=516,
     crop_y_start=500,
     description="no flow center crop for CDH5 segmentation figure",
 )
