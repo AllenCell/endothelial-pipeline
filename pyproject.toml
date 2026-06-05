@@ -69,6 +69,7 @@ internal = [
 
 [dependency-groups]
 dev = [
+    "deptry>=0.25.1",
     "pre-commit>=3.7.1",
 ]
 lint = [
