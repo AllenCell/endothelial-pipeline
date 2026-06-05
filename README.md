@@ -63,24 +63,6 @@ If you are on the Allen Institute for Cell Science local network, you can load o
 uv sync --extra internal
 ```
 
-If you want to run ML workflows, install the optional `ml_workflows` dependency group.
-
-```bash
-uv sync --extra ml_workflows
-```
-
-If you want to run Cellpose workflows, install the optional `cellpose` dependency group.
-
-```bash
-uv sync --extra cellpose
-```
-
-To install multiple dependency groups, such as `ml_workflows` and `internal`:
-
-```bash
-uv sync --extra ml_workflows --extra internal
-```
-
 **4. Activate the virtual environment**
 
 Activate the virtual environment in the terminal:
