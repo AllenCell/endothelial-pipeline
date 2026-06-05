@@ -12,14 +12,14 @@ def main(
     #dynamical-systems #fixed-points #grid-based #cell-centered
 
     This workflow loads the bootstrap confidence interval (CI) dataframes
-    produced by `bootstrap-fixed-pointsr`, filters to fixed points
-    whose *ootstrap detection rate meets or exceeds `bootstrap_threshold`, and
-    plots their locations with per-coordinate confidence interval error bars.
+    produced by `bootstrap-fixed-points`, filters to fixed points whose
+    bootstrap detection rate meets or exceeds `bootstrap_threshold`, and plots
+    their locations with per-coordinate confidence interval error bars.
 
     Visualization outputs include:
 
-    - high-confidence fixed points in PC1 (polar angle) vs PC2 (polar radius)
-    - high-confidence fixed points in PC1 (polar angle) vs PC3 (PC3-flipped)
+    - high-confidence fixed points in \u03b8 (polar angle) vs \U0001d45f (polar radius)
+    - high-confidence fixed points in \u03b8 (polar angle) vs \u03c1 (polar radius)
     - fixed point comparison figure colored by dataset
 
     Fixed points are colored by stability classification (stable = blue circle,
