@@ -318,6 +318,10 @@ colorama==0.4.6 ; sys_platform == 'win32' \
     #   pytest
     #   sphinx
     #   tqdm
+colorcet==3.1.0 \
+    --hash=sha256:2921b3cd81a2288aaf2d63dbc0ce3c26dcd882e8c389cc505d6886bf7aa9a4eb \
+    --hash=sha256:2a7d59cc8d0f7938eeedd08aad3152b5319b4ba3bcb7a612398cc17a384cb296
+    # via endo-pipeline
 colorizer-data @ git+https://github.com/allen-cell-animated/colorizer-data.git@eea55fd36a84de3ed2e743feea6fecdcc986c27c
     # via endo-pipeline
 colorlog==6.9.0 \
