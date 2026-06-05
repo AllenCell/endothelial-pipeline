@@ -603,9 +603,6 @@ filelock==3.18.0 \
     #   torch
     #   triton
     #   virtualenv
-fipy==3.4.5 \
-    --hash=sha256:0c1c046186999d876de1ff9e555fe8788b0895d03bb67436b1d896181678018a
-    # via endo-pipeline
 fire==0.7.0 \
     --hash=sha256:961550f07936eaf65ad1dc8360f2b2bf8408fad46abbfa4d2a3794f8d2a95cdf
     # via
@@ -678,10 +675,6 @@ fsspec==2025.3.2 \
 furo==2024.8.6 \
     --hash=sha256:6cd97c58b47813d3619e63e9081169880fbe331f0ca883c871ff1f3f11814f5c \
     --hash=sha256:b63e4cee8abfc3136d3bc03a3d45a76a850bada4d6374d24c1716b0e01394a01
-future==1.0.0 \
-    --hash=sha256:929292d34f5872e70396626ef385ec22355a1fae8ad29e1a734c3e43f9fbc216 \
-    --hash=sha256:bd2968309307861edae1458a4f8a4f3598c03be43b97521076aebf5d94c07b05
-    # via fipy
 gitdb==4.0.12 \
     --hash=sha256:5ef71f855d191a3326fcfbc0d5da835f26b13fbcba60c32c21091c349ffdb571 \
     --hash=sha256:67073e15955400952c6565cc3e707c554a4eea2e428946f7a4c162fab9bd9bcf
@@ -1135,7 +1128,6 @@ matplotlib==3.10.1 \
     # via
     #   cyto-dl
     #   endo-pipeline
-    #   fipy
     #   mlflow
     #   seaborn
     #   types-seaborn
@@ -1346,7 +1338,6 @@ numpy==1.26.4 \
     #   endo-pipeline
     #   fastparquet
     #   fastremap
-    #   fipy
     #   h5py
     #   imagecodecs
     #   imageio
@@ -2110,7 +2101,6 @@ scipy==1.13.1 \
     #   anndata
     #   cellpose
     #   endo-pipeline
-    #   fipy
     #   mlflow
     #   numdifftools
     #   optuna
