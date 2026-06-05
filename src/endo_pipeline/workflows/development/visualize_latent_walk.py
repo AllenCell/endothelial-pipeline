@@ -39,8 +39,9 @@ def main(
     ## Selecting latent walk columns
 
     The columns to use for the latent walk may be specified with the `--along`
-    option. PCs can be selected using "pc_1", "pc_2", etc. The original latent
-    space dimensions can be selected using "feat_"1", "feat_2", etc.
+    option. By default, this workflow will run on the "polar_theta", "polar_r",
+    and "rho" columns. PCs can be selected using "pc_1", "pc_2", etc. Original
+    latent space dimensions can be selected using "feat_"1", "feat_2", etc.
 
     ```bash
     uv run endopipe visualize-latent-walk --along COLUMN_NAME COLUMN_NAME
@@ -65,7 +66,7 @@ def main(
     for the latent walk. For example, if sigma=2, the latent walk will traverse
     -2 to 2 standard deviations along the selected dimensions with `n_steps`
     steps. If not specified, the latent walk will traverse the full range of the
-    data in each dimension.
+    data in each dimension with `n_steps` steps.
 
     ## Workflow demo
 
