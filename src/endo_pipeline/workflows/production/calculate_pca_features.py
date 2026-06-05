@@ -96,9 +96,7 @@ def main(
 
     output_path = get_output_path(__file__)
 
-    dataset_names = datasets or get_datasets_in_collection(
-        "shear_stress"
-    ) + get_datasets_in_collection("perturbation")
+    dataset_names = datasets or get_datasets_in_collection("shear_stress", "perturbation")
 
     if DEMO_MODE:
         dataset_names = dataset_names[:1]

@@ -65,9 +65,7 @@ def main(
 
     # Get datasets if none specified
     if datasets is None:
-        datasets = get_datasets_in_collection("shear_stress") + get_datasets_in_collection(
-            "perturbation"
-        )
+        datasets = get_datasets_in_collection("shear_stress", "perturbation")
 
     # Demo mode: first dataset, first 10 timepoints
     if DEMO_MODE:

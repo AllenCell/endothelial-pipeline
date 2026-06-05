@@ -260,15 +260,16 @@ def save_dataset_collection_config(collection: DatasetCollectionConfig) -> None:
         raise
 
 
-def get_datasets_in_collection(collection_name: str, subset: list[str] | None = None) -> list[str]:
-    """Get list of dataset names in given collection."""
+def get_datasets_in_collection(*collection_names: str) -> list[str]:
+    """Get list of dataset names in given collection(s)."""
 
-    collection = load_dataset_collection_config(collection_name)
-    datasets = collection.datasets
+    datasets = []
 
-    # Optional filtering of dataset names based on provided subset. Only dataset
-    # names in both the collection and the subset are returned.
-    if subset is not None:
-        datasets = [name for name in datasets if name in subset]
+    for collection_name in collection_names:
+        collection = load_dataset_collection_config(collection_name)
+
+        # Check if dataset already exists in the list of datasets before adding.
+        # Using list comprehension instead of set to maintain order of datasets.
+        datasets.extend([dataset for dataset in collection.datasets if dataset not in datasets])
 
     return datasets
