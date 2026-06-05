@@ -391,7 +391,6 @@ dask==2025.4.0 \
     #   bioio-tifffile
     #   distributed
     #   endo-pipeline
-    #   ngff-zarr
     #   ome-zarr
     #   resource-backed-dask-array
 databricks-sdk==0.50.0 \
@@ -715,12 +714,6 @@ importlib-metadata==8.6.1 \
     #   dask
     #   mlflow-skinny
     #   opentelemetry-api
-importlib-resources==6.5.2 ; sys_platform != 'emscripten' \
-    --hash=sha256:185f87adef5bcc288449d98fb4fba07cea78bc036455dd44c5fc4a2fe78fed2c \
-    --hash=sha256:789cfdc3ed28c78b67a06acb8126751ced69a3d5f79c095a98298cd8a760ccec
-    # via
-    #   itkwasm-downsample-wasi
-    #   wasmtime
 iniconfig==2.1.0 \
     --hash=sha256:3abbd2e30b36733fee78f9c7f7308f2d0050e88f0087fd25c2645f63c773e1c7 \
     --hash=sha256:9deba5723312380e77435581c6bf4935c94cbfab9b1ed33ef8d238ea168eb760
@@ -736,26 +729,6 @@ ipython==8.36.0 \
 isort==5.13.2 \
     --hash=sha256:48fdfcb9face5d58a4f6dde2e72a1fb8dcaf8ab26f95ab49fab84c2ddefb0109 \
     --hash=sha256:8ca5e72a8d85860d5a3fa69b8745237f2939afe12dbf656afbcb47fe72d947a6
-itkwasm==1.0b171 \
-    --hash=sha256:6fb706d7046437873d5dc15f8ffaf9aa335ae1d181b78b8838954d30c4f1b0c8 \
-    --hash=sha256:c8a541b32474f17f6174cab8c8cca62b96d7c5a914f7ab67ad15bc3c947c8e93
-    # via
-    #   itkwasm-downsample
-    #   itkwasm-downsample-emscripten
-    #   itkwasm-downsample-wasi
-    #   ngff-zarr
-itkwasm-downsample==1.6.0 \
-    --hash=sha256:538517cf7d00c42febfa03a76d0cf94c73a791a3b75f8a8f6c1fb4fb0fa4a5a4 \
-    --hash=sha256:8c29f29c374cfc153891be89527a02a2db17287bc7f4c1337c572aa1512eb777
-    # via ngff-zarr
-itkwasm-downsample-emscripten==1.6.0 ; sys_platform == 'emscripten' \
-    --hash=sha256:69f993cc85b2a7dd30e30e333d93c4ea8986097b819acd5ff4aec785160e61fc \
-    --hash=sha256:c5ce54d5a4da105f1bc6624b74b644fa18f7abe540d6f25f93cbd312b16b9975
-    # via itkwasm-downsample
-itkwasm-downsample-wasi==1.6.0 ; sys_platform != 'emscripten' \
-    --hash=sha256:2bb373b10c1d602d05f3470a235142cb10b909833ad32e5800b2bc756c2cb54c \
-    --hash=sha256:de0b9ad163185984ddfaea06a13744bb254504b0b38dbde3ed1020e62a8705a7
-    # via itkwasm-downsample
 itsdangerous==2.2.0 \
     --hash=sha256:c6242fc49e35958c8b15141343aa660db5fc54d4f13a1db01a3f5891b98700ef \
     --hash=sha256:e0050c0b7da1eea53ffaf149c0cfbb5c6e2e2b69c4bef22c81fa6eb73e5f6173
@@ -1057,10 +1030,6 @@ networkx==3.4.2 \
     #   endo-pipeline
     #   scikit-image
     #   torch
-ngff-zarr==0.8.2 \
-    --hash=sha256:051ecb738d870cbd9aeed9b9803a8f05a7401050f0e820d404c923cfd22790d9 \
-    --hash=sha256:8954c41862861324f478ee16c043143aa7ba78584908772d3d485cbf67038082
-    # via endo-pipeline
 nodeenv==1.9.1 \
     --hash=sha256:6ec12890a2dab7946721edbfbcd91f3319c6ccc9aec47be7c7e6b7011ee6645f \
     --hash=sha256:ba11c9782d29c27c70ffbdda2d7415098754709be8a7056d79a737cd901155c9
@@ -1117,13 +1086,11 @@ numpy==1.26.4 \
     #   h5py
     #   imagecodecs
     #   imageio
-    #   itkwasm
     #   lightning
     #   matplotlib
     #   mlflow
     #   monai
     #   nd2
-    #   ngff-zarr
     #   numba
     #   numcodecs
     #   numdifftools
@@ -1370,9 +1337,7 @@ platformdirs==4.3.7 \
     --hash=sha256:eb437d586b6a0986388f0d6f74aa0cde27b48d0e3d66843640bfb6bdcdb6e351
     # via
     #   black
-    #   itkwasm
     #   jupyter-core
-    #   ngff-zarr
     #   virtualenv
 pluggy==1.5.0 \
     --hash=sha256:2cffa88e94fdc978c4c574f15f9e59b7f4201d439195c3715ca9e2486f1d0cf1 \
@@ -1437,7 +1402,6 @@ psutil==7.0.0 \
     #   distributed
     #   imageio
     #   ipykernel
-    #   ngff-zarr
 ptyprocess==0.7.0 ; sys_platform != 'emscripten' and sys_platform != 'win32' \
     --hash=sha256:4b41f3967fce3af57cc7e94b888626c18bf37a083e3651ca8feeb66d492fef35 \
     --hash=sha256:5c5d0a3b48ceee0b48485e0c26037c0acd7d29765ca3fbb5cb3831d347423220
@@ -1697,7 +1661,6 @@ rich==14.0.0 \
     #   cyclopts
     #   cyto-dl
     #   endo-pipeline
-    #   ngff-zarr
     #   rich-rst
 rich-rst==1.3.1 \
     --hash=sha256:498a74e3896507ab04492d326e794c3ef76e7cda078703aa592d1853d91098c1 \
@@ -2100,14 +2063,12 @@ typing-extensions==4.13.2 \
     #   graphene
     #   huggingface-hub
     #   ipython
-    #   itkwasm
     #   lightning
     #   lightning-utilities
     #   mashumaro
     #   mlflow-skinny
     #   mypy
     #   nd2
-    #   ngff-zarr
     #   opentelemetry-sdk
     #   pydantic
     #   pydantic-core
@@ -2168,14 +2129,6 @@ waitress==3.0.2 ; sys_platform == 'win32' \
     --hash=sha256:682aaaf2af0c44ada4abfb70ded36393f0e307f4ab9456a215ce0020baefc31f \
     --hash=sha256:c56d67fd6e87c2ee598b76abdd4e96cfad1f24cacdea5078d382b1f9d7b5ed2e
     # via mlflow
-wasmtime==21.0.0 ; sys_platform != 'emscripten' \
-    --hash=sha256:00f929d0caf58a69890df00888f9da12c2aa3ed5af4c8b7b2dca96a4996da731 \
-    --hash=sha256:3e245a5c03c1de46cdafcd98da6daa381cadd7bd41aae70d8bef4c8c0ea51798 \
-    --hash=sha256:4b242b065922f65cd40d8cedb3f19269423f28d7955567fe2daca03a44c03446 \
-    --hash=sha256:6587515be9603f8bb0732f3b508d2034f21d407fd55879c4402032e40e1ddae6 \
-    --hash=sha256:9b7ee9bb6c14586974d34c92bb7f0723161067769233c5dd8ea99c233759b48d \
-    --hash=sha256:b10b6ec13fa04fc1d81a4f9b2d244938c67710e9279011e53397bfa071b85b3f
-    # via itkwasm
 wcwidth==0.2.13 \
     --hash=sha256:3da69048e4540d84af32131829ff948f1e022c1c6bdb8d6102117aac784f6859 \
     --hash=sha256:72ea0c06399eb286d978fdedb6923a9eb47e1c486ce63e9b4e64fc18303972b5
@@ -2267,7 +2220,6 @@ zarr==2.18.3 \
     #   bioio-ome-tiff
     #   bioio-ome-zarr
     #   bioio-tifffile
-    #   ngff-zarr
     #   ome-zarr
     #   ome-zarr-models
     #   pydantic-zarr

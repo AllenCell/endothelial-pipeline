@@ -1143,7 +1143,6 @@ dependencies = [
     { name = "mlflow" },
     { name = "monai" },
     { name = "networkx" },
-    { name = "ngff-zarr" },
     { name = "numdifftools" },
     { name = "numpy" },
     { name = "odrpack" },
@@ -1238,7 +1237,6 @@ requires-dist = [
     { name = "mlflow", specifier = ">=2.21.2" },
     { name = "monai", specifier = ">=1.4.0" },
     { name = "networkx", specifier = ">=3.4.2" },
-    { name = "ngff-zarr", specifier = "==0.8.2" },
     { name = "numdifftools", specifier = "==0.9.41" },
     { name = "numpy", specifier = ">=1.2.3" },
     { name = "odrpack", specifier = ">=0.5.0" },
@@ -1762,15 +1760,6 @@ wheels = [
 ]
 
 [[package]]
-name = "importlib-resources"
-version = "6.5.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/cf/8c/f834fbf984f691b4f7ff60f50b514cc3de5cc08abfc3295564dd89c5e2e7/importlib_resources-6.5.2.tar.gz", hash = "sha256:185f87adef5bcc288449d98fb4fba07cea78bc036455dd44c5fc4a2fe78fed2c", size = 44693, upload-time = "2025-01-03T18:51:56.698Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a4/ed/1f1afb2e9e7f38a545d628f864d562a5ae64fe6f7a10e28ffb9b185b4e89/importlib_resources-6.5.2-py3-none-any.whl", hash = "sha256:789cfdc3ed28c78b67a06acb8126751ced69a3d5f79c095a98298cd8a760ccec", size = 37461, upload-time = "2025-01-03T18:51:54.306Z" },
-]
-
-[[package]]
 name = "iniconfig"
 version = "2.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1831,60 +1820,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/87/f9/c1eb8635a24e87ade2efce21e3ce8cd6b8630bb685ddc9cdaca1349b2eb5/isort-5.13.2.tar.gz", hash = "sha256:48fdfcb9face5d58a4f6dde2e72a1fb8dcaf8ab26f95ab49fab84c2ddefb0109", size = 175303, upload-time = "2023-12-13T20:37:26.124Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d1/b3/8def84f539e7d2289a02f0524b944b15d7c75dab7628bedf1c4f0992029c/isort-5.13.2-py3-none-any.whl", hash = "sha256:8ca5e72a8d85860d5a3fa69b8745237f2939afe12dbf656afbcb47fe72d947a6", size = 92310, upload-time = "2023-12-13T20:37:23.244Z" },
-]
-
-[[package]]
-name = "itkwasm"
-version = "1.0b171"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "numpy" },
-    { name = "platformdirs", marker = "sys_platform != 'emscripten'" },
-    { name = "typing-extensions" },
-    { name = "wasmtime", marker = "sys_platform != 'emscripten'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/2e/86/2d89f8a91a7669423839ad9dca4b90b6ddf7574562ad5156c5e7c8c7f709/itkwasm-1.0b171.tar.gz", hash = "sha256:c8a541b32474f17f6174cab8c8cca62b96d7c5a914f7ab67ad15bc3c947c8e93", size = 1937642, upload-time = "2024-04-03T14:34:36.899Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/00/eb/06bf1229d170a2676d74e1d442ae41e2ec66216f52054de919d982e44f3f/itkwasm-1.0b171-py3-none-any.whl", hash = "sha256:6fb706d7046437873d5dc15f8ffaf9aa335ae1d181b78b8838954d30c4f1b0c8", size = 26569, upload-time = "2024-04-03T14:34:35.467Z" },
-]
-
-[[package]]
-name = "itkwasm-downsample"
-version = "1.6.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "itkwasm" },
-    { name = "itkwasm-downsample-emscripten", marker = "sys_platform == 'emscripten'" },
-    { name = "itkwasm-downsample-wasi", marker = "sys_platform != 'emscripten'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/e3/75/2f7f8283ce78436090199b220b0c37c246a47f569f851594e38271747ade/itkwasm_downsample-1.6.0.tar.gz", hash = "sha256:8c29f29c374cfc153891be89527a02a2db17287bc7f4c1337c572aa1512eb777", size = 13694, upload-time = "2025-02-24T16:28:01.687Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/45/d1/662d1b0feb8bcf29e3ff0296c6676d22a2dac00a8e0bdb616cef3970e872/itkwasm_downsample-1.6.0-py3-none-any.whl", hash = "sha256:538517cf7d00c42febfa03a76d0cf94c73a791a3b75f8a8f6c1fb4fb0fa4a5a4", size = 7671, upload-time = "2025-02-24T16:28:00.131Z" },
-]
-
-[[package]]
-name = "itkwasm-downsample-emscripten"
-version = "1.6.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "itkwasm", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/a3/63/1e687e250f921bbd20d20b63805b9fa577ac42c865a97fea80bf818ce471/itkwasm_downsample_emscripten-1.6.0.tar.gz", hash = "sha256:69f993cc85b2a7dd30e30e333d93c4ea8986097b819acd5ff4aec785160e61fc", size = 118687, upload-time = "2025-02-24T16:27:18.57Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/19/fe/bb46a802266c86319272c692e19f52db53321775d14cc50cb9b404c94572/itkwasm_downsample_emscripten-1.6.0-py3-none-any.whl", hash = "sha256:c5ce54d5a4da105f1bc6624b74b644fa18f7abe540d6f25f93cbd312b16b9975", size = 120804, upload-time = "2025-02-24T16:27:17.472Z" },
-]
-
-[[package]]
-name = "itkwasm-downsample-wasi"
-version = "1.6.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "importlib-resources" },
-    { name = "itkwasm" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/f5/a5/dba45100bcd9b1cfcf828c0550ed02f067ab29b7e453dd96e21009d139f6/itkwasm_downsample_wasi-1.6.0.tar.gz", hash = "sha256:2bb373b10c1d602d05f3470a235142cb10b909833ad32e5800b2bc756c2cb54c", size = 5713853, upload-time = "2025-02-24T16:26:32.461Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/62/4d/b3138af55cbaaf0d5632af4c80b72733fbee590b706978dd1379808fdf7f/itkwasm_downsample_wasi-1.6.0-py3-none-any.whl", hash = "sha256:de0b9ad163185984ddfaea06a13744bb254504b0b38dbde3ed1020e62a8705a7", size = 5762544, upload-time = "2025-02-24T16:26:34.663Z" },
 ]
 
 [[package]]
@@ -2541,26 +2476,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/fd/1d/06475e1cd5264c0b870ea2cc6fdb3e37177c1e565c43f56ff17a10e3937f/networkx-3.4.2.tar.gz", hash = "sha256:307c3669428c5362aab27c8a1260aa8f47c4e91d3891f48be0141738d8d053e1", size = 2151368, upload-time = "2024-10-21T12:39:38.695Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b9/54/dd730b32ea14ea797530a4479b2ed46a6fb250f682a9cfb997e968bf0261/networkx-3.4.2-py3-none-any.whl", hash = "sha256:df5d4365b724cf81b8c6a7312509d0c22386097011ad1abe274afd5e9d3bbc5f", size = 1723263, upload-time = "2024-10-21T12:39:36.247Z" },
-]
-
-[[package]]
-name = "ngff-zarr"
-version = "0.8.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "dask", extra = ["array"] },
-    { name = "itkwasm" },
-    { name = "itkwasm-downsample" },
-    { name = "numpy" },
-    { name = "platformdirs" },
-    { name = "psutil", marker = "sys_platform != 'emscripten'" },
-    { name = "rich" },
-    { name = "typing-extensions" },
-    { name = "zarr" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/9e/74/cdad3114d9242e60d8b145e6eae12d6aff536f85ab9870e6b69709688ce0/ngff_zarr-0.8.2.tar.gz", hash = "sha256:051ecb738d870cbd9aeed9b9803a8f05a7401050f0e820d404c923cfd22790d9", size = 47345, upload-time = "2024-04-18T21:58:48.847Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/80/69/630c119e380e09ebf101c0d26b1a2e071279b9134ecf0648baed8d391b43/ngff_zarr-0.8.2-py3-none-any.whl", hash = "sha256:8954c41862861324f478ee16c043143aa7ba78584908772d3d485cbf67038082", size = 38492, upload-time = "2024-04-18T21:58:50.867Z" },
 ]
 
 [[package]]
@@ -4554,22 +4469,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/bf/cb/04ddb054f45faa306a230769e868c28b8065ea196891f09004ebace5b184/waitress-3.0.2.tar.gz", hash = "sha256:682aaaf2af0c44ada4abfb70ded36393f0e307f4ab9456a215ce0020baefc31f", size = 179901, upload-time = "2024-11-16T20:02:35.195Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8d/57/a27182528c90ef38d82b636a11f606b0cbb0e17588ed205435f8affe3368/waitress-3.0.2-py3-none-any.whl", hash = "sha256:c56d67fd6e87c2ee598b76abdd4e96cfad1f24cacdea5078d382b1f9d7b5ed2e", size = 56232, upload-time = "2024-11-16T20:02:33.858Z" },
-]
-
-[[package]]
-name = "wasmtime"
-version = "21.0.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "importlib-resources" },
-]
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ba/8e/435678b32fed18b10e9ae2d4d5be23e093223db59c663f7bf9dd7b3754e7/wasmtime-21.0.0-py3-none-any.whl", hash = "sha256:9b7ee9bb6c14586974d34c92bb7f0723161067769233c5dd8ea99c233759b48d", size = 4387785, upload-time = "2024-05-20T20:37:13.638Z" },
-    { url = "https://files.pythonhosted.org/packages/2e/9e/f0c9b3ba3c2e5a1fc2cae03873fb26aac6fe3e08a32329306ba401891512/wasmtime-21.0.0-py3-none-macosx_10_13_x86_64.whl", hash = "sha256:b10b6ec13fa04fc1d81a4f9b2d244938c67710e9279011e53397bfa071b85b3f", size = 5084480, upload-time = "2024-05-20T20:37:16.425Z" },
-    { url = "https://files.pythonhosted.org/packages/92/72/55a980c7a46c518544f56b9d33902ed08149f08b9cfd3098825d092a0ded/wasmtime-21.0.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:3e245a5c03c1de46cdafcd98da6daa381cadd7bd41aae70d8bef4c8c0ea51798", size = 4684271, upload-time = "2024-05-20T20:37:19.124Z" },
-    { url = "https://files.pythonhosted.org/packages/15/59/a81d1b029048dd5f3fe0c957032c54584f3a040a85c99cb79ccc7d0a1f53/wasmtime-21.0.0-py3-none-manylinux1_x86_64.whl", hash = "sha256:6587515be9603f8bb0732f3b508d2034f21d407fd55879c4402032e40e1ddae6", size = 5445920, upload-time = "2024-05-20T20:37:21.355Z" },
-    { url = "https://files.pythonhosted.org/packages/3b/9b/bce3efea2fb58749445da8e821dab7964a7bd28b9f5e3be9da2c9f79d08c/wasmtime-21.0.0-py3-none-manylinux2014_aarch64.whl", hash = "sha256:4b242b065922f65cd40d8cedb3f19269423f28d7955567fe2daca03a44c03446", size = 5378981, upload-time = "2024-05-20T20:37:24.145Z" },
-    { url = "https://files.pythonhosted.org/packages/36/4a/34072d748baa377f1ce37f9b3eb4a31dc5688e406ca60c022bd6c5d3199f/wasmtime-21.0.0-py3-none-win_amd64.whl", hash = "sha256:00f929d0caf58a69890df00888f9da12c2aa3ed5af4c8b7b2dca96a4996da731", size = 4387795, upload-time = "2024-05-20T20:37:26.105Z" },
 ]
 
 [[package]]
