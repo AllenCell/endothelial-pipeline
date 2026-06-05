@@ -140,7 +140,6 @@ bioio-base==1.0.7 \
     #   bioio
     #   bioio-czi
     #   bioio-imageio
-    #   bioio-nd2
     #   bioio-ome-tiff
     #   bioio-ome-zarr
     #   bioio-sldy
@@ -154,10 +153,6 @@ bioio-czi==2.1.0 \
 bioio-imageio==1.1.0 \
     --hash=sha256:a6a5713dbd5e514b3ea51fa6c873c0089294e70a37394bb66732b87c62fbe6c3 \
     --hash=sha256:f72a8b8354f7a01036311217073b1be16d2604e60aa8da4d4c6a1d8f8b546e15
-    # via endo-pipeline
-bioio-nd2==1.1.0 \
-    --hash=sha256:c05b75fa4df1c1e3c03dab02ffde438b7110fe0faa33ee26e88bf96c932d4378 \
-    --hash=sha256:eddcee6b345c03b304562fe18e9738087efcf425da2a4891e603d38bf282de68
     # via endo-pipeline
 bioio-ome-tiff==1.1.0 \
     --hash=sha256:c25b88d77e169c19a275a5b376fcf772315395f7c37b732dc0c19c9190bd0b4d \
@@ -385,14 +380,12 @@ dask==2025.4.0 \
     #   bioio-base
     #   bioio-czi
     #   bioio-imageio
-    #   bioio-nd2
     #   bioio-ome-tiff
     #   bioio-sldy
     #   bioio-tifffile
     #   distributed
     #   endo-pipeline
     #   ome-zarr
-    #   resource-backed-dask-array
 databricks-sdk==0.50.0 \
     --hash=sha256:485a604389fad7e9e26c7c4aeeebab3f486e7740c3f54ed64a13cbec1adbd0c0 \
     --hash=sha256:fa4c0b2a549d660a71432702da23197860c6f6d72320f326f8007257496a0a0a
@@ -567,7 +560,6 @@ fsspec==2025.3.2 \
     #   bioio-base
     #   bioio-czi
     #   bioio-imageio
-    #   bioio-nd2
     #   bioio-ome-tiff
     #   bioio-ome-zarr
     #   bioio-sldy
@@ -685,7 +677,6 @@ imagecodecs==2025.3.30 \
     #   bioio-ome-tiff
     #   bioio-tifffile
     #   cellpose
-    #   nd2
 imageio==2.27.0 \
     --hash=sha256:24c6ad7d000e64eacc2861c402b6fb128f370cb0a6623cf796d83bca0d0d14d3 \
     --hash=sha256:ee269c957785ef0373cc7a7323185956d83ec05e6cdf20b42a03ba7b74ac58c6
@@ -1015,10 +1006,6 @@ nbformat==5.10.4 \
     --hash=sha256:322168b14f937a5d11362988ecac2a4952d3d8e3a2cbeb2319584631226d5b3a \
     --hash=sha256:3b48d6c8fbca4b299bf3982ea7db1af21580e4fec269ad087b9e81588891200b
     # via jupytext
-nd2==0.10.3 \
-    --hash=sha256:2511751320cb336603ca98dcf92b35620fd4d5e8e66c94bfe82732fc0995d643 \
-    --hash=sha256:67f3f057eb8d8ea089d0313b112792f4a733d2760538c19f98b424fb04126603
-    # via bioio-nd2
 nest-asyncio==1.6.0 \
     --hash=sha256:6f172d5449aca15afd6c646851f4e31e02c598d553a667e38cafa997cfec55fe \
     --hash=sha256:87af6efd6b5e897c81050477ef65c62e2b2f35d51703cae01aff2905b1852e1c
@@ -1070,7 +1057,6 @@ numpy==1.26.4 \
     #   bioio
     #   bioio-base
     #   bioio-imageio
-    #   bioio-nd2
     #   bioio-ome-tiff
     #   bioio-sldy
     #   bioio-tifffile
@@ -1090,7 +1076,6 @@ numpy==1.26.4 \
     #   matplotlib
     #   mlflow
     #   monai
-    #   nd2
     #   numba
     #   numcodecs
     #   numdifftools
@@ -1172,7 +1157,6 @@ ome-types==0.6.1 \
     #   bioio-base
     #   bioio-czi
     #   bioio-ome-tiff
-    #   nd2
 ome-zarr==0.11.1 \
     --hash=sha256:e8ffc93de78558be990ed3b1b2b186b97ca0c7eb2cb460a7cffb861f4f13a8f1 \
     --hash=sha256:f178e336412eaefdb74172b280095cd9bd497bfeb235c1b1c2b0965c21aa1af0
@@ -1587,7 +1571,6 @@ pyyaml==6.0.2 \
     --hash=sha256:ff3824dc5261f50c9b0dfb3be22b4567a6f938ccce4587b38952d85fd9e9afe4
     # via
     #   astropy
-    #   bioio-nd2
     #   bioio-ome-tiff
     #   bioio-sldy
     #   cliff
@@ -1650,10 +1633,6 @@ requirements-parser==0.13.0 \
     --hash=sha256:0843119ca2cb2331de4eb31b10d70462e39ace698fd660a915c247d2301a4418 \
     --hash=sha256:2b3173faecf19ec5501971b7222d38f04cb45bb9d87d0ad629ca71e2e62ded14
     # via deptry
-resource-backed-dask-array==0.1.0 \
-    --hash=sha256:8fabcccf5c7e29059b5badd6786dd7675a258a203c58babf10077d9c90ada54f \
-    --hash=sha256:ec457fa72d81f0340a67ea6557a5a5919323a11cccc978a950df29fa69fe5679
-    # via nd2
 rich==14.0.0 \
     --hash=sha256:1c9491e1951aac09caffd42f448ee3d04e58923ffe14993f6e83068dc395d7e0 \
     --hash=sha256:82f1bc23a6a21ebca4ae0c45af9bdbc492ed20231dcb63f297d6d1021a9d5725
@@ -2068,7 +2047,6 @@ typing-extensions==4.13.2 \
     #   mashumaro
     #   mlflow-skinny
     #   mypy
-    #   nd2
     #   opentelemetry-sdk
     #   pydantic
     #   pydantic-core
@@ -2076,7 +2054,6 @@ typing-extensions==4.13.2 \
     #   pydantic-zarr
     #   pytorch-lightning
     #   referencing
-    #   resource-backed-dask-array
     #   sqlalchemy
     #   torch
     #   typing-inspect
@@ -2174,7 +2151,6 @@ xarray==2025.3.1 \
     #   bioio-base
     #   bioio-czi
     #   bioio-imageio
-    #   bioio-nd2
     #   bioio-ome-tiff
     #   bioio-ome-zarr
     #   bioio-sldy

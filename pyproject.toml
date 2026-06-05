@@ -15,7 +15,6 @@ authors = [
 dependencies = [
     "bioio-base>=1.0.5",
     "bioio-imageio>=1.1.0",
-    "bioio-nd2>=1.0.1",
     "bioio-ome-tiff>=1.0.1",
     "bioio-ome-zarr>=1.1.1",
     "bioio-sldy>=1.0.3",

@@ -388,24 +388,6 @@ wheels = [
 ]
 
 [[package]]
-name = "bioio-nd2"
-version = "1.1.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "bioio-base" },
-    { name = "dask", extra = ["array"] },
-    { name = "fsspec" },
-    { name = "nd2", extra = ["legacy"] },
-    { name = "numpy" },
-    { name = "pyyaml" },
-    { name = "xarray" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/5f/b8/e974a7bdfc63b9246683c86d8a6b908b7992b5637be8f10465808138493e/bioio_nd2-1.1.0.tar.gz", hash = "sha256:eddcee6b345c03b304562fe18e9738087efcf425da2a4891e603d38bf282de68", size = 18355, upload-time = "2025-04-18T20:13:53.018Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/3d/d1/fe92e2c418d7fa9cc05a1eb6d0969fe5c706f830a27133b41e0fc08da1d0/bioio_nd2-1.1.0-py3-none-any.whl", hash = "sha256:c05b75fa4df1c1e3c03dab02ffde438b7110fe0faa33ee26e88bf96c932d4378", size = 12079, upload-time = "2025-04-18T20:13:50.674Z" },
-]
-
-[[package]]
 name = "bioio-ome-tiff"
 version = "1.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1120,7 +1102,6 @@ dependencies = [
     { name = "bioio" },
     { name = "bioio-base" },
     { name = "bioio-imageio" },
-    { name = "bioio-nd2" },
     { name = "bioio-ome-tiff" },
     { name = "bioio-ome-zarr" },
     { name = "bioio-sldy" },
@@ -1214,7 +1195,6 @@ requires-dist = [
     { name = "bioio", specifier = ">=1.4.0" },
     { name = "bioio-base", specifier = ">=1.0.5" },
     { name = "bioio-imageio", specifier = ">=1.1.0" },
-    { name = "bioio-nd2", specifier = ">=1.0.1" },
     { name = "bioio-ome-tiff", specifier = ">=1.0.1" },
     { name = "bioio-ome-zarr", specifier = ">=1.1.1" },
     { name = "bioio-sldy", specifier = ">=1.0.3" },
@@ -2441,26 +2421,6 @@ wheels = [
 ]
 
 [[package]]
-name = "nd2"
-version = "0.10.3"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "numpy" },
-    { name = "ome-types" },
-    { name = "resource-backed-dask-array" },
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/01/7d/8d8dfe95f18a1574b681f6282f6b27abf3f8ac5671e9afb8203f62791cae/nd2-0.10.3.tar.gz", hash = "sha256:2511751320cb336603ca98dcf92b35620fd4d5e8e66c94bfe82732fc0995d643", size = 857448, upload-time = "2025-04-16T21:09:29.144Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/f6/b9/81c0e71913de74c58f9793acdb26ac450ec2ac24aed3a5e18363a2ee537e/nd2-0.10.3-py3-none-any.whl", hash = "sha256:67f3f057eb8d8ea089d0313b112792f4a733d2760538c19f98b424fb04126603", size = 83553, upload-time = "2025-04-16T21:09:26.99Z" },
-]
-
-[package.optional-dependencies]
-legacy = [
-    { name = "imagecodecs" },
-]
-
-[[package]]
 name = "nest-asyncio"
 version = "1.6.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3558,19 +3518,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/95/96/fb6dbfebb524d5601d359a47c78fe7ba1eef90fc4096404aa60c9a906fbb/requirements_parser-0.13.0.tar.gz", hash = "sha256:0843119ca2cb2331de4eb31b10d70462e39ace698fd660a915c247d2301a4418", size = 22630, upload-time = "2025-05-21T13:42:05.464Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/bd/60/50fbb6ffb35f733654466f1a90d162bcbea358adc3b0871339254fbc37b2/requirements_parser-0.13.0-py3-none-any.whl", hash = "sha256:2b3173faecf19ec5501971b7222d38f04cb45bb9d87d0ad629ca71e2e62ded14", size = 14782, upload-time = "2025-05-21T13:42:04.007Z" },
-]
-
-[[package]]
-name = "resource-backed-dask-array"
-version = "0.1.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "dask", extra = ["array"] },
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/62/80/b8952048ae1772d33b95dbf7d7107cf364c037cc229a2690fc8fa9ee8e48/resource_backed_dask_array-0.1.0.tar.gz", hash = "sha256:8fabcccf5c7e29059b5badd6786dd7675a258a203c58babf10077d9c90ada54f", size = 10300, upload-time = "2022-02-18T02:10:06.981Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/0d/b5/852f619e53fa7fb70d8915fcae66632df3958cac7e926c4ac38458958674/resource_backed_dask_array-0.1.0-py2.py3-none-any.whl", hash = "sha256:ec457fa72d81f0340a67ea6557a5a5919323a11cccc978a950df29fa69fe5679", size = 8044, upload-time = "2022-02-18T02:10:05.559Z" },
 ]
 
 [[package]]
