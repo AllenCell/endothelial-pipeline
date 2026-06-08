@@ -11,8 +11,8 @@ import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
 
-from endo_pipeline.io import load_dataframe, save_plot_to_path
-from endo_pipeline.io.output import slugify
+from endo_pipeline.configs import get_datasets_in_collection
+from endo_pipeline.io import load_dataframe, save_plot_to_path, slugify
 from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
     add_optical_flow_features,
 )
@@ -20,16 +20,22 @@ from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
+from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAME_GROUPS
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
-from endo_pipeline.settings.figures import FONTSIZE_XSMALL, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import (
+    FONTSIZE_SMALL,
+    FONTSIZE_XSMALL,
+    MAX_FIGURE_HEIGHT,
+    MAX_FIGURE_WIDTH,
+)
 from endo_pipeline.settings.workflow_defaults import (
     CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
+    DATASET_INFO_COLUMNS,
+    DEFAULT_PCA_DATASET_COLLECTION_NAME,
     SEGMENTATION_FEATURE_COLUMNS,
 )
 
 logger = logging.getLogger(__name__)
-
-plt.style.use("endo_pipeline.figure")
 
 
 def plot_and_save_heatmap(
@@ -333,3 +339,41 @@ def visualize_correlation_heatmaps(
             y_axis_label_coords=y_axis_label_coords,
             label_fontsize=label_fontsize,
         )
+
+
+def make_feature_correlation_panel(
+    output_path: Path, figure_size: tuple[float, float] = (2.5, 2.8)
+) -> Path:
+    """Make feature correlation panel showing ML-based vs. measure features."""
+
+    pc_columns = DIFFAE_PC_COLUMN_NAME_GROUPS["main_figure"]
+    seg_columns = SEGMENTATION_FEATURE_COLUMNS["main_figure"]
+
+    dataset_name_list = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
+
+    df = get_df_for_feature_correlation_viz(
+        dataset_name_list=dataset_name_list,
+        dataset_info_columns=DATASET_INFO_COLUMNS,
+        segmentation_feature_columns=seg_columns,
+        pc_columns=pc_columns,
+    )
+
+    label_column_tuples = [
+        ("ML-based features", [str(col) for col in pc_columns]),
+        ("Measured features", [str(col) for col in seg_columns]),
+    ]
+
+    visualize_correlation_heatmaps(
+        dataset_name="aggregate",
+        df_dataset=df,
+        label_column_tuples=label_column_tuples,
+        out_dir=output_path,
+        cross_correlation_only=True,
+        figsize_cluster_heatmap=figure_size,
+        y_axis_label_coords=None,
+        label_fontsize=FONTSIZE_SMALL,
+    )
+
+    x_filename = slugify(label_column_tuples[0][0])
+    y_filename = slugify(label_column_tuples[1][0])
+    return output_path / f"aggregate_correlation_{x_filename}_vs_{y_filename}_heatmap.svg"

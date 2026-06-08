@@ -11,9 +11,11 @@ def main():
     from endo_pipeline.library.visualize.data_example_figures import (
         create_panel_biological_system_examples,
     )
-    from endo_pipeline.library.visualize.figure_1 import make_feature_correlation_panel
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
     from endo_pipeline.library.visualize.latent_walk import perform_and_plot_latent_walk_for_figures
+    from endo_pipeline.library.visualize.multi_feature_correlation import (
+        make_feature_correlation_panel,
+    )
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.examples import FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES
     from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
