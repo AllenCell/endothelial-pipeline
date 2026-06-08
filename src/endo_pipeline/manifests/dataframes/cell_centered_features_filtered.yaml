@@ -199,7 +199,7 @@ columns:
   pc_100: Component 100 of PCA-transformed latent vector
   polar_r: Transformed feature r (polar r from PC1 and PC2)
   polar_theta: Transformed feature theta (rescaled polar angle from PC1 and PC2)
-  rho: ''
+  rho: Transformed feature rho (negative PC3)
   centroid_x_um: ''
   centroid_y_um: ''
   centroid_velocity_x_um_per_min: ''

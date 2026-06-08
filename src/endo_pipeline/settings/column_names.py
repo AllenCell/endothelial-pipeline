@@ -71,7 +71,7 @@ class ColumnName:
         """Column name for nematic order (computed as `cos(2*theta)`)."""
 
         PC3_FLIPPED = "rho"
-        """Column name for PC3 value with sign flipped as proxy measure of cell density."""
+        """Transformed feature rho (negative PC3)."""
 
         DIFFERENCE_SUFFIX = "_diff"
         """Suffix for columns representing differences between feature values."""
