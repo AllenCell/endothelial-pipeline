@@ -16,11 +16,11 @@ from endo_pipeline.io import load_dataframe, save_plot_to_path, slugify
 from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
     add_optical_flow_features,
 )
-from endo_pipeline.library.visualize.columns import get_label_for_column
+from endo_pipeline.library.visualize.columns import get_label_for_column, make_label_single_line
+from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
-from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAME_GROUPS
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.figures import (
     FONTSIZE_SMALL,
@@ -341,13 +341,14 @@ def visualize_correlation_heatmaps(
         )
 
 
+@figure_panel("Heatmap showing Pearson correlations between ML-based and measured features.")
 def make_feature_correlation_panel(
-    output_path: Path, figure_size: tuple[float, float] = (2.5, 2.8)
+    pc_columns: list[str | ColumnNameType],
+    seg_columns: list[str | ColumnNameType],
+    output_path: Path,
+    figure_size: tuple[float, float] = (2.5, 2.8),
 ) -> Path:
     """Make feature correlation panel showing ML-based vs. measure features."""
-
-    pc_columns = DIFFAE_PC_COLUMN_NAME_GROUPS["main_figure"]
-    seg_columns = SEGMENTATION_FEATURE_COLUMNS["main_figure"]
 
     dataset_name_list = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
 
@@ -357,10 +358,15 @@ def make_feature_correlation_panel(
         segmentation_feature_columns=seg_columns,
         pc_columns=pc_columns,
     )
+    df.rename(columns=make_label_single_line, inplace=True)
 
     label_column_tuples = [
-        ("ML-based features", [str(col) for col in pc_columns]),
-        ("Measured features", [str(col) for col in seg_columns]),
+        ("ML-based features", [get_label_for_column(col) for col in pc_columns]),
+        ("Measured features", [get_label_for_column(col) for col in seg_columns]),
+    ]
+    label_column_tuples = [
+        (features, list(map(make_label_single_line, columns)))
+        for features, columns in label_column_tuples
     ]
 
     visualize_correlation_heatmaps(

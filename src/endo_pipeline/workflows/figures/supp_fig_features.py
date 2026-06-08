@@ -1,21 +1,18 @@
 def main() -> None:
     """Main function to general Supp. Fig. showing PC-based feature derivation and interpretation."""
-    import logging
 
     import matplotlib.pyplot as plt
     import pandas as pd
 
     from endo_pipeline.cli import NUM_GPUS
-    from endo_pipeline.cli.demo_mode_defaults import use_default_collection
     from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.pca import fit_pca
-    from endo_pipeline.library.visualize.columns import get_label_for_column, make_label_single_line
+    from endo_pipeline.library.visualize.columns import get_label_for_column
     from endo_pipeline.library.visualize.diffae_features import feature_viz
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
     from endo_pipeline.library.visualize.latent_walk import perform_and_plot_latent_walk_for_figures
     from endo_pipeline.library.visualize.multi_feature_correlation import (
-        get_df_for_feature_correlation_viz,
-        visualize_correlation_heatmaps,
+        make_feature_correlation_panel,
     )
     from endo_pipeline.library.visualize.supp_fig_features import plot_2d_latent_walk
     from endo_pipeline.settings.diffae_feature_dataframes import (
@@ -24,13 +21,7 @@ def main() -> None:
         NUM_LATENT_FEATURES,
     )
     from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
-    from endo_pipeline.settings.workflow_defaults import (
-        DATASET_INFO_COLUMNS,
-        DEFAULT_PCA_DATASET_COLLECTION_NAME,
-        SEGMENTATION_FEATURE_COLUMNS,
-    )
-
-    logger = logging.getLogger(__name__)
+    from endo_pipeline.settings.workflow_defaults import SEGMENTATION_FEATURE_COLUMNS
 
     plt.style.use("endo_pipeline.figure")
 
@@ -49,81 +40,36 @@ def main() -> None:
     )
 
     # Correlation heatmap of ML-based features vs. measured features
-    dataset_name_list = use_default_collection(None, DEFAULT_PCA_DATASET_COLLECTION_NAME)
     ml_columns = DIFFAE_PC_COLUMN_NAME_GROUPS["supp_figure"]
     measured_feature_columns = SEGMENTATION_FEATURE_COLUMNS["supp_figure"]
     ml_columns_100_pcs = (
         DIFFAE_PC_COLUMN_NAME_GROUPS["main_figure"] + DIFFAE_PC_COLUMN_NAME_GROUPS["first_100_pcs"]
     )
 
-    df = get_df_for_feature_correlation_viz(
-        dataset_name_list=dataset_name_list,
-        dataset_info_columns=DATASET_INFO_COLUMNS,
-        segmentation_feature_columns=measured_feature_columns,
+    # call feature correlation workflow to get the max correlation value for the
+    # PCs that are not in the top 10 PCs up to PC 100, which we will report in
+    # the figure legend
+    _ = make_feature_correlation_panel(
         pc_columns=ml_columns_100_pcs,
+        seg_columns=measured_feature_columns,
+        output_path=save_dir,
     )
-    df.rename(columns=make_label_single_line, inplace=True)
-
-    label_column_tuples = [
-        ("ML-based Features 100", [get_label_for_column(col) for col in ml_columns_100_pcs]),
-        ("Measured Features", [get_label_for_column(col) for col in measured_feature_columns]),
-    ]
-    label_column_tuples = [
-        (features, list(map(make_label_single_line, columns)))
-        for features, columns in label_column_tuples
-    ]
-
-    # run the visualize_correlation_heatmaps function here on the 100 PCs vs measured features
-    # to get the correlation values as a .csv, which we will then use to get the biggest
-    # correlation value for the PCs that are not in the top 10 PCs
-    visualize_correlation_heatmaps(
-        dataset_name="aggregate",
-        df_dataset=df,
-        label_column_tuples=label_column_tuples,
-        out_dir=save_dir,
-        cross_correlation_only=True,
-        figsize_cluster_heatmap=(6, 2.75),
-        y_axis_label_coords=None,
-    )
-    # report the max correlation value in the heatmap for all PCs vs measured features
-    # that are not in the supplementary figure
     corr_matrix_100pcs = (
         save_dir / "correlation_ml_based_features_100_vs_measured_features_correlation_matrix.csv"
     )
-    df_100_pcs = pd.read_csv(corr_matrix_100pcs)
+    correlation_matrix_100_pcs = pd.read_csv(corr_matrix_100pcs)
     non_fig_pcs = set(ml_columns_100_pcs) - set(ml_columns)
-    biggest_corr_mag = (
-        df_100_pcs[[get_label_for_column(col) for col in non_fig_pcs]].abs().max().max()
-    )
-    logger.info(
-        f"Biggest correlation magnitude for non-figure PCs up to PC 100: {biggest_corr_mag}"
-    )
+    non_fig_labels = [get_label_for_column(col) for col in non_fig_pcs]
+    biggest_corr_mag = correlation_matrix_100_pcs[non_fig_labels].abs().max().max()
+    print(f"Biggest correlation magnitude for non-figure PCs up to PC 100: {biggest_corr_mag}")
 
-    df = get_df_for_feature_correlation_viz(
-        dataset_name_list=dataset_name_list,
-        dataset_info_columns=DATASET_INFO_COLUMNS,
-        segmentation_feature_columns=measured_feature_columns,
+    # Now call on just the supplementary figure PCs to get the correlation
+    # heatmap for the figure
+    feature_correlations_path = make_feature_correlation_panel(
         pc_columns=ml_columns,
-    )
-    df.rename(columns=make_label_single_line, inplace=True)
-
-    label_column_tuples = [
-        ("ML-based Features", [get_label_for_column(col) for col in ml_columns]),
-        ("Measured Features", [get_label_for_column(col) for col in measured_feature_columns]),
-    ]
-    label_column_tuples = [
-        (features, list(map(make_label_single_line, columns)))
-        for features, columns in label_column_tuples
-    ]
-
-    visualize_correlation_heatmaps(
-        dataset_name="aggregate",
-        df_dataset=df,
-        label_column_tuples=label_column_tuples,
-        out_dir=save_dir,
-        cross_correlation_only=True,
-        figsize_cluster_heatmap=(6, 2.75),
-        y_axis_label_coords=None,
+        seg_columns=measured_feature_columns,
+        output_path=save_dir,
+        figure_size=(6.0, 2.75),
     )
 
     # perform latent walk along top 10 PCs and save the resulting contact sheet
@@ -184,7 +130,7 @@ def main() -> None:
         ),
         FigurePanel(
             letter="D",
-            path=save_dir / "correlation_ml_based_features_vs_measured_features_heatmap.svg",
+            path=feature_correlations_path,
             x_position=0,
             y_position=5.2,
             x_offset=0.1,

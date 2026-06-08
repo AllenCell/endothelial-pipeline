@@ -17,8 +17,10 @@ def main():
         make_feature_correlation_panel,
     )
     from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAME_GROUPS
     from endo_pipeline.settings.examples import FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES
     from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.workflow_defaults import SEGMENTATION_FEATURE_COLUMNS
 
     plt.style.use("endo_pipeline.figure")
 
@@ -34,7 +36,12 @@ def main():
     )
 
     # Correlation heatmaps of ml learned and measured features
-    feature_correlations_path = make_feature_correlation_panel(save_dir)
+    feature_correlations_path = make_feature_correlation_panel(
+        pc_columns=DIFFAE_PC_COLUMN_NAME_GROUPS["main_figure"],
+        seg_columns=SEGMENTATION_FEATURE_COLUMNS["main_figure"],
+        output_path=save_dir,
+        figure_size=(2.5, 2.8),
+    )
 
     # Latent walk visualization
     walk_column_names = cast(
