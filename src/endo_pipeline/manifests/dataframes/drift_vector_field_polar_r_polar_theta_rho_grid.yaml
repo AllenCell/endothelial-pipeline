@@ -29,7 +29,7 @@ columns:
   polar_theta: ''
   polar_r: ''
   rho: ''
-  shear_stress: ''
+  shear_stress: Shear stress value in dyn/cm^2
 locations:
   20250319_20X:
     fmsid: 988f648abfa24bfe9f448397d374c101

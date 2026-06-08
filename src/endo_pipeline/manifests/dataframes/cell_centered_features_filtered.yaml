@@ -89,7 +89,7 @@ columns:
   cell_piling: ''
   gfp_scope_error: ''
   not_steady_state: ''
-  shear_stress: ''
+  shear_stress: Shear stress value in dyn/cm^2
   time_hours_since_flow_start: ''
   start_y: ''
   start_x: ''

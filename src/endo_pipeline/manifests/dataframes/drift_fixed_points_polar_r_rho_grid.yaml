@@ -22,7 +22,7 @@ columns:
   polar_r: ''
   rho: ''
   dataset: Name of dataset
-  shear_stress: ''
+  shear_stress: Shear stress value in dyn/cm^2
 locations:
   20250409_20X:
     fmsid: 6d8c4b0887b548f3a052ddf92c1189cf

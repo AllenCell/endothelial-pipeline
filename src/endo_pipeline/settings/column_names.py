@@ -41,7 +41,7 @@ class ColumnName:
     """Timelapse duration in timeframes"""
 
     SHEAR_STRESS = "shear_stress"
-    """The shear stress value in dyn/cm^2."""
+    """Shear stress value in dyn/cm^2."""
 
     SHEAR_STRESS_REGIME = "shear_stress_regime"
     """Experimentalist categorization of the shear stress response (e.g. "low flow")."""

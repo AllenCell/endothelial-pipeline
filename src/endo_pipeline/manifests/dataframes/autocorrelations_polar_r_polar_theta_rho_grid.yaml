@@ -13,7 +13,7 @@ columns:
   autocorrelation_upper_percentile: ''
   exponential_fit: ''
   dataset: Name of dataset
-  shear_stress: ''
+  shear_stress: Shear stress value in dyn/cm^2
 locations:
   20250319_20X:
     fmsid: 3e9d76b2c974402ebcd35e04120bb139

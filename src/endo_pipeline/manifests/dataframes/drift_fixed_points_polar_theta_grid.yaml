@@ -17,7 +17,7 @@ columns:
   stability: ''
   polar_theta: ''
   dataset: Name of dataset
-  shear_stress: ''
+  shear_stress: Shear stress value in dyn/cm^2
 locations:
   20250409_20X:
     fmsid: 1a2c76e45cbd4a9887124125101d3e50
