@@ -140,10 +140,7 @@ class ColumnName:
         """Size of the crop in pixels at resolution level 0."""
 
         RESOLUTION_FOR_DIFFAE = "diffae_resolution_level_to_use"
-        """Resolution level to use for DiffAE features.
-        This is used to downsample the resolution 0 x and y coordinates and crop sizes
-        when constructing the dataframe used to extract DiffAE features from track-based
-        crops."""
+        """DiffAE feature resolution level used to downsample resolution 0 coordinates."""
 
         # temporal features: Time-related column names.
         TIME_HRS = "time_hours"
