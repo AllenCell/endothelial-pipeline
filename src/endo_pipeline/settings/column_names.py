@@ -116,7 +116,7 @@ class ColumnName:
         """Number of unique tracks that are present at the timepoint of interest before filtering."""
 
         NUM_NUCLEI_AT_TIMEPOINT = "total_nuclei_count_at_T"
-        """The total number of nuclei present at the timepoint of interest."""
+        """Total number of nuclei present at the timepoint of interest."""
 
         NUM_NUCLEI_IN_CROP = "num_nuclei_in_crop"
         """Number of label-free predicted nuclei in a crop/cell-centered patch."""

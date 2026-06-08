@@ -58,7 +58,7 @@ columns:
   nuclei_seg_with_most_overlap_1: ''
   nuc_with_most_overlap_1_centroid_Y: ''
   nuc_with_most_overlap_1_centroid_X: ''
-  total_nuclei_count_at_T: ''
+  total_nuclei_count_at_T: Total number of nuclei present at the timepoint of interest
   nuclei_seg_with_most_overlap_2: ''
   nuc_with_most_overlap_2_centroid_Y: ''
   nuc_with_most_overlap_2_centroid_X: ''
