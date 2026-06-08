@@ -25,7 +25,6 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.io import get_output_path, save_plot_to_path
     from endo_pipeline.library.analyze.pca import fit_pca
-    from endo_pipeline.library.visualize.columns import get_label_for_column
     from endo_pipeline.library.visualize.diffae_features import feature_viz
     from endo_pipeline.library.visualize.figures import (
         FigurePanel,
@@ -73,18 +72,21 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     # call feature correlation workflow to get the max correlation value for the
     # PCs that are not in the top 10 PCs up to PC 100, which we will report in
     # the figure legend
-    _ = make_feature_correlation_panel(
+    output_path_base = make_feature_correlation_panel(
         pc_columns=ml_columns_100_pcs,
         seg_columns=measured_feature_columns,
         output_path=save_dir,
+        force_labels_single_line=True,
+        **placeholders["D"],
     )
-    corr_matrix_100pcs = (
-        save_dir / "correlation_ml_based_features_100_vs_measured_features_correlation_matrix.csv"
+    # replace "heatmap.svg" with "correlation_matrix.csv" to get the path to the
+    # correlation matrix CSV that was saved as part of the workflow
+    correlation_matrix_path = output_path_base.parent / (
+        output_path_base.stem.replace("heatmap", "correlation_matrix") + ".csv"
     )
-    correlation_matrix_100_pcs = pd.read_csv(corr_matrix_100pcs)
-    non_fig_pcs = set(ml_columns_100_pcs) - set(ml_columns)
-    non_fig_labels = [get_label_for_column(col) for col in non_fig_pcs]
-    biggest_corr_mag = correlation_matrix_100_pcs[non_fig_labels].abs().max().max()
+    correlation_matrix_100_pcs = pd.read_csv(correlation_matrix_path)
+    non_fig_pcs = list(set(ml_columns_100_pcs) - set(ml_columns))
+    biggest_corr_mag = correlation_matrix_100_pcs[non_fig_pcs].abs().max().max()
     print(f"Biggest correlation magnitude for non-figure PCs up to PC 100: {biggest_corr_mag}")
 
     # Now call on just the supplementary figure PCs to get the correlation
@@ -94,6 +96,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         seg_columns=measured_feature_columns,
         output_path=save_dir,
         figure_size=(6.0, 2.75),
+        force_labels_single_line=True,
         **placeholders["D"],
     )
 

@@ -347,6 +347,7 @@ def make_feature_correlation_panel(
     seg_columns: list[str | ColumnNameType],
     output_path: Path,
     figure_size: tuple[float, float] = (2.5, 2.8),
+    force_labels_single_line: bool = False,
 ) -> Path:
     """Make feature correlation panel showing ML-based vs. measure features."""
 
@@ -358,16 +359,18 @@ def make_feature_correlation_panel(
         segmentation_feature_columns=seg_columns,
         pc_columns=pc_columns,
     )
-    df.rename(columns=make_label_single_line, inplace=True)
 
     label_column_tuples = [
-        ("ML-based features", [get_label_for_column(col) for col in pc_columns]),
-        ("Measured features", [get_label_for_column(col) for col in seg_columns]),
+        ("ML-based features", [str(col) for col in pc_columns]),
+        ("Measured features", [str(col) for col in seg_columns]),
     ]
-    label_column_tuples = [
-        (features, list(map(make_label_single_line, columns)))
-        for features, columns in label_column_tuples
-    ]
+
+    if force_labels_single_line:
+        df.rename(columns=make_label_single_line, inplace=True)
+        label_column_tuples = [
+            (features, list(map(make_label_single_line, columns)))
+            for features, columns in label_column_tuples
+        ]
 
     visualize_correlation_heatmaps(
         dataset_name="aggregate",
