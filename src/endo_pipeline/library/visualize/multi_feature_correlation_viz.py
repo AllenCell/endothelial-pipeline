@@ -79,7 +79,7 @@ def plot_and_save_heatmap(
 
     fig, ax = plt.subplots(figsize=figsize, dpi=300)
     sns.heatmap(
-        df,
+        df.rename(columns=get_label_for_column, index=get_label_for_column),
         annot=annotate,
         fmt=".2f",
         cmap="RdBu",
@@ -232,7 +232,6 @@ def get_df_for_feature_correlation_viz(
             )
 
         merged_feats_df = merged_feats_df[cols_to_keep].copy()
-        merged_feats_df.rename(columns=get_label_for_column, inplace=True)
         df_list.append(merged_feats_df)
 
     # merge the DataFrames from all datasets
