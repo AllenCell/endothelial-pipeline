@@ -9,20 +9,15 @@ parameters:
   ema_alphas: [0.1]
   speed_threshold: 1.0
 columns:
-  start_x: X-coordinate of upper left corner of patch (crop) in pixels (zarr resolution
-    level 1)
+  start_x: X-coordinate of upper left corner of patch (crop) in pixels (zarr resolution level 1)
   position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
   frame_number: Timepoint (unit = frames)
-  end_y: Y-coordinate of lower right corner of patch (crop) in pixels (zarr resolution
-    level 1)
+  end_y: Y-coordinate of lower right corner of patch (crop) in pixels (zarr resolution level 1)
   track_id: Track ID assigned by the tracking algorithm
-  start_y: Y-coordinate of upper left corner of patch (crop) in pixels (zarr resolution
-    level 1)
-  end_x: X-coordinate of lower right corner of patch (crop) in pixels (zarr resolution
-    level 1)
+  start_y: Y-coordinate of upper left corner of patch (crop) in pixels (zarr resolution level 1)
+  end_x: X-coordinate of lower right corner of patch (crop) in pixels (zarr resolution level 1)
   dataset: Name of dataset
-  crop_index: Unique integer index of a patch (crop) trajectory across dataset, FOV,
-    and XY-position
+  crop_index: Unique integer index of a patch (crop) trajectory across dataset, FOV, and XY-position
   track_duration: Number of timepoints in the track
   is_included: ''
   duration_minutes: ''

@@ -11,17 +11,12 @@ parameters:
 columns:
   dataset: Name of dataset
   position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
-  start_x: X-coordinate of upper left corner of patch (crop) in pixels (zarr resolution
-    level 1)
-  start_y: Y-coordinate of upper left corner of patch (crop) in pixels (zarr resolution
-    level 1)
-  end_y: Y-coordinate of lower right corner of patch (crop) in pixels (zarr resolution
-    level 1)
-  end_x: X-coordinate of lower right corner of patch (crop) in pixels (zarr resolution
-    level 1)
+  start_x: X-coordinate of upper left corner of patch (crop) in pixels (zarr resolution level 1)
+  start_y: Y-coordinate of upper left corner of patch (crop) in pixels (zarr resolution level 1)
+  end_y: Y-coordinate of lower right corner of patch (crop) in pixels (zarr resolution level 1)
+  end_x: X-coordinate of lower right corner of patch (crop) in pixels (zarr resolution level 1)
   frame_number: Timepoint (unit = frames)
-  crop_index: Unique integer index of a patch (crop) trajectory across dataset, FOV,
-    and XY-position
+  crop_index: Unique integer index of a patch (crop) trajectory across dataset, FOV, and XY-position
   duration_minutes: ''
   timepoint: ''
   optical_flow_mean_speed_dt1: ''

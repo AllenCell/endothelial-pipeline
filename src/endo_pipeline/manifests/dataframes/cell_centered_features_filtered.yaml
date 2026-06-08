@@ -91,16 +91,11 @@ columns:
   not_steady_state: ''
   shear_stress: Shear stress value in dyn/cm^2
   time_hours_since_flow_start: ''
-  start_y: Y-coordinate of upper left corner of patch (crop) in pixels (zarr resolution
-    level 1)
-  start_x: X-coordinate of upper left corner of patch (crop) in pixels (zarr resolution
-    level 1)
-  end_y: Y-coordinate of lower right corner of patch (crop) in pixels (zarr resolution
-    level 1)
-  end_x: X-coordinate of lower right corner of patch (crop) in pixels (zarr resolution
-    level 1)
-  crop_index: Unique integer index of a patch (crop) trajectory across dataset, FOV,
-    and XY-position
+  start_y: Y-coordinate of upper left corner of patch (crop) in pixels (zarr resolution level 1)
+  start_x: X-coordinate of upper left corner of patch (crop) in pixels (zarr resolution level 1)
+  end_y: Y-coordinate of lower right corner of patch (crop) in pixels (zarr resolution level 1)
+  end_x: X-coordinate of lower right corner of patch (crop) in pixels (zarr resolution level 1)
+  crop_index: Unique integer index of a patch (crop) trajectory across dataset, FOV, and XY-position
   pc_1: Component 1 of PCA-transformed latent vector
   pc_2: Component 2 of PCA-transformed latent vector
   pc_3: Component 3 of PCA-transformed latent vector

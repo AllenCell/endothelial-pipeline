@@ -5,8 +5,7 @@ parameters:
   z_slice_offsets: [4, 11]
 columns:
   path: ''
-  resolution_level: Zarr resolution level used to generate patches (crops) for obtaining
-    latent vectors
+  resolution_level: Zarr resolution level used to generate patches (crops) for obtaining latent vectors
   channel: ''
   z_start: ''
   z_stop: ''

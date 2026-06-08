@@ -66,7 +66,7 @@ def save_dataframe_manifest(manifest: DataframeManifest) -> None:
         yaml.SafeDumper.add_representer(list, list_representer)
 
         # Encode data into YAML
-        encode = yaml.safe_dump(data, default_flow_style=False, sort_keys=False, width=80, indent=2)
+        encode = yaml.safe_dump(data, default_flow_style=False, sort_keys=False, width=99, indent=2)
 
         # Remove custom representers so they don't interfere with other uses
         yaml.SafeDumper.add_representer(list, default_representers[list])

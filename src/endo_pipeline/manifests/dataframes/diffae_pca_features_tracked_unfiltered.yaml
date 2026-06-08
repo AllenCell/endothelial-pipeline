@@ -7,26 +7,20 @@ parameters:
   filtered: false
 columns:
   frame_number: Timepoint (unit = frames)
-  start_y: Y-coordinate of upper left corner of patch (crop) in pixels (zarr resolution
-    level 1)
-  start_x: X-coordinate of upper left corner of patch (crop) in pixels (zarr resolution
-    level 1)
-  end_y: Y-coordinate of lower right corner of patch (crop) in pixels (zarr resolution
-    level 1)
-  end_x: X-coordinate of lower right corner of patch (crop) in pixels (zarr resolution
-    level 1)
+  start_y: Y-coordinate of upper left corner of patch (crop) in pixels (zarr resolution level 1)
+  start_x: X-coordinate of upper left corner of patch (crop) in pixels (zarr resolution level 1)
+  end_y: Y-coordinate of lower right corner of patch (crop) in pixels (zarr resolution level 1)
+  end_x: X-coordinate of lower right corner of patch (crop) in pixels (zarr resolution level 1)
   zarr_path: Path to Zarr file for image that patch (crop) comes from
   track_id: Track ID assigned by the tracking algorithm
   dataset: Name of dataset
   model_manifest_name: Manifest name of model used to generate latent vectors
   run_name: Run name of model used to generate latent vectors
-  resolution_level: Zarr resolution level used to generate patches (crops) for obtaining
-    latent vectors
+  resolution_level: Zarr resolution level used to generate patches (crops) for obtaining latent vectors
   crop_size_y: ''
   crop_size_x: ''
   position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
-  crop_index: Unique integer index of a patch (crop) trajectory across dataset, FOV,
-    and XY-position
+  crop_index: Unique integer index of a patch (crop) trajectory across dataset, FOV, and XY-position
   pc_1: Component 1 of PCA-transformed latent vector
   pc_2: Component 2 of PCA-transformed latent vector
   pc_3: Component 3 of PCA-transformed latent vector

@@ -5,8 +5,7 @@ parameters:
   include_cell_piling: false
 columns:
   path: ''
-  resolution_level: Zarr resolution level used to generate patches (crops) for obtaining
-    latent vectors
+  resolution_level: Zarr resolution level used to generate patches (crops) for obtaining latent vectors
   channel: ''
   include_frames: ''
   z_start: ''
