@@ -71,10 +71,14 @@ columns:
   nuclei_position_angle: ''
   nuclei_position_angle_deg: ''
   crop_size: ''
-  start_x_resolution_0: ''
-  start_y_resolution_0: ''
-  end_x_resolution_0: ''
-  end_y_resolution_0: ''
+  start_x_resolution_0: X-coordinate of upper left corner of patch (crop) in pixels (zarr resolution
+    level 0)
+  start_y_resolution_0: Y-coordinate of upper left corner of patch (crop) in pixels (zarr resolution
+    level 0)
+  end_x_resolution_0: X-coordinate of lower right corner of patch (crop) in pixels (zarr resolution
+    level 0)
+  end_y_resolution_0: Y-coordinate of lower right corner of patch (crop) in pixels (zarr resolution
+    level 0)
   bbox_is_in_bounds: ''
   num_nuclei_in_crop: Number of label-free predicted nuclei in a crop/cell-centered patch
   all_labels_in_crop: List of all segmentation labels found within a crop/cell-centered patch

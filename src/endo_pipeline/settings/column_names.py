@@ -125,16 +125,16 @@ class ColumnName:
         """List of all segmentation labels found within a crop/cell-centered patch."""
 
         START_X_RES_0 = "start_x_resolution_0"
-        """x-coordinate defining the beginning of the crop at resolution level 0 (the native resolution)."""
+        """X-coordinate of upper left corner of patch (crop) in pixels (zarr resolution level 0)."""
 
         END_X_RES_0 = "end_x_resolution_0"
-        """x-coordinate defining the end of the crop at resolution level 0 (the native resolution)."""
+        """X-coordinate of lower right corner of patch (crop) in pixels (zarr resolution level 0)."""
 
         START_Y_RES_0 = "start_y_resolution_0"
-        """y-coordinate defining the beginning of the crop at resolution level 0 (the native resolution)."""
+        """Y-coordinate of upper left corner of patch (crop) in pixels (zarr resolution level 0)."""
 
         END_Y_RES_0 = "end_y_resolution_0"
-        """y-coordinate defining the end of the crop at resolution level 0 (the native resolution)."""
+        """Y-coordinate of lower right corner of patch (crop) in pixels (zarr resolution level 0)."""
 
         CROP_SIZE = "crop_size"
         """Size of the crop in pixels at resolution level 0 (the native resolution)."""
