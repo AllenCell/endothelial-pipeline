@@ -14,7 +14,7 @@ class ColumnName:
     """Timepoint (unit = frames)."""
 
     TRACK_ID = "track_id"
-    """The track ID assigned by the tracking algorithm."""
+    """Track ID assigned by the tracking algorithm."""
 
     CROP_INDEX = "crop_index"
     """Column name for crop index."""

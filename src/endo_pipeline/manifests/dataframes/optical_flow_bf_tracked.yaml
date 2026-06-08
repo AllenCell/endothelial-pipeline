@@ -13,7 +13,7 @@ columns:
   position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
   frame_number: Timepoint (unit = frames)
   end_y: ''
-  track_id: ''
+  track_id: Track ID assigned by the tracking algorithm
   start_y: ''
   end_x: ''
   dataset: Name of dataset

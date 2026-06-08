@@ -4,7 +4,7 @@ parameters: {}
 columns:
   image_index: ''
   T: ''
-  track_id: ''
+  track_id: Track ID assigned by the tracking algorithm
   label: ''
   reference_index: ''
   matched_query_label: ''

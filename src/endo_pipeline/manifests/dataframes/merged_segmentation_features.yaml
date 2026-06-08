@@ -3,7 +3,7 @@ workflow: merge_segmentation_feature_tables
 parameters: {}
 columns:
   frame_number: Timepoint (unit = frames)
-  track_id: ''
+  track_id: Track ID assigned by the tracking algorithm
   reference_index: ''
   matched_query_label: ''
   optimized_metric_value: ''

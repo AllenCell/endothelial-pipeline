@@ -12,7 +12,7 @@ columns:
   end_y: ''
   end_x: ''
   zarr_path: ''
-  track_id: ''
+  track_id: Track ID assigned by the tracking algorithm
   dataset: Name of dataset
   model_manifest_name: ''
   run_name: ''

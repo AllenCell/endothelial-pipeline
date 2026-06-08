@@ -10,7 +10,7 @@ columns:
   start_x: ''
   end_y: ''
   end_x: ''
-  track_id: ''
+  track_id: Track ID assigned by the tracking algorithm
   channel: ''
   resolution_level: ''
   frame_start: ''

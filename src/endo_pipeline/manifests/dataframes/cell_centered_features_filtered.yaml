@@ -3,7 +3,7 @@ workflow: combine_cell_centered_features
 parameters: {}
 columns:
   frame_number: Timepoint (unit = frames)
-  track_id: ''
+  track_id: Track ID assigned by the tracking algorithm
   dataset: Name of dataset
   position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
   zarr_path: ''
