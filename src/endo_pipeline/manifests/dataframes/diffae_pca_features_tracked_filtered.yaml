@@ -16,7 +16,8 @@ columns:
   dataset: Name of dataset
   model_manifest_name: Manifest name of model used to generate latent vectors
   run_name: Run name of model used to generate latent vectors
-  resolution_level: ''
+  resolution_level: Zarr resolution level used to generate patches (crops) for obtaining
+    latent vectors
   crop_size_y: ''
   crop_size_x: ''
   position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)

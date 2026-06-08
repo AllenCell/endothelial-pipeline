@@ -83,7 +83,7 @@ class ColumnName:
         """Run name of model used to generate latent vectors."""
 
         RESOLUTION = "resolution_level"
-        """Column name for resolution level of the image."""
+        """Zarr resolution level used to generate patches (crops) for obtaining latent vectors."""
 
         START_X = "start_x"
         """Upper-left x-coordinate of the crop."""
