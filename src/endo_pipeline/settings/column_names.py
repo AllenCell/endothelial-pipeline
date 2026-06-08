@@ -47,10 +47,10 @@ class ColumnName:
     """Experimentalist categorization of the shear stress response."""
 
     CDH5_CHANNEL_INDEX_ZARR = "cdh5_channel_index_in_zarr"
-    """Column name for the index of the CDH5 channel in the Zarr file."""
+    """Index of the CDH5 channel in the Zarr file."""
 
     BF_CHANNEL_INDEX_ZARR = "brightfield_channel_index_zarr"
-    """Column name for the index of the brightfield channel in the Zarr file."""
+    """Index of the brightfield channel in the Zarr file."""
 
     class DiffAEData(StrEnum):
         """Dataframe column names used in DiFFAE feature dataframes."""

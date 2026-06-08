@@ -97,8 +97,8 @@ columns:
   number_of_neighbors: ''
   image_size_x: Size of the whole image in the X dimension in pixels
   image_size_y: Size of the whole image in the Y dimension in pixels
-  cdh5_channel_index_in_zarr: ''
-  brightfield_channel_index_zarr: ''
+  cdh5_channel_index_in_zarr: Index of the CDH5 channel in the Zarr file
+  brightfield_channel_index_zarr: Index of the brightfield channel in the Zarr file
   num_nuclei_with_most_overlap: ''
   centroid_y: ''
   centroid_x: ''
