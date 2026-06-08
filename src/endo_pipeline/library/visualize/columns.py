@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_label_for_column(
-    column_name: str,
+    column_name: str | ColumnNameType,
     column_metadata: dict[
         ColumnNameType, column_metadata.ColumnMetadata
     ] = column_metadata.COLUMN_METADATA,

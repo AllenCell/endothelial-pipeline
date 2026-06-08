@@ -11,14 +11,12 @@ def main():
     from endo_pipeline.library.visualize.data_example_figures import (
         create_panel_biological_system_examples,
     )
+    from endo_pipeline.library.visualize.figure_1 import make_feature_correlation_panel
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
     from endo_pipeline.library.visualize.latent_walk import perform_and_plot_latent_walk_for_figures
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.examples import FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES
-    from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
-    from endo_pipeline.workflows.development.visualize_feature_correlations import (
-        main as visualize_feature_correlations,
-    )
+    from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 
     plt.style.use("endo_pipeline.figure")
 
@@ -34,11 +32,7 @@ def main():
     )
 
     # Correlation heatmaps of ml learned and measured features
-    visualize_feature_correlations(
-        figsize_heatmap=(2.5, 2.8),
-        y_axis_label_coords=None,
-        label_fontsize=FONTSIZE_SMALL,
-    )
+    feature_correlations_path = make_feature_correlation_panel(save_dir)
 
     # Latent walk visualization
     walk_column_names = cast(
@@ -59,15 +53,6 @@ def main():
         scale_bar_um=20,
         random_seed=4,
         num_gpus=NUM_GPUS,
-    )
-
-    # Build figure from panels
-    save_dir2 = get_output_path(
-        "visualize_feature_correlations",
-        "aggregate",
-        "diffae_baseline_exclude_cell_piling",
-        "20251110_latent_512",
-        "tracked",
     )
 
     panels = [
@@ -97,7 +82,7 @@ def main():
         ),
         FigurePanel(
             letter="D",
-            path=save_dir2 / "correlation_ml_based_features_vs_measured_features_heatmap.svg",
+            path=feature_correlations_path,
             x_position=4,
             y_position=5.3,
             x_offset=-0.08,

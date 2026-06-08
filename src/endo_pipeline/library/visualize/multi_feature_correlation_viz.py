@@ -123,7 +123,7 @@ def plot_and_save_heatmap(
 
 def get_df_for_feature_correlation_viz(
     dataset_name_list: list[str],
-    dataset_info_columns: list[str],
+    dataset_info_columns: list[str | ColumnNameType],
     segmentation_feature_columns: list[str | ColumnNameType],
     pc_columns: list[str],
     merged_dataframe_manifest_name: str = CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
