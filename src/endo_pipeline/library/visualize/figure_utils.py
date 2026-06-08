@@ -7,6 +7,7 @@ import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import matplotlib.text
 import numpy as np
+from matplotlib.colors import Colormap
 
 from endo_pipeline.io.output import save_plot_to_path
 from endo_pipeline.settings.figures import FIGURE_SAVE_DPI, FONTSIZE_LARGE, FONTSIZE_SMALL
@@ -199,6 +200,7 @@ def plot_image_thumbnail(
     bar_padding: int = 20,
     show_plot: bool = True,
     outline_color: str | None = None,
+    image_colormap: str | Colormap | None = "gray",
 ) -> tuple[plt.Figure, plt.Axes]:
     """
     Save a thumbnail image to a specified file path.
@@ -212,8 +214,8 @@ def plot_image_thumbnail(
         The image to save, represented as a NumPy array.
     image_name : str
         The name of the output image file (without extension).
-    output_path : str
-        The directory where the image will be saved.
+    output_path : Path | None
+        The directory where the image will be saved. If None, the image is not saved.
     figsize : tuple of float
         The size of the figure in inches (width, height).
     dpi : int, optional
@@ -233,11 +235,13 @@ def plot_image_thumbnail(
         Padding between the scale bar and the image edge in pixels (default is 20).
     outline_color: str, optional
         Color of the outline around the image. If None, no outline is drawn.
+    image_colormap: str, optional
+        Colormap to use when displaying the image. Default is "gray".
     """
     figure = plt.figure(figsize=figsize, frameon=False)
     ax = figure.add_axes((0.0, 0.0, 1.0, 1.0), frameon=False)
 
-    ax.imshow(image, cmap="gray")
+    ax.imshow(image, cmap=image_colormap)
     ax.axis("off")
 
     if outline_color is not None:

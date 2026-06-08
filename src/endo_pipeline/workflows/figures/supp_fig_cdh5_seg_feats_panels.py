@@ -59,6 +59,7 @@ def main() -> None:
     for dataset in datasets:
         classic_feat_fig_example_path = make_feature_contact_sheet(
             dataset_name=dataset,
+            positions=[0],
             features=features,
             ncols=3,
             out_dir=out_dir / "feature_contact_sheet",
@@ -78,31 +79,31 @@ def main() -> None:
             x_position=0,
             y_position=0,
             x_offset=0,
-            y_offset=0.0,
+            y_offset=0.15,
         ),
         FigurePanel(
             letter="B",
             path=classic_feat_fig_example_paths[datasets[0]],
             x_position=0,
-            y_position=panel_A_height,
+            y_position=panel_A_height + 0.15,
             x_offset=-0.1,
-            y_offset=0.05,
+            y_offset=0.1,
         ),
         FigurePanel(
             letter="C",
             path=classic_feat_fig_example_paths[datasets[1]],
             x_position=0,
-            y_position=panel_A_height + panel_B_height + 0.05,
+            y_position=panel_A_height + panel_B_height + 0.2,
             x_offset=-0.1,
-            y_offset=0.05,
+            y_offset=0.1,
         ),
         FigurePanel(
             letter="D",
             path=feature_diagram_fp,
             x_position=panel_B_and_C_width + 0.2,
-            y_position=panel_A_height,
+            y_position=panel_A_height + 0.15,
             x_offset=-0.03,
-            y_offset=0.05,
+            y_offset=0.1,
         ),
     ]
 
@@ -110,7 +111,7 @@ def main() -> None:
         figure_panels,
         out_dir / "Figure_S2_segmentations.svg",
         width=MAX_FIGURE_WIDTH,
-        height=panel_A_height + panel_B_height + panel_C_height + 0.1,
+        height=panel_A_height + panel_B_height + panel_C_height + 0.3,
     )
 
 
