@@ -16,9 +16,9 @@ columns:
   centroid: ''
   area_px_squared: Area of the cell segmentation in pixels squared
   perimeter_px: Perimeter of the cell segmentation in pixels
-  solidity: ''
-  major_axis_length: ''
-  minor_axis_length: ''
+  solidity: Solidity of the cell (ratio of the cell area to the area of its convex hull)
+  major_axis_length: Length of the minor axis of an ellipse fit to the cell segmentation
+  minor_axis_length: Length of the minor axis of an ellipse fit to the cell segmentation
   eccentricity: Eccentricity of ellipse fit to cell segmentation (focal distance divided by major axis)
   orientation: Orientation of the cell in radians from 0 (along +x axis) to pi (along -x axis)
   cell_fluorescence_mean_au: ''

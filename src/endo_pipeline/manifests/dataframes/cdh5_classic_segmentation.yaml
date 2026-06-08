@@ -12,8 +12,8 @@ columns:
   cell_area (px**2): ''
   cell_perimeter (px): ''
   cell_solidity: ''
-  major_axis_length: ''
-  minor_axis_length: ''
+  major_axis_length: Length of the minor axis of an ellipse fit to the cell segmentation
+  minor_axis_length: Length of the minor axis of an ellipse fit to the cell segmentation
   cell_eccentricity: ''
   cell_orientation: ''
   cell_fluorescence_mean (a.u.): ''

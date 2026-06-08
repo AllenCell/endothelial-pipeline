@@ -176,13 +176,13 @@ class ColumnName:
         """Aspect ratio of ellipse fit to cell segmentation (major axis divided by minor axis)."""
 
         MAJOR_AXIS = "major_axis_length"
-        """The length of the major axis of an ellipse fitted to the cell segmentation."""
+        """Length of the minor axis of an ellipse fit to the cell segmentation."""
 
         MINOR_AXIS = "minor_axis_length"
-        """The length of the minor axis of an ellipse fitted to the cell segmentation."""
+        """Length of the minor axis of an ellipse fit to the cell segmentation."""
 
         SOLIDITY = "solidity"
-        """Solidity of the cell, defined as the ratio of the cell area to the area of its convex hull."""
+        """Solidity of the cell (ratio of the cell area to the area of its convex hull)."""
 
         AREA_UM_SQ = "area_um_squared"
         """Area of the cell segmentation in microns squared."""
