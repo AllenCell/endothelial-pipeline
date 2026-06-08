@@ -1,6 +1,12 @@
 name: in_focus_plane_annotations
 workflow: annotate_in_focus_plane
 parameters: {}
+columns:
+  position: ''
+  center_planes: ''
+  center_plane_slice_std_devs: ''
+  center_plane_mean: ''
+  center_plane_std_dev: ''
 locations:
   20260209_20X:
     fmsid: 198f450e93c54b85b6898aa36773d3e3

@@ -1,6 +1,25 @@
 name: timepoint_outlier_annotations
 workflow: annotate_timepoint_outliers
 parameters: {}
+columns:
+  position: ''
+  bf_mean_intensity: ''
+  bf_rolling_median: ''
+  bf_dark_threshold: ''
+  bf_partial_dark_threshold: ''
+  bf_bright_threshold: ''
+  bf_dark_outliers: ''
+  bf_partial_dark_outliers: ''
+  bf_bright_outliers: ''
+  auto_bf_scope_error: ''
+  auto_bf_temp_artifact: ''
+  gfp_timepoint_means: ''
+  gfp_rolling_median: ''
+  gfp_lower_threshold: ''
+  gfp_upper_threshold: ''
+  gfp_dark_outliers: ''
+  gfp_bright_outliers: ''
+  auto_gfp_scope_error: ''
 locations:
   20260209_20X:
     fmsid: 960cc58f9db148c9b6c7ef34c7513a61

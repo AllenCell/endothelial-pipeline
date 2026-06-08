@@ -7,6 +7,24 @@ parameters:
   example_set: rep_2_positions
   noise_levels: [0.25, 0.5, 0.75]
   manifest_name: diffae_cdh5_conditioned
+columns:
+  manifest_name: ''
+  run_name: ''
+  random_seed: ''
+  example_set: ''
+  example_idx: ''
+  dataset_name: ''
+  position: ''
+  timepoint: ''
+  crop_x_start: ''
+  crop_y_start: ''
+  description: ''
+  correlation_100: ''
+  ssim_100: ''
+  lpips_100: ''
+  baseline_correlation: ''
+  baseline_ssim: ''
+  baseline_lpips: ''
 locations:
   20260130_latent_512:
     fmsid: de29edd4278d4de1aba9018d365a06b2
