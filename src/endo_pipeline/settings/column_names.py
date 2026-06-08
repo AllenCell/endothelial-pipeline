@@ -44,7 +44,7 @@ class ColumnName:
     """Shear stress value in dyn/cm^2."""
 
     SHEAR_STRESS_REGIME = "shear_stress_regime"
-    """Experimentalist categorization of the shear stress response (e.g. "low flow")."""
+    """Experimentalist categorization of the shear stress response."""
 
     CDH5_CHANNEL_INDEX_ZARR = "cdh5_channel_index_in_zarr"
     """Column name for the index of the CDH5 channel in the Zarr file."""

@@ -39,7 +39,7 @@ columns:
   nuclei_seg_with_most_overlap_5: ''
   nuc_with_most_overlap_5_centroid_Y: ''
   nuc_with_most_overlap_5_centroid_X: ''
-  shear_stress_regime: ''
+  shear_stress_regime: Experimentalist categorization of the shear stress response
   time_resolution_minutes: Time resolution of the timelapse in minutes
   time_minutes: ''
   time_hours: ''
