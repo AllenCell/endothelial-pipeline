@@ -5,7 +5,6 @@ from pathlib import Path
 
 from endo_pipeline.configs import get_datasets_in_collection
 from endo_pipeline.io import slugify
-from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.library.visualize.multi_feature_correlation_viz import (
     get_df_for_feature_correlation_viz,
     visualize_correlation_heatmaps,
@@ -27,20 +26,20 @@ def make_feature_correlation_panel(
     """Make feature correlation panel showing ML-based vs. measure features."""
 
     pc_columns = DIFFAE_PC_COLUMN_NAME_GROUPS["main_figure"]
-    segmentation_feature_columns = SEGMENTATION_FEATURE_COLUMNS["main_figure"]
+    seg_columns = SEGMENTATION_FEATURE_COLUMNS["main_figure"]
 
     dataset_name_list = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
 
     df = get_df_for_feature_correlation_viz(
         dataset_name_list=dataset_name_list,
         dataset_info_columns=DATASET_INFO_COLUMNS,
-        segmentation_feature_columns=segmentation_feature_columns,
+        segmentation_feature_columns=seg_columns,
         pc_columns=pc_columns,
     )
 
     label_column_tuples = [
-        ("ML-based features", [get_label_for_column(col) for col in pc_columns]),
-        ("Measured features", [get_label_for_column(col) for col in segmentation_feature_columns]),
+        ("ML-based features", pc_columns),
+        ("Measured features", seg_columns),
     ]
 
     visualize_correlation_heatmaps(
@@ -56,4 +55,4 @@ def make_feature_correlation_panel(
 
     x_filename = slugify(label_column_tuples[0][0])
     y_filename = slugify(label_column_tuples[1][0])
-    return output_path / f"correlation_{x_filename}_vs_{y_filename}_heatmap.svg"
+    return output_path / f"aggregate_correlation_{x_filename}_vs_{y_filename}_heatmap.svg"
