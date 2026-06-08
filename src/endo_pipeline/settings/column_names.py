@@ -197,9 +197,17 @@ class ColumnName:
         """Perimeter of the cell segmentation in pixels."""
 
         NUCLEI_POSITION_X = "nuclei_position_x"
+        """X coordinate of the label-free nuclei prediction centroid in pixels."""
+
         NUCLEI_POSITION_Y = "nuclei_position_y"
+        """Y coordinate of the label-free nuclei prediction centroid in pixels."""
+
         NUCLEI_POSITION_X_UM = "nuclei_position_x_um"
+        """X coordinate of the label-free nuclei prediction centroid in microns."""
+
         NUCLEI_POSITION_Y_UM = "nuclei_position_y_um"
+        """Y coordinate of the label-free nuclei prediction centroid in microns."""
+
         NUCLEI_POSITION_ANGLE = "nuclei_position_angle"
         NUCLEI_POSITION_ANGLE_DEG = "nuclei_position_angle_deg"
         NUCLEI_POSITION_DISTANCE = "nuclei_position_distance"

@@ -65,8 +65,8 @@ columns:
   image_size_y: Size of the whole image in the Y dimension in pixels
   centroid_y: ''
   centroid_x: ''
-  nuclei_position_x: ''
-  nuclei_position_y: ''
+  nuclei_position_x: X coordinate of the label-free nuclei prediction centroid in pixels
+  nuclei_position_y: Y coordinate of the label-free nuclei prediction centroid in pixels
   nuclei_position_distance: ''
   nuclei_position_angle: ''
   nuclei_position_angle_deg: ''
@@ -214,8 +214,8 @@ columns:
   centroid_velocity_angle_deg: ''
   alignment_angular_velocity_deg: ''
   nuclei_position_relative_migration_angle_deg: ''
-  nuclei_position_x_um: ''
-  nuclei_position_y_um: ''
+  nuclei_position_x_um: X coordinate of the label-free nuclei prediction centroid in microns
+  nuclei_position_y_um: Y coordinate of the label-free nuclei prediction centroid in microns
   nuclei_position_vs_migration_angle_dotproduct: ''
   dmean_fluor_intensity_dt_cell: ''
   dmean_fluor_intensity_dt_edge: ''

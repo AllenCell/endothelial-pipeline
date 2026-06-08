@@ -103,8 +103,8 @@ columns:
   num_nuclei_with_most_overlap: ''
   centroid_y: ''
   centroid_x: ''
-  nuclei_position_x: ''
-  nuclei_position_y: ''
+  nuclei_position_x: X coordinate of the label-free nuclei prediction centroid in pixels
+  nuclei_position_y: Y coordinate of the label-free nuclei prediction centroid in pixels
   nuclei_position_distance: ''
   nuclei_position_angle: ''
   nuclei_position_angle_deg: ''
