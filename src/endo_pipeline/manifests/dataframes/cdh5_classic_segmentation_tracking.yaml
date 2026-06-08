@@ -5,7 +5,7 @@ columns:
   image_index: ''
   T: ''
   track_id: Track ID assigned by the tracking algorithm
-  label: ''
+  label: Cell segmentation ID (different from track ID, and may change between timepoints)
   reference_index: ''
   matched_query_label: ''
   optimized_metric_value: ''

@@ -12,7 +12,7 @@ columns:
   position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
   zarr_path: Path to Zarr file for image that patch (crop) comes from
   filepath_segmentation_image: ''
-  label: ''
+  label: Cell segmentation ID (different from track ID, and may change between timepoints)
   centroid: ''
   area_px_squared: ''
   perimeter_px: ''

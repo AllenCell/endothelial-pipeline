@@ -106,11 +106,8 @@ class ColumnName:
     class SegData(StrEnum):
         """Dataframe column names used in segmentation-based feature dataframes."""
 
-        # dataset and segmentation information columns
         LABEL = "label"
-        """The cell segmentation ID.
-        Note that this is different from the track ID, and can change from one timepoint to the next.
-        """
+        """Cell segmentation ID (different from track ID, and may change between timepoints)."""
 
         NUM_TRACKS_AFTER_FILTERING = "num_unique_tracks_after_filtering_at_T"
         """The number of unique tracks that pass filtering criteria at the timepoint of interest."""
