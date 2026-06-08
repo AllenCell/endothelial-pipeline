@@ -2,7 +2,7 @@ name: cell_centered_features_filtered
 workflow: combine_cell_centered_features
 parameters: {}
 columns:
-  frame_number: ''
+  frame_number: Timepoint (unit = frames)
   track_id: ''
   dataset: Name of dataset
   position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)

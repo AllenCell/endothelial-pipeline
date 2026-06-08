@@ -2,7 +2,7 @@ name: merged_segmentation_features
 workflow: merge_segmentation_feature_tables
 parameters: {}
 columns:
-  frame_number: ''
+  frame_number: Timepoint (unit = frames)
   track_id: ''
   reference_index: ''
   matched_query_label: ''

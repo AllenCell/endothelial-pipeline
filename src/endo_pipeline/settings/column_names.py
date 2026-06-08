@@ -11,7 +11,7 @@ class ColumnName:
     """Zarr file position (FOV) of the corresponding segmentation or patch (crop)."""
 
     TIMEPOINT = "frame_number"
-    """Column name for timepoint (frame number)."""
+    """Timepoint (unit = frames)."""
 
     TRACK_ID = "track_id"
     """The track ID assigned by the tracking algorithm."""

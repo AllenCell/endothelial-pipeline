@@ -515,7 +515,7 @@ columns:
   feat_509: ''
   feat_510: ''
   feat_511: ''
-  frame_number: ''
+  frame_number: Timepoint (unit = frames)
   start_y: ''
   start_x: ''
   end_y: ''

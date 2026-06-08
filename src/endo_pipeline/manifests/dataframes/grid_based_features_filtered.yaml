@@ -6,7 +6,7 @@ parameters:
   crop_pattern: grid
   filtered: true
 columns:
-  frame_number: ''
+  frame_number: Timepoint (unit = frames)
   start_y: ''
   start_x: ''
   zarr_path: ''

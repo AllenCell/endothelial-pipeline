@@ -15,7 +15,7 @@ columns:
   start_y: ''
   end_y: ''
   end_x: ''
-  frame_number: ''
+  frame_number: Timepoint (unit = frames)
   crop_index: ''
   duration_minutes: ''
   timepoint: ''

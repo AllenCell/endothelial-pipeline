@@ -11,7 +11,7 @@ parameters:
 columns:
   start_x: ''
   position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
-  frame_number: ''
+  frame_number: Timepoint (unit = frames)
   end_y: ''
   track_id: ''
   start_y: ''

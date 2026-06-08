@@ -2,7 +2,7 @@ name: cell_centered_features_unfiltered
 workflow: combine_cell_centered_features
 parameters: {}
 columns:
-  frame_number: ''
+  frame_number: Timepoint (unit = frames)
   track_id: ''
   reference_index: ''
   matched_query_label: ''
