@@ -161,14 +161,10 @@ class ColumnName:
         """Orientation of the cell in degrees from 0 (along +x axis) to 180 (along -x axis)."""
 
         ALIGNMENT = "alignment"
-        """Alignment of the cell orientation relative to the flow direction,
-        where 0 means the cell is aligned parallel to flow and 90 means the cell
-        is aligned perpendicular to flow."""
+        """Alignment of the cell relative to flow in radians from 0 (parallel) to pi (perpendicular)."""
 
         ALIGNMENT_DEG = "alignment_deg"
-        """Alignment of the cell orientation relative to the flow direction in degrees,
-        where 0 means the cell is aligned parallel to flow and 90 means the cell
-        is aligned perpendicular to flow."""
+        """Alignment of the cell relative to flow in degrees from 0 (parallel) to 90 (perpendicular)."""
 
         NEMATIC_ORDER = "nematic_order"
         ECCENTRICITY = "eccentricity"

@@ -81,8 +81,8 @@ columns:
   num_unique_tracks_before_filtering_at_T: Number of unique tracks that are present at the timepoint
     of interest before filtering
   track_duration: Number of timepoints in the track
-  alignment: ''
-  alignment_deg: ''
+  alignment: Alignment of the cell relative to flow in radians from 0 (parallel) to pi (perpendicular)
+  alignment_deg: Alignment of the cell relative to flow in degrees from 0 (parallel) to 90 (perpendicular)
   orientation_deg: Orientation of the cell in degrees from 0 (along +x axis) to 180 (along -x axis)
   nematic_order: ''
   aspect_ratio: ''
