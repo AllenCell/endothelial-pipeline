@@ -149,10 +149,10 @@ class ColumnName:
         """Time in minutes since the start of the timelapse."""
 
         NORMALIZED_TIME_PER_TRACK = "normalized_time"
-        """The time normalized to the track duration (from 0 to 1)."""
+        """Time normalized to the track duration (from 0 to 1)."""
 
         TIME_HRS_SINCE_FLOW = "time_hours_since_flow_start"
-        """The time in hours since cells first start experiencing a shear stress."""
+        """Time in hours since cells first experienced a shear stress."""
 
         # morphological features
         ORIENTATION = "orientation"

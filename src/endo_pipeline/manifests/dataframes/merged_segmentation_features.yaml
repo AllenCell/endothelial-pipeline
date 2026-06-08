@@ -139,7 +139,7 @@ columns:
   gfp_scope_error: ''
   not_steady_state: ''
   shear_stress: Shear stress value in dyn/cm^2
-  time_hours_since_flow_start: ''
+  time_hours_since_flow_start: Time in hours since cells first experienced a shear stress
 locations:
   20250319_20X:
     fmsid: 299ccaacef4f4fc695a2946b3fb02b2d

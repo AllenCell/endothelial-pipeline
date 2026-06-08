@@ -96,7 +96,7 @@ columns:
   gfp_scope_error: ''
   not_steady_state: ''
   shear_stress: Shear stress value in dyn/cm^2
-  time_hours_since_flow_start: ''
+  time_hours_since_flow_start: Time in hours since cells first experienced a shear stress
   start_y: Y-coordinate of upper left corner of patch (crop) in pixels (zarr resolution level 1)
   start_x: X-coordinate of upper left corner of patch (crop) in pixels (zarr resolution level 1)
   end_y: Y-coordinate of lower right corner of patch (crop) in pixels (zarr resolution level 1)
@@ -220,7 +220,7 @@ columns:
   dmean_fluor_intensity_dt_cell: ''
   dmean_fluor_intensity_dt_edge: ''
   dmean_fluor_intensity_dt_node: ''
-  normalized_time: ''
+  normalized_time: Time normalized to the track duration (from 0 to 1)
   dnum_nuclei_in_crop_dt_mins: ''
 locations:
   20250319_20X:
