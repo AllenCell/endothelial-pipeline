@@ -14,11 +14,11 @@ from endo_pipeline.configs import (
     load_dataset_config,
 )
 from endo_pipeline.io import get_output_path, load_dataframe
-from endo_pipeline.library.process.single_tp_outlier.bf_timepoint_outlier import detect_bf_outliers
-from endo_pipeline.library.process.single_tp_outlier.gfp_timepoint_outlier import (
-    detect_egfp_scope_errors,
+from endo_pipeline.library.process.timepoint_outliers import (
+    plot_single_timepoint_bf_outliers,
+    plot_single_timepoint_gfp_outliers,
+    print_timepoint_annotation_performance_stats,
 )
-from endo_pipeline.library.process.single_tp_outlier.timepoint_outlier import performance_stats
 from endo_pipeline.library.process.z_stack_selection import (
     plot_global_center_plane,
     plot_histogram_upper_slices_available,
@@ -32,6 +32,7 @@ from endo_pipeline.settings.dataset_annotations import (
     IN_FOCUS_PLANE_MANIFEST_NAME,
     REPRESENTATIVE_ANNOTATION_POSITION,
     REPRESENTATIVE_ANNOTATION_TIMEPOINT,
+    TIMEPOINT_OUTLIERS_MANIFEST_NAME,
 )
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
 from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
@@ -96,20 +97,52 @@ visualize_slice_selection(
 # %% Load example datasets
 FIGURE_ID = "SUPP_FIG_SINGLE_TP"
 save_dir_2 = get_output_path("annotate_tp_outliers")
-dataset_config_bf = load_dataset_config(EXAMPLE_DATASET[f"{FIGURE_ID}_BF_OUTLIER"])
-dataset_config_gfp = load_dataset_config(EXAMPLE_DATASET[f"{FIGURE_ID}_GFP_OUTLIER"])
-position = 0
+dataset_bf = EXAMPLE_DATASET[f"{FIGURE_ID}_BF_OUTLIER"]
+dataset_gfp = EXAMPLE_DATASET[f"{FIGURE_ID}_GFP_OUTLIER"]
+
+# %% Load dataframe for timepoint outlier annotations
+tp_outliers_df_manifest = load_dataframe_manifest(TIMEPOINT_OUTLIERS_MANIFEST_NAME)
+bf_tp_outliers_df_location = tp_outliers_df_manifest.locations[dataset_bf]
+bf_tp_outliers_df = load_dataframe(bf_tp_outliers_df_location).set_index(Column.POSITION)
+bf_tp_outliers = bf_tp_outliers_df.loc[position].to_dict()
+gfp_tp_outliers_df_location = tp_outliers_df_manifest.locations[dataset_gfp]
+gfp_tp_outliers_df = load_dataframe(gfp_tp_outliers_df_location).set_index(Column.POSITION)
+gfp_tp_outliers = gfp_tp_outliers_df.loc[position].to_dict()
 
 # %% Panel - Auto-detect BF outliers
-_ = detect_bf_outliers(dataset_config_bf, position, visualize=True, figure_size=(3.4, 2.5))
+plot_single_timepoint_bf_outliers(
+    mean_intensity=bf_tp_outliers[Column.Annotations.BF_MEAN_INTENSITY],
+    rolling_median=bf_tp_outliers[Column.Annotations.BF_ROLLING_MEDIAN],
+    dark_threshold=bf_tp_outliers[Column.Annotations.BF_DARK_THRESHOLD],
+    partial_dark_threshold=bf_tp_outliers[Column.Annotations.BF_PARTIAL_DARK_THRESHOLD],
+    bright_threshold=bf_tp_outliers[Column.Annotations.BF_BRIGHT_THRESHOLD],
+    dark_outliers=bf_tp_outliers[Column.Annotations.BF_DARK_OUTLIERS].astype(int),
+    partial_dark_outliers=bf_tp_outliers[Column.Annotations.BF_PARTIAL_DARK_OUTLIERS].astype(int),
+    bright_outliers=bf_tp_outliers[Column.Annotations.BF_BRIGHT_OUTLIERS].astype(int),
+    dataset_name=dataset_bf,
+    position=position,
+    save_dir=save_dir_2,
+    figure_size=(3.4, 2.5),
+)
 
 # %% Panel - Auto-detect EGFP scope errors
-_ = detect_egfp_scope_errors(dataset_config_gfp, position, visualize=True, figure_size=(3.2, 2.5))
+plot_single_timepoint_gfp_outliers(
+    timepoint_means=gfp_tp_outliers[Column.Annotations.GFP_TIMEPOINT_MEANS],
+    rolling_median=gfp_tp_outliers[Column.Annotations.GFP_ROLLING_MEDIAN],
+    lower_threshold=gfp_tp_outliers[Column.Annotations.GFP_LOWER_THRESHOLD],
+    upper_threshold=gfp_tp_outliers[Column.Annotations.GFP_UPPER_THRESHOLD],
+    dark_outliers=gfp_tp_outliers[Column.Annotations.GFP_DARK_OUTLIERS],
+    bright_outliers=gfp_tp_outliers[Column.Annotations.GFP_BRIGHT_OUTLIERS],
+    dataset_name=dataset_gfp,
+    position=position,
+    save_dir=save_dir_2,
+    figure_size=(3.2, 2.5),
+)
 
 # %% Performance statistics reported across datasets in collection
 datasets = get_datasets_in_collection("shear_stress", "perturbation")
 
-bf_results = performance_stats(
+bf_results = print_timepoint_annotation_performance_stats(
     datasets=datasets,
     manual_annotations=[
         TimepointAnnotation.BF_SCOPE_ERROR,
@@ -123,7 +156,7 @@ bf_results = performance_stats(
 )
 print(bf_results)
 
-gfp_results = performance_stats(
+gfp_results = print_timepoint_annotation_performance_stats(
     datasets=datasets,
     manual_annotations=[TimepointAnnotation.GFP_SCOPE_ERROR],
     auto_annotations=[TimepointAnnotation.AUTO_GFP_SCOPE_ERROR],
@@ -132,7 +165,6 @@ gfp_results = performance_stats(
 print(gfp_results)
 
 # %% Figure
-save_dir_2 = get_output_path("annotate_tp_outliers")
 panels = [
     FigurePanel(
         letter="A",
@@ -169,7 +201,7 @@ panels = [
     ),
     FigurePanel(
         letter="F",
-        path=save_dir_2 / f"bf_outliers_{dataset_config_bf.name}_P{position}.svg",
+        path=save_dir_2 / f"bf_outliers_{dataset_bf}_P{position}.svg",
         x_position=0,
         y_position=5.4,
         x_offset=0.1,
@@ -177,7 +209,7 @@ panels = [
     ),
     FigurePanel(
         letter="G",
-        path=save_dir_2 / f"gfp_outliers_{dataset_config_gfp.name}_P{position}.svg",
+        path=save_dir_2 / f"gfp_outliers_{dataset_gfp}_P{position}.svg",
         x_position=3.45,
         y_position=5.4,
         x_offset=-0.1,

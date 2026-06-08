@@ -7,4 +7,7 @@ REPRESENTATIVE_ANNOTATION_TIMEPOINT: int = 0
 """Representative timepoint for dataset annotations."""
 
 IN_FOCUS_PLANE_MANIFEST_NAME: str = "in_focus_plane_annotations"
-"""Manifest name prefix for in focus plane annotations."""
+"""Manifest name for in focus plane annotations."""
+
+TIMEPOINT_OUTLIERS_MANIFEST_NAME: str = "timepoint_outlier_annotations"
+"""Manifest name for timepoint outliers annotations."""
