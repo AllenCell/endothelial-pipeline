@@ -142,12 +142,11 @@ class ColumnName:
         RESOLUTION_FOR_DIFFAE = "diffae_resolution_level_to_use"
         """DiffAE feature resolution level used to downsample resolution 0 coordinates."""
 
-        # temporal features: Time-related column names.
         TIME_HRS = "time_hours"
-        """The time in hours since the start of the timelapse."""
+        """Time in hours since the start of the timelapse."""
 
         TIME_MINS = "time_minutes"
-        """The time in minutes since the start of the timelapse."""
+        """Time in minutes since the start of the timelapse."""
 
         NORMALIZED_TIME_PER_TRACK = "normalized_time"
         """The time normalized to the track duration (from 0 to 1)."""
