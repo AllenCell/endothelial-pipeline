@@ -13,7 +13,7 @@ columns:
   area: ''
   perimeter: ''
   orientation: Orientation of the cell in radians from 0 (along +x axis) to pi (along -x axis)
-  eccentricity: ''
+  eccentricity: Eccentricity of ellipse fit to cell segmentation (focal distance divided by major axis)
   matching_method: ''
   touches_border: ''
   centroid_Y: ''

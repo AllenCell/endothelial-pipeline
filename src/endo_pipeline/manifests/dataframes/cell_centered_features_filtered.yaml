@@ -14,7 +14,7 @@ columns:
   solidity: ''
   major_axis_length: ''
   minor_axis_length: ''
-  eccentricity: ''
+  eccentricity: Eccentricity of ellipse fit to cell segmentation (focal distance divided by major axis)
   orientation: Orientation of the cell in radians from 0 (along +x axis) to pi (along -x axis)
   cell_fluorescence_mean_au: ''
   cell_fluorescence_std_au: ''
@@ -49,8 +49,8 @@ columns:
   alignment: Alignment of the cell relative to flow in radians from 0 (parallel) to pi (perpendicular)
   alignment_deg: Alignment of the cell relative to flow in degrees from 0 (parallel) to 90 (perpendicular)
   orientation_deg: Orientation of the cell in degrees from 0 (along +x axis) to 180 (along -x axis)
-  nematic_order: ''
-  aspect_ratio: ''
+  nematic_order: Nematic order of ellipse fit to cell segmentation from -1 (perpendicular) to 1 (parallel)
+  aspect_ratio: Aspect ratio of ellipse fit to cell segmentation (major axis divided by minor axis)
   pixel_size_xy_in_um: Size of a pixel in the XY dimensions in microns
   area_um_squared: ''
   perimeter_um: ''

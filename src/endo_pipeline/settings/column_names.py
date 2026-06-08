@@ -167,8 +167,14 @@ class ColumnName:
         """Alignment of the cell relative to flow in degrees from 0 (parallel) to 90 (perpendicular)."""
 
         NEMATIC_ORDER = "nematic_order"
+        """Nematic order of ellipse fit to cell segmentation from -1 (perpendicular) to 1 (parallel)."""
+
         ECCENTRICITY = "eccentricity"
+        """Eccentricity of ellipse fit to cell segmentation (focal distance divided by major axis)."""
+
         ASPECT_RATIO = "aspect_ratio"
+        """Aspect ratio of ellipse fit to cell segmentation (major axis divided by minor axis)."""
+
         MAJOR_AXIS = "major_axis_length"
         """The length of the major axis of an ellipse fitted to the cell segmentation."""
 
