@@ -130,6 +130,7 @@ def make_imaging_panels(
     # "nuclei_predictions" is a combo of segmentation skeletons and nuclei
     # predictions which are used as seeds
     image_dict["seeds"] = image_dict.pop("nuclei_predictions")
+    image_dict["seeds"] = binary_dilation(image_dict["seeds"])
     # "raw" is a max intensity projection (MIP) of the cdh5 channel
     image_dict["cdh5_mip"] = image_dict.pop("raw")
     # "processed" is the preprocessed cdh5 MIP channel
@@ -256,7 +257,7 @@ def make_imaging_panels(
     inset_x_stop = 600
     inset_y_start = 110
     inset_y_stop = 440
-    inset_YX = (slice(inset_x_start, inset_x_stop), slice(inset_y_start, inset_y_stop))
+    inset_YX = (slice(inset_y_start, inset_y_stop), slice(inset_x_start, inset_x_stop))
 
     for panel_name in panel_dict:
         image_name_list = list(panel_dict[panel_name]["images"])  # type: ignore[call-overload]
