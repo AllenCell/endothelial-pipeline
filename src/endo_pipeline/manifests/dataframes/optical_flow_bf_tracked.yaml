@@ -16,7 +16,7 @@ columns:
   track_id: ''
   start_y: ''
   end_x: ''
-  dataset: ''
+  dataset: Name of dataset
   crop_index: ''
   track_duration: ''
   is_included: ''

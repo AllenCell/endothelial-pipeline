@@ -10,7 +10,7 @@ parameters:
     polar_r: 0.25
     rho: 0.5
 columns:
-  dataset: ''
+  dataset: Name of dataset
   fpt_distance_threshold: ''
   count_grid: ''
   mean_grid: ''

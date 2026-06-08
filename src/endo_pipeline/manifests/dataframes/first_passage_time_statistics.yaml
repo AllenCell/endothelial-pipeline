@@ -10,7 +10,7 @@ parameters:
     polar_r: 0.25
     rho: 0.5
 columns:
-  dataset: ''
+  dataset: Name of dataset
   count_first_passage_time_grid: ''
   mean_first_passage_time_grid: ''
   std_first_passage_time_grid: ''

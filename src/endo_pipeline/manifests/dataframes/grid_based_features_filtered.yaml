@@ -10,7 +10,7 @@ columns:
   start_y: ''
   start_x: ''
   zarr_path: ''
-  dataset: ''
+  dataset: Name of dataset
   model_manifest_name: ''
   run_name: ''
   resolution_level: ''

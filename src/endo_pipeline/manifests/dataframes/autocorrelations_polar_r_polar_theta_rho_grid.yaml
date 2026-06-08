@@ -12,7 +12,7 @@ columns:
   autocorrelation_lower_percentile: ''
   autocorrelation_upper_percentile: ''
   exponential_fit: ''
-  dataset: ''
+  dataset: Name of dataset
   shear_stress: ''
 locations:
   20250319_20X:

@@ -9,7 +9,7 @@ parameters:
   ema_alphas: [0.1]
   speed_threshold: 1.0
 columns:
-  dataset: ''
+  dataset: Name of dataset
   position: ''
   start_x: ''
   start_y: ''

@@ -13,7 +13,7 @@ columns:
   end_x: ''
   zarr_path: ''
   track_id: ''
-  dataset: ''
+  dataset: Name of dataset
   model_manifest_name: ''
   run_name: ''
   resolution_level: ''

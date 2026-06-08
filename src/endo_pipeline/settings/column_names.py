@@ -5,7 +5,7 @@ class ColumnName:
     """Dataframe column names. Base level column names are shared among dataframes."""
 
     DATASET = "dataset"
-    """Column name for dataset name."""
+    """Name of dataset."""
 
     POSITION = "position"
     """Column name for position identifier."""

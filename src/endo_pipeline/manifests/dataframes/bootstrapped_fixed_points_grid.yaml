@@ -20,7 +20,7 @@ parameters:
   bin_widths: [0.05, 0.05, 0.05]
   num_bootstrap_iterations: 500
 columns:
-  dataset: ''
+  dataset: Name of dataset
   stability: ''
   polar_theta: ''
   polar_r: ''

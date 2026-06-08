@@ -22,7 +22,7 @@ parameters:
   lower_percentile_for_filtering_fpts: 5.0
   upper_percentile_for_filtering_fpts: 95.0
 columns:
-  dataset: ''
+  dataset: Name of dataset
   polar_theta_drift: ''
   polar_r_drift: ''
   rho_drift: ''
