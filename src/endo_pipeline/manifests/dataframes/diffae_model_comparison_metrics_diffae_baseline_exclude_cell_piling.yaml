@@ -13,7 +13,7 @@ columns:
   random_seed: ''
   example_set: ''
   example_idx: ''
-  dataset_name: ''
+  dataset_name: Name of dataset
   position: ''
   timepoint: ''
   crop_x_start: ''

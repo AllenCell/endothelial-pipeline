@@ -4,7 +4,7 @@ parameters: {}
 columns:
   filepath_raw_image: ''
   filepath_segmentation_image: ''
-  dataset_name: ''
+  dataset_name: Name of dataset
   position: ''
   T: ''
   cell_label: ''

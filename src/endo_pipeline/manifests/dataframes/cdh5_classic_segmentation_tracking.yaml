@@ -18,7 +18,7 @@ columns:
   touches_border: ''
   centroid_Y: ''
   centroid_X: ''
-  dataset_name: ''
+  dataset_name: Name of dataset
   position: ''
 locations:
   20250319_20X:

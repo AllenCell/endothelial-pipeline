@@ -2,7 +2,7 @@ name: nuclei_labelfree_segmentation
 workflow: get_nuclei_measured_features
 parameters: {}
 columns:
-  dataset_name: ''
+  dataset_name: Name of dataset
   position: ''
   T: ''
   cdh5_segmentation_label: ''
