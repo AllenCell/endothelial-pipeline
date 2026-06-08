@@ -518,7 +518,7 @@ columns:
   frame_number: Timepoint (unit = frames)
   start_y: ''
   start_x: ''
-  zarr_path: ''
+  zarr_path: Path to Zarr file for image that patch (crop) comes from
   dataset: Name of dataset
   model_manifest_name: ''
   run_name: ''

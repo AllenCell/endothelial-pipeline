@@ -10,7 +10,7 @@ columns:
   matching_method: ''
   dataset: Name of dataset
   position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
-  zarr_path: ''
+  zarr_path: Path to Zarr file for image that patch (crop) comes from
   filepath_segmentation_image: ''
   label: ''
   centroid: ''

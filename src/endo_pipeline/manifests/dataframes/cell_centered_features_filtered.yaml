@@ -6,7 +6,7 @@ columns:
   track_id: Track ID assigned by the tracking algorithm
   dataset: Name of dataset
   position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
-  zarr_path: ''
+  zarr_path: Path to Zarr file for image that patch (crop) comes from
   label: ''
   centroid: ''
   area_px_squared: ''

@@ -23,7 +23,7 @@ class ColumnName:
     """Number of timepoints in the track."""
 
     ZARR_PATH = "zarr_path"
-    """Column name for path to the source Zarr file."""
+    """Path to Zarr file for image that patch (crop) comes from."""
 
     IMAGE_SIZE_X = "image_size_x"
     """The size of the image in the X dimension (pixels)."""
