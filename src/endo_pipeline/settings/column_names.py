@@ -69,6 +69,7 @@ class ColumnName:
 
         NEMATIC_ORDER = "nematic_order"
         """Column name for nematic order (computed as `cos(2*theta)`)."""
+        # TODO: check usage?
 
         PC3_FLIPPED = "rho"
         """Transformed feature rho (negative PC3)."""
