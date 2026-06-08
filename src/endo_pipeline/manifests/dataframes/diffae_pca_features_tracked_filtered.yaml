@@ -14,7 +14,7 @@ columns:
   zarr_path: Path to Zarr file for image that patch (crop) comes from
   track_id: Track ID assigned by the tracking algorithm
   dataset: Name of dataset
-  model_manifest_name: ''
+  model_manifest_name: Manifest name of model used to generate latent vectors
   run_name: ''
   resolution_level: ''
   crop_size_y: ''
