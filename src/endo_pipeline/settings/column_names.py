@@ -56,7 +56,7 @@ class ColumnName:
         """Dataframe column names used in DiFFAE feature dataframes."""
 
         LATENT_FEATURE_PREFIX = "feat_"
-        """Prefix for latent feature column names."""
+        """Component [i] of the DiffAE latent vector."""
 
         PCA_FEATURE_PREFIX = "pc_"
         """Prefix for PCA-transformed feature column names."""
