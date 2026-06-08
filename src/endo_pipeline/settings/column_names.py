@@ -35,7 +35,7 @@ class ColumnName:
     """Size of a pixel in the XY dimensions in microns."""
 
     TIME_RESOLUTION_MINUTES = "time_resolution_minutes"
-    """The time resolution of the timelapse in minutes."""
+    """Time resolution of the timelapse in minutes."""
 
     DURATION = "duration_minutes"
     """Timelapse duration in timeframes"""
