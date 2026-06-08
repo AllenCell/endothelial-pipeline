@@ -95,8 +95,8 @@ columns:
   edge_and_node_fluorescence_mean_au: ''
   edge_and_node_fluorescence_std_au: ''
   number_of_neighbors: ''
-  image_size_x: ''
-  image_size_y: ''
+  image_size_x: Size of the whole image in the X dimension in pixels
+  image_size_y: Size of the whole image in the Y dimension in pixels
   cdh5_channel_index_in_zarr: ''
   brightfield_channel_index_zarr: ''
   num_nuclei_with_most_overlap: ''

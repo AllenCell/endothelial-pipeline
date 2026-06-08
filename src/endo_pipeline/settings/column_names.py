@@ -26,10 +26,10 @@ class ColumnName:
     """Path to Zarr file for image that patch (crop) comes from."""
 
     IMAGE_SIZE_X = "image_size_x"
-    """The size of the image in the X dimension (pixels)."""
+    """Size of the whole image in the X dimension in pixels."""
 
     IMAGE_SIZE_Y = "image_size_y"
-    """The size of the image in the Y dimension (pixels)."""
+    """Size of the whole image in the Y dimension in pixels."""
 
     PIXEL_SIZE_XY_IN_UM = "pixel_size_xy_in_um"
     """The size of a pixel in the XY dimensions in microns."""
