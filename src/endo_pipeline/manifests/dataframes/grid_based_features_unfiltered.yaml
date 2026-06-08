@@ -534,7 +534,7 @@ columns:
   pc_511: Component 511 of PCA-transformed latent vector
   pc_512: Component 512 of PCA-transformed latent vector
   polar_r: Transformed feature r (polar r from PC1 and PC2)
-  polar_theta: ''
+  polar_theta: Transformed feature theta (rescaled polar angle from PC1 and PC2)
   rho: ''
 locations:
   20250319_20X:

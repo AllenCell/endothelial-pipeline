@@ -65,7 +65,7 @@ class ColumnName:
         """Transformed feature r (polar r from PC1 and PC2)."""
 
         POLAR_ANGLE = "polar_theta"
-        """Column name for polar angle coordinate computed from PC1 and PC2."""
+        """Transformed feature theta (rescaled polar angle from PC1 and PC2)."""
 
         NEMATIC_ORDER = "nematic_order"
         """Column name for nematic order (computed as `cos(2*theta)`)."""
