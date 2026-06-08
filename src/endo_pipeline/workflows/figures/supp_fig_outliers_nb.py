@@ -7,28 +7,32 @@ Visualize the automatic detection of outlier timepoints in BF and EGFP channels.
 
 # %%
 import matplotlib.pyplot as plt
-import numpy as np
 
 from endo_pipeline.configs import (
     TimepointAnnotation,
     get_datasets_in_collection,
     load_dataset_config,
 )
-from endo_pipeline.io import get_output_path, load_image
+from endo_pipeline.io import get_output_path, load_dataframe
 from endo_pipeline.library.process.single_tp_outlier.bf_timepoint_outlier import detect_bf_outliers
 from endo_pipeline.library.process.single_tp_outlier.gfp_timepoint_outlier import (
     detect_egfp_scope_errors,
 )
 from endo_pipeline.library.process.single_tp_outlier.timepoint_outlier import performance_stats
 from endo_pipeline.library.process.z_stack_selection import (
-    calculate_center_planes_all_tp_for_pos,
     plot_global_center_plane,
     plot_histogram_upper_slices_available,
     plot_standard_devs_per_slice,
     visualize_slice_selection,
 )
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
-from endo_pipeline.manifests import get_zarr_location_for_position
+from endo_pipeline.manifests import load_dataframe_manifest
+from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.dataset_annotations import (
+    IN_FOCUS_PLANE_MANIFEST_NAME,
+    REPRESENTATIVE_ANNOTATION_POSITION,
+    REPRESENTATIVE_ANNOTATION_TIMEPOINT,
+)
 from endo_pipeline.settings.examples import EXAMPLE_DATASET
 from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.image_data import LOWER_Z_SLICE_OFFSET, UPPER_Z_SLICE_OFFSET
@@ -40,23 +44,31 @@ FIGURE_ID = "SUPP_FIG_Z_SLICE"
 dataset = EXAMPLE_DATASET[FIGURE_ID]
 save_dir_1 = get_output_path("supp_fig_z_slice_selection")
 dataset_config = load_dataset_config(dataset)
-position, frame = 0, 0
+position = REPRESENTATIVE_ANNOTATION_POSITION
+timepoint = REPRESENTATIVE_ANNOTATION_TIMEPOINT
 
-# %% Load images
-zarr_loc = get_zarr_location_for_position(dataset_config, position)
-bf_stack = load_image(zarr_loc, channels=["BF"], timepoints=frame, level=1, squeeze=True)
-cdh5_stack = load_image(zarr_loc, channels=["EGFP"], timepoints=frame, level=1, squeeze=True)
+# %% Load dataframe for in focus plane annotations
+in_focus_plane_df_manifest = load_dataframe_manifest(IN_FOCUS_PLANE_MANIFEST_NAME)
+in_focus_plane_df_location = in_focus_plane_df_manifest.locations[dataset]
+in_focus_plane_df = load_dataframe(in_focus_plane_df_location).set_index(Column.POSITION)
+in_focus_plane = in_focus_plane_df.loc[position].to_dict()
 
 # %% Panel - In focus Z slice selection per timepoint
-stdevs = [plane.std().compute() for plane in bf_stack]
-focal_plane_tp = max(0, np.argmin(stdevs))
+stdevs = in_focus_plane[Column.Annotations.CENTER_PLANE_SLICES_STD_DEVS]
+center_plane = in_focus_plane[Column.Annotations.CENTER_PLANE_MEAN]
 plot_standard_devs_per_slice(
-    stdevs, int(focal_plane_tp), dataset, position, frame, save_dir_1, (2.4, 2.15)
+    stdevs,
+    center_plane,
+    dataset,
+    position,
+    timepoint,
+    save_dir_1,
+    (2.4, 2.15),
 )
 
 # %% Panel - In focus Z slice selection per position over time
-focal_planes = calculate_center_planes_all_tp_for_pos(dataset_config, position)
-focal_plane_pos, std_dev = plot_global_center_plane(
+focal_planes = in_focus_plane[Column.Annotations.CENTER_PLANES]
+plot_global_center_plane(
     focal_planes,
     dataset_config.name,
     position,
@@ -71,18 +83,15 @@ plot_histogram_upper_slices_available(datasets, save_dir_1, figure_size=(1.5, 2.
 
 # %% Panel - Example images of selected Z slices
 visualize_slice_selection(
-    bf_stack,
-    cdh5_stack,
-    int(focal_plane_pos),
-    dataset,
+    dataset_config,
+    center_plane,
     position,
-    frame,
+    timepoint,
     save_dir_1,
     (MAX_FIGURE_WIDTH * 0.7, 3),
     LOWER_Z_SLICE_OFFSET,
     UPPER_Z_SLICE_OFFSET,
 )
-
 
 # %% Load example datasets
 FIGURE_ID = "SUPP_FIG_SINGLE_TP"
@@ -127,7 +136,7 @@ save_dir_2 = get_output_path("annotate_tp_outliers")
 panels = [
     FigurePanel(
         letter="A",
-        path=save_dir_1 / f"standard_devs_{dataset}_P{position}_{frame}.svg",
+        path=save_dir_1 / f"standard_devs_{dataset}_P{position}_{timepoint}.svg",
         x_position=0,
         y_position=0,
         x_offset=0,
@@ -152,7 +161,7 @@ panels = [
     FigurePanel(
         letter="D",
         path=save_dir_1
-        / f"plane_selection_vis_{dataset}_P{position}_{frame}_offset{LOWER_Z_SLICE_OFFSET}_{UPPER_Z_SLICE_OFFSET}_scalebar100um.svg",
+        / f"plane_selection_vis_{dataset}_P{position}_{timepoint}_offset{LOWER_Z_SLICE_OFFSET}_{UPPER_Z_SLICE_OFFSET}_scalebar100um.svg",
         x_position=0,
         y_position=2.3,
         x_offset=0.08,

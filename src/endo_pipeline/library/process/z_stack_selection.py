@@ -1,20 +1,18 @@
 import logging
-from collections.abc import Callable
 from pathlib import Path
-from typing import Literal, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from dask.array import Array
-from matplotlib import colormaps
 from matplotlib.ticker import MaxNLocator, MultipleLocator
 
 from endo_pipeline.configs import DatasetConfig, load_dataset_config
 from endo_pipeline.io import load_image, save_plot_to_path
 from endo_pipeline.library.process.image_processing import contrast_stretching, crop_image
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
-from endo_pipeline.manifests import ImageLocation, get_zarr_location_for_position
+from endo_pipeline.manifests import get_zarr_location_for_position
+from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.dataset_annotations import REPRESENTATIVE_ANNOTATION_TIMEPOINT
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM
 from endo_pipeline.settings.image_data import (
     LOWER_Z_SLICE_OFFSET,
@@ -26,15 +24,15 @@ logger = logging.getLogger(__name__)
 
 
 def calculate_global_center_plane(
-    dataset_config: DatasetConfig, position: int, save_dir: Path
-) -> dict[str, int]:
+    dataset_config: DatasetConfig, position: int, max_timepoints: int | None = None
+) -> dict[str, int | list[int]]:
     """
     Calculate the global center plane for a single position in a dataset.
 
-    This function computes the center plane for each frame in a brightfield (BF) z-stack
-    by finding the slice with the minimum standard deviation. It then calculates the
-    mean and standard deviation of the center planes across all frames and optionally
-    visualizes the results.
+    This function computes the center plane for each frame in a brightfield (BF)
+    z-stack by finding the slice with the minimum standard deviation. It then
+    calculates the mean and standard deviation of the center planes across all
+    frames.
 
     Parameters
     ----------
@@ -42,15 +40,13 @@ def calculate_global_center_plane(
         Configuration object containing metadata and paths for the dataset.
     position
         The position index within the dataset to analyze.
-    save_dir
-        Directory where the visualization of the global center plane will be saved.
+    max_timepoints
+        Maximum number of timepoints to use for calculating plane.
 
     Returns
     -------
-    A dictionary containing:
-    - "position": The analyzed position index.
-    - "mean_center_plane": The mean center plane across all frames.
-    - "std_dev_center_plane": The standard deviation of the center plane across all frames.
+    :
+        Dictionary containing calculated center plane information.
     """
 
     zarr_location = get_zarr_location_for_position(dataset_config, position)
@@ -58,7 +54,9 @@ def calculate_global_center_plane(
 
     center_planes = []
 
-    for frame in range(0, dataset_config.duration, 1):
+    timepoints = max_timepoints or dataset_config.duration
+
+    for frame in range(0, timepoints, 1):
         # Extract the BF stack for the current frame
         bf_stack = bf_stack_all_frames[frame].squeeze()
 
@@ -66,96 +64,24 @@ def calculate_global_center_plane(
         stdevs = bf_stack.std(axis=(1, 2)).compute()
 
         # Find the center plane with the minimum standard deviation
-        center_plane = max(0, np.argmin(stdevs))
+        center_plane = max(0, np.argmin(stdevs).astype(int))
         center_planes.append(center_plane)
 
-    mean, std_dev = plot_global_center_plane(center_planes, dataset_config.name, position, save_dir)
+    # Calculate mean and std dev for selected center planes across timepoints
+    mean = np.mean(center_planes)
+    std_dev = np.std(center_planes)
+
+    # Calculate std dev of each slice for first timepoint
+    representative_slices = bf_stack_all_frames[REPRESENTATIVE_ANNOTATION_TIMEPOINT].squeeze()
+    slice_std_devs = [plane.std().compute() for plane in representative_slices]
 
     return {
-        "position": position,
-        "mean_center_plane": round(mean),
-        "std_dev_center_plane": round(std_dev),
+        Column.POSITION: position,
+        Column.Annotations.CENTER_PLANES: center_planes,
+        Column.Annotations.CENTER_PLANE_SLICES_STD_DEVS: slice_std_devs,
+        Column.Annotations.CENTER_PLANE_MEAN: round(mean),
+        Column.Annotations.CENTER_PLANE_STD_DEV: round(std_dev),
     }
-
-
-def get_center_plane_for_position(dataset_config: DatasetConfig, position: int) -> int:
-    """
-    Calculate the global center plane for a single position across all frames.
-
-    This function determines the center plane of a brightfield (BF) z-stack for a given position
-    by analyzing the standard deviations of pixel intensities across all frames. The center plane
-    is calculated as the plane with the lowest standard deviation for each frame, and the global
-    center plane is determined as the average of these values across all frames.
-
-    Parameters
-    ----------
-    dataset_config
-        Configuration object with dataset-specific information.
-    position
-        The position index.
-
-    Returns
-    -------
-    int
-        The global center plane index for the specified position.
-    """
-
-    zarr_location = get_zarr_location_for_position(dataset_config, position)
-    bf_stack_all_frames = load_image(zarr_location, channels=["BF"], level=1)
-
-    center_planes = []
-
-    for frame in range(0, dataset_config.duration, 1):
-        bf_stack = bf_stack_all_frames[frame].squeeze()
-        stdevs = bf_stack.std(axis=(1, 2)).compute()
-        center_plane_selection = cast(float, max(0, np.argmin(stdevs)))
-        center_planes.append(center_plane_selection)
-
-    del bf_stack_all_frames, stdevs  # Free memory after processing
-
-    mean_center_plane = np.mean(center_planes)
-    global_center_plane = round(mean_center_plane, 0)
-
-    return int(global_center_plane)
-
-
-def get_plane_indices(
-    dataset_config: DatasetConfig,
-    position: int,
-    lower_offset: int,
-    upper_offset: int,
-) -> list[int]:
-    """
-    Get a list of plane indices based on the provided outputs about the global center.
-
-    The indices are constrained between 0 and 24.
-
-    Parameters
-    ----------
-    dataset_config
-        Configuration object containing dataset-specific information.
-    position
-        The position index for which the plane indices are calculated.
-    lower_offset
-        The number of planes below the center plane to include.
-    upper_offset
-        The number of planes above the center plane to include.
-
-    Returns
-    -------
-    list
-        A list of plane indices within the specified range, constrained between 0 and 24.
-    """
-    if dataset_config.center_z_plane is None:
-        logger.error(
-            "Center z-plane information is missing for dataset [ %s ].", dataset_config.name
-        )
-        raise ValueError("Center z-plane information is missing in the dataset configuration.")
-    global_center_plane = dataset_config.center_z_plane[position]
-    lower_bound = max(0, global_center_plane - lower_offset)
-    upper_bound = min(24, global_center_plane + upper_offset)
-
-    return list(range(lower_bound, upper_bound + 1))
 
 
 def plot_standard_devs_per_slice(
@@ -168,7 +94,8 @@ def plot_standard_devs_per_slice(
     figure_size: tuple = (2.5, 2.15),
 ) -> None:
     """
-    Plot the standard deviations of each slice vs plane index, highlighting the center plane.
+    Plot the standard deviations of each slice vs plane index, highlighting the
+    center plane.
 
     Parameters
     ----------
@@ -219,43 +146,9 @@ def plot_standard_devs_per_slice(
     plt.show()
 
 
-def calculate_center_planes_all_tp_for_pos(
-    dataset_config: DatasetConfig, position: int
-) -> list[int]:
-    """
-    Calculate the center plane for each frame in a brightfield (BF) z-stack for a given position.
-
-    Args:
-        dataset_config: Configuration object containing metadata for the dataset.
-        position: The position index within the dataset to analyze.
-
-    Returns:
-        center_plantes: A list of center planes for each frame in the dataset.
-    """
-
-    zarr_location = get_zarr_location_for_position(dataset_config, position)
-    bf_stack_all_frames = load_image(zarr_location, channels=["BF"], level=1)
-    center_planes = []
-
-    for frame in range(0, dataset_config.duration, 1):
-        # Extract the BF stack for the current frame
-        bf_stack = bf_stack_all_frames[frame].squeeze()
-
-        # Compute standard deviations for all slices in the current frame
-        stdevs = bf_stack.std(axis=(1, 2)).compute()
-
-        # Find the center plane with the minimum standard deviation
-        center_plane_tp = max(0, np.argmin(stdevs))
-        center_planes.append(center_plane_tp)
-
-    return center_planes
-
-
 def visualize_slice_selection(
-    bf_stack: Array,
-    cdh5_stack: Array,
+    dataset_config: DatasetConfig,
     center_plane: int,
-    dataset: str,
     position: int,
     frame: int,
     output_dir: Path,
@@ -293,11 +186,12 @@ def visualize_slice_selection(
         Directory to save the output plot.
     figure_size
         Size of the figure to be created (width, height).
-
-    Returns
-    -------
-    None
     """
+
+    zarr_loc = get_zarr_location_for_position(dataset_config, position)
+    bf_stack = load_image(zarr_loc, channels=["BF"], timepoints=frame, level=1, squeeze=True)
+    cdh5_stack = load_image(zarr_loc, channels=["EGFP"], timepoints=frame, level=1, squeeze=True)
+
     method = "min-max"
     center_im = bf_stack[center_plane].compute()
     custom_low = np.percentile(center_im, 1.5)
@@ -378,6 +272,7 @@ def visualize_slice_selection(
             include_label=True if i == 0 else False,
         )
 
+    dataset = dataset_config.name
     fname = f"plane_selection_vis_{dataset}_P{position}_{frame}_offset{lower_offset}_{upper_offest}_scalebar{scale_bar_um}um"
     save_plot_to_path(fig, output_dir, fname, tight_layout=False, file_format=".svg")
     plt.show()
@@ -390,32 +285,27 @@ def plot_global_center_plane(
     output_dir: Path,
     figure_size: tuple = (2.5, 2.15),
     show_histogram: bool = True,
-) -> tuple[float, float]:
+) -> None:
     """
     Plot the global center plane for a given dataset and position.
 
     Parameters
     ----------
-    center_planes : list
+    center_planes
         List of center planes for each timepoint.
-    dataset : str
+    dataset
         Name of the dataset.
-    position : int
+    position
         Position index.
-    output_dir : Path
+    output_dir
         Directory to save the output plot.
-    figure_size : tuple
+    figure_size
         Size of the figure.
-    show_histogram : bool, optional
-        Whether to show the histogram, by default True.
-
-    Returns
-    -------
-    tuple[float, float]
-        Mean and standard deviation of the center planes.
+    show_histogram
+        True to include histogram, False to only show scatter plot.
     """
+
     mean_cp = np.mean(center_planes)
-    std_cp = np.std(center_planes)
     y_min, y_max = 0, 25  # fixed y-axis range
 
     if show_histogram:
@@ -465,296 +355,6 @@ def plot_global_center_plane(
     save_plot_to_path(fig, output_dir, fname, file_format=".svg", tight_layout=False)
     plt.show()
     plt.close(fig)
-
-    return mean_cp, std_cp
-
-
-def save_projection_image(image: np.ndarray, save_path: Path) -> None:
-    """
-    Save a processed 2D image to disk using grayscale colormap.
-
-    Intentionally not using save_plot_to_path here to avoid saving as a figure and
-    keep the image at its original resolution.
-
-    Parameters
-    ----------
-    image
-        The processed image array to be saved.
-    save_path
-        The file path where the image will be saved.
-    """
-    plt.imsave(save_path, image, cmap="gray")
-
-
-def append_projection_outputs(
-    stack: Array,
-    zslice: list[int],
-    process_fn: Callable,
-    image_list: list,
-    title_list: list,
-    bottom_list: list,
-    top_list: list,
-) -> None:
-    """
-    Process a z-slice from a stack and append outputs to given containers.
-
-    Parameters
-    ----------
-    stack
-        The full 3D image stack.
-    zslice
-        Start and end indices for slicing the z-axis (e.g., [5, 20]).
-    process_fn
-        A function that processes the sliced stack and returns outputs, with
-        the final output being the 2D projection.
-    image_list
-        List to collect the processed projection images.
-    title_list
-        List to collect slice label strings for titles.
-    bottom_list
-        List to collect the bottom slice of the projection range.
-    top_list
-        List to collect the top slice of the projection range.
-    """
-    slice_str = f"{zslice[0]}_{zslice[1]}"
-    sliced = stack[zslice[0] : zslice[1]]
-    outputs = process_fn(sliced)
-    processed = outputs[-1]
-
-    image_list.append(processed)
-    title_list.append(slice_str)
-    bottom_list.append(stack[zslice[0]])
-    top_list.append(stack[zslice[1]])
-
-
-def plot_image_row(
-    images: list[np.ndarray],
-    titles: list[str],
-    dataset: str,
-    position: int,
-    timepoint: int,
-    save_dir: Path,
-    row_title: str = "Image",
-    figsize: tuple[int, int] = (16, 4),
-) -> None:
-    """
-    Plot a single row of images with corresponding titles.
-
-    Parameters
-    ----------
-    images
-        List of images to display.
-    titles
-        Titles corresponding to each image.
-    dataset
-        Name of the dataset for labeling the plot.
-    position
-        Position index for labeling the plot.
-    timepoint
-        Timepoint index for labeling the plot.
-    save_dir
-        Directory where the plot will be saved.
-    row_title
-        Prefix for each subplot title. Default is "Image".
-    figsize
-        Figure size for the matplotlib plot. Default is (16, 4).
-
-    Returns
-    -------
-    None
-    """
-    fig, axes = plt.subplots(1, len(images), figsize=figsize)
-    for ax, img, title in zip(axes, images, titles, strict=True):
-        ax.imshow(img, cmap="gray")
-        ax.set_title(f"{row_title} {title}")
-        ax.axis("off")
-    plt.suptitle(f"{dataset} P{position}_T{timepoint}")
-    plt.tight_layout()
-    plt.show()
-    fname = f"{dataset}_P{position}_T{timepoint}_{row_title.replace(' ', '_').lower()}_comparison"
-    save_plot_to_path(fig, save_dir, fname)
-
-
-def plot_bottom_top_slices(
-    bottoms: list,
-    tops: list,
-    titles: list[str],
-    dataset: str,
-    position: int,
-    timepoint: int,
-    save_dir: Path,
-    label: str,
-    figsize: tuple[int, int] = (16, 8),
-) -> None:
-    """
-    Plot two rows of images showing bottom and top z-slices from each projection range.
-
-    Parameters
-    ----------
-    bottoms
-        List of bottom slices (as dask arrays) from each projection range.
-    tops
-        List of top slices (as dask arrays) from each projection range.
-    titles
-        Slice range labels (e.g., "0_16", "9_24") for each column.
-    dataset
-        Name of the dataset for labeling the plot.
-    position
-        Position index for labeling the plot.
-    timepoint
-        Timepoint index for labeling the plot.
-    save_dir
-        Directory where the plot will be saved.
-    label
-        Label prefix to distinguish BF or CDH5 channels in titles.
-    figsize
-        Size of the figure to plot. Default is (16, 8).
-
-    Returns
-    -------
-    None
-    """
-    fig, axes = plt.subplots(2, len(bottoms), figsize=figsize)
-
-    for ax, img, title in zip(axes[0], bottoms, titles, strict=True):
-        ax.imshow(contrast_stretching(img.compute()), cmap="gray")
-        ax.set_title(f"{label} bottom {title}")
-        ax.axis("off")
-
-    for ax, img, title in zip(axes[1], tops, titles, strict=True):
-        ax.imshow(contrast_stretching(img.compute()), cmap="gray")
-        ax.set_title(f"{label} top {title}")
-        ax.axis("off")
-
-    plt.suptitle(f"{dataset} P{position}_T{timepoint}")
-    plt.tight_layout()
-    plt.show()
-
-    fname = f"{dataset}_P{position}_T{timepoint}_{label}_bottom_top_slices"
-    save_plot_to_path(fig, save_dir, fname)
-
-
-def plot_vlines(
-    axis: plt.Axes,
-    center: int,
-    lower_offset: int,
-    upper_offset: int,
-    y_min: float,
-    y_max: float,
-) -> None:
-    """Plot vertical lines of global center and offsets."""
-    axis.vlines(
-        center,
-        ymin=y_min,
-        ymax=y_max,
-        colors="red",
-        linestyles="solid",
-        label=f"Global Center Slice {center}",
-    )
-    axis.vlines(
-        center - lower_offset,
-        ymin=y_min,
-        ymax=y_max,
-        colors="magenta",
-        linestyles="dashed",
-        label=f"Center - {lower_offset} Slices {center - lower_offset}",
-    )
-    axis.vlines(
-        center + upper_offset,
-        ymin=y_min,
-        ymax=y_max,
-        colors="black",
-        linestyles="dashed",
-        label=f"Center + {upper_offset} Slices {center + upper_offset}",
-    )
-
-
-def visualize_z_slices_with_offsets(
-    dataset_config: DatasetConfig, position: int, timepoint: int, save_dir: Path
-) -> None:
-    """Visualize specific z-slices from BF and CDH5 stacks based on center plane and offsets."""
-
-    zarr_location = get_zarr_location_for_position(dataset_config, position)
-    bf_stack = load_image(
-        zarr_location, channels=["BF"], timepoints=timepoint, level=1, squeeze=True
-    )
-    cdh5_stack = load_image(
-        zarr_location, channels=["EGFP"], timepoints=timepoint, level=1, squeeze=True
-    )
-
-    if dataset_config.center_z_plane is None:
-        # Handle the case where the value is None
-        print(f"The center slice is None for dataset {dataset_config.name}")
-        return
-    else:
-        center_slice = dataset_config.center_z_plane[position]
-
-    top_slice = 24
-    available_slices_above = top_slice - center_slice
-
-    if UPPER_Z_SLICE_OFFSET > available_slices_above:
-        print(f"Not enough slices above center for dataset {dataset_config.name}, skipping...")
-        return
-
-    # Brightfield (bf) variables
-    bf_center = bf_stack[center_slice, :, :].compute()
-    bf_top = bf_stack[top_slice, :, :].compute()
-    bf_lower_offset = bf_stack[center_slice - LOWER_Z_SLICE_OFFSET, :, :].compute()
-    bf_upper_offset = bf_stack[center_slice + UPPER_Z_SLICE_OFFSET, :, :].compute()
-
-    # CDH5 (cdh5) variables
-    cdh5_center = cdh5_stack[center_slice, :, :].compute()
-    cdh5_top = cdh5_stack[top_slice, :, :].compute()
-    cdh5_lower_offset = cdh5_stack[center_slice - LOWER_Z_SLICE_OFFSET, :, :].compute()
-    cdh5_upper_offset = cdh5_stack[center_slice + UPPER_Z_SLICE_OFFSET, :, :].compute()
-
-    # Brightfield (bf) min and max calculations
-    min_bf = np.percentile(bf_center, 0.2)
-    max_bf = np.percentile(bf_center, 99.8)
-
-    # CDH5 (cdh5) min and max calculations
-    min_cdh5 = np.percentile(cdh5_center, 0.2)
-    max_cdh5 = np.percentile(cdh5_center, 99.8)
-
-    # Contrast stretching
-    bf_center = contrast_stretching(bf_center, custom_range=(min_bf, max_bf))
-    bf_top = contrast_stretching(bf_top, custom_range=(min_bf, max_bf))
-    bf_lower_offset = contrast_stretching(bf_lower_offset, custom_range=(min_bf, max_bf))
-    bf_upper_offset = contrast_stretching(bf_upper_offset, custom_range=(min_bf, max_bf))
-
-    cdh5_center = contrast_stretching(cdh5_center, custom_range=(min_cdh5, max_cdh5))
-    cdh5_top = contrast_stretching(cdh5_top, custom_range=(min_cdh5, max_cdh5))
-    cdh5_lower_offset = contrast_stretching(cdh5_lower_offset, custom_range=(min_cdh5, max_cdh5))
-    cdh5_upper_offset = contrast_stretching(cdh5_upper_offset, custom_range=(min_cdh5, max_cdh5))
-
-    # Define the data and titles for each subplot
-    bf_slices = [bf_lower_offset, bf_center, bf_upper_offset, bf_top]
-    cdh5_slices = [cdh5_lower_offset, cdh5_center, cdh5_upper_offset, cdh5_top]
-    titles = [
-        f"Lower Offset Slice - {center_slice - LOWER_Z_SLICE_OFFSET}",
-        f"Center Slice - {center_slice}",
-        f"Upper Offset Slice - {center_slice + UPPER_Z_SLICE_OFFSET}",
-        "Top Slice - 24",
-    ]
-
-    fig, axes = plt.subplots(2, 4, figsize=(22, 12))  # 2 rows, 4 columns
-    for i in range(4):
-        # Brightfield (BF) slices
-        axes[0, i].imshow(bf_slices[i], cmap="gray")
-        axes[0, i].set_title(f"BF {titles[i]}")
-        axes[0, i].axis("off")
-
-        # CDH5 slices
-        axes[1, i].imshow(cdh5_slices[i], cmap="gray")
-        axes[1, i].set_title(f"CDH5 {titles[i]}")
-        axes[1, i].axis("off")
-
-    plt.suptitle(f"{dataset_config.name} Position {position} Timepoint {timepoint}\n")
-    plt.tight_layout()
-    plt.show()
-
-    save_plot_to_path(fig, save_dir, f"{dataset_config.name}_pos{position}_tp{timepoint}_im_slices")
-    plt.close()
 
 
 def plot_histogram_upper_slices_available(
@@ -813,176 +413,3 @@ def plot_histogram_upper_slices_available(
     save_plot_to_path(
         fig, save_dir, "n_slices_above_in_focus_z_histogram", file_format=".svg", tight_layout=False
     )
-
-
-def compute_profiles(
-    zarr_location: ImageLocation, center_slice: int, timepoint: int
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Compute normalized BF std and CDH5 hist profiles for a given position/timepoint."""
-
-    # Load stacks
-    bf_stack = load_image(
-        zarr_location, channels=["BF"], timepoints=timepoint, level=1, squeeze=True
-    )
-    cdh5_stack = load_image(
-        zarr_location, channels=["EGFP"], timepoints=timepoint, level=1, squeeze=True
-    )
-
-    # Calculate histograms
-    cdh5_hist = np.array(
-        [np.sum(cdh5_stack[z, :, :].compute()) for z in range(cdh5_stack.shape[0])]
-    )
-    bf_std = np.array([np.std(bf_stack[z, :, :].compute()) for z in range(bf_stack.shape[0])])
-
-    # Normalize
-    normalized_x = np.arange(len(bf_std)) - center_slice
-    bf_std_norm = bf_std / bf_std[center_slice] if bf_std[center_slice] != 0 else bf_std
-    cdh5_hist_norm = cdh5_hist / np.max(cdh5_hist) if np.max(cdh5_hist) != 0 else cdh5_hist
-
-    return normalized_x, bf_std_norm, cdh5_hist_norm
-
-
-def plot_normalized_profiles(
-    datasets: list[str],
-    timepoints: list[int],
-    save_dir: Path,
-    mode: Literal["by_position", "by_dataset"] = "by_position",
-    lower_offset: int = LOWER_Z_SLICE_OFFSET,
-    upper_offset: int = UPPER_Z_SLICE_OFFSET,
-    n_positions: int = 6,
-) -> None:
-    """
-    Plot normalized BF std and CDH5 hist profiles.
-
-    Parameters
-    ----------
-    datasets
-        List of dataset names.
-    timepoints
-        List of timepoints (e.g., [0, 90, 180, 270]).
-    save_dir
-        Directory to save the plots.
-    mode
-        Mode for looping (e.g., "by_position" or "by_dataset").
-    lower_offset
-        Z-slice offset below the center slice.
-    upper_offset
-        Z-slice offset above the center slice.
-    n_positions
-        Number of positions to visualize
-    """
-
-    colormap = colormaps["tab20"]
-    colors = [colormap(i / len(datasets)) for i in range(len(datasets))]
-
-    if mode not in ["by_position", "by_dataset"]:
-        logger.error("Invalid mode: [ %s ]. Choose 'by_position' or 'by_dataset'.", mode)
-        raise ValueError("mode must be 'by_position' or 'by_dataset'")
-
-    if mode == "by_position":
-        for timepoint in timepoints:
-            for position in range(n_positions):
-                fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-
-                for i, dataset in enumerate(datasets):
-                    dataset_config = load_dataset_config(dataset)
-                    if dataset_config.center_z_plane is None:
-                        logger.warning(
-                            "Center z-plane information is missing for dataset [ %s ], skipping",
-                            dataset,
-                        )
-                        continue
-                    center_slice = dataset_config.center_z_plane.get(position)
-                    if center_slice is None:
-                        logger.warning(
-                            "Center z-slice information missing for position [ %s ] "
-                            "in dataset [ %s ], skipping",
-                            position,
-                            dataset,
-                        )
-                        continue
-
-                    zarr_location = get_zarr_location_for_position(dataset_config, position)
-                    x, bf_std_norm, cdh5_hist_norm = compute_profiles(
-                        zarr_location, center_slice, timepoint
-                    )
-
-                    axes[0].plot(x, bf_std_norm, color=colors[i])
-                    axes[1].plot(x, cdh5_hist_norm, label=dataset_config.name, color=colors[i])
-
-                # formatting + vlines
-                axes[0].set_xlabel("Normalized Z Slice (Center = 0)")
-                axes[0].set_ylabel("Normalized BF Standard Deviation")
-                axes[0].set_ylim(0.99, 1.35)
-
-                axes[1].set_xlabel("Normalized Z Slice (Center = 0)")
-                axes[1].set_ylabel("Normalized CDH5 Total Intensity")
-                axes[1].set_ylim(0.84, 1.1)
-                axes[1].legend(bbox_to_anchor=(1.05, 0.5), loc="center left", borderaxespad=0.0)
-
-                plot_vlines(axes[0], 0, lower_offset, upper_offset, *axes[0].get_ylim())
-                plot_vlines(axes[1], 0, lower_offset, upper_offset, *axes[1].get_ylim())
-
-                plt.suptitle(
-                    f"Position {position} TP {timepoint}, Offset -{lower_offset} to +{upper_offset}"
-                )
-                save_plot_to_path(fig, save_dir, f"pos{position}_tp{timepoint}_normalized_profiles")
-                plt.show()
-
-    elif mode == "by_dataset":
-        for timepoint in timepoints:
-            for dataset in datasets:
-                dataset_config = load_dataset_config(dataset)
-
-                fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-
-                for position in range(n_positions):
-                    if dataset_config.center_z_plane is None:
-                        logger.warning(
-                            "Center z-plane information is missing for dataset [ %s ], skipping",
-                            dataset,
-                        )
-                        continue
-                    center_slice = dataset_config.center_z_plane.get(position)
-                    if center_slice is None:
-                        logger.warning(
-                            "Center z-slice information missing for position [ %s ] "
-                            "in dataset [ %s ], skipping",
-                            position,
-                            dataset,
-                        )
-                        continue
-
-                    zarr_location = get_zarr_location_for_position(dataset_config, position)
-
-                    x, bf_std_norm, cdh5_hist_norm = compute_profiles(
-                        zarr_location, center_slice, timepoint
-                    )
-
-                    axes[0].plot(x, bf_std_norm)
-                    axes[1].plot(x, cdh5_hist_norm, label=f"P{position}")
-
-                # formatting + vlines
-                axes[0].set_xlabel("Normalized Z Slice (Center = 0)")
-                axes[0].set_ylabel("Normalized BF Standard Deviation")
-                axes[0].set_ylim(0.99, 1.35)
-
-                axes[1].set_xlabel("Normalized Z Slice (Center = 0)")
-                axes[1].set_ylabel("Normalized CDH5 Total Intensity")
-                axes[1].set_ylim(0.84, 1.1)
-                axes[1].legend(bbox_to_anchor=(1.05, 0.5), loc="center left", borderaxespad=0.0)
-
-                plot_vlines(axes[0], 0, lower_offset, upper_offset, *axes[0].get_ylim())
-                plot_vlines(axes[1], 0, lower_offset, upper_offset, *axes[1].get_ylim())
-
-                plt.suptitle(
-                    f"{dataset_config.name} TP {timepoint}, "
-                    f"Offset -{lower_offset} to +{upper_offset}"
-                )
-                save_plot_to_path(
-                    fig, save_dir, f"{dataset_config.name}_tp{timepoint}_normalized_profiles"
-                )
-                plt.show()
-
-    else:
-        raise ValueError("mode must be 'by_position' or 'by_dataset'")

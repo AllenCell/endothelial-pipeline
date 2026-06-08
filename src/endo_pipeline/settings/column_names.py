@@ -334,6 +334,18 @@ class ColumnName:
         XY_SHIFT = "xy_shift"
         Z_SHIFT = "z_shift"
 
+        CENTER_PLANES = "center_planes"
+        """List of center planes determined by minimum standard deviation."""
+
+        CENTER_PLANE_MEAN = "center_plane_mean"
+        """Mean of center plane across timepoints."""
+
+        CENTER_PLANE_STD_DEV = "center_plane_std_dev"
+        """Standard deviation of center plane across timepoints."""
+
+        CENTER_PLANE_SLICES_STD_DEVS = "center_plane_slice_std_devs"
+        """List of slices standard devisions for representative timepoint."""
+
     class OpticalFlow(StrEnum):
         """Dataframe column names used in the optical-flow feature workflow."""
 
