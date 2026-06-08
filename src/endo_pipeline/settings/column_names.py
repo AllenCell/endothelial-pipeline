@@ -62,7 +62,7 @@ class ColumnName:
         """Component [i] of PCA-transformed latent vector."""
 
         POLAR_RADIUS = "polar_r"
-        """Column name for polar radius coordinate computed from PC1 and PC2."""
+        """Transformed feature r (polar r from PC1 and PC2)."""
 
         POLAR_ANGLE = "polar_theta"
         """Column name for polar angle coordinate computed from PC1 and PC2."""

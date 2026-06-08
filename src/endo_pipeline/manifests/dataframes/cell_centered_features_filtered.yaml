@@ -197,7 +197,7 @@ columns:
   pc_98: Component 98 of PCA-transformed latent vector
   pc_99: Component 99 of PCA-transformed latent vector
   pc_100: Component 100 of PCA-transformed latent vector
-  polar_r: ''
+  polar_r: Transformed feature r (polar r from PC1 and PC2)
   polar_theta: ''
   rho: ''
   centroid_x_um: ''
