@@ -76,7 +76,7 @@ columns:
   end_x_resolution_0: ''
   end_y_resolution_0: ''
   bbox_is_in_bounds: ''
-  num_nuclei_in_crop: ''
+  num_nuclei_in_crop: Number of label-free predicted nuclei in a crop/cell-centered patch
   all_labels_in_crop: ''
   is_greater_than_min_track_duration: ''
   is_less_than_max_smoothed_area_normd_change: ''

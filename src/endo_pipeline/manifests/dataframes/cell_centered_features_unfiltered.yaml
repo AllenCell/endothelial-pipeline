@@ -115,7 +115,7 @@ columns:
   end_y_resolution_0: ''
   bbox_is_in_bounds: ''
   diffae_resolution_level_to_use: ''
-  num_nuclei_in_crop: ''
+  num_nuclei_in_crop: Number of label-free predicted nuclei in a crop/cell-centered patch
   all_labels_in_crop: ''
   min_track_duration: ''
   is_greater_than_min_track_duration: ''

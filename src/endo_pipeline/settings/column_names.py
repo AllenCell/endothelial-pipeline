@@ -118,9 +118,8 @@ class ColumnName:
         NUM_NUCLEI_AT_TIMEPOINT = "total_nuclei_count_at_T"
         """The total number of nuclei present at the timepoint of interest."""
 
-        # DiffAE and crop-based feature columns
         NUM_NUCLEI_IN_CROP = "num_nuclei_in_crop"
-        """Number of label-free predicted nuclei in a crop at a particular timepoint."""
+        """Number of label-free predicted nuclei in a crop/cell-centered patch."""
 
         LABELS_IN_CROP = "all_labels_in_crop"
         """List of all cell segmentation labels present in a crop at a particular timepoint."""
