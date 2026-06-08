@@ -1,13 +1,11 @@
-# %% [markdown]
-# # Create dataset config
-
-# %% [markdown]
 """
 Create and save a new dataset config file from a `DatasetConfig` object.
 
-The config is saved to the `configs/datasets` directory with file name matching
-the name of the dataset. If a config with the same name already exists, it will
-be overwritten.
+#internal #datasets
+
+This notebooks save the dataset config to the `configs/datasets` directory with
+file name matching the name of the dataset. If a config with the same name
+already exists, it will be overwritten.
 
 ### Fields requiring specific values
 
@@ -42,11 +40,9 @@ from endo_pipeline.manifests import (
 
 # %% Create new dataset config
 
-dataset_name = "unique_dataset_name"
-
 dataset_config = DatasetConfig(
     # ============================ REQUIRED FIELDS =============================
-    name=dataset_name,
+    name="unique_dataset_name",
     date="YYYYMMDD",
     original_path="/path/to/original/dataset",
     zarr_positions=[],
