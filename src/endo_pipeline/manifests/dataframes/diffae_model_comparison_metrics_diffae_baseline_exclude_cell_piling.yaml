@@ -9,7 +9,7 @@ parameters:
   manifest_name: diffae_baseline_exclude_cell_piling
 columns:
   manifest_name: ''
-  run_name: ''
+  run_name: Run name of model used to generate latent vectors
   random_seed: ''
   example_set: ''
   example_idx: ''

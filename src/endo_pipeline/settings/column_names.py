@@ -80,7 +80,7 @@ class ColumnName:
         """Manifest name of model used to generate latent vectors."""
 
         MODEL_RUN = "run_name"
-        """Column name for model run name."""
+        """Run name of model used to generate latent vectors."""
 
         RESOLUTION = "resolution_level"
         """Column name for resolution level of the image."""

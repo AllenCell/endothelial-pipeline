@@ -15,7 +15,7 @@ columns:
   track_id: Track ID assigned by the tracking algorithm
   dataset: Name of dataset
   model_manifest_name: Manifest name of model used to generate latent vectors
-  run_name: ''
+  run_name: Run name of model used to generate latent vectors
   resolution_level: ''
   crop_size_y: ''
   crop_size_x: ''

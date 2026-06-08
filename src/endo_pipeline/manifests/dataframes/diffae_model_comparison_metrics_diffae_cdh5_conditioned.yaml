@@ -9,7 +9,7 @@ parameters:
   manifest_name: diffae_cdh5_conditioned
 columns:
   manifest_name: ''
-  run_name: ''
+  run_name: Run name of model used to generate latent vectors
   random_seed: ''
   example_set: ''
   example_idx: ''
