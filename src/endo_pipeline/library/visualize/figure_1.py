@@ -1,4 +1,4 @@
-"""Nethods for building panels in Figure 1."""
+"""Methods for building panels in Figure 1."""
 
 import logging
 from pathlib import Path
