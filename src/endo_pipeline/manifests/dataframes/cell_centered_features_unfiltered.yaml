@@ -145,106 +145,106 @@ columns:
   crop_size_x: ''
   crop_index: Unique integer index of a patch (crop) trajectory across dataset, FOV,
     and XY-position
-  pc_1: ''
-  pc_2: ''
-  pc_3: ''
-  pc_4: ''
-  pc_5: ''
-  pc_6: ''
-  pc_7: ''
-  pc_8: ''
-  pc_9: ''
-  pc_10: ''
-  pc_11: ''
-  pc_12: ''
-  pc_13: ''
-  pc_14: ''
-  pc_15: ''
-  pc_16: ''
-  pc_17: ''
-  pc_18: ''
-  pc_19: ''
-  pc_20: ''
-  pc_21: ''
-  pc_22: ''
-  pc_23: ''
-  pc_24: ''
-  pc_25: ''
-  pc_26: ''
-  pc_27: ''
-  pc_28: ''
-  pc_29: ''
-  pc_30: ''
-  pc_31: ''
-  pc_32: ''
-  pc_33: ''
-  pc_34: ''
-  pc_35: ''
-  pc_36: ''
-  pc_37: ''
-  pc_38: ''
-  pc_39: ''
-  pc_40: ''
-  pc_41: ''
-  pc_42: ''
-  pc_43: ''
-  pc_44: ''
-  pc_45: ''
-  pc_46: ''
-  pc_47: ''
-  pc_48: ''
-  pc_49: ''
-  pc_50: ''
-  pc_51: ''
-  pc_52: ''
-  pc_53: ''
-  pc_54: ''
-  pc_55: ''
-  pc_56: ''
-  pc_57: ''
-  pc_58: ''
-  pc_59: ''
-  pc_60: ''
-  pc_61: ''
-  pc_62: ''
-  pc_63: ''
-  pc_64: ''
-  pc_65: ''
-  pc_66: ''
-  pc_67: ''
-  pc_68: ''
-  pc_69: ''
-  pc_70: ''
-  pc_71: ''
-  pc_72: ''
-  pc_73: ''
-  pc_74: ''
-  pc_75: ''
-  pc_76: ''
-  pc_77: ''
-  pc_78: ''
-  pc_79: ''
-  pc_80: ''
-  pc_81: ''
-  pc_82: ''
-  pc_83: ''
-  pc_84: ''
-  pc_85: ''
-  pc_86: ''
-  pc_87: ''
-  pc_88: ''
-  pc_89: ''
-  pc_90: ''
-  pc_91: ''
-  pc_92: ''
-  pc_93: ''
-  pc_94: ''
-  pc_95: ''
-  pc_96: ''
-  pc_97: ''
-  pc_98: ''
-  pc_99: ''
-  pc_100: ''
+  pc_1: Component 1 of PCA-transformed latent vector
+  pc_2: Component 2 of PCA-transformed latent vector
+  pc_3: Component 3 of PCA-transformed latent vector
+  pc_4: Component 4 of PCA-transformed latent vector
+  pc_5: Component 5 of PCA-transformed latent vector
+  pc_6: Component 6 of PCA-transformed latent vector
+  pc_7: Component 7 of PCA-transformed latent vector
+  pc_8: Component 8 of PCA-transformed latent vector
+  pc_9: Component 9 of PCA-transformed latent vector
+  pc_10: Component 10 of PCA-transformed latent vector
+  pc_11: Component 11 of PCA-transformed latent vector
+  pc_12: Component 12 of PCA-transformed latent vector
+  pc_13: Component 13 of PCA-transformed latent vector
+  pc_14: Component 14 of PCA-transformed latent vector
+  pc_15: Component 15 of PCA-transformed latent vector
+  pc_16: Component 16 of PCA-transformed latent vector
+  pc_17: Component 17 of PCA-transformed latent vector
+  pc_18: Component 18 of PCA-transformed latent vector
+  pc_19: Component 19 of PCA-transformed latent vector
+  pc_20: Component 20 of PCA-transformed latent vector
+  pc_21: Component 21 of PCA-transformed latent vector
+  pc_22: Component 22 of PCA-transformed latent vector
+  pc_23: Component 23 of PCA-transformed latent vector
+  pc_24: Component 24 of PCA-transformed latent vector
+  pc_25: Component 25 of PCA-transformed latent vector
+  pc_26: Component 26 of PCA-transformed latent vector
+  pc_27: Component 27 of PCA-transformed latent vector
+  pc_28: Component 28 of PCA-transformed latent vector
+  pc_29: Component 29 of PCA-transformed latent vector
+  pc_30: Component 30 of PCA-transformed latent vector
+  pc_31: Component 31 of PCA-transformed latent vector
+  pc_32: Component 32 of PCA-transformed latent vector
+  pc_33: Component 33 of PCA-transformed latent vector
+  pc_34: Component 34 of PCA-transformed latent vector
+  pc_35: Component 35 of PCA-transformed latent vector
+  pc_36: Component 36 of PCA-transformed latent vector
+  pc_37: Component 37 of PCA-transformed latent vector
+  pc_38: Component 38 of PCA-transformed latent vector
+  pc_39: Component 39 of PCA-transformed latent vector
+  pc_40: Component 40 of PCA-transformed latent vector
+  pc_41: Component 41 of PCA-transformed latent vector
+  pc_42: Component 42 of PCA-transformed latent vector
+  pc_43: Component 43 of PCA-transformed latent vector
+  pc_44: Component 44 of PCA-transformed latent vector
+  pc_45: Component 45 of PCA-transformed latent vector
+  pc_46: Component 46 of PCA-transformed latent vector
+  pc_47: Component 47 of PCA-transformed latent vector
+  pc_48: Component 48 of PCA-transformed latent vector
+  pc_49: Component 49 of PCA-transformed latent vector
+  pc_50: Component 50 of PCA-transformed latent vector
+  pc_51: Component 51 of PCA-transformed latent vector
+  pc_52: Component 52 of PCA-transformed latent vector
+  pc_53: Component 53 of PCA-transformed latent vector
+  pc_54: Component 54 of PCA-transformed latent vector
+  pc_55: Component 55 of PCA-transformed latent vector
+  pc_56: Component 56 of PCA-transformed latent vector
+  pc_57: Component 57 of PCA-transformed latent vector
+  pc_58: Component 58 of PCA-transformed latent vector
+  pc_59: Component 59 of PCA-transformed latent vector
+  pc_60: Component 60 of PCA-transformed latent vector
+  pc_61: Component 61 of PCA-transformed latent vector
+  pc_62: Component 62 of PCA-transformed latent vector
+  pc_63: Component 63 of PCA-transformed latent vector
+  pc_64: Component 64 of PCA-transformed latent vector
+  pc_65: Component 65 of PCA-transformed latent vector
+  pc_66: Component 66 of PCA-transformed latent vector
+  pc_67: Component 67 of PCA-transformed latent vector
+  pc_68: Component 68 of PCA-transformed latent vector
+  pc_69: Component 69 of PCA-transformed latent vector
+  pc_70: Component 70 of PCA-transformed latent vector
+  pc_71: Component 71 of PCA-transformed latent vector
+  pc_72: Component 72 of PCA-transformed latent vector
+  pc_73: Component 73 of PCA-transformed latent vector
+  pc_74: Component 74 of PCA-transformed latent vector
+  pc_75: Component 75 of PCA-transformed latent vector
+  pc_76: Component 76 of PCA-transformed latent vector
+  pc_77: Component 77 of PCA-transformed latent vector
+  pc_78: Component 78 of PCA-transformed latent vector
+  pc_79: Component 79 of PCA-transformed latent vector
+  pc_80: Component 80 of PCA-transformed latent vector
+  pc_81: Component 81 of PCA-transformed latent vector
+  pc_82: Component 82 of PCA-transformed latent vector
+  pc_83: Component 83 of PCA-transformed latent vector
+  pc_84: Component 84 of PCA-transformed latent vector
+  pc_85: Component 85 of PCA-transformed latent vector
+  pc_86: Component 86 of PCA-transformed latent vector
+  pc_87: Component 87 of PCA-transformed latent vector
+  pc_88: Component 88 of PCA-transformed latent vector
+  pc_89: Component 89 of PCA-transformed latent vector
+  pc_90: Component 90 of PCA-transformed latent vector
+  pc_91: Component 91 of PCA-transformed latent vector
+  pc_92: Component 92 of PCA-transformed latent vector
+  pc_93: Component 93 of PCA-transformed latent vector
+  pc_94: Component 94 of PCA-transformed latent vector
+  pc_95: Component 95 of PCA-transformed latent vector
+  pc_96: Component 96 of PCA-transformed latent vector
+  pc_97: Component 97 of PCA-transformed latent vector
+  pc_98: Component 98 of PCA-transformed latent vector
+  pc_99: Component 99 of PCA-transformed latent vector
+  pc_100: Component 100 of PCA-transformed latent vector
   polar_r: ''
   polar_theta: ''
   rho: ''

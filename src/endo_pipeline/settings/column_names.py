@@ -59,7 +59,7 @@ class ColumnName:
         """Component [i] of the DiffAE latent vector."""
 
         PCA_FEATURE_PREFIX = "pc_"
-        """Prefix for PCA-transformed feature column names."""
+        """Component [i] of PCA-transformed latent vector."""
 
         POLAR_RADIUS = "polar_r"
         """Column name for polar radius coordinate computed from PC1 and PC2."""
