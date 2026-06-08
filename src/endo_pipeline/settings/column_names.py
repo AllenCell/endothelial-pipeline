@@ -122,7 +122,7 @@ class ColumnName:
         """Number of label-free predicted nuclei in a crop/cell-centered patch."""
 
         LABELS_IN_CROP = "all_labels_in_crop"
-        """List of all cell segmentation labels present in a crop at a particular timepoint."""
+        """List of all segmentation labels found within a crop/cell-centered patch."""
 
         START_X_RES_0 = "start_x_resolution_0"
         """x-coordinate defining the beginning of the crop at resolution level 0 (the native resolution)."""
