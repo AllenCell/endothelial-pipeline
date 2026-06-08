@@ -525,8 +525,8 @@ columns:
   resolution_level: Zarr resolution level used to generate patches (crops) for obtaining latent vectors
   end_y: Y-coordinate of lower right corner of patch (crop) in pixels (zarr resolution level 1)
   end_x: X-coordinate of lower right corner of patch (crop) in pixels (zarr resolution level 1)
-  crop_size_y: ''
-  crop_size_x: ''
+  crop_size_y: Height of the patch (crop) in pixels (zarr resolution level 1)
+  crop_size_x: Width of the patch (crop) in pixels (zarr resolution level 1)
   position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
 locations:
   20250319_20X:

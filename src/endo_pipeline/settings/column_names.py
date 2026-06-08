@@ -98,10 +98,10 @@ class ColumnName:
         """Y-coordinate of lower right corner of patch (crop) in pixels (zarr resolution level 1)."""
 
         CROP_SIZE_X = "crop_size_x"
-        """Width of the crop in pixels."""
+        """Width of the patch (crop) in pixels (zarr resolution level 1)."""
 
         CROP_SIZE_Y = "crop_size_y"
-        """Height of the crop in pixels."""
+        """Height of the patch (crop) in pixels (zarr resolution level 1)."""
 
     class SegData(StrEnum):
         """Dataframe column names used in segmentation-based feature dataframes."""
