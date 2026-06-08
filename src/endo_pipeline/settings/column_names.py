@@ -137,7 +137,7 @@ class ColumnName:
         """Y-coordinate of lower right corner of patch (crop) in pixels (zarr resolution level 0)."""
 
         CROP_SIZE = "crop_size"
-        """Size of the crop in pixels at resolution level 0 (the native resolution)."""
+        """Size of the crop in pixels at resolution level 0."""
 
         RESOLUTION_FOR_DIFFAE = "diffae_resolution_level_to_use"
         """Resolution level to use for DiffAE features.
