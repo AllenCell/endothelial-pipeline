@@ -9,53 +9,58 @@ def main(
     """
     Visualize bootstrap-validated fixed points from `bootstrap-fixed-points`.
 
-    #dynamical-systems #diffae-feature-analysis #bootstrap
-
-    **Overview**
+    #dynamical-systems #fixed-points #grid-based #cell-centered
 
     This workflow loads the bootstrap confidence interval (CI) dataframes
-    produced by `generate-3d-flow-field-bootstrap`, filters to fixed points
-    whose *bootstrap detection rate* meets or exceeds `bootstrap_threshold`, and
-    plots their locations with per-coordinate confidence interval error bars.
+    produced by `bootstrap-fixed-points`, filters to fixed points whose
+    bootstrap detection rate meets or exceeds `bootstrap_threshold`, and plots
+    their locations with per-coordinate confidence interval error bars.
 
-    **Filtering**
+    Visualization outputs include:
 
-    Only fixed points with `bootstrap_detection_rate >= bootstrap_threshold` are
-    retained. The `bootstrap_detection_rate` is the fraction of bootstrap
-    iterations in which a fixed point was detected within the specified
-    `bootstrap_match_radius` of a baseline fixed point.
+    - high-confidence fixed points in \u03b8 (polar angle) vs \U0001d45f (polar radius)
+    - high-confidence fixed points in \u03b8 (polar angle) vs \u03c1 (polar radius)
+    - fixed point comparison figure colored by dataset
 
-    **Visualizations**
+    Fixed points are colored by stability classification (stable = blue circle,
+    saddle = grey triangle, unstable = red # square, indeterminate = yellow
+    plus). If fewer than two bootstrap hits were obtained for a fixed point the
+    CI is `nan` and no error bar is drawn.
 
-    This workflow produces a two-panel plot for each dataset, showing the
-    high-confidence fixed points in two 2D projections:
+    ## Example usage
 
-    - Top panel: PC1 (polar angle) vs PC2 (polar radius)
-    - Bottom panel: PC1 (polar angle) vs PC3 (PC3-flipped)
+    To run the workflow in demo mode:
 
-    Fixed points are drawn as scatter markers coloured by stability
-    classification (stable = blue circle, saddle = grey triangle, unstable = red
-    square, indeterminate = yellow plus); markers are placed at the bootstrap
-    cluster mean coordinate (mean of all matched bootstrap fixed point
-    coordinates) and error bars show the per-coordinate bootstrap CIs at the
-    percentiles used during the bootstrap run (`FP_CI_LOWER_PERCENTILE` and
-    `FP_CI_UPPER_PERCENTILE`).
+    ```bash
+    uv run endopipe visualize-fixed-point-bootstrap -vd
+    ```
 
-    If fewer than two bootstrap hits were obtained for a fixed point the CI is
-    `nan` and no error bar is drawn. If high-confidence fixed points are found
-    for two or more datasets a combined comparison figure coloured by dataset is
-    also saved.
+    To run the workflow for a single dataset:
+
+    ```bash
+    uv run endopipe visualize-fixed-point-bootstrap --datasets DATASET_NAME
+    ```
+
+    ## Dataset collection
+
+    If datasets are not provided, the workflow will use datasets in the
+    `diffae_model_training` dataset collection.
+
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will visualize the
+    bootstrapped fixed points for the first dataset.
 
     Parameters
     ----------
     crop_pattern
-        The crop pattern to load bootstrap fixed point dataframes for.
+        Crop pattern used to calculate the bootstrapped fixed points.
     datasets
-        Optional list of specific datasets to visualize.
+        List of datasets or dataset collections to visualize.
     bootstrap_threshold
-        Minimum bootstrap detection rate for a fixed point to be included in the plots.
-
+        Minimum bootstrap detection rate for including fixed points.
     """
+
     import logging
 
     import matplotlib.pyplot as plt
@@ -89,26 +94,20 @@ def main(
 
     logger = logging.getLogger(__name__)
 
-    column_names: list[Column.DiffAEData] = list(DYNAMICS_COLUMN_NAMES)
+    output_path = get_output_path(__file__)
 
+    dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
+
+    if DEMO_MODE:
+        logger.warning("DEMO_MODE - Limiting to at most two datasets")
+        dataset_names = dataset_names[: min(len(dataset_names), 2)]
+
+    # Use all three dynamics columns
+    column_names = list(DYNAMICS_COLUMN_NAMES)
+
+    # Load bootstrap manifest
     bootstrap_fp_manifest_name = BOOTSTRAPPING_MANIFEST_NAMES[crop_pattern]
-
-    # Flexible DEMO_MODE loading pattern: try without demo suffix first so this
-    # workflow can visualise a full production run even when DEMO_MODE is set.
-    # Fall back to the demo-suffixed manifest only in DEMO_MODE.
-    try:
-        bootstrap_fp_manifest = load_dataframe_manifest(bootstrap_fp_manifest_name)
-    except FileNotFoundError:
-        if DEMO_MODE:
-            fallback_name = f"{BOOTSTRAPPING_MANIFEST_NAMES[crop_pattern]}_demo"
-            logger.warning(
-                "Bootstrap fixed point manifest [ %s ] not found; trying [ %s ].",
-                bootstrap_fp_manifest_name,
-                fallback_name,
-            )
-            bootstrap_fp_manifest = load_dataframe_manifest(fallback_name)
-        else:
-            raise
+    bootstrap_fp_manifest = load_dataframe_manifest(bootstrap_fp_manifest_name)
 
     n_bootstrap = bootstrap_fp_manifest.parameters.get("num_bootstrap_iterations")
     if n_bootstrap is None:
@@ -118,21 +117,11 @@ def main(
             "not the number of bootstrap samples."
         )
 
-    dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
-    if DEMO_MODE:
-        logger.warning("DEMO MODE: Processing no more than two datasets for quick visualization.")
-        dataset_names = dataset_names[: min(len(dataset_names), 2)]
-
-    fig_savedir = get_output_path(__file__, crop_pattern)
-
     # Axis bounds from global bin limits, one tuple (min, max) per column
     bounds_for_plots = BIN_LIMITS_DYNAMICS.copy()
 
     all_high_confidence_dfs: list[pd.DataFrame] = []
 
-    # ------------------------------------------------------------------
-    # Per-dataset loop
-    # ------------------------------------------------------------------
     for dataset_name in dataset_names:
         if dataset_name not in bootstrap_fp_manifest.locations:
             logger.warning(
@@ -253,7 +242,7 @@ def main(
 
             save_plot_to_path(
                 fig,
-                fig_savedir,
+                output_path,
                 f"bootstrap_fixed_points_ci_{dataset_name}_shear_{flow_condition.shear_stress_bin}",
             )
             plt.close(fig)
@@ -346,7 +335,7 @@ def main(
         handles=dataset_legend_handles, title="Dataset", loc="best", fontsize=6
     )
 
-    save_plot_to_path(fig_combined, fig_savedir, "bootstrap_stable_fixed_points_ci_combined")
+    save_plot_to_path(fig_combined, output_path, "bootstrap_stable_fixed_points_ci_combined")
 
 
 if __name__ == "__main__":
