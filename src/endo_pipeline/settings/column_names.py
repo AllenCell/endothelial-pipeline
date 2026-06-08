@@ -221,14 +221,11 @@ class ColumnName:
         NUCLEI_CENTROID_X = "nuc_with_most_overlap_0_centroid_X"
         NUCLEI_CENTROID_Y = "nuc_with_most_overlap_0_centroid_Y"
 
-        # fluorescence features
         EDGE_FLUOR = "edge_fluorescence_au"
-        """List of the fluorescence values along the boundary between 2 cell
-        segmentations in arbitrary units (au) (excluding pixels at nodes)."""
+        """Fluorescence values along boundary between 2 cell segmentations in a.u. (excluding pixels at nodes)."""
 
         NODE_FLUOR = "node_fluorescence_au"
-        """List of the fluorescence values at the junctions between 3 or more
-        cell segmentations (i.e. nodes) in arbitrary units (au)."""
+        """Fluorescence values at junctions between 3 or more cell segmentations in a.u."""
 
         CELL_FLUOR_MEAN = "cell_fluorescence_mean_au"
         CELL_FLUOR_STD = "cell_fluorescence_std_au"

@@ -32,8 +32,9 @@ columns:
   edge_labels: ''
   node_labels: ''
   node_pair_labels: ''
-  edge_fluorescence_au: ''
-  node_fluorescence_au: ''
+  edge_fluorescence_au: Fluorescence values along boundary between 2 cell segmentations in a.u. (excluding
+    pixels at nodes)
+  node_fluorescence_au: Fluorescence values at junctions between 3 or more cell segmentations in a.u
   is_edge_segmentation: ''
   nuclei_segmentation_labels: ''
   nuclei_seg_in_cdh5_seg_frac: ''
