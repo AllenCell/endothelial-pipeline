@@ -78,7 +78,8 @@ columns:
   gaussian_sigma_for_area_smoothing: ''
   smoothed_area_normd: ''
   smoothed_area_normd_diff: ''
-  num_unique_tracks_before_filtering_at_T: ''
+  num_unique_tracks_before_filtering_at_T: Number of unique tracks that are present at the timepoint
+    of interest before filtering
   track_duration: Number of timepoints in the track
   alignment: ''
   alignment_deg: ''
@@ -124,7 +125,8 @@ columns:
   num_valid_tp_per_track: ''
   min_num_valid_tp_per_track: ''
   has_more_than_min_num_valid_points_per_track: ''
-  num_unique_tracks_after_filtering_at_T: ''
+  num_unique_tracks_after_filtering_at_T: Number of unique tracks that pass filtering criteria at the
+    timepoint of interest
   auto_bf_scope_error: ''
   auto_bf_temp_artifact: ''
   auto_gfp_scope_error: ''

@@ -43,7 +43,8 @@ columns:
   time_resolution_minutes: Time resolution of the timelapse in minutes
   time_minutes: ''
   time_hours: ''
-  num_unique_tracks_before_filtering_at_T: ''
+  num_unique_tracks_before_filtering_at_T: Number of unique tracks that are present at the timepoint
+    of interest before filtering
   track_duration: Number of timepoints in the track
   alignment: ''
   alignment_deg: ''
@@ -81,7 +82,8 @@ columns:
   is_less_than_max_smoothed_area_normd_change: ''
   is_included: ''
   has_more_than_min_num_valid_points_per_track: ''
-  num_unique_tracks_after_filtering_at_T: ''
+  num_unique_tracks_after_filtering_at_T: Number of unique tracks that pass filtering criteria at the
+    timepoint of interest
   auto_bf_scope_error: ''
   auto_bf_temp_artifact: ''
   auto_gfp_scope_error: ''

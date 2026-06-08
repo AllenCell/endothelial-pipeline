@@ -110,12 +110,10 @@ class ColumnName:
         """Cell segmentation ID (different from track ID, and may change between timepoints)."""
 
         NUM_TRACKS_AFTER_FILTERING = "num_unique_tracks_after_filtering_at_T"
-        """The number of unique tracks that pass filtering criteria at the timepoint of interest."""
+        """Number of unique tracks that pass filtering criteria at the timepoint of interest."""
 
         NUM_TRACKS_BEFORE_FILTERING = "num_unique_tracks_before_filtering_at_T"
-        """The number of unique tracks that are present at the timepoint of interest before applying
-        filtering criteria. The same as the number of segmentations at that timepoint.
-        """
+        """Number of unique tracks that are present at the timepoint of interest before filtering."""
 
         NUM_NUCLEI_AT_TIMEPOINT = "total_nuclei_count_at_T"
         """The total number of nuclei present at the timepoint of interest."""
