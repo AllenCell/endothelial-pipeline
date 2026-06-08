@@ -50,7 +50,7 @@ columns:
   orientation_deg: ''
   nematic_order: ''
   aspect_ratio: ''
-  pixel_size_xy_in_um: ''
+  pixel_size_xy_in_um: Size of a pixel in the XY dimensions in microns
   area_um_squared: ''
   perimeter_um: ''
   edge_fluorescence_mean_au: ''

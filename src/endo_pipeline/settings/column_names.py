@@ -32,7 +32,7 @@ class ColumnName:
     """Size of the whole image in the Y dimension in pixels."""
 
     PIXEL_SIZE_XY_IN_UM = "pixel_size_xy_in_um"
-    """The size of a pixel in the XY dimensions in microns."""
+    """Size of a pixel in the XY dimensions in microns."""
 
     TIME_RESOLUTION_MINUTES = "time_resolution_minutes"
     """The time resolution of the timelapse in minutes."""
