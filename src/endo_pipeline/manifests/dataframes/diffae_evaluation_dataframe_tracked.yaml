@@ -6,10 +6,14 @@ parameters:
 columns:
   path: ''
   T: ''
-  start_y: ''
-  start_x: ''
-  end_y: ''
-  end_x: ''
+  start_y: Y-coordinate of upper left corner of patch (crop) in pixels (zarr resolution
+    level 1)
+  start_x: X-coordinate of upper left corner of patch (crop) in pixels (zarr resolution
+    level 1)
+  end_y: Y-coordinate of lower right corner of patch (crop) in pixels (zarr resolution
+    level 1)
+  end_x: X-coordinate of lower right corner of patch (crop) in pixels (zarr resolution
+    level 1)
   track_id: Track ID assigned by the tracking algorithm
   channel: ''
   resolution_level: Zarr resolution level used to generate patches (crops) for obtaining

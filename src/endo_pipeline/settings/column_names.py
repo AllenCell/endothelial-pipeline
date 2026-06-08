@@ -86,16 +86,16 @@ class ColumnName:
         """Zarr resolution level used to generate patches (crops) for obtaining latent vectors."""
 
         START_X = "start_x"
-        """Upper-left x-coordinate of the crop."""
+        """X-coordinate of upper left corner of patch (crop) in pixels (zarr resolution level 1)."""
 
         START_Y = "start_y"
-        """Upper-left y-coordinate of the crop."""
+        """Y-coordinate of upper left corner of patch (crop) in pixels (zarr resolution level 1)."""
 
         END_X = "end_x"
-        """Lower-right x-coordinate of the crop."""
+        """X-coordinate of lower right corner of patch (crop) in pixels (zarr resolution level 1)."""
 
         END_Y = "end_y"
-        """Lower-right y-coordinate of the crop."""
+        """Y-coordinate of lower right corner of patch (crop) in pixels (zarr resolution level 1)."""
 
         CROP_SIZE_X = "crop_size_x"
         """Width of the crop in pixels."""
