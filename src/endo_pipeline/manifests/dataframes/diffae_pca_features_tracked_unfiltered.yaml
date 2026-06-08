@@ -20,7 +20,8 @@ columns:
   crop_size_y: ''
   crop_size_x: ''
   position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
-  crop_index: ''
+  crop_index: Unique integer index of a patch (crop) trajectory across dataset, FOV,
+    and XY-position
   pc_1: ''
   pc_2: ''
   pc_3: ''

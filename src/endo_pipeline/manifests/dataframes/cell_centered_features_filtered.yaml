@@ -95,7 +95,8 @@ columns:
   start_x: ''
   end_y: ''
   end_x: ''
-  crop_index: ''
+  crop_index: Unique integer index of a patch (crop) trajectory across dataset, FOV,
+    and XY-position
   pc_1: ''
   pc_2: ''
   pc_3: ''

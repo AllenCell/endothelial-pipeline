@@ -17,7 +17,7 @@ class ColumnName:
     """Track ID assigned by the tracking algorithm."""
 
     CROP_INDEX = "crop_index"
-    """Column name for crop index."""
+    """Unique integer index of a patch (crop) trajectory across dataset, FOV, and XY-position."""
 
     TRACK_LENGTH = "track_duration"
     """Column name for track length (number of timepoints in the track)."""
