@@ -20,7 +20,7 @@ columns:
   major_axis_length: ''
   minor_axis_length: ''
   eccentricity: ''
-  orientation: ''
+  orientation: Orientation of the cell in radians from 0 (along +x axis) to pi (along -x axis)
   cell_fluorescence_mean_au: ''
   cell_fluorescence_std_au: ''
   cell_fluorescence_median_au: ''
@@ -83,7 +83,7 @@ columns:
   track_duration: Number of timepoints in the track
   alignment: ''
   alignment_deg: ''
-  orientation_deg: ''
+  orientation_deg: Orientation of the cell in degrees from 0 (along +x axis) to 180 (along -x axis)
   nematic_order: ''
   aspect_ratio: ''
   pixel_size_xy_in_um: Size of a pixel in the XY dimensions in microns

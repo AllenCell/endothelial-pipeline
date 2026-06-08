@@ -12,7 +12,7 @@ columns:
   centroid: ''
   area: ''
   perimeter: ''
-  orientation: ''
+  orientation: Orientation of the cell in radians from 0 (along +x axis) to pi (along -x axis)
   eccentricity: ''
   matching_method: ''
   touches_border: ''

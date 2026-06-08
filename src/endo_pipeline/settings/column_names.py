@@ -154,18 +154,11 @@ class ColumnName:
         TIME_HRS_SINCE_FLOW = "time_hours_since_flow_start"
         """Time in hours since cells first experienced a shear stress."""
 
-        # morphological features
         ORIENTATION = "orientation"
-        """Orientation of the cell in radians ranging from 0 to π, where 0
-        corresponds to the cell being oriented along the positive x-axis
-        and π means the cell is oriented along the negative x-axis.
-        """
+        """Orientation of the cell in radians from 0 (along +x axis) to pi (along -x axis)."""
 
         ORIENTATION_DEG = "orientation_deg"
-        """Orientation of the cell in degrees ranging from 0 to 180, where 0
-        corresponds to the cell being oriented along the positive x-axis
-        and 180 means the cell is oriented along the negative x-axis.
-        """
+        """Orientation of the cell in degrees from 0 (along +x axis) to 180 (along -x axis)."""
 
         ALIGNMENT = "alignment"
         """Alignment of the cell orientation relative to the flow direction,
