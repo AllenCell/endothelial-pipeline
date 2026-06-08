@@ -20,7 +20,7 @@ class ColumnName:
     """Unique integer index of a patch (crop) trajectory across dataset, FOV, and XY-position."""
 
     TRACK_LENGTH = "track_duration"
-    """Column name for track length (number of timepoints in the track)."""
+    """Number of timepoints in the track."""
 
     ZARR_PATH = "zarr_path"
     """Column name for path to the source Zarr file."""

@@ -79,7 +79,7 @@ columns:
   smoothed_area_normd: ''
   smoothed_area_normd_diff: ''
   num_unique_tracks_before_filtering_at_T: ''
-  track_duration: ''
+  track_duration: Number of timepoints in the track
   alignment: ''
   alignment_deg: ''
   orientation_deg: ''

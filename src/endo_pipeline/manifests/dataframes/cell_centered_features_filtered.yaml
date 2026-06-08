@@ -44,7 +44,7 @@ columns:
   time_minutes: ''
   time_hours: ''
   num_unique_tracks_before_filtering_at_T: ''
-  track_duration: ''
+  track_duration: Number of timepoints in the track
   alignment: ''
   alignment_deg: ''
   orientation_deg: ''

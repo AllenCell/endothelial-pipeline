@@ -537,7 +537,7 @@ columns:
   polar_r: ''
   polar_theta: ''
   rho: ''
-  track_duration: ''
+  track_duration: Number of timepoints in the track
 locations:
   20250319_20X:
     fmsid: 24f6aa38ba9449b7814a4fdd7d2fc8ef
