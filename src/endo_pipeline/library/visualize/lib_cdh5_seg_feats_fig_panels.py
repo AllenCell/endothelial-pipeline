@@ -3,7 +3,6 @@ import textwrap
 from pathlib import Path
 from typing import Literal, cast
 
-import colorcet as cc
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -12,6 +11,7 @@ from matplotlib.layout_engine import ConstrainedLayoutEngine
 from matplotlib.patches import Patch
 from matplotlib.ticker import ScalarFormatter
 from skimage.color import label2rgb
+from skimage.color.colorlabel import DEFAULT_COLORS
 from skimage.exposure import rescale_intensity
 from skimage.morphology import binary_dilation
 
@@ -55,7 +55,6 @@ logger = logging.getLogger(__name__)
 
 IMAGE_PANEL_SIZE = (3, 3)
 PLOT_PANEL_SIZE = (1.35, 1.35)
-
 X_START = CDH5_SEG_FIG_EXAMPLE.crop_x_start
 Y_START = CDH5_SEG_FIG_EXAMPLE.crop_y_start
 CROP_YX = (slice(Y_START, -Y_START), slice(X_START, -X_START))  # centered crop
@@ -130,7 +129,6 @@ def make_imaging_panels(
     # "nuclei_predictions" is a combo of segmentation skeletons and nuclei
     # predictions which are used as seeds
     image_dict["seeds"] = image_dict.pop("nuclei_predictions")
-    image_dict["seeds"] = binary_dilation(image_dict["seeds"])
     # "raw" is a max intensity projection (MIP) of the cdh5 channel
     image_dict["cdh5_mip"] = image_dict.pop("raw")
     # "processed" is the preprocessed cdh5 MIP channel
@@ -146,7 +144,6 @@ def make_imaging_panels(
     image_dict["cdh5_segmentations_split_by_nuclei_borders"] = binary_dilation(
         image_dict["cdh5_segmentations_split_by_nuclei_borders"]
     )
-    image_dict["zeros"] = np.zeros_like(image_dict["cdh5_mip"])
 
     # Load the nuclei predictions image (this one is nuclei predictions only)
     nuc_manifest = load_image_manifest("nuclear_labelfree_seg_zarr")
@@ -191,55 +188,46 @@ def make_imaging_panels(
     image_dict = {chan_name: image.squeeze()[CROP_YX] for chan_name, image in image_dict.items()}
 
     # Define the panels to create
-    glasbey_cmap = cc.cm.glasbey
     panel_dict = {
         "cdh5_mip": {
             "images": ["cdh5_mip"],
             "colors": [(255, 255, 255)],
-            "colors_thumbnail": "gray",
-            "colors_alpha": 0.7,
+            "colors_thumbnail": None,
         },
         "cdh5_seg_initial": {
-            "images": ["zeros", "cdh5_seg_initial"],
-            "colors": [(255, 255, 255), (255, 255, 255)],
-            "colors_thumbnail": glasbey_cmap.colors,
-            "colors_alpha": 1.0,
+            "images": ["cdh5_seg_initial"],
+            "colors": [(255, 255, 255)],
+            "colors_thumbnail": DEFAULT_COLORS,
         },
         "bf_center_slice": {
             "images": ["bf_center"],
             "colors": [(255, 255, 255)],
-            "colors_thumbnail": "gray",
-            "colors_alpha": 0.7,
+            "colors_thumbnail": None,
         },
         "nuc_pred_overlay": {
             "images": ["bf_std", "nuc_pred"],
             "colors": [(255, 255, 255), (0, 255, 255)],
-            "colors_thumbnail": glasbey_cmap.colors,
-            "colors_alpha": 0.7,
+            "colors_thumbnail": DEFAULT_COLORS,
         },
         "cdh5_seg_merge_overlay": {
             "images": ["cdh5_mip", "cdh5_seg_merged"],
             "colors": [(255, 255, 255), (255, 0, 255)],
             "colors_thumbnail": ["magenta"],
-            "colors_alpha": 0.7,
         },
         "nuc_pred_cdh5_seg_overlay": {
             "images": ["cdh5_mip", "nuc_pred", "cdh5_seg_merged"],
             "colors": [(255, 255, 255), (0, 255, 255), (255, 0, 255)],
             "colors_thumbnail": ["cyan", "magenta"],
-            "colors_alpha": 0.7,
         },
         "seed_cdh5_seg_overlay": {
             "images": ["cdh5_mip", "seeds", "cdh5_seg_merged"],
             "colors": [(255, 255, 255), (0, 255, 255), (255, 0, 255)],
             "colors_thumbnail": ["cyan", "magenta"],
-            "colors_alpha": 0.7,
         },
         "cdh5_seg_final_overlay": {
             "images": ["cdh5_mip", "cdh5_segmentations_split_by_nuclei_borders"],
             "colors": [(255, 255, 255), (255, 255, 0)],
             "colors_thumbnail": ["yellow"],
-            "colors_alpha": 0.7,
         },
     }
 
@@ -247,17 +235,8 @@ def make_imaging_panels(
         panel_dict[f"cdh5_seg_final_overlay_{tf}"] = {
             "images": [f"cdh5_seg_split_{tf}"],
             "colors": [(255, 255, 255)],
-            "colors_thumbnail": glasbey_cmap,
-            "colors_alpha": 0.7,
+            "colors_thumbnail": DEFAULT_COLORS,
         }
-
-    # define insets for certain panels
-    inset_images = ["seed_cdh5_seg_overlay", "cdh5_seg_final_overlay"]
-    inset_x_start = 270
-    inset_x_stop = 600
-    inset_y_start = 110
-    inset_y_stop = 440
-    inset_YX = (slice(inset_y_start, inset_y_stop), slice(inset_x_start, inset_x_stop))
 
     for panel_name in panel_dict:
         image_name_list = list(panel_dict[panel_name]["images"])  # type: ignore[call-overload]
@@ -277,14 +256,6 @@ def make_imaging_panels(
             images_metadata=panel_metadata,
         )
 
-        # pixel sizes should be square, but just in case, check and raise error if not
-        if val_image.physical_pixel_sizes.X == val_image.physical_pixel_sizes.Y:
-            pixel_size_um = val_image.physical_pixel_sizes.X
-        else:
-            raise ValueError(
-                f"Pixel sizes are not square (X: {val_image.physical_pixel_sizes.X}, Y: {val_image.physical_pixel_sizes.Y})."
-            )
-
         # flatten multichannel images to single-channel overlays
         if len(panel) > 1:
             if len(panel) > 2:
@@ -300,44 +271,14 @@ def make_imaging_panels(
                 image=image,
                 bg_label=0,
                 colors=panel_dict[panel_name]["colors_thumbnail"],  # type: ignore[index]
-                bg_color=None,
-                kind="overlay",
-                alpha=panel_dict[panel_name]["colors_alpha"],  # type: ignore[index]
+                alpha=0.5,
             )
             plot_image_thumbnail(
                 image=panel_overlay,
                 image_name=f"{dataset_name}_P{position}_T{timeframe}_{panel_name}",
                 output_path=out_dir_thumb,
                 figsize=IMAGE_PANEL_SIZE,
-                scalebar_size_um=50,
-                pixel_size=pixel_size_um,
-                scalebar_location="lower right",
                 show_plot=False,
-            )
-
-            if panel_name in inset_images:
-                plot_image_thumbnail(
-                    image=panel_overlay[inset_YX],
-                    image_name=f"{dataset_name}_P{position}_T{timeframe}_{panel_name}_inset",
-                    output_path=out_dir_thumb,
-                    figsize=IMAGE_PANEL_SIZE,
-                    scalebar_size_um=50,
-                    pixel_size=pixel_size_um,
-                    scalebar_location="lower right",
-                    show_plot=False,
-                )
-
-        else:
-            plot_image_thumbnail(
-                image=panel[0],
-                image_name=f"{dataset_name}_P{position}_T{timeframe}_{panel_name}",
-                output_path=out_dir_thumb,
-                figsize=IMAGE_PANEL_SIZE,
-                scalebar_size_um=50,
-                pixel_size=pixel_size_um,
-                scalebar_location="lower right",
-                show_plot=False,
-                image_colormap=panel_dict[panel_name]["colors_thumbnail"],
             )
 
 
@@ -459,7 +400,6 @@ def make_classic_feature_panels(dataset_name: str, out_dir: Path) -> dict[str, P
 
 def make_feature_contact_sheet(
     dataset_name: str,
-    positions: list[int] | None,
     features: list[ColumnNameType],
     ncols: int,
     out_dir: Path,
@@ -474,14 +414,10 @@ def make_feature_contact_sheet(
 
     Parameters
     ----------
-    dataset_name
-        Name of the dataset to include as a row.
-    position
-        Position of the dataset in the grid. If None, the dataset will be added to the next available position.
+    datasets
+        List of dataset names to include as rows.
     features
         List of feature column names to include as columns.
-    ncols
-        Number of columns in the grid.
     out_dir
         Output directory for the saved figure.
     figure_width
@@ -531,11 +467,6 @@ def make_feature_contact_sheet(
     dataset_config = load_dataset_config(dataset_name)
     df = _load_seg_feats_df(dataset_config, set(features))
 
-    if positions is None:
-        positions = sorted(df[Column.POSITION].unique())
-
-    df = df[df[Column.POSITION].isin(positions)]
-
     if dataset_config.time_interval_in_minutes is None:
         logger.warning(f"time_interval_in_minutes is not set for dataset '{dataset_name}'")
         raise ValueError(f"time_interval_in_minutes is required for dataset '{dataset_name}'")
@@ -547,29 +478,14 @@ def make_feature_contact_sheet(
         dataset_config.flow_conditions[0].start * dataset_config.time_interval_in_minutes / 60.0
     )
     imaging_start_time = -flow_start_time_hrs
-    steady_state_times = [
-        cast(
-            tuple[int, int],
-            dataset_config.timepoint_annotations[TimepointAnnotation.NOT_STEADY_STATE][pos][0],
-        )
-        for pos in positions
-    ]
-    steady_state_times_shifted = [
-        (sst[1] * dataset_config.time_interval_in_minutes / 60.0 - flow_start_time_hrs)
-        for sst in steady_state_times
-    ]
-
-    piling_times = [
-        cast(
-            tuple[int, int],
-            dataset_config.timepoint_annotations[TimepointAnnotation.CELL_PILING][pos][0],
-        )
-        for pos in positions
-    ]
-    piling_times_shifted = [
-        (pt[0] * dataset_config.time_interval_in_minutes / 60.0 - flow_start_time_hrs)
-        for pt in piling_times
-    ]
+    steady_state_time_p0 = cast(
+        tuple[int, int],
+        dataset_config.timepoint_annotations[TimepointAnnotation.NOT_STEADY_STATE][0][0],
+    )
+    steady_state_time_shifted = (
+        steady_state_time_p0[1] * dataset_config.time_interval_in_minutes / 60.0
+        - flow_start_time_hrs
+    )
 
     for (i, j), feat in np.ndenumerate(features_reshaped):
         ax = axes[i, j]
@@ -621,22 +537,13 @@ def make_feature_contact_sheet(
             linewidth=1,
             label="Start of imaging",
         )
-        for sst_shifted in steady_state_times_shifted:
-            ax.axvline(
-                sst_shifted,
-                color="darkturquoise",
-                linestyle="--",
-                linewidth=1,
-                label="Start of steady state",
-            )
-        for piling_time in piling_times_shifted:
-            ax.axvline(
-                piling_time,
-                color="red",
-                linestyle="--",
-                linewidth=1,
-                label="Start of cell piling",
-            )
+        ax.axvline(
+            steady_state_time_shifted,
+            color="darkturquoise",
+            linestyle="--",
+            linewidth=1,
+            label="Start of steady state",
+        )
 
         # Feature label at top of each column (first row only)
         if feat == "centroid_velocity_angle_deg":
@@ -672,8 +579,8 @@ def make_feature_contact_sheet(
         labels,
         fontsize=FONTSIZE_SMALL,
         loc="upper left",
-        bbox_to_anchor=(0.1, 1.02),
-        ncol=4,
+        bbox_to_anchor=(0.15, 1.02),
+        ncol=3,
         handletextpad=0.3,
         columnspacing=0.8,
         frameon=False,

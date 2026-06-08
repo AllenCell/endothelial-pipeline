@@ -201,7 +201,6 @@ module = [
     "boto3.*",
     "botocore.*",
     "cellpose.*",
-    "colorcet.*",
     "colorizer_data.*",
     "cv2.*",
     "cyto_dl.*",

@@ -189,7 +189,6 @@ def plot_3d_scatter_or_binned(
     vmin: float = 0.3,
     vmax: float = 1,
     figsize: tuple[float, float] = (8, 8),
-    show_colorbar: bool = True,
 ) -> tuple[plt.Figure, Axes3D]:
     """Plot a 3D scatter or 3D binned heatmap with optional fixed-point overlay.
 
@@ -233,15 +232,11 @@ def plot_3d_scatter_or_binned(
 
     ax: Axes3D
     fig = plt.figure(figsize=figsize)
-    if show_colorbar:
-        gs = fig.add_gridspec(
-            nrows=1, ncols=3, width_ratios=[15, 3, 1], left=0.0, right=0.8, wspace=0.1
-        )
-        ax = fig.add_subplot(gs[0, 0], projection="3d")
-        cax = fig.add_subplot(gs[0, 2])
-    else:
-        ax = fig.add_subplot(111, projection="3d")
-        cax = None
+    gs = fig.add_gridspec(
+        nrows=1, ncols=3, width_ratios=[15, 3, 1], left=0.0, right=0.8, wspace=0.1
+    )
+    ax = fig.add_subplot(gs[0, 0], projection="3d")
+    cax = fig.add_subplot(gs[0, 2])
     ax.computed_zorder = False
 
     if not binned:
@@ -317,7 +312,7 @@ def plot_3d_scatter_or_binned(
                 depthshade=False,
                 zorder=10,
             )
-            label = f"Fixed point ({Unicode.THETA}={theta:.2f}, r={r:.2f}, {Unicode.RHO}={rho:.2f})"
+            label = f"{stability} fixed point ({theta:.2f}, {r:.2f}, {rho:.2f})"
             legend_handles.append(
                 StabilityLegendHandle(
                     stability_label=stability,
@@ -328,6 +323,7 @@ def plot_3d_scatter_or_binned(
     if legend_handles:
         ax.legend(
             handles=legend_handles,
+            title=f"stability ({Unicode.THETA}, r, {Unicode.RHO})",
             loc="upper left",
             bbox_to_anchor=(0.0, 1.15),
             fontsize=FONTSIZE_SMALL,
@@ -347,14 +343,13 @@ def plot_3d_scatter_or_binned(
                 if meta.tick_labels is not None:
                     getattr(ax, f"set_{axis}ticklabels")(meta.tick_labels, fontsize=FONTSIZE_XSMALL)
 
-    if show_colorbar and cax is not None:
-        cbar = fig.colorbar(sc, cax=cax, label=cbar_label)
+    cbar = fig.colorbar(sc, cax=cax, label=cbar_label)
 
-        # Apply ticks from color_col metadata to the colorbar
-        if color_col in COLUMN_METADATA:
-            color_meta = COLUMN_METADATA[color_col]
-            if color_meta.ticks is not None:
-                cbar.set_ticks(list(color_meta.ticks))
+    # Apply ticks from color_col metadata to the colorbar
+    if color_col in COLUMN_METADATA:
+        color_meta = COLUMN_METADATA[color_col]
+        if color_meta.ticks is not None:
+            cbar.set_ticks(list(color_meta.ticks))
 
     return fig, ax
 
@@ -548,10 +543,9 @@ def build_box_for_3d_plot(
 
 def make_example_migration_coherence(
     dataset_name: str,
+    figure_size: tuple[float, float],
     output_dir: Path,
     fig_name: str | None = None,
-    figure_size: tuple[float, float] = (6, 6),
-    show_colorbar: bool = True,
 ) -> None:
 
     dataset_config = load_dataset_config(dataset_name)
@@ -620,7 +614,6 @@ def make_example_migration_coherence(
             vmax=vmax,
             vmin=vmin,
             figsize=figure_size,
-            show_colorbar=show_colorbar,
         )
         # draw cube around bin edges
         for e_xyz in edges:

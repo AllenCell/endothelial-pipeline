@@ -21,7 +21,7 @@ from endo_pipeline.library.process.image_processing import load_processed_bf_std
 from endo_pipeline.library.visualize.figure_utils import add_scalebar
 from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_XSMALL
+from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
 from endo_pipeline.settings.optical_flow import (
     OPTICAL_FLOW_COLUMNS_TO_COMPUTE,
@@ -175,7 +175,7 @@ def plot_optical_flow_composite(
         facecolor="black",
         edgecolor="none",
         labelcolor="white",
-        fontsize=FONTSIZE_XSMALL,
+        fontsize=FONTSIZE_SMALL,
         handlelength=1.0,
         handleheight=1.0,
         borderpad=0.4,
@@ -253,6 +253,6 @@ def plot_optical_flow_quiver(
     ax.set_xlim(-head_pad, cx + head_pad)
     ax.set_ylim(cy + head_pad, -head_pad)
     ax.set_aspect("equal")
-    ax.set_xlabel(title, fontsize=FONTSIZE_XSMALL, fontweight="normal")
+    ax.set_title(title, fontweight="bold", fontsize=FONTSIZE_MEDIUM)
     ax.set_xticks([])
     ax.set_yticks([])

@@ -231,11 +231,6 @@ def resolve_dataframe_location(location: DataframeLocation) -> str:
     ----------
     location
         Dataframe location object.
-
-    Returns
-    -------
-    :
-        Dataframe location as POSIX path or URI.
     """
 
     if location.fmsid is not None:
