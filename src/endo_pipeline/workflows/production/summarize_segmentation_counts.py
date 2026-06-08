@@ -1,13 +1,49 @@
-"""This script makes a table of segmentation counts across all live 20X 48hr timelapse datasets."""
+from endo_pipeline.cli import Datasets
 
 
-def main():
+def main(datasets: Datasets | None = None):
+    """
+    Summarize segmentation counts across select datasets.
+
+    #cdh5-segmentation #cdh5-tracking #nuclei-prediction
+
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe summarize-segmentation-counts -vd
+    ```
+
+    To run the workflow for a single dataset:
+
+    ```bash
+    uv run endopipe summarize-segmentation-counts --datasets DATASET_NAME
+    ```
+
+    ## Dataset collection
+
+    If datasets are not provided, the workflow will use datasets in the
+    `live_cdh5_seg_based_feat_datasets` and `perturbation` dataset collections.
+
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will summarize
+    only the first dataset.
+
+    Parameters
+    ----------
+    datasets
+        List of datasets or dataset collections to summarize.
+    """
+
     import logging
 
     import numpy as np
     import pandas as pd
     from tqdm import tqdm
 
+    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_annotations
@@ -53,9 +89,13 @@ def main():
 
     # generate sequence of unique datasets to process and add to the seg_counts dictionary
     dataset_name_list_segmented = get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
-    dataset_name_list = set(
-        dataset_name_list_segmented + get_datasets_in_collection("perturbation")
+    dataset_name_list = datasets or list(
+        set(dataset_name_list_segmented + get_datasets_in_collection("perturbation"))
     )
+
+    if DEMO_MODE:
+        logger.warning("DEMO_MODE - Limiting to one dataset")
+        dataset_name_list = dataset_name_list[:1]
 
     for dataset_name in tqdm(dataset_name_list):
         # load the dataset config file to get some identifying information about the dataset
@@ -90,7 +130,8 @@ def main():
             seg_lengths_um_mean = np.nan
             seg_lengths_um_std = np.nan
             seg_lengths_um_median = np.nan
-
+            cell_seg_displacement_mean = np.nan
+            cell_seg_displacement_median = np.nan
         else:
             # load segmentation features dataframe
             live_seg_manifest = load_dataframe_manifest(
