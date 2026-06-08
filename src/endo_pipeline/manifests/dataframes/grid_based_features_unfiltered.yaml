@@ -18,7 +18,7 @@ columns:
   end_x: ''
   crop_size_y: ''
   crop_size_x: ''
-  position: ''
+  position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
   crop_index: ''
   pc_1: ''
   pc_2: ''

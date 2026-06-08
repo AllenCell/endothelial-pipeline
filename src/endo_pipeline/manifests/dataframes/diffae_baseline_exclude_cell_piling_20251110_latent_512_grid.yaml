@@ -527,7 +527,7 @@ columns:
   end_x: ''
   crop_size_y: ''
   crop_size_x: ''
-  position: ''
+  position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
 locations:
   20250319_20X:
     fmsid: 51b767a2ac0b4640b41c179b19530bf6

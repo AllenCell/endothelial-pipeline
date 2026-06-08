@@ -19,7 +19,7 @@ columns:
   centroid_Y: ''
   centroid_X: ''
   dataset_name: Name of dataset
-  position: ''
+  position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
 locations:
   20250319_20X:
     fmsid: 85a9cd3c990b4bd39b71e26be0de9ee3

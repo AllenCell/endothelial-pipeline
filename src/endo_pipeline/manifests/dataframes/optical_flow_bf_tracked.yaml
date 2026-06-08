@@ -10,7 +10,7 @@ parameters:
   speed_threshold: 1.0
 columns:
   start_x: ''
-  position: ''
+  position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
   frame_number: ''
   end_y: ''
   track_id: ''

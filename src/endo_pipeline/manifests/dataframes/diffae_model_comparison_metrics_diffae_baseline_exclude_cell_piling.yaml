@@ -14,7 +14,7 @@ columns:
   example_set: ''
   example_idx: ''
   dataset_name: Name of dataset
-  position: ''
+  position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
   timepoint: ''
   crop_x_start: ''
   crop_y_start: ''

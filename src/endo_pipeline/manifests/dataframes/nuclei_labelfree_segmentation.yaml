@@ -3,7 +3,7 @@ workflow: get_nuclei_measured_features
 parameters: {}
 columns:
   dataset_name: Name of dataset
-  position: ''
+  position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
   T: ''
   cdh5_segmentation_label: ''
   nuclei_segmentation_labels: ''

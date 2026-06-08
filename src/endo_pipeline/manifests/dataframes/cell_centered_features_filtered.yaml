@@ -5,7 +5,7 @@ columns:
   frame_number: ''
   track_id: ''
   dataset: Name of dataset
-  position: ''
+  position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
   zarr_path: ''
   label: ''
   centroid: ''

@@ -9,7 +9,7 @@ columns:
   optimized_metric_value: ''
   matching_method: ''
   dataset: Name of dataset
-  position: ''
+  position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
   zarr_path: ''
   filepath_segmentation_image: ''
   label: ''

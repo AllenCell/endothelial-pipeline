@@ -8,7 +8,7 @@ class ColumnName:
     """Name of dataset."""
 
     POSITION = "position"
-    """Column name for position identifier."""
+    """Zarr file position (FOV) of the corresponding segmentation or patch (crop)."""
 
     TIMEPOINT = "frame_number"
     """Column name for timepoint (frame number)."""

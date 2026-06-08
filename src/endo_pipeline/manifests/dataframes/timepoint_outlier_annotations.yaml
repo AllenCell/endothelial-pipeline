@@ -2,7 +2,7 @@ name: timepoint_outlier_annotations
 workflow: annotate_timepoint_outliers
 parameters: {}
 columns:
-  position: ''
+  position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
   bf_mean_intensity: ''
   bf_rolling_median: ''
   bf_dark_threshold: ''

@@ -10,7 +10,7 @@ parameters:
   speed_threshold: 1.0
 columns:
   dataset: Name of dataset
-  position: ''
+  position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
   start_x: ''
   start_y: ''
   end_y: ''

@@ -5,7 +5,7 @@ columns:
   filepath_raw_image: ''
   filepath_segmentation_image: ''
   dataset_name: Name of dataset
-  position: ''
+  position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
   T: ''
   cell_label: ''
   cell_centroid: ''
