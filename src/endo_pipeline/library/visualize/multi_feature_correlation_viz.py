@@ -314,7 +314,7 @@ def visualize_correlation_heatmaps(
 
         x_filename = slugify(x_axis_label)
         y_filename = slugify(y_axis_label)
-        base_filename = f"correlation_{x_filename}_vs_{y_filename}"
+        base_filename = f"{dataset_name}_correlation_{x_filename}_vs_{y_filename}"
 
         # Extract correlation submatrix from pre-computed correlation matrix
         correlation_df = corr_df.loc[y_cols, x_cols].copy()
