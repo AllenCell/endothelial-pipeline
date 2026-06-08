@@ -1,5 +1,23 @@
-def main() -> None:
-    """Main function to general Supp. Fig. showing PC-based feature derivation and interpretation."""
+from endo_pipeline.cli import UniqueStrList
+
+
+def main(include_panels: UniqueStrList | None = None) -> None:
+    """
+    Main function to generate Supp. Fig. showing PC-based feature derivation and
+    interpretation.
+
+    - **Panel A** - Cumulative explained variance ratio for the DiffAE PCs,
+      showing how much of the variance in the data is captured by the top PCs.
+    - **Panel B** - Latent walk along the top 10 PCs, showing how changes in the
+      latent space correspond to changes in cell morphology.
+    - **Panel C** - 2D latent walk along PCs 1 and 2, showing how changes along
+      these two PCs correspond to changes in cell morphology and motivating the
+      polar coordinate transform.
+    - **Panel D** - Correlation heatmap showing the Pearson correlation
+      coefficient between the top ML-based features (DiffAE PCs) and a set of
+      measured features that capture similar morphological characteristics, to
+      help interpret what the ML-based features represent.
+    """
 
     import matplotlib.pyplot as plt
     import pandas as pd
@@ -9,7 +27,11 @@ def main() -> None:
     from endo_pipeline.library.analyze.pca import fit_pca
     from endo_pipeline.library.visualize.columns import get_label_for_column
     from endo_pipeline.library.visualize.diffae_features import feature_viz
-    from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
+    from endo_pipeline.library.visualize.figures import (
+        FigurePanel,
+        build_figure_from_panels,
+        parse_placeholder_panels,
+    )
     from endo_pipeline.library.visualize.latent_walk import perform_and_plot_latent_walk_for_figures
     from endo_pipeline.library.visualize.multi_feature_correlation import (
         make_feature_correlation_panel,
@@ -26,6 +48,8 @@ def main() -> None:
     plt.style.use("endo_pipeline.figure")
 
     save_dir = get_output_path(__file__)
+
+    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
 
     # plot cumulative explained variance ratio of PCA components
     pca = fit_pca(num_pcs=NUM_LATENT_FEATURES)
@@ -70,6 +94,7 @@ def main() -> None:
         seg_columns=measured_feature_columns,
         output_path=save_dir,
         figure_size=(6.0, 2.75),
+        **placeholders["D"],
     )
 
     # perform latent walk along top 10 PCs and save the resulting contact sheet
