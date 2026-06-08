@@ -75,7 +75,7 @@ def main(
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.cli.demo_mode_defaults import use_default_collection
     from endo_pipeline.io import get_output_path
-    from endo_pipeline.library.visualize.multi_feature_correlation_viz import (
+    from endo_pipeline.library.visualize.multi_feature_correlation import (
         get_df_for_feature_correlation_viz,
         visualize_correlation_heatmaps,
     )

@@ -13,7 +13,7 @@ def main() -> None:
     from endo_pipeline.library.visualize.diffae_features import feature_viz
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
     from endo_pipeline.library.visualize.latent_walk import perform_and_plot_latent_walk_for_figures
-    from endo_pipeline.library.visualize.multi_feature_correlation_viz import (
+    from endo_pipeline.library.visualize.multi_feature_correlation import (
         get_df_for_feature_correlation_viz,
         visualize_correlation_heatmaps,
     )

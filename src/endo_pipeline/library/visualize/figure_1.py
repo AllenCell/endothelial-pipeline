@@ -5,7 +5,7 @@ from pathlib import Path
 
 from endo_pipeline.configs import get_datasets_in_collection
 from endo_pipeline.io import slugify
-from endo_pipeline.library.visualize.multi_feature_correlation_viz import (
+from endo_pipeline.library.visualize.multi_feature_correlation import (
     get_df_for_feature_correlation_viz,
     visualize_correlation_heatmaps,
 )
