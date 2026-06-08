@@ -209,8 +209,14 @@ class ColumnName:
         """Y coordinate of the label-free nuclei prediction centroid in microns."""
 
         NUCLEI_POSITION_ANGLE = "nuclei_position_angle"
+        """Angle of nucleus centroid from cell centroid relative to flow in radians with 0 along +x and pi/-pi along -x."""
+
         NUCLEI_POSITION_ANGLE_DEG = "nuclei_position_angle_deg"
+        """Angle of nucleus centroid from cell centroid relative to flow in degrees with 0 along +x and pi/-pi along -x."""
+
         NUCLEI_POSITION_DISTANCE = "nuclei_position_distance"
+        """Distance between nucleus centroid and cell segmentation centroid in pixels."""
+
         NUCLEI_LABEL = "nuclei_seg_with_most_overlap_0"
         NUCLEI_CENTROID_X = "nuc_with_most_overlap_0_centroid_X"
         NUCLEI_CENTROID_Y = "nuc_with_most_overlap_0_centroid_Y"
