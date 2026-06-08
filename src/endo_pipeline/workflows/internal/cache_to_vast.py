@@ -4,7 +4,7 @@ def main() -> None:
 
     #internal #vast #test-ready #cpu-only
 
-    This notebook iterates through all dataset configs and dataframe/model
+    This script iterates through all dataset configs and dataframe/model
     manifests to identify locations with FMS file IDs. All file IDs are then
     submitted for caching to Vast. If file is already cached, then renew lease.
 
