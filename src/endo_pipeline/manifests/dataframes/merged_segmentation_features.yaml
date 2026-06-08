@@ -14,8 +14,8 @@ columns:
   filepath_segmentation_image: ''
   label: Cell segmentation ID (different from track ID, and may change between timepoints)
   centroid: ''
-  area_px_squared: ''
-  perimeter_px: ''
+  area_px_squared: Area of the cell segmentation in pixels squared
+  perimeter_px: Perimeter of the cell segmentation in pixels
   solidity: ''
   major_axis_length: ''
   minor_axis_length: ''
@@ -87,8 +87,8 @@ columns:
   nematic_order: Nematic order of ellipse fit to cell segmentation from -1 (perpendicular) to 1 (parallel)
   aspect_ratio: Aspect ratio of ellipse fit to cell segmentation (major axis divided by minor axis)
   pixel_size_xy_in_um: Size of a pixel in the XY dimensions in microns
-  area_um_squared: ''
-  perimeter_um: ''
+  area_um_squared: Area of the cell segmentation in microns squared
+  perimeter_um: Perimeter of the cell segmentation in microns
   edge_fluorescence_mean_au: ''
   edge_fluorescence_std_au: ''
   node_fluorescence_mean_au: ''

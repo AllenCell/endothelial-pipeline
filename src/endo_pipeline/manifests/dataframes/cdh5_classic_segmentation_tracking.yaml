@@ -10,8 +10,8 @@ columns:
   matched_query_label: ''
   optimized_metric_value: ''
   centroid: ''
-  area: ''
-  perimeter: ''
+  area: Area of the cell segmentation in pixels squared
+  perimeter: Perimeter of the cell segmentation in pixels
   orientation: Orientation of the cell in radians from 0 (along +x axis) to pi (along -x axis)
   eccentricity: Eccentricity of ellipse fit to cell segmentation (focal distance divided by major axis)
   matching_method: ''

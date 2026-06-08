@@ -185,7 +185,7 @@ class ColumnName:
         """Solidity of the cell, defined as the ratio of the cell area to the area of its convex hull."""
 
         AREA_UM_SQ = "area_um_squared"
-        """Area of the cell segmentation in microns squared (um²)."""
+        """Area of the cell segmentation in microns squared."""
 
         PERIMETER_UM = "perimeter_um"
         """Perimeter of the cell segmentation in microns."""
