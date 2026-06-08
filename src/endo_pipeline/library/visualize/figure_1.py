@@ -38,8 +38,8 @@ def make_feature_correlation_panel(
     )
 
     label_column_tuples = [
-        ("ML-based features", pc_columns),
-        ("Measured features", seg_columns),
+        ("ML-based features", [str(col) for col in pc_columns]),
+        ("Measured features", [str(col) for col in seg_columns]),
     ]
 
     visualize_correlation_heatmaps(
