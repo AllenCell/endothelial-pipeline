@@ -69,6 +69,20 @@ summary_plot_path = plot_cross_dataset_summaries(
 )
 
 # %%
+summary_plot_path = plot_cross_dataset_summaries(
+    dataset_summary_df,
+    output_dir=save_dir,
+    column_names=[ColumnName.DiffAEData.POLAR_ANGLE],
+    axis_mode="dataset",
+    figure_size=(MAX_FIGURE_WIDTH, 2.1),
+    subplot_layout="vertical",
+    convert_angle_to_nematic=False,
+    category_order=dataset_summary_list,
+    color_by_column=ColumnName.OpticalFlow.SPEED_MEAN,
+)
+
+
+# %%
 panels = [
     FigurePanel(
         letter="A",
