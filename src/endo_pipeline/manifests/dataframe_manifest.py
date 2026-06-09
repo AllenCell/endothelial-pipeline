@@ -34,6 +34,9 @@ class DataframeManifest:
     parameters: dict = field(default_factory=dict)
     """Specific workflow parameters used to produce the dataframes."""
 
+    columns: dict[str, str] = field(default_factory=dict)
+    """Column names and descriptions."""
+
     locations: dict[str, DataframeLocation] = field(default_factory=dict)
     """Locations of individual dataframes."""
 
