@@ -5,8 +5,9 @@ def main(model_manifest_name: str, run_names: list[str] | None = None) -> None:
     #diffae #model-comparison #gpu
 
     This workflow evaluates the runs of a single DiffAE model manifest by
-    calculating per-example correlation, SSIM, and LPIPS metrics, and emits
-    one ``DataframeManifest`` (with ``locations`` keyed by ``run_name``).
+    calculating per-example correlation, SSIM, and LPIPS metrics on both the
+    validation and rep-2 splits, and emits one ``DataframeManifest`` (with
+    ``locations`` keyed by ``run_name``).
 
     ## Example usage
 
@@ -57,7 +58,10 @@ def main(model_manifest_name: str, run_names: list[str] | None = None) -> None:
         load_model_manifest,
         save_dataframe_manifest,
     )
-    from endo_pipeline.settings.examples import MODEL_QC_EXAMPLES_REP_2_POSITIONS
+    from endo_pipeline.settings.examples import (
+        MODEL_QC_EXAMPLES_REP_2_POSITIONS,
+        MODEL_QC_EXAMPLES_VALIDATION_POSITIONS,
+    )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_PREFIX,
         DEFAULT_MODEL_QC_MANIFEST_NAMES,
@@ -69,13 +73,24 @@ def main(model_manifest_name: str, run_names: list[str] | None = None) -> None:
     logger = logging.getLogger(__name__)
 
     # --- Hard-coded panel configuration ---
+    # Evaluate both the validation and rep-2 splits so the persisted metrics
+    # cover the full cross-model comparison (correlation / SSIM / LPIPS on each
+    # split).
     num_seeds = 10
-    example_set_label = "rep_2_positions"
-    example_sets_for_metrics = {example_set_label}
-    examples = MODEL_QC_EXAMPLES_REP_2_POSITIONS
-    example_sets_all = [(examples, example_set_label)]
+    # rep-2 is listed first on purpose: ``evaluate_single_model`` draws noise
+    # from a single shared RNG in this order, so keeping rep-2 first means its
+    # noise sequence (and therefore its metrics) is byte-identical to the prior
+    # rep-2-only runs -- the validation split is purely additive and does not
+    # perturb the rep-2 numbers the supplemental figure's panel B reads.
+    example_sets_all = [
+        (MODEL_QC_EXAMPLES_REP_2_POSITIONS, "rep_2_positions"),
+        (MODEL_QC_EXAMPLES_VALIDATION_POSITIONS, "validation_positions"),
+    ]
+    example_sets_for_metrics = {label for _, label in example_sets_all}
+    examples_by_set = {label: list(examples) for examples, label in example_sets_all}
+    all_examples = [example for examples, _ in example_sets_all for example in examples]
 
-    # Seed expansion mirrors development/model_qc.py.
+    # Expand the centre seed into a symmetric range of ``num_seeds`` seeds.
     half_range = num_seeds // 2
     seeds_to_evaluate = list(range(RANDOM_SEED - half_range, RANDOM_SEED - half_range + num_seeds))
     logger.info("Seeds: %s (default %d)", seeds_to_evaluate, RANDOM_SEED)
@@ -123,12 +138,12 @@ def main(model_manifest_name: str, run_names: list[str] | None = None) -> None:
         "num_seeds": num_seeds,
         "seeds": [int(s) for s in seeds_to_evaluate],
         "random_seed": RANDOM_SEED,
-        "example_set": example_set_label,
+        "example_sets": [label for _, label in example_sets_all],
         "noise_levels": list(MODEL_QC_NOISE_LEVELS),
     }
 
     if UPLOAD_TO_FMS:
-        unique_dataset_names = sorted({e.dataset_name for e in examples})
+        unique_dataset_names = sorted({e.dataset_name for e in all_examples})
         dataset_configs = [load_dataset_config(n) for n in unique_dataset_names]
 
     # --- Prepare the output DataframeManifest ---
@@ -168,7 +183,7 @@ def main(model_manifest_name: str, run_names: list[str] | None = None) -> None:
         parquet_paths = write_per_model_parquets(
             metrics_dir,
             results,
-            examples_by_set={example_set_label: examples},
+            examples_by_set=examples_by_set,
         )
         parquet = parquet_paths[model_key]
 
@@ -176,7 +191,7 @@ def main(model_manifest_name: str, run_names: list[str] | None = None) -> None:
             notes = (
                 f"Model-QC supplementary figure metrics for "
                 f"{model_key.manifest_name}/{model_key.run_name}: "
-                f"{len(seeds_to_evaluate)} seeds x {len(examples)} crops, "
+                f"{len(seeds_to_evaluate)} seeds x {len(all_examples)} crops, "
                 f"long-format (one row per seed x crop)."
             )
             annotations = build_fms_annotations(dataset_configs, additional_notes=notes)
