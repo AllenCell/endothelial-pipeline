@@ -46,3 +46,6 @@ MODEL_QC_PLOT_DIRECTION: str = "top-down first"
 
 VECTOR_FIELD_THETA_RANGE: tuple[float, float] = (-pi / 4, 3 * pi / 4)
 """Default range of theta values for vector field plots."""
+
+SUMMARY_PLOT_THETA_RANGE: tuple[float, float] = (-pi / 6, (5 * pi / 6) + 0.1)
+"""Default theta range for summary plots of angles in radians."""
