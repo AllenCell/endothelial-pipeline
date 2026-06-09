@@ -1,8 +1,7 @@
 """Default settings for plotting functions."""
 
 from collections import namedtuple
-
-from numpy import pi
+from math import pi
 
 from endo_pipeline.configs import ShearStressRegime
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
@@ -45,5 +44,5 @@ MODEL_QC_FIG_KWARGS: dict = {"figsize": (9, 6)}
 MODEL_QC_PLOT_DIRECTION: str = "top-down first"
 """Default direction for arranging panels in model QC plots."""
 
-THETA_PLOT_LIMITS: tuple[float, float] = (-pi / 6, 5 * pi / 6)
-"""Default limits for theta plots in visualizations."""
+POLAR_THETA_RANGE: tuple[float, float] = (-pi / 6, (5 * pi / 6) + 0.1)
+"""Default theta range for polar plots of angles in radians."""
