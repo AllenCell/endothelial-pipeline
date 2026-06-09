@@ -69,25 +69,28 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         DIFFAE_PC_COLUMN_NAME_GROUPS["main_figure"] + DIFFAE_PC_COLUMN_NAME_GROUPS["first_100_pcs"]
     )
 
-    # call feature correlation workflow to get the max correlation value for the
+    # Call feature correlation workflow to get the max correlation value for the
     # PCs that are not in the top 10 PCs up to PC 100, which we will report in
-    # the figure legend
-    output_path_base = make_feature_correlation_panel(
-        pc_columns=ml_columns_100_pcs,
-        seg_columns=measured_feature_columns,
-        output_path=save_dir,
-        force_labels_single_line=True,
-        **placeholders["D"],
-    )
-    # replace "heatmap.svg" with "correlation_matrix.csv" to get the path to the
-    # correlation matrix CSV that was saved as part of the workflow
-    correlation_matrix_path = output_path_base.parent / (
-        output_path_base.stem.replace("heatmap", "correlation_matrix") + ".csv"
-    )
-    correlation_matrix_100_pcs = pd.read_csv(correlation_matrix_path)
-    non_fig_pcs = list(set(ml_columns_100_pcs) - set(ml_columns))
-    biggest_corr_mag = correlation_matrix_100_pcs[non_fig_pcs].abs().max().max()
-    print(f"Biggest correlation magnitude for non-figure PCs up to PC 100: {biggest_corr_mag}")
+    # the figure legend. Only do this if panel D is not a placeholder, since if
+    # it is a placeholder then we won't have the correlation matrix CSV saved as
+    # part of the workflow outputs and it would error when trying to read it.
+    if not placeholders["D"]["placeholder"]:
+        output_path_base = make_feature_correlation_panel(
+            pc_columns=ml_columns_100_pcs,
+            seg_columns=measured_feature_columns,
+            output_path=save_dir,
+            force_labels_single_line=True,
+            **placeholders["D"],
+        )
+        # replace "heatmap.svg" with "correlation_matrix.csv" to get the path to the
+        # correlation matrix CSV that was saved as part of the workflow
+        correlation_matrix_path = output_path_base.parent / (
+            output_path_base.stem.replace("heatmap", "correlation_matrix") + ".csv"
+        )
+        correlation_matrix_100_pcs = pd.read_csv(correlation_matrix_path)
+        non_fig_pcs = list(set(ml_columns_100_pcs) - set(ml_columns))
+        biggest_corr_mag = correlation_matrix_100_pcs[non_fig_pcs].abs().max().max()
+        print(f"Biggest correlation magnitude for non-figure PCs up to PC 100: {biggest_corr_mag}")
 
     # Now call on just the supplementary figure PCs to get the correlation
     # heatmap for the figure
