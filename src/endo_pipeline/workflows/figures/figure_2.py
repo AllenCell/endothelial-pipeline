@@ -1,5 +1,27 @@
-def main() -> None:
-    """Compile panels for Figure 2."""
+from endo_pipeline.cli import UniqueStrList
+
+
+def main(include_panels: UniqueStrList | None = None) -> None:
+    """
+    Compile panels for Figure 2.
+
+    - **Panel A*: 3D visualizations of drift vector field and nullclines for
+      example low shear stress dataset.
+    - **Panel B**: 1D plot of drift along polar angle coordinate for example low
+      shear stress dataset, 2D contour plot of drift coefficients for polar
+      radius and rho (-PC3) coordinates for example low shear stress dataset.
+    - **Panel C**: DiffAE generated synthetic images along nullcline in polar
+      radius and rho (-PC3) coordinates for example low shear stress dataset.
+    - **Panel D-F**: Same as A-C for example high shear stress dataset.
+    - **Panel G**: Summary plot of fixed point locations across multiple
+      datasets, colored by migration coherence (EMA-smoothed optical flow unit
+      vector mean).
+    - **Panel H**: Schematic of first passage time calculation for example
+      trajectories in low shear stress dataset.
+    - **Panel I**: Histogram of first passage time correlation coefficients
+      across multiple datasets.
+
+    """
     from pathlib import Path
 
     import matplotlib.pyplot as plt
@@ -21,7 +43,11 @@ def main() -> None:
         reconstruct_along_nullcline,
     )
     from endo_pipeline.library.visualize.figure_fpt import generate_first_passage_time_example
-    from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
+    from endo_pipeline.library.visualize.figures import (
+        FigurePanel,
+        build_figure_from_panels,
+        parse_placeholder_panels,
+    )
     from endo_pipeline.library.visualize.summary_plot import (
         build_dataframe_for_fixed_point_dataset_summary,
         plot_cross_dataset_summaries,
@@ -29,23 +55,14 @@ def main() -> None:
     from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
     from endo_pipeline.settings.column_metadata import COLUMN_METADATA
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.dynamics_workflows import POLAR_ANGLE_RANGE
     from endo_pipeline.settings.examples import EXAMPLE_DATASET, FPT_FIG_EXAMPLES
-    from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
     from endo_pipeline.settings.flow_field_dataframes import (
         BOOTSTRAPPING_MANIFEST_NAMES,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
         StabilityLabel,
     )
-    from endo_pipeline.settings.flow_field_figure import (
-        AXES_LIMITS_2D,
-        GRIDSPEC_KWARGS,
-        NULLCLINE_STYLES_2D,
-        XLABEL_KWARGS,
-        YLABEL_KWARGS,
-    )
     from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
-    from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -54,7 +71,11 @@ def main() -> None:
 
     plt.style.use("endo_pipeline.figure")
 
-    base_output_dir = get_output_path("figure_2")
+    output_path = get_output_path(__file__)
+
+    placeholders = parse_placeholder_panels(
+        include_panels, ["A", "B", "C", "D", "E", "F", "G", "H", "I"]
+    )
 
     # figure is for grid based crops
     crop_pattern = "grid"
@@ -120,7 +141,7 @@ def main() -> None:
         (dataset_low, 1.5, 0.05),
         (dataset_high, 0.5, 0.05),
     ]:
-        fig_savedir = get_output_path("figure_2", dataset_name)
+        fig_savedir = get_output_path(__file__, dataset_name)
 
         # load fixed points dataframes (if available) for both (r, rho) and theta,
         # filter to just stable fixed points, and store in dict for easy access when plotting
@@ -158,10 +179,12 @@ def main() -> None:
         )
         stable_fixed_point_theta = stable_fixed_points_dict[column_theta][column_theta].to_numpy()
 
+        placeholder_3d = "A" if dataset_name == dataset_low else "D"
         vector_field_plot_paths[dataset_name] = make_3d_vector_field_plot_panel(
-            dataset_name, fig_savedir
+            dataset_name, fig_savedir, **placeholders[placeholder_3d]
         )
 
+        placeholder_1p2d = "B" if dataset_name == dataset_low else "E"
         # plot 1D drift in theta and save
         theta_plot_paths[dataset_name] = make_1d_drift_plot_panel(
             drift=drift_theta,
@@ -171,22 +194,9 @@ def main() -> None:
             figsize=(1.425, 1.425),
             fig_savedir=fig_savedir,
             filename=f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}_drift",
-            axes_xlim=POLAR_ANGLE_RANGE,
-            axes_ylim=(-0.4, 0.4),
-            axes_xticks=[0, np.pi / 2, np.pi],
-            axes_xtick_labels=[
-                f"0={Unicode.PI}",
-                f"{Unicode.PI}/2",
-                f"{Unicode.PI}=0",
-            ],
-            axes_yticks=[-0.3, 0.0, 0.3],
             arrow_scale=arrow_scale_1d,
             arrow_width=arrow_width_1d,
-            drift_line_kwargs={"color": "k", "linewidth": 2},
-            zero_line_kwargs={"linestyle": "--", "color": "gray", "linewidth": 1, "alpha": 0.7},
-            gridspec_kwargs=GRIDSPEC_KWARGS,
-            xlabel_kwargs=XLABEL_KWARGS,
-            ylabel_kwargs=YLABEL_KWARGS,
+            **placeholders[placeholder_1p2d],
         )
 
         contour_plot_paths[dataset_name], nullcline_coordinates = make_2d_contour_plot_panel(
@@ -197,32 +207,10 @@ def main() -> None:
             figsize=(2.6, 1.55),
             fig_savedir=fig_savedir,
             filename=f"{dataset_name}_{columns_r_rho_str}_contours",
-            r_lims=AXES_LIMITS_2D[Column.DiffAEData.POLAR_RADIUS],
-            rho_lims=AXES_LIMITS_2D[Column.DiffAEData.PC3_FLIPPED],
-            r_ticks=[0.4, 1.0, 1.6],
-            rho_ticks=[-0.75, 0.0, 0.75],
-            nullcline_r_style=NULLCLINE_STYLES_2D[Column.DiffAEData.POLAR_RADIUS],
-            nullcline_rho_style=NULLCLINE_STYLES_2D[Column.DiffAEData.PC3_FLIPPED],
-            nullcline_opacity=1.0,
-            gridspec_kwargs=GRIDSPEC_KWARGS,
-            xlabel_kwargs=XLABEL_KWARGS,
-            ylabel_kwargs={**YLABEL_KWARGS, "rotation": 0},
-            axes_title_kwargs={
-                "fontsize": FONTSIZE_SMALL,
-                "x": 0.05,
-                "y": 0.775,
-                "rotation": 0,
-                "ha": "left",
-                "va": "center",
-                "bbox": {
-                    "boxstyle": "round",
-                    "facecolor": "white",
-                    "edgecolor": "none",
-                    "alpha": 0.8,
-                },
-            },
+            **placeholders[placeholder_1p2d],
         )
 
+        placeholder_nullcline = "C" if dataset_name == dataset_low else "F"
         nullcline_reconstruction_paths[dataset_name] = reconstruct_along_nullcline(
             nullcline_coords=nullcline_coordinates,
             theta_value=stable_fixed_point_theta[0],
@@ -230,6 +218,7 @@ def main() -> None:
             fig_savedir=fig_savedir,
             num_gpus=NUM_GPUS,
             random_seed=4,
+            **placeholders[placeholder_nullcline],
         )
 
     # --- Cross-dataset summary plots ---
@@ -245,7 +234,7 @@ def main() -> None:
     # summary plot of fixed point locations across datasets
     fixed_point_summary_plot_path = plot_cross_dataset_summaries(
         fixed_point_summary_df,
-        output_dir=base_output_dir,
+        output_dir=output_path,
         column_names=feature_column_names,
         axis_mode="shear_stress",
         subplot_layout="horizontal",
@@ -260,11 +249,14 @@ def main() -> None:
         example_fixed_point_index=low_flow_dataset.fixed_point_index,
         example_tracked_crop_index=low_flow_dataset.tracked_crop_index,
         example_grid_crop_index=low_flow_dataset.grid_crop_index,
-        out_dir=base_output_dir,
+        out_dir=output_path,
     )
     # --- Histogram of first passage time correlation ---
     first_passage_path = make_first_passage_time_correlation_hist(
-        dataset_names=dataset_summary_list, figsize=(0.95, 2.0), fig_savedir=base_output_dir
+        dataset_names=dataset_summary_list,
+        figsize=(0.95, 2.0),
+        fig_savedir=output_path,
+        **placeholders["I"],
     )
 
     # --- Assemble all panels into final figure ---
@@ -363,7 +355,7 @@ def main() -> None:
     ]
 
     build_figure_from_panels(
-        panels, base_output_dir / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=7.75
+        panels, output_path / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=7.75
     )
 
 

@@ -40,6 +40,7 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
     plot_drift_contours,
 )
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
+from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
@@ -61,8 +62,15 @@ from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_VMIN,
 )
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
+from endo_pipeline.settings.flow_field_figure import (
+    AXES_LIMITS_2D,
+    GRIDSPEC_KWARGS,
+    NULLCLINE_STYLES_2D,
+    XLABEL_KWARGS,
+    YLABEL_KWARGS,
+)
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
-from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
+from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, VECTOR_FIELD_THETA_RANGE
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME
 
@@ -295,6 +303,7 @@ def _get_example_points_along_nullcline(
     return example_points
 
 
+@figure_panel("Make panel of 2D contour plots of drift in (r, rho) space.")
 def make_2d_contour_plot_panel(
     drift: np.ndarray,
     meshgrid: tuple[np.ndarray, np.ndarray],
@@ -303,25 +312,38 @@ def make_2d_contour_plot_panel(
     figsize: tuple[float, float],
     fig_savedir: Path,
     filename: str,
-    r_lims: tuple[float, float],
-    rho_lims: tuple[float, float],
-    r_ticks: list[float],
-    rho_ticks: list[float],
-    nullcline_r_style: str,
-    nullcline_rho_style: str,
-    nullcline_opacity: float,
-    gridspec_kwargs: dict | None,
-    xlabel_kwargs: dict | None,
-    ylabel_kwargs: dict | None,
-    axes_title_kwargs: dict | None,
-    include_colorbar: bool = True,
-    include_legend: bool = True,
 ) -> tuple[Path, dict[Column.DiffAEData, np.ndarray]]:
     """
     Make and save plot of drift contours in (r, rho) space for a given dataset.
     """
     column_names = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
     column_labels = [COLUMN_METADATA[column].label or str(column) for column in column_names]
+
+    r_lims = AXES_LIMITS_2D[Column.DiffAEData.POLAR_RADIUS]
+    rho_lims = AXES_LIMITS_2D[Column.DiffAEData.PC3_FLIPPED]
+    r_ticks = [0.4, 1.0, 1.6]
+    rho_ticks = [-0.75, 0.0, 0.75]
+    nullcline_r_style = NULLCLINE_STYLES_2D[Column.DiffAEData.POLAR_RADIUS]
+    nullcline_rho_style = NULLCLINE_STYLES_2D[Column.DiffAEData.PC3_FLIPPED]
+    nullcline_opacity = 1.0
+    gridspec_kwargs = GRIDSPEC_KWARGS
+    xlabel_kwargs = XLABEL_KWARGS
+    ylabel_kwargs = {**YLABEL_KWARGS, "rotation": 0}
+    axes_title_kwargs = {
+        "fontsize": FONTSIZE_SMALL,
+        "x": 0.05,
+        "y": 0.775,
+        "rotation": 0,
+        "ha": "left",
+        "va": "center",
+        "bbox": {
+            "boxstyle": "round",
+            "facecolor": "white",
+            "edgecolor": "none",
+            "alpha": 0.8,
+        },
+    }
+
     # plot drift contours and save
     fig, axes_ = plot_drift_contours(
         meshgrid=meshgrid,
@@ -382,45 +404,43 @@ def make_2d_contour_plot_panel(
         if ax_index == 1:
             ax_.tick_params(labelleft=False)
 
-    # if indicated, add colorbar to the top of the first subplot with ticks and
-    # label formatting
-    if include_colorbar:
-        _add_colorbar_to_contour_plot(fig, axes_[1])
-        # shrink the constrained-layout region so the inset colorbar axes
-        # (which lives outside the main axes boundary) is not clipped on save
+    # add colorbar to the right of the second subplot with ticks and label
+    # formatting
+    _add_colorbar_to_contour_plot(fig, axes_[1])
+    # shrink the constrained-layout region so the inset colorbar axes
+    # (which lives outside the main axes boundary) is not clipped on save
 
-        layout_engine = fig.get_layout_engine()
-        if isinstance(layout_engine, ConstrainedLayoutEngine):
-            layout_engine.set(rect=(0, 0, 0.9, 1))
+    layout_engine = fig.get_layout_engine()
+    if isinstance(layout_engine, ConstrainedLayoutEngine):
+        layout_engine.set(rect=(0, 0, 0.9, 1))
 
     handles = []
     labels = []
-    if include_legend:
-        # plot_drift_contours draws nullclines via ax.contour(), which does not
-        # produce labeled artists. Add proxy Line2D handles so the legend has
-        # something to show.
-        nullcline_styles = (nullcline_r_style, nullcline_rho_style)
-        for col_idx, col in enumerate(column_names):
-            label = COLUMN_METADATA[col].label or str(col)
-            legend_label = f"{label}-nullcline (d{label}/dt=0)"
-            handle = mlines.Line2D(
-                [],
-                [],
-                color="k",
-                linestyle=nullcline_styles[col_idx],
-                label=legend_label,
-            )
-            handles.append(handle)
-            labels.append(legend_label)
-        fig.legend(
-            handles,
-            labels,
-            fontsize="xx-small",
-            loc="upper center",
-            bbox_to_anchor=(0.55, 0.925),
-            ncol=2,
-            handletextpad=0.3,
+    # plot_drift_contours draws nullclines via ax.contour(), which does not
+    # produce labeled artists. Add proxy Line2D handles so the legend has
+    # something to show.
+    nullcline_styles = (nullcline_r_style, nullcline_rho_style)
+    for col_idx, col in enumerate(column_names):
+        label = COLUMN_METADATA[col].label or str(col)
+        legend_label = f"{label}-nullcline (d{label}/dt=0)"
+        handle = mlines.Line2D(
+            [],
+            [],
+            color="k",
+            linestyle=nullcline_styles[col_idx],
+            label=legend_label,
         )
+        handles.append(handle)
+        labels.append(legend_label)
+    fig.legend(
+        handles,
+        labels,
+        fontsize="xx-small",
+        loc="upper center",
+        bbox_to_anchor=(0.55, 0.925),
+        ncol=2,
+        handletextpad=0.3,
+    )
 
     save_plot_to_path(
         fig,
@@ -435,6 +455,7 @@ def make_2d_contour_plot_panel(
     return fig_savedir / f"{filename}.svg", nullcline_coords
 
 
+@figure_panel("Make panel of 1D phase line plot of drift in theta space.")
 def make_1d_drift_plot_panel(
     drift: np.ndarray,
     theta_values: np.ndarray,
@@ -443,22 +464,38 @@ def make_1d_drift_plot_panel(
     figsize: tuple[float, float],
     fig_savedir: Path,
     filename: str,
-    axes_xlim: tuple[float, float],
-    axes_ylim: tuple[float, float],
-    axes_xticks: list[float],
-    axes_xtick_labels: list[str],
-    axes_yticks: list[float],
     arrow_scale: float,
     arrow_width: float,
-    drift_line_kwargs: dict | None,
-    zero_line_kwargs: dict | None,
-    gridspec_kwargs: dict | None,
-    xlabel_kwargs: dict | None,
-    ylabel_kwargs: dict | None,
 ) -> Path:
+    """Make and save plot of 1D drift as a function of theta for a given dataset."""
+    axes_xlim = VECTOR_FIELD_THETA_RANGE
+    axes_ylim = (-0.4, 0.4)
+    axes_xticks = [0, np.pi / 2]
+    axes_xtick_labels = [
+        f"0={Unicode.PI}",
+        f"{Unicode.PI}/2",
+    ]
+    axes_yticks = [-0.3, 0.0, 0.3]
+    drift_line_kwargs = {"color": "k", "linewidth": 2}
+    zero_line_kwargs = {"linestyle": "--", "color": "gray", "linewidth": 1, "alpha": 0.7}
+    gridspec_kwargs = GRIDSPEC_KWARGS
+    xlabel_kwargs = XLABEL_KWARGS
+    ylabel_kwargs = YLABEL_KWARGS
+
+    # re-wrap theta values to be within the specified x-axis limits for better
+    # visualization of the drift as a function of theta
+    where_theta_below_xlim = theta_values < axes_xlim[0]
+    where_theta_above_xlim = theta_values > axes_xlim[1]
+    theta_values_wrapped = theta_values.copy()
+    theta_values_wrapped[where_theta_below_xlim] += np.pi
+    theta_values_wrapped[where_theta_above_xlim] -= np.pi
+    arg_sorted_theta = np.argsort(theta_values_wrapped)
+    theta_values_sorted = theta_values_wrapped[arg_sorted_theta]
+    drift_sorted = drift[arg_sorted_theta]
+
     fig, ax = plot_drift_1d(
-        drift=drift,
-        x_values=theta_values,
+        drift=drift_sorted,
+        x_values=theta_values_sorted,
         figsize=figsize,
         axes_limits=[axes_xlim, axes_ylim],
         axes_labels=[column_label, f"d{column_label}/dt"],
@@ -494,6 +531,9 @@ def make_1d_drift_plot_panel(
     return fig_savedir / f"{filename}.svg"
 
 
+@figure_panel(
+    "Reconstruct images at points along the given r- and rho-nullclines and save images as a contact sheet."
+)
 def reconstruct_along_nullcline(
     nullcline_coords: dict[ColumnNameType, np.ndarray],
     theta_value: float,
@@ -686,6 +726,21 @@ def _load_and_process_vector_field(
     u_field_[low_density_mask] = np.nan
     v_field_[low_density_mask] = np.nan
     w_field_[low_density_mask] = np.nan
+
+    # wrap theta grid to be within the specified limits for better visualization
+    # of the vector field (default is (0, pi), but we want to shift the limits
+    # so that the stable fixed point is not at the boundary)
+    where_theta_below_lims = x_grid_ < theta_lims[0]
+    where_theta_above_lims = x_grid_ > theta_lims[1]
+    x_grid_[where_theta_below_lims] += np.pi
+    x_grid_[where_theta_above_lims] -= np.pi
+    arg_sorted_theta = np.argsort(x_grid_[:, 0, 0])
+    x_grid_ = x_grid_[arg_sorted_theta, :, :]
+    y_grid_ = y_grid_[arg_sorted_theta, :, :]
+    z_grid_ = z_grid_[arg_sorted_theta, :, :]
+    u_field_ = u_field_[arg_sorted_theta, :, :]
+    v_field_ = v_field_[arg_sorted_theta, :, :]
+    w_field_ = w_field_[arg_sorted_theta, :, :]
 
     # mask vector field to be within the specified limits (take only grid points
     # within limits), reshaping accordingly as 3D arrays of updated number of
@@ -919,6 +974,7 @@ class _HandlerConeArrow(HandlerBase):
         return [shaft, cone]
 
 
+@figure_panel("Make panel of 3D vector field plot with stable fixed point overlay.")
 def make_3d_vector_field_plot_panel(
     dataset_name: str,
     fig_savedir: Path,
@@ -970,9 +1026,9 @@ def make_3d_vector_field_plot_panel(
     col_labels = [(COLUMN_METADATA[col].label or str(col)) for col in DYNAMICS_COLUMN_NAMES]
 
     figsize = (2.0, 2.5)
-    theta_lims = (0, np.pi)
-    theta_ticks = [0, np.pi / 2, np.pi]
-    theta_tick_labels = [f"0={Unicode.PI}", f"{Unicode.PI}/2", f"{Unicode.PI}=0"]
+    theta_lims = VECTOR_FIELD_THETA_RANGE
+    theta_ticks = [0, np.pi / 2]
+    theta_tick_labels = [f"0={Unicode.PI}", f"{Unicode.PI}/2"]
     r_lims = (0, 1.75)
     r_ticks = [0.25, 0.75, 1.25]
     rho_lims = (-1.5, 1.5)
@@ -1138,6 +1194,7 @@ def make_3d_vector_field_plot_panel(
     return fig_savedir / f"{filename}.svg"
 
 
+@figure_panel("Make panel of histogram of first passage time correlation values across datasets.")
 def make_first_passage_time_correlation_hist(
     dataset_names: list[str], figsize: tuple[float, float], fig_savedir: Path
 ) -> Path:
