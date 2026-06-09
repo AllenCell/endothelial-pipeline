@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.gridspec import GridSpec
 
+from endo_pipeline.io import get_output_path
 from endo_pipeline.io.output import save_plot_to_path
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_MEDIUM, FONTSIZE_SMALL
@@ -19,12 +20,17 @@ from endo_pipeline.settings.plot_defaults import (
     MODEL_QC_SUBPLOT_KWARGS,
 )
 from endo_pipeline.settings.workflow_defaults import (
+    DEFAULT_MODEL_QC_LABELS,
+    DEFAULT_MODEL_QC_MANIFEST_NAMES,
+    DEFAULT_MODEL_QC_RUN_NAMES,
     IMAGE_METRIC_DATASET_COLORS,
     METRIC_TEXT_BOX_PROPS,
 )
 
 if TYPE_CHECKING:
     import matplotlib.figure
+
+    from endo_pipeline.library.model.model_qc.evaluation import ModelKey
 
 
 # ========================
@@ -669,3 +675,125 @@ def create_contact_sheet_with_metrics_column(
             )
 
     return fig
+
+
+def create_comparison_plots_and_summary(
+    models_data: list[dict[str, Any]],
+    model_keys: list[ModelKey],
+    seeds_to_evaluate: list[int],
+    baseline_data: dict[str, dict[str, float]],
+    compute_baseline: bool,
+) -> None:
+    """Create comparison bar plots and log the summary table.
+
+    Generates one bar plot per metric (correlation, SSIM, LPIPS) comparing
+    all models on validation and rep-2 splits, and prints a formatted
+    summary table.
+
+    Parameters
+    ----------
+    models_data
+        Per-model summary dicts each containing ``"validation"`` and
+        ``"rep2"`` sub-dicts with ``*_mean`` / ``*_std`` floats.
+    model_keys
+        Ordered list of ``ModelKey``, one per model.  Used for axis labels
+        and the legend text in each bar plot.  Must align positionally with
+        ``models_data``.
+    seeds_to_evaluate
+        Seeds used during evaluation; displayed in titles when >1.
+    baseline_data
+        Baseline mean/std statistics for ``"validation"`` and ``"rep2"``.
+        Shown as horizontal dashed lines when ``compute_baseline`` is True.
+    compute_baseline
+        Whether to overlay baseline reference lines on the bar plots.
+    """
+    seed_suffix = f"_seeds_{len(seeds_to_evaluate)}" if len(seeds_to_evaluate) > 1 else ""
+    comparison_output_path = get_output_path(
+        "model_qc",
+        "comparison",
+        f"models_{len(model_keys)}{seed_suffix}",
+    )
+
+    # Determine model labels for bar-plot x-axis ticks.
+    # The curated DEFAULT_MODEL_QC_LABELS list is a display override for the
+    # specific 10-model latent-dimension sweep (pairs of manifest/run in
+    # DEFAULT_MODEL_QC_MANIFEST_NAMES / DEFAULT_MODEL_QC_RUN_NAMES).  Only
+    # use curated labels when *all* model keys are members of that sweep;
+    # otherwise fall back to each model's own ``ModelKey.label`` (a two-line
+    # ``manifest\nrun`` string) so ticks carry meaningful identifiers instead
+    # of generic ``"Model N"``.
+    #
+    # Membership is checked with plain ``(manifest_name, run_name)`` tuples
+    # rather than constructing ``ModelKey`` instances: ``ModelKey`` is a
+    # ``NamedTuple``, so it compares and hashes equal to a plain tuple of the
+    # same field values.  Avoiding the constructor lets ``ModelKey`` be
+    # imported only under ``TYPE_CHECKING`` at module top.
+    _default_sweep_pairs: set[tuple[str, str]] = set(
+        zip(DEFAULT_MODEL_QC_MANIFEST_NAMES, DEFAULT_MODEL_QC_RUN_NAMES, strict=True)
+    )
+    if all((k.manifest_name, k.run_name) in _default_sweep_pairs for k in model_keys):
+        # All models belong to the curated sweep; map each key to its
+        # corresponding short label by positional order within the sweep.
+        sweep_label_map: dict[tuple[str, str], str] = {
+            (m, r): lbl
+            for m, r, lbl in zip(
+                DEFAULT_MODEL_QC_MANIFEST_NAMES,
+                DEFAULT_MODEL_QC_RUN_NAMES,
+                DEFAULT_MODEL_QC_LABELS,
+                strict=True,
+            )
+        }
+        model_labels = [sweep_label_map[(k.manifest_name, k.run_name)] for k in model_keys]
+    else:
+        model_labels = [k.label for k in model_keys]
+
+    seeds_info = (
+        f" (averaged over {len(seeds_to_evaluate)} seeds)" if len(seeds_to_evaluate) > 1 else ""
+    )
+
+    metric_configs: list[tuple[str, str, str, dict[str, Any]]] = [
+        ("corr", "Pearson Correlation (100% Noise)", "Correlation", {}),
+        ("ssim", "SSIM Score (100% Noise)", "SSIM", {}),
+        ("lpips", "LPIPS Score (100% Noise)", "LPIPS", {}),
+    ]
+
+    # Create comparison plots for each metric
+    for metric_key, ylabel, title_base, extra_kw in metric_configs:
+        create_comparison_bar_plot(
+            models_data=models_data,
+            metric_key=metric_key,
+            ylabel=ylabel,
+            title=f"{title_base}{seeds_info}",
+            output_path=comparison_output_path,
+            filename=f"{metric_key}_comparison_100_noise",
+            model_labels=model_labels,
+            show_baseline=compute_baseline,
+            **extra_kw,
+        )
+
+    # Print summary table
+    print("\n" + "=" * 80)
+    print(f"SUMMARY: Model Performance{seeds_info}")
+    print("=" * 80)
+
+    if compute_baseline and baseline_data["validation"]["corr_mean"] > 0:
+        print("\nBASELINE (Temporal - Next Timepoint Comparison):")
+        for split_label, split_key in [("Validation", "validation"), ("Rep2      ", "rep2")]:
+            b = baseline_data[split_key]
+            print(
+                f"  {split_label} - Corr: {b['corr_mean']:.3f} ± {b['corr_std']:.3f}, "
+                f"SSIM: {b['ssim_mean']:.3f} ± {b['ssim_std']:.3f}, "
+                f"LPIPS: {b['lpips_mean']:.3f} ± {b['lpips_std']:.3f}"
+            )
+        print("-" * 80)
+
+    for model_data in models_data:
+        print(f"\n{model_data['model_label']}:")
+        for split_label, split_key in [("Validation", "validation"), ("Rep2      ", "rep2")]:
+            d = model_data[split_key]
+            print(
+                f"  {split_label} - Corr: {d['corr_mean']:.3f} ± {d['corr_std']:.3f}, "
+                f"SSIM: {d['ssim_mean']:.3f} ± {d['ssim_std']:.3f}, "
+                f"LPIPS: {d['lpips_mean']:.3f} ± {d['lpips_std']:.3f}"
+            )
+    print("=" * 80)

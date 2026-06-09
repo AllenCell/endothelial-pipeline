@@ -1,5 +1,3 @@
-import logging
-
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_QC_MANIFEST_NAMES,
     DEFAULT_MODEL_QC_RUN_NAMES,
@@ -50,15 +48,19 @@ def main(
     compute_baseline
         Overlay the next-timepoint baseline reference (full comparison only).
     """
+    import logging
+
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.model.model_qc import (
         aggregate_seed_metrics,
         build_models_data,
         compute_baseline_data,
-        create_comparison_plots_and_summary,
     )
     from endo_pipeline.library.model.model_qc.results_io import load_results_from_manifests
-    from endo_pipeline.library.visualize.model_qc_plots import create_rep2_correlation_bar_plot
+    from endo_pipeline.library.visualize.model_qc_plots import (
+        create_comparison_plots_and_summary,
+        create_rep2_correlation_bar_plot,
+    )
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_PREFIX,
@@ -77,19 +79,12 @@ def main(
     requested_pairs = list(zip(manifest_names, run_names, strict=True))
 
     # One dataframe manifest per unique manifest_name, produced by
-    # calculate-model-comparison-metrics. Preserve first-seen order.
-    unique_manifest_names = list(dict.fromkeys(manifest_names))
+    # calculate-model-comparison-metrics. Load order does not matter -- models
+    # are reordered to requested_pairs below.
     dataframe_manifests = [
         load_dataframe_manifest(f"{DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_PREFIX}_{mn}")
-        for mn in unique_manifest_names
+        for mn in set(manifest_names)
     ]
-    for dfm in dataframe_manifests:
-        logger.info(
-            "Loaded dataframe manifest [ %s ] with %d locations.",
-            dfm.name,
-            len(dfm.locations),
-        )
-
     all_seed_results, discovered_model_keys, seeds = load_results_from_manifests(
         dataframe_manifests
     )
