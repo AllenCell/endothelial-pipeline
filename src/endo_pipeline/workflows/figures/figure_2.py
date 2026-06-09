@@ -76,7 +76,6 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     placeholders = parse_placeholder_panels(
         include_panels, ["A", "B", "C", "D", "E", "F", "G", "H", "I"]
     )
-    print(f"Placeholders: {placeholders}")
 
     # figure is for grid based crops
     crop_pattern = "grid"
@@ -180,10 +179,12 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         )
         stable_fixed_point_theta = stable_fixed_points_dict[column_theta][column_theta].to_numpy()
 
+        placeholder_3d = "A" if dataset_name == dataset_low else "D"
         vector_field_plot_paths[dataset_name] = make_3d_vector_field_plot_panel(
-            dataset_name, fig_savedir
+            dataset_name, fig_savedir, **placeholders[placeholder_3d]
         )
 
+        placeholder_1p2d = "B" if dataset_name == dataset_low else "E"
         # plot 1D drift in theta and save
         theta_plot_paths[dataset_name] = make_1d_drift_plot_panel(
             drift=drift_theta,
@@ -195,6 +196,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             filename=f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}_drift",
             arrow_scale=arrow_scale_1d,
             arrow_width=arrow_width_1d,
+            **placeholders[placeholder_1p2d],
         )
 
         contour_plot_paths[dataset_name], nullcline_coordinates = make_2d_contour_plot_panel(
@@ -205,8 +207,10 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             figsize=(2.6, 1.55),
             fig_savedir=fig_savedir,
             filename=f"{dataset_name}_{columns_r_rho_str}_contours",
+            **placeholders[placeholder_1p2d],
         )
 
+        placeholder_nullcline = "C" if dataset_name == dataset_low else "F"
         nullcline_reconstruction_paths[dataset_name] = reconstruct_along_nullcline(
             nullcline_coords=nullcline_coordinates,
             theta_value=stable_fixed_point_theta[0],
@@ -214,6 +218,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             fig_savedir=fig_savedir,
             num_gpus=NUM_GPUS,
             random_seed=4,
+            **placeholders[placeholder_nullcline],
         )
 
     # --- Cross-dataset summary plots ---
@@ -248,7 +253,10 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     )
     # --- Histogram of first passage time correlation ---
     first_passage_path = make_first_passage_time_correlation_hist(
-        dataset_names=dataset_summary_list, figsize=(0.95, 2.0), fig_savedir=output_path
+        dataset_names=dataset_summary_list,
+        figsize=(0.95, 2.0),
+        fig_savedir=output_path,
+        **placeholders["I"],
     )
 
     # --- Assemble all panels into final figure ---
