@@ -11,25 +11,31 @@ import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
 
-from endo_pipeline.io import load_dataframe, save_plot_to_path
-from endo_pipeline.io.output import slugify
+from endo_pipeline.configs import get_datasets_in_collection
+from endo_pipeline.io import load_dataframe, save_plot_to_path, slugify
 from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
     add_optical_flow_features,
 )
-from endo_pipeline.library.visualize.columns import get_label_for_column
+from endo_pipeline.library.visualize.columns import get_label_for_column, make_label_single_line
+from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
-from endo_pipeline.settings.figures import FONTSIZE_XSMALL, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import (
+    FONTSIZE_SMALL,
+    FONTSIZE_XSMALL,
+    MAX_FIGURE_HEIGHT,
+    MAX_FIGURE_WIDTH,
+)
 from endo_pipeline.settings.workflow_defaults import (
     CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
+    DATASET_INFO_COLUMNS,
+    DEFAULT_PCA_DATASET_COLLECTION_NAME,
     SEGMENTATION_FEATURE_COLUMNS,
 )
 
 logger = logging.getLogger(__name__)
-
-plt.style.use("endo_pipeline.figure")
 
 
 def plot_and_save_heatmap(
@@ -41,6 +47,7 @@ def plot_and_save_heatmap(
     figsize: tuple[float, float] | None = None,
     y_axis_label_coords: tuple[float, float] | None = None,
     label_fontsize: int = FONTSIZE_XSMALL,
+    force_labels_single_line: bool = False,
 ) -> None:
     """
     Plot and save a heatmap from the given DataFrame.
@@ -53,13 +60,19 @@ def plot_and_save_heatmap(
         The folder where the heatmap will be saved.
     filename
         The name of the file to save the heatmap as.
-    figsize
-        The size of the figure.
     metric
         Unused. Kept for API compatibility.
     data_type
         The type of data in the DataFrame. Default is "samples".
         If "correlation", vmin/vmax/center are set for correlation data.
+    figsize
+        Optional, the size of the figure.
+    y_axis_label_coords
+        Optional tuple specifying the coordinates for the y-axis label.
+    label_fontsize
+        Font size for the axis labels.
+    force_labels_single_line
+        Whether to force labels to be single line by replacing newlines with spaces.
 
     Notes
     -----
@@ -78,8 +91,11 @@ def plot_and_save_heatmap(
         center = vmin = vmax = None
 
     fig, ax = plt.subplots(figsize=figsize, dpi=300)
+    df_renamed = df.rename(columns=get_label_for_column, index=get_label_for_column)
+    if force_labels_single_line:
+        df_renamed = df_renamed.rename(columns=make_label_single_line, index=make_label_single_line)
     sns.heatmap(
-        df,
+        df_renamed,
         annot=annotate,
         fmt=".2f",
         cmap="RdBu",
@@ -123,9 +139,9 @@ def plot_and_save_heatmap(
 
 def get_df_for_feature_correlation_viz(
     dataset_name_list: list[str],
-    dataset_info_columns: list[str],
+    dataset_info_columns: list[str | ColumnNameType],
     segmentation_feature_columns: list[str | ColumnNameType],
-    pc_columns: list[str],
+    pc_columns: list[str | ColumnNameType],
     merged_dataframe_manifest_name: str = CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
 ) -> pd.DataFrame:
     """
@@ -232,7 +248,6 @@ def get_df_for_feature_correlation_viz(
             )
 
         merged_feats_df = merged_feats_df[cols_to_keep].copy()
-        merged_feats_df.rename(columns=get_label_for_column, inplace=True)
         df_list.append(merged_feats_df)
 
     # merge the DataFrames from all datasets
@@ -279,7 +294,40 @@ def visualize_correlation_heatmaps(
     figsize_cluster_heatmap: tuple[float, float] | None = None,
     y_axis_label_coords=None,
     label_fontsize: int = FONTSIZE_XSMALL,
+    force_labels_single_line: bool = False,
 ) -> None:
+    """
+    Visualize correlation heatmaps for the given dataset and label-column
+    tuples.
+
+    Parameters
+    ----------
+    dataset_name
+        The name of the dataset being visualized (used for naming output files)
+        or "aggregate" if the DataFrame contains data from multiple datasets.
+    df_dataset
+        The DataFrame containing the data for the dataset(s).
+    label_column_tuples
+        A list of tuples, where each tuple contains a label for a group of
+        columns and a list of column names in the DataFrame that belong to that
+        group.
+    out_dir
+        The directory where the output heatmap and correlation matrix CSV will
+        be saved.
+    cross_correlation_only
+        If True, only compute correlations between different groups of features
+        (e.g. ML-based vs. measured) and not within the same group (e.g.
+        ML-based vs. ML-based).
+    figsize_cluster_heatmap
+        The size of the figure for the cluster heatmap. Default is None, which
+        uses the default size.
+    y_axis_label_coords
+        The coordinates for the y-axis label. Default is None.
+    label_fontsize
+        The font size for the labels. Default is FONTSIZE_XSMALL.
+    force_labels_single_line
+        If True, force labels to be displayed on a single line. Default is False.
+    """
     # Pre-compute full correlation matrix once per dataset
     all_feature_columns: list = []
     for _, cols in label_column_tuples:
@@ -315,7 +363,7 @@ def visualize_correlation_heatmaps(
 
         x_filename = slugify(x_axis_label)
         y_filename = slugify(y_axis_label)
-        base_filename = f"correlation_{x_filename}_vs_{y_filename}"
+        base_filename = f"{dataset_name}_correlation_{x_filename}_vs_{y_filename}"
 
         # Extract correlation submatrix from pre-computed correlation matrix
         correlation_df = corr_df.loc[y_cols, x_cols].copy()
@@ -333,4 +381,66 @@ def visualize_correlation_heatmaps(
             figsize=figsize_cluster_heatmap,
             y_axis_label_coords=y_axis_label_coords,
             label_fontsize=label_fontsize,
+            force_labels_single_line=force_labels_single_line,
         )
+
+
+@figure_panel("Heatmap showing Pearson correlations between ML-based and measured features.")
+def make_feature_correlation_panel(
+    pc_columns: list[str | ColumnNameType],
+    seg_columns: list[str | ColumnNameType],
+    output_path: Path,
+    figure_size: tuple[float, float] = (2.5, 2.8),
+    force_labels_single_line: bool = False,
+) -> Path:
+    """
+    Make feature correlation panel showing ML-based vs. measure features.
+
+    Parameters
+    ----------
+    pc_columns
+        List of column names for the ML-based features (e.g. PCA components).
+    seg_columns
+        List of column names for the measured features (e.g. segmentation-based features).
+    output_path
+        The directory where the output heatmap and correlation matrix CSV will be saved.
+    figure_size
+        The size of the figure for the heatmap.
+    force_labels_single_line
+        Whether to force labels to be single line by replacing newlines with spaces.
+
+    Returns
+    -------
+    :
+        The path to the saved heatmap figure.
+    """
+
+    dataset_name_list = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
+
+    df = get_df_for_feature_correlation_viz(
+        dataset_name_list=dataset_name_list,
+        dataset_info_columns=DATASET_INFO_COLUMNS,
+        segmentation_feature_columns=seg_columns,
+        pc_columns=pc_columns,
+    )
+
+    label_column_tuples = [
+        ("ML-based features", [str(col) for col in pc_columns]),
+        ("Measured features", [str(col) for col in seg_columns]),
+    ]
+
+    visualize_correlation_heatmaps(
+        dataset_name="aggregate",
+        df_dataset=df,
+        label_column_tuples=label_column_tuples,
+        out_dir=output_path,
+        cross_correlation_only=True,
+        figsize_cluster_heatmap=figure_size,
+        y_axis_label_coords=None,
+        label_fontsize=FONTSIZE_SMALL,
+        force_labels_single_line=force_labels_single_line,
+    )
+
+    x_filename = slugify(label_column_tuples[0][0])
+    y_filename = slugify(label_column_tuples[1][0])
+    return output_path / f"aggregate_correlation_{x_filename}_vs_{y_filename}_heatmap.svg"
