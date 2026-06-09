@@ -213,7 +213,7 @@ class ColumnName:
         """Angle of nucleus centroid from cell centroid relative to flow in radians with 0 along +x and pi/-pi along -x."""
 
         NUCLEI_POSITION_ANGLE_DEG = "nuclei_position_angle_deg"
-        """Angle of nucleus centroid from cell centroid relative to flow in degrees with 0 along +x and pi/-pi along -x."""
+        """Angle of nucleus centroid from cell centroid relative to flow in degrees with 0 along +x and 180/-180 along -x."""
 
         NUCLEI_POSITION_DISTANCE = "nuclei_position_distance"
         """Distance between nucleus centroid and cell segmentation centroid in pixels."""
@@ -229,48 +229,112 @@ class ColumnName:
         """Fluorescence values at junctions between 3 or more cell segmentations in a.u."""
 
         CELL_FLUOR_MEAN = "cell_fluorescence_mean_au"
+        """Mean of mEGFP-tagged VE-cadherin fluorescence (a.u.) in cytoplasmic region of cell segmentation."""
+
         CELL_FLUOR_STD = "cell_fluorescence_std_au"
+        """Standard deviation of mEGFP-tagged VE-cadherin fluorescence (a.u.) in cytoplasmic region of cell segmentation."""
+
         CELL_FLUOR_MEDIAN = "cell_fluorescence_median_au"
+        """Median of mEGFP-tagged VE-cadherin fluorescence (a.u.) in cytoplasmic region of cell segmentation."""
+
         CELL_FLUOR_MIN = "cell_fluorescence_min_au"
+        """Minimum  of mEGFP-tagged VE-cadherin fluorescence (a.u.) in cytoplasmic region of cell segmentation."""
+
         CELL_FLUOR_MAX = "cell_fluorescence_max_au"
+        """Maximum of mEGFP-tagged VE-cadherin fluorescence (a.u.) in cytoplasmic region of cell segmentation."""
+
         CELL_FLUOR_PCT25 = "cell_fluorescence_pct25_au"
+        """25th percentile of mEGFP-tagged VE-cadherin fluorescence (a.u.) in cytoplasmic region of cell segmentation."""
+
         CELL_FLUOR_PCT75 = "cell_fluorescence_pct75_au"
+        """75th percentile of mEGFP-tagged VE-cadherin fluorescence (a.u.) in cytoplasmic region of cell segmentation."""
 
         EDGE_FLUOR_MEAN = "edge_fluorescence_mean_au"
+        """Mean fluorescence (a.u.) at junctions between 2 cell segmentations (edge)."""
+
         EDGE_FLUOR_STD = "edge_fluorescence_std_au"
+        """Standard deviation of fluorescence (a.u.) at junctions between 2 cell segmentations (edge)."""
 
         NODE_FLUOR_MEAN = "node_fluorescence_mean_au"
+        """Mean fluorescence (a.u.) at junctions between 3 or more cell segmentations (node)."""
+
         NODE_FLUOR_STD = "node_fluorescence_std_au"
+        """Standard deviation of fluorescence (a.u.) at junctions between 3 or more cell segmentations (node)."""
 
         EDGE_AND_NODE_FLUOR_MEAN = "edge_and_node_fluorescence_mean_au"
+        """Mean fluorescence (a.u.) of cell segmentation edges and nodes."""
+
         EDGE_AND_NODE_FLUOR_STD = "edge_and_node_fluorescence_std_au"
+        """Standard deviation of fluorescence (a.u.) of cell segmentation edges and nodes."""
 
-        # other features:
         NUM_NEIGHBORS = "number_of_neighbors"
-        NEIGHBOR_LABELS = "neighboring_cell_labels"
-        CENTROID = "centroid"
-        CENTROID_X = "centroid_x"
-        CENTROID_Y = "centroid_y"
-        CENTROID_X_UM = "centroid_x_um"
-        CENTROID_Y_UM = "centroid_y_um"
+        """Number of unique cell segmentations that are adjacent to this one."""
 
-        # dynamic features (values depend on how dataframes are filtered)
+        NEIGHBOR_LABELS = "neighboring_cell_labels"
+        """Cell segmentation labels of adjacent cell segmentations."""
+
+        CENTROID = "centroid"
+        """Centroid of the cell segmentation in (Y,X) pixel coordinates."""
+
+        CENTROID_X = "centroid_x"
+        """Centroid X coordinate in pixels."""
+
+        CENTROID_Y = "centroid_y"
+        """Centroid Y coordinate in pixels."""
+
+        CENTROID_X_UM = "centroid_x_um"
+        """Centroid X coordinate in microns."""
+
+        CENTROID_Y_UM = "centroid_y_um"
+        """Centroid Y coordinate in microns."""
+
         CENTROID_VELOCITY_X_UM_PER_MIN = "centroid_velocity_x_um_per_min"
+        """Change in X coordinate of the cell segmentation centroid in um/minute."""
+
         CENTROID_VELOCITY_Y_UM_PER_MIN = "centroid_velocity_y_um_per_min"
+        """Change in Y coordinate of the cell segmentation centroid in um/minute."""
+
         CENTROID_VELOCITY_ANGLE = "centroid_velocity_angle"
+        """Angle of cell migration based on change in centroid in radians with 0 along +x and pi/-pi along -x."""
+
         CENTROID_VELOCITY_ANGLE_DEG = "centroid_velocity_angle_deg"
+        """Angle of cell migration based on change in centroid in degrees with 0 along +x and 180/-180 along -x."""
+
         CENTROID_VELOCITY_UM_PER_MIN = "centroid_velocity_um_per_min"
+        """Speed of cell migration based on change in cell segmentation centroid in um/minute."""
+
         ALIGNMENT_VELOCITY_DEG = "alignment_angular_velocity_deg"
+        """Rate of change of the alignment angle in degrees/min."""
+
         NUCLEI_POSITION_RELATIVE_MIGRATION_DEG = "nuclei_position_relative_migration_angle_deg"
+        """Angle of nucleus centroid relative to cell segmentation centroid in degrees."""
+
         NUCLEI_POSITION_RELATIVE_MIGRATION_DOTPROD = "nuclei_position_vs_migration_angle_dotproduct"
+        """Dot product of the cell centroid-to-nuclei centroid vector and cell migration vector."""
+
         CHANGE_IN_NUM_NUCLEI_IN_CROP_PER_MIN = "dnum_nuclei_in_crop_dt_mins"
+        """Change in number of label-free nuclei predictions found in crop/patch over time (number of nuclei/minute)."""
+
         VELOCITY_ANGLES_IN_CROP = "all_velocity_angles_in_crop_deg"
+        # TODO: add docstring
+
         VELOCITY_UM_PER_MIN_IN_CROP = "all_velocity_um_per_min_in_crop"
+        # TODO: add docstring
+
         VECTOR_MEAN_FOR_CROP_ANGLE = "vector_mean_for_crop_angle"
+        # TODO: add docstring
+
         VECTOR_MEAN_FOR_CROP_MAGNITUDE = "vector_mean_for_crop_magnitude"
+        # TODO: add docstring
+
         CHANGE_IN_FLUOR_PER_MIN_CELL = "dmean_fluor_intensity_dt_cell"
+        # TODO: add docstring
+
         CHANGE_IN_FLUOR_PER_MIN_EDGE = "dmean_fluor_intensity_dt_edge"
+        # TODO: add docstring
+
         CHANGE_IN_FLUOR_PER_MIN_NODE = "dmean_fluor_intensity_dt_node"
+        # TODO: add docstring
 
     class SegDataFilters(StrEnum):
         """Filter-related column names for segmentation-based features."""

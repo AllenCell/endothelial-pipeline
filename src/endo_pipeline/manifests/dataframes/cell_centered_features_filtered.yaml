@@ -8,7 +8,7 @@ columns:
   position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
   zarr_path: Path to Zarr file for image that patch (crop) comes from
   label: Cell segmentation ID (different from track ID, and may change between timepoints)
-  centroid: ''
+  centroid: Centroid of the cell segmentation in (Y,X) pixel coordinates
   area_px_squared: Area of the cell segmentation in pixels squared
   perimeter_px: Perimeter of the cell segmentation in pixels
   solidity: Solidity of the cell (ratio of the cell area to the area of its convex hull)
@@ -16,9 +16,11 @@ columns:
   minor_axis_length: Length of the minor axis of an ellipse fit to the cell segmentation
   eccentricity: Eccentricity of ellipse fit to cell segmentation (focal distance divided by major axis)
   orientation: Orientation of the cell in radians from 0 (along +x axis) to pi (along -x axis)
-  cell_fluorescence_mean_au: ''
-  cell_fluorescence_std_au: ''
-  neighboring_cell_labels: ''
+  cell_fluorescence_mean_au: Mean of mEGFP-tagged VE-cadherin fluorescence (a.u.) in cytoplasmic region
+    of cell segmentation
+  cell_fluorescence_std_au: Standard deviation of mEGFP-tagged VE-cadherin fluorescence (a.u.) in cytoplasmic
+    region of cell segmentation
+  neighboring_cell_labels: Cell segmentation labels of adjacent cell segmentations
   is_edge_segmentation: True if segmentation touches edge of the image, False otherwise
   nuclei_seg_with_most_overlap_0: ''
   nuc_with_most_overlap_0_centroid_Y: ''
@@ -54,24 +56,28 @@ columns:
   pixel_size_xy_in_um: Size of a pixel in the XY dimensions in microns
   area_um_squared: Area of the cell segmentation in microns squared
   perimeter_um: Perimeter of the cell segmentation in microns
-  edge_fluorescence_mean_au: ''
-  edge_fluorescence_std_au: ''
-  node_fluorescence_mean_au: ''
-  node_fluorescence_std_au: ''
-  edge_and_node_fluorescence_mean_au: ''
-  edge_and_node_fluorescence_std_au: ''
-  number_of_neighbors: ''
+  edge_fluorescence_mean_au: Mean fluorescence (a.u.) at junctions between 2 cell segmentations (edge)
+  edge_fluorescence_std_au: Standard deviation of fluorescence (a.u.) at junctions between 2 cell segmentations
+    (edge)
+  node_fluorescence_mean_au: Mean fluorescence (a.u.) at junctions between 3 or more cell segmentations
+    (node)
+  node_fluorescence_std_au: Standard deviation of fluorescence (a.u.) at junctions between 3 or more
+    cell segmentations (node)
+  edge_and_node_fluorescence_mean_au: Mean fluorescence (a.u.) of cell segmentation edges and nodes
+  edge_and_node_fluorescence_std_au: Standard deviation of fluorescence (a.u.) of cell segmentation
+    edges and nodes
+  number_of_neighbors: Number of unique cell segmentations that are adjacent to this one
   image_size_x: Size of the whole image in the X dimension in pixels
   image_size_y: Size of the whole image in the Y dimension in pixels
-  centroid_y: ''
-  centroid_x: ''
+  centroid_y: Centroid Y coordinate in pixels
+  centroid_x: Centroid X coordinate in pixels
   nuclei_position_x: X coordinate of the label-free nuclei prediction centroid in pixels
   nuclei_position_y: Y coordinate of the label-free nuclei prediction centroid in pixels
   nuclei_position_distance: Distance between nucleus centroid and cell segmentation centroid in pixels
   nuclei_position_angle: Angle of nucleus centroid from cell centroid relative to flow in radians with
     0 along +x and pi/-pi along -x
   nuclei_position_angle_deg: Angle of nucleus centroid from cell centroid relative to flow in degrees
-    with 0 along +x and pi/-pi along -x
+    with 0 along +x and 180/-180 along -x
   crop_size: Size of the crop in pixels at resolution level 0
   start_x_resolution_0: X-coordinate of upper left corner of patch (crop) in pixels (zarr resolution
     level 0)
@@ -213,23 +219,29 @@ columns:
   polar_r: Transformed feature r (polar r from PC1 and PC2)
   polar_theta: Transformed feature theta (rescaled polar angle from PC1 and PC2)
   rho: Transformed feature rho (negative PC3)
-  centroid_x_um: ''
-  centroid_y_um: ''
-  centroid_velocity_x_um_per_min: ''
-  centroid_velocity_y_um_per_min: ''
-  centroid_velocity_um_per_min: ''
-  centroid_velocity_angle: ''
-  centroid_velocity_angle_deg: ''
-  alignment_angular_velocity_deg: ''
-  nuclei_position_relative_migration_angle_deg: ''
+  centroid_x_um: Centroid X coordinate in microns
+  centroid_y_um: Centroid Y coordinate in microns
+  centroid_velocity_x_um_per_min: Change in X coordinate of the cell segmentation centroid in um/minute
+  centroid_velocity_y_um_per_min: Change in Y coordinate of the cell segmentation centroid in um/minute
+  centroid_velocity_um_per_min: Speed of cell migration based on change in cell segmentation centroid
+    in um/minute
+  centroid_velocity_angle: Angle of cell migration based on change in centroid in radians with 0 along
+    +x and pi/-pi along -x
+  centroid_velocity_angle_deg: Angle of cell migration based on change in centroid in degrees with 0
+    along +x and 180/-180 along -x
+  alignment_angular_velocity_deg: Rate of change of the alignment angle in degrees/min
+  nuclei_position_relative_migration_angle_deg: Angle of nucleus centroid relative to cell segmentation
+    centroid in degrees
   nuclei_position_x_um: X coordinate of the label-free nuclei prediction centroid in microns
   nuclei_position_y_um: Y coordinate of the label-free nuclei prediction centroid in microns
-  nuclei_position_vs_migration_angle_dotproduct: ''
+  nuclei_position_vs_migration_angle_dotproduct: Dot product of the cell centroid-to-nuclei centroid
+    vector and cell migration vector
   dmean_fluor_intensity_dt_cell: ''
   dmean_fluor_intensity_dt_edge: ''
   dmean_fluor_intensity_dt_node: ''
   normalized_time: Time normalized to the track duration (from 0 to 1)
-  dnum_nuclei_in_crop_dt_mins: ''
+  dnum_nuclei_in_crop_dt_mins: Change in number of label-free nuclei predictions found in crop/patch
+    over time (number of nuclei/minute)
 locations:
   20250319_20X:
     fmsid: 5a66fb9742054e3a991cf08f82973bda

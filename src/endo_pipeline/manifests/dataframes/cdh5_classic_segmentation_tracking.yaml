@@ -9,15 +9,15 @@ columns:
   reference_index: ''
   matched_query_label: ''
   optimized_metric_value: ''
-  centroid: ''
+  centroid: Centroid of the cell segmentation in (Y,X) pixel coordinates
   area: Area of the cell segmentation in pixels squared
   perimeter: Perimeter of the cell segmentation in pixels
   orientation: Orientation of the cell in radians from 0 (along +x axis) to pi (along -x axis)
   eccentricity: Eccentricity of ellipse fit to cell segmentation (focal distance divided by major axis)
   matching_method: ''
   touches_border: ''
-  centroid_Y: ''
-  centroid_X: ''
+  centroid_Y: Centroid Y coordinate in pixels
+  centroid_X: Centroid X coordinate in pixels
   dataset_name: Name of dataset
   position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
 locations:

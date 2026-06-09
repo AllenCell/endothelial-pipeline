@@ -13,7 +13,7 @@ columns:
   zarr_path: Path to Zarr file for image that patch (crop) comes from
   filepath_segmentation_image: ''
   label: Cell segmentation ID (different from track ID, and may change between timepoints)
-  centroid: ''
+  centroid: Centroid of the cell segmentation in (Y,X) pixel coordinates
   area_px_squared: Area of the cell segmentation in pixels squared
   perimeter_px: Perimeter of the cell segmentation in pixels
   solidity: Solidity of the cell (ratio of the cell area to the area of its convex hull)
@@ -21,14 +21,21 @@ columns:
   minor_axis_length: Length of the minor axis of an ellipse fit to the cell segmentation
   eccentricity: Eccentricity of ellipse fit to cell segmentation (focal distance divided by major axis)
   orientation: Orientation of the cell in radians from 0 (along +x axis) to pi (along -x axis)
-  cell_fluorescence_mean_au: ''
-  cell_fluorescence_std_au: ''
-  cell_fluorescence_median_au: ''
-  cell_fluorescence_min_au: ''
-  cell_fluorescence_pct25_au: ''
-  cell_fluorescence_pct75_au: ''
-  cell_fluorescence_max_au: ''
-  neighboring_cell_labels: ''
+  cell_fluorescence_mean_au: Mean of mEGFP-tagged VE-cadherin fluorescence (a.u.) in cytoplasmic region
+    of cell segmentation
+  cell_fluorescence_std_au: Standard deviation of mEGFP-tagged VE-cadherin fluorescence (a.u.) in cytoplasmic
+    region of cell segmentation
+  cell_fluorescence_median_au: Median of mEGFP-tagged VE-cadherin fluorescence (a.u.) in cytoplasmic
+    region of cell segmentation
+  cell_fluorescence_min_au: Minimum  of mEGFP-tagged VE-cadherin fluorescence (a.u.) in cytoplasmic
+    region of cell segmentation
+  cell_fluorescence_pct25_au: 25th percentile of mEGFP-tagged VE-cadherin fluorescence (a.u.) in cytoplasmic
+    region of cell segmentation
+  cell_fluorescence_pct75_au: 75th percentile of mEGFP-tagged VE-cadherin fluorescence (a.u.) in cytoplasmic
+    region of cell segmentation
+  cell_fluorescence_max_au: Maximum of mEGFP-tagged VE-cadherin fluorescence (a.u.) in cytoplasmic region
+    of cell segmentation
+  neighboring_cell_labels: Cell segmentation labels of adjacent cell segmentations
   edge_labels: ''
   node_labels: ''
   node_pair_labels: ''
@@ -90,27 +97,31 @@ columns:
   pixel_size_xy_in_um: Size of a pixel in the XY dimensions in microns
   area_um_squared: Area of the cell segmentation in microns squared
   perimeter_um: Perimeter of the cell segmentation in microns
-  edge_fluorescence_mean_au: ''
-  edge_fluorescence_std_au: ''
-  node_fluorescence_mean_au: ''
-  node_fluorescence_std_au: ''
-  edge_and_node_fluorescence_mean_au: ''
-  edge_and_node_fluorescence_std_au: ''
-  number_of_neighbors: ''
+  edge_fluorescence_mean_au: Mean fluorescence (a.u.) at junctions between 2 cell segmentations (edge)
+  edge_fluorescence_std_au: Standard deviation of fluorescence (a.u.) at junctions between 2 cell segmentations
+    (edge)
+  node_fluorescence_mean_au: Mean fluorescence (a.u.) at junctions between 3 or more cell segmentations
+    (node)
+  node_fluorescence_std_au: Standard deviation of fluorescence (a.u.) at junctions between 3 or more
+    cell segmentations (node)
+  edge_and_node_fluorescence_mean_au: Mean fluorescence (a.u.) of cell segmentation edges and nodes
+  edge_and_node_fluorescence_std_au: Standard deviation of fluorescence (a.u.) of cell segmentation
+    edges and nodes
+  number_of_neighbors: Number of unique cell segmentations that are adjacent to this one
   image_size_x: Size of the whole image in the X dimension in pixels
   image_size_y: Size of the whole image in the Y dimension in pixels
   cdh5_channel_index_in_zarr: Index of the CDH5 channel in the Zarr file
   brightfield_channel_index_zarr: Index of the brightfield channel in the Zarr file
   num_nuclei_with_most_overlap: ''
-  centroid_y: ''
-  centroid_x: ''
+  centroid_y: Centroid Y coordinate in pixels
+  centroid_x: Centroid X coordinate in pixels
   nuclei_position_x: X coordinate of the label-free nuclei prediction centroid in pixels
   nuclei_position_y: Y coordinate of the label-free nuclei prediction centroid in pixels
   nuclei_position_distance: Distance between nucleus centroid and cell segmentation centroid in pixels
   nuclei_position_angle: Angle of nucleus centroid from cell centroid relative to flow in radians with
     0 along +x and pi/-pi along -x
   nuclei_position_angle_deg: Angle of nucleus centroid from cell centroid relative to flow in degrees
-    with 0 along +x and pi/-pi along -x
+    with 0 along +x and 180/-180 along -x
   crop_size: Size of the crop in pixels at resolution level 0
   start_x_resolution_0: X-coordinate of upper left corner of patch (crop) in pixels (zarr resolution
     level 0)
