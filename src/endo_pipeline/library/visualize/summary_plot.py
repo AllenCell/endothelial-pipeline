@@ -68,9 +68,9 @@ BINNED_MEAN_FEATURES = [
 """List of columns where mean is calculated for bin around the fixed point."""
 
 SUMMARY_MODE_X_AXIS_SUP_LABELS: dict[SummaryPlotAxisMode, str] = {
-    "dataset": f"Dataset Date (Shear Stress dyn/cm{Unicode.SQUARED})",
-    "shear_stress": f"Shear Stress (dyn/cm{Unicode.SQUARED})",
-    "cell_line": "Cell Line",
+    "dataset": f"Dataset date (shear stress dyn/cm{Unicode.SQUARED})",
+    "shear_stress": f"Shear stress (dyn/cm{Unicode.SQUARED})",
+    "cell_line": "Cell line",
 }
 """Mapping of summary plot axis mode to X axis super labels."""
 
