@@ -429,7 +429,7 @@ def _plot_cross_dataset_summary_for_column(
     # Add y axis label and grid lines
     y_axis_label = column_metadata.label or str(column_name)
 
-    ax.set_ylabel(f"{y_axis_label}$^\\ast$", rotation=ylabel_rotation, ha="left")
+    ax.set_ylabel(f"{y_axis_label}$^\\ast$", rotation=ylabel_rotation, ha="left", va="center")
     ax.grid(axis="y", alpha=0.3)
 
 
