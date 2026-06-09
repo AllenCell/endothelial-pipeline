@@ -1,7 +1,5 @@
 """Visualization functions for Model QC workflow."""
 
-from __future__ import annotations
-
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, cast
 
@@ -46,7 +44,7 @@ def create_denoising_contact_sheet(
     noise_levels: list[float],
     font_size_medium: int,
     font_size_large: int,
-) -> matplotlib.figure.Figure:
+) -> "matplotlib.figure.Figure":
     """
     Create a contact sheet figure showing denoising results at various noise levels.
 
@@ -139,7 +137,7 @@ def create_validation_examples_contact_sheet(
     scalebar_location: str = "lower right",
     max_rows: int = 3,
     font_size: int = 10,
-) -> matplotlib.figure.Figure:
+) -> "matplotlib.figure.Figure":
     """Build the publication-styled DiffAE validation contact sheet.
 
     One row per validation example, with five columns: the conditioning
@@ -256,7 +254,7 @@ def create_summary_contact_sheet(
     num_examples: int,
     label_for_conditioning: str,
     font_size_medium: int,
-) -> matplotlib.figure.Figure:
+) -> "matplotlib.figure.Figure":
     """
     Create a summary contact sheet showing 100% noise denoising results.
 
@@ -513,7 +511,7 @@ def create_contact_sheet_with_metrics_column(
     fig_kwargs: dict,
     direction: str = "top-down first",
     show_row_header_column: bool = False,
-) -> matplotlib.figure.Figure:
+) -> "matplotlib.figure.Figure":
     """
     Create a contact sheet with an additional metrics column.
 
@@ -679,7 +677,7 @@ def create_contact_sheet_with_metrics_column(
 
 def create_comparison_plots_and_summary(
     models_data: list[dict[str, Any]],
-    model_keys: list[ModelKey],
+    model_keys: list["ModelKey"],
     seeds_to_evaluate: list[int],
     baseline_data: dict[str, dict[str, float]],
     compute_baseline: bool,

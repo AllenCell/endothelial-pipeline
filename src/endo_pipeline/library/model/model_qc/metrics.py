@@ -1,5 +1,3 @@
-"""Metric computation and aggregation for model QC."""
-
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
