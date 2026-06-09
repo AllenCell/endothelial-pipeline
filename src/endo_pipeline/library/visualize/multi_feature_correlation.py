@@ -393,7 +393,27 @@ def make_feature_correlation_panel(
     figure_size: tuple[float, float] = (2.5, 2.8),
     force_labels_single_line: bool = False,
 ) -> Path:
-    """Make feature correlation panel showing ML-based vs. measure features."""
+    """
+    Make feature correlation panel showing ML-based vs. measure features.
+
+    Parameters
+    ----------
+    pc_columns
+        List of column names for the ML-based features (e.g. PCA components).
+    seg_columns
+        List of column names for the measured features (e.g. segmentation-based features).
+    output_path
+        The directory where the output heatmap and correlation matrix CSV will be saved.
+    figure_size
+        The size of the figure for the heatmap.
+    force_labels_single_line
+        Whether to force labels to be single line by replacing newlines with spaces.
+
+    Returns
+    -------
+    :
+        The path to the saved heatmap figure.
+    """
 
     dataset_name_list = get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
 
