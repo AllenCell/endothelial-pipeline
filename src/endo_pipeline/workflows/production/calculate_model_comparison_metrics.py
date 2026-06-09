@@ -75,20 +75,20 @@ def main(model_manifest_name: str, run_names: list[str] | None = None) -> None:
     # --- Hard-coded panel configuration ---
     # Evaluate both the validation and rep-2 splits so the persisted metrics
     # cover the full cross-model comparison (correlation / SSIM / LPIPS on each
-    # split).
+    # split). rep-2 is listed first on purpose: evaluate_single_model draws
+    # noise from a single shared RNG in example-set order, so keeping rep-2
+    # first leaves its metrics byte-identical to the prior rep-2-only runs --
+    # the validation split is purely additive and does not perturb the rep-2
+    # numbers the supplemental figure's panel B reads.
     num_seeds = 10
-    # rep-2 is listed first on purpose: ``evaluate_single_model`` draws noise
-    # from a single shared RNG in this order, so keeping rep-2 first means its
-    # noise sequence (and therefore its metrics) is byte-identical to the prior
-    # rep-2-only runs -- the validation split is purely additive and does not
-    # perturb the rep-2 numbers the supplemental figure's panel B reads.
-    example_sets_all = [
-        (MODEL_QC_EXAMPLES_REP_2_POSITIONS, "rep_2_positions"),
-        (MODEL_QC_EXAMPLES_VALIDATION_POSITIONS, "validation_positions"),
-    ]
-    example_sets_for_metrics = {label for _, label in example_sets_all}
-    examples_by_set = {label: list(examples) for examples, label in example_sets_all}
-    all_examples = [example for examples, _ in example_sets_all for example in examples]
+    examples_by_set = {
+        "rep_2_positions": MODEL_QC_EXAMPLES_REP_2_POSITIONS,
+        "validation_positions": MODEL_QC_EXAMPLES_VALIDATION_POSITIONS,
+    }
+    example_set_names = list(examples_by_set)
+    all_examples = MODEL_QC_EXAMPLES_REP_2_POSITIONS + MODEL_QC_EXAMPLES_VALIDATION_POSITIONS
+    example_sets_all = [(examples, name) for name, examples in examples_by_set.items()]
+    example_sets_for_metrics = set(example_set_names)
 
     # Expand the centre seed into a symmetric range of ``num_seeds`` seeds.
     half_range = num_seeds // 2
@@ -138,7 +138,7 @@ def main(model_manifest_name: str, run_names: list[str] | None = None) -> None:
         "num_seeds": num_seeds,
         "seeds": [int(s) for s in seeds_to_evaluate],
         "random_seed": RANDOM_SEED,
-        "example_sets": [label for _, label in example_sets_all],
+        "example_sets": example_set_names,
         "noise_levels": list(MODEL_QC_NOISE_LEVELS),
     }
 

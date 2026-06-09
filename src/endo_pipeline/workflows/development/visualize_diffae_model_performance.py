@@ -1,5 +1,3 @@
-"""Single-model qualitative DiffAE QC: denoising contact sheet + controls."""
-
 import logging
 
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
@@ -14,7 +12,7 @@ def main(
     save_crops_as_tiff: bool = False,
     compute_metrics: bool = False,
 ) -> None:
-    r"""
+    """
     Run single-model qualitative QC for a trained Diffusion Autoencoder.
 
     #diffae #gpu

@@ -1,5 +1,3 @@
-"""Plot cross-model DiffAE comparisons from precomputed metrics."""
-
 import logging
 
 from endo_pipeline.settings.workflow_defaults import (
@@ -14,7 +12,7 @@ def main(
     correlation_only: bool = False,
     compute_baseline: bool = True,
 ) -> None:
-    r"""
+    """
     Plot the cross-model DiffAE comparison from precomputed metrics.
 
     #diffae #model-comparison
