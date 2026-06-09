@@ -11,8 +11,8 @@ parameters:
     rho: 0.5
 columns:
   dataset: Name of dataset
-  fpt_distance_threshold: Distance threshold used to determine whether a trajectory has reached a fixed
-    point in first passage time analysis
+  fpt_distance_threshold: Radius around a fixed point in ML-based feature space at which a trajectory
+    is considered to have reached the fixed point
   count_grid: ''
   mean_grid: ''
   std_grid: ''

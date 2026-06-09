@@ -6,12 +6,14 @@ parameters:
   crop_pattern: grid
   columns: [polar_theta, polar_r, rho]
 columns:
-  feature: ''
-  lag: ''
-  autocorrelation_mean: ''
-  autocorrelation_lower_percentile: ''
-  autocorrelation_upper_percentile: ''
-  exponential_fit: ''
+  feature: Feature variable for which autocorrelation is computed
+  lag: Lag at which the autocorrelation is computed
+  autocorrelation_mean: Mean autocorrelation value across tracks at given lag
+  autocorrelation_lower_percentile: Lower percentile of autocorrelation values across tracks at given
+    lag
+  autocorrelation_upper_percentile: Upper percentile of autocorrelation values across tracks at given
+    lag
+  exponential_fit: Values of the evaluated exponential fit curve at given lag
   dataset: Name of dataset
   shear_stress: Shear stress value in dyn/cm^2
 locations:

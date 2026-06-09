@@ -34,7 +34,8 @@ columns:
   polar_r_ci_upper: ''
   rho_ci_lower: ''
   rho_ci_upper: ''
-  detection_rate: ''
+  detection_rate: Fraction of bootstrap iterations where a match for the given baseline fixed point
+    was found
   shear_stress: Shear stress value in dyn/cm^2
 locations:
   20250319_20X:
