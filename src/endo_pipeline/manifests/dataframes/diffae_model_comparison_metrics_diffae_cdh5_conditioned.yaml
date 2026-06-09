@@ -10,9 +10,9 @@ parameters:
 columns:
   manifest_name: ''
   run_name: Run name of model used to generate latent vectors
-  random_seed: ''
-  example_set: ''
-  example_idx: ''
+  random_seed: Random seed used for running model inference
+  example_set: Name of curated example set
+  example_idx: Position of example within its curated example set (0-indexed)
   dataset_name: Name of dataset
   position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
   timepoint: ''
