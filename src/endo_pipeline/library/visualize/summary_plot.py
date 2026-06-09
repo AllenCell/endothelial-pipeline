@@ -36,7 +36,7 @@ from endo_pipeline.settings.dynamics_workflows import (
 )
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
-from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, POLAR_THETA_RANGE
+from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, SUMMARY_PLOT_THETA_RANGE
 from endo_pipeline.settings.summary_plot import (
     CELL_LINE_LABEL_MAP,
     COLOR_PALETTE,
@@ -414,7 +414,7 @@ def _plot_cross_dataset_summary_for_column(
 
     # Set y limits: use POLAR_THETA_RANGE for polar angle, else column metadata min/max
     if column_name == ColumnName.DiffAEData.POLAR_ANGLE:
-        ax.set_ylim(POLAR_THETA_RANGE)
+        ax.set_ylim(SUMMARY_PLOT_THETA_RANGE)
     else:
         y_min = (
             float(column_metadata.min) if isinstance(column_metadata.min, (int, float)) else None
