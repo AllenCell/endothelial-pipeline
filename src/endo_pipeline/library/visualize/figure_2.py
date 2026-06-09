@@ -40,6 +40,7 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
     plot_drift_contours,
 )
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
+from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
@@ -302,6 +303,7 @@ def _get_example_points_along_nullcline(
     return example_points
 
 
+@figure_panel("Make panel of 2D contour plots of drift in (r, rho) space.")
 def make_2d_contour_plot_panel(
     drift: np.ndarray,
     meshgrid: tuple[np.ndarray, np.ndarray],
@@ -453,6 +455,7 @@ def make_2d_contour_plot_panel(
     return fig_savedir / f"{filename}.svg", nullcline_coords
 
 
+@figure_panel("Make panel of 1D phase line plot of drift in theta space.")
 def make_1d_drift_plot_panel(
     drift: np.ndarray,
     theta_values: np.ndarray,
@@ -528,6 +531,9 @@ def make_1d_drift_plot_panel(
     return fig_savedir / f"{filename}.svg"
 
 
+@figure_panel(
+    "Reconstruct images at points along the given r- and rho-nullclines and save images as a contact sheet."
+)
 def reconstruct_along_nullcline(
     nullcline_coords: dict[ColumnNameType, np.ndarray],
     theta_value: float,
@@ -968,6 +974,7 @@ class _HandlerConeArrow(HandlerBase):
         return [shaft, cone]
 
 
+@figure_panel("Make panel of 3D vector field plot with stable fixed point overlay.")
 def make_3d_vector_field_plot_panel(
     dataset_name: str,
     fig_savedir: Path,
@@ -1187,6 +1194,7 @@ def make_3d_vector_field_plot_panel(
     return fig_savedir / f"{filename}.svg"
 
 
+@figure_panel("Make panel of histogram of first passage time correlation values across datasets.")
 def make_first_passage_time_correlation_hist(
     dataset_names: list[str], figsize: tuple[float, float], fig_savedir: Path
 ) -> Path:
