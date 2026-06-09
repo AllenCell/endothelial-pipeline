@@ -21,7 +21,7 @@ parameters:
   num_bootstrap_iterations: 500
 columns:
   dataset: Name of dataset
-  stability: ''
+  stability: Stability classification of a fixed point
   polar_theta: ''
   polar_r: ''
   rho: ''

@@ -11,7 +11,8 @@ parameters:
     rho: 0.5
 columns:
   dataset: Name of dataset
-  fpt_distance_threshold: ''
+  fpt_distance_threshold: Distance threshold used to determine whether a trajectory has reached a fixed
+    point in first passage time analysis
   count_grid: ''
   mean_grid: ''
   std_grid: ''
@@ -30,8 +31,8 @@ columns:
   75%_tracked: ''
   max_tracked: ''
   percent_trajectories_approached_fp_tracked: ''
-  fixed_point_id: ''
-  stability: ''
+  fixed_point_id: Index of the fixed point in the fixed point dataframe
+  stability: Stability classification of a fixed point
 locations:
   20250618_20X:
     fmsid: fd0b973991a64d88a6950a96aca0f91f

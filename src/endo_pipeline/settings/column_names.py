@@ -622,7 +622,7 @@ class ColumnName:
         """Column name suffixes used in vector field / dynamics analysis."""
 
         FIXED_POINT_INDEX = "fixed_point_id"
-        """Column name for the index of the fixed point in the fixed point dataframe."""
+        """Index of the fixed point in the fixed point dataframe."""
 
         STABILITY = "stability"
         """Stability classification of a fixed point."""
@@ -631,7 +631,7 @@ class ColumnName:
         """Prefix for column names representing coordinates of fixed points in feature space."""
 
         DRIFT = "drift"
-        """Column name denoting the drift in a given variable."""
+        """Drift in a given variable."""
 
         DISTANCE_FROM_FP_PREFIX = "dist_from_fp_"
         """Prefix for column names representing the distance from a fixed point in N-D space."""
@@ -640,7 +640,7 @@ class ColumnName:
         """Prefix for column names representing the signed difference from a fixed point along a single dimension."""
 
         FPT_DISTANCE_THRESHOLD = "fpt_distance_threshold"
-        """Column name for the distance threshold used to determine whether a trajectory has reached a fixed point in first passage time analysis."""
+        """Radius around a fixed point in ML-based feature space at which a trajectory is considered to have reached the fixed point."""
 
         IS_AT_FP_PREFIX = "is_at_fp_"
         """Prefix for column names indicating whether a data point is at a fixed point."""
@@ -668,31 +668,28 @@ class ColumnName:
         """Column name for the limits of bins used when discretizing feature space."""
 
         BIN_CENTER = "bin_center"
-        """Column name for the center of bins used when discretizing feature space."""
+        """Center of bins used when discretizing feature space."""
 
         BIN_EDGES = "bin_edges"
-        """Column name for the edges of bins used when discretizing feature space."""
+        """Edges of bins used when discretizing feature space."""
 
         BIN_INDEX = "bin_index"
-        """Column name for the index of the bin that a data point falls into when feature space is discretized."""
-
-        FPT_METRIC = "fpt_metric"
-        """Column name for the metric used in the first passage time analysis."""
+        """Index of bin that a data point falls into when feature space is discretized."""
 
         PERCENT_TRAJ_APPROACHED_FP = "percent_trajectories_approached_fp"
-        """Column name for the percentage of trajectories that approached a fixed point within a certain distance threshold."""
+        """Percent of trajectories that come within a given radius of a stable fixed point in ML-based feature space."""
 
         LINEFIT_INTERCEPT_ODR = "intercept_odr"
-        """Column name for the intercept of a line fit to the relationship between first passage time and distance from the fixed point using orthogonal distance regression (ODR)."""
+        """Intercept of a line fit to the relationship between first passage time and distance from the fixed point using orthogonal distance regression (ODR)."""
 
         LINEFIT_REDUCED_CHI_SQUARED_ODR = "reduced_chi_squared_odr"
-        """Column name for the reduced chi-squared value of a line fit to the relationship between first passage time and distance from the fixed point using orthogonal distance regression (ODR)."""
+        """Reduced chi-squared value of a line fit to the relationship between first passage time and distance from the fixed point using orthogonal distance regression (ODR)."""
 
         PEARSON_R = "r_value_pearson"
-        """Column name for the Pearson correlation coefficient between first passage time and distance from the fixed point."""
+        """Pearson correlation coefficient between first passage time and distance from the fixed point."""
 
         LINEFIT_SLOPE = "slope_odr"
-        """Column name for the slope of a line fit to the relationship between first passage time to the fixed point for grid and tracked crops."""
+        """Slope of a line fit to the relationship between first passage time to the fixed point for grid and tracked crops."""
 
     class BootstrapAnalysis(StrEnum):
         """Column name suffixes used in bootstrap fixed-point analysis."""

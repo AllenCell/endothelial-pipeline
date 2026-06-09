@@ -20,9 +20,9 @@ columns:
   75%_first_passage_time_grid: ''
   max_first_passage_time_grid: ''
   sem_first_passage_time_grid: ''
-  bin_index: ''
-  bin_center: ''
-  bin_edges: ''
+  bin_index: Index of bin that a data point falls into when feature space is discretized
+  bin_center: Center of bins used when discretizing feature space
+  bin_edges: Edges of bins used when discretizing feature space
   count_first_passage_time_tracked: ''
   mean_first_passage_time_tracked: ''
   std_first_passage_time_tracked: ''
@@ -32,8 +32,8 @@ columns:
   75%_first_passage_time_tracked: ''
   max_first_passage_time_tracked: ''
   sem_first_passage_time_tracked: ''
-  fixed_point_id: ''
-  stability: ''
+  fixed_point_id: Index of the fixed point in the fixed point dataframe
+  stability: Stability classification of a fixed point
   fp_polar_theta: ''
   fp_polar_r: ''
   fp_rho: ''
