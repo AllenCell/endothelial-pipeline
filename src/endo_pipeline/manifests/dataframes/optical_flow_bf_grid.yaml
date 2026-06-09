@@ -19,27 +19,37 @@ columns:
   crop_index: Unique integer index of a patch (crop) trajectory across dataset, FOV, and XY-position
   duration_minutes: ''
   timepoint: ''
-  optical_flow_mean_speed_dt1: ''
-  optical_flow_mean_unit_vector_dt1: ''
-  optical_flow_std_speed_dt1: ''
-  optical_flow_mean_angle_dt1: ''
-  optical_flow_angle_std_dt1: ''
-  optical_flow_mean_u_dt1: ''
-  optical_flow_mean_v_dt1: ''
-  optical_flow_std_u_dt1: ''
-  optical_flow_std_v_dt1: ''
-  speed_above_1_count_dt1: ''
-  optical_flow_mean_unit_vector_fast_dt1: ''
-  optical_flow_radial_coherence_dt1: ''
-  optical_flow_radial_coherence_weighted_dt1: ''
-  ema005_optical_flow_mean_unit_vector_dt1: ''
-  ema005_optical_flow_mean_unit_vector_fast_dt1: ''
-  ema01_optical_flow_mean_unit_vector_dt1: ''
-  ema01_optical_flow_mean_unit_vector_fast_dt1: ''
-  ema02_optical_flow_mean_unit_vector_dt1: ''
-  ema02_optical_flow_mean_unit_vector_fast_dt1: ''
-  ema01_optical_flow_radial_coherence_dt1: ''
-  ema01_optical_flow_radial_coherence_weighted_dt1: ''
+  optical_flow_mean_speed_dt1: Mean per-pixel speed (px/frame) of the optical flow vectors in a crop
+  optical_flow_mean_unit_vector_dt1: Mean unit vector coherence for flow field (no EMA smoothing) where
+    0 = random and 1 = aligned
+  optical_flow_std_speed_dt1: Standard deviation of per-pixel speed (px/frame) of the optical flow vectors
+    in a crop
+  optical_flow_mean_angle_dt1: Mean angle (radians) of optical flow vectors in a crop
+  optical_flow_angle_std_dt1: Standard deviation of the angles (radians) of optical flow vectors in
+    a crop
+  optical_flow_mean_u_dt1: Mean horizontal (x) optical-flow component (px/frame)
+  optical_flow_mean_v_dt1: Mean vertical (y) optical-flow component (px/frame)
+  optical_flow_std_u_dt1: Standard deviation of horizontal (x) optical-flow components (px/frame)
+  optical_flow_std_v_dt1: Standard deviation of vertical (y) optical-flow components (px/frame)
+  speed_above_1_count_dt1: Number of pixels whose speed exceeds the threshold for fast coherence feature
+  optical_flow_mean_unit_vector_fast_dt1: Mean unit vector coherence over fast pixels only (no EMA smoothing)
+    where 0 = random and 1 = aligned
+  optical_flow_radial_coherence_dt1: Mean dot product of unit flow with unit radial vector where -1
+    = inward, +1 = outward, and 0 = no radial preference
+  optical_flow_radial_coherence_weighted_dt1: Distance-weighted radial coherence emphasizing peripheral
+    pixels
+  ema005_optical_flow_mean_unit_vector_dt1: Mean unit vector coherence with EMA smoothing (alpha = 0.05)
+  ema005_optical_flow_mean_unit_vector_fast_dt1: Mean unit vector coherence over fast pixels with EMA
+    smoothing (alpha = 0.05)
+  ema01_optical_flow_mean_unit_vector_dt1: Mean unit vector coherence with EMA smoothing (alpha = 0.1)
+  ema01_optical_flow_mean_unit_vector_fast_dt1: Mean unit vector coherence over fast pixels with EMA
+    smoothing (alpha = 0.1)
+  ema02_optical_flow_mean_unit_vector_dt1: Mean unit vector coherence with EMA smoothing (alpha = 0.2)
+  ema02_optical_flow_mean_unit_vector_fast_dt1: Mean unit vector coherence over fast pixels with EMA
+    smoothing (alpha = 0.2)
+  ema01_optical_flow_radial_coherence_dt1: Radial coherence with EMA smoothing (alpha = 0.1)
+  ema01_optical_flow_radial_coherence_weighted_dt1: Distance-weighted radial coherence with EMA smoothing
+    (alpha = 0.1)
 locations:
   20250319_20X:
     fmsid: 51335e92e96b49f9b2846c7bced32f3d

@@ -516,7 +516,6 @@ class ColumnName:
     class OpticalFlow(StrEnum):
         """Dataframe column names used in the optical-flow feature workflow."""
 
-        # --- Base feature names (before dt suffix) produced by compute_flow_statistics ---
         SPEED_MEAN_BASE = "optical_flow_mean_speed"
         """Base name for mean speed (before dt suffix)."""
 
@@ -556,70 +555,68 @@ class ColumnName:
         RADIAL_COHERENCE_WEIGHTED_BASE = "optical_flow_radial_coherence_weighted"
         """Base name for distance-weighted radial coherence (before dt suffix)."""
 
-        # --- Final (suffixed) feature names used in dataframes ---
         SPEED_MEAN = "optical_flow_mean_speed_dt1"
-        """Mean speed of the optical flow vectors in a crop."""
+        """Mean per-pixel speed (px/frame) of the optical flow vectors in a crop."""
 
         UNIT_VECTOR_MEAN = "ema01_optical_flow_mean_unit_vector_dt1"
-        """Mean unit vector of the optical flow vectors in a crop. EMA smoothing with alpha=0.01."""
+        """Mean unit vector coherence with EMA smoothing (alpha = 0.1)."""
 
         SPEED_STD = "optical_flow_std_speed_dt1"
-        """Standard deviation of the speeds of the optical flow vectors in a crop."""
+        """Standard deviation of per-pixel speed (px/frame) of the optical flow vectors in a crop."""
 
         ANGLE_MEAN = "optical_flow_mean_angle_dt1"
-        """Mean angle of the optical flow vectors in a crop."""
+        """Mean angle (radians) of optical flow vectors in a crop."""
 
         ANGLE_STD = "optical_flow_angle_std_dt1"
-        """Standard deviation of the angles of the optical flow vectors in a crop."""
+        """Standard deviation of the angles (radians) of optical flow vectors in a crop."""
 
         U_MEAN = "optical_flow_mean_u_dt1"
-        """Mean u (x) component of the optical flow vectors in a crop."""
+        """Mean horizontal (x) optical-flow component (px/frame)."""
 
         V_MEAN = "optical_flow_mean_v_dt1"
-        """Mean v (y) component of the optical flow vectors in a crop."""
+        """Mean vertical (y) optical-flow component (px/frame)."""
 
         U_STD = "optical_flow_std_u_dt1"
-        """Standard deviation of the u (x) components of the optical flow vectors in a crop."""
+        """Standard deviation of horizontal (x) optical-flow components (px/frame)."""
 
         V_STD = "optical_flow_std_v_dt1"
-        """Standard deviation of the v (y) components of the optical flow vectors in a crop."""
+        """Standard deviation of vertical (y) optical-flow components (px/frame)."""
 
         SPEED_ABOVE_1_COUNT = "speed_above_1_count_dt1"
-        """Number of pixels whose speed exceeds the threshold (fast-coherence feature)."""
+        """Number of pixels whose speed exceeds the threshold for fast coherence feature."""
 
         UNIT_VECTOR_MEAN_FAST = "optical_flow_mean_unit_vector_fast_dt1"
-        """Mean unit vector coherence computed only over fast pixels."""
+        """Mean unit vector coherence over fast pixels only (no EMA smoothing) where 0 = random and 1 = aligned."""
 
         RADIAL_COHERENCE = "optical_flow_radial_coherence_dt1"
-        """Mean dot product of unit flow with unit radial vector from crop centre."""
+        """Mean dot product of unit flow with unit radial vector where -1 = inward, +1 = outward, and 0 = no radial preference."""
 
         RADIAL_COHERENCE_WEIGHTED = "optical_flow_radial_coherence_weighted_dt1"
-        """Distance-weighted radial coherence."""
+        """Distance-weighted radial coherence emphasizing peripheral pixels."""
 
-        # --- EMA-smoothed and unsuffixed variants used in plotting / TFE viewer ---
         UNIT_VECTOR_MEAN_RAW = "optical_flow_mean_unit_vector_dt1"
-        """Mean unit vector coherence (no EMA smoothing)."""
+        """Mean unit vector coherence for flow field (no EMA smoothing) where 0 = random and 1 = aligned."""
 
         EMA005_UNIT_VECTOR_MEAN = "ema005_optical_flow_mean_unit_vector_dt1"
-        """Mean unit vector coherence with EMA smoothing, alpha=0.05."""
+        """Mean unit vector coherence with EMA smoothing (alpha = 0.05)."""
 
         EMA02_UNIT_VECTOR_MEAN = "ema02_optical_flow_mean_unit_vector_dt1"
-        """Mean unit vector coherence with EMA smoothing, alpha=0.2."""
+        """Mean unit vector coherence with EMA smoothing (alpha = 0.2)."""
 
         EMA005_UNIT_VECTOR_MEAN_FAST = "ema005_optical_flow_mean_unit_vector_fast_dt1"
-        """Mean unit vector coherence over fast pixels with EMA smoothing, alpha=0.05."""
+        """Mean unit vector coherence over fast pixels with EMA smoothing (alpha = 0.05)."""
 
         EMA01_UNIT_VECTOR_MEAN_FAST = "ema01_optical_flow_mean_unit_vector_fast_dt1"
-        """Mean unit vector coherence over fast pixels with EMA smoothing, alpha=0.1."""
+        """Mean unit vector coherence over fast pixels with EMA smoothing (alpha = 0.1)."""
 
         EMA02_UNIT_VECTOR_MEAN_FAST = "ema02_optical_flow_mean_unit_vector_fast_dt1"
-        """Mean unit vector coherence over fast pixels with EMA smoothing, alpha=0.2."""
+        """Mean unit vector coherence over fast pixels with EMA smoothing (alpha = 0.2)."""
 
         EMA01_RADIAL_COHERENCE = "ema01_optical_flow_radial_coherence_dt1"
-        """Radial coherence with EMA smoothing, alpha=0.1."""
+        """Radial coherence with EMA smoothing (alpha = 0.1)"""
 
         EMA01_RADIAL_COHERENCE_WEIGHTED = "ema01_optical_flow_radial_coherence_weighted_dt1"
-        """Distance-weighted radial coherence with EMA smoothing, alpha=0.1."""
+        """Distance-weighted radial coherence with EMA smoothing (alpha = 0.1)"""
 
     class VectorField(StrEnum):
         """Column name suffixes used in vector field / dynamics analysis."""
