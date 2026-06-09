@@ -334,16 +334,37 @@ class ColumnName:
         """Column names for manual annotations of segmentation quality and other features."""
 
         AUTO_BF_SCOPE_ERROR = "auto_bf_scope_error"
+        """True if timepoint was automatically flagged with brightfield channel error, False otherwise."""
+
         AUTO_BF_TEMP_ARTIFACT = "auto_bf_temp_artifact"
+        """True if timepoint was automatically flagged with brightfield channel suddenly becoming too bright or too dark, False otherwise."""
+
         AUTO_GFP_SCOPE_ERROR = "auto_gfp_scope_error"
+        """True if timepoint was automatically flagged with 488 channel (VE-cadherin-mEGFP) error, False otherwise."""
+
         BF_SCOPE_ERROR = "bf_scope_error"
+        """True if timepoint was manually determined with brightfield channel error, False otherwise."""
+
         BF_TEMP_ARTIFACT = "bf_temp_artifact"
+        """True if timepoint was manually determined with brightfield channel suddenly becoming too bright or too dark, False otherwise."""
+
         GFP_SCOPE_ERROR = "gfp_scope_error"
+        """True if timepoint was manually determined with 488 channel (VE-cadherin-mEGFP) error, False otherwise."""
+
         CELL_PILING = "cell_piling"
+        """True if there is considered to be cell piling at this timepoint, False otherwise."""
+
         NOT_STEADY_STATE = "not_steady_state"
+        """True if cells have not yet reached steady state, False if they have."""
+
         UNFED = "unfed"
+        """True if cells were unfed during this timepoint, False otherwise."""
+
         XY_SHIFT = "xy_shift"
+        """True if there was a significant change in XY position of FOV at this timepoint, False otherwise."""
+
         Z_SHIFT = "z_shift"
+        """True if there was a significant change in Z position of FOV at this timepoint, False otherwise."""
 
         BF_MEAN_INTENSITY = "bf_mean_intensity"
         """Flattened mean BF intensity over XY."""
@@ -361,10 +382,10 @@ class ColumnName:
         """BF intensity bright outlier threshold."""
 
         BF_DARK_OUTLIERS = "bf_dark_outliers"
-        """ndices of BF intensity dark outliers."""
+        """Indices of BF intensity dark outliers."""
 
         BF_PARTIAL_DARK_OUTLIERS = "bf_partial_dark_outliers"
-        """ndices of BF intensity partial dark outliers."""
+        """Indices of BF intensity partial dark outliers."""
 
         BF_BRIGHT_OUTLIERS = "bf_bright_outliers"
         """Indices of BF intensity bright outliers."""
