@@ -61,7 +61,13 @@ from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_VMIN,
 )
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
-from endo_pipeline.settings.flow_field_figure import GRIDSPEC_KWARGS, XLABEL_KWARGS, YLABEL_KWARGS
+from endo_pipeline.settings.flow_field_figure import (
+    AXES_LIMITS_2D,
+    GRIDSPEC_KWARGS,
+    NULLCLINE_STYLES_2D,
+    XLABEL_KWARGS,
+    YLABEL_KWARGS,
+)
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, POLAR_THETA_RANGE
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
@@ -304,25 +310,39 @@ def make_2d_contour_plot_panel(
     figsize: tuple[float, float],
     fig_savedir: Path,
     filename: str,
-    r_lims: tuple[float, float],
-    rho_lims: tuple[float, float],
-    r_ticks: list[float],
-    rho_ticks: list[float],
-    nullcline_r_style: str,
-    nullcline_rho_style: str,
-    nullcline_opacity: float,
-    gridspec_kwargs: dict | None,
-    xlabel_kwargs: dict | None,
-    ylabel_kwargs: dict | None,
-    axes_title_kwargs: dict | None,
-    include_colorbar: bool = True,
-    include_legend: bool = True,
 ) -> tuple[Path, dict[Column.DiffAEData, np.ndarray]]:
     """
     Make and save plot of drift contours in (r, rho) space for a given dataset.
     """
     column_names = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
     column_labels = [COLUMN_METADATA[column].label or str(column) for column in column_names]
+
+    r_lims = (AXES_LIMITS_2D[Column.DiffAEData.POLAR_RADIUS],)
+    rho_lims = (AXES_LIMITS_2D[Column.DiffAEData.PC3_FLIPPED],)
+    r_ticks = ([0.4, 1.0, 1.6],)
+    rho_ticks = ([-0.75, 0.0, 0.75],)
+    nullcline_r_style = (NULLCLINE_STYLES_2D[Column.DiffAEData.POLAR_RADIUS],)
+    nullcline_rho_style = (NULLCLINE_STYLES_2D[Column.DiffAEData.PC3_FLIPPED],)
+    nullcline_opacity = (1.0,)
+    gridspec_kwargs = (GRIDSPEC_KWARGS,)
+    xlabel_kwargs = (XLABEL_KWARGS,)
+    ylabel_kwargs = ({**YLABEL_KWARGS, "rotation": 0},)
+    axes_title_kwargs = (
+        {
+            "fontsize": FONTSIZE_SMALL,
+            "x": 0.05,
+            "y": 0.775,
+            "rotation": 0,
+            "ha": "left",
+            "va": "center",
+            "bbox": {
+                "boxstyle": "round",
+                "facecolor": "white",
+                "edgecolor": "none",
+                "alpha": 0.8,
+            },
+        },
+    )
     # plot drift contours and save
     fig, axes_ = plot_drift_contours(
         meshgrid=meshgrid,
@@ -383,45 +403,43 @@ def make_2d_contour_plot_panel(
         if ax_index == 1:
             ax_.tick_params(labelleft=False)
 
-    # if indicated, add colorbar to the top of the first subplot with ticks and
-    # label formatting
-    if include_colorbar:
-        _add_colorbar_to_contour_plot(fig, axes_[1])
-        # shrink the constrained-layout region so the inset colorbar axes
-        # (which lives outside the main axes boundary) is not clipped on save
+    # add colorbar to the right of the second subplot with ticks and label
+    # formatting
+    _add_colorbar_to_contour_plot(fig, axes_[1])
+    # shrink the constrained-layout region so the inset colorbar axes
+    # (which lives outside the main axes boundary) is not clipped on save
 
-        layout_engine = fig.get_layout_engine()
-        if isinstance(layout_engine, ConstrainedLayoutEngine):
-            layout_engine.set(rect=(0, 0, 0.9, 1))
+    layout_engine = fig.get_layout_engine()
+    if isinstance(layout_engine, ConstrainedLayoutEngine):
+        layout_engine.set(rect=(0, 0, 0.9, 1))
 
     handles = []
     labels = []
-    if include_legend:
-        # plot_drift_contours draws nullclines via ax.contour(), which does not
-        # produce labeled artists. Add proxy Line2D handles so the legend has
-        # something to show.
-        nullcline_styles = (nullcline_r_style, nullcline_rho_style)
-        for col_idx, col in enumerate(column_names):
-            label = COLUMN_METADATA[col].label or str(col)
-            legend_label = f"{label}-nullcline (d{label}/dt=0)"
-            handle = mlines.Line2D(
-                [],
-                [],
-                color="k",
-                linestyle=nullcline_styles[col_idx],
-                label=legend_label,
-            )
-            handles.append(handle)
-            labels.append(legend_label)
-        fig.legend(
-            handles,
-            labels,
-            fontsize="xx-small",
-            loc="upper center",
-            bbox_to_anchor=(0.55, 0.925),
-            ncol=2,
-            handletextpad=0.3,
+    # plot_drift_contours draws nullclines via ax.contour(), which does not
+    # produce labeled artists. Add proxy Line2D handles so the legend has
+    # something to show.
+    nullcline_styles = (nullcline_r_style, nullcline_rho_style)
+    for col_idx, col in enumerate(column_names):
+        label = COLUMN_METADATA[col].label or str(col)
+        legend_label = f"{label}-nullcline (d{label}/dt=0)"
+        handle = mlines.Line2D(
+            [],
+            [],
+            color="k",
+            linestyle=nullcline_styles[col_idx],
+            label=legend_label,
         )
+        handles.append(handle)
+        labels.append(legend_label)
+    fig.legend(
+        handles,
+        labels,
+        fontsize="xx-small",
+        loc="upper center",
+        bbox_to_anchor=(0.55, 0.925),
+        ncol=2,
+        handletextpad=0.3,
+    )
 
     save_plot_to_path(
         fig,

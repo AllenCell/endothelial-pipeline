@@ -56,18 +56,11 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.settings.column_metadata import COLUMN_METADATA
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.examples import EXAMPLE_DATASET, FPT_FIG_EXAMPLES
-    from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
     from endo_pipeline.settings.flow_field_dataframes import (
         BOOTSTRAPPING_MANIFEST_NAMES,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
         StabilityLabel,
-    )
-    from endo_pipeline.settings.flow_field_figure import (
-        AXES_LIMITS_2D,
-        GRIDSPEC_KWARGS,
-        NULLCLINE_STYLES_2D,
-        XLABEL_KWARGS,
-        YLABEL_KWARGS,
     )
     from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
     from endo_pipeline.settings.workflow_defaults import (
@@ -212,30 +205,6 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             figsize=(2.6, 1.55),
             fig_savedir=fig_savedir,
             filename=f"{dataset_name}_{columns_r_rho_str}_contours",
-            r_lims=AXES_LIMITS_2D[Column.DiffAEData.POLAR_RADIUS],
-            rho_lims=AXES_LIMITS_2D[Column.DiffAEData.PC3_FLIPPED],
-            r_ticks=[0.4, 1.0, 1.6],
-            rho_ticks=[-0.75, 0.0, 0.75],
-            nullcline_r_style=NULLCLINE_STYLES_2D[Column.DiffAEData.POLAR_RADIUS],
-            nullcline_rho_style=NULLCLINE_STYLES_2D[Column.DiffAEData.PC3_FLIPPED],
-            nullcline_opacity=1.0,
-            gridspec_kwargs=GRIDSPEC_KWARGS,
-            xlabel_kwargs=XLABEL_KWARGS,
-            ylabel_kwargs={**YLABEL_KWARGS, "rotation": 0},
-            axes_title_kwargs={
-                "fontsize": FONTSIZE_SMALL,
-                "x": 0.05,
-                "y": 0.775,
-                "rotation": 0,
-                "ha": "left",
-                "va": "center",
-                "bbox": {
-                    "boxstyle": "round",
-                    "facecolor": "white",
-                    "edgecolor": "none",
-                    "alpha": 0.8,
-                },
-            },
         )
 
         nullcline_reconstruction_paths[dataset_name] = reconstruct_along_nullcline(
