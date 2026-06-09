@@ -44,5 +44,5 @@ MODEL_QC_FIG_KWARGS: dict = {"figsize": (9, 6)}
 MODEL_QC_PLOT_DIRECTION: str = "top-down first"
 """Default direction for arranging panels in model QC plots."""
 
-POLAR_THETA_RANGE: tuple[float, float] = (-pi / 6, (5 * pi / 6) + 0.1)
-"""Default theta range for polar plots of angles in radians."""
+VECTOR_FIELD_THETA_RANGE: tuple[float, float] = (-pi / 4, 3 * pi / 4)
+"""Default range of theta values for vector field plots."""

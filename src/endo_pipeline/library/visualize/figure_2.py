@@ -69,7 +69,7 @@ from endo_pipeline.settings.flow_field_figure import (
     YLABEL_KWARGS,
 )
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
-from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, POLAR_THETA_RANGE
+from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, VECTOR_FIELD_THETA_RANGE
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME
 
@@ -465,7 +465,7 @@ def make_1d_drift_plot_panel(
     arrow_width: float,
 ) -> Path:
     """Make and save plot of 1D drift as a function of theta for a given dataset."""
-    axes_xlim = POLAR_THETA_RANGE
+    axes_xlim = VECTOR_FIELD_THETA_RANGE
     axes_ylim = (-0.4, 0.4)
     axes_xticks = [0, np.pi / 2]
     axes_xtick_labels = [
@@ -1019,7 +1019,7 @@ def make_3d_vector_field_plot_panel(
     col_labels = [(COLUMN_METADATA[col].label or str(col)) for col in DYNAMICS_COLUMN_NAMES]
 
     figsize = (2.0, 2.5)
-    theta_lims = POLAR_THETA_RANGE
+    theta_lims = VECTOR_FIELD_THETA_RANGE
     theta_ticks = [0, np.pi / 2]
     theta_tick_labels = [f"0={Unicode.PI}", f"{Unicode.PI}/2"]
     r_lims = (0, 1.75)
