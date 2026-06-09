@@ -456,9 +456,21 @@ def make_1d_drift_plot_panel(
     xlabel_kwargs: dict | None,
     ylabel_kwargs: dict | None,
 ) -> Path:
+
+    # re-wrap theta values to be within the specified x-axis limits for better
+    # visualization of the drift as a function of theta
+    where_theta_below_xlim = theta_values < axes_xlim[0]
+    where_theta_above_xlim = theta_values > axes_xlim[1]
+    theta_values_wrapped = theta_values.copy()
+    theta_values_wrapped[where_theta_below_xlim] += np.pi
+    theta_values_wrapped[where_theta_above_xlim] -= np.pi
+    arg_sorted_theta = np.argsort(theta_values_wrapped)
+    theta_values_sorted = theta_values_wrapped[arg_sorted_theta]
+    drift_sorted = drift[arg_sorted_theta]
+
     fig, ax = plot_drift_1d(
-        drift=drift,
-        x_values=theta_values,
+        drift=drift_sorted,
+        x_values=theta_values_sorted,
         figsize=figsize,
         axes_limits=[axes_xlim, axes_ylim],
         axes_labels=[column_label, f"d{column_label}/dt"],

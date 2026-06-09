@@ -29,7 +29,6 @@ def main() -> None:
     from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
     from endo_pipeline.settings.column_metadata import COLUMN_METADATA
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.dynamics_workflows import POLAR_ANGLE_RANGE
     from endo_pipeline.settings.examples import EXAMPLE_DATASET, FPT_FIG_EXAMPLES
     from endo_pipeline.settings.figures import FONTSIZE_SMALL, MAX_FIGURE_WIDTH
     from endo_pipeline.settings.flow_field_dataframes import (
@@ -44,6 +43,7 @@ def main() -> None:
         XLABEL_KWARGS,
         YLABEL_KWARGS,
     )
+    from endo_pipeline.settings.plot_defaults import POLAR_THETA_RANGE
     from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
     from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
     from endo_pipeline.settings.workflow_defaults import (
@@ -171,13 +171,12 @@ def main() -> None:
             figsize=(1.425, 1.425),
             fig_savedir=fig_savedir,
             filename=f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}_drift",
-            axes_xlim=POLAR_ANGLE_RANGE,
+            axes_xlim=POLAR_THETA_RANGE,
             axes_ylim=(-0.4, 0.4),
-            axes_xticks=[0, np.pi / 2, np.pi],
+            axes_xticks=[0, np.pi / 2],
             axes_xtick_labels=[
                 f"0={Unicode.PI}",
                 f"{Unicode.PI}/2",
-                f"{Unicode.PI}=0",
             ],
             axes_yticks=[-0.3, 0.0, 0.3],
             arrow_scale=arrow_scale_1d,
