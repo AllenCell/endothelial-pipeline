@@ -58,3 +58,5 @@ fixed_points_summary_plot_path = plot_cross_dataset_summaries(
     convert_angle_to_nematic=False,
     color_by_column=Column.OpticalFlow.UNIT_VECTOR_MEAN,
 )
+
+# %%

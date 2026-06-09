@@ -54,6 +54,8 @@ dataset_summary_df = build_dataframe_for_fixed_point_dataset_summary(
     stable_only=True,
     bootstrap_threshold=BOOTSTRAP_THRESHOLD,
 )
+
+# %%
 summary_plot_path = plot_cross_dataset_summaries(
     dataset_summary_df,
     output_dir=save_dir,
