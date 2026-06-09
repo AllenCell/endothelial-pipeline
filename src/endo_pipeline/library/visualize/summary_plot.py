@@ -36,7 +36,7 @@ from endo_pipeline.settings.dynamics_workflows import (
 )
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
-from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
+from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, SUMMARY_PLOT_THETA_RANGE
 from endo_pipeline.settings.summary_plot import (
     CELL_LINE_LABEL_MAP,
     COLOR_PALETTE,
@@ -376,7 +376,7 @@ def _plot_cross_dataset_summary_for_column(
                 markeredgecolor="black",
                 markeredgewidth=0.6,
                 markersize=marker_size_plot,
-                capsize=2.3,
+                capsize=marker_size_plot * 0.75,
                 elinewidth=0.8,
                 ecolor="black",
                 zorder=3,
@@ -412,11 +412,19 @@ def _plot_cross_dataset_summary_for_column(
     if column_metadata.tick_labels is not None:
         ax.set_yticklabels(column_metadata.tick_labels)
 
-    # Set y limits if they are available for the given column
-    if set_y_lims and column_metadata.limits is not None:
-        y_min = df[category_column].min() if column_metadata.min == "min" else column_metadata.min
-        y_max = df[category_column].max() if column_metadata.max == "max" else column_metadata.max
-        ax.set_ylim(y_min, y_max)
+    # Set y limits: use POLAR_THETA_RANGE for polar angle, else column metadata min/max
+    if column_name == ColumnName.DiffAEData.POLAR_ANGLE:
+        ax.set_ylim(SUMMARY_PLOT_THETA_RANGE)
+    else:
+        y_min = (
+            float(column_metadata.min) if isinstance(column_metadata.min, (int, float)) else None
+        )
+        y_max = (
+            float(column_metadata.max) if isinstance(column_metadata.max, (int, float)) else None
+        )
+        if y_min is not None or y_max is not None:
+            ax.set_ylim(y_min, y_max)
+    ax.autoscale_view(scaley=False)
 
     # Add y axis label and grid lines
     y_axis_label = column_metadata.label or str(column_name)
