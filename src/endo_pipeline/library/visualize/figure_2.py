@@ -62,7 +62,7 @@ from endo_pipeline.settings.flow_field_2d import (
 )
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
-from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
+from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, POLAR_THETA_RANGE
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME
 
@@ -699,6 +699,21 @@ def _load_and_process_vector_field(
     v_field_[low_density_mask] = np.nan
     w_field_[low_density_mask] = np.nan
 
+    # wrap theta grid to be within the specified limits for better visualization
+    # of the vector field (default is (0, pi), but we want to shift the limits
+    # so that the stable fixed point is not at the boundary)
+    where_theta_below_lims = x_grid_ < theta_lims[0]
+    where_theta_above_lims = x_grid_ > theta_lims[1]
+    x_grid_[where_theta_below_lims] += np.pi
+    x_grid_[where_theta_above_lims] -= np.pi
+    arg_sorted_theta = np.argsort(x_grid_[:, 0, 0])
+    x_grid_ = x_grid_[arg_sorted_theta, :, :]
+    y_grid_ = y_grid_[arg_sorted_theta, :, :]
+    z_grid_ = z_grid_[arg_sorted_theta, :, :]
+    u_field_ = u_field_[arg_sorted_theta, :, :]
+    v_field_ = v_field_[arg_sorted_theta, :, :]
+    w_field_ = w_field_[arg_sorted_theta, :, :]
+
     # mask vector field to be within the specified limits (take only grid points
     # within limits), reshaping accordingly as 3D arrays of updated number of
     # points within limits
@@ -982,9 +997,9 @@ def make_3d_vector_field_plot_panel(
     col_labels = [(COLUMN_METADATA[col].label or str(col)) for col in DYNAMICS_COLUMN_NAMES]
 
     figsize = (2.0, 2.5)
-    theta_lims = (0, np.pi)
-    theta_ticks = [0, np.pi / 2, np.pi]
-    theta_tick_labels = [f"0={Unicode.PI}", f"{Unicode.PI}/2", f"{Unicode.PI}=0"]
+    theta_lims = POLAR_THETA_RANGE
+    theta_ticks = [0, np.pi / 2]
+    theta_tick_labels = [f"0={Unicode.PI}", f"{Unicode.PI}/2"]
     r_lims = (0, 1.75)
     r_ticks = [0.25, 0.75, 1.25]
     rho_lims = (-1.5, 1.5)
