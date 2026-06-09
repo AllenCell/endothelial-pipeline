@@ -12,6 +12,7 @@ def main(
     include_negative_controls: bool = True,
     save_intermediate_plots: bool = True,
     save_crops_as_tiff: bool = False,
+    compute_metrics: bool = False,
 ) -> None:
     r"""
     Run single-model qualitative QC for a trained Diffusion Autoencoder.
@@ -23,8 +24,11 @@ def main(
     and scrambled-input negative controls). This is the qualitative
     "does this model work, and do the controls break it as expected?" check.
 
-    Cross-model quantitative comparisons live in the separate
-    ``visualize-diffae-model-comparison`` workflow.
+    With ``--compute-metrics`` it also computes per-example metrics
+    (correlation / SSIM / LPIPS) and renders them alongside the images: the
+    per-example contact sheet gains a metrics column and the summary sheet
+    switches to its metrics layout. (Cross-model quantitative comparisons live
+    in the separate ``visualize-diffae-model-comparison`` workflow.)
 
     Parameters
     ----------
@@ -40,6 +44,9 @@ def main(
         Save the per-example denoising contact sheets.
     save_crops_as_tiff
         Also save individual crops as TIFF files.
+    compute_metrics
+        Compute per-example correlation / SSIM / LPIPS and render them
+        alongside the images (metrics column + metrics summary layout).
     """
     from endo_pipeline.cli import DEMO_MODE, NUM_GPUS
     from endo_pipeline.library.model.model_qc import ModelKey, evaluate_single_model
@@ -68,7 +75,8 @@ def main(
         logger.info("DEMO MODE: limiting to the first example of each set")
         example_sets_all = [(examples[:1], label) for examples, label in example_sets_all]
 
-    # Qualitative QC only: no metrics, no baseline, single (default) seed.
+    # Single (default) seed; metrics only when requested (they gate the
+    # metrics-column contact sheet + the metrics summary layout).
     evaluate_single_model(
         model_key=model_key,
         random_seed=random_seed,
@@ -77,7 +85,7 @@ def main(
         save_intermediate_plots=save_intermediate_plots,
         save_crops_as_tiff=save_crops_as_tiff,
         include_negative_controls=include_negative_controls,
-        compute_metrics=False,
+        compute_metrics=compute_metrics,
         noise_levels=MODEL_QC_NOISE_LEVELS,
         compute_baseline=False,
         is_default_seed=True,
