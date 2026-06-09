@@ -1,4 +1,4 @@
-"""Plot cross-model DiffAE comparisons from precomputed metrics (plotting-only)."""
+"""Plot cross-model DiffAE comparisons from precomputed metrics."""
 
 import logging
 
