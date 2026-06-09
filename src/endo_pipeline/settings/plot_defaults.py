@@ -45,4 +45,4 @@ MODEL_QC_PLOT_DIRECTION: str = "top-down first"
 """Default direction for arranging panels in model QC plots."""
 
 POLAR_THETA_RANGE: tuple[float, float] = (-pi / 6, (5 * pi / 6) + 0.1)
-"""Default theta range for polar plots of angles in radians."""
+"""Default theta range for plots of angles in radians."""
