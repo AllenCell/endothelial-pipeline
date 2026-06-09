@@ -35,7 +35,7 @@ columns:
   edge_fluorescence_au: Fluorescence values along boundary between 2 cell segmentations in a.u. (excluding
     pixels at nodes)
   node_fluorescence_au: Fluorescence values at junctions between 3 or more cell segmentations in a.u
-  is_edge_segmentation: ''
+  is_edge_segmentation: True if segmentation touches edge of the image, False otherwise
   nuclei_segmentation_labels: ''
   nuclei_seg_in_cdh5_seg_frac: ''
   nuc_seg_intens_means_EGFP: ''
@@ -78,7 +78,7 @@ columns:
   num_unique_tracks_per_timeframe: ''
   gaussian_sigma_for_area_smoothing: ''
   smoothed_area_normd: ''
-  smoothed_area_normd_diff: ''
+  smoothed_area_normd_diff: Change in Gaussian-smoothed cell segmentation area in pixels squared
   num_unique_tracks_before_filtering_at_T: Number of unique tracks that are present at the timepoint
     of interest before filtering
   track_duration: Number of timepoints in the track
@@ -120,18 +120,22 @@ columns:
     level 0)
   end_y_resolution_0: Y-coordinate of lower right corner of patch (crop) in pixels (zarr resolution
     level 0)
-  bbox_is_in_bounds: ''
+  bbox_is_in_bounds: True if crop/cell-centered patch fits in to the larger image without being clipped
   diffae_resolution_level_to_use: DiffAE feature resolution level used to downsample resolution 0 coordinates
   num_nuclei_in_crop: Number of label-free predicted nuclei in a crop/cell-centered patch
   all_labels_in_crop: List of all segmentation labels found within a crop/cell-centered patch
-  min_track_duration: ''
-  is_greater_than_min_track_duration: ''
-  max_smoothed_area_normd_change: ''
-  is_less_than_max_smoothed_area_normd_change: ''
-  is_included: ''
-  num_valid_tp_per_track: ''
-  min_num_valid_tp_per_track: ''
-  has_more_than_min_num_valid_points_per_track: ''
+  min_track_duration: Minimum number of timepoints for a track to be kept
+  is_greater_than_min_track_duration: True if track duration exceeds minimum threshold, False otherwise
+  max_smoothed_area_normd_change: Max change in the normalized smoothed cell segmentation area before
+    being considered invalid
+  is_less_than_max_smoothed_area_normd_change: True if change in Gaussian-smoothed cell segmentation
+    area is less than threshold, False otherwise
+  is_included: True if track passes all filtering criteria and is included in final dataset, False otherwise
+  num_valid_tp_per_track: Number of timepoints in track that pass all segmentation-based filters
+  min_num_valid_tp_per_track: Minimum number of timepoints that pass all other filters for a track to
+    be kept
+  has_more_than_min_num_valid_points_per_track: True if track has sufficient number of timepoints passing
+    all other filters, False otherwise
   num_unique_tracks_after_filtering_at_T: Number of unique tracks that pass filtering criteria at the
     timepoint of interest
   auto_bf_scope_error: ''

@@ -19,7 +19,7 @@ columns:
   cell_fluorescence_mean_au: ''
   cell_fluorescence_std_au: ''
   neighboring_cell_labels: ''
-  is_edge_segmentation: ''
+  is_edge_segmentation: True if segmentation touches edge of the image, False otherwise
   nuclei_seg_with_most_overlap_0: ''
   nuc_with_most_overlap_0_centroid_Y: ''
   nuc_with_most_overlap_0_centroid_X: ''
@@ -81,13 +81,15 @@ columns:
     level 0)
   end_y_resolution_0: Y-coordinate of lower right corner of patch (crop) in pixels (zarr resolution
     level 0)
-  bbox_is_in_bounds: ''
+  bbox_is_in_bounds: True if crop/cell-centered patch fits in to the larger image without being clipped
   num_nuclei_in_crop: Number of label-free predicted nuclei in a crop/cell-centered patch
   all_labels_in_crop: List of all segmentation labels found within a crop/cell-centered patch
-  is_greater_than_min_track_duration: ''
-  is_less_than_max_smoothed_area_normd_change: ''
-  is_included: ''
-  has_more_than_min_num_valid_points_per_track: ''
+  is_greater_than_min_track_duration: True if track duration exceeds minimum threshold, False otherwise
+  is_less_than_max_smoothed_area_normd_change: True if change in Gaussian-smoothed cell segmentation
+    area is less than threshold, False otherwise
+  is_included: True if track passes all filtering criteria and is included in final dataset, False otherwise
+  has_more_than_min_num_valid_points_per_track: True if track has sufficient number of timepoints passing
+    all other filters, False otherwise
   num_unique_tracks_after_filtering_at_T: Number of unique tracks that pass filtering criteria at the
     timepoint of interest
   auto_bf_scope_error: ''

@@ -19,7 +19,7 @@ columns:
   dataset: Name of dataset
   crop_index: Unique integer index of a patch (crop) trajectory across dataset, FOV, and XY-position
   track_duration: Number of timepoints in the track
-  is_included: ''
+  is_included: True if track passes all filtering criteria and is included in final dataset, False otherwise
   duration_minutes: ''
   timepoint: ''
   optical_flow_mean_speed_dt1: ''

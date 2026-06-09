@@ -276,25 +276,39 @@ class ColumnName:
         """Filter-related column names for segmentation-based features."""
 
         IS_INCLUDED = "is_included"
-        """Whether or not a track passes all filtering criteria and is included in the final dataset"""
+        """True if track passes all filtering criteria and is included in final dataset, False otherwise."""
 
         IS_EDGE_SEGMENTATION = "is_edge_segmentation"
-        """Whether or not a segmentation touches the edge of the image"""
+        """True if segmentation touches edge of the image, False otherwise."""
 
         IS_LESS_THAN_MAX_SMOOTHED_AREA_NORMD_CHANGE = "is_less_than_max_smoothed_area_normd_change"
+        """True if change in Gaussian-smoothed cell segmentation area is less than threshold, False otherwise."""
+
         SMOOTHED_AREA_NORMD_DIFF = "smoothed_area_normd_diff"
+        """Change in Gaussian-smoothed cell segmentation area in pixels squared."""
+
         MAX_SMOOTHED_AREA_NORMALIZED_CHANGE = "max_smoothed_area_normd_change"
+        """Max change in the normalized smoothed cell segmentation area before being considered invalid."""
 
         IS_GREATER_THAN_MIN_TRACK_DURATION = "is_greater_than_min_track_duration"
+        """True if track duration exceeds minimum threshold, False otherwise."""
+
         MIN_TRACK_DURATION = "min_track_duration"
+        """Minimum number of timepoints for a track to be kept."""
 
         HAS_MORE_THAN_MIN_NUM_VALID_POINTS_PER_TRACK = (
             "has_more_than_min_num_valid_points_per_track"
         )
+        """True if track has sufficient number of timepoints passing all other filters, False otherwise."""
+
         MIN_NUM_VALID_TIMEPOINTS_PER_TRACK = "min_num_valid_tp_per_track"
+        """Minimum number of timepoints that pass all other filters for a track to be kept."""
+
         NUM_VALID_TIMEPOINTS_IN_TRACK = "num_valid_tp_per_track"
+        """Number of timepoints in track that pass all segmentation-based filters."""
 
         IS_VALID_BBOX = "bbox_is_in_bounds"
+        """True if crop/cell-centered patch fits in to the larger image without being clipped."""
 
     class SegDataWorkflowVerification(StrEnum):
         """Column names for workflow development and verification checks."""
