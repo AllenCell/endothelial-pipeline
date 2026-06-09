@@ -317,32 +317,31 @@ def make_2d_contour_plot_panel(
     column_names = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
     column_labels = [COLUMN_METADATA[column].label or str(column) for column in column_names]
 
-    r_lims = (AXES_LIMITS_2D[Column.DiffAEData.POLAR_RADIUS],)
-    rho_lims = (AXES_LIMITS_2D[Column.DiffAEData.PC3_FLIPPED],)
-    r_ticks = ([0.4, 1.0, 1.6],)
-    rho_ticks = ([-0.75, 0.0, 0.75],)
-    nullcline_r_style = (NULLCLINE_STYLES_2D[Column.DiffAEData.POLAR_RADIUS],)
-    nullcline_rho_style = (NULLCLINE_STYLES_2D[Column.DiffAEData.PC3_FLIPPED],)
-    nullcline_opacity = (1.0,)
-    gridspec_kwargs = (GRIDSPEC_KWARGS,)
-    xlabel_kwargs = (XLABEL_KWARGS,)
-    ylabel_kwargs = ({**YLABEL_KWARGS, "rotation": 0},)
-    axes_title_kwargs = (
-        {
-            "fontsize": FONTSIZE_SMALL,
-            "x": 0.05,
-            "y": 0.775,
-            "rotation": 0,
-            "ha": "left",
-            "va": "center",
-            "bbox": {
-                "boxstyle": "round",
-                "facecolor": "white",
-                "edgecolor": "none",
-                "alpha": 0.8,
-            },
+    r_lims = AXES_LIMITS_2D[Column.DiffAEData.POLAR_RADIUS]
+    rho_lims = AXES_LIMITS_2D[Column.DiffAEData.PC3_FLIPPED]
+    r_ticks = [0.4, 1.0, 1.6]
+    rho_ticks = [-0.75, 0.0, 0.75]
+    nullcline_r_style = NULLCLINE_STYLES_2D[Column.DiffAEData.POLAR_RADIUS]
+    nullcline_rho_style = NULLCLINE_STYLES_2D[Column.DiffAEData.PC3_FLIPPED]
+    nullcline_opacity = 1.0
+    gridspec_kwargs = GRIDSPEC_KWARGS
+    xlabel_kwargs = XLABEL_KWARGS
+    ylabel_kwargs = {**YLABEL_KWARGS, "rotation": 0}
+    axes_title_kwargs = {
+        "fontsize": FONTSIZE_SMALL,
+        "x": 0.05,
+        "y": 0.775,
+        "rotation": 0,
+        "ha": "left",
+        "va": "center",
+        "bbox": {
+            "boxstyle": "round",
+            "facecolor": "white",
+            "edgecolor": "none",
+            "alpha": 0.8,
         },
-    )
+    }
+
     # plot drift contours and save
     fig, axes_ = plot_drift_contours(
         meshgrid=meshgrid,
@@ -466,21 +465,19 @@ def make_1d_drift_plot_panel(
     arrow_width: float,
 ) -> Path:
     """Make and save plot of 1D drift as a function of theta for a given dataset."""
-    axes_xlim = (POLAR_THETA_RANGE,)
-    axes_ylim = ((-0.4, 0.4),)
-    axes_xticks = ([0, np.pi / 2],)
-    axes_xtick_labels = (
-        [
-            f"0={Unicode.PI}",
-            f"{Unicode.PI}/2",
-        ],
-    )
-    axes_yticks = ([-0.3, 0.0, 0.3],)
-    drift_line_kwargs = ({"color": "k", "linewidth": 2},)
-    zero_line_kwargs = ({"linestyle": "--", "color": "gray", "linewidth": 1, "alpha": 0.7},)
-    gridspec_kwargs = (GRIDSPEC_KWARGS,)
-    xlabel_kwargs = (XLABEL_KWARGS,)
-    ylabel_kwargs = (YLABEL_KWARGS,)
+    axes_xlim = POLAR_THETA_RANGE
+    axes_ylim = (-0.4, 0.4)
+    axes_xticks = [0, np.pi / 2]
+    axes_xtick_labels = [
+        f"0={Unicode.PI}",
+        f"{Unicode.PI}/2",
+    ]
+    axes_yticks = [-0.3, 0.0, 0.3]
+    drift_line_kwargs = {"color": "k", "linewidth": 2}
+    zero_line_kwargs = {"linestyle": "--", "color": "gray", "linewidth": 1, "alpha": 0.7}
+    gridspec_kwargs = GRIDSPEC_KWARGS
+    xlabel_kwargs = XLABEL_KWARGS
+    ylabel_kwargs = YLABEL_KWARGS
 
     # re-wrap theta values to be within the specified x-axis limits for better
     # visualization of the drift as a function of theta
