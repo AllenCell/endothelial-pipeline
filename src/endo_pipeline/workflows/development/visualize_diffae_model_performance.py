@@ -1,5 +1,3 @@
-import logging
-
 from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
 
 
@@ -46,6 +44,8 @@ def main(
         Compute per-example correlation / SSIM / LPIPS and render them
         alongside the images (metrics column + metrics summary layout).
     """
+    import logging
+
     from endo_pipeline.cli import DEMO_MODE, NUM_GPUS
     from endo_pipeline.library.model.model_qc import ModelKey, evaluate_single_model
     from endo_pipeline.manifests import get_most_recent_run_name, load_model_manifest
