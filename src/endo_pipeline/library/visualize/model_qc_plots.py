@@ -18,9 +18,7 @@ from endo_pipeline.settings.plot_defaults import (
     MODEL_QC_SUBPLOT_KWARGS,
 )
 from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_MODEL_QC_LABELS,
-    DEFAULT_MODEL_QC_MANIFEST_NAMES,
-    DEFAULT_MODEL_QC_RUN_NAMES,
+    DEFAULT_MODEL_QC_LABEL_MAP,
     IMAGE_METRIC_DATASET_COLORS,
     METRIC_TEXT_BOX_PROPS,
 )
@@ -712,38 +710,11 @@ def create_comparison_plots_and_summary(
         f"models_{len(model_keys)}{seed_suffix}",
     )
 
-    # Determine model labels for bar-plot x-axis ticks.
-    # The curated DEFAULT_MODEL_QC_LABELS list is a display override for the
-    # specific 10-model latent-dimension sweep (pairs of manifest/run in
-    # DEFAULT_MODEL_QC_MANIFEST_NAMES / DEFAULT_MODEL_QC_RUN_NAMES).  Only
-    # use curated labels when *all* model keys are members of that sweep;
-    # otherwise fall back to each model's own ``ModelKey.label`` (a two-line
-    # ``manifest\nrun`` string) so ticks carry meaningful identifiers instead
-    # of generic ``"Model N"``.
-    #
-    # Membership is checked with plain ``(manifest_name, run_name)`` tuples
-    # rather than constructing ``ModelKey`` instances: ``ModelKey`` is a
-    # ``NamedTuple``, so it compares and hashes equal to a plain tuple of the
-    # same field values.  Avoiding the constructor lets ``ModelKey`` be
-    # imported only under ``TYPE_CHECKING`` at module top.
-    _default_sweep_pairs: set[tuple[str, str]] = set(
-        zip(DEFAULT_MODEL_QC_MANIFEST_NAMES, DEFAULT_MODEL_QC_RUN_NAMES, strict=True)
-    )
-    if all((k.manifest_name, k.run_name) in _default_sweep_pairs for k in model_keys):
-        # All models belong to the curated sweep; map each key to its
-        # corresponding short label by positional order within the sweep.
-        sweep_label_map: dict[tuple[str, str], str] = {
-            (m, r): lbl
-            for m, r, lbl in zip(
-                DEFAULT_MODEL_QC_MANIFEST_NAMES,
-                DEFAULT_MODEL_QC_RUN_NAMES,
-                DEFAULT_MODEL_QC_LABELS,
-                strict=True,
-            )
-        }
-        model_labels = [sweep_label_map[(k.manifest_name, k.run_name)] for k in model_keys]
-    else:
-        model_labels = [k.label for k in model_keys]
+    # Use the curated short label for each model in the default sweep; fall
+    # back to the model's own ``manifest\nrun`` label otherwise.
+    model_labels = [
+        DEFAULT_MODEL_QC_LABEL_MAP.get((k.manifest_name, k.run_name), k.label) for k in model_keys
+    ]
 
     seeds_info = (
         f" (averaged over {len(seeds_to_evaluate)} seeds)" if len(seeds_to_evaluate) > 1 else ""
@@ -769,29 +740,31 @@ def create_comparison_plots_and_summary(
             **extra_kw,
         )
 
-    # Print summary table
-    print("\n" + "=" * 80)
-    print(f"SUMMARY: Model Performance{seeds_info}")
-    print("=" * 80)
+    # Build the summary table, save it next to the plots, and echo to console.
+    summary_lines = ["=" * 80, f"SUMMARY: Model Performance{seeds_info}", "=" * 80]
 
     if compute_baseline and baseline_data["validation"]["corr_mean"] > 0:
-        print("\nBASELINE (Temporal - Next Timepoint Comparison):")
+        summary_lines.append("\nBASELINE (Temporal - Next Timepoint Comparison):")
         for split_label, split_key in [("Validation", "validation"), ("Rep2      ", "rep2")]:
             b = baseline_data[split_key]
-            print(
+            summary_lines.append(
                 f"  {split_label} - Corr: {b['corr_mean']:.3f} ± {b['corr_std']:.3f}, "
                 f"SSIM: {b['ssim_mean']:.3f} ± {b['ssim_std']:.3f}, "
                 f"LPIPS: {b['lpips_mean']:.3f} ± {b['lpips_std']:.3f}"
             )
-        print("-" * 80)
+        summary_lines.append("-" * 80)
 
     for model_data in models_data:
-        print(f"\n{model_data['model_label']}:")
+        summary_lines.append(f"\n{model_data['model_label']}:")
         for split_label, split_key in [("Validation", "validation"), ("Rep2      ", "rep2")]:
             d = model_data[split_key]
-            print(
+            summary_lines.append(
                 f"  {split_label} - Corr: {d['corr_mean']:.3f} ± {d['corr_std']:.3f}, "
                 f"SSIM: {d['ssim_mean']:.3f} ± {d['ssim_std']:.3f}, "
                 f"LPIPS: {d['lpips_mean']:.3f} ± {d['lpips_std']:.3f}"
             )
-    print("=" * 80)
+    summary_lines.append("=" * 80)
+
+    summary_text = "\n".join(summary_lines)
+    (comparison_output_path / "model_performance_summary.txt").write_text(summary_text + "\n")
+    print(summary_text)

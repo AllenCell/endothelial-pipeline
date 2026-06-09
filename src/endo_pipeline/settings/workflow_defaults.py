@@ -224,54 +224,36 @@ DATASET_INFO_COLUMNS: list[ColumnNameType] = [
 # Default model configurations for model qc
 # =========================================
 
-DEFAULT_MODEL_QC_MANIFEST_NAMES: list[str] = [
-    "diffae_baseline_exclude_cell_piling",  # 8 BF
-    "diffae_baseline_exclude_cell_piling",  # 16 BF
-    "diffae_baseline_exclude_cell_piling",  # 32 BF
-    "diffae_baseline_exclude_cell_piling",  # 64 BF
-    "diffae_baseline_exclude_cell_piling",  # 128 BF
-    "diffae_baseline_exclude_cell_piling",  # 256 BF
-    "diffae_baseline_exclude_cell_piling",  # 512 BF
-    "diffae_baseline_exclude_cell_piling",  # 1024 BF
-    "diffae_cdh5_conditioned",  # 512 CDH5
-    "diffae_cdh5_conditioned",  # 1024 CDH5
-]
-"""Default manifest names for the 10-model QC comparison study.
+DEFAULT_MODEL_QC_LABEL_MAP: dict[tuple[str, str], str] = {
+    ("diffae_baseline_exclude_cell_piling", "20260207_latent_8"): "8 BF",
+    ("diffae_baseline_exclude_cell_piling", "20260205_latent_16"): "16 BF",
+    ("diffae_baseline_exclude_cell_piling", "20260203_latent_32"): "32 BF",
+    ("diffae_baseline_exclude_cell_piling", "20260206_latent_64"): "64 BF",
+    ("diffae_baseline_exclude_cell_piling", "20260127_latent_128"): "128 BF",
+    ("diffae_baseline_exclude_cell_piling", "20260122_latent_256"): "256 BF",
+    ("diffae_baseline_exclude_cell_piling", "20251110_latent_512"): "512 BF",
+    ("diffae_baseline_exclude_cell_piling", "20251110_latent_1024"): "1024 BF",
+    ("diffae_cdh5_conditioned", "20260130_latent_512"): "512 CDH5",
+    ("diffae_cdh5_conditioned", "20251110_latent_1024"): "1024 CDH5",
+}
+"""``(manifest_name, run_name)`` -> bar-plot label for the 10-model QC comparison.
 
 Covers 8 brightfield-conditioned latent dimensions (8--1024) and 2 CDH5-
-conditioned models (512, 1024).
+conditioned models (512, 1024), in plot order.
 """
 
-DEFAULT_MODEL_QC_RUN_NAMES: list[str] = [
-    "20260207_latent_8",
-    "20260205_latent_16",
-    "20260203_latent_32",
-    "20260206_latent_64",
-    "20260127_latent_128",
-    "20260122_latent_256",
-    "20251110_latent_512",
-    "20251110_latent_1024",
-    "20260130_latent_512",
-    "20251110_latent_1024",
+# Parallel lists derived from the label map (the single source of truth) so the
+# manifest / run / label ordering always stays in sync.
+DEFAULT_MODEL_QC_MANIFEST_NAMES: list[str] = [
+    manifest for manifest, _ in DEFAULT_MODEL_QC_LABEL_MAP
 ]
-"""Run names corresponding to each entry in :data:`DEFAULT_MODEL_QC_MANIFEST_NAMES`."""
-DEFAULT_MODEL_QC_LABELS: list[str] = [
-    "8 BF",
-    "16 BF",
-    "32 BF",
-    "64 BF",
-    "128 BF",
-    "256 BF",
-    "512 BF",
-    "1024 BF",
-    "512 CDH5",
-    "1024 CDH5",
-]
-"""X-axis labels for the 10-model latent dimension comparison bar plots.
+"""Manifest name for each model in the QC comparison sweep, in plot order."""
 
-Order: 8 BF, 16 BF, 32 BF, 64 BF, 128 BF, 256 BF, 512 BF, 1024 BF,
-512 CDH5, 1024 CDH5.
-"""
+DEFAULT_MODEL_QC_RUN_NAMES: list[str] = [run for _, run in DEFAULT_MODEL_QC_LABEL_MAP]
+"""Run name for each model in the QC comparison sweep, in plot order."""
+
+DEFAULT_MODEL_QC_LABELS: list[str] = list(DEFAULT_MODEL_QC_LABEL_MAP.values())
+"""Bar-plot label for each model in the QC comparison sweep, in plot order."""
 
 DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_PREFIX: str = "diffae_model_comparison_metrics"
 """Prefix for the dataframe manifests cataloguing the per-model QC parquets.

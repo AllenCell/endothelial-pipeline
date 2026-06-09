@@ -11,42 +11,55 @@ def main(
     compute_baseline: bool = True,
 ) -> None:
     """
-    Plot the cross-model DiffAE comparison from precomputed metrics.
+    Compare DiffAE model performance across models.
 
-    #diffae #model-comparison
+    #diffae #model-comparison #visualization
 
-    Plotting-only: consumes the per-manifest metrics emitted by the
-    ``calculate-model-comparison-metrics`` workflow (no GPU, no recompute).
+    This workflow uses the per-example metrics precomputed by the
+    `calculate-model-comparison-metrics` workflow, so it runs no model
+    inference. Run that workflow for each model you want to compare before
+    visualizing.
 
-    Two breadths, controlled by ``--correlation-only``:
+    Visualization outputs include:
 
-    - **default (full)** — one bar plot per metric (correlation / SSIM /
-      LPIPS) across the validation and rep-2 splits, plus the summary table
-      (the complete cross-model comparison).
-    - ``--correlation-only`` — just the single rep-2 Pearson-correlation bar
-      chart (the supplemental figure's panel-B view).
+    - Bar plots comparing correlation, SSIM, and LPIPS across models, on both
+      the validation and rep-2 splits
+    - A text summary of the per-model metrics, saved alongside the plots
+    - With `--correlation-only`, only the rep-2 correlation bar plot (the view
+      used in the supplemental figure)
 
-    The single-model qualitative QC (denoising contact sheet + negative
-    controls) lives in the ``visualize-diffae-model-performance`` workflow.
+    ## Example usage
 
-    Note: the full comparison needs the validation split, which
-    ``calculate-model-comparison-metrics`` only persists after its
-    validation-split update -- regenerate the metrics manifests first if they
-    predate it. ``--correlation-only`` works with rep-2-only metrics.
+    To compare the default set of models:
+
+    ```bash
+    uv run endopipe visualize-diffae-model-comparison
+    ```
+
+    To plot only the rep-2 correlation bars:
+
+    ```bash
+    uv run endopipe visualize-diffae-model-comparison --correlation-only
+    ```
+
+    ## Metrics requirement
+
+    The full comparison reads both the validation and rep-2 splits from the
+    metrics manifests; `--correlation-only` reads rep-2 alone.
 
     Parameters
     ----------
     model_manifest_name
-        Model manifest name(s) to compare. One dataframe manifest is loaded
-        per unique name. Defaults to the curated QC sweep.
+        Model manifest name(s) to compare, one per model. Defaults to the
+        curated set of QC models.
     run_name
-        Run name(s), one per ``model_manifest_name`` entry, selecting which
-        run of each manifest to plot. Defaults to the curated QC runs.
+        Run name(s), one per ``model_manifest_name`` entry. Defaults to the
+        curated QC runs.
     correlation_only
         Plot only the rep-2 correlation bar chart instead of the full
         per-metric comparison.
     compute_baseline
-        Overlay the next-timepoint baseline reference (full comparison only).
+        Overlay the next-timepoint baseline reference on the full comparison.
     """
     import logging
 
@@ -64,7 +77,7 @@ def main(
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_PREFIX,
-        DEFAULT_MODEL_QC_LABELS,
+        DEFAULT_MODEL_QC_LABEL_MAP,
     )
 
     logger = logging.getLogger(__name__)
@@ -115,17 +128,9 @@ def main(
     models_data = build_models_data(all_metrics, model_keys, baseline_data, use_baseline)
 
     if correlation_only:
-        # Curated short labels when a model is part of the default sweep,
-        # otherwise the ModelKey's own ``manifest\nrun`` label.
-        sweep_label_map = dict(
-            zip(
-                zip(DEFAULT_MODEL_QC_MANIFEST_NAMES, DEFAULT_MODEL_QC_RUN_NAMES, strict=True),
-                DEFAULT_MODEL_QC_LABELS,
-                strict=True,
-            )
-        )
+        # Curated short label for sweep models; the model's own label otherwise.
         model_labels = [
-            sweep_label_map.get(pair, key.label)
+            DEFAULT_MODEL_QC_LABEL_MAP.get(pair, key.label)
             for pair, key in zip(requested_pairs, model_keys, strict=True)
         ]
         output_path = get_output_path("model_qc", "comparison", f"models_{len(model_keys)}")
