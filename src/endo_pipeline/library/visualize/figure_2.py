@@ -61,6 +61,7 @@ from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_VMIN,
 )
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
+from endo_pipeline.settings.flow_field_figure import GRIDSPEC_KWARGS, XLABEL_KWARGS, YLABEL_KWARGS
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, POLAR_THETA_RANGE
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
@@ -443,19 +444,25 @@ def make_1d_drift_plot_panel(
     figsize: tuple[float, float],
     fig_savedir: Path,
     filename: str,
-    axes_xlim: tuple[float, float],
-    axes_ylim: tuple[float, float],
-    axes_xticks: list[float],
-    axes_xtick_labels: list[str],
-    axes_yticks: list[float],
     arrow_scale: float,
     arrow_width: float,
-    drift_line_kwargs: dict | None,
-    zero_line_kwargs: dict | None,
-    gridspec_kwargs: dict | None,
-    xlabel_kwargs: dict | None,
-    ylabel_kwargs: dict | None,
 ) -> Path:
+    """Make and save plot of 1D drift as a function of theta for a given dataset."""
+    axes_xlim = (POLAR_THETA_RANGE,)
+    axes_ylim = ((-0.4, 0.4),)
+    axes_xticks = ([0, np.pi / 2],)
+    axes_xtick_labels = (
+        [
+            f"0={Unicode.PI}",
+            f"{Unicode.PI}/2",
+        ],
+    )
+    axes_yticks = ([-0.3, 0.0, 0.3],)
+    drift_line_kwargs = ({"color": "k", "linewidth": 2},)
+    zero_line_kwargs = ({"linestyle": "--", "color": "gray", "linewidth": 1, "alpha": 0.7},)
+    gridspec_kwargs = (GRIDSPEC_KWARGS,)
+    xlabel_kwargs = (XLABEL_KWARGS,)
+    ylabel_kwargs = (YLABEL_KWARGS,)
 
     # re-wrap theta values to be within the specified x-axis limits for better
     # visualization of the drift as a function of theta

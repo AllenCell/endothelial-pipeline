@@ -1,5 +1,27 @@
-def main() -> None:
-    """Compile panels for Figure 2."""
+from endo_pipeline.cli import UniqueStrList
+
+
+def main(include_panels: UniqueStrList | None = None) -> None:
+    """
+    Compile panels for Figure 2.
+
+    - **Panel A*: 3D visualizations of drift vector field and nullclines for
+      example low shear stress dataset.
+    - **Panel B**: 1D plot of drift along polar angle coordinate for example low
+      shear stress dataset, 2D contour plot of drift coefficients for polar
+      radius and rho (-PC3) coordinates for example low shear stress dataset.
+    - **Panel C**: DiffAE generated synthetic images along nullcline in polar
+      radius and rho (-PC3) coordinates for example low shear stress dataset.
+    - **Panel D-F**: Same as A-C for example high shear stress dataset.
+    - **Panel G**: Summary plot of fixed point locations across multiple
+      datasets, colored by migration coherence (EMA-smoothed optical flow unit
+      vector mean).
+    - **Panel H**: Schematic of first passage time calculation for example
+      trajectories in low shear stress dataset.
+    - **Panel I**: Histogram of first passage time correlation coefficients
+      across multiple datasets.
+
+    """
     from pathlib import Path
 
     import matplotlib.pyplot as plt
@@ -21,7 +43,11 @@ def main() -> None:
         reconstruct_along_nullcline,
     )
     from endo_pipeline.library.visualize.figure_fpt import generate_first_passage_time_example
-    from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
+    from endo_pipeline.library.visualize.figures import (
+        FigurePanel,
+        build_figure_from_panels,
+        parse_placeholder_panels,
+    )
     from endo_pipeline.library.visualize.summary_plot import (
         build_dataframe_for_fixed_point_dataset_summary,
         plot_cross_dataset_summaries,
@@ -43,9 +69,7 @@ def main() -> None:
         XLABEL_KWARGS,
         YLABEL_KWARGS,
     )
-    from endo_pipeline.settings.plot_defaults import POLAR_THETA_RANGE
     from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
-    from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -54,7 +78,12 @@ def main() -> None:
 
     plt.style.use("endo_pipeline.figure")
 
-    base_output_dir = get_output_path("figure_2")
+    output_path = get_output_path(__file__)
+
+    placeholders = parse_placeholder_panels(
+        include_panels, ["A", "B", "C", "D", "E", "F", "G", "H", "I"]
+    )
+    print(f"Placeholders: {placeholders}")
 
     # figure is for grid based crops
     crop_pattern = "grid"
@@ -120,7 +149,7 @@ def main() -> None:
         (dataset_low, 1.5, 0.05),
         (dataset_high, 0.5, 0.05),
     ]:
-        fig_savedir = get_output_path("figure_2", dataset_name)
+        fig_savedir = get_output_path(__file__, dataset_name)
 
         # load fixed points dataframes (if available) for both (r, rho) and theta,
         # filter to just stable fixed points, and store in dict for easy access when plotting
@@ -171,21 +200,8 @@ def main() -> None:
             figsize=(1.425, 1.425),
             fig_savedir=fig_savedir,
             filename=f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}_drift",
-            axes_xlim=POLAR_THETA_RANGE,
-            axes_ylim=(-0.4, 0.4),
-            axes_xticks=[0, np.pi / 2],
-            axes_xtick_labels=[
-                f"0={Unicode.PI}",
-                f"{Unicode.PI}/2",
-            ],
-            axes_yticks=[-0.3, 0.0, 0.3],
             arrow_scale=arrow_scale_1d,
             arrow_width=arrow_width_1d,
-            drift_line_kwargs={"color": "k", "linewidth": 2},
-            zero_line_kwargs={"linestyle": "--", "color": "gray", "linewidth": 1, "alpha": 0.7},
-            gridspec_kwargs=GRIDSPEC_KWARGS,
-            xlabel_kwargs=XLABEL_KWARGS,
-            ylabel_kwargs=YLABEL_KWARGS,
         )
 
         contour_plot_paths[dataset_name], nullcline_coordinates = make_2d_contour_plot_panel(
@@ -244,7 +260,7 @@ def main() -> None:
     # summary plot of fixed point locations across datasets
     fixed_point_summary_plot_path = plot_cross_dataset_summaries(
         fixed_point_summary_df,
-        output_dir=base_output_dir,
+        output_dir=output_path,
         column_names=feature_column_names,
         axis_mode="shear_stress",
         subplot_layout="horizontal",
@@ -259,11 +275,11 @@ def main() -> None:
         example_fixed_point_index=low_flow_dataset.fixed_point_index,
         example_tracked_crop_index=low_flow_dataset.tracked_crop_index,
         example_grid_crop_index=low_flow_dataset.grid_crop_index,
-        out_dir=base_output_dir,
+        out_dir=output_path,
     )
     # --- Histogram of first passage time correlation ---
     first_passage_path = make_first_passage_time_correlation_hist(
-        dataset_names=dataset_summary_list, figsize=(0.95, 2.0), fig_savedir=base_output_dir
+        dataset_names=dataset_summary_list, figsize=(0.95, 2.0), fig_savedir=output_path
     )
 
     # --- Assemble all panels into final figure ---
@@ -362,7 +378,7 @@ def main() -> None:
     ]
 
     build_figure_from_panels(
-        panels, base_output_dir / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=7.75
+        panels, output_path / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=7.75
     )
 
 
