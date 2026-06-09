@@ -4,14 +4,17 @@ parameters: {}
 columns:
   frame_number: Timepoint (unit = frames)
   track_id: Track ID assigned by the tracking algorithm
-  reference_index: ''
-  matched_query_label: ''
-  optimized_metric_value: ''
-  matching_method: ''
+  reference_index: Relative timepoint index used to compare nearby timepoints to find matching segmentation
+    for track
+  matched_query_label: List of matched labels from each timepoint starting from current one to up to
+    the next 4 timepoints
+  optimized_metric_value: Value of metric (fraction of segmentation overlap between reference and query
+    index timepoints) used for tracking
+  matching_method: Metric used by tracking algorithm to find matching segmentations
   dataset: Name of dataset
   position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
   zarr_path: Path to Zarr file for image that patch (crop) comes from
-  filepath_segmentation_image: ''
+  filepath_segmentation_image: Path to the cell segmentation image
   label: Cell segmentation ID (different from track ID, and may change between timepoints)
   centroid: Centroid of the cell segmentation in (Y,X) pixel coordinates
   area_px_squared: Area of the cell segmentation in pixels squared
@@ -36,15 +39,17 @@ columns:
   cell_fluorescence_max_au: Maximum of mEGFP-tagged VE-cadherin fluorescence (a.u.) in cytoplasmic region
     of cell segmentation
   neighboring_cell_labels: Cell segmentation labels of adjacent cell segmentations
-  edge_labels: ''
-  node_labels: ''
-  node_pair_labels: ''
+  edge_labels: Label IDs of each edge of a segmentation boundary
+  node_labels: Label IDs for each tricellular junction
+  node_pair_labels: Pair of node label IDs that form each edge of a segmentation boundary
   edge_fluorescence_au: Fluorescence values along boundary between 2 cell segmentations in a.u. (excluding
     pixels at nodes)
   node_fluorescence_au: Fluorescence values at junctions between 3 or more cell segmentations in a.u
   is_edge_segmentation: True if segmentation touches edge of the image, False otherwise
-  nuclei_segmentation_labels: ''
-  nuclei_seg_in_cdh5_seg_frac: ''
+  nuclei_segmentation_labels: List of labels from label-free nuclei predictions that overlap with a
+    cell segmentation
+  nuclei_seg_in_cdh5_seg_frac: List of fractions of label-free nuclei prediction that overlaps with
+    the cell segmentation
   nuc_seg_intens_means_EGFP: ''
   nuc_seg_intens_means_BF: ''
   nuc_seg_intens_stds_EGFP: ''
@@ -82,9 +87,12 @@ columns:
   time_resolution_minutes: Time resolution of the timelapse in minutes
   time_minutes: Time in minutes since the start of the timelapse
   time_hours: Time in hours since the start of the timelapse
-  num_unique_tracks_per_timeframe: ''
-  gaussian_sigma_for_area_smoothing: ''
-  smoothed_area_normd: ''
+  num_unique_tracks_per_timeframe: Number of unique cell segmentations per dataset per position per
+    timepoint per track (should always be 1)
+  gaussian_sigma_for_area_smoothing: Standard deviation of Gaussian kernel used for smoothing cell segmentation
+    areas across time
+  smoothed_area_normd: Area of a cell segmentation in pixels squared after Gaussian smoothing across
+    time
   smoothed_area_normd_diff: Change in Gaussian-smoothed cell segmentation area in pixels squared
   num_unique_tracks_before_filtering_at_T: Number of unique tracks that are present at the timepoint
     of interest before filtering
@@ -112,7 +120,7 @@ columns:
   image_size_y: Size of the whole image in the Y dimension in pixels
   cdh5_channel_index_in_zarr: Index of the CDH5 channel in the Zarr file
   brightfield_channel_index_zarr: Index of the brightfield channel in the Zarr file
-  num_nuclei_with_most_overlap: ''
+  num_nuclei_with_most_overlap: Number of label-free predicted nuclei that overlap with a cell segmentation
   centroid_y: Centroid Y coordinate in pixels
   centroid_x: Centroid X coordinate in pixels
   nuclei_position_x: X coordinate of the label-free nuclei prediction centroid in pixels

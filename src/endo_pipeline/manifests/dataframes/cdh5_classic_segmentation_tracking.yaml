@@ -6,15 +6,18 @@ columns:
   T: ''
   track_id: Track ID assigned by the tracking algorithm
   label: Cell segmentation ID (different from track ID, and may change between timepoints)
-  reference_index: ''
-  matched_query_label: ''
-  optimized_metric_value: ''
+  reference_index: Relative timepoint index used to compare nearby timepoints to find matching segmentation
+    for track
+  matched_query_label: List of matched labels from each timepoint starting from current one to up to
+    the next 4 timepoints
+  optimized_metric_value: Value of metric (fraction of segmentation overlap between reference and query
+    index timepoints) used for tracking
   centroid: Centroid of the cell segmentation in (Y,X) pixel coordinates
   area: Area of the cell segmentation in pixels squared
   perimeter: Perimeter of the cell segmentation in pixels
   orientation: Orientation of the cell in radians from 0 (along +x axis) to pi (along -x axis)
   eccentricity: Eccentricity of ellipse fit to cell segmentation (focal distance divided by major axis)
-  matching_method: ''
+  matching_method: Metric used by tracking algorithm to find matching segmentations
   touches_border: ''
   centroid_Y: Centroid Y coordinate in pixels
   centroid_X: Centroid X coordinate in pixels

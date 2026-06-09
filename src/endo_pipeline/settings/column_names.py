@@ -378,20 +378,49 @@ class ColumnName:
         """Column names for workflow development and verification checks."""
 
         SEGMENTATION_PATH = "filepath_segmentation_image"
+        """Path to the cell segmentation image."""
+
         TRACKING_REF_IDX = "reference_index"
+        """Relative timepoint index used to compare nearby timepoints to find matching segmentation for track."""
+
         TRACKING_MATCHED_QUERY_LABEL = "matched_query_label"
+        """List of matched labels from each timepoint starting from current one to up to the next 4 timepoints."""
+
         TRACKING_OPTIMIZED_METRIC_VAL = "optimized_metric_value"
+        """Value of metric (fraction of segmentation overlap between reference and query index timepoints) used for tracking."""
+
         TRACKING_MATCHING_METHOD = "matching_method"
+        """Metric used by tracking algorithm to find matching segmentations."""
+
         NUM_NUC_WITH_MOST_OVERLAP = "num_nuclei_with_most_overlap"
+        """Number of label-free predicted nuclei that overlap with a cell segmentation."""
+
         SMOOTHED_AREA_NORMALIZED = "smoothed_area_normd"
+        """Area of a cell segmentation in pixels squared after Gaussian smoothing across time."""
+
         SIGMA_FOR_AREA_SMOOTHING = "gaussian_sigma_for_area_smoothing"
+        """Standard deviation of Gaussian kernel used for smoothing cell segmentation areas across time."""
+
         NUM_UNIQUE_TRACKS_PER_TIMEPOINT = "num_unique_tracks_per_timeframe"
+        """Number of unique cell segmentations per dataset per position per timepoint per track (should always be 1)."""
+
         NODE_LABELS = "node_labels"
+        """Label IDs for each tricellular junction."""
+
         EDGE_LABELS = "edge_labels"
+        """Label IDs of each edge of a segmentation boundary."""
+
         NODE_PAIR_LABELS = "node_pair_labels"
+        """Pair of node label IDs that form each edge of a segmentation boundary."""
+
         NUCLEI_LABELS_IN_CDH5_SEGMENTATION = "nuclei_segmentation_labels"
+        """List of labels from label-free nuclei predictions that overlap with a cell segmentation."""
+
         NUCLEI_FRACTION_IN_CDH5_SEGMENTATION = "nuclei_seg_in_cdh5_seg_frac"
+        """List of fractions of label-free nuclei prediction that overlaps with the cell segmentation."""
+
         NUCLEI_INTENSITY_COLUMN_PREFIX = "nuc_seg_intens_"
+
         NUCLEI_SEG_LABEL_PREFIX = "nuclei_seg_with_most_overlap_"
 
     class Annotations(StrEnum):

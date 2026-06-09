@@ -3,7 +3,7 @@ workflow: get_cdh5_measured_features
 parameters: {}
 columns:
   filepath_raw_image: ''
-  filepath_segmentation_image: ''
+  filepath_segmentation_image: Path to the cell segmentation image
   dataset_name: Name of dataset
   position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
   T: ''
@@ -31,9 +31,9 @@ columns:
   cell_fluorescence_max (a.u.): Maximum of mEGFP-tagged VE-cadherin fluorescence (a.u.) in cytoplasmic
     region of cell segmentation
   neighboring_cell_labels: Cell segmentation labels of adjacent cell segmentations
-  edge_labels: ''
-  node_labels: ''
-  node_pair_labels: ''
+  edge_labels: Label IDs of each edge of a segmentation boundary
+  node_labels: Label IDs for each tricellular junction
+  node_pair_labels: Pair of node label IDs that form each edge of a segmentation boundary
   edge_fluorescences (a.u.): Fluorescence values along boundary between 2 cell segmentations in a.u.
     (excluding pixels at nodes)
   node_fluorescences (a.u.): Fluorescence values at junctions between 3 or more cell segmentations in
