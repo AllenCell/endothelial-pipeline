@@ -1,6 +1,14 @@
-def main():
+from endo_pipeline.cli import UniqueStrList
+
+
+def main(include_panels: UniqueStrList | None = None) -> None:
     """
     Main function to create figure panels for Figure 1.
+
+    - **Panel A**: Example images from biological system at low and high shear stress
+    - **Panel B**: DiffAE evaluation/inference schematic
+    - **Panel C**: Latent walk visualization along ML-based features theta, r, and rho
+    - **Panel D**: Correlation heatmaps of ML-based and measured features
     """
     from typing import cast
 
@@ -11,17 +19,27 @@ def main():
     from endo_pipeline.library.visualize.data_example_figures import (
         create_panel_biological_system_examples,
     )
-    from endo_pipeline.library.visualize.figure_1 import make_feature_correlation_panel
-    from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
+    from endo_pipeline.library.visualize.figures import (
+        FigurePanel,
+        build_figure_from_panels,
+        parse_placeholder_panels,
+    )
     from endo_pipeline.library.visualize.latent_walk import perform_and_plot_latent_walk_for_figures
+    from endo_pipeline.library.visualize.multi_feature_correlation import (
+        make_feature_correlation_panel,
+    )
     from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAME_GROUPS
     from endo_pipeline.settings.examples import FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES
     from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.workflow_defaults import SEGMENTATION_FEATURE_COLUMNS
 
     plt.style.use("endo_pipeline.figure")
 
     # Intro schematic
     save_dir = get_output_path("figure_1")
+
+    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
 
     # Example images from biological system at low and high shear stress
     create_panel_biological_system_examples(
@@ -31,8 +49,14 @@ def main():
         inset_coordinates=(5, 500 - 128),
     )
 
-    # Correlation heatmaps of ml learned and measured features
-    feature_correlations_path = make_feature_correlation_panel(save_dir)
+    # Correlation heatmaps of ML-based and measured features
+    feature_correlations_path = make_feature_correlation_panel(
+        pc_columns=DIFFAE_PC_COLUMN_NAME_GROUPS["main_figure"],
+        seg_columns=SEGMENTATION_FEATURE_COLUMNS["main_figure"],
+        output_path=save_dir,
+        figure_size=(2.5, 2.8),
+        **placeholders["D"],
+    )
 
     # Latent walk visualization
     walk_column_names = cast(
