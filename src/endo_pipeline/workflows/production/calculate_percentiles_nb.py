@@ -46,9 +46,7 @@ BASE_COLUMNS = [
 ]
 
 # %%
-dataset_names = get_datasets_in_collection("shear_stress") + get_datasets_in_collection(
-    "perturbation"
-)
+dataset_names = get_datasets_in_collection("shear_stress", "perturbation")
 manifest = load_dataframe_manifest(GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME)
 
 all_dfs: list[pd.DataFrame] = []
@@ -58,7 +56,6 @@ for dataset_name in dataset_names:
         continue
     logger.info("Loading %s...", dataset_name)
     df = load_dataframe(manifest.locations[dataset_name], delay=True)[BASE_COLUMNS].compute()
-    df[Column.DATASET] = dataset_name
     all_dfs.append(df)
 
 df_all = pd.concat(all_dfs, ignore_index=True)
