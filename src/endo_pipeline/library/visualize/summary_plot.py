@@ -376,7 +376,7 @@ def _plot_cross_dataset_summary_for_column(
                 markeredgecolor="black",
                 markeredgewidth=0.6,
                 markersize=marker_size_plot,
-                capsize=2.3,
+                capsize=marker_size_plot * 0.75,
                 elinewidth=0.8,
                 ecolor="black",
                 zorder=3,
