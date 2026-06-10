@@ -3,13 +3,15 @@ from endo_pipeline.cli import UniqueStrList
 
 def main(include_panels: UniqueStrList | None = None) -> None:
     """
-    Main function to create figure panels for Figure 1.
+    Machine learning-derived image features capture biologically relevant
+    phenotypes of hiPSC-derived endothelial cells exposed to shear stress
 
     - **Panel A**: Example images from biological system at low and high shear stress
     - **Panel B**: DiffAE evaluation/inference schematic
     - **Panel C**: Latent walk visualization along ML-based features theta, r, and rho
-    - **Panel D**: Correlation heatmaps of ML-based and measured features
+    - **Panel D**: Pearson correlation heatmaps of ML-based and measured features
     """
+
     from typing import cast
 
     import matplotlib.pyplot as plt
