@@ -612,11 +612,11 @@ class ColumnName:
         """Column name for the source dataset name of the example image."""
 
 
-class ColumeNamePrefix(StrEnum):
+class ColumnNamePrefix(StrEnum):
     """Prefixes for dataframe column names."""
 
 
-class ColumeNameSuffix(StrEnum):
+class ColumnNameSuffix(StrEnum):
     """Suffixes for dataframe column names."""
 
     DRIFT = "_drift"
