@@ -13,13 +13,6 @@ from matplotlib.gridspec import GridSpec
 from endo_pipeline.configs import get_datasets_in_collection
 from endo_pipeline.io import load_dataframe, load_model, save_plot_to_path
 from endo_pipeline.library.analyze.pca import fit_pca
-from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
-from endo_pipeline.library.model.diffae.generate_image import generate_latent_walk_images
-from endo_pipeline.library.model.latent_walk_utils import (
-    add_pc_coordinates_to_dataframe,
-    get_latent_walk,
-    get_num_pcs_from_column_names,
-)
 from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.library.visualize.figure_utils import add_scalebar
 from endo_pipeline.library.visualize.figures import figure_panel
@@ -216,6 +209,15 @@ def perform_and_plot_latent_walk_for_figures(
         crops.
 
     """
+
+    from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
+    from endo_pipeline.library.model.diffae.generate_image import generate_latent_walk_images
+    from endo_pipeline.library.model.latent_walk_utils import (
+        add_pc_coordinates_to_dataframe,
+        get_latent_walk,
+        get_num_pcs_from_column_names,
+    )
+
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
     run_name = DEFAULT_MODEL_RUN_NAME
     model_manifest = load_model_manifest(model_manifest_name)
