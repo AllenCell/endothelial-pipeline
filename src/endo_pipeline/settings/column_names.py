@@ -622,6 +622,9 @@ class ColumeNameSuffix(StrEnum):
     DRIFT = "_drift"
     """Suffix for column name denoting the drift in a given variable."""
 
+    MESH_GRID = "_mesh_grid"
+    """Suffix for column name denoting vector field mesh grid."""
+
 
 ColumnNameType = (
     str

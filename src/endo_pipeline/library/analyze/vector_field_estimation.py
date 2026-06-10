@@ -223,17 +223,20 @@ def create_drift_vector_field_df(
         dataset name, shear stress
     """
 
-    # build dataframe with columns for grid points in each of the three
-    # dimensions and the corresponding drift coefficients
-    drift_column_names: list[str] = [f"{name}{ColumnNameSuffix.DRIFT}" for name in column_names]
-    vector_field_df = pd.DataFrame(columns=[Column.DATASET, *drift_column_names, *column_names])
+    # build dataframe with columns for grid points in each of the dimensions and
+    # the corresponding drift coefficients and mesh grid values
+    drift_column_names = [f"{name}{ColumnNameSuffix.DRIFT}" for name in column_names]
+    mesh_column_names = [f"{name}{ColumnNameSuffix.MESH_GRID}" for name in column_names]
+    vector_field_df = pd.DataFrame(
+        columns=[Column.DATASET, *drift_column_names, *mesh_column_names]
+    )
 
     # make tuple for indexing the drift coefficients and feature grid
     index_tuple = tuple(range(len(column_names)))
-    for index, column_name, drift_column_name in zip(
-        index_tuple, column_names, drift_column_names, strict=True
+    for index, mesh_column_name, drift_column_name in zip(
+        index_tuple, mesh_column_names, drift_column_names, strict=True
     ):
-        vector_field_df[column_name] = feature_grid[index].flatten()
+        vector_field_df[mesh_column_name] = feature_grid[index].flatten()
         vector_field_df[drift_column_name] = drift_coeffs[..., index].flatten()
 
     # add specified metadata columns to the dataframe (e.g. dataset name, shear
