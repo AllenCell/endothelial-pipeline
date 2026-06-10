@@ -10,7 +10,7 @@ from skimage.registration import optical_flow_tvl1
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.image_data import DIFFAE_DEFAULT_CROP_SIZE
 from endo_pipeline.settings.optical_flow import (
-    DEFAULT_EMA_ALPHAS,
+    DEFAULT_EMA_ALPHA,
     OPTICAL_FLOW_BASE_FEATURES,
     OPTICAL_FLOW_EMA_STEMS,
 )
@@ -264,7 +264,7 @@ def calculate_optical_flow_intensity_threshold(
 
 def build_optical_flow_feature_cols(
     max_dt: int,
-    ema_alphas: Sequence[float] = DEFAULT_EMA_ALPHAS,
+    ema_alpha: float = DEFAULT_EMA_ALPHA,
 ) -> list[str]:
     """Return all optical-flow column names for dt = 1..max_dt.
 
@@ -275,9 +275,8 @@ def build_optical_flow_feature_cols(
     ----------
     max_dt
         Maximum temporal gap (inclusive).
-    ema_alphas
-        EMA smoothing alpha values.  Defaults to
-        :data:`~endo_pipeline.settings.optical_flow.DEFAULT_EMA_ALPHAS`.
+    ema_alpha
+        EMA smoothing alpha value.
 
     Returns
     -------
@@ -291,9 +290,9 @@ def build_optical_flow_feature_cols(
     ema_stems = OPTICAL_FLOW_EMA_STEMS
 
     ema_features: list[str] = []
-    for alpha in ema_alphas:
-        tag = str(alpha).replace(".", "")
-        ema_features += [f"ema{tag}_{stem}" for stem in ema_stems]
+
+    tag = str(ema_alpha).replace(".", "")
+    ema_features += [f"ema{tag}_{stem}" for stem in ema_stems]
 
     all_features = features + ema_features
     return [f"{f}_dt{d}" for d in range(1, max_dt + 1) for f in all_features]
@@ -386,7 +385,7 @@ def build_image_pair_crops_for_grid(df: pd.DataFrame) -> Callable[[int], Optical
 
 
 def build_merged_optical_flow_dataframe(
-    df_base: pd.DataFrame, records: list[dict], max_dt: int, ema_alphas: Sequence[float]
+    df_base: pd.DataFrame, records: list[dict], max_dt: int, ema_alpha: Sequence[float]
 ) -> pd.DataFrame:
     """
     Build merged dataframe from optical flow records with EMA smoothing.
@@ -399,8 +398,8 @@ def build_merged_optical_flow_dataframe(
         List of records of optical flow features.
     max_dt
         Maximum temporal gap (inclusive).
-    ema_alphas
-        EMA smoothing alpha values.
+    ema_alpha
+        EMA smoothing alpha value.
 
     Returns
     -------
@@ -435,7 +434,7 @@ def build_merged_optical_flow_dataframe(
     )
 
     # Fill in any missing columns with NaN
-    all_feature_column_names = build_optical_flow_feature_cols(max_dt=max_dt, ema_alphas=ema_alphas)
+    all_feature_column_names = build_optical_flow_feature_cols(max_dt=max_dt, ema_alpha=ema_alpha)
     for col in all_feature_column_names:
         if col not in df_base.columns:
             df_base[col] = np.nan
@@ -444,18 +443,17 @@ def build_merged_optical_flow_dataframe(
     df_base = df_base.sort_values(OPTICAL_FLOW_INDEX_COLUMNS)
 
     # Apply EMA smoothing
-    for alpha in ema_alphas:
-        alpha_tag = str(alpha).replace(".", "")
-        for dt in range(1, max_dt + 1):
-            for stem in OPTICAL_FLOW_EMA_STEMS:
-                raw_col = f"{stem}_dt{dt}"
-                ema_col = f"ema{alpha_tag}_{stem}_dt{dt}"
+    alpha_tag = str(ema_alpha).replace(".", "")
+    for dt in range(1, max_dt + 1):
+        for stem in OPTICAL_FLOW_EMA_STEMS:
+            raw_col = f"{stem}_dt{dt}"
+            ema_col = f"ema{alpha_tag}_{stem}_dt{dt}"
 
-                if raw_col not in df_base.columns:
-                    continue
+            if raw_col not in df_base.columns:
+                continue
 
-                df_base[ema_col] = df_base.groupby(ColumnName.CROP_INDEX)[raw_col].transform(
-                    lambda s, a=alpha: s.ewm(alpha=a, adjust=False).mean()
-                )
+            df_base[ema_col] = df_base.groupby(ColumnName.CROP_INDEX)[raw_col].transform(
+                lambda s, a=ema_alpha: s.ewm(alpha=a, adjust=False).mean()
+            )
 
     return df_base

@@ -6,7 +6,7 @@ parameters:
   max_dt: 1
   intensity_percentile: 0
   attachment: 2.5
-  ema_alphas: [0.1]
+  ema_alpha: 0.1
   speed_threshold: 1.0
 locations:
   20250319_20X:

@@ -82,8 +82,8 @@ OPTICAL_FLOW_EMA_STEMS: list[str] = [
 # ---------------------------------------------------------------------------
 # Default CLI flag values
 # ---------------------------------------------------------------------------
-DEFAULT_EMA_ALPHAS: tuple[float, ...] = (0.1,)
-"""Default EMA smoothing alpha values for temporal coherence smoothing."""
+DEFAULT_EMA_ALPHA: float = 0.1
+"""Default EMA smoothing alpha value for temporal coherence smoothing."""
 
 DEFAULT_SPEED_THRESHOLD: float = 1.0
 """Default speed threshold for fast-coherence feature computation."""
