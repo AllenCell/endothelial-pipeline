@@ -79,6 +79,7 @@ def main(
     from endo_pipeline.library.visualize.fixed_points import StabilityLegendHandle
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.column_names import ColumnNameSuffix
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_DYNAMICS,
         DEFAULT_DATASETS_DYNAMICS_VIS,
@@ -181,8 +182,8 @@ def main(
                     color = FIXED_POINT_PLOT_STYLE[stability].color
                     marker = FIXED_POINT_PLOT_STYLE[stability].marker
 
-                    x = row[f"{column_x}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"]
-                    y = row[f"{column_y}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"]
+                    x = row[f"{column_x}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"]
+                    y = row[f"{column_y}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"]
                     xlabel = get_label_for_column(column_x)
                     ylabel = get_label_for_column(column_y)
 
@@ -274,8 +275,8 @@ def main(
                 if stability != StabilityLabel.STABLE:
                     continue
 
-                x = row[f"{column_x}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"]
-                y = row[f"{column_y}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"]
+                x = row[f"{column_x}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"]
+                y = row[f"{column_y}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"]
                 xlabel = get_label_for_column(column_x)
                 ylabel = get_label_for_column(column_y)
 

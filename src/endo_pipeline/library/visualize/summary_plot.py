@@ -28,7 +28,7 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
 )
 from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA, ColumnMetadata
-from endo_pipeline.settings.column_names import ColumnName, ColumnNameType
+from endo_pipeline.settings.column_names import ColumnName, ColumnNameSuffix, ColumnNameType
 from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
     METADATA_COLUMNS_TO_KEEP,
@@ -103,7 +103,7 @@ def _convert_polar_angle_to_nematic_order(df: pd.DataFrame) -> pd.DataFrame:
     """
     for column_suffix in [
         "",
-        f"_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
+        f"{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}",
     ]:
         df[f"{ColumnName.DiffAEData.NEMATIC_ORDER}{column_suffix}"] = df[
             f"{ColumnName.DiffAEData.POLAR_ANGLE}{column_suffix}"
@@ -117,11 +117,11 @@ def _convert_polar_angle_to_nematic_order(df: pd.DataFrame) -> pd.DataFrame:
     # f'(theta) = -2*sin(2*theta) is the derivative of the nematic order function.
     for ci_type in [ColumnName.BootstrapAnalysis.CI_LOWER, ColumnName.BootstrapAnalysis.CI_UPPER]:
         angle_mean_col = (
-            f"{ColumnName.DiffAEData.POLAR_ANGLE}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}"
+            f"{ColumnName.DiffAEData.POLAR_ANGLE}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"
         )
         angle_ci_col = f"{ColumnName.DiffAEData.POLAR_ANGLE}_{ci_type}"
         nematic_mean_col = (
-            f"{ColumnName.DiffAEData.NEMATIC_ORDER}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}"
+            f"{ColumnName.DiffAEData.NEMATIC_ORDER}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"
         )
         nematic_ci_col = f"{ColumnName.DiffAEData.NEMATIC_ORDER}_{ci_type}"
 
@@ -662,9 +662,9 @@ def build_dataframe_for_fixed_point_dataset_summary(
 
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid"], *DYNAMICS_COLUMN_NAMES]
     columns_to_bin = {
-        "fp_x_col": f"{ColumnName.DiffAEData.POLAR_ANGLE}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
-        "fp_y_col": f"{ColumnName.DiffAEData.POLAR_RADIUS}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
-        "fp_z_col": f"{ColumnName.DiffAEData.PC3_FLIPPED}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
+        "fp_x_col": f"{ColumnName.DiffAEData.POLAR_ANGLE}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}",
+        "fp_y_col": f"{ColumnName.DiffAEData.POLAR_RADIUS}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}",
+        "fp_z_col": f"{ColumnName.DiffAEData.PC3_FLIPPED}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}",
         "of_x_col": ColumnName.DiffAEData.POLAR_ANGLE,
         "of_y_col": ColumnName.DiffAEData.POLAR_RADIUS,
         "of_z_col": ColumnName.DiffAEData.PC3_FLIPPED,
@@ -745,7 +745,7 @@ def build_dataframe_for_fixed_point_dataset_summary(
                 # unwrap baseline, bootstrapped cluster mean angle, and CI bounds
                 for suffix in [
                     "",
-                    f"_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
+                    f"{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}",
                     f"_{ColumnName.BootstrapAnalysis.CI_LOWER}",
                     f"_{ColumnName.BootstrapAnalysis.CI_UPPER}",
                 ]:

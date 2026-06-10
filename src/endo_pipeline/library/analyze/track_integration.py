@@ -34,6 +34,7 @@ from endo_pipeline.library.analyze.vector_field_function import solve_ode_from_v
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.manifests.dataframe_manifest import DataframeManifest
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameSuffix
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
@@ -1251,7 +1252,7 @@ def compute_first_passage_times_one_dataset(
         return fpt_stats_df_list, param_sweep_df_list
 
     fp_cluster_mean_cols = [
-        f"{col}_{Column.BootstrapAnalysis.CLUSTER_MEAN}" for col in DYNAMICS_COLUMN_NAMES
+        f"{col}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}" for col in DYNAMICS_COLUMN_NAMES
     ]
     # add the distances from the fixed points for the grid-based trajectories
     traj_df_grid = add_distance_to_fixed_points_columns(

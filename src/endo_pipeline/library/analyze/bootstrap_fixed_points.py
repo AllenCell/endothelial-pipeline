@@ -16,6 +16,7 @@ from endo_pipeline.library.analyze.vector_field_estimation import (
     get_fixed_points_within_bounds,
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameSuffix
 from endo_pipeline.settings.dynamics_workflows import (
     LOWER_PERCENTILE_FOR_FILTERING_FPTS,
     NUM_INIT_SAMPLES,
@@ -528,7 +529,7 @@ def aggregate_bootstrapping_results(
                 ]
             )
             for dim_idx, col in enumerate(column_names):
-                dataframe_row[f"{col}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"] = cluster_mean[
+                dataframe_row[f"{col}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"] = cluster_mean[
                     dim_idx
                 ]
 
@@ -566,7 +567,7 @@ def aggregate_bootstrapping_results(
                     dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_UPPER}"] = float("nan")
         else:
             for col in column_names:
-                dataframe_row[f"{col}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"] = float("nan")
+                dataframe_row[f"{col}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"] = float("nan")
                 dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_LOWER}"] = float("nan")
                 dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_UPPER}"] = float("nan")
 
