@@ -86,7 +86,9 @@ def make_3d_vector_field_plot_panel(
 
     # Load and overlay stable fixed point
     fixed_points_df = load_fixed_points_dataframe_for_dataset(dataset_name)
-
+    fixed_points_df = fixed_points_df[
+        fixed_points_df[Column.BootstrapAnalysis.DETECTION_RATE] > 0.4
+    ]
     stable_df = fixed_points_df[
         fixed_points_df[Column.VectorField.STABILITY] == StabilityLabel.STABLE
     ]
