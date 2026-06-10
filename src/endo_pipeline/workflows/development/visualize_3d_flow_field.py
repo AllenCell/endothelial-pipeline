@@ -156,7 +156,7 @@ def main(
         *column_names,
         Column.DATASET,
         Column.SHEAR_STRESS,
-        Column.VectorField.STABILITY,
+        Column.FIXED_POINT_STABILITY,
     ]
 
     # Columns to keep when loading feature dataframe

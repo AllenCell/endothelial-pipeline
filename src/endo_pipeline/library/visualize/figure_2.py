@@ -751,7 +751,7 @@ def make_3d_vector_field_plot_panel(
     fixed_points_df = load_fixed_points_dataframe_for_dataset(dataset_name)
 
     stable_df = fixed_points_df[
-        fixed_points_df[Column.VectorField.STABILITY] == StabilityLabel.STABLE
+        fixed_points_df[Column.FIXED_POINT_STABILITY] == StabilityLabel.STABLE
     ]
     fpt_coords = stable_df[column_names].to_numpy()
     hex_color: str = FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color

@@ -133,7 +133,7 @@ def main(
         column_name,
         Column.DATASET,
         Column.SHEAR_STRESS,
-        Column.VectorField.STABILITY,
+        Column.FIXED_POINT_STABILITY,
     ]
 
     # Load drift vector field and fixed points for selected column

@@ -487,14 +487,14 @@ class ColumnName:
         EMA01_UNIT_VECTOR_MEAN_FAST = "ema01_optical_flow_mean_unit_vector_fast_dt1"
         """Mean unit vector coherence over fast pixels with EMA smoothing, alpha=0.1."""
 
+    FIXED_POINT_STABILITY = "stability"
+    """Stability classification of a fixed point."""
+
     class VectorField(StrEnum):
         """Column name suffixes used in vector field / dynamics analysis."""
 
         FIXED_POINT_INDEX = "fixed_point_id"
         """Column name for the index of the fixed point in the fixed point dataframe."""
-
-        STABILITY = "stability"
-        """Stability classification of a fixed point."""
 
         FIXED_POINT_PREFIX = "fp_"
         """Prefix for column names representing coordinates of fixed points in feature space."""

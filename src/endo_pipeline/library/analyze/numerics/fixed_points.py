@@ -329,7 +329,7 @@ def get_fixed_points_within_bounds(
     lower_percentile: float = LOWER_PERCENTILE_FOR_FILTERING_FPTS,
     upper_percentile: float = UPPER_PERCENTILE_FOR_FILTERING_FPTS,
     polar_angle_range: tuple[float, float] = POLAR_ANGLE_RANGE,
-    stability_label_column_name: Column.VectorField = Column.VectorField.STABILITY,
+    stability_label_column_name: str = Column.FIXED_POINT_STABILITY,
     metadata_dict: dict[str, str | float] | None = None,
 ) -> pd.DataFrame:
     """Get fixed points of a given estimated vector field with high confidence.

@@ -445,9 +445,9 @@ def filter_dataframe_by_stability(
 
     """
     # check that required columns are present in dataframe
-    check_required_columns_in_dataframe(dataframe, [Column.VectorField.STABILITY])
+    check_required_columns_in_dataframe(dataframe, [Column.FIXED_POINT_STABILITY])
 
     # filter dataframe to only include rows where the stability label matches the specified stability label
-    dataframe_filtered = dataframe[dataframe[Column.VectorField.STABILITY] == stability_label]
+    dataframe_filtered = dataframe[dataframe[Column.FIXED_POINT_STABILITY] == stability_label]
 
     return dataframe_filtered

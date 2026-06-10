@@ -264,7 +264,7 @@ def _plot_cross_dataset_summary_for_column(
         }
         marker_map = dict.fromkeys(unique_datasets, "o")
     elif style_mode == "stability":
-        style_column = ColumnName.VectorField.STABILITY
+        style_column = ColumnName.FIXED_POINT_STABILITY
         color_map = {key: style.color for key, style in FIXED_POINT_PLOT_STYLE.items()}
         marker_map = {key: style.marker for key, style in FIXED_POINT_PLOT_STYLE.items()}
     else:
@@ -385,7 +385,7 @@ def _plot_cross_dataset_summary_for_column(
     # Include legend if using stability style mode (only when not overridden)
     if style_mode == "stability" and scalar_mappable is None:
         legend_handles = make_legend_handles_for_fixed_pts(
-            fpt_stabilities=df[ColumnName.VectorField.STABILITY].unique().tolist(),
+            fpt_stabilities=df[ColumnName.FIXED_POINT_STABILITY].unique().tolist(),
             marker_size=marker_size_legend,
         )
         ax.legend(handles=legend_handles, fontsize=FONTSIZE_SMALL)
@@ -469,7 +469,7 @@ def plot_cross_dataset_summaries(
 
     - `dataset` = each point is uniquely colored by dataset
     - `stability` = each point is assigned a color and marker shape based on
-      stability (dataframe must a `ColumnName.VectorField.STABILITY` column)
+      stability (dataframe must a `ColumnName.FIXED_POINT_STABILITY` column)
 
     **Subplot layout specification**
 

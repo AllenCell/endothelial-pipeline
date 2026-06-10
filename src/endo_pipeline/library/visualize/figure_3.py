@@ -118,7 +118,7 @@ def make_3d_vector_field_plot_panel(
         fixed_points_df[Column.BootstrapAnalysis.DETECTION_RATE] > 0.4
     ]
     stable_df = fixed_points_df[
-        fixed_points_df[Column.VectorField.STABILITY] == StabilityLabel.STABLE
+        fixed_points_df[Column.FIXED_POINT_STABILITY] == StabilityLabel.STABLE
     ]
     color: str = FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color
     column_names_ = cast(list[str], column_names)

@@ -367,8 +367,8 @@ def match_bootstrap_fixed_points_to_baseline(
 
         pairwise_dists = np.linalg.norm(pairwise_diffs, axis=-1)
 
-        boot_stabilities = fixed_point_result[Column.VectorField.STABILITY].to_numpy()
-        baseline_stabilities = baseline_fixed_points[Column.VectorField.STABILITY].to_numpy()
+        boot_stabilities = fixed_point_result[Column.FIXED_POINT_STABILITY].to_numpy()
+        baseline_stabilities = baseline_fixed_points[Column.FIXED_POINT_STABILITY].to_numpy()
 
         assigned_boot_indices: set[int] = set()
         for baseline_idx in range(n_baseline):
@@ -500,7 +500,7 @@ def aggregate_bootstrapping_results(
     output_dataframe_rows = []
     for pos_idx, (_, baseline_fixed_point) in enumerate(baseline_fixed_points.iterrows()):
         dataframe_row: dict = {
-            Column.VectorField.STABILITY: baseline_fixed_point[Column.VectorField.STABILITY],
+            Column.FIXED_POINT_STABILITY: baseline_fixed_point[Column.FIXED_POINT_STABILITY],
         }
         for col in column_names:
             dataframe_row[col] = baseline_fixed_point[col]

@@ -203,7 +203,7 @@ def main(
                             required_columns=[
                                 *DYNAMICS_COLUMN_NAMES,
                                 ColumnName.DATASET,
-                                ColumnName.VectorField.STABILITY,
+                                ColumnName.FIXED_POINT_STABILITY,
                             ],
                         )
                     except KeyError:
@@ -272,7 +272,7 @@ def main(
                     # if fixed points are available, overlay them on the scatter plot
                     if fixed_points_dataframe is not None:
                         for _, row in fixed_points_dataframe.iterrows():
-                            stability = row[ColumnName.VectorField.STABILITY]
+                            stability = row[ColumnName.FIXED_POINT_STABILITY]
                             marker = FIXED_POINT_PLOT_STYLE[stability].marker
                             color = FIXED_POINT_PLOT_STYLE[stability].color
                             axs[1].scatter(
@@ -286,7 +286,7 @@ def main(
                             )
                         # add legend for fixed points
                         legend_handles = make_legend_handles_for_fixed_pts(
-                            fixed_points_dataframe[ColumnName.VectorField.STABILITY]
+                            fixed_points_dataframe[ColumnName.FIXED_POINT_STABILITY]
                             .unique()
                             .tolist()
                         )

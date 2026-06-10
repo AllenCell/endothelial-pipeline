@@ -720,7 +720,7 @@ def add_distance_to_fixed_points_columns(
     fp_stability_map = dict(
         zip(
             fixed_point_df.index,
-            fixed_point_df[Column.VectorField.STABILITY],
+            fixed_point_df[Column.FIXED_POINT_STABILITY],
             strict=True,
         )
     )
@@ -1242,7 +1242,7 @@ def compute_first_passage_times_one_dataset(
     fixed_points_df = fixed_points_df[
         fixed_points_df[Column.BootstrapAnalysis.DETECTION_RATE] >= BOOTSTRAP_THRESHOLD
     ]
-    fixed_points_df = fixed_points_df[fixed_points_df[Column.VectorField.STABILITY] == "stable"]
+    fixed_points_df = fixed_points_df[fixed_points_df[Column.FIXED_POINT_STABILITY] == "stable"]
 
     if fixed_points_df.empty:
         logger.warning(f"No fixed points found for dataset {dataset_name}, skipping dataset.")
@@ -1327,7 +1327,7 @@ def compute_first_passage_times_one_dataset(
     thresholds = np.linspace(0, 1, 41)
     for fp_idx, fp_row in fixed_points_df.iterrows():
         # for now we will only look at first passage times to stable fixed points
-        fp_stability = fp_row[Column.VectorField.STABILITY]
+        fp_stability = fp_row[Column.FIXED_POINT_STABILITY]
         if fp_stability != "stable":
             logger.info(
                 f"Fixed point {fp_idx} in dataset {dataset_name} is not stable (stability = "
@@ -1356,7 +1356,7 @@ def compute_first_passage_times_one_dataset(
             dataset_name=dataset_name,
             fixed_point_index=fp_idx,
         )
-        parameter_sweep_df[Column.VectorField.STABILITY] = fp_stability
+        parameter_sweep_df[Column.FIXED_POINT_STABILITY] = fp_stability
 
         traj_df_grid[f"{Column.VectorField.IS_AT_FP_PREFIX}{fp_idx}"] = (
             traj_df_grid[f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fp_idx}"]
@@ -1425,7 +1425,7 @@ def compute_first_passage_times_one_dataset(
             dataset_name=dataset_name,
             fixed_point_index=fp_idx,
         )
-        first_passage_time_stats_df[Column.VectorField.STABILITY] = fp_stability
+        first_passage_time_stats_df[Column.FIXED_POINT_STABILITY] = fp_stability
         fp_dynamics_cols = [
             f"{Column.VectorField.FIXED_POINT_PREFIX}{col}" for col in DYNAMICS_COLUMN_NAMES
         ]
@@ -1578,7 +1578,7 @@ def build_fpt_line_fit_results_df(
             [
                 Column.DATASET,
                 Column.VectorField.FIXED_POINT_INDEX,
-                Column.VectorField.STABILITY,
+                Column.FIXED_POINT_STABILITY,
             ]
         )
         .apply(
@@ -1610,7 +1610,7 @@ def build_fpt_line_fit_results_df(
             [
                 Column.DATASET,
                 Column.VectorField.FIXED_POINT_INDEX,
-                Column.VectorField.STABILITY,
+                Column.FIXED_POINT_STABILITY,
             ]
         ).apply(
             lambda df, metric=metric, suffix=suffix: pd.Series(
@@ -1625,7 +1625,7 @@ def build_fpt_line_fit_results_df(
 
     line_fit_df = line_fit_df.merge(
         pearson_df,
-        on=[Column.DATASET, Column.VectorField.FIXED_POINT_INDEX, Column.VectorField.STABILITY],
+        on=[Column.DATASET, Column.VectorField.FIXED_POINT_INDEX, Column.FIXED_POINT_STABILITY],
         validate="one_to_one",
     )
     return line_fit_df

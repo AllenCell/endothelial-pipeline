@@ -1225,7 +1225,7 @@ def plot_first_passage_time_correlations(
             [
                 Column.DATASET,
                 Column.VectorField.FIXED_POINT_INDEX,
-                Column.VectorField.STABILITY,
+                Column.FIXED_POINT_STABILITY,
             ]
         )[Column.VectorField.BIN_INDEX]
         .nunique()

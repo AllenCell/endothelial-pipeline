@@ -119,7 +119,7 @@ def main(datasets: Datasets | None = None) -> None:
         df_2d_plus_1d = pd.merge(
             stable_fixed_points_1d,
             stable_fixed_points_2d,
-            on=[Column.DATASET, Column.SHEAR_STRESS, Column.VectorField.STABILITY],
+            on=[Column.DATASET, Column.SHEAR_STRESS, Column.FIXED_POINT_STABILITY],
         )
         df_bootstrap = load_dataframe(bootstrap_dataframe_manifest.locations[dataset_name])
         df_3d_bootstrap = filter_dataframe_by_stability(df_bootstrap, StabilityLabel.STABLE)

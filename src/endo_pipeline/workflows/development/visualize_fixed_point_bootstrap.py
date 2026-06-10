@@ -177,7 +177,7 @@ def main(
                 (axes[1], column_names[0], column_names[2]),  # PC1 vs PC3
             ]:
                 for _, row in high_confidence_df_flow.iterrows():
-                    stability = row[Column.VectorField.STABILITY]
+                    stability = row[Column.FIXED_POINT_STABILITY]
                     color = FIXED_POINT_PLOT_STYLE[stability].color
                     marker = FIXED_POINT_PLOT_STYLE[stability].marker
 
@@ -226,7 +226,7 @@ def main(
 
             # Legend from the stability labels present in this dataset
             present_stabilities = set(
-                high_confidence_df_flow[Column.VectorField.STABILITY].unique()
+                high_confidence_df_flow[Column.FIXED_POINT_STABILITY].unique()
             )
             legend_handles = [
                 StabilityLegendHandle(stability_label=s)
@@ -269,7 +269,7 @@ def main(
         for ds_name, ds_df in combined_df.groupby(Column.DATASET):
             ds_color = get_dataset_color(ds_name)
             for _, row in ds_df.iterrows():
-                stability = row[Column.VectorField.STABILITY]
+                stability = row[Column.FIXED_POINT_STABILITY]
                 # only plot stable fixed points in the combined figure for clearer comparison
                 if stability != StabilityLabel.STABLE:
                     continue
