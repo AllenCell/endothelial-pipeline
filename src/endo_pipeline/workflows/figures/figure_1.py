@@ -122,4 +122,6 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
 
 if __name__ == "__main__":
-    main()
+    from endo_pipeline.cli import workflow_cli
+
+    workflow_cli(main)
