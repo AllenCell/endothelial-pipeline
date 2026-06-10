@@ -101,7 +101,7 @@ def main(
         submit_manifest_staging_job,
     )
     from endo_pipeline.manifests import load_image_manifest
-    from endo_pipeline.settings.manifest_staging import IMAGE_MANIFEST_STAGING_FOLDERS
+    from endo_pipeline.settings.manifest_staging import STAGING_IMAGE_MANIFEST_NAMES
 
     logger = logging.getLogger(__name__)
 
@@ -109,13 +109,13 @@ def main(
     output_path = get_output_path(__file__, unique_name)
 
     # Check if requested manifest is supported for staging to bucket
-    if manifest_name not in IMAGE_MANIFEST_STAGING_FOLDERS.keys():
+    if manifest_name not in STAGING_IMAGE_MANIFEST_NAMES:
         logger.error("Manifest '%s' is not supported for staging to bucket", manifest_name)
         return
 
-    # Load image manifest and set staging folder
+    # Load image manifest and set staging folder equal to manifest name
     manifest = load_image_manifest(manifest_name)
-    folder = IMAGE_MANIFEST_STAGING_FOLDERS[manifest_name]
+    folder = f"{manifest_name}/"
 
     # Get list of keys to stage, if provided. Otherwise, get all available
     # location keys from the manifest
