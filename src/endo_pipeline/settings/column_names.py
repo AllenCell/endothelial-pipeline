@@ -616,6 +616,9 @@ class ColumnNameSuffix(StrEnum):
     FIXED_POINTS = "_fixed_point"
     """Suffix for column name for fixed point locations."""
 
+    BASELINE_FIXED_POINTS = "_baseline"
+    """Suffix for column name for baseline fixed point locations."""
+
     BOOTSTRAP_CLUSTER_MEAN = "_cluster_mean"
     """Suffix for column name for mean coordinate of matched bootstrap fixed points."""
 

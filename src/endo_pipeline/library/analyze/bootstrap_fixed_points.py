@@ -330,8 +330,10 @@ def match_bootstrap_fixed_points_to_baseline(
         bootstrap fixed point coordinates.
 
     """
+
     column_names = list(column_names)
-    baseline_fixed_points_array = baseline_fixed_points[column_names].to_numpy()
+    fp_column_names = [f"{col}{ColumnNameSuffix.FIXED_POINTS}" for col in column_names]
+    baseline_fixed_points_array = baseline_fixed_points[fp_column_names].to_numpy()
     n_baseline = len(baseline_fixed_points_array)
 
     # dict to hold matched coords for each baseline fixed point (FP) across
@@ -355,7 +357,7 @@ def match_bootstrap_fixed_points_to_baseline(
         # Pairwise Euclidean distances: shape (n_baseline, n_boot_fpts). Need to
         # account for circular distance in the polar angle dimension if present,
         # but can still use np.linalg.norm on the diffs
-        fixed_point_result_array = fixed_point_result[column_names].to_numpy()
+        fixed_point_result_array = fixed_point_result[fp_column_names].to_numpy()
 
         pairwise_diffs = (
             baseline_fixed_points_array[:, None, :] - fixed_point_result_array[None, :, :]
@@ -504,7 +506,9 @@ def aggregate_bootstrapping_results(
             Column.FIXED_POINT_STABILITY: baseline_fixed_point[Column.FIXED_POINT_STABILITY],
         }
         for col in column_names:
-            dataframe_row[col] = baseline_fixed_point[col]
+            dataframe_row[f"{col}{ColumnNameSuffix.BASELINE_FIXED_POINTS}"] = baseline_fixed_point[
+                f"{col}{ColumnNameSuffix.FIXED_POINTS}"
+            ]
 
         num_hits = len(matched_coords[pos_idx])
         if num_hits >= 1:
