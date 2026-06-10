@@ -668,8 +668,9 @@ def reconstruct_along_nullcline(
     return fig_savedir / f"{filename}.svg"
 
 
-def _load_and_process_3d_vector_field(
-    dataset_name: str,
+def _process_3d_vector_field_for_visualization(
+    drift_dataframe: pd.DataFrame,
+    feature_dataframe: pd.DataFrame,
     column_names: list[Column.DiffAEData],
     theta_lims: tuple[float, float],
     r_lims: tuple[float, float],
@@ -681,16 +682,13 @@ def _load_and_process_3d_vector_field(
     extract the grid and vector components within the specified limits,
     returning downsampled versions for plotting.
     """
-    drift_df = load_drift_dataframe_for_dataset(dataset_name)
-    flow_field_dict = get_vector_field_as_dict_from_dataframe(drift_df, column_names)
+    flow_field_dict = get_vector_field_as_dict_from_dataframe(drift_dataframe, column_names)
 
     # grids and vectors are 3-D arrays shaped (n_theta, n_r, n_rho)
     x_grid_, y_grid_, z_grid_ = flow_field_dict["grid"]
     u_field_, v_field_, w_field_ = flow_field_dict["vectors"]
 
     # mask grid points with low data density before clipping/downsampling
-    dataframe_manifest = load_dataframe_manifest(GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME)
-    feature_dataframe = load_dataframe(dataframe_manifest.locations[dataset_name])
     grid_points_1d = [
         np.unique(x_grid_[:, 0, 0]),
         np.unique(y_grid_[0, :, 0]),
@@ -805,6 +803,9 @@ def make_3d_vector_field_plot_panel(
         Path to the saved figure file.
 
     """
+    drift_dataframe = load_drift_dataframe_for_dataset(dataset_name)
+    feature_dataframe_manifest = load_dataframe_manifest(GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME)
+    feature_dataframe = load_dataframe(feature_dataframe_manifest.locations[dataset_name])
 
     column_names = list(DYNAMICS_COLUMN_NAMES)  # [theta, r, rho]
     col_labels = [(COLUMN_METADATA[col].label or str(col)) for col in DYNAMICS_COLUMN_NAMES]
@@ -814,8 +815,9 @@ def make_3d_vector_field_plot_panel(
     rho_lims = (-1.5, 1.5)
 
     # Load, clip, and downsample drift vector field
-    drift, meshgrid = _load_and_process_3d_vector_field(
-        dataset_name,
+    drift, meshgrid = _process_3d_vector_field_for_visualization(
+        drift_dataframe,
+        feature_dataframe,
         column_names,
         theta_lims,
         r_lims,
