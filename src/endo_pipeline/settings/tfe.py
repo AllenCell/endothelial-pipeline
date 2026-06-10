@@ -119,7 +119,5 @@ TFE_FEATURES: list[ColumnNameType] = [
     "ema005_optical_flow_mean_unit_vector_fast_dt1",
     Column.OpticalFlow.UNIT_VECTOR_MEAN,
     "ema01_optical_flow_mean_unit_vector_fast_dt1",
-    "ema02_optical_flow_mean_unit_vector_dt1",
-    "ema02_optical_flow_mean_unit_vector_fast_dt1",
 ]
 """List of feature to include in TFE manifest."""
