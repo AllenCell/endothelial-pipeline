@@ -85,10 +85,8 @@ def main(
         DYNAMICS_COLUMN_NAMES,
     )
     from endo_pipeline.settings.flow_field_3d import FIGSIZE_2D_FLOW_FIELD, NROWS_2D_FLOW_FIELD
-    from endo_pipeline.settings.flow_field_dataframes import (
-        BOOTSTRAPPING_MANIFEST_NAMES,
-        StabilityLabel,
-    )
+    from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
+    from endo_pipeline.settings.manifest_names import BOOTSTRAPPING_MANIFEST_NAMES
     from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
     from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 

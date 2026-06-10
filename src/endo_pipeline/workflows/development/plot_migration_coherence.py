@@ -90,7 +90,7 @@ def main(
         DYNAMICS_COLUMN_NAMES,
         METADATA_COLUMNS_TO_KEEP,
     )
-    from endo_pipeline.settings.flow_field_dataframes import (
+    from endo_pipeline.settings.manifest_names import (
         BOOTSTRAPPING_MANIFEST_NAMES,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
     )

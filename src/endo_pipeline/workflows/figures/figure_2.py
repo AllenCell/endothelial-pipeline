@@ -57,10 +57,10 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.examples import EXAMPLE_DATASET, FPT_FIG_EXAMPLES
     from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
-    from endo_pipeline.settings.flow_field_dataframes import (
+    from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
+    from endo_pipeline.settings.manifest_names import (
         BOOTSTRAPPING_MANIFEST_NAMES,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
-        StabilityLabel,
     )
     from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
     from endo_pipeline.settings.workflow_defaults import (

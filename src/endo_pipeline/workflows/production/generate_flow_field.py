@@ -111,10 +111,12 @@ def main(
         UPPER_PERCENTILE_FOR_FILTERING_FPTS,
     )
     from endo_pipeline.settings.flow_field_dataframes import (
-        DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
-        DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD,
         FMS_ANNOTATION_NOTES_FIXED_POINTS,
         FMS_ANNOTATION_NOTES_VECTOR_FIELD,
+    )
+    from endo_pipeline.settings.manifest_names import (
+        DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+        DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD,
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,

@@ -23,7 +23,7 @@ from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.flow_field_2d import HISTOGRAM_THRESHOLD_FOR_MASKING
 from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
-from endo_pipeline.settings.flow_field_dataframes import DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD
+from endo_pipeline.settings.manifest_names import DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD
 
 logger = logging.getLogger(__name__)
 

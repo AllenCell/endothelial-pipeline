@@ -22,10 +22,8 @@ from endo_pipeline.settings.dynamics_workflows import (
     SAMPLER_RANDOM_SEED,
     UPPER_PERCENTILE_FOR_FILTERING_FPTS,
 )
-from endo_pipeline.settings.flow_field_dataframes import (
-    GRID_BASED_BOOTSTRAPPING_MANIFEST_NAME,
-    StabilityLabel,
-)
+from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
+from endo_pipeline.settings.manifest_names import GRID_BASED_BOOTSTRAPPING_MANIFEST_NAME
 
 logger = logging.getLogger(__name__)
 

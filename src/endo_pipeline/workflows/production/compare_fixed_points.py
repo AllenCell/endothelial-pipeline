@@ -56,10 +56,10 @@ def main(datasets: Datasets | None = None) -> None:
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.examples import EXAMPLE_DATASET
-    from endo_pipeline.settings.flow_field_dataframes import (
+    from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
+    from endo_pipeline.settings.manifest_names import (
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
         GRID_BASED_BOOTSTRAPPING_MANIFEST_NAME,
-        StabilityLabel,
     )
 
     logger = logging.getLogger(__name__)
