@@ -217,8 +217,8 @@ def main(
                     fixed_points_for_flow_condition, stability_label=StabilityLabel.STABLE
                 )
                 ax.plot(
-                    stable_fixed_points[column_name],
-                    np.zeros_like(stable_fixed_points[column_name]),
+                    stable_fixed_points[fp_column_name],
+                    np.zeros_like(stable_fixed_points[fp_column_name]),
                     FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].marker,
                     color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color,
                     markeredgecolor="k",

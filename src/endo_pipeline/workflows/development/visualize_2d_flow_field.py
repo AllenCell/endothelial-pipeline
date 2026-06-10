@@ -293,7 +293,7 @@ def main(
             )
             fig.suptitle(fig_title, y=1.00)
             figure_name = f"{dataset_name_flow}{name_suffix}_contours"
-            save_plot_to_path(fig, output_path, figure_name, file_format=".png")
+            save_plot_to_path(fig, output_path, figure_name, tight_layout=False, file_format=".png")
 
             # Plot quiver plot of drift and save
             fig, ax = plot_drift_quiver(
@@ -320,8 +320,8 @@ def main(
                 )
 
                 ax.plot(
-                    stable_fixed_points[column_names[0]],
-                    stable_fixed_points[column_names[1]],
+                    stable_fixed_points[fp_column_names[0]],
+                    stable_fixed_points[fp_column_names[1]],
                     FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].marker,
                     color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color,
                     markeredgecolor="k",

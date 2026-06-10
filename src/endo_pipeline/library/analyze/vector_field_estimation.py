@@ -410,9 +410,10 @@ def get_reshaped_vector_field_and_grid(
     # restructure the drift dataframe into a flow field dictionary
     ndim = len(column_names)
     drift_column_names = [f"{name}{ColumnNameSuffix.DRIFT}" for name in column_names]
+    mesh_column_names = [f"{name}{ColumnNameSuffix.MESH_GRID}" for name in column_names]
 
     grid_points_1d = [
-        np.sort(flow_field_dataframe[column_name].unique()) for column_name in column_names
+        np.sort(flow_field_dataframe[column_name].unique()) for column_name in mesh_column_names
     ]
     grid_shape = tuple(len(points) for points in grid_points_1d)
 

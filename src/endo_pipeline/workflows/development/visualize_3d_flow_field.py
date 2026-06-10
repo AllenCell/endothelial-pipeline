@@ -260,7 +260,9 @@ def main(
 
                 if not stable_fixed_points.empty:
                     stable_fixed_point_dataframe_list.append(stable_fixed_points)
-                    stable_fixed_points_list.extend(list(stable_fixed_points[column_names].values))
+                    stable_fixed_points_list.extend(
+                        list(stable_fixed_points[fp_column_names].values)
+                    )
 
             # To store as dataframe, the grid points were stored as a flattened
             # meshgrid in the grid dataframe, so to get the grid points back into
@@ -271,7 +273,7 @@ def main(
             # 1D arrays of the grid points along each dimension.
             grid_points_1d = [
                 np.sort(vector_field_for_flow_condition[column_name].unique())
-                for column_name in column_names
+                for column_name in mesh_column_names
             ]
             grid_shape = tuple(len(points) for points in grid_points_1d)
             grid = np.meshgrid(*grid_points_1d, indexing="ij")
