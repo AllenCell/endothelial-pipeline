@@ -79,6 +79,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         scale_bar_um=20,
         random_seed=4,
         num_gpus=NUM_GPUS,
+        **placeholders["C"],
     )
 
     panels = [

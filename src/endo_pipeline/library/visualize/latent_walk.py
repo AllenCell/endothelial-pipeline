@@ -22,6 +22,7 @@ from endo_pipeline.library.model.latent_walk_utils import (
 )
 from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.library.visualize.figure_utils import add_scalebar
+from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.manifests import (
     get_dataframe_location_for_dataset,
     load_dataframe_manifest,
@@ -53,7 +54,7 @@ def plot_latent_walk_as_grid(
     label_sigmas: bool = True,
     figsize: tuple[float, float] | None = None,
     scale_bar_um: int = 20,
-) -> None:
+) -> Path:
     """Plot and save a grid of reconstructed image crops representing a latent walk.
 
     Parameters
@@ -157,9 +158,10 @@ def plot_latent_walk_as_grid(
         )
 
     file_name = f"{file_name}_scale_bar_{scale_bar_um}um"
-    save_plot_to_path(fig, save_path, file_name, file_format=file_format)
+    return save_plot_to_path(fig, save_path, file_name, file_format=file_format)
 
 
+@figure_panel("Latent walk visualization along ML-based features theta, r, and rho")
 def perform_and_plot_latent_walk_for_figures(
     output_path: Path,
     filename: str,
@@ -259,7 +261,7 @@ def perform_and_plot_latent_walk_for_figures(
         model, walk_latent, ranges, num_gpus=num_gpus, random_seed=random_seed
     )
 
-    plot_latent_walk_as_grid(
+    walk_img_path = plot_latent_walk_as_grid(
         walk_img_grid,
         ranges,
         walk_column_names,
@@ -271,4 +273,4 @@ def perform_and_plot_latent_walk_for_figures(
         file_format=".svg",
     )
 
-    return output_path / f"{filename}_scale_bar_{scale_bar_um}um.svg", walk_img_grid
+    return walk_img_path, walk_img_grid
