@@ -104,8 +104,15 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     example_dataset_12dyn = EXAMPLE_DATASET["FIGURE_3_12_DYN_BISTABLE"]
     example_dataset_15dyn = EXAMPLE_DATASET["FIGURE_3_15_DYN_BISTABLE"]
     for dataset_name in [example_dataset_12dyn, example_dataset_15dyn]:
+        # only include colorbar and legend for first of the two plots to save space
+        include_colorbar = dataset_name == example_dataset_12dyn
+        include_legend = dataset_name == example_dataset_12dyn
         vector_field_plot_paths[dataset_name] = make_3d_vector_field_plot_panel(
-            dataset_name, output_path, **placeholders["D"]
+            dataset_name,
+            output_path,
+            include_colorbar=include_colorbar,
+            include_legend=include_legend,
+            **placeholders["D"],
         )
 
     panels = [
@@ -137,7 +144,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             letter="",
             path=vector_field_plot_paths[example_dataset_15dyn],
             x_position=MAX_FIGURE_WIDTH * 0.6,
-            y_position=5.0,
+            y_position=4.2,
             x_offset=0.1,
             y_offset=0.1,
         ),

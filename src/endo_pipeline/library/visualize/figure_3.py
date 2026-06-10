@@ -29,6 +29,8 @@ from endo_pipeline.settings.workflow_defaults import GRID_BASED_FEATURES_FILTERE
 def make_3d_vector_field_plot_panel(
     dataset_name: str,
     fig_savedir: Path,
+    include_colorbar: bool = True,
+    include_legend: bool = True,
 ) -> Path:
     """
     Render the 3D (theta, r, rho) drift vector field for a given dataset, with
@@ -40,6 +42,10 @@ def make_3d_vector_field_plot_panel(
         Name of the dataset to visualize.
     fig_savedir
         Directory in which to save the figure as a static PNG file.
+    include_colorbar
+        Whether to include a colorbar indicating the magnitude of the drift vector.
+    include_legend
+        Whether to include a legend (vector arrow and fixed point marker).
 
     Returns
     -------
@@ -73,6 +79,8 @@ def make_3d_vector_field_plot_panel(
         drift=drift,
         meshgrid=meshgrid,
         figsize=(2.0, 2.5),
+        include_colorbar=include_colorbar,
+        include_legend=include_legend,
         xlim=theta_lims,
         ylim=r_lims,
         zlim=rho_lims,
