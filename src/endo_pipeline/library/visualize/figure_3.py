@@ -127,7 +127,7 @@ def make_3d_vector_field_plot_panel(
         filename,
         file_format=".svg",
         tight_layout=False,
-        transparent=False,
+        transparent=True,
         bbox_inches="tight",
     )
 
