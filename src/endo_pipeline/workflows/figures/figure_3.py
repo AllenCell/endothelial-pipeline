@@ -37,7 +37,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     )
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName
-    from endo_pipeline.settings.examples import FIGURE_3_EXAMPLE_IMAGES
+    from endo_pipeline.settings.examples import EXAMPLE_DATASET, FIGURE_3_EXAMPLE_IMAGES
     from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
     from endo_pipeline.settings.flow_field_dataframes import BOOTSTRAPPING_MANIFEST_NAMES
     from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
@@ -101,8 +101,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     )
 
     vector_field_plot_paths: dict[str, Path] = {}
-    dataset_names = ["20250319_20X", "20260114_20X"]
-    for dataset_name in dataset_names:
+    example_dataset_12dyn = EXAMPLE_DATASET["FIGURE_3_12_DYN_BISTABLE"]
+    example_dataset_15dyn = EXAMPLE_DATASET["FIGURE_3_15_DYN_BISTABLE"]
+    for dataset_name in [example_dataset_12dyn, example_dataset_15dyn]:
         vector_field_plot_paths[dataset_name] = make_3d_vector_field_plot_panel(
             dataset_name, output_path, **placeholders["D"]
         )
@@ -126,7 +127,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         ),
         FigurePanel(
             letter="D",
-            path=vector_field_plot_paths["20250319_20X"],
+            path=vector_field_plot_paths[example_dataset_12dyn],
             x_position=MAX_FIGURE_WIDTH * 0.6,
             y_position=2.3,
             x_offset=0.1,
@@ -134,7 +135,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         ),
         FigurePanel(
             letter="D",
-            path=vector_field_plot_paths["20260114_20X"],
+            path=vector_field_plot_paths[example_dataset_15dyn],
             x_position=MAX_FIGURE_WIDTH * 0.6,
             y_position=4.25,
             x_offset=0.1,
