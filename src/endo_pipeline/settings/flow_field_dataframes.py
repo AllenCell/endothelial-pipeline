@@ -3,7 +3,7 @@
 from enum import StrEnum
 
 FMS_ANNOTATION_NOTES_VECTOR_FIELD: str = (
-    "Drift vectors and corresponding grid points for 3D flow field estimation."
+    "Drift vectors and corresponding grid points for %dD flow field estimation."
 )
 """Annotation notes for vector field dataframes uploaded to FMS."""
 
