@@ -43,11 +43,12 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
 
     # Example images from biological system at low and high shear stress
-    create_panel_biological_system_examples(
+    example_path, example_inset_path = create_panel_biological_system_examples(
         examples=FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES,
         output_path=output_path,
         figure_size=(2.7, 3.6),
         inset_coordinates=(5, 500 - 128),
+        **placeholders["A"],
     )
 
     # Correlation heatmaps of ML-based and measured features
@@ -83,7 +84,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     panels = [
         FigurePanel(
             letter="A",
-            path=save_dir / "biological_system_examples_scale_bar_100um.svg",
+            path=example_path,
             x_position=0,
             y_position=0,
             x_offset=0,
@@ -91,7 +92,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         ),
         FigurePanel(
             letter="",
-            path=save_dir / "biological_system_examples_inset_scale_bar_20um.svg",
+            path=example_inset_path,
             x_position=3,
             y_position=0,
             x_offset=0,

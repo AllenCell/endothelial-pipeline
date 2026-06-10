@@ -15,6 +15,7 @@ from endo_pipeline.library.process.image_processing import (
     load_processed_egfp_image_crop,
 )
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
+from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.settings.examples import ExampleImage
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
@@ -22,6 +23,7 @@ from endo_pipeline.settings.summary_plot import CELL_LINE_LABEL_MAP
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 
+@figure_panel("Example images from biological system at low and high shear stress")
 def create_panel_biological_system_examples(
     examples: list[ExampleImage],
     output_path: Path,
@@ -29,7 +31,7 @@ def create_panel_biological_system_examples(
     scale_bar_um: int = 100,
     figure_size: tuple[float, float] = (3, 3),
     inset_coordinates: tuple = (0, 0),
-) -> None:
+) -> tuple[Path, Path]:
     """Create FOV and inset image panels of example images of the biological system
     at low and high shear stress.
 
@@ -122,7 +124,7 @@ def create_panel_biological_system_examples(
         )
         ax.add_patch(rect)
 
-    save_plot_to_path(
+    example_path = save_plot_to_path(
         fig,
         output_path,
         f"biological_system_examples_scale_bar_{scale_bar_um}um",
@@ -166,7 +168,7 @@ def create_panel_biological_system_examples(
             include_label=True if i == 0 else False,
         )
 
-    save_plot_to_path(
+    example_inset_path = save_plot_to_path(
         fig_crops,
         output_path,
         f"biological_system_examples_inset_scale_bar_{scale_bar_um}um",
@@ -174,6 +176,8 @@ def create_panel_biological_system_examples(
         tight_layout=False,
         pad_inches=0,
     )
+
+    return example_path, example_inset_path
 
 
 def create_panel_intermediate_examples(
