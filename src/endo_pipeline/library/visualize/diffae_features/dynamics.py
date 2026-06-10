@@ -5,6 +5,7 @@ from typing import Any, Literal, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import LogNorm, TwoSlopeNorm
 from matplotlib.legend_handler import HandlerBase
@@ -13,8 +14,24 @@ from matplotlib.patches import Polygon as MplPolygon
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Line3DCollection, Poly3DCollection
 
+from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
+    get_kernel_density_estimate_from_histogram,
+)
+from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
+from endo_pipeline.library.analyze.numerics.binning import get_bins
+from endo_pipeline.library.analyze.vector_field_estimation import (
+    get_vector_field_as_dict_from_dataframe,
+)
 from endo_pipeline.library.visualize.figure_utils import set_axes_properties
 from endo_pipeline.library.visualize.fixed_points import StabilityLegendHandle
+from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.dynamics_workflows import (
+    BIN_WIDTHS_DYNAMICS,
+    KERNEL_BANDWIDTHS_DYNAMICS,
+    KERNEL_NAMES_DYNAMICS,
+    KERNEL_PERIODS_DYNAMICS,
+    POLAR_ANGLE_PERIOD,
+)
 from endo_pipeline.settings.figures import FONTSIZE_SMALL, FONTSIZE_XSMALL
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_CBAR_NUM_TICKS,
@@ -645,6 +662,135 @@ class _HandlerConeArrow(HandlerBase):
         return [shaft, cone]
 
 
+def process_3d_vector_field_for_visualization(
+    vector_field_dataframe: pd.DataFrame,
+    feature_dataframe: pd.DataFrame,
+    column_names: list[Column.DiffAEData],
+    xlim: tuple[float, float],
+    ylim: tuple[float, float],
+    zlim: tuple[float, float],
+    mask_threshold: float,
+) -> tuple[tuple[np.ndarray, np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]]:
+    """
+    Process a 3D vector field over a 3D meshgrid for visualization as a quiver
+    plot with arrows colored by magnitude.
+
+    Processing steps include: - masking grid points with low data density (based
+    on a kernel density estimate
+      of the feature data) by setting the vectors to NaN at those points,
+    - wrapping the grid in the periodic variable theta (assumed to be the x
+      coordinate) to be within the specified limits for better visualization
+    - masking the vector field to be within the specified limits (taking only
+      grid points within limits) and reshaping accordingly as 3D arrays of
+      updated number of points within limits.
+
+    Parameters
+    ----------
+    vector_field_dataframe
+        DataFrame containing the vector field evaluated on a meshgrid, with
+        columns corresponding to the grid coordinates and vector components.
+    feature_dataframe
+        DataFrame containing the feature data used to estimate the data density
+        for masking low-density grid points.
+    column_names
+        List of column names corresponding to the grid coordinates.
+    xlim
+        Tuple specifying the plot limits for the x coordinate.
+    ylim
+        Tuple specifying the plot limits for the y coordinate.
+    zlim
+        Tuple specifying the plot limits for the z coordinate.
+    mask_threshold
+        Threshold for masking low-density grid points based on the kernel
+        density estimate.
+
+    Returns
+    -------
+    :
+        Processed 3D grid coordinates and vector components, each as a tuple
+        of 3D arrays.
+    """
+    vector_field_dict = get_vector_field_as_dict_from_dataframe(
+        vector_field_dataframe, column_names
+    )
+
+    # grids and vectors are 3-D arrays shaped (n_theta, n_r, n_rho)
+    x_grid_, y_grid_, z_grid_ = vector_field_dict["grid"]
+    u_field_, v_field_, w_field_ = vector_field_dict["vectors"]
+
+    # mask grid points with low data density before clipping/downsampling
+    grid_points_1d = [
+        np.unique(x_grid_[:, 0, 0]),
+        np.unique(y_grid_[0, :, 0]),
+        np.unique(z_grid_[0, 0, :]),
+    ]
+    bin_widths = [BIN_WIDTHS_DYNAMICS[col] for col in column_names]
+    bin_limits = [
+        (pts[0] - bw / 2, pts[-1] + bw / 2)
+        for pts, bw in zip(grid_points_1d, bin_widths, strict=True)
+    ]
+    bins_3d = get_bins(bin_widths=tuple(bin_widths), bin_limits=bin_limits, pad=0)[0]
+    kernels = [
+        KramersMoyalKernel(
+            name=KERNEL_NAMES_DYNAMICS[col],
+            bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[col],
+            period=KERNEL_PERIODS_DYNAMICS[col],
+        )
+        for col in column_names
+    ]
+    hist = np.histogramdd(feature_dataframe[column_names].to_numpy(), bins=bins_3d)[0]
+    hist_kde = get_kernel_density_estimate_from_histogram(
+        hist[None, ...], bins=bins_3d, kernel=kernels
+    )
+    low_density_mask = hist_kde < mask_threshold
+    u_field_ = u_field_.copy()
+    v_field_ = v_field_.copy()
+    w_field_ = w_field_.copy()
+    u_field_[low_density_mask] = np.nan
+    v_field_[low_density_mask] = np.nan
+    w_field_[low_density_mask] = np.nan
+
+    # Wrap theta grid to be within the specified limits for better visualization
+    # of the vector field (default is (0, pi), but we want to shift the limits
+    # so that the stable fixed point is not at the boundary). Note that this
+    # method hard-codes the assumption that theta is the x coordinate, which is
+    # true for our current use case of this method.
+    where_theta_below_lims = x_grid_ < xlim[0]
+    where_theta_above_lims = x_grid_ > xlim[1]
+    x_grid_[where_theta_below_lims] += POLAR_ANGLE_PERIOD
+    x_grid_[where_theta_above_lims] -= POLAR_ANGLE_PERIOD
+    arg_sorted_theta = np.argsort(x_grid_[:, 0, 0])
+    x_grid_ = x_grid_[arg_sorted_theta, :, :]
+    y_grid_ = y_grid_[arg_sorted_theta, :, :]
+    z_grid_ = z_grid_[arg_sorted_theta, :, :]
+    u_field_ = u_field_[arg_sorted_theta, :, :]
+    v_field_ = v_field_[arg_sorted_theta, :, :]
+    w_field_ = w_field_[arg_sorted_theta, :, :]
+
+    # mask vector field to be within the specified limits (take only grid points
+    # within limits), reshaping accordingly as 3D arrays of updated number of
+    # points within limits
+    x_in_bounds = (x_grid_ >= xlim[0]) & (x_grid_ <= xlim[1])
+    num_x_in_bounds = np.unique(np.sum(x_in_bounds, axis=0))[-1]
+    y_in_bounds = (y_grid_ >= ylim[0]) & (y_grid_ <= ylim[1])
+    num_y_in_bounds = np.unique(np.sum(y_in_bounds, axis=1))[-1]
+    z_in_bounds = (z_grid_ >= zlim[0]) & (z_grid_ <= zlim[1])
+    num_z_in_bounds = np.unique(np.sum(z_in_bounds, axis=2))[-1]
+    in_bounds_mask = x_in_bounds & y_in_bounds & z_in_bounds
+
+    x_grid = x_grid_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
+    y_grid = y_grid_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
+    z_grid = z_grid_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
+    u_field = u_field_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
+    v_field = v_field_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
+    w_field = w_field_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
+
+    drift = (u_field, v_field, w_field)
+    meshgrid = (x_grid, y_grid, z_grid)
+
+    return drift, meshgrid
+
+
 def plot_drift_3d(
     drift: tuple[np.ndarray, np.ndarray, np.ndarray],
     meshgrid: tuple[np.ndarray, np.ndarray, np.ndarray],
@@ -656,13 +802,8 @@ def plot_drift_3d(
     **axes_kwargs: dict[str, Any],
 ) -> tuple[plt.Figure, Axes3D]:
     """
-    Render the 3D (theta, r, rho) drift vector field for a given dataset using
-    matplotlib, with the stable fixed point overlaid as a scatter marker.
-
-    The drift vector field is loaded via
-    :func:`~endo_pipeline.library.analyze.vector_field_estimation.load_drift_dataframe_for_dataset`
-    and the stable fixed point is loaded from the bootstrapped fixed-point
-    dataframe manifest (``bootstrapped_fixed_points_grid``).
+    Render a 3D drift coefficient vector field as a quiver plot with arrows
+    coloured by magnitude.
 
     Parameters
     ----------
@@ -677,8 +818,8 @@ def plot_drift_3d(
         Size of the figure, specified as a tuple (width, height).
     downsample_factor
         Factor by which to downsample the vector field for visualization. Arrows
-        will be plotted at every nth grid point in each dimension, where n is the
-        downsample factor.
+        will be plotted at every nth grid point in each dimension, where n is
+        the downsample factor.
     colormap
         Colormap to use for colouring the arrows by their magnitude.
     magnitude_limits
@@ -688,8 +829,9 @@ def plot_drift_3d(
     arrow_alpha
         Opacity for the arrows (between 0 and 1).
     axes_kwargs
-        Additional keyword arguments to pass to set_axes_properties for customizing
-        the axes, e.g., to specify axis limits, labels, title, or aspect ratio.
+        Additional keyword arguments to pass to set_axes_properties for
+        customizing the axes, e.g., to specify axis limits, labels, title, or
+        aspect ratio.
 
 
     Returns

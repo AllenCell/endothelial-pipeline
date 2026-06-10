@@ -15,25 +15,18 @@ from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 from endo_pipeline.io import load_dataframe, save_plot_to_path
-from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
-    get_kernel_density_estimate_from_histogram,
-)
-from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
-from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
 )
 from endo_pipeline.library.analyze.track_integration import get_line_fit_and_filtered_df
-from endo_pipeline.library.analyze.vector_field_estimation import (
-    get_vector_field_as_dict_from_dataframe,
-    load_drift_dataframe_for_dataset,
-)
+from endo_pipeline.library.analyze.vector_field_estimation import load_drift_dataframe_for_dataset
 from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
 from endo_pipeline.library.model.diffae.generate_image import generate_from_dataframe
 from endo_pipeline.library.visualize.diffae_features.dynamics import (
     plot_drift_1d,
     plot_drift_3d,
     plot_drift_contours,
+    process_3d_vector_field_for_visualization,
 )
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.library.visualize.figures import figure_panel
@@ -41,13 +34,7 @@ from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
-from endo_pipeline.settings.dynamics_workflows import (
-    BIN_WIDTHS_DYNAMICS,
-    DYNAMICS_COLUMN_NAMES,
-    KERNEL_BANDWIDTHS_DYNAMICS,
-    KERNEL_NAMES_DYNAMICS,
-    KERNEL_PERIODS_DYNAMICS,
-)
+from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.figures import FONTSIZE_SMALL, FONTSIZE_XSMALL
 from endo_pipeline.settings.first_passage_time import FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME
 from endo_pipeline.settings.flow_field_2d import (
@@ -668,112 +655,14 @@ def reconstruct_along_nullcline(
     return fig_savedir / f"{filename}.svg"
 
 
-def _process_3d_vector_field_for_visualization(
-    drift_dataframe: pd.DataFrame,
-    feature_dataframe: pd.DataFrame,
-    column_names: list[Column.DiffAEData],
-    theta_lims: tuple[float, float],
-    r_lims: tuple[float, float],
-    rho_lims: tuple[float, float],
-    mask_threshold: float,
-) -> tuple[tuple[np.ndarray, np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]]:
-    """
-    Load the vector field data for the given dataset and process it to
-    extract the grid and vector components within the specified limits,
-    returning downsampled versions for plotting.
-    """
-    flow_field_dict = get_vector_field_as_dict_from_dataframe(drift_dataframe, column_names)
-
-    # grids and vectors are 3-D arrays shaped (n_theta, n_r, n_rho)
-    x_grid_, y_grid_, z_grid_ = flow_field_dict["grid"]
-    u_field_, v_field_, w_field_ = flow_field_dict["vectors"]
-
-    # mask grid points with low data density before clipping/downsampling
-    grid_points_1d = [
-        np.unique(x_grid_[:, 0, 0]),
-        np.unique(y_grid_[0, :, 0]),
-        np.unique(z_grid_[0, 0, :]),
-    ]
-    bin_widths = [BIN_WIDTHS_DYNAMICS[col] for col in column_names]
-    bin_limits = [
-        (pts[0] - bw / 2, pts[-1] + bw / 2)
-        for pts, bw in zip(grid_points_1d, bin_widths, strict=True)
-    ]
-    bins_3d = get_bins(bin_widths=tuple(bin_widths), bin_limits=bin_limits, pad=0)[0]
-    kernels = [
-        KramersMoyalKernel(
-            name=KERNEL_NAMES_DYNAMICS[col],
-            bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[col],
-            period=KERNEL_PERIODS_DYNAMICS[col],
-        )
-        for col in column_names
-    ]
-    hist = np.histogramdd(feature_dataframe[column_names].to_numpy(), bins=bins_3d)[0]
-    hist_kde = get_kernel_density_estimate_from_histogram(
-        hist[None, ...], bins=bins_3d, kernel=kernels
-    )
-    low_density_mask = hist_kde < mask_threshold
-    u_field_ = u_field_.copy()
-    v_field_ = v_field_.copy()
-    w_field_ = w_field_.copy()
-    u_field_[low_density_mask] = np.nan
-    v_field_[low_density_mask] = np.nan
-    w_field_[low_density_mask] = np.nan
-
-    # wrap theta grid to be within the specified limits for better visualization
-    # of the vector field (default is (0, pi), but we want to shift the limits
-    # so that the stable fixed point is not at the boundary)
-    where_theta_below_lims = x_grid_ < theta_lims[0]
-    where_theta_above_lims = x_grid_ > theta_lims[1]
-    x_grid_[where_theta_below_lims] += np.pi
-    x_grid_[where_theta_above_lims] -= np.pi
-    arg_sorted_theta = np.argsort(x_grid_[:, 0, 0])
-    x_grid_ = x_grid_[arg_sorted_theta, :, :]
-    y_grid_ = y_grid_[arg_sorted_theta, :, :]
-    z_grid_ = z_grid_[arg_sorted_theta, :, :]
-    u_field_ = u_field_[arg_sorted_theta, :, :]
-    v_field_ = v_field_[arg_sorted_theta, :, :]
-    w_field_ = w_field_[arg_sorted_theta, :, :]
-
-    # mask vector field to be within the specified limits (take only grid points
-    # within limits), reshaping accordingly as 3D arrays of updated number of
-    # points within limits
-    x_in_bounds = (x_grid_ >= theta_lims[0]) & (x_grid_ <= theta_lims[1])
-    num_x_in_bounds = np.unique(np.sum(x_in_bounds, axis=0))[-1]
-    y_in_bounds = (y_grid_ >= r_lims[0]) & (y_grid_ <= r_lims[1])
-    num_y_in_bounds = np.unique(np.sum(y_in_bounds, axis=1))[-1]
-    z_in_bounds = (z_grid_ >= rho_lims[0]) & (z_grid_ <= rho_lims[1])
-    num_z_in_bounds = np.unique(np.sum(z_in_bounds, axis=2))[-1]
-    in_bounds_mask = x_in_bounds & y_in_bounds & z_in_bounds
-
-    x_grid = x_grid_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
-    y_grid = y_grid_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
-    z_grid = z_grid_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
-    u_field = u_field_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
-    v_field = v_field_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
-    w_field = w_field_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
-
-    drift = (u_field, v_field, w_field)
-    meshgrid = (x_grid, y_grid, z_grid)
-
-    return drift, meshgrid
-
-
 @figure_panel("Make panel of 3D vector field plot with stable fixed point overlay.")
 def make_3d_vector_field_plot_panel(
     dataset_name: str,
     fig_savedir: Path,
-    downsample_factor: int = 6,
-    mask_threshold: float = 0.025,
 ) -> Path:
     """
-    Render the 3D (theta, r, rho) drift vector field for a given dataset using
-    matplotlib, with the stable fixed point overlaid as a scatter marker.
-
-    The drift vector field is loaded via
-    :func:`~endo_pipeline.library.analyze.vector_field_estimation.load_drift_dataframe_for_dataset`
-    and the stable fixed point is loaded from the bootstrapped fixed-point
-    dataframe manifest (``bootstrapped_fixed_points_grid``).
+    Render the 3D (theta, r, rho) drift vector field for a given dataset, with
+    the stable fixed point overlaid as a scatter marker.
 
     Parameters
     ----------
@@ -781,21 +670,6 @@ def make_3d_vector_field_plot_panel(
         Name of the dataset to visualize.
     fig_savedir
         Directory in which to save the figure as a static PNG file.
-    downsample_factor
-        Factor by which to downsample the grid before plotting, to keep the
-        figure responsive.
-    colormap
-        Matplotlib-compatible colormap name used to colour the arrows by vector
-        magnitude.
-    magnitude_limits
-        Tuple specifying the minimum and maximum magnitude values for the colour
-        scale.  ``None`` uses the true minimum and maximum.
-    arrow_alpha
-        Opacity of the quiver arrows (0 = fully transparent, 1 = fully opaque).
-        Lowering this value lets the stable fixed point marker show through the
-        arrow field.
-    mask_threshold
-        Probability density threshold below which grid points are suppressed.
 
     Returns
     -------
@@ -815,15 +689,14 @@ def make_3d_vector_field_plot_panel(
     rho_lims = (-1.5, 1.5)
 
     # Load, clip, and downsample drift vector field
-    drift, meshgrid = _process_3d_vector_field_for_visualization(
+    drift, meshgrid = process_3d_vector_field_for_visualization(
         drift_dataframe,
         feature_dataframe,
-        column_names,
-        theta_lims,
-        r_lims,
-        rho_lims,
-        downsample_factor,
-        mask_threshold=mask_threshold,
+        column_names=column_names,
+        xlim=theta_lims,
+        ylim=r_lims,
+        zlim=rho_lims,
+        mask_threshold=0.025,
     )
 
     fig, ax = plot_drift_3d(
