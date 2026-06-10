@@ -121,16 +121,18 @@ def main(
     # Get label and drift column name for selected column
     column_label = get_label_for_column(column_name)
     drift_column_name = f"{column_name}{ColumnNameSuffix.DRIFT}"
+    fp_column_name = f"{column_name}{ColumnNameSuffix.FIXED_POINTS}"
+    mesh_column_name = f"{column_name}{ColumnNameSuffix.MESH_GRID}"
 
     # Required columns for vector field and fixed point manifests
     required_vector_field_columns = [
-        column_name,
+        mesh_column_name,
         drift_column_name,
         Column.DATASET,
         Column.SHEAR_STRESS,
     ]
     required_fixed_point_columns = [
-        column_name,
+        fp_column_name,
         Column.DATASET,
         Column.SHEAR_STRESS,
         Column.FIXED_POINT_STABILITY,
