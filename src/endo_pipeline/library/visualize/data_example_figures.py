@@ -24,7 +24,7 @@ from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 def create_panel_biological_system_examples(
     examples: list[ExampleImage],
-    save_dir: Path,
+    output_path: Path,
     crop_size: int = 1000,
     scale_bar_um: int = 100,
     figure_size: tuple[float, float] = (3, 3),
@@ -124,7 +124,7 @@ def create_panel_biological_system_examples(
 
     save_plot_to_path(
         fig,
-        save_dir,
+        output_path,
         f"biological_system_examples_scale_bar_{scale_bar_um}um",
         file_format=".svg",
         tight_layout=False,
@@ -168,7 +168,7 @@ def create_panel_biological_system_examples(
 
     save_plot_to_path(
         fig_crops,
-        save_dir,
+        output_path,
         f"biological_system_examples_inset_scale_bar_{scale_bar_um}um",
         file_format=".svg",
         tight_layout=False,

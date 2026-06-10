@@ -36,15 +36,14 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     plt.style.use("endo_pipeline.figure")
 
-    # Intro schematic
-    save_dir = get_output_path("figure_1")
+    output_path = get_output_path("figure_1")
 
     placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
 
     # Example images from biological system at low and high shear stress
     create_panel_biological_system_examples(
         examples=FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES,
-        save_dir=save_dir,
+        output_path=output_path,
         figure_size=(2.7, 3.6),
         inset_coordinates=(5, 500 - 128),
     )
@@ -53,7 +52,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     feature_correlations_path = make_feature_correlation_panel(
         pc_columns=DIFFAE_PC_COLUMN_NAME_GROUPS["main_figure"],
         seg_columns=SEGMENTATION_FEATURE_COLUMNS["main_figure"],
-        output_path=save_dir,
+        output_path=output_path,
         figure_size=(2.5, 2.8),
         **placeholders["D"],
     )
@@ -68,7 +67,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         ],
     )
     latent_walk_path, _ = perform_and_plot_latent_walk_for_figures(
-        save_path=save_dir,
+        output_path=output_path,
         filename="latent_walk_along_polar_theta_polar_r_rho",
         walk_column_names=walk_column_names,
         figsize=(4, 1.8),
@@ -114,7 +113,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         ),
     ]
     build_figure_from_panels(
-        panels, save_dir / "figure_1.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
+        panels, output_path / "figure_1.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
     )
 
 

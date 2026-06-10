@@ -161,7 +161,7 @@ def plot_latent_walk_as_grid(
 
 
 def perform_and_plot_latent_walk_for_figures(
-    save_path: Path,
+    output_path: Path,
     filename: str,
     walk_column_names: list[str],
     figsize: tuple[float, float] = (MAX_FIGURE_WIDTH, 2.8),
@@ -263,7 +263,7 @@ def perform_and_plot_latent_walk_for_figures(
         walk_img_grid,
         ranges,
         walk_column_names,
-        save_path,
+        output_path,
         filename,
         label_sigmas=True if sigma is not None else False,
         figsize=figsize,
@@ -271,4 +271,4 @@ def perform_and_plot_latent_walk_for_figures(
         file_format=".svg",
     )
 
-    return save_path / f"{filename}_scale_bar_{scale_bar_um}um.svg", walk_img_grid
+    return output_path / f"{filename}_scale_bar_{scale_bar_um}um.svg", walk_img_grid

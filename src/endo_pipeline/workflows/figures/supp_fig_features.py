@@ -106,7 +106,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     # perform latent walk along top 10 PCs and save the resulting contact sheet
     latent_walk_filename = "latent_walk_top_10_pcs"
     latent_walk_path, walk_img_grid = perform_and_plot_latent_walk_for_figures(
-        save_path=save_dir,
+        output_path=save_dir,
         filename=latent_walk_filename,
         walk_column_names=DIFFAE_PC_COLUMN_NAMES[:10],  # walk along top 10 PCs
         figsize=(3.8, 5.2),
