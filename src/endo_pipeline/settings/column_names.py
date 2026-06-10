@@ -463,12 +463,6 @@ class ColumnName:
         UNIT_VECTOR_MEAN_RAW = "optical_flow_mean_unit_vector_dt1"
         """Mean unit vector coherence (no EMA smoothing)."""
 
-        EMA005_UNIT_VECTOR_MEAN = "ema005_optical_flow_mean_unit_vector_dt1"
-        """Mean unit vector coherence with EMA smoothing, alpha=0.05."""
-
-        EMA005_UNIT_VECTOR_MEAN_FAST = "ema005_optical_flow_mean_unit_vector_fast_dt1"
-        """Mean unit vector coherence over fast pixels with EMA smoothing, alpha=0.05."""
-
         EMA01_UNIT_VECTOR_MEAN_FAST = "ema01_optical_flow_mean_unit_vector_fast_dt1"
         """Mean unit vector coherence over fast pixels with EMA smoothing, alpha=0.1."""
 

@@ -115,8 +115,6 @@ TFE_FEATURES: list[ColumnNameType] = [
     Column.OpticalFlow.SPEED_STD,
     "optical_flow_mean_unit_vector_fast",
     "speed_above_1_count",
-    "ema005_optical_flow_mean_unit_vector_dt1",
-    "ema005_optical_flow_mean_unit_vector_fast_dt1",
     Column.OpticalFlow.UNIT_VECTOR_MEAN,
     "ema01_optical_flow_mean_unit_vector_fast_dt1",
 ]
