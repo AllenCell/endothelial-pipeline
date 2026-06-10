@@ -799,7 +799,7 @@ def plot_drift_3d(
     colormap: str = "viridis_r",
     magnitude_limits: tuple[float, float] = (5e-2, 1.5),
     arrow_alpha: float = 0.6,
-    **axes_kwargs: dict[str, Any],
+    **axes_kwargs: Any,
 ) -> tuple[plt.Figure, Axes3D]:
     """
     Render a 3D drift coefficient vector field as a quiver plot with arrows
