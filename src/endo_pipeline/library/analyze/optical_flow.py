@@ -118,29 +118,6 @@ def compute_flow_statistics(
     else:
         muv_fast = np.nan
 
-    # --- Radial coherence ---
-    h, w = u.shape
-    cy, cx = h / 2.0, w / 2.0
-    yy, xx = np.mgrid[:h, :w]
-    ry = (yy - cy).astype(np.float32)
-    rx = (xx - cx).astype(np.float32)
-    r_mag = np.sqrt(rx**2 + ry**2)
-    sp_full = np.sqrt(u**2 + v**2)
-    radial_mask = mask & (r_mag > 0) & (sp_full > 0)
-    if radial_mask.any():
-        rm = r_mag[radial_mask]
-        rx_hat = rx[radial_mask] / rm
-        ry_hat = ry[radial_mask] / rm
-        sp_rm = sp_full[radial_mask]
-        ux_hat = u[radial_mask] / sp_rm
-        uy_hat = v[radial_mask] / sp_rm
-        dot_products = ux_hat * rx_hat + uy_hat * ry_hat
-        radial_coh = float(dot_products.mean())
-        radial_coh_w = float(np.average(dot_products, weights=rm))
-    else:
-        radial_coh = np.nan
-        radial_coh_w = np.nan
-
     base.update(
         {
             ColumnName.OpticalFlow.SPEED_MEAN_BASE: float(sp.mean()),
