@@ -17,6 +17,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
       scatter marker.
 
     """
+    from pathlib import Path
 
     import matplotlib.pyplot as plt
 
@@ -24,7 +25,12 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.library.visualize.data_example_figures import (
         create_panel_intermediate_examples,
     )
-    from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
+    from endo_pipeline.library.visualize.figure_3 import make_3d_vector_field_plot_panel
+    from endo_pipeline.library.visualize.figures import (
+        FigurePanel,
+        build_figure_from_panels,
+        parse_placeholder_panels,
+    )
     from endo_pipeline.library.visualize.summary_plot import (
         build_dataframe_for_fixed_point_dataset_summary,
         plot_cross_dataset_summaries,
@@ -41,6 +47,8 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     plt.style.use("endo_pipeline.figure")
 
     output_path = get_output_path(__file__)
+
+    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
 
     # Example images of intermediate shear stress condition
     create_panel_intermediate_examples(
@@ -92,9 +100,16 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         color_by_column=ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
     )
 
+    vector_field_plot_paths: dict[str, Path] = {}
+    dataset_names = ["20250319_20X", "20260114_20X"]
+    for dataset_name in dataset_names:
+        vector_field_plot_paths[dataset_name] = make_3d_vector_field_plot_panel(
+            dataset_name, output_path, **placeholders["D"]
+        )
+
     panels = [
         FigurePanel(
-            letter="A",
+            letter="B",
             path=output_path / "intermediate_examples_scale_bar_100um.svg",
             x_position=0,
             y_position=0,
@@ -102,7 +117,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             y_offset=0,
         ),
         FigurePanel(
-            letter="B",
+            letter="C",
             path=summary_plot_path,
             x_position=0,
             y_position=2.3,
@@ -110,10 +125,18 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             y_offset=0.1,
         ),
         FigurePanel(
-            letter="C",
-            path=output_path / "reconstructed_fp_crop_examples.svg",
+            letter="D",
+            path=vector_field_plot_paths["20250319_20X"],
             x_position=MAX_FIGURE_WIDTH * 0.6,
             y_position=2.3,
+            x_offset=0.1,
+            y_offset=0.1,
+        ),
+        FigurePanel(
+            letter="D",
+            path=vector_field_plot_paths["20260114_20X"],
+            x_position=MAX_FIGURE_WIDTH * 0.6,
+            y_position=4.25,
             x_offset=0.1,
             y_offset=0.1,
         ),
