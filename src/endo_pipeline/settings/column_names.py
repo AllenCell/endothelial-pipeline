@@ -566,9 +566,6 @@ class ColumnName:
         DETECTION_RATE = "detection_rate"
         """Fraction of bootstrap iterations in which a matched fixed point was found."""
 
-        CI_UPPER = "ci_upper"
-        """Upper bound of the bootstrap confidence interval."""
-
     class AutoCorrelation(StrEnum):
         """Column name suffixes used in autocorrelation analysis."""
 
@@ -627,6 +624,9 @@ class ColumnNameSuffix(StrEnum):
 
     BOOTSTRAP_CI_LOWER = "_ci_lower"
     """Suffix for column name for lower bound of the bootstrap confidence interval."""
+
+    BOOTSTRAP_CI_UPPER = "_ci_upper"
+    """Suffix for column name for upper bound of the bootstrap confidence interval."""
 
 
 ColumnNameType = (

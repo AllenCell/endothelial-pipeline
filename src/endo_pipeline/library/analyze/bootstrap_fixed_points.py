@@ -543,7 +543,7 @@ def aggregate_bootstrapping_results(
                                 polar_range=(0, polar_angle_period),
                             )
                         )
-                        dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_UPPER}"] = float(
+                        dataframe_row[f"{col}{ColumnNameSuffix.BOOTSTRAP_CI_UPPER}"] = float(
                             circpercentile(
                                 matched_coords_array[:, dim_idx],
                                 bootstrap_ci_upper_percentile,
@@ -556,7 +556,7 @@ def aggregate_bootstrapping_results(
                                 matched_coords_array[:, dim_idx], bootstrap_ci_lower_percentile
                             )
                         )
-                        dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_UPPER}"] = float(
+                        dataframe_row[f"{col}{ColumnNameSuffix.BOOTSTRAP_CI_UPPER}"] = float(
                             np.percentile(
                                 matched_coords_array[:, dim_idx], bootstrap_ci_upper_percentile
                             )
@@ -564,12 +564,12 @@ def aggregate_bootstrapping_results(
             else:
                 for col in column_names:
                     dataframe_row[f"{col}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"] = float("nan")
-                    dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_UPPER}"] = float("nan")
+                    dataframe_row[f"{col}{ColumnNameSuffix.BOOTSTRAP_CI_UPPER}"] = float("nan")
         else:
             for col in column_names:
                 dataframe_row[f"{col}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"] = float("nan")
                 dataframe_row[f"{col}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"] = float("nan")
-                dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_UPPER}"] = float("nan")
+                dataframe_row[f"{col}{ColumnNameSuffix.BOOTSTRAP_CI_UPPER}"] = float("nan")
 
         # add rate of detection across bootstrap iterations for this baseline fixed point
         # as weel as the total number of bootstrap iterations (for reference)

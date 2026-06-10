@@ -115,7 +115,7 @@ def _convert_polar_angle_to_nematic_order(df: pd.DataFrame) -> pd.DataFrame:
     #    S_CI_lower = S_mean + |f'(theta_mean)| * (theta_CI_lower - theta_mean)
     # where S_mean = cos(2*theta_mean) is the nematic order at the mean angle, and
     # f'(theta) = -2*sin(2*theta) is the derivative of the nematic order function.
-    for ci_type in [ColumnNameSuffix.BOOTSTRAP_CI_LOWER, ColumnName.BootstrapAnalysis.CI_UPPER]:
+    for ci_type in [ColumnNameSuffix.BOOTSTRAP_CI_LOWER, ColumnNameSuffix.BOOTSTRAP_CI_UPPER]:
         angle_mean_col = (
             f"{ColumnName.DiffAEData.POLAR_ANGLE}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"
         )
@@ -315,7 +315,7 @@ def _plot_cross_dataset_summary_for_column(
 
     # Get column names for confidence interval
     ci_lower_col = f"{column_name}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"
-    ci_upper_col = f"{column_name}_{ColumnName.BootstrapAnalysis.CI_UPPER}"
+    ci_upper_col = f"{column_name}{ColumnNameSuffix.BOOTSTRAP_CI_UPPER}"
 
     # If both confidence interval columns exist, calculate upper and lower bounds
     if ci_lower_col in df and ci_upper_col in df:
@@ -747,7 +747,7 @@ def build_dataframe_for_fixed_point_dataset_summary(
                     "",
                     f"{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}",
                     f"{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}",
-                    f"_{ColumnName.BootstrapAnalysis.CI_UPPER}",
+                    f"{ColumnNameSuffix.BOOTSTRAP_CI_UPPER}",
                 ]:
                     df_fixed_points[
                         f"{ColumnName.DiffAEData.POLAR_ANGLE}{suffix}"

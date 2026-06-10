@@ -199,5 +199,5 @@ def add_binned_mean_to_fixed_points(
     result[mean_col] = means
     if compute_ci:
         result[f"{mean_col}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"] = ci_lows
-        result[f"{mean_col}_{ColumnName.BootstrapAnalysis.CI_UPPER}"] = ci_highs
+        result[f"{mean_col}{ColumnNameSuffix.BOOTSTRAP_CI_UPPER}"] = ci_highs
     return result
