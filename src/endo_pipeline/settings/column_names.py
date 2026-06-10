@@ -459,12 +459,6 @@ class ColumnName:
         UNIT_VECTOR_MEAN_FAST = "optical_flow_mean_unit_vector_fast_dt1"
         """Mean unit vector coherence computed only over fast pixels."""
 
-        RADIAL_COHERENCE = "optical_flow_radial_coherence_dt1"
-        """Mean dot product of unit flow with unit radial vector from crop centre."""
-
-        RADIAL_COHERENCE_WEIGHTED = "optical_flow_radial_coherence_weighted_dt1"
-        """Distance-weighted radial coherence."""
-
         # --- EMA-smoothed and unsuffixed variants used in plotting / TFE viewer ---
         UNIT_VECTOR_MEAN_RAW = "optical_flow_mean_unit_vector_dt1"
         """Mean unit vector coherence (no EMA smoothing)."""
@@ -483,12 +477,6 @@ class ColumnName:
 
         EMA02_UNIT_VECTOR_MEAN_FAST = "ema02_optical_flow_mean_unit_vector_fast_dt1"
         """Mean unit vector coherence over fast pixels with EMA smoothing, alpha=0.2."""
-
-        EMA01_RADIAL_COHERENCE = "ema01_optical_flow_radial_coherence_dt1"
-        """Radial coherence with EMA smoothing, alpha=0.1."""
-
-        EMA01_RADIAL_COHERENCE_WEIGHTED = "ema01_optical_flow_radial_coherence_weighted_dt1"
-        """Distance-weighted radial coherence with EMA smoothing, alpha=0.1."""
 
     class VectorField(StrEnum):
         """Column name suffixes used in vector field / dynamics analysis."""

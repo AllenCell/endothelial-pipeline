@@ -544,22 +544,6 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         max=1,
         type=ColumnType.CONTINUOUS,
     ),
-    Column.OpticalFlow.RADIAL_COHERENCE: ColumnMetadata(
-        name="Coherent migration (optical flow radial coherence)",
-        type=ColumnType.CONTINUOUS,
-    ),
-    Column.OpticalFlow.EMA01_RADIAL_COHERENCE: ColumnMetadata(
-        name="Coherent migration (EMA 0.1, optical flow radial coherence)",
-        type=ColumnType.CONTINUOUS,
-    ),
-    Column.OpticalFlow.RADIAL_COHERENCE_WEIGHTED: ColumnMetadata(
-        name="Coherent migration (optical flow radial coherence weighted)",
-        type=ColumnType.CONTINUOUS,
-    ),
-    Column.OpticalFlow.EMA01_RADIAL_COHERENCE_WEIGHTED: ColumnMetadata(
-        name="Coherent migration (EMA 0.1, optical flow radial coherence weighted)",
-        type=ColumnType.CONTINUOUS,
-    ),
     Column.OpticalFlow.ANGLE_STD: ColumnMetadata(
         name="Coherent migration (optical flow angle std dev)",
         min=0,
