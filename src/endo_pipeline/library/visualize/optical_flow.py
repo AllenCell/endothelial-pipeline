@@ -341,15 +341,6 @@ def plot_optical_flow_coherence_over_time(
             ema_fast.append((ema_col, f"EMA \u03b1={alpha}"))
         metric_groups.append((raw_fast, f"Fast Coherence (speed > thr, dt={d})", ema_fast))
 
-        # 3) Radial coherence
-        raw_rad = f"optical_flow_radial_coherence{dt_tag}"
-        ema_rad = []
-        for alpha in ema_alphas:
-            atag = str(alpha).replace(".", "")
-            ema_col = f"ema{atag}_optical_flow_radial_coherence{dt_tag}"
-            ema_rad.append((ema_col, f"EMA \u03b1={alpha}"))
-        metric_groups.append((raw_rad, f"Radial Coherence (dt={d})", ema_rad))
-
     # Filter to metric groups whose raw column actually exists
     metric_groups = [(r, lbl, e) for r, lbl, e in metric_groups if r in feature_data.columns]
     if not metric_groups:

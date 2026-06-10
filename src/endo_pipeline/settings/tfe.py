@@ -121,9 +121,5 @@ TFE_FEATURES: list[ColumnNameType] = [
     "ema01_optical_flow_mean_unit_vector_fast_dt1",
     "ema02_optical_flow_mean_unit_vector_dt1",
     "ema02_optical_flow_mean_unit_vector_fast_dt1",
-    "ema01_optical_flow_radial_coherence_dt1",
-    "ema01_optical_flow_radial_coherence_weighted_dt1",
-    "optical_flow_radial_coherence_dt1",
-    "optical_flow_radial_coherence_weighted_dt1",
 ]
 """List of feature to include in TFE manifest."""
