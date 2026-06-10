@@ -17,7 +17,7 @@ from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
+from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, POLAR_ANGLE_PERIOD
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, VECTOR_FIELD_THETA_RANGE
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
@@ -93,6 +93,11 @@ def make_3d_vector_field_plot_panel(
     color: str = FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color
     for _, fpt_row in stable_df.iterrows():
         fpt_coords = fpt_row[column_names].to_numpy()
+        # wrap theta coordinate to be within the specified limits
+        if fpt_coords[0] < theta_lims[0]:
+            fpt_coords[0] += POLAR_ANGLE_PERIOD
+        elif fpt_coords[0] > theta_lims[1]:
+            fpt_coords[0] -= POLAR_ANGLE_PERIOD
         ax.scatter(
             fpt_coords[0],
             fpt_coords[1],
