@@ -85,7 +85,7 @@ def main(
         plot_cross_dataset_summaries,
     )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
-    from endo_pipeline.settings.column_names import ColumnName
+    from endo_pipeline.settings.column_names import ColumnName, ColumnNameSuffix
     from endo_pipeline.settings.dynamics_workflows import (
         DYNAMICS_COLUMN_NAMES,
         METADATA_COLUMNS_TO_KEEP,
@@ -109,6 +109,7 @@ def main(
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     feature_column_names = list(DYNAMICS_COLUMN_NAMES)
+    fp_column_names = [f"{col}{ColumnNameSuffix.FIXED_POINTS}" for col in DYNAMICS_COLUMN_NAMES]
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid"], *feature_column_names]
 
     name_suffix = f"_{join_sorted_strings(feature_column_names)}_{MIGRATION_COHERENCE_CROP_PATTERN}"
@@ -201,7 +202,7 @@ def main(
                         check_required_columns_in_dataframe(
                             fixed_points_dataframe,
                             required_columns=[
-                                *DYNAMICS_COLUMN_NAMES,
+                                *fp_column_names,
                                 ColumnName.DATASET,
                                 ColumnName.FIXED_POINT_STABILITY,
                             ],
@@ -222,9 +223,12 @@ def main(
                     fp_for_feature = add_binned_mean_to_fixed_points(
                         fp_for_feature,
                         df_flow_no_nan,
-                        fp_x_col=ColumnName.DiffAEData.POLAR_ANGLE,
-                        fp_y_col=ColumnName.DiffAEData.POLAR_RADIUS,
-                        fp_z_col=ColumnName.DiffAEData.PC3_FLIPPED,
+                        fp_x_col=f"{ColumnName.DiffAEData.POLAR_ANGLE}{ColumnNameSuffix.FIXED_POINTS}",
+                        fp_y_col=f"{ColumnName.DiffAEData.POLAR_RADIUS}{ColumnNameSuffix.FIXED_POINTS}",
+                        fp_z_col=f"{ColumnName.DiffAEData.PC3_FLIPPED}{ColumnNameSuffix.FIXED_POINTS}",
+                        of_x_col=ColumnName.DiffAEData.POLAR_ANGLE,
+                        of_y_col=ColumnName.DiffAEData.POLAR_RADIUS,
+                        of_z_col=ColumnName.DiffAEData.PC3_FLIPPED,
                         binned_col=optical_flow_feature,
                     )
 
@@ -276,8 +280,8 @@ def main(
                             marker = FIXED_POINT_PLOT_STYLE[stability].marker
                             color = FIXED_POINT_PLOT_STYLE[stability].color
                             axs[1].scatter(
-                                row[x_col],
-                                row[y_col],
+                                row[f"{x_col}{ColumnNameSuffix.FIXED_POINTS}"],
+                                row[f"{y_col}{ColumnNameSuffix.FIXED_POINTS}"],
                                 marker=marker,
                                 color=color,
                                 edgecolor="black",

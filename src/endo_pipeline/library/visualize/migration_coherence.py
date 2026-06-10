@@ -33,6 +33,7 @@ from endo_pipeline.library.visualize.fixed_points import StabilityLegendHandle
 from endo_pipeline.manifests.dataframe_manifest_io import load_dataframe_manifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameSuffix
 from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
     METADATA_COLUMNS_TO_KEEP,
@@ -304,7 +305,9 @@ def plot_3d_scatter_or_binned(
             stability = row[Column.FIXED_POINT_STABILITY]
             mk = FIXED_POINT_PLOT_STYLE[stability].marker
             clr = FIXED_POINT_PLOT_STYLE[stability].color
-            theta, r, rho = row[x_col], row[y_col], row[z_col]
+            theta = row[f"{Column.DiffAEData.POLAR_ANGLE}{ColumnNameSuffix.FIXED_POINTS}"]
+            r = row[f"{Column.DiffAEData.POLAR_RADIUS}{ColumnNameSuffix.FIXED_POINTS}"]
+            rho = row[f"{Column.DiffAEData.PC3_FLIPPED}{ColumnNameSuffix.FIXED_POINTS}"]
             ax.scatter(
                 xs=[theta],
                 ys=[r],
