@@ -164,7 +164,7 @@ def perform_and_plot_latent_walk_for_figures(
     output_path: Path,
     filename: str,
     walk_column_names: list[str],
-    figsize: tuple[float, float] = (MAX_FIGURE_WIDTH, 2.8),
+    figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 2.8),
     sigma: float | None = 3,
     n_steps: int = 7,
     scale_bar_um: int = 10,
@@ -266,7 +266,7 @@ def perform_and_plot_latent_walk_for_figures(
         output_path,
         filename,
         label_sigmas=True if sigma is not None else False,
-        figsize=figsize,
+        figsize=figure_size,
         scale_bar_um=scale_bar_um,
         file_format=".svg",
     )
