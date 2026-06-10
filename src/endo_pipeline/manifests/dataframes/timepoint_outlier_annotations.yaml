@@ -1,6 +1,28 @@
 name: timepoint_outlier_annotations
 workflow: annotate_timepoint_outliers
 parameters: {}
+columns:
+  position: Zarr file position (FOV)
+  bf_mean_intensity: Flattened mean BF intensity over XY
+  bf_rolling_median: Rolling median over BF mean intensity
+  bf_dark_threshold: BF intensity dark outlier threshold
+  bf_partial_dark_threshold: BF intensity partial dark outlier threshold
+  bf_bright_threshold: BF intensity bright outlier threshold
+  bf_dark_outliers: Indices of BF intensity dark outliers
+  bf_partial_dark_outliers: Indices of BF intensity partial dark outliers
+  bf_bright_outliers: Indices of BF intensity bright outliers
+  auto_bf_scope_error: True if timepoint was automatically flagged with brightfield
+    channel error, False otherwise
+  auto_bf_temp_artifact: True if timepoint was automatically flagged with brightfield
+    channel suddenly becoming too bright or too dark, False otherwise
+  gfp_timepoint_means: Mean GFP intensity intensity over XY per timepoint
+  gfp_rolling_median: Rolling median over GFP mean intensity
+  gfp_lower_threshold: GFP intensity lower threshold
+  gfp_upper_threshold: GFP intensity upper threshold
+  gfp_dark_outliers: Indices of GFP intensity dark outliers
+  gfp_bright_outliers: Indices of GFP intensity bright outliers
+  auto_gfp_scope_error: True if timepoint was automatically flagged with 488 channel
+    (VE-cadherin-mEGFP) error, False otherwise
 locations:
   20260209_20X:
     fmsid: 960cc58f9db148c9b6c7ef34c7513a61
