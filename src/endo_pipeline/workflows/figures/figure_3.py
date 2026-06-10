@@ -137,7 +137,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             letter="",
             path=vector_field_plot_paths[example_dataset_15dyn],
             x_position=MAX_FIGURE_WIDTH * 0.6,
-            y_position=4.5,
+            y_position=5.0,
             x_offset=0.1,
             y_offset=0.1,
         ),
