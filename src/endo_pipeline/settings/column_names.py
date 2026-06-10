@@ -625,6 +625,9 @@ class ColumeNameSuffix(StrEnum):
     MESH_GRID = "_mesh_grid"
     """Suffix for column name denoting vector field mesh grid."""
 
+    FIXED_POINTS = "_fixed_point"
+    """Suffix for column name denoting fixed point locations."""
+
 
 ColumnNameType = (
     str
