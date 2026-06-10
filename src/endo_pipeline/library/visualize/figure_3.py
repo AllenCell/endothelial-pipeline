@@ -1,6 +1,7 @@
 """Helper functions for visualizations used in Figure 3."""
 
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 
@@ -93,8 +94,9 @@ def make_3d_vector_field_plot_panel(
         fixed_points_df[Column.VectorField.STABILITY] == StabilityLabel.STABLE
     ]
     color: str = FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color
+    column_names_ = cast(list[str], column_names)
     for _, fpt_row in stable_df.iterrows():
-        fpt_coords = fpt_row[column_names].to_numpy()
+        fpt_coords = fpt_row[column_names_].to_numpy()
         # wrap theta coordinate to be within the specified limits
         if fpt_coords[0] < theta_lims[0]:
             fpt_coords[0] += POLAR_ANGLE_PERIOD
