@@ -134,10 +134,10 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             y_offset=0.1,
         ),
         FigurePanel(
-            letter="D",
+            letter="",
             path=vector_field_plot_paths[example_dataset_15dyn],
             x_position=MAX_FIGURE_WIDTH * 0.6,
-            y_position=4.25,
+            y_position=4.5,
             x_offset=0.1,
             y_offset=0.1,
         ),
