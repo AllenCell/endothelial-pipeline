@@ -799,6 +799,8 @@ def plot_drift_3d(
     colormap: str = "viridis_r",
     magnitude_limits: tuple[float, float] = (5e-2, 1.5),
     arrow_alpha: float = 0.6,
+    include_colorbar: bool = True,
+    include_legend: bool = True,
     **axes_kwargs: Any,
 ) -> tuple[plt.Figure, Axes3D]:
     """
@@ -907,45 +909,49 @@ def plot_drift_3d(
         alpha=arrow_alpha,
     )
 
-    # Colorbar - horizontal strip at the top, shifted left to leave room for legend
-    scalar_mappable.set_array([])
-    cbar_ax = fig.add_axes((0.1, 0.87, 0.48, 0.04))
-    cbar = fig.colorbar(
-        scalar_mappable,
-        cax=cbar_ax,
-        orientation="horizontal",
-    )
-    cbar.ax.tick_params(labelsize=FONTSIZE_XSMALL, pad=2)
-    cbar.set_label(
-        "$\\left\\Vert\\mathbf{f}(\\mathbf{x})\\right\\Vert$", fontsize=FONTSIZE_SMALL, labelpad=-1
-    )
-    cbar_ax.xaxis.set_label_position("top")
-    cbar_ax.xaxis.tick_top()
+    if include_colorbar:
+        # Colorbar - horizontal strip at the top, shifted left to leave room for legend
+        scalar_mappable.set_array([])
+        cbar_ax = fig.add_axes((0.1, 0.87, 0.48, 0.04))
+        cbar = fig.colorbar(
+            scalar_mappable,
+            cax=cbar_ax,
+            orientation="horizontal",
+        )
+        cbar.ax.tick_params(labelsize=FONTSIZE_XSMALL, pad=2)
+        cbar.set_label(
+            "$\\left\\Vert\\mathbf{f}(\\mathbf{x})\\right\\Vert$",
+            fontsize=FONTSIZE_SMALL,
+            labelpad=-1,
+        )
+        cbar_ax.xaxis.set_label_position("top")
+        cbar_ax.xaxis.tick_top()
 
-    # Legend to the right of the colorbar. Draw the vector arrow handle as a
-    # shaft + filled triangular cone head (matching the plot style) coloured at
-    # a value in the center of the colormap, and add a proxy artist for the
-    # stable fixed point using the same marker and color as in the plot.
-    arrow_color = cmap(0.5)
-    arrow_handle = Line2D(
-        [],
-        [],
-        label="$d\\mathbf{x}/dt=\\mathbf{f}(\\mathbf{x})$",
-    )
-    fp_handles = make_legend_handles_for_fixed_pts(
-        fpt_stabilities=[StabilityLabel.STABLE],
-        marker_size=4,
-    )
-    fig.legend(
-        handles=[arrow_handle, *fp_handles],
-        fontsize=FONTSIZE_XSMALL,
-        loc="upper left",
-        bbox_to_anchor=(0.65, 1.0),
-        frameon=False,
-        handletextpad=0.3,
-        labelspacing=0.4,
-        handler_map={arrow_handle: _HandlerConeArrow(color=arrow_color)},
-    )
+    if include_legend:
+        # Legend to the right of the colorbar. Draw the vector arrow handle as a
+        # shaft + filled triangular cone head (matching the plot style) coloured at
+        # a value in the center of the colormap, and add a proxy artist for the
+        # stable fixed point using the same marker and color as in the plot.
+        arrow_color = cmap(0.5)
+        arrow_handle = Line2D(
+            [],
+            [],
+            label="$d\\mathbf{x}/dt=\\mathbf{f}(\\mathbf{x})$",
+        )
+        fp_handles = make_legend_handles_for_fixed_pts(
+            fpt_stabilities=[StabilityLabel.STABLE],
+            marker_size=4,
+        )
+        fig.legend(
+            handles=[arrow_handle, *fp_handles],
+            fontsize=FONTSIZE_XSMALL,
+            loc="upper left",
+            bbox_to_anchor=(0.65, 1.0),
+            frameon=False,
+            handletextpad=0.3,
+            labelspacing=0.4,
+            handler_map={arrow_handle: _HandlerConeArrow(color=arrow_color)},
+        )
 
     # set axes labels and ticks with custom formatting
     ax.tick_params(axis="both", pad=-3)
