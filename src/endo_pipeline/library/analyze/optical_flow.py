@@ -160,9 +160,6 @@ def compute_flow_statistics(
     base[ColumnName.OpticalFlow.SPEED_ABOVE_1_COUNT_BASE] = n_fast
     base[ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_FAST_BASE] = muv_fast
 
-    base[ColumnName.OpticalFlow.RADIAL_COHERENCE_BASE] = radial_coh
-    base[ColumnName.OpticalFlow.RADIAL_COHERENCE_WEIGHTED_BASE] = radial_coh_w
-
     return base
 
 

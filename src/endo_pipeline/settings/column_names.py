@@ -425,12 +425,6 @@ class ColumnName:
         UNIT_VECTOR_MEAN_FAST_BASE = "optical_flow_mean_unit_vector_fast"
         """Base name for fast-pixel unit vector coherence (before dt suffix)."""
 
-        RADIAL_COHERENCE_BASE = "optical_flow_radial_coherence"
-        """Base name for radial coherence (before dt suffix)."""
-
-        RADIAL_COHERENCE_WEIGHTED_BASE = "optical_flow_radial_coherence_weighted"
-        """Base name for distance-weighted radial coherence (before dt suffix)."""
-
         # --- Final (suffixed) feature names used in dataframes ---
         SPEED_MEAN = "optical_flow_mean_speed_dt1"
         """Mean speed of the optical flow vectors in a crop."""
