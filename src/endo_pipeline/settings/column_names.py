@@ -620,13 +620,13 @@ class ColumnNameSuffix(StrEnum):
     """Suffixes for dataframe column names."""
 
     DRIFT = "_drift"
-    """Suffix for column name denoting the drift in a given variable."""
+    """Suffix for column name for drift in a given variable."""
 
     MESH_GRID = "_mesh_grid"
-    """Suffix for column name denoting vector field mesh grid."""
+    """Suffix for column name for vector field mesh grid."""
 
     FIXED_POINTS = "_fixed_point"
-    """Suffix for column name denoting fixed point locations."""
+    """Suffix for column name for fixed point locations."""
 
 
 ColumnNameType = (
