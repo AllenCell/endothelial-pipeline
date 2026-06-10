@@ -40,7 +40,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     output_path = get_output_path("figure_1")
 
-    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
+    placeholders = parse_placeholder_panels(include_panels, ["A", "C", "D"])
 
     # Example images from biological system at low and high shear stress
     example_path, example_inset_path = create_panel_biological_system_examples(
