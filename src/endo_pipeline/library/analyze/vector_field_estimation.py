@@ -20,6 +20,7 @@ from endo_pipeline.library.analyze.vector_field_function import (
 )
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameSuffix
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.flow_field_2d import HISTOGRAM_THRESHOLD_FOR_MASKING
 from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
@@ -224,7 +225,7 @@ def create_drift_vector_field_df(
 
     # build dataframe with columns for grid points in each of the three
     # dimensions and the corresponding drift coefficients
-    drift_column_names: list[str] = [f"{name}_{Column.VectorField.DRIFT}" for name in column_names]
+    drift_column_names: list[str] = [f"{name}{ColumnNameSuffix.DRIFT}" for name in column_names]
     vector_field_df = pd.DataFrame(columns=[Column.DATASET, *drift_column_names, *column_names])
 
     # make tuple for indexing the drift coefficients and feature grid
@@ -405,7 +406,7 @@ def get_reshaped_vector_field_and_grid(
 
     # restructure the drift dataframe into a flow field dictionary
     ndim = len(column_names)
-    drift_column_names = [f"{name}_{Column.VectorField.DRIFT}" for name in column_names]
+    drift_column_names = [f"{name}{ColumnNameSuffix.DRIFT}" for name in column_names]
 
     grid_points_1d = [
         np.sort(flow_field_dataframe[column_name].unique()) for column_name in column_names

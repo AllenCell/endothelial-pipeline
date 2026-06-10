@@ -499,9 +499,6 @@ class ColumnName:
         FIXED_POINT_PREFIX = "fp_"
         """Prefix for column names representing coordinates of fixed points in feature space."""
 
-        DRIFT = "drift"
-        """Column name denoting the drift in a given variable."""
-
         DISTANCE_FROM_FP_PREFIX = "dist_from_fp_"
         """Prefix for column names representing the distance from a fixed point in N-D space."""
 
@@ -613,6 +610,17 @@ class ColumnName:
 
         DATASET_NAME = "dataset_name"
         """Column name for the source dataset name of the example image."""
+
+
+class ColumeNamePrefix(StrEnum):
+    """Prefixes for dataframe column names."""
+
+
+class ColumeNameSuffix(StrEnum):
+    """Suffixes for dataframe column names."""
+
+    DRIFT = "_drift"
+    """Suffix for column name denoting the drift in a given variable."""
 
 
 ColumnNameType = (
