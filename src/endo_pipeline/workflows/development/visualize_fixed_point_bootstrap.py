@@ -137,9 +137,7 @@ def main(
         df = load_dataframe(location, delay=False)
 
         n_total = len(df)
-        high_confidence_df = df[
-            df[Column.BootstrapAnalysis.DETECTION_RATE] >= bootstrap_threshold
-        ].copy()
+        high_confidence_df = df[df[Column.FIXED_POINT_DETECTION_RATE] >= bootstrap_threshold].copy()
 
         if high_confidence_df.empty:
             logger.warning(

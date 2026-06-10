@@ -1241,7 +1241,7 @@ def compute_first_passage_times_one_dataset(
     fixed_points_df = load_fixed_points_dataframe_for_dataset(dataset_name)
     # filter the fixed points to only the ones with higher confidence
     fixed_points_df = fixed_points_df[
-        fixed_points_df[Column.BootstrapAnalysis.DETECTION_RATE] >= BOOTSTRAP_THRESHOLD
+        fixed_points_df[Column.FIXED_POINT_DETECTION_RATE] >= BOOTSTRAP_THRESHOLD
     ]
     fixed_points_df = fixed_points_df[fixed_points_df[Column.FIXED_POINT_STABILITY] == "stable"]
 

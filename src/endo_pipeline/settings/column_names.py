@@ -560,11 +560,8 @@ class ColumnName:
         LINEFIT_SLOPE = "slope_odr"
         """Column name for the slope of a line fit to the relationship between first passage time to the fixed point for grid and tracked crops."""
 
-    class BootstrapAnalysis(StrEnum):
-        """Column name suffixes used in bootstrap fixed-point analysis."""
-
-        DETECTION_RATE = "detection_rate"
-        """Fraction of bootstrap iterations in which a matched fixed point was found."""
+    FIXED_POINT_DETECTION_RATE = "detection_rate"
+    """Fraction of bootstrap iterations in which a matched fixed point was found."""
 
     class AutoCorrelation(StrEnum):
         """Column name suffixes used in autocorrelation analysis."""
@@ -638,7 +635,6 @@ ColumnNameType = (
     | ColumnName.SegDataWorkflowVerification
     | ColumnName.Annotations
     | ColumnName.OpticalFlow
-    | ColumnName.BootstrapAnalysis
     | ColumnName.VectorField
     | ColumnName.AutoCorrelation
     | ColumnName.ModelQC

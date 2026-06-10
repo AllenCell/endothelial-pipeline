@@ -714,7 +714,7 @@ def build_dataframe_for_fixed_point_dataset_summary(
 
         # Filter bootstrap dataframe to only include high confidence values
         df_fixed_points = df_bootstrap_flow[
-            df_bootstrap_flow[ColumnName.BootstrapAnalysis.DETECTION_RATE] >= bootstrap_threshold
+            df_bootstrap_flow[ColumnName.FIXED_POINT_DETECTION_RATE] >= bootstrap_threshold
         ].copy()
 
         if df_fixed_points.empty:
