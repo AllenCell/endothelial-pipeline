@@ -566,9 +566,6 @@ class ColumnName:
         DETECTION_RATE = "detection_rate"
         """Fraction of bootstrap iterations in which a matched fixed point was found."""
 
-        CI_LOWER = "ci_lower"
-        """Lower bound of the bootstrap confidence interval."""
-
         CI_UPPER = "ci_upper"
         """Upper bound of the bootstrap confidence interval."""
 
@@ -627,6 +624,9 @@ class ColumnNameSuffix(StrEnum):
 
     BOOTSTRAP_CLUSTER_MEAN = "_cluster_mean"
     """Suffix for column name for mean coordinate of matched bootstrap fixed points."""
+
+    BOOTSTRAP_CI_LOWER = "_ci_lower"
+    """Suffix for column name for lower bound of the bootstrap confidence interval."""
 
 
 ColumnNameType = (

@@ -187,9 +187,9 @@ def main(
                     xlabel = get_label_for_column(column_x)
                     ylabel = get_label_for_column(column_y)
 
-                    x_lo = row[f"{column_x}_{Column.BootstrapAnalysis.CI_LOWER}"]
+                    x_lo = row[f"{column_x}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"]
                     x_hi = row[f"{column_x}_{Column.BootstrapAnalysis.CI_UPPER}"]
-                    y_lo = row[f"{column_y}_{Column.BootstrapAnalysis.CI_LOWER}"]
+                    y_lo = row[f"{column_y}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"]
                     y_hi = row[f"{column_y}_{Column.BootstrapAnalysis.CI_UPPER}"]
                     print(x_lo, x_hi, y_lo, y_hi)
 
@@ -280,9 +280,9 @@ def main(
                 xlabel = get_label_for_column(column_x)
                 ylabel = get_label_for_column(column_y)
 
-                x_lo = row[f"{column_x}_{Column.BootstrapAnalysis.CI_LOWER}"]
+                x_lo = row[f"{column_x}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"]
                 x_hi = row[f"{column_x}_{Column.BootstrapAnalysis.CI_UPPER}"]
-                y_lo = row[f"{column_y}_{Column.BootstrapAnalysis.CI_LOWER}"]
+                y_lo = row[f"{column_y}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"]
                 y_hi = row[f"{column_y}_{Column.BootstrapAnalysis.CI_UPPER}"]
 
                 xerr = (

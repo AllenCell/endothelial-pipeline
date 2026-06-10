@@ -115,15 +115,15 @@ def _convert_polar_angle_to_nematic_order(df: pd.DataFrame) -> pd.DataFrame:
     #    S_CI_lower = S_mean + |f'(theta_mean)| * (theta_CI_lower - theta_mean)
     # where S_mean = cos(2*theta_mean) is the nematic order at the mean angle, and
     # f'(theta) = -2*sin(2*theta) is the derivative of the nematic order function.
-    for ci_type in [ColumnName.BootstrapAnalysis.CI_LOWER, ColumnName.BootstrapAnalysis.CI_UPPER]:
+    for ci_type in [ColumnNameSuffix.BOOTSTRAP_CI_LOWER, ColumnName.BootstrapAnalysis.CI_UPPER]:
         angle_mean_col = (
             f"{ColumnName.DiffAEData.POLAR_ANGLE}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"
         )
-        angle_ci_col = f"{ColumnName.DiffAEData.POLAR_ANGLE}_{ci_type}"
+        angle_ci_col = f"{ColumnName.DiffAEData.POLAR_ANGLE}{ci_type}"
         nematic_mean_col = (
             f"{ColumnName.DiffAEData.NEMATIC_ORDER}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"
         )
-        nematic_ci_col = f"{ColumnName.DiffAEData.NEMATIC_ORDER}_{ci_type}"
+        nematic_ci_col = f"{ColumnName.DiffAEData.NEMATIC_ORDER}{ci_type}"
 
         for idx, row in df.iterrows():
             theta_mean = row[angle_mean_col]
@@ -137,7 +137,7 @@ def _convert_polar_angle_to_nematic_order(df: pd.DataFrame) -> pd.DataFrame:
             # Approximate the nematic order CI using the chain rule
             nematic_bound = nematic_mean + f_prime * circ_diff
             # clip the nematic CI to the valid range of [-1, 1]
-            if ci_type == ColumnName.BootstrapAnalysis.CI_LOWER:
+            if ci_type == ColumnNameSuffix.BOOTSTRAP_CI_LOWER:
                 df.at[idx, nematic_ci_col] = max(nematic_bound, -1)
             else:
                 df.at[idx, nematic_ci_col] = min(nematic_bound, 1)
@@ -314,7 +314,7 @@ def _plot_cross_dataset_summary_for_column(
     column_name = f"mean_{column_name}" if column_name in BINNED_MEAN_FEATURES else column_name
 
     # Get column names for confidence interval
-    ci_lower_col = f"{column_name}_{ColumnName.BootstrapAnalysis.CI_LOWER}"
+    ci_lower_col = f"{column_name}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"
     ci_upper_col = f"{column_name}_{ColumnName.BootstrapAnalysis.CI_UPPER}"
 
     # If both confidence interval columns exist, calculate upper and lower bounds
@@ -746,7 +746,7 @@ def build_dataframe_for_fixed_point_dataset_summary(
                 for suffix in [
                     "",
                     f"{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}",
-                    f"_{ColumnName.BootstrapAnalysis.CI_LOWER}",
+                    f"{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}",
                     f"_{ColumnName.BootstrapAnalysis.CI_UPPER}",
                 ]:
                     df_fixed_points[

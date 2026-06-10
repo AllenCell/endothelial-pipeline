@@ -536,7 +536,7 @@ def aggregate_bootstrapping_results(
             if num_hits >= 2:
                 for dim_idx, col in enumerate(column_names):
                     if dim_idx == polar_dim_idx and polar_angle_period is not None:
-                        dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_LOWER}"] = float(
+                        dataframe_row[f"{col}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"] = float(
                             circpercentile(
                                 matched_coords_array[:, dim_idx],
                                 bootstrap_ci_lower_percentile,
@@ -551,7 +551,7 @@ def aggregate_bootstrapping_results(
                             )
                         )
                     else:
-                        dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_LOWER}"] = float(
+                        dataframe_row[f"{col}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"] = float(
                             np.percentile(
                                 matched_coords_array[:, dim_idx], bootstrap_ci_lower_percentile
                             )
@@ -563,12 +563,12 @@ def aggregate_bootstrapping_results(
                         )
             else:
                 for col in column_names:
-                    dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_LOWER}"] = float("nan")
+                    dataframe_row[f"{col}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"] = float("nan")
                     dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_UPPER}"] = float("nan")
         else:
             for col in column_names:
                 dataframe_row[f"{col}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"] = float("nan")
-                dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_LOWER}"] = float("nan")
+                dataframe_row[f"{col}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"] = float("nan")
                 dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_UPPER}"] = float("nan")
 
         # add rate of detection across bootstrap iterations for this baseline fixed point
