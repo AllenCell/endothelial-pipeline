@@ -65,12 +65,12 @@ def figure_panel(description: str):
 
                 # Determine how many output placeholders to produce. Assume
                 # all figures have the same output path and figure size.
-                placeholder_path = build_empty_panel(output_path, description, *figure_size)
+                path = build_empty_panel(output_path, description, *figure_size)
                 return_types = inspect.signature(func).return_annotation
                 return (
-                    placeholder_path
+                    path
                     if return_types == Path
-                    else [placeholder_path] * get_args(return_types).count(Path)
+                    else [path if arg == Path else None for arg in get_args(return_types)]
                 )
             else:
                 return func(*args, **kwargs)
