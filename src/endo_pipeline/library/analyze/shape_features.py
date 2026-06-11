@@ -1885,15 +1885,15 @@ def get_nuclei_features_from_dataset_at_timepoint(
     nuc_feats_df["total_nuclei_count_at_T"] = num_nuclei
 
     # add the dataset name, position, and T to the dataframe
-    nuc_feats_df["dataset_name"] = dataset_name
-    nuc_feats_df["position"] = position
-    nuc_feats_df["T"] = tp
+    nuc_feats_df[Column.DATASET] = dataset_name
+    nuc_feats_df[Column.POSITION] = position
+    nuc_feats_df[Column.TIMEPOINT] = tp
 
     # move the dataset_name, position, and T columns to the front
     # of the data table
+    front_columns = [Column.DATASET, Column.POSITION, Column.TIMEPOINT]
     nuc_feats_df = nuc_feats_df[
-        ["dataset_name", "position", "T"]
-        + [col for col in nuc_feats_df.columns if col not in ["dataset_name", "position", "T"]]
+        front_columns + [col for col in nuc_feats_df.columns if col not in front_columns]
     ]
 
     if save_output:
