@@ -320,6 +320,7 @@ def main(
                     df_fp=fp_for_feature,
                     binned=False,
                     vmax=vmax,
+                    fp_suffix=ColumnNameSuffix.FIXED_POINTS,
                 )
                 ax.set_title(plot_label, loc="left")
                 save_plot_to_path(
@@ -339,6 +340,7 @@ def main(
                     df_fp=fp_for_feature,
                     binned=True,
                     vmax=vmax,
+                    fp_suffix=ColumnNameSuffix.FIXED_POINTS,
                 )
                 ax.set_title(plot_label, loc="left")
                 save_plot_to_path(

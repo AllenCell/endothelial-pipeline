@@ -494,4 +494,8 @@ def load_fixed_points_dataframe_for_dataset(
     )
     fixed_points_df = load_dataframe(fixed_points_df_location, delay=False)
 
+    # rename baseline suffix columns so they don't need to be added downstream
+    drop_suffix = {f"{col}{ColumnNameSuffix.BASELINE_FIXED_POINTS}": col for col in column_names}
+    fixed_points_df = fixed_points_df.rename(columns=drop_suffix)
+
     return fixed_points_df

@@ -255,7 +255,7 @@ def reconstruct_fixed_points(
             label_fontsize=FONTSIZE_XSMALL,
         )
 
-    dataset_name = fixed_point_df[Column.DATASET].unique().item()
+    dataset_name = fixed_point_df[Column.DATASET].unique()[0]
     filename = f"{dataset_name}_fixed_point_reconstructions"
     save_plot_to_path(
         fig_fixed_point_reconstructions,

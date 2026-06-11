@@ -102,8 +102,8 @@ def _convert_polar_angle_to_nematic_order(df: pd.DataFrame) -> pd.DataFrame:
         theta_{mean})
     """
     for column_suffix in [
-        "",
-        f"{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}",
+        ColumnNameSuffix.BASELINE_FIXED_POINTS,
+        ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN,
     ]:
         df[f"{ColumnName.DiffAEData.NEMATIC_ORDER}{column_suffix}"] = df[
             f"{ColumnName.DiffAEData.POLAR_ANGLE}{column_suffix}"
@@ -744,10 +744,10 @@ def build_dataframe_for_fixed_point_dataset_summary(
             if unwrap_angle:
                 # unwrap baseline, bootstrapped cluster mean angle, and CI bounds
                 for suffix in [
-                    "",
-                    f"{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}",
-                    f"{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}",
-                    f"{ColumnNameSuffix.BOOTSTRAP_CI_UPPER}",
+                    ColumnNameSuffix.BASELINE_FIXED_POINTS,
+                    ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN,
+                    ColumnNameSuffix.BOOTSTRAP_CI_LOWER,
+                    ColumnNameSuffix.BOOTSTRAP_CI_UPPER,
                 ]:
                     df_fixed_points[
                         f"{ColumnName.DiffAEData.POLAR_ANGLE}{suffix}"
@@ -767,7 +767,9 @@ def build_dataframe_for_fixed_point_dataset_summary(
 
         df_fixed_points_list.append(df_fixed_points)
 
-    return pd.concat(df_fixed_points_list, ignore_index=True)
+    # Combine and rename baseline suffix columns so they don't need to be added downstream
+    drop_suffix = {f"{col}{ColumnNameSuffix.BASELINE_FIXED_POINTS}": col for col in column_names}
+    return pd.concat(df_fixed_points_list, ignore_index=True).rename(columns=drop_suffix)
 
 
 def build_dataframe_for_first_passage_time_dataset_summary(

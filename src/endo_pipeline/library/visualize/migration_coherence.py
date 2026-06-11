@@ -33,7 +33,6 @@ from endo_pipeline.library.visualize.fixed_points import StabilityLegendHandle
 from endo_pipeline.manifests.dataframe_manifest_io import load_dataframe_manifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.column_names import ColumnNameSuffix
 from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
     METADATA_COLUMNS_TO_KEEP,
@@ -191,6 +190,7 @@ def plot_3d_scatter_or_binned(
     vmax: float = 1,
     figsize: tuple[float, float] = (8, 8),
     show_colorbar: bool = True,
+    fp_suffix: str = "",
 ) -> tuple[plt.Figure, Axes3D]:
     """Plot a 3D scatter or 3D binned heatmap with optional fixed-point overlay.
 
@@ -216,6 +216,8 @@ def plot_3d_scatter_or_binned(
         Matplotlib colormap name.
     vmin, vmax
         Color-scale limits.
+    fp_suffix
+        Suffix for fixed point columns in fixed points dataframe.
 
     Returns
     -------
@@ -305,9 +307,9 @@ def plot_3d_scatter_or_binned(
             stability = row[Column.FIXED_POINT_STABILITY]
             mk = FIXED_POINT_PLOT_STYLE[stability].marker
             clr = FIXED_POINT_PLOT_STYLE[stability].color
-            theta = row[f"{Column.DiffAEData.POLAR_ANGLE}{ColumnNameSuffix.FIXED_POINTS}"]
-            r = row[f"{Column.DiffAEData.POLAR_RADIUS}{ColumnNameSuffix.FIXED_POINTS}"]
-            rho = row[f"{Column.DiffAEData.PC3_FLIPPED}{ColumnNameSuffix.FIXED_POINTS}"]
+            theta = row[f"{Column.DiffAEData.POLAR_ANGLE}{fp_suffix}"]
+            r = row[f"{Column.DiffAEData.POLAR_RADIUS}{fp_suffix}"]
+            rho = row[f"{Column.DiffAEData.PC3_FLIPPED}{fp_suffix}"]
             ax.scatter(
                 xs=[theta],
                 ys=[r],

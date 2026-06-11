@@ -127,8 +127,9 @@ def main(datasets: Datasets | None = None) -> None:
 
         for column_name in column_names:
             column_name_fixed_point = f"{column_name}{ColumnNameSuffix.FIXED_POINTS}"
+            column_name_baseline = f"{column_name}{ColumnNameSuffix.BASELINE_FIXED_POINTS}"
             coord_2d_plus_1d = df_2d_plus_1d[column_name_fixed_point].iloc[0]
-            coord_3d_bootstrap = df_3d_bootstrap[column_name].iloc[0]
+            coord_3d_bootstrap = df_3d_bootstrap[column_name_baseline].iloc[0]
             if column_name == Column.DiffAEData.POLAR_ANGLE:
                 # account for periodicity when comparing theta values by unwrapping the angles
                 # before computing the error
