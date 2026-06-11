@@ -8,7 +8,7 @@ def main(
     include_negative_controls: bool = True,
     save_intermediate_plots: bool = True,
     save_crops_as_tiff: bool = False,
-    compute_metrics: bool = False,
+    overlay_metrics: bool = False,
 ) -> None:
     """
     Run single-model qualitative QC for a trained Diffusion Autoencoder.
@@ -20,8 +20,8 @@ def main(
     and scrambled-input negative controls). This is the qualitative
     "does this model work, and do the controls break it as expected?" check.
 
-    With ``--compute-metrics`` it also computes per-example metrics
-    (correlation / SSIM / LPIPS) and renders them alongside the images: the
+    With ``--overlay-metrics`` it also computes per-example metrics
+    (correlation / SSIM / LPIPS) on the rendered crops and overlays them: the
     per-example contact sheet gains a metrics column and the summary sheet
     switches to its metrics layout. (Cross-model quantitative comparisons live
     in the separate ``visualize-diffae-model-comparison`` workflow.)
@@ -40,9 +40,9 @@ def main(
         Save the per-example denoising contact sheets.
     save_crops_as_tiff
         Also save individual crops as TIFF files.
-    compute_metrics
-        Compute per-example correlation / SSIM / LPIPS and render them
-        alongside the images (metrics column + metrics summary layout).
+    overlay_metrics
+        Compute per-example correlation / SSIM / LPIPS on the rendered crops
+        and overlay them (metrics column + metrics summary layout).
     """
     import logging
 
@@ -83,7 +83,7 @@ def main(
         save_intermediate_plots=save_intermediate_plots,
         save_crops_as_tiff=save_crops_as_tiff,
         include_negative_controls=include_negative_controls,
-        compute_metrics=compute_metrics,
+        compute_metrics=overlay_metrics,
         noise_levels=MODEL_QC_NOISE_LEVELS,
         compute_baseline=False,
         is_default_seed=True,
