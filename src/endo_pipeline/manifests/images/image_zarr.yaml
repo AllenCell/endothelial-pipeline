@@ -31,12 +31,16 @@ locations:
     s3uri: s3://allencell-internal-quilt/endo_stg/image_zarr/20250428_056aa027ba9f4ccd98367563552f7edd_P{{position}}.ome.zarr
   20250509_20X_IF10:
     path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_8975c3c6497e4321badfafbe41695d16/20250509_8975c3c6497e4321badfafbe41695d16_P{{position}}.ome.zarr
+    s3uri: s3://allencell-internal-quilt/endo_stg/image_zarr/20250509_8975c3c6497e4321badfafbe41695d16_P{{position}}.ome.zarr
   20250509_20X_IF11:
     path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_1d3787a51bf44df5bd6e790d24e0ac49/20250509_1d3787a51bf44df5bd6e790d24e0ac49_P{{position}}.ome.zarr
+    s3uri: s3://allencell-internal-quilt/endo_stg/image_zarr/20250509_1d3787a51bf44df5bd6e790d24e0ac49_P{{position}}.ome.zarr
   20250509_20X_IF4:
     path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_b29ceb5fbdda4b1392f4d32936cdc686/20250509_b29ceb5fbdda4b1392f4d32936cdc686_P{{position}}.ome.zarr
+    s3uri: s3://allencell-internal-quilt/endo_stg/image_zarr/20250509_b29ceb5fbdda4b1392f4d32936cdc686_P{{position}}.ome.zarr
   20250509_20X_IF6:
     path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250509_b5c9fca289d7427ebd2103809003c650/20250509_b5c9fca289d7427ebd2103809003c650_P{{position}}.ome.zarr
+    s3uri: s3://allencell-internal-quilt/endo_stg/image_zarr/20250509_b5c9fca289d7427ebd2103809003c650_P{{position}}.ome.zarr
   20250604_20X:
     path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250604_3f08ef7a2e0e450d963352dae4bf17dc/20250604_3f08ef7a2e0e450d963352dae4bf17dc_P{{position}}.ome.zarr
   20250611_20X:
