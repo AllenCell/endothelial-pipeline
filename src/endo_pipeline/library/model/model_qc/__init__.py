@@ -29,7 +29,6 @@ from .metrics import (
     build_models_data,
     compute_baseline_data,
     compute_baseline_for_example,
-    create_comparison_plots_and_summary,
 )
 from .plotting import (
     save_intermediate_contact_sheet,
@@ -51,7 +50,6 @@ __all__ = [
     "compute_correlation",
     "compute_denoising_metrics",
     "compute_ssim",
-    "create_comparison_plots_and_summary",
     "evaluate_single_model",
     "load_and_preprocess_example_crop",
     "load_results_from_manifests",

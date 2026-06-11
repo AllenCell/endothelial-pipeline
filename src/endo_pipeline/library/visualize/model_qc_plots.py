@@ -1,14 +1,13 @@
 """Visualization functions for Model QC workflow."""
 
-from __future__ import annotations
-
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.gridspec import GridSpec
 
+from endo_pipeline.io import get_output_path
 from endo_pipeline.io.output import save_plot_to_path
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_MEDIUM, FONTSIZE_SMALL
@@ -19,12 +18,15 @@ from endo_pipeline.settings.plot_defaults import (
     MODEL_QC_SUBPLOT_KWARGS,
 )
 from endo_pipeline.settings.workflow_defaults import (
+    DEFAULT_MODEL_QC_LABEL_MAP,
     IMAGE_METRIC_DATASET_COLORS,
     METRIC_TEXT_BOX_PROPS,
 )
 
 if TYPE_CHECKING:
     import matplotlib.figure
+
+    from endo_pipeline.library.model.model_qc.evaluation import ModelKey
 
 
 # ========================
@@ -40,7 +42,7 @@ def create_denoising_contact_sheet(
     noise_levels: list[float],
     font_size_medium: int,
     font_size_large: int,
-) -> matplotlib.figure.Figure:
+) -> "matplotlib.figure.Figure":
     """
     Create a contact sheet figure showing denoising results at various noise levels.
 
@@ -133,7 +135,7 @@ def create_validation_examples_contact_sheet(
     scalebar_location: str = "lower right",
     max_rows: int = 3,
     font_size: int = 10,
-) -> matplotlib.figure.Figure:
+) -> "matplotlib.figure.Figure":
     """Build the publication-styled DiffAE validation contact sheet.
 
     One row per validation example, with five columns: the conditioning
@@ -250,7 +252,7 @@ def create_summary_contact_sheet(
     num_examples: int,
     label_for_conditioning: str,
     font_size_medium: int,
-) -> matplotlib.figure.Figure:
+) -> "matplotlib.figure.Figure":
     """
     Create a summary contact sheet showing 100% noise denoising results.
 
@@ -507,7 +509,7 @@ def create_contact_sheet_with_metrics_column(
     fig_kwargs: dict,
     direction: str = "top-down first",
     show_row_header_column: bool = False,
-) -> matplotlib.figure.Figure:
+) -> "matplotlib.figure.Figure":
     """
     Create a contact sheet with an additional metrics column.
 
@@ -669,3 +671,100 @@ def create_contact_sheet_with_metrics_column(
             )
 
     return fig
+
+
+def create_comparison_plots_and_summary(
+    models_data: list[dict[str, Any]],
+    model_keys: list["ModelKey"],
+    seeds_to_evaluate: list[int],
+    baseline_data: dict[str, dict[str, float]],
+    compute_baseline: bool,
+) -> None:
+    """Create comparison bar plots and log the summary table.
+
+    Generates one bar plot per metric (correlation, SSIM, LPIPS) comparing
+    all models on validation and rep-2 splits, and prints a formatted
+    summary table.
+
+    Parameters
+    ----------
+    models_data
+        Per-model summary dicts each containing ``"validation"`` and
+        ``"rep2"`` sub-dicts with ``*_mean`` / ``*_std`` floats.
+    model_keys
+        Ordered list of ``ModelKey``, one per model.  Used for axis labels
+        and the legend text in each bar plot.  Must align positionally with
+        ``models_data``.
+    seeds_to_evaluate
+        Seeds used during evaluation; displayed in titles when >1.
+    baseline_data
+        Baseline mean/std statistics for ``"validation"`` and ``"rep2"``.
+        Shown as horizontal dashed lines when ``compute_baseline`` is True.
+    compute_baseline
+        Whether to overlay baseline reference lines on the bar plots.
+    """
+    seed_suffix = f"_seeds_{len(seeds_to_evaluate)}" if len(seeds_to_evaluate) > 1 else ""
+    comparison_output_path = get_output_path(
+        "model_qc",
+        "comparison",
+        f"models_{len(model_keys)}{seed_suffix}",
+    )
+
+    # Use the curated short label for each model in the default sweep; fall
+    # back to the model's own ``manifest\nrun`` label otherwise.
+    model_labels = [
+        DEFAULT_MODEL_QC_LABEL_MAP.get((k.manifest_name, k.run_name), k.label) for k in model_keys
+    ]
+
+    seeds_info = (
+        f" (averaged over {len(seeds_to_evaluate)} seeds)" if len(seeds_to_evaluate) > 1 else ""
+    )
+
+    metric_configs: list[tuple[str, str, str, dict[str, Any]]] = [
+        ("corr", "Pearson Correlation (100% Noise)", "Correlation", {}),
+        ("ssim", "SSIM Score (100% Noise)", "SSIM", {}),
+        ("lpips", "LPIPS Score (100% Noise)", "LPIPS", {}),
+    ]
+
+    # Create comparison plots for each metric
+    for metric_key, ylabel, title_base, extra_kw in metric_configs:
+        create_comparison_bar_plot(
+            models_data=models_data,
+            metric_key=metric_key,
+            ylabel=ylabel,
+            title=f"{title_base}{seeds_info}",
+            output_path=comparison_output_path,
+            filename=f"{metric_key}_comparison_100_noise",
+            model_labels=model_labels,
+            show_baseline=compute_baseline,
+            **extra_kw,
+        )
+
+    # Build the summary table, save it next to the plots, and echo to console.
+    summary_lines = ["=" * 80, f"SUMMARY: Model Performance{seeds_info}", "=" * 80]
+
+    if compute_baseline and baseline_data["validation"]["corr_mean"] > 0:
+        summary_lines.append("\nBASELINE (Temporal - Next Timepoint Comparison):")
+        for split_label, split_key in [("Validation", "validation"), ("Rep2      ", "rep2")]:
+            b = baseline_data[split_key]
+            summary_lines.append(
+                f"  {split_label} - Corr: {b['corr_mean']:.3f} ± {b['corr_std']:.3f}, "
+                f"SSIM: {b['ssim_mean']:.3f} ± {b['ssim_std']:.3f}, "
+                f"LPIPS: {b['lpips_mean']:.3f} ± {b['lpips_std']:.3f}"
+            )
+        summary_lines.append("-" * 80)
+
+    for model_data in models_data:
+        summary_lines.append(f"\n{model_data['model_label']}:")
+        for split_label, split_key in [("Validation", "validation"), ("Rep2      ", "rep2")]:
+            d = model_data[split_key]
+            summary_lines.append(
+                f"  {split_label} - Corr: {d['corr_mean']:.3f} ± {d['corr_std']:.3f}, "
+                f"SSIM: {d['ssim_mean']:.3f} ± {d['ssim_std']:.3f}, "
+                f"LPIPS: {d['lpips_mean']:.3f} ± {d['lpips_std']:.3f}"
+            )
+    summary_lines.append("=" * 80)
+
+    summary_text = "\n".join(summary_lines)
+    (comparison_output_path / "model_performance_summary.txt").write_text(summary_text + "\n")
+    print(summary_text)
