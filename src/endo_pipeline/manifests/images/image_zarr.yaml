@@ -61,6 +61,7 @@ locations:
     s3uri: s3://allencell-internal-quilt/endo_stg/image_zarr/20250716_328c62ecc91248eab2268e546892453e_P{{position}}.ome.zarr
   20250728_20X:
     path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250728_b07652734b1b43178f4bc704abd7b95b/20250728_b07652734b1b43178f4bc704abd7b95b_P{{position}}.ome.zarr
+    s3uri: s3://allencell-internal-quilt/endo_stg/image_zarr/20250728_b07652734b1b43178f4bc704abd7b95b_P{{position}}.ome.zarr
   20250813_20X:
     path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20250813_6ab0f70bd43f4de987a789905dbfb95c/20250813_6ab0f70bd43f4de987a789905dbfb95c_P{{position}}.ome.zarr
     s3uri: s3://allencell-internal-quilt/endo_stg/image_zarr/20250813_6ab0f70bd43f4de987a789905dbfb95c_P{{position}}.ome.zarr
