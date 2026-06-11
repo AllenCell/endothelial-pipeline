@@ -12,6 +12,7 @@ from skimage import draw, filters, graph, measure, morphology, segmentation
 
 from endo_pipeline.configs import ChannelName
 from endo_pipeline.library.process.general_image_preprocessing import ImageProcessingArgs
+from endo_pipeline.settings.column_names import ColumnName as Column
 
 logger = logging.getLogger(__name__)
 
@@ -1642,46 +1643,56 @@ def build_cdh5_measured_features_tables(
             logger.debug(f"T={tp} -- saving table of cell properties")
             table = pd.DataFrame(
                 {
-                    "dataset_name": dataset_name,
-                    "position": position,
-                    "T": tp,
-                    "cell_label": labeled_region_metrics["cell_label"],
-                    "cell_centroid": labeled_region_metrics["cell_centroid"],
-                    "cell_area (px**2)": labeled_region_metrics["cell_area (px**2)"],
-                    "cell_perimeter (px)": labeled_region_metrics["cell_perimeter (px)"],
-                    "cell_solidity": labeled_region_metrics["cell_solidity"],
-                    "major_axis_length": labeled_region_metrics["major_axis_length"],
-                    "minor_axis_length": labeled_region_metrics["minor_axis_length"],
-                    "cell_eccentricity": labeled_region_metrics["cell_eccentricity"],
-                    "cell_orientation": labeled_region_metrics["cell_orientation"],
-                    "cell_fluorescence_mean (a.u.)": labeled_region_metrics[
+                    Column.DATASET: dataset_name,
+                    Column.POSITION: position,
+                    Column.TIMEPOINT: tp,
+                    Column.SegData.LABEL: labeled_region_metrics["cell_label"],
+                    Column.SegData.CENTROID: labeled_region_metrics["cell_centroid"],
+                    Column.SegData.AREA_PX_SQ: labeled_region_metrics["cell_area (px**2)"],
+                    Column.SegData.PERIMETER_PX: labeled_region_metrics["cell_perimeter (px)"],
+                    Column.SegData.SOLIDITY: labeled_region_metrics["cell_solidity"],
+                    Column.SegData.MAJOR_AXIS: labeled_region_metrics["major_axis_length"],
+                    Column.SegData.MINOR_AXIS: labeled_region_metrics["minor_axis_length"],
+                    Column.SegData.ECCENTRICITY: labeled_region_metrics["cell_eccentricity"],
+                    Column.SegData.ORIENTATION: labeled_region_metrics["cell_orientation"],
+                    Column.SegData.CELL_FLUOR_MEAN: labeled_region_metrics[
                         "cell_fluorescence_mean (au)"
                     ],
-                    "cell_fluorescence_std (a.u.)": labeled_region_metrics[
+                    Column.SegData.CELL_FLUOR_STD: labeled_region_metrics[
                         "cell_fluorescence_std (au)"
                     ],
-                    "cell_fluorescence_median (a.u.)": labeled_region_metrics[
+                    Column.SegData.CELL_FLUOR_MEDIAN: labeled_region_metrics[
                         "cell_fluorescence_median (au)"
                     ],
-                    "cell_fluorescence_min (a.u.)": labeled_region_metrics[
+                    Column.SegData.CELL_FLUOR_MIN: labeled_region_metrics[
                         "cell_fluorescence_min (au)"
                     ],
-                    "cell_fluorescence_pct25 (a.u.)": labeled_region_metrics[
+                    Column.SegData.CELL_FLUOR_PCT25: labeled_region_metrics[
                         "cell_fluorescence_pct25 (au)"
                     ],
-                    "cell_fluorescence_pct75 (a.u.)": labeled_region_metrics[
+                    Column.SegData.CELL_FLUOR_PCT75: labeled_region_metrics[
                         "cell_fluorescence_pct75 (au)"
                     ],
-                    "cell_fluorescence_max (a.u.)": labeled_region_metrics[
+                    Column.SegData.CELL_FLUOR_MAX: labeled_region_metrics[
                         "cell_fluorescence_max (au)"
                     ],
-                    "neighboring_cell_labels": labeled_region_metrics["neighboring_cell_labels"],
-                    "edge_labels": labeled_region_metrics["edge_labels"],
-                    "node_labels": labeled_region_metrics["node_labels"],
-                    "node_pair_labels": labeled_region_metrics["node_pair_labels"],
-                    "edge_fluorescences (a.u.)": labeled_region_metrics["edge_fluorescences (au)"],
-                    "node_fluorescences (a.u.)": labeled_region_metrics["node_fluorescences (au)"],
-                    "touches_image_border": labeled_region_metrics["touches_image_border"],
+                    Column.SegData.NEIGHBOR_LABELS: labeled_region_metrics[
+                        "neighboring_cell_labels"
+                    ],
+                    Column.SegDataWorkflowVerification.EDGE_LABELS: labeled_region_metrics[
+                        "edge_labels"
+                    ],
+                    Column.SegDataWorkflowVerification.NODE_LABELS: labeled_region_metrics[
+                        "node_labels"
+                    ],
+                    Column.SegDataWorkflowVerification.NODE_PAIR_LABELS: labeled_region_metrics[
+                        "node_pair_labels"
+                    ],
+                    Column.SegData.EDGE_FLUOR: labeled_region_metrics["edge_fluorescences (au)"],
+                    Column.SegData.NODE_FLUOR: labeled_region_metrics["node_fluorescences (au)"],
+                    Column.SegDataFilters.IS_EDGE_SEGMENTATION: labeled_region_metrics[
+                        "touches_image_border"
+                    ],
                 }
             )
             table.to_parquet(
