@@ -313,6 +313,7 @@ class ColumnName:
         NODE_LABELS = "node_labels"
         EDGE_LABELS = "edge_labels"
         NODE_PAIR_LABELS = "node_pair_labels"
+        CDH5_SEGMENTATION_LABEL = "cdh5_segmentation_label"
         NUCLEI_LABELS_IN_CDH5_SEGMENTATION = "nuclei_segmentation_labels"
         NUCLEI_FRACTION_IN_CDH5_SEGMENTATION = "nuclei_seg_in_cdh5_seg_frac"
         NUCLEI_INTENSITY_COLUMN_PREFIX = "nuc_seg_intens_"

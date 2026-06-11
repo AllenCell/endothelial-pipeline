@@ -1778,9 +1778,9 @@ def get_nuclei_features_from_image(
         nuc_seg_labels = np.unique(prop.intensity_image[prop.intensity_image != 0]).tolist()
 
         nuc_feats = {
-            "cdh5_segmentation_label": prop.label,
-            "nuclei_segmentation_labels": nuc_seg_labels,
-            "nuclei_seg_in_cdh5_seg_frac": [],
+            Column.SegDataWorkflowVerification.CDH5_SEGMENTATION_LABEL: prop.label,
+            Column.SegDataWorkflowVerification.NUCLEI_LABELS_IN_CDH5_SEGMENTATION: nuc_seg_labels,
+            Column.SegDataWorkflowVerification.NUCLEI_FRACTION_IN_CDH5_SEGMENTATION: [],
         }
 
         for f in feats_with_list_of_lists.keys():
@@ -1793,9 +1793,9 @@ def get_nuclei_features_from_image(
             if nuc_seg_labels:
                 nuc_seg_in_cdh5_seg_size = np.count_nonzero(prop.intensity_image == lab)
                 nuc_seg_total_size = nuc_seg_size_dict[lab]
-                nuc_feats["nuclei_seg_in_cdh5_seg_frac"].append(
-                    nuc_seg_in_cdh5_seg_size / nuc_seg_total_size
-                )
+                nuc_feats[
+                    Column.SegDataWorkflowVerification.NUCLEI_FRACTION_IN_CDH5_SEGMENTATION
+                ].append(nuc_seg_in_cdh5_seg_size / nuc_seg_total_size)
 
                 # summarize intensities in segmented nuclei regions for each channel
                 for chan in fluor_img_names:
@@ -1806,7 +1806,11 @@ def get_nuclei_features_from_image(
                         nuc_feats[f"{feat}_{chan}"].append(func(intens_arr[nuc_arr]))
 
         nuc_lab_frac_dict = dict(
-            zip(nuc_seg_labels, nuc_feats["nuclei_seg_in_cdh5_seg_frac"], strict=False)
+            zip(
+                nuc_seg_labels,
+                nuc_feats[Column.SegDataWorkflowVerification.NUCLEI_FRACTION_IN_CDH5_SEGMENTATION],
+                strict=False,
+            )
         )
         nuclei_seg_with_most_overlap = [
             lab
@@ -1882,7 +1886,7 @@ def get_nuclei_features_from_dataset_at_timepoint(
 
     # add the total number of detected nuclei per image to the dataframe
     num_nuclei = np.count_nonzero(np.unique(nuc_seg))
-    nuc_feats_df["total_nuclei_count_at_T"] = num_nuclei
+    nuc_feats_df[Column.SegData.NUM_NUCLEI_AT_TIMEPOINT] = num_nuclei
 
     # add the dataset name, position, and T to the dataframe
     nuc_feats_df[Column.DATASET] = dataset_name
