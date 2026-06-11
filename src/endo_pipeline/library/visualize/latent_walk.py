@@ -13,15 +13,9 @@ from matplotlib.gridspec import GridSpec
 from endo_pipeline.configs import get_datasets_in_collection
 from endo_pipeline.io import load_dataframe, load_model, save_plot_to_path
 from endo_pipeline.library.analyze.pca import fit_pca
-from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
-from endo_pipeline.library.model.diffae.generate_image import generate_latent_walk_images
-from endo_pipeline.library.model.latent_walk_utils import (
-    add_pc_coordinates_to_dataframe,
-    get_latent_walk,
-    get_num_pcs_from_column_names,
-)
 from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.library.visualize.figure_utils import add_scalebar
+from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.manifests import (
     get_dataframe_location_for_dataset,
     load_dataframe_manifest,
@@ -53,7 +47,7 @@ def plot_latent_walk_as_grid(
     label_sigmas: bool = True,
     figsize: tuple[float, float] | None = None,
     scale_bar_um: int = 20,
-) -> None:
+) -> Path:
     """Plot and save a grid of reconstructed image crops representing a latent walk.
 
     Parameters
@@ -157,14 +151,15 @@ def plot_latent_walk_as_grid(
         )
 
     file_name = f"{file_name}_scale_bar_{scale_bar_um}um"
-    save_plot_to_path(fig, save_path, file_name, file_format=file_format)
+    return save_plot_to_path(fig, save_path, file_name, file_format=file_format)
 
 
+@figure_panel("Latent walk visualization along ML-based features")
 def perform_and_plot_latent_walk_for_figures(
-    save_path: Path,
+    output_path: Path,
     filename: str,
     walk_column_names: list[str],
-    figsize: tuple[float, float] = (MAX_FIGURE_WIDTH, 2.8),
+    figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 2.8),
     sigma: float | None = 3,
     n_steps: int = 7,
     scale_bar_um: int = 10,
@@ -214,6 +209,15 @@ def perform_and_plot_latent_walk_for_figures(
         crops.
 
     """
+
+    from endo_pipeline.library.model.diffae import DiffusionAutoEncoder
+    from endo_pipeline.library.model.diffae.generate_image import generate_latent_walk_images
+    from endo_pipeline.library.model.latent_walk_utils import (
+        add_pc_coordinates_to_dataframe,
+        get_latent_walk,
+        get_num_pcs_from_column_names,
+    )
+
     model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
     run_name = DEFAULT_MODEL_RUN_NAME
     model_manifest = load_model_manifest(model_manifest_name)
@@ -259,16 +263,16 @@ def perform_and_plot_latent_walk_for_figures(
         model, walk_latent, ranges, num_gpus=num_gpus, random_seed=random_seed
     )
 
-    plot_latent_walk_as_grid(
+    walk_img_path = plot_latent_walk_as_grid(
         walk_img_grid,
         ranges,
         walk_column_names,
-        save_path,
+        output_path,
         filename,
         label_sigmas=True if sigma is not None else False,
-        figsize=figsize,
+        figsize=figure_size,
         scale_bar_um=scale_bar_um,
         file_format=".svg",
     )
 
-    return save_path / f"{filename}_scale_bar_{scale_bar_um}um.svg", walk_img_grid
+    return walk_img_path, walk_img_grid
