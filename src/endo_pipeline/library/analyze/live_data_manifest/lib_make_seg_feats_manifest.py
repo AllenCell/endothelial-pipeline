@@ -132,20 +132,15 @@ def sanitize_column_names(big_table: pd.DataFrame) -> pd.DataFrame:
         "cell_fluorescence_pct25 (a.u.)": Column.SegData.CELL_FLUOR_PCT25,
         "cell_fluorescence_pct75 (a.u.)": Column.SegData.CELL_FLUOR_PCT75,
     }
-    crop_based_feature_cols = {
-        "filepath_raw_image": Column.ZARR_PATH,
-    }
     other_feature_cols = {
         "neighboring_cell_labels": Column.SegData.NEIGHBOR_LABELS,
         "cell_centroid": Column.SegData.CENTROID,
-        "filepath_segmentation_image": Column.SegDataWorkflowVerification.SEGMENTATION_PATH,
     }
     cols_to_rename = {
         **dataset_info_cols,
         **filter_cols,
         **morpho_feature_cols,
         **fluorescence_feature_cols,
-        **crop_based_feature_cols,
         **other_feature_cols,
     }
 

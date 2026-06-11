@@ -150,7 +150,6 @@ def merge_diffae_feats_liveseg_feats_tables(
         Column.POSITION,
         Column.TIMEPOINT,
         Column.TRACK_ID,
-        Column.ZARR_PATH,
     ]
     if Column.TRACK_LENGTH in diffae_tracking_df.columns:
         merging_cols.append(Column.TRACK_LENGTH)

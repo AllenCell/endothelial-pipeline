@@ -1462,8 +1462,6 @@ def build_cdh5_measured_features_tables(
 
     The tables contain the following information:
     segmentation properties table:
-    - filepath_raw_image
-    - filepath_segmentation_image
     - dataset_name
     - position
     - T
@@ -1497,9 +1495,6 @@ def build_cdh5_measured_features_tables(
     - git_uncommitted_changes
 
     edge alignments table:
-    - filepath_raw_image
-    - filepath_raw_image
-    - filepath_segmentation_image
     - dataset_name
     - position
     - T
@@ -1560,7 +1555,6 @@ def build_cdh5_measured_features_tables(
     seg_manifest = load_image_manifest("cdh5_classic_seg_zarr")
     seg_location = get_image_location_for_dataset(seg_manifest, dataset_config, position)
     seg_arr = load_image(seg_location, squeeze=True, compute=True, timepoints=tp)
-    seg_filepath = seg_location.path.as_posix() if seg_location.path is not None else ""
 
     # NOTE: the segmentation images are stored as a single channel and single timepoint
     seg_borders = segmentation.find_boundaries(seg_arr)
@@ -1585,8 +1579,6 @@ def build_cdh5_measured_features_tables(
         logger.debug(f"T={tp} -- saving table of edge angles and distances")
         table = pd.DataFrame(
             {
-                "filepath_raw_image": image_loc.path.as_posix(),
-                "filepath_segmentation_image": seg_filepath,
                 "dataset_name": dataset_name,
                 "position": position,
                 "T": tp,
@@ -1650,8 +1642,6 @@ def build_cdh5_measured_features_tables(
             logger.debug(f"T={tp} -- saving table of cell properties")
             table = pd.DataFrame(
                 {
-                    "filepath_raw_image": image_loc.path.as_posix(),
-                    "filepath_segmentation_image": seg_filepath,
                     "dataset_name": dataset_name,
                     "position": position,
                     "T": tp,

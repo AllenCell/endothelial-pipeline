@@ -302,7 +302,6 @@ class ColumnName:
     class SegDataWorkflowVerification(StrEnum):
         """Column names for workflow development and verification checks."""
 
-        SEGMENTATION_PATH = "filepath_segmentation_image"
         TRACKING_REF_IDX = "reference_index"
         TRACKING_MATCHED_QUERY_LABEL = "matched_query_label"
         TRACKING_OPTIMIZED_METRIC_VAL = "optimized_metric_value"

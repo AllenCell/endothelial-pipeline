@@ -173,7 +173,6 @@ DEFAULT_COLUMNS_TO_DROP: dict[str, list[ColumnNameType]] = {
         Column.SegDataFilters.MIN_NUM_VALID_TIMEPOINTS_PER_TRACK,
     ],
     "verification_columns": [
-        Column.SegDataWorkflowVerification.SEGMENTATION_PATH,
         Column.SegDataWorkflowVerification.TRACKING_REF_IDX,
         Column.SegDataWorkflowVerification.TRACKING_MATCHED_QUERY_LABEL,
         Column.SegDataWorkflowVerification.TRACKING_OPTIMIZED_METRIC_VAL,
