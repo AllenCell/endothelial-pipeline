@@ -499,12 +499,6 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         max=1,
         type=ColumnType.CONTINUOUS,
     ),
-    Column.OpticalFlow.EMA005_UNIT_VECTOR_MEAN: ColumnMetadata(
-        name="Coherent migration (EMA 0.05, optical flow mean unit vector)",
-        min=0,
-        max=1,
-        type=ColumnType.CONTINUOUS,
-    ),
     Column.OpticalFlow.UNIT_VECTOR_MEAN: ColumnMetadata(
         name="Coherent migration (EMA 0.1, optical flow mean unit vector)",
         label="Patch-based\nmigration coherence",
@@ -514,20 +508,8 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         ticks=[0.3, 0.5, 0.7, 0.9],
         type=ColumnType.CONTINUOUS,
     ),
-    Column.OpticalFlow.EMA02_UNIT_VECTOR_MEAN: ColumnMetadata(
-        name="Coherent migration (EMA 0.2, optical flow mean unit vector)",
-        min=0,
-        max=1,
-        type=ColumnType.CONTINUOUS,
-    ),
     Column.OpticalFlow.UNIT_VECTOR_MEAN_FAST: ColumnMetadata(
         name="Coherent migration fast (optical flow unit vectors greater than 1 speed)",
-        min=0,
-        max=1,
-        type=ColumnType.CONTINUOUS,
-    ),
-    Column.OpticalFlow.EMA005_UNIT_VECTOR_MEAN_FAST: ColumnMetadata(
-        name="Coherent migration (EMA 0.05, optical flow mean unit vector fast)",
         min=0,
         max=1,
         type=ColumnType.CONTINUOUS,
@@ -536,28 +518,6 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         name="Coherent migration (EMA 0.1, optical flow mean unit vector fast)",
         min=0,
         max=1,
-        type=ColumnType.CONTINUOUS,
-    ),
-    Column.OpticalFlow.EMA02_UNIT_VECTOR_MEAN_FAST: ColumnMetadata(
-        name="Coherent migration (EMA 0.2, optical flow mean unit vector fast)",
-        min=0,
-        max=1,
-        type=ColumnType.CONTINUOUS,
-    ),
-    Column.OpticalFlow.RADIAL_COHERENCE: ColumnMetadata(
-        name="Coherent migration (optical flow radial coherence)",
-        type=ColumnType.CONTINUOUS,
-    ),
-    Column.OpticalFlow.EMA01_RADIAL_COHERENCE: ColumnMetadata(
-        name="Coherent migration (EMA 0.1, optical flow radial coherence)",
-        type=ColumnType.CONTINUOUS,
-    ),
-    Column.OpticalFlow.RADIAL_COHERENCE_WEIGHTED: ColumnMetadata(
-        name="Coherent migration (optical flow radial coherence weighted)",
-        type=ColumnType.CONTINUOUS,
-    ),
-    Column.OpticalFlow.EMA01_RADIAL_COHERENCE_WEIGHTED: ColumnMetadata(
-        name="Coherent migration (EMA 0.1, optical flow radial coherence weighted)",
         type=ColumnType.CONTINUOUS,
     ),
     Column.OpticalFlow.ANGLE_STD: ColumnMetadata(

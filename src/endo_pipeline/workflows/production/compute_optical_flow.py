@@ -1,8 +1,8 @@
 from typing import Literal
 
-from endo_pipeline.cli import CropPattern, Datasets, FloatList
+from endo_pipeline.cli import CropPattern, Datasets
 from endo_pipeline.settings.optical_flow import (
-    DEFAULT_EMA_ALPHAS,
+    DEFAULT_EMA_ALPHA,
     DEFAULT_OPTICAL_FLOW_MAX_DT,
     DEFAULT_SPEED_THRESHOLD,
 )
@@ -13,7 +13,7 @@ def main(
     crop_pattern: CropPattern = "grid",
     channel: Literal["BF", "EGFP"] = "BF",
     max_dt: int = DEFAULT_OPTICAL_FLOW_MAX_DT,
-    ema_alphas: FloatList = list(DEFAULT_EMA_ALPHAS),
+    ema_alpha: float = DEFAULT_EMA_ALPHA,
     speed_threshold: float = DEFAULT_SPEED_THRESHOLD,
     num_workers: int = 1,
 ) -> None:
@@ -84,8 +84,8 @@ def main(
         Imaging channel to use for computing features.
     max_dt
         Maximum temporal gap (inclusive).
-    ema_alphas
-        EMA smoothing alpha values for temporal coherence smoothing.
+    ema_alpha
+        EMA smoothing alpha value for temporal coherence smoothing.
     speed_threshold
         Minimum pixel speed for the "fast" coherence features.
     num_workers
@@ -185,7 +185,7 @@ def main(
         "max_dt": max_dt,
         "intensity_percentile": intensity_percentile,
         "attachment": attachment,
-        "ema_alphas": list(ema_alphas),
+        "ema_alpha": ema_alpha,
         "speed_threshold": speed_threshold,
     }
     save_dataframe_manifest(optical_flow_manifest)
@@ -294,7 +294,7 @@ def main(
             # Append optical flow features from records to the position
             # dataframe, add any missing columns, and apply EMA smoothing
             df_position = build_merged_optical_flow_dataframe(
-                df_position, records, max_dt, ema_alphas
+                df_position, records, max_dt, ema_alpha
             )
 
             position_dataframes.append(df_position)

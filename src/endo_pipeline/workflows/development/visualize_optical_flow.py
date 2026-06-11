@@ -1,7 +1,7 @@
 from typing import Literal
 
-from endo_pipeline.cli import CropPattern, Datasets, FloatList
-from endo_pipeline.settings.optical_flow import DEFAULT_EMA_ALPHAS, DEFAULT_OPTICAL_FLOW_MAX_DT
+from endo_pipeline.cli import CropPattern, Datasets
+from endo_pipeline.settings.optical_flow import DEFAULT_EMA_ALPHA, DEFAULT_OPTICAL_FLOW_MAX_DT
 
 
 def main(
@@ -9,7 +9,7 @@ def main(
     crop_pattern: CropPattern = "grid",
     channel: Literal["BF", "EGFP"] = "BF",
     max_dt: int = DEFAULT_OPTICAL_FLOW_MAX_DT,
-    ema_alphas: FloatList = list(DEFAULT_EMA_ALPHAS),
+    ema_alpha: float = DEFAULT_EMA_ALPHA,
 ) -> None:
     """
     Visualize TVL1 optical flow features for crops.
@@ -36,8 +36,8 @@ def main(
         Imaging channel to use for computing features.
     max_dt
         Maximum temporal gap (inclusive).
-    ema_alphas
-        EMA smoothing alpha values for temporal coherence smoothing.
+    ema_alpha
+        EMA smoothing alpha value for temporal coherence smoothing.
     """
 
     import logging
@@ -165,7 +165,7 @@ def main(
                 df_position,
                 output_name=output_name,
                 output_dir=output_path,
-                ema_alphas=ema_alphas,
+                ema_alpha=ema_alpha,
                 max_crops=DEMO_MAX_TRACKED_CROPS_TO_PLOT,
                 max_dt=max_dt,
             )
