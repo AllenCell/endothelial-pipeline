@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from typing import NamedTuple
 
 import numpy as np
@@ -385,7 +385,7 @@ def build_image_pair_crops_for_grid(df: pd.DataFrame) -> Callable[[int], Optical
 
 
 def build_merged_optical_flow_dataframe(
-    df_base: pd.DataFrame, records: list[dict], max_dt: int, ema_alpha: Sequence[float]
+    df_base: pd.DataFrame, records: list[dict], max_dt: int, ema_alpha: float
 ) -> pd.DataFrame:
     """
     Build merged dataframe from optical flow records with EMA smoothing.
