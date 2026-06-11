@@ -154,7 +154,7 @@ def plot_latent_walk_as_grid(
     return save_plot_to_path(fig, save_path, file_name, file_format=file_format)
 
 
-@figure_panel("Latent walk visualization along ML-based features theta, r, and rho")
+@figure_panel("Latent walk visualization along ML-based features")
 def perform_and_plot_latent_walk_for_figures(
     output_path: Path,
     filename: str,
