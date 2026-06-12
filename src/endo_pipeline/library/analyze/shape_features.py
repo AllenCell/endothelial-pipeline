@@ -12,6 +12,7 @@ from skimage import draw, filters, graph, measure, morphology, segmentation
 from endo_pipeline.configs import ChannelName
 from endo_pipeline.library.process.general_image_preprocessing import ImageProcessingArgs
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNamePrefix as ColumnPrefix
 
 logger = logging.getLogger(__name__)
 
@@ -1796,9 +1797,9 @@ def get_nuclei_features_from_image(
             if nuc_lab_frac_dict[lab] == max(nuc_lab_frac_dict.values())
         ]
         for i, nuc_lab_max in enumerate(nuclei_seg_with_most_overlap):
-            nuc_feats[f"nuclei_seg_with_most_overlap_{i}"] = nuc_lab_max
+            nuc_feats[f"{ColumnPrefix.NUCLEI_WITH_MOST_OVERLAP}{i}"] = nuc_lab_max
             for dim_index, dim in enumerate(seg_dim_order):
-                nuc_feats[f"nuc_with_most_overlap_{i}_centroid_{dim}"] = float(
+                nuc_feats[f"{ColumnPrefix.NUCLEI_WITH_MOST_OVERLAP}{i}_centroid_{dim}"] = float(
                     nuc_props_on_intens[ChannelName.BF][nuc_lab_max].centroid[dim_index]
                 )
 

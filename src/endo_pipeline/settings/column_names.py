@@ -218,9 +218,9 @@ class ColumnName:
         NUCLEI_POSITION_ANGLE = "nuclei_position_angle"
         NUCLEI_POSITION_ANGLE_DEG = "nuclei_position_angle_deg"
         NUCLEI_POSITION_DISTANCE = "nuclei_position_distance"
-        NUCLEI_LABEL = "nuclei_seg_with_most_overlap_0"
-        NUCLEI_CENTROID_X = "nuc_with_most_overlap_0_centroid_X"
-        NUCLEI_CENTROID_Y = "nuc_with_most_overlap_0_centroid_Y"
+        NUCLEI_LABEL = "nuclei_with_most_overlap_0"
+        NUCLEI_CENTROID_X = "nuclei_with_most_overlap_0_centroid_X"
+        NUCLEI_CENTROID_Y = "nuclei_with_most_overlap_0_centroid_Y"
 
         # fluorescence features
         EDGE_FLUOR = "edge_fluorescence_au"
@@ -316,7 +316,6 @@ class ColumnName:
         CDH5_SEGMENTATION_LABEL = "cdh5_segmentation_label"
         NUCLEI_LABELS_IN_CDH5_SEGMENTATION = "nuclei_segmentation_labels"
         NUCLEI_FRACTION_IN_CDH5_SEGMENTATION = "nuclei_seg_in_cdh5_seg_frac"
-        NUCLEI_SEG_LABEL_PREFIX = "nuclei_seg_with_most_overlap_"
 
     class Annotations(StrEnum):
         """Column names for manual annotations of segmentation quality and other features."""
@@ -628,6 +627,8 @@ class ColumnName:
 
 class ColumnNamePrefix(StrEnum):
     """Prefixes for dataframe column names."""
+
+    NUCLEI_WITH_MOST_OVERLAP = "nuclei_with_most_overlap_"
 
 
 class ColumnNameSuffix(StrEnum):
