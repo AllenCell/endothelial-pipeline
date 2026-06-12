@@ -12,7 +12,6 @@ parameters:
   - 20250827_20X
   crop_size: 128
   condition_on: bf
-  include_cell_piling: false
 locations:
   latent_8:
     mlflowid: bfad1b1919a54a3dbaaeafae21e19417

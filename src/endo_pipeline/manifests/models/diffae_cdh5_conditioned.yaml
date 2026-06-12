@@ -11,8 +11,7 @@ parameters:
   - 20250818_20X
   - 20250827_20X
   crop_size: 128
-  resolution_level: 1
-  include_cell_piling: false
+  condition_on: cdh5
 locations:
   latent_512:
     mlflowid: b072c78e9cc641e7ba73572482afec65
