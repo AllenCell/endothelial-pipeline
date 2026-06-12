@@ -184,7 +184,7 @@ def reconstruct_fixed_points(
         panels=walk_panels,
         max_rows=1,
         max_cols=2,
-        fig_kwargs={"figsize": (2.2, 1.1), "layout": "constrained"},
+        fig_kwargs={"figsize": (2, 1), "layout": "constrained"},
         gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
     )
 
