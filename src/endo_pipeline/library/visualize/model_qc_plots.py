@@ -503,7 +503,7 @@ def create_rep2_correlation_bar_plot(
     model_labels: list[str],
     output_path: Path,
     filename: str,
-    ylabel: str = "Pearson correlation r value",
+    ylabel: str = "Pearson correlation coefficient",
     ylim: tuple[float, float] | None = None,
     figsize: tuple[float, float] | None = None,
     file_format: Literal[".png", ".svg", ".pdf"] = ".svg",
@@ -563,7 +563,7 @@ def create_rep2_correlation_bar_plot(
         alpha=0.85,
     )
 
-    ax.set_xlabel("Number of latent dimensions, conditioning channel", fontsize=label_fontsize)
+    ax.set_xlabel("Conditioning channel-latent dimension", fontsize=label_fontsize)
     ax.set_ylabel(ylabel, fontsize=label_fontsize)
     ax.set_xticks(x_pos)
     rotation = 45 if num_models > 4 else 0

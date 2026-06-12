@@ -55,7 +55,7 @@ def main() -> None:
         EXAMPLE_DIFFAE_TRAINING_SCHEMATIC,
         EXAMPLES_DIFFAE_TRAINING_VALIDATION,
     )
-    from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_WIDTH
     from endo_pipeline.settings.image_data import (
         DIFFAE_ZARR_RESOLUTION_LEVEL,
         PIXEL_SIZE_3i_20x_RESOLUTION_1,
@@ -92,11 +92,7 @@ def main() -> None:
     denoised_per_model: list[list[np.ndarray]] = []  # outer=models, inner=examples
 
     # Column labels: first column is ground truth, then one per model
-    col_labels: list[str] = ["Target\nVE-cadherin"]
-    for label in DEFAULT_MODEL_QC_LABEL_MAP.values():
-        # Convert "8 BF" -> "BF-8", "512 CDH5" -> "CDH5-512"
-        parts = label.split()
-        col_labels.append(f"{parts[1]}-{parts[0]}")
+    col_labels: list[str] = ["Target\nVE-cadherin", *DEFAULT_MODEL_QC_LABEL_MAP.values()]
 
     # Iterate over every model in the curated QC sweep
     for model_idx, ((manifest_name, run_name), label) in enumerate(
@@ -273,7 +269,7 @@ def main() -> None:
         filename=panel_b_filename,
         figsize=(MAX_FIGURE_WIDTH - 0.3, 3.6),
         file_format=".svg",
-        label_fontsize=10,
+        label_fontsize=FONTSIZE_MEDIUM,
         save_kwargs={"pad_inches": 0, "transparent": True},
     )
     panel_b_svg_path = panel_b_output_path / f"{panel_b_filename}.svg"
@@ -288,13 +284,13 @@ def main() -> None:
             x_position=0.0,
             y_position=0.0,
             x_offset=0.0,
-            y_offset=0.0,
+            y_offset=0.2,
         ),
         FigurePanel(
             letter="B",
             path=panel_b_svg_path,
             x_position=0.0,
-            y_position=3.4,
+            y_position=2.2,
             x_offset=0.25,
             y_offset=0.15,
         ),
