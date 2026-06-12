@@ -316,7 +316,6 @@ class ColumnName:
         CDH5_SEGMENTATION_LABEL = "cdh5_segmentation_label"
         NUCLEI_LABELS_IN_CDH5_SEGMENTATION = "nuclei_segmentation_labels"
         NUCLEI_FRACTION_IN_CDH5_SEGMENTATION = "nuclei_seg_in_cdh5_seg_frac"
-        NUCLEI_INTENSITY_COLUMN_PREFIX = "nuc_seg_intens_"
         NUCLEI_SEG_LABEL_PREFIX = "nuclei_seg_with_most_overlap_"
 
     class Annotations(StrEnum):

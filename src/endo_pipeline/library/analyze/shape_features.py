@@ -1,6 +1,5 @@
 import logging
 import re
-from collections.abc import Callable
 from os import scandir
 from pathlib import Path
 from typing import Any, Literal
@@ -1763,16 +1762,6 @@ def get_nuclei_features_from_image(
     # Set up some initial data containers to populate
     nuc_feats_ls: list = []
 
-    feats_with_list_of_lists: dict[str, Callable] = {
-        "nuc_seg_intens_means": np.mean,
-        "nuc_seg_intens_stds": np.std,
-        "nuc_seg_intens_medians": np.median,
-        "nuc_seg_intens_pct25s": lambda x: np.percentile(x, 25),
-        "nuc_seg_intens_pct75s": lambda x: np.percentile(x, 75),
-        "nuc_seg_intens_maxs": np.max,
-        "nuc_seg_intens_mins": np.min,
-    }
-
     # Go through the region properties and extract features
     for prop in reg_props:
         nuc_seg_labels = np.unique(prop.intensity_image[prop.intensity_image != 0]).tolist()
@@ -1782,9 +1771,6 @@ def get_nuclei_features_from_image(
             Column.SegDataWorkflowVerification.NUCLEI_LABELS_IN_CDH5_SEGMENTATION: nuc_seg_labels,
             Column.SegDataWorkflowVerification.NUCLEI_FRACTION_IN_CDH5_SEGMENTATION: [],
         }
-
-        for f in feats_with_list_of_lists.keys():
-            [nuc_feats.update({f"{f}_{chan}": []}) for chan in fluor_img_names]
 
         # add the fraction overlap of the cdh5 segmentation with the segmentation
         # to each of the properties in reg_props
@@ -1796,14 +1782,6 @@ def get_nuclei_features_from_image(
                 nuc_feats[
                     Column.SegDataWorkflowVerification.NUCLEI_FRACTION_IN_CDH5_SEGMENTATION
                 ].append(nuc_seg_in_cdh5_seg_size / nuc_seg_total_size)
-
-                # summarize intensities in segmented nuclei regions for each channel
-                for chan in fluor_img_names:
-                    nuc_arr = nuc_props_on_intens[chan][lab].image
-                    intens_arr = nuc_props_on_intens[chan][lab].image_intensity
-
-                    for feat, func in feats_with_list_of_lists.items():
-                        nuc_feats[f"{feat}_{chan}"].append(func(intens_arr[nuc_arr]))
 
         nuc_lab_frac_dict = dict(
             zip(

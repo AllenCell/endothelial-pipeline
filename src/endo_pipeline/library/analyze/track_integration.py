@@ -229,16 +229,10 @@ def get_diffae_feats_liveseg_feats_merged_table(
         default_cols_to_drop = [
             col for col_grp in DEFAULT_COLUMNS_TO_DROP.values() for col in col_grp
         ]
-        nuclei_intens_cols = [
-            col
-            for col in merged_feats_df.columns
-            if Column.SegDataWorkflowVerification.NUCLEI_INTENSITY_COLUMN_PREFIX in col
-        ]
         additional_cols_to_drop = additional_columns_to_drop or []
 
         cols_to_drop = [
             *default_cols_to_drop,
-            *nuclei_intens_cols,
             *additional_cols_to_drop,
         ]
 
