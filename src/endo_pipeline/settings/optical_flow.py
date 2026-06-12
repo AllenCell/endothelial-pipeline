@@ -70,24 +70,20 @@ OPTICAL_FLOW_BASE_FEATURES: list[str] = [
     ColumnName.OpticalFlow.V_STD_BASE,
     ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_FAST_BASE,
     ColumnName.OpticalFlow.SPEED_ABOVE_1_COUNT_BASE,
-    ColumnName.OpticalFlow.RADIAL_COHERENCE_BASE,
-    ColumnName.OpticalFlow.RADIAL_COHERENCE_WEIGHTED_BASE,
 ]
 """List of base computed optical flow features."""
 
 OPTICAL_FLOW_EMA_STEMS: list[str] = [
     ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_BASE,
     ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_FAST_BASE,
-    ColumnName.OpticalFlow.RADIAL_COHERENCE_BASE,
-    ColumnName.OpticalFlow.RADIAL_COHERENCE_WEIGHTED_BASE,
 ]
 """List of optical flow feature stems that receive EMA smoothing."""
 
 # ---------------------------------------------------------------------------
 # Default CLI flag values
 # ---------------------------------------------------------------------------
-DEFAULT_EMA_ALPHAS: tuple[float, ...] = (0.1,)
-"""Default EMA smoothing alpha values for temporal coherence smoothing."""
+DEFAULT_EMA_ALPHA: float = 0.1
+"""Default EMA smoothing alpha value for temporal coherence smoothing."""
 
 DEFAULT_SPEED_THRESHOLD: float = 1.0
 """Default speed threshold for fast-coherence feature computation."""

@@ -4,39 +4,39 @@ parameters:
   num_seeds: 10
   seeds: [42, 43, 44, 45, 46, 47, 48, 49, 50, 51]
   random_seed: 47
-  example_set: rep_2_positions
+  example_sets: [rep_2_positions, validation_positions]
   noise_levels: [0.25, 0.5, 0.75]
   manifest_name: diffae_baseline_exclude_cell_piling
 locations:
   20260207_latent_8:
-    fmsid: bd320e174b6040ee9847451592d97afb
+    fmsid: cd4790bcf2564581b28098638507ddfc
     path: null
     s3uri: null
   20260205_latent_16:
-    fmsid: 1df2e418c1754af99867aa439a15c1a2
+    fmsid: d79c989760a44903b5051efb03f8817d
     path: null
     s3uri: null
   20260203_latent_32:
-    fmsid: 49f01a60acfa4fa08e311df11f593b11
+    fmsid: e963d81652864b56aae04d9bcc453cf9
     path: null
     s3uri: null
   20260206_latent_64:
-    fmsid: 74f9bddcf7d0495880c5f5e860d4745b
+    fmsid: 929b7c89df8a4834b2b88b96cdb9493f
     path: null
     s3uri: null
   20260127_latent_128:
-    fmsid: 3fc1ef8543154bc5a6efdfc9c179d310
+    fmsid: 47d625161bfe4a62bdd2ffb900df3493
     path: null
     s3uri: null
   20260122_latent_256:
-    fmsid: 41f7313e2f764fe2825c7b89069f2845
+    fmsid: 09c7666087fd4ad78d0e9427d98ce37b
     path: null
     s3uri: null
   20251110_latent_512:
-    fmsid: 36cdc84e7d974446988354794f08161f
+    fmsid: fc829663584c4bddaaac9c5594839dac
     path: null
     s3uri: null
   20251110_latent_1024:
-    fmsid: 142d2fd198fa4c52a9f3580a9b64ac5a
+    fmsid: 64ca85c1d63543acb40c91cd37053670
     path: null
     s3uri: null

@@ -4,15 +4,15 @@ parameters:
   num_seeds: 10
   seeds: [42, 43, 44, 45, 46, 47, 48, 49, 50, 51]
   random_seed: 47
-  example_set: rep_2_positions
+  example_sets: [rep_2_positions, validation_positions]
   noise_levels: [0.25, 0.5, 0.75]
   manifest_name: diffae_cdh5_conditioned
 locations:
   20260130_latent_512:
-    fmsid: de29edd4278d4de1aba9018d365a06b2
+    fmsid: 9a52e74ec2ed4d97a5863327e043fe3d
     path: null
     s3uri: null
   20251110_latent_1024:
-    fmsid: da30d3a7eafa48b9ae714911f0d305bc
+    fmsid: 608c562cc7824f0498dc9347717db031
     path: null
     s3uri: null

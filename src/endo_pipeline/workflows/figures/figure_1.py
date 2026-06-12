@@ -3,13 +3,15 @@ from endo_pipeline.cli import UniqueStrList
 
 def main(include_panels: UniqueStrList | None = None) -> None:
     """
-    Main function to create figure panels for Figure 1.
+    Machine learning-derived image features capture biologically relevant
+    phenotypes of hiPSC-derived endothelial cells exposed to shear stress
 
     - **Panel A**: Example images from biological system at low and high shear stress
     - **Panel B**: DiffAE evaluation/inference schematic
     - **Panel C**: Latent walk visualization along ML-based features theta, r, and rho
-    - **Panel D**: Correlation heatmaps of ML-based and measured features
+    - **Panel D**: Pearson correlation heatmaps of ML-based and measured features
     """
+
     from typing import cast
 
     import matplotlib.pyplot as plt
@@ -36,24 +38,24 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     plt.style.use("endo_pipeline.figure")
 
-    # Intro schematic
-    save_dir = get_output_path("figure_1")
+    output_path = get_output_path("figure_1")
 
-    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
+    placeholders = parse_placeholder_panels(include_panels, ["A", "C", "D"])
 
     # Example images from biological system at low and high shear stress
-    create_panel_biological_system_examples(
+    example_path, example_inset_path = create_panel_biological_system_examples(
         examples=FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES,
-        save_dir=save_dir,
+        output_path=output_path,
         figure_size=(2.7, 3.6),
         inset_coordinates=(5, 500 - 128),
+        **placeholders["A"],
     )
 
     # Correlation heatmaps of ML-based and measured features
     feature_correlations_path = make_feature_correlation_panel(
         pc_columns=DIFFAE_PC_COLUMN_NAME_GROUPS["main_figure"],
         seg_columns=SEGMENTATION_FEATURE_COLUMNS["main_figure"],
-        output_path=save_dir,
+        output_path=output_path,
         figure_size=(2.5, 2.8),
         **placeholders["D"],
     )
@@ -68,21 +70,22 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         ],
     )
     latent_walk_path, _ = perform_and_plot_latent_walk_for_figures(
-        save_path=save_dir,
+        output_path=output_path,
         filename="latent_walk_along_polar_theta_polar_r_rho",
         walk_column_names=walk_column_names,
-        figsize=(4, 1.8),
+        figure_size=(4, 1.8),
         sigma=None,
         n_steps=7,
         scale_bar_um=20,
         random_seed=4,
         num_gpus=NUM_GPUS,
+        **placeholders["C"],
     )
 
     panels = [
         FigurePanel(
             letter="A",
-            path=save_dir / "biological_system_examples_scale_bar_100um.svg",
+            path=example_path,
             x_position=0,
             y_position=0,
             x_offset=0,
@@ -90,7 +93,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         ),
         FigurePanel(
             letter="",
-            path=save_dir / "biological_system_examples_inset_scale_bar_20um.svg",
+            path=example_inset_path,
             x_position=3,
             y_position=0,
             x_offset=0,
@@ -114,9 +117,11 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         ),
     ]
     build_figure_from_panels(
-        panels, save_dir / "figure_1.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
+        panels, output_path / "figure_1.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
     )
 
 
 if __name__ == "__main__":
-    main()
+    from endo_pipeline.cli import workflow_cli
+
+    workflow_cli(main)
