@@ -1,11 +1,4 @@
-from typing import Annotated
-
-from cyclopts import Parameter
-
-
-def main(
-    include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
-) -> None:
+def main() -> None:
     """
     Generate dataframes with zarr file locations for training a DiffAE model.
 
@@ -25,29 +18,10 @@ def main(
     uv run endopipe create-diffae-train-dataframe -vd
     ```
 
-    To run the workflow with cell piling annotations included:
+    To run the full workflow:
 
     ```bash
-    uv run endopipe create-diffae-train-dataframe --include-cell-piling
-    ```
-
-    To run the workflow with cell piling annotations excluded:
-
-    ```bash
-    uv run endopipe create-diffae-train-dataframe --exclude-cell-piling
-    ```
-
-    ## Cell piling
-
-    By default, timepoints marked as having cell piling annotations are not
-    included in the training and validation datasets (``include_cell_piling``
-    set to ``False``). This behavior can be changed by using the command line
-    flag `--include-cell-piling`. This allows for toggling between training a
-    model that "sees" cell piling versus one that does not.
-
-    When ``include_cell_piling`` is set to False, the output dataframe manifest
-    name will include the suffix ``_exclude_cell_piling``. When set to True, the
-    suffix will be ``_include_cell_piling``.
+    uv run endopipe create-diffae-train-dataframe
 
     ## Dataset collection
 
@@ -59,12 +33,6 @@ def main(
     Running the workflow in demo mode (`-d` or `--demo-mode`) will build a
     training dataframe that only contains two positions and the first 10
     timepoints, which speeds up the data loading process during model training.
-
-    Parameters
-    ----------
-    include_cell_piling
-        True to include timepoints with cell piling in data used for training,
-        False to exclude.
     """
 
     import logging
@@ -109,13 +77,9 @@ def main(
 
     # Create dataframe manifest and add workflow parameters.
     name_suffix = "_demo" if DEMO_MODE else ""
-    name_suffix = f"{'include' if include_cell_piling else 'exclude'}_cell_piling{name_suffix}"
-    manifest_name = f"{DIFFAE_TRAIN_DATAFRAME_MANIFEST_PREFIX}_{name_suffix}"
+    manifest_name = f"{DIFFAE_TRAIN_DATAFRAME_MANIFEST_PREFIX}{name_suffix}"
     manifest = create_dataframe_manifest(manifest_name, __file__)
-    manifest.parameters = {
-        "include_cell_piling": include_cell_piling,
-        "z_slice_offsets": Z_SLICE_OFFSETS,
-    }
+    manifest.parameters = {"z_slice_offsets": Z_SLICE_OFFSETS}
 
     # Create directories for saving training and validation dataframes
     offsets_name = f"z_stack_{Z_SLICE_OFFSETS[0]}_{Z_SLICE_OFFSETS[1]}"
@@ -135,12 +99,8 @@ def main(
 
         # Parse dataset annotations to get information on which timepoints should
         # be excluded from the training data. By default, remove all annotations
-        # except NOT_STEADY_STATE. If including cell piling, then also include
-        # the CELL_PILING annotation in the list of annotations to ignore for
-        # filtering.
+        # except NOT_STEADY_STATE.
         annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
-        if include_cell_piling:
-            annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
         annotations = get_subset_of_timepoint_annotations(
             annotations_to_ignore=annotations_to_ignore
         )

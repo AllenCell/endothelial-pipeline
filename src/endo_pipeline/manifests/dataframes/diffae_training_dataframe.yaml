@@ -1,8 +1,7 @@
-name: diffae_training_dataframe_exclude_cell_piling
+name: diffae_training_dataframe
 workflow: create_diffae_training_dataframe
 parameters:
   z_slice_offsets: [4, 11]
-  include_cell_piling: false
 locations:
   training:
     fmsid: aa3a82d4b4004b35ad64021247a729ae
