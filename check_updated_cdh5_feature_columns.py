@@ -52,15 +52,15 @@ df_new = load_dataframe(
 
 # Filter original dataframe to demo mode limits and apply renamed and dropped columns
 
-df_seg_subset = df_old[(df_old["position"] < 2) & (df_old["T"] < 3)].reset_index(drop=True)
-df_seg_subset = df_seg_subset.drop(columns=column_drops)
-df_seg_subset = df_seg_subset.rename(columns=column_renames).compute()
+df_old_subset = df_old[(df_old["position"] < 2) & (df_old["T"] < 3)].reset_index(drop=True)
+df_old_subset = df_old_subset.drop(columns=column_drops)
+df_old_subset = df_old_subset.rename(columns=column_renames).compute()
 
 # Compare the two dataframes to ensure they match
 
-print(f"Original shape: {df_seg_subset.shape}")
-print(f"New shape: {df_seg_subset.shape}")
+print(f"Old shape: {df_old_subset.shape}")
+print(f"New shape: {df_new.shape}")
 
-df_seg_subset["dataset"] = df_seg_subset["dataset"].astype("string")
+df_old_subset["dataset"] = df_old_subset["dataset"].astype("string")
 df_new["dataset"] = df_new["dataset"].astype("string")
-pd.testing.assert_frame_equal(df_seg_subset, df_new)
+pd.testing.assert_frame_equal(df_old_subset, df_new)
