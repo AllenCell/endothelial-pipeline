@@ -172,14 +172,14 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             x_position=MAX_FIGURE_WIDTH * 0.66,
             y_position=2.5,
             x_offset=0.05,
-            y_offset=-0.05,
+            y_offset=0,
         ),
         FigurePanel(
             letter="",
             path=stable_fixed_point_reconstruction_paths[example_dataset_12dyn],
             x_position=MAX_FIGURE_WIDTH * 0.66,
-            y_position=4.6,
-            x_offset=0.2,
+            y_position=4.65,
+            x_offset=0.3,
             y_offset=0.0,
         ),
         FigurePanel(
@@ -195,7 +195,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             path=stable_fixed_point_reconstruction_paths[example_dataset_15dyn],
             x_position=MAX_FIGURE_WIDTH * 0.66,
             y_position=7.2,
-            x_offset=0.2,
+            x_offset=0.3,
             y_offset=0.0,
         ),
     ]
