@@ -247,6 +247,89 @@ def create_validation_examples_contact_sheet(
     return fig
 
 
+def create_cross_model_comparison_contact_sheet(
+    target_crops: list[np.ndarray],
+    denoised_per_model: list[list[np.ndarray]],
+    col_labels: list[str],
+    *,
+    pixel_size: float,
+    figure_width: float,
+    figure_height: float = 2.0,
+    scalebar_um: int = 20,
+    scalebar_location: str = "lower right",
+    font_size: int = FONTSIZE_MEDIUM,
+) -> plt.Figure:
+    """Build a cross-model denoising comparison contact sheet.
+
+    Rows correspond to validation examples and columns to models. The
+    first column always shows the ground-truth target VE-cadherin crop;
+    subsequent columns show the denoised output from each model.
+
+    Parameters
+    ----------
+    target_crops
+        Per-example ground-truth VE-cadherin crops (column 1).
+    denoised_per_model
+        Nested list of denoised crops, outer dimension indexed by model
+        and inner dimension indexed by example.
+    col_labels
+        Column titles. First element labels the target column; remaining
+        elements label each model column (e.g. ``"BF-8"``, ``"CDH5-512"``).
+    pixel_size
+        Physical pixel size for the scale bar.
+    figure_width
+        Figure width in inches.
+    figure_height
+        Figure height in inches.
+    scalebar_um
+        Scale-bar length in microns.
+    scalebar_location
+        Corner of each panel to place the scale bar in.
+    font_size
+        Font size for column titles.
+
+    Returns
+    -------
+        The cross-model comparison contact sheet figure.
+    """
+    num_examples = len(target_crops)
+    num_models = len(denoised_per_model)
+
+    # Build flat panel list (direction="top-down first"):
+    panels: list[np.ndarray] = list(target_crops)
+    for model_denoised in denoised_per_model:
+        panels.extend(model_denoised)
+
+    fig = make_contact_sheet(
+        panels=panels,
+        max_rows=num_examples,
+        max_cols=1 + num_models,
+        col_titles=col_labels,
+        row_titles=None,
+        direction=cast(Literal["left-right first", "top-down first"], MODEL_QC_PLOT_DIRECTION),
+        font_size=font_size,
+        subplot_kwargs=MODEL_QC_SUBPLOT_KWARGS,
+        gridspec_kwargs=MODEL_QC_GRIDSPEC_KWARGS,
+        fig_kwargs={"figsize": (figure_width, figure_height)},
+    )
+
+    fig.subplots_adjust(left=0, right=1, top=0.85, bottom=0, wspace=0.03, hspace=0.03)
+
+    # Add scale bar to every image; only label the first one
+    for i, ax in enumerate(fig.get_axes()):
+        add_scalebar(
+            ax,
+            pixel_size=pixel_size,
+            scale_bar_um=scalebar_um,
+            bar_thickness=3,
+            padding=5,
+            location=scalebar_location,
+            include_label=(i == 0),
+        )
+
+    return fig
+
+
 def create_summary_contact_sheet(
     example_results: list[np.ndarray],
     num_examples: int,
