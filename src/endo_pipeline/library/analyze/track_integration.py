@@ -204,6 +204,9 @@ def get_diffae_feats_liveseg_feats_merged_table(
     pc_cols_to_drop = DIFFAE_PC_COLUMN_NAMES[100:]
     diffae_tracking_df = diffae_tracking_df.drop(columns=pc_cols_to_drop)
 
+    # drop the zarr path column
+    diffae_tracking_df = diffae_tracking_df.drop(columns=[Column.ZARR_PATH])
+
     # load the tracking data of the measured features and merge them
     logging.debug("loading segmentation property data...")
     live_seg_manifest = load_dataframe_manifest(classic_segmentation_feature_manifest_name)
