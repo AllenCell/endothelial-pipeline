@@ -43,12 +43,16 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
     from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
     from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
+    from endo_pipeline.workflows.figures import assets as figure_assets
 
     plt.style.use("endo_pipeline.figure")
 
     output_path = get_output_path(__file__)
 
     placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
+
+    assets_dir = Path(figure_assets.__path__[0])
+    schematic_fp = assets_dir / "figure_3a_hypotheses.svg"
 
     # Example images of intermediate shear stress condition
     create_panel_intermediate_examples(
@@ -117,35 +121,43 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     panels = [
         FigurePanel(
+            letter="A",
+            path=schematic_fp,
+            x_position=0,
+            y_position=0,
+            x_offset=0,
+            y_offset=0.1,
+        ),
+        FigurePanel(
             letter="B",
             path=output_path / "intermediate_examples_scale_bar_100um.svg",
             x_position=0,
-            y_position=1.9,
-            x_offset=0.2,
-            y_offset=0,
+            y_position=2.5,
+            x_offset=0,
+            y_offset=0.1,
         ),
         FigurePanel(
             letter="C",
             path=summary_plot_path,
             x_position=0,
-            y_position=4.15,
+            y_position=5.0,
             x_offset=0.1,
             y_offset=0.2,
         ),
         FigurePanel(
             letter="D",
             path=vector_field_plot_paths[example_dataset_12dyn],
-            x_position=MAX_FIGURE_WIDTH * 0.63,
-            y_position=4.15,
-            x_offset=0.1,
+            x_position=MAX_FIGURE_WIDTH * 0.66,
+            y_position=2.5,
+            x_offset=0.05,
             y_offset=-0.05,
         ),
         FigurePanel(
             letter="",
             path=vector_field_plot_paths[example_dataset_15dyn],
             x_position=MAX_FIGURE_WIDTH * 0.63,
-            y_position=6.2,
-            x_offset=0.15,
+            y_position=4.55,
+            x_offset=0.2,
             y_offset=0.0,
         ),
     ]
