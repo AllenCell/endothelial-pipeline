@@ -20,12 +20,16 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from pathlib import Path
 
     import matplotlib.pyplot as plt
+    from pandas import DataFrame
 
-    from endo_pipeline.io import get_output_path
+    from endo_pipeline.io import get_output_path, load_model
     from endo_pipeline.library.visualize.data_example_figures import (
         create_panel_intermediate_examples,
     )
-    from endo_pipeline.library.visualize.figure_3 import make_3d_vector_field_plot_panel
+    from endo_pipeline.library.visualize.figure_3 import (
+        make_3d_vector_field_plot_panel,
+        reconstruct_fixed_points,
+    )
     from endo_pipeline.library.visualize.figures import (
         FigurePanel,
         build_figure_from_panels,
@@ -35,14 +39,18 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         build_dataframe_for_fixed_point_dataset_summary,
         plot_cross_dataset_summaries,
     )
-    from endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
     from endo_pipeline.settings.column_names import ColumnName
     from endo_pipeline.settings.examples import EXAMPLE_DATASET, FIGURE_3_EXAMPLE_IMAGES
     from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
     from endo_pipeline.settings.flow_field_dataframes import BOOTSTRAPPING_MANIFEST_NAMES
     from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
     from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
-    from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_MODEL_MANIFEST_NAME,
+        DEFAULT_MODEL_RUN_NAME,
+        FEATURES_FILTERED_MANIFEST_NAMES,
+    )
     from endo_pipeline.workflows.figures import assets as figure_assets
 
     plt.style.use("endo_pipeline.figure")
@@ -60,6 +68,11 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         save_dir=output_path,
         figure_size=(MAX_FIGURE_WIDTH * 0.65, 2.2),
     )
+
+    # load and instantiate model for generating synthetic images
+    model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
+    model_location = model_manifest.locations[DEFAULT_MODEL_RUN_NAME]
+    model = load_model(model_location, instantiate=True)
 
     # Load diffae features
     feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[
@@ -105,18 +118,27 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     )
 
     vector_field_plot_paths: dict[str, Path] = {}
+    stable_fixed_points_dfs: dict[str, DataFrame] = {}
+    stable_fixed_point_reconstruction_paths: dict[str, Path] = {}
     example_dataset_12dyn = EXAMPLE_DATASET["FIGURE_3_12_DYN_BISTABLE"]
     example_dataset_15dyn = EXAMPLE_DATASET["FIGURE_3_15_DYN_BISTABLE"]
     for dataset_name in [example_dataset_12dyn, example_dataset_15dyn]:
         # only include colorbar and legend for first of the two plots to save space
         include_colorbar = dataset_name == example_dataset_12dyn
         include_legend = dataset_name == example_dataset_12dyn
-        vector_field_plot_paths[dataset_name] = make_3d_vector_field_plot_panel(
-            dataset_name,
-            output_path,
-            include_colorbar=include_colorbar,
-            include_legend=include_legend,
-            **placeholders["D"],
+        vector_field_plot_paths[dataset_name], stable_fixed_points_dfs[dataset_name] = (
+            make_3d_vector_field_plot_panel(
+                dataset_name,
+                output_path,
+                include_colorbar=include_colorbar,
+                include_legend=include_legend,
+                **placeholders["D"],
+            )
+        )
+        stable_fixed_point_reconstruction_paths[dataset_name] = reconstruct_fixed_points(
+            fixed_point_df=stable_fixed_points_dfs[dataset_name],
+            model=model,
+            fig_savedir=output_path,
         )
 
     panels = [

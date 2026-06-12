@@ -4,22 +4,28 @@ from pathlib import Path
 from typing import cast
 
 import numpy as np
+from pandas import DataFrame
 
 from endo_pipeline.io import load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
 )
 from endo_pipeline.library.analyze.vector_field_estimation import load_drift_dataframe_for_dataset
+from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
+from endo_pipeline.library.model.diffae.generate_image import generate_from_dataframe
 from endo_pipeline.library.visualize.diffae_features.dynamics import (
     plot_drift_3d,
     process_3d_vector_field_for_visualization,
 )
+from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, POLAR_ANGLE_PERIOD
+from endo_pipeline.settings.figures import FONTSIZE_XSMALL
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
+from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, VECTOR_FIELD_THETA_RANGE
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME
@@ -31,7 +37,7 @@ def make_3d_vector_field_plot_panel(
     fig_savedir: Path,
     include_colorbar: bool = True,
     include_legend: bool = True,
-) -> Path:
+) -> tuple[Path, DataFrame]:
     """
     Render the 3D (theta, r, rho) drift vector field for a given dataset, with
     the stable fixed point overlaid as a scatter marker.
@@ -134,4 +140,76 @@ def make_3d_vector_field_plot_panel(
         bbox_inches="tight",
     )
 
+    return fig_savedir / f"{filename}.svg", stable_df
+
+
+def reconstruct_fixed_points(
+    fixed_point_df: DataFrame,
+    model: DiffusionAutoEncoder,
+    fig_savedir: Path,
+    num_gpus: int | None = None,
+    random_seed: int | None = 4,
+) -> Path:
+    """
+    Reconstruct the fixed point coordinates from the polar angle, radius, and rho columns.
+
+    Parameters
+    ----------
+    fixed_point_df : DataFrame
+        DataFrame containing the fixed point coordinates in polar form (theta, r, rho).
+    model : DiffusionAutoEncoder
+        The diffusion autoencoder model used for reconstruction.
+    fig_savedir : Path
+        Directory to save the reconstructed figures.
+    num_gpus : int | None, optional
+        Number of GPUs to use for reconstruction, by default None
+    random_seed : int | None, optional
+        Random seed for reproducibility, by default 4
+    """
+
+    column_names = cast(list[str], list(DYNAMICS_COLUMN_NAMES))
+
+    # reconstruct images along at the fixed point coordinates and make a contact
+    # sheet of the results
+    walk_array = generate_from_dataframe(
+        fixed_point_df,
+        column_names,
+        model,
+        num_gpus=num_gpus,
+        random_seed=random_seed,
+    )
+    walk_panels = [walk_array[i] for i in range(len(walk_array))]
+
+    n_cols = len(walk_array) // 2
+    fig_fixed_point_reconstructions = make_contact_sheet(
+        panels=walk_panels,
+        max_rows=2,
+        max_cols=n_cols,
+        fig_kwargs={"figsize": (2.2, 1.1), "layout": "constrained"},
+        gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
+    )
+
+    # add scalebars to each panel, only label the top left one to avoid
+    # redundancy
+    for i, ax in enumerate(fig_fixed_point_reconstructions.axes):
+        add_scalebar(
+            ax,
+            scale_bar_um=20,
+            pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
+            location="lower right",
+            bar_thickness=5,
+            padding=5,
+            include_label=True if i == 0 else False,
+            label_fontsize=FONTSIZE_XSMALL,
+        )
+
+    filename = "fixed_point_reconstructions"
+    save_plot_to_path(
+        fig_fixed_point_reconstructions,
+        fig_savedir,
+        filename,
+        file_format=".svg",
+        tight_layout=False,
+        pad_inches=0,
+    )
     return fig_savedir / f"{filename}.svg"
