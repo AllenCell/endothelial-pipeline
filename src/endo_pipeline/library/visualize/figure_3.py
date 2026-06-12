@@ -180,12 +180,11 @@ def reconstruct_fixed_points(
     )
     walk_panels = [walk_array[i] for i in range(len(walk_array))]
 
-    n_cols = len(walk_array) // 2
     fig_fixed_point_reconstructions = make_contact_sheet(
         panels=walk_panels,
-        max_rows=2,
-        max_cols=n_cols,
-        fig_kwargs={"figsize": (2.2, 1.1), "layout": "constrained"},
+        max_rows=1,
+        max_cols=2,
+        fig_kwargs={"figsize": (1.1, 2.2), "layout": "constrained"},
         gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
     )
 
@@ -203,7 +202,8 @@ def reconstruct_fixed_points(
             label_fontsize=FONTSIZE_XSMALL,
         )
 
-    filename = "fixed_point_reconstructions"
+    dataset_name = fixed_point_df[Column.DATASET].unique().item()
+    filename = f"{dataset_name}_fixed_point_reconstructions"
     save_plot_to_path(
         fig_fixed_point_reconstructions,
         fig_savedir,
