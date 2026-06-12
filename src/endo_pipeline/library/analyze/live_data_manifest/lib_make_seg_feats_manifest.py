@@ -43,108 +43,37 @@ def merge_measured_segmentation_features_tables(
     labelfree nuclei measurement workflow (get_nuclei_measured_features.py).
     """
 
+    # Drop duplicate columns in tracking dataframe before merging with
+    # segmentation features dataframe
+    tracking_df = tracking_df.drop(
+        columns=[
+            Column.SegData.CENTROID,
+            Column.SegData.AREA_PX_SQ,
+            Column.SegData.PERIMETER_PX,
+            Column.SegData.ECCENTRICITY,
+            Column.SegData.ORIENTATION,
+            Column.SegData.CENTROID_X,
+            Column.SegData.CENTROID_Y,
+            Column.SegDataFilters.IS_EDGE_SEGMENTATION,
+        ]
+    )
+
+    merge_columns = [Column.DATASET, Column.POSITION, Column.TIMEPOINT]
+
     big_table = pd.merge(
-        left=tracking_df,
-        right=cellprops_df,
-        left_on=["dataset_name", "position", "T", "label"],
-        right_on=["dataset_name", "position", "T", "cell_label"],
+        left=tracking_df, right=cellprops_df, on=[*merge_columns, Column.SegData.LABEL]
     )
     big_table = pd.merge(
         left=big_table,
         right=nucprops_df,
-        left_on=["dataset_name", "position", "T", "label"],
-        right_on=["dataset_name", "position", "T", "cdh5_segmentation_label"],
+        left_on=[*merge_columns, Column.SegData.LABEL],
+        right_on=[*merge_columns, Column.SegDataWorkflowVerification.CDH5_SEGMENTATION_LABEL],
     )
 
-    big_table = remove_redundant_columns(big_table)
-
-    big_table = sanitize_column_names(big_table)
+    # Drop the now redundant CDH5 segmentation label column used for merging
+    big_table = big_table.drop(columns=[Column.SegDataWorkflowVerification.CDH5_SEGMENTATION_LABEL])
 
     return big_table
-
-
-def remove_redundant_columns(big_table: pd.DataFrame) -> pd.DataFrame:
-    """Remove duplicated columns resulting from the merging of dataframes."""
-    # the following columns are redundant with another in the table and
-    # can be dropped:
-    duplicate_cols = [
-        "T",  # redundant with "image_index"
-        "label",  # redundant with "cell_label"
-        "cdh5_segmentation_label",  # redundant with "label"
-        "centroid",  # redundant with "cell_centroid"
-        "area",  # redundant with "cell_area (px**2)"
-        "perimeter",  # redundant with "cell_perimeter (px)"
-        "eccentricity",  # redundant with "cell_eccentricity"
-        "touches_border",  # redundant with "touches_image_border"
-        "orientation",  # redundant with "cell orientation"; though has a different phase shift
-        "centroid",  # redundant with "cell_centroid"
-        "centroid_X",
-        "centroid_Y",
-    ]
-
-    return big_table.drop(columns=duplicate_cols)
-
-
-def sanitize_column_names(big_table: pd.DataFrame) -> pd.DataFrame:
-    """Make the column names consistent with elsewhere in the code base.
-    Do this by renaming the column names that exist in the original merged
-    segmentation features table to column names as described in
-    `endo_pipeline/settings/segmentation_feature_dataframes.py`
-    """
-
-    dataset_info_cols = {
-        "dataset_name": Column.DATASET,
-        "position": Column.POSITION,
-        "image_index": Column.TIMEPOINT,
-        "track_id": Column.TRACK_ID,
-        "cell_label": Column.SegData.LABEL,
-    }
-    filter_cols = {
-        "touches_image_border": Column.SegDataFilters.IS_EDGE_SEGMENTATION,
-    }
-    morpho_feature_cols = {
-        "cell_orientation": Column.SegData.ORIENTATION,
-        "alignment_rel_to_flow": Column.SegData.ALIGNMENT,
-        "alignment_deg_rel_to_flow": Column.SegData.ALIGNMENT_DEG,
-        "orientation_deg": Column.SegData.ORIENTATION_DEG,
-        "nematic_order": Column.SegData.NEMATIC_ORDER,
-        "aspect_ratio": Column.SegData.ASPECT_RATIO,
-        "cell_eccentricity": Column.SegData.ECCENTRICITY,
-        "major_axis_length": Column.SegData.MAJOR_AXIS,
-        "minor_axis_length": Column.SegData.MINOR_AXIS,
-        "cell_solidity": Column.SegData.SOLIDITY,
-        "cell_area (px**2)": Column.SegData.AREA_PX_SQ,
-        "cell_perimeter (px)": Column.SegData.PERIMETER_PX,
-        "nucpos_rel_cell_X": Column.SegData.NUCLEI_POSITION_X,
-        "nucpos_rel_cell_Y": Column.SegData.NUCLEI_POSITION_Y,
-        "nucpos_rel_cell_angle": Column.SegData.NUCLEI_POSITION_ANGLE,
-        "nucpos_rel_cell_angle_deg": Column.SegData.NUCLEI_POSITION_ANGLE_DEG,
-        "nuc_pos_rel_cell_magnitude": Column.SegData.NUCLEI_POSITION_DISTANCE,
-    }
-    fluorescence_feature_cols = {
-        "edge_fluorescences (a.u.)": Column.SegData.EDGE_FLUOR,
-        "node_fluorescences (a.u.)": Column.SegData.NODE_FLUOR,
-        "cell_fluorescence_mean (a.u.)": Column.SegData.CELL_FLUOR_MEAN,
-        "cell_fluorescence_std (a.u.)": Column.SegData.CELL_FLUOR_STD,
-        "cell_fluorescence_median (a.u.)": Column.SegData.CELL_FLUOR_MEDIAN,
-        "cell_fluorescence_min (a.u.)": Column.SegData.CELL_FLUOR_MIN,
-        "cell_fluorescence_max (a.u.)": Column.SegData.CELL_FLUOR_MAX,
-        "cell_fluorescence_pct25 (a.u.)": Column.SegData.CELL_FLUOR_PCT25,
-        "cell_fluorescence_pct75 (a.u.)": Column.SegData.CELL_FLUOR_PCT75,
-    }
-    other_feature_cols = {
-        "neighboring_cell_labels": Column.SegData.NEIGHBOR_LABELS,
-        "cell_centroid": Column.SegData.CENTROID,
-    }
-    cols_to_rename = {
-        **dataset_info_cols,
-        **filter_cols,
-        **morpho_feature_cols,
-        **fluorescence_feature_cols,
-        **other_feature_cols,
-    }
-
-    return big_table.rename(columns=cols_to_rename)
 
 
 def write_filter_log_file(
@@ -1355,11 +1284,11 @@ def add_all_labels_in_crop_column(
         _, df_grps = zip(*df.groupby(groupby_cols), strict=True)
 
         if max_cores == 1:
-            for df in tqdm(
+            for df_grp in tqdm(
                 df_grps,
                 desc="Creating labels in crop columns (SP)",
             ):
-                create_labels_in_crop_columns(df, labels_in_crop_subdir)
+                create_labels_in_crop_columns(df_grp, labels_in_crop_subdir)
         else:
             mp_context = multiprocessing.get_context("spawn")
             with ProcessPoolExecutor(max_workers=max_cores, mp_context=mp_context) as executor:
