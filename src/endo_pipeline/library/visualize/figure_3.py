@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import cast
 
 import numpy as np
+from matplotlib import patheffects
 from pandas import DataFrame
 
 from endo_pipeline.io import load_dataframe, save_plot_to_path
@@ -168,6 +169,11 @@ def reconstruct_fixed_points(
     """
 
     column_names = cast(list[str], list(DYNAMICS_COLUMN_NAMES))
+    column_labels = [str(COLUMN_METADATA[col].label or str(col)) for col in DYNAMICS_COLUMN_NAMES]
+
+    # sort the fixed points dataframe by polar angle so that the reconstructions
+    # are in a consistent and predictable order
+    fixed_point_df = fixed_point_df.sort_values(by=Column.DiffAEData.POLAR_ANGLE)
 
     # reconstruct images along at the fixed point coordinates and make a contact
     # sheet of the results
@@ -187,6 +193,24 @@ def reconstruct_fixed_points(
         fig_kwargs={"figsize": (1.6, 0.8), "layout": "constrained"},
         gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
     )
+
+    # add the fixed point coordinate as an annotation to each panel
+    for i, ax in enumerate(fig_fixed_point_reconstructions.axes):
+        fp_coords = fixed_point_df.iloc[i][column_names].to_numpy(dtype=float)
+        fp_coords_list = [f"{col} = {fp_coords[j].round(2)}" for j, col in enumerate(column_labels)]
+        fp_coords_as_str = "\n".join(fp_coords_list)
+
+        fp_annotation = ax.text(
+            x=0.02,
+            y=0.98,
+            s=fp_coords_as_str,
+            ha="left",
+            va="top",
+            fontsize=FONTSIZE_XSMALL,
+            color="white",
+            transform=ax.transAxes,
+        )
+        fp_annotation.set_path_effects([patheffects.withStroke(linewidth=0.5, foreground="black")])
 
     # add scalebars to each panel, only label the top left one to avoid
     # redundancy
