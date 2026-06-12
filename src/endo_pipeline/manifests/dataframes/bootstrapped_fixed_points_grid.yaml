@@ -1,7 +1,7 @@
 name: bootstrapped_fixed_points_grid
 workflow: bootstrap_fixed_points
 parameters:
-  model_manifest_name: diffae_baseline_exclude_cell_piling
+  model_manifest_name: diffae_baseline
   run_name: latent_512
   crop_pattern: grid
   kernels:

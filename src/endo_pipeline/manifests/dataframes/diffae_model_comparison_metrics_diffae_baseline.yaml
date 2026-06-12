@@ -1,4 +1,4 @@
-name: diffae_model_comparison_metrics_diffae_baseline_exclude_cell_piling
+name: diffae_model_comparison_metrics_diffae_baseline
 workflow: calculate_model_comparison_metrics
 parameters:
   num_seeds: 10
@@ -6,7 +6,7 @@ parameters:
   random_seed: 47
   example_sets: [rep_2_positions, validation_positions]
   noise_levels: [0.25, 0.5, 0.75]
-  manifest_name: diffae_baseline_exclude_cell_piling
+  manifest_name: diffae_baseline
 locations:
   latent_8:
     fmsid: cd4790bcf2564581b28098638507ddfc

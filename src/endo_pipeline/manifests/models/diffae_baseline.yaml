@@ -1,4 +1,4 @@
-name: diffae_baseline_exclude_cell_piling
+name: diffae_baseline
 workflow: train_diffae
 parameters:
   training_datasets:

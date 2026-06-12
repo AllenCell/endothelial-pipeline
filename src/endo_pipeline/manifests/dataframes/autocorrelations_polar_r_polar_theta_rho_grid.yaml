@@ -1,7 +1,7 @@
 name: autocorrelations_polar_r_polar_theta_rho_grid
 workflow: compute_autocorrelation
 parameters:
-  model_manifest_name: diffae_baseline_exclude_cell_piling
+  model_manifest_name: diffae_baseline
   run_name: latent_512
   crop_pattern: grid
   columns: [polar_theta, polar_r, rho]

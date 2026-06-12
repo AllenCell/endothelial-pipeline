@@ -33,8 +33,7 @@ def main(model_manifest_name: str, run_names: list[str] | None = None) -> None:
     Parameters
     ----------
     model_manifest_name
-        Name of the DiffAE model manifest to evaluate
-        (e.g. ``"diffae_baseline_exclude_cell_piling"``).
+        Name of the DiffAE model manifest to evaluate.
     run_names
         Optional subset of ``run_name`` entries from the model manifest to
         evaluate. If ``None``, defaults to the curated QC subset from

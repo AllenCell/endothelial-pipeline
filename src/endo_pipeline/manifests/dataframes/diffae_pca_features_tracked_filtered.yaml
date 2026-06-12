@@ -1,7 +1,7 @@
 name: diffae_pca_features_tracked_filtered
 workflow: calculate-pca-features
 parameters:
-  model_manifest_name: diffae_baseline_exclude_cell_piling
+  model_manifest_name: diffae_baseline
   run_name: latent_512
   crop_pattern: tracked
   filtered: true
