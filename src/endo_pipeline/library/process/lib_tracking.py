@@ -300,11 +300,11 @@ def match_labels_from_images(
     for label in matched_labels_dict:
         matched_labels_dict[label]["regionprops"] = ref_props[label]
         matched_labels_dict[label]["regionprops"].matched_query_label = matched_labels_dict[label][
-            "matched_query_label"
+            Column.TRACKING_MATCHED_QUERY_LABEL
         ]
         matched_labels_dict[label]["regionprops"].optimized_metric_value = matched_labels_dict[
             label
-        ]["optimized_metric_value"]
+        ][Column.TRACKING_OPTIMIZED_METRIC_VALUE]
         matched_labels_dict[label]["regionprops"].reference_index = reference_index
         matched_labels_dict[label]["regionprops"].matching_method = matching_method
 
@@ -549,11 +549,11 @@ def match_labels_from_metrics(
     matched_labels_dict = {}
     for label in matched_labels_list[reference_index]:
         matched_labels_dict[label] = {
-            "matched_query_label": [
+            Column.TRACKING_MATCHED_QUERY_LABEL: [
                 (matched_labels_list[i][label] if label in matched_labels_list[i] else np.ma.masked)
                 for i in range(len(matched_labels_list))
             ],
-            "optimized_metric_value": [
+            Column.TRACKING_OPTIMIZED_METRIC_VALUE: [
                 (
                     matched_metrics_list[i][label]
                     if label in matched_metrics_list[i]
@@ -726,11 +726,11 @@ def match_labels_from_overlaps(
     matched_labels_dict = {}
     for label in matched_labels_list[reference_index]:
         matched_labels_dict[label] = {
-            "matched_query_label": [
+            Column.TRACKING_MATCHED_QUERY_LABEL: [
                 (matched_labels_list[i][label] if label in matched_labels_list[i] else np.ma.masked)
                 for i in range(len(matched_labels_list))
             ],
-            "optimized_metric_value": [
+            Column.TRACKING_OPTIMIZED_METRIC_VALUE: [
                 (
                     matched_metrics_list[i][label]
                     if label in matched_metrics_list[i]
@@ -822,7 +822,9 @@ def reassign_track_ids_from_matches(
         recent_track_ids["image_index"].copy() - current_image_index
     )
     recent_track_ids["match_at_current_image_index"] = recent_track_ids.apply(
-        lambda row: row["matched_query_label"][reference_index - row["image_index_relative"]],
+        lambda row: row[Column.TRACKING_MATCHED_QUERY_LABEL][
+            reference_index - row["image_index_relative"]
+        ],
         axis=1,
     ).copy()
 
@@ -1162,7 +1164,10 @@ def run_tracking(
             track_table[f"centroid_{dim.lower()}"] = centroid_subdf[i]
     # replace masked values with NaN for columns `matched_query_label`
     # and `optimized_metric_value` since .parquet cannot save those
-    for col in ["matched_query_label", "optimized_metric_value"]:
+    for col in [
+        Column.TRACKING_MATCHED_QUERY_LABEL,
+        Column.TRACKING_OPTIMIZED_METRIC_VALUE,
+    ]:
         track_table[col] = track_table[col].transform(lambda arr: np.ma.filled(arr, np.nan))
     track_table.to_parquet(out_path, index=False)
 
@@ -1202,15 +1207,15 @@ def update_track_table(
 
     props_to_include = [
         "label",
-        "reference_index",
-        "matched_query_label",
-        "optimized_metric_value",
+        Column.TRACKING_REFERENCE_INDEX,
+        Column.TRACKING_MATCHED_QUERY_LABEL,
+        Column.TRACKING_OPTIMIZED_METRIC_VALUE,
         "centroid",
         "area",
         "perimeter",
         "orientation",
         "eccentricity",
-        "matching_method",
+        Column.TRACKING_MATCHING_METHOD,
         "touches_border",
     ]
 

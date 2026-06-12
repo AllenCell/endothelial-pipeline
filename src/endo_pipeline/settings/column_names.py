@@ -299,13 +299,21 @@ class ColumnName:
 
         IS_VALID_BBOX = "bbox_is_in_bounds"
 
+    TRACKING_REFERENCE_INDEX = "reference_index"
+    """Relative timepoint index used to compare nearby timepoints to find matching segmentation for track."""
+
+    TRACKING_MATCHED_QUERY_LABEL = "matched_query_label"
+    """List of matched labels from each timepoint starting from current one to up to the next 4 timepoints."""
+
+    TRACKING_OPTIMIZED_METRIC_VALUE = "optimized_metric_value"
+    """Value of metric (fraction of segmentation overlap between reference and query index timepoints) used for tracking."""
+
+    TRACKING_MATCHING_METHOD = "matching_method"
+    """Metric used by tracking algorithm to find matching segmentations."""
+
     class SegDataWorkflowVerification(StrEnum):
         """Column names for workflow development and verification checks."""
 
-        TRACKING_REF_IDX = "reference_index"
-        TRACKING_MATCHED_QUERY_LABEL = "matched_query_label"
-        TRACKING_OPTIMIZED_METRIC_VAL = "optimized_metric_value"
-        TRACKING_MATCHING_METHOD = "matching_method"
         NUM_NUC_WITH_MOST_OVERLAP = "num_nuclei_with_most_overlap"
         SMOOTHED_AREA_NORMALIZED = "smoothed_area_normd"
         SIGMA_FOR_AREA_SMOOTHING = "gaussian_sigma_for_area_smoothing"
