@@ -233,12 +233,12 @@ DEFAULT_MODEL_QC_LABEL_MAP: dict[tuple[str, str], str] = {
     ("diffae_baseline_exclude_cell_piling", "20260122_latent_256"): "BF-256",
     ("diffae_baseline_exclude_cell_piling", "20251110_latent_512"): "BF-512",
     ("diffae_baseline_exclude_cell_piling", "20251110_latent_1024"): "BF-1024",
-    ("diffae_cdh5_conditioned", "20260130_latent_512"): "CDH5-512",
-    ("diffae_cdh5_conditioned", "20251110_latent_1024"): "CDH5-1024",
+    ("diffae_cdh5_conditioned", "20260130_latent_512"): "VE-cad-512",
+    ("diffae_cdh5_conditioned", "20251110_latent_1024"): "VE-cad-1024",
 }
 """``(manifest_name, run_name)`` -> bar-plot label for the 10-model QC comparison.
 
-Covers 8 brightfield-conditioned latent dimensions (8--1024) and 2 CDH5-
+Covers 8 brightfield-conditioned latent dimensions (8--1024) and 2 VE-cadherin-
 conditioned models (512, 1024), in plot order.
 """
 
