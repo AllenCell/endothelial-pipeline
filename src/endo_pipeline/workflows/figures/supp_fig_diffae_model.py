@@ -267,7 +267,7 @@ def main() -> None:
         model_labels=sweep_model_labels,
         output_path=panel_b_output_path,
         filename=panel_b_filename,
-        figsize=(MAX_FIGURE_WIDTH - 0.3, 3.6),
+        figsize=(MAX_FIGURE_WIDTH - 1, 2.8),
         file_format=".svg",
         label_fontsize=FONTSIZE_MEDIUM,
         save_kwargs={"pad_inches": 0, "transparent": True},
@@ -299,7 +299,7 @@ def main() -> None:
         figure_panels,
         panel_b_output_path / "Supplemental_Figure_Diffae_Model.svg",
         width=MAX_FIGURE_WIDTH,
-        height=7.3,
+        height=5,
     )
 
 

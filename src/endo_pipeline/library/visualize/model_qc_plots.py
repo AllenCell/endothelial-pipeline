@@ -257,7 +257,7 @@ def create_cross_model_comparison_contact_sheet(
     figure_height: float = 2.0,
     scalebar_um: int = 20,
     scalebar_location: str = "lower right",
-    font_size: int = FONTSIZE_MEDIUM,
+    font_size: int = FONTSIZE_SMALL,
 ) -> plt.Figure:
     """Build a cross-model denoising comparison contact sheet.
 
