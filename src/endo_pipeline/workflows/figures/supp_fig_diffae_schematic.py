@@ -58,6 +58,7 @@ def main() -> None:
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT,
+        DEFAULT_MODEL_RUN_NAME,
         RANDOM_SEED,
     )
 
@@ -69,7 +70,7 @@ def main() -> None:
     # Pin the latent-512 run explicitly: this is the variant used throughout
     # the figure-2 schematic.
     model_manifest_name = "diffae_baseline_exclude_cell_piling"
-    run_name = "20251110_latent_512"
+    run_name = DEFAULT_MODEL_RUN_NAME
     rng = default_rng(seed=RANDOM_SEED)
 
     # Load model manifest and get location for the pinned run_name

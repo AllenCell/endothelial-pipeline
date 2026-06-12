@@ -44,7 +44,7 @@ locations:
     fmsid: null
     path: null
     s3uri: null
-  20251110_latent_512:
+  latent_512:
     mlflowid: 1fe9d12ed4db459d900b947ce0702a45
     fmsid: null
     path: null

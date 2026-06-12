@@ -9,7 +9,7 @@ from endo_pipeline.settings.column_names import ColumnNameType
 DEFAULT_MODEL_MANIFEST_NAME: str = "diffae_baseline_exclude_cell_piling"
 """Default model manifest for loading models and model features."""
 
-DEFAULT_MODEL_RUN_NAME: str = "20251110_latent_512"
+DEFAULT_MODEL_RUN_NAME: str = "latent_512"
 """Default model run name within the default model manifest."""
 
 DEFAULT_PCA_DATASET_COLLECTION_NAME: str = "diffae_model_training"
@@ -231,7 +231,7 @@ DEFAULT_MODEL_QC_LABEL_MAP: dict[tuple[str, str], str] = {
     ("diffae_baseline_exclude_cell_piling", "latent_64"): "64 BF",
     ("diffae_baseline_exclude_cell_piling", "latent_128"): "128 BF",
     ("diffae_baseline_exclude_cell_piling", "latent_256"): "256 BF",
-    ("diffae_baseline_exclude_cell_piling", "20251110_latent_512"): "512 BF",
+    ("diffae_baseline_exclude_cell_piling", "latent_512"): "512 BF",
     ("diffae_baseline_exclude_cell_piling", "latent_1024"): "1024 BF",
     ("diffae_cdh5_conditioned", "latent_512"): "512 CDH5",
     ("diffae_cdh5_conditioned", "latent_1024"): "1024 CDH5",

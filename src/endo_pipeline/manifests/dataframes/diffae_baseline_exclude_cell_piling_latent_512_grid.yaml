@@ -1,4 +1,4 @@
-name: diffae_baseline_exclude_cell_piling_20251110_latent_512_grid
+name: diffae_baseline_exclude_cell_piling_latent_512_grid
 workflow: eval_diffae_grid
 parameters:
   crop_pattern: grid

@@ -32,7 +32,7 @@ locations:
     fmsid: 09c7666087fd4ad78d0e9427d98ce37b
     path: null
     s3uri: null
-  20251110_latent_512:
+  latent_512:
     fmsid: fc829663584c4bddaaac9c5594839dac
     path: null
     s3uri: null

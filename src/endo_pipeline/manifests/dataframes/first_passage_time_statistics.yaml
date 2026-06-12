@@ -2,7 +2,7 @@ name: first_passage_time_statistics
 workflow: compute_first_passage_time
 parameters:
   model_manifest_name: diffae_baseline_exclude_cell_piling
-  run_name: 20251110_latent_512
+  run_name: latent_512
   fixed_point_radius_threshold: 0.25
   minimum_track_length: 72
   bin_sizes:
