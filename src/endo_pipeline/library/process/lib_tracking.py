@@ -22,7 +22,8 @@ from endo_pipeline.manifests import (
     get_image_location_for_dataset,
     load_image_manifest,
 )
-from endo_pipeline.settings import DIMENSION_ORDER
+from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.image_data import DIMENSION_ORDER
 
 logger = logging.getLogger(__name__)
 
@@ -1130,6 +1131,25 @@ def run_tracking(
     out_dir.mkdir(parents=True, exist_ok=True)
     logger.debug(f"Saving tracking table to {out_path}")
 
+    # The "image_index" and "T" columns are redundant, so drop "image_index"
+    if not track_table["image_index"].equals(track_table["T"]):
+        raise ValueError("Expected 'image_index' and 'T' columns to match")
+    track_table = track_table.drop(columns=["image_index"])
+
+    # Rename track table columns to match outputs of other feature workflows
+    track_table = track_table.rename(
+        columns={
+            "area": Column.SegData.AREA_PX_SQ,
+            "eccentricity": Column.SegData.ECCENTRICITY,
+            "label": Column.SegData.LABEL,
+            "orientation": Column.SegData.ORIENTATION,
+            "perimeter": Column.SegData.PERIMETER_PX,
+            "T": Column.TIMEPOINT,
+            "touches_border": Column.SegDataFilters.IS_EDGE_SEGMENTATION,
+            "track_id": Column.TRACK_ID,
+        }
+    )
+
     # split the 'centroid' column into separate columns for each dimension
     if "centroid" in track_table.columns:
         centroid_subdf = pd.DataFrame(track_table["centroid"].tolist(), index=track_table.index)
@@ -1139,7 +1159,7 @@ def run_tracking(
         centroid_dims = DIMENSION_ORDER[::-1][:num_centroid_dims][::-1]
         for i in range(num_centroid_dims):
             dim = centroid_dims[i]
-            track_table[f"centroid_{dim}"] = centroid_subdf[i]
+            track_table[f"centroid_{dim.lower()}"] = centroid_subdf[i]
     # replace masked values with NaN for columns `matched_query_label`
     # and `optimized_metric_value` since .parquet cannot save those
     for col in ["matched_query_label", "optimized_metric_value"]:
@@ -1349,6 +1369,6 @@ def run_tracking_multiproc_wrapper(queue: tuple[tuple, list[ImageProcessingArgs]
 
     # add the dataset name and position to the output table
     tracking_table = pd.read_parquet(out_dir / f"{out_filename_prefix}_tracking.parquet")
-    tracking_table["dataset_name"] = dataset_name
-    tracking_table["position"] = position
+    tracking_table[Column.DATASET] = dataset_name
+    tracking_table[Column.POSITION] = position
     tracking_table.to_parquet(out_dir / f"{out_filename_prefix}_tracking.parquet", index=False)
