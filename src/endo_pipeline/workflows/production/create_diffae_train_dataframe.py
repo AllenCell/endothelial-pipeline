@@ -83,7 +83,7 @@ def main() -> None:
 
     # Create directories for saving training and validation dataframes
     offsets_name = f"z_stack_{Z_SLICE_OFFSETS[0]}_{Z_SLICE_OFFSETS[1]}"
-    file_suffix = f"resolution_{DIFFAE_ZARR_RESOLUTION_LEVEL}_{offsets_name}_{name_suffix}"
+    file_suffix = f"resolution_{DIFFAE_ZARR_RESOLUTION_LEVEL}_{offsets_name}{name_suffix}"
     output_paths = {
         "training": get_output_path("model_train_dataframes"),
         "validation": get_output_path("model_val_dataframes"),
