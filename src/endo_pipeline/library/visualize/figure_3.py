@@ -32,6 +32,15 @@ from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME
 
 
+def wrap_theta_for_vector_field_vis(theta, theta_min, theta_max, period=POLAR_ANGLE_PERIOD):
+    if theta < theta_min:
+        return theta + period
+    elif theta > theta_max:
+        return theta - period
+    else:
+        return theta
+
+
 @figure_panel("Make panel of 3D vector field plot with stable fixed point overlay.")
 def make_3d_vector_field_plot_panel(
     dataset_name: str,
@@ -116,10 +125,7 @@ def make_3d_vector_field_plot_panel(
     for _, fpt_row in stable_df.iterrows():
         fpt_coords = fpt_row[column_names_].to_numpy()
         # wrap theta coordinate to be within the specified limits
-        if fpt_coords[0] < theta_lims[0]:
-            fpt_coords[0] += POLAR_ANGLE_PERIOD
-        elif fpt_coords[0] > theta_lims[1]:
-            fpt_coords[0] -= POLAR_ANGLE_PERIOD
+        fpt_coords[0] = wrap_theta_for_vector_field_vis(fpt_coords[0], theta_lims[0], theta_lims[1])
         ax.scatter(
             fpt_coords[0],
             fpt_coords[1],
@@ -170,6 +176,21 @@ def reconstruct_fixed_points(
 
     column_names = cast(list[str], list(DYNAMICS_COLUMN_NAMES))
     column_labels = [str(COLUMN_METADATA[col].label or str(col)) for col in DYNAMICS_COLUMN_NAMES]
+
+    # wrap the polar angle to be within the specified limits for visualization
+    # and consistency with the vector field plots
+    fixed_point_df[Column.DiffAEData.POLAR_ANGLE] = (
+        fixed_point_df[Column.DiffAEData.POLAR_ANGLE] % POLAR_ANGLE_PERIOD
+    )
+
+    theta_min, theta_max = VECTOR_FIELD_THETA_RANGE
+    fixed_point_df[Column.DiffAEData.POLAR_ANGLE] = fixed_point_df[
+        Column.DiffAEData.POLAR_ANGLE
+    ].transform(
+        lambda theta, theta_min=theta_min, theta_max=theta_max: wrap_theta_for_vector_field_vis(
+            theta, theta_min, theta_max
+        )
+    )
 
     # sort the fixed points dataframe by polar angle so that the reconstructions
     # are in a consistent and predictable order
