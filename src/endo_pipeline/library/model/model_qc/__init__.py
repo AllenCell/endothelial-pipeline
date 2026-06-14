@@ -17,7 +17,6 @@ from .denoising import run_denoising_experiments
 from .evaluation import ModelKey, evaluate_single_model
 from .image_loading import load_and_preprocess_example_crop, load_transformed_image
 from .image_metrics import (
-    ImageMetrics,
     LPIPSCalculator,
     compute_all_metrics,
     compute_correlation,
@@ -39,7 +38,6 @@ from .results_io import load_results_from_manifests, write_per_model_parquets
 from .tiff_io import save_denoising_crops, save_image_as_tiff
 
 __all__ = [
-    "ImageMetrics",
     "LPIPSCalculator",
     "ModelKey",
     "aggregate_seed_metrics",

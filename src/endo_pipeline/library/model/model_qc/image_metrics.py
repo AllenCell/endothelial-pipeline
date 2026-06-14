@@ -4,27 +4,16 @@ Provides Pearson correlation, SSIM, and LPIPS computations used by the
 model QC pipeline to compare ground-truth and reconstructed images.
 """
 
-from typing import TYPE_CHECKING, Literal, NamedTuple
+from typing import TYPE_CHECKING, Literal
 
 from numpy.typing import NDArray
 from scipy.stats import pearsonr
 from skimage.metrics import structural_similarity as ssim
 
+from endo_pipeline.library.model.model_comparison import ModelComparisonMetrics
+
 if TYPE_CHECKING:
     import torch
-
-
-class ImageMetrics(NamedTuple):
-    """Container for image similarity metrics."""
-
-    correlation: float
-    """Pearson correlation coefficient between the two images (range [-1, 1])."""
-
-    ssim: float
-    """Structural Similarity Index Measure (SSIM) score (range [0, 1], 1 = identical)."""
-
-    lpips: float
-    """Learned Perceptual Image Patch Similarity (LPIPS) score (lower is better, 0 = identical)."""
 
 
 class LPIPSCalculator:
@@ -175,7 +164,7 @@ def compute_all_metrics(
     img1: NDArray,
     img2: NDArray,
     lpips_calculator: LPIPSCalculator | None = None,
-) -> ImageMetrics:
+) -> ModelComparisonMetrics:
     """Compute correlation, SSIM, and LPIPS between two images.
 
     Parameters
@@ -198,7 +187,7 @@ def compute_all_metrics(
         lpips_calculator = LPIPSCalculator()
     lpips_score = lpips_calculator.compute(img1, img2)
 
-    return ImageMetrics(correlation=corr, ssim=ssim_score, lpips=lpips_score)
+    return ModelComparisonMetrics(correlation=corr, ssim=ssim_score, lpips=lpips_score)
 
 
 def compute_denoising_metrics(
