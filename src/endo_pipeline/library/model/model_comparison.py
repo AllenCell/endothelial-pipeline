@@ -254,7 +254,7 @@ def load_transformed_conditioning_example_image(
     """
 
     target_key = model_config.model.condition_key
-    return load_transformed_example_image(example, model_config, target_key).squeeze()
+    return load_transformed_example_image(example, model_config, target_key)
 
 
 def load_transformed_diffusion_example_image(
@@ -278,7 +278,7 @@ def load_transformed_diffusion_example_image(
     """
 
     target_key = DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT
-    return load_transformed_example_image(example, model_config, target_key).squeeze()
+    return load_transformed_example_image(example, model_config, target_key)
 
 
 def compute_denoising_metrics(

@@ -203,6 +203,7 @@ def main(
                     {
                         Column.DiffAEData.MODEL_MANIFEST: model_manifest_name,
                         Column.DiffAEData.MODEL_RUN: run_name,
+                        Column.EXAMPLE_KEY: str(example),
                         Column.RANDOM_SEED: random_seed,
                         Column.MODEL_COMPARISON_EXAMPLE_GROUP: group,
                         Column.MODEL_COMPARISON_BASELINE_CORRELATION: baseline_results.correlation,

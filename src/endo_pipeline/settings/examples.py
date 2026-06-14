@@ -29,6 +29,17 @@ class ExampleImage(NamedTuple):
     crop_x_start: int  # res level 1
     crop_y_start: int  # res level 1
 
+    def __str__(self):
+        return "_".join(
+            [
+                self.dataset_name,
+                f"P{self.position}",
+                f"T{self.timepoint}",
+                f"X{self.crop_x_start}",
+                f"Y{self.crop_y_start}",
+            ]
+        )
+
 
 class ExampleFPT(NamedTuple):
     """Structure for information about an example used in the first passage time analysis."""

@@ -617,6 +617,9 @@ class ColumnName:
     RANDOM_SEED = "random_seed"
     """Random number generator seed."""
 
+    EXAMPLE_KEY = "example_key"
+    """Key representing example image dataset name, position, timepoint, and crop start."""
+
     MODEL_COMPARISON_EXAMPLE_GROUP = "example_group"
     """Name of group of model comparison example images."""
 
