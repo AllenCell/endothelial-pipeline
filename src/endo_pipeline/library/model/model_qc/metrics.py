@@ -11,7 +11,7 @@ from endo_pipeline.library.model.model_comparison import (
 if TYPE_CHECKING:
     from omegaconf import DictConfig
 
-    from endo_pipeline.library.model.model_comparison import LPIPSCalculator
+    from endo_pipeline.library.model.model_comparison import ModelComparisonMetricsCalculator
     from endo_pipeline.settings.examples import ExampleImage
 
     from .evaluation import ModelKey
@@ -28,7 +28,7 @@ def compute_baseline_for_example(
     diffusion_input_key: str,
     crop_size: int,
     ground_truth: np.ndarray,
-    lpips_calculator: "LPIPSCalculator",
+    lpips_calculator: "ModelComparisonMetricsCalculator",
 ) -> tuple[float, float, float]:
     """Compare ground truth to the next-timepoint CDH5 crop.
 
@@ -68,7 +68,7 @@ def compute_baseline_for_example(
         crop_next,
         data_range=2.0,
     )
-    lpips_val = lpips_calculator.compute(ground_truth, crop_next)
+    lpips_val = lpips_calculator.compute_lpips(ground_truth, crop_next)
     return corr, ssim_val, lpips_val
 
 

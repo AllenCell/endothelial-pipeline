@@ -39,11 +39,12 @@ class ModelComparisonMetrics(NamedTuple):
     """Learned Perceptual Image Patch Similarity (LPIPS) score (lower is better, 0 = identical)."""
 
 
-class LPIPSCalculator:
+class ModelComparisonMetricsCalculator:
     """
-    Singleton for LPIPS (Learned Perceptual Image Patch Similarity) calculator.
+    Singleton for calculating model comparison metrics between two images.
 
-    The underlying ``torchmetrics`` model is created when the class is first
+    For LPIPS (Learned Perceptual Image Patch Similarity) calculations, the
+    underlying ``torchmetrics`` model is created when the class is first
     instantiated to avoid unnecessary GPU memory allocation if the metric is not
     called. On subsequent instantiations, this same instance is used.
     """
@@ -65,7 +66,64 @@ class LPIPSCalculator:
         return cls._instance
 
     @classmethod
-    def compute(cls, img1: "NDArray", img2: "NDArray") -> float:
+    def compute_correlation(cls, img1: "NDArray", img2: "NDArray") -> float:
+        """
+        Compute Pearson correlation coefficient between two images.
+
+        Parameters
+        ----------
+        img1
+            First image to compare.
+        img2
+            Second image to compare.
+
+        Returns
+        -------
+        :
+            Pearson correlation coefficient in [-1, 1].
+        """
+
+        corr, _ = pearsonr(img1.ravel(), img2.ravel())
+        return float(corr)
+
+    @classmethod
+    def compute_ssim(
+        cls, img1: "NDArray", img2: "NDArray", data_range: float | None = None
+    ) -> float:
+        """
+        Compute SSIM (Structural Similarity Index) between two images.
+
+        When dynamic range of images is not given, assume range to be 2.0 since
+        our images are normalized between -1 and 1.
+
+        Parameters
+        ----------
+        img1
+            First image to compare.
+        img2
+            Second image to compare.
+        data_range
+            Dynamic range of the input images.
+
+        Returns
+        -------
+        :
+            SSIM score in [0, 1] where 1 = identical.
+        """
+
+        if img1.ndim > 2:
+            img1 = img1.squeeze()
+
+        if img2.ndim > 2:
+            img2 = img2.squeeze()
+
+        if data_range is None:
+            data_range = 2.0
+
+        return float(ssim(img1, img2, data_range=data_range))
+
+    @classmethod
+    def compute_lpips(cls, img1: "NDArray", img2: "NDArray") -> float:
         """
         Compute LPIPS between two images.
 
@@ -102,6 +160,34 @@ class LPIPSCalculator:
             score = cls.model(img1_t, img2_t)
 
         return score.item()
+
+    @classmethod
+    def compute_all_metrics(
+        cls,
+        img1: NDArray,
+        img2: NDArray,
+    ) -> ModelComparisonMetrics:
+        """
+        Compute correlation, SSIM, and LPIPS between two images.
+
+        Parameters
+        ----------
+        img1
+            First image to compare.
+        img2
+            Second image to compare.
+
+        Returns
+        -------
+        :
+            Computed correlation, SSIM, and LPIPS metrics.
+        """
+
+        return ModelComparisonMetrics(
+            correlation=cls.compute_correlation(img1, img2),
+            ssim=cls.compute_lpips(img1, img2),
+            lpips=cls.compute_lpips(img1, img2),
+        )
 
 
 def load_transformed_example_image(
@@ -195,96 +281,9 @@ def load_transformed_diffusion_example_image(
     return load_transformed_example_image(example, model_config, target_key).squeeze()
 
 
-def compute_correlation(img1: NDArray, img2: NDArray) -> float:
-    """Compute Pearson correlation coefficient between two images.
-
-    Parameters
-    ----------
-    img1
-        First Image/Crop to compare
-    img2
-        Second Image/Crop to compare
-
-    Returns
-    -------
-        Pearson correlation coefficient in [-1, 1].
-    """
-    corr, _ = pearsonr(img1.ravel(), img2.ravel())
-    return float(corr)
-
-
-def compute_ssim(
-    img1: NDArray,
-    img2: NDArray,
-    data_range: float | None = None,
-) -> float:
-    """Compute SSIM (Structural Similarity Index) between two images.
-
-    Parameters
-    ----------
-    img1
-        First Image/Crop to compare
-    img2
-        Second Image/Crop to compare
-    data_range
-        Dynamic range of the input images.  When ``None`` the range is
-        assumed to be 2.0 (since the images in our pipeline
-        are normalised to [-1, 1]).
-
-    Returns
-    -------
-        SSIM score in [0, 1] (1 = identical).
-    """
-    if img1.ndim > 2:
-        img1 = img1.squeeze()
-    if img2.ndim > 2:
-        img2 = img2.squeeze()
-
-    if data_range is None:
-        data_range = 2.0
-
-    return float(ssim(img1, img2, data_range=data_range))
-
-
-# ---------------------------------------------------------------------------
-# Composite helpers
-# ---------------------------------------------------------------------------
-
-
-def compute_all_metrics(
-    img1: NDArray,
-    img2: NDArray,
-    lpips_calculator: LPIPSCalculator | None = None,
-) -> ModelComparisonMetrics:
-    """Compute correlation, SSIM, and LPIPS between two images.
-
-    Parameters
-    ----------
-    img1
-        First Image/Crop to compare
-    img2
-        Second Image/Crop to compare
-    lpips_calculator
-        Pre-initialised calculator.  A new one is created when ``None``.
-
-    Returns
-    -------
-    ImageMetrics with ``correlation``, ``ssim``, and ``lpips`` fields.
-    """
-    corr = compute_correlation(img1, img2)
-    ssim_score = compute_ssim(img1, img2)
-
-    if lpips_calculator is None:
-        lpips_calculator = LPIPSCalculator()
-    lpips_score = lpips_calculator.compute(img1, img2)
-
-    return ModelComparisonMetrics(correlation=corr, ssim=ssim_score, lpips=lpips_score)
-
-
 def compute_denoising_metrics(
     ground_truth: NDArray,
     denoised_images: list[NDArray],
-    lpips_calculator: LPIPSCalculator | None = None,
     compute_all_noise_levels: bool = False,
 ) -> tuple[list[dict] | None, dict]:
     """Compute image quality metrics for denoised images.
@@ -309,18 +308,18 @@ def compute_denoising_metrics(
     metrics_100
         Metric dict for the 100 % noise level.
     """
-    if lpips_calculator is None:
-        lpips_calculator = LPIPSCalculator()
+
+    metrics_calculator = ModelComparisonMetricsCalculator()
 
     if compute_all_noise_levels:
         metrics = [
-            compute_all_metrics(ground_truth, img.squeeze(), lpips_calculator)._asdict()
+            metrics_calculator.compute_all_metrics(ground_truth, img.squeeze())._asdict()
             for img in denoised_images
         ]
         metrics_100 = metrics[-1]
     else:
         denoised_100 = denoised_images[-1].squeeze()
-        metrics_100 = compute_all_metrics(ground_truth, denoised_100, lpips_calculator)._asdict()
+        metrics_100 = metrics_calculator.compute_all_metrics(ground_truth, denoised_100)._asdict()
         metrics = None
 
     return metrics, metrics_100

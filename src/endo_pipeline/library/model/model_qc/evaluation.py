@@ -195,12 +195,12 @@ def evaluate_single_model(
     _compute_denoising_metrics = None
     if compute_metrics:
         from endo_pipeline.library.model.model_comparison import (
-            LPIPSCalculator,
+            ModelComparisonMetricsCalculator,
             compute_denoising_metrics,
         )
 
         _compute_denoising_metrics = compute_denoising_metrics
-        lpips_calculator = LPIPSCalculator()
+        lpips_calculator = ModelComparisonMetricsCalculator()
 
     # --- Setup ---
     noise_labels = [f"{level * 100:.0f}% Noise" for level in [*noise_levels, 1]]
@@ -367,7 +367,6 @@ def evaluate_single_model(
                     metrics, metrics_100 = _compute_denoising_metrics(
                         ground_truth=ground_truth,
                         denoised_images=denoised_images,
-                        lpips_calculator=lpips_calculator,
                         compute_all_noise_levels=save_intermediate_plots and is_default_seed,
                     )
                     result[example_set_label]["correlations_100"].append(metrics_100["correlation"])
