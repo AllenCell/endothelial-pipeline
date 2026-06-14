@@ -2,9 +2,11 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
-from endo_pipeline.library.model.model_comparison import load_transformed_diffusion_example_image
-
-from .image_metrics import compute_correlation, compute_ssim
+from endo_pipeline.library.model.model_comparison import (
+    compute_correlation,
+    compute_ssim,
+    load_transformed_diffusion_example_image,
+)
 
 if TYPE_CHECKING:
     from omegaconf import DictConfig
