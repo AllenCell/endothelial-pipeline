@@ -13,10 +13,10 @@ from .image_metrics import compute_correlation, compute_ssim
 if TYPE_CHECKING:
     from omegaconf import DictConfig
 
+    from endo_pipeline.library.model.model_comparison import LPIPSCalculator
     from endo_pipeline.settings.examples import ExampleImage
 
     from .evaluation import ModelKey
-    from .image_metrics import LPIPSCalculator
 
 
 # ---------------------------------------------------------------------------
