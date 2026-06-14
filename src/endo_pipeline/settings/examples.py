@@ -433,6 +433,13 @@ MODEL_QC_EXAMPLES_REP_2_POSITIONS: list[ExampleImage] = [
 ]
 """List of example crops for model QC, positions from replicate 2. Datasets not used for model training."""
 
+MODEL_COMPARISON_EXAMPLES: dict[str, list[ExampleImage]] = {
+    "replicate": MODEL_QC_EXAMPLES_REP_2_POSITIONS,
+    "training": MODEL_QC_EXAMPLES_TRAINING_POSITIONS,
+    "validation": MODEL_QC_EXAMPLES_VALIDATION_POSITIONS,
+}
+"""Map of example group names to list of example images."""
+
 EXAMPLE_DIFFAE_TRAINING_SCHEMATIC = "20250428_20X"
 
 EXAMPLES_DIFFAE_TRAINING_VALIDATION: list[ExampleImage] = [
