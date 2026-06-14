@@ -3,7 +3,23 @@
 import logging
 from typing import NamedTuple
 
+import numpy as np
 from numpy.typing import NDArray
+from omegaconf import DictConfig
+
+from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.io import load_image
+from endo_pipeline.library.process.image_processing import crop_image
+from endo_pipeline.library.visualize.model_inputs.image_preprocessing_steps import (
+    apply_img_transforms,
+    create_data_dict_loaded_image,
+    get_image_transforms,
+    get_target_image_from_sample,
+)
+from endo_pipeline.manifests import get_zarr_location_for_position
+from endo_pipeline.settings.examples import ExampleImage
+from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL
+from endo_pipeline.settings.workflow_defaults import DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT
 
 logger = logging.getLogger(__name__)
 
@@ -84,3 +100,94 @@ class LPIPSCalculator:
             score = cls.model(img1_t, img2_t)
 
         return score.item()
+
+
+def load_transformed_example_image(
+    example: "ExampleImage", model_config: "DictConfig", target_key: str
+) -> "NDArray":
+    """
+    Load transformed and cropped image for select example.
+
+    Parameters
+    ----------
+    example
+        Example image metadata.
+    model_config
+        Model configuration instance.
+    target_key
+        Sample dictionary target image key.
+
+    Returns
+    -------
+    :
+        Transformed and cropped example image
+    """
+
+    # Load image for select dataset at given position and timepoint
+    dataset_config = load_dataset_config(example.dataset_name)
+    zarr_loc = get_zarr_location_for_position(dataset_config, example.position)
+    img = load_image(
+        zarr_loc,
+        level=DIFFAE_ZARR_RESOLUTION_LEVEL,
+        timepoints=example.timepoint,
+        squeeze=True,
+        compute=True,
+    )
+
+    # Extract transformation steps and apply to image
+    data = create_data_dict_loaded_image(img)
+    transforms = get_image_transforms(model_config)
+    sample = apply_img_transforms(transforms, data)
+
+    # Extract the target image and crop
+    crop_size = model_config.model.image_shape[-1]
+    conditioning_img = get_target_image_from_sample(sample, target_key)
+    return crop_image(conditioning_img, example.crop_x_start, example.crop_y_start, crop_size)
+
+
+def load_transformed_conditioning_example_image(
+    example: "ExampleImage",
+    model_config: "DictConfig",
+) -> np.ndarray:
+    """
+    Load transformed and cropped conditioning image for select example.
+
+    Parameters
+    ----------
+    example
+        Example image metadata.
+    model_config
+        Model configuration instance.
+
+    Returns
+    -------
+    :
+        Transformed and cropped conditioning image.
+    """
+
+    target_key = model_config.model.condition_key
+    return load_transformed_example_image(example, model_config, target_key).squeeze()
+
+
+def load_transformed_diffusion_example_image(
+    example: "ExampleImage",
+    model_config: "DictConfig",
+) -> np.ndarray:
+    """
+    Load transformed and cropped diffusion image for select example.
+
+    Parameters
+    ----------
+    example
+        Example image metadata.
+    model_config
+        Model configuration instance.
+
+    Returns
+    -------
+    :
+        Transformed and cropped diffusion image.
+    """
+
+    target_key = DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT
+    return load_transformed_example_image(example, model_config, target_key).squeeze()

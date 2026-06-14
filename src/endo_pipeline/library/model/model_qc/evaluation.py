@@ -14,10 +14,13 @@ from endo_pipeline.library.model.diffae.generate_image import (
     add_noise_to_image,
     generate_from_coords_and_noised_image,
 )
+from endo_pipeline.library.model.model_comparison import (
+    load_transformed_conditioning_example_image,
+    load_transformed_diffusion_example_image,
+)
 from endo_pipeline.manifests import load_model_manifest
 from endo_pipeline.settings.workflow_defaults import DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT
 
-from .image_loading import load_and_preprocess_example_crop
 from .metrics import compute_baseline_for_example
 from .plotting import (
     save_intermediate_contact_sheet,
@@ -242,15 +245,11 @@ def evaluate_single_model(
             example_set_dir = Path(output_path) / manifest_name / run_name / example_set_label
 
         for example in example_set:
-
             # Load & crop
-            conditioning_input_crop, diffusion_input_crop = load_and_preprocess_example_crop(
-                example,
-                model_config,
-                crop_size,
-                cond_key,
-                diffusion_key,
+            conditioning_input_crop = load_transformed_conditioning_example_image(
+                example, model_config
             )
+            diffusion_input_crop = load_transformed_diffusion_example_image(example, model_config)
 
             latent = get_latent_vector_from_crop(
                 model,

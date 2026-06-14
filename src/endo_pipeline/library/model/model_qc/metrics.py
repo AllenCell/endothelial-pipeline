@@ -2,12 +2,8 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
-from endo_pipeline.library.process.image_processing import crop_image
-from endo_pipeline.library.visualize.model_inputs.image_preprocessing_steps import (
-    get_target_image_from_sample,
-)
+from endo_pipeline.library.model.model_comparison import load_transformed_diffusion_example_image
 
-from .image_loading import load_transformed_image
 from .image_metrics import compute_correlation, compute_ssim
 
 if TYPE_CHECKING:
@@ -60,21 +56,9 @@ def compute_baseline_for_example(
         If the next-timepoint image cannot be loaded or metrics cannot be
         computed (e.g. missing timepoint). Callers should handle this.
     """
-    sample_next = load_transformed_image(
-        example,
-        model_config,
-        timepoint=example.timepoint + 1,
-    )
-    diffusion_next = get_target_image_from_sample(
-        sample_next,
-        target_key=diffusion_input_key,
-    )
-    crop_next = crop_image(
-        diffusion_next,
-        example.crop_x_start,
-        example.crop_y_start,
-        crop_size,
-    ).squeeze()
+
+    example_next = example._replace(timepoint=example.timepoint + 1)
+    crop_next = load_transformed_diffusion_example_image(example_next, model_config)
 
     corr = compute_correlation(ground_truth, crop_next)
     ssim_val = compute_ssim(

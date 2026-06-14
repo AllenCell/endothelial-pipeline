@@ -15,7 +15,6 @@ This package provides helpers for:
 
 from .denoising import run_denoising_experiments
 from .evaluation import ModelKey, evaluate_single_model
-from .image_loading import load_and_preprocess_example_crop, load_transformed_image
 from .image_metrics import (
     compute_all_metrics,
     compute_correlation,
@@ -47,9 +46,7 @@ __all__ = [
     "compute_denoising_metrics",
     "compute_ssim",
     "evaluate_single_model",
-    "load_and_preprocess_example_crop",
     "load_results_from_manifests",
-    "load_transformed_image",
     "run_denoising_experiments",
     "save_denoising_crops",
     "save_image_as_tiff",
