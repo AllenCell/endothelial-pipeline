@@ -125,7 +125,7 @@ class ModelComparisonMetricsCalculator:
     @classmethod
     def compute_lpips(cls, img1: "NDArray", img2: "NDArray") -> float:
         """
-        Compute LPIPS between two images.
+        Compute LPIPS (Learned Perceptual Image Patch Similarity) between two images.
 
         Parameters
         ----------
