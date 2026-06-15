@@ -124,6 +124,9 @@ fpt_pearson_r_path = plot_cross_dataset_summaries(
     set_y_lims=True,
     category_order=dataset_summary_list,
     ylabel_rotation=90,
+    ylabel_horizontal_alignment="center",
+    ylabel_vertical_alignment="bottom",
+    yaxis_for_fixed_points=False,
 )
 fpt_slope_path = plot_cross_dataset_summaries(
     first_passage_summary_df,
@@ -134,6 +137,9 @@ fpt_slope_path = plot_cross_dataset_summaries(
     set_y_lims=True,
     category_order=dataset_summary_list,
     ylabel_rotation=90,
+    ylabel_horizontal_alignment="center",
+    ylabel_vertical_alignment="bottom",
+    yaxis_for_fixed_points=False,
 )
 
 # %% Build figure panels and figure
@@ -157,8 +163,8 @@ panels = [
     FigurePanel(
         letter="C",
         path=fp_param_sweep_fpt,
-        x_position=0,
-        y_position=2.1,
+        x_position=4,
+        y_position=0,
         x_offset=-0.1,
         y_offset=0.1,
     ),
@@ -166,7 +172,7 @@ panels = [
         letter="D",
         path=fp_param_sweep_num_traj,
         x_position=0,
-        y_position=4.4,
+        y_position=2.1,
         x_offset=-0.1,
         y_offset=0.1,
     ),
@@ -181,7 +187,7 @@ panels = [
     FigurePanel(
         letter="F",
         path=fpt_slope_path,
-        x_position=1.9,
+        x_position=0,
         y_position=4.4,
         x_offset=0,
         y_offset=0.15,

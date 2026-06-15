@@ -216,6 +216,9 @@ def _plot_cross_dataset_summary_for_column(
     set_y_lims: bool = False,
     color_by_column: ColumnNameType | None = None,
     ylabel_rotation: float = 0,
+    ylabel_horizontal_alignment: Literal["left", "center", "right"] = "left",
+    ylabel_vertical_alignment: Literal["top", "center", "bottom"] = "center",
+    yaxis_for_fixed_points: bool = True,
 ) -> None:
     """
     Plot cross dataset summary for given column name and summary mode.
@@ -249,6 +252,12 @@ def _plot_cross_dataset_summary_for_column(
         (axis mode, markers, error bars, etc.).
     ylabel_rotation
         Rotation angle for y axis label.
+    ylabel_horizontal_alignment
+        Horizontal alignment for y axis label.
+    ylabel_vertical_alignment
+        Vertical alignment for y axis label.
+    yaxis_for_fixed_points
+        If True then add a * to the y axis label to denote it is for fixed points.
     """
 
     # Load dataset configs for all unique datasets in summary data
@@ -429,7 +438,12 @@ def _plot_cross_dataset_summary_for_column(
     # Add y axis label and grid lines
     y_axis_label = column_metadata.label or str(column_name)
 
-    ax.set_ylabel(f"{y_axis_label}$^*$", rotation=ylabel_rotation, ha="left", va="center")
+    ax.set_ylabel(
+        f"{y_axis_label}$^*$" if yaxis_for_fixed_points else y_axis_label,
+        rotation=ylabel_rotation,
+        ha=ylabel_horizontal_alignment,
+        va=ylabel_vertical_alignment,
+    )
     ax.grid(axis="y", alpha=0.3)
 
 
@@ -447,6 +461,9 @@ def plot_cross_dataset_summaries(
     set_y_lims: bool = False,
     color_by_column: ColumnNameType | None = None,
     ylabel_rotation: float = 0,
+    ylabel_horizontal_alignment: Literal["left", "center", "right"] = "left",
+    ylabel_vertical_alignment: Literal["top", "center", "bottom"] = "center",
+    yaxis_for_fixed_points: bool = True,
 ) -> Path:
     """
     Plot cross dataset summaries for given columns in selected plot mode.
@@ -508,6 +525,12 @@ def plot_cross_dataset_summaries(
         from ``style_mode``.
     ylabel_rotation
         Rotation angle for y axis label.
+    ylabel_horizontal_alignment
+        Horizontal alignment for y axis label.
+    ylabel_vertical_alignment
+        Vertical alignment for y axis label.
+    yaxis_for_fixed_points
+        If True then add a * to the y axis label to denote it is for fixed points.
 
     Returns
     -------
@@ -563,6 +586,9 @@ def plot_cross_dataset_summaries(
             set_y_lims=set_y_lims,
             color_by_column=color_by_column,
             ylabel_rotation=ylabel_rotation,
+            ylabel_horizontal_alignment=ylabel_horizontal_alignment,
+            ylabel_vertical_alignment=ylabel_vertical_alignment,
+            yaxis_for_fixed_points=yaxis_for_fixed_points,
         )
 
     # Add super x axis label
