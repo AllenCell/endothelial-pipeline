@@ -2,9 +2,11 @@ from typing import Annotated, Literal
 
 from cyclopts import Parameter
 
+from endo_pipeline.settings.workflow_defaults import DEFAULT_MODEL_MANIFEST_NAME
+
 
 def main(
-    model_manifest_name: str,
+    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_names: list[str] | None = None,
     example_groups: Annotated[
         list[Literal["training", "validation", "replicate"]] | None,
@@ -133,8 +135,8 @@ def main(
         example_pairs = example_pairs[:2]
 
     # Build dataframe manifest for saving output dataframes
-    name_suffix = "_demo" if DEMO_MODE else ""
-    name_suffix = f"_{model_manifest_name}{name_suffix}"
+    demo_suffix = "_demo" if DEMO_MODE else ""
+    name_suffix = f"_{model_manifest_name}{demo_suffix}"
     dataframe_manifest_name = f"{DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_PREFIX}{name_suffix}"
     dataframe_manifest = create_dataframe_manifest(dataframe_manifest_name, workflow_name=__file__)
 
@@ -217,7 +219,8 @@ def main(
 
         # Save dataframe to file
         dataframe = pd.DataFrame(results)
-        save_path = output_path / f"{model_manifest_name}_{run_name}_model_comparison.parquet"
+        file_name = f"{model_manifest_name}_{run_name}_model_comparison{demo_suffix}.parquet"
+        save_path = output_path / file_name
         dataframe.to_parquet(save_path, index=False)
 
         # Create location object with output path

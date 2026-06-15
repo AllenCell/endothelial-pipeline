@@ -37,13 +37,13 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe plot-model-comparion -vd
+    uv run endopipe plot-model-comparison -vd
     ```
 
     To run the workflow for select model runs:
 
     ```bash
-    uv run endopipe plot-model-comparion \
+    uv run endopipe plot-model-comparison \
         --model-run MODEL_MANIFEST_NAME RUN_NAME \
         --model-run MODEL_MANIFEST_NAME RUN_NAME \
         --model-run MODEL_MANIFEST_NAME RUN_NAME
@@ -52,7 +52,7 @@ def main(
     To run the workflow for select metrics:
 
     ```bash
-    uv run endopipe plot-model-comparion --metrics METRIC METRIC
+    uv run endopipe plot-model-comparison --metrics METRIC METRIC
     ```
 
     ## Workflow demo
