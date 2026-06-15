@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 from functools import wraps
 from pathlib import Path
 from textwrap import shorten, wrap
-from typing import NamedTuple
+from typing import NamedTuple, get_args
 
 from endo_pipeline.io import get_output_path, slugify
 
@@ -63,7 +63,15 @@ def figure_panel(description: str):
                 )
                 figure_size = kwarg_figure_size or default_figure_size or (2, 2)
 
-                return build_empty_panel(output_path, description, *figure_size)
+                # Determine how many output placeholders to produce. Assume
+                # all figures have the same output path and figure size.
+                path = build_empty_panel(output_path, description, *figure_size)
+                return_types = inspect.signature(func).return_annotation
+                return (
+                    path
+                    if return_types == Path
+                    else [path if arg == Path else None for arg in get_args(return_types)]
+                )
             else:
                 return func(*args, **kwargs)
 

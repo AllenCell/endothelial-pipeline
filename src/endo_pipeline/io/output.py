@@ -409,7 +409,7 @@ def save_plot_to_path(
     tight_layout: bool = True,
     show_and_close: bool = True,
     bbox_inches: str | None = None,
-) -> None:
+) -> Path:
     """
     Save a matplotlib figure to a file with the specified filename.
 
@@ -433,6 +433,11 @@ def save_plot_to_path(
         True to apply tight layout to figure, False otherwise.
     show_and_close
         True to display the figure and then close it, False otherwise.
+
+    Returns
+    -------
+    :
+        Path to saved plot.
     """
 
     output_file = (output_path / figure_name).with_suffix(file_format)
@@ -451,3 +456,5 @@ def save_plot_to_path(
     if show_and_close:
         plt.show(block=False)
         plt.close(figure)
+
+    return output_file

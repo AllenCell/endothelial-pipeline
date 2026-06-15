@@ -68,9 +68,9 @@ BINNED_MEAN_FEATURES = [
 """List of columns where mean is calculated for bin around the fixed point."""
 
 SUMMARY_MODE_X_AXIS_SUP_LABELS: dict[SummaryPlotAxisMode, str] = {
-    "dataset": f"Dataset Date (Shear Stress dyn/cm{Unicode.SQUARED})",
-    "shear_stress": f"Shear Stress (dyn/cm{Unicode.SQUARED})",
-    "cell_line": "Cell Line",
+    "dataset": f"Dataset date (shear stress dyn/cm{Unicode.SQUARED})",
+    "shear_stress": f"Shear stress (dyn/cm{Unicode.SQUARED})",
+    "cell_line": "Cell line",
 }
 """Mapping of summary plot axis mode to X axis super labels."""
 
@@ -428,7 +428,8 @@ def _plot_cross_dataset_summary_for_column(
 
     # Add y axis label and grid lines
     y_axis_label = column_metadata.label or str(column_name)
-    ax.set_ylabel(y_axis_label, rotation=ylabel_rotation)
+
+    ax.set_ylabel(f"{y_axis_label}$^*$", rotation=ylabel_rotation, ha="left", va="center")
     ax.grid(axis="y", alpha=0.3)
 
 
@@ -585,8 +586,11 @@ def plot_cross_dataset_summaries(
         shared_xlim = (min(lo for lo, _ in all_xlims), max(hi for _, hi in all_xlims))
         for ax in axes:
             ax.set_xlim(shared_xlim)
+            ax.yaxis.labelpad = 8
         for ax in axes[:-1]:
             ax.tick_params(axis="x", labelbottom=False)
+        # Align y labels across all subplots so they share the same x position
+        fig.align_ylabels(axes)
 
     # Add a single shared colorbar if color_by_column is active
     if color_by_column is not None:

@@ -121,7 +121,16 @@ def save_negative_control_sheet(
         font_size_medium=FONTSIZE_MEDIUM,
         font_size_large=FONTSIZE_LARGE,
     )
-    save_plot_to_path(fig, output_path, f"denoising_contact_sheet_{_example_id(example)}")
+    # tight_layout is incompatible with the equal-aspect gridspec + suptitle
+    # (it warns and shrinks the panels, leaving whitespace); crop to content
+    # with bbox_inches="tight" instead.
+    save_plot_to_path(
+        fig,
+        output_path,
+        f"denoising_contact_sheet_{_example_id(example)}",
+        tight_layout=False,
+        bbox_inches="tight",
+    )
     plt.close(fig)
 
 
@@ -191,7 +200,14 @@ def save_intermediate_contact_sheet(
         direction="top-down first",
         show_row_header_column=True,
     )
-    save_plot_to_path(fig, output_path, f"denoising_contact_sheet_{_example_id(example)}")
+    # Crop to content with bbox_inches="tight" so the equal-aspect grid does
+    # not leave a band of empty canvas around the panels.
+    save_plot_to_path(
+        fig,
+        output_path,
+        f"denoising_contact_sheet_{_example_id(example)}",
+        bbox_inches="tight",
+    )
     plt.close(fig)
 
 
@@ -280,6 +296,10 @@ def save_summary_figure(
         tight_layout = False
 
     save_plot_to_path(
-        fig, output_path, "contact_sheet_predict_all_examples", tight_layout=tight_layout
+        fig,
+        output_path,
+        "contact_sheet_predict_all_examples",
+        tight_layout=tight_layout,
+        bbox_inches="tight",
     )
     plt.close(fig)
