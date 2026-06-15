@@ -1,16 +1,15 @@
 """Visualization functions for Model QC workflow."""
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.gridspec import GridSpec
 
-from endo_pipeline.io import get_output_path
 from endo_pipeline.io.output import save_plot_to_path
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
-from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_MEDIUM, FONTSIZE_SMALL
+from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL
 from endo_pipeline.settings.plot_defaults import (
     MODEL_QC_FIG_KWARGS,
     MODEL_QC_GRIDSPEC_KWARGS,
@@ -18,15 +17,12 @@ from endo_pipeline.settings.plot_defaults import (
     MODEL_QC_SUBPLOT_KWARGS,
 )
 from endo_pipeline.settings.workflow_defaults import (
-    DEFAULT_MODEL_QC_LABEL_MAP,
     IMAGE_METRIC_DATASET_COLORS,
     METRIC_TEXT_BOX_PROPS,
 )
 
 if TYPE_CHECKING:
     import matplotlib.figure
-
-    from endo_pipeline.library.model.model_qc.evaluation import ModelKey
 
 
 # ========================
@@ -293,128 +289,6 @@ def create_summary_contact_sheet(
     return fig
 
 
-def create_comparison_bar_plot(
-    models_data: list[dict],
-    metric_key: str,
-    ylabel: str,
-    title: str,
-    output_path: Path,
-    filename: str,
-    model_labels: list[str] | None = None,
-    ylim: tuple[float, float] | None = None,
-    show_baseline: bool = False,
-) -> None:
-    """
-    Create a comparison bar plot for a specific metric across models.
-
-    Parameters
-    ----------
-    models_data
-        List of model data dictionaries with validation and rep2 metrics.
-    metric_key
-        Key for the metric (e.g., 'corr', 'ssim', 'lpips').
-    ylabel
-        Label for the y-axis.
-    title
-        Title of the plot.
-    output_path
-        Path to save the plot.
-    filename
-        Filename for the saved plot.
-    model_labels
-        List of labels for each model on the x-axis. If None, uses generic
-        "Model 1", "Model 2", etc. labels.
-    ylim
-        Optional y-axis limits as (min, max).
-    show_baseline
-        Whether to show baseline metrics as horizontal dashed lines.
-    """
-
-    # Use provided labels or generate generic ones
-    if model_labels is not None:
-        model_labels_short = model_labels[: len(models_data)]
-    else:
-        model_labels_short = [f"Model {i+1}" for i in range(len(models_data))]
-    num_models = len(model_labels_short)
-    x_pos = np.arange(num_models)
-    bar_width = 0.35
-    with plt.style.context("endo_pipeline.figure"):
-        fig, ax = plt.subplots(figsize=(max(12, num_models * 1.5 + 3), 7))
-    validation_means = [m["validation"][f"{metric_key}_mean"] for m in models_data]
-    validation_stds = [m["validation"][f"{metric_key}_std"] for m in models_data]
-    rep2_means = [m["rep2"][f"{metric_key}_mean"] for m in models_data]
-    rep2_stds = [m["rep2"][f"{metric_key}_std"] for m in models_data]
-    ax.bar(
-        x_pos - bar_width / 2,
-        validation_means,
-        bar_width,
-        yerr=validation_stds,
-        capsize=5,
-        label="Validation",
-        color=IMAGE_METRIC_DATASET_COLORS["validation_positions"],
-        alpha=0.8,
-    )
-    ax.bar(
-        x_pos + bar_width / 2,
-        rep2_means,
-        bar_width,
-        yerr=rep2_stds,
-        capsize=5,
-        label="Rep2",
-        color=IMAGE_METRIC_DATASET_COLORS["rep_2_positions"],
-        alpha=0.8,
-    )
-
-    # Add baseline horizontal lines if available
-    if show_baseline and models_data and models_data[0].get("baseline_validation") is not None:
-        baseline_val_mean = models_data[0]["baseline_validation"][f"{metric_key}_mean"]
-        baseline_rep2_mean = models_data[0]["baseline_rep2"][f"{metric_key}_mean"]
-
-        ax.axhline(
-            y=baseline_val_mean,
-            color=IMAGE_METRIC_DATASET_COLORS["validation_positions"],
-            linestyle="--",
-            linewidth=2,
-            alpha=0.7,
-            label="Consecutive crops (Val)",
-        )
-        ax.axhline(
-            y=baseline_rep2_mean,
-            color=IMAGE_METRIC_DATASET_COLORS["rep_2_positions"],
-            linestyle="--",
-            linewidth=2,
-            alpha=0.7,
-            label="Consecutive crops (Rep2)",
-        )
-
-    ax.set_xlabel("Latent Size / Conditioning", fontsize=FONTSIZE_MEDIUM)
-    ax.set_ylabel(ylabel, fontsize=FONTSIZE_MEDIUM)
-    ax.set_title(title, fontsize=FONTSIZE_LARGE)
-    ax.set_xticks(x_pos)
-    # Only rotate labels when there are many models
-    rotation = 45 if num_models > 4 else 0
-    ha_labels = "right" if num_models > 4 else "center"
-    ax.set_xticklabels(
-        model_labels_short, fontsize=FONTSIZE_MEDIUM, rotation=rotation, ha=ha_labels
-    )
-    ax.grid(True, alpha=0.3, axis="y")
-    if ylim is not None:
-        ax.set_ylim(*ylim)
-
-    fig.subplots_adjust(right=0.72)
-
-    # Color legend: top-right, outside the axes but inside the figure
-    ax.legend(
-        fontsize=FONTSIZE_MEDIUM,
-        loc="upper left",
-        bbox_to_anchor=(1.02, 1.0),
-        framealpha=0.9,
-    )
-
-    save_plot_to_path(fig, output_path, filename)
-    plt.close(fig)
-
-
 def create_rep2_correlation_bar_plot(
     models_data: list[dict],
     model_labels: list[str],
@@ -671,100 +545,3 @@ def create_contact_sheet_with_metrics_column(
             )
 
     return fig
-
-
-def create_comparison_plots_and_summary(
-    models_data: list[dict[str, Any]],
-    model_keys: list["ModelKey"],
-    seeds_to_evaluate: list[int],
-    baseline_data: dict[str, dict[str, float]],
-    compute_baseline: bool,
-) -> None:
-    """Create comparison bar plots and log the summary table.
-
-    Generates one bar plot per metric (correlation, SSIM, LPIPS) comparing
-    all models on validation and rep-2 splits, and prints a formatted
-    summary table.
-
-    Parameters
-    ----------
-    models_data
-        Per-model summary dicts each containing ``"validation"`` and
-        ``"rep2"`` sub-dicts with ``*_mean`` / ``*_std`` floats.
-    model_keys
-        Ordered list of ``ModelKey``, one per model.  Used for axis labels
-        and the legend text in each bar plot.  Must align positionally with
-        ``models_data``.
-    seeds_to_evaluate
-        Seeds used during evaluation; displayed in titles when >1.
-    baseline_data
-        Baseline mean/std statistics for ``"validation"`` and ``"rep2"``.
-        Shown as horizontal dashed lines when ``compute_baseline`` is True.
-    compute_baseline
-        Whether to overlay baseline reference lines on the bar plots.
-    """
-    seed_suffix = f"_seeds_{len(seeds_to_evaluate)}" if len(seeds_to_evaluate) > 1 else ""
-    comparison_output_path = get_output_path(
-        "model_qc",
-        "comparison",
-        f"models_{len(model_keys)}{seed_suffix}",
-    )
-
-    # Use the curated short label for each model in the default sweep; fall
-    # back to the model's own ``manifest\nrun`` label otherwise.
-    model_labels = [
-        DEFAULT_MODEL_QC_LABEL_MAP.get((k.manifest_name, k.run_name), k.label) for k in model_keys
-    ]
-
-    seeds_info = (
-        f" (averaged over {len(seeds_to_evaluate)} seeds)" if len(seeds_to_evaluate) > 1 else ""
-    )
-
-    metric_configs: list[tuple[str, str, str, dict[str, Any]]] = [
-        ("corr", "Pearson Correlation (100% Noise)", "Correlation", {}),
-        ("ssim", "SSIM Score (100% Noise)", "SSIM", {}),
-        ("lpips", "LPIPS Score (100% Noise)", "LPIPS", {}),
-    ]
-
-    # Create comparison plots for each metric
-    for metric_key, ylabel, title_base, extra_kw in metric_configs:
-        create_comparison_bar_plot(
-            models_data=models_data,
-            metric_key=metric_key,
-            ylabel=ylabel,
-            title=f"{title_base}{seeds_info}",
-            output_path=comparison_output_path,
-            filename=f"{metric_key}_comparison_100_noise",
-            model_labels=model_labels,
-            show_baseline=compute_baseline,
-            **extra_kw,
-        )
-
-    # Build the summary table, save it next to the plots, and echo to console.
-    summary_lines = ["=" * 80, f"SUMMARY: Model Performance{seeds_info}", "=" * 80]
-
-    if compute_baseline and baseline_data["validation"]["corr_mean"] > 0:
-        summary_lines.append("\nBASELINE (Temporal - Next Timepoint Comparison):")
-        for split_label, split_key in [("Validation", "validation"), ("Rep2      ", "rep2")]:
-            b = baseline_data[split_key]
-            summary_lines.append(
-                f"  {split_label} - Corr: {b['corr_mean']:.3f} ± {b['corr_std']:.3f}, "
-                f"SSIM: {b['ssim_mean']:.3f} ± {b['ssim_std']:.3f}, "
-                f"LPIPS: {b['lpips_mean']:.3f} ± {b['lpips_std']:.3f}"
-            )
-        summary_lines.append("-" * 80)
-
-    for model_data in models_data:
-        summary_lines.append(f"\n{model_data['model_label']}:")
-        for split_label, split_key in [("Validation", "validation"), ("Rep2      ", "rep2")]:
-            d = model_data[split_key]
-            summary_lines.append(
-                f"  {split_label} - Corr: {d['corr_mean']:.3f} ± {d['corr_std']:.3f}, "
-                f"SSIM: {d['ssim_mean']:.3f} ± {d['ssim_std']:.3f}, "
-                f"LPIPS: {d['lpips_mean']:.3f} ± {d['lpips_std']:.3f}"
-            )
-    summary_lines.append("=" * 80)
-
-    summary_text = "\n".join(summary_lines)
-    (comparison_output_path / "model_performance_summary.txt").write_text(summary_text + "\n")
-    print(summary_text)
