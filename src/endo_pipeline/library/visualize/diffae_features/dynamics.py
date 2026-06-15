@@ -527,11 +527,11 @@ def _plot_quiver_3d_cones(
     eps = np.finfo(float).eps
     mag = np.sqrt(u**2 + v**2 + w**2)
 
-    # unit direction vectors; fall back to z-axis for zero-magnitude vectors
-    with np.errstate(invalid="ignore", divide="ignore"):
-        ud = np.where(mag > eps, u / mag, 0.0)
-        vd = np.where(mag > eps, v / mag, 0.0)
-        wd = np.where(mag > eps, w / mag, np.ones_like(w))
+    # Drop zero-magnitude vectors — they have no defined direction to draw.
+    valid = mag > eps
+    x, y, z, u, v, w, colors, mag = (arr[valid] for arr in (x, y, z, u, v, w, colors, mag))
+
+    ud, vd, wd = u / mag, v / mag, w / mag
 
     shaft_length = length * (1.0 - cone_fraction)
     cone_height = length * cone_fraction
