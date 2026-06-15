@@ -6,11 +6,14 @@ from typing import Any, Literal, cast
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.artist import Artist
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import LogNorm, TwoSlopeNorm
+from matplotlib.legend import Legend
 from matplotlib.legend_handler import HandlerBase
 from matplotlib.lines import Line2D
 from matplotlib.patches import Polygon as MplPolygon
+from matplotlib.typing import ColorType
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Line3DCollection, Poly3DCollection
 
@@ -32,7 +35,7 @@ from endo_pipeline.settings.dynamics_workflows import (
     KERNEL_PERIODS_DYNAMICS,
     POLAR_ANGLE_PERIOD,
 )
-from endo_pipeline.settings.figures import FONTSIZE_SMALL, FONTSIZE_XSMALL
+from endo_pipeline.settings.figures import FONTSIZE_XSMALL
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_CBAR_NUM_TICKS,
     DRIFT_CONTOUR_CBAR_ROUND,
@@ -524,11 +527,11 @@ def _plot_quiver_3d_cones(
     eps = np.finfo(float).eps
     mag = np.sqrt(u**2 + v**2 + w**2)
 
-    # unit direction vectors; fall back to z-axis for zero-magnitude vectors
-    with np.errstate(invalid="ignore", divide="ignore"):
-        ud = np.where(mag > eps, u / mag, 0.0)
-        vd = np.where(mag > eps, v / mag, 0.0)
-        wd = np.where(mag > eps, w / mag, np.ones_like(w))
+    # Drop zero-magnitude vectors — they have no defined direction to draw.
+    valid = mag > eps
+    x, y, z, u, v, w, colors, mag = (arr[valid] for arr in (x, y, z, u, v, w, colors, mag))
+
+    ud, vd, wd = u / mag, v / mag, w / mag
 
     shaft_length = length * (1.0 - cone_fraction)
     cone_height = length * cone_fraction
@@ -627,15 +630,58 @@ def _plot_quiver_3d_cones(
 class _HandlerConeArrow(HandlerBase):
     """Legend handler that draws a shaft + filled triangular cone head."""
 
-    def __init__(self, color, cone_fraction: float = 0.45, cone_radius_ratio: float = 0.7):
+    def __init__(
+        self, color: ColorType, cone_fraction: float = 0.45, cone_radius_ratio: float = 0.7
+    ) -> None:
         self._color = color
         self._cone_fraction = cone_fraction
         self._cone_radius_ratio = cone_radius_ratio
         super().__init__()
 
     def create_artists(
-        self, _legend, _orig_handle, xdescent, _ydescent, width, height, _fontsize, trans
-    ):
+        self,
+        _legend: Legend,
+        _orig_handle: Artist,
+        xdescent: float,
+        _ydescent: float,
+        width: float,
+        height: float,
+        _fontsize: float,
+        trans: Any,
+    ) -> list[Artist]:
+        """
+        Create a shaft + filled triangular cone head to represent a quiver arrow
+        in the legend.
+
+        Parameters
+        ----------
+        _legend
+            The Legend object to which the handler is being applied (not used),
+            kept for API compatibility with HandlerBase.
+        _orig_handle
+            The original handle (the object being represented in the legend, not
+            used), kept for API compatibility with HandlerBase.
+        xdescent
+            The horizontal space to reserve for the handle.
+        _ydescent
+            The vertical space to reserve for the handle (not used), kept for
+            API compatibility with HandlerBase.
+        width
+            The total width of the area allocated for the handle.
+        height
+            The total height of the area allocated for the handle.
+        _fontsize
+            The font size of the legend text (not used), kept for API
+            compatibility with HandlerBase.
+        trans
+            The transformation to apply to the created artists to position them
+            correctly in the legend.
+
+        Returns
+        -------
+        :
+            List of artists (arrow shaft and cone head) to be added to the legend.
+        """
         shaft_y = height / 2
         cone_base_x = width * (1.0 - self._cone_fraction) - xdescent
         tip_x = width - xdescent
@@ -923,20 +969,17 @@ def plot_drift_3d(
     if include_colorbar:
         # Colorbar - horizontal strip at the top, shifted left to leave room for legend
         scalar_mappable.set_array([])
-        cbar_ax = fig.add_axes((0.1, 0.82, 0.48, 0.04))
+        cbar_ax = fig.add_axes((0.1, 0.82, 0.48, 0.04))  # current
+        # cbar_ax = fig.add_axes((0.1, 0.92, 0.48, 0.04))  # incoming
         cbar = fig.colorbar(
             scalar_mappable,
             cax=cbar_ax,
             orientation="horizontal",
         )
         cbar.ax.tick_params(labelsize=FONTSIZE_XSMALL, pad=2)
-        cbar.set_label(
-            "$\\left\\Vert\\mathbf{f}(\\mathbf{x})\\right\\Vert$",
-            fontsize=FONTSIZE_SMALL,
-            labelpad=-1,
-        )
+        cbar.set_label("vector magnitude", fontsize=FONTSIZE_XSMALL, labelpad=2)
         cbar_ax.xaxis.set_label_position("top")
-        cbar_ax.xaxis.tick_top()
+        cbar_ax.xaxis.tick_bottom()
 
     if include_legend:
         # Legend to the right of the colorbar. Draw the vector arrow handle as a
@@ -960,7 +1003,8 @@ def plot_drift_3d(
             handles=handles,
             fontsize=FONTSIZE_XSMALL,
             loc="upper left",
-            bbox_to_anchor=(0.65, 0.95),
+            bbox_to_anchor=(0.65, 0.95),  # current
+            # bbox_to_anchor=(0.65, 1.0), # incoming
             frameon=False,
             handletextpad=0.3,
             labelspacing=0.4,

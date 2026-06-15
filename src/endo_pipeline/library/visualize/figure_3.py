@@ -263,6 +263,8 @@ def reconstruct_fixed_points(
         filename,
         file_format=".svg",
         tight_layout=False,
-        pad_inches=0,
+        transparent=True,
+        bbox_inches="tight",
     )
+
     return fig_savedir / f"{filename}.svg"

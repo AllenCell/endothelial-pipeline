@@ -713,6 +713,9 @@ def make_3d_vector_field_plot_panel(
         xlabel=col_labels[0],
         ylabel=col_labels[1],
         zlabel=col_labels[2],
+        xlabel_kwargs={"labelpad": -8},
+        ylabel_kwargs={"labelpad": -5},
+        zlabel_kwargs={"labelpad": -8},
     )
 
     # Load and overlay stable fixed point
