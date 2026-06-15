@@ -1055,7 +1055,7 @@ def plot_first_passage_time_parameter_sweep(
     first_passage_time_param_sweep_df: pd.DataFrame,
     fixed_point_radius_threshold: float | None,
     out_dir: Path,
-    metric_to_plot: Literal["mean", "median"],
+    metric_to_plot: Literal["mean"],
     figsize=(3, 3),
 ) -> tuple[Path, Path]:
     """Plot the results of the parameter sweep over the number of bins in the
@@ -1071,7 +1071,7 @@ def plot_first_passage_time_parameter_sweep(
         x=first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
         y=first_passage_time_param_sweep_df[f"{metric}_grid"],
         yerr=first_passage_time_param_sweep_df["std_grid"],
-        label=f"{metric} FPT {UnicodeCharacters.PLUS_MINUS} STD (patch)",
+        label=f"MFPT {UnicodeCharacters.PLUS_MINUS} STD (patch-based)",
         fmt="o-",
         color="tab:blue",
         ecolor="tab:blue",
@@ -1082,7 +1082,7 @@ def plot_first_passage_time_parameter_sweep(
         x=first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
         y=first_passage_time_param_sweep_df[f"{metric}_tracked"],
         yerr=first_passage_time_param_sweep_df["std_tracked"],
-        label=f"{metric} FPT {UnicodeCharacters.PLUS_MINUS} STD (cell)",
+        label=f"MFPT {UnicodeCharacters.PLUS_MINUS} STD (cell-centered)",
         fmt="o-",
         color="tab:red",
         ecolor="tab:red",
@@ -1169,7 +1169,7 @@ def plot_first_passage_time_correlations(
     fixed_point_id: int,
     fixed_point_stability: str,
     out_dir: Path,
-    metric_to_plot: Literal["mean", "median"],
+    metric_to_plot: Literal["mean"],
 ) -> Path:
     """Plot the correlation between the grid-based and track-based first passage
         times for a given fixed point as a scatter plot with error bars, along with
@@ -1195,7 +1195,8 @@ def plot_first_passage_time_correlations(
         out_dir
             The directory where the resulting plot should be saved.
         metric_to_plot
-            The metric to plot on the axes, either "mean" or "median" first passage time.
+            The metric to plot on the axes, only "mean" first passage time is supported.
+            Originally "median" was also available.
 
     Returns
     -------
@@ -1205,7 +1206,7 @@ def plot_first_passage_time_correlations(
     shear_stress_rounded = _get_shear_stress_for_dataset(dataset_name, binned=True)
     pearson_r = line_fit_df[Column.VectorField.PEARSON_R].unique().item()
 
-    metric = "50%" if metric_to_plot == "median" else metric_to_plot
+    metric = "50%" if metric_to_plot == "median" else str(metric_to_plot)
     suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
     metric = f"{metric}{suffix}"
 
@@ -1253,7 +1254,7 @@ def plot_first_passage_time_correlations(
         color="black",
         edgecolor="white",
         lw=0.2,
-        label=f"FPT {metric_to_plot} {UnicodeCharacters.PLUS_MINUS} SEM (n={num_bins})",
+        label=f"MFPT {UnicodeCharacters.PLUS_MINUS} SEM (n={num_bins})",
     )
     ax.axline(
         xy1=(0, intercept),
@@ -1271,8 +1272,10 @@ def plot_first_passage_time_correlations(
     ax.xaxis.set_major_locator(MaxNLocator(7, min_n_ticks=4, integer=True))
     ax.yaxis.set_major_locator(MaxNLocator(7, min_n_ticks=4, integer=True))
     ax.tick_params(labelsize=FONTSIZE_SMALL)
-    ax.set_xlabel("Patch-based FPT (hrs)", fontsize=FONTSIZE_SMALL, labelpad=1.0, color="tab:blue")
-    ax.set_ylabel("Cell-centered FPT (hrs)", fontsize=FONTSIZE_SMALL, labelpad=1.0, color="tab:red")
+    ax.set_xlabel("Patch-based MFPT (hrs)", fontsize=FONTSIZE_SMALL, labelpad=1.0, color="tab:blue")
+    ax.set_ylabel(
+        "Cell-centered MFPT (hrs)", fontsize=FONTSIZE_SMALL, labelpad=1.0, color="tab:red"
+    )
     ax.legend(loc="upper center")
 
     filename = f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}_{metric_to_plot}_correlation"
