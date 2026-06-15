@@ -1,42 +1,39 @@
 name: diffae_model_comparison_metrics_diffae_baseline
 workflow: calculate_model_comparison_metrics
 parameters:
-  num_seeds: 10
-  seeds: [42, 43, 44, 45, 46, 47, 48, 49, 50, 51]
-  random_seed: 47
-  example_sets: [rep_2_positions, validation_positions]
-  noise_levels: [0.25, 0.5, 0.75]
-  manifest_name: diffae_baseline
+  model_manifest_name: diffae_baseline
+  random_seeds: [42, 43, 44, 45, 46, 47, 48, 49, 50, 51]
+  examples_groups: [replicate, training, validation]
 locations:
   latent_8:
-    fmsid: cd4790bcf2564581b28098638507ddfc
+    fmsid: 61f96ed0a02b4498acb0fbe90d3c6249
     path: null
     s3uri: null
   latent_16:
-    fmsid: d79c989760a44903b5051efb03f8817d
+    fmsid: 9b6cbe38a63645e99643379fb10f6525
     path: null
     s3uri: null
   latent_32:
-    fmsid: e963d81652864b56aae04d9bcc453cf9
+    fmsid: fb15c75d2cd846fda97c0b41d3de1bc8
     path: null
     s3uri: null
   latent_64:
-    fmsid: 929b7c89df8a4834b2b88b96cdb9493f
+    fmsid: 6ca49249d2634ec3bfdeeb9f0f59a3bc
     path: null
     s3uri: null
   latent_128:
-    fmsid: 47d625161bfe4a62bdd2ffb900df3493
+    fmsid: 77a2d1196fa4400d9159baaf5166bf5e
     path: null
     s3uri: null
   latent_256:
-    fmsid: 09c7666087fd4ad78d0e9427d98ce37b
+    fmsid: db9cc9bb4d334d3dbf15e2317a4a843e
     path: null
     s3uri: null
   latent_512:
-    fmsid: fc829663584c4bddaaac9c5594839dac
+    fmsid: df980f117c6546a6a7889f1dbbba1e8b
     path: null
     s3uri: null
   latent_1024:
-    fmsid: 64ca85c1d63543acb40c91cd37053670
+    fmsid: 8fed0573891d45b480de09789e8d408d
     path: null
     s3uri: null

@@ -1,18 +1,15 @@
 name: diffae_model_comparison_metrics_diffae_cdh5_conditioned
 workflow: calculate_model_comparison_metrics
 parameters:
-  num_seeds: 10
-  seeds: [42, 43, 44, 45, 46, 47, 48, 49, 50, 51]
-  random_seed: 47
-  example_sets: [rep_2_positions, validation_positions]
-  noise_levels: [0.25, 0.5, 0.75]
-  manifest_name: diffae_cdh5_conditioned
+  model_manifest_name: diffae_cdh5_conditioned
+  random_seeds: [42, 43, 44, 45, 46, 47, 48, 49, 50, 51]
+  examples_groups: [replicate, training, validation]
 locations:
   latent_512:
-    fmsid: 9a52e74ec2ed4d97a5863327e043fe3d
+    fmsid: afbc4dd96b48449b8a85494387d4818c
     path: null
     s3uri: null
   latent_1024:
-    fmsid: 608c562cc7824f0498dc9347717db031
+    fmsid: 0e4d1c635f504af9afd17d4ee4f10fef
     path: null
     s3uri: null
