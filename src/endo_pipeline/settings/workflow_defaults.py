@@ -242,6 +242,9 @@ Covers 8 brightfield-conditioned latent dimensions (8--1024) and 2 CDH5-
 conditioned models (512, 1024), in plot order.
 """
 
+DEFAULT_MODEL_COMPARISON_RUNS: list[tuple[str, str]] = list(DEFAULT_MODEL_QC_LABEL_MAP.keys())
+"""List of default model comparison model runs (same order as label map)."""
+
 # Parallel lists derived from the label map (the single source of truth) so the
 # manifest / run / label ordering always stays in sync.
 DEFAULT_MODEL_QC_MANIFEST_NAMES: list[str] = [
