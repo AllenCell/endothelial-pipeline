@@ -845,6 +845,9 @@ def plot_drift_3d(
     colormap: str = "viridis_r",
     magnitude_limits: tuple[float, float] = (5e-2, 1.5),
     arrow_alpha: float = 0.6,
+    include_colorbar: bool = True,
+    include_legend: bool = True,
+    include_stable_fixed_point_legend: bool = True,
     **axes_kwargs: Any,
 ) -> tuple[plt.Figure, Axes3D]:
     """
@@ -874,6 +877,16 @@ def plot_drift_3d(
         limits for colouring purposes.
     arrow_alpha
         Opacity for the arrows (between 0 and 1).
+    include_colorbar
+        Whether to include a colorbar indicating the mapping from arrow colour
+        to magnitude.
+    include_legend
+        Whether to include a legend for the arrows (and stable fixed point, if
+        indicated).
+    include_stable_fixed_point_legend
+        Whether to include a legend entry for the stable fixed point (if True, a
+        proxy artist with the same marker and color as the stable fixed point in
+        the plot will be added to the legend).
     axes_kwargs
         Additional keyword arguments to pass to set_axes_properties for
         customizing the axes, e.g., to specify axis limits, labels, title, or
@@ -953,43 +966,48 @@ def plot_drift_3d(
         alpha=arrow_alpha,
     )
 
-    # Colorbar - horizontal strip at the top, shifted left to leave room for legend
-    scalar_mappable.set_array([])
-    cbar_ax = fig.add_axes((0.1, 0.92, 0.48, 0.04))
-    cbar = fig.colorbar(
-        scalar_mappable,
-        cax=cbar_ax,
-        orientation="horizontal",
-    )
-    cbar.ax.tick_params(labelsize=FONTSIZE_XSMALL, pad=2)
-    cbar.set_label("vector magnitude", fontsize=FONTSIZE_XSMALL, labelpad=2)
-    cbar_ax.xaxis.set_label_position("top")
-    cbar_ax.xaxis.tick_bottom()
+    if include_colorbar:
+        # Colorbar - horizontal strip at the top, shifted left to leave room for legend
+        scalar_mappable.set_array([])
+        cbar_ax = fig.add_axes((0.1, 0.92, 0.48, 0.04))
+        cbar = fig.colorbar(
+            scalar_mappable,
+            cax=cbar_ax,
+            orientation="horizontal",
+        )
+        cbar.ax.tick_params(labelsize=FONTSIZE_XSMALL, pad=2)
+        cbar.set_label("vector magnitude", fontsize=FONTSIZE_XSMALL, labelpad=2)
+        cbar_ax.xaxis.set_label_position("top")
+        cbar_ax.xaxis.tick_bottom()
 
-    # Legend to the right of the colorbar. Draw the vector arrow handle as a
-    # shaft + filled triangular cone head (matching the plot style) coloured at
-    # a value in the center of the colormap, and add a proxy artist for the
-    # stable fixed point using the same marker and color as in the plot.
-    arrow_color = cmap(0.5)
-    arrow_handle = Line2D(
-        [],
-        [],
-        label="$d\\mathbf{x}/dt=\\mathbf{f}(\\mathbf{x})$",
-    )
-    fp_handles = make_legend_handles_for_fixed_pts(
-        fpt_stabilities=[StabilityLabel.STABLE],
-        marker_size=4,
-    )
-    fig.legend(
-        handles=[arrow_handle, *fp_handles],
-        fontsize=FONTSIZE_XSMALL,
-        loc="upper left",
-        bbox_to_anchor=(0.65, 1.0),
-        frameon=False,
-        handletextpad=0.3,
-        labelspacing=0.4,
-        handler_map={arrow_handle: _HandlerConeArrow(color=arrow_color)},
-    )
+    if include_legend:
+        # Legend to the right of the colorbar. Draw the vector arrow handle as a
+        # shaft + filled triangular cone head (matching the plot style) coloured at
+        # a value in the center of the colormap, and add a proxy artist for the
+        # stable fixed point using the same marker and color as in the plot.
+        arrow_color = cmap(0.5)
+        arrow_handle = Line2D(
+            [],
+            [],
+            label="$d\\mathbf{x}/dt=\\mathbf{f}(\\mathbf{x})$",
+        )
+        handles = [arrow_handle]
+        if include_stable_fixed_point_legend:
+            fp_handles = make_legend_handles_for_fixed_pts(
+                fpt_stabilities=[StabilityLabel.STABLE],
+                marker_size=4,
+            )
+            handles.extend(fp_handles)
+        fig.legend(
+            handles=handles,
+            fontsize=FONTSIZE_XSMALL,
+            loc="upper left",
+            bbox_to_anchor=(0.65, 1.0),
+            frameon=False,
+            handletextpad=0.3,
+            labelspacing=0.4,
+            handler_map={arrow_handle: _HandlerConeArrow(color=arrow_color)},
+        )
 
     # set axes labels and ticks with custom formatting
     ax.tick_params(axis="both", pad=-3)
