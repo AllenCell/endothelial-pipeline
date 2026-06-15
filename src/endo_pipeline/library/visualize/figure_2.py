@@ -8,36 +8,25 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.cm import ScalarMappable
-from matplotlib.colors import LogNorm, TwoSlopeNorm
+from matplotlib.colors import TwoSlopeNorm
 from matplotlib.layout_engine import ConstrainedLayoutEngine
-from matplotlib.legend_handler import HandlerBase
-from matplotlib.patches import Polygon as MplPolygon
 from matplotlib.patches import Rectangle as MplRectangle
 from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-from mpl_toolkits.mplot3d import Axes3D
-from mpl_toolkits.mplot3d.art3d import Line3DCollection, Poly3DCollection
 
 from endo_pipeline.io import load_dataframe, save_plot_to_path
-from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
-    get_kernel_density_estimate_from_histogram,
-)
-from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
-from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
 )
 from endo_pipeline.library.analyze.track_integration import get_line_fit_and_filtered_df
-from endo_pipeline.library.analyze.vector_field_estimation import (
-    get_vector_field_as_dict_from_dataframe,
-    load_drift_dataframe_for_dataset,
-)
+from endo_pipeline.library.analyze.vector_field_estimation import load_drift_dataframe_for_dataset
 from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
 from endo_pipeline.library.model.diffae.generate_image import generate_from_dataframe
 from endo_pipeline.library.visualize.diffae_features.dynamics import (
-    make_legend_handles_for_fixed_pts,
     plot_drift_1d,
+    plot_drift_3d,
     plot_drift_contours,
+    process_3d_vector_field_for_visualization,
 )
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.library.visualize.figures import figure_panel
@@ -45,13 +34,7 @@ from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
-from endo_pipeline.settings.dynamics_workflows import (
-    BIN_WIDTHS_DYNAMICS,
-    DYNAMICS_COLUMN_NAMES,
-    KERNEL_BANDWIDTHS_DYNAMICS,
-    KERNEL_NAMES_DYNAMICS,
-    KERNEL_PERIODS_DYNAMICS,
-)
+from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.figures import FONTSIZE_SMALL, FONTSIZE_XSMALL
 from endo_pipeline.settings.first_passage_time import FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME
 from endo_pipeline.settings.flow_field_2d import (
@@ -672,326 +655,14 @@ def reconstruct_along_nullcline(
     return fig_savedir / f"{filename}.svg"
 
 
-def _load_and_process_vector_field(
-    dataset_name: str,
-    column_names: list[Column.DiffAEData],
-    theta_lims: tuple[float, float],
-    r_lims: tuple[float, float],
-    rho_lims: tuple[float, float],
-    downsample_factor: int,
-    mask_threshold: float,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Load the vector field data for the given dataset and process it to
-    extract the grid and vector components within the specified limits,
-    returning downsampled versions for plotting.
-    """
-    drift_df = load_drift_dataframe_for_dataset(dataset_name)
-    flow_field_dict = get_vector_field_as_dict_from_dataframe(drift_df, column_names)
-
-    # grids and vectors are 3-D arrays shaped (n_theta, n_r, n_rho)
-    x_grid_, y_grid_, z_grid_ = flow_field_dict["grid"]
-    u_field_, v_field_, w_field_ = flow_field_dict["vectors"]
-
-    # mask grid points with low data density before clipping/downsampling
-    dataframe_manifest = load_dataframe_manifest(GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME)
-    feature_dataframe = load_dataframe(dataframe_manifest.locations[dataset_name])
-    grid_points_1d = [
-        np.unique(x_grid_[:, 0, 0]),
-        np.unique(y_grid_[0, :, 0]),
-        np.unique(z_grid_[0, 0, :]),
-    ]
-    bin_widths = [BIN_WIDTHS_DYNAMICS[col] for col in column_names]
-    bin_limits = [
-        (pts[0] - bw / 2, pts[-1] + bw / 2)
-        for pts, bw in zip(grid_points_1d, bin_widths, strict=True)
-    ]
-    bins_3d = get_bins(bin_widths=tuple(bin_widths), bin_limits=bin_limits, pad=0)[0]
-    kernels = [
-        KramersMoyalKernel(
-            name=KERNEL_NAMES_DYNAMICS[col],
-            bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[col],
-            period=KERNEL_PERIODS_DYNAMICS[col],
-        )
-        for col in column_names
-    ]
-    hist = np.histogramdd(feature_dataframe[column_names].to_numpy(), bins=bins_3d)[0]
-    hist_kde = get_kernel_density_estimate_from_histogram(
-        hist[None, ...], bins=bins_3d, kernel=kernels
-    )
-    low_density_mask = hist_kde < mask_threshold
-    u_field_ = u_field_.copy()
-    v_field_ = v_field_.copy()
-    w_field_ = w_field_.copy()
-    u_field_[low_density_mask] = np.nan
-    v_field_[low_density_mask] = np.nan
-    w_field_[low_density_mask] = np.nan
-
-    # wrap theta grid to be within the specified limits for better visualization
-    # of the vector field (default is (0, pi), but we want to shift the limits
-    # so that the stable fixed point is not at the boundary)
-    where_theta_below_lims = x_grid_ < theta_lims[0]
-    where_theta_above_lims = x_grid_ > theta_lims[1]
-    x_grid_[where_theta_below_lims] += np.pi
-    x_grid_[where_theta_above_lims] -= np.pi
-    arg_sorted_theta = np.argsort(x_grid_[:, 0, 0])
-    x_grid_ = x_grid_[arg_sorted_theta, :, :]
-    y_grid_ = y_grid_[arg_sorted_theta, :, :]
-    z_grid_ = z_grid_[arg_sorted_theta, :, :]
-    u_field_ = u_field_[arg_sorted_theta, :, :]
-    v_field_ = v_field_[arg_sorted_theta, :, :]
-    w_field_ = w_field_[arg_sorted_theta, :, :]
-
-    # mask vector field to be within the specified limits (take only grid points
-    # within limits), reshaping accordingly as 3D arrays of updated number of
-    # points within limits
-    x_in_bounds = (x_grid_ >= theta_lims[0]) & (x_grid_ <= theta_lims[1])
-    num_x_in_bounds = np.unique(np.sum(x_in_bounds, axis=0))[-1]
-    y_in_bounds = (y_grid_ >= r_lims[0]) & (y_grid_ <= r_lims[1])
-    num_y_in_bounds = np.unique(np.sum(y_in_bounds, axis=1))[-1]
-    z_in_bounds = (z_grid_ >= rho_lims[0]) & (z_grid_ <= rho_lims[1])
-    num_z_in_bounds = np.unique(np.sum(z_in_bounds, axis=2))[-1]
-    in_bounds_mask = x_in_bounds & y_in_bounds & z_in_bounds
-
-    x_grid = x_grid_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
-    y_grid = y_grid_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
-    z_grid = z_grid_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
-    u_field = u_field_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
-    v_field = v_field_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
-    w_field = w_field_[in_bounds_mask].reshape(num_x_in_bounds, num_y_in_bounds, num_z_in_bounds)
-
-    # Downsample uniformly along every axis
-    x_ds = x_grid[::downsample_factor, ::downsample_factor, ::downsample_factor]
-    y_ds = y_grid[::downsample_factor, ::downsample_factor, ::downsample_factor]
-    z_ds = z_grid[::downsample_factor, ::downsample_factor, ::downsample_factor]
-    u_ds = u_field[::downsample_factor, ::downsample_factor, ::downsample_factor]
-    v_ds = v_field[::downsample_factor, ::downsample_factor, ::downsample_factor]
-    w_ds = w_field[::downsample_factor, ::downsample_factor, ::downsample_factor]
-
-    return x_ds, y_ds, z_ds, u_ds, v_ds, w_ds
-
-
-def _plot_quiver_3d_cones(
-    ax: Axes3D,
-    x: np.ndarray,
-    y: np.ndarray,
-    z: np.ndarray,
-    u: np.ndarray,
-    v: np.ndarray,
-    w: np.ndarray,
-    length: float,
-    colors: np.ndarray,
-    alpha: float = 0.8,
-    cone_fraction: float = 0.30,
-    cone_radius_ratio: float = 0.4,
-    n_facets: int = 8,
-) -> None:
-    """
-    Draw 3-D quiver arrows with cone-shaped arrowheads using
-    :class:`~mpl_toolkits.mplot3d.art3d.Line3DCollection` for the shafts and
-    :class:`~mpl_toolkits.mplot3d.art3d.Poly3DCollection` for the cone faces.
-
-    Unlike :meth:`~mpl_toolkits.mplot3d.axes3d.Axes3D.quiver`, every arrowhead
-    is a proper closed cone so arrows look volumetric from any viewing angle.
-
-    Each arrow is decomposed into:
-
-        - **shaft**: a single line segment from the tail to the cone base.
-        - **cone side faces**: ``n_facets`` triangles between the base circle
-          and the apex.
-        - **cone base disc**: ``n_facets`` triangles that cap the open base of
-          the cone so it appears solid when viewed from behind.
-
-    All geometry is batched into two
-    :class:`~mpl_toolkits.mplot3d.art3d.Poly3DCollection` objects (sides and
-    base) for efficient rendering.
-
-    Parameters
-    ----------
-    ax
-        The 3-D axes on which to draw.
-    x, y, z
-        Flat arrays of arrow tail positions.
-    u, v, w
-        Flat arrays of arrow direction components.  They are normalised
-        internally, so only the direction matters; overall arrow length is
-        controlled by ``length``.
-    length
-        Total arrow length in data units (shaft + cone).
-    colors
-        RGBA colour array of shape ``(N, 4)`` — one colour per arrow.
-    alpha
-        Overall opacity applied to both shaft lines and cone faces.
-    cone_fraction
-        Fraction of ``length`` occupied by the cone head.  The shaft fills the
-        remaining ``1 - cone_fraction`` portion.
-    cone_radius_ratio
-        Cone base radius expressed as a fraction of the cone height.  Larger
-        values produce stubbier, more visible heads.
-    n_facets
-        Number of triangular side faces on each cone.  8 gives a smooth
-        appearance without excessive vertex count.
-
-    """
-    eps = np.finfo(float).eps
-    mag = np.sqrt(u**2 + v**2 + w**2)
-
-    # unit direction vectors; fall back to z-axis for zero-magnitude vectors
-    with np.errstate(invalid="ignore", divide="ignore"):
-        ud = np.where(mag > eps, u / mag, 0.0)
-        vd = np.where(mag > eps, v / mag, 0.0)
-        wd = np.where(mag > eps, w / mag, np.ones_like(w))
-
-    shaft_length = length * (1.0 - cone_fraction)
-    cone_height = length * cone_fraction
-    cone_radius = cone_height * cone_radius_ratio
-
-    # tip (apex) and cone-base centre for every arrow
-    tip_x = x + ud * length
-    tip_y = y + vd * length
-    tip_z = z + wd * length
-    base_x = x + ud * shaft_length
-    base_y = y + vd * shaft_length
-    base_z = z + wd * shaft_length
-
-    # ------------------------------------------------------------------ shafts
-    shaft_segs = np.stack(
-        [
-            np.column_stack([x, y, z]),
-            np.column_stack([base_x, base_y, base_z]),
-        ],
-        axis=1,
-    )  # (N, 2, 3)
-    shaft_col = Line3DCollection(shaft_segs, colors=colors, alpha=alpha, linewidths=0.8)
-    ax.add_collection3d(shaft_col)
-
-    # ------------------------------------------------------------------ cones
-    # Build two orthonormal vectors perpendicular to each direction
-    # to parameterise the base circle.
-    arbitrary = np.where(
-        (np.abs(wd) < 0.9)[:, np.newaxis],
-        np.tile([0.0, 0.0, 1.0], (len(ud), 1)),
-        np.tile([1.0, 0.0, 0.0], (len(ud), 1)),
-    )  # (N, 3)
-    d_vec = np.column_stack([ud, vd, wd])  # (N, 3)
-    perp1 = np.cross(d_vec, arbitrary)
-    perp1 /= np.linalg.norm(perp1, axis=1, keepdims=True) + eps
-    perp2 = np.cross(d_vec, perp1)
-    perp2 /= np.linalg.norm(perp2, axis=1, keepdims=True) + eps
-
-    # angles for base-circle vertices
-    angles = np.linspace(0, 2 * np.pi, n_facets, endpoint=False)
-    cos_a = np.cos(angles)  # (n_facets,)
-    sin_a = np.sin(angles)  # (n_facets,)
-
-    # base circle points: shape (N, n_facets, 3)
-    circle = (
-        np.array([base_x, base_y, base_z]).T[:, np.newaxis, :]  # (N,1,3)
-        + cone_radius * cos_a[np.newaxis, :, np.newaxis] * perp1[:, np.newaxis, :]
-        + cone_radius * sin_a[np.newaxis, :, np.newaxis] * perp2[:, np.newaxis, :]
-    )
-
-    apex = np.column_stack([tip_x, tip_y, tip_z])  # (N, 3)
-
-    # side faces: triangles (apex, circle[i], circle[i+1])
-    next_i = (np.arange(n_facets) + 1) % n_facets
-    side_verts = np.stack(
-        [
-            apex[:, np.newaxis, :].repeat(n_facets, axis=1),  # (N, n_facets, 3)
-            circle,  # (N, n_facets, 3)
-            circle[:, next_i, :],  # (N, n_facets, 3)
-        ],
-        axis=2,
-    )  # (N, n_facets, 3-verts, 3-coords)
-    N = len(x)
-    side_verts_list = side_verts.reshape(N * n_facets, 3, 3).tolist()
-    side_colors = np.repeat(colors, n_facets, axis=0)
-
-    side_col = Poly3DCollection(
-        side_verts_list,
-        facecolors=side_colors,
-        edgecolors="none",
-        alpha=alpha,
-    )
-    ax.add_collection3d(side_col)
-
-    # base disc: triangles (base_centre, circle[i], circle[i+1])
-    base_centre = np.column_stack([base_x, base_y, base_z])
-    base_verts = np.stack(
-        [
-            base_centre[:, np.newaxis, :].repeat(n_facets, axis=1),
-            circle,
-            circle[:, next_i, :],
-        ],
-        axis=2,
-    )  # (N, n_facets, 3, 3)
-    base_verts_list = base_verts.reshape(N * n_facets, 3, 3).tolist()
-
-    base_col = Poly3DCollection(
-        base_verts_list,
-        facecolors=side_colors,
-        edgecolors="none",
-        alpha=alpha,
-    )
-    ax.add_collection3d(base_col)
-
-
-class _HandlerConeArrow(HandlerBase):
-    """Legend handler that draws a shaft + filled triangular cone head."""
-
-    def __init__(self, color, cone_fraction: float = 0.45, cone_radius_ratio: float = 0.7):
-        self._color = color
-        self._cone_fraction = cone_fraction
-        self._cone_radius_ratio = cone_radius_ratio
-        super().__init__()
-
-    def create_artists(
-        self, _legend, _orig_handle, xdescent, _ydescent, width, height, _fontsize, trans
-    ):
-        shaft_y = height / 2
-        cone_base_x = width * (1.0 - self._cone_fraction) - xdescent
-        tip_x = width - xdescent
-        cone_half_h = height * self._cone_fraction * self._cone_radius_ratio
-
-        shaft = mlines.Line2D(
-            [0, cone_base_x],
-            [shaft_y, shaft_y],
-            color=self._color,
-            linewidth=0.8,
-            transform=trans,
-        )
-        cone = MplPolygon(
-            [
-                [cone_base_x, shaft_y - cone_half_h],
-                [tip_x, shaft_y],
-                [cone_base_x, shaft_y + cone_half_h],
-            ],
-            closed=True,
-            facecolor=self._color,
-            edgecolor="none",
-            transform=trans,
-        )
-        return [shaft, cone]
-
-
 @figure_panel("Make panel of 3D vector field plot with stable fixed point overlay.")
 def make_3d_vector_field_plot_panel(
     dataset_name: str,
     fig_savedir: Path,
-    downsample_factor: int = 6,
-    colormap: str = "viridis_r",
-    magnitude_limits: tuple[float, float] = (5e-2, 1.5),
-    arrow_alpha: float = 0.6,
-    mask_threshold: float = 0.025,
 ) -> Path:
     """
-    Render the 3D (theta, r, rho) drift vector field for a given dataset using
-    matplotlib, with the stable fixed point overlaid as a scatter marker.
-
-    The drift vector field is loaded via
-    :func:`~endo_pipeline.library.analyze.vector_field_estimation.load_drift_dataframe_for_dataset`
-    and the stable fixed point is loaded from the bootstrapped fixed-point
-    dataframe manifest (``bootstrapped_fixed_points_grid``).
+    Render the 3D (theta, r, rho) drift vector field for a given dataset, with
+    the stable fixed point overlaid as a scatter marker.
 
     Parameters
     ----------
@@ -999,21 +670,6 @@ def make_3d_vector_field_plot_panel(
         Name of the dataset to visualize.
     fig_savedir
         Directory in which to save the figure as a static PNG file.
-    downsample_factor
-        Factor by which to downsample the grid before plotting, to keep the
-        figure responsive.
-    colormap
-        Matplotlib-compatible colormap name used to colour the arrows by vector
-        magnitude.
-    magnitude_limits
-        Tuple specifying the minimum and maximum magnitude values for the colour
-        scale.  ``None`` uses the true minimum and maximum.
-    arrow_alpha
-        Opacity of the quiver arrows (0 = fully transparent, 1 = fully opaque).
-        Lowering this value lets the stable fixed point marker show through the
-        arrow field.
-    mask_threshold
-        Probability density threshold below which grid points are suppressed.
 
     Returns
     -------
@@ -1021,126 +677,45 @@ def make_3d_vector_field_plot_panel(
         Path to the saved figure file.
 
     """
+    drift_dataframe = load_drift_dataframe_for_dataset(dataset_name)
+    feature_dataframe_manifest = load_dataframe_manifest(GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME)
+    feature_dataframe = load_dataframe(feature_dataframe_manifest.locations[dataset_name])
 
     column_names = list(DYNAMICS_COLUMN_NAMES)  # [theta, r, rho]
     col_labels = [(COLUMN_METADATA[col].label or str(col)) for col in DYNAMICS_COLUMN_NAMES]
 
-    figsize = (2.0, 2.5)
     theta_lims = VECTOR_FIELD_THETA_RANGE
-    theta_ticks = [0, np.pi / 2]
-    theta_tick_labels = [f"0={Unicode.PI}", f"{Unicode.PI}/2"]
     r_lims = (0, 1.75)
-    r_ticks = [0.25, 0.75, 1.25]
     rho_lims = (-1.5, 1.5)
-    rho_ticks = [-1.0, 0, 1.0]
 
     # Load, clip, and downsample drift vector field
-    x_ds, y_ds, z_ds, u_ds, v_ds, w_ds = _load_and_process_vector_field(
-        dataset_name,
-        column_names,
-        theta_lims,
-        r_lims,
-        rho_lims,
-        downsample_factor,
-        mask_threshold=mask_threshold,
+    drift, meshgrid = process_3d_vector_field_for_visualization(
+        drift_dataframe,
+        feature_dataframe,
+        column_names=column_names,
+        xlim=theta_lims,
+        ylim=r_lims,
+        zlim=rho_lims,
+        mask_threshold=0.025,
     )
 
-    # Compute vector magnitudes for colouring before normalizing to unit vectors
-    # for plotting
-    x_flat = x_ds.ravel()
-    y_flat = y_ds.ravel()
-    z_flat = z_ds.ravel()
-    u_flat = u_ds.ravel()
-    v_flat = v_ds.ravel()
-    w_flat = w_ds.ravel()
-    mag_flat = np.sqrt(u_flat**2 + v_flat**2 + w_flat**2)
-
-    # Remove grid points that were masked by density filtering (NaN vectors)
-    valid = ~np.isnan(mag_flat)
-    x_flat = x_flat[valid]
-    y_flat = y_flat[valid]
-    z_flat = z_flat[valid]
-    u_flat = u_flat[valid]
-    v_flat = v_flat[valid]
-    w_flat = w_flat[valid]
-    mag_flat = mag_flat[valid]
-
-    # Map magnitudes to colours
-    mag_eps = 1e-10
-    cmap = plt.get_cmap(colormap)
-    safe_cmin = max(magnitude_limits[0], mag_eps)
-    safe_cmax = max(magnitude_limits[1], safe_cmin + mag_eps)
-    norm_log = LogNorm(vmin=safe_cmin, vmax=safe_cmax)
-    colors = cmap(norm_log(np.clip(mag_flat, safe_cmin, safe_cmax)))
-    scalar_mappable = ScalarMappable(cmap=cmap, norm=norm_log)
-
-    # Build matplotlib 3D figure
-    fig = plt.figure(figsize=figsize)
-    ax: Axes3D = fig.add_subplot(111, projection="3d")
-    figsize_ratio = figsize[1] / figsize[0]
-    ax.set_box_aspect((1.1 * figsize_ratio, 0.98 * figsize_ratio, 1.05 * figsize_ratio))
-    ax.set_xlim(theta_lims)
-    ax.set_ylim(r_lims)
-    ax.set_zlim(rho_lims)
-
-    # Render all arrows at the same absolute size (so visual clutter from
-    # large-magnitude outliers is reduced) while still colouring by magnitude.
-    avg_spacing = np.mean(np.diff(np.unique(x_flat)))
-    arrow_length = avg_spacing * 0.8
-    u_plot = u_flat / (mag_flat + mag_eps)
-    v_plot = v_flat / (mag_flat + mag_eps)
-    w_plot = w_flat / (mag_flat + mag_eps)
-    _plot_quiver_3d_cones(
-        ax,
-        x_flat,
-        y_flat,
-        z_flat,
-        u_plot,
-        v_plot,
-        w_plot,
-        length=arrow_length,
-        colors=colors,
-        alpha=arrow_alpha,
-    )
-
-    # Colorbar - horizontal strip at the top, shifted left to leave room for legend
-    scalar_mappable.set_array([])
-    cbar_ax = fig.add_axes((0.1, 0.87, 0.48, 0.04))
-    cbar = fig.colorbar(
-        scalar_mappable,
-        cax=cbar_ax,
-        orientation="horizontal",
-    )
-    cbar.ax.tick_params(labelsize=FONTSIZE_XSMALL, pad=2)
-    cbar.set_label(
-        "$\\left\\Vert\\mathbf{f}(\\mathbf{x})\\right\\Vert$", fontsize=FONTSIZE_SMALL, labelpad=-1
-    )
-    cbar_ax.xaxis.set_label_position("top")
-    cbar_ax.xaxis.tick_top()
-
-    # Legend to the right of the colorbar. Draw the vector arrow handle as a
-    # shaft + filled triangular cone head (matching the plot style) coloured at
-    # a value in the center of the colormap, and add a proxy artist for the
-    # stable fixed point using the same marker and color as in the plot.
-    arrow_color = cmap(0.5)
-    arrow_handle = mlines.Line2D(
-        [],
-        [],
-        label="$d\\mathbf{x}/dt=\\mathbf{f}(\\mathbf{x})$",
-    )
-    fp_handles = make_legend_handles_for_fixed_pts(
-        fpt_stabilities=[StabilityLabel.STABLE],
-        marker_size=4,
-    )
-    fig.legend(
-        handles=[arrow_handle, *fp_handles],
-        fontsize=FONTSIZE_XSMALL,
-        loc="upper left",
-        bbox_to_anchor=(0.65, 1.0),
-        frameon=False,
-        handletextpad=0.3,
-        labelspacing=0.4,
-        handler_map={arrow_handle: _HandlerConeArrow(color=arrow_color)},
+    fig, ax = plot_drift_3d(
+        drift=drift,
+        meshgrid=meshgrid,
+        figsize=(2.0, 2.5),
+        xlim=theta_lims,
+        ylim=r_lims,
+        zlim=rho_lims,
+        xticks=[0, np.pi / 2],
+        xtick_labels=[f"0={Unicode.PI}", f"{Unicode.PI}/2"],
+        yticks=[0.25, 0.75, 1.25],
+        zticks=[-1.0, 0, 1.0],
+        xlabel=col_labels[0],
+        ylabel=col_labels[1],
+        zlabel=col_labels[2],
+        xlabel_kwargs={"labelpad": -8},
+        ylabel_kwargs={"labelpad": -5},
+        zlabel_kwargs={"labelpad": -8},
     )
 
     # Load and overlay stable fixed point
@@ -1159,25 +734,6 @@ def make_3d_vector_field_plot_panel(
         s=15,
         zorder=5,
     )
-
-    # set axes labels and ticks with custom formatting
-    ax.tick_params(axis="both", pad=-3)
-    ax.set_xlabel(col_labels[0], labelpad=-8)
-    ax.set_xticks(theta_ticks, labels=theta_tick_labels)
-    ax.set_xlim(theta_lims)
-    for tick in ax.xaxis.get_majorticklabels():
-        tick.set_ha("right")
-        tick.set_va("center")
-    ax.set_ylabel(col_labels[1], labelpad=-5)
-    ax.set_yticks(r_ticks)
-    for tick in ax.yaxis.get_majorticklabels():
-        tick.set_ha("left")
-        tick.set_va("center")
-    ax.set_ylim(r_lims)
-    ax.set_zlabel(col_labels[2], labelpad=-8)
-    ax.set_zticks(rho_ticks)
-    ax.set_zlim(rho_lims)
-    ax.zaxis.set_rotate_label(False)
 
     # save as .svg file
     filename = f"3d_vector_field_{dataset_name}"

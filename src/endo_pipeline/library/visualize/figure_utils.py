@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib.text
 import numpy as np
 from matplotlib.colors import Colormap
+from mpl_toolkits.mplot3d import Axes3D
 
 from endo_pipeline.io.output import save_plot_to_path
 from endo_pipeline.settings.figures import FIGURE_SAVE_DPI, FONTSIZE_LARGE, FONTSIZE_SMALL
@@ -17,21 +18,28 @@ logger = logging.getLogger(__name__)
 
 
 def set_axes_properties(
-    axes: plt.Axes,
+    axes: plt.Axes | Axes3D,
     xlim: tuple[float, float] | None = None,
     ylim: tuple[float, float] | None = None,
+    zlim: tuple[float, float] | None = None,
     xticks: list[float] | list[int] | None = None,
     yticks: list[float] | list[int] | None = None,
+    zticks: list[float] | list[int] | None = None,
     xtick_kwargs: dict | None = None,
     ytick_kwargs: dict | None = None,
+    ztick_kwargs: dict | None = None,
     xtick_labels: list[str] | None = None,
     ytick_labels: list[str] | None = None,
+    ztick_labels: list[str] | None = None,
     xtick_label_kwargs: dict | None = None,
     ytick_label_kwargs: dict | None = None,
+    ztick_label_kwargs: dict | None = None,
     xlabel: str | None = None,
     ylabel: str | None = None,
+    zlabel: str | None = None,
     xlabel_kwargs: dict | None = None,
     ylabel_kwargs: dict | None = None,
+    zlabel_kwargs: dict | None = None,
     title: str | None = None,
     title_kwargs: dict | None = None,
     aspect: Literal["auto", "equal"] | float | None = None,
@@ -49,22 +57,44 @@ def set_axes_properties(
         Optional, tuple specifying the limits for the x-axis (min, max).
     ylim
         Optional, tuple specifying the limits for the y-axis (min, max).
+    zlim
+        Optional, tuple specifying the limits for the z-axis (min, max).
     xticks
         Optional, list of tick positions for the x-axis.
     yticks
         Optional, list of tick positions for the y-axis.
+    zticks
+        Optional, list of tick positions for the z-axis.
     xtick_kwargs
         Optional, dictionary of keyword arguments to pass to set_xticks.
     ytick_kwargs
         Optional, dictionary of keyword arguments to pass to set_yticks.
+    ztick_kwargs
+        Optional, dictionary of keyword arguments to pass to set_zticks.
+    xtick_labels
+        Optional, list of tick labels for the x-axis.
+    ytick_labels
+        Optional, list of tick labels for the y-axis.
+    ztick_labels
+        Optional, list of tick labels for the z-axis.
+    xtick_label_kwargs
+        Optional, dictionary of keyword arguments to pass to set_xticklabels.
+    ytick_label_kwargs
+        Optional, dictionary of keyword arguments to pass to set_yticklabels.
+    ztick_label_kwargs
+        Optional, dictionary of keyword arguments to pass to set_zticklabels.
     xlabel
         Optional, label for the x-axis.
     ylabel
         Optional, label for the y-axis.
+    zlabel
+        Optional, label for the z-axis.
     xlabel_kwargs
         Optional, dictionary of keyword arguments to pass to set_xlabel.
     ylabel_kwargs
         Optional, dictionary of keyword arguments to pass to set_ylabel.
+    zlabel_kwargs
+        Optional, dictionary of keyword arguments to pass to set_zlabel.
     title
         Optional, title for the axis.
     title_kwargs
@@ -97,6 +127,15 @@ def set_axes_properties(
         axes.set_aspect(aspect)
     if facecolor is not None:
         axes.set_facecolor(facecolor)
+    if isinstance(axes, Axes3D):
+        if zlim is not None:
+            axes.set_zlim(zlim)
+        if zticks is not None:
+            axes.set_zticks(zticks, **(ztick_kwargs or {}))
+        if ztick_labels is not None:
+            axes.set_zticklabels(ztick_labels, **(ztick_label_kwargs or {}))
+        if zlabel is not None:
+            axes.set_zlabel(zlabel, **(zlabel_kwargs or {}))
 
 
 def add_scalebar(
