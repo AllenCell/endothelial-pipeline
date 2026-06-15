@@ -296,14 +296,32 @@ def _plot_cross_dataset_summary_for_column(
         }
         df[category_column] = df[ColumnName.DATASET].map(cell_line_map)
 
-    # If category order is provided, remap the data type to preserve given order
-    if category_order is not None:
+    # Order datasets within each shear stress bin by fixed point count:
+    # 15 dyn: bistable (2 FPs) first; all others: monostable (1 FP) first
+    fp_counts = df.groupby(ColumnName.DATASET).size()
+    shear_bins = {
+        cfg.name: cfg.flow_conditions[-1].shear_stress_bin for cfg in dataset_configs.values()
+    }
+    bistable_first = {15}  # shear bins where bistable datasets come first
+    dataset_sort_key = {
+        ds: (shear_bins.get(ds, 0), -count if shear_bins.get(ds) in bistable_first else count)
+        for ds, count in fp_counts.items()
+    }
+    sorted_datasets = sorted(dataset_sort_key, key=lambda d: dataset_sort_key[d])
+
+    # For "dataset" axis mode, override category_order with the computed order
+    if axis_mode == "dataset":
+        dataset_category = pd.CategoricalDtype(categories=sorted_datasets, ordered=True)
+        df[category_column] = df[category_column].astype(dataset_category)
+    elif category_order is not None:
         dataset_category = pd.CategoricalDtype(categories=category_order, ordered=True)
         df[category_column] = df[category_column].astype(dataset_category)
 
-    # Sort the data by the category and get final order for categories
-    df = df.sort_values(category_column)
-    unique_categories = list(df[category_column].unique())
+    # Sort: category first, then dataset order within each category
+    ds_dtype = pd.CategoricalDtype(categories=sorted_datasets, ordered=True)
+    df[ColumnName.DATASET] = df[ColumnName.DATASET].astype(ds_dtype)
+    df = df.sort_values([category_column, ColumnName.DATASET])
+    unique_categories = list(dict.fromkeys(df[category_column]))
 
     # Get category labels for the selected axis mode
     tick_labels = _get_tick_labels(axis_mode, unique_categories, dataset_configs)
