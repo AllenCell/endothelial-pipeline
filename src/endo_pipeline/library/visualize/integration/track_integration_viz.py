@@ -1071,7 +1071,7 @@ def plot_first_passage_time_parameter_sweep(
         x=first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
         y=first_passage_time_param_sweep_df[f"{metric}_grid"],
         yerr=first_passage_time_param_sweep_df["std_grid"],
-        label=f"{metric} FPT {UnicodeCharacters.PLUS_MINUS} STD (grid)",
+        label=f"{metric} FPT {UnicodeCharacters.PLUS_MINUS} STD (patch)",
         fmt="o-",
         color="tab:blue",
         ecolor="tab:blue",
@@ -1082,7 +1082,7 @@ def plot_first_passage_time_parameter_sweep(
         x=first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
         y=first_passage_time_param_sweep_df[f"{metric}_tracked"],
         yerr=first_passage_time_param_sweep_df["std_tracked"],
-        label=f"{metric} FPT {UnicodeCharacters.PLUS_MINUS} STD (tracked)",
+        label=f"{metric} FPT {UnicodeCharacters.PLUS_MINUS} STD (cell)",
         fmt="o-",
         color="tab:red",
         ecolor="tab:red",
@@ -1123,7 +1123,7 @@ def plot_first_passage_time_parameter_sweep(
         markerfacecolor="tab:blue",
         markeredgecolor="tab:blue",
         ls="-",
-        label="grid",
+        label="patch-based",
     )
     ax.plot(
         first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
@@ -1135,7 +1135,7 @@ def plot_first_passage_time_parameter_sweep(
         markerfacecolor="tab:red",
         markeredgecolor="tab:red",
         ls="-",
-        label="tracked",
+        label="cell-centered",
     )
     if fixed_point_radius_threshold is not None:
         ax.axvline(
@@ -1271,10 +1271,8 @@ def plot_first_passage_time_correlations(
     ax.xaxis.set_major_locator(MaxNLocator(7, min_n_ticks=4, integer=True))
     ax.yaxis.set_major_locator(MaxNLocator(7, min_n_ticks=4, integer=True))
     ax.tick_params(labelsize=FONTSIZE_SMALL)
-    ax.set_xlabel("Grid FPT (hrs)".title(), fontsize=FONTSIZE_SMALL, labelpad=1.0, color="tab:blue")
-    ax.set_ylabel(
-        "Tracked FPT (hrs)".title(), fontsize=FONTSIZE_SMALL, labelpad=1.0, color="tab:red"
-    )
+    ax.set_xlabel("Patch-based FPT (hrs)", fontsize=FONTSIZE_SMALL, labelpad=1.0, color="tab:blue")
+    ax.set_ylabel("Cell-centered FPT (hrs)", fontsize=FONTSIZE_SMALL, labelpad=1.0, color="tab:red")
     ax.legend(loc="upper center")
 
     filename = f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}_{metric_to_plot}_correlation"
