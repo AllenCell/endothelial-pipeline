@@ -639,6 +639,24 @@ def reconstruct_along_nullcline(
     )
     fig_null_walks.add_artist(rect)
 
+    # Add text above box with ({feat_1}^*, {feat_2}^*, {feat_3}^*) labeling the
+    # fixed point, using the same stable color. Use set_in_layout(False) so that
+    # constrained layout does not resize the axes to accommodate the text,
+    # which would shift the box position
+    above_box_txt = fig_null_walks.text(
+        pos_top.x0 + pos_top.width / 2,
+        pos_top.y1 + 2 * pad + 0.01,
+        f"({Unicode.THETA}$^*$, r$^*$, {Unicode.RHO}$^*$)",
+        color=stable_color,
+        fontsize=FONTSIZE_XSMALL,
+        fontweight="bold",
+        ha="center",
+        va="bottom",
+        transform=fig_null_walks.transFigure,
+        clip_on=False,
+    )
+    above_box_txt.set_in_layout(False)
+
     # add row labels to the left of each nullcline row
     ax_top_left = fig_null_walks.axes[0]
     ax_bot_left = fig_null_walks.axes[n_cols]
