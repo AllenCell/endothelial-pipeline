@@ -35,7 +35,7 @@ from endo_pipeline.settings.dynamics_workflows import (
     KERNEL_PERIODS_DYNAMICS,
     POLAR_ANGLE_PERIOD,
 )
-from endo_pipeline.settings.figures import FONTSIZE_SMALL, FONTSIZE_XSMALL
+from endo_pipeline.settings.figures import FONTSIZE_XSMALL
 from endo_pipeline.settings.flow_field_2d import (
     DRIFT_CONTOUR_CBAR_NUM_TICKS,
     DRIFT_CONTOUR_CBAR_ROUND,
@@ -955,18 +955,16 @@ def plot_drift_3d(
 
     # Colorbar - horizontal strip at the top, shifted left to leave room for legend
     scalar_mappable.set_array([])
-    cbar_ax = fig.add_axes((0.1, 0.87, 0.48, 0.04))
+    cbar_ax = fig.add_axes((0.1, 0.92, 0.48, 0.04))
     cbar = fig.colorbar(
         scalar_mappable,
         cax=cbar_ax,
         orientation="horizontal",
     )
     cbar.ax.tick_params(labelsize=FONTSIZE_XSMALL, pad=2)
-    cbar.set_label(
-        "$\\left\\Vert\\mathbf{f}(\\mathbf{x})\\right\\Vert$", fontsize=FONTSIZE_SMALL, labelpad=-1
-    )
+    cbar.set_label("vector magnitude", fontsize=FONTSIZE_XSMALL, labelpad=2)
     cbar_ax.xaxis.set_label_position("top")
-    cbar_ax.xaxis.tick_top()
+    cbar_ax.xaxis.tick_bottom()
 
     # Legend to the right of the colorbar. Draw the vector arrow handle as a
     # shaft + filled triangular cone head (matching the plot style) coloured at
