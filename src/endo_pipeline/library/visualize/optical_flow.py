@@ -1,5 +1,4 @@
 import logging
-from collections.abc import Sequence
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -10,7 +9,7 @@ from matplotlib.patches import Patch
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.optical_flow import OpticalFlowImagePair, compute_tvl1
 from endo_pipeline.settings.column_names import ColumnName
-from endo_pipeline.settings.optical_flow import DEFAULT_EMA_ALPHAS, QUIVER_GRID_DIVISIONS
+from endo_pipeline.settings.optical_flow import DEFAULT_EMA_ALPHA, QUIVER_GRID_DIVISIONS
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
@@ -268,7 +267,7 @@ def plot_optical_flow_coherence_over_time(
     feature_data: pd.DataFrame,
     output_name: str,
     output_dir: Path,
-    ema_alphas: Sequence[float] = DEFAULT_EMA_ALPHAS,
+    ema_alpha: float = DEFAULT_EMA_ALPHA,
     max_crops: int = 2,
     max_dt: int = 1,
 ) -> None:
@@ -289,8 +288,8 @@ def plot_optical_flow_coherence_over_time(
         Plot output name.
     output_dir
         Plot output directory.
-    ema_alphas
-        EMA alpha values used for smoothing (for column name generation).
+    ema_alpha
+        EMA alpha value used for smoothing (for column name generation).
     max_crops
         Maximum number of crops to plot.
     max_dt
@@ -322,33 +321,21 @@ def plot_optical_flow_coherence_over_time(
     metric_groups: list[tuple[str, str, list[tuple[str, str]]]] = []
     for d in range(1, max_dt + 1):
         dt_tag = f"_dt{d}"
+        atag = str(ema_alpha).replace(".", "")
 
         # 1) Raw coherence (mean unit vector)
         raw_col = f"optical_flow_mean_unit_vector{dt_tag}"
         ema_variants = []
-        for alpha in ema_alphas:
-            atag = str(alpha).replace(".", "")
-            ema_col = f"ema{atag}_optical_flow_mean_unit_vector{dt_tag}"
-            ema_variants.append((ema_col, f"EMA \u03b1={alpha}"))
+        ema_col = f"ema{atag}_optical_flow_mean_unit_vector{dt_tag}"
+        ema_variants.append((ema_col, f"EMA \u03b1={ema_alpha}"))
         metric_groups.append((raw_col, rf"Coherence ($\bar{{R}}$, dt={d})", ema_variants))
 
         # 2) Fast coherence
         raw_fast = f"optical_flow_mean_unit_vector_fast{dt_tag}"
         ema_fast = []
-        for alpha in ema_alphas:
-            atag = str(alpha).replace(".", "")
-            ema_col = f"ema{atag}_optical_flow_mean_unit_vector_fast{dt_tag}"
-            ema_fast.append((ema_col, f"EMA \u03b1={alpha}"))
+        ema_col = f"ema{atag}_optical_flow_mean_unit_vector_fast{dt_tag}"
+        ema_fast.append((ema_col, f"EMA \u03b1={ema_alpha}"))
         metric_groups.append((raw_fast, f"Fast Coherence (speed > thr, dt={d})", ema_fast))
-
-        # 3) Radial coherence
-        raw_rad = f"optical_flow_radial_coherence{dt_tag}"
-        ema_rad = []
-        for alpha in ema_alphas:
-            atag = str(alpha).replace(".", "")
-            ema_col = f"ema{atag}_optical_flow_radial_coherence{dt_tag}"
-            ema_rad.append((ema_col, f"EMA \u03b1={alpha}"))
-        metric_groups.append((raw_rad, f"Radial Coherence (dt={d})", ema_rad))
 
     # Filter to metric groups whose raw column actually exists
     metric_groups = [(r, lbl, e) for r, lbl, e in metric_groups if r in feature_data.columns]
@@ -422,8 +409,7 @@ def plot_optical_flow_coherence_over_time(
         )
 
     fig.suptitle(
-        f"Crop Coherence Over Time: {output_name}\n"
-        f"({n_crops} crops, EMA \u03b1 = {list(ema_alphas)})",
+        f"Crop Coherence Over Time: {output_name}\n" f"({n_crops} crops, EMA \u03b1 = {ema_alpha})",
         fontsize=12,
         fontweight="bold",
     )

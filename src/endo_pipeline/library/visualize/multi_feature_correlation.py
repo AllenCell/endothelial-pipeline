@@ -385,7 +385,7 @@ def visualize_correlation_heatmaps(
         )
 
 
-@figure_panel("Heatmap showing Pearson correlations between ML-based and measured features.")
+@figure_panel("Pearson correlation heatmaps of ML-based and measured features")
 def make_feature_correlation_panel(
     pc_columns: list[str | ColumnNameType],
     seg_columns: list[str | ColumnNameType],
