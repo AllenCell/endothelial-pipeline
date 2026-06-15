@@ -139,6 +139,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             fixed_point_df=stable_fixed_points_dfs[dataset_name],
             model=model,
             fig_savedir=output_path,
+            add_fixed_point_coordinate_annotation=False,
         )
 
     panels = [

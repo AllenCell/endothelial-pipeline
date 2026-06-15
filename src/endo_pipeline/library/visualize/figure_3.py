@@ -156,6 +156,7 @@ def reconstruct_fixed_points(
     fig_savedir: Path,
     num_gpus: int | None = None,
     random_seed: int | None = 4,
+    add_fixed_point_coordinate_annotation: bool = False,
 ) -> Path:
     """
     Reconstruct the fixed point coordinates from the polar angle, radius, and rho columns.
@@ -172,6 +173,8 @@ def reconstruct_fixed_points(
         Number of GPUs to use for reconstruction, by default None
     random_seed : int | None, optional
         Random seed for reproducibility, by default 4
+    add_fixed_point_coordinate_annotation : bool, optional
+        Whether to add fixed point coordinate annotations to the reconstructed figures, by default False
     """
 
     column_names = cast(list[str], list(DYNAMICS_COLUMN_NAMES))
@@ -216,22 +219,27 @@ def reconstruct_fixed_points(
     )
 
     # add the fixed point coordinate as an annotation to each panel
-    for i, ax in enumerate(fig_fixed_point_reconstructions.axes):
-        fp_coords = fixed_point_df.iloc[i][column_names].to_numpy(dtype=float)
-        fp_coords_list = [f"{col} = {fp_coords[j].round(2)}" for j, col in enumerate(column_labels)]
-        fp_coords_as_str = "\n".join(fp_coords_list)
+    if add_fixed_point_coordinate_annotation:
+        for i, ax in enumerate(fig_fixed_point_reconstructions.axes):
+            fp_coords = fixed_point_df.iloc[i][column_names].to_numpy(dtype=float)
+            fp_coords_list = [
+                f"{col} = {fp_coords[j].round(2)}" for j, col in enumerate(column_labels)
+            ]
+            fp_coords_as_str = "\n".join(fp_coords_list)
 
-        fp_annotation = ax.text(
-            x=0.02,
-            y=0.98,
-            s=fp_coords_as_str,
-            ha="left",
-            va="top",
-            fontsize=FONTSIZE_XSMALL,
-            color="white",
-            transform=ax.transAxes,
-        )
-        fp_annotation.set_path_effects([patheffects.withStroke(linewidth=0.5, foreground="black")])
+            fp_annotation = ax.text(
+                x=0.02,
+                y=0.98,
+                s=fp_coords_as_str,
+                ha="left",
+                va="top",
+                fontsize=FONTSIZE_XSMALL,
+                color="white",
+                transform=ax.transAxes,
+            )
+            fp_annotation.set_path_effects(
+                [patheffects.withStroke(linewidth=0.5, foreground="black")]
+            )
 
     # add scalebars to each panel, only label the top left one to avoid
     # redundancy
