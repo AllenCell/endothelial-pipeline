@@ -1002,7 +1002,7 @@ def plot_drift_3d(
             handles=handles,
             fontsize=FONTSIZE_XSMALL,
             loc="upper left",
-            bbox_to_anchor=(0.65, 0.95),
+            bbox_to_anchor=(0.65, 1.0),
             frameon=False,
             handletextpad=0.3,
             labelspacing=0.4,
