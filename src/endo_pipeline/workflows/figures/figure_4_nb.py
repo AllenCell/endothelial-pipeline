@@ -2,21 +2,27 @@
 
 import matplotlib.pyplot as plt
 
-from endo_pipeline.io import get_output_path
+from endo_pipeline.configs import get_datasets_in_collection
+from endo_pipeline.io import get_output_path, load_model
 from endo_pipeline.library.visualize.data_example_figures import create_panel_perturbation_examples
+from endo_pipeline.library.visualize.figure_3 import reconstruct_fixed_points
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
 from endo_pipeline.library.visualize.summary_plot import (
     build_dataframe_for_fixed_point_dataset_summary,
     plot_cross_dataset_summaries,
 )
-from endo_pipeline.manifests import load_dataframe_manifest
+from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.examples import FIGURE_4_EXAMPLE_IMAGES
 from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
 from endo_pipeline.settings.flow_field_dataframes import BOOTSTRAPPING_MANIFEST_NAMES
 from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
 from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
-from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
+from endo_pipeline.settings.workflow_defaults import (
+    DEFAULT_MODEL_MANIFEST_NAME,
+    DEFAULT_MODEL_RUN_NAME,
+    FEATURES_FILTERED_MANIFEST_NAMES,
+)
 
 plt.style.use("endo_pipeline.figure")
 
@@ -69,6 +75,24 @@ fixed_points_summary_plot_path = plot_cross_dataset_summaries(
     convert_angle_to_nematic=False,
     color_by_column=Column.OpticalFlow.SPEED_MEAN,
 )
+
+# %% Create reconstructions of the fixed points
+# load and instantiate model for generating synthetic images
+model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
+model_location = model_manifest.locations[DEFAULT_MODEL_RUN_NAME]
+model = load_model(model_location, instantiate=True)
+
+# make the reconstructions
+stable_fixed_point_reconstruction_paths = {}
+perturbation_datasets = get_datasets_in_collection("perturbation")
+for dataset_name in perturbation_datasets:
+    stable_fixed_point_reconstruction_paths[dataset_name] = reconstruct_fixed_points(
+        fixed_point_df=dataset_summary_df.query(f"{Column.DATASET} == '{dataset_name}'"),
+        model=model,
+        fig_savedir=save_dir,
+        add_fixed_point_coordinate_annotation=False,
+    )
+
 
 # %%
 panels = [

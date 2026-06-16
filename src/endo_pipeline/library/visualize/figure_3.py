@@ -208,13 +208,18 @@ def reconstruct_fixed_points(
         num_gpus=num_gpus,
         random_seed=random_seed,
     )
-    walk_panels = [walk_array[i] for i in range(len(walk_array))]
+    num_panels = len(walk_array)
+    walk_panels = [walk_array[i] for i in range(num_panels)]
 
+    panel_side_length = 0.8
     fig_fixed_point_reconstructions = make_contact_sheet(
         panels=walk_panels,
         max_rows=1,
-        max_cols=2,
-        fig_kwargs={"figsize": (1.6, 0.8), "layout": "constrained"},
+        max_cols=num_panels,
+        fig_kwargs={
+            "figsize": (panel_side_length * num_panels, panel_side_length),
+            "layout": "constrained",
+        },
         gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
     )
 
