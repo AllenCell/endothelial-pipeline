@@ -304,7 +304,10 @@ def _plot_cross_dataset_summary_for_column(
     }
     bistable_first = {15}  # shear bins where bistable datasets come first
     dataset_sort_key = {
-        ds: (shear_bins.get(ds, 0), -count if shear_bins.get(ds) in bistable_first else count)
+        ds: (
+            shear_bins.get(str(ds), 0),
+            -count if shear_bins.get(str(ds)) in bistable_first else count,
+        )
         for ds, count in fp_counts.items()
     }
     sorted_datasets = sorted(dataset_sort_key, key=lambda d: dataset_sort_key[d])
