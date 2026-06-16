@@ -208,6 +208,11 @@ def reconstruct_fixed_points(
         num_gpus=num_gpus,
         random_seed=random_seed,
     )
+    # if a single fixed point is provided, walk_array will be 2D instead of 3D,
+    # so expand the dimensions to make it compatible with contact sheet function
+    if walk_array.ndim == 2:
+        walk_array = np.expand_dims(walk_array, axis=0)
+
     num_panels = len(walk_array)
     walk_panels = [walk_array[i] for i in range(num_panels)]
 
