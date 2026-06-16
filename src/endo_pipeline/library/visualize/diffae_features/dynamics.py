@@ -848,6 +848,7 @@ def plot_drift_3d(
     include_colorbar: bool = True,
     include_legend: bool = True,
     include_stable_fixed_point_legend: bool = True,
+    fixed_point_legend_label: str | None = None,
     **axes_kwargs: Any,
 ) -> tuple[plt.Figure, Axes3D]:
     """
@@ -887,6 +888,8 @@ def plot_drift_3d(
         Whether to include a legend entry for the stable fixed point (if True, a
         proxy artist with the same marker and color as the stable fixed point in
         the plot will be added to the legend).
+    fixed_point_legend_label
+        Optional custom label for the stable fixed point legend entry.
     axes_kwargs
         Additional keyword arguments to pass to set_axes_properties for
         customizing the axes, e.g., to specify axis limits, labels, title, or
@@ -993,9 +996,13 @@ def plot_drift_3d(
         )
         handles = [arrow_handle]
         if include_stable_fixed_point_legend:
+            fp_labels: dict[str, str] | None = None
+            if fixed_point_legend_label is not None:
+                fp_labels = {StabilityLabel.STABLE: fixed_point_legend_label}
             fp_handles = make_legend_handles_for_fixed_pts(
                 fpt_stabilities=[StabilityLabel.STABLE],
                 marker_size=4,
+                labels=fp_labels,
             )
             handles.extend(fp_handles)
         fig.legend(
@@ -1027,6 +1034,7 @@ def make_legend_handles_for_fixed_pts(
     fpt_stabilities: list[str],
     marker_size: int = 10,
     edge_color: str = "black",
+    labels: dict[str, str] | None = None,
 ) -> list[StabilityLegendHandle]:
     """Make a custom legend for the fixed point types, nullclines and trajectories.
 
@@ -1044,6 +1052,10 @@ def make_legend_handles_for_fixed_pts(
         Size of the markers for the legend handles.
     edge_color
         Color of the marker edges.
+    labels
+        Optional dictionary mapping stability labels to custom legend labels. If
+        None, default labels of the form "{stability_type} fixed point" will be
+        used.
 
     Returns
     -------
@@ -1052,6 +1064,7 @@ def make_legend_handles_for_fixed_pts(
         for the fixed point types.
 
     """
+    labels_ = labels or {}
     my_handles = []
     # get legend handles for the fixed point types that are present in given
     # list of fixed point stabilities, in the order given by StabilityLabel enum
@@ -1060,7 +1073,7 @@ def make_legend_handles_for_fixed_pts(
             my_handles.append(
                 StabilityLegendHandle(
                     stability_label=stability_type,
-                    legend_label=f"{stability_type} fixed point",
+                    legend_label=labels_.get(stability_type, f"{stability_type} fixed point"),
                     marker=FIXED_POINT_PLOT_STYLE[stability_type].marker,
                     face_color=FIXED_POINT_PLOT_STYLE[stability_type].color,
                     edge_color=edge_color,
