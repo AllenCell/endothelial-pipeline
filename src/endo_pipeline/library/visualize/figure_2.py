@@ -288,12 +288,12 @@ def _get_example_points_along_nullcline(
 
 @figure_panel("Make panel of 2D contour plots of drift in (r, rho) space.")
 def make_2d_contour_plot_panel(
+    figure_size: tuple[float, float],
+    output_path: Path,
     drift: np.ndarray,
     meshgrid: tuple[np.ndarray, np.ndarray],
     column_labels: list[str],
     stable_fixed_point: np.ndarray,
-    figsize: tuple[float, float],
-    fig_savedir: Path,
     filename: str,
 ) -> tuple[Path, dict[Column.DiffAEData, np.ndarray]]:
     """
@@ -332,7 +332,7 @@ def make_2d_contour_plot_panel(
         meshgrid=meshgrid,
         drift=drift,
         variable_labels=column_labels,
-        figsize=figsize,
+        figsize=figure_size,
         n_rows=1,
         n_cols=2,
         axes_limits=[r_lims, rho_lims],
@@ -390,9 +390,9 @@ def make_2d_contour_plot_panel(
     # add colorbar to the right of the second subplot with ticks and label
     # formatting
     _add_colorbar_to_contour_plot(fig, axes_[1])
+
     # shrink the constrained-layout region so the inset colorbar axes
     # (which lives outside the main axes boundary) is not clipped on save
-
     layout_engine = fig.get_layout_engine()
     if isinstance(layout_engine, ConstrainedLayoutEngine):
         layout_engine.set(rect=(0, 0, 0.9, 1))
@@ -420,14 +420,14 @@ def make_2d_contour_plot_panel(
         labels,
         fontsize="xx-small",
         loc="upper center",
-        bbox_to_anchor=(0.55, 0.925),
+        bbox_to_anchor=(0.525, 0.925),
         ncol=2,
         handletextpad=0.3,
     )
 
     save_plot_to_path(
         fig,
-        fig_savedir,
+        output_path,
         filename,
         file_format=".svg",
         tight_layout=False,
@@ -435,17 +435,17 @@ def make_2d_contour_plot_panel(
         pad_inches=0,
     )
 
-    return fig_savedir / f"{filename}.svg", nullcline_coords
+    return output_path / f"{filename}.svg", nullcline_coords
 
 
 @figure_panel("Make panel of 1D phase line plot of drift in theta space.")
 def make_1d_drift_plot_panel(
+    figure_size: tuple[float, float],
+    output_path: Path,
     drift: np.ndarray,
     theta_values: np.ndarray,
     column_label: str,
     stable_fixed_point: float,
-    figsize: tuple[float, float],
-    fig_savedir: Path,
     filename: str,
     arrow_scale: float,
     arrow_width: float,
@@ -453,17 +453,6 @@ def make_1d_drift_plot_panel(
     """Make and save plot of 1D drift as a function of theta for a given dataset."""
     axes_xlim = VECTOR_FIELD_THETA_RANGE
     axes_ylim = (-0.4, 0.4)
-    axes_xticks = [0, np.pi / 2]
-    axes_xtick_labels = [
-        f"0={Unicode.PI}",
-        f"{Unicode.PI}/2",
-    ]
-    axes_yticks = [-0.3, 0.0, 0.3]
-    drift_line_kwargs = {"color": "k", "linewidth": 2}
-    zero_line_kwargs = {"linestyle": "--", "color": "gray", "linewidth": 1, "alpha": 0.7}
-    gridspec_kwargs = GRIDSPEC_KWARGS
-    xlabel_kwargs = XLABEL_KWARGS
-    ylabel_kwargs = YLABEL_KWARGS
 
     # re-wrap theta values to be within the specified x-axis limits for better
     # visualization of the drift as a function of theta
@@ -479,17 +468,23 @@ def make_1d_drift_plot_panel(
     fig, ax = plot_drift_1d(
         drift=drift_sorted,
         x_values=theta_values_sorted,
-        figsize=figsize,
+        figsize=figure_size,
         axes_limits=[axes_xlim, axes_ylim],
         axes_labels=[column_label, f"d{column_label}/dt"],
         add_flow_arrows=True,
         flow_arrow_kwargs={"color": "dimgrey", "scale": arrow_scale, "width": arrow_width},
         flow_arrow_downsample=10,
-        gridspec_kwargs=gridspec_kwargs,
-        drift_line_kwargs=drift_line_kwargs,
-        zero_line_kwargs=zero_line_kwargs,
-        xlabel_kwargs=xlabel_kwargs,
-        ylabel_kwargs=ylabel_kwargs,
+        gridspec_kwargs=GRIDSPEC_KWARGS,
+        drift_line_kwargs={"color": "k", "linewidth": 2, "label": f"d{column_label}/dt"},
+        zero_line_kwargs={
+            "linestyle": "--",
+            "color": "gray",
+            "linewidth": 1,
+            "alpha": 0.7,
+            "label": f"d{column_label}/dt = 0",
+        },
+        xlabel_kwargs=XLABEL_KWARGS,
+        ylabel_kwargs=YLABEL_KWARGS,
     )
     # add stable fixed point in theta
     ax.plot(
@@ -502,26 +497,37 @@ def make_1d_drift_plot_panel(
         markersize=5,
     )
 
-    # set plot formatting args
-    ax.set_box_aspect(1.0)
-    ax.set_xticks(axes_xticks, labels=axes_xtick_labels)
-    ax.set_yticks(axes_yticks)
-
-    save_plot_to_path(
-        fig, fig_savedir, filename, file_format=".svg", tight_layout=False, transparent=True
+    # add legend
+    fig.legend(
+        fontsize="xx-small",
+        loc="upper center",
+        bbox_to_anchor=(0.65, 1.05),
+        ncol=2,
+        handletextpad=0.3,
+        columnspacing=0.75,
     )
 
-    return fig_savedir / f"{filename}.svg"
+    # set plot formatting args
+    ax.set_box_aspect(1.0)
+    ax.set_xticks([0, np.pi / 2], labels=[f"0={Unicode.PI}", f"{Unicode.PI}/2"])
+    ax.set_yticks([-0.3, 0.0, 0.3])
+
+    save_plot_to_path(
+        fig, output_path, filename, file_format=".svg", tight_layout=False, transparent=True
+    )
+
+    return output_path / f"{filename}.svg"
 
 
 @figure_panel(
     "Reconstruct images at points along the given r- and rho-nullclines and save images as a contact sheet."
 )
 def reconstruct_along_nullcline(
+    figure_size: tuple[float, float],
+    output_path: Path,
     nullcline_coords: dict[ColumnNameType, np.ndarray],
     theta_value: float,
     model: DiffusionAutoEncoder,
-    fig_savedir: Path,
     num_gpus: int | None = None,
     random_seed: int | None = 4,
 ) -> Path:
@@ -538,7 +544,7 @@ def reconstruct_along_nullcline(
         nullcline (since the nullcline coordinates only contain r and rho).
     model
         DiffusionAutoEncoder model used to generate synthetic images.
-    fig_savedir
+    output_path
         Directory where the generated figures will be saved.
     num_gpus
         Number of GPUs to use for image generation. If None, will use all
@@ -578,7 +584,7 @@ def reconstruct_along_nullcline(
         panels=walk_panels,
         max_rows=2,
         max_cols=n_cols,
-        fig_kwargs={"figsize": (3.125, 1.3), "layout": "constrained"},
+        fig_kwargs={"figsize": figure_size, "layout": "constrained"},
         gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
     )
 
@@ -622,6 +628,24 @@ def reconstruct_along_nullcline(
     )
     fig_null_walks.add_artist(rect)
 
+    # Add text above box with ({feat_1}^*, {feat_2}^*, {feat_3}^*) labeling the
+    # fixed point, using the same stable color. Use set_in_layout(False) so that
+    # constrained layout does not resize the axes to accommodate the text,
+    # which would shift the box position
+    above_box_txt = fig_null_walks.text(
+        pos_top.x0 + pos_top.width / 2,
+        pos_top.y1 + 2 * pad + 0.01,
+        f"({Unicode.THETA}$^*$, r$^*$, {Unicode.RHO}$^*$)",
+        color=stable_color,
+        fontsize=FONTSIZE_XSMALL,
+        fontweight="bold",
+        ha="center",
+        va="bottom",
+        transform=fig_null_walks.transFigure,
+        clip_on=False,
+    )
+    above_box_txt.set_in_layout(False)
+
     # add row labels to the left of each nullcline row
     ax_top_left = fig_null_walks.axes[0]
     ax_bot_left = fig_null_walks.axes[n_cols]
@@ -645,20 +669,21 @@ def reconstruct_along_nullcline(
     filename = "nullcline_walks"
     save_plot_to_path(
         fig_null_walks,
-        fig_savedir,
+        output_path,
         filename,
         file_format=".svg",
         tight_layout=False,
         pad_inches=0,
     )
 
-    return fig_savedir / f"{filename}.svg"
+    return output_path / f"{filename}.svg"
 
 
 @figure_panel("Make panel of 3D vector field plot with stable fixed point overlay.")
 def make_3d_vector_field_plot_panel(
+    figure_size: tuple[float, float],
+    output_path: Path,
     dataset_name: str,
-    fig_savedir: Path,
 ) -> Path:
     """
     Render the 3D (theta, r, rho) drift vector field for a given dataset, with
@@ -666,10 +691,12 @@ def make_3d_vector_field_plot_panel(
 
     Parameters
     ----------
+    figure_size
+        Size of the figure to create.
+    output_path
+        Directory in which to save the figure panel.
     dataset_name
         Name of the dataset to visualize.
-    fig_savedir
-        Directory in which to save the figure as a static PNG file.
 
     Returns
     -------
@@ -683,6 +710,7 @@ def make_3d_vector_field_plot_panel(
 
     column_names = list(DYNAMICS_COLUMN_NAMES)  # [theta, r, rho]
     col_labels = [(COLUMN_METADATA[col].label or str(col)) for col in DYNAMICS_COLUMN_NAMES]
+    fixed_point_label = f"({col_labels[0]}$^*$, {col_labels[1]}$^*$, {col_labels[2]}$^*$)"
 
     theta_lims = VECTOR_FIELD_THETA_RANGE
     r_lims = (0, 1.75)
@@ -702,7 +730,8 @@ def make_3d_vector_field_plot_panel(
     fig, ax = plot_drift_3d(
         drift=drift,
         meshgrid=meshgrid,
-        figsize=(2.0, 2.5),
+        figsize=figure_size,
+        fixed_point_legend_label=fixed_point_label,
         xlim=theta_lims,
         ylim=r_lims,
         zlim=rho_lims,
@@ -739,7 +768,7 @@ def make_3d_vector_field_plot_panel(
     filename = f"3d_vector_field_{dataset_name}"
     save_plot_to_path(
         fig,
-        fig_savedir,
+        output_path,
         filename,
         file_format=".svg",
         tight_layout=False,
@@ -747,12 +776,12 @@ def make_3d_vector_field_plot_panel(
         bbox_inches="tight",
     )
 
-    return fig_savedir / f"{filename}.svg"
+    return output_path / f"{filename}.svg"
 
 
 @figure_panel("Make panel of histogram of first passage time correlation values across datasets.")
 def make_first_passage_time_correlation_hist(
-    dataset_names: list[str], figsize: tuple[float, float], fig_savedir: Path
+    figure_size: tuple[float, float], output_path: Path, dataset_names: list[str]
 ) -> Path:
     fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME)
     line_fit_df, _ = get_line_fit_and_filtered_df(fpt_manifest, dataset_names)
@@ -762,7 +791,7 @@ def make_first_passage_time_correlation_hist(
         pearson_r = df_dataset[Column.VectorField.PEARSON_R].iloc[0]
         pearson_correlations.append(pearson_r)
 
-    fig, ax = plt.subplots(figsize=figsize, layout="constrained")
+    fig, ax = plt.subplots(figsize=figure_size, layout="constrained")
     ax.hist(pearson_correlations, bins=list(np.linspace(-1, 1, 21)), edgecolor="k")
     column_label = COLUMN_METADATA[Column.VectorField.PEARSON_R].label or str(
         Column.VectorField.PEARSON_R
@@ -775,10 +804,10 @@ def make_first_passage_time_correlation_hist(
     filename = "fpt_hist"
     save_plot_to_path(
         fig,
-        fig_savedir,
+        output_path,
         filename,
         file_format=".svg",
         tight_layout=False,
         transparent=True,
     )
-    return fig_savedir / f"{filename}.svg"
+    return output_path / f"{filename}.svg"
