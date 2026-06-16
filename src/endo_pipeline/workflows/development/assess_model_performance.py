@@ -53,7 +53,7 @@ def main(
     ## Workflow demo
 
     Running the workflow in demo mode (`-d` or `--demo-mode`) will limit the
-    examples in the contact sheets to two examples from each example group.
+    examples in the contact sheets to one example from each example group.
 
     Parameters
     ----------
@@ -125,10 +125,10 @@ def main(
         if group in example_groups
     }
 
-    # Limit to two examples from each example group if running in demo mode
+    # Limit to one example from each example group if running in demo mode
     if DEMO_MODE:
-        logger.warning("DEMO MODE - Limiting to two examples from each example group")
-        examples = {group: examples[:2] for group, examples in examples.items()}
+        logger.warning("DEMO MODE - Limiting to one examples from each example group")
+        examples = {group: examples[:1] for group, examples in examples.items()}
 
     # Flatten list of examples
     all_examples = [example for examples in examples.values() for example in examples]
