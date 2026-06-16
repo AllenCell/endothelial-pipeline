@@ -969,8 +969,7 @@ def plot_drift_3d(
     if include_colorbar:
         # Colorbar - horizontal strip at the top, shifted left to leave room for legend
         scalar_mappable.set_array([])
-        cbar_ax = fig.add_axes((0.1, 0.82, 0.48, 0.04))  # current
-        # cbar_ax = fig.add_axes((0.1, 0.92, 0.48, 0.04))  # incoming
+        cbar_ax = fig.add_axes((0.1, 0.82, 0.48, 0.04))
         cbar = fig.colorbar(
             scalar_mappable,
             cax=cbar_ax,
@@ -1003,8 +1002,7 @@ def plot_drift_3d(
             handles=handles,
             fontsize=FONTSIZE_XSMALL,
             loc="upper left",
-            bbox_to_anchor=(0.65, 0.95),  # current
-            # bbox_to_anchor=(0.65, 1.0), # incoming
+            bbox_to_anchor=(0.65, 0.95),
             frameon=False,
             handletextpad=0.3,
             labelspacing=0.4,
