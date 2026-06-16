@@ -6,34 +6,34 @@ parameters:
   examples_groups: [replicate, training, validation]
 locations:
   latent_8:
-    fmsid: 61f96ed0a02b4498acb0fbe90d3c6249
+    fmsid: 0d17fa7cbe5c4f318a4428d17684477d
     path: null
     s3uri: null
   latent_16:
-    fmsid: 9b6cbe38a63645e99643379fb10f6525
+    fmsid: b3562a96a83c478a8807345c2853c781
     path: null
     s3uri: null
   latent_32:
-    fmsid: fb15c75d2cd846fda97c0b41d3de1bc8
+    fmsid: 0a78652fed34468ca3aafba97b740c7f
     path: null
     s3uri: null
   latent_64:
-    fmsid: 6ca49249d2634ec3bfdeeb9f0f59a3bc
+    fmsid: d987cef80fc040c9a1c0f546317339ab
     path: null
     s3uri: null
   latent_128:
-    fmsid: 77a2d1196fa4400d9159baaf5166bf5e
+    fmsid: 57e149b1c364406da36be41dda9412eb
     path: null
     s3uri: null
   latent_256:
-    fmsid: db9cc9bb4d334d3dbf15e2317a4a843e
+    fmsid: 56e03a4d253b419f9c2b2a8830a4b75e
     path: null
     s3uri: null
   latent_512:
-    fmsid: df980f117c6546a6a7889f1dbbba1e8b
+    fmsid: ff359504121f4baf9aa9f3d39e2d2bdb
     path: null
     s3uri: null
   latent_1024:
-    fmsid: 8fed0573891d45b480de09789e8d408d
+    fmsid: 72f8f36976e6411690a4651afe19537a
     path: null
     s3uri: null

@@ -194,7 +194,7 @@ class ModelComparisonMetricsCalculator:
 
         return ModelComparisonMetrics(
             correlation=cls.compute_correlation(img1, img2),
-            ssim=cls.compute_lpips(img1, img2),
+            ssim=cls.compute_ssim(img1, img2),
             lpips=cls.compute_lpips(img1, img2),
         )
 

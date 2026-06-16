@@ -6,10 +6,10 @@ parameters:
   examples_groups: [replicate, training, validation]
 locations:
   latent_512:
-    fmsid: afbc4dd96b48449b8a85494387d4818c
+    fmsid: 843045a09ded49e6842cd41a5d16d35f
     path: null
     s3uri: null
   latent_1024:
-    fmsid: 0e4d1c635f504af9afd17d4ee4f10fef
+    fmsid: 7900f6511abc464bbd357de8e1a3e569
     path: null
     s3uri: null
