@@ -181,18 +181,21 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
         placeholder_3d = "A" if dataset_name == dataset_low else "D"
         vector_field_plot_paths[dataset_name] = make_3d_vector_field_plot_panel(
-            dataset_name, fig_savedir, **placeholders[placeholder_3d]
+            figure_size=(2.0, 2.5),
+            output_path=fig_savedir,
+            dataset_name=dataset_name,
+            **placeholders[placeholder_3d],
         )
 
         placeholder_1p2d = "B" if dataset_name == dataset_low else "E"
         # plot 1D drift in theta and save
         theta_plot_paths[dataset_name] = make_1d_drift_plot_panel(
+            figure_size=(1.325, 1.325),
+            output_path=fig_savedir,
             drift=drift_theta,
             theta_values=centers_theta[-1],
             column_label=column_label_theta,
             stable_fixed_point=stable_fixed_point_theta,
-            figsize=(1.325, 1.325),
-            fig_savedir=fig_savedir,
             filename=f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}_drift",
             arrow_scale=arrow_scale_1d,
             arrow_width=arrow_width_1d,
@@ -200,22 +203,23 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         )
 
         contour_plot_paths[dataset_name], nullcline_coordinates = make_2d_contour_plot_panel(
+            figure_size=(2.6, 1.55),
+            output_path=fig_savedir,
             drift=drift_r_rho,
             meshgrid=centers_mesh,
             column_labels=column_labels_r_rho,
             stable_fixed_point=stable_fixed_point_r_rho,
-            figsize=(2.6, 1.55),
-            fig_savedir=fig_savedir,
             filename=f"{dataset_name}_{columns_r_rho_str}_contours",
             **placeholders[placeholder_1p2d],
         )
 
         placeholder_nullcline = "C" if dataset_name == dataset_low else "F"
         nullcline_reconstruction_paths[dataset_name] = reconstruct_along_nullcline(
+            figure_size=(3.125, 1.3),
+            output_path=fig_savedir,
             nullcline_coords=nullcline_coordinates,
             theta_value=stable_fixed_point_theta[0],
             model=model,
-            fig_savedir=fig_savedir,
             num_gpus=NUM_GPUS,
             random_seed=4,
             **placeholders[placeholder_nullcline],
@@ -253,9 +257,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     )
     # --- Histogram of first passage time correlation ---
     first_passage_path = make_first_passage_time_correlation_hist(
+        figure_size=(0.95, 2.0),
+        output_path=output_path,
         dataset_names=dataset_summary_list,
-        figsize=(0.95, 2.0),
-        fig_savedir=output_path,
         **placeholders["I"],
     )
 

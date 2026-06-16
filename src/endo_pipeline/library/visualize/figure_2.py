@@ -288,12 +288,12 @@ def _get_example_points_along_nullcline(
 
 @figure_panel("Make panel of 2D contour plots of drift in (r, rho) space.")
 def make_2d_contour_plot_panel(
+    figure_size: tuple[float, float],
+    output_path: Path,
     drift: np.ndarray,
     meshgrid: tuple[np.ndarray, np.ndarray],
     column_labels: list[str],
     stable_fixed_point: np.ndarray,
-    figsize: tuple[float, float],
-    fig_savedir: Path,
     filename: str,
 ) -> tuple[Path, dict[Column.DiffAEData, np.ndarray]]:
     """
@@ -332,7 +332,7 @@ def make_2d_contour_plot_panel(
         meshgrid=meshgrid,
         drift=drift,
         variable_labels=column_labels,
-        figsize=figsize,
+        figsize=figure_size,
         n_rows=1,
         n_cols=2,
         axes_limits=[r_lims, rho_lims],
@@ -427,7 +427,7 @@ def make_2d_contour_plot_panel(
 
     save_plot_to_path(
         fig,
-        fig_savedir,
+        output_path,
         filename,
         file_format=".svg",
         tight_layout=False,
@@ -435,17 +435,17 @@ def make_2d_contour_plot_panel(
         pad_inches=0,
     )
 
-    return fig_savedir / f"{filename}.svg", nullcline_coords
+    return output_path / f"{filename}.svg", nullcline_coords
 
 
 @figure_panel("Make panel of 1D phase line plot of drift in theta space.")
 def make_1d_drift_plot_panel(
+    figure_size: tuple[float, float],
+    output_path: Path,
     drift: np.ndarray,
     theta_values: np.ndarray,
     column_label: str,
     stable_fixed_point: float,
-    figsize: tuple[float, float],
-    fig_savedir: Path,
     filename: str,
     arrow_scale: float,
     arrow_width: float,
@@ -468,7 +468,7 @@ def make_1d_drift_plot_panel(
     fig, ax = plot_drift_1d(
         drift=drift_sorted,
         x_values=theta_values_sorted,
-        figsize=figsize,
+        figsize=figure_size,
         axes_limits=[axes_xlim, axes_ylim],
         axes_labels=[column_label, f"d{column_label}/dt"],
         add_flow_arrows=True,
@@ -513,20 +513,21 @@ def make_1d_drift_plot_panel(
     ax.set_yticks([-0.3, 0.0, 0.3])
 
     save_plot_to_path(
-        fig, fig_savedir, filename, file_format=".svg", tight_layout=False, transparent=True
+        fig, output_path, filename, file_format=".svg", tight_layout=False, transparent=True
     )
 
-    return fig_savedir / f"{filename}.svg"
+    return output_path / f"{filename}.svg"
 
 
 @figure_panel(
     "Reconstruct images at points along the given r- and rho-nullclines and save images as a contact sheet."
 )
 def reconstruct_along_nullcline(
+    figure_size: tuple[float, float],
+    output_path: Path,
     nullcline_coords: dict[ColumnNameType, np.ndarray],
     theta_value: float,
     model: DiffusionAutoEncoder,
-    fig_savedir: Path,
     num_gpus: int | None = None,
     random_seed: int | None = 4,
 ) -> Path:
@@ -543,7 +544,7 @@ def reconstruct_along_nullcline(
         nullcline (since the nullcline coordinates only contain r and rho).
     model
         DiffusionAutoEncoder model used to generate synthetic images.
-    fig_savedir
+    output_path
         Directory where the generated figures will be saved.
     num_gpus
         Number of GPUs to use for image generation. If None, will use all
@@ -583,7 +584,7 @@ def reconstruct_along_nullcline(
         panels=walk_panels,
         max_rows=2,
         max_cols=n_cols,
-        fig_kwargs={"figsize": (3.125, 1.3), "layout": "constrained"},
+        fig_kwargs={"figsize": figure_size, "layout": "constrained"},
         gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
     )
 
@@ -668,20 +669,21 @@ def reconstruct_along_nullcline(
     filename = "nullcline_walks"
     save_plot_to_path(
         fig_null_walks,
-        fig_savedir,
+        output_path,
         filename,
         file_format=".svg",
         tight_layout=False,
         pad_inches=0,
     )
 
-    return fig_savedir / f"{filename}.svg"
+    return output_path / f"{filename}.svg"
 
 
 @figure_panel("Make panel of 3D vector field plot with stable fixed point overlay.")
 def make_3d_vector_field_plot_panel(
+    figure_size: tuple[float, float],
+    output_path: Path,
     dataset_name: str,
-    fig_savedir: Path,
 ) -> Path:
     """
     Render the 3D (theta, r, rho) drift vector field for a given dataset, with
@@ -689,10 +691,12 @@ def make_3d_vector_field_plot_panel(
 
     Parameters
     ----------
+    figure_size
+        Size of the figure to create.
+    output_path
+        Directory in which to save the figure panel.
     dataset_name
         Name of the dataset to visualize.
-    fig_savedir
-        Directory in which to save the figure as a static PNG file.
 
     Returns
     -------
@@ -726,7 +730,7 @@ def make_3d_vector_field_plot_panel(
     fig, ax = plot_drift_3d(
         drift=drift,
         meshgrid=meshgrid,
-        figsize=(2.0, 2.5),
+        figsize=figure_size,
         fixed_point_legend_label=fixed_point_label,
         xlim=theta_lims,
         ylim=r_lims,
@@ -764,7 +768,7 @@ def make_3d_vector_field_plot_panel(
     filename = f"3d_vector_field_{dataset_name}"
     save_plot_to_path(
         fig,
-        fig_savedir,
+        output_path,
         filename,
         file_format=".svg",
         tight_layout=False,
@@ -772,12 +776,12 @@ def make_3d_vector_field_plot_panel(
         bbox_inches="tight",
     )
 
-    return fig_savedir / f"{filename}.svg"
+    return output_path / f"{filename}.svg"
 
 
 @figure_panel("Make panel of histogram of first passage time correlation values across datasets.")
 def make_first_passage_time_correlation_hist(
-    dataset_names: list[str], figsize: tuple[float, float], fig_savedir: Path
+    figure_size: tuple[float, float], output_path: Path, dataset_names: list[str]
 ) -> Path:
     fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME)
     line_fit_df, _ = get_line_fit_and_filtered_df(fpt_manifest, dataset_names)
@@ -787,7 +791,7 @@ def make_first_passage_time_correlation_hist(
         pearson_r = df_dataset[Column.VectorField.PEARSON_R].iloc[0]
         pearson_correlations.append(pearson_r)
 
-    fig, ax = plt.subplots(figsize=figsize, layout="constrained")
+    fig, ax = plt.subplots(figsize=figure_size, layout="constrained")
     ax.hist(pearson_correlations, bins=list(np.linspace(-1, 1, 21)), edgecolor="k")
     column_label = COLUMN_METADATA[Column.VectorField.PEARSON_R].label or str(
         Column.VectorField.PEARSON_R
@@ -800,10 +804,10 @@ def make_first_passage_time_correlation_hist(
     filename = "fpt_hist"
     save_plot_to_path(
         fig,
-        fig_savedir,
+        output_path,
         filename,
         file_format=".svg",
         tight_layout=False,
         transparent=True,
     )
-    return fig_savedir / f"{filename}.svg"
+    return output_path / f"{filename}.svg"
