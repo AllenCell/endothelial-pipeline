@@ -2,75 +2,8 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
-from endo_pipeline.library.model.model_comparison import (
-    compute_correlation,
-    compute_ssim,
-    load_transformed_diffusion_example_image,
-)
-
 if TYPE_CHECKING:
-    from omegaconf import DictConfig
-
-    from endo_pipeline.library.model.model_comparison import ModelComparisonMetricsCalculator
-    from endo_pipeline.settings.examples import ExampleImage
-
     from .evaluation import ModelKey
-
-
-# ---------------------------------------------------------------------------
-# Baseline per-example metric
-# ---------------------------------------------------------------------------
-
-
-def compute_baseline_for_example(
-    example: "ExampleImage",
-    model_config: "DictConfig",
-    diffusion_input_key: str,
-    crop_size: int,
-    ground_truth: np.ndarray,
-    lpips_calculator: "ModelComparisonMetricsCalculator",
-) -> tuple[float, float, float]:
-    """Compare ground truth to the next-timepoint CDH5 crop.
-
-    Parameters
-    ----------
-    example
-        The example image metadata.
-    model_config
-        The model configuration loaded from MLflow.
-    diffusion_input_key
-        Key for the diffusion input channel.
-    crop_size
-        Size of the square crop in pixels.
-    ground_truth
-        Squeezed ground-truth diffusion image.
-    lpips_calculator
-        Pre-initialised LPIPS metric calculator.
-
-    Returns
-    -------
-    Metrics in the format of
-        ``(pearson_correlation, ssim, lpips)``.
-
-    Raises
-    ------
-    Exception
-        If the next-timepoint image cannot be loaded or metrics cannot be
-        computed (e.g. missing timepoint). Callers should handle this.
-    """
-
-    example_next = example._replace(timepoint=example.timepoint + 1)
-    crop_next = load_transformed_diffusion_example_image(example_next, model_config)
-
-    corr = compute_correlation(ground_truth, crop_next)
-    ssim_val = compute_ssim(
-        ground_truth,
-        crop_next,
-        data_range=2.0,
-    )
-    lpips_val = lpips_calculator.compute_lpips(ground_truth, crop_next)
-    return corr, ssim_val, lpips_val
-
 
 # ---------------------------------------------------------------------------
 # Seed-level aggregation
