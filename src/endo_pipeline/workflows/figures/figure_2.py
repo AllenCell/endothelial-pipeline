@@ -56,7 +56,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.settings.column_metadata import COLUMN_METADATA
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.examples import EXAMPLE_DATASET, FPT_FIG_EXAMPLES
-    from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
     from endo_pipeline.settings.flow_field_dataframes import (
         BOOTSTRAPPING_MANIFEST_NAMES,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
@@ -181,18 +181,21 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
         placeholder_3d = "A" if dataset_name == dataset_low else "D"
         vector_field_plot_paths[dataset_name] = make_3d_vector_field_plot_panel(
-            dataset_name, fig_savedir, **placeholders[placeholder_3d]
+            figure_size=(2.0, 2.5),
+            output_path=fig_savedir,
+            dataset_name=dataset_name,
+            **placeholders[placeholder_3d],
         )
 
         placeholder_1p2d = "B" if dataset_name == dataset_low else "E"
         # plot 1D drift in theta and save
         theta_plot_paths[dataset_name] = make_1d_drift_plot_panel(
+            figure_size=(1.325, 1.325),
+            output_path=fig_savedir,
             drift=drift_theta,
             theta_values=centers_theta[-1],
             column_label=column_label_theta,
             stable_fixed_point=stable_fixed_point_theta,
-            figsize=(1.425, 1.425),
-            fig_savedir=fig_savedir,
             filename=f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}_drift",
             arrow_scale=arrow_scale_1d,
             arrow_width=arrow_width_1d,
@@ -200,22 +203,23 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         )
 
         contour_plot_paths[dataset_name], nullcline_coordinates = make_2d_contour_plot_panel(
+            figure_size=(2.6, 1.55),
+            output_path=fig_savedir,
             drift=drift_r_rho,
             meshgrid=centers_mesh,
             column_labels=column_labels_r_rho,
             stable_fixed_point=stable_fixed_point_r_rho,
-            figsize=(2.6, 1.55),
-            fig_savedir=fig_savedir,
             filename=f"{dataset_name}_{columns_r_rho_str}_contours",
             **placeholders[placeholder_1p2d],
         )
 
         placeholder_nullcline = "C" if dataset_name == dataset_low else "F"
         nullcline_reconstruction_paths[dataset_name] = reconstruct_along_nullcline(
+            figure_size=(3.125, 1.3),
+            output_path=fig_savedir,
             nullcline_coords=nullcline_coordinates,
             theta_value=stable_fixed_point_theta[0],
             model=model,
-            fig_savedir=fig_savedir,
             num_gpus=NUM_GPUS,
             random_seed=4,
             **placeholders[placeholder_nullcline],
@@ -253,9 +257,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     )
     # --- Histogram of first passage time correlation ---
     first_passage_path = make_first_passage_time_correlation_hist(
+        figure_size=(0.95, 2.0),
+        output_path=output_path,
         dataset_names=dataset_summary_list,
-        figsize=(0.95, 2.0),
-        fig_savedir=output_path,
         **placeholders["I"],
     )
 
@@ -276,7 +280,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             x_position=2.3,
             y_position=0.0,
             x_offset=0.05,
-            y_offset=0.05,
+            y_offset=0.04,
         ),
         FigurePanel(
             letter="",
@@ -284,13 +288,13 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             x_position=3.75,
             y_position=0.0,
             x_offset=0.0,
-            y_offset=-0.075,
+            y_offset=-0.15,
         ),
         FigurePanel(  # r and rho nullclines for low flow dataset
             letter="C",
             path=nullcline_reconstruction_paths[dataset_low],
             x_position=2.3,
-            y_position=1.4,
+            y_position=1.45,
             x_offset=0.85,
             y_offset=0.0,
         ),
@@ -299,7 +303,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             letter="D",
             path=vector_field_plot_paths[dataset_high],
             x_position=0.0,
-            y_position=2.7,
+            y_position=2.8,
             x_offset=0.1,
             y_offset=0.1,
         ),
@@ -307,23 +311,23 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             letter="E",
             path=theta_plot_paths[dataset_high],
             x_position=2.3,
-            y_position=2.7,
+            y_position=2.8,
             x_offset=0.05,
-            y_offset=0.05,
+            y_offset=0.04,
         ),
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_high],
             x_position=3.75,
-            y_position=2.7,
+            y_position=2.8,
             x_offset=0.0,
-            y_offset=-0.075,
+            y_offset=-0.15,
         ),
         FigurePanel(  # r and rho nullcline for high flow dataset
             letter="F",
             path=nullcline_reconstruction_paths[dataset_high],
             x_position=2.3,
-            y_position=4.1,
+            y_position=4.25,
             x_offset=0.85,
             y_offset=0.0,
         ),
@@ -332,15 +336,15 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             letter="G",
             path=fixed_point_summary_plot_path,
             x_position=0.0,
-            y_position=5.4,
+            y_position=5.6,
             x_offset=0.0,
             y_offset=0.25,
         ),
         FigurePanel(
             letter="H",
             path=trajectory_example_filepath,
-            x_position=3.3,
-            y_position=5.4,
+            x_position=3.4,
+            y_position=5.6,
             x_offset=0.0,
             y_offset=0.2,
         ),
@@ -348,14 +352,14 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             letter="I",
             path=first_passage_path,
             x_position=5.3,
-            y_position=5.4,
+            y_position=5.6,
             x_offset=0.075,
             y_offset=0.25,
         ),
     ]
 
     build_figure_from_panels(
-        panels, output_path / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=7.75
+        panels, output_path / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
     )
 
 

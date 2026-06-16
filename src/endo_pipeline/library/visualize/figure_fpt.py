@@ -20,7 +20,8 @@ from endo_pipeline.library.analyze.track_integration import (
     merge_grid_and_tracked_first_passage_time_stats_dfs,
 )
 from endo_pipeline.library.visualize.columns import get_label_for_column
-from endo_pipeline.settings import ColumnName as Column
+from endo_pipeline.settings.column_metadata import COLUMN_METADATA
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
     LONG_TRACK_THRESHOLD_LENGTH,
@@ -372,12 +373,14 @@ def generate_first_passage_time_example(
         ax.plot(*list(zip(*e_xyz, strict=True)), ls="-", lw=0.5, c="black", alpha=0.7)
     # plot the fixed point in the 3D space as a black star
     fp_dynamic_cols = [str(col) for col in DYNAMICS_COLUMN_NAMES]
+    col_labels = [(COLUMN_METADATA[col].label or col) for col in fp_dynamic_cols]
+    fixed_point_label = f"({col_labels[0]}$^*$, {col_labels[1]}$^*$, {col_labels[2]}$^*$)"
     ax.scatter(
         *fixed_points_df.loc[example_fixed_point_index][fp_dynamic_cols].values,
         marker=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].marker,
         color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color,
         s=15,
-        label="stable fixed point",
+        label=fixed_point_label,
     )
     # plot a sphere around the fixed point with radius equal to the fixed_point_radius_threshold
     u = np.linspace(0, 2 * np.pi, 20)
@@ -430,10 +433,8 @@ def generate_first_passage_time_example(
     ax.tick_params(axis="z", labelsize=FONTSIZE_SMALL, pad=-4)
     plt.setp(ax.get_zticklabels(), va="top", ha="left")
     ax.set_xlabel(get_label_for_column(Column.DiffAEData.POLAR_ANGLE), loc="center", labelpad=-4)
-    ax.set_ylabel(
-        get_label_for_column(Column.DiffAEData.POLAR_RADIUS), loc="center", labelpad=0
-    )  # 5)
-    ax.set_zlabel(get_label_for_column(Column.DiffAEData.PC3_FLIPPED), labelpad=-1)  # 5)
+    ax.set_ylabel(get_label_for_column(Column.DiffAEData.POLAR_RADIUS), loc="center", labelpad=0)
+    ax.set_zlabel(get_label_for_column(Column.DiffAEData.PC3_FLIPPED), labelpad=-1)
 
     # adjust the focal length of the 3D plot so that depth is easier to perceive
     ax.set_proj_type("persp", focal_length=0.3)
