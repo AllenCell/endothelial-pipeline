@@ -390,9 +390,9 @@ def make_2d_contour_plot_panel(
     # add colorbar to the right of the second subplot with ticks and label
     # formatting
     _add_colorbar_to_contour_plot(fig, axes_[1])
+
     # shrink the constrained-layout region so the inset colorbar axes
     # (which lives outside the main axes boundary) is not clipped on save
-
     layout_engine = fig.get_layout_engine()
     if isinstance(layout_engine, ConstrainedLayoutEngine):
         layout_engine.set(rect=(0, 0, 0.9, 1))
@@ -453,17 +453,6 @@ def make_1d_drift_plot_panel(
     """Make and save plot of 1D drift as a function of theta for a given dataset."""
     axes_xlim = VECTOR_FIELD_THETA_RANGE
     axes_ylim = (-0.4, 0.4)
-    axes_xticks = [0, np.pi / 2]
-    axes_xtick_labels = [
-        f"0={Unicode.PI}",
-        f"{Unicode.PI}/2",
-    ]
-    axes_yticks = [-0.3, 0.0, 0.3]
-    drift_line_kwargs = {"color": "k", "linewidth": 2}
-    zero_line_kwargs = {"linestyle": "--", "color": "gray", "linewidth": 1, "alpha": 0.7}
-    gridspec_kwargs = GRIDSPEC_KWARGS
-    xlabel_kwargs = XLABEL_KWARGS
-    ylabel_kwargs = YLABEL_KWARGS
 
     # re-wrap theta values to be within the specified x-axis limits for better
     # visualization of the drift as a function of theta
@@ -485,11 +474,17 @@ def make_1d_drift_plot_panel(
         add_flow_arrows=True,
         flow_arrow_kwargs={"color": "dimgrey", "scale": arrow_scale, "width": arrow_width},
         flow_arrow_downsample=10,
-        gridspec_kwargs=gridspec_kwargs,
-        drift_line_kwargs=drift_line_kwargs,
-        zero_line_kwargs=zero_line_kwargs,
-        xlabel_kwargs=xlabel_kwargs,
-        ylabel_kwargs=ylabel_kwargs,
+        gridspec_kwargs=GRIDSPEC_KWARGS,
+        drift_line_kwargs={"color": "k", "linewidth": 2, "label": f"d{column_label}/dt"},
+        zero_line_kwargs={
+            "linestyle": "--",
+            "color": "gray",
+            "linewidth": 1,
+            "alpha": 0.7,
+            "label": f"d{column_label}/dt = 0",
+        },
+        xlabel_kwargs=XLABEL_KWARGS,
+        ylabel_kwargs=YLABEL_KWARGS,
     )
     # add stable fixed point in theta
     ax.plot(
@@ -502,10 +497,19 @@ def make_1d_drift_plot_panel(
         markersize=5,
     )
 
+    # add legend
+    fig.legend(
+        fontsize="xx-small",
+        loc="upper center",
+        bbox_to_anchor=(0.5, 1.05),
+        ncol=2,
+        handletextpad=0.3,
+    )
+
     # set plot formatting args
     ax.set_box_aspect(1.0)
-    ax.set_xticks(axes_xticks, labels=axes_xtick_labels)
-    ax.set_yticks(axes_yticks)
+    ax.set_xticks([0, np.pi / 2], labels=[f"0={Unicode.PI}", f"{Unicode.PI}/2"])
+    ax.set_yticks([-0.3, 0.0, 0.3])
 
     save_plot_to_path(
         fig, fig_savedir, filename, file_format=".svg", tight_layout=False, transparent=True
