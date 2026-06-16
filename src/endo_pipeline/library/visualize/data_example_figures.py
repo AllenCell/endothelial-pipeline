@@ -203,7 +203,7 @@ def create_panel_intermediate_examples(
     image_panel_list = []
     shear_stress_titles = []
 
-    for example in examples:
+    for i, example in enumerate(examples):
         dataset_config = load_dataset_config(example.dataset_name)
         shear_stress_value = dataset_config.flow_conditions[0].shear_stress
         # if shear stress is within +/-1 of shear stress bins
@@ -230,7 +230,7 @@ def create_panel_intermediate_examples(
         )
 
         image_panel_list.extend([gfp_max_proj, log_bf_std_dev])
-        shear_stress_titles.append(f"{shear_stress_value} dyn/cm{Unicode.SQUARED}")
+        shear_stress_titles.append(f"{shear_stress_value} dyn/cm{Unicode.SQUARED}\nExample {i + 1}")
 
     fig = make_contact_sheet(
         image_panel_list,
