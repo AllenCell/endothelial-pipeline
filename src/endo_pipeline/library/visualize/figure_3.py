@@ -75,6 +75,7 @@ def make_3d_vector_field_plot_panel(
 
     column_names = list(DYNAMICS_COLUMN_NAMES)  # [theta, r, rho]
     col_labels = [(COLUMN_METADATA[col].label or str(col)) for col in DYNAMICS_COLUMN_NAMES]
+    fixed_point_label = f"({col_labels[0]}$^*$, {col_labels[1]}$^*$, {col_labels[2]}$^*$)"
 
     theta_lims = VECTOR_FIELD_THETA_RANGE
     r_lims = (0, 1.75)
@@ -97,6 +98,7 @@ def make_3d_vector_field_plot_panel(
         figsize=(2.0, 2.5),
         include_colorbar=include_colorbar,
         include_legend=include_legend,
+        fixed_point_legend_label=fixed_point_label,
         xlim=theta_lims,
         ylim=r_lims,
         zlim=rho_lims,
