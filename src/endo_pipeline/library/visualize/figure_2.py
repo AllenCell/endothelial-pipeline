@@ -501,9 +501,10 @@ def make_1d_drift_plot_panel(
     fig.legend(
         fontsize="xx-small",
         loc="upper center",
-        bbox_to_anchor=(0.5, 1.05),
+        bbox_to_anchor=(0.65, 1.05),
         ncol=2,
         handletextpad=0.3,
+        columnspacing=0.75,
     )
 
     # set plot formatting args
