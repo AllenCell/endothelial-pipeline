@@ -79,9 +79,6 @@ LABELFREE_NUCLEI_MODEL_MANIFEST_NAME: str = "nuc_pred_labelfree"
 LABELFREE_NUCLEI_MODEL_RUN_NAME: str = "finetuned_20250419"
 """Default run name for the label-free nuclei segmentation model."""
 
-METRIC_TEXT_BOX_PROPS = {"boxstyle": "round", "facecolor": "wheat", "alpha": 0.3}
-"""Matplotlib text-box properties for metric annotations in QC plots."""
-
 IMAGE_METRIC_DATASET_COLORS = {
     "validation_positions": "#2C6FAC",  # Medium blue
     "rep_2_positions": "#7ABBE0",  # Light blue
