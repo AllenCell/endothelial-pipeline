@@ -339,7 +339,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="H",
             path=trajectory_example_filepath,
-            x_position=3.3,
+            x_position=3.4,
             y_position=5.6,
             x_offset=0.0,
             y_offset=0.2,
