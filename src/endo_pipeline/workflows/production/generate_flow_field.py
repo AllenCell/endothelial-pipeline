@@ -269,7 +269,7 @@ def main(
                 vector_field_dataframe_manifest,
                 vector_field_for_dataset,
                 DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD,
-                FMS_ANNOTATION_NOTES_VECTOR_FIELD,
+                FMS_ANNOTATION_NOTES_VECTOR_FIELD % len(column_names),
             ),
             (
                 fixed_points_dataframe_manifest,
