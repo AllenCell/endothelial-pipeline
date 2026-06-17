@@ -1030,32 +1030,6 @@ def plot_drift_3d(
     return fig, ax
 
 
-def _get_orthonormal_basis_for_plane(
-    point_1: np.ndarray, point_2: np.ndarray, point_3: np.ndarray
-) -> np.ndarray:
-    """
-    Compute an orthonormal basis for the plane defined by three points in 3D space.
-
-    Parameters
-    ----------
-    point_1, point_2, point_3
-        Three points in 3D space, each given as a 1D array of shape (3,).
-
-    Returns
-    -------
-    :
-        A 3x2 array where the first two rows are orthonormal vectors spanning the
-        2D plane defined by the three points.
-
-    """
-    v1 = point_2 - point_1
-    v2 = point_3 - point_1
-    basis_vector_1 = v1 / (np.linalg.norm(v1) + 1e-10)
-    w = v2 - np.dot(v2, basis_vector_1) * basis_vector_1
-    basis_vector_2 = w / (np.linalg.norm(w) + 1e-10)
-    return np.stack([basis_vector_1, basis_vector_2], axis=0)
-
-
 def make_legend_handles_for_fixed_pts(
     fpt_stabilities: list[str],
     marker_size: int = 10,
