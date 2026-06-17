@@ -1,20 +1,15 @@
 """Visualization functions for Model QC workflow."""
 
-from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
 
-import matplotlib.pyplot as plt
 import numpy as np
 
-from endo_pipeline.io.output import save_plot_to_path
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
-from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL
 from endo_pipeline.settings.plot_defaults import (
     MODEL_QC_GRIDSPEC_KWARGS,
     MODEL_QC_PLOT_DIRECTION,
     MODEL_QC_SUBPLOT_KWARGS,
 )
-from endo_pipeline.settings.workflow_defaults import IMAGE_METRIC_DATASET_COLORS
 
 if TYPE_CHECKING:
     import matplotlib.figure
@@ -150,83 +145,3 @@ def create_validation_examples_contact_sheet(
         )
 
     return fig
-
-
-def create_rep2_correlation_bar_plot(
-    models_data: list[dict],
-    model_labels: list[str],
-    output_path: Path,
-    filename: str,
-    ylabel: str = "Pearson correlation r value",
-    ylim: tuple[float, float] | None = None,
-    figsize: tuple[float, float] | None = None,
-    file_format: Literal[".png", ".svg", ".pdf"] = ".svg",
-    label_fontsize: float = FONTSIZE_MEDIUM,
-    tick_fontsize: float = FONTSIZE_SMALL,
-    save_kwargs: dict | None = None,
-) -> None:
-    """Single-series Rep-2 Pearson-correlation bar chart for the supp. figure.
-
-    Parameters
-    ----------
-    models_data
-        Per-model summary dicts as produced by
-        :func:`endo_pipeline.library.model.model_qc.metrics.build_models_data`.
-    model_labels
-        Short x-axis labels (one per model), e.g. ``["8 BF", "16 BF", ...,
-        "1024 CDH5"]``.
-    output_path, filename, file_format
-        Where / how to write the figure.  ``filename`` should not include
-        the extension; ``file_format`` provides it.
-    ylabel, ylim
-        Plot annotations.
-    figsize
-        Figure size in inches.  Defaults to a width that scales with the
-        number of bars when omitted.
-    label_fontsize, tick_fontsize
-        Override font sizes when this helper is used as a multi-panel
-        figure component (so type sizes match the sibling panels).
-    save_kwargs
-        Extra keyword arguments forwarded to
-        :func:`endo_pipeline.io.output.save_plot_to_path` (e.g.
-        ``{"pad_inches": 0, "transparent": True}`` to match the
-        ``supp_fig_diffae_model`` panel-A export).
-    """
-    if len(model_labels) != len(models_data):
-        raise ValueError(
-            f"model_labels length ({len(model_labels)}) must match models_data "
-            f"length ({len(models_data)})"
-        )
-
-    num_models = len(models_data)
-    x_pos = np.arange(num_models)
-    rep2_means = [m["rep2"]["corr_mean"] for m in models_data]
-    rep2_stds = [m["rep2"]["corr_std"] for m in models_data]
-
-    if figsize is None:
-        figsize = (max(12.0, num_models * 1.5 + 1.0), 7.0)
-    fig, ax = plt.subplots(figsize=figsize)
-
-    ax.bar(
-        x_pos,
-        rep2_means,
-        0.6,
-        yerr=rep2_stds,
-        capsize=5,
-        color=IMAGE_METRIC_DATASET_COLORS["rep_2_positions"],
-        alpha=0.85,
-    )
-
-    ax.set_xlabel("Number of latent dimensions, conditioning channel", fontsize=label_fontsize)
-    ax.set_ylabel(ylabel, fontsize=label_fontsize)
-    ax.set_xticks(x_pos)
-    rotation = 45 if num_models > 4 else 0
-    ha_labels = "right" if num_models > 4 else "center"
-    ax.set_xticklabels(model_labels, fontsize=tick_fontsize, rotation=rotation, ha=ha_labels)
-    ax.tick_params(axis="y", labelsize=tick_fontsize)
-    ax.grid(True, alpha=0.3, axis="y")
-    if ylim is not None:
-        ax.set_ylim(*ylim)
-
-    save_plot_to_path(fig, output_path, filename, file_format=file_format, **(save_kwargs or {}))
-    plt.close(fig)
