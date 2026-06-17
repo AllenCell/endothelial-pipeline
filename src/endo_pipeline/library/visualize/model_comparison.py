@@ -12,8 +12,10 @@ from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.settings.colors import MODEL_COMPARISON_EXAMPLE_GROUP_COLORS
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL, FONTSIZE_XSMALL
-from endo_pipeline.settings.workflow_defaults import DEFAULT_MODEL_QC_LABEL_MAP
-from endo_pipeline.settings.workflow_defaults import DEFAULT_MODEL_COMPARISON_RUNS
+from endo_pipeline.settings.workflow_defaults import (
+    DEFAULT_MODEL_COMPARISON_RUNS,
+    DEFAULT_MODEL_QC_LABEL_MAP,
+)
 
 MODEL_COMPARISON_DENOISE_COLUMNS = {
     "corr": Column.MODEL_COMPARISON_CORRELATION,
@@ -120,6 +122,139 @@ def plot_model_comparison_bars(
 
         file_name = f"model_comparison_{metric}.png"
         save_plot_to_path(fig, output_path, file_name, tight_layout=False)
+
+
+@figure_panel("Contact sheet comparing DiffAE model predictions")
+def make_cross_model_comparison_panel(
+    output_path: Path,
+    num_gpus: int | None = None,
+    figure_size: tuple[float, float] = (6.5, 2),
+) -> Path:
+    """
+    Create contact sheet comparing denoising results across model runs.
+
+    Parameters
+    ----------
+    output_path
+        Output path to save contact sheet.
+    num_gpus
+        Number of GPUs to use. If None, run on CPU.
+    figure_size
+        Size of contact sheet.
+
+    Returns
+    -------
+    :
+        Path to output contact sheet.
+    """
+
+    from typing import cast
+
+    from matplotlib.layout_engine import LayoutEngine
+    from numpy.random import default_rng
+    from omegaconf import DictConfig
+
+    from endo_pipeline.io import load_model
+    from endo_pipeline.io.load_models import instantiate_model_target_class
+    from endo_pipeline.library.model.diffae.eval_diffae import get_latent_vector_from_crop
+    from endo_pipeline.library.model.diffae.generate_image import (
+        generate_from_coords_and_noised_image,
+    )
+    from endo_pipeline.library.model.model_comparison import (
+        load_transformed_conditioning_example_image,
+        load_transformed_diffusion_example_image,
+    )
+    from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
+    from endo_pipeline.manifests import load_model_manifest
+    from endo_pipeline.settings.examples import DIFFAE_MODEL_PERFORMANCE_PANEL_EXAMPLES
+    from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
+    from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
+
+    # Collect examples for panel
+    all_diffusion_examples = []  # same three diffusion examples for every model
+    all_noise_images = []  # same three noise images for every model
+    all_denoised_examples = []
+
+    for model_index, (model_manifest_name, run_name) in enumerate(DEFAULT_MODEL_COMPARISON_RUNS):
+        # Load model for run and get model config. First load the model without
+        # instantiation to grab the model config, then instantiate for use later.
+        model_manifest = load_model_manifest(model_manifest_name)
+        model_location = model_manifest.locations[run_name]
+        model_ = load_model(model_location, instantiate=False)
+        model_config: DictConfig = cast(DictConfig, model_.cfg)
+        model = instantiate_model_target_class(model_)
+
+        for example_index, example in enumerate(DIFFAE_MODEL_PERFORMANCE_PANEL_EXAMPLES):
+            # On first model pass, also extract target VE-cadherin crops
+            # and pre-generate noise images (shared across all models)
+            # On the first model, generate the transformed diffusion example
+            # image (target VE-cadherin) and the noise image (which will be
+            # shared across all models) with a deterministic seed
+            if model_index == 0:
+                rng = default_rng(seed=RANDOM_SEED + example_index)
+                diffusion_ex = load_transformed_diffusion_example_image(example, model_config)
+                all_diffusion_examples.append(diffusion_ex)
+                all_noise_images.append(rng.standard_normal(size=diffusion_ex.shape))
+
+            # Load transformed conditioning example
+            conditioning_ex = load_transformed_conditioning_example_image(example, model_config)
+
+            # Apply noise to conditioning image and then denoise
+            noise = all_noise_images[example_index]
+            latent = get_latent_vector_from_crop(model, conditioning_ex, num_gpus=num_gpus)
+            denoised_ex = generate_from_coords_and_noised_image(model, latent, noise, num_gpus)
+
+            # Add denoised examples to list for use in contact sheet
+            all_denoised_examples.append(denoised_ex)
+
+    # Build panels and set column titles
+    panels = [
+        *[img.squeeze() for img in all_diffusion_examples],
+        *[img.squeeze() for img in all_denoised_examples],
+    ]
+
+    fig = make_contact_sheet(
+        panels=panels,
+        max_rows=len(DIFFAE_MODEL_PERFORMANCE_PANEL_EXAMPLES),
+        max_cols=len(DEFAULT_MODEL_COMPARISON_RUNS) + 1,
+        direction="top-down first",
+        subplot_kwargs={"frame_on": False},
+        fig_kwargs={"figsize": figure_size},
+        use_constrained_layout=True,
+    )
+
+    # Add column titles with adjusted sizing
+    titles = ["Target\nVE-cadherin"] + list(DEFAULT_MODEL_QC_LABEL_MAP.values())
+    for index, title in enumerate(titles):
+        ax = fig.get_axes()[index]
+        fontsize = FONTSIZE_SMALL * 0.9 if index == 0 else FONTSIZE_SMALL
+        ax.set_title(title, fontsize=fontsize, pad=3)
+
+    # Adjust the layout padding
+    layout_engine = cast(LayoutEngine, fig.get_layout_engine())
+    layout_engine.set(**{"h_pad": 0.02, "w_pad": 0.02})
+    fig.canvas.draw()
+
+    # Add scale bar on every image with text label only on the top-left panel
+    for i, ax in enumerate(fig.get_axes()):
+        add_scalebar(
+            ax,
+            pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
+            scale_bar_um=20,
+            bar_thickness=3,
+            padding=5,
+            location="lower right",
+            include_label=(i == 0),
+        )
+
+    return save_plot_to_path(
+        fig,
+        output_path,
+        "cross_model_comparison",
+        file_format=".svg",
+        tight_layout=False,
+        show_and_close=True,
+    )
 
 
 @figure_panel("Bar plot of Pearson correlation coefficient for model predictions")
