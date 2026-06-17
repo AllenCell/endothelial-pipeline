@@ -13,6 +13,7 @@ STAGING_IMAGE_MANIFEST_NAMES = [
     "image_zarr",
     "cdh5_classic_seg_zarr",
     "nuclear_labelfree_seg_zarr",
+    "grid_seg_zarr",
 ]
 """List of names of image manifests to stage."""
 
