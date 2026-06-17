@@ -155,7 +155,7 @@ def generate_manifest_staging_dataframe(
         all_locations[location_key] = location
 
     # Combine entries into dataframe and save to CSV
-    entries_df = pd.DataFrame(all_entries)
+    entries_df = pd.DataFrame(all_entries).drop_duplicates()
     csv_path = output_path / f"{manifest.name}.csv"
     entries_df.to_csv(csv_path, index=False)
 
