@@ -632,8 +632,8 @@ def make_model_training_architecture_panel(
     fig, ax = plt.subplots(figsize=figure_size, layout="constrained")
     ax.set_axis_off()
     fig.text(
-        x=0.03,
-        y=0.96,
+        x=0.04,
+        y=0.94,
         s="DiffAE training architecture and data preparation",
         fontweight="bold",
         fontsize=FONTSIZE_LARGE * 1.2,
@@ -817,7 +817,7 @@ def make_model_performance_examples_panel(
 
     # Add panel title
     fig.text(
-        x=0.03,
+        x=0.04,
         y=0.96,
         s="DiffAE performance evaluation and conditioning validation",
         fontweight="bold",
