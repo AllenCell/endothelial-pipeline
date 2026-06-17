@@ -34,6 +34,7 @@ locations:
     s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
   20250728_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
   20250813_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
     s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
