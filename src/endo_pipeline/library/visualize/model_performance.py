@@ -14,7 +14,12 @@ from endo_pipeline.library.model.model_comparison import ModelComparisonMetrics
 from endo_pipeline.library.visualize.figure_utils import make_contact_sheet
 from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.settings.examples import ExampleImage
-from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL, FONTSIZE_XSMALL, FONTSIZE_LARGE
+from endo_pipeline.settings.figures import (
+    FONTSIZE_LARGE,
+    FONTSIZE_MEDIUM,
+    FONTSIZE_SMALL,
+    FONTSIZE_XSMALL,
+)
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
@@ -451,15 +456,15 @@ def plot_model_performance_summary_contact_sheet(
 def make_model_training_architecture_panel(
     output_path: Path,
     num_gpus: int | None = None,
-    figure_size: tuple[float, float] = (6.5, 4.4),
+    figure_size: tuple[float, float] = (6.5, 3.2),
 ) -> Path:
 
     from typing import cast
 
+    import matplotlib.pyplot as plt
     from matplotlib import patches
     from numpy.random import default_rng
     from omegaconf import DictConfig
-    import matplotlib.pyplot as plt
 
     from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import load_image, load_model
@@ -648,7 +653,7 @@ def make_model_training_architecture_panel(
 def make_model_performance_examples_panel(
     output_path: Path,
     num_gpus: int | None = None,
-    figure_size: tuple[float, float] = (6.5, 4.4),
+    figure_size: tuple[float, float] = (6.5, 4.75),
 ) -> Path:
     """
     Create contact sheet showing DiffAE model performance examples.
@@ -777,7 +782,7 @@ def make_model_performance_examples_panel(
 
     # Adjust the layout to make space for title
     layout_engine = cast(LayoutEngine, fig.get_layout_engine())
-    layout_engine.set(**{"rect": (0, 0, 1, 0.95), "h_pad": 0.02, "w_pad": 0.02})
+    layout_engine.set(**{"rect": (0, 0, 1, 0.89), "h_pad": 0.02, "w_pad": 0.02})
     fig.canvas.draw()
 
     # Add a title above the last three columns of predicted images
@@ -785,7 +790,7 @@ def make_model_performance_examples_panel(
     center_x = fig.get_axes()[3].get_position().x0 + (column_width / 2)
     fig.text(
         x=center_x,
-        y=0.97,
+        y=0.91,
         s="Predicted VE-Cadherin conditioned on:",
         ha="center",
         fontweight="bold",
@@ -795,7 +800,7 @@ def make_model_performance_examples_panel(
     # Draw a line to group the last three columns of predicted images
     left_x = fig.get_axes()[2].get_position().x0
     right_x = fig.get_axes()[4].get_position().x1
-    line = Line2D([left_x, right_x], [0.96, 0.96], lw=0.5, color="k")
+    line = Line2D([left_x, right_x], [0.90, 0.90], lw=0.5, color="k")
     fig.add_artist(line)
 
     # Add scale bar on every image with text label only on the top-left panel
@@ -809,6 +814,15 @@ def make_model_performance_examples_panel(
             location="lower right",
             include_label=(i == 0),
         )
+
+    # Add panel title
+    fig.text(
+        x=0.03,
+        y=0.96,
+        s="DiffAE performance evaluation and conditioning validation",
+        fontweight="bold",
+        fontsize=FONTSIZE_LARGE * 1.2,
+    )
 
     return save_plot_to_path(
         fig,
