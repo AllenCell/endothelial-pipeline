@@ -453,16 +453,16 @@ MODEL_COMPARISON_EXAMPLES: dict[str, list[ExampleImage]] = {
 
 EXAMPLE_DIFFAE_TRAINING_SCHEMATIC = "20250428_20X"
 
-EXAMPLES_DIFFAE_TRAINING_VALIDATION: list[ExampleImage] = [
-    ExampleImage(
-        dataset_name="20250428_20X",
-        position=0,
-        timepoint=234,
-        crop_x_start=255,
-        crop_y_start=190,
-        description="6. PARALLEL, middle of min flow with bright puncta.",
-    ),
-]
+
+EXAMPLES_DIFFAE_TRAINING_ARCHITECTURE_EXAMPLE: ExampleImage = ExampleImage(
+    dataset_name="20250428_20X",
+    position=0,
+    timepoint=234,
+    crop_x_start=255,
+    crop_y_start=190,
+    description="6. PARALLEL, middle of min flow with bright puncta.",
+)
+"""Example for the DiffAE training architecture thumbnails."""
 
 DIFFAE_MODEL_PERFORMANCE_PANEL_EXAMPLES: list[ExampleImage] = [
     ExampleImage(
