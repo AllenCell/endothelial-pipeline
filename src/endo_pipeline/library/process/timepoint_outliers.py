@@ -230,10 +230,8 @@ def plot_single_timepoint_bf_outliers(
     mean_intensity: np.ndarray,
     rolling_median: np.ndarray,
     dark_threshold: np.ndarray,
-    partial_dark_threshold: np.ndarray,
     bright_threshold: np.ndarray,
     dark_outliers: list[int],
-    partial_dark_outliers: list[int],
     bright_outliers: list[int],
     dataset_name: str,
     position: int,
@@ -253,14 +251,10 @@ def plot_single_timepoint_bf_outliers(
         The rolling median of the intensity data.
     dark_threshold
         The lower threshold for detecting dark outliers.
-    partial_dark_threshold
-        The partial dark threshold for detecting less severe dark outliers.
     bright_threshold
         The upper threshold for detecting bright outliers.
     dark_outliers
-        Indices of dark outliers in the data.
-    partial_dark_outliers
-        Indices of partial dark outliers in the data.
+        Indices of dark outliers in the data (includes partial dark outliers).
     bright_outliers
         Indices of bright outliers in the data.
     dataset_name
@@ -287,14 +281,8 @@ def plot_single_timepoint_bf_outliers(
     )
     ax.plot(
         dark_threshold,
-        label=f"Lower {OUTLIER_THRESHOLD*100}%",
+        label=f"Lower {PARTIAL_DARK_THRESHOLD*100}%",
         color="red",
-        linestyle="--",
-    )
-    ax.plot(
-        partial_dark_threshold,
-        label=f"Partial {PARTIAL_DARK_THRESHOLD*100}%",
-        color="purple",
         linestyle="--",
     )
     ax.plot(
@@ -308,13 +296,6 @@ def plot_single_timepoint_bf_outliers(
         dark_outliers, mean_intensity[dark_outliers], color="red", label="Dark outliers", zorder=5
     )
     ax.scatter(
-        partial_dark_outliers,
-        mean_intensity[partial_dark_outliers],
-        color="purple",
-        label="Partial dark outliers",
-        zorder=5,
-    )
-    ax.scatter(
         bright_outliers,
         mean_intensity[bright_outliers],
         color="orange",
@@ -324,7 +305,6 @@ def plot_single_timepoint_bf_outliers(
 
     outlier_groups = [
         ("Dark", dark_outliers),
-        ("Partial dark", partial_dark_outliers),
         ("Bright", bright_outliers),
     ]
 
@@ -360,14 +340,7 @@ def plot_single_timepoint_bf_outliers(
     secax.set_xticks(np.arange(0, max_tp + 1, 50))
     secax.tick_params(axis="x")
 
-    # Insert a "fake" third entry to get the legend to divide nicely into
-    # three columns.
-    (lines, labels) = plt.gca().get_legend_handles_labels()
-    lines.insert(2, plt.Line2D([0], [0], linestyle="none", marker="none"))
-    labels.insert(2, "")
     ax.legend(
-        lines,
-        labels,
         loc="upper center",
         ncol=3,
         fontsize=FONTSIZE_XSMALL,
@@ -376,7 +349,7 @@ def plot_single_timepoint_bf_outliers(
         columnspacing=1.0,
     )
 
-    ax.set_ylim(mean_for_lim - mean_for_lim * 0.04, mean_for_lim + mean_for_lim * 0.04)
+    ax.set_ylim(mean_for_lim - mean_for_lim * 0.05, mean_for_lim + mean_for_lim * 0.035)
 
     # reduce label padding
     ax.xaxis.labelpad = 3

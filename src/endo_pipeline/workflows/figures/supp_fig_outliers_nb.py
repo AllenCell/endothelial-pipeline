@@ -113,11 +113,14 @@ gfp_tp_outliers = gfp_tp_outliers_df.loc[position].to_dict()
 plot_single_timepoint_bf_outliers(
     mean_intensity=bf_tp_outliers[Column.Annotations.BF_MEAN_INTENSITY],
     rolling_median=bf_tp_outliers[Column.Annotations.BF_ROLLING_MEDIAN],
-    dark_threshold=bf_tp_outliers[Column.Annotations.BF_DARK_THRESHOLD],
-    partial_dark_threshold=bf_tp_outliers[Column.Annotations.BF_PARTIAL_DARK_THRESHOLD],
+    dark_threshold=bf_tp_outliers[Column.Annotations.BF_PARTIAL_DARK_THRESHOLD],
     bright_threshold=bf_tp_outliers[Column.Annotations.BF_BRIGHT_THRESHOLD],
-    dark_outliers=bf_tp_outliers[Column.Annotations.BF_DARK_OUTLIERS].astype(int),
-    partial_dark_outliers=bf_tp_outliers[Column.Annotations.BF_PARTIAL_DARK_OUTLIERS].astype(int),
+    dark_outliers=sorted(
+        set(
+            bf_tp_outliers[Column.Annotations.BF_DARK_OUTLIERS].astype(int).tolist()
+            + bf_tp_outliers[Column.Annotations.BF_PARTIAL_DARK_OUTLIERS].astype(int).tolist()
+        )
+    ),
     bright_outliers=bf_tp_outliers[Column.Annotations.BF_BRIGHT_OUTLIERS].astype(int),
     dataset_name=dataset_bf,
     position=position,
