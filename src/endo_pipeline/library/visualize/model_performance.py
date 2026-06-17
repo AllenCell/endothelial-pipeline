@@ -2,7 +2,7 @@
 
 from pathlib import Path
 from textwrap import wrap
-from typing import cast
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 from matplotlib.figure import Figure
@@ -15,7 +15,10 @@ from endo_pipeline.library.visualize.figure_utils import make_contact_sheet
 from endo_pipeline.settings.examples import ExampleImage
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL, FONTSIZE_XSMALL
 
-MODEL_PERFORMANCE_CONTACT_SHEET_METRIC_KWARGS = {
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
+
+MODEL_PERFORMANCE_CONTACT_SHEET_METRIC_KWARGS: dict[str, Any] = {
     "color": "yellow",
     "va": "bottom",
     "weight": "bold",
@@ -264,9 +267,9 @@ def plot_model_performance_summary_contact_sheet(
     model_manifest_name: str,
     run_name: str,
     example_groups: dict[str, list[ExampleImage]],
-    conditioning_examples: list[ExampleImage],
-    diffusion_examples: list[ExampleImage],
-    denoised_examples: list[ExampleImage],
+    conditioning_examples: list["NDArray"],
+    diffusion_examples: list["NDArray"],
+    denoised_examples: list["NDArray"],
     conditioning_label: str,
     comparison_metrics: list[ModelComparisonMetrics] | None = None,
     figure_size: tuple[float, float] | None = None,

@@ -426,9 +426,7 @@ def aggregate_model_comparison_metrics(metrics_df: pd.DataFrame) -> pd.DataFrame
     ).merge(aggregate_counts)
 
 
-def group_aggregate_model_comparison_metrics(
-    aggregate_df: pd.DataFrame,
-) -> dict[str, dict[tuple[str, str], dict[str, int | float]]]:
+def group_aggregate_model_comparison_metrics(aggregate_df: pd.DataFrame) -> dict:
     """
     Restructure entries in aggregate dataframe into nested dictionary.
 
