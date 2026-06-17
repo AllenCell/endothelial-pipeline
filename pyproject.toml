@@ -65,7 +65,7 @@ dependencies = [
 
 requires-python = ">=3.11,<3.12"
 readme = "README.md"
-license = { text = "AISL" }
+license = "BSD-3-Clause"
 
 [project.optional-dependencies]
 internal = [
