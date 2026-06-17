@@ -451,9 +451,6 @@ MODEL_COMPARISON_EXAMPLES: dict[str, list[ExampleImage]] = {
 }
 """Map of example group names to list of example images."""
 
-EXAMPLE_DIFFAE_TRAINING_SCHEMATIC = "20250428_20X"
-
-
 EXAMPLES_DIFFAE_TRAINING_ARCHITECTURE_EXAMPLE: ExampleImage = ExampleImage(
     dataset_name="20250428_20X",
     position=0,
