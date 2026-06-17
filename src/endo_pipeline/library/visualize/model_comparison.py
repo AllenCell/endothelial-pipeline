@@ -287,7 +287,7 @@ def make_model_prediction_correlation_panel(
     # Set defaults for model runs, example group, and metric
     model_runs = DEFAULT_MODEL_COMPARISON_RUNS
     metric = "corr"
-    example_group = "replicate"
+    example_group: Literal["training", "validation", "replicate"] = "replicate"
 
     # Load all metrics and then aggregate by example group and random seed
     all_metrics_df = load_model_comparison_metrics(model_runs, [example_group])
