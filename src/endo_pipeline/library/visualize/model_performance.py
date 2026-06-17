@@ -12,6 +12,7 @@ from matplotlib.lines import Line2D
 from endo_pipeline.io.output import save_plot_to_path
 from endo_pipeline.library.model.model_comparison import ModelComparisonMetrics
 from endo_pipeline.library.visualize.figure_utils import make_contact_sheet
+from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.settings.examples import ExampleImage
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL, FONTSIZE_XSMALL
 
@@ -275,7 +276,7 @@ def plot_model_performance_summary_contact_sheet(
     figure_size: tuple[float, float] | None = None,
 ) -> None:
     """
-    Create and save model performance summary contact sheet for one example.
+    Create and save model performance summary contact sheet for examples.
 
     Parameters
     ----------
@@ -441,6 +442,182 @@ def plot_model_performance_summary_contact_sheet(
         fig,
         output_path,
         f"{model_manifest_name}_{run_name}_model_performance_summary{file_name_suffix}",
+        tight_layout=False,
+        show_and_close=True,
+    )
+
+
+@figure_panel("Contact sheet showing DiffAE model performance examples")
+def make_model_performance_examples_panel(
+    output_path: Path,
+    num_gpus: int | None = None,
+    figure_size: tuple[float, float] = (6.5, 4.4),
+) -> Path:
+    """
+    Create contact sheet showing DiffAE model performance examples.
+
+    Parameters
+    ----------
+    output_path
+        Output path to save contact sheet.
+    num_gpus
+        Number of GPUs to use. If None, run on CPU.
+    figure_size
+        Size of contact sheet.
+
+    Returns
+    -------
+    :
+        Path to output contact sheet.
+    """
+
+    from typing import cast
+
+    from numpy.random import default_rng
+    from omegaconf import DictConfig
+
+    from endo_pipeline.io import load_model
+    from endo_pipeline.io.load_models import instantiate_model_target_class
+    from endo_pipeline.library.model.diffae.eval_diffae import get_latent_vector_from_crop
+    from endo_pipeline.library.model.diffae.generate_image import (
+        generate_from_coords_and_noised_image,
+    )
+    from endo_pipeline.library.model.model_comparison import (
+        load_transformed_conditioning_example_image,
+        load_transformed_diffusion_example_image,
+    )
+    from endo_pipeline.library.model.model_performance import (
+        denoise_with_scrambled_conditioning_input,
+        denoise_with_scrambled_latent_vector,
+    )
+    from endo_pipeline.library.visualize.figure_utils import add_scalebar
+    from endo_pipeline.manifests import load_model_manifest
+    from endo_pipeline.settings.examples import DIFFAE_MODEL_PERFORMANCE_PANEL_EXAMPLES
+    from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_MODEL_MANIFEST_NAME,
+        DEFAULT_MODEL_RUN_NAME,
+        RANDOM_SEED,
+    )
+
+    # Set RNG seed
+    rng = default_rng(seed=RANDOM_SEED)
+
+    # Load model manifest and get run name (if not provided)
+    model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
+    run_name = DEFAULT_MODEL_RUN_NAME
+
+    # Load model for run and get model config. First load the model without
+    # instantiation to grab the model config, then instantiate for use later.
+    model_location = model_manifest.locations[run_name]
+    model_ = load_model(model_location, instantiate=False)
+    model_config: DictConfig = cast(DictConfig, model_.cfg)
+    model = instantiate_model_target_class(model_)
+
+    # Collect examples for panel
+    all_conditioning_examples = []
+    all_diffusion_examples = []
+    all_denoised_examples = []
+    all_denoised_scrambled_latent_examples = []
+    all_denoised_scrambled_input_examples = []
+
+    for example in DIFFAE_MODEL_PERFORMANCE_PANEL_EXAMPLES:
+        # Load transformed conditioning and diffusion examples
+        conditioning_ex = load_transformed_conditioning_example_image(example, model_config)
+        diffusion_ex = load_transformed_diffusion_example_image(example, model_config)
+
+        # Apply noise to conditioning image and then denoise
+        noise = rng.standard_normal(size=conditioning_ex.shape)
+        latent = get_latent_vector_from_crop(model, conditioning_ex, num_gpus=num_gpus)
+        denoised_ex = generate_from_coords_and_noised_image(model, latent, noise, num_gpus=num_gpus)
+
+        # Scrambled latent vector and scrambled input image
+        denoised_scrambled_latent = denoise_with_scrambled_latent_vector(
+            rng, model, [noise], latent, num_gpus
+        )
+        denoised_scrambled_input = denoise_with_scrambled_conditioning_input(
+            rng, model, [noise], conditioning_ex, num_gpus
+        )
+
+        # Add examples to list for use in summary figure
+        all_conditioning_examples.append(conditioning_ex)
+        all_diffusion_examples.append(diffusion_ex)
+        all_denoised_examples.append(denoised_ex)
+        all_denoised_scrambled_latent_examples.append(denoised_scrambled_latent[0])
+        all_denoised_scrambled_input_examples.append(denoised_scrambled_input[0])
+
+    # Build panels and set column titles
+    panels = [
+        *[img.squeeze() for img in all_conditioning_examples],
+        *[img.squeeze() for img in all_diffusion_examples],
+        *[img.squeeze() for img in all_denoised_examples],
+        *[img.squeeze() for img in all_denoised_scrambled_latent_examples],
+        *[img.squeeze() for img in all_denoised_scrambled_input_examples],
+    ]
+
+    fig = make_contact_sheet(
+        panels=panels,
+        max_rows=len(DIFFAE_MODEL_PERFORMANCE_PANEL_EXAMPLES),
+        max_cols=5,
+        direction="top-down first",
+        subplot_kwargs={"frame_on": False},
+        fig_kwargs={"figsize": figure_size},
+        use_constrained_layout=True,
+    )
+
+    # Add column titles with adjusted sizing
+    titles = [
+        ("Brightfield\nencoder input", FONTSIZE_MEDIUM),
+        ("Target\nVE-cadherin", FONTSIZE_MEDIUM),
+        ("latent vector\nfrom brightfield", FONTSIZE_SMALL),
+        ("scrambled latent vector\nfrom brightfield", FONTSIZE_SMALL),
+        ("latent vector from\nscrambled brightfield", FONTSIZE_SMALL),
+    ]
+
+    for index, (title, fontsize) in enumerate(titles):
+        ax = fig.get_axes()[index]
+        ax.set_title(title, fontsize=fontsize, weight="normal")
+
+    # Adjust the layout to make space for title
+    layout_engine = cast(LayoutEngine, fig.get_layout_engine())
+    layout_engine.set(**{"rect": (0, 0, 1, 0.95), "h_pad": 0.02, "w_pad": 0.02})
+    fig.canvas.draw()
+
+    # Add a title above the last three columns of predicted images
+    column_width = fig.get_axes()[3].get_position().width
+    center_x = fig.get_axes()[3].get_position().x0 + (column_width / 2)
+    fig.text(
+        x=center_x,
+        y=0.97,
+        s="Predicted VE-Cadherin conditioned on:",
+        ha="center",
+        fontweight="bold",
+        fontsize=FONTSIZE_MEDIUM,
+    )
+
+    # Draw a line to group the last three columns of predicted images
+    left_x = fig.get_axes()[2].get_position().x0
+    right_x = fig.get_axes()[4].get_position().x1
+    line = Line2D([left_x, right_x], [0.96, 0.96], lw=0.5, color="k")
+    fig.add_artist(line)
+
+    # Add scale bar on every image with text label only on the top-left panel
+    for i, ax in enumerate(fig.get_axes()):
+        add_scalebar(
+            ax,
+            pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
+            scale_bar_um=20,
+            bar_thickness=3,
+            padding=5,
+            location="lower right",
+            include_label=(i == 0),
+        )
+
+    return save_plot_to_path(
+        fig,
+        output_path,
+        "model_performance_examples",
+        file_format=".svg",
         tight_layout=False,
         show_and_close=True,
     )

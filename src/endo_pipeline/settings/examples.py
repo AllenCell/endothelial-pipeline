@@ -462,6 +462,9 @@ EXAMPLES_DIFFAE_TRAINING_VALIDATION: list[ExampleImage] = [
         crop_y_start=190,
         description="6. PARALLEL, middle of min flow with bright puncta.",
     ),
+]
+
+DIFFAE_MODEL_PERFORMANCE_PANEL_EXAMPLES: list[ExampleImage] = [
     ExampleImage(
         dataset_name="20250409_20X",
         position=0,
@@ -487,6 +490,7 @@ EXAMPLES_DIFFAE_TRAINING_VALIDATION: list[ExampleImage] = [
         description="PERPENDICULAR, end of no flow.",
     ),
 ]
+"""Examples for the DiffAE model performance contact sheet."""
 
 SUPP_FIG_OPTICAL_FLOW_COHERENT_EXAMPLE: ExampleImage = ExampleImage(
     dataset_name="20250409_20X",

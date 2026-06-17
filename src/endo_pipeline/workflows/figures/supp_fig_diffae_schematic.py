@@ -1,4 +1,7 @@
-def main() -> None:
+from endo_pipeline.cli import UniqueStrList
+
+
+def main(include_panels: UniqueStrList | None = None) -> None:
     """
     Create the DiffAE model training and eval schematic figure assets.
 
@@ -23,24 +26,20 @@ def main() -> None:
     from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import get_output_path, load_image, load_model
     from endo_pipeline.io.mlflow import get_config_path_from_mlflow
-    from endo_pipeline.io.output import save_plot_to_path
     from endo_pipeline.library.model.diffae.eval_diffae import get_latent_vector_from_crop
     from endo_pipeline.library.model.diffae.generate_image import (
         generate_from_coords_and_noised_image,
     )
-    from endo_pipeline.library.model.model_qc import (
-        load_and_preprocess_example_crop,
-        run_denoising_experiments,
-    )
     from endo_pipeline.library.process.image_processing import crop_image
+    from endo_pipeline.library.visualize.figures import parse_placeholder_panels
     from endo_pipeline.library.visualize.model_inputs.image_preprocessing_steps import (
         apply_img_transforms,
         create_data_dict_loaded_image,
         get_image_transforms,
         get_target_image_from_sample,
     )
-    from endo_pipeline.library.visualize.model_qc_plots import (
-        create_validation_examples_contact_sheet,
+    from endo_pipeline.library.visualize.model_performance import (
+        make_model_performance_examples_panel,
     )
     from endo_pipeline.library.visualize.model_training_schematic import (
         create_model_training_schematic_images,
@@ -50,11 +49,7 @@ def main() -> None:
         EXAMPLE_DIFFAE_TRAINING_SCHEMATIC,
         EXAMPLES_DIFFAE_TRAINING_VALIDATION,
     )
-    from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
-    from endo_pipeline.settings.image_data import (
-        DIFFAE_ZARR_RESOLUTION_LEVEL,
-        PIXEL_SIZE_3i_20x_RESOLUTION_1,
-    )
+    from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT,
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -63,6 +58,10 @@ def main() -> None:
     )
 
     plt.style.use("endo_pipeline.figure")
+
+    placeholders = parse_placeholder_panels(include_panels, ["A", "B"])
+
+    output_path = get_output_path(__file__)
 
     logger = logging.getLogger(__name__)
 
@@ -87,9 +86,6 @@ def main() -> None:
     # + ``diffusion_key="raw_cdh5"`` means the model was trained to denoise
     # CDH5 images conditioned on the semantic embedding of brightfield images.
     channel_key_for_conditioning_input = model.hparams.condition_key
-    label_for_conditioning = (
-        "Brightfield" if channel_key_for_conditioning_input == "raw_bf" else "VE-cadherin"
-    )
 
     # The image-preprocessing transforms still need the full training
     # config from MLflow: ``data.train_dataloaders.dataset.transform`` is
@@ -110,11 +106,6 @@ def main() -> None:
     # All validation examples except the schematic FOV are tiled into the
     # brightfield QC contact sheet; the schematic FOV instead drives the
     # figure-2 training/eval diagram thumbnails.
-    cond_crop_list = []
-    diffusion_input_crop_list = []
-    denoised_by_cond_list = []
-    denoised_scrambled_latent_list = []
-    denoised_scrambled_input_list = []
 
     for example in EXAMPLES_DIFFAE_TRAINING_VALIDATION:
         dataset_name = example.dataset_name
@@ -185,57 +176,8 @@ def main() -> None:
             )
             continue
 
-        # Remaining examples: denoise from pure noise (``noise_levels=[]``) for
-        # the contact sheet, including the two negative controls (scrambled
-        # latent + scrambled input image). Shares the inference helper with
-        # the development model-QC workflow.
-        logger.info(f"Processing brightfield QC for dataset: {dataset_name}")
-        conditioning_input_crop, diffusion_input_crop = load_and_preprocess_example_crop(
-            example,
-            model_config,
-            crop_size,
-            channel_key_for_conditioning_input,
-            DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT,
-        )
-        denoising = run_denoising_experiments(
-            model,
-            conditioning_input_crop,
-            diffusion_input_crop,
-            rng,
-            noise_levels=[],
-            num_gpus=NUM_GPUS,
-        )
-
-        cond_crop_list.append(conditioning_input_crop.squeeze())
-        diffusion_input_crop_list.append(diffusion_input_crop.squeeze())
-        denoised_by_cond_list.append(denoising["denoised_normal"][0].squeeze())
-        denoised_scrambled_latent_list.append(
-            denoising["denoised_scrambled_embedding"][0].squeeze()
-        )
-        denoised_scrambled_input_list.append(denoising["denoised_scrambled_input"][0].squeeze())
-
-    # Brightfield QC contact sheet -- same figure-styled build as the
-    # VE-cadherin panel in ``supp-fig-diffae-model``.
-    scalebar_um = 20
-    fig = create_validation_examples_contact_sheet(
-        cond_crop_list,
-        diffusion_input_crop_list,
-        denoised_by_cond_list,
-        denoised_scrambled_latent_list,
-        denoised_scrambled_input_list,
-        label_for_conditioning,
-        pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
-        figure_width=MAX_FIGURE_WIDTH,
-        scalebar_um=scalebar_um,
-        scalebar_location="lower right",
-    )
-    save_plot_to_path(
-        fig,
-        output_path,
-        f"Model_QC_Examples_scalebar{scalebar_um}",
-        file_format=".svg",
-        pad_inches=0,
-        transparent=True,
+    examples_path = make_model_performance_examples_panel(
+        output_path, NUM_GPUS, **placeholders["B"]
     )
 
 
