@@ -222,22 +222,18 @@ DATASET_INFO_COLUMNS: list[ColumnNameType] = [
 # =========================================
 
 DEFAULT_MODEL_QC_LABEL_MAP: dict[tuple[str, str], str] = {
-    ("diffae_baseline", "latent_8"): "8 BF",
-    ("diffae_baseline", "latent_16"): "16 BF",
-    ("diffae_baseline", "latent_32"): "32 BF",
-    ("diffae_baseline", "latent_64"): "64 BF",
-    ("diffae_baseline", "latent_128"): "128 BF",
-    ("diffae_baseline", "latent_256"): "256 BF",
-    ("diffae_baseline", "latent_512"): "512 BF",
-    ("diffae_baseline", "latent_1024"): "1024 BF",
-    ("diffae_cdh5_conditioned", "latent_512"): "512 CDH5",
-    ("diffae_cdh5_conditioned", "latent_1024"): "1024 CDH5",
+    ("diffae_baseline", "latent_8"): "BF-8",
+    ("diffae_baseline", "latent_16"): "BF-16",
+    ("diffae_baseline", "latent_32"): "BF-32",
+    ("diffae_baseline", "latent_64"): "BF-64",
+    ("diffae_baseline", "latent_128"): "BF-128",
+    ("diffae_baseline", "latent_256"): "BF-256",
+    ("diffae_baseline", "latent_512"): "BF-512",
+    ("diffae_baseline", "latent_1024"): "BF-1024",
+    ("diffae_cdh5_conditioned", "latent_512"): "VE-cad-\n512",
+    ("diffae_cdh5_conditioned", "latent_1024"): "VE-cad-\n1024",
 }
-"""``(manifest_name, run_name)`` -> bar-plot label for the 10-model QC comparison.
-
-Covers 8 brightfield-conditioned latent dimensions (8--1024) and 2 CDH5-
-conditioned models (512, 1024), in plot order.
-"""
+"""Map of `(manifest_name, run_name) to bar plot label."""
 
 DEFAULT_MODEL_COMPARISON_RUNS: list[tuple[str, str]] = list(DEFAULT_MODEL_QC_LABEL_MAP.keys())
 """List of default model comparison model runs (same order as label map)."""

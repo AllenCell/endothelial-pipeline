@@ -476,8 +476,6 @@ def make_model_training_architecture_panel(
         Path to output diagram.
     """
 
-    from typing import cast
-
     import matplotlib.pyplot as plt
     from matplotlib import patches
     from numpy.random import default_rng
@@ -689,8 +687,6 @@ def make_model_performance_examples_panel(
     :
         Path to output contact sheet.
     """
-
-    from typing import cast
 
     from numpy.random import default_rng
     from omegaconf import DictConfig

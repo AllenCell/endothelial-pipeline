@@ -1,4 +1,7 @@
-def main() -> None:
+from endo_pipeline.cli import UniqueStrList
+
+
+def main(include_panels: UniqueStrList | None = None) -> None:
     """
     Create the VE-cadherin conditioned model validation figure.
 
@@ -39,6 +42,14 @@ def main() -> None:
         get_image_transforms,
         get_target_image_from_sample,
     )
+    from endo_pipeline.library.visualize.figures import (
+        FigurePanel,
+        build_figure_from_panels,
+        parse_placeholder_panels,
+    )
+    from endo_pipeline.library.visualize.model_comparison import (
+        make_model_prediction_correlation_panel,
+    )
     from endo_pipeline.library.visualize.model_qc_plots import (
         create_rep2_correlation_bar_plot,
         create_validation_examples_contact_sheet,
@@ -68,7 +79,9 @@ def main() -> None:
 
     plt.style.use("endo_pipeline.figure")
 
-    logger = logging.getLogger(__name__)
+    placeholders = parse_placeholder_panels(include_panels, ["A", "B"])
+
+    output_path = get_output_path(__file__)
 
     # Panel A renders the cdh5-conditioned positive-control contact
     # sheet. The loop is retained as a single-element iterable so the
@@ -248,92 +261,10 @@ def main() -> None:
     )
     panel_a_svg_path = output_path / f"{contact_sheet_name}.svg"
 
-    # ------------------------------------------------------------------
-    # Panel B: quantitative Rep-2 Pearson-correlation sweep across the
-    # full DEFAULT_MODEL_QC roster (BF latent 8->1024 + CDH5 controls).
-    # Driven entirely by the per-``manifest_name`` dataframe manifests
-    # emitted by the ``calculate-model-comparison-metrics`` production
-    # workflow -- no GPU work here, just load + aggregate + plot.
-    # ------------------------------------------------------------------
-
-    # One dataframe manifest per unique sweep ``manifest_name`` (e.g.
-    # baseline + cdh5 positive control), produced by
-    # ``calculate-model-comparison-metrics``.  Preserve first-seen order
-    # so logging matches the curated sweep ordering.
-    unique_manifest_names = list(dict.fromkeys(DEFAULT_MODEL_QC_MANIFEST_NAMES))
-    dataframe_manifests = [
-        load_dataframe_manifest(f"{DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_PREFIX}_{mn}")
-        for mn in unique_manifest_names
-    ]
-    for dfm in dataframe_manifests:
-        logger.info(
-            "Loaded dataframe manifest [ %s ] with %d locations.",
-            dfm.name,
-            len(dfm.locations),
-        )
-    all_seed_results, discovered_model_keys, seeds = load_results_from_manifests(
-        dataframe_manifests
+    correlation_panel_path = make_model_prediction_correlation_panel(
+        output_path=output_path, **placeholders["B"]
     )
 
-    # Map (manifest_name, run_name) -> curated label so the bars come out
-    # in the publication order regardless of how rows landed in the parquet.
-    sweep_label_map = {
-        (m, r): lbl
-        for m, r, lbl in zip(
-            DEFAULT_MODEL_QC_MANIFEST_NAMES,
-            DEFAULT_MODEL_QC_RUN_NAMES,
-            DEFAULT_MODEL_QC_LABELS,
-            strict=True,
-        )
-    }
-    missing = [
-        k for k in discovered_model_keys if (k.manifest_name, k.run_name) not in sweep_label_map
-    ]
-    if missing:
-        raise ValueError(
-            "Panel B expects only the curated DEFAULT_MODEL_QC sweep models. "
-            f"Unexpected entries in dataframe manifest: {missing}"
-        )
-
-    discovered = {(k.manifest_name, k.run_name): k for k in discovered_model_keys}
-    ordered_pairs = [
-        (m, r)
-        for m, r in zip(DEFAULT_MODEL_QC_MANIFEST_NAMES, DEFAULT_MODEL_QC_RUN_NAMES, strict=True)
-        if (m, r) in discovered
-    ]
-    sweep_model_keys = [discovered[p] for p in ordered_pairs]
-    sweep_model_labels = [sweep_label_map[p] for p in ordered_pairs]
-
-    example_sets_for_metrics = {"rep_2_positions"}
-    all_metrics, _ = aggregate_seed_metrics(
-        all_seed_results, sweep_model_keys, example_sets_for_metrics, seeds
-    )
-    baseline_data = compute_baseline_data(all_metrics, compute_baseline=False)
-    models_data = build_models_data(
-        all_metrics, sweep_model_keys, baseline_data, compute_baseline=False
-    )
-
-    # Panel B output goes alongside the qualitative per-model PDFs in the
-    # parent figure_2_model_qc directory so they composite cleanly in
-    # Illustrator.  Format / fonts mirror panel A's export so the bar
-    # chart drops into the same panel layout without rescaling.
-    panel_b_output_path = get_output_path("figure_2_model_qc")
-    panel_b_filename = "Model_QC_Rep2_Correlation_Bars"
-    create_rep2_correlation_bar_plot(
-        models_data=models_data,
-        model_labels=sweep_model_labels,
-        output_path=panel_b_output_path,
-        filename=panel_b_filename,
-        figsize=(MAX_FIGURE_WIDTH - 0.3, 3.6),
-        file_format=".svg",
-        label_fontsize=10,
-        save_kwargs={"pad_inches": 0, "transparent": True},
-    )
-    panel_b_svg_path = panel_b_output_path / f"{panel_b_filename}.svg"
-
-    # ------------------------------------------------------------------
-    # Composite: panel A (cdh5 contact sheet) above panel B (Rep-2 bars).
-    # ------------------------------------------------------------------
     figure_panels = [
         FigurePanel(
             letter="A",
@@ -345,16 +276,17 @@ def main() -> None:
         ),
         FigurePanel(
             letter="B",
-            path=panel_b_svg_path,
+            path=correlation_panel_path,
             x_position=0.0,
             y_position=3.4,
             x_offset=0.25,
             y_offset=0.15,
         ),
     ]
+
     build_figure_from_panels(
         figure_panels,
-        panel_b_output_path / "Supplemental_Figure_Diffae_Model.svg",
+        output_path / "supp_fig_diffae_model.svg",
         width=MAX_FIGURE_WIDTH,
         height=7.3,
     )
