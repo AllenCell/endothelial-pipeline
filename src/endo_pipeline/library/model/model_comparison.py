@@ -290,50 +290,6 @@ def load_transformed_diffusion_example_image(
     return load_transformed_example_image(example, model_config, target_key)
 
 
-def compute_denoising_metrics(
-    ground_truth: NDArray,
-    denoised_images: list[NDArray],
-    compute_all_noise_levels: bool = False,
-) -> tuple[list[dict] | None, dict]:
-    """Compute image quality metrics for denoised images.
-
-    Parameters
-    ----------
-    ground_truth
-        Squeezed ground-truth image.
-    denoised_images
-        Denoised outputs at successive noise levels (100 % noise is last).
-    lpips_calculator
-        Pre-initialised calculator.  A new one is created when ``None``.
-    compute_all_noise_levels
-        If ``True``, return metrics for every noise level.  Otherwise only
-        the 100 % noise level (last entry) is evaluated.
-
-    Returns
-    -------
-    metrics_list
-        Per-noise-level metric dicts, or ``None`` when
-        *compute_all_noise_levels* is ``False``.
-    metrics_100
-        Metric dict for the 100 % noise level.
-    """
-
-    metrics_calculator = ModelComparisonMetricsCalculator()
-
-    if compute_all_noise_levels:
-        metrics = [
-            metrics_calculator.compute_all_metrics(ground_truth, img.squeeze())._asdict()
-            for img in denoised_images
-        ]
-        metrics_100 = metrics[-1]
-    else:
-        denoised_100 = denoised_images[-1].squeeze()
-        metrics_100 = metrics_calculator.compute_all_metrics(ground_truth, denoised_100)._asdict()
-        metrics = None
-
-    return metrics, metrics_100
-
-
 def load_model_comparison_metrics(
     model_runs: list[tuple[str, str]],
     example_groups: list[Literal["training", "validation", "replicate"]] | None = None,
