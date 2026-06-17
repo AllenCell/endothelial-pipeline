@@ -186,7 +186,7 @@ def save_model_comparison_summary(
     summary_lines.append("\n" + "=" * 80)
     summary_text = "\n".join(summary_lines)
 
-    file_path = output_path / "model_performance_summary.txt"
+    file_path = output_path / "model_comparison_summary.txt"
     file_path.write_text(summary_text + "\n")
 
     print(summary_text)
