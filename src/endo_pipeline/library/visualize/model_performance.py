@@ -458,6 +458,23 @@ def make_model_training_architecture_panel(
     num_gpus: int | None = None,
     figure_size: tuple[float, float] = (6.5, 3.2),
 ) -> Path:
+    """
+    Create thumbnails for various parts of the DiffAE training architecture.
+
+    Parameters
+    ----------
+    output_path
+        Output path to save thumbnails and diagram.
+    num_gpus
+        Number of GPUs to use. If None, run on CPU.
+    figure_size
+        Size of overall diagram.
+
+    Returns
+    -------
+    :
+        Path to output diagram.
+    """
 
     from typing import cast
 
