@@ -13,7 +13,6 @@ This package provides helpers for:
   (:mod:`.results_io`)
 """
 
-from .denoising import run_denoising_experiments
 from .evaluation import ModelKey
 from .metrics import aggregate_seed_metrics, build_models_data, compute_baseline_data
 
@@ -22,5 +21,4 @@ __all__ = [
     "aggregate_seed_metrics",
     "build_models_data",
     "compute_baseline_data",
-    "run_denoising_experiments",
 ]
