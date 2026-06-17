@@ -383,7 +383,7 @@ def aggregate_model_comparison_metrics(metrics_df: pd.DataFrame) -> pd.DataFrame
     """
     Aggregate model comparison metrics across examples and seeds.
 
-    Means and standard deviations are taken across examples and random seeds. A
+    Means and standard deviations are taken across examples and random seeds. An
     extra column "N" is added containing the total number of examples and seeds.
 
     Parameters

@@ -200,9 +200,8 @@ def save_model_performance_denoising_examples(
     """
     Save noise and denoised examples to tiff.
 
-    All noised examples are combined into a single tiff, with different noise
-    levels in each channel. All denoised examples are combined into a single
-    tiff, with different noise levels in each channel.
+    For both the noised and denoised examples, all noise levels are combined
+    into a single tiff with each noise level in a separate channel.
 
     Parameters
     ----------

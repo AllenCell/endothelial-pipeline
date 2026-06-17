@@ -323,7 +323,7 @@ def plot_model_performance_summary_contact_sheet(
         # Add empty column to space out groups
         panels.extend(empty_column)
 
-        # Calculat indices to use based on number of examples in the group
+        # Calculate indices to use based on number of examples in the group
         num_examples_in_group = len(examples)
         index_end = index_start + num_examples_in_group
 
