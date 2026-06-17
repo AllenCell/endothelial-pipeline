@@ -386,6 +386,7 @@ def plot_model_performance_summary_contact_sheet(
     column_width = fig.get_axes()[1].get_position().width
     row_height = fig.get_axes()[1].get_position().height
 
+    flat_index = 0
     for group_index, (group_name, examples) in enumerate(example_groups.items()):
         # Add group name for set of three columns
         center_x = fig.get_axes()[group_index * 4 + 2].get_position().x0 + (column_width / 2)
@@ -422,7 +423,7 @@ def plot_model_performance_summary_contact_sheet(
             )
 
             if comparison_metrics is not None:
-                metrics = comparison_metrics[example_index]
+                metrics = comparison_metrics[flat_index]
                 x_pos = fig.get_axes()[group_index * 4 + 3].get_position().x0
                 y_pos = fig.get_axes()[example_index * 4 * num_groups + 1].get_position().y0
                 text = "\n".join(
@@ -433,6 +434,7 @@ def plot_model_performance_summary_contact_sheet(
                     ]
                 )
                 fig.text(x=x_pos, y=y_pos, s=text, **MODEL_PERFORMANCE_CONTACT_SHEET_METRIC_KWARGS)
+                flat_index = flat_index + 1
 
     file_name_suffix = "_with_metrics" if comparison_metrics is not None else ""
     save_plot_to_path(
