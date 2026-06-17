@@ -736,6 +736,10 @@ def make_model_performance_examples_panel(
     all_denoised_scrambled_latent_examples = []
     all_denoised_scrambled_input_examples = []
 
+    # Extra call to the RNG for reproduciblity with initial version of this
+    # figure, which created all panels at the same time
+    rng.standard_normal(size=(1, 128, 128))
+
     for example in DIFFAE_MODEL_PERFORMANCE_PANEL_EXAMPLES:
         # Load transformed conditioning and diffusion examples
         conditioning_ex = load_transformed_conditioning_example_image(example, model_config)
