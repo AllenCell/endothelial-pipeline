@@ -455,7 +455,7 @@ def plot_single_timepoint_gfp_outliers(
         fontsize=FONTSIZE_XSMALL,
         handlelength=1.1,
         handletextpad=0.4,
-        columnspacing=1.0,
+        columnspacing=0.5,
         borderpad=0.25,
         borderaxespad=0.25,
     )
