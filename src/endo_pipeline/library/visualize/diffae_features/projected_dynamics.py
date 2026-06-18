@@ -1,12 +1,16 @@
 """Methods for computing and visualizing a 3D vector field projected onto a 2D plane."""
 
+import logging
 from collections.abc import Callable
 from typing import Any, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
 
+logger = logging.getLogger(__name__)
+
 from endo_pipeline.library.analyze.numerics.fixed_points import (
+    find_saddle_by_deflation,
     load_fixed_points_dataframe_for_dataset,
 )
 from endo_pipeline.library.analyze.vector_field_estimation import (
@@ -225,14 +229,6 @@ def visualize_projected_dynamics(
     stable_df = fixed_points_df[
         fixed_points_df[Column.VectorField.STABILITY] == StabilityLabel.STABLE
     ]
-    saddle_df = fixed_points_df[
-        fixed_points_df[Column.VectorField.STABILITY] == StabilityLabel.SADDLE
-    ]
-
-    if len(stable_df) < 2 or len(saddle_df) < 1:
-        raise ValueError(
-            "Not enough stable or saddle fixed points with high detection rate to define a plane for projection."
-        )
 
     column_names_str = cast(list[str], column_names)
     stable_fixed_point_1_ = stable_df.iloc[0][column_names_str].to_numpy()
@@ -254,14 +250,55 @@ def visualize_projected_dynamics(
         else stable_fixed_point_1_
     )
 
-    # 3rd point: first saddle point with theta value between the two stable
-    # points, or just the first saddle point if none are in between
-    saddle_point = saddle_df.iloc[0][column_names_str].to_numpy()
-
+    # Find the saddle point via deflation: the residual is modified to repel
+    # the solver from the two known stable fixed points, driving it toward the
+    # saddle that lies between them.
+    saddle_point, is_saddle, is_heteroclinic, eigvals, eigvecs = find_saddle_by_deflation(
+        vector_field_function, stable_fixed_point_1, stable_fixed_point_2
+    )
+    if not is_saddle:
+        logger.warning(
+            "visualize_projected_dynamics: deflation did not find a confirmed saddle "
+            "for dataset '%s'; proceeding with best candidate. Eigenvalues: %s",
+            dataset_name,
+            eigvals,
+        )
+    elif not is_heteroclinic:
+        logger.warning(
+            "visualize_projected_dynamics: saddle found for dataset '%s' but its "
+            "unstable manifold does not confirm a heteroclinic connection to at least "
+            "one stable fixed point. Eigenvalues: %s",
+            dataset_name,
+            eigvals,
+        )
     if saddle_point[0] < VECTOR_FIELD_THETA_RANGE[0]:
         saddle_point[0] += POLAR_ANGLE_PERIOD
     elif saddle_point[0] > VECTOR_FIELD_THETA_RANGE[1]:
         saddle_point[0] -= POLAR_ANGLE_PERIOD
+
+    # Verify the saddle's polar-theta coordinate lies between the two stable
+    # fixed points (which are already sorted so fp1_theta < fp2_theta).
+    # Theta is pi-periodic, so try a ±π shift before falling back to a warning.
+    theta_lo = float(stable_fixed_point_1[0])
+    theta_hi = float(stable_fixed_point_2[0])
+    if not (theta_lo <= saddle_point[0] <= theta_hi):
+        shifted = False
+        for shift in (POLAR_ANGLE_PERIOD, -POLAR_ANGLE_PERIOD):
+            candidate_theta = saddle_point[0] + shift
+            if theta_lo <= candidate_theta <= theta_hi:
+                saddle_point[0] = candidate_theta
+                shifted = True
+                break
+        if not shifted:
+            logger.warning(
+                "visualize_projected_dynamics: saddle theta (%.4f) for dataset '%s' "
+                "is not between the two stable fixed points (%.4f, %.4f) in polar "
+                "theta after pi-periodic wrapping.",
+                saddle_point[0],
+                dataset_name,
+                theta_lo,
+                theta_hi,
+            )
 
     # get orthonormal basis for the plane; saddle_point is the projected origin
     ortho_basis = _get_orthonormal_basis_for_plane(
@@ -304,9 +341,7 @@ def visualize_projected_dynamics(
         (stable_fixed_point_2, StabilityLabel.STABLE),
         (saddle_point, StabilityLabel.SADDLE),
     ]:
-        print(point, stability_label)
         point_proj = ortho_basis @ (point - saddle_point)
-        print("Projected point:", point_proj)
         ax.plot(
             point_proj[0],
             point_proj[1],
@@ -316,5 +351,52 @@ def visualize_projected_dynamics(
             markeredgewidth=0.5,
             markersize=9,
         )
+
+    # overlay stable (blue, inward arrows) and unstable (red, outward arrows)
+    # eigenspaces at the saddle point (which sits at the 2D origin)
+    arrow_scale = 0.3 * min(x_max - x_min, y_max - y_min)
+    for lam, v3d in zip(eigvals, eigvecs.T, strict=True):
+        v2d = ortho_basis @ v3d
+        v2d_norm = float(np.linalg.norm(v2d))
+        if v2d_norm < 1e-10:
+            # eigenvector is perpendicular to the projection plane — skip
+            continue
+        vx, vy = (v2d / v2d_norm * arrow_scale).tolist()
+        if lam < 0:
+            # stable manifold: arrows from ±v pointing toward the saddle
+            color = FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color
+            for sign in (+1, -1):
+                ax.quiver(
+                    sign * vx,
+                    sign * vy,
+                    -sign * vx,
+                    -sign * vy,
+                    color=color,
+                    scale=1,
+                    scale_units="xy",
+                    angles="xy",
+                    width=0.005,
+                    headwidth=4,
+                    headlength=5,
+                    zorder=3,
+                )
+        else:
+            # unstable manifold: arrows from the saddle pointing toward ±v
+            color = FIXED_POINT_PLOT_STYLE[StabilityLabel.UNSTABLE].color
+            for sign in (+1, -1):
+                ax.quiver(
+                    0,
+                    0,
+                    sign * vx,
+                    sign * vy,
+                    color=color,
+                    scale=1,
+                    scale_units="xy",
+                    angles="xy",
+                    width=0.005,
+                    headwidth=4,
+                    headlength=5,
+                    zorder=3,
+                )
 
     return fig

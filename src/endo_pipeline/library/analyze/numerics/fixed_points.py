@@ -6,7 +6,8 @@ from collections.abc import Callable
 import numpy as np
 import pandas as pd
 from numdifftools import Jacobian
-from scipy.optimize import fsolve
+from scipy.integrate import solve_ivp
+from scipy.optimize import brentq, fsolve
 from scipy.stats import gaussian_kde
 
 from endo_pipeline.io import load_dataframe
@@ -320,6 +321,504 @@ def get_fixed_point_stability(jacobian: np.ndarray) -> StabilityLabel:
         stability = StabilityLabel.STABLE if np.real(eigvals).max() < 0 else StabilityLabel.UNSTABLE
 
     return stability
+
+
+def find_saddle_by_bisection(
+    f: Callable[[np.ndarray], np.ndarray],
+    fp1: np.ndarray,
+    fp2: np.ndarray,
+    tol: float = 1e-10,
+    max_iter: int = 100,
+    integration_time: float = 20.0,
+    reverse_integration_time: float = 50.0,
+) -> np.ndarray:
+    """Find a saddle point by bisecting the segment between two stable fixed points.
+
+    **Strategy**
+
+    Any path connecting two basins of attraction must cross the separatrix.
+    This function bisects the segment ``[fp1, fp2]`` to find a point near the
+    basin boundary, then converges onto the saddle by integrating the *reversed*
+    flow ``-f(x)`` from that boundary point.  Under time-reversal, stable fixed
+    points become unstable and the saddle becomes attracting, so the reversed
+    integration drives the trajectory onto the saddle.
+
+    **Assumptions**
+
+    The segment ``[fp1, fp2]`` must cross the separatrix (basin boundary) at
+    least once.  This is almost always satisfied when ``fp1`` and ``fp2`` are
+    the two known stable fixed points of a bistable system.
+
+    Parameters
+    ----------
+    f
+        Callable representing the vector field.  Must accept a 1-D
+        ``numpy`` array of shape ``(D,)`` and return a 1-D array of the
+        same shape.
+    fp1
+        First stable fixed point, shape ``(D,)``.
+    fp2
+        Second stable fixed point, shape ``(D,)``.
+    tol
+        Absolute tolerance for the bisection step (``brentq`` ``xtol``).
+    max_iter
+        Maximum number of iterations for the bisection step.
+    integration_time
+        Duration of the forward integration used to determine basin membership.
+    reverse_integration_time
+        Duration of the reversed-flow integration used to polish the saddle
+        estimate.
+
+    Returns
+    -------
+    :
+        Estimated saddle point of shape ``(D,)``.
+
+    Raises
+    ------
+    ValueError
+        If the basin label does not flip along the segment ``[fp1, fp2]``,
+        meaning no separatrix crossing was detected with the default 20-point
+        scan.
+
+    """
+
+    def _which_basin(x0: np.ndarray) -> float:
+        """Return +1 if forward flow from *x0* converges to fp1, -1 if to fp2."""
+        sol = solve_ivp(
+            lambda t, x: f(x),
+            [0, integration_time],
+            x0,
+            method="RK45",
+            rtol=1e-8,
+            atol=1e-10,
+            dense_output=False,
+        )
+        x_end = sol.y[:, -1]
+        d1 = np.linalg.norm(x_end - fp1)
+        d2 = np.linalg.norm(x_end - fp2)
+        return +1.0 if d1 < d2 else -1.0
+
+    def _sign_along_segment(alpha: float) -> float:
+        x = (1.0 - alpha) * fp1 + alpha * fp2
+        return _which_basin(x)
+
+    # Coarse scan to locate a sign flip along the segment
+    alphas = np.linspace(0.0, 1.0, 20)
+    signs = [_sign_along_segment(a) for a in alphas]
+    flip_indices = [i for i in range(len(signs) - 1) if signs[i] != signs[i + 1]]
+    if not flip_indices:
+        raise ValueError(
+            "No basin-label flip detected along the segment [fp1, fp2]. "
+            "The segment may not cross the separatrix."
+        )
+    flip = flip_indices[0]
+
+    # Bisect to refine the separatrix crossing point
+    alpha_star = brentq(
+        _sign_along_segment,
+        alphas[flip],
+        alphas[flip + 1],
+        xtol=tol,
+        maxiter=max_iter,
+    )
+    x_separatrix = (1.0 - alpha_star) * fp1 + alpha_star * fp2
+
+    # Polish by integrating the reversed flow to converge onto the saddle
+    sol = solve_ivp(
+        lambda t, x: -f(x),
+        [0, reverse_integration_time],
+        x_separatrix,
+        method="RK45",
+        rtol=1e-10,
+        atol=1e-12,
+    )
+    return sol.y[:, -1]
+
+
+def _deflated_residual(
+    x: np.ndarray,
+    known_roots: list[np.ndarray],
+    f: Callable[[np.ndarray], np.ndarray],
+    p: float = 2.0,
+) -> np.ndarray:
+    """Deflated residual ``M(x) * f(x)`` that blows up at each known root.
+
+    Parameters
+    ----------
+    x
+        Current point, shape ``(D,)``.
+    known_roots
+        List of already-found roots to deflate away.
+    f
+        Original residual function.
+    p
+        Exponent controlling how sharply the deflation factor penalises
+        proximity to known roots.  Defaults to 2.
+
+    Returns
+    -------
+    :
+        Deflated residual of the same shape as ``f(x)``.
+
+    """
+    M = 1.0
+    for r in known_roots:
+        d = max(float(np.linalg.norm(x - r)), 1e-14)
+        M /= d**p
+    return np.asarray(M * f(x), dtype=np.float64)
+
+
+def _is_heteroclinic_saddle(
+    x_saddle: np.ndarray,
+    unstable_eigvecs: np.ndarray,
+    f: Callable[[np.ndarray], np.ndarray],
+    fp1: np.ndarray,
+    fp2: np.ndarray,
+    eps: float = 1e-3,
+    integration_time: float = 50.0,
+    tol: float | None = None,
+) -> bool:
+    """Return True if the saddle's unstable manifold reaches at least one of fp1 or fp2.
+
+    For each column of ``unstable_eigvecs`` (the unstable eigenvectors), the
+    flow is integrated forward from ``x_saddle \u00b1 eps * v``.  The saddle is
+    considered heteroclinically connected if at least one forward trajectory
+    converges toward ``fp1`` or ``fp2``.
+
+    Parameters
+    ----------
+    x_saddle
+        Saddle candidate, shape ``(D,)``.
+    unstable_eigvecs
+        Array of shape ``(D, k)`` whose columns are the eigenvectors with
+        positive real eigenvalue.
+    f
+        Vector field callable ``f(x)`` \u2192 shape ``(D,)``.
+    fp1, fp2
+        The two target stable fixed points, each shape ``(D,)``.
+    eps
+        Perturbation magnitude off the saddle along each unstable direction.
+    integration_time
+        Forward integration duration.
+    tol
+        Maximum distance from the trajectory endpoint to an attractor for it to
+        count as "reached".  If ``None`` (default), the endpoint is always
+        assigned to whichever FP is closer regardless of distance.
+
+    Returns
+    -------
+    :
+        ``True`` if the unstable manifold reaches at least one of ``fp1`` or ``fp2``.
+
+    """
+    reached: set[int] = set()
+    for col in range(unstable_eigvecs.shape[1]):
+        v = unstable_eigvecs[:, col]
+        v_norm = float(np.linalg.norm(v))
+        if v_norm < 1e-10:
+            continue
+        v_unit = v / v_norm
+        for sign in (+1.0, -1.0):
+            x0 = x_saddle + sign * eps * v_unit
+            sol = solve_ivp(
+                lambda t, x, _f=f: _f(x),
+                [0.0, integration_time],
+                x0,
+                method="RK45",
+                rtol=1e-6,
+                atol=1e-8,
+                dense_output=False,
+            )
+            x_end = sol.y[:, -1]
+            d1 = float(np.linalg.norm(x_end - fp1))
+            d2 = float(np.linalg.norm(x_end - fp2))
+            if tol is None or min(d1, d2) < tol:
+                reached.add(1 if d1 < d2 else 2)
+            if len(reached) >= 1:
+                return True  # early exit once at least one FP confirmed reachable
+    return len(reached) >= 1
+
+
+def find_saddle_by_deflation(
+    f: Callable[[np.ndarray], np.ndarray],
+    fp1: np.ndarray,
+    fp2: np.ndarray,
+    Jf: Callable[[np.ndarray], np.ndarray] | None = None,
+    n_scan: int = 30,
+    T_basin: float = 125.0,
+    bisect_xtol: float = 1e-11,
+    deflation_power: int = 2,
+    integration_time: float = 200.0,
+    heteroclinic_eps: float = 1e-4,
+    heteroclinic_tol: float = 0.15,
+    max_retries: int = 7,
+    perturbation_scale: float = 0.05,
+    seed: int = 42,
+) -> tuple[np.ndarray, bool, bool, np.ndarray, np.ndarray]:
+    r"""Find a heteroclinically connecting saddle between two stable fixed points.
+
+    **Strategy**
+
+    1. **Bisect** the segment ``[fp1, fp2]`` using a signed-projection basin
+       label (forward-time integration) to bracket and pin down a point
+       ``x_sep`` near the separatrix between the two basins.
+
+    2. **Deflated fsolve** from ``x_sep``.  The deflation operator
+
+       .. math::
+
+           M(x) = \prod_{r \in \{fp1,\, fp2\}} \|x - r\|^{-p}
+
+       analytically removes the two stable FPs from the root landscape, so
+       the solver converges to the saddle instead of sliding back to an
+       attractor.  Starting from ``x_sep`` gives a geometrically reliable
+       initial guess without needing random restarts.
+
+    3. **Classify** the converged root via the Jacobian (saddle check) and
+       forward-integration of the unstable manifold (heteroclinic check).
+
+    4. **Retry** (up to ``max_retries`` times) with small perturbations of
+       ``x_sep`` if neither check passes, stopping as soon as a heteroclinic
+       saddle is confirmed.
+
+    Among all accumulated candidates the function prefers, in order:
+
+    1. Saddle points whose **unstable manifold connects both fp1 and fp2**
+       (heteroclinic orbit — the target).
+    2. Saddle points without a confirmed heteroclinic connection.
+    3. Any converged root.
+
+    Within each tier, the candidate with the smallest residual ``\|f(x)\|``
+    is returned.
+
+    Parameters
+    ----------
+    f
+        Callable representing the vector field.  Must accept a 1-D
+        ``numpy`` array of shape ``(D,)`` and return a 1-D array of the
+        same shape.
+    fp1
+        First stable fixed point, shape ``(D,)``.
+    fp2
+        Second stable fixed point, shape ``(D,)``.
+    Jf
+        Jacobian of ``f``.  If ``None``, a finite-difference Jacobian is
+        computed automatically via ``numdifftools.Jacobian``.
+    n_scan
+        Number of equally-spaced points along ``[fp1, fp2]`` used in the
+        coarse basin scan before bisection.
+    T_basin
+        Forward integration time used when computing the basin label for each
+        scan point.
+    bisect_xtol
+        Absolute tolerance passed to ``scipy.optimize.brentq`` for refining
+        the separatrix crossing.
+    deflation_power
+        Exponent ``p`` in the deflation operator ``M(x)``.
+    integration_time
+        Forward integration horizon used when checking whether the unstable
+        manifold of a saddle candidate connects to ``fp1`` and ``fp2``.
+    heteroclinic_eps
+        Magnitude of the perturbation off the saddle along each unstable
+        eigenvector direction when probing the heteroclinic connection.
+    heteroclinic_tol
+        Maximum distance from the trajectory endpoint to a stable FP for it
+        to count as "reached" during the heteroclinic check.
+    max_retries
+        Maximum number of additional attempts after the first if no heteroclinic
+        saddle is found.  Total attempts = ``max_retries + 1``.
+    perturbation_scale
+        Standard deviation of the Gaussian noise added to ``x_sep`` on each
+        retry attempt.
+    seed
+        Base random seed.  Retry ``k`` uses ``seed + k``.
+
+    Returns
+    -------
+    best_x
+        Estimated saddle point of shape ``(D,)``.
+    is_saddle
+        ``True`` if the Jacobian at ``best_x`` has eigenvalues of both signs.
+    is_heteroclinic
+        ``True`` if the unstable manifold at ``best_x`` connects at least one
+        of ``fp1`` or ``fp2`` via a heteroclinic orbit.
+    eigvals
+        Real parts of the Jacobian eigenvalues at ``best_x``, shape ``(D,)``.
+    eigvecs
+        Real parts of the corresponding Jacobian eigenvectors, shape ``(D, D)``.
+        Column ``i`` is the eigenvector for ``eigvals[i]``.
+
+    Raises
+    ------
+    ValueError
+        If no basin-label sign change is detected along ``[fp1, fp2]`` or if
+        deflated fsolve does not converge in any attempt.
+
+    """
+    fp1 = np.asarray(fp1, dtype=np.float64)
+    fp2 = np.asarray(fp2, dtype=np.float64)
+    midpoint = 0.5 * (fp1 + fp2)
+    fp_direction = fp1 - fp2  # signed-projection axis
+
+    if Jf is None:
+        Jf = Jacobian(f)
+
+    known: list[np.ndarray] = [fp1, fp2]
+
+    # ── Step 1: bisect [fp1, fp2] by basin label ─────────────────────────────
+    # Basin label = signed projection of the forward endpoint onto fp1-fp2.
+    # Positive → ended near fp1; negative → ended near fp2.
+
+    def _basin_label(alpha: float) -> float:
+        x0 = (1.0 - alpha) * fp1 + alpha * fp2
+        sol = solve_ivp(
+            lambda t, x: f(x),
+            [0.0, T_basin],
+            x0,
+            method="RK45",
+            rtol=1e-7,
+            atol=1e-9,
+            dense_output=False,
+        )
+        return float(np.dot(sol.y[:, -1] - midpoint, fp_direction))
+
+    alphas = np.linspace(0.02, 0.98, n_scan)
+    labels = [_basin_label(a) for a in alphas]
+    flips = [i for i in range(len(labels) - 1) if labels[i] * labels[i + 1] < 0]
+
+    if not flips:
+        raise ValueError(
+            "find_saddle_by_deflation: no basin-label sign change along segment "
+            "[fp1, fp2]. Try increasing n_scan or T_basin."
+        )
+
+    alpha_star = brentq(_basin_label, alphas[flips[0]], alphas[flips[0] + 1], xtol=bisect_xtol)
+    x_sep = np.asarray((1.0 - alpha_star) * fp1 + alpha_star * fp2, dtype=np.float64)
+    logger.debug(
+        "find_saddle_by_deflation: separatrix crossing at alpha=%.8f, x_sep=%s",
+        alpha_star,
+        np.round(x_sep, 6),
+    )
+
+    # ── Step 2: deflated fsolve from x_sep (with retries) ────────────────────
+
+    def deflated_f(x: np.ndarray) -> np.ndarray:
+        return _deflated_residual(x, known, f, p=deflation_power)
+
+    seen: set[tuple[float, ...]] = set()
+    classified: list[tuple] = []
+    heteroclinic_found = False
+
+    for attempt in range(max_retries + 1):
+        x0 = (
+            x_sep.copy()
+            if attempt == 0
+            else (
+                x_sep
+                + np.random.default_rng(seed + attempt).normal(
+                    0.0, perturbation_scale, size=x_sep.shape
+                )
+            )
+        )
+        if attempt > 0:
+            logger.debug(
+                "find_saddle_by_deflation: no heteroclinic saddle after attempt %d; "
+                "retrying with seed %d",
+                attempt,
+                seed + attempt,
+            )
+
+        x_sol, _info, ier, _msg = fsolve(deflated_f, x0, full_output=True)
+        residual = float(np.linalg.norm(f(x_sol)))
+
+        if ier != 1:
+            logger.debug(
+                "find_saddle_by_deflation: fsolve did not converge (ier=%d) attempt %d",
+                ier,
+                attempt,
+            )
+            continue
+
+        key = tuple(np.round(x_sol, 4))
+        if key in seen:
+            continue
+        seen.add(key)
+
+        jac = np.asarray(Jf(x_sol)).real.astype(np.float64)
+        eigvals_cx, eigvecs_cx = np.linalg.eig(jac)
+        ev = eigvals_cx.real
+        evec = eigvecs_cx.real
+
+        is_saddle_c = bool(np.any(ev > 0) and np.any(ev < 0))
+        is_hetero = False
+        if is_saddle_c:
+            unstable_evecs = evec[:, ev > 0]
+            is_hetero = _is_heteroclinic_saddle(
+                x_sol,
+                unstable_evecs,
+                f,
+                fp1,
+                fp2,
+                eps=heteroclinic_eps,
+                integration_time=integration_time,
+                tol=heteroclinic_tol,
+            )
+            if is_hetero:
+                heteroclinic_found = True
+        logger.debug(
+            "find_saddle_by_deflation: candidate %s residual=%.3e "
+            "is_saddle=%s is_heteroclinic=%s eigvals=%s",
+            key,
+            residual,
+            is_saddle_c,
+            is_hetero,
+            ev,
+        )
+        classified.append((residual, x_sol.copy(), is_saddle_c, is_hetero, ev, evec))
+
+        if heteroclinic_found:
+            break
+
+    if not classified:
+        raise ValueError(
+            "find_saddle_by_deflation: deflated fsolve did not converge in any of "
+            f"the {max_retries + 1} attempts starting from x_sep={np.round(x_sep, 4)}. "
+            "Try adjusting perturbation_scale or max_retries."
+        )
+
+    # ── Step 3: select best candidate by tier ────────────────────────────────
+    classified.sort(key=lambda e: e[0])
+    heteroclinic_saddles = [e for e in classified if e[3]]
+    saddles_no_hetero = [e for e in classified if e[2] and not e[3]]
+
+    if heteroclinic_saddles:
+        best_res, best_x, is_saddle, is_heteroclinic, eigvals, eigvecs = heteroclinic_saddles[0]
+    elif saddles_no_hetero:
+        best_res, best_x, is_saddle, is_heteroclinic, eigvals, eigvecs = saddles_no_hetero[0]
+        logger.warning(
+            "find_saddle_by_deflation: saddle found but heteroclinic connection to "
+            "both stable fixed points not confirmed after %d attempt(s). Eigenvalues: %s",
+            max_retries + 1,
+            eigvals,
+        )
+    else:
+        best_res, best_x, is_saddle, is_heteroclinic, eigvals, eigvecs = classified[0]
+        logger.warning(
+            "find_saddle_by_deflation: no saddle candidate found among %d converged "
+            "roots across %d attempt(s); returning lowest-residual root. Eigenvalues: %s",
+            len(classified),
+            max_retries + 1,
+            eigvals,
+        )
+
+    logger.debug(
+        "find_saddle_by_deflation: selected residual=%.3e is_saddle=%s is_heteroclinic=%s",
+        best_res,
+        is_saddle,
+        is_heteroclinic,
+    )
+    return best_x, is_saddle, is_heteroclinic, eigvals, eigvecs
 
 
 def get_fixed_points_within_bounds(
