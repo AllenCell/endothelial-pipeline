@@ -192,7 +192,7 @@ def visualize_projected_dynamics(
         dynamics.
 
     """
-    column_names = cast(list[str], list(DYNAMICS_COLUMN_NAMES))  # [theta, r, rho]
+    column_names = list(DYNAMICS_COLUMN_NAMES)  # [theta, r, rho]
     vector_field_dataframe = load_drift_dataframe_for_dataset(dataset_name)
     vector_field_dict = get_vector_field_as_dict_from_dataframe(
         vector_field_dataframe, column_names
@@ -215,18 +215,19 @@ def visualize_projected_dynamics(
             "Not enough stable or saddle fixed points with high detection rate to define a plane for projection."
         )
 
-    point_1 = stable_df.iloc[0][column_names].to_numpy()
-    point_2 = stable_df.iloc[1][column_names].to_numpy()
+    column_names_str = cast(list[str], column_names)
+    point_1 = stable_df.iloc[0][column_names_str].to_numpy()
+    point_2 = stable_df.iloc[1][column_names_str].to_numpy()
     # 3rd point: first saddle point with theta value between the two stable
     # points, or just the first saddle point if none are in between
     saddle_points_between: pd.DataFrame = saddle_df[
-        (saddle_df[column_names[0]] > min(point_1[0], point_2[0]))
-        & (saddle_df[column_names[0]] < max(point_1[0], point_2[0]))
+        (saddle_df[column_names_str[0]] > min(point_1[0], point_2[0]))
+        & (saddle_df[column_names_str[0]] < max(point_1[0], point_2[0]))
     ]
     if len(saddle_points_between) > 0:
-        point_3 = saddle_points_between.iloc[0][column_names].to_numpy()
+        point_3 = saddle_points_between.iloc[0][column_names_str].to_numpy()
     else:
-        point_3 = saddle_df.iloc[0][column_names].to_numpy()
+        point_3 = saddle_df.iloc[0][column_names_str].to_numpy()
 
     # get orthonormal basis for plane defined by the three points
     ortho_basis = _get_orthonormal_basis_for_plane(point_1, point_2, point_3)
