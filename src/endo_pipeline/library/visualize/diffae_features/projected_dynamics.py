@@ -42,29 +42,50 @@ def projected_vector_field_onto_plane(
     Parameters
     ----------
     u
-        A 1D array of shape (2,) representing the point in 2D space at which to
-        evaluate the projected vector field.
+        A 1D array of shape (2,) or an array of shape (..., 2) representing one
+        or more points in 2D space at which to evaluate the projected vector
+        field.
     ortho_basis
         A 2x3 array where the rows are orthonormal vectors spanning the 2D plane
         onto which to project the vector field.
     vector_field_function
         A function that takes a 3D point (x, y, z) and returns the vector field
-        value at that point as a 1D array of shape (3,).
+        value at that point as a 1D array of shape (3,). It may optionally
+        support batched points of shape (N, 3) and return shape (N, 3).
 
     Returns
     -------
     :
-        A 1D array of shape (2,) representing the projected vector field on the 2D
-        plane at the given point in 2D space.
+        An array of shape (2,) for a single point input or (..., 2) for batched
+        input, representing the projected vector field on the 2D plane.
 
     """
-    unit_normal_vector = np.cross(ortho_basis[0], ortho_basis[1])
-    point_3d = ortho_basis.T @ u
-    vector_field_3d = vector_field_function(point_3d)
-    projection_onto_plane = (
-        vector_field_3d - np.dot(vector_field_3d, unit_normal_vector) * unit_normal_vector
-    )
-    projected_vector_2d = ortho_basis @ projection_onto_plane
+    u_array = np.asarray(u)
+
+    if u_array.shape[-1] != 2:
+        msg = "u must have shape (2,) or (..., 2)."
+        raise ValueError(msg)
+
+    original_shape = u_array.shape[:-1]
+    flattened_u = u_array.reshape(-1, 2)
+
+    # Map 2D plane coordinates to 3D coordinates in the embedding space.
+    points_3d = flattened_u @ ortho_basis
+
+    vector_field_3d = np.asarray(vector_field_function(points_3d))
+    if vector_field_3d.shape != points_3d.shape:
+        vector_field_3d = np.stack(
+            [np.asarray(vector_field_function(point_3d)) for point_3d in points_3d],
+            axis=0,
+        )
+
+    # For an orthonormal basis, projected 2D coordinates are basis components.
+    projected_vector_2d = vector_field_3d @ ortho_basis.T
+    projected_vector_2d = projected_vector_2d.reshape(*original_shape, 2)
+
+    if u_array.ndim == 1:
+        return projected_vector_2d[0]
+
     return projected_vector_2d
 
 
@@ -107,19 +128,20 @@ def plot_streamlines_of_projected_vector_field(
     """
     x_mesh, y_mesh = meshgrid_2d
 
-    vector_field_2d = np.zeros((2, *x_mesh.shape))
-
-    for i in range(x_mesh.shape[0]):
-        for j in range(x_mesh.shape[1]):
-            vector_field_2d[:, i, j] = projected_vector_field_onto_plane(
-                u=np.array([x_mesh[i, j], y_mesh[i, j]]),
-                ortho_basis=ortho_basis,
-                vector_field_function=vector_field_function,
-            )
+    points_2d = np.stack([x_mesh, y_mesh], axis=-1)
+    vector_field_2d = projected_vector_field_onto_plane(
+        u=points_2d,
+        ortho_basis=ortho_basis,
+        vector_field_function=vector_field_function,
+    )
 
     fig, ax = plt.subplots(figsize=figure_size, **(fig_kwargs or {}))
     ax.streamplot(
-        x_mesh, y_mesh, vector_field_2d[0], vector_field_2d[1], **(streamplot_kwargs or {})
+        x_mesh,
+        y_mesh,
+        vector_field_2d[..., 0],
+        vector_field_2d[..., 1],
+        **(streamplot_kwargs or {}),
     )
 
     return fig
