@@ -326,7 +326,7 @@ def plot_single_timepoint_bf_outliers(
 
     mean_for_lim = np.mean(mean_intensity)
     ax.set_xlabel("Index (flattened Z-slices)")
-    ax.set_ylabel("Mean BF intensity in Z-slice (a.u.)")
+    ax.set_ylabel("Mean BF\nintensity in Z-slice (a.u.)")
 
     ax.tick_params(axis="both", which="major")
     ax.tick_params(axis="both", which="minor")
@@ -366,6 +366,7 @@ def plot_single_timepoint_bf_outliers(
         f"bf_outliers_{dataset_name}_P{position}",
         file_format=".svg",
         tight_layout=False,
+        transparent=True,
     )
 
 
@@ -468,7 +469,13 @@ def plot_single_timepoint_gfp_outliers(
     ax.xaxis.labelpad = 3
     ax.yaxis.labelpad = 3
 
-    save_plot_to_path(fig, save_dir, f"gfp_outliers_{dataset_name}_P{position}", file_format=".svg")
+    save_plot_to_path(
+        fig,
+        save_dir,
+        f"gfp_outliers_{dataset_name}_P{position}",
+        file_format=".svg",
+        transparent=True,
+    )
 
 
 def print_timepoint_annotation_performance_stats(
