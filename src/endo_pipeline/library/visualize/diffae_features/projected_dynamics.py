@@ -16,31 +16,35 @@ from endo_pipeline.library.analyze.vector_field_estimation import (
 )
 from endo_pipeline.library.analyze.vector_field_function import get_callable_vector_field
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
+from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, POLAR_ANGLE_PERIOD
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
-from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
+from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, VECTOR_FIELD_THETA_RANGE
 
 
 def _get_orthonormal_basis_for_plane(
-    point_1: np.ndarray, point_2: np.ndarray, point_3: np.ndarray
+    point_1: np.ndarray, point_2: np.ndarray, reference_point: np.ndarray
 ) -> np.ndarray:
     """
     Compute an orthonormal basis for the plane defined by three points in 3D space.
 
     Parameters
     ----------
-    point_1, point_2, point_3
-        Three points in 3D space, each given as a 1D array of shape (3,).
+    point_1, point_2
+        Two points in 3D space, each given as a 1D array of shape (3,).
+    reference_point
+        The origin of the projected 2D coordinate system in 3D space. Together
+        with ``point_1`` and ``point_2`` it defines the plane. In the resulting
+        2D coordinate system this point maps to (0, 0).
 
     Returns
     -------
     :
-        A 3x2 array where the first two rows are orthonormal vectors spanning the
-        2D plane defined by the three points.
+        A 2x3 array where the rows are orthonormal vectors spanning the 2D plane
+        defined by the three points.
 
     """
-    v1 = point_2 - point_1
-    v2 = point_3 - point_1
+    v1 = point_1 - reference_point
+    v2 = point_2 - reference_point
     basis_vector_1 = v1 / (np.linalg.norm(v1) + 1e-10)
     w = v2 - np.dot(v2, basis_vector_1) * basis_vector_1
     basis_vector_2 = w / (np.linalg.norm(w) + 1e-10)
@@ -48,7 +52,10 @@ def _get_orthonormal_basis_for_plane(
 
 
 def projected_vector_field_onto_plane(
-    u: np.ndarray, ortho_basis: np.ndarray, vector_field_function: Callable
+    u: np.ndarray,
+    ortho_basis: np.ndarray,
+    vector_field_function: Callable,
+    origin_3d: np.ndarray | None = None,
 ) -> np.ndarray:
     """
     Project a 3D vector field onto a 2D plane defined by an orthonormal basis.
@@ -66,6 +73,10 @@ def projected_vector_field_onto_plane(
         A function that takes a 3D point (x, y, z) and returns the vector field
         value at that point as a 1D array of shape (3,). It may optionally
         support batched points of shape (N, 3) and return shape (N, 3).
+    origin_3d
+        The 3D point that corresponds to the 2D origin (0, 0). When provided,
+        2D coordinates are lifted to 3D as ``origin_3d + u @ ortho_basis``.
+        Defaults to the 3D origin if ``None``.
 
     Returns
     -------
@@ -85,6 +96,8 @@ def projected_vector_field_onto_plane(
 
     # Map 2D plane coordinates to 3D coordinates in the embedding space.
     points_3d = flattened_u @ ortho_basis
+    if origin_3d is not None:
+        points_3d = points_3d + origin_3d
 
     vector_field_3d = np.asarray(vector_field_function(points_3d))
     if vector_field_3d.shape != points_3d.shape:
@@ -110,6 +123,7 @@ def plot_streamlines_of_projected_vector_field(
     figure_size: tuple[float, float] = (6, 6),
     fig_kwargs: dict[str, Any] | None = None,
     streamplot_kwargs: dict[str, Any] | None = None,
+    origin_3d: np.ndarray | None = None,
 ) -> plt.Figure:
     """
     Plot streamlines of a vector field projected onto a 2D plane.
@@ -133,6 +147,9 @@ def plot_streamlines_of_projected_vector_field(
     streamplot_kwargs
         Additional keyword arguments to pass to ax.streamplot() when plotting
         the streamlines.
+    origin_3d
+        The 3D point corresponding to the 2D origin. Passed through to
+        :func:`projected_vector_field_onto_plane`.
 
     Returns
     -------
@@ -147,6 +164,7 @@ def plot_streamlines_of_projected_vector_field(
         u=points_2d,
         ortho_basis=ortho_basis,
         vector_field_function=vector_field_function,
+        origin_3d=origin_3d,
     )
 
     fig, ax = plt.subplots(figsize=figure_size, **(fig_kwargs or {}))
@@ -218,27 +236,48 @@ def visualize_projected_dynamics(
         )
 
     column_names_str = cast(list[str], column_names)
-    point_1 = stable_df.iloc[0][column_names_str].to_numpy()
-    point_2 = stable_df.iloc[1][column_names_str].to_numpy()
+    stable_fixed_point_1 = stable_df.iloc[0][column_names_str].to_numpy()
+    stable_fixed_point_2 = stable_df.iloc[1][column_names_str].to_numpy()
+    for point in [stable_fixed_point_1, stable_fixed_point_2]:
+        if point[0] < VECTOR_FIELD_THETA_RANGE[0]:
+            point[0] += POLAR_ANGLE_PERIOD
+        elif point[0] > VECTOR_FIELD_THETA_RANGE[1]:
+            point[0] -= POLAR_ANGLE_PERIOD
     # 3rd point: first saddle point with theta value between the two stable
     # points, or just the first saddle point if none are in between
     saddle_points_between: pd.DataFrame = saddle_df[
-        (saddle_df[column_names_str[0]] > min(point_1[0], point_2[0]))
-        & (saddle_df[column_names_str[0]] < max(point_1[0], point_2[0]))
+        (saddle_df[column_names_str[0]] > min(stable_fixed_point_1[0], stable_fixed_point_2[0]))
+        & (saddle_df[column_names_str[0]] < max(stable_fixed_point_1[0], stable_fixed_point_2[0]))
     ]
     if len(saddle_points_between) > 0:
-        point_3 = saddle_points_between.iloc[0][column_names_str].to_numpy()
+        saddle_point = saddle_points_between.iloc[0][column_names_str].to_numpy()
     else:
-        point_3 = saddle_df.iloc[0][column_names_str].to_numpy()
+        saddle_point = saddle_df.iloc[0][column_names_str].to_numpy()
 
-    # get orthonormal basis for plane defined by the three points
-    ortho_basis = _get_orthonormal_basis_for_plane(point_1, point_2, point_3)
+    if saddle_point[0] < VECTOR_FIELD_THETA_RANGE[0]:
+        saddle_point[0] += POLAR_ANGLE_PERIOD
+    elif saddle_point[0] > VECTOR_FIELD_THETA_RANGE[1]:
+        saddle_point[0] -= POLAR_ANGLE_PERIOD
 
-    # create meshgrid in 2D plane coordinates
-    meshgrid_3d = vector_field_dict["grid"]
-    meshgrid_projected = ortho_basis @ np.stack(meshgrid_3d, axis=-1).reshape(-1, 3).T
-    x_min, x_max = meshgrid_projected[0].min(), meshgrid_projected[0].max()
-    y_min, y_max = meshgrid_projected[1].min(), meshgrid_projected[1].max()
+    print(stable_fixed_point_1, stable_fixed_point_2, saddle_point)
+    # get orthonormal basis for the plane; saddle_point is the projected origin
+    ortho_basis = _get_orthonormal_basis_for_plane(
+        stable_fixed_point_1, stable_fixed_point_2, reference_point=saddle_point
+    )
+
+    # project stable fixed points to 2D (saddle_point maps to the origin)
+    proj_sfp1 = ortho_basis @ (stable_fixed_point_1 - saddle_point)
+    proj_sfp2 = ortho_basis @ (stable_fixed_point_2 - saddle_point)
+
+    # set grid extent from the projected stable fixed points, including origin
+    x_vals = [proj_sfp1[0], proj_sfp2[0], 0.0]
+    y_vals = [proj_sfp1[1], proj_sfp2[1], 0.0]
+    x_margin = (max(x_vals) - min(x_vals)) * 0.1 + grid_spacing_2d
+    y_margin = (max(y_vals) - min(y_vals)) * 0.1 + grid_spacing_2d
+    x_min = min(x_vals) - x_margin
+    x_max = max(x_vals) + x_margin
+    y_min = min(y_vals) - y_margin
+    y_max = max(y_vals) + y_margin
     x_mesh, y_mesh = np.meshgrid(
         np.arange(x_min, x_max, grid_spacing_2d),
         np.arange(y_min, y_max, grid_spacing_2d),
@@ -250,17 +289,19 @@ def visualize_projected_dynamics(
         meshgrid_2d=(x_mesh, y_mesh),
         figure_size=(3.5, 3.5),
         fig_kwargs=fig_kwargs or {"layout": "constrained"},
-        streamplot_kwargs=streamplot_kwargs or {"density": 1.5, "linewidth": 1.0, "color": "black"},
+        streamplot_kwargs=streamplot_kwargs
+        or {"density": 1.0, "linewidth": 0.75, "color": "dimgrey"},
+        origin_3d=saddle_point,
     )
 
     # plot fixed points on top
     ax = fig.axes[0]
     for point, stability_label in [
-        (point_1, StabilityLabel.STABLE),
-        (point_2, StabilityLabel.STABLE),
-        (point_3, StabilityLabel.SADDLE),
+        (stable_fixed_point_1, StabilityLabel.STABLE),
+        (stable_fixed_point_2, StabilityLabel.STABLE),
+        (saddle_point, StabilityLabel.SADDLE),
     ]:
-        point_proj = ortho_basis @ point
+        point_proj = ortho_basis @ (point - saddle_point)
         ax.plot(
             point_proj[0],
             point_proj[1],
@@ -268,7 +309,7 @@ def visualize_projected_dynamics(
             color=FIXED_POINT_PLOT_STYLE[stability_label].color,
             markeredgecolor="k",
             markeredgewidth=0.5,
-            markersize=5,
+            markersize=9,
         )
 
     return fig
