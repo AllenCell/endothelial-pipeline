@@ -161,7 +161,12 @@ def plot_streamlines_of_projected_vector_field(
     return fig
 
 
-def visualize_projected_dynamics(dataset_name: str, grid_spacing_2d: float = 0.05) -> plt.Figure:
+def visualize_projected_dynamics(
+    dataset_name: str,
+    grid_spacing_2d: float = 0.05,
+    fig_kwargs: dict[str, Any] | None = None,
+    streamplot_kwargs: dict[str, Any] | None = None,
+) -> plt.Figure:
     """
     Visualize the dynamics of a DiffAE feature space by projecting the 3D vector
     field onto a 2D plane and plotting streamlines.
@@ -173,6 +178,12 @@ def visualize_projected_dynamics(dataset_name: str, grid_spacing_2d: float = 0.0
     grid_spacing_2d
         Spacing between points in the 2D grid at which to evaluate the projected
         vector field for streamline plotting.
+    fig_kwargs
+        Additional keyword arguments to pass to plt.subplots() when creating the
+        figure.
+    streamplot_kwargs
+        Additional keyword arguments to pass to ax.streamplot() when plotting
+        the streamlines.
 
     Returns
     -------
@@ -235,7 +246,8 @@ def visualize_projected_dynamics(dataset_name: str, grid_spacing_2d: float = 0.0
         ortho_basis=ortho_basis,
         meshgrid_2d=(x_mesh, y_mesh),
         figure_size=(6, 6),
-        streamplot_kwargs={"density": 1.5, "linewidth": 0.5, "color": "blue"},
+        fig_kwargs=fig_kwargs or {"layout": "constrained"},
+        streamplot_kwargs=streamplot_kwargs or {"density": 1.5, "linewidth": 1.0, "color": "black"},
     )
 
     # plot fixed points on top
