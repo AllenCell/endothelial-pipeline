@@ -5,7 +5,6 @@ from typing import Any, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 
 from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
@@ -236,33 +235,37 @@ def visualize_projected_dynamics(
         )
 
     column_names_str = cast(list[str], column_names)
-    stable_fixed_point_1 = stable_df.iloc[0][column_names_str].to_numpy()
-    stable_fixed_point_2 = stable_df.iloc[1][column_names_str].to_numpy()
-    for point in [stable_fixed_point_1, stable_fixed_point_2]:
+    stable_fixed_point_1_ = stable_df.iloc[0][column_names_str].to_numpy()
+    stable_fixed_point_2_ = stable_df.iloc[1][column_names_str].to_numpy()
+    for point in [stable_fixed_point_1_, stable_fixed_point_2_]:
         if point[0] < VECTOR_FIELD_THETA_RANGE[0]:
             point[0] += POLAR_ANGLE_PERIOD
         elif point[0] > VECTOR_FIELD_THETA_RANGE[1]:
             point[0] -= POLAR_ANGLE_PERIOD
+
+    stable_fixed_point_1 = (
+        stable_fixed_point_1_
+        if stable_fixed_point_1_[0] < stable_fixed_point_2_[0]
+        else stable_fixed_point_2_
+    )
+    stable_fixed_point_2 = (
+        stable_fixed_point_2_
+        if stable_fixed_point_1_[0] < stable_fixed_point_2_[0]
+        else stable_fixed_point_1_
+    )
+
     # 3rd point: first saddle point with theta value between the two stable
     # points, or just the first saddle point if none are in between
-    saddle_points_between: pd.DataFrame = saddle_df[
-        (saddle_df[column_names_str[0]] > min(stable_fixed_point_1[0], stable_fixed_point_2[0]))
-        & (saddle_df[column_names_str[0]] < max(stable_fixed_point_1[0], stable_fixed_point_2[0]))
-    ]
-    if len(saddle_points_between) > 0:
-        saddle_point = saddle_points_between.iloc[0][column_names_str].to_numpy()
-    else:
-        saddle_point = saddle_df.iloc[0][column_names_str].to_numpy()
+    saddle_point = saddle_df.iloc[0][column_names_str].to_numpy()
 
     if saddle_point[0] < VECTOR_FIELD_THETA_RANGE[0]:
         saddle_point[0] += POLAR_ANGLE_PERIOD
     elif saddle_point[0] > VECTOR_FIELD_THETA_RANGE[1]:
         saddle_point[0] -= POLAR_ANGLE_PERIOD
 
-    print(stable_fixed_point_1, stable_fixed_point_2, saddle_point)
     # get orthonormal basis for the plane; saddle_point is the projected origin
     ortho_basis = _get_orthonormal_basis_for_plane(
-        stable_fixed_point_1, stable_fixed_point_2, reference_point=saddle_point
+        stable_fixed_point_2, stable_fixed_point_1, reference_point=saddle_point
     )
 
     # project stable fixed points to 2D (saddle_point maps to the origin)
@@ -301,7 +304,9 @@ def visualize_projected_dynamics(
         (stable_fixed_point_2, StabilityLabel.STABLE),
         (saddle_point, StabilityLabel.SADDLE),
     ]:
+        print(point, stability_label)
         point_proj = ortho_basis @ (point - saddle_point)
+        print("Projected point:", point_proj)
         ax.plot(
             point_proj[0],
             point_proj[1],
