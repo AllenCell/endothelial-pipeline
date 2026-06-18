@@ -230,6 +230,13 @@ def visualize_projected_dynamics(
         fixed_points_df[Column.VectorField.STABILITY] == StabilityLabel.STABLE
     ]
 
+    if len(stable_df) < 2:
+        raise ValueError(
+            f"visualize_projected_dynamics: dataset '{dataset_name}' has "
+            f"{len(stable_df)} stable fixed point(s) after detection-rate filtering "
+            f"(threshold > 0.4); at least 2 are required to define a saddle search."
+        )
+
     column_names_str = cast(list[str], column_names)
     stable_fixed_point_1_ = stable_df.iloc[0][column_names_str].to_numpy()
     stable_fixed_point_2_ = stable_df.iloc[1][column_names_str].to_numpy()
@@ -336,6 +343,7 @@ def visualize_projected_dynamics(
 
     # plot fixed points on top
     ax = fig.axes[0]
+    ax.set_title(f"Projected dynamics for {dataset_name}")
     for point, stability_label in [
         (stable_fixed_point_1, StabilityLabel.STABLE),
         (stable_fixed_point_2, StabilityLabel.STABLE),
