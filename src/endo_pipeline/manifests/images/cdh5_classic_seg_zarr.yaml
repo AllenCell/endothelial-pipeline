@@ -82,3 +82,4 @@ locations:
     s3uri: s3://allencell-internal-quilt/endo_stg/cdh5_classic_seg_zarr/20260302_e9cfa3b0b24447f7bba000af3b012427_P{{position}}.ome.zarr
   20260304_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/cdh5_classic_seg_zarr/20260304_56c81f459d8e46eabd74cc2147b85f49/20260304_56c81f459d8e46eabd74cc2147b85f49_P{{position}}.ome.zarr
+    s3uri: s3://allencell-internal-quilt/endo_stg/cdh5_classic_seg_zarr/20260304_56c81f459d8e46eabd74cc2147b85f49_P{{position}}.ome.zarr
