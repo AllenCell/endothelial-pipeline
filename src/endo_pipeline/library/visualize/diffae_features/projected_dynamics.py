@@ -95,7 +95,7 @@ def projected_vector_field_onto_plane(
 
     # For an orthonormal basis, projected 2D coordinates are basis components.
     projected_vector_2d = vector_field_3d @ ortho_basis.T
-    projected_vector_2d = projected_vector_2d.reshape(*original_shape, 2)
+    projected_vector_2d = projected_vector_2d.reshape(*original_shape, 2).astype(np.float64)
 
     if u_array.ndim == 1:
         return projected_vector_2d[0]
