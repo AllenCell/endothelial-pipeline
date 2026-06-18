@@ -157,6 +157,8 @@ def plot_streamlines_of_projected_vector_field(
         vector_field_2d[..., 1],
         **(streamplot_kwargs or {}),
     )
+    ax.set_xlabel("Projected component 1")
+    ax.set_ylabel("Projected component 2")
 
     return fig
 
@@ -246,7 +248,7 @@ def visualize_projected_dynamics(
         vector_field_function=vector_field_function,
         ortho_basis=ortho_basis,
         meshgrid_2d=(x_mesh, y_mesh),
-        figure_size=(6, 6),
+        figure_size=(3.5, 3.5),
         fig_kwargs=fig_kwargs or {"layout": "constrained"},
         streamplot_kwargs=streamplot_kwargs or {"density": 1.5, "linewidth": 1.0, "color": "black"},
     )
@@ -259,13 +261,14 @@ def visualize_projected_dynamics(
         (point_3, StabilityLabel.SADDLE),
     ]:
         point_proj = ortho_basis @ point
-        ax.scatter(
+        ax.plot(
             point_proj[0],
             point_proj[1],
+            FIXED_POINT_PLOT_STYLE[stability_label].marker,
             color=FIXED_POINT_PLOT_STYLE[stability_label].color,
-            marker=FIXED_POINT_PLOT_STYLE[stability_label].marker,
-            s=20,
-            zorder=5,
+            markeredgecolor="k",
+            markeredgewidth=0.5,
+            markersize=5,
         )
 
     return fig
