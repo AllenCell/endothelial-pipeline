@@ -9,6 +9,7 @@ segmentations and compiles a CSV containing paths to the original Zarr.
 - nuclear label free segmentation (`nuclear_labelfree_seg`)
 - CDH5 classic segmentation (`cdh5_classic_seg`)
 - grid segmentation (`grid_seg`)
+- CDH5 segmentation validation (`cdh5_seg_validations`)
 
 The output CSV contains the following columns:
 
@@ -45,6 +46,19 @@ image_channel_pairs = [
     ("nuclear_labelfree_seg", "NUC_SEG"),
     ("cdh5_classic_seg", "CDH5_SEG"),
     ("grid_seg", "GRID_SEG"),
+    (
+        "cdh5_seg_validations",
+        [
+            "Raw CDH5",
+            "Processed CDH5",
+            "Hysteresis Threshold",
+            "Initial Segmentation",
+            "Merged Segmentation",
+            "Nuclei Predictions",
+            "CDH5 Segmentation Split by Nuclei",
+            "CDH5 Segmentation Split by Nuclei Borders",
+        ],
+    ),
 ]
 
 # %%
@@ -61,6 +75,11 @@ for manifest_name, channel_name in image_channel_pairs:
     # list to just the first dataset for the following loop.
     if manifest_name == "grid_seg":
         datasets = datasets[:1]
+
+    # Segmentation validations have multiple channels, so join into a string
+    # that will later get split back into channels
+    if manifest_name == "cdh5_seg_validations":
+        channel_name = "/".join(channel_name)
 
     data = []
 
