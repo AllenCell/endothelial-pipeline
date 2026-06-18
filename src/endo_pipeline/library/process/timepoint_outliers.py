@@ -548,10 +548,10 @@ def print_timepoint_annotation_performance_stats(
         f"--- {annotation_type} STATISTICS ---\n"
         f"Total manual annotated timepoints: {total_manual}\n"
         f"Total missed timepoints: {total_missed}\n"
-        f"Percent of missed timepoints: {percent_missed:.2f}%\n"
+        f"Percent of missed timepoints: {percent_missed:.3f}%\n"
         f"Total auto-detected timepoints: {total_auto}\n"
         f"Total timepoints assessed: {total_timepoints}\n"
-        f"Percent of tps with artifacts: {percent_artifact:.2f}%"
+        f"Percent of tps with artifacts: {percent_artifact:.3f}%"
     )
 
     return results
