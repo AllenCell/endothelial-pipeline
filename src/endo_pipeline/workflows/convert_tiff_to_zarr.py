@@ -60,6 +60,22 @@ from dask.array.core import PerformanceWarning
 from tqdm import tqdm
 
 
+CHANNEL_COLORS = {
+    "CDH5_SEG": "#ffffff",
+    "NUC_SEG": "#ffffff",
+    "GRID_SEG": "#ffffff",
+    "Raw CDH5": "#ffffff",
+    "Processed CDH5": "#ffffff",
+    "Hysteresis Threshold": "#00ffff",
+    "Initial Segmentation": "#ff00ff",
+    "Merged Segmentation": "#ff00ff",
+    "Nuclei Predictions": "#ff0000",
+    "CDH5 Segmentation Split by Nuclei": "#00ff00",
+    "CDH5 Segmentation Split by Nuclei Borders": "#0000ff",
+}
+"""Mapping of channels to colors."""
+
+
 def collected_individual_timepoint_paths(root: str) -> list[tuple[int, str]]:
     """Collect paths for individual timepoints matching pattern `_T###.ome.tif`."""
 
@@ -111,7 +127,7 @@ def write_timelapse_from_dir_explicit_levels_single(
         dtype=dtype,
         zarr_format=2,
         physical_pixel_size=pps,
-        channels=[Channel(label=f"{channel_name}", color="FFFFFF")],
+        channels=[Channel(label=c, color=CHANNEL_COLORS[c]) for c in channel_name.split("/")],
         axes_units=["minute", "channel", "micrometer", "micrometer", "micrometer"],
     )
 
