@@ -59,6 +59,8 @@ from bioio_ome_zarr.writers.metadata import Channel  # type: ignore
 from dask.array.core import PerformanceWarning
 from tqdm import tqdm
 
+VALIDATION_SAVE_INTERVAL_IN_FRAMES = 48
+"""Interval between frames when saving validation images."""
 
 CHANNEL_COLORS = {
     "CDH5_SEG": "#ffffff",
@@ -121,6 +123,14 @@ def write_timelapse_from_dir_explicit_levels_single(
         float(getattr(img_raw_microscopy.scale, k, 1.0) or 1.0) for k in ("T", "C", "Z", "Y", "X")
     ]
 
+    # If validation image, need to adjust the timescale, since those are only
+    # saved every 48 frames. Also need to rescale the destination time index
+    if "cdh5_seg_validations" in out_store:
+        pps[0] = pps[0] * VALIDATION_SAVE_INTERVAL_IN_FRAMES
+        t_rescale = VALIDATION_SAVE_INTERVAL_IN_FRAMES
+    else:
+        t_rescale = 1
+
     writer = OMEZarrWriter(
         store=Path(out_store),
         level_shapes=level_shapes,
@@ -136,7 +146,7 @@ def write_timelapse_from_dir_explicit_levels_single(
         writer.write_timepoints(
             data=img.get_image_dask_data(),
             start_T_src=0,
-            start_T_dest=t_index,
+            start_T_dest=t_index // t_rescale,
             total_T=1,
         )
 
@@ -149,6 +159,13 @@ def convert_tiff_to_zarr_for_row(row):
     if "grid_seg_zarr" in row["save_zarr_path"]:
         level_shapes = [
             (total_timepoints, 1, 1, 856, 872),
+        ]
+    elif "cdh5_seg_validations" in row["save_zarr_path"]:
+        total_timepoints = total_timepoints // VALIDATION_SAVE_INTERVAL_IN_FRAMES
+        level_shapes = [
+            (total_timepoints, 8, 1, 1712, 1744),
+            (total_timepoints, 8, 1, 856, 872),
+            (total_timepoints, 8, 1, 428, 436),
         ]
     else:
         level_shapes = [
@@ -173,7 +190,12 @@ def convert_tiff_to_zarr_for_row(row):
 if __name__ == "__main__":
     image_manifest_name = sys.argv[2]
 
-    valid_image_manifests = ("nuclear_labelfree_seg", "cdh5_classic_seg", "grid_seg")
+    valid_image_manifests = (
+        "nuclear_labelfree_seg",
+        "cdh5_classic_seg",
+        "grid_seg",
+        "cdh5_seg_validations",
+    )
     if image_manifest_name not in valid_image_manifests:
         print(f"Image manifest name must be one of: {valid_image_manifests}")
         exit()
