@@ -1,10 +1,23 @@
 """Methods for computing and visualizing a 3D vector field projected onto a 2D plane."""
 
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+
+from endo_pipeline.library.analyze.numerics.fixed_points import (
+    load_fixed_points_dataframe_for_dataset,
+)
+from endo_pipeline.library.analyze.vector_field_estimation import (
+    get_vector_field_as_dict_from_dataframe,
+    load_drift_dataframe_for_dataset,
+)
+from endo_pipeline.library.analyze.vector_field_function import get_callable_vector_field
+from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
+from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 
 
 def _get_orthonormal_basis_for_plane(
@@ -142,6 +155,86 @@ def plot_streamlines_of_projected_vector_field(
         vector_field_2d[..., 0],
         vector_field_2d[..., 1],
         **(streamplot_kwargs or {}),
+    )
+
+    return fig
+
+
+def visualize_projected_dynamics(dataset_name: str, grid_spacing_2d: float = 0.05) -> plt.Figure:
+    """
+    Visualize the dynamics of a DiffAE feature space by projecting the 3D vector
+    field onto a 2D plane and plotting streamlines.
+
+    Parameters
+    ----------
+    dataset_name
+        Name of the dataset for which to visualize the dynamics.
+    grid_spacing_2d
+        Spacing between points in the 2D grid at which to evaluate the projected
+        vector field for streamline plotting.
+
+    Returns
+    -------
+    :
+        A Matplotlib figure containing the streamline plot of the projected
+        dynamics.
+
+    """
+    column_names = cast(list[str], list(DYNAMICS_COLUMN_NAMES))  # [theta, r, rho]
+    vector_field_dataframe = load_drift_dataframe_for_dataset(dataset_name)
+    vector_field_dict = get_vector_field_as_dict_from_dataframe(
+        vector_field_dataframe, column_names
+    )
+    vector_field_function = get_callable_vector_field(vector_field_dict, for_solve_ivp=False)
+
+    fixed_points_df = load_fixed_points_dataframe_for_dataset(dataset_name)
+    fixed_points_df = fixed_points_df[
+        fixed_points_df[Column.BootstrapAnalysis.DETECTION_RATE] > 0.4
+    ]
+    stable_df = fixed_points_df[
+        fixed_points_df[Column.VectorField.STABILITY] == StabilityLabel.STABLE
+    ]
+    saddle_df = fixed_points_df[
+        fixed_points_df[Column.VectorField.STABILITY] == StabilityLabel.SADDLE
+    ]
+
+    if len(stable_df) < 2 or len(saddle_df) < 1:
+        raise ValueError(
+            "Not enough stable or saddle fixed points with high detection rate to define a plane for projection."
+        )
+
+    point_1 = stable_df.iloc[0][column_names].to_numpy()
+    point_2 = stable_df.iloc[1][column_names].to_numpy()
+    # 3rd point: first saddle point with theta value between the two stable
+    # points, or just the first saddle point if none are in between
+    saddle_points_between: pd.DataFrame = saddle_df[
+        (saddle_df[column_names[0]] > min(point_1[0], point_2[0]))
+        & (saddle_df[column_names[0]] < max(point_1[0], point_2[0]))
+    ]
+    if len(saddle_points_between) > 0:
+        point_3 = saddle_points_between.iloc[0][column_names].to_numpy()
+    else:
+        point_3 = saddle_df.iloc[0][column_names].to_numpy()
+
+    # get orthonormal basis for plane defined by the three points
+    ortho_basis = _get_orthonormal_basis_for_plane(point_1, point_2, point_3)
+
+    # create meshgrid in 2D plane coordinates
+    meshgrid_3d = vector_field_dict["grid"]
+    meshgrid_projected = ortho_basis @ np.stack(meshgrid_3d, axis=-1).reshape(-1, 3).T
+    x_min, x_max = meshgrid_projected[0].min(), meshgrid_projected[0].max()
+    y_min, y_max = meshgrid_projected[1].min(), meshgrid_projected[1].max()
+    x_mesh, y_mesh = np.meshgrid(
+        np.arange(x_min, x_max, grid_spacing_2d),
+        np.arange(y_min, y_max, grid_spacing_2d),
+    )
+
+    fig = plot_streamlines_of_projected_vector_field(
+        vector_field_function=vector_field_function,
+        ortho_basis=ortho_basis,
+        meshgrid_2d=(x_mesh, y_mesh),
+        figure_size=(6, 6),
+        streamplot_kwargs={"density": 1.5, "linewidth": 0.5, "color": "blue"},
     )
 
     return fig
