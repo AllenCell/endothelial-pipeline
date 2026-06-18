@@ -1,45 +1,44 @@
 name: dataset_release
 description: Datasets used in publication and released for public access
 datasets:
-- 20250618_20X # 6 dyn / cm2 rep 1
-- 20250428_20X # 9 dyn / cm2 rep 1
-- 20250319_20X # 12 dyn / cm2 rep 1
-- 20250813_20X # 15 dyn / cm2 rep 1
-- 20250611_20X # 20 dyn / cm2 rep 1
-- 20250818_20X # 0 dyn / cm2 rep 1
-- 20250714_20X # 6 to 20 dyn / cm2 rep 1
-- 20250827_20X # 20 to 6 dyn / cm2 rep 1
-- 20240328_T01_001
-- 20240328_T02_001
-- 20250415_SlideA_20X
-- 20250415_SlideE_20X
-- 20250415_SlideH_20X
-- 20250509_20X_IF4
-- 20250509_20X_IF6
-- 20250509_20X_IF10
-- 20250509_20X_IF11
-# 6 dyn / cm2
-- 20250402_20X
-- 20250409_20X
-# 9 dyn / cm2
-- 20250716_20X
-# 12 dyn / cm2
-- 20250604_20X
-- 20260121_20X
-- 20260126_20X
-- 20260209_20X
-- 20260216_20X
-# 15 dyn / cm2
-- 20250326_20X
-- 20260114_20X
-- 20260128_20X
-- 20260202_20X
-- 20260204_20X
-# 16 dyn / cm2
-- 20260211_20X
-- 20260225_20X
-- 20260302_20X
-# 21 dyn / cm2
-- 20251001_20X
-# 0 dyn / cm2
-- 20250728_20X
+- 20250618_20X # 6 dyn / cm2
+- 20250402_20X # 6 dyn / cm2
+- 20250409_20X # 6 dyn / cm2
+- 20250428_20X # 9 dyn / cm2
+- 20250716_20X # 9 dyn / cm2
+- 20250319_20X # 12 dyn / cm2
+- 20250604_20X # 12 dyn / cm2
+- 20260121_20X # 12 dyn / cm2
+- 20260126_20X # 12 dyn / cm2
+- 20260209_20X # 12 dyn / cm2
+- 20260216_20X # 12 dyn / cm2
+- 20260304_20X # 12 dyn / cm2
+- 20250813_20X # 15 dyn / cm2
+- 20250326_20X # 15 dyn / cm2
+- 20260114_20X # 15 dyn / cm2
+- 20260128_20X # 15 dyn / cm2
+- 20260202_20X # 15 dyn / cm2
+- 20260204_20X # 15 dyn / cm2
+- 20260211_20X # 15 dyn / cm2
+- 20260225_20X # 15 dyn / cm2
+- 20260302_20X # 15 dyn / cm2
+- 20250611_20X # 21 dyn / cm2
+- 20251001_20X # 21 dyn / cm2
+- 20250818_20X # 0 dyn / cm2
+- 20250728_20X # 0 dyn / cm2
+- 20250714_20X # 6 to 20 dyn / cm2
+- 20250827_20X # 20 to 6 dyn / cm2
+- 20240328_T01_001 # fixed DAPI
+- 20240328_T02_001 # fixed DAPI
+- 20250415_SlideA_20X # fixed NucViolet
+- 20250415_SlideE_20X # fixed NucViolet
+- 20250415_SlideH_20X # fixed NucViolet
+- 20250509_20X_IF4 # SOX17 and NR2F2
+- 20250509_20X_IF6 # SOX17 and NR2F2
+- 20250509_20X_IF10 # SOX17 and NR2F2
+- 20250509_20X_IF11 # SOX17 and NR2F2
+- 20250908_20X # CDH5 Ex3 deletion under low shear stress
+- 20251029_20X # CDH5 Ex3 deletion under low shear stress
+- 20251119_20X # CDH5 Ex3 deletion under low shear stress
+- 20260309_20X # CDH5 CD31-sorted under low shear stress
+- 20260325_20X # CDH5 Ex3 deletion under low shear stress
