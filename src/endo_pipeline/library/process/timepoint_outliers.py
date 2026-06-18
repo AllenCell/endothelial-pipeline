@@ -293,13 +293,17 @@ def plot_single_timepoint_bf_outliers(
     )
 
     ax.scatter(
-        dark_outliers, mean_intensity[dark_outliers], color="red", label="Dark outliers", zorder=5
+        dark_outliers,
+        mean_intensity[dark_outliers],
+        color="red",
+        label="Dark BF outliers",
+        zorder=5,
     )
     ax.scatter(
         bright_outliers,
         mean_intensity[bright_outliers],
         color="orange",
-        label="Bright outliers",
+        label="Bright BF outliers",
         zorder=5,
     )
 
