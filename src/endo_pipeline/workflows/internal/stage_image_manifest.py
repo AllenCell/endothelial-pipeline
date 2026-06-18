@@ -2,12 +2,12 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from endo_pipeline.cli import UniqueStrList
+from endo_pipeline.cli import Datasets
 
 
 def main(
     manifest_name: str,
-    location_keys: UniqueStrList | None = None,
+    datasets: Datasets | None = None,
     add_files: Annotated[bool, Parameter(negative="--remove-files")] = True,
     dry_run: Annotated[bool, Parameter(negative="--live-run")] = True,
 ) -> None:
@@ -83,8 +83,8 @@ def main(
     ----------
     manifest_name
         Name of image manifest containing images to stage.
-    location_keys
-        List of location keys to stage. If not provided, stage all keys.
+    datasets
+        List of datasets to stage. If not provided, stage all datasets.
     add_files
         True to add files to the staging location, False to remove files.
     dry_run
@@ -101,7 +101,7 @@ def main(
         submit_manifest_staging_job,
     )
     from endo_pipeline.manifests import load_image_manifest
-    from endo_pipeline.settings.manifest_staging import IMAGE_MANIFEST_STAGING_FOLDERS
+    from endo_pipeline.settings.manifest_staging import STAGING_IMAGE_MANIFEST_NAMES
 
     logger = logging.getLogger(__name__)
 
@@ -109,26 +109,26 @@ def main(
     output_path = get_output_path(__file__, unique_name)
 
     # Check if requested manifest is supported for staging to bucket
-    if manifest_name not in IMAGE_MANIFEST_STAGING_FOLDERS.keys():
+    if manifest_name not in STAGING_IMAGE_MANIFEST_NAMES:
         logger.error("Manifest '%s' is not supported for staging to bucket", manifest_name)
         return
 
-    # Load image manifest and set staging folder
+    # Load image manifest and set staging folder equal to manifest name
     manifest = load_image_manifest(manifest_name)
-    folder = IMAGE_MANIFEST_STAGING_FOLDERS[manifest_name]
+    folder = f"{manifest_name}/"
 
     # Get list of keys to stage, if provided. Otherwise, get all available
     # location keys from the manifest
-    location_keys = location_keys or list(manifest.locations.keys())
+    datasets = datasets or list(manifest.locations.keys())
 
     # Limit number of locations and use demo folder if running in demo mode.
     if DEMO_MODE:
         logger.warning("DEMO MODE - Staging single location to demo directory")
-        location_keys = location_keys[:1]
+        datasets = datasets[:1]
         folder = f"demo/{folder}"
 
     # Generate manifest staging dataframe and draft manifest staging job
-    csv_path = generate_manifest_staging_dataframe(manifest, location_keys, folder, output_path)
+    csv_path = generate_manifest_staging_dataframe(manifest, datasets, folder, output_path)
     job_path = draft_manifest_staging_job(csv_path, output_path, dry_run, add_files)
 
     # Skip if no job path was returned
