@@ -18,6 +18,7 @@ from endo_pipeline.library.analyze.vector_field_function import get_callable_vec
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
+from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
 
 
 def _get_orthonormal_basis_for_plane(
@@ -236,5 +237,22 @@ def visualize_projected_dynamics(dataset_name: str, grid_spacing_2d: float = 0.0
         figure_size=(6, 6),
         streamplot_kwargs={"density": 1.5, "linewidth": 0.5, "color": "blue"},
     )
+
+    # plot fixed points on top
+    ax = fig.axes[0]
+    for point, stability_label in [
+        (point_1, StabilityLabel.STABLE),
+        (point_2, StabilityLabel.STABLE),
+        (point_3, StabilityLabel.SADDLE),
+    ]:
+        point_proj = ortho_basis @ point
+        ax.scatter(
+            point_proj[0],
+            point_proj[1],
+            color=FIXED_POINT_PLOT_STYLE[stability_label].color,
+            marker=FIXED_POINT_PLOT_STYLE[stability_label].marker,
+            s=20,
+            zorder=5,
+        )
 
     return fig
