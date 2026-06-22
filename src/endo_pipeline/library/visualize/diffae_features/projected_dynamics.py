@@ -1,5 +1,6 @@
 """Methods for computing and visualizing a 3D vector field projected onto a 2D plane."""
 
+import logging
 from collections.abc import Callable
 from typing import Any, cast
 
@@ -18,6 +19,63 @@ from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, POLAR_ANGLE_PERIOD
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, VECTOR_FIELD_THETA_RANGE
+
+logger = logging.getLogger(__name__)
+
+
+def _find_saddle_point_for_projection(
+    f: Callable[[np.ndarray], np.ndarray],
+    fp1: np.ndarray,
+    fp2: np.ndarray,
+    candidate_saddles: np.ndarray,
+) -> np.ndarray:
+    """
+    Find a saddle point for projection by checking candidate saddle points for
+    the correct stability and location.
+
+    The correct saddle point for projection should have 2 stable eigenvalues and
+    1 unstable eigenvalue, and should be located between the two stable fixed
+    points along the main axis of separation.
+
+    If multiple candidate saddle points satisfy these criteria, the first one
+    encountered in the input list will be returned. If no candidate saddle
+    points satisfy these criteria, a ValueError will be raised.
+
+    Parameters
+    ----------
+    f
+        Callable representing the vector field. Must accept a 1-D array of shape
+        ``(D,)`` and return a 1-D array of shape ``(D,)``.
+    fp1
+        The first stable fixed point, shape ``(D,)``.
+    fp2
+        The second stable fixed point, shape ``(D,)``.
+    candidate_saddles
+        Array of shape (N, D) containing candidate saddle points to check, where
+        N is the number of candidate saddle points and D is the dimension of the
+        state space.
+
+    Returns
+    -------
+    :
+        Tuple containing the saddle point selected for projection (shape (D,)),
+        its eigenvalues (shape (D,)), and its eigenvectors (shape (D, D)).
+    """
+    fp1 = np.asarray(fp1, dtype=np.float64)
+    fp2 = np.asarray(fp2, dtype=np.float64)
+    main_axis = np.argmax(np.abs(fp2 - fp1))
+
+    for saddle_point in candidate_saddles:
+        is_between: bool = (fp1[main_axis] <= saddle_point[main_axis] <= fp2[main_axis]) or (
+            fp2[main_axis] <= saddle_point[main_axis] <= fp1[main_axis]
+        )
+        if is_between:
+            return saddle_point
+
+    logger.warning(
+        "No suitable saddle point found among candidates. Returning the last one checked."
+    )
+    return saddle_point
 
 
 def _get_orthonormal_basis_for_plane(
@@ -254,14 +312,18 @@ def visualize_projected_dynamics(
         else stable_fixed_point_1_
     )
 
-    # 3rd point: first saddle point with theta value between the two stable
-    # points, or just the first saddle point if none are in between
-    saddle_point = saddle_df.iloc[0][column_names_str].to_numpy()
-
-    if saddle_point[0] < VECTOR_FIELD_THETA_RANGE[0]:
-        saddle_point[0] += POLAR_ANGLE_PERIOD
-    elif saddle_point[0] > VECTOR_FIELD_THETA_RANGE[1]:
-        saddle_point[0] -= POLAR_ANGLE_PERIOD
+    # Find the saddle point via deflation: the residual is modified to repel
+    # the solver from the two known stable fixed points, driving it toward the
+    # saddle that lies between them.
+    saddle_points = saddle_df[column_names_str].to_numpy()
+    for i in range(saddle_points.shape[0]):
+        if saddle_points[i, 0] < VECTOR_FIELD_THETA_RANGE[0]:
+            saddle_points[i, 0] += POLAR_ANGLE_PERIOD
+        elif saddle_points[i, 0] > VECTOR_FIELD_THETA_RANGE[1]:
+            saddle_points[i, 0] -= POLAR_ANGLE_PERIOD
+    saddle_point = _find_saddle_point_for_projection(
+        vector_field_function, stable_fixed_point_1, stable_fixed_point_2, saddle_points
+    )
 
     # get orthonormal basis for the plane; saddle_point is the projected origin
     ortho_basis = _get_orthonormal_basis_for_plane(
@@ -315,6 +377,7 @@ def visualize_projected_dynamics(
             markeredgecolor="k",
             markeredgewidth=0.5,
             markersize=9,
+            zorder=5,
         )
 
     return fig
