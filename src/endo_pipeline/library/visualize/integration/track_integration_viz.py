@@ -1272,7 +1272,7 @@ def plot_first_passage_time_correlations(
     ax.xaxis.set_major_locator(MaxNLocator(7, min_n_ticks=4, integer=True))
     ax.yaxis.set_major_locator(MaxNLocator(7, min_n_ticks=4, integer=True))
     ax.tick_params(labelsize=FONTSIZE_SMALL)
-    ax.set_xlabel("Patch-based MFPT (hrs)", fontsize=FONTSIZE_SMALL, labelpad=1.0, color="tab:blue")
+    ax.set_xlabel("Grid-based MFPT (hrs)", fontsize=FONTSIZE_SMALL, labelpad=1.0, color="tab:blue")
     ax.set_ylabel(
         "Cell-centered MFPT (hrs)", fontsize=FONTSIZE_SMALL, labelpad=1.0, color="tab:red"
     )
