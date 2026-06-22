@@ -26,7 +26,7 @@ def load_processed_egfp_image(
     """Load processed EGFP max projection image."""
 
     location = get_zarr_location_for_position(config, position=position)
-    image = load_image(location, channels=["EGFP"], timepoints=timepoints, level=level)
+    image = load_image(location, channels=[ChannelName.EGFP], timepoints=timepoints, level=level)
 
     # Compute max projection along z axis
     image = image.max(axis=2)

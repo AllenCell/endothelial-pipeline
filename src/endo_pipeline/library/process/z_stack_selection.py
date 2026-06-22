@@ -192,7 +192,9 @@ def visualize_slice_selection(
     bf_stack = load_image(
         zarr_loc, channels=[ChannelName.BF], timepoints=frame, level=1, squeeze=True
     )
-    cdh5_stack = load_image(zarr_loc, channels=["EGFP"], timepoints=frame, level=1, squeeze=True)
+    cdh5_stack = load_image(
+        zarr_loc, channels=[ChannelName.EGFP], timepoints=frame, level=1, squeeze=True
+    )
 
     method = "min-max"
     center_im = bf_stack[center_plane].compute()

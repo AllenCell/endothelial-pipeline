@@ -184,7 +184,7 @@ def detect_single_timepoint_gfp_outliers(
     """
 
     zarr_loc = get_zarr_location_for_position(dataset_config, position)
-    gfp_zarr = load_image(zarr_loc, channels=["EGFP"], level=1, squeeze=True)
+    gfp_zarr = load_image(zarr_loc, channels=[ChannelName.EGFP], level=1, squeeze=True)
 
     # Compute mean intensity across spatial dimensions (Y, X)
     intensity_array = gfp_zarr.mean(axis=(-2, -1))  # now (T, Z)

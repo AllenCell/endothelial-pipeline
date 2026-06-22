@@ -1551,7 +1551,7 @@ def build_cdh5_measured_features_tables(
     # load the raw cdh5 image data
     dataset_config = load_dataset_config(dataset_name)
     image_loc = get_zarr_location_for_position(dataset_config, position)
-    raw_arr = load_image(image_loc, channels=["EGFP"], timepoints=tp, level=0)
+    raw_arr = load_image(image_loc, channels=[ChannelName.EGFP], timepoints=tp, level=0)
     raw_arr = raw_arr.max(axis=dim_order.index("Z")).squeeze().compute()
     voxel_size = load_image(image_loc, read=False).physical_pixel_sizes
 

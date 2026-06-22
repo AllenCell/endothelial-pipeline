@@ -61,6 +61,9 @@ class ChannelName(StrEnum):
     BF = "Brightfield"
     """Channel name for brightfield."""
 
+    EGFP = "EGFP"
+    """Channel name for VE-cadherin targeted by mEGFP."""
+
 
 class TimepointAnnotation(StrEnum):
     """Annotations for timepoints that should be excluded from model training and/or analysis."""
