@@ -139,7 +139,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     vector_field_plot_paths: dict[str, Path] = {}
     for dataset_name, arrow_scale_1d, arrow_width_1d, include_cbar_legend in [
         (dataset_low, 1.5, 0.05, True),
-        (dataset_high, 0.5, 0.05, True),
+        (dataset_high, 0.5, 0.05, False),
     ]:
         fig_savedir = get_output_path(__file__, dataset_name)
 
@@ -179,17 +179,16 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         )
         stable_fixed_point_theta = stable_fixed_points_dict[column_theta][column_theta].to_numpy()
 
-        placeholder_3d = "A" if dataset_name == dataset_low else "D"
         vector_field_plot_paths[dataset_name] = make_3d_vector_field_plot_panel(
             figure_size=(2.0, 2.5),
             output_path=fig_savedir,
             dataset_name=dataset_name,
             include_legend=include_cbar_legend,
             include_colorbar=include_cbar_legend,
-            **placeholders[placeholder_3d],
+            **placeholders["A"],
         )
 
-        placeholder_1p2d = "B" if dataset_name == dataset_low else "E"
+        placeholder_1p2d = "B" if dataset_name == dataset_low else "D"
         # plot 1D drift in theta and save
         theta_plot_paths[dataset_name] = make_1d_drift_plot_panel(
             figure_size=(1.325, 1.325),
@@ -215,7 +214,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             **placeholders[placeholder_1p2d],
         )
 
-        placeholder_nullcline = "C" if dataset_name == dataset_low else "F"
+        placeholder_nullcline = "C" if dataset_name == dataset_low else "E"
         nullcline_reconstruction_paths[dataset_name] = reconstruct_along_nullcline(
             figure_size=(3.125, 1.3),
             output_path=fig_savedir,
@@ -262,7 +261,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         figure_size=(0.95, 2.0),
         output_path=output_path,
         dataset_names=dataset_summary_list,
-        **placeholders["I"],
+        **placeholders["H"],
     )
 
     # --- Assemble all panels into final figure ---
@@ -273,6 +272,14 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             path=vector_field_plot_paths[dataset_low],
             x_position=0.0,
             y_position=0.0,
+            x_offset=0.1,
+            y_offset=0.1,
+        ),
+        FigurePanel(
+            letter="",
+            path=vector_field_plot_paths[dataset_high],
+            x_position=0.0,
+            y_position=2.0,
             x_offset=0.1,
             y_offset=0.1,
         ),
@@ -303,14 +310,6 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         # --- High flow dataset (row 2) ---
         FigurePanel(
             letter="D",
-            path=vector_field_plot_paths[dataset_high],
-            x_position=0.0,
-            y_position=2.8,
-            x_offset=0.1,
-            y_offset=0.1,
-        ),
-        FigurePanel(
-            letter="E",
             path=theta_plot_paths[dataset_high],
             x_position=2.3,
             y_position=2.8,
@@ -326,7 +325,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             y_offset=-0.15,
         ),
         FigurePanel(  # r and rho nullcline for high flow dataset
-            letter="F",
+            letter="E",
             path=nullcline_reconstruction_paths[dataset_high],
             x_position=2.3,
             y_position=4.25,
@@ -335,7 +334,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         ),
         # --- Bottom row: first passage time and summary plots ---
         FigurePanel(
-            letter="G",
+            letter="F",
             path=fixed_point_summary_plot_path,
             x_position=0.0,
             y_position=5.6,
@@ -343,7 +342,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             y_offset=0.25,
         ),
         FigurePanel(
-            letter="H",
+            letter="G",
             path=trajectory_example_filepath,
             x_position=3.4,
             y_position=5.6,
@@ -351,7 +350,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             y_offset=0.2,
         ),
         FigurePanel(
-            letter="I",
+            letter="H",
             path=first_passage_path,
             x_position=5.3,
             y_position=5.6,
