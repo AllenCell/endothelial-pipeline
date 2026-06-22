@@ -34,7 +34,7 @@ from endo_pipeline.library.visualize.diffae_features.flow_field_3d import (
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
-from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_SMALL
+from endo_pipeline.settings.figures import FONTSIZE_SMALL
 from endo_pipeline.settings.flow_field_3d import QUIVER_COLORMAP
 from endo_pipeline.settings.unicode import UnicodeCharacters
 
@@ -1066,12 +1066,12 @@ def plot_first_passage_time_parameter_sweep(
     fig_title = f"{shear_stress_rounded} dyn/cm{UnicodeCharacters.SQUARED}"
     metric = "50%" if metric_to_plot == "median" else metric_to_plot
     fig, ax = plt.subplots(figsize=figsize)
-    ax.set_title(fig_title, fontsize=FONTSIZE_LARGE)
+    ax.set_title(fig_title, fontsize=FONTSIZE_SMALL)
     ax.errorbar(
         x=first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
         y=first_passage_time_param_sweep_df[f"{metric}_grid"],
         yerr=first_passage_time_param_sweep_df["std_grid"],
-        label=f"MFPT {UnicodeCharacters.PLUS_MINUS} STD (patch-based)",
+        label=f"MFPT {UnicodeCharacters.PLUS_MINUS} STD (grid-based)",
         fmt="o-",
         color="tab:blue",
         ecolor="tab:blue",
@@ -1100,10 +1100,8 @@ def plot_first_passage_time_parameter_sweep(
     ax.legend(frameon=True, facecolor="white", loc="upper center")
     ax.set_xlim(0)
     ax.set_ylim(0)
-    ax.set_xlabel("radius around\nfixed point".title(), fontsize=FONTSIZE_LARGE, labelpad=2)
-    ax.set_ylabel(
-        f"{metric_to_plot} first passage\ntime (hrs)".title(), fontsize=FONTSIZE_LARGE, labelpad=2
-    )
+    ax.set_xlabel("Radius around\nfixed point", fontsize=FONTSIZE_SMALL, labelpad=2)
+    ax.set_ylabel("MFPT (hrs)", fontsize=FONTSIZE_SMALL, labelpad=2)
     filename_param_sweep_fpt = f"{dataset_name}_FPT_{metric_to_plot}_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}"
     save_plot_to_path(
         fig, out_dir, filename_param_sweep_fpt, file_format=".svg", show_and_close=False
@@ -1114,7 +1112,7 @@ def plot_first_passage_time_parameter_sweep(
     # affects the number of trajectories that are considered to have reached the
     # fixed point
     fig, ax = plt.subplots(figsize=figsize)
-    ax.set_title(fig_title, fontsize=FONTSIZE_LARGE)
+    ax.set_title(fig_title, fontsize=FONTSIZE_SMALL)
     ax.plot(
         first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
         first_passage_time_param_sweep_df[f"{Column.VectorField.PERCENT_TRAJ_APPROACHED_FP}_grid"],
@@ -1123,7 +1121,7 @@ def plot_first_passage_time_parameter_sweep(
         markerfacecolor="tab:blue",
         markeredgecolor="tab:blue",
         ls="-",
-        label="patch-based",
+        label="grid-based",
     )
     ax.plot(
         first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
@@ -1147,10 +1145,8 @@ def plot_first_passage_time_parameter_sweep(
     ax.legend(frameon=True, facecolor="white", loc="upper center")
     ax.set_xlim(0)
     ax.set_ylim(0, 105)
-    ax.set_xlabel("radius around\nfixed point".title(), fontsize=FONTSIZE_LARGE, labelpad=2)
-    ax.set_ylabel(
-        "Trajectories reaching\nfixed point (%)".title(), fontsize=FONTSIZE_LARGE, labelpad=2
-    )
+    ax.set_xlabel("Radius around\nfixed point", fontsize=FONTSIZE_SMALL, labelpad=2)
+    ax.set_ylabel("Trajectories reaching\nfixed point (%)", fontsize=FONTSIZE_SMALL, labelpad=2)
     filename_param_sweep_num_traj = f"{dataset_name}_FPT_percent_trajectories_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}"
     save_plot_to_path(
         fig, out_dir, filename_param_sweep_num_traj, file_format=".svg", show_and_close=False

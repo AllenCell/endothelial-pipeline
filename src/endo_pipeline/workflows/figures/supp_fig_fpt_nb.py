@@ -79,7 +79,6 @@ for example in FPT_FIG_EXAMPLES:
 # %% Load the first passage time statistics dataframe to make correlation plots
 # from and get the fitted lines
 fpt_param_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_PARAMETER_SWEEP_MANIFEST_NAME)
-metric_to_plot = "mean"
 
 # %% make the plots for the desired datasets
 dataset_name = high_flow_dataset.dataset_name
@@ -165,7 +164,7 @@ panels = [
         path=fp_param_sweep_fpt,
         x_position=4,
         y_position=0,
-        x_offset=-0.1,
+        x_offset=0,
         y_offset=0,
     ),
     FigurePanel(
