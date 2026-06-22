@@ -28,7 +28,7 @@ zarr_channel_indices:
   channel_405: 2
   channel_561: null
   channel_640: null
-channel_names: [EGFP, Brightfield, NucViolet]
+channel_names: [VE-cadherin_mEGFP, Brightfield, NucViolet]
 flow_conditions:
 - start: -588
   stop: 0
