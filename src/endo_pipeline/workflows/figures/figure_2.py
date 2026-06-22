@@ -188,7 +188,6 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             **placeholders["A"],
         )
 
-        placeholder_1p2d = "B" if dataset_name == dataset_low else "D"
         # plot 1D drift in theta and save
         theta_plot_paths[dataset_name] = make_1d_drift_plot_panel(
             figure_size=(1.325, 1.325),
@@ -200,7 +199,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             filename=f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}_drift",
             arrow_scale=arrow_scale_1d,
             arrow_width=arrow_width_1d,
-            **placeholders[placeholder_1p2d],
+            **placeholders["B"],
         )
 
         contour_plot_paths[dataset_name], nullcline_coordinates = make_2d_contour_plot_panel(
@@ -211,10 +210,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             column_labels=column_labels_r_rho,
             stable_fixed_point=stable_fixed_point_r_rho,
             filename=f"{dataset_name}_{columns_r_rho_str}_contours",
-            **placeholders[placeholder_1p2d],
+            **placeholders["B"],
         )
 
-        placeholder_nullcline = "C" if dataset_name == dataset_low else "E"
         nullcline_reconstruction_paths[dataset_name] = reconstruct_along_nullcline(
             figure_size=(3.125, 1.3),
             output_path=fig_savedir,
@@ -223,7 +221,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             model=model,
             num_gpus=NUM_GPUS,
             random_seed=4,
-            **placeholders[placeholder_nullcline],
+            **placeholders["C"],
         )
 
     # --- Cross-dataset summary plots ---
@@ -266,7 +264,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     # --- Assemble all panels into final figure ---
     panels = [
-        # --- Low flow dataset (row 1) ---
+        # --- 3D plots (panel A) ---
         FigurePanel(
             letter="A",
             path=vector_field_plot_paths[dataset_low],
@@ -283,6 +281,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             x_offset=0.15,
             y_offset=0.1,
         ),
+        # --- 1D and contour plots (panel B) ---
         FigurePanel(
             letter="B",
             path=theta_plot_paths[dataset_low],
@@ -299,20 +298,11 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             x_offset=0.0,
             y_offset=-0.15,
         ),
-        FigurePanel(  # r and rho nullclines for low flow dataset
-            letter="C",
-            path=nullcline_reconstruction_paths[dataset_low],
-            x_position=2.3,
-            y_position=1.45,
-            x_offset=0.85,
-            y_offset=0.0,
-        ),
-        # --- High flow dataset (row 2) ---
         FigurePanel(
-            letter="D",
+            letter="",
             path=theta_plot_paths[dataset_high],
             x_position=2.3,
-            y_position=2.8,
+            y_position=2.0,
             x_offset=0.05,
             y_offset=0.04,
         ),
@@ -320,21 +310,30 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             letter="",
             path=contour_plot_paths[dataset_high],
             x_position=3.75,
-            y_position=2.8,
+            y_position=2.0,
             x_offset=0.0,
             y_offset=-0.15,
         ),
-        FigurePanel(  # r and rho nullcline for high flow dataset
-            letter="E",
-            path=nullcline_reconstruction_paths[dataset_high],
-            x_position=2.3,
+        # --- Nullcline reconstructions (panel C) ---
+        FigurePanel(
+            letter="C",
+            path=nullcline_reconstruction_paths[dataset_low],
+            x_position=0.0,
             y_position=4.25,
-            x_offset=0.85,
+            x_offset=0.05,
+            y_offset=0.0,
+        ),
+        FigurePanel(
+            letter="",
+            path=nullcline_reconstruction_paths[dataset_high],
+            x_position=3.5,
+            y_position=4.25,
+            x_offset=0.0,
             y_offset=0.0,
         ),
         # --- Bottom row: first passage time and summary plots ---
         FigurePanel(
-            letter="F",
+            letter="D",
             path=fixed_point_summary_plot_path,
             x_position=0.0,
             y_position=5.6,
@@ -342,7 +341,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             y_offset=0.25,
         ),
         FigurePanel(
-            letter="G",
+            letter="E",
             path=trajectory_example_filepath,
             x_position=3.4,
             y_position=5.6,
@@ -350,7 +349,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             y_offset=0.2,
         ),
         FigurePanel(
-            letter="H",
+            letter="F",
             path=first_passage_path,
             x_position=5.3,
             y_position=5.6,
