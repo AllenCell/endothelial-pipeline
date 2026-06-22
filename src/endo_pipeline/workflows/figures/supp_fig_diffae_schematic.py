@@ -2,8 +2,7 @@ def main() -> None:
     """
     Create the DiffAE model training and eval schematic figure assets.
 
-    Uses the brightfield-conditioned baseline model
-    (``diffae_baseline_exclude_cell_piling``) to produce two deliverables:
+    Uses the brightfield-conditioned baseline model to produce two deliverables:
 
       * The per-channel z-slice + FOV + crop thumbnails for the main-text
         figure-2 training/eval schematic diagram (from the single curated
@@ -58,6 +57,8 @@ def main() -> None:
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT,
+        DEFAULT_MODEL_MANIFEST_NAME,
+        DEFAULT_MODEL_RUN_NAME,
         RANDOM_SEED,
     )
 
@@ -68,8 +69,8 @@ def main() -> None:
     # Both deliverables come from the brightfield-conditioned baseline model.
     # Pin the latent-512 run explicitly: this is the variant used throughout
     # the figure-2 schematic.
-    model_manifest_name = "diffae_baseline_exclude_cell_piling"
-    run_name = "20251110_latent_512"
+    model_manifest_name = DEFAULT_MODEL_MANIFEST_NAME
+    run_name = DEFAULT_MODEL_RUN_NAME
     rng = default_rng(seed=RANDOM_SEED)
 
     # Load model manifest and get location for the pinned run_name

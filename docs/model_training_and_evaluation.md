@@ -24,8 +24,8 @@ There are two main identifiers for models. These identifiers may be passed to th
 
 | Identifier | Description | CLI | Default |
 | - | - | - | - |
-| **model manifest name** | general name for a set of models | `--model-manifest-name MODEL_MANIFEST_NAME` | `diffae_baseline_exclude_cell_piling` |
-| **run name** | specific name of a model training run | `--run-name RUN_NAME` | `20251110_latent_512` |
+| **model manifest name** | general name for a set of models | `--model-manifest-name MODEL_MANIFEST_NAME` | `diffae_baseline` |
+| **run name** | specific name of a model training run | `--run-name RUN_NAME` | `latent_512` |
 
 _Note that **model manifest name** is analogous to MLflow "experiments" and **run name** is analogous to MLflow "runs" (these mappings are reflected in the model configs)._
 
@@ -36,8 +36,8 @@ There are currently three main model training options. These options may be pass
 | Option | Description | CLI | Formatting |
 | - | - | - | - |
 | **image crop size** | length of the 2D image crop in pixels used for training | `--crop-size CROP_SIZE` | `patch_CROP_SIZExCROP_SIZE` |
-| **cell piling timepoints** | if timepoints annotated as cell piling are included in the training | `--include-cell-piling` or `--exclude-cell-piling` | `include_cell_piling` or `exclude_cell_piling` |
-| **conditioning image type** | name of image type to use for semantic conditioning (`cdh5` or `bf`) | `--condition-on CONDITION_IMG_NAME` | `condition_on_CONDITION_IMG_NAME`
+| **conditioning image type** | name of image type to use for semantic conditioning (`cdh5` or `bf`) | `--condition-on CONDITION_IMG_NAME` | `condition_on_CONDITION_IMG_NAME` |
+| **latent space dimension** | number of latent dimensions | `--latent-dim LATENT_DIM_SIZE` | `latent_LATENT_DIM_SIZE` |
 
 ## Model evaluation options
 
@@ -46,7 +46,6 @@ There is currently one main model evaluation option. This options may be passed 
 | Option | Description | CLI | Options |
 | - | - | - | - |
 | **crop pattern** | select grid-based or track-based crops | `--crop-pattern CROP_PATTERN` | `grid` or `tracked` |
-
 
 ## Model training workflows
 
@@ -58,23 +57,23 @@ There is currently one main model evaluation option. This options may be passed 
 ### 1. Build the training and validation dataframes
 
 - workflow = `create-diffae-train-dataframe`
-- input (training options) = **cell piling timepoints**
-- :purple_circle: output = training dataframe manifest at `src/endo_pipeline/manifests/dataframes/diffae_training_dataframe_PILING`
+- input (training options) = (none)
+- :purple_circle: output = training dataframe manifest at `src/endo_pipeline/manifests/dataframes/diffae_training_dataframe`
 
 ### 2. Build the model training config
 
 - workflow = `build-diffae-train-config`
 - input (identifier options) = **model manifest name**, **run_name**
-- input (training options) = **cell piling timepoints**, **image crop size**, **conditioning image type**, **latent space dimension**
+- input (training options) = **image crop size**, **conditioning image type**, **latent space dimension**
 - :white_circle: output = resolved model config at `results/models/MODEL_MANIFEST_NAME/RUN_NAME/configs/train.yaml`
-- :purple_circle: output = updated model manifest with pending training run at `src/endo_pipeline/manifests/models/diffae_PATCH_CONDITIONING_LATENT_PILING` (recommendation is to open a draft PR with this change until the next step is complete)
+- :purple_circle: output = updated model manifest with pending training run at `src/endo_pipeline/manifests/models/diffae_PATCH_CONDITIONING_LATENT` (recommendation is to open a draft PR with this change until the next step is complete)
 
 ### 3. Train the model
 
 - workflow = `train-diffae`
 - input (identifier options) = **model manifest name**, **run_name**
 - :white_circle: output = model training run on MLflow
-- :purple_circle: output = updated model manifest with MLflow run id at `src/endo_pipeline/manifests/models/diffae_PATCH_CONDITIONING_LATENT_PILING`
+- :purple_circle: output = updated model manifest with MLflow run id at `src/endo_pipeline/manifests/models/diffae_PATCH_CONDITIONING_LATENT`
 
 ## Model evaluation workflows
 

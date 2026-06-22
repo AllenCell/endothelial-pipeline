@@ -14,14 +14,14 @@ def main(model_manifest_name: str, run_names: list[str] | None = None) -> None:
     Evaluate every run in a model manifest:
 
     ```bash
-    uv run endopipe calculate-model-comparison-metrics diffae_baseline_exclude_cell_piling
+    uv run endopipe calculate-model-comparison-metrics MODEL_MANIFEST_NAME
     ```
 
     Evaluate a subset of runs:
 
     ```bash
-    uv run endopipe calculate-model-comparison-metrics diffae_cdh5_conditioned \
-        --run-names 20260130_latent_512 --run-names 20251110_latent_1024
+    uv run endopipe calculate-model-comparison-metrics MODEL_MANIFEST_NAME \
+        --run-names RUN_NAME --run-names RUN_NAME
     ```
 
     ## Workflow demo
@@ -33,8 +33,7 @@ def main(model_manifest_name: str, run_names: list[str] | None = None) -> None:
     Parameters
     ----------
     model_manifest_name
-        Name of the DiffAE model manifest to evaluate
-        (e.g. ``"diffae_baseline_exclude_cell_piling"``).
+        Name of the DiffAE model manifest to evaluate.
     run_names
         Optional subset of ``run_name`` entries from the model manifest to
         evaluate. If ``None``, defaults to the curated QC subset from

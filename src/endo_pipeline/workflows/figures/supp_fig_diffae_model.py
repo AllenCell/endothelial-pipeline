@@ -85,7 +85,7 @@ def main() -> None:
     # Pin the latent-512 cdh5 run explicitly so the panel-A contact sheet
     # is reproducible regardless of new runs landing in the sweep manifest.
     model_manifest = load_model_manifest(model_manifest_name)
-    run_name = "20260130_latent_512"
+    run_name = "latent_512"
     model_location = model_manifest.locations[run_name]
 
     # Load model as instantiated Diff AE object. Crop size and the

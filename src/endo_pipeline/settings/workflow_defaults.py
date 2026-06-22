@@ -6,10 +6,10 @@ from endo_pipeline.configs.dataset_config import TimepointAnnotation
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
 
-DEFAULT_MODEL_MANIFEST_NAME: str = "diffae_baseline_exclude_cell_piling"
+DEFAULT_MODEL_MANIFEST_NAME: str = "diffae_baseline"
 """Default model manifest for loading models and model features."""
 
-DEFAULT_MODEL_RUN_NAME: str = "20251110_latent_512"
+DEFAULT_MODEL_RUN_NAME: str = "latent_512"
 """Default model run name within the default model manifest."""
 
 DEFAULT_PCA_DATASET_COLLECTION_NAME: str = "diffae_model_training"
@@ -225,16 +225,16 @@ DATASET_INFO_COLUMNS: list[ColumnNameType] = [
 # =========================================
 
 DEFAULT_MODEL_QC_LABEL_MAP: dict[tuple[str, str], str] = {
-    ("diffae_baseline_exclude_cell_piling", "20260207_latent_8"): "8 BF",
-    ("diffae_baseline_exclude_cell_piling", "20260205_latent_16"): "16 BF",
-    ("diffae_baseline_exclude_cell_piling", "20260203_latent_32"): "32 BF",
-    ("diffae_baseline_exclude_cell_piling", "20260206_latent_64"): "64 BF",
-    ("diffae_baseline_exclude_cell_piling", "20260127_latent_128"): "128 BF",
-    ("diffae_baseline_exclude_cell_piling", "20260122_latent_256"): "256 BF",
-    ("diffae_baseline_exclude_cell_piling", "20251110_latent_512"): "512 BF",
-    ("diffae_baseline_exclude_cell_piling", "20251110_latent_1024"): "1024 BF",
-    ("diffae_cdh5_conditioned", "20260130_latent_512"): "512 CDH5",
-    ("diffae_cdh5_conditioned", "20251110_latent_1024"): "1024 CDH5",
+    ("diffae_baseline", "latent_8"): "8 BF",
+    ("diffae_baseline", "latent_16"): "16 BF",
+    ("diffae_baseline", "latent_32"): "32 BF",
+    ("diffae_baseline", "latent_64"): "64 BF",
+    ("diffae_baseline", "latent_128"): "128 BF",
+    ("diffae_baseline", "latent_256"): "256 BF",
+    ("diffae_baseline", "latent_512"): "512 BF",
+    ("diffae_baseline", "latent_1024"): "1024 BF",
+    ("diffae_cdh5_conditioned", "latent_512"): "512 CDH5",
+    ("diffae_cdh5_conditioned", "latent_1024"): "1024 CDH5",
 }
 """``(manifest_name, run_name)`` -> bar-plot label for the 10-model QC comparison.
 
