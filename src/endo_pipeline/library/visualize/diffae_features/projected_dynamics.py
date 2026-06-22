@@ -6,6 +6,8 @@ from typing import Any, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
+from numdifftools import Jacobian
+from scipy.integrate import solve_ivp
 
 from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
@@ -25,10 +27,10 @@ logger = logging.getLogger(__name__)
 
 def _find_saddle_point_for_projection(
     f: Callable[[np.ndarray], np.ndarray],
-    fp1: np.ndarray,
-    fp2: np.ndarray,
+    fixed_point_1: np.ndarray,
+    fixed_point_2: np.ndarray,
     candidate_saddles: np.ndarray,
-) -> np.ndarray:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Find a saddle point for projection by checking candidate saddle points for
     the correct stability and location.
@@ -46,9 +48,9 @@ def _find_saddle_point_for_projection(
     f
         Callable representing the vector field. Must accept a 1-D array of shape
         ``(D,)`` and return a 1-D array of shape ``(D,)``.
-    fp1
+    fixed_point_1
         The first stable fixed point, shape ``(D,)``.
-    fp2
+    fixed_point_2
         The second stable fixed point, shape ``(D,)``.
     candidate_saddles
         Array of shape (N, D) containing candidate saddle points to check, where
@@ -61,21 +63,26 @@ def _find_saddle_point_for_projection(
         Tuple containing the saddle point selected for projection (shape (D,)),
         its eigenvalues (shape (D,)), and its eigenvectors (shape (D, D)).
     """
-    fp1 = np.asarray(fp1, dtype=np.float64)
-    fp2 = np.asarray(fp2, dtype=np.float64)
-    main_axis = np.argmax(np.abs(fp2 - fp1))
+    main_axis = np.argmax(np.abs(fixed_point_2 - fixed_point_1))
+
+    jacobian_f = Jacobian(f)
 
     for saddle_point in candidate_saddles:
-        is_between: bool = (fp1[main_axis] <= saddle_point[main_axis] <= fp2[main_axis]) or (
-            fp2[main_axis] <= saddle_point[main_axis] <= fp1[main_axis]
-        )
+        is_between: bool = (
+            fixed_point_1[main_axis] <= saddle_point[main_axis] <= fixed_point_2[main_axis]
+        ) or (fixed_point_2[main_axis] <= saddle_point[main_axis] <= fixed_point_1[main_axis])
+
+        jacobian_at_saddle = jacobian_f(saddle_point)
+        eigvals_complex, eigvecs_complex = np.linalg.eig(jacobian_at_saddle)
+        eigvals = eigvals_complex.real
+        eigvecs = eigvecs_complex.real
         if is_between:
-            return saddle_point
+            return saddle_point, eigvals, eigvecs
 
     logger.warning(
         "No suitable saddle point found among candidates. Returning the last one checked."
     )
-    return saddle_point
+    return saddle_point, eigvals, eigvecs
 
 
 def _get_orthonormal_basis_for_plane(
@@ -238,6 +245,68 @@ def plot_streamlines_of_projected_vector_field(
     return fig
 
 
+def _integrate_unstable_manifold_trajectories(
+    eigvals: np.ndarray,
+    eigvecs: np.ndarray,
+    vector_field_function: Callable,
+    saddle_point: np.ndarray,
+    ortho_basis: np.ndarray,
+    hetero_eps: float = 1e-3,
+    hetero_t_max: float = 250.0,
+) -> list[np.ndarray]:
+    """Integrate trajectories from the unstable manifold of a saddle point.
+
+    Parameters
+    ----------
+    eigvals
+        Eigenvalues of the Jacobian at the saddle point.
+    eigvecs
+        Corresponding eigenvectors (columns), shape (3, n).
+    vector_field_function
+        Callable 3D vector field.
+    saddle_point
+        3D coordinates of the saddle point (used as the 2D origin).
+    ortho_basis
+        2x3 orthonormal basis for the projection plane.
+    hetero_eps
+        Step size along the unstable eigenvector for the initial condition.
+    hetero_t_max
+        Maximum integration time.
+
+    Returns
+    -------
+    :
+        List of (n_steps, 2) arrays, one per integrated trajectory.
+
+    """
+    trajectories_2d: list[np.ndarray] = []
+    unstable_mask = eigvals > 0
+    if not np.any(unstable_mask):
+        return trajectories_2d
+    unstable_evecs = eigvecs[:, unstable_mask]
+    for col in range(unstable_evecs.shape[1]):
+        v3d = unstable_evecs[:, col]
+        v_norm = float(np.linalg.norm(v3d))
+        if v_norm < 1e-10:
+            continue
+        v_unit = v3d / v_norm
+        for sign in (+1.0, -1.0):
+            x0_3d = saddle_point + sign * hetero_eps * v_unit
+            sol = solve_ivp(
+                lambda t, x, _f=vector_field_function: _f(x),
+                [0.0, hetero_t_max],
+                x0_3d,
+                method="RK45",
+                rtol=1e-6,
+                atol=1e-8,
+                dense_output=False,
+            )
+            traj_3d = sol.y.T  # shape (n_steps, 3)
+            traj_2d = (traj_3d - saddle_point) @ ortho_basis.T  # shape (n_steps, 2)
+            trajectories_2d.append(traj_2d)
+    return trajectories_2d
+
+
 def visualize_projected_dynamics(
     dataset_name: str,
     grid_spacing_2d: float = 0.05,
@@ -321,7 +390,7 @@ def visualize_projected_dynamics(
             saddle_points[i, 0] += POLAR_ANGLE_PERIOD
         elif saddle_points[i, 0] > VECTOR_FIELD_THETA_RANGE[1]:
             saddle_points[i, 0] -= POLAR_ANGLE_PERIOD
-    saddle_point = _find_saddle_point_for_projection(
+    saddle_point, eigvals, eigvecs = _find_saddle_point_for_projection(
         vector_field_function, stable_fixed_point_1, stable_fixed_point_2, saddle_points
     )
 
@@ -334,9 +403,22 @@ def visualize_projected_dynamics(
     proj_sfp1 = ortho_basis @ (stable_fixed_point_1 - saddle_point)
     proj_sfp2 = ortho_basis @ (stable_fixed_point_2 - saddle_point)
 
-    # set grid extent from the projected stable fixed points, including origin
+    # compute trajectories from the unstable manifold of the saddle before
+    # building the meshgrid so their extents can inform the grid limits
+    trajectories_2d = _integrate_unstable_manifold_trajectories(
+        eigvals=eigvals,
+        eigvecs=eigvecs,
+        vector_field_function=vector_field_function,
+        saddle_point=saddle_point,
+        ortho_basis=ortho_basis,
+    )
+
+    # set grid extent from fixed points and trajectory projections
     x_vals = [proj_sfp1[0], proj_sfp2[0], 0.0]
     y_vals = [proj_sfp1[1], proj_sfp2[1], 0.0]
+    for traj_2d in trajectories_2d:
+        x_vals.extend([float(traj_2d[:, 0].min()), float(traj_2d[:, 0].max())])
+        y_vals.extend([float(traj_2d[:, 1].min()), float(traj_2d[:, 1].max())])
     x_margin = (max(x_vals) - min(x_vals)) * 0.1 + grid_spacing_2d
     y_margin = (max(y_vals) - min(y_vals)) * 0.1 + grid_spacing_2d
     x_min = min(x_vals) - x_margin
@@ -378,6 +460,17 @@ def visualize_projected_dynamics(
             markeredgewidth=0.5,
             markersize=9,
             zorder=5,
+        )
+
+    # plot the pre-computed trajectories
+    traj_color = FIXED_POINT_PLOT_STYLE[StabilityLabel.UNSTABLE].color
+    for traj_2d in trajectories_2d:
+        ax.plot(
+            traj_2d[:, 0],
+            traj_2d[:, 1],
+            color=traj_color,
+            linewidth=1.0,
+            zorder=3,
         )
 
     return fig
