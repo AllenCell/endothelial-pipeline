@@ -79,9 +79,6 @@ LABELFREE_NUCLEI_MODEL_MANIFEST_NAME: str = "nuc_pred_labelfree"
 LABELFREE_NUCLEI_MODEL_RUN_NAME: str = "finetuned_20250419"
 """Default run name for the label-free nuclei segmentation model."""
 
-METRIC_TEXT_BOX_PROPS = {"boxstyle": "round", "facecolor": "wheat", "alpha": 0.3}
-"""Matplotlib text-box properties for metric annotations in QC plots."""
-
 IMAGE_METRIC_DATASET_COLORS = {
     "validation_positions": "#2C6FAC",  # Medium blue
     "rep_2_positions": "#7ABBE0",  # Light blue
@@ -241,6 +238,9 @@ DEFAULT_MODEL_QC_LABEL_MAP: dict[tuple[str, str], str] = {
 Covers 8 brightfield-conditioned latent dimensions (8--1024) and 2 CDH5-
 conditioned models (512, 1024), in plot order.
 """
+
+DEFAULT_MODEL_COMPARISON_RUNS: list[tuple[str, str]] = list(DEFAULT_MODEL_QC_LABEL_MAP.keys())
+"""List of default model comparison model runs (same order as label map)."""
 
 # Parallel lists derived from the label map (the single source of truth) so the
 # manifest / run / label ordering always stays in sync.

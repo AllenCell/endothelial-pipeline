@@ -29,6 +29,17 @@ class ExampleImage(NamedTuple):
     crop_x_start: int  # res level 1
     crop_y_start: int  # res level 1
 
+    def __str__(self):
+        return "_".join(
+            [
+                self.dataset_name,
+                f"P{self.position}",
+                f"T{self.timepoint}",
+                f"X{self.crop_x_start}",
+                f"Y{self.crop_y_start}",
+            ]
+        )
+
 
 class ExampleFPT(NamedTuple):
     """Structure for information about an example used in the first passage time analysis."""
@@ -432,6 +443,13 @@ MODEL_QC_EXAMPLES_REP_2_POSITIONS: list[ExampleImage] = [
     ),
 ]
 """List of example crops for model QC, positions from replicate 2. Datasets not used for model training."""
+
+MODEL_COMPARISON_EXAMPLES: dict[str, list[ExampleImage]] = {
+    "replicate": MODEL_QC_EXAMPLES_REP_2_POSITIONS,
+    "training": MODEL_QC_EXAMPLES_TRAINING_POSITIONS,
+    "validation": MODEL_QC_EXAMPLES_VALIDATION_POSITIONS,
+}
+"""Map of example group names to list of example images."""
 
 EXAMPLE_DIFFAE_TRAINING_SCHEMATIC = "20250428_20X"
 

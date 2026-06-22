@@ -558,5 +558,18 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         label="Line fit slope",
         type=ColumnType.CONTINUOUS,
     ),
+    # Model comparison =========================================================
+    Column.MODEL_COMPARISON_CORRELATION: ColumnMetadata(
+        name="Pearson correlation",
+        type=ColumnType.CONTINUOUS,
+    ),
+    Column.MODEL_COMPARISON_SSIM: ColumnMetadata(
+        name="SSIM score",
+        type=ColumnType.CONTINUOUS,
+    ),
+    Column.MODEL_COMPARISON_LPIPS: ColumnMetadata(
+        name="LPIPS score",
+        type=ColumnType.CONTINUOUS,
+    ),
 }
 """Mapping of column names to column metadata."""
