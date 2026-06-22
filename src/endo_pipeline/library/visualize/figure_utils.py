@@ -4,6 +4,7 @@ from typing import Literal
 
 import matplotlib.axes as maxes
 import matplotlib.patches as patches
+import matplotlib.patheffects as path_effects
 import matplotlib.pyplot as plt
 import matplotlib.text
 import numpy as np
@@ -211,6 +212,7 @@ def add_scalebar(
     ax.add_patch(rect)
 
     if include_label:
+        glow_color = "black" if color == "white" else "white"
         ax.text(
             label_xy[0],
             label_xy[1],
@@ -220,6 +222,9 @@ def add_scalebar(
             ha="right",
             va="bottom",
             transform=ax.transAxes,
+            path_effects=[
+                path_effects.withStroke(linewidth=2, foreground=glow_color),
+            ],
         )
 
 
