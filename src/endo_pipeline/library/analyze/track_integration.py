@@ -150,7 +150,6 @@ def merge_diffae_feats_liveseg_feats_tables(
         Column.POSITION,
         Column.TIMEPOINT,
         Column.TRACK_ID,
-        Column.ZARR_PATH,
     ]
     if Column.TRACK_LENGTH in diffae_tracking_df.columns:
         merging_cols.append(Column.TRACK_LENGTH)
@@ -205,6 +204,9 @@ def get_diffae_feats_liveseg_feats_merged_table(
     pc_cols_to_drop = DIFFAE_PC_COLUMN_NAMES[100:]
     diffae_tracking_df = diffae_tracking_df.drop(columns=pc_cols_to_drop)
 
+    # drop the zarr path column
+    diffae_tracking_df = diffae_tracking_df.drop(columns=[Column.ZARR_PATH])
+
     # load the tracking data of the measured features and merge them
     logging.debug("loading segmentation property data...")
     live_seg_manifest = load_dataframe_manifest(classic_segmentation_feature_manifest_name)
@@ -230,16 +232,10 @@ def get_diffae_feats_liveseg_feats_merged_table(
         default_cols_to_drop = [
             col for col_grp in DEFAULT_COLUMNS_TO_DROP.values() for col in col_grp
         ]
-        nuclei_intens_cols = [
-            col
-            for col in merged_feats_df.columns
-            if Column.SegDataWorkflowVerification.NUCLEI_INTENSITY_COLUMN_PREFIX in col
-        ]
         additional_cols_to_drop = additional_columns_to_drop or []
 
         cols_to_drop = [
             *default_cols_to_drop,
-            *nuclei_intens_cols,
             *additional_cols_to_drop,
         ]
 

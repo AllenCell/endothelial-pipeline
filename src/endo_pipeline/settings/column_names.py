@@ -218,9 +218,9 @@ class ColumnName:
         NUCLEI_POSITION_ANGLE = "nuclei_position_angle"
         NUCLEI_POSITION_ANGLE_DEG = "nuclei_position_angle_deg"
         NUCLEI_POSITION_DISTANCE = "nuclei_position_distance"
-        NUCLEI_LABEL = "nuclei_seg_with_most_overlap_0"
-        NUCLEI_CENTROID_X = "nuc_with_most_overlap_0_centroid_X"
-        NUCLEI_CENTROID_Y = "nuc_with_most_overlap_0_centroid_Y"
+        NUCLEI_LABEL = "nuclei_with_most_overlap_0"
+        NUCLEI_CENTROID_X = "nuclei_with_most_overlap_0_centroid_X"
+        NUCLEI_CENTROID_Y = "nuclei_with_most_overlap_0_centroid_Y"
 
         # fluorescence features
         EDGE_FLUOR = "edge_fluorescence_au"
@@ -299,14 +299,21 @@ class ColumnName:
 
         IS_VALID_BBOX = "bbox_is_in_bounds"
 
+    TRACKING_REFERENCE_INDEX = "reference_index"
+    """Relative timepoint index used to compare nearby timepoints to find matching segmentation for track."""
+
+    TRACKING_MATCHED_QUERY_LABEL = "matched_query_label"
+    """List of matched labels from each timepoint starting from current one to up to the next 4 timepoints."""
+
+    TRACKING_OPTIMIZED_METRIC_VALUE = "optimized_metric_value"
+    """Value of metric (fraction of segmentation overlap between reference and query index timepoints) used for tracking."""
+
+    TRACKING_MATCHING_METHOD = "matching_method"
+    """Metric used by tracking algorithm to find matching segmentations."""
+
     class SegDataWorkflowVerification(StrEnum):
         """Column names for workflow development and verification checks."""
 
-        SEGMENTATION_PATH = "filepath_segmentation_image"
-        TRACKING_REF_IDX = "reference_index"
-        TRACKING_MATCHED_QUERY_LABEL = "matched_query_label"
-        TRACKING_OPTIMIZED_METRIC_VAL = "optimized_metric_value"
-        TRACKING_MATCHING_METHOD = "matching_method"
         NUM_NUC_WITH_MOST_OVERLAP = "num_nuclei_with_most_overlap"
         SMOOTHED_AREA_NORMALIZED = "smoothed_area_normd"
         SIGMA_FOR_AREA_SMOOTHING = "gaussian_sigma_for_area_smoothing"
@@ -314,10 +321,9 @@ class ColumnName:
         NODE_LABELS = "node_labels"
         EDGE_LABELS = "edge_labels"
         NODE_PAIR_LABELS = "node_pair_labels"
+        CDH5_SEGMENTATION_LABEL = "cdh5_segmentation_label"
         NUCLEI_LABELS_IN_CDH5_SEGMENTATION = "nuclei_segmentation_labels"
         NUCLEI_FRACTION_IN_CDH5_SEGMENTATION = "nuclei_seg_in_cdh5_seg_frac"
-        NUCLEI_INTENSITY_COLUMN_PREFIX = "nuc_seg_intens_"
-        NUCLEI_SEG_LABEL_PREFIX = "nuclei_seg_with_most_overlap_"
 
     class Annotations(StrEnum):
         """Column names for manual annotations of segmentation quality and other features."""
@@ -629,6 +635,8 @@ class ColumnName:
 
 class ColumnNamePrefix(StrEnum):
     """Prefixes for dataframe column names."""
+
+    NUCLEI_WITH_MOST_OVERLAP = "nuclei_with_most_overlap_"
 
 
 class ColumnNameSuffix(StrEnum):

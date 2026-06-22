@@ -22,7 +22,8 @@ from endo_pipeline.manifests import (
     get_image_location_for_dataset,
     load_image_manifest,
 )
-from endo_pipeline.settings import DIMENSION_ORDER
+from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.image_data import DIMENSION_ORDER
 
 logger = logging.getLogger(__name__)
 
@@ -299,11 +300,11 @@ def match_labels_from_images(
     for label in matched_labels_dict:
         matched_labels_dict[label]["regionprops"] = ref_props[label]
         matched_labels_dict[label]["regionprops"].matched_query_label = matched_labels_dict[label][
-            "matched_query_label"
+            Column.TRACKING_MATCHED_QUERY_LABEL
         ]
         matched_labels_dict[label]["regionprops"].optimized_metric_value = matched_labels_dict[
             label
-        ]["optimized_metric_value"]
+        ][Column.TRACKING_OPTIMIZED_METRIC_VALUE]
         matched_labels_dict[label]["regionprops"].reference_index = reference_index
         matched_labels_dict[label]["regionprops"].matching_method = matching_method
 
@@ -548,11 +549,11 @@ def match_labels_from_metrics(
     matched_labels_dict = {}
     for label in matched_labels_list[reference_index]:
         matched_labels_dict[label] = {
-            "matched_query_label": [
+            Column.TRACKING_MATCHED_QUERY_LABEL: [
                 (matched_labels_list[i][label] if label in matched_labels_list[i] else np.ma.masked)
                 for i in range(len(matched_labels_list))
             ],
-            "optimized_metric_value": [
+            Column.TRACKING_OPTIMIZED_METRIC_VALUE: [
                 (
                     matched_metrics_list[i][label]
                     if label in matched_metrics_list[i]
@@ -725,11 +726,11 @@ def match_labels_from_overlaps(
     matched_labels_dict = {}
     for label in matched_labels_list[reference_index]:
         matched_labels_dict[label] = {
-            "matched_query_label": [
+            Column.TRACKING_MATCHED_QUERY_LABEL: [
                 (matched_labels_list[i][label] if label in matched_labels_list[i] else np.ma.masked)
                 for i in range(len(matched_labels_list))
             ],
-            "optimized_metric_value": [
+            Column.TRACKING_OPTIMIZED_METRIC_VALUE: [
                 (
                     matched_metrics_list[i][label]
                     if label in matched_metrics_list[i]
@@ -821,7 +822,9 @@ def reassign_track_ids_from_matches(
         recent_track_ids["image_index"].copy() - current_image_index
     )
     recent_track_ids["match_at_current_image_index"] = recent_track_ids.apply(
-        lambda row: row["matched_query_label"][reference_index - row["image_index_relative"]],
+        lambda row: row[Column.TRACKING_MATCHED_QUERY_LABEL][
+            reference_index - row["image_index_relative"]
+        ],
         axis=1,
     ).copy()
 
@@ -1130,6 +1133,25 @@ def run_tracking(
     out_dir.mkdir(parents=True, exist_ok=True)
     logger.debug(f"Saving tracking table to {out_path}")
 
+    # The "image_index" and "T" columns are redundant, so drop "image_index"
+    if not track_table["image_index"].equals(track_table["T"]):
+        raise ValueError("Expected 'image_index' and 'T' columns to match")
+    track_table = track_table.drop(columns=["image_index"])
+
+    # Rename track table columns to match outputs of other feature workflows
+    track_table = track_table.rename(
+        columns={
+            "area": Column.SegData.AREA_PX_SQ,
+            "eccentricity": Column.SegData.ECCENTRICITY,
+            "label": Column.SegData.LABEL,
+            "orientation": Column.SegData.ORIENTATION,
+            "perimeter": Column.SegData.PERIMETER_PX,
+            "T": Column.TIMEPOINT,
+            "touches_border": Column.SegDataFilters.IS_EDGE_SEGMENTATION,
+            "track_id": Column.TRACK_ID,
+        }
+    )
+
     # split the 'centroid' column into separate columns for each dimension
     if "centroid" in track_table.columns:
         centroid_subdf = pd.DataFrame(track_table["centroid"].tolist(), index=track_table.index)
@@ -1139,10 +1161,13 @@ def run_tracking(
         centroid_dims = DIMENSION_ORDER[::-1][:num_centroid_dims][::-1]
         for i in range(num_centroid_dims):
             dim = centroid_dims[i]
-            track_table[f"centroid_{dim}"] = centroid_subdf[i]
+            track_table[f"centroid_{dim.lower()}"] = centroid_subdf[i]
     # replace masked values with NaN for columns `matched_query_label`
     # and `optimized_metric_value` since .parquet cannot save those
-    for col in ["matched_query_label", "optimized_metric_value"]:
+    for col in [
+        Column.TRACKING_MATCHED_QUERY_LABEL,
+        Column.TRACKING_OPTIMIZED_METRIC_VALUE,
+    ]:
         track_table[col] = track_table[col].transform(lambda arr: np.ma.filled(arr, np.nan))
     track_table.to_parquet(out_path, index=False)
 
@@ -1182,15 +1207,15 @@ def update_track_table(
 
     props_to_include = [
         "label",
-        "reference_index",
-        "matched_query_label",
-        "optimized_metric_value",
+        Column.TRACKING_REFERENCE_INDEX,
+        Column.TRACKING_MATCHED_QUERY_LABEL,
+        Column.TRACKING_OPTIMIZED_METRIC_VALUE,
         "centroid",
         "area",
         "perimeter",
         "orientation",
         "eccentricity",
-        "matching_method",
+        Column.TRACKING_MATCHING_METHOD,
         "touches_border",
     ]
 
@@ -1349,6 +1374,6 @@ def run_tracking_multiproc_wrapper(queue: tuple[tuple, list[ImageProcessingArgs]
 
     # add the dataset name and position to the output table
     tracking_table = pd.read_parquet(out_dir / f"{out_filename_prefix}_tracking.parquet")
-    tracking_table["dataset_name"] = dataset_name
-    tracking_table["position"] = position
+    tracking_table[Column.DATASET] = dataset_name
+    tracking_table[Column.POSITION] = position
     tracking_table.to_parquet(out_dir / f"{out_filename_prefix}_tracking.parquet", index=False)
