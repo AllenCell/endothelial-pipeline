@@ -560,7 +560,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     # Model comparison =========================================================
     Column.MODEL_COMPARISON_CORRELATION: ColumnMetadata(
-        name="Pearson correlation",
+        name="Pearson correlation coefficient",
         type=ColumnType.CONTINUOUS,
     ),
     Column.MODEL_COMPARISON_SSIM: ColumnMetadata(
