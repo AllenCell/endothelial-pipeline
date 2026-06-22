@@ -6,6 +6,7 @@ from typing import Any, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.integrate import solve_ivp
 
 logger = logging.getLogger(__name__)
 
@@ -184,6 +185,68 @@ def plot_streamlines_of_projected_vector_field(
     return fig
 
 
+def _integrate_unstable_manifold_trajectories(
+    eigvals: np.ndarray,
+    eigvecs: np.ndarray,
+    vector_field_function: Callable,
+    saddle_point: np.ndarray,
+    ortho_basis: np.ndarray,
+    hetero_eps: float = 1e-3,
+    hetero_t_max: float = 250.0,
+) -> list[np.ndarray]:
+    """Integrate trajectories from the unstable manifold of a saddle point.
+
+    Parameters
+    ----------
+    eigvals
+        Eigenvalues of the Jacobian at the saddle point.
+    eigvecs
+        Corresponding eigenvectors (columns), shape (3, n).
+    vector_field_function
+        Callable 3D vector field.
+    saddle_point
+        3D coordinates of the saddle point (used as the 2D origin).
+    ortho_basis
+        2x3 orthonormal basis for the projection plane.
+    hetero_eps
+        Step size along the unstable eigenvector for the initial condition.
+    hetero_t_max
+        Maximum integration time.
+
+    Returns
+    -------
+    :
+        List of (n_steps, 2) arrays, one per integrated trajectory.
+
+    """
+    trajectories_2d: list[np.ndarray] = []
+    unstable_mask = eigvals > 0
+    if not np.any(unstable_mask):
+        return trajectories_2d
+    unstable_evecs = eigvecs[:, unstable_mask]
+    for col in range(unstable_evecs.shape[1]):
+        v3d = unstable_evecs[:, col]
+        v_norm = float(np.linalg.norm(v3d))
+        if v_norm < 1e-10:
+            continue
+        v_unit = v3d / v_norm
+        for sign in (+1.0, -1.0):
+            x0_3d = saddle_point + sign * hetero_eps * v_unit
+            sol = solve_ivp(
+                lambda t, x, _f=vector_field_function: _f(x),
+                [0.0, hetero_t_max],
+                x0_3d,
+                method="RK45",
+                rtol=1e-6,
+                atol=1e-8,
+                dense_output=False,
+            )
+            traj_3d = sol.y.T  # shape (n_steps, 3)
+            traj_2d = (traj_3d - saddle_point) @ ortho_basis.T  # shape (n_steps, 2)
+            trajectories_2d.append(traj_2d)
+    return trajectories_2d
+
+
 def visualize_projected_dynamics(
     dataset_name: str,
     grid_spacing_2d: float = 0.05,
@@ -260,8 +323,8 @@ def visualize_projected_dynamics(
     # Find the saddle point via deflation: the residual is modified to repel
     # the solver from the two known stable fixed points, driving it toward the
     # saddle that lies between them.
-    saddle_point, is_saddle, is_heteroclinic, eigvals, eigvecs = find_saddle_by_deflation(
-        vector_field_function, stable_fixed_point_1, stable_fixed_point_2
+    saddle_point, is_saddle, is_heteroclinic, is_index_one, eigvals, eigvecs = (
+        find_saddle_by_deflation(vector_field_function, stable_fixed_point_1, stable_fixed_point_2)
     )
     if not is_saddle:
         logger.warning(
@@ -270,14 +333,22 @@ def visualize_projected_dynamics(
             dataset_name,
             eigvals,
         )
-    elif not is_heteroclinic:
-        logger.warning(
-            "visualize_projected_dynamics: saddle found for dataset '%s' but its "
-            "unstable manifold does not confirm a heteroclinic connection to at least "
-            "one stable fixed point. Eigenvalues: %s",
-            dataset_name,
-            eigvals,
-        )
+    else:
+        if not is_index_one:
+            logger.warning(
+                "visualize_projected_dynamics: saddle found for dataset '%s' but its "
+                "unstable manifold dimension is not 1. Eigenvalues: %s",
+                dataset_name,
+                eigvals,
+            )
+        if not is_heteroclinic:
+            logger.warning(
+                "visualize_projected_dynamics: saddle found for dataset '%s' but its "
+                "unstable manifold does not confirm a heteroclinic connection to at least "
+                "one stable fixed point. Eigenvalues: %s",
+                dataset_name,
+                eigvals,
+            )
     if saddle_point[0] < VECTOR_FIELD_THETA_RANGE[0]:
         saddle_point[0] += POLAR_ANGLE_PERIOD
     elif saddle_point[0] > VECTOR_FIELD_THETA_RANGE[1]:
@@ -316,9 +387,22 @@ def visualize_projected_dynamics(
     proj_sfp1 = ortho_basis @ (stable_fixed_point_1 - saddle_point)
     proj_sfp2 = ortho_basis @ (stable_fixed_point_2 - saddle_point)
 
-    # set grid extent from the projected stable fixed points, including origin
+    # compute trajectories from the unstable manifold of the saddle before
+    # building the meshgrid so their extents can inform the grid limits
+    trajectories_2d = _integrate_unstable_manifold_trajectories(
+        eigvals=eigvals,
+        eigvecs=eigvecs,
+        vector_field_function=vector_field_function,
+        saddle_point=saddle_point,
+        ortho_basis=ortho_basis,
+    )
+
+    # set grid extent from fixed points and trajectory projections
     x_vals = [proj_sfp1[0], proj_sfp2[0], 0.0]
     y_vals = [proj_sfp1[1], proj_sfp2[1], 0.0]
+    for traj_2d in trajectories_2d:
+        x_vals.extend([float(traj_2d[:, 0].min()), float(traj_2d[:, 0].max())])
+        y_vals.extend([float(traj_2d[:, 1].min()), float(traj_2d[:, 1].max())])
     x_margin = (max(x_vals) - min(x_vals)) * 0.1 + grid_spacing_2d
     y_margin = (max(y_vals) - min(y_vals)) * 0.1 + grid_spacing_2d
     x_min = min(x_vals) - x_margin
@@ -360,51 +444,15 @@ def visualize_projected_dynamics(
             markersize=9,
         )
 
-    # overlay stable (blue, inward arrows) and unstable (red, outward arrows)
-    # eigenspaces at the saddle point (which sits at the 2D origin)
-    arrow_scale = 0.3 * min(x_max - x_min, y_max - y_min)
-    for lam, v3d in zip(eigvals, eigvecs.T, strict=True):
-        v2d = ortho_basis @ v3d
-        v2d_norm = float(np.linalg.norm(v2d))
-        if v2d_norm < 1e-10:
-            # eigenvector is perpendicular to the projection plane — skip
-            continue
-        vx, vy = (v2d / v2d_norm * arrow_scale).tolist()
-        if lam < 0:
-            # stable manifold: arrows from ±v pointing toward the saddle
-            color = FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color
-            for sign in (+1, -1):
-                ax.quiver(
-                    sign * vx,
-                    sign * vy,
-                    -sign * vx,
-                    -sign * vy,
-                    color=color,
-                    scale=1,
-                    scale_units="xy",
-                    angles="xy",
-                    width=0.005,
-                    headwidth=4,
-                    headlength=5,
-                    zorder=3,
-                )
-        else:
-            # unstable manifold: arrows from the saddle pointing toward ±v
-            color = FIXED_POINT_PLOT_STYLE[StabilityLabel.UNSTABLE].color
-            for sign in (+1, -1):
-                ax.quiver(
-                    0,
-                    0,
-                    sign * vx,
-                    sign * vy,
-                    color=color,
-                    scale=1,
-                    scale_units="xy",
-                    angles="xy",
-                    width=0.005,
-                    headwidth=4,
-                    headlength=5,
-                    zorder=3,
-                )
+    # plot the pre-computed trajectories
+    traj_color = FIXED_POINT_PLOT_STYLE[StabilityLabel.UNSTABLE].color
+    for traj_2d in trajectories_2d:
+        ax.plot(
+            traj_2d[:, 0],
+            traj_2d[:, 1],
+            color=traj_color,
+            linewidth=1.0,
+            zorder=3,
+        )
 
     return fig

@@ -546,16 +546,16 @@ def find_saddle_by_deflation(
     fp2: np.ndarray,
     Jf: Callable[[np.ndarray], np.ndarray] | None = None,
     n_scan: int = 30,
-    T_basin: float = 225.0,
+    T_basin: float = 250.0,
     bisect_xtol: float = 1e-11,
     deflation_power: int = 2,
     integration_time: float = 500.0,
     heteroclinic_eps: float = 1e-4,
-    heteroclinic_tol: float = 0.15,
+    heteroclinic_tol: float = 0.05,
     max_retries: int = 7,
     perturbation_scale: float = 0.05,
     seed: int = 42,
-) -> tuple[np.ndarray, bool, bool, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, bool, bool, bool, np.ndarray, np.ndarray]:
     r"""Find a heteroclinically connecting saddle between two stable fixed points.
 
     **Strategy**
@@ -643,6 +643,9 @@ def find_saddle_by_deflation(
     is_heteroclinic
         ``True`` if the unstable manifold at ``best_x`` connects at least one
         of ``fp1`` or ``fp2`` via a heteroclinic orbit.
+    is_index_one
+        ``True`` if the unstable manifold at ``best_x`` has exactly one
+        positive eigenvalue (dimension-1 unstable manifold).
     eigvals
         Real parts of the Jacobian eigenvalues at ``best_x``, shape ``(D,)``.
     eigvecs
@@ -708,7 +711,7 @@ def find_saddle_by_deflation(
 
     seen: set[tuple[float, ...]] = set()
     classified: list[tuple] = []
-    heteroclinic_found = False
+    target_found = False
 
     for attempt in range(max_retries + 1):
         x0 = (
@@ -723,7 +726,7 @@ def find_saddle_by_deflation(
         )
         if attempt > 0:
             logger.debug(
-                "find_saddle_by_deflation: no heteroclinic saddle after attempt %d; "
+                "find_saddle_by_deflation: target saddle not yet found after attempt %d; "
                 "retrying with seed %d",
                 attempt,
                 seed + attempt,
@@ -751,6 +754,7 @@ def find_saddle_by_deflation(
         evec = eigvecs_cx.real
 
         is_saddle_c = bool(np.any(ev > 0) and np.any(ev < 0))
+        is_index_one_c = bool(int(np.sum(ev > 0)) == 1)
         is_hetero = False
         if is_saddle_c:
             unstable_evecs = evec[:, ev > 0]
@@ -764,20 +768,23 @@ def find_saddle_by_deflation(
                 integration_time=integration_time,
                 tol=heteroclinic_tol,
             )
-            if is_hetero:
-                heteroclinic_found = True
+            if is_hetero and is_index_one_c:
+                target_found = True
         logger.debug(
             "find_saddle_by_deflation: candidate %s residual=%.3e "
-            "is_saddle=%s is_heteroclinic=%s eigvals=%s",
+            "is_saddle=%s is_heteroclinic=%s is_index_one=%s eigvals=%s",
             key,
             residual,
             is_saddle_c,
             is_hetero,
+            is_index_one_c,
             ev,
         )
-        classified.append((residual, x_sol.copy(), is_saddle_c, is_hetero, ev, evec))
+        classified.append(
+            (residual, x_sol.copy(), is_saddle_c, is_hetero, is_index_one_c, ev, evec)
+        )
 
-        if heteroclinic_found:
+        if target_found:
             break
 
     if not classified:
@@ -788,22 +795,45 @@ def find_saddle_by_deflation(
         )
 
     # ── Step 3: select best candidate by tier ────────────────────────────────
+    # Tier 1: heteroclinic AND index-1 saddle (ideal)
+    # Tier 2: index-1 saddle, no heteroclinic connection confirmed
+    # Tier 3: heteroclinic saddle, but unstable manifold dimension != 1
+    # Tier 4: any saddle (neither constraint satisfied)
+    # Tier 5: any converged root
     classified.sort(key=lambda e: e[0])
-    heteroclinic_saddles = [e for e in classified if e[3]]
-    saddles_no_hetero = [e for e in classified if e[2] and not e[3]]
+    tier1 = [e for e in classified if e[3] and e[4]]
+    tier2 = [e for e in classified if e[4] and not e[3]]
+    tier3 = [e for e in classified if e[3] and not e[4]]
+    tier4 = [e for e in classified if e[2] and not e[3] and not e[4]]
 
-    if heteroclinic_saddles:
-        best_res, best_x, is_saddle, is_heteroclinic, eigvals, eigvecs = heteroclinic_saddles[0]
-    elif saddles_no_hetero:
-        best_res, best_x, is_saddle, is_heteroclinic, eigvals, eigvecs = saddles_no_hetero[0]
+    if tier1:
+        best_res, best_x, is_saddle, is_heteroclinic, is_index_one, eigvals, eigvecs = tier1[0]
+    elif tier2:
+        best_res, best_x, is_saddle, is_heteroclinic, is_index_one, eigvals, eigvecs = tier2[0]
         logger.warning(
-            "find_saddle_by_deflation: saddle found but heteroclinic connection to "
-            "both stable fixed points not confirmed after %d attempt(s). Eigenvalues: %s",
+            "find_saddle_by_deflation: index-1 saddle found but heteroclinic connection "
+            "not confirmed after %d attempt(s). Eigenvalues: %s",
+            max_retries + 1,
+            eigvals,
+        )
+    elif tier3:
+        best_res, best_x, is_saddle, is_heteroclinic, is_index_one, eigvals, eigvecs = tier3[0]
+        logger.warning(
+            "find_saddle_by_deflation: heteroclinic saddle found but unstable manifold "
+            "dimension is not 1 after %d attempt(s). Eigenvalues: %s",
+            max_retries + 1,
+            eigvals,
+        )
+    elif tier4:
+        best_res, best_x, is_saddle, is_heteroclinic, is_index_one, eigvals, eigvecs = tier4[0]
+        logger.warning(
+            "find_saddle_by_deflation: saddle found but neither heteroclinic connection "
+            "nor index-1 constraint confirmed after %d attempt(s). Eigenvalues: %s",
             max_retries + 1,
             eigvals,
         )
     else:
-        best_res, best_x, is_saddle, is_heteroclinic, eigvals, eigvecs = classified[0]
+        best_res, best_x, is_saddle, is_heteroclinic, is_index_one, eigvals, eigvecs = classified[0]
         logger.warning(
             "find_saddle_by_deflation: no saddle candidate found among %d converged "
             "roots across %d attempt(s); returning lowest-residual root. Eigenvalues: %s",
@@ -813,12 +843,14 @@ def find_saddle_by_deflation(
         )
 
     logger.debug(
-        "find_saddle_by_deflation: selected residual=%.3e is_saddle=%s is_heteroclinic=%s",
+        "find_saddle_by_deflation: selected residual=%.3e is_saddle=%s "
+        "is_heteroclinic=%s is_index_one=%s",
         best_res,
         is_saddle,
         is_heteroclinic,
+        is_index_one,
     )
-    return best_x, is_saddle, is_heteroclinic, eigvals, eigvecs
+    return best_x, is_saddle, is_heteroclinic, is_index_one, eigvals, eigvecs
 
 
 def get_fixed_points_within_bounds(
