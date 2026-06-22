@@ -58,7 +58,7 @@ class ShearStressRegime(Enum):
 class ChannelName(StrEnum):
     """Standardized names for channels."""
 
-    BF = "BF"
+    BF = "Brightfield"
     """Channel name for brightfield."""
 
 
