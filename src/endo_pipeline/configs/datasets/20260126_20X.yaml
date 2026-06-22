@@ -55,13 +55,6 @@ timepoint_annotations:
     3: []
     4: []
     5: []
-  not_steady_state:
-    0: [[0, 75]]
-    1: [[0, 120]]
-    2: [[0, 120]]
-    3: [[0, 110]]
-    4: [[0, 110]]
-    5: [[0, 75]]
   cell_piling:
     0: [[252, 576]]
     1: [[252, 576]]
@@ -69,6 +62,13 @@ timepoint_annotations:
     3: [[240, 576]]
     4: [[312, 576]]
     5: [[192, 576]]
+  not_steady_state:
+    0: [[0, 75]]
+    1: [[0, 120]]
+    2: [[0, 120]]
+    3: [[0, 110]]
+    4: [[0, 110]]
+    5: [[0, 75]]
 position_annotations:
   hole_in_monolayer: [1]
 center_z_plane:

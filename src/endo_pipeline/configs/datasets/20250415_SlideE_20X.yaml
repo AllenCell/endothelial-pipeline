@@ -37,8 +37,8 @@ flow_conditions:
   stop: 0
   shear_stress: 21.7
 include_scenes: null
-notes: NucViolet + BF only (acquired for nuclear segmentation ground truth). Sample was also used to
-  test Sox17 antibody optimization and NR2F2 detection.
+notes: NucViolet + BF only (acquired for nuclear segmentation ground truth). Sample
+  was also used to test Sox17 antibody optimization and NR2F2 detection.
 timepoint_annotations: null
 position_annotations: null
 center_z_plane: null

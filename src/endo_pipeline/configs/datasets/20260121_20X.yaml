@@ -55,6 +55,8 @@ timepoint_annotations:
     3: []
     4: []
     5: []
+  cell_piling:
+    5: [[456, 576]]
   not_steady_state:
     0: [[0, 175]]
     1: [[0, 170]]
@@ -62,8 +64,6 @@ timepoint_annotations:
     3: [[0, 180]]
     4: [[0, 148]]
     5: [[0, 150]]
-  cell_piling:
-    5: [[456, 576]]
 position_annotations: null
 center_z_plane:
   0: 10

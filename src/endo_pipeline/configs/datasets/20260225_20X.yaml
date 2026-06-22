@@ -32,8 +32,8 @@ flow_conditions:
   stop: 576
   shear_stress: 15.6
 include_scenes: null
-notes: Minimal early piling (some ~TP 330 FOV 3, 1-indexed),
-  no membrane gaps. GFP and BF look good.
+notes: Minimal early piling (some ~TP 330 FOV 3, 1-indexed), no membrane gaps. GFP
+  and BF look good.
 timepoint_annotations:
   auto_bf_scope_error:
     0: []
@@ -56,13 +56,6 @@ timepoint_annotations:
     3: []
     4: []
     5: []
-  not_steady_state:
-    0: [[0, 108]]
-    1: [[0, 108]]
-    2: [[0, 108]]
-    3: [[0, 108]]
-    4: [[0, 108]]
-    5: [[0, 108]]
   cell_piling:
     0: [[336, 576]]
     1: [[336, 576]]
@@ -70,6 +63,13 @@ timepoint_annotations:
     3: [[336, 576]]
     4: [[336, 576]]
     5: [[336, 576]]
+  not_steady_state:
+    0: [[0, 108]]
+    1: [[0, 108]]
+    2: [[0, 108]]
+    3: [[0, 108]]
+    4: [[0, 108]]
+    5: [[0, 108]]
 position_annotations: null
 center_z_plane:
   0: 11
