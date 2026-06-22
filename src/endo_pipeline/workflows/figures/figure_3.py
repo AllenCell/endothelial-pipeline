@@ -60,7 +60,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
 
     assets_dir = Path(figure_assets.__path__[0])
-    schematic_fp = assets_dir / "figure_3a_hypotheses.svg"
+    schematic_fp = assets_dir / "figure_3a_hypotheses_optimized.svg"
 
     # Example images of intermediate shear stress condition
     create_panel_intermediate_examples(
