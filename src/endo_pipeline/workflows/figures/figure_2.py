@@ -285,7 +285,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="B",
             path=theta_plot_paths[dataset_low],
-            x_position=2.3,
+            x_position=2.15,
             y_position=0.0,
             x_offset=0.05,
             y_offset=0.04,
@@ -293,7 +293,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_low],
-            x_position=3.75,
+            x_position=3.7,
             y_position=0.0,
             x_offset=0.0,
             y_offset=-0.15,
@@ -301,16 +301,16 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="",
             path=theta_plot_paths[dataset_high],
-            x_position=2.3,
-            y_position=2.0,
+            x_position=2.15,
+            y_position=1.5,
             x_offset=0.05,
             y_offset=0.04,
         ),
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_high],
-            x_position=3.75,
-            y_position=2.0,
+            x_position=3.7,
+            y_position=1.5,
             x_offset=0.0,
             y_offset=-0.15,
         ),
