@@ -62,19 +62,19 @@ class ChannelName(StrEnum):
     """Channel name for brightfield."""
 
     EGFP = "VE-cadherin_mEGFP"
-    """Channel name for VE-cadherin targeted by mEGFP."""
+    """Channel name for VE-cadherin labeled with mEGFP."""
 
     NucViolet = "Nuclei_NucViolet"
-    """Channel name for nuclei targeted by NucViolet."""
+    """Channel name for nuclei labeled with NucViolet."""
 
     DAPI = "Nuclei_DAPI"
-    """Channel name for nuclei targeted by DAPI."""
+    """Channel name for nuclei labeled with DAPI."""
 
     SOX17 = "SOX17_Alexa555"
-    """Channel name for SOX17 targeted by Goat anti-Mouse IgG (H+L) Alexa Fluor™ Plus 555."""
+    """Channel name for SOX17 labeled with Goat anti-Mouse IgG (H+L) Alexa Fluor™ Plus 555."""
 
     NR2F2 = "NR2F2_Alexa647"
-    """Channel name for NR2F2 targeted by Goat anti-Rabbit IgG (H+L) Alexa Fluor™ Plus 647."""
+    """Channel name for NR2F2 labeled with Goat anti-Rabbit IgG (H+L) Alexa Fluor™ Plus 647."""
 
 
 class TimepointAnnotation(StrEnum):
