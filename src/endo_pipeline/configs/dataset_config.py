@@ -55,6 +55,13 @@ class ShearStressRegime(Enum):
         return obj
 
 
+class ChannelName(StrEnum):
+    """Standardized names for channels."""
+
+    BF = "BF"
+    """Channel name for brightfield."""
+
+
 class TimepointAnnotation(StrEnum):
     """Annotations for timepoints that should be excluded from model training and/or analysis."""
 
@@ -209,7 +216,7 @@ class DatasetConfig:
     zarr_channel_indices: ChannelIndices
     """Channel indices for dataset converted to Zarr format."""
 
-    channel_names: list[str]
+    channel_names: list[str | ChannelName]
     """List of channel names."""
 
     flow_conditions: list[FlowCondition]

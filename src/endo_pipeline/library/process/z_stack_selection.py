@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from matplotlib.ticker import MaxNLocator, MultipleLocator
 
-from endo_pipeline.configs import DatasetConfig, load_dataset_config
+from endo_pipeline.configs import ChannelName, DatasetConfig, load_dataset_config
 from endo_pipeline.io import load_image, save_plot_to_path
 from endo_pipeline.library.process.image_processing import contrast_stretching, crop_image
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
@@ -50,7 +50,7 @@ def calculate_global_center_plane(
     """
 
     zarr_location = get_zarr_location_for_position(dataset_config, position)
-    bf_stack_all_frames = load_image(zarr_location, channels=["BF"], level=1)
+    bf_stack_all_frames = load_image(zarr_location, channels=[ChannelName.BF], level=1)
 
     center_planes = []
 
@@ -189,7 +189,9 @@ def visualize_slice_selection(
     """
 
     zarr_loc = get_zarr_location_for_position(dataset_config, position)
-    bf_stack = load_image(zarr_loc, channels=["BF"], timepoints=frame, level=1, squeeze=True)
+    bf_stack = load_image(
+        zarr_loc, channels=[ChannelName.BF], timepoints=frame, level=1, squeeze=True
+    )
     cdh5_stack = load_image(zarr_loc, channels=["EGFP"], timepoints=frame, level=1, squeeze=True)
 
     method = "min-max"

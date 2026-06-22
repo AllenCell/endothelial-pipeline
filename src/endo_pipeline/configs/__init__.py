@@ -1,5 +1,6 @@
 from .dataset_config import (
     ChannelIndices,
+    ChannelName,
     DatasetCollectionConfig,
     DatasetConfig,
     FlowCondition,
@@ -48,6 +49,7 @@ from .model_config_utils import get_latent_dim_from_config
 
 __all__ = [
     "ChannelIndices",
+    "ChannelName",
     "CytoDLModelConfig",
     "DatasetCollectionConfig",
     "DatasetConfig",

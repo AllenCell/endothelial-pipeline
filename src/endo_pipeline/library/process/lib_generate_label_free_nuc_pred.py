@@ -3,7 +3,7 @@ import logging
 import numpy as np
 from cellpose import core
 
-from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs import ChannelName, load_dataset_config
 from endo_pipeline.io import load_image, load_model
 from endo_pipeline.library.process.general_image_preprocessing import (
     ImageProcessingArgs,
@@ -51,7 +51,7 @@ def generate_labelfree_nuclei_predictions(args: ImageProcessingArgs) -> None:
         dataset_config = load_dataset_config(dataset_name)
         location = get_zarr_location_for_position(dataset_config, position)
         reader = load_image(location, read=False)
-        img_arr = load_image(location, channels=["BF"], timepoints=tp, level=0)
+        img_arr = load_image(location, channels=[ChannelName.BF], timepoints=tp, level=0)
         voxel_size = reader.physical_pixel_sizes
 
         # Load the retrained CellPose label-free nuclear prediction model

@@ -36,7 +36,7 @@ def main(num_processes: int = 1) -> None:
     from cellpose.io import logger_setup
 
     from endo_pipeline.cli import DEMO_MODE, UPLOAD_TO_FMS
-    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+    from endo_pipeline.configs import ChannelName, get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import (
         build_fms_annotations,
         get_output_path,
@@ -164,7 +164,7 @@ def main(num_processes: int = 1) -> None:
     test_dataset_name = get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")[0]
     test_dataset_config = load_dataset_config(test_dataset_name)
     test_zarr_loc = get_zarr_location_for_position(test_dataset_config, position=0)
-    test_img_dask_arr = load_image(test_zarr_loc, channels=["BF"], timepoints=0, level=0)
+    test_img_dask_arr = load_image(test_zarr_loc, channels=[ChannelName.BF], timepoints=0, level=0)
     test_img_dask_arr = test_img_dask_arr.std(axis=DIMENSION_ORDER.index("Z"), keepdims=True)
     test_img_arr = test_img_dask_arr.compute().squeeze()
 

@@ -26,6 +26,7 @@ from endo_pipeline.configs import PositionAnnotation  # noqa: F401, I001
 from endo_pipeline.configs import TimepointAnnotation  # noqa: F401
 from endo_pipeline.configs import (
     ChannelIndices,
+    ChannelName,
     DatasetConfig,
     FlowCondition,
     ShearStressRegime,
@@ -75,7 +76,7 @@ dataset_config = DatasetConfig(
         brightfield=1,
         channel_488=0,
     ),
-    channel_names=["EGPF", "BF"],
+    channel_names=["EGPF", ChannelName.BF],
     flow_conditions=[
         FlowCondition(start=0, stop=576, shear_stress=0.0),
     ],
