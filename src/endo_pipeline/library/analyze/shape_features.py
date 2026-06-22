@@ -10,6 +10,7 @@ import pandas as pd
 from dask.array import Array
 from skimage import draw, filters, graph, measure, morphology, segmentation
 
+from endo_pipeline.configs import ChannelName
 from endo_pipeline.library.process.general_image_preprocessing import ImageProcessingArgs
 
 logger = logging.getLogger(__name__)
@@ -1550,7 +1551,7 @@ def build_cdh5_measured_features_tables(
     # load the raw cdh5 image data
     dataset_config = load_dataset_config(dataset_name)
     image_loc = get_zarr_location_for_position(dataset_config, position)
-    raw_arr = load_image(image_loc, channels=["EGFP"], timepoints=tp, level=0)
+    raw_arr = load_image(image_loc, channels=[ChannelName.EGFP], timepoints=tp, level=0)
     raw_arr = raw_arr.max(axis=dim_order.index("Z")).squeeze().compute()
     voxel_size = load_image(image_loc, read=False).physical_pixel_sizes
 
@@ -1815,7 +1816,7 @@ def get_nuclei_features_from_image(
             nuc_feats[f"nuclei_seg_with_most_overlap_{i}"] = nuc_lab_max
             for dim_index, dim in enumerate(seg_dim_order):
                 nuc_feats[f"nuc_with_most_overlap_{i}_centroid_{dim}"] = float(
-                    nuc_props_on_intens["BF"][nuc_lab_max].centroid[dim_index]
+                    nuc_props_on_intens[ChannelName.BF][nuc_lab_max].centroid[dim_index]
                 )
 
         nuc_feats_ls.append(nuc_feats)

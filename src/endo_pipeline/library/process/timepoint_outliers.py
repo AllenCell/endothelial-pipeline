@@ -8,6 +8,7 @@ import pandas as pd
 from scipy.signal import find_peaks
 
 from endo_pipeline.configs import (
+    ChannelName,
     DatasetConfig,
     TimepointAnnotation,
     get_annotated_timepoints_for_position,
@@ -92,7 +93,7 @@ def detect_single_timepoint_bf_outliers(
     """
 
     zarr_loc = get_zarr_location_for_position(dataset_config, position)
-    bf_zarr = load_image(zarr_loc, channels=["BF"], level=1, squeeze=True)
+    bf_zarr = load_image(zarr_loc, channels=[ChannelName.BF], level=1, squeeze=True)
 
     # Compute mean intensity over x/y axes
     intensity_array = bf_zarr.mean(axis=(-2, -1))
@@ -183,7 +184,7 @@ def detect_single_timepoint_gfp_outliers(
     """
 
     zarr_loc = get_zarr_location_for_position(dataset_config, position)
-    gfp_zarr = load_image(zarr_loc, channels=["EGFP"], level=1, squeeze=True)
+    gfp_zarr = load_image(zarr_loc, channels=[ChannelName.EGFP], level=1, squeeze=True)
 
     # Compute mean intensity across spatial dimensions (Y, X)
     intensity_array = gfp_zarr.mean(axis=(-2, -1))  # now (T, Z)
