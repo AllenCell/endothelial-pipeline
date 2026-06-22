@@ -76,7 +76,7 @@ dataset_config = DatasetConfig(
         brightfield=1,
         channel_488=0,
     ),
-    channel_names=["EGPF", ChannelName.BF],
+    channel_names=[ChannelName.EGFP, ChannelName.BF],
     flow_conditions=[
         FlowCondition(start=0, stop=576, shear_stress=0.0),
     ],
