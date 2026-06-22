@@ -172,7 +172,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             path=vector_field_plot_paths[example_dataset_12dyn],
             x_position=MAX_FIGURE_WIDTH * 0.66,
             y_position=2.5,
-            x_offset=0.05,
+            x_offset=0.15,
             y_offset=0,
         ),
         FigurePanel(
@@ -188,7 +188,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             path=vector_field_plot_paths[example_dataset_15dyn],
             x_position=MAX_FIGURE_WIDTH * 0.64,
             y_position=5.35,
-            x_offset=0.2,
+            x_offset=0.3,
             y_offset=0.0,
         ),
         FigurePanel(
