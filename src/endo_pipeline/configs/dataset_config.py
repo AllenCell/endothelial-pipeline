@@ -61,7 +61,7 @@ class ChannelName(StrEnum):
     BF = "Brightfield"
     """Channel name for brightfield."""
 
-    EGFP = "EGFP"
+    EGFP = "VE-cadherin_mEGFP"
     """Channel name for VE-cadherin targeted by mEGFP."""
 
 
