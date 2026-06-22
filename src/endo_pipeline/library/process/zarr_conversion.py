@@ -287,7 +287,7 @@ def write_scene_to_zarr(
     logger.debug("Writing image metadata")
     meta = writer.generate_metadata(
         image_name=image_name,
-        channel_names=[str(ChannelName(name)) for name in channel_names],
+        channel_names=[str(ChannelName[name]) for name in channel_names],
         physical_dims=physical_scale,
         physical_units=physical_units,
         channel_colors=[0xFFFFFF for i in range(num_channels)],
