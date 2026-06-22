@@ -18,6 +18,7 @@ from endo_pipeline.library.analyze.polar_coords import rewrap_polar_angle
 from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameSuffix
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
@@ -722,7 +723,8 @@ def plot_stable_fixed_points_together(
 
     """
     # check that required columns are present
-    required_columns = [Column.DATASET, *column_names]
+    fp_column_names = [f"{column}{ColumnNameSuffix.FIXED_POINTS}" for column in column_names]
+    required_columns = [Column.DATASET, *fp_column_names]
     check_required_columns_in_dataframe(stable_fixed_points_df, required_columns)
 
     column_labels = [get_label_for_column(col) for col in column_names]
@@ -736,7 +738,7 @@ def plot_stable_fixed_points_together(
         dataset_name_ = cast(str, dataset_name)
         scatter_color = get_dataset_color(dataset_name_)
         patch_list_for_legend.append(Patch(color=scatter_color, label=dataset_name_))
-        fpts = dataset_df[column_names].values
+        fpts = dataset_df[fp_column_names].values
         for fpt in fpts:
             # plot fixed point
             # x-y, x-z

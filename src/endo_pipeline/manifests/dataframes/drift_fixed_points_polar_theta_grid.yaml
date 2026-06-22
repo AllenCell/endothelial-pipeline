@@ -15,10 +15,10 @@ parameters:
   upper_percentile_for_filtering_fpts: 95.0
 locations:
   20250409_20X:
-    fmsid: 1a2c76e45cbd4a9887124125101d3e50
+    fmsid: efb3e294c359490bb8b4ebbcc3c55a5c
     path: null
     s3uri: null
   20251001_20X:
-    fmsid: 7aabd2fdd1654cada4ec88872c4a4534
+    fmsid: f2daf8964feb404e8631fdb6481bad91
     path: null
     s3uri: null

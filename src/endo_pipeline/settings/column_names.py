@@ -487,20 +487,17 @@ class ColumnName:
         EMA01_UNIT_VECTOR_MEAN_FAST = "ema01_optical_flow_mean_unit_vector_fast_dt1"
         """Mean unit vector coherence over fast pixels with EMA smoothing, alpha=0.1."""
 
+    FIXED_POINT_STABILITY = "stability"
+    """Stability classification of a fixed point."""
+
     class VectorField(StrEnum):
         """Column name suffixes used in vector field / dynamics analysis."""
 
         FIXED_POINT_INDEX = "fixed_point_id"
         """Column name for the index of the fixed point in the fixed point dataframe."""
 
-        STABILITY = "stability"
-        """Stability classification of a fixed point."""
-
         FIXED_POINT_PREFIX = "fp_"
         """Prefix for column names representing coordinates of fixed points in feature space."""
-
-        DRIFT = "drift"
-        """Column name denoting the drift in a given variable."""
 
         DISTANCE_FROM_FP_PREFIX = "dist_from_fp_"
         """Prefix for column names representing the distance from a fixed point in N-D space."""
@@ -563,20 +560,8 @@ class ColumnName:
         LINEFIT_SLOPE = "slope_odr"
         """Column name for the slope of a line fit to the relationship between first passage time to the fixed point for grid and tracked crops."""
 
-    class BootstrapAnalysis(StrEnum):
-        """Column name suffixes used in bootstrap fixed-point analysis."""
-
-        DETECTION_RATE = "detection_rate"
-        """Fraction of bootstrap iterations in which a matched fixed point was found."""
-
-        CLUSTER_MEAN = "cluster_mean"
-        """Mean coordinate of matched bootstrap fixed points."""
-
-        CI_LOWER = "ci_lower"
-        """Lower bound of the bootstrap confidence interval."""
-
-        CI_UPPER = "ci_upper"
-        """Upper bound of the bootstrap confidence interval."""
+    FIXED_POINT_DETECTION_RATE = "detection_rate"
+    """Fraction of bootstrap iterations in which a matched fixed point was found."""
 
     class AutoCorrelation(StrEnum):
         """Column name suffixes used in autocorrelation analysis."""
@@ -642,6 +627,35 @@ class ColumnName:
     """Learned Perceptual Image Patch Similarity (LPIPS) between input and denoised image."""
 
 
+class ColumnNamePrefix(StrEnum):
+    """Prefixes for dataframe column names."""
+
+
+class ColumnNameSuffix(StrEnum):
+    """Suffixes for dataframe column names."""
+
+    DRIFT = "_drift"
+    """Suffix for column name for drift in a given variable."""
+
+    MESH_GRID = "_mesh_grid"
+    """Suffix for column name for vector field mesh grid."""
+
+    FIXED_POINTS = "_fixed_point"
+    """Suffix for column name for fixed point locations."""
+
+    BASELINE_FIXED_POINTS = "_baseline"
+    """Suffix for column name for baseline fixed point locations."""
+
+    BOOTSTRAP_CLUSTER_MEAN = "_cluster_mean"
+    """Suffix for column name for mean coordinate of matched bootstrap fixed points."""
+
+    BOOTSTRAP_CI_LOWER = "_ci_lower"
+    """Suffix for column name for lower bound of the bootstrap confidence interval."""
+
+    BOOTSTRAP_CI_UPPER = "_ci_upper"
+    """Suffix for column name for upper bound of the bootstrap confidence interval."""
+
+
 ColumnNameType = (
     str
     | ColumnName
@@ -651,7 +665,6 @@ ColumnNameType = (
     | ColumnName.SegDataWorkflowVerification
     | ColumnName.Annotations
     | ColumnName.OpticalFlow
-    | ColumnName.BootstrapAnalysis
     | ColumnName.VectorField
     | ColumnName.AutoCorrelation
     | ColumnName.ModelQC

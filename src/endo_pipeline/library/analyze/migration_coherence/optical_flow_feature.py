@@ -7,7 +7,7 @@ from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.optical_flow import build_optical_flow_feature_cols
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
-from endo_pipeline.settings.column_names import ColumnName
+from endo_pipeline.settings.column_names import ColumnName, ColumnNameSuffix
 from endo_pipeline.settings.migration_coherence import (
     MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
     OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS,
@@ -198,6 +198,6 @@ def add_binned_mean_to_fixed_points(
     result = df_fp.copy()
     result[mean_col] = means
     if compute_ci:
-        result[f"{mean_col}_{ColumnName.BootstrapAnalysis.CI_LOWER}"] = ci_lows
-        result[f"{mean_col}_{ColumnName.BootstrapAnalysis.CI_UPPER}"] = ci_highs
+        result[f"{mean_col}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"] = ci_lows
+        result[f"{mean_col}{ColumnNameSuffix.BOOTSTRAP_CI_UPPER}"] = ci_highs
     return result

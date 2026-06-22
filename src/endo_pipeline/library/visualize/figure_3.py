@@ -116,11 +116,9 @@ def make_3d_vector_field_plot_panel(
 
     # Load and overlay stable fixed point
     fixed_points_df = load_fixed_points_dataframe_for_dataset(dataset_name)
-    fixed_points_df = fixed_points_df[
-        fixed_points_df[Column.BootstrapAnalysis.DETECTION_RATE] > 0.4
-    ]
+    fixed_points_df = fixed_points_df[fixed_points_df[Column.FIXED_POINT_DETECTION_RATE] > 0.4]
     stable_df = fixed_points_df[
-        fixed_points_df[Column.VectorField.STABILITY] == StabilityLabel.STABLE
+        fixed_points_df[Column.FIXED_POINT_STABILITY] == StabilityLabel.STABLE
     ]
     color: str = FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color
     column_names_ = cast(list[str], column_names)
@@ -257,7 +255,7 @@ def reconstruct_fixed_points(
             label_fontsize=FONTSIZE_XSMALL,
         )
 
-    dataset_name = fixed_point_df[Column.DATASET].unique().item()
+    dataset_name = fixed_point_df[Column.DATASET].unique()[0]
     filename = f"{dataset_name}_fixed_point_reconstructions"
     save_plot_to_path(
         fig_fixed_point_reconstructions,
