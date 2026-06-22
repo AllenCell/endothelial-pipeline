@@ -614,6 +614,33 @@ class ColumnName:
         DATASET_NAME = "dataset_name"
         """Column name for the source dataset name of the example image."""
 
+    RANDOM_SEED = "random_seed"
+    """Random number generator seed."""
+
+    EXAMPLE_KEY = "example_key"
+    """Key representing example image dataset name, position, timepoint, and crop start."""
+
+    MODEL_COMPARISON_EXAMPLE_GROUP = "example_group"
+    """Name of group of model comparison example images."""
+
+    MODEL_COMPARISON_BASELINE_CORRELATION = "baseline_correlations"
+    """Pearson correlation between ground truth and next timepoint."""
+
+    MODEL_COMPARISON_BASELINE_SSIM = "baseline_ssim"
+    """Structural Similarity Index (SSIM) between ground truth and next timepoint."""
+
+    MODEL_COMPARISON_BASELINE_LPIPS = "baseline_lpips"
+    """Learned Perceptual Image Patch Similarity (LPIPS) between ground truth and next timepoint."""
+
+    MODEL_COMPARISON_CORRELATION = "denoised_correlations"
+    """Pearson correlation between input and denoised image."""
+
+    MODEL_COMPARISON_SSIM = "denoised_ssim"
+    """Structural Similarity Index (SSIM) between input and denoised image."""
+
+    MODEL_COMPARISON_LPIPS = "denoised_lpips"
+    """Learned Perceptual Image Patch Similarity (LPIPS) between input and denoised image."""
+
 
 ColumnNameType = (
     str

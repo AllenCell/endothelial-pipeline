@@ -55,6 +55,28 @@ class ShearStressRegime(Enum):
         return obj
 
 
+class ChannelName(StrEnum):
+    """Standardized names for channels."""
+
+    BF = "Brightfield"
+    """Channel name for brightfield."""
+
+    EGFP = "VE-cadherin_mEGFP"
+    """Channel name for VE-cadherin labeled with mEGFP."""
+
+    NucViolet = "Nuclei_NucViolet"
+    """Channel name for nuclei labeled with NucViolet."""
+
+    DAPI = "Nuclei_DAPI"
+    """Channel name for nuclei labeled with DAPI."""
+
+    SOX17 = "SOX17_Alexa555"
+    """Channel name for SOX17 labeled with Goat anti-Mouse IgG (H+L) Alexa Fluor™ Plus 555."""
+
+    NR2F2 = "NR2F2_Alexa647"
+    """Channel name for NR2F2 labeled with Goat anti-Rabbit IgG (H+L) Alexa Fluor™ Plus 647."""
+
+
 class TimepointAnnotation(StrEnum):
     """Annotations for timepoints that should be excluded from model training and/or analysis."""
 
@@ -209,7 +231,7 @@ class DatasetConfig:
     zarr_channel_indices: ChannelIndices
     """Channel indices for dataset converted to Zarr format."""
 
-    channel_names: list[str]
+    channel_names: list[ChannelName]
     """List of channel names."""
 
     flow_conditions: list[FlowCondition]

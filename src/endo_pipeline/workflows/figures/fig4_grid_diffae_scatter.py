@@ -8,7 +8,7 @@ def main() -> None:
     from tqdm import tqdm
 
     from endo_pipeline.cli import NUM_GPUS
-    from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.configs import ChannelName, load_dataset_config
     from endo_pipeline.io import (
         get_output_path,
         load_dataframe,
@@ -171,7 +171,7 @@ def main() -> None:
         end_x = int(row[Column.DiffAEData.END_X])
         end_y = int(row[Column.DiffAEData.END_Y])
         resolution = int(row[Column.DiffAEData.RESOLUTION])
-        channel_name = ["EGFP"]
+        channel_name = [ChannelName.EGFP]
 
         location = get_zarr_location_for_position(dataset_config, position=position)
 

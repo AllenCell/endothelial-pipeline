@@ -23,7 +23,7 @@ DATAFRAME_MANIFEST_STAGING_FOLDERS = {
 """Mapping of dataframe manifest names to subdirectories."""
 
 MODEL_MANIFEST_STAGING_FOLDERS = {
-    "diffae_baseline_exclude_cell_piling": "diffae_baseline_exclude_cell_piling/",
+    "diffae_baseline": "diffae_baseline/",
     "nuc_pred_labelfree": "nuc_pred_labelfree/",
 }
 """Mapping of model manifest names to subdirectories."""

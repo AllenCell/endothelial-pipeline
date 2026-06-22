@@ -6,7 +6,7 @@ import dask.array as da
 import numpy as np
 from skimage import exposure
 
-from endo_pipeline.configs import DatasetConfig
+from endo_pipeline.configs import ChannelName, DatasetConfig
 from endo_pipeline.io import load_image
 from endo_pipeline.manifests import get_zarr_location_for_position
 from endo_pipeline.settings import LOG_EPSILON
@@ -26,7 +26,7 @@ def load_processed_egfp_image(
     """Load processed EGFP max projection image."""
 
     location = get_zarr_location_for_position(config, position=position)
-    image = load_image(location, channels=["EGFP"], timepoints=timepoints, level=level)
+    image = load_image(location, channels=[ChannelName.EGFP], timepoints=timepoints, level=level)
 
     # Compute max projection along z axis
     image = image.max(axis=2)
@@ -49,7 +49,7 @@ def load_processed_bf_image(
         raise ValueError("'center_z_plane' is None, cannot load single focal plane for BF channel")
 
     location = get_zarr_location_for_position(config, position=position)
-    image = load_image(location, channels=["BF"], timepoints=timepoints, level=level)
+    image = load_image(location, channels=[ChannelName.BF], timepoints=timepoints, level=level)
 
     # Compute visualization plane from focal plane
     focal_plane = config.center_z_plane[position]
@@ -71,7 +71,7 @@ def load_processed_bf_std_dev_image(
     """Load processed BF log standard deviation projection image at specified crop."""
 
     location = get_zarr_location_for_position(config, position=position)
-    image = load_image(location, channels=["BF"], timepoints=timepoints, level=level)
+    image = load_image(location, channels=[ChannelName.BF], timepoints=timepoints, level=level)
 
     # Compute std projection along z axis and apply log transform
     image = image.std(axis=2)

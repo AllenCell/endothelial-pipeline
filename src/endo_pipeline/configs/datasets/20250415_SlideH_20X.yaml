@@ -28,14 +28,14 @@ zarr_channel_indices:
   channel_405: 2
   channel_561: null
   channel_640: null
-channel_names: [EGFP, BF, '405']
+channel_names: [VE-cadherin_mEGFP, Brightfield, Nuclei_NucViolet]
 flow_conditions:
 - start: -576
   stop: 0
   shear_stress: 5.47
 include_scenes: null
-notes: NucViolet + BF only (acquired for nuclear segmentation ground truth). Sample was also used to
-  test Sox17 antibody optimization and NR2F2 detection.
+notes: NucViolet + BF only (acquired for nuclear segmentation ground truth). Sample
+  was also used to test Sox17 antibody optimization and NR2F2 detection.
 timepoint_annotations: null
 position_annotations: null
 center_z_plane: null

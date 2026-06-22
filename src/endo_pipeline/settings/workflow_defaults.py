@@ -6,10 +6,10 @@ from endo_pipeline.configs.dataset_config import TimepointAnnotation
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
 
-DEFAULT_MODEL_MANIFEST_NAME: str = "diffae_baseline_exclude_cell_piling"
+DEFAULT_MODEL_MANIFEST_NAME: str = "diffae_baseline"
 """Default model manifest for loading models and model features."""
 
-DEFAULT_MODEL_RUN_NAME: str = "20251110_latent_512"
+DEFAULT_MODEL_RUN_NAME: str = "latent_512"
 """Default model run name within the default model manifest."""
 
 DEFAULT_PCA_DATASET_COLLECTION_NAME: str = "diffae_model_training"
@@ -78,9 +78,6 @@ LABELFREE_NUCLEI_MODEL_MANIFEST_NAME: str = "nuc_pred_labelfree"
 
 LABELFREE_NUCLEI_MODEL_RUN_NAME: str = "finetuned_20250419"
 """Default run name for the label-free nuclei segmentation model."""
-
-METRIC_TEXT_BOX_PROPS = {"boxstyle": "round", "facecolor": "wheat", "alpha": 0.3}
-"""Matplotlib text-box properties for metric annotations in QC plots."""
 
 IMAGE_METRIC_DATASET_COLORS = {
     "validation_positions": "#2C6FAC",  # Medium blue
@@ -225,22 +222,21 @@ DATASET_INFO_COLUMNS: list[ColumnNameType] = [
 # =========================================
 
 DEFAULT_MODEL_QC_LABEL_MAP: dict[tuple[str, str], str] = {
-    ("diffae_baseline_exclude_cell_piling", "20260207_latent_8"): "8 BF",
-    ("diffae_baseline_exclude_cell_piling", "20260205_latent_16"): "16 BF",
-    ("diffae_baseline_exclude_cell_piling", "20260203_latent_32"): "32 BF",
-    ("diffae_baseline_exclude_cell_piling", "20260206_latent_64"): "64 BF",
-    ("diffae_baseline_exclude_cell_piling", "20260127_latent_128"): "128 BF",
-    ("diffae_baseline_exclude_cell_piling", "20260122_latent_256"): "256 BF",
-    ("diffae_baseline_exclude_cell_piling", "20251110_latent_512"): "512 BF",
-    ("diffae_baseline_exclude_cell_piling", "20251110_latent_1024"): "1024 BF",
-    ("diffae_cdh5_conditioned", "20260130_latent_512"): "512 CDH5",
-    ("diffae_cdh5_conditioned", "20251110_latent_1024"): "1024 CDH5",
+    ("diffae_baseline", "latent_8"): "BF-8",
+    ("diffae_baseline", "latent_16"): "BF-16",
+    ("diffae_baseline", "latent_32"): "BF-32",
+    ("diffae_baseline", "latent_64"): "BF-64",
+    ("diffae_baseline", "latent_128"): "BF-128",
+    ("diffae_baseline", "latent_256"): "BF-256",
+    ("diffae_baseline", "latent_512"): "BF-512",
+    ("diffae_baseline", "latent_1024"): "BF-1024",
+    ("diffae_cdh5_conditioned", "latent_512"): "VE-cad-\n512",
+    ("diffae_cdh5_conditioned", "latent_1024"): "VE-cad-\n1024",
 }
-"""``(manifest_name, run_name)`` -> bar-plot label for the 10-model QC comparison.
+"""Map of `(manifest_name, run_name) to bar plot label."""
 
-Covers 8 brightfield-conditioned latent dimensions (8--1024) and 2 CDH5-
-conditioned models (512, 1024), in plot order.
-"""
+DEFAULT_MODEL_COMPARISON_RUNS: list[tuple[str, str]] = list(DEFAULT_MODEL_QC_LABEL_MAP.keys())
+"""List of default model comparison model runs (same order as label map)."""
 
 # Parallel lists derived from the label map (the single source of truth) so the
 # manifest / run / label ordering always stays in sync.

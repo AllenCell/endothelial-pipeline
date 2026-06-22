@@ -29,6 +29,17 @@ class ExampleImage(NamedTuple):
     crop_x_start: int  # res level 1
     crop_y_start: int  # res level 1
 
+    def __str__(self):
+        return "_".join(
+            [
+                self.dataset_name,
+                f"P{self.position}",
+                f"T{self.timepoint}",
+                f"X{self.crop_x_start}",
+                f"Y{self.crop_y_start}",
+            ]
+        )
+
 
 class ExampleFPT(NamedTuple):
     """Structure for information about an example used in the first passage time analysis."""
@@ -449,17 +460,24 @@ MODEL_QC_EXAMPLES_REP_2_POSITIONS: list[ExampleImage] = [
 ]
 """List of example crops for model QC, positions from replicate 2. Datasets not used for model training."""
 
-EXAMPLE_DIFFAE_TRAINING_SCHEMATIC = "20250428_20X"
+MODEL_COMPARISON_EXAMPLES: dict[str, list[ExampleImage]] = {
+    "replicate": MODEL_QC_EXAMPLES_REP_2_POSITIONS,
+    "training": MODEL_QC_EXAMPLES_TRAINING_POSITIONS,
+    "validation": MODEL_QC_EXAMPLES_VALIDATION_POSITIONS,
+}
+"""Map of example group names to list of example images."""
 
-EXAMPLES_DIFFAE_TRAINING_VALIDATION: list[ExampleImage] = [
-    ExampleImage(
-        dataset_name="20250428_20X",
-        position=0,
-        timepoint=234,
-        crop_x_start=255,
-        crop_y_start=190,
-        description="6. PARALLEL, middle of min flow with bright puncta.",
-    ),
+EXAMPLES_DIFFAE_TRAINING_ARCHITECTURE_EXAMPLE: ExampleImage = ExampleImage(
+    dataset_name="20250428_20X",
+    position=0,
+    timepoint=234,
+    crop_x_start=255,
+    crop_y_start=190,
+    description="6. PARALLEL, middle of min flow with bright puncta.",
+)
+"""Example for the DiffAE training architecture thumbnails."""
+
+DIFFAE_MODEL_PERFORMANCE_PANEL_EXAMPLES: list[ExampleImage] = [
     ExampleImage(
         dataset_name="20250409_20X",
         position=0,
@@ -485,6 +503,7 @@ EXAMPLES_DIFFAE_TRAINING_VALIDATION: list[ExampleImage] = [
         description="PERPENDICULAR, end of no flow.",
     ),
 ]
+"""Examples for the DiffAE model performance contact sheet."""
 
 SUPP_FIG_OPTICAL_FLOW_COHERENT_EXAMPLE: ExampleImage = ExampleImage(
     dataset_name="20250409_20X",

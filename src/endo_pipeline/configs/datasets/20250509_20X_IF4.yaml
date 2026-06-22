@@ -26,7 +26,8 @@ zarr_channel_indices:
   channel_405: 2
   channel_561: 3
   channel_640: 4
-channel_names: [EGFP, BF, NucViolet, SOX17, NR2F2]
+channel_names: [VE-cadherin_mEGFP, Brightfield, Nuclei_NucViolet, SOX17_Alexa555,
+  NR2F2_Alexa647]
 flow_conditions:
 - start: -288
   stop: 0

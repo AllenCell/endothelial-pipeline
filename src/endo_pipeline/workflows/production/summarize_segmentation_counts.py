@@ -49,17 +49,12 @@ def main(datasets: Datasets | None = None):
     from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_annotations
     from endo_pipeline.library.model.train_model import get_included_frames_for_model
     from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
-    from endo_pipeline.manifests import (
-        get_dataframe_location_for_dataset,
-        load_dataframe_manifest,
-        load_model_manifest,
-    )
+    from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.workflow_defaults import (
         ANNOTATIONS_TO_FILTER_OUT_FOR_SEGMENTATIONS,
         CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
         CELL_CENTERED_FEATURES_UNFILTERED_MANIFEST_NAME,
-        DEFAULT_MODEL_MANIFEST_NAME,
     )
 
     logger = logging.getLogger(__name__)
@@ -103,11 +98,8 @@ def main(datasets: Datasets | None = None):
         shear_stress = [flow.shear_stress for flow in dataset_config.flow_conditions]
         cell_line = sequence_to_scalar(dataset_config.cell_lines)
 
-        # load the model manifest for counting timepoints used for training
-        model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
-
         # get list of timepoints that were included for training for each position
-        only_include_frames = get_included_frames_for_model(dataset_config, model_manifest)
+        only_include_frames = get_included_frames_for_model(dataset_config)
         num_timepoints_for_training = sum(
             [len(only_include_frames[pos]) for pos in only_include_frames]
         )
