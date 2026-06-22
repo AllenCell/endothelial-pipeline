@@ -280,7 +280,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             path=vector_field_plot_paths[dataset_high],
             x_position=0.0,
             y_position=2.0,
-            x_offset=0.1,
+            x_offset=0.15,
             y_offset=0.1,
         ),
         FigurePanel(
