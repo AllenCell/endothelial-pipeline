@@ -88,10 +88,13 @@ def main(datasets: Datasets | None = None) -> None:
                 mean_intensity=row[Column.Annotations.BF_MEAN_INTENSITY],
                 rolling_median=row[Column.Annotations.BF_ROLLING_MEDIAN],
                 dark_threshold=row[Column.Annotations.BF_DARK_THRESHOLD],
-                partial_dark_threshold=row[Column.Annotations.BF_PARTIAL_DARK_THRESHOLD],
                 bright_threshold=row[Column.Annotations.BF_BRIGHT_THRESHOLD],
-                dark_outliers=row[Column.Annotations.BF_DARK_OUTLIERS].astype(int),
-                partial_dark_outliers=row[Column.Annotations.BF_PARTIAL_DARK_OUTLIERS].astype(int),
+                dark_outliers=sorted(
+                    set(
+                        row[Column.Annotations.BF_DARK_OUTLIERS].astype(int).tolist()
+                        + row[Column.Annotations.BF_PARTIAL_DARK_OUTLIERS].astype(int).tolist()
+                    )
+                ),
                 bright_outliers=row[Column.Annotations.BF_BRIGHT_OUTLIERS].astype(int),
                 dataset_name=dataset_name,
                 position=position,
