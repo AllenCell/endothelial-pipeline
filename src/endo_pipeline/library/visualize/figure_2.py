@@ -684,6 +684,8 @@ def make_3d_vector_field_plot_panel(
     figure_size: tuple[float, float],
     output_path: Path,
     dataset_name: str,
+    include_colorbar: bool = True,
+    include_legend: bool = True,
 ) -> Path:
     """
     Render the 3D (theta, r, rho) drift vector field for a given dataset, with
@@ -697,6 +699,11 @@ def make_3d_vector_field_plot_panel(
         Directory in which to save the figure panel.
     dataset_name
         Name of the dataset to visualize.
+    include_colorbar
+        Whether to include a colorbar indicating the magnitude of the drift
+        vectors.
+    include_legend
+        Whether to include a legend indicating the stable fixed point marker.
 
     Returns
     -------
@@ -731,6 +738,8 @@ def make_3d_vector_field_plot_panel(
         drift=drift,
         meshgrid=meshgrid,
         figsize=figure_size,
+        include_colorbar=include_colorbar,
+        include_legend=include_legend,
         fixed_point_legend_label=fixed_point_label,
         xlim=theta_lims,
         ylim=r_lims,

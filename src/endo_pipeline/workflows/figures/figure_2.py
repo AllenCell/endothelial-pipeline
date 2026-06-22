@@ -137,9 +137,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     contour_plot_paths: dict[str, Path] = {}
     nullcline_reconstruction_paths: dict[str, Path] = {}
     vector_field_plot_paths: dict[str, Path] = {}
-    for dataset_name, arrow_scale_1d, arrow_width_1d in [
-        (dataset_low, 1.5, 0.05),
-        (dataset_high, 0.5, 0.05),
+    for dataset_name, arrow_scale_1d, arrow_width_1d, include_cbar_legend in [
+        (dataset_low, 1.5, 0.05, True),
+        (dataset_high, 0.5, 0.05, True),
     ]:
         fig_savedir = get_output_path(__file__, dataset_name)
 
@@ -184,6 +184,8 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             figure_size=(2.0, 2.5),
             output_path=fig_savedir,
             dataset_name=dataset_name,
+            include_legend=include_cbar_legend,
+            include_colorbar=include_cbar_legend,
             **placeholders[placeholder_3d],
         )
 
