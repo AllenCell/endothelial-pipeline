@@ -64,6 +64,18 @@ class ChannelName(StrEnum):
     EGFP = "VE-cadherin_mEGFP"
     """Channel name for VE-cadherin targeted by mEGFP."""
 
+    NucViolet = "Nuclei_NucViolet"
+    """Channel name for nuclei targeted by NucViolet."""
+
+    DAPI = "Nuclei_DAPI"
+    """Channel name for nuclei targeted by DAPI."""
+
+    SOX17 = "SOX17_Alexa555"
+    """Channel name for SOX17 targeted by Goat anti-Mouse IgG (H+L) Alexa Fluor™ Plus 555."""
+
+    NR2F2 = "NR2F2_Alexa647"
+    """Channel name for NR2F2 targeted by Goat anti-Rabbit IgG (H+L) Alexa Fluor™ Plus 647."""
+
 
 class TimepointAnnotation(StrEnum):
     """Annotations for timepoints that should be excluded from model training and/or analysis."""
@@ -219,7 +231,7 @@ class DatasetConfig:
     zarr_channel_indices: ChannelIndices
     """Channel indices for dataset converted to Zarr format."""
 
-    channel_names: list[str | ChannelName]
+    channel_names: list[ChannelName]
     """List of channel names."""
 
     flow_conditions: list[FlowCondition]
