@@ -130,7 +130,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
     model_location = model_manifest.locations[DEFAULT_MODEL_RUN_NAME]
     model = None
-    if not placeholders["C"]:
+    if not placeholders["B"]:
         model = load_model(model_location, instantiate=True)
 
     # loop over datasets in collection, compute 2D drift coefficients for each
@@ -185,7 +185,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         stable_fixed_point_theta = stable_fixed_points_dict[column_theta][column_theta].to_numpy()
 
         vector_field_plot_paths[dataset_name] = make_3d_vector_field_plot_panel(
-            figure_size=(1.8, 2.25),
+            figure_size=(1.6, 2.25),
             output_path=fig_savedir,
             dataset_name=dataset_name,
             include_legend=include_cbar_legend,
@@ -195,7 +195,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
         # plot 1D drift in theta and save
         theta_plot_paths[dataset_name] = make_1d_drift_plot_panel(
-            figure_size=(1.325, 1.325),
+            figure_size=(1.35, 1.35),
             output_path=fig_savedir,
             shear_stress_label=shear_stress_label,
             drift=drift_theta,
@@ -227,7 +227,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             output_path=fig_savedir,
             figure_size=(0.6, 0.75),
             num_gpus=NUM_GPUS,
-            **placeholders["C"],
+            **placeholders["B"],
         )
 
     # --- Cross-dataset summary plots ---
@@ -287,7 +287,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             letter="",
             path=vector_field_plot_paths[dataset_high],
             x_position=0.0,
-            y_position=2.1,
+            y_position=2.2,
             x_offset=0.0,
             y_offset=0.0,
         ),
@@ -295,53 +295,53 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="B",
             path=theta_plot_paths[dataset_low],
-            x_position=1.8,
+            x_position=1.6,
             y_position=0.0,
             x_offset=0.05,
-            y_offset=0.04,
+            y_offset=0.075,
         ),
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_low],
-            x_position=3.25,
+            x_position=3.05,
             y_position=0.0,
             x_offset=0.0,
-            y_offset=-0.15,
+            y_offset=-0.1,
         ),
         FigurePanel(
             letter="",
             path=theta_plot_paths[dataset_high],
-            x_position=1.8,
+            x_position=1.6,
             y_position=1.25,
             x_offset=0.05,
-            y_offset=0.04,
+            y_offset=0.075,
         ),
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_high],
-            x_position=3.25,
+            x_position=3.05,
             y_position=1.25,
             x_offset=0.0,
-            y_offset=-0.15,
+            y_offset=-0.1,
         ),
-        # --- Fixed point reconstructions (panel C) ---
+        # --- Fixed point reconstructions (still panel B) ---
         FigurePanel(
-            letter="C",
+            letter="",
             path=fixed_point_reconstruction_paths[dataset_low],
-            x_position=2.15,
-            y_position=2.6,
-            x_offset=0.25,
+            x_position=5.5,
+            y_position=0.0,
+            x_offset=0.0,
             y_offset=0.0,
         ),
         FigurePanel(
             letter="",
             path=fixed_point_reconstruction_paths[dataset_high],
-            x_position=4.25,
-            y_position=2.6,
+            x_position=5.5,
+            y_position=1.25,
             x_offset=0.0,
             y_offset=0.0,
         ),
-        # --- Bottom row: first passage time and summary plots ---
+        # --- Bottom row: summary plots, first passage time results ---
         FigurePanel(
             letter="D",
             path=fixed_point_summary_plot_path,

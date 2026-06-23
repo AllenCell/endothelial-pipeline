@@ -488,7 +488,7 @@ def make_1d_drift_plot_panel(
             "label": f"d{column_label}/dt = 0",
         },
         xlabel_kwargs=XLABEL_KWARGS,
-        ylabel_kwargs=YLABEL_KWARGS,
+        ylabel_kwargs=XLABEL_KWARGS,
     )
     # add stable fixed point in theta
     ax.plot(
