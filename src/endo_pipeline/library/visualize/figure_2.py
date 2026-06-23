@@ -843,7 +843,7 @@ def make_first_passage_time_distance_to_linefit_hist(
     ax.set_ylabel("Probability density")
     ax.xaxis.set_major_locator(MultipleLocator(base=3))
     # make sure y ticks are integers since this is a count histogram
-    ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+    ax.yaxis.set_major_locator(MultipleLocator(base=0.1))
     ax.annotate(f"n = {n_size}", xy=(0.95, 0.9), xycoords="axes fraction", ha="right")
 
     filename = "fpt_hist"
