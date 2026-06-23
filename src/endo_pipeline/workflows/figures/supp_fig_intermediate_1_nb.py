@@ -7,7 +7,7 @@ from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_fr
 from endo_pipeline.library.visualize.spatial_feature_grid import create_panel_spatial_feature_grid
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.examples import FIGURE_3_EXAMPLE_IMAGES
-from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
 
 # %%
 plt.style.use("endo_pipeline.figure")
@@ -19,6 +19,7 @@ fig = create_panel_spatial_feature_grid(
     feature_columns=[ColumnName.DiffAEData.PC3_FLIPPED],
     example_images=FIGURE_3_EXAMPLE_IMAGES,
     include_bf_images=True,
+    figure_size=(MAX_FIGURE_WIDTH, 3.4),
 )
 save_plot_to_path(
     fig,
@@ -36,11 +37,11 @@ panels = [
         x_position=0,
         y_position=0,
         x_offset=0,
-        y_offset=0,
+        y_offset=0.08,
     ),
 ]
 
 build_figure_from_panels(
-    panels, save_dir / "supp_fig_intermediate.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
+    panels, save_dir / "supp_fig_intermediate.svg", width=MAX_FIGURE_WIDTH, height=3.7
 )
 # %%
