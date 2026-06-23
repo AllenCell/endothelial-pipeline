@@ -84,7 +84,7 @@ FIGURE_3_EXAMPLE_IMAGES: list[ExampleImage] = [
         dataset_name="20250402_20X",
         description="low_flow",
         position=3,
-        timepoint=150,
+        timepoint=180,
         crop_x_start=256,  # res level 0
         crop_y_start=256,  # res level 0
     ),
@@ -123,8 +123,8 @@ FIGURE_3_EXAMPLE_IMAGES: list[ExampleImage] = [
     ExampleImage(
         dataset_name="20251001_20X",
         description="high_flow",
-        position=0,
-        timepoint=200,
+        position=1,
+        timepoint=180,
         crop_x_start=256,  # res level 0
         crop_y_start=256,  # res level 0
     ),

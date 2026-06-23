@@ -1,5 +1,4 @@
 # %%
-from pathlib import Path
 
 import matplotlib.pyplot as plt
 
@@ -8,7 +7,10 @@ from endo_pipeline.io import get_output_path, load_dataframe
 from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
     add_optical_flow_features,
 )
-from endo_pipeline.library.process.image_processing import load_processed_egfp_image_crop
+from endo_pipeline.library.process.image_processing import (
+    load_processed_bf_std_dev_image_crop,
+    load_processed_egfp_image_crop,
+)
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
 from endo_pipeline.library.visualize.spatial_feature_grid import create_panel_spatial_feature_grid
 from endo_pipeline.manifests import load_dataframe_manifest
@@ -21,15 +23,11 @@ from endo_pipeline.settings.examples import FIGURE_3_EXAMPLE_IMAGES
 from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
 from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
-from endo_pipeline.workflows.figures import assets as figure_assets
 
 # %%
 plt.style.use("endo_pipeline.figure")
 
 save_dir = get_output_path("figure_3")
-
-assets_dir = Path(figure_assets.__path__[0])
-schematic_fp = assets_dir / "figure_3a_hypotheses.svg"
 
 # %%
 feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[MIGRATION_COHERENCE_CROP_PATTERN]
@@ -40,6 +38,7 @@ columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid"], *DYNAMICS_COLUMN_NAMES]
 example_dfs = []
 example_labels = []
 example_gfp_images = []
+example_bf_images = []
 
 for i, example in enumerate(FIGURE_3_EXAMPLE_IMAGES):
     dataset_name = example.dataset_name
@@ -56,6 +55,17 @@ for i, example in enumerate(FIGURE_3_EXAMPLE_IMAGES):
     )
     example_gfp_images.append(gfp_mip)
 
+    # Load BF std dev projection
+    bf_std = load_processed_bf_std_dev_image_crop(
+        dataset_config,
+        example.position,
+        example.timepoint,
+        example.crop_x_start,
+        example.crop_y_start,
+        crop_size=768,
+    )
+    example_bf_images.append(bf_std)
+
     # Load selected columns from feature dataframe
     df_delay = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
     df_features = df_delay[columns_to_compute].compute()
@@ -68,17 +78,14 @@ for i, example in enumerate(FIGURE_3_EXAMPLE_IMAGES):
     example_labels.append(f"{shear_stress} dyn/cm²\nExample {i+1}")
 
 # %%
-feature_columns = [
-    ColumnName.DiffAEData.POLAR_ANGLE,
-    ColumnName.DiffAEData.POLAR_RADIUS,
-    ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
-]
+feature_columns = [*DYNAMICS_COLUMN_NAMES, ColumnName.OpticalFlow.UNIT_VECTOR_MEAN]
 fig = create_panel_spatial_feature_grid(
     example_dataframes=example_dfs,
     feature_columns=feature_columns,
     example_labels=example_labels,
     image_rows={
         "VE-cadherin\nMIP": example_gfp_images,
+        "BF\nstd. dev. proj.": example_bf_images,
     },
     crop_size=256,
     start_x_col=ColumnName.DiffAEData.START_X,
@@ -87,24 +94,16 @@ fig = create_panel_spatial_feature_grid(
     grid_dimensions=(3, 3),
     save_dir=save_dir,
     filename="spatial_feature_grid_examples",
-    figure_size=(MAX_FIGURE_WIDTH, 4),
+    figure_size=(MAX_FIGURE_WIDTH, 5.5),
 )
 
 # %%
 panels = [
     FigurePanel(
         letter="A",
-        path=schematic_fp,
-        x_position=0,
-        y_position=0,
-        x_offset=0,
-        y_offset=0.1,
-    ),
-    FigurePanel(
-        letter="B",
         path=save_dir / "spatial_feature_grid_examples.svg",
         x_position=0,
-        y_position=2.5,
+        y_position=0,
         x_offset=0,
         y_offset=0,
     ),
@@ -113,5 +112,4 @@ panels = [
 build_figure_from_panels(
     panels, save_dir / "figure_3.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
 )
-
 # %%
