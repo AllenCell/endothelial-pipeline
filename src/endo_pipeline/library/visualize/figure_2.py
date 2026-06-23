@@ -833,15 +833,18 @@ def make_first_passage_time_distance_to_linefit_hist(
         weighted_distances = np.sqrt(odr_result.delta**2 + odr_result.eps**2)
         weighted_distances_all.extend(weighted_distances)
 
+    n_size = len(weighted_distances_all)
+
     fig, ax = plt.subplots(figsize=figure_size, layout="constrained")
     biggest_distance_as_int = int(max(np.ceil(weighted_distances_all)))
     ax.hist(weighted_distances_all, bins=biggest_distance_as_int, density=True, edgecolor="k")
-    column_label = "Weighted\ndistance\nto line fit"
+    column_label = "Difference (hrs)"
     ax.set_xlabel(column_label)
     ax.set_ylabel("Probability density")
-    ax.xaxis.set_major_locator(MultipleLocator(base=5))
+    ax.xaxis.set_major_locator(MultipleLocator(base=3))
     # make sure y ticks are integers since this is a count histogram
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+    ax.annotate(f"n = {n_size}", xy=(0.95, 0.9), xycoords="axes fraction", ha="right")
 
     filename = "fpt_hist"
     save_plot_to_path(

@@ -262,7 +262,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     )
     # --- Histogram of first passage time correlation ---
     first_passage_path = make_first_passage_time_distance_to_linefit_hist(
-        figure_size=(0.95, 2.0),
+        figure_size=(2.0, 2.0),
         output_path=output_path,
         dataset_names=dataset_summary_list,
         **placeholders["I"],
