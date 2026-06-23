@@ -23,6 +23,7 @@ STAGING_DATAFRAME_MANIFEST_NAMES = [
     "cdh5_classic_segmentation",
     "nuclei_labelfree_segmentation",
     "cdh5_classic_segmentation_tracking",
+    "merged_segmentation_features",
 ]
 """List of names of dataframe manifests to stage."""
 
