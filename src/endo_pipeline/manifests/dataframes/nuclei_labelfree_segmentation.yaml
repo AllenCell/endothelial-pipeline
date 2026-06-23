@@ -59,6 +59,14 @@ columns:
   nuclei_with_most_overlap_5_centroid_X: Centroid X coordinate of nuclei prediction
     that overlaps most with cell segmentation (index 5, multiple nuclei recorded in
     additional columns)
+  nuclei_with_most_overlap_6: ID of nuclei prediction that overlaps most with cell
+    segmentation (index 6, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_6_centroid_Y: Centroid Y coordinate of nuclei prediction
+    that overlaps most with cell segmentation (index 6, multiple nuclei recorded in
+    additional columns)
+  nuclei_with_most_overlap_6_centroid_X: Centroid X coordinate of nuclei prediction
+    that overlaps most with cell segmentation (index 6, multiple nuclei recorded in
+    additional columns)
 locations:
   20250319_20X:
     fmsid: d25304a964df4a10aa918b11bf9d54bf

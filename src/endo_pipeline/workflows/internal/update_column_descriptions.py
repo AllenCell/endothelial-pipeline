@@ -50,9 +50,9 @@ def main(manifest_names: UniqueStrList | None = None, reload_columns: bool = Fal
     logger = logging.getLogger(__name__)
 
     template_expansions = {
-        ColumnTemplate.NUCLEI_WITH_MOST_OVERLAP: [0, 1, 2, 3, 4, 5],
-        ColumnTemplate.NUCLEI_WITH_MOST_OVERLAP_CENTROID_X: [0, 1, 2, 3, 4, 5],
-        ColumnTemplate.NUCLEI_WITH_MOST_OVERLAP_CENTROID_Y: [0, 1, 2, 3, 4, 5],
+        ColumnTemplate.NUCLEI_WITH_MOST_OVERLAP: [0, 1, 2, 3, 4, 5, 6],
+        ColumnTemplate.NUCLEI_WITH_MOST_OVERLAP_CENTROID_X: [0, 1, 2, 3, 4, 5, 6],
+        ColumnTemplate.NUCLEI_WITH_MOST_OVERLAP_CENTROID_Y: [0, 1, 2, 3, 4, 5, 6],
     }
 
     column_descriptions = {}
