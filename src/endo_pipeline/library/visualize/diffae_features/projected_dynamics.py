@@ -351,10 +351,10 @@ def visualize_projected_dynamics(
     ]
     stable_df = fixed_points_df[
         fixed_points_df[Column.VectorField.STABILITY] == StabilityLabel.STABLE
-    ]
+    ].copy()
     saddle_df = fixed_points_df[
         fixed_points_df[Column.VectorField.STABILITY] == StabilityLabel.SADDLE
-    ]
+    ].copy()
 
     if len(stable_df) < 2 or len(saddle_df) < 1:
         raise ValueError(
@@ -362,35 +362,32 @@ def visualize_projected_dynamics(
         )
 
     column_names_str = cast(list[str], column_names)
-    stable_fixed_point_1_ = stable_df.iloc[0][column_names_str].to_numpy()
-    stable_fixed_point_2_ = stable_df.iloc[1][column_names_str].to_numpy()
+
     # modify theta coordinate to be within defined range used for 3D visualization
-    for point in [stable_fixed_point_1_, stable_fixed_point_2_]:
-        if point[0] < VECTOR_FIELD_THETA_RANGE[0]:
-            point[0] += POLAR_ANGLE_PERIOD
-        elif point[0] > VECTOR_FIELD_THETA_RANGE[1]:
-            point[0] -= POLAR_ANGLE_PERIOD
+    def _wrap_theta_for_vis(theta: float) -> float:
+        if theta < VECTOR_FIELD_THETA_RANGE[0]:
+            return theta + POLAR_ANGLE_PERIOD
+        elif theta > VECTOR_FIELD_THETA_RANGE[1]:
+            return theta - POLAR_ANGLE_PERIOD
+        else:
+            return theta
 
-    stable_fixed_point_1 = (
-        stable_fixed_point_1_
-        if stable_fixed_point_1_[0] < stable_fixed_point_2_[0]
-        else stable_fixed_point_2_
-    )
-    stable_fixed_point_2 = (
-        stable_fixed_point_2_
-        if stable_fixed_point_1_[0] < stable_fixed_point_2_[0]
-        else stable_fixed_point_1_
-    )
+    stable_df.loc[:, Column.DiffAEData.POLAR_ANGLE] = stable_df[
+        Column.DiffAEData.POLAR_ANGLE
+    ].apply(_wrap_theta_for_vis)
+    saddle_df.loc[:, Column.DiffAEData.POLAR_ANGLE] = saddle_df[
+        Column.DiffAEData.POLAR_ANGLE
+    ].apply(_wrap_theta_for_vis)
 
-    # Find the saddle point via deflation: the residual is modified to repel
-    # the solver from the two known stable fixed points, driving it toward the
-    # saddle that lies between them.
+    # sort stable fixed points by their theta coordinate to ensure consistent ordering
+    stable_df = stable_df.sort_values(by=Column.DiffAEData.POLAR_ANGLE)
+    stable_fixed_point_1 = stable_df.iloc[0][column_names_str].to_numpy()
+    stable_fixed_point_2 = stable_df.iloc[1][column_names_str].to_numpy()
+
+    # Find the appropriate saddle point for projection and get its
+    # eigenvalues/eigenvectors for later use in integrating trajectories from
+    # the unstable manifold.
     saddle_points = saddle_df[column_names_str].to_numpy()
-    for i in range(saddle_points.shape[0]):
-        if saddle_points[i, 0] < VECTOR_FIELD_THETA_RANGE[0]:
-            saddle_points[i, 0] += POLAR_ANGLE_PERIOD
-        elif saddle_points[i, 0] > VECTOR_FIELD_THETA_RANGE[1]:
-            saddle_points[i, 0] -= POLAR_ANGLE_PERIOD
     saddle_point, eigvals, eigvecs = _find_saddle_point_for_projection(
         vector_field_function, stable_fixed_point_1, stable_fixed_point_2, saddle_points
     )
