@@ -651,7 +651,7 @@ def reconstruct_along_nullcline(
     ax_bot_left = fig_null_walks.axes[n_cols]
     pos_top_left = ax_top_left.get_position()
     pos_bot_left = ax_bot_left.get_position()
-    label_x = pos_top_left.x0 - 0.125
+    label_x = pos_top_left.x0 - 0.15
     for pos, label in [
         (pos_top_left, "dr/dt=0"),
         (pos_bot_left, f"d{Unicode.RHO}/dt=0"),
@@ -674,6 +674,91 @@ def reconstruct_along_nullcline(
         file_format=".svg",
         tight_layout=False,
         pad_inches=0,
+    )
+
+    return output_path / f"{filename}.svg"
+
+
+@figure_panel(
+    "Reconstruct at fixed point with different random seeds and save images as a contact sheet."
+)
+def reconstruct_fixed_points(
+    fixed_point_df: pd.DataFrame,
+    model: DiffusionAutoEncoder,
+    figure_size: tuple[float, float],
+    output_path: Path,
+    num_gpus: int | None = None,
+    random_seed_start: int | None = 4,
+    num_examples: int = 3,
+) -> Path:
+    """
+    Reconstruct the fixed point coordinates from the polar angle, radius, and
+    rho columns.
+
+    Parameters
+    ----------
+    fixed_point_df
+        DataFrame containing the fixed point coordinates, with columns for polar
+        angle, polar radius, and flipped PC3 (rho).
+    model
+        The diffusion autoencoder model used for reconstruction.
+    fig_savedir
+        Directory to save the reconstructed figures.
+    num_gpus
+        Number of GPUs to use for reconstruction. If None, will use CPU.
+    random_seed_start
+        Starting random seed for reproducibility.
+    num_examples
+        Number of examples to generate for each fixed point coordinate (by varying
+        the random seed).
+    """
+
+    # reconstruct images along at the fixed point coordinates and make a contact
+    # sheet of the results
+    column_names = cast(list[str], list(DYNAMICS_COLUMN_NAMES))
+    reconstructed_images = []
+    for i in range(num_examples):
+        walk_array = generate_from_dataframe(
+            fixed_point_df,
+            column_names,
+            model,
+            num_gpus=num_gpus,
+            random_seed=random_seed_start + i,
+        )
+        reconstructed_images.append(walk_array)
+
+    fig_fixed_point_reconstructions = make_contact_sheet(
+        panels=reconstructed_images,
+        max_rows=1,
+        max_cols=num_examples,
+        fig_kwargs={"figsize": figure_size, "layout": "constrained"},
+        gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
+    )
+
+    # add scalebars to each panel, only label the top left one to avoid
+    # redundancy
+    for i, ax in enumerate(fig_fixed_point_reconstructions.axes):
+        add_scalebar(
+            ax,
+            scale_bar_um=20,
+            pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
+            location="lower right",
+            bar_thickness=5,
+            padding=5,
+            include_label=True if i == 0 else False,
+            label_fontsize=FONTSIZE_XSMALL,
+        )
+
+    dataset_name = fixed_point_df[Column.DATASET].unique().item()
+    filename = f"{dataset_name}_fixed_point_reconstructions"
+    save_plot_to_path(
+        fig_fixed_point_reconstructions,
+        output_path,
+        filename,
+        file_format=".svg",
+        tight_layout=False,
+        transparent=True,
+        bbox_inches="tight",
     )
 
     return output_path / f"{filename}.svg"

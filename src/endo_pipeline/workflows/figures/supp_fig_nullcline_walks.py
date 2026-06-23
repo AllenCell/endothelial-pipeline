@@ -104,10 +104,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     # pairwise combination of polar coordinates, and plot contours of drift coefficients
     contour_plot_paths: dict[str, Path] = {}
     nullcline_reconstruction_paths: dict[str, Path] = {}
-    for dataset_name, arrow_scale_1d, arrow_width_1d, include_cbar_legend in [
-        (dataset_low, 1.5, 0.05, True),
-        (dataset_high, 0.5, 0.05, False),
-    ]:
+    for dataset_name in [dataset_low, dataset_high]:
         fig_savedir = get_output_path(__file__, dataset_name)
 
         # load fixed points dataframes (if available) for both (r, rho) and theta,
@@ -177,7 +174,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             path=nullcline_reconstruction_paths[dataset_low],
             x_position=2.8,
             y_position=0.0,
-            x_offset=0.6,
+            x_offset=0.55,
             y_offset=0.15,
         ),
         FigurePanel(
@@ -193,7 +190,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             path=nullcline_reconstruction_paths[dataset_high],
             x_position=2.8,
             y_position=1.5,
-            x_offset=0.6,
+            x_offset=0.55,
             y_offset=0.15,
         ),
     ]
