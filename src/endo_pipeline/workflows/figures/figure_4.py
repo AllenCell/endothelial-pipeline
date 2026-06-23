@@ -19,6 +19,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     import matplotlib.pyplot as plt
 
     from endo_pipeline.io import get_output_path, load_model
+    from endo_pipeline.library.visualize.diffae_features.projected_dynamics import (
+        visualize_projected_dynamics,
+    )
     from endo_pipeline.library.visualize.figure_3 import (
         make_3d_vector_field_plot_panel,
         reconstruct_fixed_points,
@@ -107,6 +110,12 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         include_legend=True,
         **placeholders["B"],
     )
+    projected_streamlines_path = visualize_projected_dynamics(
+        dataset_name=dataset_name,
+        output_path=output_path,
+        figure_size=(2.0, 2.0),
+        **placeholders["B"],
+    )
     stable_fixed_point_reconstruction_path = reconstruct_fixed_points(
         fixed_point_df=stable_fixed_points_df,
         model=model,
@@ -135,7 +144,15 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             letter="",
             path=stable_fixed_point_reconstruction_path,
             x_position=MAX_FIGURE_WIDTH * 0.66,
-            y_position=0.0,
+            y_position=2.5,
+            x_offset=0.3,
+            y_offset=0.0,
+        ),
+        FigurePanel(
+            letter="",
+            path=projected_streamlines_path,
+            x_position=MAX_FIGURE_WIDTH * 0.66 + 2.5,
+            y_position=2.5,
             x_offset=0.3,
             y_offset=0.0,
         ),

@@ -1,5 +1,5 @@
 # %%
-from endo_pipeline.io import get_output_path, save_plot_to_path
+from endo_pipeline.io import get_output_path
 from endo_pipeline.library.visualize.diffae_features.projected_dynamics import (
     visualize_projected_dynamics,
 )
@@ -15,7 +15,7 @@ for dataset_name in [
     "20260114_20X",
     "20260211_20X",
 ]:
-    fig = visualize_projected_dynamics(dataset_name=dataset_name)
-    _ = save_plot_to_path(fig, output_path, figure_name=f"{dataset_name}_projected_dynamics")
+    _ = visualize_projected_dynamics(dataset_name=dataset_name, output_path=output_path)
+    print(f"Saved projected dynamics figure for dataset {dataset_name} to {output_path}.")
 
 # %%
