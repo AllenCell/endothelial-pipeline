@@ -106,11 +106,8 @@ class ColumnName:
     class SegData(StrEnum):
         """Dataframe column names used in segmentation-based feature dataframes."""
 
-        # dataset and segmentation information columns
         LABEL = "label"
-        """The cell segmentation ID.
-        Note that this is different from the track ID, and can change from one timepoint to the next.
-        """
+        """Cell segmentation ID (different from track ID, and may change between timepoints)."""
 
         NUM_TRACKS_AFTER_FILTERING = "num_unique_tracks_after_filtering_at_T"
         """The number of unique tracks that pass filtering criteria at the timepoint of interest."""
@@ -164,12 +161,8 @@ class ColumnName:
         TIME_HRS_SINCE_FLOW = "time_hours_since_flow_start"
         """The time in hours since cells first start experiencing a shear stress."""
 
-        # morphological features
         ORIENTATION = "orientation"
-        """Orientation of the cell in radians ranging from 0 to π, where 0
-        corresponds to the cell being oriented along the positive x-axis
-        and π means the cell is oriented along the negative x-axis.
-        """
+        """Orientation of cell [radians] from 0 (along +x axis) to pi (along -x axis)."""
 
         ORIENTATION_DEG = "orientation_deg"
         """Orientation of the cell in degrees ranging from 0 to 180, where 0
@@ -188,16 +181,20 @@ class ColumnName:
         is aligned perpendicular to flow."""
 
         NEMATIC_ORDER = "nematic_order"
+
         ECCENTRICITY = "eccentricity"
+        """Eccentricity of ellipse fit to cell segmentation (focal distance divided by major axis)."""
+
         ASPECT_RATIO = "aspect_ratio"
+
         MAJOR_AXIS = "major_axis_length"
-        """The length of the major axis of an ellipse fitted to the cell segmentation."""
+        """Length of minor axis of an ellipse fit to cell segmentation."""
 
         MINOR_AXIS = "minor_axis_length"
-        """The length of the minor axis of an ellipse fitted to the cell segmentation."""
+        """Length of minor axis of an ellipse fit to cell segmentation."""
 
         SOLIDITY = "solidity"
-        """Solidity of the cell, defined as the ratio of the cell area to the area of its convex hull."""
+        """Solidity of cell (ratio of cell area to area of its convex hull)."""
 
         AREA_UM_SQ = "area_um_squared"
         """Area of the cell segmentation in microns squared (um²)."""
@@ -206,10 +203,10 @@ class ColumnName:
         """Perimeter of the cell segmentation in microns."""
 
         AREA_PX_SQ = "area_px_squared"
-        """Area of the cell segmentation in pixels squared."""
+        """Area of cell segmentation [pixels^2]."""
 
         PERIMETER_PX = "perimeter_px"
-        """Perimeter of the cell segmentation in pixels."""
+        """Perimeter of cell segmentation [pixels]."""
 
         NUCLEI_POSITION_X = "nuclei_position_x"
         NUCLEI_POSITION_Y = "nuclei_position_y"
@@ -222,22 +219,32 @@ class ColumnName:
         NUCLEI_CENTROID_X = "nuclei_with_most_overlap_0_centroid_X"
         NUCLEI_CENTROID_Y = "nuclei_with_most_overlap_0_centroid_Y"
 
-        # fluorescence features
         EDGE_FLUOR = "edge_fluorescence_au"
-        """List of the fluorescence values along the boundary between 2 cell
-        segmentations in arbitrary units (au) (excluding pixels at nodes)."""
+        """Fluorescence values [a.u.] along boundary between 2 cell segmentations (excluding pixels at nodes)."""
 
         NODE_FLUOR = "node_fluorescence_au"
-        """List of the fluorescence values at the junctions between 3 or more
-        cell segmentations (i.e. nodes) in arbitrary units (au)."""
+        """Fluorescence values [a.u.] at junctions between 3 or more cell segmentations."""
 
         CELL_FLUOR_MEAN = "cell_fluorescence_mean_au"
+        """Mean of mEGFP-tagged VE-cadherin fluorescence [a.u.] in cytoplasmic region of cell segmentation."""
+
         CELL_FLUOR_STD = "cell_fluorescence_std_au"
+        """Standard deviation of mEGFP-tagged VE-cadherin fluorescence [a.u.] in cytoplasmic region of cell segmentation."""
+
         CELL_FLUOR_MEDIAN = "cell_fluorescence_median_au"
+        """Median of mEGFP-tagged VE-cadherin fluorescence [a.u.] in cytoplasmic region of cell segmentation."""
+
         CELL_FLUOR_MIN = "cell_fluorescence_min_au"
+        """Minimum of mEGFP-tagged VE-cadherin fluorescence [a.u.] in cytoplasmic region of cell segmentation."""
+
         CELL_FLUOR_MAX = "cell_fluorescence_max_au"
+        """Maximum of mEGFP-tagged VE-cadherin fluorescence [a.u.] in cytoplasmic region of cell segmentation."""
+
         CELL_FLUOR_PCT25 = "cell_fluorescence_pct25_au"
+        """25th percentile of mEGFP-tagged VE-cadherin fluorescence [a.u.] in cytoplasmic region of cell segmentation."""
+
         CELL_FLUOR_PCT75 = "cell_fluorescence_pct75_au"
+        """75th percentile of mEGFP-tagged VE-cadherin fluorescence [a.u.] in cytoplasmic region of cell segmentation."""
 
         EDGE_FLUOR_MEAN = "edge_fluorescence_mean_au"
         EDGE_FLUOR_STD = "edge_fluorescence_std_au"
@@ -250,8 +257,13 @@ class ColumnName:
 
         # other features:
         NUM_NEIGHBORS = "number_of_neighbors"
+
         NEIGHBOR_LABELS = "neighboring_cell_labels"
+        """Cell segmentation labels of adjacent cell segmentations."""
+
         CENTROID = "centroid"
+        """Centroid of cell segmentation in (Y,X) pixel coordinates."""
+
         CENTROID_X = "centroid_x"
         CENTROID_Y = "centroid_y"
         CENTROID_X_UM = "centroid_x_um"
@@ -282,7 +294,7 @@ class ColumnName:
         """Whether or not a track passes all filtering criteria and is included in the final dataset"""
 
         IS_EDGE_SEGMENTATION = "is_edge_segmentation"
-        """Whether or not a segmentation touches the edge of the image"""
+        """True if segmentation touches edge of the image, False otherwise."""
 
         IS_LESS_THAN_MAX_SMOOTHED_AREA_NORMD_CHANGE = "is_less_than_max_smoothed_area_normd_change"
         SMOOTHED_AREA_NORMD_DIFF = "smoothed_area_normd_diff"
@@ -318,9 +330,16 @@ class ColumnName:
         SMOOTHED_AREA_NORMALIZED = "smoothed_area_normd"
         SIGMA_FOR_AREA_SMOOTHING = "gaussian_sigma_for_area_smoothing"
         NUM_UNIQUE_TRACKS_PER_TIMEPOINT = "num_unique_tracks_per_timeframe"
+
         NODE_LABELS = "node_labels"
+        """Label IDs for each tricellular junction."""
+
         EDGE_LABELS = "edge_labels"
+        """Label IDs of each edge of a segmentation boundary."""
+
         NODE_PAIR_LABELS = "node_pair_labels"
+        """Pair of node label IDs that form each edge of a segmentation boundary."""
+
         CDH5_SEGMENTATION_LABEL = "cdh5_segmentation_label"
         NUCLEI_LABELS_IN_CDH5_SEGMENTATION = "nuclei_segmentation_labels"
         NUCLEI_FRACTION_IN_CDH5_SEGMENTATION = "nuclei_seg_in_cdh5_seg_frac"

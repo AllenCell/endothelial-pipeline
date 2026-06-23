@@ -1,6 +1,44 @@
 name: cdh5_classic_segmentation
 workflow: get_cdh5_measured_features
 parameters: {}
+columns:
+  dataset: Name of dataset
+  position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
+  frame_number: Timepoint [frames]
+  label: Cell segmentation ID (different from track ID, and may change between timepoints)
+  centroid: Centroid of cell segmentation in (Y,X) pixel coordinates
+  area_px_squared: Area of cell segmentation [pixels^2]
+  perimeter_px: Perimeter of cell segmentation [pixels]
+  solidity: Solidity of cell (ratio of cell area to area of its convex hull)
+  major_axis_length: Length of minor axis of an ellipse fit to cell segmentation
+  minor_axis_length: Length of minor axis of an ellipse fit to cell segmentation
+  eccentricity: Eccentricity of ellipse fit to cell segmentation (focal distance divided
+    by major axis)
+  orientation: Orientation of cell [radians] from 0 (along +x axis) to pi (along -x
+    axis)
+  cell_fluorescence_mean_au: Mean of mEGFP-tagged VE-cadherin fluorescence [a.u.]
+    in cytoplasmic region of cell segmentation
+  cell_fluorescence_std_au: Standard deviation of mEGFP-tagged VE-cadherin fluorescence
+    [a.u.] in cytoplasmic region of cell segmentation
+  cell_fluorescence_median_au: Median of mEGFP-tagged VE-cadherin fluorescence [a.u.]
+    in cytoplasmic region of cell segmentation
+  cell_fluorescence_min_au: Minimum of mEGFP-tagged VE-cadherin fluorescence [a.u.]
+    in cytoplasmic region of cell segmentation
+  cell_fluorescence_pct25_au: 25th percentile of mEGFP-tagged VE-cadherin fluorescence
+    [a.u.] in cytoplasmic region of cell segmentation
+  cell_fluorescence_pct75_au: 75th percentile of mEGFP-tagged VE-cadherin fluorescence
+    [a.u.] in cytoplasmic region of cell segmentation
+  cell_fluorescence_max_au: Maximum of mEGFP-tagged VE-cadherin fluorescence [a.u.]
+    in cytoplasmic region of cell segmentation
+  neighboring_cell_labels: Cell segmentation labels of adjacent cell segmentations
+  edge_labels: Label IDs of each edge of a segmentation boundary
+  node_labels: Label IDs for each tricellular junction
+  node_pair_labels: Pair of node label IDs that form each edge of a segmentation boundary
+  edge_fluorescence_au: Fluorescence values [a.u.] along boundary between 2 cell segmentations
+    (excluding pixels at nodes)
+  node_fluorescence_au: Fluorescence values [a.u.] at junctions between 3 or more
+    cell segmentations
+  is_edge_segmentation: True if segmentation touches edge of the image, False otherwise
 locations:
   20250319_20X:
     fmsid: b56d6b0e892f423eae6bdd02171910d2
