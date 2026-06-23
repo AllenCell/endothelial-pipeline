@@ -823,10 +823,10 @@ def make_first_passage_time_distance_to_linefit_hist(
     weighted: bool = True,
 ) -> Path:
     fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME)
-    line_fit_df, _ = get_line_fit_and_filtered_df(fpt_manifest, dataset_names)
+    line_fit_df, fpt_stats_df_no_nan = get_line_fit_and_filtered_df(fpt_manifest, dataset_names)
 
-    weighted_distances_all = []
-    for _, df_dataset in line_fit_df.groupby(Column.DATASET):
+    distances_all = []
+    for dataset, df_dataset in line_fit_df.groupby(Column.DATASET):
         odr_result = df_dataset[Column.VectorField.ODR_RESULT].iloc[0]
         if weighted:
             # each (x,y) point that was passed to odr_fit to get the line fit has
@@ -835,16 +835,33 @@ def make_first_passage_time_distance_to_linefit_hist(
             # and the original (x,y) point is delta and eps. We use these
             # distances as the values for a histogram
             weighted_distances = np.sqrt(odr_result.delta**2 + odr_result.eps**2)
-            weighted_distances_all.extend(weighted_distances)
-        # else:
-        #     m, b = odr_result.beta  # slope and intercept of the fitted line
-        #     line_func = lambda x, m=m, b=b: m * x + b
+            distances_all.extend(weighted_distances)
+        else:
+            # m, b = odr_result.beta  # slope and intercept of the fitted line
+            # line_func = lambda x, m=m, b=b: m * x + b
+            # get the MFPT points that are in the dataset and calculate their
+            # distances from the fitted line
+            fpt_stats_df_sub = fpt_stats_df_no_nan[fpt_stats_df_no_nan[Column.DATASET] == dataset]
 
-    n_size = len(weighted_distances_all)
+            fpt_col_grid = f"mean{Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX}_grid"
+            fpt_col_cell = f"mean{Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX}_tracked"
+            mfpt_points = fpt_stats_df_sub[[fpt_col_grid, fpt_col_cell]]
+
+            lob_points = np.stack([odr_result.xplusd, odr_result.yest], axis=-1)
+            point1, point2 = lob_points[0:1], lob_points[-2:-1]
+
+            vector_cross_prod = np.expand_dims(
+                np.cross(point2 - point1, point1 - mfpt_points, axis=-1), axis=-1
+            )
+            p1p2_dist = np.linalg.norm(point2 - point1, axis=-1, keepdims=True)
+            shortest_dist_to_line = np.linalg.norm(vector_cross_prod / p1p2_dist, axis=-1)
+            distances_all.extend(shortest_dist_to_line)
+
+    n_size = len(distances_all)
 
     fig, ax = plt.subplots(figsize=figure_size, layout="constrained")
-    biggest_distance_as_int = int(max(np.ceil(weighted_distances_all)))
-    ax.hist(weighted_distances_all, bins=biggest_distance_as_int, density=True, edgecolor="k")
+    biggest_distance_as_int = int(max(np.ceil(distances_all)))
+    ax.hist(distances_all, bins=biggest_distance_as_int, density=True, edgecolor="k")
     column_label = "Difference (hrs)"
     ax.set_xlabel(column_label)
     ax.set_ylabel("Probability density")
