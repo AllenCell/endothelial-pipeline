@@ -486,7 +486,7 @@ def draw_basins_and_separatrix(
     stable_fixed_point_1_2d: np.ndarray,
     stable_fixed_point_2_2d: np.ndarray,
     origin_3d: np.ndarray | None = None,
-    basin_colors: tuple[Any, Any] = ("tab:blue", "tab:red"),
+    basin_colors: tuple[Any, Any] = ("green", "purple"),
     basin_alpha: float = 0.2,
     separatrix_color: Any = "k",
     separatrix_linewidth: float = 1.5,
@@ -778,7 +778,8 @@ def visualize_projected_dynamics(
     # plot the pre-computed trajectories with direction arrows at equal
     # arc-length intervals
     for traj_2d in trajectories_2d:
-        x_t, y_t = traj_2d[:, 0], traj_2d[:, 1]
+        x_t = traj_2d[:, 0].astype(np.float64)
+        y_t = traj_2d[:, 1].astype(np.float64)
         ax.plot(x_t, y_t, color="k", linewidth=1.0, zorder=3)
 
         arc = np.concatenate([[0.0], np.cumsum(np.sqrt(np.diff(x_t) ** 2 + np.diff(y_t) ** 2))])
