@@ -330,31 +330,11 @@ def create_panel_spatial_feature_grid(
                     ax, grid_data, feature, start_x_col, start_y_col, crop_size, colormap, norm
                 )
 
-            ax.set_aspect("equal")
-            ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
-            for spine in ax.spines.values():
-                spine.set_visible(False)
+            _configure_feature_axis(
+                ax, col_idx, row_idx, metadata, feature, n_image_rows, example_labels
+            )
 
-            if col_idx == 0:
-                label = metadata.label_with_unit if metadata is not None else feature
-                ax.set_ylabel(label, fontsize=FONTSIZE_MEDIUM)
-
-            if n_image_rows == 0 and row_idx == 0 and example_labels is not None:
-                ax.set_title(example_labels[col_idx], fontsize=FONTSIZE_MEDIUM)
-
-        # Add one colorbar per feature row in the dedicated colorbar column
-        col_vmin = vmin if vmin is not None else 0
-        col_vmax = vmax if vmax is not None else 1
-        norm = Normalize(vmin=col_vmin, vmax=col_vmax)
-        sm = mpl_cm.ScalarMappable(cmap=colormap, norm=norm)
-        cbar_ax = fig.add_subplot(gs[ax_row, n_examples])
-        cbar = fig.colorbar(sm, cax=cbar_ax)
-        cbar.outline.set_visible(False)
-        cbar.ax.tick_params(labelsize=FONTSIZE_XSMALL)
-        if metadata is not None and metadata.ticks is not None:
-            cbar.set_ticks(metadata.ticks)
-            if metadata.tick_labels is not None:
-                cbar.set_ticklabels(metadata.tick_labels, fontsize=FONTSIZE_XSMALL)
+        _add_feature_colorbar(fig, gs, ax_row, n_examples, colormap, vmin, vmax, metadata)
 
     if save_dir is not None:
         save_plot_to_path(
