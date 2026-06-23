@@ -974,7 +974,7 @@ def plot_drift_3d(
     if include_colorbar:
         # Colorbar - horizontal strip in the top area (legend is stacked above).
         scalar_mappable.set_array([])
-        cbar_ax = fig.add_axes((0.25, 0.9, 0.5, 0.025))
+        cbar_ax = fig.add_axes((0.45, 0.9, 0.5, 0.025))
         cbar = fig.colorbar(
             scalar_mappable,
             cax=cbar_ax,
@@ -1011,7 +1011,7 @@ def plot_drift_3d(
             handles=handles,
             fontsize=FONTSIZE_XSMALL,
             loc="lower center",
-            bbox_to_anchor=(0.5, 0.95),
+            bbox_to_anchor=(1.3, 0.825),
             frameon=False,
             handletextpad=0.3,
             labelspacing=0.4,

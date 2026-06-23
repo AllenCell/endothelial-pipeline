@@ -75,7 +75,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     output_path = get_output_path(__file__)
 
-    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D", "E"])
+    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D", "E", "F"])
 
     # figure is for grid based crops
     crop_pattern = "grid"
@@ -194,9 +194,8 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
         # plot 1D drift in theta and save
         theta_plot_paths[dataset_name] = make_1d_drift_plot_panel(
-            figure_size=(1.35, 1.35),
+            figure_size=(1.4, 1.4),
             output_path=fig_savedir,
-            shear_stress_label=shear_stress_label,
             drift=drift_theta,
             theta_values=centers_theta[-1],
             column_label=column_label_theta,
@@ -209,7 +208,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         )
 
         contour_plot_paths[dataset_name], _ = make_2d_contour_plot_panel(
-            figure_size=(2.52, 1.5),
+            figure_size=(1.5, 2.52),
             output_path=fig_savedir,
             drift=drift_r_rho,
             meshgrid=centers_mesh,
@@ -224,9 +223,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             fixed_point_df=stable_fixed_points_dict[feature_columns_str],
             model=model,
             output_path=fig_savedir,
-            figure_size=(0.75, 0.94),
+            figure_size=(0.9, 1.13),
             num_gpus=NUM_GPUS,
-            **placeholders["B"],
+            **placeholders["C"],
         )
 
     # --- Cross-dataset summary plots ---
@@ -246,11 +245,10 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         column_names=feature_column_names,
         axis_mode="shear_stress",
         subplot_layout="horizontal",
-        figure_size=(4.5, 1.5),
+        figure_size=(3.15, 2.1),
         color_by_column=Column.OpticalFlow.UNIT_VECTOR_MEAN,
         ylabel_rotation=0,
-        remove_label_linebreaks=False,
-        **placeholders["C"],
+        **placeholders["D"],
     )
     # --- First passage time analysis schematic ---
     low_flow_dataset = FPT_FIG_EXAMPLES["low_flow"]
@@ -260,14 +258,15 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         example_tracked_crop_index=low_flow_dataset.tracked_crop_index,
         example_grid_crop_index=low_flow_dataset.grid_crop_index,
         output_path=output_path,
-        **placeholders["D"],
+        figure_size=(3.0, 2.7),
+        **placeholders["E"],
     )
     # --- Histogram of first passage time correlation ---
     first_passage_path = make_first_passage_time_correlation_hist(
-        figure_size=(0.95, 2.0),
+        figure_size=(2.5, 1.25),
         output_path=output_path,
         dataset_names=dataset_summary_list,
-        **placeholders["E"],
+        **placeholders["F"],
     )
 
     # --- Assemble all panels into final figure ---
@@ -284,8 +283,8 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="",
             path=vector_field_plot_paths[dataset_high],
-            x_position=0.0,
-            y_position=2.4,
+            x_position=1.6,
+            y_position=0.4,
             x_offset=0.0,
             y_offset=0.0,
         ),
@@ -293,76 +292,76 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="B",
             path=theta_plot_paths[dataset_low],
-            x_position=1.6,
-            y_position=0.0,
-            x_offset=0.05,
+            x_position=0.0,
+            y_position=2.05,
+            x_offset=0.00,
             y_offset=0.15,
         ),
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_low],
-            x_position=3.1,
-            y_position=0.0,
+            x_position=0.0,
+            y_position=3.7,
             x_offset=0.0,
-            y_offset=-0.05,
+            y_offset=0.05,
         ),
         FigurePanel(
             letter="",
             path=theta_plot_paths[dataset_high],
-            x_position=1.6,
-            y_position=1.25,
-            x_offset=0.05,
+            x_position=1.625,
+            y_position=2.05,
+            x_offset=0.00,
             y_offset=0.15,
         ),
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_high],
-            x_position=3.1,
-            y_position=1.25,
+            x_position=1.6,
+            y_position=3.7,
             x_offset=0.0,
-            y_offset=-0.05,
+            y_offset=0.05,
         ),
-        # --- Fixed point reconstructions (still panel B) ---
+        # --- Fixed point reconstructions (panel C) ---
         FigurePanel(
-            letter="",
+            letter="C",
             path=fixed_point_reconstruction_paths[dataset_low],
-            x_position=5.65,
+            x_position=3.225,
             y_position=0.0,
-            x_offset=0.0,
+            x_offset=0.3,
             y_offset=0.0,
         ),
         FigurePanel(
             letter="",
             path=fixed_point_reconstruction_paths[dataset_high],
-            x_position=5.65,
-            y_position=1.25,
-            x_offset=0.0,
+            x_position=4.825,
+            y_position=0.0,
+            x_offset=0.3,
             y_offset=0.0,
         ),
-        # --- Bottom row: summary plots, first passage time results ---
-        FigurePanel(
-            letter="C",
-            path=fixed_point_summary_plot_path,
-            x_position=1.6,
-            y_position=2.75,
-            x_offset=0.3,
-            y_offset=0.15,
-        ),
+        # --- Remaining rows: summary plots, first passage time results ---
         FigurePanel(
             letter="D",
-            path=trajectory_example_filepath,
-            x_position=0.0,
-            y_position=4.25,
-            x_offset=0.0,
-            y_offset=0.2,
+            path=fixed_point_summary_plot_path,
+            x_position=3.225,
+            y_position=1.25,
+            x_offset=0.05,
+            y_offset=0.1,
         ),
         FigurePanel(
             letter="E",
+            path=trajectory_example_filepath,
+            x_position=3.225,
+            y_position=3.05,
+            x_offset=0.1,
+            y_offset=0.2,
+        ),
+        FigurePanel(
+            letter="F",
             path=first_passage_path,
-            x_position=1.9,
-            y_position=4.25,
+            x_position=3.225,
+            y_position=4.75,
             x_offset=0.075,
-            y_offset=0.25,
+            y_offset=0.0,
         ),
     ]
 

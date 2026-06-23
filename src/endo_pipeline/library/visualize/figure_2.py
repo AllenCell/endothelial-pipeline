@@ -334,8 +334,8 @@ def make_2d_contour_plot_panel(
         drift=drift,
         variable_labels=column_labels,
         figsize=figure_size,
-        n_rows=1,
-        n_cols=2,
+        n_rows=2,
+        n_cols=1,
         axes_limits=[r_lims, rho_lims],
         axes_aspect=None,
         axes_titles=(f"d{column_labels[0]}/dt", f"d{column_labels[1]}/dt"),
@@ -381,22 +381,21 @@ def make_2d_contour_plot_panel(
             markeredgewidth=0.5,
             markersize=5,
         )
-        # adjust label padding and drop tick labels on shared y axis
+        # adjust label padding and drop tick labels on shared x axis
         ax_.set_box_aspect(1.0)
         ax_.set_xticks(r_ticks)
         ax_.set_yticks(rho_ticks)
-        if ax_index == 1:
-            ax_.tick_params(labelleft=False)
+        if ax_index == 0:
+            ax_.tick_params(labelbottom=False)
 
-    # add colorbar to the right of the second subplot with ticks and label
-    # formatting
-    _add_colorbar_to_contour_plot(fig, axes_[1])
+    # add colorbar to the top of the first subplot
+    _add_colorbar_to_contour_plot(fig, axes_[0], orientation="horizontal", cax_position="top")
 
     # shrink the constrained-layout region so the inset colorbar axes
     # (which lives outside the main axes boundary) is not clipped on save
     layout_engine = fig.get_layout_engine()
     if isinstance(layout_engine, ConstrainedLayoutEngine):
-        layout_engine.set(rect=(0, 0, 0.9, 1))
+        layout_engine.set(rect=(0.0, 0.0, 1.0, 0.9))
 
     if include_legend:
         handles = []
@@ -422,7 +421,7 @@ def make_2d_contour_plot_panel(
             labels,
             fontsize="xx-small",
             loc="upper center",
-            bbox_to_anchor=(0.525, 0.95),
+            bbox_to_anchor=(0.5, 0.99),
             ncol=2,
             handletextpad=0.3,
         )
@@ -444,7 +443,6 @@ def make_2d_contour_plot_panel(
 def make_1d_drift_plot_panel(
     figure_size: tuple[float, float],
     output_path: Path,
-    shear_stress_label: str,
     drift: np.ndarray,
     theta_values: np.ndarray,
     column_label: str,
@@ -474,7 +472,7 @@ def make_1d_drift_plot_panel(
         x_values=theta_values_sorted,
         figsize=figure_size,
         axes_limits=[axes_xlim, axes_ylim],
-        axes_labels=[column_label, shear_stress_label],
+        axes_labels=[column_label, ""],
         add_flow_arrows=True,
         flow_arrow_kwargs={"color": "dimgrey", "scale": arrow_scale, "width": arrow_width},
         flow_arrow_downsample=10,
@@ -488,7 +486,6 @@ def make_1d_drift_plot_panel(
             "label": f"d{column_label}/dt = 0",
         },
         xlabel_kwargs=XLABEL_KWARGS,
-        ylabel_kwargs=XLABEL_KWARGS,
     )
     # add stable fixed point in theta
     ax.plot(
@@ -501,12 +498,19 @@ def make_1d_drift_plot_panel(
         markersize=5,
     )
 
+    # shrink the constrained-layout region so the legend placed above the
+    # axes does not get clipped on save; applied unconditionally so axes
+    # size stays constant whether or not the legend is shown
+    layout_engine = fig.get_layout_engine()
+    if isinstance(layout_engine, ConstrainedLayoutEngine):
+        layout_engine.set(rect=(0.0, 0.0, 1.0, 0.9))
+
     # add legend
     if include_legend:
         fig.legend(
             fontsize="xx-small",
             loc="upper center",
-            bbox_to_anchor=(0.65, 1.05),
+            bbox_to_anchor=(0.55, 0.99),
             ncol=2,
             handletextpad=0.3,
             columnspacing=0.75,
