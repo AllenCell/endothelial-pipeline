@@ -37,7 +37,6 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     )
     from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
     from endo_pipeline.settings.column_names import ColumnName
-    from endo_pipeline.settings.examples import EXAMPLE_DATASET
     from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
     from endo_pipeline.settings.manifest_names import BOOTSTRAPPING_MANIFEST_NAMES
     from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
@@ -102,7 +101,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         color_by_column=ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
     )
 
-    dataset_name = EXAMPLE_DATASET["FIGURE_3_12_DYN_BISTABLE"]
+    dataset_name = "20260216_20X"
     vector_field_plot_path, stable_fixed_points_df = make_3d_vector_field_plot_panel(
         dataset_name,
         output_path,
@@ -151,8 +150,8 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="",
             path=projected_streamlines_path,
-            x_position=MAX_FIGURE_WIDTH * 0.66 + 2.5,
-            y_position=2.5,
+            x_position=0.0,
+            y_position=3.25,
             x_offset=0.3,
             y_offset=0.0,
         ),

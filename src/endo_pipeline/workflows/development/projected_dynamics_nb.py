@@ -15,7 +15,7 @@ for dataset_name in [
     "20260114_20X",
     "20260211_20X",
 ]:
-    _ = visualize_projected_dynamics(dataset_name=dataset_name, output_path=output_path)
-    print(f"Saved projected dynamics figure for dataset {dataset_name} to {output_path}.")
+    save_path = visualize_projected_dynamics(dataset_name=dataset_name, output_path=output_path)
+    print(f"Saved projected dynamics figure for dataset {dataset_name} to {save_path}.")
 
 # %%
