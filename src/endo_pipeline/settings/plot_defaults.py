@@ -26,7 +26,7 @@ MarkerStyle = namedtuple("MarkerStyle", ["marker", "color"])
 
 FIXED_POINT_PLOT_STYLE: dict[str, MarkerStyle] = {
     StabilityLabel.STABLE: MarkerStyle(marker="o", color="blue"),
-    StabilityLabel.SADDLE: MarkerStyle(marker="D", color="tab:orange"),
+    StabilityLabel.SADDLE: MarkerStyle(marker="D", color="white"),
     StabilityLabel.UNSTABLE: MarkerStyle(marker="s", color="red"),
     StabilityLabel.INDETERMINATE: MarkerStyle(marker="P", color="khaki"),
 }
