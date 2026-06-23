@@ -129,9 +129,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     # load and instantiate model for generating synthetic images
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
     model_location = model_manifest.locations[DEFAULT_MODEL_RUN_NAME]
-    model = None
-    if not placeholders["B"]:
-        model = load_model(model_location, instantiate=True)
+    model = load_model(model_location, instantiate=True)
 
     # loop over datasets in collection, compute 2D drift coefficients for each
     # pairwise combination of polar coordinates, and plot contours of drift coefficients
@@ -188,6 +186,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             figure_size=(1.6, 2.25),
             output_path=fig_savedir,
             dataset_name=dataset_name,
+            shear_stress_label=shear_stress_label,
             include_legend=include_cbar_legend,
             include_colorbar=include_cbar_legend,
             **placeholders["A"],
@@ -210,7 +209,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         )
 
         contour_plot_paths[dataset_name], _ = make_2d_contour_plot_panel(
-            figure_size=(2.6, 1.55),
+            figure_size=(2.52, 1.5),
             output_path=fig_savedir,
             drift=drift_r_rho,
             meshgrid=centers_mesh,
@@ -225,7 +224,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             fixed_point_df=stable_fixed_points_dict[feature_columns_str],
             model=model,
             output_path=fig_savedir,
-            figure_size=(0.6, 0.75),
+            figure_size=(0.75, 0.94),
             num_gpus=NUM_GPUS,
             **placeholders["B"],
         )
@@ -287,7 +286,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             letter="",
             path=vector_field_plot_paths[dataset_high],
             x_position=0.0,
-            y_position=2.2,
+            y_position=2.4,
             x_offset=0.0,
             y_offset=0.0,
         ),
@@ -328,7 +327,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="",
             path=fixed_point_reconstruction_paths[dataset_low],
-            x_position=5.5,
+            x_position=5.6,
             y_position=0.0,
             x_offset=0.0,
             y_offset=0.0,
@@ -336,7 +335,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="",
             path=fixed_point_reconstruction_paths[dataset_high],
-            x_position=5.5,
+            x_position=5.6,
             y_position=1.25,
             x_offset=0.0,
             y_offset=0.0,

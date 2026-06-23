@@ -779,6 +779,7 @@ def make_3d_vector_field_plot_panel(
     figure_size: tuple[float, float],
     output_path: Path,
     dataset_name: str,
+    shear_stress_label: str,
     include_colorbar: bool = True,
     include_legend: bool = True,
 ) -> Path:
@@ -794,6 +795,8 @@ def make_3d_vector_field_plot_panel(
         Directory in which to save the figure panel.
     dataset_name
         Name of the dataset to visualize.
+    shear_stress_label
+        Label for the shear stress condition to include in the plot.
     include_colorbar
         Whether to include a colorbar indicating the magnitude of the drift
         vectors.
@@ -867,6 +870,9 @@ def make_3d_vector_field_plot_panel(
         s=15,
         zorder=5,
     )
+
+    # add shear stress label as title
+    ax.set_title(shear_stress_label, fontsize=FONTSIZE_SMALL, fontweight="bold", pad=0)
 
     # save as .svg file
     filename = f"3d_vector_field_{dataset_name}"
