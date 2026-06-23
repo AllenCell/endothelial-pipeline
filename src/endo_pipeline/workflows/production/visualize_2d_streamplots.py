@@ -28,11 +28,11 @@ def main() -> None:
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, POLAR_ANGLE_PERIOD
     from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
-    from endo_pipeline.settings.flow_field_figure import AXES_LIMITS_2D
     from endo_pipeline.settings.plot_defaults import (
         FIXED_POINT_PLOT_STYLE,
         VECTOR_FIELD_THETA_RANGE,
     )
+    from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
     logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ def main() -> None:
     output_path = get_output_path(__file__)
 
     grid_spacing_2d = 0.05
-    r_limits = AXES_LIMITS_2D[Column.DiffAEData.POLAR_RADIUS]
+    r_limits = (0.8, 1.6)
     theta_mesh, r_mesh = np.meshgrid(
         np.arange(VECTOR_FIELD_THETA_RANGE[0], VECTOR_FIELD_THETA_RANGE[1], grid_spacing_2d),
         np.arange(r_limits[0], r_limits[1], grid_spacing_2d),
@@ -112,6 +112,9 @@ def main() -> None:
             markersize=9,
             zorder=5,
         )
+
+        # update theta ticks
+        ax.set_xticks([0, np.pi / 2], labels=[f"0={Unicode.PI}", f"{Unicode.PI}/2"])
 
         _ = save_plot_to_path(fig, output_path, figure_name=f"{dataset_name}_projected_streamplot")
         logger.info(
