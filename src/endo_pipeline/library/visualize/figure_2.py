@@ -817,7 +817,10 @@ def make_first_passage_time_correlation_hist(
     "Make panel of histogram of first passage time distances from the fitted lines across datasets."
 )
 def make_first_passage_time_distance_to_linefit_hist(
-    figure_size: tuple[float, float], output_path: Path, dataset_names: list[str]
+    figure_size: tuple[float, float],
+    output_path: Path,
+    dataset_names: list[str],
+    weighted: bool = True,
 ) -> Path:
     fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME)
     line_fit_df, _ = get_line_fit_and_filtered_df(fpt_manifest, dataset_names)
@@ -825,13 +828,17 @@ def make_first_passage_time_distance_to_linefit_hist(
     weighted_distances_all = []
     for _, df_dataset in line_fit_df.groupby(Column.DATASET):
         odr_result = df_dataset[Column.VectorField.ODR_RESULT].iloc[0]
-        # each (x,y) point that was passed to odr_fit to get the line fit has
-        # an associated point on that line (that is affected by the weights
-        # that are passed to odr_fit)and the distance between that point
-        # and the original (x,y) point is delta and eps. We use these
-        # distances as the values for a histogram
-        weighted_distances = np.sqrt(odr_result.delta**2 + odr_result.eps**2)
-        weighted_distances_all.extend(weighted_distances)
+        if weighted:
+            # each (x,y) point that was passed to odr_fit to get the line fit has
+            # an associated point on that line (that is affected by the weights
+            # that are passed to odr_fit) and the distance between that point
+            # and the original (x,y) point is delta and eps. We use these
+            # distances as the values for a histogram
+            weighted_distances = np.sqrt(odr_result.delta**2 + odr_result.eps**2)
+            weighted_distances_all.extend(weighted_distances)
+        # else:
+        #     m, b = odr_result.beta  # slope and intercept of the fitted line
+        #     line_func = lambda x, m=m, b=b: m * x + b
 
     n_size = len(weighted_distances_all)
 
