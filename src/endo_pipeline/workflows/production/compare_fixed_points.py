@@ -55,11 +55,12 @@ def main(datasets: Datasets | None = None) -> None:
     from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_stability
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.column_names import ColumnNameSuffix
     from endo_pipeline.settings.examples import EXAMPLE_DATASET
-    from endo_pipeline.settings.flow_field_dataframes import (
+    from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
+    from endo_pipeline.settings.manifest_names import (
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
         GRID_BASED_BOOTSTRAPPING_MANIFEST_NAME,
-        StabilityLabel,
     )
 
     logger = logging.getLogger(__name__)
@@ -119,14 +120,16 @@ def main(datasets: Datasets | None = None) -> None:
         df_2d_plus_1d = pd.merge(
             stable_fixed_points_1d,
             stable_fixed_points_2d,
-            on=[Column.DATASET, Column.SHEAR_STRESS, Column.VectorField.STABILITY],
+            on=[Column.DATASET, Column.SHEAR_STRESS, Column.FIXED_POINT_STABILITY],
         )
         df_bootstrap = load_dataframe(bootstrap_dataframe_manifest.locations[dataset_name])
         df_3d_bootstrap = filter_dataframe_by_stability(df_bootstrap, StabilityLabel.STABLE)
 
         for column_name in column_names:
-            coord_2d_plus_1d = df_2d_plus_1d[column_name].iloc[0]
-            coord_3d_bootstrap = df_3d_bootstrap[column_name].iloc[0]
+            column_name_fixed_point = f"{column_name}{ColumnNameSuffix.FIXED_POINTS}"
+            column_name_baseline = f"{column_name}{ColumnNameSuffix.BASELINE_FIXED_POINTS}"
+            coord_2d_plus_1d = df_2d_plus_1d[column_name_fixed_point].iloc[0]
+            coord_3d_bootstrap = df_3d_bootstrap[column_name_baseline].iloc[0]
             if column_name == Column.DiffAEData.POLAR_ANGLE:
                 # account for periodicity when comparing theta values by unwrapping the angles
                 # before computing the error

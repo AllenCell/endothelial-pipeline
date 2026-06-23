@@ -28,7 +28,7 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
 )
 from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA, ColumnMetadata
-from endo_pipeline.settings.column_names import ColumnName, ColumnNameType
+from endo_pipeline.settings.column_names import ColumnName, ColumnNameSuffix, ColumnNameType
 from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
     METADATA_COLUMNS_TO_KEEP,
@@ -102,8 +102,8 @@ def _convert_polar_angle_to_nematic_order(df: pd.DataFrame) -> pd.DataFrame:
         theta_{mean})
     """
     for column_suffix in [
-        "",
-        f"_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
+        ColumnNameSuffix.BASELINE_FIXED_POINTS,
+        ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN,
     ]:
         df[f"{ColumnName.DiffAEData.NEMATIC_ORDER}{column_suffix}"] = df[
             f"{ColumnName.DiffAEData.POLAR_ANGLE}{column_suffix}"
@@ -115,15 +115,15 @@ def _convert_polar_angle_to_nematic_order(df: pd.DataFrame) -> pd.DataFrame:
     #    S_CI_lower = S_mean + |f'(theta_mean)| * (theta_CI_lower - theta_mean)
     # where S_mean = cos(2*theta_mean) is the nematic order at the mean angle, and
     # f'(theta) = -2*sin(2*theta) is the derivative of the nematic order function.
-    for ci_type in [ColumnName.BootstrapAnalysis.CI_LOWER, ColumnName.BootstrapAnalysis.CI_UPPER]:
+    for ci_type in [ColumnNameSuffix.BOOTSTRAP_CI_LOWER, ColumnNameSuffix.BOOTSTRAP_CI_UPPER]:
         angle_mean_col = (
-            f"{ColumnName.DiffAEData.POLAR_ANGLE}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}"
+            f"{ColumnName.DiffAEData.POLAR_ANGLE}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"
         )
-        angle_ci_col = f"{ColumnName.DiffAEData.POLAR_ANGLE}_{ci_type}"
+        angle_ci_col = f"{ColumnName.DiffAEData.POLAR_ANGLE}{ci_type}"
         nematic_mean_col = (
-            f"{ColumnName.DiffAEData.NEMATIC_ORDER}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}"
+            f"{ColumnName.DiffAEData.NEMATIC_ORDER}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"
         )
-        nematic_ci_col = f"{ColumnName.DiffAEData.NEMATIC_ORDER}_{ci_type}"
+        nematic_ci_col = f"{ColumnName.DiffAEData.NEMATIC_ORDER}{ci_type}"
 
         for idx, row in df.iterrows():
             theta_mean = row[angle_mean_col]
@@ -137,7 +137,7 @@ def _convert_polar_angle_to_nematic_order(df: pd.DataFrame) -> pd.DataFrame:
             # Approximate the nematic order CI using the chain rule
             nematic_bound = nematic_mean + f_prime * circ_diff
             # clip the nematic CI to the valid range of [-1, 1]
-            if ci_type == ColumnName.BootstrapAnalysis.CI_LOWER:
+            if ci_type == ColumnNameSuffix.BOOTSTRAP_CI_LOWER:
                 df.at[idx, nematic_ci_col] = max(nematic_bound, -1)
             else:
                 df.at[idx, nematic_ci_col] = min(nematic_bound, 1)
@@ -216,6 +216,9 @@ def _plot_cross_dataset_summary_for_column(
     set_y_lims: bool = False,
     color_by_column: ColumnNameType | None = None,
     ylabel_rotation: float = 0,
+    ylabel_horizontal_alignment: Literal["left", "center", "right"] = "left",
+    ylabel_vertical_alignment: Literal["top", "center", "bottom"] = "center",
+    yaxis_for_fixed_points: bool = True,
 ) -> None:
     """
     Plot cross dataset summary for given column name and summary mode.
@@ -249,6 +252,12 @@ def _plot_cross_dataset_summary_for_column(
         (axis mode, markers, error bars, etc.).
     ylabel_rotation
         Rotation angle for y axis label.
+    ylabel_horizontal_alignment
+        Horizontal alignment for y axis label.
+    ylabel_vertical_alignment
+        Vertical alignment for y axis label.
+    yaxis_for_fixed_points
+        If True then add a * to the y axis label to denote it is for fixed points.
     """
 
     # Load dataset configs for all unique datasets in summary data
@@ -264,7 +273,7 @@ def _plot_cross_dataset_summary_for_column(
         }
         marker_map = dict.fromkeys(unique_datasets, "o")
     elif style_mode == "stability":
-        style_column = ColumnName.VectorField.STABILITY
+        style_column = ColumnName.FIXED_POINT_STABILITY
         color_map = {key: style.color for key, style in FIXED_POINT_PLOT_STYLE.items()}
         marker_map = {key: style.marker for key, style in FIXED_POINT_PLOT_STYLE.items()}
     else:
@@ -335,8 +344,8 @@ def _plot_cross_dataset_summary_for_column(
     column_name = f"mean_{column_name}" if column_name in BINNED_MEAN_FEATURES else column_name
 
     # Get column names for confidence interval
-    ci_lower_col = f"{column_name}_{ColumnName.BootstrapAnalysis.CI_LOWER}"
-    ci_upper_col = f"{column_name}_{ColumnName.BootstrapAnalysis.CI_UPPER}"
+    ci_lower_col = f"{column_name}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"
+    ci_upper_col = f"{column_name}{ColumnNameSuffix.BOOTSTRAP_CI_UPPER}"
 
     # If both confidence interval columns exist, calculate upper and lower bounds
     if ci_lower_col in df and ci_upper_col in df:
@@ -406,7 +415,7 @@ def _plot_cross_dataset_summary_for_column(
     # Include legend if using stability style mode (only when not overridden)
     if style_mode == "stability" and scalar_mappable is None:
         legend_handles = make_legend_handles_for_fixed_pts(
-            fpt_stabilities=df[ColumnName.VectorField.STABILITY].unique().tolist(),
+            fpt_stabilities=df[ColumnName.FIXED_POINT_STABILITY].unique().tolist(),
             marker_size=marker_size_legend,
         )
         ax.legend(handles=legend_handles, fontsize=FONTSIZE_SMALL)
@@ -450,7 +459,12 @@ def _plot_cross_dataset_summary_for_column(
     # Add y axis label and grid lines
     y_axis_label = column_metadata.label or str(column_name)
 
-    ax.set_ylabel(f"{y_axis_label}$^*$", rotation=ylabel_rotation, ha="left", va="center")
+    ax.set_ylabel(
+        f"{y_axis_label}$^*$" if yaxis_for_fixed_points else y_axis_label,
+        rotation=ylabel_rotation,
+        ha=ylabel_horizontal_alignment,
+        va=ylabel_vertical_alignment,
+    )
     ax.grid(axis="y", alpha=0.3)
 
 
@@ -468,6 +482,9 @@ def plot_cross_dataset_summaries(
     set_y_lims: bool = False,
     color_by_column: ColumnNameType | None = None,
     ylabel_rotation: float = 0,
+    ylabel_horizontal_alignment: Literal["left", "center", "right"] = "left",
+    ylabel_vertical_alignment: Literal["top", "center", "bottom"] = "center",
+    yaxis_for_fixed_points: bool = True,
 ) -> Path:
     """
     Plot cross dataset summaries for given columns in selected plot mode.
@@ -490,7 +507,7 @@ def plot_cross_dataset_summaries(
 
     - `dataset` = each point is uniquely colored by dataset
     - `stability` = each point is assigned a color and marker shape based on
-      stability (dataframe must a `ColumnName.VectorField.STABILITY` column)
+      stability (dataframe must a `ColumnName.FIXED_POINT_STABILITY` column)
 
     **Subplot layout specification**
 
@@ -529,6 +546,12 @@ def plot_cross_dataset_summaries(
         from ``style_mode``.
     ylabel_rotation
         Rotation angle for y axis label.
+    ylabel_horizontal_alignment
+        Horizontal alignment for y axis label.
+    ylabel_vertical_alignment
+        Vertical alignment for y axis label.
+    yaxis_for_fixed_points
+        If True then add a * to the y axis label to denote it is for fixed points.
 
     Returns
     -------
@@ -584,6 +607,9 @@ def plot_cross_dataset_summaries(
             set_y_lims=set_y_lims,
             color_by_column=color_by_column,
             ylabel_rotation=ylabel_rotation,
+            ylabel_horizontal_alignment=ylabel_horizontal_alignment,
+            ylabel_vertical_alignment=ylabel_vertical_alignment,
+            yaxis_for_fixed_points=yaxis_for_fixed_points,
         )
 
     # Add super x axis label
@@ -683,9 +709,9 @@ def build_dataframe_for_fixed_point_dataset_summary(
 
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid"], *DYNAMICS_COLUMN_NAMES]
     columns_to_bin = {
-        "fp_x_col": f"{ColumnName.DiffAEData.POLAR_ANGLE}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
-        "fp_y_col": f"{ColumnName.DiffAEData.POLAR_RADIUS}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
-        "fp_z_col": f"{ColumnName.DiffAEData.PC3_FLIPPED}_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
+        "fp_x_col": f"{ColumnName.DiffAEData.POLAR_ANGLE}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}",
+        "fp_y_col": f"{ColumnName.DiffAEData.POLAR_RADIUS}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}",
+        "fp_z_col": f"{ColumnName.DiffAEData.PC3_FLIPPED}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}",
         "of_x_col": ColumnName.DiffAEData.POLAR_ANGLE,
         "of_y_col": ColumnName.DiffAEData.POLAR_RADIUS,
         "of_z_col": ColumnName.DiffAEData.PC3_FLIPPED,
@@ -735,7 +761,7 @@ def build_dataframe_for_fixed_point_dataset_summary(
 
         # Filter bootstrap dataframe to only include high confidence values
         df_fixed_points = df_bootstrap_flow[
-            df_bootstrap_flow[ColumnName.BootstrapAnalysis.DETECTION_RATE] >= bootstrap_threshold
+            df_bootstrap_flow[ColumnName.FIXED_POINT_DETECTION_RATE] >= bootstrap_threshold
         ].copy()
 
         if df_fixed_points.empty:
@@ -765,10 +791,10 @@ def build_dataframe_for_fixed_point_dataset_summary(
             if unwrap_angle:
                 # unwrap baseline, bootstrapped cluster mean angle, and CI bounds
                 for suffix in [
-                    "",
-                    f"_{ColumnName.BootstrapAnalysis.CLUSTER_MEAN}",
-                    f"_{ColumnName.BootstrapAnalysis.CI_LOWER}",
-                    f"_{ColumnName.BootstrapAnalysis.CI_UPPER}",
+                    ColumnNameSuffix.BASELINE_FIXED_POINTS,
+                    ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN,
+                    ColumnNameSuffix.BOOTSTRAP_CI_LOWER,
+                    ColumnNameSuffix.BOOTSTRAP_CI_UPPER,
                 ]:
                     df_fixed_points[
                         f"{ColumnName.DiffAEData.POLAR_ANGLE}{suffix}"
@@ -788,7 +814,9 @@ def build_dataframe_for_fixed_point_dataset_summary(
 
         df_fixed_points_list.append(df_fixed_points)
 
-    return pd.concat(df_fixed_points_list, ignore_index=True)
+    # Combine and rename baseline suffix columns so they don't need to be added downstream
+    drop_suffix = {f"{col}{ColumnNameSuffix.BASELINE_FIXED_POINTS}": col for col in column_names}
+    return pd.concat(df_fixed_points_list, ignore_index=True).rename(columns=drop_suffix)
 
 
 def build_dataframe_for_first_passage_time_dataset_summary(

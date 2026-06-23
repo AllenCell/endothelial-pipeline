@@ -87,14 +87,15 @@ def main(
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.column_names import ColumnNameSuffix
     from endo_pipeline.settings.dynamics_workflows import (
         DEFAULT_DATASETS_DYNAMICS_VIS,
         DYNAMICS_COLUMN_NAMES,
     )
-    from endo_pipeline.settings.flow_field_dataframes import (
+    from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
+    from endo_pipeline.settings.manifest_names import (
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
         DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD,
-        StabilityLabel,
     )
     from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
 
@@ -119,20 +120,22 @@ def main(
 
     # Get label and drift column name for selected column
     column_label = get_label_for_column(column_name)
-    drift_column_name = f"{column_name}_{Column.VectorField.DRIFT}"
+    drift_column_name = f"{column_name}{ColumnNameSuffix.DRIFT}"
+    fp_column_name = f"{column_name}{ColumnNameSuffix.FIXED_POINTS}"
+    mesh_column_name = f"{column_name}{ColumnNameSuffix.MESH_GRID}"
 
     # Required columns for vector field and fixed point manifests
     required_vector_field_columns = [
-        column_name,
+        mesh_column_name,
         drift_column_name,
         Column.DATASET,
         Column.SHEAR_STRESS,
     ]
     required_fixed_point_columns = [
-        column_name,
+        fp_column_name,
         Column.DATASET,
         Column.SHEAR_STRESS,
-        Column.VectorField.STABILITY,
+        Column.FIXED_POINT_STABILITY,
     ]
 
     # Load drift vector field and fixed points for selected column
@@ -214,8 +217,8 @@ def main(
                     fixed_points_for_flow_condition, stability_label=StabilityLabel.STABLE
                 )
                 ax.plot(
-                    stable_fixed_points[column_name],
-                    np.zeros_like(stable_fixed_points[column_name]),
+                    stable_fixed_points[fp_column_name],
+                    np.zeros_like(stable_fixed_points[fp_column_name]),
                     FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].marker,
                     color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color,
                     markeredgecolor="k",

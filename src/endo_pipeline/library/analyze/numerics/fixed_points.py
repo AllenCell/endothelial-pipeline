@@ -14,6 +14,7 @@ from endo_pipeline.library.analyze.dataframe_validation import check_required_co
 from endo_pipeline.library.analyze.numerics.binning import circpercentile
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameSuffix
 from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
     LOWER_PERCENTILE_FOR_FILTERING_FPTS,
@@ -22,10 +23,8 @@ from endo_pipeline.settings.dynamics_workflows import (
     SAMPLER_RANDOM_SEED,
     UPPER_PERCENTILE_FOR_FILTERING_FPTS,
 )
-from endo_pipeline.settings.flow_field_dataframes import (
-    GRID_BASED_BOOTSTRAPPING_MANIFEST_NAME,
-    StabilityLabel,
-)
+from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
+from endo_pipeline.settings.manifest_names import GRID_BASED_BOOTSTRAPPING_MANIFEST_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -330,7 +329,7 @@ def get_fixed_points_within_bounds(
     lower_percentile: float = LOWER_PERCENTILE_FOR_FILTERING_FPTS,
     upper_percentile: float = UPPER_PERCENTILE_FOR_FILTERING_FPTS,
     polar_angle_range: tuple[float, float] = POLAR_ANGLE_RANGE,
-    stability_label_column_name: Column.VectorField = Column.VectorField.STABILITY,
+    stability_label_column_name: str = Column.FIXED_POINT_STABILITY,
     metadata_dict: dict[str, str | float] | None = None,
 ) -> pd.DataFrame:
     """Get fixed points of a given estimated vector field with high confidence.
@@ -418,10 +417,15 @@ def get_fixed_points_within_bounds(
                 pd.DataFrame(
                     {
                         stability_label_column_name: [fpt_stability_label],
-                        **{column_name: [fpt[i]] for i, column_name in enumerate(column_names)},
+                        **{
+                            f"{column_name}{ColumnNameSuffix.FIXED_POINTS}": [fpt[i]]
+                            for i, column_name in enumerate(column_names)
+                        },
                     }
                 )
             )
+
+    fixed_point_column_names = [f"{name}{ColumnNameSuffix.FIXED_POINTS}" for name in column_names]
 
     # check if any fixed points with high confidence were found, and if not, log
     # a warning and return an empty dataframe with the correct columns
@@ -430,7 +434,9 @@ def get_fixed_points_within_bounds(
             "No fixed points with high confidence found. Consider adjusting percentile"
             " thresholds or number of initial conditions for root solver."
         )
-        fpts_high_confidence = pd.DataFrame(columns=[stability_label_column_name, *column_names])
+        fpts_high_confidence = pd.DataFrame(
+            columns=[stability_label_column_name, *fixed_point_column_names]
+        )
     # else, concatenate the list of dataframes for each fixed point into a
     # single dataframe and return it
     else:
@@ -487,5 +493,9 @@ def load_fixed_points_dataframe_for_dataset(
         fixed_points_df_manifest, dataset_name
     )
     fixed_points_df = load_dataframe(fixed_points_df_location, delay=False)
+
+    # rename baseline suffix columns so they don't need to be added downstream
+    drop_suffix = {f"{col}{ColumnNameSuffix.BASELINE_FIXED_POINTS}": col for col in column_names}
+    fixed_points_df = fixed_points_df.rename(columns=drop_suffix)
 
     return fixed_points_df

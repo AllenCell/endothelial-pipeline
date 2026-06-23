@@ -75,8 +75,8 @@ def main(
         ),
         "nuclei_measured_features": TableUploadArgs(
             subdir="nuc_labelfree_get_measured_features",
-            suffix="_nuclei_measured_features_features.parquet",
-            manifest="nuclei_measured_features_segmentation",
+            suffix="_nuclei_labelfree_features.parquet",
+            manifest="nuclei_labelfree_segmentation",
             workflow="get_nuclei_measured_features",
         ),
         "cdh5_tracking": TableUploadArgs(

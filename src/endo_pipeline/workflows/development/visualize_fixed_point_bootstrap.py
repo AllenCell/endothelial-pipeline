@@ -79,16 +79,15 @@ def main(
     from endo_pipeline.library.visualize.fixed_points import StabilityLegendHandle
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.column_names import ColumnNameSuffix
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_DYNAMICS,
         DEFAULT_DATASETS_DYNAMICS_VIS,
         DYNAMICS_COLUMN_NAMES,
     )
     from endo_pipeline.settings.flow_field_3d import FIGSIZE_2D_FLOW_FIELD, NROWS_2D_FLOW_FIELD
-    from endo_pipeline.settings.flow_field_dataframes import (
-        BOOTSTRAPPING_MANIFEST_NAMES,
-        StabilityLabel,
-    )
+    from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
+    from endo_pipeline.settings.manifest_names import BOOTSTRAPPING_MANIFEST_NAMES
     from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
     from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
@@ -138,9 +137,7 @@ def main(
         df = load_dataframe(location, delay=False)
 
         n_total = len(df)
-        high_confidence_df = df[
-            df[Column.BootstrapAnalysis.DETECTION_RATE] >= bootstrap_threshold
-        ].copy()
+        high_confidence_df = df[df[Column.FIXED_POINT_DETECTION_RATE] >= bootstrap_threshold].copy()
 
         if high_confidence_df.empty:
             logger.warning(
@@ -179,19 +176,19 @@ def main(
                 (axes[1], column_names[0], column_names[2]),  # PC1 vs PC3
             ]:
                 for _, row in high_confidence_df_flow.iterrows():
-                    stability = row[Column.VectorField.STABILITY]
+                    stability = row[Column.FIXED_POINT_STABILITY]
                     color = FIXED_POINT_PLOT_STYLE[stability].color
                     marker = FIXED_POINT_PLOT_STYLE[stability].marker
 
-                    x = row[f"{column_x}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"]
-                    y = row[f"{column_y}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"]
+                    x = row[f"{column_x}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"]
+                    y = row[f"{column_y}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"]
                     xlabel = get_label_for_column(column_x)
                     ylabel = get_label_for_column(column_y)
 
-                    x_lo = row[f"{column_x}_{Column.BootstrapAnalysis.CI_LOWER}"]
-                    x_hi = row[f"{column_x}_{Column.BootstrapAnalysis.CI_UPPER}"]
-                    y_lo = row[f"{column_y}_{Column.BootstrapAnalysis.CI_LOWER}"]
-                    y_hi = row[f"{column_y}_{Column.BootstrapAnalysis.CI_UPPER}"]
+                    x_lo = row[f"{column_x}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"]
+                    x_hi = row[f"{column_x}{ColumnNameSuffix.BOOTSTRAP_CI_UPPER}"]
+                    y_lo = row[f"{column_y}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"]
+                    y_hi = row[f"{column_y}{ColumnNameSuffix.BOOTSTRAP_CI_UPPER}"]
                     print(x_lo, x_hi, y_lo, y_hi)
 
                     xerr = (
@@ -228,7 +225,7 @@ def main(
 
             # Legend from the stability labels present in this dataset
             present_stabilities = set(
-                high_confidence_df_flow[Column.VectorField.STABILITY].unique()
+                high_confidence_df_flow[Column.FIXED_POINT_STABILITY].unique()
             )
             legend_handles = [
                 StabilityLegendHandle(stability_label=s)
@@ -271,20 +268,20 @@ def main(
         for ds_name, ds_df in combined_df.groupby(Column.DATASET):
             ds_color = get_dataset_color(ds_name)
             for _, row in ds_df.iterrows():
-                stability = row[Column.VectorField.STABILITY]
+                stability = row[Column.FIXED_POINT_STABILITY]
                 # only plot stable fixed points in the combined figure for clearer comparison
                 if stability != StabilityLabel.STABLE:
                     continue
 
-                x = row[f"{column_x}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"]
-                y = row[f"{column_y}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"]
+                x = row[f"{column_x}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"]
+                y = row[f"{column_y}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"]
                 xlabel = get_label_for_column(column_x)
                 ylabel = get_label_for_column(column_y)
 
-                x_lo = row[f"{column_x}_{Column.BootstrapAnalysis.CI_LOWER}"]
-                x_hi = row[f"{column_x}_{Column.BootstrapAnalysis.CI_UPPER}"]
-                y_lo = row[f"{column_y}_{Column.BootstrapAnalysis.CI_LOWER}"]
-                y_hi = row[f"{column_y}_{Column.BootstrapAnalysis.CI_UPPER}"]
+                x_lo = row[f"{column_x}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"]
+                x_hi = row[f"{column_x}{ColumnNameSuffix.BOOTSTRAP_CI_UPPER}"]
+                y_lo = row[f"{column_y}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"]
+                y_hi = row[f"{column_y}{ColumnNameSuffix.BOOTSTRAP_CI_UPPER}"]
 
                 xerr = (
                     [[max(0.0, x - x_lo)], [max(0.0, x_hi - x)]]
