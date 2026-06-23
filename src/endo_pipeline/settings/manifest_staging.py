@@ -17,10 +17,10 @@ STAGING_IMAGE_MANIFEST_NAMES = [
 ]
 """List of names of image manifests to stage."""
 
-DATAFRAME_MANIFEST_STAGING_FOLDERS = {
-    "cdh5_classic_segmentation": "vecadherin_segmentation_features/"
-}
-"""Mapping of dataframe manifest names to subdirectories."""
+STAGING_DATAFRAME_MANIFEST_NAMES = [
+    "in_focus_plane_annotations",
+]
+"""List of names of dataframe manifests to stage."""
 
 MODEL_MANIFEST_STAGING_FOLDERS = {
     "diffae_baseline": "diffae_baseline/",
