@@ -2,7 +2,7 @@ name: timepoint_outlier_annotations
 workflow: annotate_timepoint_outliers
 parameters: {}
 columns:
-  position: Zarr file position (FOV)
+  position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
   bf_mean_intensity: Flattened mean BF intensity over XY
   bf_rolling_median: Rolling median over BF mean intensity
   bf_dark_threshold: BF intensity dark outlier threshold

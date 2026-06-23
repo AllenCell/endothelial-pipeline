@@ -5,13 +5,13 @@ class ColumnName:
     """Dataframe column names. Base level column names are shared among dataframes."""
 
     DATASET = "dataset"
-    """Column name for dataset name."""
+    """Name of dataset."""
 
     POSITION = "position"
-    """Zarr file position (FOV)."""
+    """Zarr file position (FOV) of the corresponding segmentation or patch (crop)."""
 
     TIMEPOINT = "frame_number"
-    """Column name for timepoint (frame number)."""
+    """Timepoint [frames]."""
 
     TRACK_ID = "track_id"
     """The track ID assigned by the tracking algorithm."""
