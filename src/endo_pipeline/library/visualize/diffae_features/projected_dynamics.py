@@ -383,8 +383,8 @@ def get_basins_of_attraction_2d(
         )
 
     stop_conditions = [
-        lambda u, _r=convergence_radius, _p=sfp1: np.sqrt(np.sum((u - _p) ** 2, axis=-1)) < _r,
-        lambda u, _r=convergence_radius, _p=sfp2: np.sqrt(np.sum((u - _p) ** 2, axis=-1)) < _r,
+        lambda u: np.sqrt(np.sum((u - sfp1) ** 2, axis=-1)) < convergence_radius,
+        lambda u: np.sqrt(np.sum((u - sfp2) ** 2, axis=-1)) < convergence_radius,
     ]
 
     _, condition_index = integrate_fixed_step_rk4(
