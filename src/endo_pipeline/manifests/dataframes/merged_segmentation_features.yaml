@@ -207,6 +207,8 @@ columns:
     (VE-cadherin-mEGFP) error, False otherwise
   bf_scope_error: True if timepoint was manually determined with brightfield channel
     error, False otherwise
+  bf_temp_artifact: True if timepoint was manually determined with brightfield channel
+    suddenly becoming too bright or too dark, False otherwise
   cell_piling: True if there is considered to be cell piling at this timepoint, False
     otherwise
   gfp_scope_error: True if timepoint was manually determined with 488 channel (VE-cadherin-mEGFP)
@@ -215,6 +217,11 @@ columns:
     have
   shear_stress: Shear stress value [dyn/cm^2]
   time_hours_since_flow_start: Time since cells first experienced a shear stress [hours]
+  unfed: True if cells were unfed during this timepoint, False otherwise
+  xy_shift: True if there was a significant change in XY position of FOV at this timepoint,
+    False otherwise
+  z_shift: True if there was a significant change in Z position of FOV at this timepoint,
+    False otherwise
 locations:
   20250319_20X:
     fmsid: 6e4080ff8653493091a334d73fc69855

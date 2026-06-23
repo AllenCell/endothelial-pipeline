@@ -107,12 +107,14 @@ def main(manifest_names: UniqueStrList | None = None, reload_columns: bool = Fal
         manifest = load_dataframe_manifest(manifest_name)
 
         # If the manifest does not have a columns entry, or if requesting to
-        # reload the columns, read the columns from the first dataframe in the
+        # reload the columns, read the columns from all dataframes in the
         # manifest and assign empty descriptions.
         if not manifest.columns or reload_columns:
             logger.info("Reloading column names by reading columns from dataframe")
-            location = manifest.locations[list(manifest.locations.keys())[0]]
-            columns = load_dataframe(location, delay=True).columns
+            columns = []
+            for location in manifest.locations.values():
+                dataframe_columns = load_dataframe(location, delay=True).columns
+                columns.extend([col for col in dataframe_columns if col not in columns])
             manifest.columns = dict.fromkeys(columns, "")
 
         # Iterate through all the columns and assign a description, if available
