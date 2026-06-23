@@ -218,9 +218,9 @@ class ColumnName:
         NUCLEI_POSITION_ANGLE = "nuclei_position_angle"
         NUCLEI_POSITION_ANGLE_DEG = "nuclei_position_angle_deg"
         NUCLEI_POSITION_DISTANCE = "nuclei_position_distance"
-        NUCLEI_LABEL = "nuclei_seg_with_most_overlap_0"
-        NUCLEI_CENTROID_X = "nuc_with_most_overlap_0_centroid_X"
-        NUCLEI_CENTROID_Y = "nuc_with_most_overlap_0_centroid_Y"
+        NUCLEI_LABEL = "nuclei_with_most_overlap_0"
+        NUCLEI_CENTROID_X = "nuclei_with_most_overlap_0_centroid_X"
+        NUCLEI_CENTROID_Y = "nuclei_with_most_overlap_0_centroid_Y"
 
         # fluorescence features
         EDGE_FLUOR = "edge_fluorescence_au"
@@ -299,14 +299,21 @@ class ColumnName:
 
         IS_VALID_BBOX = "bbox_is_in_bounds"
 
+    TRACKING_REFERENCE_INDEX = "reference_index"
+    """Relative timepoint index used to compare nearby timepoints to find matching segmentation for track."""
+
+    TRACKING_MATCHED_QUERY_LABEL = "matched_query_label"
+    """List of matched labels from each timepoint starting from current one to up to the next 4 timepoints."""
+
+    TRACKING_OPTIMIZED_METRIC_VALUE = "optimized_metric_value"
+    """Value of metric (fraction of segmentation overlap between reference and query index timepoints) used for tracking."""
+
+    TRACKING_MATCHING_METHOD = "matching_method"
+    """Metric used by tracking algorithm to find matching segmentations."""
+
     class SegDataWorkflowVerification(StrEnum):
         """Column names for workflow development and verification checks."""
 
-        SEGMENTATION_PATH = "filepath_segmentation_image"
-        TRACKING_REF_IDX = "reference_index"
-        TRACKING_MATCHED_QUERY_LABEL = "matched_query_label"
-        TRACKING_OPTIMIZED_METRIC_VAL = "optimized_metric_value"
-        TRACKING_MATCHING_METHOD = "matching_method"
         NUM_NUC_WITH_MOST_OVERLAP = "num_nuclei_with_most_overlap"
         SMOOTHED_AREA_NORMALIZED = "smoothed_area_normd"
         SIGMA_FOR_AREA_SMOOTHING = "gaussian_sigma_for_area_smoothing"
@@ -314,10 +321,9 @@ class ColumnName:
         NODE_LABELS = "node_labels"
         EDGE_LABELS = "edge_labels"
         NODE_PAIR_LABELS = "node_pair_labels"
+        CDH5_SEGMENTATION_LABEL = "cdh5_segmentation_label"
         NUCLEI_LABELS_IN_CDH5_SEGMENTATION = "nuclei_segmentation_labels"
         NUCLEI_FRACTION_IN_CDH5_SEGMENTATION = "nuclei_seg_in_cdh5_seg_frac"
-        NUCLEI_INTENSITY_COLUMN_PREFIX = "nuc_seg_intens_"
-        NUCLEI_SEG_LABEL_PREFIX = "nuclei_seg_with_most_overlap_"
 
     class Annotations(StrEnum):
         """Column names for manual annotations of segmentation quality and other features."""
@@ -487,20 +493,17 @@ class ColumnName:
         EMA01_UNIT_VECTOR_MEAN_FAST = "ema01_optical_flow_mean_unit_vector_fast_dt1"
         """Mean unit vector coherence over fast pixels with EMA smoothing, alpha=0.1."""
 
+    FIXED_POINT_STABILITY = "stability"
+    """Stability classification of a fixed point."""
+
     class VectorField(StrEnum):
         """Column name suffixes used in vector field / dynamics analysis."""
 
         FIXED_POINT_INDEX = "fixed_point_id"
         """Column name for the index of the fixed point in the fixed point dataframe."""
 
-        STABILITY = "stability"
-        """Stability classification of a fixed point."""
-
         FIXED_POINT_PREFIX = "fp_"
         """Prefix for column names representing coordinates of fixed points in feature space."""
-
-        DRIFT = "drift"
-        """Column name denoting the drift in a given variable."""
 
         DISTANCE_FROM_FP_PREFIX = "dist_from_fp_"
         """Prefix for column names representing the distance from a fixed point in N-D space."""
@@ -563,20 +566,8 @@ class ColumnName:
         LINEFIT_SLOPE = "slope_odr"
         """Column name for the slope of a line fit to the relationship between first passage time to the fixed point for grid and tracked crops."""
 
-    class BootstrapAnalysis(StrEnum):
-        """Column name suffixes used in bootstrap fixed-point analysis."""
-
-        DETECTION_RATE = "detection_rate"
-        """Fraction of bootstrap iterations in which a matched fixed point was found."""
-
-        CLUSTER_MEAN = "cluster_mean"
-        """Mean coordinate of matched bootstrap fixed points."""
-
-        CI_LOWER = "ci_lower"
-        """Lower bound of the bootstrap confidence interval."""
-
-        CI_UPPER = "ci_upper"
-        """Upper bound of the bootstrap confidence interval."""
+    FIXED_POINT_DETECTION_RATE = "detection_rate"
+    """Fraction of bootstrap iterations in which a matched fixed point was found."""
 
     class AutoCorrelation(StrEnum):
         """Column name suffixes used in autocorrelation analysis."""
@@ -614,6 +605,64 @@ class ColumnName:
         DATASET_NAME = "dataset_name"
         """Column name for the source dataset name of the example image."""
 
+    RANDOM_SEED = "random_seed"
+    """Random number generator seed."""
+
+    EXAMPLE_KEY = "example_key"
+    """Key representing example image dataset name, position, timepoint, and crop start."""
+
+    MODEL_COMPARISON_EXAMPLE_GROUP = "example_group"
+    """Name of group of model comparison example images."""
+
+    MODEL_COMPARISON_BASELINE_CORRELATION = "baseline_correlations"
+    """Pearson correlation between ground truth and next timepoint."""
+
+    MODEL_COMPARISON_BASELINE_SSIM = "baseline_ssim"
+    """Structural Similarity Index (SSIM) between ground truth and next timepoint."""
+
+    MODEL_COMPARISON_BASELINE_LPIPS = "baseline_lpips"
+    """Learned Perceptual Image Patch Similarity (LPIPS) between ground truth and next timepoint."""
+
+    MODEL_COMPARISON_CORRELATION = "denoised_correlations"
+    """Pearson correlation between input and denoised image."""
+
+    MODEL_COMPARISON_SSIM = "denoised_ssim"
+    """Structural Similarity Index (SSIM) between input and denoised image."""
+
+    MODEL_COMPARISON_LPIPS = "denoised_lpips"
+    """Learned Perceptual Image Patch Similarity (LPIPS) between input and denoised image."""
+
+
+class ColumnNamePrefix(StrEnum):
+    """Prefixes for dataframe column names."""
+
+    NUCLEI_WITH_MOST_OVERLAP = "nuclei_with_most_overlap_"
+
+
+class ColumnNameSuffix(StrEnum):
+    """Suffixes for dataframe column names."""
+
+    DRIFT = "_drift"
+    """Suffix for column name for drift in a given variable."""
+
+    MESH_GRID = "_mesh_grid"
+    """Suffix for column name for vector field mesh grid."""
+
+    FIXED_POINTS = "_fixed_point"
+    """Suffix for column name for fixed point locations."""
+
+    BASELINE_FIXED_POINTS = "_baseline"
+    """Suffix for column name for baseline fixed point locations."""
+
+    BOOTSTRAP_CLUSTER_MEAN = "_cluster_mean"
+    """Suffix for column name for mean coordinate of matched bootstrap fixed points."""
+
+    BOOTSTRAP_CI_LOWER = "_ci_lower"
+    """Suffix for column name for lower bound of the bootstrap confidence interval."""
+
+    BOOTSTRAP_CI_UPPER = "_ci_upper"
+    """Suffix for column name for upper bound of the bootstrap confidence interval."""
+
 
 ColumnNameType = (
     str
@@ -624,7 +673,6 @@ ColumnNameType = (
     | ColumnName.SegDataWorkflowVerification
     | ColumnName.Annotations
     | ColumnName.OpticalFlow
-    | ColumnName.BootstrapAnalysis
     | ColumnName.VectorField
     | ColumnName.AutoCorrelation
     | ColumnName.ModelQC

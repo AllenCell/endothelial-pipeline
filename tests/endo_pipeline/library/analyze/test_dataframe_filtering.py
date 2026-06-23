@@ -544,7 +544,7 @@ def stability_dataframe():
     """DataFrame with rows covering all StabilityLabel values."""
     return pd.DataFrame(
         {
-            Column.VectorField.STABILITY: [
+            Column.FIXED_POINT_STABILITY: [
                 StabilityLabel.STABLE,
                 StabilityLabel.SADDLE,
                 StabilityLabel.UNSTABLE,
@@ -561,7 +561,7 @@ def stability_dataframe():
 def test_filter_dataframe_by_stability_returns_matching_rows(stability_dataframe):
     """Rows whose stability column matches the requested label are returned."""
     result = filter_dataframe_by_stability(stability_dataframe, StabilityLabel.STABLE)
-    assert list(result[Column.VectorField.STABILITY]) == [
+    assert list(result[Column.FIXED_POINT_STABILITY]) == [
         StabilityLabel.STABLE,
         StabilityLabel.STABLE,
     ]
@@ -572,13 +572,13 @@ def test_filter_dataframe_by_stability_each_label(stability_dataframe):
     """Filtering by each valid StabilityLabel returns only rows with that label."""
     for label in StabilityLabel:
         result = filter_dataframe_by_stability(stability_dataframe, label)
-        assert all(result[Column.VectorField.STABILITY] == label)
+        assert all(result[Column.FIXED_POINT_STABILITY] == label)
 
 
 def test_filter_dataframe_by_stability_no_matching_rows_returns_empty(stability_dataframe):
     """When no rows have the requested label, an empty DataFrame with all columns is returned."""
     df_no_node = stability_dataframe[
-        stability_dataframe[Column.VectorField.STABILITY] != StabilityLabel.NODE
+        stability_dataframe[Column.FIXED_POINT_STABILITY] != StabilityLabel.NODE
     ].reset_index(drop=True)
     result = filter_dataframe_by_stability(df_no_node, StabilityLabel.NODE)
     assert result.empty

@@ -113,11 +113,14 @@ gfp_tp_outliers = gfp_tp_outliers_df.loc[position].to_dict()
 plot_single_timepoint_bf_outliers(
     mean_intensity=bf_tp_outliers[Column.Annotations.BF_MEAN_INTENSITY],
     rolling_median=bf_tp_outliers[Column.Annotations.BF_ROLLING_MEDIAN],
-    dark_threshold=bf_tp_outliers[Column.Annotations.BF_DARK_THRESHOLD],
-    partial_dark_threshold=bf_tp_outliers[Column.Annotations.BF_PARTIAL_DARK_THRESHOLD],
+    dark_threshold=bf_tp_outliers[Column.Annotations.BF_PARTIAL_DARK_THRESHOLD],
     bright_threshold=bf_tp_outliers[Column.Annotations.BF_BRIGHT_THRESHOLD],
-    dark_outliers=bf_tp_outliers[Column.Annotations.BF_DARK_OUTLIERS].astype(int),
-    partial_dark_outliers=bf_tp_outliers[Column.Annotations.BF_PARTIAL_DARK_OUTLIERS].astype(int),
+    dark_outliers=sorted(
+        set(
+            bf_tp_outliers[Column.Annotations.BF_DARK_OUTLIERS].astype(int).tolist()
+            + bf_tp_outliers[Column.Annotations.BF_PARTIAL_DARK_OUTLIERS].astype(int).tolist()
+        )
+    ),
     bright_outliers=bf_tp_outliers[Column.Annotations.BF_BRIGHT_OUTLIERS].astype(int),
     dataset_name=dataset_bf,
     position=position,
@@ -168,52 +171,52 @@ print(gfp_results)
 panels = [
     FigurePanel(
         letter="A",
-        path=save_dir_1 / f"standard_devs_{dataset}_P{position}_{timepoint}.svg",
+        path=save_dir_2 / f"bf_outliers_{dataset_bf}_P{position}.svg",
         x_position=0,
         y_position=0,
         x_offset=0,
-        y_offset=0.08,
+        y_offset=0,
     ),
     FigurePanel(
         letter="B",
-        path=save_dir_1 / f"global_center_plane_{dataset}_P{position}.svg",
-        x_position=2.5,
+        path=save_dir_2 / f"gfp_outliers_{dataset_gfp}_P{position}.svg",
+        x_position=3.5,
         y_position=0,
+        x_offset=-0.1,
+        y_offset=0.1,
+    ),
+    FigurePanel(
+        letter="C",
+        path=save_dir_1 / f"standard_devs_{dataset}_P{position}_{timepoint}.svg",
+        x_position=0,
+        y_position=2.6,
         x_offset=0,
         y_offset=0.08,
     ),
     FigurePanel(
-        letter="C",
+        letter="D",
+        path=save_dir_1 / f"global_center_plane_{dataset}_P{position}.svg",
+        x_position=2.5,
+        y_position=2.6,
+        x_offset=0,
+        y_offset=0.08,
+    ),
+    FigurePanel(
+        letter="E",
         path=save_dir_1 / "n_slices_above_in_focus_z_histogram.svg",
         x_position=4.85,
-        y_position=0,
+        y_position=2.6,
         x_offset=0.08,
         y_offset=0.2,
     ),
     FigurePanel(
-        letter="D",
+        letter="F",
         path=save_dir_1
         / f"plane_selection_vis_{dataset}_P{position}_{timepoint}_offset{LOWER_Z_SLICE_OFFSET}_{UPPER_Z_SLICE_OFFSET}_scalebar100um.svg",
         x_position=0,
-        y_position=2.3,
+        y_position=2.3 + 2.6,
         x_offset=0.08,
         y_offset=0.08,
-    ),
-    FigurePanel(
-        letter="F",
-        path=save_dir_2 / f"bf_outliers_{dataset_bf}_P{position}.svg",
-        x_position=0,
-        y_position=5.4,
-        x_offset=0.1,
-        y_offset=0.1,
-    ),
-    FigurePanel(
-        letter="G",
-        path=save_dir_2 / f"gfp_outliers_{dataset_gfp}_P{position}.svg",
-        x_position=3.45,
-        y_position=5.4,
-        x_offset=-0.1,
-        y_offset=0.1,
     ),
 ]
 

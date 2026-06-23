@@ -1,0 +1,39 @@
+name: diffae_model_comparison_metrics_diffae_baseline
+workflow: calculate_model_comparison_metrics
+parameters:
+  model_manifest_name: diffae_baseline
+  random_seeds: [42, 43, 44, 45, 46, 47, 48, 49, 50, 51]
+  examples_groups: [replicate, training, validation]
+locations:
+  latent_8:
+    fmsid: 0d17fa7cbe5c4f318a4428d17684477d
+    path: null
+    s3uri: null
+  latent_16:
+    fmsid: b3562a96a83c478a8807345c2853c781
+    path: null
+    s3uri: null
+  latent_32:
+    fmsid: 0a78652fed34468ca3aafba97b740c7f
+    path: null
+    s3uri: null
+  latent_64:
+    fmsid: d987cef80fc040c9a1c0f546317339ab
+    path: null
+    s3uri: null
+  latent_128:
+    fmsid: 57e149b1c364406da36be41dda9412eb
+    path: null
+    s3uri: null
+  latent_256:
+    fmsid: 56e03a4d253b419f9c2b2a8830a4b75e
+    path: null
+    s3uri: null
+  latent_512:
+    fmsid: ff359504121f4baf9aa9f3d39e2d2bdb
+    path: null
+    s3uri: null
+  latent_1024:
+    fmsid: 72f8f36976e6411690a4651afe19537a
+    path: null
+    s3uri: null

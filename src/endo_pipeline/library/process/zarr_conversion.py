@@ -7,7 +7,7 @@ from bioio import BioImage
 from bioio.writers import ome_zarr_writer_2 as ome_zarr_writer
 from bioio_base.types import PhysicalPixelSizes
 
-from endo_pipeline.configs import DatasetConfig
+from endo_pipeline.configs import ChannelName, DatasetConfig
 from endo_pipeline.settings.image_data import AXIAL_DISTORTION_CORRECTION_FACTOR_3i_20x
 
 logger = logging.getLogger(__name__)
@@ -287,7 +287,7 @@ def write_scene_to_zarr(
     logger.debug("Writing image metadata")
     meta = writer.generate_metadata(
         image_name=image_name,
-        channel_names=channel_names,
+        channel_names=[str(ChannelName[name]) for name in channel_names],
         physical_dims=physical_scale,
         physical_units=physical_units,
         channel_colors=[0xFFFFFF for i in range(num_channels)],

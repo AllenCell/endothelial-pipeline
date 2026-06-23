@@ -26,7 +26,7 @@ from skimage.segmentation import (
     watershed,
 )
 
-from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs import ChannelName, load_dataset_config
 from endo_pipeline.io import load_image
 from endo_pipeline.library.process.general_image_preprocessing import (
     ImageProcessingArgs,
@@ -823,7 +823,7 @@ def generate_cdh5_segmentation_refined(
     zarr_loc = get_zarr_location_for_position(dataset_config, position)
     img = load_image(zarr_loc, read=False)
     raw_dask_arr = load_image(
-        zarr_loc, channels=["EGFP"], timepoints=timepoint, level=img_bin_level
+        zarr_loc, channels=[ChannelName.EGFP], timepoints=timepoint, level=img_bin_level
     )
 
     raw_arr_mip = (

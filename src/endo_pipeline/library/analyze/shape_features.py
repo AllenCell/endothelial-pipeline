@@ -1,6 +1,5 @@
 import logging
 import re
-from collections.abc import Callable
 from os import scandir
 from pathlib import Path
 from typing import Any, Literal
@@ -10,7 +9,10 @@ import pandas as pd
 from dask.array import Array
 from skimage import draw, filters, graph, measure, morphology, segmentation
 
+from endo_pipeline.configs import ChannelName
 from endo_pipeline.library.process.general_image_preprocessing import ImageProcessingArgs
+from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNamePrefix as ColumnPrefix
 
 logger = logging.getLogger(__name__)
 
@@ -1461,8 +1463,6 @@ def build_cdh5_measured_features_tables(
 
     The tables contain the following information:
     segmentation properties table:
-    - filepath_raw_image
-    - filepath_segmentation_image
     - dataset_name
     - position
     - T
@@ -1496,9 +1496,6 @@ def build_cdh5_measured_features_tables(
     - git_uncommitted_changes
 
     edge alignments table:
-    - filepath_raw_image
-    - filepath_raw_image
-    - filepath_segmentation_image
     - dataset_name
     - position
     - T
@@ -1550,7 +1547,7 @@ def build_cdh5_measured_features_tables(
     # load the raw cdh5 image data
     dataset_config = load_dataset_config(dataset_name)
     image_loc = get_zarr_location_for_position(dataset_config, position)
-    raw_arr = load_image(image_loc, channels=["EGFP"], timepoints=tp, level=0)
+    raw_arr = load_image(image_loc, channels=[ChannelName.EGFP], timepoints=tp, level=0)
     raw_arr = raw_arr.max(axis=dim_order.index("Z")).squeeze().compute()
     voxel_size = load_image(image_loc, read=False).physical_pixel_sizes
 
@@ -1559,7 +1556,6 @@ def build_cdh5_measured_features_tables(
     seg_manifest = load_image_manifest("cdh5_classic_seg_zarr")
     seg_location = get_image_location_for_dataset(seg_manifest, dataset_config, position)
     seg_arr = load_image(seg_location, squeeze=True, compute=True, timepoints=tp)
-    seg_filepath = seg_location.path.as_posix() if seg_location.path is not None else ""
 
     # NOTE: the segmentation images are stored as a single channel and single timepoint
     seg_borders = segmentation.find_boundaries(seg_arr)
@@ -1584,8 +1580,6 @@ def build_cdh5_measured_features_tables(
         logger.debug(f"T={tp} -- saving table of edge angles and distances")
         table = pd.DataFrame(
             {
-                "filepath_raw_image": image_loc.path.as_posix(),
-                "filepath_segmentation_image": seg_filepath,
                 "dataset_name": dataset_name,
                 "position": position,
                 "T": tp,
@@ -1649,48 +1643,56 @@ def build_cdh5_measured_features_tables(
             logger.debug(f"T={tp} -- saving table of cell properties")
             table = pd.DataFrame(
                 {
-                    "filepath_raw_image": image_loc.path.as_posix(),
-                    "filepath_segmentation_image": seg_filepath,
-                    "dataset_name": dataset_name,
-                    "position": position,
-                    "T": tp,
-                    "cell_label": labeled_region_metrics["cell_label"],
-                    "cell_centroid": labeled_region_metrics["cell_centroid"],
-                    "cell_area (px**2)": labeled_region_metrics["cell_area (px**2)"],
-                    "cell_perimeter (px)": labeled_region_metrics["cell_perimeter (px)"],
-                    "cell_solidity": labeled_region_metrics["cell_solidity"],
-                    "major_axis_length": labeled_region_metrics["major_axis_length"],
-                    "minor_axis_length": labeled_region_metrics["minor_axis_length"],
-                    "cell_eccentricity": labeled_region_metrics["cell_eccentricity"],
-                    "cell_orientation": labeled_region_metrics["cell_orientation"],
-                    "cell_fluorescence_mean (a.u.)": labeled_region_metrics[
+                    Column.DATASET: dataset_name,
+                    Column.POSITION: position,
+                    Column.TIMEPOINT: tp,
+                    Column.SegData.LABEL: labeled_region_metrics["cell_label"],
+                    Column.SegData.CENTROID: labeled_region_metrics["cell_centroid"],
+                    Column.SegData.AREA_PX_SQ: labeled_region_metrics["cell_area (px**2)"],
+                    Column.SegData.PERIMETER_PX: labeled_region_metrics["cell_perimeter (px)"],
+                    Column.SegData.SOLIDITY: labeled_region_metrics["cell_solidity"],
+                    Column.SegData.MAJOR_AXIS: labeled_region_metrics["major_axis_length"],
+                    Column.SegData.MINOR_AXIS: labeled_region_metrics["minor_axis_length"],
+                    Column.SegData.ECCENTRICITY: labeled_region_metrics["cell_eccentricity"],
+                    Column.SegData.ORIENTATION: labeled_region_metrics["cell_orientation"],
+                    Column.SegData.CELL_FLUOR_MEAN: labeled_region_metrics[
                         "cell_fluorescence_mean (au)"
                     ],
-                    "cell_fluorescence_std (a.u.)": labeled_region_metrics[
+                    Column.SegData.CELL_FLUOR_STD: labeled_region_metrics[
                         "cell_fluorescence_std (au)"
                     ],
-                    "cell_fluorescence_median (a.u.)": labeled_region_metrics[
+                    Column.SegData.CELL_FLUOR_MEDIAN: labeled_region_metrics[
                         "cell_fluorescence_median (au)"
                     ],
-                    "cell_fluorescence_min (a.u.)": labeled_region_metrics[
+                    Column.SegData.CELL_FLUOR_MIN: labeled_region_metrics[
                         "cell_fluorescence_min (au)"
                     ],
-                    "cell_fluorescence_pct25 (a.u.)": labeled_region_metrics[
+                    Column.SegData.CELL_FLUOR_PCT25: labeled_region_metrics[
                         "cell_fluorescence_pct25 (au)"
                     ],
-                    "cell_fluorescence_pct75 (a.u.)": labeled_region_metrics[
+                    Column.SegData.CELL_FLUOR_PCT75: labeled_region_metrics[
                         "cell_fluorescence_pct75 (au)"
                     ],
-                    "cell_fluorescence_max (a.u.)": labeled_region_metrics[
+                    Column.SegData.CELL_FLUOR_MAX: labeled_region_metrics[
                         "cell_fluorescence_max (au)"
                     ],
-                    "neighboring_cell_labels": labeled_region_metrics["neighboring_cell_labels"],
-                    "edge_labels": labeled_region_metrics["edge_labels"],
-                    "node_labels": labeled_region_metrics["node_labels"],
-                    "node_pair_labels": labeled_region_metrics["node_pair_labels"],
-                    "edge_fluorescences (a.u.)": labeled_region_metrics["edge_fluorescences (au)"],
-                    "node_fluorescences (a.u.)": labeled_region_metrics["node_fluorescences (au)"],
-                    "touches_image_border": labeled_region_metrics["touches_image_border"],
+                    Column.SegData.NEIGHBOR_LABELS: labeled_region_metrics[
+                        "neighboring_cell_labels"
+                    ],
+                    Column.SegDataWorkflowVerification.EDGE_LABELS: labeled_region_metrics[
+                        "edge_labels"
+                    ],
+                    Column.SegDataWorkflowVerification.NODE_LABELS: labeled_region_metrics[
+                        "node_labels"
+                    ],
+                    Column.SegDataWorkflowVerification.NODE_PAIR_LABELS: labeled_region_metrics[
+                        "node_pair_labels"
+                    ],
+                    Column.SegData.EDGE_FLUOR: labeled_region_metrics["edge_fluorescences (au)"],
+                    Column.SegData.NODE_FLUOR: labeled_region_metrics["node_fluorescences (au)"],
+                    Column.SegDataFilters.IS_EDGE_SEGMENTATION: labeled_region_metrics[
+                        "touches_image_border"
+                    ],
                 }
             )
             table.to_parquet(
@@ -1761,28 +1763,15 @@ def get_nuclei_features_from_image(
     # Set up some initial data containers to populate
     nuc_feats_ls: list = []
 
-    feats_with_list_of_lists: dict[str, Callable] = {
-        "nuc_seg_intens_means": np.mean,
-        "nuc_seg_intens_stds": np.std,
-        "nuc_seg_intens_medians": np.median,
-        "nuc_seg_intens_pct25s": lambda x: np.percentile(x, 25),
-        "nuc_seg_intens_pct75s": lambda x: np.percentile(x, 75),
-        "nuc_seg_intens_maxs": np.max,
-        "nuc_seg_intens_mins": np.min,
-    }
-
     # Go through the region properties and extract features
     for prop in reg_props:
         nuc_seg_labels = np.unique(prop.intensity_image[prop.intensity_image != 0]).tolist()
 
         nuc_feats = {
-            "cdh5_segmentation_label": prop.label,
-            "nuclei_segmentation_labels": nuc_seg_labels,
-            "nuclei_seg_in_cdh5_seg_frac": [],
+            Column.SegDataWorkflowVerification.CDH5_SEGMENTATION_LABEL: prop.label,
+            Column.SegDataWorkflowVerification.NUCLEI_LABELS_IN_CDH5_SEGMENTATION: nuc_seg_labels,
+            Column.SegDataWorkflowVerification.NUCLEI_FRACTION_IN_CDH5_SEGMENTATION: [],
         }
-
-        for f in feats_with_list_of_lists.keys():
-            [nuc_feats.update({f"{f}_{chan}": []}) for chan in fluor_img_names]
 
         # add the fraction overlap of the cdh5 segmentation with the segmentation
         # to each of the properties in reg_props
@@ -1791,20 +1780,16 @@ def get_nuclei_features_from_image(
             if nuc_seg_labels:
                 nuc_seg_in_cdh5_seg_size = np.count_nonzero(prop.intensity_image == lab)
                 nuc_seg_total_size = nuc_seg_size_dict[lab]
-                nuc_feats["nuclei_seg_in_cdh5_seg_frac"].append(
-                    nuc_seg_in_cdh5_seg_size / nuc_seg_total_size
-                )
-
-                # summarize intensities in segmented nuclei regions for each channel
-                for chan in fluor_img_names:
-                    nuc_arr = nuc_props_on_intens[chan][lab].image
-                    intens_arr = nuc_props_on_intens[chan][lab].image_intensity
-
-                    for feat, func in feats_with_list_of_lists.items():
-                        nuc_feats[f"{feat}_{chan}"].append(func(intens_arr[nuc_arr]))
+                nuc_feats[
+                    Column.SegDataWorkflowVerification.NUCLEI_FRACTION_IN_CDH5_SEGMENTATION
+                ].append(nuc_seg_in_cdh5_seg_size / nuc_seg_total_size)
 
         nuc_lab_frac_dict = dict(
-            zip(nuc_seg_labels, nuc_feats["nuclei_seg_in_cdh5_seg_frac"], strict=False)
+            zip(
+                nuc_seg_labels,
+                nuc_feats[Column.SegDataWorkflowVerification.NUCLEI_FRACTION_IN_CDH5_SEGMENTATION],
+                strict=False,
+            )
         )
         nuclei_seg_with_most_overlap = [
             lab
@@ -1812,10 +1797,10 @@ def get_nuclei_features_from_image(
             if nuc_lab_frac_dict[lab] == max(nuc_lab_frac_dict.values())
         ]
         for i, nuc_lab_max in enumerate(nuclei_seg_with_most_overlap):
-            nuc_feats[f"nuclei_seg_with_most_overlap_{i}"] = nuc_lab_max
+            nuc_feats[f"{ColumnPrefix.NUCLEI_WITH_MOST_OVERLAP}{i}"] = nuc_lab_max
             for dim_index, dim in enumerate(seg_dim_order):
-                nuc_feats[f"nuc_with_most_overlap_{i}_centroid_{dim}"] = float(
-                    nuc_props_on_intens["BF"][nuc_lab_max].centroid[dim_index]
+                nuc_feats[f"{ColumnPrefix.NUCLEI_WITH_MOST_OVERLAP}{i}_centroid_{dim}"] = float(
+                    nuc_props_on_intens[ChannelName.BF][nuc_lab_max].centroid[dim_index]
                 )
 
         nuc_feats_ls.append(nuc_feats)
@@ -1880,18 +1865,18 @@ def get_nuclei_features_from_dataset_at_timepoint(
 
     # add the total number of detected nuclei per image to the dataframe
     num_nuclei = np.count_nonzero(np.unique(nuc_seg))
-    nuc_feats_df["total_nuclei_count_at_T"] = num_nuclei
+    nuc_feats_df[Column.SegData.NUM_NUCLEI_AT_TIMEPOINT] = num_nuclei
 
     # add the dataset name, position, and T to the dataframe
-    nuc_feats_df["dataset_name"] = dataset_name
-    nuc_feats_df["position"] = position
-    nuc_feats_df["T"] = tp
+    nuc_feats_df[Column.DATASET] = dataset_name
+    nuc_feats_df[Column.POSITION] = position
+    nuc_feats_df[Column.TIMEPOINT] = tp
 
     # move the dataset_name, position, and T columns to the front
     # of the data table
+    front_columns = [Column.DATASET, Column.POSITION, Column.TIMEPOINT]
     nuc_feats_df = nuc_feats_df[
-        ["dataset_name", "position", "T"]
-        + [col for col in nuc_feats_df.columns if col not in ["dataset_name", "position", "T"]]
+        front_columns + [col for col in nuc_feats_df.columns if col not in front_columns]
     ]
 
     if save_output:

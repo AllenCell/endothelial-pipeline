@@ -26,7 +26,7 @@ zarr_channel_indices:
   channel_405: null
   channel_561: null
   channel_640: null
-channel_names: [EGFP, BF]
+channel_names: [VE-cadherin_mEGFP, Brightfield]
 flow_conditions:
 - start: -16
   stop: 576
@@ -55,13 +55,6 @@ timepoint_annotations:
     3: []
     4: []
     5: []
-  not_steady_state:
-    0: [[0, 102]]
-    1: [[0, 98]]
-    2: [[0, 94]]
-    3: [[0, 105]]
-    4: [[0, 90]]
-    5: [[0, 90]]
   cell_piling:
     0: [[240, 576]]
     1: [[156, 576]]
@@ -69,6 +62,13 @@ timepoint_annotations:
     3: [[240, 576]]
     4: [[168, 576]]
     5: [[276, 576]]
+  not_steady_state:
+    0: [[0, 102]]
+    1: [[0, 98]]
+    2: [[0, 94]]
+    3: [[0, 105]]
+    4: [[0, 90]]
+    5: [[0, 90]]
 position_annotations: null
 center_z_plane:
   0: 12

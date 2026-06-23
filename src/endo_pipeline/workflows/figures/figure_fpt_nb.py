@@ -63,7 +63,7 @@ for example in FPT_FIG_EXAMPLES:
         (fpt_stats_df_no_nan[Column.DATASET] == dataset_name)
         & (fpt_stats_df_no_nan[Column.VectorField.FIXED_POINT_INDEX] == fp_idx)
     ]
-    fp_stability = df[Column.VectorField.STABILITY].unique().item()
+    fp_stability = df[Column.FIXED_POINT_STABILITY].unique().item()
     filename = plot_first_passage_time_correlations(
         dataset_name=dataset_name,
         first_passage_time_stats_df=df,
