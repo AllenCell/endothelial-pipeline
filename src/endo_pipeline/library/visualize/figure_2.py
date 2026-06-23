@@ -68,7 +68,7 @@ def _add_colorbar_to_contour_plot(
     ticks_cax_position: Literal["top", "bottom", "left", "right"] = "right",
     label_cax_position: Literal["top", "bottom", "left", "right"] = "right",
     extend: Literal["neither", "both", "min", "max"] = "both",
-    cax_rect: tuple[float, float, float, float] = (0.45, 0.9, 0.5, 0.02),
+    cax_rect: tuple[float, float, float, float] = (0.25, 0.9, 0.5, 0.02),
 ) -> None:
     """
     Add a colorbar to a contour plot with specified formatting.
@@ -383,6 +383,8 @@ def make_2d_contour_plot_panel(
         ax_.set_box_aspect(1.0)
         ax_.set_xticks(r_ticks)
         ax_.set_yticks(rho_ticks)
+        ax_.yaxis.set_label_position("right")
+        ax_.yaxis.tick_right()
         if ax_index == 0:
             ax_.tick_params(labelbottom=False)
 
@@ -421,20 +423,15 @@ def make_2d_contour_plot_panel(
         )
         handles.extend(fp_handles)
         labels.append(fixed_point_label)
-        # Add a dedicated invisible axes to the right of the main subplots via
-        # fig.add_axes so the legend can be anchored within figure bounds —
-        # the same pattern used for the colorbar.
-        legend_ax = fig.add_axes((0.69, 0.08, 0.29, 0.62))
-        legend_ax.set_axis_off()
         fig.legend(
             handles,
             labels,
             fontsize="xx-small",
-            loc="upper left",
-            bbox_to_anchor=(0.0, 1.0),
-            bbox_transform=legend_ax.transAxes,
+            loc="center left",
+            bbox_to_anchor=(-0.05, 0.91),
             ncol=1,
             handletextpad=0.3,
+            frameon=False,
         )
 
     save_plot_to_path(
@@ -520,21 +517,15 @@ def make_1d_drift_plot_panel(
         )
         handles.extend(fp_handles)
         labels.append(fixed_point_label)
-        # Add a dedicated invisible axes above the main plot via fig.add_axes
-        # so the legend can be anchored within figure bounds — the same pattern
-        # used for the contour plot legend and colorbar.
-        legend_ax = fig.add_axes((0.0, 0.86, 1.0, 0.10))
-        legend_ax.set_axis_off()
         fig.legend(
             handles,
             labels,
             fontsize="xx-small",
-            loc="upper center",
-            bbox_to_anchor=(0.5, 1.0),
-            bbox_transform=legend_ax.transAxes,
-            ncol=3,
+            loc="upper right",
+            bbox_to_anchor=(0.97, 0.84),
+            ncol=2,
             handletextpad=0.3,
-            columnspacing=0.75,
+            columnspacing=0.5,
         )
 
     # set plot formatting args
@@ -761,7 +752,6 @@ def reconstruct_fixed_points(
         max_rows=1,
         max_cols=1,
         fig_kwargs={"figsize": figure_size, "layout": "constrained"},
-        row_titles=["Reconstructed\nVE-cadherin MIP"] if include_row_label else None,
         gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
         font_size=FONTSIZE_XSMALL,
     )
@@ -775,6 +765,21 @@ def reconstruct_fixed_points(
         fontsize=FONTSIZE_SMALL,
         fontweight="bold",
     )
+
+    # Add row title (y label) as standalone text so that including vs. not
+    # doesn't affect the size of the plot vis-a-vis the input figure size and
+    # constrained layout.
+    if include_row_label:
+        fig_fixed_point_reconstructions.text(
+            -0.1,
+            0.35,
+            "Reconstructed\nVE-cadherin MIP",
+            va="center",
+            ha="center",
+            fontsize=FONTSIZE_SMALL,
+            fontweight="bold",
+            rotation=90,
+        )
 
     # add scalebars to each panel, only label the top left one to avoid
     # redundancy

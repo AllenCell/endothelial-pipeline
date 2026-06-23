@@ -137,9 +137,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     contour_plot_paths: dict[str, Path] = {}
     fixed_point_reconstruction_paths: dict[str, Path] = {}
     vector_field_plot_paths: dict[str, Path] = {}
-    for dataset_name, arrow_scale_1d, arrow_width_1d, include_cbar_legend in [
-        (dataset_low, 1.5, 0.05, True),
-        (dataset_high, 0.5, 0.05, False),
+    for dataset_name, arrow_scale_1d, arrow_width_1d, include_colorbar, include_legend in [
+        (dataset_low, 1.5, 0.05, True, False),
+        (dataset_high, 0.5, 0.05, False, True),
     ]:
         fig_savedir = get_output_path(__file__, dataset_name)
         dataset_config = load_dataset_config(dataset_name)
@@ -187,14 +187,14 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             output_path=fig_savedir,
             dataset_name=dataset_name,
             shear_stress_label=shear_stress_label,
-            include_legend=include_cbar_legend,
-            include_colorbar=include_cbar_legend,
+            include_legend=include_legend,
+            include_colorbar=include_colorbar,
             **placeholders["A"],
         )
 
         # plot 1D drift in theta and save
         theta_plot_paths[dataset_name] = make_1d_drift_plot_panel(
-            figure_size=(1.4, 1.4),
+            figure_size=(1.25, 1.25),
             output_path=fig_savedir,
             drift=drift_theta,
             theta_values=centers_theta[-1],
@@ -203,20 +203,20 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             filename=f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}_drift",
             arrow_scale=arrow_scale_1d,
             arrow_width=arrow_width_1d,
-            include_legend=include_cbar_legend,
+            include_legend=include_legend,
             **placeholders["B"],
         )
 
         contour_plot_paths[dataset_name], _ = make_2d_contour_plot_panel(
-            figure_size=(1.5, 2.52),
+            figure_size=(1.7, 2.83),
             output_path=fig_savedir,
             drift=drift_r_rho,
             meshgrid=centers_mesh,
             column_labels=column_labels_r_rho,
             stable_fixed_point=stable_fixed_point_r_rho,
             filename=f"{dataset_name}_{columns_r_rho_str}_contours",
-            include_legend=include_cbar_legend,
-            include_colorbar=include_cbar_legend,
+            include_legend=include_legend,
+            include_colorbar=include_colorbar,
             **placeholders["B"],
         )
 
@@ -225,9 +225,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             shear_stress_label=shear_stress_label,
             model=model,
             output_path=fig_savedir,
-            figure_size=(0.9, 1.13),
+            figure_size=(1.0, 1.2),
             num_gpus=NUM_GPUS,
-            include_row_label=include_cbar_legend,
+            include_row_label=include_colorbar,
             **placeholders["C"],
         )
 
@@ -298,21 +298,21 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             path=theta_plot_paths[dataset_low],
             x_position=0.0,
             y_position=2.05,
-            x_offset=0.025,
+            x_offset=0.1,
             y_offset=0.0,
         ),
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_low],
-            x_position=-0.05,
-            y_position=3.5,
-            x_offset=-0.025,
+            x_position=0.16,
+            y_position=3.7,
+            x_offset=0.0,
             y_offset=0.0,
         ),
         FigurePanel(
             letter="",
             path=theta_plot_paths[dataset_high],
-            x_position=1.6,
+            x_position=1.7,
             y_position=2.05,
             x_offset=0.00,
             y_offset=0.0,
@@ -320,8 +320,8 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_high],
-            x_position=1.585,
-            y_position=3.5,
+            x_position=1.75,
+            y_position=3.7,
             x_offset=0.0,
             y_offset=0.0,
         ),
@@ -346,15 +346,15 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="D",
             path=fixed_point_summary_plot_path,
-            x_position=3.225,
+            x_position=3.25,
             y_position=1.25,
-            x_offset=0.0,
+            x_offset=0.05,
             y_offset=0.15,
         ),
         FigurePanel(
             letter="E",
             path=trajectory_example_filepath,
-            x_position=3.225,
+            x_position=3.25,
             y_position=3.15,
             x_offset=0.3,
             y_offset=0.0,

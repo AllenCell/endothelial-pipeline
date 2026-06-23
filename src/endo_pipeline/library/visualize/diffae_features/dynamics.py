@@ -982,7 +982,7 @@ def plot_drift_3d(
     # consistent size regardless of whether colorbar/legend are included
     fig = plt.figure(figsize=figsize)
     # Position: [left, bottom, width, height] in figure coordinates
-    ax: Axes3D = fig.add_axes((0.10, 0.10, 0.80, 0.72), projection="3d")
+    ax: Axes3D = fig.add_axes((0.10, 0.20, 0.80, 0.72), projection="3d")
     figsize_ratio = figsize[1] / figsize[0]
     ax.set_box_aspect((1.1 * figsize_ratio, 0.98 * figsize_ratio, 1.05 * figsize_ratio))
 
@@ -1007,9 +1007,12 @@ def plot_drift_3d(
     )
 
     if include_colorbar:
-        # Colorbar - horizontal strip in the top area (legend is stacked above).
+        # Colorbar - horizontal strip below the axes, centred in the right half
+        # of the figure (x=0.50..0.94, centre at 0.72).  The legend is stacked
+        # just above and shares the same centre so both have identical left-to-
+        # right spacing.
         scalar_mappable.set_array([])
-        cbar_ax = fig.add_axes((0.45, 0.9, 0.5, 0.025))
+        cbar_ax = fig.add_axes((0.50, 0.06, 0.44, 0.025))
         cbar = fig.colorbar(
             scalar_mappable,
             cax=cbar_ax,
@@ -1017,11 +1020,13 @@ def plot_drift_3d(
         )
         cbar.ax.tick_params(labelsize=FONTSIZE_XSMALL, pad=2)
         cbar.set_label("vector magnitude", fontsize=FONTSIZE_XSMALL, labelpad=2)
-        cbar_ax.xaxis.set_label_position("top")
-        cbar_ax.xaxis.tick_bottom()
+        cbar_ax.xaxis.set_label_position("bottom")
+        cbar_ax.xaxis.tick_top()
 
     if include_legend:
-        # Legend above the colorbar. Draw the vector arrow handle as a
+        # Legend below the axes, stacked above the colorbar and sharing the
+        # same horizontal centre (x=0.72) so both have identical left-to-right
+        # spacing.  Draw the vector arrow handle as a
         # shaft + filled triangular cone head (matching the plot style) coloured at
         # a value in the center of the colormap, and add a proxy artist for the
         # stable fixed point using the same marker and color as in the plot.
@@ -1046,7 +1051,7 @@ def plot_drift_3d(
             handles=handles,
             fontsize=FONTSIZE_XSMALL,
             loc="lower center",
-            bbox_to_anchor=(1.3, 0.825),
+            bbox_to_anchor=(0.25, 0.095),
             frameon=False,
             handletextpad=0.3,
             labelspacing=0.4,
