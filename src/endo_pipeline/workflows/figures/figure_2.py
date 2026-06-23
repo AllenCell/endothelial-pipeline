@@ -225,15 +225,17 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         )
 
     # --- Cross-dataset summary plots ---
-    fixed_point_summary_df = build_dataframe_for_fixed_point_dataset_summary(
-        dataset_names=dataset_summary_list,
-        feature_dataframe_manifest=feature_dataframe_manifest,
-        bootstrap_dataframe_manifest=bootstrap_dataframe_manifest,
-        column_names=columns_for_summary_plots,
-        convert_angle_to_nematic=False,
-        unwrap_angle=True,
-        stable_only=True,
-    )
+    fixed_point_summary_df = None
+    if not placeholders["D"]:
+        fixed_point_summary_df = build_dataframe_for_fixed_point_dataset_summary(
+            dataset_names=dataset_summary_list,
+            feature_dataframe_manifest=feature_dataframe_manifest,
+            bootstrap_dataframe_manifest=bootstrap_dataframe_manifest,
+            column_names=columns_for_summary_plots,
+            convert_angle_to_nematic=False,
+            unwrap_angle=True,
+            stable_only=True,
+        )
     # summary plot of fixed point locations across datasets
     fixed_point_summary_plot_path = plot_cross_dataset_summaries(
         fixed_point_summary_df,
@@ -272,16 +274,16 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             path=vector_field_plot_paths[dataset_low],
             x_position=0.0,
             y_position=0.0,
-            x_offset=0.1,
-            y_offset=0.1,
+            x_offset=0.0,
+            y_offset=0.0,
         ),
         FigurePanel(
             letter="",
             path=vector_field_plot_paths[dataset_high],
             x_position=0.0,
             y_position=2.0,
-            x_offset=0.15,
-            y_offset=0.1,
+            x_offset=0.0,
+            y_offset=0.0,
         ),
         # --- 1D and contour plots (panel B) ---
         FigurePanel(
