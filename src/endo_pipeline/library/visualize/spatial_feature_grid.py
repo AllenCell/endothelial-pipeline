@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import cm as mpl_cm
 from matplotlib.axes import Axes
-from matplotlib.colors import Normalize
+from matplotlib.colors import Colormap, Normalize
 from matplotlib.gridspec import GridSpec
 
 from endo_pipeline.configs import load_dataset_config
@@ -33,9 +33,7 @@ from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_
 from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
 
 
-def _get_colormap_for_feature(
-    feature: str, default_colormap: mpl_cm.ScalarMappable
-) -> mpl_cm.ScalarMappable:
+def _get_colormap_for_feature(feature: str, default_colormap: Colormap) -> Colormap:
     """Return the appropriate colormap for a given feature column."""
     if feature == Column.DiffAEData.POLAR_ANGLE:
         return cc.cm.CET_C8
@@ -99,7 +97,7 @@ def _plot_feature_patches(
     start_x_col: str,
     start_y_col: str,
     crop_size: int,
-    colormap: mpl_cm.ScalarMappable,
+    colormap: Colormap,
     norm: Normalize,
 ) -> None:
     """Draw colored patches on *ax* for each crop position in *grid_data*."""
@@ -154,7 +152,7 @@ def _add_feature_colorbar(
     gs: GridSpec,
     ax_row: int,
     n_examples: int,
-    colormap: mpl_cm.ScalarMappable,
+    colormap: Colormap,
     vmin: float | None,
     vmax: float | None,
     metadata: ColumnMetadata | None,
@@ -168,9 +166,9 @@ def _add_feature_colorbar(
     host_ax = fig.add_subplot(gs[ax_row, n_examples])
     host_ax.set_frame_on(False)
     host_ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
-    cbar_ax = host_ax.inset_axes([0.0, 0.1, 1.0, 0.8])
+    cbar_ax = host_ax.inset_axes((0.0, 0.1, 1.0, 0.8))
     cbar = fig.colorbar(sm, cax=cbar_ax)
-    cbar.outline.set_visible(False)
+    cbar.outline.set_visible(False)  # type: ignore[operator]
     cbar.ax.tick_params(labelsize=FONTSIZE_XSMALL)
     if metadata is not None and metadata.ticks is not None:
         cbar.set_ticks(metadata.ticks)
@@ -357,7 +355,7 @@ def create_panel_spatial_feature_grid(
     )
     layout_engine = fig.get_layout_engine()
     if layout_engine is not None:
-        layout_engine.set(w_pad=0.01, h_pad=0.01)
+        layout_engine.set(w_pad=0.01, h_pad=0.01)  # type: ignore[call-arg]
 
     # Create axes grid
     axes = np.empty((n_rows, n_examples), dtype=object)
@@ -366,6 +364,7 @@ def create_panel_spatial_feature_grid(
             axes[row, col] = fig.add_subplot(gs[row, col])
 
     # Image rows at the top
+    assert image_rows is not None
     _add_image_rows(fig, axes, gs, image_rows, n_examples, crop_size, example_labels)
 
     # Feature rows

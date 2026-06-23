@@ -24,7 +24,6 @@ fig = create_panel_spatial_feature_grid(
     start_y_col=ColumnName.DiffAEData.START_Y,
     grid_start_xy=(128, 128),
     grid_dimensions=(3, 3),
-    save_dir=save_dir,
 )
 save_plot_to_path(
     fig,
