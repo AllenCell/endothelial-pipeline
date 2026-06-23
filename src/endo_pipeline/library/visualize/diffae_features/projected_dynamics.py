@@ -239,6 +239,8 @@ def plot_streamlines_of_projected_vector_field(
         vector_field_2d[..., 1],
         **(streamplot_kwargs or {}),
     )
+    ax.set_xlabel("Projected component 1")
+    ax.set_ylabel("Projected component 2")
 
     return fig
 
