@@ -139,6 +139,54 @@ def _get_feature_limits(
     return None, None
 
 
+def _configure_feature_axis(
+    ax: Axes,
+    col_idx: int,
+    row_idx: int,
+    metadata: ColumnMetadata | None,
+    feature: str,
+    n_image_rows: int,
+    example_labels: list[str] | None,
+) -> None:
+    """Style a feature axis: remove spines/ticks and add labels."""
+    ax.set_aspect("equal")
+    ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+
+    if col_idx == 0:
+        label = metadata.label_with_unit if metadata is not None else feature
+        ax.set_ylabel(label, fontsize=FONTSIZE_MEDIUM)
+
+    if n_image_rows == 0 and row_idx == 0 and example_labels is not None:
+        ax.set_title(example_labels[col_idx], fontsize=FONTSIZE_MEDIUM)
+
+
+def _add_feature_colorbar(
+    fig: plt.Figure,
+    gs: GridSpec,
+    ax_row: int,
+    n_examples: int,
+    colormap: mpl_cm.ScalarMappable,
+    vmin: float | None,
+    vmax: float | None,
+    metadata: ColumnMetadata | None,
+) -> None:
+    """Add a colorbar in the dedicated GridSpec column for a feature row."""
+    col_vmin = vmin if vmin is not None else 0
+    col_vmax = vmax if vmax is not None else 1
+    norm = Normalize(vmin=col_vmin, vmax=col_vmax)
+    sm = mpl_cm.ScalarMappable(cmap=colormap, norm=norm)
+    cbar_ax = fig.add_subplot(gs[ax_row, n_examples])
+    cbar = fig.colorbar(sm, cax=cbar_ax)
+    cbar.outline.set_visible(False)
+    cbar.ax.tick_params(labelsize=FONTSIZE_XSMALL)
+    if metadata is not None and metadata.ticks is not None:
+        cbar.set_ticks(metadata.ticks)
+        if metadata.tick_labels is not None:
+            cbar.set_ticklabels(metadata.tick_labels, fontsize=FONTSIZE_XSMALL)
+
+
 def create_panel_spatial_feature_grid(
     example_dataframes: list[pd.DataFrame],
     feature_columns: list[str],
