@@ -197,10 +197,11 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             filename=f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}_drift",
             arrow_scale=arrow_scale_1d,
             arrow_width=arrow_width_1d,
+            include_legend=include_cbar_legend,
             **placeholders["B"],
         )
 
-        contour_plot_paths[dataset_name], nullcline_coordinates = make_2d_contour_plot_panel(
+        contour_plot_paths[dataset_name], _ = make_2d_contour_plot_panel(
             figure_size=(2.6, 1.55),
             output_path=fig_savedir,
             drift=drift_r_rho,
@@ -208,6 +209,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             column_labels=column_labels_r_rho,
             stable_fixed_point=stable_fixed_point_r_rho,
             filename=f"{dataset_name}_{columns_r_rho_str}_contours",
+            include_legend=include_cbar_legend,
             **placeholders["B"],
         )
 

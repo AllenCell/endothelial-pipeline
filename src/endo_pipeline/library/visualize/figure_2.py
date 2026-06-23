@@ -295,6 +295,7 @@ def make_2d_contour_plot_panel(
     column_labels: list[str],
     stable_fixed_point: np.ndarray,
     filename: str,
+    include_legend: bool = True,
 ) -> tuple[Path, dict[Column.DiffAEData, np.ndarray]]:
     """
     Make and save plot of drift contours in (r, rho) space for a given dataset.
@@ -397,33 +398,34 @@ def make_2d_contour_plot_panel(
     if isinstance(layout_engine, ConstrainedLayoutEngine):
         layout_engine.set(rect=(0, 0, 0.9, 1))
 
-    handles = []
-    labels = []
-    # plot_drift_contours draws nullclines via ax.contour(), which does not
-    # produce labeled artists. Add proxy Line2D handles so the legend has
-    # something to show.
-    nullcline_styles = (nullcline_r_style, nullcline_rho_style)
-    for col_idx, col in enumerate(column_names):
-        label = COLUMN_METADATA[col].label or str(col)
-        legend_label = f"{label}-nullcline (d{label}/dt=0)"
-        handle = mlines.Line2D(
-            [],
-            [],
-            color="k",
-            linestyle=nullcline_styles[col_idx],
-            label=legend_label,
+    if include_legend:
+        handles = []
+        labels = []
+        # plot_drift_contours draws nullclines via ax.contour(), which does not
+        # produce labeled artists. Add proxy Line2D handles so the legend has
+        # something to show.
+        nullcline_styles = (nullcline_r_style, nullcline_rho_style)
+        for col_idx, col in enumerate(column_names):
+            label = COLUMN_METADATA[col].label or str(col)
+            legend_label = f"{label}-nullcline (d{label}/dt=0)"
+            handle = mlines.Line2D(
+                [],
+                [],
+                color="k",
+                linestyle=nullcline_styles[col_idx],
+                label=legend_label,
+            )
+            handles.append(handle)
+            labels.append(legend_label)
+        fig.legend(
+            handles,
+            labels,
+            fontsize="xx-small",
+            loc="upper center",
+            bbox_to_anchor=(0.525, 0.925),
+            ncol=2,
+            handletextpad=0.3,
         )
-        handles.append(handle)
-        labels.append(legend_label)
-    fig.legend(
-        handles,
-        labels,
-        fontsize="xx-small",
-        loc="upper center",
-        bbox_to_anchor=(0.525, 0.925),
-        ncol=2,
-        handletextpad=0.3,
-    )
 
     save_plot_to_path(
         fig,
@@ -449,6 +451,7 @@ def make_1d_drift_plot_panel(
     filename: str,
     arrow_scale: float,
     arrow_width: float,
+    include_legend: bool = True,
 ) -> Path:
     """Make and save plot of 1D drift as a function of theta for a given dataset."""
     axes_xlim = VECTOR_FIELD_THETA_RANGE
@@ -498,14 +501,15 @@ def make_1d_drift_plot_panel(
     )
 
     # add legend
-    fig.legend(
-        fontsize="xx-small",
-        loc="upper center",
-        bbox_to_anchor=(0.65, 1.05),
-        ncol=2,
-        handletextpad=0.3,
-        columnspacing=0.75,
-    )
+    if include_legend:
+        fig.legend(
+            fontsize="xx-small",
+            loc="upper center",
+            bbox_to_anchor=(0.65, 1.05),
+            ncol=2,
+            handletextpad=0.3,
+            columnspacing=0.75,
+        )
 
     # set plot formatting args
     ax.set_box_aspect(1.0)
