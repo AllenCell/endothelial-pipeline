@@ -201,7 +201,14 @@ def add_scalebar(
     else:
         raise ValueError(f"Invalid location: {location}")
 
-    # Draw the scale bar
+    # Draw the scale bar with a glow outline
+    glow_color = "black" if color == "white" else "white"
+    glow_effects = [
+        path_effects.Stroke(linewidth=3, foreground=glow_color, alpha=0.1),
+        path_effects.Stroke(linewidth=2, foreground=glow_color, alpha=0.2),
+        path_effects.Stroke(linewidth=1, foreground=glow_color, alpha=0.4),
+        path_effects.Normal(),
+    ]
     rect = patches.Rectangle(
         (x_start, y_start),
         length_px,
@@ -209,10 +216,10 @@ def add_scalebar(
         linewidth=0,
         facecolor=color,
     )
+    rect.set_path_effects(glow_effects)
     ax.add_patch(rect)
 
     if include_label:
-        glow_color = "black" if color == "white" else "white"
         ax.text(
             label_xy[0],
             label_xy[1],
@@ -222,9 +229,7 @@ def add_scalebar(
             ha="right",
             va="bottom",
             transform=ax.transAxes,
-            path_effects=[
-                path_effects.withStroke(linewidth=2, foreground=glow_color),
-            ],
+            path_effects=glow_effects,
         )
 
 
