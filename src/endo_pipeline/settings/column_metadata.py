@@ -368,9 +368,9 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         name="Polar r",
         label="r",
         description="Polar radius calculated by transforming PC 1 and PC 2 to polar coordinates",
-        min=0.2,
-        max=2.5,
-        ticks=[0.5, 1.0, 1.5, 2.0, 2.5],
+        min=0.3,
+        max=2.4,
+        ticks=[0.5, 1.0, 1.5, 2.0],
         type=ColumnType.CONTINUOUS,
     ),
     Column.DiffAEData.PC3_FLIPPED: ColumnMetadata(
