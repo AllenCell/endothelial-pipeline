@@ -346,14 +346,12 @@ def visualize_projected_dynamics(
     vector_field_function = get_callable_vector_field(vector_field_dict, for_solve_ivp=False)
 
     fixed_points_df = load_fixed_points_dataframe_for_dataset(dataset_name)
-    fixed_points_df = fixed_points_df[
-        fixed_points_df[Column.BootstrapAnalysis.DETECTION_RATE] > 0.4
-    ]
+    fixed_points_df = fixed_points_df[fixed_points_df[Column.FIXED_POINT_DETECTION_RATE] > 0.4]
     stable_df = fixed_points_df[
-        fixed_points_df[Column.VectorField.STABILITY] == StabilityLabel.STABLE
+        fixed_points_df[Column.FIXED_POINT_STABILITY] == StabilityLabel.STABLE
     ].copy()
     saddle_df = fixed_points_df[
-        fixed_points_df[Column.VectorField.STABILITY] == StabilityLabel.SADDLE
+        fixed_points_df[Column.FIXED_POINT_STABILITY] == StabilityLabel.SADDLE
     ].copy()
 
     if len(stable_df) < 2 or len(saddle_df) < 1:
