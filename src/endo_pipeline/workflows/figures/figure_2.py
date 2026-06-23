@@ -40,7 +40,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         make_2d_contour_plot_panel,
         make_3d_vector_field_plot_panel,
         make_first_passage_time_correlation_hist,
-        reconstruct_along_nullcline,
+        reconstruct_fixed_points,
     )
     from endo_pipeline.library.visualize.figure_fpt import generate_first_passage_time_example
     from endo_pipeline.library.visualize.figures import (
@@ -73,9 +73,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     output_path = get_output_path(__file__)
 
-    placeholders = parse_placeholder_panels(
-        include_panels, ["A", "B", "C", "D", "E", "F", "G", "H", "I"]
-    )
+    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D", "E", "F"])
 
     # figure is for grid based crops
     crop_pattern = "grid"
@@ -135,7 +133,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     # pairwise combination of polar coordinates, and plot contours of drift coefficients
     theta_plot_paths: dict[str, Path] = {}
     contour_plot_paths: dict[str, Path] = {}
-    nullcline_reconstruction_paths: dict[str, Path] = {}
+    fixed_point_reconstruction_paths: dict[str, Path] = {}
     vector_field_plot_paths: dict[str, Path] = {}
     for dataset_name, arrow_scale_1d, arrow_width_1d, include_cbar_legend in [
         (dataset_low, 1.5, 0.05, True),
@@ -213,14 +211,12 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             **placeholders["B"],
         )
 
-        nullcline_reconstruction_paths[dataset_name] = reconstruct_along_nullcline(
-            figure_size=(3.125, 1.3),
-            output_path=fig_savedir,
-            nullcline_coords=nullcline_coordinates,
-            theta_value=stable_fixed_point_theta[0],
+        fixed_point_reconstruction_paths[dataset_name] = reconstruct_fixed_points(
+            fixed_point_df=stable_fixed_points_dict[feature_columns_str],
             model=model,
+            output_path=fig_savedir,
+            figure_size=(1.5, 0.65),
             num_gpus=NUM_GPUS,
-            random_seed=4,
             **placeholders["C"],
         )
 
@@ -259,7 +255,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         figure_size=(0.95, 2.0),
         output_path=output_path,
         dataset_names=dataset_summary_list,
-        **placeholders["H"],
+        **placeholders["F"],
     )
 
     # --- Assemble all panels into final figure ---
@@ -317,9 +313,17 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         # --- Fixed point reconstructions (panel C) ---
         FigurePanel(
             letter="C",
-            path=nullcline_reconstruction_paths[dataset_low],
-            x_position=3.7,
-            y_position=2.25,
+            path=fixed_point_reconstruction_paths[dataset_low],
+            x_position=2.15,
+            y_position=2.6,
+            x_offset=0.05,
+            y_offset=0.0,
+        ),
+        FigurePanel(
+            letter="C",
+            path=fixed_point_reconstruction_paths[dataset_low],
+            x_position=2.15,
+            y_position=2.6,
             x_offset=0.05,
             y_offset=0.0,
         ),
