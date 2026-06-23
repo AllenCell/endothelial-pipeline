@@ -75,7 +75,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     output_path = get_output_path(__file__)
 
-    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D", "E", "F"])
+    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D", "E"])
 
     # figure is for grid based crops
     crop_pattern = "grid"
@@ -230,28 +230,27 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         )
 
     # --- Cross-dataset summary plots ---
-    fixed_point_summary_df = None
-    if not placeholders["D"]:
-        fixed_point_summary_df = build_dataframe_for_fixed_point_dataset_summary(
-            dataset_names=dataset_summary_list,
-            feature_dataframe_manifest=feature_dataframe_manifest,
-            bootstrap_dataframe_manifest=bootstrap_dataframe_manifest,
-            column_names=columns_for_summary_plots,
-            convert_angle_to_nematic=False,
-            unwrap_angle=True,
-            stable_only=True,
-        )
+    fixed_point_summary_df = build_dataframe_for_fixed_point_dataset_summary(
+        dataset_names=dataset_summary_list,
+        feature_dataframe_manifest=feature_dataframe_manifest,
+        bootstrap_dataframe_manifest=bootstrap_dataframe_manifest,
+        column_names=columns_for_summary_plots,
+        convert_angle_to_nematic=False,
+        unwrap_angle=True,
+        stable_only=True,
+    )
     # summary plot of fixed point locations across datasets
     fixed_point_summary_plot_path = plot_cross_dataset_summaries(
         fixed_point_summary_df,
-        output_dir=output_path,
+        output_path=output_path,
         column_names=feature_column_names,
         axis_mode="shear_stress",
         subplot_layout="horizontal",
-        figure_size=(3.3, 2.0),
+        figure_size=(4.5, 1.5),
         color_by_column=Column.OpticalFlow.UNIT_VECTOR_MEAN,
         ylabel_rotation=0,
-        **placeholders["D"],
+        remove_label_linebreaks=False,
+        **placeholders["C"],
     )
     # --- First passage time analysis schematic ---
     low_flow_dataset = FPT_FIG_EXAMPLES["low_flow"]
@@ -261,14 +260,14 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         example_tracked_crop_index=low_flow_dataset.tracked_crop_index,
         example_grid_crop_index=low_flow_dataset.grid_crop_index,
         output_path=output_path,
-        **placeholders["E"],
+        **placeholders["D"],
     )
     # --- Histogram of first passage time correlation ---
     first_passage_path = make_first_passage_time_correlation_hist(
         figure_size=(0.95, 2.0),
         output_path=output_path,
         dataset_names=dataset_summary_list,
-        **placeholders["F"],
+        **placeholders["E"],
     )
 
     # --- Assemble all panels into final figure ---
@@ -297,15 +296,15 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             x_position=1.6,
             y_position=0.0,
             x_offset=0.05,
-            y_offset=0.075,
+            y_offset=0.15,
         ),
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_low],
-            x_position=3.05,
+            x_position=3.1,
             y_position=0.0,
             x_offset=0.0,
-            y_offset=-0.1,
+            y_offset=-0.05,
         ),
         FigurePanel(
             letter="",
@@ -313,21 +312,21 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             x_position=1.6,
             y_position=1.25,
             x_offset=0.05,
-            y_offset=0.075,
+            y_offset=0.15,
         ),
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_high],
-            x_position=3.05,
+            x_position=3.1,
             y_position=1.25,
             x_offset=0.0,
-            y_offset=-0.1,
+            y_offset=-0.05,
         ),
         # --- Fixed point reconstructions (still panel B) ---
         FigurePanel(
             letter="",
             path=fixed_point_reconstruction_paths[dataset_low],
-            x_position=5.6,
+            x_position=5.65,
             y_position=0.0,
             x_offset=0.0,
             y_offset=0.0,
@@ -335,32 +334,32 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="",
             path=fixed_point_reconstruction_paths[dataset_high],
-            x_position=5.6,
+            x_position=5.65,
             y_position=1.25,
             x_offset=0.0,
             y_offset=0.0,
         ),
         # --- Bottom row: summary plots, first passage time results ---
         FigurePanel(
-            letter="D",
+            letter="C",
             path=fixed_point_summary_plot_path,
-            x_position=0.0,
-            y_position=4.25,
-            x_offset=0.0,
-            y_offset=0.25,
+            x_position=1.6,
+            y_position=2.75,
+            x_offset=0.3,
+            y_offset=0.15,
         ),
         FigurePanel(
-            letter="E",
+            letter="D",
             path=trajectory_example_filepath,
-            x_position=3.4,
+            x_position=0.0,
             y_position=4.25,
             x_offset=0.0,
             y_offset=0.2,
         ),
         FigurePanel(
-            letter="F",
+            letter="E",
             path=first_passage_path,
-            x_position=5.3,
+            x_position=1.9,
             y_position=4.25,
             x_offset=0.075,
             y_offset=0.25,
