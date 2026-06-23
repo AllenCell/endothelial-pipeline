@@ -692,8 +692,7 @@ def reconstruct_fixed_points(
     figure_size: tuple[float, float],
     output_path: Path,
     num_gpus: int | None = None,
-    random_seed_start: int | None = 4,
-    num_examples: int = 3,
+    random_seed: int | None = 4,
 ) -> Path:
     """
     Reconstruct the fixed point coordinates from the polar angle, radius, and
@@ -720,27 +719,31 @@ def reconstruct_fixed_points(
     # reconstruct images along at the fixed point coordinates and make a contact
     # sheet of the results
     column_names = cast(list[str], list(DYNAMICS_COLUMN_NAMES))
-    reconstructed_images = []
-    column_titles = []
-    for i in range(num_examples):
-        walk_array = generate_from_dataframe(
-            fixed_point_df,
-            column_names,
-            model,
-            num_gpus=num_gpus,
-            random_seed=random_seed_start + i,
-        )
-        reconstructed_images.append(walk_array)
-        column_titles.append(f"Example {i+1}")
+    reconstructed_image = generate_from_dataframe(
+        fixed_point_df,
+        column_names,
+        model,
+        num_gpus=num_gpus,
+        random_seed=random_seed,
+    )
 
     fig_fixed_point_reconstructions = make_contact_sheet(
-        panels=reconstructed_images,
+        panels=[reconstructed_image],
         max_rows=1,
-        max_cols=num_examples,
-        col_titles=column_titles,
+        max_cols=1,
         fig_kwargs={"figsize": figure_size, "layout": "constrained"},
         gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
         font_size=FONTSIZE_SMALL,
+    )
+
+    # Add axes title ({feat_1}^*, {feat_2}^*, {feat_3}^*) labeling the
+    # fixed point, using the same stable color.
+    ax = fig_fixed_point_reconstructions.axes[0]
+    ax.set_title(
+        f"({Unicode.THETA}$^*$, r$^*$, {Unicode.RHO}$^*$)",
+        color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color,
+        fontsize=FONTSIZE_XSMALL,
+        fontweight="bold",
     )
 
     # add scalebars to each panel, only label the top left one to avoid
