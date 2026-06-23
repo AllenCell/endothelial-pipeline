@@ -473,7 +473,7 @@ def make_1d_drift_plot_panel(
         x_values=theta_values_sorted,
         figsize=figure_size,
         axes_limits=[axes_xlim, axes_ylim],
-        axes_labels=[column_label, f"d{column_label}/dt"],
+        axes_labels=[column_label, ""],
         add_flow_arrows=True,
         flow_arrow_kwargs={"color": "dimgrey", "scale": arrow_scale, "width": arrow_width},
         flow_arrow_downsample=10,
