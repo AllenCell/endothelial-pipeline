@@ -24,10 +24,12 @@ def main() -> None:
     from endo_pipeline.library.visualize.diffae_features.projected_dynamics import (
         plot_streamlines_of_projected_vector_field,
     )
+    from endo_pipeline.library.visualize.figure_utils import set_axes_properties
     from endo_pipeline.settings.column_metadata import COLUMN_METADATA
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, POLAR_ANGLE_PERIOD
     from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
+    from endo_pipeline.settings.flow_field_figure import XLABEL_KWARGS
     from endo_pipeline.settings.plot_defaults import (
         FIXED_POINT_PLOT_STYLE,
         VECTOR_FIELD_THETA_RANGE,
@@ -46,6 +48,9 @@ def main() -> None:
         np.arange(VECTOR_FIELD_THETA_RANGE[0], VECTOR_FIELD_THETA_RANGE[1], grid_spacing_2d),
         np.arange(r_limits[0], r_limits[1], grid_spacing_2d),
     )
+    theta_ticks = [0, np.pi / 2]
+    theta_tick_labels = [f"0={Unicode.PI}", f"{Unicode.PI}/2"]
+    r_ticks = [1.0, 1.5]
     theta_label = COLUMN_METADATA[Column.DiffAEData.POLAR_ANGLE].label or str(
         Column.DiffAEData.POLAR_ANGLE
     )
@@ -96,8 +101,6 @@ def main() -> None:
             fig_kwargs={"layout": "constrained"},
             streamplot_kwargs={"density": 1.0, "linewidth": 0.75, "color": "dimgrey"},
             origin_3d=np.array([0.0, 0.0, rho_star]),  # origin of projection in 3D space
-            xlabel=theta_label,
-            ylabel=r_label,
         )
 
         # plot fixed points on top
@@ -114,7 +117,16 @@ def main() -> None:
         )
 
         # update theta ticks
-        ax.set_xticks([0, np.pi / 2], labels=[f"0={Unicode.PI}", f"{Unicode.PI}/2"])
+        set_axes_properties(
+            ax,
+            xlabel=theta_label,
+            ylabel=r_label,
+            xlabel_kwargs=XLABEL_KWARGS,
+            ylabel_kwargs={"labelpad": 4, "rotation": 0},
+            xticks=theta_ticks,
+            xtick_labels=theta_tick_labels,
+            yticks=r_ticks,
+        )
 
         _ = save_plot_to_path(fig, output_path, figure_name=f"{dataset_name}_projected_streamplot")
         logger.info(
