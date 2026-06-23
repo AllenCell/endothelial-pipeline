@@ -3,24 +3,20 @@ from endo_pipeline.cli import UniqueStrList
 
 def main(include_panels: UniqueStrList | None = None) -> None:
     """
-    Compile panels for Figure 3.
+    Compile panels for Figure 4.
 
-    - **Panel A*: Schematic of possible cases for the transition of fixed point
-      locations and stability across shear stress conditions.
-    - **Panel B**: Example images of several replicates from intermediate shear
-      stress conditions.
-    - **Panel C**: Summary plot of fixed point locations across all replicates,
+    - **Panel A**: Summary plot of fixed point locations across all replicates,
       colored by migration coherence (EMA-smoothed optical flow unit vector
       mean).
-    - **Panel D**: 3D vector field plot of drift coefficients for example
-      intermediate shear stress datasets, with stable fixed points overlaid as a
-      scatter marker.
+    - **Panel B**: 3D vector field plot of drift coefficients for example
+      intermediate shear stress dataset, with stable fixed points overlaid as a
+      scatter marker. Accompanying 2D-projected streamplot for dynamics projected
+      onto plane defined by two stable fixed points and the saddle point that
+      connects them via its unstable manifold.
 
     """
-    from pathlib import Path
 
     import matplotlib.pyplot as plt
-    from pandas import DataFrame
 
     from endo_pipeline.io import get_output_path, load_model
     from endo_pipeline.library.visualize.figure_3 import (
@@ -53,7 +49,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     output_path = get_output_path(__file__)
 
-    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
+    placeholders = parse_placeholder_panels(include_panels, ["A", "B"])
 
     # load and instantiate model for generating synthetic images
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
@@ -103,69 +99,43 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         color_by_column=ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
     )
 
-    vector_field_plot_paths: dict[str, Path] = {}
-    stable_fixed_points_dfs: dict[str, DataFrame] = {}
-    stable_fixed_point_reconstruction_paths: dict[str, Path] = {}
-    example_dataset_12dyn = EXAMPLE_DATASET["FIGURE_3_12_DYN_BISTABLE"]
-    example_dataset_15dyn = EXAMPLE_DATASET["FIGURE_3_15_DYN_BISTABLE"]
-    for dataset_name in [example_dataset_12dyn, example_dataset_15dyn]:
-        # only include colorbar and legend for first of the two plots to save space
-        include_colorbar = dataset_name == example_dataset_12dyn
-        include_legend = dataset_name == example_dataset_12dyn
-        vector_field_plot_paths[dataset_name], stable_fixed_points_dfs[dataset_name] = (
-            make_3d_vector_field_plot_panel(
-                dataset_name,
-                output_path,
-                include_colorbar=include_colorbar,
-                include_legend=include_legend,
-                **placeholders["D"],
-            )
-        )
-        stable_fixed_point_reconstruction_paths[dataset_name] = reconstruct_fixed_points(
-            fixed_point_df=stable_fixed_points_dfs[dataset_name],
-            model=model,
-            fig_savedir=output_path,
-            add_fixed_point_coordinate_annotation=False,
-        )
+    dataset_name = EXAMPLE_DATASET["FIGURE_3_12_DYN_BISTABLE"]
+    vector_field_plot_path, stable_fixed_points_df = make_3d_vector_field_plot_panel(
+        dataset_name,
+        output_path,
+        include_colorbar=True,
+        include_legend=True,
+        **placeholders["B"],
+    )
+    stable_fixed_point_reconstruction_path = reconstruct_fixed_points(
+        fixed_point_df=stable_fixed_points_df,
+        model=model,
+        fig_savedir=output_path,
+        add_fixed_point_coordinate_annotation=False,
+    )
 
     panels = [
         FigurePanel(
-            letter="C",
+            letter="A",
             path=summary_plot_path,
-            x_position=0,
-            y_position=5.0,
+            x_position=0.0,
+            y_position=0.0,
             x_offset=0.1,
             y_offset=0.2,
         ),
         FigurePanel(
-            letter="D",
-            path=vector_field_plot_paths[example_dataset_12dyn],
+            letter="B",
+            path=vector_field_plot_path,
             x_position=MAX_FIGURE_WIDTH * 0.66,
-            y_position=2.5,
+            y_position=0.0,
             x_offset=0.15,
             y_offset=0,
         ),
         FigurePanel(
             letter="",
-            path=stable_fixed_point_reconstruction_paths[example_dataset_12dyn],
+            path=stable_fixed_point_reconstruction_path,
             x_position=MAX_FIGURE_WIDTH * 0.66,
-            y_position=4.6,
-            x_offset=0.3,
-            y_offset=0.0,
-        ),
-        FigurePanel(
-            letter="",
-            path=vector_field_plot_paths[example_dataset_15dyn],
-            x_position=MAX_FIGURE_WIDTH * 0.64,
-            y_position=5.35,
-            x_offset=0.3,
-            y_offset=0.0,
-        ),
-        FigurePanel(
-            letter="",
-            path=stable_fixed_point_reconstruction_paths[example_dataset_15dyn],
-            x_position=MAX_FIGURE_WIDTH * 0.66,
-            y_position=7.15,
+            y_position=0.0,
             x_offset=0.3,
             y_offset=0.0,
         ),
