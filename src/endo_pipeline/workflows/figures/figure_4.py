@@ -23,9 +23,6 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from pandas import DataFrame
 
     from endo_pipeline.io import get_output_path, load_model
-    from endo_pipeline.library.visualize.data_example_figures import (
-        create_panel_intermediate_examples,
-    )
     from endo_pipeline.library.visualize.figure_3 import (
         make_3d_vector_field_plot_panel,
         reconstruct_fixed_points,
@@ -41,7 +38,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     )
     from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
     from endo_pipeline.settings.column_names import ColumnName
-    from endo_pipeline.settings.examples import EXAMPLE_DATASET, FIGURE_3_EXAMPLE_IMAGES
+    from endo_pipeline.settings.examples import EXAMPLE_DATASET
     from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
     from endo_pipeline.settings.manifest_names import BOOTSTRAPPING_MANIFEST_NAMES
     from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
@@ -51,23 +48,12 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         DEFAULT_MODEL_RUN_NAME,
         FEATURES_FILTERED_MANIFEST_NAMES,
     )
-    from endo_pipeline.workflows.figures import assets as figure_assets
 
     plt.style.use("endo_pipeline.figure")
 
     output_path = get_output_path(__file__)
 
     placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
-
-    assets_dir = Path(figure_assets.__path__[0])
-    schematic_fp = assets_dir / "figure_3a_hypotheses.svg"
-
-    # Example images of intermediate shear stress condition
-    create_panel_intermediate_examples(
-        examples=FIGURE_3_EXAMPLE_IMAGES,
-        save_dir=output_path,
-        figure_size=(MAX_FIGURE_WIDTH * 0.65, 2.2),
-    )
 
     # load and instantiate model for generating synthetic images
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
@@ -143,22 +129,6 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         )
 
     panels = [
-        FigurePanel(
-            letter="A",
-            path=schematic_fp,
-            x_position=0,
-            y_position=0,
-            x_offset=0,
-            y_offset=0.1,
-        ),
-        FigurePanel(
-            letter="B",
-            path=output_path / "intermediate_examples_scale_bar_100um.svg",
-            x_position=0,
-            y_position=2.5,
-            x_offset=0,
-            y_offset=0.1,
-        ),
         FigurePanel(
             letter="C",
             path=summary_plot_path,

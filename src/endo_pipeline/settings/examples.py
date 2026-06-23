@@ -81,36 +81,52 @@ FIGURE_1_PATCH_FT_EXAMPLE_IMAGE: ExampleImage = ExampleImage(
 
 FIGURE_3_EXAMPLE_IMAGES: list[ExampleImage] = [
     ExampleImage(
+        dataset_name="20250402_20X",
+        description="low_flow",
+        position=3,
+        timepoint=180,
+        crop_x_start=256,  # res level 0
+        crop_y_start=256,  # res level 0
+    ),
+    ExampleImage(
         dataset_name="20260304_20X",
         description="example of 12 dyn intermediate dataset with // alignment",
         position=5,
         timepoint=202,
-        crop_x_start=0,  # res level 0
-        crop_y_start=0,  # res level 0
+        crop_x_start=256,  # res level 0
+        crop_y_start=256,  # res level 0
     ),
     ExampleImage(
         dataset_name="20260121_20X",
         description="example of 12 dyn intermediate dataset with mixed alignment",
         position=1,
         timepoint=380,
-        crop_x_start=0,  # res level 0
-        crop_y_start=100,  # res level 0
+        crop_x_start=256,  # res level 0
+        crop_y_start=256,  # res level 0
     ),
     ExampleImage(
         dataset_name="20250813_20X",
         description="example of 14 dyn intermediate dataset with mixed alignment",
         position=1,
         timepoint=180,
-        crop_x_start=250,  # res level 0
-        crop_y_start=500,  # res level 0
+        crop_x_start=256,  # res level 0
+        crop_y_start=256,  # res level 0
     ),
     ExampleImage(
         dataset_name="20250326_20X",
         description="example of 15 dyn intermediate dataset with mixed alignment",
         position=0,
         timepoint=180,
-        crop_x_start=0,  # res level 0
-        crop_y_start=100,  # res level 0
+        crop_x_start=256,  # res level 0
+        crop_y_start=256,  # res level 0
+    ),
+    ExampleImage(
+        dataset_name="20251001_20X",
+        description="high_flow",
+        position=1,
+        timepoint=180,
+        crop_x_start=256,  # res level 0
+        crop_y_start=256,  # res level 0
     ),
 ]
 
