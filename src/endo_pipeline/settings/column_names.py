@@ -118,7 +118,7 @@ class ColumnName:
         """
 
         NUM_NUCLEI_AT_TIMEPOINT = "total_nuclei_count_at_T"
-        """The total number of nuclei present at the timepoint of interest."""
+        """Total number of nuclei present at the timepoint of interest."""
 
         # DiffAE and crop-based feature columns
         NUM_NUCLEI_IN_CROP = "num_nuclei_in_crop"
@@ -215,9 +215,24 @@ class ColumnName:
         NUCLEI_POSITION_ANGLE = "nuclei_position_angle"
         NUCLEI_POSITION_ANGLE_DEG = "nuclei_position_angle_deg"
         NUCLEI_POSITION_DISTANCE = "nuclei_position_distance"
+
         NUCLEI_LABEL = "nuclei_with_most_overlap_0"
+        """
+        ID of nuclei prediction that overlaps most with cell segmentation (index
+        0, multiple nuclei recorded in additional columns).
+        """
+
         NUCLEI_CENTROID_X = "nuclei_with_most_overlap_0_centroid_X"
+        """
+        Centroid X coordinate of nuclei prediction that overlaps most with cell
+        segmentation (index 0, multiple nuclei recorded in additional columns)
+        """
+
         NUCLEI_CENTROID_Y = "nuclei_with_most_overlap_0_centroid_Y"
+        """
+        Centroid Y coordinate of nuclei prediction that overlaps most with cell
+        segmentation (index 0, multiple nuclei recorded in additional columns)
+        """
 
         EDGE_FLUOR = "edge_fluorescence_au"
         """Fluorescence values [a.u.] along boundary between 2 cell segmentations (excluding pixels at nodes)."""
@@ -341,8 +356,13 @@ class ColumnName:
         """Pair of node label IDs that form each edge of a segmentation boundary."""
 
         CDH5_SEGMENTATION_LABEL = "cdh5_segmentation_label"
+        """Label ID for the CDH5 cell segmentation."""
+
         NUCLEI_LABELS_IN_CDH5_SEGMENTATION = "nuclei_segmentation_labels"
+        """List of labels from label-free nuclei predictions that overlap with the cell segmentation."""
+
         NUCLEI_FRACTION_IN_CDH5_SEGMENTATION = "nuclei_seg_in_cdh5_seg_frac"
+        """List of fractions of label-free nuclei prediction that overlap with the cell segmentation."""
 
     class Annotations(StrEnum):
         """Column names for manual annotations of segmentation quality and other features."""
@@ -663,14 +683,16 @@ class ColumnNameTemplate(StrEnum):
 
     NUCLEI_WITH_MOST_OVERLAP_CENTROID_X = "nuclei_with_most_overlap_%d_centroid_X"
     """
-    Centroid X coordinate of nuclei prediction that overlaps most with cell
-    segmentation (index %d, multiple nuclei recorded in additional columns)
+    Column name template: Centroid X coordinate of nuclei prediction that
+    overlaps most with cell segmentation (index %d, multiple nuclei recorded in
+    additional columns)
     """
 
     NUCLEI_WITH_MOST_OVERLAP_CENTROID_Y = "nuclei_with_most_overlap_%d_centroid_Y"
     """
-    Centroid Y coordinate of nuclei prediction that overlaps most with cell
-    segmentation (index %d, multiple nuclei recorded in additional columns)
+    Column name template: Centroid Y coordinate of nuclei prediction that
+    overlaps most with cell segmentation (index %d, multiple nuclei recorded in
+    additional columns)
     """
 
 
