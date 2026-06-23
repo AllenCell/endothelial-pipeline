@@ -45,14 +45,21 @@ def main(manifest_names: UniqueStrList | None = None, reload_columns: bool = Fal
         save_dataframe_manifest,
     )
     from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 
     logger = logging.getLogger(__name__)
 
+    template_expansions = {
+        ColumnTemplate.NUCLEI_WITH_MOST_OVERLAP: [0, 1, 2, 3, 4, 5],
+        ColumnTemplate.NUCLEI_WITH_MOST_OVERLAP_CENTROID_X: [0, 1, 2, 3, 4, 5],
+        ColumnTemplate.NUCLEI_WITH_MOST_OVERLAP_CENTROID_Y: [0, 1, 2, 3, 4, 5],
+    }
+
     column_descriptions = {}
 
-    # Method for finding attribute assignment followed by docstring
     def _extract_docstrings_from_body(body) -> None:
         for a, b in pairwise(body):
+            # Finding attribute assignment followed by docstring
             a_is_assign = isinstance(a, ast.Assign)
             b_is_string = (
                 isinstance(b, ast.Expr)
@@ -63,7 +70,20 @@ def main(manifest_names: UniqueStrList | None = None, reload_columns: bool = Fal
             if not a_is_assign or not b_is_string:
                 continue
 
-            column_descriptions[a.value.value] = b.value.value.strip(".")
+            # Get base column name and description (which may be templated)
+            name = a.value.value
+            description = b.value.value
+
+            # Remove whitespace
+            description = " ".join([d.strip() for d in description.split("\n")]).strip(" .")
+
+            # Expand templated descriptions
+            if name in template_expansions:
+                description = description.replace("Column name template: ", "")
+                for option in template_expansions[name]:
+                    column_descriptions[name % option] = description % option
+            else:
+                column_descriptions[name] = description
 
     # Parse source into abstract syntax tree
     source = ast.parse(inspect.getsource(Column)).body[0]
@@ -75,6 +95,10 @@ def main(manifest_names: UniqueStrList | None = None, reload_columns: bool = Fal
     for node in source.body:
         if isinstance(node, ast.ClassDef):
             _extract_docstrings_from_body(node.body)
+
+    # Extract and expand docstrings from templates
+    prefix_source = ast.parse(inspect.getsource(ColumnTemplate)).body[0]
+    _extract_docstrings_from_body(prefix_source.body)
 
     # Get list of manifest names to iterate through
     manifest_names = manifest_names or get_available_dataframe_manifests()
