@@ -870,7 +870,7 @@ def make_first_passage_time_distance_to_linefit_hist(
     ax.xaxis.set_major_locator(MultipleLocator(base=3))
     # make sure y ticks are integers since this is a count histogram
     ax.yaxis.set_major_locator(MultipleLocator(base=0.1))
-    ax.annotate(f"n = {n_size}", xy=(0.98, 0.88), xycoords="axes fraction", ha="right")
+    ax.annotate(f"n = {n_size}", xy=(0.98, 0.87), xycoords="axes fraction", ha="right")
 
     filename = "fpt_hist"
     save_plot_to_path(
