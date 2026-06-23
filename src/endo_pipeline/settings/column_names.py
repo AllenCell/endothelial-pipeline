@@ -14,7 +14,7 @@ class ColumnName:
     """Timepoint [frames]."""
 
     TRACK_ID = "track_id"
-    """The track ID assigned by the tracking algorithm."""
+    """Track ID assigned by the tracking algorithm."""
 
     CROP_INDEX = "crop_index"
     """Column name for crop index."""
@@ -277,10 +277,14 @@ class ColumnName:
         """Cell segmentation labels of adjacent cell segmentations."""
 
         CENTROID = "centroid"
-        """Centroid of cell segmentation in (Y,X) pixel coordinates."""
+        """Centroid of cell segmentation in (Y,X) [pixels]."""
 
         CENTROID_X = "centroid_x"
+        """Centroid of cell segmentation X coordinate [pixels]."""
+
         CENTROID_Y = "centroid_y"
+        """Centroid of cell segmentation Y coordinate [pixels]."""
+
         CENTROID_X_UM = "centroid_x_um"
         CENTROID_Y_UM = "centroid_y_um"
 

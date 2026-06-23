@@ -6,7 +6,7 @@ columns:
   position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
   frame_number: Timepoint [frames]
   label: Cell segmentation ID (different from track ID, and may change between timepoints)
-  centroid: Centroid of cell segmentation in (Y,X) pixel coordinates
+  centroid: Centroid of cell segmentation in (Y,X) [pixels]
   area_px_squared: Area of cell segmentation [pixels^2]
   perimeter_px: Perimeter of cell segmentation [pixels]
   solidity: Solidity of cell (ratio of cell area to area of its convex hull)
