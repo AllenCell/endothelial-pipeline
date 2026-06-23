@@ -444,6 +444,7 @@ def make_2d_contour_plot_panel(
 def make_1d_drift_plot_panel(
     figure_size: tuple[float, float],
     output_path: Path,
+    shear_stress_label: str,
     drift: np.ndarray,
     theta_values: np.ndarray,
     column_label: str,
@@ -473,7 +474,7 @@ def make_1d_drift_plot_panel(
         x_values=theta_values_sorted,
         figsize=figure_size,
         axes_limits=[axes_xlim, axes_ylim],
-        axes_labels=[column_label, ""],
+        axes_labels=[column_label, shear_stress_label],
         add_flow_arrows=True,
         flow_arrow_kwargs={"color": "dimgrey", "scale": arrow_scale, "width": arrow_width},
         flow_arrow_downsample=10,
@@ -683,7 +684,7 @@ def reconstruct_along_nullcline(
     return output_path / f"{filename}.svg"
 
 
-@figure_panel("Reconstruct VE-cadherin patch conditioned on the stable fixed point.")
+@figure_panel("Reconstruct at fixed point.")
 def reconstruct_fixed_points(
     fixed_point_df: pd.DataFrame,
     model: DiffusionAutoEncoder,

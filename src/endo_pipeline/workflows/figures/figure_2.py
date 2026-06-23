@@ -29,6 +29,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     import pandas as pd
 
     from endo_pipeline.cli import NUM_GPUS
+    from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import get_output_path, join_sorted_strings, load_dataframe, load_model
     from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_stability
     from endo_pipeline.library.analyze.vector_field_estimation import (
@@ -63,6 +64,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         StabilityLabel,
     )
     from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
+    from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -142,6 +144,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         (dataset_high, 0.5, 0.05, False),
     ]:
         fig_savedir = get_output_path(__file__, dataset_name)
+        dataset_config = load_dataset_config(dataset_name)
+        shear_stress_bin = dataset_config.flow_conditions[-1].shear_stress_bin
+        shear_stress_label = f"{shear_stress_bin} dyn/cm{Unicode.SQUARED}"
 
         # load fixed points dataframes (if available) for both (r, rho) and theta,
         # filter to just stable fixed points, and store in dict for easy access when plotting
@@ -192,6 +197,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         theta_plot_paths[dataset_name] = make_1d_drift_plot_panel(
             figure_size=(1.325, 1.325),
             output_path=fig_savedir,
+            shear_stress_label=shear_stress_label,
             drift=drift_theta,
             theta_values=centers_theta[-1],
             column_label=column_label_theta,
@@ -219,7 +225,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             fixed_point_df=stable_fixed_points_dict[feature_columns_str],
             model=model,
             output_path=fig_savedir,
-            figure_size=(1.75, 0.75),
+            figure_size=(0.6, 0.75),
             num_gpus=NUM_GPUS,
             **placeholders["C"],
         )
@@ -289,7 +295,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="B",
             path=theta_plot_paths[dataset_low],
-            x_position=2.15,
+            x_position=1.8,
             y_position=0.0,
             x_offset=0.05,
             y_offset=0.04,
@@ -297,7 +303,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_low],
-            x_position=3.7,
+            x_position=3.25,
             y_position=0.0,
             x_offset=0.0,
             y_offset=-0.15,
@@ -305,7 +311,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="",
             path=theta_plot_paths[dataset_high],
-            x_position=2.15,
+            x_position=1.8,
             y_position=1.25,
             x_offset=0.05,
             y_offset=0.04,
@@ -313,7 +319,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_high],
-            x_position=3.7,
+            x_position=3.25,
             y_position=1.25,
             x_offset=0.0,
             y_offset=-0.15,
