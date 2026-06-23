@@ -305,10 +305,12 @@ def _add_shear_stress_brackets(
         from matplotlib.transforms import blended_transform_factory
 
         trans = blended_transform_factory(ax.transData, ax.transAxes)
-        bracket_y = -0.22
-        cap_height = 0.025
-        bracket_left = x_start - 0.25
-        bracket_right = x_end + 0.25
+        # Scale bracket offset so it looks consistent across figure heights
+        ax_height_inches = ax.get_position().height * ax.figure.get_figheight()
+        bracket_y = -0.25 / ax_height_inches
+        cap_height = 0.02
+        bracket_left = x_start - 0.2
+        bracket_right = x_end + 0.2
 
         # Draw bracket: left cap, horizontal bar, right cap
         ax.plot(
@@ -388,10 +390,11 @@ def _add_cell_line_brackets(
         label = CELL_LINE_LABEL_MAP.get(cell_line, cell_line)
 
         trans = blended_transform_factory(ax.transData, ax.transAxes)
-        bracket_y = -0.22
-        cap_height = 0.025
-        bracket_left = x_start - 0.25
-        bracket_right = x_end + 0.25
+        ax_height_inches = ax.get_position().height * ax.figure.get_figheight()
+        bracket_y = -0.25 / ax_height_inches
+        cap_height = 0.02
+        bracket_left = x_start - 0.2
+        bracket_right = x_end + 0.2
 
         ax.plot(
             [bracket_left, bracket_left, bracket_right, bracket_right],
