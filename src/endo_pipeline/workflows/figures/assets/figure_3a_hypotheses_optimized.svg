@@ -16,17 +16,23 @@
       <path d="m19.563 120.01h98.708" />
       <path d="m19.563 21.297h98.708" />
    </g>
-   <text x="5.4925761" y="111.86169" font-family="Arial" font-size="8px" stroke-width="1.3333">
-      <tspan x="5.4925761 9.9417944 12.164451" y="111.86169">0.4</tspan>
-      <tspan x="5.4574199 9.9066381 12.129294" y="89.926308">0.8</tspan>
-      <tspan x="5.5277324 9.9769506 12.199607" y="68.039749">1.2</tspan>
-      <tspan x="5.4730449 9.9222631 12.144919" y="46.05555">1.6</tspan>
-      <tspan x="5.4886699 9.9378881 12.160544" y="24.010212">2.0</tspan>
-      <tspan x="0.51537371" y="72.530922" fill="#000000" font-weight="700" stroke-width="1.3333">r</tspan>
-   </text>
-   <text x="43.81554" y="16.803793" font-size="16px" stroke-width="1.3333">
-      <tspan x="43.81554 49.747849 52.711403 59.227047 65.159355 71.675003 74.63855 80.570862" y="16.803793" fill="#000000" font-family="Arial" font-size="10.667px" font-weight="700" stroke-width="1.3333">6 dyn/cm</tspan>
-   </text>
+   <g font-family="Arial" font-size="8px" stroke="none" text-anchor="middle">
+      <g transform="translate(11,24)">
+         <text y="0">2.0</text>
+         <text y="21.9">1.6</text>
+         <text y="43.8">1.2</text>
+         <text y="65.7">0.8</text>
+         <text y="87.6">0.4</text>
+         <text x="-9" y="49" font-weight="bold">r</text>
+      </g>
+      <g transform="translate(41,129)">
+         <text x="0">0</text>
+         <text x="28">π/4</text>
+         <text x="56">π/2</text>
+         <text x="28" y="8" font-weight="bold">θ</text>
+      </g>
+      <text x="69" y="17" font-size="11px" font-weight="bold">6 dyn/cm<tspan font-size="70%" baseline-shift="3px">2</tspan></text>
+   </g>
    <g stroke="#000" stroke-width=".5">
       <path d="m40.016 35.688 3.5467 0.932-2.708 3.0827z" />
       <path d="m35.281 27.776 3.6613 0.188-2.016 3.5667z" />
@@ -74,17 +80,6 @@
       </g>
       <path d="m32.636 47.281c0.47333 0 0.92667-0.188 1.2653-0.52133 0.33333-0.33333 0.52-0.78667 0.52-1.26s-0.18667-0.92667-0.52-1.26c-0.33867-0.33333-0.792-0.52133-1.2653-0.52133-0.46933 0-0.928 0.188-1.2613 0.52133s-0.52 0.78667-0.52 1.26 0.18667 0.92667 0.52 1.26 0.792 0.52133 1.2613 0.52133z" fill="#00f" />
    </g>
-   <text x="90.055267" y="12.537113" font-size="16px" stroke-width="1.3333">
-      <tspan x="90.055267" y="12.537113" fill="#000000" font-family="Arial" font-size="6.9334px" font-weight="700" stroke-width="1.3333">2</tspan>
-   </text>
-   <text x="66.665596" y="137.08298" font-family="Arial" font-size="8px" stroke-width="1.3333">
-      <tspan x="66.665596" y="137.08298" fill="#000000" font-weight="700" stroke-width="1.3333">θ</tspan>
-      <tspan x="91.193535" y="129.16113">π</tspan>
-      <tspan x="96.713066 98.935722" y="129.16113">/2</tspan>
-      <tspan x="62.904938" y="129.16113">π</tspan>
-      <tspan x="68.424469 70.647125" y="129.16113">/4</tspan>
-      <tspan x="38.432598" y="129.08691">0</tspan>
-   </text>
    <g stroke-width=".5">
       <g fill="none" stroke="#000">
          <path d="m385.66 120.01v1.3333" />
@@ -152,29 +147,22 @@
          <path d="m447.46 80.031c0.468 0 0.92666-0.18667 1.26-0.52 0.33333-0.33333 0.52133-0.78667 0.52133-1.26 0-0.47467-0.188-0.928-0.52133-1.2613-0.33334-0.33333-0.792-0.52-1.26-0.52-0.47467 0-0.928 0.18667-1.2613 0.52-0.33733 0.33333-0.52533 0.78667-0.52533 1.2613 0 0.47333 0.188 0.92667 0.52533 1.26 0.33334 0.33333 0.78667 0.52 1.2613 0.52z" fill="#00f" />
       </g>
    </g>
-   <g stroke-width="1.3333">
-      <text x="350.51318" y="111.86169" font-family="Arial" font-size="8px">
-         <tspan x="350.51318 354.9624 357.18506" y="111.86169">0.4</tspan>
-         <tspan x="350.47803 354.92725 357.1499" y="89.926308">0.8</tspan>
-         <tspan x="350.54834 354.99756 357.22021" y="68.039749">1.2</tspan>
-         <tspan x="350.49365 354.94287 357.16553" y="46.05555">1.6</tspan>
-         <tspan x="350.50928 354.9585 357.18115" y="24.010212">2.0</tspan>
-         <tspan x="345.53534" y="72.530922" fill="#000000" font-weight="700" stroke-width="1.3333">r</tspan>
-      </text>
-      <text x="385.96362" y="16.803793" font-size="16px">
-         <tspan x="385.96362 391.89594 397.82825 400.79178 407.30743 413.23975 419.7554 422.71893 428.65125" y="16.803793" fill="#000000" font-family="Arial" font-size="10.667px" font-weight="700" stroke-width="1.3333">21 dyn/cm</tspan>
-      </text>
-      <text x="438.13565" y="12.537113" font-size="16px">
-         <tspan x="438.13565" y="12.537113" fill="#000000" font-family="Arial" font-size="6.9334px" font-weight="700" stroke-width="1.3333">2</tspan>
-      </text>
-      <text x="411.77084" y="137.08298" font-family="Arial" font-size="8px">
-         <tspan x="411.77084" y="137.08298" fill="#000000" font-weight="700" stroke-width="1.3333">θ</tspan>
-         <tspan x="436.24084" y="129.16113">π</tspan>
-         <tspan x="441.76038 443.98303" y="129.16113">/2</tspan>
-         <tspan x="407.94424" y="129.16113">π</tspan>
-         <tspan x="413.46378 415.68643" y="129.16113">/4</tspan>
-         <tspan x="383.45844" y="129.08691">0</tspan>
-      </text>
+   <g transform="translate(345,0)" font-family="Arial" font-size="8px" stroke="none" text-anchor="middle">
+      <g transform="translate(11,24)">
+         <text y="0">2.0</text>
+         <text y="21.9">1.6</text>
+         <text y="43.8">1.2</text>
+         <text y="65.7">0.8</text>
+         <text y="87.6">0.4</text>
+         <text x="-9" y="49" font-weight="bold">r</text>
+      </g>
+      <g transform="translate(41,129)">
+         <text x="0">0</text>
+         <text x="28">π/4</text>
+         <text x="56">π/2</text>
+         <text x="28" y="8" font-weight="bold">θ</text>
+      </g>
+      <text x="69" y="17" font-size="11px" font-weight="bold">21 dyn/cm<tspan font-size="70%" baseline-shift="3px">2</tspan></text>
    </g>
    <path d="m128.86 14.083h211.46v150.27h-211.46z" fill="none" stroke="#888" stroke-width=".5" />
    <g fill="none" stroke="#000" stroke-width=".5">
@@ -496,34 +484,59 @@
       <path d="m187.26 34.927-0.224-2.0667 1.7453 0.64533z" />
       <path d="m177.54 42.495c0.48 0 0.93733-0.192 1.276-0.53067 0.33866-0.33867 0.532-0.79733 0.532-1.276 0-0.48-0.19334-0.94267-0.532-1.2813-0.33867-0.33867-0.796-0.532-1.276-0.532-0.47867 0-0.94267 0.19333-1.2813 0.532-0.33733 0.33867-0.53066 0.80133-0.53066 1.2813 0 0.47867 0.19333 0.93733 0.53066 1.276 0.33867 0.33867 0.80267 0.53067 1.2813 0.53067z" fill="#00f" />
    </g>
-   <text x="157.06084" y="75.738281" font-family="Arial" font-size="8px" stroke-width="1.3333">
-      <tspan x="157.06084 161.51006 163.73271" y="75.738281">0.4</tspan>
-      <tspan x="157.02568 161.4749 163.69756" y="64.612991">0.8</tspan>
-      <tspan x="157.09599 161.54521 163.76787" y="53.535896">1.2</tspan>
-      <tspan x="157.04131 161.49052 163.71318" y="42.361137">1.6</tspan>
-      <tspan x="157.05693 161.50615 163.72881" y="31.234543">2.0</tspan>
-      <tspan x="152.08363" y="55.061802" fill="#000000" font-weight="700" stroke-width="1.3333">r</tspan>
-   </text>
+   <g transform="translate(129,14)" font-family="Arial" font-size="8px" stroke="none" text-anchor="middle">
+      <g transform="translate(34,17)">
+         <text y="0">2.0</text>
+         <text y="11.1">1.6</text>
+         <text y="22.2">1.2</text>
+         <text y="33.3">0.8</text>
+         <text y="44.4">0.4</text>
+         <text x="-9" y="24" font-weight="bold">r</text>
+      </g>
+      <g transform="translate(34,74)">
+         <text y="0">2.0</text>
+         <text y="11.1">1.6</text>
+         <text y="22.2">1.2</text>
+         <text y="33.3">0.8</text>
+         <text y="44.4">0.4</text>
+         <text x="-9" y="24" font-weight="bold">r</text>
+      </g>
+      <g transform="translate(52.5,130)">
+         <text x="0">0</text>
+         <text x="14.5">π/4</text>
+         <text x="29">π/2</text>
+         <text x="14" y="8" font-weight="bold">θ</text>
+      </g>
+      <g transform="translate(108,130)">
+         <text x="0">0</text>
+         <text x="14.5">π/4</text>
+         <text x="29">π/2</text>
+         <text x="14" y="8" font-weight="bold">θ</text>
+      </g>
+      <g transform="translate(163.5,130)">
+         <text x="0">0</text>
+         <text x="14.5">π/4</text>
+         <text x="29">π/2</text>
+         <text x="14" y="8" font-weight="bold">θ</text>
+      </g>
+
+   </g>
    <g fill="none" stroke="#bbb" stroke-width=".5">
       <path d="m220.97 78.473v-50.061" />
       <path d="m170.9 78.473h50.068" />
       <path d="m170.9 28.412h50.068" />
       <path d="m170.9 78.473v-50.061" />
    </g>
-   <text transform="rotate(-90)" x="-132.22296" y="139.65536" fill="#000000" font-family="Arial" font-size="8px" font-weight="700" stroke-width="1.3333">
-      <tspan x="-132.22296 -126.44562 -121.5589 -116.67218 -114.00812 -111.78546 -106.89874 -102.01202 -97.125305 -92.238586" y="139.65536">Continuous</tspan>
-      <tspan x="-128.02374 -125.35968 -122.2464 -117.79718 -112.91046 -108.46124 -106.23859 -103.57452 -101.35187 -96.465149" y="148.05537">transition</tspan>
-      <tspan x="-77.505074 -72.169136 -67.719917 -62.833195 -57.946476 -55.72382 -51.274601 -48.610542 -43.723827 -38.837109 -33.95039" y="139.6554">Saddle-node</tspan>
-      <tspan x="-74.178413 -69.291695 -67.069038 -64.404976 -59.518253 -56.404972 -51.955753 -47.506538 -44.842468 -42.619812 -37.733093" y="148.05537">bifurcation</tspan>
-   </text>
-   <text x="304.12946" y="152.1985" font-family="Arial" font-size="8px" stroke-width="1.3333">
-      <tspan x="304.12946" y="152.1985" fill="#000000" font-weight="700" stroke-width="1.3333">θ</tspan>
-      <tspan x="314.74792" y="144.27664">π</tspan>
-      <tspan x="320.26746 322.49011" y="144.27664">/2</tspan>
-      <tspan x="300.36334" y="144.27664">π</tspan>
-      <tspan x="305.88287 308.10553" y="144.27664">/4</tspan>
-      <tspan x="289.79227" y="144.20242">0</tspan>
-   </text>
+   <g transform="translate(139.5,0)" font-size="8px" font-weight="bold" font-family="Arial" text-anchor="middle">
+      <g transform="translate(0,53.5) rotate(-90)">
+         <text>Saddle-node</text>
+         <text y="8">bifurcation</text>
+      </g>
+      <g transform="translate(0,110) rotate(-90)">
+         <text>Continuous</text>
+         <text y="8">transition</text>
+      </g>
+   </g>
    <path d="m281.36 84.979h50.068v50.063h-50.068z" fill="#f0d3aa" />
    <g stroke="#000" stroke-width=".5">
       <g fill="none">
@@ -594,14 +607,6 @@
          <path d="m251.13 135.12v1.3333" />
       </g>
    </g>
-   <text x="248.89915" y="152.1985" font-family="Arial" font-size="8px" stroke-width="1.3333">
-      <tspan x="248.89915" y="152.1985" fill="#000000" font-weight="700" stroke-width="1.3333">θ</tspan>
-      <tspan x="259.51761" y="144.27664">π</tspan>
-      <tspan x="265.03714 267.2598" y="144.27664">/2</tspan>
-      <tspan x="245.13301" y="144.27664">π</tspan>
-      <tspan x="250.65254 252.8752" y="144.27664">/4</tspan>
-      <tspan x="234.56195" y="144.20242">0</tspan>
-   </text>
    <path d="m226.13 84.979h50.068v50.063h-50.068z" fill="#d3e4aa" />
    <g fill="none" stroke-width=".5">
       <g stroke="#000">
@@ -637,22 +642,6 @@
       <path d="m170.9 135.04h50.068" />
       <path d="m170.9 84.979h50.068" />
    </g>
-   <text x="157.06084" y="132.30653" fill="#000000" font-family="Arial" font-size="8px" stroke-width="1.3333">
-      <tspan x="157.06084 161.51004 163.73268" y="132.30653">0.4</tspan>
-      <tspan x="157.02568 161.47488 163.69753" y="121.18127">0.8</tspan>
-      <tspan x="157.09599 161.5452 163.76784" y="110.10419">1.2</tspan>
-      <tspan x="157.04131 161.49051 163.71315" y="98.929436">1.6</tspan>
-      <tspan x="157.05693 161.50613 163.72878" y="87.803497">2.0</tspan>
-      <tspan x="152.08363" y="111.63068" font-weight="700">r</tspan>
-   </text>
-   <text x="193.66946" y="152.1985" fill="#000000" font-family="Arial" font-size="8px" stroke-width="1.3333">
-      <tspan x="193.66946" y="152.1985" font-weight="700">θ</tspan>
-      <tspan x="204.28728" y="144.27664">π</tspan>
-      <tspan x="209.80679 212.02945" y="144.27664">/2</tspan>
-      <tspan x="189.90273" y="144.27664">π</tspan>
-      <tspan x="195.42224 197.6449" y="144.27664">/4</tspan>
-      <tspan x="179.33226" y="144.20242">0</tspan>
-   </text>
    <g stroke="#000" stroke-width=".5">
       <g fill="none">
          <path d="m173.64 122.58s0.43733-0.52133 0.65066-0.78666c0.35334-0.428 0.708-0.86 1.0573-1.292 0.344-0.43734 0.68666-0.87467 1.0253-1.312 0.33867-0.44267 0.67733-0.88534 1-1.3387 0.324-0.45333 0.64133-0.90667 0.94267-1.376 0.30266-0.46267 0.59466-0.94267 0.87066-1.4213 0.27067-0.484 0.53067-0.97867 0.78134-1.4733 0.244-0.5 0.47866-1.0053 0.708-1.5107 0.22933-0.50534 0.44266-1.0213 0.66133-1.532 0.21333-0.51467 0.416-1.0307 0.62533-1.5467 0.208-0.516 0.41067-1.0307 0.62534-1.5467 0.208-0.516 0.416-1.0307 0.64-1.5413 0.21866-0.51067 0.44266-1.0213 0.68266-1.5213 0.244-0.5 0.77067-1.4787 0.77067-1.4787" />
@@ -706,13 +695,9 @@
    <path d="m330.77 158.88-4.328 2.5v-5z" fill-rule="evenodd" />
    <path d="m326.1 155.8v6.156l5.328-3.0787zm0.66667 1.156 3.328 1.9213-3.328 1.9227z" fill-rule="evenodd" />
    <path d="m225.01 155h46.973v7.76h-46.973z" fill="#fff" />
-   <text x="226.01562" y="161.74321" font-family="Arial" font-size="8px" stroke-width="1.3333">
-      <tspan x="226.01562 231.35156 235.80078 240.25 244.69922 247.36328 249.58594 253.58594 255.80859 258.47266 262.92188 266.92188" y="161.74321">Shear stress</tspan>
-      <tspan x="181.59676 183.81941 188.70613 191.37019 195.81941 198.93269 206.04597 210.49519 215.38191 217.60457 222.05379 224.71785 229.16707 231.38972 235.83894 240.72566 245.17488 249.6241 252.73738 254.96002 259.40927 262.07333 265.18661 269.6358 274.08502 278.53424 282.98346" y="11.643502" fill="#000000" font-weight="700" stroke-width="1.3333">Intermediate shear stresses</tspan>
-   </text>
-   <text x="211.82137" y="23.617535" font-size="16px" stroke-width="1.3333">
-      <tspan x="211.82137 217.59871 222.04793 226.93465 231.82137 234.48543 239.37215 243.82137 248.27058 252.7198" y="23.617535" fill="#808080" font-family="Arial" font-size="8px" font-weight="700" stroke-width="1.3333">Hypotheses</tspan>
-   </text>
+   <text x="226.01562" y="161.74321" font-size="8px" font-family="Arial">Shear stress</text>
+   <text x="211.82137" y="23.617535" font-size="8px" font-weight="bold" fill="#808080" font-family="Arial">Hypotheses</text>
+   <text x="181.59676 " y="11.643502" font-size="8px" font-weight="bold" font-family="Arial">Intermediate shear stresses</text>
    <g stroke="#000" stroke-width=".5">
       <g fill="none">
          <path d="m251.72 86.729s0.0253 1.1147 0.0573 1.6667c0.036 0.55733 0.0787 1.1093 0.14 1.6613 0.0627 0.552 0.14133 1.104 0.22933 1.656 0.084 0.54667 0.19333 1.0933 0.292 1.6413 0.0987 0.54667 0.208 1.0933 0.30267 1.64 0.088 0.552 0.176 1.0987 0.244 1.6507s0.12 1.104 0.14666 1.6613c0.0253 0.55733 0.036 1.1147 4e-3 1.6667-0.02 0.51067-0.0667 1.016-0.15066 1.516-0.068 0.43733-0.156 0.87467-0.292 1.292-0.14 0.432-0.52534 1.26-0.52534 1.26l-0.312 0.50533-0.396 0.464" />
