@@ -2,7 +2,7 @@
 
 import matplotlib.pyplot as plt
 
-from endo_pipeline.io import get_output_path
+from endo_pipeline.io import get_output_path, save_plot_to_path
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
 from endo_pipeline.library.visualize.spatial_feature_grid import create_panel_spatial_feature_grid
 from endo_pipeline.settings.column_names import ColumnName
@@ -12,7 +12,7 @@ from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 # %%
 plt.style.use("endo_pipeline.figure")
 
-save_dir = get_output_path("figure_3")
+save_dir = get_output_path("supp_fig_intermediate")
 
 # %%
 fig = create_panel_spatial_feature_grid(
@@ -25,15 +25,20 @@ fig = create_panel_spatial_feature_grid(
     grid_start_xy=(128, 128),
     grid_dimensions=(3, 3),
     save_dir=save_dir,
-    filename="spatial_feature_grid_examples",
-    figure_size=(MAX_FIGURE_WIDTH, 3.3),
 )
-
+save_plot_to_path(
+    fig,
+    save_dir,
+    "spatial_feature_grid_examples_supp",
+    file_format=".svg",
+    tight_layout=False,
+    pad_inches=0,
+)
 # %%
 panels = [
     FigurePanel(
         letter="A",
-        path=save_dir / "spatial_feature_grid_examples.svg",
+        path=save_dir / "spatial_feature_grid_examples_supp.svg",
         x_position=0,
         y_position=0,
         x_offset=0,
