@@ -34,7 +34,21 @@ from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_
 
 
 def _get_colormap_for_feature(feature: str, default_colormap: Colormap) -> Colormap:
-    """Return the appropriate colormap for a given feature column."""
+    """Return the appropriate colormap for a given feature column.
+
+    Parameters
+    ----------
+    feature
+        Column name to look up.
+    default_colormap
+        Colormap returned when no feature-specific override exists.
+
+    Returns
+    -------
+    Colormap
+        ``CET_C8`` for polar angle, ``"cool"`` for unit-vector mean,
+        otherwise *default_colormap*.
+    """
     if feature == Column.DiffAEData.POLAR_ANGLE:
         return cc.cm.CET_C8
     if feature == Column.OpticalFlow.UNIT_VECTOR_MEAN:
@@ -49,9 +63,30 @@ def _add_image_rows(
     image_rows: dict[str, list[np.ndarray]],
     n_examples: int,
     crop_size: int,
-    example_labels: list[str] | None,
+    example_labels: list[str],
 ) -> None:
-    """Render image rows at the top of the figure."""
+    """Render image rows at the top of the figure.
+
+    Each entry in *image_rows* becomes one row of grayscale images with
+    yellow grid lines, scale bars, and a y-axis row label.
+
+    Parameters
+    ----------
+    fig
+        Parent figure.
+    axes
+        2-D array of axes (rows x columns).
+    gs
+        GridSpec used to create the colorbar-column placeholder.
+    image_rows
+        Mapping of row label to a list of images (one per example).
+    n_examples
+        Number of example columns.
+    crop_size
+        Grid-line spacing in pixels.
+    example_labels
+        Column titles placed above the first image row.
+    """
     for img_row_idx, (row_label, img_list) in enumerate(image_rows.items()):
         for col_idx, img in enumerate(img_list):
             ax = axes[img_row_idx, col_idx]
@@ -59,7 +94,7 @@ def _add_image_rows(
             ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
             for spine in ax.spines.values():
                 spine.set_visible(False)
-            if img_row_idx == 0 and example_labels is not None:
+            if img_row_idx == 0:
                 ax.set_title(example_labels[col_idx], fontsize=FONTSIZE_MEDIUM)
 
             # Draw grid lines every crop_size pixels
@@ -90,19 +125,50 @@ def _add_image_rows(
         empty_ax.set_visible(False)
 
 
-def _plot_feature_patches(
+def _draw_colored_feature_patch(
     ax: Axes,
-    grid_data: pd.DataFrame,
+    df_grid: pd.DataFrame,
     feature: str,
-    start_x_col: str,
-    start_y_col: str,
     crop_size: int,
     colormap: Colormap,
     norm: Normalize,
+    col_idx: int,
+    row_idx: int,
+    metadata: ColumnMetadata | None,
+    n_image_rows: int,
+    example_labels: list[str],
 ) -> None:
-    """Draw colored patches on *ax* for each crop position in *grid_data*."""
-    for _, data_row in grid_data.iterrows():
-        sx, sy = data_row[start_x_col], data_row[start_y_col]
+    """Draw coloured feature patches and style the axis.
+
+    Parameters
+    ----------
+    ax
+        Axes to draw on and configure.
+    df_grid
+        DataFrame with start_x, start_y, and *feature* columns.
+    feature
+        Column name whose values determine patch colour.
+    crop_size
+        Width and height of each patch in pixels.
+    colormap
+        Colormap used to map normalised feature values to colours.
+    norm
+        Normalisation applied to feature values before colour mapping.
+    col_idx
+        Column index of this axis in the grid.
+    row_idx
+        Row index (within feature rows, 0-based).
+    metadata
+        Optional column metadata providing a display label.
+    n_image_rows
+        Number of image rows above the feature rows.  Column titles
+        are added only when there are no image rows.
+    example_labels
+        Column titles for each example.
+    """
+    # Draw coloured patches
+    for _, data_row in df_grid.iterrows():
+        sx, sy = data_row[Column.DiffAEData.START_X], data_row[Column.DiffAEData.START_Y]
         color = colormap(norm(data_row[feature]))
         rect = mpatches.FancyBboxPatch(
             (sx, sy),
@@ -116,24 +182,14 @@ def _plot_feature_patches(
         ax.add_patch(rect)
 
     # Set axis limits based on grid extent
-    x_min = grid_data[start_x_col].min()
-    x_max = grid_data[start_x_col].max() + crop_size
-    y_min = grid_data[start_y_col].min()
-    y_max = grid_data[start_y_col].max() + crop_size
+    x_min = df_grid[Column.DiffAEData.START_X].min()
+    x_max = df_grid[Column.DiffAEData.START_X].max() + crop_size
+    y_min = df_grid[Column.DiffAEData.START_Y].min()
+    y_max = df_grid[Column.DiffAEData.START_Y].max() + crop_size
     ax.set_xlim(x_min, x_max)
     ax.set_ylim(y_max, y_min)  # invert y for image coords
 
-
-def _configure_feature_axis(
-    ax: Axes,
-    col_idx: int,
-    row_idx: int,
-    metadata: ColumnMetadata | None,
-    feature: str,
-    n_image_rows: int,
-    example_labels: list[str] | None,
-) -> None:
-    """Style a feature axis: remove spines/ticks and add labels."""
+    # Style axis
     ax.set_aspect("equal")
     ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
     for spine in ax.spines.values():
@@ -143,7 +199,7 @@ def _configure_feature_axis(
         label = metadata.label_with_unit if metadata is not None else feature
         ax.set_ylabel(label, fontsize=FONTSIZE_MEDIUM)
 
-    if n_image_rows == 0 and row_idx == 0 and example_labels is not None:
+    if n_image_rows == 0 and row_idx == 0:
         ax.set_title(example_labels[col_idx], fontsize=FONTSIZE_MEDIUM)
 
 
@@ -157,7 +213,28 @@ def _add_feature_colorbar(
     vmax: float | None,
     metadata: ColumnMetadata | None,
 ) -> None:
-    """Add a colorbar in the dedicated GridSpec column for a feature row."""
+    """Add a colorbar in the dedicated GridSpec column for a feature row.
+
+    Parameters
+    ----------
+    fig
+        Parent figure.
+    gs
+        GridSpec layout.
+    ax_row
+        Row index in *gs* for the colorbar.
+    n_examples
+        Number of example columns (the colorbar lives in column
+        ``n_examples``).
+    colormap
+        Colormap matching the feature patches.
+    vmin
+        Minimum value for the colour scale.  Defaults to 0 if None.
+    vmax
+        Maximum value for the colour scale.  Defaults to 1 if None.
+    metadata
+        Optional column metadata for custom tick positions and labels.
+    """
     col_vmin = vmin if vmin is not None else 0
     col_vmax = vmax if vmax is not None else 1
     norm = Normalize(vmin=col_vmin, vmax=col_vmax)
@@ -194,7 +271,12 @@ def _load_example_data(
 
     Returns
     -------
-    (example_dfs, image_rows, example_labels)
+    example_dfs : list[pd.DataFrame]
+        Feature dataframes, one per example image.
+    image_rows : dict[str, list[np.ndarray]]
+        Mapping of row label to loaded images.
+    example_labels : list[str]
+        Column titles derived from shear-stress conditions.
     """
     manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[MIGRATION_COHERENCE_CROP_PATTERN]
     manifest = load_dataframe_manifest(manifest_name)
@@ -237,8 +319,8 @@ def _load_example_data(
         df_features = df_delay[columns_to_compute].compute()
         df_features = add_optical_flow_features(df_features, datasets=[dataset_name])
         df_example = df_features[
-            (df_features[f"{Column.POSITION}"] == example.position)
-            & (df_features[f"{Column.TIMEPOINT}"] == example.timepoint)
+            (df_features[Column.POSITION] == example.position)
+            & (df_features[Column.TIMEPOINT] == example.timepoint)
         ]
         example_dfs.append(df_example)
 
@@ -254,90 +336,63 @@ def _load_example_data(
 
 def create_panel_spatial_feature_grid(
     feature_columns: list[str],
-    example_images: list | None = None,
-    example_dataframes: list[pd.DataFrame] | None = None,
-    example_labels: list[str] | None = None,
-    image_rows: dict[str, list[np.ndarray]] | None = None,
+    example_images: list,
     include_bf_images: bool = False,
     image_crop_size: int = 768,
-    crop_size: int = 256,
     grid_start_xy: tuple[int, int] = (128, 128),
     grid_dimensions: tuple[int, int] = (3, 3),
-    grid_spacing: int | None = None,
-    start_x_col: str = "start_x",
-    start_y_col: str = "start_y",
     cmap: str = "viridis",
     figure_size: tuple[float, float] | None = None,
 ) -> plt.Figure:
     """Create a figure showing spatial feature values on a grid for multiple examples.
-
-    Data can be supplied in two ways:
-
-    1. **From ``example_images``** (preferred) — pass a list of
-       ``ExampleImage`` named-tuples and the function will load images,
-       feature dataframes, and labels automatically.
-    2. **Pre-loaded** — pass ``example_dataframes`` (and optionally
-       ``image_rows`` / ``example_labels``) directly.
 
     Parameters
     ----------
     feature_columns
         Column names to visualize (one row per feature).
     example_images
-        ``ExampleImage`` named-tuples. When provided, data is loaded
-        automatically and other data parameters are ignored.
-    example_dataframes
-        Pre-filtered DataFrames (one per example).
-    example_labels
-        Labels for each example column (may contain a newline to separate
-        a group header from a per-column subtitle).
-    image_rows
-        Dict mapping row label to list of images (one per example).
+        ``ExampleImage`` named-tuples. Images, feature dataframes, and
+        labels are loaded automatically from these.
     include_bf_images
-        Also load BF std-dev projections. Only used with ``example_images``.
-    image_crop_size
-        Pixel crop size for loaded images. Only used with ``example_images``.
-    crop_size
-        Patch size in pixels for feature grid.
+        Also load BF std-dev projection images.
+    image_size
+        Pixel size for loaded images.
     grid_start_xy
         (start_x, start_y) of the upper-left crop in the grid.
     grid_dimensions
         (n_cols, n_rows) of the feature grid.
-    grid_spacing
-        Distance between adjacent crop starts (defaults to ``crop_size``).
-    start_x_col
-        Column name for x-coordinate.
-    start_y_col
-        Column name for y-coordinate.
     cmap
         Default matplotlib colormap name.
     figure_size
         Figure size in inches. Auto-computed if None.
+
+    Returns
+    -------
+    plt.Figure
+        The assembled figure.
     """
-    # Load data from example images if provided
-    if example_images is not None:
-        example_dataframes, image_rows, example_labels = _load_example_data(
-            example_images,
-            include_bf_images=include_bf_images,
-            image_crop_size=image_crop_size,
-        )
-    if example_dataframes is None:
-        raise ValueError("Either example_images or example_dataframes must be provided.")
+    example_dataframes, image_rows, example_labels = _load_example_data(
+        example_images,
+        include_bf_images=include_bf_images,
+        image_crop_size=image_crop_size,
+    )
 
     # Compute grid positions from start_xy and dimensions
-    spacing = grid_spacing if grid_spacing is not None else crop_size
+    res_level_0_patch_size = 256
     n_cols_grid, n_rows_grid = grid_dimensions
     sx0, sy0 = grid_start_xy
     grid_positions = [
-        (sx0 + col * spacing, sy0 + row * spacing)
+        (sx0 + col * res_level_0_patch_size, sy0 + row * res_level_0_patch_size)
         for row in range(n_rows_grid)
         for col in range(n_cols_grid)
     ]
-    positions_df = pd.DataFrame(grid_positions, columns=[start_x_col, start_y_col])
+    positions_df = pd.DataFrame(
+        grid_positions, columns=[Column.DiffAEData.START_X, Column.DiffAEData.START_Y]
+    )
 
     n_features = len(feature_columns)
     n_examples = len(example_dataframes)
-    n_image_rows = len(image_rows) if image_rows else 0
+    n_image_rows = len(image_rows)
     n_rows = n_features + n_image_rows
 
     if figure_size is None:
@@ -364,8 +419,7 @@ def create_panel_spatial_feature_grid(
             axes[row, col] = fig.add_subplot(gs[row, col])
 
     # Image rows at the top
-    assert image_rows is not None
-    _add_image_rows(fig, axes, gs, image_rows, n_examples, crop_size, example_labels)
+    _add_image_rows(fig, axes, gs, image_rows, n_examples, res_level_0_patch_size, example_labels)
 
     # Feature rows
     colormap_default = mpl_cm.get_cmap(cmap)
@@ -379,17 +433,28 @@ def create_panel_spatial_feature_grid(
         for col_idx, df_example in enumerate(example_dataframes):
             ax = axes[ax_row, col_idx]
 
-            grid_data = df_example[[start_x_col, start_y_col, feature]].dropna(subset=[feature])
-            grid_data = grid_data.merge(positions_df, on=[start_x_col, start_y_col])
+            grid_data = df_example[
+                [Column.DiffAEData.START_X, Column.DiffAEData.START_Y, feature]
+            ].dropna(subset=[feature])
+            grid_data = grid_data.merge(
+                positions_df, on=[Column.DiffAEData.START_X, Column.DiffAEData.START_Y]
+            )
 
             col_vmin = vmin if vmin is not None else grid_data[feature].min()
             col_vmax = vmax if vmax is not None else grid_data[feature].max()
             norm = Normalize(vmin=col_vmin, vmax=col_vmax)
-            _plot_feature_patches(
-                ax, grid_data, feature, start_x_col, start_y_col, crop_size, colormap, norm
-            )
-            _configure_feature_axis(
-                ax, col_idx, row_idx, metadata, feature, n_image_rows, example_labels
+            _draw_colored_feature_patch(
+                ax,
+                grid_data,
+                feature,
+                res_level_0_patch_size,
+                colormap,
+                norm,
+                col_idx,
+                row_idx,
+                metadata,
+                n_image_rows,
+                example_labels,
             )
 
         _add_feature_colorbar(fig, gs, ax_row, n_examples, colormap, vmin, vmax, metadata)

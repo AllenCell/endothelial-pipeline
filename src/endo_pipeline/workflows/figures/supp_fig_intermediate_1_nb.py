@@ -19,11 +19,6 @@ fig = create_panel_spatial_feature_grid(
     feature_columns=[ColumnName.DiffAEData.PC3_FLIPPED],
     example_images=FIGURE_3_EXAMPLE_IMAGES,
     include_bf_images=True,
-    crop_size=256,
-    start_x_col=ColumnName.DiffAEData.START_X,
-    start_y_col=ColumnName.DiffAEData.START_Y,
-    grid_start_xy=(128, 128),
-    grid_dimensions=(3, 3),
 )
 save_plot_to_path(
     fig,
@@ -46,6 +41,6 @@ panels = [
 ]
 
 build_figure_from_panels(
-    panels, save_dir / "figure_3.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
+    panels, save_dir / "supp_fig_intermediate.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
 )
 # %%
