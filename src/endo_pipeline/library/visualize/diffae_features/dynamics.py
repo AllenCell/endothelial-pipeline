@@ -371,6 +371,7 @@ def plot_drift_1d(
     flow_arrow_downsample: int = 5,
     flow_arrow_kwargs: dict | None = {"color": "dimgrey"},
     gridspec_kwargs: dict | None = None,
+    axes_rect: tuple[float, float, float, float] | None = None,
     drift_line_kwargs: dict | None = None,
     zero_line_kwargs: dict | None = None,
     xlabel_kwargs: dict | None = None,
@@ -424,6 +425,14 @@ def plot_drift_1d(
         Optional dictionary of keyword arguments to pass to ax.set_ylabel for
         customizing the y-axis label, e.g., to specify a font size or label
         padding.
+    axes_rect
+        Optional axes position in normalized figure coordinates
+        ``(left, bottom, width, height)``.  When provided the figure is built
+        without a layout engine via ``plt.figure`` and the axes is added with
+        ``fig.add_axes``, mirroring the explicit-positioning pattern used in
+        :func:`plot_drift_3d`.  When ``None`` (default) and ``fig_ax`` is also
+        ``None``, ``plt.subplots`` with ``layout="constrained"`` is used
+        instead.
 
     Returns
     -------
@@ -431,9 +440,16 @@ def plot_drift_1d(
         Tuple of figure and axes objects containing the plot of the 1D drift as
         a function of the state variable.
     """
-    fig, ax = fig_ax or plt.subplots(
-        figsize=figsize, layout="constrained", gridspec_kw=gridspec_kwargs
-    )
+    if fig_ax is not None:
+        fig, ax = fig_ax
+    elif axes_rect is not None:
+        # Build figure with explicitly positioned axes — same pattern as
+        # plot_drift_3d so callers can safely add further axes (legend) at
+        # fixed figure coordinates without clipping.
+        fig = plt.figure(figsize=figsize)
+        ax = fig.add_axes(axes_rect)
+    else:
+        fig, ax = plt.subplots(figsize=figsize, layout="constrained", gridspec_kw=gridspec_kwargs)
     ax.plot(x_values, drift, **(drift_line_kwargs or {}))
     ax.plot(x_values, np.zeros_like(x_values), **(zero_line_kwargs or {}))
 

@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import TwoSlopeNorm
-from matplotlib.layout_engine import ConstrainedLayoutEngine
 from matplotlib.patches import Rectangle as MplRectangle
 from matplotlib.ticker import MaxNLocator
 
@@ -321,16 +320,12 @@ def make_2d_contour_plot_panel(
         },
     }
 
-    # plot drift contours and save
-    # Use explicit axes rects (no layout engine) so the figure behaves the
-    # same way as the 3D plots: positions are fixed and additional axes for
-    # the colorbar or legend can be placed at known figure coordinates
-    # without risk of clipping.  Reserve the top 20 % for the colorbar and
-    # (when a legend is shown) leave the right ~35 % for the legend.
-    if include_legend:
-        subplot_rects = [(0.12, 0.45, 0.55, 0.35), (0.12, 0.05, 0.55, 0.35)]
-    else:
-        subplot_rects = [(0.12, 0.45, 0.80, 0.35), (0.12, 0.05, 0.80, 0.35)]
+    # Use explicit axes rects (no layout engine) so positions are fixed and
+    # additional axes for the colorbar or legend can be placed at known figure
+    # coordinates without risk of clipping. Reserve the top 20 % for the
+    # colorbar and the right ~35 % for the legend axes (kept constant regardless
+    # of include_legend so plot sizing is invariant).
+    subplot_rects = [(0.12, 0.45, 0.55, 0.35), (0.12, 0.05, 0.55, 0.35)]
     fig, axes_ = plot_drift_contours(
         meshgrid=meshgrid,
         drift=drift,
@@ -429,7 +424,7 @@ def make_2d_contour_plot_panel(
         # Add a dedicated invisible axes to the right of the main subplots via
         # fig.add_axes so the legend can be anchored within figure bounds —
         # the same pattern used for the colorbar.
-        legend_ax = fig.add_axes((0.9, 0.5, 0.29, 0.73))
+        legend_ax = fig.add_axes((0.69, 0.08, 0.29, 0.62))
         legend_ax.set_axis_off()
         fig.legend(
             handles,
@@ -493,6 +488,7 @@ def make_1d_drift_plot_panel(
         flow_arrow_kwargs={"color": "dimgrey", "scale": arrow_scale, "width": arrow_width},
         flow_arrow_downsample=10,
         gridspec_kwargs=GRIDSPEC_KWARGS,
+        axes_rect=(0.12, 0.08, 0.85, 0.76),
         drift_line_kwargs={"color": "k", "linewidth": 2, "label": f"d{column_label}/dt"},
         zero_line_kwargs={
             "linestyle": "--",
@@ -514,15 +510,6 @@ def make_1d_drift_plot_panel(
         markersize=5,
     )
 
-    # restrict the constrained-layout region to the lower portion of the figure
-    # to reserve space above the main axes for the legend; applied unconditionally
-    # so axes size stays constant whether or not the legend is shown
-    layout_engine = fig.get_layout_engine()
-    if isinstance(layout_engine, ConstrainedLayoutEngine):
-        layout_engine.set(rect=(0.0, 0.0, 1.0, 0.9))
-
-    # add legend — bbox_to_anchor uses figure coordinates so placement is fixed
-    # independently of the main axes layout and will not be clipped on save
     if include_legend:
         handles, labels = ax.get_legend_handles_labels()
         fixed_point_label = f"{column_label}$^*$"
@@ -533,12 +520,18 @@ def make_1d_drift_plot_panel(
         )
         handles.extend(fp_handles)
         labels.append(fixed_point_label)
+        # Add a dedicated invisible axes above the main plot via fig.add_axes
+        # so the legend can be anchored within figure bounds — the same pattern
+        # used for the contour plot legend and colorbar.
+        legend_ax = fig.add_axes((0.0, 0.86, 1.0, 0.10))
+        legend_ax.set_axis_off()
         fig.legend(
             handles,
             labels,
             fontsize="xx-small",
             loc="upper center",
-            bbox_to_anchor=(1.05, 0.99),
+            bbox_to_anchor=(0.5, 1.0),
+            bbox_transform=legend_ax.transAxes,
             ncol=3,
             handletextpad=0.3,
             columnspacing=0.75,
