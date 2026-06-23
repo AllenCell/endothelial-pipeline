@@ -717,6 +717,7 @@ def reconstruct_fixed_points(
     # sheet of the results
     column_names = cast(list[str], list(DYNAMICS_COLUMN_NAMES))
     reconstructed_images = []
+    column_titles = []
     for i in range(num_examples):
         walk_array = generate_from_dataframe(
             fixed_point_df,
@@ -726,13 +727,16 @@ def reconstruct_fixed_points(
             random_seed=random_seed_start + i,
         )
         reconstructed_images.append(walk_array)
+        column_titles.append(f"Example {i+1}")
 
     fig_fixed_point_reconstructions = make_contact_sheet(
         panels=reconstructed_images,
         max_rows=1,
         max_cols=num_examples,
+        col_titles=column_titles,
         fig_kwargs={"figsize": figure_size, "layout": "constrained"},
         gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
+        font_size=FONTSIZE_SMALL,
     )
 
     # add scalebars to each panel, only label the top left one to avoid
