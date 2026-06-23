@@ -5,7 +5,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     """
     Compile panels for Figure 2.
 
-    - **Panel A*: 3D visualizations of drift vector field and nullclines for
+    - **Panel A**: 3D visualizations of drift vector field and nullclines for
       example low shear stress dataset.
     - **Panel B**: 1D plot of drift along polar angle coordinate for example low
       shear stress dataset, 2D contour plot of drift coefficients for polar
@@ -39,7 +39,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         make_1d_drift_plot_panel,
         make_2d_contour_plot_panel,
         make_3d_vector_field_plot_panel,
-        make_first_passage_time_correlation_hist,
+        make_first_passage_time_distance_to_linefit_hist,
         reconstruct_along_nullcline,
     )
     from endo_pipeline.library.visualize.figure_fpt import generate_first_passage_time_example
@@ -261,7 +261,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         out_dir=output_path,
     )
     # --- Histogram of first passage time correlation ---
-    first_passage_path = make_first_passage_time_correlation_hist(
+    first_passage_path = make_first_passage_time_distance_to_linefit_hist(
         figure_size=(0.95, 2.0),
         output_path=output_path,
         dataset_names=dataset_summary_list,

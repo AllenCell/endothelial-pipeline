@@ -11,7 +11,7 @@ from matplotlib.cm import ScalarMappable
 from matplotlib.colors import TwoSlopeNorm
 from matplotlib.layout_engine import ConstrainedLayoutEngine
 from matplotlib.patches import Rectangle as MplRectangle
-from matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import MaxNLocator, MultipleLocator
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 from endo_pipeline.io import load_dataframe, save_plot_to_path
@@ -798,6 +798,48 @@ def make_first_passage_time_correlation_hist(
     )
     ax.set_xlabel(column_label)
     ax.set_ylabel("Count")
+    # make sure y ticks are integers since this is a count histogram
+    ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+
+    filename = "fpt_hist"
+    save_plot_to_path(
+        fig,
+        output_path,
+        filename,
+        file_format=".svg",
+        tight_layout=False,
+        transparent=True,
+    )
+    return output_path / f"{filename}.svg"
+
+
+@figure_panel(
+    "Make panel of histogram of first passage time distances from the fitted lines across datasets."
+)
+def make_first_passage_time_distance_to_linefit_hist(
+    figure_size: tuple[float, float], output_path: Path, dataset_names: list[str]
+) -> Path:
+    fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME)
+    line_fit_df, _ = get_line_fit_and_filtered_df(fpt_manifest, dataset_names)
+
+    weighted_distances_all = []
+    for _, df_dataset in line_fit_df.groupby(Column.DATASET):
+        odr_result = df_dataset[Column.VectorField.ODR_RESULT].iloc[0]
+        # each (x,y) point that was passed to odr_fit to get the line fit has
+        # an associated point on that line (that is affected by the weights
+        # that are passed to odr_fit)and the distance between that point
+        # and the original (x,y) point is delta and eps. We use these
+        # distances as the values for a histogram
+        weighted_distances = np.sqrt(odr_result.delta**2 + odr_result.eps**2)
+        weighted_distances_all.extend(weighted_distances)
+
+    fig, ax = plt.subplots(figsize=figure_size, layout="constrained")
+    biggest_distance_as_int = int(max(np.ceil(weighted_distances_all)))
+    ax.hist(weighted_distances_all, bins=biggest_distance_as_int, density=True, edgecolor="k")
+    column_label = "Weighted\ndistance\nto line fit"
+    ax.set_xlabel(column_label)
+    ax.set_ylabel("Probability density")
+    ax.xaxis.set_major_locator(MultipleLocator(base=5))
     # make sure y ticks are integers since this is a count histogram
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
