@@ -19,6 +19,7 @@ STAGING_IMAGE_MANIFEST_NAMES = [
 
 STAGING_DATAFRAME_MANIFEST_NAMES = [
     "in_focus_plane_annotations",
+    "timepoint_outlier_annotations",
 ]
 """List of names of dataframe manifests to stage."""
 
