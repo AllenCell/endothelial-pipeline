@@ -12,7 +12,6 @@ from matplotlib.colors import TwoSlopeNorm
 from matplotlib.layout_engine import ConstrainedLayoutEngine
 from matplotlib.patches import Rectangle as MplRectangle
 from matplotlib.ticker import MaxNLocator
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 from endo_pipeline.io import load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.numerics.fixed_points import (
@@ -23,6 +22,7 @@ from endo_pipeline.library.analyze.vector_field_estimation import load_drift_dat
 from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
 from endo_pipeline.library.model.diffae.generate_image import generate_from_dataframe
 from endo_pipeline.library.visualize.diffae_features.dynamics import (
+    make_legend_handles_for_fixed_pts,
     plot_drift_1d,
     plot_drift_3d,
     plot_drift_contours,
@@ -60,16 +60,16 @@ from endo_pipeline.settings.workflow_defaults import GRID_BASED_FEATURES_FILTERE
 
 def _add_colorbar_to_contour_plot(
     fig: plt.Figure,
-    axes: plt.Axes,
     vmin: float = DRIFT_CONTOUR_VMIN,
     vmax: float = DRIFT_CONTOUR_VMAX,
     ticks: np.ndarray | None = None,
     tick_label_round: int = DRIFT_CONTOUR_CBAR_ROUND,
     colormap: str = DRIFT_CONTOUR_COLORMAP,
     orientation: Literal["vertical", "horizontal"] = "vertical",
-    cax_position: Literal["top", "bottom", "left", "right"] = "right",
+    ticks_cax_position: Literal["top", "bottom", "left", "right"] = "right",
+    label_cax_position: Literal["top", "bottom", "left", "right"] = "right",
     extend: Literal["neither", "both", "min", "max"] = "both",
-    pad: float = 0.03,
+    cax_rect: tuple[float, float, float, float] = (0.45, 0.9, 0.5, 0.02),
 ) -> None:
     """
     Add a colorbar to a contour plot with specified formatting.
@@ -78,8 +78,6 @@ def _add_colorbar_to_contour_plot(
     ----------
     fig
         Matplotlib figure object containing the contour plot.
-    axes
-        Matplotlib axes object containing the contour plot.
     vmin
         Minimum value for the colorbar.
     vmax
@@ -95,23 +93,16 @@ def _add_colorbar_to_contour_plot(
     orientation
         Orientation of the colorbar, either "vertical" or "horizontal".
     cax_position
-        Position of the colorbar axes relative to the main axes, one of "top",
-        "bottom", "left", or "right".
-    pad
-        Padding between the main axes and the colorbar axes, in inches.
+        Which side of the colorbar axes to place the ticks and label, one of
+        "top", "bottom", "left", or "right".
+    cax_rect
+        Position of the colorbar axes in normalized figure coordinates
+        ``(left, bottom, width, height)``. The axes is added via
+        ``fig.add_axes(cax_rect)`` so its position is independent of the main axes
+        layout and will not be clipped on save.
 
     """
-    cax = inset_axes(
-        axes,
-        width="100%" if orientation == "horizontal" else "5%",
-        height="5%" if orientation == "horizontal" else "100%",
-        loc="lower left",
-        bbox_to_anchor=(
-            (0, 1.0 + pad, 1, 1) if orientation == "horizontal" else (1.0 + pad, 0, 1, 1)
-        ),
-        bbox_transform=axes.transAxes,
-        borderpad=0,
-    )
+    cax = fig.add_axes(cax_rect)
 
     color_mappable = ScalarMappable(
         norm=TwoSlopeNorm(vmin=vmin, vmax=vmax, vcenter=0), cmap=colormap
@@ -127,13 +118,14 @@ def _add_colorbar_to_contour_plot(
     )
     colorbar_ticks = np.round(colorbar_ticks, tick_label_round)
 
-    fig.colorbar(
+    cbar = fig.colorbar(
         color_mappable, cax=cax, orientation=orientation, ticks=colorbar_ticks, extend=extend
     )
 
     tick_axis = cax.xaxis if orientation == "horizontal" else cax.yaxis
-    tick_axis.set_ticks_position(cax_position)
-    tick_axis.set_label_position(cax_position)
+    tick_axis.set_ticks_position(ticks_cax_position)
+    tick_axis.set_label_position(label_cax_position)
+    cbar.set_label("vector field \ncomponent value", fontsize=FONTSIZE_XSMALL, labelpad=2)
 
 
 def _get_nullcline_coords_from_contour_axes(
@@ -296,6 +288,7 @@ def make_2d_contour_plot_panel(
     stable_fixed_point: np.ndarray,
     filename: str,
     include_legend: bool = True,
+    include_colorbar: bool = True,
 ) -> tuple[Path, dict[Column.DiffAEData, np.ndarray]]:
     """
     Make and save plot of drift contours in (r, rho) space for a given dataset.
@@ -329,6 +322,15 @@ def make_2d_contour_plot_panel(
     }
 
     # plot drift contours and save
+    # Use explicit axes rects (no layout engine) so the figure behaves the
+    # same way as the 3D plots: positions are fixed and additional axes for
+    # the colorbar or legend can be placed at known figure coordinates
+    # without risk of clipping.  Reserve the top 20 % for the colorbar and
+    # (when a legend is shown) leave the right ~35 % for the legend.
+    if include_legend:
+        subplot_rects = [(0.12, 0.45, 0.55, 0.35), (0.12, 0.05, 0.55, 0.35)]
+    else:
+        subplot_rects = [(0.12, 0.45, 0.80, 0.35), (0.12, 0.05, 0.80, 0.35)]
     fig, axes_ = plot_drift_contours(
         meshgrid=meshgrid,
         drift=drift,
@@ -348,6 +350,7 @@ def make_2d_contour_plot_panel(
         xlabel_kwargs=xlabel_kwargs,
         ylabel_kwargs=ylabel_kwargs,
         axes_title_kwargs=axes_title_kwargs,
+        axes_rects=subplot_rects,
     )
     # get (r, rho) coordinates of r- and rho-nullclines for generating images
     axes = cast(np.ndarray[plt.Axes, Any], axes_)
@@ -388,14 +391,12 @@ def make_2d_contour_plot_panel(
         if ax_index == 0:
             ax_.tick_params(labelbottom=False)
 
-    # add colorbar to the top of the first subplot
-    _add_colorbar_to_contour_plot(fig, axes_[0], orientation="horizontal", cax_position="top")
-
-    # shrink the constrained-layout region so the inset colorbar axes
-    # (which lives outside the main axes boundary) is not clipped on save
-    layout_engine = fig.get_layout_engine()
-    if isinstance(layout_engine, ConstrainedLayoutEngine):
-        layout_engine.set(rect=(0.0, 0.0, 1.0, 0.8))
+    if include_colorbar:
+        # add colorbar via fig.add_axes so its position is fixed in figure
+        # coordinates and does not affect the main axes layout or get clipped on save
+        _add_colorbar_to_contour_plot(
+            fig, orientation="horizontal", ticks_cax_position="bottom", label_cax_position="top"
+        )
 
     if include_legend:
         handles = []
@@ -416,12 +417,27 @@ def make_2d_contour_plot_panel(
             )
             handles.append(handle)
             labels.append(legend_label)
+
+        fixed_point_label = f"({column_labels[0]}$^*$, {column_labels[1]}$^*$)"
+        fp_handles = make_legend_handles_for_fixed_pts(
+            fpt_stabilities=[StabilityLabel.STABLE],
+            marker_size=4,
+            labels={StabilityLabel.STABLE: fixed_point_label},
+        )
+        handles.extend(fp_handles)
+        labels.append(fixed_point_label)
+        # Add a dedicated invisible axes to the right of the main subplots via
+        # fig.add_axes so the legend can be anchored within figure bounds —
+        # the same pattern used for the colorbar.
+        legend_ax = fig.add_axes((0.9, 0.5, 0.29, 0.73))
+        legend_ax.set_axis_off()
         fig.legend(
             handles,
             labels,
             fontsize="xx-small",
-            loc="upper center",
-            bbox_to_anchor=(0.5, 0.95),
+            loc="upper left",
+            bbox_to_anchor=(0.0, 1.0),
+            bbox_transform=legend_ax.transAxes,
             ncol=1,
             handletextpad=0.3,
         )
@@ -498,20 +514,32 @@ def make_1d_drift_plot_panel(
         markersize=5,
     )
 
-    # shrink the constrained-layout region so the legend placed above the
-    # axes does not get clipped on save; applied unconditionally so axes
-    # size stays constant whether or not the legend is shown
+    # restrict the constrained-layout region to the lower portion of the figure
+    # to reserve space above the main axes for the legend; applied unconditionally
+    # so axes size stays constant whether or not the legend is shown
     layout_engine = fig.get_layout_engine()
     if isinstance(layout_engine, ConstrainedLayoutEngine):
         layout_engine.set(rect=(0.0, 0.0, 1.0, 0.9))
 
-    # add legend
+    # add legend — bbox_to_anchor uses figure coordinates so placement is fixed
+    # independently of the main axes layout and will not be clipped on save
     if include_legend:
+        handles, labels = ax.get_legend_handles_labels()
+        fixed_point_label = f"{column_label}$^*$"
+        fp_handles = make_legend_handles_for_fixed_pts(
+            fpt_stabilities=[StabilityLabel.STABLE],
+            marker_size=4,
+            labels={StabilityLabel.STABLE: fixed_point_label},
+        )
+        handles.extend(fp_handles)
+        labels.append(fixed_point_label)
         fig.legend(
+            handles,
+            labels,
             fontsize="xx-small",
             loc="upper center",
-            bbox_to_anchor=(0.6, 0.99),
-            ncol=2,
+            bbox_to_anchor=(1.05, 0.99),
+            ncol=3,
             handletextpad=0.3,
             columnspacing=0.75,
         )
@@ -697,6 +725,7 @@ def reconstruct_fixed_points(
     output_path: Path,
     num_gpus: int | None = None,
     random_seed: int | None = 4,
+    include_row_label: bool = False,
 ) -> Path:
     """
     Reconstruct the fixed point coordinates from the polar angle, radius, and
@@ -716,8 +745,11 @@ def reconstruct_fixed_points(
     random_seed_start
         Starting random seed for reproducibility.
     num_examples
-        Number of examples to generate for each fixed point coordinate (by varying
-        the random seed).
+        Number of examples to generate for each fixed point coordinate (by
+        varying the random seed).
+    include_row_label
+        If True, label the row of the contact sheet with "Reconstructed
+        VE-cadherin MIP." Else, do not label the row of the contact sheet.
     """
 
     # reconstruct images along at the fixed point coordinates and make a contact
@@ -736,8 +768,9 @@ def reconstruct_fixed_points(
         max_rows=1,
         max_cols=1,
         fig_kwargs={"figsize": figure_size, "layout": "constrained"},
+        row_titles=["Reconstructed\nVE-cadherin MIP"] if include_row_label else None,
         gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
-        font_size=FONTSIZE_SMALL,
+        font_size=FONTSIZE_XSMALL,
     )
 
     # Add axes title ({feat_1}^*, {feat_2}^*, {feat_3}^*) labeling the

@@ -216,6 +216,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             stable_fixed_point=stable_fixed_point_r_rho,
             filename=f"{dataset_name}_{columns_r_rho_str}_contours",
             include_legend=include_cbar_legend,
+            include_colorbar=include_cbar_legend,
             **placeholders["B"],
         )
 
@@ -226,6 +227,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             output_path=fig_savedir,
             figure_size=(0.9, 1.13),
             num_gpus=NUM_GPUS,
+            include_row_label=include_cbar_legend,
             **placeholders["C"],
         )
 
@@ -260,7 +262,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         example_tracked_crop_index=low_flow_dataset.tracked_crop_index,
         example_grid_crop_index=low_flow_dataset.grid_crop_index,
         output_path=output_path,
-        figure_size=(1.9, 2.13),
+        figure_size=(1.85, 1.95),
         **placeholders["E"],
     )
     # --- Histogram of first passage time correlation ---
@@ -296,32 +298,32 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             path=theta_plot_paths[dataset_low],
             x_position=0.0,
             y_position=2.05,
-            x_offset=0.00,
-            y_offset=0.15,
+            x_offset=0.025,
+            y_offset=0.0,
         ),
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_low],
-            x_position=0.0,
-            y_position=3.7,
-            x_offset=0.0,
-            y_offset=0.05,
+            x_position=-0.05,
+            y_position=3.5,
+            x_offset=-0.025,
+            y_offset=0.0,
         ),
         FigurePanel(
             letter="",
             path=theta_plot_paths[dataset_high],
-            x_position=1.625,
+            x_position=1.6,
             y_position=2.05,
             x_offset=0.00,
-            y_offset=0.15,
+            y_offset=0.0,
         ),
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_high],
-            x_position=1.6,
-            y_position=3.7,
+            x_position=1.585,
+            y_position=3.5,
             x_offset=0.0,
-            y_offset=0.05,
+            y_offset=0.0,
         ),
         # --- Fixed point reconstructions (panel C) ---
         FigurePanel(
@@ -346,29 +348,29 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             path=fixed_point_summary_plot_path,
             x_position=3.225,
             y_position=1.25,
-            x_offset=-0.1,
-            y_offset=0.35,
+            x_offset=0.0,
+            y_offset=0.15,
         ),
         FigurePanel(
             letter="E",
             path=trajectory_example_filepath,
             x_position=3.225,
             y_position=3.15,
-            x_offset=0.1,
-            y_offset=0.2,
+            x_offset=0.3,
+            y_offset=0.0,
         ),
         FigurePanel(
             letter="F",
             path=first_passage_path,
-            x_position=3.225,
+            x_position=3.25,
             y_position=5.0,
-            x_offset=0.075,
-            y_offset=0.0,
+            x_offset=0.1,
+            y_offset=0.05,
         ),
     ]
 
     build_figure_from_panels(
-        panels, output_path / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=6.75
+        panels, output_path / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=6.5
     )
 
 
