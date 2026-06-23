@@ -652,10 +652,26 @@ class ColumnName:
     """Learned Perceptual Image Patch Similarity (LPIPS) between input and denoised image."""
 
 
-class ColumnNamePrefix(StrEnum):
-    """Prefixes for dataframe column names."""
+class ColumnNameTemplate(StrEnum):
+    """Dataframe column name templates."""
 
-    NUCLEI_WITH_MOST_OVERLAP = "nuclei_with_most_overlap_"
+    NUCLEI_WITH_MOST_OVERLAP = "nuclei_with_most_overlap_%d"
+    """
+    Column name template: ID of nuclei prediction that overlaps most with cell
+    segmentation (index %d, multiple nuclei recorded in additional columns).
+    """
+
+    NUCLEI_WITH_MOST_OVERLAP_CENTROID_X = "nuclei_with_most_overlap_%d_centroid_X"
+    """
+    Centroid X coordinate of nuclei prediction that overlaps most with cell
+    segmentation (index %d, multiple nuclei recorded in additional columns)
+    """
+
+    NUCLEI_WITH_MOST_OVERLAP_CENTROID_Y = "nuclei_with_most_overlap_%d_centroid_Y"
+    """
+    Centroid Y coordinate of nuclei prediction that overlaps most with cell
+    segmentation (index %d, multiple nuclei recorded in additional columns)
+    """
 
 
 class ColumnNameSuffix(StrEnum):

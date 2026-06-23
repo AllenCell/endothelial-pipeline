@@ -12,7 +12,7 @@ from skimage import draw, filters, graph, measure, morphology, segmentation
 from endo_pipeline.configs import ChannelName
 from endo_pipeline.library.process.general_image_preprocessing import ImageProcessingArgs
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.column_names import ColumnNamePrefix as ColumnPrefix
+from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 
 logger = logging.getLogger(__name__)
 
@@ -1767,7 +1767,7 @@ def get_nuclei_features_from_image(
     for prop in reg_props:
         nuc_seg_labels = np.unique(prop.intensity_image[prop.intensity_image != 0]).tolist()
 
-        nuc_feats = {
+        nuc_feats: dict[str, Any] = {
             Column.SegDataWorkflowVerification.CDH5_SEGMENTATION_LABEL: prop.label,
             Column.SegDataWorkflowVerification.NUCLEI_LABELS_IN_CDH5_SEGMENTATION: nuc_seg_labels,
             Column.SegDataWorkflowVerification.NUCLEI_FRACTION_IN_CDH5_SEGMENTATION: [],
@@ -1797,9 +1797,15 @@ def get_nuclei_features_from_image(
             if nuc_lab_frac_dict[lab] == max(nuc_lab_frac_dict.values())
         ]
         for i, nuc_lab_max in enumerate(nuclei_seg_with_most_overlap):
-            nuc_feats[f"{ColumnPrefix.NUCLEI_WITH_MOST_OVERLAP}{i}"] = nuc_lab_max
+            nuc_feats[ColumnTemplate.NUCLEI_WITH_MOST_OVERLAP % i] = nuc_lab_max
             for dim_index, dim in enumerate(seg_dim_order):
-                nuc_feats[f"{ColumnPrefix.NUCLEI_WITH_MOST_OVERLAP}{i}_centroid_{dim}"] = float(
+                if dim == "X":
+                    column_name = ColumnTemplate.NUCLEI_WITH_MOST_OVERLAP_CENTROID_X % i
+                elif dim == "Y":
+                    column_name = ColumnTemplate.NUCLEI_WITH_MOST_OVERLAP_CENTROID_Y % i
+                else:
+                    raise ValueError("Dimension %s does not have a column name template", dim)
+                nuc_feats[column_name] = float(
                     nuc_props_on_intens[ChannelName.BF][nuc_lab_max].centroid[dim_index]
                 )
 
