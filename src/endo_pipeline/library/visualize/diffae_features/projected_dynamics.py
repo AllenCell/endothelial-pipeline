@@ -364,6 +364,7 @@ def visualize_projected_dynamics(
     column_names_str = cast(list[str], column_names)
     stable_fixed_point_1_ = stable_df.iloc[0][column_names_str].to_numpy()
     stable_fixed_point_2_ = stable_df.iloc[1][column_names_str].to_numpy()
+    # modify theta coordinate to be within defined range used for 3D visualization
     for point in [stable_fixed_point_1_, stable_fixed_point_2_]:
         if point[0] < VECTOR_FIELD_THETA_RANGE[0]:
             point[0] += POLAR_ANGLE_PERIOD
