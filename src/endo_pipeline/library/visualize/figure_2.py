@@ -860,15 +860,17 @@ def make_first_passage_time_distance_to_linefit_hist(
     n_size = len(distances_all)
 
     fig, ax = plt.subplots(figsize=figure_size, layout="constrained")
-    biggest_distance_as_int = int(max(np.ceil(distances_all)))
+    biggest_distance_as_int = 2 * int(max(np.ceil(distances_all)))
     ax.hist(distances_all, bins=biggest_distance_as_int, density=True, edgecolor="k")
-    column_label = "Difference (hrs)"
+    column_label = (
+        "Deviation of MFPTs from linear\nfit for grid vs. cell-centered\ntrajectories (hrs)"
+    )
     ax.set_xlabel(column_label)
     ax.set_ylabel("Probability density")
     ax.xaxis.set_major_locator(MultipleLocator(base=3))
     # make sure y ticks are integers since this is a count histogram
     ax.yaxis.set_major_locator(MultipleLocator(base=0.1))
-    ax.annotate(f"n = {n_size}", xy=(0.95, 0.9), xycoords="axes fraction", ha="right")
+    ax.annotate(f"n = {n_size}", xy=(0.98, 0.88), xycoords="axes fraction", ha="right")
 
     filename = "fpt_hist"
     save_plot_to_path(
