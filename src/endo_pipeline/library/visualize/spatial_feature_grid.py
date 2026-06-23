@@ -58,19 +58,18 @@ def _add_image_rows(
             for y in range(crop_size, im_height, crop_size):
                 ax.axhline(y, color="yellow", linewidth=0.5)
 
-            # Add scale bar to first image of first row only
-            if img_row_idx == 0 and col_idx == 0:
-                add_scalebar(
-                    ax,
-                    scale_bar_um=20,
-                    pixel_size=PIXEL_SIZE_3i_20x,
-                    location="lower right",
-                    bar_thickness=25,
-                    padding=25,
-                    include_label=True,
-                    label_xy=(0.98, 0.06),
-                    label_fontsize=FONTSIZE_XSMALL,
-                )
+            # Add scale bar to every image, label only on first image of first row
+            add_scalebar(
+                ax,
+                scale_bar_um=20,
+                pixel_size=PIXEL_SIZE_3i_20x,
+                location="lower right",
+                bar_thickness=25,
+                padding=25,
+                include_label=(img_row_idx == 0 and col_idx == 0),
+                label_xy=(0.98, 0.06),
+                label_fontsize=FONTSIZE_XSMALL,
+            )
 
         # Row label
         axes[img_row_idx, 0].set_ylabel(row_label, fontsize=FONTSIZE_MEDIUM)
