@@ -243,6 +243,9 @@ class DatasetConfig:
     notes: str = ""
     """"Additional notes about dataset."""
 
+    replicate_number: int | None = None
+    """Replicate number for the dataset."""
+
     timepoint_annotations: (
         dict[TimepointAnnotation, dict[int, list[int | tuple[int, int]]]] | None
     ) = None

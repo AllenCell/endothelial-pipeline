@@ -35,6 +35,7 @@ include_scenes: null
 notes: Collect low SS 48h timelapse of CDH5 Ex3 del -/- endothelial cells. Starting
   density medium-high; higher than 20250903 and 20250908 starting densities. Gaps
   in cell monolayer that appear appear beyond 24h in timelapse
+replicate_number: 2
 timepoint_annotations:
   auto_bf_scope_error:
     0: [8, 12, 66, 87, 432, 436, 445, 475, 495, 548, 551, 570]

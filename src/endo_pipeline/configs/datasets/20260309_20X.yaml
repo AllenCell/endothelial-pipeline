@@ -36,6 +36,7 @@ notes: CD31-sorted AICS-126 cl.41 low SS 48h. GFP looks good, parallel alignment
   Piling occurs around 24h mark. FOV 1 (1-indexed) bubble crosses, center darkens
   at TP102. FOV 5 bubble crosses, dark line at TP213. FOV 6 spinning disk stripe artifact
   darkens FOV at TP562.
+replicate_number: 1
 timepoint_annotations:
   auto_bf_scope_error:
     0: [2, 84, 216, 248]

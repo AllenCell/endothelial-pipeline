@@ -33,6 +33,7 @@ flow_conditions:
   shear_stress: 20.87
 include_scenes: null
 notes: ''
+replicate_number: 2
 timepoint_annotations:
   auto_bf_scope_error:
     0: [225, 238, 485, 549, 550]

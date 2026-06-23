@@ -36,6 +36,7 @@ notes: CDH5 truncated mutant (AICS-177 cl.26) low SS 48h. Minimal GFP signal as 
   puncta forming during flow. BF shows cells get long, thin, and parallel until ~50%
   timelapse then scatter with gaps and long protrusions. FOV 1 (1-indexed) top flickers
   dark at TP71. FOV 5 top flickers dark at TP513.
+replicate_number: 4
 timepoint_annotations:
   auto_bf_scope_error:
     0: [2, 25, 31, 42, 46, 70, 77, 98, 99, 278, 291, 492, 550]

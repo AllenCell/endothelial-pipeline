@@ -33,6 +33,7 @@ flow_conditions:
   shear_stress: 5.24
 include_scenes: null
 notes: cells become very crowded near end of timelapse
+replicate_number: 3
 timepoint_annotations:
   auto_bf_scope_error:
     0: [0, 77, 171, 229, 282, 531]

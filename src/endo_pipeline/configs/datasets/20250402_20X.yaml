@@ -33,6 +33,7 @@ flow_conditions:
   shear_stress: 5.85
 include_scenes: null
 notes: cells become extremely crowded at end of video
+replicate_number: 2
 timepoint_annotations:
   auto_bf_scope_error:
     0: [146, 208]

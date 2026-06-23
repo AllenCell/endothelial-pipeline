@@ -34,6 +34,7 @@ flow_conditions:
 include_scenes: null
 notes: Caution, some patchiness occurs after TP489 & cells are very crowded by the
   end of the movie. No other artifacts noted.
+replicate_number: 1
 timepoint_annotations:
   auto_bf_scope_error:
     0: [24, 114, 240, 275]

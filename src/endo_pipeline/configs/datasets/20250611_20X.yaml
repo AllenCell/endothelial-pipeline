@@ -34,6 +34,7 @@ flow_conditions:
 include_scenes: null
 notes: Flow history. Under flow for 1h 15min prior to start of imaging. Cells become
   overgrown earlier than in previous timelapse experiments (~25h)
+replicate_number: 1
 timepoint_annotations:
   auto_bf_scope_error:
     0: [486, 513, 542, 564]

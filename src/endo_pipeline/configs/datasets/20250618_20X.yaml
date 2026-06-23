@@ -35,6 +35,7 @@ include_scenes: null
 notes: Cells are very overgrown by end of experiment. A small hole appears in the
   timelapse partway through and doesn't close. Manually adjusted the center_z_plane
   from 14 to 13.
+replicate_number: 1
 timepoint_annotations:
   auto_bf_scope_error:
     0: [6, 13, 52, 99, 166, 212, 220, 222, 273, 337, 359, 365, 529, 538, 541, 544,

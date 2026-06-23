@@ -34,6 +34,7 @@ flow_conditions:
 include_scenes: null
 notes: Collect low SS 48h timelapse of CDH5 Ex3 del -/- endothelial cells. Mostly
   parallel alignment by 24h into the timelapse, then unalign and some gaps open up.
+replicate_number: 3
 timepoint_annotations:
   auto_bf_scope_error:
     0: [36, 51, 184, 538, 556]
