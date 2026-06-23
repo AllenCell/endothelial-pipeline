@@ -651,10 +651,10 @@ def reconstruct_along_nullcline(
     ax_bot_left = fig_null_walks.axes[n_cols]
     pos_top_left = ax_top_left.get_position()
     pos_bot_left = ax_bot_left.get_position()
-    label_x = pos_top_left.x0 - 0.2
+    label_x = pos_top_left.x0 - 0.125
     for pos, label in [
-        (pos_top_left, "r-nullcline"),
-        (pos_bot_left, f"{Unicode.RHO}-nullcline"),
+        (pos_top_left, "dr/dt=0"),
+        (pos_bot_left, f"d{Unicode.RHO}/dt=0"),
     ]:
         fig_null_walks.text(
             label_x,
