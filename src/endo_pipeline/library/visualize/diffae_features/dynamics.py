@@ -972,9 +972,9 @@ def plot_drift_3d(
     )
 
     if include_colorbar:
-        # Colorbar - horizontal strip at the top, shifted left to leave room for legend
+        # Colorbar - horizontal strip in the top area (legend is stacked above).
         scalar_mappable.set_array([])
-        cbar_ax = fig.add_axes((0.2, 0.84, 0.32, 0.025))
+        cbar_ax = fig.add_axes((0.25, 0.84, 0.5, 0.025))
         cbar = fig.colorbar(
             scalar_mappable,
             cax=cbar_ax,
@@ -986,7 +986,7 @@ def plot_drift_3d(
         cbar_ax.xaxis.tick_bottom()
 
     if include_legend:
-        # Legend to the right of the colorbar. Draw the vector arrow handle as a
+        # Legend above the colorbar. Draw the vector arrow handle as a
         # shaft + filled triangular cone head (matching the plot style) coloured at
         # a value in the center of the colormap, and add a proxy artist for the
         # stable fixed point using the same marker and color as in the plot.
@@ -1010,8 +1010,8 @@ def plot_drift_3d(
         fig.legend(
             handles=handles,
             fontsize=FONTSIZE_XSMALL,
-            loc="upper left",
-            bbox_to_anchor=(0.55, 0.91),
+            loc="lower center",
+            bbox_to_anchor=(0.5, 0.925),
             frameon=False,
             handletextpad=0.3,
             labelspacing=0.4,
