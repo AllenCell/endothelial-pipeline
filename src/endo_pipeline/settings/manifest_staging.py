@@ -24,6 +24,7 @@ STAGING_DATAFRAME_MANIFEST_NAMES = [
     "nuclei_labelfree_segmentation",
     "cdh5_classic_segmentation_tracking",
     "merged_segmentation_features",
+    "diffae_training_dataframe",
 ]
 """List of names of dataframe manifests to stage."""
 

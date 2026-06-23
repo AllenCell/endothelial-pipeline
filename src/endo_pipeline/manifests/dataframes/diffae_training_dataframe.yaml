@@ -16,8 +16,8 @@ locations:
   training:
     fmsid: aa3a82d4b4004b35ad64021247a729ae
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_training_dataframe/training.parquet
   validation:
     fmsid: c7511fd701134011b790a60e58bc3833
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_training_dataframe/validation.parquet
