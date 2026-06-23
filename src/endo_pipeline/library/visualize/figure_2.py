@@ -395,7 +395,7 @@ def make_2d_contour_plot_panel(
     # (which lives outside the main axes boundary) is not clipped on save
     layout_engine = fig.get_layout_engine()
     if isinstance(layout_engine, ConstrainedLayoutEngine):
-        layout_engine.set(rect=(0.0, 0.0, 1.0, 0.9))
+        layout_engine.set(rect=(0.0, 0.0, 1.0, 0.8))
 
     if include_legend:
         handles = []
@@ -421,8 +421,8 @@ def make_2d_contour_plot_panel(
             labels,
             fontsize="xx-small",
             loc="upper center",
-            bbox_to_anchor=(0.5, 0.99),
-            ncol=2,
+            bbox_to_anchor=(0.5, 0.95),
+            ncol=1,
             handletextpad=0.3,
         )
 
@@ -510,7 +510,7 @@ def make_1d_drift_plot_panel(
         fig.legend(
             fontsize="xx-small",
             loc="upper center",
-            bbox_to_anchor=(0.55, 0.99),
+            bbox_to_anchor=(0.6, 0.99),
             ncol=2,
             handletextpad=0.3,
             columnspacing=0.75,
@@ -691,6 +691,7 @@ def reconstruct_along_nullcline(
 @figure_panel("Reconstruct at fixed point.")
 def reconstruct_fixed_points(
     fixed_point_df: pd.DataFrame,
+    shear_stress_label: str,
     model: DiffusionAutoEncoder,
     figure_size: tuple[float, float],
     output_path: Path,
@@ -743,9 +744,9 @@ def reconstruct_fixed_points(
     # fixed point, using the same stable fixed point marker color.
     ax = fig_fixed_point_reconstructions.axes[0]
     ax.set_title(
-        f"({Unicode.THETA}$^*$, r$^*$, {Unicode.RHO}$^*$)",
-        color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color,
-        fontsize=FONTSIZE_XSMALL,
+        f"{shear_stress_label}:\n({Unicode.THETA}$^*$, r$^*$, {Unicode.RHO}$^*$)",
+        color="black",
+        fontsize=FONTSIZE_SMALL,
         fontweight="bold",
     )
 

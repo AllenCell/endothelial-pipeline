@@ -487,6 +487,7 @@ def plot_cross_dataset_summaries(
     ylabel_horizontal_alignment: Literal["left", "center", "right"] = "left",
     ylabel_vertical_alignment: Literal["top", "center", "bottom"] = "center",
     yaxis_for_fixed_points: bool = True,
+    remove_label_linebreaks: bool = True,
 ) -> Path:
     """
     Plot cross dataset summaries for given columns in selected plot mode.
@@ -555,6 +556,9 @@ def plot_cross_dataset_summaries(
     yaxis_for_fixed_points
         If True then add a * to the y axis label to denote it is for fixed
         points.
+    remove_label_linebreaks
+        If True, remove line breaks from colorbar labels to improve formatting
+        in horizontal layout.
 
     Returns
     -------
@@ -649,10 +653,12 @@ def plot_cross_dataset_summaries(
         )
         if scalar_mappable is not None:
             cbar_label = (
-                color_column_metadata.label.replace("\n", " ")
+                color_column_metadata.label
                 if color_column_metadata and color_column_metadata.label
                 else str(color_by_column)
             )
+            if remove_label_linebreaks:
+                cbar_label = cbar_label.replace("\n", " ")
             # Attach colorbar to last panel only so it spans one panel height
             cbar = fig.colorbar(scalar_mappable, ax=axes[-1], pad=0.02)
             cbar.set_label(cbar_label, fontsize=FONTSIZE_SMALL)

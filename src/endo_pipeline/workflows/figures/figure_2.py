@@ -57,7 +57,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.settings.column_metadata import COLUMN_METADATA
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.examples import EXAMPLE_DATASET, FPT_FIG_EXAMPLES
-    from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
     from endo_pipeline.settings.flow_field_dataframes import (
         BOOTSTRAPPING_MANIFEST_NAMES,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
@@ -221,6 +221,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
         fixed_point_reconstruction_paths[dataset_name] = reconstruct_fixed_points(
             fixed_point_df=stable_fixed_points_dict[feature_columns_str],
+            shear_stress_label=shear_stress_label,
             model=model,
             output_path=fig_savedir,
             figure_size=(0.9, 1.13),
@@ -245,9 +246,10 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         column_names=feature_column_names,
         axis_mode="shear_stress",
         subplot_layout="horizontal",
-        figure_size=(3.15, 2.1),
+        figure_size=(3.15, 1.8),
         color_by_column=Column.OpticalFlow.UNIT_VECTOR_MEAN,
         ylabel_rotation=0,
+        remove_label_linebreaks=False,
         **placeholders["D"],
     )
     # --- First passage time analysis schematic ---
@@ -258,7 +260,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         example_tracked_crop_index=low_flow_dataset.tracked_crop_index,
         example_grid_crop_index=low_flow_dataset.grid_crop_index,
         output_path=output_path,
-        figure_size=(3.0, 2.7),
+        figure_size=(1.9, 2.13),
         **placeholders["E"],
     )
     # --- Histogram of first passage time correlation ---
@@ -344,14 +346,14 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             path=fixed_point_summary_plot_path,
             x_position=3.225,
             y_position=1.25,
-            x_offset=0.05,
-            y_offset=0.1,
+            x_offset=-0.1,
+            y_offset=0.35,
         ),
         FigurePanel(
             letter="E",
             path=trajectory_example_filepath,
             x_position=3.225,
-            y_position=3.05,
+            y_position=3.15,
             x_offset=0.1,
             y_offset=0.2,
         ),
@@ -359,14 +361,14 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             letter="F",
             path=first_passage_path,
             x_position=3.225,
-            y_position=4.75,
+            y_position=5.0,
             x_offset=0.075,
             y_offset=0.0,
         ),
     ]
 
     build_figure_from_panels(
-        panels, output_path / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
+        panels, output_path / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=6.75
     )
 
 
