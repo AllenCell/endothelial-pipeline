@@ -34,7 +34,9 @@ flow_conditions:
 include_scenes: null
 notes: Possible slight slide tilt FOV 1 to FOV 6, not too severe after QC. GFP and
   BF both look good.
-replicate_number: 7
+
+stability_category: bistable
+replicate_number: 3
 timepoint_annotations:
   auto_bf_scope_error:
     0: [246, 251, 521]

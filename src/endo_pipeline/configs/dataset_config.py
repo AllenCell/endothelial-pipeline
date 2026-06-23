@@ -246,6 +246,9 @@ class DatasetConfig:
     replicate_number: int | None = None
     """Replicate number for the dataset."""
 
+    stability_category: Literal["monostable", "bistable"] | None = None
+    """Fixed-point stability category (monostable or bistable)."""
+
     timepoint_annotations: (
         dict[TimepointAnnotation, dict[int, list[int | tuple[int, int]]]] | None
     ) = None

@@ -34,7 +34,9 @@ flow_conditions:
 include_scenes: null
 notes: Cell piling from right side ~TP 288. Hole fills by TP 50 FOV 4. BF darkening
   FOVs 5-6 TP 67-68, TP 279-294, TP 314. Non-endos FOVs 2-4. Debris bottom FOV 2.
-replicate_number: 6
+
+stability_category: bistable
+replicate_number: 2
 timepoint_annotations:
   auto_bf_scope_error:
     0: [67, 278, 279, 282, 285, 289, 294, 297, 312]

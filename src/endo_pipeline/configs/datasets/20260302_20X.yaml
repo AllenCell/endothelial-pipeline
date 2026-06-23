@@ -34,7 +34,9 @@ flow_conditions:
 include_scenes: null
 notes: Debris in FOVs 1, 2, 5, bottom-right FOV 4, bottom FOV 6 (1-indexed) stuck
   to monolayer. No brightness flickering or bubbles. GFP looks good, no gaps.
-replicate_number: 9
+
+stability_category: monostable
+replicate_number: 6
 timepoint_annotations:
   auto_bf_scope_error:
     0: [52, 249, 250, 260, 333]

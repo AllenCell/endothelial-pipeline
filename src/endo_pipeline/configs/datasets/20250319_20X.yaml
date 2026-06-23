@@ -33,6 +33,7 @@ flow_conditions:
   shear_stress: 12.2
 include_scenes: null
 notes: Stopped imaging prior to 48 hours because cells were very packed
+stability_category: bistable
 replicate_number: 1
 timepoint_annotations:
   auto_bf_scope_error:

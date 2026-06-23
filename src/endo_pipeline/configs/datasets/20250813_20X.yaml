@@ -33,6 +33,8 @@ flow_conditions:
   shear_stress: 14.65
 include_scenes: null
 notes: Cells take on more mixed than perpendicular alignment
+
+stability_category: bistable
 replicate_number: 1
 timepoint_annotations:
   auto_bf_scope_error:
