@@ -188,6 +188,8 @@ def plot_streamlines_of_projected_vector_field(
     fig_kwargs: dict[str, Any] | None = None,
     streamplot_kwargs: dict[str, Any] | None = None,
     origin_3d: np.ndarray | None = None,
+    xlabel: str = "Projected component 1",
+    ylabel: str = "Projected component 2",
 ) -> plt.Figure:
     """
     Plot streamlines of a vector field projected onto a 2D plane.
@@ -214,6 +216,10 @@ def plot_streamlines_of_projected_vector_field(
     origin_3d
         The 3D point corresponding to the 2D origin. Passed through to
         :func:`projected_vector_field_onto_plane`.
+    xlabel
+        Label for the x-axis.
+    ylabel
+        Label for the y-axis.
 
     Returns
     -------
@@ -239,8 +245,8 @@ def plot_streamlines_of_projected_vector_field(
         vector_field_2d[..., 1],
         **(streamplot_kwargs or {}),
     )
-    ax.set_xlabel("Projected component 1")
-    ax.set_ylabel("Projected component 2")
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
 
     return fig
 
