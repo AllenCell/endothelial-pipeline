@@ -435,8 +435,8 @@ def visualize_projected_dynamics(
         vector_field_function=vector_field_function,
         ortho_basis=ortho_basis,
         meshgrid_2d=(x_mesh, y_mesh),
-        figure_size=(3.5, 3.5),
-        fig_kwargs={"figsize": figure_size, "layout": "constrained"},
+        figure_size=figure_size,
+        fig_kwargs={"layout": "constrained"},
         streamplot_kwargs=streamplot_kwargs
         or {"density": 1.0, "linewidth": 0.75, "color": "dimgrey"},
         origin_3d=saddle_point,
