@@ -63,17 +63,14 @@ VALIDATION_SAVE_INTERVAL_IN_FRAMES = 48
 """Interval between frames when saving validation images."""
 
 CHANNEL_COLORS = {
-    "CDH5_SEG": "#ffffff",
-    "NUC_SEG": "#ffffff",
-    "GRID_SEG": "#ffffff",
-    "Raw CDH5": "#ffffff",
-    "Processed CDH5": "#ffffff",
-    "Hysteresis Threshold": "#00ffff",
-    "Initial Segmentation": "#ff00ff",
-    "Merged Segmentation": "#ff00ff",
-    "Nuclei Predictions": "#ff0000",
-    "CDH5 Segmentation Split by Nuclei": "#00ff00",
-    "CDH5 Segmentation Split by Nuclei Borders": "#0000ff",
+    "VE-cadherin_mEGFP_maximum_intensity_projection": "ffffff",  # white
+    "VE-cadherin_mEGFP_processed": "ffffff",  # white
+    "VE-cadherin_mEGFP_hysteresis_threshold": "00ffff",  # teal
+    "VE-cadherin_mEGFP_initial_segmentation": "ff00ff",  # magenta
+    "VE-cadherin_mEGFP_merged_segmentation": "ffff00",  # yellow
+    "Nuclei_labelfree_segmentation": "ff0000",  # red
+    "VE-cadherin_mEGFP_segmentation_split_by_nuclei": "00ff00",  # green
+    "VE-cadherin_mEGFP_segmentation_split_by_nuclei_borders": "0000ff",  # blue
 }
 """Mapping of channels to colors."""
 
@@ -131,13 +128,21 @@ def write_timelapse_from_dir_explicit_levels_single(
     else:
         t_rescale = 1
 
+    # Define channel colors based on channel names, if more than one channel
+    # is provided. Otherwise, default to white
+    channel_name_split = channel_name.split("/")
+    if len(channel_name_split) > 1:
+        channels = [Channel(label=c, color=CHANNEL_COLORS[c]) for c in channel_name_split]
+    else:
+        channels = [Channel(label=channel_name, color="#ffffff")]
+
     writer = OMEZarrWriter(
         store=Path(out_store),
         level_shapes=level_shapes,
         dtype=dtype,
         zarr_format=2,
         physical_pixel_size=pps,
-        channels=[Channel(label=c, color=CHANNEL_COLORS[c]) for c in channel_name.split("/")],
+        channels=channels,
         axes_units=["minute", "channel", "micrometer", "micrometer", "micrometer"],
     )
 

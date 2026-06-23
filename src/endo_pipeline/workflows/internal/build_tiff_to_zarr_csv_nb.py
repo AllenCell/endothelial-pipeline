@@ -49,14 +49,14 @@ image_channel_pairs = [
     (
         "cdh5_seg_validations",
         [
-            "Raw CDH5",
-            "Processed CDH5",
-            "Hysteresis Threshold",
-            "Initial Segmentation",
-            "Merged Segmentation",
-            "Nuclei Predictions",
-            "CDH5 Segmentation Split by Nuclei",
-            "CDH5 Segmentation Split by Nuclei Borders",
+            "VE-cadherin_mEGFP_maximum_intensity_projection",
+            "VE-cadherin_mEGFP_processed",
+            "VE-cadherin_mEGFP_hysteresis_threshold",
+            "VE-cadherin_mEGFP_initial_segmentation",
+            "VE-cadherin_mEGFP_merged_segmentation",
+            "Nuclei_labelfree_segmentation",
+            "VE-cadherin_mEGFP_segmentation_split_by_nuclei",
+            "VE-cadherin_mEGFP_segmentation_split_by_nuclei_borders",
         ],
     ),
 ]
