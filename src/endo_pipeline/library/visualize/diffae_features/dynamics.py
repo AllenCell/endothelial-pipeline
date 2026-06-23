@@ -943,9 +943,11 @@ def plot_drift_3d(
     colors = cmap(norm_log(np.clip(mag_flat, safe_cmin, safe_cmax)))
     scalar_mappable = ScalarMappable(cmap=cmap, norm=norm_log)
 
-    # Build matplotlib 3D figure
+    # Build matplotlib 3D figure with explicitly positioned axes to ensure
+    # consistent size regardless of whether colorbar/legend are included
     fig = plt.figure(figsize=figsize)
-    ax: Axes3D = fig.add_subplot(111, projection="3d")
+    # Position: [left, bottom, width, height] in figure coordinates
+    ax: Axes3D = fig.add_axes((0.10, 0.10, 0.80, 0.72), projection="3d")
     figsize_ratio = figsize[1] / figsize[0]
     ax.set_box_aspect((1.1 * figsize_ratio, 0.98 * figsize_ratio, 1.05 * figsize_ratio))
 
@@ -972,7 +974,7 @@ def plot_drift_3d(
     if include_colorbar:
         # Colorbar - horizontal strip at the top, shifted left to leave room for legend
         scalar_mappable.set_array([])
-        cbar_ax = fig.add_axes((0.1, 0.82, 0.48, 0.04))
+        cbar_ax = fig.add_axes((0.2, 0.84, 0.32, 0.025))
         cbar = fig.colorbar(
             scalar_mappable,
             cax=cbar_ax,
@@ -1009,7 +1011,7 @@ def plot_drift_3d(
             handles=handles,
             fontsize=FONTSIZE_XSMALL,
             loc="upper left",
-            bbox_to_anchor=(0.65, 0.90),
+            bbox_to_anchor=(0.55, 0.91),
             frameon=False,
             handletextpad=0.3,
             labelspacing=0.4,

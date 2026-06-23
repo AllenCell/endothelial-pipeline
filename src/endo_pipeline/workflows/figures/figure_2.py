@@ -180,7 +180,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         stable_fixed_point_theta = stable_fixed_points_dict[column_theta][column_theta].to_numpy()
 
         vector_field_plot_paths[dataset_name] = make_3d_vector_field_plot_panel(
-            figure_size=(2.0, 2.5),
+            figure_size=(1.8, 2.25),
             output_path=fig_savedir,
             dataset_name=dataset_name,
             include_legend=include_cbar_legend,
@@ -281,7 +281,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             letter="",
             path=vector_field_plot_paths[dataset_high],
             x_position=0.0,
-            y_position=2.0,
+            y_position=2.1,
             x_offset=0.0,
             y_offset=0.0,
         ),

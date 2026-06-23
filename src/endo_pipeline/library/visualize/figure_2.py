@@ -683,9 +683,7 @@ def reconstruct_along_nullcline(
     return output_path / f"{filename}.svg"
 
 
-@figure_panel(
-    "Reconstruct at fixed point with different random seeds and save images as a contact sheet."
-)
+@figure_panel("Reconstruct VE-cadherin patch conditioned on the stable fixed point.")
 def reconstruct_fixed_points(
     fixed_point_df: pd.DataFrame,
     model: DiffusionAutoEncoder,
@@ -737,7 +735,7 @@ def reconstruct_fixed_points(
     )
 
     # Add axes title ({feat_1}^*, {feat_2}^*, {feat_3}^*) labeling the
-    # fixed point, using the same stable color.
+    # fixed point, using the same stable fixed point marker color.
     ax = fig_fixed_point_reconstructions.axes[0]
     ax.set_title(
         f"({Unicode.THETA}$^*$, r$^*$, {Unicode.RHO}$^*$)",
@@ -877,7 +875,7 @@ def make_3d_vector_field_plot_panel(
         filename,
         file_format=".svg",
         tight_layout=False,
-        transparent=False,
+        transparent=True,
         bbox_inches="tight",
     )
 
