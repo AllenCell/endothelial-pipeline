@@ -22,6 +22,7 @@ STAGING_DATAFRAME_MANIFEST_NAMES = [
     "timepoint_outlier_annotations",
     "cdh5_classic_segmentation",
     "nuclei_labelfree_segmentation",
+    "cdh5_classic_segmentation_tracking",
 ]
 """List of names of dataframe manifests to stage."""
 
