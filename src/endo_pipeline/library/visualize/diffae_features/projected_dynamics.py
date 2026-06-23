@@ -777,16 +777,26 @@ def visualize_projected_dynamics(
             zorder=5,
         )
 
-    # plot the pre-computed trajectories
-    traj_color = FIXED_POINT_PLOT_STYLE[StabilityLabel.UNSTABLE].color
+    # plot the pre-computed trajectories with direction arrows at equal
+    # arc-length intervals
     for traj_2d in trajectories_2d:
-        ax.plot(
-            traj_2d[:, 0],
-            traj_2d[:, 1],
-            color=traj_color,
-            linewidth=1.0,
-            zorder=3,
-        )
+        x_t, y_t = traj_2d[:, 0], traj_2d[:, 1]
+        ax.plot(x_t, y_t, color="k", linewidth=1.0, zorder=3)
+
+        arc = np.concatenate([[0.0], np.cumsum(np.sqrt(np.diff(x_t) ** 2 + np.diff(y_t) ** 2))])
+        total = arc[-1]
+        if total < 1e-10:
+            continue
+        for frac in (0.35, 0.65):
+            idx = max(0, int(np.searchsorted(arc, frac * total)) - 1)
+            idx = min(idx, len(x_t) - 2)
+            ax.annotate(
+                "",
+                xy=(x_t[idx + 1], y_t[idx + 1]),
+                xytext=(x_t[idx], y_t[idx]),
+                arrowprops={"arrowstyle": "-|>", "color": "k", "lw": 1.0, "mutation_scale": 7},
+                zorder=4,
+            )
 
     file_name = f"{dataset_name}_projected_streamplot"
     save_plot_to_path(fig, output_path, f"{file_name}", file_format=".svg")
