@@ -7,6 +7,7 @@ from typing import Any, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.colors import ListedColormap
 from numdifftools import Jacobian
 from scipy.integrate import solve_ivp
 
@@ -14,6 +15,7 @@ from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
 )
+from endo_pipeline.library.analyze.numerics.integration import integrate_fixed_step_rk4
 from endo_pipeline.library.analyze.vector_field_estimation import (
     get_vector_field_as_dict_from_dataframe,
     load_drift_dataframe_for_dataset,
@@ -310,6 +312,306 @@ def _integrate_unstable_manifold_trajectories(
     return trajectories_2d
 
 
+def get_basins_of_attraction_2d(
+    vector_field_function: Callable,
+    ortho_basis: np.ndarray,
+    meshgrid_2d: tuple[np.ndarray, np.ndarray],
+    stable_fixed_point_1_2d: np.ndarray,
+    stable_fixed_point_2_2d: np.ndarray,
+    origin_3d: np.ndarray | None = None,
+    t_max: float = 200.0,
+    dt: float = 0.1,
+    convergence_radius: float | None = None,
+) -> np.ndarray:
+    """
+    Compute basins of attraction for the 2D projected dynamics.
+
+    For each point in the grid, the trajectory is integrated forward in time
+    using a vectorized RK4 scheme. Points are labelled by which stable fixed
+    point they converge to. Integration of active points stops as soon as all
+    of them have converged or ``t_max`` is reached.
+
+    Parameters
+    ----------
+    vector_field_function
+        Callable 3D vector field, used through
+        :func:`projected_vector_field_onto_plane`.
+    ortho_basis
+        2x3 orthonormal basis for the 2D projection plane.
+    meshgrid_2d
+        Tuple of two 2D arrays ``(X, Y)`` representing the evaluation grid.
+    stable_fixed_point_1_2d
+        First stable fixed point in 2D projected coordinates, shape ``(2,)``.
+    stable_fixed_point_2_2d
+        Second stable fixed point in 2D projected coordinates, shape ``(2,)``.
+    origin_3d
+        The 3D point corresponding to the 2D origin (typically the saddle
+        point). Passed through to :func:`projected_vector_field_onto_plane`.
+    t_max
+        Maximum forward integration time.
+    dt
+        Fixed time step for the RK4 integrator.
+    convergence_radius
+        Distance threshold for declaring convergence to a stable fixed point.
+        Defaults to one-tenth of the distance between the two stable fixed
+        points.
+
+    Returns
+    -------
+    :
+        Integer array with the same shape as the meshgrid arrays.  Values are
+        ``0`` for points that converge to ``stable_fixed_point_1_2d``, ``1``
+        for points that converge to ``stable_fixed_point_2_2d``, and ``-1``
+        for points that did not converge within ``t_max``.
+
+    """
+    x_mesh, y_mesh = meshgrid_2d
+    grid_shape = x_mesh.shape
+
+    sfp1 = np.asarray(stable_fixed_point_1_2d, dtype=np.float64)
+    sfp2 = np.asarray(stable_fixed_point_2_2d, dtype=np.float64)
+
+    if convergence_radius is None:
+        convergence_radius = float(np.sqrt(np.sum((sfp2 - sfp1) ** 2))) / 10.0
+
+    # Flatten to (N, 2) for vectorised processing.
+    points = np.stack([x_mesh.ravel(), y_mesh.ravel()], axis=-1).astype(np.float64)
+
+    def _f_batched(u: np.ndarray) -> np.ndarray:
+        return projected_vector_field_onto_plane(
+            u, ortho_basis, vector_field_function, origin_3d=origin_3d
+        )
+
+    stop_conditions = [
+        lambda u, _r=convergence_radius, _p=sfp1: np.sqrt(np.sum((u - _p) ** 2, axis=-1)) < _r,
+        lambda u, _r=convergence_radius, _p=sfp2: np.sqrt(np.sum((u - _p) ** 2, axis=-1)) < _r,
+    ]
+
+    _, condition_index = integrate_fixed_step_rk4(
+        f=_f_batched,
+        y0=points,
+        dt=dt,
+        t_max=t_max,
+        stop_conditions=stop_conditions,
+    )
+
+    return condition_index.reshape(grid_shape)
+
+
+def _integrate_stable_manifold_trajectories_2d(
+    vector_field_function: Callable,
+    ortho_basis: np.ndarray,
+    origin_3d: np.ndarray | None = None,
+    t_max: float = 200.0,
+    eps: float = 1e-3,
+) -> list[np.ndarray]:
+    """
+    Trace the separatrix by integrating the stable manifold of the saddle backward in time.
+
+    The saddle point is at the 2D origin. Its stable eigenvectors are found
+    from the 2D Jacobian; trajectories are started at ``±eps`` along each
+    stable eigenvector direction and integrated with the negated vector field
+    (i.e., backward in time).
+
+    Parameters
+    ----------
+    vector_field_function
+        Callable 3D vector field.
+    ortho_basis
+        2x3 orthonormal basis for the projection plane.
+    origin_3d
+        The 3D point corresponding to the 2D origin (the saddle point in 3D).
+    t_max
+        Maximum backward integration time.
+    eps
+        Initial perturbation size along each stable eigenvector direction.
+
+    Returns
+    -------
+    :
+        List of ``(n_steps, 2)`` arrays, one per integrated trajectory branch.
+
+    """
+
+    def _f_2d(u: np.ndarray) -> np.ndarray:
+        # Always pass a 2-D (1, 2) input to avoid the scalar-return code path
+        # in projected_vector_field_onto_plane for 1-D inputs.
+        u_2d = np.asarray(u, dtype=np.float64).reshape(1, 2)
+        result = projected_vector_field_onto_plane(
+            u_2d, ortho_basis, vector_field_function, origin_3d=origin_3d
+        )
+        return np.asarray(result, dtype=np.float64).reshape(2)
+
+    saddle_2d = np.zeros(2)
+    jacobian_f = Jacobian(_f_2d)
+    jac = jacobian_f(saddle_2d)
+    eigvals_complex, eigvecs_complex = np.linalg.eig(jac)
+    eigvals = eigvals_complex.real
+    eigvecs = eigvecs_complex.real
+
+    trajectories: list[np.ndarray] = []
+    stable_mask = eigvals < 0
+    if not np.any(stable_mask):
+        logger.warning("No stable eigenvalues found at the 2D saddle; cannot trace separatrix.")
+        return trajectories
+
+    stable_evecs = eigvecs[:, stable_mask]
+    for col in range(stable_evecs.shape[1]):
+        v = stable_evecs[:, col]
+        v_norm = float(np.linalg.norm(v))
+        if v_norm < 1e-10:
+            continue
+        v_unit = v / v_norm
+        for sign in (+1.0, -1.0):
+            x0 = saddle_2d + sign * eps * v_unit
+            sol = solve_ivp(
+                lambda t, y, _f=_f_2d: -_f(y),  # backward integration
+                [0.0, t_max],
+                x0,
+                method="RK45",
+                rtol=1e-6,
+                atol=1e-8,
+                dense_output=False,
+            )
+            trajectories.append(sol.y.T)  # shape (n_steps, 2)
+
+    return trajectories
+
+
+def draw_basins_and_separatrix(
+    ax: plt.Axes,
+    vector_field_function: Callable,
+    ortho_basis: np.ndarray,
+    meshgrid_2d: tuple[np.ndarray, np.ndarray],
+    stable_fixed_point_1_2d: np.ndarray,
+    stable_fixed_point_2_2d: np.ndarray,
+    origin_3d: np.ndarray | None = None,
+    basin_colors: tuple[Any, Any] = ("tab:blue", "tab:red"),
+    basin_alpha: float = 0.2,
+    separatrix_color: Any = "k",
+    separatrix_linewidth: float = 1.5,
+    separatrix_linestyle: str = "--",
+    t_max: float = 200.0,
+    dt: float = 0.1,
+    convergence_radius: float | None = None,
+    separatrix_t_max: float = 200.0,
+    separatrix_eps: float = 1e-3,
+) -> None:
+    """Draw basins of attraction and the separatrix for the 2D projected dynamics.
+
+    Computes basins of attraction by forward-integrating each grid point (see
+    :func:`get_basins_of_attraction_2d`) and overlays the two coloured basin
+    regions on ``ax``.  The separatrix is drawn by tracing the stable manifold
+    of the saddle (located at the 2D origin) backward in time (see
+    :func:`_integrate_stable_manifold_trajectories_2d`).
+
+    Parameters
+    ----------
+    ax
+        Matplotlib axes on which to draw.
+    vector_field_function
+        Callable 3D vector field.
+    ortho_basis
+        2x3 orthonormal basis for the 2D projection plane.
+    meshgrid_2d
+        Tuple of two 2D arrays ``(X, Y)`` defining the grid for basin
+        computation.
+    stable_fixed_point_1_2d
+        First stable fixed point in 2D projected coordinates, shape ``(2,)``.
+    stable_fixed_point_2_2d
+        Second stable fixed point in 2D projected coordinates, shape ``(2,)``.
+    origin_3d
+        The 3D point corresponding to the 2D origin (typically the saddle
+        point). Passed through to the underlying projection functions.
+    basin_colors
+        Fill colours for the first and second basins respectively.
+    basin_alpha
+        Transparency of the basin fill.
+    separatrix_color
+        Line colour for the separatrix.
+    separatrix_linewidth
+        Line width for the separatrix.
+    separatrix_linestyle
+        Line style for the separatrix.
+    t_max
+        Maximum forward integration time for basin computation.
+    dt
+        Fixed time step for the vectorised RK4 integrator.
+    convergence_radius
+        Distance threshold to declare convergence to a fixed point.
+    separatrix_t_max
+        Maximum backward integration time for stable manifold tracing.
+    separatrix_eps
+        Initial perturbation size along each stable eigenvector direction.
+
+    """
+    x_mesh, y_mesh = meshgrid_2d
+
+    basin_labels = get_basins_of_attraction_2d(
+        vector_field_function=vector_field_function,
+        ortho_basis=ortho_basis,
+        meshgrid_2d=meshgrid_2d,
+        stable_fixed_point_1_2d=stable_fixed_point_1_2d,
+        stable_fixed_point_2_2d=stable_fixed_point_2_2d,
+        origin_3d=origin_3d,
+        t_max=t_max,
+        dt=dt,
+        convergence_radius=convergence_radius,
+    )
+
+    # Draw each basin with pcolormesh so the fill extends to the full grid
+    # edge (shading="nearest" centres each cell on its data point).
+    for label, color in ((0, basin_colors[0]), (1, basin_colors[1])):
+        if not np.any(basin_labels == label):
+            continue
+        data = np.ma.array(
+            np.ones_like(basin_labels, dtype=float),
+            mask=(basin_labels != label),
+        )
+        ax.pcolormesh(
+            x_mesh,
+            y_mesh,
+            data,
+            cmap=ListedColormap([color]),
+            alpha=basin_alpha,
+            shading="nearest",
+        )
+
+    # Trace and draw the separatrix (stable manifold backward in time),
+    # clipped to the meshgrid extent.
+    x_min, x_max = float(x_mesh.min()), float(x_mesh.max())
+    y_min, y_max = float(y_mesh.min()), float(y_mesh.max())
+
+    separatrix_trajs = _integrate_stable_manifold_trajectories_2d(
+        vector_field_function=vector_field_function,
+        ortho_basis=ortho_basis,
+        origin_3d=origin_3d,
+        t_max=separatrix_t_max,
+        eps=separatrix_eps,
+    )
+    for traj in separatrix_trajs:
+        in_bounds = (
+            (traj[:, 0] >= x_min)
+            & (traj[:, 0] <= x_max)
+            & (traj[:, 1] >= y_min)
+            & (traj[:, 1] <= y_max)
+        )
+        traj_clipped = traj[in_bounds]
+        if traj_clipped.shape[0] < 2:
+            continue
+        ax.plot(
+            traj_clipped[:, 0],
+            traj_clipped[:, 1],
+            color=separatrix_color,
+            linewidth=separatrix_linewidth,
+            linestyle=separatrix_linestyle,
+            zorder=4,
+        )
+
+    ax.set_xlim(x_min, x_max)
+    ax.set_ylim(y_min, y_max)
+
+
 @figure_panel("2D projection of 3D morphological state space dynamics.")
 def visualize_projected_dynamics(
     dataset_name: str,
@@ -437,13 +739,23 @@ def visualize_projected_dynamics(
         meshgrid_2d=(x_mesh, y_mesh),
         figure_size=figure_size,
         fig_kwargs={"layout": "constrained"},
-        streamplot_kwargs=streamplot_kwargs
-        or {"density": 1.0, "linewidth": 0.75, "color": "dimgrey"},
+        streamplot_kwargs=streamplot_kwargs or {"density": 1.0, "linewidth": 0.75, "color": "grey"},
+        origin_3d=saddle_point,
+    )
+
+    # draw basins of attraction and separatrix before fixed points and trajectories
+    ax = fig.axes[0]
+    draw_basins_and_separatrix(
+        ax=ax,
+        vector_field_function=vector_field_function,
+        ortho_basis=ortho_basis,
+        meshgrid_2d=(x_mesh, y_mesh),
+        stable_fixed_point_1_2d=proj_sfp1,
+        stable_fixed_point_2_2d=proj_sfp2,
         origin_3d=saddle_point,
     )
 
     # plot fixed points on top
-    ax = fig.axes[0]
     for point, stability_label in [
         (stable_fixed_point_1, StabilityLabel.STABLE),
         (stable_fixed_point_2, StabilityLabel.STABLE),
@@ -459,7 +771,7 @@ def visualize_projected_dynamics(
             color=FIXED_POINT_PLOT_STYLE[stability_label].color,
             markeredgecolor="k",
             markeredgewidth=0.5,
-            markersize=9,
+            markersize=7,
             zorder=5,
         )
 
