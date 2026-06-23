@@ -192,11 +192,109 @@ def _add_feature_colorbar(
             cbar.set_ticklabels(metadata.tick_labels, fontsize=FONTSIZE_XSMALL)
 
 
+def _load_example_data(
+    example_images: list,
+    include_bf_images: bool = False,
+    image_crop_size: int = 768,
+) -> tuple[list[pd.DataFrame], dict[str, list[np.ndarray]], list[str]]:
+    """Load images, feature dataframes, and labels for a list of ExampleImage objects.
+
+    Uses lazy imports to avoid coupling the visualization module to the full
+    data-loading stack at import time.
+
+    Parameters
+    ----------
+    example_images
+        List of ``ExampleImage`` named-tuples (from settings.examples).
+    include_bf_images
+        If True, also load BF standard-deviation projection images and
+        include them as a second image row.
+    image_crop_size
+        Pixel size of the square crop loaded for each example image.
+
+    Returns
+    -------
+    (example_dfs, image_rows, example_labels)
+    """
+    from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.io import load_dataframe
+    from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
+        add_optical_flow_features,
+    )
+    from endo_pipeline.library.process.image_processing import (
+        load_processed_bf_std_dev_image_crop,
+        load_processed_egfp_image_crop,
+    )
+    from endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.settings.dynamics_workflows import (
+        DYNAMICS_COLUMN_NAMES,
+        METADATA_COLUMNS_TO_KEEP,
+    )
+    from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
+    from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
+
+    manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[MIGRATION_COHERENCE_CROP_PATTERN]
+    manifest = load_dataframe_manifest(manifest_name)
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid"], *DYNAMICS_COLUMN_NAMES]
+
+    example_dfs: list[pd.DataFrame] = []
+    example_labels: list[str] = []
+    gfp_images: list[np.ndarray] = []
+    bf_images: list[np.ndarray] = []
+
+    for i, example in enumerate(example_images):
+        dataset_name = example.dataset_name
+        dataset_config = load_dataset_config(dataset_name)
+
+        # Load VE-cadherin MIP image
+        gfp_mip = load_processed_egfp_image_crop(
+            dataset_config,
+            example.position,
+            example.timepoint,
+            example.crop_x_start,
+            example.crop_y_start,
+            crop_size=image_crop_size,
+        )
+        gfp_images.append(gfp_mip)
+
+        # Optionally load BF std dev projection
+        if include_bf_images:
+            bf_std = load_processed_bf_std_dev_image_crop(
+                dataset_config,
+                example.position,
+                example.timepoint,
+                example.crop_x_start,
+                example.crop_y_start,
+                crop_size=image_crop_size,
+            )
+            bf_images.append(bf_std)
+
+        # Load selected columns from feature dataframe
+        df_delay = load_dataframe(manifest.locations[dataset_name], delay=True)
+        df_features = df_delay[columns_to_compute].compute()
+        df_features = add_optical_flow_features(df_features, datasets=[dataset_name])
+        df_example = df_features[df_features[f"{Column.POSITION}"] == example.position]
+        df_example = df_example[df_example[f"{Column.TIMEPOINT}"] == example.timepoint]
+
+        example_dfs.append(df_example)
+        shear_stress = dataset_config.flow_conditions[0].shear_stress_bin
+        example_labels.append(f"{shear_stress} dyn/cm\u00b2\nExample {i + 1}")
+
+    image_rows: dict[str, list[np.ndarray]] = {"VE-cadherin\nMIP": gfp_images}
+    if include_bf_images:
+        image_rows["BF\nstd. dev. proj."] = bf_images
+
+    return example_dfs, image_rows, example_labels
+
+
 def create_panel_spatial_feature_grid(
-    example_dataframes: list[pd.DataFrame],
     feature_columns: list[str],
+    example_images: list | None = None,
+    example_dataframes: list[pd.DataFrame] | None = None,
     example_labels: list[str] | None = None,
     image_rows: dict[str, list[np.ndarray]] | None = None,
+    include_bf_images: bool = False,
+    image_crop_size: int = 768,
     crop_size: int = 256,
     grid_start_xy: tuple[int, int] | None = None,
     grid_dimensions: tuple[int, int] = (3, 3),
@@ -214,19 +312,41 @@ def create_panel_spatial_feature_grid(
     Each panel shows a grid of colored patches where color encodes the
     feature value at that spatial crop position.
 
+    Data can be supplied in two ways:
+
+    1. **From ``example_images``** (preferred) — pass a list of
+       ``ExampleImage`` named-tuples and the function will load VE-cadherin
+       MIP images, feature dataframes, and example labels automatically.
+       Set ``include_bf_images=True`` to also load BF std-dev projections.
+    2. **Pre-loaded** — pass ``example_dataframes`` (and optionally
+       ``image_rows`` / ``example_labels``) directly.
+
     Parameters
     ----------
-    example_dataframes
-        List of DataFrames, one per example. Each should be pre-filtered
-        to a single position/timepoint.
     feature_columns
         List of column names to visualize (one per row).
+    example_images
+        List of ``ExampleImage`` named-tuples (from ``settings.examples``).
+        When provided, images, dataframes, and labels are loaded
+        automatically and ``example_dataframes`` / ``image_rows`` /
+        ``example_labels`` are ignored.
+    example_dataframes
+        List of DataFrames, one per example. Each should be pre-filtered
+        to a single position/timepoint. Only used when ``example_images``
+        is not provided.
     example_labels
         Optional labels for each example (used as column titles).
     image_rows
         Optional dict mapping row label (e.g. "VE-cadherin MIP") to a list
         of 2D image arrays, one per example. Each entry becomes a row of
-        images at the top of the figure.
+        images at the top of the figure. Only used when ``example_images``
+        is not provided.
+    include_bf_images
+        If True, load BF standard-deviation projection images and include
+        them as an additional image row. Only used with ``example_images``.
+    image_crop_size
+        Pixel size of the square crop loaded for each example image.
+        Only used with ``example_images``.
     crop_size
         Size of each crop in pixels (used for patch width/height).
     grid_start_xy
@@ -261,6 +381,15 @@ def create_panel_spatial_feature_grid(
     plt.Figure
         The generated figure.
     """
+    # Load data from example images if provided
+    if example_images is not None:
+        example_dataframes, image_rows, example_labels = _load_example_data(
+            example_images,
+            include_bf_images=include_bf_images,
+            image_crop_size=image_crop_size,
+        )
+    if example_dataframes is None:
+        raise ValueError("Either example_images or example_dataframes must be provided.")
     # Compute grid positions from start_xy and dimensions
     spacing = grid_spacing if grid_spacing is not None else crop_size
     grid_positions: list[tuple[int, int]] | None = None
