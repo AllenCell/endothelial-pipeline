@@ -43,9 +43,9 @@ logger = logging.getLogger(__name__)
 
 zarr_seg_dir = Path("//allen/aics/endothelial/morphological_features/segmentations/")
 image_channel_pairs = [
-    ("nuclear_labelfree_seg", "NUC_SEG"),
-    ("cdh5_classic_seg", "CDH5_SEG"),
-    ("grid_seg", "GRID_SEG"),
+    ("nuclear_labelfree_seg", "Nuclei_labelfree_segmentation"),
+    ("cdh5_classic_seg", "VE-cadherin_mEGFP_segmentation"),
+    ("grid_seg", "Grid_segmentation"),
     (
         "cdh5_seg_validations",
         [
