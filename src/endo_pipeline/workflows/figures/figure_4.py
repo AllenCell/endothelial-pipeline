@@ -101,7 +101,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         color_by_column=ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
     )
 
-    dataset_name = "20260216_20X"
+    dataset_name = "20250319_20X"
     vector_field_plot_path, stable_fixed_points_df = make_3d_vector_field_plot_panel(
         dataset_name,
         output_path,
@@ -158,7 +158,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     ]
 
     build_figure_from_panels(
-        panels, output_path / "figure_3.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
+        panels, output_path / "figure_4.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
     )
 
 
