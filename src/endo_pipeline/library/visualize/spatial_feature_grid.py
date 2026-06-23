@@ -177,7 +177,13 @@ def _add_feature_colorbar(
     col_vmax = vmax if vmax is not None else 1
     norm = Normalize(vmin=col_vmin, vmax=col_vmax)
     sm = mpl_cm.ScalarMappable(cmap=colormap, norm=norm)
-    cbar_ax = fig.add_subplot(gs[ax_row, n_examples])
+
+    # Create a host axis in the colorbar column, then place a shorter
+    # inset axis inside it so the colorbar doesn't force the row taller.
+    host_ax = fig.add_subplot(gs[ax_row, n_examples])
+    host_ax.set_frame_on(False)
+    host_ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
+    cbar_ax = host_ax.inset_axes([0.0, 0.1, 1.0, 0.8])  # [x0, y0, width, height] in axes frac
     cbar = fig.colorbar(sm, cax=cbar_ax)
     cbar.outline.set_visible(False)
     cbar.ax.tick_params(labelsize=FONTSIZE_XSMALL)
@@ -283,10 +289,13 @@ def create_panel_spatial_feature_grid(
         n_examples + 1,
         figure=fig,
         width_ratios=[1] * n_examples + [0.06],
+        height_ratios=[1] * n_rows,
+        hspace=0.05,
+        wspace=0.02,
     )
     layout_engine = fig.get_layout_engine()
     if layout_engine is not None:
-        layout_engine.set(w_pad=0.01, h_pad=0.01, wspace=0.02, hspace=0.02)
+        layout_engine.set(w_pad=0.01, h_pad=0.01)
 
     # Create axes from GridSpec
     axes = np.empty((n_rows, n_examples), dtype=object)

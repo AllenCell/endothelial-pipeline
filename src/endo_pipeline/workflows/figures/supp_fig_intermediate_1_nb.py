@@ -78,10 +78,9 @@ for i, example in enumerate(FIGURE_3_EXAMPLE_IMAGES):
     example_labels.append(f"{shear_stress} dyn/cm²\nExample {i+1}")
 
 # %%
-feature_columns = [*DYNAMICS_COLUMN_NAMES, ColumnName.OpticalFlow.UNIT_VECTOR_MEAN]
 fig = create_panel_spatial_feature_grid(
     example_dataframes=example_dfs,
-    feature_columns=feature_columns,
+    feature_columns=[ColumnName.DiffAEData.PC3_FLIPPED],
     example_labels=example_labels,
     image_rows={
         "VE-cadherin\nMIP": example_gfp_images,
@@ -94,7 +93,7 @@ fig = create_panel_spatial_feature_grid(
     grid_dimensions=(3, 3),
     save_dir=save_dir,
     filename="spatial_feature_grid_examples",
-    figure_size=(MAX_FIGURE_WIDTH, 5.5),
+    figure_size=(MAX_FIGURE_WIDTH, 3.3),
 )
 
 # %%

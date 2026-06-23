@@ -87,7 +87,7 @@ fig = create_panel_spatial_feature_grid(
     grid_dimensions=(3, 3),
     save_dir=save_dir,
     filename="spatial_feature_grid_examples",
-    figure_size=(MAX_FIGURE_WIDTH, 4),
+    figure_size=(MAX_FIGURE_WIDTH, 4.4),
 )
 
 # %%
@@ -104,7 +104,7 @@ panels = [
         letter="B",
         path=save_dir / "spatial_feature_grid_examples.svg",
         x_position=0,
-        y_position=2.5,
+        y_position=2.6,
         x_offset=0,
         y_offset=0,
     ),
