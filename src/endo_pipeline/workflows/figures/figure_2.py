@@ -127,7 +127,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     # load and instantiate model for generating synthetic images
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
     model_location = model_manifest.locations[DEFAULT_MODEL_RUN_NAME]
-    model = load_model(model_location, instantiate=True)
+    model = None
+    if not placeholders["C"]:
+        model = load_model(model_location, instantiate=True)
 
     # loop over datasets in collection, compute 2D drift coefficients for each
     # pairwise combination of polar coordinates, and plot contours of drift coefficients
@@ -242,6 +244,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         figure_size=(3.3, 2.0),
         color_by_column=Column.OpticalFlow.UNIT_VECTOR_MEAN,
         ylabel_rotation=0,
+        **placeholders["D"],
     )
     # --- First passage time analysis schematic ---
     low_flow_dataset = FPT_FIG_EXAMPLES["low_flow"]
@@ -250,7 +253,8 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         example_fixed_point_index=low_flow_dataset.fixed_point_index,
         example_tracked_crop_index=low_flow_dataset.tracked_crop_index,
         example_grid_crop_index=low_flow_dataset.grid_crop_index,
-        out_dir=output_path,
+        output_path=output_path,
+        **placeholders["E"],
     )
     # --- Histogram of first passage time correlation ---
     first_passage_path = make_first_passage_time_correlation_hist(

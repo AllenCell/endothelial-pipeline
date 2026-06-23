@@ -26,6 +26,7 @@ from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature impo
 from endo_pipeline.library.visualize.diffae_features.dynamics import (
     make_legend_handles_for_fixed_pts,
 )
+from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA, ColumnMetadata
 from endo_pipeline.settings.column_names import ColumnName, ColumnNameType
@@ -468,9 +469,10 @@ def _plot_cross_dataset_summary_for_column(
     ax.grid(axis="y", alpha=0.3)
 
 
+@figure_panel("Plot cross-replicate summary of fixed point locations.")
 def plot_cross_dataset_summaries(
     df: pd.DataFrame,
-    output_dir: Path,
+    output_path: Path,
     column_names: list[ColumnNameType] | None = None,
     axis_mode: SummaryPlotAxisMode = "dataset",
     style_mode: SummaryPlotStyleMode = "dataset",
@@ -660,9 +662,9 @@ def plot_cross_dataset_summaries(
     # Save figure with name including all column names
     column_name_str = [str(column_name) for column_name in column_names]
     figure_name = f"summary_{axis_mode}_{join_sorted_strings(column_name_str)}"
-    save_plot_to_path(fig, output_dir, figure_name, file_format=".svg", tight_layout=False)
+    save_plot_to_path(fig, output_path, figure_name, file_format=".svg", tight_layout=False)
 
-    return output_dir / f"{figure_name}.svg"
+    return output_path / f"{figure_name}.svg"
 
 
 def build_dataframe_for_fixed_point_dataset_summary(
