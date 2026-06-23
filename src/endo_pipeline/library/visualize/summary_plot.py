@@ -27,6 +27,7 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
     make_legend_handles_for_fixed_pts,
 )
 from endo_pipeline.manifests import DataframeManifest
+from endo_pipeline.settings import plot_defaults
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA, ColumnMetadata
 from endo_pipeline.settings.column_names import ColumnName, ColumnNameSuffix, ColumnNameType
 from endo_pipeline.settings.dynamics_workflows import (
@@ -41,12 +42,7 @@ from endo_pipeline.settings.figures import (
     MAX_FIGURE_WIDTH,
 )
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
-from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, SUMMARY_PLOT_THETA_RANGE
-from endo_pipeline.settings.summary_plot import (
-    CELL_LINE_LABEL_MAP,
-    COLOR_PALETTE,
-    DATASET_COLOR_MAP,
-)
+from endo_pipeline.settings.summary_plot import COLOR_PALETTE, DATASET_COLOR_MAP
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
@@ -83,7 +79,7 @@ SUMMARY_MODE_X_AXIS_SUP_LABELS: dict[SummaryPlotAxisMode, str] = {
 SUMMARY_MODE_COLUMN_NAME: dict[SummaryPlotAxisMode, str] = {
     "dataset": ColumnName.DATASET,
     "shear_stress": "_shear_stress_category",
-    "cell_line": "_cell_line_category",
+    "cell_line": ColumnName.DATASET,
     "replicate": ColumnName.DATASET,
 }
 """Mapping of summary plot axis mode to column names."""
@@ -206,7 +202,7 @@ def _get_tick_labels(
             for cat in unique_categories
         ]
     elif axis_mode == "cell_line":
-        return [CELL_LINE_LABEL_MAP[cat] for cat in unique_categories]
+        return [str(dataset_configs[cat].replicate_number or "") for cat in unique_categories]
     elif axis_mode == "replicate":
         return [str(dataset_configs[cat].replicate_number or "") for cat in unique_categories]
     return unique_categories
@@ -215,7 +211,8 @@ def _get_tick_labels(
 def _compute_replicate_positions(
     unique_categories: list[str],
     dataset_configs: dict,
-    gap: float = 0.4,
+    gap: float = 0.25,
+    group_by: Literal["shear_stress", "cell_line"] = "shear_stress",
 ) -> dict[str, float]:
     """Compute x-positions for replicate mode with gaps between groups.
 
@@ -227,6 +224,9 @@ def _compute_replicate_positions(
         Mapping of dataset name to its ``DatasetConfig``.
     gap
         Extra space inserted between consecutive groups.
+    group_by
+        What to group by when inserting gaps: "shear_stress" groups by
+        (bin, stability), "cell_line" groups by cell line name.
 
     Returns
     -------
@@ -234,13 +234,16 @@ def _compute_replicate_positions(
         Mapping of dataset name to its x-position.
     """
 
-    group_keys = [
-        (
-            dataset_configs[cat].flow_conditions[-1].shear_stress_bin,
-            dataset_configs[cat].stability_category or "monostable",
-        )
-        for cat in unique_categories
-    ]
+    if group_by == "cell_line":
+        group_keys = [dataset_configs[cat].cell_lines[0] for cat in unique_categories]
+    else:
+        group_keys = [
+            (
+                dataset_configs[cat].flow_conditions[-1].shear_stress_bin,
+                dataset_configs[cat].stability_category or "monostable",
+            )
+            for cat in unique_categories
+        ]
 
     positions: dict[str, float] = {}
     x = 0.0
@@ -249,7 +252,7 @@ def _compute_replicate_positions(
         if prev_key is not None and key != prev_key:
             x += gap
         positions[cat] = x
-        x += 0.7
+        x += 0.6
         prev_key = key
     return positions
 
@@ -304,8 +307,8 @@ def _add_shear_stress_brackets(
         trans = blended_transform_factory(ax.transData, ax.transAxes)
         bracket_y = -0.22
         cap_height = 0.025
-        bracket_left = x_start - 0.4
-        bracket_right = x_end + 0.4
+        bracket_left = x_start - 0.25
+        bracket_right = x_end + 0.25
 
         # Draw bracket: left cap, horizontal bar, right cap
         ax.plot(
@@ -359,6 +362,61 @@ def _add_shear_stress_brackets(
         idx += group_size
 
 
+def _add_cell_line_brackets(
+    ax: Axes,
+    unique_categories: list[str],
+    dataset_configs: dict,
+    positions: dict[str, float],
+) -> None:
+    """Draw brackets below the x-axis grouping replicates by cell line."""
+    from itertools import groupby
+
+    from matplotlib.transforms import blended_transform_factory
+
+    from endo_pipeline.settings.summary_plot import CELL_LINE_LABEL_MAP
+
+    group_keys = [dataset_configs[cat].cell_lines[0] for cat in unique_categories]
+
+    idx = 0
+    for cell_line, group in groupby(group_keys):
+        group_size = sum(1 for _ in group)
+        group_cats = unique_categories[idx : idx + group_size]
+        x_start = positions[group_cats[0]]
+        x_end = positions[group_cats[-1]]
+        center = (x_start + x_end) / 2.0
+
+        label = CELL_LINE_LABEL_MAP.get(cell_line, cell_line)
+
+        trans = blended_transform_factory(ax.transData, ax.transAxes)
+        bracket_y = -0.22
+        cap_height = 0.025
+        bracket_left = x_start - 0.25
+        bracket_right = x_end + 0.25
+
+        ax.plot(
+            [bracket_left, bracket_left, bracket_right, bracket_right],
+            [bracket_y + cap_height, bracket_y, bracket_y, bracket_y + cap_height],
+            transform=trans,
+            color="black",
+            lw=0.8,
+            clip_on=False,
+            solid_capstyle="round",
+        )
+
+        ax.text(
+            center,
+            bracket_y - 0.04,
+            label,
+            transform=trans,
+            ha="center",
+            va="top",
+            fontsize=FONTSIZE_XSMALL,
+            clip_on=False,
+        )
+
+        idx += group_size
+
+
 def _sort_and_categorize_datasets(
     df: pd.DataFrame,
     axis_mode: SummaryPlotAxisMode,
@@ -404,6 +462,16 @@ def _sort_and_categorize_datasets(
         sorted_datasets = sorted(unique_datasets, key=_replicate_sort_key)
         dataset_category = pd.CategoricalDtype(categories=sorted_datasets, ordered=True)
         df[category_column] = df[category_column].astype(dataset_category)
+    elif axis_mode == "cell_line":
+        sorted_datasets = sorted(
+            unique_datasets,
+            key=lambda ds: (
+                dataset_configs[ds].cell_lines[0],
+                dataset_configs[ds].replicate_number or 0,
+            ),
+        )
+        dataset_category = pd.CategoricalDtype(categories=sorted_datasets, ordered=True)
+        df[category_column] = df[category_column].astype(dataset_category)
     elif axis_mode == "dataset":
         dataset_category = pd.CategoricalDtype(categories=sorted_datasets, ordered=True)
         df[category_column] = df[category_column].astype(dataset_category)
@@ -417,9 +485,15 @@ def _sort_and_categorize_datasets(
     df = df.sort_values([category_column, ColumnName.DATASET])
     unique_categories = list(dict.fromkeys(df[category_column]))
 
-    # Compute x-positions: add gaps between groups in replicate mode
+    # Compute x-positions: add gaps between groups in replicate/cell_line mode
     if axis_mode == "replicate":
-        positions = _compute_replicate_positions(unique_categories, dataset_configs)
+        positions = _compute_replicate_positions(
+            unique_categories, dataset_configs, group_by="shear_stress"
+        )
+    elif axis_mode == "cell_line":
+        positions = _compute_replicate_positions(
+            unique_categories, dataset_configs, group_by="cell_line"
+        )
     else:
         positions = {cat: float(i) for i, cat in enumerate(unique_categories)}
 
@@ -560,8 +634,12 @@ def _plot_cross_dataset_summary_for_column(
         marker_map = dict.fromkeys(unique_datasets, "o")
     elif style_mode == "stability":
         style_column = ColumnName.FIXED_POINT_STABILITY
-        color_map = {key: style.color for key, style in FIXED_POINT_PLOT_STYLE.items()}
-        marker_map = {key: style.marker for key, style in FIXED_POINT_PLOT_STYLE.items()}
+        color_map = {
+            key: style.color for key, style in plot_defaults.FIXED_POINT_PLOT_STYLE.items()
+        }
+        marker_map = {
+            key: style.marker for key, style in plot_defaults.FIXED_POINT_PLOT_STYLE.items()
+        }
     else:
         raise ValueError(f"Summary plot style mode '{style_mode}' is not supported")
 
@@ -584,12 +662,6 @@ def _plot_cross_dataset_summary_for_column(
             for dataset_config in dataset_configs.values()
         }
         df[category_column] = df[ColumnName.DATASET].map(shear_stress_map)
-    elif axis_mode == "cell_line":
-        cell_line_map = {
-            dataset_config.name: dataset_config.cell_lines[0]
-            for dataset_config in dataset_configs.values()
-        }
-        df[category_column] = df[ColumnName.DATASET].map(cell_line_map)
 
     # Sort datasets, apply category ordering, compute x-positions
     df, unique_categories, _positions = _sort_and_categorize_datasets(
@@ -697,6 +769,11 @@ def _plot_cross_dataset_summary_for_column(
             marker_size_legend,
         )
 
+    # Add cell line brackets below x-axis
+    if axis_mode == "cell_line":
+        ax.tick_params(axis="x", labelsize=FONTSIZE_XSMALL)
+        _add_cell_line_brackets(ax, unique_categories, dataset_configs, _positions)
+
     # Set x axis ticks to category positions
     category_positions = [_positions[cat] for cat in unique_categories]
     ax.set_xticks(category_positions)
@@ -721,7 +798,7 @@ def _plot_cross_dataset_summary_for_column(
 
     # Set y limits: use POLAR_THETA_RANGE for polar angle, else column metadata min/max
     if column_name == ColumnName.DiffAEData.POLAR_ANGLE:
-        ax.set_ylim(SUMMARY_PLOT_THETA_RANGE)
+        ax.set_ylim(plot_defaults.SUMMARY_PLOT_THETA_RANGE)
     else:
         y_min = (
             float(column_metadata.min) if isinstance(column_metadata.min, (int, float)) else None
