@@ -258,7 +258,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         figure_size=(3.15, 1.8),
         color_by_column=Column.OpticalFlow.UNIT_VECTOR_MEAN,
         ylabel_rotation=0,
-        remove_label_linebreaks=False,
+        colorbar_multiline_label=True,
         **placeholders["D"],
     )
     # --- First passage time analysis schematic ---
