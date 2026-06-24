@@ -27,7 +27,6 @@ from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     get_label_for_column,
 )
 from endo_pipeline.library.visualize.diffae_features.flow_field_3d import (
-    get_slice_indexes,
     plot_flow_field_slices,
     plot_one_slice_quiver,
 )
@@ -129,46 +128,6 @@ def get_coarse_grained_trajectory_heatmap_data(
                 bin_counts[tuple(bin_indices[i])] += 1
 
     return bin_data, bin_counts
-
-
-def get_valid_slice_indexes(
-    df: pd.DataFrame,
-    traj: np.ndarray,
-    flow_field_dict: dict,
-) -> tuple[
-    tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
-    tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
-]:
-    # get grid and grid spacing
-    xgrid, ygrid, zgrid = flow_field_dict["grid"]
-
-    # if not specified, use mean of data at last time point
-    # if data are not provided, use pc2 = pc3 = 0
-    # plot 2D slices at PC2 and PC3 values given by
-    # the last point of the trajectory
-    pc_vals = (traj[-1, 2], traj[-1, 1])
-
-    if pc_vals is None:
-        if df is None:
-            pc3_val = 0
-            pc2_val = 0
-        else:
-            # get mean at all time points over crops
-            mean_over_crops = df.groupby(Column.TIMEPOINT).mean(numeric_only=True)
-            # get last time point
-            mean_over_crops = mean_over_crops.iloc[-1]
-            pc3_val = mean_over_crops["pc_3"].mean()
-            pc2_val = mean_over_crops["pc_2"].mean()
-    # if specified, unpack
-    else:
-        pc3_val = pc_vals[0]
-        pc2_val = pc_vals[1]
-
-    # get z-slice closest to PC3 = pc3_val
-    zvalids = get_slice_indexes(zgrid, pc3_val)
-    # get y-slice closest to PC2 = pc2_val
-    yvalids = get_slice_indexes(ygrid, pc2_val)
-    return yvalids, zvalids
 
 
 def get_grid_bounds(flow_field_dict: dict) -> list:
