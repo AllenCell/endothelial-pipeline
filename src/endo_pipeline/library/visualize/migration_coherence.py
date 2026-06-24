@@ -562,7 +562,7 @@ def make_example_migration_coherence(
     dataset_config = load_dataset_config(dataset_name)
 
     feature_column_names = list(DYNAMICS_COLUMN_NAMES)
-    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid"], *feature_column_names]
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid_based"], *feature_column_names]
 
     optical_flow_feature = Column.OpticalFlow.UNIT_VECTOR_MEAN
     of_metadata = COLUMN_METADATA[optical_flow_feature]

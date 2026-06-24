@@ -361,7 +361,7 @@ def load_drift_dataframe_for_dataset(
     """
 
     column_names = get_valid_flow_field_column_names(columns)
-    name_suffix = f"_{join_sorted_strings(column_names)}_grid"
+    name_suffix = f"_{join_sorted_strings(column_names)}_grid_based"
     drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD}{name_suffix}"
     drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
 

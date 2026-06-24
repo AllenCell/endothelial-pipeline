@@ -490,7 +490,7 @@ def make_autocorrelation_panel(
 
     # load dataframe manifest for outputs of autocorrelation analysis workflow
     name_prefix = AUTOCORRELATION_DATAFRAME_MANIFEST_PREFIX
-    name_suffix = f"{join_sorted_strings(column_names)}_grid"
+    name_suffix = f"{join_sorted_strings(column_names)}_grid_based"
     autocorrelation_manifest_name = f"{name_prefix}_{name_suffix}"
     autocorrelation_manifest = load_dataframe_manifest(autocorrelation_manifest_name)
 
@@ -805,7 +805,7 @@ def make_kernel_convolution_schematic(
 
     dataset_location = get_dataframe_location_for_dataset(feature_manifest, dataset_name)
 
-    columns_to_load = [*METADATA_COLUMNS_TO_KEEP["grid"], *column_names]
+    columns_to_load = [*METADATA_COLUMNS_TO_KEEP["grid_based"], *column_names]
 
     df_raw = load_dataframe(dataset_location, delay=True)
     df: pd.DataFrame = df_raw[columns_to_load].compute()

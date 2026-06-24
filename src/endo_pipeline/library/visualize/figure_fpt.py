@@ -143,14 +143,14 @@ def _load_trajectory_dataframes(
     """
     traj_df_grid = load_filtered_trajectory_df_for_first_passage_time_workflow(
         dataset_name,
-        crop_pattern="grid",
+        patch_type="grid_based",
         minimum_track_length=minimum_track_length,
     )
     traj_df_grid[Column.SegData.TIME_HRS] = traj_df_grid[Column.TIMEPOINT] * TIME_STEP_IN_HOURS
 
     traj_df_tracked = load_filtered_trajectory_df_for_first_passage_time_workflow(
         dataset_name,
-        crop_pattern="tracked",
+        patch_type="cell_centered",
         minimum_track_length=minimum_track_length,
     )
     traj_df_tracked[Column.SegData.TIME_HRS] = (
@@ -383,7 +383,7 @@ def _select_example_bin_trajectories(
         bin_edges=bin_edges,
     )
 
-    # take the first trajectory (by crop index) from each crop pattern in the
+    # take the first trajectory (by crop index) from each patch type in the
     # example bin; record its initial timepoint and feature-space position so
     # we can mark where it enters the bin
     for crop_id_tracked, df in trajectory_df_tracked_one_bin.groupby(Column.CROP_INDEX):

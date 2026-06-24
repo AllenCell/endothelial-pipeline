@@ -59,6 +59,7 @@ from endo_pipeline.settings.flow_field_3d import (
     INIT_POINT_3D,
     TRAJECTORY_TIME_SPAN,
 )
+from endo_pipeline.settings.literal_types import PatchTypeLiteral
 from endo_pipeline.settings.workflow_defaults import (
     CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
     DEFAULT_COLUMNS_TO_DROP,
@@ -798,13 +799,13 @@ def add_first_passage_time_column(
 
 def load_filtered_trajectory_df_for_first_passage_time_workflow(
     dataset_name: str,
-    crop_pattern: Literal["grid", "tracked"],
+    patch_type: PatchTypeLiteral,
     minimum_track_length: int = LONG_TRACK_THRESHOLD_LENGTH,
 ) -> pd.DataFrame:
     """
     Load and filter the trajectory dataframe for the first passage time analysis workflow.
 
-    Trajectories are loaded from the appropriate manifest for the given crop pattern,
+    Trajectories are loaded from the appropriate manifest for the given patch type,
     filtered to steady-state timepoints, and then filtered to only include tracks that
     meet the minimum track length requirement.
 
@@ -812,8 +813,8 @@ def load_filtered_trajectory_df_for_first_passage_time_workflow(
     ----------
     dataset_name
         Name of the dataset to load trajectories for.
-    crop_pattern
-        Whether to load grid-based (``"grid"``) or cell-centric tracked (``"tracked"``) crops.
+    patch_type
+        Whether to load grid-based or cell-centered crops.
     minimum_track_length
         Minimum number of timepoints a track must span to be included in the output.
 
@@ -823,12 +824,12 @@ def load_filtered_trajectory_df_for_first_passage_time_workflow(
         DataFrame containing the filtered trajectories with dynamics feature columns
         and track metadata.
     """
-    if crop_pattern == "grid":
+    if patch_type == "grid_based":
         dynamics_manifest = load_dataframe_manifest(GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME)
-    elif crop_pattern == "tracked":
+    elif patch_type == "cell_centered":
         dynamics_manifest = load_dataframe_manifest(CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME)
     else:
-        raise ValueError(f"Unsupported crop pattern: {crop_pattern}")
+        raise ValueError(f"Unsupported patch type: {patch_type}")
 
     dynamics_loc = get_dataframe_location_for_dataset(dynamics_manifest, dataset_name)
     trajectories_df_delayed = load_dataframe(dynamics_loc, delay=True)
@@ -1219,14 +1220,14 @@ def compute_first_passage_times_one_dataset(
     # load the dynamics features from the grid-based and track-based dataframes
     traj_df_grid = load_filtered_trajectory_df_for_first_passage_time_workflow(
         dataset_name,
-        crop_pattern="grid",
+        patch_type="grid_based",
         minimum_track_length=minimum_track_length,
     )
     traj_df_grid[Column.SegData.TIME_HRS] = traj_df_grid[Column.TIMEPOINT] * TIME_STEP_IN_HOURS
 
     traj_df_tracked = load_filtered_trajectory_df_for_first_passage_time_workflow(
         dataset_name,
-        crop_pattern="tracked",
+        patch_type="cell_centered",
         minimum_track_length=minimum_track_length,
     )
     traj_df_tracked[Column.SegData.TIME_HRS] = (

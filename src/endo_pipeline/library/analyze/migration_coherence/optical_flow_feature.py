@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 def add_optical_flow_features(
     df: pd.DataFrame,
     datasets: list[str] | None = None,
-    optical_flow_manifest_name: str = f"{DEFAULT_OPTICAL_FLOW_MANIFEST_NAME}_grid",
+    optical_flow_manifest_name: str = f"{DEFAULT_OPTICAL_FLOW_MANIFEST_NAME}_grid_based",
     optical_flow_feature_columns: list[ColumnName.OpticalFlow] | None = None,
     merge_columns: list[str | ColumnName.DiffAEData] | None = None,
 ) -> pd.DataFrame:
