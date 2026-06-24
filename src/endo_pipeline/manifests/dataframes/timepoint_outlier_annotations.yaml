@@ -164,3 +164,7 @@ locations:
     fmsid: b220a9465d1c4797aa60c97b1852c2da
     path: null
     s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20260114_4b693bb8eedb4e0ba0cb9ab4ae07b1a2.parquet
+  20250611_20X:
+    fmsid: d6cf625c2ca44fa7900184da7796e711
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20250611_a32615d530ae42c29d159cc058601879.parquet
