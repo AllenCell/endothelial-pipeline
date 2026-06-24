@@ -491,11 +491,12 @@ def _configure_replicate_axis(
     positions: dict[str, float],
     scalar_mappable,
     marker_size_legend: int,
+    show_legend: bool = True,
 ) -> None:
     """Add legend, grey background, and brackets for replicate axis mode."""
     from matplotlib.lines import Line2D
 
-    if scalar_mappable is None:
+    if scalar_mappable is None and show_legend:
         legend_handles: list = [
             Line2D(
                 [0],
@@ -740,7 +741,7 @@ def _plot_cross_dataset_summary_for_column(
             )
 
     # Include legend if using stability style mode (only when not overridden)
-    if style_mode == "stability" and scalar_mappable is None:
+    if style_mode == "stability" and scalar_mappable is None and point_color is None:
         legend_handles = make_legend_handles_for_fixed_pts(
             fpt_stabilities=df[ColumnName.FIXED_POINT_STABILITY].unique().tolist(),
             marker_size=marker_size_legend,
@@ -756,6 +757,7 @@ def _plot_cross_dataset_summary_for_column(
             _positions,
             scalar_mappable,
             marker_size_legend,
+            show_legend=point_color is None,
         )
 
     # Add cell line brackets below x-axis
