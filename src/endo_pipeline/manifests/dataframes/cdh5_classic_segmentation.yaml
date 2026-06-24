@@ -10,7 +10,7 @@ columns:
   area_px_squared: Area of cell segmentation [pixels^2]
   perimeter_px: Perimeter of cell segmentation [pixels]
   solidity: Solidity of cell (ratio of cell area to area of its convex hull)
-  major_axis_length: Length of minor axis of an ellipse fit to cell segmentation
+  major_axis_length: Length of major axis of an ellipse fit to cell segmentation
   minor_axis_length: Length of minor axis of an ellipse fit to cell segmentation
   eccentricity: Eccentricity of ellipse fit to cell segmentation (focal distance divided
     by major axis)
@@ -34,10 +34,9 @@ columns:
   edge_labels: Label IDs of each edge of a segmentation boundary
   node_labels: Label IDs for each tricellular junction
   node_pair_labels: Pair of node label IDs that form each edge of a segmentation boundary
-  edge_fluorescence_au: Fluorescence values [a.u.] along boundary between 2 cell segmentations
+  edge_fluorescence_au: Fluorescence [a.u.] along boundary between 2 cell segmentations
     (excluding pixels at nodes)
-  node_fluorescence_au: Fluorescence values [a.u.] at junctions between 3 or more
-    cell segmentations
+  node_fluorescence_au: Fluorescence [a.u.] at junctions between 3 or more cell segmentations
   is_edge_segmentation: True if segmentation touches edge of the image, False otherwise
 locations:
   20250319_20X:

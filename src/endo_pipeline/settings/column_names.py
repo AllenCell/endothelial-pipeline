@@ -176,7 +176,7 @@ class ColumnName:
         """Aspect ratio of ellipse fit to cell segmentation (major axis divided by minor axis)."""
 
         MAJOR_AXIS = "major_axis_length"
-        """Length of minor axis of an ellipse fit to cell segmentation."""
+        """Length of major axis of an ellipse fit to cell segmentation."""
 
         MINOR_AXIS = "minor_axis_length"
         """Length of minor axis of an ellipse fit to cell segmentation."""
@@ -236,10 +236,10 @@ class ColumnName:
         """
 
         EDGE_FLUOR = "edge_fluorescence_au"
-        """Fluorescence values [a.u.] along boundary between 2 cell segmentations (excluding pixels at nodes)."""
+        """Fluorescence [a.u.] along boundary between 2 cell segmentations (excluding pixels at nodes)."""
 
         NODE_FLUOR = "node_fluorescence_au"
-        """Fluorescence values [a.u.] at junctions between 3 or more cell segmentations."""
+        """Fluorescence [a.u.] at junctions between 3 or more cell segmentations."""
 
         CELL_FLUOR_MEAN = "cell_fluorescence_mean_au"
         """Mean of mEGFP-tagged VE-cadherin fluorescence [a.u.] in cytoplasmic region of cell segmentation."""
