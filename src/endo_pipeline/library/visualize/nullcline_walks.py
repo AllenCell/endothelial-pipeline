@@ -234,7 +234,7 @@ def make_contour_plot_panel_for_nullcline_walks(
     # coordinates regardless of whether colorbar/legend are included.
     # Colorbar and legend are placed below the figure (negative y) and
     # captured by bbox_inches="tight" on save.
-    subplot_rects = [(0.12, 0.58, 0.55, 0.35), (0.12, 0.18, 0.55, 0.35)]
+    subplot_rects = [(0.10, 0.18, 0.38, 0.70), (0.55, 0.18, 0.38, 0.70)]
     fig, axes_ = plot_drift_contours(
         meshgrid=meshgrid,
         drift=drift,
@@ -268,25 +268,6 @@ def make_contour_plot_panel_for_nullcline_walks(
     nullcline_coords = _get_example_points_along_nullcline(nullcline_coords_, stable_fixed_point)
 
     for ax_index, ax_ in enumerate(list(axes_)):
-        # add stable fixed point on top of the contour plot
-        ax_.plot(
-            stable_fixed_point[..., 0],
-            stable_fixed_point[..., 1],
-            FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].marker,
-            color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color,
-            markeredgecolor="k",
-            markeredgewidth=0.5,
-            markersize=5,
-        )
-        # adjust label padding and drop tick labels on shared x axis
-        ax_.set_box_aspect(1.0)
-        ax_.set_xticks(r_ticks)
-        ax_.set_yticks(rho_ticks)
-        ax_.yaxis.set_label_position("left")
-        ax_.yaxis.tick_left()
-        if ax_index == 0:
-            ax_.tick_params(labelbottom=False)
-
         # add nullcline walk points on top of the contour plot
         ax_.plot(
             nullcline_coords[column_names[ax_index]][0],
@@ -298,13 +279,32 @@ def make_contour_plot_panel_for_nullcline_walks(
             markersize=3,
         )
 
+        # add stable fixed point on top of the contour plot
+        ax_.plot(
+            stable_fixed_point[..., 0],
+            stable_fixed_point[..., 1],
+            FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].marker,
+            color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color,
+            markeredgecolor="k",
+            markeredgewidth=0.5,
+            markersize=5,
+        )
+        # adjust label padding and drop tick labels on shared y axis
+        ax_.set_box_aspect(1.0)
+        ax_.set_xticks(r_ticks)
+        ax_.set_yticks(rho_ticks)
+        ax_.yaxis.set_label_position("left")
+        ax_.yaxis.tick_left()
+        if ax_index == 1:
+            ax_.tick_params(labelleft=False)
+
     if include_colorbar:
         add_colorbar_to_contour_plot(
             fig,
-            orientation="horizontal",
-            ticks_cax_position="bottom",
-            label_cax_position="top",
-            cax_rect=(0.255, -0.02, 0.5, 0.025),
+            orientation="vertical",
+            ticks_cax_position="right",
+            label_cax_position="right",
+            cax_rect=(0.945, 0.18, 0.02, 0.70),
         )
 
     if include_legend:
@@ -340,8 +340,8 @@ def make_contour_plot_panel_for_nullcline_walks(
             labels,
             fontsize="xx-small",
             loc="lower center",
-            bbox_to_anchor=(0.25, -0.09),
-            ncol=1,
+            bbox_to_anchor=(0.515, 0.875),
+            ncol=3,
             handletextpad=0.3,
             frameon=False,
         )
