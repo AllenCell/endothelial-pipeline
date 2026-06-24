@@ -53,9 +53,9 @@ panels = [
         letter="B",
         path=save_dir / "spatial_feature_grid_examples_main.svg",
         x_position=0,
-        y_position=2.6,
+        y_position=3.1,
         x_offset=0,
-        y_offset=0,
+        y_offset=0.1,
     ),
 ]
 
