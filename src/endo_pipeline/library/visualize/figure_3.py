@@ -1,3 +1,5 @@
+"""Helper functions for visualizations used in Figure 3."""
+
 import logging
 from pathlib import Path
 

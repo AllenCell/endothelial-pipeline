@@ -40,6 +40,10 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     placeholders = parse_placeholder_panels(include_panels, ["A", "B"])
 
     # Create streamplots that get manually compiled into the schematic in panel A.
+    print(
+        "Creating streamplot image thumbnails. These thumbnails are assembled manually "
+        "into the schematic in panel A via a vector graphics editor."
+    )
     for dataset_name in FIGURE_3_STREAMPLOT_EXAMPLE_DATASETS:
         streamplot_output_path = visualize_2d_streamplots(
             dataset_name, output_path, **placeholders["A"]
