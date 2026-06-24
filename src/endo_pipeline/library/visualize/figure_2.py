@@ -1,5 +1,6 @@
 """Helper functions for visualizations used in Figure 2."""
 
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, Literal, cast
 
@@ -68,7 +69,7 @@ def _add_colorbar_to_contour_plot(
     ticks_cax_position: Literal["top", "bottom", "left", "right"] = "right",
     label_cax_position: Literal["top", "bottom", "left", "right"] = "right",
     extend: Literal["neither", "both", "min", "max"] = "both",
-    cax_rect: tuple[float, float, float, float] = (0.25, 0.9, 0.5, 0.02),
+    ax: Sequence[plt.Axes] | None = None,
 ) -> None:
     """
     Add a colorbar to a contour plot with specified formatting.
@@ -91,18 +92,18 @@ def _add_colorbar_to_contour_plot(
         Colormap to use for the colorbar.
     orientation
         Orientation of the colorbar, either "vertical" or "horizontal".
-    cax_position
-        Which side of the colorbar axes to place the ticks and label, one of
+    ticks_cax_position
+        Which side of the colorbar axes to place the ticks, one of
         "top", "bottom", "left", or "right".
-    cax_rect
-        Position of the colorbar axes in normalized figure coordinates
-        ``(left, bottom, width, height)``. The axes is added via
-        ``fig.add_axes(cax_rect)`` so its position is independent of the main axes
-        layout and will not be clipped on save.
+    label_cax_position
+        Which side of the colorbar axes to place the label, one of
+        "top", "bottom", "left", or "right".
+    ax
+        Axes to steal space from when adding the colorbar. Passed as ``ax``
+        to ``fig.colorbar`` so that constrained layout can accommodate the
+        colorbar without clipping.
 
     """
-    cax = fig.add_axes(cax_rect)
-
     color_mappable = ScalarMappable(
         norm=TwoSlopeNorm(vmin=vmin, vmax=vmax, vcenter=0), cmap=colormap
     )
@@ -117,9 +118,11 @@ def _add_colorbar_to_contour_plot(
     )
     colorbar_ticks = np.round(colorbar_ticks, tick_label_round)
 
+    location = "bottom" if orientation == "horizontal" else "right"
     cbar = fig.colorbar(
-        color_mappable, cax=cax, orientation=orientation, ticks=colorbar_ticks, extend=extend
+        color_mappable, ax=ax, location=location, ticks=colorbar_ticks, extend=extend
     )
+    cax = cbar.ax
 
     tick_axis = cax.xaxis if orientation == "horizontal" else cax.yaxis
     tick_axis.set_ticks_position(ticks_cax_position)
@@ -320,11 +323,6 @@ def make_2d_contour_plot_panel(
         },
     }
 
-    # Use explicit axes rects (no layout engine) so positions are fixed and
-    # additional axes for the colorbar or legend can be placed at known figure
-    # coordinates without risk of clipping. Reserve the bottom ~18 % for the
-    # colorbar and legend, placed side by side below the subplots.
-    subplot_rects = [(0.12, 0.58, 0.55, 0.35), (0.12, 0.18, 0.55, 0.35)]
     fig, axes_ = plot_drift_contours(
         meshgrid=meshgrid,
         drift=drift,
@@ -344,7 +342,6 @@ def make_2d_contour_plot_panel(
         xlabel_kwargs=xlabel_kwargs,
         ylabel_kwargs=ylabel_kwargs,
         axes_title_kwargs=axes_title_kwargs,
-        axes_rects=subplot_rects,
     )
     # get (r, rho) coordinates of r- and rho-nullclines for generating images
     axes = cast(np.ndarray[plt.Axes, Any], axes_)
@@ -388,14 +385,12 @@ def make_2d_contour_plot_panel(
             ax_.tick_params(labelbottom=False)
 
     if include_colorbar:
-        # add colorbar via fig.add_axes so its position is fixed in figure
-        # coordinates and does not affect the main axes layout or get clipped on save
         _add_colorbar_to_contour_plot(
             fig,
             orientation="horizontal",
-            ticks_cax_position="top",
-            label_cax_position="bottom",
-            cax_rect=(0.25, -0.06, 0.5, 0.02),
+            ticks_cax_position="bottom",
+            label_cax_position="top",
+            ax=list(axes_),
         )
 
     if include_legend:
@@ -430,8 +425,7 @@ def make_2d_contour_plot_panel(
             handles,
             labels,
             fontsize="xx-small",
-            loc="lower center",
-            bbox_to_anchor=(0.25, -0.06),
+            loc="lower left",
             ncol=1,
             handletextpad=0.3,
             frameon=False,
@@ -444,7 +438,7 @@ def make_2d_contour_plot_panel(
         file_format=".svg",
         tight_layout=False,
         transparent=True,
-        pad_inches=0,
+        pad_inches=0.05,
     )
 
     return output_path / f"{filename}.svg", nullcline_coords

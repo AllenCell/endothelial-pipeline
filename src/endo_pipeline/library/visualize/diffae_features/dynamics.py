@@ -75,7 +75,6 @@ def plot_drift_contours(
     xlabel_kwargs: dict | None = None,
     ylabel_kwargs: dict | None = None,
     axes_title_kwargs: dict | None = None,
-    axes_rects: list[tuple[float, float, float, float]] | None = None,
 ) -> tuple[plt.Figure, Sequence[plt.Axes]]:
     """
     Make and save contour plot of each component of the drift vector field over
@@ -141,27 +140,11 @@ def plot_drift_contours(
     axes_title_kwargs
         Optional dictionary of keyword arguments to pass to ax.set_title for
         customizing the subplot titles, e.g., to specify a font size.
-    axes_rects
-        Optional list of subplot positions in normalized figure coordinates
-        ``(left, bottom, width, height)``, one entry per subplot in
-        top-to-bottom order.  When provided the figure is built without a
-        layout engine via ``plt.figure`` and each subplot is added with
-        ``fig.add_axes``, mirroring the explicit-positioning pattern used in
-        :func:`plot_drift_3d`.  Callers can then place additional axes
-        (colorbar, legend) at fixed figure coordinates without risk of
-        clipping.  When ``None`` (default) and ``fig_ax`` is also ``None``,
-        ``plt.subplots`` with ``layout="constrained"`` is used instead.
 
     """
     if fig_ax is not None:
         fig, ax = fig_ax
         ax = cast(Sequence[plt.Axes], ax)
-    elif axes_rects is not None:
-        # Build figure with explicitly positioned axes to ensure consistent
-        # placement regardless of whether colorbar/legend are included —
-        # same pattern as plot_drift_3d (line ~950).
-        fig = plt.figure(figsize=figsize)
-        ax = cast(Sequence[plt.Axes], [fig.add_axes(rect) for rect in axes_rects])
     else:
         fig, ax = plt.subplots(
             n_rows, n_cols, figsize=figsize, layout="constrained", gridspec_kw=gridspec_kwargs
@@ -1012,7 +995,7 @@ def plot_drift_3d(
         # just above and shares the same centre so both have identical left-to-
         # right spacing.
         scalar_mappable.set_array([])
-        cbar_ax = fig.add_axes((0.50, 0.08, 0.5, 0.02))
+        cbar_ax = fig.add_axes((0.50, 0.12, 0.5, 0.02))
         cbar = fig.colorbar(
             scalar_mappable,
             cax=cbar_ax,
@@ -1020,8 +1003,8 @@ def plot_drift_3d(
         )
         cbar.ax.tick_params(labelsize=FONTSIZE_XSMALL, pad=2)
         cbar.set_label("vector magnitude", fontsize=FONTSIZE_XSMALL, labelpad=2)
-        cbar_ax.xaxis.set_label_position("bottom")
-        cbar_ax.xaxis.tick_top()
+        cbar_ax.xaxis.set_label_position("top")
+        cbar_ax.xaxis.tick_bottom()
 
     if include_legend:
         # Legend below the axes, stacked above the colorbar and sharing the
@@ -1051,7 +1034,7 @@ def plot_drift_3d(
             handles=handles,
             fontsize=FONTSIZE_XSMALL,
             loc="lower center",
-            bbox_to_anchor=(0.25, 0.0),
+            bbox_to_anchor=(0.25, 0.04),
             frameon=False,
             handletextpad=0.3,
             labelspacing=0.4,
