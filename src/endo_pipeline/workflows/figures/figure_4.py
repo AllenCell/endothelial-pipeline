@@ -23,7 +23,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from pandas import DataFrame
 
     from endo_pipeline.io import get_output_path, load_model
-    from endo_pipeline.library.visualize.figure_3 import (
+    from endo_pipeline.library.visualize.figure_4 import (
         make_3d_vector_field_plot_panel,
         reconstruct_fixed_points,
     )
