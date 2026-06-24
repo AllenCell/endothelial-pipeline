@@ -1032,7 +1032,7 @@ def make_first_passage_time_distance_to_linefit_hist(
 
     fig, ax = plt.subplots(figsize=figure_size, layout="constrained")
     biggest_distance_as_int = int(max(np.ceil(distances_all)))
-    bins = np.arange(0, biggest_distance_as_int + 1, 0.5)
+    bins: list[float] = np.arange(0, biggest_distance_as_int + 1, 0.5, dtype=float).tolist()
     ax.hist(distances_all, bins=bins, density=True, edgecolor="k")
     column_label = (
         "Deviation of MFPTs from linear\nfit for grid vs. cell-centered\ntrajectories (hrs)"

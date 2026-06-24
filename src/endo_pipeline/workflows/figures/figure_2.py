@@ -370,14 +370,14 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             letter="F",
             path=first_passage_path,
             x_position=3.25,
-            y_position=5.2,
-            x_offset=0.1,
-            y_offset=0.05,
+            y_position=5.15,
+            x_offset=0.25,
+            y_offset=0.2,
         ),
     ]
 
     build_figure_from_panels(
-        panels, output_path / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=6.5
+        panels, output_path / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=6.6
     )
 
 
