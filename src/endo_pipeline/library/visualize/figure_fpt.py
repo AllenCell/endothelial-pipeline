@@ -405,7 +405,6 @@ def _create_fpt_schematic_figure(
 
     # plot the tracked and grid trajectories in the 3D feature space with the
     # fixed point, bin edges, and bin start points
-    track_alpha = 0.7
     fig = plt.figure(figsize=figure_size)
     ax: Axes3D = fig.add_subplot(projection="3d")
     grid_color = "tab:blue"
@@ -413,6 +412,7 @@ def _create_fpt_schematic_figure(
     cell_centric_color = "tab:red"
     cell_centric_marker_line = "."
     cell_centric_marker_scatter = "o"
+    track_alpha = 0.7
 
     # plot the full trajectories as lines with markers at each timepoint,
     # colored by crop pattern
@@ -435,7 +435,7 @@ def _create_fpt_schematic_figure(
         ls="-",
         lw=1,
         marker=cell_centric_marker_line,
-        markersize=1,
+        markersize=3,
         c=cell_centric_color,
         alpha=track_alpha,
         label="cell-centered",
@@ -546,7 +546,7 @@ def _create_fpt_schematic_figure(
     ax.zaxis.set_major_formatter(plt.FormatStrFormatter("%.2f"))
 
     # make the axes labels pretty
-    ax.tick_params(axis="x", labelsize=FONTSIZE_SMALL, rotation=15, pad=-2)
+    ax.tick_params(axis="x", labelsize=FONTSIZE_SMALL, rotation=0, pad=-2)
     plt.setp(ax.get_xticklabels(), va="bottom", ha="center")
     ax.tick_params(axis="y", labelsize=FONTSIZE_SMALL, rotation=-15, pad=-2)
     plt.setp(ax.get_yticklabels(), va="center", ha="left")
@@ -564,7 +564,7 @@ def _create_fpt_schematic_figure(
     ax.set_position([(1 - ax_width) / 2, (1 - ax_height) / 2, ax_width, ax_height])
 
     # add legend
-    ax.legend(ncols=2, loc="upper left", bbox_to_anchor=(0.75, 0.8))
+    ax.legend(ncols=1, loc="upper left", bbox_to_anchor=(1.15, 0.85))
 
     return fig
 
