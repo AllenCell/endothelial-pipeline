@@ -2,6 +2,7 @@
 
 import logging
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any, cast
 
 import matplotlib.pyplot as plt
@@ -9,6 +10,7 @@ import numpy as np
 from numdifftools import Jacobian
 from scipy.integrate import solve_ivp
 
+from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
 )
@@ -17,6 +19,7 @@ from endo_pipeline.library.analyze.vector_field_estimation import (
     load_drift_dataframe_for_dataset,
 )
 from endo_pipeline.library.analyze.vector_field_function import get_callable_vector_field
+from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, POLAR_ANGLE_PERIOD
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
@@ -307,12 +310,15 @@ def _integrate_unstable_manifold_trajectories(
     return trajectories_2d
 
 
+@figure_panel("2D projection of 3D morphological state space dynamics.")
 def visualize_projected_dynamics(
     dataset_name: str,
+    output_path: Path,
     grid_spacing_2d: float = 0.05,
+    figure_size: tuple[float, float] = (2.0, 2.0),
     fig_kwargs: dict[str, Any] | None = None,
     streamplot_kwargs: dict[str, Any] | None = None,
-) -> plt.Figure:
+) -> Path:
     """
     Visualize the dynamics of a DiffAE feature space by projecting the 3D vector
     field onto a 2D plane and plotting streamlines.
@@ -430,10 +436,10 @@ def visualize_projected_dynamics(
         vector_field_function=vector_field_function,
         ortho_basis=ortho_basis,
         meshgrid_2d=(x_mesh, y_mesh),
-        figure_size=(3.5, 3.5),
+        figure_size=figure_size,
         fig_kwargs=fig_kwargs or {"layout": "constrained"},
         streamplot_kwargs=streamplot_kwargs
-        or {"density": 1.0, "linewidth": 0.75, "color": "dimgrey"},
+        or {"density": 0.8, "linewidth": 0.75, "color": "dimgrey"},
         origin_3d=saddle_point,
     )
 
@@ -469,4 +475,7 @@ def visualize_projected_dynamics(
             zorder=3,
         )
 
-    return fig
+    file_name = f"{dataset_name}_projected_streamplot"
+    save_plot_to_path(fig, output_path, f"{file_name}", file_format=".svg")
+
+    return output_path / f"{file_name}.svg"
