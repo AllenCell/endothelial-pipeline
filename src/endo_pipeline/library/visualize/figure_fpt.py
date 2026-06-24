@@ -428,7 +428,7 @@ def _create_fpt_schematic_figure(
         markersize=1,
         c=grid_color,
         alpha=track_alpha,
-        label="grid-based",
+        label="grid-based trajectory",
     )
     ax.plot(
         xs=thetas_tracked_unwrapped,
@@ -440,7 +440,7 @@ def _create_fpt_schematic_figure(
         markersize=3,
         c=cell_centric_color,
         alpha=track_alpha,
-        label="cell-centered",
+        label="cell-centered trajectory",
     )
 
     # plot the FPT start points as larger markers with black outline
@@ -487,7 +487,7 @@ def _create_fpt_schematic_figure(
 
     # draw cube around bin edges
     for e_xyz in example_bin_cuboid_edges:
-        ax.plot(*list(zip(*e_xyz, strict=True)), ls="-", lw=0.5, c="black", alpha=0.9, zorder=8)
+        ax.plot(*list(zip(*e_xyz, strict=True)), ls="-", lw=0.5, c="black", alpha=0.9, zorder=1)
 
     # plot the fixed point in the 3D space using consistent marker formatting
     fp_dynamic_cols = [str(col) for col in DYNAMICS_COLUMN_NAMES]
@@ -578,9 +578,9 @@ def _create_fpt_schematic_figure(
         markersize=4,
     )
     handles.insert(-1, starting_point_handle)
-    labels.insert(-1, "trajectory starting point\nwithin bin")
+    labels.insert(-1, "trajectory starting\n point from bin")
     handles.append(Patch(facecolor="grey", alpha=0.3, edgecolor="black", linewidth=0.25))
-    labels.append("fixed point\ntrapping radius")
+    labels.append("trapping radius")
     ax.legend(handles, labels, ncols=1, loc="upper left", bbox_to_anchor=(1.25, 0.9))
 
     return fig
