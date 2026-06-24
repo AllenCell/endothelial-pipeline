@@ -316,7 +316,7 @@ def make_contour_plot_panel_for_nullcline_walks(
         nullcline_styles = (nullcline_r_style, nullcline_rho_style)
         for col_idx, col in enumerate(column_names):
             label = COLUMN_METADATA[col].label or str(col)
-            legend_label = f"{label}-nullcline (d{label}/dt=0)"
+            legend_label = f"d{label}/dt=0"
             handle = mlines.Line2D(
                 [],
                 [],
@@ -340,9 +340,10 @@ def make_contour_plot_panel_for_nullcline_walks(
             labels,
             fontsize="xx-small",
             loc="lower center",
-            bbox_to_anchor=(0.515, 0.875),
+            bbox_to_anchor=(0.515, 0.825),
             ncol=3,
             handletextpad=0.3,
+            columnspacing=0.5,
             frameon=False,
         )
 

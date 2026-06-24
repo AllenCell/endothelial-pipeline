@@ -142,7 +142,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
         contour_plot_paths[dataset_name], nullcline_coordinates = (
             make_contour_plot_panel_for_nullcline_walks(
-                figure_size=(2.6, 1.55),
+                figure_size=(2.0, 1.15),
                 output_path=fig_savedir,
                 drift=drift_r_rho,
                 meshgrid=centers_mesh,
@@ -171,8 +171,8 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             path=contour_plot_paths[dataset_low],
             x_position=0.0,
             y_position=0.0,
-            x_offset=0.1,
-            y_offset=-0.05,
+            x_offset=0.0,
+            y_offset=0.1,
         ),
         FigurePanel(
             letter="B",
@@ -187,8 +187,8 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             path=contour_plot_paths[dataset_high],
             x_position=0.0,
             y_position=1.5,
-            x_offset=0.1,
-            y_offset=-0.05,
+            x_offset=0.0,
+            y_offset=0.1,
         ),
         FigurePanel(
             letter="D",
