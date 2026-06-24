@@ -982,7 +982,7 @@ def plot_drift_3d(
     # consistent size regardless of whether colorbar/legend are included
     fig = plt.figure(figsize=figsize)
     # Position: [left, bottom, width, height] in figure coordinates
-    ax: Axes3D = fig.add_axes((0.10, 0.20, 0.80, 0.72), projection="3d")
+    ax: Axes3D = fig.add_axes((0.10, 0.25, 0.80, 0.67), projection="3d")
     figsize_ratio = figsize[1] / figsize[0]
     ax.set_box_aspect((1.1 * figsize_ratio, 0.98 * figsize_ratio, 1.05 * figsize_ratio))
 
@@ -1012,7 +1012,7 @@ def plot_drift_3d(
         # just above and shares the same centre so both have identical left-to-
         # right spacing.
         scalar_mappable.set_array([])
-        cbar_ax = fig.add_axes((0.50, 0.06, 0.44, 0.025))
+        cbar_ax = fig.add_axes((0.50, 0.08, 0.5, 0.02))
         cbar = fig.colorbar(
             scalar_mappable,
             cax=cbar_ax,
@@ -1051,7 +1051,7 @@ def plot_drift_3d(
             handles=handles,
             fontsize=FONTSIZE_XSMALL,
             loc="lower center",
-            bbox_to_anchor=(0.25, 0.095),
+            bbox_to_anchor=(0.25, 0.0),
             frameon=False,
             handletextpad=0.3,
             labelspacing=0.4,

@@ -287,8 +287,8 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="",
             path=vector_field_plot_paths[dataset_high],
-            x_position=1.6,
-            y_position=0.4,
+            x_position=1.45,
+            y_position=0.0,
             x_offset=0.0,
             y_offset=0.0,
         ),
@@ -304,8 +304,8 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_low],
-            x_position=0.16,
-            y_position=3.7,
+            x_position=0.1,
+            y_position=3.4,
             x_offset=0.0,
             y_offset=0.0,
         ),
@@ -320,8 +320,8 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_high],
-            x_position=1.75,
-            y_position=3.7,
+            x_position=1.7,
+            y_position=3.4,
             x_offset=0.0,
             y_offset=0.0,
         ),

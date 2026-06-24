@@ -322,10 +322,9 @@ def make_2d_contour_plot_panel(
 
     # Use explicit axes rects (no layout engine) so positions are fixed and
     # additional axes for the colorbar or legend can be placed at known figure
-    # coordinates without risk of clipping. Reserve the top 20 % for the
-    # colorbar and the right ~35 % for the legend axes (kept constant regardless
-    # of include_legend so plot sizing is invariant).
-    subplot_rects = [(0.12, 0.45, 0.55, 0.35), (0.12, 0.05, 0.55, 0.35)]
+    # coordinates without risk of clipping. Reserve the bottom ~18 % for the
+    # colorbar and legend, placed side by side below the subplots.
+    subplot_rects = [(0.12, 0.58, 0.55, 0.35), (0.12, 0.18, 0.55, 0.35)]
     fig, axes_ = plot_drift_contours(
         meshgrid=meshgrid,
         drift=drift,
@@ -392,7 +391,11 @@ def make_2d_contour_plot_panel(
         # add colorbar via fig.add_axes so its position is fixed in figure
         # coordinates and does not affect the main axes layout or get clipped on save
         _add_colorbar_to_contour_plot(
-            fig, orientation="horizontal", ticks_cax_position="bottom", label_cax_position="top"
+            fig,
+            orientation="horizontal",
+            ticks_cax_position="top",
+            label_cax_position="bottom",
+            cax_rect=(0.25, -0.06, 0.5, 0.02),
         )
 
     if include_legend:
@@ -427,8 +430,8 @@ def make_2d_contour_plot_panel(
             handles,
             labels,
             fontsize="xx-small",
-            loc="center left",
-            bbox_to_anchor=(-0.05, 0.91),
+            loc="lower center",
+            bbox_to_anchor=(0.25, -0.06),
             ncol=1,
             handletextpad=0.3,
             frameon=False,
