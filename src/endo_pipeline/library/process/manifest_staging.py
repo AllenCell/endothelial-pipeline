@@ -8,7 +8,7 @@ import yaml
 from s3_uploader import draft_rm_jobs, draft_sync_jobs, run_all_jobs
 from termcolor import colored
 
-from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs import get_available_dataset_names, load_dataset_config
 from endo_pipeline.io import resolve_dataframe_location, resolve_model_location
 from endo_pipeline.manifests import (
     DataframeManifest,
@@ -70,10 +70,17 @@ def build_dataframe_manifest_staging_entries_for_location(
 ) -> tuple[list[dict[str, str]], str]:
     """Build dataframe manifest staging entries for given location key."""
 
+    # Check if location key is a dataset
+    if location_key in get_available_dataset_names():
+        config = load_dataset_config(location_key)
+        target_name = f"{config.date}_{config.fmsid}"
+    else:
+        target_name = location_key
+
     location = get_dataframe_location_for_dataset(manifest, location_key)
     location.s3uri = None
     source = resolve_dataframe_location(location)
-    target = f"{S3_STAGING_DIRECTORY}{folder}{Path(source).name}"
+    target = f"{S3_STAGING_DIRECTORY}{folder}{target_name}{Path(source).suffix}"
 
     entries = [
         {
