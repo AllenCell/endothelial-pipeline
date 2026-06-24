@@ -425,20 +425,20 @@ def _sort_and_categorize_datasets(
     # For "replicate" axis mode, order by shear_stress_bin, stability, then replicate_number
     # Within 12 dyn: monostable first; within 15 dyn: bistable first
     if axis_mode == "replicate":
-
-        def _replicate_sort_key(ds: str) -> tuple[int, int, int]:
-            cfg = dataset_configs[ds]
-            shear_bin = cfg.flow_conditions[-1].shear_stress_bin
-            stability = cfg.stability_category or "monostable"
-            if shear_bin == 15:
-                stability_rank = 0 if stability == "bistable" else 1
-            else:
-                stability_rank = 0 if stability == "monostable" else 1
-            return (shear_bin, stability_rank, cfg.replicate_number or 0)
-
         sorted_datasets = sorted(
-            [str(ds) for ds in unique_datasets], key=_replicate_sort_key
-        )  # type: ignore[arg-type]
+            [str(ds) for ds in unique_datasets],
+            key=lambda ds: (
+                dataset_configs[ds].flow_conditions[-1].shear_stress_bin,
+                # 15 dyn: bistable first; all others: monostable first
+                (dataset_configs[ds].stability_category or "monostable")
+                != (
+                    "bistable"
+                    if dataset_configs[ds].flow_conditions[-1].shear_stress_bin == 15
+                    else "monostable"
+                ),
+                dataset_configs[ds].replicate_number or 0,
+            ),
+        )
         dataset_category = pd.CategoricalDtype(categories=sorted_datasets, ordered=True)
         df[category_column] = df[category_column].astype(dataset_category)
     elif axis_mode == "cell_line":
