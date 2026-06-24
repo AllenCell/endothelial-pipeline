@@ -5,52 +5,52 @@ class ColumnName:
     """Dataframe column names. Base level column names are shared among dataframes."""
 
     DATASET = "dataset"
-    """Column name for dataset name."""
+    """Name of dataset."""
 
     POSITION = "position"
-    """Zarr file position (FOV)."""
+    """Zarr file position (FOV) of the corresponding segmentation or patch (crop)."""
 
     TIMEPOINT = "frame_number"
-    """Column name for timepoint (frame number)."""
+    """Timepoint [frames]."""
 
     TRACK_ID = "track_id"
-    """The track ID assigned by the tracking algorithm."""
+    """Track ID assigned by the tracking algorithm."""
 
     CROP_INDEX = "crop_index"
     """Column name for crop index."""
 
     TRACK_LENGTH = "track_duration"
-    """Column name for track length (number of timepoints in the track)."""
+    """Number of timepoints in track."""
 
     ZARR_PATH = "zarr_path"
     """Column name for path to the source Zarr file."""
 
     IMAGE_SIZE_X = "image_size_x"
-    """The size of the image in the X dimension (pixels)."""
+    """Size of the whole image in the X dimension [pixels]."""
 
     IMAGE_SIZE_Y = "image_size_y"
-    """The size of the image in the Y dimension (pixels)."""
+    """Size of the whole image in the Y dimension [pixels]."""
 
     PIXEL_SIZE_XY_IN_UM = "pixel_size_xy_in_um"
-    """The size of a pixel in the XY dimensions in microns."""
+    """Size of a pixel in the XY dimensions [microns]."""
 
     TIME_RESOLUTION_MINUTES = "time_resolution_minutes"
-    """The time resolution of the timelapse in minutes."""
+    """Time resolution of the timelapse [minutes]."""
 
     DURATION = "duration_minutes"
     """Timelapse duration in timeframes"""
 
     SHEAR_STRESS = "shear_stress"
-    """The shear stress value in dyn/cm^2."""
+    """Shear stress value [dyn/cm^2]."""
 
     SHEAR_STRESS_REGIME = "shear_stress_regime"
-    """Experimentalist categorization of the shear stress response (e.g. "low flow")."""
+    """Experimentalist categorization of the shear stress response."""
 
     CDH5_CHANNEL_INDEX_ZARR = "cdh5_channel_index_in_zarr"
-    """Column name for the index of the CDH5 channel in the Zarr file."""
+    """Index of the CDH5 channel in the Zarr file."""
 
     BF_CHANNEL_INDEX_ZARR = "brightfield_channel_index_zarr"
-    """Column name for the index of the brightfield channel in the Zarr file."""
+    """Index of the brightfield channel in the Zarr file."""
 
     class DiffAEData(StrEnum):
         """Dataframe column names used in DiFFAE feature dataframes."""
@@ -106,154 +106,195 @@ class ColumnName:
     class SegData(StrEnum):
         """Dataframe column names used in segmentation-based feature dataframes."""
 
-        # dataset and segmentation information columns
         LABEL = "label"
-        """The cell segmentation ID.
-        Note that this is different from the track ID, and can change from one timepoint to the next.
-        """
+        """Cell segmentation ID (different from track ID, and may change between timepoints)."""
 
         NUM_TRACKS_AFTER_FILTERING = "num_unique_tracks_after_filtering_at_T"
-        """The number of unique tracks that pass filtering criteria at the timepoint of interest."""
+        """Number of unique tracks that pass filtering criteria at timepoint of interest."""
 
         NUM_TRACKS_BEFORE_FILTERING = "num_unique_tracks_before_filtering_at_T"
-        """The number of unique tracks that are present at the timepoint of interest before applying
-        filtering criteria. The same as the number of segmentations at that timepoint.
-        """
+        """Number of unique tracks present at timepoint of interest before filtering."""
 
         NUM_NUCLEI_AT_TIMEPOINT = "total_nuclei_count_at_T"
-        """The total number of nuclei present at the timepoint of interest."""
+        """Total number of nuclei present at the timepoint of interest."""
 
-        # DiffAE and crop-based feature columns
         NUM_NUCLEI_IN_CROP = "num_nuclei_in_crop"
-        """Number of label-free predicted nuclei in a crop at a particular timepoint."""
+        """Number of label-free predicted nuclei in a crop/cell-centered patch."""
 
         LABELS_IN_CROP = "all_labels_in_crop"
-        """List of all cell segmentation labels present in a crop at a particular timepoint."""
+        """List of all segmentation labels found within a crop/cell-centered patch."""
 
         START_X_RES_0 = "start_x_resolution_0"
-        """x-coordinate defining the beginning of the crop at resolution level 0 (the native resolution)."""
+        """X coordinate of upper left corner of patch (crop) [pixels] (zarr resolution level 0)."""
 
         END_X_RES_0 = "end_x_resolution_0"
-        """x-coordinate defining the end of the crop at resolution level 0 (the native resolution)."""
+        """X coordinate of lower right corner of patch (crop) [pixels] (zarr resolution level 0)."""
 
         START_Y_RES_0 = "start_y_resolution_0"
-        """y-coordinate defining the beginning of the crop at resolution level 0 (the native resolution)."""
+        """Y coordinate of upper left corner of patch (crop) [pixels] (zarr resolution level 0)."""
 
         END_Y_RES_0 = "end_y_resolution_0"
-        """y-coordinate defining the end of the crop at resolution level 0 (the native resolution)."""
+        """Y coordinate of lower right corner of patch (crop) [pixels] (zarr resolution level 0)."""
 
         CROP_SIZE = "crop_size"
-        """Size of the crop in pixels at resolution level 0 (the native resolution)."""
+        """Size of the crop [pixels] at resolution level 0 (the native resolution)."""
 
         RESOLUTION_FOR_DIFFAE = "diffae_resolution_level_to_use"
-        """Resolution level to use for DiffAE features.
-        This is used to downsample the resolution 0 x and y coordinates and crop sizes
-        when constructing the dataframe used to extract DiffAE features from track-based
-        crops."""
+        """DiffAE feature resolution level used to downsample resolution 0 coordinates."""
 
-        # temporal features: Time-related column names.
         TIME_HRS = "time_hours"
-        """The time in hours since the start of the timelapse."""
+        """Time since start of timelapse [hours]."""
 
         TIME_MINS = "time_minutes"
-        """The time in minutes since the start of the timelapse."""
+        """Time since start of timelapse [minutes]."""
 
         NORMALIZED_TIME_PER_TRACK = "normalized_time"
-        """The time normalized to the track duration (from 0 to 1)."""
+        """Time normalized to track duration (from 0 to 1)."""
 
         TIME_HRS_SINCE_FLOW = "time_hours_since_flow_start"
-        """The time in hours since cells first start experiencing a shear stress."""
+        """Time since cells first experienced a shear stress [hours]."""
 
-        # morphological features
         ORIENTATION = "orientation"
-        """Orientation of the cell in radians ranging from 0 to π, where 0
-        corresponds to the cell being oriented along the positive x-axis
-        and π means the cell is oriented along the negative x-axis.
-        """
+        """Orientation of cell [radians] from 0 (along +x axis) to pi (along -x axis)."""
 
         ORIENTATION_DEG = "orientation_deg"
-        """Orientation of the cell in degrees ranging from 0 to 180, where 0
-        corresponds to the cell being oriented along the positive x-axis
-        and 180 means the cell is oriented along the negative x-axis.
-        """
+        """Orientation of cell [degrees] from 0 (along +x axis) to 180 (along -x axis)."""
 
         ALIGNMENT = "alignment"
-        """Alignment of the cell orientation relative to the flow direction,
-        where 0 means the cell is aligned parallel to flow and 90 means the cell
-        is aligned perpendicular to flow."""
+        """Alignment of cell relative to flow [radians] from 0 (parallel) to pi (perpendicular)."""
 
         ALIGNMENT_DEG = "alignment_deg"
-        """Alignment of the cell orientation relative to the flow direction in degrees,
-        where 0 means the cell is aligned parallel to flow and 90 means the cell
-        is aligned perpendicular to flow."""
+        """Alignment of cell relative to flow [degrees] from 0 (parallel) to 90 (perpendicular)."""
 
         NEMATIC_ORDER = "nematic_order"
+        """Nematic order of ellipse fit to cell segmentation from -1 (perpendicular) to 1 (parallel)."""
+
         ECCENTRICITY = "eccentricity"
+        """Eccentricity of ellipse fit to cell segmentation (focal distance divided by major axis)."""
+
         ASPECT_RATIO = "aspect_ratio"
+        """Aspect ratio of ellipse fit to cell segmentation (major axis divided by minor axis)."""
+
         MAJOR_AXIS = "major_axis_length"
-        """The length of the major axis of an ellipse fitted to the cell segmentation."""
+        """Length of major axis of an ellipse fit to cell segmentation."""
 
         MINOR_AXIS = "minor_axis_length"
-        """The length of the minor axis of an ellipse fitted to the cell segmentation."""
+        """Length of minor axis of an ellipse fit to cell segmentation."""
 
         SOLIDITY = "solidity"
-        """Solidity of the cell, defined as the ratio of the cell area to the area of its convex hull."""
+        """Solidity of cell (ratio of cell area to area of its convex hull)."""
 
         AREA_UM_SQ = "area_um_squared"
-        """Area of the cell segmentation in microns squared (um²)."""
+        """Area of cell segmentation [microns^2]."""
 
         PERIMETER_UM = "perimeter_um"
-        """Perimeter of the cell segmentation in microns."""
+        """Perimeter of cell segmentation [microns]."""
 
         AREA_PX_SQ = "area_px_squared"
-        """Area of the cell segmentation in pixels squared."""
+        """Area of cell segmentation [pixels^2]."""
 
         PERIMETER_PX = "perimeter_px"
-        """Perimeter of the cell segmentation in pixels."""
+        """Perimeter of cell segmentation [pixels]."""
 
         NUCLEI_POSITION_X = "nuclei_position_x"
-        NUCLEI_POSITION_Y = "nuclei_position_y"
-        NUCLEI_POSITION_X_UM = "nuclei_position_x_um"
-        NUCLEI_POSITION_Y_UM = "nuclei_position_y_um"
-        NUCLEI_POSITION_ANGLE = "nuclei_position_angle"
-        NUCLEI_POSITION_ANGLE_DEG = "nuclei_position_angle_deg"
-        NUCLEI_POSITION_DISTANCE = "nuclei_position_distance"
-        NUCLEI_LABEL = "nuclei_with_most_overlap_0"
-        NUCLEI_CENTROID_X = "nuclei_with_most_overlap_0_centroid_X"
-        NUCLEI_CENTROID_Y = "nuclei_with_most_overlap_0_centroid_Y"
+        """X coordinate of the label-free nuclei prediction centroid [pixels]."""
 
-        # fluorescence features
+        NUCLEI_POSITION_Y = "nuclei_position_y"
+        """Y coordinate of the label-free nuclei prediction centroid [pixels]."""
+
+        NUCLEI_POSITION_X_UM = "nuclei_position_x_um"
+        """X coordinate of the label-free nuclei prediction centroid [microns]."""
+
+        NUCLEI_POSITION_Y_UM = "nuclei_position_y_um"
+        """Y coordinate of the label-free nuclei prediction centroid [microns]."""
+
+        NUCLEI_POSITION_ANGLE = "nuclei_position_angle"
+        """Angle of nucleus centroid from cell centroid relative to flow [radians] with 0 along +x and pi/-pi along -x."""
+
+        NUCLEI_POSITION_ANGLE_DEG = "nuclei_position_angle_deg"
+        """Angle of nucleus centroid from cell centroid relative to flow [degrees] with 0 along +x and 180/-180 along -x."""
+
+        NUCLEI_POSITION_DISTANCE = "nuclei_position_distance"
+        """Distance between nucleus centroid and cell segmentation centroid [pixels]."""
+
+        NUCLEI_LABEL = "nuclei_with_most_overlap_0"
+        """
+        ID of nuclei prediction that overlaps most with cell segmentation (index
+        0, multiple nuclei recorded in additional columns).
+        """
+
+        NUCLEI_CENTROID_X = "nuclei_with_most_overlap_0_centroid_X"
+        """
+        Centroid X coordinate of nuclei prediction that overlaps most with cell
+        segmentation (index 0, multiple nuclei recorded in additional columns)
+        """
+
+        NUCLEI_CENTROID_Y = "nuclei_with_most_overlap_0_centroid_Y"
+        """
+        Centroid Y coordinate of nuclei prediction that overlaps most with cell
+        segmentation (index 0, multiple nuclei recorded in additional columns)
+        """
+
         EDGE_FLUOR = "edge_fluorescence_au"
-        """List of the fluorescence values along the boundary between 2 cell
-        segmentations in arbitrary units (au) (excluding pixels at nodes)."""
+        """Fluorescence [a.u.] along boundary between 2 cell segmentations (excluding pixels at nodes)."""
 
         NODE_FLUOR = "node_fluorescence_au"
-        """List of the fluorescence values at the junctions between 3 or more
-        cell segmentations (i.e. nodes) in arbitrary units (au)."""
+        """Fluorescence [a.u.] at junctions between 3 or more cell segmentations."""
 
         CELL_FLUOR_MEAN = "cell_fluorescence_mean_au"
+        """Mean of mEGFP-tagged VE-cadherin fluorescence [a.u.] in cytoplasmic region of cell segmentation."""
+
         CELL_FLUOR_STD = "cell_fluorescence_std_au"
+        """Standard deviation of mEGFP-tagged VE-cadherin fluorescence [a.u.] in cytoplasmic region of cell segmentation."""
+
         CELL_FLUOR_MEDIAN = "cell_fluorescence_median_au"
+        """Median of mEGFP-tagged VE-cadherin fluorescence [a.u.] in cytoplasmic region of cell segmentation."""
+
         CELL_FLUOR_MIN = "cell_fluorescence_min_au"
+        """Minimum of mEGFP-tagged VE-cadherin fluorescence [a.u.] in cytoplasmic region of cell segmentation."""
+
         CELL_FLUOR_MAX = "cell_fluorescence_max_au"
+        """Maximum of mEGFP-tagged VE-cadherin fluorescence [a.u.] in cytoplasmic region of cell segmentation."""
+
         CELL_FLUOR_PCT25 = "cell_fluorescence_pct25_au"
+        """25th percentile of mEGFP-tagged VE-cadherin fluorescence [a.u.] in cytoplasmic region of cell segmentation."""
+
         CELL_FLUOR_PCT75 = "cell_fluorescence_pct75_au"
+        """75th percentile of mEGFP-tagged VE-cadherin fluorescence [a.u.] in cytoplasmic region of cell segmentation."""
 
         EDGE_FLUOR_MEAN = "edge_fluorescence_mean_au"
+        """Mean fluorescence [a.u.] at junctions between 2 cell segmentations (edge)."""
+
         EDGE_FLUOR_STD = "edge_fluorescence_std_au"
+        """Standard deviation of fluorescence [a.u.] at junctions between 2 cell segmentations (edge)."""
 
         NODE_FLUOR_MEAN = "node_fluorescence_mean_au"
+        """Mean fluorescence [a.u.] at junctions between 3 or more cell segmentations (node)."""
+
         NODE_FLUOR_STD = "node_fluorescence_std_au"
+        """Standard deviation of fluorescence [a.u.] at junctions between 3 or more cell segmentations (node)."""
 
         EDGE_AND_NODE_FLUOR_MEAN = "edge_and_node_fluorescence_mean_au"
-        EDGE_AND_NODE_FLUOR_STD = "edge_and_node_fluorescence_std_au"
+        """Mean fluorescence [a.u.] of cell segmentation edges and nodes."""
 
-        # other features:
+        EDGE_AND_NODE_FLUOR_STD = "edge_and_node_fluorescence_std_au"
+        """Standard deviation of fluorescence [a.u.] of cell segmentation edges and nodes."""
+
         NUM_NEIGHBORS = "number_of_neighbors"
+        """Number of unique cell segmentations that are adjacent to this one."""
+
         NEIGHBOR_LABELS = "neighboring_cell_labels"
+        """Cell segmentation labels of adjacent cell segmentations."""
+
         CENTROID = "centroid"
+        """Centroid of cell segmentation in (Y,X) [pixels]."""
+
         CENTROID_X = "centroid_x"
+        """Centroid of cell segmentation X coordinate [pixels]."""
+
         CENTROID_Y = "centroid_y"
+        """Centroid of cell segmentation Y coordinate [pixels]."""
+
         CENTROID_X_UM = "centroid_x_um"
         CENTROID_Y_UM = "centroid_y_um"
 
@@ -279,25 +320,39 @@ class ColumnName:
         """Filter-related column names for segmentation-based features."""
 
         IS_INCLUDED = "is_included"
-        """Whether or not a track passes all filtering criteria and is included in the final dataset"""
+        """True if track passes all filtering criteria and is included in final dataset, False otherwise."""
 
         IS_EDGE_SEGMENTATION = "is_edge_segmentation"
-        """Whether or not a segmentation touches the edge of the image"""
+        """True if segmentation touches edge of the image, False otherwise."""
 
         IS_LESS_THAN_MAX_SMOOTHED_AREA_NORMD_CHANGE = "is_less_than_max_smoothed_area_normd_change"
+        """True if change in Gaussian-smoothed cell segmentation area is less than threshold, False otherwise."""
+
         SMOOTHED_AREA_NORMD_DIFF = "smoothed_area_normd_diff"
+        """Change in Gaussian-smoothed cell segmentation area [pixels^2]."""
+
         MAX_SMOOTHED_AREA_NORMALIZED_CHANGE = "max_smoothed_area_normd_change"
+        """Max change in normalized smoothed cell segmentation area before being considered invalid."""
 
         IS_GREATER_THAN_MIN_TRACK_DURATION = "is_greater_than_min_track_duration"
+        """True if track duration exceeds minimum threshold, False otherwise."""
+
         MIN_TRACK_DURATION = "min_track_duration"
+        """Minimum number of timepoints for a track to be kept."""
 
         HAS_MORE_THAN_MIN_NUM_VALID_POINTS_PER_TRACK = (
             "has_more_than_min_num_valid_points_per_track"
         )
+        """True if track has sufficient number of timepoints passing all other filters, False otherwise."""
+
         MIN_NUM_VALID_TIMEPOINTS_PER_TRACK = "min_num_valid_tp_per_track"
+        """Minimum number of timepoints that pass all other filters for a track to be kept."""
+
         NUM_VALID_TIMEPOINTS_IN_TRACK = "num_valid_tp_per_track"
+        """Number of timepoints in track that pass all segmentation-based filters."""
 
         IS_VALID_BBOX = "bbox_is_in_bounds"
+        """True if crop/cell-centered patch fits into the larger image without being clipped."""
 
     TRACKING_REFERENCE_INDEX = "reference_index"
     """Relative timepoint index used to compare nearby timepoints to find matching segmentation for track."""
@@ -315,15 +370,34 @@ class ColumnName:
         """Column names for workflow development and verification checks."""
 
         NUM_NUC_WITH_MOST_OVERLAP = "num_nuclei_with_most_overlap"
+        """Number of label-free predicted nuclei that overlap with a cell segmentation."""
+
         SMOOTHED_AREA_NORMALIZED = "smoothed_area_normd"
+        """Area of cell segmentation after Gaussian smoothing across time [pixels^2]."""
+
         SIGMA_FOR_AREA_SMOOTHING = "gaussian_sigma_for_area_smoothing"
+        """Standard deviation of Gaussian kernel used for smoothing cell segmentation areas across time."""
+
         NUM_UNIQUE_TRACKS_PER_TIMEPOINT = "num_unique_tracks_per_timeframe"
+        """Number of unique cell segmentations per dataset per position per timepoint per track (should always be 1)."""
+
         NODE_LABELS = "node_labels"
+        """Label IDs for each tricellular junction."""
+
         EDGE_LABELS = "edge_labels"
+        """Label IDs of each edge of a segmentation boundary."""
+
         NODE_PAIR_LABELS = "node_pair_labels"
+        """Pair of node label IDs that form each edge of a segmentation boundary."""
+
         CDH5_SEGMENTATION_LABEL = "cdh5_segmentation_label"
+        """Label ID for the CDH5 cell segmentation."""
+
         NUCLEI_LABELS_IN_CDH5_SEGMENTATION = "nuclei_segmentation_labels"
+        """List of labels from label-free nuclei predictions that overlap with the cell segmentation."""
+
         NUCLEI_FRACTION_IN_CDH5_SEGMENTATION = "nuclei_seg_in_cdh5_seg_frac"
+        """List of fractions of label-free nuclei prediction that overlap with the cell segmentation."""
 
     class Annotations(StrEnum):
         """Column names for manual annotations of segmentation quality and other features."""
@@ -636,10 +710,28 @@ class ColumnName:
     """Learned Perceptual Image Patch Similarity (LPIPS) between input and denoised image."""
 
 
-class ColumnNamePrefix(StrEnum):
-    """Prefixes for dataframe column names."""
+class ColumnNameTemplate(StrEnum):
+    """Dataframe column name templates."""
 
-    NUCLEI_WITH_MOST_OVERLAP = "nuclei_with_most_overlap_"
+    NUCLEI_WITH_MOST_OVERLAP = "nuclei_with_most_overlap_%d"
+    """
+    Column name template: ID of nuclei prediction that overlaps most with cell
+    segmentation (index %d, multiple nuclei recorded in additional columns).
+    """
+
+    NUCLEI_WITH_MOST_OVERLAP_CENTROID_X = "nuclei_with_most_overlap_%d_centroid_X"
+    """
+    Column name template: Centroid X coordinate of nuclei prediction that
+    overlaps most with cell segmentation (index %d, multiple nuclei recorded in
+    additional columns)
+    """
+
+    NUCLEI_WITH_MOST_OVERLAP_CENTROID_Y = "nuclei_with_most_overlap_%d_centroid_Y"
+    """
+    Column name template: Centroid Y coordinate of nuclei prediction that
+    overlaps most with cell segmentation (index %d, multiple nuclei recorded in
+    additional columns)
+    """
 
 
 class ColumnNameSuffix(StrEnum):

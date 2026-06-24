@@ -29,6 +29,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     import pandas as pd
 
     from endo_pipeline.cli import NUM_GPUS
+    from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import get_output_path, join_sorted_strings, load_dataframe, load_model
     from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_stability
     from endo_pipeline.library.analyze.vector_field_estimation import (
@@ -40,7 +41,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         make_2d_contour_plot_panel,
         make_3d_vector_field_plot_panel,
         make_first_passage_time_distance_to_linefit_hist,
-        reconstruct_along_nullcline,
+        reconstruct_fixed_points,
     )
     from endo_pipeline.library.visualize.figure_fpt import generate_first_passage_time_example
     from endo_pipeline.library.visualize.figures import (
@@ -57,13 +58,14 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.column_names import ColumnNameSuffix
     from endo_pipeline.settings.examples import EXAMPLE_DATASET, FPT_FIG_EXAMPLES
-    from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
     from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
     from endo_pipeline.settings.manifest_names import (
         BOOTSTRAPPING_MANIFEST_NAMES,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
     )
     from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
+    from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -74,9 +76,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     output_path = get_output_path(__file__)
 
-    placeholders = parse_placeholder_panels(
-        include_panels, ["A", "B", "C", "D", "E", "F", "G", "H", "I"]
-    )
+    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D", "E", "F"])
 
     # figure is for grid based crops
     crop_pattern = "grid"
@@ -138,13 +138,16 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     # pairwise combination of polar coordinates, and plot contours of drift coefficients
     theta_plot_paths: dict[str, Path] = {}
     contour_plot_paths: dict[str, Path] = {}
-    nullcline_reconstruction_paths: dict[str, Path] = {}
+    fixed_point_reconstruction_paths: dict[str, Path] = {}
     vector_field_plot_paths: dict[str, Path] = {}
-    for dataset_name, arrow_scale_1d, arrow_width_1d in [
-        (dataset_low, 1.5, 0.05),
-        (dataset_high, 0.5, 0.05),
+    for dataset_name, arrow_scale_1d, arrow_width_1d, include_colorbar, include_legend in [
+        (dataset_low, 1.5, 0.05, True, False),
+        (dataset_high, 0.5, 0.05, False, True),
     ]:
         fig_savedir = get_output_path(__file__, dataset_name)
+        dataset_config = load_dataset_config(dataset_name)
+        shear_stress_bin = dataset_config.flow_conditions[-1].shear_stress_bin
+        shear_stress_label = f"{shear_stress_bin} dyn/cm{Unicode.SQUARED}"
 
         # load fixed points dataframes (if available) for both (r, rho) and theta,
         # filter to just stable fixed points, and store in dict for easy access when plotting
@@ -184,19 +187,21 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             column_theta_fixed_point
         ].to_numpy()
 
-        placeholder_3d = "A" if dataset_name == dataset_low else "D"
         vector_field_plot_paths[dataset_name] = make_3d_vector_field_plot_panel(
-            figure_size=(2.0, 2.5),
+            figure_size=(1.55, 2.25),
             output_path=fig_savedir,
             dataset_name=dataset_name,
-            **placeholders[placeholder_3d],
+            shear_stress_label=shear_stress_label,
+            include_legend=include_legend,
+            include_colorbar=include_colorbar,
+            **placeholders["A"],
         )
 
-        placeholder_1p2d = "B" if dataset_name == dataset_low else "E"
         # plot 1D drift in theta and save
         theta_plot_paths[dataset_name] = make_1d_drift_plot_panel(
-            figure_size=(1.325, 1.325),
+            figure_size=(1.25, 1.25),
             output_path=fig_savedir,
+            shear_stress_label=shear_stress_label,
             drift=drift_theta,
             theta_values=centers_theta[-1],
             column_label=column_label_theta,
@@ -204,30 +209,32 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             filename=f"{dataset_name}_{Column.DiffAEData.POLAR_ANGLE}_drift",
             arrow_scale=arrow_scale_1d,
             arrow_width=arrow_width_1d,
-            **placeholders[placeholder_1p2d],
+            include_legend=include_legend,
+            **placeholders["B"],
         )
 
-        contour_plot_paths[dataset_name], nullcline_coordinates = make_2d_contour_plot_panel(
-            figure_size=(2.6, 1.55),
+        contour_plot_paths[dataset_name], _ = make_2d_contour_plot_panel(
+            figure_size=(1.7, 2.83),
             output_path=fig_savedir,
             drift=drift_r_rho,
             meshgrid=centers_mesh,
             column_labels=column_labels_r_rho,
             stable_fixed_point=stable_fixed_point_r_rho,
             filename=f"{dataset_name}_{columns_r_rho_str}_contours",
-            **placeholders[placeholder_1p2d],
+            include_legend=include_legend,
+            include_colorbar=include_colorbar,
+            **placeholders["B"],
         )
 
-        placeholder_nullcline = "C" if dataset_name == dataset_low else "F"
-        nullcline_reconstruction_paths[dataset_name] = reconstruct_along_nullcline(
-            figure_size=(3.125, 1.3),
-            output_path=fig_savedir,
-            nullcline_coords=nullcline_coordinates,
-            theta_value=stable_fixed_point_theta[0],
+        fixed_point_reconstruction_paths[dataset_name] = reconstruct_fixed_points(
+            fixed_point_df=stable_fixed_points_dict[feature_columns_str],
+            shear_stress_label=shear_stress_label,
             model=model,
+            output_path=fig_savedir,
+            figure_size=(1.0, 1.2),
             num_gpus=NUM_GPUS,
-            random_seed=4,
-            **placeholders[placeholder_nullcline],
+            include_row_label=include_colorbar,
+            **placeholders["C"],
         )
 
     # --- Cross-dataset summary plots ---
@@ -243,13 +250,15 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     # summary plot of fixed point locations across datasets
     fixed_point_summary_plot_path = plot_cross_dataset_summaries(
         fixed_point_summary_df,
-        output_dir=output_path,
+        output_path=output_path,
         column_names=feature_column_names,
         axis_mode="shear_stress",
         subplot_layout="horizontal",
-        figure_size=(3.3, 2.0),
+        figure_size=(3.15, 1.8),
         color_by_column=Column.OpticalFlow.UNIT_VECTOR_MEAN,
         ylabel_rotation=0,
+        remove_label_linebreaks=False,
+        **placeholders["D"],
     )
     # --- First passage time analysis schematic ---
     low_flow_dataset = FPT_FIG_EXAMPLES["low_flow"]
@@ -258,114 +267,117 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         example_fixed_point_index=low_flow_dataset.fixed_point_index,
         example_tracked_crop_index=low_flow_dataset.tracked_crop_index,
         example_grid_crop_index=low_flow_dataset.grid_crop_index,
-        out_dir=output_path,
+        output_path=output_path,
+        figure_size=(1.85, 1.95),
+        **placeholders["E"],
     )
     # --- Histogram of first passage time correlation ---
     first_passage_path = make_first_passage_time_distance_to_linefit_hist(
-        figure_size=(2.6, 2.0),
+        figure_size=(2.5, 1.25),
         output_path=output_path,
         dataset_names=dataset_summary_list,
         weighted=False,
-        **placeholders["I"],
+        **placeholders["F"],
     )
 
     # --- Assemble all panels into final figure ---
     panels = [
-        # --- Low flow dataset (row 1) ---
+        # --- 3D plots (panel A) ---
         FigurePanel(
             letter="A",
             path=vector_field_plot_paths[dataset_low],
             x_position=0.0,
             y_position=0.0,
-            x_offset=0.1,
-            y_offset=0.1,
+            x_offset=0.05,
+            y_offset=0.0,
         ),
+        FigurePanel(
+            letter="",
+            path=vector_field_plot_paths[dataset_high],
+            x_position=1.7,
+            y_position=0.0,
+            x_offset=0.0,
+            y_offset=0.0,
+        ),
+        # --- 1D and contour plots (panel B) ---
         FigurePanel(
             letter="B",
             path=theta_plot_paths[dataset_low],
-            x_position=2.3,
-            y_position=0.0,
-            x_offset=0.05,
-            y_offset=0.04,
+            x_position=0.0,
+            y_position=2.05,
+            x_offset=0.26,
+            y_offset=0.0,
         ),
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_low],
-            x_position=3.75,
-            y_position=0.0,
+            x_position=0.0,
+            y_position=3.6,
             x_offset=0.0,
-            y_offset=-0.15,
-        ),
-        FigurePanel(  # r and rho nullclines for low flow dataset
-            letter="C",
-            path=nullcline_reconstruction_paths[dataset_low],
-            x_position=2.3,
-            y_position=1.45,
-            x_offset=0.85,
             y_offset=0.0,
         ),
-        # --- High flow dataset (row 2) ---
         FigurePanel(
-            letter="D",
-            path=vector_field_plot_paths[dataset_high],
-            x_position=0.0,
-            y_position=2.8,
-            x_offset=0.1,
-            y_offset=0.1,
-        ),
-        FigurePanel(
-            letter="E",
+            letter="",
             path=theta_plot_paths[dataset_high],
-            x_position=2.3,
-            y_position=2.8,
-            x_offset=0.05,
-            y_offset=0.04,
+            x_position=1.91,
+            y_position=2.05,
+            x_offset=0.00,
+            y_offset=0.0,
         ),
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_high],
-            x_position=3.75,
-            y_position=2.8,
+            x_position=1.65,
+            y_position=3.6,
             x_offset=0.0,
-            y_offset=-0.15,
-        ),
-        FigurePanel(  # r and rho nullcline for high flow dataset
-            letter="F",
-            path=nullcline_reconstruction_paths[dataset_high],
-            x_position=2.3,
-            y_position=4.25,
-            x_offset=0.85,
             y_offset=0.0,
         ),
-        # --- Bottom row: first passage time and summary plots ---
+        # --- Fixed point reconstructions (panel C) ---
         FigurePanel(
-            letter="G",
+            letter="C",
+            path=fixed_point_reconstruction_paths[dataset_low],
+            x_position=3.225,
+            y_position=0.0,
+            x_offset=0.3,
+            y_offset=0.0,
+        ),
+        FigurePanel(
+            letter="",
+            path=fixed_point_reconstruction_paths[dataset_high],
+            x_position=4.825,
+            y_position=0.0,
+            x_offset=0.3,
+            y_offset=0.0,
+        ),
+        # --- Remaining rows: summary plots, first passage time results ---
+        FigurePanel(
+            letter="D",
             path=fixed_point_summary_plot_path,
-            x_position=0.0,
-            y_position=5.6,
-            x_offset=0.0,
-            y_offset=0.25,
+            x_position=3.25,
+            y_position=1.35,
+            x_offset=0.05,
+            y_offset=0.15,
         ),
         FigurePanel(
-            letter="H",
+            letter="E",
             path=trajectory_example_filepath,
-            x_position=3.4,
-            y_position=5.6,
-            x_offset=0.0,
-            y_offset=0.2,
+            x_position=3.25,
+            y_position=3.35,
+            x_offset=0.3,
+            y_offset=0.0,
         ),
         FigurePanel(
-            letter="I",
+            letter="F",
             path=first_passage_path,
-            x_position=5.3,
-            y_position=5.6,
-            x_offset=0.075,
-            y_offset=0.25,
+            x_position=3.25,
+            y_position=5.2,
+            x_offset=0.1,
+            y_offset=0.05,
         ),
     ]
 
     build_figure_from_panels(
-        panels, output_path / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
+        panels, output_path / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=6.5
     )
 
 

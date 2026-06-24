@@ -5,143 +5,76 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     """
     Compile panels for Figure 3.
 
-    - **Panel A*: Schematic of possible cases for the transition of fixed point
-      locations and stability across shear stress conditions.
+    - **Panel A**: Schematic of hypotheses about how the transition of fixed
+      point locations and stability across shear stress conditions could occur.
     - **Panel B**: Example images of several replicates from intermediate shear
-      stress conditions.
-    - **Panel C**: Summary plot of fixed point locations across all replicates,
-      colored by migration coherence (EMA-smoothed optical flow unit vector
-      mean).
-    - **Panel D**: 3D vector field plot of drift coefficients for example
-      intermediate shear stress datasets, with stable fixed points overlaid as a
-      scatter marker.
+      stress conditions with a spatial feature grid overlaid, showing the
+      spatial distribution of features within replicates.
 
     """
     from pathlib import Path
 
     import matplotlib.pyplot as plt
-    from pandas import DataFrame
 
-    from endo_pipeline.io import get_output_path, load_model
-    from endo_pipeline.library.visualize.data_example_figures import (
-        create_panel_intermediate_examples,
-    )
-    from endo_pipeline.library.visualize.figure_3 import (
-        make_3d_vector_field_plot_panel,
-        reconstruct_fixed_points,
-    )
+    from endo_pipeline.io import get_output_path, save_plot_to_path
+    from endo_pipeline.library.visualize.figure_3 import visualize_2d_streamplots
     from endo_pipeline.library.visualize.figures import (
         FigurePanel,
         build_figure_from_panels,
         parse_placeholder_panels,
     )
-    from endo_pipeline.library.visualize.summary_plot import (
-        build_dataframe_for_fixed_point_dataset_summary,
-        plot_cross_dataset_summaries,
+    from endo_pipeline.library.visualize.spatial_feature_grid import (
+        create_panel_spatial_feature_grid,
     )
-    from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
     from endo_pipeline.settings.column_names import ColumnName
-    from endo_pipeline.settings.examples import EXAMPLE_DATASET, FIGURE_3_EXAMPLE_IMAGES
-    from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
-    from endo_pipeline.settings.manifest_names import BOOTSTRAPPING_MANIFEST_NAMES
-    from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
-    from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
-    from endo_pipeline.settings.workflow_defaults import (
-        DEFAULT_MODEL_MANIFEST_NAME,
-        DEFAULT_MODEL_RUN_NAME,
-        FEATURES_FILTERED_MANIFEST_NAMES,
+    from endo_pipeline.settings.examples import (
+        FIGURE_3_EXAMPLE_IMAGES,
+        FIGURE_3_STREAMPLOT_EXAMPLE_DATASETS,
     )
+    from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
     from endo_pipeline.workflows.figures import assets as figure_assets
 
     plt.style.use("endo_pipeline.figure")
 
     output_path = get_output_path(__file__)
+    placeholders = parse_placeholder_panels(include_panels, ["A", "B"])
 
-    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
+    # Create streamplots that get manually compiled into the schematic in panel A.
+    print(
+        "Creating streamplot image thumbnails. These thumbnails are assembled manually "
+        "into the schematic in panel A via a vector graphics editor."
+    )
+    for dataset_name in FIGURE_3_STREAMPLOT_EXAMPLE_DATASETS:
+        streamplot_output_path = visualize_2d_streamplots(
+            dataset_name, output_path, **placeholders["A"]
+        )
+        print(f"Saved 2D streamplot for dataset {dataset_name} to {streamplot_output_path}.")
 
+    # Load full figure asset of panel A schematic.
     assets_dir = Path(figure_assets.__path__[0])
-    schematic_fp = assets_dir / "figure_3a_hypotheses.svg"
+    schematic_fp = assets_dir / "figure_3a_hypotheses_optimized.svg"
 
-    # Example images of intermediate shear stress condition
-    create_panel_intermediate_examples(
-        examples=FIGURE_3_EXAMPLE_IMAGES,
-        save_dir=output_path,
-        figure_size=(MAX_FIGURE_WIDTH * 0.65, 2.2),
-    )
-
-    # load and instantiate model for generating synthetic images
-    model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
-    model_location = model_manifest.locations[DEFAULT_MODEL_RUN_NAME]
-    model = load_model(model_location, instantiate=True)
-
-    # Load diffae features
-    feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[
-        MIGRATION_COHERENCE_CROP_PATTERN
-    ]
-    feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
-
-    fixed_points_bootstrap_dataframe_manifest_name = BOOTSTRAPPING_MANIFEST_NAMES[
-        MIGRATION_COHERENCE_CROP_PATTERN
-    ]
-    fixed_points_bootstrap_dataframe_manifest = load_dataframe_manifest(
-        fixed_points_bootstrap_dataframe_manifest_name
-    )
-
-    dataset_summary_list = SUMMARY_PLOT_DATASETS["intermediate"]
-
-    BOOTSTRAP_THRESHOLD = 0.4
-
-    # Cross-dataset summary plots
-    columns_for_summary_plots = [
+    # Create spatial feature grid for panel B.
+    feature_columns = [
         ColumnName.DiffAEData.POLAR_ANGLE,
         ColumnName.DiffAEData.POLAR_RADIUS,
+        ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
     ]
-    dataset_summary_df = build_dataframe_for_fixed_point_dataset_summary(
-        dataset_names=dataset_summary_list,
-        feature_dataframe_manifest=feature_dataframe_manifest,
-        bootstrap_dataframe_manifest=fixed_points_bootstrap_dataframe_manifest,
-        column_names=columns_for_summary_plots,
-        convert_angle_to_nematic=False,
-        unwrap_angle=True,
-        stable_only=True,
-        bootstrap_threshold=BOOTSTRAP_THRESHOLD,
+    fig = create_panel_spatial_feature_grid(
+        feature_columns=feature_columns,
+        example_images=FIGURE_3_EXAMPLE_IMAGES,
+        figure_size=(MAX_FIGURE_WIDTH, 4.4),
     )
-    summary_plot_path = plot_cross_dataset_summaries(
-        dataset_summary_df,
-        output_dir=output_path,
-        column_names=columns_for_summary_plots,
-        axis_mode="shear_stress",
-        figure_size=(MAX_FIGURE_WIDTH * 0.6, 1.4),
-        jitter_width=0.2,
-        subplot_layout="vertical",
-        color_by_column=ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
+    save_plot_to_path(
+        fig,
+        output_path,
+        "spatial_feature_grid_examples_main",
+        file_format=".svg",
+        tight_layout=False,
+        pad_inches=0,
     )
 
-    vector_field_plot_paths: dict[str, Path] = {}
-    stable_fixed_points_dfs: dict[str, DataFrame] = {}
-    stable_fixed_point_reconstruction_paths: dict[str, Path] = {}
-    example_dataset_12dyn = EXAMPLE_DATASET["FIGURE_3_12_DYN_BISTABLE"]
-    example_dataset_15dyn = EXAMPLE_DATASET["FIGURE_3_15_DYN_BISTABLE"]
-    for dataset_name in [example_dataset_12dyn, example_dataset_15dyn]:
-        # only include colorbar and legend for first of the two plots to save space
-        include_colorbar = dataset_name == example_dataset_12dyn
-        include_legend = dataset_name == example_dataset_12dyn
-        vector_field_plot_paths[dataset_name], stable_fixed_points_dfs[dataset_name] = (
-            make_3d_vector_field_plot_panel(
-                dataset_name,
-                output_path,
-                include_colorbar=include_colorbar,
-                include_legend=include_legend,
-                **placeholders["D"],
-            )
-        )
-        stable_fixed_point_reconstruction_paths[dataset_name] = reconstruct_fixed_points(
-            fixed_point_df=stable_fixed_points_dfs[dataset_name],
-            model=model,
-            fig_savedir=output_path,
-            add_fixed_point_coordinate_annotation=False,
-        )
-
+    # Arrange panels into final figure layout and save.
     panels = [
         FigurePanel(
             letter="A",
@@ -153,51 +86,11 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         ),
         FigurePanel(
             letter="B",
-            path=output_path / "intermediate_examples_scale_bar_100um.svg",
+            path=output_path / "spatial_feature_grid_examples_main.svg",
             x_position=0,
-            y_position=2.5,
+            y_position=3.1,
             x_offset=0,
             y_offset=0.1,
-        ),
-        FigurePanel(
-            letter="C",
-            path=summary_plot_path,
-            x_position=0,
-            y_position=5.0,
-            x_offset=0.1,
-            y_offset=0.2,
-        ),
-        FigurePanel(
-            letter="D",
-            path=vector_field_plot_paths[example_dataset_12dyn],
-            x_position=MAX_FIGURE_WIDTH * 0.66,
-            y_position=2.5,
-            x_offset=0.15,
-            y_offset=0,
-        ),
-        FigurePanel(
-            letter="",
-            path=stable_fixed_point_reconstruction_paths[example_dataset_12dyn],
-            x_position=MAX_FIGURE_WIDTH * 0.66,
-            y_position=4.6,
-            x_offset=0.3,
-            y_offset=0.0,
-        ),
-        FigurePanel(
-            letter="",
-            path=vector_field_plot_paths[example_dataset_15dyn],
-            x_position=MAX_FIGURE_WIDTH * 0.64,
-            y_position=5.35,
-            x_offset=0.3,
-            y_offset=0.0,
-        ),
-        FigurePanel(
-            letter="",
-            path=stable_fixed_point_reconstruction_paths[example_dataset_15dyn],
-            x_position=MAX_FIGURE_WIDTH * 0.66,
-            y_position=7.15,
-            x_offset=0.3,
-            y_offset=0.0,
         ),
     ]
 
