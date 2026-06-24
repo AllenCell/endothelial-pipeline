@@ -171,8 +171,8 @@ def _compute_filtered_fpt_stats(
     traj_df_tracked_sub: pd.DataFrame,
     dataset_name: str,
     fixed_point_index: int,
-    bin_edges: np.ndarray,
-    bin_centers: np.ndarray,
+    bin_edges: list[np.ndarray],
+    bin_centers: list[np.ndarray],
     min_num_traj_per_bin: int,
 ) -> pd.DataFrame:
     """
@@ -254,7 +254,7 @@ def _compute_filtered_fpt_stats(
 
 def _select_example_bin(
     fpt_stats_df: pd.DataFrame, min_num_traj_per_bin: int
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, list]:
     """
     Select an example bin to visualize trajectories from based on the first
     passage time statistics dataframe.
@@ -285,11 +285,11 @@ def _select_example_bin(
 
 def _select_example_bin_trajectories(
     example_bin_center: np.ndarray,
-    bin_edges: np.ndarray,
+    bin_edges: list[np.ndarray],
     traj_df_grid_sub: pd.DataFrame,
     traj_df_tracked_sub: pd.DataFrame,
-    example_tracked_crop_index: int,
-    example_grid_crop_index: int,
+    example_tracked_crop_index: int | None,
+    example_grid_crop_index: int | None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Filter dataframes to only include a single trajectory from each crop pattern
@@ -338,9 +338,7 @@ def _select_example_bin_trajectories(
     return example_traj_df_grid, example_traj_df_tracked
 
 
-def _build_bin_cuboid_edges(
-    example_bin_edges: tuple[np.ndarray, np.ndarray, np.ndarray], bin_sizes: dict
-):
+def _build_bin_cuboid_edges(example_bin_edges: list, bin_sizes: dict):
     # build the 8 corner vertices of the example bin (a rectangular cuboid in
     # feature space), then identify the 12 axis-aligned edges by keeping only
     # vertex pairs whose distance equals one of the three bin side lengths
@@ -371,7 +369,7 @@ def _create_fpt_schematic_figure(
     example_fixed_point_index: int,
     fixed_point_radius_threshold: float,
     example_bin_cuboid_edges: list[tuple[np.ndarray, np.ndarray]],
-    grid_bin_edges: np.ndarray,
+    grid_bin_edges: list[np.ndarray],
 ) -> plt.Figure:
     """
     Create a schematic figure illustrating the trajectories used for first
