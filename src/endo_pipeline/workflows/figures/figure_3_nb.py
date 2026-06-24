@@ -17,7 +17,7 @@ plt.style.use("endo_pipeline.figure")
 save_dir = get_output_path("figure_3")
 
 assets_dir = Path(figure_assets.__path__[0])
-schematic_fp = assets_dir / "figure_3a_hypotheses.svg"
+schematic_fp = assets_dir / "figure_3a_hypotheses_optimized.svg"
 
 # %%
 feature_columns = [
