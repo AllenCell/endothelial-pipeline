@@ -1,13 +1,11 @@
 from typing import Literal
 
 from .apps import pipeline_cli, workflow_cli
-from .crop_pattern import CropPattern
 from .datasets import Datasets
 from .list_types import FloatList, IntList, StrList, UniqueIntList, UniqueStrList
 from .patch_type import PatchType
 
 __all__ = [
-    "CropPattern",
     "Datasets",
     "FloatList",
     "IntList",
