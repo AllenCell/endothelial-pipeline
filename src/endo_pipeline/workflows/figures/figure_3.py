@@ -36,13 +36,14 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     plt.style.use("endo_pipeline.figure")
 
-    save_dir = get_output_path(__file__)
+    output_path = get_output_path(__file__)
     placeholders = parse_placeholder_panels(include_panels, ["A", "B"])
 
     # Create streamplots that get manually compiled into the schematic in panel A.
     for dataset_name in FIGURE_3_STREAMPLOT_EXAMPLE_DATASETS:
-        streamplot_output_path = save_dir / f"{dataset_name}_streamplot.png"
-        visualize_2d_streamplots(dataset_name, streamplot_output_path, **placeholders["A"])
+        streamplot_output_path = visualize_2d_streamplots(
+            dataset_name, output_path, **placeholders["A"]
+        )
         print(f"Saved 2D streamplot for dataset {dataset_name} to {streamplot_output_path}.")
 
     # Load full figure asset of panel A schematic.
@@ -62,7 +63,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     )
     save_plot_to_path(
         fig,
-        save_dir,
+        output_path,
         "spatial_feature_grid_examples_main",
         file_format=".svg",
         tight_layout=False,
@@ -81,7 +82,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         ),
         FigurePanel(
             letter="B",
-            path=save_dir / "spatial_feature_grid_examples_main.svg",
+            path=output_path / "spatial_feature_grid_examples_main.svg",
             x_position=0,
             y_position=2.6,
             x_offset=0,
@@ -90,7 +91,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     ]
 
     build_figure_from_panels(
-        panels, save_dir / "figure_3.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
+        panels, output_path / "figure_3.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
     )
 
 
