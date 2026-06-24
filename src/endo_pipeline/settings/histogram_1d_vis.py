@@ -3,6 +3,7 @@
 from numpy import pi
 
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 
 DEFAULT_DATASET_COLLECTION_HISTOGRAM_VIS: str = "diffae_model_training"
 """Default dataset collection to use for histogram-over-time visualization workflows."""
@@ -14,7 +15,7 @@ FEATURES_FOR_HISTOGRAM_VIS: tuple[str, ...] = (
     Column.DiffAEData.POLAR_ANGLE,
     Column.DiffAEData.POLAR_RADIUS,
     Column.DiffAEData.PC3_FLIPPED,
-    f"{Column.DiffAEData.PCA_FEATURE_PREFIX}18",
+    ColumnTemplate.PCA_FEATURE % 18,
 )
 """Default features to visualize in 1d histogram-over-time plots."""
 
@@ -22,7 +23,7 @@ BIN_WIDTHS_HISTOGRAMS: dict[str, float] = {
     Column.DiffAEData.POLAR_ANGLE.value: 0.05,
     Column.DiffAEData.POLAR_RADIUS.value: 0.05,
     Column.DiffAEData.PC3_FLIPPED.value: 0.05,
-    f"{Column.DiffAEData.PCA_FEATURE_PREFIX}18": 0.05,
+    ColumnTemplate.PCA_FEATURE % 18: 0.05,
 }
 """Bin widths for each coordinate in visualization of histograms over time."""
 
@@ -30,7 +31,7 @@ BIN_LIMITS_HISTOGRAMS: dict[str, tuple[float, float]] = {
     Column.DiffAEData.POLAR_ANGLE.value: (-pi, pi),
     Column.DiffAEData.POLAR_RADIUS.value: (0.0, 3.5),
     Column.DiffAEData.PC3_FLIPPED.value: (-1.5, 2.5),
-    f"{Column.DiffAEData.PCA_FEATURE_PREFIX}18": (-1.5, 1.75),
+    ColumnTemplate.PCA_FEATURE % 18: (-1.5, 1.75),
 }
 """Bin limits for each coordinate in visualization of histograms over time."""
 

@@ -82,12 +82,6 @@ class ColumnName:
     class DiffAEData(StrEnum):
         """Dataframe column names used in DiFFAE feature dataframes."""
 
-        LATENT_FEATURE_PREFIX = "feat_"
-        """Prefix for latent feature column names."""
-
-        PCA_FEATURE_PREFIX = "pc_"
-        """Prefix for PCA-transformed feature column names."""
-
         POLAR_RADIUS = "polar_r"
         """Column name for polar radius coordinate computed from PC1 and PC2."""
 
@@ -759,6 +753,12 @@ class ColumnNameTemplate(StrEnum):
     overlaps most with cell segmentation (index %d, multiple nuclei recorded in
     additional columns)
     """
+
+    LATENT_FEATURE = "feat_%d"
+    """Column name template: Component %d of the DiffAE latent vector."""
+
+    PCA_FEATURE = "pc_%d"
+    """Column name template: Component %d of PCA-transformed latent vector."""
 
 
 class ColumnNameSuffix(StrEnum):

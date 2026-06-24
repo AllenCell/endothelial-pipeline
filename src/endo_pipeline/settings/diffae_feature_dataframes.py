@@ -1,6 +1,7 @@
 from enum import StrEnum
 
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 
 """Global constants and default settings for DiffAE feature dataframe creation and processing."""
 
@@ -77,13 +78,11 @@ MAX_PCS_TO_COMPUTE = 100
 """Maximum number of principal components to compute for this project."""
 
 DIFFAE_FEATURE_COLUMN_NAMES = [
-    f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}{i}" for i in range(NUM_LATENT_FEATURES)
+    ColumnTemplate.LATENT_FEATURE % i for i in range(NUM_LATENT_FEATURES)
 ]
 """Full set of column names for original latent features in DiFFAE feature dataframes."""
 
-DIFFAE_PC_COLUMN_NAMES = [
-    f"{Column.DiffAEData.PCA_FEATURE_PREFIX}{i+1}" for i in range(NUM_LATENT_FEATURES)
-]
+DIFFAE_PC_COLUMN_NAMES = [ColumnTemplate.PCA_FEATURE % (i + 1) for i in range(NUM_LATENT_FEATURES)]
 """Full set of column names for PCA-transformed features in DiFFAE feature dataframes."""
 
 DIFFAE_PC_COLUMN_NAME_GROUPS: dict[str, list[str]] = {

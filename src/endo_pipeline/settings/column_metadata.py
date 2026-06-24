@@ -8,6 +8,7 @@ from numpy import pi
 
 from endo_pipeline.io import slugify
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.diffae_feature_dataframes import MAX_PCS_TO_COMPUTE, NUM_LATENT_FEATURES
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
@@ -334,7 +335,8 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     # DiffAE-based features ====================================================
     **{
-        f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}{i}": ColumnMetadata(
+        ColumnTemplate.LATENT_FEATURE
+        % i: ColumnMetadata(
             name=f"Feature {i}",
             description=f"DiffAE model latent feature {i}",
             type=ColumnType.CONTINUOUS,
@@ -342,7 +344,8 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         for i in range(NUM_LATENT_FEATURES)
     },
     **{
-        f"{Column.DiffAEData.PCA_FEATURE_PREFIX}{i}": ColumnMetadata(
+        ColumnTemplate.PCA_FEATURE
+        % i: ColumnMetadata(
             name=f"PC {i}",
             description=f"Principal component {i} calculated from DiffAE model latent features",
             type=ColumnType.CONTINUOUS,
