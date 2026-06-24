@@ -17,7 +17,7 @@ class ColumnName:
     """Track ID assigned by the tracking algorithm."""
 
     CROP_INDEX = "crop_index"
-    """Column name for crop index."""
+    """Unique integer index of a patch (crop) trajectory across dataset, FOV, and XY-position."""
 
     TRACK_LENGTH = "track_duration"
     """Number of timepoints in track."""
@@ -83,16 +83,16 @@ class ColumnName:
         """Dataframe column names used in DiFFAE feature dataframes."""
 
         POLAR_RADIUS = "polar_r"
-        """Column name for polar radius coordinate computed from PC1 and PC2."""
+        """Transformed feature r (polar r from PC1 and PC2)."""
 
         POLAR_ANGLE = "polar_theta"
-        """Column name for polar angle coordinate computed from PC1 and PC2."""
+        """Transformed feature theta (rescaled polar angle from PC1 and PC2)."""
 
         NEMATIC_ORDER = "nematic_order"
         """Column name for nematic order (computed as `cos(2*theta)`)."""
 
         PC3_FLIPPED = "rho"
-        """Column name for PC3 value with sign flipped as proxy measure of cell density."""
+        """Transformed feature rho (negative PC3)."""
 
         DIFFERENCE_SUFFIX = "_diff"
         """Suffix for columns representing differences between feature values."""

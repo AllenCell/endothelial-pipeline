@@ -55,6 +55,7 @@ def main(manifest_names: UniqueStrList | None = None, reload_columns: bool = Fal
         ColumnTemplate.NUCLEI_WITH_MOST_OVERLAP_CENTROID_X: [0, 1, 2, 3, 4, 5, 6],
         ColumnTemplate.NUCLEI_WITH_MOST_OVERLAP_CENTROID_Y: [0, 1, 2, 3, 4, 5, 6],
         ColumnTemplate.LATENT_FEATURE: range(DEFAULT_NUM_LATENT_DIMENSIONS),
+        ColumnTemplate.PCA_FEATURE: range(1, DEFAULT_NUM_LATENT_DIMENSIONS + 1),
     }
 
     column_descriptions = {}
