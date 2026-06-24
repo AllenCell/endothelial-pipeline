@@ -625,7 +625,7 @@ def _create_fpt_schematic_figure(
     plt.setp(ax.get_yticklabels(), va="center", ha="left")
     ax.tick_params(axis="z", labelsize=FONTSIZE_SMALL, pad=-4)
     plt.setp(ax.get_zticklabels(), va="top", ha="left")
-    ax.set_xlabel(get_label_for_column(Column.DiffAEData.POLAR_ANGLE), loc="center", labelpad=-4)
+    ax.set_xlabel(get_label_for_column(Column.DiffAEData.POLAR_ANGLE), loc="center", labelpad=-8)
     ax.set_ylabel(get_label_for_column(Column.DiffAEData.POLAR_RADIUS), loc="center", labelpad=0)
     ax.set_zlabel(get_label_for_column(Column.DiffAEData.PC3_FLIPPED), labelpad=-1)
 
