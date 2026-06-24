@@ -567,20 +567,32 @@ def _create_fpt_schematic_figure(
 
     # add legend
     handles, labels = ax.get_legend_handles_labels()
-    starting_point_handle = Line2D(
+    starting_point_handle_cell = Line2D(
         [0],
         [0],
         linestyle="none",
-        marker="o",
+        marker=cell_centric_marker_scatter,
         markeredgecolor="black",
         markerfacecolor="none",
         markeredgewidth=0.75,
         markersize=4,
     )
-    handles.insert(-1, starting_point_handle)
-    labels.insert(-1, "trajectory starting\n point from bin")
+    handles.insert(-1, starting_point_handle_cell)
+    labels.insert(-1, "cell-centered trajectory\n starting point from bin")
+    starting_point_handle_grid = Line2D(
+        [0],
+        [0],
+        linestyle="none",
+        marker=grid_marker,
+        markeredgecolor="black",
+        markerfacecolor="none",
+        markeredgewidth=0.75,
+        markersize=4,
+    )
+    handles.insert(-1, starting_point_handle_grid)
+    labels.insert(-1, "grid-based trajectory\n starting point from bin")
     handles.append(Patch(facecolor="grey", alpha=0.3, edgecolor="black", linewidth=0.25))
-    labels.append("trapping radius")
+    labels.append("fixed point\nstopping radius")
     ax.legend(handles, labels, ncols=1, loc="upper left", bbox_to_anchor=(1.25, 0.85))
 
     return fig
