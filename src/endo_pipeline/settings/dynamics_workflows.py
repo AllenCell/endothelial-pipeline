@@ -4,13 +4,14 @@ from math import pi
 from typing import Literal, TypeAlias
 
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.literal_types import PatchTypeLiteral
 
 KernelName: TypeAlias = Literal["periodic", "gaussian", "epanechnikov"]
 """Type alias for the names of the available kernel functions."""
 
 
-METADATA_COLUMNS_TO_KEEP: dict[str, tuple[str | Column.DiffAEData, ...]] = {
-    "grid": (
+METADATA_COLUMNS_TO_KEEP: dict[PatchTypeLiteral, tuple[str | Column.DiffAEData, ...]] = {
+    "grid_based": (
         Column.DATASET,
         Column.POSITION,
         Column.TIMEPOINT,
@@ -20,7 +21,7 @@ METADATA_COLUMNS_TO_KEEP: dict[str, tuple[str | Column.DiffAEData, ...]] = {
         Column.DiffAEData.END_X,
         Column.DiffAEData.END_Y,
     ),
-    "tracked": (
+    "cell_centered": (
         Column.DATASET,
         Column.POSITION,
         Column.TIMEPOINT,
