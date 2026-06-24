@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import TwoSlopeNorm
-from matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import MaxNLocator, MultipleLocator
 
 from endo_pipeline.io import load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.numerics.fixed_points import (
@@ -640,6 +640,81 @@ def make_first_passage_time_correlation_hist(
     ax.set_ylabel("Count")
     # make sure y ticks are integers since this is a count histogram
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+
+    filename = "fpt_hist"
+    save_plot_to_path(
+        fig,
+        output_path,
+        filename,
+        file_format=".svg",
+        tight_layout=False,
+        transparent=True,
+    )
+    return output_path / f"{filename}.svg"
+
+
+@figure_panel(
+    "Make panel of histogram of first passage time distances from the fitted lines across datasets."
+)
+def make_first_passage_time_distance_to_linefit_hist(
+    figure_size: tuple[float, float],
+    output_path: Path,
+    dataset_names: list[str],
+    weighted: bool = True,
+) -> Path:
+    fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME)
+    line_fit_df, fpt_stats_df_no_nan = get_line_fit_and_filtered_df(fpt_manifest, dataset_names)
+
+    distances_all = []
+    for dataset, df_dataset in line_fit_df.groupby(Column.DATASET):
+        odr_result = df_dataset[Column.VectorField.ODR_RESULT].iloc[0]
+        if weighted:
+            # each (x,y) point that was passed to odr_fit to get the line fit has
+            # an associated point on that line (that is affected by the weights
+            # that are passed to odr_fit) and the distance between that point
+            # and the original (x,y) point is delta and eps. We use these
+            # distances as the values for a histogram
+            weighted_distances = np.sqrt(odr_result.delta**2 + odr_result.eps**2)
+            distances_all.extend(weighted_distances)
+        else:
+            # m, b = odr_result.beta  # slope and intercept of the fitted line
+            # line_func = lambda x, m=m, b=b: m * x + b
+            # get the MFPT points that are in the dataset and calculate their
+            # distances from the fitted line
+            fpt_stats_df_sub = fpt_stats_df_no_nan[fpt_stats_df_no_nan[Column.DATASET] == dataset]
+
+            fpt_col_grid = f"mean{Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX}_grid"
+            fpt_col_cell = f"mean{Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX}_tracked"
+            mfpt_points = fpt_stats_df_sub[[fpt_col_grid, fpt_col_cell]]
+
+            lob_points = np.stack([odr_result.xplusd, odr_result.yest], axis=-1)
+            point1, point2 = lob_points[0:1], lob_points[-2:-1]
+
+            vector_cross_prod = np.expand_dims(
+                np.cross(point2 - point1, point1 - mfpt_points, axis=-1), axis=-1
+            )
+            p1p2_dist = np.linalg.norm(point2 - point1, axis=-1, keepdims=True)
+            shortest_dist_to_line = np.linalg.norm(vector_cross_prod / p1p2_dist, axis=-1)
+            distances_all.extend(shortest_dist_to_line)
+
+    n_size = len(distances_all)
+
+    fig, ax = plt.subplots(figsize=figure_size, layout="constrained")
+    biggest_distance_as_int = int(max(np.ceil(distances_all)))
+    bins: list[float] = np.arange(0, biggest_distance_as_int + 1, 0.5, dtype=float).tolist()
+    ax.hist(distances_all, bins=bins, density=True, edgecolor="k")
+    column_label = (
+        "Deviation of MFPTs from linear\nfit for grid vs. cell-centered\ntrajectories (hrs)"
+    )
+    ax.set_xlabel(column_label)
+    ax.set_ylabel("Probability\ndensity")
+    ax.xaxis.set_major_locator(MultipleLocator(base=2))
+    ax.xaxis.minorticks_on()
+    ax.xaxis.set_minor_locator(MultipleLocator(base=1))
+    ax.yaxis.set_major_locator(MultipleLocator(base=0.2))
+    ax.yaxis.minorticks_on()
+    ax.yaxis.set_minor_locator(MultipleLocator(base=0.1))
+    ax.annotate(f"n = {n_size}", xy=(0.98, 0.72), xycoords="axes fraction", ha="right")
 
     filename = "fpt_hist"
     save_plot_to_path(

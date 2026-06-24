@@ -640,6 +640,9 @@ class ColumnName:
         LINEFIT_SLOPE = "slope_odr"
         """Column name for the slope of a line fit to the relationship between first passage time to the fixed point for grid and tracked crops."""
 
+        ODR_RESULT = "OdrResult"
+        """Column name for the result object of the orthogonal distance regression (ODR) analysis."""
+
     FIXED_POINT_DETECTION_RATE = "detection_rate"
     """Fraction of bootstrap iterations in which a matched fixed point was found."""
 
