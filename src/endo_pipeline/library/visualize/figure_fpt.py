@@ -6,7 +6,6 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 from endo_pipeline.io import save_plot_to_path
-from endo_pipeline.io.output import get_output_path
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_binned_value
 from endo_pipeline.library.analyze.numerics.binning import adjust_limits_from_bin_size, get_bins
 from endo_pipeline.library.analyze.numerics.fixed_points import (
@@ -20,6 +19,7 @@ from endo_pipeline.library.analyze.track_integration import (
     merge_grid_and_tracked_first_passage_time_stats_dfs,
 )
 from endo_pipeline.library.visualize.columns import get_label_for_column
+from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import (
@@ -34,19 +34,18 @@ from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_COLOR
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
 
 
+@figure_panel("Plot example trajectories used to compute MFPTs (cell-centered vs. grid-based).")
 def generate_first_passage_time_example(
     dataset_name: str,
     example_fixed_point_index: int,
     example_tracked_crop_index: int | None,
     example_grid_crop_index: int | None,
-    out_dir: Path | None = None,
+    output_path: Path,
+    figure_size: tuple[float, float] = (1.85, 1.95),
     minimum_track_length: int = LONG_TRACK_THRESHOLD_LENGTH,
     fixed_point_radius_threshold: float = MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
     min_num_traj_per_bin: int = 10,
 ) -> Path:
-
-    if out_dir is None:
-        out_dir = get_output_path(__file__)
 
     # load the dynamics features from the grid-based and track-based dataframes
     traj_df_grid = load_filtered_trajectory_df_for_first_passage_time_workflow(
@@ -323,7 +322,7 @@ def generate_first_passage_time_example(
     # plot the tracked and grid trajectories in the 3D feature space with the
     # fixed point, bin edges, and bin start points
     track_alpha = 0.4
-    fig = plt.figure(figsize=(1.85, 1.95))
+    fig = plt.figure(figsize=figure_size)
     ax: Axes3D = fig.add_subplot(projection="3d")
     ax.plot(
         xs=thetas_tracked_unwrapped,
@@ -445,6 +444,6 @@ def generate_first_passage_time_example(
     ax.set_position([(1 - ax_width) / 2, (1 - ax_height) / 2, ax_width, ax_height])
 
     filename = f"{dataset_name}_FPT_fp_{example_fixed_point_index}_mean_3d_scatter"
-    save_plot_to_path(fig, out_dir, filename, file_format=".svg", bbox_inches="tight")
+    save_plot_to_path(fig, output_path, filename, file_format=".svg", bbox_inches="tight")
 
-    return out_dir / f"{filename}.svg"
+    return output_path / f"{filename}.svg"

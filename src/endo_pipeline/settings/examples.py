@@ -12,11 +12,11 @@ EXAMPLE_DATASET = {
 }
 """Dictionary of example datasets for specific figures."""
 
-FIGURE_3_RECONSTRUCTION_EXAMPLE_DATASETS = [
-    "20260114_20X",  # two fixed points (15 dyn)
-    "20260225_20X",  # single fixed point (15 dyn)
-    "20260202_20X",  # single fixed point (15 dyn)
+FIGURE_3_STREAMPLOT_EXAMPLE_DATASETS = [
+    "20250409_20X",  # low shear stress
+    "20250611_20X",  # high shear stress
 ]
+"""List of datasets used to make data-driven 2D streamplots for Figure 3A schematic."""
 
 
 class ExampleImage(NamedTuple):
