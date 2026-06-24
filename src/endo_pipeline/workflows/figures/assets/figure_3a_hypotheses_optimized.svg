@@ -1979,16 +1979,12 @@
     <text x="440.674560546875" y="185.786972045898" fill="#696969" font-family="Arial" font-size="8px" stroke-width=".666667" style="line-height:1.05" xml:space="preserve"><tspan x="440.674560546875" y="185.786972045898" fill="#000000" font-size="8px">π/2</tspan></text>
     <text x="409.740325927734" y="185.786972045898" fill="#000000" font-family="Arial" font-size="8px" stroke-width=".666667" style="line-height:1.05" xml:space="preserve"><tspan x="409.740325927734" y="185.786972045898">0</tspan></text>
     <text x="430.655029296875" y="195.543960571289" font-family="Arial" font-size="8px" font-weight="bold" stroke-linejoin="round" text-anchor="middle">θ</text>
-    <text x="26.0829086303711" y="150.113571166992" font-family="Arial" font-size="8px" font-weight="bold" stroke-linejoin="round" text-anchor="middle">continuous</text>
-    <text x="26.2645492553711" y="158.125289916992" font-family="Arial" font-size="8px" font-weight="bold" stroke-linejoin="round" text-anchor="middle">transition</text>
-    <text x="26.1610336303711" y="142.125289916992" font-family="Arial" font-size="8px" font-weight="bold" stroke-linejoin="round" text-anchor="middle">hypothesis 2:</text>
-    <text x="26.0706977844238" y="126.125274658203" font-family="Arial" font-size="8px" font-weight="bold" stroke-linejoin="round" text-anchor="middle">State</text>
-    <text x="26.2645492553711" y="134.125274658203" font-family="Arial" font-size="8px" font-weight="bold" stroke-linejoin="round" text-anchor="middle">transition</text>
-    <text x="26.1214828491211" y="63.0892448425293" font-family="Arial" font-size="8px" font-weight="bold" stroke-linejoin="round" text-anchor="middle">saddle-node</text>
-    <text x="26.0614242553711" y="71.0892486572266" font-family="Arial" font-size="8px" font-weight="bold" stroke-linejoin="round" text-anchor="middle">bifurcation</text>
-    <text x="26.1610336303711" y="55.089241027832" font-family="Arial" font-size="8px" font-weight="bold" stroke-linejoin="round" text-anchor="middle">hypothesis 1:</text>
-    <text x="26.0706977844238" y="39.0892372131348" font-family="Arial" font-size="8px" font-weight="bold" stroke-linejoin="round" text-anchor="middle">State</text>
-    <text x="26.2645492553711" y="47.089241027832" font-family="Arial" font-size="8px" font-weight="bold" stroke-linejoin="round" text-anchor="middle">transition</text>
+    <text x="26.0829086303711" y="142.076446533203" font-family="Arial" font-size="8px" font-weight="bold" stroke-linejoin="round" text-anchor="middle">continuous</text>
+    <text x="26.2645492553711" y="150.088165283203" font-family="Arial" font-size="8px" font-weight="bold" stroke-linejoin="round" text-anchor="middle">transition</text>
+    <text x="26.1610336303711" y="134.088165283203" font-family="Arial" font-size="8px" font-weight="bold" stroke-linejoin="round" text-anchor="middle">Hypothesis 2:</text>
+    <text x="26.1214828491211" y="55.040412902832" font-family="Arial" font-size="8px" font-weight="bold" stroke-linejoin="round" text-anchor="middle">saddle-node</text>
+    <text x="26.0614242553711" y="63.0404167175293" font-family="Arial" font-size="8px" font-weight="bold" stroke-linejoin="round" text-anchor="middle">bifurcation</text>
+    <text x="26.1610336303711" y="47.0404090881348" font-family="Arial" font-size="8px" font-weight="bold" stroke-linejoin="round" text-anchor="middle">Hypothesis 1:</text>
     <path d="m383.25863 205.036732-226.437981-3e-12" color="#000000" stroke-linejoin="round" style="-inkscape-stroke:none"/>
     <path d="m156.820312 204.369141v1.33398438h226.4375v-1.33398438z" color="#000000" stroke-linejoin="round" style="-inkscape-stroke:none"/>
     <path d="m387.105287 205.036732-5.7666524 3.33332509v-6.66665018z" color="#000000" fill-rule="evenodd" stroke-linejoin="round" style="-inkscape-stroke:none"/>
