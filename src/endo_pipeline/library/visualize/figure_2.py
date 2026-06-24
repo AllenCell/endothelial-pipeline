@@ -32,7 +32,7 @@ from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.column_names import ColumnNameType
+from endo_pipeline.settings.column_names import ColumnNameSuffix, ColumnNameType
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.figures import FONTSIZE_SMALL, FONTSIZE_XSMALL
 from endo_pipeline.settings.first_passage_time import FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME
@@ -751,11 +751,21 @@ def reconstruct_fixed_points(
         VE-cadherin MIP." Else, do not label the row of the contact sheet.
     """
 
-    # reconstruct images along at the fixed point coordinates and make a contact
+    # Reconstruct images along at the fixed point coordinates and make a contact
     # sheet of the results
     column_names = cast(list[str], list(DYNAMICS_COLUMN_NAMES))
+
+    # Column names in fixed point dataframe have the suffix "_fixed_point", but
+    # the generate_from_dataframe function expects the base column names, so
+    # remove the suffix here before passing to the generation function.
+    column_rename_dict = {
+        column: column.replace(f"{ColumnNameSuffix.FIXED_POINTS}", "")
+        for column in fixed_point_df.columns
+    }
+    fixed_point_df_renamed = fixed_point_df.rename(columns=column_rename_dict)
+
     reconstructed_image = generate_from_dataframe(
-        fixed_point_df,
+        fixed_point_df_renamed,
         column_names,
         model,
         num_gpus=num_gpus,
@@ -810,7 +820,7 @@ def reconstruct_fixed_points(
             label_fontsize=FONTSIZE_XSMALL,
         )
 
-    dataset_name = fixed_point_df[Column.DATASET].unique().item()
+    dataset_name = fixed_point_df[Column.DATASET].unique()[0]
     filename = f"{dataset_name}_fixed_point_reconstructions"
     save_plot_to_path(
         fig_fixed_point_reconstructions,
