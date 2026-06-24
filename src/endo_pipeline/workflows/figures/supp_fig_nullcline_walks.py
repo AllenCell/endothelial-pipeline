@@ -25,14 +25,14 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         get_reshaped_vector_field_and_grid,
         load_drift_dataframe_for_dataset,
     )
-    from endo_pipeline.library.visualize.figure_2 import (
-        make_2d_contour_plot_panel,
-        reconstruct_along_nullcline,
-    )
     from endo_pipeline.library.visualize.figures import (
         FigurePanel,
         build_figure_from_panels,
         parse_placeholder_panels,
+    )
+    from endo_pipeline.library.visualize.nullcline_walks import (
+        make_contour_plot_panel_for_nullcline_walks,
+        reconstruct_along_nullcline,
     )
     from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
     from endo_pipeline.settings.column_metadata import COLUMN_METADATA
@@ -140,16 +140,18 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             column_theta_fixed_point
         ].to_numpy()
 
-        contour_plot_paths[dataset_name], nullcline_coordinates = make_2d_contour_plot_panel(
-            figure_size=(2.6, 1.55),
-            output_path=fig_savedir,
-            drift=drift_r_rho,
-            meshgrid=centers_mesh,
-            column_labels=column_labels_r_rho,
-            stable_fixed_point=stable_fixed_point_r_rho,
-            filename=f"{dataset_name}_{columns_r_rho_str}_contours",
-            plot_nullcline_walk_points=True,
-            **placeholders["B"],
+        contour_plot_paths[dataset_name], nullcline_coordinates = (
+            make_contour_plot_panel_for_nullcline_walks(
+                figure_size=(2.6, 1.55),
+                output_path=fig_savedir,
+                drift=drift_r_rho,
+                meshgrid=centers_mesh,
+                column_labels=column_labels_r_rho,
+                stable_fixed_point=stable_fixed_point_r_rho,
+                filename=f"{dataset_name}_{columns_r_rho_str}_contours",
+                plot_nullcline_walk_points=True,
+                **placeholders["B"],
+            )
         )
 
         nullcline_reconstruction_paths[dataset_name] = reconstruct_along_nullcline(
