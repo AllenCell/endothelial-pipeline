@@ -371,7 +371,7 @@ def _create_fpt_schematic_figure(
     fixed_point_radius_threshold: float,
     example_bin_cuboid_edges: list[tuple[np.ndarray, np.ndarray]],
     grid_bin_edges: np.ndarray,
-):
+) -> plt.Figure:
     """
     Create a schematic figure illustrating the trajectories used for first
     passage time visualization, with the fixed point and bin edges overlaid in
@@ -409,6 +409,11 @@ def _create_fpt_schematic_figure(
     track_alpha = 0.4
     fig = plt.figure(figsize=figure_size)
     ax: Axes3D = fig.add_subplot(projection="3d")
+    grid_color = "tab:blue"
+    cell_centric_color = "tab:red"
+
+    # plot the full trajectories as lines with markers at each timepoint,
+    # colored by crop pattern
     ax.plot(
         xs=thetas_tracked_unwrapped,
         ys=rs_tracked,
@@ -416,7 +421,7 @@ def _create_fpt_schematic_figure(
         ls="-",
         lw=1,
         marker=".",
-        c="tab:red",
+        c=cell_centric_color,
         alpha=track_alpha,
         label="cell-centered",
     )
@@ -427,20 +432,40 @@ def _create_fpt_schematic_figure(
         ls="-",
         lw=1,
         marker="d",
-        c="tab:blue",
+        c=grid_color,
         alpha=track_alpha,
         label="grid-based",
     )
-    # plot the FPT start points as black markers with no fill
+
+    # plot the FPT start points as larger markers with black outline
+    ax.scatter(
+        thetas_tracked_unwrapped[0],
+        rs_tracked[0],
+        rhos_tracked[0],
+        facecolors=cell_centric_color,
+        alpha=track_alpha,
+        s=15,
+        marker="o",
+    )
     ax.scatter(
         thetas_tracked_unwrapped[0],
         rs_tracked[0],
         rhos_tracked[0],
         edgecolors="black",
         facecolors="none",
-        lw=1,
-        s=5,
+        alpha=1.0,
+        lw=0.75,
+        s=15,
         marker="o",
+    )
+    ax.scatter(
+        thetas_grid_unwrapped[0],
+        rs_grid[0],
+        rhos_grid[0],
+        facecolors=grid_color,
+        alpha=track_alpha,
+        s=15,
+        marker="d",
     )
     ax.scatter(
         thetas_grid_unwrapped[0],
@@ -448,14 +473,17 @@ def _create_fpt_schematic_figure(
         rhos_grid[0],
         edgecolors="black",
         facecolors="none",
-        lw=1,
-        s=5,
+        alpha=1.0,
+        lw=0.75,
+        s=15,
         marker="d",
     )
+
     # draw cube around bin edges
     for e_xyz in example_bin_cuboid_edges:
         ax.plot(*list(zip(*e_xyz, strict=True)), ls="-", lw=0.5, c="black", alpha=0.7)
-    # plot the fixed point in the 3D space as a black star
+
+    # plot the fixed point in the 3D space using consistent marker formatting
     fp_dynamic_cols = [str(col) for col in DYNAMICS_COLUMN_NAMES]
     col_labels = [(COLUMN_METADATA[col].label or col) for col in fp_dynamic_cols]
     fixed_point_label = f"({col_labels[0]}$^*$, {col_labels[1]}$^*$, {col_labels[2]}$^*$)"
@@ -466,6 +494,7 @@ def _create_fpt_schematic_figure(
         s=15,
         label=fixed_point_label,
     )
+
     # plot a sphere around the fixed point with radius equal to the fixed_point_radius_threshold
     u = np.linspace(0, 2 * np.pi, 20)
     v = np.linspace(0, np.pi, 20)
@@ -480,10 +509,12 @@ def _create_fpt_schematic_figure(
     ] + fixed_point_radius_threshold * np.outer(np.ones_like(u), np.cos(v))
     ax.plot_surface(x, y, z, color="black", alpha=0.1)
     ax.set_aspect("equal")
+
     # make the minor ticks on each axis correspond to the bin edges
     theta_lims = ax.get_xlim()
     r_lims = ax.get_ylim()
     rho_lims = ax.get_zlim()
+
     # extend theta bins to account for angle wrapping
     bin_edges_theta_plot = np.concatenate((-1 * grid_bin_edges[0][1:], grid_bin_edges[0]))
     bin_edges_r_plot = grid_bin_edges[1]
@@ -494,6 +525,7 @@ def _create_fpt_schematic_figure(
     r_minor_ticks = bin_edges_r_plot[
         (bin_edges_r_plot > r_lims[0]) & (bin_edges_r_plot < r_lims[1])
     ]
+
     # r minor ticks are too close together, so skip every other LABEL (NOT TICK)
     r_minor_ticklabels = [
         f"{tick:.2f}" if tick in r_minor_ticks[::2] else "" for tick in r_minor_ticks
@@ -507,6 +539,7 @@ def _create_fpt_schematic_figure(
     ax.xaxis.set_major_formatter(plt.FormatStrFormatter("%.2f"))
     ax.set_yticklabels(r_minor_ticklabels)
     ax.zaxis.set_major_formatter(plt.FormatStrFormatter("%.2f"))
+
     # make the axes labels pretty
     ax.tick_params(axis="x", labelsize=FONTSIZE_SMALL, rotation=45, pad=4)
     plt.setp(ax.get_xticklabels(), va="bottom", ha="center")
@@ -517,6 +550,7 @@ def _create_fpt_schematic_figure(
     ax.set_xlabel(get_label_for_column(Column.DiffAEData.POLAR_ANGLE), loc="center", labelpad=-4)
     ax.set_ylabel(get_label_for_column(Column.DiffAEData.POLAR_RADIUS), loc="center", labelpad=0)
     ax.set_zlabel(get_label_for_column(Column.DiffAEData.PC3_FLIPPED), labelpad=-1)
+
     # adjust the focal length of the 3D plot so that depth is easier to perceive
     ax.set_proj_type("persp", focal_length=0.3)
     ax.view_init(elev=30, azim=-40)
