@@ -45,7 +45,7 @@ from endo_pipeline.settings.figures import (
 )
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.summary_plot import (
-    CELL_LINE_LABEL_MAP,
+    CELL_LINE_BRACKET_LABEL_MAP,
     COLOR_PALETTE,
     DATASET_COLOR_MAP,
 )
@@ -270,6 +270,7 @@ def _draw_bracket(
     label: str,
     fontsize: float = FONTSIZE_SMALL,
     sub_label: str | None = None,
+    rotation: float = 0,
 ) -> None:
     """Draw a U-shaped bracket below the x-axis with a centered label.
 
@@ -287,6 +288,8 @@ def _draw_bracket(
         Font size for the primary label.
     sub_label
         Optional secondary label drawn below the primary in a smaller font.
+    rotation
+        Rotation angle in degrees for the primary label.
     """
     trans = blended_transform_factory(ax.transData, ax.transAxes)
     fig = ax.get_figure()
@@ -314,9 +317,11 @@ def _draw_bracket(
         label_y,
         label,
         transform=trans,
-        ha="center",
+        ha="right" if rotation else "center",
         va="top",
         fontsize=fontsize,
+        rotation=rotation,
+        rotation_mode="anchor",
         clip_on=False,
     )
     if sub_label is not None:
@@ -389,8 +394,8 @@ def _add_cell_line_brackets(
         x_start = positions[group_cats[0]]
         x_end = positions[group_cats[-1]]
 
-        label = CELL_LINE_LABEL_MAP.get(cell_line, cell_line)
-        _draw_bracket(ax, x_start, x_end, label=label, fontsize=FONTSIZE_XSMALL)
+        label = CELL_LINE_BRACKET_LABEL_MAP.get(cell_line, cell_line)
+        _draw_bracket(ax, x_start, x_end, label=label, fontsize=FONTSIZE_XSMALL, rotation=45)
         idx += group_size
 
 

@@ -12,7 +12,7 @@ from endo_pipeline.library.visualize.summary_plot import (
 from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.examples import FIGURE_4_EXAMPLE_IMAGES
-from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.manifest_names import BOOTSTRAPPING_MANIFEST_NAMES
 from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
 from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
@@ -20,7 +20,7 @@ from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_
 
 plt.style.use("endo_pipeline.figure")
 
-save_dir = get_output_path("figure_4")
+save_dir = get_output_path("figure_5")
 
 # %% Example images of perturbation at low shear stress
 create_panel_perturbation_examples(
@@ -66,7 +66,7 @@ fixed_points_summary_plot_path = plot_cross_dataset_summaries(
     column_names=diffae_features,
     axis_mode="cell_line",
     jitter_width=0.2,
-    figure_size=(5, 2),
+    figure_size=(5, 2.3),
     convert_angle_to_nematic=False,
     color_by_column=Column.OpticalFlow.UNIT_VECTOR_MEAN,
 )
@@ -85,11 +85,13 @@ panels = [
         letter="B",
         path=fixed_points_summary_plot_path,
         x_position=0,
-        y_position=2.6,
+        y_position=3.4,
         x_offset=0,
         y_offset=0.2,
     ),
 ]
 
-build_figure_from_panels(panels, save_dir / "figure_4.svg", width=MAX_FIGURE_WIDTH, height=4.8)
+build_figure_from_panels(
+    panels, save_dir / "figure_5.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
+)
 # %%

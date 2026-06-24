@@ -51,6 +51,13 @@ CELL_LINE_LABEL_MAP = {
     "AICS-177 cl. 26": "Ex3Del",
 }
 
+# Labels with line breaks for use in summary plot brackets
+CELL_LINE_BRACKET_LABEL_MAP = {
+    "AICS-126 cl. 41": "VE-cadherin\n-mEGFP",
+    "AICS-126 cl. 41 CD31-sorted": "Sorting\ncontrol",
+    "AICS-177 cl. 26": "Ex3Del",
+}
+
 COLOR_PALETTE = [
     "#0072B2",  # blue
     "#E69F00",  # orange
