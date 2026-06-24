@@ -368,7 +368,7 @@ def create_panel_perturbation_examples(
         max_rows=len(image_panel_list) // len(cell_line_titles),
         max_cols=len(cell_line_titles),
         col_titles=cell_line_titles,
-        row_titles=["VE-Cadherin MIP", "BF Std. Dev. Proj."],
+        row_titles=["VE-Cadherin MIP", "BF std. dev. proj."],
         direction="top-down first",
         font_size=FONTSIZE_MEDIUM,
         subplot_kwargs={"frame_on": False},
