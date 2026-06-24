@@ -354,9 +354,9 @@ def _load_example_data(
         example_labels.append(f"{shear_stress} dyn/cm{Unicode.SQUARED}")
         example_subtitles.append(f"Replicate {dataset_config.replicate_number}")
 
-    image_rows: dict[str, list[np.ndarray]] = {"VE-cadherin\nMIP": gfp_images}
+    image_rows: dict[str, list[np.ndarray]] = {"VE-cadherin\nmax int. proj.": gfp_images}
     if include_bf_images:
-        image_rows["BF\nstd. dev. proj."] = bf_images
+        image_rows["Brightfield\nstd. dev. proj."] = bf_images
 
     return example_dfs, image_rows, example_labels, example_subtitles
 

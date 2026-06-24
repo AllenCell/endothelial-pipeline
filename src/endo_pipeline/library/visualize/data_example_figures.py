@@ -90,7 +90,11 @@ def create_panel_biological_system_examples(
         max_cols=len(examples),
         max_rows=len(image_panel_list) // len(examples),
         col_titles=shear_stress_titles,
-        row_titles=["VE-Cadherin\nMIP", "BF\nZ-slice", "BF\nStd. Dev. Proj."],
+        row_titles=[
+            "VE-Cadherin\nmax int. proj.",
+            "Brightfield\nZ-slice",
+            "Brightfield\nstd. dev. proj.",
+        ],
         direction="top-down first",
         font_size=FONTSIZE_MEDIUM,
         subplot_kwargs={"frame_on": False},
@@ -146,7 +150,11 @@ def create_panel_biological_system_examples(
         max_cols=len(examples),
         max_rows=len(cropped_image_panel_list) // len(examples),
         col_titles=shear_stress_titles,
-        row_titles=["VE-cadherin\nMIP", "BF\nZ-slice", "BF\nstd. dev. proj."],
+        row_titles=[
+            "VE-cadherin\nmax int. proj.",
+            "Brightfield\nZ-slice",
+            "Brightfield\nstd. dev. proj.",
+        ],
         direction="top-down first",
         font_size=FONTSIZE_MEDIUM,
         subplot_kwargs={"frame_on": False},
@@ -232,7 +240,7 @@ def create_panel_intermediate_examples(
         max_rows=len(image_panel_list) // len(examples),
         max_cols=len(examples),
         col_titles=shear_stress_titles,
-        row_titles=["VE-cadherin\nMIP", "BF\nstd. dev. proj."],
+        row_titles=["VE-cadherin\nmax int. proj.", "Brightfield\nstd. dev. proj."],
         direction="top-down first",
         font_size=FONTSIZE_MEDIUM,
         subplot_kwargs={"frame_on": False},
@@ -360,7 +368,7 @@ def create_panel_perturbation_examples(
         max_rows=len(image_panel_list) // len(cell_line_titles),
         max_cols=len(cell_line_titles),
         col_titles=cell_line_titles,
-        row_titles=["VE-Cadherin MIP", "BF std. dev. proj."],
+        row_titles=["VE-Cadherin\nmax int. proj.", "Brightfield\nstd. dev. proj."],
         direction="top-down first",
         font_size=FONTSIZE_MEDIUM,
         subplot_kwargs={"frame_on": False},
@@ -501,7 +509,7 @@ def create_panel_retraction_fiber_blob_example(
     col_titles = [
         f"{int((tp - timepoints[0]) * interval_in_min)} min" for tp in timepoints
     ]  # elapsed time
-    row_titles = ["VE-cad MIP", "BF Z-slice", "Merge"]
+    row_titles = ["VE-cadherin\nmax int. proj.", "Brightfield\nZ-slice", "Merge"]
 
     fig = make_contact_sheet(
         panels=panels,
