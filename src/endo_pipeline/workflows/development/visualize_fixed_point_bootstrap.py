@@ -1,8 +1,8 @@
-from endo_pipeline.cli import CropPattern, Datasets
+from endo_pipeline.cli import Datasets, PatchType
 
 
 def main(
-    crop_pattern: CropPattern = "grid",
+    patch_type: PatchType = "grid_based",
     datasets: Datasets | None = None,
     bootstrap_threshold: float = 0.5,
 ) -> None:
@@ -53,8 +53,8 @@ def main(
 
     Parameters
     ----------
-    crop_pattern
-        Crop pattern used to calculate the bootstrapped fixed points.
+    patch_type
+        Patch type used to calculate the bootstrapped fixed points.
     datasets
         List of datasets or dataset collections to visualize.
     bootstrap_threshold
@@ -105,7 +105,7 @@ def main(
     column_names = list(DYNAMICS_COLUMN_NAMES)
 
     # Load bootstrap manifest
-    bootstrap_fp_manifest_name = BOOTSTRAPPING_MANIFEST_NAMES[crop_pattern]
+    bootstrap_fp_manifest_name = BOOTSTRAPPING_MANIFEST_NAMES[patch_type]
     bootstrap_fp_manifest = load_dataframe_manifest(bootstrap_fp_manifest_name)
 
     n_bootstrap = bootstrap_fp_manifest.parameters.get("num_bootstrap_iterations")
