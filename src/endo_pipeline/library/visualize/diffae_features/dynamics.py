@@ -85,6 +85,15 @@ def plot_drift_contours(
     using a diverging colormap centered at zero to visualize the direction and
     magnitude of the drift.
 
+    **Axes specification**
+
+    When ``axes_rects`` is provided, the figure is built without a layout engine
+    via ``plt.figure`` and each subplot is added with ``fig.add_axes``. Callers
+    can then place additional axes (colorbar, legend) at fixed figure
+    coordinates without risk of clipping.  When ``None`` (default) and
+    ``fig_ax`` is also ``None``, ``plt.subplots`` with ``layout="constrained"``
+    is used instead.
+
     Parameters
     ----------
     meshgrid
@@ -104,7 +113,8 @@ def plot_drift_contours(
     axes_limits
         Optional limits for the axes, specified as a list of tuples.
     axes_aspect
-        Aspect ratio for the axes, e.g., "equal" to make x and y have equal scaling.
+        Aspect ratio for the axes, e.g., "equal" to make x and y have equal
+        scaling.
     axes_titles
         Optional tuple of titles for each subplot.
     colormap
@@ -120,7 +130,8 @@ def plot_drift_contours(
     cbar_num_ticks
         Number of ticks to use in the colorbar for each contour plot.
     cbar_tick_round
-        Number of decimal places to round colorbar ticks to in the contour plots.
+        Number of decimal places to round colorbar ticks to in the contour
+        plots.
     nullcline_styles
         Tuple of line styles for the nullclines of each variable.
     nullcline_colors
@@ -134,23 +145,19 @@ def plot_drift_contours(
         creating the figure and axes, e.g., to specify a GridSpec layout.
     xlabel_kwargs
         Optional dictionary of keyword arguments to pass to ax.set_xlabel for
-        customizing the x-axis label, e.g., to specify a font size or label padding.
+        customizing the x-axis label, e.g., to specify a font size or label
+        padding.
     ylabel_kwargs
         Optional dictionary of keyword arguments to pass to ax.set_ylabel for
-        customizing the y-axis label, e.g., to specify a font size or label padding.
+        customizing the y-axis label, e.g., to specify a font size or label
+        padding.
     axes_title_kwargs
         Optional dictionary of keyword arguments to pass to ax.set_title for
         customizing the subplot titles, e.g., to specify a font size.
     axes_rects
         Optional list of subplot positions in normalized figure coordinates
         ``(left, bottom, width, height)``, one entry per subplot in
-        top-to-bottom order.  When provided the figure is built without a
-        layout engine via ``plt.figure`` and each subplot is added with
-        ``fig.add_axes``, mirroring the explicit-positioning pattern used in
-        :func:`plot_drift_3d`.  Callers can then place additional axes
-        (colorbar, legend) at fixed figure coordinates without risk of
-        clipping.  When ``None`` (default) and ``fig_ax`` is also ``None``,
-        ``plt.subplots`` with ``layout="constrained"`` is used instead.
+        top-to-bottom order.
 
     """
     if fig_ax is not None:

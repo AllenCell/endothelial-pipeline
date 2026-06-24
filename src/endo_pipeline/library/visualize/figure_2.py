@@ -297,6 +297,7 @@ def make_2d_contour_plot_panel(
     filename: str,
     include_legend: bool = True,
     include_colorbar: bool = True,
+    plot_nullcline_walk_points: bool = False,
 ) -> tuple[Path, dict[Column.DiffAEData, np.ndarray]]:
     """
     Make and save plot of drift contours in (r, rho) space for a given dataset.
@@ -367,16 +368,6 @@ def make_2d_contour_plot_panel(
     nullcline_coords = _get_example_points_along_nullcline(nullcline_coords_, stable_fixed_point)
 
     for ax_index, ax_ in enumerate(list(axes_)):
-        # add nullcline points on top of the contour plot
-        ax_.plot(
-            nullcline_coords[column_names[ax_index]][0],
-            nullcline_coords[column_names[ax_index]][1],
-            "o",
-            color="w",
-            markeredgecolor="k",
-            markeredgewidth=0.25,
-            markersize=3,
-        )
         # add stable fixed point on top of the contour plot
         ax_.plot(
             stable_fixed_point[..., 0],
@@ -395,6 +386,18 @@ def make_2d_contour_plot_panel(
         ax_.yaxis.tick_left()
         if ax_index == 0:
             ax_.tick_params(labelbottom=False)
+
+        # if specified, add nullcline points on top of the contour plot
+        if plot_nullcline_walk_points:
+            ax_.plot(
+                nullcline_coords[column_names[ax_index]][0],
+                nullcline_coords[column_names[ax_index]][1],
+                "o",
+                color="w",
+                markeredgecolor="k",
+                markeredgewidth=0.25,
+                markersize=3,
+            )
 
     if include_colorbar:
         _add_colorbar_to_contour_plot(
