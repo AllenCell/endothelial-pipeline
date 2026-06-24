@@ -1,7 +1,7 @@
 from endo_pipeline.cli import UniqueStrList
 
 
-def main(include_panels: UniqueStrList) -> None:
+def main(include_panels: UniqueStrList | None = None) -> None:
     """
     Compile panels for Figure 3.
 
