@@ -1,9 +1,9 @@
-name: drift_fixed_points_polar_r_rho_grid
+name: drift_fixed_points_polar_r_rho_grid_based
 workflow: generate_flow_field
 parameters:
   model_manifest_name: diffae_baseline
   run_name: latent_512
-  crop_pattern: grid
+  patch_type: grid_based
   kernels:
   - column: polar_r
     name: gaussian

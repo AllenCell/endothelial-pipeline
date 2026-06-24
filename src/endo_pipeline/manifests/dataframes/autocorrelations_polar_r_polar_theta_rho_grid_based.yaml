@@ -1,9 +1,9 @@
-name: autocorrelations_polar_r_polar_theta_rho_grid
+name: autocorrelations_polar_r_polar_theta_rho_grid_based
 workflow: compute_autocorrelation
 parameters:
   model_manifest_name: diffae_baseline
   run_name: latent_512
-  crop_pattern: grid
+  patch_type: grid_based
   columns: [polar_theta, polar_r, rho]
 locations:
   20250319_20X:

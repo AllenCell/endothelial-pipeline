@@ -1,7 +1,7 @@
-name: diffae_baseline_latent_512_tracked
-workflow: eval_diffae_tracked
+name: diffae_baseline_latent_512_cell_centered
+workflow: eval_diffae
 parameters:
-  crop_pattern: tracked
+  patch_type: cell_centered
 locations:
   20250319_20X:
     fmsid: 37732d0bcea74fc693d248e3f3e9ed61

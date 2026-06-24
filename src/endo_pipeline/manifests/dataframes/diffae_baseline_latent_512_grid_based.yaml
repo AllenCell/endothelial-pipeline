@@ -1,7 +1,7 @@
-name: diffae_baseline_latent_512_grid
-workflow: eval_diffae_grid
+name: diffae_baseline_latent_512_grid_based
+workflow: eval_diffae
 parameters:
-  crop_pattern: grid
+  patch_type: grid_based
 locations:
   20250319_20X:
     fmsid: 51b767a2ac0b4640b41c179b19530bf6

@@ -3,7 +3,7 @@ workflow: calculate-pca-features
 parameters:
   model_manifest_name: diffae_baseline
   run_name: latent_512
-  crop_pattern: grid
+  patch_type: grid_based
   filtered: false
 locations:
   20250319_20X:
