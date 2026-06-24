@@ -40,7 +40,7 @@ def figure_panel(description: str):
 
     def decorator(func):
         @wraps(func)
-        def wrapper(*args, placeholder: bool, **kwargs):
+        def wrapper(*args, placeholder: bool = False, **kwargs):
             if placeholder:
                 # Try to identify an output path from the method arguments.
                 # First, check for "output_path" in the keyword arguments. Then,
