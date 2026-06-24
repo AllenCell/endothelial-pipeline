@@ -4,6 +4,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 from mpl_toolkits.mplot3d import Axes3D
 
 from endo_pipeline.io import save_plot_to_path
@@ -485,7 +487,7 @@ def _create_fpt_schematic_figure(
 
     # draw cube around bin edges
     for e_xyz in example_bin_cuboid_edges:
-        ax.plot(*list(zip(*e_xyz, strict=True)), ls="-", lw=0.5, c="black", alpha=0.7)
+        ax.plot(*list(zip(*e_xyz, strict=True)), ls="-", lw=0.5, c="black", alpha=0.9, zorder=8)
 
     # plot the fixed point in the 3D space using consistent marker formatting
     fp_dynamic_cols = [str(col) for col in DYNAMICS_COLUMN_NAMES]
@@ -564,7 +566,22 @@ def _create_fpt_schematic_figure(
     ax.set_position([(1 - ax_width) / 2, (1 - ax_height) / 2, ax_width, ax_height])
 
     # add legend
-    ax.legend(ncols=1, loc="upper left", bbox_to_anchor=(1.15, 0.85))
+    handles, labels = ax.get_legend_handles_labels()
+    starting_point_handle = Line2D(
+        [0],
+        [0],
+        linestyle="none",
+        marker="o",
+        markeredgecolor="black",
+        markerfacecolor="none",
+        markeredgewidth=0.75,
+        markersize=4,
+    )
+    handles.insert(-1, starting_point_handle)
+    labels.insert(-1, "trajectory starting point\nwithin bin")
+    handles.append(Patch(facecolor="grey", alpha=0.3, edgecolor="black", linewidth=0.25))
+    labels.append("fixed point\ntrapping radius")
+    ax.legend(handles, labels, ncols=1, loc="upper left", bbox_to_anchor=(1.25, 0.9))
 
     return fig
 
