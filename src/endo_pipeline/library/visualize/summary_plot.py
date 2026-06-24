@@ -626,10 +626,10 @@ def plot_cross_dataset_summaries(
         fontweight="bold",
     )
 
-    # Reduce spacing between axis labels and tick labels
+    # Set spacing between axis labels and tick labels
     for ax in axes:
         ax.xaxis.labelpad = 2
-        ax.yaxis.labelpad = 2
+        ax.yaxis.labelpad = 8
         ax.tick_params(axis="x", pad=2)
         ax.tick_params(axis="y", pad=2)
 
@@ -640,7 +640,6 @@ def plot_cross_dataset_summaries(
         shared_xlim = (min(lo for lo, _ in all_xlims), max(hi for _, hi in all_xlims))
         for ax in axes:
             ax.set_xlim(shared_xlim)
-            ax.yaxis.labelpad = 8
         for ax in axes[:-1]:
             ax.tick_params(axis="x", labelbottom=False)
         # Align y labels across all subplots so they share the same x position
