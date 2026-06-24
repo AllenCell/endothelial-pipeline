@@ -289,7 +289,9 @@ def _draw_bracket(
         Optional secondary label drawn below the primary in a smaller font.
     """
     trans = blended_transform_factory(ax.transData, ax.transAxes)
-    ax_height_inches = ax.get_position().height * ax.figure.get_figheight()
+    fig = ax.get_figure()
+    fig_height = fig.get_figheight() if isinstance(fig, plt.Figure) else 3.0
+    ax_height_inches = ax.get_position().height * fig_height
     bracket_y = -0.25 / ax_height_inches
     cap_height = 0.02
     bracket_left = x_start - 0.2
@@ -424,7 +426,7 @@ def _sort_and_categorize_datasets(
     # Within 12 dyn: monostable first; within 15 dyn: bistable first
     if axis_mode == "replicate":
 
-        def _replicate_sort_key(ds: str) -> tuple:
+        def _replicate_sort_key(ds: str) -> tuple[int, int, int]:
             cfg = dataset_configs[ds]
             shear_bin = cfg.flow_conditions[-1].shear_stress_bin
             stability = cfg.stability_category or "monostable"
@@ -673,7 +675,7 @@ def _plot_cross_dataset_summary_for_column(
     # the x axis is determined by the selected axis mode
     for category, category_df in df.groupby(category_column, observed=True):
         # Get position for the dataset based on position map
-        index = _positions[category]
+        index = _positions[str(category)]
 
         # Assign jitter offsets per-dataset so points from the same dataset
         # share the same horizontal position within a category bin
