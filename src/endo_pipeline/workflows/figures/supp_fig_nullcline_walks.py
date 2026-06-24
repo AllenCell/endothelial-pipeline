@@ -37,12 +37,11 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
     from endo_pipeline.settings.column_metadata import COLUMN_METADATA
     from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.column_names import ColumnNameSuffix
     from endo_pipeline.settings.examples import EXAMPLE_DATASET
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
-    from endo_pipeline.settings.flow_field_dataframes import (
-        DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
-        StabilityLabel,
-    )
+    from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
+    from endo_pipeline.settings.manifest_names import DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -61,8 +60,10 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     dataset_high = EXAMPLE_DATASET["FIGURE_2_HIGH_FLOW_DATASET"]
 
     columns_r_rho = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
+    columns_r_rho_fixed_point = [f"{col}{ColumnNameSuffix.FIXED_POINTS}" for col in columns_r_rho]
     columns_r_rho_str = join_sorted_strings(columns_r_rho)
     column_theta = Column.DiffAEData.POLAR_ANGLE
+    column_theta_fixed_point = f"{column_theta}{ColumnNameSuffix.FIXED_POINTS}"
     feature_column_names = [column_theta, *columns_r_rho]
     feature_columns_str = join_sorted_strings(feature_column_names)
 
@@ -132,10 +133,12 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         )
         centers_mesh = np.meshgrid(*centers_r_rho, indexing="ij")
         stable_fixed_point_r_rho = stable_fixed_points_dict[columns_r_rho_str][
-            columns_r_rho
+            columns_r_rho_fixed_point
         ].to_numpy()
 
-        stable_fixed_point_theta = stable_fixed_points_dict[column_theta][column_theta].to_numpy()
+        stable_fixed_point_theta = stable_fixed_points_dict[column_theta][
+            column_theta_fixed_point
+        ].to_numpy()
 
         contour_plot_paths[dataset_name], nullcline_coordinates = make_2d_contour_plot_panel(
             figure_size=(2.6, 1.55),
