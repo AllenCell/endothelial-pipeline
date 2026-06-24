@@ -33,6 +33,7 @@ from endo_pipeline.settings.figures import FONTSIZE_SMALL
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 
 def _load_trajectory_dataframes(
@@ -507,7 +508,7 @@ def _create_fpt_schematic_figure(
     z = fixed_points_df.loc[example_fixed_point_index][
         Column.DiffAEData.PC3_FLIPPED
     ] + fixed_point_radius_threshold * np.outer(np.ones_like(u), np.cos(v))
-    ax.plot_surface(x, y, z, color="black", alpha=0.1)
+    ax.plot_surface(x, y, z, color="black", alpha=0.1, edgecolor="k", linewidth=0.25)
     ax.set_aspect("equal")
 
     # make the minor ticks on each axis correspond to the bin edges
@@ -522,6 +523,7 @@ def _create_fpt_schematic_figure(
     theta_minor_ticks = bin_edges_theta_plot[
         (bin_edges_theta_plot > theta_lims[0]) & (bin_edges_theta_plot < theta_lims[1])
     ]
+    theta_minor_ticklabels = [0, f"{Unicode.PI}/12", f"{Unicode.PI}/6"]
     r_minor_ticks = bin_edges_r_plot[
         (bin_edges_r_plot > r_lims[0]) & (bin_edges_r_plot < r_lims[1])
     ]
@@ -536,7 +538,7 @@ def _create_fpt_schematic_figure(
     ax.set_xticks(theta_minor_ticks)
     ax.set_yticks(r_minor_ticks)
     ax.set_zticks(rho_minor_ticks)
-    ax.xaxis.set_major_formatter(plt.FormatStrFormatter("%.2f"))
+    ax.set_xticklabels(theta_minor_ticklabels)
     ax.set_yticklabels(r_minor_ticklabels)
     ax.zaxis.set_major_formatter(plt.FormatStrFormatter("%.2f"))
 
@@ -554,10 +556,12 @@ def _create_fpt_schematic_figure(
     # adjust the focal length of the 3D plot so that depth is easier to perceive
     ax.set_proj_type("persp", focal_length=0.3)
     ax.view_init(elev=30, azim=-40)
-    ax.legend(ncols=2, loc="upper center", bbox_to_anchor=(0.5, 1.10))
     ax_width = 0.7
     ax_height = 0.7
     ax.set_position([(1 - ax_width) / 2, (1 - ax_height) / 2, ax_width, ax_height])
+
+    # add legend
+    ax.legend(ncols=2, loc="upper center", bbox_to_anchor=(0.5, 1.10))
 
     return fig
 
