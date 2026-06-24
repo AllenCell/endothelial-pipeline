@@ -34,9 +34,8 @@ flow_conditions:
 include_scenes: null
 notes: Flow history. Cells exposed to flow for 3h 20min prior to start of imaging.
   Cells show mixed alignment leaning towards more parallel
-
-stability_category: monostable
 replicate_number: 1
+stability_category: monostable
 timepoint_annotations:
   auto_bf_scope_error:
     0: [1, 6, 24, 238, 523, 528, 551]

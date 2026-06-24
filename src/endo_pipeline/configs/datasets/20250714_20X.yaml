@@ -37,6 +37,7 @@ flow_conditions:
 include_scenes: null
 notes: some cell death that occurs after the switch to high SS
 replicate_number: 1
+stability_category: null
 timepoint_annotations:
   auto_bf_scope_error:
     0: [0, 15, 27, 28, 33, 34, 158, 246, 262, 456]

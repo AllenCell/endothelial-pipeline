@@ -33,9 +33,8 @@ flow_conditions:
   shear_stress: 14.98
 include_scenes: null
 notes: ''
-
-stability_category: monostable
 replicate_number: 6
+stability_category: monostable
 timepoint_annotations:
   auto_bf_scope_error:
     0: [533]

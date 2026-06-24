@@ -34,6 +34,8 @@ flow_conditions:
   shear_stress: 23.67
 include_scenes: null
 notes: image content NucViolet,EGFP_CDH5,SOX17,NR2F2,BF
+replicate_number: null
+stability_category: null
 timepoint_annotations:
   auto_bf_scope_error:
     0: []

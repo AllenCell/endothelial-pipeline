@@ -35,6 +35,7 @@ include_scenes: null
 notes: timelapse imaging of CDH5 without shear stress, being fed every 3 hours during
   normal business hours
 replicate_number: 2
+stability_category: null
 timepoint_annotations:
   auto_bf_scope_error:
     0: [0, 18, 20, 23, 36, 38, 45, 53, 55, 66, 77, 255, 277, 290, 297, 301, 402, 466,
