@@ -149,7 +149,6 @@ def main(include_panels: UniqueStrList | None = None) -> None:
                 column_labels=column_labels_r_rho,
                 stable_fixed_point=stable_fixed_point_r_rho,
                 filename=f"{dataset_name}_{columns_r_rho_str}_contours",
-                plot_nullcline_walk_points=True,
                 **placeholders["B"],
             )
         )
