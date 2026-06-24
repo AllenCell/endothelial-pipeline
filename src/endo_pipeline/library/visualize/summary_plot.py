@@ -1,6 +1,7 @@
 """Methods for plotting summaries of values across datasets."""
 
 import logging
+from itertools import groupby
 from pathlib import Path
 from typing import Literal
 
@@ -10,6 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.axes import Axes
+from matplotlib.transforms import blended_transform_factory
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import join_sorted_strings, load_dataframe, save_plot_to_path
@@ -42,7 +44,11 @@ from endo_pipeline.settings.figures import (
     MAX_FIGURE_WIDTH,
 )
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
-from endo_pipeline.settings.summary_plot import COLOR_PALETTE, DATASET_COLOR_MAP
+from endo_pipeline.settings.summary_plot import (
+    CELL_LINE_LABEL_MAP,
+    COLOR_PALETTE,
+    DATASET_COLOR_MAP,
+)
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
@@ -257,6 +263,73 @@ def _compute_replicate_positions(
     return positions
 
 
+def _draw_bracket(
+    ax: Axes,
+    x_start: float,
+    x_end: float,
+    label: str,
+    fontsize: float = FONTSIZE_SMALL,
+    sub_label: str | None = None,
+) -> None:
+    """Draw a U-shaped bracket below the x-axis with a centered label.
+
+    Parameters
+    ----------
+    ax
+        Axes to draw on.
+    x_start
+        Left-most data x-position of the group.
+    x_end
+        Right-most data x-position of the group.
+    label
+        Primary text label centered below the bracket.
+    fontsize
+        Font size for the primary label.
+    sub_label
+        Optional secondary label drawn below the primary in a smaller font.
+    """
+    trans = blended_transform_factory(ax.transData, ax.transAxes)
+    ax_height_inches = ax.get_position().height * ax.figure.get_figheight()
+    bracket_y = -0.25 / ax_height_inches
+    cap_height = 0.02
+    bracket_left = x_start - 0.2
+    bracket_right = x_end + 0.2
+    center = (x_start + x_end) / 2.0
+
+    ax.plot(
+        [bracket_left, bracket_left, bracket_right, bracket_right],
+        [bracket_y + cap_height, bracket_y, bracket_y, bracket_y + cap_height],
+        transform=trans,
+        color="black",
+        lw=0.8,
+        clip_on=False,
+        solid_capstyle="round",
+    )
+
+    label_y = bracket_y - 0.04
+    ax.text(
+        center,
+        label_y,
+        label,
+        transform=trans,
+        ha="center",
+        va="top",
+        fontsize=fontsize,
+        clip_on=False,
+    )
+    if sub_label is not None:
+        ax.text(
+            center,
+            label_y - 0.15,
+            sub_label,
+            transform=trans,
+            ha="center",
+            va="top",
+            fontsize=FONTSIZE_XSMALL,
+            clip_on=False,
+        )
+
+
 def _add_shear_stress_brackets(
     ax: Axes,
     unique_categories: list[str],
@@ -276,9 +349,6 @@ def _add_shear_stress_brackets(
     positions
         Mapping of dataset name to its x-position (with gaps).
     """
-    from itertools import groupby
-
-    # Build list of (shear_stress_bin, stability_category) per position
     group_keys = [
         (
             dataset_configs[cat].flow_conditions[-1].shear_stress_bin,
@@ -287,80 +357,17 @@ def _add_shear_stress_brackets(
         for cat in unique_categories
     ]
 
-    # Group consecutive positions by (bin, stability)
     idx = 0
     for (ss_bin, stability), group in groupby(group_keys):
         group_size = sum(1 for _ in group)
         group_cats = unique_categories[idx : idx + group_size]
         x_start = positions[group_cats[0]]
         x_end = positions[group_cats[-1]]
-        center = (x_start + x_end) / 2.0
 
-        # Build label: just bin number for monostable-only bins
+        # If this shear stress bin has both mono and bistable groups, add a sub-label
         bin_has_both = any(gk[0] == ss_bin and gk[1] != stability for gk in group_keys)
-        label = f"{ss_bin}"
-
-        # Draw bracket as a U-shape: two vertical caps connected by a horizontal line
-        # Use axes fraction for y, data coords for x via blended transform
-        from matplotlib.transforms import blended_transform_factory
-
-        trans = blended_transform_factory(ax.transData, ax.transAxes)
-        # Scale bracket offset so it looks consistent across figure heights
-        ax_height_inches = ax.get_position().height * ax.figure.get_figheight()
-        bracket_y = -0.25 / ax_height_inches
-        cap_height = 0.02
-        bracket_left = x_start - 0.2
-        bracket_right = x_end + 0.2
-
-        # Draw bracket: left cap, horizontal bar, right cap
-        ax.plot(
-            [bracket_left, bracket_left, bracket_right, bracket_right],
-            [bracket_y + cap_height, bracket_y, bracket_y, bracket_y + cap_height],
-            transform=trans,
-            color="black",
-            lw=0.8,
-            clip_on=False,
-            solid_capstyle="round",
-        )
-
-        # Draw bracket label below the horizontal bar
-        label_y = bracket_y - 0.04
-        if bin_has_both:
-            suffix = "bi" if stability == "bistable" else "mono"
-            # Bin number at normal size
-            ax.text(
-                center,
-                label_y,
-                f"{ss_bin}",
-                transform=trans,
-                ha="center",
-                va="top",
-                fontsize=FONTSIZE_SMALL,
-                clip_on=False,
-            )
-            # (mono)/(bi) below in smaller font
-            ax.text(
-                center,
-                label_y - 0.15,
-                f" ({suffix})",
-                transform=trans,
-                ha="center",
-                va="top",
-                fontsize=FONTSIZE_XSMALL,
-                clip_on=False,
-            )
-        else:
-            ax.text(
-                center,
-                label_y,
-                label,
-                transform=trans,
-                ha="center",
-                va="top",
-                fontsize=FONTSIZE_SMALL,
-                clip_on=False,
-            )
-
+        sub_label = f" ({'bi' if stability == 'bistable' else 'mono'})" if bin_has_both else None
+        _draw_bracket(ax, x_start, x_end, label=f"{ss_bin}", sub_label=sub_label)
         idx += group_size
 
 
@@ -371,12 +378,6 @@ def _add_cell_line_brackets(
     positions: dict[str, float],
 ) -> None:
     """Draw brackets below the x-axis grouping replicates by cell line."""
-    from itertools import groupby
-
-    from matplotlib.transforms import blended_transform_factory
-
-    from endo_pipeline.settings.summary_plot import CELL_LINE_LABEL_MAP
-
     group_keys = [dataset_configs[cat].cell_lines[0] for cat in unique_categories]
 
     idx = 0
@@ -385,38 +386,9 @@ def _add_cell_line_brackets(
         group_cats = unique_categories[idx : idx + group_size]
         x_start = positions[group_cats[0]]
         x_end = positions[group_cats[-1]]
-        center = (x_start + x_end) / 2.0
 
         label = CELL_LINE_LABEL_MAP.get(cell_line, cell_line)
-
-        trans = blended_transform_factory(ax.transData, ax.transAxes)
-        ax_height_inches = ax.get_position().height * ax.figure.get_figheight()
-        bracket_y = -0.25 / ax_height_inches
-        cap_height = 0.02
-        bracket_left = x_start - 0.2
-        bracket_right = x_end + 0.2
-
-        ax.plot(
-            [bracket_left, bracket_left, bracket_right, bracket_right],
-            [bracket_y + cap_height, bracket_y, bracket_y, bracket_y + cap_height],
-            transform=trans,
-            color="black",
-            lw=0.8,
-            clip_on=False,
-            solid_capstyle="round",
-        )
-
-        ax.text(
-            center,
-            bracket_y - 0.04,
-            label,
-            transform=trans,
-            ha="center",
-            va="top",
-            fontsize=FONTSIZE_XSMALL,
-            clip_on=False,
-        )
-
+        _draw_bracket(ax, x_start, x_end, label=label, fontsize=FONTSIZE_XSMALL)
         idx += group_size
 
 
