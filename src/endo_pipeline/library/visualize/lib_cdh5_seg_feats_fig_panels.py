@@ -15,7 +15,12 @@ from skimage.color import label2rgb
 from skimage.exposure import rescale_intensity
 from skimage.morphology import binary_dilation
 
-from endo_pipeline.configs import DatasetConfig, TimepointAnnotation, load_dataset_config
+from endo_pipeline.configs import (
+    ChannelName,
+    DatasetConfig,
+    TimepointAnnotation,
+    load_dataset_config,
+)
 from endo_pipeline.io import get_output_path, load_dataframe, load_image, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_annotations
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
@@ -164,7 +169,9 @@ def make_imaging_panels(
 
     bf_center_Z = dataset_config.center_z_plane[position]  # type: ignore[index]
     zarr_loc = get_zarr_location_for_position(dataset_config, position)
-    raw_bf = load_image(zarr_loc, channels=["BF"], timepoints=timeframe, level=0, compute=True)
+    raw_bf = load_image(
+        zarr_loc, channels=[ChannelName.BF], timepoints=timeframe, level=0, compute=True
+    )
 
     # Get the focal plane of the brightfield image
     bf_center = np.take(raw_bf, indices=[bf_center_Z], axis=DIMENSION_ORDER.index("Z"))

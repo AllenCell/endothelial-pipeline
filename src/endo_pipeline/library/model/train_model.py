@@ -11,7 +11,7 @@ from endo_pipeline.configs import (
     get_subset_of_timepoint_annotations,
 )
 from endo_pipeline.io import load_dataframe
-from endo_pipeline.manifests import DataframeLocation, ModelManifest
+from endo_pipeline.manifests import DataframeLocation
 
 logger = logging.getLogger(__name__)
 
@@ -70,9 +70,7 @@ def get_dataset_names_used_for_training(
     return sorted(training_dataset_names)
 
 
-def get_included_frames_for_model(
-    dataset_config: DatasetConfig, model_manifest: ModelManifest
-) -> dict[int, list[int]]:
+def get_included_frames_for_model(dataset_config: DatasetConfig) -> dict[int, list[int]]:
     """Get list of frame numbers for model training based on timepoint annotations.
 
     **Method output**
@@ -86,9 +84,6 @@ def get_included_frames_for_model(
     dataset_config
         The dataset config object for the dataset being used for training, used
         to access information on timepoint annotations.
-    model_manifest
-        Model manifest object, used to access information on whether to include
-        cell piling timepoints in training.
 
     Returns
     -------
@@ -98,10 +93,6 @@ def get_included_frames_for_model(
     """
     # Default behavior is to remove all annotations except NOT_STEADY_STATE
     annotations_to_ignore = [TimepointAnnotation.NOT_STEADY_STATE]
-
-    # If cell piling is included, then exclude that annotation from filter
-    if model_manifest.parameters["include_cell_piling"]:
-        annotations_to_ignore.append(TimepointAnnotation.CELL_PILING)
 
     # Get list of timepoint annotations to filter out
     annotations = get_subset_of_timepoint_annotations(annotations_to_ignore=annotations_to_ignore)

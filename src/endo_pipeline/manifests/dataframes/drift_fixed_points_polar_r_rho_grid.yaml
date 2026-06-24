@@ -1,8 +1,8 @@
 name: drift_fixed_points_polar_r_rho_grid
 workflow: generate_flow_field
 parameters:
-  model_manifest_name: diffae_baseline_exclude_cell_piling
-  run_name: 20251110_latent_512
+  model_manifest_name: diffae_baseline
+  run_name: latent_512
   crop_pattern: grid
   kernels:
   - column: polar_r
@@ -19,10 +19,10 @@ parameters:
   upper_percentile_for_filtering_fpts: 95.0
 locations:
   20250409_20X:
-    fmsid: 6d8c4b0887b548f3a052ddf92c1189cf
+    fmsid: 3e8f5e5a452b406bace49311f8ee2c60
     path: null
     s3uri: null
   20251001_20X:
-    fmsid: efb10d99784140eea298e1213cecf24a
+    fmsid: 892f40d442fa40bcb6fa3f3d4ae530f8
     path: null
     s3uri: null

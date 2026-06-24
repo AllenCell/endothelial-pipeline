@@ -34,7 +34,7 @@ from endo_pipeline.library.visualize.diffae_features.flow_field_3d import (
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
-from endo_pipeline.settings.figures import FONTSIZE_LARGE, FONTSIZE_SMALL
+from endo_pipeline.settings.figures import FONTSIZE_SMALL
 from endo_pipeline.settings.flow_field_3d import QUIVER_COLORMAP
 from endo_pipeline.settings.unicode import UnicodeCharacters
 
@@ -1055,7 +1055,7 @@ def plot_first_passage_time_parameter_sweep(
     first_passage_time_param_sweep_df: pd.DataFrame,
     fixed_point_radius_threshold: float | None,
     out_dir: Path,
-    metric_to_plot: Literal["mean", "median"],
+    metric_to_plot: Literal["mean"],
     figsize=(3, 3),
 ) -> tuple[Path, Path]:
     """Plot the results of the parameter sweep over the number of bins in the
@@ -1066,12 +1066,12 @@ def plot_first_passage_time_parameter_sweep(
     fig_title = f"{shear_stress_rounded} dyn/cm{UnicodeCharacters.SQUARED}"
     metric = "50%" if metric_to_plot == "median" else metric_to_plot
     fig, ax = plt.subplots(figsize=figsize)
-    ax.set_title(fig_title, fontsize=FONTSIZE_LARGE)
+    ax.set_title(fig_title, fontsize=FONTSIZE_SMALL)
     ax.errorbar(
         x=first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
         y=first_passage_time_param_sweep_df[f"{metric}_grid"],
         yerr=first_passage_time_param_sweep_df["std_grid"],
-        label=f"{metric} FPT {UnicodeCharacters.PLUS_MINUS} STD (grid)",
+        label=f"MFPT {UnicodeCharacters.PLUS_MINUS} STD (grid-based)",
         fmt="o-",
         color="tab:blue",
         ecolor="tab:blue",
@@ -1082,7 +1082,7 @@ def plot_first_passage_time_parameter_sweep(
         x=first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
         y=first_passage_time_param_sweep_df[f"{metric}_tracked"],
         yerr=first_passage_time_param_sweep_df["std_tracked"],
-        label=f"{metric} FPT {UnicodeCharacters.PLUS_MINUS} STD (tracked)",
+        label=f"MFPT {UnicodeCharacters.PLUS_MINUS} STD (cell-centered)",
         fmt="o-",
         color="tab:red",
         ecolor="tab:red",
@@ -1100,10 +1100,8 @@ def plot_first_passage_time_parameter_sweep(
     ax.legend(frameon=True, facecolor="white", loc="upper center")
     ax.set_xlim(0)
     ax.set_ylim(0)
-    ax.set_xlabel("radius around\nfixed point".title(), fontsize=FONTSIZE_LARGE, labelpad=2)
-    ax.set_ylabel(
-        f"{metric_to_plot} first passage\ntime (hrs)".title(), fontsize=FONTSIZE_LARGE, labelpad=2
-    )
+    ax.set_xlabel("Radius around\nfixed point", fontsize=FONTSIZE_SMALL, labelpad=2)
+    ax.set_ylabel("MFPT (hrs)", fontsize=FONTSIZE_SMALL, labelpad=2)
     filename_param_sweep_fpt = f"{dataset_name}_FPT_{metric_to_plot}_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}"
     save_plot_to_path(
         fig, out_dir, filename_param_sweep_fpt, file_format=".svg", show_and_close=False
@@ -1114,7 +1112,7 @@ def plot_first_passage_time_parameter_sweep(
     # affects the number of trajectories that are considered to have reached the
     # fixed point
     fig, ax = plt.subplots(figsize=figsize)
-    ax.set_title(fig_title, fontsize=FONTSIZE_LARGE)
+    ax.set_title(fig_title, fontsize=FONTSIZE_SMALL)
     ax.plot(
         first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
         first_passage_time_param_sweep_df[f"{Column.VectorField.PERCENT_TRAJ_APPROACHED_FP}_grid"],
@@ -1123,7 +1121,7 @@ def plot_first_passage_time_parameter_sweep(
         markerfacecolor="tab:blue",
         markeredgecolor="tab:blue",
         ls="-",
-        label="grid",
+        label="grid-based",
     )
     ax.plot(
         first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
@@ -1135,7 +1133,7 @@ def plot_first_passage_time_parameter_sweep(
         markerfacecolor="tab:red",
         markeredgecolor="tab:red",
         ls="-",
-        label="tracked",
+        label="cell-centered",
     )
     if fixed_point_radius_threshold is not None:
         ax.axvline(
@@ -1147,10 +1145,8 @@ def plot_first_passage_time_parameter_sweep(
     ax.legend(frameon=True, facecolor="white", loc="upper center")
     ax.set_xlim(0)
     ax.set_ylim(0, 105)
-    ax.set_xlabel("radius around\nfixed point".title(), fontsize=FONTSIZE_LARGE, labelpad=2)
-    ax.set_ylabel(
-        "Trajectories reaching\nfixed point (%)".title(), fontsize=FONTSIZE_LARGE, labelpad=2
-    )
+    ax.set_xlabel("Radius around\nfixed point", fontsize=FONTSIZE_SMALL, labelpad=2)
+    ax.set_ylabel("Trajectories reaching\nfixed point (%)", fontsize=FONTSIZE_SMALL, labelpad=2)
     filename_param_sweep_num_traj = f"{dataset_name}_FPT_percent_trajectories_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}"
     save_plot_to_path(
         fig, out_dir, filename_param_sweep_num_traj, file_format=".svg", show_and_close=False
@@ -1169,7 +1165,7 @@ def plot_first_passage_time_correlations(
     fixed_point_id: int,
     fixed_point_stability: str,
     out_dir: Path,
-    metric_to_plot: Literal["mean", "median"],
+    metric_to_plot: Literal["mean"],
 ) -> Path:
     """Plot the correlation between the grid-based and track-based first passage
         times for a given fixed point as a scatter plot with error bars, along with
@@ -1195,7 +1191,8 @@ def plot_first_passage_time_correlations(
         out_dir
             The directory where the resulting plot should be saved.
         metric_to_plot
-            The metric to plot on the axes, either "mean" or "median" first passage time.
+            The metric to plot on the axes, only "mean" first passage time is supported.
+            Originally "median" was also available.
 
     Returns
     -------
@@ -1205,7 +1202,7 @@ def plot_first_passage_time_correlations(
     shear_stress_rounded = _get_shear_stress_for_dataset(dataset_name, binned=True)
     pearson_r = line_fit_df[Column.VectorField.PEARSON_R].unique().item()
 
-    metric = "50%" if metric_to_plot == "median" else metric_to_plot
+    metric = "50%" if metric_to_plot == "median" else str(metric_to_plot)
     suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
     metric = f"{metric}{suffix}"
 
@@ -1225,7 +1222,7 @@ def plot_first_passage_time_correlations(
             [
                 Column.DATASET,
                 Column.VectorField.FIXED_POINT_INDEX,
-                Column.VectorField.STABILITY,
+                Column.FIXED_POINT_STABILITY,
             ]
         )[Column.VectorField.BIN_INDEX]
         .nunique()
@@ -1253,7 +1250,7 @@ def plot_first_passage_time_correlations(
         color="black",
         edgecolor="white",
         lw=0.2,
-        label=f"FPT {metric_to_plot} {UnicodeCharacters.PLUS_MINUS} SEM (n={num_bins})",
+        label=f"MFPT {UnicodeCharacters.PLUS_MINUS} SEM (n={num_bins})",
     )
     ax.axline(
         xy1=(0, intercept),
@@ -1271,9 +1268,9 @@ def plot_first_passage_time_correlations(
     ax.xaxis.set_major_locator(MaxNLocator(7, min_n_ticks=4, integer=True))
     ax.yaxis.set_major_locator(MaxNLocator(7, min_n_ticks=4, integer=True))
     ax.tick_params(labelsize=FONTSIZE_SMALL)
-    ax.set_xlabel("Grid FPT (hrs)".title(), fontsize=FONTSIZE_SMALL, labelpad=1.0, color="tab:blue")
+    ax.set_xlabel("Grid-based MFPT (hrs)", fontsize=FONTSIZE_SMALL, labelpad=1.0, color="tab:blue")
     ax.set_ylabel(
-        "Tracked FPT (hrs)".title(), fontsize=FONTSIZE_SMALL, labelpad=1.0, color="tab:red"
+        "Cell-centered MFPT (hrs)", fontsize=FONTSIZE_SMALL, labelpad=1.0, color="tab:red"
     )
     ax.legend(loc="upper center")
 

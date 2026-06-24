@@ -8,6 +8,7 @@ import pandas as pd
 from scipy.signal import find_peaks
 
 from endo_pipeline.configs import (
+    ChannelName,
     DatasetConfig,
     TimepointAnnotation,
     get_annotated_timepoints_for_position,
@@ -92,7 +93,7 @@ def detect_single_timepoint_bf_outliers(
     """
 
     zarr_loc = get_zarr_location_for_position(dataset_config, position)
-    bf_zarr = load_image(zarr_loc, channels=["BF"], level=1, squeeze=True)
+    bf_zarr = load_image(zarr_loc, channels=[ChannelName.BF], level=1, squeeze=True)
 
     # Compute mean intensity over x/y axes
     intensity_array = bf_zarr.mean(axis=(-2, -1))
@@ -183,7 +184,7 @@ def detect_single_timepoint_gfp_outliers(
     """
 
     zarr_loc = get_zarr_location_for_position(dataset_config, position)
-    gfp_zarr = load_image(zarr_loc, channels=["EGFP"], level=1, squeeze=True)
+    gfp_zarr = load_image(zarr_loc, channels=[ChannelName.EGFP], level=1, squeeze=True)
 
     # Compute mean intensity across spatial dimensions (Y, X)
     intensity_array = gfp_zarr.mean(axis=(-2, -1))  # now (T, Z)
@@ -230,10 +231,8 @@ def plot_single_timepoint_bf_outliers(
     mean_intensity: np.ndarray,
     rolling_median: np.ndarray,
     dark_threshold: np.ndarray,
-    partial_dark_threshold: np.ndarray,
     bright_threshold: np.ndarray,
     dark_outliers: list[int],
-    partial_dark_outliers: list[int],
     bright_outliers: list[int],
     dataset_name: str,
     position: int,
@@ -253,14 +252,10 @@ def plot_single_timepoint_bf_outliers(
         The rolling median of the intensity data.
     dark_threshold
         The lower threshold for detecting dark outliers.
-    partial_dark_threshold
-        The partial dark threshold for detecting less severe dark outliers.
     bright_threshold
         The upper threshold for detecting bright outliers.
     dark_outliers
-        Indices of dark outliers in the data.
-    partial_dark_outliers
-        Indices of partial dark outliers in the data.
+        Indices of dark outliers in the data (includes partial dark outliers).
     bright_outliers
         Indices of bright outliers in the data.
     dataset_name
@@ -287,14 +282,8 @@ def plot_single_timepoint_bf_outliers(
     )
     ax.plot(
         dark_threshold,
-        label=f"Lower {OUTLIER_THRESHOLD*100}%",
+        label=f"Lower {PARTIAL_DARK_THRESHOLD*100}%",
         color="red",
-        linestyle="--",
-    )
-    ax.plot(
-        partial_dark_threshold,
-        label=f"Partial {PARTIAL_DARK_THRESHOLD*100}%",
-        color="purple",
         linestyle="--",
     )
     ax.plot(
@@ -305,26 +294,22 @@ def plot_single_timepoint_bf_outliers(
     )
 
     ax.scatter(
-        dark_outliers, mean_intensity[dark_outliers], color="red", label="Dark outliers", zorder=5
-    )
-    ax.scatter(
-        partial_dark_outliers,
-        mean_intensity[partial_dark_outliers],
-        color="purple",
-        label="Partial dark outliers",
+        dark_outliers,
+        mean_intensity[dark_outliers],
+        color="red",
+        label="Dark BF outliers",
         zorder=5,
     )
     ax.scatter(
         bright_outliers,
         mean_intensity[bright_outliers],
         color="orange",
-        label="Bright outliers",
+        label="Bright BF outliers",
         zorder=5,
     )
 
     outlier_groups = [
         ("Dark", dark_outliers),
-        ("Partial dark", partial_dark_outliers),
         ("Bright", bright_outliers),
     ]
 
@@ -342,7 +327,7 @@ def plot_single_timepoint_bf_outliers(
 
     mean_for_lim = np.mean(mean_intensity)
     ax.set_xlabel("Index (flattened Z-slices)")
-    ax.set_ylabel("Mean BF intensity in Z-slice (a.u.)")
+    ax.set_ylabel("Mean BF\nintensity in Z-slice (a.u.)")
 
     ax.tick_params(axis="both", which="major")
     ax.tick_params(axis="both", which="minor")
@@ -360,14 +345,7 @@ def plot_single_timepoint_bf_outliers(
     secax.set_xticks(np.arange(0, max_tp + 1, 50))
     secax.tick_params(axis="x")
 
-    # Insert a "fake" third entry to get the legend to divide nicely into
-    # three columns.
-    (lines, labels) = plt.gca().get_legend_handles_labels()
-    lines.insert(2, plt.Line2D([0], [0], linestyle="none", marker="none"))
-    labels.insert(2, "")
     ax.legend(
-        lines,
-        labels,
         loc="upper center",
         ncol=3,
         fontsize=FONTSIZE_XSMALL,
@@ -376,7 +354,7 @@ def plot_single_timepoint_bf_outliers(
         columnspacing=1.0,
     )
 
-    ax.set_ylim(mean_for_lim - mean_for_lim * 0.04, mean_for_lim + mean_for_lim * 0.04)
+    ax.set_ylim(mean_for_lim - mean_for_lim * 0.05, mean_for_lim + mean_for_lim * 0.035)
 
     # reduce label padding
     ax.xaxis.labelpad = 3
@@ -389,6 +367,7 @@ def plot_single_timepoint_bf_outliers(
         f"bf_outliers_{dataset_name}_P{position}",
         file_format=".svg",
         tight_layout=False,
+        transparent=True,
     )
 
 
@@ -482,7 +461,7 @@ def plot_single_timepoint_gfp_outliers(
         fontsize=FONTSIZE_XSMALL,
         handlelength=1.1,
         handletextpad=0.4,
-        columnspacing=1.0,
+        columnspacing=0.5,
         borderpad=0.25,
         borderaxespad=0.25,
     )
@@ -491,7 +470,13 @@ def plot_single_timepoint_gfp_outliers(
     ax.xaxis.labelpad = 3
     ax.yaxis.labelpad = 3
 
-    save_plot_to_path(fig, save_dir, f"gfp_outliers_{dataset_name}_P{position}", file_format=".svg")
+    save_plot_to_path(
+        fig,
+        save_dir,
+        f"gfp_outliers_{dataset_name}_P{position}",
+        file_format=".svg",
+        transparent=True,
+    )
 
 
 def print_timepoint_annotation_performance_stats(
@@ -564,10 +549,10 @@ def print_timepoint_annotation_performance_stats(
         f"--- {annotation_type} STATISTICS ---\n"
         f"Total manual annotated timepoints: {total_manual}\n"
         f"Total missed timepoints: {total_missed}\n"
-        f"Percent of missed timepoints: {percent_missed:.2f}%\n"
+        f"Percent of missed timepoints: {percent_missed:.3f}%\n"
         f"Total auto-detected timepoints: {total_auto}\n"
         f"Total timepoints assessed: {total_timepoints}\n"
-        f"Percent of tps with artifacts: {percent_artifact:.2f}%"
+        f"Percent of tps with artifacts: {percent_artifact:.3f}%"
     )
 
     return results

@@ -1,6 +1,4 @@
-from typing import Annotated, Literal
-
-from cyclopts import Parameter
+from typing import Literal
 
 from endo_pipeline.settings.image_data import DIFFAE_DEFAULT_CROP_SIZE
 from endo_pipeline.settings.workflow_defaults import (
@@ -15,7 +13,6 @@ def main(
     crop_size: int = DIFFAE_DEFAULT_CROP_SIZE,
     condition_on: Literal["bf", "cdh5"] = DEFAULT_IMAGE_TYPE_FOR_SEMANTIC_CONDITIONING,
     latent_dim: int = DEFAULT_NUM_LATENT_DIMENSIONS,
-    include_cell_piling: Annotated[bool, Parameter(negative="--exclude-cell-piling")] = False,
     num_workers: int | None = None,
 ) -> None:
     """
@@ -45,8 +42,7 @@ def main(
     ## Training run naming
 
     If a model manifest name is not given, it will be automatically constructed
-    based on the crop size, conditioning key, latent dimension size, and whether
-    cell piling exclusion is enabled or not.
+    based on the crop size, conditioning key, and latent dimension size.
 
     The training run instantiated from this workflow will be saved in the
     corresponding model manifest, with run name either provided by the user or
@@ -68,19 +64,6 @@ def main(
     the `latent_dim` parameter. The default is `DEFAULT_NUM_LATENT_DIMENSIONS`
     from `endo_pipeline.settings.workflow_defaults.`
 
-    ## Cell piling
-
-    By default, timepoints with cell piling annotations are excluded in the
-    training and validation datasets from `create-diffae-train-dataframe`,
-    unless `include_cell_piling` is True. This means that by default, the model
-    will be trained on data that does not include cell piling. To train a model
-    that does "see" cell piling,  run `create-diffae-train-dataframe` with the
-    flag `--include-cell-piling` and then run this workflow with the same flag.
-
-    When `include_cell_piling` is True, the workflow will use the dataframe
-    manifest with the suffix `_include_cell_piling`. When False, the suffix is
-    `_exclude_cell_piling`.
-
     ## Workflow demo
 
     Running the workflow in demo mode (`-d` or `--demo-mode`) will set up the
@@ -98,9 +81,6 @@ def main(
         The abbreviated name of the image channel to condition the model on.
     latent_dim
         The number of latent dimensions for the DiffAE model.
-    include_cell_piling
-        True to include timepoints with cell piling in data used for training,
-        False to exclude.
     num_workers
         Number of workers to use for loading data. If not given, estimate based
         on total number of logical CPUs in the system.
@@ -155,20 +135,18 @@ def main(
     patch_name = f"_patch_{crop_size}x{crop_size}"
     condition_name = f"_condition_on_{condition_on}"
     latent_name = f"_latent_{latent_dim}"
-    piling_name = "_include_cell_piling" if include_cell_piling else "_exclude_cell_piling"
 
     # Build dataframe manifest name to load training and validation dataframes.
     # Note that the dataframe manifest name does not include the patch size or
     # conditioning type, as these are not relevant for the dataframe itself.
-    dataframe_manifest_name = f"{DIFFAE_TRAIN_DATAFRAME_MANIFEST_PREFIX}{piling_name}{name_suffix}"
+    dataframe_manifest_name = f"{DIFFAE_TRAIN_DATAFRAME_MANIFEST_PREFIX}{name_suffix}"
 
     try:
         dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
     except FileNotFoundError:
         logger.error(
             "Dataframe manifest '%s' not found. "
-            "Please run the create_diffae_train_dataframe workflow first "
-            "with matching settings for cell piling.",
+            "Please run the create_diffae_train_dataframe workflow first.",
             dataframe_manifest_name,
         )
         raise
@@ -186,7 +164,7 @@ def main(
 
     # Build the model manifest name, if not provided.
     if model_manifest_name is None:
-        model_manifest_name = f"diffae{patch_name}{condition_name}{latent_name}{piling_name}"
+        model_manifest_name = f"diffae{patch_name}{condition_name}{latent_name}"
         model_manifest_name = f"{model_manifest_name}{name_suffix}"
 
     # Create or load the model manifest.
@@ -246,7 +224,6 @@ def main(
         "crop_size": crop_size,
         "condition_on": condition_on,
         "latent_dim": latent_dim,
-        "include_cell_piling": include_cell_piling,
     }
     manifest.locations[run_name] = ModelLocation()
     save_model_manifest(manifest)

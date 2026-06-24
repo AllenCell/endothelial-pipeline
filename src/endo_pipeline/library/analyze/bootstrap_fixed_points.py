@@ -16,6 +16,7 @@ from endo_pipeline.library.analyze.vector_field_estimation import (
     get_fixed_points_within_bounds,
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameSuffix
 from endo_pipeline.settings.dynamics_workflows import (
     LOWER_PERCENTILE_FOR_FILTERING_FPTS,
     NUM_INIT_SAMPLES,
@@ -329,8 +330,10 @@ def match_bootstrap_fixed_points_to_baseline(
         bootstrap fixed point coordinates.
 
     """
+
     column_names = list(column_names)
-    baseline_fixed_points_array = baseline_fixed_points[column_names].to_numpy()
+    fp_column_names = [f"{col}{ColumnNameSuffix.FIXED_POINTS}" for col in column_names]
+    baseline_fixed_points_array = baseline_fixed_points[fp_column_names].to_numpy()
     n_baseline = len(baseline_fixed_points_array)
 
     # dict to hold matched coords for each baseline fixed point (FP) across
@@ -354,7 +357,7 @@ def match_bootstrap_fixed_points_to_baseline(
         # Pairwise Euclidean distances: shape (n_baseline, n_boot_fpts). Need to
         # account for circular distance in the polar angle dimension if present,
         # but can still use np.linalg.norm on the diffs
-        fixed_point_result_array = fixed_point_result[column_names].to_numpy()
+        fixed_point_result_array = fixed_point_result[fp_column_names].to_numpy()
 
         pairwise_diffs = (
             baseline_fixed_points_array[:, None, :] - fixed_point_result_array[None, :, :]
@@ -367,8 +370,8 @@ def match_bootstrap_fixed_points_to_baseline(
 
         pairwise_dists = np.linalg.norm(pairwise_diffs, axis=-1)
 
-        boot_stabilities = fixed_point_result[Column.VectorField.STABILITY].to_numpy()
-        baseline_stabilities = baseline_fixed_points[Column.VectorField.STABILITY].to_numpy()
+        boot_stabilities = fixed_point_result[Column.FIXED_POINT_STABILITY].to_numpy()
+        baseline_stabilities = baseline_fixed_points[Column.FIXED_POINT_STABILITY].to_numpy()
 
         assigned_boot_indices: set[int] = set()
         for baseline_idx in range(n_baseline):
@@ -500,10 +503,12 @@ def aggregate_bootstrapping_results(
     output_dataframe_rows = []
     for pos_idx, (_, baseline_fixed_point) in enumerate(baseline_fixed_points.iterrows()):
         dataframe_row: dict = {
-            Column.VectorField.STABILITY: baseline_fixed_point[Column.VectorField.STABILITY],
+            Column.FIXED_POINT_STABILITY: baseline_fixed_point[Column.FIXED_POINT_STABILITY],
         }
         for col in column_names:
-            dataframe_row[col] = baseline_fixed_point[col]
+            dataframe_row[f"{col}{ColumnNameSuffix.BASELINE_FIXED_POINTS}"] = baseline_fixed_point[
+                f"{col}{ColumnNameSuffix.FIXED_POINTS}"
+            ]
 
         num_hits = len(matched_coords[pos_idx])
         if num_hits >= 1:
@@ -528,21 +533,21 @@ def aggregate_bootstrapping_results(
                 ]
             )
             for dim_idx, col in enumerate(column_names):
-                dataframe_row[f"{col}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"] = cluster_mean[
+                dataframe_row[f"{col}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"] = cluster_mean[
                     dim_idx
                 ]
 
             if num_hits >= 2:
                 for dim_idx, col in enumerate(column_names):
                     if dim_idx == polar_dim_idx and polar_angle_period is not None:
-                        dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_LOWER}"] = float(
+                        dataframe_row[f"{col}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"] = float(
                             circpercentile(
                                 matched_coords_array[:, dim_idx],
                                 bootstrap_ci_lower_percentile,
                                 polar_range=(0, polar_angle_period),
                             )
                         )
-                        dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_UPPER}"] = float(
+                        dataframe_row[f"{col}{ColumnNameSuffix.BOOTSTRAP_CI_UPPER}"] = float(
                             circpercentile(
                                 matched_coords_array[:, dim_idx],
                                 bootstrap_ci_upper_percentile,
@@ -550,29 +555,29 @@ def aggregate_bootstrapping_results(
                             )
                         )
                     else:
-                        dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_LOWER}"] = float(
+                        dataframe_row[f"{col}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"] = float(
                             np.percentile(
                                 matched_coords_array[:, dim_idx], bootstrap_ci_lower_percentile
                             )
                         )
-                        dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_UPPER}"] = float(
+                        dataframe_row[f"{col}{ColumnNameSuffix.BOOTSTRAP_CI_UPPER}"] = float(
                             np.percentile(
                                 matched_coords_array[:, dim_idx], bootstrap_ci_upper_percentile
                             )
                         )
             else:
                 for col in column_names:
-                    dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_LOWER}"] = float("nan")
-                    dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_UPPER}"] = float("nan")
+                    dataframe_row[f"{col}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"] = float("nan")
+                    dataframe_row[f"{col}{ColumnNameSuffix.BOOTSTRAP_CI_UPPER}"] = float("nan")
         else:
             for col in column_names:
-                dataframe_row[f"{col}_{Column.BootstrapAnalysis.CLUSTER_MEAN}"] = float("nan")
-                dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_LOWER}"] = float("nan")
-                dataframe_row[f"{col}_{Column.BootstrapAnalysis.CI_UPPER}"] = float("nan")
+                dataframe_row[f"{col}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"] = float("nan")
+                dataframe_row[f"{col}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"] = float("nan")
+                dataframe_row[f"{col}{ColumnNameSuffix.BOOTSTRAP_CI_UPPER}"] = float("nan")
 
         # add rate of detection across bootstrap iterations for this baseline fixed point
         # as weel as the total number of bootstrap iterations (for reference)
-        dataframe_row[Column.BootstrapAnalysis.DETECTION_RATE] = float(num_hits) / n_bootstrap
+        dataframe_row[Column.FIXED_POINT_DETECTION_RATE] = float(num_hits) / n_bootstrap
         output_dataframe_rows.append(dataframe_row)
 
     output_dataframe = pd.DataFrame(output_dataframe_rows)
