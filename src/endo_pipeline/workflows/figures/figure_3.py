@@ -48,7 +48,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     # Load full figure asset of panel A schematic.
     assets_dir = Path(figure_assets.__path__[0])
-    schematic_fp = assets_dir / "figure_3a_hypotheses.svg"
+    schematic_fp = assets_dir / "figure_3a_hypotheses_optimized.svg"
 
     # Create spatial feature grid for panel B.
     feature_columns = [
