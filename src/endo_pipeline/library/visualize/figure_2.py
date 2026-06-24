@@ -1031,17 +1031,21 @@ def make_first_passage_time_distance_to_linefit_hist(
     n_size = len(distances_all)
 
     fig, ax = plt.subplots(figsize=figure_size, layout="constrained")
-    biggest_distance_as_int = 2 * int(max(np.ceil(distances_all)))
-    ax.hist(distances_all, bins=biggest_distance_as_int, density=True, edgecolor="k")
+    biggest_distance_as_int = int(max(np.ceil(distances_all)))
+    bins = np.arange(0, biggest_distance_as_int + 1, 0.5)
+    ax.hist(distances_all, bins=bins, density=True, edgecolor="k")
     column_label = (
         "Deviation of MFPTs from linear\nfit for grid vs. cell-centered\ntrajectories (hrs)"
     )
     ax.set_xlabel(column_label)
-    ax.set_ylabel("Probability density")
-    ax.xaxis.set_major_locator(MultipleLocator(base=3))
-    # make sure y ticks are integers since this is a count histogram
-    ax.yaxis.set_major_locator(MultipleLocator(base=0.1))
-    ax.annotate(f"n = {n_size}", xy=(0.98, 0.87), xycoords="axes fraction", ha="right")
+    ax.set_ylabel("Probability\ndensity")
+    ax.xaxis.set_major_locator(MultipleLocator(base=2))
+    ax.xaxis.minorticks_on()
+    ax.xaxis.set_minor_locator(MultipleLocator(base=1))
+    ax.yaxis.set_major_locator(MultipleLocator(base=0.2))
+    ax.yaxis.minorticks_on()
+    ax.yaxis.set_minor_locator(MultipleLocator(base=0.1))
+    ax.annotate(f"n = {n_size}", xy=(0.98, 0.72), xycoords="axes fraction", ha="right")
 
     filename = "fpt_hist"
     save_plot_to_path(
