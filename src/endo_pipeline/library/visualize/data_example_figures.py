@@ -279,7 +279,7 @@ def create_panel_perturbation_examples(
     crop_size: int = 1000,
     scale_bar_um: int = 100,
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH * 0.25, 3),
-    inset_coordinates: tuple[int, int] | None = None,
+    inset_coordinates: tuple[int, int] = (50, 500),
     inset_size: int = 256,
 ) -> None:
     """Create panel of perturbation example images.
@@ -295,18 +295,16 @@ def create_panel_perturbation_examples(
     scale_bar_um
         Scale bar length in micrometers.
     inset_coordinates
-        Optional (x, y) pixel coordinates for inset crop region. When provided,
-        a yellow rectangle is drawn on Ex3Del images and an inset contact sheet
-        is saved separately.
+        (x, y) pixel coordinates for the Ex3Del inset crop region.
     inset_size
         Size of the inset crop in pixels.
     """
     image_panel_list = []
     cell_line_titles = []
     cell_line_subtitles = []
-    cell_lines_per_example = []
+    ex3del_col_idx: int | None = None
 
-    for example in examples:
+    for i, example in enumerate(examples):
         dataset_config = load_dataset_config(example.dataset_name)
         cell_line = dataset_config.cell_lines[0]
 
@@ -327,41 +325,35 @@ def create_panel_perturbation_examples(
             crop_size,
         )
 
-        subtitle = f"{cell_line}, Replicate {dataset_config.replicate_number}"
         image_panel_list.extend([gfp_max_proj, log_bf_std_dev])
         cell_line_titles.append(summary_plot.CELL_LINE_LABEL_MAP.get(cell_line, cell_line))
-        cell_line_subtitles.append(subtitle)
-        cell_lines_per_example.append(cell_line)
+        cell_line_subtitles.append(f"{cell_line}, Replicate {dataset_config.replicate_number}")
+        if cell_line == "AICS-177 cl. 26":
+            ex3del_col_idx = i
 
-    # If inset requested, add cropped Ex3Del images as an extra column
+    # Add cropped Ex3Del images as an extra inset column
     n_base_cols = len(examples)
-    if inset_coordinates is not None:
-        ex3del_idx = next(
-            (i for i, cl in enumerate(cell_lines_per_example) if cl == "AICS-177 cl. 26"), None
+    if ex3del_col_idx is not None:
+        gfp_inset = crop_image(
+            image_panel_list[ex3del_col_idx * 2],
+            inset_coordinates[0],
+            inset_coordinates[1],
+            inset_size,
         )
-        if ex3del_idx is not None:
-            # Crop the Ex3Del GFP and BF images
-            gfp_inset = crop_image(
-                image_panel_list[ex3del_idx * 2],
-                inset_coordinates[0],
-                inset_coordinates[1],
-                inset_size,
-            )
-            # Percentile contrast stretch to pull signal away from noise floor
-            p_low, p_high = np.percentile(gfp_inset, [2, 99.5])
-            gfp_inset = np.clip(
-                (gfp_inset.astype(np.float32) - p_low) / max(p_high - p_low, 1) * 255, 0, 255
-            ).astype(np.uint8)
-            bf_inset = crop_image(
-                image_panel_list[ex3del_idx * 2 + 1],
-                inset_coordinates[0],
-                inset_coordinates[1],
-                inset_size,
-            )
-            image_panel_list.extend([gfp_inset, bf_inset])
-            cell_line_titles.append("Ex3Del inset")
-            cell_line_subtitles.append("")
-            cell_lines_per_example.append("_inset")
+        # Percentile contrast stretch to pull signal away from noise floor
+        p_low, p_high = np.percentile(gfp_inset, [2, 99.5])
+        gfp_inset = np.clip(
+            (gfp_inset.astype(np.float32) - p_low) / max(p_high - p_low, 1) * 255, 0, 255
+        ).astype(np.uint8)
+        bf_inset = crop_image(
+            image_panel_list[ex3del_col_idx * 2 + 1],
+            inset_coordinates[0],
+            inset_coordinates[1],
+            inset_size,
+        )
+        image_panel_list.extend([gfp_inset, bf_inset])
+        cell_line_titles.append("Ex3Del inset")
+        cell_line_subtitles.append("")
 
     fig = make_contact_sheet(
         image_panel_list,
@@ -383,7 +375,7 @@ def create_panel_perturbation_examples(
         # Add subtitle below column title for first-row axes
         col_idx = i % n_cols
         row_idx = i // n_cols
-        if row_idx == 0 and col_idx < len(cell_line_subtitles) and cell_line_subtitles[col_idx]:
+        if row_idx == 0 and cell_line_subtitles[col_idx]:
             ax.xaxis.labelpad = 12
             ax.text(
                 0.5,
@@ -411,12 +403,8 @@ def create_panel_perturbation_examples(
             include_label=(i == 0 or (is_inset_col and row_idx == 0)),
         )
 
-        # Draw inset rectangles
-        if (
-            inset_coordinates is not None
-            and col_idx < n_base_cols
-            and cell_lines_per_example[col_idx] == "AICS-177 cl. 26"
-        ):
+        # Draw inset rectangle on Ex3Del columns
+        if ex3del_col_idx is not None and col_idx == ex3del_col_idx:
             rect = plt.Rectangle(
                 (inset_coordinates[0], inset_coordinates[1]),
                 inset_size,
