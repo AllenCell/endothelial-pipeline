@@ -325,7 +325,9 @@ def _load_example_data(
         example_dfs.append(df_example)
 
         shear_stress = dataset_config.flow_conditions[0].shear_stress_bin
-        example_labels.append(f"{shear_stress} dyn/cm\u00b2\nExample {i + 1}")
+        example_labels.append(
+            f"{shear_stress} dyn/cm\u00b2\nReplicate {dataset_config.replicate_number}"
+        )
 
     image_rows: dict[str, list[np.ndarray]] = {"VE-cadherin\nMIP": gfp_images}
     if include_bf_images:
