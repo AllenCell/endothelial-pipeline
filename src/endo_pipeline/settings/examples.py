@@ -155,14 +155,6 @@ FIGURE_4_EXAMPLE_IMAGES: list[ExampleImage] = [
         crop_x_start=0,  # res level 0
         crop_y_start=0,  # res level 0
     ),
-    ExampleImage(
-        dataset_name="20251119_20X",
-        description="knock_down",
-        position=0,
-        timepoint=185,
-        crop_x_start=0,  # res level 0
-        crop_y_start=0,  # res level 0
-    ),
 ]
 
 FPT_FIG_EXAMPLES = {

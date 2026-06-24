@@ -45,7 +45,7 @@ from endo_pipeline.settings.figures import (
 )
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.summary_plot import (
-    CELL_LINE_LABEL_MAP,
+    CELL_LINE_BRACKET_LABEL_MAP,
     COLOR_PALETTE,
     DATASET_COLOR_MAP,
 )
@@ -270,6 +270,7 @@ def _draw_bracket(
     label: str,
     fontsize: float = FONTSIZE_SMALL,
     sub_label: str | None = None,
+    rotation: float = 0,
 ) -> None:
     """Draw a U-shaped bracket below the x-axis with a centered label.
 
@@ -287,6 +288,8 @@ def _draw_bracket(
         Font size for the primary label.
     sub_label
         Optional secondary label drawn below the primary in a smaller font.
+    rotation
+        Rotation angle in degrees for the primary label.
     """
     trans = blended_transform_factory(ax.transData, ax.transAxes)
     fig = ax.get_figure()
@@ -314,9 +317,11 @@ def _draw_bracket(
         label_y,
         label,
         transform=trans,
-        ha="center",
+        ha="right" if rotation else "center",
         va="top",
         fontsize=fontsize,
+        rotation=rotation,
+        rotation_mode="anchor",
         clip_on=False,
     )
     if sub_label is not None:
@@ -389,8 +394,8 @@ def _add_cell_line_brackets(
         x_start = positions[group_cats[0]]
         x_end = positions[group_cats[-1]]
 
-        label = CELL_LINE_LABEL_MAP.get(cell_line, cell_line)
-        _draw_bracket(ax, x_start, x_end, label=label, fontsize=FONTSIZE_XSMALL)
+        label = CELL_LINE_BRACKET_LABEL_MAP.get(cell_line, cell_line)
+        _draw_bracket(ax, x_start, x_end, label=label, fontsize=FONTSIZE_XSMALL, rotation=45)
         idx += group_size
 
 
@@ -486,11 +491,12 @@ def _configure_replicate_axis(
     positions: dict[str, float],
     scalar_mappable,
     marker_size_legend: int,
+    show_legend: bool = True,
 ) -> None:
     """Add legend, grey background, and brackets for replicate axis mode."""
     from matplotlib.lines import Line2D
 
-    if scalar_mappable is None:
+    if scalar_mappable is None and show_legend:
         legend_handles: list = [
             Line2D(
                 [0],
@@ -545,6 +551,7 @@ def _plot_cross_dataset_summary_for_column(
     jitter_width: float = 0.05,
     set_y_lims: bool = False,
     color_by_column: ColumnNameType | None = None,
+    point_color: str | None = None,
     ylabel_rotation: float = 0,
     ylabel_horizontal_alignment: Literal["left", "center", "right"] = "left",
     ylabel_vertical_alignment: Literal["top", "center", "bottom"] = "center",
@@ -701,9 +708,13 @@ def _plot_cross_dataset_summary_for_column(
 
         # Get marker and color based on style column or color_by_column
         colors: list = (
-            [scalar_mappable.to_rgba(val) for val in category_df[plotting_column]]
-            if scalar_mappable is not None and plotting_column is not None
-            else category_df[style_column].map(color_map).tolist()
+            [point_color] * len(category_df)
+            if point_color is not None
+            else (
+                [scalar_mappable.to_rgba(val) for val in category_df[plotting_column]]
+                if scalar_mappable is not None and plotting_column is not None
+                else category_df[style_column].map(color_map).tolist()
+            )
         )
         markers = [marker_map[col] for col in category_df[style_column]]
 
@@ -730,7 +741,7 @@ def _plot_cross_dataset_summary_for_column(
             )
 
     # Include legend if using stability style mode (only when not overridden)
-    if style_mode == "stability" and scalar_mappable is None:
+    if style_mode == "stability" and scalar_mappable is None and point_color is None:
         legend_handles = make_legend_handles_for_fixed_pts(
             fpt_stabilities=df[ColumnName.FIXED_POINT_STABILITY].unique().tolist(),
             marker_size=marker_size_legend,
@@ -746,6 +757,7 @@ def _plot_cross_dataset_summary_for_column(
             _positions,
             scalar_mappable,
             marker_size_legend,
+            show_legend=point_color is None,
         )
 
     # Add cell line brackets below x-axis
@@ -814,6 +826,8 @@ def plot_cross_dataset_summaries(
     convert_angle_to_nematic: bool = False,
     set_y_lims: bool = False,
     color_by_column: ColumnNameType | None = None,
+    point_color: str | None = None,
+    colorbar_multiline_label: bool = False,
     ylabel_rotation: float = 0,
     ylabel_horizontal_alignment: Literal["left", "center", "right"] = "left",
     ylabel_vertical_alignment: Literal["top", "center", "bottom"] = "center",
@@ -939,6 +953,7 @@ def plot_cross_dataset_summaries(
             jitter_width=jitter_width,
             set_y_lims=set_y_lims,
             color_by_column=color_by_column,
+            point_color=point_color,
             ylabel_rotation=ylabel_rotation,
             ylabel_horizontal_alignment=ylabel_horizontal_alignment,
             ylabel_vertical_alignment=ylabel_vertical_alignment,
@@ -979,11 +994,12 @@ def plot_cross_dataset_summaries(
             df, color_by_column
         )
         if scalar_mappable is not None:
-            cbar_label = (
-                color_column_metadata.label.replace("\n", " ")
+            raw_label = (
+                color_column_metadata.label
                 if color_column_metadata and color_column_metadata.label
                 else str(color_by_column)
             )
+            cbar_label = raw_label if colorbar_multiline_label else raw_label.replace("\n", " ")
             # Attach colorbar to last panel only so it spans one panel height
             cbar = fig.colorbar(scalar_mappable, ax=axes[-1], pad=0.02)
             cbar.set_label(cbar_label, fontsize=FONTSIZE_SMALL)
