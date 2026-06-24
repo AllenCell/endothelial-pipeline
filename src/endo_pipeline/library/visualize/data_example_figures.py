@@ -411,7 +411,7 @@ def create_panel_perturbation_examples(
             include_label=(i == 0 or (is_inset_col and row_idx == 0)),
         )
 
-        # Draw inset rectangle on Ex3Del columns (not on the inset column itself)
+        # Draw inset rectangles
         if (
             inset_coordinates is not None
             and col_idx < n_base_cols
