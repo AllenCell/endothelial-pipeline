@@ -16,10 +16,10 @@ from endo_pipeline.library.process.image_processing import (
 )
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.library.visualize.figures import figure_panel
+from endo_pipeline.settings import summary_plot
 from endo_pipeline.settings.examples import ExampleImage
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_XSMALL, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
-from endo_pipeline.settings.summary_plot import CELL_LINE_LABEL_MAP
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 
@@ -279,6 +279,8 @@ def create_panel_perturbation_examples(
     crop_size: int = 1000,
     scale_bar_um: int = 100,
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH * 0.25, 3),
+    inset_coordinates: tuple[int, int] | None = None,
+    inset_size: int = 256,
 ) -> None:
     """Create panel of perturbation example images.
 
@@ -292,9 +294,17 @@ def create_panel_perturbation_examples(
         Crop size in pixels at resolution level 0.
     scale_bar_um
         Scale bar length in micrometers.
+    inset_coordinates
+        Optional (x, y) pixel coordinates for inset crop region. When provided,
+        a yellow rectangle is drawn on Ex3Del images and an inset contact sheet
+        is saved separately.
+    inset_size
+        Size of the inset crop in pixels.
     """
     image_panel_list = []
     cell_line_titles = []
+    cell_line_subtitles = []
+    cell_lines_per_example = []
 
     for example in examples:
         dataset_config = load_dataset_config(example.dataset_name)
@@ -317,13 +327,46 @@ def create_panel_perturbation_examples(
             crop_size,
         )
 
+        subtitle = f"{cell_line}, Replicate {dataset_config.replicate_number}"
         image_panel_list.extend([gfp_max_proj, log_bf_std_dev])
-        cell_line_titles.append(CELL_LINE_LABEL_MAP.get(cell_line, cell_line))
+        cell_line_titles.append(summary_plot.CELL_LINE_LABEL_MAP.get(cell_line, cell_line))
+        cell_line_subtitles.append(subtitle)
+        cell_lines_per_example.append(cell_line)
+
+    # If inset requested, add cropped Ex3Del images as an extra column
+    n_base_cols = len(examples)
+    if inset_coordinates is not None:
+        ex3del_idx = next(
+            (i for i, cl in enumerate(cell_lines_per_example) if cl == "AICS-177 cl. 26"), None
+        )
+        if ex3del_idx is not None:
+            # Crop the Ex3Del GFP and BF images
+            gfp_inset = crop_image(
+                image_panel_list[ex3del_idx * 2],
+                inset_coordinates[0],
+                inset_coordinates[1],
+                inset_size,
+            )
+            # Percentile contrast stretch to pull signal away from noise floor
+            p_low, p_high = np.percentile(gfp_inset, [2, 99.5])
+            gfp_inset = np.clip(
+                (gfp_inset.astype(np.float32) - p_low) / max(p_high - p_low, 1) * 255, 0, 255
+            ).astype(np.uint8)
+            bf_inset = crop_image(
+                image_panel_list[ex3del_idx * 2 + 1],
+                inset_coordinates[0],
+                inset_coordinates[1],
+                inset_size,
+            )
+            image_panel_list.extend([gfp_inset, bf_inset])
+            cell_line_titles.append("Ex3Del inset")
+            cell_line_subtitles.append("")
+            cell_lines_per_example.append("_inset")
 
     fig = make_contact_sheet(
         image_panel_list,
-        max_rows=len(image_panel_list) // len(examples),
-        max_cols=len(examples),
+        max_rows=len(image_panel_list) // len(cell_line_titles),
+        max_cols=len(cell_line_titles),
         col_titles=cell_line_titles,
         row_titles=["VE-Cadherin MIP", "BF Std. Dev. Proj."],
         direction="top-down first",
@@ -333,19 +376,56 @@ def create_panel_perturbation_examples(
         fig_kwargs={"figsize": figure_size, "layout": "constrained"},
     )
 
+    n_cols = len(cell_line_titles)
     for i, ax in enumerate(fig.axes):
-        ax.xaxis.labelpad = 3
         ax.yaxis.labelpad = 3
 
+        # Add subtitle below column title for first-row axes
+        col_idx = i % n_cols
+        row_idx = i // n_cols
+        if row_idx == 0 and col_idx < len(cell_line_subtitles) and cell_line_subtitles[col_idx]:
+            ax.xaxis.labelpad = 12
+            ax.text(
+                0.5,
+                1.02,
+                cell_line_subtitles[col_idx],
+                transform=ax.transAxes,
+                fontsize=FONTSIZE_XSMALL,
+                fontweight="normal",
+                ha="center",
+                va="bottom",
+            )
+        else:
+            ax.xaxis.labelpad = 3
+
+        # Choose scale bar size based on whether this is an inset column
+        is_inset_col = col_idx >= n_base_cols
         add_scalebar(
             ax,
-            scale_bar_um=scale_bar_um,
+            scale_bar_um=20 if is_inset_col else scale_bar_um,
             pixel_size=PIXEL_SIZE_3i_20x,
             location="lower right",
-            bar_thickness=25,
-            padding=25,
-            include_label=True if i == 0 else False,
+            bar_thickness=10 if is_inset_col else 25,
+            padding=10 if is_inset_col else 25,
+            label_xy=(0.96, 0.1) if is_inset_col else (0.97, 0.07),
+            include_label=(i == 0 or (is_inset_col and row_idx == 0)),
         )
+
+        # Draw inset rectangle on Ex3Del columns (not on the inset column itself)
+        if (
+            inset_coordinates is not None
+            and col_idx < n_base_cols
+            and cell_lines_per_example[col_idx] == "AICS-177 cl. 26"
+        ):
+            rect = plt.Rectangle(
+                (inset_coordinates[0], inset_coordinates[1]),
+                inset_size,
+                inset_size,
+                edgecolor="yellow",
+                facecolor="none",
+                linewidth=1.5,
+            )
+            ax.add_patch(rect)
 
     save_plot_to_path(
         fig,

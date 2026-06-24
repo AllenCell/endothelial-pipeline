@@ -26,7 +26,8 @@ save_dir = get_output_path("figure_4")
 create_panel_perturbation_examples(
     examples=FIGURE_4_EXAMPLE_IMAGES,
     save_dir=save_dir,
-    figure_size=(MAX_FIGURE_WIDTH * 0.75, 2.5),
+    figure_size=(MAX_FIGURE_WIDTH, 3.4),
+    inset_coordinates=(50, 500),
 )
 
 # %% Load data for summary plots

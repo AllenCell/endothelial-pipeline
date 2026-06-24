@@ -46,8 +46,8 @@ SUMMARY_PLOT_DATASETS: dict[str, list[str]] = {
 }
 
 CELL_LINE_LABEL_MAP = {
-    "AICS-126 cl. 41": "Parental",
-    "AICS-126 cl. 41 CD31-sorted": "Control",
+    "AICS-126 cl. 41": "VE-cadherin-mEGFP",
+    "AICS-126 cl. 41 CD31-sorted": "Sorting control",
     "AICS-177 cl. 26": "Ex3Del",
 }
 
