@@ -19,6 +19,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     import matplotlib.pyplot as plt
 
     from endo_pipeline.io import get_output_path, load_model
+    from endo_pipeline.library.visualize.diffae_features.projected_dynamics import (
+        visualize_projected_dynamics,
+    )
     from endo_pipeline.library.visualize.figure_4 import (
         make_3d_vector_field_plot_panel,
         reconstruct_fixed_points,
@@ -49,7 +52,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     output_path = get_output_path(__file__)
 
-    placeholders = parse_placeholder_panels(include_panels, ["A", "B"])
+    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C"])
 
     # load and instantiate model for generating synthetic images
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
@@ -115,6 +118,13 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         add_fixed_point_coordinate_annotation=False,
     )
 
+    projected_streamlines_path = visualize_projected_dynamics(
+        dataset_name=dataset_name,
+        output_path=output_path,
+        figure_size=(2.0, 2.0),
+        **placeholders["C"],
+    )
+
     panels = [
         FigurePanel(
             letter="A",
@@ -137,6 +147,14 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             path=fixed_point_reconstruction_path,
             x_position=MAX_FIGURE_WIDTH * 0.66,
             y_position=2.3,
+            x_offset=0.3,
+            y_offset=0.0,
+        ),
+        FigurePanel(
+            letter="",
+            path=projected_streamlines_path,
+            x_position=0.0,
+            y_position=3.25,
             x_offset=0.3,
             y_offset=0.0,
         ),
