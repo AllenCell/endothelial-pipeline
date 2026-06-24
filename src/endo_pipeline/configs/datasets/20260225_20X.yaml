@@ -36,7 +36,7 @@ notes: Minimal early piling (some ~TP 330 FOV 3, 1-indexed), no membrane gaps. G
   and BF look good.
 
 stability_category: monostable
-replicate_number: 1
+replicate_number: 4
 timepoint_annotations:
   auto_bf_scope_error:
     0: []
