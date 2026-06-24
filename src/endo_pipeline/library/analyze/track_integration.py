@@ -1120,7 +1120,7 @@ def merge_grid_and_tracked_first_passage_time_stats_dfs(
     fpt_stats_df = fpt_stats_df_grid.merge(
         fpt_stats_df_tracked,
         on=[Column.VectorField.BIN_INDEX],
-        suffixes=("_grid", "_tracked"),
+        suffixes=("_grid_based", "_cell_centered"),
         validate="one_to_one",
     )
     fpt_stats_df = fpt_stats_df.assign(
@@ -1129,22 +1129,26 @@ def merge_grid_and_tracked_first_passage_time_stats_dfs(
 
     # check that the bin centers and edges are the same for the grid and tracked dataframes
     bin_centers_close = np.allclose(
-        np.array(list(zip(*fpt_stats_df[f"{Column.VectorField.BIN_CENTER}_grid"], strict=True))),
+        np.array(
+            list(zip(*fpt_stats_df[f"{Column.VectorField.BIN_CENTER}_grid_based"], strict=True))
+        ),
         np.array(
             list(
                 zip(
-                    *fpt_stats_df[f"{Column.VectorField.BIN_CENTER}_tracked"],
+                    *fpt_stats_df[f"{Column.VectorField.BIN_CENTER}_cell_centered"],
                     strict=True,
                 )
             )
         ),
     )
     bin_edges_close = np.allclose(
-        np.array(list(zip(*fpt_stats_df[f"{Column.VectorField.BIN_EDGES}_grid"], strict=True))),
+        np.array(
+            list(zip(*fpt_stats_df[f"{Column.VectorField.BIN_EDGES}_grid_based"], strict=True))
+        ),
         np.array(
             list(
                 zip(
-                    *fpt_stats_df[f"{Column.VectorField.BIN_EDGES}_tracked"],
+                    *fpt_stats_df[f"{Column.VectorField.BIN_EDGES}_cell_centered"],
                     strict=True,
                 )
             )
@@ -1163,14 +1167,14 @@ def merge_grid_and_tracked_first_passage_time_stats_dfs(
     # since they are the same and rename the columns to remove the suffixes
     fpt_stats_df = fpt_stats_df.drop(
         columns=[
-            f"{Column.VectorField.BIN_CENTER}_tracked",
-            f"{Column.VectorField.BIN_EDGES}_tracked",
+            f"{Column.VectorField.BIN_CENTER}_cell_centered",
+            f"{Column.VectorField.BIN_EDGES}_cell_centered",
         ]
     )
     fpt_stats_df = fpt_stats_df.rename(
         columns={
-            f"{Column.VectorField.BIN_CENTER}_grid": Column.VectorField.BIN_CENTER,
-            f"{Column.VectorField.BIN_EDGES}_grid": Column.VectorField.BIN_EDGES,
+            f"{Column.VectorField.BIN_CENTER}_grid_based": Column.VectorField.BIN_CENTER,
+            f"{Column.VectorField.BIN_EDGES}_grid_based": Column.VectorField.BIN_EDGES,
         }
     )
 
@@ -1188,7 +1192,7 @@ def merge_grid_and_tracked_first_passage_time_parameter_sweep_dfs(
         fpt_param_sweep_df_grid,
         fpt_param_sweep_df_tracked,
         on=Column.VectorField.FPT_DISTANCE_THRESHOLD,
-        suffixes=("_grid", "_tracked"),
+        suffixes=("_grid_based", "_cell_centered"),
         how="outer",
         validate="one_to_one",
     )
@@ -1478,13 +1482,15 @@ def filter_fpt_stats_df_by_min_num_trajectories(
     metric = f"{metric}{suffix}"
 
     # NaN values are unacceptable for the linear regression
-    fpt_stats_df_no_nan = fpt_stats_df.copy().dropna(subset=[f"{metric}_grid", f"{metric}_tracked"])
+    fpt_stats_df_no_nan = fpt_stats_df.copy().dropna(
+        subset=[f"{metric}_grid_based", f"{metric}_cell_centered"]
+    )
     # keep only the bins with the minimum number of tracks per bin in them
     fpt_stats_df_no_nan = fpt_stats_df_no_nan[
-        fpt_stats_df_no_nan["count_first_passage_time_grid"] >= min_num_traj_per_bin
+        fpt_stats_df_no_nan["count_first_passage_time_grid_based"] >= min_num_traj_per_bin
     ]
     fpt_stats_df_no_nan = fpt_stats_df_no_nan[
-        fpt_stats_df_no_nan["count_first_passage_time_tracked"] >= min_num_traj_per_bin
+        fpt_stats_df_no_nan["count_first_passage_time_cell_centered"] >= min_num_traj_per_bin
     ]
 
     return fpt_stats_df_no_nan
@@ -1592,10 +1598,10 @@ def build_fpt_line_fit_results_df(
                 # use the inverse of the variance of the mean (sampling variance)
                 # as the weights for the ODR fit, which is the square of the standard error
                 data=get_odr_fit_results(
-                    x=df[f"{metric}{suffix}_grid"],
-                    y=df[f"{metric}{suffix}_tracked"],
-                    weight_x=df[f"sem{suffix}_grid"] ** -2,
-                    weight_y=df[f"sem{suffix}_tracked"] ** -2,
+                    x=df[f"{metric}{suffix}_grid_based"],
+                    y=df[f"{metric}{suffix}_cell_centered"],
+                    weight_x=df[f"sem{suffix}_grid_based"] ** -2,
+                    weight_y=df[f"sem{suffix}_cell_centered"] ** -2,
                 ),
             )
         )
@@ -1614,8 +1620,8 @@ def build_fpt_line_fit_results_df(
             lambda df, metric=metric, suffix=suffix: pd.Series(
                 index=["r_value_pearson", "p_value_pearson"],
                 data=pearsonr(
-                    x=df[f"{metric}{suffix}_grid"],
-                    y=df[f"{metric}{suffix}_tracked"],
+                    x=df[f"{metric}{suffix}_grid_based"],
+                    y=df[f"{metric}{suffix}_cell_centered"],
                 ),
             )
         )

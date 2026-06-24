@@ -316,10 +316,10 @@ def _compute_filtered_fpt_stats(
     # remove bins that don't have enough trajectories in them from either the
     # grid or tracked trajectories
     fpt_stats_df = fpt_stats_df[
-        fpt_stats_df["count_first_passage_time_grid"] >= min_num_traj_per_bin
+        fpt_stats_df["count_first_passage_time_grid_based"] >= min_num_traj_per_bin
     ]
     fpt_stats_df = fpt_stats_df[
-        fpt_stats_df["count_first_passage_time_tracked"] >= min_num_traj_per_bin
+        fpt_stats_df["count_first_passage_time_cell_centered"] >= min_num_traj_per_bin
     ]
 
     return fpt_stats_df
@@ -339,14 +339,15 @@ def _select_example_bin(
 
     # NaN values are unacceptable for the linear regression
     first_passage_time_df_no_nan = fpt_stats_df.copy().dropna(
-        subset=[f"{metric}_grid", f"{metric}_tracked"]
+        subset=[f"{metric}_grid_based", f"{metric}_cell_centered"]
     )
     # keep only the bins with the minimum number of tracks per bin in them
     first_passage_time_df_no_nan = first_passage_time_df_no_nan[
-        first_passage_time_df_no_nan["count_first_passage_time_grid"] >= min_num_traj_per_bin
+        first_passage_time_df_no_nan["count_first_passage_time_grid_based"] >= min_num_traj_per_bin
     ]
     first_passage_time_df_no_nan = first_passage_time_df_no_nan[
-        first_passage_time_df_no_nan["count_first_passage_time_tracked"] >= min_num_traj_per_bin
+        first_passage_time_df_no_nan["count_first_passage_time_cell_centered"]
+        >= min_num_traj_per_bin
     ]
 
     # get the center and edges of the first qualifying bin
