@@ -23,7 +23,7 @@ class ColumnName:
     """Number of timepoints in track."""
 
     ZARR_PATH = "zarr_path"
-    """Column name for path to the source Zarr file."""
+    """Path to Zarr file for image that patch (crop) comes from."""
 
     IMAGE_SIZE_X = "image_size_x"
     """Size of the whole image in the X dimension [pixels]."""
@@ -119,10 +119,10 @@ class ColumnName:
         """Y coordinate of lower right corner of patch (crop) [pixels] (zarr resolution level 1)."""
 
         CROP_SIZE_X = "crop_size_x"
-        """Width of the crop in pixels."""
+        """Width of the patch (crop) [pixels] (zarr resolution level 1)."""
 
         CROP_SIZE_Y = "crop_size_y"
-        """Height of the crop in pixels."""
+        """Height of the patch (crop) [pixels] (zarr resolution level 1)."""
 
     class SegData(StrEnum):
         """Dataframe column names used in segmentation-based feature dataframes."""
