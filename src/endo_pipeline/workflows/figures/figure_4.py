@@ -151,7 +151,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             y_offset=0.0,
         ),
         FigurePanel(
-            letter="",
+            letter="C",
             path=projected_streamlines_path,
             x_position=0.0,
             y_position=3.25,
@@ -161,7 +161,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     ]
 
     build_figure_from_panels(
-        panels, output_path / "figure_4.svg", width=MAX_FIGURE_WIDTH, height=5.0
+        panels, output_path / "figure_4.svg", width=MAX_FIGURE_WIDTH, height=5.5
     )
 
 
