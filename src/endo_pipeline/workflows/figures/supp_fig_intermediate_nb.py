@@ -91,6 +91,6 @@ panels = [
 ]
 
 build_figure_from_panels(
-    panels, save_dir / "supp_fig_intermediate_1.svg", width=MAX_FIGURE_WIDTH, height=5.5
+    panels, save_dir / "supp_fig_intermediate.svg", width=MAX_FIGURE_WIDTH, height=5.5
 )
 # %%

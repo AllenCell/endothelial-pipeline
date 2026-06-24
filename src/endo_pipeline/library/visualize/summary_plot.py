@@ -520,8 +520,8 @@ def _configure_replicate_axis(
         if (dataset_configs[cat].stability_category or "monostable") == "bistable"
     ]
     if _bistable_positions:
-        _x_left = min(_bistable_positions) - 0.6
-        _x_right = max(_bistable_positions) + 0.6
+        _x_left = min(_bistable_positions) - 0.4
+        _x_right = max(_bistable_positions) + 0.4
         ax.axvspan(_x_left, _x_right, color="lightgrey", alpha=0.4, zorder=0)
 
     # Add brackets and reduce tick size
