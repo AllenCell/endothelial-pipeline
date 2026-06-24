@@ -4,8 +4,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+from matplotlib.legend_handler import HandlerBase
 from matplotlib.lines import Line2D
-from matplotlib.patches import Patch
+from matplotlib.patches import Circle
 from mpl_toolkits.mplot3d import Axes3D
 
 from endo_pipeline.io import save_plot_to_path
@@ -36,6 +37,76 @@ from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
+
+
+class _StoppingRadiusSphereHandle:
+    """Dummy handle used to dispatch to _HandlerSphere in ax.legend()."""
+
+
+class _HandlerSphere(HandlerBase):
+    """Renders the stopping-radius legend entry as a shaded 3-D sphere.
+
+    Draws a filled grey disc with a small white specular highlight offset
+    toward the upper-left, giving the classic illustration of a sphere.
+    """
+
+    def create_artists(
+        self, _legend, _orig_handle, xdescent, ydescent, width, height, _fontsize, trans
+    ):
+        """
+        Create a legend handle artist for the stopping radius sphere.
+
+        Parameters
+        ----------
+        _legend
+            The Legend object to which the handler is being applied (not used),
+            kept for API compatibility with HandlerBase.
+        _orig_handle
+            The original handle (the object being represented in the legend, not
+            used), kept for API compatibility with HandlerBase.
+        xdescent
+            The horizontal space to reserve for the handle.
+        _ydescent
+            The vertical space to reserve for the handle (not used), kept for
+            API compatibility with HandlerBase.
+        width
+            The total width of the area allocated for the handle.
+        height
+            The total height of the area allocated for the handle.
+        _fontsize
+            The font size of the legend text (not used), kept for API
+            compatibility with HandlerBase.
+        trans
+            The transformation to apply to the created artists to position them
+            correctly in the legend.
+
+        Returns
+        -------
+        :
+            List of artists (sphere body and highlight) to be added to the legend.
+        """
+        cx = (width - xdescent) / 2
+        cy = (height - ydescent) / 2
+        r = min(width, height) / 2 * 2.0
+
+        body = Circle(
+            (cx, cy),
+            r,
+            facecolor="grey",
+            alpha=0.5,
+            edgecolor="black",
+            linewidth=0.25,
+            transform=trans,
+        )
+        highlight = Circle(
+            (cx - r * 0.28, cy + r * 0.28),
+            r * 0.3,
+            facecolor="white",
+            alpha=0.55,
+            edgecolor="none",
+            transform=trans,
+        )
+        return [body, highlight]
 
 
 def _load_trajectory_dataframes(
@@ -567,18 +638,6 @@ def _create_fpt_schematic_figure(
 
     # add legend
     handles, labels = ax.get_legend_handles_labels()
-    starting_point_handle_cell = Line2D(
-        [0],
-        [0],
-        linestyle="none",
-        marker=cell_centric_marker_scatter,
-        markeredgecolor="black",
-        markerfacecolor="none",
-        markeredgewidth=0.75,
-        markersize=4,
-    )
-    handles.insert(-1, starting_point_handle_cell)
-    labels.insert(-1, "cell-centered trajectory\n starting point from bin")
     starting_point_handle_grid = Line2D(
         [0],
         [0],
@@ -591,9 +650,29 @@ def _create_fpt_schematic_figure(
     )
     handles.insert(-1, starting_point_handle_grid)
     labels.insert(-1, "grid-based trajectory\n starting point from bin")
-    handles.append(Patch(facecolor="grey", alpha=0.3, edgecolor="black", linewidth=0.25))
+    starting_point_handle_cell = Line2D(
+        [0],
+        [0],
+        linestyle="none",
+        marker=cell_centric_marker_scatter,
+        markeredgecolor="black",
+        markerfacecolor="none",
+        markeredgewidth=0.75,
+        markersize=4,
+    )
+    handles.insert(-1, starting_point_handle_cell)
+    labels.insert(-1, "cell-centered trajectory\n starting point from bin")
+    sphere_handle = _StoppingRadiusSphereHandle()
+    handles.append(sphere_handle)
     labels.append("fixed point\nstopping radius")
-    ax.legend(handles, labels, ncols=1, loc="upper left", bbox_to_anchor=(1.25, 0.85))
+    ax.legend(
+        handles,
+        labels,
+        ncols=1,
+        loc="upper left",
+        bbox_to_anchor=(1.25, 0.85),
+        handler_map={_StoppingRadiusSphereHandle: _HandlerSphere()},
+    )
 
     return fig
 
