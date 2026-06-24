@@ -282,7 +282,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             path=vector_field_plot_paths[dataset_low],
             x_position=0.0,
             y_position=0.0,
-            x_offset=0.1,
+            x_offset=0.05,
             y_offset=0.0,
         ),
         FigurePanel(
@@ -299,7 +299,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             path=theta_plot_paths[dataset_low],
             x_position=0.0,
             y_position=2.05,
-            x_offset=0.25,
+            x_offset=0.26,
             y_offset=0.0,
         ),
         FigurePanel(
@@ -313,7 +313,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="",
             path=theta_plot_paths[dataset_high],
-            x_position=1.8,
+            x_position=1.81,
             y_position=2.05,
             x_offset=0.00,
             y_offset=0.0,
