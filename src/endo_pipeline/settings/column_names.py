@@ -70,6 +70,15 @@ class ColumnName:
     Z_STEP_FOR_MODEL = "z_step"
     """Step between Z-slices in image to use for model training and evaluation."""
 
+    TIMEPOINT_FOR_MODEL = "T"
+    """Timepoint (frame number) to use when loading images for model training and evaluation."""
+
+    FRAME_START_FOR_MODEL = "frame_start"
+    """First timepoint (frame number) to use when loading images for model training and evaluation."""
+
+    FRAME_STOP_FOR_MODEL = "frame_stop"
+    """Last timepoint (frame number) to use when loading images for model training and evaluation."""
+
     class DiffAEData(StrEnum):
         """Dataframe column names used in DiFFAE feature dataframes."""
 
@@ -104,16 +113,16 @@ class ColumnName:
         """Zarr resolution level used to generate patches (crops) for obtaining latent vectors."""
 
         START_X = "start_x"
-        """Upper-left x-coordinate of the crop."""
+        """X coordinate of upper left corner of patch (crop) [pixels] (zarr resolution level 1)."""
 
         START_Y = "start_y"
-        """Upper-left y-coordinate of the crop."""
+        """Y coordinate of upper left corner of patch (crop) [pixels] (zarr resolution level 1)."""
 
         END_X = "end_x"
-        """Lower-right x-coordinate of the crop."""
+        """X coordinate of lower right corner of patch (crop) [pixels] (zarr resolution level 1)."""
 
         END_Y = "end_y"
-        """Lower-right y-coordinate of the crop."""
+        """Y coordinate of lower right corner of patch (crop) [pixels] (zarr resolution level 1)."""
 
         CROP_SIZE_X = "crop_size_x"
         """Width of the crop in pixels."""

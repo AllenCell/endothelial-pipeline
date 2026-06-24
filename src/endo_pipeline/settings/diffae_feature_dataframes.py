@@ -11,13 +11,13 @@ class CytoDLLoadDataKeys(StrEnum):
     FILE_PATH = Column.SOURCE_IMAGE_PATH_FOR_MODEL
     """Key for path to the source image file."""
 
-    TIMEPOINT = "T"
+    TIMEPOINT = Column.TIMEPOINT_FOR_MODEL
     """Key for timepoint (frame number)."""
 
-    TIME_START = "frame_start"
+    TIME_START = Column.FRAME_START_FOR_MODEL
     """Key for starting timepoint (frame number)."""
 
-    TIME_END = "frame_stop"
+    TIME_END = Column.FRAME_STOP_FOR_MODEL
     """Key for ending timepoint (frame number)."""
 
     TIME_STEP = "frame_step"

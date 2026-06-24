@@ -2,9 +2,29 @@ name: diffae_evaluation_dataframe_cell_centered
 workflow: create_diffae_eval_dataframe
 parameters:
   patch_type: cell_centered
-  z_slice_offsets:
-  - 4
-  - 11
+  z_slice_offsets: [4, 11]
+columns:
+  path: Path to source image file for model training and evaluation
+  T: Timepoint (frame number) to use when loading images for model training and evaluation
+  start_y: Y coordinate of upper left corner of patch (crop) [pixels] (zarr resolution
+    level 1)
+  start_x: X coordinate of upper left corner of patch (crop) [pixels] (zarr resolution
+    level 1)
+  end_y: Y coordinate of lower right corner of patch (crop) [pixels] (zarr resolution
+    level 1)
+  end_x: X coordinate of lower right corner of patch (crop) [pixels] (zarr resolution
+    level 1)
+  track_id: Track ID assigned by the tracking algorithm
+  channel: List of channels to load for model training and evaluation
+  resolution_level: Zarr resolution level used to generate patches (crops) for obtaining
+    latent vectors
+  frame_start: First timepoint (frame number) to use when loading images for model
+    training and evaluation
+  frame_stop: Last timepoint (frame number) to use when loading images for model training
+    and evaluation
+  z_start: Starting z-slice of image to use for model training and evaluation
+  z_stop: Ending z-slice of image to use for model training and evaluation
+  z_step: Step between Z-slices in image to use for model training and evaluation
 locations:
   20250402_20X:
     fmsid: 103db44ffd874be5be8bae8afcda2bc2
