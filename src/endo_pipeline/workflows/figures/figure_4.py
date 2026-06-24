@@ -93,7 +93,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     )
     summary_plot_path = plot_cross_dataset_summaries(
         dataset_summary_df,
-        output_dir=output_path,
+        output_path=output_path,
         column_names=columns_for_summary_plots,
         axis_mode="replicate",
         figure_size=(MAX_FIGURE_WIDTH * 0.6, 1.4),
@@ -161,7 +161,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     ]
 
     build_figure_from_panels(
-        panels, output_path / "figure_3.svg", width=MAX_FIGURE_WIDTH, height=4.0
+        panels, output_path / "figure_4.svg", width=MAX_FIGURE_WIDTH, height=5.0
     )
 
 
