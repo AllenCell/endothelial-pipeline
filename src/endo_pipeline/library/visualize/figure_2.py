@@ -9,10 +9,8 @@ import numpy as np
 import pandas as pd
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import TwoSlopeNorm
-from matplotlib.layout_engine import ConstrainedLayoutEngine
 from matplotlib.patches import Rectangle as MplRectangle
 from matplotlib.ticker import MaxNLocator
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 from endo_pipeline.io import load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.numerics.fixed_points import (
@@ -23,6 +21,7 @@ from endo_pipeline.library.analyze.vector_field_estimation import load_drift_dat
 from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
 from endo_pipeline.library.model.diffae.generate_image import generate_from_dataframe
 from endo_pipeline.library.visualize.diffae_features.dynamics import (
+    make_legend_handles_for_fixed_pts,
     plot_drift_1d,
     plot_drift_3d,
     plot_drift_contours,
@@ -33,7 +32,7 @@ from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.column_names import ColumnNameType
+from endo_pipeline.settings.column_names import ColumnNameSuffix, ColumnNameType
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.figures import FONTSIZE_SMALL, FONTSIZE_XSMALL
 from endo_pipeline.settings.first_passage_time import FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME
@@ -60,16 +59,16 @@ from endo_pipeline.settings.workflow_defaults import GRID_BASED_FEATURES_FILTERE
 
 def _add_colorbar_to_contour_plot(
     fig: plt.Figure,
-    axes: plt.Axes,
     vmin: float = DRIFT_CONTOUR_VMIN,
     vmax: float = DRIFT_CONTOUR_VMAX,
     ticks: np.ndarray | None = None,
     tick_label_round: int = DRIFT_CONTOUR_CBAR_ROUND,
     colormap: str = DRIFT_CONTOUR_COLORMAP,
     orientation: Literal["vertical", "horizontal"] = "vertical",
-    cax_position: Literal["top", "bottom", "left", "right"] = "right",
+    ticks_cax_position: Literal["top", "bottom", "left", "right"] = "right",
+    label_cax_position: Literal["top", "bottom", "left", "right"] = "right",
     extend: Literal["neither", "both", "min", "max"] = "both",
-    pad: float = 0.03,
+    cax_rect: tuple[float, float, float, float] = (0.25, 0.9, 0.5, 0.02),
 ) -> None:
     """
     Add a colorbar to a contour plot with specified formatting.
@@ -78,8 +77,6 @@ def _add_colorbar_to_contour_plot(
     ----------
     fig
         Matplotlib figure object containing the contour plot.
-    axes
-        Matplotlib axes object containing the contour plot.
     vmin
         Minimum value for the colorbar.
     vmax
@@ -94,25 +91,18 @@ def _add_colorbar_to_contour_plot(
         Colormap to use for the colorbar.
     orientation
         Orientation of the colorbar, either "vertical" or "horizontal".
-    cax_position
-        Position of the colorbar axes relative to the main axes, one of "top",
-        "bottom", "left", or "right".
-    pad
-        Padding between the main axes and the colorbar axes, in inches.
+    ticks_cax_position
+        Which side of the colorbar axes to place the ticks, one of
+        "top", "bottom", "left", or "right".
+    label_cax_position
+        Which side of the colorbar axes to place the label, one of
+        "top", "bottom", "left", or "right".
+    cax_rect
+        Position of the colorbar axes in normalized figure coordinates
+        ``(left, bottom, width, height)``. Added via ``fig.add_axes`` so its
+        position is fully independent of the main axes layout.
 
     """
-    cax = inset_axes(
-        axes,
-        width="100%" if orientation == "horizontal" else "5%",
-        height="5%" if orientation == "horizontal" else "100%",
-        loc="lower left",
-        bbox_to_anchor=(
-            (0, 1.0 + pad, 1, 1) if orientation == "horizontal" else (1.0 + pad, 0, 1, 1)
-        ),
-        bbox_transform=axes.transAxes,
-        borderpad=0,
-    )
-
     color_mappable = ScalarMappable(
         norm=TwoSlopeNorm(vmin=vmin, vmax=vmax, vcenter=0), cmap=colormap
     )
@@ -127,13 +117,23 @@ def _add_colorbar_to_contour_plot(
     )
     colorbar_ticks = np.round(colorbar_ticks, tick_label_round)
 
-    fig.colorbar(
+    cax = fig.add_axes(cax_rect)
+    cbar = fig.colorbar(
         color_mappable, cax=cax, orientation=orientation, ticks=colorbar_ticks, extend=extend
     )
+    cax = cbar.ax
 
-    tick_axis = cax.xaxis if orientation == "horizontal" else cax.yaxis
-    tick_axis.set_ticks_position(cax_position)
-    tick_axis.set_label_position(cax_position)
+    if orientation == "horizontal":
+        cax.xaxis.set_ticks_position(
+            cast(Literal["top", "bottom", "both", "default", "none"], ticks_cax_position)
+        )
+        cax.xaxis.set_label_position(cast(Literal["top", "bottom"], label_cax_position))
+    else:
+        cax.yaxis.set_ticks_position(
+            cast(Literal["left", "right", "both", "default", "none"], ticks_cax_position)
+        )
+        cax.yaxis.set_label_position(cast(Literal["left", "right"], label_cax_position))
+    cbar.set_label("vector field \ncomponent value", fontsize=FONTSIZE_XSMALL, labelpad=2)
 
 
 def _get_nullcline_coords_from_contour_axes(
@@ -295,6 +295,8 @@ def make_2d_contour_plot_panel(
     column_labels: list[str],
     stable_fixed_point: np.ndarray,
     filename: str,
+    include_legend: bool = True,
+    include_colorbar: bool = True,
 ) -> tuple[Path, dict[Column.DiffAEData, np.ndarray]]:
     """
     Make and save plot of drift contours in (r, rho) space for a given dataset.
@@ -327,14 +329,18 @@ def make_2d_contour_plot_panel(
         },
     }
 
-    # plot drift contours and save
+    # Use explicit axes rects so the subplot positions are fixed in figure
+    # coordinates regardless of whether colorbar/legend are included.
+    # Colorbar and legend are placed below the figure (negative y) and
+    # captured by bbox_inches="tight" on save.
+    subplot_rects = [(0.12, 0.58, 0.55, 0.35), (0.12, 0.18, 0.55, 0.35)]
     fig, axes_ = plot_drift_contours(
         meshgrid=meshgrid,
         drift=drift,
         variable_labels=column_labels,
         figsize=figure_size,
-        n_rows=1,
-        n_cols=2,
+        n_rows=2,
+        n_cols=1,
         axes_limits=[r_lims, rho_lims],
         axes_aspect=None,
         axes_titles=(f"d{column_labels[0]}/dt", f"d{column_labels[1]}/dt"),
@@ -347,6 +353,7 @@ def make_2d_contour_plot_panel(
         xlabel_kwargs=xlabel_kwargs,
         ylabel_kwargs=ylabel_kwargs,
         axes_title_kwargs=axes_title_kwargs,
+        axes_rects=subplot_rects,
     )
     # get (r, rho) coordinates of r- and rho-nullclines for generating images
     axes = cast(np.ndarray[plt.Axes, Any], axes_)
@@ -380,50 +387,62 @@ def make_2d_contour_plot_panel(
             markeredgewidth=0.5,
             markersize=5,
         )
-        # adjust label padding and drop tick labels on shared y axis
+        # adjust label padding and drop tick labels on shared x axis
         ax_.set_box_aspect(1.0)
         ax_.set_xticks(r_ticks)
         ax_.set_yticks(rho_ticks)
-        if ax_index == 1:
-            ax_.tick_params(labelleft=False)
+        ax_.yaxis.set_label_position("left")
+        ax_.yaxis.tick_left()
+        if ax_index == 0:
+            ax_.tick_params(labelbottom=False)
 
-    # add colorbar to the right of the second subplot with ticks and label
-    # formatting
-    _add_colorbar_to_contour_plot(fig, axes_[1])
-
-    # shrink the constrained-layout region so the inset colorbar axes
-    # (which lives outside the main axes boundary) is not clipped on save
-    layout_engine = fig.get_layout_engine()
-    if isinstance(layout_engine, ConstrainedLayoutEngine):
-        layout_engine.set(rect=(0, 0, 0.9, 1))
-
-    handles = []
-    labels = []
-    # plot_drift_contours draws nullclines via ax.contour(), which does not
-    # produce labeled artists. Add proxy Line2D handles so the legend has
-    # something to show.
-    nullcline_styles = (nullcline_r_style, nullcline_rho_style)
-    for col_idx, col in enumerate(column_names):
-        label = COLUMN_METADATA[col].label or str(col)
-        legend_label = f"{label}-nullcline (d{label}/dt=0)"
-        handle = mlines.Line2D(
-            [],
-            [],
-            color="k",
-            linestyle=nullcline_styles[col_idx],
-            label=legend_label,
+    if include_colorbar:
+        _add_colorbar_to_contour_plot(
+            fig,
+            orientation="horizontal",
+            ticks_cax_position="bottom",
+            label_cax_position="top",
+            cax_rect=(0.255, -0.02, 0.5, 0.025),
         )
-        handles.append(handle)
-        labels.append(legend_label)
-    fig.legend(
-        handles,
-        labels,
-        fontsize="xx-small",
-        loc="upper center",
-        bbox_to_anchor=(0.525, 0.925),
-        ncol=2,
-        handletextpad=0.3,
-    )
+
+    if include_legend:
+        handles = []
+        labels = []
+        # plot_drift_contours draws nullclines via ax.contour(), which does not
+        # produce labeled artists. Add proxy Line2D handles so the legend has
+        # something to show.
+        nullcline_styles = (nullcline_r_style, nullcline_rho_style)
+        for col_idx, col in enumerate(column_names):
+            label = COLUMN_METADATA[col].label or str(col)
+            legend_label = f"{label}-nullcline (d{label}/dt=0)"
+            handle = mlines.Line2D(
+                [],
+                [],
+                color="k",
+                linestyle=nullcline_styles[col_idx],
+                label=legend_label,
+            )
+            handles.append(handle)
+            labels.append(legend_label)
+
+        fixed_point_label = f"({column_labels[0]}$^*$, {column_labels[1]}$^*$)"
+        fp_handles = make_legend_handles_for_fixed_pts(
+            fpt_stabilities=[StabilityLabel.STABLE],
+            marker_size=4,
+            labels={StabilityLabel.STABLE: fixed_point_label},
+        )
+        handles.extend(fp_handles)
+        labels.append(fixed_point_label)
+        fig.legend(
+            handles,
+            labels,
+            fontsize="xx-small",
+            loc="lower center",
+            bbox_to_anchor=(0.25, -0.09),
+            ncol=1,
+            handletextpad=0.3,
+            frameon=False,
+        )
 
     save_plot_to_path(
         fig,
@@ -432,7 +451,8 @@ def make_2d_contour_plot_panel(
         file_format=".svg",
         tight_layout=False,
         transparent=True,
-        pad_inches=0,
+        bbox_inches="tight",
+        pad_inches=0.05,
     )
 
     return output_path / f"{filename}.svg", nullcline_coords
@@ -442,6 +462,7 @@ def make_2d_contour_plot_panel(
 def make_1d_drift_plot_panel(
     figure_size: tuple[float, float],
     output_path: Path,
+    shear_stress_label: str,
     drift: np.ndarray,
     theta_values: np.ndarray,
     column_label: str,
@@ -449,6 +470,7 @@ def make_1d_drift_plot_panel(
     filename: str,
     arrow_scale: float,
     arrow_width: float,
+    include_legend: bool = True,
 ) -> Path:
     """Make and save plot of 1D drift as a function of theta for a given dataset."""
     axes_xlim = VECTOR_FIELD_THETA_RANGE
@@ -470,11 +492,12 @@ def make_1d_drift_plot_panel(
         x_values=theta_values_sorted,
         figsize=figure_size,
         axes_limits=[axes_xlim, axes_ylim],
-        axes_labels=[column_label, f"d{column_label}/dt"],
+        axes_labels=[column_label, ""],
         add_flow_arrows=True,
         flow_arrow_kwargs={"color": "dimgrey", "scale": arrow_scale, "width": arrow_width},
         flow_arrow_downsample=10,
         gridspec_kwargs=GRIDSPEC_KWARGS,
+        axes_rect=(0.12, 0.08, 0.85, 0.76),
         drift_line_kwargs={"color": "k", "linewidth": 2, "label": f"d{column_label}/dt"},
         zero_line_kwargs={
             "linestyle": "--",
@@ -484,7 +507,6 @@ def make_1d_drift_plot_panel(
             "label": f"d{column_label}/dt = 0",
         },
         xlabel_kwargs=XLABEL_KWARGS,
-        ylabel_kwargs=YLABEL_KWARGS,
     )
     # add stable fixed point in theta
     ax.plot(
@@ -497,20 +519,34 @@ def make_1d_drift_plot_panel(
         markersize=5,
     )
 
-    # add legend
-    fig.legend(
-        fontsize="xx-small",
-        loc="upper center",
-        bbox_to_anchor=(0.65, 1.05),
-        ncol=2,
-        handletextpad=0.3,
-        columnspacing=0.75,
-    )
+    if include_legend:
+        handles, labels = ax.get_legend_handles_labels()
+        fixed_point_label = f"{column_label}$^*$"
+        fp_handles = make_legend_handles_for_fixed_pts(
+            fpt_stabilities=[StabilityLabel.STABLE],
+            marker_size=4,
+            labels={StabilityLabel.STABLE: fixed_point_label},
+        )
+        handles.extend(fp_handles)
+        labels.append(fixed_point_label)
+        fig.legend(
+            handles,
+            labels,
+            fontsize="xx-small",
+            loc="upper right",
+            bbox_to_anchor=(0.97, 0.84),
+            ncol=2,
+            handletextpad=0.3,
+            columnspacing=0.5,
+        )
 
     # set plot formatting args
     ax.set_box_aspect(1.0)
     ax.set_xticks([0, np.pi / 2], labels=[f"0={Unicode.PI}", f"{Unicode.PI}/2"])
     ax.set_yticks([-0.3, 0.0, 0.3])
+
+    # add shear stress label as title
+    ax.set_title(shear_stress_label, fontsize=FONTSIZE_SMALL, fontweight="bold", pad=3)
 
     save_plot_to_path(
         fig, output_path, filename, file_format=".svg", tight_layout=False, transparent=True
@@ -651,10 +687,10 @@ def reconstruct_along_nullcline(
     ax_bot_left = fig_null_walks.axes[n_cols]
     pos_top_left = ax_top_left.get_position()
     pos_bot_left = ax_bot_left.get_position()
-    label_x = pos_top_left.x0 - 0.2
+    label_x = pos_top_left.x0 - 0.15
     for pos, label in [
-        (pos_top_left, "r-nullcline"),
-        (pos_bot_left, f"{Unicode.RHO}-nullcline"),
+        (pos_top_left, "dr/dt=0"),
+        (pos_bot_left, f"d{Unicode.RHO}/dt=0"),
     ]:
         fig_null_walks.text(
             label_x,
@@ -679,11 +715,134 @@ def reconstruct_along_nullcline(
     return output_path / f"{filename}.svg"
 
 
+@figure_panel("Reconstruct at fixed point.")
+def reconstruct_fixed_points(
+    fixed_point_df: pd.DataFrame,
+    shear_stress_label: str,
+    model: DiffusionAutoEncoder,
+    figure_size: tuple[float, float],
+    output_path: Path,
+    num_gpus: int | None = None,
+    random_seed: int | None = 4,
+    include_row_label: bool = False,
+) -> Path:
+    """
+    Reconstruct the fixed point coordinates from the polar angle, radius, and
+    rho columns.
+
+    Parameters
+    ----------
+    fixed_point_df
+        DataFrame containing the fixed point coordinates, with columns for polar
+        angle, polar radius, and flipped PC3 (rho).
+    model
+        The diffusion autoencoder model used for reconstruction.
+    fig_savedir
+        Directory to save the reconstructed figures.
+    num_gpus
+        Number of GPUs to use for reconstruction. If None, will use CPU.
+    random_seed_start
+        Starting random seed for reproducibility.
+    num_examples
+        Number of examples to generate for each fixed point coordinate (by
+        varying the random seed).
+    include_row_label
+        If True, label the row of the contact sheet with "Reconstructed
+        VE-cadherin MIP." Else, do not label the row of the contact sheet.
+    """
+
+    # Reconstruct images along at the fixed point coordinates and make a contact
+    # sheet of the results
+    column_names = cast(list[str], list(DYNAMICS_COLUMN_NAMES))
+
+    # Column names in fixed point dataframe have the suffix "_fixed_point", but
+    # the generate_from_dataframe function expects the base column names, so
+    # remove the suffix here before passing to the generation function.
+    column_rename_dict = {
+        column: column.replace(f"{ColumnNameSuffix.FIXED_POINTS}", "")
+        for column in fixed_point_df.columns
+    }
+    fixed_point_df_renamed = fixed_point_df.rename(columns=column_rename_dict)
+
+    reconstructed_image = generate_from_dataframe(
+        fixed_point_df_renamed,
+        column_names,
+        model,
+        num_gpus=num_gpus,
+        random_seed=random_seed,
+    )
+
+    fig_fixed_point_reconstructions = make_contact_sheet(
+        panels=[reconstructed_image],
+        max_rows=1,
+        max_cols=1,
+        fig_kwargs={"figsize": figure_size, "layout": "constrained"},
+        gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
+        font_size=FONTSIZE_XSMALL,
+    )
+
+    # Add axes title ({feat_1}^*, {feat_2}^*, {feat_3}^*) labeling the
+    # fixed point, using the same stable fixed point marker color.
+    ax = fig_fixed_point_reconstructions.axes[0]
+    ax.set_title(
+        f"{shear_stress_label}:\n({Unicode.THETA}$^*$, r$^*$, {Unicode.RHO}$^*$)",
+        color="black",
+        fontsize=FONTSIZE_SMALL,
+        fontweight="bold",
+    )
+
+    # Add row title (y label) as standalone text so that including vs. not
+    # doesn't affect the size of the plot vis-a-vis the input figure size and
+    # constrained layout.
+    if include_row_label:
+        fig_fixed_point_reconstructions.text(
+            -0.1,
+            0.35,
+            "Reconstructed\nVE-cadherin MIP",
+            va="center",
+            ha="center",
+            fontsize=FONTSIZE_SMALL,
+            fontweight="bold",
+            rotation=90,
+        )
+
+    # add scalebars to each panel, only label the top left one to avoid
+    # redundancy
+    for i, ax in enumerate(fig_fixed_point_reconstructions.axes):
+        add_scalebar(
+            ax,
+            scale_bar_um=20,
+            pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
+            location="lower right",
+            bar_thickness=5,
+            padding=5,
+            include_label=True if i == 0 else False,
+            label_fontsize=FONTSIZE_XSMALL,
+        )
+
+    dataset_name = fixed_point_df[Column.DATASET].unique()[0]
+    filename = f"{dataset_name}_fixed_point_reconstructions"
+    save_plot_to_path(
+        fig_fixed_point_reconstructions,
+        output_path,
+        filename,
+        file_format=".svg",
+        tight_layout=False,
+        transparent=True,
+        bbox_inches="tight",
+    )
+
+    return output_path / f"{filename}.svg"
+
+
 @figure_panel("Make panel of 3D vector field plot with stable fixed point overlay.")
 def make_3d_vector_field_plot_panel(
     figure_size: tuple[float, float],
     output_path: Path,
     dataset_name: str,
+    shear_stress_label: str,
+    include_colorbar: bool = True,
+    include_legend: bool = True,
 ) -> Path:
     """
     Render the 3D (theta, r, rho) drift vector field for a given dataset, with
@@ -697,6 +856,13 @@ def make_3d_vector_field_plot_panel(
         Directory in which to save the figure panel.
     dataset_name
         Name of the dataset to visualize.
+    shear_stress_label
+        Label for the shear stress condition to include in the plot.
+    include_colorbar
+        Whether to include a colorbar indicating the magnitude of the drift
+        vectors.
+    include_legend
+        Whether to include a legend indicating the stable fixed point marker.
 
     Returns
     -------
@@ -731,6 +897,8 @@ def make_3d_vector_field_plot_panel(
         drift=drift,
         meshgrid=meshgrid,
         figsize=figure_size,
+        include_colorbar=include_colorbar,
+        include_legend=include_legend,
         fixed_point_legend_label=fixed_point_label,
         xlim=theta_lims,
         ylim=r_lims,
@@ -764,6 +932,9 @@ def make_3d_vector_field_plot_panel(
         zorder=5,
     )
 
+    # add shear stress label as title
+    ax.set_title(shear_stress_label, fontsize=FONTSIZE_SMALL, fontweight="bold", pad=0)
+
     # save as .svg file
     filename = f"3d_vector_field_{dataset_name}"
     save_plot_to_path(
@@ -772,7 +943,7 @@ def make_3d_vector_field_plot_panel(
         filename,
         file_format=".svg",
         tight_layout=False,
-        transparent=False,
+        transparent=True,
         bbox_inches="tight",
     )
 

@@ -28,6 +28,7 @@ from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature impo
 from endo_pipeline.library.visualize.diffae_features.dynamics import (
     make_legend_handles_for_fixed_pts,
 )
+from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings import plot_defaults
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA, ColumnMetadata
@@ -813,9 +814,10 @@ def _plot_cross_dataset_summary_for_column(
     ax.grid(axis="y", alpha=0.3)
 
 
+@figure_panel("Plot cross-replicate summary of fixed point locations.")
 def plot_cross_dataset_summaries(
     df: pd.DataFrame,
-    output_dir: Path,
+    output_path: Path,
     column_names: list[ColumnNameType] | None = None,
     axis_mode: SummaryPlotAxisMode = "dataset",
     style_mode: SummaryPlotStyleMode = "dataset",
@@ -832,6 +834,7 @@ def plot_cross_dataset_summaries(
     ylabel_horizontal_alignment: Literal["left", "center", "right"] = "left",
     ylabel_vertical_alignment: Literal["top", "center", "bottom"] = "center",
     yaxis_for_fixed_points: bool = True,
+    remove_label_linebreaks: bool = True,
 ) -> Path:
     """
     Plot cross dataset summaries for given columns in selected plot mode.
@@ -898,7 +901,11 @@ def plot_cross_dataset_summaries(
     ylabel_vertical_alignment
         Vertical alignment for y axis label.
     yaxis_for_fixed_points
-        If True then add a * to the y axis label to denote it is for fixed points.
+        If True then add a * to the y axis label to denote it is for fixed
+        points.
+    remove_label_linebreaks
+        If True, remove line breaks from colorbar labels to improve formatting
+        in horizontal layout.
 
     Returns
     -------
@@ -967,10 +974,10 @@ def plot_cross_dataset_summaries(
         fontweight="bold",
     )
 
-    # Reduce spacing between axis labels and tick labels
+    # Set spacing between axis labels and tick labels
     for ax in axes:
         ax.xaxis.labelpad = 2
-        ax.yaxis.labelpad = 2
+        ax.yaxis.labelpad = 8
         ax.tick_params(axis="x", pad=2)
         ax.tick_params(axis="y", pad=2)
 
@@ -981,7 +988,6 @@ def plot_cross_dataset_summaries(
         shared_xlim = (min(lo for lo, _ in all_xlims), max(hi for _, hi in all_xlims))
         for ax in axes:
             ax.set_xlim(shared_xlim)
-            ax.yaxis.labelpad = 8
         for ax in axes[:-1]:
             if axis_mode != "replicate":
                 ax.tick_params(axis="x", labelbottom=False)
@@ -1010,9 +1016,9 @@ def plot_cross_dataset_summaries(
     # Save figure with name including all column names
     column_name_str = [str(column_name) for column_name in column_names]
     figure_name = f"summary_{axis_mode}_{join_sorted_strings(column_name_str)}"
-    save_plot_to_path(fig, output_dir, figure_name, file_format=".svg", tight_layout=False)
+    save_plot_to_path(fig, output_path, figure_name, file_format=".svg", tight_layout=False)
 
-    return output_dir / f"{figure_name}.svg"
+    return output_path / f"{figure_name}.svg"
 
 
 def build_dataframe_for_fixed_point_dataset_summary(

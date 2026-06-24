@@ -13,7 +13,7 @@ GRIDSPEC_KWARGS: dict[str, Any] = {"wspace": 0.1, "hspace": 0.1}
 XLABEL_KWARGS: dict[str, Any] = {"labelpad": 2}
 """X-axis label kwargs used for figure panels."""
 
-YLABEL_KWARGS: dict[str, Any] = {"labelpad": -2}
+YLABEL_KWARGS: dict[str, Any] = {"labelpad": 2}
 """Y-axis label kwargs used for figure panels."""
 
 AXES_LIMITS_2D: dict[Column.DiffAEData, tuple[float, float]] = {
