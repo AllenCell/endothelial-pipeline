@@ -581,7 +581,7 @@ def _create_fpt_schematic_figure(
     labels.insert(-1, "trajectory starting\n point from bin")
     handles.append(Patch(facecolor="grey", alpha=0.3, edgecolor="black", linewidth=0.25))
     labels.append("trapping radius")
-    ax.legend(handles, labels, ncols=1, loc="upper left", bbox_to_anchor=(1.25, 0.9))
+    ax.legend(handles, labels, ncols=1, loc="upper left", bbox_to_anchor=(1.25, 0.85))
 
     return fig
 
