@@ -3,18 +3,17 @@ from endo_pipeline.cli import UniqueStrList
 
 def main(include_panels: UniqueStrList | None = None) -> None:
     """
-    Compile panels for Figure 3.
+    Compile panels for Figure 4.
 
-    - **Panel A*: Schematic of possible cases for the transition of fixed point
-      locations and stability across shear stress conditions.
-    - **Panel B**: Example images of several replicates from intermediate shear
-      stress conditions.
-    - **Panel C**: Summary plot of fixed point locations across all replicates,
+    - **Panel A**: Summary plot of fixed point locations across all replicates,
       colored by migration coherence (EMA-smoothed optical flow unit vector
       mean).
-    - **Panel D**: 3D vector field plot of drift coefficients for example
-      intermediate shear stress datasets, with stable fixed points overlaid as a
-      scatter marker.
+    - **Panel B**: 3D vector field plot of drift coefficients for example
+      bistable intermediate shear stress dataset, with stable fixed points
+      overlaid as a scatter marker.
+    - **Panel C**: Accompanying 2D-projected streamplot for dynamics projected
+      onto plane defined by two stable fixed points and the saddle point that
+      connects them via its unstable manifold.
 
     """
     import matplotlib.pyplot as plt
