@@ -33,10 +33,10 @@ def main(
     uv run endopipe build-diffae-train-config -vd
     ```
 
-    To run the workflow with modified crop size:
+    To run the workflow for a single dataset:
 
     ```bash
-    uv run endopipe build-diffae-train-config  CROP_PATTERN --datasets DATASET_NAME
+    uv run endopipe build-diffae-train-config --datasets DATASET_NAME
     ```
 
     ## Training run naming

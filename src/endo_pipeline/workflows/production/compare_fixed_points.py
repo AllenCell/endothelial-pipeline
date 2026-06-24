@@ -78,11 +78,11 @@ def main(datasets: Datasets | None = None) -> None:
         logger.warning("DEMO_MODE - Limiting to one dataset")
         dataset_names = dataset_names[:1]
 
-    name_suffix_2d = f"_{join_sorted_strings(column_names_2d)}_grid"
+    name_suffix_2d = f"_{join_sorted_strings(column_names_2d)}_grid_based"
     fixed_points_2d_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix_2d}"
     fixed_points_2d_manifest = load_dataframe_manifest(fixed_points_2d_manifest_name)
 
-    name_suffix_1d = f"_{column_name_1d}_grid"
+    name_suffix_1d = f"_{column_name_1d}_grid_based"
     fixed_points_1d_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix_1d}"
     fixed_points_1d_manifest = load_dataframe_manifest(fixed_points_1d_manifest_name)
 
