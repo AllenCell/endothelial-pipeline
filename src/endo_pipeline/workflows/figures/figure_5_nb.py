@@ -66,9 +66,25 @@ fixed_points_summary_plot_path = plot_cross_dataset_summaries(
     column_names=diffae_features,
     axis_mode="cell_line",
     jitter_width=0.2,
-    figure_size=(5, 2.3),
+    figure_size=(5.8, 2.3),
     convert_angle_to_nematic=False,
     color_by_column=Column.OpticalFlow.UNIT_VECTOR_MEAN,
+    colorbar_multiline_label=True,
+)
+# %%
+speed_summary_plot_path = plot_cross_dataset_summaries(
+    dataset_summary_df,
+    output_dir=save_dir,
+    column_names=[Column.OpticalFlow.SPEED_MEAN],
+    axis_mode="cell_line",
+    jitter_width=0.2,
+    figure_size=(1.8, 2.3),
+    convert_angle_to_nematic=False,
+    point_color="black",
+    ylabel_rotation=90,
+    ylabel_horizontal_alignment="center",
+    ylabel_vertical_alignment="bottom",
+    yaxis_for_fixed_points=False,
 )
 
 # %%
@@ -78,16 +94,24 @@ panels = [
         path=save_dir / "perturbation_examples_scale_bar_100um.svg",
         x_position=0,
         y_position=0,
-        x_offset=0.2,
-        y_offset=0.08,
+        x_offset=0,
+        y_offset=0,
     ),
     FigurePanel(
         letter="B",
         path=fixed_points_summary_plot_path,
         x_position=0,
         y_position=3.4,
-        x_offset=0,
-        y_offset=0.2,
+        x_offset=0.2,
+        y_offset=0,
+    ),
+    FigurePanel(
+        letter="C",
+        path=speed_summary_plot_path,
+        x_position=0,
+        y_position=5.5,
+        x_offset=0.15,
+        y_offset=0.1,
     ),
 ]
 

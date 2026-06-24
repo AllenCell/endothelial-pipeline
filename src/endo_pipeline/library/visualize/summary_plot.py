@@ -550,6 +550,7 @@ def _plot_cross_dataset_summary_for_column(
     jitter_width: float = 0.05,
     set_y_lims: bool = False,
     color_by_column: ColumnNameType | None = None,
+    point_color: str | None = None,
     ylabel_rotation: float = 0,
     ylabel_horizontal_alignment: Literal["left", "center", "right"] = "left",
     ylabel_vertical_alignment: Literal["top", "center", "bottom"] = "center",
@@ -706,9 +707,13 @@ def _plot_cross_dataset_summary_for_column(
 
         # Get marker and color based on style column or color_by_column
         colors: list = (
-            [scalar_mappable.to_rgba(val) for val in category_df[plotting_column]]
-            if scalar_mappable is not None and plotting_column is not None
-            else category_df[style_column].map(color_map).tolist()
+            [point_color] * len(category_df)
+            if point_color is not None
+            else (
+                [scalar_mappable.to_rgba(val) for val in category_df[plotting_column]]
+                if scalar_mappable is not None and plotting_column is not None
+                else category_df[style_column].map(color_map).tolist()
+            )
         )
         markers = [marker_map[col] for col in category_df[style_column]]
 
@@ -819,6 +824,8 @@ def plot_cross_dataset_summaries(
     convert_angle_to_nematic: bool = False,
     set_y_lims: bool = False,
     color_by_column: ColumnNameType | None = None,
+    point_color: str | None = None,
+    colorbar_multiline_label: bool = False,
     ylabel_rotation: float = 0,
     ylabel_horizontal_alignment: Literal["left", "center", "right"] = "left",
     ylabel_vertical_alignment: Literal["top", "center", "bottom"] = "center",
@@ -944,6 +951,7 @@ def plot_cross_dataset_summaries(
             jitter_width=jitter_width,
             set_y_lims=set_y_lims,
             color_by_column=color_by_column,
+            point_color=point_color,
             ylabel_rotation=ylabel_rotation,
             ylabel_horizontal_alignment=ylabel_horizontal_alignment,
             ylabel_vertical_alignment=ylabel_vertical_alignment,
@@ -984,11 +992,12 @@ def plot_cross_dataset_summaries(
             df, color_by_column
         )
         if scalar_mappable is not None:
-            cbar_label = (
-                color_column_metadata.label.replace("\n", " ")
+            raw_label = (
+                color_column_metadata.label
                 if color_column_metadata and color_column_metadata.label
                 else str(color_by_column)
             )
+            cbar_label = raw_label if colorbar_multiline_label else raw_label.replace("\n", " ")
             # Attach colorbar to last panel only so it spans one panel height
             cbar = fig.colorbar(scalar_mappable, ax=axes[-1], pad=0.02)
             cbar.set_label(cbar_label, fontsize=FONTSIZE_SMALL)
