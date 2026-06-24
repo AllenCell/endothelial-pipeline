@@ -98,10 +98,10 @@ class ColumnName:
         """Suffix for columns representing differences between feature values."""
 
         MODEL_MANIFEST = "model_manifest_name"
-        """Column name for model manifest name."""
+        """Manifest name of model used to generate latent vectors."""
 
         MODEL_RUN = "run_name"
-        """Column name for model run name."""
+        """Run name of model used to generate latent vectors."""
 
         RESOLUTION = "resolution_level"
         """Zarr resolution level used to generate patches (crops) for obtaining latent vectors."""
