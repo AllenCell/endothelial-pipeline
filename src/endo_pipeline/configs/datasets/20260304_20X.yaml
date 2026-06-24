@@ -34,6 +34,8 @@ flow_conditions:
 include_scenes: null
 notes: TP 565-566 empty (no slide), timelapse ended ~1.5h early. High density, very
   parallel alignment. Debris top FOV 3 washes away TP 25. FOV 1 dark flicker TP 315.
+replicate_number: 3
+stability_category: monostable
 timepoint_annotations:
   auto_bf_scope_error:
     0: [11, 86, 233, 314]

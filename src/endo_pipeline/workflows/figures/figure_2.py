@@ -252,7 +252,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         fixed_point_summary_df,
         output_path=output_path,
         column_names=feature_column_names,
-        axis_mode="shear_stress",
+        axis_mode="replicate",
         subplot_layout="horizontal",
         figure_size=(3.15, 1.8),
         color_by_column=Column.OpticalFlow.UNIT_VECTOR_MEAN,

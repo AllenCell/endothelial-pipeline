@@ -33,6 +33,8 @@ flow_conditions:
   shear_stress: 14.96
 include_scenes: null
 notes: There are holes in fov 0, 4 and 5
+replicate_number: 8
+stability_category: monostable
 timepoint_annotations:
   auto_bf_scope_error:
     0: [20]

@@ -33,6 +33,8 @@ flow_conditions:
   shear_stress: 12.13
 include_scenes: null
 notes: intermediate shear stress condition 12 dyn/cm2 for 48h
+replicate_number: 4
+stability_category: monostable
 timepoint_annotations:
   auto_bf_scope_error:
     0: [0, 184]

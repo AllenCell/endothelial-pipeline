@@ -34,6 +34,8 @@ flow_conditions:
 include_scenes: null
 notes: 6-7 non-endos across tiles. Gaps in monolayer FOV 2 ~TP 336, FOV 5 ~TP 414
   (1-indexed). Slight global brightening TP 26.
+replicate_number: 2
+stability_category: monostable
 timepoint_annotations:
   auto_bf_scope_error:
     0: [56, 148, 152, 290, 525, 544, 561]

@@ -34,6 +34,8 @@ flow_conditions:
 include_scenes: null
 notes: Timelapse imaging of AICS-177 CDH5 KD/truncation cl. 26 (biallelic mutant)
   under low SS conditions
+replicate_number: 1
+stability_category: monostable
 timepoint_annotations:
   auto_bf_scope_error:
     0: [40, 53, 243, 251, 323, 459, 466, 541, 543]

@@ -46,8 +46,15 @@ SUMMARY_PLOT_DATASETS: dict[str, list[str]] = {
 }
 
 CELL_LINE_LABEL_MAP = {
-    "AICS-126 cl. 41": "Parental",
-    "AICS-126 cl. 41 CD31-sorted": "Control",
+    "AICS-126 cl. 41": "VE-cadherin-mEGFP",
+    "AICS-126 cl. 41 CD31-sorted": "Sorting control",
+    "AICS-177 cl. 26": "Ex3Del",
+}
+
+# Labels with line breaks for use in summary plot brackets
+CELL_LINE_BRACKET_LABEL_MAP = {
+    "AICS-126 cl. 41": "VE-cadherin\n-mEGFP",
+    "AICS-126 cl. 41 CD31-sorted": "Sorting\ncontrol",
     "AICS-177 cl. 26": "Ex3Del",
 }
 
