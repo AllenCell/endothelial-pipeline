@@ -1072,6 +1072,7 @@ def plot_drift_3d(
     # onto the min-x/min-y corner of the bounding box, which projects to the
     # left side in the default view angle.
     ax.zaxis.set_ticks_position("lower")
+    ax.zaxis.set_label_position("lower")
     for tick in ax.zaxis.get_majorticklabels():
         tick.set_ha("right")
         tick.set_va("center")
