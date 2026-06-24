@@ -1,4 +1,4 @@
-"""Helper functions for visualizations used in Figure 3."""
+"""Helper functions for visualizations used in Figure 4."""
 
 from pathlib import Path
 from typing import cast
