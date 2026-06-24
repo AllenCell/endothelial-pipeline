@@ -436,7 +436,9 @@ def _sort_and_categorize_datasets(
                 stability_rank = 0 if stability == "monostable" else 1
             return (shear_bin, stability_rank, cfg.replicate_number or 0)
 
-        sorted_datasets = sorted([str(ds) for ds in unique_datasets], key=_replicate_sort_key)
+        sorted_datasets = sorted(
+            [str(ds) for ds in unique_datasets], key=_replicate_sort_key
+        )  # type: ignore[arg-type]
         dataset_category = pd.CategoricalDtype(categories=sorted_datasets, ordered=True)
         df[category_column] = df[category_column].astype(dataset_category)
     elif axis_mode == "cell_line":
