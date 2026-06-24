@@ -8,7 +8,7 @@ from endo_pipeline.settings.column_names import ColumnName as Column
 class CytoDLLoadDataKeys(StrEnum):
     """Metadata keys passed into MultiDimImageDataset for loading images."""
 
-    FILE_PATH = "path"
+    FILE_PATH = Column.SOURCE_IMAGE_PATH_FOR_MODEL
     """Key for path to the source image file."""
 
     TIMEPOINT = "T"
@@ -23,22 +23,22 @@ class CytoDLLoadDataKeys(StrEnum):
     TIME_STEP = "frame_step"
     """Key for timepoint (frame number) step size."""
 
-    INCLUDE_TIMEPOINTS = "include_frames"
+    INCLUDE_TIMEPOINTS = Column.TIMEPOINTS_TO_INCLUDE_FOR_MODEL
     """Key for list of timepoints (frame numbers) to include."""
 
-    Z_START = "z_start"
+    Z_START = Column.Z_START_FOR_MODEL
     """Key for starting z-slice index."""
 
-    Z_END = "z_stop"
+    Z_END = Column.Z_END_FOR_MODEL
     """Key for ending z-slice index."""
 
-    Z_STEP = "z_step"
+    Z_STEP = Column.Z_STEP_FOR_MODEL
     """Key for z-slice index step size."""
 
-    CHANNELS = "channel"
+    CHANNELS = Column.IMAGE_CHANNELS_TO_LOAD_FOR_MODEL
     """Key for list of channels to load."""
 
-    RESOLUTION = "resolution_level"
+    RESOLUTION = Column.DiffAEData.RESOLUTION
     """Key for resolution level of the image."""
 
     SCENE = "scene"

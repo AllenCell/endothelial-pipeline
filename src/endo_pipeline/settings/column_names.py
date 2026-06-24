@@ -52,6 +52,24 @@ class ColumnName:
     BF_CHANNEL_INDEX_ZARR = "brightfield_channel_index_zarr"
     """Index of the brightfield channel in the Zarr file."""
 
+    SOURCE_IMAGE_PATH_FOR_MODEL = "path"
+    """Path to source image file for model training and evaluation."""
+
+    IMAGE_CHANNELS_TO_LOAD_FOR_MODEL = "channel"
+    """List of channels to load for model training and evaluation."""
+
+    TIMEPOINTS_TO_INCLUDE_FOR_MODEL = "include_frames"
+    """List of timepoints (frame numbers) to include for model training and evaluation."""
+
+    Z_START_FOR_MODEL = "z_start"
+    """Starting z-slice of image to use for model training and evaluation."""
+
+    Z_END_FOR_MODEL = "z_stop"
+    """Ending z-slice of image to use for model training and evaluation."""
+
+    Z_STEP_FOR_MODEL = "z_step"
+    """Step between Z-slices in image to use for model training and evaluation."""
+
     class DiffAEData(StrEnum):
         """Dataframe column names used in DiFFAE feature dataframes."""
 
@@ -83,7 +101,7 @@ class ColumnName:
         """Column name for model run name."""
 
         RESOLUTION = "resolution_level"
-        """Column name for resolution level of the image."""
+        """Zarr resolution level used to generate patches (crops) for obtaining latent vectors."""
 
         START_X = "start_x"
         """Upper-left x-coordinate of the crop."""
