@@ -438,7 +438,7 @@ def make_2d_contour_plot_panel(
             labels,
             fontsize="xx-small",
             loc="lower center",
-            bbox_to_anchor=(0.26, -0.09),
+            bbox_to_anchor=(0.25, -0.09),
             ncol=1,
             handletextpad=0.3,
             frameon=False,

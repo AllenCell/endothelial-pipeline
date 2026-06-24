@@ -183,7 +183,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         stable_fixed_point_theta = stable_fixed_points_dict[column_theta][column_theta].to_numpy()
 
         vector_field_plot_paths[dataset_name] = make_3d_vector_field_plot_panel(
-            figure_size=(1.6, 2.25),
+            figure_size=(1.55, 2.25),
             output_path=fig_savedir,
             dataset_name=dataset_name,
             shear_stress_label=shear_stress_label,
@@ -288,7 +288,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="",
             path=vector_field_plot_paths[dataset_high],
-            x_position=1.65,
+            x_position=1.7,
             y_position=0.0,
             x_offset=0.0,
             y_offset=0.0,
@@ -313,7 +313,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="",
             path=theta_plot_paths[dataset_high],
-            x_position=1.81,
+            x_position=1.91,
             y_position=2.05,
             x_offset=0.00,
             y_offset=0.0,
@@ -321,7 +321,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="",
             path=contour_plot_paths[dataset_high],
-            x_position=1.55,
+            x_position=1.65,
             y_position=3.6,
             x_offset=0.0,
             y_offset=0.0,
@@ -348,7 +348,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             letter="D",
             path=fixed_point_summary_plot_path,
             x_position=3.25,
-            y_position=1.25,
+            y_position=1.35,
             x_offset=0.05,
             y_offset=0.15,
         ),
@@ -356,7 +356,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             letter="E",
             path=trajectory_example_filepath,
             x_position=3.25,
-            y_position=3.15,
+            y_position=3.35,
             x_offset=0.3,
             y_offset=0.0,
         ),
@@ -364,7 +364,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             letter="F",
             path=first_passage_path,
             x_position=3.25,
-            y_position=5.0,
+            y_position=5.2,
             x_offset=0.1,
             y_offset=0.05,
         ),
