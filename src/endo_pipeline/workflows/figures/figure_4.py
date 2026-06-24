@@ -41,7 +41,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.settings.examples import EXAMPLE_DATASET
     from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
     from endo_pipeline.settings.manifest_names import BOOTSTRAPPING_MANIFEST_NAMES
-    from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
+    from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_PATCH_TYPE
     from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -62,12 +62,12 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     # Load diffae features
     feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[
-        MIGRATION_COHERENCE_CROP_PATTERN
+        MIGRATION_COHERENCE_PATCH_TYPE
     ]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     fixed_points_bootstrap_dataframe_manifest_name = BOOTSTRAPPING_MANIFEST_NAMES[
-        MIGRATION_COHERENCE_CROP_PATTERN
+        MIGRATION_COHERENCE_PATCH_TYPE
     ]
     fixed_points_bootstrap_dataframe_manifest = load_dataframe_manifest(
         fixed_points_bootstrap_dataframe_manifest_name
