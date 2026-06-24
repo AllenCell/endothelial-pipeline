@@ -405,83 +405,51 @@ def _create_fpt_schematic_figure(
 
     # plot the tracked and grid trajectories in the 3D feature space with the
     # fixed point, bin edges, and bin start points
-    marker_alpha = 0.7
-    track_alpha = 0.4
+    track_alpha = 0.7
     fig = plt.figure(figsize=figure_size)
     ax: Axes3D = fig.add_subplot(projection="3d")
     grid_color = "tab:blue"
+    grid_marker = "d"
     cell_centric_color = "tab:red"
+    cell_centric_marker_line = "."
+    cell_centric_marker_scatter = "o"
 
     # plot the full trajectories as lines with markers at each timepoint,
     # colored by crop pattern
     ax.plot(
-        xs=thetas_tracked_unwrapped,
-        ys=rs_tracked,
-        zs=rhos_tracked,
-        ls="-",
-        lw=1,
-        c=cell_centric_color,
-        alpha=track_alpha,
-        label="cell-centered",
-    )
-    ax.plot(
-        xs=thetas_tracked_unwrapped,
-        ys=rs_tracked,
-        zs=rhos_tracked,
-        marker=".",
-        c=cell_centric_color,
-        alpha=marker_alpha,
-        label="cell-centered",
-    )
-    ax.plot(
         xs=thetas_grid_unwrapped,
         ys=rs_grid,
         zs=rhos_grid,
         ls="-",
         lw=1,
+        marker=grid_marker,
+        markersize=1,
         c=grid_color,
         alpha=track_alpha,
         label="grid-based",
     )
     ax.plot(
-        xs=thetas_grid_unwrapped,
-        ys=rs_grid,
-        zs=rhos_grid,
-        marker=".",
-        c=grid_color,
-        alpha=marker_alpha,
-        label="grid-based",
+        xs=thetas_tracked_unwrapped,
+        ys=rs_tracked,
+        zs=rhos_tracked,
+        ls="-",
+        lw=1,
+        marker=cell_centric_marker_line,
+        markersize=1,
+        c=cell_centric_color,
+        alpha=track_alpha,
+        label="cell-centered",
     )
 
     # plot the FPT start points as larger markers with black outline
-    ax.scatter(
-        thetas_tracked_unwrapped[0],
-        rs_tracked[0],
-        rhos_tracked[0],
-        facecolors=cell_centric_color,
-        alpha=marker_alpha,
-        s=15,
-        marker="o",
-    )
-    ax.scatter(
-        thetas_tracked_unwrapped[0],
-        rs_tracked[0],
-        rhos_tracked[0],
-        edgecolors="black",
-        facecolors="none",
-        alpha=1.0,
-        lw=0.75,
-        s=15,
-        marker="o",
-    )
     ax.scatter(
         thetas_grid_unwrapped[0],
         rs_grid[0],
         rhos_grid[0],
         facecolors=grid_color,
-        alpha=marker_alpha,
+        alpha=track_alpha,
         s=15,
-        marker="d",
+        marker=grid_marker,
     )
     ax.scatter(
         thetas_grid_unwrapped[0],
@@ -492,7 +460,27 @@ def _create_fpt_schematic_figure(
         alpha=1.0,
         lw=0.75,
         s=15,
-        marker="d",
+        marker=grid_marker,
+    )
+    ax.scatter(
+        thetas_tracked_unwrapped[0],
+        rs_tracked[0],
+        rhos_tracked[0],
+        facecolors=cell_centric_color,
+        alpha=track_alpha,
+        s=15,
+        marker=cell_centric_marker_scatter,
+    )
+    ax.scatter(
+        thetas_tracked_unwrapped[0],
+        rs_tracked[0],
+        rhos_tracked[0],
+        edgecolors="black",
+        facecolors="none",
+        alpha=1.0,
+        lw=0.75,
+        s=15,
+        marker=cell_centric_marker_scatter,
     )
 
     # draw cube around bin edges
@@ -535,10 +523,8 @@ def _create_fpt_schematic_figure(
     bin_edges_theta_plot = np.concatenate((-1 * grid_bin_edges[0][1:], grid_bin_edges[0]))
     bin_edges_r_plot = grid_bin_edges[1]
     bin_edges_rho_plot = grid_bin_edges[2]
-    theta_minor_ticks = [
-        bin_edges_theta_plot[
-            (bin_edges_theta_plot > theta_lims[0]) & (bin_edges_theta_plot < theta_lims[1])
-        ]
+    theta_minor_ticks = bin_edges_theta_plot[
+        (bin_edges_theta_plot > theta_lims[0]) & (bin_edges_theta_plot < theta_lims[1])
     ]
     theta_minor_ticklabels = [0, "", f"{Unicode.PI}/6"]
     r_minor_ticks = bin_edges_r_plot[
@@ -560,7 +546,7 @@ def _create_fpt_schematic_figure(
     ax.zaxis.set_major_formatter(plt.FormatStrFormatter("%.2f"))
 
     # make the axes labels pretty
-    ax.tick_params(axis="x", labelsize=FONTSIZE_SMALL, rotation=45, pad=4)
+    ax.tick_params(axis="x", labelsize=FONTSIZE_SMALL, rotation=15, pad=-2)
     plt.setp(ax.get_xticklabels(), va="bottom", ha="center")
     ax.tick_params(axis="y", labelsize=FONTSIZE_SMALL, rotation=-15, pad=-2)
     plt.setp(ax.get_yticklabels(), va="center", ha="left")
@@ -572,13 +558,13 @@ def _create_fpt_schematic_figure(
 
     # adjust the focal length of the 3D plot so that depth is easier to perceive
     ax.set_proj_type("persp", focal_length=0.3)
-    ax.view_init(elev=30, azim=-40)
+    ax.view_init(elev=30, azim=-35)
     ax_width = 0.7
     ax_height = 0.7
     ax.set_position([(1 - ax_width) / 2, (1 - ax_height) / 2, ax_width, ax_height])
 
     # add legend
-    ax.legend(ncols=2, loc="upper right", bbox_to_anchor=(0.5, 1.10))
+    ax.legend(ncols=2, loc="upper left", bbox_to_anchor=(0.75, 0.8))
 
     return fig
 
