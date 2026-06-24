@@ -97,7 +97,9 @@ def main() -> None:
             vector_field_function=vector_field_function,
             ortho_basis=change_of_basis_matrix,
             meshgrid_2d=(theta_mesh, r_mesh),
-            figure_size=(3.0, 3.0),
+            figure_size=(2.0, 2.0),
+            fig_kwargs={"layout": "constrained"},
+            streamplot_kwargs={"density": 0.8, "linewidth": 0.75, "color": "dimgrey"},
             fig_kwargs={"layout": "constrained"},
             streamplot_kwargs={"density": 1.0, "linewidth": 0.75, "color": "dimgrey"},
             origin_3d=np.array([0.0, 0.0, rho_star]),  # origin of projection in 3D space
