@@ -33,6 +33,8 @@ flow_conditions:
   shear_stress: 14.95
 include_scenes: null
 notes: intermediate shear stress condition 15 dyn/cm2 for 48h
+replicate_number: 2
+stability_category: bistable
 timepoint_annotations:
   auto_bf_scope_error:
     0: [84, 268, 318, 522]

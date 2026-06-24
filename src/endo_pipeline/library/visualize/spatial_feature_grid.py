@@ -30,6 +30,7 @@ from endo_pipeline.settings.dynamics_workflows import (
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_XSMALL
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
 from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
 
 
@@ -64,6 +65,7 @@ def _add_image_rows(
     n_examples: int,
     crop_size: int,
     example_labels: list[str],
+    example_subtitles: list[str] | None = None,
 ) -> None:
     """Render image rows at the top of the figure.
 
@@ -95,7 +97,18 @@ def _add_image_rows(
             for spine in ax.spines.values():
                 spine.set_visible(False)
             if img_row_idx == 0:
-                ax.set_title(example_labels[col_idx], fontsize=FONTSIZE_MEDIUM)
+                ax.set_title(example_labels[col_idx], fontsize=FONTSIZE_MEDIUM, pad=10)
+                if example_subtitles and col_idx < len(example_subtitles):
+                    ax.text(
+                        0.5,
+                        1.01,
+                        example_subtitles[col_idx],
+                        transform=ax.transAxes,
+                        fontsize=FONTSIZE_XSMALL,
+                        fontweight="normal",
+                        ha="center",
+                        va="bottom",
+                    )
 
             # Draw grid lines every crop_size pixels
             im_height, im_width = img.shape[:2]
@@ -137,6 +150,7 @@ def _draw_colored_feature_patch(
     metadata: ColumnMetadata | None,
     n_image_rows: int,
     example_labels: list[str],
+    example_subtitles: list[str] | None = None,
 ) -> None:
     """Draw coloured feature patches and style the axis.
 
@@ -201,6 +215,17 @@ def _draw_colored_feature_patch(
 
     if n_image_rows == 0 and row_idx == 0:
         ax.set_title(example_labels[col_idx], fontsize=FONTSIZE_MEDIUM)
+        if example_subtitles and col_idx < len(example_subtitles):
+            ax.text(
+                0.5,
+                1.02,
+                example_subtitles[col_idx],
+                transform=ax.transAxes,
+                fontsize=FONTSIZE_XSMALL,
+                fontweight="normal",
+                ha="center",
+                va="bottom",
+            )
 
 
 def _add_feature_colorbar(
@@ -257,7 +282,7 @@ def _load_example_data(
     example_images: list,
     include_bf_images: bool = False,
     image_crop_size: int = 768,
-) -> tuple[list[pd.DataFrame], dict[str, list[np.ndarray]], list[str]]:
+) -> tuple[list[pd.DataFrame], dict[str, list[np.ndarray]], list[str], list[str]]:
     """Load images, feature dataframes, and labels for a list of ExampleImage objects.
 
     Parameters
@@ -284,6 +309,7 @@ def _load_example_data(
 
     example_dfs: list[pd.DataFrame] = []
     example_labels: list[str] = []
+    example_subtitles: list[str] = []
     gfp_images: list[np.ndarray] = []
     bf_images: list[np.ndarray] = []
 
@@ -325,13 +351,14 @@ def _load_example_data(
         example_dfs.append(df_example)
 
         shear_stress = dataset_config.flow_conditions[0].shear_stress_bin
-        example_labels.append(f"{shear_stress} dyn/cm\u00b2\nExample {i + 1}")
+        example_labels.append(f"{shear_stress} dyn/cm{Unicode.SQUARED}")
+        example_subtitles.append(f"Replicate {dataset_config.replicate_number}")
 
     image_rows: dict[str, list[np.ndarray]] = {"VE-cadherin\nMIP": gfp_images}
     if include_bf_images:
         image_rows["BF\nstd. dev. proj."] = bf_images
 
-    return example_dfs, image_rows, example_labels
+    return example_dfs, image_rows, example_labels, example_subtitles
 
 
 def create_panel_spatial_feature_grid(
@@ -371,7 +398,7 @@ def create_panel_spatial_feature_grid(
     plt.Figure
         The assembled figure.
     """
-    example_dataframes, image_rows, example_labels = _load_example_data(
+    example_dataframes, image_rows, example_labels, example_subtitles = _load_example_data(
         example_images,
         include_bf_images=include_bf_images,
         image_crop_size=image_crop_size,
@@ -419,7 +446,16 @@ def create_panel_spatial_feature_grid(
             axes[row, col] = fig.add_subplot(gs[row, col])
 
     # Image rows at the top
-    _add_image_rows(fig, axes, gs, image_rows, n_examples, res_level_0_patch_size, example_labels)
+    _add_image_rows(
+        fig,
+        axes,
+        gs,
+        image_rows,
+        n_examples,
+        res_level_0_patch_size,
+        example_labels,
+        example_subtitles,
+    )
 
     # Feature rows
     colormap_default = mpl_cm.get_cmap(cmap)
@@ -455,6 +491,7 @@ def create_panel_spatial_feature_grid(
                 metadata,
                 n_image_rows,
                 example_labels,
+                example_subtitles,
             )
 
         _add_feature_colorbar(fig, gs, ax_row, n_examples, colormap, vmin, vmax, metadata)

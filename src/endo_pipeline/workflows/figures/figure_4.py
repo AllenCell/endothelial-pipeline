@@ -96,7 +96,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         dataset_summary_df,
         output_dir=output_path,
         column_names=columns_for_summary_plots,
-        axis_mode="shear_stress",
+        axis_mode="replicate",
         figure_size=(MAX_FIGURE_WIDTH * 0.6, 1.4),
         jitter_width=0.2,
         subplot_layout="vertical",

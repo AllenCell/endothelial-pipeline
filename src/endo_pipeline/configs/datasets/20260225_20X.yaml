@@ -34,6 +34,8 @@ flow_conditions:
 include_scenes: null
 notes: Minimal early piling (some ~TP 330 FOV 3, 1-indexed), no membrane gaps. GFP
   and BF look good.
+replicate_number: 4
+stability_category: monostable
 timepoint_annotations:
   auto_bf_scope_error:
     0: []

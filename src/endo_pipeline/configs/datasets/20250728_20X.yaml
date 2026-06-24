@@ -34,6 +34,8 @@ flow_conditions:
 include_scenes: null
 notes: no SS w/ feeding every 3 hours during working hours. Cells unfed during timepoint
   105-248, 355-539.
+replicate_number: 1
+stability_category: null
 timepoint_annotations:
   auto_bf_scope_error:
     0: [0, 247]
