@@ -223,6 +223,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             filename=f"{dataset_name}_{columns_r_rho_str}_contours",
             include_legend=include_legend,
             include_colorbar=include_colorbar,
+            plot_nullcline_walk_points=False,
             **placeholders["B"],
         )
 
