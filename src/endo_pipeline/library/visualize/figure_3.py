@@ -83,7 +83,7 @@ def visualize_2d_streamplots(
     stable_fixed_point_proj = stable_df[
         [Column.DiffAEData.POLAR_ANGLE, Column.DiffAEData.POLAR_RADIUS]
     ].to_numpy()[0]
-    rho_star = stable_df[Column.DiffAEData.PC3_FLIPPED].values.item()
+    rho_star = float(stable_df[Column.DiffAEData.PC3_FLIPPED].iloc[0])
 
     fig = plot_streamlines_of_projected_vector_field(
         vector_field_function=vector_field_function,
