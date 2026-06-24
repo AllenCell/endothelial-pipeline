@@ -236,7 +236,8 @@ def main(
         x_eval_var_dict: dict = {"grid_based": {}, "cell_centered": {}}
         bins_avg_dict: dict = {"grid_based": {}, "cell_centered": {}}
         bins_var_dict: dict = {"grid_based": {}, "cell_centered": {}}
-        for patch_type in ["grid_based", "cell_centered"]:
+        patch_types: list[PatchTypeLiteral] = ["grid_based", "cell_centered"]
+        for patch_type in patch_types:
             for traj_index, df_traj in df_steady_state_dict[patch_type].groupby(Column.CROP_INDEX):
                 for column_name in column_names:
                     if column_name == Column.DiffAEData.POLAR_ANGLE:
