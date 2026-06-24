@@ -109,6 +109,7 @@ def main(
     from endo_pipeline.library.visualize.diffae_features.vtk_io import save_vector_field_as_vtk
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.column_names import ColumnNameSuffix
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_DYNAMICS,
         BIN_WIDTHS_DYNAMICS,
@@ -120,10 +121,10 @@ def main(
         METADATA_COLUMNS_TO_KEEP,
     )
     from endo_pipeline.settings.flow_field_3d import INIT_POINT_3D, TRAJECTORY_TIME_SPAN
-    from endo_pipeline.settings.flow_field_dataframes import (
+    from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
+    from endo_pipeline.settings.manifest_names import (
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
         DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD,
-        StabilityLabel,
     )
     from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
 
@@ -142,20 +143,22 @@ def main(
 
     # Get label and drift column name for selected column
     column_labels = [get_label_for_column(column) for column in column_names]
-    drift_column_names = [f"{column}_{Column.VectorField.DRIFT}" for column in column_names]
+    drift_column_names = [f"{column}{ColumnNameSuffix.DRIFT}" for column in column_names]
+    fp_column_names = [f"{column}{ColumnNameSuffix.FIXED_POINTS}" for column in column_names]
+    mesh_column_names = [f"{column}{ColumnNameSuffix.MESH_GRID}" for column in column_names]
 
     # Required columns for vector field and fixed point manifests
     required_vector_field_columns = [
-        *column_names,
+        *mesh_column_names,
         *drift_column_names,
         Column.DATASET,
         Column.SHEAR_STRESS,
     ]
     required_fixed_point_columns = [
-        *column_names,
+        *fp_column_names,
         Column.DATASET,
         Column.SHEAR_STRESS,
-        Column.VectorField.STABILITY,
+        Column.FIXED_POINT_STABILITY,
     ]
 
     # Columns to keep when loading feature dataframe
@@ -257,7 +260,9 @@ def main(
 
                 if not stable_fixed_points.empty:
                     stable_fixed_point_dataframe_list.append(stable_fixed_points)
-                    stable_fixed_points_list.extend(list(stable_fixed_points[column_names].values))
+                    stable_fixed_points_list.extend(
+                        list(stable_fixed_points[fp_column_names].values)
+                    )
 
             # To store as dataframe, the grid points were stored as a flattened
             # meshgrid in the grid dataframe, so to get the grid points back into
@@ -268,7 +273,7 @@ def main(
             # 1D arrays of the grid points along each dimension.
             grid_points_1d = [
                 np.sort(vector_field_for_flow_condition[column_name].unique())
-                for column_name in column_names
+                for column_name in mesh_column_names
             ]
             grid_shape = tuple(len(points) for points in grid_points_1d)
             grid = np.meshgrid(*grid_points_1d, indexing="ij")

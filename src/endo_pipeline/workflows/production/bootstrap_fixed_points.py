@@ -161,10 +161,10 @@ def main(
         METADATA_COLUMNS_TO_KEEP,
     )
     from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
-    from endo_pipeline.settings.flow_field_dataframes import (
+    from endo_pipeline.settings.flow_field_dataframes import FMS_ANNOTATION_NOTES_BOOTSTRAPPING
+    from endo_pipeline.settings.manifest_names import (
         DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
-        FMS_ANNOTATION_NOTES_BOOTSTRAPPING,
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,

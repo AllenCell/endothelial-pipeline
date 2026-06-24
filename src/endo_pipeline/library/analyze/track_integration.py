@@ -34,6 +34,7 @@ from endo_pipeline.library.analyze.vector_field_function import solve_ode_from_v
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.manifests.dataframe_manifest import DataframeManifest
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameSuffix
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
@@ -149,7 +150,6 @@ def merge_diffae_feats_liveseg_feats_tables(
         Column.POSITION,
         Column.TIMEPOINT,
         Column.TRACK_ID,
-        Column.ZARR_PATH,
     ]
     if Column.TRACK_LENGTH in diffae_tracking_df.columns:
         merging_cols.append(Column.TRACK_LENGTH)
@@ -204,6 +204,9 @@ def get_diffae_feats_liveseg_feats_merged_table(
     pc_cols_to_drop = DIFFAE_PC_COLUMN_NAMES[100:]
     diffae_tracking_df = diffae_tracking_df.drop(columns=pc_cols_to_drop)
 
+    # drop the zarr path column
+    diffae_tracking_df = diffae_tracking_df.drop(columns=[Column.ZARR_PATH])
+
     # load the tracking data of the measured features and merge them
     logging.debug("loading segmentation property data...")
     live_seg_manifest = load_dataframe_manifest(classic_segmentation_feature_manifest_name)
@@ -229,16 +232,10 @@ def get_diffae_feats_liveseg_feats_merged_table(
         default_cols_to_drop = [
             col for col_grp in DEFAULT_COLUMNS_TO_DROP.values() for col in col_grp
         ]
-        nuclei_intens_cols = [
-            col
-            for col in merged_feats_df.columns
-            if Column.SegDataWorkflowVerification.NUCLEI_INTENSITY_COLUMN_PREFIX in col
-        ]
         additional_cols_to_drop = additional_columns_to_drop or []
 
         cols_to_drop = [
             *default_cols_to_drop,
-            *nuclei_intens_cols,
             *additional_cols_to_drop,
         ]
 
@@ -720,7 +717,7 @@ def add_distance_to_fixed_points_columns(
     fp_stability_map = dict(
         zip(
             fixed_point_df.index,
-            fixed_point_df[Column.VectorField.STABILITY],
+            fixed_point_df[Column.FIXED_POINT_STABILITY],
             strict=True,
         )
     )
@@ -1240,9 +1237,9 @@ def compute_first_passage_times_one_dataset(
     fixed_points_df = load_fixed_points_dataframe_for_dataset(dataset_name)
     # filter the fixed points to only the ones with higher confidence
     fixed_points_df = fixed_points_df[
-        fixed_points_df[Column.BootstrapAnalysis.DETECTION_RATE] >= BOOTSTRAP_THRESHOLD
+        fixed_points_df[Column.FIXED_POINT_DETECTION_RATE] >= BOOTSTRAP_THRESHOLD
     ]
-    fixed_points_df = fixed_points_df[fixed_points_df[Column.VectorField.STABILITY] == "stable"]
+    fixed_points_df = fixed_points_df[fixed_points_df[Column.FIXED_POINT_STABILITY] == "stable"]
 
     if fixed_points_df.empty:
         logger.warning(f"No fixed points found for dataset {dataset_name}, skipping dataset.")
@@ -1251,7 +1248,7 @@ def compute_first_passage_times_one_dataset(
         return fpt_stats_df_list, param_sweep_df_list
 
     fp_cluster_mean_cols = [
-        f"{col}_{Column.BootstrapAnalysis.CLUSTER_MEAN}" for col in DYNAMICS_COLUMN_NAMES
+        f"{col}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}" for col in DYNAMICS_COLUMN_NAMES
     ]
     # add the distances from the fixed points for the grid-based trajectories
     traj_df_grid = add_distance_to_fixed_points_columns(
@@ -1327,7 +1324,7 @@ def compute_first_passage_times_one_dataset(
     thresholds = np.linspace(0, 1, 41)
     for fp_idx, fp_row in fixed_points_df.iterrows():
         # for now we will only look at first passage times to stable fixed points
-        fp_stability = fp_row[Column.VectorField.STABILITY]
+        fp_stability = fp_row[Column.FIXED_POINT_STABILITY]
         if fp_stability != "stable":
             logger.info(
                 f"Fixed point {fp_idx} in dataset {dataset_name} is not stable (stability = "
@@ -1356,7 +1353,7 @@ def compute_first_passage_times_one_dataset(
             dataset_name=dataset_name,
             fixed_point_index=fp_idx,
         )
-        parameter_sweep_df[Column.VectorField.STABILITY] = fp_stability
+        parameter_sweep_df[Column.FIXED_POINT_STABILITY] = fp_stability
 
         traj_df_grid[f"{Column.VectorField.IS_AT_FP_PREFIX}{fp_idx}"] = (
             traj_df_grid[f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fp_idx}"]
@@ -1425,7 +1422,7 @@ def compute_first_passage_times_one_dataset(
             dataset_name=dataset_name,
             fixed_point_index=fp_idx,
         )
-        first_passage_time_stats_df[Column.VectorField.STABILITY] = fp_stability
+        first_passage_time_stats_df[Column.FIXED_POINT_STABILITY] = fp_stability
         fp_dynamics_cols = [
             f"{Column.VectorField.FIXED_POINT_PREFIX}{col}" for col in DYNAMICS_COLUMN_NAMES
         ]
@@ -1578,7 +1575,7 @@ def build_fpt_line_fit_results_df(
             [
                 Column.DATASET,
                 Column.VectorField.FIXED_POINT_INDEX,
-                Column.VectorField.STABILITY,
+                Column.FIXED_POINT_STABILITY,
             ]
         )
         .apply(
@@ -1610,7 +1607,7 @@ def build_fpt_line_fit_results_df(
             [
                 Column.DATASET,
                 Column.VectorField.FIXED_POINT_INDEX,
-                Column.VectorField.STABILITY,
+                Column.FIXED_POINT_STABILITY,
             ]
         ).apply(
             lambda df, metric=metric, suffix=suffix: pd.Series(
@@ -1625,7 +1622,7 @@ def build_fpt_line_fit_results_df(
 
     line_fit_df = line_fit_df.merge(
         pearson_df,
-        on=[Column.DATASET, Column.VectorField.FIXED_POINT_INDEX, Column.VectorField.STABILITY],
+        on=[Column.DATASET, Column.VectorField.FIXED_POINT_INDEX, Column.FIXED_POINT_STABILITY],
         validate="one_to_one",
     )
     return line_fit_df

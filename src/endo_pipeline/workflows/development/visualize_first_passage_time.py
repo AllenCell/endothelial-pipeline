@@ -126,7 +126,7 @@ def main(
             [
                 Column.DATASET,
                 Column.VectorField.FIXED_POINT_INDEX,
-                Column.VectorField.STABILITY,
+                Column.FIXED_POINT_STABILITY,
             ]
         ):
             fp_idx = round(fp_idx)
@@ -187,7 +187,7 @@ def main(
             [
                 Column.DATASET,
                 Column.VectorField.FIXED_POINT_INDEX,
-                Column.VectorField.STABILITY,
+                Column.FIXED_POINT_STABILITY,
             ]
         ):
             fp_idx = round(fp_idx)

@@ -9,7 +9,7 @@ from endo_pipeline.library.visualize.summary_plot import (
 )
 from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.flow_field_dataframes import BOOTSTRAPPING_MANIFEST_NAMES
+from endo_pipeline.settings.manifest_names import BOOTSTRAPPING_MANIFEST_NAMES
 from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
 from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
 from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES

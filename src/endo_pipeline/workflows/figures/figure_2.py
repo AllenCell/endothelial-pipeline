@@ -56,12 +56,13 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
     from endo_pipeline.settings.column_metadata import COLUMN_METADATA
     from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.column_names import ColumnNameSuffix
     from endo_pipeline.settings.examples import EXAMPLE_DATASET, FPT_FIG_EXAMPLES
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
-    from endo_pipeline.settings.flow_field_dataframes import (
+    from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
+    from endo_pipeline.settings.manifest_names import (
         BOOTSTRAPPING_MANIFEST_NAMES,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
-        StabilityLabel,
     )
     from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
     from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
@@ -86,7 +87,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     columns_r_rho = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
     columns_r_rho_str = join_sorted_strings(columns_r_rho)
+    columns_r_rho_fixed_point = [f"{col}{ColumnNameSuffix.FIXED_POINTS}" for col in columns_r_rho]
     column_theta = Column.DiffAEData.POLAR_ANGLE
+    column_theta_fixed_point = f"{column_theta}{ColumnNameSuffix.FIXED_POINTS}"
     optical_flow_feature = Column.OpticalFlow.UNIT_VECTOR_MEAN
     feature_column_names = [column_theta, *columns_r_rho]
     feature_columns_str = join_sorted_strings(feature_column_names)
@@ -171,7 +174,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         )
         centers_mesh = np.meshgrid(*centers_r_rho, indexing="ij")
         stable_fixed_point_r_rho = stable_fixed_points_dict[columns_r_rho_str][
-            columns_r_rho
+            columns_r_rho_fixed_point
         ].to_numpy()
 
         drift_theta_dataframe = load_drift_dataframe_for_dataset(
@@ -180,7 +183,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         drift_theta, centers_theta = get_reshaped_vector_field_and_grid(
             drift_theta_dataframe, column_names=[column_theta]
         )
-        stable_fixed_point_theta = stable_fixed_points_dict[column_theta][column_theta].to_numpy()
+        stable_fixed_point_theta = stable_fixed_points_dict[column_theta][
+            column_theta_fixed_point
+        ].to_numpy()
 
         vector_field_plot_paths[dataset_name] = make_3d_vector_field_plot_panel(
             figure_size=(1.55, 2.25),

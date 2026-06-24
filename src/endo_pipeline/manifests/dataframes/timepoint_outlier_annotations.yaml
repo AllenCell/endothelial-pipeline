@@ -2,7 +2,7 @@ name: timepoint_outlier_annotations
 workflow: annotate_timepoint_outliers
 parameters: {}
 columns:
-  position: Zarr file position (FOV)
+  position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
   bf_mean_intensity: Flattened mean BF intensity over XY
   bf_rolling_median: Rolling median over BF mean intensity
   bf_dark_threshold: BF intensity dark outlier threshold
@@ -27,140 +27,144 @@ locations:
   20260209_20X:
     fmsid: 960cc58f9db148c9b6c7ef34c7513a61
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20260209_3700e11f893e4f378db450ea91bd92d6.parquet
   20260128_20X:
     fmsid: bb1dc71edd6f40e685fd613e50a510a1
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20260128_00bd94ea6d7e4b46bc16a55e35de589d.parquet
   20250618_20X:
     fmsid: 3123618c0d2941bba595dc66f0f0c18c
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20250618_f81e9bdf048e462e9755d7cbf5d21c37.parquet
   20250813_20X:
     fmsid: 971abbb00e0b413a87be297dd9b4ce05
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20250813_6ab0f70bd43f4de987a789905dbfb95c.parquet
   20260126_20X:
     fmsid: 7b14361f0f2244bc9c50c73ca14af517
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20260126_aed19d79c1a34707925cfa8393424c45.parquet
   20250818_20X:
     fmsid: 32c65b3e367c451ab5677f2708381ac1
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20250818_1f895d9188df43e0a10b379cf23a879c.parquet
   20260225_20X:
     fmsid: 0875891ca6f5477097523a5b2ea8b2a7
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20260225_50afe3cb17cf4be099dc44e47f7a4ae4.parquet
   20260302_20X:
     fmsid: 59a7f8b606f449a492c8bab78ee73896
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20260302_e9cfa3b0b24447f7bba000af3b012427.parquet
   20250428_20X:
     fmsid: 6201b6b043c84fe1a36741bced6d8b79
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20250428_056aa027ba9f4ccd98367563552f7edd.parquet
   20251001_20X:
     fmsid: 4f9ca70a5cff4707bfb76ad335564a92
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20251001_271124f03a16409499e8a84b0030cb15.parquet
   20250509_20X_IF11:
     fmsid: c30ca4be17f64eb3a9726631e8afb211
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20250509_1d3787a51bf44df5bd6e790d24e0ac49.parquet
   20250716_20X:
     fmsid: bfeac2cda3e142ba861cc1f0bf67b169
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20250716_328c62ecc91248eab2268e546892453e.parquet
   20260216_20X:
     fmsid: c649836661ec4857a68c6dc8ada40fed
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20260216_ed3743a1ee4c4cb096f5af90e3ebb9bd.parquet
   20260121_20X:
     fmsid: ea79e83903e743e297c4d397b7713fcc
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20260121_ff75e124720b4a3aa035025a05ced25f.parquet
   20250908_20X:
     fmsid: 1c7fe13d1d614132a2d0256b58a7a4a1
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20250908_b5d434bdebce4053b2d90198541b6b59.parquet
   20250509_20X_IF6:
     fmsid: b3d4cec551f6433f8d41421f53b355d3
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20250509_b5c9fca289d7427ebd2103809003c650.parquet
   20260204_20X:
     fmsid: c26e629562ea460aa03f6f5512afec6d
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20260204_ac1fddfd7452481e83317c8fbdd59dd6.parquet
   20250509_20X_IF4:
     fmsid: 582ecb5c7beb4b2cb709b5adb0dd2452
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20250509_b29ceb5fbdda4b1392f4d32936cdc686.parquet
   20250326_20X:
     fmsid: 35034b3a1b2d4ac1917da63afcee480a
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20250326_eb97addf262c44c5a6117ad1d4acc353.parquet
   20250509_20X_IF10:
     fmsid: 842289fb9d474cfdb1bac63f5089acd9
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20250509_8975c3c6497e4321badfafbe41695d16.parquet
   20250827_20X:
     fmsid: 517b806471c54e5fba55e07d4a0ece21
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20250827_c96180b30a224a48bac3b6d8fe1ffbb4.parquet
   20251029_20X:
     fmsid: 1575c6c9225748b99047f8da3c27f593
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20251029_441aed50cff54667afce891eb3a1a8db.parquet
   20250604_20X:
     fmsid: 9a463fb27d0e46a287f5b28d28d492de
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20250604_3f08ef7a2e0e450d963352dae4bf17dc.parquet
   20250728_20X:
     fmsid: 36842b121c394f77a889a65a599eedf0
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20250728_b07652734b1b43178f4bc704abd7b95b.parquet
   20250714_20X:
     fmsid: 4c1d2d8d28994cc385877e0a3227d9ca
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20250714_0a0462b7d33848c8826105ab6f78787d.parquet
   20260304_20X:
     fmsid: 68ed2ea66cb04c4f90fba07245192f4e
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20260304_56c81f459d8e46eabd74cc2147b85f49.parquet
   20250402_20X:
     fmsid: 84379a8bf31a416badb77cdb633df4b0
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20250402_90e37b7d8f1440efa84995b4697fb269.parquet
   20250409_20X:
     fmsid: 39534c8305a545eb9bda7d7f02138b48
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20250409_df6b2a02bbc94c6f957923add524eac1.parquet
   20260325_20X:
     fmsid: 31bdc39ab0ab4187850a1dc9a22abb82
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20260325_d1f28b79cf574775b529d83626183abc.parquet
   20251119_20X:
     fmsid: 269a806a10d84328a3a46020d0ee5a4e
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20251119_d6449a79a6264466aa225af0cdef78c7.parquet
   20260211_20X:
     fmsid: d7fab21285934a52b89dddbad76d67e7
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20260211_20b76dc8d0ca488ba88816793830f6ec.parquet
   20260309_20X:
     fmsid: 178a2a0940bf43bf82b424d152d8f662
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20260309_1a52b127112347d4b805eb64d0b86757.parquet
   20260202_20X:
     fmsid: 0d84f806211f41ea8de2f48c1603ec30
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20260202_fcb18a65bb734ff6ae718e1eee4894d6.parquet
   20250319_20X:
     fmsid: d9c72def902144c6a88c13e90ab89128
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20250319_0d94f8d3054e4e8c99af07dd92774798.parquet
   20260114_20X:
     fmsid: b220a9465d1c4797aa60c97b1852c2da
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20260114_4b693bb8eedb4e0ba0cb9ab4ae07b1a2.parquet
+  20250611_20X:
+    fmsid: d6cf625c2ca44fa7900184da7796e711
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/timepoint_outlier_annotations/20250611_a32615d530ae42c29d159cc058601879.parquet

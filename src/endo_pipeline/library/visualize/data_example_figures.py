@@ -17,7 +17,7 @@ from endo_pipeline.library.process.image_processing import (
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.settings.examples import ExampleImage
-from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_XSMALL, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
 from endo_pipeline.settings.summary_plot import CELL_LINE_LABEL_MAP
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
@@ -183,8 +183,8 @@ def create_panel_biological_system_examples(
 def create_panel_intermediate_examples(
     examples: list[ExampleImage],
     save_dir: Path,
-    crop_size: int = 1000,
-    scale_bar_um: int = 100,
+    crop_size: int = 768,
+    scale_bar_um: int = 20,
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH * 0.25, 3),
 ) -> None:
     """Create panel of intermediate example images.
@@ -205,12 +205,7 @@ def create_panel_intermediate_examples(
 
     for i, example in enumerate(examples):
         dataset_config = load_dataset_config(example.dataset_name)
-        shear_stress_value = dataset_config.flow_conditions[0].shear_stress
-        # if shear stress is within +/-1 of shear stress bins
-        if abs(shear_stress_value - 15) <= 1:
-            shear_stress_value = 15
-        if abs(shear_stress_value - 12) <= 1:
-            shear_stress_value = 12
+        shear_stress_value = dataset_config.flow_conditions[0].shear_stress_bin
 
         gfp_max_proj = load_processed_egfp_image_crop(
             dataset_config,
@@ -237,7 +232,7 @@ def create_panel_intermediate_examples(
         max_rows=len(image_panel_list) // len(examples),
         max_cols=len(examples),
         col_titles=shear_stress_titles,
-        row_titles=["VE-Cad MIP", "BF Std. Dev. Proj."],
+        row_titles=["VE-cadherin\nMIP", "BF\nstd. dev. proj."],
         direction="top-down first",
         font_size=FONTSIZE_MEDIUM,
         subplot_kwargs={"frame_on": False},
@@ -257,7 +252,16 @@ def create_panel_intermediate_examples(
             bar_thickness=25,
             padding=25,
             include_label=True if i == 0 else False,
+            label_xy=(0.98, 0.06),
+            label_fontsize=FONTSIZE_XSMALL,
         )
+
+        # draw grid lines every 256 pixels to show tile boundaries
+        im_height, im_width = image_panel_list[i].shape[:2]
+        for x in range(256, im_width, 256):
+            ax.axvline(x, color="yellow", linewidth=0.5)
+        for y in range(256, im_height, 256):
+            ax.axhline(y, color="yellow", linewidth=0.5)
 
     save_plot_to_path(
         fig,
