@@ -30,6 +30,7 @@ from endo_pipeline.settings.dynamics_workflows import (
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_XSMALL
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
 from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
 
 
@@ -350,7 +351,7 @@ def _load_example_data(
         example_dfs.append(df_example)
 
         shear_stress = dataset_config.flow_conditions[0].shear_stress_bin
-        example_labels.append(f"{shear_stress} dyn/cm\u00b2")
+        example_labels.append(f"{shear_stress} dyn/cm{Unicode.SQUARED}")
         example_subtitles.append(f"Replicate {dataset_config.replicate_number}")
 
     image_rows: dict[str, list[np.ndarray]] = {"VE-cadherin\nMIP": gfp_images}
