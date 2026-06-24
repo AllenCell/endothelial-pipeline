@@ -405,6 +405,7 @@ def _create_fpt_schematic_figure(
 
     # plot the tracked and grid trajectories in the 3D feature space with the
     # fixed point, bin edges, and bin start points
+    marker_alpha = 0.7
     track_alpha = 0.4
     fig = plt.figure(figsize=figure_size)
     ax: Axes3D = fig.add_subplot(projection="3d")
@@ -419,9 +420,17 @@ def _create_fpt_schematic_figure(
         zs=rhos_tracked,
         ls="-",
         lw=1,
-        marker=".",
         c=cell_centric_color,
         alpha=track_alpha,
+        label="cell-centered",
+    )
+    ax.plot(
+        xs=thetas_tracked_unwrapped,
+        ys=rs_tracked,
+        zs=rhos_tracked,
+        marker=".",
+        c=cell_centric_color,
+        alpha=marker_alpha,
         label="cell-centered",
     )
     ax.plot(
@@ -430,9 +439,17 @@ def _create_fpt_schematic_figure(
         zs=rhos_grid,
         ls="-",
         lw=1,
-        marker="d",
         c=grid_color,
         alpha=track_alpha,
+        label="grid-based",
+    )
+    ax.plot(
+        xs=thetas_grid_unwrapped,
+        ys=rs_grid,
+        zs=rhos_grid,
+        marker=".",
+        c=grid_color,
+        alpha=marker_alpha,
         label="grid-based",
     )
 
@@ -442,7 +459,7 @@ def _create_fpt_schematic_figure(
         rs_tracked[0],
         rhos_tracked[0],
         facecolors=cell_centric_color,
-        alpha=track_alpha,
+        alpha=marker_alpha,
         s=15,
         marker="o",
     )
@@ -462,7 +479,7 @@ def _create_fpt_schematic_figure(
         rs_grid[0],
         rhos_grid[0],
         facecolors=grid_color,
-        alpha=track_alpha,
+        alpha=marker_alpha,
         s=15,
         marker="d",
     )
@@ -518,10 +535,12 @@ def _create_fpt_schematic_figure(
     bin_edges_theta_plot = np.concatenate((-1 * grid_bin_edges[0][1:], grid_bin_edges[0]))
     bin_edges_r_plot = grid_bin_edges[1]
     bin_edges_rho_plot = grid_bin_edges[2]
-    theta_minor_ticks = bin_edges_theta_plot[
-        (bin_edges_theta_plot > theta_lims[0]) & (bin_edges_theta_plot < theta_lims[1])
+    theta_minor_ticks = [
+        bin_edges_theta_plot[
+            (bin_edges_theta_plot > theta_lims[0]) & (bin_edges_theta_plot < theta_lims[1])
+        ]
     ]
-    theta_minor_ticklabels = [0, f"{Unicode.PI}/12", f"{Unicode.PI}/6"]
+    theta_minor_ticklabels = [0, "", f"{Unicode.PI}/6"]
     r_minor_ticks = bin_edges_r_plot[
         (bin_edges_r_plot > r_lims[0]) & (bin_edges_r_plot < r_lims[1])
     ]
@@ -559,7 +578,7 @@ def _create_fpt_schematic_figure(
     ax.set_position([(1 - ax_width) / 2, (1 - ax_height) / 2, ax_width, ax_height])
 
     # add legend
-    ax.legend(ncols=2, loc="upper center", bbox_to_anchor=(0.5, 1.10))
+    ax.legend(ncols=2, loc="upper right", bbox_to_anchor=(0.5, 1.10))
 
     return fig
 
