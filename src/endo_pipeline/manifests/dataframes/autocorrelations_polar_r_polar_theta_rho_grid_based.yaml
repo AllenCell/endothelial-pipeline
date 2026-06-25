@@ -5,124 +5,125 @@ parameters:
   run_name: latent_512
   patch_type: grid_based
   columns: [polar_theta, polar_r, rho]
+columns:
+  feature: Feature variable for which autocorrelation is computed
+  lag: Lag at which the autocorrelation is computed
+  autocorrelation_mean: Mean autocorrelation value across tracks at given lag
+  autocorrelation_lower_percentile: Lower percentile of autocorrelation values across tracks at given lag
+  autocorrelation_upper_percentile: Upper percentile of autocorrelation values across tracks at given lag
+  exponential_fit: Values of exponential decay curve fit to autocorrelation function
+  dataset: Name of dataset
+  shear_stress: Shear stress value [dyn/cm^2]
 locations:
   20250319_20X:
     fmsid: 3e9d76b2c974402ebcd35e04120bb139
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20250319_0d94f8d3054e4e8c99af07dd92774798.parquet
   20250326_20X:
     fmsid: cf884fad650148219274e7a319ad19a7
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20250326_eb97addf262c44c5a6117ad1d4acc353.parquet
   20250402_20X:
     fmsid: 1d13d6d435b84c058613303b4f2cd94f
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20250402_90e37b7d8f1440efa84995b4697fb269.parquet
   20250409_20X:
     fmsid: 99195d28d5e74e43953c83e6095734d9
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20250409_df6b2a02bbc94c6f957923add524eac1.parquet
   20250428_20X:
     fmsid: ca650e29915841c796cd0b515354e002
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20250428_056aa027ba9f4ccd98367563552f7edd.parquet
   20250604_20X:
     fmsid: 0ca186e42d2542f59e3f130e42b584ef
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20250604_3f08ef7a2e0e450d963352dae4bf17dc.parquet
   20250611_20X:
     fmsid: 5bb59bf69f4d4b1fa67c21eb83aa8e18
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20250611_a32615d530ae42c29d159cc058601879.parquet
   20250618_20X:
     fmsid: db3a832a9c444531a0b5103627fde6dc
     path: null
-    s3uri: null
-  20250714_20X:
-    fmsid: 79b2dbcbc5a448d0800ebfa0c26c0c55
-    path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20250618_f81e9bdf048e462e9755d7cbf5d21c37.parquet
   20250716_20X:
     fmsid: b8c38c6245484ac29fa3e5054625453d
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20250716_328c62ecc91248eab2268e546892453e.parquet
   20250813_20X:
     fmsid: ab6cfcf72d884757aceff16b5d7ee550
     path: null
-    s3uri: null
-  20250827_20X:
-    fmsid: 69d0f9d94cd64c13a39ca6106f105917
-    path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20250813_6ab0f70bd43f4de987a789905dbfb95c.parquet
   20250908_20X:
     fmsid: e912a5caa1d54f76ac208a1dce3defdf
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20250908_b5d434bdebce4053b2d90198541b6b59.parquet
   20251001_20X:
     fmsid: 47784ced6ec84b19a7f53166b61756f2
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20251001_271124f03a16409499e8a84b0030cb15.parquet
   20251029_20X:
     fmsid: ae286a2b0bba44fb890c5cde684adf70
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20251029_441aed50cff54667afce891eb3a1a8db.parquet
   20251119_20X:
     fmsid: ffc2ecea416c4c0585101eec7c2b7df5
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20251119_d6449a79a6264466aa225af0cdef78c7.parquet
   20260114_20X:
     fmsid: 7f4ae4587b6c42f8bac940f439236d4a
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20260114_4b693bb8eedb4e0ba0cb9ab4ae07b1a2.parquet
   20260121_20X:
     fmsid: 4e669a757e0c42f88563626b6e4edd8b
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20260121_ff75e124720b4a3aa035025a05ced25f.parquet
   20260126_20X:
     fmsid: 8fc85e8f303e43e687b8df62d074827f
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20260126_aed19d79c1a34707925cfa8393424c45.parquet
   20260128_20X:
     fmsid: 66921f87f48941cdb578e783fbbe5fb3
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20260128_00bd94ea6d7e4b46bc16a55e35de589d.parquet
   20260202_20X:
     fmsid: 7c3311d0ab734b0eaa6b5066765d1273
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20260202_fcb18a65bb734ff6ae718e1eee4894d6.parquet
   20260204_20X:
     fmsid: fd708149b9aa402e8562c301271bc166
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20260204_ac1fddfd7452481e83317c8fbdd59dd6.parquet
   20260209_20X:
     fmsid: d0a674581b5a4d4c9e0a51f7919ef85e
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20260209_3700e11f893e4f378db450ea91bd92d6.parquet
   20260211_20X:
     fmsid: 04299bdf78df408d95b37a57fc7b76eb
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20260211_20b76dc8d0ca488ba88816793830f6ec.parquet
   20260216_20X:
     fmsid: 164d5596e42743aa8830ff3820196682
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20260216_ed3743a1ee4c4cb096f5af90e3ebb9bd.parquet
   20260225_20X:
     fmsid: b456912b2cfa43c589af08457370d68f
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20260225_50afe3cb17cf4be099dc44e47f7a4ae4.parquet
   20260302_20X:
     fmsid: 1820ec6f0d9141dbafb218613e503650
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20260302_e9cfa3b0b24447f7bba000af3b012427.parquet
   20260304_20X:
     fmsid: d12367e2901a4a608197d41e2621ce29
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20260304_56c81f459d8e46eabd74cc2147b85f49.parquet
   20260309_20X:
     fmsid: 17068e6fa2db4b33a17ff0a9ad4fc7f0
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20260309_1a52b127112347d4b805eb64d0b86757.parquet
   20260325_20X:
     fmsid: 841be109cad240c183c449a827f1fcc9
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20260325_d1f28b79cf574775b529d83626183abc.parquet
