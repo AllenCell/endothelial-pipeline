@@ -96,7 +96,7 @@ if not isinstance(fp_idx, int):
     )
 
 df = fpt_param_sweep_df[fpt_param_sweep_df[Column.VectorField.FIXED_POINT_INDEX] == fp_idx]
-fp_stability = df[Column.FIXED_POINT_STABILITY].unique().item()
+fp_stability = df[Column.FIXED_POINT_STABILITY].unique()[0]
 
 fp_param_sweep_fpt, fp_param_sweep_num_traj = plot_first_passage_time_parameter_sweep(
     dataset_name=dataset_name,
@@ -108,6 +108,7 @@ fp_param_sweep_fpt, fp_param_sweep_num_traj = plot_first_passage_time_parameter_
     metric_to_plot=metric_to_plot,
     figsize=(2.12, 2.12),
 )
+# %%
 
 # --- Histogram of first passage time correlation ---
 dataset_summary_list = SUMMARY_PLOT_DATASETS["intermediate"]
@@ -118,7 +119,7 @@ fpt_pearson_r_path = plot_cross_dataset_summaries(
     first_passage_summary_df,
     output_dir=save_dir,
     column_names=[Column.VectorField.PEARSON_R],
-    axis_mode="dataset",
+    axis_mode="replicate",
     figure_size=(4.2, 2.3),
     set_y_lims=True,
     category_order=dataset_summary_list,
@@ -131,7 +132,7 @@ fpt_slope_path = plot_cross_dataset_summaries(
     first_passage_summary_df,
     output_dir=save_dir,
     column_names=[Column.VectorField.LINEFIT_SLOPE],
-    axis_mode="dataset",
+    axis_mode="replicate",
     figure_size=(4.2, 2.3),
     set_y_lims=True,
     category_order=dataset_summary_list,
