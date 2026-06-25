@@ -472,7 +472,7 @@ def plot_3d_scatter_or_binned(
                         tick_labels = tick_labels[::2]
                     getattr(ax, f"set_{axis}ticklabels")(tick_labels, fontsize=FONTSIZE_SMALL)
 
-    ax.tick_params(axis="both", pad=-3)
+    ax.tick_params(axis="both", pad=-2)
     for tick in ax.xaxis.get_majorticklabels():
         tick.set_ha("right")
         tick.set_va("center")
@@ -793,7 +793,7 @@ def make_example_migration_coherence(
                 handles=[*existing_handles, box_handle],
                 labels=[*existing_labels, bin_label],
                 loc="upper left",
-                bbox_to_anchor=(-0.125, -0.1),
+                bbox_to_anchor=(-0.125, -0.03),
                 fontsize=FONTSIZE_XSMALL,
                 ncol=2,
                 handler_map={box_handle: _CubeLegendHandler()},
