@@ -236,7 +236,7 @@ build_figure_from_panels(
             path=output_dir / "20250409_20x_3d_scatter_coherent.svg",
             x_position=4.5,
             y_position=4,
-            x_offset=-0.5,
+            x_offset=0.05,
             y_offset=0.1,
         ),
         FigurePanel(
@@ -244,7 +244,7 @@ build_figure_from_panels(
             path=output_dir / "20251001_20x_3d_scatter_incoherent.svg",
             x_position=4.5,
             y_position=6,
-            x_offset=-0.5,
+            x_offset=0.05,
             y_offset=0,
         ),
     ],
