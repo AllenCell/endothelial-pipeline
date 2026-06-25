@@ -17,6 +17,7 @@ from endo_pipeline.library.analyze.vector_field_estimation import (
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameSuffix
+from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 from endo_pipeline.settings.dynamics_workflows import (
     LOWER_PERCENTILE_FOR_FILTERING_FPTS,
     NUM_INIT_SAMPLES,
@@ -332,7 +333,7 @@ def match_bootstrap_fixed_points_to_baseline(
     """
 
     column_names = list(column_names)
-    fp_column_names = [f"{col}{ColumnNameSuffix.FIXED_POINTS}" for col in column_names]
+    fp_column_names = [ColumnTemplate.FIXED_POINT % col for col in column_names]
     baseline_fixed_points_array = baseline_fixed_points[fp_column_names].to_numpy()
     n_baseline = len(baseline_fixed_points_array)
 
@@ -507,7 +508,7 @@ def aggregate_bootstrapping_results(
         }
         for col in column_names:
             dataframe_row[f"{col}{ColumnNameSuffix.BASELINE_FIXED_POINTS}"] = baseline_fixed_point[
-                f"{col}{ColumnNameSuffix.FIXED_POINTS}"
+                ColumnTemplate.FIXED_POINT % col
             ]
 
         num_hits = len(matched_coords[pos_idx])

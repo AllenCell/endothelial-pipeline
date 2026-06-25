@@ -56,6 +56,7 @@ def main(datasets: Datasets | None = None) -> None:
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.column_names import ColumnNameSuffix
+    from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
     from endo_pipeline.settings.examples import EXAMPLE_DATASET
     from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
     from endo_pipeline.settings.manifest_names import (
@@ -126,7 +127,7 @@ def main(datasets: Datasets | None = None) -> None:
         df_3d_bootstrap = filter_dataframe_by_stability(df_bootstrap, StabilityLabel.STABLE)
 
         for column_name in column_names:
-            column_name_fixed_point = f"{column_name}{ColumnNameSuffix.FIXED_POINTS}"
+            column_name_fixed_point = ColumnTemplate.FIXED_POINT % column_name
             column_name_baseline = f"{column_name}{ColumnNameSuffix.BASELINE_FIXED_POINTS}"
             coord_2d_plus_1d = df_2d_plus_1d[column_name_fixed_point].iloc[0]
             coord_3d_bootstrap = df_3d_bootstrap[column_name_baseline].iloc[0]

@@ -789,6 +789,9 @@ class ColumnNameTemplate(StrEnum):
     PCA_FEATURE = "pc_%d"
     """Column name template: Component %d of PCA-transformed latent vector."""
 
+    FIXED_POINT = "%s_fixed_point"
+    """Column name template: Vector field fixed point location in %s."""
+
 
 class ColumnNameSuffix(StrEnum):
     """Suffixes for dataframe column names."""
@@ -798,9 +801,6 @@ class ColumnNameSuffix(StrEnum):
 
     MESH_GRID = "_mesh_grid"
     """Suffix for column name for vector field mesh grid."""
-
-    FIXED_POINTS = "_fixed_point"
-    """Suffix for column name for fixed point locations."""
 
     BASELINE_FIXED_POINTS = "_baseline"
     """Suffix for column name for baseline fixed point locations."""

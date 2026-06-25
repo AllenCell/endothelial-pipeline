@@ -15,6 +15,7 @@ from endo_pipeline.library.analyze.numerics.binning import circpercentile
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameSuffix
+from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
     LOWER_PERCENTILE_FOR_FILTERING_FPTS,
@@ -418,14 +419,14 @@ def get_fixed_points_within_bounds(
                     {
                         stability_label_column_name: [fpt_stability_label],
                         **{
-                            f"{column_name}{ColumnNameSuffix.FIXED_POINTS}": [fpt[i]]
+                            ColumnTemplate.FIXED_POINT % column_name: [fpt[i]]
                             for i, column_name in enumerate(column_names)
                         },
                     }
                 )
             )
 
-    fixed_point_column_names = [f"{name}{ColumnNameSuffix.FIXED_POINTS}" for name in column_names]
+    fixed_point_column_names = [ColumnTemplate.FIXED_POINT % column for column in column_names]
 
     # check if any fixed points with high confidence were found, and if not, log
     # a warning and return an empty dataframe with the correct columns

@@ -90,6 +90,7 @@ def main(
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.column_names import ColumnNameSuffix
+    from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
     from endo_pipeline.settings.dynamics_workflows import (
         DEFAULT_DATASETS_DYNAMICS_VIS,
         DYNAMICS_COLUMN_NAMES,
@@ -123,7 +124,7 @@ def main(
     # Get label and drift column name for selected column
     column_label = get_label_for_column(column_name)
     drift_column_name = f"{column_name}{ColumnNameSuffix.DRIFT}"
-    fp_column_name = f"{column_name}{ColumnNameSuffix.FIXED_POINTS}"
+    fp_column_name = ColumnTemplate.FIXED_POINT % column_name
     mesh_column_name = f"{column_name}{ColumnNameSuffix.MESH_GRID}"
 
     # Required columns for vector field and fixed point manifests
