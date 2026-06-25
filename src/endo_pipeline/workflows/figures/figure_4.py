@@ -87,10 +87,11 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         output_path=output_path,
         column_names=columns_for_summary_plots,
         axis_mode="replicate",
-        figure_size=(3.35, 1.7),
+        figure_size=(3.15, 2.0),
         jitter_width=0.2,
         subplot_layout="vertical",
         color_by_column=ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
+        colorbar_location="bottom",
         **placeholders["A"],
     )
 
@@ -128,7 +129,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="B",
             path=vector_field_plot_path,
-            x_position=MAX_FIGURE_WIDTH * 0.66,
+            x_position=3.4,
             y_position=0.0,
             x_offset=0.15,
             y_offset=0,
@@ -136,23 +137,23 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="",
             path=fixed_point_reconstruction_path,
-            x_position=MAX_FIGURE_WIDTH * 0.66,
-            y_position=2.3,
-            x_offset=0.3,
+            x_position=5.5,
+            y_position=0.25,
+            x_offset=0.0,
             y_offset=0.0,
         ),
         FigurePanel(
             letter="C",
             path=projected_streamlines_path,
-            x_position=0.0,
-            y_position=3.25,
-            x_offset=0.3,
+            x_position=3.4,
+            y_position=2.65,
+            x_offset=0.1,
             y_offset=0.0,
         ),
     ]
 
     build_figure_from_panels(
-        panels, output_path / "figure_4.svg", width=MAX_FIGURE_WIDTH, height=5.5
+        panels, output_path / "figure_4.svg", width=MAX_FIGURE_WIDTH, height=5.0
     )
 
 
