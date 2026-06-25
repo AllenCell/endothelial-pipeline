@@ -830,11 +830,12 @@ def plot_cross_dataset_summaries(
     color_by_column: ColumnNameType | None = None,
     point_color: str | None = None,
     colorbar_multiline_label: bool = False,
+    colorbar_location: Literal["right", "bottom"] = "right",
+    colorbar_aspect: float | None = None,
     ylabel_rotation: float = 0,
     ylabel_horizontal_alignment: Literal["left", "center", "right"] = "left",
     ylabel_vertical_alignment: Literal["top", "center", "bottom"] = "center",
     yaxis_for_fixed_points: bool = True,
-    remove_label_linebreaks: bool = True,
 ) -> Path:
     """
     Plot cross dataset summaries for given columns in selected plot mode.
@@ -894,6 +895,15 @@ def plot_cross_dataset_summaries(
         Optional column name whose values are mapped to a continuous
         cyan-to-magenta colormap. When provided, overrides the discrete coloring
         from ``style_mode``.
+    colorbar_location
+        Where to place the colorbar when ``color_by_column`` is active.
+        ``"right"`` (default) attaches it to the right of the last panel;
+        ``"bottom"`` places a horizontal colorbar below the x axis with the
+        label on top and ticks on the bottom.
+    colorbar_aspect
+        Aspect ratio (long dimension / short dimension) passed to
+        ``fig.colorbar``. Increase to make the colorbar thinner. Defaults to
+        matplotlib's built-in value when ``None``.
     ylabel_rotation
         Rotation angle for y axis label.
     ylabel_horizontal_alignment
@@ -903,9 +913,6 @@ def plot_cross_dataset_summaries(
     yaxis_for_fixed_points
         If True then add a * to the y axis label to denote it is for fixed
         points.
-    remove_label_linebreaks
-        If True, remove line breaks from colorbar labels to improve formatting
-        in horizontal layout.
 
     Returns
     -------
@@ -1006,8 +1013,17 @@ def plot_cross_dataset_summaries(
                 else str(color_by_column)
             )
             cbar_label = raw_label if colorbar_multiline_label else raw_label.replace("\n", " ")
-            # Attach colorbar to last panel only so it spans one panel height
-            cbar = fig.colorbar(scalar_mappable, ax=axes[-1], pad=0.02)
+            if colorbar_location == "bottom":
+                # Place a horizontal colorbar below all axes, label on top, ticks on bottom
+                cbar_kwargs: dict = {"location": "bottom", "orientation": "horizontal", "pad": 0.02}
+                if colorbar_aspect is not None:
+                    cbar_kwargs["aspect"] = colorbar_aspect
+                cbar = fig.colorbar(scalar_mappable, ax=axes, **cbar_kwargs)
+                cbar.ax.xaxis.set_label_position("top")
+                cbar.ax.xaxis.set_ticks_position("bottom")
+            else:
+                # Attach colorbar to last panel only so it spans one panel height
+                cbar = fig.colorbar(scalar_mappable, ax=axes[-1], pad=0.02)
             cbar.set_label(cbar_label, fontsize=FONTSIZE_SMALL)
             # Apply ticks from column metadata if available
             if color_column_metadata and color_column_metadata.ticks is not None:
