@@ -34,8 +34,7 @@ columns:
   polar_r_ci_upper: Upper bound of bootstrap confidence interval for r
   rho_ci_lower: Lower bound of bootstrap confidence interval for rho
   rho_ci_upper: Upper bound of bootstrap confidence interval for rho
-  detection_rate: Fraction of bootstrap iterations in which a matched fixed point
-    was found
+  detection_rate: Fraction of bootstrap iterations in which a matched fixed point was found
   shear_stress: Shear stress value [dyn/cm^2]
 locations:
   20250319_20X:
