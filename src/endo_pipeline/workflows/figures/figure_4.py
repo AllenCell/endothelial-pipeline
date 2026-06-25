@@ -99,8 +99,6 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     vector_field_plot_path, stable_fixed_points_df = make_3d_vector_field_plot_panel(
         dataset_name,
         output_path,
-        include_colorbar=True,
-        include_legend=True,
         **placeholders["B"],
     )
     fixed_point_reconstruction_path = reconstruct_fixed_points(
@@ -137,15 +135,15 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="C",
             path=fixed_point_reconstruction_path,
-            x_position=5.45,
+            x_position=5.4,
             y_position=0.0,
             x_offset=0.2,
-            y_offset=0.05,
+            y_offset=0.15,
         ),
         FigurePanel(
             letter="D",
             path=projected_streamlines_path,
-            x_position=3.4,
+            x_position=3.7,
             y_position=2.35,
             x_offset=0.075,
             y_offset=0.05,

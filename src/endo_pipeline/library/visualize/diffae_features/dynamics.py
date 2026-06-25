@@ -890,7 +890,9 @@ def plot_drift_3d(
     include_colorbar: bool = True,
     include_legend: bool = True,
     include_stable_fixed_point_legend: bool = True,
+    include_saddle_point_legend: bool = False,
     fixed_point_legend_label: str | None = None,
+    saddle_point_legend_label: str | None = None,
     colorbar_rect: tuple[float, float, float, float] = (0.45, 0.12, 0.5, 0.02),
     **axes_kwargs: Any,
 ) -> tuple[plt.Figure, Axes3D]:
@@ -931,8 +933,14 @@ def plot_drift_3d(
         Whether to include a legend entry for the stable fixed point (if True, a
         proxy artist with the same marker and color as the stable fixed point in
         the plot will be added to the legend).
+    include_saddle_point_legend
+        Whether to include a legend entry for the saddle point (if True, a proxy
+        artist with the same marker and color as the saddle point in the plot will
+        be added to the legend).
     fixed_point_legend_label
         Optional custom label for the stable fixed point legend entry.
+    saddle_point_legend_label
+        Optional custom label for the saddle point legend entry.
     colorbar_rect
         Rectangle specifying the position of the colorbar in normalized figure
         coordinates (left, bottom, width, height).
@@ -1058,6 +1066,16 @@ def plot_drift_3d(
                 labels=fp_labels,
             )
             handles.extend(fp_handles)
+        if include_saddle_point_legend:
+            fp_labels = None
+            if saddle_point_legend_label is not None:
+                fp_labels = {StabilityLabel.SADDLE: saddle_point_legend_label}
+            saddle_fp_handles = make_legend_handles_for_fixed_pts(
+                fpt_stabilities=[StabilityLabel.SADDLE],
+                marker_size=3,
+                labels=fp_labels,
+            )
+            handles.extend(saddle_fp_handles)
         fig.legend(
             handles=handles,
             fontsize=FONTSIZE_XSMALL,

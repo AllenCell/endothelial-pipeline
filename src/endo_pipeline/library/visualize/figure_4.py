@@ -113,6 +113,8 @@ def make_3d_vector_field_plot_panel(
         include_colorbar=True,
         include_legend=True,
         fixed_point_legend_label=fixed_point_label,
+        include_saddle_point_legend=True,
+        saddle_point_legend_label="saddle point",
         colorbar_rect=(0.5, 0.12, 0.4, 0.02),
         xlim=theta_lims,
         ylim=r_lims,
@@ -129,7 +131,7 @@ def make_3d_vector_field_plot_panel(
         zlabel_kwargs={"labelpad": -8},
     )
 
-    # Load and overlay stable fixed point
+    # Load and overlay stable fixed points and saddle point
     fixed_points_df = load_fixed_points_dataframe_for_dataset(dataset_name)
     fixed_points_df = fixed_points_df[fixed_points_df[Column.FIXED_POINT_DETECTION_RATE] > 0.4]
     stable_df = fixed_points_df[
@@ -146,6 +148,25 @@ def make_3d_vector_field_plot_panel(
             fpt_coords[2],
             color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color,
             s=15,
+            zorder=5,
+        )
+
+    saddle_df = fixed_points_df[
+        fixed_points_df[Column.FIXED_POINT_STABILITY] == StabilityLabel.SADDLE
+    ]
+    for _, fpt_row in saddle_df.iterrows():
+        fpt_coords = fpt_row[column_names_].to_numpy()
+        # wrap theta coordinate to be within the specified limits
+        fpt_coords[0] = wrap_theta_for_vector_field_vis(fpt_coords[0], theta_lims[0], theta_lims[1])
+        ax.scatter(
+            fpt_coords[0],
+            fpt_coords[1],
+            fpt_coords[2],
+            color=FIXED_POINT_PLOT_STYLE[StabilityLabel.SADDLE].color,
+            marker=FIXED_POINT_PLOT_STYLE[StabilityLabel.SADDLE].marker,
+            edgecolors="k",
+            linewidths=0.5,
+            s=10,
             zorder=5,
         )
 
