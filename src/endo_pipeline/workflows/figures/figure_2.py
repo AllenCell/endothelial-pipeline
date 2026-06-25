@@ -337,7 +337,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             path=fixed_point_reconstruction_paths[dataset_low],
             x_position=3.225,
             y_position=0.0,
-            x_offset=0.3,
+            x_offset=0.2,
             y_offset=0.0,
         ),
         FigurePanel(
