@@ -731,8 +731,7 @@ def visualize_projected_dynamics(
             zorder=5,
         )
 
-    # plot the pre-computed trajectories with direction arrows at equal
-    # arc-length intervals
+    # plot the pre-computed trajectories with direction arrows
     for traj_2d in trajectories_2d:
         x_t = traj_2d[:, 0].astype(np.float64)
         y_t = traj_2d[:, 1].astype(np.float64)
@@ -742,16 +741,17 @@ def visualize_projected_dynamics(
         total = arc[-1]
         if total < 1e-10:
             continue
-        for frac in (0.35, 0.65):
-            idx = max(0, int(np.searchsorted(arc, frac * total)) - 1)
-            idx = min(idx, len(x_t) - 2)
-            ax.annotate(
-                "",
-                xy=(x_t[idx + 1], y_t[idx + 1]),
-                xytext=(x_t[idx], y_t[idx]),
-                arrowprops={"arrowstyle": "-|>", "color": "k", "lw": 1.0, "mutation_scale": 15},
-                zorder=4,
-            )
+        # place an arrow at 65% of the total arc length, or as close as possible
+        # to that while ensuring it is not at the very end of the trajectory
+        idx = max(0, int(np.searchsorted(arc, 0.65 * total)) - 1)
+        idx = min(idx, len(x_t) - 2)
+        ax.annotate(
+            "",
+            xy=(x_t[idx + 1], y_t[idx + 1]),
+            xytext=(x_t[idx], y_t[idx]),
+            arrowprops={"arrowstyle": "-|>", "color": "k", "lw": 1.25, "mutation_scale": 12},
+            zorder=4,
+        )
 
     file_name = f"{dataset_name}_projected_streamplot"
     save_plot_to_path(fig, output_path, f"{file_name}", file_format=".svg")
