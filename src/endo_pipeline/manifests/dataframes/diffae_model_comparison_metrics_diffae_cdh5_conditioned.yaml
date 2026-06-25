@@ -24,8 +24,8 @@ locations:
   latent_512:
     fmsid: 843045a09ded49e6842cd41a5d16d35f
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_model_comparison_metrics_diffae_cdh5_conditioned/latent_512.parquet
   latent_1024:
     fmsid: 7900f6511abc464bbd357de8e1a3e569
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_model_comparison_metrics_diffae_cdh5_conditioned/latent_1024.parquet
