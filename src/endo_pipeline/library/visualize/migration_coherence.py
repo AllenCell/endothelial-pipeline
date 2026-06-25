@@ -5,10 +5,12 @@ from itertools import combinations
 from pathlib import Path
 from typing import Any
 
+import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from matplotlib.legend_handler import HandlerBase
 from matplotlib.patches import Rectangle
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.stats import binned_statistic_2d, binned_statistic_dd
@@ -48,6 +50,107 @@ from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME
 
 logger = logging.getLogger(__name__)
+
+
+class _CubeLegendHandler(HandlerBase):
+    """Draws a wireframe cube (oblique projection) in the legend key."""
+
+    def create_artists(
+        self, _legend, orig_handle, xdescent, ydescent, width, height, _fontsize, trans
+    ):
+        """Return Line2D artists forming a wireframe cube in the legend key.
+
+        Projects all 12 edges of a unit cube onto 2D using an orthographic
+        projection (azimuth 45°, elevation 50°), scales the result to fit the
+        legend key area, and returns one ``Line2D`` per edge. Line width,
+        color, and alpha are inherited from ``orig_handle``.
+
+        Parameters
+        ----------
+        _legend
+            The legend object (unused, kept for API compatibility).
+        orig_handle
+            The original legend handle.
+        xdescent
+            The horizontal offset of the legend key.
+        ydescent
+            The vertical offset of the legend key.
+        width
+            The width of the legend key.
+        height
+            The height of the legend key.
+        _fontsize
+            The font size of the legend text (unused, kept for API compatibility).
+        trans
+            The transformation applied to the legend key.
+        """
+        lw = orig_handle.get_linewidth()
+        color = orig_handle.get_color()
+        alpha = orig_handle.get_alpha() or 1.0
+
+        # Unit cube vertices (x, y, z) in {0, 1}^3
+        verts = np.array(
+            [
+                [0, 0, 0],
+                [1, 0, 0],
+                [0, 1, 0],
+                [1, 1, 0],
+                [0, 0, 1],
+                [1, 0, 1],
+                [0, 1, 1],
+                [1, 1, 1],
+            ],
+            dtype=float,
+        )
+        # Orthographic projection
+        azim = np.radians(25)
+        elev = np.radians(22)
+        right = np.array([-np.sin(azim), np.cos(azim), 0.0])
+        up = np.array(
+            [
+                -np.sin(elev) * np.cos(azim),
+                -np.sin(elev) * np.sin(azim),
+                np.cos(elev),
+            ]
+        )
+        proj = verts @ np.column_stack([right, up])
+        # Uniform scale so cube edges stay equal length regardless of key
+        # aspect ratio; center the result within the key area
+        mn = proj.min(axis=0)
+        span = (proj.max(axis=0) - mn).max()
+        proj = (proj - mn) / span  # both axes scaled by the same factor
+        margin = 0.05
+        side = max(width, height) * (1 - 2 * margin)
+        w_used = proj[:, 0].max() * side
+        h_used = proj[:, 1].max() * side
+        proj[:, 0] = proj[:, 0] * side + (width - w_used) / 2 - xdescent
+        proj[:, 1] = proj[:, 1] * side + (height - h_used) / 2 - ydescent
+
+        edges = [
+            (0, 1),
+            (0, 2),
+            (0, 4),
+            (1, 3),
+            (1, 5),
+            (2, 3),
+            (2, 6),
+            (3, 7),
+            (4, 5),
+            (4, 6),
+            (5, 7),
+            (6, 7),
+        ]
+        return [
+            plt.Line2D(
+                [proj[i, 0], proj[j, 0]],
+                [proj[i, 1], proj[j, 1]],
+                lw=lw,
+                color=color,
+                alpha=alpha,
+                transform=trans,
+            )
+            for i, j in edges
+        ]
 
 
 def plot_scatter_and_binned_heatmap(
@@ -662,5 +765,39 @@ def make_example_migration_coherence(
         for e_xyz in edges:
             ax.plot(*list(zip(*e_xyz, strict=True)), ls="-", lw=1, c="black", alpha=0.6)
 
-        save_plot_to_path(fig, output_dir, fig_name, file_format=".svg", transparent=True, dpi=300)
+        # add box legend handle for the stable fixed point bin
+        bin_label = f"bin used to compute\nmean at {fixed_point_label}"
+        box_handle = mlines.Line2D(
+            [],
+            [],
+            ls="-",
+            lw=1,
+            color="black",
+            alpha=0.6,
+            label=bin_label,
+        )
+        leg = ax.get_legend()
+        assert leg is not None  # for type checking
+        existing_handles = list(leg.legend_handles)
+        existing_labels = [t.get_text() for t in leg.get_texts()]
+        ax.legend(
+            handles=[*existing_handles, box_handle],
+            labels=[*existing_labels, bin_label],
+            loc="upper left",
+            bbox_to_anchor=(-0.25, -0.15),
+            fontsize=FONTSIZE_XSMALL,
+            ncol=2,
+            handler_map={box_handle: _CubeLegendHandler()},
+        )
+
+        save_plot_to_path(
+            fig,
+            output_dir,
+            fig_name,
+            file_format=".svg",
+            transparent=True,
+            dpi=300,
+            tight_layout=False,
+            bbox_inches="tight",
+        )
         plt.close(fig)
