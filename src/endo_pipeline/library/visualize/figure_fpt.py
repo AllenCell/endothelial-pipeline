@@ -11,13 +11,13 @@ from mpl_toolkits.mplot3d import Axes3D
 
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_binned_value
+from endo_pipeline.library.analyze.first_passage_time import add_first_passage_time_column
 from endo_pipeline.library.analyze.numerics.binning import adjust_limits_from_bin_size, get_bins
 from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
 )
 from endo_pipeline.library.analyze.track_integration import (
     add_distance_to_fixed_points_columns,
-    add_first_passage_time_column,
     compute_first_passage_time_stats_for_bins,
     load_filtered_trajectory_df_for_first_passage_time_workflow,
     merge_grid_and_tracked_first_passage_time_stats_dfs,

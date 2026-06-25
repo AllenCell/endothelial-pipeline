@@ -12,7 +12,6 @@ from endo_pipeline.library.analyze.numerics.fixed_points import (
 )
 from endo_pipeline.library.analyze.track_integration import (
     add_distance_to_fixed_points_columns,
-    add_first_passage_time_column,
     compute_first_passage_time_parameter_sweep_df,
     compute_first_passage_time_stats_for_bins,
     load_filtered_trajectory_df_for_first_passage_time_workflow,
@@ -23,6 +22,74 @@ from endo_pipeline.settings.bootstrap_fixed_points import BOOTSTRAP_THRESHOLD
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, TIME_STEP_IN_HOURS
+
+
+def add_first_passage_time_column(
+    fixed_point_index: int,
+    trajectory_df: pd.DataFrame,
+    column: str,
+    threshold: float,
+    time_column: str,
+) -> pd.DataFrame:
+    """
+    Add the time of first passage for each track in the trajectory dataframe.
+
+    The first passage time is computed as the first timepoint (specified by
+    `Column.TIMEPOINT`) at which the value in `column` is less than or equal to
+    the given threshold for each track (grouped by `Column.CROP_INDEX`).
+
+    Parameters
+    ----------
+    fixed_point_index
+        Index of the fixed point corresponding to the row being used to compute
+        first passage time.
+    trajectory_df
+        DataFrame containing the trajectory points.
+    column
+        Column name in trajectory_df to use for the first passage computation.
+        Expected to be the distance from a fixed point.
+    threshold
+        Threshold value to determine the first passage.
+    time_column
+        Column name in trajectory_df corresponding to the time variable (e.g.
+        `Column.TIMEPOINT` or `Column.SegData.TIME_HRS`).
+
+    Returns
+    -------
+    :
+        DataFrame containing the first passage time for each track.
+    """
+
+    # compute where the trajectory first passes the threshold distance to the fixed point
+    new_column_name = f"{Column.VectorField.FIRST_PASSAGE_PREFIX}{column}"
+    trajectory_df[new_column_name] = (
+        trajectory_df.groupby(Column.CROP_INDEX)
+        .apply(
+            lambda grp: pd.DataFrame(
+                {new_column_name: grp[time_column][grp[column] <= threshold].min()},
+                index=grp.index,
+            ),
+            include_groups=False,
+        )
+        .droplevel(0)
+    )
+
+    # trim all trajectories to only include timepoints prior to reaching the fixed point
+    trajectory_df = trajectory_df[
+        trajectory_df.apply(
+            lambda row, fp_idx=fixed_point_index, time_column=time_column: row[time_column]
+            < row[f"{Column.VectorField.FIRST_PASSAGE_DIST_PREFIX}{fp_idx}"],
+            axis=1,
+        )
+    ]
+
+    # compute the time to the first passage time from each timepoint
+    trajectory_df[f"{Column.VectorField.TIME_TO_FP_PREFIX}{fixed_point_index}"] = (
+        trajectory_df[f"{Column.VectorField.FIRST_PASSAGE_DIST_PREFIX}{fixed_point_index}"]
+        - trajectory_df[time_column]
+    )
+
+    return trajectory_df
 
 
 def compute_first_passage_times_one_dataset(
