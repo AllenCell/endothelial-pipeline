@@ -768,6 +768,7 @@ def make_example_migration_coherence(
             show_colorbar=show_colorbar,
             include_legend=include_legend,
             fixed_point_label=fixed_point_label,
+            fp_template="%s",
         )
         # draw cube around bin edges
         for e_xyz in edges:
