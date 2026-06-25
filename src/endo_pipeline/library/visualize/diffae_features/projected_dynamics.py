@@ -771,11 +771,11 @@ def visualize_projected_dynamics(
 
     # Build and place a legend to the right of the plot without squashing the axes.
     fp_labels = {
-        StabilityLabel.STABLE: f"projected\n{fixed_point_label}",
-        StabilityLabel.SADDLE: "projected\nsaddle point",
+        str(StabilityLabel.STABLE): f"projected\n{fixed_point_label}",
+        str(StabilityLabel.SADDLE): "projected\nsaddle point",
     }
     fp_handles = make_legend_handles_for_fixed_pts(
-        fpt_stabilities=[StabilityLabel.STABLE, StabilityLabel.SADDLE],
+        fpt_stabilities=[str(StabilityLabel.STABLE), str(StabilityLabel.SADDLE)],
         marker_size=4,
         labels=fp_labels,
     )
