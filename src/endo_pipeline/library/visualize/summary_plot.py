@@ -834,7 +834,6 @@ def plot_cross_dataset_summaries(
     ylabel_horizontal_alignment: Literal["left", "center", "right"] = "left",
     ylabel_vertical_alignment: Literal["top", "center", "bottom"] = "center",
     yaxis_for_fixed_points: bool = True,
-    remove_label_linebreaks: bool = True,
 ) -> Path:
     """
     Plot cross dataset summaries for given columns in selected plot mode.
@@ -903,9 +902,6 @@ def plot_cross_dataset_summaries(
     yaxis_for_fixed_points
         If True then add a * to the y axis label to denote it is for fixed
         points.
-    remove_label_linebreaks
-        If True, remove line breaks from colorbar labels to improve formatting
-        in horizontal layout.
 
     Returns
     -------

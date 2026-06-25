@@ -60,7 +60,7 @@ dataset_summary_df = build_dataframe_for_fixed_point_dataset_summary(
 # %%
 summary_plot_path = plot_cross_dataset_summaries(
     dataset_summary_df,
-    output_dir=save_dir,
+    output_path=save_dir,
     column_names=[ColumnName.DiffAEData.PC3_FLIPPED],
     axis_mode="replicate",
     figure_size=(MAX_FIGURE_WIDTH * 0.7, 1.8),
@@ -73,7 +73,7 @@ summary_plot_path = plot_cross_dataset_summaries(
 # %%
 speed_summary_plot_path = plot_cross_dataset_summaries(
     dataset_summary_df,
-    output_dir=save_dir,
+    output_path=save_dir,
     column_names=[ColumnName.OpticalFlow.SPEED_MEAN],
     axis_mode="replicate",
     jitter_width=0.2,
