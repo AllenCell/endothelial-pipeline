@@ -117,7 +117,7 @@ first_passage_summary_df = build_dataframe_for_first_passage_time_dataset_summar
 )
 fpt_pearson_r_path = plot_cross_dataset_summaries(
     first_passage_summary_df,
-    output_dir=save_dir,
+    output_path=save_dir,
     column_names=[Column.VectorField.PEARSON_R],
     axis_mode="replicate",
     figure_size=(4.2, 2.3),
@@ -127,10 +127,11 @@ fpt_pearson_r_path = plot_cross_dataset_summaries(
     ylabel_horizontal_alignment="center",
     ylabel_vertical_alignment="bottom",
     yaxis_for_fixed_points=False,
+    point_color="black",
 )
 fpt_slope_path = plot_cross_dataset_summaries(
     first_passage_summary_df,
-    output_dir=save_dir,
+    output_path=save_dir,
     column_names=[Column.VectorField.LINEFIT_SLOPE],
     axis_mode="replicate",
     figure_size=(4.2, 2.3),
@@ -140,6 +141,7 @@ fpt_slope_path = plot_cross_dataset_summaries(
     ylabel_horizontal_alignment="center",
     ylabel_vertical_alignment="bottom",
     yaxis_for_fixed_points=False,
+    point_color="black",
 )
 
 # %% Build figure panels and figure
