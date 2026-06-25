@@ -257,7 +257,6 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         figure_size=(3.15, 1.8),
         color_by_column=Column.OpticalFlow.UNIT_VECTOR_MEAN,
         ylabel_rotation=0,
-        colorbar_multiline_label=True,
         **placeholders["D"],
     )
     # --- First passage time analysis schematic ---
@@ -273,7 +272,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     )
     # --- Histogram of first passage time correlation ---
     first_passage_path = make_first_passage_time_distance_to_linefit_hist(
-        figure_size=(2.5, 1.25),
+        figure_size=(2.5, 1.45),
         output_path=output_path,
         dataset_names=dataset_summary_list,
         weighted=False,
@@ -356,21 +355,21 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             x_position=3.25,
             y_position=1.35,
             x_offset=0.05,
-            y_offset=0.15,
+            y_offset=0.05,
         ),
         FigurePanel(
             letter="E",
             path=trajectory_example_filepath,
             x_position=3.25,
-            y_position=3.35,
-            x_offset=0.3,
+            y_position=3.15,
+            x_offset=0.15,
             y_offset=0.0,
         ),
         FigurePanel(
             letter="F",
             path=first_passage_path,
             x_position=3.25,
-            y_position=5.15,
+            y_position=4.9,
             x_offset=0.25,
             y_offset=0.2,
         ),
