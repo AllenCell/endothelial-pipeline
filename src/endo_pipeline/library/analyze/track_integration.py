@@ -950,7 +950,6 @@ def compute_first_passage_time_parameter_sweep_df(
     """
     sweep_results: list = []
     for thresh in thresholds:
-        fp_dist_col = f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fixed_point_index}"
         trajectory_df_one_param = trajectory_df.copy()
         trajectory_df_one_param["num_trajectories_before_fpt_filter"] = trajectory_df[
             Column.CROP_INDEX
@@ -958,7 +957,6 @@ def compute_first_passage_time_parameter_sweep_df(
         trajectory_df_one_param = add_first_passage_time_column(
             fixed_point_index=fixed_point_index,
             trajectory_df=trajectory_df_one_param,
-            column=fp_dist_col,
             threshold=thresh,
             time_column=Column.SegData.TIME_HRS,
         )

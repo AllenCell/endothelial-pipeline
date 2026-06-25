@@ -27,7 +27,6 @@ from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, TIM
 def add_first_passage_time_column(
     fixed_point_index: int,
     trajectory_df: pd.DataFrame,
-    column: str,
     threshold: float,
     time_column: str,
 ) -> pd.DataFrame:
@@ -35,8 +34,9 @@ def add_first_passage_time_column(
     Add the time of first passage for each track in the trajectory dataframe.
 
     The first passage time is computed as the first timepoint (specified by
-    `Column.TIMEPOINT`) at which the value in `column` is less than or equal to
-    the given threshold for each track (grouped by `Column.CROP_INDEX`).
+    `Column.TIMEPOINT`) at which distance from the fixed point is less than or
+    equal to the given threshold for each track (grouped by
+    `Column.CROP_INDEX`).
 
     Parameters
     ----------
@@ -45,9 +45,6 @@ def add_first_passage_time_column(
         first passage time.
     trajectory_df
         DataFrame containing the trajectory points.
-    column
-        Column name in trajectory_df to use for the first passage computation.
-        Expected to be the distance from a fixed point.
     threshold
         Threshold value to determine the first passage.
     time_column
@@ -61,6 +58,7 @@ def add_first_passage_time_column(
     """
 
     # compute where the trajectory first passes the threshold distance to the fixed point
+    column = f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fixed_point_index}"
     new_column_name = f"{Column.VectorField.FIRST_PASSAGE_PREFIX}{column}"
     trajectory_df[new_column_name] = (
         trajectory_df.groupby(Column.CROP_INDEX)
@@ -278,14 +276,12 @@ def compute_first_passage_times_one_dataset(
         traj_df_grid_sub = add_first_passage_time_column(
             fixed_point_index=fp_idx,
             trajectory_df=traj_df_grid_sub,
-            column=f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fp_idx}",
             threshold=fixed_point_radius_threshold,
             time_column=Column.SegData.TIME_HRS,
         )
         traj_df_tracked_sub = add_first_passage_time_column(
             fixed_point_index=fp_idx,
             trajectory_df=traj_df_tracked_sub,
-            column=f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fp_idx}",
             threshold=fixed_point_radius_threshold,
             time_column=Column.SegData.TIME_HRS,
         )

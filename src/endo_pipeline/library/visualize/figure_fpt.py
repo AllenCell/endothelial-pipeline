@@ -747,14 +747,12 @@ def generate_first_passage_time_example(
     traj_df_grid_sub = add_first_passage_time_column(
         fixed_point_index=example_fixed_point_index,
         trajectory_df=traj_df_grid_sub,
-        column=f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{example_fixed_point_index}",
         threshold=fixed_point_radius_threshold,
         time_column=Column.SegData.TIME_HRS,
     )
     traj_df_tracked_sub = add_first_passage_time_column(
         fixed_point_index=example_fixed_point_index,
         trajectory_df=traj_df_tracked_sub,
-        column=f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{example_fixed_point_index}",
         threshold=fixed_point_radius_threshold,
         time_column=Column.SegData.TIME_HRS,
     )
