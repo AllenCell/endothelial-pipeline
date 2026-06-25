@@ -56,7 +56,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
     from endo_pipeline.settings.column_metadata import COLUMN_METADATA
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.column_names import ColumnNameSuffix
+    from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
     from endo_pipeline.settings.examples import EXAMPLE_DATASET, FPT_FIG_EXAMPLES
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
     from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
@@ -87,9 +87,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     columns_r_rho = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
     columns_r_rho_str = join_sorted_strings(columns_r_rho)
-    columns_r_rho_fixed_point = [f"{col}{ColumnNameSuffix.FIXED_POINTS}" for col in columns_r_rho]
+    columns_r_rho_fixed_point = [ColumnTemplate.FIXED_POINT % col for col in columns_r_rho]
     column_theta = Column.DiffAEData.POLAR_ANGLE
-    column_theta_fixed_point = f"{column_theta}{ColumnNameSuffix.FIXED_POINTS}"
+    column_theta_fixed_point = ColumnTemplate.FIXED_POINT % column_theta
     optical_flow_feature = Column.OpticalFlow.UNIT_VECTOR_MEAN
     feature_column_names = [column_theta, *columns_r_rho]
     feature_columns_str = join_sorted_strings(feature_column_names)

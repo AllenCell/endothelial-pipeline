@@ -31,7 +31,7 @@ from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.column_names import ColumnNameSuffix
+from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.figures import FONTSIZE_SMALL, FONTSIZE_XSMALL
 from endo_pipeline.settings.first_passage_time import FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME
@@ -424,11 +424,11 @@ def reconstruct_fixed_points(
     # sheet of the results
     column_names = cast(list[str], list(DYNAMICS_COLUMN_NAMES))
 
-    # Column names in fixed point dataframe have the suffix "_fixed_point", but
-    # the generate_from_dataframe function expects the base column names, so
+    # Column names in fixed point dataframe use the template "%s_fixed_point",
+    # but the generate_from_dataframe function expects the base column names, so
     # remove the suffix here before passing to the generation function.
     column_rename_dict = {
-        column: column.replace(f"{ColumnNameSuffix.FIXED_POINTS}", "")
+        column: column.replace(ColumnTemplate.FIXED_POINT.replace("%s", ""), "")
         for column in fixed_point_df.columns
     }
     fixed_point_df_renamed = fixed_point_df.rename(columns=column_rename_dict)

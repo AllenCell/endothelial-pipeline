@@ -116,7 +116,7 @@ def main(
     from endo_pipeline.library.visualize.fixed_points import StabilityLegendHandle
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.column_names import ColumnNameSuffix
+    from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_DYNAMICS,
         BIN_WIDTHS_DYNAMICS,
@@ -150,9 +150,9 @@ def main(
 
     # Get label and drift column name for selected column
     column_labels = [get_label_for_column(column) for column in column_names]
-    drift_column_names = [f"{column}{ColumnNameSuffix.DRIFT}" for column in column_names]
-    fp_column_names = [f"{column}{ColumnNameSuffix.FIXED_POINTS}" for column in column_names]
-    mesh_column_names = [f"{column}{ColumnNameSuffix.MESH_GRID}" for column in column_names]
+    drift_column_names = [ColumnTemplate.DRIFT_COEFFICIENT % column for column in column_names]
+    fp_column_names = [ColumnTemplate.FIXED_POINT % column for column in column_names]
+    mesh_column_names = [ColumnTemplate.MESH_GRID % column for column in column_names]
 
     # Required columns for vector field and fixed point manifests
     required_vector_field_columns = [

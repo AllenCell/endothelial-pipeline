@@ -789,30 +789,26 @@ class ColumnNameTemplate(StrEnum):
     PCA_FEATURE = "pc_%d"
     """Column name template: Component %d of PCA-transformed latent vector."""
 
+    FIXED_POINT = "%s_fixed_point"
+    """Column name template: Vector field fixed point location in %s."""
 
-class ColumnNameSuffix(StrEnum):
-    """Suffixes for dataframe column names."""
+    DRIFT_COEFFICIENT = "%s_drift"
+    """Column name template: Component of drift coefficient vector field corresponding to d[%s]/dt."""
 
-    DRIFT = "_drift"
-    """Suffix for column name for drift in a given variable."""
+    MESH_GRID = "%s_mesh_grid"
+    """Column name template: Vector field mesh grid in %s."""
 
-    MESH_GRID = "_mesh_grid"
-    """Suffix for column name for vector field mesh grid."""
+    BASELINE_FIXED_POINT = "%s_baseline"
+    """Column name template: Baseline fixed point location in %s."""
 
-    FIXED_POINTS = "_fixed_point"
-    """Suffix for column name for fixed point locations."""
+    BOOTSTRAP_CLUSTER_MEAN = "%s_cluster_mean"
+    """Column name template: Mean coordinate of matched bootstrap fixed points in %s."""
 
-    BASELINE_FIXED_POINTS = "_baseline"
-    """Suffix for column name for baseline fixed point locations."""
+    BOOTSTRAP_CI_LOWER = "%s_ci_lower"
+    """Column name template: Lower bound of bootstrap confidence interval for %s."""
 
-    BOOTSTRAP_CLUSTER_MEAN = "_cluster_mean"
-    """Suffix for column name for mean coordinate of matched bootstrap fixed points."""
-
-    BOOTSTRAP_CI_LOWER = "_ci_lower"
-    """Suffix for column name for lower bound of the bootstrap confidence interval."""
-
-    BOOTSTRAP_CI_UPPER = "_ci_upper"
-    """Suffix for column name for upper bound of the bootstrap confidence interval."""
+    BOOTSTRAP_CI_UPPER = "%s_ci_upper"
+    """Column name template: Upper bound of bootstrap confidence interval for %s."""
 
 
 ColumnNameType = (
