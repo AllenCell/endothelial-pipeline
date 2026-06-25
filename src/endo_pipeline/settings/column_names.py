@@ -700,22 +700,22 @@ class ColumnName:
         """Column name suffixes used in autocorrelation analysis."""
 
         LAG = "lag"
-        """Column name for the lag at which the autocorrelation is computed."""
+        """Lag at which the autocorrelation is computed."""
 
         FEATURE = "feature"
-        """Column name indicating the feature variable for which autocorrelation is computed."""
+        """Feature variable for which autocorrelation is computed."""
 
         ACF_MEAN = "autocorrelation_mean"
-        """Column name for the mean autocorrelation value across tracks at a given lag."""
+        """Mean autocorrelation value across tracks at given lag."""
 
         ACF_LOWER_PERCENTILE = "autocorrelation_lower_percentile"
-        """Column name for the lower percentile of autocorrelation values across tracks at a given lag."""
+        """Lower percentile of autocorrelation values across tracks at given lag."""
 
         ACF_UPPER_PERCENTILE = "autocorrelation_upper_percentile"
-        """Column name for the upper percentile of autocorrelation values across tracks at a given lag."""
+        """Upper percentile of autocorrelation values across tracks at given lag."""
 
         EXPONENTIAL_FIT = "exponential_fit"
-        """Column name for the values of the evaluated exponential fit curve at a given lag."""
+        """Values of exponential decay curve fit to autocorrelation function."""
 
     RANDOM_SEED = "random_seed"
     """Random number generator seed."""
