@@ -13,6 +13,11 @@ parameters:
   num_init_samples_for_root_solver: 250
   lower_percentile_for_filtering_fpts: 5.0
   upper_percentile_for_filtering_fpts: 95.0
+columns:
+  stability: Stability classification of a fixed point
+  polar_theta_fixed_point: Vector field fixed point location in theta
+  dataset: Name of dataset
+  shear_stress: Shear stress value [dyn/cm^2]
 locations:
   20250409_20X:
     fmsid: efb3e294c359490bb8b4ebbcc3c55a5c
