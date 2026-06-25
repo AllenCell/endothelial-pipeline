@@ -79,7 +79,7 @@ def main(
     from endo_pipeline.library.visualize.fixed_points import StabilityLegendHandle
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.column_names import ColumnNameSuffix
+    from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_DYNAMICS,
         DEFAULT_DATASETS_DYNAMICS_VIS,
@@ -180,15 +180,15 @@ def main(
                     color = FIXED_POINT_PLOT_STYLE[stability].color
                     marker = FIXED_POINT_PLOT_STYLE[stability].marker
 
-                    x = row[f"{column_x}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"]
-                    y = row[f"{column_y}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"]
+                    x = row[ColumnTemplate.BOOTSTRAP_CLUSTER_MEAN % column_x]
+                    y = row[ColumnTemplate.BOOTSTRAP_CLUSTER_MEAN % column_y]
                     xlabel = get_label_for_column(column_x)
                     ylabel = get_label_for_column(column_y)
 
-                    x_lo = row[f"{column_x}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"]
-                    x_hi = row[f"{column_x}{ColumnNameSuffix.BOOTSTRAP_CI_UPPER}"]
-                    y_lo = row[f"{column_y}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"]
-                    y_hi = row[f"{column_y}{ColumnNameSuffix.BOOTSTRAP_CI_UPPER}"]
+                    x_lo = row[ColumnTemplate.BOOTSTRAP_CI_LOWER % column_x]
+                    x_hi = row[ColumnTemplate.BOOTSTRAP_CI_UPPER % column_x]
+                    y_lo = row[ColumnTemplate.BOOTSTRAP_CI_LOWER % column_y]
+                    y_hi = row[ColumnTemplate.BOOTSTRAP_CI_UPPER % column_y]
                     print(x_lo, x_hi, y_lo, y_hi)
 
                     xerr = (
@@ -273,15 +273,15 @@ def main(
                 if stability != StabilityLabel.STABLE:
                     continue
 
-                x = row[f"{column_x}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"]
-                y = row[f"{column_y}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"]
+                x = row[ColumnTemplate.BOOTSTRAP_CLUSTER_MEAN % column_x]
+                y = row[ColumnTemplate.BOOTSTRAP_CLUSTER_MEAN % column_y]
                 xlabel = get_label_for_column(column_x)
                 ylabel = get_label_for_column(column_y)
 
-                x_lo = row[f"{column_x}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"]
-                x_hi = row[f"{column_x}{ColumnNameSuffix.BOOTSTRAP_CI_UPPER}"]
-                y_lo = row[f"{column_y}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"]
-                y_hi = row[f"{column_y}{ColumnNameSuffix.BOOTSTRAP_CI_UPPER}"]
+                x_lo = row[ColumnTemplate.BOOTSTRAP_CI_LOWER % column_x]
+                x_hi = row[ColumnTemplate.BOOTSTRAP_CI_UPPER % column_x]
+                y_lo = row[ColumnTemplate.BOOTSTRAP_CI_LOWER % column_y]
+                y_hi = row[ColumnTemplate.BOOTSTRAP_CI_UPPER % column_y]
 
                 xerr = (
                     [[max(0.0, x - x_lo)], [max(0.0, x_hi - x)]]

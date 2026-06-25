@@ -14,7 +14,6 @@ from endo_pipeline.library.analyze.dataframe_validation import check_required_co
 from endo_pipeline.library.analyze.numerics.binning import circpercentile
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.column_names import ColumnNameSuffix
 from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
@@ -496,7 +495,7 @@ def load_fixed_points_dataframe_for_dataset(
     fixed_points_df = load_dataframe(fixed_points_df_location, delay=False)
 
     # rename baseline suffix columns so they don't need to be added downstream
-    drop_suffix = {f"{col}{ColumnNameSuffix.BASELINE_FIXED_POINTS}": col for col in column_names}
+    drop_suffix = {ColumnTemplate.BASELINE_FIXED_POINT % col: col for col in column_names}
     fixed_points_df = fixed_points_df.rename(columns=drop_suffix)
 
     return fixed_points_df
