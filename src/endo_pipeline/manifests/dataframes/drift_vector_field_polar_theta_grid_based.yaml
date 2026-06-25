@@ -13,6 +13,12 @@ parameters:
   num_init_samples_for_root_solver: 250
   lower_percentile_for_filtering_fpts: 5.0
   upper_percentile_for_filtering_fpts: 95.0
+columns:
+  dataset: Name of dataset
+  polar_theta_drift: Component of drift coefficient vector field corresponding to
+    d[theta]/dt
+  polar_theta_mesh_grid: Vector field mesh grid in theta
+  shear_stress: Shear stress value [dyn/cm^2]
 locations:
   20250409_20X:
     fmsid: 3072e660b2164100a8ba706950afab16

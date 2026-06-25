@@ -57,6 +57,8 @@ def main(manifest_names: UniqueStrList | None = None, reload_columns: bool = Fal
         ColumnTemplate.LATENT_FEATURE: range(DEFAULT_NUM_LATENT_DIMENSIONS),
         ColumnTemplate.PCA_FEATURE: range(1, DEFAULT_NUM_LATENT_DIMENSIONS + 1),
         ColumnTemplate.FIXED_POINT: ["rho", ("polar_theta", "theta"), ("polar_r", "r")],
+        ColumnTemplate.DRIFT_COEFFICIENT: ["rho", ("polar_theta", "theta"), ("polar_r", "r")],
+        ColumnTemplate.MESH_GRID: ["rho", ("polar_theta", "theta"), ("polar_r", "r")],
     }
 
     column_descriptions = {}
