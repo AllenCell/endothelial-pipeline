@@ -4,15 +4,12 @@ parameters: {}
 columns:
   frame_number: Timepoint [frames]
   track_id: Track ID assigned by the tracking algorithm
-  reference_index: Relative timepoint index used to compare nearby timepoints to find
-    matching segmentation for track
-  matched_query_label: List of matched labels from each timepoint starting from current
-    one to up to the next 4 timepoints
-  optimized_metric_value: Value of metric (fraction of segmentation overlap between
-    reference and query index timepoints) used for tracking
+  reference_index: Relative timepoint index used to compare nearby timepoints to find matching segmentation for track
+  matched_query_label: List of matched labels from each timepoint starting from current one to up to the next 4 timepoints
+  optimized_metric_value: Value of metric (fraction of segmentation overlap between reference and query index timepoints) used for tracking
   matching_method: Metric used by tracking algorithm to find matching segmentations
   dataset: Name of dataset
-  position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
+  position: Zarr file position (FOV) of the corresponding segmentation or patch
   label: Cell segmentation ID (different from track ID, and may change between timepoints)
   centroid: Centroid of cell segmentation in (Y,X) [pixels]
   area_px_squared: Area of cell segmentation [pixels^2]
@@ -20,223 +17,124 @@ columns:
   solidity: Solidity of cell (ratio of cell area to area of its convex hull)
   major_axis_length: Length of major axis of an ellipse fit to cell segmentation
   minor_axis_length: Length of minor axis of an ellipse fit to cell segmentation
-  eccentricity: Eccentricity of ellipse fit to cell segmentation (focal distance divided
-    by major axis)
-  orientation: Orientation of cell [radians] from 0 (along +x axis) to pi (along -x
-    axis)
-  cell_fluorescence_mean_au: Mean of mEGFP-tagged VE-cadherin fluorescence [a.u.]
-    in cytoplasmic region of cell segmentation
-  cell_fluorescence_std_au: Standard deviation of mEGFP-tagged VE-cadherin fluorescence
-    [a.u.] in cytoplasmic region of cell segmentation
-  cell_fluorescence_median_au: Median of mEGFP-tagged VE-cadherin fluorescence [a.u.]
-    in cytoplasmic region of cell segmentation
-  cell_fluorescence_min_au: Minimum of mEGFP-tagged VE-cadherin fluorescence [a.u.]
-    in cytoplasmic region of cell segmentation
-  cell_fluorescence_pct25_au: 25th percentile of mEGFP-tagged VE-cadherin fluorescence
-    [a.u.] in cytoplasmic region of cell segmentation
-  cell_fluorescence_pct75_au: 75th percentile of mEGFP-tagged VE-cadherin fluorescence
-    [a.u.] in cytoplasmic region of cell segmentation
-  cell_fluorescence_max_au: Maximum of mEGFP-tagged VE-cadherin fluorescence [a.u.]
-    in cytoplasmic region of cell segmentation
+  eccentricity: Eccentricity of ellipse fit to cell segmentation (focal distance divided by major axis)
+  orientation: Orientation of cell [radians] from 0 (along +x axis) to pi (along -x axis)
+  cell_fluorescence_mean_au: Mean of mEGFP-tagged VE-cadherin fluorescence [a.u.] in cytoplasmic region of cell segmentation
+  cell_fluorescence_std_au: Standard deviation of mEGFP-tagged VE-cadherin fluorescence [a.u.] in cytoplasmic region of cell segmentation
+  cell_fluorescence_median_au: Median of mEGFP-tagged VE-cadherin fluorescence [a.u.] in cytoplasmic region of cell segmentation
+  cell_fluorescence_min_au: Minimum of mEGFP-tagged VE-cadherin fluorescence [a.u.] in cytoplasmic region of cell segmentation
+  cell_fluorescence_pct25_au: 25th percentile of mEGFP-tagged VE-cadherin fluorescence [a.u.] in cytoplasmic region of cell segmentation
+  cell_fluorescence_pct75_au: 75th percentile of mEGFP-tagged VE-cadherin fluorescence [a.u.] in cytoplasmic region of cell segmentation
+  cell_fluorescence_max_au: Maximum of mEGFP-tagged VE-cadherin fluorescence [a.u.] in cytoplasmic region of cell segmentation
   neighboring_cell_labels: Cell segmentation labels of adjacent cell segmentations
   edge_labels: Label IDs of each edge of a segmentation boundary
   node_labels: Label IDs for each tricellular junction
   node_pair_labels: Pair of node label IDs that form each edge of a segmentation boundary
-  edge_fluorescence_au: Fluorescence [a.u.] along boundary between 2 cell segmentations
-    (excluding pixels at nodes)
+  edge_fluorescence_au: Fluorescence [a.u.] along boundary between 2 cell segmentations (excluding pixels at nodes)
   node_fluorescence_au: Fluorescence [a.u.] at junctions between 3 or more cell segmentations
   is_edge_segmentation: True if segmentation touches edge of the image, False otherwise
-  nuclei_segmentation_labels: List of labels from label-free nuclei predictions that
-    overlap with the cell segmentation
-  nuclei_seg_in_cdh5_seg_frac: List of fractions of label-free nuclei prediction that
-    overlap with the cell segmentation
-  nuclei_with_most_overlap_0: ID of nuclei prediction that overlaps most with cell
-    segmentation (index 0, multiple nuclei recorded in additional columns)
-  nuclei_with_most_overlap_0_centroid_Y: Centroid Y coordinate of nuclei prediction
-    that overlaps most with cell segmentation (index 0, multiple nuclei recorded in
-    additional columns)
-  nuclei_with_most_overlap_0_centroid_X: Centroid X coordinate of nuclei prediction
-    that overlaps most with cell segmentation (index 0, multiple nuclei recorded in
-    additional columns)
-  nuclei_with_most_overlap_1: ID of nuclei prediction that overlaps most with cell
-    segmentation (index 1, multiple nuclei recorded in additional columns)
-  nuclei_with_most_overlap_1_centroid_Y: Centroid Y coordinate of nuclei prediction
-    that overlaps most with cell segmentation (index 1, multiple nuclei recorded in
-    additional columns)
-  nuclei_with_most_overlap_1_centroid_X: Centroid X coordinate of nuclei prediction
-    that overlaps most with cell segmentation (index 1, multiple nuclei recorded in
-    additional columns)
+  nuclei_segmentation_labels: List of labels from label-free nuclei predictions that overlap with the cell segmentation
+  nuclei_seg_in_cdh5_seg_frac: List of fractions of label-free nuclei prediction that overlap with the cell segmentation
+  nuclei_with_most_overlap_0: ID of nuclei prediction that overlaps most with cell segmentation (index 0, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_0_centroid_Y: Centroid Y coordinate of nuclei prediction that overlaps most with cell segmentation (index 0, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_0_centroid_X: Centroid X coordinate of nuclei prediction that overlaps most with cell segmentation (index 0, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_1: ID of nuclei prediction that overlaps most with cell segmentation (index 1, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_1_centroid_Y: Centroid Y coordinate of nuclei prediction that overlaps most with cell segmentation (index 1, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_1_centroid_X: Centroid X coordinate of nuclei prediction that overlaps most with cell segmentation (index 1, multiple nuclei recorded in additional columns)
   total_nuclei_count_at_T: Total number of nuclei present at the timepoint of interest
-  nuclei_with_most_overlap_2: ID of nuclei prediction that overlaps most with cell
-    segmentation (index 2, multiple nuclei recorded in additional columns)
-  nuclei_with_most_overlap_2_centroid_Y: Centroid Y coordinate of nuclei prediction
-    that overlaps most with cell segmentation (index 2, multiple nuclei recorded in
-    additional columns)
-  nuclei_with_most_overlap_2_centroid_X: Centroid X coordinate of nuclei prediction
-    that overlaps most with cell segmentation (index 2, multiple nuclei recorded in
-    additional columns)
-  nuclei_with_most_overlap_3: ID of nuclei prediction that overlaps most with cell
-    segmentation (index 3, multiple nuclei recorded in additional columns)
-  nuclei_with_most_overlap_3_centroid_Y: Centroid Y coordinate of nuclei prediction
-    that overlaps most with cell segmentation (index 3, multiple nuclei recorded in
-    additional columns)
-  nuclei_with_most_overlap_3_centroid_X: Centroid X coordinate of nuclei prediction
-    that overlaps most with cell segmentation (index 3, multiple nuclei recorded in
-    additional columns)
-  nuclei_with_most_overlap_4: ID of nuclei prediction that overlaps most with cell
-    segmentation (index 4, multiple nuclei recorded in additional columns)
-  nuclei_with_most_overlap_4_centroid_Y: Centroid Y coordinate of nuclei prediction
-    that overlaps most with cell segmentation (index 4, multiple nuclei recorded in
-    additional columns)
-  nuclei_with_most_overlap_4_centroid_X: Centroid X coordinate of nuclei prediction
-    that overlaps most with cell segmentation (index 4, multiple nuclei recorded in
-    additional columns)
-  nuclei_with_most_overlap_5: ID of nuclei prediction that overlaps most with cell
-    segmentation (index 5, multiple nuclei recorded in additional columns)
-  nuclei_with_most_overlap_5_centroid_Y: Centroid Y coordinate of nuclei prediction
-    that overlaps most with cell segmentation (index 5, multiple nuclei recorded in
-    additional columns)
-  nuclei_with_most_overlap_5_centroid_X: Centroid X coordinate of nuclei prediction
-    that overlaps most with cell segmentation (index 5, multiple nuclei recorded in
-    additional columns)
-  nuclei_with_most_overlap_6: ID of nuclei prediction that overlaps most with cell
-    segmentation (index 6, multiple nuclei recorded in additional columns)
-  nuclei_with_most_overlap_6_centroid_Y: Centroid Y coordinate of nuclei prediction
-    that overlaps most with cell segmentation (index 6, multiple nuclei recorded in
-    additional columns)
-  nuclei_with_most_overlap_6_centroid_X: Centroid X coordinate of nuclei prediction
-    that overlaps most with cell segmentation (index 6, multiple nuclei recorded in
-    additional columns)
+  nuclei_with_most_overlap_2: ID of nuclei prediction that overlaps most with cell segmentation (index 2, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_2_centroid_Y: Centroid Y coordinate of nuclei prediction that overlaps most with cell segmentation (index 2, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_2_centroid_X: Centroid X coordinate of nuclei prediction that overlaps most with cell segmentation (index 2, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_3: ID of nuclei prediction that overlaps most with cell segmentation (index 3, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_3_centroid_Y: Centroid Y coordinate of nuclei prediction that overlaps most with cell segmentation (index 3, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_3_centroid_X: Centroid X coordinate of nuclei prediction that overlaps most with cell segmentation (index 3, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_4: ID of nuclei prediction that overlaps most with cell segmentation (index 4, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_4_centroid_Y: Centroid Y coordinate of nuclei prediction that overlaps most with cell segmentation (index 4, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_4_centroid_X: Centroid X coordinate of nuclei prediction that overlaps most with cell segmentation (index 4, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_5: ID of nuclei prediction that overlaps most with cell segmentation (index 5, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_5_centroid_Y: Centroid Y coordinate of nuclei prediction that overlaps most with cell segmentation (index 5, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_5_centroid_X: Centroid X coordinate of nuclei prediction that overlaps most with cell segmentation (index 5, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_6: ID of nuclei prediction that overlaps most with cell segmentation (index 6, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_6_centroid_Y: Centroid Y coordinate of nuclei prediction that overlaps most with cell segmentation (index 6, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_6_centroid_X: Centroid X coordinate of nuclei prediction that overlaps most with cell segmentation (index 6, multiple nuclei recorded in additional columns)
   shear_stress_regime: Experimentalist categorization of the shear stress response
   time_resolution_minutes: Time resolution of the timelapse [minutes]
   time_minutes: Time since start of timelapse [minutes]
   time_hours: Time since start of timelapse [hours]
-  num_unique_tracks_per_timeframe: Number of unique cell segmentations per dataset
-    per position per timepoint per track (should always be 1)
-  gaussian_sigma_for_area_smoothing: Standard deviation of Gaussian kernel used for
-    smoothing cell segmentation areas across time
-  smoothed_area_normd: Area of cell segmentation after Gaussian smoothing across time
-    [pixels^2]
+  num_unique_tracks_per_timeframe: Number of unique cell segmentations per dataset per position per timepoint per track (should always be 1)
+  gaussian_sigma_for_area_smoothing: Standard deviation of Gaussian kernel used for smoothing cell segmentation areas across time
+  smoothed_area_normd: Area of cell segmentation after Gaussian smoothing across time [pixels^2]
   smoothed_area_normd_diff: Change in Gaussian-smoothed cell segmentation area [pixels^2]
-  num_unique_tracks_before_filtering_at_T: Number of unique tracks present at timepoint
-    of interest before filtering
+  num_unique_tracks_before_filtering_at_T: Number of unique tracks present at timepoint of interest before filtering
   track_duration: Number of timepoints in track
-  alignment: Alignment of cell relative to flow [radians] from 0 (parallel) to pi
-    (perpendicular)
-  alignment_deg: Alignment of cell relative to flow [degrees] from 0 (parallel) to
-    90 (perpendicular)
-  orientation_deg: Orientation of cell [degrees] from 0 (along +x axis) to 180 (along
-    -x axis)
-  nematic_order: Nematic order of ellipse fit to cell segmentation from -1 (perpendicular)
-    to 1 (parallel)
-  aspect_ratio: Aspect ratio of ellipse fit to cell segmentation (major axis divided
-    by minor axis)
+  alignment: Alignment of cell relative to flow [radians] from 0 (parallel) to pi (perpendicular)
+  alignment_deg: Alignment of cell relative to flow [degrees] from 0 (parallel) to 90 (perpendicular)
+  orientation_deg: Orientation of cell [degrees] from 0 (along +x axis) to 180 (along -x axis)
+  nematic_order: Nematic order of ellipse fit to cell segmentation from -1 (perpendicular) to 1 (parallel)
+  aspect_ratio: Aspect ratio of ellipse fit to cell segmentation (major axis divided by minor axis)
   pixel_size_xy_in_um: Size of a pixel in the XY dimensions [microns]
   area_um_squared: Area of cell segmentation [microns^2]
   perimeter_um: Perimeter of cell segmentation [microns]
-  edge_fluorescence_mean_au: Mean fluorescence [a.u.] at junctions between 2 cell
-    segmentations (edge)
-  edge_fluorescence_std_au: Standard deviation of fluorescence [a.u.] at junctions
-    between 2 cell segmentations (edge)
-  node_fluorescence_mean_au: Mean fluorescence [a.u.] at junctions between 3 or more
-    cell segmentations (node)
-  node_fluorescence_std_au: Standard deviation of fluorescence [a.u.] at junctions
-    between 3 or more cell segmentations (node)
-  edge_and_node_fluorescence_mean_au: Mean fluorescence [a.u.] of cell segmentation
-    edges and nodes
-  edge_and_node_fluorescence_std_au: Standard deviation of fluorescence [a.u.] of
-    cell segmentation edges and nodes
-  number_of_neighbors: Number of unique cell segmentations that are adjacent to this
-    one
+  edge_fluorescence_mean_au: Mean fluorescence [a.u.] at junctions between 2 cell segmentations (edge)
+  edge_fluorescence_std_au: Standard deviation of fluorescence [a.u.] at junctions between 2 cell segmentations (edge)
+  node_fluorescence_mean_au: Mean fluorescence [a.u.] at junctions between 3 or more cell segmentations (node)
+  node_fluorescence_std_au: Standard deviation of fluorescence [a.u.] at junctions between 3 or more cell segmentations (node)
+  edge_and_node_fluorescence_mean_au: Mean fluorescence [a.u.] of cell segmentation edges and nodes
+  edge_and_node_fluorescence_std_au: Standard deviation of fluorescence [a.u.] of cell segmentation edges and nodes
+  number_of_neighbors: Number of unique cell segmentations that are adjacent to this one
   image_size_x: Size of the whole image in the X dimension [pixels]
   image_size_y: Size of the whole image in the Y dimension [pixels]
   cdh5_channel_index_in_zarr: Index of the CDH5 channel in the Zarr file
   brightfield_channel_index_zarr: Index of the brightfield channel in the Zarr file
-  num_nuclei_with_most_overlap: Number of label-free predicted nuclei that overlap
-    with a cell segmentation
+  num_nuclei_with_most_overlap: Number of label-free predicted nuclei that overlap with a cell segmentation
   centroid_y: Centroid of cell segmentation Y coordinate [pixels]
   centroid_x: Centroid of cell segmentation X coordinate [pixels]
   nuclei_position_x: X coordinate of the label-free nuclei prediction centroid [pixels]
   nuclei_position_y: Y coordinate of the label-free nuclei prediction centroid [pixels]
-  nuclei_position_distance: Distance between nucleus centroid and cell segmentation
-    centroid [pixels]
-  nuclei_position_angle: Angle of nucleus centroid from cell centroid relative to
-    flow [radians] with 0 along +x and pi/-pi along -x
-  nuclei_position_angle_deg: Angle of nucleus centroid from cell centroid relative
-    to flow [degrees] with 0 along +x and 180/-180 along -x
+  nuclei_position_distance: Distance between nucleus centroid and cell segmentation centroid [pixels]
+  nuclei_position_angle: Angle of nucleus centroid from cell centroid relative to flow [radians] with 0 along +x and pi/-pi along -x
+  nuclei_position_angle_deg: Angle of nucleus centroid from cell centroid relative to flow [degrees] with 0 along +x and 180/-180 along -x
   crop_size: Size of the crop [pixels] at resolution level 0 (the native resolution)
-  start_x_resolution_0: X coordinate of upper left corner of patch (crop) [pixels]
-    (zarr resolution level 0)
-  start_y_resolution_0: Y coordinate of upper left corner of patch (crop) [pixels]
-    (zarr resolution level 0)
-  end_x_resolution_0: X coordinate of lower right corner of patch (crop) [pixels]
-    (zarr resolution level 0)
-  end_y_resolution_0: Y coordinate of lower right corner of patch (crop) [pixels]
-    (zarr resolution level 0)
-  bbox_is_in_bounds: True if crop/cell-centered patch fits into the larger image without
-    being clipped
-  diffae_resolution_level_to_use: DiffAE feature resolution level used to downsample
-    resolution 0 coordinates
-  num_nuclei_in_crop: Number of label-free predicted nuclei in a crop/cell-centered
-    patch
-  all_labels_in_crop: List of all segmentation labels found within a crop/cell-centered
-    patch
+  start_x_resolution_0: X coordinate of upper left corner of patch [pixels] (zarr resolution level 0)
+  start_y_resolution_0: Y coordinate of upper left corner of patch [pixels] (zarr resolution level 0)
+  end_x_resolution_0: X coordinate of lower right corner of patch [pixels] (zarr resolution level 0)
+  end_y_resolution_0: Y coordinate of lower right corner of patch [pixels] (zarr resolution level 0)
+  bbox_is_in_bounds: True if crop/cell-centered patch fits into the larger image without being clipped
+  diffae_resolution_level_to_use: DiffAE feature resolution level used to downsample resolution 0 coordinates
+  num_nuclei_in_crop: Number of label-free predicted nuclei in a crop/cell-centered patch
+  all_labels_in_crop: List of all segmentation labels found within a crop/cell-centered patch
   min_track_duration: Minimum number of timepoints for a track to be kept
-  is_greater_than_min_track_duration: True if track duration exceeds minimum threshold,
-    False otherwise
-  max_smoothed_area_normd_change: Max change in normalized smoothed cell segmentation
-    area before being considered invalid
-  is_less_than_max_smoothed_area_normd_change: True if change in Gaussian-smoothed
-    cell segmentation area is less than threshold, False otherwise
-  is_included: True if track passes all filtering criteria and is included in final
-    dataset, False otherwise
-  num_valid_tp_per_track: Number of timepoints in track that pass all segmentation-based
-    filters
-  min_num_valid_tp_per_track: Minimum number of timepoints that pass all other filters
-    for a track to be kept
-  has_more_than_min_num_valid_points_per_track: True if track has sufficient number
-    of timepoints passing all other filters, False otherwise
-  num_unique_tracks_after_filtering_at_T: Number of unique tracks that pass filtering
-    criteria at timepoint of interest
-  auto_bf_scope_error: True if timepoint was automatically flagged with brightfield
-    channel error, False otherwise
-  auto_bf_temp_artifact: True if timepoint was automatically flagged with brightfield
-    channel suddenly becoming too bright or too dark, False otherwise
-  auto_gfp_scope_error: True if timepoint was automatically flagged with 488 channel
-    (VE-cadherin-mEGFP) error, False otherwise
-  bf_scope_error: True if timepoint was manually determined with brightfield channel
-    error, False otherwise
-  bf_temp_artifact: True if timepoint was manually determined with brightfield channel
-    suddenly becoming too bright or too dark, False otherwise
-  cell_piling: True if there is considered to be cell piling at this timepoint, False
-    otherwise
-  gfp_scope_error: True if timepoint was manually determined with 488 channel (VE-cadherin-mEGFP)
-    error, False otherwise
-  not_steady_state: True if cells have not yet reached steady state, False if they
-    have
+  is_greater_than_min_track_duration: True if track duration exceeds minimum threshold, False otherwise
+  max_smoothed_area_normd_change: Max change in normalized smoothed cell segmentation area before being considered invalid
+  is_less_than_max_smoothed_area_normd_change: True if change in Gaussian-smoothed cell segmentation area is less than threshold, False otherwise
+  is_included: True if track passes all filtering criteria and is included in final dataset, False otherwise
+  num_valid_tp_per_track: Number of timepoints in track that pass all segmentation-based filters
+  min_num_valid_tp_per_track: Minimum number of timepoints that pass all other filters for a track to be kept
+  has_more_than_min_num_valid_points_per_track: True if track has sufficient number of timepoints passing all other filters, False otherwise
+  num_unique_tracks_after_filtering_at_T: Number of unique tracks that pass filtering criteria at timepoint of interest
+  auto_bf_scope_error: True if timepoint was automatically flagged with brightfield channel error, False otherwise
+  auto_bf_temp_artifact: True if timepoint was automatically flagged with brightfield channel suddenly becoming too bright or too dark, False otherwise
+  auto_gfp_scope_error: True if timepoint was automatically flagged with 488 channel (VE-cadherin-mEGFP) error, False otherwise
+  bf_scope_error: True if timepoint was manually determined with brightfield channel error, False otherwise
+  bf_temp_artifact: True if timepoint was manually determined with brightfield channel suddenly becoming too bright or too dark, False otherwise
+  cell_piling: True if there is considered to be cell piling at this timepoint, False otherwise
+  gfp_scope_error: True if timepoint was manually determined with 488 channel (VE-cadherin-mEGFP) error, False otherwise
+  not_steady_state: True if cells have not yet reached steady state, False if they have
   unfed: True if cells were unfed during this timepoint, False otherwise
-  xy_shift: True if there was a significant change in XY position of FOV at this timepoint,
-    False otherwise
-  z_shift: True if there was a significant change in Z position of FOV at this timepoint,
-    False otherwise
+  xy_shift: True if there was a significant change in XY position of FOV at this timepoint, False otherwise
+  z_shift: True if there was a significant change in Z position of FOV at this timepoint, False otherwise
   shear_stress: Shear stress value [dyn/cm^2]
   time_hours_since_flow_start: Time since cells first experienced a shear stress [hours]
-  start_y: Y coordinate of upper left corner of patch (crop) [pixels] (zarr resolution
-    level 1)
-  start_x: X coordinate of upper left corner of patch (crop) [pixels] (zarr resolution
-    level 1)
-  end_y: Y coordinate of lower right corner of patch (crop) [pixels] (zarr resolution
-    level 1)
-  end_x: X coordinate of lower right corner of patch (crop) [pixels] (zarr resolution
-    level 1)
+  start_y: Y coordinate of upper left corner of patch [pixels] (zarr resolution level 1)
+  start_x: X coordinate of upper left corner of patch [pixels] (zarr resolution level 1)
+  end_y: Y coordinate of lower right corner of patch [pixels] (zarr resolution level 1)
+  end_x: X coordinate of lower right corner of patch [pixels] (zarr resolution level 1)
   model_manifest_name: Manifest name of model used to generate latent vectors
   run_name: Run name of model used to generate latent vectors
-  resolution_level: Zarr resolution level used to generate patches (crops) for obtaining
-    latent vectors
-  crop_size_y: Height of the patch (crop) [pixels] (zarr resolution level 1)
-  crop_size_x: Width of the patch (crop) [pixels] (zarr resolution level 1)
-  crop_index: Unique integer index of a patch (crop) trajectory across dataset, FOV,
-    and XY-position
+  resolution_level: Zarr resolution level used to generate patches for obtaining latent vectors
+  crop_size_y: Height of the patch [pixels] (zarr resolution level 1)
+  crop_size_x: Width of the patch [pixels] (zarr resolution level 1)
+  crop_index: Unique integer index of a patch (crop) trajectory across dataset, FOV, and XY-position
   pc_1: Component 1 of PCA-transformed latent vector
   pc_2: Component 2 of PCA-transformed latent vector
   pc_3: Component 3 of PCA-transformed latent vector
