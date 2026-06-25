@@ -34,6 +34,7 @@ STAGING_DATAFRAME_MANIFEST_NAMES = [
     "cell_centered_features_filtered",
     "cell_centered_features_unfiltered",
     "grid_based_features_filtered",
+    "grid_based_features_unfiltered",
 ]
 """List of names of dataframe manifests to stage."""
 
