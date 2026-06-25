@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import cast
 
 import numpy as np
-from matplotlib import patheffects
 from pandas import DataFrame
 
 from endo_pipeline.io import load_dataframe, load_model, save_plot_to_path
@@ -166,7 +165,6 @@ def reconstruct_fixed_points(
     figure_size: tuple[float, float] = (0.8, 1.6),
     num_gpus: int | None = None,
     random_seed: int | None = 4,
-    add_fixed_point_coordinate_annotation: bool = False,
 ) -> Path:
     """
     Reconstruct the fixed point coordinates from the polar angle, radius, and
@@ -184,11 +182,8 @@ def reconstruct_fixed_points(
         Number of GPUs to use for reconstruction, by default None
     random_seed
         Random seed for reproducibility, by default 4
-    add_fixed_point_coordinate_annotation
-        Whether to add fixed point coordinate annotations to the reconstructed
-        images, by default False.
-    """
 
+    """
     # load and instantiate model for generating synthetic images
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
     model_location = model_manifest.locations[DEFAULT_MODEL_RUN_NAME]
@@ -196,6 +191,7 @@ def reconstruct_fixed_points(
 
     column_names = cast(list[str], list(DYNAMICS_COLUMN_NAMES))
     column_labels = [str(COLUMN_METADATA[col].label or str(col)) for col in DYNAMICS_COLUMN_NAMES]
+    fixed_point_label = f"({column_labels[0]}$^*$, {column_labels[1]}$^*$, {column_labels[2]}$^*$)"
 
     # wrap the polar angle to be within the specified limits for visualization
     # and consistency with the vector field plots
@@ -235,28 +231,20 @@ def reconstruct_fixed_points(
         gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
     )
 
-    # add the fixed point coordinate as an annotation to each panel
-    if add_fixed_point_coordinate_annotation:
-        for i, ax in enumerate(fig_fixed_point_reconstructions.axes):
-            fp_coords = fixed_point_df.iloc[i][column_names].to_numpy(dtype=float)
-            fp_coords_list = [
-                f"{col} = {fp_coords[j].round(2)}" for j, col in enumerate(column_labels)
-            ]
-            fp_coords_as_str = "\n".join(fp_coords_list)
+    # add the fixed point coordinate as axes titles for each panel
+    for i, ax in enumerate(fig_fixed_point_reconstructions.axes):
+        fp_coords = fixed_point_df.iloc[i][column_names].to_numpy(dtype=float)
+        fp_coords_list = [f"{fp_coords[j]:.2f}" for j in range(len(column_names))]
+        fp_coords_as_str = ", ".join(fp_coords_list)
+        image_label = f"{fixed_point_label} =\n({fp_coords_as_str})"
 
-            fp_annotation = ax.text(
-                x=0.02,
-                y=0.98,
-                s=fp_coords_as_str,
-                ha="left",
-                va="top",
-                fontsize=FONTSIZE_XSMALL,
-                color="white",
-                transform=ax.transAxes,
-            )
-            fp_annotation.set_path_effects(
-                [patheffects.withStroke(linewidth=0.5, foreground="black")]
-            )
+        ax.set_title(
+            label=image_label,
+            fontsize=FONTSIZE_XSMALL,
+            color="black",
+            fontweight="bold",
+            pad=3,
+        )
 
     # add scalebars to each panel, only label the top left one to avoid
     # redundancy
@@ -281,7 +269,6 @@ def reconstruct_fixed_points(
         file_format=".svg",
         tight_layout=False,
         transparent=True,
-        bbox_inches="tight",
     )
 
     return output_path / f"{filename}.svg"
