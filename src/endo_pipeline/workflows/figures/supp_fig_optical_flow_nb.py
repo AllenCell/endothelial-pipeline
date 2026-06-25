@@ -68,8 +68,8 @@ migration_coherence_panel_size = (1.5 * 1.3, 1.5 * 1.3)
 # crop grid, and the timepoint pair is taken as (timepoint, timepoint + 1).
 
 picks = {
-    "Coherent": SUPP_FIG_OPTICAL_FLOW_COHERENT_EXAMPLE,
-    "Incoherent": SUPP_FIG_OPTICAL_FLOW_INCOHERENT_EXAMPLE,
+    "High migration\ncoherence": SUPP_FIG_OPTICAL_FLOW_COHERENT_EXAMPLE,
+    "Low migration\ncoherence": SUPP_FIG_OPTICAL_FLOW_INCOHERENT_EXAMPLE,
 }
 attachment = OPTICAL_FLOW_CHANNEL_ATTACHMENT["BF"]
 
@@ -222,7 +222,7 @@ build_figure_from_panels(
             x_position=0,
             y_position=4,
             x_offset=0,
-            y_offset=0.2,
+            y_offset=0.3,
         ),
         FigurePanel(
             letter="C",
