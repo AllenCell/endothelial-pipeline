@@ -68,7 +68,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     feature_columns_str = join_sorted_strings(feature_column_names)
 
     # load dataframe manifests for diffae features, fixed points, optical flow
-    # features, and bootstrapped fixed points for this crop pattern, which will be
+    # features, and bootstrapped fixed points for this patch type, which will be
     # used for all visualizations in this figure
     name_suffix_2d = f"_{columns_r_rho_str}_{patch_type}"
     fixed_points_r_rho_dataframe_manifest_name = (

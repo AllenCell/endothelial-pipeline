@@ -334,7 +334,7 @@ def _select_example_bin(
     """
     # pick the mean FPT metric and select the first well-populated bin as the
     # example bin to visualize
-    # we take one representative trajectory from each crop pattern that starts inside that bin
+    # we take one representative trajectory from each patch type that starts inside that bin
     metric = f"mean{Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX}"
 
     # NaN values are unacceptable for the linear regression
@@ -366,7 +366,7 @@ def _select_example_bin_trajectories(
     example_grid_crop_index: int | None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Filter dataframes to only include a single trajectory from each crop pattern
+    Filter dataframes to only include a single trajectory from each patch type
     that starts in the example bin, and filter to just the timepoints from that
     trajectory that start in the bin and continue until the end of the track.
     """
@@ -489,7 +489,7 @@ def _create_fpt_schematic_figure(
     track_alpha = 0.7
 
     # plot the full trajectories as lines with markers at each timepoint,
-    # colored by crop pattern
+    # colored by patch type
     ax.plot(
         xs=thetas_grid_unwrapped,
         ys=rs_grid,
