@@ -162,7 +162,7 @@ def make_3d_vector_field_plot_panel(
 def reconstruct_fixed_points(
     fixed_point_df: DataFrame,
     output_path: Path,
-    figure_size: tuple[float, float] = (1.6, 0.8),
+    figure_size: tuple[float, float] = (0.8, 1.6),
     num_gpus: int | None = None,
     random_seed: int | None = 4,
     add_fixed_point_coordinate_annotation: bool = False,
