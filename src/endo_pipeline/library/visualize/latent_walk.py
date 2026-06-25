@@ -21,6 +21,7 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
     load_model_manifest,
 )
+from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
 from endo_pipeline.settings.figures import FONTSIZE_XSMALL, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
@@ -34,6 +35,29 @@ from endo_pipeline.settings.workflow_defaults import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _format_value_label(value: float, column_name: str) -> str:
+    """Format a coordinate value as a display label.
+
+    For polar angle, express as a fraction of π. For other columns, round to 2
+    decimal places.
+    """
+    if column_name == ColumnName.DiffAEData.POLAR_ANGLE:
+        multiple = value / (np.pi / 6)
+        n = round(multiple)
+        if n == 0:
+            return "0"
+        if n == 6:
+            return Unicode.PI
+        if n == 1:
+            return f"{Unicode.PI}/6"
+        if n % 3 == 0:
+            return f"{n // 3}{Unicode.PI}/2" if n // 3 != 1 else f"{Unicode.PI}/2"
+        if n % 2 == 0:
+            return f"{n // 2}{Unicode.PI}/3" if n // 2 != 1 else f"{Unicode.PI}/3"
+        return f"{n}{Unicode.PI}/6"
+    return f"{np.round(value, 2)}"
 
 
 def plot_latent_walk_as_grid(
@@ -111,7 +135,7 @@ def plot_latent_walk_as_grid(
 
             # Add value label
             if show_values:
-                value_label = f"{np.round(coordinate_values[i][j], 2)}"
+                value_label = _format_value_label(coordinate_values[i][j], column_names[i])
                 ax.annotate(
                     value_label,
                     xy=(0, 1),

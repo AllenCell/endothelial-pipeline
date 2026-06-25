@@ -30,28 +30,34 @@ def create_panel_biological_system_examples(
     crop_size: int = 1000,
     scale_bar_um: int = 100,
     figure_size: tuple[float, float] = (3, 3),
-    inset_coordinates: tuple = (0, 0),
-) -> tuple[Path, Path]:
+    inset_coordinates: tuple[int, int] = (0, 0),
+    inset_size: int = 256,
+) -> Path:
     """Create FOV and inset image panels of example images of the biological system
     at low and high shear stress.
+
+    Each example produces a column of full-FOV images. Cropped inset columns
+    are appended to the right of the contact sheet.
 
     Parameters
     ----------
     examples
-        List of example images to display (one per row).
-    save_dir
+        List of example images to display (one per column).
+    output_path
         Directory to save the output figure.
     crop_size
         Crop size in pixels at resolution level 0.
     scale_bar_um
         Scale bar length in micrometers.
     figure_size
-        Size of the first figure (width, height) in inches.
+        Figure size (width, height) in inches.
     inset_coordinates
-        Tuple of (x, y) coordinates in pixels at resolution level 0 for the top-left corner of the inset region.
+        (x, y) pixel coordinates for the inset crop region.
+    inset_size
+        Size of the inset crop in pixels.
     """
-    image_panel_list = []
-    shear_stress_titles = []
+    image_panel_list: list[np.ndarray] = []
+    col_titles: list[str] = []
 
     for example in examples:
         dataset_config = load_dataset_config(example.dataset_name)
@@ -83,14 +89,29 @@ def create_panel_biological_system_examples(
         )
 
         image_panel_list.extend([gfp_max_proj, bf_plane, log_bf_std_dev])
-        shear_stress_titles.append(f"{shear_stress_value} dyn/cm{Unicode.SQUARED}")
+        col_titles.append(f"{shear_stress_value} dyn/cm{Unicode.SQUARED}")
 
+    # Add inset crops as extra columns
+    n_base_cols = len(examples)
+    n_rows = 3  # GFP, BF, BF std dev
+    for col_idx in range(n_base_cols):
+        for row_offset in range(n_rows):
+            full_img = image_panel_list[col_idx * n_rows + row_offset]
+            inset = crop_image(full_img, inset_coordinates[0], inset_coordinates[1], inset_size)
+            image_panel_list.append(inset)
+        col_titles.append(f"{col_titles[col_idx]} inset")
+
+    n_cols = len(col_titles)
     fig = make_contact_sheet(
         image_panel_list,
-        max_cols=len(examples),
-        max_rows=len(image_panel_list) // len(examples),
-        col_titles=shear_stress_titles,
-        row_titles=["VE-Cadherin\nMIP", "BF\nZ-slice", "BF\nStd. Dev. Proj."],
+        max_cols=n_cols,
+        max_rows=n_rows,
+        col_titles=col_titles,
+        row_titles=[
+            "VE-cadherin\nmax int. proj.",
+            "Brightfield\nZ-slice",
+            "Brightfield\nstd. dev. proj.",
+        ],
         direction="top-down first",
         font_size=FONTSIZE_MEDIUM,
         subplot_kwargs={"frame_on": False},
@@ -102,29 +123,34 @@ def create_panel_biological_system_examples(
         ax.xaxis.labelpad = 3
         ax.yaxis.labelpad = 3
 
+        col_idx = i % n_cols
+        row_idx = i // n_cols
+        is_inset_col = col_idx >= n_base_cols
+
         add_scalebar(
             ax,
-            scale_bar_um=scale_bar_um,
+            scale_bar_um=20 if is_inset_col else scale_bar_um,
             pixel_size=PIXEL_SIZE_3i_20x,
             location="lower right",
-            bar_thickness=25,
-            padding=25,
-            include_label=True if i == 0 else False,
+            bar_thickness=10 if is_inset_col else 25,
+            padding=10 if is_inset_col else 25,
+            label_xy=(0.96, 0.1) if is_inset_col else (0.97, 0.07),
+            include_label=(i == 0 or (is_inset_col and row_idx == 0)),
         )
 
-        # draw box to indicate inset region to each image
-        inset_size_in_pixels = 256
-        rect = plt.Rectangle(
-            (inset_coordinates[0], inset_coordinates[1]),
-            inset_size_in_pixels,
-            inset_size_in_pixels,
-            edgecolor="yellow",
-            facecolor="none",
-            linewidth=1.5,
-        )
-        ax.add_patch(rect)
+        # Draw yellow rectangle on full-FOV images to indicate inset region
+        if not is_inset_col:
+            rect = plt.Rectangle(
+                (inset_coordinates[0], inset_coordinates[1]),
+                inset_size,
+                inset_size,
+                edgecolor="yellow",
+                facecolor="none",
+                linewidth=1.5,
+            )
+            ax.add_patch(rect)
 
-    example_path = save_plot_to_path(
+    return save_plot_to_path(
         fig,
         output_path,
         f"biological_system_examples_scale_bar_{scale_bar_um}um",
@@ -132,52 +158,6 @@ def create_panel_biological_system_examples(
         tight_layout=False,
         pad_inches=0,
     )
-
-    # Create a panel with insets / crops of to show in more zoomed in detail
-    cropped_image_panel_list = []
-    for image in image_panel_list:
-        cropped_image = crop_image(image, inset_coordinates[0], inset_coordinates[1], 256)
-        cropped_image_panel_list.append(cropped_image)
-
-    figure_size_crops = (figure_size[0], figure_size[1])
-
-    fig_crops = make_contact_sheet(
-        cropped_image_panel_list,
-        max_cols=len(examples),
-        max_rows=len(cropped_image_panel_list) // len(examples),
-        col_titles=shear_stress_titles,
-        row_titles=["VE-cadherin\nMIP", "BF\nZ-slice", "BF\nstd. dev. proj."],
-        direction="top-down first",
-        font_size=FONTSIZE_MEDIUM,
-        subplot_kwargs={"frame_on": False},
-        gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
-        fig_kwargs={"figsize": figure_size_crops, "layout": "constrained"},
-    )
-    for i, ax in enumerate(fig_crops.axes):
-        ax.xaxis.labelpad = 3
-        ax.yaxis.labelpad = 3
-
-        scale_bar_um = 20
-        add_scalebar(
-            ax,
-            scale_bar_um=scale_bar_um,  # since crop is 256x256 instead of 1000x1000
-            pixel_size=PIXEL_SIZE_3i_20x,
-            location="lower right",
-            bar_thickness=10,
-            padding=10,
-            include_label=True if i == 0 else False,
-        )
-
-    example_inset_path = save_plot_to_path(
-        fig_crops,
-        output_path,
-        f"biological_system_examples_inset_scale_bar_{scale_bar_um}um",
-        file_format=".svg",
-        tight_layout=False,
-        pad_inches=0,
-    )
-
-    return example_path, example_inset_path
 
 
 def create_panel_intermediate_examples(
@@ -232,7 +212,7 @@ def create_panel_intermediate_examples(
         max_rows=len(image_panel_list) // len(examples),
         max_cols=len(examples),
         col_titles=shear_stress_titles,
-        row_titles=["VE-cadherin\nMIP", "BF\nstd. dev. proj."],
+        row_titles=["VE-cadherin\nmax int. proj.", "Brightfield\nstd. dev. proj."],
         direction="top-down first",
         font_size=FONTSIZE_MEDIUM,
         subplot_kwargs={"frame_on": False},
@@ -360,7 +340,7 @@ def create_panel_perturbation_examples(
         max_rows=len(image_panel_list) // len(cell_line_titles),
         max_cols=len(cell_line_titles),
         col_titles=cell_line_titles,
-        row_titles=["VE-Cadherin MIP", "BF std. dev. proj."],
+        row_titles=["VE-cadherin\nmax int. proj.", "Brightfield\nstd. dev. proj."],
         direction="top-down first",
         font_size=FONTSIZE_MEDIUM,
         subplot_kwargs={"frame_on": False},
@@ -501,7 +481,7 @@ def create_panel_retraction_fiber_blob_example(
     col_titles = [
         f"{int((tp - timepoints[0]) * interval_in_min)} min" for tp in timepoints
     ]  # elapsed time
-    row_titles = ["VE-cad MIP", "BF Z-slice", "Merge"]
+    row_titles = ["VE-cadherin\nmax int. proj.", "Brightfield\nZ-slice", "Merge"]
 
     fig = make_contact_sheet(
         panels=panels,
