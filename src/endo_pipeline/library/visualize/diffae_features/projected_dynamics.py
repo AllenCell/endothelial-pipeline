@@ -727,7 +727,7 @@ def visualize_projected_dynamics(
             color=FIXED_POINT_PLOT_STYLE[stability_label].color,
             markeredgecolor="k",
             markeredgewidth=0.5,
-            markersize=7,
+            markersize=FIXED_POINT_PLOT_STYLE[stability_label].markersize,
             zorder=5,
         )
 

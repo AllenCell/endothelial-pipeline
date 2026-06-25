@@ -21,14 +21,14 @@ SHEAR_COLOR_DICT = {
 }
 """Color dictionary for shear stress levels to color code histogram plots."""
 
-MarkerStyle = namedtuple("MarkerStyle", ["marker", "color"])
+MarkerStyle = namedtuple("MarkerStyle", ["marker", "color", "markersize"])
 """Named tuple for defining marker style in plots."""
 
 FIXED_POINT_PLOT_STYLE: dict[str, MarkerStyle] = {
-    StabilityLabel.STABLE: MarkerStyle(marker="o", color="blue"),
-    StabilityLabel.SADDLE: MarkerStyle(marker="D", color="white"),
-    StabilityLabel.UNSTABLE: MarkerStyle(marker="s", color="red"),
-    StabilityLabel.INDETERMINATE: MarkerStyle(marker="P", color="khaki"),
+    StabilityLabel.STABLE: MarkerStyle(marker="o", color="blue", markersize=7),
+    StabilityLabel.SADDLE: MarkerStyle(marker="D", color="white", markersize=5),
+    StabilityLabel.UNSTABLE: MarkerStyle(marker="s", color="red", markersize=5),
+    StabilityLabel.INDETERMINATE: MarkerStyle(marker="P", color="khaki", markersize=4),
 }
 """Dictionary mapping fixed point stability classification labels to plotting styles for visualizations."""
 
