@@ -29,6 +29,9 @@ from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, VECTOR_
 
 logger = logging.getLogger(__name__)
 
+BASIN_GREEN = (170 / 255, 255 / 255, 170 / 255)
+BASIN_PURPLE = (204 / 255, 170 / 255, 255 / 255)
+
 
 def _find_saddle_point_for_projection(
     f: Callable[[np.ndarray], np.ndarray],
@@ -486,8 +489,8 @@ def draw_basins_and_separatrix(
     stable_fixed_point_1_2d: np.ndarray,
     stable_fixed_point_2_2d: np.ndarray,
     origin_3d: np.ndarray | None = None,
-    basin_colors: tuple[Any, Any] = ("green", "purple"),
-    basin_alpha: float = 0.2,
+    basin_colors: tuple[Any, Any] = (BASIN_GREEN, BASIN_PURPLE),
+    basin_alpha: float = 0.7,
     separatrix_color: Any = "k",
     separatrix_linewidth: float = 1.5,
     separatrix_linestyle: str = "--",
