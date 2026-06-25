@@ -516,21 +516,16 @@ columns:
   feat_510: Component 510 of the DiffAE latent vector
   feat_511: Component 511 of the DiffAE latent vector
   frame_number: Timepoint [frames]
-  start_y: Y coordinate of upper left corner of patch [pixels] (zarr resolution level
-    1)
-  start_x: X coordinate of upper left corner of patch [pixels] (zarr resolution level
-    1)
-  end_y: Y coordinate of lower right corner of patch [pixels] (zarr resolution level
-    1)
-  end_x: X coordinate of lower right corner of patch [pixels] (zarr resolution level
-    1)
+  start_y: Y coordinate of upper left corner of patch [pixels] (zarr resolution level 1)
+  start_x: X coordinate of upper left corner of patch [pixels] (zarr resolution level 1)
+  end_y: Y coordinate of lower right corner of patch [pixels] (zarr resolution level 1)
+  end_x: X coordinate of lower right corner of patch [pixels] (zarr resolution level 1)
   zarr_path: Path to Zarr file for image that the patch comes from
   track_id: Track ID assigned by the tracking algorithm
   dataset: Name of dataset
   model_manifest_name: Manifest name of model used to generate latent vectors
   run_name: Run name of model used to generate latent vectors
-  resolution_level: Zarr resolution level used to generate patches for obtaining latent
-    vectors
+  resolution_level: Zarr resolution level used to generate patches for obtaining latent vectors
   crop_size_y: Height of the patch [pixels] (zarr resolution level 1)
   crop_size_x: Width of the patch [pixels] (zarr resolution level 1)
   position: Zarr file position (FOV) of the corresponding segmentation or patch

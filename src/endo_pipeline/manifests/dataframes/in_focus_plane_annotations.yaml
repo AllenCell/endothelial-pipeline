@@ -4,8 +4,7 @@ parameters: {}
 columns:
   position: Zarr file position (FOV) of the corresponding segmentation or patch
   center_planes: List of center planes determined by minimum standard deviation
-  center_plane_slice_std_devs: List of slices standard deviations for representative
-    timepoint
+  center_plane_slice_std_devs: List of slices standard deviations for representative timepoint
   center_plane_mean: Mean of center plane across timepoints
   center_plane_std_dev: Standard deviation of center plane across timepoints
 locations:
