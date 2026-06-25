@@ -230,7 +230,7 @@ build_figure_from_panels(
             x_position=2.8,
             y_position=4,
             x_offset=0,
-            y_offset=0.1,
+            y_offset=3.4,
         ),
         FigurePanel(
             letter="D",
@@ -251,7 +251,7 @@ build_figure_from_panels(
         FigurePanel(
             letter="",
             path=output_dir / "colorbar_cyan_magenta_0_1.svg",
-            x_position=4.6,
+            x_position=4.625,
             y_position=7.4,
             x_offset=0,
             y_offset=0.0,
