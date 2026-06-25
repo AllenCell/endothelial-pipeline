@@ -49,10 +49,6 @@ locations:
     fmsid: db3a832a9c444531a0b5103627fde6dc
     path: null
     s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20250618_f81e9bdf048e462e9755d7cbf5d21c37.parquet
-  20250714_20X:
-    fmsid: 79b2dbcbc5a448d0800ebfa0c26c0c55
-    path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20250714_0a0462b7d33848c8826105ab6f78787d.parquet
   20250716_20X:
     fmsid: b8c38c6245484ac29fa3e5054625453d
     path: null
@@ -61,10 +57,6 @@ locations:
     fmsid: ab6cfcf72d884757aceff16b5d7ee550
     path: null
     s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20250813_6ab0f70bd43f4de987a789905dbfb95c.parquet
-  20250827_20X:
-    fmsid: 69d0f9d94cd64c13a39ca6106f105917
-    path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/autocorrelations_polar_r_polar_theta_rho_grid_based/20250827_c96180b30a224a48bac3b6d8fe1ffbb4.parquet
   20250908_20X:
     fmsid: e912a5caa1d54f76ac208a1dce3defdf
     path: null
