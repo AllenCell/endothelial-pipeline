@@ -227,7 +227,7 @@ def get_df_for_feature_correlation_viz(
         merged_feats_df = add_optical_flow_features(
             merged_feats_df,
             datasets=[dataset_name],
-            optical_flow_manifest_name="optical_flow_bf_tracked",
+            optical_flow_manifest_name="optical_flow_bf_cell_centered",
             optical_flow_feature_columns=optical_flow_columns,
         )
 

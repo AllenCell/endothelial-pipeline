@@ -46,6 +46,7 @@ def main(manifest_names: UniqueStrList | None = None, reload_columns: bool = Fal
     )
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
+    from endo_pipeline.settings.workflow_defaults import DEFAULT_NUM_LATENT_DIMENSIONS
 
     logger = logging.getLogger(__name__)
 
@@ -53,6 +54,15 @@ def main(manifest_names: UniqueStrList | None = None, reload_columns: bool = Fal
         ColumnTemplate.NUCLEI_WITH_MOST_OVERLAP: [0, 1, 2, 3, 4, 5, 6],
         ColumnTemplate.NUCLEI_WITH_MOST_OVERLAP_CENTROID_X: [0, 1, 2, 3, 4, 5, 6],
         ColumnTemplate.NUCLEI_WITH_MOST_OVERLAP_CENTROID_Y: [0, 1, 2, 3, 4, 5, 6],
+        ColumnTemplate.LATENT_FEATURE: range(DEFAULT_NUM_LATENT_DIMENSIONS),
+        ColumnTemplate.PCA_FEATURE: range(1, DEFAULT_NUM_LATENT_DIMENSIONS + 1),
+        ColumnTemplate.FIXED_POINT: ["rho", ("polar_theta", "theta"), ("polar_r", "r")],
+        ColumnTemplate.DRIFT_COEFFICIENT: ["rho", ("polar_theta", "theta"), ("polar_r", "r")],
+        ColumnTemplate.MESH_GRID: ["rho", ("polar_theta", "theta"), ("polar_r", "r")],
+        ColumnTemplate.BASELINE_FIXED_POINT: ["rho", ("polar_theta", "theta"), ("polar_r", "r")],
+        ColumnTemplate.BOOTSTRAP_CLUSTER_MEAN: ["rho", ("polar_theta", "theta"), ("polar_r", "r")],
+        ColumnTemplate.BOOTSTRAP_CI_LOWER: ["rho", ("polar_theta", "theta"), ("polar_r", "r")],
+        ColumnTemplate.BOOTSTRAP_CI_UPPER: ["rho", ("polar_theta", "theta"), ("polar_r", "r")],
     }
 
     column_descriptions = {}
@@ -81,7 +91,10 @@ def main(manifest_names: UniqueStrList | None = None, reload_columns: bool = Fal
             if name in template_expansions:
                 description = description.replace("Column name template: ", "")
                 for option in template_expansions[name]:
-                    column_descriptions[name % option] = description % option
+                    if isinstance(option, tuple):
+                        column_descriptions[name % option[0]] = description % option[1]
+                    else:
+                        column_descriptions[name % option] = description % option
             else:
                 column_descriptions[name] = description
 

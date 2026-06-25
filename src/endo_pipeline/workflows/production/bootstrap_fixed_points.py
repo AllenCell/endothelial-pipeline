@@ -2,7 +2,7 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from endo_pipeline.cli import CropPattern, Datasets
+from endo_pipeline.cli import Datasets, PatchType
 from endo_pipeline.settings.bootstrap_fixed_points import (
     BATCH_SIZE_SCALING_FACTOR,
     BOOTSTRAP_MATCH_RADIUS,
@@ -13,7 +13,7 @@ from endo_pipeline.settings.bootstrap_fixed_points import (
 
 
 def main(
-    crop_pattern: CropPattern = "grid",
+    patch_type: PatchType = "grid_based",
     datasets: Datasets | None = None,
     num_bootstrap_iterations: Annotated[
         int, Parameter(name="--num-iterations")
@@ -91,8 +91,8 @@ def main(
 
     Parameters
     ----------
-    crop_pattern
-        Crop pattern used to calculate the features.
+    patch_type
+        Patch type used to calculate the features.
     datasets
         List of datasets or dataset collections to bootstrap fixed points for.
     num_bootstrap_iterations
@@ -180,19 +180,19 @@ def main(
     rng = np.random.default_rng(RANDOM_SEED)
 
     column_names = list(DYNAMICS_COLUMN_NAMES)
-    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[patch_type], *column_names]
 
     # Get feature dataframe manifest for select grid pattern
-    feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[crop_pattern]
+    feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[patch_type]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # get dataframe manifest for baseline results to match against in bootstrapping
-    name_suffix = f"_{join_sorted_strings(column_names)}_{crop_pattern}"
+    name_suffix = f"_{join_sorted_strings(column_names)}_{patch_type}"
     baseline_fixed_point_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix}"
     baseline_fixed_point_manifest = load_dataframe_manifest(baseline_fixed_point_manifest_name)
 
     # load or initialize dataframe manifest for bootstrap results
-    name_suffix = f"_{crop_pattern}_demo" if DEMO_MODE else f"_{crop_pattern}"
+    name_suffix = f"_{patch_type}_demo" if DEMO_MODE else f"_{patch_type}"
     bootstrap_results_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}{name_suffix}"
     bootstrap_results_manifest = create_dataframe_manifest(
         bootstrap_results_manifest_name, workflow_name=__file__
@@ -223,7 +223,7 @@ def main(
     bootstrap_results_manifest.parameters = {
         "model_manifest_name": DEFAULT_MODEL_MANIFEST_NAME,
         "run_name": DEFAULT_MODEL_RUN_NAME,
-        "crop_pattern": crop_pattern,
+        "patch_type": patch_type,
         "kernels": [
             {
                 "column": str(column),

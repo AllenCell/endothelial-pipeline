@@ -1,7 +1,7 @@
-name: optical_flow_bf_tracked
-workflow: compute_optical_flow_feats
+name: optical_flow_bf_cell_centered
+workflow: compute_optical_flow
 parameters:
-  crop_pattern: tracked
+  patch_type: cell_centered
   channel: BF
   max_dt: 1
   intensity_percentile: 0

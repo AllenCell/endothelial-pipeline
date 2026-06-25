@@ -5,6 +5,7 @@ from typing import Literal
 from endo_pipeline.configs.dataset_config import TimepointAnnotation
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
+from endo_pipeline.settings.literal_types import PatchTypeLiteral
 
 DEFAULT_MODEL_MANIFEST_NAME: str = "diffae_baseline"
 """Default model manifest for loading models and model features."""
@@ -19,11 +20,15 @@ DEFAULT_SEG_FEATURE_MANIFEST_NAME: str = "merged_segmentation_features"
 """Default manifest name for merged CDH5 segmentation, CDH5 tracking and
 label-free nuclei segmentation features."""
 
-DIFFAE_PCA_FEATURE_TRACKED_UNFILTERED_MANIFEST_NAME: str = "diffae_pca_features_tracked_unfiltered"
-"""Dataframe manifest name for unfiltered PCA-reduced DiffAE features for track-based crops."""
+DIFFAE_PCA_FEATURE_TRACKED_UNFILTERED_MANIFEST_NAME: str = (
+    "diffae_pca_features_cell_centered_unfiltered"
+)
+"""Dataframe manifest name for unfiltered PCA-reduced DiffAE features for cell-centered patches."""
 
-DIFFAE_PCA_FEATURE_TRACKED_FILTERED_MANIFEST_NAME: str = "diffae_pca_features_tracked_filtered"
-"""Dataframe manifest name for filtered PCA-reduced DiffAE features for track-based crops."""
+DIFFAE_PCA_FEATURE_TRACKED_FILTERED_MANIFEST_NAME: str = (
+    "diffae_pca_features_cell_centered_filtered"
+)
+"""Dataframe manifest name for filtered PCA-reduced DiffAE features for cell-centered patches."""
 
 GRID_BASED_FEATURES_UNFILTERED_MANIFEST_NAME: str = "grid_based_features_unfiltered"
 """Dataframe manifest name for unfiltered grid-based features."""
@@ -37,17 +42,17 @@ CELL_CENTERED_FEATURES_UNFILTERED_MANIFEST_NAME: str = "cell_centered_features_u
 CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME: str = "cell_centered_features_filtered"
 """Dataframe manifest name for unfiltered cell-centered features."""
 
-FEATURES_UNFILTERED_MANIFEST_NAMES: dict[Literal["grid", "tracked"], str] = {
-    "grid": GRID_BASED_FEATURES_UNFILTERED_MANIFEST_NAME,
-    "tracked": CELL_CENTERED_FEATURES_UNFILTERED_MANIFEST_NAME,
+FEATURES_UNFILTERED_MANIFEST_NAMES: dict[PatchTypeLiteral, str] = {
+    "grid_based": GRID_BASED_FEATURES_UNFILTERED_MANIFEST_NAME,
+    "cell_centered": CELL_CENTERED_FEATURES_UNFILTERED_MANIFEST_NAME,
 }
-"""Mapping of crop pattern to unfiltered feature dataframe manifest name."""
+"""Mapping of patch type to unfiltered feature dataframe manifest name."""
 
-FEATURES_FILTERED_MANIFEST_NAMES: dict[Literal["grid", "tracked"], str] = {
-    "grid": GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME,
-    "tracked": CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
+FEATURES_FILTERED_MANIFEST_NAMES: dict[PatchTypeLiteral, str] = {
+    "grid_based": GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME,
+    "cell_centered": CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
 }
-"""Mapping of crop pattern to filtered feature dataframe manifest name."""
+"""Mapping of patch type to filtered feature dataframe manifest name."""
 
 DEFAULT_IMAGE_TYPE_FOR_SEMANTIC_CONDITIONING: Literal["bf", "cdh5"] = "bf"
 """Default image type to condition DiffAE models on."""

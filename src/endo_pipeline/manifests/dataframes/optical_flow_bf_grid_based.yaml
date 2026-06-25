@@ -1,7 +1,7 @@
-name: optical_flow_bf_grid
-workflow: optical_flow
+name: optical_flow_bf_grid_based
+workflow: compute_optical_flow
 parameters:
-  crop_pattern: grid
+  patch_type: grid_based
   channel: BF
   max_dt: 1
   intensity_percentile: 0

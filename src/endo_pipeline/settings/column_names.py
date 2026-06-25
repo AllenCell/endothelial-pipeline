@@ -8,7 +8,7 @@ class ColumnName:
     """Name of dataset."""
 
     POSITION = "position"
-    """Zarr file position (FOV) of the corresponding segmentation or patch (crop)."""
+    """Zarr file position (FOV) of the corresponding segmentation or patch."""
 
     TIMEPOINT = "frame_number"
     """Timepoint [frames]."""
@@ -17,13 +17,13 @@ class ColumnName:
     """Track ID assigned by the tracking algorithm."""
 
     CROP_INDEX = "crop_index"
-    """Column name for crop index."""
+    """Unique integer index of a patch (crop) trajectory across dataset, FOV, and XY-position."""
 
     TRACK_LENGTH = "track_duration"
     """Number of timepoints in track."""
 
     ZARR_PATH = "zarr_path"
-    """Column name for path to the source Zarr file."""
+    """Path to Zarr file for image that the patch comes from."""
 
     IMAGE_SIZE_X = "image_size_x"
     """Size of the whole image in the X dimension [pixels]."""
@@ -52,56 +52,77 @@ class ColumnName:
     BF_CHANNEL_INDEX_ZARR = "brightfield_channel_index_zarr"
     """Index of the brightfield channel in the Zarr file."""
 
+    SOURCE_IMAGE_PATH_FOR_MODEL = "path"
+    """Path to source image file for model training and evaluation."""
+
+    IMAGE_CHANNELS_TO_LOAD_FOR_MODEL = "channel"
+    """List of channels to load for model training and evaluation."""
+
+    TIMEPOINTS_TO_INCLUDE_FOR_MODEL = "include_frames"
+    """List of timepoints (frame numbers) to include for model training and evaluation."""
+
+    Z_START_FOR_MODEL = "z_start"
+    """Starting z-slice of image to use for model training and evaluation."""
+
+    Z_END_FOR_MODEL = "z_stop"
+    """Ending z-slice of image to use for model training and evaluation."""
+
+    Z_STEP_FOR_MODEL = "z_step"
+    """Step between Z-slices in image to use for model training and evaluation."""
+
+    TIMEPOINT_FOR_MODEL = "T"
+    """Timepoint (frame number) to use when loading images for model training and evaluation."""
+
+    FRAME_START_FOR_MODEL = "frame_start"
+    """First timepoint (frame number) to use when loading images for model training and evaluation."""
+
+    FRAME_STOP_FOR_MODEL = "frame_stop"
+    """Last timepoint (frame number) to use when loading images for model training and evaluation."""
+
     class DiffAEData(StrEnum):
         """Dataframe column names used in DiFFAE feature dataframes."""
 
-        LATENT_FEATURE_PREFIX = "feat_"
-        """Prefix for latent feature column names."""
-
-        PCA_FEATURE_PREFIX = "pc_"
-        """Prefix for PCA-transformed feature column names."""
-
         POLAR_RADIUS = "polar_r"
-        """Column name for polar radius coordinate computed from PC1 and PC2."""
+        """Transformed feature r (polar r from PC1 and PC2)."""
 
         POLAR_ANGLE = "polar_theta"
-        """Column name for polar angle coordinate computed from PC1 and PC2."""
+        """Transformed feature theta (rescaled polar angle from PC1 and PC2)."""
 
         NEMATIC_ORDER = "nematic_order"
         """Column name for nematic order (computed as `cos(2*theta)`)."""
 
         PC3_FLIPPED = "rho"
-        """Column name for PC3 value with sign flipped as proxy measure of cell density."""
+        """Transformed feature rho (negative PC3)."""
 
         DIFFERENCE_SUFFIX = "_diff"
         """Suffix for columns representing differences between feature values."""
 
         MODEL_MANIFEST = "model_manifest_name"
-        """Column name for model manifest name."""
+        """Manifest name of model used to generate latent vectors."""
 
         MODEL_RUN = "run_name"
-        """Column name for model run name."""
+        """Run name of model used to generate latent vectors."""
 
         RESOLUTION = "resolution_level"
-        """Column name for resolution level of the image."""
+        """Zarr resolution level used to generate patches for obtaining latent vectors."""
 
         START_X = "start_x"
-        """Upper-left x-coordinate of the crop."""
+        """X coordinate of upper left corner of patch [pixels] (zarr resolution level 1)."""
 
         START_Y = "start_y"
-        """Upper-left y-coordinate of the crop."""
+        """Y coordinate of upper left corner of patch [pixels] (zarr resolution level 1)."""
 
         END_X = "end_x"
-        """Lower-right x-coordinate of the crop."""
+        """X coordinate of lower right corner of patch [pixels] (zarr resolution level 1)."""
 
         END_Y = "end_y"
-        """Lower-right y-coordinate of the crop."""
+        """Y coordinate of lower right corner of patch [pixels] (zarr resolution level 1)."""
 
         CROP_SIZE_X = "crop_size_x"
-        """Width of the crop in pixels."""
+        """Width of the patch [pixels] (zarr resolution level 1)."""
 
         CROP_SIZE_Y = "crop_size_y"
-        """Height of the crop in pixels."""
+        """Height of the patch [pixels] (zarr resolution level 1)."""
 
     class SegData(StrEnum):
         """Dataframe column names used in segmentation-based feature dataframes."""
@@ -125,16 +146,16 @@ class ColumnName:
         """List of all segmentation labels found within a crop/cell-centered patch."""
 
         START_X_RES_0 = "start_x_resolution_0"
-        """X coordinate of upper left corner of patch (crop) [pixels] (zarr resolution level 0)."""
+        """X coordinate of upper left corner of patch [pixels] (zarr resolution level 0)."""
 
         END_X_RES_0 = "end_x_resolution_0"
-        """X coordinate of lower right corner of patch (crop) [pixels] (zarr resolution level 0)."""
+        """X coordinate of lower right corner of patch [pixels] (zarr resolution level 0)."""
 
         START_Y_RES_0 = "start_y_resolution_0"
-        """Y coordinate of upper left corner of patch (crop) [pixels] (zarr resolution level 0)."""
+        """Y coordinate of upper left corner of patch [pixels] (zarr resolution level 0)."""
 
         END_Y_RES_0 = "end_y_resolution_0"
-        """Y coordinate of lower right corner of patch (crop) [pixels] (zarr resolution level 0)."""
+        """Y coordinate of lower right corner of patch [pixels] (zarr resolution level 0)."""
 
         CROP_SIZE = "crop_size"
         """Size of the crop [pixels] at resolution level 0 (the native resolution)."""
@@ -296,25 +317,54 @@ class ColumnName:
         """Centroid of cell segmentation Y coordinate [pixels]."""
 
         CENTROID_X_UM = "centroid_x_um"
-        CENTROID_Y_UM = "centroid_y_um"
+        """Centroid of cell segmentation X coordinate [microns]."""
 
-        # dynamic features (values depend on how dataframes are filtered)
+        CENTROID_Y_UM = "centroid_y_um"
+        """Centroid of cell segmentation Y coordinate [microns]."""
+
         CENTROID_VELOCITY_X_UM_PER_MIN = "centroid_velocity_x_um_per_min"
+        """Change in X coordinate of cell segmentation centroid [um/minute]."""
+
         CENTROID_VELOCITY_Y_UM_PER_MIN = "centroid_velocity_y_um_per_min"
+        """Change in Y coordinate of cell segmentation centroid [um/minute]."""
+
         CENTROID_VELOCITY_ANGLE = "centroid_velocity_angle"
+        """Angle of cell migration based on change in centroid [radians] with 0 along +x and pi/-pi along -x."""
+
         CENTROID_VELOCITY_ANGLE_DEG = "centroid_velocity_angle_deg"
+        """Angle of cell migration based on change in centroid [degrees] with 0 along +x and 180/-180 along -x."""
+
         CENTROID_VELOCITY_UM_PER_MIN = "centroid_velocity_um_per_min"
+        """Speed of cell migration based on change in cell segmentation centroid [um/minute]."""
+
         ALIGNMENT_VELOCITY_DEG = "alignment_angular_velocity_deg"
+        """Rate of change of alignment angle [degrees/min]."""
+
         NUCLEI_POSITION_RELATIVE_MIGRATION_DEG = "nuclei_position_relative_migration_angle_deg"
+        """
+        Angle [degrees] of the nucleus centroid relative to cell segmentation
+        centroid (counter-clockwise if positive, clockwise if negative, 0 if in
+        the same direction as cell migration).
+        """
+
         NUCLEI_POSITION_RELATIVE_MIGRATION_DOTPROD = "nuclei_position_vs_migration_angle_dotproduct"
+        """Dot product of cell centroid-to-nuclei centroid vector and cell migration vector."""
+
         CHANGE_IN_NUM_NUCLEI_IN_CROP_PER_MIN = "dnum_nuclei_in_crop_dt_mins"
+        """Change in number of label-free nuclei predictions found in a patch (crop) over time [number of nuclei/minute]."""
+
         VELOCITY_ANGLES_IN_CROP = "all_velocity_angles_in_crop_deg"
         VELOCITY_UM_PER_MIN_IN_CROP = "all_velocity_um_per_min_in_crop"
         VECTOR_MEAN_FOR_CROP_ANGLE = "vector_mean_for_crop_angle"
         VECTOR_MEAN_FOR_CROP_MAGNITUDE = "vector_mean_for_crop_magnitude"
         CHANGE_IN_FLUOR_PER_MIN_CELL = "dmean_fluor_intensity_dt_cell"
+        """Change in mean fluorescence intensity of cytoplasmic region of cell segmentation over time [a.u./minute]."""
+
         CHANGE_IN_FLUOR_PER_MIN_EDGE = "dmean_fluor_intensity_dt_edge"
+        """Change in mean fluorescence intensity of bicellular junction regions of cell segmentation over time [a.u./minute]."""
+
         CHANGE_IN_FLUOR_PER_MIN_NODE = "dmean_fluor_intensity_dt_node"
+        """Change in mean fluorescence intensity of tricellular junction regions of cell segmentation over time [a.u./minute]."""
 
     class SegDataFilters(StrEnum):
         """Filter-related column names for segmentation-based features."""
@@ -650,37 +700,22 @@ class ColumnName:
         """Column name suffixes used in autocorrelation analysis."""
 
         LAG = "lag"
-        """Column name for the lag at which the autocorrelation is computed."""
+        """Lag at which the autocorrelation is computed."""
 
         FEATURE = "feature"
-        """Column name indicating the feature variable for which autocorrelation is computed."""
+        """Feature variable for which autocorrelation is computed."""
 
         ACF_MEAN = "autocorrelation_mean"
-        """Column name for the mean autocorrelation value across tracks at a given lag."""
+        """Mean autocorrelation value across tracks at given lag."""
 
         ACF_LOWER_PERCENTILE = "autocorrelation_lower_percentile"
-        """Column name for the lower percentile of autocorrelation values across tracks at a given lag."""
+        """Lower percentile of autocorrelation values across tracks at given lag."""
 
         ACF_UPPER_PERCENTILE = "autocorrelation_upper_percentile"
-        """Column name for the upper percentile of autocorrelation values across tracks at a given lag."""
+        """Upper percentile of autocorrelation values across tracks at given lag."""
 
         EXPONENTIAL_FIT = "exponential_fit"
-        """Column name for the values of the evaluated exponential fit curve at a given lag."""
-
-    class ModelQC(StrEnum):
-        """Dataframe column names used in the Model-QC metrics parquet."""
-
-        RANDOM_SEED = "random_seed"
-        """Column name for the noise/RNG seed used for a given inference row."""
-
-        EXAMPLE_SET = "example_set"
-        """Column name for the curated example-set label (e.g. ``rep_2_positions``)."""
-
-        EXAMPLE_IDX = "example_idx"
-        """Column name for the 0-based position of the example within its set."""
-
-        DATASET_NAME = "dataset_name"
-        """Column name for the source dataset name of the example image."""
+        """Values of exponential decay curve fit to autocorrelation function."""
 
     RANDOM_SEED = "random_seed"
     """Random number generator seed."""
@@ -733,30 +768,32 @@ class ColumnNameTemplate(StrEnum):
     additional columns)
     """
 
+    LATENT_FEATURE = "feat_%d"
+    """Column name template: Component %d of the DiffAE latent vector."""
 
-class ColumnNameSuffix(StrEnum):
-    """Suffixes for dataframe column names."""
+    PCA_FEATURE = "pc_%d"
+    """Column name template: Component %d of PCA-transformed latent vector."""
 
-    DRIFT = "_drift"
-    """Suffix for column name for drift in a given variable."""
+    FIXED_POINT = "%s_fixed_point"
+    """Column name template: Vector field fixed point location in %s."""
 
-    MESH_GRID = "_mesh_grid"
-    """Suffix for column name for vector field mesh grid."""
+    DRIFT_COEFFICIENT = "%s_drift"
+    """Column name template: Component of drift coefficient vector field corresponding to d[%s]/dt."""
 
-    FIXED_POINTS = "_fixed_point"
-    """Suffix for column name for fixed point locations."""
+    MESH_GRID = "%s_mesh_grid"
+    """Column name template: Vector field mesh grid in %s."""
 
-    BASELINE_FIXED_POINTS = "_baseline"
-    """Suffix for column name for baseline fixed point locations."""
+    BASELINE_FIXED_POINT = "%s_baseline"
+    """Column name template: Baseline fixed point location in %s."""
 
-    BOOTSTRAP_CLUSTER_MEAN = "_cluster_mean"
-    """Suffix for column name for mean coordinate of matched bootstrap fixed points."""
+    BOOTSTRAP_CLUSTER_MEAN = "%s_cluster_mean"
+    """Column name template: Mean coordinate of matched bootstrap fixed points in %s."""
 
-    BOOTSTRAP_CI_LOWER = "_ci_lower"
-    """Suffix for column name for lower bound of the bootstrap confidence interval."""
+    BOOTSTRAP_CI_LOWER = "%s_ci_lower"
+    """Column name template: Lower bound of bootstrap confidence interval for %s."""
 
-    BOOTSTRAP_CI_UPPER = "_ci_upper"
-    """Suffix for column name for upper bound of the bootstrap confidence interval."""
+    BOOTSTRAP_CI_UPPER = "%s_ci_upper"
+    """Column name template: Upper bound of bootstrap confidence interval for %s."""
 
 
 ColumnNameType = (
@@ -770,6 +807,5 @@ ColumnNameType = (
     | ColumnName.OpticalFlow
     | ColumnName.VectorField
     | ColumnName.AutoCorrelation
-    | ColumnName.ModelQC
 )
 """Type hint for all column name enums."""

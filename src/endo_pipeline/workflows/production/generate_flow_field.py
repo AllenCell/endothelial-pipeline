@@ -1,8 +1,8 @@
-from endo_pipeline.cli import CropPattern, Datasets, StrList
+from endo_pipeline.cli import Datasets, PatchType, StrList
 
 
 def main(
-    crop_pattern: CropPattern = "grid",
+    patch_type: PatchType = "grid_based",
     columns: StrList | None = None,
     datasets: Datasets | None = None,
 ) -> None:
@@ -60,8 +60,8 @@ def main(
 
     Parameters
     ----------
-    crop_pattern
-        Crop pattern used to calculate the features.
+    patch_type
+        Patch type used to calculate the features.
     columns
         Specific columns to use to generate flow field.
     datasets
@@ -148,17 +148,17 @@ def main(
     logger.info("Generating flow field for columns: %s", column_names)
 
     # Columns to keep when loading feature dataframe
-    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[patch_type], *column_names]
 
     # Load default model manifest and corresponding feature dataframe for
-    # specified crop pattern.
+    # specified patch type
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
-    feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[crop_pattern]
+    feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[patch_type]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # Build dataframe manifest names that include sorted list of selected
     # columns used to generate the flow field.
-    name_suffix = f"_{join_sorted_strings(column_names)}_{crop_pattern}"
+    name_suffix = f"_{join_sorted_strings(column_names)}_{patch_type}"
     vector_field_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD}{name_suffix}"
     fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix}"
     vector_field_dataframe_manifest = create_dataframe_manifest(
@@ -189,7 +189,7 @@ def main(
         output_dataframe_manifest.parameters = {
             "model_manifest_name": DEFAULT_MODEL_MANIFEST_NAME,
             "run_name": DEFAULT_MODEL_RUN_NAME,
-            "crop_pattern": crop_pattern,
+            "patch_type": patch_type,
             "kernels": [
                 {
                     "column": str(column),

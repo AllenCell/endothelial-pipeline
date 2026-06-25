@@ -20,7 +20,7 @@ from endo_pipeline.library.analyze.vector_field_function import (
 )
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.column_names import ColumnNameSuffix
+from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.flow_field_2d import HISTOGRAM_THRESHOLD_FOR_MASKING
 from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
@@ -225,8 +225,8 @@ def create_drift_vector_field_df(
 
     # build dataframe with columns for grid points in each of the dimensions and
     # the corresponding drift coefficients and mesh grid values
-    drift_column_names = [f"{name}{ColumnNameSuffix.DRIFT}" for name in column_names]
-    mesh_column_names = [f"{name}{ColumnNameSuffix.MESH_GRID}" for name in column_names]
+    drift_column_names = [ColumnTemplate.DRIFT_COEFFICIENT % name for name in column_names]
+    mesh_column_names = [ColumnTemplate.MESH_GRID % name for name in column_names]
     vector_field_df = pd.DataFrame(
         columns=[Column.DATASET, *drift_column_names, *mesh_column_names]
     )
@@ -361,7 +361,7 @@ def load_drift_dataframe_for_dataset(
     """
 
     column_names = get_valid_flow_field_column_names(columns)
-    name_suffix = f"_{join_sorted_strings(column_names)}_grid"
+    name_suffix = f"_{join_sorted_strings(column_names)}_grid_based"
     drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD}{name_suffix}"
     drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
 
@@ -409,8 +409,8 @@ def get_reshaped_vector_field_and_grid(
 
     # restructure the drift dataframe into a flow field dictionary
     ndim = len(column_names)
-    drift_column_names = [f"{name}{ColumnNameSuffix.DRIFT}" for name in column_names]
-    mesh_column_names = [f"{name}{ColumnNameSuffix.MESH_GRID}" for name in column_names]
+    drift_column_names = [ColumnTemplate.DRIFT_COEFFICIENT % name for name in column_names]
+    mesh_column_names = [ColumnTemplate.MESH_GRID % name for name in column_names]
 
     grid_points_1d = [
         np.sort(flow_field_dataframe[column_name].unique()) for column_name in mesh_column_names

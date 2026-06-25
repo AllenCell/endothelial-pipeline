@@ -1,8 +1,8 @@
-from endo_pipeline.cli import CropPattern, Datasets
+from endo_pipeline.cli import Datasets, PatchType
 
 
 def main(
-    crop_pattern: CropPattern = "grid",
+    patch_type: PatchType = "grid_based",
     datasets: Datasets | None = None,
     bootstrap_threshold: float = 0.5,
 ) -> None:
@@ -53,8 +53,8 @@ def main(
 
     Parameters
     ----------
-    crop_pattern
-        Crop pattern used to calculate the bootstrapped fixed points.
+    patch_type
+        Patch type used to calculate the bootstrapped fixed points.
     datasets
         List of datasets or dataset collections to visualize.
     bootstrap_threshold
@@ -79,7 +79,7 @@ def main(
     from endo_pipeline.library.visualize.fixed_points import StabilityLegendHandle
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.column_names import ColumnNameSuffix
+    from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_LIMITS_DYNAMICS,
         DEFAULT_DATASETS_DYNAMICS_VIS,
@@ -105,7 +105,7 @@ def main(
     column_names = list(DYNAMICS_COLUMN_NAMES)
 
     # Load bootstrap manifest
-    bootstrap_fp_manifest_name = BOOTSTRAPPING_MANIFEST_NAMES[crop_pattern]
+    bootstrap_fp_manifest_name = BOOTSTRAPPING_MANIFEST_NAMES[patch_type]
     bootstrap_fp_manifest = load_dataframe_manifest(bootstrap_fp_manifest_name)
 
     n_bootstrap = bootstrap_fp_manifest.parameters.get("num_bootstrap_iterations")
@@ -180,15 +180,15 @@ def main(
                     color = FIXED_POINT_PLOT_STYLE[stability].color
                     marker = FIXED_POINT_PLOT_STYLE[stability].marker
 
-                    x = row[f"{column_x}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"]
-                    y = row[f"{column_y}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"]
+                    x = row[ColumnTemplate.BOOTSTRAP_CLUSTER_MEAN % column_x]
+                    y = row[ColumnTemplate.BOOTSTRAP_CLUSTER_MEAN % column_y]
                     xlabel = get_label_for_column(column_x)
                     ylabel = get_label_for_column(column_y)
 
-                    x_lo = row[f"{column_x}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"]
-                    x_hi = row[f"{column_x}{ColumnNameSuffix.BOOTSTRAP_CI_UPPER}"]
-                    y_lo = row[f"{column_y}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"]
-                    y_hi = row[f"{column_y}{ColumnNameSuffix.BOOTSTRAP_CI_UPPER}"]
+                    x_lo = row[ColumnTemplate.BOOTSTRAP_CI_LOWER % column_x]
+                    x_hi = row[ColumnTemplate.BOOTSTRAP_CI_UPPER % column_x]
+                    y_lo = row[ColumnTemplate.BOOTSTRAP_CI_LOWER % column_y]
+                    y_hi = row[ColumnTemplate.BOOTSTRAP_CI_UPPER % column_y]
                     print(x_lo, x_hi, y_lo, y_hi)
 
                     xerr = (
@@ -273,15 +273,15 @@ def main(
                 if stability != StabilityLabel.STABLE:
                     continue
 
-                x = row[f"{column_x}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"]
-                y = row[f"{column_y}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}"]
+                x = row[ColumnTemplate.BOOTSTRAP_CLUSTER_MEAN % column_x]
+                y = row[ColumnTemplate.BOOTSTRAP_CLUSTER_MEAN % column_y]
                 xlabel = get_label_for_column(column_x)
                 ylabel = get_label_for_column(column_y)
 
-                x_lo = row[f"{column_x}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"]
-                x_hi = row[f"{column_x}{ColumnNameSuffix.BOOTSTRAP_CI_UPPER}"]
-                y_lo = row[f"{column_y}{ColumnNameSuffix.BOOTSTRAP_CI_LOWER}"]
-                y_hi = row[f"{column_y}{ColumnNameSuffix.BOOTSTRAP_CI_UPPER}"]
+                x_lo = row[ColumnTemplate.BOOTSTRAP_CI_LOWER % column_x]
+                x_hi = row[ColumnTemplate.BOOTSTRAP_CI_UPPER % column_x]
+                y_lo = row[ColumnTemplate.BOOTSTRAP_CI_LOWER % column_y]
+                y_hi = row[ColumnTemplate.BOOTSTRAP_CI_UPPER % column_y]
 
                 xerr = (
                     [[max(0.0, x - x_lo)], [max(0.0, x_hi - x)]]

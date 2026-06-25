@@ -1,0 +1,35 @@
+name: drift_vector_field_polar_r_rho_grid_based
+workflow: generate_flow_field
+parameters:
+  model_manifest_name: diffae_baseline
+  run_name: latent_512
+  patch_type: grid_based
+  kernels:
+  - column: polar_r
+    name: gaussian
+    bandwidth: 0.15
+    period: null
+  - column: rho
+    name: gaussian
+    bandwidth: 0.15
+    period: null
+  bin_widths: [0.05, 0.05]
+  num_init_samples_for_root_solver: 250
+  lower_percentile_for_filtering_fpts: 5.0
+  upper_percentile_for_filtering_fpts: 95.0
+columns:
+  dataset: Name of dataset
+  polar_r_drift: Component of drift coefficient vector field corresponding to d[r]/dt
+  rho_drift: Component of drift coefficient vector field corresponding to d[rho]/dt
+  polar_r_mesh_grid: Vector field mesh grid in r
+  rho_mesh_grid: Vector field mesh grid in rho
+  shear_stress: Shear stress value [dyn/cm^2]
+locations:
+  20250409_20X:
+    fmsid: f1e9f8f1f3a44f38ac3e3a571c1f7580
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_rho_grid_based/20250409_df6b2a02bbc94c6f957923add524eac1.parquet
+  20251001_20X:
+    fmsid: 855bc95ec38e4cd6a6bf8ae54cbb9907
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_rho_grid_based/20251001_271124f03a16409499e8a84b0030cb15.parquet

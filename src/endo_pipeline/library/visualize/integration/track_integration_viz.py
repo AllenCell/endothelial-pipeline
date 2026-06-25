@@ -27,7 +27,6 @@ from endo_pipeline.library.visualize.diffae_features.feature_viz import (
     get_label_for_column,
 )
 from endo_pipeline.library.visualize.diffae_features.flow_field_3d import (
-    get_slice_indexes,
     plot_flow_field_slices,
     plot_one_slice_quiver,
 )
@@ -129,46 +128,6 @@ def get_coarse_grained_trajectory_heatmap_data(
                 bin_counts[tuple(bin_indices[i])] += 1
 
     return bin_data, bin_counts
-
-
-def get_valid_slice_indexes(
-    df: pd.DataFrame,
-    traj: np.ndarray,
-    flow_field_dict: dict,
-) -> tuple[
-    tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
-    tuple[np.ndarray[Any, np.dtype[np.signedinteger[Any]]], ...],
-]:
-    # get grid and grid spacing
-    xgrid, ygrid, zgrid = flow_field_dict["grid"]
-
-    # if not specified, use mean of data at last time point
-    # if data are not provided, use pc2 = pc3 = 0
-    # plot 2D slices at PC2 and PC3 values given by
-    # the last point of the trajectory
-    pc_vals = (traj[-1, 2], traj[-1, 1])
-
-    if pc_vals is None:
-        if df is None:
-            pc3_val = 0
-            pc2_val = 0
-        else:
-            # get mean at all time points over crops
-            mean_over_crops = df.groupby(Column.TIMEPOINT).mean(numeric_only=True)
-            # get last time point
-            mean_over_crops = mean_over_crops.iloc[-1]
-            pc3_val = mean_over_crops["pc_3"].mean()
-            pc2_val = mean_over_crops["pc_2"].mean()
-    # if specified, unpack
-    else:
-        pc3_val = pc_vals[0]
-        pc2_val = pc_vals[1]
-
-    # get z-slice closest to PC3 = pc3_val
-    zvalids = get_slice_indexes(zgrid, pc3_val)
-    # get y-slice closest to PC2 = pc2_val
-    yvalids = get_slice_indexes(ygrid, pc2_val)
-    return yvalids, zvalids
 
 
 def get_grid_bounds(flow_field_dict: dict) -> list:
@@ -999,7 +958,8 @@ def plot_first_passage_time_3d_scatter(
     # fold change is symmetric and the colors end up evenly spaced regardless of
     # whether the tracked or grid-based FPT is higher
     colors = np.log2(
-        first_passage_time_df[f"{metric}_tracked"] / first_passage_time_df[f"{metric}_grid"]
+        first_passage_time_df[f"{metric}_cell_centered"]
+        / first_passage_time_df[f"{metric}_grid_based"]
     )
     cmap_lim = max(abs(colors))
     cmap = "coolwarm_r"
@@ -1069,8 +1029,8 @@ def plot_first_passage_time_parameter_sweep(
     ax.set_title(fig_title, fontsize=FONTSIZE_SMALL)
     ax.errorbar(
         x=first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
-        y=first_passage_time_param_sweep_df[f"{metric}_grid"],
-        yerr=first_passage_time_param_sweep_df["std_grid"],
+        y=first_passage_time_param_sweep_df[f"{metric}_grid_based"],
+        yerr=first_passage_time_param_sweep_df["std_grid_based"],
         label=f"MFPT {UnicodeCharacters.PLUS_MINUS} STD (grid-based)",
         fmt="o-",
         color="tab:blue",
@@ -1080,8 +1040,8 @@ def plot_first_passage_time_parameter_sweep(
     )
     ax.errorbar(
         x=first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
-        y=first_passage_time_param_sweep_df[f"{metric}_tracked"],
-        yerr=first_passage_time_param_sweep_df["std_tracked"],
+        y=first_passage_time_param_sweep_df[f"{metric}_cell_centered"],
+        yerr=first_passage_time_param_sweep_df["std_cell_centered"],
         label=f"MFPT {UnicodeCharacters.PLUS_MINUS} STD (cell-centered)",
         fmt="o-",
         color="tab:red",
@@ -1115,7 +1075,9 @@ def plot_first_passage_time_parameter_sweep(
     ax.set_title(fig_title, fontsize=FONTSIZE_SMALL)
     ax.plot(
         first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
-        first_passage_time_param_sweep_df[f"{Column.VectorField.PERCENT_TRAJ_APPROACHED_FP}_grid"],
+        first_passage_time_param_sweep_df[
+            f"{Column.VectorField.PERCENT_TRAJ_APPROACHED_FP}_grid_based"
+        ],
         marker="o",
         color="tab:blue",
         markerfacecolor="tab:blue",
@@ -1126,7 +1088,7 @@ def plot_first_passage_time_parameter_sweep(
     ax.plot(
         first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
         first_passage_time_param_sweep_df[
-            f"{Column.VectorField.PERCENT_TRAJ_APPROACHED_FP}_tracked"
+            f"{Column.VectorField.PERCENT_TRAJ_APPROACHED_FP}_cell_centered"
         ],
         marker="o",
         color="tab:red",
@@ -1235,18 +1197,18 @@ def plot_first_passage_time_correlations(
         fontsize=FONTSIZE_SMALL,
     )
     ax.errorbar(
-        x=first_passage_time_stats_df[f"{metric}_grid"],
-        y=first_passage_time_stats_df[f"{metric}_tracked"],
-        xerr=first_passage_time_stats_df[f"sem{suffix}_grid"],
-        yerr=first_passage_time_stats_df[f"sem{suffix}_tracked"],
+        x=first_passage_time_stats_df[f"{metric}_grid_based"],
+        y=first_passage_time_stats_df[f"{metric}_cell_centered"],
+        xerr=first_passage_time_stats_df[f"sem{suffix}_grid_based"],
+        yerr=first_passage_time_stats_df[f"sem{suffix}_cell_centered"],
         fmt="none",
         ecolor="gray",
         alpha=0.5,
         zorder=0,
     )
     ax.scatter(
-        x=first_passage_time_stats_df[f"{metric}_grid"],
-        y=first_passage_time_stats_df[f"{metric}_tracked"],
+        x=first_passage_time_stats_df[f"{metric}_grid_based"],
+        y=first_passage_time_stats_df[f"{metric}_cell_centered"],
         color="black",
         edgecolor="white",
         lw=0.2,
@@ -1317,19 +1279,19 @@ def plot_first_passage_time_histogram(
     ax.set_title(dataset_name.title())
     sns.histplot(
         data=first_passage_time_df,
-        x=f"{metric}_grid",
+        x=f"{metric}_grid_based",
         stat=stat_for_hist,
         binwidth=bin_width_for_hist,
         kde=True,
         facecolor="lightgrey",
         color="black",
         alpha=0.33,
-        label="grid",
+        label="grid_based",
         ax=ax,
     )
     sns.histplot(
         data=first_passage_time_df,
-        x=f"{metric}_tracked",
+        x=f"{metric}_cell_centered",
         stat=stat_for_hist,
         binwidth=bin_width_for_hist,
         kde=True,
@@ -1337,7 +1299,7 @@ def plot_first_passage_time_histogram(
         hatch="..",
         fill=False,
         alpha=1.0,
-        label="tracked",
+        label="cell_centered",
         ax=ax,
     )
     ax.legend()

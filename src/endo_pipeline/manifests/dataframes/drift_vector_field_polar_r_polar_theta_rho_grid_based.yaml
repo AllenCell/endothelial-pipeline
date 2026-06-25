@@ -1,0 +1,145 @@
+name: drift_vector_field_polar_r_polar_theta_rho_grid_based
+workflow: generate_flow_field
+parameters:
+  model_manifest_name: diffae_baseline
+  run_name: latent_512
+  patch_type: grid_based
+  kernels:
+  - column: polar_theta
+    name: periodic
+    bandwidth: 0.15
+    period: 3.141592653589793
+  - column: polar_r
+    name: gaussian
+    bandwidth: 0.15
+    period: null
+  - column: rho
+    name: gaussian
+    bandwidth: 0.15
+    period: null
+  bin_widths: [0.05, 0.05, 0.05]
+  num_init_samples_for_root_solver: 250
+  lower_percentile_for_filtering_fpts: 5.0
+  upper_percentile_for_filtering_fpts: 95.0
+columns:
+  dataset: Name of dataset
+  polar_theta_drift: Component of drift coefficient vector field corresponding to d[theta]/dt
+  polar_r_drift: Component of drift coefficient vector field corresponding to d[r]/dt
+  rho_drift: Component of drift coefficient vector field corresponding to d[rho]/dt
+  polar_theta_mesh_grid: Vector field mesh grid in theta
+  polar_r_mesh_grid: Vector field mesh grid in r
+  rho_mesh_grid: Vector field mesh grid in rho
+  shear_stress: Shear stress value [dyn/cm^2]
+locations:
+  20250319_20X:
+    fmsid: 96072961b0b34708a5f89e96f81573fb
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20250319_0d94f8d3054e4e8c99af07dd92774798.parquet
+  20250326_20X:
+    fmsid: d02ca778b56e4d43933729c4365c4881
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20250326_eb97addf262c44c5a6117ad1d4acc353.parquet
+  20250402_20X:
+    fmsid: 9e6e9da765ad48d790c065b678832146
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20250402_90e37b7d8f1440efa84995b4697fb269.parquet
+  20250409_20X:
+    fmsid: 27528ad2bf644fee8c2131b186c18f36
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20250409_df6b2a02bbc94c6f957923add524eac1.parquet
+  20250428_20X:
+    fmsid: bf3f1e9588e14ed08a204436e3f6a9cc
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20250428_056aa027ba9f4ccd98367563552f7edd.parquet
+  20250604_20X:
+    fmsid: 965c60e607654489a178d1d949b8c391
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20250604_3f08ef7a2e0e450d963352dae4bf17dc.parquet
+  20250611_20X:
+    fmsid: f31c42c3e94c49a996507aff7d8277cd
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20250611_a32615d530ae42c29d159cc058601879.parquet
+  20250618_20X:
+    fmsid: 1a06cdd85012469c9f793bf5113c79d2
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20250618_f81e9bdf048e462e9755d7cbf5d21c37.parquet
+  20250716_20X:
+    fmsid: 959426b5e5a042ccb0aebfbffd4619c7
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20250716_328c62ecc91248eab2268e546892453e.parquet
+  20250813_20X:
+    fmsid: 00c28dc5b417496c9c8e619ee02c3d12
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20250813_6ab0f70bd43f4de987a789905dbfb95c.parquet
+  20250908_20X:
+    fmsid: 2434f5a4316645d6b24f323f13cfd6f0
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20250908_b5d434bdebce4053b2d90198541b6b59.parquet
+  20251001_20X:
+    fmsid: 8cc5039ebab34045a39efd6f34c7825a
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20251001_271124f03a16409499e8a84b0030cb15.parquet
+  20251029_20X:
+    fmsid: 0d8a5cddf43d44c8ba453992a6a61612
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20251029_441aed50cff54667afce891eb3a1a8db.parquet
+  20251119_20X:
+    fmsid: aa69425a4587442aa1b2eccb27b18b5d
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20251119_d6449a79a6264466aa225af0cdef78c7.parquet
+  20260114_20X:
+    fmsid: 2efdf60349a6473f87dc1e7f0022bc60
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20260114_4b693bb8eedb4e0ba0cb9ab4ae07b1a2.parquet
+  20260121_20X:
+    fmsid: 63befbc1599c4cfe8aba56f2723fa39c
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20260121_ff75e124720b4a3aa035025a05ced25f.parquet
+  20260126_20X:
+    fmsid: 37740689ddfc43d89a3cef267ccddd7e
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20260126_aed19d79c1a34707925cfa8393424c45.parquet
+  20260128_20X:
+    fmsid: 80e12e9b20ef4fcc9edda97fd90175fd
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20260128_00bd94ea6d7e4b46bc16a55e35de589d.parquet
+  20260202_20X:
+    fmsid: 1cfab76987004a3eaeae2f9ae9210ddf
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20260202_fcb18a65bb734ff6ae718e1eee4894d6.parquet
+  20260204_20X:
+    fmsid: cfebeddf441f4f3785771819f2151862
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20260204_ac1fddfd7452481e83317c8fbdd59dd6.parquet
+  20260209_20X:
+    fmsid: 4a73cb39df29460aacc1c30e6406a1d6
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20260209_3700e11f893e4f378db450ea91bd92d6.parquet
+  20260211_20X:
+    fmsid: 71308db3f07c4c3bba999f1c3a1ad808
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20260211_20b76dc8d0ca488ba88816793830f6ec.parquet
+  20260216_20X:
+    fmsid: 1cccdc711c7d43acafcb9409e205ab42
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20260216_ed3743a1ee4c4cb096f5af90e3ebb9bd.parquet
+  20260225_20X:
+    fmsid: 360b6e61f2474e8690945e0c7b94040a
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20260225_50afe3cb17cf4be099dc44e47f7a4ae4.parquet
+  20260302_20X:
+    fmsid: d161b651d3634d7badbb35a893109b8f
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20260302_e9cfa3b0b24447f7bba000af3b012427.parquet
+  20260304_20X:
+    fmsid: b2f752befbb9427182aabeae8ef52b69
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20260304_56c81f459d8e46eabd74cc2147b85f49.parquet
+  20260309_20X:
+    fmsid: 1491ffdd755f4387823dd22eca9e89ec
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20260309_1a52b127112347d4b805eb64d0b86757.parquet
+  20260325_20X:
+    fmsid: 76f7c4891fd84f3a8c902133cdf9dad1
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_vector_field_polar_r_polar_theta_rho_grid_based/20260325_d1f28b79cf574775b529d83626183abc.parquet

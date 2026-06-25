@@ -1,8 +1,8 @@
-from endo_pipeline.cli import CropPattern, Datasets, StrList
+from endo_pipeline.cli import Datasets, PatchType, StrList
 
 
 def main(
-    crop_pattern: CropPattern = "grid",
+    patch_type: PatchType = "grid_based",
     columns: StrList | None = None,
     datasets: Datasets | None = None,
 ) -> None:
@@ -37,8 +37,8 @@ def main(
 
     Parameters
     ----------
-    crop_pattern
-        Crop pattern used to compute correlations.
+    patch_type
+        Patch type used to compute correlations.
     columns
         Specific columns to use for correlation analysis.
     datasets
@@ -108,16 +108,16 @@ def main(
     # Default list of feature column names to use for correlation analysis if
     # not provided. Otherwise, use provided list.
     column_names = columns or list(DYNAMICS_COLUMN_NAMES)
-    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[patch_type], *column_names]
 
-    # Load feature dataframe for specified crop pattern.
-    feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[crop_pattern]
+    # Load feature dataframe for specified patch type
+    feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[patch_type]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # Build dataframe manifest names that include sorted list of selected
     # columns used to generate the flow field.
     name_prefix = AUTOCORRELATION_DATAFRAME_MANIFEST_PREFIX
-    name_suffix = f"{join_sorted_strings(column_names)}_{crop_pattern}"
+    name_suffix = f"{join_sorted_strings(column_names)}_{patch_type}"
     autocorrelation_manifest_name = f"{name_prefix}_{name_suffix}"
     autocorrelation_manifest = create_dataframe_manifest(
         autocorrelation_manifest_name, workflow_name=__file__
@@ -127,7 +127,7 @@ def main(
     autocorrelation_manifest.parameters = {
         "model_manifest_name": DEFAULT_MODEL_MANIFEST_NAME,
         "run_name": DEFAULT_MODEL_RUN_NAME,
-        "crop_pattern": crop_pattern,
+        "patch_type": patch_type,
         "columns": [f"{column}" for column in column_names],
     }
     save_dataframe_manifest(autocorrelation_manifest)

@@ -18,7 +18,7 @@ from endo_pipeline.library.analyze.polar_coords import rewrap_polar_angle
 from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.library.visualize.diffae_features.feature_viz import get_dataset_color
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.column_names import ColumnNameSuffix
+from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
     NUM_PCS_TO_ANALYZE,
@@ -723,7 +723,7 @@ def plot_stable_fixed_points_together(
 
     """
     # check that required columns are present
-    fp_column_names = [f"{column}{ColumnNameSuffix.FIXED_POINTS}" for column in column_names]
+    fp_column_names = [ColumnTemplate.FIXED_POINT % column for column in column_names]
     required_columns = [Column.DATASET, *fp_column_names]
     check_required_columns_in_dataframe(stable_fixed_points_df, required_columns)
 
