@@ -793,7 +793,7 @@ def make_example_migration_coherence(
                 handles=[*existing_handles, box_handle],
                 labels=[*existing_labels, bin_label],
                 loc="upper left",
-                bbox_to_anchor=(-0.125, -0.15),
+                bbox_to_anchor=(-0.125, -0.1),
                 fontsize=FONTSIZE_XSMALL,
                 ncol=2,
                 handler_map={box_handle: _CubeLegendHandler()},
