@@ -228,8 +228,8 @@ def reconstruct_fixed_points(
 
     fig_fixed_point_reconstructions = make_contact_sheet(
         panels=walk_panels,
-        max_rows=1,
-        max_cols=2,
+        max_rows=2,
+        max_cols=1,
         fig_kwargs={"figsize": figure_size, "layout": "constrained"},
         gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
     )
