@@ -1,6 +1,345 @@
 name: cell_centered_features_unfiltered
 workflow: combine_cell_centered_features
 parameters: {}
+columns:
+  frame_number: Timepoint [frames]
+  track_id: Track ID assigned by the tracking algorithm
+  reference_index: Relative timepoint index used to compare nearby timepoints to find
+    matching segmentation for track
+  matched_query_label: List of matched labels from each timepoint starting from current
+    one to up to the next 4 timepoints
+  optimized_metric_value: Value of metric (fraction of segmentation overlap between
+    reference and query index timepoints) used for tracking
+  matching_method: Metric used by tracking algorithm to find matching segmentations
+  dataset: Name of dataset
+  position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
+  label: Cell segmentation ID (different from track ID, and may change between timepoints)
+  centroid: Centroid of cell segmentation in (Y,X) [pixels]
+  area_px_squared: Area of cell segmentation [pixels^2]
+  perimeter_px: Perimeter of cell segmentation [pixels]
+  solidity: Solidity of cell (ratio of cell area to area of its convex hull)
+  major_axis_length: Length of major axis of an ellipse fit to cell segmentation
+  minor_axis_length: Length of minor axis of an ellipse fit to cell segmentation
+  eccentricity: Eccentricity of ellipse fit to cell segmentation (focal distance divided
+    by major axis)
+  orientation: Orientation of cell [radians] from 0 (along +x axis) to pi (along -x
+    axis)
+  cell_fluorescence_mean_au: Mean of mEGFP-tagged VE-cadherin fluorescence [a.u.]
+    in cytoplasmic region of cell segmentation
+  cell_fluorescence_std_au: Standard deviation of mEGFP-tagged VE-cadherin fluorescence
+    [a.u.] in cytoplasmic region of cell segmentation
+  cell_fluorescence_median_au: Median of mEGFP-tagged VE-cadherin fluorescence [a.u.]
+    in cytoplasmic region of cell segmentation
+  cell_fluorescence_min_au: Minimum of mEGFP-tagged VE-cadherin fluorescence [a.u.]
+    in cytoplasmic region of cell segmentation
+  cell_fluorescence_pct25_au: 25th percentile of mEGFP-tagged VE-cadherin fluorescence
+    [a.u.] in cytoplasmic region of cell segmentation
+  cell_fluorescence_pct75_au: 75th percentile of mEGFP-tagged VE-cadherin fluorescence
+    [a.u.] in cytoplasmic region of cell segmentation
+  cell_fluorescence_max_au: Maximum of mEGFP-tagged VE-cadherin fluorescence [a.u.]
+    in cytoplasmic region of cell segmentation
+  neighboring_cell_labels: Cell segmentation labels of adjacent cell segmentations
+  edge_labels: Label IDs of each edge of a segmentation boundary
+  node_labels: Label IDs for each tricellular junction
+  node_pair_labels: Pair of node label IDs that form each edge of a segmentation boundary
+  edge_fluorescence_au: Fluorescence [a.u.] along boundary between 2 cell segmentations
+    (excluding pixels at nodes)
+  node_fluorescence_au: Fluorescence [a.u.] at junctions between 3 or more cell segmentations
+  is_edge_segmentation: True if segmentation touches edge of the image, False otherwise
+  nuclei_segmentation_labels: List of labels from label-free nuclei predictions that
+    overlap with the cell segmentation
+  nuclei_seg_in_cdh5_seg_frac: List of fractions of label-free nuclei prediction that
+    overlap with the cell segmentation
+  nuclei_with_most_overlap_0: ID of nuclei prediction that overlaps most with cell
+    segmentation (index 0, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_0_centroid_Y: Centroid Y coordinate of nuclei prediction
+    that overlaps most with cell segmentation (index 0, multiple nuclei recorded in
+    additional columns)
+  nuclei_with_most_overlap_0_centroid_X: Centroid X coordinate of nuclei prediction
+    that overlaps most with cell segmentation (index 0, multiple nuclei recorded in
+    additional columns)
+  nuclei_with_most_overlap_1: ID of nuclei prediction that overlaps most with cell
+    segmentation (index 1, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_1_centroid_Y: Centroid Y coordinate of nuclei prediction
+    that overlaps most with cell segmentation (index 1, multiple nuclei recorded in
+    additional columns)
+  nuclei_with_most_overlap_1_centroid_X: Centroid X coordinate of nuclei prediction
+    that overlaps most with cell segmentation (index 1, multiple nuclei recorded in
+    additional columns)
+  total_nuclei_count_at_T: Total number of nuclei present at the timepoint of interest
+  nuclei_with_most_overlap_2: ID of nuclei prediction that overlaps most with cell
+    segmentation (index 2, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_2_centroid_Y: Centroid Y coordinate of nuclei prediction
+    that overlaps most with cell segmentation (index 2, multiple nuclei recorded in
+    additional columns)
+  nuclei_with_most_overlap_2_centroid_X: Centroid X coordinate of nuclei prediction
+    that overlaps most with cell segmentation (index 2, multiple nuclei recorded in
+    additional columns)
+  nuclei_with_most_overlap_3: ID of nuclei prediction that overlaps most with cell
+    segmentation (index 3, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_3_centroid_Y: Centroid Y coordinate of nuclei prediction
+    that overlaps most with cell segmentation (index 3, multiple nuclei recorded in
+    additional columns)
+  nuclei_with_most_overlap_3_centroid_X: Centroid X coordinate of nuclei prediction
+    that overlaps most with cell segmentation (index 3, multiple nuclei recorded in
+    additional columns)
+  nuclei_with_most_overlap_4: ID of nuclei prediction that overlaps most with cell
+    segmentation (index 4, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_4_centroid_Y: Centroid Y coordinate of nuclei prediction
+    that overlaps most with cell segmentation (index 4, multiple nuclei recorded in
+    additional columns)
+  nuclei_with_most_overlap_4_centroid_X: Centroid X coordinate of nuclei prediction
+    that overlaps most with cell segmentation (index 4, multiple nuclei recorded in
+    additional columns)
+  nuclei_with_most_overlap_5: ID of nuclei prediction that overlaps most with cell
+    segmentation (index 5, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_5_centroid_Y: Centroid Y coordinate of nuclei prediction
+    that overlaps most with cell segmentation (index 5, multiple nuclei recorded in
+    additional columns)
+  nuclei_with_most_overlap_5_centroid_X: Centroid X coordinate of nuclei prediction
+    that overlaps most with cell segmentation (index 5, multiple nuclei recorded in
+    additional columns)
+  nuclei_with_most_overlap_6: ID of nuclei prediction that overlaps most with cell
+    segmentation (index 6, multiple nuclei recorded in additional columns)
+  nuclei_with_most_overlap_6_centroid_Y: Centroid Y coordinate of nuclei prediction
+    that overlaps most with cell segmentation (index 6, multiple nuclei recorded in
+    additional columns)
+  nuclei_with_most_overlap_6_centroid_X: Centroid X coordinate of nuclei prediction
+    that overlaps most with cell segmentation (index 6, multiple nuclei recorded in
+    additional columns)
+  shear_stress_regime: Experimentalist categorization of the shear stress response
+  time_resolution_minutes: Time resolution of the timelapse [minutes]
+  time_minutes: Time since start of timelapse [minutes]
+  time_hours: Time since start of timelapse [hours]
+  num_unique_tracks_per_timeframe: Number of unique cell segmentations per dataset
+    per position per timepoint per track (should always be 1)
+  gaussian_sigma_for_area_smoothing: Standard deviation of Gaussian kernel used for
+    smoothing cell segmentation areas across time
+  smoothed_area_normd: Area of cell segmentation after Gaussian smoothing across time
+    [pixels^2]
+  smoothed_area_normd_diff: Change in Gaussian-smoothed cell segmentation area [pixels^2]
+  num_unique_tracks_before_filtering_at_T: Number of unique tracks present at timepoint
+    of interest before filtering
+  track_duration: Number of timepoints in track
+  alignment: Alignment of cell relative to flow [radians] from 0 (parallel) to pi
+    (perpendicular)
+  alignment_deg: Alignment of cell relative to flow [degrees] from 0 (parallel) to
+    90 (perpendicular)
+  orientation_deg: Orientation of cell [degrees] from 0 (along +x axis) to 180 (along
+    -x axis)
+  nematic_order: Nematic order of ellipse fit to cell segmentation from -1 (perpendicular)
+    to 1 (parallel)
+  aspect_ratio: Aspect ratio of ellipse fit to cell segmentation (major axis divided
+    by minor axis)
+  pixel_size_xy_in_um: Size of a pixel in the XY dimensions [microns]
+  area_um_squared: Area of cell segmentation [microns^2]
+  perimeter_um: Perimeter of cell segmentation [microns]
+  edge_fluorescence_mean_au: Mean fluorescence [a.u.] at junctions between 2 cell
+    segmentations (edge)
+  edge_fluorescence_std_au: Standard deviation of fluorescence [a.u.] at junctions
+    between 2 cell segmentations (edge)
+  node_fluorescence_mean_au: Mean fluorescence [a.u.] at junctions between 3 or more
+    cell segmentations (node)
+  node_fluorescence_std_au: Standard deviation of fluorescence [a.u.] at junctions
+    between 3 or more cell segmentations (node)
+  edge_and_node_fluorescence_mean_au: Mean fluorescence [a.u.] of cell segmentation
+    edges and nodes
+  edge_and_node_fluorescence_std_au: Standard deviation of fluorescence [a.u.] of
+    cell segmentation edges and nodes
+  number_of_neighbors: Number of unique cell segmentations that are adjacent to this
+    one
+  image_size_x: Size of the whole image in the X dimension [pixels]
+  image_size_y: Size of the whole image in the Y dimension [pixels]
+  cdh5_channel_index_in_zarr: Index of the CDH5 channel in the Zarr file
+  brightfield_channel_index_zarr: Index of the brightfield channel in the Zarr file
+  num_nuclei_with_most_overlap: Number of label-free predicted nuclei that overlap
+    with a cell segmentation
+  centroid_y: Centroid of cell segmentation Y coordinate [pixels]
+  centroid_x: Centroid of cell segmentation X coordinate [pixels]
+  nuclei_position_x: X coordinate of the label-free nuclei prediction centroid [pixels]
+  nuclei_position_y: Y coordinate of the label-free nuclei prediction centroid [pixels]
+  nuclei_position_distance: Distance between nucleus centroid and cell segmentation
+    centroid [pixels]
+  nuclei_position_angle: Angle of nucleus centroid from cell centroid relative to
+    flow [radians] with 0 along +x and pi/-pi along -x
+  nuclei_position_angle_deg: Angle of nucleus centroid from cell centroid relative
+    to flow [degrees] with 0 along +x and 180/-180 along -x
+  crop_size: Size of the crop [pixels] at resolution level 0 (the native resolution)
+  start_x_resolution_0: X coordinate of upper left corner of patch (crop) [pixels]
+    (zarr resolution level 0)
+  start_y_resolution_0: Y coordinate of upper left corner of patch (crop) [pixels]
+    (zarr resolution level 0)
+  end_x_resolution_0: X coordinate of lower right corner of patch (crop) [pixels]
+    (zarr resolution level 0)
+  end_y_resolution_0: Y coordinate of lower right corner of patch (crop) [pixels]
+    (zarr resolution level 0)
+  bbox_is_in_bounds: True if crop/cell-centered patch fits into the larger image without
+    being clipped
+  diffae_resolution_level_to_use: DiffAE feature resolution level used to downsample
+    resolution 0 coordinates
+  num_nuclei_in_crop: Number of label-free predicted nuclei in a crop/cell-centered
+    patch
+  all_labels_in_crop: List of all segmentation labels found within a crop/cell-centered
+    patch
+  min_track_duration: Minimum number of timepoints for a track to be kept
+  is_greater_than_min_track_duration: True if track duration exceeds minimum threshold,
+    False otherwise
+  max_smoothed_area_normd_change: Max change in normalized smoothed cell segmentation
+    area before being considered invalid
+  is_less_than_max_smoothed_area_normd_change: True if change in Gaussian-smoothed
+    cell segmentation area is less than threshold, False otherwise
+  is_included: True if track passes all filtering criteria and is included in final
+    dataset, False otherwise
+  num_valid_tp_per_track: Number of timepoints in track that pass all segmentation-based
+    filters
+  min_num_valid_tp_per_track: Minimum number of timepoints that pass all other filters
+    for a track to be kept
+  has_more_than_min_num_valid_points_per_track: True if track has sufficient number
+    of timepoints passing all other filters, False otherwise
+  num_unique_tracks_after_filtering_at_T: Number of unique tracks that pass filtering
+    criteria at timepoint of interest
+  auto_bf_scope_error: True if timepoint was automatically flagged with brightfield
+    channel error, False otherwise
+  auto_bf_temp_artifact: True if timepoint was automatically flagged with brightfield
+    channel suddenly becoming too bright or too dark, False otherwise
+  auto_gfp_scope_error: True if timepoint was automatically flagged with 488 channel
+    (VE-cadherin-mEGFP) error, False otherwise
+  bf_scope_error: True if timepoint was manually determined with brightfield channel
+    error, False otherwise
+  bf_temp_artifact: True if timepoint was manually determined with brightfield channel
+    suddenly becoming too bright or too dark, False otherwise
+  cell_piling: True if there is considered to be cell piling at this timepoint, False
+    otherwise
+  gfp_scope_error: True if timepoint was manually determined with 488 channel (VE-cadherin-mEGFP)
+    error, False otherwise
+  not_steady_state: True if cells have not yet reached steady state, False if they
+    have
+  unfed: True if cells were unfed during this timepoint, False otherwise
+  xy_shift: True if there was a significant change in XY position of FOV at this timepoint,
+    False otherwise
+  z_shift: True if there was a significant change in Z position of FOV at this timepoint,
+    False otherwise
+  shear_stress: Shear stress value [dyn/cm^2]
+  time_hours_since_flow_start: Time since cells first experienced a shear stress [hours]
+  start_y: Y coordinate of upper left corner of patch (crop) [pixels] (zarr resolution
+    level 1)
+  start_x: X coordinate of upper left corner of patch (crop) [pixels] (zarr resolution
+    level 1)
+  end_y: Y coordinate of lower right corner of patch (crop) [pixels] (zarr resolution
+    level 1)
+  end_x: X coordinate of lower right corner of patch (crop) [pixels] (zarr resolution
+    level 1)
+  model_manifest_name: Manifest name of model used to generate latent vectors
+  run_name: Run name of model used to generate latent vectors
+  resolution_level: Zarr resolution level used to generate patches (crops) for obtaining
+    latent vectors
+  crop_size_y: Height of the patch (crop) [pixels] (zarr resolution level 1)
+  crop_size_x: Width of the patch (crop) [pixels] (zarr resolution level 1)
+  crop_index: Unique integer index of a patch (crop) trajectory across dataset, FOV,
+    and XY-position
+  pc_1: Component 1 of PCA-transformed latent vector
+  pc_2: Component 2 of PCA-transformed latent vector
+  pc_3: Component 3 of PCA-transformed latent vector
+  pc_4: Component 4 of PCA-transformed latent vector
+  pc_5: Component 5 of PCA-transformed latent vector
+  pc_6: Component 6 of PCA-transformed latent vector
+  pc_7: Component 7 of PCA-transformed latent vector
+  pc_8: Component 8 of PCA-transformed latent vector
+  pc_9: Component 9 of PCA-transformed latent vector
+  pc_10: Component 10 of PCA-transformed latent vector
+  pc_11: Component 11 of PCA-transformed latent vector
+  pc_12: Component 12 of PCA-transformed latent vector
+  pc_13: Component 13 of PCA-transformed latent vector
+  pc_14: Component 14 of PCA-transformed latent vector
+  pc_15: Component 15 of PCA-transformed latent vector
+  pc_16: Component 16 of PCA-transformed latent vector
+  pc_17: Component 17 of PCA-transformed latent vector
+  pc_18: Component 18 of PCA-transformed latent vector
+  pc_19: Component 19 of PCA-transformed latent vector
+  pc_20: Component 20 of PCA-transformed latent vector
+  pc_21: Component 21 of PCA-transformed latent vector
+  pc_22: Component 22 of PCA-transformed latent vector
+  pc_23: Component 23 of PCA-transformed latent vector
+  pc_24: Component 24 of PCA-transformed latent vector
+  pc_25: Component 25 of PCA-transformed latent vector
+  pc_26: Component 26 of PCA-transformed latent vector
+  pc_27: Component 27 of PCA-transformed latent vector
+  pc_28: Component 28 of PCA-transformed latent vector
+  pc_29: Component 29 of PCA-transformed latent vector
+  pc_30: Component 30 of PCA-transformed latent vector
+  pc_31: Component 31 of PCA-transformed latent vector
+  pc_32: Component 32 of PCA-transformed latent vector
+  pc_33: Component 33 of PCA-transformed latent vector
+  pc_34: Component 34 of PCA-transformed latent vector
+  pc_35: Component 35 of PCA-transformed latent vector
+  pc_36: Component 36 of PCA-transformed latent vector
+  pc_37: Component 37 of PCA-transformed latent vector
+  pc_38: Component 38 of PCA-transformed latent vector
+  pc_39: Component 39 of PCA-transformed latent vector
+  pc_40: Component 40 of PCA-transformed latent vector
+  pc_41: Component 41 of PCA-transformed latent vector
+  pc_42: Component 42 of PCA-transformed latent vector
+  pc_43: Component 43 of PCA-transformed latent vector
+  pc_44: Component 44 of PCA-transformed latent vector
+  pc_45: Component 45 of PCA-transformed latent vector
+  pc_46: Component 46 of PCA-transformed latent vector
+  pc_47: Component 47 of PCA-transformed latent vector
+  pc_48: Component 48 of PCA-transformed latent vector
+  pc_49: Component 49 of PCA-transformed latent vector
+  pc_50: Component 50 of PCA-transformed latent vector
+  pc_51: Component 51 of PCA-transformed latent vector
+  pc_52: Component 52 of PCA-transformed latent vector
+  pc_53: Component 53 of PCA-transformed latent vector
+  pc_54: Component 54 of PCA-transformed latent vector
+  pc_55: Component 55 of PCA-transformed latent vector
+  pc_56: Component 56 of PCA-transformed latent vector
+  pc_57: Component 57 of PCA-transformed latent vector
+  pc_58: Component 58 of PCA-transformed latent vector
+  pc_59: Component 59 of PCA-transformed latent vector
+  pc_60: Component 60 of PCA-transformed latent vector
+  pc_61: Component 61 of PCA-transformed latent vector
+  pc_62: Component 62 of PCA-transformed latent vector
+  pc_63: Component 63 of PCA-transformed latent vector
+  pc_64: Component 64 of PCA-transformed latent vector
+  pc_65: Component 65 of PCA-transformed latent vector
+  pc_66: Component 66 of PCA-transformed latent vector
+  pc_67: Component 67 of PCA-transformed latent vector
+  pc_68: Component 68 of PCA-transformed latent vector
+  pc_69: Component 69 of PCA-transformed latent vector
+  pc_70: Component 70 of PCA-transformed latent vector
+  pc_71: Component 71 of PCA-transformed latent vector
+  pc_72: Component 72 of PCA-transformed latent vector
+  pc_73: Component 73 of PCA-transformed latent vector
+  pc_74: Component 74 of PCA-transformed latent vector
+  pc_75: Component 75 of PCA-transformed latent vector
+  pc_76: Component 76 of PCA-transformed latent vector
+  pc_77: Component 77 of PCA-transformed latent vector
+  pc_78: Component 78 of PCA-transformed latent vector
+  pc_79: Component 79 of PCA-transformed latent vector
+  pc_80: Component 80 of PCA-transformed latent vector
+  pc_81: Component 81 of PCA-transformed latent vector
+  pc_82: Component 82 of PCA-transformed latent vector
+  pc_83: Component 83 of PCA-transformed latent vector
+  pc_84: Component 84 of PCA-transformed latent vector
+  pc_85: Component 85 of PCA-transformed latent vector
+  pc_86: Component 86 of PCA-transformed latent vector
+  pc_87: Component 87 of PCA-transformed latent vector
+  pc_88: Component 88 of PCA-transformed latent vector
+  pc_89: Component 89 of PCA-transformed latent vector
+  pc_90: Component 90 of PCA-transformed latent vector
+  pc_91: Component 91 of PCA-transformed latent vector
+  pc_92: Component 92 of PCA-transformed latent vector
+  pc_93: Component 93 of PCA-transformed latent vector
+  pc_94: Component 94 of PCA-transformed latent vector
+  pc_95: Component 95 of PCA-transformed latent vector
+  pc_96: Component 96 of PCA-transformed latent vector
+  pc_97: Component 97 of PCA-transformed latent vector
+  pc_98: Component 98 of PCA-transformed latent vector
+  pc_99: Component 99 of PCA-transformed latent vector
+  pc_100: Component 100 of PCA-transformed latent vector
+  polar_r: Transformed feature r (polar r from PC1 and PC2)
+  polar_theta: Transformed feature theta (rescaled polar angle from PC1 and PC2)
+  rho: Transformed feature rho (negative PC3)
 locations:
   20250319_20X:
     fmsid: aca0704e16774b9e9bf6ca4e896ab2e6
