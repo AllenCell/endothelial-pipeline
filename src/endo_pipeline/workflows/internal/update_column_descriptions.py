@@ -59,6 +59,10 @@ def main(manifest_names: UniqueStrList | None = None, reload_columns: bool = Fal
         ColumnTemplate.FIXED_POINT: ["rho", ("polar_theta", "theta"), ("polar_r", "r")],
         ColumnTemplate.DRIFT_COEFFICIENT: ["rho", ("polar_theta", "theta"), ("polar_r", "r")],
         ColumnTemplate.MESH_GRID: ["rho", ("polar_theta", "theta"), ("polar_r", "r")],
+        ColumnTemplate.BASELINE_FIXED_POINT: ["rho", ("polar_theta", "theta"), ("polar_r", "r")],
+        ColumnTemplate.BOOTSTRAP_CLUSTER_MEAN: ["rho", ("polar_theta", "theta"), ("polar_r", "r")],
+        ColumnTemplate.BOOTSTRAP_CI_LOWER: ["rho", ("polar_theta", "theta"), ("polar_r", "r")],
+        ColumnTemplate.BOOTSTRAP_CI_UPPER: ["rho", ("polar_theta", "theta"), ("polar_r", "r")],
     }
 
     column_descriptions = {}

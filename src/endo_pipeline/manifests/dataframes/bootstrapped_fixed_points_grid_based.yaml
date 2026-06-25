@@ -19,6 +19,24 @@ parameters:
     period: null
   bin_widths: [0.05, 0.05, 0.05]
   num_bootstrap_iterations: 500
+columns:
+  dataset: Name of dataset
+  stability: Stability classification of a fixed point
+  polar_theta_baseline: Baseline fixed point location in theta
+  polar_r_baseline: Baseline fixed point location in r
+  rho_baseline: Baseline fixed point location in rho
+  polar_theta_cluster_mean: Mean coordinate of matched bootstrap fixed points in theta
+  polar_r_cluster_mean: Mean coordinate of matched bootstrap fixed points in r
+  rho_cluster_mean: Mean coordinate of matched bootstrap fixed points in rho
+  polar_theta_ci_lower: Lower bound of bootstrap confidence interval for theta
+  polar_theta_ci_upper: Upper bound of bootstrap confidence interval for theta
+  polar_r_ci_lower: Lower bound of bootstrap confidence interval for r
+  polar_r_ci_upper: Upper bound of bootstrap confidence interval for r
+  rho_ci_lower: Lower bound of bootstrap confidence interval for rho
+  rho_ci_upper: Upper bound of bootstrap confidence interval for rho
+  detection_rate: Fraction of bootstrap iterations in which a matched fixed point
+    was found
+  shear_stress: Shear stress value [dyn/cm^2]
 locations:
   20250319_20X:
     fmsid: 798a269208f348089ae7422c77ef67b9
