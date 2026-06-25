@@ -155,7 +155,7 @@ save_plot_to_path(
 plt.close(fig)
 
 # %% coherence data in theta, r, rho space with the bin drawn around the fixed point
-for label, example in picks.items():
+for i, (label, example) in enumerate(picks.items()):
     dataset_name = example.dataset_name
     coherence_example_fig_name = slugify(f"{dataset_name}_3D_scatter_{label}")
     make_example_migration_coherence(
@@ -164,6 +164,7 @@ for label, example in picks.items():
         fig_name=coherence_example_fig_name,
         figure_size=(MAX_FIGURE_WIDTH / 3.5, MAX_FIGURE_WIDTH / 3.5),
         show_colorbar=False,
+        include_legend=(i == 1),  # only include legend for the second panel to avoid redundancy
     )
 
 # %% Save standalone colorbar to go with TFE examples
@@ -237,14 +238,14 @@ build_figure_from_panels(
             x_position=4.5,
             y_position=4,
             x_offset=0.05,
-            y_offset=0.1,
+            y_offset=-0.1,
         ),
         FigurePanel(
             letter="",
             path=output_dir / "20251001_20x_3d_scatter_incoherent.svg",
             x_position=4.5,
-            y_position=6,
-            x_offset=0.05,
+            y_position=5.5,
+            x_offset=-0.095,
             y_offset=0,
         ),
     ],

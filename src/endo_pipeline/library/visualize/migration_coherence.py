@@ -295,6 +295,7 @@ def plot_3d_scatter_or_binned(
     figsize: tuple[float, float] = (8, 8),
     show_colorbar: bool = True,
     fp_suffix: str = "",
+    include_legend: bool = True,
     fixed_point_label: str | None = None,
 ) -> tuple[plt.Figure, Axes3D]:
     """Plot a 3D scatter or 3D binned heatmap with optional fixed-point overlay.
@@ -311,18 +312,23 @@ def plot_3d_scatter_or_binned(
         Fixed-points dataframe. If provided, fixed points are overlaid with
         stability-specific markers and colors. If ``None``, no overlay is drawn.
     binned
-        If ``False`` (default), plot every point as a scatter.
-        If ``True``, bin the data in 3D and show the mean of
-        *color_col* per bin as colored squares.
+        If ``False`` (default), plot every point as a scatter. If ``True``, bin
+        the data in 3D and show the mean of *color_col* per bin as colored
+        squares.
     bin_size_xyz
-        Bin widths ``(x_bin, y_bin, z_bin)`` along each axis
-        (only used when ``mode="binned"``).
+        Bin widths ``(x_bin, y_bin, z_bin)`` along each axis (only used when
+        ``mode="binned"``).
     cmap
         Matplotlib colormap name.
     vmin, vmax
         Color-scale limits.
     fp_suffix
         Suffix for fixed point columns in fixed points dataframe.
+    include_legend
+        Whether to include a legend for the fixed points.
+    fixed_point_label
+        Optional label for the fixed points in the legend. If ``None``, a
+        default label is generated based on the fixed point coordinates.
 
     Returns
     -------
@@ -438,7 +444,7 @@ def plot_3d_scatter_or_binned(
                     marker_size=5,
                 )
             )
-    if legend_handles:
+    if legend_handles and include_legend:
         ax.legend(
             handles=legend_handles,
             loc="upper left",
@@ -679,6 +685,7 @@ def make_example_migration_coherence(
     fig_name: str | None = None,
     figure_size: tuple[float, float] = (6, 6),
     show_colorbar: bool = True,
+    include_legend: bool = True,
 ) -> None:
 
     dataset_config = load_dataset_config(dataset_name)
@@ -759,36 +766,38 @@ def make_example_migration_coherence(
             vmin=vmin,
             figsize=figure_size,
             show_colorbar=show_colorbar,
+            include_legend=include_legend,
             fixed_point_label=fixed_point_label,
         )
         # draw cube around bin edges
         for e_xyz in edges:
             ax.plot(*list(zip(*e_xyz, strict=True)), ls="-", lw=1, c="black", alpha=0.6)
 
-        # add box legend handle for the stable fixed point bin
-        bin_label = f"bin used to compute\nmean at {fixed_point_label}"
-        box_handle = mlines.Line2D(
-            [],
-            [],
-            ls="-",
-            lw=1,
-            color="black",
-            alpha=0.6,
-            label=bin_label,
-        )
-        leg = ax.get_legend()
-        assert leg is not None  # for type checking
-        existing_handles = list(leg.legend_handles)
-        existing_labels = [t.get_text() for t in leg.get_texts()]
-        ax.legend(
-            handles=[*existing_handles, box_handle],
-            labels=[*existing_labels, bin_label],
-            loc="upper left",
-            bbox_to_anchor=(-0.25, -0.15),
-            fontsize=FONTSIZE_XSMALL,
-            ncol=2,
-            handler_map={box_handle: _CubeLegendHandler()},
-        )
+        if include_legend:
+            # add box legend handle for the stable fixed point bin
+            bin_label = f"bin used to compute\nmean at {fixed_point_label}"
+            box_handle = mlines.Line2D(
+                [],
+                [],
+                ls="-",
+                lw=1,
+                color="black",
+                alpha=0.6,
+                label=bin_label,
+            )
+            leg = ax.get_legend()
+            assert leg is not None  # for type checking
+            existing_handles = list(leg.legend_handles)
+            existing_labels = [t.get_text() for t in leg.get_texts()]
+            ax.legend(
+                handles=[*existing_handles, box_handle],
+                labels=[*existing_labels, bin_label],
+                loc="upper left",
+                bbox_to_anchor=(-0.125, -0.15),
+                fontsize=FONTSIZE_XSMALL,
+                ncol=2,
+                handler_map={box_handle: _CubeLegendHandler()},
+            )
 
         save_plot_to_path(
             fig,
