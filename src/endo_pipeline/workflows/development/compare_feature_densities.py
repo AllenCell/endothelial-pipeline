@@ -71,10 +71,10 @@ def main(
     # Load dataframe manifest for the features to be used in flow field
     # estimation and analysis.
     feature_dataframe_manifest_tracked = load_dataframe_manifest(
-        FEATURES_FILTERED_MANIFEST_NAMES["tracked"]
+        FEATURES_FILTERED_MANIFEST_NAMES["cell_centered"]
     )
     feature_dataframe_manifest_grid = load_dataframe_manifest(
-        FEATURES_FILTERED_MANIFEST_NAMES["grid"]
+        FEATURES_FILTERED_MANIFEST_NAMES["grid_based"]
     )
 
     fig_savedir = get_output_path(__file__)

@@ -25,6 +25,7 @@ from endo_pipeline.settings.diffae_feature_dataframes import (
     NUM_LATENT_FEATURES,
 )
 from endo_pipeline.settings.dynamics_workflows import RESCALE_THETA
+from endo_pipeline.settings.literal_types import PatchTypeLiteral
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -56,7 +57,9 @@ def build_pca_input_dataframe(
 
     # Get dataframe manifest name if not provided based on default model manifest
     if dataframe_manifest_name is None:
-        dataframe_manifest_name = f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_grid"
+        dataframe_manifest_name = (
+            f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_grid_based"
+        )
 
     # Load dataframe manifest
     manifest = load_dataframe_manifest(dataframe_manifest_name)
@@ -313,7 +316,7 @@ def project_features_to_pcs(
 
 def add_crop_index(
     df: pd.DataFrame,
-    crop_pattern: Literal["grid", "tracked"] = "grid",
+    patch_type: PatchTypeLiteral = "grid_based",
 ) -> pd.DataFrame:
     """
     Add crop index column to DataFrame df. (Crops are currently identified by
@@ -329,13 +332,13 @@ def add_crop_index(
     - df: pd.DataFrame, DataFrame of feature data for one
         dataset with added crop index column
     """
-    if crop_pattern not in ["grid", "tracked"]:
-        logger.error("Crop pattern must be 'tracked' or 'grid', got [ %s ]", crop_pattern)
-        raise ValueError("Input crop_pattern must be 'grid' or 'tracked'")
+    if patch_type not in ["grid_based", "cell_centered"]:
+        logger.error("Patch type must be 'cell_centered' or 'grid_based', got [ %s ]", patch_type)
+        raise ValueError("Input patch type must be 'grid_based' or 'cell_centered'")
 
-    if crop_pattern == "tracked" and Column.TRACK_ID in df.columns:
+    if patch_type == "cell_centered" and Column.TRACK_ID in df.columns:
         required_columns = [Column.POSITION, Column.TRACK_ID]
-    elif crop_pattern == "grid":
+    elif patch_type == "grid_based":
         required_columns = [Column.POSITION, Column.DiffAEData.START_X, Column.DiffAEData.START_Y]
 
     check_required_columns_in_dataframe(df, required_columns)

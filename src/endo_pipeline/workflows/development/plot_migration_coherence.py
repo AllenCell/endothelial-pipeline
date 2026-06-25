@@ -94,7 +94,7 @@ def main(
         BOOTSTRAPPING_MANIFEST_NAMES,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
     )
-    from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
+    from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_PATCH_TYPE
     from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
     from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
     from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
@@ -104,19 +104,19 @@ def main(
 
     # Load diffae features
     feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[
-        MIGRATION_COHERENCE_CROP_PATTERN
+        MIGRATION_COHERENCE_PATCH_TYPE
     ]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     feature_column_names = list(DYNAMICS_COLUMN_NAMES)
     fp_column_names = [f"{col}{ColumnNameSuffix.FIXED_POINTS}" for col in DYNAMICS_COLUMN_NAMES]
-    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid"], *feature_column_names]
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid_based"], *feature_column_names]
 
-    name_suffix = f"_{join_sorted_strings(feature_column_names)}_{MIGRATION_COHERENCE_CROP_PATTERN}"
+    name_suffix = f"_{join_sorted_strings(feature_column_names)}_{MIGRATION_COHERENCE_PATCH_TYPE}"
     fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix}"
     fixed_points_dataframe_manifest = load_dataframe_manifest(fixed_points_dataframe_manifest_name)
 
-    bootstrap_manifest_name = BOOTSTRAPPING_MANIFEST_NAMES[MIGRATION_COHERENCE_CROP_PATTERN]
+    bootstrap_manifest_name = BOOTSTRAPPING_MANIFEST_NAMES[MIGRATION_COHERENCE_PATCH_TYPE]
     fixed_points_bootstrap_dataframe_manifest = load_dataframe_manifest(bootstrap_manifest_name)
 
     output_dir = get_output_path(__file__, dataset_group)

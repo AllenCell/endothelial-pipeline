@@ -2,11 +2,11 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from endo_pipeline.cli import CropPattern, Datasets
+from endo_pipeline.cli import Datasets, PatchType
 
 
 def main(
-    crop_pattern: CropPattern = "grid",
+    patch_type: PatchType = "grid_based",
     datasets: Datasets | None = None,
     use_same_axes: Annotated[bool, Parameter(negative="--use-auto-axes")] = False,
     plot_stack: bool = False,
@@ -19,7 +19,7 @@ def main(
 
     This workflow uses the precomputed drift vector field and fixed points
     output by the `generate_flow_field` workflow, run for all three column names.
-    Make sure to run that workflow with the matching crop pattern and column
+    Make sure to run that workflow with the matching patch type and column
     names before visualizing.
 
     Visualization outputs include:
@@ -59,8 +59,8 @@ def main(
 
     Parameters
     ----------
-    crop_pattern
-        Crop pattern used to calculate the features.
+    patch_type
+        Patch type used to calculate the features.
     datasets
         List of datasets or dataset collections to visualize.
     use_same_axes
@@ -162,14 +162,14 @@ def main(
     ]
 
     # Columns to keep when loading feature dataframe
-    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[crop_pattern], *column_names]
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[patch_type], *column_names]
 
-    # Load feature dataframe for specified crop pattern
-    feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[crop_pattern]
+    # Load feature dataframe for specified patch type
+    feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[patch_type]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # Load drift vector field and fixed points for selected column
-    name_suffix = f"_{join_sorted_strings(column_names)}_{crop_pattern}"
+    name_suffix = f"_{join_sorted_strings(column_names)}_{patch_type}"
     vector_field_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD}{name_suffix}"
     fixed_points_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix}"
     vector_field_manifest = load_dataframe_manifest(vector_field_manifest_name)

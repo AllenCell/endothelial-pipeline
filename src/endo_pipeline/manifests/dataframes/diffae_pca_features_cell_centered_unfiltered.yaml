@@ -1,9 +1,9 @@
-name: diffae_pca_features_tracked_unfiltered
+name: diffae_pca_features_cell_centered_unfiltered
 workflow: calculate-pca-features
 parameters:
   model_manifest_name: diffae_baseline
   run_name: latent_512
-  crop_pattern: tracked
+  patch_type: cell_centered
   filtered: false
 locations:
   20250319_20X:

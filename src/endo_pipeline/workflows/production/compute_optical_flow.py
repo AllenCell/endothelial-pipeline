@@ -1,6 +1,6 @@
 from typing import Literal
 
-from endo_pipeline.cli import CropPattern, Datasets
+from endo_pipeline.cli import Datasets, PatchType
 from endo_pipeline.settings.optical_flow import (
     DEFAULT_EMA_ALPHA,
     DEFAULT_OPTICAL_FLOW_MAX_DT,
@@ -10,7 +10,7 @@ from endo_pipeline.settings.optical_flow import (
 
 def main(
     datasets: Datasets | None = None,
-    crop_pattern: CropPattern = "grid",
+    patch_type: PatchType = "grid_based",
     channel: Literal["BF", "EGFP"] = "BF",
     max_dt: int = DEFAULT_OPTICAL_FLOW_MAX_DT,
     ema_alpha: float = DEFAULT_EMA_ALPHA,
@@ -78,8 +78,8 @@ def main(
     ----------
     datasets
         List of datasets or dataset collections to compute optical flow on.
-    crop_pattern
-        Crop pattern to use for computing features.
+    patch_type
+        Patch type to use for computing features.
     channel
         Imaging channel to use for computing features.
     max_dt
@@ -112,8 +112,8 @@ def main(
     )
     from endo_pipeline.library.analyze.optical_flow import (
         OpticalFlowImagePair,
-        build_image_pair_crops_for_grid,
-        build_image_pair_crops_for_tracked,
+        build_image_pair_crops_for_cell_centered,
+        build_image_pair_crops_for_grid_based,
         build_merged_optical_flow_dataframe,
         calculate_optical_flow_intensity_threshold,
         compute_image_pair_flow,
@@ -165,22 +165,22 @@ def main(
 
     # Load dataframe with DiffAE feature metadata (no filtering yet) to get crop
     # coordinates and timepoints for each dataset/position.
-    feature_dataframe_manifest_name = FEATURES_UNFILTERED_MANIFEST_NAMES[crop_pattern]
+    feature_dataframe_manifest_name = FEATURES_UNFILTERED_MANIFEST_NAMES[patch_type]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
-    columns_to_compute = list(OPTICAL_FLOW_COLUMNS_TO_COMPUTE[crop_pattern])
+    columns_to_compute = list(OPTICAL_FLOW_COLUMNS_TO_COMPUTE[patch_type])
 
     # Load or create optical flow manifest and set parameters before the loop so
     # that it is available even if the workflow fails partway through. Add
     # suffix to manifest name in demo mode to avoid overwriting real results
     # with partial demo results.
     name_prefix = OPTICAL_FLOW_MANIFEST_NAME_PREFIX
-    name_suffix = f"_{channel.lower()}_{crop_pattern}{'_demo' if DEMO_MODE else ''}"
+    name_suffix = f"_{channel.lower()}_{patch_type}{'_demo' if DEMO_MODE else ''}"
     optical_flow_manifest = create_dataframe_manifest(
         f"{name_prefix}{name_suffix}",
         workflow_name=__file__,
     )
     optical_flow_manifest.parameters = {
-        "crop_pattern": crop_pattern,
+        "patch_type": patch_type,
         "channel": channel,
         "max_dt": max_dt,
         "intensity_percentile": intensity_percentile,
@@ -229,10 +229,10 @@ def main(
             # mapping timepoint -> (start_y, end_y, start_x, end_x, crop_ids)
             # so that crop coordinates can change frame-to-frame. For grid
             # crops, the arrays are constant across all timepoints.
-            if crop_pattern == "tracked":
-                get_crops_for_timepoint = build_image_pair_crops_for_tracked(df_position)
+            if patch_type == "cell_centered":
+                get_crops_for_timepoint = build_image_pair_crops_for_cell_centered(df_position)
             else:
-                get_crops_for_timepoint = build_image_pair_crops_for_grid(df_position)
+                get_crops_for_timepoint = build_image_pair_crops_for_grid_based(df_position)
 
             # Build frame pairs from timepoint sets
             image_pairs = [

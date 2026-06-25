@@ -15,7 +15,7 @@ from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.optical_flow import (
     OpticalFlowImagePairCrops,
-    build_image_pair_crops_for_grid,
+    build_image_pair_crops_for_grid_based,
 )
 from endo_pipeline.library.process.image_processing import load_processed_bf_std_dev_image
 from endo_pipeline.library.visualize.figure_utils import add_scalebar
@@ -33,7 +33,7 @@ from endo_pipeline.settings.workflow_defaults import GRID_BASED_FEATURES_UNFILTE
 def load_optical_flow_feature_df(dataset_name: str) -> pd.DataFrame:
     """Load the per-crop feature DataFrame used to build the crop grid."""
     manifest = load_dataframe_manifest(GRID_BASED_FEATURES_UNFILTERED_MANIFEST_NAME)
-    cols = list(OPTICAL_FLOW_COLUMNS_TO_COMPUTE["grid"])
+    cols = list(OPTICAL_FLOW_COLUMNS_TO_COMPUTE["grid_based"])
     return load_dataframe(manifest.locations[dataset_name], delay=True)[cols].compute()
 
 
@@ -61,7 +61,7 @@ def build_bf_frame_cache(
     df_position = df_dataset[
         (df_dataset[Column.POSITION] == position) & (df_dataset[Column.TIMEPOINT].isin(timepoints))
     ].copy()
-    crop_grid = build_image_pair_crops_for_grid(df_position)(timepoints[0])
+    crop_grid = build_image_pair_crops_for_grid_based(df_position)(timepoints[0])
 
     # Build image cache
     image_cache: dict[int, np.ndarray] = {}

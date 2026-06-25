@@ -14,7 +14,7 @@ from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.examples import FIGURE_3_EXAMPLE_IMAGES
 from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.manifest_names import BOOTSTRAPPING_MANIFEST_NAMES
-from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
+from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_PATCH_TYPE
 from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
 from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
 
@@ -41,10 +41,10 @@ save_plot_to_path(
 
 # %% Panel B: Cross-dataset summary plot
 feature_dataframe_manifest = load_dataframe_manifest(
-    FEATURES_FILTERED_MANIFEST_NAMES[MIGRATION_COHERENCE_CROP_PATTERN]
+    FEATURES_FILTERED_MANIFEST_NAMES[MIGRATION_COHERENCE_PATCH_TYPE]
 )
 fixed_points_bootstrap_dataframe_manifest = load_dataframe_manifest(
-    BOOTSTRAPPING_MANIFEST_NAMES[MIGRATION_COHERENCE_CROP_PATTERN]
+    BOOTSTRAPPING_MANIFEST_NAMES[MIGRATION_COHERENCE_PATCH_TYPE]
 )
 
 dataset_summary_df = build_dataframe_for_fixed_point_dataset_summary(

@@ -1059,7 +1059,7 @@ def build_dataframe_for_fixed_point_dataset_summary(
     if column_names is None:
         column_names = DEFAULT_SUMMARY_COLUMN_NAMES
 
-    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid"], *DYNAMICS_COLUMN_NAMES]
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid_based"], *DYNAMICS_COLUMN_NAMES]
     columns_to_bin = {
         "fp_x_col": f"{ColumnName.DiffAEData.POLAR_ANGLE}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}",
         "fp_y_col": f"{ColumnName.DiffAEData.POLAR_RADIUS}{ColumnNameSuffix.BOOTSTRAP_CLUSTER_MEAN}",

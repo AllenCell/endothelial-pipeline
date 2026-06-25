@@ -1,12 +1,12 @@
 from typing import Literal
 
-from endo_pipeline.cli import CropPattern, Datasets
+from endo_pipeline.cli import Datasets, PatchType
 from endo_pipeline.settings.optical_flow import DEFAULT_EMA_ALPHA, DEFAULT_OPTICAL_FLOW_MAX_DT
 
 
 def main(
     datasets: Datasets | None = None,
-    crop_pattern: CropPattern = "grid",
+    patch_type: PatchType = "grid_based",
     channel: Literal["BF", "EGFP"] = "BF",
     max_dt: int = DEFAULT_OPTICAL_FLOW_MAX_DT,
     ema_alpha: float = DEFAULT_EMA_ALPHA,
@@ -30,8 +30,8 @@ def main(
     ----------
     datasets
         List of datasets or dataset collections to visualize.
-    crop_pattern
-        Crop pattern to use for computing features.
+    patch_type
+        Patch type to use for computing features.
     channel
         Imaging channel to use for computing features.
     max_dt
@@ -90,7 +90,7 @@ def main(
 
     # Load optical flow dataframe manifest
     name_prefix = OPTICAL_FLOW_MANIFEST_NAME_PREFIX
-    name_suffix = f"_{channel.lower()}_{crop_pattern}{'_demo' if DEMO_MODE else ''}"
+    name_suffix = f"_{channel.lower()}_{patch_type}"
     manifest = load_dataframe_manifest(f"{name_prefix}{name_suffix}")
 
     # Select sorting column

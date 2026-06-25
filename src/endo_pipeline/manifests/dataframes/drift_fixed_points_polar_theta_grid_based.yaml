@@ -1,9 +1,9 @@
-name: drift_vector_field_polar_theta_grid
+name: drift_fixed_points_polar_theta_grid_based
 workflow: generate_flow_field
 parameters:
   model_manifest_name: diffae_baseline
   run_name: latent_512
-  crop_pattern: grid
+  patch_type: grid_based
   kernels:
   - column: polar_theta
     name: periodic
@@ -15,10 +15,10 @@ parameters:
   upper_percentile_for_filtering_fpts: 95.0
 locations:
   20250409_20X:
-    fmsid: 3072e660b2164100a8ba706950afab16
+    fmsid: efb3e294c359490bb8b4ebbcc3c55a5c
     path: null
     s3uri: null
   20251001_20X:
-    fmsid: abc62cae1a36471fa59712d2260fd0af
+    fmsid: f2daf8964feb404e8631fdb6481bad91
     path: null
     s3uri: null

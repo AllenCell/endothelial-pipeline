@@ -1,4 +1,4 @@
-from endo_pipeline.cli import CropPattern
+from endo_pipeline.cli import PatchType
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -6,7 +6,7 @@ from endo_pipeline.settings.workflow_defaults import (
 
 
 def main(
-    crop_pattern: CropPattern,
+    patch_type: PatchType,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str = DEFAULT_MODEL_RUN_NAME,
 ) -> None:
@@ -25,13 +25,13 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe eval-diffae CROP_PATTERN -vd
+    uv run endopipe eval-diffae PATCH_TYPE -vd
     ```
 
     To run the workflow for a specific model manifest name and run name:
 
     ```bash
-    uv run endopipe eval-diffae CROP_PATTERN \
+    uv run endopipe eval-diffae PATCH_TYPE \
         --model-manifest-name MODEL_MANIFEST_NAME \
         --run-name RUN_NAME
     ```
@@ -45,8 +45,8 @@ def main(
 
     Parameters
     ----------
-    crop_pattern
-        Crop pattern used for model evaluation.
+    patch_type
+        Patch type used for model evaluation.
     model_manifest_name
         Name for the model manifest to use for evaluation.
     run_name
@@ -79,7 +79,7 @@ def main(
     model_manifest = load_model_manifest(model_manifest_name)
     name_suffix = "_demo" if DEMO_MODE else ""
     feature_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern
+        model_manifest, run_name, patch_type
     )
     feature_manifest = load_dataframe_manifest(f"{feature_manifest_name}{name_suffix}")
     datasets = [key for key, loc in feature_manifest.locations.items() if loc.fmsid is None]
@@ -112,7 +112,7 @@ def main(
 
     for dataset in datasets:
         # Build evaluation config path.
-        config_file = config_path / f"eval_{crop_pattern}_{dataset}{name_suffix}.yaml"
+        config_file = config_path / f"eval_{patch_type}_{dataset}{name_suffix}.yaml"
 
         # Initialize the model with evaluation config.
         cytodl_model = CytoDLModel()
@@ -128,7 +128,7 @@ def main(
         output_path = output_dir / f"predict_{filename_suffix}.parquet"
 
         # Add metadata to prediction output.
-        if crop_pattern == "grid":
+        if patch_type == "grid_based":
             crop_size = cytodl_model.cfg.model.spatial_inferer.splitter.patch_size
             update_prediction_from_crops_with_metadata(
                 dataset_name=dataset,
@@ -137,7 +137,7 @@ def main(
                 crop_size=crop_size,
                 prediction_path=output_path,
             )
-        elif crop_pattern == "tracked":
+        elif patch_type == "cell_centered":
             update_prediction_from_tracks_with_metadata(
                 dataset_name=dataset,
                 model_manifest_name=model_manifest_name,

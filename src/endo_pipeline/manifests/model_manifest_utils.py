@@ -1,7 +1,6 @@
 """Methods for working with model manifests."""
 
 import logging
-from typing import Literal
 
 from endo_pipeline.manifests import (
     ModelLocation,
@@ -9,6 +8,7 @@ from endo_pipeline.manifests import (
     get_model_manifest_dir,
     load_model_manifest,
 )
+from endo_pipeline.settings.literal_types import PatchTypeLiteral
 
 logger = logging.getLogger(__name__)
 
@@ -41,18 +41,18 @@ def get_most_recent_run_name(model_manifest: ModelManifest) -> str:
 def get_feature_dataframe_manifest_name(
     model_manifest: ModelManifest,
     run_name: str | None,
-    crop_pattern: Literal["grid", "tracked"] = "grid",
+    patch_type: PatchTypeLiteral = "grid_based",
 ) -> str:
     """Get the feature dataframe manifest name corresponding to model manifest and run name."""
 
-    # Check that selected crop pattern is valid.
-    if crop_pattern not in ("grid", "tracked"):
-        logger.error("Crop pattern must be 'grid' or 'tracked'")
-        raise ValueError(f"Crop pattern '{crop_pattern}' is not supported")
+    # Check that selected patch type is valid.
+    if patch_type not in ("grid_based", "cell_centered"):
+        logger.error("Patch type must be 'grid_based' or 'cell_centered'")
+        raise ValueError(f"Patch type '{patch_type}' is not supported")
 
-    # Default naming pattern is {model_manifest}_{run_name}_{crop_pattern}
+    # Default naming pattern is {model_manifest}_{run_name}_{patch_type}
     run_name_ = get_most_recent_run_name(model_manifest) if run_name is None else run_name
-    feature_manifest_name = f"{model_manifest.name}_{run_name_}_{crop_pattern}"
+    feature_manifest_name = f"{model_manifest.name}_{run_name_}_{patch_type}"
 
     return feature_manifest_name
 

@@ -1,9 +1,9 @@
-name: bootstrapped_fixed_points_grid
+name: bootstrapped_fixed_points_grid_based
 workflow: bootstrap_fixed_points
 parameters:
   model_manifest_name: diffae_baseline
   run_name: latent_512
-  crop_pattern: grid
+  patch_type: grid_based
   kernels:
   - column: polar_theta
     name: periodic

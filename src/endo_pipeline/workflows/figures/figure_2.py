@@ -79,7 +79,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D", "E", "F"])
 
     # figure is for grid based crops
-    crop_pattern = "grid"
+    patch_type = "grid_based"
 
     dataset_low = EXAMPLE_DATASET["FIGURE_2_LOW_FLOW_DATASET"]
     dataset_high = EXAMPLE_DATASET["FIGURE_2_HIGH_FLOW_DATASET"]
@@ -95,25 +95,25 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     feature_columns_str = join_sorted_strings(feature_column_names)
 
     # load dataframe manifests for diffae features, fixed points, optical flow
-    # features, and bootstrapped fixed points for this crop pattern, which will be
+    # features, and bootstrapped fixed points for this patch type, which will be
     # used for all visualizations in this figure
-    feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[crop_pattern]
+    feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[patch_type]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
-    name_suffix_2d = f"_{columns_r_rho_str}_{crop_pattern}"
+    name_suffix_2d = f"_{columns_r_rho_str}_{patch_type}"
     fixed_points_r_rho_dataframe_manifest_name = (
         f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix_2d}"
     )
     fixed_points_r_rho_dataframe_manifest = load_dataframe_manifest(
         fixed_points_r_rho_dataframe_manifest_name
     )
-    name_suffix_1d = f"_{column_theta}_{crop_pattern}"
+    name_suffix_1d = f"_{column_theta}_{patch_type}"
     fixed_points_theta_dataframe_manifest_name = (
         f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix_1d}"
     )
     fixed_points_theta_dataframe_manifest = load_dataframe_manifest(
         fixed_points_theta_dataframe_manifest_name
     )
-    name_suffix_3d = f"_{feature_columns_str}_{crop_pattern}"
+    name_suffix_3d = f"_{feature_columns_str}_{patch_type}"
     fixed_points_3d_dataframe_manifest_name = (
         f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix_3d}"
     )
@@ -121,7 +121,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     fixed_points_3d_dataframe_manifest = load_dataframe_manifest(
         fixed_points_3d_dataframe_manifest_name
     )
-    bootstrap_dataframe_manifest_name = BOOTSTRAPPING_MANIFEST_NAMES[crop_pattern]
+    bootstrap_dataframe_manifest_name = BOOTSTRAPPING_MANIFEST_NAMES[patch_type]
     bootstrap_dataframe_manifest = load_dataframe_manifest(bootstrap_dataframe_manifest_name)
 
     # get labels for provided set of feature columns

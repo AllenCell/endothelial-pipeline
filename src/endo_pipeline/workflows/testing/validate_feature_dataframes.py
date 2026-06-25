@@ -1,7 +1,7 @@
-from endo_pipeline.cli import CropPattern
+from endo_pipeline.cli import PatchType
 
 
-def main(crop_pattern: CropPattern = "grid") -> None:
+def main(patch_type: PatchType = "grid_based") -> None:
     """
     Validate positions and timepoints in DiffAE feature dataframes.
 
@@ -17,13 +17,13 @@ def main(crop_pattern: CropPattern = "grid") -> None:
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe validate-feature-dataframes CROP_PATTERN -vd
+    uv run endopipe validate-feature-dataframes PATCH_TYPE -vd
     ```
 
     To run the full workflow:
 
     ```bash
-    uv run endopipe validate-feature-dataframes CROP_PATTERN
+    uv run endopipe validate-feature-dataframes PATCH_TYPE
     ```
 
     ## Workflow demo
@@ -33,8 +33,8 @@ def main(crop_pattern: CropPattern = "grid") -> None:
 
     Parameters
     ----------
-    crop_pattern
-        Crop pattern used for model evaluation.
+    patch_type
+        Patch type used for model evaluation.
     """
 
     import logging
@@ -60,9 +60,9 @@ def main(crop_pattern: CropPattern = "grid") -> None:
     logger = logging.getLogger(__name__)
 
     manifest_names = [
-        (f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}", False),
-        (FEATURES_UNFILTERED_MANIFEST_NAMES[crop_pattern], False),
-        (FEATURES_FILTERED_MANIFEST_NAMES[crop_pattern], True),
+        (f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{patch_type}", False),
+        (FEATURES_UNFILTERED_MANIFEST_NAMES[patch_type], False),
+        (FEATURES_FILTERED_MANIFEST_NAMES[patch_type], True),
     ]
 
     if DEMO_MODE:

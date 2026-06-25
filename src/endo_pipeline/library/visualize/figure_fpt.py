@@ -143,14 +143,14 @@ def _load_trajectory_dataframes(
     """
     traj_df_grid = load_filtered_trajectory_df_for_first_passage_time_workflow(
         dataset_name,
-        crop_pattern="grid",
+        patch_type="grid_based",
         minimum_track_length=minimum_track_length,
     )
     traj_df_grid[Column.SegData.TIME_HRS] = traj_df_grid[Column.TIMEPOINT] * TIME_STEP_IN_HOURS
 
     traj_df_tracked = load_filtered_trajectory_df_for_first_passage_time_workflow(
         dataset_name,
-        crop_pattern="tracked",
+        patch_type="cell_centered",
         minimum_track_length=minimum_track_length,
     )
     traj_df_tracked[Column.SegData.TIME_HRS] = (
@@ -316,10 +316,10 @@ def _compute_filtered_fpt_stats(
     # remove bins that don't have enough trajectories in them from either the
     # grid or tracked trajectories
     fpt_stats_df = fpt_stats_df[
-        fpt_stats_df["count_first_passage_time_grid"] >= min_num_traj_per_bin
+        fpt_stats_df["count_first_passage_time_grid_based"] >= min_num_traj_per_bin
     ]
     fpt_stats_df = fpt_stats_df[
-        fpt_stats_df["count_first_passage_time_tracked"] >= min_num_traj_per_bin
+        fpt_stats_df["count_first_passage_time_cell_centered"] >= min_num_traj_per_bin
     ]
 
     return fpt_stats_df
@@ -334,19 +334,20 @@ def _select_example_bin(
     """
     # pick the mean FPT metric and select the first well-populated bin as the
     # example bin to visualize
-    # we take one representative trajectory from each crop pattern that starts inside that bin
+    # we take one representative trajectory from each patch type that starts inside that bin
     metric = f"mean{Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX}"
 
     # NaN values are unacceptable for the linear regression
     first_passage_time_df_no_nan = fpt_stats_df.copy().dropna(
-        subset=[f"{metric}_grid", f"{metric}_tracked"]
+        subset=[f"{metric}_grid_based", f"{metric}_cell_centered"]
     )
     # keep only the bins with the minimum number of tracks per bin in them
     first_passage_time_df_no_nan = first_passage_time_df_no_nan[
-        first_passage_time_df_no_nan["count_first_passage_time_grid"] >= min_num_traj_per_bin
+        first_passage_time_df_no_nan["count_first_passage_time_grid_based"] >= min_num_traj_per_bin
     ]
     first_passage_time_df_no_nan = first_passage_time_df_no_nan[
-        first_passage_time_df_no_nan["count_first_passage_time_tracked"] >= min_num_traj_per_bin
+        first_passage_time_df_no_nan["count_first_passage_time_cell_centered"]
+        >= min_num_traj_per_bin
     ]
 
     # get the center and edges of the first qualifying bin
@@ -365,7 +366,7 @@ def _select_example_bin_trajectories(
     example_grid_crop_index: int | None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Filter dataframes to only include a single trajectory from each crop pattern
+    Filter dataframes to only include a single trajectory from each patch type
     that starts in the example bin, and filter to just the timepoints from that
     trajectory that start in the bin and continue until the end of the track.
     """
@@ -383,7 +384,7 @@ def _select_example_bin_trajectories(
         bin_edges=bin_edges,
     )
 
-    # take the first trajectory (by crop index) from each crop pattern in the
+    # take the first trajectory (by crop index) from each patch type in the
     # example bin; record its initial timepoint and feature-space position so
     # we can mark where it enters the bin
     for crop_id_tracked, df in trajectory_df_tracked_one_bin.groupby(Column.CROP_INDEX):
@@ -488,7 +489,7 @@ def _create_fpt_schematic_figure(
     track_alpha = 0.7
 
     # plot the full trajectories as lines with markers at each timepoint,
-    # colored by crop pattern
+    # colored by patch type
     ax.plot(
         xs=thetas_grid_unwrapped,
         ys=rs_grid,

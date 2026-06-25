@@ -45,7 +45,7 @@ There is currently one main model evaluation option. This options may be passed 
 
 | Option | Description | CLI | Options |
 | - | - | - | - |
-| **crop pattern** | select grid-based or track-based crops | `--crop-pattern CROP_PATTERN` | `grid` or `tracked` |
+| **patch type** | select grid-based or cell-centered crops | `--patch-type PATCH_TYPE` | `grid_based` or `cell_centered` |
 
 ## Model training workflows
 
@@ -63,17 +63,18 @@ There is currently one main model evaluation option. This options may be passed 
 ### 2. Build the model training config
 
 - workflow = `build-diffae-train-config`
-- input (identifier options) = **model manifest name**, **run_name**
-- input (training options) = **image crop size**, **conditioning image type**, **latent space dimension**
-- :white_circle: output = resolved model config at `results/models/MODEL_MANIFEST_NAME/RUN_NAME/configs/train.yaml`
-- :purple_circle: output = updated model manifest with pending training run at `src/endo_pipeline/manifests/models/diffae_PATCH_CONDITIONING_LATENT` (recommendation is to open a draft PR with this change until the next step is complete)
+- input (identifier options) = **model manifest name** (`MANIFEST`), **run name** (`RUN`)
+- input (training options) = **image crop size** (`CROP`), **conditioning image type** (`CONDITION`), **latent space dimension** (`LATENT`)
+- :white_circle: output = resolved model config at `results/models/MANIFEST/RUN/configs/train.yaml`
+- :purple_circle: output = updated model manifest with pending training run at `src/endo_pipeline/manifests/models/diffae_CROP_CONDITION_LATENT` (recommendation is to open a draft PR with this change until the next step is complete)
 
 ### 3. Train the model
 
 - workflow = `train-diffae`
-- input (identifier options) = **model manifest name**, **run_name**
+- input (identifier options) = **model manifest name** (`MANIFEST`), **run name** (`RUN`)
+- input (training options) = **image crop size** (`CROP`), **conditioning image type** (`CONDITION`), **latent space dimension** (`LATENT`)
 - :white_circle: output = model training run on MLflow
-- :purple_circle: output = updated model manifest with MLflow run id at `src/endo_pipeline/manifests/models/diffae_PATCH_CONDITIONING_LATENT`
+- :purple_circle: output = updated model manifest with MLflow run id at `src/endo_pipeline/manifests/models/diffae_CROP_CONDITION_LATENT`
 
 ## Model evaluation workflows
 
@@ -85,20 +86,20 @@ There is currently one main model evaluation option. This options may be passed 
 ### 1. Build the evaluation dataframe
 
 - workflow = `create-diffae-eval-dataframe`
-- input (evaluation options) = **crop pattern**
-- :purple_circle: output = evaluation dataframe manifest at `src/endo_pipeline/manifests/dataframes/diffae_evaluation_dataframe_CROP_PATTERN`
+- input (evaluation options) = **patch type** (`PATCH`)
+- :purple_circle: output = evaluation dataframe manifest at `src/endo_pipeline/manifests/dataframes/diffae_evaluation_dataframe_PATCH`
 
 ### 2. Build the model evaluation config
 
 - workflow = `build-diffae-eval-config`
-- input (identifier options) = **model manifest name**, **run name**
-- input (evaluation options) = **crop pattern**
-- :white_circle: output = resolved model config for each dataset at `results/models/MODEL_MANIFEST_NAME/RUN_NAME/configs/eval_CROP_DATASET.yaml`
-- :purple_circle: output = updated model manifest with pending evaluation run(s) at `src/endo_pipeline/manifests/models/diffae_(MODEL_MANIFEST_NAME)_(RUN_NAME)_(CROP_PATTERN)` (recommendation is to open a draft PR with this change until the next step is complete)
+- input (identifier options) = **model manifest name** (`MANIFEST`), **run name** (`RUN`), **dataset name** (`DATASET`)
+- input (evaluation options) = **patch type** (`PATCH`)
+- :white_circle: output = resolved model config for each dataset at `results/models/MANIFEST/RUN/configs/eval_PATCH_DATASET.yaml`
+- :purple_circle: output = updated model manifest with pending evaluation run(s) at `src/endo_pipeline/manifests/models/diffae_MANIFEST_RUN_PATCH` (recommendation is to open a draft PR with this change until the next step is complete)
 
 ### 3. Evaluate the model
 
 - workflow = `eval-diffae`
-- input (identifier options) = **model manifest name**, **run_name**
-- input (evaluation options) = **crop pattern**
-- :purple_circle: output = updated model manifest with MLflow run id at `src/endo_pipeline/manifests/models/diffae_(MODEL_MANIFEST_NAME)_(RUN_NAME)_(CROP_PATTERN)`
+- input (identifier options) = **model manifest name** (`MANIFEST`), **run name** (`RUN`)
+- input (evaluation options) = **patch type** (`PATCH`)
+- :purple_circle: output = updated model manifest with MLflow run id at `src/endo_pipeline/manifests/models/diffae_MANIFEST_RUN_PATCH`
