@@ -7,19 +7,15 @@ parameters:
 columns:
   model_manifest_name: Manifest name of model used to generate latent vectors
   run_name: Run name of model used to generate latent vectors
-  example_key: Key representing example image dataset name, position, timepoint, and
-    crop start
+  example_key: Key representing example image dataset name, position, timepoint, and crop start
   random_seed: Random number generator seed
   example_group: Name of group of model comparison example images
   baseline_correlations: Pearson correlation between ground truth and next timepoint
-  baseline_ssim: Structural Similarity Index (SSIM) between ground truth and next
-    timepoint
-  baseline_lpips: Learned Perceptual Image Patch Similarity (LPIPS) between ground
-    truth and next timepoint
+  baseline_ssim: Structural Similarity Index (SSIM) between ground truth and next timepoint
+  baseline_lpips: Learned Perceptual Image Patch Similarity (LPIPS) between ground truth and next timepoint
   denoised_correlations: Pearson correlation between input and denoised image
   denoised_ssim: Structural Similarity Index (SSIM) between input and denoised image
-  denoised_lpips: Learned Perceptual Image Patch Similarity (LPIPS) between input
-    and denoised image
+  denoised_lpips: Learned Perceptual Image Patch Similarity (LPIPS) between input and denoised image
 locations:
   latent_512:
     fmsid: 843045a09ded49e6842cd41a5d16d35f

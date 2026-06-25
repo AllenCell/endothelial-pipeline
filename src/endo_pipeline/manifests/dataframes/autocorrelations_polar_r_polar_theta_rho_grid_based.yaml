@@ -9,10 +9,8 @@ columns:
   feature: Feature variable for which autocorrelation is computed
   lag: Lag at which the autocorrelation is computed
   autocorrelation_mean: Mean autocorrelation value across tracks at given lag
-  autocorrelation_lower_percentile: Lower percentile of autocorrelation values across
-    tracks at given lag
-  autocorrelation_upper_percentile: Upper percentile of autocorrelation values across
-    tracks at given lag
+  autocorrelation_lower_percentile: Lower percentile of autocorrelation values across tracks at given lag
+  autocorrelation_upper_percentile: Upper percentile of autocorrelation values across tracks at given lag
   exponential_fit: Values of exponential decay curve fit to autocorrelation function
   dataset: Name of dataset
   shear_stress: Shear stress value [dyn/cm^2]
