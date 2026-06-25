@@ -36,6 +36,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         plot_cross_dataset_summaries,
     )
     from endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.settings.bootstrap_fixed_points import BOOTSTRAP_THRESHOLD
     from endo_pipeline.settings.column_names import ColumnName
     from endo_pipeline.settings.examples import EXAMPLE_DATASET
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
@@ -64,8 +65,6 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     )
 
     dataset_summary_list = SUMMARY_PLOT_DATASETS["intermediate"]
-
-    BOOTSTRAP_THRESHOLD = 0.4
 
     # Cross-dataset summary plots
     columns_for_summary_plots = [

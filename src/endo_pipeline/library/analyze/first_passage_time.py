@@ -11,7 +11,6 @@ from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
 )
 from endo_pipeline.library.analyze.track_integration import (
-    BOOTSTRAP_THRESHOLD,
     add_distance_to_fixed_points_columns,
     add_first_passage_time_column,
     compute_first_passage_time_parameter_sweep_df,
@@ -20,6 +19,7 @@ from endo_pipeline.library.analyze.track_integration import (
     merge_grid_and_tracked_first_passage_time_parameter_sweep_dfs,
     merge_grid_and_tracked_first_passage_time_stats_dfs,
 )
+from endo_pipeline.settings.bootstrap_fixed_points import BOOTSTRAP_THRESHOLD
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, TIME_STEP_IN_HOURS

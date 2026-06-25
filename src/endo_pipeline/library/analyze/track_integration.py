@@ -69,8 +69,6 @@ from endo_pipeline.settings.workflow_defaults import (
     GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME,
 )
 
-BOOTSTRAP_THRESHOLD = 0.4
-
 logger = logging.getLogger(__name__)
 
 

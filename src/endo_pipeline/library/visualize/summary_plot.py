@@ -31,6 +31,7 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
 from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings import plot_defaults
+from endo_pipeline.settings.bootstrap_fixed_points import BOOTSTRAP_THRESHOLD
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA, ColumnMetadata
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
@@ -1068,7 +1069,7 @@ def build_dataframe_for_fixed_point_dataset_summary(
     feature_dataframe_manifest: DataframeManifest,
     bootstrap_dataframe_manifest: DataframeManifest,
     column_names: list["ColumnNameType"] | None = None,
-    bootstrap_threshold: float = 0.4,
+    bootstrap_threshold: float = BOOTSTRAP_THRESHOLD,
     convert_angle_to_nematic: bool = False,
     unwrap_angle: bool = True,
     stable_only: bool = True,

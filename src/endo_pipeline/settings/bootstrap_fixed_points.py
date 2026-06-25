@@ -18,3 +18,6 @@ field analysis."""
 FP_CI_UPPER_PERCENTILE: float = 95
 """Upper percentile for fixed point confidence interval estimation in 3D flow
 field analysis."""
+
+BOOTSTRAP_THRESHOLD: float = 0.4
+"""Threshold for high confidence fixed points."""
