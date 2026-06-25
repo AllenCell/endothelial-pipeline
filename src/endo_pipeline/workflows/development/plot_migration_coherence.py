@@ -138,7 +138,7 @@ def main(
     )
     plot_cross_dataset_summaries(
         dataset_summary_df,
-        output_dir=output_dir,
+        output_path=output_dir,
         axis_mode="dataset",
         category_order=datasets,
         subplot_layout="vertical",
