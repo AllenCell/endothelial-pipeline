@@ -192,6 +192,7 @@ def plot_3d_scatter_or_binned(
     figsize: tuple[float, float] = (8, 8),
     show_colorbar: bool = True,
     fp_suffix: str = "",
+    fixed_point_label: str | None = None,
 ) -> tuple[plt.Figure, Axes3D]:
     """Plot a 3D scatter or 3D binned heatmap with optional fixed-point overlay.
 
@@ -323,7 +324,10 @@ def plot_3d_scatter_or_binned(
                 depthshade=False,
                 zorder=10,
             )
-            label = f"Fixed point ({Unicode.THETA}={theta:.2f}, r={r:.2f}, {Unicode.RHO}={rho:.2f})"
+            label = (
+                fixed_point_label
+                or f"Fixed point ({Unicode.THETA}={theta:.2f}, r={r:.2f}, {Unicode.RHO}={rho:.2f})"
+            )
             legend_handles.append(
                 StabilityLegendHandle(
                     stability_label=stability,
@@ -563,6 +567,9 @@ def make_example_migration_coherence(
     dataset_config = load_dataset_config(dataset_name)
 
     feature_column_names = list(DYNAMICS_COLUMN_NAMES)
+    col_labels = [(COLUMN_METADATA[col].label or str(col)) for col in feature_column_names]
+    fixed_point_label = f"({col_labels[0]}$^*$, {col_labels[1]}$^*$, {col_labels[2]}$^*$)"
+
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid"], *feature_column_names]
 
     optical_flow_feature = Column.OpticalFlow.UNIT_VECTOR_MEAN
@@ -635,6 +642,7 @@ def make_example_migration_coherence(
             vmin=vmin,
             figsize=figure_size,
             show_colorbar=show_colorbar,
+            fixed_point_label=fixed_point_label,
         )
         # draw cube around bin edges
         for e_xyz in edges:
