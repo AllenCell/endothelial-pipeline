@@ -1001,7 +1001,7 @@ def plot_cross_dataset_summaries(
     # Add super x axis label on the main figure (or main subfigure)
     x_axis_label = SUMMARY_MODE_X_AXIS_SUP_LABELS[axis_mode]
     _label_fig.supxlabel(
-        x_axis_label, fontsize=FONTSIZE_MEDIUM, fontweight="bold", x=0.6, ha="center"
+        x_axis_label, fontsize=FONTSIZE_MEDIUM, fontweight="bold", x=0.55, ha="center"
     )
 
     # Set spacing between axis labels and tick labels
