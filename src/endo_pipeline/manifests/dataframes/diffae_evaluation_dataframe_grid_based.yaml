@@ -5,8 +5,8 @@ parameters:
   z_slice_offsets: [4, 11]
 columns:
   path: Path to source image file for model training and evaluation
-  resolution_level: Zarr resolution level used to generate patches (crops) for obtaining
-    latent vectors
+  resolution_level: Zarr resolution level used to generate patches for obtaining latent
+    vectors
   channel: List of channels to load for model training and evaluation
   z_start: Starting z-slice of image to use for model training and evaluation
   z_stop: Ending z-slice of image to use for model training and evaluation

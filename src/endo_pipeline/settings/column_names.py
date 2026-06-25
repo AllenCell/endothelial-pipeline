@@ -8,7 +8,7 @@ class ColumnName:
     """Name of dataset."""
 
     POSITION = "position"
-    """Zarr file position (FOV) of the corresponding segmentation or patch (crop)."""
+    """Zarr file position (FOV) of the corresponding segmentation or patch."""
 
     TIMEPOINT = "frame_number"
     """Timepoint [frames]."""
@@ -23,7 +23,7 @@ class ColumnName:
     """Number of timepoints in track."""
 
     ZARR_PATH = "zarr_path"
-    """Path to Zarr file for image that patch (crop) comes from."""
+    """Path to Zarr file for image that the patch comes from."""
 
     IMAGE_SIZE_X = "image_size_x"
     """Size of the whole image in the X dimension [pixels]."""
@@ -104,25 +104,25 @@ class ColumnName:
         """Run name of model used to generate latent vectors."""
 
         RESOLUTION = "resolution_level"
-        """Zarr resolution level used to generate patches (crops) for obtaining latent vectors."""
+        """Zarr resolution level used to generate patches for obtaining latent vectors."""
 
         START_X = "start_x"
-        """X coordinate of upper left corner of patch (crop) [pixels] (zarr resolution level 1)."""
+        """X coordinate of upper left corner of patch [pixels] (zarr resolution level 1)."""
 
         START_Y = "start_y"
-        """Y coordinate of upper left corner of patch (crop) [pixels] (zarr resolution level 1)."""
+        """Y coordinate of upper left corner of patch [pixels] (zarr resolution level 1)."""
 
         END_X = "end_x"
-        """X coordinate of lower right corner of patch (crop) [pixels] (zarr resolution level 1)."""
+        """X coordinate of lower right corner of patch [pixels] (zarr resolution level 1)."""
 
         END_Y = "end_y"
-        """Y coordinate of lower right corner of patch (crop) [pixels] (zarr resolution level 1)."""
+        """Y coordinate of lower right corner of patch [pixels] (zarr resolution level 1)."""
 
         CROP_SIZE_X = "crop_size_x"
-        """Width of the patch (crop) [pixels] (zarr resolution level 1)."""
+        """Width of the patch [pixels] (zarr resolution level 1)."""
 
         CROP_SIZE_Y = "crop_size_y"
-        """Height of the patch (crop) [pixels] (zarr resolution level 1)."""
+        """Height of the patch [pixels] (zarr resolution level 1)."""
 
     class SegData(StrEnum):
         """Dataframe column names used in segmentation-based feature dataframes."""
@@ -146,16 +146,16 @@ class ColumnName:
         """List of all segmentation labels found within a crop/cell-centered patch."""
 
         START_X_RES_0 = "start_x_resolution_0"
-        """X coordinate of upper left corner of patch (crop) [pixels] (zarr resolution level 0)."""
+        """X coordinate of upper left corner of patch [pixels] (zarr resolution level 0)."""
 
         END_X_RES_0 = "end_x_resolution_0"
-        """X coordinate of lower right corner of patch (crop) [pixels] (zarr resolution level 0)."""
+        """X coordinate of lower right corner of patch [pixels] (zarr resolution level 0)."""
 
         START_Y_RES_0 = "start_y_resolution_0"
-        """Y coordinate of upper left corner of patch (crop) [pixels] (zarr resolution level 0)."""
+        """Y coordinate of upper left corner of patch [pixels] (zarr resolution level 0)."""
 
         END_Y_RES_0 = "end_y_resolution_0"
-        """Y coordinate of lower right corner of patch (crop) [pixels] (zarr resolution level 0)."""
+        """Y coordinate of lower right corner of patch [pixels] (zarr resolution level 0)."""
 
         CROP_SIZE = "crop_size"
         """Size of the crop [pixels] at resolution level 0 (the native resolution)."""

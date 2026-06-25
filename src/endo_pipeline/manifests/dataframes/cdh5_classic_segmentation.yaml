@@ -3,7 +3,7 @@ workflow: get_cdh5_measured_features
 parameters: {}
 columns:
   dataset: Name of dataset
-  position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
+  position: Zarr file position (FOV) of the corresponding segmentation or patch
   frame_number: Timepoint [frames]
   label: Cell segmentation ID (different from track ID, and may change between timepoints)
   centroid: Centroid of cell segmentation in (Y,X) [pixels]

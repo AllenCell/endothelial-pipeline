@@ -3,7 +3,7 @@ workflow: get_nuclei_measured_features
 parameters: {}
 columns:
   dataset: Name of dataset
-  position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
+  position: Zarr file position (FOV) of the corresponding segmentation or patch
   frame_number: Timepoint [frames]
   cdh5_segmentation_label: Label ID for the CDH5 cell segmentation
   nuclei_segmentation_labels: List of labels from label-free nuclei predictions that

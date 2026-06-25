@@ -23,7 +23,7 @@ columns:
   centroid_y: Centroid of cell segmentation Y coordinate [pixels]
   centroid_x: Centroid of cell segmentation X coordinate [pixels]
   dataset: Name of dataset
-  position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
+  position: Zarr file position (FOV) of the corresponding segmentation or patch
 locations:
   20250319_20X:
     fmsid: 0dd9e43f7cbe493b946c5f8ec9d57e70
