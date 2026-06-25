@@ -6,6 +6,7 @@ from typing import cast
 import numpy as np
 from pandas import DataFrame
 
+from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_dataframe, load_model, save_plot_to_path
 from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
@@ -22,7 +23,7 @@ from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, POLAR_ANGLE_PERIOD
-from endo_pipeline.settings.figures import FONTSIZE_XSMALL
+from endo_pipeline.settings.figures import FONTSIZE_SMALL, FONTSIZE_XSMALL
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, VECTOR_FIELD_THETA_RANGE
@@ -48,8 +49,6 @@ def make_3d_vector_field_plot_panel(
     dataset_name: str,
     output_path: Path,
     figure_size: tuple[float, float] = (2.0, 2.5),
-    include_colorbar: bool = True,
-    include_legend: bool = True,
 ) -> tuple[Path, DataFrame]:
     """
     Render the 3D (theta, r, rho) drift vector field for a given dataset, with
@@ -76,6 +75,14 @@ def make_3d_vector_field_plot_panel(
         coordinates of the stable fixed points that were plotted.
 
     """
+    dataset_config = load_dataset_config(dataset_name)
+    shear_stress_bin = dataset_config.flow_conditions[-1].shear_stress_bin
+    replicate_number = dataset_config.replicate_number
+    assert replicate_number is not None  # for type checking
+
+    shear_stress_label = f"{shear_stress_bin} dyn/cm{Unicode.SQUARED}"
+    dataset_label = f"{shear_stress_label}\nReplicate {replicate_number}"
+
     drift_dataframe = load_drift_dataframe_for_dataset(dataset_name)
     feature_dataframe_manifest = load_dataframe_manifest(GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME)
     feature_dataframe = load_dataframe(feature_dataframe_manifest.locations[dataset_name])
@@ -103,8 +110,8 @@ def make_3d_vector_field_plot_panel(
         drift=drift,
         meshgrid=meshgrid,
         figsize=figure_size,
-        include_colorbar=include_colorbar,
-        include_legend=include_legend,
+        include_colorbar=True,
+        include_legend=True,
         fixed_point_legend_label=fixed_point_label,
         colorbar_rect=(0.5, 0.12, 0.4, 0.02),
         xlim=theta_lims,
@@ -128,7 +135,6 @@ def make_3d_vector_field_plot_panel(
     stable_df = fixed_points_df[
         fixed_points_df[Column.FIXED_POINT_STABILITY] == StabilityLabel.STABLE
     ]
-    color: str = FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color
     column_names_ = cast(list[str], column_names)
     for _, fpt_row in stable_df.iterrows():
         fpt_coords = fpt_row[column_names_].to_numpy()
@@ -138,10 +144,13 @@ def make_3d_vector_field_plot_panel(
             fpt_coords[0],
             fpt_coords[1],
             fpt_coords[2],
-            color=color,
+            color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color,
             s=15,
             zorder=5,
         )
+
+    # add shear stress + replicate label as title
+    ax.set_title(dataset_label, fontsize=FONTSIZE_SMALL, fontweight="bold", pad=0)
 
     # save as .svg file
     filename = f"3d_vector_field_{dataset_name}"
