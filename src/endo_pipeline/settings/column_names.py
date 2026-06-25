@@ -17,7 +17,7 @@ class ColumnName:
     """Track ID assigned by the tracking algorithm."""
 
     CROP_INDEX = "crop_index"
-    """Column name for crop index."""
+    """Unique integer index of a patch (crop) trajectory across dataset, FOV, and XY-position."""
 
     TRACK_LENGTH = "track_duration"
     """Number of timepoints in track."""
@@ -83,16 +83,16 @@ class ColumnName:
         """Dataframe column names used in DiFFAE feature dataframes."""
 
         POLAR_RADIUS = "polar_r"
-        """Column name for polar radius coordinate computed from PC1 and PC2."""
+        """Transformed feature r (polar r from PC1 and PC2)."""
 
         POLAR_ANGLE = "polar_theta"
-        """Column name for polar angle coordinate computed from PC1 and PC2."""
+        """Transformed feature theta (rescaled polar angle from PC1 and PC2)."""
 
         NEMATIC_ORDER = "nematic_order"
         """Column name for nematic order (computed as `cos(2*theta)`)."""
 
         PC3_FLIPPED = "rho"
-        """Column name for PC3 value with sign flipped as proxy measure of cell density."""
+        """Transformed feature rho (negative PC3)."""
 
         DIFFERENCE_SUFFIX = "_diff"
         """Suffix for columns representing differences between feature values."""
@@ -317,25 +317,54 @@ class ColumnName:
         """Centroid of cell segmentation Y coordinate [pixels]."""
 
         CENTROID_X_UM = "centroid_x_um"
-        CENTROID_Y_UM = "centroid_y_um"
+        """Centroid of cell segmentation X coordinate [microns]."""
 
-        # dynamic features (values depend on how dataframes are filtered)
+        CENTROID_Y_UM = "centroid_y_um"
+        """Centroid of cell segmentation Y coordinate [microns]."""
+
         CENTROID_VELOCITY_X_UM_PER_MIN = "centroid_velocity_x_um_per_min"
+        """Change in X coordinate of cell segmentation centroid [um/minute]."""
+
         CENTROID_VELOCITY_Y_UM_PER_MIN = "centroid_velocity_y_um_per_min"
+        """Change in Y coordinate of cell segmentation centroid [um/minute]."""
+
         CENTROID_VELOCITY_ANGLE = "centroid_velocity_angle"
+        """Angle of cell migration based on change in centroid [radians] with 0 along +x and pi/-pi along -x."""
+
         CENTROID_VELOCITY_ANGLE_DEG = "centroid_velocity_angle_deg"
+        """Angle of cell migration based on change in centroid [degrees] with 0 along +x and 180/-180 along -x."""
+
         CENTROID_VELOCITY_UM_PER_MIN = "centroid_velocity_um_per_min"
+        """Speed of cell migration based on change in cell segmentation centroid [um/minute]."""
+
         ALIGNMENT_VELOCITY_DEG = "alignment_angular_velocity_deg"
+        """Rate of change of alignment angle [degrees/min]."""
+
         NUCLEI_POSITION_RELATIVE_MIGRATION_DEG = "nuclei_position_relative_migration_angle_deg"
+        """
+        Angle [degrees] of the nucleus centroid relative to cell segmentation
+        centroid (counter-clockwise if positive, clockwise if negative, 0 if in
+        the same direction as cell migration).
+        """
+
         NUCLEI_POSITION_RELATIVE_MIGRATION_DOTPROD = "nuclei_position_vs_migration_angle_dotproduct"
+        """Dot product of cell centroid-to-nuclei centroid vector and cell migration vector."""
+
         CHANGE_IN_NUM_NUCLEI_IN_CROP_PER_MIN = "dnum_nuclei_in_crop_dt_mins"
+        """Change in number of label-free nuclei predictions found in a patch (crop) over time [number of nuclei/minute]."""
+
         VELOCITY_ANGLES_IN_CROP = "all_velocity_angles_in_crop_deg"
         VELOCITY_UM_PER_MIN_IN_CROP = "all_velocity_um_per_min_in_crop"
         VECTOR_MEAN_FOR_CROP_ANGLE = "vector_mean_for_crop_angle"
         VECTOR_MEAN_FOR_CROP_MAGNITUDE = "vector_mean_for_crop_magnitude"
         CHANGE_IN_FLUOR_PER_MIN_CELL = "dmean_fluor_intensity_dt_cell"
+        """Change in mean fluorescence intensity of cytoplasmic region of cell segmentation over time [a.u./minute]."""
+
         CHANGE_IN_FLUOR_PER_MIN_EDGE = "dmean_fluor_intensity_dt_edge"
+        """Change in mean fluorescence intensity of bicellular junction regions of cell segmentation over time [a.u./minute]."""
+
         CHANGE_IN_FLUOR_PER_MIN_NODE = "dmean_fluor_intensity_dt_node"
+        """Change in mean fluorescence intensity of tricellular junction regions of cell segmentation over time [a.u./minute]."""
 
     class SegDataFilters(StrEnum):
         """Filter-related column names for segmentation-based features."""

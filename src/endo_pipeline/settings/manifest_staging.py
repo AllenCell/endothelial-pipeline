@@ -29,6 +29,12 @@ STAGING_DATAFRAME_MANIFEST_NAMES = [
     "diffae_evaluation_dataframe_cell_centered",
     "diffae_baseline_latent_512_grid_based",
     "diffae_baseline_latent_512_cell_centered",
+    "diffae_pca_features_cell_centered_filtered",
+    "diffae_pca_features_cell_centered_unfiltered",
+    "cell_centered_features_filtered",
+    "cell_centered_features_unfiltered",
+    "grid_based_features_filtered",
+    "grid_based_features_unfiltered",
 ]
 """List of names of dataframe manifests to stage."""
 

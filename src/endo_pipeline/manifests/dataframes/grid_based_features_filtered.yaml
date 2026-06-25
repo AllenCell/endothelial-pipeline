@@ -1,136 +1,666 @@
 name: grid_based_features_filtered
-workflow: calculate-pca-features
+workflow: calculate_pca_features
 parameters:
   model_manifest_name: diffae_baseline
   run_name: latent_512
   patch_type: grid_based
   filtered: true
+columns:
+  frame_number: Timepoint [frames]
+  start_y: Y coordinate of upper left corner of patch [pixels] (zarr resolution level 1)
+  start_x: X coordinate of upper left corner of patch [pixels] (zarr resolution level 1)
+  zarr_path: Path to Zarr file for image that the patch comes from
+  dataset: Name of dataset
+  model_manifest_name: Manifest name of model used to generate latent vectors
+  run_name: Run name of model used to generate latent vectors
+  resolution_level: Zarr resolution level used to generate patches for obtaining latent vectors
+  end_y: Y coordinate of lower right corner of patch [pixels] (zarr resolution level 1)
+  end_x: X coordinate of lower right corner of patch [pixels] (zarr resolution level 1)
+  crop_size_y: Height of the patch [pixels] (zarr resolution level 1)
+  crop_size_x: Width of the patch [pixels] (zarr resolution level 1)
+  position: Zarr file position (FOV) of the corresponding segmentation or patch
+  crop_index: Unique integer index of a patch (crop) trajectory across dataset, FOV, and XY-position
+  pc_1: Component 1 of PCA-transformed latent vector
+  pc_2: Component 2 of PCA-transformed latent vector
+  pc_3: Component 3 of PCA-transformed latent vector
+  pc_4: Component 4 of PCA-transformed latent vector
+  pc_5: Component 5 of PCA-transformed latent vector
+  pc_6: Component 6 of PCA-transformed latent vector
+  pc_7: Component 7 of PCA-transformed latent vector
+  pc_8: Component 8 of PCA-transformed latent vector
+  pc_9: Component 9 of PCA-transformed latent vector
+  pc_10: Component 10 of PCA-transformed latent vector
+  pc_11: Component 11 of PCA-transformed latent vector
+  pc_12: Component 12 of PCA-transformed latent vector
+  pc_13: Component 13 of PCA-transformed latent vector
+  pc_14: Component 14 of PCA-transformed latent vector
+  pc_15: Component 15 of PCA-transformed latent vector
+  pc_16: Component 16 of PCA-transformed latent vector
+  pc_17: Component 17 of PCA-transformed latent vector
+  pc_18: Component 18 of PCA-transformed latent vector
+  pc_19: Component 19 of PCA-transformed latent vector
+  pc_20: Component 20 of PCA-transformed latent vector
+  pc_21: Component 21 of PCA-transformed latent vector
+  pc_22: Component 22 of PCA-transformed latent vector
+  pc_23: Component 23 of PCA-transformed latent vector
+  pc_24: Component 24 of PCA-transformed latent vector
+  pc_25: Component 25 of PCA-transformed latent vector
+  pc_26: Component 26 of PCA-transformed latent vector
+  pc_27: Component 27 of PCA-transformed latent vector
+  pc_28: Component 28 of PCA-transformed latent vector
+  pc_29: Component 29 of PCA-transformed latent vector
+  pc_30: Component 30 of PCA-transformed latent vector
+  pc_31: Component 31 of PCA-transformed latent vector
+  pc_32: Component 32 of PCA-transformed latent vector
+  pc_33: Component 33 of PCA-transformed latent vector
+  pc_34: Component 34 of PCA-transformed latent vector
+  pc_35: Component 35 of PCA-transformed latent vector
+  pc_36: Component 36 of PCA-transformed latent vector
+  pc_37: Component 37 of PCA-transformed latent vector
+  pc_38: Component 38 of PCA-transformed latent vector
+  pc_39: Component 39 of PCA-transformed latent vector
+  pc_40: Component 40 of PCA-transformed latent vector
+  pc_41: Component 41 of PCA-transformed latent vector
+  pc_42: Component 42 of PCA-transformed latent vector
+  pc_43: Component 43 of PCA-transformed latent vector
+  pc_44: Component 44 of PCA-transformed latent vector
+  pc_45: Component 45 of PCA-transformed latent vector
+  pc_46: Component 46 of PCA-transformed latent vector
+  pc_47: Component 47 of PCA-transformed latent vector
+  pc_48: Component 48 of PCA-transformed latent vector
+  pc_49: Component 49 of PCA-transformed latent vector
+  pc_50: Component 50 of PCA-transformed latent vector
+  pc_51: Component 51 of PCA-transformed latent vector
+  pc_52: Component 52 of PCA-transformed latent vector
+  pc_53: Component 53 of PCA-transformed latent vector
+  pc_54: Component 54 of PCA-transformed latent vector
+  pc_55: Component 55 of PCA-transformed latent vector
+  pc_56: Component 56 of PCA-transformed latent vector
+  pc_57: Component 57 of PCA-transformed latent vector
+  pc_58: Component 58 of PCA-transformed latent vector
+  pc_59: Component 59 of PCA-transformed latent vector
+  pc_60: Component 60 of PCA-transformed latent vector
+  pc_61: Component 61 of PCA-transformed latent vector
+  pc_62: Component 62 of PCA-transformed latent vector
+  pc_63: Component 63 of PCA-transformed latent vector
+  pc_64: Component 64 of PCA-transformed latent vector
+  pc_65: Component 65 of PCA-transformed latent vector
+  pc_66: Component 66 of PCA-transformed latent vector
+  pc_67: Component 67 of PCA-transformed latent vector
+  pc_68: Component 68 of PCA-transformed latent vector
+  pc_69: Component 69 of PCA-transformed latent vector
+  pc_70: Component 70 of PCA-transformed latent vector
+  pc_71: Component 71 of PCA-transformed latent vector
+  pc_72: Component 72 of PCA-transformed latent vector
+  pc_73: Component 73 of PCA-transformed latent vector
+  pc_74: Component 74 of PCA-transformed latent vector
+  pc_75: Component 75 of PCA-transformed latent vector
+  pc_76: Component 76 of PCA-transformed latent vector
+  pc_77: Component 77 of PCA-transformed latent vector
+  pc_78: Component 78 of PCA-transformed latent vector
+  pc_79: Component 79 of PCA-transformed latent vector
+  pc_80: Component 80 of PCA-transformed latent vector
+  pc_81: Component 81 of PCA-transformed latent vector
+  pc_82: Component 82 of PCA-transformed latent vector
+  pc_83: Component 83 of PCA-transformed latent vector
+  pc_84: Component 84 of PCA-transformed latent vector
+  pc_85: Component 85 of PCA-transformed latent vector
+  pc_86: Component 86 of PCA-transformed latent vector
+  pc_87: Component 87 of PCA-transformed latent vector
+  pc_88: Component 88 of PCA-transformed latent vector
+  pc_89: Component 89 of PCA-transformed latent vector
+  pc_90: Component 90 of PCA-transformed latent vector
+  pc_91: Component 91 of PCA-transformed latent vector
+  pc_92: Component 92 of PCA-transformed latent vector
+  pc_93: Component 93 of PCA-transformed latent vector
+  pc_94: Component 94 of PCA-transformed latent vector
+  pc_95: Component 95 of PCA-transformed latent vector
+  pc_96: Component 96 of PCA-transformed latent vector
+  pc_97: Component 97 of PCA-transformed latent vector
+  pc_98: Component 98 of PCA-transformed latent vector
+  pc_99: Component 99 of PCA-transformed latent vector
+  pc_100: Component 100 of PCA-transformed latent vector
+  pc_101: Component 101 of PCA-transformed latent vector
+  pc_102: Component 102 of PCA-transformed latent vector
+  pc_103: Component 103 of PCA-transformed latent vector
+  pc_104: Component 104 of PCA-transformed latent vector
+  pc_105: Component 105 of PCA-transformed latent vector
+  pc_106: Component 106 of PCA-transformed latent vector
+  pc_107: Component 107 of PCA-transformed latent vector
+  pc_108: Component 108 of PCA-transformed latent vector
+  pc_109: Component 109 of PCA-transformed latent vector
+  pc_110: Component 110 of PCA-transformed latent vector
+  pc_111: Component 111 of PCA-transformed latent vector
+  pc_112: Component 112 of PCA-transformed latent vector
+  pc_113: Component 113 of PCA-transformed latent vector
+  pc_114: Component 114 of PCA-transformed latent vector
+  pc_115: Component 115 of PCA-transformed latent vector
+  pc_116: Component 116 of PCA-transformed latent vector
+  pc_117: Component 117 of PCA-transformed latent vector
+  pc_118: Component 118 of PCA-transformed latent vector
+  pc_119: Component 119 of PCA-transformed latent vector
+  pc_120: Component 120 of PCA-transformed latent vector
+  pc_121: Component 121 of PCA-transformed latent vector
+  pc_122: Component 122 of PCA-transformed latent vector
+  pc_123: Component 123 of PCA-transformed latent vector
+  pc_124: Component 124 of PCA-transformed latent vector
+  pc_125: Component 125 of PCA-transformed latent vector
+  pc_126: Component 126 of PCA-transformed latent vector
+  pc_127: Component 127 of PCA-transformed latent vector
+  pc_128: Component 128 of PCA-transformed latent vector
+  pc_129: Component 129 of PCA-transformed latent vector
+  pc_130: Component 130 of PCA-transformed latent vector
+  pc_131: Component 131 of PCA-transformed latent vector
+  pc_132: Component 132 of PCA-transformed latent vector
+  pc_133: Component 133 of PCA-transformed latent vector
+  pc_134: Component 134 of PCA-transformed latent vector
+  pc_135: Component 135 of PCA-transformed latent vector
+  pc_136: Component 136 of PCA-transformed latent vector
+  pc_137: Component 137 of PCA-transformed latent vector
+  pc_138: Component 138 of PCA-transformed latent vector
+  pc_139: Component 139 of PCA-transformed latent vector
+  pc_140: Component 140 of PCA-transformed latent vector
+  pc_141: Component 141 of PCA-transformed latent vector
+  pc_142: Component 142 of PCA-transformed latent vector
+  pc_143: Component 143 of PCA-transformed latent vector
+  pc_144: Component 144 of PCA-transformed latent vector
+  pc_145: Component 145 of PCA-transformed latent vector
+  pc_146: Component 146 of PCA-transformed latent vector
+  pc_147: Component 147 of PCA-transformed latent vector
+  pc_148: Component 148 of PCA-transformed latent vector
+  pc_149: Component 149 of PCA-transformed latent vector
+  pc_150: Component 150 of PCA-transformed latent vector
+  pc_151: Component 151 of PCA-transformed latent vector
+  pc_152: Component 152 of PCA-transformed latent vector
+  pc_153: Component 153 of PCA-transformed latent vector
+  pc_154: Component 154 of PCA-transformed latent vector
+  pc_155: Component 155 of PCA-transformed latent vector
+  pc_156: Component 156 of PCA-transformed latent vector
+  pc_157: Component 157 of PCA-transformed latent vector
+  pc_158: Component 158 of PCA-transformed latent vector
+  pc_159: Component 159 of PCA-transformed latent vector
+  pc_160: Component 160 of PCA-transformed latent vector
+  pc_161: Component 161 of PCA-transformed latent vector
+  pc_162: Component 162 of PCA-transformed latent vector
+  pc_163: Component 163 of PCA-transformed latent vector
+  pc_164: Component 164 of PCA-transformed latent vector
+  pc_165: Component 165 of PCA-transformed latent vector
+  pc_166: Component 166 of PCA-transformed latent vector
+  pc_167: Component 167 of PCA-transformed latent vector
+  pc_168: Component 168 of PCA-transformed latent vector
+  pc_169: Component 169 of PCA-transformed latent vector
+  pc_170: Component 170 of PCA-transformed latent vector
+  pc_171: Component 171 of PCA-transformed latent vector
+  pc_172: Component 172 of PCA-transformed latent vector
+  pc_173: Component 173 of PCA-transformed latent vector
+  pc_174: Component 174 of PCA-transformed latent vector
+  pc_175: Component 175 of PCA-transformed latent vector
+  pc_176: Component 176 of PCA-transformed latent vector
+  pc_177: Component 177 of PCA-transformed latent vector
+  pc_178: Component 178 of PCA-transformed latent vector
+  pc_179: Component 179 of PCA-transformed latent vector
+  pc_180: Component 180 of PCA-transformed latent vector
+  pc_181: Component 181 of PCA-transformed latent vector
+  pc_182: Component 182 of PCA-transformed latent vector
+  pc_183: Component 183 of PCA-transformed latent vector
+  pc_184: Component 184 of PCA-transformed latent vector
+  pc_185: Component 185 of PCA-transformed latent vector
+  pc_186: Component 186 of PCA-transformed latent vector
+  pc_187: Component 187 of PCA-transformed latent vector
+  pc_188: Component 188 of PCA-transformed latent vector
+  pc_189: Component 189 of PCA-transformed latent vector
+  pc_190: Component 190 of PCA-transformed latent vector
+  pc_191: Component 191 of PCA-transformed latent vector
+  pc_192: Component 192 of PCA-transformed latent vector
+  pc_193: Component 193 of PCA-transformed latent vector
+  pc_194: Component 194 of PCA-transformed latent vector
+  pc_195: Component 195 of PCA-transformed latent vector
+  pc_196: Component 196 of PCA-transformed latent vector
+  pc_197: Component 197 of PCA-transformed latent vector
+  pc_198: Component 198 of PCA-transformed latent vector
+  pc_199: Component 199 of PCA-transformed latent vector
+  pc_200: Component 200 of PCA-transformed latent vector
+  pc_201: Component 201 of PCA-transformed latent vector
+  pc_202: Component 202 of PCA-transformed latent vector
+  pc_203: Component 203 of PCA-transformed latent vector
+  pc_204: Component 204 of PCA-transformed latent vector
+  pc_205: Component 205 of PCA-transformed latent vector
+  pc_206: Component 206 of PCA-transformed latent vector
+  pc_207: Component 207 of PCA-transformed latent vector
+  pc_208: Component 208 of PCA-transformed latent vector
+  pc_209: Component 209 of PCA-transformed latent vector
+  pc_210: Component 210 of PCA-transformed latent vector
+  pc_211: Component 211 of PCA-transformed latent vector
+  pc_212: Component 212 of PCA-transformed latent vector
+  pc_213: Component 213 of PCA-transformed latent vector
+  pc_214: Component 214 of PCA-transformed latent vector
+  pc_215: Component 215 of PCA-transformed latent vector
+  pc_216: Component 216 of PCA-transformed latent vector
+  pc_217: Component 217 of PCA-transformed latent vector
+  pc_218: Component 218 of PCA-transformed latent vector
+  pc_219: Component 219 of PCA-transformed latent vector
+  pc_220: Component 220 of PCA-transformed latent vector
+  pc_221: Component 221 of PCA-transformed latent vector
+  pc_222: Component 222 of PCA-transformed latent vector
+  pc_223: Component 223 of PCA-transformed latent vector
+  pc_224: Component 224 of PCA-transformed latent vector
+  pc_225: Component 225 of PCA-transformed latent vector
+  pc_226: Component 226 of PCA-transformed latent vector
+  pc_227: Component 227 of PCA-transformed latent vector
+  pc_228: Component 228 of PCA-transformed latent vector
+  pc_229: Component 229 of PCA-transformed latent vector
+  pc_230: Component 230 of PCA-transformed latent vector
+  pc_231: Component 231 of PCA-transformed latent vector
+  pc_232: Component 232 of PCA-transformed latent vector
+  pc_233: Component 233 of PCA-transformed latent vector
+  pc_234: Component 234 of PCA-transformed latent vector
+  pc_235: Component 235 of PCA-transformed latent vector
+  pc_236: Component 236 of PCA-transformed latent vector
+  pc_237: Component 237 of PCA-transformed latent vector
+  pc_238: Component 238 of PCA-transformed latent vector
+  pc_239: Component 239 of PCA-transformed latent vector
+  pc_240: Component 240 of PCA-transformed latent vector
+  pc_241: Component 241 of PCA-transformed latent vector
+  pc_242: Component 242 of PCA-transformed latent vector
+  pc_243: Component 243 of PCA-transformed latent vector
+  pc_244: Component 244 of PCA-transformed latent vector
+  pc_245: Component 245 of PCA-transformed latent vector
+  pc_246: Component 246 of PCA-transformed latent vector
+  pc_247: Component 247 of PCA-transformed latent vector
+  pc_248: Component 248 of PCA-transformed latent vector
+  pc_249: Component 249 of PCA-transformed latent vector
+  pc_250: Component 250 of PCA-transformed latent vector
+  pc_251: Component 251 of PCA-transformed latent vector
+  pc_252: Component 252 of PCA-transformed latent vector
+  pc_253: Component 253 of PCA-transformed latent vector
+  pc_254: Component 254 of PCA-transformed latent vector
+  pc_255: Component 255 of PCA-transformed latent vector
+  pc_256: Component 256 of PCA-transformed latent vector
+  pc_257: Component 257 of PCA-transformed latent vector
+  pc_258: Component 258 of PCA-transformed latent vector
+  pc_259: Component 259 of PCA-transformed latent vector
+  pc_260: Component 260 of PCA-transformed latent vector
+  pc_261: Component 261 of PCA-transformed latent vector
+  pc_262: Component 262 of PCA-transformed latent vector
+  pc_263: Component 263 of PCA-transformed latent vector
+  pc_264: Component 264 of PCA-transformed latent vector
+  pc_265: Component 265 of PCA-transformed latent vector
+  pc_266: Component 266 of PCA-transformed latent vector
+  pc_267: Component 267 of PCA-transformed latent vector
+  pc_268: Component 268 of PCA-transformed latent vector
+  pc_269: Component 269 of PCA-transformed latent vector
+  pc_270: Component 270 of PCA-transformed latent vector
+  pc_271: Component 271 of PCA-transformed latent vector
+  pc_272: Component 272 of PCA-transformed latent vector
+  pc_273: Component 273 of PCA-transformed latent vector
+  pc_274: Component 274 of PCA-transformed latent vector
+  pc_275: Component 275 of PCA-transformed latent vector
+  pc_276: Component 276 of PCA-transformed latent vector
+  pc_277: Component 277 of PCA-transformed latent vector
+  pc_278: Component 278 of PCA-transformed latent vector
+  pc_279: Component 279 of PCA-transformed latent vector
+  pc_280: Component 280 of PCA-transformed latent vector
+  pc_281: Component 281 of PCA-transformed latent vector
+  pc_282: Component 282 of PCA-transformed latent vector
+  pc_283: Component 283 of PCA-transformed latent vector
+  pc_284: Component 284 of PCA-transformed latent vector
+  pc_285: Component 285 of PCA-transformed latent vector
+  pc_286: Component 286 of PCA-transformed latent vector
+  pc_287: Component 287 of PCA-transformed latent vector
+  pc_288: Component 288 of PCA-transformed latent vector
+  pc_289: Component 289 of PCA-transformed latent vector
+  pc_290: Component 290 of PCA-transformed latent vector
+  pc_291: Component 291 of PCA-transformed latent vector
+  pc_292: Component 292 of PCA-transformed latent vector
+  pc_293: Component 293 of PCA-transformed latent vector
+  pc_294: Component 294 of PCA-transformed latent vector
+  pc_295: Component 295 of PCA-transformed latent vector
+  pc_296: Component 296 of PCA-transformed latent vector
+  pc_297: Component 297 of PCA-transformed latent vector
+  pc_298: Component 298 of PCA-transformed latent vector
+  pc_299: Component 299 of PCA-transformed latent vector
+  pc_300: Component 300 of PCA-transformed latent vector
+  pc_301: Component 301 of PCA-transformed latent vector
+  pc_302: Component 302 of PCA-transformed latent vector
+  pc_303: Component 303 of PCA-transformed latent vector
+  pc_304: Component 304 of PCA-transformed latent vector
+  pc_305: Component 305 of PCA-transformed latent vector
+  pc_306: Component 306 of PCA-transformed latent vector
+  pc_307: Component 307 of PCA-transformed latent vector
+  pc_308: Component 308 of PCA-transformed latent vector
+  pc_309: Component 309 of PCA-transformed latent vector
+  pc_310: Component 310 of PCA-transformed latent vector
+  pc_311: Component 311 of PCA-transformed latent vector
+  pc_312: Component 312 of PCA-transformed latent vector
+  pc_313: Component 313 of PCA-transformed latent vector
+  pc_314: Component 314 of PCA-transformed latent vector
+  pc_315: Component 315 of PCA-transformed latent vector
+  pc_316: Component 316 of PCA-transformed latent vector
+  pc_317: Component 317 of PCA-transformed latent vector
+  pc_318: Component 318 of PCA-transformed latent vector
+  pc_319: Component 319 of PCA-transformed latent vector
+  pc_320: Component 320 of PCA-transformed latent vector
+  pc_321: Component 321 of PCA-transformed latent vector
+  pc_322: Component 322 of PCA-transformed latent vector
+  pc_323: Component 323 of PCA-transformed latent vector
+  pc_324: Component 324 of PCA-transformed latent vector
+  pc_325: Component 325 of PCA-transformed latent vector
+  pc_326: Component 326 of PCA-transformed latent vector
+  pc_327: Component 327 of PCA-transformed latent vector
+  pc_328: Component 328 of PCA-transformed latent vector
+  pc_329: Component 329 of PCA-transformed latent vector
+  pc_330: Component 330 of PCA-transformed latent vector
+  pc_331: Component 331 of PCA-transformed latent vector
+  pc_332: Component 332 of PCA-transformed latent vector
+  pc_333: Component 333 of PCA-transformed latent vector
+  pc_334: Component 334 of PCA-transformed latent vector
+  pc_335: Component 335 of PCA-transformed latent vector
+  pc_336: Component 336 of PCA-transformed latent vector
+  pc_337: Component 337 of PCA-transformed latent vector
+  pc_338: Component 338 of PCA-transformed latent vector
+  pc_339: Component 339 of PCA-transformed latent vector
+  pc_340: Component 340 of PCA-transformed latent vector
+  pc_341: Component 341 of PCA-transformed latent vector
+  pc_342: Component 342 of PCA-transformed latent vector
+  pc_343: Component 343 of PCA-transformed latent vector
+  pc_344: Component 344 of PCA-transformed latent vector
+  pc_345: Component 345 of PCA-transformed latent vector
+  pc_346: Component 346 of PCA-transformed latent vector
+  pc_347: Component 347 of PCA-transformed latent vector
+  pc_348: Component 348 of PCA-transformed latent vector
+  pc_349: Component 349 of PCA-transformed latent vector
+  pc_350: Component 350 of PCA-transformed latent vector
+  pc_351: Component 351 of PCA-transformed latent vector
+  pc_352: Component 352 of PCA-transformed latent vector
+  pc_353: Component 353 of PCA-transformed latent vector
+  pc_354: Component 354 of PCA-transformed latent vector
+  pc_355: Component 355 of PCA-transformed latent vector
+  pc_356: Component 356 of PCA-transformed latent vector
+  pc_357: Component 357 of PCA-transformed latent vector
+  pc_358: Component 358 of PCA-transformed latent vector
+  pc_359: Component 359 of PCA-transformed latent vector
+  pc_360: Component 360 of PCA-transformed latent vector
+  pc_361: Component 361 of PCA-transformed latent vector
+  pc_362: Component 362 of PCA-transformed latent vector
+  pc_363: Component 363 of PCA-transformed latent vector
+  pc_364: Component 364 of PCA-transformed latent vector
+  pc_365: Component 365 of PCA-transformed latent vector
+  pc_366: Component 366 of PCA-transformed latent vector
+  pc_367: Component 367 of PCA-transformed latent vector
+  pc_368: Component 368 of PCA-transformed latent vector
+  pc_369: Component 369 of PCA-transformed latent vector
+  pc_370: Component 370 of PCA-transformed latent vector
+  pc_371: Component 371 of PCA-transformed latent vector
+  pc_372: Component 372 of PCA-transformed latent vector
+  pc_373: Component 373 of PCA-transformed latent vector
+  pc_374: Component 374 of PCA-transformed latent vector
+  pc_375: Component 375 of PCA-transformed latent vector
+  pc_376: Component 376 of PCA-transformed latent vector
+  pc_377: Component 377 of PCA-transformed latent vector
+  pc_378: Component 378 of PCA-transformed latent vector
+  pc_379: Component 379 of PCA-transformed latent vector
+  pc_380: Component 380 of PCA-transformed latent vector
+  pc_381: Component 381 of PCA-transformed latent vector
+  pc_382: Component 382 of PCA-transformed latent vector
+  pc_383: Component 383 of PCA-transformed latent vector
+  pc_384: Component 384 of PCA-transformed latent vector
+  pc_385: Component 385 of PCA-transformed latent vector
+  pc_386: Component 386 of PCA-transformed latent vector
+  pc_387: Component 387 of PCA-transformed latent vector
+  pc_388: Component 388 of PCA-transformed latent vector
+  pc_389: Component 389 of PCA-transformed latent vector
+  pc_390: Component 390 of PCA-transformed latent vector
+  pc_391: Component 391 of PCA-transformed latent vector
+  pc_392: Component 392 of PCA-transformed latent vector
+  pc_393: Component 393 of PCA-transformed latent vector
+  pc_394: Component 394 of PCA-transformed latent vector
+  pc_395: Component 395 of PCA-transformed latent vector
+  pc_396: Component 396 of PCA-transformed latent vector
+  pc_397: Component 397 of PCA-transformed latent vector
+  pc_398: Component 398 of PCA-transformed latent vector
+  pc_399: Component 399 of PCA-transformed latent vector
+  pc_400: Component 400 of PCA-transformed latent vector
+  pc_401: Component 401 of PCA-transformed latent vector
+  pc_402: Component 402 of PCA-transformed latent vector
+  pc_403: Component 403 of PCA-transformed latent vector
+  pc_404: Component 404 of PCA-transformed latent vector
+  pc_405: Component 405 of PCA-transformed latent vector
+  pc_406: Component 406 of PCA-transformed latent vector
+  pc_407: Component 407 of PCA-transformed latent vector
+  pc_408: Component 408 of PCA-transformed latent vector
+  pc_409: Component 409 of PCA-transformed latent vector
+  pc_410: Component 410 of PCA-transformed latent vector
+  pc_411: Component 411 of PCA-transformed latent vector
+  pc_412: Component 412 of PCA-transformed latent vector
+  pc_413: Component 413 of PCA-transformed latent vector
+  pc_414: Component 414 of PCA-transformed latent vector
+  pc_415: Component 415 of PCA-transformed latent vector
+  pc_416: Component 416 of PCA-transformed latent vector
+  pc_417: Component 417 of PCA-transformed latent vector
+  pc_418: Component 418 of PCA-transformed latent vector
+  pc_419: Component 419 of PCA-transformed latent vector
+  pc_420: Component 420 of PCA-transformed latent vector
+  pc_421: Component 421 of PCA-transformed latent vector
+  pc_422: Component 422 of PCA-transformed latent vector
+  pc_423: Component 423 of PCA-transformed latent vector
+  pc_424: Component 424 of PCA-transformed latent vector
+  pc_425: Component 425 of PCA-transformed latent vector
+  pc_426: Component 426 of PCA-transformed latent vector
+  pc_427: Component 427 of PCA-transformed latent vector
+  pc_428: Component 428 of PCA-transformed latent vector
+  pc_429: Component 429 of PCA-transformed latent vector
+  pc_430: Component 430 of PCA-transformed latent vector
+  pc_431: Component 431 of PCA-transformed latent vector
+  pc_432: Component 432 of PCA-transformed latent vector
+  pc_433: Component 433 of PCA-transformed latent vector
+  pc_434: Component 434 of PCA-transformed latent vector
+  pc_435: Component 435 of PCA-transformed latent vector
+  pc_436: Component 436 of PCA-transformed latent vector
+  pc_437: Component 437 of PCA-transformed latent vector
+  pc_438: Component 438 of PCA-transformed latent vector
+  pc_439: Component 439 of PCA-transformed latent vector
+  pc_440: Component 440 of PCA-transformed latent vector
+  pc_441: Component 441 of PCA-transformed latent vector
+  pc_442: Component 442 of PCA-transformed latent vector
+  pc_443: Component 443 of PCA-transformed latent vector
+  pc_444: Component 444 of PCA-transformed latent vector
+  pc_445: Component 445 of PCA-transformed latent vector
+  pc_446: Component 446 of PCA-transformed latent vector
+  pc_447: Component 447 of PCA-transformed latent vector
+  pc_448: Component 448 of PCA-transformed latent vector
+  pc_449: Component 449 of PCA-transformed latent vector
+  pc_450: Component 450 of PCA-transformed latent vector
+  pc_451: Component 451 of PCA-transformed latent vector
+  pc_452: Component 452 of PCA-transformed latent vector
+  pc_453: Component 453 of PCA-transformed latent vector
+  pc_454: Component 454 of PCA-transformed latent vector
+  pc_455: Component 455 of PCA-transformed latent vector
+  pc_456: Component 456 of PCA-transformed latent vector
+  pc_457: Component 457 of PCA-transformed latent vector
+  pc_458: Component 458 of PCA-transformed latent vector
+  pc_459: Component 459 of PCA-transformed latent vector
+  pc_460: Component 460 of PCA-transformed latent vector
+  pc_461: Component 461 of PCA-transformed latent vector
+  pc_462: Component 462 of PCA-transformed latent vector
+  pc_463: Component 463 of PCA-transformed latent vector
+  pc_464: Component 464 of PCA-transformed latent vector
+  pc_465: Component 465 of PCA-transformed latent vector
+  pc_466: Component 466 of PCA-transformed latent vector
+  pc_467: Component 467 of PCA-transformed latent vector
+  pc_468: Component 468 of PCA-transformed latent vector
+  pc_469: Component 469 of PCA-transformed latent vector
+  pc_470: Component 470 of PCA-transformed latent vector
+  pc_471: Component 471 of PCA-transformed latent vector
+  pc_472: Component 472 of PCA-transformed latent vector
+  pc_473: Component 473 of PCA-transformed latent vector
+  pc_474: Component 474 of PCA-transformed latent vector
+  pc_475: Component 475 of PCA-transformed latent vector
+  pc_476: Component 476 of PCA-transformed latent vector
+  pc_477: Component 477 of PCA-transformed latent vector
+  pc_478: Component 478 of PCA-transformed latent vector
+  pc_479: Component 479 of PCA-transformed latent vector
+  pc_480: Component 480 of PCA-transformed latent vector
+  pc_481: Component 481 of PCA-transformed latent vector
+  pc_482: Component 482 of PCA-transformed latent vector
+  pc_483: Component 483 of PCA-transformed latent vector
+  pc_484: Component 484 of PCA-transformed latent vector
+  pc_485: Component 485 of PCA-transformed latent vector
+  pc_486: Component 486 of PCA-transformed latent vector
+  pc_487: Component 487 of PCA-transformed latent vector
+  pc_488: Component 488 of PCA-transformed latent vector
+  pc_489: Component 489 of PCA-transformed latent vector
+  pc_490: Component 490 of PCA-transformed latent vector
+  pc_491: Component 491 of PCA-transformed latent vector
+  pc_492: Component 492 of PCA-transformed latent vector
+  pc_493: Component 493 of PCA-transformed latent vector
+  pc_494: Component 494 of PCA-transformed latent vector
+  pc_495: Component 495 of PCA-transformed latent vector
+  pc_496: Component 496 of PCA-transformed latent vector
+  pc_497: Component 497 of PCA-transformed latent vector
+  pc_498: Component 498 of PCA-transformed latent vector
+  pc_499: Component 499 of PCA-transformed latent vector
+  pc_500: Component 500 of PCA-transformed latent vector
+  pc_501: Component 501 of PCA-transformed latent vector
+  pc_502: Component 502 of PCA-transformed latent vector
+  pc_503: Component 503 of PCA-transformed latent vector
+  pc_504: Component 504 of PCA-transformed latent vector
+  pc_505: Component 505 of PCA-transformed latent vector
+  pc_506: Component 506 of PCA-transformed latent vector
+  pc_507: Component 507 of PCA-transformed latent vector
+  pc_508: Component 508 of PCA-transformed latent vector
+  pc_509: Component 509 of PCA-transformed latent vector
+  pc_510: Component 510 of PCA-transformed latent vector
+  pc_511: Component 511 of PCA-transformed latent vector
+  pc_512: Component 512 of PCA-transformed latent vector
+  polar_r: Transformed feature r (polar r from PC1 and PC2)
+  polar_theta: Transformed feature theta (rescaled polar angle from PC1 and PC2)
+  rho: Transformed feature rho (negative PC3)
 locations:
   20250319_20X:
     fmsid: d4f7f0467afe404aa70c76f4c6b1114c
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20250319_0d94f8d3054e4e8c99af07dd92774798.parquet
   20250326_20X:
     fmsid: de254e9afd384d7086edacdaa7a38660
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20250326_eb97addf262c44c5a6117ad1d4acc353.parquet
   20250402_20X:
     fmsid: 429b56e33d3b45bb8537c5777cc04c9e
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20250402_90e37b7d8f1440efa84995b4697fb269.parquet
   20250409_20X:
     fmsid: c63ca1d08e644d748fffa3ac2b61e724
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20250409_df6b2a02bbc94c6f957923add524eac1.parquet
   20250428_20X:
     fmsid: fe6a79cead214ac4ac2417ef0135d756
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20250428_056aa027ba9f4ccd98367563552f7edd.parquet
   20250604_20X:
     fmsid: ff8de33b9bf94201a557be7036012a66
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20250604_3f08ef7a2e0e450d963352dae4bf17dc.parquet
   20250611_20X:
     fmsid: 17ac42675417430a8d0e8e6e3c631b1e
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20250611_a32615d530ae42c29d159cc058601879.parquet
   20250618_20X:
     fmsid: 20185cb1b56a424084bef0ba52aac1b6
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20250618_f81e9bdf048e462e9755d7cbf5d21c37.parquet
   20250714_20X:
     fmsid: 8c4e6b0a247a476d824454b7eeecb6f0
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20250714_0a0462b7d33848c8826105ab6f78787d.parquet
   20250716_20X:
     fmsid: 52d9773a026242c894c667c5c586fbc9
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20250716_328c62ecc91248eab2268e546892453e.parquet
   20250728_20X:
     fmsid: 527af2bc7b2d4a8fb53abe53a642b861
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20250728_b07652734b1b43178f4bc704abd7b95b.parquet
   20250813_20X:
     fmsid: ab62fcc30eb34a9f87f16740d9742f46
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20250813_6ab0f70bd43f4de987a789905dbfb95c.parquet
   20250818_20X:
     fmsid: a0e2f25d73004794ba35fc9e3e4b22d0
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20250818_1f895d9188df43e0a10b379cf23a879c.parquet
   20250827_20X:
     fmsid: b45aa748dfd24b83bd85a503cb124da2
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20250827_c96180b30a224a48bac3b6d8fe1ffbb4.parquet
   20250908_20X:
     fmsid: 2d1360a8f3774e0cb83b0c63f6fab9af
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20250908_b5d434bdebce4053b2d90198541b6b59.parquet
   20251001_20X:
     fmsid: 6b1fb8574d864467b2ceb496deef0dcf
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20251001_271124f03a16409499e8a84b0030cb15.parquet
   20251029_20X:
     fmsid: 3b1d46034185498e824e86509d889926
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20251029_441aed50cff54667afce891eb3a1a8db.parquet
   20251119_20X:
     fmsid: 0329ea487c0c4df599ace2d94c6e9195
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20251119_d6449a79a6264466aa225af0cdef78c7.parquet
   20260114_20X:
     fmsid: 49e6dfe5414547948176827c4941ec3d
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20260114_4b693bb8eedb4e0ba0cb9ab4ae07b1a2.parquet
   20260121_20X:
     fmsid: 2c3eb06418f8466d828a121eb026e8bc
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20260121_ff75e124720b4a3aa035025a05ced25f.parquet
   20260126_20X:
     fmsid: 4f2b18ddc6cf4adfa7f619a01cf8bb30
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20260126_aed19d79c1a34707925cfa8393424c45.parquet
   20260128_20X:
     fmsid: dfb408dbff944cfb8689d90d8dcbd5ba
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20260128_00bd94ea6d7e4b46bc16a55e35de589d.parquet
   20260202_20X:
     fmsid: e994862c19784ea685078a2ac5346697
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20260202_fcb18a65bb734ff6ae718e1eee4894d6.parquet
   20260204_20X:
     fmsid: 6d686944398847afbaea7ccbcacf2d27
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20260204_ac1fddfd7452481e83317c8fbdd59dd6.parquet
   20260209_20X:
     fmsid: 9bc3cdc9cc234e2187dc4dd4af6ea83c
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20260209_3700e11f893e4f378db450ea91bd92d6.parquet
   20260211_20X:
     fmsid: 0736f737875f4cf0b75074a9ce7f4c5f
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20260211_20b76dc8d0ca488ba88816793830f6ec.parquet
   20260216_20X:
     fmsid: 44ea4ec360a94b2fbd942e390fdd247e
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20260216_ed3743a1ee4c4cb096f5af90e3ebb9bd.parquet
   20260225_20X:
     fmsid: 696c4a8c1c72492cb70386de551c36f3
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20260225_50afe3cb17cf4be099dc44e47f7a4ae4.parquet
   20260302_20X:
     fmsid: cc1cc60d81d24e9381fc6b751186b2b1
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20260302_e9cfa3b0b24447f7bba000af3b012427.parquet
   20260304_20X:
     fmsid: 82710ff32c064ae4b67b2dea53164839
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20260304_56c81f459d8e46eabd74cc2147b85f49.parquet
   20260309_20X:
     fmsid: 678d3243a3a54f61a0181273e8cb8d75
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20260309_1a52b127112347d4b805eb64d0b86757.parquet
   20260325_20X:
     fmsid: 507b44319aec4782b7dbfca93d7b3733
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/grid_based_features_filtered/20260325_d1f28b79cf574775b529d83626183abc.parquet
