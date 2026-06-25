@@ -213,7 +213,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             **placeholders["B"],
         )
 
-        contour_plot_paths[dataset_name], _ = make_2d_contour_plot_panel(
+        contour_plot_paths[dataset_name] = make_2d_contour_plot_panel(
             figure_size=(1.7, 2.83),
             output_path=fig_savedir,
             drift=drift_r_rho,
@@ -223,7 +223,6 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             filename=f"{dataset_name}_{columns_r_rho_str}_contours",
             include_legend=include_legend,
             include_colorbar=include_colorbar,
-            plot_nullcline_walk_points=False,
             **placeholders["B"],
         )
 
