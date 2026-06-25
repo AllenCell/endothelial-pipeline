@@ -8,7 +8,7 @@ class ColumnName:
     """Name of dataset."""
 
     POSITION = "position"
-    """Zarr file position (FOV) of the corresponding segmentation or patch (crop)."""
+    """Zarr file position (FOV) of the corresponding segmentation or patch."""
 
     TIMEPOINT = "frame_number"
     """Timepoint [frames]."""
@@ -23,7 +23,7 @@ class ColumnName:
     """Number of timepoints in track."""
 
     ZARR_PATH = "zarr_path"
-    """Column name for path to the source Zarr file."""
+    """Path to Zarr file for image that the patch comes from."""
 
     IMAGE_SIZE_X = "image_size_x"
     """Size of the whole image in the X dimension [pixels]."""
@@ -52,14 +52,35 @@ class ColumnName:
     BF_CHANNEL_INDEX_ZARR = "brightfield_channel_index_zarr"
     """Index of the brightfield channel in the Zarr file."""
 
+    SOURCE_IMAGE_PATH_FOR_MODEL = "path"
+    """Path to source image file for model training and evaluation."""
+
+    IMAGE_CHANNELS_TO_LOAD_FOR_MODEL = "channel"
+    """List of channels to load for model training and evaluation."""
+
+    TIMEPOINTS_TO_INCLUDE_FOR_MODEL = "include_frames"
+    """List of timepoints (frame numbers) to include for model training and evaluation."""
+
+    Z_START_FOR_MODEL = "z_start"
+    """Starting z-slice of image to use for model training and evaluation."""
+
+    Z_END_FOR_MODEL = "z_stop"
+    """Ending z-slice of image to use for model training and evaluation."""
+
+    Z_STEP_FOR_MODEL = "z_step"
+    """Step between Z-slices in image to use for model training and evaluation."""
+
+    TIMEPOINT_FOR_MODEL = "T"
+    """Timepoint (frame number) to use when loading images for model training and evaluation."""
+
+    FRAME_START_FOR_MODEL = "frame_start"
+    """First timepoint (frame number) to use when loading images for model training and evaluation."""
+
+    FRAME_STOP_FOR_MODEL = "frame_stop"
+    """Last timepoint (frame number) to use when loading images for model training and evaluation."""
+
     class DiffAEData(StrEnum):
         """Dataframe column names used in DiFFAE feature dataframes."""
-
-        LATENT_FEATURE_PREFIX = "feat_"
-        """Prefix for latent feature column names."""
-
-        PCA_FEATURE_PREFIX = "pc_"
-        """Prefix for PCA-transformed feature column names."""
 
         POLAR_RADIUS = "polar_r"
         """Column name for polar radius coordinate computed from PC1 and PC2."""
@@ -77,31 +98,31 @@ class ColumnName:
         """Suffix for columns representing differences between feature values."""
 
         MODEL_MANIFEST = "model_manifest_name"
-        """Column name for model manifest name."""
+        """Manifest name of model used to generate latent vectors."""
 
         MODEL_RUN = "run_name"
-        """Column name for model run name."""
+        """Run name of model used to generate latent vectors."""
 
         RESOLUTION = "resolution_level"
-        """Column name for resolution level of the image."""
+        """Zarr resolution level used to generate patches for obtaining latent vectors."""
 
         START_X = "start_x"
-        """Upper-left x-coordinate of the crop."""
+        """X coordinate of upper left corner of patch [pixels] (zarr resolution level 1)."""
 
         START_Y = "start_y"
-        """Upper-left y-coordinate of the crop."""
+        """Y coordinate of upper left corner of patch [pixels] (zarr resolution level 1)."""
 
         END_X = "end_x"
-        """Lower-right x-coordinate of the crop."""
+        """X coordinate of lower right corner of patch [pixels] (zarr resolution level 1)."""
 
         END_Y = "end_y"
-        """Lower-right y-coordinate of the crop."""
+        """Y coordinate of lower right corner of patch [pixels] (zarr resolution level 1)."""
 
         CROP_SIZE_X = "crop_size_x"
-        """Width of the crop in pixels."""
+        """Width of the patch [pixels] (zarr resolution level 1)."""
 
         CROP_SIZE_Y = "crop_size_y"
-        """Height of the crop in pixels."""
+        """Height of the patch [pixels] (zarr resolution level 1)."""
 
     class SegData(StrEnum):
         """Dataframe column names used in segmentation-based feature dataframes."""
@@ -125,16 +146,16 @@ class ColumnName:
         """List of all segmentation labels found within a crop/cell-centered patch."""
 
         START_X_RES_0 = "start_x_resolution_0"
-        """X coordinate of upper left corner of patch (crop) [pixels] (zarr resolution level 0)."""
+        """X coordinate of upper left corner of patch [pixels] (zarr resolution level 0)."""
 
         END_X_RES_0 = "end_x_resolution_0"
-        """X coordinate of lower right corner of patch (crop) [pixels] (zarr resolution level 0)."""
+        """X coordinate of lower right corner of patch [pixels] (zarr resolution level 0)."""
 
         START_Y_RES_0 = "start_y_resolution_0"
-        """Y coordinate of upper left corner of patch (crop) [pixels] (zarr resolution level 0)."""
+        """Y coordinate of upper left corner of patch [pixels] (zarr resolution level 0)."""
 
         END_Y_RES_0 = "end_y_resolution_0"
-        """Y coordinate of lower right corner of patch (crop) [pixels] (zarr resolution level 0)."""
+        """Y coordinate of lower right corner of patch [pixels] (zarr resolution level 0)."""
 
         CROP_SIZE = "crop_size"
         """Size of the crop [pixels] at resolution level 0 (the native resolution)."""
@@ -732,6 +753,12 @@ class ColumnNameTemplate(StrEnum):
     overlaps most with cell segmentation (index %d, multiple nuclei recorded in
     additional columns)
     """
+
+    LATENT_FEATURE = "feat_%d"
+    """Column name template: Component %d of the DiffAE latent vector."""
+
+    PCA_FEATURE = "pc_%d"
+    """Column name template: Component %d of PCA-transformed latent vector."""
 
 
 class ColumnNameSuffix(StrEnum):

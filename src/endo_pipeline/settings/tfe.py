@@ -4,6 +4,7 @@ from colorizer_data import FeatureType
 
 from endo_pipeline.settings.column_metadata import ColumnType
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.diffae_feature_dataframes import MAX_PCS_TO_COMPUTE
 
@@ -85,7 +86,7 @@ TFE_FEATURES: list[ColumnNameType] = [
     Column.SegData.NUCLEI_POSITION_ANGLE_DEG,
     Column.SegData.VECTOR_MEAN_FOR_CROP_MAGNITUDE,
     # DiffAE-based features ====================================================
-    *[f"{Column.DiffAEData.PCA_FEATURE_PREFIX}{i}" for i in range(1, MAX_PCS_TO_COMPUTE + 1)],
+    *[ColumnTemplate.PCA_FEATURE % i for i in range(1, MAX_PCS_TO_COMPUTE + 1)],
     Column.DiffAEData.POLAR_ANGLE,
     Column.DiffAEData.POLAR_RADIUS,
     Column.DiffAEData.PC3_FLIPPED,

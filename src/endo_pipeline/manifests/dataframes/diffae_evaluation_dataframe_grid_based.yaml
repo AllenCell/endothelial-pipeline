@@ -2,67 +2,140 @@ name: diffae_evaluation_dataframe_grid_based
 workflow: create_diffae_eval_dataframe
 parameters:
   patch_type: grid_based
-  z_slice_offsets:
-  - 4
-  - 11
+  z_slice_offsets: [4, 11]
+columns:
+  path: Path to source image file for model training and evaluation
+  resolution_level: Zarr resolution level used to generate patches for obtaining latent vectors
+  channel: List of channels to load for model training and evaluation
+  z_start: Starting z-slice of image to use for model training and evaluation
+  z_stop: Ending z-slice of image to use for model training and evaluation
+  z_step: Step between Z-slices in image to use for model training and evaluation
 locations:
   20251001_20X:
     fmsid: 32f7545c2b9f43e39cfbe48dc636e400
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20251001_271124f03a16409499e8a84b0030cb15.parquet
   20260114_20X:
     fmsid: 2f7d3d9a61404d759b3230ab616d49b7
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20260114_4b693bb8eedb4e0ba0cb9ab4ae07b1a2.parquet
   20260121_20X:
     fmsid: 2dca64b9515847eaa6bfe93dcc61b69e
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20260121_ff75e124720b4a3aa035025a05ced25f.parquet
   20260126_20X:
     fmsid: f8ecb7291fcf4dc5995790acbf3c69d8
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20260126_aed19d79c1a34707925cfa8393424c45.parquet
   20260128_20X:
     fmsid: 667ae4b08ad94957ad3c58bd564ec91d
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20260128_00bd94ea6d7e4b46bc16a55e35de589d.parquet
   20260202_20X:
     fmsid: 5ddc7846a9d149cba5b179d9a151981b
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20260202_fcb18a65bb734ff6ae718e1eee4894d6.parquet
   20260204_20X:
     fmsid: 791e40d5e85d4f05a63d775ec7841d86
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20260204_ac1fddfd7452481e83317c8fbdd59dd6.parquet
   20260209_20X:
     fmsid: c1a80f7534d04960a3ad97d978f10341
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20260209_3700e11f893e4f378db450ea91bd92d6.parquet
   20260211_20X:
     fmsid: dda84c2ce92a4e5ab026bb1749b25d4f
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20260211_20b76dc8d0ca488ba88816793830f6ec.parquet
   20260216_20X:
     fmsid: 29f0db0a90c44c85b048cb4d5b5f9e99
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20260216_ed3743a1ee4c4cb096f5af90e3ebb9bd.parquet
   20260225_20X:
     fmsid: 5b8dd964f92949bd98ab7d09f4485d4c
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20260225_50afe3cb17cf4be099dc44e47f7a4ae4.parquet
   20260302_20X:
     fmsid: 1983bba8c0a24337aac8a3a103ee4235
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20260302_e9cfa3b0b24447f7bba000af3b012427.parquet
   20260304_20X:
     fmsid: e5715c90cb6d40d696ad05c7c89eb531
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20260304_56c81f459d8e46eabd74cc2147b85f49.parquet
   20260309_20X:
     fmsid: 198c3ff0de3d4888a702143dc6dbac4e
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20260309_1a52b127112347d4b805eb64d0b86757.parquet
   20260325_20X:
     fmsid: 5567e285c7a640a18587998ad0f72951
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20260325_d1f28b79cf574775b529d83626183abc.parquet
+  20250319_20X:
+    fmsid: d45ee9b89ce14308aa2311049dcc355f
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20250319_0d94f8d3054e4e8c99af07dd92774798.parquet
+  20250326_20X:
+    fmsid: 76b124bed2874a529d106b3c991c9aa5
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20250326_eb97addf262c44c5a6117ad1d4acc353.parquet
+  20250402_20X:
+    fmsid: 8ac32000f9db41fd8a0fcf14a273acb4
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20250402_90e37b7d8f1440efa84995b4697fb269.parquet
+  20250409_20X:
+    fmsid: 915e1a297cf64c138a661043b141e263
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20250409_df6b2a02bbc94c6f957923add524eac1.parquet
+  20250428_20X:
+    fmsid: d4e1c38fa283409ba40652a2a75bd57d
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20250428_056aa027ba9f4ccd98367563552f7edd.parquet
+  20250604_20X:
+    fmsid: ce26827576bf46b798c9e55fd3d9cf2a
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20250604_3f08ef7a2e0e450d963352dae4bf17dc.parquet
+  20250611_20X:
+    fmsid: 12ac807213e842ffb7a517c175c5c567
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20250611_a32615d530ae42c29d159cc058601879.parquet
+  20250618_20X:
+    fmsid: 0ab1071bb80f4aa5bb904580cef42de1
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20250618_f81e9bdf048e462e9755d7cbf5d21c37.parquet
+  20250714_20X:
+    fmsid: f353382788374eb1b093bf7643cb6d6e
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20250714_0a0462b7d33848c8826105ab6f78787d.parquet
+  20250716_20X:
+    fmsid: 3a5eea7125af4db0aa65d0531fef0466
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20250716_328c62ecc91248eab2268e546892453e.parquet
+  20250728_20X:
+    fmsid: c0d7a97b3721432aa589821ba06fcec6
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20250728_b07652734b1b43178f4bc704abd7b95b.parquet
+  20250813_20X:
+    fmsid: 37d5a83a00cd4e428e2cf5a712c06ebb
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20250813_6ab0f70bd43f4de987a789905dbfb95c.parquet
+  20250818_20X:
+    fmsid: af9762b1933a437ea9c1368befb3aa86
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20250818_1f895d9188df43e0a10b379cf23a879c.parquet
+  20250827_20X:
+    fmsid: 6514b9d9603c479a90b334d7ae821c88
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20250827_c96180b30a224a48bac3b6d8fe1ffbb4.parquet
+  20250908_20X:
+    fmsid: 9af6dbe7c2244d4994494df2094043a1
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20250908_b5d434bdebce4053b2d90198541b6b59.parquet
+  20251029_20X:
+    fmsid: 4257de0cc6a745098880270c2f4de677
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20251029_441aed50cff54667afce891eb3a1a8db.parquet
+  20251119_20X:
+    fmsid: fc95de0a3f5e498b9cbbb751deb7f1a5
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_evaluation_dataframe_grid_based/20251119_d6449a79a6264466aa225af0cdef78c7.parquet

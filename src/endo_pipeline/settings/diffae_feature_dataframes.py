@@ -1,6 +1,7 @@
 from enum import StrEnum
 
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 
 """Global constants and default settings for DiffAE feature dataframe creation and processing."""
 
@@ -8,37 +9,37 @@ from endo_pipeline.settings.column_names import ColumnName as Column
 class CytoDLLoadDataKeys(StrEnum):
     """Metadata keys passed into MultiDimImageDataset for loading images."""
 
-    FILE_PATH = "path"
+    FILE_PATH = Column.SOURCE_IMAGE_PATH_FOR_MODEL
     """Key for path to the source image file."""
 
-    TIMEPOINT = "T"
+    TIMEPOINT = Column.TIMEPOINT_FOR_MODEL
     """Key for timepoint (frame number)."""
 
-    TIME_START = "frame_start"
+    TIME_START = Column.FRAME_START_FOR_MODEL
     """Key for starting timepoint (frame number)."""
 
-    TIME_END = "frame_stop"
+    TIME_END = Column.FRAME_STOP_FOR_MODEL
     """Key for ending timepoint (frame number)."""
 
     TIME_STEP = "frame_step"
     """Key for timepoint (frame number) step size."""
 
-    INCLUDE_TIMEPOINTS = "include_frames"
+    INCLUDE_TIMEPOINTS = Column.TIMEPOINTS_TO_INCLUDE_FOR_MODEL
     """Key for list of timepoints (frame numbers) to include."""
 
-    Z_START = "z_start"
+    Z_START = Column.Z_START_FOR_MODEL
     """Key for starting z-slice index."""
 
-    Z_END = "z_stop"
+    Z_END = Column.Z_END_FOR_MODEL
     """Key for ending z-slice index."""
 
-    Z_STEP = "z_step"
+    Z_STEP = Column.Z_STEP_FOR_MODEL
     """Key for z-slice index step size."""
 
-    CHANNELS = "channel"
+    CHANNELS = Column.IMAGE_CHANNELS_TO_LOAD_FOR_MODEL
     """Key for list of channels to load."""
 
-    RESOLUTION = "resolution_level"
+    RESOLUTION = Column.DiffAEData.RESOLUTION
     """Key for resolution level of the image."""
 
     SCENE = "scene"
@@ -77,13 +78,11 @@ MAX_PCS_TO_COMPUTE = 100
 """Maximum number of principal components to compute for this project."""
 
 DIFFAE_FEATURE_COLUMN_NAMES = [
-    f"{Column.DiffAEData.LATENT_FEATURE_PREFIX}{i}" for i in range(NUM_LATENT_FEATURES)
+    ColumnTemplate.LATENT_FEATURE % i for i in range(NUM_LATENT_FEATURES)
 ]
 """Full set of column names for original latent features in DiFFAE feature dataframes."""
 
-DIFFAE_PC_COLUMN_NAMES = [
-    f"{Column.DiffAEData.PCA_FEATURE_PREFIX}{i+1}" for i in range(NUM_LATENT_FEATURES)
-]
+DIFFAE_PC_COLUMN_NAMES = [ColumnTemplate.PCA_FEATURE % (i + 1) for i in range(NUM_LATENT_FEATURES)]
 """Full set of column names for PCA-transformed features in DiFFAE feature dataframes."""
 
 DIFFAE_PC_COLUMN_NAME_GROUPS: dict[str, list[str]] = {

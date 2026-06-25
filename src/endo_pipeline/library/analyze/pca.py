@@ -19,6 +19,7 @@ from endo_pipeline.library.analyze.dataframe_validation import check_required_co
 from endo_pipeline.library.analyze.polar_coords import pcs_to_polar_r, pcs_to_polar_theta
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_FEATURE_COLUMN_NAMES,
     DIFFAE_PC_COLUMN_NAMES,
@@ -217,7 +218,7 @@ def get_pca_loadings_as_df(
     if df_format == "long":
         loading_matrix_df = loading_matrix_df.reset_index().melt(
             id_vars="index",
-            var_name=Column.DiffAEData.PCA_FEATURE_PREFIX,
+            var_name=ColumnTemplate.PCA_FEATURE.replace("%d", ""),
             value_name="loading_value",
         )
         loading_matrix_df = loading_matrix_df.rename(columns={"index": "feature"})

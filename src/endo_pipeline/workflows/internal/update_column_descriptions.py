@@ -46,6 +46,7 @@ def main(manifest_names: UniqueStrList | None = None, reload_columns: bool = Fal
     )
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
+    from endo_pipeline.settings.workflow_defaults import DEFAULT_NUM_LATENT_DIMENSIONS
 
     logger = logging.getLogger(__name__)
 
@@ -53,6 +54,7 @@ def main(manifest_names: UniqueStrList | None = None, reload_columns: bool = Fal
         ColumnTemplate.NUCLEI_WITH_MOST_OVERLAP: [0, 1, 2, 3, 4, 5, 6],
         ColumnTemplate.NUCLEI_WITH_MOST_OVERLAP_CENTROID_X: [0, 1, 2, 3, 4, 5, 6],
         ColumnTemplate.NUCLEI_WITH_MOST_OVERLAP_CENTROID_Y: [0, 1, 2, 3, 4, 5, 6],
+        ColumnTemplate.LATENT_FEATURE: range(DEFAULT_NUM_LATENT_DIMENSIONS),
     }
 
     column_descriptions = {}
