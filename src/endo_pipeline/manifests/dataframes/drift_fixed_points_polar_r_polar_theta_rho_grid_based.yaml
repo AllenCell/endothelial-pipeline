@@ -109,10 +109,6 @@ locations:
     fmsid: c769b0a2a13c4b938e9eb8d601aa291b
     path: null
     s3uri: s3://allencell-internal-quilt/endo_stg/drift_fixed_points_polar_r_polar_theta_rho_grid_based/20260204_ac1fddfd7452481e83317c8fbdd59dd6.parquet
-  20250728_20X:
-    fmsid: 94f2a39e8f4d4d34a3535e03af514309
-    path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/drift_fixed_points_polar_r_polar_theta_rho_grid_based/20250728_b07652734b1b43178f4bc704abd7b95b.parquet
   20260209_20X:
     fmsid: 3922c452e722473c814685164ce6c510
     path: null
@@ -145,11 +141,3 @@ locations:
     fmsid: da5548c467754876b0a0f62896df85f2
     path: null
     s3uri: s3://allencell-internal-quilt/endo_stg/drift_fixed_points_polar_r_polar_theta_rho_grid_based/20260325_d1f28b79cf574775b529d83626183abc.parquet
-  20250714_20X:
-    fmsid: d85a1a47eaeb46b3945b33e59192f328
-    path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/drift_fixed_points_polar_r_polar_theta_rho_grid_based/20250714_0a0462b7d33848c8826105ab6f78787d.parquet
-  20250827_20X:
-    fmsid: f86198afa52e41d9854b581319fc12fe
-    path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/drift_fixed_points_polar_r_polar_theta_rho_grid_based/20250827_c96180b30a224a48bac3b6d8fe1ffbb4.parquet
