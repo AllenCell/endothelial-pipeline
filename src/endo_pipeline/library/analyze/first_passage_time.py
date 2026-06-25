@@ -1,0 +1,271 @@
+"""Methods for calculating and analyzing first passage time"""
+
+import logging
+from typing import Literal
+
+import numpy as np
+import pandas as pd
+
+from endo_pipeline.library.analyze.numerics.binning import adjust_limits_from_bin_size, get_bins
+from endo_pipeline.library.analyze.numerics.fixed_points import (
+    load_fixed_points_dataframe_for_dataset,
+)
+from endo_pipeline.library.analyze.track_integration import (
+    BOOTSTRAP_THRESHOLD,
+    add_distance_to_fixed_points_columns,
+    add_first_passage_time_column,
+    compute_first_passage_time_parameter_sweep_df,
+    compute_first_passage_time_stats_for_bins,
+    load_filtered_trajectory_df_for_first_passage_time_workflow,
+    merge_grid_and_tracked_first_passage_time_parameter_sweep_dfs,
+    merge_grid_and_tracked_first_passage_time_stats_dfs,
+)
+from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
+from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, TIME_STEP_IN_HOURS
+
+
+def compute_first_passage_times_one_dataset(
+    dataset_name: str,
+    minimum_track_length: int,
+    fixed_point_radius_threshold: float | None = None,
+    bin_size_theta_deg: float | None = None,
+    bin_size_radius: float | None = None,
+    bin_size_rho: float | None = None,
+    collapse_feature: Literal["theta", "radius", "rho"] | None = None,
+) -> tuple[list[pd.DataFrame], list[pd.DataFrame]]:
+    """Compute first passage times to the fixed points for grid-based and track-based trajectories.
+    Also runs a parameter sweep over the first passage time threshold and saves the results as well.
+    """
+
+    logger = logging.getLogger(__name__)
+
+    fpt_stats_df_list: list = []
+    param_sweep_df_list: list = []
+
+    # load the dynamics features from the grid-based and track-based dataframes
+    traj_df_grid = load_filtered_trajectory_df_for_first_passage_time_workflow(
+        dataset_name,
+        patch_type="grid_based",
+        minimum_track_length=minimum_track_length,
+    )
+    traj_df_grid[Column.SegData.TIME_HRS] = traj_df_grid[Column.TIMEPOINT] * TIME_STEP_IN_HOURS
+
+    traj_df_tracked = load_filtered_trajectory_df_for_first_passage_time_workflow(
+        dataset_name,
+        patch_type="cell_centered",
+        minimum_track_length=minimum_track_length,
+    )
+    traj_df_tracked[Column.SegData.TIME_HRS] = (
+        traj_df_tracked[Column.TIMEPOINT] * TIME_STEP_IN_HOURS
+    )
+
+    # load the flow field dictionaries and fixed points
+    fixed_points_df = load_fixed_points_dataframe_for_dataset(dataset_name)
+    # filter the fixed points to only the ones with higher confidence
+    fixed_points_df = fixed_points_df[
+        fixed_points_df[Column.FIXED_POINT_DETECTION_RATE] >= BOOTSTRAP_THRESHOLD
+    ]
+    fixed_points_df = fixed_points_df[fixed_points_df[Column.FIXED_POINT_STABILITY] == "stable"]
+
+    if fixed_points_df.empty:
+        logger.warning(f"No fixed points found for dataset {dataset_name}, skipping dataset.")
+        fpt_stats_df_list.append(pd.DataFrame({Column.DATASET: [dataset_name]}))
+        param_sweep_df_list.append(pd.DataFrame({Column.DATASET: [dataset_name]}))
+        return fpt_stats_df_list, param_sweep_df_list
+
+    fp_cluster_mean_cols = [
+        ColumnTemplate.BOOTSTRAP_CLUSTER_MEAN % col for col in DYNAMICS_COLUMN_NAMES
+    ]
+    # add the distances from the fixed points for the grid-based trajectories
+    traj_df_grid = add_distance_to_fixed_points_columns(
+        trajectory_df=traj_df_grid,
+        fixed_point_df=fixed_points_df,
+        trajectory_columns=DYNAMICS_COLUMN_NAMES,
+        fixed_point_columns=fp_cluster_mean_cols,
+        time_column=Column.SegData.TIME_HRS,
+    )
+
+    # add the distances from the fixed points for the track-based trajectories
+    traj_df_tracked = add_distance_to_fixed_points_columns(
+        trajectory_df=traj_df_tracked,
+        fixed_point_df=fixed_points_df,
+        trajectory_columns=DYNAMICS_COLUMN_NAMES,
+        fixed_point_columns=fp_cluster_mean_cols,
+        time_column=Column.SegData.TIME_HRS,
+    )
+
+    # 1. bin (theta, r, rho) feature space define the bin sizes for each feature to be binned
+    bin_sizes = {
+        Column.DiffAEData.POLAR_ANGLE: (
+            np.deg2rad(bin_size_theta_deg) if bin_size_theta_deg is not None else np.deg2rad(15)
+        ),
+        Column.DiffAEData.POLAR_RADIUS: (bin_size_radius if bin_size_radius is not None else 0.25),
+        Column.DiffAEData.PC3_FLIPPED: bin_size_rho if bin_size_rho is not None else 0.5,
+    }
+
+    # get the data limits for each feature to be binned
+    bin_limits: dict = {}
+    for col in DYNAMICS_COLUMN_NAMES:
+        col_min = min(traj_df_grid[col].min(), traj_df_tracked[col].min())
+        col_max = max(traj_df_grid[col].max(), traj_df_tracked[col].max())
+        bin_limits[col] = (col_min, col_max)
+
+    # adjust the bin_limits if the feature has a defined range (e.g. for angles)
+    defined_bin_limits = {
+        Column.DiffAEData.POLAR_ANGLE: (0, np.pi),
+        Column.DiffAEData.POLAR_RADIUS: (0, None),
+        Column.DiffAEData.PC3_FLIPPED: (None, None),
+    }
+    for col in DYNAMICS_COLUMN_NAMES:
+        if col in defined_bin_limits:
+            bin_limits[col] = adjust_limits_from_bin_size(
+                data_min_max=bin_limits[col],
+                defined_min_max=defined_bin_limits[col],
+                bin_size=bin_sizes[col],
+            )
+
+    bin_widths = [bin_sizes[col] for col in DYNAMICS_COLUMN_NAMES]
+    bin_limits_list = [bin_limits[col] for col in DYNAMICS_COLUMN_NAMES]
+    bin_edges, bin_centers = get_bins(bin_widths=bin_widths, bin_limits=bin_limits_list)
+
+    if collapse_feature is not None:
+        feature_to_column_map = {
+            "theta": Column.DiffAEData.POLAR_ANGLE,
+            "radius": Column.DiffAEData.POLAR_RADIUS,
+            "rho": Column.DiffAEData.PC3_FLIPPED,
+        }
+        feature_to_collapse = feature_to_column_map[collapse_feature]
+        collapse_index = DYNAMICS_COLUMN_NAMES.index(feature_to_collapse)
+        # convert the bin edges into a single bin with only 2 edges
+        bin_edges[collapse_index] = np.array(
+            [bin_edges[collapse_index].min(), bin_edges[collapse_index].max()]
+        )
+        # take the midpoint of the bin edges as the bin center for the collapsed feature
+        bin_centers[collapse_index] = np.array(
+            [(bin_edges[collapse_index][0] + bin_edges[collapse_index][1]) / 2]
+        )
+
+    # 2. identify trajectories that pass a fixed point and filter df to only those trajectories
+    # find if and when a trajectory reaches a fixed point
+    thresholds = np.linspace(0, 1, 41)
+    for fp_idx, fp_row in fixed_points_df.iterrows():
+        # for now we will only look at first passage times to stable fixed points
+        fp_stability = fp_row[Column.FIXED_POINT_STABILITY]
+        if fp_stability != "stable":
+            logger.info(
+                f"Fixed point {fp_idx} in dataset {dataset_name} is not stable (stability = "
+                f"{fp_stability}), skipping for first passage time analysis."
+            )
+            continue
+
+        # if run_FPT_threshold_parameter_sweep:
+        # run a parameter sweep of the first passage times using different
+        # thresholds for what it means to have "reached" the fixed point
+        fpt_param_sweep_df_grid = traj_df_grid.copy()
+        fpt_param_sweep_df_tracked = traj_df_tracked.copy()
+        fpt_param_sweep_df_grid = compute_first_passage_time_parameter_sweep_df(
+            fixed_point_index=fp_idx,
+            trajectory_df=fpt_param_sweep_df_grid,
+            thresholds=thresholds,
+        )
+        fpt_param_sweep_df_tracked = compute_first_passage_time_parameter_sweep_df(
+            fixed_point_index=fp_idx,
+            trajectory_df=fpt_param_sweep_df_tracked,
+            thresholds=thresholds,
+        )
+        parameter_sweep_df = merge_grid_and_tracked_first_passage_time_parameter_sweep_dfs(
+            fpt_param_sweep_df_grid=fpt_param_sweep_df_grid,
+            fpt_param_sweep_df_tracked=fpt_param_sweep_df_tracked,
+            dataset_name=dataset_name,
+            fixed_point_index=fp_idx,
+        )
+        parameter_sweep_df[Column.FIXED_POINT_STABILITY] = fp_stability
+
+        traj_df_grid[f"{Column.VectorField.IS_AT_FP_PREFIX}{fp_idx}"] = (
+            traj_df_grid[f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fp_idx}"]
+            <= fixed_point_radius_threshold
+        )
+        traj_df_tracked[f"{Column.VectorField.IS_AT_FP_PREFIX}{fp_idx}"] = (
+            traj_df_tracked[f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fp_idx}"]
+            <= fixed_point_radius_threshold
+        )
+
+        traj_df_grid[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fp_idx}"] = traj_df_grid.groupby(
+            Column.CROP_INDEX
+        )[f"{Column.VectorField.IS_AT_FP_PREFIX}{fp_idx}"].transform(any)
+        traj_df_tracked[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fp_idx}"] = (
+            traj_df_tracked.groupby(Column.CROP_INDEX)[
+                f"{Column.VectorField.IS_AT_FP_PREFIX}{fp_idx}"
+            ].transform(any)
+        )
+
+        traj_df_grid_sub = traj_df_grid[
+            traj_df_grid[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fp_idx}"]
+        ]
+        traj_df_tracked_sub = traj_df_tracked[
+            traj_df_tracked[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fp_idx}"]
+        ]
+
+        # compute the timepoint at which each trajectory first reaches a fixed point
+        traj_df_grid_sub = add_first_passage_time_column(
+            fixed_point_index=fp_idx,
+            trajectory_df=traj_df_grid_sub,
+            column=f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fp_idx}",
+            threshold=fixed_point_radius_threshold,
+            time_column=Column.SegData.TIME_HRS,
+        )
+        traj_df_tracked_sub = add_first_passage_time_column(
+            fixed_point_index=fp_idx,
+            trajectory_df=traj_df_tracked_sub,
+            column=f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fp_idx}",
+            threshold=fixed_point_radius_threshold,
+            time_column=Column.SegData.TIME_HRS,
+        )
+
+        # 3. for each bin (across all steady-state timepoints), compute the mean,
+        #    median, and standard deviation of first-passage times for the trajectories
+        time_to_first_passage_col_name = f"{Column.VectorField.TIME_TO_FP_PREFIX}{fp_idx}"
+
+        fpt_stats_df_grid = compute_first_passage_time_stats_for_bins(
+            bin_centers=bin_centers,
+            bin_edges=bin_edges,
+            trajectory_df=traj_df_grid_sub,
+            time_to_first_passage_col_name=time_to_first_passage_col_name,
+            feature_column_names=list(DYNAMICS_COLUMN_NAMES),
+        )
+        fpt_stats_df_tracked = compute_first_passage_time_stats_for_bins(
+            bin_centers=bin_centers,
+            bin_edges=bin_edges,
+            trajectory_df=traj_df_tracked_sub,
+            time_to_first_passage_col_name=time_to_first_passage_col_name,
+            feature_column_names=list(DYNAMICS_COLUMN_NAMES),
+        )
+
+        # merge the grid and tracked first passage time stats dataframes
+        first_passage_time_stats_df = merge_grid_and_tracked_first_passage_time_stats_dfs(
+            fpt_stats_df_grid=fpt_stats_df_grid,
+            fpt_stats_df_tracked=fpt_stats_df_tracked,
+            dataset_name=dataset_name,
+            fixed_point_index=fp_idx,
+        )
+        first_passage_time_stats_df[Column.FIXED_POINT_STABILITY] = fp_stability
+        fp_dynamics_cols = [
+            f"{Column.VectorField.FIXED_POINT_PREFIX}{col}" for col in DYNAMICS_COLUMN_NAMES
+        ]
+        first_passage_time_stats_df[fp_dynamics_cols] = fp_row[list(DYNAMICS_COLUMN_NAMES)]
+
+        # add the bin sizes and bin limits to the dataframes for transparency
+        for col in DYNAMICS_COLUMN_NAMES:
+            first_passage_time_stats_df = first_passage_time_stats_df.assign(
+                **{
+                    f"{Column.VectorField.BIN_SIZE_PREFIX}{col}": bin_sizes[col],
+                    f"{Column.VectorField.BIN_LIMITS_PREFIX}{col}": [bin_limits[col]]
+                    * len(first_passage_time_stats_df),
+                }
+            )
+
+        fpt_stats_df_list.append(first_passage_time_stats_df)
+        param_sweep_df_list.append(parameter_sweep_df)
+
+    return fpt_stats_df_list, param_sweep_df_list
