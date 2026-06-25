@@ -29,6 +29,7 @@ from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
 )
 from endo_pipeline.library.visualize.columns import get_label_for_column
+from endo_pipeline.library.visualize.figure_3 import wrap_theta_for_vector_field_vis
 from endo_pipeline.library.visualize.fixed_points import StabilityLegendHandle
 from endo_pipeline.manifests.dataframe_manifest_io import load_dataframe_manifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
@@ -42,7 +43,7 @@ from endo_pipeline.settings.migration_coherence import (
     MIGRATION_COHERENCE_COLORMAP,
     MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
 )
-from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
+from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, VECTOR_FIELD_THETA_RANGE
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME
 
@@ -587,6 +588,14 @@ def make_example_migration_coherence(
         df_,
         dataset_config,
         timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
+    )
+    # modify theta coordinate to be within defined range used for 3D visualization
+    df_steady_state.loc[:, Column.DiffAEData.POLAR_ANGLE] = df_steady_state[
+        Column.DiffAEData.POLAR_ANGLE
+    ].apply(
+        lambda theta: wrap_theta_for_vector_field_vis(
+            theta, VECTOR_FIELD_THETA_RANGE[0], VECTOR_FIELD_THETA_RANGE[1]
+        )
     )
 
     df_of = add_optical_flow_features(
