@@ -38,6 +38,9 @@ STAGING_DATAFRAME_MANIFEST_NAMES = [
     "drift_fixed_points_polar_r_polar_theta_rho_grid_based",
     "drift_fixed_points_polar_r_rho_grid_based",
     "drift_fixed_points_polar_theta_grid_based",
+    "drift_vector_field_polar_r_polar_theta_rho_grid_based",
+    "drift_vector_field_polar_r_rho_grid_based",
+    "drift_vector_field_polar_theta_grid_based",
 ]
 """List of names of dataframe manifests to stage."""
 
