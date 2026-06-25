@@ -237,7 +237,7 @@ def plot_3d_scatter_or_binned(
     x_bin_size, y_bin_size, z_bin_size = bin_size_xyz
 
     ax: Axes3D
-    fig = plt.figure(figsize=figsize)
+    fig = plt.figure(figsize=figsize, layout="constrained")
     if show_colorbar:
         gs = fig.add_gridspec(
             nrows=1, ncols=3, width_ratios=[15, 3, 1], left=0.0, right=0.8, wspace=0.1
@@ -343,19 +343,33 @@ def plot_3d_scatter_or_binned(
             fontsize=FONTSIZE_SMALL,
         )
 
-    ax.set_xlabel(get_label_for_column(x_col), labelpad=2)
-    ax.set_ylabel(get_label_for_column(y_col), labelpad=2)
-    ax.set_zlabel(get_label_for_column(z_col), rotation=0, labelpad=0)
+    ax.set_xlabel(get_label_for_column(x_col), labelpad=-8)
+    ax.set_ylabel(get_label_for_column(y_col), labelpad=-3)
+    ax.set_zlabel(get_label_for_column(z_col), rotation=0, labelpad=-8)
 
-    # Apply ticks/tick_labels from column metadata when available
+    # Apply ticks/tick_labels from column metadata when available,
+    # skipping every other tick if there are too many
     for axis, col in [("x", x_col), ("y", y_col), ("z", z_col)]:
         if col in COLUMN_METADATA:
             meta = COLUMN_METADATA[col]
             if meta.ticks is not None:
                 ticks = list(meta.ticks)
+                if len(ticks) >= 4:
+                    ticks = ticks[::2]
                 getattr(ax, f"set_{axis}ticks")(ticks)
                 if meta.tick_labels is not None:
-                    getattr(ax, f"set_{axis}ticklabels")(meta.tick_labels, fontsize=FONTSIZE_XSMALL)
+                    tick_labels = list(meta.tick_labels)
+                    if len(tick_labels) >= 4:
+                        tick_labels = tick_labels[::2]
+                    getattr(ax, f"set_{axis}ticklabels")(tick_labels, fontsize=FONTSIZE_SMALL)
+
+    ax.tick_params(axis="both", pad=-3)
+    for tick in ax.xaxis.get_majorticklabels():
+        tick.set_ha("right")
+        tick.set_va("center")
+    for tick in ax.yaxis.get_majorticklabels():
+        tick.set_ha("left")
+        tick.set_va("center")
 
     if show_colorbar and cax is not None:
         cbar = fig.colorbar(sc, cax=cax, label=cbar_label)
