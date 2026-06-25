@@ -891,6 +891,7 @@ def plot_drift_3d(
     include_legend: bool = True,
     include_stable_fixed_point_legend: bool = True,
     fixed_point_legend_label: str | None = None,
+    colorbar_rect: tuple[float, float, float, float] = (0.45, 0.12, 0.5, 0.02),
     **axes_kwargs: Any,
 ) -> tuple[plt.Figure, Axes3D]:
     """
@@ -932,6 +933,9 @@ def plot_drift_3d(
         the plot will be added to the legend).
     fixed_point_legend_label
         Optional custom label for the stable fixed point legend entry.
+    colorbar_rect
+        Rectangle specifying the position of the colorbar in normalized figure
+        coordinates (left, bottom, width, height).
     axes_kwargs
         Additional keyword arguments to pass to set_axes_properties for
         customizing the axes, e.g., to specify axis limits, labels, title, or
@@ -1019,7 +1023,7 @@ def plot_drift_3d(
         # just above and shares the same centre so both have identical left-to-
         # right spacing.
         scalar_mappable.set_array([])
-        cbar_ax = fig.add_axes((0.45, 0.12, 0.5, 0.02))
+        cbar_ax = fig.add_axes(colorbar_rect)
         cbar = fig.colorbar(
             scalar_mappable,
             cax=cbar_ax,

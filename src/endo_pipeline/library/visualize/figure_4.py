@@ -107,6 +107,7 @@ def make_3d_vector_field_plot_panel(
         include_colorbar=include_colorbar,
         include_legend=include_legend,
         fixed_point_legend_label=fixed_point_label,
+        colorbar_rect=(0.5, 0.12, 0.4, 0.02),
         xlim=theta_lims,
         ylim=r_lims,
         zlim=rho_lims,
