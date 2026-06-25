@@ -111,7 +111,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     projected_streamlines_path = visualize_projected_dynamics(
         dataset_name=dataset_name,
         output_path=output_path,
-        figure_size=(2.0, 2.0),
+        figure_size=(2.35, 2.35),
         **placeholders["D"],
     )
 
@@ -143,10 +143,10 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel(
             letter="D",
             path=projected_streamlines_path,
-            x_position=3.7,
-            y_position=2.35,
-            x_offset=0.075,
-            y_offset=0.05,
+            x_position=3.4,
+            y_position=2.5,
+            x_offset=0.0,
+            y_offset=0.15,
         ),
     ]
 

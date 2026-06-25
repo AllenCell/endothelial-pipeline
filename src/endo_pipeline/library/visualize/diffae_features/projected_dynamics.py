@@ -10,6 +10,7 @@ import numpy as np
 from matplotlib.colors import ListedColormap
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
+from matplotlib.ticker import FormatStrFormatter, MaxNLocator
 from numdifftools import Jacobian
 from scipy.integrate import solve_ivp
 
@@ -30,7 +31,7 @@ from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, POLAR_ANGLE_PERIOD
-from endo_pipeline.settings.figures import FONTSIZE_XSMALL
+from endo_pipeline.settings.figures import FONTSIZE_SMALL, FONTSIZE_XSMALL
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, VECTOR_FIELD_THETA_RANGE
 
@@ -254,8 +255,8 @@ def plot_streamlines_of_projected_vector_field(
         vector_field_2d[..., 1],
         **(streamplot_kwargs or {}),
     )
-    ax.set_xlabel("Projected component 1")
-    ax.set_ylabel("Projected component 2")
+    ax.set_xlabel("Projected component 1", fontsize=FONTSIZE_SMALL)
+    ax.set_ylabel("Projected component 2", fontsize=FONTSIZE_SMALL)
 
     return fig
 
@@ -693,9 +694,14 @@ def visualize_projected_dynamics(
     x_max = max(x_vals) + x_margin
     y_min = min(y_vals) - y_margin
     y_max = max(y_vals) + y_margin
+
+    # take extrema of limits to allow for square aspect ratio without cutting
+    # off features
+    grid_min = min(x_min, y_min)
+    grid_max = max(x_max, y_max)
     x_mesh, y_mesh = np.meshgrid(
-        np.arange(x_min, x_max, grid_spacing_2d),
-        np.arange(y_min, y_max, grid_spacing_2d),
+        np.arange(grid_min, grid_max, grid_spacing_2d),
+        np.arange(grid_min, grid_max, grid_spacing_2d),
     )
 
     fig = plot_streamlines_of_projected_vector_field(
@@ -763,8 +769,6 @@ def visualize_projected_dynamics(
             zorder=4,
         )
 
-    # set square aspect and save the figure
-    ax.set_aspect("equal")
     # Build and place a legend to the right of the plot without squashing the axes.
     fp_labels = {
         StabilityLabel.STABLE: f"projected\n{fixed_point_label}",
@@ -787,12 +791,30 @@ def visualize_projected_dynamics(
         handles=legend_handles,
         fontsize=FONTSIZE_XSMALL,
         loc="upper left",
-        bbox_to_anchor=(1.01, 0.9),
+        bbox_to_anchor=(1.01, 0.95),
         bbox_transform=ax.transAxes,
         frameon=False,
         handletextpad=0.3,
         labelspacing=0.4,
     )
+
+    ax.set_aspect("equal")
+
+    # max 3 ticks on each axis, make sure 0.0 is included as a tick, and round
+    # to 1 decimal place
+    ax.xaxis.set_major_locator(MaxNLocator(nbins=2, prune="both", steps=[1, 2], min_n_ticks=2))
+    ax.yaxis.set_major_locator(MaxNLocator(nbins=2, prune="both", steps=[1, 2], min_n_ticks=2))
+    fig.canvas.draw()  # force tick computation before reading locs
+    for axis in (ax.xaxis, ax.yaxis):
+        ticks = axis.get_majorticklocs().tolist()
+        if 0.0 not in ticks:
+            ticks = sorted(ticks + [0.0])
+        # if > 3 ticks, remove every second one
+        if len(ticks) > 3:
+            ticks = ticks[::2]
+        axis.set_ticks(ticks)
+    ax.xaxis.set_major_formatter(FormatStrFormatter("%.2f"))
+    ax.yaxis.set_major_formatter(FormatStrFormatter("%.2f"))
 
     file_name = f"{dataset_name}_projected_streamplot"
     save_plot_to_path(
