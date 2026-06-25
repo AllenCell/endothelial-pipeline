@@ -32,6 +32,7 @@ STAGING_DATAFRAME_MANIFEST_NAMES = [
     "diffae_pca_features_cell_centered_filtered",
     "diffae_pca_features_cell_centered_unfiltered",
     "cell_centered_features_filtered",
+    "cell_centered_features_unfiltered",
 ]
 """List of names of dataframe manifests to stage."""
 
