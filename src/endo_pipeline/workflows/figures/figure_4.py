@@ -18,7 +18,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     """
     import matplotlib.pyplot as plt
 
-    from endo_pipeline.io import get_output_path, load_model
+    from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.diffae_features.projected_dynamics import (
         visualize_projected_dynamics,
     )
@@ -35,29 +35,20 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         build_dataframe_for_fixed_point_dataset_summary,
         plot_cross_dataset_summaries,
     )
-    from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
+    from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName
     from endo_pipeline.settings.examples import EXAMPLE_DATASET
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
     from endo_pipeline.settings.manifest_names import BOOTSTRAPPING_MANIFEST_NAMES
     from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
     from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
-    from endo_pipeline.settings.workflow_defaults import (
-        DEFAULT_MODEL_MANIFEST_NAME,
-        DEFAULT_MODEL_RUN_NAME,
-        FEATURES_FILTERED_MANIFEST_NAMES,
-    )
+    from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
 
     plt.style.use("endo_pipeline.figure")
 
     output_path = get_output_path(__file__)
 
     placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C"])
-
-    # load and instantiate model for generating synthetic images
-    model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
-    model_location = model_manifest.locations[DEFAULT_MODEL_RUN_NAME]
-    model = load_model(model_location, instantiate=True)
 
     # Load diffae features
     feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[
@@ -113,9 +104,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     )
     fixed_point_reconstruction_path = reconstruct_fixed_points(
         fixed_point_df=stable_fixed_points_df,
-        model=model,
-        fig_savedir=output_path,
+        output_path=output_path,
         add_fixed_point_coordinate_annotation=False,
+        **placeholders["B"],
     )
 
     projected_streamlines_path = visualize_projected_dynamics(
