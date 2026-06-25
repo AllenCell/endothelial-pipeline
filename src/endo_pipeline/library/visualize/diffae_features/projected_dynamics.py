@@ -266,7 +266,7 @@ def _integrate_manifold_trajectories_2d(
     ortho_basis: np.ndarray,
     manifold: Literal["stable", "unstable"],
     origin_3d: np.ndarray | None = None,
-    t_max: float = 200.0,
+    t_max: float = 300.0,
     eps: float = 1e-3,
 ) -> list[np.ndarray]:
     """Integrate trajectories along the stable or unstable manifold of the saddle point.
@@ -578,7 +578,7 @@ def draw_basins_and_separatrix(
 def visualize_projected_dynamics(
     dataset_name: str,
     output_path: Path,
-    grid_spacing_2d: float = 0.05,
+    grid_spacing_2d: float = 0.0125,
     figure_size: tuple[float, float] = (2.0, 2.0),
     fig_kwargs: dict[str, Any] | None = None,
     streamplot_kwargs: dict[str, Any] | None = None,

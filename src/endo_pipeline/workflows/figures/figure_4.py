@@ -145,13 +145,13 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             path=projected_streamlines_path,
             x_position=3.4,
             y_position=2.5,
-            x_offset=0.0,
-            y_offset=0.15,
+            x_offset=-0.025,
+            y_offset=0.05,
         ),
     ]
 
     build_figure_from_panels(
-        panels, output_path / "figure_4.svg", width=MAX_FIGURE_WIDTH, height=5.0
+        panels, output_path / "figure_4.svg", width=MAX_FIGURE_WIDTH, height=4.8
     )
 
 
