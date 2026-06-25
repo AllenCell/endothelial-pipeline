@@ -792,12 +792,12 @@ class ColumnNameTemplate(StrEnum):
     FIXED_POINT = "%s_fixed_point"
     """Column name template: Vector field fixed point location in %s."""
 
+    DRIFT_COEFFICIENT = "%s_drift"
+    """Column name template: Component of drift coefficient vector field corresponding to d[%s]/dt."""
+
 
 class ColumnNameSuffix(StrEnum):
     """Suffixes for dataframe column names."""
-
-    DRIFT = "_drift"
-    """Suffix for column name for drift in a given variable."""
 
     MESH_GRID = "_mesh_grid"
     """Suffix for column name for vector field mesh grid."""

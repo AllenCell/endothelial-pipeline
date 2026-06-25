@@ -151,7 +151,7 @@ def main(
 
     # Get label and drift column name for selected column
     column_labels = [get_label_for_column(column) for column in column_names]
-    drift_column_names = [f"{column}{ColumnNameSuffix.DRIFT}" for column in column_names]
+    drift_column_names = [ColumnTemplate.DRIFT_COEFFICIENT % column for column in column_names]
     fp_column_names = [ColumnTemplate.FIXED_POINT % column for column in column_names]
     mesh_column_names = [f"{column}{ColumnNameSuffix.MESH_GRID}" for column in column_names]
 
