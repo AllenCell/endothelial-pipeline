@@ -8,6 +8,8 @@ from typing import Any, Literal, cast
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import ListedColormap
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 from numdifftools import Jacobian
 from scipy.integrate import solve_ivp
 
@@ -21,9 +23,14 @@ from endo_pipeline.library.analyze.vector_field_estimation import (
     load_drift_dataframe_for_dataset,
 )
 from endo_pipeline.library.analyze.vector_field_function import get_callable_vector_field
+from endo_pipeline.library.visualize.diffae_features.dynamics import (
+    make_legend_handles_for_fixed_pts,
+)
 from endo_pipeline.library.visualize.figures import figure_panel
+from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, POLAR_ANGLE_PERIOD
+from endo_pipeline.settings.figures import FONTSIZE_XSMALL
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, VECTOR_FIELD_THETA_RANGE
 
@@ -601,6 +608,9 @@ def visualize_projected_dynamics(
 
     """
     column_names = list(DYNAMICS_COLUMN_NAMES)  # [theta, r, rho]
+    column_labels = [str(COLUMN_METADATA[col].label or str(col)) for col in DYNAMICS_COLUMN_NAMES]
+    fixed_point_label = f"({column_labels[0]}$^*$, {column_labels[1]}$^*$, {column_labels[2]}$^*$)"
+
     vector_field_dataframe = load_drift_dataframe_for_dataset(dataset_name)
     vector_field_dict = get_vector_field_as_dict_from_dataframe(
         vector_field_dataframe, column_names
@@ -753,7 +763,45 @@ def visualize_projected_dynamics(
             zorder=4,
         )
 
+    # set square aspect and save the figure
+    ax.set_aspect("equal")
+    # Build and place a legend to the right of the plot without squashing the axes.
+    fp_labels = {
+        StabilityLabel.STABLE: f"projected\n{fixed_point_label}",
+        StabilityLabel.SADDLE: "projected\nsaddle point",
+    }
+    fp_handles = make_legend_handles_for_fixed_pts(
+        fpt_stabilities=[StabilityLabel.STABLE, StabilityLabel.SADDLE],
+        marker_size=4,
+        labels=fp_labels,
+    )
+    legend_handles = [
+        *fp_handles,
+        Line2D([], [], color="dimgrey", linewidth=0.75, linestyle="-", label="streamlines"),
+        Line2D([], [], color="k", linewidth=1.0, linestyle="-", label="unstable\nmanifold"),
+        Line2D([], [], color="k", linewidth=1.5, linestyle="--", label="stable\nmanifold"),
+        Patch(facecolor=BASIN_GREEN, edgecolor="none", alpha=0.7, label="basin of\nattraction 1"),
+        Patch(facecolor=BASIN_PURPLE, edgecolor="none", alpha=0.7, label="basin of\nattraction 2"),
+    ]
+    fig.legend(
+        handles=legend_handles,
+        fontsize=FONTSIZE_XSMALL,
+        loc="upper left",
+        bbox_to_anchor=(1.01, 0.9),
+        bbox_transform=ax.transAxes,
+        frameon=False,
+        handletextpad=0.3,
+        labelspacing=0.4,
+    )
+
     file_name = f"{dataset_name}_projected_streamplot"
-    save_plot_to_path(fig, output_path, f"{file_name}", file_format=".svg")
+    save_plot_to_path(
+        fig,
+        output_path,
+        f"{file_name}",
+        file_format=".svg",
+        tight_layout=False,
+        bbox_inches="tight",
+    )
 
     return output_path / f"{file_name}.svg"
