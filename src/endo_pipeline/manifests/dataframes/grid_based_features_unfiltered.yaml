@@ -1,5 +1,5 @@
 name: grid_based_features_unfiltered
-workflow: calculate-pca-features
+workflow: calculate_pca_features
 parameters:
   model_manifest_name: diffae_baseline
   run_name: latent_512

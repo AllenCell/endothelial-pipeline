@@ -1,5 +1,5 @@
 name: diffae_pca_features_cell_centered_filtered
-workflow: calculate-pca-features
+workflow: calculate_pca_features
 parameters:
   model_manifest_name: diffae_baseline
   run_name: latent_512
