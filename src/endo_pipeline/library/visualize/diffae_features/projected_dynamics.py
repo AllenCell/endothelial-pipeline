@@ -3,7 +3,7 @@
 import logging
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -253,66 +253,96 @@ def plot_streamlines_of_projected_vector_field(
     return fig
 
 
-def _integrate_unstable_manifold_trajectories(
-    eigvals: np.ndarray,
-    eigvecs: np.ndarray,
+def _integrate_manifold_trajectories_2d(
     vector_field_function: Callable,
-    saddle_point: np.ndarray,
     ortho_basis: np.ndarray,
-    hetero_eps: float = 1e-3,
-    hetero_t_max: float = 250.0,
+    manifold: Literal["stable", "unstable"],
+    origin_3d: np.ndarray | None = None,
+    t_max: float = 200.0,
+    eps: float = 1e-3,
 ) -> list[np.ndarray]:
-    """Integrate trajectories from the unstable manifold of a saddle point.
+    """Integrate trajectories along the stable or unstable manifold of the saddle point.
+
+    The saddle point is at the 2D origin. Eigenvectors are found from the 2D
+    Jacobian of the projected vector field. Stable manifold trajectories are
+    integrated backward in time (negated vector field); unstable manifold
+    trajectories are integrated forward in time.
 
     Parameters
     ----------
-    eigvals
-        Eigenvalues of the Jacobian at the saddle point.
-    eigvecs
-        Corresponding eigenvectors (columns), shape (3, n).
     vector_field_function
         Callable 3D vector field.
-    saddle_point
-        3D coordinates of the saddle point (used as the 2D origin).
     ortho_basis
         2x3 orthonormal basis for the projection plane.
-    hetero_eps
-        Step size along the unstable eigenvector for the initial condition.
-    hetero_t_max
+    manifold
+        Which manifold to integrate: ``"stable"`` traces the separatrix by
+        integrating backward in time; ``"unstable"`` traces outgoing
+        trajectories forward in time.
+    origin_3d
+        The 3D point corresponding to the 2D origin (the saddle point in 3D).
+    t_max
         Maximum integration time.
+    eps
+        Initial perturbation size along each eigenvector direction.
 
     Returns
     -------
     :
-        List of (n_steps, 2) arrays, one per integrated trajectory.
+        List of ``(n_steps, 2)`` arrays, one per integrated trajectory branch.
 
     """
-    trajectories_2d: list[np.ndarray] = []
-    unstable_mask = eigvals > 0
-    if not np.any(unstable_mask):
-        return trajectories_2d
-    unstable_evecs = eigvecs[:, unstable_mask]
-    for col in range(unstable_evecs.shape[1]):
-        v3d = unstable_evecs[:, col]
-        v_norm = float(np.linalg.norm(v3d))
+
+    def _f_2d(u: np.ndarray) -> np.ndarray:
+        u_2d = np.asarray(u, dtype=np.float64).reshape(1, 2)
+        result = projected_vector_field_onto_plane(
+            u_2d, ortho_basis, vector_field_function, origin_3d=origin_3d
+        )
+        return np.asarray(result, dtype=np.float64).reshape(2)
+
+    saddle_2d = np.zeros(2)
+    jacobian_f = Jacobian(_f_2d)
+    jac = jacobian_f(saddle_2d)
+    eigvals_complex, eigvecs_complex = np.linalg.eig(jac)
+    eigvals = eigvals_complex.real
+    eigvecs = eigvecs_complex.real
+
+    if manifold == "stable":
+        mask = eigvals < 0
+        time_sign = -1.0  # backward integration
+        no_eig_msg = "No stable eigenvalues found at the 2D saddle; cannot trace separatrix."
+    else:
+        mask = eigvals > 0
+        time_sign = 1.0  # forward integration
+        no_eig_msg = (
+            "No unstable eigenvalues found at the 2D saddle; cannot integrate unstable manifold."
+        )
+
+    trajectories: list[np.ndarray] = []
+    if not np.any(mask):
+        logger.warning(no_eig_msg)
+        return trajectories
+
+    relevant_evecs = eigvecs[:, mask]
+    for col in range(relevant_evecs.shape[1]):
+        v = relevant_evecs[:, col]
+        v_norm = float(np.linalg.norm(v))
         if v_norm < 1e-10:
             continue
-        v_unit = v3d / v_norm
+        v_unit = v / v_norm
         for sign in (+1.0, -1.0):
-            x0_3d = saddle_point + sign * hetero_eps * v_unit
+            x0 = saddle_2d + sign * eps * v_unit
             sol = solve_ivp(
-                lambda t, x, _f=vector_field_function: _f(x),
-                [0.0, hetero_t_max],
-                x0_3d,
+                lambda t, y, _f=_f_2d, _s=time_sign: _s * _f(y),
+                [0.0, t_max],
+                x0,
                 method="RK45",
                 rtol=1e-6,
                 atol=1e-8,
                 dense_output=False,
             )
-            traj_3d = sol.y.T  # shape (n_steps, 3)
-            traj_2d = (traj_3d - saddle_point) @ ortho_basis.T  # shape (n_steps, 2)
-            trajectories_2d.append(traj_2d)
-    return trajectories_2d
+            trajectories.append(sol.y.T)  # shape (n_steps, 2)
+
+    return trajectories
 
 
 def get_basins_of_attraction_2d(
@@ -399,86 +429,6 @@ def get_basins_of_attraction_2d(
     )
 
     return condition_index.reshape(grid_shape)
-
-
-def _integrate_stable_manifold_trajectories_2d(
-    vector_field_function: Callable,
-    ortho_basis: np.ndarray,
-    origin_3d: np.ndarray | None = None,
-    t_max: float = 200.0,
-    eps: float = 1e-3,
-) -> list[np.ndarray]:
-    """
-    Trace the separatrix by integrating the stable manifold of the saddle backward in time.
-
-    The saddle point is at the 2D origin. Its stable eigenvectors are found
-    from the 2D Jacobian; trajectories are started at ``±eps`` along each
-    stable eigenvector direction and integrated with the negated vector field
-    (i.e., backward in time).
-
-    Parameters
-    ----------
-    vector_field_function
-        Callable 3D vector field.
-    ortho_basis
-        2x3 orthonormal basis for the projection plane.
-    origin_3d
-        The 3D point corresponding to the 2D origin (the saddle point in 3D).
-    t_max
-        Maximum backward integration time.
-    eps
-        Initial perturbation size along each stable eigenvector direction.
-
-    Returns
-    -------
-    :
-        List of ``(n_steps, 2)`` arrays, one per integrated trajectory branch.
-
-    """
-
-    def _f_2d(u: np.ndarray) -> np.ndarray:
-        # Always pass a 2-D (1, 2) input to avoid the scalar-return code path
-        # in projected_vector_field_onto_plane for 1-D inputs.
-        u_2d = np.asarray(u, dtype=np.float64).reshape(1, 2)
-        result = projected_vector_field_onto_plane(
-            u_2d, ortho_basis, vector_field_function, origin_3d=origin_3d
-        )
-        return np.asarray(result, dtype=np.float64).reshape(2)
-
-    saddle_2d = np.zeros(2)
-    jacobian_f = Jacobian(_f_2d)
-    jac = jacobian_f(saddle_2d)
-    eigvals_complex, eigvecs_complex = np.linalg.eig(jac)
-    eigvals = eigvals_complex.real
-    eigvecs = eigvecs_complex.real
-
-    trajectories: list[np.ndarray] = []
-    stable_mask = eigvals < 0
-    if not np.any(stable_mask):
-        logger.warning("No stable eigenvalues found at the 2D saddle; cannot trace separatrix.")
-        return trajectories
-
-    stable_evecs = eigvecs[:, stable_mask]
-    for col in range(stable_evecs.shape[1]):
-        v = stable_evecs[:, col]
-        v_norm = float(np.linalg.norm(v))
-        if v_norm < 1e-10:
-            continue
-        v_unit = v / v_norm
-        for sign in (+1.0, -1.0):
-            x0 = saddle_2d + sign * eps * v_unit
-            sol = solve_ivp(
-                lambda t, y, _f=_f_2d: -_f(y),  # backward integration
-                [0.0, t_max],
-                x0,
-                method="RK45",
-                rtol=1e-6,
-                atol=1e-8,
-                dense_output=False,
-            )
-            trajectories.append(sol.y.T)  # shape (n_steps, 2)
-
-    return trajectories
 
 
 def draw_basins_and_separatrix(
@@ -585,9 +535,10 @@ def draw_basins_and_separatrix(
     x_min, x_max = float(x_mesh.min()), float(x_mesh.max())
     y_min, y_max = float(y_mesh.min()), float(y_mesh.max())
 
-    separatrix_trajs = _integrate_stable_manifold_trajectories_2d(
+    separatrix_trajs = _integrate_manifold_trajectories_2d(
         vector_field_function=vector_field_function,
         ortho_basis=ortho_basis,
+        manifold="stable",
         origin_3d=origin_3d,
         t_max=separatrix_t_max,
         eps=separatrix_eps,
@@ -697,7 +648,7 @@ def visualize_projected_dynamics(
     # eigenvalues/eigenvectors for later use in integrating trajectories from
     # the unstable manifold.
     saddle_points = saddle_df[column_names_str].to_numpy()
-    saddle_point, eigvals, eigvecs = _find_saddle_point_for_projection(
+    saddle_point, _, _ = _find_saddle_point_for_projection(
         vector_field_function, stable_fixed_point_1, stable_fixed_point_2, saddle_points
     )
 
@@ -712,12 +663,12 @@ def visualize_projected_dynamics(
 
     # compute trajectories from the unstable manifold of the saddle before
     # building the meshgrid so their extents can inform the grid limits
-    trajectories_2d = _integrate_unstable_manifold_trajectories(
-        eigvals=eigvals,
-        eigvecs=eigvecs,
+    trajectories_2d = _integrate_manifold_trajectories_2d(
         vector_field_function=vector_field_function,
-        saddle_point=saddle_point,
         ortho_basis=ortho_basis,
+        manifold="unstable",
+        origin_3d=saddle_point,
+        t_max=250.0,
     )
 
     # set grid extent from fixed points and trajectory projections
@@ -798,7 +749,7 @@ def visualize_projected_dynamics(
                 "",
                 xy=(x_t[idx + 1], y_t[idx + 1]),
                 xytext=(x_t[idx], y_t[idx]),
-                arrowprops={"arrowstyle": "-|>", "color": "k", "lw": 1.0, "mutation_scale": 7},
+                arrowprops={"arrowstyle": "-|>", "color": "k", "lw": 1.0, "mutation_scale": 15},
                 zorder=4,
             )
 
