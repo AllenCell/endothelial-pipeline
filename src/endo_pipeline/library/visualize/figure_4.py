@@ -266,6 +266,10 @@ def reconstruct_fixed_points(
         gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
     )
 
+    fig_fixed_point_reconstructions.suptitle(
+        "Reconstructed\nVE-cadherin patches", y=1.025, fontsize=7, fontweight="bold"
+    )
+
     # add the fixed point coordinate as axes titles for each panel
     for i, ax in enumerate(fig_fixed_point_reconstructions.axes):
         fp_coords = fixed_point_df.iloc[i][column_names].to_numpy(dtype=float)
@@ -279,6 +283,7 @@ def reconstruct_fixed_points(
             color="black",
             fontweight="bold",
             pad=3,
+            y=-0.35,
         )
 
     # add scalebars to each panel, only label the top left one to avoid
