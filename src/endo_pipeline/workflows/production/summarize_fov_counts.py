@@ -3,13 +3,19 @@ from endo_pipeline.cli import UniqueStrList
 
 def main(collections: UniqueStrList | None = None) -> None:
     from endo_pipeline.configs import (
-        get_available_dataset_collection_names,
         get_unannotated_positions,
         load_dataset_collection_config,
         load_dataset_config,
     )
 
-    collection_names = collections or get_available_dataset_collection_names()
+    COLLECTIONS_NAMED_IN_PAPER = [
+        "diffae_model_training",
+        "shear_stress",
+        "perturbation",
+        "nulcear_labelfree_model_training",
+    ]
+
+    collection_names = collections or COLLECTIONS_NAMED_IN_PAPER
 
     for collection_name in collection_names:
         collection_config = load_dataset_collection_config(collection_name)
