@@ -36,7 +36,7 @@ python src/endo_pipeline/workflows/convert_tiff_to_zarr.py path/to/csv cdh5_clas
 ```
 
 You may optionally select a batch by providing a batch index. By default, each
-batch contains 10 rows (this can be changed in the workflow). If the batch index
+batch contains 16 rows (this can be changed in the workflow). If the batch index
 does not include any rows, the workflow will exit early.
 
 ```bash
@@ -45,6 +45,7 @@ python src/endo_pipeline/workflows/convert_tiff_to_zarr.py path/to/csv cdh5_clas
 ```
 """
 
+import multiprocessing
 import re
 import sys
 import warnings
@@ -226,7 +227,7 @@ if __name__ == "__main__":
         df = pd.read_csv(convert_csv_path)
 
     # Convert tiff to zarr for each row in dataframe.
-    with ProcessPoolExecutor() as executor:
+    with ProcessPoolExecutor(mp_context=multiprocessing.get_context("spawn")) as executor:
         list(
             tqdm(
                 executor.map(convert_tiff_to_zarr_for_row, df.to_dict("records")),
