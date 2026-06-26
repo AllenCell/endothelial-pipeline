@@ -1041,7 +1041,7 @@ def plot_drift_3d(
         arrow_handle = Line2D(
             [],
             [],
-            label="$d\\mathbf{x}/dt=\\mathbf{f}(\\mathbf{x})$",
+            label="$d\\mathbf{x}/dt=\\mathbf{\\widehat{\,f}}(\\mathbf{x})$",
         )
         handles = [arrow_handle]
         if include_stable_fixed_point_legend:
