@@ -100,7 +100,7 @@ def plot_and_save_heatmap(
     }
 
     cbar_width_in_fig_units = 0.75 / figsize[0]  # set width to 0.75 inches
-    cbar_height_in_fig_units = 0.05 / figsize[1]  # set height to 0.05 inches 0.02
+    cbar_height_in_fig_units = 0.05 / figsize[1]  # set height to 0.05 inches
     # add dummy axes for colorbar to avoid overlapping with the heatmap
     cax = fig.add_axes(
         (0, 0, cbar_width_in_fig_units, cbar_height_in_fig_units)
