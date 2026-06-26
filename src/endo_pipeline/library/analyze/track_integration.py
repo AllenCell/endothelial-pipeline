@@ -694,28 +694,6 @@ def merge_grid_and_tracked_first_passage_time_stats_dfs(
     return fpt_stats_df
 
 
-def merge_grid_and_tracked_first_passage_time_parameter_sweep_dfs(
-    fpt_param_sweep_df_grid: pd.DataFrame,
-    fpt_param_sweep_df_tracked: pd.DataFrame,
-    dataset_name: str,
-    fixed_point_index: int,
-):
-    """Merge the grid and tracked first passage time parameter sweep dataframes."""
-    param_sweep_df = pd.merge(
-        fpt_param_sweep_df_grid,
-        fpt_param_sweep_df_tracked,
-        on=Column.VectorField.FPT_DISTANCE_THRESHOLD,
-        suffixes=("_grid_based", "_cell_centered"),
-        how="outer",
-        validate="one_to_one",
-    )
-    param_sweep_df = param_sweep_df.assign(
-        **{Column.DATASET: dataset_name, Column.VectorField.FIXED_POINT_INDEX: fixed_point_index}
-    )
-
-    return param_sweep_df
-
-
 def filter_fpt_stats_df_by_min_num_trajectories(
     fpt_stats_df: pd.DataFrame,
     min_num_traj_per_bin: int,

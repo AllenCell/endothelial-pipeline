@@ -21,7 +21,6 @@ from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
 )
 from endo_pipeline.library.analyze.track_integration import (
-    merge_grid_and_tracked_first_passage_time_parameter_sweep_dfs,
     merge_grid_and_tracked_first_passage_time_stats_dfs,
 )
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
@@ -772,6 +771,28 @@ def compute_first_passage_time_parameter_sweep(
     return fpt_param_sweep_agg_df
 
 
+def merge_grid_and_tracked_first_passage_time_parameter_sweep_dataframes(
+    fpt_param_sweep_df_grid: pd.DataFrame,
+    fpt_param_sweep_df_tracked: pd.DataFrame,
+    dataset_name: str,
+    fixed_point_index: int,
+):
+    """Merge the grid and tracked first passage time parameter sweep dataframes."""
+    param_sweep_df = pd.merge(
+        fpt_param_sweep_df_grid,
+        fpt_param_sweep_df_tracked,
+        on=Column.VectorField.FPT_DISTANCE_THRESHOLD,
+        suffixes=("_grid_based", "_cell_centered"),
+        how="outer",
+        validate="one_to_one",
+    )
+    param_sweep_df = param_sweep_df.assign(
+        **{Column.DATASET: dataset_name, Column.VectorField.FIXED_POINT_INDEX: fixed_point_index}
+    )
+
+    return param_sweep_df
+
+
 def compute_first_passage_times_one_dataset(
     dataset_name: str,
     minimum_track_length: int,
@@ -845,7 +866,7 @@ def compute_first_passage_times_one_dataset(
             trajectory_df=fpt_param_sweep_df_tracked,
             thresholds=thresholds,
         )
-        parameter_sweep_df = merge_grid_and_tracked_first_passage_time_parameter_sweep_dfs(
+        parameter_sweep_df = merge_grid_and_tracked_first_passage_time_parameter_sweep_dataframes(
             fpt_param_sweep_df_grid=fpt_param_sweep_df_grid,
             fpt_param_sweep_df_tracked=fpt_param_sweep_df_tracked,
             dataset_name=dataset_name,
