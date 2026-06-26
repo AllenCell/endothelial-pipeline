@@ -6,6 +6,7 @@ from typing import Literal
 
 import numpy as np
 import pandas as pd
+from odrpack import odr_fit
 from scipy.stats import pearsonr
 
 from endo_pipeline.configs.dataset_config_io import load_dataset_config
@@ -22,7 +23,6 @@ from endo_pipeline.library.analyze.numerics.binning import adjust_limits_from_bi
 from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
 )
-from endo_pipeline.library.analyze.track_integration import get_odr_fit_results
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.bootstrap_fixed_points import BOOTSTRAP_THRESHOLD
 from endo_pipeline.settings.column_names import ColumnName as Column
@@ -1027,6 +1027,58 @@ def compute_first_passage_times_one_dataset(
     return fpt_stats_df_list, param_sweep_df_list
 
 
+def fit_orthogonal_distance_regression(
+    x: Sequence, y: Sequence, weight_x: Sequence | None = None, weight_y: Sequence | None = None
+) -> tuple:
+    """
+    Fit a line to (x, y) data using orthogonal distance regression (ODR).
+
+    Parameters
+    ----------
+    x
+        Sequence of x-axis values.
+    y
+        Sequence of y-axis values.
+    weight_x
+        Optional sequence of weights for the x data (e.g. inverse variance).
+    weight_y
+        Optional sequence of weights for the y data (e.g. inverse variance).
+
+    Returns
+    -------
+    :
+        Tuple of ``(slope_fit, intercept_fit, slope_stdev, intercept_stdev,
+        reduced_chi_squared, OdrResult)`` from the ODR fit.
+    """
+    # use a line function for the ODR fit
+    # p0 is the initial guess for the parameters of the function,
+    # in this case the slope and intercept of the line
+    # odr_fit requires this initial guess to be one object, which is why we
+    # are using p0 instead of passing slope and intercept more explicitly
+    line_func = lambda x, p0: p0[0] * x + p0[1]
+
+    # need some initial guesses for the function parameters
+    slope_initial_guess = 1
+    intercept_initial_guess = 0
+
+    line_fit = odr_fit(
+        f=line_func,
+        xdata=x,
+        ydata=y,
+        weight_x=weight_x,
+        weight_y=weight_y,
+        beta0=(slope_initial_guess, intercept_initial_guess),
+        task="explicit-ODR",
+    )
+    slope_fit = line_fit.beta[0]
+    intercept_fit = line_fit.beta[1]
+    slope_stdev = line_fit.sd_beta[0]
+    intercept_stdev = line_fit.sd_beta[1]
+    reduced_chi_squared = line_fit.res_var
+
+    return slope_fit, intercept_fit, slope_stdev, intercept_stdev, reduced_chi_squared, line_fit
+
+
 def filter_first_passage_time_by_min_num_trajectories(
     fpt_stats_df: pd.DataFrame,
     min_num_traj_per_bin: int,
@@ -1123,7 +1175,7 @@ def build_first_passage_time_line_fit_results_dataframe(
                 ],
                 # use the inverse of the variance of the mean (sampling variance)
                 # as the weights for the ODR fit, which is the square of the standard error
-                data=get_odr_fit_results(
+                data=fit_orthogonal_distance_regression(
                     x=df[f"{metric}{suffix}_grid_based"],
                     y=df[f"{metric}{suffix}_cell_centered"],
                     weight_x=df[f"sem{suffix}_grid_based"] ** -2,
