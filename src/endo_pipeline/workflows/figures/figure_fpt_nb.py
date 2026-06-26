@@ -32,7 +32,7 @@ trajectory_example_filepath = generate_first_passage_time_example(
     example_fixed_point_index=low_flow_dataset.fixed_point_index,
     example_tracked_crop_index=low_flow_dataset.tracked_crop_index,
     example_grid_crop_index=low_flow_dataset.grid_crop_index,
-    out_dir=save_dir,
+    output_path=save_dir,
 )
 
 # %% Load the first passage time statistics dataframe to make correlation plots
