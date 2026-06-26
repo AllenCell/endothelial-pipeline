@@ -6,6 +6,15 @@ from typing import Literal
 import numpy as np
 import pandas as pd
 
+from endo_pipeline.configs.dataset_config_io import load_dataset_config
+from endo_pipeline.io import load_dataframe
+from endo_pipeline.library.analyze.dataframe_filtering import (
+    filter_dataframe_by_track_length,
+    filter_dataframe_to_steady_state,
+)
+from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
+    add_track_duration_to_dataframe,
+)
 from endo_pipeline.library.analyze.numerics.binning import adjust_limits_from_bin_size, get_bins
 from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
@@ -14,14 +23,94 @@ from endo_pipeline.library.analyze.track_integration import (
     add_distance_to_fixed_points_columns,
     compute_first_passage_time_parameter_sweep_df,
     compute_first_passage_time_stats_for_bins,
-    load_filtered_trajectory_df_for_first_passage_time_workflow,
     merge_grid_and_tracked_first_passage_time_parameter_sweep_dfs,
     merge_grid_and_tracked_first_passage_time_stats_dfs,
 )
+from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.bootstrap_fixed_points import BOOTSTRAP_THRESHOLD
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
-from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, TIME_STEP_IN_HOURS
+from endo_pipeline.settings.dynamics_workflows import (
+    DYNAMICS_COLUMN_NAMES,
+    LONG_TRACK_THRESHOLD_LENGTH,
+    TIME_STEP_IN_HOURS,
+)
+from endo_pipeline.settings.literal_types import PatchTypeLiteral
+from endo_pipeline.settings.workflow_defaults import (
+    CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
+    GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME,
+)
+
+
+def load_filtered_trajectory_df_for_first_passage_time_workflow(
+    dataset_name: str,
+    patch_type: PatchTypeLiteral,
+    minimum_track_length: int = LONG_TRACK_THRESHOLD_LENGTH,
+) -> pd.DataFrame:
+    """
+    Load and filter the trajectory dataframe for first passage time analysis.
+
+    Trajectories are loaded from the appropriate manifest for the given patch
+    type, filtered to steady-state timepoints, and then filtered to only include
+    tracks that meet the minimum track length requirement.
+
+    Parameters
+    ----------
+    dataset_name
+        Name of the dataset to load trajectories for.
+    patch_type
+        Whether to load grid-based or cell-centered crops.
+    minimum_track_length
+        Minimum number of timepoints a track must span to be included in the output.
+
+    Returns
+    -------
+    :
+        DataFrame containing the filtered trajectories with dynamics feature columns
+        and track metadata.
+    """
+
+    if patch_type == "grid_based":
+        dynamics_manifest = load_dataframe_manifest(GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME)
+    elif patch_type == "cell_centered":
+        dynamics_manifest = load_dataframe_manifest(CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME)
+    else:
+        raise ValueError(f"Unsupported patch type: {patch_type}")
+
+    dynamics_loc = get_dataframe_location_for_dataset(dynamics_manifest, dataset_name)
+    trajectories_df_delayed = load_dataframe(dynamics_loc, delay=True)
+    columns_to_compute = [
+        Column.DATASET,
+        Column.POSITION,
+        Column.TIMEPOINT,
+        Column.CROP_INDEX,
+        *DYNAMICS_COLUMN_NAMES,
+    ]
+    trajectories_df = trajectories_df_delayed[columns_to_compute].compute().reset_index()
+
+    # the loaded grid-based dynamics dataframe is disordered by default so
+    # sort the grid-based dynamics dataframe by crop index and timepoint
+    trajectories_df = trajectories_df.sort_values(by=[Column.CROP_INDEX, Column.TIMEPOINT])
+
+    # filter the grid-based dynamics dataframe to only include timepoints from steady state
+    dataset_config = load_dataset_config(dataset_name)
+    trajectories_df = filter_dataframe_to_steady_state(
+        dataframe=trajectories_df, dataset_config=dataset_config
+    )
+
+    # add the track durations post-filtering
+    trajectories_df = add_track_duration_to_dataframe(
+        dataframe=trajectories_df,
+        grouping_columns=[Column.CROP_INDEX],
+        time_column=Column.TIMEPOINT,
+    )
+
+    # filter trajectories to only include long ones
+    trajectories_df = filter_dataframe_by_track_length(
+        dataframe=trajectories_df, minimum_track_length=minimum_track_length
+    )
+
+    return trajectories_df
 
 
 def load_dataframes_for_first_passage_time_analysis(

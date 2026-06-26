@@ -8,18 +8,12 @@ import pandas as pd
 from odrpack import odr_fit
 from scipy.stats import pearsonr
 
-from endo_pipeline.configs.dataset_config_io import load_dataset_config
 from endo_pipeline.io import load_dataframe
-from endo_pipeline.library.analyze.dataframe_filtering import (
-    filter_dataframe_by_track_length,
-    filter_dataframe_to_binned_value,
-    filter_dataframe_to_steady_state,
-)
+from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_binned_value
 from endo_pipeline.library.analyze.first_passage_time import add_first_passage_time_column
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
-    add_track_duration_to_dataframe,
     calculate_derived_data_dynamics_dependent,
 )
 from endo_pipeline.library.analyze.numerics.binning import get_bins
@@ -44,7 +38,6 @@ from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
     KERNEL_BANDWIDTHS_DYNAMICS,
     KERNEL_NAMES_DYNAMICS,
-    LONG_TRACK_THRESHOLD_LENGTH,
     POLAR_ANGLE_PERIOD,
     RESCALE_THETA,
     TIME_STEP_IN_MINUTES,
@@ -58,16 +51,13 @@ from endo_pipeline.settings.flow_field_3d import (
     INIT_POINT_3D,
     TRAJECTORY_TIME_SPAN,
 )
-from endo_pipeline.settings.literal_types import PatchTypeLiteral
 from endo_pipeline.settings.workflow_defaults import (
-    CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
     DEFAULT_COLUMNS_TO_DROP,
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
     DEFAULT_SEG_FEATURE_MANIFEST_NAME,
     DIFFAE_PCA_FEATURE_TRACKED_FILTERED_MANIFEST_NAME,
     DIFFAE_PCA_FEATURE_TRACKED_UNFILTERED_MANIFEST_NAME,
-    GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME,
 )
 
 logger = logging.getLogger(__name__)
@@ -726,76 +716,6 @@ def add_distance_to_fixed_points_columns(
     ].map(fp_stability_map)
 
     return trajectory_df
-
-
-def load_filtered_trajectory_df_for_first_passage_time_workflow(
-    dataset_name: str,
-    patch_type: PatchTypeLiteral,
-    minimum_track_length: int = LONG_TRACK_THRESHOLD_LENGTH,
-) -> pd.DataFrame:
-    """
-    Load and filter the trajectory dataframe for the first passage time analysis workflow.
-
-    Trajectories are loaded from the appropriate manifest for the given patch type,
-    filtered to steady-state timepoints, and then filtered to only include tracks that
-    meet the minimum track length requirement.
-
-    Parameters
-    ----------
-    dataset_name
-        Name of the dataset to load trajectories for.
-    patch_type
-        Whether to load grid-based or cell-centered crops.
-    minimum_track_length
-        Minimum number of timepoints a track must span to be included in the output.
-
-    Returns
-    -------
-    :
-        DataFrame containing the filtered trajectories with dynamics feature columns
-        and track metadata.
-    """
-    if patch_type == "grid_based":
-        dynamics_manifest = load_dataframe_manifest(GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME)
-    elif patch_type == "cell_centered":
-        dynamics_manifest = load_dataframe_manifest(CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME)
-    else:
-        raise ValueError(f"Unsupported patch type: {patch_type}")
-
-    dynamics_loc = get_dataframe_location_for_dataset(dynamics_manifest, dataset_name)
-    trajectories_df_delayed = load_dataframe(dynamics_loc, delay=True)
-    columns_to_compute = [
-        Column.DATASET,
-        Column.POSITION,
-        Column.TIMEPOINT,
-        Column.CROP_INDEX,
-        *DYNAMICS_COLUMN_NAMES,
-    ]
-    trajectories_df = trajectories_df_delayed[columns_to_compute].compute().reset_index()
-
-    # the loaded grid-based dynamics dataframe is disordered by default so
-    # sort the grid-based dynamics dataframe by crop index and timepoint
-    trajectories_df = trajectories_df.sort_values(by=[Column.CROP_INDEX, Column.TIMEPOINT])
-
-    # filter the grid-based dynamics dataframe to only include timepoints from steady state
-    dataset_config = load_dataset_config(dataset_name)
-    trajectories_df = filter_dataframe_to_steady_state(
-        dataframe=trajectories_df, dataset_config=dataset_config
-    )
-
-    # add the track durations post-filtering
-    trajectories_df = add_track_duration_to_dataframe(
-        dataframe=trajectories_df,
-        grouping_columns=[Column.CROP_INDEX],
-        time_column=Column.TIMEPOINT,
-    )
-
-    # filter trajectories to only include long ones
-    trajectories_df = filter_dataframe_by_track_length(
-        dataframe=trajectories_df, minimum_track_length=minimum_track_length
-    )
-
-    return trajectories_df
 
 
 def compute_first_passage_time_stats_for_one_bin(
