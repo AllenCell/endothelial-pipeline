@@ -2,6 +2,14 @@ from endo_pipeline.cli import UniqueStrList
 
 
 def main(collections: UniqueStrList | None = None) -> None:
+    """
+    Report the number of unannotated FOVs kept for analysis from the specified
+    dataset collections.
+
+    If no collections are specified, the default collections used in the paper
+    will be reported (set via the COLLECTIONS_NAMED_IN_PAPER constant).
+
+    """
     from endo_pipeline.configs import (
         get_unannotated_positions,
         load_dataset_collection_config,
@@ -19,14 +27,16 @@ def main(collections: UniqueStrList | None = None) -> None:
 
     for collection_name in collection_names:
         collection_config = load_dataset_collection_config(collection_name)
-        for dataset_name in collection_config.dataset_names:
+        num_unannotated_positions = 0
+        for dataset_name in collection_config.datasets:
             dataset_config = load_dataset_config(collection_name, dataset_name)
             positions_kept_for_analysis = get_unannotated_positions(dataset_config)
+            num_unannotated_positions += len(positions_kept_for_analysis)
 
-            print(
-                f"Collection: {collection_name}, Dataset: {dataset_name}, "
-                f"FOVs kept for analysis: {positions_kept_for_analysis}"
-            )
+        print(
+            f"Collection: {collection_name}, "
+            f"Num unannotated FOVs kept for analysis: {num_unannotated_positions}"
+        )
 
 
 if __name__ == "__main__":
