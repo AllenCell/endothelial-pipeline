@@ -40,28 +40,12 @@ locations:
     fmsid: 4956e50e327643a9baf787e2639b69d8
     path: null
     s3uri: null
-  20250714_20X:
-    fmsid: a2f8e4c1428e414090313e10dc27b6f0
-    path: null
-    s3uri: null
   20250716_20X:
     fmsid: 8c5798c9235243ceb39338d3afd17d5f
     path: null
     s3uri: null
-  20250728_20X:
-    fmsid: 7eea52e769a74452b922e9d28d7a94bf
-    path: null
-    s3uri: null
   20250813_20X:
     fmsid: 695af29e8ab340adbc43a7e719bacc35
-    path: null
-    s3uri: null
-  20250818_20X:
-    fmsid: 7dcea9c439f94bd5a7a638769aee2395
-    path: null
-    s3uri: null
-  20250827_20X:
-    fmsid: 75d552fc99d8446094daf6f6ca103afe
     path: null
     s3uri: null
   20250908_20X:
