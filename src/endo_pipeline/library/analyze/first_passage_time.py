@@ -380,7 +380,7 @@ def add_first_passage_time_column(
     ]
 
     # compute the time to the first passage time from each timepoint
-    trajectory_df[f"{Column.VectorField.TIME_TO_FP_PREFIX}{fixed_point_index}"] = (
+    trajectory_df[ColumnTemplate.TIME_TO_FIXED_POINT % fixed_point_index] = (
         trajectory_df[f"{Column.VectorField.FIRST_PASSAGE_DIST_PREFIX}{fixed_point_index}"]
         - trajectory_df[time_column]
     )
@@ -606,7 +606,7 @@ def compute_first_passage_time_statistics(
 
     # For each bin (across all steady-state timepoints), compute the mean,
     # median, and standard deviation of first-passage times for the trajectories
-    time_to_first_passage_col_name = f"{Column.VectorField.TIME_TO_FP_PREFIX}{fixed_point_index}"
+    time_to_first_passage_col_name = ColumnTemplate.TIME_TO_FIXED_POINT % fixed_point_index
 
     fpt_stats_df_grid = compute_first_passage_time_statistics_for_bins(
         bin_centers=bin_centers,
@@ -688,7 +688,7 @@ def compute_first_passage_time_parameter_sweep(
     fpt_param_sweep_df = pd.concat(sweep_results, ignore_index=True)
 
     # compute the summary statistics on the first passage time parameter sweep
-    first_passage_time_col = f"{Column.VectorField.TIME_TO_FP_PREFIX}{fixed_point_index}"
+    first_passage_time_col = ColumnTemplate.TIME_TO_FIXED_POINT % fixed_point_index
     fpt_param_sweep_agg_df = (
         fpt_param_sweep_df.groupby(Column.VectorField.FPT_DISTANCE_THRESHOLD)[
             first_passage_time_col
