@@ -629,9 +629,6 @@ class ColumnName:
         FIXED_POINT_PREFIX = "fp_"
         """Prefix for column names representing coordinates of fixed points in feature space."""
 
-        DISTANCE_FROM_FP_1D_SIGNED_PREFIX = "diff_from_fp_"
-        """Prefix for column names representing the signed difference from a fixed point along a single dimension."""
-
         FPT_DISTANCE_THRESHOLD = "fpt_distance_threshold"
         """Column name for the distance threshold used to determine whether a trajectory has reached a fixed point in first passage time analysis."""
 
@@ -794,6 +791,9 @@ class ColumnNameTemplate(StrEnum):
 
     DISTANCE_FROM_FIXED_POINT = "dist_from_fp_%d"
     """Column name template: Distance from fixed point index %d."""
+
+    DISTANCE_FROM_FIXED_POINT_1D_SIGNED_PREFIX = "diff_from_fp_%d_%s"
+    """Column name template: Signed difference from fixed point (index %d) along the %s dimension."""
 
 
 ColumnNameType = (

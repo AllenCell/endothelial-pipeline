@@ -175,12 +175,12 @@ def add_distance_to_fixed_points_columns(
                 if Column.DiffAEData.POLAR_ANGLE.value in col
                 else (x - fpt[col])
             )
-            trajectory_df[f"{Column.VectorField.DISTANCE_FROM_FP_1D_SIGNED_PREFIX}{i}_{col}"] = (
+            trajectory_df[ColumnTemplate.DISTANCE_FROM_FIXED_POINT_1D_SIGNED_PREFIX % (i, col)] = (
                 diff_func(trajectory_df[trajectory_columns[j]])
             )
 
         dynamics_diff_columns = [
-            f"{Column.VectorField.DISTANCE_FROM_FP_1D_SIGNED_PREFIX}{i}_{col}"
+            ColumnTemplate.DISTANCE_FROM_FIXED_POINT_1D_SIGNED_PREFIX % (i, col)
             for col in fixed_point_columns
         ]
         trajectory_df[ColumnTemplate.DISTANCE_FROM_FIXED_POINT % i] = np.linalg.norm(
