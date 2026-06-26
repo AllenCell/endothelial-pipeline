@@ -7,6 +7,25 @@ parameters:
   intensity_percentile: 0
   attachment: 2.5
   ema_alpha: 0.1
+columns:
+  dataset: Name of dataset
+  position: Zarr file position (FOV) of the corresponding segmentation or patch
+  start_x: X coordinate of upper left corner of patch [pixels] (zarr resolution level 1)
+  start_y: Y coordinate of upper left corner of patch [pixels] (zarr resolution level 1)
+  end_y: Y coordinate of lower right corner of patch [pixels] (zarr resolution level 1)
+  end_x: X coordinate of lower right corner of patch [pixels] (zarr resolution level 1)
+  frame_number: Timepoint [frames]
+  crop_index: Unique integer index of a patch (crop) trajectory across dataset, FOV, and XY-position
+  optical_flow_mean_speed_dt1: Mean per-pixel speed [pixels/frame] of the optical flow vectors in a crop
+  optical_flow_mean_unit_vector_dt1: Mean unit vector of optical flow vectors in a crop (no EMA smoothing)
+  optical_flow_std_speed_dt1: Standard deviation of per-pixel speed [pixels/frame] of the optical flow vectors in a crop
+  optical_flow_mean_angle_dt1: Mean angle [radians] of optical flow vectors in a crop
+  optical_flow_angle_std_dt1: Standard deviation of angles [radians] of optical flow vectors
+  optical_flow_mean_u_dt1: Mean horizontal (x) optical-flow component [pixels/frame] with temporal gap 1
+  optical_flow_mean_v_dt1: Mean vertical (y) optical-flow component [pixels/frame] with temporal gap 1
+  optical_flow_std_u_dt1: Standard deviation of horizontal (x) optical-flow component [pixels/frame] with temporal gap 1
+  optical_flow_std_v_dt1: Standard deviation of vertical (y) optical-flow component [pixels/frame] with temporal gap 1
+  ema01_optical_flow_mean_unit_vector_dt1: Mean unit vector of optical flow vectors in a crop (EMA smoothing, alpha = 0.1)
 locations:
   20250319_20X:
     fmsid: e77de87ea25448dc9147cf65b31bdd64

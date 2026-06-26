@@ -63,6 +63,10 @@ def main(manifest_names: UniqueStrList | None = None, reload_columns: bool = Fal
         ColumnTemplate.BOOTSTRAP_CLUSTER_MEAN: ["rho", "polar_theta:theta", "polar_r:r"],
         ColumnTemplate.BOOTSTRAP_CI_LOWER: ["rho", "polar_theta:theta", "polar_r:r"],
         ColumnTemplate.BOOTSTRAP_CI_UPPER: ["rho", "polar_theta:theta", "polar_r:r"],
+        ColumnTemplate.OPTICAL_FLOW_U_MEAN: [1],
+        ColumnTemplate.OPTICAL_FLOW_V_MEAN: [1],
+        ColumnTemplate.OPTICAL_FLOW_U_STD: [1],
+        ColumnTemplate.OPTICAL_FLOW_V_STD: [1],
         ColumnTemplate.FIRST_PASSAGE_TIME_METRIC: [
             ("count", "grid_based"),
             ("mean", "grid_based"),
