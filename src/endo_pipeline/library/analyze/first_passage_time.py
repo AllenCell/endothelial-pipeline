@@ -10,6 +10,7 @@ from endo_pipeline.configs.dataset_config_io import load_dataset_config
 from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.dataframe_filtering import (
     filter_dataframe_by_track_length,
+    filter_dataframe_to_binned_value,
     filter_dataframe_to_steady_state,
 )
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
@@ -20,7 +21,6 @@ from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
 )
 from endo_pipeline.library.analyze.track_integration import (
-    compute_first_passage_time_stats_for_one_bin,
     merge_grid_and_tracked_first_passage_time_parameter_sweep_dfs,
     merge_grid_and_tracked_first_passage_time_stats_dfs,
 )
@@ -492,6 +492,64 @@ def filter_to_trajectories_reaching_fixed_point(
     return traj_df_grid_sub, traj_df_tracked_sub
 
 
+def compute_first_passage_time_statistics_for_one_bin(
+    bin_index: int,
+    bin_center: Sequence[float],
+    bin_edges: list[np.ndarray],
+    trajectory_df: pd.DataFrame,
+    time_to_first_passage_col_name: str,
+    feature_column_names: list[str],
+) -> pd.DataFrame:
+    """
+    Compute summary statistics for the first passage time for all trajectories that fall
+    within a single spatial bin.
+
+    Parameters
+    ----------
+    bin_index
+        Integer index identifying this bin, assigned as a column in the returned dataframe.
+    bin_center
+        Coordinates of the bin centre along each feature dimension.
+    bin_edges
+        List of arrays, one per feature dimension, specifying the left and right edges of
+        this bin.
+    trajectory_df
+        DataFrame containing the trajectory data with a first-passage-time column.
+    time_to_first_passage_col_name
+        Name of the column in ``trajectory_df`` that stores the time-to-first-passage value.
+    feature_column_names
+        List of feature column names used to filter trajectories to this bin.
+
+    Returns
+    -------
+    :
+        Single-row DataFrame containing ``pd.describe``-style summary statistics for the
+        first passage times in this bin, with the bin index appended as a column.
+    """
+    trajectory_df_one_bin = filter_dataframe_to_binned_value(
+        dataframe=trajectory_df,
+        columns=feature_column_names,
+        values=bin_center,
+        bin_edges=bin_edges,
+    )
+    first_passage_time_stats_df = (
+        trajectory_df_one_bin[time_to_first_passage_col_name].describe().to_frame().T
+    )
+    # compute standard error of the mean and add it to the dataframe
+    first_passage_time_stats_df["sem"] = first_passage_time_stats_df["std"] / np.sqrt(
+        first_passage_time_stats_df["count"]
+    )
+    new_col_names = {
+        col: col + Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
+        for col in first_passage_time_stats_df.columns
+    }
+    first_passage_time_stats_df.rename(columns=new_col_names, inplace=True)
+
+    first_passage_time_stats_df = first_passage_time_stats_df.assign(bin_index=bin_index)
+
+    return first_passage_time_stats_df
+
+
 def compute_first_passage_time_statistics_for_bins(
     bin_centers: list[np.ndarray],
     bin_edges: list[np.ndarray],
@@ -538,7 +596,7 @@ def compute_first_passage_time_statistics_for_bins(
         bin_e = []
         for dim, idx in enumerate(bin_index_nd):
             bin_e.append(tuple(bin_edges[dim][idx : idx + 2]))
-        first_passage_time_stats_df = compute_first_passage_time_stats_for_one_bin(
+        first_passage_time_stats_df = compute_first_passage_time_statistics_for_one_bin(
             bin_index=bin_index,
             bin_center=bin_center,
             bin_edges=bin_edges,

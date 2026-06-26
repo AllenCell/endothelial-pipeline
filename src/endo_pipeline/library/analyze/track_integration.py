@@ -9,7 +9,6 @@ from odrpack import odr_fit
 from scipy.stats import pearsonr
 
 from endo_pipeline.io import load_dataframe
-from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_binned_value
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
@@ -595,64 +594,6 @@ def get_and_save_pc_diffae_feats_liveseg_feats_merged_table(
 
     filename_filtered = f"{dataset_name}_pc_diffae_seg_feats_merged_filtered.parquet"
     merged_df_filtered.to_parquet(out_dir / filename_filtered)
-
-
-def compute_first_passage_time_stats_for_one_bin(
-    bin_index: int,
-    bin_center: Sequence[float],
-    bin_edges: list[np.ndarray],
-    trajectory_df: pd.DataFrame,
-    time_to_first_passage_col_name: str,
-    feature_column_names: list[str],
-) -> pd.DataFrame:
-    """
-    Compute summary statistics for the first passage time for all trajectories that fall
-    within a single spatial bin.
-
-    Parameters
-    ----------
-    bin_index
-        Integer index identifying this bin, assigned as a column in the returned dataframe.
-    bin_center
-        Coordinates of the bin centre along each feature dimension.
-    bin_edges
-        List of arrays, one per feature dimension, specifying the left and right edges of
-        this bin.
-    trajectory_df
-        DataFrame containing the trajectory data with a first-passage-time column.
-    time_to_first_passage_col_name
-        Name of the column in ``trajectory_df`` that stores the time-to-first-passage value.
-    feature_column_names
-        List of feature column names used to filter trajectories to this bin.
-
-    Returns
-    -------
-    :
-        Single-row DataFrame containing ``pd.describe``-style summary statistics for the
-        first passage times in this bin, with the bin index appended as a column.
-    """
-    trajectory_df_one_bin = filter_dataframe_to_binned_value(
-        dataframe=trajectory_df,
-        columns=feature_column_names,
-        values=bin_center,
-        bin_edges=bin_edges,
-    )
-    first_passage_time_stats_df = (
-        trajectory_df_one_bin[time_to_first_passage_col_name].describe().to_frame().T
-    )
-    # compute standard error of the mean and add it to the dataframe
-    first_passage_time_stats_df["sem"] = first_passage_time_stats_df["std"] / np.sqrt(
-        first_passage_time_stats_df["count"]
-    )
-    new_col_names = {
-        col: col + Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
-        for col in first_passage_time_stats_df.columns
-    }
-    first_passage_time_stats_df.rename(columns=new_col_names, inplace=True)
-
-    first_passage_time_stats_df = first_passage_time_stats_df.assign(bin_index=bin_index)
-
-    return first_passage_time_stats_df
 
 
 def merge_grid_and_tracked_first_passage_time_stats_dfs(
