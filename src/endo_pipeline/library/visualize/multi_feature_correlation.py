@@ -123,6 +123,7 @@ def plot_and_save_heatmap(
     # set label padding to 2
     ax.xaxis.labelpad = 2
     ax.yaxis.labelpad = 2
+    cax.xaxis.labelpad = 2
 
     ax_pos = ax.get_position()  # get position of existing axes
     cax_pos_new = (
