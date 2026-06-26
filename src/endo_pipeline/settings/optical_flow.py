@@ -57,27 +57,6 @@ OPTICAL_FLOW_COLUMNS_TO_COMPUTE: dict[PatchTypeLiteral, tuple[str, ...]] = {
 """Metadata columns keyed by patch type."""
 
 # ---------------------------------------------------------------------------
-# Feature names
-# ---------------------------------------------------------------------------
-OPTICAL_FLOW_BASE_FEATURES: list[str] = [
-    ColumnName.OpticalFlow.SPEED_MEAN_BASE,
-    ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_BASE,
-    ColumnName.OpticalFlow.SPEED_STD_BASE,
-    ColumnName.OpticalFlow.ANGLE_MEAN_BASE,
-    ColumnName.OpticalFlow.ANGLE_STD_BASE,
-    ColumnName.OpticalFlow.U_MEAN_BASE,
-    ColumnName.OpticalFlow.V_MEAN_BASE,
-    ColumnName.OpticalFlow.U_STD_BASE,
-    ColumnName.OpticalFlow.V_STD_BASE,
-]
-"""List of base computed optical flow features."""
-
-OPTICAL_FLOW_EMA_STEMS: list[str] = [
-    ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_BASE,
-]
-"""List of optical flow feature stems that receive EMA smoothing."""
-
-# ---------------------------------------------------------------------------
 # Default CLI flag values
 # ---------------------------------------------------------------------------
 DEFAULT_EMA_ALPHA: float = 0.1

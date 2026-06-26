@@ -542,33 +542,6 @@ class ColumnName:
     class OpticalFlow(StrEnum):
         """Dataframe column names used in the optical-flow feature workflow."""
 
-        SPEED_MEAN_BASE = "optical_flow_mean_speed"
-        """Base name for mean speed (before dt suffix)."""
-
-        UNIT_VECTOR_MEAN_BASE = "optical_flow_mean_unit_vector"
-        """Base name for mean unit vector coherence (before dt suffix)."""
-
-        SPEED_STD_BASE = "optical_flow_std_speed"
-        """Base name for speed standard deviation (before dt suffix)."""
-
-        ANGLE_MEAN_BASE = "optical_flow_mean_angle"
-        """Base name for mean angle (before dt suffix)."""
-
-        ANGLE_STD_BASE = "optical_flow_angle_std"
-        """Base name for angle standard deviation (before dt suffix)."""
-
-        U_MEAN_BASE = "optical_flow_mean_u"
-        """Base name for mean u component (before dt suffix)."""
-
-        V_MEAN_BASE = "optical_flow_mean_v"
-        """Base name for mean v component (before dt suffix)."""
-
-        U_STD_BASE = "optical_flow_std_u"
-        """Base name for u standard deviation (before dt suffix)."""
-
-        V_STD_BASE = "optical_flow_std_v"
-        """Base name for v standard deviation (before dt suffix)."""
-
         SPEED_MEAN = "optical_flow_mean_speed_dt1"
         """Mean speed of the optical flow vectors in a crop."""
 
@@ -598,7 +571,6 @@ class ColumnName:
 
         UNIT_VECTOR_MEAN_RAW = "optical_flow_mean_unit_vector_dt1"
         """Mean unit vector coherence (no EMA smoothing)."""
-
 
     FIXED_POINT_STABILITY = "stability"
     """Stability classification of a fixed point."""
@@ -778,6 +750,60 @@ class ColumnNameTemplate(StrEnum):
 
     BOOTSTRAP_CI_UPPER = "%s_ci_upper"
     """Column name template: Upper bound of bootstrap confidence interval for %s."""
+
+    OPTICAL_FLOW_EMA_MEAN_UNIT_VECTOR = "ema_%s_optical_flow_mean_unit_vector_dt%d"
+    """Column name template: Mean unit vector of optical flow vectors in a crop (EMA smoothing, alpha = %s) with temporal gap %d."""
+
+    OPTICAL_FLOW_MEAN_UNIT_VECTOR = "optical_flow_mean_unit_vector_dt%d"
+    """Column name template: Mean unit vector of optical flow vectors in a crop with temporal gap %d."""
+
+    OPTICAL_FLOW_SPEED_MEAN = "optical_flow_mean_speed_dt%d"
+    """
+    Column name template: Mean per-pixel speed [pixels/frame] of the optical
+    flow vectors in a crop with temporal gap %d.
+    """
+
+    OPTICAL_FLOW_SPEED_STD = "optical_flow_std_speed_dt%d"
+    """
+    Column name template: Standard deviation of per-pixel speed [pixels/frame]
+    of the optical flow vectors in a crop with temporal gap %d.
+    """
+
+    OPTICAL_FLOW_ANGLE_MEAN = "optical_flow_mean_angle_dt%d"
+    """
+    Column name template: Mean angle [radians] of optical flow vectors in a crop
+    with temporal gap %d.
+    """
+
+    OPTICAL_FLOW_ANGLE_STD = "optical_flow_angle_std_dt%d"
+    """
+    Column name template: Standard deviation of angles [radians] of optical flow
+    vectors in a crop with temporal gap %d.
+    """
+
+    OPTICAL_FLOW_U_MEAN = "optical_flow_mean_u_dt%d"
+    """
+    Column name template: Mean horizontal (x) optical-flow component
+    [pixels/frame] with temporal gap %d.
+    """
+
+    OPTICAL_FLOW_V_MEAN = "optical_flow_mean_v_dt%d"
+    """
+    Column name template: Mean vertical (y) optical-flow component
+    [pixels/frame] with temporal gap %d.
+    """
+
+    OPTICAL_FLOW_U_STD = "optical_flow_std_u_dt%d"
+    """
+    Column name template: Standard deviation of horizontal (x) optical-flow
+    component [pixels/frame] with temporal gap %d.
+    """
+
+    OPTICAL_FLOW_V_STD = "optical_flow_std_v_dt%d"
+    """
+    Column name template: Standard deviation of vertical (y) optical-flow
+    component [pixels/frame] with temporal gap %d.
+    """
 
     DISTANCE_FROM_FIXED_POINT = "dist_from_fp_%d"
     """Column name template: Distance from fixed point index %d."""
