@@ -624,34 +624,28 @@ class ColumnName:
         """Column name suffixes used in vector field / dynamics analysis."""
 
         FIXED_POINT_INDEX = "fixed_point_id"
-        """Column name for the index of the fixed point in the fixed point dataframe."""
+        """Index of fixed point in fixed point dataframe."""
 
         FIXED_POINT_PREFIX = "fp_"
         """Prefix for column names representing coordinates of fixed points in feature space."""
 
         FPT_DISTANCE_THRESHOLD = "fpt_distance_threshold"
-        """Column name for the distance threshold used to determine whether a trajectory has reached a fixed point in first passage time analysis."""
+        """Radius around fixed point at which a trajectory is considered to have reached the fixed point."""
 
         FIRST_PASSAGE_TIME_SUFFIX = "_first_passage_time"
         """Suffix for column names representing the first passage time to a fixed point."""
 
-        FIRST_PASSAGE_PREFIX = "first_passage_"
-        """Prefix for column names representing the first passage distance or time to a fixed point."""
-
         BIN_CENTER = "bin_center"
-        """Column name for the center of bins used when discretizing feature space."""
+        """Center of bins used to discretize feature space."""
 
         BIN_EDGES = "bin_edges"
-        """Column name for the edges of bins used when discretizing feature space."""
+        """Edges of bins used to discretize feature space."""
 
         BIN_INDEX = "bin_index"
-        """Column name for the index of the bin that a data point falls into when feature space is discretized."""
-
-        FPT_METRIC = "fpt_metric"
-        """Column name for the metric used in the first passage time analysis."""
+        """Index of bin that data point falls into when feature space is discretized."""
 
         PERCENT_TRAJ_APPROACHED_FP = "percent_trajectories_approached_fp"
-        """Column name for the percentage of trajectories that approached a fixed point within a certain distance threshold."""
+        """Percent of trajectories that come within a given radius of a stable fixed point in ML-based feature space."""
 
         LINEFIT_INTERCEPT_ODR = "intercept_odr"
         """Column name for the intercept of a line fit to the relationship between first passage time and distance from the fixed point using orthogonal distance regression (ODR)."""
