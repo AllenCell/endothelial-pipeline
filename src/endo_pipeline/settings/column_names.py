@@ -827,7 +827,16 @@ class ColumnNameTemplate(StrEnum):
     """
 
     FIRST_PASSAGE_TIME_METRIC = "%s_first_passage_time_%s"
-    """Column name template: First passage time to fixed point %s for %s patches."""
+    """
+    Column name template: First passage time to fixed point %s for %s patches
+    computed for all trajectories in given bin.
+    """
+
+    FIRST_PASSAGE_TIME_OVERALL_METRIC = "overall_%s_first_passage_time_%s"
+    """
+    Column name template: First passage time to fixed point %s for %s patches
+    computed for all trajectories across all bins.
+    """
 
 
 ColumnNameType = (

@@ -497,7 +497,7 @@ def compute_first_passage_time_statistics_for_one_bin(
     # dataframe will be merged later, which applies the actual value of the
     # placeholder using the pandas dataframe merge 'suffixes' option
     new_col_names = {
-        col: ColumnTemplate.FIRST_PASSAGE_TIME_METRIC % (col, "")
+        col: (ColumnTemplate.FIRST_PASSAGE_TIME_METRIC % (col, "")).strip("_")
         for col in first_passage_time_stats_df.columns
     }
     first_passage_time_stats_df.rename(columns=new_col_names, inplace=True)
@@ -700,6 +700,16 @@ def compute_first_passage_time_parameter_sweep(
         .reset_index(drop=False)
     )
 
+    # new column names use empty string for the second placeholder because the
+    # dataframe will be merged later, which applies the actual value of the
+    # placeholder using the pandas dataframe merge 'suffixes' option
+    new_col_names = {
+        col: (ColumnTemplate.FIRST_PASSAGE_TIME_OVERALL_METRIC % (col, "")).strip("_")
+        for col in fpt_param_sweep_agg_df.columns
+        if col != Column.VectorField.FPT_DISTANCE_THRESHOLD
+    }
+    fpt_param_sweep_agg_df = fpt_param_sweep_agg_df.rename(columns=new_col_names)
+
     # also compute the fraction of trajectories that approached the fixed point for each
     # parameter combination to see how the fixed point distance threshold affects the
     # number of trajectories that are considered to have reached the fixed point
@@ -766,7 +776,7 @@ def merge_grid_and_tracked_first_passage_time_statistics_dataframes(
     fpt_stats_df = fpt_stats_df_grid.merge(
         fpt_stats_df_tracked,
         on=[Column.VectorField.BIN_INDEX],
-        suffixes=("grid_based", "cell_centered"),
+        suffixes=("_grid_based", "_cell_centered"),
         validate="one_to_one",
     )
     fpt_stats_df = fpt_stats_df.assign(
