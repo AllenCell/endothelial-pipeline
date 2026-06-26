@@ -64,7 +64,7 @@ VALIDATION_SAVE_INTERVAL_IN_FRAMES = 48
 
 CHANNEL_COLORS = {
     "VE-cadherin_mEGFP_maximum_intensity_projection": "ffffff",  # white
-    "VE-cadherin_mEGFP_processed": "ffffff",  # white
+    "VE-cadherin_mEGFP_preprocessed": "ffffff",  # white
     "VE-cadherin_mEGFP_hysteresis_threshold": "00ffff",  # teal
     "VE-cadherin_mEGFP_initial_segmentation": "ff00ff",  # magenta
     "VE-cadherin_mEGFP_merged_segmentation": "ffff00",  # yellow

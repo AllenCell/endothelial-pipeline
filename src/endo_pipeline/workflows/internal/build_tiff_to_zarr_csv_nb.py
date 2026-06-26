@@ -50,7 +50,7 @@ image_channel_pairs = [
         "cdh5_seg_validations",
         [
             "VE-cadherin_mEGFP_maximum_intensity_projection",
-            "VE-cadherin_mEGFP_processed",
+            "VE-cadherin_mEGFP_preprocessed",
             "VE-cadherin_mEGFP_hysteresis_threshold",
             "VE-cadherin_mEGFP_initial_segmentation",
             "VE-cadherin_mEGFP_merged_segmentation",
