@@ -53,9 +53,9 @@ def main(
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.first_passage_time import (
+        build_first_passage_time_line_fit_results_dataframe,
         filter_first_passage_time_by_min_num_trajectories,
     )
-    from endo_pipeline.library.analyze.track_integration import build_fpt_line_fit_results_df
     from endo_pipeline.library.visualize.integration.track_integration_viz import (
         plot_first_passage_time_3d_scatter,
         plot_first_passage_time_correlation_summary,
@@ -116,7 +116,7 @@ def main(
         )
         # fit a line to the correlation between grid and tracked first passage
         # time statistics for each fixed point and dataset
-        line_fit_df = build_fpt_line_fit_results_df(
+        line_fit_df = build_first_passage_time_line_fit_results_dataframe(
             fpt_stats_df_no_nan=fpt_stats_df_no_nan,
             metric_to_fit=metric_to_plot,
         )

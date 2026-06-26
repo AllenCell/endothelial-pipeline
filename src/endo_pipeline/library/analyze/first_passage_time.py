@@ -6,6 +6,7 @@ from typing import Literal
 
 import numpy as np
 import pandas as pd
+from scipy.stats import pearsonr
 
 from endo_pipeline.configs.dataset_config_io import load_dataset_config
 from endo_pipeline.io import load_dataframe
@@ -21,6 +22,7 @@ from endo_pipeline.library.analyze.numerics.binning import adjust_limits_from_bi
 from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
 )
+from endo_pipeline.library.analyze.track_integration import get_odr_fit_results
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.bootstrap_fixed_points import BOOTSTRAP_THRESHOLD
 from endo_pipeline.settings.column_names import ColumnName as Column
@@ -1070,3 +1072,90 @@ def filter_first_passage_time_by_min_num_trajectories(
     ]
 
     return fpt_stats_df_no_nan
+
+
+def build_first_passage_time_line_fit_results_dataframe(
+    fpt_stats_df_no_nan: pd.DataFrame, metric_to_fit: Literal["mean", "median"]
+) -> pd.DataFrame:
+    """
+    Build a dataframe of line-fit results comparing grid-based and track-based first passage
+    times using weighted orthogonal distance regression (ODR).
+    The weights used are the inverse variances of the first passage times in each bin.
+
+    Parameters
+    ----------
+    fpt_stats_df_no_nan
+        Pre-filtered first passage time stats dataframe (no NaN values in the metric
+        columns), as returned by :func:`filter_fpt_stats_df_by_min_num_trajectories`.
+    metric_to_fit
+        Which central-tendency metric to use as the value to regress: ``"mean"`` or
+        ``"median"``.
+
+    Returns
+    -------
+    :
+        DataFrame with one row per (dataset, fixed-point, stability) group containing
+        the OLS and ODR slope, intercept, and goodness-of-fit statistics.
+    """
+    # the column title is "50%" for 50th percentile in `pd.describe`` instead of
+    # mean so correct that if "median" was chosen
+    metric = "50%" if metric_to_fit == "median" else metric_to_fit
+    suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
+
+    # perform a linear regression comparing the grid and tracked metrics for each fixed point
+    line_fit_df = (
+        fpt_stats_df_no_nan.groupby(
+            [
+                Column.DATASET,
+                Column.VectorField.FIXED_POINT_INDEX,
+                Column.FIXED_POINT_STABILITY,
+            ]
+        )
+        .apply(
+            lambda df, metric=metric, suffix=suffix: pd.Series(
+                index=[
+                    "slope_odr",
+                    "intercept_odr",
+                    "slope_stdev_odr",
+                    "intercept_stdev_odr",
+                    "reduced_chi_squared_odr",
+                    "OdrResult",
+                ],
+                # use the inverse of the variance of the mean (sampling variance)
+                # as the weights for the ODR fit, which is the square of the standard error
+                data=get_odr_fit_results(
+                    x=df[f"{metric}{suffix}_grid_based"],
+                    y=df[f"{metric}{suffix}_cell_centered"],
+                    weight_x=df[f"sem{suffix}_grid_based"] ** -2,
+                    weight_y=df[f"sem{suffix}_cell_centered"] ** -2,
+                ),
+            )
+        )
+        .reset_index()
+    )
+
+    # perform a Pearson correlation test comparing the grid and tracked metrics for each fixed point
+    pearson_df = (
+        fpt_stats_df_no_nan.groupby(
+            [
+                Column.DATASET,
+                Column.VectorField.FIXED_POINT_INDEX,
+                Column.FIXED_POINT_STABILITY,
+            ]
+        ).apply(
+            lambda df, metric=metric, suffix=suffix: pd.Series(
+                index=["r_value_pearson", "p_value_pearson"],
+                data=pearsonr(
+                    x=df[f"{metric}{suffix}_grid_based"],
+                    y=df[f"{metric}{suffix}_cell_centered"],
+                ),
+            )
+        )
+    ).reset_index()
+
+    line_fit_df = line_fit_df.merge(
+        pearson_df,
+        on=[Column.DATASET, Column.VectorField.FIXED_POINT_INDEX, Column.FIXED_POINT_STABILITY],
+        validate="one_to_one",
+    )
+    return line_fit_df
