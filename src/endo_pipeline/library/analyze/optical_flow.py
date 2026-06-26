@@ -422,7 +422,7 @@ def build_merged_optical_flow_dataframe(
             values=feat,
             aggfunc="first",
         )
-        pv.columns = pd.Index([f"{feat}_dt{int(c)}" for c in pv.columns])
+        pv.columns = pd.Index([feat % c for c in pv.columns])
         parts.append(pv)
 
     df_pivoted = pd.concat(parts, axis=1).reset_index()

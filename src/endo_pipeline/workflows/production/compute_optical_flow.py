@@ -146,7 +146,7 @@ def main(
         logger.warning("DEMO MODE - Limiting to one dataset, one position, and 10 timepoints")
         datasets = datasets[:1]
         max_positions = 1
-        max_timepoints = 20
+        max_timepoints = 10
     else:
         max_positions = None
         max_timepoints = None
