@@ -632,9 +632,6 @@ class ColumnName:
         FPT_DISTANCE_THRESHOLD = "fpt_distance_threshold"
         """Column name for the distance threshold used to determine whether a trajectory has reached a fixed point in first passage time analysis."""
 
-        IS_AT_FP_PREFIX = "is_at_fp_"
-        """Prefix for column names indicating whether a data point is at a fixed point."""
-
         FIRST_PASSAGE_DIST_PREFIX = "first_passage_dist_from_fp_"
         """Prefix for column names representing the distance from a fixed point at which a
         trajectory first passed the threshold for being considered to have reached the fixed point."""
@@ -794,6 +791,9 @@ class ColumnNameTemplate(StrEnum):
 
     TRAJECTORY_REACHED_FIXED_POINT = "traj_reached_fp_%d"
     """Column name template: True if trajectory reached a fixed point (index %d), False otherwise."""
+
+    IS_AT_FIXED_POINT = "is_at_fp_%d"
+    """Column name template: True if data point is at a fixed point (index %d), False otherwise."""
 
 
 ColumnNameType = (

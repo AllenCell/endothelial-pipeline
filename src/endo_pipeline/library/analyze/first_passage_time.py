@@ -418,24 +418,25 @@ def filter_to_trajectories_reaching_fixed_point(
     """
 
     distance_from_fixed_point_column = ColumnTemplate.DISTANCE_FROM_FIXED_POINT % fixed_point_index
+    is_at_fixed_point_column = ColumnTemplate.IS_AT_FIXED_POINT % fixed_point_index
     traj_reached_fixed_point_column = (
         ColumnTemplate.TRAJECTORY_REACHED_FIXED_POINT % fixed_point_index
     )
 
     # Mark each timepoint as "at the fixed point" if it is within the radius
     # threshold, then propagate that flag to all timepoints in the trajectory
-    traj_df_grid[f"{Column.VectorField.IS_AT_FP_PREFIX}{fixed_point_index}"] = (
+    traj_df_grid[is_at_fixed_point_column] = (
         traj_df_grid[distance_from_fixed_point_column] <= fixed_point_radius_threshold
     )
-    traj_df_tracked[f"{Column.VectorField.IS_AT_FP_PREFIX}{fixed_point_index}"] = (
+    traj_df_tracked[is_at_fixed_point_column] = (
         traj_df_tracked[distance_from_fixed_point_column] <= fixed_point_radius_threshold
     )
 
     traj_df_grid[traj_reached_fixed_point_column] = traj_df_grid.groupby(Column.CROP_INDEX)[
-        f"{Column.VectorField.IS_AT_FP_PREFIX}{fixed_point_index}"
+        is_at_fixed_point_column
     ].transform(any)
     traj_df_tracked[traj_reached_fixed_point_column] = traj_df_tracked.groupby(Column.CROP_INDEX)[
-        f"{Column.VectorField.IS_AT_FP_PREFIX}{fixed_point_index}"
+        is_at_fixed_point_column
     ].transform(any)
 
     # Filter to only trajectories that eventually reach the fixed point
