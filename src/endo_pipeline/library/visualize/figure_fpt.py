@@ -449,7 +449,7 @@ def generate_first_passage_time_example(
         )
     )
 
-    bin_edges, bin_centers, _, _ = build_first_passage_time_bins(
+    bin_edges, bin_centers, bin_sizes, _ = build_first_passage_time_bins(
         traj_df_grid=traj_df_grid, traj_df_tracked=traj_df_tracked
     )
 
