@@ -1,6 +1,7 @@
 """Methods for adding metadata for data release."""
 
 from pathlib import Path
+from typing import Any
 
 from endo_pipeline.configs import (
     ChannelName,
@@ -73,7 +74,7 @@ def build_image_manifest_release_metadata(
 
     assert s3uri is not None
 
-    metadata = {}
+    metadata: dict[str, Any] = {}
 
     add_file_metadata(metadata, s3uri, manifest.name)
     add_general_metadata(metadata)
@@ -90,7 +91,7 @@ def build_dataframe_manifest_release_metadata(
 
     assert s3uri is not None
 
-    metadata = {}
+    metadata: dict[str, Any] = {}
 
     add_file_metadata(metadata, s3uri, manifest.name)
     add_general_metadata(metadata)
@@ -113,7 +114,7 @@ def build_model_manifest_release_metadata(manifest: ModelManifest, location_key:
     metadata_list = []
 
     for uri in s3uri:
-        metadata = {}
+        metadata: dict[str, Any] = {}
         add_file_metadata(metadata, uri, manifest.name)
         add_general_metadata(metadata)
         add_model_metadata(metadata, manifest.name)
