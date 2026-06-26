@@ -542,35 +542,23 @@ class ColumnName:
     class OpticalFlow(StrEnum):
         """Dataframe column names used in the optical-flow feature workflow."""
 
-        SPEED_MEAN = "optical_flow_mean_speed_dt1"
-        """Mean speed of the optical flow vectors in a crop."""
-
         UNIT_VECTOR_MEAN = "ema01_optical_flow_mean_unit_vector_dt1"
-        """Mean unit vector of the optical flow vectors in a crop. EMA smoothing with alpha=0.01."""
-
-        SPEED_STD = "optical_flow_std_speed_dt1"
-        """Standard deviation of the speeds of the optical flow vectors in a crop."""
-
-        ANGLE_MEAN = "optical_flow_mean_angle_dt1"
-        """Mean angle of the optical flow vectors in a crop."""
-
-        ANGLE_STD = "optical_flow_angle_std_dt1"
-        """Standard deviation of the angles of the optical flow vectors in a crop."""
-
-        U_MEAN = "optical_flow_mean_u_dt1"
-        """Mean u (x) component of the optical flow vectors in a crop."""
-
-        V_MEAN = "optical_flow_mean_v_dt1"
-        """Mean v (y) component of the optical flow vectors in a crop."""
-
-        U_STD = "optical_flow_std_u_dt1"
-        """Standard deviation of the u (x) components of the optical flow vectors in a crop."""
-
-        V_STD = "optical_flow_std_v_dt1"
-        """Standard deviation of the v (y) components of the optical flow vectors in a crop."""
+        """Mean unit vector of optical flow vectors in a crop (EMA smoothing, alpha = 0.1)."""
 
         UNIT_VECTOR_MEAN_RAW = "optical_flow_mean_unit_vector_dt1"
-        """Mean unit vector coherence (no EMA smoothing)."""
+        """Mean unit vector of optical flow vectors in a crop (no EMA smoothing)."""
+
+        SPEED_MEAN = "optical_flow_mean_speed_dt1"
+        """Mean per-pixel speed [pixels/frame] of the optical flow vectors in a crop."""
+
+        SPEED_STD = "optical_flow_std_speed_dt1"
+        """Standard deviation of per-pixel speed [pixels/frame] of the optical flow vectors in a crop."""
+
+        ANGLE_MEAN = "optical_flow_mean_angle_dt1"
+        """Mean angle [radians] of optical flow vectors in a crop."""
+
+        ANGLE_STD = "optical_flow_angle_std_dt1"
+        """Standard deviation of angles [radians] of optical flow vectors."""
 
     FIXED_POINT_STABILITY = "stability"
     """Stability classification of a fixed point."""
@@ -751,7 +739,7 @@ class ColumnNameTemplate(StrEnum):
     BOOTSTRAP_CI_UPPER = "%s_ci_upper"
     """Column name template: Upper bound of bootstrap confidence interval for %s."""
 
-    OPTICAL_FLOW_EMA_MEAN_UNIT_VECTOR = "ema_%s_optical_flow_mean_unit_vector_dt%d"
+    OPTICAL_FLOW_EMA_MEAN_UNIT_VECTOR = "ema%s_optical_flow_mean_unit_vector_dt%d"
     """Column name template: Mean unit vector of optical flow vectors in a crop (EMA smoothing, alpha = %s) with temporal gap %d."""
 
     OPTICAL_FLOW_MEAN_UNIT_VECTOR = "optical_flow_mean_unit_vector_dt%d"
