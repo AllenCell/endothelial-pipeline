@@ -48,7 +48,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     output_path = get_output_path(__file__)
 
-    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C"])
+    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
 
     # Load diffae features
     feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[
@@ -99,22 +99,20 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     vector_field_plot_path, stable_fixed_points_df = make_3d_vector_field_plot_panel(
         dataset_name,
         output_path,
-        include_colorbar=True,
-        include_legend=True,
         **placeholders["B"],
     )
     fixed_point_reconstruction_path = reconstruct_fixed_points(
         fixed_point_df=stable_fixed_points_df,
         output_path=output_path,
-        add_fixed_point_coordinate_annotation=False,
-        **placeholders["B"],
+        figure_size=(0.8, 2.25),
+        **placeholders["C"],
     )
 
     projected_streamlines_path = visualize_projected_dynamics(
         dataset_name=dataset_name,
         output_path=output_path,
-        figure_size=(2.0, 2.0),
-        **placeholders["C"],
+        figure_size=(2.35, 2.35),
+        **placeholders["D"],
     )
 
     panels = [
@@ -135,25 +133,25 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             y_offset=0,
         ),
         FigurePanel(
-            letter="",
+            letter="C",
             path=fixed_point_reconstruction_path,
-            x_position=5.5,
-            y_position=0.25,
-            x_offset=0.0,
-            y_offset=0.0,
+            x_position=5.35,
+            y_position=0.0,
+            x_offset=0.2,
+            y_offset=0.225,
         ),
         FigurePanel(
-            letter="C",
+            letter="D",
             path=projected_streamlines_path,
             x_position=3.4,
-            y_position=2.65,
-            x_offset=0.1,
-            y_offset=0.0,
+            y_position=2.5,
+            x_offset=-0.025,
+            y_offset=0.05,
         ),
     ]
 
     build_figure_from_panels(
-        panels, output_path / "figure_4.svg", width=MAX_FIGURE_WIDTH, height=5.0
+        panels, output_path / "figure_4.svg", width=MAX_FIGURE_WIDTH, height=4.8
     )
 
 

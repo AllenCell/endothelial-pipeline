@@ -8,6 +8,9 @@ from typing import Any, Literal, cast
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import ListedColormap
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
+from matplotlib.ticker import FormatStrFormatter, MaxNLocator
 from numdifftools import Jacobian
 from scipy.integrate import solve_ivp
 
@@ -21,9 +24,14 @@ from endo_pipeline.library.analyze.vector_field_estimation import (
     load_drift_dataframe_for_dataset,
 )
 from endo_pipeline.library.analyze.vector_field_function import get_callable_vector_field
+from endo_pipeline.library.visualize.diffae_features.dynamics import (
+    make_legend_handles_for_fixed_pts,
+)
 from endo_pipeline.library.visualize.figures import figure_panel
+from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, POLAR_ANGLE_PERIOD
+from endo_pipeline.settings.figures import FONTSIZE_SMALL, FONTSIZE_XSMALL
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, VECTOR_FIELD_THETA_RANGE
 
@@ -247,8 +255,8 @@ def plot_streamlines_of_projected_vector_field(
         vector_field_2d[..., 1],
         **(streamplot_kwargs or {}),
     )
-    ax.set_xlabel("Projected component 1")
-    ax.set_ylabel("Projected component 2")
+    ax.set_xlabel("Projected component 1", fontsize=FONTSIZE_SMALL)
+    ax.set_ylabel("Projected component 2", fontsize=FONTSIZE_SMALL)
 
     return fig
 
@@ -258,7 +266,7 @@ def _integrate_manifold_trajectories_2d(
     ortho_basis: np.ndarray,
     manifold: Literal["stable", "unstable"],
     origin_3d: np.ndarray | None = None,
-    t_max: float = 200.0,
+    t_max: float = 300.0,
     eps: float = 1e-3,
 ) -> list[np.ndarray]:
     """Integrate trajectories along the stable or unstable manifold of the saddle point.
@@ -570,7 +578,7 @@ def draw_basins_and_separatrix(
 def visualize_projected_dynamics(
     dataset_name: str,
     output_path: Path,
-    grid_spacing_2d: float = 0.05,
+    grid_spacing_2d: float = 0.0125,
     figure_size: tuple[float, float] = (2.0, 2.0),
     fig_kwargs: dict[str, Any] | None = None,
     streamplot_kwargs: dict[str, Any] | None = None,
@@ -601,6 +609,9 @@ def visualize_projected_dynamics(
 
     """
     column_names = list(DYNAMICS_COLUMN_NAMES)  # [theta, r, rho]
+    column_labels = [str(COLUMN_METADATA[col].label or str(col)) for col in DYNAMICS_COLUMN_NAMES]
+    fixed_point_label = f"({column_labels[0]}$^*$, {column_labels[1]}$^*$, {column_labels[2]}$^*$)"
+
     vector_field_dataframe = load_drift_dataframe_for_dataset(dataset_name)
     vector_field_dict = get_vector_field_as_dict_from_dataframe(
         vector_field_dataframe, column_names
@@ -683,9 +694,14 @@ def visualize_projected_dynamics(
     x_max = max(x_vals) + x_margin
     y_min = min(y_vals) - y_margin
     y_max = max(y_vals) + y_margin
+
+    # take extrema of limits to allow for square aspect ratio without cutting
+    # off features
+    grid_min = min(x_min, y_min)
+    grid_max = max(x_max, y_max)
     x_mesh, y_mesh = np.meshgrid(
-        np.arange(x_min, x_max, grid_spacing_2d),
-        np.arange(y_min, y_max, grid_spacing_2d),
+        np.arange(grid_min, grid_max, grid_spacing_2d),
+        np.arange(grid_min, grid_max, grid_spacing_2d),
     )
 
     fig = plot_streamlines_of_projected_vector_field(
@@ -753,7 +769,61 @@ def visualize_projected_dynamics(
             zorder=4,
         )
 
+    # Build and place a legend to the right of the plot without squashing the axes.
+    fp_labels = {
+        str(StabilityLabel.STABLE): f"projected\n{fixed_point_label}",
+        str(StabilityLabel.SADDLE): "projected\nsaddle point",
+    }
+    fp_handles = make_legend_handles_for_fixed_pts(
+        fpt_stabilities=[str(StabilityLabel.STABLE), str(StabilityLabel.SADDLE)],
+        marker_size=4,
+        labels=fp_labels,
+    )
+    legend_handles = [
+        *fp_handles,
+        Line2D([], [], color="dimgrey", linewidth=0.75, linestyle="-", label="streamlines"),
+        Line2D([], [], color="k", linewidth=1.0, linestyle="-", label="unstable\nmanifold"),
+        Line2D([], [], color="k", linewidth=1.5, linestyle="--", label="stable\nmanifold"),
+        Patch(facecolor=BASIN_GREEN, edgecolor="none", alpha=0.7, label="basin of\nattraction 1"),
+        Patch(facecolor=BASIN_PURPLE, edgecolor="none", alpha=0.7, label="basin of\nattraction 2"),
+    ]
+    fig.legend(
+        handles=legend_handles,
+        fontsize=FONTSIZE_XSMALL,
+        loc="upper left",
+        bbox_to_anchor=(1.01, 0.95),
+        bbox_transform=ax.transAxes,
+        frameon=False,
+        handletextpad=0.3,
+        labelspacing=0.4,
+    )
+
+    ax.set_aspect("equal")
+
+    # max 3 ticks on each axis, make sure 0.0 is included as a tick, and round
+    # to 1 decimal place
+    ax.xaxis.set_major_locator(MaxNLocator(nbins=2, prune="both", steps=[1, 2], min_n_ticks=2))
+    ax.yaxis.set_major_locator(MaxNLocator(nbins=2, prune="both", steps=[1, 2], min_n_ticks=2))
+    fig.canvas.draw()  # force tick computation before reading locs
+    for axis in (ax.xaxis, ax.yaxis):
+        ticks = axis.get_majorticklocs().tolist()
+        if 0.0 not in ticks:
+            ticks = sorted(ticks + [0.0])
+        # if > 3 ticks, remove every second one
+        if len(ticks) > 3:
+            ticks = ticks[::2]
+        axis.set_ticks(ticks)
+    ax.xaxis.set_major_formatter(FormatStrFormatter("%.2f"))
+    ax.yaxis.set_major_formatter(FormatStrFormatter("%.2f"))
+
     file_name = f"{dataset_name}_projected_streamplot"
-    save_plot_to_path(fig, output_path, f"{file_name}", file_format=".svg")
+    save_plot_to_path(
+        fig,
+        output_path,
+        f"{file_name}",
+        file_format=".svg",
+        tight_layout=False,
+        bbox_inches="tight",
+    )
 
     return output_path / f"{file_name}.svg"

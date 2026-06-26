@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import cast
 
 import numpy as np
-from matplotlib import patheffects
 from pandas import DataFrame
 
+from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_dataframe, load_model, save_plot_to_path
 from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
@@ -23,7 +23,7 @@ from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, POLAR_ANGLE_PERIOD
-from endo_pipeline.settings.figures import FONTSIZE_XSMALL
+from endo_pipeline.settings.figures import FONTSIZE_SMALL, FONTSIZE_XSMALL
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, VECTOR_FIELD_THETA_RANGE
@@ -49,8 +49,6 @@ def make_3d_vector_field_plot_panel(
     dataset_name: str,
     output_path: Path,
     figure_size: tuple[float, float] = (2.0, 2.5),
-    include_colorbar: bool = True,
-    include_legend: bool = True,
 ) -> tuple[Path, DataFrame]:
     """
     Render the 3D (theta, r, rho) drift vector field for a given dataset, with
@@ -77,6 +75,14 @@ def make_3d_vector_field_plot_panel(
         coordinates of the stable fixed points that were plotted.
 
     """
+    dataset_config = load_dataset_config(dataset_name)
+    shear_stress_bin = dataset_config.flow_conditions[-1].shear_stress_bin
+    replicate_number = dataset_config.replicate_number
+    assert replicate_number is not None  # for type checking
+
+    shear_stress_label = f"{shear_stress_bin} dyn/cm{Unicode.SQUARED}"
+    dataset_label = f"{shear_stress_label}\nReplicate {replicate_number}"
+
     drift_dataframe = load_drift_dataframe_for_dataset(dataset_name)
     feature_dataframe_manifest = load_dataframe_manifest(GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME)
     feature_dataframe = load_dataframe(feature_dataframe_manifest.locations[dataset_name])
@@ -104,9 +110,11 @@ def make_3d_vector_field_plot_panel(
         drift=drift,
         meshgrid=meshgrid,
         figsize=figure_size,
-        include_colorbar=include_colorbar,
-        include_legend=include_legend,
+        include_colorbar=True,
+        include_legend=True,
         fixed_point_legend_label=fixed_point_label,
+        include_saddle_point_legend=True,
+        saddle_point_legend_label="saddle point",
         colorbar_rect=(0.5, 0.12, 0.4, 0.02),
         xlim=theta_lims,
         ylim=r_lims,
@@ -123,13 +131,12 @@ def make_3d_vector_field_plot_panel(
         zlabel_kwargs={"labelpad": -8},
     )
 
-    # Load and overlay stable fixed point
+    # Load and overlay stable fixed points and saddle point
     fixed_points_df = load_fixed_points_dataframe_for_dataset(dataset_name)
     fixed_points_df = fixed_points_df[fixed_points_df[Column.FIXED_POINT_DETECTION_RATE] > 0.4]
     stable_df = fixed_points_df[
         fixed_points_df[Column.FIXED_POINT_STABILITY] == StabilityLabel.STABLE
     ]
-    color: str = FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color
     column_names_ = cast(list[str], column_names)
     for _, fpt_row in stable_df.iterrows():
         fpt_coords = fpt_row[column_names_].to_numpy()
@@ -139,10 +146,32 @@ def make_3d_vector_field_plot_panel(
             fpt_coords[0],
             fpt_coords[1],
             fpt_coords[2],
-            color=color,
+            color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color,
             s=15,
             zorder=5,
         )
+
+    saddle_df = fixed_points_df[
+        fixed_points_df[Column.FIXED_POINT_STABILITY] == StabilityLabel.SADDLE
+    ]
+    for _, fpt_row in saddle_df.iterrows():
+        fpt_coords = fpt_row[column_names_].to_numpy()
+        # wrap theta coordinate to be within the specified limits
+        fpt_coords[0] = wrap_theta_for_vector_field_vis(fpt_coords[0], theta_lims[0], theta_lims[1])
+        ax.scatter(
+            fpt_coords[0],
+            fpt_coords[1],
+            fpt_coords[2],
+            color=FIXED_POINT_PLOT_STYLE[StabilityLabel.SADDLE].color,
+            marker=FIXED_POINT_PLOT_STYLE[StabilityLabel.SADDLE].marker,
+            edgecolors="k",
+            linewidths=0.5,
+            s=10,
+            zorder=5,
+        )
+
+    # add shear stress + replicate label as title
+    ax.set_title(dataset_label, fontsize=FONTSIZE_SMALL, fontweight="bold", pad=0)
 
     # save as .svg file
     filename = f"3d_vector_field_{dataset_name}"
@@ -166,7 +195,6 @@ def reconstruct_fixed_points(
     figure_size: tuple[float, float] = (0.8, 1.6),
     num_gpus: int | None = None,
     random_seed: int | None = 4,
-    add_fixed_point_coordinate_annotation: bool = False,
 ) -> Path:
     """
     Reconstruct the fixed point coordinates from the polar angle, radius, and
@@ -184,10 +212,12 @@ def reconstruct_fixed_points(
         Number of GPUs to use for reconstruction, by default None
     random_seed
         Random seed for reproducibility, by default 4
-    add_fixed_point_coordinate_annotation
-        Whether to add fixed point coordinate annotations to the reconstructed
-        images, by default False.
+
     """
+    # load and instantiate model for generating synthetic images
+    model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
+    model_location = model_manifest.locations[DEFAULT_MODEL_RUN_NAME]
+    model = load_model(model_location, instantiate=True)
 
     # load and instantiate model for generating synthetic images
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
@@ -196,6 +226,7 @@ def reconstruct_fixed_points(
 
     column_names = cast(list[str], list(DYNAMICS_COLUMN_NAMES))
     column_labels = [str(COLUMN_METADATA[col].label or str(col)) for col in DYNAMICS_COLUMN_NAMES]
+    fixed_point_label = f"({column_labels[0]}$^*$, {column_labels[1]}$^*$, {column_labels[2]}$^*$)"
 
     # wrap the polar angle to be within the specified limits for visualization
     # and consistency with the vector field plots
@@ -235,28 +266,25 @@ def reconstruct_fixed_points(
         gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
     )
 
-    # add the fixed point coordinate as an annotation to each panel
-    if add_fixed_point_coordinate_annotation:
-        for i, ax in enumerate(fig_fixed_point_reconstructions.axes):
-            fp_coords = fixed_point_df.iloc[i][column_names].to_numpy(dtype=float)
-            fp_coords_list = [
-                f"{col} = {fp_coords[j].round(2)}" for j, col in enumerate(column_labels)
-            ]
-            fp_coords_as_str = "\n".join(fp_coords_list)
+    fig_fixed_point_reconstructions.suptitle(
+        "Reconstructed\nVE-cadherin patches", y=1.025, fontsize=7, fontweight="bold"
+    )
 
-            fp_annotation = ax.text(
-                x=0.02,
-                y=0.98,
-                s=fp_coords_as_str,
-                ha="left",
-                va="top",
-                fontsize=FONTSIZE_XSMALL,
-                color="white",
-                transform=ax.transAxes,
-            )
-            fp_annotation.set_path_effects(
-                [patheffects.withStroke(linewidth=0.5, foreground="black")]
-            )
+    # add the fixed point coordinate as axes titles for each panel
+    for i, ax in enumerate(fig_fixed_point_reconstructions.axes):
+        fp_coords = fixed_point_df.iloc[i][column_names].to_numpy(dtype=float)
+        fp_coords_list = [f"{fp_coords[j]:.2f}" for j in range(len(column_names))]
+        fp_coords_as_str = ", ".join(fp_coords_list)
+        image_label = f"{fixed_point_label} =\n({fp_coords_as_str})"
+
+        ax.set_title(
+            label=image_label,
+            fontsize=FONTSIZE_XSMALL,
+            color="black",
+            fontweight="bold",
+            pad=3,
+            y=-0.35,
+        )
 
     # add scalebars to each panel, only label the top left one to avoid
     # redundancy
@@ -281,7 +309,6 @@ def reconstruct_fixed_points(
         file_format=".svg",
         tight_layout=False,
         transparent=True,
-        bbox_inches="tight",
     )
 
     return output_path / f"{filename}.svg"
