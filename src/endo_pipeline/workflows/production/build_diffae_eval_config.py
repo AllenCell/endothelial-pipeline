@@ -1,4 +1,4 @@
-from endo_pipeline.cli import CropPattern, Datasets
+from endo_pipeline.cli import Datasets, PatchType
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
@@ -6,7 +6,7 @@ from endo_pipeline.settings.workflow_defaults import (
 
 
 def main(
-    crop_pattern: CropPattern,
+    patch_type: PatchType,
     datasets: Datasets | None = None,
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
@@ -28,20 +28,20 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe build-diffae-eval-config CROP_PATTERN -vd
+    uv run endopipe build-diffae-eval-config PATCH_TYPE -vd
     ```
 
-    To run the workflow with for a single dataset:
+    To run the workflow for a single dataset:
 
     ```bash
-    uv run endopipe build-diffae-eval-config CROP_PATTERN --datasets DATASET_NAME
+    uv run endopipe build-diffae-eval-config PATCH_TYPE --datasets DATASET_NAME
     ```
 
-    ## Crop patterns
+    ## Patch types
 
-    Two types of crop patterns are supported for model evaluation: `grid` or
-    `tracked`. Specific configuration for model evaluation on grid-based vs.
-    track-based crops are applied to the base model configuration.
+    Two patch types are supported for model evaluation: `grid-based` or
+    `cell-centered`. Specific configuration for model evaluation on grid-based
+    vs. cell-centered patches are applied to the base model configuration.
 
     ## Dataset collection
 
@@ -55,8 +55,8 @@ def main(
 
     Parameters
     ----------
-    crop_pattern
-        Crop pattern used for model evaluation.
+    patch_type
+        Patch type used for model evaluation.
     datasets
         List of datasets or dataset collections.
     model_manifest_name
@@ -108,7 +108,7 @@ def main(
 
     # Build dataframe manifest name to load evaluation dataframes.
     name_suffix = "_demo" if DEMO_MODE else ""
-    dataframe_manifest_name = f"{DIFFAE_EVAL_DATAFRAME_MANIFEST_PREFIX}_{crop_pattern}{name_suffix}"
+    dataframe_manifest_name = f"{DIFFAE_EVAL_DATAFRAME_MANIFEST_PREFIX}_{patch_type}{name_suffix}"
 
     try:
         dataframe_manifest = load_dataframe_manifest(dataframe_manifest_name)
@@ -116,7 +116,7 @@ def main(
         logger.error(
             "Dataframe manifest '%s' not found. "
             "Please run the create_diffae_eval_dataframe workflow first "
-            "with matching settings for crop pattern.",
+            "with matching settings for patch type.",
             dataframe_manifest_name,
         )
         raise
@@ -135,7 +135,7 @@ def main(
 
     # Create or load the feature dataframe manifest.
     feature_manifest_name = get_feature_dataframe_manifest_name(
-        model_manifest, run_name, crop_pattern
+        model_manifest, run_name, patch_type
     )
     feature_manifest = create_dataframe_manifest(f"{feature_manifest_name}{name_suffix}", __file__)
 
@@ -150,7 +150,7 @@ def main(
         dataframe_path = resolve_dataframe_location(dataframe_location)
 
         # Create evaluation config path.
-        config_file = config_path / f"eval_{crop_pattern}_{dataset}{name_suffix}.yaml"
+        config_file = config_path / f"eval_{patch_type}_{dataset}{name_suffix}.yaml"
 
         # Build the evaluation config overrides.
         overrides = ModelConfigOverrideEval(
@@ -164,12 +164,12 @@ def main(
         # Initialize the model with evaluation base config, apply overrides, and save config.
         cytodl_model = CytoDLModel()
         cytodl_model.load_config_from_dict(base_config)
-        cytodl_model.override_config(overrides.to_dict(dataset, crop_pattern, name_suffix))
+        cytodl_model.override_config(overrides.to_dict(dataset, patch_type, name_suffix))
         cytodl_model.save_config(config_file)
         logger.info("Evaluation config saved to [ %s ]", config_file)
 
         # Populate manifest with evaluation run location and parameters.
-        feature_manifest.parameters = {"crop_pattern": crop_pattern}
+        feature_manifest.parameters = {"patch_type": patch_type}
         feature_manifest.locations[dataset] = DataframeLocation()
         save_dataframe_manifest(feature_manifest)
 

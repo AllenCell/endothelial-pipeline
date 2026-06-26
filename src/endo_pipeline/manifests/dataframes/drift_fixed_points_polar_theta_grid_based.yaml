@@ -1,0 +1,29 @@
+name: drift_fixed_points_polar_theta_grid_based
+workflow: generate_flow_field
+parameters:
+  model_manifest_name: diffae_baseline
+  run_name: latent_512
+  patch_type: grid_based
+  kernels:
+  - column: polar_theta
+    name: periodic
+    bandwidth: 0.15
+    period: 3.141592653589793
+  bin_widths: [0.05]
+  num_init_samples_for_root_solver: 250
+  lower_percentile_for_filtering_fpts: 5.0
+  upper_percentile_for_filtering_fpts: 95.0
+columns:
+  stability: Stability classification of a fixed point
+  polar_theta_fixed_point: Vector field fixed point location in theta
+  dataset: Name of dataset
+  shear_stress: Shear stress value [dyn/cm^2]
+locations:
+  20250409_20X:
+    fmsid: efb3e294c359490bb8b4ebbcc3c55a5c
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_fixed_points_polar_theta_grid_based/20250409_df6b2a02bbc94c6f957923add524eac1.parquet
+  20251001_20X:
+    fmsid: f2daf8964feb404e8631fdb6481bad91
+    path: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/drift_fixed_points_polar_theta_grid_based/20251001_271124f03a16409499e8a84b0030cb15.parquet

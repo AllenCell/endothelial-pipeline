@@ -298,11 +298,11 @@ def build_optical_flow_feature_cols(
     return [f"{f}_dt{d}" for d in range(1, max_dt + 1) for f in all_features]
 
 
-def build_image_pair_crops_for_tracked(
+def build_image_pair_crops_for_cell_centered(
     df: pd.DataFrame,
 ) -> Callable[[int], OpticalFlowImagePairCrops]:
     """
-    Build image pair crop for tracked crops as a function of timepoint.
+    Build image pair crop for cell-centered patches as a function of timepoint.
 
     For tracked crops, crop coordinates change between timepoints. Return
     callable is a wrapper around the dictionary mapping timepoint to crops.
@@ -337,9 +337,11 @@ def build_image_pair_crops_for_tracked(
     return lambda tp: tracked_crops[tp]
 
 
-def build_image_pair_crops_for_grid(df: pd.DataFrame) -> Callable[[int], OpticalFlowImagePairCrops]:
+def build_image_pair_crops_for_grid_based(
+    df: pd.DataFrame,
+) -> Callable[[int], OpticalFlowImagePairCrops]:
     """
-    Build image pair crop for grid crops as a function of timepoint.
+    Build image pair crop for grid-based patches as a function of timepoint.
 
     For grid crops, crop coordinates and indices are the same across timepoints
     so returned callable is just a wrapper around a single object. Dataframe

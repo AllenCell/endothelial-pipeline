@@ -190,7 +190,7 @@ def plot_3d_scatter_or_binned(
     vmax: float = 1,
     figsize: tuple[float, float] = (8, 8),
     show_colorbar: bool = True,
-    fp_suffix: str = "",
+    fp_template: str = "",
 ) -> tuple[plt.Figure, Axes3D]:
     """Plot a 3D scatter or 3D binned heatmap with optional fixed-point overlay.
 
@@ -216,8 +216,8 @@ def plot_3d_scatter_or_binned(
         Matplotlib colormap name.
     vmin, vmax
         Color-scale limits.
-    fp_suffix
-        Suffix for fixed point columns in fixed points dataframe.
+    fp_template
+        Template for fixed point columns in fixed points dataframe.
 
     Returns
     -------
@@ -307,9 +307,9 @@ def plot_3d_scatter_or_binned(
             stability = row[Column.FIXED_POINT_STABILITY]
             mk = FIXED_POINT_PLOT_STYLE[stability].marker
             clr = FIXED_POINT_PLOT_STYLE[stability].color
-            theta = row[f"{Column.DiffAEData.POLAR_ANGLE}{fp_suffix}"]
-            r = row[f"{Column.DiffAEData.POLAR_RADIUS}{fp_suffix}"]
-            rho = row[f"{Column.DiffAEData.PC3_FLIPPED}{fp_suffix}"]
+            theta = row[fp_template % Column.DiffAEData.POLAR_ANGLE]
+            r = row[fp_template % Column.DiffAEData.POLAR_RADIUS]
+            rho = row[fp_template % Column.DiffAEData.PC3_FLIPPED]
             ax.scatter(
                 xs=[theta],
                 ys=[r],
@@ -562,7 +562,7 @@ def make_example_migration_coherence(
     dataset_config = load_dataset_config(dataset_name)
 
     feature_column_names = list(DYNAMICS_COLUMN_NAMES)
-    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid"], *feature_column_names]
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid_based"], *feature_column_names]
 
     optical_flow_feature = Column.OpticalFlow.UNIT_VECTOR_MEAN
     of_metadata = COLUMN_METADATA[optical_flow_feature]

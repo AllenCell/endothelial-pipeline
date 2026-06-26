@@ -25,19 +25,19 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         get_reshaped_vector_field_and_grid,
         load_drift_dataframe_for_dataset,
     )
-    from endo_pipeline.library.visualize.figure_2 import (
-        make_2d_contour_plot_panel,
-        reconstruct_along_nullcline,
-    )
     from endo_pipeline.library.visualize.figures import (
         FigurePanel,
         build_figure_from_panels,
         parse_placeholder_panels,
     )
+    from endo_pipeline.library.visualize.nullcline_walks import (
+        make_contour_plot_panel_for_nullcline_walks,
+        reconstruct_along_nullcline,
+    )
     from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
     from endo_pipeline.settings.column_metadata import COLUMN_METADATA
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.column_names import ColumnNameSuffix
+    from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
     from endo_pipeline.settings.examples import EXAMPLE_DATASET
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
     from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
@@ -54,37 +54,37 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
 
     # figure is for grid based crops
-    crop_pattern = "grid"
+    patch_type = "grid_based"
 
     dataset_low = EXAMPLE_DATASET["FIGURE_2_LOW_FLOW_DATASET"]
     dataset_high = EXAMPLE_DATASET["FIGURE_2_HIGH_FLOW_DATASET"]
 
     columns_r_rho = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
-    columns_r_rho_fixed_point = [f"{col}{ColumnNameSuffix.FIXED_POINTS}" for col in columns_r_rho]
+    columns_r_rho_fixed_point = [ColumnTemplate.FIXED_POINT % col for col in columns_r_rho]
     columns_r_rho_str = join_sorted_strings(columns_r_rho)
     column_theta = Column.DiffAEData.POLAR_ANGLE
-    column_theta_fixed_point = f"{column_theta}{ColumnNameSuffix.FIXED_POINTS}"
+    column_theta_fixed_point = ColumnTemplate.FIXED_POINT % column_theta
     feature_column_names = [column_theta, *columns_r_rho]
     feature_columns_str = join_sorted_strings(feature_column_names)
 
     # load dataframe manifests for diffae features, fixed points, optical flow
-    # features, and bootstrapped fixed points for this crop pattern, which will be
+    # features, and bootstrapped fixed points for this patch type, which will be
     # used for all visualizations in this figure
-    name_suffix_2d = f"_{columns_r_rho_str}_{crop_pattern}"
+    name_suffix_2d = f"_{columns_r_rho_str}_{patch_type}"
     fixed_points_r_rho_dataframe_manifest_name = (
         f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix_2d}"
     )
     fixed_points_r_rho_dataframe_manifest = load_dataframe_manifest(
         fixed_points_r_rho_dataframe_manifest_name
     )
-    name_suffix_1d = f"_{column_theta}_{crop_pattern}"
+    name_suffix_1d = f"_{column_theta}_{patch_type}"
     fixed_points_theta_dataframe_manifest_name = (
         f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix_1d}"
     )
     fixed_points_theta_dataframe_manifest = load_dataframe_manifest(
         fixed_points_theta_dataframe_manifest_name
     )
-    name_suffix_3d = f"_{feature_columns_str}_{crop_pattern}"
+    name_suffix_3d = f"_{feature_columns_str}_{patch_type}"
     fixed_points_3d_dataframe_manifest_name = (
         f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix_3d}"
     )
@@ -140,16 +140,17 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             column_theta_fixed_point
         ].to_numpy()
 
-        contour_plot_paths[dataset_name], nullcline_coordinates = make_2d_contour_plot_panel(
-            figure_size=(2.6, 1.55),
-            output_path=fig_savedir,
-            drift=drift_r_rho,
-            meshgrid=centers_mesh,
-            column_labels=column_labels_r_rho,
-            stable_fixed_point=stable_fixed_point_r_rho,
-            filename=f"{dataset_name}_{columns_r_rho_str}_contours",
-            plot_nullcline_walk_points=True,
-            **placeholders["B"],
+        contour_plot_paths[dataset_name], nullcline_coordinates = (
+            make_contour_plot_panel_for_nullcline_walks(
+                figure_size=(2.0, 1.15),
+                output_path=fig_savedir,
+                drift=drift_r_rho,
+                meshgrid=centers_mesh,
+                column_labels=column_labels_r_rho,
+                stable_fixed_point=stable_fixed_point_r_rho,
+                filename=f"{dataset_name}_{columns_r_rho_str}_contours",
+                **placeholders["B"],
+            )
         )
 
         nullcline_reconstruction_paths[dataset_name] = reconstruct_along_nullcline(
@@ -170,8 +171,8 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             path=contour_plot_paths[dataset_low],
             x_position=0.0,
             y_position=0.0,
-            x_offset=0.1,
-            y_offset=-0.05,
+            x_offset=0.0,
+            y_offset=0.1,
         ),
         FigurePanel(
             letter="B",
@@ -186,8 +187,8 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             path=contour_plot_paths[dataset_high],
             x_position=0.0,
             y_position=1.5,
-            x_offset=0.1,
-            y_offset=-0.05,
+            x_offset=0.0,
+            y_offset=0.1,
         ),
         FigurePanel(
             letter="D",

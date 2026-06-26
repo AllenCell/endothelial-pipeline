@@ -1,8 +1,8 @@
-from endo_pipeline.cli import CropPattern, Datasets
+from endo_pipeline.cli import Datasets, PatchType
 
 
 def main(
-    crop_pattern: CropPattern,
+    patch_type: PatchType,
     datasets: Datasets | None = None,
 ) -> None:
     """
@@ -21,20 +21,20 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe create-diffae-eval-dataframe CROP_PATTERN -vd
+    uv run endopipe create-diffae-eval-dataframe PATCH_TYPE -vd
     ```
 
     To run the workflow for a single dataset:
 
     ```bash
-    uv run endopipe create-diffae-eval-dataframes CROP_PATTERN --datasets DATASET_NAME
+    uv run endopipe create-diffae-eval-dataframes PATCH_TYPE --datasets DATASET_NAME
     ```
 
-    ## Crop patterns
+    ## Patch types
 
-    Two types of crop patterns are supported for model evaluation: `grid` or
-    `tracked`. When creating the data loading dataframe, the crop pattern
-    defines the locations of crops to be evaluated.
+    Two patch types are supported for model evaluation: `grid_based` or
+    `cell_centered`. When creating the data loading dataframe, the patch type
+    defines the locations of patches to be evaluated.
 
     ## Dataset collection
 
@@ -50,8 +50,8 @@ def main(
 
     Parameters
     ----------
-    crop_pattern
-        Crop pattern used for model evaluation.
+    patch_type
+        Patch type used for model evaluation.
     datasets
         List of datasets or dataset collections.
     """
@@ -90,15 +90,15 @@ def main(
 
     # Create dataframe manifest and add workflow parameters.
     name_suffix = "_demo" if DEMO_MODE else ""
-    manifest_name = f"{DIFFAE_EVAL_DATAFRAME_MANIFEST_PREFIX}_{crop_pattern}{name_suffix}"
+    manifest_name = f"{DIFFAE_EVAL_DATAFRAME_MANIFEST_PREFIX}_{patch_type}{name_suffix}"
     manifest = create_dataframe_manifest(manifest_name, __file__)
     manifest.parameters = {
-        "crop_pattern": crop_pattern,
+        "patch_type": patch_type,
         "z_slice_offsets": Z_SLICE_OFFSETS,
     }
 
     # Create directory for saving evaluation dataframes
-    file_suffix = f"{crop_pattern}_z_stack_{Z_SLICE_OFFSETS[0]}_{Z_SLICE_OFFSETS[1]}{name_suffix}"
+    file_suffix = f"{patch_type}_z_stack_{Z_SLICE_OFFSETS[0]}_{Z_SLICE_OFFSETS[1]}{name_suffix}"
     output_path = get_output_path("model_eval_dataframes")
 
     for dataset in datasets:
@@ -128,10 +128,10 @@ def main(
             dataset_config, z_slice_offsets=Z_SLICE_OFFSETS
         )
 
-        # Build the data loading dataframe based on crop pattern. The 'grid'
-        # crop pattern builds the image loading dataframe directly while the
-        # 'tracked' crop pattern reformats the tracking manifest.
-        if crop_pattern == "grid":
+        # Build the data loading dataframe based on patch type. The 'grid_based'
+        # patch type builds the image loading dataframe directly while the
+        # 'cell_centered' patch type reformats the tracking manifest.
+        if patch_type == "grid_based":
             df = build_zarr_image_loading_dataframe(
                 dataset_config,
                 resolution_level=DIFFAE_ZARR_RESOLUTION_LEVEL,
@@ -141,7 +141,7 @@ def main(
                 z_slice_bounds_per_position=z_slice_bounds_per_position,
                 only_include_positions=only_include_positions,
             )
-        elif crop_pattern == "tracked":
+        elif patch_type == "cell_centered":
             df = preprocess_tracking_manifest_for_model_eval(
                 dataset_config,
                 z_slice_bounds_per_position=z_slice_bounds_per_position,

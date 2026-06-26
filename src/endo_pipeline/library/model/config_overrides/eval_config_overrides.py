@@ -3,7 +3,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 from omegaconf import OmegaConf
 from pydantic import Field
@@ -14,6 +14,7 @@ from endo_pipeline.io import get_output_path, get_repository_root_dir
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_configs import DIFFAE_MODEL_EVAL_CONFIG
 from endo_pipeline.settings.diffae_feature_dataframes import CytoDLSaveDataKeys
+from endo_pipeline.settings.literal_types import PatchTypeLiteral
 
 logger = logging.getLogger(__name__)
 
@@ -88,9 +89,7 @@ class ModelConfigOverrideEval:
         if self.num_workers is None:
             self.num_workers = int(0.5 * (os.cpu_count() or 0))
 
-    def to_dict(
-        self, dataset_name: str, crop_pattern: Literal["grid", "tracked"], suffix: str = ""
-    ):
+    def to_dict(self, dataset_name: str, patch_type: PatchTypeLiteral, suffix: str = ""):
         """Convert to overrides dict."""
         # Create directories for outputs if they do not exist.
         output_path = get_output_path(
@@ -103,7 +102,7 @@ class ModelConfigOverrideEval:
 
         # Build save suffix for outputs
         base_suffix = f"{dataset_name}_{self.model_manifest_name}_{self.run_name}"
-        save_suffix = f"{base_suffix}_{crop_pattern}_features{suffix}"
+        save_suffix = f"{base_suffix}_{patch_type}_features{suffix}"
 
         assert self.eval_dataframe_path is not None
 
@@ -150,8 +149,8 @@ class ModelConfigOverrideEval:
             "data.predict_dataloaders.dataset.num_replace_workers": self.num_workers,
         }
 
-        # Additional overrides specific to track-based crops
-        if crop_pattern == "tracked":
+        # Additional overrides specific to cell-centered crops
+        if patch_type == "cell_centered":
             overrides.update(
                 {
                     # add prediction saver callback

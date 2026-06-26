@@ -2,12 +2,20 @@ name: diffae_training_dataframe
 workflow: create_diffae_training_dataframe
 parameters:
   z_slice_offsets: [4, 11]
+columns:
+  path: Path to source image file for model training and evaluation
+  resolution_level: Zarr resolution level used to generate patches for obtaining latent vectors
+  channel: List of channels to load for model training and evaluation
+  include_frames: List of timepoints (frame numbers) to include for model training and evaluation
+  z_start: Starting z-slice of image to use for model training and evaluation
+  z_stop: Ending z-slice of image to use for model training and evaluation
+  z_step: Step between Z-slices in image to use for model training and evaluation
 locations:
   training:
     fmsid: aa3a82d4b4004b35ad64021247a729ae
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_training_dataframe/training.parquet
   validation:
     fmsid: c7511fd701134011b790a60e58bc3833
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/diffae_training_dataframe/validation.parquet

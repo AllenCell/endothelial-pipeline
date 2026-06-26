@@ -5,7 +5,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     """
     Compile panels for Figure 2.
 
-    - **Panel A*: 3D visualizations of drift vector field and nullclines for
+    - **Panel A**: 3D visualizations of drift vector field and nullclines for
       example low shear stress dataset.
     - **Panel B**: 1D plot of drift along polar angle coordinate for example low
       shear stress dataset, 2D contour plot of drift coefficients for polar
@@ -40,7 +40,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         make_1d_drift_plot_panel,
         make_2d_contour_plot_panel,
         make_3d_vector_field_plot_panel,
-        make_first_passage_time_correlation_hist,
+        make_first_passage_time_distance_to_linefit_hist,
         reconstruct_fixed_points,
     )
     from endo_pipeline.library.visualize.figure_fpt import generate_first_passage_time_example
@@ -56,7 +56,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.manifests import load_dataframe_manifest, load_model_manifest
     from endo_pipeline.settings.column_metadata import COLUMN_METADATA
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.column_names import ColumnNameSuffix
+    from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
     from endo_pipeline.settings.examples import EXAMPLE_DATASET, FPT_FIG_EXAMPLES
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
     from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
@@ -79,7 +79,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D", "E", "F"])
 
     # figure is for grid based crops
-    crop_pattern = "grid"
+    patch_type = "grid_based"
 
     dataset_low = EXAMPLE_DATASET["FIGURE_2_LOW_FLOW_DATASET"]
     dataset_high = EXAMPLE_DATASET["FIGURE_2_HIGH_FLOW_DATASET"]
@@ -87,33 +87,33 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     columns_r_rho = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
     columns_r_rho_str = join_sorted_strings(columns_r_rho)
-    columns_r_rho_fixed_point = [f"{col}{ColumnNameSuffix.FIXED_POINTS}" for col in columns_r_rho]
+    columns_r_rho_fixed_point = [ColumnTemplate.FIXED_POINT % col for col in columns_r_rho]
     column_theta = Column.DiffAEData.POLAR_ANGLE
-    column_theta_fixed_point = f"{column_theta}{ColumnNameSuffix.FIXED_POINTS}"
+    column_theta_fixed_point = ColumnTemplate.FIXED_POINT % column_theta
     optical_flow_feature = Column.OpticalFlow.UNIT_VECTOR_MEAN
     feature_column_names = [column_theta, *columns_r_rho]
     feature_columns_str = join_sorted_strings(feature_column_names)
 
     # load dataframe manifests for diffae features, fixed points, optical flow
-    # features, and bootstrapped fixed points for this crop pattern, which will be
+    # features, and bootstrapped fixed points for this patch type, which will be
     # used for all visualizations in this figure
-    feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[crop_pattern]
+    feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[patch_type]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
-    name_suffix_2d = f"_{columns_r_rho_str}_{crop_pattern}"
+    name_suffix_2d = f"_{columns_r_rho_str}_{patch_type}"
     fixed_points_r_rho_dataframe_manifest_name = (
         f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix_2d}"
     )
     fixed_points_r_rho_dataframe_manifest = load_dataframe_manifest(
         fixed_points_r_rho_dataframe_manifest_name
     )
-    name_suffix_1d = f"_{column_theta}_{crop_pattern}"
+    name_suffix_1d = f"_{column_theta}_{patch_type}"
     fixed_points_theta_dataframe_manifest_name = (
         f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix_1d}"
     )
     fixed_points_theta_dataframe_manifest = load_dataframe_manifest(
         fixed_points_theta_dataframe_manifest_name
     )
-    name_suffix_3d = f"_{feature_columns_str}_{crop_pattern}"
+    name_suffix_3d = f"_{feature_columns_str}_{patch_type}"
     fixed_points_3d_dataframe_manifest_name = (
         f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix_3d}"
     )
@@ -121,7 +121,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     fixed_points_3d_dataframe_manifest = load_dataframe_manifest(
         fixed_points_3d_dataframe_manifest_name
     )
-    bootstrap_dataframe_manifest_name = BOOTSTRAPPING_MANIFEST_NAMES[crop_pattern]
+    bootstrap_dataframe_manifest_name = BOOTSTRAPPING_MANIFEST_NAMES[patch_type]
     bootstrap_dataframe_manifest = load_dataframe_manifest(bootstrap_dataframe_manifest_name)
 
     # get labels for provided set of feature columns
@@ -213,7 +213,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             **placeholders["B"],
         )
 
-        contour_plot_paths[dataset_name], _ = make_2d_contour_plot_panel(
+        contour_plot_paths[dataset_name] = make_2d_contour_plot_panel(
             figure_size=(1.7, 2.83),
             output_path=fig_savedir,
             drift=drift_r_rho,
@@ -223,7 +223,6 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             filename=f"{dataset_name}_{columns_r_rho_str}_contours",
             include_legend=include_legend,
             include_colorbar=include_colorbar,
-            plot_nullcline_walk_points=False,
             **placeholders["B"],
         )
 
@@ -258,7 +257,6 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         figure_size=(3.15, 1.8),
         color_by_column=Column.OpticalFlow.UNIT_VECTOR_MEAN,
         ylabel_rotation=0,
-        remove_label_linebreaks=False,
         **placeholders["D"],
     )
     # --- First passage time analysis schematic ---
@@ -273,10 +271,11 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         **placeholders["E"],
     )
     # --- Histogram of first passage time correlation ---
-    first_passage_path = make_first_passage_time_correlation_hist(
-        figure_size=(2.5, 1.25),
+    first_passage_path = make_first_passage_time_distance_to_linefit_hist(
+        figure_size=(2.5, 1.45),
         output_path=output_path,
         dataset_names=dataset_summary_list,
+        weighted=False,
         **placeholders["F"],
     )
 
@@ -356,28 +355,28 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             x_position=3.25,
             y_position=1.35,
             x_offset=0.05,
-            y_offset=0.15,
+            y_offset=0.05,
         ),
         FigurePanel(
             letter="E",
             path=trajectory_example_filepath,
             x_position=3.25,
-            y_position=3.35,
-            x_offset=0.3,
+            y_position=3.15,
+            x_offset=0.15,
             y_offset=0.0,
         ),
         FigurePanel(
             letter="F",
             path=first_passage_path,
             x_position=3.25,
-            y_position=5.2,
-            x_offset=0.1,
-            y_offset=0.05,
+            y_position=4.9,
+            x_offset=0.25,
+            y_offset=0.2,
         ),
     ]
 
     build_figure_from_panels(
-        panels, output_path / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=6.5
+        panels, output_path / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=6.6
     )
 
 

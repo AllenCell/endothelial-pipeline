@@ -5,25 +5,20 @@ columns:
   frame_number: Timepoint [frames]
   track_id: Track ID assigned by the tracking algorithm
   label: Cell segmentation ID (different from track ID, and may change between timepoints)
-  reference_index: Relative timepoint index used to compare nearby timepoints to find
-    matching segmentation for track
-  matched_query_label: List of matched labels from each timepoint starting from current
-    one to up to the next 4 timepoints
-  optimized_metric_value: Value of metric (fraction of segmentation overlap between
-    reference and query index timepoints) used for tracking
+  reference_index: Relative timepoint index used to compare nearby timepoints to find matching segmentation for track
+  matched_query_label: List of matched labels from each timepoint starting from current one to up to the next 4 timepoints
+  optimized_metric_value: Value of metric (fraction of segmentation overlap between reference and query index timepoints) used for tracking
   centroid: Centroid of cell segmentation in (Y,X) [pixels]
   area_px_squared: Area of cell segmentation [pixels^2]
   perimeter_px: Perimeter of cell segmentation [pixels]
-  orientation: Orientation of cell [radians] from 0 (along +x axis) to pi (along -x
-    axis)
-  eccentricity: Eccentricity of ellipse fit to cell segmentation (focal distance divided
-    by major axis)
+  orientation: Orientation of cell [radians] from 0 (along +x axis) to pi (along -x axis)
+  eccentricity: Eccentricity of ellipse fit to cell segmentation (focal distance divided by major axis)
   matching_method: Metric used by tracking algorithm to find matching segmentations
   is_edge_segmentation: True if segmentation touches edge of the image, False otherwise
   centroid_y: Centroid of cell segmentation Y coordinate [pixels]
   centroid_x: Centroid of cell segmentation X coordinate [pixels]
   dataset: Name of dataset
-  position: Zarr file position (FOV) of the corresponding segmentation or patch (crop)
+  position: Zarr file position (FOV) of the corresponding segmentation or patch
 locations:
   20250319_20X:
     fmsid: 0dd9e43f7cbe493b946c5f8ec9d57e70

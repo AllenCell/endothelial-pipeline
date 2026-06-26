@@ -6,6 +6,7 @@ compute, I/O, or visualisation code.
 """
 
 from endo_pipeline.settings.column_names import ColumnName
+from endo_pipeline.settings.literal_types import PatchTypeLiteral
 
 DEMO_MAX_TRACKED_CROPS_TO_PLOT: int = 2
 """Maximum number of tracked crops to plot in the coherence time series diagnostic."""
@@ -45,15 +46,15 @@ DIFFAE_DATAFRAME_METADATA_TO_COMPUTE: tuple[str, ...] = (
 )
 """Metadata columns from Diff AE feature dataframe needed for optical flow computations."""
 
-OPTICAL_FLOW_COLUMNS_TO_COMPUTE: dict[str, tuple[str, ...]] = {
-    "grid": DIFFAE_DATAFRAME_METADATA_TO_COMPUTE,
-    "tracked": DIFFAE_DATAFRAME_METADATA_TO_COMPUTE
+OPTICAL_FLOW_COLUMNS_TO_COMPUTE: dict[PatchTypeLiteral, tuple[str, ...]] = {
+    "grid_based": DIFFAE_DATAFRAME_METADATA_TO_COMPUTE,
+    "cell_centered": DIFFAE_DATAFRAME_METADATA_TO_COMPUTE
     + (
         ColumnName.TRACK_ID,
         ColumnName.DiffAEData.CROP_SIZE_X,
     ),
 }
-"""Metadata columns keyed by crop pattern (``'grid'`` or ``'tracked'``)."""
+"""Metadata columns keyed by patch type."""
 
 # ---------------------------------------------------------------------------
 # Feature names

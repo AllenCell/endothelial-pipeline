@@ -85,7 +85,8 @@ def main(
         plot_cross_dataset_summaries,
     )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
-    from endo_pipeline.settings.column_names import ColumnName, ColumnNameSuffix
+    from endo_pipeline.settings.column_names import ColumnName
+    from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
     from endo_pipeline.settings.dynamics_workflows import (
         DYNAMICS_COLUMN_NAMES,
         METADATA_COLUMNS_TO_KEEP,
@@ -94,7 +95,7 @@ def main(
         BOOTSTRAPPING_MANIFEST_NAMES,
         DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
     )
-    from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
+    from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_PATCH_TYPE
     from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
     from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
     from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
@@ -104,19 +105,19 @@ def main(
 
     # Load diffae features
     feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[
-        MIGRATION_COHERENCE_CROP_PATTERN
+        MIGRATION_COHERENCE_PATCH_TYPE
     ]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     feature_column_names = list(DYNAMICS_COLUMN_NAMES)
-    fp_column_names = [f"{col}{ColumnNameSuffix.FIXED_POINTS}" for col in DYNAMICS_COLUMN_NAMES]
-    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid"], *feature_column_names]
+    fp_column_names = [ColumnTemplate.FIXED_POINT % col for col in DYNAMICS_COLUMN_NAMES]
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid_based"], *feature_column_names]
 
-    name_suffix = f"_{join_sorted_strings(feature_column_names)}_{MIGRATION_COHERENCE_CROP_PATTERN}"
+    name_suffix = f"_{join_sorted_strings(feature_column_names)}_{MIGRATION_COHERENCE_PATCH_TYPE}"
     fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix}"
     fixed_points_dataframe_manifest = load_dataframe_manifest(fixed_points_dataframe_manifest_name)
 
-    bootstrap_manifest_name = BOOTSTRAPPING_MANIFEST_NAMES[MIGRATION_COHERENCE_CROP_PATTERN]
+    bootstrap_manifest_name = BOOTSTRAPPING_MANIFEST_NAMES[MIGRATION_COHERENCE_PATCH_TYPE]
     fixed_points_bootstrap_dataframe_manifest = load_dataframe_manifest(bootstrap_manifest_name)
 
     output_dir = get_output_path(__file__, dataset_group)
@@ -137,7 +138,7 @@ def main(
     )
     plot_cross_dataset_summaries(
         dataset_summary_df,
-        output_dir=output_dir,
+        output_path=output_dir,
         axis_mode="dataset",
         category_order=datasets,
         subplot_layout="vertical",
@@ -223,9 +224,9 @@ def main(
                     fp_for_feature = add_binned_mean_to_fixed_points(
                         fp_for_feature,
                         df_flow_no_nan,
-                        fp_x_col=f"{ColumnName.DiffAEData.POLAR_ANGLE}{ColumnNameSuffix.FIXED_POINTS}",
-                        fp_y_col=f"{ColumnName.DiffAEData.POLAR_RADIUS}{ColumnNameSuffix.FIXED_POINTS}",
-                        fp_z_col=f"{ColumnName.DiffAEData.PC3_FLIPPED}{ColumnNameSuffix.FIXED_POINTS}",
+                        fp_x_col=ColumnTemplate.FIXED_POINT % ColumnName.DiffAEData.POLAR_ANGLE,
+                        fp_y_col=ColumnTemplate.FIXED_POINT % ColumnName.DiffAEData.POLAR_RADIUS,
+                        fp_z_col=ColumnTemplate.FIXED_POINT % ColumnName.DiffAEData.PC3_FLIPPED,
                         of_x_col=ColumnName.DiffAEData.POLAR_ANGLE,
                         of_y_col=ColumnName.DiffAEData.POLAR_RADIUS,
                         of_z_col=ColumnName.DiffAEData.PC3_FLIPPED,
@@ -280,8 +281,8 @@ def main(
                             marker = FIXED_POINT_PLOT_STYLE[stability].marker
                             color = FIXED_POINT_PLOT_STYLE[stability].color
                             axs[1].scatter(
-                                row[f"{x_col}{ColumnNameSuffix.FIXED_POINTS}"],
-                                row[f"{y_col}{ColumnNameSuffix.FIXED_POINTS}"],
+                                row[ColumnTemplate.FIXED_POINT % x_col],
+                                row[ColumnTemplate.FIXED_POINT % y_col],
                                 marker=marker,
                                 color=color,
                                 edgecolor="black",
@@ -320,7 +321,7 @@ def main(
                     df_fp=fp_for_feature,
                     binned=False,
                     vmax=vmax,
-                    fp_suffix=ColumnNameSuffix.FIXED_POINTS,
+                    fp_template=ColumnTemplate.FIXED_POINT,
                 )
                 ax.set_title(plot_label, loc="left")
                 save_plot_to_path(
@@ -340,7 +341,7 @@ def main(
                     df_fp=fp_for_feature,
                     binned=True,
                     vmax=vmax,
-                    fp_suffix=ColumnNameSuffix.FIXED_POINTS,
+                    fp_template=ColumnTemplate.FIXED_POINT,
                 )
                 ax.set_title(plot_label, loc="left")
                 save_plot_to_path(

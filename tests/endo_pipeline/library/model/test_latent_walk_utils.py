@@ -10,10 +10,10 @@ from endo_pipeline.settings.column_names import ColumnName as Column
 @pytest.mark.parametrize(
     "column_names,feature_prefix,expected_max_dim",
     [
-        (["pc_1", "pc_2", "pc_3"], "pc_", 3),  # valid case with pc_ prefix
-        (["feat_1", "feat_2", "feat_5"], "feat_", 5),  # valid case with feat_ prefix
-        (["pc_1", "feat_2", "pc_4"], "pc_", 4),  # mixed prefixes, looking for pc_
-        (["feat_1", "pc_2", "feat_3"], "feat_", 3),  # mixed prefixes, looking for feat_
+        (["pc_1", "pc_2", "pc_3"], "pc_%d", 3),  # valid case with pc_ prefix
+        (["feat_1", "feat_2", "feat_5"], "feat_%d", 5),  # valid case with feat_ prefix
+        (["pc_1", "feat_2", "pc_4"], "pc_%d", 4),  # mixed prefixes, looking for pc_
+        (["feat_1", "pc_2", "feat_3"], "feat_%d", 3),  # mixed prefixes, looking for feat_
     ],
 )
 def test_get_max_dim_in_column_names_valid_columns(column_names, feature_prefix, expected_max_dim):

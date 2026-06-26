@@ -1,5 +1,7 @@
 """Global constants for the trajectory statistics workflow."""
 
+from endo_pipeline.settings.literal_types import PatchTypeLiteral
+
 BIN_WIDTH_FOR_AVERAGE = 0.1
 """Bin width for KDE histogram of per-trajectory average values in each
 coordinate."""
@@ -28,16 +30,16 @@ AXES_YLIM_FOR_VARIANCE: tuple[float, float] = (-0.05, 15)
 """Y-axis limits for KDE plot of per-trajectory variance values in each
 coordinate."""
 
-KDE_LINESTYLE_DICT: dict[str, str] = {
-    "grid": "-",
-    "tracked": "--",
+KDE_LINESTYLE_DICT: dict[PatchTypeLiteral, str] = {
+    "grid_based": "-",
+    "cell_centered": "--",
 }
 """Line style kwargs for KDE plots of per-trajectory average and variance
-values in each coordinate, by crop pattern."""
+values in each coordinate, by patch type."""
 
-KDE_LABEL_DICT: dict[str, str] = {
-    "grid": "grid",
-    "tracked": "tracked (bootstrap mean)",
+KDE_LABEL_DICT: dict[PatchTypeLiteral, str] = {
+    "grid_based": "grid",
+    "cell_centered": "tracked (bootstrap mean)",
 }
 
 KDE_LINE_KWARGS: dict[str, str | float] = {

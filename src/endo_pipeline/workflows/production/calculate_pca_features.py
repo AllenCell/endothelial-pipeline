@@ -1,8 +1,8 @@
-from endo_pipeline.cli import CropPattern, Datasets
+from endo_pipeline.cli import Datasets, PatchType
 
 
 def main(
-    crop_pattern: CropPattern = "grid",
+    patch_type: PatchType = "grid_based",
     datasets: Datasets | None = None,
 ) -> None:
     """
@@ -30,13 +30,13 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe calculate-pca-features CROP_PATTERN -vd
+    uv run endopipe calculate-pca-features PATCH_TYPE -vd
     ```
 
     To run the workflow for a single dataset:
 
     ```bash
-    uv run endopipe calculate-pca-features CROP_PATTERN --datasets DATASET_NAME
+    uv run endopipe calculate-pca-features PATCH_TYPE --datasets DATASET_NAME
     ```
 
     ## Dataset collection
@@ -51,8 +51,8 @@ def main(
 
     Parameters
     ----------
-    crop_pattern
-        Crop pattern used for model evaluation.
+    patch_type
+        Patch type used for model evaluation.
     datasets
         List of datasets or dataset collections.
     """
@@ -102,17 +102,17 @@ def main(
         dataset_names = dataset_names[:1]
 
     # Define output manifest name and list of required columns for selected
-    # crop pattern. Note the modified name for the cell centered features; the
+    # patch type. Note the modified name for the cell centered features; the
     # "full" set of features requires merging the outputs of the segmentation
     # workflows, which is handled by `combine_cell_centered_features`.
-    if crop_pattern == "tracked":
-        base_pca_manifest_name = "diffae_pca_features_tracked"
+    if patch_type == "cell_centered":
+        base_pca_manifest_name = "diffae_pca_features_cell_centered"
         required_columns = [Column.POSITION, Column.TRACK_ID]
-    elif crop_pattern == "grid":
+    elif patch_type == "grid_based":
         base_pca_manifest_name = "grid_based_features"
         required_columns = [Column.POSITION, Column.DiffAEData.START_X, Column.DiffAEData.START_Y]
     else:
-        raise ValueError("Crop pattern '%s' is not supported", crop_pattern)
+        raise ValueError("Patch type '%s' is not supported", patch_type)
 
     # Create manifest for unfiltered dataframes and add workflow parameters
     unfiltered_pca_manifest_name = f"{base_pca_manifest_name}_unfiltered"
@@ -120,7 +120,7 @@ def main(
     unfiltered_pca_manifest.parameters = {
         "model_manifest_name": DEFAULT_MODEL_MANIFEST_NAME,
         "run_name": DEFAULT_MODEL_RUN_NAME,
-        "crop_pattern": crop_pattern,
+        "patch_type": patch_type,
         "filtered": False,
     }
 
@@ -130,17 +130,17 @@ def main(
     filtered_pca_manifest.parameters = {
         "model_manifest_name": DEFAULT_MODEL_MANIFEST_NAME,
         "run_name": DEFAULT_MODEL_RUN_NAME,
-        "crop_pattern": crop_pattern,
+        "patch_type": patch_type,
         "filtered": True,
     }
 
     # Load dataframe manifest containing raw latent features
     feature_dataframe_manifest_name = (
-        f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{crop_pattern}"
+        f"{DEFAULT_MODEL_MANIFEST_NAME}_{DEFAULT_MODEL_RUN_NAME}_{patch_type}"
     )
     feature_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
-    # Get fit PCA object using grid-based crops
+    # Get fit PCA object using grid-based patches
     pca = fit_pca()
 
     for dataset_name in dataset_names:
@@ -185,9 +185,7 @@ def main(
         # Filter out annotated timepoints, except for timepoints flagged as "not
         # steady state" (those can be filtered out dynamically as necessary in
         # downstream workflows)
-        logger.info(
-            "Filtering %s crop-based PCA features for dataset '%s'", crop_pattern, dataset_name
-        )
+        logger.info("Filtering %s PCA features for dataset '%s'", patch_type, dataset_name)
         timepoint_annotations = get_subset_of_timepoint_annotations(
             annotations_to_ignore=[TimepointAnnotation.NOT_STEADY_STATE]
         )
@@ -197,10 +195,10 @@ def main(
             timepoint_annotations=timepoint_annotations,
         )
 
-        # For track-based crops, do additional filtering using the "is_included"
-        # column from the segmentation features dataframe to remove the segmentations
-        # that don't pass the segmentation quality control filters.
-        if crop_pattern == "tracked":
+        # For track-based patches, do additional filtering using "is_included"
+        # column from the segmentation features dataframe to remove the
+        # segmentations that don't pass the segmentation quality control filters.
+        if patch_type == "cell_centered":
             # Load and merge segmentation features dataframe to get
             # "is_included" column for filtering. Also add a track length column
             # for downstream filtering based on track length, if necessary.
@@ -248,7 +246,7 @@ def main(
         ]:
             # Save the dataframe to file
             suffix = "_filtered" if manifest.parameters["filtered"] else ""
-            pca_df_path = output_path / f"{dataset_name}_{crop_pattern}_pca{suffix}.parquet"
+            pca_df_path = output_path / f"{dataset_name}_{patch_type}_pca{suffix}.parquet"
             pca_df.to_parquet(pca_df_path, index=False)
 
             # Create location object with output path
@@ -261,7 +259,7 @@ def main(
                     dataset=dataset_config,
                     additional_notes=(
                         "Dataframe with PCA features calculated from DiffAE latent features "
-                        f"for {crop_pattern} crops. {filtering_note}"
+                        f"for {patch_type} crops. {filtering_note}"
                     ),
                 )
                 fmsid = upload_file_to_fms(

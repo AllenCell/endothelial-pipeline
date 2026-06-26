@@ -897,63 +897,66 @@ def plot_drift_3d(
     **axes_kwargs: Any,
 ) -> tuple[plt.Figure, Axes3D]:
     """
-    Render a 3D drift coefficient vector field as a quiver plot with arrows
-    coloured by magnitude.
+        Render a 3D drift coefficient vector field as a quiver plot with arrows
+        coloured by magnitude.
 
     Parameters
     ----------
-    drift
-        Tuple of 3D arrays (u, v, w) representing the components of the drift
-        vector field evaluated on the meshgrid.
-    meshgrid
-        Tuple of 3D arrays (x, y, z) representing the coordinates of the
-        meshgrid on which the drift is evaluated, typically obtained from
-        np.meshgrid(..., indexing="ij").
-    figsize
-        Size of the figure, specified as a tuple (width, height).
-    downsample_factor
-        Factor by which to downsample the vector field for visualization. Arrows
-        will be plotted at every nth grid point in each dimension, where n is
-        the downsample factor.
-    colormap
-        Colormap to use for colouring the arrows by their magnitude.
-    magnitude_limits
-        Tuple specifying the (min, max) limits for the arrow magnitudes when
-        mapping to colours. Magnitudes outside this range will be clipped to the
-        limits for colouring purposes.
-    arrow_alpha
-        Opacity for the arrows (between 0 and 1).
-    include_colorbar
-        Whether to include a colorbar indicating the mapping from arrow colour
-        to magnitude.
-    include_legend
-        Whether to include a legend for the arrows (and stable fixed point, if
-        indicated).
-    include_stable_fixed_point_legend
-        Whether to include a legend entry for the stable fixed point (if True, a
-        proxy artist with the same marker and color as the stable fixed point in
-        the plot will be added to the legend).
-    include_saddle_point_legend
-        Whether to include a legend entry for the saddle point (if True, a proxy
-        artist with the same marker and color as the saddle point in the plot will
-        be added to the legend).
-    fixed_point_legend_label
-        Optional custom label for the stable fixed point legend entry.
-    saddle_point_legend_label
-        Optional custom label for the saddle point legend entry.
-    colorbar_rect
-        Rectangle specifying the position of the colorbar in normalized figure
-        coordinates (left, bottom, width, height).
-    axes_kwargs
-        Additional keyword arguments to pass to set_axes_properties for
-        customizing the axes, e.g., to specify axis limits, labels, title, or
-        aspect ratio.
+        drift
+            Tuple of 3D arrays (u, v, w) representing the components of the drift
+            vector field evaluated on the meshgrid.
+        meshgrid
+            Tuple of 3D arrays (x, y, z) representing the coordinates of the
+            meshgrid on which the drift is evaluated, typically obtained from
+            np.meshgrid(..., indexing="ij").
+        figsize
+            Size of the figure, specified as a tuple (width, height).
+        downsample_factor
+            Factor by which to downsample the vector field for visualization. Arrows
+            will be plotted at every nth grid point in each dimension, where n is
+            the downsample factor.
+        colormap
+            Colormap to use for colouring the arrows by their magnitude.
+        magnitude_limits
+            Tuple specifying the (min, max) limits for the arrow magnitudes when
+            mapping to colours. Magnitudes outside this range will be clipped to the
+            limits for colouring purposes.
+        arrow_alpha
+            Opacity for the arrows (between 0 and 1).
+        include_colorbar
+            Whether to include a colorbar indicating the mapping from arrow colour
+            to magnitude.
+        include_legend
+            Whether to include a legend for the arrows (and stable fixed point, if
+            indicated).
+        include_stable_fixed_point_legend
+            Whether to include a legend entry for the stable fixed point (if True, a
+            proxy artist with the same marker and color as the stable fixed point in
+            the plot will be added to the legend).
+        include_saddle_point_legend
+            Whether to include a legend entry for the saddle point (if True, a proxy
+            artist with the same marker and color as the saddle point in the plot will
+            be added to the legend).
+        fixed_point_legend_label
+            Optional custom label for the stable fixed point legend entry.
+    <<<<<<< HEAD
+        saddle_point_legend_label
+            Optional custom label for the saddle point legend entry.
+    =======
+    >>>>>>> main
+        colorbar_rect
+            Rectangle specifying the position of the colorbar in normalized figure
+            coordinates (left, bottom, width, height).
+        axes_kwargs
+            Additional keyword arguments to pass to set_axes_properties for
+            customizing the axes, e.g., to specify axis limits, labels, title, or
+            aspect ratio.
 
 
     Returns
     -------
-    :
-        Matplotlib figure and 3D axes objects.
+        :
+            Matplotlib figure and 3D axes objects.
 
     """
 

@@ -29,7 +29,7 @@ from endo_pipeline.settings.dynamics_workflows import (
 )
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_XSMALL
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
-from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_CROP_PATTERN
+from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_PATCH_TYPE
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
 
@@ -303,9 +303,9 @@ def _load_example_data(
     example_labels : list[str]
         Column titles derived from shear-stress conditions.
     """
-    manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[MIGRATION_COHERENCE_CROP_PATTERN]
+    manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[MIGRATION_COHERENCE_PATCH_TYPE]
     manifest = load_dataframe_manifest(manifest_name)
-    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid"], *DYNAMICS_COLUMN_NAMES]
+    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid_based"], *DYNAMICS_COLUMN_NAMES]
 
     example_dfs: list[pd.DataFrame] = []
     example_labels: list[str] = []
@@ -354,9 +354,9 @@ def _load_example_data(
         example_labels.append(f"{shear_stress} dyn/cm{Unicode.SQUARED}")
         example_subtitles.append(f"Replicate {dataset_config.replicate_number}")
 
-    image_rows: dict[str, list[np.ndarray]] = {"VE-cadherin\nMIP": gfp_images}
+    image_rows: dict[str, list[np.ndarray]] = {"VE-cadherin\nmax int. proj.": gfp_images}
     if include_bf_images:
-        image_rows["BF\nstd. dev. proj."] = bf_images
+        image_rows["Brightfield\nstd. dev. proj."] = bf_images
 
     return example_dfs, image_rows, example_labels, example_subtitles
 

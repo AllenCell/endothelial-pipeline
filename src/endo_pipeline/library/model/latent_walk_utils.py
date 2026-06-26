@@ -8,6 +8,7 @@ import pandas as pd
 
 from endo_pipeline.library.analyze.polar_coords import polar_to_pcs
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_FEATURE_COLUMN_NAMES,
     DIFFAE_PC_COLUMN_NAMES,
@@ -80,8 +81,8 @@ def add_pc_coordinates_to_dataframe(
         Column.DiffAEData.POLAR_ANGLE in feature_column_names
         and Column.DiffAEData.POLAR_RADIUS in feature_column_names
     ):
-        pc1_column_name = f"{Column.DiffAEData.PCA_FEATURE_PREFIX}1"
-        pc2_column_name = f"{Column.DiffAEData.PCA_FEATURE_PREFIX}2"
+        pc1_column_name = ColumnTemplate.PCA_FEATURE % 1
+        pc2_column_name = ColumnTemplate.PCA_FEATURE % 2
         angle = dataframe[Column.DiffAEData.POLAR_ANGLE].to_numpy()
         radius = dataframe[Column.DiffAEData.POLAR_RADIUS].to_numpy()
         pc1_values, pc2_values = polar_to_pcs(angle, radius)
@@ -91,21 +92,21 @@ def add_pc_coordinates_to_dataframe(
     # if flipped pc3 is included in the column names, convert it to regular pc3
     # before performing inverse PCA transformation for image generation
     if Column.DiffAEData.PC3_FLIPPED in feature_column_names:
-        pc3_column_name = f"{Column.DiffAEData.PCA_FEATURE_PREFIX}3"
+        pc3_column_name = ColumnTemplate.PCA_FEATURE % 3
         dataframe[pc3_column_name] = -dataframe[Column.DiffAEData.PC3_FLIPPED].to_numpy()
 
     return dataframe
 
 
-def get_max_dim_in_column_names(column_names: list[str], feature_prefix: str) -> int:
+def get_max_dim_in_column_names(column_names: list[str], feature_template: str) -> int:
     """Get the maximum number of dimensions from the provided column names.
 
     Parameters
     ----------
     column_names
         List of column names corresponding to each dimension.
-    feature_prefix
-        Prefix to look for in column names, e.g., "pc_" or "feat_".
+    feature_template
+        Template to look for in column names, e.g., "pc_%d" or "feat_%d".
 
     Returns
     -------
@@ -114,7 +115,7 @@ def get_max_dim_in_column_names(column_names: list[str], feature_prefix: str) ->
 
     """
     # Define pattern that starts with feature prefix followed by 1 or more digits
-    pattern = rf"{feature_prefix}(\d+)"
+    pattern = feature_template.replace("%d", r"(\d+)")
 
     # Apply match to each column name in list
     matches = [re.match(pattern, column) for column in column_names]
@@ -122,7 +123,9 @@ def get_max_dim_in_column_names(column_names: list[str], feature_prefix: str) ->
     # Iterate through valid matches and convert capture group to integer
     dims = [int(match.group(1)) for match in matches if match]
     if len(dims) == 0:
-        raise ValueError(f"No column names found with prefix '{feature_prefix}' in {column_names}.")
+        raise ValueError(
+            f"No column names found for template '{feature_template}' in {column_names}."
+        )
 
     return max(dims)
 
@@ -145,7 +148,7 @@ def get_num_pcs_from_column_names(column_names: list[str]) -> int:
     # get the maximum PC dimension number from the column names; if no PC
     # dimensions are included, set max_pc_dim to 0
     try:
-        max_pc_dim = get_max_dim_in_column_names(column_names, Column.DiffAEData.PCA_FEATURE_PREFIX)
+        max_pc_dim = get_max_dim_in_column_names(column_names, ColumnTemplate.PCA_FEATURE)
     except ValueError:
         max_pc_dim = 0
 
@@ -165,25 +168,28 @@ def get_num_pcs_from_column_names(column_names: list[str]) -> int:
     return max_pc_dim
 
 
-def _add_preceding_dims_to_column_names(column_names: list[str], feature_prefix: str) -> list[str]:
-    """Add preceding dimension column names to the provided column names.
+def _add_preceding_dims_to_column_names(
+    column_names: list[str], feature_template: str
+) -> list[str]:
+    """
+    Add preceding dimension column names to the provided column names.
 
-    The input feature prefix is used to identify the relevant column names
-    and determine the maximum dimension number included in the column names
-    for that feature prefix. Then, all preceding dimension column names based
-    on the feature prefix and maximum dimension number are added to the
-    provided column names.
+    The input feature template is used to identify the relevant column names and
+    determine the maximum dimension number included in the column names for that
+    feature template. Then, all preceding dimension column names based on the
+    feature template and maximum dimension number are added to the provided
+    column names.
 
-    For example, column_names = ["pc_3"] and feature_prefix = "pc_", this method
-    would add "pc_1" and "pc_2" to the output list of column names since they
-    are the preceding dimensions for "pc_3".
+    For example, column_names = ["pc_3"] and feature_template = "pc_%d", this
+    method would add "pc_1" and "pc_2" to the output list of column names since
+    they are the preceding dimensions for "pc_3".
 
     Parameters
     ----------
     column_names
         List of column names corresponding to each dimension.
-    feature_prefix
-        Prefix to look for in column names, e.g., "pc_" or "feat_".
+    feature_template
+        Template to look for in column names, e.g., "pc_%d" or "feat_%d".
 
     Returns
     -------
@@ -194,16 +200,16 @@ def _add_preceding_dims_to_column_names(column_names: list[str], feature_prefix:
     """
     try:
         # get max dimension number for the given feature prefix from the column names
-        max_dim = get_max_dim_in_column_names(column_names, feature_prefix)
+        max_dim = get_max_dim_in_column_names(column_names, feature_template)
 
         # get all column names for the preceding dimensions based on the feature
         # prefix and max dimension number
-        if feature_prefix == Column.DiffAEData.PCA_FEATURE_PREFIX:
+        if feature_template == ColumnTemplate.PCA_FEATURE:
             all_dim_columns = DIFFAE_PC_COLUMN_NAMES[:max_dim]
-        elif feature_prefix == Column.DiffAEData.LATENT_FEATURE_PREFIX:
+        elif feature_template == ColumnTemplate.LATENT_FEATURE:
             all_dim_columns = DIFFAE_FEATURE_COLUMN_NAMES[:max_dim]
         else:
-            raise ValueError(f"Invalid feature prefix: {feature_prefix}")
+            raise ValueError(f"Invalid feature template: {feature_template}")
         # combine the original column names with the preceding dimension column
         # names, ensuring no duplicates
         column_names_with_preceding_dims = list(set(column_names + all_dim_columns))
@@ -211,7 +217,7 @@ def _add_preceding_dims_to_column_names(column_names: list[str], feature_prefix:
     except ValueError:
         logger.warning(
             "No column names found with prefix [ %s ] in [ %s ]. No preceding dimensions will be added.",
-            feature_prefix,
+            feature_template,
             column_names,
         )
         return column_names
@@ -259,8 +265,8 @@ def get_column_names_for_latent_walk_dataframe(input_column_names: list[str]) ->
     # special cases for transformed variables: polar coordinates and flipped pc3
     polar_subset = {Column.DiffAEData.POLAR_ANGLE, Column.DiffAEData.POLAR_RADIUS.value}
     pc1_pc2_subset = {
-        f"{Column.DiffAEData.PCA_FEATURE_PREFIX}1",
-        f"{Column.DiffAEData.PCA_FEATURE_PREFIX}2",
+        ColumnTemplate.PCA_FEATURE % 1,
+        ColumnTemplate.PCA_FEATURE % 2,
     }
     # first, check that columns do not have both the polar coordinates and the
     # PC1 and PC2 coordinates, since this would be redundant and could cause
@@ -292,16 +298,12 @@ def get_column_names_for_latent_walk_dataframe(input_column_names: list[str]) ->
         if not polar_subset.issubset(column_names) and not pc1_pc2_subset.issubset(column_names):
             # if neither the polar coordinate columns nor the PC1 and PC2 columns are included in the column names, add the PC1 and PC2 columns to the column names
             column_names = _add_preceding_dims_to_column_names(
-                column_names, Column.DiffAEData.PCA_FEATURE_PREFIX
+                column_names, ColumnTemplate.PCA_FEATURE
             )
 
     # add preceding latent feature columns if any latent feature columns are included in the column names
-    column_names = _add_preceding_dims_to_column_names(
-        column_names, Column.DiffAEData.LATENT_FEATURE_PREFIX
-    )
-    column_names = _add_preceding_dims_to_column_names(
-        column_names, Column.DiffAEData.PCA_FEATURE_PREFIX
-    )
+    column_names = _add_preceding_dims_to_column_names(column_names, ColumnTemplate.LATENT_FEATURE)
+    column_names = _add_preceding_dims_to_column_names(column_names, ColumnTemplate.PCA_FEATURE)
 
     return column_names
 

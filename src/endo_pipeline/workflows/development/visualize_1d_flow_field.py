@@ -1,8 +1,10 @@
-from endo_pipeline.cli import CropPattern, Datasets
+from endo_pipeline.cli import Datasets, PatchType
 
 
 def main(
-    crop_pattern: CropPattern = "grid", datasets: Datasets | None = None, column: str | None = None
+    patch_type: PatchType = "grid_based",
+    datasets: Datasets | None = None,
+    column: str | None = None,
 ) -> None:
     """
     Visualize 1D drift vector field and fixed points.
@@ -11,7 +13,7 @@ def main(
 
     This workflow uses the precomputed drift vector field and fixed points
     output by the `generate_flow_field` workflow, run for a single column name.
-    Make sure to run that workflow with the matching crop pattern and column
+    Make sure to run that workflow with the matching patch type and column
     name before visualizing.
 
     Visualization outputs include:
@@ -51,8 +53,8 @@ def main(
 
     Parameters
     ----------
-    crop_pattern
-        Crop pattern used to calculate the features.
+    patch_type
+        Patch type used to calculate the features.
     datasets
         List of datasets or dataset collections to visualize.
     columns
@@ -87,7 +89,7 @@ def main(
     from endo_pipeline.library.visualize.diffae_features.feature_viz import get_label_for_column
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.column_names import ColumnNameSuffix
+    from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
     from endo_pipeline.settings.dynamics_workflows import (
         DEFAULT_DATASETS_DYNAMICS_VIS,
         DYNAMICS_COLUMN_NAMES,
@@ -120,9 +122,9 @@ def main(
 
     # Get label and drift column name for selected column
     column_label = get_label_for_column(column_name)
-    drift_column_name = f"{column_name}{ColumnNameSuffix.DRIFT}"
-    fp_column_name = f"{column_name}{ColumnNameSuffix.FIXED_POINTS}"
-    mesh_column_name = f"{column_name}{ColumnNameSuffix.MESH_GRID}"
+    drift_column_name = ColumnTemplate.DRIFT_COEFFICIENT % column_name
+    fp_column_name = ColumnTemplate.FIXED_POINT % column_name
+    mesh_column_name = ColumnTemplate.MESH_GRID % column_name
 
     # Required columns for vector field and fixed point manifests
     required_vector_field_columns = [
@@ -139,7 +141,7 @@ def main(
     ]
 
     # Load drift vector field and fixed points for selected column
-    name_suffix = f"_{column_name}_{crop_pattern}"
+    name_suffix = f"_{column_name}_{patch_type}"
     vector_field_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD}{name_suffix}"
     fixed_points_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix}"
     vector_field_manifest = load_dataframe_manifest(vector_field_manifest_name)
