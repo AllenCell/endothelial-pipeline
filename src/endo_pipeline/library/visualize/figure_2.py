@@ -688,8 +688,8 @@ def make_first_passage_time_distance_to_linefit_hist(
             # distances from the fitted line
             fpt_stats_df_sub = fpt_stats_df_no_nan[fpt_stats_df_no_nan[Column.DATASET] == dataset]
 
-            fpt_col_grid = f"mean{Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX}_grid_based"
-            fpt_col_cell = f"mean{Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX}_cell_centered"
+            fpt_col_grid = ColumnTemplate.FIRST_PASSAGE_TIME_METRIC % ("mean", "grid_based")
+            fpt_col_cell = ColumnTemplate.FIRST_PASSAGE_TIME_METRIC % ("mean", "cell_centered")
             mfpt_points = fpt_stats_df_sub[[fpt_col_grid, fpt_col_cell]]
 
             lob_points = np.stack([odr_result.xplusd, odr_result.yest], axis=-1)

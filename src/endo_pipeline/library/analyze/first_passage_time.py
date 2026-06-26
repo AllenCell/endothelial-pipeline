@@ -493,8 +493,11 @@ def compute_first_passage_time_statistics_for_one_bin(
     first_passage_time_stats_df["sem"] = first_passage_time_stats_df["std"] / np.sqrt(
         first_passage_time_stats_df["count"]
     )
+    # new column names use empty string for the second placeholder because the
+    # dataframe will be merged later, which applies the actual value of the
+    # placeholder using the pandas dataframe merge 'suffixes' option
     new_col_names = {
-        col: col + Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
+        col: ColumnTemplate.FIRST_PASSAGE_TIME_METRIC % (col, "")
         for col in first_passage_time_stats_df.columns
     }
     first_passage_time_stats_df.rename(columns=new_col_names, inplace=True)
@@ -763,7 +766,7 @@ def merge_grid_and_tracked_first_passage_time_statistics_dataframes(
     fpt_stats_df = fpt_stats_df_grid.merge(
         fpt_stats_df_tracked,
         on=[Column.VectorField.BIN_INDEX],
-        suffixes=("_grid_based", "_cell_centered"),
+        suffixes=("grid_based", "cell_centered"),
         validate="one_to_one",
     )
     fpt_stats_df = fpt_stats_df.assign(
@@ -1060,19 +1063,18 @@ def filter_first_passage_time_by_min_num_trajectories(
     # the column title is "50%" for 50th percentile in `pd.describe`` instead of
     # mean so correct that if "median" was chosen
     metric = "50%" if metric_for_filter == "median" else metric_for_filter
-    suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
-    metric = f"{metric}{suffix}"
+    template = ColumnTemplate.FIRST_PASSAGE_TIME_METRIC
 
     # NaN values are unacceptable for the linear regression
     fpt_stats_df_no_nan = fpt_stats_df.copy().dropna(
-        subset=[f"{metric}_grid_based", f"{metric}_cell_centered"]
+        subset=[template % (metric, "grid_based"), template % (metric, "cell_centered")]
     )
     # keep only the bins with the minimum number of tracks per bin in them
     fpt_stats_df_no_nan = fpt_stats_df_no_nan[
-        fpt_stats_df_no_nan["count_first_passage_time_grid_based"] >= min_num_traj_per_bin
+        fpt_stats_df_no_nan[template % ("count", "grid_based")] >= min_num_traj_per_bin
     ]
     fpt_stats_df_no_nan = fpt_stats_df_no_nan[
-        fpt_stats_df_no_nan["count_first_passage_time_cell_centered"] >= min_num_traj_per_bin
+        fpt_stats_df_no_nan[template % ("count", "cell_centered")] >= min_num_traj_per_bin
     ]
 
     return fpt_stats_df_no_nan
@@ -1104,7 +1106,7 @@ def build_first_passage_time_line_fit_results_dataframe(
     # the column title is "50%" for 50th percentile in `pd.describe`` instead of
     # mean so correct that if "median" was chosen
     metric = "50%" if metric_to_fit == "median" else metric_to_fit
-    suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
+    template = ColumnTemplate.FIRST_PASSAGE_TIME_METRIC
 
     # perform a linear regression comparing the grid and tracked metrics for each fixed point
     line_fit_df = (
@@ -1116,7 +1118,7 @@ def build_first_passage_time_line_fit_results_dataframe(
             ]
         )
         .apply(
-            lambda df, metric=metric, suffix=suffix: pd.Series(
+            lambda df, metric=metric, template=template: pd.Series(
                 index=[
                     "slope_odr",
                     "intercept_odr",
@@ -1128,10 +1130,10 @@ def build_first_passage_time_line_fit_results_dataframe(
                 # use the inverse of the variance of the mean (sampling variance)
                 # as the weights for the ODR fit, which is the square of the standard error
                 data=fit_orthogonal_distance_regression(
-                    x=df[f"{metric}{suffix}_grid_based"],
-                    y=df[f"{metric}{suffix}_cell_centered"],
-                    weight_x=df[f"sem{suffix}_grid_based"] ** -2,
-                    weight_y=df[f"sem{suffix}_cell_centered"] ** -2,
+                    x=df[template % (metric, "grid_based")],
+                    y=df[template % (metric, "cell_centered")],
+                    weight_x=df[template % ("sem", "grid_based")] ** -2,
+                    weight_y=df[template % ("sem", "cell_centered")] ** -2,
                 ),
             )
         )
@@ -1147,11 +1149,11 @@ def build_first_passage_time_line_fit_results_dataframe(
                 Column.FIXED_POINT_STABILITY,
             ]
         ).apply(
-            lambda df, metric=metric, suffix=suffix: pd.Series(
+            lambda df, metric=metric, template=template: pd.Series(
                 index=["r_value_pearson", "p_value_pearson"],
                 data=pearsonr(
-                    x=df[f"{metric}{suffix}_grid_based"],
-                    y=df[f"{metric}{suffix}_cell_centered"],
+                    x=df[template % (metric, "grid_based")],
+                    y=df[template % (metric, "cell_centered")],
                 ),
             )
         )

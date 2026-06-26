@@ -629,9 +629,6 @@ class ColumnName:
         FPT_DISTANCE_THRESHOLD = "fpt_distance_threshold"
         """Radius around fixed point at which a trajectory is considered to have reached the fixed point."""
 
-        FIRST_PASSAGE_TIME_SUFFIX = "_first_passage_time"
-        """Suffix for column names representing the first passage time to a fixed point."""
-
         BIN_CENTER = "bin_center"
         """Center of bins used to discretize feature space."""
 
@@ -787,6 +784,9 @@ class ColumnNameTemplate(StrEnum):
     Column name template: Distance from fixed point (index %d) at which a trajectory first
     passed threshold for being considered to have reached the fixed point.
     """
+
+    FIRST_PASSAGE_TIME_METRIC = "%s_first_passage_time_%s"
+    """Column name template: First passage time to fixed point %s for %s patches."""
 
 
 ColumnNameType = (
