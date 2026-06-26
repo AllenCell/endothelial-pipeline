@@ -467,7 +467,7 @@ def reconstruct_fixed_points(
         fig_fixed_point_reconstructions.text(
             -0.1,
             0.35,
-            "Reconstructed\nVE-cadherin MIP",
+            "Reconstructed\nVE-cadherin patch",
             va="center",
             ha="center",
             fontsize=FONTSIZE_SMALL,
