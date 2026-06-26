@@ -12,10 +12,13 @@ from matplotlib.colors import TwoSlopeNorm
 from matplotlib.ticker import MaxNLocator, MultipleLocator
 
 from endo_pipeline.io import load_dataframe, save_plot_to_path
+from endo_pipeline.library.analyze.first_passage_time import (
+    build_first_passage_time_line_fit_results_dataframe,
+    load_filtered_first_passage_time_dataframe,
+)
 from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
 )
-from endo_pipeline.library.analyze.track_integration import get_line_fit_and_filtered_df
 from endo_pipeline.library.analyze.vector_field_estimation import load_drift_dataframe_for_dataset
 from endo_pipeline.library.model.diffae.diffusion_autoencoder import DiffusionAutoEncoder
 from endo_pipeline.library.model.diffae.generate_image import generate_from_dataframe
@@ -624,7 +627,8 @@ def make_first_passage_time_correlation_hist(
     figure_size: tuple[float, float], output_path: Path, dataset_names: list[str]
 ) -> Path:
     fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME)
-    line_fit_df, _ = get_line_fit_and_filtered_df(fpt_manifest, dataset_names)
+    fpt_stats_df_no_nan = load_filtered_first_passage_time_dataframe(fpt_manifest, dataset_names)
+    line_fit_df = build_first_passage_time_line_fit_results_dataframe(fpt_stats_df_no_nan)
 
     pearson_correlations = []
     for _, df_dataset in line_fit_df.groupby(Column.DATASET):
@@ -663,7 +667,8 @@ def make_first_passage_time_distance_to_linefit_hist(
     weighted: bool = True,
 ) -> Path:
     fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME)
-    line_fit_df, fpt_stats_df_no_nan = get_line_fit_and_filtered_df(fpt_manifest, dataset_names)
+    fpt_stats_df_no_nan = load_filtered_first_passage_time_dataframe(fpt_manifest, dataset_names)
+    line_fit_df = build_first_passage_time_line_fit_results_dataframe(fpt_stats_df_no_nan)
 
     distances_all = []
     for dataset, df_dataset in line_fit_df.groupby(Column.DATASET):

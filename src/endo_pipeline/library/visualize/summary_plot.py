@@ -1215,30 +1215,3 @@ def build_dataframe_for_fixed_point_dataset_summary(
     # Combine and rename baseline suffix columns so they don't need to be added downstream
     drop_suffix = {ColumnTemplate.BASELINE_FIXED_POINT % col: col for col in column_names}
     return pd.concat(df_fixed_points_list, ignore_index=True).rename(columns=drop_suffix)
-
-
-def build_dataframe_for_first_passage_time_dataset_summary(
-    dataset_names: list[str],
-    first_passage_time_manifest: DataframeManifest,
-) -> pd.DataFrame:
-    """
-    Build dataframe for plotting first passage time dataset summary.
-
-    Parameters
-    ----------
-    dataset_names
-        List of dataset names to include in summary.
-    first_passage_time_manifest
-        Dataframe manifest for first passage times.
-
-    Returns
-    -------
-    :
-        Dataframe to use for making cross dataset summary plots.
-    """
-
-    from endo_pipeline.library.analyze.track_integration import get_line_fit_and_filtered_df
-
-    line_fit_df, _ = get_line_fit_and_filtered_df(first_passage_time_manifest, dataset_names)
-
-    return line_fit_df

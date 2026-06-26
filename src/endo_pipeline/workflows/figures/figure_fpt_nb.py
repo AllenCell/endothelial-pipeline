@@ -2,7 +2,10 @@
 import matplotlib.pyplot as plt
 
 from endo_pipeline.io import get_output_path
-from endo_pipeline.library.analyze.track_integration import get_line_fit_and_filtered_df
+from endo_pipeline.library.analyze.first_passage_time import (
+    build_first_passage_time_line_fit_results_dataframe,
+    load_filtered_first_passage_time_dataframe,
+)
 from endo_pipeline.library.visualize.figure_fpt import generate_first_passage_time_example
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
 from endo_pipeline.library.visualize.integration.track_integration_viz import (
@@ -36,8 +39,12 @@ trajectory_example_filepath = generate_first_passage_time_example(
 # from and fit lines to the points in the correlation plots
 fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME)
 metric_to_plot = "mean"
-line_fit_df, fpt_stats_df_no_nan = get_line_fit_and_filtered_df(
+fpt_stats_df_no_nan = load_filtered_first_passage_time_dataframe(
     first_passage_time_manifest=fpt_manifest, metric_to_fit=metric_to_plot
+)
+line_fit_df = build_first_passage_time_line_fit_results_dataframe(
+    fpt_stats_df_no_nan=fpt_stats_df_no_nan,
+    metric_to_fit=metric_to_plot,
 )
 
 # %% make plots

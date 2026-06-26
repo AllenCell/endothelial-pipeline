@@ -1,15 +1,11 @@
 import logging
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 import numpy as np
 import pandas as pd
 
 from endo_pipeline.io import load_dataframe
-from endo_pipeline.library.analyze.first_passage_time import (
-    build_first_passage_time_line_fit_results_dataframe,
-    filter_first_passage_time_by_min_num_trajectories,
-)
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
@@ -26,7 +22,6 @@ from endo_pipeline.library.analyze.vector_field_estimation import (
 )
 from endo_pipeline.library.analyze.vector_field_function import solve_ode_from_vector_field_dict
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
-from endo_pipeline.manifests.dataframe_manifest import DataframeManifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.diffae_feature_dataframes import (
     DIFFAE_PC_COLUMN_NAMES,
@@ -41,9 +36,6 @@ from endo_pipeline.settings.dynamics_workflows import (
     RESCALE_THETA,
     TIME_STEP_IN_MINUTES,
     KernelName,
-)
-from endo_pipeline.settings.first_passage_time import (
-    FIRST_PASSAGE_TIME_MIN_NUM_TRAJECTORIES_PER_BIN,
 )
 from endo_pipeline.settings.flow_field_3d import (
     BIN_WIDTH_DEFAULTS,
@@ -595,35 +587,3 @@ def get_and_save_pc_diffae_feats_liveseg_feats_merged_table(
 
     filename_filtered = f"{dataset_name}_pc_diffae_seg_feats_merged_filtered.parquet"
     merged_df_filtered.to_parquet(out_dir / filename_filtered)
-
-
-def get_line_fit_and_filtered_df(
-    first_passage_time_manifest: DataframeManifest,
-    dataset_names: list[str] | None = None,
-    min_num_traj_per_bin: int = FIRST_PASSAGE_TIME_MIN_NUM_TRAJECTORIES_PER_BIN,
-    metric_to_fit: Literal["mean", "median"] = "mean",
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-
-    # Load the first passage time statistics dataframe. If given, only load
-    # the selected datasets. Otherwise, load all datasets.
-    if dataset_names is None:
-        dfs = [load_dataframe(loc) for loc in first_passage_time_manifest.locations.values()]
-    else:
-        dfs = [load_dataframe(first_passage_time_manifest.locations[d]) for d in dataset_names]
-    fpt_stats_df = pd.concat(dfs)
-
-    # filter out nans and bins with too few trajectories for a certain measure
-    # (either mean or median) for the correlation and line fitting steps
-    fpt_stats_df_no_nan = filter_first_passage_time_by_min_num_trajectories(
-        fpt_stats_df=fpt_stats_df,
-        min_num_traj_per_bin=min_num_traj_per_bin,
-        metric_for_filter=metric_to_fit,
-    )
-    # fit a line to the correlation between grid and tracked first passage
-    # time statistics for each fixed point and dataset
-    line_fit_df = build_first_passage_time_line_fit_results_dataframe(
-        fpt_stats_df_no_nan=fpt_stats_df_no_nan,
-        metric_to_fit=metric_to_fit,
-    )
-
-    return line_fit_df, fpt_stats_df_no_nan

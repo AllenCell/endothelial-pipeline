@@ -24,6 +24,7 @@ from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
 )
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+from endo_pipeline.manifests.dataframe_manifest import DataframeManifest
 from endo_pipeline.settings.bootstrap_fixed_points import BOOTSTRAP_THRESHOLD
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
@@ -32,6 +33,9 @@ from endo_pipeline.settings.dynamics_workflows import (
     LONG_TRACK_THRESHOLD_LENGTH,
     POLAR_ANGLE_PERIOD,
     TIME_STEP_IN_HOURS,
+)
+from endo_pipeline.settings.first_passage_time import (
+    FIRST_PASSAGE_TIME_MIN_NUM_TRAJECTORIES_PER_BIN,
 )
 from endo_pipeline.settings.literal_types import PatchTypeLiteral
 from endo_pipeline.settings.workflow_defaults import (
@@ -1127,7 +1131,7 @@ def filter_first_passage_time_by_min_num_trajectories(
 
 
 def build_first_passage_time_line_fit_results_dataframe(
-    fpt_stats_df_no_nan: pd.DataFrame, metric_to_fit: Literal["mean", "median"]
+    fpt_stats_df_no_nan: pd.DataFrame, metric_to_fit: Literal["mean", "median"] = "mean"
 ) -> pd.DataFrame:
     """
     Build a dataframe of line-fit results comparing grid-based and track-based first passage
@@ -1211,3 +1215,29 @@ def build_first_passage_time_line_fit_results_dataframe(
         validate="one_to_one",
     )
     return line_fit_df
+
+
+def load_filtered_first_passage_time_dataframe(
+    first_passage_time_manifest: DataframeManifest,
+    dataset_names: list[str] | None = None,
+    min_num_traj_per_bin: int = FIRST_PASSAGE_TIME_MIN_NUM_TRAJECTORIES_PER_BIN,
+    metric_to_fit: Literal["mean", "median"] = "mean",
+) -> pd.DataFrame:
+    """Load and filter first passage time dataframes for given datasets."""
+
+    # Load the first passage time statistics dataframe. If given, only load
+    # the selected datasets. Otherwise, load all datasets.
+    if dataset_names is None:
+        dfs = [load_dataframe(loc) for loc in first_passage_time_manifest.locations.values()]
+    else:
+        dfs = [load_dataframe(first_passage_time_manifest.locations[d]) for d in dataset_names]
+
+    fpt_stats_df = pd.concat(dfs)
+
+    # filter out nans and bins with too few trajectories for a certain measure
+    # (either mean or median) for the correlation and line fitting steps
+    return filter_first_passage_time_by_min_num_trajectories(
+        fpt_stats_df=fpt_stats_df,
+        min_num_traj_per_bin=min_num_traj_per_bin,
+        metric_for_filter=metric_to_fit,
+    )
