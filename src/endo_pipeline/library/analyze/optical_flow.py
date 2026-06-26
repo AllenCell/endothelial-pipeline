@@ -48,7 +48,6 @@ def compute_flow_statistics(
     timepoint: int,
     dt: int,
     intensity_threshold: float,
-    speed_threshold: float = 1.0,
 ) -> dict:
     """Compute summary statistics from a 2-D optical-flow field (u, v).
 
@@ -69,8 +68,6 @@ def compute_flow_statistics(
         Temporal stride between the two frames.
     intensity_threshold
         Intensity threshold for foreground masking.
-    speed_threshold
-        Minimum pixel speed for the "fast" coherence features.
 
     Returns
     -------
@@ -108,16 +105,6 @@ def compute_flow_statistics(
         else 0.0
     )
 
-    # --- Thresholded coherence (speed > threshold) ---
-    fast = sp > speed_threshold
-    n_fast = int(fast.sum())
-    if fast.any():
-        muv_fast = float(
-            np.sqrt(np.mean(um[fast] / sp[fast]) ** 2 + np.mean(vm[fast] / sp[fast]) ** 2)
-        )
-    else:
-        muv_fast = np.nan
-
     base.update(
         {
             ColumnName.OpticalFlow.SPEED_MEAN_BASE: float(sp.mean()),
@@ -133,9 +120,6 @@ def compute_flow_statistics(
             ColumnName.OpticalFlow.V_STD_BASE: float(vm.std()),
         }
     )
-
-    base[ColumnName.OpticalFlow.SPEED_ABOVE_1_COUNT_BASE] = n_fast
-    base[ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_FAST_BASE] = muv_fast
 
     return base
 
@@ -179,7 +163,6 @@ def compute_image_pair_flow(
     crops: OpticalFlowImagePairCrops,
     intensity_threshold: float,
     attachment: float = 7.5,
-    speed_threshold: float = 1.0,
 ) -> list[dict]:
     """
     Run TVL1 on a full-resolution frame pair, then compute per-crop stats.
@@ -202,8 +185,6 @@ def compute_image_pair_flow(
         Intensity threshold for foreground masking.
     attachment
         TVL1 data-fidelity weight (λ).
-    speed_threshold
-        Speed threshold for fast-coherence features.
 
     Returns
     -------
@@ -231,7 +212,6 @@ def compute_image_pair_flow(
             image_pair.t0,
             image_pair.dt,
             intensity_threshold,
-            speed_threshold,
         )
         for i in range(n_crops)
     ]

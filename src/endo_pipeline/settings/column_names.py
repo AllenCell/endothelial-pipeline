@@ -542,7 +542,6 @@ class ColumnName:
     class OpticalFlow(StrEnum):
         """Dataframe column names used in the optical-flow feature workflow."""
 
-        # --- Base feature names (before dt suffix) produced by compute_flow_statistics ---
         SPEED_MEAN_BASE = "optical_flow_mean_speed"
         """Base name for mean speed (before dt suffix)."""
 
@@ -570,13 +569,6 @@ class ColumnName:
         V_STD_BASE = "optical_flow_std_v"
         """Base name for v standard deviation (before dt suffix)."""
 
-        SPEED_ABOVE_1_COUNT_BASE = "speed_above_1_count"
-        """Base name for count of pixels above speed threshold (before dt suffix)."""
-
-        UNIT_VECTOR_MEAN_FAST_BASE = "optical_flow_mean_unit_vector_fast"
-        """Base name for fast-pixel unit vector coherence (before dt suffix)."""
-
-        # --- Final (suffixed) feature names used in dataframes ---
         SPEED_MEAN = "optical_flow_mean_speed_dt1"
         """Mean speed of the optical flow vectors in a crop."""
 
@@ -604,18 +596,9 @@ class ColumnName:
         V_STD = "optical_flow_std_v_dt1"
         """Standard deviation of the v (y) components of the optical flow vectors in a crop."""
 
-        SPEED_ABOVE_1_COUNT = "speed_above_1_count_dt1"
-        """Number of pixels whose speed exceeds the threshold (fast-coherence feature)."""
-
-        UNIT_VECTOR_MEAN_FAST = "optical_flow_mean_unit_vector_fast_dt1"
-        """Mean unit vector coherence computed only over fast pixels."""
-
-        # --- EMA-smoothed and unsuffixed variants used in plotting / TFE viewer ---
         UNIT_VECTOR_MEAN_RAW = "optical_flow_mean_unit_vector_dt1"
         """Mean unit vector coherence (no EMA smoothing)."""
 
-        EMA01_UNIT_VECTOR_MEAN_FAST = "ema01_optical_flow_mean_unit_vector_fast_dt1"
-        """Mean unit vector coherence over fast pixels with EMA smoothing, alpha=0.1."""
 
     FIXED_POINT_STABILITY = "stability"
     """Stability classification of a fixed point."""

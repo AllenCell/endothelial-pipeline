@@ -7,7 +7,6 @@ parameters:
   intensity_percentile: 0
   attachment: 2.5
   ema_alpha: 0.1
-  speed_threshold: 1.0
 locations:
   20250319_20X:
     fmsid: 4d6d9b9c766d4ce0b714436bef3893d2
