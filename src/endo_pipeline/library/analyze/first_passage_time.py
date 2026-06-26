@@ -1130,7 +1130,7 @@ def build_first_passage_time_line_fit_results_dataframe(
         .apply(
             lambda df, metric=metric, template=template: pd.Series(
                 index=[
-                    Column.VectorField.LINEFIT_SLOPE,
+                    Column.VectorField.LINEFIT_SLOPE_ODR,
                     Column.VectorField.LINEFIT_INTERCEPT_ODR,
                     Column.VectorField.LINEFIT_SLOPE_STDEV_ODR,
                     Column.VectorField.LINEFIT_INTERCEPT_STDEV_ODR,

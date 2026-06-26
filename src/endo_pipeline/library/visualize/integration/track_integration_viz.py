@@ -1026,8 +1026,12 @@ def plot_first_passage_time_parameter_sweep(
     ax.set_title(fig_title, fontsize=FONTSIZE_SMALL)
     ax.errorbar(
         x=first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
-        y=first_passage_time_param_sweep_df[f"{metric}_grid_based"],
-        yerr=first_passage_time_param_sweep_df["std_grid_based"],
+        y=first_passage_time_param_sweep_df[
+            ColumnTemplate.FIRST_PASSAGE_TIME_OVERALL_METRIC % (metric, "grid_based")
+        ],
+        yerr=first_passage_time_param_sweep_df[
+            ColumnTemplate.FIRST_PASSAGE_TIME_OVERALL_METRIC % ("std", "grid_based")
+        ],
         label=f"MFPT {UnicodeCharacters.PLUS_MINUS} STD (grid-based)",
         fmt="o-",
         color="tab:blue",
@@ -1037,8 +1041,12 @@ def plot_first_passage_time_parameter_sweep(
     )
     ax.errorbar(
         x=first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
-        y=first_passage_time_param_sweep_df[f"{metric}_cell_centered"],
-        yerr=first_passage_time_param_sweep_df["std_cell_centered"],
+        y=first_passage_time_param_sweep_df[
+            ColumnTemplate.FIRST_PASSAGE_TIME_OVERALL_METRIC % (metric, "cell_centered")
+        ],
+        yerr=first_passage_time_param_sweep_df[
+            ColumnTemplate.FIRST_PASSAGE_TIME_OVERALL_METRIC % ("std", "cell_centered")
+        ],
         label=f"MFPT {UnicodeCharacters.PLUS_MINUS} STD (cell-centered)",
         fmt="o-",
         color="tab:red",
