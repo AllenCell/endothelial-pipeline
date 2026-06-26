@@ -620,6 +620,12 @@ class ColumnName:
     FIXED_POINT_STABILITY = "stability"
     """Stability classification of a fixed point."""
 
+    NUM_TRAJECTORIES_BEFORE_FPT_FILTER = "num_trajectories_before_fpt_filter"
+    """NUmber of trajectories before first passage time filter is applied."""
+
+    NUM_TRAJECTORIES_AFTER_FPT_FILTER = "num_trajectories_after_fpt_filter"
+    """NUmber of trajectories after first passage time filter is applied."""
+
     class VectorField(StrEnum):
         """Column name suffixes used in vector field / dynamics analysis."""
 
@@ -641,20 +647,55 @@ class ColumnName:
         PERCENT_TRAJ_APPROACHED_FP = "percent_trajectories_approached_fp"
         """Percent of trajectories that come within a given radius of a stable fixed point in ML-based feature space."""
 
+        LINEFIT_SLOPE_ODR = "slope_odr"
+        """
+        Slope of line fit to relationship between first passage time to fixed
+        point for grid-based and cell-centered patches using orthogonal distance
+        regression (ODR).
+        """
+
         LINEFIT_INTERCEPT_ODR = "intercept_odr"
-        """Column name for the intercept of a line fit to the relationship between first passage time and distance from the fixed point using orthogonal distance regression (ODR)."""
+        """
+        Intercept of line fit to relationship between first passage time to
+        fixed point for grid-based and cell-centered patches using orthogonal
+        distance regression (ODR).
+        """
+
+        LINEFIT_SLOPE_STDEV_ODR = "slope_stdev_odr"
+        """
+        Standard deviation of slope estimate for line fit to relationship
+        between first passage time to fixed point for grid-based and
+        cell-centered patches using orthogonal distance regression (ODR).
+        """
+
+        LINEFIT_INTERCEPT_STDEV_ODR = "intercept_stdev_odr"
+        """
+        Standard deviation of intercept estimate for line fit to relationship
+        between first passage time to fixed point for grid-based and
+        cell-centered patches using orthogonal distance regression (ODR).
+        """
 
         LINEFIT_REDUCED_CHI_SQUARED_ODR = "reduced_chi_squared_odr"
-        """Column name for the reduced chi-squared value of a line fit to the relationship between first passage time and distance from the fixed point using orthogonal distance regression (ODR)."""
-
-        PEARSON_R = "r_value_pearson"
-        """Column name for the Pearson correlation coefficient between first passage time and distance from the fixed point."""
-
-        LINEFIT_SLOPE = "slope_odr"
-        """Column name for the slope of a line fit to the relationship between first passage time to the fixed point for grid and tracked crops."""
+        """
+        Reduced chi-squared value for line fit to relationship between first
+        passage time to fixed point for grid-based and cell-centered patches
+        using orthogonal distance regression (ODR).
+        """
 
         ODR_RESULT = "OdrResult"
-        """Column name for the result object of the orthogonal distance regression (ODR) analysis."""
+        """Result object from orthogonal distance regression (ODR) analysis."""
+
+        PEARSON_R = "r_value_pearson"
+        """
+        Pearson correlation coefficient between first passage time to fixed
+        point for grid-based and cell-centered patches.
+        """
+
+        PEARSON_P = "p_value_pearson"
+        """
+        Pearson correlation p-value between first passage time to fixed point
+        for grid-based and cell-centered patches.
+        """
 
     FIXED_POINT_DETECTION_RATE = "detection_rate"
     """Fraction of bootstrap iterations in which a matched fixed point was found."""

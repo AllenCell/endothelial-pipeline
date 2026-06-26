@@ -1164,7 +1164,7 @@ def plot_first_passage_time_correlations(
     metric = "50%" if metric_to_plot == "median" else metric_to_plot
     template = ColumnTemplate.FIRST_PASSAGE_TIME_METRIC
 
-    slope = line_fit_df[Column.VectorField.LINEFIT_SLOPE].unique().item()
+    slope = line_fit_df[Column.VectorField.LINEFIT_SLOPE_ODR].unique().item()
     intercept = line_fit_df[Column.VectorField.LINEFIT_INTERCEPT_ODR].unique().item()
     corr_metric_val = (
         line_fit_df[Column.VectorField.LINEFIT_REDUCED_CHI_SQUARED_ODR].unique().item()
@@ -1312,7 +1312,7 @@ def plot_first_passage_time_correlation_summary(
     out_dir: Path,
     filename: str,
     corr_metric_column: Column.VectorField = Column.VectorField.PEARSON_R,
-    slope_column: Column.VectorField = Column.VectorField.LINEFIT_SLOPE,
+    slope_column: Column.VectorField = Column.VectorField.LINEFIT_SLOPE_ODR,
     summary_fig_kwargs: dict | None = {"figsize": (6, 2.5)},
 ) -> None:
     """Plot a summary of the correlation results from the first passage time

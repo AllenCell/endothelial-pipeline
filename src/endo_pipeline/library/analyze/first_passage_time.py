@@ -668,7 +668,7 @@ def compute_first_passage_time_parameter_sweep(
     sweep_results: list = []
     for thresh in thresholds:
         trajectory_df_one_param = trajectory_df.copy()
-        trajectory_df_one_param["num_trajectories_before_fpt_filter"] = trajectory_df[
+        trajectory_df_one_param[Column.NUM_TRAJECTORIES_BEFORE_FPT_FILTER] = trajectory_df[
             Column.CROP_INDEX
         ].nunique()
         trajectory_df_one_param = add_first_passage_time_column(
@@ -677,7 +677,7 @@ def compute_first_passage_time_parameter_sweep(
             threshold=thresh,
             time_column=Column.SegData.TIME_HRS,
         )
-        trajectory_df_one_param["num_trajectories_after_fpt_filter"] = trajectory_df_one_param[
+        trajectory_df_one_param[Column.NUM_TRAJECTORIES_AFTER_FPT_FILTER] = trajectory_df_one_param[
             Column.CROP_INDEX
         ].nunique()
         trajectory_df_one_param = trajectory_df_one_param.assign(
@@ -704,8 +704,8 @@ def compute_first_passage_time_parameter_sweep(
     # parameter combination to see how the fixed point distance threshold affects the
     # number of trajectories that are considered to have reached the fixed point
     fpt_param_sweep_df[Column.VectorField.PERCENT_TRAJ_APPROACHED_FP] = (
-        fpt_param_sweep_df["num_trajectories_after_fpt_filter"]
-        / fpt_param_sweep_df["num_trajectories_before_fpt_filter"]
+        fpt_param_sweep_df[Column.NUM_TRAJECTORIES_AFTER_FPT_FILTER]
+        / fpt_param_sweep_df[Column.NUM_TRAJECTORIES_BEFORE_FPT_FILTER]
     ) * 100
 
     num_traj_param_sweep_agg = (
@@ -1002,8 +1002,8 @@ def fit_orthogonal_distance_regression(
     Returns
     -------
     :
-        Tuple of ``(slope_fit, intercept_fit, slope_stdev, intercept_stdev,
-        reduced_chi_squared, OdrResult)`` from the ODR fit.
+        Tuple of (slope_fit, intercept_fit, slope_stdev, intercept_stdev,
+        reduced_chi_squared, line_fit) from the ODR fit.
     """
     # use a line function for the ODR fit
     # p0 is the initial guess for the parameters of the function,
@@ -1120,12 +1120,12 @@ def build_first_passage_time_line_fit_results_dataframe(
         .apply(
             lambda df, metric=metric, template=template: pd.Series(
                 index=[
-                    "slope_odr",
-                    "intercept_odr",
-                    "slope_stdev_odr",
-                    "intercept_stdev_odr",
-                    "reduced_chi_squared_odr",
-                    "OdrResult",
+                    Column.VectorField.LINEFIT_SLOPE,
+                    Column.VectorField.LINEFIT_INTERCEPT_ODR,
+                    Column.VectorField.LINEFIT_SLOPE_STDEV_ODR,
+                    Column.VectorField.LINEFIT_INTERCEPT_STDEV_ODR,
+                    Column.VectorField.LINEFIT_REDUCED_CHI_SQUARED_ODR,
+                    Column.VectorField.ODR_RESULT,
                 ],
                 # use the inverse of the variance of the mean (sampling variance)
                 # as the weights for the ODR fit, which is the square of the standard error
@@ -1150,7 +1150,7 @@ def build_first_passage_time_line_fit_results_dataframe(
             ]
         ).apply(
             lambda df, metric=metric, template=template: pd.Series(
-                index=["r_value_pearson", "p_value_pearson"],
+                index=[Column.VectorField.PEARSON_R, Column.VectorField.PEARSON_P],
                 data=pearsonr(
                     x=df[template % (metric, "grid_based")],
                     y=df[template % (metric, "cell_centered")],

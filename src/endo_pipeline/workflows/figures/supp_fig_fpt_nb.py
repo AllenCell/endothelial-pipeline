@@ -137,7 +137,7 @@ fpt_pearson_r_path = plot_cross_dataset_summaries(
 fpt_slope_path = plot_cross_dataset_summaries(
     first_passage_summary_df,
     output_path=save_dir,
-    column_names=[Column.VectorField.LINEFIT_SLOPE],
+    column_names=[Column.VectorField.LINEFIT_SLOPE_ODR],
     axis_mode="replicate",
     figure_size=(4.2, 2.3),
     set_y_lims=True,
