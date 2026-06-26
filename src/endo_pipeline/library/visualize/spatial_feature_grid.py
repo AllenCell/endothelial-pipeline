@@ -366,7 +366,7 @@ def create_panel_spatial_feature_grid(
     example_images: list,
     include_bf_images: bool = False,
     image_crop_size: int = 768,
-    grid_start_xy: tuple[int, int] = (128, 128),
+    grid_start_xy_res_0: tuple[int, int] = (256, 256),
     grid_dimensions: tuple[int, int] = (3, 3),
     cmap: str = "viridis",
     figure_size: tuple[float, float] | None = None,
@@ -404,17 +404,24 @@ def create_panel_spatial_feature_grid(
         image_crop_size=image_crop_size,
     )
 
-    # Compute grid positions from start_xy and dimensions
+    # Compute grid positions at resolution level 0 (patch size 256).
+    # grid_start_xy and all grid_positions are in level-0 pixel coordinates.
     res_level_0_patch_size = 256
+    res_level_1_patch_size = 128
+    position_downscale = res_level_0_patch_size // res_level_1_patch_size
     n_cols_grid, n_rows_grid = grid_dimensions
-    sx0, sy0 = grid_start_xy
+    sx0, sy0 = grid_start_xy_res_0
     grid_positions = [
         (sx0 + col * res_level_0_patch_size, sy0 + row * res_level_0_patch_size)
         for row in range(n_rows_grid)
         for col in range(n_cols_grid)
     ]
+
+    # Dataframes store start_x / start_y at resolution level 1 (patch size 128),
+    # so divide each level-0 position by 2 to match the dataframe coordinate system.
     positions_df = pd.DataFrame(
-        grid_positions, columns=[Column.DiffAEData.START_X, Column.DiffAEData.START_Y]
+        [(x // position_downscale, y // position_downscale) for x, y in grid_positions],
+        columns=[Column.DiffAEData.START_X, Column.DiffAEData.START_Y],
     )
 
     n_features = len(feature_columns)
@@ -472,9 +479,14 @@ def create_panel_spatial_feature_grid(
             grid_data = df_example[
                 [Column.DiffAEData.START_X, Column.DiffAEData.START_Y, feature]
             ].dropna(subset=[feature])
+            # Merge on level-1 coordinates to sample the correct patches.
             grid_data = grid_data.merge(
                 positions_df, on=[Column.DiffAEData.START_X, Column.DiffAEData.START_Y]
             )
+            # Scale matched coordinates back to level-0 space for visualization.
+            grid_data = grid_data.copy()
+            grid_data[Column.DiffAEData.START_X] *= 2
+            grid_data[Column.DiffAEData.START_Y] *= 2
 
             col_vmin = vmin if vmin is not None else grid_data[feature].min()
             col_vmax = vmax if vmax is not None else grid_data[feature].max()
