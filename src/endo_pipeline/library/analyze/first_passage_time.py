@@ -357,7 +357,7 @@ def add_first_passage_time_column(
 
     # compute where the trajectory first passes the threshold distance to the fixed point
     column = ColumnTemplate.DISTANCE_FROM_FIXED_POINT % fixed_point_index
-    new_column_name = f"{Column.VectorField.FIRST_PASSAGE_PREFIX}{column}"
+    new_column_name = ColumnTemplate.FIRST_PASSAGE_TIME_DISTANCE % fixed_point_index
     trajectory_df[new_column_name] = (
         trajectory_df.groupby(Column.CROP_INDEX)
         .apply(
@@ -374,14 +374,14 @@ def add_first_passage_time_column(
     trajectory_df = trajectory_df[
         trajectory_df.apply(
             lambda row, fp_idx=fixed_point_index, time_column=time_column: row[time_column]
-            < row[f"{Column.VectorField.FIRST_PASSAGE_DIST_PREFIX}{fp_idx}"],
+            < row[ColumnTemplate.FIRST_PASSAGE_TIME_DISTANCE % fp_idx],
             axis=1,
         )
     ]
 
     # compute the time to the first passage time from each timepoint
     trajectory_df[ColumnTemplate.TIME_TO_FIXED_POINT % fixed_point_index] = (
-        trajectory_df[f"{Column.VectorField.FIRST_PASSAGE_DIST_PREFIX}{fixed_point_index}"]
+        trajectory_df[ColumnTemplate.FIRST_PASSAGE_TIME_DISTANCE % fixed_point_index]
         - trajectory_df[time_column]
     )
 

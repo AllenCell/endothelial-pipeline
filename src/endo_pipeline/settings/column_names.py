@@ -632,10 +632,6 @@ class ColumnName:
         FPT_DISTANCE_THRESHOLD = "fpt_distance_threshold"
         """Column name for the distance threshold used to determine whether a trajectory has reached a fixed point in first passage time analysis."""
 
-        FIRST_PASSAGE_DIST_PREFIX = "first_passage_dist_from_fp_"
-        """Prefix for column names representing the distance from a fixed point at which a
-        trajectory first passed the threshold for being considered to have reached the fixed point."""
-
         FIRST_PASSAGE_TIME_SUFFIX = "_first_passage_time"
         """Suffix for column names representing the first passage time to a fixed point."""
 
@@ -794,6 +790,12 @@ class ColumnNameTemplate(StrEnum):
 
     BIN_LIMITS = "bin_limits_%s"
     """Column name template: Bin limits used when discretizing feature space in %s."""
+
+    FIRST_PASSAGE_TIME_DISTANCE = "first_passage_dist_from_fp_%d"
+    """
+    Column name template: Distance from fixed point (index %d) at which a trajectory first
+    passed threshold for being considered to have reached the fixed point.
+    """
 
 
 ColumnNameType = (
