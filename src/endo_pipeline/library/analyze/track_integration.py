@@ -9,6 +9,9 @@ from odrpack import odr_fit
 from scipy.stats import pearsonr
 
 from endo_pipeline.io import load_dataframe
+from endo_pipeline.library.analyze.first_passage_time import (
+    filter_first_passage_time_by_min_num_trajectories,
+)
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
@@ -596,53 +599,6 @@ def get_and_save_pc_diffae_feats_liveseg_feats_merged_table(
     merged_df_filtered.to_parquet(out_dir / filename_filtered)
 
 
-def filter_fpt_stats_df_by_min_num_trajectories(
-    fpt_stats_df: pd.DataFrame,
-    min_num_traj_per_bin: int,
-    metric_for_filter: Literal["mean", "median"],
-) -> pd.DataFrame:
-    """
-    Filter a first passage time stats dataframe to only retain bins that have at least
-    ``min_num_traj_per_bin`` trajectories and a non-NaN value for the chosen metric in
-    both the grid and tracked columns.
-
-    Parameters
-    ----------
-    fpt_stats_df
-        DataFrame containing first passage time summary statistics per bin, as produced
-        by :func:`compute_first_passage_time_stats_for_bins`.
-    min_num_traj_per_bin
-        Minimum number of trajectories required in a bin for it to be retained.
-    metric_for_filter
-        Which central-tendency metric to require to be non-NaN: ``"mean"`` or ``"median"``.
-
-    Returns
-    -------
-    :
-        Filtered DataFrame containing only bins that satisfy the trajectory-count and
-        non-NaN requirements.
-    """
-    # the column title is "50%" for 50th percentile in `pd.describe`` instead of
-    # mean so correct that if "median" was chosen
-    metric = "50%" if metric_for_filter == "median" else metric_for_filter
-    suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
-    metric = f"{metric}{suffix}"
-
-    # NaN values are unacceptable for the linear regression
-    fpt_stats_df_no_nan = fpt_stats_df.copy().dropna(
-        subset=[f"{metric}_grid_based", f"{metric}_cell_centered"]
-    )
-    # keep only the bins with the minimum number of tracks per bin in them
-    fpt_stats_df_no_nan = fpt_stats_df_no_nan[
-        fpt_stats_df_no_nan["count_first_passage_time_grid_based"] >= min_num_traj_per_bin
-    ]
-    fpt_stats_df_no_nan = fpt_stats_df_no_nan[
-        fpt_stats_df_no_nan["count_first_passage_time_cell_centered"] >= min_num_traj_per_bin
-    ]
-
-    return fpt_stats_df_no_nan
-
-
 def get_odr_fit_results(
     x: Sequence, y: Sequence, weight_x: Sequence | None = None, weight_y: Sequence | None = None
 ) -> tuple:
@@ -799,7 +755,7 @@ def get_line_fit_and_filtered_df(
 
     # filter out nans and bins with too few trajectories for a certain measure
     # (either mean or median) for the correlation and line fitting steps
-    fpt_stats_df_no_nan = filter_fpt_stats_df_by_min_num_trajectories(
+    fpt_stats_df_no_nan = filter_first_passage_time_by_min_num_trajectories(
         fpt_stats_df=fpt_stats_df,
         min_num_traj_per_bin=min_num_traj_per_bin,
         metric_for_filter=metric_to_fit,

@@ -15,6 +15,7 @@ from endo_pipeline.library.analyze.first_passage_time import (
     add_first_passage_time_column,
     build_first_passage_time_bins,
     compute_first_passage_time_statistics,
+    filter_first_passage_time_by_min_num_trajectories,
     filter_to_trajectories_reaching_fixed_point,
     load_dataframes_for_first_passage_time_analysis,
 )
@@ -102,38 +103,6 @@ class _HandlerSphere(HandlerBase):
             transform=trans,
         )
         return [body, highlight]
-
-
-def _select_example_bin(
-    fpt_stats_df: pd.DataFrame, min_num_traj_per_bin: int
-) -> tuple[np.ndarray, list]:
-    """
-    Select an example bin to visualize trajectories from based on the first
-    passage time statistics dataframe.
-    """
-    # pick the mean FPT metric and select the first well-populated bin as the
-    # example bin to visualize
-    # we take one representative trajectory from each patch type that starts inside that bin
-    metric = f"mean{Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX}"
-
-    # NaN values are unacceptable for the linear regression
-    first_passage_time_df_no_nan = fpt_stats_df.copy().dropna(
-        subset=[f"{metric}_grid_based", f"{metric}_cell_centered"]
-    )
-    # keep only the bins with the minimum number of tracks per bin in them
-    first_passage_time_df_no_nan = first_passage_time_df_no_nan[
-        first_passage_time_df_no_nan["count_first_passage_time_grid_based"] >= min_num_traj_per_bin
-    ]
-    first_passage_time_df_no_nan = first_passage_time_df_no_nan[
-        first_passage_time_df_no_nan["count_first_passage_time_cell_centered"]
-        >= min_num_traj_per_bin
-    ]
-
-    # get the center and edges of the first qualifying bin
-    example_bin_center, example_bin_edges = first_passage_time_df_no_nan[
-        [Column.VectorField.BIN_CENTER, Column.VectorField.BIN_EDGES]
-    ].iloc[0]
-    return example_bin_center, example_bin_edges
 
 
 def _select_example_bin_trajectories(
@@ -518,18 +487,17 @@ def generate_first_passage_time_example(
     )
 
     # remove bins that don't have enough trajectories in them from either the
-    # grid or tracked trajectories
-    fpt_stats_df = fpt_stats_df[
-        fpt_stats_df["count_first_passage_time_grid_based"] >= min_num_traj_per_bin
-    ]
-    fpt_stats_df = fpt_stats_df[
-        fpt_stats_df["count_first_passage_time_cell_centered"] >= min_num_traj_per_bin
-    ]
-
-    example_bin_center, example_bin_edges = _select_example_bin(
+    # grid or tracked trajectories and drop nans
+    fpt_stats_df_no_nan = filter_first_passage_time_by_min_num_trajectories(
         fpt_stats_df=fpt_stats_df,
         min_num_traj_per_bin=min_num_traj_per_bin,
+        metric_for_filter="mean",
     )
+
+    # Select an example bin to visualize trajectories
+    example_bin_center, example_bin_edges = fpt_stats_df_no_nan[
+        [Column.VectorField.BIN_CENTER, Column.VectorField.BIN_EDGES]
+    ].iloc[0]
 
     example_traj_df_grid, example_traj_df_tracked = _select_example_bin_trajectories(
         example_bin_center=example_bin_center,
