@@ -100,7 +100,7 @@ if not isinstance(fp_idx, int):
     )
 
 df = fpt_param_sweep_df[fpt_param_sweep_df[Column.VectorField.FIXED_POINT_INDEX] == fp_idx]
-df[Column.FIXED_POINT_STABILITY].astype("object").unique().item()
+fp_stability = df[Column.FIXED_POINT_STABILITY].astype("object").unique().item()
 
 fp_param_sweep_fpt, fp_param_sweep_num_traj = plot_first_passage_time_parameter_sweep(
     dataset_name=dataset_name,
