@@ -13,14 +13,10 @@ from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_binned_value
 from endo_pipeline.library.analyze.first_passage_time import (
     add_first_passage_time_column,
+    build_first_passage_time_bins,
     compute_first_passage_time_statistics,
     filter_to_trajectories_reaching_fixed_point,
     load_dataframes_for_first_passage_time_analysis,
-)
-from endo_pipeline.library.analyze.numerics.binning import adjust_limits_from_bin_size, get_bins
-from endo_pipeline.library.analyze.track_integration import (
-    compute_first_passage_time_stats_for_bins,
-    merge_grid_and_tracked_first_passage_time_stats_dfs,
 )
 from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.library.visualize.figures import figure_panel
@@ -106,8 +102,6 @@ class _HandlerSphere(HandlerBase):
             transform=trans,
         )
         return [body, highlight]
-
-
 
 
 def _select_example_bin(
@@ -486,39 +480,9 @@ def generate_first_passage_time_example(
         )
     )
 
-    # Bin (theta, r, rho) feature space.
-    # First, define the bin sizes for each feature to be binned
-    bin_sizes = {
-        Column.DiffAEData.POLAR_ANGLE: np.pi / 12,  # 15 degree bins for the angle
-        Column.DiffAEData.POLAR_RADIUS: 0.25,
-        Column.DiffAEData.PC3_FLIPPED: 0.5,
-    }
-
-    # Then, get the data limits for each feature to be binned
-    bin_limits: dict = {}
-    for col in DYNAMICS_COLUMN_NAMES:
-        col_min = min(traj_df_grid[col].min(), traj_df_tracked[col].min())
-        col_max = max(traj_df_grid[col].max(), traj_df_tracked[col].max())
-        bin_limits[col] = (col_min, col_max)
-
-    # Finally, adjust the bin_limits if the feature has a defined range (e.g. for
-    # angles, range is 0 to pi in radians)
-    defined_bin_limits = {
-        Column.DiffAEData.POLAR_ANGLE: (0, np.pi),
-        Column.DiffAEData.POLAR_RADIUS: (0, None),
-        Column.DiffAEData.PC3_FLIPPED: (None, None),
-    }
-    for col in DYNAMICS_COLUMN_NAMES:
-        if col in defined_bin_limits:
-            bin_limits[col] = adjust_limits_from_bin_size(
-                data_min_max=bin_limits[col],
-                defined_min_max=defined_bin_limits[col],
-                bin_size=bin_sizes[col],
-            )
-
-    bin_widths = tuple(float(bin_sizes[col]) for col in DYNAMICS_COLUMN_NAMES)
-    bin_limits_list = [bin_limits[col] for col in DYNAMICS_COLUMN_NAMES]
-    bin_edges, bin_centers = get_bins(bin_widths=bin_widths, bin_limits=bin_limits_list)
+    bin_edges, bin_centers, _, _ = build_first_passage_time_bins(
+        traj_df_grid=traj_df_grid, traj_df_tracked=traj_df_tracked
+    )
 
     # Filter the trajectory dataframes to only include trajectories that reach
     # the stable fixed point, since those are the only trajectories for which

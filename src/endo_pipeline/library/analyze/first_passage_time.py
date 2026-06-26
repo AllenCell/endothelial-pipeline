@@ -300,6 +300,71 @@ def load_dataframes_for_first_passage_time_analysis(
     return traj_df_grid, traj_df_tracked, fixed_points_df
 
 
+def build_first_passage_time_bins(
+    traj_df_grid: pd.DataFrame,
+    traj_df_tracked: pd.DataFrame,
+    bin_size_theta_deg: float | None = None,
+    bin_size_radius: float | None = None,
+    bin_size_rho: float | None = None,
+) -> tuple[list, list, dict, dict]:
+    """
+    Build bins for first passage time analysis.
+
+    Parameters
+    ----------
+    traj_df_grid
+        Dataframe of grid-based trajectories
+    traj_df_tracked
+        Dataframe of cell-centered trajectories
+    bin_size_theta_deg
+        Bin size for polar theta in degrees.
+    bin_size_radius
+        Bin size for polar r feature.
+    bin_size_rho
+        Bin size for rho feature.
+
+    Returns
+    -------
+    :
+        List of bin edges and centers and dictionaries of bin sizes and limits.
+    """
+
+    bin_sizes = {
+        Column.DiffAEData.POLAR_ANGLE: (
+            np.deg2rad(bin_size_theta_deg) if bin_size_theta_deg is not None else np.deg2rad(15)
+        ),
+        Column.DiffAEData.POLAR_RADIUS: (bin_size_radius if bin_size_radius is not None else 0.25),
+        Column.DiffAEData.PC3_FLIPPED: bin_size_rho if bin_size_rho is not None else 0.5,
+    }
+
+    # get the data limits for each feature to be binned
+    bin_limits: dict = {}
+    for col in DYNAMICS_COLUMN_NAMES:
+        col_min = min(traj_df_grid[col].min(), traj_df_tracked[col].min())
+        col_max = max(traj_df_grid[col].max(), traj_df_tracked[col].max())
+        bin_limits[col] = (col_min, col_max)
+
+    # adjust the bin_limits if the feature has a defined range (e.g. for angles)
+    defined_bin_limits = {
+        Column.DiffAEData.POLAR_ANGLE: (0, np.pi),
+        Column.DiffAEData.POLAR_RADIUS: (0, None),
+        Column.DiffAEData.PC3_FLIPPED: (None, None),
+    }
+    for col in DYNAMICS_COLUMN_NAMES:
+        if col in defined_bin_limits:
+            bin_limits[col] = adjust_limits_from_bin_size(
+                data_min_max=bin_limits[col],
+                defined_min_max=defined_bin_limits[col],
+                bin_size=bin_sizes[col],
+            )
+
+    bin_widths = tuple(float(bin_sizes[col]) for col in DYNAMICS_COLUMN_NAMES)
+    bin_limits_list = [bin_limits[col] for col in DYNAMICS_COLUMN_NAMES]
+    bin_edges, bin_centers = get_bins(bin_widths=bin_widths, bin_limits=bin_limits_list)
+
+    return bin_edges, bin_centers, bin_sizes, bin_limits
+
+
 def add_first_passage_time_column(
     fixed_point_index: int,
     trajectory_df: pd.DataFrame,
@@ -532,38 +597,13 @@ def compute_first_passage_times_one_dataset(
         return fpt_stats_df_list, param_sweep_df_list
 
     # 1. bin (theta, r, rho) feature space define the bin sizes for each feature to be binned
-    bin_sizes = {
-        Column.DiffAEData.POLAR_ANGLE: (
-            np.deg2rad(bin_size_theta_deg) if bin_size_theta_deg is not None else np.deg2rad(15)
-        ),
-        Column.DiffAEData.POLAR_RADIUS: (bin_size_radius if bin_size_radius is not None else 0.25),
-        Column.DiffAEData.PC3_FLIPPED: bin_size_rho if bin_size_rho is not None else 0.5,
-    }
-
-    # get the data limits for each feature to be binned
-    bin_limits: dict = {}
-    for col in DYNAMICS_COLUMN_NAMES:
-        col_min = min(traj_df_grid[col].min(), traj_df_tracked[col].min())
-        col_max = max(traj_df_grid[col].max(), traj_df_tracked[col].max())
-        bin_limits[col] = (col_min, col_max)
-
-    # adjust the bin_limits if the feature has a defined range (e.g. for angles)
-    defined_bin_limits = {
-        Column.DiffAEData.POLAR_ANGLE: (0, np.pi),
-        Column.DiffAEData.POLAR_RADIUS: (0, None),
-        Column.DiffAEData.PC3_FLIPPED: (None, None),
-    }
-    for col in DYNAMICS_COLUMN_NAMES:
-        if col in defined_bin_limits:
-            bin_limits[col] = adjust_limits_from_bin_size(
-                data_min_max=bin_limits[col],
-                defined_min_max=defined_bin_limits[col],
-                bin_size=bin_sizes[col],
-            )
-
-    bin_widths = [bin_sizes[col] for col in DYNAMICS_COLUMN_NAMES]
-    bin_limits_list = [bin_limits[col] for col in DYNAMICS_COLUMN_NAMES]
-    bin_edges, bin_centers = get_bins(bin_widths=bin_widths, bin_limits=bin_limits_list)
+    bin_edges, bin_centers, bin_sizes, bin_limits = build_first_passage_time_bins(
+        traj_df_grid=traj_df_grid,
+        traj_df_tracked=traj_df_tracked,
+        bin_size_theta_deg=bin_size_theta_deg,
+        bin_size_radius=bin_size_radius,
+        bin_size_rho=bin_size_rho,
+    )
 
     if collapse_feature is not None:
         feature_to_column_map = {
