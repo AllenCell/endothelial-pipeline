@@ -1,7 +1,6 @@
 """Methods for calculating and analyzing first passage time"""
 
 import logging
-from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -566,7 +565,6 @@ def compute_first_passage_times_one_dataset(
     bin_size_theta_deg: float | None = None,
     bin_size_radius: float | None = None,
     bin_size_rho: float | None = None,
-    collapse_feature: Literal["theta", "radius", "rho"] | None = None,
 ) -> tuple[list[pd.DataFrame], list[pd.DataFrame]]:
     """Compute first passage times to the fixed points for grid-based and track-based trajectories.
     Also runs a parameter sweep over the first passage time threshold and saves the results as well.
@@ -604,23 +602,6 @@ def compute_first_passage_times_one_dataset(
         bin_size_radius=bin_size_radius,
         bin_size_rho=bin_size_rho,
     )
-
-    if collapse_feature is not None:
-        feature_to_column_map = {
-            "theta": Column.DiffAEData.POLAR_ANGLE,
-            "radius": Column.DiffAEData.POLAR_RADIUS,
-            "rho": Column.DiffAEData.PC3_FLIPPED,
-        }
-        feature_to_collapse = feature_to_column_map[collapse_feature]
-        collapse_index = DYNAMICS_COLUMN_NAMES.index(feature_to_collapse)
-        # convert the bin edges into a single bin with only 2 edges
-        bin_edges[collapse_index] = np.array(
-            [bin_edges[collapse_index].min(), bin_edges[collapse_index].max()]
-        )
-        # take the midpoint of the bin edges as the bin center for the collapsed feature
-        bin_centers[collapse_index] = np.array(
-            [(bin_edges[collapse_index][0] + bin_edges[collapse_index][1]) / 2]
-        )
 
     # 2. identify trajectories that pass a fixed point and filter df to only those trajectories
     # find if and when a trajectory reaches a fixed point
