@@ -29,7 +29,7 @@ def main(collections: UniqueStrList | None = None) -> None:
         collection_config = load_dataset_collection_config(collection_name)
         num_unannotated_positions = 0
         for dataset_name in collection_config.datasets:
-            dataset_config = load_dataset_config(collection_name, dataset_name)
+            dataset_config = load_dataset_config(dataset_name)
             positions_kept_for_analysis = get_unannotated_positions(dataset_config)
             num_unannotated_positions += len(positions_kept_for_analysis)
 
