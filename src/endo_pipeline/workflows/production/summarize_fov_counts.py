@@ -20,7 +20,7 @@ def main(collections: UniqueStrList | None = None) -> None:
         "diffae_model_training",
         "shear_stress",
         "perturbation",
-        "nulclear_labelfree_model_training",
+        "nuclear_labelfree_model_training",
     ]
 
     collection_names = collections or COLLECTIONS_NAMED_IN_PAPER
