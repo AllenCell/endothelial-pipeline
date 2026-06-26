@@ -1,6 +1,7 @@
 """Methods for calculating and analyzing first passage time"""
 
 import logging
+from collections.abc import Sequence
 
 import numpy as np
 import pandas as pd
@@ -19,7 +20,6 @@ from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
 )
 from endo_pipeline.library.analyze.track_integration import (
-    compute_first_passage_time_parameter_sweep_df,
     compute_first_passage_time_stats_for_bins,
     merge_grid_and_tracked_first_passage_time_parameter_sweep_dfs,
     merge_grid_and_tracked_first_passage_time_stats_dfs,
@@ -558,6 +558,98 @@ def compute_first_passage_time_statistics(
     return first_passage_time_stats_df
 
 
+def compute_first_passage_time_parameter_sweep(
+    fixed_point_index: int, trajectory_df: pd.DataFrame, thresholds: Sequence[float]
+) -> pd.DataFrame:
+    """
+    Run a parameter sweep over first passage time distance thresholds and return aggregated
+    summary statistics for each threshold value.
+
+    For each threshold, trajectories that reach within that distance of the fixed point are
+    identified, the first passage time is computed, and summary statistics (mean, std, etc.)
+    are collected. The fraction of trajectories that approached the fixed point under each
+    threshold is also recorded.
+
+    Parameters
+    ----------
+    fixed_point_index
+        Index of the fixed point to compute first passage times for.
+    trajectory_df
+        DataFrame containing the trajectory data with pre-computed distance-from-fixed-point
+        columns.
+    thresholds
+        Sequence of distance threshold values to sweep over.
+
+    Returns
+    -------
+    :
+        DataFrame with one row per threshold value containing aggregated first passage time
+        statistics and the fraction of trajectories that approached the fixed point.
+    """
+    sweep_results: list = []
+    for thresh in thresholds:
+        trajectory_df_one_param = trajectory_df.copy()
+        trajectory_df_one_param["num_trajectories_before_fpt_filter"] = trajectory_df[
+            Column.CROP_INDEX
+        ].nunique()
+        trajectory_df_one_param = add_first_passage_time_column(
+            fixed_point_index=fixed_point_index,
+            trajectory_df=trajectory_df_one_param,
+            threshold=thresh,
+            time_column=Column.SegData.TIME_HRS,
+        )
+        trajectory_df_one_param["num_trajectories_after_fpt_filter"] = trajectory_df_one_param[
+            Column.CROP_INDEX
+        ].nunique()
+        trajectory_df_one_param = trajectory_df_one_param.assign(
+            **{Column.VectorField.FIXED_POINT_INDEX: fixed_point_index}
+        )
+        trajectory_df_one_param = trajectory_df_one_param.assign(
+            **{Column.VectorField.FPT_DISTANCE_THRESHOLD: thresh}
+        )
+        sweep_results.append(trajectory_df_one_param)
+
+    fpt_param_sweep_df = pd.concat(sweep_results, ignore_index=True)
+
+    # compute the summary statistics on the first passage time parameter sweep
+    first_passage_time_col = f"{Column.VectorField.TIME_TO_FP_PREFIX}{fixed_point_index}"
+    fpt_param_sweep_agg_df = (
+        fpt_param_sweep_df.groupby(Column.VectorField.FPT_DISTANCE_THRESHOLD)[
+            first_passage_time_col
+        ]
+        .agg("describe")
+        .reset_index(drop=False)
+    )
+
+    # also compute the fraction of trajectories that approached the fixed point for each
+    # parameter combination to see how the fixed point distance threshold affects the
+    # number of trajectories that are considered to have reached the fixed point
+    fpt_param_sweep_df[Column.VectorField.PERCENT_TRAJ_APPROACHED_FP] = (
+        fpt_param_sweep_df["num_trajectories_after_fpt_filter"]
+        / fpt_param_sweep_df["num_trajectories_before_fpt_filter"]
+    ) * 100
+
+    num_traj_param_sweep_agg = (
+        fpt_param_sweep_df.groupby(Column.VectorField.FPT_DISTANCE_THRESHOLD)[
+            Column.VectorField.PERCENT_TRAJ_APPROACHED_FP
+        ]
+        .agg(lambda x: np.unique(x).item())
+        .to_frame()
+    ).reset_index(drop=False)
+    num_traj_param_sweep_mapping = dict(
+        zip(
+            num_traj_param_sweep_agg[Column.VectorField.FPT_DISTANCE_THRESHOLD],
+            num_traj_param_sweep_agg[Column.VectorField.PERCENT_TRAJ_APPROACHED_FP],
+            strict=True,
+        )
+    )
+    fpt_param_sweep_agg_df[Column.VectorField.PERCENT_TRAJ_APPROACHED_FP] = fpt_param_sweep_agg_df[
+        Column.VectorField.FPT_DISTANCE_THRESHOLD
+    ].map(num_traj_param_sweep_mapping)
+
+    return fpt_param_sweep_agg_df
+
+
 def compute_first_passage_times_one_dataset(
     dataset_name: str,
     minimum_track_length: int,
@@ -621,12 +713,12 @@ def compute_first_passage_times_one_dataset(
         # thresholds for what it means to have "reached" the fixed point
         fpt_param_sweep_df_grid = traj_df_grid.copy()
         fpt_param_sweep_df_tracked = traj_df_tracked.copy()
-        fpt_param_sweep_df_grid = compute_first_passage_time_parameter_sweep_df(
+        fpt_param_sweep_df_grid = compute_first_passage_time_parameter_sweep(
             fixed_point_index=fp_idx,
             trajectory_df=fpt_param_sweep_df_grid,
             thresholds=thresholds,
         )
-        fpt_param_sweep_df_tracked = compute_first_passage_time_parameter_sweep_df(
+        fpt_param_sweep_df_tracked = compute_first_passage_time_parameter_sweep(
             fixed_point_index=fp_idx,
             trajectory_df=fpt_param_sweep_df_tracked,
             thresholds=thresholds,
