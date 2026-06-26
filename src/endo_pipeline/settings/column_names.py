@@ -635,9 +635,6 @@ class ColumnName:
         IS_AT_FP_PREFIX = "is_at_fp_"
         """Prefix for column names indicating whether a data point is at a fixed point."""
 
-        TRAJ_REACHED_FP_PREFIX = "traj_reached_fp_"
-        """Prefix for column names indicating whether a trajectory reached a fixed point."""
-
         FIRST_PASSAGE_DIST_PREFIX = "first_passage_dist_from_fp_"
         """Prefix for column names representing the distance from a fixed point at which a
         trajectory first passed the threshold for being considered to have reached the fixed point."""
@@ -794,6 +791,9 @@ class ColumnNameTemplate(StrEnum):
 
     DISTANCE_FROM_FIXED_POINT_1D_SIGNED_PREFIX = "diff_from_fp_%d_%s"
     """Column name template: Signed difference from fixed point (index %d) along the %s dimension."""
+
+    TRAJECTORY_REACHED_FIXED_POINT = "traj_reached_fp_%d"
+    """Column name template: True if trajectory reached a fixed point (index %d), False otherwise."""
 
 
 ColumnNameType = (
