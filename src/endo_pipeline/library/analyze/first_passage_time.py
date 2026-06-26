@@ -428,6 +428,72 @@ def filter_to_trajectories_reaching_fixed_point(
     return traj_df_grid_sub, traj_df_tracked_sub
 
 
+def compute_first_passage_time_statistics(
+    traj_df_grid_sub: pd.DataFrame,
+    traj_df_tracked_sub: pd.DataFrame,
+    dataset_name: str,
+    fixed_point_index: int,
+    bin_edges: list[np.ndarray],
+    bin_centers: list[np.ndarray],
+) -> pd.DataFrame:
+    """
+    Compute first passage time statistics per bin.
+
+    Parameters
+    ----------
+    traj_df_grid_sub
+        Dataframe of grid-based trajectories that reach the fixed point, with
+        distance to fixed point columns and first passage time column.
+    traj_df_tracked_sub
+        Dataframe of cell-centered trajectories that reach the fixed point, with
+        distance to fixed point columns and first passage time column.
+    dataset_name
+        Name of the dataset being analyzed, used for labeling the output
+        dataframe.
+    fixed_point_index
+        Index of the fixed point that the trajectories reach, used for labeling
+        the first passage time column in the output dataframe.
+    bin_edges
+        Edges of the bins in feature space to compute statistics for.
+    bin_centers
+        Centers of the bins in feature space to compute statistics for.
+
+    Returns
+    -------
+    :
+        Dataframe with first passage time statistics.
+    """
+
+    # For each bin (across all steady-state timepoints), compute the mean,
+    # median, and standard deviation of first-passage times for the trajectories
+    time_to_first_passage_col_name = f"{Column.VectorField.TIME_TO_FP_PREFIX}{fixed_point_index}"
+
+    fpt_stats_df_grid = compute_first_passage_time_stats_for_bins(
+        bin_centers=bin_centers,
+        bin_edges=bin_edges,
+        trajectory_df=traj_df_grid_sub,
+        time_to_first_passage_col_name=time_to_first_passage_col_name,
+        feature_column_names=list(DYNAMICS_COLUMN_NAMES),
+    )
+    fpt_stats_df_tracked = compute_first_passage_time_stats_for_bins(
+        bin_centers=bin_centers,
+        bin_edges=bin_edges,
+        trajectory_df=traj_df_tracked_sub,
+        time_to_first_passage_col_name=time_to_first_passage_col_name,
+        feature_column_names=list(DYNAMICS_COLUMN_NAMES),
+    )
+
+    # merge the grid and tracked first passage time stats dataframes
+    first_passage_time_stats_df = merge_grid_and_tracked_first_passage_time_stats_dfs(
+        fpt_stats_df_grid=fpt_stats_df_grid,
+        fpt_stats_df_tracked=fpt_stats_df_tracked,
+        dataset_name=dataset_name,
+        fixed_point_index=fixed_point_index,
+    )
+
+    return first_passage_time_stats_df
+
+
 def compute_first_passage_times_one_dataset(
     dataset_name: str,
     minimum_track_length: int,
@@ -573,31 +639,15 @@ def compute_first_passage_times_one_dataset(
             time_column=Column.SegData.TIME_HRS,
         )
 
-        # 3. for each bin (across all steady-state timepoints), compute the mean,
-        #    median, and standard deviation of first-passage times for the trajectories
-        time_to_first_passage_col_name = f"{Column.VectorField.TIME_TO_FP_PREFIX}{fp_idx}"
-
-        fpt_stats_df_grid = compute_first_passage_time_stats_for_bins(
-            bin_centers=bin_centers,
-            bin_edges=bin_edges,
-            trajectory_df=traj_df_grid_sub,
-            time_to_first_passage_col_name=time_to_first_passage_col_name,
-            feature_column_names=list(DYNAMICS_COLUMN_NAMES),
-        )
-        fpt_stats_df_tracked = compute_first_passage_time_stats_for_bins(
-            bin_centers=bin_centers,
-            bin_edges=bin_edges,
-            trajectory_df=traj_df_tracked_sub,
-            time_to_first_passage_col_name=time_to_first_passage_col_name,
-            feature_column_names=list(DYNAMICS_COLUMN_NAMES),
-        )
-
-        # merge the grid and tracked first passage time stats dataframes
-        first_passage_time_stats_df = merge_grid_and_tracked_first_passage_time_stats_dfs(
-            fpt_stats_df_grid=fpt_stats_df_grid,
-            fpt_stats_df_tracked=fpt_stats_df_tracked,
+        # 3. for each bin (across all steady-state timepoints), compute stats
+        # on first-passage times for the trajectories
+        first_passage_time_stats_df = compute_first_passage_time_statistics(
+            traj_df_grid_sub=traj_df_grid_sub,
+            traj_df_tracked_sub=traj_df_tracked_sub,
             dataset_name=dataset_name,
             fixed_point_index=fp_idx,
+            bin_edges=bin_edges,
+            bin_centers=bin_centers,
         )
         first_passage_time_stats_df[Column.FIXED_POINT_STABILITY] = fp_stability
         fp_dynamics_cols = [

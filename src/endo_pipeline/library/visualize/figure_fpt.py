@@ -13,6 +13,7 @@ from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_binned_value
 from endo_pipeline.library.analyze.first_passage_time import (
     add_first_passage_time_column,
+    compute_first_passage_time_statistics,
     filter_to_trajectories_reaching_fixed_point,
     load_dataframes_for_first_passage_time_analysis,
 )
@@ -107,90 +108,6 @@ class _HandlerSphere(HandlerBase):
         return [body, highlight]
 
 
-def _compute_filtered_fpt_stats(
-    traj_df_grid_sub: pd.DataFrame,
-    traj_df_tracked_sub: pd.DataFrame,
-    dataset_name: str,
-    fixed_point_index: int,
-    bin_edges: list[np.ndarray],
-    bin_centers: list[np.ndarray],
-    min_num_traj_per_bin: int,
-) -> pd.DataFrame:
-    """
-    Compute first passage time statisics per bin.
-
-    **Output dataframe**
-
-    This method outputs a dataframe with mean, median, and standard deviation of
-    first-passage times for the trajectories that start in each bin, for both
-    grid-based and cell-centered trajectories. It also includes the count of
-    trajectories that start in each bin for both grid-based and cell-centered
-    trajectories.
-
-    Parameters
-    ----------
-    traj_df_grid_sub
-        Dataframe of grid-based trajectories that reach the fixed point, with
-        distance to fixed point columns and first passage time column.
-    traj_df_tracked_sub
-        Dataframe of cell-centered trajectories that reach the fixed point, with
-        distance to fixed point columns and first passage time column.
-    dataset_name
-        Name of the dataset being analyzed, used for labeling the output
-        dataframe.
-    fixed_point_index
-        Index of the fixed point that the trajectories reach, used for labeling
-        the first passage time column in the output dataframe.
-    bin_edges
-        Edges of the bins in feature space to compute statistics for.
-    bin_centers
-        Centers of the bins in feature space to compute statistics for.
-    min_num_traj_per_bin
-        Minimum number of trajectories that must start in a bin for that bin to
-        be included in the output dataframe.
-
-    Returns
-    -------
-    :
-        Dataframe with first passage time statistics.
-    """
-    # For each bin (across all steady-state timepoints), compute the mean,
-    # median, and standard deviation of first-passage times for the trajectories
-    time_to_first_passage_col_name = f"{Column.VectorField.TIME_TO_FP_PREFIX}{fixed_point_index}"
-
-    fpt_stats_df_grid = compute_first_passage_time_stats_for_bins(
-        bin_centers=bin_centers,
-        bin_edges=bin_edges,
-        trajectory_df=traj_df_grid_sub,
-        time_to_first_passage_col_name=time_to_first_passage_col_name,
-        feature_column_names=list(DYNAMICS_COLUMN_NAMES),
-    )
-    fpt_stats_df_tracked = compute_first_passage_time_stats_for_bins(
-        bin_centers=bin_centers,
-        bin_edges=bin_edges,
-        trajectory_df=traj_df_tracked_sub,
-        time_to_first_passage_col_name=time_to_first_passage_col_name,
-        feature_column_names=list(DYNAMICS_COLUMN_NAMES),
-    )
-
-    # merge the grid and tracked first passage time stats dataframes
-    fpt_stats_df = merge_grid_and_tracked_first_passage_time_stats_dfs(
-        fpt_stats_df_grid=fpt_stats_df_grid,
-        fpt_stats_df_tracked=fpt_stats_df_tracked,
-        dataset_name=dataset_name,
-        fixed_point_index=fixed_point_index,
-    )
-
-    # remove bins that don't have enough trajectories in them from either the
-    # grid or tracked trajectories
-    fpt_stats_df = fpt_stats_df[
-        fpt_stats_df["count_first_passage_time_grid_based"] >= min_num_traj_per_bin
-    ]
-    fpt_stats_df = fpt_stats_df[
-        fpt_stats_df["count_first_passage_time_cell_centered"] >= min_num_traj_per_bin
-    ]
-
-    return fpt_stats_df
 
 
 def _select_example_bin(
@@ -627,15 +544,23 @@ def generate_first_passage_time_example(
         time_column=Column.SegData.TIME_HRS,
     )
 
-    fpt_stats_df = _compute_filtered_fpt_stats(
+    fpt_stats_df = compute_first_passage_time_statistics(
         traj_df_grid_sub=traj_df_grid_sub,
         traj_df_tracked_sub=traj_df_tracked_sub,
         dataset_name=dataset_name,
         fixed_point_index=example_fixed_point_index,
         bin_edges=bin_edges,
         bin_centers=bin_centers,
-        min_num_traj_per_bin=min_num_traj_per_bin,
     )
+
+    # remove bins that don't have enough trajectories in them from either the
+    # grid or tracked trajectories
+    fpt_stats_df = fpt_stats_df[
+        fpt_stats_df["count_first_passage_time_grid_based"] >= min_num_traj_per_bin
+    ]
+    fpt_stats_df = fpt_stats_df[
+        fpt_stats_df["count_first_passage_time_cell_centered"] >= min_num_traj_per_bin
+    ]
 
     example_bin_center, example_bin_edges = _select_example_bin(
         fpt_stats_df=fpt_stats_df,
