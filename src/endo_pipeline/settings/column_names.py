@@ -642,12 +642,6 @@ class ColumnName:
         FIRST_PASSAGE_PREFIX = "first_passage_"
         """Prefix for column names representing the first passage distance or time to a fixed point."""
 
-        BIN_SIZE_PREFIX = "bin_size_"
-        """Column name for the sizes of bins used when discretizing feature space."""
-
-        BIN_LIMITS_PREFIX = "bin_limits_"
-        """Column name for the limits of bins used when discretizing feature space."""
-
         BIN_CENTER = "bin_center"
         """Column name for the center of bins used when discretizing feature space."""
 
@@ -794,6 +788,12 @@ class ColumnNameTemplate(StrEnum):
 
     TIME_TO_FIXED_POINT = "time_to_fp_%d"
     """Column name template: Time until a fixed point (index %d) is reached."""
+
+    BIN_SIZE = "bin_size_%s"
+    """Column name template: Size of bins used when discretizing feature space in %s."""
+
+    BIN_LIMITS = "bin_limits_%s"
+    """Column name template: Bin limits used when discretizing feature space in %s."""
 
 
 ColumnNameType = (

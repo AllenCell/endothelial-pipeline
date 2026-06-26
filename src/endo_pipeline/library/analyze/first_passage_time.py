@@ -968,8 +968,9 @@ def compute_first_passage_times_one_dataset(
         for col in DYNAMICS_COLUMN_NAMES:
             first_passage_time_stats_df = first_passage_time_stats_df.assign(
                 **{
-                    f"{Column.VectorField.BIN_SIZE_PREFIX}{col}": bin_sizes[col],
-                    f"{Column.VectorField.BIN_LIMITS_PREFIX}{col}": [bin_limits[col]]
+                    ColumnTemplate.BIN_SIZE % col: bin_sizes[col],
+                    ColumnTemplate.BIN_LIMITS
+                    % col: [bin_limits[col]]
                     * len(first_passage_time_stats_df),
                 }
             )
