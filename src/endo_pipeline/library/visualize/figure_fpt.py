@@ -13,6 +13,7 @@ from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_binned_value
 from endo_pipeline.library.analyze.first_passage_time import (
     add_first_passage_time_column,
+    filter_to_trajectories_reaching_fixed_point,
     load_dataframes_for_first_passage_time_analysis,
 )
 from endo_pipeline.library.analyze.numerics.binning import adjust_limits_from_bin_size, get_bins
@@ -104,70 +105,6 @@ class _HandlerSphere(HandlerBase):
             transform=trans,
         )
         return [body, highlight]
-
-
-def _filter_to_first_passage_trajectories(
-    traj_df_grid: pd.DataFrame,
-    traj_df_tracked: pd.DataFrame,
-    fixed_point_index: int,
-    fixed_point_radius_threshold: float,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """
-    Filter the trajectory dataframes to only include trajectories that reach
-    the stable fixed point.
-
-    Parameters
-    ----------
-    traj_df_grid
-        Dataframe of grid-based trajectories with distance to fixed point columns.
-    traj_df_tracked
-        Dataframe of cell-centered trajectories with distance to fixed point columns.
-    fixed_point_index
-        Index of the fixed point to filter trajectories by.
-    fixed_point_radius_threshold
-        Distance threshold from the fixed point below which a trajectory timepoint
-        is considered to have reached the fixed point.
-
-    Returns
-    -------
-    :
-        Tuple of (filtered grid-based trajectory dataframe, filtered cell-centered
-        trajectory dataframe) that only include trajectories that reach the
-        fixed point.
-    """
-    # Mark each timepoint as "at the fixed point" if it is within the radius
-    # threshold, then propagate that flag to all timepoints in the trajectory
-    # using a groupby-transform so we can filter to only trajectories that ever
-    # reach the fixed point
-    traj_df_grid[f"{Column.VectorField.IS_AT_FP_PREFIX}{fixed_point_index}"] = (
-        traj_df_grid[f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fixed_point_index}"]
-        <= fixed_point_radius_threshold
-    )
-    traj_df_tracked[f"{Column.VectorField.IS_AT_FP_PREFIX}{fixed_point_index}"] = (
-        traj_df_tracked[f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fixed_point_index}"]
-        <= fixed_point_radius_threshold
-    )
-
-    traj_df_grid[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fixed_point_index}"] = (
-        traj_df_grid.groupby(Column.CROP_INDEX)[
-            f"{Column.VectorField.IS_AT_FP_PREFIX}{fixed_point_index}"
-        ].transform(any)
-    )
-    traj_df_tracked[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fixed_point_index}"] = (
-        traj_df_tracked.groupby(Column.CROP_INDEX)[
-            f"{Column.VectorField.IS_AT_FP_PREFIX}{fixed_point_index}"
-        ].transform(any)
-    )
-
-    # Keep only trajectories that eventually reach the fixed point
-    traj_df_grid_sub = traj_df_grid[
-        traj_df_grid[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fixed_point_index}"]
-    ]
-    traj_df_tracked_sub = traj_df_tracked[
-        traj_df_tracked[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fixed_point_index}"]
-    ]
-
-    return traj_df_grid_sub, traj_df_tracked_sub
 
 
 def _compute_filtered_fpt_stats(
@@ -669,7 +606,7 @@ def generate_first_passage_time_example(
     # Filter the trajectory dataframes to only include trajectories that reach
     # the stable fixed point, since those are the only trajectories for which
     # first passage times to the fixed point are defined.
-    traj_df_grid_sub, traj_df_tracked_sub = _filter_to_first_passage_trajectories(
+    traj_df_grid_sub, traj_df_tracked_sub = filter_to_trajectories_reaching_fixed_point(
         traj_df_grid=traj_df_grid,
         traj_df_tracked=traj_df_tracked,
         fixed_point_index=example_fixed_point_index,

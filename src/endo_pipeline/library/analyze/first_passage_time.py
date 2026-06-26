@@ -366,6 +366,68 @@ def add_first_passage_time_column(
     return trajectory_df
 
 
+def filter_to_trajectories_reaching_fixed_point(
+    traj_df_grid: pd.DataFrame,
+    traj_df_tracked: pd.DataFrame,
+    fixed_point_index: int,
+    fixed_point_radius_threshold: float,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Filter dataframes to only include trajectories that reach the fixed point.
+
+    Parameters
+    ----------
+    traj_df_grid
+        Dataframe of grid-based trajectories with distance to fixed point
+        columns.
+    traj_df_tracked
+        Dataframe of cell-centered trajectories with distance to fixed point
+        columns.
+    fixed_point_index
+        Index of the fixed point to filter trajectories by.
+    fixed_point_radius_threshold
+        Distance threshold from the fixed point below which a trajectory
+        timepoint is considered to have reached the fixed point.
+
+    Returns
+    -------
+    :
+        Filtered dataframes with only trajectories that reach the fixed point.
+    """
+
+    # Mark each timepoint as "at the fixed point" if it is within the radius
+    # threshold, then propagate that flag to all timepoints in the trajectory
+    traj_df_grid[f"{Column.VectorField.IS_AT_FP_PREFIX}{fixed_point_index}"] = (
+        traj_df_grid[f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fixed_point_index}"]
+        <= fixed_point_radius_threshold
+    )
+    traj_df_tracked[f"{Column.VectorField.IS_AT_FP_PREFIX}{fixed_point_index}"] = (
+        traj_df_tracked[f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fixed_point_index}"]
+        <= fixed_point_radius_threshold
+    )
+
+    traj_df_grid[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fixed_point_index}"] = (
+        traj_df_grid.groupby(Column.CROP_INDEX)[
+            f"{Column.VectorField.IS_AT_FP_PREFIX}{fixed_point_index}"
+        ].transform(any)
+    )
+    traj_df_tracked[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fixed_point_index}"] = (
+        traj_df_tracked.groupby(Column.CROP_INDEX)[
+            f"{Column.VectorField.IS_AT_FP_PREFIX}{fixed_point_index}"
+        ].transform(any)
+    )
+
+    # Filter to only trajectories that eventually reach the fixed point
+    traj_df_grid_sub = traj_df_grid[
+        traj_df_grid[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fixed_point_index}"]
+    ]
+    traj_df_tracked_sub = traj_df_tracked[
+        traj_df_tracked[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fixed_point_index}"]
+    ]
+
+    return traj_df_grid_sub, traj_df_tracked_sub
+
+
 def compute_first_passage_times_one_dataset(
     dataset_name: str,
     minimum_track_length: int,
@@ -490,30 +552,12 @@ def compute_first_passage_times_one_dataset(
         )
         parameter_sweep_df[Column.FIXED_POINT_STABILITY] = fp_stability
 
-        traj_df_grid[f"{Column.VectorField.IS_AT_FP_PREFIX}{fp_idx}"] = (
-            traj_df_grid[f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fp_idx}"]
-            <= fixed_point_radius_threshold
+        traj_df_grid_sub, traj_df_tracked_sub = filter_to_trajectories_reaching_fixed_point(
+            traj_df_grid=traj_df_grid,
+            traj_df_tracked=traj_df_tracked,
+            fixed_point_index=fp_idx,
+            fixed_point_radius_threshold=fixed_point_radius_threshold,
         )
-        traj_df_tracked[f"{Column.VectorField.IS_AT_FP_PREFIX}{fp_idx}"] = (
-            traj_df_tracked[f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fp_idx}"]
-            <= fixed_point_radius_threshold
-        )
-
-        traj_df_grid[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fp_idx}"] = traj_df_grid.groupby(
-            Column.CROP_INDEX
-        )[f"{Column.VectorField.IS_AT_FP_PREFIX}{fp_idx}"].transform(any)
-        traj_df_tracked[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fp_idx}"] = (
-            traj_df_tracked.groupby(Column.CROP_INDEX)[
-                f"{Column.VectorField.IS_AT_FP_PREFIX}{fp_idx}"
-            ].transform(any)
-        )
-
-        traj_df_grid_sub = traj_df_grid[
-            traj_df_grid[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fp_idx}"]
-        ]
-        traj_df_tracked_sub = traj_df_tracked[
-            traj_df_tracked[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fp_idx}"]
-        ]
 
         # compute the timepoint at which each trajectory first reaches a fixed point
         traj_df_grid_sub = add_first_passage_time_column(
