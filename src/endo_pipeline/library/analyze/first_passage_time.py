@@ -161,7 +161,6 @@ def add_distance_to_fixed_points_columns(
 
     # determine distance from each fixed point over time and add to the dataframe, along
     # with the signed difference along each axis (e.g. theta, r, rho) from each fixed point
-    dist_from_fp_col_prefix = Column.VectorField.DISTANCE_FROM_FP_PREFIX
     polar_angle_period = POLAR_ANGLE_PERIOD if polar_angle_period is None else polar_angle_period
 
     for i in fixed_point_df.index:
@@ -184,7 +183,7 @@ def add_distance_to_fixed_points_columns(
             f"{Column.VectorField.DISTANCE_FROM_FP_1D_SIGNED_PREFIX}{i}_{col}"
             for col in fixed_point_columns
         ]
-        trajectory_df[f"{dist_from_fp_col_prefix}{i}"] = np.linalg.norm(
+        trajectory_df[ColumnTemplate.DISTANCE_FROM_FIXED_POINT % i] = np.linalg.norm(
             trajectory_df[dynamics_diff_columns], axis=1
         )
 
@@ -357,7 +356,7 @@ def add_first_passage_time_column(
     """
 
     # compute where the trajectory first passes the threshold distance to the fixed point
-    column = f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fixed_point_index}"
+    column = ColumnTemplate.DISTANCE_FROM_FIXED_POINT % fixed_point_index
     new_column_name = f"{Column.VectorField.FIRST_PASSAGE_PREFIX}{column}"
     trajectory_df[new_column_name] = (
         trajectory_df.groupby(Column.CROP_INDEX)
@@ -418,15 +417,15 @@ def filter_to_trajectories_reaching_fixed_point(
         Filtered dataframes with only trajectories that reach the fixed point.
     """
 
+    distance_from_fixed_point_column = ColumnTemplate.DISTANCE_FROM_FIXED_POINT % fixed_point_index
+
     # Mark each timepoint as "at the fixed point" if it is within the radius
     # threshold, then propagate that flag to all timepoints in the trajectory
     traj_df_grid[f"{Column.VectorField.IS_AT_FP_PREFIX}{fixed_point_index}"] = (
-        traj_df_grid[f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fixed_point_index}"]
-        <= fixed_point_radius_threshold
+        traj_df_grid[distance_from_fixed_point_column] <= fixed_point_radius_threshold
     )
     traj_df_tracked[f"{Column.VectorField.IS_AT_FP_PREFIX}{fixed_point_index}"] = (
-        traj_df_tracked[f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fixed_point_index}"]
-        <= fixed_point_radius_threshold
+        traj_df_tracked[distance_from_fixed_point_column] <= fixed_point_radius_threshold
     )
 
     traj_df_grid[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fixed_point_index}"] = (

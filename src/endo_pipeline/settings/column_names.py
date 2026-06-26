@@ -629,9 +629,6 @@ class ColumnName:
         FIXED_POINT_PREFIX = "fp_"
         """Prefix for column names representing coordinates of fixed points in feature space."""
 
-        DISTANCE_FROM_FP_PREFIX = "dist_from_fp_"
-        """Prefix for column names representing the distance from a fixed point in N-D space."""
-
         DISTANCE_FROM_FP_1D_SIGNED_PREFIX = "diff_from_fp_"
         """Prefix for column names representing the signed difference from a fixed point along a single dimension."""
 
@@ -794,6 +791,9 @@ class ColumnNameTemplate(StrEnum):
 
     BOOTSTRAP_CI_UPPER = "%s_ci_upper"
     """Column name template: Upper bound of bootstrap confidence interval for %s."""
+
+    DISTANCE_FROM_FIXED_POINT = "dist_from_fp_%d"
+    """Column name template: Distance from fixed point index %d."""
 
 
 ColumnNameType = (
