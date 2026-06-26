@@ -959,9 +959,7 @@ def compute_first_passage_times_one_dataset(
             bin_centers=bin_centers,
         )
         first_passage_time_stats_df[Column.FIXED_POINT_STABILITY] = fp_stability
-        fp_dynamics_cols = [
-            f"{Column.VectorField.FIXED_POINT_PREFIX}{col}" for col in DYNAMICS_COLUMN_NAMES
-        ]
+        fp_dynamics_cols = [ColumnTemplate.FIXED_POINT % col for col in DYNAMICS_COLUMN_NAMES]
         first_passage_time_stats_df[fp_dynamics_cols] = fp_row[list(DYNAMICS_COLUMN_NAMES)]
 
         # add the bin sizes and bin limits to the dataframes for transparency

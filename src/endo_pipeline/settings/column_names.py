@@ -626,9 +626,6 @@ class ColumnName:
         FIXED_POINT_INDEX = "fixed_point_id"
         """Index of fixed point in fixed point dataframe."""
 
-        FIXED_POINT_PREFIX = "fp_"
-        """Prefix for column names representing coordinates of fixed points in feature space."""
-
         FPT_DISTANCE_THRESHOLD = "fpt_distance_threshold"
         """Radius around fixed point at which a trajectory is considered to have reached the fixed point."""
 

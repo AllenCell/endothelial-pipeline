@@ -32,6 +32,7 @@ from endo_pipeline.library.visualize.diffae_features.flow_field_3d import (
 )
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.figures import FONTSIZE_SMALL
 from endo_pipeline.settings.flow_field_3d import QUIVER_COLORMAP
@@ -972,9 +973,7 @@ def plot_first_passage_time_3d_scatter(
         cmap=cmap,
         norm=norm,
     )
-    fp_dynamics_cols = [
-        f"{Column.VectorField.FIXED_POINT_PREFIX}{col}" for col in DYNAMICS_COLUMN_NAMES
-    ]
+    fp_dynamics_cols = [ColumnTemplate.FIXED_POINT % col for col in DYNAMICS_COLUMN_NAMES]
     fixed_point = [first_passage_time_df[col].unique().item() for col in fp_dynamics_cols]
     ax.scatter(
         *fixed_point,
