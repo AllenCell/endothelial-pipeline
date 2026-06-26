@@ -30,112 +30,112 @@ locations:
   20250319_20X:
     fmsid: e77de87ea25448dc9147cf65b31bdd64
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20250319_0d94f8d3054e4e8c99af07dd92774798.parquet
   20250326_20X:
     fmsid: f0b8fcaf02ed455184d511691d8f05c9
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20250326_eb97addf262c44c5a6117ad1d4acc353.parquet
   20250402_20X:
     fmsid: 1b8db243c9894aa6a5d211c36dffbd18
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20250402_90e37b7d8f1440efa84995b4697fb269.parquet
   20250409_20X:
     fmsid: 8e038e749e0d4e798d56e4bb5438cb33
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20250409_df6b2a02bbc94c6f957923add524eac1.parquet
   20250428_20X:
     fmsid: 05d99d40723e4ce1922784899e39f27f
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20250428_056aa027ba9f4ccd98367563552f7edd.parquet
   20250604_20X:
     fmsid: f3b086a6a4994cb084d03a23804f8474
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20250604_3f08ef7a2e0e450d963352dae4bf17dc.parquet
   20250611_20X:
     fmsid: e231f61c41b2432aa70d054a8256f5fc
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20250611_a32615d530ae42c29d159cc058601879.parquet
   20250618_20X:
     fmsid: 67aa160fbf7b473480213b28713dec16
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20250618_f81e9bdf048e462e9755d7cbf5d21c37.parquet
   20250716_20X:
     fmsid: 7d2cd4209d804adba8bcedbe888fca42
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20250716_328c62ecc91248eab2268e546892453e.parquet
   20250813_20X:
     fmsid: 4ca18cc690f54169967f9cb973116308
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20250813_6ab0f70bd43f4de987a789905dbfb95c.parquet
   20250908_20X:
     fmsid: 3fbaee797f0e470dbeb4b05eece603c0
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20250908_b5d434bdebce4053b2d90198541b6b59.parquet
   20251001_20X:
     fmsid: 7698b82c1f414009a17190f370caa04f
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20251001_271124f03a16409499e8a84b0030cb15.parquet
   20251029_20X:
     fmsid: 5adfd956f8b14cac84ce513e0f1e34ca
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20251029_441aed50cff54667afce891eb3a1a8db.parquet
   20251119_20X:
     fmsid: ead942feae174cd78aa7c7f6518bdf73
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20251119_d6449a79a6264466aa225af0cdef78c7.parquet
   20260114_20X:
     fmsid: 98fa0e3c298942678bcf610d8e89b53b
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20260114_4b693bb8eedb4e0ba0cb9ab4ae07b1a2.parquet
   20260121_20X:
     fmsid: 53435a1490e944c29d40ea6336479da0
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20260121_ff75e124720b4a3aa035025a05ced25f.parquet
   20260126_20X:
     fmsid: 2f407e3834664d278d103d6234aca224
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20260126_aed19d79c1a34707925cfa8393424c45.parquet
   20260128_20X:
     fmsid: 63667565fb4b4fd48d4507ca7c2b948c
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20260128_00bd94ea6d7e4b46bc16a55e35de589d.parquet
   20260202_20X:
     fmsid: cf010abde2914bf790a7a821b37c3fae
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20260202_fcb18a65bb734ff6ae718e1eee4894d6.parquet
   20260204_20X:
     fmsid: f1eb45203cbd46dba999e18c3a51587f
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20260204_ac1fddfd7452481e83317c8fbdd59dd6.parquet
   20260209_20X:
     fmsid: 8408310cdadf402aaeb2108a1eebbabb
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20260209_3700e11f893e4f378db450ea91bd92d6.parquet
   20260211_20X:
     fmsid: 871fc51fc8554034afb503e2d1871b36
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20260211_20b76dc8d0ca488ba88816793830f6ec.parquet
   20260216_20X:
     fmsid: d5b65dde81d7494ca2bd0a7c1118537d
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20260216_ed3743a1ee4c4cb096f5af90e3ebb9bd.parquet
   20260225_20X:
     fmsid: aa247e384b564b0c89c9ef10a657b3d3
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20260225_50afe3cb17cf4be099dc44e47f7a4ae4.parquet
   20260302_20X:
     fmsid: c3ef81a76ba9434b8d6f63bbb26d5f63
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20260302_e9cfa3b0b24447f7bba000af3b012427.parquet
   20260304_20X:
     fmsid: 86504a7ff43a418da938f274ef2ff420
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20260304_56c81f459d8e46eabd74cc2147b85f49.parquet
   20260309_20X:
     fmsid: 4784d062b3ba48049c0c76b509822eb8
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20260309_1a52b127112347d4b805eb64d0b86757.parquet
   20260325_20X:
     fmsid: 2a937c9f8e1e469382bf7b0f407f1583
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_grid_based/20260325_d1f28b79cf574775b529d83626183abc.parquet
