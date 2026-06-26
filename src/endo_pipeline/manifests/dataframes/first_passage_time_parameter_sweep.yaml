@@ -9,6 +9,29 @@ parameters:
     polar_theta: 15
     polar_r: 0.25
     rho: 0.5
+columns:
+  dataset: Name of dataset
+  fpt_distance_threshold: Radius around fixed point at which a trajectory is considered to have reached the fixed point
+  overall_count_first_passage_time_grid_based: First passage time to fixed point count for grid_based patches computed for all trajectories across all bins
+  overall_mean_first_passage_time_grid_based: First passage time to fixed point mean for grid_based patches computed for all trajectories across all bins
+  overall_std_first_passage_time_grid_based: First passage time to fixed point std for grid_based patches computed for all trajectories across all bins
+  overall_min_first_passage_time_grid_based: First passage time to fixed point min for grid_based patches computed for all trajectories across all bins
+  overall_25%_first_passage_time_grid_based: First passage time to fixed point 25% for grid_based patches computed for all trajectories across all bins
+  overall_50%_first_passage_time_grid_based: First passage time to fixed point 50% for grid_based patches computed for all trajectories across all bins
+  overall_75%_first_passage_time_grid_based: First passage time to fixed point 75% for grid_based patches computed for all trajectories across all bins
+  overall_max_first_passage_time_grid_based: First passage time to fixed point max for grid_based patches computed for all trajectories across all bins
+  percent_trajectories_approached_fp_grid_based: Percent of trajectories that come within a given radius of a stable fixed point for grid_based patches
+  overall_count_first_passage_time_cell_centered: First passage time to fixed point count for cell_centered patches computed for all trajectories across all bins
+  overall_mean_first_passage_time_cell_centered: First passage time to fixed point mean for cell_centered patches computed for all trajectories across all bins
+  overall_std_first_passage_time_cell_centered: First passage time to fixed point std for cell_centered patches computed for all trajectories across all bins
+  overall_min_first_passage_time_cell_centered: First passage time to fixed point min for cell_centered patches computed for all trajectories across all bins
+  overall_25%_first_passage_time_cell_centered: First passage time to fixed point 25% for cell_centered patches computed for all trajectories across all bins
+  overall_50%_first_passage_time_cell_centered: First passage time to fixed point 50% for cell_centered patches computed for all trajectories across all bins
+  overall_75%_first_passage_time_cell_centered: First passage time to fixed point 75% for cell_centered patches computed for all trajectories across all bins
+  overall_max_first_passage_time_cell_centered: First passage time to fixed point max for cell_centered patches computed for all trajectories across all bins
+  percent_trajectories_approached_fp_cell_centered: Percent of trajectories that come within a given radius of a stable fixed point for cell_centered patches
+  fixed_point_id: Index of fixed point in fixed point dataframe
+  stability: Stability classification of a fixed point
 locations:
   20250618_20X:
     fmsid: 4528215925384cd48fd61b46e234b4df

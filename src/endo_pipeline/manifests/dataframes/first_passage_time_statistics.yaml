@@ -9,6 +9,40 @@ parameters:
     polar_theta: 15
     polar_r: 0.25
     rho: 0.5
+columns:
+  dataset: Name of dataset
+  count_first_passage_time_grid_based: First passage time to fixed point count for grid_based patches computed for all trajectories in given bin
+  mean_first_passage_time_grid_based: First passage time to fixed point mean for grid_based patches computed for all trajectories in given bin
+  std_first_passage_time_grid_based: First passage time to fixed point std for grid_based patches computed for all trajectories in given bin
+  min_first_passage_time_grid_based: First passage time to fixed point min for grid_based patches computed for all trajectories in given bin
+  25%_first_passage_time_grid_based: First passage time to fixed point 25% for grid_based patches computed for all trajectories in given bin
+  50%_first_passage_time_grid_based: First passage time to fixed point 50% for grid_based patches computed for all trajectories in given bin
+  75%_first_passage_time_grid_based: First passage time to fixed point 75% for grid_based patches computed for all trajectories in given bin
+  max_first_passage_time_grid_based: First passage time to fixed point max for grid_based patches computed for all trajectories in given bin
+  sem_first_passage_time_grid_based: First passage time to fixed point sem for grid_based patches computed for all trajectories in given bin
+  bin_index: Index of bin that data point falls into when feature space is discretized
+  bin_center: Center of bins used to discretize feature space
+  bin_edges: Edges of bins used to discretize feature space
+  count_first_passage_time_cell_centered: First passage time to fixed point count for cell_centered patches computed for all trajectories in given bin
+  mean_first_passage_time_cell_centered: First passage time to fixed point mean for cell_centered patches computed for all trajectories in given bin
+  std_first_passage_time_cell_centered: First passage time to fixed point std for cell_centered patches computed for all trajectories in given bin
+  min_first_passage_time_cell_centered: First passage time to fixed point min for cell_centered patches computed for all trajectories in given bin
+  25%_first_passage_time_cell_centered: First passage time to fixed point 25% for cell_centered patches computed for all trajectories in given bin
+  50%_first_passage_time_cell_centered: First passage time to fixed point 50% for cell_centered patches computed for all trajectories in given bin
+  75%_first_passage_time_cell_centered: First passage time to fixed point 75% for cell_centered patches computed for all trajectories in given bin
+  max_first_passage_time_cell_centered: First passage time to fixed point max for cell_centered patches computed for all trajectories in given bin
+  sem_first_passage_time_cell_centered: First passage time to fixed point sem for cell_centered patches computed for all trajectories in given bin
+  fixed_point_id: Index of fixed point in fixed point dataframe
+  stability: Stability classification of a fixed point
+  polar_theta_fixed_point: Vector field fixed point location in theta
+  polar_r_fixed_point: Vector field fixed point location in r
+  rho_fixed_point: Vector field fixed point location in rho
+  bin_size_polar_theta: Size of bins used when discretizing feature space in theta
+  bin_limits_polar_theta: Bin limits used when discretizing feature space in theta
+  bin_size_polar_r: Size of bins used when discretizing feature space in r
+  bin_limits_polar_r: Bin limits used when discretizing feature space in r
+  bin_size_rho: Size of bins used when discretizing feature space in rho
+  bin_limits_rho: Bin limits used when discretizing feature space in rho
 locations:
   20250618_20X:
     fmsid: 274dcfa710ab42178f7613e826996c6a
