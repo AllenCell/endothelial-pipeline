@@ -644,9 +644,6 @@ class ColumnName:
         BIN_INDEX = "bin_index"
         """Index of bin that data point falls into when feature space is discretized."""
 
-        PERCENT_TRAJ_APPROACHED_FP = "percent_trajectories_approached_fp"
-        """Percent of trajectories that come within a given radius of a stable fixed point in ML-based feature space."""
-
         LINEFIT_SLOPE_ODR = "slope_odr"
         """
         Slope of line fit to relationship between first passage time to fixed
@@ -836,6 +833,12 @@ class ColumnNameTemplate(StrEnum):
     """
     Column name template: First passage time to fixed point %s for %s patches
     computed for all trajectories across all bins.
+    """
+
+    FIRST_PASSAGE_TIME_PERCENT_TRAJECTORIES = "percent_trajectories_approached_fp_%s"
+    """
+    Column name template: Percent of trajectories that come within a given
+    radius of a stable fixed point for %s patches.
     """
 
 

@@ -1081,7 +1081,7 @@ def plot_first_passage_time_parameter_sweep(
     ax.plot(
         first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
         first_passage_time_param_sweep_df[
-            f"{Column.VectorField.PERCENT_TRAJ_APPROACHED_FP}_grid_based"
+            ColumnTemplate.FIRST_PASSAGE_TIME_PERCENT_TRAJECTORIES % "grid_based"
         ],
         marker="o",
         color="tab:blue",
@@ -1093,7 +1093,7 @@ def plot_first_passage_time_parameter_sweep(
     ax.plot(
         first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
         first_passage_time_param_sweep_df[
-            f"{Column.VectorField.PERCENT_TRAJ_APPROACHED_FP}_cell_centered"
+            ColumnTemplate.FIRST_PASSAGE_TIME_PERCENT_TRAJECTORIES % "cell_centered"
         ],
         marker="o",
         color="tab:red",

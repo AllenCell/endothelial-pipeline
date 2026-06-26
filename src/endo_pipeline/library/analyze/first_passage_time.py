@@ -713,26 +713,25 @@ def compute_first_passage_time_parameter_sweep(
     # also compute the fraction of trajectories that approached the fixed point for each
     # parameter combination to see how the fixed point distance threshold affects the
     # number of trajectories that are considered to have reached the fixed point
-    fpt_param_sweep_df[Column.VectorField.PERCENT_TRAJ_APPROACHED_FP] = (
+    percent_traj_col = (ColumnTemplate.FIRST_PASSAGE_TIME_PERCENT_TRAJECTORIES % "").strip("_")
+    fpt_param_sweep_df[percent_traj_col] = (
         fpt_param_sweep_df[Column.NUM_TRAJECTORIES_AFTER_FPT_FILTER]
         / fpt_param_sweep_df[Column.NUM_TRAJECTORIES_BEFORE_FPT_FILTER]
     ) * 100
 
     num_traj_param_sweep_agg = (
-        fpt_param_sweep_df.groupby(Column.VectorField.FPT_DISTANCE_THRESHOLD)[
-            Column.VectorField.PERCENT_TRAJ_APPROACHED_FP
-        ]
+        fpt_param_sweep_df.groupby(Column.VectorField.FPT_DISTANCE_THRESHOLD)[percent_traj_col]
         .agg(lambda x: np.unique(x).item())
         .to_frame()
     ).reset_index(drop=False)
     num_traj_param_sweep_mapping = dict(
         zip(
             num_traj_param_sweep_agg[Column.VectorField.FPT_DISTANCE_THRESHOLD],
-            num_traj_param_sweep_agg[Column.VectorField.PERCENT_TRAJ_APPROACHED_FP],
+            num_traj_param_sweep_agg[percent_traj_col],
             strict=True,
         )
     )
-    fpt_param_sweep_agg_df[Column.VectorField.PERCENT_TRAJ_APPROACHED_FP] = fpt_param_sweep_agg_df[
+    fpt_param_sweep_agg_df[percent_traj_col] = fpt_param_sweep_agg_df[
         Column.VectorField.FPT_DISTANCE_THRESHOLD
     ].map(num_traj_param_sweep_mapping)
 
