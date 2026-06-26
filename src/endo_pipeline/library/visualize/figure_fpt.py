@@ -11,15 +11,13 @@ from mpl_toolkits.mplot3d import Axes3D
 
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_binned_value
-from endo_pipeline.library.analyze.first_passage_time import add_first_passage_time_column
-from endo_pipeline.library.analyze.numerics.binning import adjust_limits_from_bin_size, get_bins
-from endo_pipeline.library.analyze.numerics.fixed_points import (
-    load_fixed_points_dataframe_for_dataset,
+from endo_pipeline.library.analyze.first_passage_time import (
+    add_first_passage_time_column,
+    load_dataframes_for_first_passage_time_analysis,
 )
+from endo_pipeline.library.analyze.numerics.binning import adjust_limits_from_bin_size, get_bins
 from endo_pipeline.library.analyze.track_integration import (
-    add_distance_to_fixed_points_columns,
     compute_first_passage_time_stats_for_bins,
-    load_filtered_trajectory_df_for_first_passage_time_workflow,
     merge_grid_and_tracked_first_passage_time_stats_dfs,
 )
 from endo_pipeline.library.visualize.columns import get_label_for_column
@@ -30,7 +28,6 @@ from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
     LONG_TRACK_THRESHOLD_LENGTH,
     POLAR_ANGLE_PERIOD,
-    TIME_STEP_IN_HOURS,
 )
 from endo_pipeline.settings.figures import FONTSIZE_SMALL
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
@@ -107,72 +104,6 @@ class _HandlerSphere(HandlerBase):
             transform=trans,
         )
         return [body, highlight]
-
-
-def _load_trajectory_dataframes(
-    dataset_name: str, minimum_track_length: int
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """
-    Load and process feature dataframes for first passage time analysis and
-    visualization.
-
-    First, calls the method
-    :py:func:`~endo_pipeline.library.analyze.track_integration.load_filtered_trajectory_df_for_first_passage_time_workflow`
-    to load the trajectory dataframes for both grid-based and cell-centered
-    trajectories, filtered to only include trajectories of at least the
-    specified minimum track length.
-
-    Then adds columns for the distance of each trajectory timepoint to each
-    fixed point, which will be used for filtering to trajectories that reach the
-    fixed point and for computing first passage times.
-
-    Parameters
-    ----------
-    dataset_name
-        Name of the dataset to load trajectory data for.
-    minimum_track_length
-        Minimum track length to filter trajectories by when loading the
-        trajectory dataframes.
-
-    Returns
-    -------
-    :
-        Tuple of (grid-based trajectory dataframe, cell-centered trajectory
-        dataframe, fixed points dataframe) with distance to fixed point columns
-        added to the trajectory dataframes.
-    """
-    traj_df_grid = load_filtered_trajectory_df_for_first_passage_time_workflow(
-        dataset_name,
-        patch_type="grid_based",
-        minimum_track_length=minimum_track_length,
-    )
-    traj_df_grid[Column.SegData.TIME_HRS] = traj_df_grid[Column.TIMEPOINT] * TIME_STEP_IN_HOURS
-
-    traj_df_tracked = load_filtered_trajectory_df_for_first_passage_time_workflow(
-        dataset_name,
-        patch_type="cell_centered",
-        minimum_track_length=minimum_track_length,
-    )
-    traj_df_tracked[Column.SegData.TIME_HRS] = (
-        traj_df_tracked[Column.TIMEPOINT] * TIME_STEP_IN_HOURS
-    )
-
-    fixed_points_df = load_fixed_points_dataframe_for_dataset(dataset_name)
-
-    traj_df_grid = add_distance_to_fixed_points_columns(
-        trajectory_df=traj_df_grid,
-        fixed_point_df=fixed_points_df,
-        trajectory_columns=list(DYNAMICS_COLUMN_NAMES),
-        time_column=Column.SegData.TIME_HRS,
-    )
-    traj_df_tracked = add_distance_to_fixed_points_columns(
-        trajectory_df=traj_df_tracked,
-        fixed_point_df=fixed_points_df,
-        trajectory_columns=list(DYNAMICS_COLUMN_NAMES),
-        time_column=Column.SegData.TIME_HRS,
-    )
-
-    return traj_df_grid, traj_df_tracked, fixed_points_df
 
 
 def _filter_to_first_passage_trajectories(
@@ -694,9 +625,11 @@ def generate_first_passage_time_example(
     # visualization. Also load the fixed points dataframe, which will be used
     # for filtering to trajectories that reach the fixed point and for plotting
     # the fixed point in the 3D feature space.
-    traj_df_grid, traj_df_tracked, fixed_points_df = _load_trajectory_dataframes(
-        dataset_name=dataset_name,
-        minimum_track_length=minimum_track_length,
+    traj_df_grid, traj_df_tracked, fixed_points_df = (
+        load_dataframes_for_first_passage_time_analysis(
+            dataset_name=dataset_name,
+            minimum_track_length=minimum_track_length,
+        )
     )
 
     # Bin (theta, r, rho) feature space.

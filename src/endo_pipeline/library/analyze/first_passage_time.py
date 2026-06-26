@@ -24,6 +24,75 @@ from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemp
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, TIME_STEP_IN_HOURS
 
 
+def load_dataframes_for_first_passage_time_analysis(
+    dataset_name: str, minimum_track_length: int
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """
+    Load and process feature dataframes for first passage time analysis and
+    visualization.
+
+    Load both the grid-based and cell-centered feature dataframes and filter to
+    only include trajectories of at least the specified minimum track length as
+    well as the fixed points. Then, add columns for distance from each point in
+    the trajectory to the fixed points.
+
+    Parameters
+    ----------
+    dataset_name
+        Name of the dataset to load trajectory data for.
+    minimum_track_length
+        Minimum track length to filter trajectories.
+
+    Returns
+    -------
+    :
+        Grid-based features, cell-centered features, and fixed point dataframes.
+    """
+
+    # load the dynamics features from the grid-based and track-based dataframes
+    traj_df_grid = load_filtered_trajectory_df_for_first_passage_time_workflow(
+        dataset_name,
+        patch_type="grid_based",
+        minimum_track_length=minimum_track_length,
+    )
+    traj_df_grid[Column.SegData.TIME_HRS] = traj_df_grid[Column.TIMEPOINT] * TIME_STEP_IN_HOURS
+
+    traj_df_tracked = load_filtered_trajectory_df_for_first_passage_time_workflow(
+        dataset_name,
+        patch_type="cell_centered",
+        minimum_track_length=minimum_track_length,
+    )
+    traj_df_tracked[Column.SegData.TIME_HRS] = (
+        traj_df_tracked[Column.TIMEPOINT] * TIME_STEP_IN_HOURS
+    )
+
+    # load the flow field dictionaries and fixed points
+    fixed_points_df = load_fixed_points_dataframe_for_dataset(dataset_name)
+    fp_cluster_mean_cols = [
+        ColumnTemplate.BOOTSTRAP_CLUSTER_MEAN % col for col in DYNAMICS_COLUMN_NAMES
+    ]
+
+    # add the distances from the fixed points for the grid-based trajectories
+    traj_df_grid = add_distance_to_fixed_points_columns(
+        trajectory_df=traj_df_grid,
+        fixed_point_df=fixed_points_df,
+        trajectory_columns=list(DYNAMICS_COLUMN_NAMES),
+        fixed_point_columns=fp_cluster_mean_cols,
+        time_column=Column.SegData.TIME_HRS,
+    )
+
+    # add the distances from the fixed points for the track-based trajectories
+    traj_df_tracked = add_distance_to_fixed_points_columns(
+        trajectory_df=traj_df_tracked,
+        fixed_point_df=fixed_points_df,
+        trajectory_columns=list(DYNAMICS_COLUMN_NAMES),
+        fixed_point_columns=fp_cluster_mean_cols,
+        time_column=Column.SegData.TIME_HRS,
+    )
+
+    return traj_df_grid, traj_df_tracked, fixed_points_df
+
+
 def add_first_passage_time_column(
     fixed_point_index: int,
     trajectory_df: pd.DataFrame,
@@ -108,25 +177,13 @@ def compute_first_passage_times_one_dataset(
     fpt_stats_df_list: list = []
     param_sweep_df_list: list = []
 
-    # load the dynamics features from the grid-based and track-based dataframes
-    traj_df_grid = load_filtered_trajectory_df_for_first_passage_time_workflow(
-        dataset_name,
-        patch_type="grid_based",
-        minimum_track_length=minimum_track_length,
-    )
-    traj_df_grid[Column.SegData.TIME_HRS] = traj_df_grid[Column.TIMEPOINT] * TIME_STEP_IN_HOURS
-
-    traj_df_tracked = load_filtered_trajectory_df_for_first_passage_time_workflow(
-        dataset_name,
-        patch_type="cell_centered",
-        minimum_track_length=minimum_track_length,
-    )
-    traj_df_tracked[Column.SegData.TIME_HRS] = (
-        traj_df_tracked[Column.TIMEPOINT] * TIME_STEP_IN_HOURS
+    traj_df_grid, traj_df_tracked, fixed_points_df = (
+        load_dataframes_for_first_passage_time_analysis(
+            dataset_name=dataset_name,
+            minimum_track_length=minimum_track_length,
+        )
     )
 
-    # load the flow field dictionaries and fixed points
-    fixed_points_df = load_fixed_points_dataframe_for_dataset(dataset_name)
     # filter the fixed points to only the ones with higher confidence
     fixed_points_df = fixed_points_df[
         fixed_points_df[Column.FIXED_POINT_DETECTION_RATE] >= BOOTSTRAP_THRESHOLD
@@ -138,27 +195,6 @@ def compute_first_passage_times_one_dataset(
         fpt_stats_df_list.append(pd.DataFrame({Column.DATASET: [dataset_name]}))
         param_sweep_df_list.append(pd.DataFrame({Column.DATASET: [dataset_name]}))
         return fpt_stats_df_list, param_sweep_df_list
-
-    fp_cluster_mean_cols = [
-        ColumnTemplate.BOOTSTRAP_CLUSTER_MEAN % col for col in DYNAMICS_COLUMN_NAMES
-    ]
-    # add the distances from the fixed points for the grid-based trajectories
-    traj_df_grid = add_distance_to_fixed_points_columns(
-        trajectory_df=traj_df_grid,
-        fixed_point_df=fixed_points_df,
-        trajectory_columns=DYNAMICS_COLUMN_NAMES,
-        fixed_point_columns=fp_cluster_mean_cols,
-        time_column=Column.SegData.TIME_HRS,
-    )
-
-    # add the distances from the fixed points for the track-based trajectories
-    traj_df_tracked = add_distance_to_fixed_points_columns(
-        trajectory_df=traj_df_tracked,
-        fixed_point_df=fixed_points_df,
-        trajectory_columns=DYNAMICS_COLUMN_NAMES,
-        fixed_point_columns=fp_cluster_mean_cols,
-        time_column=Column.SegData.TIME_HRS,
-    )
 
     # 1. bin (theta, r, rho) feature space define the bin sizes for each feature to be binned
     bin_sizes = {
