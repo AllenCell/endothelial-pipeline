@@ -20,7 +20,6 @@ from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
 )
 from endo_pipeline.library.analyze.track_integration import (
-    add_distance_to_fixed_points_columns,
     compute_first_passage_time_parameter_sweep_df,
     compute_first_passage_time_stats_for_bins,
     merge_grid_and_tracked_first_passage_time_parameter_sweep_dfs,
@@ -33,6 +32,7 @@ from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemp
 from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
     LONG_TRACK_THRESHOLD_LENGTH,
+    POLAR_ANGLE_PERIOD,
     TIME_STEP_IN_HOURS,
 )
 from endo_pipeline.settings.literal_types import PatchTypeLiteral
@@ -111,6 +111,124 @@ def load_filtered_trajectory_df_for_first_passage_time_workflow(
     )
 
     return trajectories_df
+
+
+def add_distance_to_fixed_points_columns(
+    trajectory_df: pd.DataFrame,
+    fixed_point_df: pd.DataFrame,
+    trajectory_columns: list[Column.DiffAEData | str],
+    fixed_point_columns: list[Column.DiffAEData | str] | None = None,
+    column_suffix: str = "",
+    polar_angle_period: float | None = None,
+    time_column: str = Column.TIMEPOINT,
+) -> pd.DataFrame:
+    """
+    Compute distance from each point in the trajectory to the fixed points.
+
+    This distance gets added as a new column to the trajectory dataframe for
+    each fixed point, along with the signed difference along each axis
+    (e.g. theta, r, rho) from each fixed point.
+
+    Parameters
+    ----------
+    trajectory_df
+        DataFrame containing the trajectory points.
+    fixed_point_df
+        DataFrame containing the fixed points.
+    trajectory_columns
+        List of column names in trajectory_df to use for distance computation.
+    fixed_point_columns
+        List of column names in fixed_point_df to use for distance computation.
+        Expected to be in the same order as trajectory_columns.
+        If None, the trajectory_columns will be used.
+    column_suffix
+        Suffix to append to the new distance-from-fixed-point columns.
+    polar_angle_period
+        The period to use for the polar angle variable when computing differences, if applicable.
+        If None, the default POLAR_ANGLE_PERIOD will be used. The other expected
+        value for this parameter would be 2 * np.pi.
+    time_column
+        Column name in trajectory_df corresponding to the time variable
+        (e.g. `Column.TIMEPOINT` or `Column.SegData.TIME_HRS`).
+
+    Returns
+    -------
+    :
+        DataFrame containing the distances to the nearest fixed point for each trajectory point.
+    """
+
+    if fixed_point_columns is None:
+        fixed_point_columns = trajectory_columns
+
+    if column_suffix and not column_suffix.startswith("_"):
+        column_suffix = f"_{column_suffix}"  # make sure the suffix starts with an underscore
+
+    # determine distance from each fixed point over time and add to the dataframe, along
+    # with the signed difference along each axis (e.g. theta, r, rho) from each fixed point
+    dist_from_fp_col_prefix = Column.VectorField.DISTANCE_FROM_FP_PREFIX
+    polar_angle_period = POLAR_ANGLE_PERIOD if polar_angle_period is None else polar_angle_period
+
+    for i in fixed_point_df.index:
+        fpt = fixed_point_df.loc[i]
+
+        for j, col in enumerate(fixed_point_columns):
+            # this lambda function computes the signed difference from the fixed point for a given
+            # column, taking into account the periodicity of the polar angle variable if applicable
+            diff_func = lambda x, fpt=fpt, col=col: (
+                np.mod(x - fpt[col] + polar_angle_period / 2, polar_angle_period)
+                - polar_angle_period / 2
+                if Column.DiffAEData.POLAR_ANGLE.value in col
+                else (x - fpt[col])
+            )
+            trajectory_df[
+                f"{Column.VectorField.DISTANCE_FROM_FP_1D_SIGNED_PREFIX}{i}_{col}{column_suffix}"
+            ] = diff_func(trajectory_df[trajectory_columns[j]])
+
+        dynamics_diff_columns = [
+            f"{Column.VectorField.DISTANCE_FROM_FP_1D_SIGNED_PREFIX}{i}_{col}{column_suffix}"
+            for col in fixed_point_columns
+        ]
+        trajectory_df[f"{dist_from_fp_col_prefix}{i}{column_suffix}"] = np.linalg.norm(
+            trajectory_df[dynamics_diff_columns], axis=1
+        )
+
+        dd = (
+            trajectory_df[f"{dist_from_fp_col_prefix}{i}{column_suffix}"]
+            .groupby(trajectory_df[Column.CROP_INDEX])
+            .diff()
+        )
+        dt = trajectory_df[time_column].groupby(trajectory_df[Column.CROP_INDEX]).diff()
+        trajectory_df[f"{dist_from_fp_col_prefix}{i}{column_suffix}_veloc"] = dd / dt
+
+    # determine which fixed point is closest at each timepoint for each track
+    dist_from_fp_columns = [
+        f"{dist_from_fp_col_prefix}{i}{column_suffix}" for i in fixed_point_df.index
+    ]
+    trajectory_df[f"closest_fp{column_suffix}"] = (
+        trajectory_df[dist_from_fp_columns]
+        .idxmin(axis=1, skipna=True)
+        .transform(
+            lambda s: (
+                np.nan if pd.isna(s) else int(s.strip(dist_from_fp_col_prefix).strip(column_suffix))
+            )
+        )
+    )
+
+    # create a dictionary mapping a fixed point index to its stability
+    fp_stability_map = dict(
+        zip(
+            fixed_point_df.index,
+            fixed_point_df[Column.FIXED_POINT_STABILITY],
+            strict=True,
+        )
+    )
+
+    # add the stability as a column for the closest fixed point at each timepoint
+    trajectory_df[f"closest_fp_stability{column_suffix}"] = trajectory_df[
+        f"closest_fp{column_suffix}"
+    ].map(fp_stability_map)
+
+    return trajectory_df
 
 
 def load_dataframes_for_first_passage_time_analysis(
