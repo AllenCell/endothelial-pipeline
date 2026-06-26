@@ -122,9 +122,7 @@ def add_distance_to_fixed_points_columns(
     fixed_point_df: pd.DataFrame,
     trajectory_columns: list[Column.DiffAEData | str],
     fixed_point_columns: list[Column.DiffAEData | str] | None = None,
-    column_suffix: str = "",
     polar_angle_period: float | None = None,
-    time_column: str = Column.TIMEPOINT,
 ) -> pd.DataFrame:
     """
     Compute distance from each point in the trajectory to the fixed points.
@@ -151,9 +149,6 @@ def add_distance_to_fixed_points_columns(
         The period to use for the polar angle variable when computing differences, if applicable.
         If None, the default POLAR_ANGLE_PERIOD will be used. The other expected
         value for this parameter would be 2 * np.pi.
-    time_column
-        Column name in trajectory_df corresponding to the time variable
-        (e.g. `Column.TIMEPOINT` or `Column.SegData.TIME_HRS`).
 
     Returns
     -------
@@ -163,9 +158,6 @@ def add_distance_to_fixed_points_columns(
 
     if fixed_point_columns is None:
         fixed_point_columns = trajectory_columns
-
-    if column_suffix and not column_suffix.startswith("_"):
-        column_suffix = f"_{column_suffix}"  # make sure the suffix starts with an underscore
 
     # determine distance from each fixed point over time and add to the dataframe, along
     # with the signed difference along each axis (e.g. theta, r, rho) from each fixed point
@@ -184,53 +176,17 @@ def add_distance_to_fixed_points_columns(
                 if Column.DiffAEData.POLAR_ANGLE.value in col
                 else (x - fpt[col])
             )
-            trajectory_df[
-                f"{Column.VectorField.DISTANCE_FROM_FP_1D_SIGNED_PREFIX}{i}_{col}{column_suffix}"
-            ] = diff_func(trajectory_df[trajectory_columns[j]])
+            trajectory_df[f"{Column.VectorField.DISTANCE_FROM_FP_1D_SIGNED_PREFIX}{i}_{col}"] = (
+                diff_func(trajectory_df[trajectory_columns[j]])
+            )
 
         dynamics_diff_columns = [
-            f"{Column.VectorField.DISTANCE_FROM_FP_1D_SIGNED_PREFIX}{i}_{col}{column_suffix}"
+            f"{Column.VectorField.DISTANCE_FROM_FP_1D_SIGNED_PREFIX}{i}_{col}"
             for col in fixed_point_columns
         ]
-        trajectory_df[f"{dist_from_fp_col_prefix}{i}{column_suffix}"] = np.linalg.norm(
+        trajectory_df[f"{dist_from_fp_col_prefix}{i}"] = np.linalg.norm(
             trajectory_df[dynamics_diff_columns], axis=1
         )
-
-        dd = (
-            trajectory_df[f"{dist_from_fp_col_prefix}{i}{column_suffix}"]
-            .groupby(trajectory_df[Column.CROP_INDEX])
-            .diff()
-        )
-        dt = trajectory_df[time_column].groupby(trajectory_df[Column.CROP_INDEX]).diff()
-        trajectory_df[f"{dist_from_fp_col_prefix}{i}{column_suffix}_veloc"] = dd / dt
-
-    # determine which fixed point is closest at each timepoint for each track
-    dist_from_fp_columns = [
-        f"{dist_from_fp_col_prefix}{i}{column_suffix}" for i in fixed_point_df.index
-    ]
-    trajectory_df[f"closest_fp{column_suffix}"] = (
-        trajectory_df[dist_from_fp_columns]
-        .idxmin(axis=1, skipna=True)
-        .transform(
-            lambda s: (
-                np.nan if pd.isna(s) else int(s.strip(dist_from_fp_col_prefix).strip(column_suffix))
-            )
-        )
-    )
-
-    # create a dictionary mapping a fixed point index to its stability
-    fp_stability_map = dict(
-        zip(
-            fixed_point_df.index,
-            fixed_point_df[Column.FIXED_POINT_STABILITY],
-            strict=True,
-        )
-    )
-
-    # add the stability as a column for the closest fixed point at each timepoint
-    trajectory_df[f"closest_fp_stability{column_suffix}"] = trajectory_df[
-        f"closest_fp{column_suffix}"
-    ].map(fp_stability_map)
 
     return trajectory_df
 
@@ -289,7 +245,6 @@ def load_dataframes_for_first_passage_time_analysis(
         fixed_point_df=fixed_points_df,
         trajectory_columns=list(DYNAMICS_COLUMN_NAMES),
         fixed_point_columns=fp_cluster_mean_cols,
-        time_column=Column.SegData.TIME_HRS,
     )
 
     # add the distances from the fixed points for the track-based trajectories
@@ -298,7 +253,6 @@ def load_dataframes_for_first_passage_time_analysis(
         fixed_point_df=fixed_points_df,
         trajectory_columns=list(DYNAMICS_COLUMN_NAMES),
         fixed_point_columns=fp_cluster_mean_cols,
-        time_column=Column.SegData.TIME_HRS,
     )
 
     return traj_df_grid, traj_df_tracked, fixed_points_df
