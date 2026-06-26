@@ -12,4 +12,4 @@ locations:
     mlflowid: null
     fmsid: b32e65243a7e47ec913b0995a4bfa09a
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/nuc_pred_labelfree/finetuned
