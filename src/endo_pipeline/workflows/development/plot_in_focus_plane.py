@@ -65,7 +65,7 @@ def main(datasets: Datasets | None = None) -> None:
     dataset_names = datasets or get_datasets_in_collection("shear_stress")
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one dataset")
+        logger.warning("DEMO MODE - Limiting to one dataset")
         dataset_names = dataset_names[:1]
 
     # Load manifest containing in focus plane annotations

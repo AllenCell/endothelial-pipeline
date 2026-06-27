@@ -91,7 +91,7 @@ def main(datasets: Datasets | None = None):
     )
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one dataset")
+        logger.warning("DEMO MODE - Limiting to one dataset")
         dataset_name_list = dataset_name_list[:1]
 
     for dataset_name in tqdm(dataset_name_list):

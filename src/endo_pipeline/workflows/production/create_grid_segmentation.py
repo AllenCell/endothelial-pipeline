@@ -66,7 +66,7 @@ def main():
     max_num_timepoints: int | None = None
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one position and 10 timepoints")
+        logger.warning("DEMO MODE - Limiting to one position and 10 timepoints")
         max_num_positions = 1
         max_num_timepoints = 10
 

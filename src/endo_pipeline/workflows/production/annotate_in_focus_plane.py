@@ -67,7 +67,7 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
     dataset_names = datasets or get_datasets_in_collection("shear_stress")
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one dataset, two positions, and 10 timepoints")
+        logger.warning("DEMO MODE - Limiting to one dataset, two positions, and 10 timepoints")
         dataset_names = dataset_names[:1]
         max_positions = 2
         max_timepoints = 10

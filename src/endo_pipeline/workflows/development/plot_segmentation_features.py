@@ -108,7 +108,7 @@ def main(datasets: Datasets | None = None) -> None:
 
     # If running in demo mode, only process the first dataset.
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one dataset")
+        logger.warning("DEMO MODE - Limiting to one dataset")
         dataset_names = dataset_names[:1]
         max_positions = 1
     else:

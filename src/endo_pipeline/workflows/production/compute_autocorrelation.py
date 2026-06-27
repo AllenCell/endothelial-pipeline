@@ -102,7 +102,7 @@ def main(
     ]
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one dataset")
+        logger.warning("DEMO MODE - Limiting to one dataset")
         dataset_names = dataset_names[:1]
 
     # Default list of feature column names to use for correlation analysis if

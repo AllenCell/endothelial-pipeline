@@ -107,7 +107,7 @@ def main(
     ]
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one dataset, one position, and 10 tracks")
+        logger.warning("DEMO MODE - Limiting to one dataset, one position, and 10 tracks")
         dataset_names = dataset_names[:1]
         max_positions = 1
         max_tracks = 10

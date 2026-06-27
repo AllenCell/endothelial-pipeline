@@ -125,7 +125,7 @@ def main(
     datasets = SUMMARY_PLOT_DATASETS[dataset_group]
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one dataset")
+        logger.warning("DEMO MODE - Limiting to one dataset")
         datasets = datasets[:1]
 
     # --- Cross-dataset summary plots ---

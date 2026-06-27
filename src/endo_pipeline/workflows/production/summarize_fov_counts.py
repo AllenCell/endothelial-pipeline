@@ -58,7 +58,7 @@ def main(collections: UniqueStrList | None = None) -> None:
     collection_names = collections or COLLECTIONS_NAMED_IN_PAPER
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one collection")
+        logger.warning("DEMO MODE - Limiting to one collection")
         collection_names = collection_names[:1]
 
     for collection_name in collection_names:

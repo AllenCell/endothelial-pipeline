@@ -150,7 +150,7 @@ def main(
     datasets = datasets or get_datasets_in_collection(DEFAULT_OPTICAL_FLOW_COLLECTION)
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one dataset, one position, and 10 timepoints")
+        logger.warning("DEMO MODE - Limiting to one dataset, one position, and 10 timepoints")
         datasets = datasets[:1]
         max_positions = 1
         max_timepoints = 20

@@ -65,7 +65,7 @@ def main(
     dataset_names = datasets or [DENSITY_PLOT_DEFAULT_DATASET]
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one dataset")
+        logger.warning("DEMO MODE - Limiting to one dataset")
         dataset_names = dataset_names[:1]
 
     # Load dataframe manifest for the features to be used in flow field

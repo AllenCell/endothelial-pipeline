@@ -101,7 +101,7 @@ def main(
 
     # If running in demo mode, only plot correlation metric
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one metric")
+        logger.warning("DEMO MODE - Limiting to one metric")
         metrics = ["corr"]
     else:
         metrics = metrics or ["corr", "ssim", "lpips"]
