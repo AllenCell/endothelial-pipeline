@@ -148,6 +148,7 @@ def main(
     set_column_names = list(set_column_value.keys()) if set_column_value is not None else []
 
     if DEMO_MODE:
+        logger.warning("DEMO MODE - Limiting to single column with 3 steps and 1 noise sample")
         walk_column_names = walk_column_names[:1]
         n_steps = 3
         n_noise_samples = 1

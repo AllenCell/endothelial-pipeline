@@ -72,6 +72,10 @@ def main(datasets: Datasets | None = None, num_processes: int = 1):
 
     datasets = datasets or get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
 
+    if DEMO_MODE:
+        logger.warning("DEMO MODE - Limiting to one dataset")
+        datasets = datasets[:1]
+
     analysis_queue = build_analysis_queue(
         dataset_names=datasets,
         image_validation_frequency=None,

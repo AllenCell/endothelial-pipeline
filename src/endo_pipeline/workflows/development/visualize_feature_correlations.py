@@ -26,8 +26,7 @@ def main(
     aggregate_only: bool = True,
 ) -> None:
     """
-    Visualize correlation for DiffAE features, PCs, and
-    measured quantitites.
+    Visualize correlation for DiffAE features, PCs, and measured quantities.
 
     #correlation-analysis #cell-centered #grid-based #visualization
 
@@ -93,7 +92,7 @@ def main(
     dataset_names = datasets or get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one dataset")
+        logger.warning("DEMO MODE - Limiting to one dataset")
         dataset_names = dataset_names[:1]
 
     pc_columns = DIFFAE_PC_COLUMN_NAME_GROUPS[pc_group]
