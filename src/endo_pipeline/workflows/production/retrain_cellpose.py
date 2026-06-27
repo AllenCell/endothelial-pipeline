@@ -68,6 +68,7 @@ def main(num_processes: int = 1) -> None:
     datasets_to_use = get_datasets_in_collection("nuclear_labelfree_model_training")
 
     if DEMO_MODE:
+        logger.warning("DEMO MODE - Limiting to one dataset")
         datasets_to_use = datasets_to_use[:1]
         model_name += "_demo"
 

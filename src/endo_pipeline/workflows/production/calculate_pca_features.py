@@ -99,6 +99,7 @@ def main(
     dataset_names = datasets or get_datasets_in_collection("shear_stress", "perturbation")
 
     if DEMO_MODE:
+        logger.warning("DEMO MODE - Limiting to one dataset")
         dataset_names = dataset_names[:1]
 
     # Define output manifest name and list of required columns for selected

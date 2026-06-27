@@ -93,7 +93,7 @@ def main(
 
     # When running workflow in demo mode, only evaluate the first dataset.
     if DEMO_MODE:
-        logger.warning("DEMO MODE - Only evaluating first dataset")
+        logger.warning("DEMO MODE - Limiting to one dataset")
         datasets = datasets[:1]
 
     # Get config path based on model manifest and run name.

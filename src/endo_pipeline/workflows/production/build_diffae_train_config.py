@@ -115,6 +115,7 @@ def main(
     # rates. Note that while 100% of the data is used for demo mode, the cache
     # rate for actual training can be adjusted if needed.
     if DEMO_MODE:
+        logger.warning("DEMO MODE - Limiting number of training epochs")
         name_suffix = "_demo"
         min_num_epochs = 1
         max_num_epochs = 3

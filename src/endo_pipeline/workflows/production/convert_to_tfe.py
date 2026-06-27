@@ -117,6 +117,7 @@ def main(
 
     # Limit dataset and positions for demo mode and apply directory suffix.
     if DEMO_MODE:
+        logger.warning("DEMO MODE - Limiting to one dataset and one position")
         datasets = datasets[:1]
         positions = positions[:1]
 

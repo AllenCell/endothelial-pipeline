@@ -46,6 +46,9 @@ def main(model_manifest_name: str, run_name: str | None = None) -> None:
 
     logger = logging.getLogger(__name__)
 
+    if DEMO_MODE:
+        logger.warning("DEMO MODE - Training with demo config")
+
     # Get available training runs from given model manifest.
     name_suffix = "_demo" if DEMO_MODE else ""
     model_manifest_name = f"{model_manifest_name}{name_suffix}"
