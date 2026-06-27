@@ -5,7 +5,7 @@ def main(datasets: Datasets | None = None) -> None:
     """
     Plot in-focus z-planes for select datasets.
 
-    #quality-control #preprocessing #test-ready #cpu-only
+    #quality-control #preprocessing #test-ready
 
     ## Example usage
 

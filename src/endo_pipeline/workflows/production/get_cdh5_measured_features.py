@@ -9,7 +9,7 @@ def main(
     """
     Extract measure features based on CDH5 segmentations.
 
-    #cdh5-segmentation #test-ready #cpu-only
+    #cdh5-segmentation #test-ready
 
     Features extracted from CDH5-based cell segmentation include alignment to
     flow, elongation, edge intensity, etc. Features are calculated for each

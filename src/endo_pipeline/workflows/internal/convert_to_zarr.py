@@ -11,7 +11,7 @@ def main(
     """
     Convert datasets to Zarr format.
 
-    #zarr-conversion #internal #cpu-only
+    #zarr-conversion #internal
 
     Zarrs are saved in the following channel order: 488, BF, 405, 561, 640
 

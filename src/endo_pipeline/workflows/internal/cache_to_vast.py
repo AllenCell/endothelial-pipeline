@@ -2,7 +2,7 @@ def main() -> None:
     """
     Cache FMS files to Vast.
 
-    #internal #vast #cpu-only
+    #internal #vast
 
     This script iterates through all dataset configs and dataframe/model
     manifests to identify locations with FMS file IDs. All file IDs are then

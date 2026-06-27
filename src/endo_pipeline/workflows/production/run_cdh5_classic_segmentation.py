@@ -8,7 +8,7 @@ def main(
     """
     Run CDH5 classic segmentation.
 
-    #cdh5-segmentation #test-ready #cpu-only
+    #cdh5-segmentation #test-ready
 
     A summary of the segmentation process is as follows:
 

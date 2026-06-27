@@ -9,7 +9,7 @@ def main(
     """
     Run tracking on CDH5 class segmentations.
 
-    #cdh5-segmentation #cdh5-tracking #test-ready #cpu-only
+    #cdh5-segmentation #cdh5-tracking #test-ready
 
     The workflow loads the CDH5 segmentations from a single position in a single
     dataset and builds cell tracks by finding which cell segmentations at a

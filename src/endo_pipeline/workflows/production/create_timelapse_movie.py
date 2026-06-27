@@ -17,7 +17,7 @@ def main(
     """
     Create timelapse movies of single FOV or stitched.
 
-    #visualization #test-ready #cpu-only
+    #visualization #test-ready
 
     Three movie types are available:
 

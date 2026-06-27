@@ -5,7 +5,7 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
     """
     Detect and annotate the in-focus z-plane index for each position.
 
-    #quality-control #preprocessing #test-ready #cpu-only
+    #quality-control #preprocessing #test-ready
 
     ## Example usage
 

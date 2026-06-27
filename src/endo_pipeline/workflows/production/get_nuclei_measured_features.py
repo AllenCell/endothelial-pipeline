@@ -9,7 +9,7 @@ def main(
     """
     Extract measure features based on label-free nuclei predictions.
 
-    #nuclei-prediction #test-ready #cpu-only
+    #nuclei-prediction #test-ready
 
     Measures the label-free nuclei segmentation labels brightfield intensity and
     centroids and matches them to existing cell segmentation labels.
