@@ -17,7 +17,7 @@ def main(
     """
     Visualize latent walk across select features.
 
-    #diffae #pca #visualization #test-ready
+    #diffae #pca #visualization #test-ready #gpu
 
     This workflow performs a latent walk along features in the latent space of a
     Diffusion Autoencoder (DiffAE) model.

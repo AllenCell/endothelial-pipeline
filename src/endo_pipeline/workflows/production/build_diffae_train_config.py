@@ -18,7 +18,7 @@ def main(
     """
     Build config for training a DiffAE model.
 
-    #diffae #model-training
+    #diffae #model-training #gpu
 
     This workflow builds model training configs starting with the base model
     training config and overriding with training run-specific configuration.

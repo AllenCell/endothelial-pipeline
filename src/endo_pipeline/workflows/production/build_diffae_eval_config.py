@@ -16,7 +16,7 @@ def main(
     """
     Build config for evaluating a DiffAE model.
 
-    #diffae #model-evaluation
+    #diffae #model-evaluation #gpu
 
     This workflow builds model evaluation configs for each dataset starting with
     the config used to train the model, then overriding with evaluation-specific
