@@ -8,7 +8,7 @@ def main(
     """
     Calculate PCA features from DiffAE latent features.
 
-    #diffae #pca #cell-centered #grid-based
+    #diffae #pca #cell-centered #grid-based #test-ready
 
     This workflow calculates PCA using features from the default Diff AE model
     from a default collection of datasets.
@@ -30,7 +30,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe calculate-pca-features PATCH_TYPE -vd
+    uv run endopipe calculate-pca-features PATCH_TYPE -d
     ```
 
     To run the workflow for a single dataset:

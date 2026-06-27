@@ -43,7 +43,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe run-cdh5-classic-segmentation -vd
+    uv run endopipe run-cdh5-classic-segmentation -d
     ```
 
     To run the workflow for a single dataset:

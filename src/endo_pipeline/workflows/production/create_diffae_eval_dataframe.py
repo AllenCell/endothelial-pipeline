@@ -8,7 +8,7 @@ def main(
     """
     Generate dataframes with zarr file locations for evaluating a DiffAE model.
 
-    #diffae #model-evaluation
+    #diffae #model-evaluation #test-ready
 
     This workflow collects zarr file locations for each of the given datasets
     and saves them as Parquet files, along with metadata such as channel and
@@ -21,7 +21,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe create-diffae-eval-dataframe PATCH_TYPE -vd
+    uv run endopipe create-diffae-eval-dataframe PATCH_TYPE -d
     ```
 
     To run the workflow for a single dataset:

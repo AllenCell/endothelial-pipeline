@@ -17,7 +17,7 @@ def main(
     """
     Visualize latent walk across select features.
 
-    #diffae #pca #visualization
+    #diffae #pca #visualization #test-ready
 
     This workflow performs a latent walk along features in the latent space of a
     Diffusion Autoencoder (DiffAE) model.
@@ -27,7 +27,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe visualize-latent-walk -vd
+    uv run endopipe visualize-latent-walk -d
     ```
 
     To run the full workflow:

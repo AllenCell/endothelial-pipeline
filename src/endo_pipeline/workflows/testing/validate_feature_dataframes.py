@@ -17,7 +17,7 @@ def main(patch_type: PatchType = "grid_based") -> None:
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe validate-feature-dataframes PATCH_TYPE -vd
+    uv run endopipe validate-feature-dataframes PATCH_TYPE -d
     ```
 
     To run the full workflow:

@@ -17,7 +17,7 @@ def main(manifests: UniqueStrList | None = None) -> None:
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe validate-image-manifest -vd
+    uv run endopipe validate-image-manifest -d
     ```
 
     To run the workflow for a specific manifest:

@@ -5,14 +5,14 @@ def main(datasets: Datasets | None = None) -> None:
     """
     Visualize 3D vector field projected onto 2D plane with streamlines.
 
-    #dynamical-systems #fixed-points #grid-based #cell-centered
+    #dynamical-systems #fixed-points #grid-based #cell-centered #test-ready
 
     ## Example usage
 
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe visualize-projected-dynamics -vd
+    uv run endopipe visualize-projected-dynamics -d
     ```
 
     To run the workflow for a single dataset:

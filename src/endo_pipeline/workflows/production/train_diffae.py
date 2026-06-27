@@ -12,7 +12,7 @@ def main(model_manifest_name: str, run_name: str | None = None) -> None:
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe train-diffae MODEL_MANIFEST_NAME -vd
+    uv run endopipe train-diffae MODEL_MANIFEST_NAME -d
     ```
 
     To run the workflow for given model manifest and run name:

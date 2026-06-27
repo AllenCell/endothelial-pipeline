@@ -28,14 +28,14 @@ def main(
     """
     Visualize correlation for DiffAE features, PCs, and measured quantities.
 
-    #correlation-analysis #cell-centered #grid-based #visualization
+    #correlation-analysis #cell-centered #grid-based #visualization #test-ready
 
     ## Example usage
 
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe visualize-feature-correlations -vd
+    uv run endopipe visualize-feature-correlations -d
     ```
 
     To run the workflow for a single dataset:

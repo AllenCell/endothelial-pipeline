@@ -9,7 +9,7 @@ def main(num_processes: int = 1) -> None:
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe retrain-nuclei-prediction-model -vd
+    uv run endopipe retrain-nuclei-prediction-model -d
     ```
 
     ## Dataset collection

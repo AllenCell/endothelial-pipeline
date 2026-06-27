@@ -12,14 +12,14 @@ def main(
     """
     Compare cell-centered trajectories on grid-based flow fields.
 
-    #grid-based #cell-centered
+    #grid-based #cell-centered #test-ready
 
     ## Example usage
 
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe compare-flow-field-trajectories -vd
+    uv run endopipe compare-flow-field-trajectories -d
     ```
 
     To run the workflow for a single dataset:

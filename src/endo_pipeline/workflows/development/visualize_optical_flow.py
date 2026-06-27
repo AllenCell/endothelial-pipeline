@@ -14,7 +14,21 @@ def main(
     """
     Visualize TVL1 optical flow features for crops.
 
-    #optical-flow #cell-centered #grid-based #visualization
+    #optical-flow #cell-centered #grid-based #visualization #test-ready
+
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe visualize-optical-flow -d
+    ```
+
+    To run the workflow for a single dataset:
+
+    ```bash
+    uv run endopipe visualize-optical-flow --datasets DATASET_NAME
+    ```
 
     ## Dataset collection
 

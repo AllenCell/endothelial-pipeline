@@ -5,14 +5,14 @@ def main(datasets: Datasets | None = None):
     """
     Summarize segmentation counts across select datasets.
 
-    #cdh5-segmentation #cdh5-tracking #nuclei-prediction
+    #cdh5-segmentation #cdh5-tracking #nuclei-prediction #test-ready
 
     ## Example usage
 
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe summarize-segmentation-counts -vd
+    uv run endopipe summarize-segmentation-counts -d
     ```
 
     To run the workflow for a single dataset:

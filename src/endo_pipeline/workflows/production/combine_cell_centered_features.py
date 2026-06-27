@@ -5,7 +5,7 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
     """
     Merge all cell-centered segmentation and PCA-reduced DiffAE features.
 
-    #cdh5-segmentation #cdh5-tracking #nuclei-prediction #diffae #cell-centered
+    #cdh5-segmentation #cdh5-tracking #nuclei-prediction #diffae #cell-centered #test-ready
 
     This workflow combines the merged segmentation features from the
     `merge-segmentation-feature-tables` workflow (which itself merges features
@@ -18,7 +18,7 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe combine-cell-centered-features -vd
+    uv run endopipe combine-cell-centered-features -d
     ```
 
     To run the workflow for a single dataset:

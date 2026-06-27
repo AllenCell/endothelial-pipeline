@@ -8,14 +8,14 @@ def main(
     """
     Compute first passage time statistics and parameter sweep.
 
-    #first-passage-time #grid-based #cell-centered
+    #first-passage-time #grid-based #cell-centered #test-ready
 
     ## Example usage
 
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe compute-first-passage-time -vd
+    uv run endopipe compute-first-passage-time -d
     ```
 
     To run the workflow for a single dataset:

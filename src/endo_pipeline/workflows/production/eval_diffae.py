@@ -25,7 +25,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe eval-diffae PATCH_TYPE -vd
+    uv run endopipe eval-diffae PATCH_TYPE -d
     ```
 
     To run the workflow for a specific model manifest name and run name:

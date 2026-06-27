@@ -11,14 +11,14 @@ def main(
     """
     Visualize first passage time results from `compute-first-passage-time`.
 
-    #first-passage-time #grid-based #cell-centered #visualization
+    #first-passage-time #grid-based #cell-centered #visualization #test-ready
 
     ## Example usage
 
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe visualize-first-passage-time -vd
+    uv run endopipe visualize-first-passage-time -d
     ```
 
     To run the workflow for a single dataset:

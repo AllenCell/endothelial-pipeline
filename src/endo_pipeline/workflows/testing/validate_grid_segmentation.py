@@ -17,7 +17,7 @@ def main(datasets: Datasets | None = None, num_processes: int = 1):
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe validate-grid-segmentation -vd
+    uv run endopipe validate-grid-segmentation -d
     ```
 
     To run the workflow for a single dataset:

@@ -20,7 +20,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe run-labelfree-nuclei-prediction -vd
+    uv run endopipe run-labelfree-nuclei-prediction -d
     ```
 
     To run the workflow for a single dataset:

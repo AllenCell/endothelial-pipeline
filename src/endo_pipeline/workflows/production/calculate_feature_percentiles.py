@@ -5,7 +5,7 @@ def main(datasets: Datasets | None = None):
     """
     Calculate 5th and 95th percentiles of key features across given datasets.
 
-    #grid-based
+    #grid-based #test-ready
 
     This workflow calculates percentiles on the following features:
 
@@ -19,7 +19,7 @@ def main(datasets: Datasets | None = None):
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe calculate-feature-percentiles -vd
+    uv run endopipe calculate-feature-percentiles -d
     ```
 
     To run the workflow for a single dataset:

@@ -9,14 +9,14 @@ def main(
     """
     Calculate auto- and cross-correlation on DiffAE feature time series data.
 
-    #correlation-analysis #grid-based #cell-centered
+    #correlation-analysis #grid-based #cell-centered #test-ready
 
     ## Example usage
 
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe compute-autocorrelation -vd
+    uv run endopipe compute-autocorrelation -d
     ```
 
     To run the workflow for a single dataset:

@@ -30,7 +30,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe build-diffae-train-config -vd
+    uv run endopipe build-diffae-train-config -d
     ```
 
     To run the workflow for a single dataset:

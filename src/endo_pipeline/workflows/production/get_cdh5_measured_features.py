@@ -20,7 +20,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe get-cdh5-measured-features -vd
+    uv run endopipe get-cdh5-measured-features -d
     ```
 
     To run the workflow for a single dataset:

@@ -5,14 +5,14 @@ def main(collections: UniqueStrList | None = None) -> None:
     """
     Summarize number of unannotated FOVs kept for analysis.
 
-    #datasets
+    #datasets #test-ready
 
     ## Example usage
 
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe summarize-fov-counts -vd
+    uv run endopipe summarize-fov-counts -d
     ```
 
     To run the workflow for a single collection:

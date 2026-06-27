@@ -17,7 +17,7 @@ def main(
     """
     Convert dataset images and features into TFE format.
 
-    #visualization #tfe
+    #visualization #tfe #test-ready
 
     This workflow processes the specified datasets and positions to the format
     used by Timelapse Feature Explorer (TFE).

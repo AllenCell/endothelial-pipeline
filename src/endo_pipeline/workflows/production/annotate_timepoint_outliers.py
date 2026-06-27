@@ -12,7 +12,7 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe annotate-timepoint-outliers -vd
+    uv run endopipe annotate-timepoint-outliers -d
     ```
 
     To run the workflow for a single dataset:

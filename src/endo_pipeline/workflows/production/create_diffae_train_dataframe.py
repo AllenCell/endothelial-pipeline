@@ -15,7 +15,7 @@ def main() -> None:
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe create-diffae-train-dataframe -vd
+    uv run endopipe create-diffae-train-dataframe -d
     ```
 
     To run the full workflow:

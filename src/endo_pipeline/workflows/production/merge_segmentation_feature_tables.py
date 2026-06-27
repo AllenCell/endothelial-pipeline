@@ -5,14 +5,14 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
     """
     Merge CDH5 segmentation, CDH5 tracking, and labelfree nuclei feature tables.
 
-    #cdh5-segmentation #cdh5-tracking #nuclei-prediction
+    #cdh5-segmentation #cdh5-tracking #nuclei-prediction #test-ready
 
     ## Example usage
 
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe merge-segmentation-feature-tables -vd
+    uv run endopipe merge-segmentation-feature-tables -d
     ```
 
     To run the workflow for a single dataset:

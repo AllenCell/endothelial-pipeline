@@ -28,7 +28,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe build-diffae-eval-config PATCH_TYPE -vd
+    uv run endopipe build-diffae-eval-config PATCH_TYPE -d
     ```
 
     To run the workflow for a single dataset:

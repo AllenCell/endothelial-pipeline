@@ -30,7 +30,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe create-timelapse-movie -vd
+    uv run endopipe create-timelapse-movie -d
     ```
 
     To run the workflow for a single dataset:

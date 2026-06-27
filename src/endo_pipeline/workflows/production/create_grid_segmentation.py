@@ -2,7 +2,7 @@ def main():
     """
     Create grid-based segmentations based on dataset with longest duration.
 
-    #grid-based
+    #grid-based #test-ready
 
     This workflow creates a "segmentation" image for the grid-based crops, using
     the unfiltered feature dataframe produced by the `calculate_pca_features`
@@ -16,7 +16,7 @@ def main():
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe create-grid-segmentation -vd
+    uv run endopipe create-grid-segmentation -d
     ```
 
     To run the full workflow:

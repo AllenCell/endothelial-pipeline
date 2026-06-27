@@ -8,14 +8,14 @@ def main(
     """
     Compare feature densities between cell-centered and grid-based crops.
 
-    #grid-based #cell-centered
+    #grid-based #cell-centered #test-ready
 
     ## Example usage
 
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe compare-feature-densities -vd
+    uv run endopipe compare-feature-densities -d
     ```
 
     To run the workflow for a single dataset:

@@ -25,7 +25,7 @@ def main(collections: UniqueStrList | None = None) -> None:
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe validate-dataset-collections -vd
+    uv run endopipe validate-dataset-collections -d
     ```
 
     To run the workflow for a single collection:

@@ -17,14 +17,14 @@ def main(
     """
     Compare track statistics between cell-centered and grid-based crops.
 
-    #grid-based #cell-centered
+    #grid-based #cell-centered #test-ready
 
     ## Example usage
 
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe compare-track-statistics -vd
+    uv run endopipe compare-track-statistics -d
     ```
 
     To run the workflow for a single dataset:

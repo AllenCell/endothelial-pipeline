@@ -12,7 +12,7 @@ def main(datasets: Datasets | None = None) -> None:
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe plot-in-focus-plane -vd
+    uv run endopipe plot-in-focus-plane -d
     ```
 
     To run the workflow for a single dataset:

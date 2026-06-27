@@ -31,7 +31,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe run-cdh5-tracking -vd
+    uv run endopipe run-cdh5-tracking -d
     ```
 
     To run the workflow for a single dataset:
