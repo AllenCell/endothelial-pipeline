@@ -73,7 +73,7 @@ def main(
     from tqdm import tqdm
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.cli.demo_mode_defaults import use_default_collection
+    from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.multi_feature_correlation import (
         get_df_for_feature_correlation_viz,
@@ -90,7 +90,7 @@ def main(
 
     output_path = get_output_path(__file__)
 
-    dataset_names = use_default_collection(datasets, DEFAULT_PCA_DATASET_COLLECTION_NAME)
+    dataset_names = datasets or get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
 
     if DEMO_MODE:
         logger.warning("DEMO_MODE - Limiting to one dataset")

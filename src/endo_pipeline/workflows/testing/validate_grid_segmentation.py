@@ -50,8 +50,7 @@ def main(datasets: Datasets | None = None, num_processes: int = 1):
     from skimage.measure import regionprops
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.cli.demo_mode_defaults import use_default_collection
-    from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import load_dataframe, load_image
     from endo_pipeline.library.process.general_image_preprocessing import (
         ImageProcessingArgs,
@@ -71,10 +70,10 @@ def main(datasets: Datasets | None = None, num_processes: int = 1):
 
     logger = logging.getLogger(__name__)
 
-    datasets = use_default_collection(datasets, "live_cdh5_seg_based_feat_datasets")
+    datasets = datasets or get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
 
     analysis_queue = build_analysis_queue(
-        datasets,
+        dataset_names=datasets,
         image_validation_frequency=None,
         t_start=0,
         t_final=10 if DEMO_MODE else None,
