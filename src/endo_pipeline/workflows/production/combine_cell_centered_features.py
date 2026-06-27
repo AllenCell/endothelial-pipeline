@@ -57,7 +57,7 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
 
     logger = logging.getLogger(__name__)
 
-    out_dir = get_output_path("cell_centered_features")
+    output_path = get_output_path(__file__)
 
     datasets = datasets or get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
 
@@ -65,7 +65,7 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
         logger.warning("DEMO MODE - Limiting to one dataset")
         datasets = datasets[:1]
 
-    analysis_queue = [(dataset, out_dir) for dataset in datasets]
+    analysis_queue = [(dataset, output_path) for dataset in datasets]
 
     logger.info("Starting combining features...")
 

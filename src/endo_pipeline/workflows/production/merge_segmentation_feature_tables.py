@@ -55,7 +55,7 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
 
     logger = logging.getLogger(__name__)
 
-    out_dir = get_output_path("merged_segmentation_features")
+    output_path = get_output_path(__file__)
 
     datasets = datasets or get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
 
@@ -117,14 +117,14 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
         # tracks that have a minimum number of datapoints after this
         logger.info("Filtering out regions touching image borders and tracks that are too short...")
         big_table = add_filter_columns(
-            big_table, out_dir, min_track_duration=24, max_area_change=0.1
+            big_table, output_path, min_track_duration=24, max_area_change=0.1
         )
         big_table = add_cell_piling_and_steady_state_annotation_columns(big_table)
         big_table = big_table.reset_index(drop=True)
 
         # Save merged table out to local path
         filename = f"{dataset_name}_live_segmentation_features.parquet"
-        big_table.to_parquet(out_dir / filename, index=False)
+        big_table.to_parquet(output_path / filename, index=False)
 
         logger.info("Finished merging feature tables for dataset '%s'", dataset_name)
 

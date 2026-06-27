@@ -65,7 +65,7 @@ def main(
 
     logger = logging.getLogger(__name__)
 
-    out_dir = get_output_path("nuclei_measured_features")
+    output_path = get_output_path(__file__)
 
     dataset_names = datasets or get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
 
@@ -75,7 +75,7 @@ def main(
 
     analysis_queue = build_analysis_queue(
         dataset_names=dataset_names,
-        out_dir=out_dir,
+        out_dir=output_path,
         image_validation_frequency=None,
         t_start=0,
         t_final=3 if DEMO_MODE else None,
@@ -98,7 +98,7 @@ def main(
     if save_output:
         for dataset_name in datasets:
             concatenate_and_save_feature_tables(
-                out_dir,
+                output_path,
                 dataset_name,
                 out_file_suffix="nuclei_labelfree_features",
                 file_extension=".parquet",

@@ -45,6 +45,8 @@ def main():
 
     logger = logging.getLogger(__name__)
 
+    output_path = get_output_path(__file__)
+
     # Get maximum duration across all available dataset configs. The grid-based
     # segmentations are reused for multiple datasets since the crop indices are
     # in the same positions for each movie, therefore we must create the
@@ -95,8 +97,7 @@ def main():
         timepoints = sorted(grid_df[Column.TIMEPOINT].unique())[:max_num_timepoints]
         grid_df = grid_df[grid_df[Column.TIMEPOINT].isin(timepoints)]
 
-    out_dir = get_output_path("grid_seg")
-    create_grid_segmentation_images(grid_df, out_dir)
+    create_grid_segmentation_images(grid_df, output_path)
 
 
 if __name__ == "__main__":
