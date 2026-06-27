@@ -67,7 +67,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     build_figure_from_panels(
         panels,
-        output_path / "Supplemental_Figure_4.svg",
+        output_path / "supp_fig_flow_field.svg",
         width=MAX_FIGURE_WIDTH,
         height=4.3,
     )
