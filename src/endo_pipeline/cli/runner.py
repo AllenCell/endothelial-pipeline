@@ -103,10 +103,14 @@ def _make_command(app: str, workflow_name: str, force_demo_mode: bool) -> tuple[
     # If forcing demo and demo mode is not in the tokens, add to the token list.
     # Otherwise, drop demo mode from the tokens
     if force_demo_mode:
-        if "-d" not in tokens and "--demo-mode" not in tokens:
+        if "-d" not in tokens and "-vd" not in tokens and "--demo-mode" not in tokens:
             tokens.append("-d")
     else:
         tokens = [token for token in tokens if token not in ("-d", "--demo-mode")]
+
+        if "-vd" in tokens:
+            tokens.remove("-vd")
+            tokens.append("-v")
 
     return (app, ["endopipe", app, *tokens])
 
