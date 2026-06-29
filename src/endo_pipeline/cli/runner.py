@@ -172,34 +172,26 @@ async def _manage_workflow(name: str, command: list[str]) -> _WorkflowResult:
 def summarize_workflow_run_results(results: list[_WorkflowResult]):
     """Print summary of successful/failed workflows, with stacktraces."""
 
+    from rich.console import Console
+    from rich.table import Table
+    from rich.text import Text
+
     successes = [result for result in results if result.succeeded]
     too_slows = [result for result in results if result.slow]
     failures = [result for result in results if result.failed]
-    success_count = ""
-    too_slow_count = ""
-    failure_count = ""
 
-    print()  # Line break before summary
+    success_count = Text()
+    too_slow_count = Text()
+    failure_count = Text()
+
     if len(successes) > 0:
-        print(colored("====== Successes ======", "green"))
-        success_count = f"{len(successes)} succeeded "
-    for result in successes:
-        print(colored(result.name, "green"), colored(result.elapsed_str, "yellow"))
+        success_count = Text(f"{len(successes)} succeeded ", "green bold")
 
     if len(too_slows) > 0:
-        print(colored("====== Too slow ======", "yellow"))
-        too_slow_count = f"{len(too_slows)} slow workflows "
-    for result in too_slows:
-        if result.timed_out:
-            print(colored(f"{result.name} canceled after {result.elapsed_str}", "red"))
-        else:
-            print(colored(f"{result.name} succeeded after {result.elapsed_str}", "yellow"))
+        too_slow_count = Text(f"{len(too_slows)} slow workflows ", "yellow bold")
 
     if len(failures) > 0:
-        print(colored("====== Failures ======", "red"))
-        failure_count = f"{len(failures)} failed "
-    for result in failures:
-        print(colored(f"{result.name} {result.exception}", "red"))
+        failure_count = Text(f"{len(failures)} failed ", "red bold")
 
     if len(failures) > 0:
         final_color = "red"
@@ -207,17 +199,32 @@ def summarize_workflow_run_results(results: list[_WorkflowResult]):
         final_color = "yellow"
     else:
         final_color = "green"
-    print(
-        "".join(
-            [
-                colored("====== ", final_color),
-                colored(success_count, "green"),
-                colored(too_slow_count, "yellow"),
-                colored(failure_count, "red"),
-                colored("======", final_color),
-            ]
-        ),
-    )
+
+    banner = Text("━" * 10, final_color)
+    summary = Text.assemble(banner, " ", success_count, too_slow_count, failure_count, banner)
+    table = Table(title=summary)
+
+    table.add_column("Workflow", style="bold")
+    table.add_column("Result")
+    table.add_column("Elapsed")
+    table.add_column("Message")
+
+    for result in successes:
+        table.add_row(result.name, "succeeded", result.elapsed_str, style="green")
+
+    for result in too_slows:
+        if result.timed_out:
+            table.add_row(result.name, "cancelled", Text(result.elapsed_str, "red"), style="yellow")
+        else:
+            table.add_row(result.name, "succeeded", result.elapsed_str, style="yellow")
+
+    for result in failures:
+        exception = Text.from_ansi(result.exception).split("\n")[-1]
+        table.add_row(result.name, "failed", result.elapsed_str, exception, style="red")
+
+    console = Console()
+    console.print()  # Line break before summary
+    console.print(table)
 
 
 async def run_all_workflows_with_tag(
