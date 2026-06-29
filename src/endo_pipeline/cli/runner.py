@@ -4,7 +4,7 @@ import asyncio
 import logging
 import typing
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from termcolor import colored
 
@@ -27,8 +27,10 @@ class _TimerResult:
 
 
 @dataclass
-class _LastLine:
-    text: str | None = None
+class _TerminalOutput:
+    last_line: str | None = None
+
+    error_logs: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -83,6 +85,10 @@ def _filter_workflows_by_tag(pipeline_app: "App", select_tag: str):
     for name, app in pipeline_app.resolved_commands().items():
         tags = get_app_tags(app)
 
+        # Skip any "run all" workflows
+        if "run-all" in name:
+            continue
+
         # Do not include the workflow if the selected tag is not found
         if select_tag not in tags:
             continue
@@ -115,7 +121,7 @@ def _make_command(app: str, workflow_name: str, force_demo_mode: bool) -> tuple[
     return (app, ["endopipe", app, *tokens])
 
 
-async def _print_logs(last_line: _LastLine, name: str, stream: asyncio.StreamReader):
+async def _print_logs(last_line: _TerminalOutput, name: str, stream: asyncio.StreamReader):
     async for line_bytes in stream:
         line: str = line_bytes.decode().rstrip()
         if line.startswith("╰────"):  # Cyclopts rich footer
@@ -123,7 +129,9 @@ async def _print_logs(last_line: _LastLine, name: str, stream: asyncio.StreamRea
         cyclopts_bar = "│"  # Cyclopts rich error output
         if line.startswith(cyclopts_bar) and line.endswith("│"):
             line = line[1:-1].strip()
-        last_line.text = line
+        last_line.last_line = line
+        if "ERROR" in line:
+            last_line.error_logs.append(line.split("[0m - ")[-1])
         print(colored(f"[{name}]", "cyan"), line)
 
 
@@ -141,7 +149,7 @@ async def _wait_or_kill(
         raise e
 
 
-async def _run_workflow(last_line: _LastLine, name: str, command: list[str]):
+async def _run_workflow(last_line: _TerminalOutput, name: str, command: list[str]):
     process = await asyncio.subprocess.create_subprocess_exec(
         *command,
         stdout=asyncio.subprocess.PIPE,
@@ -162,10 +170,16 @@ async def _manage_workflow(name: str, command: list[str]) -> _WorkflowResult:
     with _timer() as timer:
         try:
             logger.info(f"Starting workflow: {' '.join(command)}")
-            last_line = _LastLine()
-            return_code = await _run_workflow(last_line, name, command)
+            terminal_output = _TerminalOutput()
+            return_code = await _run_workflow(terminal_output, name, command)
             if return_code is not None and return_code != 0:
-                error = last_line.text if last_line.text is not None else "Failed. See logs."
+                error = terminal_output.last_line or "Failed. See logs."
+            elif terminal_output.error_logs:
+                num_errors = len(terminal_output.error_logs)
+                if num_errors > 1:
+                    error = terminal_output.error_logs[0] + f" (... and {num_errors - 1} more)"
+                else:
+                    error = terminal_output.error_logs
         except Exception as e:
             error = e
     elapsed = timer.elapsed
