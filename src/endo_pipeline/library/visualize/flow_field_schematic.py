@@ -918,7 +918,7 @@ def make_kernel_convolution_schematic(
         fig,
         axes[3],
         pcm,
-        colorbar_label=f"Drift in {axes_xlabel} (hr$^{{-1}}$)",
+        colorbar_label=f"d{axes_xlabel}/dt (hr$^{{-1}}$)",
     )
 
     # only show y-axis tick labels on the first panel to avoid clutter, since
