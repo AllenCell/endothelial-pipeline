@@ -8,7 +8,7 @@ def main(
     """
     Generate dataframes with zarr file locations for evaluating a DiffAE model.
 
-    #diffae #model-evaluation #test-ready
+    #diffae #model-evaluation
 
     This workflow collects zarr file locations for each of the given datasets
     and saves them as Parquet files, along with metadata such as channel and
