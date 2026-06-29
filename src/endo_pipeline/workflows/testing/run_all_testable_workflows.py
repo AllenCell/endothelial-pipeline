@@ -33,11 +33,13 @@ def main():
     import asyncio
 
     from endo_pipeline.cli.runner import run_all_workflows_with_tag, summarize_workflow_run_results
+    from endo_pipeline.settings.timeouts import WORKFLOW_TESTING_TIMEOUT
 
     results = asyncio.run(
         run_all_workflows_with_tag(
             workflow_name="run-all-testable-workflows",
             select_tag="test-ready",
+            runner_timeout=WORKFLOW_TESTING_TIMEOUT,
             force_demo_mode=True,
         )
     )

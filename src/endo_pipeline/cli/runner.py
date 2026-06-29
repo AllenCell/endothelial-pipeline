@@ -10,7 +10,6 @@ from termcolor import colored
 
 import endo_pipeline.cli
 from endo_pipeline.cli.tags import get_app_tags
-from endo_pipeline.settings.testing import TIMEOUT_MIN
 
 if typing.TYPE_CHECKING:
     from datetime import timedelta
@@ -36,6 +35,7 @@ class _TerminalOutput:
 @dataclass
 class _WorkflowResult:
     name: str
+    timeout: int
     exception: Exception | None
     elapsed: "timedelta"
 
@@ -59,7 +59,7 @@ class _WorkflowResult:
 
     @property
     def slow(self) -> bool:
-        return not self.failed and self.elapsed_minutes > TIMEOUT_MIN
+        return not self.failed and self.elapsed_minutes > self.timeout
 
     @property
     def succeeded(self) -> bool:
@@ -149,7 +149,7 @@ async def _wait_or_kill(
         raise e
 
 
-async def _run_workflow(last_line: _TerminalOutput, name: str, command: list[str]):
+async def _run_workflow(last_line: _TerminalOutput, name: str, command: list[str], timeout: int):
     process = await asyncio.subprocess.create_subprocess_exec(
         *command,
         stdout=asyncio.subprocess.PIPE,
@@ -159,19 +159,19 @@ async def _run_workflow(last_line: _TerminalOutput, name: str, command: list[str
         async with asyncio.TaskGroup() as tg:
             stdout_task = tg.create_task(_print_logs(last_line, name, process.stdout))
             stderr_task = tg.create_task(_print_logs(last_line, name, process.stderr))
-            tg.create_task(_wait_or_kill(process, TIMEOUT_MIN * 60 * 2, [stdout_task, stderr_task]))
+            tg.create_task(_wait_or_kill(process, timeout * 60 * 2, [stdout_task, stderr_task]))
     except ExceptionGroup as group:
         raise group.exceptions[0] from group
     return process.returncode
 
 
-async def _manage_workflow(name: str, command: list[str]) -> _WorkflowResult:
+async def _manage_workflow(name: str, command: list[str], timeout: int) -> _WorkflowResult:
     error = None
     with _timer() as timer:
         try:
             logger.info(f"Starting workflow: {' '.join(command)}")
             terminal_output = _TerminalOutput()
-            return_code = await _run_workflow(terminal_output, name, command)
+            return_code = await _run_workflow(terminal_output, name, command, timeout)
             if return_code is not None and return_code != 0:
                 error = terminal_output.last_line or "Failed. See logs."
             elif terminal_output.error_logs:
@@ -184,7 +184,7 @@ async def _manage_workflow(name: str, command: list[str]) -> _WorkflowResult:
             error = e
     elapsed = timer.elapsed
     assert elapsed is not None
-    return _WorkflowResult(name=name, exception=error, elapsed=elapsed)
+    return _WorkflowResult(name=name, timeout=timeout, exception=error, elapsed=elapsed)
 
 
 def summarize_workflow_run_results(results: list[_WorkflowResult]):
@@ -246,7 +246,7 @@ def summarize_workflow_run_results(results: list[_WorkflowResult]):
 
 
 async def run_all_workflows_with_tag(
-    workflow_name: str, select_tag: str, force_demo_mode: bool
+    workflow_name: str, select_tag: str, runner_timeout: int, force_demo_mode: bool
 ) -> list[_WorkflowResult]:
     """Runs all workflows with the given tag."""
 
@@ -257,4 +257,6 @@ async def run_all_workflows_with_tag(
         for app in _filter_workflows_by_tag(pipeline_app, select_tag)
     ]
 
-    return await asyncio.gather(*[_manage_workflow(name, command) for name, command in commands])
+    return await asyncio.gather(
+        *[_manage_workflow(name, command, runner_timeout) for name, command in commands]
+    )

@@ -33,11 +33,13 @@ def main():
     import asyncio
 
     from endo_pipeline.cli.runner import run_all_workflows_with_tag, summarize_workflow_run_results
+    from endo_pipeline.settings.timeouts import WORKFLOW_VALIDATION_TIMEOUT
 
     results = asyncio.run(
         run_all_workflows_with_tag(
             workflow_name="run-all-validation-workflows",
             select_tag="validation",
+            runner_timeout=WORKFLOW_VALIDATION_TIMEOUT,
             force_demo_mode=False,
         )
     )
