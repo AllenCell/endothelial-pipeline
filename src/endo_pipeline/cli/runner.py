@@ -179,7 +179,7 @@ async def _manage_workflow(name: str, command: list[str], timeout: int) -> _Work
                 if num_errors > 1:
                     error = terminal_output.error_logs[0] + f" (... and {num_errors - 1} more)"
                 else:
-                    error = terminal_output.error_logs
+                    error = terminal_output.error_logs[0]
         except Exception as e:
             error = e
     elapsed = timer.elapsed
@@ -257,6 +257,15 @@ async def run_all_workflows_with_tag(
         for app in _filter_workflows_by_tag(pipeline_app, select_tag)
     ]
 
+    # Use semaphore to set max concurrency to 5. This means that no more
+    # than five workflows will be run at the same time, which helps avoid
+    # overwhelming the system
+    semaphore = asyncio.Semaphore(5)
+
+    async def _manage_workflow_semaphore(name: str, command: list[str], timeout: int):
+        async with semaphore:
+            return await _manage_workflow(name, command, timeout)
+
     return await asyncio.gather(
-        *[_manage_workflow(name, command, runner_timeout) for name, command in commands]
+        *[_manage_workflow_semaphore(name, command, runner_timeout) for name, command in commands]
     )
