@@ -65,6 +65,9 @@ def main(manifests: UniqueStrList | None = None) -> None:
         if max_locations is not None:
             location_keys = location_keys[:max_locations]
 
+        # Get list of expected columns
+        expected_columns = set(dataframe_manifest.columns.keys())
+
         # Check that the manifest name matches the file name
         if manifest_name != dataframe_manifest.name:
             logger.error(
@@ -110,6 +113,24 @@ def main(manifests: UniqueStrList | None = None) -> None:
                     "Validation failed for manifest '%s' key '%s' - Unable to load dataframe",
                     manifest_name,
                     location_key,
+                )
+
+            # Confirm that columns match expected columns listed in manifest
+            progress_bar.set_step_description("Checking dataframe columns are consistent")
+            columns = set(load_dataframe(location, delay=True).columns)
+            if columns - expected_columns:
+                logger.error(
+                    "Validation failed for manifest '%s' key '%s' - Extra column(s): %s",
+                    manifest_name,
+                    location_key,
+                    columns - expected_columns,
+                )
+            if expected_columns - columns:
+                logger.error(
+                    "Validation failed for manifest '%s' key '%s' - Missing column(s): %s",
+                    manifest_name,
+                    location_key,
+                    expected_columns - columns,
                 )
 
             if location_key == location_keys[-1]:
