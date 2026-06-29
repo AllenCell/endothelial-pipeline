@@ -77,38 +77,36 @@ def _timer():
         result.elapsed = end - start
 
 
-def _testable_workflows(pipeline_app: "App"):
+def _filter_workflows_by_tag(pipeline_app: "App", select_tag: str):
+    """Filters workflows in app to only those containing the selected tag."""
+
     for name, app in pipeline_app.resolved_commands().items():
         tags = get_app_tags(app)
 
-        if "test-ready" not in tags:
+        # Do not include the workflow if the selected tag is not found
+        if select_tag not in tags:
             continue
 
-        if "cpu-only" not in tags and "gpu" not in tags:
-            raise ValueError(
-                f"Workflow '{name}' tagged #test-ready, but does not have a #gpu or #cpu-only tag."
-            )
-
-        if "cpu-only" in tags and "gpu" in tags:
-            raise ValueError(
-                f"Workflow '{name}' tagged #test-ready, but has both #gpu and #cpu-only tags."
-            )
-
+        # Do not include the workflow if tagged GPU but GPUs are not specified
         if endo_pipeline.cli.NUM_GPUS is None and "gpu" in tags:
             continue
 
         yield name
 
 
-def _make_command(app: str) -> tuple[str, list[str]]:
+def _make_command(app: str, workflow_name: str, force_demo_mode: bool) -> tuple[str, list[str]]:
     import sys
 
-    # Get tokens list and drop the executable and name of the workflow.
-    tokens = [arg for arg in sys.argv[1:] if arg != "run-all-testable-workflows"]
+    # Get tokens list and drop the executable and name of the workflow
+    tokens = [arg for arg in sys.argv[1:] if arg != workflow_name]
 
-    # If "demo mode" is not in tokens, add to the token list.
-    if "-d" not in tokens and "--demo-mode" not in tokens:
-        tokens.append("-d")
+    # If forcing demo and demo mode is not in the tokens, add to the token list.
+    # Otherwise, drop demo mode from the tokens
+    if force_demo_mode:
+        if "-d" not in tokens and "--demo-mode" not in tokens:
+            tokens.append("-d")
+    else:
+        tokens = [token for token in tokens if token not in ("-d", "--demo-mode")]
 
     return (app, ["endopipe", app, *tokens])
 
@@ -171,10 +169,9 @@ async def _manage_workflow(name: str, command: list[str]) -> _WorkflowResult:
     return _WorkflowResult(name=name, exception=error, elapsed=elapsed)
 
 
-def _summarize(results: list[_WorkflowResult]):
-    """
-    Print a summary of successful/failed workflows, with stacktraces
-    """
+def summarize_workflow_run_results(results: list[_WorkflowResult]):
+    """Print summary of successful/failed workflows, with stacktraces."""
+
     successes = [result for result in results if result.succeeded]
     too_slows = [result for result in results if result.slow]
     failures = [result for result in results if result.failed]
@@ -223,6 +220,16 @@ def _summarize(results: list[_WorkflowResult]):
     )
 
 
-async def _run_all(pipeline_app: "App") -> list[_WorkflowResult]:
-    commands = [_make_command(app) for app in _testable_workflows(pipeline_app)]
+async def run_all_workflows_with_tag(
+    workflow_name: str, select_tag: str, force_demo_mode: bool
+) -> list[_WorkflowResult]:
+    """Runs all workflows with the given tag."""
+
+    from endo_pipeline.cli.apps import pipeline_app
+
+    commands = [
+        _make_command(app, workflow_name, force_demo_mode)
+        for app in _filter_workflows_by_tag(pipeline_app, select_tag)
+    ]
+
     return await asyncio.gather(*[_manage_workflow(name, command) for name, command in commands])

@@ -31,20 +31,17 @@ def main():
     """
 
     import asyncio
-    import logging
 
-    import endo_pipeline.cli
-    from endo_pipeline.cli.apps import pipeline_app
-    from endo_pipeline.cli.runner import _run_all, _summarize
+    from endo_pipeline.cli.runner import run_all_workflows_with_tag, summarize_workflow_run_results
 
-    logger = logging.getLogger(__name__)
-
-    if not endo_pipeline.cli.DEMO_MODE:
-        endo_pipeline.cli.DEMO_MODE = True
-        logger.debug("Forcing demo mode on for testing.")
-
-    results = asyncio.run(_run_all(pipeline_app))
-    _summarize(results)
+    results = asyncio.run(
+        run_all_workflows_with_tag(
+            workflow_name="run-all-testable-workflows",
+            select_tag="test-ready",
+            force_demo_mode=True,
+        )
+    )
+    summarize_workflow_run_results(results)
 
 
 if __name__ == "__main__":
