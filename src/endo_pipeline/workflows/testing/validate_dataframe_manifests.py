@@ -1,7 +1,14 @@
+from typing import Annotated
+
+from cyclopts import Parameter
+
 from endo_pipeline.cli import UniqueStrList
 
 
-def main(manifests: UniqueStrList | None = None) -> None:
+def main(
+    manifests: UniqueStrList | None = None,
+    staging_only: Annotated[bool, Parameter(negative="--all-available")] = True,
+) -> None:
     """
     Validate dataframe manifests.
 
@@ -26,6 +33,12 @@ def main(manifests: UniqueStrList | None = None) -> None:
     uv run endopipe validate-dataframe-manifest MANIFEST_NAME
     ```
 
+    To run the workflow for all available manifests:
+
+    ```bash
+    uv run endopipe validate-dataframe-manifest --all-available
+    ```
+
     ## Workflow demo
 
     Running the workflow in demo mode (`-d` or `--demo-mode`) will only run
@@ -35,6 +48,9 @@ def main(manifests: UniqueStrList | None = None) -> None:
     ----------
     manifest_name
         Name of the dataframe manifest to validate.
+    staging_only
+        True to only validate dataframe manifests valid for staging, False to
+        validate all available dataframe manifests.
     """
 
     import logging
@@ -47,11 +63,14 @@ def main(manifests: UniqueStrList | None = None) -> None:
     from endo_pipeline.manifests import get_available_dataframe_manifests, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
+    from endo_pipeline.settings.manifest_staging import STAGING_DATAFRAME_MANIFEST_NAMES
 
     logger = logging.getLogger(__name__)
 
     available_dataset_names = get_available_dataset_names()
-    manifest_names = manifests or get_available_dataframe_manifests()
+    manifest_names = manifests or (
+        STAGING_DATAFRAME_MANIFEST_NAMES if staging_only else get_available_dataframe_manifests()
+    )
 
     if DEMO_MODE:
         logger.warning("DEMO MODE - Only validating the first two locations for two manifests")

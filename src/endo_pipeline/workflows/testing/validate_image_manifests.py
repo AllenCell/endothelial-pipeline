@@ -1,7 +1,14 @@
+from typing import Annotated
+
+from cyclopts import Parameter
+
 from endo_pipeline.cli import UniqueStrList
 
 
-def main(manifests: UniqueStrList | None = None) -> None:
+def main(  # noqa: C901
+    manifests: UniqueStrList | None = None,
+    staging_only: Annotated[bool, Parameter(negative="--all-available")] = True,
+) -> None:
     """
     Validate image manifests.
 
@@ -26,6 +33,12 @@ def main(manifests: UniqueStrList | None = None) -> None:
     uv run endopipe validate-image-manifest MANIFEST_NAME
     ```
 
+    To run the workflow for all available manifests:
+
+    ```bash
+    uv run endopipe validate-image-manifest --all-available
+    ```
+
     ## Workflow demo
 
     Running the workflow in demo mode (`-d` or `--demo-mode`) will only run
@@ -37,6 +50,9 @@ def main(manifests: UniqueStrList | None = None) -> None:
     ----------
     manifest_name
         Name of the image manifest to validate.
+    staging_only
+        True to only validate image manifests valid for staging, False to
+        validate all available image manifests.
     """
 
     import logging
@@ -52,11 +68,14 @@ def main(manifests: UniqueStrList | None = None) -> None:
         get_image_location_for_dataset,
         load_image_manifest,
     )
+    from endo_pipeline.settings.manifest_staging import STAGING_IMAGE_MANIFEST_NAMES
 
     logger = logging.getLogger(__name__)
 
     available_dataset_names = get_available_dataset_names()
-    manifest_names = manifests or get_available_image_manifests()
+    manifest_names = manifests or (
+        STAGING_IMAGE_MANIFEST_NAMES if staging_only else get_available_image_manifests()
+    )
 
     if DEMO_MODE:
         logger.warning("DEMO MODE - Only validating the first two locations for two manifests")
