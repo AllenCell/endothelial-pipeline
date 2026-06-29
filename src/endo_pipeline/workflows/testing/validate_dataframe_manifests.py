@@ -38,14 +38,17 @@ def main(manifests: UniqueStrList | None = None) -> None:
     """
 
     import logging
+    import re
 
     from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.configs import get_available_dataset_names
     from endo_pipeline.io import load_dataframe
     from endo_pipeline.library.process.progress_bar import ProgressBar
     from endo_pipeline.manifests import get_available_dataframe_manifests, load_dataframe_manifest
 
     logger = logging.getLogger(__name__)
 
+    available_dataset_names = get_available_dataset_names()
     manifest_names = manifests or get_available_dataframe_manifests()
 
     if DEMO_MODE:
@@ -69,6 +72,19 @@ def main(manifests: UniqueStrList | None = None) -> None:
                 manifest_name,
                 dataframe_manifest.name,
             )
+
+        # For dataset location keys, confirm the dataset config is available
+        for location_key in location_keys:
+            if not re.match(r"20[0-9]{6}_", location_key):
+                continue
+
+            if location_key not in available_dataset_names:
+                logger.error(
+                    "Manifest '%s' contains dataset '%s' that does not have dataset config",
+                    manifest_name,
+                    location_key,
+                )
+                location_keys.remove(location_key)
 
         progress_bar = ProgressBar(location_keys, "Validating", manifest_name)
         for location_key in progress_bar:
