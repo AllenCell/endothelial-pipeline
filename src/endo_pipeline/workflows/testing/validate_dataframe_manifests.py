@@ -94,11 +94,21 @@ def main(
         Column.Annotations.XY_SHIFT,
         Column.Annotations.Z_SHIFT,
     ]
+    optional_gfp_columns = [
+        Column.Annotations.AUTO_GFP_SCOPE_ERROR,
+        Column.Annotations.GFP_ROLLING_MEDIAN,
+        Column.Annotations.GFP_LOWER_THRESHOLD,
+        Column.Annotations.GFP_UPPER_THRESHOLD,
+        Column.Annotations.GFP_TIMEPOINT_MEANS,
+        Column.Annotations.GFP_DARK_OUTLIERS,
+        Column.Annotations.GFP_BRIGHT_OUTLIERS,
+    ]
     okay_if_missing_columns = {
         "nuclei_labelfree_segmentation": set(extra_nuclei_columns),
         "cell_centered_features_filtered": set(extra_nuclei_columns + optional_ann_columns),
         "cell_centered_features_unfiltered": set(extra_nuclei_columns + optional_ann_columns),
         "merged_segmentation_features": set(extra_nuclei_columns + optional_ann_columns),
+        "timepoint_outlier_annotations": set(optional_gfp_columns),
     }
 
     for manifest_name in manifest_names:
