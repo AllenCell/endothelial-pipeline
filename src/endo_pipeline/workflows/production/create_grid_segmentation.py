@@ -2,7 +2,7 @@ def main():
     """
     Create grid-based segmentations based on dataset with longest duration.
 
-    #grid-based
+    #grid-based #test-ready
 
     This workflow creates a "segmentation" image for the grid-based crops, using
     the unfiltered feature dataframe produced by the `calculate_pca_features`
@@ -16,7 +16,7 @@ def main():
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe create-grid-segmentation -vd
+    uv run endopipe create-grid-segmentation -d
     ```
 
     To run the full workflow:
@@ -45,6 +45,8 @@ def main():
 
     logger = logging.getLogger(__name__)
 
+    output_path = get_output_path(__file__)
+
     # Get maximum duration across all available dataset configs. The grid-based
     # segmentations are reused for multiple datasets since the crop indices are
     # in the same positions for each movie, therefore we must create the
@@ -64,7 +66,7 @@ def main():
     max_num_timepoints: int | None = None
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one position and 10 timepoints")
+        logger.warning("DEMO MODE - Limiting to one position and 10 timepoints")
         max_num_positions = 1
         max_num_timepoints = 10
 
@@ -95,8 +97,7 @@ def main():
         timepoints = sorted(grid_df[Column.TIMEPOINT].unique())[:max_num_timepoints]
         grid_df = grid_df[grid_df[Column.TIMEPOINT].isin(timepoints)]
 
-    out_dir = get_output_path("grid_seg")
-    create_grid_segmentation_images(grid_df, out_dir)
+    create_grid_segmentation_images(grid_df, output_path)
 
 
 if __name__ == "__main__":

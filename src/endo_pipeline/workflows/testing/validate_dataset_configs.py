@@ -5,7 +5,7 @@ def main(datasets: Datasets | None = None) -> None:
     """
     Validate dataset configs.
 
-    #datasets #validation #test-ready #cpu-only
+    #datasets #validation
 
     For each dataset, confirm:
 
@@ -24,7 +24,7 @@ def main(datasets: Datasets | None = None) -> None:
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe validate-dataset-configs -vd
+    uv run endopipe validate-dataset-configs -d
     ```
 
     To run the workflow for a single dataset:

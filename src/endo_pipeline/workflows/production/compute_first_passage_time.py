@@ -8,14 +8,14 @@ def main(
     """
     Compute first passage time statistics and parameter sweep.
 
-    #first-passage-time #grid-based #cell-centered
+    #first-passage-time #grid-based #cell-centered #test-ready
 
     ## Example usage
 
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe compute-first-passage-time -vd
+    uv run endopipe compute-first-passage-time -d
     ```
 
     To run the workflow for a single dataset:
@@ -81,7 +81,7 @@ def main(
     dataset_names = datasets or get_datasets_in_collection("shear_stress")
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one dataset")
+        logger.warning("DEMO MODE - Limiting to one dataset")
         dataset_names = dataset_names[:1]
 
     # Set default values

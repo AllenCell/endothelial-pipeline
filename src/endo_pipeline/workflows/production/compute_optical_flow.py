@@ -20,7 +20,7 @@ def main(
     """
     Compute TVL1 optical flow features for crops.
 
-    #optical-flow #cell-centered #grid-based
+    #optical-flow #cell-centered #grid-based #test-ready
 
     This workflow compute TVL1 optical flow between frame pairs at temporal gaps
     dt = 1, 2, ..., max_dt for every crop and timepoint. Pixels whose intensity
@@ -43,7 +43,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe compute-optical-flow -vd
+    uv run endopipe compute-optical-flow -d
     ```
 
     To run the workflow for a single dataset:
@@ -150,7 +150,7 @@ def main(
     datasets = datasets or get_datasets_in_collection(DEFAULT_OPTICAL_FLOW_COLLECTION)
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one dataset, one position, and 10 timepoints")
+        logger.warning("DEMO MODE - Limiting to one dataset, one position, and 10 timepoints")
         datasets = datasets[:1]
         max_positions = 1
         max_timepoints = 20

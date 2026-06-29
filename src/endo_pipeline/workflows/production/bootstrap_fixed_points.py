@@ -33,7 +33,7 @@ def main(
     """
     Bootstrap fixed point confidence intervals by subsampling data.
 
-    #dynamical-systems #fixed-points #grid-based #cell-centered
+    #dynamical-systems #fixed-points #grid-based #cell-centered #test-ready
 
     For each bootstrap iteration, baseline fixed points are processed in row
     order and each is offered the closest unassigned bootstrap fixed point that
@@ -60,7 +60,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe bootstrap-fixed-points -vd
+    uv run endopipe bootstrap-fixed-points -d
     ```
 
     To run the workflow for a single dataset:

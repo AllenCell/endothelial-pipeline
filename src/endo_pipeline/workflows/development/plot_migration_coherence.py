@@ -11,14 +11,14 @@ def main(
     """
     Visualize migration coherence relative to fixed points.
 
-    #migration-coherence #fixed-points
+    #migration-coherence #fixed-points #test-ready
 
     ## Example usage
 
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe plot-migration-coherence -vd
+    uv run endopipe plot-migration-coherence -d
     ```
 
     To run the workflow for a specific dataset group:
@@ -125,7 +125,7 @@ def main(
     datasets = SUMMARY_PLOT_DATASETS[dataset_group]
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one dataset")
+        logger.warning("DEMO MODE - Limiting to one dataset")
         datasets = datasets[:1]
 
     # --- Cross-dataset summary plots ---

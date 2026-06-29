@@ -16,7 +16,7 @@ def main(manifest_names: UniqueStrList | None = None, reload_columns: bool = Fal
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe update-column-descriptions -vd
+    uv run endopipe update-column-descriptions -d
     ```
 
     To run the workflow for a single manifest:

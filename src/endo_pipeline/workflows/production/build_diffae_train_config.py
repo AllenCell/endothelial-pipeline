@@ -18,7 +18,7 @@ def main(
     """
     Build config for training a DiffAE model.
 
-    #diffae #model-training
+    #diffae #model-training #gpu
 
     This workflow builds model training configs starting with the base model
     training config and overriding with training run-specific configuration.
@@ -30,7 +30,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe build-diffae-train-config -vd
+    uv run endopipe build-diffae-train-config -d
     ```
 
     To run the workflow for a single dataset:
@@ -115,6 +115,7 @@ def main(
     # rates. Note that while 100% of the data is used for demo mode, the cache
     # rate for actual training can be adjusted if needed.
     if DEMO_MODE:
+        logger.warning("DEMO MODE - Limiting number of training epochs")
         name_suffix = "_demo"
         min_num_epochs = 1
         max_num_epochs = 3

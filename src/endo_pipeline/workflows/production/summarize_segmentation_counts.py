@@ -5,14 +5,14 @@ def main(datasets: Datasets | None = None):
     """
     Summarize segmentation counts across select datasets.
 
-    #cdh5-segmentation #cdh5-tracking #nuclei-prediction
+    #cdh5-segmentation #cdh5-tracking #nuclei-prediction #test-ready
 
     ## Example usage
 
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe summarize-segmentation-counts -vd
+    uv run endopipe summarize-segmentation-counts -d
     ```
 
     To run the workflow for a single dataset:
@@ -59,6 +59,8 @@ def main(datasets: Datasets | None = None):
 
     logger = logging.getLogger(__name__)
 
+    output_path = get_output_path(__file__)
+
     # Create initial dictionary to keep track of segmentation counts (will later convert to DataFrame)
     seg_counts: dict[str, list] = {
         "dataset_name": [],
@@ -89,7 +91,7 @@ def main(datasets: Datasets | None = None):
     )
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one dataset")
+        logger.warning("DEMO MODE - Limiting to one dataset")
         dataset_name_list = dataset_name_list[:1]
 
     for dataset_name in tqdm(dataset_name_list):
@@ -293,8 +295,8 @@ def main(datasets: Datasets | None = None):
 
     # convert the seg_counts dictionary to a dataframe and save the results
     seg_counts_df = pd.DataFrame(seg_counts)
-    out_dir = get_output_path(__file__)
-    seg_counts_df.to_csv(out_dir / "segmentation_counts_across_datasets.tsv", sep="\t", index=False)
+    output_file = output_path / "segmentation_counts_across_datasets.tsv"
+    seg_counts_df.to_csv(output_file, sep="\t", index=False)
 
     major_axis_len_mean_all_px = seg_counts_df["major_axis_length_mean_px"].mean()
     major_axis_len_mean_all_um = seg_counts_df["major_axis_length_mean_um"].mean()

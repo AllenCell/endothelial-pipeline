@@ -34,6 +34,15 @@ def main(
     `//allen/aics/endothelial/morphological_features/analysis` before running
     this upload workflow because FMS can only upload files located on Vast.
 
+    ## Example usage
+
+    To run the workflow:
+
+    ```bash
+    uv run endopipe upload-features-to-fms TABLE_TYPE \
+        --datasets DATASET_NAME DATASET_NAME
+    ```
+
     Parameters
     ----------
     table_type

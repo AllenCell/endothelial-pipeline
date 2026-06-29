@@ -14,6 +14,25 @@ def main(
 
     #zarr-conversion #validation
 
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe validate-zarr-conversion -d
+    ```
+
+    To run the workflow for a single dataset:
+
+    ```bash
+    uv run endopipe validate-zarr-conversion --datasets DATASET_NAME
+    ```
+
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will validate
+    only the first dataset.
+
     Parameters
     ----------
     datasets
@@ -26,6 +45,7 @@ def main(
 
     import matplotlib.pyplot as plt
 
+    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import load_all_dataset_configs, load_dataset_config
     from endo_pipeline.io import get_output_path, load_image, save_plot_to_path
     from endo_pipeline.manifests import get_zarr_location_for_position
@@ -38,6 +58,10 @@ def main(
         dataset_configs = load_all_dataset_configs()
     else:
         dataset_configs = [load_dataset_config(dataset) for dataset in datasets]
+
+    if DEMO_MODE:
+        logger.warning("DEMO MODE - Limiting to one dataset")
+        dataset_configs = dataset_configs[:1]
 
     for dataset in dataset_configs:
         print(f"Validating Zarr conversion for dataset '{dataset.name}' ('{dataset.fmsid}')")

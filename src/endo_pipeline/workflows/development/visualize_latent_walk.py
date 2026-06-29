@@ -17,7 +17,7 @@ def main(
     """
     Visualize latent walk across select features.
 
-    #diffae #pca #visualization
+    #diffae #pca #visualization #test-ready #gpu
 
     This workflow performs a latent walk along features in the latent space of a
     Diffusion Autoencoder (DiffAE) model.
@@ -27,7 +27,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe visualize-latent-walk -vd
+    uv run endopipe visualize-latent-walk -d
     ```
 
     To run the full workflow:
@@ -148,6 +148,7 @@ def main(
     set_column_names = list(set_column_value.keys()) if set_column_value is not None else []
 
     if DEMO_MODE:
+        logger.warning("DEMO MODE - Limiting to single column with 3 steps and 1 noise sample")
         walk_column_names = walk_column_names[:1]
         n_steps = 3
         n_noise_samples = 1

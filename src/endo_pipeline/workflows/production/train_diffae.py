@@ -12,7 +12,7 @@ def main(model_manifest_name: str, run_name: str | None = None) -> None:
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe train-diffae MODEL_MANIFEST_NAME -vd
+    uv run endopipe train-diffae MODEL_MANIFEST_NAME -d
     ```
 
     To run the workflow for given model manifest and run name:
@@ -45,6 +45,9 @@ def main(model_manifest_name: str, run_name: str | None = None) -> None:
     from endo_pipeline.manifests import ModelLocation, load_model_manifest, save_model_manifest
 
     logger = logging.getLogger(__name__)
+
+    if DEMO_MODE:
+        logger.warning("DEMO MODE - Training with demo config")
 
     # Get available training runs from given model manifest.
     name_suffix = "_demo" if DEMO_MODE else ""

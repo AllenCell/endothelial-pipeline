@@ -3,18 +3,50 @@ from endo_pipeline.cli import UniqueStrList
 
 def main(collections: UniqueStrList | None = None) -> None:
     """
-    Report the number of unannotated FOVs kept for analysis from the specified
-    dataset collections.
+    Summarize number of unannotated FOVs kept for analysis.
 
-    If no collections are specified, the default collections used in the paper
-    will be reported (set via the COLLECTIONS_NAMED_IN_PAPER constant).
+    #datasets #test-ready
 
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe summarize-fov-counts -d
+    ```
+
+    To run the workflow for a single collection:
+
+    ```bash
+    uv run endopipe summarize-fov-counts --collections COLLECTION_NAME
+    ```
+
+    ## Dataset collection
+
+    If collections are not provided, the workflow will use all the collections
+    from the paper.
+
+    ## Workflow demo
+
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will summarize the
+    first collection.
+
+    Parameters
+    ----------
+    collections
+        List of dataset collections to summarize.
     """
+
+    import logging
+
+    from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import (
         get_unannotated_positions,
         load_dataset_collection_config,
         load_dataset_config,
     )
+
+    logger = logging.getLogger(__name__)
 
     COLLECTIONS_NAMED_IN_PAPER = [
         "diffae_model_training",
@@ -25,9 +57,14 @@ def main(collections: UniqueStrList | None = None) -> None:
 
     collection_names = collections or COLLECTIONS_NAMED_IN_PAPER
 
+    if DEMO_MODE:
+        logger.warning("DEMO MODE - Limiting to one collection")
+        collection_names = collection_names[:1]
+
     for collection_name in collection_names:
         collection_config = load_dataset_collection_config(collection_name)
         num_unannotated_positions = 0
+
         for dataset_name in collection_config.datasets:
             dataset_config = load_dataset_config(dataset_name)
             positions_kept_for_analysis = get_unannotated_positions(dataset_config)
@@ -35,7 +72,7 @@ def main(collections: UniqueStrList | None = None) -> None:
 
         print(
             f"Collection: {collection_name}, "
-            f"Num unannotated FOVs kept for analysis: {num_unannotated_positions}"
+            f"Number of unannotated FOVs kept for analysis: {num_unannotated_positions}"
         )
 
 

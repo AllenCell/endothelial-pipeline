@@ -43,7 +43,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe stage-dataframe-manifest MANIFEST_NAME -vd
+    uv run endopipe stage-dataframe-manifest MANIFEST_NAME -d
     ```
 
     To dry run the workflow:

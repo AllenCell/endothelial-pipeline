@@ -17,7 +17,7 @@ def main(manifests: UniqueStrList | None = None) -> None:
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe validate-dataframe-manifest -vd
+    uv run endopipe validate-dataframe-manifest -d
     ```
 
     To run the workflow for a specific manifest:

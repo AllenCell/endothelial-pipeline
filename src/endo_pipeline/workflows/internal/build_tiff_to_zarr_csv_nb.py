@@ -20,6 +20,14 @@ The output CSV contains the following columns:
 | `save_zarr_path` | Path to the output directory for Zarr segmentations |
 | `duration`       | Total number of timepoints in the dataset           |
 | `channel_name`   | Name of the channel                                 |
+
+## Example usage
+
+To run the workflow:
+
+```bash
+uv run endopipe build-tiff-to-zarr-csv
+```
 """
 
 # %%

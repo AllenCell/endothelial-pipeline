@@ -17,14 +17,14 @@ def main(
     """
     Compare track statistics between cell-centered and grid-based crops.
 
-    #grid-based #cell-centered
+    #grid-based #cell-centered #test-ready
 
     ## Example usage
 
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe compare-track-statistics -vd
+    uv run endopipe compare-track-statistics -d
     ```
 
     To run the workflow for a single dataset:
@@ -145,7 +145,7 @@ def main(
     dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one dataset")
+        logger.warning("DEMO MODE - Limiting to one dataset")
         dataset_names = dataset_names[:1]
 
     for dataset_name in dataset_names:

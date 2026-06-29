@@ -12,14 +12,14 @@ def main(
     """
     Compare cell-centered trajectories on grid-based flow fields.
 
-    #grid-based #cell-centered
+    #grid-based #cell-centered #test-ready
 
     ## Example usage
 
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe compare-flow-field-trajectories -vd
+    uv run endopipe compare-flow-field-trajectories -d
     ```
 
     To run the workflow for a single dataset:
@@ -107,7 +107,7 @@ def main(
     ]
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one dataset, one position, and 10 tracks")
+        logger.warning("DEMO MODE - Limiting to one dataset, one position, and 10 tracks")
         dataset_names = dataset_names[:1]
         max_positions = 1
         max_tracks = 10

@@ -17,7 +17,7 @@ def main(
     """
     Create timelapse movies of single FOV or stitched.
 
-    #visualization #test-ready #cpu-only
+    #visualization #test-ready
 
     Three movie types are available:
 
@@ -30,7 +30,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe create-timelapse-movie -vd
+    uv run endopipe create-timelapse-movie -d
     ```
 
     To run the workflow for a single dataset:

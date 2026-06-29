@@ -11,7 +11,7 @@ def main(
     """
     Convert datasets to Zarr format.
 
-    #zarr-conversion #internal #test-ready #cpu-only
+    #zarr-conversion #internal
 
     Zarrs are saved in the following channel order: 488, BF, 405, 561, 640
 
@@ -20,7 +20,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe convert-to-zarr -vd
+    uv run endopipe convert-to-zarr -d
     ```
 
     To run the workflow for a single dataset:

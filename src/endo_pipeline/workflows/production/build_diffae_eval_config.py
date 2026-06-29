@@ -16,7 +16,7 @@ def main(
     """
     Build config for evaluating a DiffAE model.
 
-    #diffae #model-evaluation
+    #diffae #model-evaluation #gpu
 
     This workflow builds model evaluation configs for each dataset starting with
     the config used to train the model, then overriding with evaluation-specific
@@ -28,7 +28,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe build-diffae-eval-config PATCH_TYPE -vd
+    uv run endopipe build-diffae-eval-config PATCH_TYPE -d
     ```
 
     To run the workflow for a single dataset:

@@ -9,7 +9,7 @@ def main(
     """
     Run tracking on CDH5 class segmentations.
 
-    #cdh5-segmentation #cdh5-tracking #test-ready #cpu-only
+    #cdh5-segmentation #cdh5-tracking #test-ready
 
     The workflow loads the CDH5 segmentations from a single position in a single
     dataset and builds cell tracks by finding which cell segmentations at a
@@ -31,7 +31,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe run-cdh5-tracking -vd
+    uv run endopipe run-cdh5-tracking -d
     ```
 
     To run the workflow for a single dataset:
@@ -64,7 +64,7 @@ def main(
     from itertools import groupby
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.cli.demo_mode_defaults import use_default_collection
+    from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.shape_features import concatenate_and_save_feature_tables
     from endo_pipeline.library.process.general_image_preprocessing import (
@@ -75,13 +75,17 @@ def main(
 
     logger = logging.getLogger(__name__)
 
-    out_dir = get_output_path("cdh5_tracking")
+    output_path = get_output_path(__file__)
 
-    datasets = use_default_collection(datasets, "live_cdh5_seg_based_feat_datasets")
+    dataset_names = datasets or get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
+
+    if DEMO_MODE:
+        logger.warning("DEMO MODE - Limiting to one dataset")
+        dataset_names = dataset_names[:1]
 
     analysis_queue = build_analysis_queue(
-        datasets,
-        out_dir=out_dir,
+        dataset_names=dataset_names,
+        out_dir=output_path,
         image_validation_frequency=None,
         t_start=0,
         t_final=10 if DEMO_MODE else None,
@@ -107,7 +111,7 @@ def main(
     if save_output:
         for dataset_name in datasets:
             concatenate_and_save_feature_tables(
-                out_dir=out_dir,
+                out_dir=output_path,
                 dataset_name=dataset_name,
                 out_file_suffix="tracking",
                 file_extension=".parquet",

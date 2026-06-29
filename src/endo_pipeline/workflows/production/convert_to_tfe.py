@@ -17,7 +17,7 @@ def main(
     """
     Convert dataset images and features into TFE format.
 
-    #visualization #tfe
+    #visualization #tfe #test-ready
 
     This workflow processes the specified datasets and positions to the format
     used by Timelapse Feature Explorer (TFE).
@@ -117,6 +117,7 @@ def main(
 
     # Limit dataset and positions for demo mode and apply directory suffix.
     if DEMO_MODE:
+        logger.warning("DEMO MODE - Limiting to one dataset and one position")
         datasets = datasets[:1]
         positions = positions[:1]
 

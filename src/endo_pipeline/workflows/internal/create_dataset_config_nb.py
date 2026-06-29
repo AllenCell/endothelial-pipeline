@@ -7,14 +7,22 @@ This notebooks save the dataset config to the `configs/datasets` directory with
 file name matching the name of the dataset. If a config with the same name
 already exists, it will be overwritten.
 
-### Fields requiring specific values
+## Example usage
+
+To run the workflow in demo mode:
+
+```bash
+uv run endopipe create-dataset-config
+```
+
+## Fields requiring specific values
 
 Some fields in the config will only allow specific values, as defined in the
 `DatasetConfig` by the `Literal` type. For convenience, all available options
 for these fields are provided as lines of code that can be commented or
 uncommented as needed. Setting an invalid value will produce an error.
 
-### Optional fields
+## Optional fields
 
 Some fields in the config are optional, and will be set to a default value if
 not provided. All optional fields are provided as commented lines of code. If an
