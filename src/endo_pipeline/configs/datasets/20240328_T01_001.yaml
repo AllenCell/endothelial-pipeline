@@ -33,7 +33,7 @@ flow_conditions:
   shear_stress: 0.0
 include_scenes: [5, 6, 7, 8, 9]
 notes: no flow dataset (24 hours)
-replicate_number: null
+replicate_number: 1
 stability_category: null
 timepoint_annotations: null
 position_annotations: null

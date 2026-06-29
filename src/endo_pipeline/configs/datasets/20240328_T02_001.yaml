@@ -34,7 +34,7 @@ flow_conditions:
 include_scenes: [0, 1, 2, 4]
 notes: This is the set flow rate not the actual flow rate. Under flow for 24 hours
   prior to fix.
-replicate_number: null
+replicate_number: 2
 stability_category: null
 timepoint_annotations: null
 position_annotations: null
