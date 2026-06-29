@@ -199,11 +199,19 @@ def load_dataframe(
         Loaded dataframe.
     """
 
+    from endo_pipeline.cli.apps import IS_INTERNAL
+
     preferred_loader_order: list[tuple[str | Path | None, Callable]] = [
         (location.fmsid, load_dataframe_from_fms),
         (location.path, load_dataframe_from_path),
         (location.s3uri, load_dataframe_from_s3),
     ]
+
+    if not IS_INTERNAL:
+        preferred_loader_order = [
+            (location.s3uri, load_dataframe_from_s3),
+            (location.path, load_dataframe_from_path),
+        ]
 
     available_loaders = [loader for loader in preferred_loader_order if loader[0] is not None]
 

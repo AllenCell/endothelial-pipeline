@@ -18,7 +18,11 @@ def mock_dataframe_loaders(mocker):
     def _raise():
         raise Exception
 
-    def _mocker():
+    def _mocker(is_internal: bool):
+        import endo_pipeline.cli.apps
+
+        endo_pipeline.cli.apps.IS_INTERNAL = is_internal
+
         mock_fms_loader = mocker.patch("endo_pipeline.io.load_dataframes.load_dataframe_from_fms")
         mock_fms_loader.side_effect = lambda *arg, **_: "FMSID" if arg[0] == "valid" else _raise()
 
@@ -65,9 +69,50 @@ def mock_dataframe_loaders(mocker):
         ("invalid", "invalid", "invalid", pytest.raises(Exception)),
     ],
 )
-def test_load_dataframe(fmsid, path, s3uri, expected, mock_dataframe_loaders):
+def test_load_dataframe_internal(fmsid, path, s3uri, expected, mock_dataframe_loaders):
     location = DataframeLocation(fmsid=fmsid, path=path, s3uri=s3uri)
-    mock_dataframe_loaders()
+    mock_dataframe_loaders(is_internal=True)
+
+    with expected as e:
+        dataframe = load_dataframe(location)
+        assert dataframe == e
+
+
+@pytest.mark.parametrize(
+    "fmsid,path,s3uri,expected",
+    [
+        (None, None, None, pytest.raises(FileNotFoundError)),
+        (None, "valid", None, nullcontext("PATH")),
+        (None, "invalid", None, pytest.raises(Exception)),
+        (None, None, "valid", nullcontext("S3URI")),
+        (None, "valid", "valid", nullcontext("S3URI")),
+        (None, "invalid", "valid", nullcontext("S3URI")),
+        (None, None, "invalid", pytest.raises(Exception)),
+        (None, "valid", "invalid", nullcontext("PATH")),
+        (None, "invalid", "invalid", pytest.raises(Exception)),
+        ("valid", None, None, pytest.raises(Exception)),
+        ("valid", "valid", None, nullcontext("PATH")),
+        ("valid", "invalid", None, pytest.raises(Exception)),
+        ("valid", None, "valid", nullcontext("S3URI")),
+        ("valid", "valid", "valid", nullcontext("S3URI")),
+        ("valid", "invalid", "valid", nullcontext("S3URI")),
+        ("valid", None, "invalid", pytest.raises(Exception)),
+        ("valid", "valid", "invalid", nullcontext("PATH")),
+        ("valid", "invalid", "invalid", pytest.raises(Exception)),
+        ("invalid", None, None, pytest.raises(Exception)),
+        ("invalid", "valid", None, nullcontext("PATH")),
+        ("invalid", "invalid", None, pytest.raises(Exception)),
+        ("invalid", None, "valid", nullcontext("S3URI")),
+        ("invalid", "valid", "valid", nullcontext("S3URI")),
+        ("invalid", "invalid", "valid", nullcontext("S3URI")),
+        ("invalid", None, "invalid", pytest.raises(Exception)),
+        ("invalid", "valid", "invalid", nullcontext("PATH")),
+        ("invalid", "invalid", "invalid", pytest.raises(Exception)),
+    ],
+)
+def test_load_dataframe_external(fmsid, path, s3uri, expected, mock_dataframe_loaders):
+    location = DataframeLocation(fmsid=fmsid, path=path, s3uri=s3uri)
+    mock_dataframe_loaders(is_internal=False)
 
     with expected as e:
         dataframe = load_dataframe(location)
