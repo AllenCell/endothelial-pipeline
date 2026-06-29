@@ -1,25 +1,25 @@
 def main():
     """
-    Run all workflows tagged as test ready in demo mode.
+    Run all workflows tagged as validation in non-demo mode.
 
-    To register a workflow for testing:
+    To register a workflow for validation:
 
-    1. Make sure your workflow runs in under 5 minutes in `DEMO_MODE`
-    2. Add #test-ready tag to the docstring
-    3. For workflows that use GPU, also add a #gpu tag to the docstring
+    1. Add #validation tag to the docstring
+    2. For workflows that use GPU, also add a #gpu tag to the docstring
+    3. Make sure validations log an error rather than raising exceptions
 
     ## Example usage
 
-    To test all testable workflows:
+    To run all validation workflows:
 
     ```bash
-    uv run endopipe run-all-testable-workflows -g 1
+    uv run endopipe run-all-validation-workflows -g 1
     ```
 
-    To test only workflows that do not require a GPU:
+    To run only validation workflows that do not require a GPU:
 
     ```bash
-    uv run endopipe run-all-testable-workflows
+    uv run endopipe run-all-validation-workflows
     ```
 
     ## CPU vs. GPU
@@ -36,9 +36,9 @@ def main():
 
     results = asyncio.run(
         run_all_workflows_with_tag(
-            workflow_name="run-all-testable-workflows",
-            select_tag="test-ready",
-            force_demo_mode=True,
+            workflow_name="run-all-validation-workflows",
+            select_tag="validation",
+            force_demo_mode=False,
         )
     )
     summarize_workflow_run_results(results)
