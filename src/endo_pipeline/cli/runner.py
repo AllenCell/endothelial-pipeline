@@ -36,7 +36,7 @@ class _TerminalOutput:
 class _WorkflowResult:
     name: str
     timeout: int
-    exception: Exception | None
+    exception: Exception | str | None
     elapsed: "timedelta"
 
     @property
@@ -121,7 +121,10 @@ def _make_command(app: str, workflow_name: str, force_demo_mode: bool) -> tuple[
     return (app, ["endopipe", app, *tokens])
 
 
-async def _print_logs(last_line: _TerminalOutput, name: str, stream: asyncio.StreamReader):
+async def _print_logs(last_line: _TerminalOutput, name: str, stream: asyncio.StreamReader | None):
+    if stream is None:
+        return
+
     async for line_bytes in stream:
         line: str = line_bytes.decode().rstrip()
         if line.startswith("╰────"):  # Cyclopts rich footer
@@ -166,7 +169,7 @@ async def _run_workflow(last_line: _TerminalOutput, name: str, command: list[str
 
 
 async def _manage_workflow(name: str, command: list[str], timeout: int) -> _WorkflowResult:
-    error = None
+    error: Exception | str | None = None
     with _timer() as timer:
         try:
             logger.info(f"Starting workflow: {' '.join(command)}")
@@ -237,7 +240,7 @@ def summarize_workflow_run_results(results: list[_WorkflowResult]):
             table.add_row(result.name, "succeeded", result.elapsed_str, style="yellow")
 
     for result in failures:
-        exception = Text.from_ansi(result.exception).split("\n")[-1]
+        exception = Text.from_ansi(str(result.exception)).split("\n")[-1]
         table.add_row(result.name, "failed", result.elapsed_str, exception, style="red")
 
     console = Console()
