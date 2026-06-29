@@ -109,7 +109,7 @@ def main(
 
     # Concatenate outputs into a single output table for each dataset
     if save_output:
-        for dataset_name in datasets:
+        for dataset_name in dataset_names:
             concatenate_and_save_feature_tables(
                 out_dir=output_path,
                 dataset_name=dataset_name,
