@@ -45,6 +45,8 @@ def main(manifests: UniqueStrList | None = None) -> None:
     from endo_pipeline.io import load_dataframe
     from endo_pipeline.library.process.progress_bar import ProgressBar
     from endo_pipeline.manifests import get_available_dataframe_manifests, load_dataframe_manifest
+    from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 
     logger = logging.getLogger(__name__)
 
@@ -57,6 +59,28 @@ def main(manifests: UniqueStrList | None = None) -> None:
         max_locations = 2
     else:
         max_locations = None
+
+    extra_nuclei_columns = [
+        *[ColumnTemplate.NUCLEI_WITH_MOST_OVERLAP % i for i in range(7)],
+        *[ColumnTemplate.NUCLEI_WITH_MOST_OVERLAP_CENTROID_X % i for i in range(7)],
+        *[ColumnTemplate.NUCLEI_WITH_MOST_OVERLAP_CENTROID_Y % i for i in range(7)],
+    ]
+    optional_ann_columns = [
+        Column.Annotations.BF_SCOPE_ERROR,
+        Column.Annotations.BF_TEMP_ARTIFACT,
+        Column.Annotations.GFP_SCOPE_ERROR,
+        Column.Annotations.CELL_PILING,
+        Column.Annotations.NOT_STEADY_STATE,
+        Column.Annotations.UNFED,
+        Column.Annotations.XY_SHIFT,
+        Column.Annotations.Z_SHIFT,
+    ]
+    okay_if_missing_columns = {
+        "nuclei_labelfree_segmentation": set(extra_nuclei_columns),
+        "cell_centered_features_filtered": set(extra_nuclei_columns + optional_ann_columns),
+        "cell_centered_features_unfiltered": set(extra_nuclei_columns + optional_ann_columns),
+        "merged_segmentation_features": set(extra_nuclei_columns + optional_ann_columns),
+    }
 
     for manifest_name in manifest_names:
         # Load dataframe manifest and location keys
@@ -125,7 +149,7 @@ def main(manifests: UniqueStrList | None = None) -> None:
                     location_key,
                     columns - expected_columns,
                 )
-            if expected_columns - columns:
+            if expected_columns - columns - okay_if_missing_columns.get(manifest_name, set()):
                 logger.error(
                     "Validation failed for manifest '%s' key '%s' - Missing column(s): %s",
                     manifest_name,

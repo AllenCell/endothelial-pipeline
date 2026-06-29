@@ -5,7 +5,7 @@ def main(datasets: Datasets | None = None) -> None:
     """
     Validate fixed points identified in 2D + 1D versus 3D.
 
-    #validation #fixed-points #dynamics #test-ready
+    #fixed-points #dynamics #test-ready
 
     Validate fixed points as identified in 2D in (r, rho) and 1D in theta
     against the fixed points identified in the full 3D (r, rho, theta) space.

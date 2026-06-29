@@ -5,7 +5,7 @@ def main(datasets: Datasets | None = None) -> None:
     """
     Validate dataset configs.
 
-    #datasets #validation
+    #datasets #validation #internal
 
     For each dataset, confirm:
 
