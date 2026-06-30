@@ -57,6 +57,7 @@ def main(datasets: Datasets | None = None, num_processes: int = 1):
         build_analysis_queue,
         process_task_queue,
     )
+    from endo_pipeline.library.process.progress_bar import ProgressBar
     from endo_pipeline.manifests import (
         get_dataframe_location_for_dataset,
         get_image_location_for_dataset,
@@ -70,19 +71,11 @@ def main(datasets: Datasets | None = None, num_processes: int = 1):
 
     logger = logging.getLogger(__name__)
 
-    datasets = datasets or get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
+    dataset_names = datasets or get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
 
     if DEMO_MODE:
         logger.warning("DEMO MODE - Limiting to one dataset")
-        datasets = datasets[:1]
-
-    analysis_queue = build_analysis_queue(
-        dataset_names=datasets,
-        image_validation_frequency=None,
-        t_start=0,
-        t_final=10 if DEMO_MODE else None,
-        max_positions=2 if DEMO_MODE else None,
-    )
+        dataset_names = dataset_names[:1]
 
     image_manifest = load_image_manifest("grid_seg_zarr")
     feature_manifest = load_dataframe_manifest(GRID_BASED_FEATURES_UNFILTERED_MANIFEST_NAME)
@@ -141,13 +134,29 @@ def main(datasets: Datasets | None = None, num_processes: int = 1):
                     args.dataset_name,
                 )
 
-    process_task_queue(
-        task,
-        analysis_queue,
-        description="Validating grid segmentation",
-        num_processes=num_processes,
-        chunksize=2,
-    )
+    for dataset_name in dataset_names:
+        progress_bar = ProgressBar([dataset_name], "Validating")
+        progress_bar.set_iteration_name(dataset_name)
+
+        analysis_queue = build_analysis_queue(
+            dataset_names=[dataset_name],
+            image_validation_frequency=None,
+            t_start=0,
+            t_final=10 if DEMO_MODE else None,
+            max_positions=2 if DEMO_MODE else None,
+        )
+
+        process_task_queue(
+            task,
+            analysis_queue,
+            description="Validating grid segmentation",
+            num_processes=num_processes,
+            chunksize=2,
+        )
+
+        progress_bar.set_step_description("Finished validation steps")
+        progress_bar.update(1)
+        progress_bar.close()
 
 
 if __name__ == "__main__":
