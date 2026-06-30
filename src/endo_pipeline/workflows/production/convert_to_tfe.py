@@ -64,6 +64,11 @@ def main(
     - `bf_std_dev` = standard deviation project of the brightfield image
     - `gfp_max_proj`= max project of the GFP image
 
+    ## Dataset collection
+
+    If datasets are not provided, the workflow will use datasets in the
+    `shear_stress` dataset collection.
+
     ## Workflow demo
 
     Running the workflow in demo mode (`-d` or `--demo-mode`) will convert a
@@ -91,7 +96,7 @@ def main(
     from colorizer_data import ColorizerDatasetWriter
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.tfe import (
         build_tfe_dataset,
@@ -101,13 +106,13 @@ def main(
         get_grid_seg_data_for_tfe,
     )
     from endo_pipeline.manifests import load_image_manifest
-    from endo_pipeline.settings.tfe import TFE_DEFAULT_DATASETS, TFE_IMAGE_MANIFEST_NAME_MAP
+    from endo_pipeline.settings.tfe import TFE_IMAGE_MANIFEST_NAME_MAP
 
     logger = logging.getLogger(__name__)
 
     # Set default values for dataset, position, and output directory if not provided
     suffix = "_demo" if DEMO_MODE else ""
-    datasets = datasets or TFE_DEFAULT_DATASETS
+    datasets = datasets or get_datasets_in_collection("shear_stress")
     output_dir = output_dir or get_output_path(f"timelapse_feature_explorer_{segmentation}{suffix}")
 
     # Limit dataset and positions for demo mode and apply directory suffix.
