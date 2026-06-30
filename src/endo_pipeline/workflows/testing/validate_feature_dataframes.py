@@ -48,6 +48,7 @@ def main(patch_type: PatchType = "grid_based") -> None:
         load_dataset_config,
     )
     from endo_pipeline.io import load_dataframe
+    from endo_pipeline.library.process.progress_bar import ProgressBar
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.workflow_defaults import (
@@ -66,13 +67,13 @@ def main(patch_type: PatchType = "grid_based") -> None:
     ]
 
     if DEMO_MODE:
-        logger.warning("DEMO MODE - Only validating the first two datasets")
+        logger.warning("DEMO MODE - Only validating the base manifest")
         manifest_names = manifest_names[:1]
 
     for manifest_name, is_filtered in manifest_names:
-        logger.info("Validating dataframe manifest '%s'", manifest_name)
-
-        manifest = load_dataframe_manifest(manifest_name)
+        # Load dataframe manifest and location keys
+        dataframe_manifest = load_dataframe_manifest(manifest_name)
+        dataset_names = list(dataframe_manifest.locations.keys())
 
         # If manifest is filtered, we want only unannotated positions, so pass
         # None. If manifest is not filtered, we want all positions, so pass
@@ -91,15 +92,19 @@ def main(patch_type: PatchType = "grid_based") -> None:
             else []
         )
 
-        for dataset_name in manifest.locations.keys():
+        progress_bar = ProgressBar(dataset_names, "Validating", manifest_name)
+        for dataset_name in progress_bar:
+            progress_bar.set_iteration_name(dataset_name)
+
             # Load dataset config
             dataset_config = load_dataset_config(dataset_name)
 
             # Load dataframe
-            location = manifest.locations[dataset_name]
+            location = dataframe_manifest.locations[dataset_name]
             df = load_dataframe(location)
 
             # Check expected positions
+            progress_bar.set_step_description("Checking expected positions in dataframe")
             positions_in_df = sorted(df[Column.POSITION].unique())
             expected_positions = sorted(
                 get_unannotated_positions(dataset_config, position_annotations)
@@ -119,6 +124,7 @@ def main(patch_type: PatchType = "grid_based") -> None:
                         sorted(set(expected_positions) - set(positions_in_df)),
                     )
 
+            progress_bar.set_step_description("Checking expected timepoints in dataframe")
             for position, df_pos in df.groupby(Column.POSITION):
                 timepoints_in_df_pos = sorted(df_pos[Column.TIMEPOINT].unique())
                 expected_timepoints = sorted(
@@ -142,6 +148,10 @@ def main(patch_type: PatchType = "grid_based") -> None:
                             position,
                             sorted(set(expected_timepoints) - set(timepoints_in_df_pos)),
                         )
+
+            if dataset_name == dataset_names[-1]:
+                progress_bar.set_step_description("Finished validating all datasets")
+                progress_bar.clear_iteration_name()
 
 
 if __name__ == "__main__":
