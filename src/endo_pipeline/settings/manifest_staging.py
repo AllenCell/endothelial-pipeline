@@ -45,6 +45,8 @@ STAGING_DATAFRAME_MANIFEST_NAMES = [
     "diffae_model_comparison_metrics_diffae_baseline",
     "diffae_model_comparison_metrics_diffae_cdh5_conditioned",
     "autocorrelations_polar_r_polar_theta_rho_grid_based",
+    "first_passage_time_parameter_sweep",
+    "first_passage_time_statistics",
 ]
 """List of names of dataframe manifests to stage."""
 
