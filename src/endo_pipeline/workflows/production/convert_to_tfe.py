@@ -136,7 +136,7 @@ def main(
             logger.info("Processing '%s' position '%d'", dataset_name, position)
 
             # Initialize dataset writer
-            dataset_and_position = f"{dataset_name}_P{position}"
+            dataset_and_position = f"{dataset_config.date}_{dataset_config.fmsid}_P{position}"
             writer = ColorizerDatasetWriter(output_dir, dataset_and_position, force_overwrite=True)
 
             # Generate (or regenerate) frames if selected
