@@ -1529,7 +1529,7 @@ def build_cdh5_measured_features_tables(
         get_zarr_location_for_position,
         load_image_manifest,
     )
-    from endo_pipeline.settings import DIMENSION_ORDER
+    from endo_pipeline.settings.image_data import DIMENSION_ORDER
 
     logger.debug(f"Working on {dataset_name} -- T={tp}...")
 
@@ -1835,7 +1835,7 @@ def get_nuclei_features_from_dataset_at_timepoint(
         get_zarr_location_for_position,
         load_image_manifest,
     )
-    from endo_pipeline.settings import DIMENSION_ORDER
+    from endo_pipeline.settings.image_data import DIMENSION_ORDER
 
     # Load segmentations and image
     dim_order = DIMENSION_ORDER

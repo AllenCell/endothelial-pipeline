@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Literal, overload
 
 from endo_pipeline.manifests import ImageLocation
-from endo_pipeline.settings import DIMENSION_ORDER
+from endo_pipeline.settings.image_data import DIMENSION_ORDER
 
 if TYPE_CHECKING:
     import dask.array as da

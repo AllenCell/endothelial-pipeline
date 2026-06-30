@@ -17,7 +17,7 @@ from endo_pipeline.library.process.general_image_preprocessing import (
     save_image_output,
 )
 from endo_pipeline.manifests import get_zarr_location_for_position
-from endo_pipeline.settings import DIMENSION_ORDER
+from endo_pipeline.settings.image_data import DIMENSION_ORDER
 
 logger = logging.getLogger(__name__)
 

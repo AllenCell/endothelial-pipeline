@@ -6,7 +6,7 @@ from pathlib import Path
 
 from endo_pipeline.configs import DatasetConfig
 from endo_pipeline.manifests import ImageLocation, ImageManifest, load_image_manifest
-from endo_pipeline.settings import ZARR_IMAGE_MANIFEST_NAME
+from endo_pipeline.settings.manifest_names import ZARR_IMAGE_MANIFEST_NAME
 
 logger = logging.getLogger(__name__)
 

@@ -36,7 +36,6 @@ from endo_pipeline.library.visualize.supp_fig_optical_flow import (
     rbar,
     resolve_grid_crop,
 )
-from endo_pipeline.settings import DIFFAE_ZARR_RESOLUTION_LEVEL
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.examples import (
@@ -45,6 +44,7 @@ from endo_pipeline.settings.examples import (
     SUPP_FIG_RETRACTION_FIBER_BLOB,
 )
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL
 from endo_pipeline.settings.optical_flow import OPTICAL_FLOW_CHANNEL_ATTACHMENT
 
 plt.style.use("endo_pipeline.figure")

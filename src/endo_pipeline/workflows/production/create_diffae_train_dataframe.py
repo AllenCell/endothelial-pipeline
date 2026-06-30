@@ -59,7 +59,7 @@ def main() -> None:
         create_dataframe_manifest,
         save_dataframe_manifest,
     )
-    from endo_pipeline.settings import DIFFAE_ZARR_RESOLUTION_LEVEL, Z_SLICE_OFFSETS
+    from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL, Z_SLICE_OFFSETS
     from endo_pipeline.settings.workflow_defaults import DIFFAE_TRAIN_DATAFRAME_MANIFEST_PREFIX
 
     logger = logging.getLogger(__name__)

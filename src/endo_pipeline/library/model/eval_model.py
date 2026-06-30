@@ -25,14 +25,14 @@ from endo_pipeline.manifests import (
     get_zarr_location_for_position,
     load_dataframe_manifest,
 )
-from endo_pipeline.settings import (
-    DEFAULT_SEG_FEATURE_MANIFEST_NAME,
+from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.diffae_feature_dataframes import CytoDLLoadDataKeys, CytoDLSaveDataKeys
+from endo_pipeline.settings.image_data import (
     DIFFAE_ZARR_RESOLUTION_LEVEL,
     NATIVE_ZARR_RESOLUTION_CROP_SIZE,
     ZARR_BRIGHTFIELD_CHANNEL,
 )
-from endo_pipeline.settings import ColumnName as Column
-from endo_pipeline.settings.diffae_feature_dataframes import CytoDLLoadDataKeys, CytoDLSaveDataKeys
+from endo_pipeline.settings.workflow_defaults import DEFAULT_SEG_FEATURE_MANIFEST_NAME
 
 logger = logging.getLogger(__name__)
 

@@ -10,7 +10,7 @@ from endo_pipeline.manifests.image_manifest_utils import (
     get_zarr_location_for_position,
     list_datasets_with_images,
 )
-from endo_pipeline.settings import ZARR_IMAGE_MANIFEST_NAME
+from endo_pipeline.settings.manifest_names import ZARR_IMAGE_MANIFEST_NAME
 
 
 @pytest.fixture

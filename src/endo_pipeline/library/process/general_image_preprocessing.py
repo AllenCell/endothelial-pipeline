@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import get_output_path
-from endo_pipeline.settings import DIMENSION_ORDER
+from endo_pipeline.settings.image_data import DIMENSION_ORDER
 
 logger = logging.getLogger(__name__)
 
