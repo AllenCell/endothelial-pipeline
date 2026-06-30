@@ -8,8 +8,8 @@ parameters:
   - 20250415_SlideE_20X
   - 20250415_SlideH_20X
 locations:
-  finetuned_20250419:
+  finetuned:
     mlflowid: null
     fmsid: b32e65243a7e47ec913b0995a4bfa09a
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/nuc_pred_labelfree/finetuned

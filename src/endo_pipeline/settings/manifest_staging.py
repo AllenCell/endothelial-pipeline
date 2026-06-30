@@ -52,8 +52,9 @@ STAGING_DATAFRAME_MANIFEST_NAMES = [
 ]
 """List of names of dataframe manifests to stage."""
 
-MODEL_MANIFEST_STAGING_FOLDERS = {
-    "diffae_baseline": "diffae_baseline/",
-    "nuc_pred_labelfree": "nuc_pred_labelfree/",
-}
-"""Mapping of model manifest names to subdirectories."""
+STAGING_MODEL_MANIFEST_NAMES = [
+    "diffae_baseline",
+    "diffae_cdh5_conditioned",
+    "nuc_pred_labelfree",
+]
+"""List of names of model manifests to stage."""

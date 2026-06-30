@@ -81,7 +81,7 @@ MODEL_QC_NOISE_LEVELS: tuple = (0.25, 0.5, 0.75)
 LABELFREE_NUCLEI_MODEL_MANIFEST_NAME: str = "nuc_pred_labelfree"
 """Default manifest name for the label-free nuclei segmentation model."""
 
-LABELFREE_NUCLEI_MODEL_RUN_NAME: str = "finetuned_20250419"
+LABELFREE_NUCLEI_MODEL_RUN_NAME: str = "finetuned"
 """Default run name for the label-free nuclei segmentation model."""
 
 IMAGE_METRIC_DATASET_COLORS = {
