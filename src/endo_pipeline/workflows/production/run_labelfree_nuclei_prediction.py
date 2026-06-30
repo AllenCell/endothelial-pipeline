@@ -1,15 +1,11 @@
 from endo_pipeline.cli import Datasets
 
 
-def main(
-    datasets: Datasets | None = None,
-    num_processes: int = 1,
-    overwrite: bool = True,
-) -> None:
+def main(datasets: Datasets | None = None, overwrite: bool = True) -> None:
     """
     Run label-free nuclei prediction.
 
-    #nuclei-prediction #test-ready #gpu
+    #nuclei-prediction #test-ready #gpu #workers
 
     Label-free nuclei predictions are generated using a CellPose 3 model
     retrained from the default "nuclei" model. Validation images are saved every
@@ -43,15 +39,13 @@ def main(
     ----------
     datasets
         List of datasets or dataset collections to segment.
-    num_processes
-        Number of processes to use.
     overwrite
         True to overwrite existing images at output path, False otherwise.
     """
 
     import logging
 
-    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE, NUM_WORKERS
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.process.general_image_preprocessing import (
@@ -87,7 +81,7 @@ def main(
     process_task_queue(
         generate_labelfree_nuclei_predictions,
         analysis_queue,
-        num_processes=num_processes,
+        num_processes=NUM_WORKERS or 1,
         description="Predicting nuclei",
         chunksize=5,
     )

@@ -1,15 +1,11 @@
 from endo_pipeline.cli import Datasets
 
 
-def main(
-    datasets: Datasets | None = None,
-    num_processes: int = 1,
-    save_output: bool = True,
-) -> None:
+def main(datasets: Datasets | None = None, save_output: bool = True) -> None:
     """
     Extract measure features based on label-free nuclei predictions.
 
-    #nuclei-prediction #test-ready
+    #nuclei-prediction #test-ready #workers
 
     Measures the label-free nuclei segmentation labels brightfield intensity and
     centroids and matches them to existing cell segmentation labels.
@@ -43,15 +39,13 @@ def main(
     ----------
     datasets
         List of datasets or dataset collections to segment.
-    num_processes
-        Number of processes to use.
     save_output
         True to save outputs from workflow, False otherwise.
     """
 
     import logging
 
-    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE, NUM_WORKERS
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.shape_features import (
@@ -90,7 +84,7 @@ def main(
         get_and_save_nuclei_features_arg_unpacker,
         analysis_queue,
         description="Getting nuclei features",
-        num_processes=num_processes,
+        num_processes=NUM_WORKERS or 1,
         chunksize=5,
     )
 

@@ -1,8 +1,8 @@
-def main(num_processes: int = 1) -> None:
+def main() -> None:
     """
     Retrain Cellpose model to predict nuclei from BF std dev projections.
 
-    #model-training #cellpose #test-ready #gpu
+    #model-training #cellpose #test-ready #gpu #workers
 
     ## Example usage
 
@@ -22,11 +22,6 @@ def main(num_processes: int = 1) -> None:
     Running the workflow in demo mode (`-d` or `--demo-mode`) will train on a
     subset of the training data. The resulting model with have `_demo` prefix
     and is not suitable for label-free nuclei prediction.
-
-    Parameters
-    ----------
-    num_processes
-        Number of processes to use.
     """
 
     import logging
@@ -35,7 +30,7 @@ def main(num_processes: int = 1) -> None:
     from cellpose import models, train
     from cellpose.io import logger_setup
 
-    from endo_pipeline.cli import DEMO_MODE, UPLOAD_TO_FMS
+    from endo_pipeline.cli import DEMO_MODE, NUM_WORKERS, UPLOAD_TO_FMS
     from endo_pipeline.configs import ChannelName, get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import (
         build_fms_annotations,
@@ -87,7 +82,7 @@ def main(num_processes: int = 1) -> None:
     images_training, labels_training, images_testing, labels_testing = load_train_and_test_images(
         out_dir=out_dir,
         analysis_queue=analysis_queue,
-        num_processes=num_processes,
+        num_processes=NUM_WORKERS or 1,
     )
 
     logger.info("Beginning training...")
