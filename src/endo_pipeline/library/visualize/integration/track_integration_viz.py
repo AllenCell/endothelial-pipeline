@@ -32,6 +32,7 @@ from endo_pipeline.library.visualize.diffae_features.flow_field_3d import (
 )
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.figures import FONTSIZE_SMALL
 from endo_pipeline.settings.flow_field_3d import QUIVER_COLORMAP
@@ -946,9 +947,7 @@ def plot_first_passage_time_3d_scatter(
     # the column title is "50%" for 50th percentile in `pd.describe`` instead of
     # mean so correct that if "median" was chosen
     metric = "50%" if metric_to_plot == "median" else metric_to_plot
-
-    suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
-    metric = f"{metric}{suffix}"
+    template = ColumnTemplate.FIRST_PASSAGE_TIME_METRIC
 
     fig = plt.figure(figsize=(3, 3.5))
     ax: Axes3D = fig.add_subplot(projection="3d")
@@ -958,8 +957,8 @@ def plot_first_passage_time_3d_scatter(
     # fold change is symmetric and the colors end up evenly spaced regardless of
     # whether the tracked or grid-based FPT is higher
     colors = np.log2(
-        first_passage_time_df[f"{metric}_cell_centered"]
-        / first_passage_time_df[f"{metric}_grid_based"]
+        first_passage_time_df[template % (metric, "cell_centered")]
+        / first_passage_time_df[template % (metric, "grid_based")]
     )
     cmap_lim = max(abs(colors))
     cmap = "coolwarm_r"
@@ -972,9 +971,7 @@ def plot_first_passage_time_3d_scatter(
         cmap=cmap,
         norm=norm,
     )
-    fp_dynamics_cols = [
-        f"{Column.VectorField.FIXED_POINT_PREFIX}{col}" for col in DYNAMICS_COLUMN_NAMES
-    ]
+    fp_dynamics_cols = [ColumnTemplate.FIXED_POINT % col for col in DYNAMICS_COLUMN_NAMES]
     fixed_point = [first_passage_time_df[col].unique().item() for col in fp_dynamics_cols]
     ax.scatter(
         *fixed_point,
@@ -1029,8 +1026,12 @@ def plot_first_passage_time_parameter_sweep(
     ax.set_title(fig_title, fontsize=FONTSIZE_SMALL)
     ax.errorbar(
         x=first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
-        y=first_passage_time_param_sweep_df[f"{metric}_grid_based"],
-        yerr=first_passage_time_param_sweep_df["std_grid_based"],
+        y=first_passage_time_param_sweep_df[
+            ColumnTemplate.FIRST_PASSAGE_TIME_OVERALL_METRIC % (metric, "grid_based")
+        ],
+        yerr=first_passage_time_param_sweep_df[
+            ColumnTemplate.FIRST_PASSAGE_TIME_OVERALL_METRIC % ("std", "grid_based")
+        ],
         label=f"MFPT {UnicodeCharacters.PLUS_MINUS} STD (grid-based)",
         fmt="o-",
         color="tab:blue",
@@ -1040,8 +1041,12 @@ def plot_first_passage_time_parameter_sweep(
     )
     ax.errorbar(
         x=first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
-        y=first_passage_time_param_sweep_df[f"{metric}_cell_centered"],
-        yerr=first_passage_time_param_sweep_df["std_cell_centered"],
+        y=first_passage_time_param_sweep_df[
+            ColumnTemplate.FIRST_PASSAGE_TIME_OVERALL_METRIC % (metric, "cell_centered")
+        ],
+        yerr=first_passage_time_param_sweep_df[
+            ColumnTemplate.FIRST_PASSAGE_TIME_OVERALL_METRIC % ("std", "cell_centered")
+        ],
         label=f"MFPT {UnicodeCharacters.PLUS_MINUS} STD (cell-centered)",
         fmt="o-",
         color="tab:red",
@@ -1076,7 +1081,7 @@ def plot_first_passage_time_parameter_sweep(
     ax.plot(
         first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
         first_passage_time_param_sweep_df[
-            f"{Column.VectorField.PERCENT_TRAJ_APPROACHED_FP}_grid_based"
+            ColumnTemplate.FIRST_PASSAGE_TIME_PERCENT_TRAJECTORIES % "grid_based"
         ],
         marker="o",
         color="tab:blue",
@@ -1088,7 +1093,7 @@ def plot_first_passage_time_parameter_sweep(
     ax.plot(
         first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
         first_passage_time_param_sweep_df[
-            f"{Column.VectorField.PERCENT_TRAJ_APPROACHED_FP}_cell_centered"
+            ColumnTemplate.FIRST_PASSAGE_TIME_PERCENT_TRAJECTORIES % "cell_centered"
         ],
         marker="o",
         color="tab:red",
@@ -1164,11 +1169,10 @@ def plot_first_passage_time_correlations(
     shear_stress_rounded = _get_shear_stress_for_dataset(dataset_name, binned=True)
     pearson_r = line_fit_df[Column.VectorField.PEARSON_R].unique().item()
 
-    metric = "50%" if metric_to_plot == "median" else str(metric_to_plot)
-    suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
-    metric = f"{metric}{suffix}"
+    metric = "50%" if metric_to_plot == "median" else metric_to_plot
+    template = ColumnTemplate.FIRST_PASSAGE_TIME_METRIC
 
-    slope = line_fit_df[Column.VectorField.LINEFIT_SLOPE].unique().item()
+    slope = line_fit_df[Column.VectorField.LINEFIT_SLOPE_ODR].unique().item()
     intercept = line_fit_df[Column.VectorField.LINEFIT_INTERCEPT_ODR].unique().item()
 
     corr_metric_label = f"Linear fit " f"(slope={slope:.2f})"
@@ -1191,18 +1195,18 @@ def plot_first_passage_time_correlations(
         fontsize=FONTSIZE_SMALL,
     )
     ax.errorbar(
-        x=first_passage_time_stats_df[f"{metric}_grid_based"],
-        y=first_passage_time_stats_df[f"{metric}_cell_centered"],
-        xerr=first_passage_time_stats_df[f"sem{suffix}_grid_based"],
-        yerr=first_passage_time_stats_df[f"sem{suffix}_cell_centered"],
+        x=first_passage_time_stats_df[template % (metric, "grid_based")],
+        y=first_passage_time_stats_df[template % (metric, "cell_centered")],
+        xerr=first_passage_time_stats_df[template % ("sem", "grid_based")],
+        yerr=first_passage_time_stats_df[template % ("sem", "cell_centered")],
         fmt="none",
         ecolor="gray",
         alpha=0.5,
         zorder=0,
     )
     ax.scatter(
-        x=first_passage_time_stats_df[f"{metric}_grid_based"],
-        y=first_passage_time_stats_df[f"{metric}_cell_centered"],
+        x=first_passage_time_stats_df[template % (metric, "grid_based")],
+        y=first_passage_time_stats_df[template % (metric, "cell_centered")],
         color="black",
         edgecolor="white",
         lw=0.2,
@@ -1256,9 +1260,7 @@ def plot_first_passage_time_histogram(
     # the column title is "50%" for 50th percentile in `pd.describe`` instead of
     # mean so correct that if "median" was chosen
     metric = "50%" if metric_to_plot == "median" else metric_to_plot
-
-    suffix = Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX
-    metric = f"{metric}{suffix}"
+    template = ColumnTemplate.FIRST_PASSAGE_TIME_METRIC
 
     if metric_to_plot == "count":
         xaxis_title = "Number of Trajectories in Bin"
@@ -1273,7 +1275,7 @@ def plot_first_passage_time_histogram(
     ax.set_title(dataset_name.title())
     sns.histplot(
         data=first_passage_time_df,
-        x=f"{metric}_grid_based",
+        x=template % (metric, "grid_based"),
         stat=stat_for_hist,
         binwidth=bin_width_for_hist,
         kde=True,
@@ -1285,7 +1287,7 @@ def plot_first_passage_time_histogram(
     )
     sns.histplot(
         data=first_passage_time_df,
-        x=f"{metric}_cell_centered",
+        x=template % (metric, "cell_centered"),
         stat=stat_for_hist,
         binwidth=bin_width_for_hist,
         kde=True,
@@ -1312,7 +1314,7 @@ def plot_first_passage_time_correlation_summary(
     out_dir: Path,
     filename: str,
     corr_metric_column: Column.VectorField = Column.VectorField.PEARSON_R,
-    slope_column: Column.VectorField = Column.VectorField.LINEFIT_SLOPE,
+    slope_column: Column.VectorField = Column.VectorField.LINEFIT_SLOPE_ODR,
     summary_fig_kwargs: dict | None = {"figsize": (6, 2.5)},
 ) -> None:
     """Plot a summary of the correlation results from the first passage time

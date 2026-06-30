@@ -556,7 +556,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         min=0,
         max=1,
     ),
-    Column.VectorField.LINEFIT_SLOPE: ColumnMetadata(
+    Column.VectorField.LINEFIT_SLOPE_ODR: ColumnMetadata(
         name="Line fit slope",
         label="Line fit slope",
         type=ColumnType.CONTINUOUS,

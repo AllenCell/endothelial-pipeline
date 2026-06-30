@@ -620,78 +620,79 @@ class ColumnName:
     FIXED_POINT_STABILITY = "stability"
     """Stability classification of a fixed point."""
 
+    NUM_TRAJECTORIES_BEFORE_FPT_FILTER = "num_trajectories_before_fpt_filter"
+    """NUmber of trajectories before first passage time filter is applied."""
+
+    NUM_TRAJECTORIES_AFTER_FPT_FILTER = "num_trajectories_after_fpt_filter"
+    """NUmber of trajectories after first passage time filter is applied."""
+
     class VectorField(StrEnum):
         """Column name suffixes used in vector field / dynamics analysis."""
 
         FIXED_POINT_INDEX = "fixed_point_id"
-        """Column name for the index of the fixed point in the fixed point dataframe."""
-
-        FIXED_POINT_PREFIX = "fp_"
-        """Prefix for column names representing coordinates of fixed points in feature space."""
-
-        DISTANCE_FROM_FP_PREFIX = "dist_from_fp_"
-        """Prefix for column names representing the distance from a fixed point in N-D space."""
-
-        DISTANCE_FROM_FP_1D_SIGNED_PREFIX = "diff_from_fp_"
-        """Prefix for column names representing the signed difference from a fixed point along a single dimension."""
+        """Index of fixed point in fixed point dataframe."""
 
         FPT_DISTANCE_THRESHOLD = "fpt_distance_threshold"
-        """Column name for the distance threshold used to determine whether a trajectory has reached a fixed point in first passage time analysis."""
-
-        IS_AT_FP_PREFIX = "is_at_fp_"
-        """Prefix for column names indicating whether a data point is at a fixed point."""
-
-        TRAJ_REACHED_FP_PREFIX = "traj_reached_fp_"
-        """Prefix for column names indicating whether a trajectory reached a fixed point."""
-
-        FIRST_PASSAGE_DIST_PREFIX = "first_passage_dist_from_fp_"
-        """Prefix for column names representing the distance from a fixed point at which a
-        trajectory first passed the threshold for being considered to have reached the fixed point."""
-
-        FIRST_PASSAGE_TIME_SUFFIX = "_first_passage_time"
-        """Suffix for column names representing the first passage time to a fixed point."""
-
-        FIRST_PASSAGE_PREFIX = "first_passage_"
-        """Prefix for column names representing the first passage distance or time to a fixed point."""
-
-        TIME_TO_FP_PREFIX = "time_to_fp_"
-        """Prefix for column names representing the time to until a fixed point is reached."""
-
-        BIN_SIZE_PREFIX = "bin_size_"
-        """Column name for the sizes of bins used when discretizing feature space."""
-
-        BIN_LIMITS_PREFIX = "bin_limits_"
-        """Column name for the limits of bins used when discretizing feature space."""
+        """Radius around fixed point at which a trajectory is considered to have reached the fixed point."""
 
         BIN_CENTER = "bin_center"
-        """Column name for the center of bins used when discretizing feature space."""
+        """Center of bins used to discretize feature space."""
 
         BIN_EDGES = "bin_edges"
-        """Column name for the edges of bins used when discretizing feature space."""
+        """Edges of bins used to discretize feature space."""
 
         BIN_INDEX = "bin_index"
-        """Column name for the index of the bin that a data point falls into when feature space is discretized."""
+        """Index of bin that data point falls into when feature space is discretized."""
 
-        FPT_METRIC = "fpt_metric"
-        """Column name for the metric used in the first passage time analysis."""
-
-        PERCENT_TRAJ_APPROACHED_FP = "percent_trajectories_approached_fp"
-        """Column name for the percentage of trajectories that approached a fixed point within a certain distance threshold."""
+        LINEFIT_SLOPE_ODR = "slope_odr"
+        """
+        Slope of line fit to relationship between first passage time to fixed
+        point for grid-based and cell-centered patches using orthogonal distance
+        regression (ODR).
+        """
 
         LINEFIT_INTERCEPT_ODR = "intercept_odr"
-        """Column name for the intercept of a line fit to the relationship between first passage time and distance from the fixed point using orthogonal distance regression (ODR)."""
+        """
+        Intercept of line fit to relationship between first passage time to
+        fixed point for grid-based and cell-centered patches using orthogonal
+        distance regression (ODR).
+        """
+
+        LINEFIT_SLOPE_STDEV_ODR = "slope_stdev_odr"
+        """
+        Standard deviation of slope estimate for line fit to relationship
+        between first passage time to fixed point for grid-based and
+        cell-centered patches using orthogonal distance regression (ODR).
+        """
+
+        LINEFIT_INTERCEPT_STDEV_ODR = "intercept_stdev_odr"
+        """
+        Standard deviation of intercept estimate for line fit to relationship
+        between first passage time to fixed point for grid-based and
+        cell-centered patches using orthogonal distance regression (ODR).
+        """
 
         LINEFIT_REDUCED_CHI_SQUARED_ODR = "reduced_chi_squared_odr"
-        """Column name for the reduced chi-squared value of a line fit to the relationship between first passage time and distance from the fixed point using orthogonal distance regression (ODR)."""
-
-        PEARSON_R = "r_value_pearson"
-        """Column name for the Pearson correlation coefficient between first passage time and distance from the fixed point."""
-
-        LINEFIT_SLOPE = "slope_odr"
-        """Column name for the slope of a line fit to the relationship between first passage time to the fixed point for grid and tracked crops."""
+        """
+        Reduced chi-squared value for line fit to relationship between first
+        passage time to fixed point for grid-based and cell-centered patches
+        using orthogonal distance regression (ODR).
+        """
 
         ODR_RESULT = "OdrResult"
-        """Column name for the result object of the orthogonal distance regression (ODR) analysis."""
+        """Result object from orthogonal distance regression (ODR) analysis."""
+
+        PEARSON_R = "r_value_pearson"
+        """
+        Pearson correlation coefficient between first passage time to fixed
+        point for grid-based and cell-centered patches.
+        """
+
+        PEARSON_P = "p_value_pearson"
+        """
+        Pearson correlation p-value between first passage time to fixed point
+        for grid-based and cell-centered patches.
+        """
 
     FIXED_POINT_DETECTION_RATE = "detection_rate"
     """Fraction of bootstrap iterations in which a matched fixed point was found."""
@@ -794,6 +795,51 @@ class ColumnNameTemplate(StrEnum):
 
     BOOTSTRAP_CI_UPPER = "%s_ci_upper"
     """Column name template: Upper bound of bootstrap confidence interval for %s."""
+
+    DISTANCE_FROM_FIXED_POINT = "dist_from_fp_%d"
+    """Column name template: Distance from fixed point index %d."""
+
+    DISTANCE_FROM_FIXED_POINT_1D_SIGNED_PREFIX = "diff_from_fp_%d_%s"
+    """Column name template: Signed difference from fixed point (index %d) along the %s dimension."""
+
+    TRAJECTORY_REACHED_FIXED_POINT = "traj_reached_fp_%d"
+    """Column name template: True if trajectory reached a fixed point (index %d), False otherwise."""
+
+    IS_AT_FIXED_POINT = "is_at_fp_%d"
+    """Column name template: True if data point is at a fixed point (index %d), False otherwise."""
+
+    TIME_TO_FIXED_POINT = "time_to_fp_%d"
+    """Column name template: Time until a fixed point (index %d) is reached."""
+
+    BIN_SIZE = "bin_size_%s"
+    """Column name template: Size of bins used when discretizing feature space in %s."""
+
+    BIN_LIMITS = "bin_limits_%s"
+    """Column name template: Bin limits used when discretizing feature space in %s."""
+
+    FIRST_PASSAGE_TIME_DISTANCE = "first_passage_dist_from_fp_%d"
+    """
+    Column name template: Distance from fixed point (index %d) at which a trajectory first
+    passed threshold for being considered to have reached the fixed point.
+    """
+
+    FIRST_PASSAGE_TIME_METRIC = "%s_first_passage_time_%s"
+    """
+    Column name template: First passage time to fixed point %s for %s patches
+    computed for all trajectories in given bin.
+    """
+
+    FIRST_PASSAGE_TIME_OVERALL_METRIC = "overall_%s_first_passage_time_%s"
+    """
+    Column name template: First passage time to fixed point %s for %s patches
+    computed for all trajectories across all bins.
+    """
+
+    FIRST_PASSAGE_TIME_PERCENT_TRAJECTORIES = "percent_trajectories_approached_fp_%s"
+    """
+    Column name template: Percent of trajectories that come within a given
+    radius of a stable fixed point for %s patches.
+    """
 
 
 ColumnNameType = (

@@ -2,7 +2,10 @@
 import matplotlib.pyplot as plt
 
 from endo_pipeline.io import get_output_path
-from endo_pipeline.library.analyze.track_integration import get_line_fit_and_filtered_df
+from endo_pipeline.library.analyze.first_passage_time import (
+    build_first_passage_time_line_fit_results_dataframe,
+    load_filtered_first_passage_time_dataframe,
+)
 from endo_pipeline.library.visualize.figure_fpt import generate_first_passage_time_example
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
 from endo_pipeline.library.visualize.integration.track_integration_viz import (
@@ -29,15 +32,19 @@ trajectory_example_filepath = generate_first_passage_time_example(
     example_fixed_point_index=low_flow_dataset.fixed_point_index,
     example_tracked_crop_index=low_flow_dataset.tracked_crop_index,
     example_grid_crop_index=low_flow_dataset.grid_crop_index,
-    out_dir=save_dir,
+    output_path=save_dir,
 )
 
 # %% Load the first passage time statistics dataframe to make correlation plots
 # from and fit lines to the points in the correlation plots
 fpt_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME)
 metric_to_plot = "mean"
-line_fit_df, fpt_stats_df_no_nan = get_line_fit_and_filtered_df(
+fpt_stats_df_no_nan = load_filtered_first_passage_time_dataframe(
     first_passage_time_manifest=fpt_manifest, metric_to_fit=metric_to_plot
+)
+line_fit_df = build_first_passage_time_line_fit_results_dataframe(
+    fpt_stats_df_no_nan=fpt_stats_df_no_nan,
+    metric_to_fit=metric_to_plot,
 )
 
 # %% make plots
@@ -63,7 +70,7 @@ for example in FPT_FIG_EXAMPLES:
         (fpt_stats_df_no_nan[Column.DATASET] == dataset_name)
         & (fpt_stats_df_no_nan[Column.VectorField.FIXED_POINT_INDEX] == fp_idx)
     ]
-    fp_stability = df[Column.FIXED_POINT_STABILITY].unique().item()
+    fp_stability = df[Column.FIXED_POINT_STABILITY].astype("object").unique().item()
     filename = plot_first_passage_time_correlations(
         dataset_name=dataset_name,
         first_passage_time_stats_df=df,

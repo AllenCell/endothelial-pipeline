@@ -2,16 +2,16 @@
 import matplotlib.pyplot as plt
 
 from endo_pipeline.io import get_output_path, load_dataframe
-from endo_pipeline.library.analyze.track_integration import get_line_fit_and_filtered_df
+from endo_pipeline.library.analyze.first_passage_time import (
+    build_first_passage_time_line_fit_results_dataframe,
+    load_filtered_first_passage_time_dataframe,
+)
 from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
 from endo_pipeline.library.visualize.integration.track_integration_viz import (
     plot_first_passage_time_correlations,
     plot_first_passage_time_parameter_sweep,
 )
-from endo_pipeline.library.visualize.summary_plot import (
-    build_dataframe_for_first_passage_time_dataset_summary,
-    plot_cross_dataset_summaries,
-)
+from endo_pipeline.library.visualize.summary_plot import plot_cross_dataset_summaries
 from endo_pipeline.manifests.dataframe_manifest_io import load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.examples import FPT_FIG_EXAMPLES
@@ -37,8 +37,12 @@ fig_height = 6.85
 # from and fit lines to the points in the correlation plots
 fpt_stats_manifest = load_dataframe_manifest(FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME)
 metric_to_plot = "mean"
-line_fit_df, fpt_stats_df_no_nan = get_line_fit_and_filtered_df(
+fpt_stats_df_no_nan = load_filtered_first_passage_time_dataframe(
     first_passage_time_manifest=fpt_stats_manifest, metric_to_fit=metric_to_plot
+)
+line_fit_df = build_first_passage_time_line_fit_results_dataframe(
+    fpt_stats_df_no_nan=fpt_stats_df_no_nan,
+    metric_to_fit=metric_to_plot,
 )
 
 # %% make correlation plots for low and high flow examples
@@ -64,7 +68,7 @@ for example in FPT_FIG_EXAMPLES:
         (fpt_stats_df_no_nan[Column.DATASET] == dataset_name)
         & (fpt_stats_df_no_nan[Column.VectorField.FIXED_POINT_INDEX] == fp_idx)
     ]
-    fp_stability = df[Column.FIXED_POINT_STABILITY].unique().item()
+    fp_stability = df[Column.FIXED_POINT_STABILITY].astype("object").unique().item()
     filename = plot_first_passage_time_correlations(
         dataset_name=dataset_name,
         first_passage_time_stats_df=df,
@@ -112,9 +116,10 @@ fp_param_sweep_fpt, fp_param_sweep_num_traj = plot_first_passage_time_parameter_
 
 # --- Histogram of first passage time correlation ---
 dataset_summary_list = SUMMARY_PLOT_DATASETS["intermediate"]
-first_passage_summary_df = build_dataframe_for_first_passage_time_dataset_summary(
-    dataset_names=dataset_summary_list, first_passage_time_manifest=fpt_stats_manifest
+first_passage_df = load_filtered_first_passage_time_dataframe(
+    fpt_stats_manifest, dataset_summary_list
 )
+first_passage_summary_df = build_first_passage_time_line_fit_results_dataframe(first_passage_df)
 fpt_pearson_r_path = plot_cross_dataset_summaries(
     first_passage_summary_df,
     output_path=save_dir,
@@ -132,7 +137,7 @@ fpt_pearson_r_path = plot_cross_dataset_summaries(
 fpt_slope_path = plot_cross_dataset_summaries(
     first_passage_summary_df,
     output_path=save_dir,
-    column_names=[Column.VectorField.LINEFIT_SLOPE],
+    column_names=[Column.VectorField.LINEFIT_SLOPE_ODR],
     axis_mode="replicate",
     figure_size=(4.2, 2.3),
     set_y_lims=True,

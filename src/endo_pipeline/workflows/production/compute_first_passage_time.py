@@ -52,7 +52,7 @@ def main(
     from endo_pipeline.cli import DEMO_MODE, UPLOAD_TO_FMS
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
-    from endo_pipeline.library.analyze.track_integration import (
+    from endo_pipeline.library.analyze.first_passage_time import (
         compute_first_passage_times_one_dataset,
     )
     from endo_pipeline.manifests import (
