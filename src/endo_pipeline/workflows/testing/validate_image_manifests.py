@@ -1,7 +1,14 @@
+from typing import Annotated
+
+from cyclopts import Parameter
+
 from endo_pipeline.cli import UniqueStrList
 
 
-def main(manifests: UniqueStrList | None = None) -> None:
+def main(  # noqa: C901
+    manifests: UniqueStrList | None = None,
+    staging_only: Annotated[bool, Parameter(negative="--all-available")] = True,
+) -> None:
     """
     Validate image manifests.
 
@@ -26,6 +33,12 @@ def main(manifests: UniqueStrList | None = None) -> None:
     uv run endopipe validate-image-manifest MANIFEST_NAME
     ```
 
+    To run the workflow for all available manifests:
+
+    ```bash
+    uv run endopipe validate-image-manifest --all-available
+    ```
+
     ## Workflow demo
 
     Running the workflow in demo mode (`-d` or `--demo-mode`) will only run
@@ -37,6 +50,9 @@ def main(manifests: UniqueStrList | None = None) -> None:
     ----------
     manifest_name
         Name of the image manifest to validate.
+    staging_only
+        True to only validate image manifests valid for staging, False to
+        validate all available image manifests.
     """
 
     import logging
@@ -44,7 +60,7 @@ def main(manifests: UniqueStrList | None = None) -> None:
     from tqdm import tqdm
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.configs import get_available_dataset_names, load_dataset_config
     from endo_pipeline.io import load_image
     from endo_pipeline.library.process.progress_bar import ProgressBar
     from endo_pipeline.manifests import (
@@ -52,10 +68,14 @@ def main(manifests: UniqueStrList | None = None) -> None:
         get_image_location_for_dataset,
         load_image_manifest,
     )
+    from endo_pipeline.settings.manifest_staging import STAGING_IMAGE_MANIFEST_NAMES
 
     logger = logging.getLogger(__name__)
 
-    manifest_names = manifests or get_available_image_manifests()
+    available_dataset_names = get_available_dataset_names()
+    manifest_names = manifests or (
+        STAGING_IMAGE_MANIFEST_NAMES if staging_only else get_available_image_manifests()
+    )
 
     if DEMO_MODE:
         logger.warning("DEMO MODE - Only validating the first two locations for two manifests")
@@ -82,6 +102,16 @@ def main(manifests: UniqueStrList | None = None) -> None:
                 manifest_name,
                 image_manifest.name,
             )
+
+        # For dataset location keys, confirm the dataset config is available
+        for location_key in location_keys:
+            if location_key not in available_dataset_names:
+                logger.error(
+                    "Manifest '%s' contains dataset '%s' that does not have dataset config",
+                    manifest_name,
+                    location_key,
+                )
+                location_keys.remove(location_key)
 
         progress_bar = ProgressBar(location_keys, "Validating", manifest_name)
         for location_key in progress_bar:

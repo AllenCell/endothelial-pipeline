@@ -2,8 +2,6 @@ def main() -> None:
     """Produces figure panels for the CDH5 segmentation and classic feature workflow figure.
     This includes imaging panels showing the segmentation steps and 2D histograms of classic
     features for each of the PCA reference datasets.
-
-    #test-ready #cpu-only
     """
     from pathlib import Path
 
