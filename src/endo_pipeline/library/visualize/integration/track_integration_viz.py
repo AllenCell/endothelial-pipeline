@@ -1171,7 +1171,7 @@ def plot_first_passage_time_correlations(
     slope = line_fit_df[Column.VectorField.LINEFIT_SLOPE].unique().item()
     intercept = line_fit_df[Column.VectorField.LINEFIT_INTERCEPT_ODR].unique().item()
 
-    corr_metric_label = f"Linear fit " f"(slope={slope:.2f}"
+    corr_metric_label = f"Linear fit " f"(slope={slope:.2f})"
 
     num_bins = (
         first_passage_time_stats_df.groupby(
@@ -1228,7 +1228,7 @@ def plot_first_passage_time_correlations(
     ax.set_ylabel(
         "Cell-centered MFPT (hrs)", fontsize=FONTSIZE_SMALL, labelpad=1.0, color="tab:red"
     )
-    ax.legend(loc="upper center")
+    ax.legend(loc="upper left")
 
     filename = f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}_{metric_to_plot}_correlation"
     save_plot_to_path(
