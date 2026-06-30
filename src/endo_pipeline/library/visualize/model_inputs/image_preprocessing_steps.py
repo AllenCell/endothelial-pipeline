@@ -231,6 +231,7 @@ def visualize_fov_transform_steps(
     sample: dict[str, Any],
     save_dir: Path,
     target_key: str,
+    output_key: str,
     figure_size: tuple = (1.5, 1.5),
     col_titles: list[str] | None = None,
     row_title: str | None = None,
@@ -313,7 +314,7 @@ def visualize_fov_transform_steps(
     save_plot_to_path(
         fig_images,
         save_dir,
-        f"{target_key}_images",
+        f"{output_key}_{target_key}_images",
         file_format=".svg",
         pad_inches=0,
         tight_layout=False,
@@ -343,7 +344,7 @@ def visualize_fov_transform_steps(
     save_plot_to_path(
         fig_hist,
         save_dir,
-        f"{target_key}_histograms",
+        f"{output_key}_{target_key}_histograms",
         file_format=".svg",
         tight_layout=False,
     )
