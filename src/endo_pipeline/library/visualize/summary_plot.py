@@ -679,9 +679,11 @@ def _plot_cross_dataset_summary_for_column(
     if ci_lower_col in df and ci_upper_col in df:
         df["_lower_bound"] = (df[column_name] - df[ci_lower_col]).clip(lower=0)
         df["_upper_bound"] = (df[ci_upper_col] - df[column_name]).clip(lower=0)
+        capsize_scale = 0.75
     else:
         df["_lower_bound"] = 0
         df["_upper_bound"] = 0
+        capsize_scale = 0.0
 
     # Iterate through each category to plot points and (if available) error
     # bars. Points are colored based on selected style mode while position on
@@ -738,7 +740,7 @@ def _plot_cross_dataset_summary_for_column(
                 markeredgecolor="black",
                 markeredgewidth=0.6,
                 markersize=marker_size_plot,
-                capsize=marker_size_plot * 0.75,
+                capsize=marker_size_plot * capsize_scale,
                 elinewidth=0.8,
                 ecolor="black",
                 zorder=3,

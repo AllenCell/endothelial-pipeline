@@ -1055,7 +1055,7 @@ def plot_first_passage_time_parameter_sweep(
             fixed_point_radius_threshold,
             ls="--",
             color="black",
-            label="radius used in analysis",
+            label="Radius used in analysis",
         )
     ax.legend(frameon=True, facecolor="white", loc="upper center")
     ax.set_xlim(0)
@@ -1083,7 +1083,7 @@ def plot_first_passage_time_parameter_sweep(
         markerfacecolor="tab:blue",
         markeredgecolor="tab:blue",
         ls="-",
-        label="grid-based",
+        label="Grid-based",
     )
     ax.plot(
         first_passage_time_param_sweep_df[Column.VectorField.FPT_DISTANCE_THRESHOLD],
@@ -1095,14 +1095,14 @@ def plot_first_passage_time_parameter_sweep(
         markerfacecolor="tab:red",
         markeredgecolor="tab:red",
         ls="-",
-        label="cell-centered",
+        label="Cell-centered",
     )
     if fixed_point_radius_threshold is not None:
         ax.axvline(
             fixed_point_radius_threshold,
             ls="--",
             color="black",
-            label="radius used in analysis",
+            label="Radius used in analysis",
         )
     ax.legend(frameon=True, facecolor="white", loc="upper center")
     ax.set_xlim(0)
@@ -1170,14 +1170,8 @@ def plot_first_passage_time_correlations(
 
     slope = line_fit_df[Column.VectorField.LINEFIT_SLOPE].unique().item()
     intercept = line_fit_df[Column.VectorField.LINEFIT_INTERCEPT_ODR].unique().item()
-    corr_metric_val = (
-        line_fit_df[Column.VectorField.LINEFIT_REDUCED_CHI_SQUARED_ODR].unique().item()
-    )
-    corr_metric_label = (
-        f"Linear Fit "
-        f"({UnicodeCharacters.CHI}{UnicodeCharacters.SQUARED}{UnicodeCharacters.R_SUBSCRIPT}"
-        f"={corr_metric_val:.2f})"
-    )
+
+    corr_metric_label = f"Linear fit " f"(slope={slope:.2f})"
 
     num_bins = (
         first_passage_time_stats_df.groupby(
@@ -1193,7 +1187,7 @@ def plot_first_passage_time_correlations(
 
     fig, ax = plt.subplots(figsize=(2, 2))
     ax.set_title(
-        f"{shear_stress_rounded} dyn/cm{UnicodeCharacters.SQUARED} (R = {pearson_r:.2f})",
+        f"{shear_stress_rounded} dyn/cm{UnicodeCharacters.SQUARED} (r = {pearson_r:.2f})",
         fontsize=FONTSIZE_SMALL,
     )
     ax.errorbar(
@@ -1234,7 +1228,7 @@ def plot_first_passage_time_correlations(
     ax.set_ylabel(
         "Cell-centered MFPT (hrs)", fontsize=FONTSIZE_SMALL, labelpad=1.0, color="tab:red"
     )
-    ax.legend(loc="upper center")
+    ax.legend(loc="upper left")
 
     filename = f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}_{metric_to_plot}_correlation"
     save_plot_to_path(
