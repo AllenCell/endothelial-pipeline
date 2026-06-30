@@ -328,6 +328,7 @@ def main(
                     fig,
                     output_dir,
                     f"{dataset_name_flow}_3D_scatter_{optical_flow_feature}",
+                    tight_layout=False,
                 )
                 plt.close(fig)
 
@@ -348,6 +349,7 @@ def main(
                     fig,
                     output_dir,
                     f"{dataset_name_flow}_3D_binned_heatmap_{optical_flow_feature}",
+                    tight_layout=False,
                 )
                 plt.close(fig)
 
