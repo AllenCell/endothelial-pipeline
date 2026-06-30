@@ -9,7 +9,7 @@ from skimage import exposure
 from endo_pipeline.configs import ChannelName, DatasetConfig
 from endo_pipeline.io import load_image
 from endo_pipeline.manifests import get_zarr_location_for_position
-from endo_pipeline.settings import LOG_EPSILON
+from endo_pipeline.settings.image_data import LOG_EPSILON
 
 
 def convert_to_uint8(image: np.ndarray) -> np.ndarray:
