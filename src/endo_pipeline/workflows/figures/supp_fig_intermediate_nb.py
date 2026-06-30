@@ -12,7 +12,7 @@ from endo_pipeline.library.visualize.summary_plot import (
 from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.examples import FIGURE_3_EXAMPLE_IMAGES
-from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
 from endo_pipeline.settings.manifest_names import BOOTSTRAPPING_MANIFEST_NAMES
 from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_PATCH_TYPE
 from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
@@ -63,12 +63,12 @@ summary_plot_path = plot_cross_dataset_summaries(
     output_path=save_dir,
     column_names=[ColumnName.DiffAEData.PC3_FLIPPED],
     axis_mode="replicate",
-    figure_size=(MAX_FIGURE_WIDTH * 0.7, 1.8),
+    figure_size=(3.15, 2.0),
     subplot_layout="vertical",
     convert_angle_to_nematic=False,
     category_order=SUMMARY_PLOT_DATASETS["intermediate"],
     color_by_column=ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
-    colorbar_multiline_label=True,
+    colorbar_location="bottom",
 )
 # %%
 speed_summary_plot_path = plot_cross_dataset_summaries(
@@ -77,7 +77,7 @@ speed_summary_plot_path = plot_cross_dataset_summaries(
     column_names=[ColumnName.OpticalFlow.SPEED_MEAN],
     axis_mode="replicate",
     jitter_width=0.2,
-    figure_size=(MAX_FIGURE_WIDTH * 0.6, 1.7),
+    figure_size=(3.15, 2.0),
     convert_angle_to_nematic=False,
     point_color="black",
     ylabel_rotation=90,
@@ -102,20 +102,20 @@ panels = [
         path=summary_plot_path,
         x_position=0,
         y_position=3.7,
-        x_offset=0.2,
+        x_offset=0.0,
         y_offset=0,
     ),
     FigurePanel(
         letter="C",
         path=speed_summary_plot_path,
-        x_position=0,
-        y_position=5.6,
-        x_offset=0.2,
+        x_position=3.2,
+        y_position=3.7,
+        x_offset=0.1,
         y_offset=0,
     ),
 ]
 
 build_figure_from_panels(
-    panels, save_dir / "supp_fig_intermediate.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
+    panels, save_dir / "supp_fig_intermediate.svg", width=MAX_FIGURE_WIDTH, height=6.25
 )
 # %%
