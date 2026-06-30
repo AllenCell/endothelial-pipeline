@@ -57,7 +57,7 @@ def main(num_processes: int = 1) -> None:
         get_zarr_location_for_position,
         save_model_manifest,
     )
-    from endo_pipeline.settings import DIMENSION_ORDER
+    from endo_pipeline.settings.image_data import DIMENSION_ORDER
     from endo_pipeline.settings.workflow_defaults import LABELFREE_NUCLEI_MODEL_MANIFEST_NAME
 
     logger = logging.getLogger(__name__)
