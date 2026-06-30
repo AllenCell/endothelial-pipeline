@@ -20,9 +20,6 @@ TFE_BACKDROP_TYPES: list[str] = ["bf_slice", "bf_std_dev", "gfp_max_proj"]
 TFE_DEFAULT_DATASETS: list[str] = ["20250618_20X"]
 """Default dataset(s) for converting to TFE."""
 
-TFE_DEFAULT_POSITIONS: list[int] = [0]
-"""Default position(s) for converting to TFE."""
-
 TFE_TYPE_MAPPING: dict[ColumnType, FeatureType] = {
     ColumnType.CONTINUOUS: FeatureType.CONTINUOUS,
     ColumnType.DISCRETE: FeatureType.DISCRETE,

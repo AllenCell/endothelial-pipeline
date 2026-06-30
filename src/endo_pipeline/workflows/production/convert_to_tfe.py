@@ -74,7 +74,7 @@ def main(
     datasets
         List of datasets or dataset collections to convert.
     positions
-        List of positions. If not provided, defaults to position 0.
+        List of positions. If not provided, defaults to all positions.
     output_dir
         Optional output directory for TFE dataset. If not provided, workflow
         will save to `results/
@@ -101,34 +101,35 @@ def main(
         get_grid_seg_data_for_tfe,
     )
     from endo_pipeline.manifests import load_image_manifest
-    from endo_pipeline.settings.tfe import (
-        TFE_DEFAULT_DATASETS,
-        TFE_DEFAULT_POSITIONS,
-        TFE_IMAGE_MANIFEST_NAME_MAP,
-    )
+    from endo_pipeline.settings.tfe import TFE_DEFAULT_DATASETS, TFE_IMAGE_MANIFEST_NAME_MAP
 
     logger = logging.getLogger(__name__)
 
     # Set default values for dataset, position, and output directory if not provided
     suffix = "_demo" if DEMO_MODE else ""
     datasets = datasets or TFE_DEFAULT_DATASETS
-    positions = positions or TFE_DEFAULT_POSITIONS
     output_dir = output_dir or get_output_path(f"timelapse_feature_explorer_{segmentation}{suffix}")
 
     # Limit dataset and positions for demo mode and apply directory suffix.
     if DEMO_MODE:
         logger.warning("DEMO MODE - Limiting to one dataset and one position")
         datasets = datasets[:1]
-        positions = positions[:1]
+        max_positions = 1
+        max_timepoints = 5
+    else:
+        max_positions = None
+        max_timepoints = None
 
     # Load image manifest based on segmentation type
     image_manifest = load_image_manifest(TFE_IMAGE_MANIFEST_NAME_MAP[segmentation])
 
     for dataset_name in datasets:
         dataset_config = load_dataset_config(dataset_name)
-        timepoints = 5 if DEMO_MODE else dataset_config.duration
 
-        for position in positions:
+        timepoints = max_timepoints or dataset_config.duration
+        positions = positions or dataset_config.zarr_positions
+
+        for position in positions[:max_positions]:
             if position not in dataset_config.zarr_positions:
                 logger.warning("Position '%d' not valid for '%s'; skipping", position, dataset_name)
                 continue
