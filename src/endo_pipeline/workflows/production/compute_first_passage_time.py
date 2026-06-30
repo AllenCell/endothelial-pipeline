@@ -1,14 +1,11 @@
 from endo_pipeline.cli import Datasets
 
 
-def main(
-    datasets: Datasets | None = None,
-    num_processes: int = 1,
-) -> None:
+def main(datasets: Datasets | None = None) -> None:
     """
     Compute first passage time statistics and parameter sweep.
 
-    #first-passage-time #grid-based #cell-centered #test-ready
+    #first-passage-time #grid-based #cell-centered #test-ready #workers
 
     ## Example usage
 
@@ -38,8 +35,6 @@ def main(
     ----------
     datasets
         List of datasets or dataset collections to compute first passage time.
-    num_processes
-        Number of processes to use.
     """
 
     import logging
@@ -49,7 +44,7 @@ def main(
     import pandas as pd
     from tqdm import tqdm
 
-    from endo_pipeline.cli import DEMO_MODE, UPLOAD_TO_FMS
+    from endo_pipeline.cli import DEMO_MODE, NUM_WORKERS, UPLOAD_TO_FMS
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
     from endo_pipeline.library.analyze.first_passage_time import (
@@ -113,7 +108,7 @@ def main(
         save_dataframe_manifest(output_dataframe_manifest)
 
     # Cap max workers to number of datasets
-    num_processes = min(num_processes, len(dataset_names))
+    num_workers = min(NUM_WORKERS or 1, len(dataset_names))
 
     # Bind constant parameters once via partial
     compute_first_passage_times_one_dataset_partial = partial(
@@ -127,7 +122,7 @@ def main(
 
     # Compute first passage times
     results = {}
-    with ProcessPoolExecutor(max_workers=num_processes) as pool:
+    with ProcessPoolExecutor(max_workers=num_workers) as pool:
         futures = {
             pool.submit(compute_first_passage_times_one_dataset_partial, dataset_name): dataset_name
             for dataset_name in dataset_names

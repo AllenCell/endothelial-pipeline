@@ -10,12 +10,11 @@ def main(
     channel: Literal["BF", "EGFP"] = "BF",
     max_dt: int = DEFAULT_OPTICAL_FLOW_MAX_DT,
     ema_alpha: float = DEFAULT_EMA_ALPHA,
-    num_workers: int = 1,
 ) -> None:
     """
     Compute TVL1 optical flow features for crops.
 
-    #optical-flow #cell-centered #grid-based #test-ready
+    #optical-flow #cell-centered #grid-based #test-ready #workers
 
     This workflow compute TVL1 optical flow between frame pairs at temporal gaps
     dt = 1, 2, ..., max_dt for every crop and timepoint. Pixels whose intensity
@@ -81,8 +80,6 @@ def main(
         Maximum temporal gap (inclusive).
     ema_alpha
         EMA smoothing alpha value for temporal coherence smoothing.
-    num_workers
-        Number of worker processes to use.
     """
 
     import logging
@@ -95,7 +92,7 @@ def main(
     import pandas as pd
     from tqdm.auto import tqdm
 
-    from endo_pipeline.cli import DEMO_MODE, UPLOAD_TO_FMS
+    from endo_pipeline.cli import DEMO_MODE, NUM_WORKERS, UPLOAD_TO_FMS
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import (
         build_fms_annotations,
@@ -267,7 +264,7 @@ def main(
 
             records: list[dict] = []
 
-            with ThreadPoolExecutor(max_workers=num_workers) as pool:
+            with ThreadPoolExecutor(max_workers=NUM_WORKERS or 1) as pool:
                 futures = [
                     pool.submit(
                         compute_image_pair_flow_partial,

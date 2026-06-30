@@ -1,11 +1,11 @@
 from endo_pipeline.cli import Datasets
 
 
-def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
+def main(datasets: Datasets | None = None) -> None:
     """
     Merge CDH5 segmentation, CDH5 tracking, and labelfree nuclei feature tables.
 
-    #cdh5-segmentation #cdh5-tracking #nuclei-prediction #test-ready
+    #cdh5-segmentation #cdh5-tracking #nuclei-prediction #test-ready #workers
 
     ## Example usage
 
@@ -36,13 +36,11 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
     ----------
     datasets
         List of datasets or dataset collections to merge.
-    num_processes
-        Number of processes to use.
     """
 
     import logging
 
-    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE, NUM_WORKERS
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
@@ -111,7 +109,7 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
         # Add some columns to the data table that are calculated from existing
         # columns and do not depend on dynamics / require clean tracks
         logger.info("Calculating dynamics-independent metrics from existing measurements...")
-        big_table = calculate_derived_data_dynamics_independent(big_table, num_processes)
+        big_table = calculate_derived_data_dynamics_independent(big_table, NUM_WORKERS)
 
         # Filter to remove regions that touch the image borders and keep only
         # tracks that have a minimum number of datapoints after this

@@ -27,13 +27,12 @@ def main(
     bootstrap_ci_upper_percentile: Annotated[
         float, Parameter(name="--ci-upper")
     ] = FP_CI_UPPER_PERCENTILE,
-    num_workers: int | None = 1,
     batch_size_factor: float = BATCH_SIZE_SCALING_FACTOR,
 ) -> None:
     """
     Bootstrap fixed point confidence intervals by subsampling data.
 
-    #dynamical-systems #fixed-points #grid-based #cell-centered #test-ready
+    #dynamical-systems #fixed-points #grid-based #cell-centered #test-ready #workers
 
     For each bootstrap iteration, baseline fixed points are processed in row
     order and each is offered the closest unassigned bootstrap fixed point that
@@ -104,8 +103,6 @@ def main(
         Percentile defining lower bound of the bootstrap confidence intervals.
     bootstrap_ci_upper_percentile
         Percentile defining upper bound of the bootstrap confidence intervals.
-    num_workers
-        Number of worker processes to use. If None, use all available.
     batch_size_factor
         Factor used to determine size of batch for parallel processing.
     """
@@ -118,7 +115,7 @@ def main(
     import pandas as pd
     from tqdm import tqdm
 
-    from endo_pipeline.cli import DEMO_MODE, UPLOAD_TO_FMS
+    from endo_pipeline.cli import DEMO_MODE, NUM_WORKERS, UPLOAD_TO_FMS
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import (
         build_fms_annotations,
@@ -311,13 +308,14 @@ def main(
             ]
 
             # Determine worker and per-worker BLAS thread counts that together
-            # stay within the CPUs allocated by SLURM (or the OS).
+            # stay within the 50% of the CPUs allocated by SLURM (or the OS).
             try:
                 n_available_cpus = len(os.sched_getaffinity(0))
             except AttributeError:  # Windows
                 n_available_cpus = os.cpu_count() or 1
 
-            n_workers = num_workers or n_available_cpus
+            n_available_cpus = max(1, n_available_cpus // 2)
+            n_workers = NUM_WORKERS or n_available_cpus
             blas_threads_per_worker = max(1, n_available_cpus // n_workers)
 
             # Choose a chunksize that avoids both excessive queue overhead (too

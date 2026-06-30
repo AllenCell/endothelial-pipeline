@@ -22,6 +22,9 @@ class WorkflowOptions:
     show_external_logs: Annotated[bool, Parameter(alias="-s", group=OPTIONS)] = False
     """Show logging outputs from external libraries."""
 
+    num_workers: Annotated[int | None, Parameter(alias="-n", group=OPTIONS)] = None
+    """Number of workers to use for workflow execution."""
+
     num_gpus: Annotated[int | None, Parameter(alias="-g", group=OPTIONS)] = None
     """Number of GPUs to use for workflow execution. Use CPU if not provided."""
 

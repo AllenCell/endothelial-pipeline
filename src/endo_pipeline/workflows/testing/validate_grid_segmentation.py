@@ -1,11 +1,11 @@
 from endo_pipeline.cli import Datasets
 
 
-def main(datasets: Datasets | None = None, num_processes: int = 1):
+def main(datasets: Datasets | None = None):
     """
     Validate grid-based crop positions match grid segmentations.
 
-    #validation #grid-based
+    #validation #grid-based #workers
 
     This workflow compares the crop locations in the grid segmentations produced
     by the `create_grid_segmentation` workflow with the crop locations listed in
@@ -41,15 +41,13 @@ def main(datasets: Datasets | None = None, num_processes: int = 1):
     ----------
     datasets
         List of datasets or dataset collections to validate.
-    num_processes
-        Number of processes to use.
     """
 
     import logging
 
     from skimage.measure import regionprops
 
-    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE, NUM_WORKERS
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import load_dataframe, load_image
     from endo_pipeline.library.process.general_image_preprocessing import (
@@ -150,7 +148,7 @@ def main(datasets: Datasets | None = None, num_processes: int = 1):
             task,
             analysis_queue,
             description="Validating grid segmentation",
-            num_processes=num_processes,
+            num_processes=NUM_WORKERS or 1,
             chunksize=2,
         )
 

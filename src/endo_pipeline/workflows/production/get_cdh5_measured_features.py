@@ -1,15 +1,11 @@
 from endo_pipeline.cli import Datasets
 
 
-def main(
-    datasets: Datasets | None = None,
-    num_processes: int = 1,
-    save_output: bool = True,
-) -> None:
+def main(datasets: Datasets | None = None, save_output: bool = True) -> None:
     """
     Extract measure features based on CDH5 segmentations.
 
-    #cdh5-segmentation #test-ready
+    #cdh5-segmentation #test-ready #workers
 
     Features extracted from CDH5-based cell segmentation include alignment to
     flow, elongation, edge intensity, etc. Features are calculated for each
@@ -44,15 +40,13 @@ def main(
     ----------
     datasets
         List of datasets or dataset collections to segment.
-    num_processes
-        Number of processes to use.
     save_output
         True to save outputs from workflow, False otherwise.
     """
 
     import logging
 
-    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE, NUM_WORKERS
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.shape_features import (
@@ -91,7 +85,7 @@ def main(
         build_cdh5_measured_features_tables_multiproc_wrapper,
         analysis_queue,
         description="Getting cell features",
-        num_processes=num_processes,
+        num_processes=NUM_WORKERS or 1,
         chunksize=2,
     )
 

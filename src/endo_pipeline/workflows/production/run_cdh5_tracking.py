@@ -1,15 +1,11 @@
 from endo_pipeline.cli import Datasets
 
 
-def main(
-    datasets: Datasets | None = None,
-    num_processes: int = 1,
-    save_output: bool = True,
-) -> None:
+def main(datasets: Datasets | None = None, save_output: bool = True) -> None:
     """
     Run tracking on CDH5 class segmentations.
 
-    #cdh5-segmentation #cdh5-tracking #test-ready
+    #cdh5-segmentation #cdh5-tracking #test-ready #workers
 
     The workflow loads the CDH5 segmentations from a single position in a single
     dataset and builds cell tracks by finding which cell segmentations at a
@@ -54,8 +50,6 @@ def main(
     ----------
     datasets
         List of datasets or dataset collections to segment.
-    num_processes
-        Number of processes to use.
     save_output
         True to save outputs from workflow, False otherwise.
     """
@@ -63,7 +57,7 @@ def main(
     import logging
     from itertools import groupby
 
-    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE, NUM_WORKERS
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.shape_features import concatenate_and_save_feature_tables
@@ -102,7 +96,7 @@ def main(
     process_task_queue(
         run_tracking_multiproc_wrapper,
         analysis_queue_per_position,
-        num_processes=num_processes,
+        num_processes=NUM_WORKERS or 1,
         description="Tracking",
         chunksize=1,
     )

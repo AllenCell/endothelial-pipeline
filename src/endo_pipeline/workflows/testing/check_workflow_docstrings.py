@@ -38,6 +38,7 @@ def main() -> None:
         "validation",
         "vast",
         "visualization",
+        "workers",
         "zarr-conversion",
     }
 
@@ -84,19 +85,40 @@ def main() -> None:
         ):
             print(f"Workflow '{workflow}' should not be tagged #test-ready")
 
-        # Check that the workflow includes the #gpu tag if it has NUM_GPUS
-        if "NUM_GPUS" in contents and "#gpu" not in contents:
-            print(f"Workflow '{workflow}' uses NUM GPUS but is not tagged #gpu")
+        # Check that the workflow includes the #gpu tag if it has NUM_GPUS.
+        # Exclude the DiffAE config workflows, which use NUM_GPUs to set the
+        # output configs rather than actually using the GPU
+        if (
+            "NUM_GPUS" in contents
+            and "#gpu" not in contents
+            and workflow not in ("build_diffae_train_config", "build_diffae_eval_config")
+        ):
+            print(f"Workflow '{workflow}' uses NUM_GPUS but is not tagged #gpu")
 
         # Check that the workflow does not include the #gpu tag if it does
         # not use NUM_GPUS. Exclude the Cellpose model training and eval, which
-        # are tagged #gpu but do not directly use NUM_GPUS
+        # are tagged #gpu but do not directly use NUM_GPUS, and the "run all"
+        # workflows, which reference the tag but do not use the GPU directly
         if (
             "#gpu" in contents
             and "NUM_GPUS" not in contents
             and workflow not in ("run_labelfree_nuclei_prediction", "retrain_cellpose")
+            and "run_all" not in workflow
         ):
             print(f"Workflow '{workflow}' is tagged #gpu but does not use NUM_GPUS")
+
+        # Check that the workflow includes the #workers tag if it has NUM_WORKERS
+        if (
+            "NUM_WORKERS" in contents
+            and "#workers" not in contents
+            and workflow not in ("build_diffae_train_config", "build_diffae_eval_config")
+        ):
+            print(f"Workflow '{workflow}' uses NUM_WORKERS but is not tagged #workers")
+
+        # Check that the workflow does not include the #workers tag if it does
+        # not use NUM_WORKERS
+        if "#workers" in contents and "NUM_WORKERS" not in contents:
+            print(f"Workflow '{workflow}' is tagged #workers but does not use NUM_WORKERS")
 
         # Extract docstring from file contents
         ast_contents = ast.parse(contents)

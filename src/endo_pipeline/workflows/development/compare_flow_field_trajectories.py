@@ -7,12 +7,11 @@ def main(
     track_ids_to_overlay: UniqueIntList | None = None,
     make_trajectory_summary_plots: bool = True,
     use_global_pc_lims: bool = False,
-    num_processes: int = 1,
 ) -> None:
     """
     Compare cell-centered trajectories on grid-based flow fields.
 
-    #grid-based #cell-centered #test-ready
+    #grid-based #cell-centered #test-ready #workers
 
     ## Example usage
 
@@ -51,8 +50,6 @@ def main(
     use_global_pc_lims
         True to use same PC limits for all datasets, False to set limit
         individually for each dataset.
-    num_processes
-        Number of processes to use.
     """
 
     import logging
@@ -61,7 +58,7 @@ def main(
 
     from matplotlib import pyplot as plt
 
-    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE, NUM_WORKERS
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.track_integration import (
@@ -326,14 +323,12 @@ def main(
                     )
 
                 # make the plots
-                logger.info(
-                    f"Plotting track overlays for fixed point {i} (using {num_processes} cores)..."
-                )
+                logger.info(f"Plotting track overlays for fixed point {i}...")
                 process_task_queue(
                     task=multiproc_plot_measured_feat_overlay_on_flowfield,
                     queue=arg_list,
                     description=f"Plotting tracks at {dataset_name} P{pos} - fixed point {i}",
-                    num_processes=num_processes,
+                    num_processes=NUM_WORKERS or 1,
                     chunksize=5,
                 )
                 logger.info("Plotting track overlays complete.")

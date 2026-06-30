@@ -1,14 +1,11 @@
 from endo_pipeline.cli import Datasets
 
 
-def main(
-    datasets: Datasets | None = None,
-    num_processes: int = 1,
-) -> None:
+def main(datasets: Datasets | None = None) -> None:
     """
     Run CDH5 classic segmentation.
 
-    #cdh5-segmentation #test-ready
+    #cdh5-segmentation #test-ready #workers
 
     A summary of the segmentation process is as follows:
 
@@ -66,13 +63,11 @@ def main(
     ----------
     datasets
         List of datasets or dataset collections to segment.
-    num_processes
-        Number of processes to use.
     """
 
     import logging
 
-    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE, NUM_WORKERS
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.process.cdh5_preprocessing import (
@@ -108,7 +103,7 @@ def main(
     process_task_queue(
         generate_cdh5_segmentation_refined_multiproc_wrapper,
         analysis_queue,
-        num_processes=num_processes,
+        num_processes=NUM_WORKERS or 1,
         description="Segmenting",
         chunksize=5,
     )

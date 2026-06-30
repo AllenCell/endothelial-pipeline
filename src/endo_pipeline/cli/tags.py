@@ -76,5 +76,10 @@ def check_workflow_tags(app):
         solution = "Append '-g NUM_GPUS' when running the workflow to make sure GPUs are visible"
         print_info_message(info, solution)
 
+    if "workers" in tags:
+        info = "This workflow supports multiple workers"
+        solution = "Append '-n NUM_WORKERS' when running the workflow to specify number of workers"
+        print_info_message(info, solution)
+
     if exit_on_error:
         exit(1)

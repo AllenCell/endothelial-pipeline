@@ -20,6 +20,9 @@ __all__ = [
 DEMO_MODE = False
 """True if workflows should be run in demo mode, False otherwise."""
 
+NUM_WORKERS: int | None = None
+"""Number of workers to use."""
+
 NUM_GPUS: int | None = None
 """Number of GPUs available to use. None if no GPUs are available."""
 
