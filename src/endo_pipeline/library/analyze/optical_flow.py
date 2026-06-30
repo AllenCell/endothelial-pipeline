@@ -8,12 +8,9 @@ from scipy import stats
 from skimage.registration import optical_flow_tvl1
 
 from endo_pipeline.settings.column_names import ColumnName
+from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 from endo_pipeline.settings.image_data import DIFFAE_DEFAULT_CROP_SIZE
-from endo_pipeline.settings.optical_flow import (
-    DEFAULT_EMA_ALPHA,
-    OPTICAL_FLOW_BASE_FEATURES,
-    OPTICAL_FLOW_EMA_STEMS,
-)
+from endo_pipeline.settings.optical_flow import DEFAULT_EMA_ALPHA
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +45,6 @@ def compute_flow_statistics(
     timepoint: int,
     dt: int,
     intensity_threshold: float,
-    speed_threshold: float = 1.0,
 ) -> dict:
     """Compute summary statistics from a 2-D optical-flow field (u, v).
 
@@ -69,8 +65,6 @@ def compute_flow_statistics(
         Temporal stride between the two frames.
     intensity_threshold
         Intensity threshold for foreground masking.
-    speed_threshold
-        Minimum pixel speed for the "fast" coherence features.
 
     Returns
     -------
@@ -84,9 +78,6 @@ def compute_flow_statistics(
     }
     mask = (crop0 > intensity_threshold) | (crop1 > intensity_threshold)
 
-    # Build the NaN key set dynamically based on enabled features.
-    nan_keys = OPTICAL_FLOW_BASE_FEATURES
-
     if not mask.any():
         logger.debug(
             "No foreground pixels above thresh=%.3g for crop_idx=%d, timepoint=%d; returning NaNs.",
@@ -94,7 +85,19 @@ def compute_flow_statistics(
             crop_idx,
             timepoint,
         )
-        base.update(dict.fromkeys(nan_keys, np.nan))
+        base.update(
+            {
+                ColumnTemplate.OPTICAL_FLOW_SPEED_MEAN: np.nan,
+                ColumnTemplate.OPTICAL_FLOW_MEAN_UNIT_VECTOR: np.nan,
+                ColumnTemplate.OPTICAL_FLOW_SPEED_STD: np.nan,
+                ColumnTemplate.OPTICAL_FLOW_ANGLE_MEAN: np.nan,
+                ColumnTemplate.OPTICAL_FLOW_ANGLE_STD: np.nan,
+                ColumnTemplate.OPTICAL_FLOW_U_MEAN: np.nan,
+                ColumnTemplate.OPTICAL_FLOW_V_MEAN: np.nan,
+                ColumnTemplate.OPTICAL_FLOW_U_STD: np.nan,
+                ColumnTemplate.OPTICAL_FLOW_V_STD: np.nan,
+            }
+        )
         return base
 
     sp = np.sqrt(u[mask] ** 2 + v[mask] ** 2)
@@ -108,34 +111,21 @@ def compute_flow_statistics(
         else 0.0
     )
 
-    # --- Thresholded coherence (speed > threshold) ---
-    fast = sp > speed_threshold
-    n_fast = int(fast.sum())
-    if fast.any():
-        muv_fast = float(
-            np.sqrt(np.mean(um[fast] / sp[fast]) ** 2 + np.mean(vm[fast] / sp[fast]) ** 2)
-        )
-    else:
-        muv_fast = np.nan
-
     base.update(
         {
-            ColumnName.OpticalFlow.SPEED_MEAN_BASE: float(sp.mean()),
-            ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_BASE: muv,
-            ColumnName.OpticalFlow.SPEED_STD_BASE: float(sp.std()),
-            ColumnName.OpticalFlow.ANGLE_MEAN_BASE: float(
+            ColumnTemplate.OPTICAL_FLOW_SPEED_MEAN: float(sp.mean()),
+            ColumnTemplate.OPTICAL_FLOW_MEAN_UNIT_VECTOR: muv,
+            ColumnTemplate.OPTICAL_FLOW_SPEED_STD: float(sp.std()),
+            ColumnTemplate.OPTICAL_FLOW_ANGLE_MEAN: float(
                 np.arctan2(np.sin(ang).mean(), np.cos(ang).mean())
             ),
-            ColumnName.OpticalFlow.ANGLE_STD_BASE: float(stats.circstd(ang)),
-            ColumnName.OpticalFlow.U_MEAN_BASE: float(um.mean()),
-            ColumnName.OpticalFlow.V_MEAN_BASE: float(vm.mean()),
-            ColumnName.OpticalFlow.U_STD_BASE: float(um.std()),
-            ColumnName.OpticalFlow.V_STD_BASE: float(vm.std()),
+            ColumnTemplate.OPTICAL_FLOW_ANGLE_STD: float(stats.circstd(ang)),
+            ColumnTemplate.OPTICAL_FLOW_U_MEAN: float(um.mean()),
+            ColumnTemplate.OPTICAL_FLOW_V_MEAN: float(vm.mean()),
+            ColumnTemplate.OPTICAL_FLOW_U_STD: float(um.std()),
+            ColumnTemplate.OPTICAL_FLOW_V_STD: float(vm.std()),
         }
     )
-
-    base[ColumnName.OpticalFlow.SPEED_ABOVE_1_COUNT_BASE] = n_fast
-    base[ColumnName.OpticalFlow.UNIT_VECTOR_MEAN_FAST_BASE] = muv_fast
 
     return base
 
@@ -179,7 +169,6 @@ def compute_image_pair_flow(
     crops: OpticalFlowImagePairCrops,
     intensity_threshold: float,
     attachment: float = 7.5,
-    speed_threshold: float = 1.0,
 ) -> list[dict]:
     """
     Run TVL1 on a full-resolution frame pair, then compute per-crop stats.
@@ -202,8 +191,6 @@ def compute_image_pair_flow(
         Intensity threshold for foreground masking.
     attachment
         TVL1 data-fidelity weight (λ).
-    speed_threshold
-        Speed threshold for fast-coherence features.
 
     Returns
     -------
@@ -231,7 +218,6 @@ def compute_image_pair_flow(
             image_pair.t0,
             image_pair.dt,
             intensity_threshold,
-            speed_threshold,
         )
         for i in range(n_crops)
     ]
@@ -281,21 +267,35 @@ def build_optical_flow_feature_cols(
     Returns
     -------
     :
-        List of ``{feature}_dt{d}`` column names.
+        List of optical flow column names.
     """
-    # --- raw (non-EMA) features ---
-    features = OPTICAL_FLOW_BASE_FEATURES
 
-    # --- EMA-smoothed coherence columns ---
-    ema_stems = OPTICAL_FLOW_EMA_STEMS
+    raw_feature_templates = [
+        ColumnTemplate.OPTICAL_FLOW_SPEED_MEAN,
+        ColumnTemplate.OPTICAL_FLOW_SPEED_STD,
+        ColumnTemplate.OPTICAL_FLOW_MEAN_UNIT_VECTOR,
+        ColumnTemplate.OPTICAL_FLOW_ANGLE_MEAN,
+        ColumnTemplate.OPTICAL_FLOW_ANGLE_STD,
+        ColumnTemplate.OPTICAL_FLOW_U_MEAN,
+        ColumnTemplate.OPTICAL_FLOW_V_MEAN,
+        ColumnTemplate.OPTICAL_FLOW_U_STD,
+        ColumnTemplate.OPTICAL_FLOW_V_STD,
+    ]
+    raw_features = [
+        template % dt for dt in range(1, max_dt + 1) for template in raw_feature_templates
+    ]
 
-    ema_features: list[str] = []
+    ema_feature_templates = [
+        ColumnTemplate.OPTICAL_FLOW_EMA_MEAN_UNIT_VECTOR,
+    ]
+    ema_str = str(ema_alpha).replace(".", "")
+    ema_features = [
+        template % (ema_str, dt)
+        for dt in range(1, max_dt + 1)
+        for template in ema_feature_templates
+    ]
 
-    tag = str(ema_alpha).replace(".", "")
-    ema_features += [f"ema{tag}_{stem}" for stem in ema_stems]
-
-    all_features = features + ema_features
-    return [f"{f}_dt{d}" for d in range(1, max_dt + 1) for f in all_features]
+    return raw_features + ema_features
 
 
 def build_image_pair_crops_for_cell_centered(
@@ -422,7 +422,7 @@ def build_merged_optical_flow_dataframe(
             values=feat,
             aggfunc="first",
         )
-        pv.columns = pd.Index([f"{feat}_dt{int(c)}" for c in pv.columns])
+        pv.columns = pd.Index([feat % c for c in pv.columns])
         parts.append(pv)
 
     df_pivoted = pd.concat(parts, axis=1).reset_index()
@@ -447,15 +447,14 @@ def build_merged_optical_flow_dataframe(
     # Apply EMA smoothing
     alpha_tag = str(ema_alpha).replace(".", "")
     for dt in range(1, max_dt + 1):
-        for stem in OPTICAL_FLOW_EMA_STEMS:
-            raw_col = f"{stem}_dt{dt}"
-            ema_col = f"ema{alpha_tag}_{stem}_dt{dt}"
+        raw_col = ColumnTemplate.OPTICAL_FLOW_MEAN_UNIT_VECTOR % dt
+        ema_col = ColumnTemplate.OPTICAL_FLOW_EMA_MEAN_UNIT_VECTOR % (alpha_tag, dt)
 
-            if raw_col not in df_base.columns:
-                continue
+        if raw_col not in df_base.columns:
+            continue
 
-            df_base[ema_col] = df_base.groupby(ColumnName.CROP_INDEX)[raw_col].transform(
-                lambda s, a=ema_alpha: s.ewm(alpha=a, adjust=False).mean()
-            )
+        df_base[ema_col] = df_base.groupby(ColumnName.CROP_INDEX)[raw_col].transform(
+            lambda s, a=ema_alpha: s.ewm(alpha=a, adjust=False).mean()
+        )
 
     return df_base

@@ -1,11 +1,7 @@
 from typing import Literal
 
 from endo_pipeline.cli import Datasets, PatchType
-from endo_pipeline.settings.optical_flow import (
-    DEFAULT_EMA_ALPHA,
-    DEFAULT_OPTICAL_FLOW_MAX_DT,
-    DEFAULT_SPEED_THRESHOLD,
-)
+from endo_pipeline.settings.optical_flow import DEFAULT_EMA_ALPHA, DEFAULT_OPTICAL_FLOW_MAX_DT
 
 
 def main(
@@ -14,7 +10,6 @@ def main(
     channel: Literal["BF", "EGFP"] = "BF",
     max_dt: int = DEFAULT_OPTICAL_FLOW_MAX_DT,
     ema_alpha: float = DEFAULT_EMA_ALPHA,
-    speed_threshold: float = DEFAULT_SPEED_THRESHOLD,
     num_workers: int = 1,
 ) -> None:
     """
@@ -86,8 +81,6 @@ def main(
         Maximum temporal gap (inclusive).
     ema_alpha
         EMA smoothing alpha value for temporal coherence smoothing.
-    speed_threshold
-        Minimum pixel speed for the "fast" coherence features.
     num_workers
         Number of worker processes to use.
     """
@@ -153,7 +146,7 @@ def main(
         logger.warning("DEMO MODE - Limiting to one dataset, one position, and 10 timepoints")
         datasets = datasets[:1]
         max_positions = 1
-        max_timepoints = 20
+        max_timepoints = 10
     else:
         max_positions = None
         max_timepoints = None
@@ -186,7 +179,6 @@ def main(
         "intensity_percentile": intensity_percentile,
         "attachment": attachment,
         "ema_alpha": ema_alpha,
-        "speed_threshold": speed_threshold,
     }
     save_dataframe_manifest(optical_flow_manifest)
 
@@ -271,7 +263,6 @@ def main(
                 compute_image_pair_flow,
                 intensity_threshold=intensity_threshold,
                 attachment=attachment,
-                speed_threshold=speed_threshold,
             )
 
             records: list[dict] = []

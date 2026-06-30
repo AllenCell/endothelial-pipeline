@@ -114,9 +114,5 @@ TFE_FEATURES: list[ColumnNameType] = [
     Column.OpticalFlow.ANGLE_STD,
     Column.OpticalFlow.SPEED_MEAN,
     Column.OpticalFlow.SPEED_STD,
-    Column.OpticalFlow.UNIT_VECTOR_MEAN_FAST_BASE,
-    Column.OpticalFlow.SPEED_ABOVE_1_COUNT_BASE,
-    Column.OpticalFlow.UNIT_VECTOR_MEAN,
-    Column.OpticalFlow.EMA01_UNIT_VECTOR_MEAN_FAST,
 ]
 """List of feature to include in TFE manifest."""
