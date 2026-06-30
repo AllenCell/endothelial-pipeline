@@ -64,8 +64,8 @@ grid_manifest = load_dataframe_manifest(FEATURES_FILTERED_MANIFEST_NAMES["grid_b
 cell_manifest = load_dataframe_manifest(FEATURES_FILTERED_MANIFEST_NAMES["cell_centered"])
 seg_manifest = load_dataframe_manifest(CELL_CENTERED_FEATURES_UNFILTERED_MANIFEST_NAME)
 
-_shear_stress_datasets = set(get_datasets_in_collection("shear_stress"))
-_diffae_datasets = set(get_datasets_in_collection("diffae_model_training"))
+shear_stress_datasets = set(get_datasets_in_collection("shear_stress"))
+diffae_datasets = set(get_datasets_in_collection("diffae_model_training"))
 
 
 # %% Collect all filter/patch statistics for a single dataset
@@ -158,7 +158,7 @@ def _get_dataset_stats(dataset_name: str) -> dict:
         "adaptation": n_adaptation_timepoints,
         "delamination": n_delamination_timepoints,
         "piling": n_piling,
-        "fov_total": len(unannotated) * dataset_config.duration - n_outlier - n_steady - n_piling,
+        "fov_total": (len(unannotated) * dataset_config.duration) - n_outlier - n_steady - n_piling,
         "grid": n_grid,
         "cell": n_cell,
         "sample_type": getattr(dataset_config, "live_or_fixed_sample", ""),
@@ -231,8 +231,8 @@ def _get_seg_stats(dataset_name: str) -> dict:
         "segs_after": n_seg_after,
         "tracks_before": n_tracks_before,
         "tracks_after": n_tracks_after,
-        "in_shear_stress": "X" if dataset_name in _shear_stress_datasets else "",
-        "in_diffae": "X" if dataset_name in _diffae_datasets else "",
+        "in_shear_stress": "X" if dataset_name in shear_stress_datasets else "",
+        "in_diffae": "X" if dataset_name in diffae_datasets else "",
     }
 
 
@@ -316,6 +316,7 @@ TABLES = [
     },
     {
         "collection": "live_cdh5_seg_based_feat_datasets",
+        "filter_to": shear_stress_datasets | diffae_datasets,
         "title": "Supplemental Table: Segmentation summary",
         "figure_name": "supp_table_segmentation",
         "sort_by": [SHEAR_STRESS, REPLICATE],
@@ -415,6 +416,8 @@ def _render_table_svg(df: pd.DataFrame, title: str, figure_name: str) -> None:
 for table in TABLES:
     stats_fn = table.get("stats_fn", _get_dataset_stats)
     dataset_names = get_datasets_in_collection(table["collection"])
+    if "filter_to" in table:
+        dataset_names = [name for name in dataset_names if name in table["filter_to"]]
     stats = [stats_fn(name) for name in tqdm(dataset_names, desc=table["title"])]
     cols = table["columns"]
     df = pd.DataFrame([{col: s[key] for col, key in cols} for s in stats])
