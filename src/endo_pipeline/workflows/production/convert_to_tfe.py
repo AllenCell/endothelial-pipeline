@@ -42,7 +42,7 @@ def main(
 
     ```bash
     uv run endopipe convert-to-tfe \
-        --output-dir //allen/aics/endothelial/morphological_features/timelapse_feature_explorer
+        --output-dir //allen/aics/endothelial/timelapse_feature_explorer
     ```
 
     ## Generating segmentation image frames
