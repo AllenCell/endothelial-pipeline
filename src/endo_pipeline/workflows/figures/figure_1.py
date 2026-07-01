@@ -3,7 +3,7 @@ from endo_pipeline.cli import UniqueStrList
 
 def main(include_panels: UniqueStrList | None = None) -> None:
     """
-    # Figure 1. Machine learning-derived image features capture biologically
+    **Figure 1**. Machine learning-derived image features capture biologically
     relevant phenotypes of hiPSC-derived endothelial cells exposed to shear
     stress
 
