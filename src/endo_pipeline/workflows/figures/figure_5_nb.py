@@ -1,3 +1,29 @@
+"""
+**Figure 5**. Genetic perturbation of VE-cadherin selectively disrupts features
+of cell state under 6 dyn/cm² shear stress
+
+#main-figure #perturbation
+
+| Panel | Description                                                                               | Notes                |
+| ----- | ----------------------------------------------------------------------------------------- | -------------------- |
+| A     | Representative images of control and perturbation cell lines under 6 dyn/cm² shear stress |                      |
+| B     | Identified stable fixed point locations colored by migration coherence                    |                      |
+| C     | Migration speed calculated at stable fixed point for each replicate                       |                      |
+| D     | Schematic of phenotypic differences between VE-cadherin-mEGFP and Ex3Del cells            | _generated manually_ |
+
+## Example usage
+
+To run the figure workflow:
+
+```bash
+uv run endopipe figure-5
+```
+
+## Figure panels
+
+All panels in this workflow can be run without GPU.
+"""
+
 # %%
 
 import matplotlib.pyplot as plt
