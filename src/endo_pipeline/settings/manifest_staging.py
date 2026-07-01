@@ -59,3 +59,12 @@ STAGING_MODEL_MANIFEST_NAMES = [
     "nuc_pred_labelfree",
 ]
 """List of names of model manifests to stage."""
+
+STAGING_EXTRA_MANIFEST_NAMES = [
+    "timelapse_feature_explorer_cdh5",
+    "timelapse_feature_explorer_grid",
+    "timelapse_montage_movie_bf",
+    "timelapse_montage_movie_bf_std_dev",
+    "timelapse_montage_movie_egfp",
+]
+"""List of names of extra manifests to stage."""
