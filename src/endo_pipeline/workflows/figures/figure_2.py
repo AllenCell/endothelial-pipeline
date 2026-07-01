@@ -3,7 +3,7 @@ from endo_pipeline.cli import UniqueStrList
 
 def main(include_panels: UniqueStrList | None = None) -> None:
     """
-    # Figure 2. Stable fixed points of data-driven vector fields over
+    **Figure 2**. Stable fixed points of data-driven vector fields over
     morphological state space reveal distinct cell states at shear stress
     magnitudes of 6 dyn/cm² and 21 dyn/cm²
 
