@@ -25,8 +25,8 @@ NUC_SAMPLE = "Sample type"
 NUC_PREDICTIONS = "N Nuclear segmentations"
 SEGS_BEFORE = "N Cell segmentations"
 SEGS_AFTER = "N cell segmentations\n(after segmentation QC filtering)"
-IN_SHEAR_STRESS = "Included shear stress datasets"
-IN_DIFFAE = "Included DiffAE datasets"
+IN_SHEAR_STRESS = "Included in Shear stress datasets"
+IN_DIFFAE = "Included in DiffAE datasets"
 """Consistent column names to use across supplemental tables"""
 
 
