@@ -123,14 +123,14 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     )
 
     dataset_name = EXAMPLE_DATASET["FIGURE_4_STREAMPLOT"]
-    vector_field_plot_path, stable_fixed_points_df = make_3d_vector_field_plot_panel(
+    vector_field_plot_path = make_3d_vector_field_plot_panel(
         dataset_name,
         output_path,
         **placeholders["B"],
     )
 
     fixed_point_reconstruction_path = reconstruct_fixed_points(
-        fixed_point_df=stable_fixed_points_df,
+        dataset_name=dataset_name,
         output_path=output_path,
         figure_size=(0.8, 2.25),
         num_gpus=NUM_GPUS,
