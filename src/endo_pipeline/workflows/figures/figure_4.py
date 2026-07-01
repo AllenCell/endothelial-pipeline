@@ -3,8 +3,8 @@ from endo_pipeline.cli import UniqueStrList
 
 def main(include_panels: UniqueStrList | None = None) -> None:
     """
-    # Figure 4. Properties of the data-driven vector field are consistent with a
-    saddle node bifurcation at intermediate shear stress magnitudes
+    **Figure 4**. Properties of the data-driven vector field are consistent with
+    a saddle node bifurcation at intermediate shear stress magnitudes
 
     #main-figure #fixed-points #grid-based
 
