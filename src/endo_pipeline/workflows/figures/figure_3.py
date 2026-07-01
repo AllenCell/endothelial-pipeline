@@ -3,15 +3,36 @@ from endo_pipeline.cli import UniqueStrList
 
 def main(include_panels: UniqueStrList | None = None) -> None:
     """
-    Compile panels for Figure 3.
+    # Figure 3. Hypothesized dynamics and imaging data characterizing the
+    transition between 6 dyn/cm2 and 21 dyn/cm2 shear stress states
 
-    - **Panel A**: Schematic of hypotheses about how the transition of fixed
-      point locations and stability across shear stress conditions could occur.
-    - **Panel B**: Example images of several replicates from intermediate shear
-      stress conditions with a spatial feature grid overlaid, showing the
-      spatial distribution of features within replicates.
+    #main-figure #fixed-points
 
+    | Panel | Description                                                                                        | Notes               |
+    | ----- | -------------------------------------------------------------------------------------------------- | ------------------- |
+    | A     | Diagram for hypothesized mechanisms for transition between 6 dyn/cm² and 21 dyn/cm² states         | _compiled manually_ |
+    | B     | Representative mEGFP-tagged VE-cadherin maximum intensity Z-projections at steady state timepoints |                     |
+
+    ## Example usage
+
+    To run the figure workflow:
+
+    ```bash
+    uv run endopipe figure-3
+    ```
+
+    To run the figure workflow for a specific panel:
+
+    ```bash
+    uv run endopipe figure-3 PANEL
+    ```
+
+    Parameters
+    ----------
+    include_panels
+        List of panels to include in figure. Leave empty to include all panels.
     """
+
     from pathlib import Path
 
     import matplotlib.pyplot as plt
