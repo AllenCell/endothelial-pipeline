@@ -41,6 +41,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.library.visualize.figure_3 import visualize_2d_streamplots
     from endo_pipeline.library.visualize.figures import (
         FigurePanel,
+        build_empty_panel,
         build_figure_from_panels,
         parse_placeholder_panels,
     )
@@ -61,20 +62,24 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     placeholders = parse_placeholder_panels(include_panels, ["A", "B"])
 
-    # Create streamplots that get manually compiled into the schematic in panel A.
-    print(
-        "Creating streamplot image thumbnails. These thumbnails are assembled manually "
-        "into the schematic in panel A via a vector graphics editor."
-    )
-    for dataset_name in FIGURE_3_STREAMPLOT_EXAMPLE_DATASETS:
-        streamplot_output_path = visualize_2d_streamplots(
-            dataset_name, output_path, **placeholders["A"]
-        )
-        print(f"Saved 2D streamplot for dataset {dataset_name} to {streamplot_output_path}.")
+    # Panel A: Streamplot image thumbnails for schematic. This method produces
+    # thumbnails that are assembled into the schematic using a vector graphics
+    # software. When this panel is not included, the thumbnails are skipped and
+    # the compiled figure asset is replaced with a placeholder version
 
-    # Load full figure asset of panel A schematic.
-    assets_dir = Path(figure_assets.__path__[0])
-    schematic_fp = assets_dir / "figure_3a_hypotheses_optimized.svg"
+    for dataset_name in FIGURE_3_STREAMPLOT_EXAMPLE_DATASETS:
+        visualize_2d_streamplots(dataset_name, output_path, **placeholders["A"])
+
+    if placeholders["A"]["placeholder"]:
+        schematic_fp = build_empty_panel(
+            output_path,
+            "Diagram for hypothesized mechanisms for transition between 6 dyn/cm² and 21 dyn/cm² states",
+            MAX_FIGURE_WIDTH,
+            3,
+        )
+    else:
+        assets_dir = Path(figure_assets.__path__[0])
+        schematic_fp = assets_dir / "figure_3a_hypotheses_optimized.svg"
 
     # Panel B: Representative mEGFP-tagged VE-cadherin maximum intensity
     # Z-projections at steady state timepoints and spatial feature grid
