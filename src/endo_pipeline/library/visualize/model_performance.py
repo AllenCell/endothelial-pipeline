@@ -10,7 +10,6 @@ from matplotlib.layout_engine import LayoutEngine
 from matplotlib.lines import Line2D
 
 from endo_pipeline.io.output import save_plot_to_path
-from endo_pipeline.library.model.model_comparison import ModelComparisonMetrics
 from endo_pipeline.library.visualize.figure_utils import make_contact_sheet
 from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.settings.examples import ExampleImage
@@ -23,6 +22,8 @@ from endo_pipeline.settings.figures import (
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
+
+    from endo_pipeline.library.model.model_comparison import ModelComparisonMetrics
 
 MODEL_PERFORMANCE_CONTACT_SHEET_METRIC_KWARGS: dict[str, Any] = {
     "color": "yellow",
@@ -173,7 +174,7 @@ def plot_model_performance_intermediate_level_contact_sheet(
     denoised_examples: list[np.ndarray],
     noise_levels: list[float],
     conditioning_label: str,
-    comparison_metrics: list[ModelComparisonMetrics] | None = None,
+    comparison_metrics: list["ModelComparisonMetrics"] | None = None,
     figure_size: tuple[float, float] = (4.1, 4.4),
 ) -> None:
     """
@@ -277,7 +278,7 @@ def plot_model_performance_summary_contact_sheet(
     diffusion_examples: list["NDArray"],
     denoised_examples: list["NDArray"],
     conditioning_label: str,
-    comparison_metrics: list[ModelComparisonMetrics] | None = None,
+    comparison_metrics: list["ModelComparisonMetrics"] | None = None,
     figure_size: tuple[float, float] | None = None,
 ) -> None:
     """
