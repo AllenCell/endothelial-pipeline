@@ -24,10 +24,10 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     uv run endopipe figure-1
     ```
 
-    To run the figure workflow for specific panels:
+    To run the figure workflow for a specific panel:
 
     ```bash
-    uv run endopipe figure-1 A B C D
+    uv run endopipe figure-1 PANEL
     ```
 
     ## Figure panels
