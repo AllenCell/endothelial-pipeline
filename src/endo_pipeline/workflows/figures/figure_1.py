@@ -59,6 +59,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         parse_placeholder_panels,
     )
     from endo_pipeline.library.visualize.latent_walk import perform_and_plot_latent_walk_for_figures
+    from endo_pipeline.library.visualize.model_performance import (
+        make_model_training_architecture_panel,
+    )
     from endo_pipeline.library.visualize.multi_feature_correlation import (
         make_feature_correlation_panel,
     )
@@ -72,7 +75,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     output_path = get_output_path("figure_1")
 
-    placeholders = parse_placeholder_panels(include_panels, ["A", "C", "D"])
+    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
 
     # Example images from biological system at low and high shear stress
     example_path = create_panel_biological_system_examples(
@@ -83,13 +86,16 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         **placeholders["A"],
     )
 
-    # Correlation heatmaps of ML-based and measured features
-    feature_correlations_path = make_feature_correlation_panel(
-        pc_columns=DIFFAE_PC_COLUMN_NAME_GROUPS["main_figure"],
-        seg_columns=SEGMENTATION_FEATURE_COLUMNS["main_figure"],
+    # Note that this method produces several image thumbnails that are assembled
+    # into the model training diagram using a vector graphics software
+    architecture_panel_path = make_model_training_architecture_panel(
         output_path=output_path,
-        figure_size=(2.5, 2.8),
-        **placeholders["D"],
+        figure_size=(5.4, 2.4),
+        num_gpus=NUM_GPUS,
+        include_slices=False,
+        include_inputs=False,
+        title_location="left",
+        **placeholders["B"],
     )
 
     # Latent walk visualization
@@ -114,12 +120,29 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         **placeholders["C"],
     )
 
+    # Correlation heatmaps of ML-based and measured features
+    feature_correlations_path = make_feature_correlation_panel(
+        pc_columns=DIFFAE_PC_COLUMN_NAME_GROUPS["main_figure"],
+        seg_columns=SEGMENTATION_FEATURE_COLUMNS["main_figure"],
+        output_path=output_path,
+        figure_size=(2.5, 2.8),
+        **placeholders["D"],
+    )
+
     panels = [
         FigurePanel(
             letter="A",
             path=example_path,
             x_position=0,
             y_position=0,
+            x_offset=0,
+            y_offset=0,
+        ),
+        FigurePanel(
+            letter="B",
+            path=architecture_panel_path,
+            x_position=0,
+            y_position=3.6,
             x_offset=0,
             y_offset=0,
         ),
@@ -140,8 +163,12 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             y_offset=0,
         ),
     ]
+
     build_figure_from_panels(
-        panels, output_path / "figure_1.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
+        panels,
+        output_path / "figure_1.svg",
+        width=MAX_FIGURE_WIDTH,
+        height=MAX_FIGURE_HEIGHT,
     )
 
 
