@@ -1,0 +1,86 @@
+name: timelapse_feature_explorer_cdh5
+workflow: convert_to_tfe (manifest updated manually)
+parameters:
+  segmentation: CDH5
+locations:
+  20250319_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20250319_0d94f8d3054e4e8c99af07dd92774798_P{{position}}
+    s3uri: null
+  20250326_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20250326_eb97addf262c44c5a6117ad1d4acc353_P{{position}}
+    s3uri: null
+  20250402_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20250402_90e37b7d8f1440efa84995b4697fb269_P{{position}}
+    s3uri: null
+  20250409_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20250409_df6b2a02bbc94c6f957923add524eac1_P{{position}}
+    s3uri: null
+  20250428_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20250428_056aa027ba9f4ccd98367563552f7edd_P{{position}}
+    s3uri: null
+  20250604_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20250604_3f08ef7a2e0e450d963352dae4bf17dc_P{{position}}
+    s3uri: null
+  20250611_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20250611_a32615d530ae42c29d159cc058601879_P{{position}}
+    s3uri: null
+  20250618_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20250618_f81e9bdf048e462e9755d7cbf5d21c37_P{{position}}
+    s3uri: null
+  20250714_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20250714_0a0462b7d33848c8826105ab6f78787d_P{{position}}
+    s3uri: null
+  20250716_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20250716_328c62ecc91248eab2268e546892453e_P{{position}}
+    s3uri: null
+  20250728_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20250728_b07652734b1b43178f4bc704abd7b95b_P{{position}}
+    s3uri: null
+  20250813_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20250813_6ab0f70bd43f4de987a789905dbfb95c_P{{position}}
+    s3uri: null
+  20250818_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20250818_1f895d9188df43e0a10b379cf23a879c_P{{position}}
+    s3uri: null
+  20250827_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20250827_c96180b30a224a48bac3b6d8fe1ffbb4_P{{position}}
+    s3uri: null
+  20251001_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20251001_271124f03a16409499e8a84b0030cb15_P{{position}}
+    s3uri: null
+  20260114_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20260114_4b693bb8eedb4e0ba0cb9ab4ae07b1a2_P{{position}}
+    s3uri: null
+  20260121_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20260121_ff75e124720b4a3aa035025a05ced25f_P{{position}}
+    s3uri: null
+  20260126_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20260126_aed19d79c1a34707925cfa8393424c45_P{{position}}
+    s3uri: null
+  20260128_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20260128_00bd94ea6d7e4b46bc16a55e35de589d_P{{position}}
+    s3uri: null
+  20260202_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20260202_fcb18a65bb734ff6ae718e1eee4894d6_P{{position}}
+    s3uri: null
+  20260204_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20260204_ac1fddfd7452481e83317c8fbdd59dd6_P{{position}}
+    s3uri: null
+  20260209_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20260209_3700e11f893e4f378db450ea91bd92d6_P{{position}}
+    s3uri: null
+  20260211_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20260211_20b76dc8d0ca488ba88816793830f6ec_P{{position}}
+    s3uri: null
+  20260216_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20260216_ed3743a1ee4c4cb096f5af90e3ebb9bd_P{{position}}
+    s3uri: null
+  20260225_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20260225_50afe3cb17cf4be099dc44e47f7a4ae4_P{{position}}
+    s3uri: null
+  20260302_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20260302_e9cfa3b0b24447f7bba000af3b012427_P{{position}}
+    s3uri: null
+  20260304_20X:
+    path: //allen/aics/endothelial/timelapse_feature_explorer/20260304_56c81f459d8e46eabd74cc2147b85f49_P{{position}}
+    s3uri: null
