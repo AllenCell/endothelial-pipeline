@@ -3,13 +3,45 @@ from endo_pipeline.cli import UniqueStrList
 
 def main(include_panels: UniqueStrList | None = None) -> None:
     """
-    Machine learning-derived image features capture biologically relevant
-    phenotypes of hiPSC-derived endothelial cells exposed to shear stress
+    # Figure 1. Machine learning-derived image features capture biologically
+    relevant phenotypes of hiPSC-derived endothelial cells exposed to shear
+    stress
 
-    - **Panel A**: Example images from biological system at low and high shear stress
-    - **Panel B**: DiffAE evaluation/inference schematic
-    - **Panel C**: Latent walk visualization along ML-based features theta, r, and rho
-    - **Panel D**: Pearson correlation heatmaps of ML-based and measured features
+    #main-figure #diffae #correlation-analysis
+
+    | Panel | Description                                                         | Notes               |
+    | ----- | ------------------------------------------------------------------- | ------------------- |
+    | A     | Example images from biological system at low and high shear stress  |                     |
+    | B     | Diffusion autoencoder (DiffAE) architecture and inference workflow  | _compiled manually_ |
+    | C     | Latent walk visualization along ML-based features theta, r, and rho | _uses GPU_          |
+    | D     | Pearson correlation heatmaps of ML-based and measured features      |                     |
+
+    ## Example usage
+
+    To run the figure workflow:
+
+    ```bash
+    uv run endopipe figure-1
+    ```
+
+    To run the figure workflow for specific panels:
+
+    ```bash
+    uv run endopipe figure-1 A B C D
+    ```
+
+    ## Figure panels
+
+    Some panels in this workflow should be run with an NVIDIA GPU (as indicated
+    by _uses GPU_ in the table above). Run this workflow with the GPU flag (`-g`
+    or `--num-gpus`) to make sure GPUs are visible to the workflow. The workflow
+    will run without a GPU, but will be noticeably slower. You may want to skip
+    generating these panels by excluding them from the list of panels.
+
+    Parameters
+    ----------
+    include_panels
+        List of panels to include in figure. Leave empty to include all panels.
     """
 
     from typing import cast
