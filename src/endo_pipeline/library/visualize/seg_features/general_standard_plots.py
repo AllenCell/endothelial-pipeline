@@ -1,10 +1,7 @@
-from pathlib import Path
-
 import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
-from matplotlib.colorbar import ColorbarBase
 from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
 
@@ -14,30 +11,6 @@ from endo_pipeline.settings.column_names import ColumnName as Column
 # set the plot shape to the golden ratio
 AX_WIDTH = 4.5
 AX_HEIGHT = AX_WIDTH * 2 / 3
-
-
-def save_colorbar(
-    outdir: Path,
-    colormap_name: str = "viridis",
-    filename: str | None = None,
-    figsize: tuple[int, int] = (1, 5),
-    filetype: str = ".png",
-) -> None:
-    """Plots and saves the colorbar specified by "colormap_name".
-    A list of all available colormaps can be found with:
-    >>> from matplotlib import pyplot as plt
-    >>> plt.colormaps()` will list all available colormaps
-    """
-    valid_colormaps = plt.colormaps()
-    if colormap_name not in valid_colormaps:
-        raise ValueError(f"{colormap_name} is not valid. Valid colormaps are\n: {valid_colormaps}")
-
-    fig, ax = plt.subplots(figsize=figsize)
-    ax.set_axis_off()
-    ColorbarBase(ax, cmap=colormap_name)
-    filename = f"{filename}_" if filename else ""
-
-    fig.savefig(outdir / f"{filename}{colormap_name}{filetype}", bbox_inches="tight", pad_inches=0)
 
 
 def adjust_axes_ticks(

@@ -1,4 +1,4 @@
-from .diffae import generate_from_coords, generate_from_coords_batch
+from .diffae import generate_from_coords
 from .eval_model import (
     load_model_for_inference,
     preprocess_tracking_manifest_for_model_eval,
@@ -18,7 +18,6 @@ __all__ = [
     "MultiDimImageDataset",
     "build_zarr_image_loading_dataframe",
     "generate_from_coords",
-    "generate_from_coords_batch",
     "get_dataset_names_used_for_training",
     "get_z_slice_bounds_per_position",
     "load_model_for_inference",
