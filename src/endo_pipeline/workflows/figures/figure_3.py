@@ -98,6 +98,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         feature_columns=feature_columns,
         example_images=FIGURE_3_EXAMPLE_IMAGES,
         figure_size=(MAX_FIGURE_WIDTH, 4.4),
+        **placeholders["B"],
     )
 
     # Arrange panels into final figure layout and save
