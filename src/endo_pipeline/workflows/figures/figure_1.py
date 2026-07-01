@@ -73,7 +73,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     plt.style.use("endo_pipeline.figure")
 
-    output_path = get_output_path("figure_1")
+    output_path = get_output_path(__file__)
 
     placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
 
