@@ -243,12 +243,6 @@ def get_seg_stats(
     }
 
 
-_STATS_FN_MAP = {
-    "get_dataset_stats": get_dataset_stats,
-    "get_seg_stats": get_seg_stats,
-}
-
-
 def create_supp_table(
     table: dict,
     cell_manifest: DataframeManifest,
@@ -280,15 +274,13 @@ def create_supp_table(
         Set of dataset names in the DiffAE collection. Required only for
         the segmentation table (``get_seg_stats``).
     """
-    stats_fn_ref = table.get("stats_fn", get_dataset_stats)
-    stats_fn = _STATS_FN_MAP[stats_fn_ref] if isinstance(stats_fn_ref, str) else stats_fn_ref
     annotations_to_include = table.get("annotations_to_include", None)
     dataset_names = get_datasets_in_collection(table["collection"])
 
-    # Build kwargs based on which function is being called
-    if stats_fn is get_seg_stats:
+    # Collect stats using the appropriate function
+    if table.get("stats_fn") == "get_seg_stats":
         stats = [
-            stats_fn(
+            get_seg_stats(
                 name,
                 cell_manifest=cell_manifest,
                 shear_stress_datasets=shear_stress_datasets or set(),
@@ -298,14 +290,14 @@ def create_supp_table(
         ]
     elif annotations_to_include is not None:
         stats = [
-            stats_fn(
+            get_dataset_stats(
                 name, cell_manifest=cell_manifest, annotations_to_include=annotations_to_include
             )
             for name in tqdm(dataset_names, desc=table["title"])
         ]
     else:
         stats = [
-            stats_fn(name, cell_manifest=cell_manifest)
+            get_dataset_stats(name, cell_manifest=cell_manifest)
             for name in tqdm(dataset_names, desc=table["title"])
         ]
     cols = table["columns"]
