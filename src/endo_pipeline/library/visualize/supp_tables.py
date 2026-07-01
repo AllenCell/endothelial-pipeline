@@ -188,16 +188,15 @@ def get_seg_stats(
     dataset_config = load_dataset_config(dataset_name)
 
     df_cell_centered_location = get_dataframe_location_for_dataset(cell_manifest, dataset_name)
-    df = load_dataframe(df_cell_centered_location)[
-        [
-            Column.DATASET,
-            Column.POSITION,
-            Column.TIMEPOINT,
-            Column.SegData.NUM_NUCLEI_AT_TIMEPOINT,
-            Column.SegData.NUM_TRACKS_BEFORE_FILTERING,
-            Column.SegData.NUM_TRACKS_AFTER_FILTERING,
-        ]
+    cols_to_load = [
+        Column.DATASET,
+        Column.POSITION,
+        Column.TIMEPOINT,
+        Column.SegData.NUM_NUCLEI_AT_TIMEPOINT,
+        Column.SegData.NUM_TRACKS_BEFORE_FILTERING,
+        Column.SegData.NUM_TRACKS_AFTER_FILTERING,
     ]
+    df = load_dataframe(df_cell_centered_location, delay=True)[cols_to_load].compute()
 
     # Nuclear segmentations: one value per (timepoint, position), sum across all
     n_nuc = int(
