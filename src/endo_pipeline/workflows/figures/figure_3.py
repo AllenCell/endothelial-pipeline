@@ -37,7 +37,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     import matplotlib.pyplot as plt
 
-    from endo_pipeline.io import get_output_path, save_plot_to_path
+    from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.figure_3 import visualize_2d_streamplots
     from endo_pipeline.library.visualize.figures import (
         FigurePanel,
@@ -58,6 +58,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     plt.style.use("endo_pipeline.figure")
 
     output_path = get_output_path(__file__)
+
     placeholders = parse_placeholder_panels(include_panels, ["A", "B"])
 
     # Create streamplots that get manually compiled into the schematic in panel A.
@@ -75,27 +76,23 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     assets_dir = Path(figure_assets.__path__[0])
     schematic_fp = assets_dir / "figure_3a_hypotheses_optimized.svg"
 
-    # Create spatial feature grid for panel B.
+    # Panel B: Representative mEGFP-tagged VE-cadherin maximum intensity
+    # Z-projections at steady state timepoints and spatial feature grid
+
     feature_columns = [
         ColumnName.DiffAEData.POLAR_ANGLE,
         ColumnName.DiffAEData.POLAR_RADIUS,
         ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
     ]
-    fig = create_panel_spatial_feature_grid(
+    feature_grid_path = create_panel_spatial_feature_grid(
+        output_path=output_path,
         feature_columns=feature_columns,
         example_images=FIGURE_3_EXAMPLE_IMAGES,
         figure_size=(MAX_FIGURE_WIDTH, 4.4),
     )
-    save_plot_to_path(
-        fig,
-        output_path,
-        "spatial_feature_grid_examples_main",
-        file_format=".svg",
-        tight_layout=False,
-        pad_inches=0,
-    )
 
-    # Arrange panels into final figure layout and save.
+    # Arrange panels into final figure layout and save
+
     panels = [
         FigurePanel(
             letter="A",
@@ -107,7 +104,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         ),
         FigurePanel(
             letter="B",
-            path=output_path / "spatial_feature_grid_examples_main.svg",
+            path=feature_grid_path,
             x_position=0,
             y_position=3.1,
             x_offset=0,
@@ -116,7 +113,10 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     ]
 
     build_figure_from_panels(
-        panels, output_path / "figure_3.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
+        panels,
+        output_path / "figure_3.svg",
+        width=MAX_FIGURE_WIDTH,
+        height=MAX_FIGURE_HEIGHT,
     )
 
 
