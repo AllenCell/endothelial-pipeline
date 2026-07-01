@@ -45,6 +45,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     import matplotlib.pyplot as plt
 
+    from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.diffae_features.projected_dynamics import (
         visualize_projected_dynamics,
@@ -127,10 +128,12 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         output_path,
         **placeholders["B"],
     )
+
     fixed_point_reconstruction_path = reconstruct_fixed_points(
         fixed_point_df=stable_fixed_points_df,
         output_path=output_path,
         figure_size=(0.8, 2.25),
+        num_gpus=NUM_GPUS,
         **placeholders["C"],
     )
 
