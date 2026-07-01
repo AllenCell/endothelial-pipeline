@@ -3,7 +3,7 @@ from endo_pipeline.cli import UniqueStrList
 
 def main(include_panels: UniqueStrList | None = None) -> None:
     """
-    # Figure 3. Hypothesized dynamics and imaging data characterizing the
+    **Figure 3**. Hypothesized dynamics and imaging data characterizing the
     transition between 6 dyn/cm2 and 21 dyn/cm2 shear stress states
 
     #main-figure #fixed-points
