@@ -9,12 +9,12 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     #main-figure #diffae #correlation-analysis
 
-    | Panel | Description                                                         | Notes               |
-    | ----- | ------------------------------------------------------------------- | ------------------- |
-    | A     | Example images from biological system at low and high shear stress  |                     |
-    | B     | Diffusion autoencoder (DiffAE) architecture and inference workflow  | _compiled manually_ |
-    | C     | Latent walk visualization along ML-based features theta, r, and rho | _uses GPU_          |
-    | D     | Pearson correlation heatmaps of ML-based and measured features      |                     |
+    | Panel | Description                                                         | Notes                           |
+    | ----- | ------------------------------------------------------------------- | ------------------------------- |
+    | A     | Example images from biological system at low and high shear stress  |                                 |
+    | B     | Diffusion autoencoder (DiffAE) architecture and inference workflow  | _uses GPU_, _compiled manually_ |
+    | C     | Latent walk visualization along ML-based features theta, r, and rho | _uses GPU_                      |
+    | D     | Pearson correlation heatmaps of ML-based and measured features      |                                 |
 
     ## Example usage
 
