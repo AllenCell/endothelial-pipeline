@@ -9,14 +9,14 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     #main-figure #cell-centered #grid-based #fixed-points #first-passage-time
 
-    | Panel | Description                                                                                 | Notes      |
-    | ----- | ------------------------------------------------------------------------------------------- | ---------- |
-    | A     | 3D data-driven vector field for representative 6 dyn/cm² and 21 dyn/cm² shear stress        |            |
-    | B     | Decomposition of 3D vector field into 1D and 2D components                                  |            |
-    | C     | Example reconstruction of VE-cadherin patch using stable fixed point                        | _uses GPU_ |
-    | D     | Summary of stable fixed points across 6 dyn/cm² and 21 dyn/cm² shear stress replicates      |            |
-    | E     | Example grid-based trajectory and a cell-centered trajectory                                |            |
-    | F     | Probability density of residuals from linear fit between grid-based and cell-centered MFPTs |            |
+    | Panel | Description                                                                                     | Notes      |
+    | ----- | ----------------------------------------------------------------------------------------------- | ---------- |
+    | A     | 3D data-driven vector field for representative 6 dyn/cm² and 21 dyn/cm² shear stress replicates |            |
+    | B     | Decomposition of 3D vector field into 1D and 2D components                                      |            |
+    | C     | Example reconstruction of VE-cadherin patch using stable fixed point                            | _uses GPU_ |
+    | D     | Summary of stable fixed points across 6 dyn/cm² and 21 dyn/cm² shear stress replicates          |            |
+    | E     | Example grid-based trajectory and a cell-centered trajectory                                    |            |
+    | F     | Probability density of residuals from linear fit between grid-based and cell-centered MFPTs     |            |
 
     ## Example usage
 
