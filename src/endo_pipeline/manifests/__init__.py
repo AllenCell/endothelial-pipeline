@@ -13,6 +13,15 @@ from .dataframe_manifest_utils import (
     get_dataframe_manifest_with_parameters,
     list_datasets_with_dataframes,
 )
+from .extra_manifest import ExtraLocation, ExtraManifest
+from .extra_manifest_io import (
+    create_extra_manifest,
+    get_available_extra_manifests,
+    get_extra_manifest_dir,
+    load_extra_manifest,
+    save_extra_manifest,
+)
+from .extra_manifest_utils import get_extra_location_for_dataset
 from .image_manifest import ImageLocation, ImageManifest
 from .image_manifest_io import (
     create_image_manifest,
@@ -47,6 +56,8 @@ from .model_manifest_utils import (
 __all__ = [
     "DataframeLocation",
     "DataframeManifest",
+    "ExtraLocation",
+    "ExtraManifest",
     "ImageLocation",
     "ImageManifest",
     "ModelLocation",
@@ -56,15 +67,19 @@ __all__ = [
     "build_dataframe_location_from_string",
     "build_image_location_from_string",
     "create_dataframe_manifest",
+    "create_extra_manifest",
     "create_image_manifest",
     "create_model_manifest",
     "get_available_dataframe_manifests",
+    "get_available_extra_manifests",
     "get_available_image_manifests",
     "get_available_model_manifests",
     "get_available_zarr_locations",
     "get_dataframe_location_for_dataset",
     "get_dataframe_manifest_dir",
     "get_dataframe_manifest_with_parameters",
+    "get_extra_location_for_dataset",
+    "get_extra_manifest_dir",
     "get_feature_dataframe_manifest_name",
     "get_image_location_for_dataset",
     "get_image_manifest_dir",
@@ -76,9 +91,11 @@ __all__ = [
     "list_datasets_with_dataframes",
     "list_datasets_with_images",
     "load_dataframe_manifest",
+    "load_extra_manifest",
     "load_image_manifest",
     "load_model_manifest",
     "save_dataframe_manifest",
+    "save_extra_manifest",
     "save_image_manifest",
     "save_model_manifest",
 ]
