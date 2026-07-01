@@ -11,7 +11,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     | Panel | Description                                                                                        | Notes               |
     | ----- | -------------------------------------------------------------------------------------------------- | ------------------- |
     | A     | Diagram for hypothesized mechanisms for transition between 6 dyn/cm² and 21 dyn/cm² states         | _compiled manually_ |
-    | B     | Representative mEGFP-tagged VE-cadherin maximum intensity Z-projections at steady state timepoints |                     |
+    | B     | Representative images at different shear stress magnitudes and corresponding spatial feature grids |                     |
 
     ## Example usage
 
