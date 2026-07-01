@@ -9,12 +9,12 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     #main-figure #diffae #correlation-analysis
 
-    | Panel | Description                                                         | Notes                           |
-    | ----- | ------------------------------------------------------------------- | ------------------------------- |
-    | A     | Example images from biological system at low and high shear stress  |                                 |
-    | B     | Diffusion autoencoder (DiffAE) architecture and inference workflow  | _uses GPU_, _compiled manually_ |
-    | C     | Latent walk visualization along ML-based features theta, r, and rho | _uses GPU_                      |
-    | D     | Pearson correlation heatmaps of ML-based and measured features      |                                 |
+    | Panel | Description                                                                    | Notes                           |
+    | ----- | ------------------------------------------------------------------------------ | ------------------------------- |
+    | A     | Example images from biological system at 6 dyn/cm² and 21 dyn/cm² shear stress |                                 |
+    | B     | Diffusion autoencoder (DiffAE) architecture and inference workflow             | _uses GPU_, _compiled manually_ |
+    | C     | Latent walk visualization along ML-based features theta, r, and rho            | _uses GPU_                      |
+    | D     | Pearson correlation heatmaps of ML-based and measured features                 |                                 |
 
     ## Example usage
 
@@ -77,7 +77,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
 
-    # Example images from biological system at low and high shear stress
+    # Example images from biological system at 6 dyn/cm² and 21 dyn/cm² shear stress
     example_path = create_panel_biological_system_examples(
         examples=FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES,
         output_path=output_path,
