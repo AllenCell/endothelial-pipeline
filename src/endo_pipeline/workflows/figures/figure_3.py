@@ -27,6 +27,10 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     uv run endopipe figure-3 PANEL
     ```
 
+    ## Figure panels
+
+    All panels in this workflow can be run without GPU.
+
     Parameters
     ----------
     include_panels
