@@ -9,7 +9,7 @@ def main() -> None:
     | ----- | ------------------------------------------------------------------------------------------ | -------------------- |
     | A     | Diagram for cell segmentation steps                                                        | _compiled manually_  |
     | B     | Measured features for representative replicate under 6 dyn/cm² shear stress                |                      |
-    | C     | Measured features for representative replicate under 12 dyn/cm² shear stress               |                      |
+    | C     | Measured features for representative replicate under 21 dyn/cm² shear stress               |                      |
     | D     | Schematic for cell orientation, aspect ratio, and cell-nucleus angle relative to migration | _generated manually_ |
 
     ## Example usage
