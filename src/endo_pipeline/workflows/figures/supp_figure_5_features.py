@@ -6,12 +6,12 @@ def main() -> None:
 
     #supp-figure #pca #diffae #correlation-analysis
 
-    | Panel | Description                                                                             | Notes      |
-    | ----- | --------------------------------------------------------------------------------------- | ---------- |
-    | A     | Cumulative explained variance ratio for the DiffAE PCs                                  |            |
-    | B     | Latent walk along the top 10 PCs                                                        | _uses GPU_ |
-    | C     | 2D latent walk along PC1 and PC2                                                        | _uses GPU_ |
-    | D     | Pearson correlation coefficienttop ML-based features (DiffAE PCs) and measured features |            |
+    | Panel | Description                                                                              | Notes      |
+    | ----- | ---------------------------------------------------------------------------------------- | ---------- |
+    | A     | Cumulative explained variance ratio for the DiffAE PCs                                   |            |
+    | B     | Latent walk along the top 10 PCs                                                         | _uses GPU_ |
+    | C     | 2D latent walk along PC1 and PC2                                                         | _uses GPU_ |
+    | D     | Pearson correlation coefficient for ML-based features (DiffAE PCs) and measured features |            |
 
     ## Example usage
 
