@@ -149,7 +149,7 @@ def build_extra_manifest_staging_entries_for_location(
     entries = []
 
     # Check if we need to iterate over positions
-    if "{{position}}" in list(manifest.locations.values())[0].path.as_posix():
+    if "{{position}}" in str(list(manifest.locations.values())[0].path):
         positions = dataset_config.zarr_positions
     else:
         positions = [None]
