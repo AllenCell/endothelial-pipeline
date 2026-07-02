@@ -353,7 +353,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         for i in range(1, MAX_PCS_TO_COMPUTE + 1)
     },
     Column.DiffAEData.POLAR_ANGLE: ColumnMetadata(
-        name=f"Polar {Unicode.THETA}",
+        name=f"{Unicode.THETA}",
         label=Unicode.THETA,
         description="Polar angle calculated by transforming PC 1 and PC 2 to polar coordinates",
         min=0,
@@ -368,7 +368,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         type=ColumnType.CONTINUOUS,
     ),
     Column.DiffAEData.POLAR_RADIUS: ColumnMetadata(
-        name="Polar r",
+        name="r",
         label="r",
         description="Polar radius calculated by transforming PC 1 and PC 2 to polar coordinates",
         min=0.3,
@@ -377,7 +377,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         type=ColumnType.CONTINUOUS,
     ),
     Column.DiffAEData.PC3_FLIPPED: ColumnMetadata(
-        name=f"PC {Unicode.RHO}",
+        name=f"{Unicode.RHO}",
         label=Unicode.RHO,
         description="Negative value of PC 3",
         min=-0.8,
