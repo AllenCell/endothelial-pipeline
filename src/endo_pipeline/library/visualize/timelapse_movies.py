@@ -25,12 +25,22 @@ logger = logging.getLogger(__name__)
 
 
 def load_stitched_image(
-    loader: Callable, config: DatasetConfig, positions: list[int], timepoints: int | list[int]
+    loaders: list[Callable], config: DatasetConfig, positions: list[int], timepoint: int
 ) -> da.Array:
-    """Load stitched EGFP max projection image for given timepoint(s)."""
+    """Load stitched and processed image for given timepoint."""
 
-    images = [loader(config, position, timepoints) for position in positions]
-    return stitch_with_overlap(images, overlap_ratio=0.10)
+    # Load image with each given loader and stitch across positions
+    loaded_images = []
+    for loader in loaders:
+        images = [loader(config, position, timepoint, level=2) for position in positions]
+        loaded_images.append(
+            convert_to_uint8(stitch_with_overlap(images, overlap_ratio=0.10).squeeze().compute())
+        )
+
+    # Combine images along specified axis
+    loaded_image = np.concatenate(loaded_images, axis=0)
+
+    return loaded_image
 
 
 def calculate_frame_sizing(image: da.Array) -> tuple[float, tuple[int, int]]:
@@ -137,7 +147,7 @@ def add_scalebar_to_frame(
 
 def create_timelapse_movie(
     dataset_name: str,
-    channel_type: Literal["EGFP", "BF", "BF_std_dev"],
+    channel_types: list[Literal["EGFP", "BF", "BF_std_dev"]],
     output_path: Path,
     timepoints: list[int] | None = None,
     positions: list[int] | None = None,
@@ -152,8 +162,8 @@ def create_timelapse_movie(
     ----------
     dataset_name
         Name of the dataset.
-    channel_type
-        Channel type to visualize. Valid option: EGFP | BF | BF_std_dev
+    channel_types
+        Channel type(s) to include in movie.
     output_dir
         Directory to save output movie.
     timepoints
@@ -168,9 +178,10 @@ def create_timelapse_movie(
         Size of scale bar in microns.
     """
 
-    if channel_type not in ("EGFP", "BF", "BF_std_dev"):
-        logger.error("Invalid channel type selected: '%s'", channel_type)
-        raise ValueError("Channel must be 'EGFR' or 'BF' or 'BF_std_dev'")
+    for channel_type in channel_types:
+        if channel_type not in ("EGFP", "BF", "BF_std_dev"):
+            logger.error("Invalid channel type selected: '%s'", channel_type)
+            raise ValueError("Channel must be 'EGFR' or 'BF' or 'BF_std_dev'")
 
     dataset_config = load_dataset_config(dataset_name)
 
@@ -182,34 +193,34 @@ def create_timelapse_movie(
 
     file_name = "_".join(
         [
-            dataset_config.name,
-            channel_type,
-            f"P{positions[0]}" if len(positions) == 1 else f"P{min(positions)}-{max(positions)}",
+            dataset_config.date,
             dataset_config.fmsid,
+            f"P{positions[0]}" if len(positions) == 1 else f"P{min(positions)}-{max(positions)}",
+            f"{'_'.join(channel_types)}",
             f"fps{frames_per_second}",
             f"scalebar{scale_bar_um}um.mp4",
         ]
     )
 
     # Select the appropriate image loader for the selected channel type
-    if channel_type == "EGFP":
-        image_loader = load_processed_egfp_image
-    elif channel_type == "BF":
-        image_loader = load_processed_bf_image
-    elif channel_type == "BF_std_dev":
-        image_loader = load_processed_bf_std_dev_image
-
-    logger.info("Using the [ %s ] image loader", channel_type)
+    image_loader_map = {
+        "EGFP": load_processed_egfp_image,
+        "BF": load_processed_bf_image,
+        "BF_std_dev": load_processed_bf_std_dev_image,
+    }
+    image_loaders = [image_loader_map[channel] for channel in channel_types]
 
     # Create partial stitched image loader method. The new partial method then
     # only need to be passed timepoint to finish the function call.
     load_stitched_image_at_timepoint = partial(
-        load_stitched_image, loader=image_loader, config=dataset_config, positions=positions
+        load_stitched_image,
+        loaders=image_loaders,
+        config=dataset_config,
+        positions=positions,
     )
 
     # Use first timepoint image for frame size calculations
-    stitched_images = load_stitched_image_at_timepoint(timepoints=0)
-    first_image = stitched_images[0].squeeze()
+    first_image = load_stitched_image_at_timepoint(timepoint=0)
     scale_factor, frame_padding = calculate_frame_sizing(first_image)
     pixel_size = PIXEL_SIZE_3i_20x / scale_factor
 
@@ -231,8 +242,8 @@ def create_timelapse_movie(
     ) as writer:
         for tp in tqdm(timepoints, desc=f"{dataset_name}: Creating movie"):
             # Load image and apply contrast stretching and size adjustments
-            image = load_stitched_image_at_timepoint(timepoints=tp).squeeze().compute()
-            image = convert_to_uint8(resize_and_pad_image(image, scale_factor, frame_padding))
+            image = load_stitched_image_at_timepoint(timepoint=tp)
+            image = resize_and_pad_image(image, scale_factor, frame_padding)
 
             # Add scalebar and timestamp directly to image array
             add_scalebar_to_frame(image, scale_bar_um, pixel_size)
