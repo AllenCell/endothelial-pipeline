@@ -396,7 +396,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         type=ColumnType.CONTINUOUS,
     ),
     Column.DiffAEData.PC3_FLIPPED: ColumnMetadata(
-        name="ML-based p",
+        name=f"ML-based {Unicode.RHO}",
         label=Unicode.RHO,
         description="Negative value of PC 3",
         min=-0.8,
