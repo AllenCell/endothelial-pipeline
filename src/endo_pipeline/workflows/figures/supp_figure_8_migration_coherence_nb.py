@@ -56,14 +56,14 @@ from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL
 from endo_pipeline.settings.optical_flow import OPTICAL_FLOW_CHANNEL_ATTACHMENT
 
 plt.style.use("endo_pipeline.figure")
-output_dir = get_output_path("migration_coherence_blob")
+output_path = get_output_path("supp_figure_8_migration_coherence")
 
 # %% create and plot an example of the retraction fibers and blobs
 t = SUPP_FIG_RETRACTION_FIBER_BLOB.timepoint
 create_panel_retraction_fiber_blob_example(
     example=SUPP_FIG_RETRACTION_FIBER_BLOB,
     timepoints=list(range(t, t + 15, 3)),
-    save_dir=output_dir,
+    save_dir=output_path,
     figure_size=(6.3, 3.9),
 )
 # %%
@@ -141,7 +141,7 @@ for col_idx, panel in enumerate(panels):
 base_name = "optical_flow_panels"
 save_plot_to_path(
     fig,
-    output_dir,
+    output_path,
     base_name,
     file_format=".png",
     dpi=300,
@@ -153,7 +153,7 @@ save_plot_to_path(
 # embedded panel is exactly ``figure_size`` inches.
 save_plot_to_path(
     fig,
-    output_dir,
+    output_path,
     base_name,
     file_format=".svg",
     show_and_close=True,
@@ -168,7 +168,7 @@ for i, (label, example) in enumerate(picks.items()):
     coherence_example_fig_name = slugify(f"{dataset_name}_3D_scatter_{label}")
     make_example_migration_coherence(
         dataset_name=dataset_name,
-        output_dir=output_dir,
+        output_dir=output_path,
         fig_name=coherence_example_fig_name,
         figure_size=(MAX_FIGURE_WIDTH / 3.5, MAX_FIGURE_WIDTH / 3.5),
         show_colorbar=False,
@@ -204,7 +204,7 @@ cbar.set_ticks(ticks)
 cbar.set_label(cbar_label, fontsize=FONTSIZE_MEDIUM)
 save_plot_to_path(
     fig_cb,
-    output_dir,
+    output_path,
     "colorbar_cyan_magenta_0_1",
     file_format=".svg",
     tight_layout=False,
@@ -218,7 +218,7 @@ build_figure_from_panels(
     [
         FigurePanel(
             letter="A",
-            path=output_dir / "retraction_fiber_blob_example.svg",
+            path=output_path / "retraction_fiber_blob_example.svg",
             x_position=0,
             y_position=0,
             x_offset=0.1,
@@ -226,7 +226,7 @@ build_figure_from_panels(
         ),
         FigurePanel(
             letter="B",
-            path=output_dir / f"{base_name}.svg",
+            path=output_path / f"{base_name}.svg",
             x_position=0,
             y_position=4,
             x_offset=0,
@@ -234,7 +234,7 @@ build_figure_from_panels(
         ),
         FigurePanel(
             letter="C",
-            path=output_dir / "colorbar_cyan_magenta_0_1.svg",
+            path=output_path / "colorbar_cyan_magenta_0_1.svg",
             x_position=2.8,
             y_position=4,
             x_offset=0.1,
@@ -242,7 +242,7 @@ build_figure_from_panels(
         ),
         FigurePanel(
             letter="D",
-            path=output_dir / "20250409_20x_3d_scatter_high_migration_coherence.svg",
+            path=output_path / "20250409_20x_3d_scatter_high_migration_coherence.svg",
             x_position=4.5,
             y_position=4,
             x_offset=0.05,
@@ -250,7 +250,7 @@ build_figure_from_panels(
         ),
         FigurePanel(
             letter="",
-            path=output_dir / "20251001_20x_3d_scatter_low_migration_coherence.svg",
+            path=output_path / "20251001_20x_3d_scatter_low_migration_coherence.svg",
             x_position=4.5,
             y_position=5.35,
             x_offset=-0.095,
@@ -258,14 +258,14 @@ build_figure_from_panels(
         ),
         FigurePanel(
             letter="",
-            path=output_dir / "colorbar_cyan_magenta_0_1.svg",
+            path=output_path / "colorbar_cyan_magenta_0_1.svg",
             x_position=4.625,
             y_position=7.25,
             x_offset=0,
             y_offset=0.0,
         ),
     ],
-    output_dir / "supp_figure_8_migration_coherence.svg",
+    output_path / "supp_figure_8_migration_coherence.svg",
     width=MAX_FIGURE_WIDTH,
     height=MAX_FIGURE_HEIGHT,
 )
