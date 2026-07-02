@@ -39,7 +39,7 @@ def load_stitched_image(
     # Load image with each given loader and stitch across positions
     loaded_images = []
     for loader in loaders:
-        images = [loader(config, position, timepoint, level=2) for position in positions]
+        images = [loader(config, position, timepoint) for position in positions]
 
         if crop is not None:
             loaded_images.append(convert_to_uint8(crop_image(images[0].squeeze().compute(), *crop)))
@@ -119,14 +119,34 @@ def add_timestamp_to_frame(
 
     timestamp = f"{hours:02d}:{minutes:02d} hr:min{shear_stress_label}"
 
+    # Scale text size relative to image width (reference: 1000px wide → fontScale 1.0)
+    font_scale = max(0.5, image.shape[1] / 1000)
+    thickness_outline = max(1, round(font_scale * 2))
+    thickness_text = max(1, round(font_scale))
+    org_x = int(10 * font_scale)
+    org_y = int(30 * font_scale)
+
+    # Black outline for readability
     cv2.putText(
         img=image,
         text=timestamp,
-        org=(10, 30),
+        org=(org_x, org_y),
         fontFace=2,
-        fontScale=1,
+        fontScale=font_scale,
+        color=(0, 0, 0),
+        thickness=thickness_outline,
+        lineType=cv2.LINE_AA,
+    )
+
+    # White text
+    cv2.putText(
+        img=image,
+        text=timestamp,
+        org=(org_x, org_y),
+        fontFace=2,
+        fontScale=font_scale,
         color=(255, 255, 255),
-        thickness=1,
+        thickness=thickness_text,
         lineType=cv2.LINE_AA,
     )
 
@@ -134,14 +154,29 @@ def add_timestamp_to_frame(
         # Custom position for cm^2 exponent in shear stress label because OpenCV only supports
         # simple text characters by default. You might need to adjust the x position based on how
         # long the rest of the timestamp annotation is.
+
+        org_x = int(425 * font_scale)
+        org_y = int(20 * font_scale)
+
         cv2.putText(
             img=image,
             text="2",
-            org=(425, 20),
+            org=(org_x, org_y),
             fontFace=2,
-            fontScale=0.5,
+            fontScale=font_scale / 2,
+            color=(0, 0, 0),
+            thickness=thickness_outline,
+            lineType=cv2.LINE_AA,
+        )
+
+        cv2.putText(
+            img=image,
+            text="2",
+            org=(org_x, org_y),
+            fontFace=2,
+            fontScale=font_scale / 2,
             color=(255, 255, 255),
-            thickness=1,
+            thickness=thickness_text,
             lineType=cv2.LINE_AA,
         )
 
