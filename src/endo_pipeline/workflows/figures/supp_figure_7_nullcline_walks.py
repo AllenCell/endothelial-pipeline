@@ -9,8 +9,8 @@ def main() -> None:
     | ----- | --------------------------------------------------------------------------------------------------------- | ---------- |
     | A     | 2D contour plot of drift coefficients for representative replicate at 6 dyn/cm² shear stress              |            |
     | B     | DiffAE generated synthetic images along nullcline for representative replicate at 6 dyn/cm² shear stress  | _uses GPU_ |
-    | C     | 2D contour plot of drift coefficients for representative replicate at 12 dyn/cm² shear stress             |            |
-    | D     | DiffAE generated synthetic images along nullcline for representative replicate at 12 dyn/cm² shear stress | _uses GPU_ |
+    | C     | 2D contour plot of drift coefficients for representative replicate at 21 dyn/cm² shear stress             |            |
+    | D     | DiffAE generated synthetic images along nullcline for representative replicate at 21 dyn/cm² shear stress | _uses GPU_ |
 
     ## Example usage
 
