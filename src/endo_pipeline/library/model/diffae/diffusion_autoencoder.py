@@ -185,22 +185,15 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         dtype,
         device: str,
         seed: int | None = None,
-        generator: torch.Generator | None = None,
     ) -> torch.Tensor:
-        """Generate noise using a specified generator or seed.
+        """Generate noise from an optional seed.
 
-        If there is a pre-made generator, use that. Otherwise, create one from
-        the given seed. When a seed is provided (and no explicit generator), the
-        noise is always drawn on the CPU with a CPU generator and then moved to
-        ``device``. A CUDA generator and a CPU generator produce different
-        sequences from the same seed, so drawing on the CPU is what keeps the
-        sampled noise -- and therefore diffusion reconstructions -- identical
-        across CPU and GPU.
+        When a seed is provided, the noise is always drawn on the CPU with a CPU
+        generator and then moved to ``device``. A CUDA generator and a CPU
+        generator produce different sequences from the same seed, so drawing on
+        the CPU is what keeps the sampled noise -- and therefore diffusion
+        reconstructions -- identical across CPU and GPU.
         """
-        if generator is not None:
-            # Caller supplied an explicit generator; respect its device.
-            return torch.randn(shape, generator=generator, device=device, dtype=dtype)
-
         if seed is not None:
             # Draw seeded noise on the CPU for device independence, then move
             # (and cast) to the target device.
