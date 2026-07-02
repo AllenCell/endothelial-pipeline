@@ -3,15 +3,15 @@
 
 #supp-figure #preprocessing
 
-| Panel | Description                                                                                      |
-| ----- | ------------------------------------------------------------------------------------------------ |
-| A     | Representative trace of mean brightfield (BF) intensity with detected outliers                   |
-| B     | Representative trace of mean VE-cadherin-mEGFP intensity with detected outliers                  |
-| C     | Standard deviation of brightfield pixel intensities at each Z-slice for representative timepoint |
-| D     | Per-timepoint and mean in-focus plane across all timepoints                                      |
-| E     | Histogram of calculated in-focus planes across all replicates                                    |
-| F     | Representative images of in-focus plane and along upper/lower offsets for a given timepoint      |
-| G     | Example VE-cadherin-mEGFP and BF images of cell crowding                                         |
+| Panel | Description                                                                                      | Notes                |
+| ----- | ------------------------------------------------------------------------------------------------ | -------------------- |
+| A     | Representative trace of mean brightfield (BF) intensity with detected outliers                   |                      |
+| B     | Representative trace of mean VE-cadherin-mEGFP intensity with detected outliers                  |                      |
+| C     | Standard deviation of brightfield pixel intensities at each Z-slice for representative timepoint |                      |
+| D     | Per-timepoint and mean in-focus plane across all timepoints                                      |                      |
+| E     | Histogram of calculated in-focus planes across all replicates                                    |                      |
+| F     | Representative images of in-focus plane and along upper/lower offsets for a given timepoint      |                      |
+| G     | Example VE-cadherin-mEGFP and BF images of cell crowding                                         | _generated manually_ |
 
 ## Example usage
 
