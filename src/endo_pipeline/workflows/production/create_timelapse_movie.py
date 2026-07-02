@@ -14,6 +14,7 @@ def main(
     annotate_shear_stress: bool = True,
     scale_bar_um: int = 100,
     orientation: Literal["horizontal", "vertical"] = "vertical",
+    crop: tuple[int, int, int] | None = None,
 ) -> None:
     """
     Create timelapse movies of single FOV or stitched.
@@ -76,6 +77,8 @@ def main(
         Size of scale bar in microns.
     orientation
         Orientation to stack multiple channels.
+    crop
+        Crop defined as (start_x, start_y, size).
     """
 
     import logging
@@ -115,6 +118,7 @@ def main(
             annotate_shear_stress=annotate_shear_stress,
             scale_bar_um=scale_bar_um,
             orientation=orientation,
+            crop=crop,
         )
 
 
