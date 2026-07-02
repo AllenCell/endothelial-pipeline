@@ -17,7 +17,7 @@ def main() -> None:
     To run the figure workflow:
 
     ```bash
-    uv run endopipe supp-figure-2-seg-features
+    uv run endopipe supp-figure-2-segmentations
     ```
 
     ## Figure panels
