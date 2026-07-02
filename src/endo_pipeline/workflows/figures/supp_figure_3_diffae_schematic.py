@@ -21,6 +21,12 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     uv run endopipe supp-figure-3-diffae-schematic
     ```
 
+    To run the figure workflow for a specific panel:
+
+    ```bash
+    uv run endopipe supp-figure-3-diffae-schematic PANEL
+    ```
+
     ## Figure panels
 
     Some panels in this workflow should be run with an NVIDIA GPU (as indicated
