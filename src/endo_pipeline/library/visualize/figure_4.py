@@ -219,11 +219,6 @@ def reconstruct_fixed_points(
     model_location = model_manifest.locations[DEFAULT_MODEL_RUN_NAME]
     model = load_model(model_location, instantiate=True)
 
-    # load and instantiate model for generating synthetic images
-    model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
-    model_location = model_manifest.locations[DEFAULT_MODEL_RUN_NAME]
-    model = load_model(model_location, instantiate=True)
-
     column_names = cast(list[str], list(DYNAMICS_COLUMN_NAMES))
     column_labels = [str(COLUMN_METADATA[col].label or str(col)) for col in DYNAMICS_COLUMN_NAMES]
     fixed_point_label = f"({column_labels[0]}$^*$, {column_labels[1]}$^*$, {column_labels[2]}$^*$)"
