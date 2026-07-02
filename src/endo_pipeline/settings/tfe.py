@@ -58,7 +58,6 @@ TFE_FEATURES: list[ColumnNameType] = [
     # General information ======================================================
     Column.SegData.TIME_HRS,
     Column.SegData.TIME_MINS,
-    Column.TRACK_ID,
     Column.TRACK_LENGTH,
     # Classic segmentation features ============================================
     Column.SegData.ALIGNMENT,
@@ -85,11 +84,13 @@ TFE_FEATURES: list[ColumnNameType] = [
     Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG,
     Column.SegData.NUCLEI_POSITION_ANGLE_DEG,
     Column.SegData.VECTOR_MEAN_FOR_CROP_MAGNITUDE,
-    # DiffAE-based features ====================================================
-    *[ColumnTemplate.PCA_FEATURE % i for i in range(1, MAX_PCS_TO_COMPUTE + 1)],
+    # ML-based features ====================================================
     Column.DiffAEData.POLAR_ANGLE,
     Column.DiffAEData.POLAR_RADIUS,
     Column.DiffAEData.PC3_FLIPPED,
+    # Optical flow features ====================================================
+    Column.OpticalFlow.UNIT_VECTOR_MEAN,
+    Column.OpticalFlow.SPEED_MEAN,
     # Segmentation filters =====================================================
     Column.SegDataFilters.IS_EDGE_SEGMENTATION,
     Column.SegDataFilters.IS_LESS_THAN_MAX_SMOOTHED_AREA_NORMD_CHANGE,
@@ -109,8 +110,7 @@ TFE_FEATURES: list[ColumnNameType] = [
     Column.Annotations.UNFED,
     Column.Annotations.XY_SHIFT,
     Column.Annotations.Z_SHIFT,
-    # Optical flow features ====================================================
-    Column.OpticalFlow.UNIT_VECTOR_MEAN,
-    Column.OpticalFlow.SPEED_MEAN,
+    # PC features ============================================================
+    *[ColumnTemplate.PCA_FEATURE % i for i in range(1, MAX_PCS_TO_COMPUTE + 1)],
 ]
 """List of feature to include in TFE manifest."""
