@@ -141,7 +141,6 @@ TABLE_S4_NUCLEAR_LABELFREE = {
         (DATE, "date"),
         (CELL_LINE, "cell_line"),
         (SHEAR_STRESS, "shear_stress"),
-        (REPLICATE, "replicate"),
         (NUC_SAMPLE, "sample_type"),
         (FOV_POSITIONS, "fovs"),
     ],

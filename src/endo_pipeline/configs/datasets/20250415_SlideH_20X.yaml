@@ -36,7 +36,7 @@ flow_conditions:
 include_scenes: null
 notes: NucViolet + BF only (acquired for nuclear segmentation ground truth). Sample
   was also used to test Sox17 antibody optimization and NR2F2 detection.
-replicate_number: 5
+replicate_number: null
 stability_category: null
 timepoint_annotations: null
 position_annotations: null
