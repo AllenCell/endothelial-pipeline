@@ -1,8 +1,30 @@
 def main() -> None:
-    """Produces figure panels for the CDH5 segmentation and classic feature workflow figure.
-    This includes imaging panels showing the segmentation steps and 2D histograms of classic
-    features for each of the PCA reference datasets.
     """
+    **Supplemental Figure 2**. Generation of tracked 2D cell segmentations and
+    measurements using VE-cadherin
+
+    #supp-figure #cdh5-segmentation
+
+    | Panel | Description                                                                                | Notes                |
+    | ----- | ------------------------------------------------------------------------------------------ | -------------------- |
+    | A     | Diagram for cell segmentation steps                                                        | _compiled manually_  |
+    | B     | Measured features for representative replicate under 6 dyn/cm² shear stress                |                      |
+    | C     | Measured features for representative replicate under 12 dyn/cm² shear stress               |                      |
+    | D     | Schematic for cell orientation, aspect ratio, and cell-nucleus angle relative to migration | _generated manually_ |
+
+    ## Example usage
+
+    To run the figure workflow:
+
+    ```bash
+    uv run endopipe supp-figure-2-seg-features
+    ```
+
+    ## Figure panels
+
+    All panels in this workflow can be run without GPU.
+    """
+
     from pathlib import Path
 
     from matplotlib import pyplot as plt
@@ -21,12 +43,11 @@ def main() -> None:
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
     from endo_pipeline.workflows.figures import assets as figure_assets
 
-    # set global plotting parameters to be consistent with the other plots in the manuscript
     plt.style.use("endo_pipeline.figure")
 
-    datasets = CDH5_SEG_FIG_CLASSIC_FEAT_EXAMPLES
+    output_path = get_output_path(__file__)
 
-    out_dir = get_output_path(__file__)
+    datasets = CDH5_SEG_FIG_CLASSIC_FEAT_EXAMPLES
 
     # Set the panel sizes
     panel_A_height = 3.05
@@ -60,7 +81,7 @@ def main() -> None:
             positions=[0],
             features=features,
             ncols=3,
-            out_dir=out_dir / "feature_contact_sheet",
+            out_dir=output_path / "feature_contact_sheet",
             figure_width=panel_B_and_C_width,
             figure_height_scaling=0.7,
         )
@@ -107,7 +128,7 @@ def main() -> None:
 
     build_figure_from_panels(
         figure_panels,
-        out_dir / "Figure_S2_segmentations.svg",
+        output_path / "supp_figure_2_segmentations.svg",
         width=MAX_FIGURE_WIDTH,
         height=panel_A_height + panel_B_height + panel_C_height + 0.3,
     )
