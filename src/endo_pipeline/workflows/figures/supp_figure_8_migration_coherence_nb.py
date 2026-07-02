@@ -1,19 +1,27 @@
-"""Supplementary figure: optical-flow coherent vs. incoherent example panels.
+"""
+**Supplemental Figure 8**. Quantifying migration coherence and mapping it onto
+stable fixed points in morphological state-space
 
-Renders a 2x2 figure with two columns:
+#supp-figure #migration-coherence #optical-flow
 
-    column 0 -- "Coherent Example":   composite (top), quiver (bottom)
-    column 1 -- "Incoherent Example": composite (top), quiver (bottom)
+| Panel | Description                                                                                           | Notes                 |
+| ----- | ----------------------------------------------------------------------------------------------------- | --------------------- |
+| A     | Representative images showing VE-cadherin blobs co-localizing with retraction fibers                  |                       |
+| B     | Examples of high and low migration coherence composite images                                         |                       |
+| C     | Grid of patches colored by patch-based migration coherence at 6 dyn/cm² and 12 dyn/cm² shear stress   | _generated using TFE_ |
+| D     | 3D scatter plot for representative 6 dyn/cm² and 21 dyn/cm² replicates colored by migration coherence |                       |
 
-The composite is a magenta/green merge of consecutive BF frames
-(overlap = white) with a scale bar; the quiver shows the TVL1 flow
-field annotated with the migration coherence (R-bar).
+## Example usage
 
-The picks live in :mod:`endo_pipeline.settings.examples` as
-``SUPP_FIG_OPTICAL_FLOW_{COHERENT,INCOHERENT}_EXAMPLE``; the per-panel
-plotting helpers live in
-:mod:`endo_pipeline.library.visualize.supp_fig_optical_flow`.
+To run the figure workflow:
 
+```bash
+uv run endopipe supp-figure-8-migration-coherence
+```
+
+## Figure panels
+
+All panels in this workflow can be run without GPU.
 """
 
 # %%
@@ -257,7 +265,7 @@ build_figure_from_panels(
             y_offset=0.0,
         ),
     ],
-    output_dir / "supp_fig_migration_coherence.svg",
+    output_dir / "supp_figure_8_migration_coherence.svg",
     width=MAX_FIGURE_WIDTH,
     height=MAX_FIGURE_HEIGHT,
 )
