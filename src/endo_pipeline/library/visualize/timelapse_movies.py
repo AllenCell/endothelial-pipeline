@@ -51,7 +51,7 @@ def load_stitched_image(
                 )
             )
 
-    # If merging, pseudo-color the first channel as green and merge.
+    # If merging, pseudo-color the first channel as green and merge
     if merge_channels:
         channel_1 = loaded_images[0]
         channel_2 = loaded_images[1]
@@ -62,11 +62,30 @@ def load_stitched_image(
         channel_merge = np.stack([channel_2, np.maximum(channel_2, channel_1), channel_2], axis=-1)
         loaded_images = [channel_1_green, channel_2_full, channel_merge]
 
+    # If more than one channel, add padding scaled relative to image size
+    if len(loaders) > 1:
+        if orientation == "vertical":
+            padding = loaded_images[0].shape[0] // 100
+            padding_size = (padding, loaded_images[0].shape[1])
+        else:
+            padding = loaded_images[0].shape[1] // 100
+            padding_size = (loaded_images[0].shape[0], padding)
+
+        if merge_channels:
+            padding_size = (*padding_size, 3)
+
+        padding_image = np.zeros(padding_size, dtype=loaded_images[0].dtype)
+        loaded_images_all = [loaded_images[0]]
+        for image in loaded_images[1:]:
+            loaded_images_all.extend([padding_image, image])
+    else:
+        loaded_images_all = loaded_images
+
     # Combine images along specified axis
     if orientation == "vertical":
-        loaded_image = np.concatenate(loaded_images, axis=0)
+        loaded_image = np.concatenate(loaded_images_all, axis=0)
     else:
-        loaded_image = np.concatenate(loaded_images, axis=1)
+        loaded_image = np.concatenate(loaded_images_all, axis=1)
 
     return loaded_image
 
@@ -106,11 +125,18 @@ def resize_and_pad_image(
         width = int(image.shape[1] * scale_factor)
         image = cv2.resize(image, (width, height), interpolation=cv2.INTER_LINEAR)
 
-    pad_h, pad_w = padding
+    pad_h_, pad_w_ = padding
+    pad_h_before = pad_h_ // 2
+    pad_h_after = pad_h_ - pad_h_before
+    pad_w_before = pad_w_ // 2
+    pad_w_after = pad_w_ - pad_w_before
+    pad_h = (pad_h_before, pad_h_after)
+    pad_w = (pad_w_before, pad_w_after)
+
     if len(image.shape) == 3:
-        image = np.pad(image, ((0, pad_h), (0, pad_w), (0, 0)), mode="constant", constant_values=0)
+        image = np.pad(image, (pad_h, pad_w, (0, 0)), mode="constant", constant_values=0)
     else:
-        image = np.pad(image, ((0, pad_h), (0, pad_w)), mode="constant", constant_values=0)
+        image = np.pad(image, (pad_h, pad_w), mode="constant", constant_values=0)
 
     return image
 
