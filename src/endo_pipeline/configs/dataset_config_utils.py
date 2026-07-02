@@ -145,6 +145,19 @@ def get_flow_at_frame(dataset: DatasetConfig, frame: int) -> float | None:
     return None
 
 
+def get_flow_bin_at_frame(dataset: DatasetConfig, frame: int) -> int | None:
+    """Get the shear stress bin the dataset was under at the given frame."""
+
+    for condition in dataset.flow_conditions:
+        if condition.start <= frame <= condition.stop:
+            return condition.shear_stress_bin
+
+    logger.warning(
+        "Dataset [ %s ] does not have flow condition for frame [ %d ]", dataset.name, frame
+    )
+    return None
+
+
 def get_duration_at_flow(dataset: DatasetConfig, shear_stress: float) -> int:
     """Get the duration the dataset was under the given shear stress."""
 

@@ -10,7 +10,7 @@ import imageio
 import numpy as np
 from tqdm import tqdm
 
-from endo_pipeline.configs import DatasetConfig, get_flow_at_frame, load_dataset_config
+from endo_pipeline.configs import DatasetConfig, get_flow_bin_at_frame, load_dataset_config
 from endo_pipeline.library.process.image_processing import (
     convert_to_uint8,
     load_processed_bf_image,
@@ -81,8 +81,8 @@ def add_timestamp_to_frame(
     minutes = int(duration_minutes % 60)
 
     if annotate_shear_stress:
-        shear_stress = get_flow_at_frame(config, frame=frame)
-        shear_stress_label = f" {shear_stress:4.1f} dyn/cm"
+        shear_stress = get_flow_bin_at_frame(config, frame=frame)
+        shear_stress_label = f" {shear_stress:2d} dyn/cm"
     else:
         shear_stress_label = ""
 
@@ -106,7 +106,7 @@ def add_timestamp_to_frame(
         cv2.putText(
             img=image,
             text="2",
-            org=(454, 20),
+            org=(425, 20),
             fontFace=2,
             fontScale=0.5,
             color=(255, 255, 255),
