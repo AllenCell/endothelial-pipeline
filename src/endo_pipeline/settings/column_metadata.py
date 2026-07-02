@@ -131,7 +131,11 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         type=ColumnType.CONTINUOUS,
     ),
     Column.TRACK_ID: ColumnMetadata(name="Track ID", type=ColumnType.DISCRETE),
-    Column.TRACK_LENGTH: ColumnMetadata(name="Track duration", type=ColumnType.DISCRETE),
+    Column.TRACK_LENGTH: ColumnMetadata(
+        name="Track duration",
+        type=ColumnType.DISCRETE,
+        unit="frames",
+    ),
     Column.DATASET: ColumnMetadata(name="Dataset", type=ColumnType.DISCRETE),
     Column.POSITION: ColumnMetadata(name="Position", type=ColumnType.DISCRETE),
     Column.TIMEPOINT: ColumnMetadata(name="Frame number", type=ColumnType.DISCRETE),
@@ -215,7 +219,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         type=ColumnType.CONTINUOUS,
     ),
     Column.SegData.CELL_FLUOR_MEAN: ColumnMetadata(
-        name="Mean VE-Cad fluorescence in cell",
+        name="Cell mean fluorescence",
         label="Cell mean\nfluorescence",
         unit="a.u.",
         min=120,
@@ -229,7 +233,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         type=ColumnType.CONTINUOUS,
     ),
     Column.SegData.EDGE_FLUOR_MEAN: ColumnMetadata(
-        name="Mean VE-Cad fluorescence at edges",
+        name="Cell edge mean fluorescence",
         label="Cell edge mean\nfluorescence",
         unit="a.u.",
         min=100,
@@ -305,7 +309,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         type=ColumnType.CONTINUOUS,
     ),
     Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG: ColumnMetadata(
-        name="Nucleus orientation relative to migration",
+        name="Cell-nucleus angle relative to migration",
         label="Cell-nuc angle\nrel. migration",
         unit="°",
         min=-180,
@@ -320,7 +324,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         type=ColumnType.CONTINUOUS,
     ),
     Column.SegData.NUCLEI_POSITION_ANGLE_DEG: ColumnMetadata(
-        name="Nucleus orientation relative to flow angle",
+        name="Cell-nucleus angle relative to flow",
         label="Cell-nuc angle rel. to flow",
         unit="°",
         min=-180,
