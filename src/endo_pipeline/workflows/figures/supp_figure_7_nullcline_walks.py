@@ -1,17 +1,33 @@
-from endo_pipeline.cli import UniqueStrList
-
-
-def main(include_panels: UniqueStrList | None = None) -> None:
+def main() -> None:
     """
-    Compile panels visualizing nullcline walks.
+    **Supplemental Figure 7**. Latent walks along nullclines of data-driven
+    vector fields
 
-    - **Panel A*: 2D contour plot of drift coefficients for polar radius and rho
-      (-PC3) coordinates for example low shear stress dataset.
-    - **Panel B**: DiffAE generated synthetic images along nullcline in polar
-      radius and rho (-PC3) coordinates for example low shear stress dataset.
-    - **Panels C-D**: Same as panels A-B but for example high shear stress dataset.
+    #supp-figure #dynamical-systems
 
+    | Panel | Description                                                                                               | Notes      |
+    | ----- | --------------------------------------------------------------------------------------------------------- | ---------- |
+    | A     | 2D contour plot of drift coefficients for representative replicate at 6 dyn/cm² shear stress              |            |
+    | B     | DiffAE generated synthetic images along nullcline for representative replicate at 6 dyn/cm² shear stress  | _uses GPU_ |
+    | C     | 2D contour plot of drift coefficients for representative replicate at 12 dyn/cm² shear stress             |            |
+    | D     | DiffAE generated synthetic images along nullcline for representative replicate at 12 dyn/cm² shear stress | _uses GPU_ |
+
+    ## Example usage
+
+    To run the figure workflow:
+
+    ```bash
+    uv run endopipe supp-figure-7-nullcline-walks
+    ```
+
+    ## Figure panels
+
+    Some panels in this workflow should be run with an NVIDIA GPU (as indicated
+    by _uses GPU_ in the table above). Run this workflow with the GPU flag (`-g`
+    or `--num-gpus`) to make sure GPUs are visible to the workflow. The workflow
+    will run without a GPU, but will be noticeably slower.
     """
+
     from pathlib import Path
 
     import matplotlib.pyplot as plt
@@ -51,7 +67,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     output_path = get_output_path(__file__)
 
-    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
+    placeholders = parse_placeholder_panels(None, ["A", "B", "C", "D"])
 
     # figure is for grid based crops
     patch_type = "grid_based"
@@ -201,7 +217,10 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     ]
 
     build_figure_from_panels(
-        panels, output_path / "supp_fig_nullcline_walks.svg", width=MAX_FIGURE_WIDTH, height=3.0
+        panels,
+        output_path / "supp_figure_7_nullcline_walks.svg",
+        width=MAX_FIGURE_WIDTH,
+        height=3.0,
     )
 
 
