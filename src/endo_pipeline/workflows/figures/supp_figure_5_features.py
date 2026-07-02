@@ -56,7 +56,7 @@ def main() -> None:
 
     plt.style.use("endo_pipeline.figure")
 
-    save_dir = get_output_path(__file__)
+    output_path = get_output_path(__file__)
 
     placeholders = parse_placeholder_panels(None, ["A", "B", "C", "D"])
 
@@ -65,7 +65,7 @@ def main() -> None:
     fig, _ = feature_viz.plot_explained_variance(pca.explained_variance_ratio_, figsize=(2.3, 2.5))
     save_plot_to_path(
         fig,
-        save_dir,
+        output_path,
         "explained_variance_ratio",
         file_format=".svg",
         pad_inches=0,
@@ -88,7 +88,7 @@ def main() -> None:
         output_path_base = make_feature_correlation_panel(
             pc_columns=ml_columns_100_pcs,
             seg_columns=measured_feature_columns,
-            output_path=save_dir,
+            output_path=output_path,
             force_labels_single_line=True,
             **placeholders["D"],
         )
@@ -107,7 +107,7 @@ def main() -> None:
     feature_correlations_path = make_feature_correlation_panel(
         pc_columns=ml_columns,
         seg_columns=measured_feature_columns,
-        output_path=save_dir,
+        output_path=output_path,
         figure_size=(6.0, 2.75),
         force_labels_single_line=True,
         **placeholders["D"],
@@ -116,7 +116,7 @@ def main() -> None:
     # perform latent walk along top 10 PCs and save the resulting contact sheet
     latent_walk_filename = "latent_walk_top_10_pcs"
     latent_walk_path, walk_img_grid = perform_and_plot_latent_walk_for_figures(
-        output_path=save_dir,
+        output_path=output_path,
         filename=latent_walk_filename,
         walk_column_names=DIFFAE_PC_COLUMN_NAMES[:10],  # walk along top 10 PCs
         figure_size=(3.8, 5.2),
@@ -139,7 +139,7 @@ def main() -> None:
     latent_walk_2d_path = plot_2d_latent_walk(
         images_pc1,
         images_pc2,
-        save_dir,
+        output_path,
         latent_walk_2d_filename,
     )
 
@@ -147,7 +147,7 @@ def main() -> None:
     panels = [
         FigurePanel(
             letter="A",
-            path=save_dir / "explained_variance_ratio.svg",
+            path=output_path / "explained_variance_ratio.svg",
             x_position=0,
             y_position=0,
             x_offset=-0.1,
@@ -181,7 +181,7 @@ def main() -> None:
 
     build_figure_from_panels(
         panels,
-        save_dir / "supp_figure_5_features.svg",
+        output_path / "supp_figure_5_features.svg",
         width=MAX_FIGURE_WIDTH,
         height=MAX_FIGURE_HEIGHT,
     )
