@@ -14,6 +14,7 @@ from tqdm import tqdm
 from endo_pipeline.configs import DatasetConfig, get_flow_bin_at_frame, load_dataset_config
 from endo_pipeline.library.process.image_processing import (
     convert_to_uint8,
+    crop_image,
     load_processed_bf_image,
     load_processed_bf_std_dev_image,
     load_processed_egfp_image,
@@ -31,6 +32,7 @@ def load_stitched_image(
     positions: list[int],
     timepoint: int,
     orientation: Literal["horizontal", "vertical"],
+    crop: tuple[int, int, int] | None = None,
 ) -> da.Array:
     """Load stitched and processed image for given timepoint."""
 
@@ -38,9 +40,15 @@ def load_stitched_image(
     loaded_images = []
     for loader in loaders:
         images = [loader(config, position, timepoint, level=2) for position in positions]
-        loaded_images.append(
-            convert_to_uint8(stitch_with_overlap(images, overlap_ratio=0.10).squeeze().compute())
-        )
+
+        if crop is not None:
+            loaded_images.append(convert_to_uint8(crop_image(images[0].squeeze().compute(), *crop)))
+        else:
+            loaded_images.append(
+                convert_to_uint8(
+                    stitch_with_overlap(images, overlap_ratio=0.10).squeeze().compute()
+                )
+            )
 
     # Combine images along specified axis
     if orientation == "vertical":
@@ -168,6 +176,7 @@ def create_timelapse_movie(
     annotate_shear_stress: bool = True,
     scale_bar_um: int = 100,
     orientation: Literal["horizontal", "vertical"] = "vertical",
+    crop: tuple[int, int, int] | None = None,
 ):
     """
     Create stitched or single FOV timelapse in mp4 format for a given dataset.
@@ -192,6 +201,8 @@ def create_timelapse_movie(
         Size of scale bar in microns.
     orientation
         Orientation to stack multiple channels.
+    crop
+        Crop defined as (start_x, start_y, size).
     """
 
     for channel_type in channel_types:
@@ -207,13 +218,20 @@ def create_timelapse_movie(
     if timepoints is None:
         timepoints = list(range(dataset_config.duration))
 
+    if crop is not None and len(positions) > 1:
+        logger.warning(
+            "Crops can only be applied for single positions. Only using position '%d'", positions[0]
+        )
+        positions = positions[:1]
+
     channel_orientation = f"_{orientation}" if len(channel_types) > 1 else ""
+    crop_name = f"_crop{crop[2]}_X{crop[0]}_Y{crop[1]}" if crop is not None else ""
     file_name = "_".join(
         [
             dataset_config.date,
             dataset_config.fmsid,
             f"P{positions[0]}" if len(positions) == 1 else f"P{min(positions)}-{max(positions)}",
-            f"{'_'.join(channel_types)}{channel_orientation}",
+            f"{'_'.join(channel_types)}{channel_orientation}{crop_name}",
             f"fps{frames_per_second}",
             f"scalebar{scale_bar_um}um.mp4",
         ]
@@ -235,6 +253,7 @@ def create_timelapse_movie(
         config=dataset_config,
         positions=positions,
         orientation=orientation,
+        crop=crop,
     )
 
     # Use first timepoint image for frame size calculations
