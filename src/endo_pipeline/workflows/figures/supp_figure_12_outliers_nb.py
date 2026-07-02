@@ -1,8 +1,29 @@
 """
-Visualize the selection of Z slices for image preprocessing.
-Visualize the automatic detection of outlier timepoints in BF and EGFP channels.
+**Supplemental Figure 12**. Filtering image data for downstream analysis
 
-#supfig #preprocessing
+#supp-figure #preprocessing
+
+| Panel | Description                                                                                      |
+| ----- | ------------------------------------------------------------------------------------------------ |
+| A     | Representative trace of mean brightfield (BF) intensity with detected outliers                   |
+| B     | Representative trace of mean VE-cadherin-mEGFP intensity with detected outliers                  |
+| C     | Standard deviation of brightfield pixel intensities at each Z-slice for representative timepoint |
+| D     | Per-timepoint and mean in-focus plane across all timepoints                                      |
+| E     | Histogram of calculated in-focus planes across all replicates                                    |
+| F     | Representative images of in-focus plane and along upper/lower offsets for a given timepoint      |
+| G     | Example VE-cadherin-mEGFP and BF images of cell crowding                                         |
+
+## Example usage
+
+To run the figure workflow:
+
+```bash
+uv run endopipe supp-figure-12-outliers
+```
+
+## Figure panels
+
+All panels in this workflow can be run without GPU.
 """
 
 # %%
@@ -40,10 +61,11 @@ from endo_pipeline.settings.image_data import LOWER_Z_SLICE_OFFSET, UPPER_Z_SLIC
 
 plt.style.use("endo_pipeline.figure")
 
+output_path = get_output_path("supp_figure_12_outliers")
+
 # %% Load dataset
 FIGURE_ID = "SUPP_FIG_Z_SLICE"
 dataset = EXAMPLE_DATASET[FIGURE_ID]
-save_dir_1 = get_output_path("supp_fig_z_slice_selection")
 dataset_config = load_dataset_config(dataset)
 position = REPRESENTATIVE_ANNOTATION_POSITION
 timepoint = REPRESENTATIVE_ANNOTATION_TIMEPOINT
@@ -63,7 +85,7 @@ plot_standard_devs_per_slice(
     dataset,
     position,
     timepoint,
-    save_dir_1,
+    output_path,
     (2.4, 2.15),
 )
 
@@ -73,14 +95,14 @@ plot_global_center_plane(
     focal_planes,
     dataset_config.name,
     position,
-    save_dir_1,
+    output_path,
     (2.4, 2.15),
     show_histogram=False,
 )
 
 # %% Panel - Distribution of upper slices available across datasets
 datasets = get_datasets_in_collection("shear_stress")
-plot_histogram_upper_slices_available(datasets, save_dir_1, figure_size=(1.5, 2.15))
+plot_histogram_upper_slices_available(datasets, output_path, figure_size=(1.5, 2.15))
 
 # %% Panel - Example images of selected Z slices
 visualize_slice_selection(
@@ -88,7 +110,7 @@ visualize_slice_selection(
     center_plane,
     position,
     timepoint,
-    save_dir_1,
+    output_path,
     (MAX_FIGURE_WIDTH * 0.7, 3),
     LOWER_Z_SLICE_OFFSET,
     UPPER_Z_SLICE_OFFSET,
@@ -96,7 +118,6 @@ visualize_slice_selection(
 
 # %% Load example datasets
 FIGURE_ID = "SUPP_FIG_SINGLE_TP"
-save_dir_2 = get_output_path("annotate_tp_outliers")
 dataset_bf = EXAMPLE_DATASET[f"{FIGURE_ID}_BF_OUTLIER"]
 dataset_gfp = EXAMPLE_DATASET[f"{FIGURE_ID}_GFP_OUTLIER"]
 
@@ -124,7 +145,7 @@ plot_single_timepoint_bf_outliers(
     bright_outliers=bf_tp_outliers[Column.Annotations.BF_BRIGHT_OUTLIERS].astype(int),
     dataset_name=dataset_bf,
     position=position,
-    save_dir=save_dir_2,
+    save_dir=output_path,
     figure_size=(3.4, 2.5),
 )
 
@@ -138,7 +159,7 @@ plot_single_timepoint_gfp_outliers(
     bright_outliers=gfp_tp_outliers[Column.Annotations.GFP_BRIGHT_OUTLIERS],
     dataset_name=dataset_gfp,
     position=position,
-    save_dir=save_dir_2,
+    save_dir=output_path,
     figure_size=(3.2, 2.5),
 )
 
@@ -171,7 +192,7 @@ print(gfp_results)
 panels = [
     FigurePanel(
         letter="A",
-        path=save_dir_2 / f"bf_outliers_{dataset_bf}_P{position}.svg",
+        path=output_path / f"bf_outliers_{dataset_bf}_P{position}.svg",
         x_position=0,
         y_position=0,
         x_offset=0,
@@ -179,7 +200,7 @@ panels = [
     ),
     FigurePanel(
         letter="B",
-        path=save_dir_2 / f"gfp_outliers_{dataset_gfp}_P{position}.svg",
+        path=output_path / f"gfp_outliers_{dataset_gfp}_P{position}.svg",
         x_position=3.5,
         y_position=0,
         x_offset=-0.1,
@@ -187,7 +208,7 @@ panels = [
     ),
     FigurePanel(
         letter="C",
-        path=save_dir_1 / f"standard_devs_{dataset}_P{position}_{timepoint}.svg",
+        path=output_path / f"standard_devs_{dataset}_P{position}_{timepoint}.svg",
         x_position=0,
         y_position=2.6,
         x_offset=0,
@@ -195,7 +216,7 @@ panels = [
     ),
     FigurePanel(
         letter="D",
-        path=save_dir_1 / f"global_center_plane_{dataset}_P{position}.svg",
+        path=output_path / f"global_center_plane_{dataset}_P{position}.svg",
         x_position=2.5,
         y_position=2.6,
         x_offset=0,
@@ -203,7 +224,7 @@ panels = [
     ),
     FigurePanel(
         letter="E",
-        path=save_dir_1 / "n_slices_above_in_focus_z_histogram.svg",
+        path=output_path / "n_slices_above_in_focus_z_histogram.svg",
         x_position=4.85,
         y_position=2.6,
         x_offset=0.08,
@@ -211,7 +232,7 @@ panels = [
     ),
     FigurePanel(
         letter="F",
-        path=save_dir_1
+        path=output_path
         / f"plane_selection_vis_{dataset}_P{position}_{timepoint}_offset{LOWER_Z_SLICE_OFFSET}_{UPPER_Z_SLICE_OFFSET}_scalebar100um.svg",
         x_position=0,
         y_position=2.3 + 2.6,
@@ -220,9 +241,11 @@ panels = [
     ),
 ]
 
-output_path = (
-    get_output_path("supp_fig_z_slice_outliers") / "supp_fig_z_slice_selection_outliers.svg"
+build_figure_from_panels(
+    panels,
+    output_path / "supp_figure_12_outliers.svg",
+    width=MAX_FIGURE_WIDTH,
+    height=MAX_FIGURE_HEIGHT,
 )
-build_figure_from_panels(panels, output_path, width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT)
 
 # %%
