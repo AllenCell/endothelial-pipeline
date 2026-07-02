@@ -1,4 +1,5 @@
 import logging
+import math
 from collections.abc import Callable
 from functools import partial
 from pathlib import Path
@@ -18,7 +19,7 @@ from endo_pipeline.library.process.image_processing import (
     load_processed_egfp_image,
     stitch_with_overlap,
 )
-from endo_pipeline.settings.figures import MAX_SUPP_MOVIE_HEIGHT, MAX_SUPP_MOVIE_WIDTH
+from endo_pipeline.settings.figures import MAX_MOVIE_MACROBLOCKS
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
 
 logger = logging.getLogger(__name__)
@@ -55,7 +56,12 @@ def calculate_frame_sizing(image: da.Array) -> tuple[float, tuple[int, int]]:
 
     # Calculate scaling factor
     height, width = image.shape
-    scale_factor = min(MAX_SUPP_MOVIE_WIDTH / width, MAX_SUPP_MOVIE_HEIGHT / height, 1.0)
+    height_in_mb = math.ceil(height / 16)
+    width_in_mb = math.ceil(width / 16)
+    aspect_ratio = width_in_mb / height_in_mb
+    target_height_in_mb = math.floor(math.sqrt(MAX_MOVIE_MACROBLOCKS / aspect_ratio))
+    target_width_in_mb = math.floor(target_height_in_mb * aspect_ratio)
+    scale_factor = min(target_height_in_mb / height_in_mb, target_width_in_mb / width_in_mb, 1.0)
 
     # Rescale if the image is larger than the max movie size
     if scale_factor < 1.0:

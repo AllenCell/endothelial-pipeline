@@ -16,11 +16,8 @@ FONTSIZE_MEDIUM = 9
 FONTSIZE_LARGE = 10  # max size indicated by author guidelines for figure plots
 FONTSIZE_XLARGE = 12  # this fontsize falls outside the recommended size in author guidelines
 
-MAX_SUPP_MOVIE_WIDTH = 1920
-"""Maximum width in pixels of mp4 movie"""
-
-MAX_SUPP_MOVIE_HEIGHT = 1080
-"""Maximum height in pixels of mp4 movie"""
+MAX_MOVIE_MACROBLOCKS = 3600
+"""Maximum size (in Macroblocks, a 16 x 16 block of pixels) supported by movie configuration."""
 
 MAX_FIGURE_WIDTH = 6.5
 """Maximum width of figure in inches."""
