@@ -13,6 +13,7 @@ def main(
     fps: int = 7,
     annotate_shear_stress: bool = True,
     scale_bar_um: int = 100,
+    orientation: Literal["horizontal", "vertical"] = "vertical",
 ) -> None:
     """
     Create timelapse movies of single FOV or stitched.
@@ -73,6 +74,8 @@ def main(
         True to include shear stress annotation on the movie, False otherwise.
     scale_bar_um
         Size of scale bar in microns.
+    orientation
+        Orientation to stack multiple channels.
     """
 
     import logging
@@ -111,6 +114,7 @@ def main(
             frames_per_second=fps,
             annotate_shear_stress=annotate_shear_stress,
             scale_bar_um=scale_bar_um,
+            orientation=orientation,
         )
 
 

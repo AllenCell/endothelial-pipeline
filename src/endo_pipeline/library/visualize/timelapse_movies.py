@@ -25,7 +25,11 @@ logger = logging.getLogger(__name__)
 
 
 def load_stitched_image(
-    loaders: list[Callable], config: DatasetConfig, positions: list[int], timepoint: int
+    loaders: list[Callable],
+    config: DatasetConfig,
+    positions: list[int],
+    timepoint: int,
+    orientation: Literal["horizontal", "vertical"],
 ) -> da.Array:
     """Load stitched and processed image for given timepoint."""
 
@@ -38,7 +42,10 @@ def load_stitched_image(
         )
 
     # Combine images along specified axis
-    loaded_image = np.concatenate(loaded_images, axis=0)
+    if orientation == "vertical":
+        loaded_image = np.concatenate(loaded_images, axis=0)
+    else:
+        loaded_image = np.concatenate(loaded_images, axis=1)
 
     return loaded_image
 
@@ -154,6 +161,7 @@ def create_timelapse_movie(
     frames_per_second: int = 7,
     annotate_shear_stress: bool = True,
     scale_bar_um: int = 100,
+    orientation: Literal["horizontal", "vertical"] = "vertical",
 ):
     """
     Create stitched or single FOV timelapse in mp4 format for a given dataset.
@@ -176,6 +184,8 @@ def create_timelapse_movie(
         True to include shear stress annotation on the movie, False otherwise.
     scale_bar_um
         Size of scale bar in microns.
+    orientation
+        Orientation to stack multiple channels.
     """
 
     for channel_type in channel_types:
@@ -191,12 +201,13 @@ def create_timelapse_movie(
     if timepoints is None:
         timepoints = list(range(dataset_config.duration))
 
+    channel_orientation = f"_{orientation}" if len(channel_types) > 1 else ""
     file_name = "_".join(
         [
             dataset_config.date,
             dataset_config.fmsid,
             f"P{positions[0]}" if len(positions) == 1 else f"P{min(positions)}-{max(positions)}",
-            f"{'_'.join(channel_types)}",
+            f"{'_'.join(channel_types)}{channel_orientation}",
             f"fps{frames_per_second}",
             f"scalebar{scale_bar_um}um.mp4",
         ]
@@ -217,6 +228,7 @@ def create_timelapse_movie(
         loaders=image_loaders,
         config=dataset_config,
         positions=positions,
+        orientation=orientation,
     )
 
     # Use first timepoint image for frame size calculations
