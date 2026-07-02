@@ -8,7 +8,7 @@ stable fixed points in morphological state-space
 | ----- | ----------------------------------------------------------------------------------------------------- | --------------------- |
 | A     | Representative images showing VE-cadherin blobs co-localizing with retraction fibers                  |                       |
 | B     | Examples of high and low migration coherence composite images                                         |                       |
-| C     | Grid of patches colored by patch-based migration coherence at 6 dyn/cm² and 12 dyn/cm² shear stress   | _generated using TFE_ |
+| C     | Grid of patches colored by patch-based migration coherence at 6 dyn/cm² and 21 dyn/cm² shear stress   | _generated using TFE_ |
 | D     | 3D scatter plot for representative 6 dyn/cm² and 21 dyn/cm² replicates colored by migration coherence |                       |
 
 ## Example usage
