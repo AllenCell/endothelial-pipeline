@@ -33,6 +33,7 @@ def load_stitched_image(
     timepoint: int,
     orientation: Literal["horizontal", "vertical"],
     crop: tuple[int, int, int] | None = None,
+    merge_channels: bool = False,
 ) -> da.Array:
     """Load stitched and processed image for given timepoint."""
 
@@ -50,6 +51,17 @@ def load_stitched_image(
                 )
             )
 
+    # If merging, pseudo-color the first channel as green and merge.
+    if merge_channels:
+        channel_1 = loaded_images[0]
+        channel_2 = loaded_images[1]
+        channel_1_green = np.stack(
+            [np.zeros_like(channel_1), channel_1, np.zeros_like(channel_1)], axis=-1
+        )
+        channel_2_full = np.stack([channel_2] * 3, axis=-1)
+        channel_merge = np.stack([channel_2, np.maximum(channel_2, channel_1), channel_2], axis=-1)
+        loaded_images = [channel_1_green, channel_2_full, channel_merge]
+
     # Combine images along specified axis
     if orientation == "vertical":
         loaded_image = np.concatenate(loaded_images, axis=0)
@@ -63,7 +75,8 @@ def calculate_frame_sizing(image: da.Array) -> tuple[float, tuple[int, int]]:
     """Calculate frame scaling and padding."""
 
     # Calculate scaling factor
-    height, width = image.shape
+    height = image.shape[0]
+    width = image.shape[1]
     height_in_mb = math.ceil(height / 16)
     width_in_mb = math.ceil(width / 16)
     aspect_ratio = width_in_mb / height_in_mb
@@ -94,7 +107,10 @@ def resize_and_pad_image(
         image = cv2.resize(image, (width, height), interpolation=cv2.INTER_LINEAR)
 
     pad_h, pad_w = padding
-    image = np.pad(image, ((0, pad_h), (0, pad_w)), mode="constant", constant_values=0)
+    if len(image.shape) == 3:
+        image = np.pad(image, ((0, pad_h), (0, pad_w), (0, 0)), mode="constant", constant_values=0)
+    else:
+        image = np.pad(image, ((0, pad_h), (0, pad_w)), mode="constant", constant_values=0)
 
     return image
 
@@ -212,6 +228,7 @@ def create_timelapse_movie(
     scale_bar_um: int = 100,
     orientation: Literal["horizontal", "vertical"] = "vertical",
     crop: tuple[int, int, int] | None = None,
+    merge_channels: bool = False,
 ):
     """
     Create stitched or single FOV timelapse in mp4 format for a given dataset.
@@ -238,12 +255,18 @@ def create_timelapse_movie(
         Orientation to stack multiple channels.
     crop
         Crop defined as (start_x, start_y, size).
+    merge_channels
+        True to merge the given channels, False otherwise.
     """
 
     for channel_type in channel_types:
         if channel_type not in ("EGFP", "BF", "BF_std_dev"):
             logger.error("Invalid channel type selected: '%s'", channel_type)
             raise ValueError("Channel must be 'EGFR' or 'BF' or 'BF_std_dev'")
+
+    if merge_channels and len(channel_types) != 2:
+        logger.error("Two channels must be provided for merge")
+        raise ValueError("Only two channels can be provided with 'merge_channels' option")
 
     dataset_config = load_dataset_config(dataset_name)
 
@@ -261,6 +284,7 @@ def create_timelapse_movie(
 
     channel_orientation = f"_{orientation}" if len(channel_types) > 1 else ""
     crop_name = f"_crop{crop[2]}_X{crop[0]}_Y{crop[1]}" if crop is not None else ""
+    merge_name = "_with_merge" if merge_channels else ""
     file_name = "_".join(
         [
             dataset_config.date,
@@ -268,7 +292,7 @@ def create_timelapse_movie(
             f"P{positions[0]}" if len(positions) == 1 else f"P{min(positions)}-{max(positions)}",
             f"{'_'.join(channel_types)}{channel_orientation}{crop_name}",
             f"fps{frames_per_second}",
-            f"scalebar{scale_bar_um}um.mp4",
+            f"scalebar{scale_bar_um}um{merge_name}.mp4",
         ]
     )
 
@@ -289,6 +313,7 @@ def create_timelapse_movie(
         positions=positions,
         orientation=orientation,
         crop=crop,
+        merge_channels=merge_channels,
     )
 
     # Use first timepoint image for frame size calculations

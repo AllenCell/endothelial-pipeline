@@ -15,6 +15,7 @@ def main(
     scale_bar_um: int = 100,
     orientation: Literal["horizontal", "vertical"] = "vertical",
     crop: tuple[int, int, int] | None = None,
+    merge_channels: bool = False,
 ) -> None:
     """
     Create timelapse movies of single FOV or stitched.
@@ -79,6 +80,8 @@ def main(
         Orientation to stack multiple channels.
     crop
         Crop defined as (start_x, start_y, size).
+    merge_channels
+        True to merge the given channels, False otherwise.
     """
 
     import logging
@@ -119,6 +122,7 @@ def main(
             scale_bar_um=scale_bar_um,
             orientation=orientation,
             crop=crop,
+            merge_channels=merge_channels,
         )
 
 
