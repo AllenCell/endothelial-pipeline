@@ -262,6 +262,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     Column.SegDataFilters.NUM_VALID_TIMEPOINTS_IN_TRACK: ColumnMetadata(
         name="Number of valid timepoints",
         type=ColumnType.DISCRETE,
+        unit="frames",
     ),
     Column.SegData.NUM_NEIGHBORS: ColumnMetadata(
         name="Number of neighbors",
@@ -357,7 +358,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         for i in range(1, MAX_PCS_TO_COMPUTE + 1)
     },
     Column.DiffAEData.POLAR_ANGLE: ColumnMetadata(
-        name=f"{Unicode.THETA}",
+        name=f"ML-based {Unicode.THETA}",
         label=Unicode.THETA,
         description="Polar angle calculated by transforming PC 1 and PC 2 to polar coordinates",
         min=0,
@@ -372,7 +373,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         type=ColumnType.CONTINUOUS,
     ),
     Column.DiffAEData.POLAR_RADIUS: ColumnMetadata(
-        name="r",
+        name="ML-based r",
         label="r",
         description="Polar radius calculated by transforming PC 1 and PC 2 to polar coordinates",
         min=0.3,
@@ -381,7 +382,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         type=ColumnType.CONTINUOUS,
     ),
     Column.DiffAEData.PC3_FLIPPED: ColumnMetadata(
-        name=f"{Unicode.RHO}",
+        name="ML-based p",
         label=Unicode.RHO,
         description="Negative value of PC 3",
         min=-0.8,
