@@ -129,7 +129,7 @@ FIGURE_3_EXAMPLE_IMAGES: list[ExampleImage] = [
     ),
 ]
 
-FIGURE_5_EXAMPLE_IMAGES: list[ExampleImage] = [
+FIGURE_4_EXAMPLE_IMAGES: list[ExampleImage] = [
     ExampleImage(
         dataset_name="20250402_20X",
         description="parental_line",
