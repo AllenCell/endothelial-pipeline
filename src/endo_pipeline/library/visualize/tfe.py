@@ -334,7 +334,7 @@ def build_tfe_dataset(
             feature_max = None
 
         feature_info = FeatureInfo(
-            label=feature_label,
+            label=str(feature_label),
             type=TFE_TYPE_MAPPING[feature_metadata.type],
             description=feature_description,
             unit=feature_units,
