@@ -40,112 +40,112 @@ locations:
   20250319_20X:
     fmsid: 798a269208f348089ae7422c77ef67b9
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20250319_0d94f8d3054e4e8c99af07dd92774798.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20250319_0d94f8d3054e4e8c99af07dd92774798.parquet
   20250428_20X:
     fmsid: ab98ceb2d756498499f89141e39e23f7
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20250428_056aa027ba9f4ccd98367563552f7edd.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20250428_056aa027ba9f4ccd98367563552f7edd.parquet
   20250611_20X:
     fmsid: 35c021e70bcc46d89623096f865a3e16
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20250611_a32615d530ae42c29d159cc058601879.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20250611_a32615d530ae42c29d159cc058601879.parquet
   20250618_20X:
     fmsid: 0fe39fe2678845c2a1ce06d23f16d35c
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20250618_f81e9bdf048e462e9755d7cbf5d21c37.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20250618_f81e9bdf048e462e9755d7cbf5d21c37.parquet
   20250813_20X:
     fmsid: e9c2708eb53a459db33bf22b5b393392
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20250813_6ab0f70bd43f4de987a789905dbfb95c.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20250813_6ab0f70bd43f4de987a789905dbfb95c.parquet
   20250326_20X:
     fmsid: 00709a2a044b4d118c47a1e884f1ec4a
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20250326_eb97addf262c44c5a6117ad1d4acc353.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20250326_eb97addf262c44c5a6117ad1d4acc353.parquet
   20250402_20X:
     fmsid: 01d9cfbdbebd49afb1bc8110cfb5b113
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20250402_90e37b7d8f1440efa84995b4697fb269.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20250402_90e37b7d8f1440efa84995b4697fb269.parquet
   20250409_20X:
     fmsid: 910bd5e5f2a945ef9f8aa417647f83e8
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20250409_df6b2a02bbc94c6f957923add524eac1.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20250409_df6b2a02bbc94c6f957923add524eac1.parquet
   20250604_20X:
     fmsid: c67e708fc68a4cc3b810f172f0046d72
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20250604_3f08ef7a2e0e450d963352dae4bf17dc.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20250604_3f08ef7a2e0e450d963352dae4bf17dc.parquet
   20250716_20X:
     fmsid: 8ed14efec40d4e59ab73768d0d766ee8
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20250716_328c62ecc91248eab2268e546892453e.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20250716_328c62ecc91248eab2268e546892453e.parquet
   20250908_20X:
     fmsid: fce2f3b6885d4440b21847453665d35e
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20250908_b5d434bdebce4053b2d90198541b6b59.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20250908_b5d434bdebce4053b2d90198541b6b59.parquet
   20251001_20X:
     fmsid: 425a68f76c27403ab49b55ae7ef77d45
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20251001_271124f03a16409499e8a84b0030cb15.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20251001_271124f03a16409499e8a84b0030cb15.parquet
   20251029_20X:
     fmsid: e94179f2931d43e28b5b8438c321d9ef
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20251029_441aed50cff54667afce891eb3a1a8db.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20251029_441aed50cff54667afce891eb3a1a8db.parquet
   20251119_20X:
     fmsid: bcf5fb8b25de41ba939857dcfc3da028
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20251119_d6449a79a6264466aa225af0cdef78c7.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20251119_d6449a79a6264466aa225af0cdef78c7.parquet
   20260114_20X:
     fmsid: 482cb011a0894fb598f9f9224ad52dc3
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20260114_4b693bb8eedb4e0ba0cb9ab4ae07b1a2.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20260114_4b693bb8eedb4e0ba0cb9ab4ae07b1a2.parquet
   20260121_20X:
     fmsid: 647e3d646be4466faf61d953bdd22112
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20260121_ff75e124720b4a3aa035025a05ced25f.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20260121_ff75e124720b4a3aa035025a05ced25f.parquet
   20260126_20X:
     fmsid: 4a1c34a51ac0435481c0a39440e364ae
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20260126_aed19d79c1a34707925cfa8393424c45.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20260126_aed19d79c1a34707925cfa8393424c45.parquet
   20260128_20X:
     fmsid: d5e8554618094510ac636599221a9fe3
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20260128_00bd94ea6d7e4b46bc16a55e35de589d.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20260128_00bd94ea6d7e4b46bc16a55e35de589d.parquet
   20260202_20X:
     fmsid: 8f7458f3454140b4ac948e899f797097
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20260202_fcb18a65bb734ff6ae718e1eee4894d6.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20260202_fcb18a65bb734ff6ae718e1eee4894d6.parquet
   20260204_20X:
     fmsid: eaa32f4774734032b7302fc516f4767f
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20260204_ac1fddfd7452481e83317c8fbdd59dd6.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20260204_ac1fddfd7452481e83317c8fbdd59dd6.parquet
   20260209_20X:
     fmsid: 48f68b0df8544a5792d30db1a136c420
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20260209_3700e11f893e4f378db450ea91bd92d6.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20260209_3700e11f893e4f378db450ea91bd92d6.parquet
   20260211_20X:
     fmsid: 468553f135904b51a34596416590b25b
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20260211_20b76dc8d0ca488ba88816793830f6ec.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20260211_20b76dc8d0ca488ba88816793830f6ec.parquet
   20260216_20X:
     fmsid: 25900f8978164415bbff49ba061930c6
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20260216_ed3743a1ee4c4cb096f5af90e3ebb9bd.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20260216_ed3743a1ee4c4cb096f5af90e3ebb9bd.parquet
   20260225_20X:
     fmsid: ec8b6c742b7a4498998432d56d7b69d7
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20260225_50afe3cb17cf4be099dc44e47f7a4ae4.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20260225_50afe3cb17cf4be099dc44e47f7a4ae4.parquet
   20260302_20X:
     fmsid: 4609912d533649fcaf43522cde87eaba
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20260302_e9cfa3b0b24447f7bba000af3b012427.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20260302_e9cfa3b0b24447f7bba000af3b012427.parquet
   20260304_20X:
     fmsid: 8cfb6d28cf4f4a4ea0c8312aa2d01d88
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20260304_56c81f459d8e46eabd74cc2147b85f49.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20260304_56c81f459d8e46eabd74cc2147b85f49.parquet
   20260309_20X:
     fmsid: da7c574d5baf40a7a9109085ebab9267
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20260309_1a52b127112347d4b805eb64d0b86757.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20260309_1a52b127112347d4b805eb64d0b86757.parquet
   20260325_20X:
     fmsid: bb87f2a6eee74cd783452c565fab8ab8
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/bootstrapped_fixed_points_grid_based/20260325_d1f28b79cf574775b529d83626183abc.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20260325_d1f28b79cf574775b529d83626183abc.parquet
