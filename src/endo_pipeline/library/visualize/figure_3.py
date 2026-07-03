@@ -122,6 +122,10 @@ def visualize_2d_streamplots(
         yticks=r_ticks,
     )
 
-    file_name = f"{dataset_name}_projected_streamplot"
-    _ = save_plot_to_path(fig, output_path, figure_name=file_name, file_format=".svg")
-    return output_path / f"{file_name}.svg"
+    return save_plot_to_path(
+        fig,
+        output_path,
+        figure_name=f"{dataset_name}_projected_streamplot",
+        file_format=".svg",
+        tight_layout=False,
+    )
