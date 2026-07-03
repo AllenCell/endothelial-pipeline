@@ -3,21 +3,49 @@ from endo_pipeline.cli import UniqueStrList
 
 def main(include_panels: UniqueStrList | None = None) -> None:
     """
-    Compile panels for Figure 4.
+    **Figure 4**. Properties of the data-driven vector field are consistent with
+    a saddle node bifurcation at intermediate shear stress magnitudes
 
-    - **Panel A**: Summary plot of fixed point locations across all replicates,
-      colored by migration coherence (EMA-smoothed optical flow unit vector
-      mean).
-    - **Panel B**: 3D vector field plot of drift coefficients for example
-      bistable intermediate shear stress dataset, with stable fixed points
-      overlaid as a scatter marker.
-    - **Panel C**: Accompanying 2D-projected streamplot for dynamics projected
-      onto plane defined by two stable fixed points and the saddle point that
-      connects them via its unstable manifold.
+    #main-figure #fixed-points #grid-based
 
+    | Panel | Description                                                                               | Notes      |
+    | ----- | ----------------------------------------------------------------------------------------- | ---------- |
+    | A     | Summary of fixed point locations across replicated colored by migration coherence         |            |
+    | B     | 3D data-driven vector field for representative bistable 12 dyn/cm² shear stress replicate |            |
+    | C     | Example reconstruction of VE-cadherin patch using stable fixed point                      | _uses GPU_ |
+    | D     | Streamplot for representative bistable 12 dyn/cm² shear stress replicate                  |            |
+
+    ## Example usage
+
+    To run the figure workflow:
+
+    ```bash
+    uv run endopipe figure-4
+    ```
+
+    To run the figure workflow for a specific panel:
+
+    ```bash
+    uv run endopipe figure-4 PANEL
+    ```
+
+    ## Figure panels
+
+    Some panels in this workflow should be run with an NVIDIA GPU (as indicated
+    by _uses GPU_ in the table above). Run this workflow with the GPU flag (`-g`
+    or `--num-gpus`) to make sure GPUs are visible to the workflow. The workflow
+    will run without a GPU, but will be noticeably slower. You may want to skip
+    generating these panels by excluding them from the list of panels.
+
+    Parameters
+    ----------
+    include_panels
+        List of panels to include in figure. Leave empty to include all panels.
     """
+
     import matplotlib.pyplot as plt
 
+    from endo_pipeline.cli import NUM_GPUS
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.diffae_features.projected_dynamics import (
         visualize_projected_dynamics,
@@ -95,15 +123,17 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     )
 
     dataset_name = EXAMPLE_DATASET["FIGURE_4_STREAMPLOT"]
-    vector_field_plot_path, stable_fixed_points_df = make_3d_vector_field_plot_panel(
+    vector_field_plot_path = make_3d_vector_field_plot_panel(
         dataset_name,
         output_path,
         **placeholders["B"],
     )
+
     fixed_point_reconstruction_path = reconstruct_fixed_points(
-        fixed_point_df=stable_fixed_points_df,
+        dataset_name=dataset_name,
         output_path=output_path,
         figure_size=(0.8, 2.25),
+        num_gpus=NUM_GPUS,
         **placeholders["C"],
     )
 
@@ -150,7 +180,10 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     ]
 
     build_figure_from_panels(
-        panels, output_path / "figure_4.svg", width=MAX_FIGURE_WIDTH, height=4.8
+        panels,
+        output_path / "figure_4.svg",
+        width=MAX_FIGURE_WIDTH,
+        height=4.8,
     )
 
 

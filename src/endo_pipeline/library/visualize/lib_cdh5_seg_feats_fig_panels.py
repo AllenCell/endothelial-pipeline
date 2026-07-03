@@ -120,11 +120,14 @@ def make_imaging_panels(
     dataset_config = load_dataset_config(dataset_name)
 
     # Load the validation image (which has some intermediate steps saved)
-    val_manifest = load_image_manifest("cdh5_seg_validations")
-    val_location = get_image_location_for_dataset(val_manifest, dataset_config, position, timeframe)
-    val_image = load_image(val_location, read=False)  # type: ignore[arg-type]
+    val_manifest = load_image_manifest("cdh5_seg_validations_zarr")
+    val_location = get_image_location_for_dataset(val_manifest, dataset_config, position)
+    val_image = load_image(val_location, read=False)
     channel_names = val_image.channel_names
-    val_array = val_image.get_image_dask_data(DIMENSION_ORDER).compute()
+    val_array_ = val_image.get_image_dask_data(DIMENSION_ORDER).compute()
+
+    # get specified timepoint (timepoints are saved every 48 timepoints)
+    val_array = np.take(val_array_, indices=[timeframe // 48], axis=DIMENSION_ORDER.index("T"))
 
     image_dict = {}
     for i, chan_name in enumerate(channel_names):
@@ -134,22 +137,22 @@ def make_imaging_panels(
     # Rename some keys for clarity
     # "nuclei_predictions" is a combo of segmentation skeletons and nuclei
     # predictions which are used as seeds
-    image_dict["seeds"] = image_dict.pop("nuclei_predictions")
+    image_dict["seeds"] = image_dict.pop("Nuclei_labelfree_segmentation")
     image_dict["seeds"] = binary_dilation(image_dict["seeds"])
     # "raw" is a max intensity projection (MIP) of the cdh5 channel
-    image_dict["cdh5_mip"] = image_dict.pop("raw")
+    image_dict["cdh5_mip"] = image_dict.pop("VE-cadherin_mEGFP_maximum_intensity_projection")
     # "processed" is the preprocessed cdh5 MIP channel
-    image_dict["cdh5_processed"] = image_dict.pop("processed")
+    image_dict["cdh5_processed"] = image_dict.pop("VE-cadherin_mEGFP_preprocessed")
     # "segmentations_initial" are the initial watershed segmentations before merging regions
-    image_dict["cdh5_seg_initial"] = image_dict.pop("segmentations_initial")
+    image_dict["cdh5_seg_initial"] = image_dict.pop("VE-cadherin_mEGFP_initial_segmentation")
     # "segmentations_merged" are cdh5 segmentations that result from merging watershed regions
     # based on the CDH5 signal; some regions get incorrectly merged
-    image_dict["cdh5_seg_merged"] = image_dict.pop("segmentations_merged")
+    image_dict["cdh5_seg_merged"] = image_dict.pop("VE-cadherin_mEGFP_merged_segmentation")
 
     # Dilate images of segmentation borders for better visibility
     image_dict["cdh5_seg_merged"] = binary_dilation(image_dict["cdh5_seg_merged"])
-    image_dict["cdh5_segmentations_split_by_nuclei_borders"] = binary_dilation(
-        image_dict["cdh5_segmentations_split_by_nuclei_borders"]
+    image_dict["VE-cadherin_mEGFP_segmentation_split_by_nuclei_borders"] = binary_dilation(
+        image_dict["VE-cadherin_mEGFP_segmentation_split_by_nuclei_borders"]
     )
     image_dict["zeros"] = np.zeros_like(image_dict["cdh5_mip"])
 
@@ -243,7 +246,7 @@ def make_imaging_panels(
             "colors_alpha": 0.7,
         },
         "cdh5_seg_final_overlay": {
-            "images": ["cdh5_mip", "cdh5_segmentations_split_by_nuclei_borders"],
+            "images": ["cdh5_mip", "VE-cadherin_mEGFP_segmentation_split_by_nuclei_borders"],
             "colors": [(255, 255, 255), (255, 255, 0)],
             "colors_thumbnail": ["yellow"],
             "colors_alpha": 0.7,

@@ -1,5 +1,7 @@
 """Helper function for visualizing spatial feature values on a crop grid."""
 
+from pathlib import Path
+
 import colorcet as cc
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
@@ -11,7 +13,7 @@ from matplotlib.colors import Colormap, Normalize
 from matplotlib.gridspec import GridSpec
 
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.io import load_dataframe
+from endo_pipeline.io import load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
     add_optical_flow_features,
 )
@@ -20,6 +22,7 @@ from endo_pipeline.library.process.image_processing import (
     load_processed_egfp_image_crop,
 )
 from endo_pipeline.library.visualize.figure_utils import add_scalebar
+from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA, ColumnMetadata
 from endo_pipeline.settings.column_names import ColumnName as Column
@@ -361,7 +364,9 @@ def _load_example_data(
     return example_dfs, image_rows, example_labels, example_subtitles
 
 
+@figure_panel("Spatial feature values on grid for select examples.")
 def create_panel_spatial_feature_grid(
+    output_path: Path,
     feature_columns: list[str],
     example_images: list,
     include_bf_images: bool = False,
@@ -370,11 +375,13 @@ def create_panel_spatial_feature_grid(
     grid_dimensions: tuple[int, int] = (3, 3),
     cmap: str = "viridis",
     figure_size: tuple[float, float] | None = None,
-) -> plt.Figure:
+) -> Path:
     """Create a figure showing spatial feature values on a grid for multiple examples.
 
     Parameters
     ----------
+    output_path
+        Output path to save figure.
     feature_columns
         Column names to visualize (one row per feature).
     example_images
@@ -395,9 +402,10 @@ def create_panel_spatial_feature_grid(
 
     Returns
     -------
-    plt.Figure
-        The assembled figure.
+    :
+        Path to saved figure.
     """
+
     example_dataframes, image_rows, example_labels, example_subtitles = _load_example_data(
         example_images,
         include_bf_images=include_bf_images,
@@ -508,4 +516,11 @@ def create_panel_spatial_feature_grid(
 
         _add_feature_colorbar(fig, gs, ax_row, n_examples, colormap, vmin, vmax, metadata)
 
-    return fig
+    return save_plot_to_path(
+        fig,
+        output_path,
+        "spatial_feature_grid_examples",
+        file_format=".svg",
+        tight_layout=False,
+        pad_inches=0,
+    )
