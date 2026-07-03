@@ -134,7 +134,7 @@ def get_dataset_stats(
     return {
         "date": dataset_config.date,
         "cell_line": "\n".join(dataset_config.cell_lines) if dataset_config.cell_lines else "",
-        "shear_stress": " / ".join(
+        "shear_stress": ", ".join(
             str(fc.shear_stress_bin) for fc in dataset_config.flow_conditions
         ),
         "replicate": dataset_config.replicate_number,
@@ -228,7 +228,7 @@ def get_seg_stats(
     return {
         "date": dataset_config.date,
         "cell_line": "\n".join(dataset_config.cell_lines) if dataset_config.cell_lines else "",
-        "shear_stress": " / ".join(
+        "shear_stress": ", ".join(
             str(fc.shear_stress_bin) for fc in dataset_config.flow_conditions
         ),
         "replicate": dataset_config.replicate_number,
@@ -309,13 +309,13 @@ def create_supp_table(
     # Build _bottom column if needed (push 0 dyn and flow switch datasets to bottom)
     if sort_bottom and SHEAR_STRESS in df.columns:
         df["_bottom"] = df[SHEAR_STRESS].apply(
-            lambda x: 1 if x in sort_bottom or " / " in str(x) else 0
+            lambda x: 1 if x in sort_bottom or ", " in str(x) else 0
         )
     else:
         df["_bottom"] = 0
 
     if sort_cols[0] == SHEAR_STRESS:
-        df["_sort"] = df[SHEAR_STRESS].str.split(" / ").str[0].astype(int)
+        df["_sort"] = df[SHEAR_STRESS].str.split(", ").str[0].astype(int)
         df = df.sort_values(by=["_bottom", "_sort"] + sort_cols[1:], ignore_index=True).drop(
             columns=["_sort", "_bottom"]
         )
