@@ -18,8 +18,13 @@ from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_b
 from endo_pipeline.manifests import DataframeManifest, get_dataframe_location_for_dataset
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.figures import FONTSIZE_XSMALL, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
-from endo_pipeline.settings.supp_tables import MAX_CELL_CHARS, SHEAR_STRESS
+from endo_pipeline.settings.unicode import UnicodeCharacters
 from endo_pipeline.settings.workflow_defaults import ANNOTATIONS_TO_FILTER_OUT_FOR_SEGMENTATIONS
+
+MAX_CELL_CHARS = 16
+"""Maximum number of characters used in supplemental table cell before applying text wrapping"""
+
+SHEAR_STRESS = f"Shear stress (dyn/cm{UnicodeCharacters.SQUARED})"
 
 
 def get_dataset_stats(
