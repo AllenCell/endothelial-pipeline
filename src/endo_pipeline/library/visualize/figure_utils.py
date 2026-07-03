@@ -324,7 +324,7 @@ def plot_image_thumbnail(
         dpi=dpi,
         file_format=file_format,
         pad_inches=0,
-        tight_layout=True,
+        tight_layout=False,
     )
     return figure, ax
 
