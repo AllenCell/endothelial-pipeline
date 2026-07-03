@@ -11,7 +11,13 @@ import imageio
 import numpy as np
 from tqdm import tqdm
 
-from endo_pipeline.configs import DatasetConfig, get_flow_bin_at_frame, load_dataset_config
+from endo_pipeline.configs import (
+    DatasetConfig,
+    TimepointAnnotation,
+    get_flow_bin_at_frame,
+    get_unannotated_timepoints_for_position,
+    load_dataset_config,
+)
 from endo_pipeline.library.process.image_processing import (
     convert_to_uint8,
     crop_image,
@@ -20,7 +26,8 @@ from endo_pipeline.library.process.image_processing import (
     load_processed_egfp_image,
     stitch_with_overlap,
 )
-from endo_pipeline.settings.figures import MAX_MOVIE_MACROBLOCKS
+from endo_pipeline.settings.examples import ExampleImage
+from endo_pipeline.settings.figures import MAX_MOVIE_MACROBLOCKS, MOVIE_FRAMES_PER_SECOND
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x
 
 logger = logging.getLogger(__name__)
@@ -249,12 +256,14 @@ def create_timelapse_movie(
     output_path: Path,
     timepoints: list[int] | None = None,
     positions: list[int] | None = None,
-    frames_per_second: int = 7,
+    frames_per_second: int = MOVIE_FRAMES_PER_SECOND,
     annotate_shear_stress: bool = True,
     scale_bar_um: int = 100,
     orientation: Literal["horizontal", "vertical"] = "vertical",
     crop: tuple[int, int, int] | None = None,
     merge_channels: bool = False,
+    steady_state: int | None = None,
+    file_prefix: str | None = None,
 ):
     """
     Create stitched or single FOV timelapse in mp4 format for a given dataset.
@@ -283,6 +292,10 @@ def create_timelapse_movie(
         Crop defined as (start_x, start_y, size).
     merge_channels
         True to merge the given channels, False otherwise.
+    steady_state
+        Position for filtering timepoints to steady state. Unfiltered if None.
+    file_prefix
+        Prefix to add to output file name.
     """
 
     for channel_type in channel_types:
@@ -300,7 +313,17 @@ def create_timelapse_movie(
         positions = dataset_config.zarr_positions
 
     if timepoints is None:
-        timepoints = list(range(dataset_config.duration))
+        if steady_state is not None:
+            timepoints = get_unannotated_timepoints_for_position(
+                dataset_config,
+                position=steady_state,
+                annotations=[
+                    TimepointAnnotation.NOT_STEADY_STATE,
+                    TimepointAnnotation.CELL_PILING,
+                ],
+            )
+        else:
+            timepoints = list(range(dataset_config.duration))
 
     if crop is not None and len(positions) > 1:
         logger.warning(
@@ -308,17 +331,20 @@ def create_timelapse_movie(
         )
         positions = positions[:1]
 
-    channel_orientation = f"_{orientation}" if len(channel_types) > 1 else ""
-    crop_name = f"_crop{crop[2]}_X{crop[0]}_Y{crop[1]}" if crop is not None else ""
-    merge_name = "_with_merge" if merge_channels else ""
-    file_name = "_".join(
+    file_name = "".join(
         [
-            dataset_config.date,
-            dataset_config.fmsid,
-            f"P{positions[0]}" if len(positions) == 1 else f"P{min(positions)}-{max(positions)}",
-            f"{'_'.join(channel_types)}{channel_orientation}{crop_name}",
-            f"fps{frames_per_second}",
-            f"scalebar{scale_bar_um}um{merge_name}.mp4",
+            file_prefix or "",
+            f"{dataset_config.date}_",
+            "-".join([str(f.shear_stress_bin) for f in dataset_config.flow_conditions]),
+            "dyncm2",
+            f"_P{positions[0]}" if len(positions) == 1 else f"_P{min(positions)}-{max(positions)}",
+            f"_{'_'.join(channel_types)}",
+            "_with_merge" if merge_channels else "",
+            f"_{orientation}" if len(channel_types) > 1 else "",
+            f"_crop{crop[2]}_X{crop[0]}_Y{crop[1]}" if crop is not None else "",
+            f"_fps{frames_per_second}",
+            f"_scalebar{scale_bar_um}um",
+            ".mp4",
         ]
     )
 
@@ -374,3 +400,114 @@ def create_timelapse_movie(
 
             # Save image
             writer.append_data(image)  # type: ignore[attr-defined]
+
+
+def create_stitched_timelapse_movie_for_example(
+    example: ExampleImage,
+    output_path: Path,
+    file_prefix: str,
+):
+    """Wrapper for creating stitched timelapse movie for a given example."""
+
+    create_timelapse_movie(
+        dataset_name=example.dataset_name,
+        channel_types=["EGFP", "BF_std_dev"],
+        output_path=output_path,
+        timepoints=None,
+        positions=None,
+        frames_per_second=MOVIE_FRAMES_PER_SECOND,
+        annotate_shear_stress=True,
+        scale_bar_um=100,
+        orientation="vertical",
+        crop=None,
+        merge_channels=False,
+        steady_state=example.position,
+        file_prefix=file_prefix,
+    )
+
+
+def create_fov_timelapse_movie_for_example(
+    example: ExampleImage,
+    output_path: Path,
+    file_prefix: str,
+    crop_size: int,
+):
+    """Wrapper for creating FOV timelapse movie for a given example."""
+
+    create_timelapse_movie(
+        dataset_name=example.dataset_name,
+        channel_types=["EGFP", "BF", "BF_std_dev"],
+        output_path=output_path,
+        timepoints=None,
+        positions=[example.position],
+        frames_per_second=MOVIE_FRAMES_PER_SECOND,
+        annotate_shear_stress=True,
+        scale_bar_um=100,
+        orientation="horizontal",
+        crop=(example.crop_x_start, example.crop_y_start, crop_size),
+        merge_channels=False,
+        steady_state=example.position,
+        file_prefix=file_prefix,
+    )
+
+
+def create_inset_timelapse_movie_for_example(
+    example: ExampleImage,
+    output_path: Path,
+    file_prefix: str,
+    crop_size: int,
+    crop_x_offset: int = 0,
+    crop_y_offset: int = 0,
+):
+    """Wrapper for creating inset timelapse movie for a given example."""
+
+    create_timelapse_movie(
+        dataset_name=example.dataset_name,
+        channel_types=["EGFP", "BF", "BF_std_dev"],
+        output_path=output_path,
+        timepoints=None,
+        positions=[example.position],
+        frames_per_second=MOVIE_FRAMES_PER_SECOND,
+        annotate_shear_stress=True,
+        scale_bar_um=20,
+        orientation="horizontal",
+        crop=(
+            example.crop_x_start + crop_x_offset,
+            example.crop_y_start + crop_y_offset,
+            crop_size,
+        ),
+        merge_channels=False,
+        steady_state=example.position,
+        file_prefix=file_prefix,
+    )
+
+
+def create_merge_timelapse_movie_for_example(
+    example: ExampleImage,
+    output_path: Path,
+    file_prefix: str,
+    crop_size: int,
+    timepoint_offset: int = 1,
+    crop_x_offset: int = 0,
+    crop_y_offset: int = 0,
+):
+    """Wrapper for creating merge timelapse movie for a given example."""
+
+    create_timelapse_movie(
+        dataset_name=example.dataset_name,
+        channel_types=["EGFP", "BF"],
+        output_path=output_path,
+        timepoints=list(range(example.timepoint, example.timepoint + timepoint_offset)),
+        positions=[example.position],
+        frames_per_second=MOVIE_FRAMES_PER_SECOND,
+        annotate_shear_stress=True,
+        scale_bar_um=20,
+        orientation="horizontal",
+        crop=(
+            example.crop_x_start + crop_x_offset,
+            example.crop_y_start + crop_y_offset,
+            crop_size,
+        ),
+        merge_channels=True,
+        file_prefix=file_prefix,
+    )

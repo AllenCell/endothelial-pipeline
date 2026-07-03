@@ -19,6 +19,9 @@ FONTSIZE_XLARGE = 12  # this fontsize falls outside the recommended size in auth
 MAX_MOVIE_MACROBLOCKS = 3600
 """Maximum size (in Macroblocks, a 16 x 16 block of pixels) supported by movie configuration."""
 
+MOVIE_FRAMES_PER_SECOND = 10
+"""Number of frames per second for movies."""
+
 MAX_FIGURE_WIDTH = 6.5
 """Maximum width of figure in inches."""
 
