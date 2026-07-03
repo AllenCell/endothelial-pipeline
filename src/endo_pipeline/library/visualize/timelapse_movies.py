@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Literal
 
 import cv2
-import dask.array as da
 import imageio
 import numpy as np
 from tqdm import tqdm
@@ -41,7 +40,7 @@ def load_stitched_image(
     orientation: Literal["horizontal", "vertical"],
     crop: tuple[int, int, int] | None = None,
     merge_channels: bool = False,
-) -> da.Array:
+) -> np.ndarray:
     """Load stitched and processed image for given timepoint."""
 
     # Load image with each given loader and stitch across positions
@@ -73,7 +72,7 @@ def load_stitched_image(
     if len(loaders) > 1:
         if orientation == "vertical":
             padding = loaded_images[0].shape[0] // 100
-            padding_size = (padding, loaded_images[0].shape[1])
+            padding_size: tuple[int, ...] = (padding, loaded_images[0].shape[1])
         else:
             padding = loaded_images[0].shape[1] // 100
             padding_size = (loaded_images[0].shape[0], padding)
@@ -97,7 +96,7 @@ def load_stitched_image(
     return loaded_image
 
 
-def calculate_frame_sizing(image: da.Array) -> tuple[float, tuple[int, int]]:
+def calculate_frame_sizing(image: np.ndarray) -> tuple[float, tuple[int, int]]:
     """Calculate frame scaling and padding."""
 
     # Calculate scaling factor
