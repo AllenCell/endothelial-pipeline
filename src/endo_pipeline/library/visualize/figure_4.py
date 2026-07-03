@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import cast
 
 import numpy as np
-from pandas import DataFrame
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_dataframe, load_model, save_plot_to_path
@@ -49,7 +48,7 @@ def make_3d_vector_field_plot_panel(
     dataset_name: str,
     output_path: Path,
     figure_size: tuple[float, float] = (2.0, 2.5),
-) -> tuple[Path, DataFrame]:
+) -> Path:
     """
     Render the 3D (theta, r, rho) drift vector field for a given dataset, with
     the stable fixed point(s) overlaid as a scatter marker.
@@ -71,10 +70,9 @@ def make_3d_vector_field_plot_panel(
     Returns
     -------
     :
-        Path to the saved figure file and a DataFrame containing the
-        coordinates of the stable fixed points that were plotted.
-
+        Path to the saved figure file.
     """
+
     dataset_config = load_dataset_config(dataset_name)
     shear_stress_bin = dataset_config.flow_conditions[-1].shear_stress_bin
     replicate_number = dataset_config.replicate_number
@@ -174,23 +172,20 @@ def make_3d_vector_field_plot_panel(
     ax.set_title(dataset_label, fontsize=FONTSIZE_SMALL, fontweight="bold", pad=0)
 
     # save as .svg file
-    filename = f"3d_vector_field_{dataset_name}"
-    save_plot_to_path(
+    return save_plot_to_path(
         fig,
         output_path,
-        filename,
+        figure_name=f"3d_vector_field_{dataset_name}",
         file_format=".svg",
         tight_layout=False,
         transparent=True,
         bbox_inches="tight",
     )
 
-    return output_path / f"{filename}.svg", stable_df
-
 
 @figure_panel("Reconstruct at fixed points.")
 def reconstruct_fixed_points(
-    fixed_point_df: DataFrame,
+    dataset_name: str,
     output_path: Path,
     figure_size: tuple[float, float] = (0.8, 1.6),
     num_gpus: int | None = None,
@@ -202,8 +197,8 @@ def reconstruct_fixed_points(
 
     Parameters
     ----------
-    fixed_point_df
-        DataFrame containing the fixed point coordinates.
+    dataset_name
+        Name of dataset.
     output_path
         Directory to save the reconstructed images.
     figure_size
@@ -214,6 +209,14 @@ def reconstruct_fixed_points(
         Random seed for reproducibility, by default 4
 
     """
+
+    # Load stable fixed points dataframe
+    fixed_points_df = load_fixed_points_dataframe_for_dataset(dataset_name)
+    fixed_points_df = fixed_points_df[fixed_points_df[Column.FIXED_POINT_DETECTION_RATE] > 0.4]
+    fixed_point_df = fixed_points_df[
+        fixed_points_df[Column.FIXED_POINT_STABILITY] == StabilityLabel.STABLE
+    ]
+
     # load and instantiate model for generating synthetic images
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
     model_location = model_manifest.locations[DEFAULT_MODEL_RUN_NAME]
