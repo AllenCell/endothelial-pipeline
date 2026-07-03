@@ -1,3 +1,29 @@
+"""
+**Figure 5**. Genetic perturbation of VE-cadherin selectively disrupts features
+of cell state under 6 dyn/cm² shear stress
+
+#main-figure #perturbation
+
+| Panel | Description                                                                               | Notes                |
+| ----- | ----------------------------------------------------------------------------------------- | -------------------- |
+| A     | Representative images of control and perturbation cell lines under 6 dyn/cm² shear stress |                      |
+| B     | Identified stable fixed point locations colored by migration coherence                    |                      |
+| C     | Migration speed calculated at stable fixed point for each replicate                       |                      |
+| D     | Schematic of phenotypic differences between VE-cadherin-mEGFP and Ex3Del cells            | _generated manually_ |
+
+## Example usage
+
+To run the figure workflow:
+
+```bash
+uv run endopipe figure-5
+```
+
+## Figure panels
+
+All panels in this workflow can be run without GPU.
+"""
+
 # %%
 
 import matplotlib.pyplot as plt
@@ -11,7 +37,7 @@ from endo_pipeline.library.visualize.summary_plot import (
 )
 from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.examples import FIGURE_4_EXAMPLE_IMAGES
+from endo_pipeline.settings.examples import FIGURE_5_EXAMPLE_IMAGES
 from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.manifest_names import BOOTSTRAPPING_MANIFEST_NAMES
 from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_PATCH_TYPE
@@ -24,7 +50,7 @@ save_dir = get_output_path("figure_5")
 
 # %% Example images of perturbation at low shear stress
 create_panel_perturbation_examples(
-    examples=FIGURE_4_EXAMPLE_IMAGES,
+    examples=FIGURE_5_EXAMPLE_IMAGES,
     save_dir=save_dir,
     figure_size=(MAX_FIGURE_WIDTH, 3.4),
     inset_coordinates=(50, 500),
