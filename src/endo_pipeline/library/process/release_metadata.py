@@ -41,7 +41,7 @@ CHANNEL_WAVELENGTH_METADATA = {
     ChannelName.NucViolet: "405 nm excitation laser (LuxX Diode laser series)",
     ChannelName.SOX17: "561 nm excitation laser (LuxX Diode laser series)",
     ChannelName.NR2F2: "640 nm excitation laser (LuxX Diode laser series)",
-    ChannelName.DAPI: "???",
+    ChannelName.DAPI: "405 nm excitation laser (LuxX Diode laser series)",
 }
 """Metadata mapping for channel wavelength."""
 
@@ -52,17 +52,17 @@ CHANNEL_CONTENT_METADATA = {
     ChannelName.NucViolet: "Nuclear Violet LCS1 stain emission",
     ChannelName.SOX17: "Anti-Sox17 Clone OTI3B10 Mouse Monoclonal Antibody, Goat anti-Mouse IgG (H+L) Alexa Fluor™ Plus 555 emission",
     ChannelName.NR2F2: "Anti-NR2F2 Rabbit Monoclonal Antibody, Goat anti-Rabbit IgG (H+L) Alexa Fluor™ Plus 647 emission",
-    ChannelName.DAPI: "???",
+    ChannelName.DAPI: "DAPI stain emission",
 }
 """Metadata mapping for channel content."""
 
 CHANNEL_LASER_POWER_METADATA = {
-    ChannelName.EGFP: "3.30",
+    ChannelName.EGFP: "2",
     ChannelName.BF: "Intensity histogram of brightfield images was adjusted to peak at around ~14,000 in grayscale value",
     ChannelName.NucViolet: "0.8",
     ChannelName.SOX17: "11",
-    ChannelName.NR2F2: "15",
-    ChannelName.DAPI: "???",
+    ChannelName.NR2F2: "11",
+    ChannelName.DAPI: "1",
 }
 """Metadata mapping for channel laser power."""
 
@@ -102,7 +102,11 @@ def build_dataframe_manifest_release_metadata(
         dataset_config = load_dataset_config(location_key)
         add_dataset_metadata(metadata, dataset_config)
 
-    add_dataframe_metadata(metadata, manifest)
+    if "training" in manifest.name:
+        metadata["Data Type"] = "Model Training Files"
+        metadata["Dataset"] = DATASET_COLLECTION_NAMES["diffae_model_training"]
+    else:
+        add_dataframe_metadata(metadata, manifest)
 
     return metadata
 
@@ -270,7 +274,7 @@ def add_dataframe_metadata(metadata: dict, manifest: DataframeManifest) -> None:
 def add_model_metadata(metadata: dict, manifest_name: str) -> None:
     """Add model-only metadata."""
 
-    metadata["Data Type"] = "Model Checkpoints"
+    metadata["Data Type"] = "Model Training Files"
 
     if manifest_name == "nuc_pred_labelfree":
         metadata["Model Type"] = "Cellpose"
