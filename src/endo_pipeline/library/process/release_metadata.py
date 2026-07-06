@@ -7,6 +7,7 @@ from endo_pipeline.configs import (
     ChannelName,
     DatasetConfig,
     get_available_dataset_names,
+    get_datasets_in_collection,
     load_dataset_config,
 )
 from endo_pipeline.manifests import (
@@ -143,8 +144,23 @@ def add_general_metadata(metadata: dict) -> None:
     metadata["Publication DOI"] = "doi: placeholder"
 
 
+DATASET_COLLECTION_NAMES = {
+    "shear_stress": "Shear stress dataset",
+    "diffae_model_training": "DiffAE dataset",
+    "nuclear_labelfree_model_training": "Nuclear label-free model training dataset",
+    "perturbation": "VE-cadherin Exon3Del perturbation dataset",
+}
+"""Mapping of collection names to dataset display names."""
+
+
 def add_dataset_metadata(metadata: dict, dataset: DatasetConfig) -> None:
     """Add metadata specific to the dataset."""
+
+    dataset_names = []
+    for collection, display_name in DATASET_COLLECTION_NAMES.items():
+        if dataset.name in get_datasets_in_collection(collection):
+            dataset_names.append(display_name)
+    metadata["Dataset"] = ", ".join(dataset_names) if dataset_names else ""
 
     metadata["Identity"] = dataset.barcode
     metadata["Date"] = dataset.date
@@ -152,7 +168,7 @@ def add_dataset_metadata(metadata: dict, dataset: DatasetConfig) -> None:
     metadata["Organism"] = "human"
     metadata["Biological entity"] = "WTC-11 hiPSC derived endothelial cells"
     metadata["Cell Line"] = CELL_LINES_METADATA[dataset.cell_lines[0]]
-    metadata["Replicate"] = dataset.replicate
+    metadata["Replicate"] = dataset.replicate_number
 
     shear_stress_regime = " to ".join(r.value for r in dataset.shear_stress_regime)
     metadata["Shear Stress Regime"] = shear_stress_regime
