@@ -142,9 +142,11 @@ class DiffusionAutoEncoder(_BaseDiffAE):
     def _get_samplewise_noise(self, ref_tensor, global_sample_idx):
         shape, device, dtype = ref_tensor.shape, ref_tensor.device, ref_tensor.dtype
         seed = self._get_seed_for_sample(global_sample_idx, extra=999)
-        gen = torch.Generator(device=device)
+        # Draw on the CPU with a CPU generator for device-independent noise,
+        # then move (and cast) to the reference tensor's device/dtype.
+        gen = torch.Generator(device="cpu")
         gen.manual_seed(seed)
-        return torch.randn(shape, device=device, dtype=dtype, generator=gen)
+        return torch.randn(shape, generator=gen).to(device=device, dtype=dtype)
 
     def _get_fixed_samples(self, batch):
         """Get fixed samples for consistent visualization across epochs.
@@ -183,17 +185,24 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         dtype,
         device: str,
         seed: int | None = None,
-        generator: torch.Generator | None = None,
     ) -> torch.Tensor:
-        """Generate noise using a specified generator or seed.
+        """Generate noise from an optional seed.
 
-        If there is a pre-made generator, use that. Otherwise,
-        create one from the given seed.
+        When a seed is provided, the noise is always drawn on the CPU with a CPU
+        generator and then moved to ``device``. A CUDA generator and a CPU
+        generator produce different sequences from the same seed, so drawing on
+        the CPU is what keeps the sampled noise -- and therefore diffusion
+        reconstructions -- identical across CPU and GPU.
         """
-        if generator is None and seed is not None:
-            generator = self._make_generator(seed, device)
+        if seed is not None:
+            # Draw seeded noise on the CPU for device independence, then move
+            # (and cast) to the target device.
+            cpu_generator = self._make_generator(seed, "cpu")
+            noise = torch.randn(shape, generator=cpu_generator).to(device)
+            return noise.to(dtype) if dtype is not None else noise
 
-        return torch.randn(shape, generator=generator, device=device, dtype=dtype)
+        # Unseeded: fall back to the global RNG on the target device.
+        return torch.randn(shape, device=device, dtype=dtype)
 
     def _get_fixed_noise(self, shape, dtype, device: str) -> torch.Tensor:
         """Generate or retrieve fixed noise for `noise_cons` mode.
