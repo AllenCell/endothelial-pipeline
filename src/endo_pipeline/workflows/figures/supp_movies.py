@@ -8,30 +8,30 @@ def main(include_movies: UniqueIntList | None = None) -> None:
 
     #supp-movies
 
-    | Movie | Description                                                 | Type       |
-    | ----- | ----------------------------------------------------------- | ---------- |
-    | 1     | Example dataset at 6 dyn/cm² stitched across all positions  | _stitched_ |
-    | 2     | Example dataset at 6 dyn/cm² FOV (1000 x 1000 px)           | _fov_      |
-    | 3     | Example dataset at 6 dyn/cm² inset (256 x 256 px)           | _inset_    |
-    | 4     | Example dataset at 21 dyn/cm² stitched across all positions | _stitched_ |
-    | 5     | Example dataset at 21 dyn/cm² FOV (1000 x 1000 px)          | _fov_      |
-    | 6     | Example dataset at 21 dyn/cm² inset (256 x 256)             | _inset_    |
-    | 7     | Example dataset at 6 dyn/cm² FOV (1000 x 1000 px)           | _fov_      |
-    | 8     | Example dataset at 12 dyn/cm² stitched across all positions | _stitched_ |
-    | 9     | Example dataset at 12 dyn/cm² FOV (1000 x 1000 px)          | _fov_      |
-    | 10    | Example dataset at 12 dyn/cm² stitched across all positions | _stitched_ |
-    | 11    | Example dataset at 12 dyn/cm² FOV (1000 x 1000 px)          | _fov_      |
-    | 12    | Example dataset at 15 dyn/cm² stitched across all positions | _stitched_ |
-    | 13    | Example dataset at 15 dyn/cm² FOV (1000 x 1000 px)          | _fov_      |
-    | 14    | Example dataset at 15 dyn/cm² stitched across all positions | _stitched_ |
-    | 15    | Example dataset at 15 dyn/cm² FOV (1000 x 1000 px)          | _fov_      |
-    | 16    | Example dataset at 21 dyn/cm² FOV (1000 x 1000 px)          | _fov_      |
-    | 17    | Sorting control dataset stitched across all positions       | _stitched_ |
-    | 18    | Sorting control dataset FOV (1000 x 1000 px)                | _fov_      |
-    | 19    | Knock down dataset stitched across all positions            | _stitched_ |
-    | 20    | Knock down dataset FOV (1000 x 1000 px)                     | _fov_      |
-    | 21    | Knock down dataset FOV (256 x 256 px)                       | _inset_    |
-    | 22    | Retraction fiber blob example crop                          | _merge_    |
+    | Movie | Description                                                   | Type       |
+    | ----- | ------------------------------------------------------------- | ---------- |
+    | 1     | Example replicate at 6 dyn/cm² stitched across all positions  | _stitched_ |
+    | 2     | Example replicate at 6 dyn/cm² FOV (1000 x 1000 px)           | _fov_      |
+    | 3     | Example replicate at 6 dyn/cm² inset (256 x 256 px)           | _inset_    |
+    | 4     | Example replicate at 21 dyn/cm² stitched across all positions | _stitched_ |
+    | 5     | Example replicate at 21 dyn/cm² FOV (1000 x 1000 px)          | _fov_      |
+    | 6     | Example replicate at 21 dyn/cm² inset (256 x 256)             | _inset_    |
+    | 7     | Example replicate at 6 dyn/cm² FOV (1000 x 1000 px)           | _fov_      |
+    | 8     | Example replicate at 12 dyn/cm² stitched across all positions | _stitched_ |
+    | 9     | Example replicate at 12 dyn/cm² FOV (1000 x 1000 px)          | _fov_      |
+    | 10    | Example replicate at 12 dyn/cm² stitched across all positions | _stitched_ |
+    | 11    | Example replicate at 12 dyn/cm² FOV (1000 x 1000 px)          | _fov_      |
+    | 12    | Example replicate at 15 dyn/cm² stitched across all positions | _stitched_ |
+    | 13    | Example replicate at 15 dyn/cm² FOV (1000 x 1000 px)          | _fov_      |
+    | 14    | Example replicate at 15 dyn/cm² stitched across all positions | _stitched_ |
+    | 15    | Example replicate at 15 dyn/cm² FOV (1000 x 1000 px)          | _fov_      |
+    | 16    | Example replicate at 21 dyn/cm² FOV (1000 x 1000 px)          | _fov_      |
+    | 17    | Sorting control replicate stitched across all positions       | _stitched_ |
+    | 18    | Sorting control replicate FOV (1000 x 1000 px)                | _fov_      |
+    | 19    | Exon3Del replicate stitched across all positions              | _stitched_ |
+    | 20    | Exon3Del replicate FOV (1000 x 1000 px)                       | _fov_      |
+    | 21    | Exon3Del replicate FOV (256 x 256 px)                         | _inset_    |
+    | 22    | Retraction fiber blob example crop                            | _merge_    |
 
     ## Example usage
 
