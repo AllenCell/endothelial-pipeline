@@ -5,11 +5,11 @@
 
 | Table | Description                                | Type           |
 | ----- | ------------------------------------------ | -------------- |
-| 1     | Shear stress datasets                      | `dataset`      |
-| 2     | DiffAE model training datasets             | `dataset`      |
-| 3     | VE-cadherin Exon3Del perturbation datasets | `dataset`      |
-| 4     | Nuclear label-free model training datasets | `dataset`      |
-| 5     | Segmentation summary                       | `segmentation` |
+| 1     | Shear stress datasets                      | _dataset_      |
+| 2     | DiffAE model training datasets             | _dataset_      |
+| 3     | VE-cadherin Exon3Del perturbation datasets | _dataset_      |
+| 4     | Nuclear label-free model training datasets | _dataset_      |
+| 5     | Segmentation summary                       | _segmentation_ |
 
 ## Example usage
 
@@ -23,10 +23,10 @@ uv run endopipe supp-tables
 
 Table are one of two types:
 
-- `dataset` = dataset-level statistics including number of timepoints, number of positions,
-  filtering, and number of patches
-- `segmentation` = segmentation-level statistics including number of cell segmentations, number of
-  nuclear segmentations, and filtering
+- _dataset_ = dataset-level statistics including number of timepoints, number of
+  positions, filtering, and number of patches
+- _segmentation_ = segmentation-level statistics including number of cell
+  segmentations, number of nuclear segmentations, and filtering
 """
 
 # %%
