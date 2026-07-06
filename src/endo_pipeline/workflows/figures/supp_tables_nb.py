@@ -1,3 +1,34 @@
+"""
+**Supplemental Tables**. Tables summarizing per-dataset statistics.
+
+#supp-tables
+
+| Table | Description                                | Type           |
+| ----- | ------------------------------------------ | -------------- |
+| 1     | Shear stress datasets                      | `dataset`      |
+| 2     | DiffAE model training datasets             | `dataset`      |
+| 3     | VE-cadherin Exon3Del perturbation datasets | `dataset`      |
+| 4     | Nuclear label-free model training datasets | `dataset`      |
+| 5     | Segmentation summary                       | `segmentation` |
+
+## Example usage
+
+To run the table workflow:
+
+```bash
+uv run endopipe supp-tables
+```
+
+## Table types
+
+Table are one of two types:
+
+- `dataset` = dataset-level statistics including number of timepoints, number of positions,
+  filtering, and number of patches
+- `segmentation` = segmentation-level statistics including number of cell segmentations, number of
+  nuclear segmentations, and filtering
+"""
+
 # %%
 from matplotlib import pyplot as plt
 
@@ -42,7 +73,7 @@ IN_DIFFAE = "Included in DiffAE datasets"
 
 plt.style.use("endo_pipeline.figure")
 
-save_dir = get_output_path("supp-fig-tables")
+save_dir = get_output_path("supp_tables")
 cell_manifest = load_dataframe_manifest(FEATURES_FILTERED_MANIFEST_NAMES["cell_centered"])
 seg_manifest = load_dataframe_manifest(CELL_CENTERED_FEATURES_UNFILTERED_MANIFEST_NAME)
 shear_stress_datasets = set(get_datasets_in_collection("shear_stress"))
