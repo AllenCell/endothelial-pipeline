@@ -74,14 +74,16 @@ def main(include_movies: UniqueIntList | None = None) -> None:
             movie_examples_and_types.append((example, "stitched"))
         movie_examples_and_types.append((example, "fov"))
 
-    # Figure 5: S17-S23 (3 examples x 2 videos: stitched + FOV, + 1 inset for knock_down)
+    # Figure 5: S17-S21 (3 examples x 2 videos: stitched + FOV, + 1 inset for
+    # knock_down; skip stitched and fov for datasets in Figure 1)
     for example in FIGURE_4_EXAMPLE_IMAGES:
-        movie_examples_and_types.append((example, "stitched"))
-        movie_examples_and_types.append((example, "fov"))
+        if example.dataset_name not in fig1_datasets:
+            movie_examples_and_types.append((example, "stitched"))
+            movie_examples_and_types.append((example, "fov"))
         if example.description == "knock_down":
             movie_examples_and_types.append((example, "inset_knock_down"))
 
-    # Supp Figure 8: S24 (retraction fiber blob crop)
+    # Supp Figure 8: S22 (retraction fiber blob crop)
     movie_examples_and_types.append((SUPP_FIG_RETRACTION_FIBER_BLOB, "merge"))
 
     # Generate all movies if specific movies are not selected
