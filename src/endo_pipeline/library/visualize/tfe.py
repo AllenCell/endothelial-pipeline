@@ -43,12 +43,19 @@ from endo_pipeline.manifests import (
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA, ColumnType
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
+from endo_pipeline.settings.dynamics_workflows import TIME_STEP_IN_MINUTES
+from endo_pipeline.settings.image_data import (
+    IMG_SHAPE_RESOLUTION_0_3i_X,
+    IMG_SHAPE_RESOLUTION_0_3i_Y,
+    PIXEL_SIZE_3i_20x,
+)
 from endo_pipeline.settings.tfe import (
     TFE_BACKDROP_TYPES,
     TFE_FEATURES,
     TFE_REQUIRED_COLUMNS,
     TFE_TYPE_MAPPING,
 )
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import (
     CELL_CENTERED_FEATURES_UNFILTERED_MANIFEST_NAME,
     GRID_BASED_FEATURES_UNFILTERED_MANIFEST_NAME,
@@ -378,4 +385,11 @@ def build_tfe_dataset(
     # Write out TFE manifest
     max_frame = data[config.times_column].max()
     writer.set_frame_paths(generate_frame_paths(max_frame + 1))
-    writer.write_manifest(metadata=ColorizerMetadata())
+    writer.write_manifest(
+        metadata=ColorizerMetadata(
+            frame_width=IMG_SHAPE_RESOLUTION_0_3i_X * PIXEL_SIZE_3i_20x,
+            frame_height=IMG_SHAPE_RESOLUTION_0_3i_Y * PIXEL_SIZE_3i_20x,
+            frame_units=f"{Unicode.MU}m",
+            frame_duration_sec=TIME_STEP_IN_MINUTES * 60,
+        )
+    )
