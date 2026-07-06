@@ -152,6 +152,7 @@ def add_dataset_metadata(metadata: dict, dataset: DatasetConfig) -> None:
     metadata["Organism"] = "human"
     metadata["Biological entity"] = "WTC-11 hiPSC derived endothelial cells"
     metadata["Cell Line"] = CELL_LINES_METADATA[dataset.cell_lines[0]]
+    metadata["Replicate"] = dataset.replicate
 
     shear_stress_regime = " to ".join(r.value for r in dataset.shear_stress_regime)
     metadata["Shear Stress Regime"] = shear_stress_regime
