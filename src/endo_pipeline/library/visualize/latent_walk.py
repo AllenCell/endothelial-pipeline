@@ -25,13 +25,13 @@ from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
 from endo_pipeline.settings.figures import FONTSIZE_XSMALL, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
+from endo_pipeline.settings.plot_defaults import RECONSTRUCTION_RANDOM_SEED
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_RUN_NAME,
     DEFAULT_PCA_DATASET_COLLECTION_NAME,
     GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME,
-    RANDOM_SEED,
 )
 
 logger = logging.getLogger(__name__)
@@ -71,6 +71,7 @@ def plot_latent_walk_as_grid(
     label_sigmas: bool = True,
     figsize: tuple[float, float] | None = None,
     scale_bar_um: int = 20,
+    random_seed: int = RECONSTRUCTION_RANDOM_SEED,
 ) -> Path:
     """Plot and save a grid of reconstructed image crops representing a latent walk.
 
@@ -187,7 +188,7 @@ def perform_and_plot_latent_walk_for_figures(
     sigma: float | None = 3,
     n_steps: int = 7,
     scale_bar_um: int = 10,
-    random_seed: int | None = RANDOM_SEED,
+    random_seed: int | None = RECONSTRUCTION_RANDOM_SEED,
     num_gpus: int | None = None,
 ) -> tuple[Path, np.ndarray]:
     """

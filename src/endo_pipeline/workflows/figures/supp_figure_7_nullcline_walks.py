@@ -58,6 +58,7 @@ def main() -> None:
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
     from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
     from endo_pipeline.settings.manifest_names import DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS
+    from endo_pipeline.settings.plot_defaults import RECONSTRUCTION_RANDOM_SEED
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -176,7 +177,7 @@ def main() -> None:
             theta_value=stable_fixed_point_theta[0],
             model=model,
             num_gpus=NUM_GPUS,
-            random_seed=4,
+            random_seed=RECONSTRUCTION_RANDOM_SEED,
             **placeholders["C"],
         )
 

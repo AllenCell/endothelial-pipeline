@@ -168,7 +168,7 @@ def make_cross_model_comparison_panel(
     from endo_pipeline.manifests import load_model_manifest
     from endo_pipeline.settings.examples import DIFFAE_MODEL_PERFORMANCE_PANEL_EXAMPLES
     from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
-    from endo_pipeline.settings.workflow_defaults import RANDOM_SEED
+    from endo_pipeline.settings.plot_defaults import RECONSTRUCTION_RANDOM_SEED
 
     # Collect examples for panel
     all_diffusion_examples = []  # same three diffusion examples for every model
@@ -191,7 +191,7 @@ def make_cross_model_comparison_panel(
             # image (target VE-cadherin) and the noise image (which will be
             # shared across all models) with a deterministic seed
             if model_index == 0:
-                rng = default_rng(seed=RANDOM_SEED + example_index)
+                rng = default_rng(seed=RECONSTRUCTION_RANDOM_SEED + example_index)
                 diffusion_ex = load_transformed_diffusion_example_image(example, model_config)
                 all_diffusion_examples.append(diffusion_ex)
                 all_noise_images.append(rng.standard_normal(size=diffusion_ex.shape))

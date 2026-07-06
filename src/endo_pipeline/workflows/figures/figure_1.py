@@ -69,6 +69,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAME_GROUPS
     from endo_pipeline.settings.examples import FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES
     from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.plot_defaults import RECONSTRUCTION_RANDOM_SEED
     from endo_pipeline.settings.workflow_defaults import SEGMENTATION_FEATURE_COLUMNS
 
     plt.style.use("endo_pipeline.figure")
@@ -115,7 +116,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         sigma=None,
         n_steps=7,
         scale_bar_um=20,
-        random_seed=4,
+        random_seed=RECONSTRUCTION_RANDOM_SEED,
         num_gpus=NUM_GPUS,
         **placeholders["C"],
     )
