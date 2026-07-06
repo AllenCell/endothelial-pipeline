@@ -418,7 +418,7 @@ def _sort_and_categorize_datasets(
     """
     # Order datasets within each shear stress bin by fixed point count:
     # 15 dyn: bistable (2 FPs) first; all others: monostable (1 FP) first
-    fp_counts = df.groupby(ColumnName.DATASET).size()
+    fp_counts = df.groupby(ColumnName.DATASET, observed=False).size()
     shear_bins = {
         cfg.name: cfg.flow_conditions[-1].shear_stress_bin for cfg in dataset_configs.values()
     }
