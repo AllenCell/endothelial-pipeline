@@ -28,7 +28,7 @@ from endo_pipeline.settings.image_data import (
 CELL_LINES_METADATA = {
     "AICS-126 cl. 41": "Vascular endothelial VE-cadherin (CD144-sorted)",
     "AICS-126 cl. 41 CD31-sorted": "Vascular endothelial VE-cadherin (CD31-sorted)",
-    "AICS-177 cl. 26": "Vascular endothelial VE-cadherin knock down (CD31-sorted)",
+    "AICS-177 cl. 26": "Vascular endothelial VE-cadherin Exon 3 Deletion (CD31-sorted)",
 }
 """Metadata mapping for cell lines."""
 
@@ -172,6 +172,8 @@ def add_dataset_metadata(metadata: dict, dataset: DatasetConfig) -> None:
 def add_image_metadata(metadata: dict, dataset: DatasetConfig, manifest_name: str) -> None:
     """Add image-only metadata."""
 
+    metadata["Data Type"] = "Image Data"
+
     if manifest_name == "image_zarr":
         metadata["Imaging Method"] = f"{dataset.microscope} spinning disk confocal microscopy"
         metadata["Live or Fixed Cell Sample"] = dataset.live_or_fixed_sample
@@ -237,11 +239,14 @@ def add_image_metadata(metadata: dict, dataset: DatasetConfig, manifest_name: st
 def add_dataframe_metadata(metadata: dict, manifest: DataframeManifest) -> None:
     """Add dataframe-only metadata."""
 
+    metadata["Data Type"] = "Analysis Data"
     metadata["Analysis Workflow"] = manifest.workflow
 
 
 def add_model_metadata(metadata: dict, manifest_name: str) -> None:
     """Add model-only metadata."""
+
+    metadata["Data Type"] = "Model Checkpoints"
 
     if manifest_name == "nuc_pred_labelfree":
         metadata["Model Type"] = "Cellpose"
