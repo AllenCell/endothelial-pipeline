@@ -1,18 +1,18 @@
 from endo_pipeline.cli import Datasets
 
 
-def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
+def main(datasets: Datasets | None = None) -> None:
     """
     Detect and annotate the in-focus z-plane index for each position.
 
-    #quality-control #preprocessing #test-ready #cpu-only
+    #quality-control #preprocessing #test-ready #workers
 
     ## Example usage
 
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe annotate-in-focus-plane -vd
+    uv run endopipe annotate-in-focus-plane -d
     ```
 
     To run the workflow for a single dataset:
@@ -35,8 +35,6 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
     ----------
     datasets
         List of datasets or dataset collections to annotate.
-    num_processes
-        Number of processes to use.
     """
 
     import logging
@@ -44,7 +42,7 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
 
     import pandas as pd
 
-    from endo_pipeline.cli import DEMO_MODE, UPLOAD_TO_FMS
+    from endo_pipeline.cli import DEMO_MODE, NUM_WORKERS, UPLOAD_TO_FMS
     from endo_pipeline.configs import (
         get_datasets_in_collection,
         load_dataset_config,
@@ -67,7 +65,7 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
     dataset_names = datasets or get_datasets_in_collection("shear_stress")
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one dataset, two positions, and 10 timepoints")
+        logger.warning("DEMO MODE - Limiting to one dataset, two positions, and 10 timepoints")
         dataset_names = dataset_names[:1]
         max_positions = 2
         max_timepoints = 10
@@ -92,7 +90,7 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
 
         # Parallelize position processing
         args = [(dataset_config, position, max_timepoints) for position in positions]
-        with Pool(processes=min(num_processes, len(args))) as pool:
+        with Pool(processes=min(NUM_WORKERS or 1, len(args))) as pool:
             results = pool.starmap(calculate_global_center_plane, args)
 
         # Save dataframe to file

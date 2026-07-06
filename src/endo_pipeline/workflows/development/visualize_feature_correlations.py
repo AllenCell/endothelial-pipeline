@@ -26,17 +26,16 @@ def main(
     aggregate_only: bool = True,
 ) -> None:
     """
-    Visualize correlation for DiffAE features, PCs, and
-    measured quantitites.
+    Visualize correlation for DiffAE features, PCs, and measured quantities.
 
-    #correlation-analysis #cell-centered #grid-based #visualization
+    #correlation-analysis #cell-centered #grid-based #visualization #test-ready
 
     ## Example usage
 
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe visualize-feature-correlations -vd
+    uv run endopipe visualize-feature-correlations -d
     ```
 
     To run the workflow for a single dataset:
@@ -73,7 +72,7 @@ def main(
     from tqdm import tqdm
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.cli.demo_mode_defaults import use_default_collection
+    from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.multi_feature_correlation import (
         get_df_for_feature_correlation_viz,
@@ -90,10 +89,10 @@ def main(
 
     output_path = get_output_path(__file__)
 
-    dataset_names = use_default_collection(datasets, DEFAULT_PCA_DATASET_COLLECTION_NAME)
+    dataset_names = datasets or get_datasets_in_collection(DEFAULT_PCA_DATASET_COLLECTION_NAME)
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one dataset")
+        logger.warning("DEMO MODE - Limiting to one dataset")
         dataset_names = dataset_names[:1]
 
     pc_columns = DIFFAE_PC_COLUMN_NAME_GROUPS[pc_group]

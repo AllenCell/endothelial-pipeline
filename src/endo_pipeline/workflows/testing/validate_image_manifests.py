@@ -1,7 +1,14 @@
+from typing import Annotated
+
+from cyclopts import Parameter
+
 from endo_pipeline.cli import UniqueStrList
 
 
-def main(manifests: UniqueStrList | None = None) -> None:
+def main(  # noqa: C901
+    manifests: UniqueStrList | None = None,
+    staging_only: Annotated[bool, Parameter(negative="--all-available")] = True,
+) -> None:
     """
     Validate image manifests.
 
@@ -17,13 +24,19 @@ def main(manifests: UniqueStrList | None = None) -> None:
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe validate-image-manifest -vd
+    uv run endopipe validate-image-manifest -d
     ```
 
     To run the workflow for a specific manifest:
 
     ```bash
     uv run endopipe validate-image-manifest MANIFEST_NAME
+    ```
+
+    To run the workflow for all available manifests:
+
+    ```bash
+    uv run endopipe validate-image-manifest --all-available
     ```
 
     ## Workflow demo
@@ -37,14 +50,19 @@ def main(manifests: UniqueStrList | None = None) -> None:
     ----------
     manifest_name
         Name of the image manifest to validate.
+    staging_only
+        True to only validate image manifests valid for staging, False to
+        validate all available image manifests.
     """
 
     import logging
+    import math
 
+    from bioio_base.types import PhysicalPixelSizes
     from tqdm import tqdm
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.configs import get_available_dataset_names, load_dataset_config
     from endo_pipeline.io import load_image
     from endo_pipeline.library.process.progress_bar import ProgressBar
     from endo_pipeline.manifests import (
@@ -52,10 +70,17 @@ def main(manifests: UniqueStrList | None = None) -> None:
         get_image_location_for_dataset,
         load_image_manifest,
     )
+    from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x, Z_STEP_SIZE_ACTUAL_3i_20x
+    from endo_pipeline.settings.manifest_staging import STAGING_IMAGE_MANIFEST_NAMES
 
     logger = logging.getLogger(__name__)
 
-    manifest_names = manifests or get_available_image_manifests()
+    available_dataset_names = get_available_dataset_names()
+    manifest_names = manifests or (
+        STAGING_IMAGE_MANIFEST_NAMES if staging_only else get_available_image_manifests()
+    )
+
+    pixel_abs_tol = 1e-3
 
     if DEMO_MODE:
         logger.warning("DEMO MODE - Only validating the first two locations for two manifests")
@@ -83,17 +108,41 @@ def main(manifests: UniqueStrList | None = None) -> None:
                 image_manifest.name,
             )
 
+        # For dataset location keys, confirm the dataset config is available
+        for location_key in location_keys:
+            if location_key not in available_dataset_names:
+                logger.error(
+                    "Manifest '%s' contains dataset '%s' that does not have dataset config",
+                    manifest_name,
+                    location_key,
+                )
+                location_keys.remove(location_key)
+
+        # Calculate expected pixel sizes
+        if "grid_seg" in manifest_name:
+            expected_pixel_sizes = {
+                0: PhysicalPixelSizes(
+                    Z=Z_STEP_SIZE_ACTUAL_3i_20x,
+                    Y=PIXEL_SIZE_3i_20x * 2,
+                    X=PIXEL_SIZE_3i_20x * 2,
+                )
+            }
+        else:
+            expected_pixel_sizes = {
+                resolution_level: PhysicalPixelSizes(
+                    Z=Z_STEP_SIZE_ACTUAL_3i_20x,
+                    Y=PIXEL_SIZE_3i_20x * (2**resolution_level),
+                    X=PIXEL_SIZE_3i_20x * (2**resolution_level),
+                )
+                for resolution_level in range(3)
+            }
+
         progress_bar = ProgressBar(location_keys, "Validating", manifest_name)
         for location_key in progress_bar:
             progress_bar.set_iteration_name(location_key)
             location = image_manifest.locations[location_key]
 
             dataset = load_dataset_config(location_key)
-
-            # Calculate expected pixel size
-            expected_pixel_size = dataset.pixel_size_xy_in_um
-            if "grid_seg" in manifest_name:
-                expected_pixel_size *= 2
 
             # Confirm that at least one location in available
             progress_bar.set_step_description("Checking that at least one location is available")
@@ -135,12 +184,17 @@ def main(manifests: UniqueStrList | None = None) -> None:
                     try:
                         image = load_image(location_placeholder, read=False)
 
-                        # Check for any mismatches in pixel size
-                        if timepoint == 0 or timepoint is None:
-                            if not round(image.physical_pixel_sizes.X, 3) == expected_pixel_size:
-                                pixel_size_mismatchs.add(position)
-                            if not round(image.physical_pixel_sizes.Y, 3) == expected_pixel_size:
-                                pixel_size_mismatchs.add(position)
+                        if timepoint != 0 and timepoint is not None:
+                            continue
+
+                        for resolution_level in image.resolution_levels:
+                            image.set_resolution_level(resolution_level)
+                            target = expected_pixel_sizes[resolution_level]
+                            found = image.physical_pixel_sizes
+
+                            for found_size, target_size in zip(found, target, strict=True):
+                                if not math.isclose(found_size, target_size, abs_tol=pixel_abs_tol):
+                                    pixel_size_mismatchs.add((resolution_level, found))
                     except Exception:
                         logger.error(
                             "Validation failed for manifest '%s' key '%s' - Unable to load image",

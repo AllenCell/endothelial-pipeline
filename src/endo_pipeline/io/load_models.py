@@ -246,6 +246,8 @@ def load_model(
         Loaded model.
     """
 
+    from endo_pipeline.cli.apps import IS_INTERNAL
+
     preferred_loader_order: list[
         tuple[str | Path | tuple[str, str] | tuple[Path, Path] | None, Callable]
     ] = [
@@ -254,6 +256,12 @@ def load_model(
         (location.path, load_model_from_path),
         (location.s3uri, load_model_from_s3),
     ]
+
+    if not IS_INTERNAL:
+        preferred_loader_order = [
+            (location.s3uri, load_model_from_s3),
+            (location.path, load_model_from_path),
+        ]
 
     available_loaders = [loader for loader in preferred_loader_order if loader[0] is not None]
 

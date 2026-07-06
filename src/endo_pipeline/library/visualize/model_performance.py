@@ -2,7 +2,7 @@
 
 from pathlib import Path
 from textwrap import wrap
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import numpy as np
 from matplotlib.figure import Figure
@@ -10,7 +10,6 @@ from matplotlib.layout_engine import LayoutEngine
 from matplotlib.lines import Line2D
 
 from endo_pipeline.io.output import save_plot_to_path
-from endo_pipeline.library.model.model_comparison import ModelComparisonMetrics
 from endo_pipeline.library.visualize.figure_utils import make_contact_sheet
 from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.settings.examples import ExampleImage
@@ -23,6 +22,8 @@ from endo_pipeline.settings.figures import (
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
+
+    from endo_pipeline.library.model.model_comparison import ModelComparisonMetrics
 
 MODEL_PERFORMANCE_CONTACT_SHEET_METRIC_KWARGS: dict[str, Any] = {
     "color": "yellow",
@@ -173,7 +174,7 @@ def plot_model_performance_intermediate_level_contact_sheet(
     denoised_examples: list[np.ndarray],
     noise_levels: list[float],
     conditioning_label: str,
-    comparison_metrics: list[ModelComparisonMetrics] | None = None,
+    comparison_metrics: list["ModelComparisonMetrics"] | None = None,
     figure_size: tuple[float, float] = (4.1, 4.4),
 ) -> None:
     """
@@ -277,7 +278,7 @@ def plot_model_performance_summary_contact_sheet(
     diffusion_examples: list["NDArray"],
     denoised_examples: list["NDArray"],
     conditioning_label: str,
-    comparison_metrics: list[ModelComparisonMetrics] | None = None,
+    comparison_metrics: list["ModelComparisonMetrics"] | None = None,
     figure_size: tuple[float, float] | None = None,
 ) -> None:
     """
@@ -457,6 +458,9 @@ def make_model_training_architecture_panel(
     output_path: Path,
     num_gpus: int | None = None,
     figure_size: tuple[float, float] = (6.5, 3.2),
+    include_slices: bool = True,
+    include_inputs: bool = True,
+    title_location: Literal["top", "left"] = "top",
 ) -> Path:
     """
     Create thumbnails for various parts of the DiffAE training architecture.
@@ -469,6 +473,12 @@ def make_model_training_architecture_panel(
         Number of GPUs to use. If None, run on CPU.
     figure_size
         Size of overall diagram.
+    include_slices
+        True to save raw image slices, False to skip.
+    include_inputs
+        True to save model input images, False to skip.
+    title_location
+        Location to place title for title-only output panel.
 
     Returns
     -------
@@ -545,37 +555,39 @@ def make_model_training_architecture_panel(
         compute=True,
     )
 
-    # Get slices from raw image
-    cdh5_lower_slice = raw_image[0, center_slice - Z_SLICE_OFFSETS[0], :, :].squeeze()
-    cdh5_slice = raw_image[0, center_slice, :, :].squeeze()
-    cdh5_upper_slice = raw_image[0, center_slice + Z_SLICE_OFFSETS[1], :, :].squeeze()
-    bf_lower_slice = raw_image[1, center_slice - Z_SLICE_OFFSETS[0], :, :].squeeze()
-    bf_slice = raw_image[1, center_slice, :, :].squeeze()
-    bf_upper_slice = raw_image[1, center_slice + Z_SLICE_OFFSETS[1], :, :].squeeze()
+    if include_slices:
+        # Get slices from raw image
+        cdh5_lower_slice = raw_image[0, center_slice - Z_SLICE_OFFSETS[0], :, :].squeeze()
+        cdh5_slice = raw_image[0, center_slice, :, :].squeeze()
+        cdh5_upper_slice = raw_image[0, center_slice + Z_SLICE_OFFSETS[1], :, :].squeeze()
+        bf_lower_slice = raw_image[1, center_slice - Z_SLICE_OFFSETS[0], :, :].squeeze()
+        bf_slice = raw_image[1, center_slice, :, :].squeeze()
+        bf_upper_slice = raw_image[1, center_slice + Z_SLICE_OFFSETS[1], :, :].squeeze()
 
-    # Save image thumbnail for each raw image slice
-    for image, image_name, outline_color in [
-        (cdh5_lower_slice, "cdh5_lower_slice", "white"),
-        (cdh5_slice, "cdh5_slice", "white"),
-        (cdh5_upper_slice, "cdh5_upper_slice", "white"),
-        (bf_lower_slice, "bf_lower_slice", "black"),
-        (bf_slice, "bf_slice", "black"),
-        (bf_upper_slice, "bf_upper_slice", "black"),
-    ]:
-        image = contrast_stretching(image)
-        plot_image_thumbnail(
-            image,
-            f"{image_name}_{dataset_config.name}_T{example.timepoint}",
-            output_path,
-            figsize=(0.7, 0.7),
-            scalebar_size_um=100,
-            pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
-            file_format=".svg",
-            outline_color=outline_color,
-            bar_padding=30,
-            bar_thickness=20,
-            scalebar_location="lower right",
-        )
+        # Save image thumbnail for each raw image slice
+        for image, image_name, outline_color in [
+            (cdh5_lower_slice, "cdh5_lower_slice", "white"),
+            (cdh5_slice, "cdh5_slice", "white"),
+            (cdh5_upper_slice, "cdh5_upper_slice", "white"),
+            (bf_lower_slice, "bf_lower_slice", "black"),
+            (bf_slice, "bf_slice", "black"),
+            (bf_upper_slice, "bf_upper_slice", "black"),
+        ]:
+            image = contrast_stretching(image)
+            plot_image_thumbnail(
+                image,
+                f"{image_name}_{dataset_config.name}_T{example.timepoint}",
+                output_path,
+                figsize=(0.7, 0.7),
+                scalebar_size_um=100,
+                pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
+                file_format=".svg",
+                outline_color=outline_color,
+                bar_padding=30,
+                bar_thickness=20,
+                scalebar_location="lower right",
+                show_plot=False,
+            )
 
     # Extract transformation steps and apply to image
     data = create_data_dict_loaded_image(raw_image)
@@ -587,33 +599,35 @@ def make_model_training_architecture_panel(
     diffusion_fov = get_target_image_from_sample(sample, DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT)
     conditioning_fov = get_target_image_from_sample(sample, model_config.model.condition_key)
 
-    # Save image thumbnail for each model input crop with outline
-    for image, image_name in [
-        (diffusion_fov, "diffusion_input_fov"),
-        (conditioning_fov, "conditioning_input_fov"),
-    ]:
-        fig, ax = plot_image_thumbnail(
-            image.squeeze(),
-            f"{image_name}_{dataset_config.name}_T{example.timepoint}",
-            None,
-            figsize=(0.7, 0.7),
-            scalebar_size_um=100,
-            pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
-            file_format=".svg",
-            bar_thickness=20,
-            bar_padding=30,
-            scalebar_location="lower right",
-        )
-        rect = patches.Rectangle(
-            (example.crop_x_start, example.crop_y_start),
-            crop_size,
-            crop_size,
-            linewidth=0.5,
-            edgecolor="yellow",
-            facecolor="none",
-        )
-        ax.add_patch(rect)
-        save_plot_to_path(fig, output_path, image_name, file_format=".svg", pad_inches=0)
+    if include_inputs:
+        # Save image thumbnail for each model input crop with outline
+        for image, image_name in [
+            (diffusion_fov, "diffusion_input_fov"),
+            (conditioning_fov, "conditioning_input_fov"),
+        ]:
+            fig, ax = plot_image_thumbnail(
+                image.squeeze(),
+                f"{image_name}_{dataset_config.name}_T{example.timepoint}",
+                None,
+                figsize=(0.7, 0.7),
+                scalebar_size_um=100,
+                pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
+                file_format=".svg",
+                bar_thickness=20,
+                bar_padding=30,
+                scalebar_location="lower right",
+                show_plot=False,
+            )
+            rect = patches.Rectangle(
+                (example.crop_x_start, example.crop_y_start),
+                crop_size,
+                crop_size,
+                linewidth=0.5,
+                edgecolor="yellow",
+                facecolor="none",
+            )
+            ax.add_patch(rect)
+            save_plot_to_path(fig, output_path, image_name, file_format=".svg", pad_inches=0)
 
     # Load transformed conditioning and diffusion examples
     conditioning_ex = load_transformed_conditioning_example_image(example, model_config)
@@ -641,18 +655,32 @@ def make_model_training_architecture_panel(
             pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
             file_format=".svg",
             scalebar_location="lower right",
+            show_plot=False,
         )
 
     # Create figure with just the panel title
     fig, ax = plt.subplots(figsize=figure_size, layout="constrained")
     ax.set_axis_off()
-    fig.text(
-        x=0.04,
-        y=0.94,
-        s="DiffAE training architecture and data preparation",
-        fontweight="bold",
-        fontsize=FONTSIZE_LARGE * 1.2,
-    )
+
+    if title_location == "top":
+        fig.text(
+            x=0.04,
+            y=0.94,
+            s="DiffAE training architecture and data preparation",
+            fontweight="bold",
+            fontsize=FONTSIZE_LARGE * 1.2,
+        )
+    else:
+        fig.text(
+            x=0.05,
+            y=0.5,
+            s="Diffusion autoencoder\nmodel architecture",
+            verticalalignment="center",
+            horizontalalignment="center",
+            rotation=90,
+            fontweight="bold",
+            fontsize=FONTSIZE_SMALL,
+        )
 
     return save_plot_to_path(
         fig,
@@ -660,7 +688,7 @@ def make_model_training_architecture_panel(
         "model_training_architecture",
         file_format=".svg",
         tight_layout=False,
-        show_and_close=True,
+        show_and_close=False,
     )
 
 

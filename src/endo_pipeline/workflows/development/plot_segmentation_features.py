@@ -5,7 +5,7 @@ def main(datasets: Datasets | None = None) -> None:
     """
     Plot segmentation features for given datasets.
 
-    #cdh5-segmentation #cdh5-tracking #nuclei-prediction
+    #cdh5-segmentation #cdh5-tracking #nuclei-prediction #test-ready
 
     The following features are plotted:
 
@@ -29,7 +29,7 @@ def main(datasets: Datasets | None = None) -> None:
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe plot-segmentation-features -vd
+    uv run endopipe plot-segmentation-features -d
     ```
 
     To run the workflow for a single dataset:
@@ -108,7 +108,7 @@ def main(datasets: Datasets | None = None) -> None:
 
     # If running in demo mode, only process the first dataset.
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one dataset")
+        logger.warning("DEMO MODE - Limiting to one dataset")
         dataset_names = dataset_names[:1]
         max_positions = 1
     else:

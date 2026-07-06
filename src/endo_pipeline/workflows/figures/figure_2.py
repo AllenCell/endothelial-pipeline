@@ -3,25 +3,49 @@ from endo_pipeline.cli import UniqueStrList
 
 def main(include_panels: UniqueStrList | None = None) -> None:
     """
-    Compile panels for Figure 2.
+    **Figure 2**. Stable fixed points of data-driven vector fields over
+    morphological state space reveal distinct cell states at shear stress
+    magnitudes of 6 dyn/cm² and 21 dyn/cm²
 
-    - **Panel A**: 3D visualizations of drift vector field and nullclines for
-      example low shear stress dataset.
-    - **Panel B**: 1D plot of drift along polar angle coordinate for example low
-      shear stress dataset, 2D contour plot of drift coefficients for polar
-      radius and rho (-PC3) coordinates for example low shear stress dataset.
-    - **Panel C**: DiffAE generated synthetic images along nullcline in polar
-      radius and rho (-PC3) coordinates for example low shear stress dataset.
-    - **Panel D-F**: Same as A-C for example high shear stress dataset.
-    - **Panel G**: Summary plot of fixed point locations across multiple
-      datasets, colored by migration coherence (EMA-smoothed optical flow unit
-      vector mean).
-    - **Panel H**: Schematic of first passage time calculation for example
-      trajectories in low shear stress dataset.
-    - **Panel I**: Histogram of first passage time correlation coefficients
-      across multiple datasets.
+    #main-figure #cell-centered #grid-based #fixed-points #first-passage-time
 
+    | Panel | Description                                                                                     | Notes      |
+    | ----- | ----------------------------------------------------------------------------------------------- | ---------- |
+    | A     | 3D data-driven vector field for representative 6 dyn/cm² and 21 dyn/cm² shear stress replicates |            |
+    | B     | Decomposition of 3D vector field into 1D and 2D components                                      |            |
+    | C     | Example reconstruction of VE-cadherin patch using stable fixed point                            | _uses GPU_ |
+    | D     | Summary of stable fixed points across 6 dyn/cm² and 21 dyn/cm² shear stress replicates          |            |
+    | E     | Example grid-based trajectory and a cell-centered trajectory                                    |            |
+    | F     | Probability density of residuals from linear fit between grid-based and cell-centered MFPTs     |            |
+
+    ## Example usage
+
+    To run the figure workflow:
+
+    ```bash
+    uv run endopipe figure-2
+    ```
+
+    To run the figure workflow for a specific panel:
+
+    ```bash
+    uv run endopipe figure-2 PANEL
+    ```
+
+    ## Figure panels
+
+    Some panels in this workflow should be run with an NVIDIA GPU (as indicated
+    by _uses GPU_ in the table above). Run this workflow with the GPU flag (`-g`
+    or `--num-gpus`) to make sure GPUs are visible to the workflow. The workflow
+    will run without a GPU, but will be noticeably slower. You may want to skip
+    generating these panels by excluding them from the list of panels.
+
+    Parameters
+    ----------
+    include_panels
+        List of panels to include in figure. Leave empty to include all panels.
     """
+
     from pathlib import Path
 
     import matplotlib.pyplot as plt
@@ -337,7 +361,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             path=fixed_point_reconstruction_paths[dataset_low],
             x_position=3.225,
             y_position=0.0,
-            x_offset=0.3,
+            x_offset=0.2,
             y_offset=0.0,
         ),
         FigurePanel(
@@ -353,7 +377,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             letter="D",
             path=fixed_point_summary_plot_path,
             x_position=3.25,
-            y_position=1.35,
+            y_position=1.45,
             x_offset=0.05,
             y_offset=0.05,
         ),
@@ -361,7 +385,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             letter="E",
             path=trajectory_example_filepath,
             x_position=3.25,
-            y_position=3.15,
+            y_position=3.25,
             x_offset=0.15,
             y_offset=0.0,
         ),
@@ -376,7 +400,10 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     ]
 
     build_figure_from_panels(
-        panels, output_path / "figure_2.svg", width=MAX_FIGURE_WIDTH, height=6.6
+        panels,
+        output_path / "figure_2.svg",
+        width=MAX_FIGURE_WIDTH,
+        height=6.6,
     )
 
 

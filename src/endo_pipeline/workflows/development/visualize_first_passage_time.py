@@ -11,14 +11,14 @@ def main(
     """
     Visualize first passage time results from `compute-first-passage-time`.
 
-    #first-passage-time #grid-based #cell-centered #visualization
+    #first-passage-time #grid-based #cell-centered #visualization #test-ready
 
     ## Example usage
 
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe visualize-first-passage-time -vd
+    uv run endopipe visualize-first-passage-time -d
     ```
 
     To run the workflow for a single dataset:
@@ -52,9 +52,9 @@ def main(
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, load_dataframe
-    from endo_pipeline.library.analyze.track_integration import (
-        build_fpt_line_fit_results_df,
-        filter_fpt_stats_df_by_min_num_trajectories,
+    from endo_pipeline.library.analyze.first_passage_time import (
+        build_first_passage_time_line_fit_results_dataframe,
+        filter_first_passage_time_by_min_num_trajectories,
     )
     from endo_pipeline.library.visualize.integration.track_integration_viz import (
         plot_first_passage_time_3d_scatter,
@@ -78,7 +78,7 @@ def main(
     dataset_names = datasets or get_datasets_in_collection("shear_stress")
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one dataset")
+        logger.warning("DEMO MODE - Limiting to one dataset")
         dataset_names = dataset_names[:1]
 
     # Set default values
@@ -109,14 +109,14 @@ def main(
 
         # filter out nans and bins with too few trajectories for a certain measure
         # (either mean or median) for the correlation and line fitting steps
-        fpt_stats_df_no_nan = filter_fpt_stats_df_by_min_num_trajectories(
+        fpt_stats_df_no_nan = filter_first_passage_time_by_min_num_trajectories(
             fpt_stats_df=fpt_stats_df,
             min_num_traj_per_bin=min_num_traj_per_bin,
             metric_for_filter=metric_to_plot,
         )
         # fit a line to the correlation between grid and tracked first passage
         # time statistics for each fixed point and dataset
-        line_fit_df = build_fpt_line_fit_results_df(
+        line_fit_df = build_first_passage_time_line_fit_results_dataframe(
             fpt_stats_df_no_nan=fpt_stats_df_no_nan,
             metric_to_fit=metric_to_plot,
         )

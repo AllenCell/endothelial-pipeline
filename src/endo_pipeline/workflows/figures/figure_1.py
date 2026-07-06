@@ -3,13 +3,45 @@ from endo_pipeline.cli import UniqueStrList
 
 def main(include_panels: UniqueStrList | None = None) -> None:
     """
-    Machine learning-derived image features capture biologically relevant
-    phenotypes of hiPSC-derived endothelial cells exposed to shear stress
+    **Figure 1**. Machine learning-derived image features capture biologically
+    relevant phenotypes of hiPSC-derived endothelial cells exposed to shear
+    stress
 
-    - **Panel A**: Example images from biological system at low and high shear stress
-    - **Panel B**: DiffAE evaluation/inference schematic
-    - **Panel C**: Latent walk visualization along ML-based features theta, r, and rho
-    - **Panel D**: Pearson correlation heatmaps of ML-based and measured features
+    #main-figure #diffae #correlation-analysis
+
+    | Panel | Description                                                                    | Notes                           |
+    | ----- | ------------------------------------------------------------------------------ | ------------------------------- |
+    | A     | Example images from biological system at 6 dyn/cm² and 21 dyn/cm² shear stress |                                 |
+    | B     | Diffusion autoencoder (DiffAE) architecture and inference workflow             | _uses GPU_, _compiled manually_ |
+    | C     | Latent walk visualization along ML-based features theta, r, and rho            | _uses GPU_                      |
+    | D     | Pearson correlation heatmaps of ML-based and measured features                 |                                 |
+
+    ## Example usage
+
+    To run the figure workflow:
+
+    ```bash
+    uv run endopipe figure-1
+    ```
+
+    To run the figure workflow for a specific panel:
+
+    ```bash
+    uv run endopipe figure-1 PANEL
+    ```
+
+    ## Figure panels
+
+    Some panels in this workflow should be run with an NVIDIA GPU (as indicated
+    by _uses GPU_ in the table above). Run this workflow with the GPU flag (`-g`
+    or `--num-gpus`) to make sure GPUs are visible to the workflow. The workflow
+    will run without a GPU, but will be noticeably slower. You may want to skip
+    generating these panels by excluding them from the list of panels.
+
+    Parameters
+    ----------
+    include_panels
+        List of panels to include in figure. Leave empty to include all panels.
     """
 
     from typing import cast
@@ -27,6 +59,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         parse_placeholder_panels,
     )
     from endo_pipeline.library.visualize.latent_walk import perform_and_plot_latent_walk_for_figures
+    from endo_pipeline.library.visualize.model_performance import (
+        make_model_training_architecture_panel,
+    )
     from endo_pipeline.library.visualize.multi_feature_correlation import (
         make_feature_correlation_panel,
     )
@@ -38,11 +73,11 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     plt.style.use("endo_pipeline.figure")
 
-    output_path = get_output_path("figure_1")
+    output_path = get_output_path(__file__)
 
-    placeholders = parse_placeholder_panels(include_panels, ["A", "C", "D"])
+    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
 
-    # Example images from biological system at low and high shear stress
+    # Example images from biological system at 6 dyn/cm² and 21 dyn/cm² shear stress
     example_path = create_panel_biological_system_examples(
         examples=FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES,
         output_path=output_path,
@@ -51,13 +86,16 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         **placeholders["A"],
     )
 
-    # Correlation heatmaps of ML-based and measured features
-    feature_correlations_path = make_feature_correlation_panel(
-        pc_columns=DIFFAE_PC_COLUMN_NAME_GROUPS["main_figure"],
-        seg_columns=SEGMENTATION_FEATURE_COLUMNS["main_figure"],
+    # Note that this method produces several image thumbnails that are assembled
+    # into the model training diagram using a vector graphics software
+    architecture_panel_path = make_model_training_architecture_panel(
         output_path=output_path,
-        figure_size=(2.5, 2.7),
-        **placeholders["D"],
+        figure_size=(5.4, 2.4),
+        num_gpus=NUM_GPUS,
+        include_slices=False,
+        include_inputs=False,
+        title_location="left",
+        **placeholders["B"],
     )
 
     # Latent walk visualization
@@ -82,12 +120,29 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         **placeholders["C"],
     )
 
+    # Correlation heatmaps of ML-based and measured features
+    feature_correlations_path = make_feature_correlation_panel(
+        pc_columns=DIFFAE_PC_COLUMN_NAME_GROUPS["main_figure"],
+        seg_columns=SEGMENTATION_FEATURE_COLUMNS["main_figure"],
+        output_path=output_path,
+        figure_size=(2.5, 2.7),
+        **placeholders["D"],
+    )
+
     panels = [
         FigurePanel(
             letter="A",
             path=example_path,
             x_position=0,
             y_position=0,
+            x_offset=0,
+            y_offset=0,
+        ),
+        FigurePanel(
+            letter="B",
+            path=architecture_panel_path,
+            x_position=0,
+            y_position=3.6,
             x_offset=0,
             y_offset=0,
         ),
@@ -108,8 +163,12 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             y_offset=0,
         ),
     ]
+
     build_figure_from_panels(
-        panels, output_path / "figure_1.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
+        panels,
+        output_path / "figure_1.svg",
+        width=MAX_FIGURE_WIDTH,
+        height=MAX_FIGURE_HEIGHT,
     )
 
 

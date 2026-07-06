@@ -17,39 +17,55 @@ locations:
     mlflowid: bfad1b1919a54a3dbaaeafae21e19417
     fmsid: null
     path: null
-    s3uri: null
+    s3uri:
+    - s3://allencell-internal-quilt/endo_stg/diffae_baseline/latent_8.ckpt
+    - s3://allencell-internal-quilt/endo_stg/diffae_baseline/latent_8.yaml
   latent_16:
     mlflowid: bcebb9a42b4e40868e5fefa1e8a7f741
     fmsid: null
     path: null
-    s3uri: null
+    s3uri:
+    - s3://allencell-internal-quilt/endo_stg/diffae_baseline/latent_16.ckpt
+    - s3://allencell-internal-quilt/endo_stg/diffae_baseline/latent_16.yaml
   latent_32:
     mlflowid: 08d6e818cf81403789b26662db7372ab
     fmsid: null
     path: null
-    s3uri: null
+    s3uri:
+    - s3://allencell-internal-quilt/endo_stg/diffae_baseline/latent_32.ckpt
+    - s3://allencell-internal-quilt/endo_stg/diffae_baseline/latent_32.yaml
   latent_64:
     mlflowid: 68bed8f48996415fb6492cd3692d7b64
     fmsid: null
     path: null
-    s3uri: null
+    s3uri:
+    - s3://allencell-internal-quilt/endo_stg/diffae_baseline/latent_64.ckpt
+    - s3://allencell-internal-quilt/endo_stg/diffae_baseline/latent_64.yaml
   latent_128:
     mlflowid: 38e56279c6c34de5b65ac41f65088f69
     fmsid: null
     path: null
-    s3uri: null
+    s3uri:
+    - s3://allencell-internal-quilt/endo_stg/diffae_baseline/latent_128.ckpt
+    - s3://allencell-internal-quilt/endo_stg/diffae_baseline/latent_128.yaml
   latent_256:
     mlflowid: 5d44dc8573324a00a8ab15609bac2603
     fmsid: null
     path: null
-    s3uri: null
+    s3uri:
+    - s3://allencell-internal-quilt/endo_stg/diffae_baseline/latent_256.ckpt
+    - s3://allencell-internal-quilt/endo_stg/diffae_baseline/latent_256.yaml
   latent_512:
     mlflowid: 1fe9d12ed4db459d900b947ce0702a45
     fmsid: null
     path: null
-    s3uri: null
+    s3uri:
+    - s3://allencell-internal-quilt/endo_stg/diffae_baseline/latent_512.ckpt
+    - s3://allencell-internal-quilt/endo_stg/diffae_baseline/latent_512.yaml
   latent_1024:
     mlflowid: 0b18c1dfe1124d2595ef28fca0ca7440
     fmsid: null
     path: null
-    s3uri: null
+    s3uri:
+    - s3://allencell-internal-quilt/endo_stg/diffae_baseline/latent_1024.ckpt
+    - s3://allencell-internal-quilt/endo_stg/diffae_baseline/latent_1024.yaml

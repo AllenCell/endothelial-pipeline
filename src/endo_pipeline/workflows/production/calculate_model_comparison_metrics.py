@@ -16,7 +16,7 @@ def main(
     """
     Calculate comparison metrics for model runs in given DiffAE model manifest.
 
-    #diffae #model-comparison #gpu
+    #diffae #model-comparison #test-ready #gpu
 
     This workflow evaluates model runs in a given DiffAE model manifest by
     calculating per-example correlation, SSIM, and LPIPS metrics on select
@@ -27,7 +27,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe calculate-model-comparison-metrics MODEL_MANIFEST_NAME -vd
+    uv run endopipe calculate-model-comparison-metrics MODEL_MANIFEST_NAME -d
     ```
 
     To run the workflow for specific model runs:
@@ -129,7 +129,7 @@ def main(
 
     # In demo mode, limit to two model runs, two seeds, and two examples
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to two runs, two seeds, and two examples")
+        logger.warning("DEMO MODE - Limiting to two runs, two seeds, and two examples")
         run_names = run_names[: min(len(run_names), 2)]
         seeds_to_evaluate = seeds_to_evaluate[:2]
         example_pairs = example_pairs[:2]

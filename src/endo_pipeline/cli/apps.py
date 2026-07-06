@@ -224,6 +224,10 @@ def apply_workflow_options(options: WorkflowOptions):
             endo_pipeline.cli.NUM_GPUS = None
             os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
+    if options.num_workers:
+        logger.info("Running workflow with %d workers (if available)", options.num_workers)
+        endo_pipeline.cli.NUM_WORKERS = options.num_workers
+
     if options.demo_mode:
         logger.info("Running workflow in demo mode")
         endo_pipeline.cli.DEMO_MODE = True

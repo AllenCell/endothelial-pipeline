@@ -3,8 +3,7 @@ from typing import NamedTuple
 EXAMPLE_DATASET = {
     "FIGURE_2_LOW_FLOW_DATASET": "20250409_20X",
     "FIGURE_2_HIGH_FLOW_DATASET": "20251001_20X",
-    "FIGURE_3_12_DYN_BISTABLE": "20250319_20X",
-    "FIGURE_3_15_DYN_BISTABLE": "20250813_20X",
+    "FIGURE_4_STREAMPLOT": "20250319_20X",
     "SUPP_FIG_Z_SLICE": "20250428_20X",
     "SUPP_FIG_IMG_PROC": "20250402_20X",
     "SUPP_FIG_SINGLE_TP_BF_OUTLIER": "20250402_20X",
@@ -130,7 +129,7 @@ FIGURE_3_EXAMPLE_IMAGES: list[ExampleImage] = [
     ),
 ]
 
-FIGURE_4_EXAMPLE_IMAGES: list[ExampleImage] = [
+FIGURE_5_EXAMPLE_IMAGES: list[ExampleImage] = [
     ExampleImage(
         dataset_name="20250402_20X",
         description="parental_line",

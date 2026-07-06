@@ -32,10 +32,7 @@ def add_optical_flow_features(
 
     The input dataframe must contain the columns specified in `merge_columns`
     and the optical flow dataframe(s) must contain the columns specified in both
-    `merge_columns` and `optical_flow_feature_columns`. If not provided, these
-    parameters will default to `OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS` and
-    `OPTICAL_FLOW_BASE_FEATURES`, respectively.
-
+    `merge_columns` and `optical_flow_feature_columns`.
 
     Parameters
     ----------

@@ -17,12 +17,6 @@ TFE_IMAGE_MANIFEST_NAME_MAP: dict[str, str] = {
 TFE_BACKDROP_TYPES: list[str] = ["bf_slice", "bf_std_dev", "gfp_max_proj"]
 """List of TFE backdrop types to generate."""
 
-TFE_DEFAULT_DATASETS: list[str] = ["20250618_20X"]
-"""Default dataset(s) for converting to TFE."""
-
-TFE_DEFAULT_POSITIONS: list[int] = [0]
-"""Default position(s) for converting to TFE."""
-
 TFE_TYPE_MAPPING: dict[ColumnType, FeatureType] = {
     ColumnType.CONTINUOUS: FeatureType.CONTINUOUS,
     ColumnType.DISCRETE: FeatureType.DISCRETE,
@@ -114,9 +108,5 @@ TFE_FEATURES: list[ColumnNameType] = [
     Column.OpticalFlow.ANGLE_STD,
     Column.OpticalFlow.SPEED_MEAN,
     Column.OpticalFlow.SPEED_STD,
-    Column.OpticalFlow.UNIT_VECTOR_MEAN_FAST_BASE,
-    Column.OpticalFlow.SPEED_ABOVE_1_COUNT_BASE,
-    Column.OpticalFlow.UNIT_VECTOR_MEAN,
-    Column.OpticalFlow.EMA01_UNIT_VECTOR_MEAN_FAST,
 ]
 """List of feature to include in TFE manifest."""

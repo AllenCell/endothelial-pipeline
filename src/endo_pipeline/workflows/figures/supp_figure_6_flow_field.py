@@ -3,12 +3,39 @@ from endo_pipeline.cli import UniqueStrList
 
 def main(include_panels: UniqueStrList | None = None) -> None:
     """
-    Estimation of a dynamical systems representations for "cell state" from
-    grid-based patch trajectories.
+    **Supplemental Figure 6**. Estimation of a dynamical systems representation
+    of cell state from grid-based patch trajectories
 
-    - **Panel A** - Definition of trajectories and single-frame displacement vectors
-    - **Panel B** - Characterization of trajectory fluctuations and correlation timescales
-    - **Panel C** - Kernel-convolution-based method for estimated drift coefficients
+    #supp-figure #dynamical-systems
+
+    | Panel | Description                                                            |
+    | ----- | ---------------------------------------------------------------------- |
+    | A     | Definition of trajectories and single-frame displacement vectors       |
+    | B     | Characterization of trajectory fluctuations and correlation timescales |
+    | C     | Kernel-convolution-based method for estimated drift coefficients       |
+
+    ## Example usage
+
+    To run the figure workflow:
+
+    ```bash
+    uv run endopipe supp-figure-6-flow-field
+    ```
+
+    To run the figure workflow for a specific panel:
+
+    ```bash
+    uv run endopipe supp-figure-6-flow-field PANEL
+    ```
+
+    ## Figure panels
+
+    All panels in this workflow can be run without GPU.
+
+    Parameters
+    ----------
+    include_panels
+        List of panels to include in figure. Leave empty to include all panels.
     """
 
     import matplotlib.pyplot as plt
@@ -67,7 +94,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     build_figure_from_panels(
         panels,
-        output_path / "Supplemental_Figure_4.svg",
+        output_path / "supp_figure_6_flow_field.svg",
         width=MAX_FIGURE_WIDTH,
         height=4.3,
     )

@@ -11,7 +11,6 @@ def main(
     model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
     run_name: str | None = DEFAULT_MODEL_RUN_NAME,
     config_name: str | None = None,
-    num_workers: int | None = None,
 ) -> None:
     """
     Build config for evaluating a DiffAE model.
@@ -28,13 +27,19 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe build-diffae-eval-config PATCH_TYPE -vd
+    uv run endopipe build-diffae-eval-config PATCH_TYPE -d
     ```
 
     To run the workflow for a single dataset:
 
     ```bash
     uv run endopipe build-diffae-eval-config PATCH_TYPE --datasets DATASET_NAME
+    ```
+
+    To specify number of GPUs and workers to be used by `eval-diffae`:
+
+    ```bash
+    uv run endopipe build-diffae-train-config PATCH_TYPE -g NUM_GPUS -n NUM_WORKERS
     ```
 
     ## Patch types
@@ -65,16 +70,13 @@ def main(
         Name for the model run to use for evaluation.
     config_name
         Evaluation override config applied over the trained model config.
-    num_workers
-        Number of workers to use for loading data. If not given, estimate based
-        on total number of logical CPUs in the system.
     """
 
     import logging
 
     from cyto_dl.api import CytoDLModel
 
-    from endo_pipeline.cli import DEMO_MODE, NUM_GPUS
+    from endo_pipeline.cli import DEMO_MODE, NUM_GPUS, NUM_WORKERS
     from endo_pipeline.configs import get_datasets_in_collection, load_model_config
     from endo_pipeline.io import get_output_path, resolve_dataframe_location
     from endo_pipeline.library.model.config_overrides import ModelConfigOverrideEval
@@ -158,7 +160,7 @@ def main(
             eval_dataframe_path=dataframe_path,
             run_name=run_name,
             num_gpus=NUM_GPUS,
-            num_workers=num_workers,
+            num_workers=NUM_WORKERS,
         )
 
         # Initialize the model with evaluation base config, apply overrides, and save config.

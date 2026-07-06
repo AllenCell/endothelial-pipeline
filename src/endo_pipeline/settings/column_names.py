@@ -542,156 +542,100 @@ class ColumnName:
     class OpticalFlow(StrEnum):
         """Dataframe column names used in the optical-flow feature workflow."""
 
-        # --- Base feature names (before dt suffix) produced by compute_flow_statistics ---
-        SPEED_MEAN_BASE = "optical_flow_mean_speed"
-        """Base name for mean speed (before dt suffix)."""
-
-        UNIT_VECTOR_MEAN_BASE = "optical_flow_mean_unit_vector"
-        """Base name for mean unit vector coherence (before dt suffix)."""
-
-        SPEED_STD_BASE = "optical_flow_std_speed"
-        """Base name for speed standard deviation (before dt suffix)."""
-
-        ANGLE_MEAN_BASE = "optical_flow_mean_angle"
-        """Base name for mean angle (before dt suffix)."""
-
-        ANGLE_STD_BASE = "optical_flow_angle_std"
-        """Base name for angle standard deviation (before dt suffix)."""
-
-        U_MEAN_BASE = "optical_flow_mean_u"
-        """Base name for mean u component (before dt suffix)."""
-
-        V_MEAN_BASE = "optical_flow_mean_v"
-        """Base name for mean v component (before dt suffix)."""
-
-        U_STD_BASE = "optical_flow_std_u"
-        """Base name for u standard deviation (before dt suffix)."""
-
-        V_STD_BASE = "optical_flow_std_v"
-        """Base name for v standard deviation (before dt suffix)."""
-
-        SPEED_ABOVE_1_COUNT_BASE = "speed_above_1_count"
-        """Base name for count of pixels above speed threshold (before dt suffix)."""
-
-        UNIT_VECTOR_MEAN_FAST_BASE = "optical_flow_mean_unit_vector_fast"
-        """Base name for fast-pixel unit vector coherence (before dt suffix)."""
-
-        # --- Final (suffixed) feature names used in dataframes ---
-        SPEED_MEAN = "optical_flow_mean_speed_dt1"
-        """Mean speed of the optical flow vectors in a crop."""
-
         UNIT_VECTOR_MEAN = "ema01_optical_flow_mean_unit_vector_dt1"
-        """Mean unit vector of the optical flow vectors in a crop. EMA smoothing with alpha=0.01."""
+        """Mean unit vector of optical flow vectors in a crop (EMA smoothing, alpha = 0.1)."""
+
+        UNIT_VECTOR_MEAN_RAW = "optical_flow_mean_unit_vector_dt1"
+        """Mean unit vector of optical flow vectors in a crop (no EMA smoothing)."""
+
+        SPEED_MEAN = "optical_flow_mean_speed_dt1"
+        """Mean per-pixel speed [pixels/frame] of the optical flow vectors in a crop."""
 
         SPEED_STD = "optical_flow_std_speed_dt1"
-        """Standard deviation of the speeds of the optical flow vectors in a crop."""
+        """Standard deviation of per-pixel speed [pixels/frame] of the optical flow vectors in a crop."""
 
         ANGLE_MEAN = "optical_flow_mean_angle_dt1"
-        """Mean angle of the optical flow vectors in a crop."""
+        """Mean angle [radians] of optical flow vectors in a crop."""
 
         ANGLE_STD = "optical_flow_angle_std_dt1"
-        """Standard deviation of the angles of the optical flow vectors in a crop."""
-
-        U_MEAN = "optical_flow_mean_u_dt1"
-        """Mean u (x) component of the optical flow vectors in a crop."""
-
-        V_MEAN = "optical_flow_mean_v_dt1"
-        """Mean v (y) component of the optical flow vectors in a crop."""
-
-        U_STD = "optical_flow_std_u_dt1"
-        """Standard deviation of the u (x) components of the optical flow vectors in a crop."""
-
-        V_STD = "optical_flow_std_v_dt1"
-        """Standard deviation of the v (y) components of the optical flow vectors in a crop."""
-
-        SPEED_ABOVE_1_COUNT = "speed_above_1_count_dt1"
-        """Number of pixels whose speed exceeds the threshold (fast-coherence feature)."""
-
-        UNIT_VECTOR_MEAN_FAST = "optical_flow_mean_unit_vector_fast_dt1"
-        """Mean unit vector coherence computed only over fast pixels."""
-
-        # --- EMA-smoothed and unsuffixed variants used in plotting / TFE viewer ---
-        UNIT_VECTOR_MEAN_RAW = "optical_flow_mean_unit_vector_dt1"
-        """Mean unit vector coherence (no EMA smoothing)."""
-
-        EMA01_UNIT_VECTOR_MEAN_FAST = "ema01_optical_flow_mean_unit_vector_fast_dt1"
-        """Mean unit vector coherence over fast pixels with EMA smoothing, alpha=0.1."""
+        """Standard deviation of angles [radians] of optical flow vectors."""
 
     FIXED_POINT_STABILITY = "stability"
     """Stability classification of a fixed point."""
+
+    NUM_TRAJECTORIES_BEFORE_FPT_FILTER = "num_trajectories_before_fpt_filter"
+    """NUmber of trajectories before first passage time filter is applied."""
+
+    NUM_TRAJECTORIES_AFTER_FPT_FILTER = "num_trajectories_after_fpt_filter"
+    """NUmber of trajectories after first passage time filter is applied."""
 
     class VectorField(StrEnum):
         """Column name suffixes used in vector field / dynamics analysis."""
 
         FIXED_POINT_INDEX = "fixed_point_id"
-        """Column name for the index of the fixed point in the fixed point dataframe."""
-
-        FIXED_POINT_PREFIX = "fp_"
-        """Prefix for column names representing coordinates of fixed points in feature space."""
-
-        DISTANCE_FROM_FP_PREFIX = "dist_from_fp_"
-        """Prefix for column names representing the distance from a fixed point in N-D space."""
-
-        DISTANCE_FROM_FP_1D_SIGNED_PREFIX = "diff_from_fp_"
-        """Prefix for column names representing the signed difference from a fixed point along a single dimension."""
+        """Index of fixed point in fixed point dataframe."""
 
         FPT_DISTANCE_THRESHOLD = "fpt_distance_threshold"
-        """Column name for the distance threshold used to determine whether a trajectory has reached a fixed point in first passage time analysis."""
-
-        IS_AT_FP_PREFIX = "is_at_fp_"
-        """Prefix for column names indicating whether a data point is at a fixed point."""
-
-        TRAJ_REACHED_FP_PREFIX = "traj_reached_fp_"
-        """Prefix for column names indicating whether a trajectory reached a fixed point."""
-
-        FIRST_PASSAGE_DIST_PREFIX = "first_passage_dist_from_fp_"
-        """Prefix for column names representing the distance from a fixed point at which a
-        trajectory first passed the threshold for being considered to have reached the fixed point."""
-
-        FIRST_PASSAGE_TIME_SUFFIX = "_first_passage_time"
-        """Suffix for column names representing the first passage time to a fixed point."""
-
-        FIRST_PASSAGE_PREFIX = "first_passage_"
-        """Prefix for column names representing the first passage distance or time to a fixed point."""
-
-        TIME_TO_FP_PREFIX = "time_to_fp_"
-        """Prefix for column names representing the time to until a fixed point is reached."""
-
-        BIN_SIZE_PREFIX = "bin_size_"
-        """Column name for the sizes of bins used when discretizing feature space."""
-
-        BIN_LIMITS_PREFIX = "bin_limits_"
-        """Column name for the limits of bins used when discretizing feature space."""
+        """Radius around fixed point at which a trajectory is considered to have reached the fixed point."""
 
         BIN_CENTER = "bin_center"
-        """Column name for the center of bins used when discretizing feature space."""
+        """Center of bins used to discretize feature space."""
 
         BIN_EDGES = "bin_edges"
-        """Column name for the edges of bins used when discretizing feature space."""
+        """Edges of bins used to discretize feature space."""
 
         BIN_INDEX = "bin_index"
-        """Column name for the index of the bin that a data point falls into when feature space is discretized."""
+        """Index of bin that data point falls into when feature space is discretized."""
 
-        FPT_METRIC = "fpt_metric"
-        """Column name for the metric used in the first passage time analysis."""
-
-        PERCENT_TRAJ_APPROACHED_FP = "percent_trajectories_approached_fp"
-        """Column name for the percentage of trajectories that approached a fixed point within a certain distance threshold."""
+        LINEFIT_SLOPE_ODR = "slope_odr"
+        """
+        Slope of line fit to relationship between first passage time to fixed
+        point for grid-based and cell-centered patches using orthogonal distance
+        regression (ODR).
+        """
 
         LINEFIT_INTERCEPT_ODR = "intercept_odr"
-        """Column name for the intercept of a line fit to the relationship between first passage time and distance from the fixed point using orthogonal distance regression (ODR)."""
+        """
+        Intercept of line fit to relationship between first passage time to
+        fixed point for grid-based and cell-centered patches using orthogonal
+        distance regression (ODR).
+        """
+
+        LINEFIT_SLOPE_STDEV_ODR = "slope_stdev_odr"
+        """
+        Standard deviation of slope estimate for line fit to relationship
+        between first passage time to fixed point for grid-based and
+        cell-centered patches using orthogonal distance regression (ODR).
+        """
+
+        LINEFIT_INTERCEPT_STDEV_ODR = "intercept_stdev_odr"
+        """
+        Standard deviation of intercept estimate for line fit to relationship
+        between first passage time to fixed point for grid-based and
+        cell-centered patches using orthogonal distance regression (ODR).
+        """
 
         LINEFIT_REDUCED_CHI_SQUARED_ODR = "reduced_chi_squared_odr"
-        """Column name for the reduced chi-squared value of a line fit to the relationship between first passage time and distance from the fixed point using orthogonal distance regression (ODR)."""
-
-        PEARSON_R = "r_value_pearson"
-        """Column name for the Pearson correlation coefficient between first passage time and distance from the fixed point."""
-
-        LINEFIT_SLOPE = "slope_odr"
-        """Column name for the slope of a line fit to the relationship between first passage time to the fixed point for grid and tracked crops."""
+        """
+        Reduced chi-squared value for line fit to relationship between first
+        passage time to fixed point for grid-based and cell-centered patches
+        using orthogonal distance regression (ODR).
+        """
 
         ODR_RESULT = "OdrResult"
-        """Column name for the result object of the orthogonal distance regression (ODR) analysis."""
+        """Result object from orthogonal distance regression (ODR) analysis."""
+
+        PEARSON_R = "r_value_pearson"
+        """
+        Pearson correlation coefficient between first passage time to fixed
+        point for grid-based and cell-centered patches.
+        """
+
+        PEARSON_P = "p_value_pearson"
+        """
+        Pearson correlation p-value between first passage time to fixed point
+        for grid-based and cell-centered patches.
+        """
 
     FIXED_POINT_DETECTION_RATE = "detection_rate"
     """Fraction of bootstrap iterations in which a matched fixed point was found."""
@@ -794,6 +738,105 @@ class ColumnNameTemplate(StrEnum):
 
     BOOTSTRAP_CI_UPPER = "%s_ci_upper"
     """Column name template: Upper bound of bootstrap confidence interval for %s."""
+
+    OPTICAL_FLOW_EMA_MEAN_UNIT_VECTOR = "ema%s_optical_flow_mean_unit_vector_dt%d"
+    """Column name template: Mean unit vector of optical flow vectors in a crop (EMA smoothing, alpha = %s) with temporal gap %d."""
+
+    OPTICAL_FLOW_MEAN_UNIT_VECTOR = "optical_flow_mean_unit_vector_dt%d"
+    """Column name template: Mean unit vector of optical flow vectors in a crop with temporal gap %d."""
+
+    OPTICAL_FLOW_SPEED_MEAN = "optical_flow_mean_speed_dt%d"
+    """
+    Column name template: Mean per-pixel speed [pixels/frame] of the optical
+    flow vectors in a crop with temporal gap %d.
+    """
+
+    OPTICAL_FLOW_SPEED_STD = "optical_flow_std_speed_dt%d"
+    """
+    Column name template: Standard deviation of per-pixel speed [pixels/frame]
+    of the optical flow vectors in a crop with temporal gap %d.
+    """
+
+    OPTICAL_FLOW_ANGLE_MEAN = "optical_flow_mean_angle_dt%d"
+    """
+    Column name template: Mean angle [radians] of optical flow vectors in a crop
+    with temporal gap %d.
+    """
+
+    OPTICAL_FLOW_ANGLE_STD = "optical_flow_angle_std_dt%d"
+    """
+    Column name template: Standard deviation of angles [radians] of optical flow
+    vectors in a crop with temporal gap %d.
+    """
+
+    OPTICAL_FLOW_U_MEAN = "optical_flow_mean_u_dt%d"
+    """
+    Column name template: Mean horizontal (x) optical-flow component
+    [pixels/frame] with temporal gap %d.
+    """
+
+    OPTICAL_FLOW_V_MEAN = "optical_flow_mean_v_dt%d"
+    """
+    Column name template: Mean vertical (y) optical-flow component
+    [pixels/frame] with temporal gap %d.
+    """
+
+    OPTICAL_FLOW_U_STD = "optical_flow_std_u_dt%d"
+    """
+    Column name template: Standard deviation of horizontal (x) optical-flow
+    component [pixels/frame] with temporal gap %d.
+    """
+
+    OPTICAL_FLOW_V_STD = "optical_flow_std_v_dt%d"
+    """
+    Column name template: Standard deviation of vertical (y) optical-flow
+    component [pixels/frame] with temporal gap %d.
+    """
+
+    DISTANCE_FROM_FIXED_POINT = "dist_from_fp_%d"
+    """Column name template: Distance from fixed point index %d."""
+
+    DISTANCE_FROM_FIXED_POINT_1D_SIGNED_PREFIX = "diff_from_fp_%d_%s"
+    """Column name template: Signed difference from fixed point (index %d) along the %s dimension."""
+
+    TRAJECTORY_REACHED_FIXED_POINT = "traj_reached_fp_%d"
+    """Column name template: True if trajectory reached a fixed point (index %d), False otherwise."""
+
+    IS_AT_FIXED_POINT = "is_at_fp_%d"
+    """Column name template: True if data point is at a fixed point (index %d), False otherwise."""
+
+    TIME_TO_FIXED_POINT = "time_to_fp_%d"
+    """Column name template: Time until a fixed point (index %d) is reached."""
+
+    BIN_SIZE = "bin_size_%s"
+    """Column name template: Size of bins used when discretizing feature space in %s."""
+
+    BIN_LIMITS = "bin_limits_%s"
+    """Column name template: Bin limits used when discretizing feature space in %s."""
+
+    FIRST_PASSAGE_TIME_DISTANCE = "first_passage_dist_from_fp_%d"
+    """
+    Column name template: Distance from fixed point (index %d) at which a trajectory first
+    passed threshold for being considered to have reached the fixed point.
+    """
+
+    FIRST_PASSAGE_TIME_METRIC = "%s_first_passage_time_%s"
+    """
+    Column name template: First passage time to fixed point %s for %s patches
+    computed for all trajectories in given bin.
+    """
+
+    FIRST_PASSAGE_TIME_OVERALL_METRIC = "overall_%s_first_passage_time_%s"
+    """
+    Column name template: First passage time to fixed point %s for %s patches
+    computed for all trajectories across all bins.
+    """
+
+    FIRST_PASSAGE_TIME_PERCENT_TRAJECTORIES = "percent_trajectories_approached_fp_%s"
+    """
+    Column name template: Percent of trajectories that come within a given
+    radius of a stable fixed point for %s patches.
+    """
 
 
 ColumnNameType = (

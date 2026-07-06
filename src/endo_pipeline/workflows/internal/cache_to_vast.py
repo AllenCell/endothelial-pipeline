@@ -2,11 +2,25 @@ def main() -> None:
     """
     Cache FMS files to Vast.
 
-    #internal #vast #test-ready #cpu-only
+    #internal #vast
 
     This script iterates through all dataset configs and dataframe/model
     manifests to identify locations with FMS file IDs. All file IDs are then
     submitted for caching to Vast. If file is already cached, then renew lease.
+
+    ## Example usage
+
+    To run the workflow in demo mode:
+
+    ```bash
+    uv run endopipe cache-to-vast -d
+    ```
+
+    To run the full workflow:
+
+    ```bash
+    uv run endopipe cache-to-vast
+    ```
 
     ## Workflow demo
 

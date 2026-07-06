@@ -21,7 +21,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe create-diffae-eval-dataframe PATCH_TYPE -vd
+    uv run endopipe create-diffae-eval-dataframe PATCH_TYPE -d
     ```
 
     To run the workflow for a single dataset:
@@ -85,7 +85,7 @@ def main(
 
     # When running workflow in demo mode, only include the first dataset.
     if DEMO_MODE:
-        logger.warning("DEMO MODE - Only the first dataset will be included")
+        logger.warning("DEMO MODE - Limiting to one dataset")
         datasets = datasets[:1]
 
     # Create dataframe manifest and add workflow parameters.

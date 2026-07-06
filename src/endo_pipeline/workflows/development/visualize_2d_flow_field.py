@@ -18,7 +18,7 @@ def main(
     """
     Visualize 2D drift vector field and fixed points.
 
-    #dynamical-systems #grid-based #cell-centered #visualization
+    #dynamical-systems #grid-based #cell-centered #visualization #test-ready
 
     This workflow uses the precomputed drift vector field and fixed points
     output by the `generate_flow_field` workflow, run for two column names.
@@ -36,7 +36,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe visualize-2d-flow-field -vd
+    uv run endopipe visualize-2d-flow-field -d
     ```
 
     To run the workflow for a single dataset:
@@ -141,7 +141,7 @@ def main(
     dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one dataset")
+        logger.warning("DEMO MODE - Limiting to one dataset")
         dataset_names = dataset_names[:1]
 
     # Ensure that selected columns are valid options

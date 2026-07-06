@@ -11,16 +11,13 @@ from mpl_toolkits.mplot3d import Axes3D
 
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_to_binned_value
-from endo_pipeline.library.analyze.numerics.binning import adjust_limits_from_bin_size, get_bins
-from endo_pipeline.library.analyze.numerics.fixed_points import (
-    load_fixed_points_dataframe_for_dataset,
-)
-from endo_pipeline.library.analyze.track_integration import (
-    add_distance_to_fixed_points_columns,
+from endo_pipeline.library.analyze.first_passage_time import (
     add_first_passage_time_column,
-    compute_first_passage_time_stats_for_bins,
-    load_filtered_trajectory_df_for_first_passage_time_workflow,
-    merge_grid_and_tracked_first_passage_time_stats_dfs,
+    build_first_passage_time_bins,
+    compute_first_passage_time_statistics,
+    filter_first_passage_time_by_min_num_trajectories,
+    filter_to_trajectories_reaching_fixed_point,
+    load_dataframes_for_first_passage_time_analysis,
 )
 from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.library.visualize.figures import figure_panel
@@ -30,7 +27,6 @@ from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
     LONG_TRACK_THRESHOLD_LENGTH,
     POLAR_ANGLE_PERIOD,
-    TIME_STEP_IN_HOURS,
 )
 from endo_pipeline.settings.figures import FONTSIZE_SMALL
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
@@ -107,254 +103,6 @@ class _HandlerSphere(HandlerBase):
             transform=trans,
         )
         return [body, highlight]
-
-
-def _load_trajectory_dataframes(
-    dataset_name: str, minimum_track_length: int
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """
-    Load and process feature dataframes for first passage time analysis and
-    visualization.
-
-    First, calls the method
-    :py:func:`~endo_pipeline.library.analyze.track_integration.load_filtered_trajectory_df_for_first_passage_time_workflow`
-    to load the trajectory dataframes for both grid-based and cell-centered
-    trajectories, filtered to only include trajectories of at least the
-    specified minimum track length.
-
-    Then adds columns for the distance of each trajectory timepoint to each
-    fixed point, which will be used for filtering to trajectories that reach the
-    fixed point and for computing first passage times.
-
-    Parameters
-    ----------
-    dataset_name
-        Name of the dataset to load trajectory data for.
-    minimum_track_length
-        Minimum track length to filter trajectories by when loading the
-        trajectory dataframes.
-
-    Returns
-    -------
-    :
-        Tuple of (grid-based trajectory dataframe, cell-centered trajectory
-        dataframe, fixed points dataframe) with distance to fixed point columns
-        added to the trajectory dataframes.
-    """
-    traj_df_grid = load_filtered_trajectory_df_for_first_passage_time_workflow(
-        dataset_name,
-        patch_type="grid_based",
-        minimum_track_length=minimum_track_length,
-    )
-    traj_df_grid[Column.SegData.TIME_HRS] = traj_df_grid[Column.TIMEPOINT] * TIME_STEP_IN_HOURS
-
-    traj_df_tracked = load_filtered_trajectory_df_for_first_passage_time_workflow(
-        dataset_name,
-        patch_type="cell_centered",
-        minimum_track_length=minimum_track_length,
-    )
-    traj_df_tracked[Column.SegData.TIME_HRS] = (
-        traj_df_tracked[Column.TIMEPOINT] * TIME_STEP_IN_HOURS
-    )
-
-    fixed_points_df = load_fixed_points_dataframe_for_dataset(dataset_name)
-
-    traj_df_grid = add_distance_to_fixed_points_columns(
-        trajectory_df=traj_df_grid,
-        fixed_point_df=fixed_points_df,
-        trajectory_columns=list(DYNAMICS_COLUMN_NAMES),
-        time_column=Column.SegData.TIME_HRS,
-    )
-    traj_df_tracked = add_distance_to_fixed_points_columns(
-        trajectory_df=traj_df_tracked,
-        fixed_point_df=fixed_points_df,
-        trajectory_columns=list(DYNAMICS_COLUMN_NAMES),
-        time_column=Column.SegData.TIME_HRS,
-    )
-
-    return traj_df_grid, traj_df_tracked, fixed_points_df
-
-
-def _filter_to_first_passage_trajectories(
-    traj_df_grid: pd.DataFrame,
-    traj_df_tracked: pd.DataFrame,
-    fixed_point_index: int,
-    fixed_point_radius_threshold: float,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """
-    Filter the trajectory dataframes to only include trajectories that reach
-    the stable fixed point.
-
-    Parameters
-    ----------
-    traj_df_grid
-        Dataframe of grid-based trajectories with distance to fixed point columns.
-    traj_df_tracked
-        Dataframe of cell-centered trajectories with distance to fixed point columns.
-    fixed_point_index
-        Index of the fixed point to filter trajectories by.
-    fixed_point_radius_threshold
-        Distance threshold from the fixed point below which a trajectory timepoint
-        is considered to have reached the fixed point.
-
-    Returns
-    -------
-    :
-        Tuple of (filtered grid-based trajectory dataframe, filtered cell-centered
-        trajectory dataframe) that only include trajectories that reach the
-        fixed point.
-    """
-    # Mark each timepoint as "at the fixed point" if it is within the radius
-    # threshold, then propagate that flag to all timepoints in the trajectory
-    # using a groupby-transform so we can filter to only trajectories that ever
-    # reach the fixed point
-    traj_df_grid[f"{Column.VectorField.IS_AT_FP_PREFIX}{fixed_point_index}"] = (
-        traj_df_grid[f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fixed_point_index}"]
-        <= fixed_point_radius_threshold
-    )
-    traj_df_tracked[f"{Column.VectorField.IS_AT_FP_PREFIX}{fixed_point_index}"] = (
-        traj_df_tracked[f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{fixed_point_index}"]
-        <= fixed_point_radius_threshold
-    )
-
-    traj_df_grid[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fixed_point_index}"] = (
-        traj_df_grid.groupby(Column.CROP_INDEX)[
-            f"{Column.VectorField.IS_AT_FP_PREFIX}{fixed_point_index}"
-        ].transform(any)
-    )
-    traj_df_tracked[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fixed_point_index}"] = (
-        traj_df_tracked.groupby(Column.CROP_INDEX)[
-            f"{Column.VectorField.IS_AT_FP_PREFIX}{fixed_point_index}"
-        ].transform(any)
-    )
-
-    # Keep only trajectories that eventually reach the fixed point
-    traj_df_grid_sub = traj_df_grid[
-        traj_df_grid[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fixed_point_index}"]
-    ]
-    traj_df_tracked_sub = traj_df_tracked[
-        traj_df_tracked[f"{Column.VectorField.TRAJ_REACHED_FP_PREFIX}{fixed_point_index}"]
-    ]
-
-    return traj_df_grid_sub, traj_df_tracked_sub
-
-
-def _compute_filtered_fpt_stats(
-    traj_df_grid_sub: pd.DataFrame,
-    traj_df_tracked_sub: pd.DataFrame,
-    dataset_name: str,
-    fixed_point_index: int,
-    bin_edges: list[np.ndarray],
-    bin_centers: list[np.ndarray],
-    min_num_traj_per_bin: int,
-) -> pd.DataFrame:
-    """
-    Compute first passage time statisics per bin.
-
-    **Output dataframe**
-
-    This method outputs a dataframe with mean, median, and standard deviation of
-    first-passage times for the trajectories that start in each bin, for both
-    grid-based and cell-centered trajectories. It also includes the count of
-    trajectories that start in each bin for both grid-based and cell-centered
-    trajectories.
-
-    Parameters
-    ----------
-    traj_df_grid_sub
-        Dataframe of grid-based trajectories that reach the fixed point, with
-        distance to fixed point columns and first passage time column.
-    traj_df_tracked_sub
-        Dataframe of cell-centered trajectories that reach the fixed point, with
-        distance to fixed point columns and first passage time column.
-    dataset_name
-        Name of the dataset being analyzed, used for labeling the output
-        dataframe.
-    fixed_point_index
-        Index of the fixed point that the trajectories reach, used for labeling
-        the first passage time column in the output dataframe.
-    bin_edges
-        Edges of the bins in feature space to compute statistics for.
-    bin_centers
-        Centers of the bins in feature space to compute statistics for.
-    min_num_traj_per_bin
-        Minimum number of trajectories that must start in a bin for that bin to
-        be included in the output dataframe.
-
-    Returns
-    -------
-    :
-        Dataframe with first passage time statistics.
-    """
-    # For each bin (across all steady-state timepoints), compute the mean,
-    # median, and standard deviation of first-passage times for the trajectories
-    time_to_first_passage_col_name = f"{Column.VectorField.TIME_TO_FP_PREFIX}{fixed_point_index}"
-
-    fpt_stats_df_grid = compute_first_passage_time_stats_for_bins(
-        bin_centers=bin_centers,
-        bin_edges=bin_edges,
-        trajectory_df=traj_df_grid_sub,
-        time_to_first_passage_col_name=time_to_first_passage_col_name,
-        feature_column_names=list(DYNAMICS_COLUMN_NAMES),
-    )
-    fpt_stats_df_tracked = compute_first_passage_time_stats_for_bins(
-        bin_centers=bin_centers,
-        bin_edges=bin_edges,
-        trajectory_df=traj_df_tracked_sub,
-        time_to_first_passage_col_name=time_to_first_passage_col_name,
-        feature_column_names=list(DYNAMICS_COLUMN_NAMES),
-    )
-
-    # merge the grid and tracked first passage time stats dataframes
-    fpt_stats_df = merge_grid_and_tracked_first_passage_time_stats_dfs(
-        fpt_stats_df_grid=fpt_stats_df_grid,
-        fpt_stats_df_tracked=fpt_stats_df_tracked,
-        dataset_name=dataset_name,
-        fixed_point_index=fixed_point_index,
-    )
-
-    # remove bins that don't have enough trajectories in them from either the
-    # grid or tracked trajectories
-    fpt_stats_df = fpt_stats_df[
-        fpt_stats_df["count_first_passage_time_grid_based"] >= min_num_traj_per_bin
-    ]
-    fpt_stats_df = fpt_stats_df[
-        fpt_stats_df["count_first_passage_time_cell_centered"] >= min_num_traj_per_bin
-    ]
-
-    return fpt_stats_df
-
-
-def _select_example_bin(
-    fpt_stats_df: pd.DataFrame, min_num_traj_per_bin: int
-) -> tuple[np.ndarray, list]:
-    """
-    Select an example bin to visualize trajectories from based on the first
-    passage time statistics dataframe.
-    """
-    # pick the mean FPT metric and select the first well-populated bin as the
-    # example bin to visualize
-    # we take one representative trajectory from each patch type that starts inside that bin
-    metric = f"mean{Column.VectorField.FIRST_PASSAGE_TIME_SUFFIX}"
-
-    # NaN values are unacceptable for the linear regression
-    first_passage_time_df_no_nan = fpt_stats_df.copy().dropna(
-        subset=[f"{metric}_grid_based", f"{metric}_cell_centered"]
-    )
-    # keep only the bins with the minimum number of tracks per bin in them
-    first_passage_time_df_no_nan = first_passage_time_df_no_nan[
-        first_passage_time_df_no_nan["count_first_passage_time_grid_based"] >= min_num_traj_per_bin
-    ]
-    first_passage_time_df_no_nan = first_passage_time_df_no_nan[
-        first_passage_time_df_no_nan["count_first_passage_time_cell_centered"]
-        >= min_num_traj_per_bin
-    ]
-
-    # get the center and edges of the first qualifying bin
-    example_bin_center, example_bin_edges = first_passage_time_df_no_nan[
-        [Column.VectorField.BIN_CENTER, Column.VectorField.BIN_EDGES]
-    ].iloc[0]
-    return example_bin_center, example_bin_edges
 
 
 def _select_example_bin_trajectories(
@@ -694,49 +442,21 @@ def generate_first_passage_time_example(
     # visualization. Also load the fixed points dataframe, which will be used
     # for filtering to trajectories that reach the fixed point and for plotting
     # the fixed point in the 3D feature space.
-    traj_df_grid, traj_df_tracked, fixed_points_df = _load_trajectory_dataframes(
-        dataset_name=dataset_name,
-        minimum_track_length=minimum_track_length,
+    traj_df_grid, traj_df_tracked, fixed_points_df = (
+        load_dataframes_for_first_passage_time_analysis(
+            dataset_name=dataset_name,
+            minimum_track_length=minimum_track_length,
+        )
     )
 
-    # Bin (theta, r, rho) feature space.
-    # First, define the bin sizes for each feature to be binned
-    bin_sizes = {
-        Column.DiffAEData.POLAR_ANGLE: np.pi / 12,  # 15 degree bins for the angle
-        Column.DiffAEData.POLAR_RADIUS: 0.25,
-        Column.DiffAEData.PC3_FLIPPED: 0.5,
-    }
-
-    # Then, get the data limits for each feature to be binned
-    bin_limits: dict = {}
-    for col in DYNAMICS_COLUMN_NAMES:
-        col_min = min(traj_df_grid[col].min(), traj_df_tracked[col].min())
-        col_max = max(traj_df_grid[col].max(), traj_df_tracked[col].max())
-        bin_limits[col] = (col_min, col_max)
-
-    # Finally, adjust the bin_limits if the feature has a defined range (e.g. for
-    # angles, range is 0 to pi in radians)
-    defined_bin_limits = {
-        Column.DiffAEData.POLAR_ANGLE: (0, np.pi),
-        Column.DiffAEData.POLAR_RADIUS: (0, None),
-        Column.DiffAEData.PC3_FLIPPED: (None, None),
-    }
-    for col in DYNAMICS_COLUMN_NAMES:
-        if col in defined_bin_limits:
-            bin_limits[col] = adjust_limits_from_bin_size(
-                data_min_max=bin_limits[col],
-                defined_min_max=defined_bin_limits[col],
-                bin_size=bin_sizes[col],
-            )
-
-    bin_widths = tuple(float(bin_sizes[col]) for col in DYNAMICS_COLUMN_NAMES)
-    bin_limits_list = [bin_limits[col] for col in DYNAMICS_COLUMN_NAMES]
-    bin_edges, bin_centers = get_bins(bin_widths=bin_widths, bin_limits=bin_limits_list)
+    bin_edges, bin_centers, bin_sizes, _ = build_first_passage_time_bins(
+        traj_df_grid=traj_df_grid, traj_df_tracked=traj_df_tracked
+    )
 
     # Filter the trajectory dataframes to only include trajectories that reach
     # the stable fixed point, since those are the only trajectories for which
     # first passage times to the fixed point are defined.
-    traj_df_grid_sub, traj_df_tracked_sub = _filter_to_first_passage_trajectories(
+    traj_df_grid_sub, traj_df_tracked_sub = filter_to_trajectories_reaching_fixed_point(
         traj_df_grid=traj_df_grid,
         traj_df_tracked=traj_df_tracked,
         fixed_point_index=example_fixed_point_index,
@@ -747,32 +467,37 @@ def generate_first_passage_time_example(
     traj_df_grid_sub = add_first_passage_time_column(
         fixed_point_index=example_fixed_point_index,
         trajectory_df=traj_df_grid_sub,
-        column=f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{example_fixed_point_index}",
         threshold=fixed_point_radius_threshold,
         time_column=Column.SegData.TIME_HRS,
     )
     traj_df_tracked_sub = add_first_passage_time_column(
         fixed_point_index=example_fixed_point_index,
         trajectory_df=traj_df_tracked_sub,
-        column=f"{Column.VectorField.DISTANCE_FROM_FP_PREFIX}{example_fixed_point_index}",
         threshold=fixed_point_radius_threshold,
         time_column=Column.SegData.TIME_HRS,
     )
 
-    fpt_stats_df = _compute_filtered_fpt_stats(
+    fpt_stats_df = compute_first_passage_time_statistics(
         traj_df_grid_sub=traj_df_grid_sub,
         traj_df_tracked_sub=traj_df_tracked_sub,
         dataset_name=dataset_name,
         fixed_point_index=example_fixed_point_index,
         bin_edges=bin_edges,
         bin_centers=bin_centers,
-        min_num_traj_per_bin=min_num_traj_per_bin,
     )
 
-    example_bin_center, example_bin_edges = _select_example_bin(
+    # remove bins that don't have enough trajectories in them from either the
+    # grid or tracked trajectories and drop nans
+    fpt_stats_df_no_nan = filter_first_passage_time_by_min_num_trajectories(
         fpt_stats_df=fpt_stats_df,
         min_num_traj_per_bin=min_num_traj_per_bin,
+        metric_for_filter="mean",
     )
+
+    # Select an example bin to visualize trajectories
+    example_bin_center, example_bin_edges = fpt_stats_df_no_nan[
+        [Column.VectorField.BIN_CENTER, Column.VectorField.BIN_EDGES]
+    ].iloc[0]
 
     example_traj_df_grid, example_traj_df_tracked = _select_example_bin_trajectories(
         example_bin_center=example_bin_center,

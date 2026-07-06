@@ -1,11 +1,7 @@
 from typing import Literal
 
 from endo_pipeline.cli import Datasets, PatchType
-from endo_pipeline.settings.optical_flow import (
-    DEFAULT_EMA_ALPHA,
-    DEFAULT_OPTICAL_FLOW_MAX_DT,
-    DEFAULT_SPEED_THRESHOLD,
-)
+from endo_pipeline.settings.optical_flow import DEFAULT_EMA_ALPHA, DEFAULT_OPTICAL_FLOW_MAX_DT
 
 
 def main(
@@ -14,13 +10,11 @@ def main(
     channel: Literal["BF", "EGFP"] = "BF",
     max_dt: int = DEFAULT_OPTICAL_FLOW_MAX_DT,
     ema_alpha: float = DEFAULT_EMA_ALPHA,
-    speed_threshold: float = DEFAULT_SPEED_THRESHOLD,
-    num_workers: int = 1,
 ) -> None:
     """
     Compute TVL1 optical flow features for crops.
 
-    #optical-flow #cell-centered #grid-based
+    #optical-flow #cell-centered #grid-based #test-ready #workers
 
     This workflow compute TVL1 optical flow between frame pairs at temporal gaps
     dt = 1, 2, ..., max_dt for every crop and timepoint. Pixels whose intensity
@@ -43,7 +37,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe compute-optical-flow -vd
+    uv run endopipe compute-optical-flow -d
     ```
 
     To run the workflow for a single dataset:
@@ -86,10 +80,6 @@ def main(
         Maximum temporal gap (inclusive).
     ema_alpha
         EMA smoothing alpha value for temporal coherence smoothing.
-    speed_threshold
-        Minimum pixel speed for the "fast" coherence features.
-    num_workers
-        Number of worker processes to use.
     """
 
     import logging
@@ -102,7 +92,7 @@ def main(
     import pandas as pd
     from tqdm.auto import tqdm
 
-    from endo_pipeline.cli import DEMO_MODE, UPLOAD_TO_FMS
+    from endo_pipeline.cli import DEMO_MODE, NUM_WORKERS, UPLOAD_TO_FMS
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import (
         build_fms_annotations,
@@ -150,10 +140,10 @@ def main(
     datasets = datasets or get_datasets_in_collection(DEFAULT_OPTICAL_FLOW_COLLECTION)
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one dataset, one position, and 10 timepoints")
+        logger.warning("DEMO MODE - Limiting to one dataset, one position, and 10 timepoints")
         datasets = datasets[:1]
         max_positions = 1
-        max_timepoints = 20
+        max_timepoints = 10
     else:
         max_positions = None
         max_timepoints = None
@@ -186,7 +176,6 @@ def main(
         "intensity_percentile": intensity_percentile,
         "attachment": attachment,
         "ema_alpha": ema_alpha,
-        "speed_threshold": speed_threshold,
     }
     save_dataframe_manifest(optical_flow_manifest)
 
@@ -271,12 +260,11 @@ def main(
                 compute_image_pair_flow,
                 intensity_threshold=intensity_threshold,
                 attachment=attachment,
-                speed_threshold=speed_threshold,
             )
 
             records: list[dict] = []
 
-            with ThreadPoolExecutor(max_workers=num_workers) as pool:
+            with ThreadPoolExecutor(max_workers=NUM_WORKERS or 1) as pool:
                 futures = [
                     pool.submit(
                         compute_image_pair_flow_partial,

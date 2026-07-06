@@ -105,7 +105,7 @@ def build_model_manifest_staging_entries_for_dataset(
     update = None
 
     if isinstance(source, str):
-        target = f"{S3_STAGING_DIRECTORY}{folder}{location_key}/{Path(source).name}"
+        target = f"{S3_STAGING_DIRECTORY}{folder}{location_key}{Path(source).suffix}"
         update = target
         entries.append(
             {
@@ -115,8 +115,8 @@ def build_model_manifest_staging_entries_for_dataset(
         )
     elif isinstance(source, tuple):
         source_ckpt, source_cfg = source
-        target_ckpt = f"{S3_STAGING_DIRECTORY}{folder}{location_key}/{Path(source_ckpt).name}"
-        target_cfg = f"{S3_STAGING_DIRECTORY}{folder}{location_key}/{Path(source_cfg).name}"
+        target_ckpt = f"{S3_STAGING_DIRECTORY}{folder}{location_key}{Path(source_ckpt).suffix}"
+        target_cfg = f"{S3_STAGING_DIRECTORY}{folder}{location_key}{Path(source_cfg).suffix}"
         update = (target_ckpt, target_cfg)
         entries.append(
             {

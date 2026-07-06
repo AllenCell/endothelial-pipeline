@@ -5,10 +5,12 @@ from itertools import combinations
 from pathlib import Path
 from typing import Any
 
+import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from matplotlib.legend_handler import HandlerBase
 from matplotlib.patches import Rectangle
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.stats import binned_statistic_2d, binned_statistic_dd
@@ -29,6 +31,7 @@ from endo_pipeline.library.analyze.numerics.fixed_points import (
     load_fixed_points_dataframe_for_dataset,
 )
 from endo_pipeline.library.visualize.columns import get_label_for_column
+from endo_pipeline.library.visualize.figure_3 import wrap_theta_for_vector_field_vis
 from endo_pipeline.library.visualize.fixed_points import StabilityLegendHandle
 from endo_pipeline.manifests.dataframe_manifest_io import load_dataframe_manifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
@@ -42,11 +45,112 @@ from endo_pipeline.settings.migration_coherence import (
     MIGRATION_COHERENCE_COLORMAP,
     MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
 )
-from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
+from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, VECTOR_FIELD_THETA_RANGE
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME
 
 logger = logging.getLogger(__name__)
+
+
+class _CubeLegendHandler(HandlerBase):
+    """Draws a wireframe cube (oblique projection) in the legend key."""
+
+    def create_artists(
+        self, _legend, orig_handle, xdescent, ydescent, width, height, _fontsize, trans
+    ):
+        """Return Line2D artists forming a wireframe cube in the legend key.
+
+        Projects all 12 edges of a unit cube onto 2D using an orthographic
+        projection (azimuth 45°, elevation 50°), scales the result to fit the
+        legend key area, and returns one ``Line2D`` per edge. Line width,
+        color, and alpha are inherited from ``orig_handle``.
+
+        Parameters
+        ----------
+        _legend
+            The legend object (unused, kept for API compatibility).
+        orig_handle
+            The original legend handle.
+        xdescent
+            The horizontal offset of the legend key.
+        ydescent
+            The vertical offset of the legend key.
+        width
+            The width of the legend key.
+        height
+            The height of the legend key.
+        _fontsize
+            The font size of the legend text (unused, kept for API compatibility).
+        trans
+            The transformation applied to the legend key.
+        """
+        lw = orig_handle.get_linewidth()
+        color = orig_handle.get_color()
+        alpha = orig_handle.get_alpha() or 1.0
+
+        # Unit cube vertices (x, y, z) in {0, 1}^3
+        verts = np.array(
+            [
+                [0, 0, 0],
+                [1, 0, 0],
+                [0, 1, 0],
+                [1, 1, 0],
+                [0, 0, 1],
+                [1, 0, 1],
+                [0, 1, 1],
+                [1, 1, 1],
+            ],
+            dtype=float,
+        )
+        # Orthographic projection
+        azim = np.radians(25)
+        elev = np.radians(22)
+        right = np.array([-np.sin(azim), np.cos(azim), 0.0])
+        up = np.array(
+            [
+                -np.sin(elev) * np.cos(azim),
+                -np.sin(elev) * np.sin(azim),
+                np.cos(elev),
+            ]
+        )
+        proj = verts @ np.column_stack([right, up])
+        # Uniform scale so cube edges stay equal length regardless of key
+        # aspect ratio; center the result within the key area
+        mn = proj.min(axis=0)
+        span = (proj.max(axis=0) - mn).max()
+        proj = (proj - mn) / span  # both axes scaled by the same factor
+        margin = 0.05
+        side = max(width, height) * (1 - 2 * margin)
+        w_used = proj[:, 0].max() * side
+        h_used = proj[:, 1].max() * side
+        proj[:, 0] = proj[:, 0] * side + (width - w_used) / 2 - xdescent
+        proj[:, 1] = proj[:, 1] * side + (height - h_used) / 2 - ydescent
+
+        edges = [
+            (0, 1),
+            (0, 2),
+            (0, 4),
+            (1, 3),
+            (1, 5),
+            (2, 3),
+            (2, 6),
+            (3, 7),
+            (4, 5),
+            (4, 6),
+            (5, 7),
+            (6, 7),
+        ]
+        return [
+            plt.Line2D(
+                [proj[i, 0], proj[j, 0]],
+                [proj[i, 1], proj[j, 1]],
+                lw=lw,
+                color=color,
+                alpha=alpha,
+                transform=trans,
+            )
+            for i, j in edges
+        ]
 
 
 def plot_scatter_and_binned_heatmap(
@@ -191,6 +295,8 @@ def plot_3d_scatter_or_binned(
     figsize: tuple[float, float] = (8, 8),
     show_colorbar: bool = True,
     fp_template: str = "",
+    include_legend: bool = True,
+    fixed_point_label: str | None = None,
 ) -> tuple[plt.Figure, Axes3D]:
     """Plot a 3D scatter or 3D binned heatmap with optional fixed-point overlay.
 
@@ -206,18 +312,23 @@ def plot_3d_scatter_or_binned(
         Fixed-points dataframe. If provided, fixed points are overlaid with
         stability-specific markers and colors. If ``None``, no overlay is drawn.
     binned
-        If ``False`` (default), plot every point as a scatter.
-        If ``True``, bin the data in 3D and show the mean of
-        *color_col* per bin as colored squares.
+        If ``False`` (default), plot every point as a scatter. If ``True``, bin
+        the data in 3D and show the mean of *color_col* per bin as colored
+        squares.
     bin_size_xyz
-        Bin widths ``(x_bin, y_bin, z_bin)`` along each axis
-        (only used when ``mode="binned"``).
+        Bin widths ``(x_bin, y_bin, z_bin)`` along each axis (only used when
+        ``mode="binned"``).
     cmap
         Matplotlib colormap name.
     vmin, vmax
         Color-scale limits.
     fp_template
         Template for fixed point columns in fixed points dataframe.
+    include_legend
+        Whether to include a legend for the fixed points.
+    fixed_point_label
+        Optional label for the fixed points in the legend. If ``None``, a
+        default label is generated based on the fixed point coordinates.
 
     Returns
     -------
@@ -235,7 +346,7 @@ def plot_3d_scatter_or_binned(
     x_bin_size, y_bin_size, z_bin_size = bin_size_xyz
 
     ax: Axes3D
-    fig = plt.figure(figsize=figsize)
+    fig = plt.figure(figsize=figsize, layout="constrained")
     if show_colorbar:
         gs = fig.add_gridspec(
             nrows=1, ncols=3, width_ratios=[15, 3, 1], left=0.0, right=0.8, wspace=0.1
@@ -322,7 +433,10 @@ def plot_3d_scatter_or_binned(
                 depthshade=False,
                 zorder=10,
             )
-            label = f"Fixed point ({Unicode.THETA}={theta:.2f}, r={r:.2f}, {Unicode.RHO}={rho:.2f})"
+            label = (
+                fixed_point_label
+                or f"Fixed point ({Unicode.THETA}={theta:.2f}, r={r:.2f}, {Unicode.RHO}={rho:.2f})"
+            )
             legend_handles.append(
                 StabilityLegendHandle(
                     stability_label=stability,
@@ -330,7 +444,7 @@ def plot_3d_scatter_or_binned(
                     marker_size=5,
                 )
             )
-    if legend_handles:
+    if legend_handles and include_legend:
         ax.legend(
             handles=legend_handles,
             loc="upper left",
@@ -338,19 +452,33 @@ def plot_3d_scatter_or_binned(
             fontsize=FONTSIZE_SMALL,
         )
 
-    ax.set_xlabel(get_label_for_column(x_col), labelpad=2)
-    ax.set_ylabel(get_label_for_column(y_col), labelpad=2)
-    ax.set_zlabel(get_label_for_column(z_col), rotation=0, labelpad=0)
+    ax.set_xlabel(get_label_for_column(x_col), labelpad=-8)
+    ax.set_ylabel(get_label_for_column(y_col), labelpad=-3)
+    ax.set_zlabel(get_label_for_column(z_col), rotation=0, labelpad=-8)
 
-    # Apply ticks/tick_labels from column metadata when available
+    # Apply ticks/tick_labels from column metadata when available,
+    # skipping every other tick if there are too many
     for axis, col in [("x", x_col), ("y", y_col), ("z", z_col)]:
         if col in COLUMN_METADATA:
             meta = COLUMN_METADATA[col]
             if meta.ticks is not None:
                 ticks = list(meta.ticks)
+                if len(ticks) >= 4:
+                    ticks = ticks[::2]
                 getattr(ax, f"set_{axis}ticks")(ticks)
                 if meta.tick_labels is not None:
-                    getattr(ax, f"set_{axis}ticklabels")(meta.tick_labels, fontsize=FONTSIZE_XSMALL)
+                    tick_labels = list(meta.tick_labels)
+                    if len(tick_labels) >= 4:
+                        tick_labels = tick_labels[::2]
+                    getattr(ax, f"set_{axis}ticklabels")(tick_labels, fontsize=FONTSIZE_SMALL)
+
+    ax.tick_params(axis="both", pad=-2)
+    for tick in ax.xaxis.get_majorticklabels():
+        tick.set_ha("right")
+        tick.set_va("center")
+    for tick in ax.yaxis.get_majorticklabels():
+        tick.set_ha("left")
+        tick.set_va("center")
 
     if show_colorbar and cax is not None:
         cbar = fig.colorbar(sc, cax=cax, label=cbar_label)
@@ -557,11 +685,15 @@ def make_example_migration_coherence(
     fig_name: str | None = None,
     figure_size: tuple[float, float] = (6, 6),
     show_colorbar: bool = True,
+    include_legend: bool = True,
 ) -> None:
 
     dataset_config = load_dataset_config(dataset_name)
 
     feature_column_names = list(DYNAMICS_COLUMN_NAMES)
+    col_labels = [(COLUMN_METADATA[col].label or str(col)) for col in feature_column_names]
+    fixed_point_label = f"({col_labels[0]}$^*$, {col_labels[1]}$^*$, {col_labels[2]}$^*$)"
+
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid_based"], *feature_column_names]
 
     optical_flow_feature = Column.OpticalFlow.UNIT_VECTOR_MEAN
@@ -587,6 +719,14 @@ def make_example_migration_coherence(
         df_,
         dataset_config,
         timepoint_annotations=[TimepointAnnotation.NOT_STEADY_STATE],
+    )
+    # modify theta coordinate to be within defined range used for 3D visualization
+    df_steady_state.loc[:, Column.DiffAEData.POLAR_ANGLE] = df_steady_state[
+        Column.DiffAEData.POLAR_ANGLE
+    ].apply(
+        lambda theta: wrap_theta_for_vector_field_vis(
+            theta, VECTOR_FIELD_THETA_RANGE[0], VECTOR_FIELD_THETA_RANGE[1]
+        )
     )
 
     df_of = add_optical_flow_features(
@@ -626,10 +766,48 @@ def make_example_migration_coherence(
             vmin=vmin,
             figsize=figure_size,
             show_colorbar=show_colorbar,
+            include_legend=include_legend,
+            fixed_point_label=fixed_point_label,
+            fp_template="%s",
         )
         # draw cube around bin edges
         for e_xyz in edges:
             ax.plot(*list(zip(*e_xyz, strict=True)), ls="-", lw=1, c="black", alpha=0.6)
 
-        save_plot_to_path(fig, output_dir, fig_name, file_format=".svg", transparent=True, dpi=300)
+        if include_legend:
+            # add box legend handle for the stable fixed point bin
+            bin_label = f"bin used to compute\nmean at {fixed_point_label}"
+            box_handle = mlines.Line2D(
+                [],
+                [],
+                ls="-",
+                lw=1,
+                color="black",
+                alpha=0.6,
+                label=bin_label,
+            )
+            leg = ax.get_legend()
+            assert leg is not None  # for type checking
+            existing_handles = list(leg.legend_handles)
+            existing_labels = [t.get_text() for t in leg.get_texts()]
+            ax.legend(
+                handles=[*existing_handles, box_handle],
+                labels=[*existing_labels, bin_label],
+                loc="upper left",
+                bbox_to_anchor=(-0.125, -0.03),
+                fontsize=FONTSIZE_XSMALL,
+                ncol=2,
+                handler_map={box_handle: _CubeLegendHandler()},
+            )
+
+        save_plot_to_path(
+            fig,
+            output_dir,
+            fig_name,
+            file_format=".svg",
+            transparent=True,
+            dpi=300,
+            tight_layout=False,
+            bbox_inches="tight",
+        )
         plt.close(fig)

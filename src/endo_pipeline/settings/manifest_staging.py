@@ -14,6 +14,7 @@ STAGING_IMAGE_MANIFEST_NAMES = [
     "cdh5_classic_seg_zarr",
     "nuclear_labelfree_seg_zarr",
     "grid_seg_zarr",
+    "cdh5_seg_validations_zarr",
 ]
 """List of names of image manifests to stage."""
 
@@ -45,11 +46,16 @@ STAGING_DATAFRAME_MANIFEST_NAMES = [
     "diffae_model_comparison_metrics_diffae_baseline",
     "diffae_model_comparison_metrics_diffae_cdh5_conditioned",
     "autocorrelations_polar_r_polar_theta_rho_grid_based",
+    "optical_flow_bf_grid_based",
+    "optical_flow_bf_cell_centered",
+    "first_passage_time_parameter_sweep",
+    "first_passage_time_statistics",
 ]
 """List of names of dataframe manifests to stage."""
 
-MODEL_MANIFEST_STAGING_FOLDERS = {
-    "diffae_baseline": "diffae_baseline/",
-    "nuc_pred_labelfree": "nuc_pred_labelfree/",
-}
-"""Mapping of model manifest names to subdirectories."""
+STAGING_MODEL_MANIFEST_NAMES = [
+    "diffae_baseline",
+    "diffae_cdh5_conditioned",
+    "nuc_pred_labelfree",
+]
+"""List of names of model manifests to stage."""

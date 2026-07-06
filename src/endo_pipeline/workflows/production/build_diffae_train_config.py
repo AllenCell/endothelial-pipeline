@@ -13,7 +13,6 @@ def main(
     crop_size: int = DIFFAE_DEFAULT_CROP_SIZE,
     condition_on: Literal["bf", "cdh5"] = DEFAULT_IMAGE_TYPE_FOR_SEMANTIC_CONDITIONING,
     latent_dim: int = DEFAULT_NUM_LATENT_DIMENSIONS,
-    num_workers: int | None = None,
 ) -> None:
     """
     Build config for training a DiffAE model.
@@ -30,13 +29,19 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe build-diffae-train-config -vd
+    uv run endopipe build-diffae-train-config -d
     ```
 
     To run the workflow for a single dataset:
 
     ```bash
     uv run endopipe build-diffae-train-config --datasets DATASET_NAME
+    ```
+
+    To specify number of GPUs and workers to be used by `train-diffae`:
+
+    ```bash
+    uv run endopipe build-diffae-train-config -g NUM_GPUS -n NUM_WORKERS
     ```
 
     ## Training run naming
@@ -81,16 +86,13 @@ def main(
         The abbreviated name of the image channel to condition the model on.
     latent_dim
         The number of latent dimensions for the DiffAE model.
-    num_workers
-        Number of workers to use for loading data. If not given, estimate based
-        on total number of logical CPUs in the system.
     """
 
     import logging
 
     from cyto_dl.api import CytoDLModel
 
-    from endo_pipeline.cli import DEMO_MODE, NUM_GPUS
+    from endo_pipeline.cli import DEMO_MODE, NUM_GPUS, NUM_WORKERS
     from endo_pipeline.configs import load_model_config
     from endo_pipeline.io import get_output_path, make_name_unique, resolve_dataframe_location
     from endo_pipeline.library.model import get_dataset_names_used_for_training
@@ -115,6 +117,7 @@ def main(
     # rates. Note that while 100% of the data is used for demo mode, the cache
     # rate for actual training can be adjusted if needed.
     if DEMO_MODE:
+        logger.warning("DEMO MODE - Limiting number of training epochs")
         name_suffix = "_demo"
         min_num_epochs = 1
         max_num_epochs = 3
@@ -202,7 +205,7 @@ def main(
         replace_rate=replace_rate,
         log_steps=log_every_n_steps,
         num_gpus=NUM_GPUS,
-        num_workers=num_workers,
+        num_workers=NUM_WORKERS,
     )
 
     # Initialize the model with training template and overrides and save config.

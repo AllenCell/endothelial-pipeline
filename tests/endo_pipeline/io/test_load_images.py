@@ -15,7 +15,11 @@ def mock_image_loaders(mocker):
     def _raise():
         raise Exception
 
-    def _mocker():
+    def _mocker(is_internal: bool):
+        import endo_pipeline.cli.apps
+
+        endo_pipeline.cli.apps.IS_INTERNAL = is_internal
+
         mock_path_loader = mocker.patch("endo_pipeline.io.load_images.load_image_from_path")
         mock_path_loader.side_effect = lambda *arg, **_: (
             "PATH" if arg[0].name == "valid" else _raise()
@@ -41,9 +45,32 @@ def mock_image_loaders(mocker):
         ("invalid", "invalid", pytest.raises(Exception)),
     ],
 )
-def test_load_image(path, s3uri, expected, mock_image_loaders):
+def test_load_image_internal(path, s3uri, expected, mock_image_loaders):
     location = ImageLocation(path=path, s3uri=s3uri)
-    mock_image_loaders()
+    mock_image_loaders(is_internal=True)
+
+    with expected as e:
+        image = load_image(location)
+        assert image == e
+
+
+@pytest.mark.parametrize(
+    "path,s3uri,expected",
+    [
+        (None, None, pytest.raises(FileNotFoundError)),
+        ("valid", None, nullcontext("PATH")),
+        ("invalid", None, pytest.raises(Exception)),
+        (None, "valid", nullcontext("S3URI")),
+        ("valid", "valid", nullcontext("S3URI")),
+        ("invalid", "valid", nullcontext("S3URI")),
+        (None, "invalid", pytest.raises(Exception)),
+        ("valid", "invalid", nullcontext("PATH")),
+        ("invalid", "invalid", pytest.raises(Exception)),
+    ],
+)
+def test_load_image_external(path, s3uri, expected, mock_image_loaders):
+    location = ImageLocation(path=path, s3uri=s3uri)
+    mock_image_loaders(is_internal=False)
 
     with expected as e:
         image = load_image(location)

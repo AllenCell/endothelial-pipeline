@@ -37,7 +37,7 @@ from endo_pipeline.manifests import (
     get_zarr_location_for_position,
     load_image_manifest,
 )
-from endo_pipeline.settings import DIMENSION_ORDER
+from endo_pipeline.settings.image_data import DIMENSION_ORDER
 
 logger = logging.getLogger(__name__)
 

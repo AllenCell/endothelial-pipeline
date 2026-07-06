@@ -15,7 +15,7 @@ def main() -> None:
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe create-diffae-train-dataframe -vd
+    uv run endopipe create-diffae-train-dataframe -d
     ```
 
     To run the full workflow:
@@ -59,7 +59,7 @@ def main() -> None:
         create_dataframe_manifest,
         save_dataframe_manifest,
     )
-    from endo_pipeline.settings import DIFFAE_ZARR_RESOLUTION_LEVEL, Z_SLICE_OFFSETS
+    from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL, Z_SLICE_OFFSETS
     from endo_pipeline.settings.workflow_defaults import DIFFAE_TRAIN_DATAFRAME_MANIFEST_PREFIX
 
     logger = logging.getLogger(__name__)
@@ -69,7 +69,7 @@ def main() -> None:
 
     # When running workflow in demo mode, only include the first dataset.
     if DEMO_MODE:
-        logger.warning("DEMO MODE - Only the first dataset will be included")
+        logger.warning("DEMO MODE - Limiting to one dataset")
         datasets = datasets[:1]
 
     # Load dataset configs

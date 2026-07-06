@@ -43,7 +43,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe stage-model-manifest MANIFEST_NAME -vd
+    uv run endopipe stage-model-manifest MANIFEST_NAME -d
     ```
 
     To dry run the workflow:
@@ -101,7 +101,7 @@ def main(
         submit_manifest_staging_job,
     )
     from endo_pipeline.manifests import load_model_manifest
-    from endo_pipeline.settings.manifest_staging import MODEL_MANIFEST_STAGING_FOLDERS
+    from endo_pipeline.settings.manifest_staging import STAGING_MODEL_MANIFEST_NAMES
 
     logger = logging.getLogger(__name__)
 
@@ -109,13 +109,13 @@ def main(
     output_path = get_output_path(__file__, unique_name)
 
     # Check if requested manifest is supported for staging to bucket
-    if manifest_name not in MODEL_MANIFEST_STAGING_FOLDERS.keys():
+    if manifest_name not in STAGING_MODEL_MANIFEST_NAMES:
         logger.error("Manifest '%s' is not supported for staging to bucket", manifest_name)
         return
 
-    # Load model manifest and set staging folder
+    # Load model manifest and set staging folder equal to manifest name
     manifest = load_model_manifest(manifest_name)
-    folder = MODEL_MANIFEST_STAGING_FOLDERS[manifest_name]
+    folder = f"{manifest_name}/"
 
     # Get list of keys to stage, if provided. Otherwise, get all available
     # location keys from the manifest

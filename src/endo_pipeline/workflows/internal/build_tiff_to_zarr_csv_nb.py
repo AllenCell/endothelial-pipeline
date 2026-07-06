@@ -9,6 +9,7 @@ segmentations and compiles a CSV containing paths to the original Zarr.
 - nuclear label free segmentation (`nuclear_labelfree_seg`)
 - CDH5 classic segmentation (`cdh5_classic_seg`)
 - grid segmentation (`grid_seg`)
+- CDH5 segmentation validation (`cdh5_seg_validations`)
 
 The output CSV contains the following columns:
 
@@ -20,6 +21,14 @@ The output CSV contains the following columns:
 | `save_zarr_path` | Path to the output directory for Zarr segmentations |
 | `duration`       | Total number of timepoints in the dataset           |
 | `channel_name`   | Name of the channel                                 |
+
+## Example usage
+
+To run the workflow:
+
+```bash
+uv run endopipe build-tiff-to-zarr-csv
+```
 """
 
 # %%
@@ -42,9 +51,22 @@ logger = logging.getLogger(__name__)
 
 zarr_seg_dir = Path("//allen/aics/endothelial/morphological_features/segmentations/")
 image_channel_pairs = [
-    ("nuclear_labelfree_seg", "NUC_SEG"),
-    ("cdh5_classic_seg", "CDH5_SEG"),
-    ("grid_seg", "GRID_SEG"),
+    ("nuclear_labelfree_seg", "Nuclei_labelfree_segmentation"),
+    ("cdh5_classic_seg", "VE-cadherin_mEGFP_segmentation"),
+    ("grid_seg", "Grid_segmentation"),
+    (
+        "cdh5_seg_validations",
+        [
+            "VE-cadherin_mEGFP_maximum_intensity_projection",
+            "VE-cadherin_mEGFP_preprocessed",
+            "VE-cadherin_mEGFP_hysteresis_threshold",
+            "VE-cadherin_mEGFP_initial_segmentation",
+            "VE-cadherin_mEGFP_merged_segmentation",
+            "Nuclei_labelfree_segmentation",
+            "VE-cadherin_mEGFP_segmentation_split_by_nuclei",
+            "VE-cadherin_mEGFP_segmentation_split_by_nuclei_borders",
+        ],
+    ),
 ]
 
 # %%
@@ -61,6 +83,11 @@ for manifest_name, channel_name in image_channel_pairs:
     # list to just the first dataset for the following loop.
     if manifest_name == "grid_seg":
         datasets = datasets[:1]
+
+    # Segmentation validations have multiple channels, so join into a string
+    # that will later get split back into channels
+    if manifest_name == "cdh5_seg_validations":
+        channel_name = "/".join(channel_name)
 
     data = []
 

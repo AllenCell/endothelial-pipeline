@@ -7,37 +7,55 @@ parameters:
   intensity_percentile: 0
   attachment: 2.5
   ema_alpha: 0.1
-  speed_threshold: 1.0
+columns:
+  start_x: X coordinate of upper left corner of patch [pixels] (zarr resolution level 1)
+  position: Zarr file position (FOV) of the corresponding segmentation or patch
+  frame_number: Timepoint [frames]
+  end_y: Y coordinate of lower right corner of patch [pixels] (zarr resolution level 1)
+  start_y: Y coordinate of upper left corner of patch [pixels] (zarr resolution level 1)
+  end_x: X coordinate of lower right corner of patch [pixels] (zarr resolution level 1)
+  dataset: Name of dataset
+  crop_index: Unique integer index of a patch (crop) trajectory across dataset, FOV, and XY-position
+  optical_flow_mean_speed_dt1: Mean per-pixel speed [pixels/frame] of the optical flow vectors in a crop
+  optical_flow_mean_unit_vector_dt1: Mean unit vector of optical flow vectors in a crop (no EMA smoothing)
+  optical_flow_std_speed_dt1: Standard deviation of per-pixel speed [pixels/frame] of the optical flow vectors in a crop
+  optical_flow_mean_angle_dt1: Mean angle [radians] of optical flow vectors in a crop
+  optical_flow_angle_std_dt1: Standard deviation of angles [radians] of optical flow vectors
+  optical_flow_mean_u_dt1: Mean horizontal (x) optical-flow component [pixels/frame] with temporal gap 1
+  optical_flow_mean_v_dt1: Mean vertical (y) optical-flow component [pixels/frame] with temporal gap 1
+  optical_flow_std_u_dt1: Standard deviation of horizontal (x) optical-flow component [pixels/frame] with temporal gap 1
+  optical_flow_std_v_dt1: Standard deviation of vertical (y) optical-flow component [pixels/frame] with temporal gap 1
+  ema01_optical_flow_mean_unit_vector_dt1: Mean unit vector of optical flow vectors in a crop (EMA smoothing, alpha = 0.1)
 locations:
   20250319_20X:
-    fmsid: 4d6d9b9c766d4ce0b714436bef3893d2
+    fmsid: 4096dc0408524b14b1f192408a980364
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_cell_centered/20250319_0d94f8d3054e4e8c99af07dd92774798.parquet
   20250428_20X:
-    fmsid: bdaa727721d64ff7989d263d77b76ca4
+    fmsid: 22456e552e314eec85ba54c4f117962c
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_cell_centered/20250428_056aa027ba9f4ccd98367563552f7edd.parquet
   20250611_20X:
-    fmsid: de93d37233a34264a034e316f9916aaa
+    fmsid: 27059161c05e46769e8edf976792f5f2
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_cell_centered/20250611_a32615d530ae42c29d159cc058601879.parquet
   20250618_20X:
-    fmsid: 1b76cbc297ee4624a94c6c12cc944118
+    fmsid: 5d277b1d89e345e0ad173ba1fbdaecc4
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_cell_centered/20250618_f81e9bdf048e462e9755d7cbf5d21c37.parquet
   20250714_20X:
-    fmsid: 3ad873ecdf754ed08693c79cd5c0cb69
+    fmsid: c8398a21013b4c36ad1deb7442fd2c31
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_cell_centered/20250714_0a0462b7d33848c8826105ab6f78787d.parquet
   20250813_20X:
-    fmsid: 8aaf934c99014c19873c32c8ede63424
+    fmsid: 684a75cb7a2643a692e7dce7ce5837d6
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_cell_centered/20250813_6ab0f70bd43f4de987a789905dbfb95c.parquet
   20250818_20X:
-    fmsid: 22175bb3347949198a8e74d40a33e0e0
+    fmsid: d3cacb78fc1044eabf70d85c849d15bf
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_cell_centered/20250818_1f895d9188df43e0a10b379cf23a879c.parquet
   20250827_20X:
-    fmsid: 317ff69fc2e74ded900e0540a3ee2707
+    fmsid: 3a31c4cb012c44439c0009105b860e26
     path: null
-    s3uri: null
+    s3uri: s3://allencell-internal-quilt/endo_stg/optical_flow_bf_cell_centered/20250827_c96180b30a224a48bac3b6d8fe1ffbb4.parquet

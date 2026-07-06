@@ -5,47 +5,17 @@ from typing import Any
 
 import numpy as np
 import torch
-from dask.array import Array
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MaxNLocator, ScalarFormatter
 from monai.data import MetaTensor
 
 from endo_pipeline.io.output import save_plot_to_path
 from endo_pipeline.library.process.image_processing import crop_image
-from endo_pipeline.library.visualize.figure_utils import (
-    add_scalebar,
-    make_contact_sheet,
-    plot_image_thumbnail,
-)
+from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_XSMALL
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
 
 logger = logging.getLogger(__name__)
-
-
-def save_stack_slices_as_thumbnails(img: Array, save_dir: Path) -> None:
-    """
-    Save each slice of a multi-channel image stack as individual thumbnail images.
-
-    This function iterates through all channels and slices of a Dask array representing
-    an image stack, computes each slice, and saves it as a thumbnail image to the specified directory.
-
-    Args:
-        img (dask.array.Array): A Dask array representing the image stack.
-            The array is expected to have the shape (channels, slices, height, width).
-        save_dir (Path): The directory where the thumbnail images will be saved.
-    """
-    for channel, channel_name in enumerate(["bf", "cdh5"]):
-        for slice_idx in range(img.shape[1]):
-            slice_img = img[channel, slice_idx, :, :]
-            plot_image_thumbnail(
-                slice_img,
-                f"{channel_name}_sliceindex{slice_idx}",
-                save_dir,
-                figsize=(6, 6),
-                scalebar_size_um=50,
-                pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
-            )
 
 
 def initialize_transform(transform_cfg):
@@ -106,52 +76,6 @@ def get_image_transforms(model_config):
 
     # Initialize all remaining transforms in the pipeline
     return [initialize_transform(t) for t in filtered_transforms]
-
-
-def plot_and_save_histogram(
-    value_np: np.ndarray,
-    transform_name: str,
-    key: str,
-    save_dir: Path,
-    figsize: tuple = (2, 2),
-    scientific_notation_y_axis: bool = False,
-    xlabel: str | None = "Intensity",
-    ylabel: str | None = "Frequency",
-) -> None:
-    """
-    Plot and save a histogram of the values in a NumPy array for a given image transform.
-
-    Args:
-        value_np (np.ndarray): The NumPy array containing the values to plot.
-        transform (str): The transform name whose class name is used for labeling the plot.
-        key (str): channel key of the image being processed (e.g., 'raw_bf').
-        save_dir (Path): The directory where the histogram plot will be saved.
-        figsize (tuple, optional): Figure size for the plot. Defaults to (2, 2).
-        scientific_notation_y_axis: Whether to use scientific notation for the y-axis.
-        xlabel (str | None, optional): Label for the x-axis. Defaults to "Intensity".
-        ylabel (str | None, optional): Label for the y-axis. Defaults to "Frequency".
-    """
-    fig, ax = plt.subplots(figsize=figsize, layout="constrained")
-    ax.hist(value_np.ravel(), bins=50, color="grey", alpha=0.7)
-    if xlabel is not None:
-        ax.set_xlabel(xlabel)
-        ax.xaxis.labelpad = 3
-    if ylabel is not None:
-        ax.set_ylabel(ylabel)
-        ax.yaxis.labelpad = 3
-    ax.yaxis.set_major_locator(MaxNLocator(nbins=4))  # Set 4 y-ticks
-    if scientific_notation_y_axis:
-        ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
-        ax.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
-    save_plot_to_path(
-        fig,
-        save_dir,
-        f"{key}_{transform_name}_histogram",
-        dpi=300,
-        file_format=".svg",
-        transparent=True,
-        tight_layout=False,
-    )
 
 
 def create_data_dict_loaded_image(
@@ -231,6 +155,7 @@ def visualize_fov_transform_steps(
     sample: dict[str, Any],
     save_dir: Path,
     target_key: str,
+    output_key: str,
     figure_size: tuple = (1.5, 1.5),
     col_titles: list[str] | None = None,
     row_title: str | None = None,
@@ -313,7 +238,7 @@ def visualize_fov_transform_steps(
     save_plot_to_path(
         fig_images,
         save_dir,
-        f"{target_key}_images",
+        f"{output_key}_{target_key}_images",
         file_format=".svg",
         pad_inches=0,
         tight_layout=False,
@@ -343,7 +268,7 @@ def visualize_fov_transform_steps(
     save_plot_to_path(
         fig_hist,
         save_dir,
-        f"{target_key}_histograms",
+        f"{output_key}_{target_key}_histograms",
         file_format=".svg",
         tight_layout=False,
     )

@@ -2,6 +2,9 @@
 
 from endo_pipeline.settings.literal_types import PatchTypeLiteral
 
+ZARR_IMAGE_MANIFEST_NAME: str = "image_zarr"
+"""Name of the Zarr image manifest."""
+
 DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD: str = "drift_vector_field"
 """Prefix for vector field dataframe manifest name."""
 

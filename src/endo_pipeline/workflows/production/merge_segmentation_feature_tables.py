@@ -1,18 +1,18 @@
 from endo_pipeline.cli import Datasets
 
 
-def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
+def main(datasets: Datasets | None = None) -> None:
     """
     Merge CDH5 segmentation, CDH5 tracking, and labelfree nuclei feature tables.
 
-    #cdh5-segmentation #cdh5-tracking #nuclei-prediction
+    #cdh5-segmentation #cdh5-tracking #nuclei-prediction #test-ready #workers
 
     ## Example usage
 
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe merge-segmentation-feature-tables -vd
+    uv run endopipe merge-segmentation-feature-tables -d
     ```
 
     To run the workflow for a single dataset:
@@ -36,14 +36,12 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
     ----------
     datasets
         List of datasets or dataset collections to merge.
-    num_processes
-        Number of processes to use.
     """
 
     import logging
 
-    from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.cli.demo_mode_defaults import use_default_collection
+    from endo_pipeline.cli import DEMO_MODE, NUM_WORKERS
+    from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
         add_cell_piling_and_steady_state_annotation_columns,
@@ -55,11 +53,12 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
 
     logger = logging.getLogger(__name__)
 
-    out_dir = get_output_path("merged_segmentation_features")
+    output_path = get_output_path(__file__)
 
-    datasets = use_default_collection(datasets, "live_cdh5_seg_based_feat_datasets")
+    datasets = datasets or get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
 
     if DEMO_MODE:
+        logger.warning("DEMO MODE - Limiting to one dataset")
         datasets = datasets[:1]
 
     # Load all dataframe manifests
@@ -110,20 +109,20 @@ def main(datasets: Datasets | None = None, num_processes: int = 1) -> None:
         # Add some columns to the data table that are calculated from existing
         # columns and do not depend on dynamics / require clean tracks
         logger.info("Calculating dynamics-independent metrics from existing measurements...")
-        big_table = calculate_derived_data_dynamics_independent(big_table, num_processes)
+        big_table = calculate_derived_data_dynamics_independent(big_table, NUM_WORKERS)
 
         # Filter to remove regions that touch the image borders and keep only
         # tracks that have a minimum number of datapoints after this
         logger.info("Filtering out regions touching image borders and tracks that are too short...")
         big_table = add_filter_columns(
-            big_table, out_dir, min_track_duration=24, max_area_change=0.1
+            big_table, output_path, min_track_duration=24, max_area_change=0.1
         )
         big_table = add_cell_piling_and_steady_state_annotation_columns(big_table)
         big_table = big_table.reset_index(drop=True)
 
         # Save merged table out to local path
         filename = f"{dataset_name}_live_segmentation_features.parquet"
-        big_table.to_parquet(out_dir / filename, index=False)
+        big_table.to_parquet(output_path / filename, index=False)
 
         logger.info("Finished merging feature tables for dataset '%s'", dataset_name)
 

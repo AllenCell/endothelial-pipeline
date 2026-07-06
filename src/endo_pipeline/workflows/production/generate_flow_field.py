@@ -9,7 +9,7 @@ def main(
     """
     Generate drift vector field and estimate fixed points.
 
-    #dynamical-systems #fixed-points #grid-based #cell-centered
+    #dynamical-systems #fixed-points #grid-based #cell-centered #test-ready
 
     This workflow generates the flow field based on the following features
     derived from evaluating the DiffAE model on specific patches of the data:
@@ -39,7 +39,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe generate-flow-field -vd
+    uv run endopipe generate-flow-field -d
     ```
 
     To run the workflow for a single dataset:
@@ -131,7 +131,7 @@ def main(
     dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one dataset")
+        logger.warning("DEMO MODE - Limiting to one dataset")
         dataset_names = dataset_names[:1]
 
     # Workflow only supports generating flow fields from combinations of

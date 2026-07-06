@@ -31,6 +31,7 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
 from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.manifests import DataframeManifest
 from endo_pipeline.settings import plot_defaults
+from endo_pipeline.settings.bootstrap_fixed_points import BOOTSTRAP_THRESHOLD
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA, ColumnMetadata
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
@@ -417,7 +418,7 @@ def _sort_and_categorize_datasets(
     """
     # Order datasets within each shear stress bin by fixed point count:
     # 15 dyn: bistable (2 FPs) first; all others: monostable (1 FP) first
-    fp_counts = df.groupby(ColumnName.DATASET).size()
+    fp_counts = df.groupby(ColumnName.DATASET, observed=False).size()
     shear_bins = {
         cfg.name: cfg.flow_conditions[-1].shear_stress_bin for cfg in dataset_configs.values()
     }
@@ -679,9 +680,11 @@ def _plot_cross_dataset_summary_for_column(
     if ci_lower_col in df and ci_upper_col in df:
         df["_lower_bound"] = (df[column_name] - df[ci_lower_col]).clip(lower=0)
         df["_upper_bound"] = (df[ci_upper_col] - df[column_name]).clip(lower=0)
+        capsize_scale = 0.75
     else:
         df["_lower_bound"] = 0
         df["_upper_bound"] = 0
+        capsize_scale = 0.0
 
     # Iterate through each category to plot points and (if available) error
     # bars. Points are colored based on selected style mode while position on
@@ -738,7 +741,7 @@ def _plot_cross_dataset_summary_for_column(
                 markeredgecolor="black",
                 markeredgewidth=0.6,
                 markersize=marker_size_plot,
-                capsize=marker_size_plot * 0.75,
+                capsize=marker_size_plot * capsize_scale,
                 elinewidth=0.8,
                 ecolor="black",
                 zorder=3,
@@ -833,6 +836,7 @@ def plot_cross_dataset_summaries(
     color_by_column: "ColumnNameType | None" = None,
     point_color: str | None = None,
     colorbar_multiline_label: bool = False,
+    colorbar_location: Literal["right", "bottom"] = "right",
     ylabel_rotation: float = 0,
     ylabel_horizontal_alignment: Literal["left", "center", "right"] = "left",
     ylabel_vertical_alignment: Literal["top", "center", "bottom"] = "center",
@@ -896,6 +900,11 @@ def plot_cross_dataset_summaries(
         Optional column name whose values are mapped to a continuous
         cyan-to-magenta colormap. When provided, overrides the discrete coloring
         from ``style_mode``.
+    colorbar_location
+        Where to place the colorbar when ``color_by_column`` is active.
+        ``"right"`` (default) attaches it to the right of the last panel;
+        ``"bottom"`` places a horizontal colorbar below the x axis with the
+        label on top and ticks on the bottom.
     ylabel_rotation
         Rotation angle for y axis label.
     ylabel_horizontal_alignment
@@ -925,27 +934,56 @@ def plot_cross_dataset_summaries(
 
     # Build figure layout with one subplot for each column name
     n_panels = len(column_names)
+    _CBAR_SUBFIG_HEIGHT = 0.3  # inches reserved for the bottom colorbar subfigure
+    _use_bottom_colorbar = colorbar_location == "bottom" and color_by_column is not None
+
     if subplot_layout == "vertical":
-        fig, axes_ = plt.subplots(
-            n_panels,
-            1,
-            figsize=(figure_size[0], figure_size[1] * n_panels),
-            layout="constrained",
-            squeeze=False,
-        )
-        axes = [axes_[i][0] for i in range(n_panels)]
+        _data_figsize = (figure_size[0], figure_size[1] * n_panels)
     elif subplot_layout == "horizontal":
-        fig, axes_ = plt.subplots(
-            1,
-            n_panels,
-            figsize=(figure_size[0], figure_size[1]),
-            sharex=True,
-            layout="constrained",
-            squeeze=False,
-        )
-        axes = list(axes_[0])
+        _data_figsize = figure_size
     else:
         raise ValueError(f"Subplot layout '{subplot_layout}' is not supported")
+
+    if _use_bottom_colorbar:
+        # Split the figure into a main subfigure (data + supxlabel) above a thin
+        # colorbar subfigure so the supxlabel is visually above the colorbar.
+        fig = plt.figure(
+            figsize=(_data_figsize[0], _data_figsize[1] + _CBAR_SUBFIG_HEIGHT),
+            layout="constrained",
+        )
+        _sfig_main, _sfig_cbar = fig.subfigures(
+            2, 1, height_ratios=[_data_figsize[1], _CBAR_SUBFIG_HEIGHT]
+        )
+        _label_fig = _sfig_main
+        if subplot_layout == "vertical":
+            axes_ = _sfig_main.subplots(n_panels, 1, squeeze=False)
+        else:
+            axes_ = _sfig_main.subplots(1, n_panels, sharex=True, squeeze=False)
+    else:
+        _sfig_cbar = None
+        if subplot_layout == "vertical":
+            fig, axes_ = plt.subplots(
+                n_panels,
+                1,
+                figsize=_data_figsize,
+                layout="constrained",
+                squeeze=False,
+            )
+        else:
+            fig, axes_ = plt.subplots(
+                1,
+                n_panels,
+                figsize=figure_size,
+                sharex=True,
+                layout="constrained",
+                squeeze=False,
+            )
+        _label_fig = fig
+
+    if subplot_layout == "vertical":
+        axes = [axes_[i][0] for i in range(n_panels)]
+    else:
+        axes = list(axes_[0])
 
     # Iterate through each column and plot dataset summary
     for ax, column_name in zip(axes, column_names, strict=True):
@@ -966,11 +1004,11 @@ def plot_cross_dataset_summaries(
             yaxis_for_fixed_points=yaxis_for_fixed_points,
         )
 
-    # Add super x axis label
-    fig.supxlabel(
-        SUMMARY_MODE_X_AXIS_SUP_LABELS[axis_mode],
-        fontsize=FONTSIZE_MEDIUM,
-        fontweight="bold",
+    # Add super x axis label on the main figure (or main subfigure)
+    x_axis_label = SUMMARY_MODE_X_AXIS_SUP_LABELS[axis_mode]
+    suplabel_x = 0.55 if colorbar_location == "bottom" else 0.5
+    _label_fig.supxlabel(
+        x_axis_label, fontsize=FONTSIZE_MEDIUM, fontweight="bold", x=suplabel_x, ha="center"
     )
 
     # Set spacing between axis labels and tick labels
@@ -1005,8 +1043,16 @@ def plot_cross_dataset_summaries(
                 else str(color_by_column)
             )
             cbar_label = raw_label if colorbar_multiline_label else raw_label.replace("\n", " ")
-            # Attach colorbar to last panel only so it spans one panel height
-            cbar = fig.colorbar(scalar_mappable, ax=axes[-1], pad=0.02)
+            if _use_bottom_colorbar:
+                # Place a horizontal colorbar in the dedicated bottom subfigure
+                cbar_ax = _sfig_cbar.add_axes([0.3, 0.0, 0.5, 0.4])
+                cbar_kwargs: dict = {"orientation": "horizontal"}
+                cbar = fig.colorbar(scalar_mappable, cax=cbar_ax, **cbar_kwargs)
+                cbar.ax.xaxis.set_label_position("top")
+                cbar.ax.xaxis.set_ticks_position("bottom")
+            else:
+                # Attach colorbar to last panel only so it spans one panel height
+                cbar = fig.colorbar(scalar_mappable, ax=axes[-1], pad=0.02)
             cbar.set_label(cbar_label, fontsize=FONTSIZE_SMALL)
             # Apply ticks from column metadata if available
             if color_column_metadata and color_column_metadata.ticks is not None:
@@ -1025,7 +1071,7 @@ def build_dataframe_for_fixed_point_dataset_summary(
     feature_dataframe_manifest: DataframeManifest,
     bootstrap_dataframe_manifest: DataframeManifest,
     column_names: list["ColumnNameType"] | None = None,
-    bootstrap_threshold: float = 0.4,
+    bootstrap_threshold: float = BOOTSTRAP_THRESHOLD,
     convert_angle_to_nematic: bool = False,
     unwrap_angle: bool = True,
     stable_only: bool = True,
@@ -1171,30 +1217,3 @@ def build_dataframe_for_fixed_point_dataset_summary(
     # Combine and rename baseline suffix columns so they don't need to be added downstream
     drop_suffix = {ColumnTemplate.BASELINE_FIXED_POINT % col: col for col in column_names}
     return pd.concat(df_fixed_points_list, ignore_index=True).rename(columns=drop_suffix)
-
-
-def build_dataframe_for_first_passage_time_dataset_summary(
-    dataset_names: list[str],
-    first_passage_time_manifest: DataframeManifest,
-) -> pd.DataFrame:
-    """
-    Build dataframe for plotting first passage time dataset summary.
-
-    Parameters
-    ----------
-    dataset_names
-        List of dataset names to include in summary.
-    first_passage_time_manifest
-        Dataframe manifest for first passage times.
-
-    Returns
-    -------
-    :
-        Dataframe to use for making cross dataset summary plots.
-    """
-
-    from endo_pipeline.library.analyze.track_integration import get_line_fit_and_filtered_df
-
-    line_fit_df, _ = get_line_fit_and_filtered_df(first_passage_time_manifest, dataset_names)
-
-    return line_fit_df

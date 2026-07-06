@@ -511,18 +511,6 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         ticks=[0.3, 0.5, 0.7, 0.9],
         type=ColumnType.CONTINUOUS,
     ),
-    Column.OpticalFlow.UNIT_VECTOR_MEAN_FAST: ColumnMetadata(
-        name="Coherent migration fast (optical flow unit vectors greater than 1 speed)",
-        min=0,
-        max=1,
-        type=ColumnType.CONTINUOUS,
-    ),
-    Column.OpticalFlow.EMA01_UNIT_VECTOR_MEAN_FAST: ColumnMetadata(
-        name="Coherent migration (EMA 0.1, optical flow mean unit vector fast)",
-        min=0,
-        max=1,
-        type=ColumnType.CONTINUOUS,
-    ),
     Column.OpticalFlow.ANGLE_STD: ColumnMetadata(
         name="Coherent migration (optical flow angle std dev)",
         min=0,
@@ -544,10 +532,6 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         max=10,
         type=ColumnType.CONTINUOUS,
     ),
-    Column.OpticalFlow.SPEED_ABOVE_1_COUNT: ColumnMetadata(
-        name="N vectors with speed above 1",
-        type=ColumnType.DISCRETE,
-    ),
     # Vector-field / dynamics analysis =========================================
     Column.VectorField.PEARSON_R: ColumnMetadata(
         name="Pearson r of MFPT\n(grid versus track-based)",
@@ -556,7 +540,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         min=0,
         max=1,
     ),
-    Column.VectorField.LINEFIT_SLOPE: ColumnMetadata(
+    Column.VectorField.LINEFIT_SLOPE_ODR: ColumnMetadata(
         name="Line fit slope",
         label="Line fit slope",
         type=ColumnType.CONTINUOUS,

@@ -1,5 +1,7 @@
 """Helper function for visualizing spatial feature values on a crop grid."""
 
+from pathlib import Path
+
 import colorcet as cc
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
@@ -11,7 +13,7 @@ from matplotlib.colors import Colormap, Normalize
 from matplotlib.gridspec import GridSpec
 
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.io import load_dataframe
+from endo_pipeline.io import load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.migration_coherence.optical_flow_feature import (
     add_optical_flow_features,
 )
@@ -20,6 +22,7 @@ from endo_pipeline.library.process.image_processing import (
     load_processed_egfp_image_crop,
 )
 from endo_pipeline.library.visualize.figure_utils import add_scalebar
+from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA, ColumnMetadata
 from endo_pipeline.settings.column_names import ColumnName as Column
@@ -361,20 +364,24 @@ def _load_example_data(
     return example_dfs, image_rows, example_labels, example_subtitles
 
 
+@figure_panel("Spatial feature values on grid for select examples.")
 def create_panel_spatial_feature_grid(
+    output_path: Path,
     feature_columns: list[str],
     example_images: list,
     include_bf_images: bool = False,
     image_crop_size: int = 768,
-    grid_start_xy: tuple[int, int] = (128, 128),
+    grid_start_xy_res_0: tuple[int, int] = (256, 256),
     grid_dimensions: tuple[int, int] = (3, 3),
     cmap: str = "viridis",
     figure_size: tuple[float, float] | None = None,
-) -> plt.Figure:
+) -> Path:
     """Create a figure showing spatial feature values on a grid for multiple examples.
 
     Parameters
     ----------
+    output_path
+        Output path to save figure.
     feature_columns
         Column names to visualize (one row per feature).
     example_images
@@ -395,26 +402,34 @@ def create_panel_spatial_feature_grid(
 
     Returns
     -------
-    plt.Figure
-        The assembled figure.
+    :
+        Path to saved figure.
     """
+
     example_dataframes, image_rows, example_labels, example_subtitles = _load_example_data(
         example_images,
         include_bf_images=include_bf_images,
         image_crop_size=image_crop_size,
     )
 
-    # Compute grid positions from start_xy and dimensions
+    # Compute grid positions at resolution level 0 (patch size 256).
+    # grid_start_xy and all grid_positions are in level-0 pixel coordinates.
     res_level_0_patch_size = 256
+    res_level_1_patch_size = 128
+    position_downscale = res_level_0_patch_size // res_level_1_patch_size
     n_cols_grid, n_rows_grid = grid_dimensions
-    sx0, sy0 = grid_start_xy
+    sx0, sy0 = grid_start_xy_res_0
     grid_positions = [
         (sx0 + col * res_level_0_patch_size, sy0 + row * res_level_0_patch_size)
         for row in range(n_rows_grid)
         for col in range(n_cols_grid)
     ]
+
+    # Dataframes store start_x / start_y at resolution level 1 (patch size 128),
+    # so divide each level-0 position by 2 to match the dataframe coordinate system.
     positions_df = pd.DataFrame(
-        grid_positions, columns=[Column.DiffAEData.START_X, Column.DiffAEData.START_Y]
+        [(x // position_downscale, y // position_downscale) for x, y in grid_positions],
+        columns=[Column.DiffAEData.START_X, Column.DiffAEData.START_Y],
     )
 
     n_features = len(feature_columns)
@@ -472,9 +487,14 @@ def create_panel_spatial_feature_grid(
             grid_data = df_example[
                 [Column.DiffAEData.START_X, Column.DiffAEData.START_Y, feature]
             ].dropna(subset=[feature])
+            # Merge on level-1 coordinates to sample the correct patches.
             grid_data = grid_data.merge(
                 positions_df, on=[Column.DiffAEData.START_X, Column.DiffAEData.START_Y]
             )
+            # Scale matched coordinates back to level-0 space for visualization.
+            grid_data = grid_data.copy()
+            grid_data[Column.DiffAEData.START_X] *= 2
+            grid_data[Column.DiffAEData.START_Y] *= 2
 
             col_vmin = vmin if vmin is not None else grid_data[feature].min()
             col_vmax = vmax if vmax is not None else grid_data[feature].max()
@@ -496,4 +516,11 @@ def create_panel_spatial_feature_grid(
 
         _add_feature_colorbar(fig, gs, ax_row, n_examples, colormap, vmin, vmax, metadata)
 
-    return fig
+    return save_plot_to_path(
+        fig,
+        output_path,
+        "spatial_feature_grid_examples",
+        file_format=".svg",
+        tight_layout=False,
+        pad_inches=0,
+    )

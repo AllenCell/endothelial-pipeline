@@ -20,7 +20,7 @@ def main(
     """
     Plot DiffAE model comparison metrics for select model runs.
 
-    #diffae #model-comparison #visualization
+    #diffae #model-comparison #visualization #test-ready
 
     This workflow plots the per-example model comparison metrics computed by the
     `calculate-model-comparison-metrics` workflow for the select model runs.
@@ -37,7 +37,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe plot-model-comparison -vd
+    uv run endopipe plot-model-comparison -d
     ```
 
     To run the workflow for select model runs:
@@ -101,7 +101,7 @@ def main(
 
     # If running in demo mode, only plot correlation metric
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one metric")
+        logger.warning("DEMO MODE - Limiting to one metric")
         metrics = ["corr"]
     else:
         metrics = metrics or ["corr", "ssim", "lpips"]

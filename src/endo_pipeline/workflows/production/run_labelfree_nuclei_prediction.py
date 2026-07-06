@@ -1,15 +1,11 @@
 from endo_pipeline.cli import Datasets
 
 
-def main(
-    datasets: Datasets | None = None,
-    num_processes: int = 1,
-    overwrite: bool = True,
-) -> None:
+def main(datasets: Datasets | None = None, overwrite: bool = True) -> None:
     """
     Run label-free nuclei prediction.
 
-    #nuclei-prediction #test-ready #gpu
+    #nuclei-prediction #test-ready #gpu #workers
 
     Label-free nuclei predictions are generated using a CellPose 3 model
     retrained from the default "nuclei" model. Validation images are saved every
@@ -20,7 +16,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe run-labelfree-nuclei-prediction -vd
+    uv run endopipe run-labelfree-nuclei-prediction -d
     ```
 
     To run the workflow for a single dataset:
@@ -43,16 +39,14 @@ def main(
     ----------
     datasets
         List of datasets or dataset collections to segment.
-    num_processes
-        Number of processes to use.
     overwrite
         True to overwrite existing images at output path, False otherwise.
     """
 
     import logging
 
-    from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.cli.demo_mode_defaults import use_default_collection
+    from endo_pipeline.cli import DEMO_MODE, NUM_WORKERS
+    from endo_pipeline.configs import get_datasets_in_collection
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.process.general_image_preprocessing import (
         build_analysis_queue,
@@ -64,13 +58,17 @@ def main(
 
     logger = logging.getLogger(__name__)
 
-    out_dir = get_output_path("labelfree_nuclei_pred")
+    output_path = get_output_path(__file__)
 
-    datasets = use_default_collection(datasets, "live_cdh5_seg_based_feat_datasets")
+    dataset_names = datasets or get_datasets_in_collection("live_cdh5_seg_based_feat_datasets")
+
+    if DEMO_MODE:
+        logger.warning("DEMO MODE - Limiting to one dataset")
+        dataset_names = dataset_names[:1]
 
     analysis_queue = build_analysis_queue(
-        datasets,
-        out_dir=out_dir,
+        dataset_names=dataset_names,
+        out_dir=output_path,
         image_validation_frequency=48,
         t_start=0,
         t_final=1 if DEMO_MODE else None,
@@ -83,7 +81,7 @@ def main(
     process_task_queue(
         generate_labelfree_nuclei_predictions,
         analysis_queue,
-        num_processes=num_processes,
+        num_processes=NUM_WORKERS or 1,
         description="Predicting nuclei",
         chunksize=5,
     )

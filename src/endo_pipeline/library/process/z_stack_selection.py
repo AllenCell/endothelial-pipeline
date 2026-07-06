@@ -413,7 +413,6 @@ def plot_histogram_upper_slices_available(
     plt.gca().xaxis.labelpad = 3
     plt.gca().yaxis.labelpad = 3
 
-    plt.show()
     save_plot_to_path(
         fig, save_dir, "n_slices_above_in_focus_z_histogram", file_format=".svg", tight_layout=False
     )

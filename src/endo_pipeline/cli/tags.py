@@ -31,6 +31,12 @@ def print_warning_message(main_message: str, sub_message: str | None = None) -> 
     print_colored_message("yellow", main_message, sub_message)
 
 
+def print_info_message(main_message: str, sub_message: str | None = None) -> None:
+    """Print blue info message."""
+
+    print_colored_message("blue", main_message, sub_message)
+
+
 def check_workflow_tags(app):
     """Check for known warnings and errors based on workflow tags."""
 
@@ -48,22 +54,32 @@ def check_workflow_tags(app):
         try:
             from aicsfiles import FileManagementSystem  # noqa: F401
         except Exception:
-            error = "Required dependencies for workflow could not be imported."
-            solution = "Use 'uv sync --extra internal' to install the dependencies."
+            error = "Required dependencies for workflow could not be imported"
+            solution = "Use 'uv sync --extra internal' to install the dependencies"
             print_error_message(error, solution)
             exit_on_error = True
 
     if "vast" in tags:
         if not Path("//allen/aics").exists():
-            error = "Workflow requires access to the Vast mounted at /allen/aics."
-            solution = "Make sure you are on the Allen Institute network and have the Vast mounted."
+            error = "Workflow requires access to the Vast mounted at /allen/aics"
+            solution = "Make sure you are on the Allen Institute network and have the Vast mounted"
             print_error_message(error, solution)
             exit_on_error = True
 
     if "fms" in tags and os.name == "nt":
-        warning = "FMS uploads do not work on a Windows machine."
-        solution = "If this workflows needs to upload to FMS, run on a Linux or MacOS machine."
+        warning = "FMS uploads do not work on a Windows machine"
+        solution = "If this workflows needs to upload to FMS, run on a Linux or MacOS machine"
         print_warning_message(warning, solution)
+
+    if "gpu" in tags:
+        info = "This workflow should be run on an NVIDIA GPU"
+        solution = "Append '-g NUM_GPUS' when running the workflow to make sure GPUs are visible"
+        print_info_message(info, solution)
+
+    if "workers" in tags:
+        info = "This workflow supports multiple workers"
+        solution = "Append '-n NUM_WORKERS' when running the workflow to specify number of workers"
+        print_info_message(info, solution)
 
     if exit_on_error:
         exit(1)

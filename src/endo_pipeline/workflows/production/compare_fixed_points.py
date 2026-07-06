@@ -5,7 +5,7 @@ def main(datasets: Datasets | None = None) -> None:
     """
     Validate fixed points identified in 2D + 1D versus 3D.
 
-    #validation #fixed-points #dynamics
+    #fixed-points #dynamics #test-ready
 
     Validate fixed points as identified in 2D in (r, rho) and 1D in theta
     against the fixed points identified in the full 3D (r, rho, theta) space.
@@ -18,7 +18,7 @@ def main(datasets: Datasets | None = None) -> None:
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe compare-fixed-points -vd
+    uv run endopipe compare-fixed-points -d
     ```
 
     To run the workflow for a single dataset:
@@ -75,7 +75,7 @@ def main(datasets: Datasets | None = None) -> None:
     ]
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to one dataset")
+        logger.warning("DEMO MODE - Limiting to one dataset")
         dataset_names = dataset_names[:1]
 
     name_suffix_2d = f"_{join_sorted_strings(column_names_2d)}_grid_based"

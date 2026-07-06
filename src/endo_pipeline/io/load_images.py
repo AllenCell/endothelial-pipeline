@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Literal, overload
 
 from endo_pipeline.manifests import ImageLocation
-from endo_pipeline.settings import DIMENSION_ORDER
+from endo_pipeline.settings.image_data import DIMENSION_ORDER
 
 if TYPE_CHECKING:
     import dask.array as da
@@ -430,10 +430,18 @@ def load_image(
         Loaded image.
     """
 
+    from endo_pipeline.cli.apps import IS_INTERNAL
+
     preferred_loader_order: list[tuple[str | Path | None, Callable]] = [
         (location.path, load_image_from_path),
         (location.s3uri, load_image_from_s3),
     ]
+
+    if not IS_INTERNAL:
+        preferred_loader_order = [
+            (location.s3uri, load_image_from_s3),
+            (location.path, load_image_from_path),
+        ]
 
     available_loaders = [loader for loader in preferred_loader_order if loader[0] is not None]
 

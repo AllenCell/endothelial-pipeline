@@ -9,7 +9,7 @@ def main(
     """
     Visualize bootstrap-validated fixed points from `bootstrap-fixed-points`.
 
-    #dynamical-systems #fixed-points #grid-based #cell-centered
+    #dynamical-systems #fixed-points #grid-based #cell-centered #test-ready
 
     This workflow loads the bootstrap confidence interval (CI) dataframes
     produced by `bootstrap-fixed-points`, filters to fixed points whose
@@ -32,7 +32,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe visualize-fixed-point-bootstrap -vd
+    uv run endopipe visualize-fixed-point-bootstrap -d
     ```
 
     To run the workflow for a single dataset:
@@ -98,7 +98,7 @@ def main(
     dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
 
     if DEMO_MODE:
-        logger.warning("DEMO_MODE - Limiting to at most two datasets")
+        logger.warning("DEMO MODE - Limiting to at most two datasets")
         dataset_names = dataset_names[: min(len(dataset_names), 2)]
 
     # Use all three dynamics columns

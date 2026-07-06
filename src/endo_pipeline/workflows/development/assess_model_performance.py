@@ -31,7 +31,7 @@ def main(
     """
     Assess performance for a single trained DiffAE model run.
 
-    #diffae #model-performance #gpu
+    #diffae #model-performance #test-ready #gpu
 
     Run denoising for a single model run to produce contact sheets for
     qualitative assessment of model performance.
@@ -41,7 +41,7 @@ def main(
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe assess-model-performance -vd
+    uv run endopipe assess-model-performance -d
     ```
 
     To run the workflow for select model manifest and run:
