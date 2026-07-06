@@ -108,7 +108,7 @@ def main() -> None:
         pc_columns=ml_columns,
         seg_columns=measured_feature_columns,
         output_path=output_path,
-        figure_size=(6.0, 2.75),
+        figure_size=(6.05, 2.75),
         force_labels_single_line=True,
         **placeholders["D"],
     )
@@ -174,7 +174,7 @@ def main() -> None:
             path=feature_correlations_path,
             x_position=0,
             y_position=5.2,
-            x_offset=0.1,
+            x_offset=0.05,
             y_offset=0,
         ),
     ]

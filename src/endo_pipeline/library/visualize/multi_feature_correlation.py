@@ -94,6 +94,18 @@ def plot_and_save_heatmap(
     df_renamed = df.rename(columns=get_label_for_column, index=get_label_for_column)
     if force_labels_single_line:
         df_renamed = df_renamed.rename(columns=make_label_single_line, index=make_label_single_line)
+    cbar_kws = {
+        "label": data_type,
+        "orientation": "horizontal",
+    }
+
+    cbar_width_in_fig_units = 0.75 / figsize[0]  # set width to 0.75 inches
+    cbar_height_in_fig_units = 0.05 / figsize[1]  # set height to 0.05 inches
+    # add dummy axes for colorbar to avoid overlapping with the heatmap
+    cax = fig.add_axes(
+        (0, 0, cbar_width_in_fig_units, cbar_height_in_fig_units)
+    )  # x0, y0, width, height
+
     sns.heatmap(
         df_renamed,
         annot=annotate,
@@ -104,11 +116,23 @@ def plot_and_save_heatmap(
         vmax=vmax,
         ax=ax,
         annot_kws={"fontsize": FONTSIZE_XSMALL},
-        cbar=not annotate,
+        cbar_ax=cax,
+        cbar=True,
+        cbar_kws=cbar_kws,
     )
     # set label padding to 2
     ax.xaxis.labelpad = 2
     ax.yaxis.labelpad = 2
+    cax.xaxis.labelpad = 2
+
+    ax_pos = ax.get_position()  # get position of existing axes
+    cax_pos_new = (
+        ax_pos.x0,
+        ax_pos.y0 + cbar_height_in_fig_units,
+        cbar_width_in_fig_units,
+        cbar_height_in_fig_units,
+    )  # new position for colorbar axes
+    cax.set_position(pos=cax_pos_new)  # set position of colorbar axes to match existing axes
 
     # Set tick label rotation
     ax.set_xticklabels(

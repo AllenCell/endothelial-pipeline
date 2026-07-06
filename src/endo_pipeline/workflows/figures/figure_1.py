@@ -125,7 +125,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         pc_columns=DIFFAE_PC_COLUMN_NAME_GROUPS["main_figure"],
         seg_columns=SEGMENTATION_FEATURE_COLUMNS["main_figure"],
         output_path=output_path,
-        figure_size=(2.5, 2.8),
+        figure_size=(2.5, 2.7),
         **placeholders["D"],
     )
 
