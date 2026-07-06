@@ -8,6 +8,31 @@ def main(include_movies: UniqueIntList | None = None) -> None:
 
     #supp-movies
 
+    | Movie | Description                                                 | Type       |
+    | ----- | ----------------------------------------------------------- | ---------- |
+    | 1     | Example dataset at 6 dyn/cm² stitched across all positions  | `stitched` |
+    | 2     | Example dataset at 6 dyn/cm² FOV (1000 x 1000 px)           | `fov`      |
+    | 3     | Example dataset at 6 dyn/cm² inset (256 x 256 px)           | `inset`    |
+    | 4     | Example dataset at 21 dyn/cm² stitched across all positions | `stitched` |
+    | 5     | Example dataset at 21 dyn/cm² FOV (1000 x 1000 px)          | `fov`      |
+    | 6     | Example dataset at 21 dyn/cm² inset (256 x 256)             | `inset`    |
+    | 7     | Example dataset at 6 dyn/cm² FOV (1000 x 1000 px)           | `fov`      |
+    | 8     | Example dataset at 12 dyn/cm² stitched across all positions | `stitched` |
+    | 9     | Example dataset at 12 dyn/cm² FOV (1000 x 1000 px)          | `fov`      |
+    | 10    | Example dataset at 12 dyn/cm² stitched across all positions | `stitched` |
+    | 11    | Example dataset at 12 dyn/cm² FOV (1000 x 1000 px)          | `fov`      |
+    | 12    | Example dataset at 15 dyn/cm² stitched across all positions | `stitched` |
+    | 13    | Example dataset at 15 dyn/cm² FOV (1000 x 1000 px)          | `fov`      |
+    | 14    | Example dataset at 15 dyn/cm² stitched across all positions | `stitched` |
+    | 15    | Example dataset at 15 dyn/cm² FOV (1000 x 1000 px)          | `fov`      |
+    | 16    | Example dataset at 21 dyn/cm² FOV (1000 x 1000 px)          | `fov`      |
+    | 17    | Sorting control dataset stitched across all positions       | `stitched` |
+    | 18    | Sorting control dataset FOV (1000 x 1000 px)                | `fov`      |
+    | 19    | Knock down dataset stitched across all positions            | `stitched` |
+    | 20    | Knock down dataset FOV (1000 x 1000 px)                     | `fov`      |
+    | 21    | Knock down dataset FOV (256 x 256 px)                       | `inset`    |
+    | 22    | Retraction fiber blob example crop                          | `merge`    |
+
     ## Example usage
 
     To run the movie workflow:
