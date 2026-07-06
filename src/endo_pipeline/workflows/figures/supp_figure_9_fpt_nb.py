@@ -1,3 +1,31 @@
+"""
+**Supplemental Figure 9**. Grid-based dynamics capture behavior of features from
+cell-centered patches across timescales
+
+#supp-figure #first-passage-time #cell-centered #grid-based
+
+| Panel | Description                                                                                     |
+| ----- | ----------------------------------------------------------------------------------------------- |
+| A     | Scatter plot of mean first passage time (MFPT) for representative 6 dyn/cm² replicate           |
+| B     | Scatter plot of mean first passage time (MFPT) for representative 21 dyn/cm² replicate          |
+| C     | Parameter sweep of MFPTs for trajectories in representative 21 dyn/cm² replicate                |
+| D     | Percentage of trajectories reaching stable fixed point as a function of the threshold radius    |
+| E     | Pearson correlation coefficients between cell-centered and grid-based MFPT for all replicates   |
+| F     | Linear fit slopes of cell-centered vs. grid-based MFPT for all replicates                       |
+
+## Example usage
+
+To run the figure workflow:
+
+```bash
+uv run endopipe supp-figure-9-fpt
+```
+
+## Figure panels
+
+All panels in this workflow can be run without GPU.
+"""
+
 # %% import libraries and set preliminary variables
 import matplotlib.pyplot as plt
 
@@ -24,7 +52,7 @@ from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
 
 plt.style.use("endo_pipeline.figure")
 
-save_dir = get_output_path("supp_fig_fpt")
+output_path = get_output_path("supp_figure_9_fpt")
 
 low_flow_dataset = FPT_FIG_EXAMPLES["low_flow"]
 high_flow_dataset = FPT_FIG_EXAMPLES["high_flow"]
@@ -75,7 +103,7 @@ for example in FPT_FIG_EXAMPLES:
         line_fit_df=line_fit_result,
         fixed_point_id=fp_idx,
         fixed_point_stability=fp_stability,
-        out_dir=save_dir,
+        out_dir=output_path,
         metric_to_plot=metric_to_plot,
     )
     correlation_plot_filepaths[example] = filename
@@ -108,7 +136,7 @@ fp_param_sweep_fpt, fp_param_sweep_num_traj = plot_first_passage_time_parameter_
     fixed_point_stability=fp_stability,
     first_passage_time_param_sweep_df=df,
     fixed_point_radius_threshold=fpt_param_manifest.parameters["fixed_point_radius_threshold"],
-    out_dir=save_dir,
+    out_dir=output_path,
     metric_to_plot=metric_to_plot,
     figsize=(2.12, 2.12),
 )
@@ -122,7 +150,7 @@ first_passage_df = load_filtered_first_passage_time_dataframe(
 first_passage_summary_df = build_first_passage_time_line_fit_results_dataframe(first_passage_df)
 fpt_pearson_r_path = plot_cross_dataset_summaries(
     first_passage_summary_df,
-    output_path=save_dir,
+    output_path=output_path,
     column_names=[Column.VectorField.PEARSON_R],
     axis_mode="replicate",
     figure_size=(4.2, 2.3),
@@ -136,7 +164,7 @@ fpt_pearson_r_path = plot_cross_dataset_summaries(
 )
 fpt_slope_path = plot_cross_dataset_summaries(
     first_passage_summary_df,
-    output_path=save_dir,
+    output_path=output_path,
     column_names=[Column.VectorField.LINEFIT_SLOPE_ODR],
     axis_mode="replicate",
     figure_size=(4.2, 2.3),
@@ -203,7 +231,7 @@ panels = [
 
 build_figure_from_panels(
     figure_panels=panels,
-    output_path=save_dir / "supp_fig_fpt.svg",
+    output_path=output_path / "supp_figure_9_fpt.svg",
     width=min(fig_width, MAX_FIGURE_WIDTH),
     height=min(fig_height, MAX_FIGURE_HEIGHT),
 )
