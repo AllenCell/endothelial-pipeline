@@ -54,7 +54,11 @@ from endo_pipeline.settings.flow_field_figure import (
     YLABEL_KWARGS,
 )
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
-from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, VECTOR_FIELD_THETA_RANGE
+from endo_pipeline.settings.plot_defaults import (
+    FIXED_POINT_PLOT_STYLE,
+    RECONSTRUCTION_RANDOM_SEED,
+    VECTOR_FIELD_THETA_RANGE,
+)
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME
 
@@ -395,7 +399,7 @@ def reconstruct_fixed_points(
     figure_size: tuple[float, float],
     output_path: Path,
     num_gpus: int | None = None,
-    random_seed: int | None = 4,
+    random_seed: int | None = RECONSTRUCTION_RANDOM_SEED,
     include_row_label: bool = False,
 ) -> Path:
     """
