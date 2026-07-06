@@ -52,7 +52,7 @@ def main(include_movies: UniqueIntList | None = None) -> None:
     from endo_pipeline.settings.examples import (
         FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES,
         FIGURE_3_EXAMPLE_IMAGES,
-        FIGURE_4_EXAMPLE_IMAGES,
+        FIGURE_5_EXAMPLE_IMAGES,
         SUPP_FIG_RETRACTION_FIBER_BLOB,
     )
 
@@ -76,7 +76,7 @@ def main(include_movies: UniqueIntList | None = None) -> None:
 
     # Figure 5: S17-S21 (3 examples x 2 videos: stitched + FOV, + 1 inset for
     # knock_down; skip stitched and fov for datasets in Figure 1)
-    for example in FIGURE_4_EXAMPLE_IMAGES:
+    for example in FIGURE_5_EXAMPLE_IMAGES:
         if example.dataset_name not in fig1_datasets:
             movie_examples_and_types.append((example, "stitched"))
             movie_examples_and_types.append((example, "fov"))
