@@ -1,18 +1,21 @@
 from pathlib import Path
 from typing import Literal
 
-from endo_pipeline.cli import Datasets
+from endo_pipeline.cli import Datasets, UniqueIntList
 
 
 def main(
     datasets: Datasets | None = None,
-    channel_type: Literal["EGFP", "BF", "BF_std_dev"] = "EGFP",
+    channel_types: list[Literal["EGFP", "BF", "BF_std_dev"]] = ["EGFP"],
     output_path: Path | None = None,
     timepoints: list[int] | None = None,
-    positions: list[int] | None = None,
+    positions: UniqueIntList | None = None,
     fps: int = 7,
     annotate_shear_stress: bool = True,
     scale_bar_um: int = 100,
+    orientation: Literal["horizontal", "vertical"] = "vertical",
+    crop: tuple[int, int, int] | None = None,
+    merge_channels: bool = False,
 ) -> None:
     """
     Create timelapse movies of single FOV or stitched.
@@ -42,7 +45,7 @@ def main(
     To run the workflow for a different channel type:
 
     ```bash
-    uv run endopipe create-timelapse-movie --channel-type CHANNEL_TYPE
+    uv run endopipe create-timelapse-movie --channel-types CHANNEL_TYPE
     ```
 
     ## Dataset collection
@@ -59,8 +62,8 @@ def main(
     ----------
     datasets
         List of datasets or dataset collections to create movies for.
-    channel_type
-        Channel type to visualize. Valid option: EGFP | BF | BF_std_dev
+    channel_types
+        Channel type(s) to include in movie.
     output_path
         Directory to save output movie. If None, saves to default location.
     timepoints
@@ -73,6 +76,12 @@ def main(
         True to include shear stress annotation on the movie, False otherwise.
     scale_bar_um
         Size of scale bar in microns.
+    orientation
+        Orientation to stack multiple channels.
+    crop
+        Crop defined as (start_x, start_y, size).
+    merge_channels
+        True to merge the given channels, False otherwise.
     """
 
     import logging
@@ -104,13 +113,16 @@ def main(
     for dataset_name in datasets:
         create_timelapse_movie(
             dataset_name=dataset_name,
-            channel_type=channel_type,
+            channel_types=channel_types,
             output_path=output_path,
             timepoints=timepoints,
             positions=positions,
             frames_per_second=fps,
             annotate_shear_stress=annotate_shear_stress,
             scale_bar_um=scale_bar_um,
+            orientation=orientation,
+            crop=crop,
+            merge_channels=merge_channels,
         )
 
 
