@@ -52,6 +52,7 @@ def main() -> None:
         NUM_LATENT_FEATURES,
     )
     from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.plot_defaults import RECONSTRUCTION_RANDOM_SEED
     from endo_pipeline.settings.workflow_defaults import SEGMENTATION_FEATURE_COLUMNS
 
     plt.style.use("endo_pipeline.figure")
@@ -123,6 +124,7 @@ def main() -> None:
         sigma=3,
         n_steps=7,
         scale_bar_um=20,
+        random_seed=RECONSTRUCTION_RANDOM_SEED,
         num_gpus=NUM_GPUS,
     )
 

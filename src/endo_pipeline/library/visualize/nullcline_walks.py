@@ -33,7 +33,7 @@ from endo_pipeline.settings.flow_field_figure import (
     YLABEL_KWARGS,
 )
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
-from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
+from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, RECONSTRUCTION_RANDOM_SEED
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 
@@ -371,7 +371,7 @@ def reconstruct_along_nullcline(
     theta_value: float,
     model: DiffusionAutoEncoder,
     num_gpus: int | None = None,
-    random_seed: int | None = 4,
+    random_seed: int | None = RECONSTRUCTION_RANDOM_SEED,
 ) -> Path:
     """
     Generate reconstructed images along a nullcline given the coordinates of the
