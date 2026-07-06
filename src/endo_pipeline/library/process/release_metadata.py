@@ -25,6 +25,7 @@ from endo_pipeline.settings.image_data import (
     PIXEL_SIZE_3i_20x,
     Z_STEP_SIZE_ACTUAL_3i_20x,
 )
+from endo_pipeline.settings.unicode import UnicodeCharacters
 
 CELL_LINES_METADATA = {
     "AICS-126 cl. 41": "Vascular endothelial VE-cadherin (CD144-sorted)",
@@ -145,10 +146,12 @@ def add_general_metadata(metadata: dict) -> None:
 
 
 DATASET_COLLECTION_NAMES = {
-    "shear_stress": "Shear stress dataset",
-    "diffae_model_training": "DiffAE dataset",
-    "nuclear_labelfree_model_training": "Nuclear label-free model training dataset",
-    "perturbation": "VE-cadherin Exon3Del perturbation dataset",
+    "shear_stress": "Shear Stress Dataset",
+    "diffae_model_training": "DiffAE Dataset",
+    "nuclear_labelfree_model_training": "Nuclear Label-Free Model Training Dataset",
+    "perturbation": "VE-Cadherin Exon3Del Perturbation Dataset",
+    "immunofluorescence": "Immunofluorescence",
+    "live_cdh5_seg_based_feat_datasets": "VE-cadherin segmentations",
 }
 """Mapping of collection names to dataset display names."""
 
@@ -166,18 +169,22 @@ def add_dataset_metadata(metadata: dict, dataset: DatasetConfig) -> None:
     metadata["Date"] = dataset.date
     metadata["Original File ID"] = dataset.fmsid
     metadata["Organism"] = "human"
-    metadata["Biological entity"] = "WTC-11 hiPSC derived endothelial cells"
+    metadata["Biological Entity"] = "WTC-11 hiPSC derived endothelial cells"
     metadata["Cell Line"] = CELL_LINES_METADATA[dataset.cell_lines[0]]
     metadata["Replicate"] = dataset.replicate_number
 
-    shear_stress_regime = " to ".join(r.value for r in dataset.shear_stress_regime)
-    metadata["Shear Stress Regime"] = shear_stress_regime
+    shear_stress_bins = list(dict.fromkeys(fc.shear_stress_bin for fc in dataset.flow_conditions))
+    metadata[f"Shear Stress Bin (dyn/cm{UnicodeCharacters.SQUARED})"] = ", ".join(
+        str(b) for b in shear_stress_bins
+    )
 
     for index, flow_condition in enumerate(dataset.flow_conditions):
         flow_shear_stress = round(flow_condition.shear_stress)
         flow_start = flow_condition.start if index != 0 else 0
         flow_stop = flow_condition.stop
-        metadata[f"Shear Stress {index + 1} (dynes/cm²)"] = flow_shear_stress
+        metadata[f"Shear Stress {index + 1} (dyn/cm{UnicodeCharacters.SQUARED})"] = (
+            flow_shear_stress
+        )
         metadata[f"Shear Stress {index + 1} Frame Start"] = flow_start
         metadata[f"Shear Stress {index + 1} Frame Stop"] = flow_stop
 
@@ -267,5 +274,7 @@ def add_model_metadata(metadata: dict, manifest_name: str) -> None:
 
     if manifest_name == "nuc_pred_labelfree":
         metadata["Model Type"] = "Cellpose"
+        metadata["Dataset"] = DATASET_COLLECTION_NAMES["nuclear_labelfree_model_training"]
     else:
         metadata["Model Type"] = "DiffAE"
+        metadata["Dataset"] = DATASET_COLLECTION_NAMES["diffae_model_training"]
