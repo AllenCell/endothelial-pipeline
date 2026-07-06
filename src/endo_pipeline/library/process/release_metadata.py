@@ -143,9 +143,9 @@ def add_file_metadata(metadata: dict, s3uri: str, manifest_name: str) -> None:
 def add_general_metadata(metadata: dict) -> None:
     """Add metadata that applies to all file types."""
 
-    metadata["Study Type"] = "placeholder"
-    metadata["Study Description"] = "placeholder"
-    metadata["Publication Title"] = "placeholder"
+    metadata["Publication Title"] = (
+        "Dynamics of ML-based Morphological Features Indicate a Shear Stress-Dependent Bifurcation of hiPSC-Derived Endothelial Cell States"
+    )
     metadata["Publication DOI"] = "doi: placeholder"
 
 
