@@ -36,92 +36,92 @@ locations:
   20250618_20X:
     fmsid: 4528215925384cd48fd61b46e234b4df
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/first_passage_time_parameter_sweep/20250618_f81e9bdf048e462e9755d7cbf5d21c37.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/first_passage_time_parameter_sweep/20250618_f81e9bdf048e462e9755d7cbf5d21c37.parquet
   20250402_20X:
     fmsid: 9696ea79a93c465297e6b780bae5ce8f
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/first_passage_time_parameter_sweep/20250402_90e37b7d8f1440efa84995b4697fb269.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/first_passage_time_parameter_sweep/20250402_90e37b7d8f1440efa84995b4697fb269.parquet
   20250409_20X:
     fmsid: e637265a01e040a9a818f1d8ea1e2023
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/first_passage_time_parameter_sweep/20250409_df6b2a02bbc94c6f957923add524eac1.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/first_passage_time_parameter_sweep/20250409_df6b2a02bbc94c6f957923add524eac1.parquet
   20250428_20X:
     fmsid: d7544e9cf6a04218858a04f25ecc7275
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/first_passage_time_parameter_sweep/20250428_056aa027ba9f4ccd98367563552f7edd.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/first_passage_time_parameter_sweep/20250428_056aa027ba9f4ccd98367563552f7edd.parquet
   20250716_20X:
     fmsid: a84641b9add44acc94cad8edbec150b9
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/first_passage_time_parameter_sweep/20250716_328c62ecc91248eab2268e546892453e.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/first_passage_time_parameter_sweep/20250716_328c62ecc91248eab2268e546892453e.parquet
   20250319_20X:
     fmsid: e904591084c74894a3d7e5be3d3ea08b
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/first_passage_time_parameter_sweep/20250319_0d94f8d3054e4e8c99af07dd92774798.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/first_passage_time_parameter_sweep/20250319_0d94f8d3054e4e8c99af07dd92774798.parquet
   20250604_20X:
     fmsid: 565310443dd945b6bfc5cb1c3d294ec4
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/first_passage_time_parameter_sweep/20250604_3f08ef7a2e0e450d963352dae4bf17dc.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/first_passage_time_parameter_sweep/20250604_3f08ef7a2e0e450d963352dae4bf17dc.parquet
   20260121_20X:
     fmsid: 04b6ec66f47b4f9499ece46e1827ee77
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/first_passage_time_parameter_sweep/20260121_ff75e124720b4a3aa035025a05ced25f.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/first_passage_time_parameter_sweep/20260121_ff75e124720b4a3aa035025a05ced25f.parquet
   20260126_20X:
     fmsid: e730bf44d7594710aff10f0c0585a867
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/first_passage_time_parameter_sweep/20260126_aed19d79c1a34707925cfa8393424c45.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/first_passage_time_parameter_sweep/20260126_aed19d79c1a34707925cfa8393424c45.parquet
   20260209_20X:
     fmsid: 518e483d16db410e8230fccb0499903a
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/first_passage_time_parameter_sweep/20260209_3700e11f893e4f378db450ea91bd92d6.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/first_passage_time_parameter_sweep/20260209_3700e11f893e4f378db450ea91bd92d6.parquet
   20260216_20X:
     fmsid: 509b363d555e44dbbfd55dc0cb487ce9
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/first_passage_time_parameter_sweep/20260216_ed3743a1ee4c4cb096f5af90e3ebb9bd.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/first_passage_time_parameter_sweep/20260216_ed3743a1ee4c4cb096f5af90e3ebb9bd.parquet
   20250813_20X:
     fmsid: 287adfc83eb14d248754a6bbdf279fbf
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/first_passage_time_parameter_sweep/20250813_6ab0f70bd43f4de987a789905dbfb95c.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/first_passage_time_parameter_sweep/20250813_6ab0f70bd43f4de987a789905dbfb95c.parquet
   20250326_20X:
     fmsid: 40d19571628448779006fb91c879b9ff
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/first_passage_time_parameter_sweep/20250326_eb97addf262c44c5a6117ad1d4acc353.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/first_passage_time_parameter_sweep/20250326_eb97addf262c44c5a6117ad1d4acc353.parquet
   20260114_20X:
     fmsid: 98347700b8764700a5f8540c66c0ec60
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/first_passage_time_parameter_sweep/20260114_4b693bb8eedb4e0ba0cb9ab4ae07b1a2.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/first_passage_time_parameter_sweep/20260114_4b693bb8eedb4e0ba0cb9ab4ae07b1a2.parquet
   20260128_20X:
     fmsid: 0fa1dcb8518d47d38b802de95c3c5492
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/first_passage_time_parameter_sweep/20260128_00bd94ea6d7e4b46bc16a55e35de589d.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/first_passage_time_parameter_sweep/20260128_00bd94ea6d7e4b46bc16a55e35de589d.parquet
   20260202_20X:
     fmsid: d9df8c97f957433598080a02ad49e5b9
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/first_passage_time_parameter_sweep/20260202_fcb18a65bb734ff6ae718e1eee4894d6.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/first_passage_time_parameter_sweep/20260202_fcb18a65bb734ff6ae718e1eee4894d6.parquet
   20260204_20X:
     fmsid: 3e7c069bc4a2410e9716e07bd6e09ac9
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/first_passage_time_parameter_sweep/20260204_ac1fddfd7452481e83317c8fbdd59dd6.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/first_passage_time_parameter_sweep/20260204_ac1fddfd7452481e83317c8fbdd59dd6.parquet
   20260211_20X:
     fmsid: 0c5a8ab586b8479b8a5a3408321b655d
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/first_passage_time_parameter_sweep/20260211_20b76dc8d0ca488ba88816793830f6ec.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/first_passage_time_parameter_sweep/20260211_20b76dc8d0ca488ba88816793830f6ec.parquet
   20260225_20X:
     fmsid: 9fa8c51f167f4158a1582cd469fdd350
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/first_passage_time_parameter_sweep/20260225_50afe3cb17cf4be099dc44e47f7a4ae4.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/first_passage_time_parameter_sweep/20260225_50afe3cb17cf4be099dc44e47f7a4ae4.parquet
   20260302_20X:
     fmsid: 34530913abc740c98d35828a9a1a7b3b
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/first_passage_time_parameter_sweep/20260302_e9cfa3b0b24447f7bba000af3b012427.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/first_passage_time_parameter_sweep/20260302_e9cfa3b0b24447f7bba000af3b012427.parquet
   20250611_20X:
     fmsid: e48ab641e687493da1711ded6d0f0b34
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/first_passage_time_parameter_sweep/20250611_a32615d530ae42c29d159cc058601879.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/first_passage_time_parameter_sweep/20250611_a32615d530ae42c29d159cc058601879.parquet
   20251001_20X:
     fmsid: dd29ea6812c2447fa2ab16d0cefcac1f
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/first_passage_time_parameter_sweep/20251001_271124f03a16409499e8a84b0030cb15.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/first_passage_time_parameter_sweep/20251001_271124f03a16409499e8a84b0030cb15.parquet
   20260304_20X:
     fmsid: a3c1cb59babf49a29c3be79b796317a2
     path: null
-    s3uri: s3://allencell-internal-quilt/endo_stg/first_passage_time_parameter_sweep/20260304_56c81f459d8e46eabd74cc2147b85f49.parquet
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/first_passage_time_parameter_sweep/20260304_56c81f459d8e46eabd74cc2147b85f49.parquet

@@ -18,12 +18,12 @@ locations:
     fmsid: null
     path: null
     s3uri:
-    - s3://allencell-internal-quilt/endo_stg/diffae_cdh5_conditioned/latent_512.ckpt
-    - s3://allencell-internal-quilt/endo_stg/diffae_cdh5_conditioned/latent_512.yaml
+    - s3://allencell/aics/endo_cell_state_dynamics/diffae_cdh5_conditioned/latent_512.ckpt
+    - s3://allencell/aics/endo_cell_state_dynamics/diffae_cdh5_conditioned/latent_512.yaml
   latent_1024:
     mlflowid: 57e8b8571e31487ea0d56b012613174d
     fmsid: null
     path: null
     s3uri:
-    - s3://allencell-internal-quilt/endo_stg/diffae_cdh5_conditioned/latent_1024.ckpt
-    - s3://allencell-internal-quilt/endo_stg/diffae_cdh5_conditioned/latent_1024.yaml
+    - s3://allencell/aics/endo_cell_state_dynamics/diffae_cdh5_conditioned/latent_1024.ckpt
+    - s3://allencell/aics/endo_cell_state_dynamics/diffae_cdh5_conditioned/latent_1024.yaml

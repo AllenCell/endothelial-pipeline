@@ -4,97 +4,97 @@ parameters: {}
 locations:
   20250319_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20250326_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20250402_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20250409_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20250428_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20250604_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20250611_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20250618_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20250714_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20250716_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20250728_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20250813_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20250818_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20250827_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20251001_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20260114_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20260121_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20260126_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20260128_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20260202_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20260204_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20250908_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20251029_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20251119_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20260209_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20260216_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20260211_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20260225_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20260302_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20260304_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20260309_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
   20260325_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
-    s3uri: s3://allencell-internal-quilt/endo_stg/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
