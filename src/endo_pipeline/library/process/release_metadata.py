@@ -178,7 +178,7 @@ def add_dataset_metadata(metadata: dict, dataset: DatasetConfig) -> None:
     metadata["Replicate"] = dataset.replicate_number
 
     shear_stress_bins = list(dict.fromkeys(fc.shear_stress_bin for fc in dataset.flow_conditions))
-    metadata[f"Shear Stress Bin (dyn/cm{UnicodeCharacters.SQUARED})"] = ", ".join(
+    metadata[f"Shear Stress Bin (dyn/cm{UnicodeCharacters.SQUARED})"] = " to ".join(
         str(b) for b in shear_stress_bins
     )
 
