@@ -7,6 +7,7 @@ from endo_pipeline.configs import (
     ChannelName,
     DatasetConfig,
     get_available_dataset_names,
+    get_datasets_in_collection,
     load_dataset_config,
 )
 from endo_pipeline.manifests import (
@@ -24,11 +25,12 @@ from endo_pipeline.settings.image_data import (
     PIXEL_SIZE_3i_20x,
     Z_STEP_SIZE_ACTUAL_3i_20x,
 )
+from endo_pipeline.settings.unicode import UnicodeCharacters
 
 CELL_LINES_METADATA = {
     "AICS-126 cl. 41": "Vascular endothelial VE-cadherin (CD144-sorted)",
     "AICS-126 cl. 41 CD31-sorted": "Vascular endothelial VE-cadherin (CD31-sorted)",
-    "AICS-177 cl. 26": "Vascular endothelial VE-cadherin knock down (CD31-sorted)",
+    "AICS-177 cl. 26": "Vascular endothelial VE-cadherin Exon 3 Deletion (CD31-sorted)",
 }
 """Metadata mapping for cell lines."""
 
@@ -39,7 +41,7 @@ CHANNEL_WAVELENGTH_METADATA = {
     ChannelName.NucViolet: "405 nm excitation laser (LuxX Diode laser series)",
     ChannelName.SOX17: "561 nm excitation laser (LuxX Diode laser series)",
     ChannelName.NR2F2: "640 nm excitation laser (LuxX Diode laser series)",
-    ChannelName.DAPI: "???",
+    ChannelName.DAPI: "405 nm excitation laser (LuxX Diode laser series)",
 }
 """Metadata mapping for channel wavelength."""
 
@@ -50,17 +52,17 @@ CHANNEL_CONTENT_METADATA = {
     ChannelName.NucViolet: "Nuclear Violet LCS1 stain emission",
     ChannelName.SOX17: "Anti-Sox17 Clone OTI3B10 Mouse Monoclonal Antibody, Goat anti-Mouse IgG (H+L) Alexa Fluor™ Plus 555 emission",
     ChannelName.NR2F2: "Anti-NR2F2 Rabbit Monoclonal Antibody, Goat anti-Rabbit IgG (H+L) Alexa Fluor™ Plus 647 emission",
-    ChannelName.DAPI: "???",
+    ChannelName.DAPI: "DAPI stain emission",
 }
 """Metadata mapping for channel content."""
 
 CHANNEL_LASER_POWER_METADATA = {
-    ChannelName.EGFP: "3.30",
+    ChannelName.EGFP: "2",
     ChannelName.BF: "Intensity histogram of brightfield images was adjusted to peak at around ~14,000 in grayscale value",
     ChannelName.NucViolet: "0.8",
     ChannelName.SOX17: "11",
-    ChannelName.NR2F2: "15",
-    ChannelName.DAPI: "???",
+    ChannelName.NR2F2: "11",
+    ChannelName.DAPI: "1",
 }
 """Metadata mapping for channel laser power."""
 
@@ -100,7 +102,11 @@ def build_dataframe_manifest_release_metadata(
         dataset_config = load_dataset_config(location_key)
         add_dataset_metadata(metadata, dataset_config)
 
-    add_dataframe_metadata(metadata, manifest)
+    if "training" in manifest.name:
+        metadata["Data Type"] = "Model Training Files"
+        metadata["Dataset"] = DATASET_COLLECTION_NAMES["diffae_model_training"]
+    else:
+        add_dataframe_metadata(metadata, manifest)
 
     return metadata
 
@@ -137,30 +143,52 @@ def add_file_metadata(metadata: dict, s3uri: str, manifest_name: str) -> None:
 def add_general_metadata(metadata: dict) -> None:
     """Add metadata that applies to all file types."""
 
-    metadata["Study Type"] = "placeholder"
-    metadata["Study Description"] = "placeholder"
-    metadata["Publication Title"] = "placeholder"
+    metadata["Publication Title"] = (
+        "Dynamics of ML-based Morphological Features Indicate a Shear Stress-Dependent Bifurcation of hiPSC-Derived Endothelial Cell States"
+    )
     metadata["Publication DOI"] = "doi: placeholder"
+
+
+DATASET_COLLECTION_NAMES = {
+    "shear_stress": "Shear Stress Dataset",
+    "diffae_model_training": "DiffAE Dataset",
+    "nuclear_labelfree_model_training": "Nuclear Label-Free Model Training Dataset",
+    "perturbation": "VE-Cadherin Exon3Del Perturbation Dataset",
+    "immunofluorescence": "Immunofluorescence",
+    "live_cdh5_seg_based_feat_datasets": "VE-cadherin segmentations",
+}
+"""Mapping of collection names to dataset display names."""
 
 
 def add_dataset_metadata(metadata: dict, dataset: DatasetConfig) -> None:
     """Add metadata specific to the dataset."""
 
+    dataset_names = []
+    for collection, display_name in DATASET_COLLECTION_NAMES.items():
+        if dataset.name in get_datasets_in_collection(collection):
+            dataset_names.append(display_name)
+    metadata["Dataset"] = ", ".join(dataset_names) if dataset_names else ""
+
     metadata["Identity"] = dataset.barcode
     metadata["Date"] = dataset.date
     metadata["Original File ID"] = dataset.fmsid
     metadata["Organism"] = "human"
-    metadata["Biological entity"] = "WTC-11 hiPSC derived endothelial cells"
+    metadata["Biological Entity"] = "WTC-11 hiPSC derived endothelial cells"
     metadata["Cell Line"] = CELL_LINES_METADATA[dataset.cell_lines[0]]
+    metadata["Replicate"] = dataset.replicate_number
 
-    shear_stress_regime = " to ".join(r.value for r in dataset.shear_stress_regime)
-    metadata["Shear Stress Regime"] = shear_stress_regime
+    shear_stress_bins = list(dict.fromkeys(fc.shear_stress_bin for fc in dataset.flow_conditions))
+    metadata[f"Shear Stress Bin (dyn/cm{UnicodeCharacters.SQUARED})"] = " to ".join(
+        str(b) for b in shear_stress_bins
+    )
 
     for index, flow_condition in enumerate(dataset.flow_conditions):
         flow_shear_stress = round(flow_condition.shear_stress)
         flow_start = flow_condition.start if index != 0 else 0
         flow_stop = flow_condition.stop
-        metadata[f"Shear Stress {index + 1} (dynes/cm²)"] = flow_shear_stress
+        metadata[f"Shear Stress {index + 1} (dyn/cm{UnicodeCharacters.SQUARED})"] = (
+            flow_shear_stress
+        )
         metadata[f"Shear Stress {index + 1} Frame Start"] = flow_start
         metadata[f"Shear Stress {index + 1} Frame Stop"] = flow_stop
 
@@ -171,6 +199,8 @@ def add_dataset_metadata(metadata: dict, dataset: DatasetConfig) -> None:
 
 def add_image_metadata(metadata: dict, dataset: DatasetConfig, manifest_name: str) -> None:
     """Add image-only metadata."""
+
+    metadata["Data Type"] = "Image Data"
 
     if manifest_name == "image_zarr":
         metadata["Imaging Method"] = f"{dataset.microscope} spinning disk confocal microscopy"
@@ -237,13 +267,18 @@ def add_image_metadata(metadata: dict, dataset: DatasetConfig, manifest_name: st
 def add_dataframe_metadata(metadata: dict, manifest: DataframeManifest) -> None:
     """Add dataframe-only metadata."""
 
+    metadata["Data Type"] = "Analysis Data"
     metadata["Analysis Workflow"] = manifest.workflow
 
 
 def add_model_metadata(metadata: dict, manifest_name: str) -> None:
     """Add model-only metadata."""
 
+    metadata["Data Type"] = "Model Training Files"
+
     if manifest_name == "nuc_pred_labelfree":
         metadata["Model Type"] = "Cellpose"
+        metadata["Dataset"] = DATASET_COLLECTION_NAMES["nuclear_labelfree_model_training"]
     else:
         metadata["Model Type"] = "DiffAE"
+        metadata["Dataset"] = DATASET_COLLECTION_NAMES["diffae_model_training"]
