@@ -1,6 +1,29 @@
 def main():
     """
     Create a BFF-compatible CSV for releasing manifests with metadata.
+
+    #internal
+
+    This workflow iterates through all image, dataframe, and model manifests
+    to build a BFF-compatible CSV containing metadata based on manifest type.
+
+    ## Example usage
+
+    To run the workflow:
+
+    ```bash
+    uv run endopipe create-release-metadata
+    ```
+
+    ## Manifest requirements
+
+    By default, this workflow includes files that meet the following conditions:
+
+    - File has a S3 URI location
+    - For images: the file must be associated with a dataset in the
+      `dataset_release` collection
+    - For dataframes: the file must be associated with a dataset in the
+      `dataset_release` collection or be a "model training" manifest
     """
 
     import logging
