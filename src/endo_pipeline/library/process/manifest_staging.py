@@ -12,17 +12,22 @@ from endo_pipeline.configs import get_available_dataset_names, load_dataset_conf
 from endo_pipeline.io import resolve_dataframe_location, resolve_model_location
 from endo_pipeline.manifests import (
     DataframeManifest,
+    ExtraManifest,
     ImageManifest,
     ModelManifest,
     get_available_dataframe_manifests,
+    get_available_extra_manifests,
     get_available_image_manifests,
     get_available_model_manifests,
     get_dataframe_location_for_dataset,
+    get_extra_location_for_dataset,
     get_image_location_for_dataset,
     load_dataframe_manifest,
+    load_extra_manifest,
     load_image_manifest,
     load_model_manifest,
     save_dataframe_manifest,
+    save_extra_manifest,
     save_image_manifest,
     save_model_manifest,
 )
@@ -134,8 +139,42 @@ def build_model_manifest_staging_entries_for_dataset(
     return entries, update
 
 
+def build_extra_manifest_staging_entries_for_location(
+    manifest: ExtraManifest, dataset_name: str, folder: str
+) -> tuple[list[dict[str, str]], str]:
+    """Build extra manifest staging entries for given dataset."""
+
+    dataset_config = load_dataset_config(dataset_name)
+
+    entries = []
+
+    # Check if we need to iterate over positions
+    positions: list[int] | list[None] = [None]
+    if "{{position}}" in str(list(manifest.locations.values())[0].path):
+        positions = dataset_config.zarr_positions
+
+    # Iterate over positions (if needed) and add one entry per position
+    for position in positions:
+        location = get_extra_location_for_dataset(manifest, dataset_config, position=position)
+        assert location.path is not None
+        target = f"{S3_STAGING_DIRECTORY}{folder}{location.path.name}"
+        entries.append(
+            {
+                STAGING_SOURCE_COLUMN_NAME: str(location.path),
+                STAGING_TARGET_COLUMN_NAME: target,
+            }
+        )
+
+    # Use the original location with placeholders to set the manifest update
+    placeholder_location = manifest.locations[dataset_name]
+    assert placeholder_location.path is not None
+    update = f"{S3_STAGING_DIRECTORY}{folder}{placeholder_location.path.name}"
+
+    return entries, update
+
+
 def generate_manifest_staging_dataframe(
-    manifest: ImageManifest | DataframeManifest | ModelManifest,
+    manifest: ImageManifest | DataframeManifest | ModelManifest | ExtraManifest,
     location_keys: list[str],
     folder: str,
     output_path: Path,
@@ -146,6 +185,7 @@ def generate_manifest_staging_dataframe(
         ImageManifest: build_image_manifest_staging_entries_for_location,
         DataframeManifest: build_dataframe_manifest_staging_entries_for_location,
         ModelManifest: build_model_manifest_staging_entries_for_dataset,
+        ExtraManifest: build_extra_manifest_staging_entries_for_location,
     }
     staging_entry_builder = staging_entry_builders[type(manifest)]
 
@@ -248,6 +288,9 @@ def update_staged_manifest_locations(job_path: Path) -> None:
     elif manifest_name in get_available_model_manifests():
         manifest_loader = load_model_manifest
         manifest_saver = save_model_manifest
+    elif manifest_name in get_available_extra_manifests():
+        manifest_loader = load_extra_manifest
+        manifest_saver = save_extra_manifest
     else:
         raise ValueError("Unable to update manifest '%s'", manifest_name)
 
