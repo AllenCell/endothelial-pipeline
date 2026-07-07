@@ -5,7 +5,7 @@ def main(datasets: Datasets | None = None):
     """
     Visualize image preprocessing steps for the DiffAE model.
 
-    #diffae #preprocessing
+    #diffae #preprocessing #test-ready
 
     ## Example usage
 
