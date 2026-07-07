@@ -229,9 +229,11 @@ def get_cdh5_seg_data_for_tfe(
     df = df_delay[list(columns)].compute().reset_index(drop=True)
 
     # Add optical flow features, if they are available
-    manifest_of = load_dataframe_manifest("optical_flow_bf_grid_based")
+    manifest_of = load_dataframe_manifest("optical_flow_bf_cell_centered")
     if dataset.name in manifest_of.locations:
-        df = add_optical_flow_features(df, [dataset.name])
+        df = add_optical_flow_features(
+            df, [dataset.name], optical_flow_manifest_name="optical_flow_bf_cell_centered"
+        )
 
     # Filter dataset down to position
     df = df[df[Column.POSITION] == position]

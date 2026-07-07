@@ -29,6 +29,8 @@ TFE_REQUIRED_COLUMNS: list[str | Column] = [
     Column.TRACK_ID,
     Column.POSITION,
     Column.TIMEPOINT,
+    Column.DiffAEData.START_X,
+    Column.DiffAEData.START_Y,
     Column.SegData.LABEL,
     Column.SegData.LABELS_IN_CROP,
     Column.SegDataFilters.IS_INCLUDED,
