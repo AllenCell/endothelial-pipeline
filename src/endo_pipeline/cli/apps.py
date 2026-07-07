@@ -256,7 +256,11 @@ def apply_pipeline_options(apps: dict[str, App], options: PipelineOptions) -> No
         tags = get_app_tags(app)
 
         if tags and options.show_tags:
-            app.help = f"| {' | '.join(tags)} | {app.help}"
+            exclude_tags = ["test-ready", "workers", "gpu"]
+            include_tags = [tag for tag in tags if tag not in exclude_tags]
+            if include_tags:
+                tag_string = " ".join([f"**#{tag}**" for tag in include_tags])
+                app.help = f"{tag_string} {app.help.strip()}"
 
         if options.filter_tag:
             app.show = options.filter_tag in tags and app.show
