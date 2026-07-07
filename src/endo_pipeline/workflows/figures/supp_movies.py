@@ -8,6 +8,31 @@ def main(include_movies: UniqueIntList | None = None) -> None:
 
     #supp-movies
 
+    | Movie | Description                                                   | Type       |
+    | ----- | ------------------------------------------------------------- | ---------- |
+    | 1     | Example replicate at 6 dyn/cm² stitched across all positions  | _stitched_ |
+    | 2     | Example replicate at 6 dyn/cm² FOV (1000 x 1000 px)           | _fov_      |
+    | 3     | Example replicate at 6 dyn/cm² inset (256 x 256 px)           | _inset_    |
+    | 4     | Example replicate at 21 dyn/cm² stitched across all positions | _stitched_ |
+    | 5     | Example replicate at 21 dyn/cm² FOV (1000 x 1000 px)          | _fov_      |
+    | 6     | Example replicate at 21 dyn/cm² inset (256 x 256)             | _inset_    |
+    | 7     | Example replicate at 6 dyn/cm² FOV (1000 x 1000 px)           | _fov_      |
+    | 8     | Example replicate at 12 dyn/cm² stitched across all positions | _stitched_ |
+    | 9     | Example replicate at 12 dyn/cm² FOV (1000 x 1000 px)          | _fov_      |
+    | 10    | Example replicate at 12 dyn/cm² stitched across all positions | _stitched_ |
+    | 11    | Example replicate at 12 dyn/cm² FOV (1000 x 1000 px)          | _fov_      |
+    | 12    | Example replicate at 15 dyn/cm² stitched across all positions | _stitched_ |
+    | 13    | Example replicate at 15 dyn/cm² FOV (1000 x 1000 px)          | _fov_      |
+    | 14    | Example replicate at 15 dyn/cm² stitched across all positions | _stitched_ |
+    | 15    | Example replicate at 15 dyn/cm² FOV (1000 x 1000 px)          | _fov_      |
+    | 16    | Example replicate at 21 dyn/cm² FOV (1000 x 1000 px)          | _fov_      |
+    | 17    | Sorting control replicate stitched across all positions       | _stitched_ |
+    | 18    | Sorting control replicate FOV (1000 x 1000 px)                | _fov_      |
+    | 19    | Exon3Del replicate stitched across all positions              | _stitched_ |
+    | 20    | Exon3Del replicate FOV (1000 x 1000 px)                       | _fov_      |
+    | 21    | Exon3Del replicate FOV (256 x 256 px)                         | _inset_    |
+    | 22    | Retraction fiber blob example crop                            | _merge_    |
+
     ## Example usage
 
     To run the movie workflow:
@@ -26,13 +51,13 @@ def main(include_movies: UniqueIntList | None = None) -> None:
 
     Movies are one of four types:
 
-    - `stitched` = all positions stitched together for EGFP and BF std dev
+    - _stitched_ = all positions stitched together for EGFP and BF std dev
       channels, filtered to steady-state timepoints
-    - `fov` = FOV of position for EGFP, BF, and BF std dev channels, cropped to
+    - _fov_ = FOV of position for EGFP, BF, and BF std dev channels, cropped to
       match figure, filtered to steady-state timepoints
-    - `inset` = inset of position for EGFP, BF, and BF std dev channels, cropped
+    - _inset_ = inset of position for EGFP, BF, and BF std dev channels, cropped
       to match figure
-    - `merge` = EGFP and BF channels along with merged EGFP+BF
+    - _merge_ = EGFP and BF channels along with merged EGFP+BF
 
     Parameters
     ----------
