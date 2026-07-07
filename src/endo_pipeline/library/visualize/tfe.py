@@ -175,7 +175,7 @@ def get_grid_seg_data_for_tfe(
     df = load_dataframe(location, delay=False)
 
     # Add optical flow features, if they are available
-    manifest_of = load_dataframe_manifest("optical_flow_bf_grid_based")
+    manifest_of = load_dataframe_manifest("optical_flow_bf_cell_centered")
     if dataset.name in manifest_of.locations:
         df = add_optical_flow_features(df, [dataset.name])
 
