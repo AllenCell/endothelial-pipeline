@@ -1,23 +1,28 @@
-# cellsmap
-Cellular state mapping for endos.
+# Dynamics of ML-based morphological features indicate a shear stress-dependent bifurcation of hiPSC-derived endothelial cell states
 
-A minimal paper that achieves core proof-of-concept goals for the holistic state framework:
-```mermaid
-flowchart TD
+The code in this repository runs all analyses and generates all figures, tables, and movies for [Angelini, Leveille, Parent, and Zaunbrecher et al](DOI).
+It is primarily intended to support reproducibility of our research.
+In addition, researchers may find parts of this code valuable for future work.
 
-part1["unsupervised feature extraction from timelapse image data
-    (model)"]
-part2["integration of environment information
-    (label-free)"]
-part3["landscape modelling"]
-part4["integration of intercellular structures information
-    (feasibility of integrating different observables)"]
-part5["integration of molecular census information
-    (feasibility of integrating different observables)"]
+> [!NOTE]
+> The `main` branch reflects the most up-to-date version of the code.
+> To exactly reproduce the contents from the [bioRxiv](LINK TO bioRxiv) version of the manuscript, use the [`bioRxiv-v1` release](https://github.com/AllenCell/endothelial-pipeline/releases/tag/bioRxiv-v1).
 
-part1 & part2 & part4 & part5 --> part3
-```
+We release all timelapse data used in this study in the OME-Zarr format to democratize their access.
+The data are publicly available on [S3](https://open.quiltdata.com/b/allencell/tree/aics/endo_cell_state_dynamics/) under the [Allen Institute for Cell Science Terms of Use](https://www.allencell.org/terms-of-use.html).
+The data are also available via the AWS S3 API directly at `s3://allencell/aics/endo_cell_state_dynamics`.
 
+To facilitate data exploration, all datasets are accessible through [BioFile Finder (BFF)](https://bff.allencell.org/).
+BFF is an open-use web application that enables rich metadata search, filtering, and sorting of datasets that can be downloaded or viewed directly.
+
+#### ▌ Access all [Endothelial cell state dynamics datasets](https://bff.allencell.org/app?c=File+Name%3A45%2CAnalysis+Workflow%3A30%2CBiological+Entity%3A34%2CCell+Line%3A45%2CChannel+0+Image+Content%3A35%2CChannel+0+Laser+Power+%28mW%29%3A24&group=Data+Type&group=Dataset&group=Shear+Stress+Bin+%28dyn%2Fcm%C2%B2%29&group=Date&source=%7B%22name%22%3A%22all_datasets_manifest.csv+%287%2F6%2F2026+10%3A27%3A29+PM%29%22%2C%22type%22%3A%22csv%22%2C%22uri%22%3A%22s3%3A%2F%2Fallencell%2Faics%2Fendo_cell_state_dynamics%2Fall_datasets_manifest.csv%22%7D) on BFF
+
+Individual timelapses can be viewed using [Volume Explorer (Vol-E)](https://volumeviewer.allencell.org) through BFF by right clicking on any image data entry and selecting _Open with_ > _Vol-E_.
+Users can additionally interactively explore the image and feature data for grid-based patches and cell segmentations simultaneously using [Timelapse Feature Explorer (TFE)](https://tfe.allencell.org/).
+
+#### ▌ Explore [VE-cadherin segmentations for endothelial cell state dynamics](https://timelapse.allencell.org/viewer?collection=https%3A%2F%2Fallencell.s3.amazonaws.com%2Faics%2Fendo_cell_state_dynamics%2Ftimelapse_feature_explorer_cdh5%2Fcollection.json&dataset=6+dyn%2Fcm%C2%B2+%2820250618%2C+P0%29&feature=orientation&bg-key=backdrop_gfp_max_proj&t=110&color=colorcet-cet_c8&keep-range=0&range=0%2C3.142&palette-key=adobe&filters=not_steady_state%3A%3Affd%2Ccell_piling%3A%3Affd&seg=1&path=1&path-color=ff00ff&path-width=1.500&path-ramp=esri-blue_red_8&path-mode=0&path-breaks=0&path-steps=25%21%2C0&path-persist=0&path-overlay=30&scalebar=1&timestamp=1&filter-color=dddddd&filter-mode=1&outlier-color=c0c0c0&outlier-mode=1&outline-color=ff00ff&outline-mode=0&outline-palette-key=neon_reordered&edge=1&edge-color=00000080&centroids=0&centroid-mode=0&centroid-color=aaaaaa&centroid-radius=4&tab=scatter_plot&interpolate=1&scatter-x=time_hours&scatter-y=orientation&sc-hist=1&scatter-bins=20&scatter-range=all&sc-cont=0&sc-cont-num=10&sc-avg=0&sc-avg-n=5&sc-avg-w=1.6&bg=1&bg-brightness=100&bg-sat=100&fg-alpha=50&vc=0&vc-key=_motion_&vc-color=000000&vc-scale=5&vc-thickness-scaling=0&vc-thickness=1&vc-tooltip=c&vc-time-int=5&p3d-x=polar_theta&p3d-y=polar_r&p3d-z=rho&p3d-vc-bins=20&p3d-vc-subs=1&p3d-vc-scale=1&p3d-vc-ramp=matplotlib-viridis%21&p3d-vc-thresh=5&p3d-avg-w=3&p3d-avg-n=1&p3d-gauss=0&p3d-gauss-bw=15) on TFE
+
+#### ▌ Explore [Grid-based patches for endothelial cell state dynamics](https://timelapse.allencell.org/viewer?collection=https%3A%2F%2Fallencell.s3.amazonaws.com%2Faics%2Fendo_cell_state_dynamics%2Ftimelapse_feature_explorer_grid%2Fcollection.json&dataset=6+dyn%2Fcm%C2%B2+%2820250618%2C+P0%29&feature=polar_theta&bg-key=backdrop_gfp_max_proj&t=110&color=colorcet-cet_c2&keep-range=0&range=0%2C3.142&palette-key=adobe&filters=not_steady_state%3A%3Affd%2Ccell_piling%3A%3Affd&seg=1&path=0&path-color=ff00ff&path-width=1.500&path-ramp=esri-blue_red_8&path-mode=0&path-breaks=0&path-steps=25%21%2C0&path-persist=0&path-overlay=30&scalebar=1&timestamp=1&filter-color=dddddd&filter-mode=1&outlier-color=c0c0c0&outlier-mode=1&outline-color=ff00ff&outline-mode=0&outline-palette-key=neon_reordered&edge=1&edge-color=00000040&centroids=0&centroid-mode=0&centroid-color=aaaaaa&ct-alpha=50&centroid-radius=4&tab=scatter_plot&interpolate=1&scatter-x=time_hours&scatter-y=polar_theta&sc-hist=0&scatter-bins=20&scatter-range=all&sc-cont=0&sc-cont-num=10&sc-avg=0&sc-avg-n=5&sc-avg-w=1.6&bg=1&bg-brightness=100&bg-sat=100&fg-alpha=50&vc=0&vc-key=_motion_&vc-color=000000&vc-scale=5&vc-thickness-scaling=0&vc-thickness=1&vc-tooltip=c&vc-time-int=5&p3d-x=polar_theta&p3d-y=polar_r&p3d-z=rho&p3d-vc-bins=10&p3d-vc-subs=1&p3d-vc-scale=1&p3d-vc-ramp=matplotlib-viridis%21&p3d-vc-thresh=5&p3d-avg-w=3&p3d-avg-n=5&p3d-gauss=0&p3d-gauss-bw=15) on TFE
 
 ## Installation
 
@@ -39,8 +44,8 @@ cd /path/to/directory/
 **2. Clone the repo from GitHub**
 
 ```bash
-git clone git@github.com:aics-int/cellsmap.git
-cd cellsmap
+git clone git@github.com:AllenCell/endothelial-pipeline.git
+cd endothelial-pipeline
 ```
 
 **3. Install the dependencies using uv**
@@ -102,8 +107,8 @@ cd /path/to/directory/
 **2. Clone the repo from GitHub**
 
 ```bash
-git clone git@github.com:aics-int/cellsmap.git
-cd cellsmap
+git clone git@github.com:AllenCell/endothelial-pipeline.git
+cd endothelial-pipeline
 ```
 
 **3. Create and activate a new virtual environment**
@@ -125,293 +130,60 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-## Datasets
-A catalog of the current datasets we have is [here](https://github.com/orgs/aics-int/projects/40).
+## Usage
 
+All workflows in this repository can be run using the `endopipe` command.
+Running the command without any arguments will provide a list of all available workflows.
 
-## Workflows
-
-<details open>
-<summary> Serge </summary>
-
-#### NOTE: WORKFLOWS ADAPTED TO NEW DATASET STRUCTURE (UNSTITCHED, FULL-DIMENSIONAL TIMELAPSES INSTEAD OF MONTAGE MIPS) AND ARE NOW FUNCTIONAL:
-- [x] cdh5_classic_seg.py
-- [x] cdh5_classic_seg_tracking.py
-- [ ] cdh5_nodes_and_edges.py
-- [ ] cdh5_nodes_and_edges_analysis.py
-
-### Efforts
-- get classic segmentations for all datasets using "Cdh5 classic segmentation" workflow
-    - requires changing the function that builds the analysis queue to generalize to the new dataset types (fixed imaging data, Nikon data, etc.)
-- run "label-free nuclei prediction" workflow on all timepoints of the 20X data
-    - Nikon data processing delayed until converted to ome-zarr to avoid working with the original files
-- apply tracking methods used for cell segmentations to the nuclei predictions
-- test effectiveness of using nuclei as seed points in "Cdh5 classic segmentation" workflow
-- try and improve segmentation consistency by using segmentations from multiple contiguous timepoints
-- run "optical flow" workflow on more (all?) live datasets
-    - requires building of an analysis queue function and multiprocessing
-- test feasibility of label-free prediction of cells using a mode trained on the classic segmentations of cells
-
-```mermaid
-
-flowchart TD
-
-subgraph three [optical flow]
-wf3_fluor([VE-Cadherin 20X raw imaging data]) --> wf3_mip[generate MIP] --> wf3_optiflow[optical flow calculations] --random crops--> vecfield_results[[measurements:
-    vector fields
-    magnitudes of vectors
-    angles relative to flow
-]]
-end
-
-subgraph two [label-free nuclei prediction]
-wf2_bf([brightfield 20X raw imaging data]) --> wf2_stdproj[generate standard deviation projections] --> wf2_labfree[label-free nuclei predictions] -.-> wf2_track[tracking nuclei] -.-> nuc_results_basic[[basic measurements:
-    centroid positions
-    centroid velocities
-]]
-end
-
-subgraph one [Cdh5 classic segmentation]
-wf1_fluor([VE-Cadherin 20X + 40X raw imaging data]) --> wf1_mip[generate MIPs] --> wf1_seg[generate cell segmentations] --> wf1_track[track cell segmentations] --> seg_results_basic[[basic measurements:
-    centroid velocities
-    cell elongation
-    cell orientation
-]]
-wf1_track --> wf1c[represent boundaries of segmentations as nodes and edges]
---> results_adv[[advanced measurements:
-    cell perimeters
-    cell areas
-    number of neighbors
-    orientation of neighbors
-    elongation of neighbors
-    velocities of neighbors
-    cell-cell edge lengths
-    fluorescence intensities
-]]
-end
-
-```
-
-
-<details>
-<summary>Classic Segmentation</summary>
-
-### Purpose
-Generates semantic segmentations of cells from maximum intensity projections of the VE-cadherin channel of the raw imaging data.
-Processes all datasets in the `data_config.yaml` that were acquired on the 3i microscope by default.
-
-### Usage
-(`--N_PROC` can be changed to use fewer processes. Beware that this workflow requires a lot of memory if you use the default 30 processes.)
-From the directory where you cloned cellsmap to:
 ```bash
-cd cellsmap
-uv run cellsmap/analyses/workflows/cdh5_classic_seg.py --N_PROC 30
-uv run cellsmap/features/cdh5_classic_seg_tracking.py
-uv run cellsmap/features/cdh5_nodes_and_edges.py --N_PROC 30
-uv run cellsmap/features/cdh5_nodes_and_edges_concatenate_tables.py
-uv run cellsmap/analyses/cdh5_ndoes_and_edges_analysis.py --N_PROC 30
+uv run endopipe
 ```
 
-### Descriptions
-<details>
-<summary>cdh5_classic_seg.py</summary>
+You may want to use tags to filter these workflows to specific areas.
 
-#### Summary
-Outputs segmentations of the Cdh5-GFP-expressing cells using a classical image segmentation approach. This step can be skipped if these already exist in `cellsmap/results/cdh5_classic_seg/`.
-
-#### Options
-- `--N_PROC 1` : How many processors to use (default is "1"). "1" can be replaced with any integer, memory permitting.
-- `--SAVE_OUTPUT True` : Whether or not to save the output (default is True).
-- `--IS_TEST False` : Whether or not to run a test (default is "False"). If "False" is changed to "True" then only the first timepoint will be evaluated and it will be saved in `tests/results/` instead of `cellsmap/results/`.
-- `--VERBOSE False` : Whether to print out what the script is currently doing in detail (default is "False").
-
-#### Inputs
-1. All datasets found in the `data_config.yaml` file as unstitched images with their full Z-dimension.
-
-#### Outputs
-1. `cellsmap/results/cdh5_classic_seg/`: Classic segmentations based on timelapses of Cdh5-GFP. Each folder is a dataset name containing .ome.tiff files (1 file per timepoint).
-</details>
-
-<details>
-<summary>cdh5_classic_seg_tracking.py</summary>
-
-#### Summary
-Tracks segmentations through time. Relabels segmentations such that their labels represent their track ID.
-
-#### Options
-- `--SAVE_OUTPUT True` : Whether or not to save the output (default is True).
-- `--IS_TEST False` : Whether or not to run a test (default is "False"). If "False" is changed to "True" then only the first timepoint will be evaluated and it will be saved in `tests/results/` instead of `cellsmap/results/`.
-- `--VERBOSE False` : Whether to print out what the script is currently doing in detail (default is "False").
-
-#### Inputs
-1. The outputs of `cellsmap/analyses/workflows/cdh5_classic_seg.py` (instance segmentations).
-
-#### Outputs
-1. `cellsmap/results/cdh5_classic_seg_tracking/[dataset_name]/tracked_images/`:
-2. `cellsmap/results/cdh5_classic_seg_tracking/[dataset_name]/tracked_tables/`:
-</details>
-
-<details>
-<summary>cdh5_nodes_and_edges.py</summary>
-
-#### Summary
-Outputs tables of measured features from the segmentation borders produced from Step 1 above and their raw Cdh5 dataset. This step can be skipped if these already exist in `cellsmap/results/cdh5_nodes_and_edges_analysis/`.
-
-#### Options
-- `--N_PROC 1` : How many processors to use (default is "1"). "1" can be replaced with any integer, memory permitting.
-- `--SAVE_OUTPUT True` : Whether or not to save the output (default is True).
-- `--IS_TEST False` : Whether or not to run a test (default is "False"). If "False" is changed to "True" then only the first timepoint will be evaluated and it will be saved in `tests/results/` instead of `cellsmap/results/`.
-- `--VERBOSE False` : Whether to print out what the script is currently doing in detail (default is "False").
-
-#### Inputs
-1. The outputs from `cellsmap/features/cdh5_classic_seg_tracking.py` (instance segmentations).
-
-#### Outputs
-1. `cellsmap/results/cdh5_nodes_and_edges_analysis/[dataset_name]/tables/alignments/`: Tables from individual timepoints saved as .csv files of features measured from node-and-edge representations of the Cdh5 segmentations.
-
-2. `cellsmap/results/cdh5_nodes_and_edges_analysis/[dataset_name]/[dataset_name]_alignments.csv`: Table of features measured from node-and-edge representations of the Cdh5 segmentations. A concatenation of the individual timepoint tables from "**1.**" into a single single .csv. Each row has a unique pair of nodes that define a line. The columns are described in the table below:
-
-    | Column Name | Description | Units |
-    |-------------|-------------|-------|
-    | node_pair_labels | The labels of the nodes used to build a line with the order (origin_node, neighboring_node). | N/A |
-    | node_pair_centroids | The centroids of the nodes used to build a line with the order (origin_node, neighboring_node). | N/A |
-    | distances | The linear distance between node_pair_centroids. | N/A |
-    | angles | The angle between the line formed by node_pair_centroids and a horizontal line. | Degrees |
-    | edge_labels | The labels of the edges in that connect the paired nodes. | N/A |
-    | edge_num_pixels | The number of pixels that constitute each edge. Does not account for differences in distance based on connectivity (but 'length (px)' does). | Pixels |
-    | length (px) | The length of each edge in pixels (N.B. this does not include the distance from the node centroid to the first edge pixel). | Pixels |
-    | fluor_mean (au) | The mean fluorescence of the raw Cdh5-GFP channel at an edge. Other measures for fluorescence include _std, _median, _min, _max, _pct25, and _pct75. | Arbitrary Units |
-
-3. `cellsmap/results/cdh5_nodes_and_edges_analysis/[dataset_name]/tables/segmentation_properties/` : Tables from individual timepoints saved as .csv files of features measured from the Cdh5 segmentations.
-
-4. `cellsmap/results/cdh5_nodes_and_edges_analysis/[dataset_name]/[dataset_name]_segprops.csv` : Table of features measured from the Cdh5 segmentations. A concatenation of the individual timepoint tables from "**3.**" into a single single .csv. Each row has a unique label of a segmented region. The columns are summarized below:
-
-    | Column Name | Description | Units |
-    |-------------|-------------|-------|
-    | cell_label | The labels of the segmented regions. | N/A |
-    | cell_centroid | The centroids of the segmented regions. | N/A |
-    | cell_area (px**2) | The areas of the segmented regions. | Pixels Squared |
-    | cell_perimeter (px) | The perimeters of the segmented regions. | Pixels |
-    | cell_solidity | The solidities of the segmented regions. | N/A |
-    | cell_eccentricity | The eccentricities of the segmented regions. | N/A |
-    | cell_orientation | The orientations of the segmented regions. | Degrees |
-    | cell_fluorescence_mean (au) | The mean fluorescence of the raw Cdh5-GFP channel for each segmented region. Other fluorescence measures include _std, _median, _min, _max, _pct25, and _pct75. | Arbitrary Units |
-    | edge_labels | The labels of the edges that touch each segmented region. | N/A |
-    | node_labels | The labels of the nodes that touch each segmented region. | N/A |
-    | node_pair_labels | The labels of the node pairs that are at the end of each edge label that touches each segmented region. | N/A |
-
-
-- **NOTE:** The "edge_labels", "node_labels", and "node_pair_labels" found in the tables output by `cdh5_nodes_and_edges.py` should all match / be consistent with each other.
-</details>
-
-<details>
-<summary>cdh5_nodes_and_edges_concatenate_tables.py</summary>
-
-#### Summary
-Concatenates the tables output by `cdh5_nodes_and_edges.py` into a single large table.
-
-#### Options
-
-#### Inputs
-
-#### Outputs
-
-</details>
-
-<details>
-<summary>cdh5_nodes_and_edges_analysis.py</summary>
-
-#### Summary
-Outputs tables of measured features from the segmentation borders produced from Step 1 above and their raw Cdh5 dataset.
-
-#### Options
-- `--N_PROC 1` : How many processors to use (default is "1"). "1" can be replaced with any integer, memory permitting.
-- `--SAVE_OUTPUT True` : Whether or not to save the output (default is True).
-- `--SHOW_PLOTS True` : Whether or not to draw the plots (default is True). Showing plots may raise an error if executed on a command line interface-only machine, in which case this should be set to "False".
-
-#### Inputs
-1. The outputs from `cellsmap/features/cdh5_nodes_and_edges.py` (the "alignments" tables and the "segmentation_properties" tables).
-
-#### Outputs
-- `cellsmap/results/cdh5_nodes_and_edges_analysis` : Plots and summary tables of measured features.
-</details>
-&nbsp;
-</details>
-
-
-<details>
-<summary>Label-free Nuclei Prediction</summary>
-
-### Purpose
-Generates semantic segmentations of nuclei from standard deviation projections of the raw brightfield channel.
-Currently evaluates every 48th timeframe (i.e. every 4hrs) for all datasets in the `data_confg.yaml` that were acquired with the 3i microscope with a 20X magnification objective.
-**NOTE** Tracking of nuclei has not been implemented yet.
-
-### Usage
 ```bash
-cd cellsmap
-uv run cellsmap/analyses/nuclei_predictions/generate_label_free_nuc_pred.py
+# Show all available tags
+uv run endopipe -t
+
+# Show only workflows with given tag
+uv run endopipe -f TAG
 ```
-**NOTE** Tracking of nuclei has not been implemented yet.
 
+Run workflows by passing the name of the workflow to the `endopipe` command.
+All workflows have additional details on usage and arguments, which you can access by appending the `-h` or `--help` flag.
 
-### Description
-<details>
-<summary>generate_label_free_nuc_pred.py</summary>
+> [!IMPORTANT]
+> Most workflows provided are designed to run in a high-performance computing setting or need the use of GPUs to run in a reasonable amount of time.
+> To support review of the code, all production workflows have a "demo mode" (which you can access by appending the `-d` or `--demo-mode` flag) that modifies (e.g. by reducing the number of iterations) the workflow to run in a shorter amount of time.
 
-#### Summary
-
-[!NOTE]
-**TO BE COMPLETED.**
-
-Creates instance segmentations of nuclei from a standard deviation projection of the raw brightfield channel along the Z axis. A CellPose model was trained (by Goutham) on endothelial cell data (undocumented/unknown) and then re-trained on fixed-sample imaging data using a 20X objective where one channel was the brightfield standard deviation projection and the ground-truth was DAPI staining of nuclei (datasets: `20240328_T01_001` and `20240328_T02_001`)
-
-#### Options
-- `--n_proc 1` : How many processors to use (default is "1"). "1" can be replaced with any integer, memory permitting.
-- `--save_output True` : Whether or not to save the output (default is True).
-- `--overwrite False` : Whether or not to overwrite any existing outputs that this file produces. If False then timepoints where an output file already exists will be skipped (the user will be notified when skipping a file).
-- `--is_test False` : Whether or not to run a test (default is "False"). If "False" is changed to "True" then only the first timepoint will be evaluated and it will be saved in `tests/results/` instead of `cellsmap/results/`.
-
-#### Inputs
-1. All datasets in the `data_config.yaml` acquired with a 20X objective using the 3i microscope.
-
-#### Outputs
-1. `cellsmap/results/generate_label_free_nuc_pred/[dataset_name]/[position_number]` : multichannel ome.tiff images where each image is a single timepoint and consists of 3 channels in this order: 1. a single plane of the brightfield channel that shows contrast, 2. the standard deviation projection of the brightfield channel along the Z axis, 3. the instance segmentations of the nuclei made by the CellPose model.
-
-</details>
-&nbsp;
-</details>
-
-
-<details>
-<summary>Optical Flow</summary>
-
-### Purpose
-Generate a vector field from Cdh5 signal as a segmentation-independent measure of the velocity feature.
-Currently runs on a single dataset as a proof-of-concept.
-
-### Usage
 ```bash
-cd cellsmap
-uv run cellsmap/analyses/flow/flow_features.py
+# Run the workflow
+uv run endopipe NAME-OF-WORKFLOW
+
+# Show the workflow help message
+uv run endopipe NAME-OF-WORKFLOW -h
+
+# Run the workflow in demo mode
+uv run endopipe NAME-OF-WORKFLOW -d
 ```
 
-### Description
-<details>
-<summary>flow_features.py</summary>
+### Reproduce figures, tables, and movies
 
-[!IMPORTANT] **NEEDS TO BE RE-RUN ON A NEW DATASET THAT IS STILL INCLUDED IN THIS PROJECT**
+To reproduce figures, tables, and movies from the manuscript, run the corresponding workflow.
+Some workflows should be run with an NVIDIA GPU, as indicated by the workflow help message.
+Run the workflow with the GPU flag (`-g` or `--num-gpus`) to make sure GPUs are visible to the workflow.
+All workflows will run without a GPU, but will be noticeably slower.
 
-[!NOTE] THIS DOCUMENTATION TO BE COMPLETED WHEN THE WORKFLOW HAS BEEN UPDATED.
+```bash
+# Reproduce main figure N
+uv run endopipe figure-N
 
-#### Summary
+# Reproduce supplemental figure N
+uv run endopipe supp-figure-N
 
-#### Options
+# Reproduce all supplemental movies
+uv run endopipe supp-movies
 
-#### Inputs
-
-#### Outputs
-
-</details>
-&nbsp;
-</details>
+# Reproduce all supplemental tables
+uv run endopipe supp-tables
+```
