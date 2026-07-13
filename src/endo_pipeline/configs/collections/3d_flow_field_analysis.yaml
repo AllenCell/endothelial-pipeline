@@ -1,9 +1,0 @@
-name: 3d_flow_field_analysis
-description: Datasets used for running the 'generate_3d_flow_field' workflow (replicate 1 single flow condition)
-datasets:
-- 20250319_20X
-- 20250428_20X
-- 20250611_20X
-- 20250618_20X
-- 20250813_20X
-- 20250818_20X
