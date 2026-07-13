@@ -60,7 +60,7 @@ DEFAULT_EMA_ALPHA: float = 0.1
 """Default EMA smoothing alpha value for temporal coherence smoothing."""
 
 # ---------------------------------------------------------------------------
-# Channel-aware parameters
+# Optical flow parameters
 # ---------------------------------------------------------------------------
 OPTICAL_FLOW_PERCENTILE: int = 0  # dense texture → keep all pixels
 """Intensity percentile threshold for optical-flow masking."""
