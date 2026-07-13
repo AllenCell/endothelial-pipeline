@@ -1,12 +1,12 @@
 # Dynamics of ML-based morphological features indicate a shear stress-dependent bifurcation of hiPSC-derived endothelial cell states
 
-The code in this repository runs all analyses and generates all figures, tables, and movies for [Angelini, Leveille, Parent, and Zaunbrecher et al](DOI).
+The code in this repository runs all analyses and generates all figures, tables, and movies for [Angelini, Leveille, Parent, and Zaunbrecher et al](https://doi.org/10.64898/2026.07.07.736803).
 It is primarily intended to support reproducibility of our research.
 In addition, researchers may find parts of this code valuable for future work.
 
 > [!NOTE]
 > The `main` branch reflects the most up-to-date version of the code.
-> To exactly reproduce the contents from the [bioRxiv](LINK TO bioRxiv) version of the manuscript, use the [`bioRxiv-v1` release](https://github.com/AllenCell/endothelial-pipeline/releases/tag/bioRxiv-v1).
+> To exactly reproduce the contents from the [bioRxiv](https://www.biorxiv.org/content/10.64898/2026.07.07.736803v1) version of the manuscript, use the [`bioRxiv-v1` release](https://github.com/AllenCell/endothelial-pipeline/releases/tag/bioRxiv-v1).
 
 We release all timelapse data used in this study in the OME-Zarr format to democratize their access.
 The data are publicly available on [S3](https://open.quiltdata.com/b/allencell/tree/aics/endo_cell_state_dynamics/) under the [Allen Institute for Cell Science Terms of Use](https://www.allencell.org/terms-of-use.html).
