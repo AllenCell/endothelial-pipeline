@@ -1,5 +1,3 @@
-from typing import Literal
-
 from endo_pipeline.cli import Datasets, PatchType
 from endo_pipeline.settings.optical_flow import DEFAULT_EMA_ALPHA, DEFAULT_OPTICAL_FLOW_MAX_DT
 
@@ -7,7 +5,6 @@ from endo_pipeline.settings.optical_flow import DEFAULT_EMA_ALPHA, DEFAULT_OPTIC
 def main(
     datasets: Datasets | None = None,
     patch_type: PatchType = "grid_based",
-    channel: Literal["BF", "EGFP"] = "BF",
     max_dt: int = DEFAULT_OPTICAL_FLOW_MAX_DT,
     ema_alpha: float = DEFAULT_EMA_ALPHA,
 ) -> None:
@@ -18,19 +15,8 @@ def main(
 
     This workflow compute TVL1 optical flow between frame pairs at temporal gaps
     dt = 1, 2, ..., max_dt for every crop and timepoint. Pixels whose intensity
-    falls below a channel-aware percentile threshold are masked before computing
-    per-crop summary statistics.
-
-    The following settings are channel-aware:
-
-    | Setting             | Channel = BF   | Channel = EGFP   |
-    | ------------------- | -------------- | ---------------- |
-    | Intensity threshold | 0              | 95               |
-    | TVL1 attachment     | 2.5            | 7.5              |
-    | Z-projection        | std(axis=Z)    | max(axis=Z)      |
-    | Transformation      | log(x + 1e-12) | None             |
-    | Clipping            | [0.1, 99.9]    | [10, 98]         |
-    | Normalization       | z-score        | scale to [-1, 1] |
+    falls below a percentile threshold are masked before computing
+    per-crop summary statistics (see `OPTICAL_FLOW_PERCENTILE` setting).
 
     ## Example usage
 
@@ -74,8 +60,6 @@ def main(
         List of datasets or dataset collections to compute optical flow on.
     patch_type
         Patch type to use for computing features.
-    channel
-        Imaging channel to use for computing features.
     max_dt
         Maximum temporal gap (inclusive).
     ema_alpha
@@ -108,10 +92,7 @@ def main(
         calculate_optical_flow_intensity_threshold,
         compute_image_pair_flow,
     )
-    from endo_pipeline.library.process.image_processing import (
-        load_processed_bf_std_dev_image,
-        load_processed_egfp_image,
-    )
+    from endo_pipeline.library.process.image_processing import load_processed_bf_std_dev_image
     from endo_pipeline.manifests import (
         DataframeLocation,
         create_dataframe_manifest,
@@ -122,10 +103,10 @@ def main(
     from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL
     from endo_pipeline.settings.optical_flow import (
         DEFAULT_OPTICAL_FLOW_COLLECTION,
-        OPTICAL_FLOW_CHANNEL_ATTACHMENT,
-        OPTICAL_FLOW_CHANNEL_PERCENTILE,
+        OPTICAL_FLOW_ATTACHMENT,
         OPTICAL_FLOW_COLUMNS_TO_COMPUTE,
         OPTICAL_FLOW_MANIFEST_NAME_PREFIX,
+        OPTICAL_FLOW_PERCENTILE,
     )
     from endo_pipeline.settings.workflow_defaults import FEATURES_UNFILTERED_MANIFEST_NAMES
 
@@ -149,9 +130,8 @@ def main(
         max_timepoints = None
 
     # Set channel-aware options
-    intensity_percentile = OPTICAL_FLOW_CHANNEL_PERCENTILE[channel]
-    attachment = OPTICAL_FLOW_CHANNEL_ATTACHMENT[channel]
-    image_loader = load_processed_bf_std_dev_image if channel == "BF" else load_processed_egfp_image
+    intensity_percentile = OPTICAL_FLOW_PERCENTILE
+    attachment = OPTICAL_FLOW_ATTACHMENT
 
     # Load dataframe with DiffAE feature metadata (no filtering yet) to get crop
     # coordinates and timepoints for each dataset/position.
@@ -164,14 +144,13 @@ def main(
     # suffix to manifest name in demo mode to avoid overwriting real results
     # with partial demo results.
     name_prefix = OPTICAL_FLOW_MANIFEST_NAME_PREFIX
-    name_suffix = f"_{channel.lower()}_{patch_type}{'_demo' if DEMO_MODE else ''}"
+    name_suffix = f"_{patch_type}{'_demo' if DEMO_MODE else ''}"
     optical_flow_manifest = create_dataframe_manifest(
         f"{name_prefix}{name_suffix}",
         workflow_name=__file__,
     )
     optical_flow_manifest.parameters = {
         "patch_type": patch_type,
-        "channel": channel,
         "max_dt": max_dt,
         "intensity_percentile": intensity_percentile,
         "attachment": attachment,
@@ -237,7 +216,7 @@ def main(
             frame_cache: dict[int, np.ndarray] = {}
             for timepoint in needed_timepoints:
                 frame_cache[timepoint] = (
-                    image_loader(
+                    load_processed_bf_std_dev_image(
                         dataset_config, position, [timepoint], DIFFAE_ZARR_RESOLUTION_LEVEL
                     )
                     .squeeze()

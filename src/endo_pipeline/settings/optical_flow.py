@@ -65,10 +65,10 @@ DEFAULT_EMA_ALPHA: float = 0.1
 # ---------------------------------------------------------------------------
 # Channel-aware parameters
 # ---------------------------------------------------------------------------
-OPTICAL_FLOW_CHANNEL_PERCENTILE: int = 0  # dense texture → keep all pixels
+OPTICAL_FLOW_PERCENTILE: int = 0  # dense texture → keep all pixels
 """Intensity percentile threshold for optical-flow masking."""
 
-OPTICAL_FLOW_CHANNEL_ATTACHMENT: float = 2.5  # z-score normalisation compresses dynamic range
+OPTICAL_FLOW_ATTACHMENT: float = 2.5  # z-score normalisation compresses dynamic range
 """TVL1 attachment (lambda)."""
 
 # ---------------------------------------------------------------------------
