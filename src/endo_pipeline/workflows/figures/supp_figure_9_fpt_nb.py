@@ -161,6 +161,7 @@ fpt_pearson_r_path = plot_cross_dataset_summaries(
     ylabel_vertical_alignment="bottom",
     yaxis_for_fixed_points=False,
     point_color="black",
+    highlight_bistable=False,
 )
 fpt_slope_path = plot_cross_dataset_summaries(
     first_passage_summary_df,
@@ -175,6 +176,7 @@ fpt_slope_path = plot_cross_dataset_summaries(
     ylabel_vertical_alignment="bottom",
     yaxis_for_fixed_points=False,
     point_color="black",
+    highlight_bistable=False,
 )
 
 # %% Build figure panels and figure
