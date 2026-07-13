@@ -1,5 +1,3 @@
-from typing import Literal
-
 from endo_pipeline.cli import Datasets, PatchType
 from endo_pipeline.settings.optical_flow import DEFAULT_EMA_ALPHA, DEFAULT_OPTICAL_FLOW_MAX_DT
 
@@ -7,7 +5,6 @@ from endo_pipeline.settings.optical_flow import DEFAULT_EMA_ALPHA, DEFAULT_OPTIC
 def main(
     datasets: Datasets | None = None,
     patch_type: PatchType = "grid_based",
-    channel: Literal["BF", "EGFP"] = "BF",
     max_dt: int = DEFAULT_OPTICAL_FLOW_MAX_DT,
     ema_alpha: float = DEFAULT_EMA_ALPHA,
 ) -> None:
@@ -65,10 +62,7 @@ def main(
         OpticalFlowImagePair,
         calculate_optical_flow_intensity_threshold,
     )
-    from endo_pipeline.library.process.image_processing import (
-        load_processed_bf_std_dev_image,
-        load_processed_egfp_image,
-    )
+    from endo_pipeline.library.process.image_processing import load_processed_bf_std_dev_image
     from endo_pipeline.library.visualize.optical_flow import (
         plot_optical_flow_coherence_over_time,
         plot_optical_flow_summary,
@@ -79,9 +73,9 @@ def main(
     from endo_pipeline.settings.optical_flow import (
         DEFAULT_OPTICAL_FLOW_COLLECTION,
         DEMO_MAX_TRACKED_CROPS_TO_PLOT,
-        OPTICAL_FLOW_CHANNEL_ATTACHMENT,
-        OPTICAL_FLOW_CHANNEL_PERCENTILE,
+        OPTICAL_FLOW_ATTACHMENT,
         OPTICAL_FLOW_MANIFEST_NAME_PREFIX,
+        OPTICAL_FLOW_PERCENTILE,
     )
 
     logger = logging.getLogger(__name__)
@@ -98,13 +92,12 @@ def main(
         max_positions = None
 
     # Set channel-aware options
-    intensity_percentile = OPTICAL_FLOW_CHANNEL_PERCENTILE[channel]
-    attachment = OPTICAL_FLOW_CHANNEL_ATTACHMENT[channel]
-    image_loader = load_processed_bf_std_dev_image if channel == "BF" else load_processed_egfp_image
+    intensity_percentile = OPTICAL_FLOW_PERCENTILE
+    attachment = OPTICAL_FLOW_ATTACHMENT
 
     # Load optical flow dataframe manifest
     name_prefix = OPTICAL_FLOW_MANIFEST_NAME_PREFIX
-    name_suffix = f"_{channel.lower()}_{patch_type}"
+    name_suffix = f"_{patch_type}"
     manifest = load_dataframe_manifest(f"{name_prefix}{name_suffix}")
 
     # Select sorting column
@@ -149,7 +142,7 @@ def main(
             image_cache: dict[int, np.ndarray] = {}
             for timepoint in needed_timepoints:
                 image_cache[timepoint] = (
-                    image_loader(
+                    load_processed_bf_std_dev_image(
                         dataset_config, position, [timepoint], DIFFAE_ZARR_RESOLUTION_LEVEL
                     )
                     .squeeze()
