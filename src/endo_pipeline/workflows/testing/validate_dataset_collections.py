@@ -13,13 +13,6 @@ def main(collections: UniqueStrList | None = None) -> None:
     - The dataset collection config follows the schema defined by `DatasetCollectionConfig`
     - All datasets in the collection have a corresponding config
 
-    Certain dataset collections have additional validation steps:
-
-    - `3d_flow_field_analysis`
-        - All datasets must only have a single flow condition
-
-    # - The flow field analysis datasets are all single flow condition datasets
-
     ## Example usage
 
     To run the workflow in demo mode:
@@ -47,7 +40,6 @@ def main(collections: UniqueStrList | None = None) -> None:
         get_available_dataset_collection_names,
         get_available_dataset_names,
         get_datasets_in_collection,
-        load_dataset_config,
         validate_dataset_collection_config,
     )
     from endo_pipeline.library.process.progress_bar import ProgressBar
@@ -87,18 +79,6 @@ def main(collections: UniqueStrList | None = None) -> None:
                     dataset_name,
                     collection_name,
                 )
-
-        # Specific validation for 3d_flow_field_analysis collection
-        if collection_name == "3d_flow_field_analysis":
-            for dataset_name in dataset_names:
-                dataset_config = load_dataset_config(dataset_name)
-                if len(dataset_config.flow_conditions) != 1:
-                    logger.error(
-                        "Dataset '%s' in collection '%s' has multiple flow conditions",
-                        dataset_name,
-                        collection_name,
-                    )
-                    continue
 
         progress_bar.set_step_description("Finished validation steps")
         progress_bar.update(1)
