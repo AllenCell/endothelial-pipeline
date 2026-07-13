@@ -65,21 +65,11 @@ DEFAULT_EMA_ALPHA: float = 0.1
 # ---------------------------------------------------------------------------
 # Channel-aware parameters
 # ---------------------------------------------------------------------------
-OPTICAL_FLOW_CHANNEL_PERCENTILE: dict[str, int] = {
-    "EGFP": 95,  # sparse fluorescence → exclude empty background
-    "BF": 0,  # dense texture → keep all pixels
-}
-"""Intensity percentile thresholds per channel for optical-flow masking."""
+OPTICAL_FLOW_CHANNEL_PERCENTILE: int = 0  # dense texture → keep all pixels
+"""Intensity percentile threshold for optical-flow masking."""
 
-OPTICAL_FLOW_CHANNEL_ATTACHMENT: dict[str, float] = {
-    "EGFP": 7.5,  # half of skimage default (15); wider normalised range
-    "BF": 2.5,  # z-score normalisation compresses dynamic range
-}
-"""TVL1 attachment (lambda) per channel.
-
-Smaller values produce smoother flow fields.  BF uses a lower value
-because z-score normalisation compresses the intensity range, so a
-weaker data-fidelity term avoids fitting noise."""
+OPTICAL_FLOW_CHANNEL_ATTACHMENT: float = 2.5  # z-score normalisation compresses dynamic range
+"""TVL1 attachment (lambda)."""
 
 # ---------------------------------------------------------------------------
 # Temporal sweep
