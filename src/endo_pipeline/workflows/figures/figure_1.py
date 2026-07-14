@@ -151,17 +151,17 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             letter="C",
             path=latent_walk_path,
             x_position=0,
-            y_position=6,
+            y_position=5.4,
             x_offset=0,
-            y_offset=0.2,
+            y_offset=0.55,
         ),
         FigurePanel(
             letter="D",
             path=feature_correlations_path,
             x_position=4,
-            y_position=5.3,
+            y_position=5.4,
             x_offset=-0.08,
-            y_offset=0,
+            y_offset=-0.075,
         ),
     ]
 
