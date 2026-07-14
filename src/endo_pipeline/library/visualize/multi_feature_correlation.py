@@ -84,10 +84,12 @@ def plot_and_save_heatmap(
 
     annotate = check_if_heatmap_should_be_annotated(df)
     if data_type == "correlation":
+        colorbar_label = "Pearson r"
         center: float | None = 0.0
         vmin: float | None = -1.0
         vmax: float | None = 1.0
     else:
+        colorbar_label = "Samples"
         center = vmin = vmax = None
 
     fig, ax = plt.subplots(figsize=figsize, dpi=300)
@@ -95,7 +97,7 @@ def plot_and_save_heatmap(
     if force_labels_single_line:
         df_renamed = df_renamed.rename(columns=make_label_single_line, index=make_label_single_line)
     cbar_kws = {
-        "label": data_type,
+        "label": colorbar_label,
         "orientation": "horizontal",
     }
 
