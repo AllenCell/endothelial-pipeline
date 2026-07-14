@@ -42,8 +42,8 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     ----------
     include_panels
         List of panels to include in figure. Leave empty to include all panels.
-    """
 
+    """
     from typing import cast
 
     import matplotlib.pyplot as plt
@@ -55,7 +55,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     )
     from endo_pipeline.library.visualize.figures import (
         FigurePanel,
+        build_empty_panel,
         build_figure_from_panels,
+        get_figure_asset_dir,
         parse_placeholder_panels,
     )
     from endo_pipeline.library.visualize.latent_walk import perform_and_plot_latent_walk_for_figures
@@ -87,9 +89,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         **placeholders["A"],
     )
 
-    # Note that this method produces several image thumbnails that are assembled
-    # into the model training diagram using a vector graphics software
-    architecture_panel_path = make_model_training_architecture_panel(
+    # Call method that produces several image thumbnails that are assembled
+    # into the model training diagram (Panel B) using a vector graphics software
+    _ = make_model_training_architecture_panel(
         output_path=output_path,
         figure_size=(5.4, 2.4),
         num_gpus=NUM_GPUS,
@@ -98,6 +100,18 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         title_location="left",
         **placeholders["B"],
     )
+
+    # Get path for pre-compiled figure asset, if including panel B
+    if placeholders["B"]["placeholder"]:
+        diffae_training_path = build_empty_panel(
+            output_path,
+            "Diagram illustrating DiffAE model training.",
+            5.4,
+            2.4,
+        )
+    else:
+        assets_dir = get_figure_asset_dir()
+        diffae_training_path = assets_dir / "diffae_training_schematic.svg"
 
     # Latent walk visualization
     walk_column_names = cast(
@@ -141,7 +155,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         ),
         FigurePanel(
             letter="B",
-            path=architecture_panel_path,
+            path=diffae_training_path,
             x_position=0,
             y_position=3.6,
             x_offset=0,
