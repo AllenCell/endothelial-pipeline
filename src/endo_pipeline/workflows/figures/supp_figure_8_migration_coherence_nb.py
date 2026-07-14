@@ -79,7 +79,6 @@ picks = {
     "High migration\ncoherence": SUPP_FIG_OPTICAL_FLOW_COHERENT_EXAMPLE,
     "Low migration\ncoherence": SUPP_FIG_OPTICAL_FLOW_INCOHERENT_EXAMPLE,
 }
-attachment = OPTICAL_FLOW_ATTACHMENT
 
 # Load per-pick BF frames + crop bbox + flow.
 panels: list[dict] = []
@@ -100,7 +99,7 @@ for label, example in picks.items():
     )
     # Compute TVL1 on the full image and slice to the crop, which
     # avoids edge artefacts at the crop border.
-    uf_full, vf_full = compute_tvl1(cache[t0], cache[t1], attachment=attachment)
+    uf_full, vf_full = compute_tvl1(cache[t0], cache[t1], attachment=OPTICAL_FLOW_ATTACHMENT)
     uf, vf = uf_full[sy:ey, sx:ex], vf_full[sy:ey, sx:ex]
     panels.append(
         {

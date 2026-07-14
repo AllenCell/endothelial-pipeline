@@ -90,9 +90,6 @@ def main(
     else:
         max_positions = None
 
-    # Set channel-aware options
-    attachment = OPTICAL_FLOW_ATTACHMENT
-
     # Load optical flow dataframe manifest
     manifest = load_dataframe_manifest(OPTICAL_FLOW_MANIFEST_NAMES[patch_type])
 
@@ -159,7 +156,7 @@ def main(
                 feature_data=df_position,
                 output_name=output_name,
                 output_dir=output_path,
-                attachment=attachment,
+                attachment=OPTICAL_FLOW_ATTACHMENT,
                 intensity_threshold=intensity_threshold,
             )
 

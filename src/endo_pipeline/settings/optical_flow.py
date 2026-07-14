@@ -72,7 +72,6 @@ DEFAULT_EMA_ALPHA: float = 0.1
 # Optical flow parameters
 # ---------------------------------------------------------------------------
 
-
 OPTICAL_FLOW_ATTACHMENT: float = 2.5  # z-score normalisation compresses dynamic range
 """TVL1 attachment (lambda)."""
 

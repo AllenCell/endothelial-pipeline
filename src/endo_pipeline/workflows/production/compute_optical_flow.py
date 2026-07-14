@@ -128,9 +128,6 @@ def main(
         max_positions = None
         max_timepoints = None
 
-    # Set channel-aware options
-    attachment = OPTICAL_FLOW_ATTACHMENT
-
     # Load dataframe with DiffAE feature metadata (no filtering yet) to get crop
     # coordinates and timepoints for each dataset/position.
     feature_dataframe_manifest_name = FEATURES_UNFILTERED_MANIFEST_NAMES[patch_type]
@@ -229,7 +226,7 @@ def main(
             compute_image_pair_flow_partial = partial(
                 compute_image_pair_flow,
                 intensity_threshold=intensity_threshold,
-                attachment=attachment,
+                attachment=OPTICAL_FLOW_ATTACHMENT,
             )
 
             records: list[dict] = []
