@@ -93,7 +93,6 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     # into the model training diagram (Panel B) using a vector graphics software
     make_model_training_architecture_images(
         output_path=output_path,
-        figure_size=(5.4, 2.4),
         num_gpus=NUM_GPUS,
         **placeholders["B"],
     )
@@ -155,16 +154,16 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             path=diffae_training_path,
             x_position=0,
             y_position=3.6,
-            x_offset=0,
-            y_offset=0,
+            x_offset=0.3,
+            y_offset=0.05,
         ),
         FigurePanel(
             letter="C",
             path=latent_walk_path,
             x_position=0,
             y_position=5.4,
-            x_offset=0,
-            y_offset=0.55,
+            x_offset=-0.1,
+            y_offset=0.5,
         ),
         FigurePanel(
             letter="D",
@@ -172,7 +171,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             x_position=4,
             y_position=5.4,
             x_offset=-0.08,
-            y_offset=-0.075,
+            y_offset=-0.1,
         ),
     ]
 
