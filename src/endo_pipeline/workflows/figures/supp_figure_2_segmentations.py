@@ -25,12 +25,14 @@ def main() -> None:
     All panels in this workflow can be run without GPU.
     """
 
-    from pathlib import Path
-
     from matplotlib import pyplot as plt
 
     from endo_pipeline.io import get_output_path
-    from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
+    from endo_pipeline.library.visualize.figures import (
+        FigurePanel,
+        build_figure_from_panels,
+        get_figure_asset_dir,
+    )
     from endo_pipeline.library.visualize.lib_cdh5_seg_feats_fig_panels import (
         make_feature_contact_sheet,
         make_imaging_panels,
@@ -41,7 +43,6 @@ def main() -> None:
         CDH5_SEG_FIG_EXAMPLE,
     )
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
-    from endo_pipeline.workflows.figures import assets as figure_assets
 
     plt.style.use("endo_pipeline.figure")
 
@@ -87,7 +88,7 @@ def main() -> None:
         )
         classic_feat_fig_example_paths[dataset] = classic_feat_fig_example_path
 
-    assets_dir = Path(figure_assets.__path__[0])
+    assets_dir = get_figure_asset_dir()
     schematic_fp = assets_dir / "cdh5_classic_seg_schematic.svg"
     feature_diagram_fp = assets_dir / "cdh5_seg_feat_diagrams.svg"
 

@@ -37,8 +37,6 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         List of panels to include in figure. Leave empty to include all panels.
     """
 
-    from pathlib import Path
-
     import matplotlib.pyplot as plt
 
     from endo_pipeline.io import get_output_path
@@ -47,6 +45,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel,
         build_empty_panel,
         build_figure_from_panels,
+        get_figure_asset_dir,
         parse_placeholder_panels,
     )
     from endo_pipeline.library.visualize.spatial_feature_grid import (
@@ -58,7 +57,6 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FIGURE_3_STREAMPLOT_EXAMPLE_DATASETS,
     )
     from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
-    from endo_pipeline.workflows.figures import assets as figure_assets
 
     plt.style.use("endo_pipeline.figure")
 
@@ -82,7 +80,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             3,
         )
     else:
-        assets_dir = Path(figure_assets.__path__[0])
+        assets_dir = get_figure_asset_dir()
         schematic_fp = assets_dir / "figure_3a_hypotheses_optimized.svg"
 
     # Panel B: Representative mEGFP-tagged VE-cadherin maximum intensity
