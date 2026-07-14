@@ -105,7 +105,7 @@ def main(
         DEFAULT_OPTICAL_FLOW_COLLECTION,
         OPTICAL_FLOW_ATTACHMENT,
         OPTICAL_FLOW_COLUMNS_TO_COMPUTE,
-        OPTICAL_FLOW_MANIFEST_NAME_PREFIX,
+        OPTICAL_FLOW_MANIFEST_NAMES,
         OPTICAL_FLOW_PERCENTILE,
     )
     from endo_pipeline.settings.workflow_defaults import FEATURES_UNFILTERED_MANIFEST_NAMES
@@ -143,10 +143,10 @@ def main(
     # that it is available even if the workflow fails partway through. Add
     # suffix to manifest name in demo mode to avoid overwriting real results
     # with partial demo results.
-    name_prefix = OPTICAL_FLOW_MANIFEST_NAME_PREFIX
-    name_suffix = f"_{patch_type}{'_demo' if DEMO_MODE else ''}"
+    manifest_name = OPTICAL_FLOW_MANIFEST_NAMES[patch_type]
+    name_suffix = "_demo" if DEMO_MODE else ""
     optical_flow_manifest = create_dataframe_manifest(
-        f"{name_prefix}{name_suffix}",
+        f"{manifest_name}{name_suffix}",
         workflow_name=__file__,
     )
     optical_flow_manifest.parameters = {
@@ -272,7 +272,7 @@ def main(
         # Save dataframe to file
         df_dataset_out = pd.concat(position_dataframes, ignore_index=True)
         df_dataset_out[Column.DATASET] = dataset_name
-        save_path = output_path / f"{name_prefix}_{dataset_name}{name_suffix}.parquet"
+        save_path = output_path / f"{manifest_name}_{dataset_name}{name_suffix}.parquet"
         df_dataset_out.to_parquet(save_path, index=False)
 
         # Create location object with output path

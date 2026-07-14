@@ -74,7 +74,7 @@ def main(
         DEFAULT_OPTICAL_FLOW_COLLECTION,
         DEMO_MAX_TRACKED_CROPS_TO_PLOT,
         OPTICAL_FLOW_ATTACHMENT,
-        OPTICAL_FLOW_MANIFEST_NAME_PREFIX,
+        OPTICAL_FLOW_MANIFEST_NAMES,
         OPTICAL_FLOW_PERCENTILE,
     )
 
@@ -96,9 +96,7 @@ def main(
     attachment = OPTICAL_FLOW_ATTACHMENT
 
     # Load optical flow dataframe manifest
-    name_prefix = OPTICAL_FLOW_MANIFEST_NAME_PREFIX
-    name_suffix = f"_{patch_type}"
-    manifest = load_dataframe_manifest(f"{name_prefix}{name_suffix}")
+    manifest = load_dataframe_manifest(OPTICAL_FLOW_MANIFEST_NAMES[patch_type])
 
     # Select sorting column
     feature_column = Column.OpticalFlow.UNIT_VECTOR_MEAN
@@ -119,7 +117,7 @@ def main(
             unique_positions = unique_positions[:max_positions]
 
         for position in unique_positions:
-            output_name = f"{dataset_name}_P{position}{name_suffix}"
+            output_name = f"{dataset_name}_P{position}_{patch_type}"
 
             # Select three representative examples
             df_position = df[df[Column.POSITION] == position].sort_values(feature_column).dropna()
