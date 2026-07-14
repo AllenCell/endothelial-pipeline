@@ -154,13 +154,13 @@ fpt_pearson_r_path = plot_cross_dataset_summaries(
     column_names=[Column.VectorField.PEARSON_R],
     axis_mode="replicate",
     figure_size=(4.2, 2.3),
-    set_y_lims=True,
     category_order=dataset_summary_list,
     ylabel_rotation=90,
     ylabel_horizontal_alignment="center",
     ylabel_vertical_alignment="bottom",
     yaxis_for_fixed_points=False,
     point_color="black",
+    highlight_bistable=False,
 )
 fpt_slope_path = plot_cross_dataset_summaries(
     first_passage_summary_df,
@@ -168,13 +168,13 @@ fpt_slope_path = plot_cross_dataset_summaries(
     column_names=[Column.VectorField.LINEFIT_SLOPE_ODR],
     axis_mode="replicate",
     figure_size=(4.2, 2.3),
-    set_y_lims=True,
     category_order=dataset_summary_list,
     ylabel_rotation=90,
     ylabel_horizontal_alignment="center",
     ylabel_vertical_alignment="bottom",
     yaxis_for_fixed_points=False,
     point_color="black",
+    highlight_bistable=False,
 )
 
 # %% Build figure panels and figure
