@@ -23,6 +23,7 @@ from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.figures import (
+    FONTSIZE_MEDIUM,
     FONTSIZE_SMALL,
     FONTSIZE_XSMALL,
     MAX_FIGURE_HEIGHT,
@@ -125,7 +126,10 @@ def plot_and_save_heatmap(
     # set label padding to 2
     ax.xaxis.labelpad = 2
     ax.yaxis.labelpad = 2
-    cax.xaxis.labelpad = 2
+    cax.xaxis.labelpad = 1
+    ax.xaxis.label.set(fontsize=FONTSIZE_MEDIUM, fontweight="bold")
+    ax.yaxis.label.set(fontsize=FONTSIZE_MEDIUM, fontweight="bold")
+    cax.xaxis.label.set(fontsize=FONTSIZE_SMALL, fontweight="normal")
 
     ax_pos = ax.get_position()  # get position of existing axes
     cax_pos_new = (
