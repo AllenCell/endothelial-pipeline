@@ -106,7 +106,6 @@ def main(
         OPTICAL_FLOW_ATTACHMENT,
         OPTICAL_FLOW_COLUMNS_TO_COMPUTE,
         OPTICAL_FLOW_MANIFEST_NAMES,
-        OPTICAL_FLOW_PERCENTILE,
     )
     from endo_pipeline.settings.workflow_defaults import FEATURES_UNFILTERED_MANIFEST_NAMES
 
@@ -130,7 +129,6 @@ def main(
         max_timepoints = None
 
     # Set channel-aware options
-    intensity_percentile = OPTICAL_FLOW_PERCENTILE
     attachment = OPTICAL_FLOW_ATTACHMENT
 
     # Load dataframe with DiffAE feature metadata (no filtering yet) to get crop
@@ -224,12 +222,7 @@ def main(
 
             # Calculate intensity threshold based on intensity percentile
             intensity_threshold = calculate_optical_flow_intensity_threshold(
-                intensity_percentile, list(frame_cache.values())
-            )
-            logger.info(
-                "Intensity threshold (%d percentile) = %.6f",
-                intensity_percentile,
-                intensity_threshold,
+                list(frame_cache.values())
             )
 
             # Bind constant flow parameters once via partial

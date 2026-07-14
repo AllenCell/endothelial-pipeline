@@ -18,6 +18,9 @@ logger = logging.getLogger(__name__)
 OPTICAL_FLOW_INDEX_COLUMNS = [ColumnName.CROP_INDEX, ColumnName.TIMEPOINT]
 """Optical flow dataframe index columns."""
 
+OPTICAL_FLOW_PERCENTILE: int = 0
+"""Intensity percentile threshold for optical-flow masking."""
+
 
 class OpticalFlowImagePair(NamedTuple):
     """Structure for optical flow image pair."""
@@ -224,17 +227,18 @@ def compute_image_pair_flow(
 
 
 def calculate_optical_flow_intensity_threshold(
-    intensity_percentile: float, images: list[np.ndarray]
+    images: list[np.ndarray],
+    intensity_percentile: float = OPTICAL_FLOW_PERCENTILE,
 ) -> float:
     """
     Calculate intensity threshold for across images for given percentile.
 
     Parameters
     ----------
-    intensity_percentile
-        Intensity percentile thresholds for optical flow masking.
     images
         List of image arrays.
+    intensity_percentile
+        Intensity percentile thresholds for optical flow masking.
     """
 
     if intensity_percentile <= 0:

@@ -75,7 +75,6 @@ def main(
         DEMO_MAX_TRACKED_CROPS_TO_PLOT,
         OPTICAL_FLOW_ATTACHMENT,
         OPTICAL_FLOW_MANIFEST_NAMES,
-        OPTICAL_FLOW_PERCENTILE,
     )
 
     logger = logging.getLogger(__name__)
@@ -92,7 +91,6 @@ def main(
         max_positions = None
 
     # Set channel-aware options
-    intensity_percentile = OPTICAL_FLOW_PERCENTILE
     attachment = OPTICAL_FLOW_ATTACHMENT
 
     # Load optical flow dataframe manifest
@@ -149,7 +147,7 @@ def main(
 
             # Calculate intensity threshold based on intensity percentile
             intensity_threshold = calculate_optical_flow_intensity_threshold(
-                intensity_percentile, list(image_cache.values())
+                list(image_cache.values())
             )
 
             # Plot optical flow summary for picks
