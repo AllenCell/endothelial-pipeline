@@ -49,7 +49,10 @@ from endo_pipeline.settings.image_data import (
     IMG_SHAPE_RESOLUTION_0_3i_Y,
     PIXEL_SIZE_3i_20x,
 )
-from endo_pipeline.settings.optical_flow import CELL_CENTERED_OPTICAL_FLOW_MANIFEST_NAME
+from endo_pipeline.settings.optical_flow import (
+    CELL_CENTERED_OPTICAL_FLOW_MANIFEST_NAME,
+    GRID_BASED_OPTICAL_FLOW_MANIFEST_NAME,
+)
 from endo_pipeline.settings.tfe import (
     TFE_BACKDROP_TYPES,
     TFE_FEATURES,
@@ -176,7 +179,7 @@ def get_grid_seg_data_for_tfe(
     df = load_dataframe(location, delay=False)
 
     # Add optical flow features, if they are available
-    manifest_of = load_dataframe_manifest("optical_flow_bf_grid_based")
+    manifest_of = load_dataframe_manifest(GRID_BASED_OPTICAL_FLOW_MANIFEST_NAME)
     if dataset.name in manifest_of.locations:
         df = add_optical_flow_features(df, [dataset.name])
 
