@@ -39,7 +39,11 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.library.visualize.data_example_figures import (
         create_panel_perturbation_examples,
     )
-    from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
+    from endo_pipeline.library.visualize.figures import (
+        FigurePanel,
+        build_figure_from_panels,
+        parse_placeholder_panels,
+    )
     from endo_pipeline.library.visualize.summary_plot import (
         build_dataframe_for_fixed_point_dataset_summary,
         plot_cross_dataset_summaries,
@@ -55,14 +59,17 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     plt.style.use("endo_pipeline.figure")
 
-    save_dir = get_output_path(__file__)
+    output_path = get_output_path(__file__)
+
+    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C"])
 
     # Example images of perturbation at low shear stress
-    create_panel_perturbation_examples(
+    example_images_path = create_panel_perturbation_examples(
         examples=FIGURE_5_EXAMPLE_IMAGES,
-        save_dir=save_dir,
+        output_path=output_path,
         figure_size=(MAX_FIGURE_WIDTH, 3.4),
         inset_coordinates=(50, 500),
+        **placeholders["A"],
     )
 
     # Load data for summary plots
@@ -98,7 +105,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     fixed_points_summary_plot_path = plot_cross_dataset_summaries(
         dataset_summary_df,
-        output_path=save_dir,
+        output_path=output_path,
         column_names=diffae_features,
         axis_mode="cell_line",
         jitter_width=0.2,
@@ -106,11 +113,12 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         convert_angle_to_nematic=False,
         color_by_column=Column.OpticalFlow.UNIT_VECTOR_MEAN,
         colorbar_multiline_label=True,
+        **placeholders["B"],
     )
 
     speed_summary_plot_path = plot_cross_dataset_summaries(
         dataset_summary_df,
-        output_path=save_dir,
+        output_path=output_path,
         column_names=[Column.OpticalFlow.SPEED_MEAN],
         axis_mode="cell_line",
         jitter_width=0.2,
@@ -121,12 +129,13 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         ylabel_horizontal_alignment="center",
         ylabel_vertical_alignment="bottom",
         yaxis_for_fixed_points=False,
+        **placeholders["C"],
     )
 
     panels = [
         FigurePanel(
             letter="A",
-            path=save_dir / "perturbation_examples_scale_bar_100um.svg",
+            path=example_images_path,
             x_position=0,
             y_position=0,
             x_offset=0,
@@ -151,7 +160,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     ]
 
     build_figure_from_panels(
-        panels, save_dir / "figure_5.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
+        panels, output_path / "figure_5.svg", width=MAX_FIGURE_WIDTH, height=MAX_FIGURE_HEIGHT
     )
 
 
