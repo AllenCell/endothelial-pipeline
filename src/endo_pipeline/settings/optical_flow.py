@@ -40,9 +40,6 @@ OPTICAL_FLOW_MANIFEST_NAMES: dict[PatchTypeLiteral, str] = {
 }
 """Mapping of patch type to optical flow dataframe manifest name."""
 
-OPTICAL_FLOW_MANIFEST_NAME_PREFIX: str = "optical_flow_bf"
-"""Prefix for optical flow dataframe manifest name."""
-
 DIFFAE_DATAFRAME_METADATA_TO_COMPUTE: tuple[str, ...] = (
     ColumnName.DATASET,
     ColumnName.POSITION,
