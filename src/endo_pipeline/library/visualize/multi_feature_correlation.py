@@ -28,6 +28,7 @@ from endo_pipeline.settings.figures import (
     MAX_FIGURE_HEIGHT,
     MAX_FIGURE_WIDTH,
 )
+from endo_pipeline.settings.optical_flow import CELL_CENTERED_OPTICAL_FLOW_MANIFEST_NAME
 from endo_pipeline.settings.workflow_defaults import (
     CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
     DATASET_INFO_COLUMNS,
@@ -251,7 +252,7 @@ def get_df_for_feature_correlation_viz(
         merged_feats_df = add_optical_flow_features(
             merged_feats_df,
             datasets=[dataset_name],
-            optical_flow_manifest_name="optical_flow_bf_cell_centered",
+            optical_flow_manifest_name=CELL_CENTERED_OPTICAL_FLOW_MANIFEST_NAME,
             optical_flow_feature_columns=optical_flow_columns,
         )
 
