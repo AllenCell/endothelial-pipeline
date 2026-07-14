@@ -70,6 +70,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.settings.examples import FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES
     from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
     from endo_pipeline.settings.plot_defaults import RECONSTRUCTION_RANDOM_SEED
+    from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
     from endo_pipeline.settings.workflow_defaults import SEGMENTATION_FEATURE_COLUMNS
 
     plt.style.use("endo_pipeline.figure")
@@ -120,7 +121,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         output_path=output_path,
         filename="latent_walk_along_polar_theta_polar_r_rho",
         walk_column_names=walk_column_names,
-        figure_size=(4, 1.8),
+        figure_size=(4, 1.75),
+        figure_suptitle="Latent walks along ML-based features",
+        figure_subtitle=f"capturing aspects of orientation ({Unicode.THETA}), elongation (r), and density ({Unicode.RHO})",
         sigma=None,
         n_steps=7,
         scale_bar_um=20,
@@ -161,7 +164,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             x_position=0,
             y_position=5.4,
             x_offset=-0.1,
-            y_offset=0.5,
+            y_offset=0.05,
         ),
         FigurePanel(
             letter="D",
