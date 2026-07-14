@@ -208,3 +208,9 @@ def build_figure_from_panels(
 
     ET.indent(figure, space="    ", level=0)
     output_path.write_text(ET.tostring(figure, encoding="unicode"), encoding="utf-8")
+
+
+def get_figure_asset_dir() -> Path:
+    """Get path to figure asset directory."""
+
+    return Path(__file__).resolve().parents[2] / "workflows" / "figures" / "assets"
