@@ -152,8 +152,6 @@ def main(
     optical_flow_manifest.parameters = {
         "patch_type": patch_type,
         "max_dt": max_dt,
-        "intensity_percentile": intensity_percentile,
-        "attachment": attachment,
         "ema_alpha": ema_alpha,
     }
     save_dataframe_manifest(optical_flow_manifest)
