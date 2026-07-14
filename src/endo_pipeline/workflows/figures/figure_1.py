@@ -62,7 +62,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     )
     from endo_pipeline.library.visualize.latent_walk import perform_and_plot_latent_walk_for_figures
     from endo_pipeline.library.visualize.model_performance import (
-        make_model_training_architecture_panel,
+        make_model_training_architecture_images,
     )
     from endo_pipeline.library.visualize.multi_feature_correlation import (
         make_feature_correlation_panel,
@@ -91,13 +91,10 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     # Call method that produces several image thumbnails that are assembled
     # into the model training diagram (Panel B) using a vector graphics software
-    _ = make_model_training_architecture_panel(
+    make_model_training_architecture_images(
         output_path=output_path,
         figure_size=(5.4, 2.4),
         num_gpus=NUM_GPUS,
-        include_slices=False,
-        include_inputs=False,
-        title_location="left",
         **placeholders["B"],
     )
 
