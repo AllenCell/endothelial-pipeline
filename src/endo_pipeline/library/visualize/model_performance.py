@@ -453,14 +453,14 @@ def plot_model_performance_summary_contact_sheet(
     )
 
 
-@figure_panel("Thumbnails for DiffAE architecture diagram")
-def make_model_training_architecture_images(
+@figure_panel("Thumbnails for DiffAE model architecture diagram")
+def make_model_architecture_images(
     output_path: Path,
     num_gpus: int | None = None,
     figure_size: tuple[float, float] = (0.7, 0.7),
 ) -> None:
     """
-    Create thumbnails for various parts of the DiffAE training architecture.
+    Create thumbnails for various parts of the DiffAE eval architecture.
 
     Parameters
     ----------

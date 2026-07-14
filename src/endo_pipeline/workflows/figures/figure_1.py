@@ -61,9 +61,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         parse_placeholder_panels,
     )
     from endo_pipeline.library.visualize.latent_walk import perform_and_plot_latent_walk_for_figures
-    from endo_pipeline.library.visualize.model_performance import (
-        make_model_training_architecture_images,
-    )
+    from endo_pipeline.library.visualize.model_performance import make_model_architecture_images
     from endo_pipeline.library.visualize.multi_feature_correlation import (
         make_feature_correlation_panel,
     )
@@ -90,8 +88,8 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     )
 
     # Call method that produces several image thumbnails that are assembled
-    # into the model training diagram (Panel B) using a vector graphics software
-    make_model_training_architecture_images(
+    # into the model architecture diagram (Panel B) using a vector graphics software
+    make_model_architecture_images(
         output_path=output_path,
         num_gpus=NUM_GPUS,
         **placeholders["B"],
@@ -107,7 +105,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         )
     else:
         assets_dir = get_figure_asset_dir()
-        diffae_training_path = assets_dir / "diffae_training_schematic.svg"
+        diffae_training_path = assets_dir / "diffae_eval_schematic.svg"
 
     # Latent walk visualization
     walk_column_names = cast(
