@@ -544,7 +544,7 @@
     </g>
   </g>
   <text class="cls-20" transform="translate(16.34 33.02)"><tspan x="0" y="0">3D brightfield</tspan></text>
-  <text class="cls-61" transform="translate(0 12.01)"><tspan class="cls-55" x="0" y="0">A</tspan><tspan class="cls-54" x="10.11" y="0" xml:space="preserve">  DiffAE training architecture and data preparation</tspan></text>
+  <text class="cls-61" transform="translate(0 12.01)"><tspan class="cls-55" x="0" y="0" xml:space="preserve">    </tspan><tspan class="cls-54" x="15.56" y="0">DiffAE training architecture and data preparation</tspan></text>
   <text class="cls-18" transform="translate(159.77 24.02)"><tspan x="0" y="0">Random</tspan><tspan x="-12.01" y="9.6">brighfield patch</tspan></text>
   <text class="cls-20" transform="translate(223.66 95.82)"><tspan x="0" y="0">Noise</tspan></text>
   <text class="cls-20" transform="translate(160.16 154.81)"><tspan x="0" y="0">Noisy VE-cadherin image</tspan></text>
