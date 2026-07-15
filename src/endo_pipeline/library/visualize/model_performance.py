@@ -458,6 +458,8 @@ def make_model_architecture_images(
     output_path: Path,
     num_gpus: int | None = None,
     figure_size: tuple[float, float] = (0.7, 0.7),
+    include_slices: bool = True,
+    include_inputs: bool = True,
 ) -> None:
     """
     Create thumbnails for various parts of the DiffAE eval architecture.
@@ -470,12 +472,18 @@ def make_model_architecture_images(
         Number of GPUs to use. If None, run on CPU.
     figure_size
         Size of image patch plots.
+    include_slices
+        True to save raw image slices, False to skip.
+    include_inputs
+        True to save model input images, False to skip.
 
     """
+    from matplotlib import patches
     from numpy.random import default_rng
     from omegaconf import DictConfig
 
-    from endo_pipeline.io import load_model
+    from endo_pipeline.configs import load_dataset_config
+    from endo_pipeline.io import load_image, load_model
     from endo_pipeline.io.load_models import instantiate_model_target_class
     from endo_pipeline.library.model.diffae.eval_diffae import get_latent_vector_from_crop
     from endo_pipeline.library.model.diffae.generate_image import (
@@ -485,11 +493,23 @@ def make_model_architecture_images(
         load_transformed_conditioning_example_image,
         load_transformed_diffusion_example_image,
     )
+    from endo_pipeline.library.process.image_processing import contrast_stretching
     from endo_pipeline.library.visualize.figure_utils import plot_image_thumbnail
-    from endo_pipeline.manifests import load_model_manifest
+    from endo_pipeline.library.visualize.model_inputs.image_preprocessing_steps import (
+        apply_img_transforms,
+        create_data_dict_loaded_image,
+        get_image_transforms,
+        get_target_image_from_sample,
+    )
+    from endo_pipeline.manifests import get_zarr_location_for_position, load_model_manifest
     from endo_pipeline.settings.examples import EXAMPLES_DIFFAE_TRAINING_ARCHITECTURE_EXAMPLE
-    from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
+    from endo_pipeline.settings.image_data import (
+        DIFFAE_ZARR_RESOLUTION_LEVEL,
+        Z_SLICE_OFFSETS,
+        PIXEL_SIZE_3i_20x_RESOLUTION_1,
+    )
     from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT,
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
         RANDOM_SEED,
@@ -511,6 +531,98 @@ def make_model_architecture_images(
 
     # Load dataset config for example
     example = EXAMPLES_DIFFAE_TRAINING_ARCHITECTURE_EXAMPLE
+    dataset_config = load_dataset_config(example.dataset_name)
+    center_slice = dataset_config.center_z_plane[example.position]
+
+    # Load raw image
+    zarr_loc = get_zarr_location_for_position(dataset_config, example.position)
+    raw_image = load_image(
+        zarr_loc,
+        level=DIFFAE_ZARR_RESOLUTION_LEVEL,
+        timepoints=example.timepoint,
+        squeeze=True,
+        compute=True,
+    )
+
+    if include_slices:
+        # Get slices from raw image
+        cdh5_lower_slice = raw_image[0, center_slice - Z_SLICE_OFFSETS[0], :, :].squeeze()
+        cdh5_slice = raw_image[0, center_slice, :, :].squeeze()
+        cdh5_upper_slice = raw_image[0, center_slice + Z_SLICE_OFFSETS[1], :, :].squeeze()
+        bf_lower_slice = raw_image[1, center_slice - Z_SLICE_OFFSETS[0], :, :].squeeze()
+        bf_slice = raw_image[1, center_slice, :, :].squeeze()
+        bf_upper_slice = raw_image[1, center_slice + Z_SLICE_OFFSETS[1], :, :].squeeze()
+
+        # Save image thumbnail for each raw image slice
+        for image, image_name, outline_color in [
+            (cdh5_lower_slice, "cdh5_lower_slice", "white"),
+            (cdh5_slice, "cdh5_slice", "white"),
+            (cdh5_upper_slice, "cdh5_upper_slice", "white"),
+            (bf_lower_slice, "bf_lower_slice", "black"),
+            (bf_slice, "bf_slice", "black"),
+            (bf_upper_slice, "bf_upper_slice", "black"),
+        ]:
+            image = contrast_stretching(image)
+            plot_image_thumbnail(
+                image,
+                f"{image_name}_{dataset_config.name}_T{example.timepoint}",
+                output_path,
+                figsize=figure_size,
+                scalebar_size_um=100,
+                pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
+                file_format=".svg",
+                outline_color=outline_color,
+                bar_padding=30,
+                bar_thickness=20,
+                scalebar_location="lower right",
+                show_plot=False,
+            )
+            print(
+                f"Saved {image_name} to {output_path}/{image_name}_{dataset_config.name}_T{example.timepoint}.svg"
+            )
+
+    # Extract transformation steps and apply to image
+    data = create_data_dict_loaded_image(raw_image)
+    transforms = get_image_transforms(model_config)
+    sample = apply_img_transforms(transforms, data)
+
+    # Extract the target images
+    crop_size = model_config.model.image_shape[-1]
+    diffusion_fov = get_target_image_from_sample(sample, DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT)
+    conditioning_fov = get_target_image_from_sample(sample, model_config.model.condition_key)
+
+    if include_inputs:
+        # Save image thumbnail for each model input crop with outline
+        for image, image_name in [
+            (diffusion_fov, "diffusion_input_fov"),
+            (conditioning_fov, "conditioning_input_fov"),
+        ]:
+            fig, ax = plot_image_thumbnail(
+                image.squeeze(),
+                f"{image_name}_{dataset_config.name}_T{example.timepoint}",
+                None,
+                figsize=figure_size,
+                scalebar_size_um=100,
+                pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
+                file_format=".svg",
+                bar_thickness=20,
+                bar_padding=30,
+                scalebar_location="lower right",
+                show_plot=False,
+            )
+            rect = patches.Rectangle(
+                (example.crop_x_start, example.crop_y_start),
+                crop_size,
+                crop_size,
+                linewidth=0.5,
+                edgecolor="yellow",
+                facecolor="none",
+            )
+            ax.add_patch(rect)
+            save_plot_to_path(fig, output_path, image_name, file_format=".svg", pad_inches=0)
+            print(
+                f"Saved {image_name} to {output_path}/{image_name}_{dataset_config.name}_T{example.timepoint}.svg"
+            )
 
     # Load transformed conditioning and diffusion examples
     conditioning_ex = load_transformed_conditioning_example_image(example, model_config)
