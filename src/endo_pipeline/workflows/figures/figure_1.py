@@ -100,7 +100,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     # Get path for pre-compiled figure asset, if including panel B
     if placeholders["B"]["placeholder"]:
-        diffae_training_path = build_empty_panel(
+        diffae_architecture_path = build_empty_panel(
             output_path,
             "Diagram illustrating DiffAE model training.",
             5.4,
@@ -108,7 +108,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         )
     else:
         assets_dir = get_figure_asset_dir()
-        diffae_training_path = assets_dir / "diffae_eval_schematic.svg"
+        diffae_architecture_path = assets_dir / "diffae_eval_schematic.svg"
 
     # Latent walk visualization
     walk_column_names = cast(
@@ -154,7 +154,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         ),
         FigurePanel(
             letter="B",
-            path=diffae_training_path,
+            path=diffae_architecture_path,
             x_position=0,
             y_position=3.6,
             x_offset=0.3,
