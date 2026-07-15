@@ -23,6 +23,7 @@ from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.figures import (
+    FONTSIZE_MEDIUM,
     FONTSIZE_SMALL,
     FONTSIZE_XSMALL,
     MAX_FIGURE_HEIGHT,
@@ -84,10 +85,12 @@ def plot_and_save_heatmap(
 
     annotate = check_if_heatmap_should_be_annotated(df)
     if data_type == "correlation":
+        colorbar_label = "Pearson r"
         center: float | None = 0.0
         vmin: float | None = -1.0
         vmax: float | None = 1.0
     else:
+        colorbar_label = "Samples"
         center = vmin = vmax = None
 
     fig, ax = plt.subplots(figsize=figsize, dpi=300)
@@ -95,7 +98,7 @@ def plot_and_save_heatmap(
     if force_labels_single_line:
         df_renamed = df_renamed.rename(columns=make_label_single_line, index=make_label_single_line)
     cbar_kws = {
-        "label": data_type,
+        "label": colorbar_label,
         "orientation": "horizontal",
     }
 
@@ -123,12 +126,15 @@ def plot_and_save_heatmap(
     # set label padding to 2
     ax.xaxis.labelpad = 2
     ax.yaxis.labelpad = 2
-    cax.xaxis.labelpad = 2
+    cax.xaxis.labelpad = 1
+    ax.xaxis.label.set(fontsize=FONTSIZE_MEDIUM, fontweight="bold")
+    ax.yaxis.label.set(fontsize=FONTSIZE_MEDIUM, fontweight="bold")
+    cax.xaxis.label.set(fontsize=FONTSIZE_SMALL, fontweight="normal")
 
     ax_pos = ax.get_position()  # get position of existing axes
     cax_pos_new = (
         ax_pos.x0,
-        ax_pos.y0 + cbar_height_in_fig_units,
+        ax_pos.y0 + cbar_height_in_fig_units + 0.01,
         cbar_width_in_fig_units,
         cbar_height_in_fig_units,
     )  # new position for colorbar axes
