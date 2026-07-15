@@ -97,7 +97,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             x_position=0,
             y_position=0,
             x_offset=0,
-            y_offset=0,
+            y_offset=0.025,
         ),
         FigurePanel(
             letter="B",
