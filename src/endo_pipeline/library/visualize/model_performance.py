@@ -532,6 +532,7 @@ def make_model_architecture_images(
     # Load dataset config for example
     example = EXAMPLES_DIFFAE_TRAINING_ARCHITECTURE_EXAMPLE
     dataset_config = load_dataset_config(example.dataset_name)
+    assert dataset_config.center_z_plane is not None  # for mypy
     center_slice = dataset_config.center_z_plane[example.position]
 
     # Load raw image
