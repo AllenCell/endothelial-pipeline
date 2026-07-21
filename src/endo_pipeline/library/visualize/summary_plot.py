@@ -13,7 +13,7 @@ import pandas as pd
 from matplotlib.axes import Axes
 from matplotlib.transforms import blended_transform_factory
 
-from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs import DatasetConfig, load_dataset_config
 from endo_pipeline.io import join_sorted_strings, load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import (
     filter_dataframe_by_shear_stress,
@@ -492,11 +492,12 @@ def _sort_and_categorize_datasets(
 def _configure_replicate_axis(
     ax: Axes,
     unique_categories: list[str],
-    dataset_configs: dict,
+    dataset_configs: dict[str, DatasetConfig],
     positions: dict[str, float],
     scalar_mappable,
     marker_size_legend: int,
     show_legend: bool = True,
+    highlight_bistable: bool = True,
 ) -> None:
     """Add legend, grey background, and brackets for replicate axis mode."""
     from matplotlib.lines import Line2D
@@ -528,16 +529,17 @@ def _configure_replicate_axis(
         ]
         ax.legend(handles=legend_handles, fontsize=FONTSIZE_SMALL)
 
-    # Add transparent grey background spanning all bistable datasets
-    _bistable_positions = [
-        positions[cat]
-        for cat in unique_categories
-        if (dataset_configs[cat].stability_category or "monostable") == "bistable"
-    ]
-    if _bistable_positions:
-        _x_left = min(_bistable_positions) - 0.4
-        _x_right = max(_bistable_positions) + 0.4
-        ax.axvspan(_x_left, _x_right, color="lightgrey", alpha=0.4, zorder=0)
+    if highlight_bistable:
+        # Add transparent grey background spanning all bistable datasets
+        _bistable_positions = [
+            positions[cat]
+            for cat in unique_categories
+            if (dataset_configs[cat].stability_category or "monostable") == "bistable"
+        ]
+        if _bistable_positions:
+            _x_left = min(_bistable_positions) - 0.4
+            _x_right = max(_bistable_positions) + 0.4
+            ax.axvspan(_x_left, _x_right, color="lightgrey", alpha=0.4, zorder=0)
 
     # Add brackets and reduce tick size
     ax.tick_params(axis="x", labelsize=FONTSIZE_XSMALL)
@@ -554,13 +556,13 @@ def _plot_cross_dataset_summary_for_column(
     marker_size_plot: float = 4.2,
     marker_size_legend: int = 4,
     jitter_width: float = 0.05,
-    set_y_lims: bool = False,
     color_by_column: "ColumnNameType | None" = None,
     point_color: str | None = None,
     ylabel_rotation: float = 0,
     ylabel_horizontal_alignment: Literal["left", "center", "right"] = "left",
     ylabel_vertical_alignment: Literal["top", "center", "bottom"] = "center",
     yaxis_for_fixed_points: bool = True,
+    highlight_bistable: bool = True,
 ) -> None:
     """
     Plot cross dataset summary for given column name and summary mode.
@@ -585,8 +587,6 @@ def _plot_cross_dataset_summary_for_column(
         Size of the markers in the legend.
     jitter_width
         Width of the jitter applied to points in the same category bin.
-    set_y_lims
-        True to set y limits based on column metadata, False otherwise.
     color_by_column
         Optional column name whose values are mapped to a continuous
         cyan-to-magenta colormap. When provided, overrides the discrete
@@ -600,6 +600,8 @@ def _plot_cross_dataset_summary_for_column(
         Vertical alignment for y axis label.
     yaxis_for_fixed_points
         If True then add a * to the y axis label to denote it is for fixed points.
+    highlight_bistable
+        True to add a transparent grey background spanning all bistable datasets.
     """
 
     # Load dataset configs for all unique datasets in summary data
@@ -765,6 +767,7 @@ def _plot_cross_dataset_summary_for_column(
             scalar_mappable,
             marker_size_legend,
             show_legend=point_color is None,
+            highlight_bistable=highlight_bistable,
         )
 
     # Add cell line brackets below x-axis
@@ -832,7 +835,6 @@ def plot_cross_dataset_summaries(
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 3),
     jitter_width: float = 0.05,
     convert_angle_to_nematic: bool = False,
-    set_y_lims: bool = False,
     color_by_column: "ColumnNameType | None" = None,
     point_color: str | None = None,
     colorbar_multiline_label: bool = False,
@@ -841,6 +843,7 @@ def plot_cross_dataset_summaries(
     ylabel_horizontal_alignment: Literal["left", "center", "right"] = "left",
     ylabel_vertical_alignment: Literal["top", "center", "bottom"] = "center",
     yaxis_for_fixed_points: bool = True,
+    highlight_bistable: bool = True,
 ) -> Path:
     """
     Plot cross dataset summaries for given columns in selected plot mode.
@@ -878,8 +881,8 @@ def plot_cross_dataset_summaries(
     ----------
     df
         Dataframe containing features for summary plot.
-    output_dir
-        Output directory to save plot.
+    output_path
+        Output path to save plot.
     column_names
         List of feature column names.
     axis_mode
@@ -914,6 +917,8 @@ def plot_cross_dataset_summaries(
     yaxis_for_fixed_points
         If True then add a * to the y axis label to denote it is for fixed
         points.
+    highlight_bistable
+        True to add a transparent grey background spanning all bistable datasets.
 
     Returns
     -------
@@ -995,13 +1000,13 @@ def plot_cross_dataset_summaries(
             axis_mode=axis_mode,
             style_mode=style_mode,
             jitter_width=jitter_width,
-            set_y_lims=set_y_lims,
             color_by_column=color_by_column,
             point_color=point_color,
             ylabel_rotation=ylabel_rotation,
             ylabel_horizontal_alignment=ylabel_horizontal_alignment,
             ylabel_vertical_alignment=ylabel_vertical_alignment,
             yaxis_for_fixed_points=yaxis_for_fixed_points,
+            highlight_bistable=highlight_bistable,
         )
 
     # Add super x axis label on the main figure (or main subfigure)

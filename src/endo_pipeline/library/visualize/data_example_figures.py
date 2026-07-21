@@ -253,22 +253,23 @@ def create_panel_intermediate_examples(
     )
 
 
+@figure_panel("Example images from control and Ex3Del datasets.")
 def create_panel_perturbation_examples(
     examples: list[ExampleImage],
-    save_dir: Path,
+    output_path: Path,
     crop_size: int = 1000,
     scale_bar_um: int = 100,
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH * 0.25, 3),
     inset_coordinates: tuple[int, int] = (50, 500),
     inset_size: int = 256,
-) -> None:
+) -> Path:
     """Create panel of perturbation example images.
 
     Parameters
     ----------
     examples
         List of example images to display (one per row).
-    save_dir
+    output_path
         Directory to save the output figure.
     crop_size
         Crop size in pixels at resolution level 0.
@@ -278,6 +279,11 @@ def create_panel_perturbation_examples(
         (x, y) pixel coordinates for the Ex3Del inset crop region.
     inset_size
         Size of the inset crop in pixels.
+
+    Returns
+    -------
+    :
+        Path to the saved figure.
     """
     image_panel_list = []
     cell_line_titles = []
@@ -395,14 +401,16 @@ def create_panel_perturbation_examples(
             )
             ax.add_patch(rect)
 
+    file_name = f"perturbation_examples_scale_bar_{scale_bar_um}um"
     save_plot_to_path(
         fig,
-        save_dir,
-        f"perturbation_examples_scale_bar_{scale_bar_um}um",
+        output_path,
+        file_name,
         file_format=".svg",
         tight_layout=False,
         pad_inches=0,
     )
+    return output_path / f"{file_name}.svg"
 
 
 def create_panel_retraction_fiber_blob_example(
