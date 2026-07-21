@@ -23,7 +23,12 @@ from endo_pipeline.manifests import (
 )
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.diffae_feature_dataframes import DIFFAE_PC_COLUMN_NAMES
-from endo_pipeline.settings.figures import FONTSIZE_XSMALL, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.figures import (
+    FONTSIZE_MEDIUM,
+    FONTSIZE_SMALL,
+    FONTSIZE_XSMALL,
+    MAX_FIGURE_WIDTH,
+)
 from endo_pipeline.settings.image_data import PIXEL_SIZE_3i_20x_RESOLUTION_1
 from endo_pipeline.settings.plot_defaults import RECONSTRUCTION_RANDOM_SEED
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
@@ -67,11 +72,12 @@ def plot_latent_walk_as_grid(
     save_path: Path,
     file_name: str,
     file_format: Literal[".png", ".svg", ".pdf"] = ".svg",
+    figure_suptitle: str | None = None,
+    figure_subtitle: str | None = None,
     show_values: bool = True,
     label_sigmas: bool = True,
     figsize: tuple[float, float] | None = None,
     scale_bar_um: int = 20,
-    random_seed: int = RECONSTRUCTION_RANDOM_SEED,
 ) -> Path:
     """Plot and save a grid of reconstructed image crops representing a latent walk.
 
@@ -92,6 +98,10 @@ def plot_latent_walk_as_grid(
         Name of the output figure file.
     file_format
         Format of the output figure file (e.g., ".png", ".svg", ".pdf").
+    figure_suptitle
+        Supertitle to display on the figure. If None, no supertitle is added.
+    figure_subtitle
+        Subtitle to display on the figure. If None, no subtitle is added.
     show_values
         True to show the coordinate value on the image, False otherwise.
     label_sigmas
@@ -103,6 +113,12 @@ def plot_latent_walk_as_grid(
         number of dimensions in the latent walk.
     scale_bar_um
         Length of the scale bar in micrometers to add to each subplot.
+
+
+    Returns
+    -------
+    :
+        Path to the saved figure file.
     """
     # Set up the grid
     num_rows = array_of_crops.shape[0]
@@ -112,6 +128,14 @@ def plot_latent_walk_as_grid(
     # Desired figure dimensions in inches
     if figsize is None:
         figsize = (MAX_FIGURE_WIDTH, num_rows)
+
+    # Reserve vertical space for suptitle/subtitle without shrinking the axes
+    title_height_inches = 0.0
+    if figure_suptitle is not None:
+        title_height_inches += 0.3
+    if figure_subtitle is not None:
+        title_height_inches += 0.2
+    figsize = (figsize[0], figsize[1] + title_height_inches)
 
     # Set up the figure
     fig = plt.figure(figsize=figsize)
@@ -175,6 +199,26 @@ def plot_latent_walk_as_grid(
             label_fontsize=FONTSIZE_XSMALL,
         )
 
+    axes_top = 1.0 - title_height_inches / figsize[1]
+    fig.subplots_adjust(top=axes_top)
+
+    if figure_suptitle is not None:
+        suptitle_y = 1.0 - (0.15 / figsize[1])
+        fig.suptitle(
+            figure_suptitle, fontsize=FONTSIZE_MEDIUM, fontweight="bold", y=suptitle_y, x=0.525
+        )
+    if figure_subtitle is not None:
+        subtitle_y = 1.0 - ((0.3 if figure_suptitle is not None else 0.1) / figsize[1])
+        fig.text(
+            0.525,
+            subtitle_y,
+            figure_subtitle,
+            ha="center",
+            va="top",
+            fontsize=FONTSIZE_SMALL,
+            fontweight="normal",
+        )
+
     file_name = f"{file_name}_scale_bar_{scale_bar_um}um"
     return save_plot_to_path(fig, save_path, file_name, file_format=file_format)
 
@@ -185,6 +229,8 @@ def perform_and_plot_latent_walk_for_figures(
     filename: str,
     walk_column_names: list[str],
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 2.8),
+    figure_suptitle: str | None = None,
+    figure_subtitle: str | None = None,
     sigma: float | None = 3,
     n_steps: int = 7,
     scale_bar_um: int = 10,
@@ -202,15 +248,19 @@ def perform_and_plot_latent_walk_for_figures(
 
     Parameters
     ----------
-    save_path
+    output_path
         Directory path to save the output figure.
     filename
         Name of the output figure file.
     walk_column_names
         A list of column names corresponding to the dimensions along which to
         perform the latent walk.
-    figsize
+    figure_size
         Figure size to use for the output figure.
+    figure_suptitle
+        Title to display on the figure. If None, no title is added.
+    figure_subtitle
+        Subtitle to display on the figure. If None, no subtitle is added.
     sigma
         Standard deviation for the latent walk, if using standard
         deviation-based walk. If None, a uniform walk will be performed.
@@ -294,6 +344,8 @@ def perform_and_plot_latent_walk_for_figures(
         walk_column_names,
         output_path,
         filename,
+        figure_suptitle=figure_suptitle,
+        figure_subtitle=figure_subtitle,
         label_sigmas=True if sigma is not None else False,
         figsize=figure_size,
         scale_bar_um=scale_bar_um,

@@ -42,8 +42,8 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     ----------
     include_panels
         List of panels to include in figure. Leave empty to include all panels.
-    """
 
+    """
     from typing import cast
 
     import matplotlib.pyplot as plt
@@ -55,13 +55,13 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     )
     from endo_pipeline.library.visualize.figures import (
         FigurePanel,
+        build_empty_panel,
         build_figure_from_panels,
+        get_figure_asset_dir,
         parse_placeholder_panels,
     )
     from endo_pipeline.library.visualize.latent_walk import perform_and_plot_latent_walk_for_figures
-    from endo_pipeline.library.visualize.model_performance import (
-        make_model_training_architecture_panel,
-    )
+    from endo_pipeline.library.visualize.model_performance import make_model_architecture_images
     from endo_pipeline.library.visualize.multi_feature_correlation import (
         make_feature_correlation_panel,
     )
@@ -70,6 +70,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.settings.examples import FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES
     from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
     from endo_pipeline.settings.plot_defaults import RECONSTRUCTION_RANDOM_SEED
+    from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
     from endo_pipeline.settings.workflow_defaults import SEGMENTATION_FEATURE_COLUMNS
 
     plt.style.use("endo_pipeline.figure")
@@ -79,25 +80,35 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
 
     # Example images from biological system at 6 dyn/cm² and 21 dyn/cm² shear stress
-    example_path = create_panel_biological_system_examples(
+    example_full_path, example_inset_path = create_panel_biological_system_examples(
         examples=FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES,
         output_path=output_path,
-        figure_size=(5.4, 3.6),
+        figure_size=(5.3, 3.6),
         inset_coordinates=(5, 500 - 128),
         **placeholders["A"],
     )
 
-    # Note that this method produces several image thumbnails that are assembled
-    # into the model training diagram using a vector graphics software
-    architecture_panel_path = make_model_training_architecture_panel(
+    # Call method that produces several image thumbnails that are assembled
+    # into the model architecture diagram (Panel B) using a vector graphics software
+    make_model_architecture_images(
         output_path=output_path,
-        figure_size=(5.4, 2.4),
         num_gpus=NUM_GPUS,
         include_slices=False,
         include_inputs=False,
-        title_location="left",
         **placeholders["B"],
     )
+
+    # Get path for pre-compiled figure asset, if including panel B
+    if placeholders["B"]["placeholder"]:
+        diffae_training_path = build_empty_panel(
+            output_path,
+            "Diagram illustrating DiffAE model training.",
+            5.4,
+            2.4,
+        )
+    else:
+        assets_dir = get_figure_asset_dir()
+        diffae_training_path = assets_dir / "diffae_eval_schematic.svg"
 
     # Latent walk visualization
     walk_column_names = cast(
@@ -112,7 +123,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         output_path=output_path,
         filename="latent_walk_along_polar_theta_polar_r_rho",
         walk_column_names=walk_column_names,
-        figure_size=(4, 1.8),
+        figure_size=(4.1, 1.8),
+        figure_suptitle="Latent walks along ML-based features",
+        figure_subtitle=f"capturing aspects of orientation ({Unicode.THETA}), elongation (r), and density ({Unicode.RHO})",
         sigma=None,
         n_steps=7,
         scale_bar_um=20,
@@ -133,35 +146,43 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     panels = [
         FigurePanel(
             letter="A",
-            path=example_path,
+            path=example_full_path,
             x_position=0,
             y_position=0,
-            x_offset=0,
+            x_offset=0.3,
+            y_offset=0,
+        ),
+        FigurePanel(
+            letter="",
+            path=example_inset_path,
+            x_position=3.1,
+            y_position=0,
+            x_offset=0.0,
             y_offset=0,
         ),
         FigurePanel(
             letter="B",
-            path=architecture_panel_path,
+            path=diffae_training_path,
             x_position=0,
             y_position=3.6,
-            x_offset=0,
-            y_offset=0,
+            x_offset=0.3,
+            y_offset=0.05,
         ),
         FigurePanel(
             letter="C",
             path=latent_walk_path,
             x_position=0,
-            y_position=6,
-            x_offset=0,
-            y_offset=0.2,
+            y_position=5.4,
+            x_offset=-0.1,
+            y_offset=0.05,
         ),
         FigurePanel(
             letter="D",
             path=feature_correlations_path,
             x_position=4,
-            y_position=5.3,
+            y_position=5.4,
             x_offset=-0.08,
-            y_offset=0,
+            y_offset=-0.1,
         ),
     ]
 

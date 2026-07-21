@@ -135,7 +135,7 @@ def plot_and_save_heatmap(
     ax_pos = ax.get_position()  # get position of existing axes
     cax_pos_new = (
         ax_pos.x0,
-        ax_pos.y0 + cbar_height_in_fig_units + 0.01,
+        ax_pos.y0 + cbar_height_in_fig_units + 0.0125,
         cbar_width_in_fig_units,
         cbar_height_in_fig_units,
     )  # new position for colorbar axes
