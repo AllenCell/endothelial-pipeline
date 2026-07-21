@@ -1,9 +1,4 @@
-"""Optical-flow workflow constants and defaults.
-
-All tuneable constants for the optical-flow feature-extraction pipeline
-live here so that they can be adjusted in one place without touching
-compute, I/O, or visualisation code.
-"""
+"""Optical-flow workflow constants and defaults."""
 
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.literal_types import PatchTypeLiteral
@@ -11,9 +6,6 @@ from endo_pipeline.settings.literal_types import PatchTypeLiteral
 DEMO_MAX_TRACKED_CROPS_TO_PLOT: int = 2
 """Maximum number of tracked crops to plot in the coherence time series diagnostic."""
 
-# ---------------------------------------------------------------------------
-# Quiver plot
-# ---------------------------------------------------------------------------
 QUIVER_GRID_DIVISIONS: int = 8
 """Number of grid divisions along each axis for quiver plot sub-sampling.
 
@@ -22,17 +14,8 @@ within each cell, producing one arrow per cell in the diagnostic quiver
 overlay.
 """
 
-# ---------------------------------------------------------------------------
-# Dataset / manifest defaults
-# ---------------------------------------------------------------------------
 DEFAULT_OPTICAL_FLOW_COLLECTION: str = "diffae_model_training"
 """Default dataset collection for the optical-flow feature workflow."""
-
-OPTICAL_FLOW_MANIFEST_NAME_PREFIX: str = "optical_flow"
-"""Prefix for optical flow dataframe manifest name."""
-
-DEFAULT_OPTICAL_FLOW_MANIFEST_NAME: str = "optical_flow_bf"
-"""Default dataframe manifest name (prefix) for optical-flow features."""
 
 DIFFAE_DATAFRAME_METADATA_TO_COMPUTE: tuple[str, ...] = (
     ColumnName.DATASET,
@@ -56,33 +39,11 @@ OPTICAL_FLOW_COLUMNS_TO_COMPUTE: dict[PatchTypeLiteral, tuple[str, ...]] = {
 }
 """Metadata columns keyed by patch type."""
 
-# ---------------------------------------------------------------------------
-# Default CLI flag values
-# ---------------------------------------------------------------------------
 DEFAULT_EMA_ALPHA: float = 0.1
 """Default EMA smoothing alpha value for temporal coherence smoothing."""
 
-# ---------------------------------------------------------------------------
-# Channel-aware parameters
-# ---------------------------------------------------------------------------
-OPTICAL_FLOW_CHANNEL_PERCENTILE: dict[str, int] = {
-    "EGFP": 95,  # sparse fluorescence → exclude empty background
-    "BF": 0,  # dense texture → keep all pixels
-}
-"""Intensity percentile thresholds per channel for optical-flow masking."""
+OPTICAL_FLOW_ATTACHMENT: float = 2.5  # z-score normalisation compresses dynamic range
+"""TVL1 attachment (lambda)."""
 
-OPTICAL_FLOW_CHANNEL_ATTACHMENT: dict[str, float] = {
-    "EGFP": 7.5,  # half of skimage default (15); wider normalised range
-    "BF": 2.5,  # z-score normalisation compresses dynamic range
-}
-"""TVL1 attachment (lambda) per channel.
-
-Smaller values produce smoother flow fields.  BF uses a lower value
-because z-score normalisation compresses the intensity range, so a
-weaker data-fidelity term avoids fitting noise."""
-
-# ---------------------------------------------------------------------------
-# Temporal sweep
-# ---------------------------------------------------------------------------
 DEFAULT_OPTICAL_FLOW_MAX_DT: int = 1
 """Maximum frame gap for multi-scale optical-flow sweep (dt = 1 ... MAX_DT)."""
