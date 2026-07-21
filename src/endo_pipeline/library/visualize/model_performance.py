@@ -11,7 +11,7 @@ from matplotlib.lines import Line2D
 
 from endo_pipeline.io.output import save_plot_to_path
 from endo_pipeline.library.visualize.figure_utils import make_contact_sheet
-from endo_pipeline.library.visualize.figures import figure_panel
+from endo_pipeline.library.visualize.figures import figure_panel, get_figure_asset_dir
 from endo_pipeline.settings.examples import ExampleImage
 from endo_pipeline.settings.figures import (
     FONTSIZE_LARGE,
@@ -457,9 +457,10 @@ def plot_model_performance_summary_contact_sheet(
 def make_model_architecture_images(
     output_path: Path,
     num_gpus: int | None = None,
-    figure_size: tuple[float, float] = (0.7, 0.7),
+    figure_size: tuple[float, float] = (5.4, 2.4),
+    thumbnail_size: tuple[float, float] = (0.7, 0.7),
     for_supplemental_figure: bool = False,
-) -> None:
+) -> Path:
     """
     Create thumbnails for various parts of the DiffAE eval architecture.
 
@@ -471,8 +472,11 @@ def make_model_architecture_images(
     full FOV of the input data.
 
     If the boolean flag `for_supplemental_figure` is True, the saved outputs
-    will include these additional images. Else, the saved outputs will only
-    include the patches visualized in the main figure schematic.
+    will include these additional images, and the returned path will point to
+    the figure asset with the full model architecture diagram. Else, the saved
+    outputs will only include the patches visualized in the main figure
+    schematic, and the returned path will point to the figure asset with the
+    main figure schematic.
 
     Parameters
     ----------
@@ -481,7 +485,9 @@ def make_model_architecture_images(
     num_gpus
         Number of GPUs to use. If None, run on CPU.
     figure_size
-        Size of image patch plots.
+        Size of the overall figure (used for panel placeholder).
+    thumbnail_size
+        Size of image thumbnails.
     for_supplemental_figure
         True if the figure is for a supplemental figure, False otherwise.
 
@@ -576,7 +582,7 @@ def make_model_architecture_images(
                 image,
                 f"{image_name}_{dataset_config.name}_T{example.timepoint}",
                 output_path,
-                figsize=figure_size,
+                figsize=thumbnail_size,
                 scalebar_size_um=100,
                 pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
                 file_format=".svg",
@@ -611,7 +617,7 @@ def make_model_architecture_images(
                 image.squeeze(),
                 f"{image_name}_{dataset_config.name}_T{example.timepoint}",
                 None,
-                figsize=figure_size,
+                figsize=thumbnail_size,
                 scalebar_size_um=100,
                 pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
                 file_format=".svg",
@@ -653,7 +659,7 @@ def make_model_architecture_images(
             image.squeeze(),
             image_name,
             output_path,
-            figsize=figure_size,
+            figsize=thumbnail_size,
             scalebar_size_um=20,
             bar_padding=5,
             bar_thickness=5,
@@ -663,6 +669,13 @@ def make_model_architecture_images(
             show_plot=False,
         )
         print(f"Saved {image_name} to {output_path}/{image_name}.svg")
+
+    # return figure asset with pre-compiled schematic
+    assets_dir = get_figure_asset_dir()
+    if for_supplemental_figure:
+        return assets_dir / "diffae_training_schematic.svg"
+    else:
+        return assets_dir / "diffae_eval_schematic.svg"
 
 
 @figure_panel("Contact sheet showing DiffAE model performance examples")

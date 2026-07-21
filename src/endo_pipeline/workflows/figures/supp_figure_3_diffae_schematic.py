@@ -47,9 +47,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.figures import (
         FigurePanel,
-        build_empty_panel,
         build_figure_from_panels,
-        get_figure_asset_dir,
         parse_placeholder_panels,
     )
     from endo_pipeline.library.visualize.model_performance import (
@@ -64,26 +62,16 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     placeholders = parse_placeholder_panels(include_panels, ["A", "B"])
 
-    # Call method that produces several image thumbnails that are assembled
-    # into the model training diagram (Panel A) using a vector graphics software
-    make_model_architecture_images(
+    # Call method that produces several image thumbnails that are assembled into
+    # the model training diagram (Panel A) using a vector graphics software.
+    # Method also returns path to the precompiled figure asset.
+    diffae_training_path = make_model_architecture_images(
         output_path=output_path,
         num_gpus=NUM_GPUS,
+        figure_size=(6.5, 3.2),
         for_supplemental_figure=True,
         **placeholders["A"],
     )
-
-    # Get path for pre-compiled figure asset, if including panel A
-    if placeholders["A"]["placeholder"]:
-        diffae_training_path = build_empty_panel(
-            output_path,
-            "Diagram illustrating DiffAE model training.",
-            6.5,
-            3.2,
-        )
-    else:
-        assets_dir = get_figure_asset_dir()
-        diffae_training_path = assets_dir / "diffae_training_schematic.svg"
 
     examples_panel_path = make_model_performance_examples_panel(
         output_path, NUM_GPUS, **placeholders["B"]
