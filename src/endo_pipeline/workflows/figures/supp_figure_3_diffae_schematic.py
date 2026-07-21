@@ -69,8 +69,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     make_model_architecture_images(
         output_path=output_path,
         num_gpus=NUM_GPUS,
-        include_slices=True,
-        include_inputs=True,
+        for_supplemental_figure=True,
         **placeholders["A"],
     )
 

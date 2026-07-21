@@ -458,11 +458,21 @@ def make_model_architecture_images(
     output_path: Path,
     num_gpus: int | None = None,
     figure_size: tuple[float, float] = (0.7, 0.7),
-    include_slices: bool = True,
-    include_inputs: bool = True,
+    for_supplemental_figure: bool = False,
 ) -> None:
     """
     Create thumbnails for various parts of the DiffAE eval architecture.
+
+    **Main figure versus supplemental figure**
+
+    The panel in main Figure 1 is a simplified version of the full DiffAE model
+    architecture diagram that is shown in Supplemental Figure 3. In particular,
+    the Supplemental Figure includes example images of raw image slices and the
+    full FOV of the input data.
+
+    If the boolean flag `for_supplemental_figure` is True, the saved outputs
+    will include these additional images. Else, the saved outputs will only
+    include the patches visualized in the main figure schematic.
 
     Parameters
     ----------
@@ -472,10 +482,8 @@ def make_model_architecture_images(
         Number of GPUs to use. If None, run on CPU.
     figure_size
         Size of image patch plots.
-    include_slices
-        True to save raw image slices, False to skip.
-    include_inputs
-        True to save model input images, False to skip.
+    for_supplemental_figure
+        True if the figure is for a supplemental figure, False otherwise.
 
     """
     from matplotlib import patches
@@ -545,7 +553,7 @@ def make_model_architecture_images(
         compute=True,
     )
 
-    if include_slices:
+    if for_supplemental_figure:
         # Get slices from raw image
         cdh5_lower_slice = raw_image[0, center_slice - Z_SLICE_OFFSETS[0], :, :].squeeze()
         cdh5_slice = raw_image[0, center_slice, :, :].squeeze()
@@ -582,17 +590,18 @@ def make_model_architecture_images(
                 f"Saved {image_name} to {output_path}/{image_name}_{dataset_config.name}_T{example.timepoint}.svg"
             )
 
-    # Extract transformation steps and apply to image
-    data = create_data_dict_loaded_image(raw_image)
-    transforms = get_image_transforms(model_config)
-    sample = apply_img_transforms(transforms, data)
+        # Extract transformation steps and apply to image
+        data = create_data_dict_loaded_image(raw_image)
+        transforms = get_image_transforms(model_config)
+        sample = apply_img_transforms(transforms, data)
 
-    # Extract the target images
-    crop_size = model_config.model.image_shape[-1]
-    diffusion_fov = get_target_image_from_sample(sample, DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT)
-    conditioning_fov = get_target_image_from_sample(sample, model_config.model.condition_key)
+        # Extract the target images
+        crop_size = model_config.model.image_shape[-1]
+        diffusion_fov = get_target_image_from_sample(
+            sample, DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT
+        )
+        conditioning_fov = get_target_image_from_sample(sample, model_config.model.condition_key)
 
-    if include_inputs:
         # Save image thumbnail for each model input crop with outline
         for image, image_name in [
             (diffusion_fov, "diffusion_input_fov"),
@@ -620,10 +629,10 @@ def make_model_architecture_images(
                 facecolor="none",
             )
             ax.add_patch(rect)
-            save_plot_to_path(fig, output_path, image_name, file_format=".svg", pad_inches=0)
-            print(
-                f"Saved {image_name} to {output_path}/{image_name}_{dataset_config.name}_T{example.timepoint}.svg"
+            image_path = save_plot_to_path(
+                fig, output_path, image_name, file_format=".svg", pad_inches=0
             )
+            print(f"Saved {image_name} to {image_path}")
 
     # Load transformed conditioning and diffusion examples
     conditioning_ex = load_transformed_conditioning_example_image(example, model_config)
