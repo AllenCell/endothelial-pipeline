@@ -49,7 +49,7 @@ from endo_pipeline.settings.image_data import (
     IMG_SHAPE_RESOLUTION_0_3i_Y,
     PIXEL_SIZE_3i_20x,
 )
-from endo_pipeline.settings.optical_flow import (
+from endo_pipeline.settings.manifest_names import (
     CELL_CENTERED_OPTICAL_FLOW_MANIFEST_NAME,
     GRID_BASED_OPTICAL_FLOW_MANIFEST_NAME,
 )

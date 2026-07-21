@@ -70,11 +70,11 @@ def main(
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL
+    from endo_pipeline.settings.manifest_names import OPTICAL_FLOW_MANIFEST_NAMES
     from endo_pipeline.settings.optical_flow import (
         DEFAULT_OPTICAL_FLOW_COLLECTION,
         DEMO_MAX_TRACKED_CROPS_TO_PLOT,
         OPTICAL_FLOW_ATTACHMENT,
-        OPTICAL_FLOW_MANIFEST_NAMES,
     )
 
     logger = logging.getLogger(__name__)

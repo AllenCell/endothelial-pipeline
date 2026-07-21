@@ -17,18 +17,6 @@ overlay.
 DEFAULT_OPTICAL_FLOW_COLLECTION: str = "diffae_model_training"
 """Default dataset collection for the optical-flow feature workflow."""
 
-GRID_BASED_OPTICAL_FLOW_MANIFEST_NAME = "optical_flow_bf_grid_based"
-"""Dataframe manifest name for grid-based optical flow features."""
-
-CELL_CENTERED_OPTICAL_FLOW_MANIFEST_NAME = "optical_flow_bf_cell_centered"
-"""Dataframe manifest name for cell-centered optical flow features."""
-
-OPTICAL_FLOW_MANIFEST_NAMES: dict[PatchTypeLiteral, str] = {
-    "grid_based": GRID_BASED_OPTICAL_FLOW_MANIFEST_NAME,
-    "cell_centered": CELL_CENTERED_OPTICAL_FLOW_MANIFEST_NAME,
-}
-"""Mapping of patch type to optical flow dataframe manifest name."""
-
 DIFFAE_DATAFRAME_METADATA_TO_COMPUTE: tuple[str, ...] = (
     ColumnName.DATASET,
     ColumnName.POSITION,

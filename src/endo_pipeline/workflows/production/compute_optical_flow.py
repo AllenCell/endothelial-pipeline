@@ -101,11 +101,11 @@ def main(
     )
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL
+    from endo_pipeline.settings.manifest_names import OPTICAL_FLOW_MANIFEST_NAMES
     from endo_pipeline.settings.optical_flow import (
         DEFAULT_OPTICAL_FLOW_COLLECTION,
         OPTICAL_FLOW_ATTACHMENT,
         OPTICAL_FLOW_COLUMNS_TO_COMPUTE,
-        OPTICAL_FLOW_MANIFEST_NAMES,
     )
     from endo_pipeline.settings.workflow_defaults import FEATURES_UNFILTERED_MANIFEST_NAMES
 

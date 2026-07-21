@@ -28,7 +28,7 @@ from endo_pipeline.settings.figures import (
     MAX_FIGURE_HEIGHT,
     MAX_FIGURE_WIDTH,
 )
-from endo_pipeline.settings.optical_flow import CELL_CENTERED_OPTICAL_FLOW_MANIFEST_NAME
+from endo_pipeline.settings.manifest_names import CELL_CENTERED_OPTICAL_FLOW_MANIFEST_NAME
 from endo_pipeline.settings.workflow_defaults import (
     CELL_CENTERED_FEATURES_FILTERED_MANIFEST_NAME,
     DATASET_INFO_COLUMNS,

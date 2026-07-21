@@ -9,11 +9,11 @@ from endo_pipeline.library.analyze.optical_flow import build_optical_flow_featur
 from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
+from endo_pipeline.settings.manifest_names import GRID_BASED_OPTICAL_FLOW_MANIFEST_NAME
 from endo_pipeline.settings.migration_coherence import (
     MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
     OPTICAL_FLOW_DATAFRAME_MERGE_COLUMNS,
 )
-from endo_pipeline.settings.optical_flow import GRID_BASED_OPTICAL_FLOW_MANIFEST_NAME
 
 logger = logging.getLogger(__name__)
 
