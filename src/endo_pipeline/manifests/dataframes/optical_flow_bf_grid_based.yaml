@@ -2,10 +2,7 @@ name: optical_flow_bf_grid_based
 workflow: compute_optical_flow
 parameters:
   patch_type: grid_based
-  channel: BF
   max_dt: 1
-  intensity_percentile: 0
-  attachment: 2.5
   ema_alpha: 0.1
 columns:
   dataset: Name of dataset

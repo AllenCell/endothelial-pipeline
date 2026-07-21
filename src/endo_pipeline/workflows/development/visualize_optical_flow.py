@@ -1,5 +1,3 @@
-from typing import Literal
-
 from endo_pipeline.cli import Datasets, PatchType
 from endo_pipeline.settings.optical_flow import DEFAULT_EMA_ALPHA, DEFAULT_OPTICAL_FLOW_MAX_DT
 
@@ -7,7 +5,6 @@ from endo_pipeline.settings.optical_flow import DEFAULT_EMA_ALPHA, DEFAULT_OPTIC
 def main(
     datasets: Datasets | None = None,
     patch_type: PatchType = "grid_based",
-    channel: Literal["BF", "EGFP"] = "BF",
     max_dt: int = DEFAULT_OPTICAL_FLOW_MAX_DT,
     ema_alpha: float = DEFAULT_EMA_ALPHA,
 ) -> None:
@@ -65,10 +62,7 @@ def main(
         OpticalFlowImagePair,
         calculate_optical_flow_intensity_threshold,
     )
-    from endo_pipeline.library.process.image_processing import (
-        load_processed_bf_std_dev_image,
-        load_processed_egfp_image,
-    )
+    from endo_pipeline.library.process.image_processing import load_processed_bf_std_dev_image
     from endo_pipeline.library.visualize.optical_flow import (
         plot_optical_flow_coherence_over_time,
         plot_optical_flow_summary,
@@ -76,12 +70,11 @@ def main(
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL
+    from endo_pipeline.settings.manifest_names import OPTICAL_FLOW_MANIFEST_NAMES
     from endo_pipeline.settings.optical_flow import (
         DEFAULT_OPTICAL_FLOW_COLLECTION,
         DEMO_MAX_TRACKED_CROPS_TO_PLOT,
-        OPTICAL_FLOW_CHANNEL_ATTACHMENT,
-        OPTICAL_FLOW_CHANNEL_PERCENTILE,
-        OPTICAL_FLOW_MANIFEST_NAME_PREFIX,
+        OPTICAL_FLOW_ATTACHMENT,
     )
 
     logger = logging.getLogger(__name__)
@@ -97,15 +90,8 @@ def main(
     else:
         max_positions = None
 
-    # Set channel-aware options
-    intensity_percentile = OPTICAL_FLOW_CHANNEL_PERCENTILE[channel]
-    attachment = OPTICAL_FLOW_CHANNEL_ATTACHMENT[channel]
-    image_loader = load_processed_bf_std_dev_image if channel == "BF" else load_processed_egfp_image
-
     # Load optical flow dataframe manifest
-    name_prefix = OPTICAL_FLOW_MANIFEST_NAME_PREFIX
-    name_suffix = f"_{channel.lower()}_{patch_type}"
-    manifest = load_dataframe_manifest(f"{name_prefix}{name_suffix}")
+    manifest = load_dataframe_manifest(OPTICAL_FLOW_MANIFEST_NAMES[patch_type])
 
     # Select sorting column
     feature_column = Column.OpticalFlow.UNIT_VECTOR_MEAN
@@ -126,7 +112,7 @@ def main(
             unique_positions = unique_positions[:max_positions]
 
         for position in unique_positions:
-            output_name = f"{dataset_name}_P{position}{name_suffix}"
+            output_name = f"{dataset_name}_P{position}_{patch_type}"
 
             # Select three representative examples
             df_position = df[df[Column.POSITION] == position].sort_values(feature_column).dropna()
@@ -149,7 +135,7 @@ def main(
             image_cache: dict[int, np.ndarray] = {}
             for timepoint in needed_timepoints:
                 image_cache[timepoint] = (
-                    image_loader(
+                    load_processed_bf_std_dev_image(
                         dataset_config, position, [timepoint], DIFFAE_ZARR_RESOLUTION_LEVEL
                     )
                     .squeeze()
@@ -158,7 +144,7 @@ def main(
 
             # Calculate intensity threshold based on intensity percentile
             intensity_threshold = calculate_optical_flow_intensity_threshold(
-                intensity_percentile, list(image_cache.values())
+                list(image_cache.values())
             )
 
             # Plot optical flow summary for picks
@@ -170,7 +156,7 @@ def main(
                 feature_data=df_position,
                 output_name=output_name,
                 output_dir=output_path,
-                attachment=attachment,
+                attachment=OPTICAL_FLOW_ATTACHMENT,
                 intensity_threshold=intensity_threshold,
             )
 

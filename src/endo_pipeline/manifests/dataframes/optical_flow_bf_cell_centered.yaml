@@ -2,10 +2,7 @@ name: optical_flow_bf_cell_centered
 workflow: compute_optical_flow
 parameters:
   patch_type: cell_centered
-  channel: BF
   max_dt: 1
-  intensity_percentile: 0
-  attachment: 2.5
   ema_alpha: 0.1
 columns:
   start_x: X coordinate of upper left corner of patch [pixels] (zarr resolution level 1)

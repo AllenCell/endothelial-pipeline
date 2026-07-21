@@ -53,7 +53,7 @@ from endo_pipeline.settings.examples import (
 )
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL
-from endo_pipeline.settings.optical_flow import OPTICAL_FLOW_CHANNEL_ATTACHMENT
+from endo_pipeline.settings.optical_flow import OPTICAL_FLOW_ATTACHMENT
 
 plt.style.use("endo_pipeline.figure")
 output_path = get_output_path("supp_figure_8_migration_coherence")
@@ -79,7 +79,6 @@ picks = {
     "High migration\ncoherence": SUPP_FIG_OPTICAL_FLOW_COHERENT_EXAMPLE,
     "Low migration\ncoherence": SUPP_FIG_OPTICAL_FLOW_INCOHERENT_EXAMPLE,
 }
-attachment = OPTICAL_FLOW_CHANNEL_ATTACHMENT["BF"]
 
 # Load per-pick BF frames + crop bbox + flow.
 panels: list[dict] = []
@@ -100,7 +99,7 @@ for label, example in picks.items():
     )
     # Compute TVL1 on the full image and slice to the crop, which
     # avoids edge artefacts at the crop border.
-    uf_full, vf_full = compute_tvl1(cache[t0], cache[t1], attachment=attachment)
+    uf_full, vf_full = compute_tvl1(cache[t0], cache[t1], attachment=OPTICAL_FLOW_ATTACHMENT)
     uf, vf = uf_full[sy:ey, sx:ex], vf_full[sy:ey, sx:ex]
     panels.append(
         {

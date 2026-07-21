@@ -23,3 +23,15 @@ BOOTSTRAPPING_MANIFEST_NAMES: dict[PatchTypeLiteral, str] = {
     "grid_based": GRID_BASED_BOOTSTRAPPING_MANIFEST_NAME,
 }
 """Mapping of patch type to bootstrapping dataframe manifest name."""
+
+GRID_BASED_OPTICAL_FLOW_MANIFEST_NAME = "optical_flow_bf_grid_based"
+"""Dataframe manifest name for grid-based optical flow features."""
+
+CELL_CENTERED_OPTICAL_FLOW_MANIFEST_NAME = "optical_flow_bf_cell_centered"
+"""Dataframe manifest name for cell-centered optical flow features."""
+
+OPTICAL_FLOW_MANIFEST_NAMES: dict[PatchTypeLiteral, str] = {
+    "grid_based": GRID_BASED_OPTICAL_FLOW_MANIFEST_NAME,
+    "cell_centered": CELL_CENTERED_OPTICAL_FLOW_MANIFEST_NAME,
+}
+"""Mapping of patch type to optical flow dataframe manifest name."""
