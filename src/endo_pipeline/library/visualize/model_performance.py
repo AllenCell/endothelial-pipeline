@@ -569,13 +569,13 @@ def make_model_architecture_images(
         bf_upper_slice = raw_image[1, center_slice + Z_SLICE_OFFSETS[1], :, :].squeeze()
 
         # Save image thumbnail for each raw image slice
-        for image, image_name, outline_color in [
-            (cdh5_lower_slice, "cdh5_lower_slice", "white"),
-            (cdh5_slice, "cdh5_slice", "white"),
-            (cdh5_upper_slice, "cdh5_upper_slice", "white"),
-            (bf_lower_slice, "bf_lower_slice", "black"),
-            (bf_slice, "bf_slice", "black"),
-            (bf_upper_slice, "bf_upper_slice", "black"),
+        for image, image_name, outline_color, include_scalebar_label in [
+            (cdh5_lower_slice, "cdh5_lower_slice", "white", False),
+            (cdh5_slice, "cdh5_slice", "white", False),
+            (cdh5_upper_slice, "cdh5_upper_slice", "white", True),
+            (bf_lower_slice, "bf_lower_slice", "black", False),
+            (bf_slice, "bf_slice", "black", False),
+            (bf_upper_slice, "bf_upper_slice", "black", True),
         ]:
             image = contrast_stretching(image)
             plot_image_thumbnail(
@@ -590,6 +590,7 @@ def make_model_architecture_images(
                 bar_padding=30,
                 bar_thickness=20,
                 scalebar_location="lower right",
+                include_scalebar_label=include_scalebar_label,
                 show_plot=False,
             )
             print(
@@ -624,6 +625,7 @@ def make_model_architecture_images(
                 bar_thickness=20,
                 bar_padding=30,
                 scalebar_location="lower right",
+                include_scalebar_label=True,
                 show_plot=False,
             )
             rect = patches.Rectangle(
@@ -666,6 +668,7 @@ def make_model_architecture_images(
             pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
             file_format=".svg",
             scalebar_location="lower right",
+            include_scalebar_label=True,
             show_plot=False,
         )
         print(f"Saved {image_name} to {output_path}/{image_name}.svg")
