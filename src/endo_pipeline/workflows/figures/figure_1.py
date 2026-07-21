@@ -80,10 +80,10 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
 
     # Example images from biological system at 6 dyn/cm² and 21 dyn/cm² shear stress
-    example_path = create_panel_biological_system_examples(
+    example_full_path, example_inset_path = create_panel_biological_system_examples(
         examples=FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES,
         output_path=output_path,
-        figure_size=(5.4, 3.6),
+        figure_size=(5.3, 3.6),
         inset_coordinates=(5, 500 - 128),
         **placeholders["A"],
     )
@@ -146,10 +146,18 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     panels = [
         FigurePanel(
             letter="A",
-            path=example_path,
+            path=example_full_path,
             x_position=0,
             y_position=0,
-            x_offset=0,
+            x_offset=0.3,
+            y_offset=0,
+        ),
+        FigurePanel(
+            letter="",
+            path=example_inset_path,
+            x_position=3.1,
+            y_position=0,
+            x_offset=0.0,
             y_offset=0,
         ),
         FigurePanel(
