@@ -57,7 +57,7 @@ def main() -> None:
     from endo_pipeline.settings.examples import EXAMPLE_DATASET
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
     from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
-    from endo_pipeline.settings.manifest_names import DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS
+    from endo_pipeline.settings.manifest_names import GRID_BASED_FIXED_POINT_MANIFEST_NAME
     from endo_pipeline.settings.plot_defaults import RECONSTRUCTION_RANDOM_SEED
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -69,9 +69,6 @@ def main() -> None:
     output_path = get_output_path(__file__)
 
     placeholders = parse_placeholder_panels(None, ["A", "B", "C", "D"])
-
-    # figure is for grid based crops
-    patch_type = "grid_based"
 
     dataset_low = EXAMPLE_DATASET["FIGURE_2_LOW_FLOW_DATASET"]
     dataset_high = EXAMPLE_DATASET["FIGURE_2_HIGH_FLOW_DATASET"]
@@ -87,23 +84,20 @@ def main() -> None:
     # load dataframe manifests for diffae features, fixed points, optical flow
     # features, and bootstrapped fixed points for this patch type, which will be
     # used for all visualizations in this figure
-    name_suffix_2d = f"_{columns_r_rho_str}_{patch_type}"
     fixed_points_r_rho_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix_2d}"
+        f"{GRID_BASED_FIXED_POINT_MANIFEST_NAME}_{columns_r_rho_str}"
     )
     fixed_points_r_rho_dataframe_manifest = load_dataframe_manifest(
         fixed_points_r_rho_dataframe_manifest_name
     )
-    name_suffix_1d = f"_{column_theta}_{patch_type}"
     fixed_points_theta_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix_1d}"
+        f"{GRID_BASED_FIXED_POINT_MANIFEST_NAME}_{column_theta}"
     )
     fixed_points_theta_dataframe_manifest = load_dataframe_manifest(
         fixed_points_theta_dataframe_manifest_name
     )
-    name_suffix_3d = f"_{feature_columns_str}_{patch_type}"
     fixed_points_3d_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix_3d}"
+        f"{GRID_BASED_FIXED_POINT_MANIFEST_NAME}_{feature_columns_str}"
     )
 
     fixed_points_3d_dataframe_manifest = load_dataframe_manifest(
