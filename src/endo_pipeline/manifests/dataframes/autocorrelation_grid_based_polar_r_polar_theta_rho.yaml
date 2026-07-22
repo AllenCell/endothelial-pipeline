@@ -1,4 +1,4 @@
-name: autocorrelations_grid_based_polar_r_polar_theta_rho
+name: autocorrelation_grid_based_polar_r_polar_theta_rho
 workflow: compute_autocorrelation
 parameters:
   model_manifest_name: diffae_baseline
