@@ -11,16 +11,12 @@ DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD: str = "drift_vector_field"
 DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS: str = "drift_fixed_points"
 """Prefix for fixed points dataframe manifest name."""
 
-DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING: str = "bootstrapped_fixed_points"
-"""Prefix for setting and getting dataframe manifest name for bootstrapped fixed point dataframes."""
-
-GRID_BASED_BOOTSTRAPPING_MANIFEST_NAME: str = (
-    f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_grid_based"
-)
+GRID_BASED_BOOTSTRAPPING_MANIFEST_NAME: str = "bootstrapped_fixed_points_grid_based"
 """Dataframe manifest name for grid-based bootstrapping results."""
 
 BOOTSTRAPPING_MANIFEST_NAMES: dict[PatchTypeLiteral, str] = {
     "grid_based": GRID_BASED_BOOTSTRAPPING_MANIFEST_NAME,
+    "cell_centered": "bootstrapped_fixed_points_cell_centered",
 }
 """Mapping of patch type to bootstrapping dataframe manifest name."""
 
@@ -39,11 +35,8 @@ OPTICAL_FLOW_MANIFEST_NAMES: dict[PatchTypeLiteral, str] = {
 GRID_BASED_AUTOCORRELATION_MANIFEST_NAME: str = "autocorrelation_grid_based"
 """Dataframe manifest name for autocorrelation of grid-based features."""
 
-CELL_CENTERED_AUTOCORRELATION_MANIFEST_NAME: str = "autocorrelation_cell_centered"
-"""Dataframe manifest name for autocorrelation of cell-centered features."""
-
 AUTOCORRELATION_MANIFEST_NAMES: dict[PatchTypeLiteral, str] = {
     "grid_based": GRID_BASED_AUTOCORRELATION_MANIFEST_NAME,
-    "cell_centered": CELL_CENTERED_AUTOCORRELATION_MANIFEST_NAME,
+    "cell_centered": "autocorrelation_cell_centered",
 }
 """Mapping of patch type to autocorrelation dataframe manifest name."""
