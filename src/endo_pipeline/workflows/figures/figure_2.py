@@ -86,7 +86,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
     from endo_pipeline.settings.manifest_names import (
         BOOTSTRAPPING_MANIFEST_NAMES,
-        DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+        GRID_BASED_FIXED_POINT_MANIFEST_NAME,
     )
     from endo_pipeline.settings.summary_plot import SUMMARY_PLOT_DATASETS
     from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
@@ -123,23 +123,20 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     # used for all visualizations in this figure
     feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[patch_type]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
-    name_suffix_2d = f"_{columns_r_rho_str}_{patch_type}"
     fixed_points_r_rho_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix_2d}"
+        f"{GRID_BASED_FIXED_POINT_MANIFEST_NAME}_{columns_r_rho_str}"
     )
     fixed_points_r_rho_dataframe_manifest = load_dataframe_manifest(
         fixed_points_r_rho_dataframe_manifest_name
     )
-    name_suffix_1d = f"_{column_theta}_{patch_type}"
     fixed_points_theta_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix_1d}"
+        f"{GRID_BASED_FIXED_POINT_MANIFEST_NAME}_{column_theta}"
     )
     fixed_points_theta_dataframe_manifest = load_dataframe_manifest(
         fixed_points_theta_dataframe_manifest_name
     )
-    name_suffix_3d = f"_{feature_columns_str}_{patch_type}"
     fixed_points_3d_dataframe_manifest_name = (
-        f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix_3d}"
+        f"{GRID_BASED_FIXED_POINT_MANIFEST_NAME}_{feature_columns_str}"
     )
 
     fixed_points_3d_dataframe_manifest = load_dataframe_manifest(
