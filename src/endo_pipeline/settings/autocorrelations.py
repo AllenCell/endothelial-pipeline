@@ -8,9 +8,6 @@ MAX_LAG_INTEGRATE = 5
 """Maximum lag (in number of time points) to integrate over when calculating the
 integral of the difference between positive and negative lags of the CCF."""
 
-AUTOCORRELATION_DATAFRAME_MANIFEST_PREFIX = "autocorrelations"
-"""Prefix for the dataframe manifest containing autocorrelation function dataframes."""
-
 AUTOCORRELATION_FMS_ANNOTATION_NOTES: str = (
     "Dataframe containing autocorrelation function for various features."
 )
