@@ -96,8 +96,8 @@ def main(
     )
     from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
     from endo_pipeline.settings.manifest_names import (
-        DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
         DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD,
+        FIXED_POINT_MANIFEST_NAMES,
     )
     from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
 
@@ -143,7 +143,7 @@ def main(
     # Load drift vector field and fixed points for selected column
     name_suffix = f"_{column_name}_{patch_type}"
     vector_field_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD}{name_suffix}"
-    fixed_points_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix}"
+    fixed_points_manifest_name = f"{FIXED_POINT_MANIFEST_NAMES[patch_type]}_{column_name}"
     vector_field_manifest = load_dataframe_manifest(vector_field_manifest_name)
     fixed_points_manifest = load_dataframe_manifest(fixed_points_manifest_name)
 
