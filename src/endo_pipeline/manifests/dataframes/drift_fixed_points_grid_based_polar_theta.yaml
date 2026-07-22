@@ -1,4 +1,4 @@
-name: drift_fixed_points_polar_theta_grid_based
+name: drift_fixed_points_grid_based_polar_theta
 workflow: generate_flow_field
 parameters:
   model_manifest_name: diffae_baseline

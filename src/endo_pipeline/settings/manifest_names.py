@@ -11,6 +11,15 @@ DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD: str = "drift_vector_field"
 DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS: str = "drift_fixed_points"
 """Prefix for fixed points dataframe manifest name."""
 
+GRID_BASED_FIXED_POINT_MANIFEST_NAME: str = "drift_fixed_points_grid_based"
+"""Dataframe manifest name for grid-based fixed points."""
+
+FIXED_POINT_MANIFEST_NAMES: dict[PatchTypeLiteral, str] = {
+    "grid_based": GRID_BASED_FIXED_POINT_MANIFEST_NAME,
+    "cell_centered": "drift_fixed_points_cell_centered",
+}
+"""Mapping of patch type to fixed points dataframe manifest name."""
+
 GRID_BASED_BOOTSTRAPPING_MANIFEST_NAME: str = "bootstrapped_fixed_points_grid_based"
 """Dataframe manifest name for grid-based bootstrapping results."""
 
