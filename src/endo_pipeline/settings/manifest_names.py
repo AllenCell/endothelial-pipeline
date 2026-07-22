@@ -8,6 +8,16 @@ ZARR_IMAGE_MANIFEST_NAME: str = "image_zarr"
 DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD: str = "drift_vector_field"
 """Prefix for vector field dataframe manifest name."""
 
+GRID_BASED_VECTOR_FIELD_MANIFEST_NAME: str = "drift_vector_field_grid_based"
+"""Dataframe manifest name for grid-based vector fields."""
+
+VECTOR_FIELD_MANIFEST_NAMES: dict[PatchTypeLiteral, str] = {
+    "grid_based": GRID_BASED_VECTOR_FIELD_MANIFEST_NAME,
+    "cell_centered": "drift_vector_field_cell_centered",
+}
+"""Mapping of patch type to vector field dataframe manifest name."""
+
+
 GRID_BASED_FIXED_POINT_MANIFEST_NAME: str = "drift_fixed_points_grid_based"
 """Dataframe manifest name for grid-based fixed points."""
 
