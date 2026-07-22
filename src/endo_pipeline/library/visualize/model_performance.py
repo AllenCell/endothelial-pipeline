@@ -1,5 +1,6 @@
 """Plotting methods for model performance."""
 
+import logging
 from pathlib import Path
 from textwrap import wrap
 from typing import TYPE_CHECKING, Any, cast
@@ -32,6 +33,8 @@ MODEL_PERFORMANCE_CONTACT_SHEET_METRIC_KWARGS: dict[str, Any] = {
     "size": FONTSIZE_XSMALL * 0.5,
 }
 """Kwargs for model performance contact sheet metric overlay text."""
+
+logger = logging.getLogger(__name__)
 
 
 def add_model_and_example_metadata_to_plot(
@@ -578,9 +581,10 @@ def make_model_architecture_images(
             (bf_upper_slice, "bf_upper_slice", "black", True),
         ]:
             image = contrast_stretching(image)
+            image_name = f"{image_name}_{dataset_config.name}_T{example.timepoint}"
             plot_image_thumbnail(
                 image,
-                f"{image_name}_{dataset_config.name}_T{example.timepoint}",
+                image_name,
                 output_path,
                 figsize=thumbnail_size,
                 scalebar_size_um=100,
@@ -593,8 +597,11 @@ def make_model_architecture_images(
                 include_scalebar_label=include_scalebar_label,
                 show_plot=False,
             )
-            print(
-                f"Saved {image_name} to {output_path}/{image_name}_{dataset_config.name}_T{example.timepoint}.svg"
+            logger.info(
+                "Saved %s to %s/%s.svg",
+                image_name,
+                output_path,
+                image_name,
             )
 
         # Extract transformation steps and apply to image
@@ -640,7 +647,7 @@ def make_model_architecture_images(
             image_path = save_plot_to_path(
                 fig, output_path, image_name, file_format=".svg", pad_inches=0
             )
-            print(f"Saved {image_name} to {image_path}")
+            logger.info("Saved %s to %s", image_name, image_path)
 
     # Load transformed conditioning and diffusion examples
     conditioning_ex = load_transformed_conditioning_example_image(example, model_config)
@@ -671,7 +678,7 @@ def make_model_architecture_images(
             include_scalebar_label=True,
             show_plot=False,
         )
-        print(f"Saved {image_name} to {output_path}/{image_name}.svg")
+        logger.info("Saved %s to %s/%s.svg", image_name, output_path, image_name)
 
     # return figure asset with pre-compiled schematic
     assets_dir = get_figure_asset_dir()
