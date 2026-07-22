@@ -93,7 +93,7 @@ def main(
     )
     from endo_pipeline.settings.manifest_names import (
         BOOTSTRAPPING_MANIFEST_NAMES,
-        DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+        FIXED_POINT_MANIFEST_NAMES,
     )
     from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_PATCH_TYPE
     from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
@@ -113,8 +113,9 @@ def main(
     fp_column_names = [ColumnTemplate.FIXED_POINT % col for col in DYNAMICS_COLUMN_NAMES]
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP["grid_based"], *feature_column_names]
 
-    name_suffix = f"_{join_sorted_strings(feature_column_names)}_{MIGRATION_COHERENCE_PATCH_TYPE}"
-    fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix}"
+    name_prefix = FIXED_POINT_MANIFEST_NAMES[MIGRATION_COHERENCE_PATCH_TYPE]
+    name_suffix = join_sorted_strings(feature_column_names)
+    fixed_points_dataframe_manifest_name = f"{name_prefix}_{name_suffix}"
     fixed_points_dataframe_manifest = load_dataframe_manifest(fixed_points_dataframe_manifest_name)
 
     bootstrap_manifest_name = BOOTSTRAPPING_MANIFEST_NAMES[MIGRATION_COHERENCE_PATCH_TYPE]
