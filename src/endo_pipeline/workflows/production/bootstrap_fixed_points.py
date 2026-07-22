@@ -161,7 +161,7 @@ def main(
     from endo_pipeline.settings.flow_field_dataframes import FMS_ANNOTATION_NOTES_BOOTSTRAPPING
     from endo_pipeline.settings.manifest_names import (
         BOOTSTRAPPING_MANIFEST_NAMES,
-        DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+        FIXED_POINT_MANIFEST_NAMES,
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -184,8 +184,8 @@ def main(
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # get dataframe manifest for baseline results to match against in bootstrapping
-    name_suffix = f"_{join_sorted_strings(column_names)}_{patch_type}"
-    baseline_fixed_point_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix}"
+    name_suffix = join_sorted_strings(column_names)
+    baseline_fixed_point_manifest_name = f"{FIXED_POINT_MANIFEST_NAMES[patch_type]}_{name_suffix}"
     baseline_fixed_point_manifest = load_dataframe_manifest(baseline_fixed_point_manifest_name)
 
     # load or initialize dataframe manifest for bootstrap results
