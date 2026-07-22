@@ -32,7 +32,6 @@ from endo_pipeline.manifests import (
     get_dataframe_location_for_dataset,
     load_dataframe_manifest,
 )
-from endo_pipeline.settings.autocorrelations import AUTOCORRELATION_DATAFRAME_MANIFEST_PREFIX
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import (
@@ -62,6 +61,7 @@ from endo_pipeline.settings.flow_field_figure import (
     YLABEL_KWARGS,
 )
 from endo_pipeline.settings.image_data import NATIVE_ZARR_RESOLUTION_CROP_SIZE, PIXEL_SIZE_3i_20x
+from endo_pipeline.settings.manifest_names import GRID_BASED_AUTOCORRELATION_MANIFEST_NAME
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import (
     GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME,
@@ -489,8 +489,8 @@ def make_autocorrelation_panel(
     ]
 
     # load dataframe manifest for outputs of autocorrelation analysis workflow
-    name_prefix = AUTOCORRELATION_DATAFRAME_MANIFEST_PREFIX
-    name_suffix = f"{join_sorted_strings(column_names)}_grid_based"
+    name_prefix = GRID_BASED_AUTOCORRELATION_MANIFEST_NAME
+    name_suffix = join_sorted_strings(column_names)
     autocorrelation_manifest_name = f"{name_prefix}_{name_suffix}"
     autocorrelation_manifest = load_dataframe_manifest(autocorrelation_manifest_name)
 
