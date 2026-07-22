@@ -45,7 +45,7 @@ STAGING_DATAFRAME_MANIFEST_NAMES = [
     "bootstrapped_fixed_points_grid_based",
     "diffae_model_comparison_metrics_diffae_baseline",
     "diffae_model_comparison_metrics_diffae_cdh5_conditioned",
-    "autocorrelations_polar_r_polar_theta_rho_grid_based",
+    "autocorrelation_grid_based_polar_r_polar_theta_rho",
     "optical_flow_bf_grid_based",
     "optical_flow_bf_cell_centered",
     "first_passage_time_parameter_sweep",
