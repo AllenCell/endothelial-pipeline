@@ -47,7 +47,6 @@ def main(datasets: Datasets | None = None):
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_annotations
-    from endo_pipeline.library.model.train_model import get_included_frames_for_model
     from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
@@ -100,12 +99,6 @@ def main(datasets: Datasets | None = None):
         shear_stress = [flow.shear_stress for flow in dataset_config.flow_conditions]
         cell_line = sequence_to_scalar(dataset_config.cell_lines)
 
-        # get list of timepoints that were included for training for each position
-        only_include_frames = get_included_frames_for_model(dataset_config)
-        num_timepoints_for_training = sum(
-            [len(only_include_frames[pos]) for pos in only_include_frames]
-        )
-
         # load in segmentation features dataframe for the dataset if it was put through the classical
         # feature workflows, otherwise record "NaN" for the segmentation counts
         if dataset_name not in dataset_name_list_segmented:
@@ -117,7 +110,6 @@ def main(datasets: Datasets | None = None):
             num_cell_seg_after_filt = np.nan
             num_tracks_before_filt = np.nan
             num_tracks_left_after_filter = np.nan
-            num_timepoints_left_after_filter = np.nan
             seg_lengths_px_mean = np.nan
             seg_lengths_px_std = np.nan
             seg_lengths_px_median = np.nan
@@ -193,12 +185,6 @@ def main(datasets: Datasets | None = None):
             # the "is_included" column in the dataframe is defined when the dataframe is constructed
             # based on whether the track at that timepoint passed all filtering steps or not
             # (see endo_pipeline\library\analyze\live_data_manifest\lib_make_seg_feats_manifest.add_filter_columns for details)
-            num_timepoints_left_after_filter = (
-                live_seg_feats_df[live_seg_feats_df[Column.SegDataFilters.IS_INCLUDED]]
-                .groupby([Column.POSITION])[Column.TIMEPOINT]
-                .nunique()
-                .sum()
-            )
             num_tracks_left_after_filter = (
                 live_seg_feats_df[live_seg_feats_df[Column.SegDataFilters.IS_INCLUDED]]
                 .groupby(Column.POSITION)[Column.TRACK_ID]
@@ -278,10 +264,6 @@ def main(datasets: Datasets | None = None):
         seg_counts["num_cell_segmentations_after_filter"].append(num_cell_seg_after_filt)
         seg_counts["num_tracks_before_filter"].append(num_tracks_before_filt)
         seg_counts["num_tracks_after_filter"].append(num_tracks_left_after_filter)
-        # add dataset duration information
-        seg_counts["dataset_duration_timeframes"].append(dataset_config.duration)
-        seg_counts["num_timeframes_left_after_filter"].append(num_timepoints_left_after_filter)
-        seg_counts["num_timeframes_for_training"].append(num_timepoints_for_training)
         # add the cell length statistics
         seg_counts["major_axis_length_mean_px"].append(seg_lengths_px_mean)
         seg_counts["major_axis_length_std_px"].append(seg_lengths_px_std)
