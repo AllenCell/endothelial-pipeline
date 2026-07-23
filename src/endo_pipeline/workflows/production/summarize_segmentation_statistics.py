@@ -3,7 +3,7 @@ from endo_pipeline.cli import Datasets
 
 def main(datasets: Datasets | None = None):
     """
-    Summarize segmentation counts across select datasets.
+    Summarize segmentation statistics across select datasets.
 
     #cdh5-segmentation #cdh5-tracking #nuclei-prediction #test-ready
 
@@ -12,13 +12,13 @@ def main(datasets: Datasets | None = None):
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe summarize-segmentation-counts -d
+    uv run endopipe summarize-segmentation-statistics -d
     ```
 
     To run the workflow for a single dataset:
 
     ```bash
-    uv run endopipe summarize-segmentation-counts --datasets DATASET_NAME
+    uv run endopipe summarize-segmentation-statistics --datasets DATASET_NAME
     ```
 
     ## Dataset collection
