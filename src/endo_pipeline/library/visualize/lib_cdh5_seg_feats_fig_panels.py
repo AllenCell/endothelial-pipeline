@@ -32,12 +32,7 @@ from endo_pipeline.library.process.general_image_preprocessing import (
 )
 from endo_pipeline.library.visualize.figure_utils import plot_image_thumbnail
 from endo_pipeline.library.visualize.figures import figure_panel, get_figure_asset_dir
-from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
-    adjust_axes_ticks,
-    mark_parallel,
-    mark_perpendicular,
-    plot_histogram_of_features,
-)
+from endo_pipeline.library.visualize.seg_features.general_standard_plots import adjust_axes_ticks
 from endo_pipeline.manifests import (
     get_dataframe_location_for_dataset,
     get_image_location_for_dataset,
@@ -49,7 +44,7 @@ from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameType
 from endo_pipeline.settings.examples import CDH5_SEG_FIG_EXAMPLE
-from endo_pipeline.settings.figures import FONT_FAMILY, FONTSIZE_SMALL, PDF_FONT_TYPE
+from endo_pipeline.settings.figures import FONTSIZE_SMALL
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import (
     ANNOTATIONS_TO_FILTER_OUT_FOR_SEGMENTATIONS,
@@ -377,122 +372,6 @@ def make_imaging_panels(
 
     # return path to figure asset
     return get_figure_asset_dir() / "cdh5_classic_seg_schematic.svg"
-
-
-def make_classic_feature_panels(dataset_name: str, out_dir: Path) -> dict[str, Path]:
-
-    # Set some global plotting parameters to be consistent
-    # with the other plots in the manuscript
-    plt.style.use("endo_pipeline.figure")
-    plt.rcParams.update(
-        {
-            "pdf.fonttype": PDF_FONT_TYPE,
-            "font.family": FONT_FAMILY,
-            "axes.labelsize": FONTSIZE_SMALL,
-            "xtick.labelsize": FONTSIZE_SMALL,
-            "ytick.labelsize": FONTSIZE_SMALL,
-        }
-    )
-
-    out_subdir = out_dir / dataset_name
-    out_subdir.mkdir(exist_ok=True, parents=True)
-
-    # pick the features you need:
-    # features to plot:
-    periodic_feats = [
-        Column.SegData.NUCLEI_POSITION_ANGLE_DEG,
-        Column.SegData.CENTROID_VELOCITY_ANGLE_DEG,
-        Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DEG,
-    ]
-    feats_to_plot = periodic_feats + [
-        Column.SegData.ALIGNMENT_DEG,
-        Column.SegData.ORIENTATION_DEG,
-        Column.SegData.ASPECT_RATIO,
-        Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DOTPROD,
-        Column.SegData.CELL_FLUOR_MEAN,
-        Column.SegData.EDGE_FLUOR_MEAN,
-        Column.SegData.NODE_FLUOR_MEAN,
-        Column.SegData.AREA_UM_SQ,
-    ]
-
-    time_col = Column.SegData.TIME_HRS_SINCE_FLOW
-
-    dataset_config = load_dataset_config(dataset_name)
-    df = _load_seg_feats_df(dataset_config, set(feats_to_plot))
-
-    assert dataset_config.time_interval_in_minutes is not None
-    assert dataset_config.timepoint_annotations is not None
-
-    flow_start_time_hrs = (
-        dataset_config.flow_conditions[0].start * dataset_config.time_interval_in_minutes / 60.0
-    )
-    imaging_start_time = -flow_start_time_hrs
-    steady_state_time_p0 = cast(
-        tuple[int, int],
-        dataset_config.timepoint_annotations[TimepointAnnotation.NOT_STEADY_STATE][0][0],
-    )
-    steady_state_time_shifted = (
-        steady_state_time_p0[1] * dataset_config.time_interval_in_minutes / 60.0
-        - flow_start_time_hrs
-    )
-
-    # Get feature metadata for time axis
-    time_metadata = COLUMN_METADATA[time_col]
-
-    # create and save the panels of each of the features
-    panels = {}
-    for feat in feats_to_plot:
-        feature_metadata = COLUMN_METADATA[feat]
-        figure_name = f"{dataset_name}_{feature_metadata.slug}"
-
-        # create the 2D histogram panel
-        fig, ax = plot_histogram_of_features(
-            df,
-            x_column_name=time_col,
-            y_column_name=feat,
-            x_feature_metadata=time_metadata,
-            y_feature_metadata=feature_metadata,
-            x_minor_ticks=True,
-            y_minor_ticks=True,
-            figsize=PLOT_PANEL_SIZE,
-            colormap_name="inferno",
-        )
-
-        # perform some additional adjustments to the panel
-        ax.set_title("")
-        if feat in periodic_feats:
-            mark_parallel(ax, color="lightgrey")
-            mark_perpendicular(ax, color="lightgrey")
-        if feat == Column.SegData.NUCLEI_POSITION_RELATIVE_MIGRATION_DOTPROD:
-            ax.axhline(0, color="lightgrey", linestyle="--", linewidth=1)
-        ax.axvline(
-            imaging_start_time,
-            color="limegreen",
-            linestyle="--",
-            linewidth=1,
-            label="Start of imaging",
-        )
-        ax.axvline(
-            steady_state_time_shifted,
-            color="darkturquoise",
-            linestyle="--",
-            linewidth=1,
-            label="Start of steady state",
-        )
-
-        # save the panel in high quality and as a PNG thumbnail
-        # (PNG thumbnail is for convenient use in presentations)
-        for fmt in [".svg", ".png"]:
-            save_plot_to_path(
-                figure=fig,
-                output_path=out_subdir,
-                figure_name=figure_name,
-                file_format=cast(Literal[".svg", ".png"], fmt),
-                tight_layout=False,
-            )
-        panels[str(feat)] = out_subdir / f"{figure_name}.svg"
-
-    return panels
 
 
 def make_feature_contact_sheet(

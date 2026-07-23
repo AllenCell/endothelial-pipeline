@@ -96,7 +96,6 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         classic_feat_fig_example_paths[dataset] = classic_feat_fig_example_path
 
     assets_dir = get_figure_asset_dir()
-    schematic_fp = assets_dir / "cdh5_classic_seg_schematic.svg"
     feature_diagram_fp = assets_dir / "cdh5_seg_feat_diagrams.svg"
 
     figure_panels = [
