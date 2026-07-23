@@ -216,9 +216,14 @@ def main(datasets: Datasets | None = None):
     major_axis_len_mean_all_um = seg_counts_df["major_axis_length_mean_um"].mean()
     cell_displacement_mean_all_px = seg_counts_df["cell_displacement_mean_px"].mean()
 
-    print(f"Mean cell length across all datasets (px): {major_axis_len_mean_all_px}")
+    print(f"Mean cell length across all datasets (px, resolution 0): {major_axis_len_mean_all_px}")
     print(f"Mean cell length across all datasets (um): {major_axis_len_mean_all_um}")
-    print(f"Mean cell displacement across all datasets (px): {cell_displacement_mean_all_px}")
+    print(
+        f"Mean cell displacement across all datasets (px, resolution 0): {cell_displacement_mean_all_px}"
+    )
+    print(
+        f"Mean cell displacement across all datasets (px, resolution 1): {cell_displacement_mean_all_px/2}"
+    )
 
 
 if __name__ == "__main__":
