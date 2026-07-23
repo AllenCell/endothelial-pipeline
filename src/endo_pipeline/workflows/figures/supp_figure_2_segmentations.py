@@ -44,7 +44,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     )
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.examples import CDH5_SEG_FIG_EXAMPLE
-    from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 
     plt.style.use("endo_pipeline.figure")
 
@@ -54,7 +54,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     # Set the panel sizes
     panel_A_height = 3.05
-    panel_BC_height = 1.6
+    panel_BC_height = 2.3
     panel_BC_width = 4.8
 
     # the panels produced by make_classic_feature_panels are arranged into
@@ -98,8 +98,8 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         feature_diagram_fp = build_empty_panel(
             output_path,
             "Diagram of segmentation-based features",
-            1.75,
-            7.5,
+            1.5,
+            4.5,
         )
     else:
         assets_dir = get_figure_asset_dir()
@@ -144,7 +144,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         figure_panels,
         output_path / "supp_figure_2_segmentations.svg",
         width=MAX_FIGURE_WIDTH,
-        height=panel_A_height + 2 * panel_BC_height + 0.3,
+        height=MAX_FIGURE_HEIGHT,
     )
 
 
