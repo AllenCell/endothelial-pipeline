@@ -59,8 +59,8 @@ def main(datasets: Datasets | None = None) -> None:
     from endo_pipeline.settings.examples import EXAMPLE_DATASET
     from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
     from endo_pipeline.settings.manifest_names import (
-        DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
         GRID_BASED_BOOTSTRAPPING_MANIFEST_NAME,
+        GRID_BASED_FIXED_POINT_MANIFEST_NAME,
     )
 
     logger = logging.getLogger(__name__)
@@ -78,12 +78,11 @@ def main(datasets: Datasets | None = None) -> None:
         logger.warning("DEMO MODE - Limiting to one dataset")
         dataset_names = dataset_names[:1]
 
-    name_suffix_2d = f"_{join_sorted_strings(column_names_2d)}_grid_based"
-    fixed_points_2d_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix_2d}"
+    name_suffix_2d = join_sorted_strings(column_names_2d)
+    fixed_points_2d_manifest_name = f"{GRID_BASED_FIXED_POINT_MANIFEST_NAME}_{name_suffix_2d}"
     fixed_points_2d_manifest = load_dataframe_manifest(fixed_points_2d_manifest_name)
 
-    name_suffix_1d = f"_{column_name_1d}_grid_based"
-    fixed_points_1d_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix_1d}"
+    fixed_points_1d_manifest_name = f"{GRID_BASED_FIXED_POINT_MANIFEST_NAME}_{column_name_1d}"
     fixed_points_1d_manifest = load_dataframe_manifest(fixed_points_1d_manifest_name)
 
     bootstrap_dataframe_manifest = load_dataframe_manifest(GRID_BASED_BOOTSTRAPPING_MANIFEST_NAME)
