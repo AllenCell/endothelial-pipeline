@@ -93,7 +93,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         output_path=output_path,
         num_gpus=NUM_GPUS,
         figure_size=(5.4, 2.4),
-        for_supplemental_figure=False,
+        use_simplified=True,
         **placeholders["B"],
     )
 

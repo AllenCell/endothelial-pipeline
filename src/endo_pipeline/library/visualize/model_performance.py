@@ -462,7 +462,7 @@ def make_model_architecture_images(
     num_gpus: int | None = None,
     figure_size: tuple[float, float] = (5.4, 2.4),
     thumbnail_size: tuple[float, float] = (0.7, 0.7),
-    for_supplemental_figure: bool = False,
+    use_simplified: bool = False,
 ) -> Path:
     """
     Create thumbnails for various parts of the DiffAE eval architecture.
@@ -474,12 +474,12 @@ def make_model_architecture_images(
     the Supplemental Figure includes example images of raw image slices and the
     full FOV of the input data.
 
-    If the boolean flag `for_supplemental_figure` is True, the saved outputs
-    will include these additional images, and the returned path will point to
-    the figure asset with the full model architecture diagram. Else, the saved
-    outputs will only include the patches visualized in the main figure
-    schematic, and the returned path will point to the figure asset with the
-    main figure schematic.
+    If the boolean flag `use_simplified` is True, the saved outputs will include
+    the simplified version of the model architecture diagram, and the returned
+    path will point to the figure asset with the simplified model architecture
+    diagram. Else, the saved outputs will include the full model architecture
+    diagram with additional images, and the returned path will point to the
+    figure asset with the full model architecture diagram.
 
     Parameters
     ----------
@@ -491,8 +491,9 @@ def make_model_architecture_images(
         Size of the overall figure (used for panel placeholder).
     thumbnail_size
         Size of image thumbnails.
-    for_supplemental_figure
-        True if the figure is for a supplemental figure, False otherwise.
+    use_simplified
+        True if the figure should use the simplified version of the model
+        architecture diagram, False otherwise.
 
     """
     from matplotlib import patches
@@ -562,7 +563,7 @@ def make_model_architecture_images(
         compute=True,
     )
 
-    if for_supplemental_figure:
+    if not use_simplified:
         # Get slices from raw image
         cdh5_lower_slice = raw_image[0, center_slice - Z_SLICE_OFFSETS[0], :, :].squeeze()
         cdh5_slice = raw_image[0, center_slice, :, :].squeeze()
@@ -682,7 +683,7 @@ def make_model_architecture_images(
 
     # return figure asset with pre-compiled schematic
     assets_dir = get_figure_asset_dir()
-    if for_supplemental_figure:
+    if not use_simplified:
         return assets_dir / "diffae_training_schematic.svg"
     else:
         return assets_dir / "diffae_eval_schematic.svg"
