@@ -125,9 +125,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     # pairwise combination of polar coordinates, and plot contours of drift coefficients
     contour_plot_paths: dict[str, Path] = {}
     nullcline_reconstruction_paths: dict[str, Path] = {}
-    for dataset_name, left_panel, right_panel in [
-        (dataset_low, "A", "B"),
-        (dataset_high, "C", "D"),
+    for dataset_name, left_panel in [
+        (dataset_low, "A"),
+        (dataset_high, "C"),
     ]:
         fig_savedir = get_output_path(__file__, dataset_name)
 
@@ -184,7 +184,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             model=model,
             num_gpus=NUM_GPUS,
             random_seed=RECONSTRUCTION_RANDOM_SEED,
-            **placeholders[right_panel],
+            **placeholders[left_panel],  # this panel depends on the output of the contour plots
         )
 
     # --- Assemble all panels into final figure ---
