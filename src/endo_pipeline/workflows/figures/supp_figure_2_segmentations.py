@@ -58,9 +58,8 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     # Set the panel sizes
     panel_A_height = 3.05
-    panel_B_height = 2.3
-    panel_C_height = panel_B_height
-    panel_B_and_C_width = 4.8
+    panel_BC_height = 2.3
+    panel_BC_width = 4.8
 
     # the panels produced by make_classic_feature_panels are arranged into
     # the schematic in panel A using Adobe Illustrator, not here in the code
@@ -69,6 +68,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         dataset_name=CDH5_SEG_FIG_EXAMPLE.dataset_name,
         position=CDH5_SEG_FIG_EXAMPLE.position,
         timeframe=CDH5_SEG_FIG_EXAMPLE.timepoint,
+        figure_size=(MAX_FIGURE_WIDTH, panel_A_height),
         **placeholders["A"],
     )
 
@@ -90,7 +90,8 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             features=features,
             ncols=3,
             out_dir=output_path / "feature_contact_sheet",
-            figure_width=panel_B_and_C_width,
+            figure_width=panel_BC_width,
+            figure_height=panel_BC_height,
             figure_height_scaling=0.7,
         )
         classic_feat_fig_example_paths[dataset] = classic_feat_fig_example_path
@@ -119,14 +120,14 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             letter="C",
             path=classic_feat_fig_example_paths[datasets[1]],
             x_position=0,
-            y_position=panel_A_height + panel_B_height + 0.2,
+            y_position=panel_A_height + panel_BC_height + 0.2,
             x_offset=-0.1,
             y_offset=0.1,
         ),
         FigurePanel(
             letter="D",
             path=feature_diagram_fp,
-            x_position=panel_B_and_C_width + 0.2,
+            x_position=panel_BC_width + 0.2,
             y_position=panel_A_height + 0.15,
             x_offset=-0.03,
             y_offset=0.1,
@@ -137,7 +138,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         figure_panels,
         output_path / "supp_figure_2_segmentations.svg",
         width=MAX_FIGURE_WIDTH,
-        height=panel_A_height + panel_B_height + panel_C_height + 0.3,
+        height=panel_A_height + 2 * panel_BC_height + 0.3,
     )
 
 
