@@ -1,4 +1,7 @@
-def main() -> None:
+from endo_pipeline.cli import UniqueStrList
+
+
+def main(include_panels: UniqueStrList | None = None) -> None:
     """
     **Supplemental Figure 2**. Generation of tracked 2D cell segmentations and
     measurements using VE-cadherin
