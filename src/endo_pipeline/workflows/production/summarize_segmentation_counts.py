@@ -218,12 +218,15 @@ def main(datasets: Datasets | None = None):
     seg_counts_df = pd.DataFrame(seg_counts)
     output_file = output_path / "segmentation_counts_across_datasets.tsv"
     seg_counts_df.to_csv(output_file, sep="\t", index=False)
+    logger.info("Saved summary table to [ %s ]", output_file)
 
     major_axis_len_mean_all_px = seg_counts_df["major_axis_length_mean_px"].mean()
     major_axis_len_mean_all_um = seg_counts_df["major_axis_length_mean_um"].mean()
+    cell_displacement_mean_all_px = seg_counts_df["cell_displacement_mean_px"].mean()
 
-    logger.info(f"Mean cell length across all datasets (px): {major_axis_len_mean_all_px}")
-    logger.info(f"Mean cell length across all datasets (um): {major_axis_len_mean_all_um}")
+    print(f"Mean cell length across all datasets (px): {major_axis_len_mean_all_px}")
+    print(f"Mean cell length across all datasets (um): {major_axis_len_mean_all_um}")
+    print(f"Mean cell displacement across all datasets (px): {cell_displacement_mean_all_px}")
 
 
 if __name__ == "__main__":
