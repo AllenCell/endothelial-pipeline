@@ -21,7 +21,7 @@ from endo_pipeline.configs import (
     TimepointAnnotation,
     load_dataset_config,
 )
-from endo_pipeline.io import get_output_path, load_dataframe, load_image, save_plot_to_path
+from endo_pipeline.io import load_dataframe, load_image, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_annotations
 from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
     calculate_derived_data_dynamics_dependent,
@@ -31,6 +31,7 @@ from endo_pipeline.library.process.general_image_preprocessing import (
     save_image_output,
 )
 from endo_pipeline.library.visualize.figure_utils import plot_image_thumbnail
+from endo_pipeline.library.visualize.figures import figure_panel, get_figure_asset_dir
 from endo_pipeline.library.visualize.seg_features.general_standard_plots import (
     adjust_axes_ticks,
     mark_parallel,
@@ -107,15 +108,39 @@ def _load_seg_feats_df(
     return calculate_derived_data_dynamics_dependent(df)
 
 
+@figure_panel("Segmentation pipeline schematic")
 def make_imaging_panels(
+    output_path: Path,
     dataset_name: str,
     position: int,
     timeframe: int,
-    workflow_name: str,
-) -> None:
+    figure_size: tuple[float, float] = (6.5, 2.0),
+) -> Path:
+    """
+    Make image thumbnails for the segmentation pipeline schematic.
 
-    out_dir_full = get_output_path(workflow_name, "images_high_quality")
-    out_dir_thumb = get_output_path(workflow_name, "images_thumbnails")
+    Parameters
+    ----------
+    output_path
+        Path to the directory where the output images will be saved.
+    dataset_name
+        Name of the dataset to load.
+    position
+        Position index within the dataset.
+    timeframe
+        Timepoint to extract from the dataset (timepoints are saved every 48 frames).
+    figure_size
+        Figure size, used for placeholder panel generation only.
+
+    Returns
+    -------
+    :
+        Path to the pre-generated imaging panel figure.
+    """
+    out_dir_full = output_path / "images_high_quality"
+    out_dir_full.mkdir(parents=True, exist_ok=True)
+    out_dir_thumb = output_path / "images_thumbnails"
+    out_dir_thumb.mkdir(parents=True, exist_ok=True)
 
     dataset_config = load_dataset_config(dataset_name)
 
@@ -349,6 +374,9 @@ def make_imaging_panels(
                 show_plot=False,
                 image_colormap=panel_dict[panel_name]["colors_thumbnail"],
             )
+
+    # return path to figure asset
+    return get_figure_asset_dir() / "cdh5_classic_seg_schematic.svg"
 
 
 def make_classic_feature_panels(dataset_name: str, out_dir: Path) -> dict[str, Path]:

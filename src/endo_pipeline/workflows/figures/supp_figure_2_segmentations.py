@@ -35,6 +35,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel,
         build_figure_from_panels,
         get_figure_asset_dir,
+        parse_placeholder_panels,
     )
     from endo_pipeline.library.visualize.lib_cdh5_seg_feats_fig_panels import (
         make_feature_contact_sheet,
@@ -51,6 +52,8 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     output_path = get_output_path(__file__)
 
+    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
+
     datasets = CDH5_SEG_FIG_CLASSIC_FEAT_EXAMPLES
 
     # Set the panel sizes
@@ -61,11 +64,12 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     # the panels produced by make_classic_feature_panels are arranged into
     # the schematic in panel A using Adobe Illustrator, not here in the code
-    make_imaging_panels(
-        CDH5_SEG_FIG_EXAMPLE.dataset_name,
-        CDH5_SEG_FIG_EXAMPLE.position,
-        CDH5_SEG_FIG_EXAMPLE.timepoint,
-        __file__,
+    schematic_fp = make_imaging_panels(
+        output_path=output_path,
+        dataset_name=CDH5_SEG_FIG_EXAMPLE.dataset_name,
+        position=CDH5_SEG_FIG_EXAMPLE.position,
+        timeframe=CDH5_SEG_FIG_EXAMPLE.timepoint,
+        **placeholders["A"],
     )
 
     # make_contact_sheet of select features
