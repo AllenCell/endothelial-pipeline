@@ -43,19 +43,14 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         make_imaging_panels,
     )
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.examples import (
-        CDH5_SEG_FIG_CLASSIC_FEAT_EXAMPLES,
-        CDH5_SEG_FIG_EXAMPLE,
-    )
+    from endo_pipeline.settings.examples import CDH5_SEG_FIG_EXAMPLE
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
 
     plt.style.use("endo_pipeline.figure")
 
     output_path = get_output_path(__file__)
 
-    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C"])
-
-    datasets = CDH5_SEG_FIG_CLASSIC_FEAT_EXAMPLES
+    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
 
     # Set the panel sizes
     panel_A_height = 3.05
@@ -84,7 +79,10 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     ]
 
     classic_feat_fig_example_paths = {}
-    for dataset, panel in zip(datasets, ["B", "C"], strict=True):
+    for dataset, panel in [
+        ("20250409_20X", "B"),
+        ("20250611_20X", "C"),
+    ]:
         classic_feat_fig_example_path = make_feature_contact_sheet(
             dataset_name=dataset,
             positions=[0],
@@ -94,7 +92,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             figure_size=(panel_BC_width, panel_BC_height),
             **placeholders[panel],
         )
-        classic_feat_fig_example_paths[dataset] = classic_feat_fig_example_path
+        classic_feat_fig_example_paths[panel] = classic_feat_fig_example_path
 
     if placeholders["D"]["placeholder"]:
         feature_diagram_fp = build_empty_panel(
@@ -118,7 +116,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         ),
         FigurePanel(
             letter="B",
-            path=classic_feat_fig_example_paths[datasets[0]],
+            path=classic_feat_fig_example_paths["B"],
             x_position=0,
             y_position=panel_A_height + 0.15,
             x_offset=-0.1,
@@ -126,7 +124,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         ),
         FigurePanel(
             letter="C",
-            path=classic_feat_fig_example_paths[datasets[1]],
+            path=classic_feat_fig_example_paths["C"],
             x_position=0,
             y_position=panel_A_height + panel_BC_height + 0.2,
             x_offset=-0.1,
