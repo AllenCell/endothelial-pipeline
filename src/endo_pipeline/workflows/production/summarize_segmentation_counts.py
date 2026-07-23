@@ -125,9 +125,6 @@ def main(datasets: Datasets | None = None):
                 Column.POSITION,
                 Column.TIMEPOINT,
                 Column.TRACK_ID,
-                Column.SegData.NUM_NUCLEI_AT_TIMEPOINT,
-                Column.SegData.NUM_TRACKS_BEFORE_FILTERING,
-                Column.SegData.NUM_TRACKS_AFTER_FILTERING,
                 Column.SegData.MAJOR_AXIS,
                 Column.SegDataFilters.IS_INCLUDED,
             ]
