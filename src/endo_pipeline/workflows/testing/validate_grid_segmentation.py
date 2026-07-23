@@ -69,9 +69,7 @@ def main(datasets: Datasets | None = None):
 
     logger = logging.getLogger(__name__)
 
-    dataset_names = datasets or get_datasets_in_collection(
-        "live_cdh5_seg_based_feat_datasets", "perturbation"
-    )
+    dataset_names = datasets or get_datasets_in_collection("timelapse")
 
     if DEMO_MODE:
         logger.warning("DEMO MODE - Limiting to one dataset")
