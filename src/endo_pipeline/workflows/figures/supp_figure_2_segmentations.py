@@ -1,4 +1,7 @@
-def main() -> None:
+from endo_pipeline.cli import UniqueStrList
+
+
+def main(include_panels: UniqueStrList | None = None) -> None:
     """
     **Supplemental Figure 2**. Generation of tracked 2D cell segmentations and
     measurements using VE-cadherin
@@ -30,39 +33,39 @@ def main() -> None:
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.figures import (
         FigurePanel,
+        build_empty_panel,
         build_figure_from_panels,
         get_figure_asset_dir,
+        parse_placeholder_panels,
     )
     from endo_pipeline.library.visualize.lib_cdh5_seg_feats_fig_panels import (
         make_feature_contact_sheet,
         make_imaging_panels,
     )
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.examples import (
-        CDH5_SEG_FIG_CLASSIC_FEAT_EXAMPLES,
-        CDH5_SEG_FIG_EXAMPLE,
-    )
-    from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.examples import CDH5_SEG_FIG_EXAMPLE
+    from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 
     plt.style.use("endo_pipeline.figure")
 
     output_path = get_output_path(__file__)
 
-    datasets = CDH5_SEG_FIG_CLASSIC_FEAT_EXAMPLES
+    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
 
     # Set the panel sizes
     panel_A_height = 3.05
-    panel_B_height = 2.3
-    panel_C_height = panel_B_height
-    panel_B_and_C_width = 4.8
+    panel_BC_height = 2.3
+    panel_BC_width = 4.8
 
     # the panels produced by make_classic_feature_panels are arranged into
     # the schematic in panel A using Adobe Illustrator, not here in the code
-    make_imaging_panels(
-        CDH5_SEG_FIG_EXAMPLE.dataset_name,
-        CDH5_SEG_FIG_EXAMPLE.position,
-        CDH5_SEG_FIG_EXAMPLE.timepoint,
-        __file__,
+    schematic_fp = make_imaging_panels(
+        output_path=output_path,
+        dataset_name=CDH5_SEG_FIG_EXAMPLE.dataset_name,
+        position=CDH5_SEG_FIG_EXAMPLE.position,
+        timeframe=CDH5_SEG_FIG_EXAMPLE.timepoint,
+        figure_size=(MAX_FIGURE_WIDTH, panel_A_height),
+        **placeholders["A"],
     )
 
     # make_contact_sheet of select features
@@ -76,21 +79,31 @@ def main() -> None:
     ]
 
     classic_feat_fig_example_paths = {}
-    for dataset in datasets:
+    for dataset, panel in [
+        ("20250409_20X", "B"),
+        ("20250611_20X", "C"),
+    ]:
         classic_feat_fig_example_path = make_feature_contact_sheet(
             dataset_name=dataset,
             positions=[0],
             features=features,
             ncols=3,
-            out_dir=output_path / "feature_contact_sheet",
-            figure_width=panel_B_and_C_width,
-            figure_height_scaling=0.7,
+            output_path=output_path / "feature_contact_sheet",
+            figure_size=(panel_BC_width, panel_BC_height),
+            **placeholders[panel],
         )
-        classic_feat_fig_example_paths[dataset] = classic_feat_fig_example_path
+        classic_feat_fig_example_paths[panel] = classic_feat_fig_example_path
 
-    assets_dir = get_figure_asset_dir()
-    schematic_fp = assets_dir / "cdh5_classic_seg_schematic.svg"
-    feature_diagram_fp = assets_dir / "cdh5_seg_feat_diagrams.svg"
+    if placeholders["D"]["placeholder"]:
+        feature_diagram_fp = build_empty_panel(
+            output_path,
+            "Diagram of segmentation-based features",
+            1.5,
+            4.5,
+        )
+    else:
+        assets_dir = get_figure_asset_dir()
+        feature_diagram_fp = assets_dir / "cdh5_seg_feat_diagrams.svg"
 
     figure_panels = [
         FigurePanel(
@@ -103,7 +116,7 @@ def main() -> None:
         ),
         FigurePanel(
             letter="B",
-            path=classic_feat_fig_example_paths[datasets[0]],
+            path=classic_feat_fig_example_paths["B"],
             x_position=0,
             y_position=panel_A_height + 0.15,
             x_offset=-0.1,
@@ -111,16 +124,16 @@ def main() -> None:
         ),
         FigurePanel(
             letter="C",
-            path=classic_feat_fig_example_paths[datasets[1]],
+            path=classic_feat_fig_example_paths["C"],
             x_position=0,
-            y_position=panel_A_height + panel_B_height + 0.2,
+            y_position=panel_A_height + panel_BC_height + 0.2,
             x_offset=-0.1,
             y_offset=0.1,
         ),
         FigurePanel(
             letter="D",
             path=feature_diagram_fp,
-            x_position=panel_B_and_C_width + 0.2,
+            x_position=panel_BC_width + 0.2,
             y_position=panel_A_height + 0.15,
             x_offset=-0.03,
             y_offset=0.1,
@@ -131,7 +144,7 @@ def main() -> None:
         figure_panels,
         output_path / "supp_figure_2_segmentations.svg",
         width=MAX_FIGURE_WIDTH,
-        height=panel_A_height + panel_B_height + panel_C_height + 0.3,
+        height=MAX_FIGURE_HEIGHT,
     )
 
 
