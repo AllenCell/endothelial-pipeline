@@ -12,7 +12,12 @@ from matplotlib.colors import Colormap
 from mpl_toolkits.mplot3d import Axes3D
 
 from endo_pipeline.io.output import save_plot_to_path
-from endo_pipeline.settings.figures import FIGURE_SAVE_DPI, FONTSIZE_LARGE, FONTSIZE_SMALL
+from endo_pipeline.settings.figures import (
+    FIGURE_SAVE_DPI,
+    FONTSIZE_LARGE,
+    FONTSIZE_SMALL,
+    FONTSIZE_XSMALL,
+)
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
@@ -245,6 +250,8 @@ def plot_image_thumbnail(
     scalebar_location: Literal[
         "lower right", "lower left", "upper right", "upper left"
     ] = "lower left",
+    include_scalebar_label: bool = False,
+    scalebar_label_fontsize: int = FONTSIZE_XSMALL,
     bar_thickness: int = 10,
     bar_padding: int = 20,
     show_plot: bool = True,
@@ -308,6 +315,8 @@ def plot_image_thumbnail(
             location=scalebar_location,
             bar_thickness=bar_thickness,
             padding=bar_padding,
+            include_label=include_scalebar_label,
+            label_fontsize=scalebar_label_fontsize,
         )
         image_name += f"_scalebar{scalebar_size_um}um"
 
