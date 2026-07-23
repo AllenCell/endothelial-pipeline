@@ -33,6 +33,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.figures import (
         FigurePanel,
+        build_empty_panel,
         build_figure_from_panels,
         get_figure_asset_dir,
         parse_placeholder_panels,
@@ -52,7 +53,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     output_path = get_output_path(__file__)
 
-    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
+    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C"])
 
     datasets = CDH5_SEG_FIG_CLASSIC_FEAT_EXAMPLES
 
@@ -96,8 +97,16 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         )
         classic_feat_fig_example_paths[dataset] = classic_feat_fig_example_path
 
-    assets_dir = get_figure_asset_dir()
-    feature_diagram_fp = assets_dir / "cdh5_seg_feat_diagrams.svg"
+    if placeholders["D"]["placeholder"]:
+        feature_diagram_fp = build_empty_panel(
+            output_path,
+            "Diagram of segmentation-based features",
+            1.75,
+            7.5,
+        )
+    else:
+        assets_dir = get_figure_asset_dir()
+        feature_diagram_fp = assets_dir / "cdh5_seg_feat_diagrams.svg"
 
     figure_panels = [
         FigurePanel(
