@@ -159,7 +159,9 @@ def main(
     # Build dataframe manifest names that include sorted list of selected
     # columns used to generate the flow field.
     name_suffix = join_sorted_strings(column_names)
-    vector_field_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD}_{name_suffix}"
+    vector_field_dataframe_manifest_name = (
+        f"{DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD}_{name_suffix}_{patch_type}"
+    )
     fixed_points_dataframe_manifest_name = f"{FIXED_POINT_MANIFEST_NAMES[patch_type]}_{name_suffix}"
     vector_field_dataframe_manifest = create_dataframe_manifest(
         vector_field_dataframe_manifest_name, workflow_name=__file__
