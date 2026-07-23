@@ -55,7 +55,6 @@ from endo_pipeline.settings.workflow_defaults import (
 logger = logging.getLogger(__name__)
 
 IMAGE_PANEL_SIZE = (3, 3)
-PLOT_PANEL_SIZE = (1.35, 1.35)
 
 X_START = CDH5_SEG_FIG_EXAMPLE.crop_x_start
 Y_START = CDH5_SEG_FIG_EXAMPLE.crop_y_start
@@ -374,15 +373,14 @@ def make_imaging_panels(
     return get_figure_asset_dir() / "cdh5_classic_seg_schematic.svg"
 
 
+@figure_panel("Histograms of segmentation features over time")
 def make_feature_contact_sheet(
     dataset_name: str,
     positions: list[int] | None,
     features: list[ColumnNameType],
     ncols: int,
-    out_dir: Path,
-    figure_width: float | None = None,
-    figure_height: float | None = None,
-    figure_height_scaling: float = 1.0,
+    output_path: Path,
+    figure_size: tuple[float, float],
 ) -> Path:
     """Create a grid of 2D histograms with features as columns and datasets as rows.
 
@@ -399,7 +397,7 @@ def make_feature_contact_sheet(
         List of feature column names to include as columns.
     ncols
         Number of columns in the grid.
-    out_dir
+    output_path
         Output directory for the saved figure.
     figure_width
         Width of the figure in inches. Defaults to ``panel_w * ncols`` where
@@ -419,20 +417,11 @@ def make_feature_contact_sheet(
 
     nrows = len(features) // ncols
     nrows += 1 if len(features) % ncols > 0 else 0
-    panel_w, _ = PLOT_PANEL_SIZE
-    if figure_width:
-        panel_w = figure_width / ncols
-    if figure_height:
-        panel_h = figure_height / nrows
-    else:
-        panel_h = panel_w  # make panels square
 
-    fig_width = panel_w * ncols
-    fig_height = panel_h * nrows
     fig, axes = plt.subplots(
         nrows,
         ncols,
-        figsize=(fig_width, fig_height * figure_height_scaling),
+        figsize=figure_size,
         sharex=True,
         squeeze=False,
     )
@@ -596,16 +585,16 @@ def make_feature_contact_sheet(
         frameon=False,
     )
 
-    out_dir.mkdir(exist_ok=True, parents=True)
+    output_path.mkdir(exist_ok=True, parents=True)
     figure_name = f"{dataset_name}_feature_contact_sheet"
     for fmt in [".svg", ".png"]:
         save_plot_to_path(
             figure=fig,
-            output_path=out_dir,
+            output_path=output_path,
             figure_name=figure_name,
             file_format=cast(Literal[".svg", ".png"], fmt),
             tight_layout=False,
             show_and_close=fmt == ".png",
         )
 
-    return out_dir / f"{figure_name}.svg"
+    return output_path / f"{figure_name}.svg"

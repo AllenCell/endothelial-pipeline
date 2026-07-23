@@ -59,7 +59,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     # Set the panel sizes
     panel_A_height = 3.05
-    panel_BC_height = 2.3
+    panel_BC_height = 1.6
     panel_BC_width = 4.8
 
     # the panels produced by make_classic_feature_panels are arranged into
@@ -84,16 +84,15 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     ]
 
     classic_feat_fig_example_paths = {}
-    for dataset in datasets:
+    for dataset, panel in zip(datasets, ["B", "C"], strict=True):
         classic_feat_fig_example_path = make_feature_contact_sheet(
             dataset_name=dataset,
             positions=[0],
             features=features,
             ncols=3,
-            out_dir=output_path / "feature_contact_sheet",
-            figure_width=panel_BC_width,
-            figure_height=panel_BC_height,
-            figure_height_scaling=0.7,
+            output_path=output_path / "feature_contact_sheet",
+            figure_size=(panel_BC_width, panel_BC_height),
+            **placeholders[panel],
         )
         classic_feat_fig_example_paths[dataset] = classic_feat_fig_example_path
 
