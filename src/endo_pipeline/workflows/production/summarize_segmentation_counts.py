@@ -105,11 +105,6 @@ def main(datasets: Datasets | None = None):
             logging.info(
                 f"Dataset {dataset_name} not found in live_cdh5_seg_based_feat_datasets collection, skipping."
             )
-            num_nuc_pred = np.nan
-            num_cell_seg_before_filt = np.nan
-            num_cell_seg_after_filt = np.nan
-            num_tracks_before_filt = np.nan
-            num_tracks_left_after_filter = np.nan
             seg_lengths_px_mean = np.nan
             seg_lengths_px_std = np.nan
             seg_lengths_px_median = np.nan
@@ -138,58 +133,11 @@ def main(datasets: Datasets | None = None):
             ]
             live_seg_feats_df = live_seg_feats_df_delayed[cols_to_compute].compute()
 
-            # segmentation counts recorded in the table were done at each timepoint
-            # (a.k.a. the image_index) for one position at a time, therefore we need
-            # to do a groubpy on both image_index and position before summing the
-            # totals in each dataset across all timepoints and positions
-            num_nuc_pred = (
-                live_seg_feats_df.groupby([Column.TIMEPOINT, Column.POSITION])[
-                    Column.SegData.NUM_NUCLEI_AT_TIMEPOINT
-                ]
-                .apply(sequence_to_scalar)
-                .sum()
-            )
-            num_cell_seg_before_filt = (
-                live_seg_feats_df.groupby([Column.TIMEPOINT, Column.POSITION])[
-                    Column.SegData.NUM_TRACKS_BEFORE_FILTERING
-                ]
-                .apply(sequence_to_scalar)
-                .sum()
-            )
-            num_tracks_before_filt = (
-                live_seg_feats_df.groupby(Column.POSITION)[Column.TRACK_ID].nunique().sum()
-            )
-
             # filter out rows based on automatic and manual timepoint annotations
             live_seg_feats_df = filter_dataframe_by_annotations(
                 live_seg_feats_df,
                 dataset_config,
                 timepoint_annotations=ANNOTATIONS_TO_FILTER_OUT_FOR_SEGMENTATIONS,
-            )
-
-            # dropna is here to remove NaNs which will raise an error when trying to
-            # extract a single number from the table at that timepoint and position
-            # using the `sequence_to_scalar` function
-            num_cell_seg_after_filt = int(
-                live_seg_feats_df.dropna(
-                    axis="index", subset=[Column.SegData.NUM_TRACKS_AFTER_FILTERING]
-                )
-                .groupby([Column.TIMEPOINT, Column.POSITION])[
-                    Column.SegData.NUM_TRACKS_AFTER_FILTERING
-                ]
-                .apply(sequence_to_scalar)
-                .sum()
-            )
-
-            # add number of timepoints left after filtering to the dataset
-            # the "is_included" column in the dataframe is defined when the dataframe is constructed
-            # based on whether the track at that timepoint passed all filtering steps or not
-            # (see endo_pipeline\library\analyze\live_data_manifest\lib_make_seg_feats_manifest.add_filter_columns for details)
-            num_tracks_left_after_filter = (
-                live_seg_feats_df[live_seg_feats_df[Column.SegDataFilters.IS_INCLUDED]]
-                .groupby(Column.POSITION)[Column.TRACK_ID]
-                .nunique()
-                .sum()
             )
 
             # add some descriptive statistics about cell lengths to the dataset
@@ -258,12 +206,6 @@ def main(datasets: Datasets | None = None):
         seg_counts["dataset_name"].append(dataset_name.split("_")[0])
         seg_counts["shear_stress_dyn/cm**2"].append(shear_stress)
         seg_counts["cell_line"].append(cell_line)
-        # add segmentation counts information
-        seg_counts["num_nuclei_predictions"].append(num_nuc_pred)
-        seg_counts["num_cell_segmentations_before_filter"].append(num_cell_seg_before_filt)
-        seg_counts["num_cell_segmentations_after_filter"].append(num_cell_seg_after_filt)
-        seg_counts["num_tracks_before_filter"].append(num_tracks_before_filt)
-        seg_counts["num_tracks_after_filter"].append(num_tracks_left_after_filter)
         # add the cell length statistics
         seg_counts["major_axis_length_mean_px"].append(seg_lengths_px_mean)
         seg_counts["major_axis_length_std_px"].append(seg_lengths_px_std)
