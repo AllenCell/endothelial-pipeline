@@ -1,0 +1,75 @@
+name: 20260504_20X
+date: '20260504'
+original_path: //allen/programs/allencell/data/proj0/cb0/7c3/998/2ca/428/4db/341/b17/40e/82c/d4/20260504_GE00010925_20X_sldy/20260504_GE00010925_20X_sldy.sldy
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: d482c40eb173414db4282ca9987c3cb0
+barcode: GE00010925
+cell_lines: [AICS-126 cl. 41 CD31-sorted]
+live_or_fixed_sample: live
+is_timelapse: true
+microscope: 3i
+objective: 20X
+shear_stress_regime: min
+pixel_size_xy_in_um: 0.382
+duration: 577
+time_interval_in_minutes: 5.0
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+channel_names: [VE-cadherin_mEGFP, Brightfield]
+flow_conditions:
+- start: -24
+  stop: 576
+  shear_stress: 5.98
+include_scenes: null
+notes: AICS-126 CD31-sorted low SS 48h control for Ex3Del data. Cells look beautiful.
+replicate_number: null
+stability_category: monostable
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  auto_bf_temp_artifact:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  cell_piling:
+    0: [[538, 577]]
+    1: [[448, 577]]
+    2: [[412, 577]]
+    3: [[549, 577]]
+    4: [[495, 577]]
+    5: [[500, 577]]
+  not_steady_state:
+    0: [[0, 122]]
+    1: [[0, 134]]
+    2: [[0, 131]]
+    3: [[0, 107]]
+    4: [[0, 129]]
+    5: [[0, 147]]
+position_annotations: null
+center_z_plane: null

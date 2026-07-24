@@ -1,0 +1,77 @@
+name: 20260506_20X
+date: '20260506'
+original_path: //allen/programs/allencell/data/proj0/c56/dec/9f6/c7d/d11/0d8/446/d36/322/151/c5/20260506_GE00010958_20X_sldy/20260506_GE00010958_20X_sldy.sldy
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: c5151322d364460d8d11c7d9f6decc56
+barcode: GE00010958
+cell_lines: [AICS-126 cl. 41 CD31-sorted]
+live_or_fixed_sample: live
+is_timelapse: true
+microscope: 3i
+objective: 20X
+shear_stress_regime: min
+pixel_size_xy_in_um: 0.382
+duration: 577
+time_interval_in_minutes: 5.0
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+channel_names: [VE-cadherin_mEGFP, Brightfield]
+flow_conditions:
+- start: -15
+  stop: 576
+  shear_stress: 6.06
+include_scenes: null
+notes: AICS-126 CD31-sorted low SS 48h control for Ex3Del data. P0 has a little
+  hole that fills in but seems to catch cells (they can't migrate through the area
+  normally) but still ok to use.
+replicate_number: null
+stability_category: monostable
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  auto_bf_temp_artifact:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  cell_piling:
+    0: [[514, 577]]
+    1: [[549, 577]]
+    2: [[558, 577]]
+    3: [[561, 577]]
+    4: [[521, 577]]
+    5: [[543, 577]]
+  not_steady_state:
+    0: [[0, 97]]
+    1: [[0, 142]]
+    2: [[0, 118]]
+    3: [[0, 89]]
+    4: [[0, 100]]
+    5: [[0, 109]]
+position_annotations: null
+center_z_plane: null
