@@ -32,26 +32,26 @@ flow_conditions:
   stop: 576
   shear_stress: 6.06
 include_scenes: null
-notes: AICS-126 CD31-sorted low SS 48h control for Ex3Del data. P0 has a little
-  hole that fills in but seems to catch cells (they can't migrate through the area
-  normally) but still ok to use.
+notes: AICS-126 CD31-sorted low SS 48h control for Ex3Del data. P0 has a little hole
+  that fills in but seems to catch cells (they can't migrate through the area normally)
+  but still ok to use.
 replicate_number: null
 stability_category: monostable
 timepoint_annotations:
   auto_bf_scope_error:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
-    5: []
+    0: [1, 71, 110, 151, 232, 462]
+    1: [1, 2, 9, 26, 31, 122, 138, 158, 167, 171, 350, 507, 511, 524, 556]
+    2: [1, 373, 386]
+    3: [1, 2, 47, 167, 315, 544]
+    4: [1, 71, 90, 98, 243, 293, 299, 510, 514, 558]
+    5: [1, 51, 232, 434, 530]
   auto_bf_temp_artifact:
-    0: []
-    1: []
-    2: []
-    3: []
-    4: []
-    5: []
+    0: [1, 22, 455]
+    1: [1, 22, 535, 546]
+    2: [1]
+    3: [1, 283, 474]
+    4: [10]
+    5: [1, 469]
   auto_gfp_scope_error:
     0: []
     1: []
@@ -74,4 +74,10 @@ timepoint_annotations:
     4: [[0, 100]]
     5: [[0, 109]]
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 13
+  1: 12
+  2: 12
+  3: 12
+  4: 12
+  5: 12

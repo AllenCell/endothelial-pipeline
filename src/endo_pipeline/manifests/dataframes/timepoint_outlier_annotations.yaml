@@ -165,3 +165,11 @@ locations:
     fmsid: d6cf625c2ca44fa7900184da7796e711
     path: null
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/timepoint_outlier_annotations/20250611_a32615d530ae42c29d159cc058601879.parquet
+  20260506_20X:
+    fmsid: 3da8a64ae09c488fb9bbddf5d0f9bac3
+    path: null
+    s3uri: null
+  20260504_20X:
+    fmsid: 6d98e57084ff454fb986c030f98ac7ab
+    path: null
+    s3uri: null
