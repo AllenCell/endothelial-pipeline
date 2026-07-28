@@ -143,3 +143,11 @@ locations:
     fmsid: 76f7c4891fd84f3a8c902133cdf9dad1
     path: null
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/drift_vector_field_polar_r_polar_theta_rho_grid_based/20260325_d1f28b79cf574775b529d83626183abc.parquet
+  20260504_20X:
+    fmsid: 3de3487822f242188c9fb14390a04d92
+    path: null
+    s3uri: null
+  20260506_20X:
+    fmsid: 21416fdd5c5444f2a3ab7d82663c7faf
+    path: null
+    s3uri: null
