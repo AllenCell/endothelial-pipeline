@@ -152,3 +152,11 @@ locations:
     fmsid: 6616e222ac0e4ed180783d25c714a811
     path: null
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/in_focus_plane_annotations/20260114_4b693bb8eedb4e0ba0cb9ab4ae07b1a2.parquet
+  20260506_20X:
+    fmsid: 170af8fe89a14c39b057b8461e6df0a8
+    path: null
+    s3uri: null
+  20260504_20X:
+    fmsid: 5162d51fc74646c184f44a6e4857fe75
+    path: null
+    s3uri: null
