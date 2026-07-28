@@ -2,9 +2,7 @@ name: diffae_evaluation_dataframe_grid_based
 workflow: create_diffae_eval_dataframe
 parameters:
   patch_type: grid_based
-  z_slice_offsets:
-  - 4
-  - 11
+  z_slice_offsets: [4, 11]
 columns:
   path: Path to source image file for model training and evaluation
   resolution_level: Zarr resolution level used to generate patches for obtaining latent vectors
@@ -142,10 +140,10 @@ locations:
     path: null
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/diffae_evaluation_dataframe_grid_based/20251119_d6449a79a6264466aa225af0cdef78c7.parquet
   20260504_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/2026-07-28/model_eval_dataframes/dataset_20260504_20X_grid_based_z_stack_4_11.parquet
+    fmsid: 2fb547cd768c4326ae6abc74e0e5c458
+    path: null
     s3uri: null
   20260506_20X:
-    fmsid: null
-    path: /allen/aics/users/erin.angelini/2026-07-28/model_eval_dataframes/dataset_20260506_20X_grid_based_z_stack_4_11.parquet
+    fmsid: d278ae6ef03944698acca53b1a320121
+    path: null
     s3uri: null
