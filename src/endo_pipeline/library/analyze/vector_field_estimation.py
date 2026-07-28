@@ -24,7 +24,7 @@ from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemp
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
 from endo_pipeline.settings.flow_field_2d import HISTOGRAM_THRESHOLD_FOR_MASKING
 from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
-from endo_pipeline.settings.manifest_names import DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD
+from endo_pipeline.settings.manifest_names import GRID_BASED_VECTOR_FIELD_MANIFEST_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -361,8 +361,8 @@ def load_drift_dataframe_for_dataset(
     """
 
     column_names = get_valid_flow_field_column_names(columns)
-    name_suffix = f"_{join_sorted_strings(column_names)}_grid_based"
-    drift_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD}{name_suffix}"
+    name_suffix = join_sorted_strings(column_names)
+    drift_dataframe_manifest_name = f"{GRID_BASED_VECTOR_FIELD_MANIFEST_NAME}_{name_suffix}"
     drift_dataframe_manifest = load_dataframe_manifest(drift_dataframe_manifest_name)
 
     if dataset_name not in drift_dataframe_manifest.locations:
