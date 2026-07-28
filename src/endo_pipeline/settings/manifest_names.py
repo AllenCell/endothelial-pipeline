@@ -35,3 +35,12 @@ OPTICAL_FLOW_MANIFEST_NAMES: dict[PatchTypeLiteral, str] = {
     "cell_centered": CELL_CENTERED_OPTICAL_FLOW_MANIFEST_NAME,
 }
 """Mapping of patch type to optical flow dataframe manifest name."""
+
+GRID_BASED_AUTOCORRELATION_MANIFEST_NAME_PREFIX: str = "autocorrelation_grid_based"
+"""Dataframe manifest name for autocorrelation of grid-based features."""
+
+AUTOCORRELATION_MANIFEST_NAME_PREFIXES: dict[PatchTypeLiteral, str] = {
+    "grid_based": GRID_BASED_AUTOCORRELATION_MANIFEST_NAME_PREFIX,
+    "cell_centered": "autocorrelation_cell_centered",
+}
+"""Mapping of patch type to autocorrelation dataframe manifest name."""
