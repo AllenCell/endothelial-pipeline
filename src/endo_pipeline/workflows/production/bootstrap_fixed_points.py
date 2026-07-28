@@ -160,8 +160,8 @@ def main(
     from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
     from endo_pipeline.settings.flow_field_dataframes import FMS_ANNOTATION_NOTES_BOOTSTRAPPING
     from endo_pipeline.settings.manifest_names import (
-        DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING,
-        DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+        BOOTSTRAPPING_MANIFEST_NAMES,
+        FIXED_POINT_MANIFEST_NAMES,
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -184,13 +184,14 @@ def main(
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # get dataframe manifest for baseline results to match against in bootstrapping
-    name_suffix = f"_{join_sorted_strings(column_names)}_{patch_type}"
-    baseline_fixed_point_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix}"
+    name_suffix = join_sorted_strings(column_names)
+    baseline_fixed_point_manifest_name = f"{FIXED_POINT_MANIFEST_NAMES[patch_type]}_{name_suffix}"
     baseline_fixed_point_manifest = load_dataframe_manifest(baseline_fixed_point_manifest_name)
 
     # load or initialize dataframe manifest for bootstrap results
-    name_suffix = f"_{patch_type}_demo" if DEMO_MODE else f"_{patch_type}"
-    bootstrap_results_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}{name_suffix}"
+    name_prefix = BOOTSTRAPPING_MANIFEST_NAMES[patch_type]
+    name_suffix = "_demo" if DEMO_MODE else ""
+    bootstrap_results_manifest_name = f"{name_prefix}{name_suffix}"
     bootstrap_results_manifest = create_dataframe_manifest(
         bootstrap_results_manifest_name, workflow_name=__file__
     )
@@ -386,9 +387,7 @@ def main(
         # Concatenate results across flow conditions for this dataset
         bootstrap_results_df = pd.concat(bootstrap_dataframe_list, ignore_index=True)
         # Save results, upload to FMS (if specified), and update manifest
-        output_file_name = (
-            f"{DATAFRAME_MANIFEST_PREFIX_BOOTSTRAPPING}_{dataset_name}{name_suffix}.parquet"
-        )
+        output_file_name = f"{name_prefix}_{dataset_name}{name_suffix}.parquet"
         output_save_path = make_name_unique(output_path / output_file_name)
         bootstrap_results_df.to_parquet(output_save_path)
         logger.info("Saved bootstrap fixed point CI dataframe locally to [ %s ].", output_save_path)

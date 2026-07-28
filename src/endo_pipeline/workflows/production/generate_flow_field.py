@@ -115,8 +115,8 @@ def main(
         FMS_ANNOTATION_NOTES_VECTOR_FIELD,
     )
     from endo_pipeline.settings.manifest_names import (
-        DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
         DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD,
+        FIXED_POINT_MANIFEST_NAMES,
     )
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -158,9 +158,11 @@ def main(
 
     # Build dataframe manifest names that include sorted list of selected
     # columns used to generate the flow field.
-    name_suffix = f"_{join_sorted_strings(column_names)}_{patch_type}"
-    vector_field_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD}{name_suffix}"
-    fixed_points_dataframe_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix}"
+    name_suffix = join_sorted_strings(column_names)
+    vector_field_dataframe_manifest_name = (
+        f"{DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD}_{name_suffix}_{patch_type}"
+    )
+    fixed_points_dataframe_manifest_name = f"{FIXED_POINT_MANIFEST_NAMES[patch_type]}_{name_suffix}"
     vector_field_dataframe_manifest = create_dataframe_manifest(
         vector_field_dataframe_manifest_name, workflow_name=__file__
     )
@@ -274,7 +276,7 @@ def main(
             (
                 fixed_points_dataframe_manifest,
                 fixed_points_for_dataset,
-                DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
+                FIXED_POINT_MANIFEST_NAMES[patch_type],
                 FMS_ANNOTATION_NOTES_FIXED_POINTS % len(column_names),
             ),
         ]:
