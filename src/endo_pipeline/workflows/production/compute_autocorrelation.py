@@ -83,7 +83,7 @@ def main(
         LONG_TRACK_THRESHOLD_LENGTH,
         METADATA_COLUMNS_TO_KEEP,
     )
-    from endo_pipeline.settings.manifest_names import AUTOCORRELATION_MANIFEST_NAMES
+    from endo_pipeline.settings.manifest_names import AUTOCORRELATION_MANIFEST_NAME_PREFIXES
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
@@ -114,7 +114,7 @@ def main(
 
     # Build dataframe manifest names that include sorted list of selected
     # columns used to generate the flow field.
-    name_prefix = AUTOCORRELATION_MANIFEST_NAMES[patch_type]
+    name_prefix = AUTOCORRELATION_MANIFEST_NAME_PREFIXES[patch_type]
     name_suffix = join_sorted_strings(column_names)
     autocorrelation_manifest_name = f"{name_prefix}_{name_suffix}"
     autocorrelation_manifest = create_dataframe_manifest(
