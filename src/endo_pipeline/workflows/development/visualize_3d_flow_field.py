@@ -130,7 +130,7 @@ def main(
 
     logger = logging.getLogger(__name__)
 
-    output_path = get_output_path(__file__)
+    output_path = get_output_path(__file__, patch_type)
 
     dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
 
