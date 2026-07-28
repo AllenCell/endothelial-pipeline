@@ -1,5 +1,6 @@
 """Plotting methods for model performance."""
 
+import logging
 from pathlib import Path
 from textwrap import wrap
 from typing import TYPE_CHECKING, Any, cast
@@ -11,7 +12,7 @@ from matplotlib.lines import Line2D
 
 from endo_pipeline.io.output import save_plot_to_path
 from endo_pipeline.library.visualize.figure_utils import make_contact_sheet
-from endo_pipeline.library.visualize.figures import figure_panel
+from endo_pipeline.library.visualize.figures import figure_panel, get_figure_asset_dir
 from endo_pipeline.settings.examples import ExampleImage
 from endo_pipeline.settings.figures import (
     FONTSIZE_LARGE,
@@ -32,6 +33,8 @@ MODEL_PERFORMANCE_CONTACT_SHEET_METRIC_KWARGS: dict[str, Any] = {
     "size": FONTSIZE_XSMALL * 0.5,
 }
 """Kwargs for model performance contact sheet metric overlay text."""
+
+logger = logging.getLogger(__name__)
 
 
 def add_model_and_example_metadata_to_plot(
@@ -457,12 +460,26 @@ def plot_model_performance_summary_contact_sheet(
 def make_model_architecture_images(
     output_path: Path,
     num_gpus: int | None = None,
-    figure_size: tuple[float, float] = (0.7, 0.7),
-    include_slices: bool = True,
-    include_inputs: bool = True,
-) -> None:
+    figure_size: tuple[float, float] = (5.4, 2.4),
+    thumbnail_size: tuple[float, float] = (0.7, 0.7),
+    use_simplified: bool = False,
+) -> Path:
     """
     Create thumbnails for various parts of the DiffAE eval architecture.
+
+    **Main figure versus supplemental figure**
+
+    The panel in main Figure 1 is a simplified version of the full DiffAE model
+    architecture diagram that is shown in Supplemental Figure 3. In particular,
+    the Supplemental Figure includes example images of raw image slices and the
+    full FOV of the input data.
+
+    If the boolean flag `use_simplified` is True, the saved outputs will include
+    the simplified version of the model architecture diagram, and the returned
+    path will point to the figure asset with the simplified model architecture
+    diagram. Else, the saved outputs will include the full model architecture
+    diagram with additional images, and the returned path will point to the
+    figure asset with the full model architecture diagram.
 
     Parameters
     ----------
@@ -471,11 +488,12 @@ def make_model_architecture_images(
     num_gpus
         Number of GPUs to use. If None, run on CPU.
     figure_size
-        Size of image patch plots.
-    include_slices
-        True to save raw image slices, False to skip.
-    include_inputs
-        True to save model input images, False to skip.
+        Size of the overall figure (used for panel placeholder).
+    thumbnail_size
+        Size of image thumbnails.
+    use_simplified
+        True if the figure should use the simplified version of the model
+        architecture diagram, False otherwise.
 
     """
     from matplotlib import patches
@@ -545,7 +563,7 @@ def make_model_architecture_images(
         compute=True,
     )
 
-    if include_slices:
+    if not use_simplified:
         # Get slices from raw image
         cdh5_lower_slice = raw_image[0, center_slice - Z_SLICE_OFFSETS[0], :, :].squeeze()
         cdh5_slice = raw_image[0, center_slice, :, :].squeeze()
@@ -555,20 +573,21 @@ def make_model_architecture_images(
         bf_upper_slice = raw_image[1, center_slice + Z_SLICE_OFFSETS[1], :, :].squeeze()
 
         # Save image thumbnail for each raw image slice
-        for image, image_name, outline_color in [
-            (cdh5_lower_slice, "cdh5_lower_slice", "white"),
-            (cdh5_slice, "cdh5_slice", "white"),
-            (cdh5_upper_slice, "cdh5_upper_slice", "white"),
-            (bf_lower_slice, "bf_lower_slice", "black"),
-            (bf_slice, "bf_slice", "black"),
-            (bf_upper_slice, "bf_upper_slice", "black"),
+        for image, image_name, outline_color, include_scalebar_label in [
+            (cdh5_lower_slice, "cdh5_lower_slice", "white", False),
+            (cdh5_slice, "cdh5_slice", "white", False),
+            (cdh5_upper_slice, "cdh5_upper_slice", "white", True),
+            (bf_lower_slice, "bf_lower_slice", "black", False),
+            (bf_slice, "bf_slice", "black", False),
+            (bf_upper_slice, "bf_upper_slice", "black", True),
         ]:
             image = contrast_stretching(image)
+            image_name = f"{image_name}_{dataset_config.name}_T{example.timepoint}"
             plot_image_thumbnail(
                 image,
-                f"{image_name}_{dataset_config.name}_T{example.timepoint}",
+                image_name,
                 output_path,
-                figsize=figure_size,
+                figsize=thumbnail_size,
                 scalebar_size_um=100,
                 pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
                 file_format=".svg",
@@ -576,23 +595,28 @@ def make_model_architecture_images(
                 bar_padding=30,
                 bar_thickness=20,
                 scalebar_location="lower right",
+                include_scalebar_label=include_scalebar_label,
                 show_plot=False,
             )
-            print(
-                f"Saved {image_name} to {output_path}/{image_name}_{dataset_config.name}_T{example.timepoint}.svg"
+            logger.info(
+                "Saved %s to %s/%s.svg",
+                image_name,
+                output_path,
+                image_name,
             )
 
-    # Extract transformation steps and apply to image
-    data = create_data_dict_loaded_image(raw_image)
-    transforms = get_image_transforms(model_config)
-    sample = apply_img_transforms(transforms, data)
+        # Extract transformation steps and apply to image
+        data = create_data_dict_loaded_image(raw_image)
+        transforms = get_image_transforms(model_config)
+        sample = apply_img_transforms(transforms, data)
 
-    # Extract the target images
-    crop_size = model_config.model.image_shape[-1]
-    diffusion_fov = get_target_image_from_sample(sample, DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT)
-    conditioning_fov = get_target_image_from_sample(sample, model_config.model.condition_key)
+        # Extract the target images
+        crop_size = model_config.model.image_shape[-1]
+        diffusion_fov = get_target_image_from_sample(
+            sample, DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT
+        )
+        conditioning_fov = get_target_image_from_sample(sample, model_config.model.condition_key)
 
-    if include_inputs:
         # Save image thumbnail for each model input crop with outline
         for image, image_name in [
             (diffusion_fov, "diffusion_input_fov"),
@@ -602,13 +626,14 @@ def make_model_architecture_images(
                 image.squeeze(),
                 f"{image_name}_{dataset_config.name}_T{example.timepoint}",
                 None,
-                figsize=figure_size,
+                figsize=thumbnail_size,
                 scalebar_size_um=100,
                 pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
                 file_format=".svg",
                 bar_thickness=20,
                 bar_padding=30,
                 scalebar_location="lower right",
+                include_scalebar_label=True,
                 show_plot=False,
             )
             rect = patches.Rectangle(
@@ -620,10 +645,10 @@ def make_model_architecture_images(
                 facecolor="none",
             )
             ax.add_patch(rect)
-            save_plot_to_path(fig, output_path, image_name, file_format=".svg", pad_inches=0)
-            print(
-                f"Saved {image_name} to {output_path}/{image_name}_{dataset_config.name}_T{example.timepoint}.svg"
+            image_path = save_plot_to_path(
+                fig, output_path, image_name, file_format=".svg", pad_inches=0
             )
+            logger.info("Saved %s to %s", image_name, image_path)
 
     # Load transformed conditioning and diffusion examples
     conditioning_ex = load_transformed_conditioning_example_image(example, model_config)
@@ -644,16 +669,24 @@ def make_model_architecture_images(
             image.squeeze(),
             image_name,
             output_path,
-            figsize=figure_size,
+            figsize=thumbnail_size,
             scalebar_size_um=20,
             bar_padding=5,
             bar_thickness=5,
             pixel_size=PIXEL_SIZE_3i_20x_RESOLUTION_1,
             file_format=".svg",
             scalebar_location="lower right",
+            include_scalebar_label=True,
             show_plot=False,
         )
-        print(f"Saved {image_name} to {output_path}/{image_name}.svg")
+        logger.info("Saved %s to %s/%s.svg", image_name, output_path, image_name)
+
+    # return figure asset with pre-compiled schematic
+    assets_dir = get_figure_asset_dir()
+    if not use_simplified:
+        return assets_dir / "diffae_training_schematic.svg"
+    else:
+        return assets_dir / "diffae_eval_schematic.svg"
 
 
 @figure_panel("Contact sheet showing DiffAE model performance examples")

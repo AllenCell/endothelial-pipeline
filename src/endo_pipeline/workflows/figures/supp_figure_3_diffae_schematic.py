@@ -51,8 +51,8 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         parse_placeholder_panels,
     )
     from endo_pipeline.library.visualize.model_performance import (
+        make_model_architecture_images,
         make_model_performance_examples_panel,
-        make_model_training_architecture_panel,
     )
     from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
 
@@ -62,10 +62,15 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     placeholders = parse_placeholder_panels(include_panels, ["A", "B"])
 
-    # Note that this method produces several image thumbnails that are assembled
-    # into the model training diagram using a vector graphics software
-    architecture_panel_path = make_model_training_architecture_panel(
-        output_path, NUM_GPUS, **placeholders["A"]
+    # Call method that produces several image thumbnails that are assembled into
+    # the model training diagram (Panel A) using a vector graphics software.
+    # Method also returns path to the precompiled figure asset.
+    diffae_training_path = make_model_architecture_images(
+        output_path=output_path,
+        num_gpus=NUM_GPUS,
+        figure_size=(6.5, 3.2),
+        use_simplified=False,
+        **placeholders["A"],
     )
 
     examples_panel_path = make_model_performance_examples_panel(
@@ -75,11 +80,11 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     panels = [
         FigurePanel(
             letter="A",
-            path=architecture_panel_path,
+            path=diffae_training_path,
             x_position=0,
             y_position=0,
             x_offset=0,
-            y_offset=0,
+            y_offset=0.025,
         ),
         FigurePanel(
             letter="B",

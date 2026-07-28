@@ -108,6 +108,11 @@ def main(datasets: Datasets | None = None) -> None:
             fmsid = upload_file_to_fms(save_path, annotations=annotations, file_type="parquet")
             location.fmsid = fmsid
             location.path = None
+            logger.info(
+                "Uploaded in-focus plane annotations for dataset '%s' to FMS with id '%s'",
+                dataset_name,
+                fmsid,
+            )
 
         # Add dataframe location to dataframe manifest and save
         manifest.locations[dataset_name] = location

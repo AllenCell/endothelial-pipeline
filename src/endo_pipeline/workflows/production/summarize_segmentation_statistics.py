@@ -3,7 +3,7 @@ from endo_pipeline.cli import Datasets
 
 def main(datasets: Datasets | None = None):
     """
-    Summarize segmentation counts across select datasets.
+    Summarize segmentation statistics across select datasets.
 
     #cdh5-segmentation #cdh5-tracking #nuclei-prediction #test-ready
 
@@ -12,13 +12,13 @@ def main(datasets: Datasets | None = None):
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe summarize-segmentation-counts -d
+    uv run endopipe summarize-segmentation-statistics -d
     ```
 
     To run the workflow for a single dataset:
 
     ```bash
-    uv run endopipe summarize-segmentation-counts --datasets DATASET_NAME
+    uv run endopipe summarize-segmentation-statistics --datasets DATASET_NAME
     ```
 
     ## Dataset collection
@@ -47,7 +47,6 @@ def main(datasets: Datasets | None = None):
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_annotations
-    from endo_pipeline.library.model.train_model import get_included_frames_for_model
     from endo_pipeline.library.process.general_image_preprocessing import sequence_to_scalar
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
@@ -66,14 +65,6 @@ def main(datasets: Datasets | None = None):
         "dataset_name": [],
         "shear_stress_dyn/cm**2": [],
         "cell_line": [],
-        "num_nuclei_predictions": [],
-        "num_cell_segmentations_before_filter": [],
-        "num_cell_segmentations_after_filter": [],
-        "num_tracks_before_filter": [],
-        "num_tracks_after_filter": [],
-        "dataset_duration_timeframes": [],
-        "num_timeframes_left_after_filter": [],
-        "num_timeframes_for_training": [],
         "major_axis_length_mean_um": [],
         "major_axis_length_std_um": [],
         "major_axis_length_median_um": [],
@@ -100,24 +91,12 @@ def main(datasets: Datasets | None = None):
         shear_stress = [flow.shear_stress for flow in dataset_config.flow_conditions]
         cell_line = sequence_to_scalar(dataset_config.cell_lines)
 
-        # get list of timepoints that were included for training for each position
-        only_include_frames = get_included_frames_for_model(dataset_config)
-        num_timepoints_for_training = sum(
-            [len(only_include_frames[pos]) for pos in only_include_frames]
-        )
-
         # load in segmentation features dataframe for the dataset if it was put through the classical
         # feature workflows, otherwise record "NaN" for the segmentation counts
         if dataset_name not in dataset_name_list_segmented:
             logging.info(
                 f"Dataset {dataset_name} not found in live_cdh5_seg_based_feat_datasets collection, skipping."
             )
-            num_nuc_pred = np.nan
-            num_cell_seg_before_filt = np.nan
-            num_cell_seg_after_filt = np.nan
-            num_tracks_before_filt = np.nan
-            num_tracks_left_after_filter = np.nan
-            num_timepoints_left_after_filter = np.nan
             seg_lengths_px_mean = np.nan
             seg_lengths_px_std = np.nan
             seg_lengths_px_median = np.nan
@@ -138,72 +117,16 @@ def main(datasets: Datasets | None = None):
                 Column.POSITION,
                 Column.TIMEPOINT,
                 Column.TRACK_ID,
-                Column.SegData.NUM_NUCLEI_AT_TIMEPOINT,
-                Column.SegData.NUM_TRACKS_BEFORE_FILTERING,
-                Column.SegData.NUM_TRACKS_AFTER_FILTERING,
                 Column.SegData.MAJOR_AXIS,
                 Column.SegDataFilters.IS_INCLUDED,
             ]
             live_seg_feats_df = live_seg_feats_df_delayed[cols_to_compute].compute()
-
-            # segmentation counts recorded in the table were done at each timepoint
-            # (a.k.a. the image_index) for one position at a time, therefore we need
-            # to do a groubpy on both image_index and position before summing the
-            # totals in each dataset across all timepoints and positions
-            num_nuc_pred = (
-                live_seg_feats_df.groupby([Column.TIMEPOINT, Column.POSITION])[
-                    Column.SegData.NUM_NUCLEI_AT_TIMEPOINT
-                ]
-                .apply(sequence_to_scalar)
-                .sum()
-            )
-            num_cell_seg_before_filt = (
-                live_seg_feats_df.groupby([Column.TIMEPOINT, Column.POSITION])[
-                    Column.SegData.NUM_TRACKS_BEFORE_FILTERING
-                ]
-                .apply(sequence_to_scalar)
-                .sum()
-            )
-            num_tracks_before_filt = (
-                live_seg_feats_df.groupby(Column.POSITION)[Column.TRACK_ID].nunique().sum()
-            )
 
             # filter out rows based on automatic and manual timepoint annotations
             live_seg_feats_df = filter_dataframe_by_annotations(
                 live_seg_feats_df,
                 dataset_config,
                 timepoint_annotations=ANNOTATIONS_TO_FILTER_OUT_FOR_SEGMENTATIONS,
-            )
-
-            # dropna is here to remove NaNs which will raise an error when trying to
-            # extract a single number from the table at that timepoint and position
-            # using the `sequence_to_scalar` function
-            num_cell_seg_after_filt = int(
-                live_seg_feats_df.dropna(
-                    axis="index", subset=[Column.SegData.NUM_TRACKS_AFTER_FILTERING]
-                )
-                .groupby([Column.TIMEPOINT, Column.POSITION])[
-                    Column.SegData.NUM_TRACKS_AFTER_FILTERING
-                ]
-                .apply(sequence_to_scalar)
-                .sum()
-            )
-
-            # add number of timepoints left after filtering to the dataset
-            # the "is_included" column in the dataframe is defined when the dataframe is constructed
-            # based on whether the track at that timepoint passed all filtering steps or not
-            # (see endo_pipeline\library\analyze\live_data_manifest\lib_make_seg_feats_manifest.add_filter_columns for details)
-            num_timepoints_left_after_filter = (
-                live_seg_feats_df[live_seg_feats_df[Column.SegDataFilters.IS_INCLUDED]]
-                .groupby([Column.POSITION])[Column.TIMEPOINT]
-                .nunique()
-                .sum()
-            )
-            num_tracks_left_after_filter = (
-                live_seg_feats_df[live_seg_feats_df[Column.SegDataFilters.IS_INCLUDED]]
-                .groupby(Column.POSITION)[Column.TRACK_ID]
-                .nunique()
-                .sum()
             )
 
             # add some descriptive statistics about cell lengths to the dataset
@@ -272,16 +195,6 @@ def main(datasets: Datasets | None = None):
         seg_counts["dataset_name"].append(dataset_name.split("_")[0])
         seg_counts["shear_stress_dyn/cm**2"].append(shear_stress)
         seg_counts["cell_line"].append(cell_line)
-        # add segmentation counts information
-        seg_counts["num_nuclei_predictions"].append(num_nuc_pred)
-        seg_counts["num_cell_segmentations_before_filter"].append(num_cell_seg_before_filt)
-        seg_counts["num_cell_segmentations_after_filter"].append(num_cell_seg_after_filt)
-        seg_counts["num_tracks_before_filter"].append(num_tracks_before_filt)
-        seg_counts["num_tracks_after_filter"].append(num_tracks_left_after_filter)
-        # add dataset duration information
-        seg_counts["dataset_duration_timeframes"].append(dataset_config.duration)
-        seg_counts["num_timeframes_left_after_filter"].append(num_timepoints_left_after_filter)
-        seg_counts["num_timeframes_for_training"].append(num_timepoints_for_training)
         # add the cell length statistics
         seg_counts["major_axis_length_mean_px"].append(seg_lengths_px_mean)
         seg_counts["major_axis_length_std_px"].append(seg_lengths_px_std)
@@ -297,12 +210,20 @@ def main(datasets: Datasets | None = None):
     seg_counts_df = pd.DataFrame(seg_counts)
     output_file = output_path / "segmentation_counts_across_datasets.tsv"
     seg_counts_df.to_csv(output_file, sep="\t", index=False)
+    logger.info("Saved summary table to [ %s ]", output_file)
 
     major_axis_len_mean_all_px = seg_counts_df["major_axis_length_mean_px"].mean()
     major_axis_len_mean_all_um = seg_counts_df["major_axis_length_mean_um"].mean()
+    cell_displacement_mean_all_px = seg_counts_df["cell_displacement_mean_px"].mean()
 
-    logger.info(f"Mean cell length across all datasets (px): {major_axis_len_mean_all_px}")
-    logger.info(f"Mean cell length across all datasets (um): {major_axis_len_mean_all_um}")
+    print(f"Mean cell length across all datasets (px, resolution 0): {major_axis_len_mean_all_px}")
+    print(f"Mean cell length across all datasets (um): {major_axis_len_mean_all_um}")
+    print(
+        f"Mean cell displacement across all datasets (px, resolution 0): {cell_displacement_mean_all_px}"
+    )
+    print(
+        f"Mean cell displacement across all datasets (px, resolution 1): {cell_displacement_mean_all_px/2}"
+    )
 
 
 if __name__ == "__main__":
