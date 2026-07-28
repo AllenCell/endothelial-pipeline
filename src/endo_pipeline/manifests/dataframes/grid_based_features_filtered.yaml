@@ -664,3 +664,11 @@ locations:
     fmsid: 507b44319aec4782b7dbfca93d7b3733
     path: null
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_based_features_filtered/20260325_d1f28b79cf574775b529d83626183abc.parquet
+  20260504_20X:
+    fmsid: 629d0a235006405fb9658eddadf3c53f
+    path: /allen/aics/users/erin.angelini/2026-07-28/calculate_pca_features/20260504_20X_grid_based_pca_filtered.parquet
+    s3uri: null
+  20260506_20X:
+    fmsid: 4aef22bdfeb7446c81288ece4002acfe
+    path: /allen/aics/users/erin.angelini/2026-07-28/calculate_pca_features/20260506_20X_grid_based_pca_filtered.parquet
+    s3uri: null
