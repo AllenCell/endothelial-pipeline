@@ -657,3 +657,11 @@ locations:
     fmsid: 1296c638b952469a9553d05c6416a8bc
     path: null
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/diffae_baseline_latent_512_grid_based/20260325_d1f28b79cf574775b529d83626183abc.parquet
+  20260504_20X:
+    fmsid: 0a4657295b334a50b8c54c800a18536f
+    path: null
+    s3uri: null
+  20260506_20X:
+    fmsid: 22860ca518ab4358b8d9f641e6e179be
+    path: null
+    s3uri: null
