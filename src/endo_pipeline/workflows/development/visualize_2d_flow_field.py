@@ -128,15 +128,15 @@ def main(
     )
     from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
     from endo_pipeline.settings.manifest_names import (
-        DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS,
-        DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD,
+        FIXED_POINT_MANIFEST_NAMES,
+        VECTOR_FIELD_MANIFEST_NAMES,
     )
     from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
     from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
 
     logger = logging.getLogger(__name__)
 
-    output_path = get_output_path(__file__)
+    output_path = get_output_path(__file__, patch_type)
 
     dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
 
@@ -176,9 +176,9 @@ def main(
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # Load drift vector field and fixed points for selected column
-    name_suffix = f"_{join_sorted_strings(column_names)}_{patch_type}"
-    vector_field_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_VECTOR_FIELD}{name_suffix}"
-    fixed_points_manifest_name = f"{DATAFRAME_MANIFEST_PREFIX_FIXED_POINTS}{name_suffix}"
+    name_suffix = join_sorted_strings(column_names)
+    vector_field_manifest_name = f"{VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{name_suffix}"
+    fixed_points_manifest_name = f"{FIXED_POINT_MANIFEST_NAMES[patch_type]}_{name_suffix}"
     vector_field_manifest = load_dataframe_manifest(vector_field_manifest_name)
     fixed_points_manifest = load_dataframe_manifest(fixed_points_manifest_name)
 
@@ -336,9 +336,10 @@ def main(
                 # legend with just the stable fixed point handle
                 existing_legend = ax.get_legend()
                 if existing_legend is not None:
-                    existing_handles, existing_labels = existing_legend.legend_handles, [
-                        text.get_text() for text in existing_legend.get_texts()
-                    ]
+                    existing_handles, existing_labels = (
+                        existing_legend.legend_handles,
+                        [text.get_text() for text in existing_legend.get_texts()],
+                    )
                     ax.legend(
                         handles=[*existing_handles, stable_fixed_point_handle],
                         labels=[*existing_labels, stable_fixed_point_handle.get_label()],
