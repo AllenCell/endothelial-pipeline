@@ -98,3 +98,9 @@ locations:
   20260325_20X:
     path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
+  20260504_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
+  20260506_20X:
+    path: //allen/aics/endothelial/morphological_features/segmentations/grid_seg_zarr/P{{position}}.ome.zarr
+    s3uri: s3://allencell/aics/endo_cell_state_dynamics/grid_seg_zarr/P{{position}}.ome.zarr
