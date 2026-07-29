@@ -33,7 +33,7 @@ flow_conditions:
   shear_stress: 5.98
 include_scenes: null
 notes: AICS-126 CD31-sorted low SS 48h control for Ex3Del data. Cells look beautiful.
-replicate_number: null
+replicate_number: 2
 stability_category: monostable
 timepoint_annotations:
   auto_bf_scope_error:
