@@ -136,3 +136,11 @@ locations:
     fmsid: 2a937c9f8e1e469382bf7b0f407f1583
     path: null
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/optical_flow_bf_grid_based/20260325_d1f28b79cf574775b529d83626183abc.parquet
+  20260504_20X:
+    fmsid: fb90d4e0c9d341888c9b1f762e050ba8
+    path: null
+    s3uri: null
+  20260506_20X:
+    fmsid: 08b477da33364231b5722db73177f83f
+    path: null
+    s3uri: null
