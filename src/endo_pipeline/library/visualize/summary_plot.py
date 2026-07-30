@@ -84,7 +84,7 @@ BINNED_MEAN_FEATURES = [
 SUMMARY_MODE_X_AXIS_SUP_LABELS: dict[SummaryPlotAxisMode, str] = {
     "dataset": f"Dataset date (shear stress dyn/cm{Unicode.SQUARED})",
     "shear_stress": f"Shear stress (dyn/cm{Unicode.SQUARED})",
-    "cell_line": "Cell line",
+    "cell_line": "",
     "replicate": f"Shear stress (dyn/cm{Unicode.SQUARED})",
 }
 """Mapping of summary plot axis mode to X axis super labels."""
