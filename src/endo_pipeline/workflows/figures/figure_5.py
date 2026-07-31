@@ -41,7 +41,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     )
     from endo_pipeline.library.visualize.figures import (
         FigurePanel,
+        build_empty_panel,
         build_figure_from_panels,
+        get_figure_asset_dir,
         parse_placeholder_panels,
     )
     from endo_pipeline.library.visualize.summary_plot import (
@@ -61,7 +63,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     output_path = get_output_path(__file__)
 
-    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C"])
+    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
 
     # Example images of perturbation at low shear stress
     example_images_path = create_panel_perturbation_examples(
@@ -132,6 +134,17 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         **placeholders["C"],
     )
 
+    if placeholders["D"]["placeholder"]:
+        schematic_path = build_empty_panel(
+            output_path,
+            "Diagram for hypothesized mechanisms for transition between 6 dyn/cm² and 21 dyn/cm² states",
+            MAX_FIGURE_WIDTH,
+            3,
+        )
+    else:
+        assets_dir = get_figure_asset_dir()
+        schematic_path = assets_dir / "ex3del_schematic.svg"
+
     panels = [
         FigurePanel(
             letter="A",
@@ -145,7 +158,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             letter="B",
             path=fixed_points_summary_plot_path,
             x_position=0,
-            y_position=3.4,
+            y_position=3.35,
             x_offset=0.2,
             y_offset=0,
         ),
@@ -153,9 +166,17 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             letter="C",
             path=speed_summary_plot_path,
             x_position=0,
-            y_position=5.5,
+            y_position=5.56,
             x_offset=0.15,
             y_offset=0.1,
+        ),
+        FigurePanel(
+            letter="D",
+            path=schematic_path,
+            x_position=2.4,
+            y_position=5.56,
+            x_offset=0.1,
+            y_offset=0.0,
         ),
     ]
 
