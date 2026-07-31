@@ -35,7 +35,7 @@ include_scenes: null
 notes: AICS-126 CD31-sorted low SS 48h control for Ex3Del data. P0 has a little hole
   that fills in but seems to catch cells (they can't migrate through the area normally)
   but still ok to use.
-replicate_number: null
+replicate_number: 3
 stability_category: monostable
 timepoint_annotations:
   auto_bf_scope_error:

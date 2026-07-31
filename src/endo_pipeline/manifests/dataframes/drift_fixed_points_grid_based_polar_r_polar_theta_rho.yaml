@@ -141,3 +141,11 @@ locations:
     fmsid: da5548c467754876b0a0f62896df85f2
     path: null
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/drift_fixed_points_polar_r_polar_theta_rho_grid_based/20260325_d1f28b79cf574775b529d83626183abc.parquet
+  20260504_20X:
+    fmsid: dfcd83ffec3c4b10be7e9b6754971883
+    path: null
+    s3uri: null
+  20260506_20X:
+    fmsid: 572e6045602b468390b3b1fa2c16f7ba
+    path: null
+    s3uri: null

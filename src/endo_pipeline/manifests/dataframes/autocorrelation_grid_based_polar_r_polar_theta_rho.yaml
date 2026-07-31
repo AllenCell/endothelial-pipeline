@@ -127,3 +127,11 @@ locations:
     fmsid: 841be109cad240c183c449a827f1fcc9
     path: null
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/autocorrelations_polar_r_polar_theta_rho_grid_based/20260325_d1f28b79cf574775b529d83626183abc.parquet
+  20260504_20X:
+    fmsid: cad0fb73380f4e46abafb2984cb3df78
+    path: null
+    s3uri: null
+  20260506_20X:
+    fmsid: 09c3fe4315034247bea3c9b8b40a7905
+    path: null
+    s3uri: null

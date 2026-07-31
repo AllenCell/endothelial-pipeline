@@ -149,3 +149,11 @@ locations:
     fmsid: bb87f2a6eee74cd783452c565fab8ab8
     path: null
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/bootstrapped_fixed_points_grid_based/20260325_d1f28b79cf574775b529d83626183abc.parquet
+  20260504_20X:
+    fmsid: 09a0e6d48eea4cfdbb1f2b28f283605c
+    path: null
+    s3uri: null
+  20260506_20X:
+    fmsid: 302563c481f94d80919e0e2f4d3dfe3f
+    path: null
+    s3uri: null
