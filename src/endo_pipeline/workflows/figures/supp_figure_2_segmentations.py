@@ -43,7 +43,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         make_imaging_panels,
     )
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.examples import CDH5_SEG_FIG_EXAMPLE
+    from endo_pipeline.settings.examples import CDH5_SEG_FIG_EXAMPLE, EXAMPLE_DATASET
     from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 
     plt.style.use("endo_pipeline.figure")
@@ -79,9 +79,10 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     ]
 
     classic_feat_fig_example_paths = {}
+    dataset_names = EXAMPLE_DATASET["SUPP_FIG_SEGMENTATION_HISTS"]
     for dataset, panel in [
-        ("20250409_20X", "B"),
-        ("20250611_20X", "C"),
+        (dataset_names[0], "B"),
+        (dataset_names[1], "C"),
     ]:
         classic_feat_fig_example_path = make_feature_contact_sheet(
             dataset_name=dataset,
