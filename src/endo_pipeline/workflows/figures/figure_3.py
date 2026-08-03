@@ -65,8 +65,11 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     # thumbnails that are assembled into the schematic using a vector graphics
     # software. When this panel is not included, the thumbnails are skipped and
     # the compiled figure asset is replaced with a placeholder version
-
-    for dataset_name in EXAMPLE_DATASET["FIGURE_3_STREAMPLOT"]:
+    dataset_names = [
+        EXAMPLE_DATASET["FIGURE_3_STREAMPLOT_LOW_FLOW"],
+        EXAMPLE_DATASET["FIGURE_3_STREAMPLOT_HIGH_FLOW"],
+    ]
+    for dataset_name in dataset_names:
         visualize_2d_streamplots(dataset_name, output_path, **placeholders["A"])
 
     if placeholders["A"]["placeholder"]:

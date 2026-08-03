@@ -79,10 +79,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     ]
 
     classic_feat_fig_example_paths = {}
-    dataset_names = EXAMPLE_DATASET["SUPP_FIG_SEGMENTATION_HISTS"]
     for dataset, panel in [
-        (dataset_names[0], "B"),
-        (dataset_names[1], "C"),
+        (EXAMPLE_DATASET["SUPP_FIG_SEGMENTATION_LOW_FLOW"], "B"),
+        (EXAMPLE_DATASET["SUPP_FIG_SEGMENTATION_HIGH_FLOW"], "C"),
     ]:
         classic_feat_fig_example_path = make_feature_contact_sheet(
             dataset_name=dataset,
