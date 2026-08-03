@@ -3,6 +3,7 @@ from typing import NamedTuple
 EXAMPLE_DATASET: dict[str, str | list[str]] = {
     "FIGURE_2_LOW_FLOW_DATASET": "20250409_20X",
     "FIGURE_2_HIGH_FLOW_DATASET": "20251001_20X",
+    "FIGURE_3_STREAMPLOT": ["20250409_20X", "20250611_20X"],
     "FIGURE_4_STREAMPLOT": "20250319_20X",
     "SUPP_FIG_SEGMENTATION_HISTS": ["20250409_20X", "20250611_20X"],
     "SUPP_FIG_Z_SLICE": "20250428_20X",
@@ -11,12 +12,6 @@ EXAMPLE_DATASET: dict[str, str | list[str]] = {
     "SUPP_FIG_SINGLE_TP_GFP_OUTLIER": "20250319_20X",
 }
 """Dictionary of example datasets for specific figures."""
-
-FIGURE_3_STREAMPLOT_EXAMPLE_DATASETS = [
-    "20250409_20X",  # low shear stress
-    "20250611_20X",  # high shear stress
-]
-"""List of datasets used to make data-driven 2D streamplots for Figure 3A schematic."""
 
 
 class ExampleImage(NamedTuple):

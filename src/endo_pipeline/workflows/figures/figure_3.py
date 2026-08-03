@@ -52,10 +52,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         create_panel_spatial_feature_grid,
     )
     from endo_pipeline.settings.column_names import ColumnName
-    from endo_pipeline.settings.examples import (
-        FIGURE_3_EXAMPLE_IMAGES,
-        FIGURE_3_STREAMPLOT_EXAMPLE_DATASETS,
-    )
+    from endo_pipeline.settings.examples import EXAMPLE_DATASET, FIGURE_3_EXAMPLE_IMAGES
     from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 
     plt.style.use("endo_pipeline.figure")
@@ -69,7 +66,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     # software. When this panel is not included, the thumbnails are skipped and
     # the compiled figure asset is replaced with a placeholder version
 
-    for dataset_name in FIGURE_3_STREAMPLOT_EXAMPLE_DATASETS:
+    for dataset_name in EXAMPLE_DATASET["FIGURE_3_STREAMPLOT"]:
         visualize_2d_streamplots(dataset_name, output_path, **placeholders["A"])
 
     if placeholders["A"]["placeholder"]:
