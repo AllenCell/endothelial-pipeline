@@ -2,7 +2,7 @@
 
 import logging
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -105,7 +105,6 @@ def plot_explained_variance(
     explained_variance_ratio: np.ndarray,
     output_path: Path,
     figure_size: tuple[float, float] = (3, 2),
-    file_format: Literal[".png", ".svg", ".pdf"] = ".svg",
 ) -> Path:
     """
     Plot cumulative explained variance ratio of PCA components.
@@ -118,8 +117,6 @@ def plot_explained_variance(
         Size of the figure to create.
     output_path
         Path to save the figure to.
-    file_format
-        File format to save the figure in.
 
     Returns
     -------
@@ -172,7 +169,7 @@ def plot_explained_variance(
     ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), labelspacing=0.05)
 
     figure_path = save_plot_to_path(
-        fig, output_path, "pca_explained_variance", file_format=file_format, pad_inches=0
+        fig, output_path, "pca_explained_variance", file_format=".svg", pad_inches=0
     )
     return figure_path
 
