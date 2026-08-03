@@ -1,6 +1,7 @@
 """Methods for visualizing Diff AE features."""
 
 import logging
+from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
@@ -12,12 +13,14 @@ from matplotlib.figure import Figure
 from seaborn import kdeplot
 
 from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.polar_coords import (
     rewrap_polar_angle,
     unwrap_nonsequential_array,
 )
 from endo_pipeline.library.visualize.columns import get_label_for_column
+from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.density_comparison_plots import (
     DENSITY_PLOT_KDE_BANDWIDTH,
@@ -97,25 +100,31 @@ def plot_kde_comparison(
     return fig, axs
 
 
+@figure_panel("PCA explained variance ratios")
 def plot_explained_variance(
-    explained_variance_ratio: np.ndarray, figsize: tuple[float, float] = (3, 2)
-) -> tuple[Figure, Axes]:
-    """Plot cumulative explained variance ratio of PCA components.
+    explained_variance_ratio: np.ndarray,
+    output_path: Path,
+    figure_size: tuple[float, float] = (3, 2),
+) -> Path:
+    """
+    Plot cumulative explained variance ratio of PCA components.
 
     Parameters
     ----------
     explained_variance_ratio
         Array of explained variance ratios for each PCA component.
-    figsize
+    figure_size
         Size of the figure to create.
+    output_path
+        Path to save the figure to.
 
     Returns
     -------
     :
-        Figure and Axes objects for the plot.
+        Path to saved figure.
 
     """
-    fig, ax = plt.subplots(figsize=figsize)  # initialize figure and axes
+    fig, ax = plt.subplots(figsize=figure_size)  # initialize figure and axes
 
     # plot explained variance ratio
     n_components = len(explained_variance_ratio)
@@ -159,7 +168,10 @@ def plot_explained_variance(
 
     ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), labelspacing=0.05)
 
-    return fig, ax
+    figure_path = save_plot_to_path(
+        fig, output_path, "pca_explained_variance", file_format=".svg", pad_inches=0
+    )
+    return figure_path
 
 
 def plot_component_loadings(

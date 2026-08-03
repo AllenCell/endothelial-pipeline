@@ -1,4 +1,7 @@
-def main() -> None:
+from endo_pipeline.cli import UniqueStrList
+
+
+def main(include_panels: UniqueStrList | None = None) -> None:
     """
     **Supplemental Figure 5**. Derivation and validation of a low-dimensional,
     interpretable morphological feature space from DiffAE latent vector
@@ -33,11 +36,12 @@ def main() -> None:
     import pandas as pd
 
     from endo_pipeline.cli import NUM_GPUS
-    from endo_pipeline.io import get_output_path, save_plot_to_path
+    from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.pca import fit_pca
     from endo_pipeline.library.visualize.diffae_features import feature_viz
     from endo_pipeline.library.visualize.figures import (
         FigurePanel,
+        build_empty_panel,
         build_figure_from_panels,
         parse_placeholder_panels,
     )
@@ -59,18 +63,15 @@ def main() -> None:
 
     output_path = get_output_path(__file__)
 
-    placeholders = parse_placeholder_panels(None, ["A", "B", "C", "D"])
+    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
 
     # plot cumulative explained variance ratio of PCA components
     pca = fit_pca(num_pcs=NUM_LATENT_FEATURES)
-    fig, _ = feature_viz.plot_explained_variance(pca.explained_variance_ratio_, figsize=(2.3, 2.5))
-    save_plot_to_path(
-        fig,
-        output_path,
-        "explained_variance_ratio",
-        file_format=".svg",
-        pad_inches=0,
-        transparent=True,
+    variance_ratio_path = feature_viz.plot_explained_variance(
+        pca.explained_variance_ratio_,
+        output_path=output_path,
+        figure_size=(2.3, 2.5),
+        **placeholders["A"],
     )
 
     # Correlation heatmap of ML-based features vs. measured features
@@ -126,30 +127,33 @@ def main() -> None:
         scale_bar_um=20,
         random_seed=RECONSTRUCTION_RANDOM_SEED,
         num_gpus=NUM_GPUS,
+        **placeholders["B"],
     )
 
-    # Take the images from the latent walk along PCs 1 and 2 and plot them as a
-    # "2D" walk to motivate the polar coordinate transform. Just (-3 sigma, 0,
-    # +3 sigma) along each PC, so the grid is 3x3 with the center image repeated
-    # in the middle (showcase the extreme points along with the origin).
-    latent_walk_2d_filename = "latent_walk_pc1_pc2_2d"
-    n_steps = walk_img_grid[0].shape[0]
-    center = n_steps // 2
-    images_pc1 = walk_img_grid[0][[0, center, -1]]
-    images_pc2 = walk_img_grid[1][[0, center, -1]]
+    if (not placeholders["B"]["placeholder"]) and (not placeholders["C"]["placeholder"]):
+        # Take the images from the latent walk along PCs 1 and 2 and plot them as a
+        # "2D" walk to motivate the polar coordinate transform. Just (-3 sigma, 0,
+        # +3 sigma) along each PC, so the grid is 3x3 with the center image repeated
+        # in the middle (showcase the extreme points along with the origin).
+        n_steps = walk_img_grid[0].shape[0]
+        center = n_steps // 2
+        images_pc1 = walk_img_grid[0][[0, center, -1]]
+        images_pc2 = walk_img_grid[1][[0, center, -1]]
 
-    latent_walk_2d_path = plot_2d_latent_walk(
-        images_pc1,
-        images_pc2,
-        output_path,
-        latent_walk_2d_filename,
-    )
+        latent_walk_2d_path = plot_2d_latent_walk(
+            images_pc1,
+            images_pc2,
+            output_path,
+            "latent_walk_pc1_pc2_2d",
+        )
+    else:
+        latent_walk_2d_path = build_empty_panel(output_path, "2D latent walk schematic", 2.1, 2.1)
 
     # build figure with panels
     panels = [
         FigurePanel(
             letter="A",
-            path=output_path / "explained_variance_ratio.svg",
+            path=variance_ratio_path,
             x_position=0,
             y_position=0,
             x_offset=-0.1,

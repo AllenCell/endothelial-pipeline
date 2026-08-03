@@ -1,4 +1,7 @@
-def main() -> None:
+from endo_pipeline.cli import UniqueStrList
+
+
+def main(include_panels: UniqueStrList | None = None) -> None:
     """
     **Supplemental Figure 7**. Latent walks along nullclines of data-driven
     vector fields
@@ -68,7 +71,7 @@ def main() -> None:
 
     output_path = get_output_path(__file__)
 
-    placeholders = parse_placeholder_panels(None, ["A", "B", "C", "D"])
+    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
 
     dataset_low = EXAMPLE_DATASET["FIGURE_2_LOW_FLOW_DATASET"]
     dataset_high = EXAMPLE_DATASET["FIGURE_2_HIGH_FLOW_DATASET"]
@@ -116,7 +119,10 @@ def main() -> None:
     # pairwise combination of polar coordinates, and plot contours of drift coefficients
     contour_plot_paths: dict[str, Path] = {}
     nullcline_reconstruction_paths: dict[str, Path] = {}
-    for dataset_name in [dataset_low, dataset_high]:
+    for dataset_name, left_panel in [
+        (dataset_low, "A"),
+        (dataset_high, "C"),
+    ]:
         fig_savedir = get_output_path(__file__, dataset_name)
 
         # load fixed points dataframes (if available) for both (r, rho) and theta,
@@ -160,7 +166,7 @@ def main() -> None:
                 column_labels=column_labels_r_rho,
                 stable_fixed_point=stable_fixed_point_r_rho,
                 filename=f"{dataset_name}_{columns_r_rho_str}_contours",
-                **placeholders["B"],
+                **placeholders[left_panel],
             )
         )
 
@@ -172,7 +178,7 @@ def main() -> None:
             model=model,
             num_gpus=NUM_GPUS,
             random_seed=RECONSTRUCTION_RANDOM_SEED,
-            **placeholders["C"],
+            **placeholders[left_panel],  # this panel depends on the output of the contour plots
         )
 
     # --- Assemble all panels into final figure ---
