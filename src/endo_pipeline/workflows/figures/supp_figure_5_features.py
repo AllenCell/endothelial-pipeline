@@ -36,7 +36,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     import pandas as pd
 
     from endo_pipeline.cli import NUM_GPUS
-    from endo_pipeline.io import get_output_path, save_plot_to_path
+    from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.pca import fit_pca
     from endo_pipeline.library.visualize.diffae_features import feature_viz
     from endo_pipeline.library.visualize.figures import (
@@ -65,27 +65,14 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D"])
 
-    if not placeholders["A"]["placeholder"]:
-        # plot cumulative explained variance ratio of PCA components
-        pca = fit_pca(num_pcs=NUM_LATENT_FEATURES)
-        fig, _ = feature_viz.plot_explained_variance(
-            pca.explained_variance_ratio_, figsize=(2.3, 2.5)
-        )
-        variance_ratio_path = save_plot_to_path(
-            fig,
-            output_path,
-            "explained_variance_ratio",
-            file_format=".svg",
-            pad_inches=0,
-            transparent=True,
-        )
-    else:
-        variance_ratio_path = build_empty_panel(
-            output_path,
-            "Explained variance ratio of PCA components",
-            2.5,
-            2.3,
-        )
+    # plot cumulative explained variance ratio of PCA components
+    pca = fit_pca(num_pcs=NUM_LATENT_FEATURES)
+    variance_ratio_path = feature_viz.plot_explained_variance(
+        pca.explained_variance_ratio_,
+        output_path=output_path,
+        figure_size=(2.3, 2.5),
+        **placeholders["A"],
+    )
 
     # Correlation heatmap of ML-based features vs. measured features
     ml_columns = DIFFAE_PC_COLUMN_NAME_GROUPS["supp_figure"]
