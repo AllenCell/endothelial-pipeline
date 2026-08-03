@@ -171,7 +171,10 @@ def plot_explained_variance(
 
     ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), labelspacing=0.05)
 
-    return save_plot_to_path(fig, output_path, f"pca_explained_variance{file_format}", pad_inches=0)
+    figure_path = save_plot_to_path(
+        fig, output_path, "pca_explained_variance", file_format=file_format, pad_inches=0
+    )
+    return figure_path
 
 
 def plot_component_loadings(
