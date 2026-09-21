@@ -7,14 +7,18 @@ import numpy as np
 import pandas as pd
 from scipy.stats import circmean
 
+from endo_pipeline.io import load_dataframe
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics.binning import circpercentile
+from endo_pipeline.library.analyze.sde_interpretation import compute_alpha_corrected_drift
 from endo_pipeline.library.analyze.vector_field_estimation import (
     compute_extrapolated_vector_field,
     get_callable_vector_field,
     get_fixed_points_within_bounds,
 )
+from endo_pipeline.manifests import DataframeManifest, get_dataframe_location_for_dataset
+from endo_pipeline.settings.bootstrap_fixed_points import BOOTSTRAP_THRESHOLD
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 from endo_pipeline.settings.dynamics_workflows import (
@@ -80,6 +84,7 @@ def run_flow_field_and_fixed_points(
     lower_percentile_for_filtering_fpts: float = LOWER_PERCENTILE_FOR_FILTERING_FPTS,
     upper_percentile_for_filtering_fpts: float = UPPER_PERCENTILE_FOR_FILTERING_FPTS,
     num_inits_for_root_solver: int = NUM_INIT_SAMPLES,
+    sde_alpha: float = 0.0,
 ) -> pd.DataFrame:
     """
     Run the Kramers-Moyal + root-finding pipeline on pre-computed trajectory
@@ -137,6 +142,9 @@ def run_flow_field_and_fixed_points(
     num_inits_for_root_solver
         Number of initial conditions to sample for the root solver when finding
         fixed points.
+    sde_alpha
+        SDE interpretation parameter used to correct the Kramers-Moyal (Ito)
+        drift before root finding (``0`` for Ito, ``1/2`` for Stratonovich).
 
     Returns
     -------
@@ -147,9 +155,10 @@ def run_flow_field_and_fixed_points(
     if len(trajectories) == 0:
         raise ValueError("No trajectories provided for flow field computation.")
 
-    drift_coeffs = get_kramers_moyal_coeffs(
+    drift_coeffs, diffusion_coeffs = get_kramers_moyal_coeffs(
         trajectories, displacements, bins=bins, dt=TIME_STEP_IN_HOURS, kernel=kernels
-    )[0]
+    )
+    drift_coeffs = compute_alpha_corrected_drift(drift_coeffs, diffusion_coeffs, centers, sde_alpha)
 
     extrapolated_vf = compute_extrapolated_vector_field(
         drift_coeffs, centers, method="linear", for_vtk_files=False
@@ -176,6 +185,7 @@ def init_bootstrap_worker(
     column_names: list,
     kernels: list,
     blas_threads_per_worker: int,
+    sde_alpha: float = 0.0,
 ) -> None:
     """Initialize bootstrap worker processes.
 
@@ -201,6 +211,9 @@ def init_bootstrap_worker(
         List of ``KramersMoyalKernel`` objects, one per feature dimension.
     blas_threads_per_worker
         Maximum number of threads to use for BLAS operations per worker process.
+    sde_alpha
+        SDE interpretation parameter used to correct the drift in each iteration
+        (``0`` for Ito, ``1/2`` for Stratonovich).
 
     """
     # Clamp thread counts for common linear-algebra backends so that
@@ -230,6 +243,7 @@ def init_bootstrap_worker(
     _worker_state["centers"] = centers
     _worker_state["column_names"] = column_names
     _worker_state["kernels"] = kernels
+    _worker_state["sde_alpha"] = sde_alpha
     _worker_state["metadata_dict"] = {Column.DATASET: df_steady_state[Column.DATASET].iloc[0]}
 
 
@@ -268,6 +282,7 @@ def run_one_bootstrap_iteration(
         column_names=_worker_state["column_names"],
         kernels=_worker_state["kernels"],
         metadata_dict=_worker_state["metadata_dict"],
+        sde_alpha=_worker_state["sde_alpha"],
     )
 
 
@@ -584,3 +599,40 @@ def aggregate_bootstrapping_results(
             output_dataframe[key] = value
 
     return output_dataframe
+
+
+def load_high_confidence_bootstrap_results(
+    manifest: DataframeManifest,
+    dataset_name: str,
+    bootstrap_threshold: float = BOOTSTRAP_THRESHOLD,
+) -> pd.DataFrame:
+    """Load bootstrap results for a dataset, keeping only high-confidence fixed points.
+
+    Parameters
+    ----------
+    manifest
+        Dataframe manifest containing the bootstrap results.
+    dataset_name
+        Name of the dataset to load results for.
+    bootstrap_threshold
+        Minimum bootstrap detection rate for a fixed point to be retained.
+
+    Returns
+    -------
+    :
+        Dataframe of high-confidence fixed points (empty if the dataset is not
+        present in the manifest).
+
+    """
+    if dataset_name not in manifest.locations:
+        logger.warning(
+            "No bootstrap results found in manifest [ %s ] for dataset [ %s ].",
+            manifest.name,
+            dataset_name,
+        )
+        return pd.DataFrame()
+
+    location = get_dataframe_location_for_dataset(manifest, dataset_name)
+    dataframe = load_dataframe(location, delay=False)
+
+    return dataframe[dataframe[Column.FIXED_POINT_DETECTION_RATE] >= bootstrap_threshold].copy()

@@ -21,3 +21,18 @@ field analysis."""
 
 BOOTSTRAP_THRESHOLD: float = 0.4
 """Threshold for high confidence fixed points."""
+
+SDE_ALPHA_ITO: float = 0.0
+"""SDE interpretation parameter corresponding to the Ito interpretation."""
+
+SDE_ALPHA_STRATONOVICH: float = 0.5
+"""SDE interpretation parameter corresponding to the Stratonovich interpretation."""
+
+ALPHA_CORRECTED_MANIFEST_SUFFIX: str = "alpha_corrected"
+"""Manifest name suffix for bootstrap results computed with a corrected drift."""
+
+ITO_EDGE_COLOR: str = "black"
+"""Marker edge color for Ito-interpretation fixed points in comparison plots."""
+
+ALPHA_CORRECTED_EDGE_COLOR: str = "red"
+"""Marker edge color for alpha-corrected fixed points in comparison plots."""
