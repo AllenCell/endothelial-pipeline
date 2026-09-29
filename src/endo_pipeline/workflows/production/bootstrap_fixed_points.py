@@ -10,6 +10,7 @@ from endo_pipeline.settings.bootstrap_fixed_points import (
     FP_CI_UPPER_PERCENTILE,
     NUM_BOOTSTRAP_ITERATIONS,
 )
+from endo_pipeline.settings.column_names import ColumnName as Column
 
 
 def main(
@@ -28,6 +29,9 @@ def main(
         float, Parameter(name="--ci-upper")
     ] = FP_CI_UPPER_PERCENTILE,
     batch_size_factor: float = BATCH_SIZE_SCALING_FACTOR,
+    run_name: str | None = None,
+    kernel_bandwidths_dynamics: dict[Column.DiffAEData, float] | None = None,
+    bin_widths_dynamics: dict[Column.DiffAEData, float] | None = None,
 ) -> None:
     """
     Bootstrap fixed point confidence intervals by subsampling data.
@@ -105,6 +109,8 @@ def main(
         Percentile defining upper bound of the bootstrap confidence intervals.
     batch_size_factor
         Factor used to determine size of batch for parallel processing.
+    run_name
+        Optional name for the current run, used for organizing output files.
     """
 
     import logging
@@ -174,6 +180,15 @@ def main(
 
     output_path = get_output_path(__file__)
 
+    if run_name is None:
+        run_name = DEFAULT_MODEL_RUN_NAME
+
+    if kernel_bandwidths_dynamics is None:
+        kernel_bandwidths_dynamics = KERNEL_BANDWIDTHS_DYNAMICS
+
+    if bin_widths_dynamics is None:
+        bin_widths_dynamics = BIN_WIDTHS_DYNAMICS
+
     rng = np.random.default_rng(RANDOM_SEED)
 
     column_names = list(DYNAMICS_COLUMN_NAMES)
@@ -211,11 +226,11 @@ def main(
         kernels.append(
             KramersMoyalKernel(
                 name=KERNEL_NAMES_DYNAMICS[column_name],
-                bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_name],
+                bandwidth=kernel_bandwidths_dynamics[column_name],
                 period=KERNEL_PERIODS_DYNAMICS[column_name],
             )
         )
-        bin_widths.append(BIN_WIDTHS_DYNAMICS[column_name])
+        bin_widths.append(bin_widths_dynamics[column_name])
 
     # Add workflow parameters to the output manifest for traceability
     bootstrap_results_manifest.parameters = {
@@ -401,7 +416,7 @@ def main(
             annotations = build_fms_annotations(
                 dataset_config,
                 model_manifest=load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME),
-                run_name=DEFAULT_MODEL_RUN_NAME,
+                run_name=run_name,
                 additional_notes=FMS_ANNOTATION_NOTES_BOOTSTRAPPING,
             )
             fmsid = upload_file_to_fms(

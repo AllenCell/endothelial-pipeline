@@ -1,10 +1,14 @@
 from endo_pipeline.cli import Datasets, PatchType, StrList
+from endo_pipeline.settings.column_names import ColumnName as Column
 
 
 def main(
     patch_type: PatchType = "grid_based",
     columns: StrList | None = None,
     datasets: Datasets | None = None,
+    run_name: str | None = None,
+    kernel_bandwidths_dynamics: dict[Column.DiffAEData, float] | None = None,
+    bin_widths_dynamics: dict[Column.DiffAEData, float] | None = None,
 ) -> None:
     """
     Generate drift vector field and estimate fixed points.
@@ -66,6 +70,8 @@ def main(
         Specific columns to use to generate flow field.
     datasets
         List of datasets or dataset collections to generate flow fields for.
+    run_name
+        Optional name for the current run, used for organizing output files.
     """
 
     import logging
@@ -128,6 +134,15 @@ def main(
 
     output_path = get_output_path(__file__)
 
+    if run_name is None:
+        run_name = DEFAULT_MODEL_RUN_NAME
+
+    if kernel_bandwidths_dynamics is None:
+        kernel_bandwidths_dynamics = KERNEL_BANDWIDTHS_DYNAMICS
+
+    if bin_widths_dynamics is None:
+        bin_widths_dynamics = BIN_WIDTHS_DYNAMICS
+
     dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
 
     if DEMO_MODE:
@@ -177,11 +192,11 @@ def main(
         kernels.append(
             KramersMoyalKernel(
                 name=KERNEL_NAMES_DYNAMICS[column_name],
-                bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_name],
+                bandwidth=kernel_bandwidths_dynamics[column_name],
                 period=KERNEL_PERIODS_DYNAMICS[column_name],
             )
         )
-        bin_widths.append(BIN_WIDTHS_DYNAMICS[column_name])
+        bin_widths.append(bin_widths_dynamics[column_name])
 
     # Add parameters to dataframe manifests for traceability
     for output_dataframe_manifest in [
@@ -297,7 +312,7 @@ def main(
                 annotations = build_fms_annotations(
                     dataset_config,
                     model_manifest=model_manifest,
-                    run_name=DEFAULT_MODEL_RUN_NAME,
+                    run_name=run_name,
                     additional_notes=additional_notes,
                 )
                 fmsid = upload_file_to_fms(save_path, annotations=annotations, file_type="parquet")
