@@ -224,8 +224,9 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
             with np.errstate(divide="ignore", invalid="ignore"):
                 cross_corr_results /= n_points[:, :, np.newaxis, np.newaxis]
 
+            # R_ij(t, t') = R_ji(t', t), so only the unique feature pairs are plotted
             for i in range(n_dim):
-                for j in range(n_dim):
+                for j in range(i, n_dim):
                     # Plot the cross-correlation matrix: R_ij(t, t')
                     # where the x axis is t and the y axis is t'
                     corr_matrix = cross_corr_results[:, :, i, j]
@@ -236,7 +237,7 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
                     cax = ax.pcolormesh(
                         corr_matrix.T,
                         cmap="coolwarm",
-                        norm=colors.TwoSlopeNorm(vcenter=0, vmin=-abs_max, vmax=abs_max),
+                        norm=colors.TwoSlopeNorm(vcenter=0, vmin=-0.01, vmax=0.01),
                         shading="auto",
                     )
                     fig.colorbar(cax)
@@ -254,14 +255,14 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
                     figure_name = f"noise_correlation_matrix_{dataset_name_flow}_cols_{column_names[i]}_{column_names[j]}"
                     save_plot_to_path(fig, output_path, figure_name)
 
-                    # Scatter plot of R_ij(t, t') as a function of
-                    # tau = |t - t'|
+                    # Scatter plot of R_ij(t, t') as a function of the signed lag
+                    # tau = t' - t, where the tau < 0 half carries R_ji
                     fig, ax = plt.subplots(figsize=(8, 6))
-                    tau = np.abs(np.subtract.outer(timepoints_range, timepoints_range))
-                    cross_corr_flat = corr_matrix.flatten()
-                    tau_flat = tau.flatten()
-                    ax.scatter(tau_flat, cross_corr_flat, alpha=0.5)
-                    ax.set_xlabel("$\\tau = |t - t'|$")
+                    tau = timepoints_array[np.newaxis, :] - timepoints_array[:, np.newaxis]
+                    # R_ii is symmetric in tau, so keep only non-negative lags
+                    keep = tau >= 0 if i == j else np.ones_like(tau, dtype=bool)
+                    ax.scatter(tau[keep], corr_matrix[keep], alpha=0.5)
+                    ax.set_xlabel("$\\tau = t' - t$")
                     ax.set_ylabel("$R_{ij}(t, t')$")
                     ax.set_title(
                         f"Cross-Correlation vs Time Lag: R_ij(t, t') for (i,j) = ({column_names[i]}, {column_names[j]})"
