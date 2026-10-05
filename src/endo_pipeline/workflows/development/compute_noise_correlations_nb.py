@@ -7,9 +7,8 @@ import numpy as np
 
 from endo_pipeline.cli import DEMO_MODE
 from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-from endo_pipeline.io import get_output_path, join_sorted_strings, load_dataframe, save_plot_to_path
+from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import (
-    filter_dataframe_by_shear_stress,
     filter_dataframe_by_track_length,
     filter_dataframe_to_flow_condition_by_timepoint,
     filter_dataframe_to_steady_state,
@@ -20,10 +19,6 @@ from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifes
 from endo_pipeline.library.analyze.numerics.forward_difference import (
     compute_forward_differences_along_trajectory,
 )
-from endo_pipeline.library.analyze.vector_field_estimation import (
-    get_vector_field_as_dict_from_dataframe,
-)
-from endo_pipeline.library.analyze.vector_field_function import get_callable_vector_field
 from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import (
@@ -32,7 +27,6 @@ from endo_pipeline.settings.dynamics_workflows import (
     METADATA_COLUMNS_TO_KEEP,
     TIME_STEP_IN_HOURS,
 )
-from endo_pipeline.settings.manifest_names import VECTOR_FIELD_MANIFEST_NAMES
 from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
 
 # %%
@@ -50,7 +44,7 @@ patch_type = "grid_based"
 max_num_timepoints = None
 max_num_patches = None
 if DEMO_MODE:
-    max_num_timepoints = 50
+    max_num_timepoints = 25
     max_num_patches = 50
     dataset_names = dataset_names[:1]
     logger.warning(
@@ -73,11 +67,6 @@ columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[patch_type], *column_names]
 feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[patch_type]
 feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
-# Load pre-computed vector field dataframe manifest
-name_suffix = join_sorted_strings(column_names)
-vector_field_manifest_name = f"{VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{name_suffix}"
-vector_field_manifest = load_dataframe_manifest(vector_field_manifest_name)
-
 for dataset_name in dataset_names:
     if dataset_name not in feature_dataframe_manifest.locations:
         logger.warning(
@@ -92,8 +81,6 @@ for dataset_name in dataset_names:
     df = df_delayed[columns_to_compute].compute()
     dataset_config = load_dataset_config(dataset_name)
     df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
-
-    df_vec = load_dataframe(vector_field_manifest.locations[dataset_name], delay=False)
 
     # process on a per-flow condition basis
     cross_corr_dataframe_list = []
@@ -116,13 +103,6 @@ for dataset_name in dataset_names:
         df_flow = filter_dataframe_by_track_length(
             dataframe=df_flow, minimum_track_length=track_duration_filter
         )
-
-        vector_field_for_flow_condition = filter_dataframe_by_shear_stress(df_vec, shear_stress)
-
-        vector_field_dict = get_vector_field_as_dict_from_dataframe(
-            vector_field_for_flow_condition, column_names
-        )
-        vector_field = get_callable_vector_field(vector_field_dict, for_solve_ivp=False)
 
         # Create array for cross-correlation results at t vs. t' values, where t
         # and t' have range equal to the full range of timepoints present in
