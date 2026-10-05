@@ -1,0 +1,157 @@
+name: bootstrapped_fixed_points_grid_based_alpha_corrected
+workflow: bootstrap_alpha_corrected_fixed_points
+parameters:
+  model_manifest_name: diffae_baseline
+  run_name: latent_512
+  patch_type: grid_based
+  sde_alpha: 0.5
+  kernels:
+  - column: polar_theta
+    name: periodic
+    bandwidth: 0.15
+    period: 3.141592653589793
+  - column: polar_r
+    name: gaussian
+    bandwidth: 0.15
+    period: null
+  - column: rho
+    name: gaussian
+    bandwidth: 0.15
+    period: null
+  bin_widths: [0.05, 0.05, 0.05]
+  num_bootstrap_iterations: 500
+  bootstrap_match_radius: 0.3
+columns: {}
+locations:
+  20250319_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20250319_20X_20260921_233449.parquet
+    s3uri: null
+  20250409_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20250409_20X_20260922_004440.parquet
+    s3uri: null
+  20250813_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20250813_20X_20260922_031307.parquet
+    s3uri: null
+  20251001_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20251001_20X_20260922_043540.parquet
+    s3uri: null
+  20250326_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20250326_20X_20260922_000532.parquet
+    s3uri: null
+  20250402_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20250402_20X_20260922_002221.parquet
+    s3uri: null
+  20250428_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20250428_20X_20260922_010434.parquet
+    s3uri: null
+  20250604_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20250604_20X_20260922_012237.parquet
+    s3uri: null
+  20250611_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20250611_20X_20260922_013545.parquet
+    s3uri: null
+  20250618_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20250618_20X_20260922_014952.parquet
+    s3uri: null
+  20250714_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20250714_20X_20260922_021138.parquet
+    s3uri: null
+  20250716_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20250716_20X_20260922_023230.parquet
+    s3uri: null
+  20250728_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20250728_20X_20260922_024945.parquet
+    s3uri: null
+  20250827_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20250827_20X_20260922_033226.parquet
+    s3uri: null
+  20250908_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20250908_20X_20260922_041642.parquet
+    s3uri: null
+  20251029_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20251029_20X_20260922_045116.parquet
+    s3uri: null
+  20251119_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20251119_20X_20260922_050616.parquet
+    s3uri: null
+  20260114_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20260114_20X_20260922_052154.parquet
+    s3uri: null
+  20260121_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20260121_20X_20260922_054513.parquet
+    s3uri: null
+  20260126_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20260126_20X_20260922_055832.parquet
+    s3uri: null
+  20260128_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20260128_20X_20260922_061636.parquet
+    s3uri: null
+  20260202_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20260202_20X_20260922_063011.parquet
+    s3uri: null
+  20260204_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20260204_20X_20260922_064653.parquet
+    s3uri: null
+  20260209_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20260209_20X_20260922_065912.parquet
+    s3uri: null
+  20260211_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20260211_20X_20260922_071311.parquet
+    s3uri: null
+  20260216_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20260216_20X_20260922_073035.parquet
+    s3uri: null
+  20260225_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20260225_20X_20260922_075055.parquet
+    s3uri: null
+  20260302_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20260302_20X_20260922_080636.parquet
+    s3uri: null
+  20260304_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20260304_20X_20260922_082901.parquet
+    s3uri: null
+  20260309_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20260309_20X_20260922_084130.parquet
+    s3uri: null
+  20260325_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20260325_20X_20260922_090035.parquet
+    s3uri: null
+  20260504_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20260504_20X_20260922_092912.parquet
+    s3uri: null
+  20260506_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-09-21/bootstrap_alpha_corrected_fixed_points/bootstrapped_fixed_points_grid_based_alpha_corrected_20260506_20X_20260922_095824.parquet
+    s3uri: null

@@ -175,8 +175,15 @@ def main(
         for flow_condition in dataset_config.flow_conditions:
             shear_stress = flow_condition.shear_stress
 
-            ito_df_flow = filter_dataframe_by_shear_stress(ito_df, shear_stress)
-            alpha_df_flow = filter_dataframe_by_shear_stress(alpha_df, shear_stress)
+            if not ito_df.empty:
+                ito_df_flow = filter_dataframe_by_shear_stress(ito_df, shear_stress)
+            else:
+                ito_df_flow = ito_df.copy()
+
+            if not alpha_df.empty:
+                alpha_df_flow = filter_dataframe_by_shear_stress(alpha_df, shear_stress)
+            else:
+                alpha_df_flow = alpha_df.copy()
 
             if ito_df_flow.empty and alpha_df_flow.empty:
                 continue
