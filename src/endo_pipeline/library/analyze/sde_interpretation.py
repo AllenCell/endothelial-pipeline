@@ -20,8 +20,62 @@ Ito interpretation and `alpha = 1/2` the Stratonovich interpretation.
 import logging
 
 import numpy as np
+import pandas as pd
 
 logger = logging.getLogger(__name__)
+
+from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
+from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
+from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
+from endo_pipeline.settings.column_names import ColumnName as Column
+
+
+def compute_diffusion_coefficients(
+    dataframe: pd.DataFrame,
+    column_names: list[str | Column.DiffAEData],
+    bins: list[np.ndarray],
+    kernel: KramersMoyalKernel | list[KramersMoyalKernel],
+    time_step: float,
+) -> np.ndarray:
+    """
+    Compute the diffusion coefficient estimates from data.
+
+    Parameters
+    ----------
+    dataframe
+        DataFrame containing the trajectories.
+    column_names
+        List of column names corresponding to the trajectory components.
+    bins
+        List of numpy arrays defining the bin edges for each dimension.
+    kernel
+        Kramers-Moyal kernel or list of kernels to use for coefficient estimation.
+    time_step
+        Time step between consecutive trajectory points.
+
+    Returns
+    -------
+    :
+        Array of diffusion coefficients.
+
+    """
+    # get list of per-crop trajectories, the corresponding
+    # displacement vectors, and time differences
+    traj_list, d_traj_list = get_traj_and_diff(dataframe, column_names)
+
+    # get diffusion tensor estimates in units hours^-1 for each bin in 3D space
+    # (Kramers-Moyal coefficient estimation)
+    diffusion_coeffs = get_kramers_moyal_coeffs(
+        traj_list, d_traj_list, bins=bins, dt=time_step, kernel=kernel
+    )[1]
+
+    # Ensure diffusion_coeffs always has a trailing components dimension
+    # (shape ..., N) so that downstream functions handle the 1D case
+    # (single column) the same as multi-dimensional cases.
+    if diffusion_coeffs.ndim == 1:
+        diffusion_coeffs = diffusion_coeffs[:, np.newaxis]
+
+    return diffusion_coeffs
 
 
 def assemble_symmetric_diffusion_tensor(diffusion_coeffs: np.ndarray, ndim: int) -> np.ndarray:
