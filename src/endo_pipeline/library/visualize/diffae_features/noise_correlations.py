@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import Any
 
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
@@ -53,7 +54,7 @@ def plot_noise_amplitude(
     for i in range(n_dim):
         ax.plot(timepoints_array, sigma_t[:, i], label=column_names[i])
     ax.set_xlabel("Frame number $t$")
-    ax.set_ylabel("$\\sigma_i(t) = \\sqrt{R_{ii}(t, t)}$")
+    ax.set_ylabel(f"{Unicode.SIGMA}$_i(t) = \\sqrt{{R_{{ii}}(t, t)}}$")
     ax.set_title(plot_title)
     ax.legend()
     figure_name = file_name or "noise_amplitude"
@@ -63,7 +64,7 @@ def plot_noise_amplitude(
 def plot_normalized_two_timepoint_cross_correlations(
     cross_correlations: np.ndarray,
     sigma_t: np.ndarray,
-    timepoints_range: np.ndarray,
+    timepoints_range: list[Any],
     column_names: list[str],
     plot_title: str,
     output_path: Path,
