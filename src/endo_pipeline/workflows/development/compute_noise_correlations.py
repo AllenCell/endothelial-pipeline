@@ -45,11 +45,10 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
     import logging
 
     import numpy as np
-    import pandas as pd
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import get_output_path, join_sorted_strings, load_dataframe
+    from endo_pipeline.io import get_output_path, join_sorted_strings, load_dataframe, slugify
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_shear_stress,
         filter_dataframe_by_track_length,
@@ -59,8 +58,10 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
     from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
         add_track_duration_to_dataframe,
     )
-    from endo_pipeline.library.analyze.numerics.forward_difference import (
-        compute_forward_differences_along_trajectory,
+    from endo_pipeline.library.analyze.numerics.correlations import (
+        NoiseCorrelationCentering,
+        compute_two_timepoint_noise_correlations,
+        get_trajectories_and_differences_for_noise_correlations,
     )
     from endo_pipeline.library.analyze.vector_field_estimation import (
         get_vector_field_as_dict_from_dataframe,
@@ -77,7 +78,6 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
         DYNAMICS_COLUMN_NAMES,
         LONG_TRACK_THRESHOLD_LENGTH,
         METADATA_COLUMNS_TO_KEEP,
-        TIME_STEP_IN_HOURS,
     )
     from endo_pipeline.settings.manifest_names import VECTOR_FIELD_MANIFEST_NAMES
     from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
@@ -108,8 +108,6 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
     # Default list of feature column names to use for correlation analysis if
     # not provided. Otherwise, use provided list.
     column_names = list(DYNAMICS_COLUMN_NAMES)
-    diff_column_names = [f"{col}{Column.DiffAEData.DIFFERENCE_SUFFIX}" for col in column_names]
-    n_dim = len(column_names)
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[patch_type], *column_names]
 
     # Load feature dataframe for specified patch type
@@ -149,6 +147,7 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
             steady_state_duration = (
                 df_flow[Column.TIMEPOINT].max() - df_flow[Column.TIMEPOINT].min()
             )
+            # Filter tracks by duration
             track_duration_filter = min(LONG_TRACK_THRESHOLD_LENGTH, steady_state_duration)
             df_flow = add_track_duration_to_dataframe(
                 df_flow, grouping_columns=[Column.CROP_INDEX], time_column=Column.TIMEPOINT
@@ -157,10 +156,10 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
                 dataframe=df_flow, minimum_track_length=track_duration_filter
             )
 
+            # Get callable vector field for the current flow condition
             vector_field_for_flow_condition = filter_dataframe_by_shear_stress(
                 df_vec, flow_condition.shear_stress
             )
-
             vector_field_dict = get_vector_field_as_dict_from_dataframe(
                 vector_field_for_flow_condition, column_names
             )
@@ -175,141 +174,75 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
             logger.debug("Number of timepoints: %d", len(timepoints_range))
             n_timepoints = len(timepoints_range)
             timepoints_array = np.asarray(timepoints_range)
+            # Need to re-mask the dataframe to include only the selected timepoints
             df_flow = df_flow[df_flow[Column.TIMEPOINT].isin(timepoints_array)]
 
-            cross_corr_mean_subtracted = np.zeros((n_timepoints, n_timepoints, n_dim, n_dim))
-            cross_corr_drift_subtracted = np.zeros((n_timepoints, n_timepoints, n_dim, n_dim))
-            n_points_ms = np.zeros((n_timepoints, n_timepoints))
-            n_points_ds = np.zeros((n_timepoints, n_timepoints))
-
-            # Loop over each patch in the dataset and compute the forward differences
-            num_patches_processed = 0
-            traj_list = []
-            d_traj_list = []
-            for patch_idx, df_patch_ in df_flow.groupby(Column.CROP_INDEX):
-                if max_num_patches is not None and num_patches_processed >= max_num_patches:
-                    logger.debug("Reached maximum number of patches: %d", max_num_patches)
-                    break
-                logger.debug("Processing patch: %s", patch_idx)
-                # forward differences require at least two distinct timepoints
-                if df_patch_[Column.TIMEPOINT].nunique() < 2:
-                    logger.warning("Skipping patch with insufficient timepoints: [ %s ]", patch_idx)
-                    continue
-
-                # sort by timepoint to ensure that trajectory is in correct order before
-                # computing differences
-                df_patch = df_patch_.sort_values(by=Column.TIMEPOINT)
-
-                # compute forward differences along trajectory for this crop, and filter
-                # to keep only differences between timepoints that are separated by
-                # time_lag number of frames (accounts for any missing timepoints in the
-                # trajectory, for example due to outlier filtering)
-                filtered_traj, filtered_d_traj = compute_forward_differences_along_trajectory(
-                    df_patch, column_names
-                )
-
-                # if the returned difference array is empty, skip this trajectory
-                if filtered_traj.empty or filtered_d_traj.empty:
-                    logger.warning(
-                        "Skipping patch with empty trajectory or difference arrays: [ %s ]",
-                        patch_idx,
-                    )
-                    continue
-
-                traj_list.append(filtered_traj)
-                d_traj_list.append(filtered_d_traj)
-                num_patches_processed += 1
-
+            # Get the per-patch trajectories and their forward differences for
+            # noise correlation analysis
+            traj_list, d_traj_list = get_trajectories_and_differences_for_noise_correlations(
+                df_flow, column_names, max_num_patches=max_num_patches
+            )
             if not traj_list or not d_traj_list:
                 logger.warning("No valid patches found for [ %s ]. Skipping.", dataset_name_flow)
                 continue
 
-            # Ensemble mean of the forward differences across patches at each timepoint
-            mean_dx_t = (
-                pd.concat(d_traj_list)
-                .groupby(Column.TIMEPOINT)[diff_column_names]
-                .mean()
-                .reindex(timepoints_range)
-                .to_numpy()
-            )
-
-            for filtered_traj, filtered_d_traj in zip(traj_list, d_traj_list, strict=True):
-                # Extract the timepoints, values, and differences for this patch
-                patch_timepoints_x_t = filtered_traj[Column.TIMEPOINT].to_numpy()
-                patch_timepoints_dx_t = filtered_d_traj[Column.TIMEPOINT].to_numpy()
-                patch_x_t = filtered_traj[column_names].to_numpy()
-                patch_dx_t = filtered_d_traj[diff_column_names].to_numpy()
-
-                # place this patch's trajectory values and differences on the
-                # shared timepoint axis, leaving NaN at timepoints where the
-                # patch has no difference/value
-                x_t = np.full((n_timepoints, n_dim), np.nan)
-                x_t[np.searchsorted(timepoints_array, patch_timepoints_x_t)] = patch_x_t
-                dx_t = np.full((n_timepoints, n_dim), np.nan)
-                dx_t[np.searchsorted(timepoints_array, patch_timepoints_dx_t)] = patch_dx_t
-                f_x_t = vector_field(x_t)
-
-                # mean subtracted differences
-                eta_ms = dx_t - mean_dx_t
-                # drift subtracted differences
-                eta_ds = dx_t - f_x_t * TIME_STEP_IN_HOURS
-                # mask valid timepoints for centered differences
-                is_valid_ms = ~np.isnan(eta_ms).any(axis=1)
-                eta_ms = np.where(is_valid_ms[:, np.newaxis], eta_ms, 0.0)
-                is_valid_ds = ~np.isnan(eta_ds).any(axis=1)
-                eta_ds = np.where(is_valid_ds[:, np.newaxis], eta_ds, 0.0)
-
-                # R_ij(t, t') = < eta_i(t) eta_j(t') >
-                cross_corr_mean_subtracted += np.einsum("ti,sj->tsij", eta_ms, eta_ms)
-                n_points_ms += np.outer(is_valid_ms, is_valid_ms)
-                cross_corr_drift_subtracted += np.einsum("ti,sj->tsij", eta_ds, eta_ds)
-                n_points_ds += np.outer(is_valid_ds, is_valid_ds)
-
-            # Normalize accumulated sums by the number of contributing patches
-            with np.errstate(divide="ignore", invalid="ignore"):
-                cross_corr_mean_subtracted /= n_points_ms[:, :, np.newaxis, np.newaxis]
-                cross_corr_drift_subtracted /= n_points_ds[:, :, np.newaxis, np.newaxis]
-
-            # make plots
-            for cross_corr_centered, subtracted in [
-                (cross_corr_mean_subtracted, "mean subtracted"),
-                (cross_corr_drift_subtracted, "drift subtracted"),
-            ]:
-                # sigma_i(t) = sqrt(R_ii(t, t)); stationary noise has a flat sigma_i(t)
-                diagonal_indices = np.arange(n_timepoints)
-                variance_t = cross_corr_centered[diagonal_indices, diagonal_indices]
-                sigma_t = np.sqrt(np.einsum("tii->ti", variance_t))
-                _ = plot_noise_amplitude(
-                    sigma_t=sigma_t,
+            # Compute cross corrlelations and make plots
+            for centering_method in NoiseCorrelationCentering:
+                # Compute cross-correlations for the current centering method
+                cross_correlations = compute_two_timepoint_noise_correlations(
+                    traj_list=traj_list,
+                    d_traj_list=d_traj_list,
+                    column_names=column_names,
                     timepoints_array=timepoints_array,
-                    column_names=column_names,
-                    plot_title=f"Noise amplitude ({subtracted}): {dataset_name_flow}",
-                    output_path=output_path,
-                    file_name=f"noise_amplitude_{subtracted}_{dataset_name_flow}",
+                    vector_field=vector_field,
+                    centering_method=centering_method,
                 )
 
-                # rho_ij(t, t') = R_ij(t, t') / (sigma_i(t) * sigma_j(t')),
-                # which rescales to [-1, 1] and divides out any potential drift
-                # in the noise amplitude
-                plot_normalized_two_timepoint_cross_correlations(
-                    cross_correlations=cross_corr_centered,
-                    sigma_t=sigma_t,
-                    timepoints_range=timepoints_range,
-                    column_names=column_names,
-                    plot_title=f"Normalized cross-correlations ({subtracted}): {dataset_name_flow}",
-                    output_path=output_path,
-                    file_name=f"normalized_cross_correlations_{subtracted}_{dataset_name_flow}",
-                )
+                if cross_correlations is None:
+                    # If method returns early due to an error, continue
+                    continue
+                else:
+                    # sigma_i(t) = sqrt(R_ii(t, t)); stationary noise has a flat sigma_i(t)
+                    diagonal_indices = np.arange(n_timepoints)
+                    variance_t = cross_correlations[diagonal_indices, diagonal_indices]
+                    sigma_t = np.sqrt(np.einsum("tii->ti", variance_t))
+                    _ = plot_noise_amplitude(
+                        sigma_t=sigma_t,
+                        timepoints_array=timepoints_array,
+                        column_names=column_names,
+                        plot_title=f"Noise amplitude ({centering_method}): {dataset_name_flow}",
+                        output_path=output_path,
+                        file_name=slugify(
+                            f"noise_amplitude_{centering_method}_{dataset_name_flow}"
+                        ),
+                    )
 
-                # Plot R_ij(t,t') = R_ji(t',t) as a function of the time lag tau = t' - t
-                plot_cross_correlations_against_lag(
-                    cross_correlations=cross_corr_centered,
-                    timepoints_array=timepoints_array,
-                    column_names=column_names,
-                    plot_title=f"Cross-correlations vs time lag ({subtracted}): {dataset_name_flow}",
-                    output_path=output_path,
-                    file_name=f"cross_correlations_vs_lag_{subtracted}_{dataset_name_flow}",
-                )
+                    # rho_ij(t, t') = R_ij(t, t') / (sigma_i(t) * sigma_j(t')),
+                    # which rescales to [-1, 1] and divides out any potential drift
+                    # in the noise amplitude
+                    plot_normalized_two_timepoint_cross_correlations(
+                        cross_correlations=cross_correlations,
+                        sigma_t=sigma_t,
+                        timepoints_range=timepoints_range,
+                        column_names=column_names,
+                        plot_title=f"Normalized cross-correlations ({centering_method}): {dataset_name_flow}",
+                        output_path=output_path,
+                        file_name=slugify(
+                            f"normalized_cross_correlations_{centering_method}_{dataset_name_flow}"
+                        ),
+                    )
+
+                    # Plot R_ij(t,t') = R_ji(t',t) as a function of the time lag tau = t' - t
+                    plot_cross_correlations_against_lag(
+                        cross_correlations=cross_correlations,
+                        timepoints_array=timepoints_array,
+                        column_names=column_names,
+                        plot_title=f"Cross-correlations vs time lag ({centering_method}): {dataset_name_flow}",
+                        output_path=output_path,
+                        file_name=slugify(
+                            f"cross_correlations_vs_lag_{centering_method}_{dataset_name_flow}"
+                        ),
+                    )
 
 
 if __name__ == "__main__":
