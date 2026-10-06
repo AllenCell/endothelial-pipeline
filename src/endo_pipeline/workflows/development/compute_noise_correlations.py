@@ -224,48 +224,66 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
             with np.errstate(divide="ignore", invalid="ignore"):
                 cross_corr_results /= n_points[:, :, np.newaxis, np.newaxis]
 
+            # sigma_i(t) = sqrt(R_ii(t, t)); stationary noise has a flat sigma_i(t)
+            diagonal_indices = np.arange(n_timepoints)
+            variance_t = cross_corr_results[diagonal_indices, diagonal_indices]
+            sigma_t = np.sqrt(np.einsum("tii->ti", variance_t))
+            fig, ax = plt.subplots(figsize=(8, 6))
+            for i in range(n_dim):
+                ax.plot(timepoints_array, sigma_t[:, i], label=column_names[i])
+            ax.set_xlabel("Timepoint $t$")
+            ax.set_ylabel("$\\sigma_i(t) = \\sqrt{R_{ii}(t, t)}$")
+            ax.set_title(f"Noise Amplitude vs Timepoint: {dataset_name_flow}")
+            ax.legend()
+            figure_name = f"noise_amplitude_{dataset_name_flow}"
+            save_plot_to_path(fig, output_path, figure_name)
+
+            # rho_ij(t, t') = R_ij(t, t') / sqrt(R_ii(t, t) * R_jj(t', t')), which
+            # rescales to [-1, 1] and divides out any drift in the noise amplitude
+            with np.errstate(divide="ignore", invalid="ignore"):
+                normalized_corr_results = cross_corr_results / (
+                    sigma_t[:, np.newaxis, :, np.newaxis] * sigma_t[np.newaxis, :, np.newaxis, :]
+                )
+
             # R_ij(t, t') = R_ji(t', t), so only the unique feature pairs are plotted
             for i in range(n_dim):
                 for j in range(i, n_dim):
-                    # Plot the cross-correlation matrix: R_ij(t, t')
+                    # Plot the cross-correlation matrix: rho_ij(t, t')
                     # where the x axis is t and the y axis is t'
-                    corr_matrix = cross_corr_results[:, :, i, j]
-                    abs_max = np.nanmax(np.abs(corr_matrix))
-                    if not np.isfinite(abs_max) or abs_max == 0:
-                        abs_max = 1.0
+                    corr_matrix = normalized_corr_results[:, :, i, j]
                     fig, ax = plt.subplots(figsize=(8, 6))
                     cax = ax.pcolormesh(
                         corr_matrix.T,
                         cmap="coolwarm",
-                        norm=colors.TwoSlopeNorm(vcenter=0, vmin=-0.01, vmax=0.01),
+                        norm=colors.TwoSlopeNorm(vcenter=0, vmin=-1, vmax=1),
                         shading="auto",
                     )
                     fig.colorbar(cax)
                     ax.set_xlabel("Timepoint $t$")
                     ax.set_xticks(
-                        np.arange(len(timepoints_range))[::10] + 0.5, labels=timepoints_range[::10]
+                        np.arange(len(timepoints_range))[::25] + 0.5, labels=timepoints_range[::25]
                     )
                     ax.set_ylabel("Timepoint $t'$")
                     ax.set_yticks(
-                        np.arange(len(timepoints_range))[::10] + 0.5, labels=timepoints_range[::10]
+                        np.arange(len(timepoints_range))[::25] + 0.5, labels=timepoints_range[::25]
                     )
                     ax.set_title(
-                        f"Cross-Correlation Matrix: R_ij(t, t') for (i,j) = ({column_names[i]}, {column_names[j]})"
+                        f"Normalized Cross-Correlation Matrix: rho_ij(t, t') for (i,j) = ({column_names[i]}, {column_names[j]})"
                     )
                     figure_name = f"noise_correlation_matrix_{dataset_name_flow}_cols_{column_names[i]}_{column_names[j]}"
                     save_plot_to_path(fig, output_path, figure_name)
 
-                    # Scatter plot of R_ij(t, t') as a function of the signed lag
-                    # tau = t' - t, where the tau < 0 half carries R_ji
+                    # Scatter plot of rho_ij(t, t') as a function of the signed lag
+                    # tau = t' - t, where the tau < 0 half carries rho_ji
                     fig, ax = plt.subplots(figsize=(8, 6))
                     tau = timepoints_array[np.newaxis, :] - timepoints_array[:, np.newaxis]
                     # R_ii is symmetric in tau, so keep only non-negative lags
                     keep = tau >= 0 if i == j else np.ones_like(tau, dtype=bool)
-                    ax.scatter(tau[keep], corr_matrix[keep], alpha=0.5)
+                    ax.scatter(tau[keep], corr_matrix[keep], alpha=0.2, s=10, zorder=1)
                     ax.set_xlabel("$\\tau = t' - t$")
-                    ax.set_ylabel("$R_{ij}(t, t')$")
+                    ax.set_ylabel("$\\rho_{ij}(t, t')$")
                     ax.set_title(
-                        f"Cross-Correlation vs Time Lag: R_ij(t, t') for (i,j) = ({column_names[i]}, {column_names[j]})"
+                        f"Normalized Cross-Correlation vs Time Lag: rho_ij(t, t') for (i,j) = ({column_names[i]}, {column_names[j]})"
                     )
                     figure_name = f"noise_correlation_vs_tau_{dataset_name_flow}_cols_{column_names[i]}_{column_names[j]}"
                     save_plot_to_path(fig, output_path, figure_name)
