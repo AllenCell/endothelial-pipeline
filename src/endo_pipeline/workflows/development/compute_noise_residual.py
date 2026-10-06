@@ -217,7 +217,16 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
 
             # plot histogram of the residual magnitude ratio
             fig, ax = plt.subplots()
-            ax.hist(residual_magnitude_ratio.flatten(), bins=50)
+            ax.hist(residual_magnitude_ratio.flatten(), bins=np.linspace(0, 5.0, 150))
+            ax.vlines(
+                np.nanmedian(residual_magnitude_ratio),
+                ymin=0,
+                ymax=ax.get_ylim()[1],
+                colors="r",
+                linestyles="dashed",
+                label="Median",
+            )
+            ax.legend()
             ax.set_xlabel(f"Residual magnitude ratio ({dataset_name_flow})")
             ax.set_ylabel("Frequency")
             ax.set_title("Histogram of Residual Magnitude Ratio")
@@ -231,7 +240,6 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
                 np.nanstd(residual_magnitude_ratio),
             )
             print("Median residual magnitude ratio: ", np.nanmedian(residual_magnitude_ratio))
-            print("Number of grid points: ", residual_magnitude_ratio.size)
 
 
 if __name__ == "__main__":
