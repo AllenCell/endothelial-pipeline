@@ -6,7 +6,7 @@ def main(
     patch_type: PatchType = "grid_based",
     columns: StrList | None = None,
     datasets: Datasets | None = None,
-    run_name: str | None = None,
+    sweep_name: str | None = None,
     kernel_bandwidths_dynamics: dict[Column.DiffAEData, float] | None = None,
     bin_widths_dynamics: dict[Column.DiffAEData, float] | None = None,
 ) -> None:
@@ -134,8 +134,8 @@ def main(
 
     output_path = get_output_path(__file__)
 
-    if run_name is None:
-        run_name = DEFAULT_MODEL_RUN_NAME
+    if sweep_name is None:
+        sweep_name = ""
 
     if kernel_bandwidths_dynamics is None:
         kernel_bandwidths_dynamics = KERNEL_BANDWIDTHS_DYNAMICS
@@ -174,10 +174,12 @@ def main(
     # Build dataframe manifest names that include sorted list of selected
     # columns used to generate the flow field.
     name_suffix = join_sorted_strings(column_names)
-    vector_field_dataframe_manifest_name = (
-        f"{VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{name_suffix}"
+    vector_field_dataframe_manifest_name = "_".join(
+        filter(None, [VECTOR_FIELD_MANIFEST_NAMES[patch_type], name_suffix, sweep_name])
     )
-    fixed_points_dataframe_manifest_name = f"{FIXED_POINT_MANIFEST_NAMES[patch_type]}_{name_suffix}"
+    fixed_points_dataframe_manifest_name = "_".join(
+        filter(None, [FIXED_POINT_MANIFEST_NAMES[patch_type], name_suffix, sweep_name])
+    )
     vector_field_dataframe_manifest = create_dataframe_manifest(
         vector_field_dataframe_manifest_name, workflow_name=__file__
     )
@@ -300,7 +302,10 @@ def main(
                 continue
 
             # Save dataframe to file
-            save_path = output_path / f"{name_prefix}_{dataset_name}{name_suffix}.parquet"
+            output_filename = "_".join(
+                filter(None, [name_prefix, dataset_name, name_suffix, sweep_name])
+            )
+            save_path = output_path / f"{output_filename}.parquet"
             dataframe.to_parquet(save_path, index=False)
 
             # Create location object with output path
@@ -312,7 +317,7 @@ def main(
                 annotations = build_fms_annotations(
                     dataset_config,
                     model_manifest=model_manifest,
-                    run_name=run_name,
+                    run_name=DEFAULT_MODEL_RUN_NAME,
                     additional_notes=additional_notes,
                 )
                 fmsid = upload_file_to_fms(save_path, annotations=annotations, file_type="parquet")
