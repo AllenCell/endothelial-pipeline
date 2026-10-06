@@ -18,6 +18,9 @@ class UnicodeCharacters(StrEnum):
     SIGMA = "\u03c3"
     """Unicode for lowercase sigma."""
 
+    TAU = "\u03c4"
+    """Unicode for lowercase tau."""
+
     THETA = "\u03b8"
     """Unicode for lowercase theta."""
 
