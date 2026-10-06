@@ -217,14 +217,18 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
 
             # plot histogram of the residual magnitude ratio
             fig, ax = plt.subplots()
-            ax.hist(residual_magnitude_ratio.flatten(), bins=np.linspace(0, 5.0, 150))
+            ax.hist(
+                residual_magnitude_ratio.flatten(), bins=np.linspace(0, 5.0, 150), color="skyblue"
+            )
+            median_value = np.nanmedian(residual_magnitude_ratio)
             ax.vlines(
-                np.nanmedian(residual_magnitude_ratio),
+                median_value,
                 ymin=0,
                 ymax=ax.get_ylim()[1],
-                colors="r",
+                colors="k",
+                alpha=0.75,
                 linestyles="dashed",
-                label="Median",
+                label=f"Median = {median_value:.3f}",
             )
             ax.legend()
             ax.set_xlabel(f"Residual magnitude ratio ({dataset_name_flow})")
