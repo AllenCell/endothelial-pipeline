@@ -51,8 +51,14 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
+    from endo_pipeline.io import (
+        get_output_path,
+        join_sorted_strings,
+        load_dataframe,
+        save_plot_to_path,
+    )
     from endo_pipeline.library.analyze.dataframe_filtering import (
+        filter_dataframe_by_shear_stress,
         filter_dataframe_by_track_length,
         filter_dataframe_to_flow_condition_by_timepoint,
         filter_dataframe_to_steady_state,
@@ -63,13 +69,19 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
     from endo_pipeline.library.analyze.numerics.forward_difference import (
         compute_forward_differences_along_trajectory,
     )
+    from endo_pipeline.library.analyze.vector_field_estimation import (
+        get_vector_field_as_dict_from_dataframe,
+    )
+    from endo_pipeline.library.analyze.vector_field_function import get_callable_vector_field
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
         DYNAMICS_COLUMN_NAMES,
         LONG_TRACK_THRESHOLD_LENGTH,
         METADATA_COLUMNS_TO_KEEP,
+        TIME_STEP_IN_HOURS,
     )
+    from endo_pipeline.settings.manifest_names import VECTOR_FIELD_MANIFEST_NAMES
     from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
 
     logger = logging.getLogger(__name__)
@@ -106,6 +118,11 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
     feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[patch_type]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
+    # Load pre-computed vector field dataframe manifest
+    name_suffix = join_sorted_strings(column_names)
+    vector_field_manifest_name = f"{VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{name_suffix}"
+    vector_field_manifest = load_dataframe_manifest(vector_field_manifest_name)
+
     for dataset_name in dataset_names:
         if dataset_name not in feature_dataframe_manifest.locations:
             logger.warning(
@@ -120,6 +137,9 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
         df = df_delayed[columns_to_compute].compute()
         dataset_config = load_dataset_config(dataset_name)
         df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
+
+        # load vector field dataframe for the current dataset
+        df_vec = load_dataframe(vector_field_manifest.locations[dataset_name], delay=False)
 
         # process on a per-flow condition basis
         for flow_condition in dataset_config.flow_conditions:
@@ -139,6 +159,15 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
                 dataframe=df_flow, minimum_track_length=track_duration_filter
             )
 
+            vector_field_for_flow_condition = filter_dataframe_by_shear_stress(
+                df_vec, flow_condition.shear_stress
+            )
+
+            vector_field_dict = get_vector_field_as_dict_from_dataframe(
+                vector_field_for_flow_condition, column_names
+            )
+            vector_field = get_callable_vector_field(vector_field_dict, for_solve_ivp=False)
+
             # Create array for cross-correlation results at t vs. t' values, where t
             # and t' have range equal to the full range of timepoints present in
             # this flow condition
@@ -149,11 +178,15 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
             n_timepoints = len(timepoints_range)
             timepoints_array = np.asarray(timepoints_range)
             df_flow = df_flow[df_flow[Column.TIMEPOINT].isin(timepoints_array)]
-            cross_corr_results = np.zeros((n_timepoints, n_timepoints, n_dim, n_dim))
-            n_points = np.zeros((n_timepoints, n_timepoints))
+
+            cross_corr_mean_subtracted = np.zeros((n_timepoints, n_timepoints, n_dim, n_dim))
+            cross_corr_drift_subtracted = np.zeros((n_timepoints, n_timepoints, n_dim, n_dim))
+            n_points_ms = np.zeros((n_timepoints, n_timepoints))
+            n_points_ds = np.zeros((n_timepoints, n_timepoints))
 
             # Loop over each patch in the dataset and compute the forward differences
             num_patches_processed = 0
+            traj_list = []
             d_traj_list = []
             for patch_idx, df_patch_ in df_flow.groupby(Column.CROP_INDEX):
                 if max_num_patches is not None and num_patches_processed >= max_num_patches:
@@ -173,22 +206,23 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
                 # to keep only differences between timepoints that are separated by
                 # time_lag number of frames (accounts for any missing timepoints in the
                 # trajectory, for example due to outlier filtering)
-                _, filtered_d_traj = compute_forward_differences_along_trajectory(
+                filtered_traj, filtered_d_traj = compute_forward_differences_along_trajectory(
                     df_patch, column_names
                 )
 
                 # if the returned difference array is empty, skip this trajectory
-                if filtered_d_traj.empty:
+                if filtered_traj.empty or filtered_d_traj.empty:
                     logger.warning(
-                        "Skipping patch with empty difference arrays: [ %s ]",
+                        "Skipping patch with empty trajectory or difference arrays: [ %s ]",
                         patch_idx,
                     )
                     continue
 
+                traj_list.append(filtered_traj)
                 d_traj_list.append(filtered_d_traj)
                 num_patches_processed += 1
 
-            if not d_traj_list:
+            if not traj_list or not d_traj_list:
                 logger.warning("No valid patches found for [ %s ]. Skipping.", dataset_name_flow)
                 continue
 
@@ -201,93 +235,115 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
                 .to_numpy()
             )
 
-            for filtered_d_traj in d_traj_list:
-                # Extract the timepoints and differences for this patch
-                patch_timepoints = filtered_d_traj[Column.TIMEPOINT].to_numpy()
+            for filtered_traj, filtered_d_traj in zip(traj_list, d_traj_list, strict=True):
+                # Extract the timepoints, values, and differences for this patch
+                patch_timepoints_x_t = filtered_traj[Column.TIMEPOINT].to_numpy()
+                patch_timepoints_dx_t = filtered_d_traj[Column.TIMEPOINT].to_numpy()
+                patch_x_t = filtered_traj[column_names].to_numpy()
                 patch_dx_t = filtered_d_traj[diff_column_names].to_numpy()
 
-                # place this patch's differences on the shared timepoint axis,
-                # leaving NaN at timepoints where the patch has no difference
+                # place this patch's trajectory values and differences on the
+                # shared timepoint axis, leaving NaN at timepoints where the
+                # patch has no difference/value
+                x_t = np.full((n_timepoints, n_dim), np.nan)
+                x_t[np.searchsorted(timepoints_array, patch_timepoints_x_t)] = patch_x_t
                 dx_t = np.full((n_timepoints, n_dim), np.nan)
-                dx_t[np.searchsorted(timepoints_array, patch_timepoints)] = patch_dx_t
+                dx_t[np.searchsorted(timepoints_array, patch_timepoints_dx_t)] = patch_dx_t
+                f_x_t = vector_field(x_t)
 
                 # mean subtracted differences
-                eta = dx_t - mean_dx_t
-                is_valid = ~np.isnan(eta).any(axis=1)
-                eta = np.where(is_valid[:, np.newaxis], eta, 0.0)
+                eta_ms = dx_t - mean_dx_t
+                # drift subtracted differences
+                eta_ds = dx_t - f_x_t * TIME_STEP_IN_HOURS
+                # mask valid timepoints for centered differences
+                is_valid_ms = ~np.isnan(eta_ms).any(axis=1)
+                eta_ms = np.where(is_valid_ms[:, np.newaxis], eta_ms, 0.0)
+                is_valid_ds = ~np.isnan(eta_ds).any(axis=1)
+                eta_ds = np.where(is_valid_ds[:, np.newaxis], eta_ds, 0.0)
 
                 # R_ij(t, t') = < eta_i(t) eta_j(t') >
-                cross_corr_results += np.einsum("ti,sj->tsij", eta, eta)
-                n_points += np.outer(is_valid, is_valid)
+                cross_corr_mean_subtracted += np.einsum("ti,sj->tsij", eta_ms, eta_ms)
+                n_points_ms += np.outer(is_valid_ms, is_valid_ms)
+                cross_corr_drift_subtracted += np.einsum("ti,sj->tsij", eta_ds, eta_ds)
+                n_points_ds += np.outer(is_valid_ds, is_valid_ds)
 
             # Normalize accumulated sums by the number of contributing patches
             with np.errstate(divide="ignore", invalid="ignore"):
-                cross_corr_results /= n_points[:, :, np.newaxis, np.newaxis]
+                cross_corr_mean_subtracted /= n_points_ms[:, :, np.newaxis, np.newaxis]
+                cross_corr_drift_subtracted /= n_points_ds[:, :, np.newaxis, np.newaxis]
 
-            # sigma_i(t) = sqrt(R_ii(t, t)); stationary noise has a flat sigma_i(t)
-            diagonal_indices = np.arange(n_timepoints)
-            variance_t = cross_corr_results[diagonal_indices, diagonal_indices]
-            sigma_t = np.sqrt(np.einsum("tii->ti", variance_t))
-            fig, ax = plt.subplots(figsize=(8, 6))
-            for i in range(n_dim):
-                ax.plot(timepoints_array, sigma_t[:, i], label=column_names[i])
-            ax.set_xlabel("Timepoint $t$")
-            ax.set_ylabel("$\\sigma_i(t) = \\sqrt{R_{ii}(t, t)}$")
-            ax.set_title(f"Noise Amplitude vs Timepoint: {dataset_name_flow}")
-            ax.legend()
-            figure_name = f"noise_amplitude_{dataset_name_flow}"
-            save_plot_to_path(fig, output_path, figure_name)
+            # make plots
+            for cross_corr_centered, subtracted in [
+                (cross_corr_mean_subtracted, "mean subtracted"),
+                (cross_corr_drift_subtracted, "drift subtracted"),
+            ]:
+                # sigma_i(t) = sqrt(R_ii(t, t)); stationary noise has a flat sigma_i(t)
+                diagonal_indices = np.arange(n_timepoints)
+                variance_t = cross_corr_centered[diagonal_indices, diagonal_indices]
+                sigma_t = np.sqrt(np.einsum("tii->ti", variance_t))
+                fig, ax = plt.subplots(figsize=(8, 6))
+                for i in range(n_dim):
+                    ax.plot(timepoints_array, sigma_t[:, i], label=column_names[i])
+                ax.set_xlabel("Timepoint $t$")
+                ax.set_ylabel("$\\sigma_i(t) = \\sqrt{R_{ii}(t, t)}$")
+                ax.set_title(f"Noise Amplitude vs Timepoint: {dataset_name_flow} ({subtracted})")
+                ax.legend()
+                figure_name = f"noise_amplitude_{subtracted}_{dataset_name_flow}"
+                save_plot_to_path(fig, output_path, figure_name)
 
-            # rho_ij(t, t') = R_ij(t, t') / sqrt(R_ii(t, t) * R_jj(t', t')), which
-            # rescales to [-1, 1] and divides out any drift in the noise amplitude
-            with np.errstate(divide="ignore", invalid="ignore"):
-                normalized_corr_results = cross_corr_results / (
-                    sigma_t[:, np.newaxis, :, np.newaxis] * sigma_t[np.newaxis, :, np.newaxis, :]
-                )
+                # rho_ij(t, t') = R_ij(t, t') / sqrt(R_ii(t, t) * R_jj(t', t')), which
+                # rescales to [-1, 1] and divides out any drift in the noise amplitude
+                with np.errstate(divide="ignore", invalid="ignore"):
+                    normalized_corr_results = cross_corr_centered / (
+                        sigma_t[:, np.newaxis, :, np.newaxis]
+                        * sigma_t[np.newaxis, :, np.newaxis, :]
+                    )
 
-            # R_ij(t, t') = R_ji(t', t), so only the unique feature pairs are plotted
-            for i in range(n_dim):
-                for j in range(i, n_dim):
-                    # Colormap: plot the normalized cross-correlation matrix:
-                    # rho_ij(t, t') where the x axis is t and the y axis is t'
-                    norm_corr_matrix = normalized_corr_results[:, :, i, j]
-                    fig, ax = plt.subplots(figsize=(8, 6))
-                    cax = ax.pcolormesh(
-                        norm_corr_matrix.T,
-                        cmap="coolwarm",
-                        norm=colors.TwoSlopeNorm(vcenter=0, vmin=-1, vmax=1),
-                        shading="auto",
-                    )
-                    fig.colorbar(cax)
-                    ax.set_xlabel("Timepoint $t$")
-                    ax.set_xticks(
-                        np.arange(len(timepoints_range))[::25] + 0.5, labels=timepoints_range[::25]
-                    )
-                    ax.set_ylabel("Timepoint $t'$")
-                    ax.set_yticks(
-                        np.arange(len(timepoints_range))[::25] + 0.5, labels=timepoints_range[::25]
-                    )
-                    ax.set_title(
-                        f"Normalized Cross-Correlation Matrix: $\\rho_ij(t, t')$ for (i,j) = ({column_names[i]}, {column_names[j]})"
-                    )
-                    figure_name = f"noise_correlation_matrix_{dataset_name_flow}_cols_{column_names[i]}_{column_names[j]}"
-                    save_plot_to_path(fig, output_path, figure_name)
+                # R_ij(t, t') = R_ji(t', t), so only the unique feature pairs are plotted
+                for i in range(n_dim):
+                    for j in range(i, n_dim):
+                        # Colormap: plot the normalized cross-correlation matrix:
+                        # rho_ij(t, t') where the x axis is t and the y axis is t'
+                        norm_corr_matrix = normalized_corr_results[:, :, i, j]
+                        fig, ax = plt.subplots(figsize=(8, 6))
+                        cax = ax.pcolormesh(
+                            norm_corr_matrix.T,
+                            cmap="coolwarm",
+                            norm=colors.TwoSlopeNorm(vcenter=0, vmin=-1, vmax=1),
+                            shading="auto",
+                        )
+                        fig.colorbar(cax)
+                        ax.set_xlabel("Timepoint $t$")
+                        ax.set_xticks(
+                            np.arange(len(timepoints_range))[::25] + 0.5,
+                            labels=timepoints_range[::25],
+                        )
+                        ax.set_ylabel("Timepoint $t'$")
+                        ax.set_yticks(
+                            np.arange(len(timepoints_range))[::25] + 0.5,
+                            labels=timepoints_range[::25],
+                        )
+                        ax.set_title(
+                            f"Normalized Cross-Correlation Matrix ({subtracted}): $\\rho_ij(t, t')$ for (i,j) = ({column_names[i]}, {column_names[j]})"
+                        )
+                        figure_name = f"noise_correlation_matrix_{subtracted}_{dataset_name_flow}_cols_{column_names[i]}_{column_names[j]}"
+                        save_plot_to_path(fig, output_path, figure_name)
 
-                    # Scatter plot of R_ij(t, t') as a function of the signed lag
-                    # tau = t' - t, where the tau < 0 half carries R_ji
-                    fig, ax = plt.subplots(figsize=(8, 6))
-                    tau = timepoints_array[np.newaxis, :] - timepoints_array[:, np.newaxis]
-                    # R_ii is symmetric in tau, so keep only non-negative lags
-                    corr_matrix = cross_corr_results[:, :, i, j]
-                    keep = tau >= 0 if i == j else np.ones_like(tau, dtype=bool)
-                    ax.scatter(tau[keep], corr_matrix[keep], alpha=0.2, s=10, zorder=1)
-                    ax.set_xlabel("$\\tau = t' - t$")
-                    ax.set_ylabel("$R_{ij}(t, t')$")
-                    ax.set_title(
-                        f"Cross-Correlation vs Time Lag: R_ij(t, t') for (i,j) = ({column_names[i]}, {column_names[j]})"
-                    )
-                    figure_name = f"noise_correlation_vs_tau_{dataset_name_flow}_cols_{column_names[i]}_{column_names[j]}"
-                    save_plot_to_path(fig, output_path, figure_name)
+                        # Scatter plot of R_ij(t, t') as a function of the signed lag
+                        # tau = t' - t, where the tau < 0 half carries R_ji
+                        fig, ax = plt.subplots(figsize=(8, 6))
+                        tau = timepoints_array[np.newaxis, :] - timepoints_array[:, np.newaxis]
+                        # R_ii is symmetric in tau, so keep only non-negative lags
+                        corr_matrix = cross_corr_centered[:, :, i, j]
+                        keep = tau >= 0 if i == j else np.ones_like(tau, dtype=bool)
+                        ax.scatter(tau[keep], corr_matrix[keep], alpha=0.2, s=10, zorder=1)
+                        ax.set_xlabel("$\\tau = t' - t$")
+                        ax.set_ylabel("$R_{ij}(t, t')$")
+                        ax.set_title(
+                            f"Cross-Correlation vs Time Lag ({subtracted}): R_ij(t, t') for (i,j) = ({column_names[i]}, {column_names[j]})"
+                        )
+                        figure_name = f"noise_correlation_vs_tau_{subtracted}_{dataset_name_flow}_cols_{column_names[i]}_{column_names[j]}"
+                        save_plot_to_path(fig, output_path, figure_name)
 
 
 if __name__ == "__main__":
