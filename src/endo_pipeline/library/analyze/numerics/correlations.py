@@ -1,16 +1,20 @@
 """Methods for computing autocorrelation and cross-correlation functions from time series data."""
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from enum import StrEnum
 
 import numpy as np
 import pandas as pd
 from scipy.optimize import curve_fit
 
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
+from endo_pipeline.library.analyze.numerics.forward_difference import (
+    compute_forward_differences_along_trajectory,
+)
 from endo_pipeline.settings.autocorrelations import NUM_TIMEPOINT_FRAC
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.dynamics_workflows import POLAR_ANGLE_PERIOD
+from endo_pipeline.settings.dynamics_workflows import POLAR_ANGLE_PERIOD, TIME_STEP_IN_HOURS
 
 logger = logging.getLogger(__name__)
 
@@ -326,3 +330,167 @@ def compute_autocorrelation_dataframe(
 def exponential_decay(x: np.ndarray, a: float, b: float, c: float) -> np.ndarray:
     """Define exponential decay function for curve fitting."""
     return a * np.exp(-b * x) + c
+
+
+def get_trajectories_and_differences_for_noise_correlations(
+    df_flow: pd.DataFrame, column_names: list[str], max_num_patches: int | None = None
+):
+    """
+    Build list of trajectories and their forward differences for noise correlation analysis.
+
+    Parameters
+    ----------
+    df_flow
+        Dataframe of features for the current flow condition.
+    column_names
+        List of feature column names to get trajectories for.
+    max_num_patches
+        Maximum number of patches to process. If None, process all patches.
+    """
+    # Loop over each patch in the dataset and compute the forward differences
+    num_patches_processed = 0
+    traj_list = []
+    d_traj_list = []
+    for patch_idx, df_patch_ in df_flow.groupby(Column.CROP_INDEX):
+        if max_num_patches is not None and num_patches_processed >= max_num_patches:
+            logger.debug("Reached maximum number of patches: %d", max_num_patches)
+            break
+
+        # sort by timepoint to ensure that trajectory is in correct order before
+        # computing differences
+        df_patch = df_patch_.sort_values(by=Column.TIMEPOINT)
+
+        # compute forward differences along trajectory for this crop, and filter
+        # to keep only differences between timepoints that are separated by
+        # time_lag number of frames (accounts for any missing timepoints in the
+        # trajectory, for example due to outlier filtering)
+        filtered_traj, filtered_d_traj = compute_forward_differences_along_trajectory(
+            df_patch, column_names
+        )
+
+        # if the returned difference array is empty, skip this trajectory
+        if filtered_traj.empty or filtered_d_traj.empty:
+            logger.warning(
+                "Skipping patch with empty trajectory or difference arrays: [ %s ]",
+                patch_idx,
+            )
+            continue
+
+        traj_list.append(filtered_traj)
+        d_traj_list.append(filtered_d_traj)
+        num_patches_processed += 1
+
+    return traj_list, d_traj_list
+
+
+class NoiseCorrelationCentering(StrEnum):
+    """
+    Class representing the different centering methods for computing noise
+    correlations.
+    """
+
+    MEAN_SUBTRACTED = "mean-subtracted"
+    """Center differences by subtracting the ensemble mean of the differences at
+    the given timepoint."""
+
+    DRIFT_SUBTRACTED = "drift-subtracted"
+    """Center differences by subtracting the estimated drift component."""
+
+
+def compute_two_timepoint_noise_correlations(
+    traj_list: list[pd.DataFrame],
+    d_traj_list: list[pd.DataFrame],
+    column_names: list[str],
+    timepoints_array: np.ndarray,
+    vector_field: Callable,
+    centering_method: NoiseCorrelationCentering,
+) -> np.ndarray | None:
+    """
+    Compute two-timepoint cross correlations of the noise present in
+    observations of feature trajectories and their forward differences.
+
+    Parameters
+    ----------
+    traj_list
+        List of dataframes containing trajectories for each patch.
+    d_traj_list
+        List of dataframes containing forward differences for each patch.
+    column_names
+        List of feature column names.
+    timepoints_array
+        Array of timepoints to consider for the correlations.
+    vector_field
+        Callable vector field used to estimate the drift component.
+    centering_method
+        Method used to center the differences when computing noise correlations.
+
+    Returns
+    -------
+    :
+        Array containing the two-timepoint noise correlations.
+    """
+
+    if centering_method not in NoiseCorrelationCentering:
+        logger.error(
+            "Invalid centering method: %s. Must be one of %s.",
+            centering_method,
+            list(NoiseCorrelationCentering),
+        )
+        return
+
+    # Build arrays to store results
+    n_dim = len(column_names)
+    n_timepoints = timepoints_array.shape[0]
+    cross_correlations = np.zeros((n_timepoints, n_timepoints, n_dim, n_dim))
+    n_points = np.zeros((n_timepoints, n_timepoints))
+    diff_column_names = [f"{col}{Column.DiffAEData.DIFFERENCE_SUFFIX}" for col in column_names]
+
+    if centering_method == NoiseCorrelationCentering.MEAN_SUBTRACTED:
+        # Ensemble mean of the forward differences across patches at each timepoint
+        mean_dx_t = (
+            pd.concat(d_traj_list)
+            .groupby(Column.TIMEPOINT)[diff_column_names]
+            .mean()
+            .reindex(timepoints_array)
+            .to_numpy()
+        )
+
+    for filtered_traj, filtered_d_traj in zip(traj_list, d_traj_list, strict=True):
+        # Extract the timepoints, values, and differences for this patch
+        patch_timepoints_x_t = filtered_traj[Column.TIMEPOINT].to_numpy()
+        patch_timepoints_dx_t = filtered_d_traj[Column.TIMEPOINT].to_numpy()
+        patch_x_t = filtered_traj[column_names].to_numpy()
+        patch_dx_t = filtered_d_traj[diff_column_names].to_numpy()
+
+        # place this patch's trajectory values and differences on the
+        # shared timepoint axis, leaving NaN at timepoints where the
+        # patch has no difference/value
+        x_t = np.full((n_timepoints, n_dim), np.nan)
+        x_t[np.searchsorted(timepoints_array, patch_timepoints_x_t)] = patch_x_t
+        dx_t = np.full((n_timepoints, n_dim), np.nan)
+        dx_t[np.searchsorted(timepoints_array, patch_timepoints_dx_t)] = patch_dx_t
+
+        # To get the cross-correlations of the noise term, we need to separate
+        # out the drift. We can either do this by subtracting the mean
+        # displacement at the timepoint across patches (mean subtracted) or
+        # by subtracting the predicted drift from the vector field (drift subtracted).
+        if centering_method == NoiseCorrelationCentering.MEAN_SUBTRACTED:
+            eta_t = dx_t - mean_dx_t
+        else:
+            f_x_t = vector_field(x_t)
+            eta_t = dx_t - f_x_t * TIME_STEP_IN_HOURS
+
+        # mask to valid timepoints
+        is_valid = ~np.isnan(eta_t).any(axis=1)
+        eta_t = np.where(is_valid[:, np.newaxis], eta_t, 0.0)
+
+        # Compute two timepoint cross correlation: R_ij(t, t') = < eta_i(t) eta_j(t') >
+        # Use Einstein summation to efficiently compute this numerically.
+        cross_correlations += np.einsum("ti,sj->tsij", eta_t, eta_t)
+        n_points += np.outer(is_valid, is_valid)
+
+    # Normalize accumulated sums by the number of contributing patches
+    with np.errstate(divide="ignore", invalid="ignore"):
+        cross_correlations /= n_points[:, :, np.newaxis, np.newaxis]
+
+    return cross_correlations
