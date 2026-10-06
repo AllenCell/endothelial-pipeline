@@ -223,13 +223,14 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
             ax.set_title("Histogram of Residual Magnitude Ratio")
             save_plot_to_path(fig, output_path, f"residual_magnitude_ratio_{dataset_name_flow}")
 
-            print("Mean residual magnitude ratio: ", np.mean(residual_magnitude_ratio))
-            print("Max residual magnitude ratio: ", np.max(residual_magnitude_ratio))
-            print("Min residual magnitude ratio: ", np.min(residual_magnitude_ratio))
+            print("Mean residual magnitude ratio: ", np.nanmean(residual_magnitude_ratio))
+            print("Max residual magnitude ratio: ", np.nanmax(residual_magnitude_ratio))
+            print("Min residual magnitude ratio: ", np.nanmin(residual_magnitude_ratio))
             print(
-                "Standard deviation of residual magnitude ratio: ", np.std(residual_magnitude_ratio)
+                "Standard deviation of residual magnitude ratio: ",
+                np.nanstd(residual_magnitude_ratio),
             )
-            print("Median residual magnitude ratio: ", np.median(residual_magnitude_ratio))
+            print("Median residual magnitude ratio: ", np.nanmedian(residual_magnitude_ratio))
             print("Number of grid points: ", residual_magnitude_ratio.size)
 
 
