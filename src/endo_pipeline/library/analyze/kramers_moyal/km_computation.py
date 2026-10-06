@@ -96,8 +96,8 @@ def _check_and_adjust_km_inputs(
 def _get_km_powers(ndim: int) -> np.ndarray:
     """Generate the powers for the first two Kramers-Moyal coefficients for ndim dimensions.
 
-    Note that for the second order Kramers-Moyal coefficients (diffusion), we
-    only include the pure powers of each component (i.e., no interaction terms).
+    For the second order Kramers-Moyal coefficients (diffusion), we include both
+    the pure powers of each component and the mixed interaction terms.
 
     For example, for 1D data, the powers are:
 
@@ -114,19 +114,28 @@ def _get_km_powers(ndim: int) -> np.ndarray:
         [1,0],  # drift_1
         [0,1],  # drift_2
         [2,0],  # diffusion_11
-        [0,2]]  # diffusion_22
+        [0,2],  # diffusion_22
+        [1,1]]  # diffusion_12 (assumed = diffusion_21)
     """
     if ndim == 1:  # straightforward case for 1D data
         powers = np.array([[0], [1], [2]])
         #                   /    f    D
         #          index:   0    1    2
     else:  # if ndim > 1, utilize identity matrix to generate powers
-        n_powers = 2 * ndim + 1
+        # 1 (density) + ndim (drift) + ndim (pure diffusion) + n choose 2 (interaction terms)
+        n_powers = 1 + 2 * ndim + (ndim * (ndim - 1)) // 2
         powers = np.zeros((n_powers, ndim), dtype=int)  # row 0 is all zeros
         # drift powers: row 1 to ndim
         powers[1 : ndim + 1] = np.eye(ndim, dtype=int)
-        # diffusion powers: row ndim+1 to end (no interaction terms)
-        powers[ndim + 1 :] = 2 * np.eye(ndim, dtype=int)
+        # diffusion powers: row ndim+1 to end
+        powers[ndim + 1 : ndim + 1 + ndim] = 2 * np.eye(ndim, dtype=int)
+        # interaction terms for diffusion
+        idx = ndim + 1 + ndim
+        for i in range(ndim):
+            for j in range(i + 1, ndim):
+                powers[idx, i] = 1
+                powers[idx, j] = 1
+                idx += 1
     return powers
 
 
@@ -251,7 +260,10 @@ def _convolve_histogram_with_kernel(
     # coefficients and the 0th order coefficient to get the correct estimates of
     # the Kramers-Moyal coefficients.
     if powers.shape[0] > 1:
-        taylors = np.prod(factorial(powers[1:]), axis=1)
+        # Normalize by the factorial of the total order of each term (not the
+        # product of per-component factorials) so that mixed/interaction terms
+        # match the symmetric Kramers-Moyal diffusion tensor D_ij = <dx_i dx_j> / (2 dt).
+        taylors = factorial(powers[1:].sum(axis=1))
         kmc[1:, ~mask] /= taylors[..., None] * kmc[0, ~mask]
 
     return kmc
