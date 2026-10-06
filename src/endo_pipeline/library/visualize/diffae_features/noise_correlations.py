@@ -111,7 +111,7 @@ def plot_normalized_two_timepoint_cross_correlations(
             column_label_i = COLUMN_METADATA[column_names[i]].label or column_names[i]
             column_label_j = COLUMN_METADATA[column_names[j]].label or column_names[j]
             ax.set_title(
-                f"{plot_title}: {Unicode.RHO}$_{{ij}}(t, t')$ for $(i,j)$ = ({column_label_i}, {column_label_j})"
+                f"{plot_title}\n{Unicode.RHO}$_{{ij}}(t, t')$ for $(i,j)$ = ({column_label_i}, {column_label_j})"
             )
             figure_name = file_name or "noise_correlation_matrix"
             figure_name = f"{figure_name}_{column_names[i]}_{column_names[j]}"
@@ -149,7 +149,7 @@ def plot_cross_correlations_against_lag(
             column_label_i = COLUMN_METADATA[column_names[i]].label or column_names[i]
             column_label_j = COLUMN_METADATA[column_names[j]].label or column_names[j]
             ax.set_title(
-                f"{plot_title}: R_{{ij}}(t, t') for (i,j) = ({column_label_i}, {column_label_j})"
+                f"{plot_title}\nR_{{ij}}(t, t') for (i,j) = ({column_label_i}, {column_label_j})"
             )
             figure_name = file_name or "noise_correlation_vs_tau"
             figure_name = f"{figure_name}_{column_names[i]}_{column_names[j]}"
