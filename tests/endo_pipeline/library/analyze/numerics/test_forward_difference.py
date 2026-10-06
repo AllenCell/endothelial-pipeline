@@ -9,6 +9,14 @@ from endo_pipeline.library.analyze.numerics.forward_difference import (
 from endo_pipeline.settings.column_names import ColumnName as Column
 
 
+def to_feature_arrays(
+    traj: pd.DataFrame, d_traj: pd.DataFrame, column_names: list
+) -> tuple[np.ndarray, np.ndarray]:
+    """Drop the timepoint column and return the feature values as numpy arrays."""
+    diff_column_names = [f"{col}{Column.DiffAEData.DIFFERENCE_SUFFIX}" for col in column_names]
+    return traj[column_names].to_numpy(), d_traj[diff_column_names].to_numpy()
+
+
 @pytest.mark.parametrize(
     "timepoints, feature_values, time_lag, expected_traj, expected_d_traj",
     [
@@ -69,8 +77,9 @@ def test_compute_forward_differences_along_trajectory_scalar_feature(
         }
     )
     traj, d_traj = compute_forward_differences_along_trajectory(df_traj, [col], time_lag=time_lag)
-    np.testing.assert_array_almost_equal(traj, expected_traj)
-    np.testing.assert_array_almost_equal(d_traj, expected_d_traj)
+    traj_array, d_traj_array = to_feature_arrays(traj, d_traj, [col])
+    np.testing.assert_array_almost_equal(traj_array, expected_traj)
+    np.testing.assert_array_almost_equal(d_traj_array, expected_d_traj)
 
 
 def test_compute_forward_differences_along_trajectory_multiple_features():
@@ -85,17 +94,18 @@ def test_compute_forward_differences_along_trajectory_multiple_features():
         }
     )
     traj, d_traj = compute_forward_differences_along_trajectory(df_traj, cols, time_lag=1)
+    traj_array, d_traj_array = to_feature_arrays(traj, d_traj, cols)
 
     # shapes: 3 timepoints in traj, 2 forward differences, 3 features
-    assert traj.shape == (3, 3)
-    assert d_traj.shape == (2, 3)
+    assert traj_array.shape == (3, 3)
+    assert d_traj_array.shape == (2, 3)
 
     np.testing.assert_array_almost_equal(
-        traj,
+        traj_array,
         np.array([[1.0, 10.0, 100.0], [2.0, 20.0, 200.0], [3.0, 30.0, 300.0]]),
     )
     np.testing.assert_array_almost_equal(
-        d_traj,
+        d_traj_array,
         np.array([[1.0, 10.0, 100.0], [1.0, 10.0, 100.0]]),
     )
 
@@ -124,16 +134,19 @@ def test_compute_forward_differences_along_trajectory_polar_angle_unwrapping():
         polar_angle_period=period,
         time_lag=1,
     )
+    traj_array, d_traj_array = to_feature_arrays(
+        traj, d_traj, [Column.DiffAEData.POLAR_ANGLE.value]
+    )
 
     # Trajectory values are the raw (non-unwrapped) angles
-    np.testing.assert_array_almost_equal(traj[:, 0], angles)
+    np.testing.assert_array_almost_equal(traj_array[:, 0], angles)
 
     # Differences should be based on the unwrapped sequence
     unwrapped = np.unwrap(np.array(angles), period=period)
     expected_diffs = np.diff(unwrapped)
-    np.testing.assert_array_almost_equal(d_traj[:, 0], expected_diffs)
+    np.testing.assert_array_almost_equal(d_traj_array[:, 0], expected_diffs)
     # Specifically: the wrap-around diff should be small (2*eps), not large
-    assert abs(d_traj[0, 0]) < np.pi / 2
+    assert abs(d_traj_array[0, 0]) < np.pi / 2
 
 
 def test_compute_forward_differences_along_trajectory_single_timepoint():
@@ -146,11 +159,12 @@ def test_compute_forward_differences_along_trajectory_single_timepoint():
         }
     )
     traj, d_traj = compute_forward_differences_along_trajectory(df_traj, [col], time_lag=1)
+    traj_array, d_traj_array = to_feature_arrays(traj, d_traj, [col])
 
     # Trajectory has 1 point; no forward differences possible
-    assert traj.shape == (1, 1)
-    assert d_traj.shape == (0, 1)
-    np.testing.assert_array_almost_equal(traj, np.array([[5.0]]))
+    assert traj_array.shape == (1, 1)
+    assert d_traj_array.shape == (0, 1)
+    np.testing.assert_array_almost_equal(traj_array, np.array([[5.0]]))
 
 
 @pytest.mark.parametrize(
