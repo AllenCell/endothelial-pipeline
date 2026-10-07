@@ -32,14 +32,19 @@ def main(
 
     import pandas as pd
 
-    from endo_pipeline.cli import DEMO_MODE, NUM_WORKERS
+    from endo_pipeline.cli import DEMO_MODE, NUM_WORKERS, UPLOAD_TO_FMS
     from endo_pipeline.configs import (
         TimepointAnnotation,
         get_datasets_in_collection,
         get_subset_of_timepoint_annotations,
         load_dataset_config,
     )
-    from endo_pipeline.io import get_output_path, load_dataframe
+    from endo_pipeline.io import (
+        build_fms_annotations,
+        get_output_path,
+        load_dataframe,
+        upload_file_to_fms,
+    )
     from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_annotations
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.window_sweep import (
@@ -250,6 +255,19 @@ def main(
                 save_path,
             )
 
+            # Upload to FMS (internal only); the file id replaces the local path
+            # in the manifest below.
+            fmsid = None
+            if UPLOAD_TO_FMS:
+                annotations = build_fms_annotations(
+                    dataset_config,
+                    additional_notes=(
+                        f"Window sweep of {boundary} fixed points "
+                        f"({sweep_interval_minutes} min edge spacing)."
+                    ),
+                )
+                fmsid = upload_file_to_fms(save_path, annotations=annotations, file_type="parquet")
+
             # Record the output in the boundary's manifest.
             try:
                 manifest = create_dataframe_manifest(
@@ -257,7 +275,11 @@ def main(
                 )
                 manifest.parameters = manifest_parameters
                 location = manifest.locations.get(dataset_name, DataframeLocation())
-                location.path = save_path
+                if fmsid is not None:
+                    location.fmsid = fmsid
+                    location.path = None
+                else:
+                    location.path = save_path
                 manifest.locations[dataset_name] = location
                 save_dataframe_manifest(manifest)
             except Exception:  # noqa: BLE001
