@@ -31,12 +31,14 @@ def main(
     """
 
     import logging
-    from itertools import product
 
     from tqdm import tqdm
 
-    from endo_pipeline.library.analyze.binwidth_bandwidth_sweep import apply_parameter_scaling
-    from endo_pipeline.settings.workflow_defaults import DEFAULT_MODEL_RUN_NAME
+    from endo_pipeline.library.analyze.binwidth_bandwidth_sweep import (
+        apply_parameter_scaling,
+        get_param_sweep_run_name,
+        get_parameter_space_scalings,
+    )
     from endo_pipeline.workflows.production import bootstrap_fixed_points, generate_flow_field
 
     logger = logging.getLogger(__name__)
@@ -46,21 +48,14 @@ def main(
         # datasets are specified by the user
         datasets = ["20250618_20X", "20250319_20X", "20250611_20X"]
 
-    # we will scale the default parameters by exponents of base 2
-    # (i.e. parameters will be quarter, half, original size, double, quadruple, etc.)
-    param_scale_exponents: list[int] = list(range(-1, 4))
+    parameter_space_scaling = get_parameter_space_scalings()
 
-    # create the full parameter space of these scaling exponents, which will then be applied to the
-    # default bin widths and kernel bandwidths used in the paper
-    parameter_space_scaling = list(product(param_scale_exponents, param_scale_exponents))
-
-    for bin_scale, kernel_scale in tqdm(parameter_space_scaling, desc=f"Generating flow fields"):
+    for bin_scale, kernel_scale in tqdm(parameter_space_scaling, desc="Generating flow fields"):
         # apply parameter scaling exponents to the default bin widths and kernel bandwidths
         bin_widths, kernel_bandwidths = apply_parameter_scaling(bin_scale, kernel_scale)
 
         # get tag of parameter scaling combination used for this run
-        tag = f"bwScale{bin_scale}_kbScale{kernel_scale}"
-        run_name_for_sweep_condition = f"{DEFAULT_MODEL_RUN_NAME}_{tag}"
+        run_name_for_sweep_condition = get_param_sweep_run_name(bin_scale, kernel_scale)
         logger.info(
             "Running generate_flow_field for bin width [ %s ], kernel bandwidth [ %s ]",
             bin_widths,
@@ -80,10 +75,9 @@ def main(
         bin_widths, kernel_bandwidths = apply_parameter_scaling(bin_scale, kernel_scale)
 
         # get tag of parameter scaling combination used for this run
-        tag = f"bwScale{bin_scale}_kbScale{kernel_scale}"
-        run_name_for_sweep_condition = f"{DEFAULT_MODEL_RUN_NAME}_{tag}"
+        run_name_for_sweep_condition = get_param_sweep_run_name(bin_scale, kernel_scale)
         logger.info(
-            "Running generate_flow_field for bin width [ %s ], kernel bandwidth [ %s ]",
+            "Running bootstrap_fixed_points for bin width [ %s ], kernel bandwidth [ %s ]",
             bin_widths,
             kernel_bandwidths,
         )

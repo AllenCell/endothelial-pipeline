@@ -11,8 +11,13 @@ def main():
     from matplotlib import pyplot as plt
     from matplotlib.ticker import MaxNLocator
 
-    from endo_pipeline.io import get_output_path, save_plot_to_path
-    from endo_pipeline.library.analyze.binwidth_bandwidth_sweep import apply_parameter_scaling
+    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
+    from endo_pipeline.library.analyze.binwidth_bandwidth_sweep import (
+        apply_parameter_scaling,
+        get_param_sweep_run_name,
+        get_parameter_space_scalings,
+    )
+    from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings import plot_defaults
     from endo_pipeline.settings.bootstrap_fixed_points import BOOTSTRAP_THRESHOLD
     from endo_pipeline.settings.column_metadata import COLUMN_METADATA
@@ -24,42 +29,36 @@ def main():
         POLAR_ANGLE_PERIOD,
     )
     from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_SMALL, FONTSIZE_XSMALL
-
-    fixedpoint_dir = get_output_path("bootstrap_fixed_points")
+    from endo_pipeline.settings.manifest_names import GRID_BASED_BOOTSTRAPPING_MANIFEST_NAME
 
     out_dir = get_output_path(__file__)
 
     # start a single big dataframe to hold the data for multiple datasets
     big_df = pd.DataFrame()
-    for filepath in fixedpoint_dir.glob("*.parquet"):
-        filename = filepath.stem
 
-        # read dataframe
-        df = pd.read_parquet(filepath)
-
-        # extract parameter values from filename
-        filename_parts = filename.split("_")
-        bw_scale = [part for part in filename_parts if "bwScale" in part]
-        kb_scale = [part for part in filename_parts if "kbScale" in part]
-
-        binwidth_exponent = bw_scale[0].split("bwScale")[-1] if bw_scale else None
-        kernel_bandwidth_exponent = kb_scale[0].split("kbScale")[-1] if kb_scale else None
-
-        if binwidth_exponent is None or kernel_bandwidth_exponent is None:
+    parameter_space_scaling = get_parameter_space_scalings()
+    for bin_scale, kernel_scale in parameter_space_scaling:
+        sweep_run_name = get_param_sweep_run_name(bin_scale, kernel_scale)
+        manifest = load_dataframe_manifest(
+            f"{GRID_BASED_BOOTSTRAPPING_MANIFEST_NAME}_{sweep_run_name}"
+        )
+        # skip the manifest if it has no locations (i.e. no bootstrapped fixed points were found)
+        if not manifest.locations:
             continue
 
-        bw, kb = apply_parameter_scaling(int(binwidth_exponent), int(kernel_bandwidth_exponent))
+        for dataset in manifest.locations:
+            df = load_dataframe(manifest.locations[dataset])
+            # add the parameter values to the dataframe
+            bw, kb = apply_parameter_scaling(bin_scale, kernel_scale)
+            df["bw"] = np.unique(list(bw.values())).item()
+            df["kb"] = np.unique(list(kb.values())).item()
 
-        # add the parameter values to the dataframe
-        df["bw"] = np.unique(list(bw.values())).item()
-        df["kb"] = np.unique(list(kb.values())).item()
-
-        # add the dataframe for this dataset to the single big dataframe if it is not empty, otherwise
-        # initialize it with the current dataframe
-        if big_df.empty:
-            big_df = df
-        else:
-            big_df = pd.concat([big_df, df], ignore_index=True)
+            # add the dataframe for this dataset to the single big dataframe if it is not empty, otherwise
+            # initialize it with the current dataframe
+            if big_df.empty:
+                big_df = df
+            else:
+                big_df = pd.concat([big_df, df], ignore_index=True)
 
     column_names = big_df.columns
     unwrap_angle = True
@@ -91,13 +90,11 @@ def main():
         for stability in fixed_point_stabilities:
             # count the number of fixed points for this stability that passed the bootstrap threshold
             df_agg = (
-                df_filtered.groupby(["kb", "bw"], observed=False)
-                .apply(
-                    lambda x, stability=stability: (
-                        x[ColumnName.FIXED_POINT_STABILITY] == stability
-                    ).sum(),
-                    include_groups=False,
+                df_filtered.assign(
+                    _matches_stability=df_filtered[ColumnName.FIXED_POINT_STABILITY].eq(stability)
                 )
+                .groupby(["kb", "bw"], observed=False)["_matches_stability"]
+                .sum()
                 .reset_index(name="num_fixedpoints")
             )
 
@@ -166,21 +163,29 @@ def main():
             # do a scatterplot of the fixed points at each ML-based feature for each dataset
             fig, axes = plt.subplots(ncols=1, nrows=3, figsize=(6.3, 4.0), sharex=True)
             for col, ax in zip(DYNAMICS_COLUMN_NAMES, axes, strict=True):
-                err_low_col = ColumnNameTemplate.BOOTSTRAP_CI_LOWER % col
-                err_high_col = ColumnNameTemplate.BOOTSTRAP_CI_UPPER % col
-                y_errors = (
-                    df_for_summary_plots[col] - df_for_summary_plots[err_low_col],
-                    df_for_summary_plots[err_high_col] - df_for_summary_plots[col],
-                )
-                ax.errorbar(
+                # err_low_col = ColumnNameTemplate.BOOTSTRAP_CI_LOWER % col
+                # err_high_col = ColumnNameTemplate.BOOTSTRAP_CI_UPPER % col
+                # y_errors = (
+                #     df_for_summary_plots[col] - df_for_summary_plots[err_low_col],
+                #     df_for_summary_plots[err_high_col] - df_for_summary_plots[col],
+                # )
+                ax.scatter(
                     x=df_for_summary_plots["param_combo"],
                     y=df_for_summary_plots[col],
-                    yerr=y_errors,
                     alpha=0.5,
                     c="black",
                     marker=".",
                     ls="",
                 )
+                # ax.errorbar(
+                #     x=df_for_summary_plots["param_combo"],
+                #     y=df_for_summary_plots[col],
+                #     yerr=y_errors,
+                #     alpha=0.5,
+                #     c="black",
+                #     marker=".",
+                #     ls="",
+                # )
                 column_metadata = COLUMN_METADATA[col]
                 ax.set_ylabel(f"{column_metadata.label_with_unit}$^*$", fontsize=FONTSIZE_SMALL)
                 if col == ColumnName.DiffAEData.POLAR_ANGLE:
