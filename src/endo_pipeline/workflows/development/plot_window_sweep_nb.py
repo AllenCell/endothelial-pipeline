@@ -36,8 +36,6 @@ plt.style.use("endo_pipeline.figure")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-output_path = get_output_path(__file__)
-
 MANIFEST_NAMES = {
     "start_cell_piling": "window_sweep_start_cell_piling",
     "start_steady_state": "window_sweep_start_steady_state",
@@ -113,6 +111,7 @@ for dataset_name in list_datasets_with_dataframes(baseline_manifest):
 # %% plot
 for boundary, boundary_frames in frames.items():
     for dataset_name, df in boundary_frames.items():
+        output_path = get_output_path(__file__, dataset_name)
         fig = plot_sweep(
             df,
             dataset_name,
