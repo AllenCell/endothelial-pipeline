@@ -1,10 +1,14 @@
 from endo_pipeline.cli import Datasets, PatchType, StrList
+from endo_pipeline.settings.column_names import ColumnName as Column
 
 
 def main(
     patch_type: PatchType = "grid_based",
     columns: StrList | None = None,
     datasets: Datasets | None = None,
+    sweep_name: str | None = None,
+    kernel_bandwidths_dynamics: dict[Column.DiffAEData, float] | None = None,
+    bin_widths_dynamics: dict[Column.DiffAEData, float] | None = None,
 ) -> None:
     """
     Generate drift vector field and estimate fixed points.
@@ -66,6 +70,8 @@ def main(
         Specific columns to use to generate flow field.
     datasets
         List of datasets or dataset collections to generate flow fields for.
+    run_name
+        Optional name for the current run, used for organizing output files.
     """
 
     import logging
@@ -128,6 +134,15 @@ def main(
 
     output_path = get_output_path(__file__)
 
+    if sweep_name is None:
+        sweep_name = ""
+
+    if kernel_bandwidths_dynamics is None:
+        kernel_bandwidths_dynamics = KERNEL_BANDWIDTHS_DYNAMICS
+
+    if bin_widths_dynamics is None:
+        bin_widths_dynamics = BIN_WIDTHS_DYNAMICS
+
     dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
 
     if DEMO_MODE:
@@ -159,10 +174,12 @@ def main(
     # Build dataframe manifest names that include sorted list of selected
     # columns used to generate the flow field.
     name_suffix = join_sorted_strings(column_names)
-    vector_field_dataframe_manifest_name = (
-        f"{VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{name_suffix}"
+    vector_field_dataframe_manifest_name = "_".join(
+        filter(None, [VECTOR_FIELD_MANIFEST_NAMES[patch_type], name_suffix, sweep_name])
     )
-    fixed_points_dataframe_manifest_name = f"{FIXED_POINT_MANIFEST_NAMES[patch_type]}_{name_suffix}"
+    fixed_points_dataframe_manifest_name = "_".join(
+        filter(None, [FIXED_POINT_MANIFEST_NAMES[patch_type], name_suffix, sweep_name])
+    )
     vector_field_dataframe_manifest = create_dataframe_manifest(
         vector_field_dataframe_manifest_name, workflow_name=__file__
     )
@@ -177,11 +194,11 @@ def main(
         kernels.append(
             KramersMoyalKernel(
                 name=KERNEL_NAMES_DYNAMICS[column_name],
-                bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_name],
+                bandwidth=kernel_bandwidths_dynamics[column_name],
                 period=KERNEL_PERIODS_DYNAMICS[column_name],
             )
         )
-        bin_widths.append(BIN_WIDTHS_DYNAMICS[column_name])
+        bin_widths.append(bin_widths_dynamics[column_name])
 
     # Add parameters to dataframe manifests for traceability
     for output_dataframe_manifest in [
@@ -285,7 +302,10 @@ def main(
                 continue
 
             # Save dataframe to file
-            save_path = output_path / f"{name_prefix}_{dataset_name}{name_suffix}.parquet"
+            output_filename = "_".join(
+                filter(None, [name_prefix, dataset_name, name_suffix, sweep_name])
+            )
+            save_path = output_path / f"{output_filename}.parquet"
             dataframe.to_parquet(save_path, index=False)
 
             # Create location object with output path
