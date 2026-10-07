@@ -116,6 +116,7 @@ def main(
     import logging
     import os
     from concurrent.futures import ProcessPoolExecutor
+    from pathlib import Path
 
     import numpy as np
     import pandas as pd
@@ -175,7 +176,6 @@ def main(
         FEATURES_FILTERED_MANIFEST_NAMES,
         RANDOM_SEED,
     )
-    from pathlib import Path
 
     logger = logging.getLogger(__name__)
 
@@ -201,7 +201,6 @@ def main(
 
     # get dataframe manifest for baseline results to match against in bootstrapping
     name_suffix = join_sorted_strings(column_names)
-    # baseline_fixed_point_manifest_name = f"{FIXED_POINT_MANIFEST_NAMES[patch_type]}_{name_suffix}"
     baseline_fixed_point_manifest_name = "_".join(
         filter(None, [FIXED_POINT_MANIFEST_NAMES[patch_type], name_suffix, sweep_name])
     )
@@ -210,7 +209,6 @@ def main(
     # load or initialize dataframe manifest for bootstrap results
     name_prefix = BOOTSTRAPPING_MANIFEST_NAMES[patch_type]
     name_suffix = "demo" if DEMO_MODE else ""
-    # bootstrap_results_manifest_name = f"{name_prefix}{name_suffix}"
     bootstrap_results_manifest_name = "_".join(filter(None, [name_prefix, name_suffix, sweep_name]))
     bootstrap_results_manifest = create_dataframe_manifest(
         bootstrap_results_manifest_name, workflow_name=__file__
