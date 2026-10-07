@@ -1,7 +1,12 @@
 from endo_pipeline.cli import Datasets, PatchType
+from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_COLORMAP_BIN_SIZE
 
 
-def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None) -> None:
+def main(
+    patch_type: PatchType = "grid_based",
+    datasets: Datasets | None = None,
+    distance_cutoff: float = MIGRATION_COHERENCE_COLORMAP_BIN_SIZE,
+) -> None:
     """
     Compute the noise-induced drift residual from the Kramers-Moyal diffusion tensor.
 
@@ -42,6 +47,8 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
         Patch type used to compute drift and diffusion.
     datasets
         List of datasets or dataset collections to run analysis on.
+    distance_cutoff
+        Distance cutoff used to subset data based on distance to stable fixed points.
     """
     import logging
 
@@ -58,6 +65,7 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
     )
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_shear_stress,
+        filter_dataframe_by_stability,
         filter_dataframe_by_track_length,
         filter_dataframe_to_flow_condition_by_timepoint,
         filter_dataframe_to_steady_state,
@@ -70,7 +78,7 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
         compute_diffusion_coefficients,
         compute_residual_magnitude_ratio,
     )
-    from endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
     from endo_pipeline.settings.dynamics_workflows import (
@@ -81,9 +89,14 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
         KERNEL_PERIODS_DYNAMICS,
         LONG_TRACK_THRESHOLD_LENGTH,
         METADATA_COLUMNS_TO_KEEP,
+        POLAR_ANGLE_PERIOD,
         TIME_STEP_IN_HOURS,
     )
-    from endo_pipeline.settings.manifest_names import VECTOR_FIELD_MANIFEST_NAMES
+    from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
+    from endo_pipeline.settings.manifest_names import (
+        FIXED_POINT_MANIFEST_NAMES,
+        VECTOR_FIELD_MANIFEST_NAMES,
+    )
     from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
 
     logger = logging.getLogger(__name__)
@@ -106,6 +119,7 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[patch_type], *column_names]
     drift_column_names = [ColumnTemplate.DRIFT_COEFFICIENT % name for name in column_names]
     mesh_column_names = [ColumnTemplate.MESH_GRID % name for name in column_names]
+    fp_column_names = [ColumnTemplate.FIXED_POINT % column for column in column_names]
 
     # Initialize kernels and bin widths for each selected column
     kernels: list[KramersMoyalKernel] = []
@@ -129,6 +143,10 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
     vector_field_manifest_name = f"{VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{name_suffix}"
     vector_field_manifest = load_dataframe_manifest(vector_field_manifest_name)
 
+    # Load pre-computed fixed points dataframe manifest
+    fixed_points_manifest_name = f"{FIXED_POINT_MANIFEST_NAMES[patch_type]}_{name_suffix}"
+    fixed_points_manifest = load_dataframe_manifest(fixed_points_manifest_name)
+
     for dataset_name in dataset_names:
         if dataset_name not in feature_dataframe_manifest.locations:
             logger.warning(
@@ -146,6 +164,21 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
 
         # load vector field dataframe for the current dataset
         df_vec = load_dataframe(vector_field_manifest.locations[dataset_name], delay=False)
+
+        # Load fixed points dataframe and check required columns, if available
+        if dataset_name not in fixed_points_manifest.locations:
+            logger.warning(
+                "Dataset '%s' not found in manifest '%s'. "
+                "Stable fixed points will not be shown in output visualization.",
+                dataset_name,
+                vector_field_manifest_name,
+            )
+            fixed_points_dataframe = None
+        else:
+            fixed_points_dataframe_location = get_dataframe_location_for_dataset(
+                fixed_points_manifest, dataset_name
+            )
+            fixed_points_dataframe = load_dataframe(fixed_points_dataframe_location, delay=False)
 
         # process on a per-flow condition basis
         for flow_condition in dataset_config.flow_conditions:
@@ -168,6 +201,17 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
 
             # Drift coefficient dataframe for the current flow condition
             df_vec_flow = filter_dataframe_by_shear_stress(df_vec, flow_condition.shear_stress)
+
+            if fixed_points_dataframe is None:
+                stable_fixed_points = np.empty((0, n_dim))
+            else:
+                fixed_points_for_flow_condition = filter_dataframe_by_shear_stress(
+                    fixed_points_dataframe, flow_condition.shear_stress
+                )
+                stable_fixed_point_df = filter_dataframe_by_stability(
+                    fixed_points_for_flow_condition, stability_label=StabilityLabel.STABLE
+                )
+                stable_fixed_points = stable_fixed_point_df[fp_column_names].to_numpy()
 
             # To store as dataframe, the grid points were stored as a flattened
             # meshgrid in the grid dataframe, so to get the grid points back into
@@ -230,6 +274,41 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
                 linestyles="dashed",
                 label=f"Median = {median_value:.3f}",
             )
+            # for each stable fixed point, if any, plot the histogram of the subset of points
+            # within `distance_cutoff` from the stable fixed point
+            # Grid points as an array of shape `(*grid_shape, n_dim)`, matching the
+            # leading axes of `residual_magnitude_ratio`.
+            mesh_points = np.stack(np.meshgrid(*grid_points_1d, indexing="ij"), axis=-1)
+            polar_idx = column_names.index(Column.DiffAEData.POLAR_ANGLE)
+            if stable_fixed_points.size > 0:
+                for stable_fp in stable_fixed_points:
+                    # compute distance of each grid point to the stable fixed point,
+                    # accounting for the periodic nature of the theta coordinate
+                    offsets = mesh_points - stable_fp
+                    # wrap the polar angle offsets into [-period / 2, period / 2) so that
+                    # the distance reflects the shortest path around the periodic axis
+                    offsets[..., polar_idx] = (
+                        np.mod(offsets[..., polar_idx] + POLAR_ANGLE_PERIOD / 2, POLAR_ANGLE_PERIOD)
+                        - POLAR_ANGLE_PERIOD / 2
+                    )
+                    close_to_stable_fp_mask = np.linalg.norm(offsets, axis=-1) < distance_cutoff
+                    residual_close_to_stable_fp = residual_magnitude_ratio[close_to_stable_fp_mask]
+                    ax.hist(
+                        residual_close_to_stable_fp.flatten(),
+                        bins=np.linspace(0, 5.0, 50),
+                        color="grey",
+                    )
+                    median_value_fp = np.nanmedian(residual_close_to_stable_fp)
+                    fp_coords_str = f"({stable_fp[0]:.2f}, {stable_fp[1]:.2f}, {stable_fp[2]:.2f})"
+                    ax.vlines(
+                        median_value_fp,
+                        ymin=0,
+                        ymax=ax.get_ylim()[1],
+                        color="k",
+                        alpha=0.75,
+                        linestyles="dashed",
+                        label=f"Median = {median_value_fp:.3f}\n(fixed pt.: {fp_coords_str})",
+                    )
             ax.legend()
             ax.set_xlabel(f"Residual magnitude ratio ({dataset_name_flow})")
             ax.set_ylabel("Frequency")
