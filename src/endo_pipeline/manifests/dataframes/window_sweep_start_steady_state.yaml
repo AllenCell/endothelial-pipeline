@@ -1,0 +1,100 @@
+name: window_sweep_start_steady_state
+workflow: sweep_window_fixed_points
+parameters:
+  patch_type: grid_based
+  sweep_interval_minutes: 30
+  sweep_interval_timepoints: 6
+  num_bootstrap_iterations: 500
+  bootstrap_match_radius: 0.3
+columns:
+  window_edge_timepoint: Absolute movie timepoint of the swept window edge.
+  window_edge_minutes: Swept window edge position, in minutes from movie start.
+  swept_boundary: Which window edge was swept (start_steady_state or start_cell_piling).
+  shear_stress_bin: Shear stress bin of the pooled fixed point.
+  num_window_timepoints: Number of rows pooled across all FOVs at this edge position.
+  detection_rate: Bootstrap detection rate of the fixed point (unfiltered; paper threshold > 0.4).
+locations:
+  20250402_20X:
+    fmsid: null
+    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-09-29/sweep_window_fixed_points/window_sweep_20250402_20X_start_steady_state_30min.parquet
+    s3uri: null
+  20250409_20X:
+    fmsid: null
+    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-09-29/sweep_window_fixed_points/window_sweep_20250409_20X_start_steady_state_30min.parquet
+    s3uri: null
+  20250611_20X:
+    fmsid: null
+    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-09-29/sweep_window_fixed_points/window_sweep_20250611_20X_start_steady_state_30min.parquet
+    s3uri: null
+  20250618_20X:
+    fmsid: null
+    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-09-29/sweep_window_fixed_points/window_sweep_20250618_20X_start_steady_state_30min.parquet
+    s3uri: null
+  20260126_20X:
+    fmsid: null
+    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-09-29/sweep_window_fixed_points/window_sweep_20260126_20X_start_steady_state_30min.parquet
+    s3uri: null
+  20260128_20X:
+    fmsid: null
+    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-10-01/sweep_window_fixed_points/window_sweep_20260128_20X_start_steady_state_30min.parquet
+    s3uri: null
+  20260202_20X:
+    fmsid: null
+    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-09-29/sweep_window_fixed_points/window_sweep_20260202_20X_start_steady_state_30min.parquet
+    s3uri: null
+  20260204_20X:
+    fmsid: null
+    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-09-29/sweep_window_fixed_points/window_sweep_20260204_20X_start_steady_state_30min.parquet
+    s3uri: null
+  20260209_20X:
+    fmsid: null
+    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-09-29/sweep_window_fixed_points/window_sweep_20260209_20X_start_steady_state_30min.parquet
+    s3uri: null
+  20260211_20X:
+    fmsid: null
+    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-09-29/sweep_window_fixed_points/window_sweep_20260211_20X_start_steady_state_30min.parquet
+    s3uri: null
+  20260225_20X:
+    fmsid: null
+    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-09-29/sweep_window_fixed_points/window_sweep_20260225_20X_start_steady_state_30min.parquet
+    s3uri: null
+  20260302_20X:
+    fmsid: null
+    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-09-29/sweep_window_fixed_points/window_sweep_20260302_20X_start_steady_state_30min.parquet
+    s3uri: null
+  20250604_20X:
+    fmsid: null
+    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-10-01/sweep_window_fixed_points/window_sweep_20250604_20X_start_steady_state_30min.parquet
+    s3uri: null
+  20260114_20X:
+    fmsid: null
+    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-10-01/sweep_window_fixed_points/window_sweep_20260114_20X_start_steady_state_30min.parquet
+    s3uri: null
+  20260216_20X:
+    fmsid: null
+    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-10-01/sweep_window_fixed_points/window_sweep_20260216_20X_start_steady_state_30min.parquet
+    s3uri: null
+  20250319_20X:
+    fmsid: null
+    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-10-01/sweep_window_fixed_points/window_sweep_20250319_20X_start_steady_state_30min.parquet
+    s3uri: null
+  20250716_20X:
+    fmsid: null
+    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-10-01/sweep_window_fixed_points/window_sweep_20250716_20X_start_steady_state_30min.parquet
+    s3uri: null
+  20260304_20X:
+    fmsid: null
+    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-10-01/sweep_window_fixed_points/window_sweep_20260304_20X_start_steady_state_30min.parquet
+    s3uri: null
+  20250428_20X:
+    fmsid: null
+    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-10-01/sweep_window_fixed_points/window_sweep_20250428_20X_start_steady_state_30min.parquet
+    s3uri: null
+  20250326_20X:
+    fmsid: null
+    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-10-01/sweep_window_fixed_points/window_sweep_20250326_20X_start_steady_state_30min.parquet
+    s3uri: null
+  20250813_20X:
+    fmsid: null
+    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-10-05/sweep_window_fixed_points/window_sweep_20250813_20X_start_steady_state_30min.parquet
+    s3uri: null
