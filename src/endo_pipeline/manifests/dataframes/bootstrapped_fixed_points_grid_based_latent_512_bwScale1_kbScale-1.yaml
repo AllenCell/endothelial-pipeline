@@ -1,0 +1,35 @@
+name: bootstrapped_fixed_points_grid_based_latent_512_bwScale1_kbScale-1
+workflow: bootstrap_fixed_points
+parameters:
+  model_manifest_name: diffae_baseline
+  run_name: latent_512
+  patch_type: grid_based
+  kernels:
+  - column: polar_theta
+    name: periodic
+    bandwidth: 0.075
+    period: 3.141592653589793
+  - column: polar_r
+    name: gaussian
+    bandwidth: 0.075
+    period: null
+  - column: rho
+    name: gaussian
+    bandwidth: 0.075
+    period: null
+  bin_widths: [0.1, 0.1, 0.1]
+  num_bootstrap_iterations: 500
+columns: {}
+locations:
+  20250618_20X:
+    fmsid: e9320ed820f6479293400f0015a14bad
+    path: null
+    s3uri: null
+  20250319_20X:
+    fmsid: 763404029f46496a8dec3a50706f1971
+    path: null
+    s3uri: null
+  20250611_20X:
+    fmsid: 969dfb04a66c4f9c8704e07d35fbff9a
+    path: null
+    s3uri: null
