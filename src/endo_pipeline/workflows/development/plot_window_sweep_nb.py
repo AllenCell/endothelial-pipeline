@@ -10,6 +10,7 @@ import logging
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from endo_pipeline.cli import DEMO_MODE
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.window_sweep import (
@@ -48,7 +49,17 @@ frames: dict[str, dict[str, pd.DataFrame]] = {}
 for boundary, manifest_name in MANIFEST_NAMES.items():
     manifest = load_dataframe_manifest(manifest_name)
     frames[boundary] = {}
-    for dataset_name in list_datasets_with_dataframes(manifest):
+
+    datasets = list_datasets_with_dataframes(manifest)
+    if DEMO_MODE:
+        datasets = datasets[:1]
+        logger.info(
+            "Demo mode enabled: plotting only the first dataset for %s boundary: %s",
+            boundary,
+            datasets,
+        )
+
+    for dataset_name in datasets:
         df = load_dataframe(manifest.locations[dataset_name])
         # Keep only higher-confidence fixed points (same threshold the other
         # fixed-point workflows use).
