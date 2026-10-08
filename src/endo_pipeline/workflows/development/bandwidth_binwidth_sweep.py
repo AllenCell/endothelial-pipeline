@@ -5,6 +5,7 @@ def main(
     datasets: Datasets | None = None,
     patch_type: PatchType = "grid_based",
     run_low_high_control: bool = False,
+    overwrite_results: bool = True,
 ) -> None:
     """
     Sweep bin width and kernel bandwidth parameters for fixed point bootstrapping.
@@ -79,6 +80,7 @@ def main(
                 sweep_name=run_name_for_sweep_condition,
                 kernel_bandwidths_dynamics=kernel_bandwidths,
                 bin_widths_dynamics=bin_widths,
+                overwrite_results=overwrite_results,
             )
             continue
 
@@ -110,6 +112,7 @@ def main(
                 sweep_name=run_name_for_sweep_condition,
                 kernel_bandwidths_dynamics=kernel_bandwidths,
                 bin_widths_dynamics=bin_widths,
+                overwrite_results=overwrite_results,
             )
             continue
 
