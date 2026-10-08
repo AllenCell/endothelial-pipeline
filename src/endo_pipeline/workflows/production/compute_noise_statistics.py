@@ -173,6 +173,7 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
         noise_statistics_dataframe_list = []
         for flow_condition in dataset_config.flow_conditions:
             dataset_name_flow = f"{dataset_name}_shear_{flow_condition.shear_stress_bin}"
+            print(dataset_name_flow, "\n")
 
             df_flow = filter_dataframe_to_flow_condition_by_timepoint(
                 df_steady_state, dataset_config, flow_condition
