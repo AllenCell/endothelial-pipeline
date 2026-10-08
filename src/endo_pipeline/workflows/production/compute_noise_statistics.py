@@ -193,14 +193,14 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
                 )
                 lagged_correlations = normalize_lagged_covariances(lagged_covariances)
 
-                lag_zero_covariance = np.einsum("ii->i", lagged_covariances[0])
-                print(lag_zero_covariance)
-                lag_one_covariance = np.einsum("ii->i", lagged_covariances[1])
-                print(lag_one_covariance)
-                measurement_noise_variance = np.where(
-                    lag_one_covariance < 0, lag_one_covariance, np.nan
+                lag_zero_correlations = lagged_correlations[0]
+                print(lag_zero_correlations)
+                lag_one_correlations = lagged_correlations[1]
+                print(lag_one_correlations)
+                measurement_noise_covariance = np.where(
+                    lagged_covariances[1] < 0, -lagged_covariances[1], np.nan
                 )
-                print(measurement_noise_variance)
+                print(measurement_noise_covariance)
                 lag_gt_one_correlation = np.einsum("...ii->...i", lagged_correlations[2:])
                 print(np.max(np.abs(lag_gt_one_correlation)))
                 print(np.min(np.abs(lag_gt_one_correlation)))
