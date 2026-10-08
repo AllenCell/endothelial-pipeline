@@ -168,7 +168,7 @@ def make_combined_filtered_feature_dataframe_for_dynamics_workflows(
     feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[patch_type]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
-    control_df = pd.DataFrame()
+    df_list = []
     for dataset_name in (dataset_name_1, dataset_name_2):
         dataset_config = load_dataset_config(dataset_name)
         # Load feature dataframe for dataset with only the required columns and
@@ -186,12 +186,27 @@ def make_combined_filtered_feature_dataframe_for_dynamics_workflows(
             df_flow = filter_dataframe_to_flow_condition_by_timepoint(
                 df_steady_state, dataset_config, flow_condition
             )
+            df_list.append(df_flow)
+    # sample half the trajectories from dataset 1 and half from dataset 2, making sure that no
+    # trajectories IDs are duplicated between the two datasets:
+    # randomly pick half the trajectory IDs from the first dataset
+    rng = np.random.default_rng(RANDOM_SEED)  # Initialize random number generator
 
-            df_flow_sample_size_for_half = len(df_flow) // 2
-            df_flow_subsample = df_flow.sample(
-                n=df_flow_sample_size_for_half, random_state=RANDOM_SEED
-            )
-            control_df = pd.concat([control_df, df_flow_subsample], ignore_index=True)
+    df_1_trajectory_ids = df_list[0].crop_index.unique()
+    half_of_df_1_trajectory_ids = len(df_1_trajectory_ids) // 2
+    df_1_sampled_trajectory_ids = rng.choice(
+        df_1_trajectory_ids, size=half_of_df_1_trajectory_ids, replace=False
+    )
+    df_2_trajectory_ids = df_list[1].crop_index.unique()
+    half_of_df_2_trajectory_ids = len(df_2_trajectory_ids) // 2
+    df_2_trajectory_ids_leftover = set(df_2_trajectory_ids) - set(df_1_sampled_trajectory_ids)
+    df_2_trajectory_ids_leftover = list(df_2_trajectory_ids_leftover)
+    df_2_sampled_trajectory_ids = rng.choice(
+        df_2_trajectory_ids_leftover, size=half_of_df_2_trajectory_ids, replace=False
+    )
+    df_1_subsample = df_list[0].query("crop_index in @df_1_sampled_trajectory_ids")
+    df_2_subsample = df_list[1].query("crop_index in @df_2_sampled_trajectory_ids")
+    control_df = pd.concat([df_1_subsample, df_2_subsample], ignore_index=True)
 
     return control_df
 
