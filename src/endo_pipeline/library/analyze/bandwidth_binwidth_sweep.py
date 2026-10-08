@@ -294,7 +294,7 @@ def generate_flow_field_for_low_high_control(
     from endo_pipeline.manifests import (
         DataframeLocation,
         create_dataframe_manifest,
-        load_dataframe_manifest,
+        # load_dataframe_manifest,
         load_model_manifest,
         save_dataframe_manifest,
     )
@@ -302,13 +302,13 @@ def generate_flow_field_for_low_high_control(
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_WIDTHS_DYNAMICS,
         KERNEL_BANDWIDTHS_DYNAMICS,
-        METADATA_COLUMNS_TO_KEEP,
+        # METADATA_COLUMNS_TO_KEEP,
     )
     from endo_pipeline.settings.manifest_names import FIXED_POINT_MANIFEST_NAMES
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
-        FEATURES_FILTERED_MANIFEST_NAMES,
+        # FEATURES_FILTERED_MANIFEST_NAMES,
     )
 
     logger = logging.getLogger(__name__)
@@ -340,13 +340,13 @@ def generate_flow_field_for_low_high_control(
     logger.info("Generating flow field for columns: %s", column_names)
 
     # Columns to keep when loading feature dataframe
-    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[patch_type], *column_names]
+    # columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[patch_type], *column_names]
 
     # Load default model manifest and corresponding feature dataframe for
     # specified patch type
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
-    feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[patch_type]
-    feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
+    # feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[patch_type]
+    # feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # Build dataframe manifest names that include sorted list of selected
     # columns used to generate the flow field.
@@ -669,7 +669,7 @@ def bootstrap_fixed_points_for_low_high_control(
     from endo_pipeline.settings.manifest_names import BOOTSTRAPPING_MANIFEST_NAMES
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_RUN_NAME,
-        FEATURES_FILTERED_MANIFEST_NAMES,
+        # FEATURES_FILTERED_MANIFEST_NAMES,
         RANDOM_SEED,
     )
 
@@ -692,8 +692,8 @@ def bootstrap_fixed_points_for_low_high_control(
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[patch_type], *column_names]
 
     # Get feature dataframe manifest for select grid pattern
-    feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[patch_type]
-    feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
+    # feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[patch_type]
+    # feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # get dataframe manifest for baseline results to match against in bootstrapping
     name_suffix = join_sorted_strings(column_names)
@@ -771,19 +771,19 @@ def bootstrap_fixed_points_for_low_high_control(
     }
 
     # for dataset_name in dataset_names:
-    if dataset_name not in feature_dataframe_manifest.locations:
-        logger.warning(
-            "Dataset '%s' not found in manifest '%s'. Skipping.",
-            dataset_name,
-            feature_dataframe_manifest_name,
-        )
-        return
+    # if dataset_name not in feature_dataframe_manifest.locations:
+    #     logger.warning(
+    #         "Dataset '%s' not found in manifest '%s'. Skipping.",
+    #         dataset_name,
+    #         feature_dataframe_manifest_name,
+    #     )
+    #     return
 
     if dataset_name not in baseline_fixed_point_manifest.locations:
         logger.warning(
             "Dataset '%s' not found in manifest '%s'. Skipping.",
             dataset_name,
-            feature_dataframe_manifest_name,
+            baseline_fixed_point_manifest_name,
         )
         return
 
