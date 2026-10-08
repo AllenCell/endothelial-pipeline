@@ -549,3 +549,120 @@ def compute_two_timepoint_noise_correlations(
         cross_correlations /= n_points[:, :, np.newaxis, np.newaxis]
 
     return cross_correlations
+
+
+def compute_lagged_covariances(
+    traj_list: list[pd.DataFrame],
+    d_traj_list: list[pd.DataFrame],
+    column_names: list[str],
+    timepoints_array: np.ndarray,
+    vector_field: Callable,
+    centering_method: NoiseCorrelationCentering,
+    max_lag: int = 10,
+) -> np.ndarray:
+    """
+    Compute pooled lagged covariance matrices of the residuals.
+
+    The covariance at lag ``tau`` is ``R_ij(tau) = < eta_i(t) eta_j(t + tau) >``,
+    pooled over every patch and every timepoint at which both members of the
+    pair are observed. Pairs that straddle a missing timepoint are excluded
+    rather than zero filled, so that gaps in a track do not bias the estimate
+    toward zero.
+
+    Parameters
+    ----------
+    traj_list
+        List of dataframes containing the trajectories for each patch.
+    d_traj_list
+        List of dataframes containing the forward differences of the trajectories.
+    column_names
+        List of column names corresponding to the features in the trajectories.
+    timepoints_array
+        Array of timepoints corresponding to the rows in the trajectory dataframes.
+    vector_field
+        Callable representing the vector field used for centering the residuals.
+    centering_method
+        Method used to center the residuals.
+    max_lag
+        Largest lag, in frames, to evaluate.
+
+    Returns
+    -------
+    :
+        Covariance matrices of shape (max_lag + 1, num_features, num_features).
+    """
+
+    if centering_method not in NoiseCorrelationCentering:
+        logger.error(
+            "Invalid centering method: %s. Must be one of %s.",
+            centering_method,
+            list(NoiseCorrelationCentering),
+        )
+        return
+
+    # Get centered feature displacement residuals
+    n_dim = len(column_names)
+    n_timepoints = timepoints_array.shape[0]
+    max_lag = int(min(max_lag, n_timepoints - 1))
+
+    residuals = compute_centered_residuals(
+        traj_list=traj_list,
+        d_traj_list=d_traj_list,
+        column_names=column_names,
+        timepoints_array=timepoints_array,
+        vector_field=vector_field,
+        centering_method=centering_method,
+    )
+
+    is_valid = ~np.isnan(residuals).any(axis=2)
+    centered = residuals - np.nanmean(residuals, axis=(0, 1))
+    # zero fill so that excluded entries contribute nothing to the sums below
+    centered = np.where(is_valid[..., np.newaxis], centered, 0.0)
+
+    covariances = np.full((max_lag + 1, n_dim, n_dim), np.nan)
+    for lag in range(max_lag + 1):
+        leading = centered[:, : n_timepoints - lag, :]
+        trailing = centered[:, lag:, :]
+        n_pairs = int((is_valid[:, : n_timepoints - lag] & is_valid[:, lag:]).sum())
+        if n_pairs == 0:
+            continue
+        covariances[lag] = np.einsum("pti,ptj->ij", leading, trailing) / n_pairs
+
+    return covariances
+
+
+def normalize_lagged_covariances(covariances: np.ndarray) -> np.ndarray:
+    """Rescale lagged covariances to correlations in [-1, 1]."""
+    sigma = np.sqrt(np.diag(covariances[0]))
+    with np.errstate(divide="ignore", invalid="ignore"):
+        return covariances / np.outer(sigma, sigma)
+
+
+def compute_measurement_noise_variance(covariances: np.ndarray) -> np.ndarray:
+    """
+    Estimate the variance of the independent error on each observed coordinate.
+
+    Independent error enters the forward difference as ``eta(t) = s(t) + e(t +
+    1) - e(t)``, where s(t) is the dynamical noise (true signal) and e(t) is the
+    independent measurement error. The error variance is therefore equal to the
+    the lag-one covariance ``cov(eta(t), eta(t + 1))``. The estimate only has
+    meaning when that covariance is negative, and is reported as NaN otherwise.
+
+    Parameters
+    ----------
+    covariances
+        Lagged covariance matrices of shape (max_lag + 1, num_features,
+        num_features).
+
+    Returns
+    -------
+    :
+        Estimated measurement noise variance for each feature, of shape
+        (num_features,).
+    """
+    if covariances.shape[0] < 2:
+        raise ValueError(
+            "Covariances must have at least two lags to estimate lag-one measurement noise variance."
+        )
+    lag_one_covariance = np.einsum("ii->i", covariances[1])
+    return np.where(lag_one_covariance < 0, lag_one_covariance, np.nan)
