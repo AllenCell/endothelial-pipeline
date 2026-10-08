@@ -13,9 +13,8 @@ def main():
 
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.library.analyze.bandwidth_binwidth_sweep import (
-        apply_parameter_scaling,
         get_param_sweep_run_name,
-        get_parameter_space_scalings,
+        get_parameter_space,
     )
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings import plot_defaults
@@ -36,9 +35,9 @@ def main():
     # start a single big dataframe to hold the data for multiple datasets
     big_df = pd.DataFrame()
 
-    parameter_space_scaling = get_parameter_space_scalings()
-    for bin_scale, kernel_scale in parameter_space_scaling:
-        sweep_run_name = get_param_sweep_run_name(bin_scale, kernel_scale)
+    parameter_space = get_parameter_space()
+    for bw, kb in parameter_space:
+        sweep_run_name = get_param_sweep_run_name(bw, kb)
         manifest = load_dataframe_manifest(
             f"{GRID_BASED_BOOTSTRAPPING_MANIFEST_NAME}_{sweep_run_name}"
         )
@@ -49,9 +48,8 @@ def main():
         for dataset in manifest.locations:
             df = load_dataframe(manifest.locations[dataset])
             # add the parameter values to the dataframe
-            bw, kb = apply_parameter_scaling(bin_scale, kernel_scale)
-            df["bw"] = np.unique(list(bw.values())).item()
-            df["kb"] = np.unique(list(kb.values())).item()
+            df["bw"] = bw
+            df["kb"] = kb
 
             # add the dataframe for this dataset to the single big dataframe if it is not empty, otherwise
             # initialize it with the current dataframe

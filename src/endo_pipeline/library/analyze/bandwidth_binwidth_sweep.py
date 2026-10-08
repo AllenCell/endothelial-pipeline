@@ -32,9 +32,10 @@ from endo_pipeline.manifests import (
     save_dataframe_manifest,
 )
 from endo_pipeline.settings.bandwidth_binwidth_sweep import (
-    BINWIDTH_EXPONENT_LIMITS,
-    KERNEL_BANDWIDTH_EXPONENT_LIMITS,
-    PARAMETER_SCALE_BASE,
+    SWEEP_BINWIDTHS,
+    SWEEP_BINWIDTHS_NARROW,
+    SWEEP_KERNEL_BANDWIDTHS,
+    SWEEP_KERNEL_BANDWIDTHS_NARROW,
 )
 from endo_pipeline.settings.bootstrap_fixed_points import (
     BATCH_SIZE_SCALING_FACTOR,
@@ -72,84 +73,74 @@ from endo_pipeline.settings.workflow_defaults import (
 )
 
 
-def get_param_sweep_run_name(bin_scale: int, kernel_scale: int) -> str:
+def get_param_sweep_run_name(bin_width: float, kernel_bandwidth: float) -> str:
     """
     Generate a name for the parameter sweep based on the bin and kernel scales.
 
     Parameters
     ----------
-    bin_scale
-        Exponent used to scale the default bin widths.
-    kernel_scale
-        Exponent used to scale the default kernel bandwidths.
+    bin_width
+        Bin width used for the parameter sweep.
+    kernel_bandwidth
+        Kernel bandwidth used for the parameter sweep.
 
     Returns
     -------
     :
         Name representing the parameter sweep.
     """
-    tag = f"bwScale{bin_scale}_kbScale{kernel_scale}"
+    bin_width_as_str = str(round(bin_width, 3)).replace(".", "pt")
+    kernel_bandwidth_as_str = str(round(kernel_bandwidth, 3)).replace(".", "pt")
+
+    tag = f"bw{bin_width_as_str}_kb{kernel_bandwidth_as_str}"
     run_name_for_sweep_condition = f"{DEFAULT_MODEL_RUN_NAME}_{tag}"
 
     return run_name_for_sweep_condition
 
 
-def apply_parameter_scaling(
-    bin_scale: int, kernel_scale: int, param_scale_base: int = PARAMETER_SCALE_BASE
+def get_binwidth_bandwidth_dict(
+    bin_width: float, kernel_bandwidth: float
 ) -> tuple[dict[Column.DiffAEData, float], dict[Column.DiffAEData, float]]:
     """
-    Apply scaling exponents to the default bin widths and kernel bandwidths.
+    Get dictionaries of bin widths and kernel bandwidths for the provided parameters propagating the
+    provided bin width and kernel bandwidth to all entries in `BIN_WIDTHS_DYNAMICS` and
+    `KERNEL_BANDWIDTHS_DYNAMICS`.
 
     Parameters
     ----------
-    bin_scale
-        Exponent to scale the default bin widths.
-    kernel_scale
-        Exponent to scale the default kernel bandwidths.
-    param_scale_base
-        Base of the exponent for scaling, by default `PARAMETER_SCALE_BASE`
+    bin_width
+        Bin width to be used.
+    kernel_bandwidth
+        Kernel bandwidth to be used.
 
     Returns
     -------
     :
-        Scaled bin widths and kernel bandwidths.
+        Dictionaries of bin widths and kernel bandwidths.
     """
-
-    bin_widths = {
-        key: val * param_scale_base**bin_scale for key, val in BIN_WIDTHS_DYNAMICS.items()
-    }
-    kernel_bandwidths = {
-        key: val * param_scale_base**kernel_scale for key, val in KERNEL_BANDWIDTHS_DYNAMICS.items()
-    }
+    bin_widths = dict.fromkeys(BIN_WIDTHS_DYNAMICS.keys(), bin_width)
+    kernel_bandwidths = dict.fromkeys(KERNEL_BANDWIDTHS_DYNAMICS.keys(), kernel_bandwidth)
     return bin_widths, kernel_bandwidths
 
 
-def get_parameter_space_scalings() -> list[tuple[int, int]]:
+def get_parameter_space() -> list[tuple[float, float]]:
     """
-    Get the parameter space of bin width and kernel bandwidth scaling exponents.
+    Get the parameter space of bin widths and kernel bandwidths.
 
     Returns
     -------
     :
-        (bin width, kernel bandwidth) combinations of the exponents used for scaling default values.
+        (bin width, kernel bandwidth) combinations of the parameters used for the sweep.
     """
 
-    # we will scale the default parameters by exponents of base 2
-    # (i.e. parameters will be quarter, half, original size, double, quadruple, etc.)
-    binwidth_exponent_range: list[int] = list(
-        range(BINWIDTH_EXPONENT_LIMITS[0], BINWIDTH_EXPONENT_LIMITS[1] + 1)
-    )
-    kernel_bandwidth_exponent_range: list[int] = list(
-        range(KERNEL_BANDWIDTH_EXPONENT_LIMITS[0], KERNEL_BANDWIDTH_EXPONENT_LIMITS[1] + 1)
-    )
+    # create the parameter space of the broad scaling exponents
+    parameter_space = list(product(SWEEP_BINWIDTHS, SWEEP_KERNEL_BANDWIDTHS))
 
-    # create the full parameter space of these scaling exponents, which will then be applied to the
-    # default bin widths and kernel bandwidths used in the paper
-    parameter_space_scaling = list(
-        product(binwidth_exponent_range, kernel_bandwidth_exponent_range)
-    )
+    # create the parameter space of the narrow scaling exponents
+    parameter_space_narrow = list(product(SWEEP_BINWIDTHS_NARROW, SWEEP_KERNEL_BANDWIDTHS_NARROW))
+    param_space_all = parameter_space = list(set(parameter_space) | set(parameter_space_narrow))
 
-    return parameter_space_scaling
+    return param_space_all
 
 
 def make_combined_filtered_feature_dataframe_for_dynamics_workflows(
@@ -178,12 +169,7 @@ def make_combined_filtered_feature_dataframe_for_dynamics_workflows(
         df = df_[columns_to_compute].compute()
         df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
 
-        # # Generate vector field and calculate fixed points per flow condition
-        # vector_field_dataframe_list = []
-        # fixed_points_dataframe_list = []
-
         for flow_condition in dataset_config.flow_conditions:
-            shear_stress = flow_condition.shear_stress
             df_flow = filter_dataframe_to_flow_condition_by_timepoint(
                 df_steady_state, dataset_config, flow_condition
             )
@@ -200,13 +186,12 @@ def make_combined_filtered_feature_dataframe_for_dynamics_workflows(
     )
     df_2_trajectory_ids = df_list[1].crop_index.unique()
     half_of_df_2_trajectory_ids = len(df_2_trajectory_ids) // 2
-    df_2_trajectory_ids_leftover = set(df_2_trajectory_ids) - set(df_1_sampled_trajectory_ids)
-    df_2_trajectory_ids_leftover = list(df_2_trajectory_ids_leftover)
+    df_2_trajectory_ids_leftover = list(set(df_2_trajectory_ids) - set(df_1_sampled_trajectory_ids))
     df_2_sampled_trajectory_ids = rng.choice(
         df_2_trajectory_ids_leftover, size=half_of_df_2_trajectory_ids, replace=False
     )
-    df_1_subsample = df_list[0].query("crop_index in @df_1_sampled_trajectory_ids")
-    df_2_subsample = df_list[1].query("crop_index in @df_2_sampled_trajectory_ids")
+    df_1_subsample = df_list[0][df_list[0][Column.CROP_INDEX].isin(df_1_sampled_trajectory_ids)]
+    df_2_subsample = df_list[1][df_list[1][Column.CROP_INDEX].isin(df_2_sampled_trajectory_ids)]
     control_df = pd.concat([df_1_subsample, df_2_subsample], ignore_index=True)
 
     return control_df
@@ -294,7 +279,6 @@ def generate_flow_field_for_low_high_control(
     from endo_pipeline.manifests import (
         DataframeLocation,
         create_dataframe_manifest,
-        # load_dataframe_manifest,
         load_model_manifest,
         save_dataframe_manifest,
     )
@@ -302,13 +286,11 @@ def generate_flow_field_for_low_high_control(
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_WIDTHS_DYNAMICS,
         KERNEL_BANDWIDTHS_DYNAMICS,
-        # METADATA_COLUMNS_TO_KEEP,
     )
     from endo_pipeline.settings.manifest_names import FIXED_POINT_MANIFEST_NAMES
     from endo_pipeline.settings.workflow_defaults import (
         DEFAULT_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_RUN_NAME,
-        # FEATURES_FILTERED_MANIFEST_NAMES,
     )
 
     logger = logging.getLogger(__name__)
@@ -339,14 +321,9 @@ def generate_flow_field_for_low_high_control(
 
     logger.info("Generating flow field for columns: %s", column_names)
 
-    # Columns to keep when loading feature dataframe
-    # columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[patch_type], *column_names]
-
     # Load default model manifest and corresponding feature dataframe for
     # specified patch type
     model_manifest = load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME)
-    # feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[patch_type]
-    # feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # Build dataframe manifest names that include sorted list of selected
     # columns used to generate the flow field.
@@ -406,23 +383,6 @@ def generate_flow_field_for_low_high_control(
         dataset_name_1=dataset_names[0], dataset_name_2=dataset_names[1], patch_type=patch_type
     )
 
-    # for dataset_name in dataset_names:
-    #     if dataset_name not in feature_dataframe_manifest.locations:
-    #         logger.warning(
-    #             "Dataset '%s' not found in manifest '%s'. Skipping.",
-    #             dataset_name,
-    #             feature_dataframe_manifest_name,
-    #         )
-    #         continue
-
-    #     dataset_config = load_dataset_config(dataset_name)
-
-    #     # Load feature dataframe for dataset with only the required columns and
-    #     # filter out non-steady-state timepoints
-    #     df_ = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
-    #     df = df_[columns_to_compute].compute()
-    #     df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
-
     # Generate vector field and calculate fixed points per flow condition
     vector_field_dataframe_list = []
     fixed_points_dataframe_list = []
@@ -434,14 +394,13 @@ def generate_flow_field_for_low_high_control(
         dataset_config_list.append(dataset_config)
 
         for flow_condition in dataset_config.flow_conditions:
-            shear_stress = flow_condition.shear_stress
-            shear_stress_list.append(shear_stress)
+            flow_shear_stress = flow_condition.shear_stress
+            shear_stress_list.append(flow_shear_stress)
 
     dataset_name = "-".join(dataset_names)
-    shear_stress = "-".join(map(str, shear_stress_list))
     metadata_dict: dict[str, str | float] = {
         ColumnName.DATASET: dataset_name,
-        ColumnName.SHEAR_STRESS: shear_stress,
+        ColumnName.SHEAR_STRESS: "-".join(map(str, shear_stress_list)),
     }
 
     vector_field_evaluated = (
@@ -662,16 +621,11 @@ def bootstrap_fixed_points_for_low_high_control(
         BIN_WIDTHS_DYNAMICS,
         DYNAMICS_COLUMN_NAMES,
         KERNEL_BANDWIDTHS_DYNAMICS,
-        METADATA_COLUMNS_TO_KEEP,
     )
     from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
     from endo_pipeline.settings.flow_field_dataframes import FMS_ANNOTATION_NOTES_BOOTSTRAPPING
     from endo_pipeline.settings.manifest_names import BOOTSTRAPPING_MANIFEST_NAMES
-    from endo_pipeline.settings.workflow_defaults import (
-        DEFAULT_MODEL_RUN_NAME,
-        # FEATURES_FILTERED_MANIFEST_NAMES,
-        RANDOM_SEED,
-    )
+    from endo_pipeline.settings.workflow_defaults import DEFAULT_MODEL_RUN_NAME, RANDOM_SEED
 
     logger = logging.getLogger(__name__)
 
@@ -689,11 +643,6 @@ def bootstrap_fixed_points_for_low_high_control(
     rng = np.random.default_rng(RANDOM_SEED)
 
     column_names = list(DYNAMICS_COLUMN_NAMES)
-    columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[patch_type], *column_names]
-
-    # Get feature dataframe manifest for select grid pattern
-    # feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[patch_type]
-    # feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # get dataframe manifest for baseline results to match against in bootstrapping
     name_suffix = join_sorted_strings(column_names)
@@ -760,24 +709,14 @@ def bootstrap_fixed_points_for_low_high_control(
         dataset_config_list.append(dataset_config)
 
         for flow_condition in dataset_config.flow_conditions:
-            shear_stress = flow_condition.shear_stress
-            shear_stress_list.append(shear_stress)
+            flow_shear_stress = flow_condition.shear_stress
+            shear_stress_list.append(flow_shear_stress)
 
     dataset_name = "-".join(dataset_names)
-    shear_stress = "-".join(map(str, shear_stress_list))
     metadata_dict: dict[str, str | float] = {
         ColumnName.DATASET: dataset_name,
-        ColumnName.SHEAR_STRESS: shear_stress,
+        ColumnName.SHEAR_STRESS: "-".join(map(str, shear_stress_list)),
     }
-
-    # for dataset_name in dataset_names:
-    # if dataset_name not in feature_dataframe_manifest.locations:
-    #     logger.warning(
-    #         "Dataset '%s' not found in manifest '%s'. Skipping.",
-    #         dataset_name,
-    #         feature_dataframe_manifest_name,
-    #     )
-    #     return
 
     if dataset_name not in baseline_fixed_point_manifest.locations:
         logger.warning(
@@ -801,8 +740,6 @@ def bootstrap_fixed_points_for_low_high_control(
         )
         return
 
-    #     dataset_config = load_dataset_config(dataset_name)
-
     # Load the baseline fixed point dataframe for this dataset
     baseline_fp_df = load_dataframe(baseline_fixed_point_manifest.locations[dataset_name])
     logger.debug(
@@ -811,30 +748,11 @@ def bootstrap_fixed_points_for_low_high_control(
         len(baseline_fp_df),
     )
     bootstrap_dataframe_list = []
-    # # Load and filter the feature dataframe to steady-state timepoints
-    # # (will use for bootstrap iterations)
-    # df_ = load_dataframe(feature_dataframe_manifest.locations[dataset_name], delay=True)
-    # df = df_[columns_to_compute].compute()
-    # df_steady_state = filter_dataframe_to_steady_state(df, dataset_config)
-
-    # bootstrap_dataframe_list = []
-    # for flow_condition in dataset_config.flow_conditions:
-    #     shear_stress = flow_condition.shear_stress
-    #     df_flow = filter_dataframe_to_flow_condition_by_timepoint(
-    #         df_steady_state, dataset_config, flow_condition
-    #     )
-    #     metadata_dict = {
-    #         Column.DATASET: dataset_name,
-    #         Column.SHEAR_STRESS: shear_stress,
-    #     }
-    # fixed_points_for_flow_condition = filter_dataframe_by_shear_stress(
-    #     baseline_fp_df, shear_stress
-    # )
 
     # Determine bins from the full steady-state data (shared across all
     # bootstrap iterations so the fixed-point search uses a consistent grid)
     bins, centers = get_bins(
-        bin_widths,
+        tuple(bin_widths),
         data=df_flow[column_names].to_numpy(),
         pad=PAD_BINS_FLOAT,
     )

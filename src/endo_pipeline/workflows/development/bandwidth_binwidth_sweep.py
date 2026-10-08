@@ -37,11 +37,11 @@ def main(
     from tqdm import tqdm
 
     from endo_pipeline.library.analyze.bandwidth_binwidth_sweep import (
-        apply_parameter_scaling,
         bootstrap_fixed_points_for_low_high_control,
         generate_flow_field_for_low_high_control,
+        get_binwidth_bandwidth_dict,
         get_param_sweep_run_name,
-        get_parameter_space_scalings,
+        get_parameter_space,
     )
     from endo_pipeline.workflows.production import bootstrap_fixed_points, generate_flow_field
 
@@ -50,23 +50,21 @@ def main(
     if datasets is None:
         # use low, the bifurcation intermediate example from figure 4, and high datasets if no
         # datasets are specified by the user
-        datasets = ["20250618_20X", "20250319_20X", "20250611_20X"]
+        datasets = ["20250618_20X", "20250319_20X", "20260304_20X", "20250611_20X"]
 
     if run_low_high_control:
         # when running low-high control, we combine the low and high datasets and only analyze that
         logger.info("Running low-high control with datasets: %s", datasets)
         datasets = ["20250618_20X", "20250611_20X"]
 
-    parameter_space_scaling = get_parameter_space_scalings()
+    parameter_space = get_parameter_space()
 
-    for bin_scale, kernel_scale in tqdm(
-        parameter_space_scaling, desc=f"Generating flow fields for: {datasets}"
-    ):
+    for bw, kb in tqdm(parameter_space, desc=f"Generating flow fields for: {datasets}"):
         # apply parameter scaling exponents to the default bin widths and kernel bandwidths
-        bin_widths, kernel_bandwidths = apply_parameter_scaling(bin_scale, kernel_scale)
+        bin_widths, kernel_bandwidths = get_binwidth_bandwidth_dict(bw, kb)
 
         # get tag of parameter scaling combination used for this run
-        run_name_for_sweep_condition = get_param_sweep_run_name(bin_scale, kernel_scale)
+        run_name_for_sweep_condition = get_param_sweep_run_name(bw, kb)
         logger.info(
             "Running generate_flow_field for bin width [ %s ], kernel bandwidth [ %s ]",
             bin_widths,
@@ -93,14 +91,12 @@ def main(
             overwrite_results=overwrite_results,
         )
 
-    for bin_scale, kernel_scale in tqdm(
-        parameter_space_scaling, desc=f"Bootstrapping fixed points for: {datasets}"
-    ):
+    for bw, kb in tqdm(parameter_space, desc=f"Bootstrapping fixed points for: {datasets}"):
         # apply parameter scaling exponents to the default bin widths and kernel bandwidths
-        bin_widths, kernel_bandwidths = apply_parameter_scaling(bin_scale, kernel_scale)
+        bin_widths, kernel_bandwidths = get_binwidth_bandwidth_dict(bw, kb)
 
         # get tag of parameter scaling combination used for this run
-        run_name_for_sweep_condition = get_param_sweep_run_name(bin_scale, kernel_scale)
+        run_name_for_sweep_condition = get_param_sweep_run_name(bw, kb)
         logger.info(
             "Running bootstrap_fixed_points for bin width [ %s ], kernel bandwidth [ %s ]",
             bin_widths,
