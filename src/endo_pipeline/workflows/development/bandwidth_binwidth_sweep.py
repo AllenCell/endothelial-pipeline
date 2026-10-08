@@ -53,11 +53,14 @@ def main(
 
     if run_low_high_control:
         # when running low-high control, we combine the low and high datasets and only analyze that
+        logger.info("Running low-high control with datasets: %s", datasets)
         datasets = ["20250618_20X", "20250611_20X"]
 
     parameter_space_scaling = get_parameter_space_scalings()
 
-    for bin_scale, kernel_scale in tqdm(parameter_space_scaling, desc="Generating flow fields"):
+    for bin_scale, kernel_scale in tqdm(
+        parameter_space_scaling, desc=f"Generating flow fields for: {datasets}"
+    ):
         # apply parameter scaling exponents to the default bin widths and kernel bandwidths
         bin_widths, kernel_bandwidths = apply_parameter_scaling(bin_scale, kernel_scale)
 
@@ -87,7 +90,9 @@ def main(
             bin_widths_dynamics=bin_widths,
         )
 
-    for bin_scale, kernel_scale in tqdm(parameter_space_scaling, desc="Bootstrapping fixed points"):
+    for bin_scale, kernel_scale in tqdm(
+        parameter_space_scaling, desc=f"Bootstrapping fixed points for: {datasets}"
+    ):
         # apply parameter scaling exponents to the default bin widths and kernel bandwidths
         bin_widths, kernel_bandwidths = apply_parameter_scaling(bin_scale, kernel_scale)
 
