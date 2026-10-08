@@ -397,7 +397,7 @@ def compute_centered_residuals(
     The residual is the part of the observed forward difference that is not
     explained by the deterministic drift, so under the modeling assumption of an
     Euler-Maruyama discretized SDE it is the realized noise increment.
-
+    
     Parameters
     ----------
     traj_list
