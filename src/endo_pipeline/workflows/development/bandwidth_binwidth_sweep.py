@@ -34,7 +34,7 @@ def main(
 
     from tqdm import tqdm
 
-    from endo_pipeline.library.analyze.binwidth_bandwidth_sweep import (
+    from endo_pipeline.library.analyze.bandwidth_binwidth_sweep import (
         apply_parameter_scaling,
         get_param_sweep_run_name,
         get_parameter_space_scalings,

@@ -12,7 +12,7 @@ def main():
     from matplotlib.ticker import MaxNLocator
 
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
-    from endo_pipeline.library.analyze.binwidth_bandwidth_sweep import (
+    from endo_pipeline.library.analyze.bandwidth_binwidth_sweep import (
         apply_parameter_scaling,
         get_param_sweep_run_name,
         get_parameter_space_scalings,
