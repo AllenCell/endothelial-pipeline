@@ -397,6 +397,87 @@ class NoiseCorrelationCentering(StrEnum):
     """Center differences by subtracting the estimated drift component."""
 
 
+def compute_centered_residuals(
+    traj_list: list[pd.DataFrame],
+    d_traj_list: list[pd.DataFrame],
+    column_names: list[str],
+    timepoints_array: np.ndarray,
+    vector_field: Callable,
+    centering_method: NoiseCorrelationCentering,
+) -> np.ndarray:
+    """
+    Build the array of drift-removed residuals eta(t) for every patch.
+
+    The residual is the part of the observed forward difference that is not
+    explained by the deterministic drift, so under the modeling assumption of an
+    Euler-Maruyama discretized SDE it is the realized noise increment. The drift
+    is removed either by subtracting the ensemble mean displacement at each
+    timepoint or by subtracting the drift predicted by the estimated vector
+    field.
+
+    Parameters
+    ----------
+    traj_list
+        List of dataframes containing trajectories for each patch.
+    d_traj_list
+        List of dataframes containing forward differences for each patch.
+    column_names
+        List of feature column names.
+    timepoints_array
+        Array of timepoints to consider.
+    vector_field
+        Callable vector field used to estimate the drift component.
+    centering_method
+        Method used to center the differences.
+
+    Returns
+    -------
+    :
+        Array of shape (num_patches, num_timepoints, num_features) containing
+        the residuals, with NaN at timepoints where a patch has no difference.
+    """
+    n_dim = len(column_names)
+    n_timepoints = timepoints_array.shape[0]
+    n_patches = len(traj_list)
+    diff_column_names = [f"{col}{Column.DiffAEData.DIFFERENCE_SUFFIX}" for col in column_names]
+
+    mean_dx_t = None
+    if centering_method == NoiseCorrelationCentering.MEAN_SUBTRACTED:
+        # Ensemble mean of the forward differences across patches at each timepoint
+        mean_dx_t = (
+            pd.concat(d_traj_list)
+            .groupby(Column.TIMEPOINT)[diff_column_names]
+            .mean()
+            .reindex(timepoints_array)
+            .to_numpy()
+        )
+
+    residuals = np.full((n_patches, n_timepoints, n_dim), np.nan)
+    for patch_index, (filtered_traj, filtered_d_traj) in enumerate(
+        zip(traj_list, d_traj_list, strict=True)
+    ):
+        # Extract the timepoints, values, and differences for this patch
+        patch_timepoints_x_t = filtered_traj[Column.TIMEPOINT].to_numpy()
+        patch_timepoints_dx_t = filtered_d_traj[Column.TIMEPOINT].to_numpy()
+        patch_x_t = filtered_traj[column_names].to_numpy()
+        patch_dx_t = filtered_d_traj[diff_column_names].to_numpy()
+
+        # place this patch's trajectory values and differences on the
+        # shared timepoint axis, leaving NaN at timepoints where the
+        # patch has no difference/value
+        x_t = np.full((n_timepoints, n_dim), np.nan)
+        x_t[np.searchsorted(timepoints_array, patch_timepoints_x_t)] = patch_x_t
+        dx_t = np.full((n_timepoints, n_dim), np.nan)
+        dx_t[np.searchsorted(timepoints_array, patch_timepoints_dx_t)] = patch_dx_t
+
+        if mean_dx_t is not None:
+            residuals[patch_index] = dx_t - mean_dx_t
+        else:
+            residuals[patch_index] = dx_t - vector_field(x_t) * TIME_STEP_IN_HOURS
+
+    return residuals
+
+
 def compute_two_timepoint_noise_correlations(
     traj_list: list[pd.DataFrame],
     d_traj_list: list[pd.DataFrame],
@@ -443,46 +524,20 @@ def compute_two_timepoint_noise_correlations(
     n_timepoints = timepoints_array.shape[0]
     cross_correlations = np.zeros((n_timepoints, n_timepoints, n_dim, n_dim))
     n_points = np.zeros((n_timepoints, n_timepoints))
-    diff_column_names = [f"{col}{Column.DiffAEData.DIFFERENCE_SUFFIX}" for col in column_names]
 
-    if centering_method == NoiseCorrelationCentering.MEAN_SUBTRACTED:
-        # Ensemble mean of the forward differences across patches at each timepoint
-        mean_dx_t = (
-            pd.concat(d_traj_list)
-            .groupby(Column.TIMEPOINT)[diff_column_names]
-            .mean()
-            .reindex(timepoints_array)
-            .to_numpy()
-        )
+    residuals = compute_centered_residuals(
+        traj_list=traj_list,
+        d_traj_list=d_traj_list,
+        column_names=column_names,
+        timepoints_array=timepoints_array,
+        vector_field=vector_field,
+        centering_method=centering_method,
+    )
 
-    for filtered_traj, filtered_d_traj in zip(traj_list, d_traj_list, strict=True):
-        # Extract the timepoints, values, and differences for this patch
-        patch_timepoints_x_t = filtered_traj[Column.TIMEPOINT].to_numpy()
-        patch_timepoints_dx_t = filtered_d_traj[Column.TIMEPOINT].to_numpy()
-        patch_x_t = filtered_traj[column_names].to_numpy()
-        patch_dx_t = filtered_d_traj[diff_column_names].to_numpy()
-
-        # place this patch's trajectory values and differences on the
-        # shared timepoint axis, leaving NaN at timepoints where the
-        # patch has no difference/value
-        x_t = np.full((n_timepoints, n_dim), np.nan)
-        x_t[np.searchsorted(timepoints_array, patch_timepoints_x_t)] = patch_x_t
-        dx_t = np.full((n_timepoints, n_dim), np.nan)
-        dx_t[np.searchsorted(timepoints_array, patch_timepoints_dx_t)] = patch_dx_t
-
-        # To get the cross-correlations of the noise term, we need to separate
-        # out the drift. We can either do this by subtracting the mean
-        # displacement at the timepoint across patches (mean subtracted) or
-        # by subtracting the predicted drift from the vector field (drift subtracted).
-        if centering_method == NoiseCorrelationCentering.MEAN_SUBTRACTED:
-            eta_t = dx_t - mean_dx_t
-        else:
-            f_x_t = vector_field(x_t)
-            eta_t = dx_t - f_x_t * TIME_STEP_IN_HOURS
-
+    for patch_residuals in residuals:
         # mask to valid timepoints
-        is_valid = ~np.isnan(eta_t).any(axis=1)
-        eta_t = np.where(is_valid[:, np.newaxis], eta_t, 0.0)
+        is_valid = ~np.isnan(patch_residuals).any(axis=1)
+        eta_t = np.where(is_valid[:, np.newaxis], patch_residuals, 0.0)
 
         # Compute two timepoint cross correlation: R_ij(t, t') = < eta_i(t) eta_j(t') >
         # Use Einstein summation to efficiently compute this numerically.
