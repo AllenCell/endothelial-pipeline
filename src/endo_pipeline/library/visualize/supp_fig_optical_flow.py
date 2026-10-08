@@ -100,8 +100,7 @@ def resolve_grid_crop(
 
     if target_row_col not in rows_cols:
         raise RuntimeError(
-            f"No crop at row={grid_row} col={grid_col} "
-            f"(grid is {len(sy_unique)}x{len(sx_unique)})"
+            f"No crop at row={grid_row} col={grid_col} (grid is {len(sy_unique)}x{len(sx_unique)})"
         )
 
     target_index = rows_cols.index(target_row_col)

@@ -106,7 +106,6 @@ def main(
     # statistics for each dataset and fixed point and save results as a
     # dataframe for plotting
     for metric_to_plot in ["mean", "median"]:
-
         # filter out nans and bins with too few trajectories for a certain measure
         # (either mean or median) for the correlation and line fitting steps
         fpt_stats_df_no_nan = filter_first_passage_time_by_min_num_trajectories(

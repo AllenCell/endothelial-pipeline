@@ -156,7 +156,6 @@ def plot_quiver_slices_from_flow_field_dict(
     flow_field_colormap: str = QUIVER_COLORMAP,
     column_names: list[str | Column.DiffAEData] | None = None,
 ) -> tuple[Figure, np.ndarray]:
-
     if column_names is None:
         column_names = list(DYNAMICS_COLUMN_NAMES)
 
@@ -197,7 +196,6 @@ def plot_measured_feat_pcs(
     zorder: int = 0,
     alpha: float = 1.0,
 ) -> tuple[Figure, np.ndarray]:
-
     pc_cols = list({*pc_cols_for_xaxis, *pc_cols_for_yaxis})
 
     assert len(pc_cols_for_xaxis) == len(
@@ -691,7 +689,6 @@ def plot_pc_integrated_track_as_arrows(
     hued_feat_name: str = "dot_product_grid_vs_cell",
     track_alpha: float = 0.7,
 ) -> None:
-
     out_subdir_integrated_tracks = out_subdir / "integrated_tracks"
     out_subdir_integrated_tracks.mkdir(parents=True, exist_ok=True)
 
@@ -828,7 +825,13 @@ def plot_and_save_track_flow_field_deviations(
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(4, 4))
-    sns.histplot(data=mean_track_deviation_dfs, x="track_angular_deviation_deg", y="pc1_pc2_vec_mag", binwidth=(1, None), ax=ax)  # type: ignore[arg-type]
+    sns.histplot(
+        data=mean_track_deviation_dfs,
+        x="track_angular_deviation_deg",
+        y="pc1_pc2_vec_mag",
+        binwidth=(1, None),
+        ax=ax,
+    )  # type: ignore[arg-type]
     ax.axvline(90, ls="--", lw=1, c="k", label="90 deg")
     ax.set_xlim(0, 180)
     ax.set_xticks(np.arange(0, 181, 45))
@@ -1175,7 +1178,7 @@ def plot_first_passage_time_correlations(
     slope = line_fit_df[Column.VectorField.LINEFIT_SLOPE_ODR].unique().item()
     intercept = line_fit_df[Column.VectorField.LINEFIT_INTERCEPT_ODR].unique().item()
 
-    corr_metric_label = f"Linear fit " f"(slope={slope:.2f})"
+    corr_metric_label = f"Linear fit (slope={slope:.2f})"
 
     num_bins = (
         first_passage_time_stats_df.groupby(
@@ -1254,7 +1257,6 @@ def plot_first_passage_time_histogram(
     bin_width_for_hist: float | None,
     out_dir: Path,
 ) -> None:
-
     dataset_color = get_dataset_color(dataset_name)
 
     # the column title is "50%" for 50th percentile in `pd.describe`` instead of

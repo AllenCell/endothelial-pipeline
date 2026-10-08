@@ -282,13 +282,13 @@ def plot_single_timepoint_bf_outliers(
     )
     ax.plot(
         dark_threshold,
-        label=f"Lower {PARTIAL_DARK_THRESHOLD*100}%",
+        label=f"Lower {PARTIAL_DARK_THRESHOLD * 100}%",
         color="red",
         linestyle="--",
     )
     ax.plot(
         bright_threshold,
-        label=f"Upper {OUTLIER_THRESHOLD*100}%",
+        label=f"Upper {OUTLIER_THRESHOLD * 100}%",
         color="orange",
         linestyle="--",
     )
@@ -417,8 +417,8 @@ def plot_single_timepoint_gfp_outliers(
     fig, ax = plt.subplots(figsize=figure_size)
     ax.plot(timepoint_means, label="Intensity", color="black", alpha=0.7)
     ax.plot(rolling_median, label="Rolling median", color="blue", alpha=0.9)
-    ax.plot(lower_threshold, color="red", linestyle="--", label=f"Lower {int(percent*100)}%")
-    ax.plot(upper_threshold, color="orange", linestyle="--", label=f"Upper {int(percent*100)}%")
+    ax.plot(lower_threshold, color="red", linestyle="--", label=f"Lower {int(percent * 100)}%")
+    ax.plot(upper_threshold, color="orange", linestyle="--", label=f"Upper {int(percent * 100)}%")
 
     if dark_outliers:
         ax.scatter(

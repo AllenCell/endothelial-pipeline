@@ -324,7 +324,6 @@ def load_train_and_test_images(
 def save_training_test_loss_plot(
     train_losses: np.ndarray, test_losses: np.ndarray, model_name: str, out_dir: Path
 ) -> Figure:
-
     fig, ax = plt.subplots(nrows=1, ncols=1)
     ax.plot(
         np.where(train_losses)[0],

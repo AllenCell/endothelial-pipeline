@@ -69,7 +69,7 @@ def main(
 
     if datasets is None:
         logger.info(
-            "No datasets provided. " "Converting datasets in the 'shear_stress' dataset collection."
+            "No datasets provided. Converting datasets in the 'shear_stress' dataset collection."
         )
         datasets = get_datasets_in_collection("shear_stress")
 

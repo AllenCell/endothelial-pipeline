@@ -6,6 +6,9 @@ from enum import StrEnum
 class UnicodeCharacters(StrEnum):
     """Unicode characters used in the project."""
 
+    BETA = "\u03b2"
+    """Unicode for lowercase beta."""
+
     MU = "\u03bc"
     """Unicode for lowercase mu."""
 
@@ -47,3 +50,6 @@ class UnicodeCharacters(StrEnum):
 
     R_SUBSCRIPT = "\u1d63"
     """Unicode for subscript r."""
+
+    SUBSCRIPT_E = "\u2091"
+    """Unicode for subscript e."""

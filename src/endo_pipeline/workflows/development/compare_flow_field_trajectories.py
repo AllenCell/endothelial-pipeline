@@ -287,7 +287,6 @@ def main(
                 track_ids = track_ids[:max_tracks]
 
             for i, fp_row in fixed_points_df.iterrows():
-
                 out_subdir_indiv_pos_one_fixedpoint = (
                     out_subdir_indiv / str(pos) / f"fixed_point_{i}"
                 )

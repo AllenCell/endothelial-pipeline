@@ -245,7 +245,7 @@ def sequence_to_scalar(sequence_like: Sequence | pd.Series) -> Any:
         element = unique_elements.pop()
     else:
         raise ValueError(
-            "Sequence must have only one unique element. " f"Unique elements: {unique_elements}"
+            f"Sequence must have only one unique element. Unique elements: {unique_elements}"
         )
 
     return element

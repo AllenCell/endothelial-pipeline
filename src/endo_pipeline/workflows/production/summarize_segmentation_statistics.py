@@ -222,7 +222,7 @@ def main(datasets: Datasets | None = None):
         f"Mean cell displacement across all datasets (px, resolution 0): {cell_displacement_mean_all_px}"
     )
     print(
-        f"Mean cell displacement across all datasets (px, resolution 1): {cell_displacement_mean_all_px/2}"
+        f"Mean cell displacement across all datasets (px, resolution 1): {cell_displacement_mean_all_px / 2}"
     )
 
 

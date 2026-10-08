@@ -328,7 +328,7 @@ def histogramdd(sample: np.ndarray, bins: list[np.ndarray], weights: np.ndarray)
         dedges.append(np.diff(edges[i]))
 
     if len(bins) != num_dims:
-        raise ValueError("The dimension of bins must be equal to the dimension of the " " sample x")
+        raise ValueError("The dimension of bins must be equal to the dimension of the  sample x")
 
     # Get the histogram counts.
     hist: np.ndarray = _get_bin_counts(sample, weights, edges, nbin)

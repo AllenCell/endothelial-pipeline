@@ -150,7 +150,7 @@ def load_dataset_config(dataset_name: str) -> DatasetConfig:
         # Custom adjustment to split the shear stress regime into list.
         replace, regime = re.findall(r"(shear_stress_regime: (['a-z_]+))", config_text)[0]
         config_text = config_text.replace(
-            replace, f"shear_stress_regime: [{ ','.join(regime.split('_to_')) }]"
+            replace, f"shear_stress_regime: [{','.join(regime.split('_to_'))}]"
         )
 
         config = YAMLDecoder(DatasetConfig).decode(config_text)

@@ -85,10 +85,10 @@ def write_filter_log_file(
     num_unique_tracks_after_filtering: int,
 ) -> None:
     timestamp = pd.Timestamp.now()
-    out_dir_logs = out_dir / f'filter_run_logs/{timestamp.strftime("%Y%m%d_%H%M")}/'
+    out_dir_logs = out_dir / f"filter_run_logs/{timestamp.strftime('%Y%m%d_%H%M')}/"
     out_dir_logs.mkdir(parents=True, exist_ok=True)
     with open(
-        out_dir_logs / f'{timestamp.strftime("%Y%m%d_%H%M")}_filtered_tracking_results_run_log.txt',
+        out_dir_logs / f"{timestamp.strftime('%Y%m%d_%H%M')}_filtered_tracking_results_run_log.txt",
         "w",
     ) as f:
         f.write(
@@ -811,7 +811,6 @@ def get_nuclei_rel_to_cell_position(
     cell_centroid_x: float | np.ndarray | pd.Series,
     cell_centroid_y: float | np.ndarray | pd.Series,
 ) -> tuple[float | np.ndarray | pd.Series, float | np.ndarray | pd.Series]:
-
     dx = cell_centroid_x - nuclei_centroid_x
     dy = cell_centroid_y - nuclei_centroid_y
 
@@ -1428,7 +1427,6 @@ def add_normalized_time(
 
     for _, df_pos in df_all_positions.groupby(Column.POSITION):
         for _, df_track in df_pos.groupby(Column.TRACK_ID):
-
             time_values = df_track[time_col].values.astype(np.float64)
             sorted_inds = np.argsort(time_values)
             time_values = time_values[sorted_inds]

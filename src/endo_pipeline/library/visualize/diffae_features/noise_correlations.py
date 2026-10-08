@@ -5,12 +5,17 @@ from typing import Any
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
+
+SUMMARY_LABEL_COLUMN = "dataset_and_shear_stress"
+"""Temporary column used to place each dataset and flow condition on the summary axis."""
 
 
 def plot_noise_amplitude(
@@ -154,3 +159,233 @@ def plot_cross_correlations_against_lag(
             figure_name = file_name or "noise_correlation_vs_tau"
             figure_name = f"{figure_name}_{column_names[i]}_{column_names[j]}"
             save_plot_to_path(fig, output_path, figure_name)
+
+
+def plot_residual_autocorrelation(
+    lags: np.ndarray,
+    correlations: np.ndarray,
+    correlation_bounds: np.ndarray,
+    column_names: list[str],
+    plot_title: str,
+    output_path: Path,
+    file_name: str | None = None,
+) -> Path:
+    """
+    Plot the residual autocorrelation function against lag, with a surrogate band.
+
+    The shaded band is the percentile interval of the same statistic computed on
+    time-permuted surrogates, so an autocorrelation that stays inside the band is
+    indistinguishable from white noise at this sample size.
+
+    Parameters
+    ----------
+    lags
+        Array of lags, in frames, of shape (L,).
+    correlations
+        Normalized residual correlations of shape (L, D, D).
+    correlation_bounds
+        Surrogate percentile bounds of shape (2, L, D).
+    column_names
+        List of feature names, of length D.
+    plot_title
+        Title for the plot.
+    output_path
+        Directory where the plot will be saved.
+    file_name
+        Optional, specific name of the file to save the plot as.
+    """
+    n_dim = len(column_names)
+    fig, axes = plt.subplots(1, n_dim, figsize=(5 * n_dim, 4), squeeze=False)
+
+    for i in range(n_dim):
+        ax = axes[0, i]
+        ax.fill_between(
+            lags,
+            correlation_bounds[0, :, i],
+            correlation_bounds[1, :, i],
+            alpha=0.3,
+            color="grey",
+            label="Surrogate interval",
+            zorder=1,
+        )
+        ax.axhline(0.0, color="black", linewidth=0.8, zorder=2)
+        ax.plot(lags, correlations[:, i, i], marker="o", zorder=3)
+        ax.set_xlabel(f"Lag {Unicode.TAU} (frames)")
+        ax.set_ylabel(f"{Unicode.RHO}$_{{ii}}(${Unicode.TAU}$)$")
+        column_label = COLUMN_METADATA[column_names[i]].label or column_names[i]
+        ax.set_title(column_label)
+        if i == 0:
+            ax.legend()
+
+    fig.suptitle(plot_title)
+    fig.tight_layout()
+    figure_name = file_name or "residual_autocorrelation"
+    return save_plot_to_path(fig, output_path, figure_name)
+
+
+def plot_residual_power_spectrum(
+    frequencies: np.ndarray,
+    power_spectrum: np.ndarray,
+    spectral_exponents: np.ndarray,
+    column_names: list[str],
+    plot_title: str,
+    output_path: Path,
+    file_name: str | None = None,
+) -> Path | None:
+    """
+    Plot the residual power spectrum with the fitted power law.
+
+    A flat spectrum means white noise. A spectrum that falls with frequency
+    indicates persistent noise, while one that rises indicates differenced
+    observation error.
+
+    Parameters
+    ----------
+    frequencies
+        Array of frequencies, in inverse frames, of shape (F,).
+    power_spectrum
+        Mean residual power spectrum of shape (F, D).
+    spectral_exponents
+        Fitted exponent beta for each feature, of shape (D,).
+    column_names
+        List of feature names, of length D.
+    plot_title
+        Title for the plot.
+    output_path
+        Directory where the plot will be saved.
+    file_name
+        Optional, specific name of the file to save the plot as.
+    """
+    if frequencies.size == 0:
+        logger.warning("No power spectrum available to plot. Skipping.")
+        return None
+
+    n_dim = len(column_names)
+    fig, axes = plt.subplots(1, n_dim, figsize=(5 * n_dim, 4), squeeze=False)
+    for i in range(n_dim):
+        ax = axes[0, i]
+        power = power_spectrum[:, i]
+        ax.loglog(frequencies, power, marker=".", linestyle="none", zorder=2)
+
+        if np.isfinite(spectral_exponents[i]):
+            # anchor the fitted power law to the mean power so it overlays the data
+            reference = np.exp(np.nanmean(np.log(power[power > 0]))) if (power > 0).any() else 1.0
+            midpoint = np.exp(np.mean(np.log(frequencies)))
+            fit = reference * (frequencies / midpoint) ** (-spectral_exponents[i])
+            ax.loglog(
+                frequencies,
+                fit,
+                linestyle="--",
+                color="black",
+                label=f"{Unicode.BETA} = {spectral_exponents[i]:.2f}",
+                zorder=3,
+            )
+            ax.legend()
+
+        ax.set_xlabel("Frequency $f$ (1/frames)")
+        ax.set_ylabel("$S(f)$")
+        column_label = COLUMN_METADATA[column_names[i]].label or column_names[i]
+        ax.set_title(column_label)
+
+    fig.suptitle(plot_title)
+    fig.tight_layout()
+    figure_name = file_name or "residual_power_spectrum"
+    return save_plot_to_path(fig, output_path, figure_name)
+
+
+def plot_noise_signature_summary(
+    statistics: pd.DataFrame,
+    statistic_names: list[str],
+    column_names: list[str],
+    plot_title: str,
+    output_path: Path,
+    reference_values: dict[str, float] | None = None,
+    file_name: str | None = None,
+) -> Path | None:
+    """
+    Compare noise signature statistics across every dataset and flow condition.
+
+    One panel is drawn per statistic, with the datasets along the horizontal
+    axis and one series per feature. Where a statistic has a value that
+    corresponds to white noise observed without error, that value is drawn as a
+    dashed reference line so departures are visible at a glance.
+
+    Parameters
+    ----------
+    statistics
+        Concatenated noise signature dataframe for all datasets.
+    statistic_names
+        Names of the statistics to draw, one panel each.
+    column_names
+        List of feature names to draw as separate series.
+    plot_title
+        Title for the plot.
+    output_path
+        Directory where the plot will be saved.
+    reference_values
+        Optional mapping from statistic name to its white noise reference value.
+    file_name
+        Optional, specific name of the file to save the plot as.
+    """
+    if statistics.empty:
+        logger.warning("No noise signature statistics available to summarize. Skipping.")
+        return None
+
+    # one tick per dataset and flow condition, since each is analyzed separately
+    labels = (
+        statistics[Column.DATASET].astype(str)
+        + "\n"
+        + statistics[Column.SHEAR_STRESS].map(lambda shear: f"{shear:g}")
+    )
+    ordered_labels = sorted(labels.unique())
+    positions = {label: index for index, label in enumerate(ordered_labels)}
+
+    frame = statistics.assign(**{SUMMARY_LABEL_COLUMN: labels})
+    n_statistics = len(statistic_names)
+    fig, axes = plt.subplots(
+        n_statistics,
+        1,
+        figsize=(max(6.0, 1.6 * len(ordered_labels)), 3.0 * n_statistics),
+        sharex=True,
+        squeeze=False,
+    )
+
+    for panel_index, statistic_name in enumerate(statistic_names):
+        ax = axes[panel_index, 0]
+        for column_name in column_names:
+            selected = frame[
+                (frame[Column.NoiseSignature.STATISTIC] == statistic_name)
+                & (frame[Column.NoiseSignature.FEATURE] == column_name)
+            ]
+            if selected.empty:
+                continue
+            column_label = COLUMN_METADATA[column_name].label or column_name
+            ax.plot(
+                [positions[label] for label in selected[SUMMARY_LABEL_COLUMN]],
+                selected[Column.NoiseSignature.VALUE].to_numpy(),
+                marker="o",
+                linestyle="-",
+                label=column_label,
+                zorder=3,
+            )
+
+        if reference_values is not None and statistic_name in reference_values:
+            ax.axhline(
+                reference_values[statistic_name],
+                color="black",
+                linestyle="--",
+                linewidth=1,
+                zorder=2,
+            )
+
+        ax.set_ylabel(statistic_name.replace("_", " "))
+        if panel_index == 0:
+            ax.legend(loc="best", fontsize="small")
+
+    axes[-1, 0].set_xticks(range(len(ordered_labels)), labels=ordered_labels, fontsize="small")
+    axes[-1, 0].set_xlabel("Dataset and shear stress")
+
+    fig.suptitle(plot_title)
+    fig.tight_layout()
+    figure_name = file_name or "noise_signature_summary"
+    return save_plot_to_path(fig, output_path, figure_name)

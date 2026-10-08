@@ -132,7 +132,7 @@ def build_empty_panel(output_path: Path, description: str, width: float, height:
         panel,
         "g",
         {
-            "transform": f"translate({width//2},{height//2 + font_size//4})",
+            "transform": f"translate({width // 2},{height // 2 + font_size // 4})",
             "fill": "#999",
             "font-size": f"{font_size}px",
             "font-family": "Arial",
@@ -153,7 +153,6 @@ def build_empty_panel(output_path: Path, description: str, width: float, height:
 
 
 def build_empty_figure(width: float, height: float) -> ET.Element:
-
     # Convert inches to points.
     width = int(width * INCHES_TO_PIXELS * ILLUSTRATOR_SCALING_FACTOR)
     height = int(height * INCHES_TO_PIXELS * ILLUSTRATOR_SCALING_FACTOR)
@@ -197,7 +196,6 @@ def add_panel_letter(root: ET.Element, letter: str) -> None:
 def build_figure_from_panels(
     figure_panels: list[FigurePanel], output_path: Path, width: float, height: float
 ) -> None:
-
     figure = build_empty_figure(width, height)
 
     for panel in figure_panels:

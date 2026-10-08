@@ -261,7 +261,6 @@ def visualize_slice_selection(
     scale_bar_um = 100
 
     for i, ax in enumerate(fig.axes):
-
         ax.xaxis.labelpad = 3
         ax.yaxis.labelpad = 3
 
@@ -371,7 +370,7 @@ def plot_histogram_upper_slices_available(
         for position in dataset_config.zarr_positions:
             if dataset_config.center_z_plane is None:
                 logger.warning(
-                    "Center z-plane information is missing for" " dataset [ %s ], skipping", dataset
+                    "Center z-plane information is missing for dataset [ %s ], skipping", dataset
                 )
                 continue
             center_slice = dataset_config.center_z_plane.get(position)

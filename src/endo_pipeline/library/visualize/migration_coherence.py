@@ -687,7 +687,6 @@ def make_example_migration_coherence(
     show_colorbar: bool = True,
     include_legend: bool = True,
 ) -> None:
-
     dataset_config = load_dataset_config(dataset_name)
 
     feature_column_names = list(DYNAMICS_COLUMN_NAMES)
@@ -736,7 +735,6 @@ def make_example_migration_coherence(
 
     fixed_points_df = load_fixed_points_dataframe_for_dataset(dataset_name)
     for flow_condition in dataset_config.flow_conditions:
-
         x_col_name, y_col_name, z_col_name = feature_column_names
 
         half_bin_size = MIGRATION_COHERENCE_COLORMAP_BIN_SIZE / 2

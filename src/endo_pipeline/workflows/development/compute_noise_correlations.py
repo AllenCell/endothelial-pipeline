@@ -8,6 +8,14 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
     This analysis serves as a validation of whether or not the noise term of the
     underlying dynamics is indeed uncorrelated across timepoints (white noise).
 
+    Alongside the two-timepoint correlation maps, the workflow computes a noise
+    signature panel that reduces the residuals to a small set of scalar
+    statistics (lag-one correlation, decorrelation time, portmanteau statistics,
+    spectral exponent, and cumulative periodogram distance). Each statistic is
+    calibrated against time-permuted surrogates that preserve the patch count,
+    track lengths, and missing timepoints of the real data, and the panel is
+    saved as a parquet file.
+
     #correlation-analysis #grid-based #cell-centered #test-ready
 
     ## Example usage
@@ -45,6 +53,7 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
     import logging
 
     import numpy as np
+    import pandas as pd
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
@@ -60,8 +69,15 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
     )
     from endo_pipeline.library.analyze.numerics.correlations import (
         NoiseCorrelationCentering,
+        compute_centered_residuals,
         compute_two_timepoint_noise_correlations,
         get_trajectories_and_differences_for_noise_correlations,
+    )
+    from endo_pipeline.library.analyze.numerics.noise_signature import (
+        SUMMARY_REFERENCE_VALUES,
+        SUMMARY_STATISTICS,
+        NoiseStatistic,
+        compute_noise_signature,
     )
     from endo_pipeline.library.analyze.vector_field_estimation import (
         get_vector_field_as_dict_from_dataframe,
@@ -70,7 +86,10 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
     from endo_pipeline.library.visualize.diffae_features.noise_correlations import (
         plot_cross_correlations_against_lag,
         plot_noise_amplitude,
+        plot_noise_signature_summary,
         plot_normalized_two_timepoint_cross_correlations,
+        plot_residual_autocorrelation,
+        plot_residual_power_spectrum,
     )
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
@@ -80,11 +99,13 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
         METADATA_COLUMNS_TO_KEEP,
     )
     from endo_pipeline.settings.manifest_names import VECTOR_FIELD_MANIFEST_NAMES
+    from endo_pipeline.settings.noise_signature import NOISE_SIGNATURE_NUM_SURROGATES
     from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
 
     logger = logging.getLogger(__name__)
 
     output_path = get_output_path(__file__)
+    noise_signature_dataframes = []
 
     dataset_names = datasets or [
         *get_datasets_in_collection("shear_stress"),
@@ -93,9 +114,11 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
 
     max_num_timepoints = None
     max_num_patches = None
+    num_surrogates = NOISE_SIGNATURE_NUM_SURROGATES
     if DEMO_MODE:
         max_num_timepoints = 25
         max_num_patches = 50
+        num_surrogates = 20
         dataset_names = dataset_names[:1]
         logger.warning(
             "DEMO MODE - Limiting to %d datasets, %d patches per dataset, "
@@ -188,6 +211,65 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
 
             # Compute cross corrlelations and make plots
             for centering_method in NoiseCorrelationCentering:
+                # Quantify the noise signature of the drift-removed residuals
+                residuals = compute_centered_residuals(
+                    traj_list=traj_list,
+                    d_traj_list=d_traj_list,
+                    column_names=column_names,
+                    timepoints_array=timepoints_array,
+                    vector_field=vector_field,
+                    centering_method=centering_method,
+                )
+                noise_signature = compute_noise_signature(
+                    residuals=residuals,
+                    column_names=column_names,
+                    num_surrogates=num_surrogates,
+                    feature_variance=df_flow[column_names].var().to_numpy(),
+                    metadata_dict={
+                        Column.DATASET: dataset_name,
+                        Column.SHEAR_STRESS: flow_condition.shear_stress,
+                        Column.NoiseSignature.CENTERING_METHOD: str(centering_method),
+                    },
+                )
+
+                if noise_signature is not None:
+                    noise_signature_dataframes.append(noise_signature.statistics)
+
+                    plot_residual_autocorrelation(
+                        lags=noise_signature.lags,
+                        correlations=noise_signature.correlations,
+                        correlation_bounds=noise_signature.correlation_bounds,
+                        column_names=column_names,
+                        plot_title=f"Residual autocorrelation ({centering_method}): {dataset_name_flow}",
+                        output_path=output_path,
+                        file_name=slugify(
+                            f"residual_autocorrelation_{centering_method}_{dataset_name_flow}"
+                        ),
+                    )
+
+                    spectral_exponents = (
+                        noise_signature.statistics.set_index(
+                            [
+                                Column.NoiseSignature.STATISTIC,
+                                Column.NoiseSignature.FEATURE,
+                            ]
+                        )
+                        .loc[NoiseStatistic.SPECTRAL_EXPONENT, Column.NoiseSignature.VALUE]
+                        .reindex(column_names)
+                        .to_numpy()
+                    )
+                    plot_residual_power_spectrum(
+                        frequencies=noise_signature.frequencies,
+                        power_spectrum=noise_signature.power_spectrum,
+                        spectral_exponents=spectral_exponents,
+                        column_names=column_names,
+                        plot_title=f"Residual power spectrum ({centering_method}): {dataset_name_flow}",
+                        output_path=output_path,
+                        file_name=slugify(
+                            f"residual_power_spectrum_{centering_method}_{dataset_name_flow}"
+                        ),
+                    )
+
                 # Compute cross-correlations for the current centering method
                 cross_correlations = compute_two_timepoint_noise_correlations(
                     traj_list=traj_list,
@@ -243,6 +325,27 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
                             f"cross_correlations_vs_lag_{centering_method}_{dataset_name_flow}"
                         ),
                     )
+
+    if noise_signature_dataframes:
+        all_noise_signatures = pd.concat(noise_signature_dataframes, ignore_index=True)
+        noise_signature_path = output_path / "noise_signature_statistics.parquet"
+        all_noise_signatures.to_parquet(noise_signature_path, index=False)
+        logger.info("Saved noise signature statistics to [ %s ]", noise_signature_path)
+
+        # compare the signature across every dataset analyzed in this run
+        for centering_method in NoiseCorrelationCentering:
+            plot_noise_signature_summary(
+                statistics=all_noise_signatures[
+                    all_noise_signatures[Column.NoiseSignature.CENTERING_METHOD]
+                    == str(centering_method)
+                ],
+                statistic_names=list(SUMMARY_STATISTICS),
+                column_names=column_names,
+                plot_title=f"Noise signature across datasets ({centering_method})",
+                output_path=output_path,
+                reference_values=SUMMARY_REFERENCE_VALUES,
+                file_name=slugify(f"noise_signature_summary_{centering_method}"),
+            )
 
 
 if __name__ == "__main__":

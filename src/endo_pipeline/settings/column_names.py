@@ -661,6 +661,33 @@ class ColumnName:
         EXPONENTIAL_FIT = "exponential_fit"
         """Values of exponential decay curve fit to autocorrelation function."""
 
+    class NoiseSignature(StrEnum):
+        """Column names used in the noise signature (whiteness) analysis."""
+
+        FEATURE = "feature"
+        """Feature variable the statistic is computed for, or 'all' for joint statistics."""
+
+        STATISTIC = "statistic"
+        """Name of the noise signature statistic."""
+
+        VALUE = "value"
+        """Value of the statistic computed on the observed residuals."""
+
+        SURROGATE_MEAN = "surrogate_mean"
+        """Mean of the statistic across time-permuted surrogate datasets."""
+
+        SURROGATE_STD = "surrogate_std"
+        """Standard deviation of the statistic across time-permuted surrogate datasets."""
+
+        Z_SCORE = "z_score"
+        """Observed statistic expressed as a z-score against the surrogate distribution."""
+
+        P_VALUE_PERMUTATION = "p_value_permutation"
+        """Two-sided empirical p-value of the statistic against the surrogate distribution."""
+
+        CENTERING_METHOD = "centering_method"
+        """Method used to remove the drift from the forward differences."""
+
     RANDOM_SEED = "random_seed"
     """Random number generator seed."""
 

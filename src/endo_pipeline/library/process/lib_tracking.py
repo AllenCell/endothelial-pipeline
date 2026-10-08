@@ -816,7 +816,6 @@ def reassign_track_ids_from_matches(
     track_id_offset: int = 0,
     reference_index: int = 0,
 ) -> pd.DataFrame:
-
     current_image_index = new_track_ids["image_index"].max()
     recent_track_ids["image_index_relative"] = (
         recent_track_ids["image_index"].copy() - current_image_index
@@ -924,7 +923,6 @@ def update_new_track_ids(
     newest_track_id_label: int,
     reference_index: int = 0,
 ) -> pd.DataFrame:
-
     new_track_ids = reassign_track_ids_from_matches(
         recent_track_ids=recent_track_ids,
         new_track_ids=new_track_ids,
@@ -1181,7 +1179,6 @@ def update_track_table(
     image_buffer_next: int = 1,
     reference_index: int = 0,
 ) -> pd.DataFrame:
-
     logger.debug("- updating tracks...")
 
     current_image_index = (

@@ -36,7 +36,7 @@ class DiffAELatentWalkRank0(DiffAELatentWalk):
                 if torch.is_tensor(img):
                     img = img.detach().cpu().numpy()
                 # Add text
-                img = DiffAELatentWalkRank0._write_text(img, f"PC{i+1}:{val:.1f}")
+                img = DiffAELatentWalkRank0._write_text(img, f"PC{i + 1}:{val:.1f}")
                 walk_img[idx] = img
                 idx += 1
         return walk_img
@@ -84,7 +84,7 @@ class DiffAELatentWalkRank0(DiffAELatentWalk):
 
         # Concatenate all validation features collected during this epoch
         feats = np.concatenate(self.val_feats)
-        save_path = f"{pl_module.hparams.save_dir}/{trainer.current_epoch+1}_latent_walk.tiff"
+        save_path = f"{pl_module.hparams.save_dir}/{trainer.current_epoch + 1}_latent_walk.tiff"
 
         # Validate that sufficient data is available for PCA decomposition
         if len(feats.shape) == 1 or feats.shape[0] < self.num_pcs:

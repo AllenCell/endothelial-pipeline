@@ -409,7 +409,7 @@ def plot_optical_flow_coherence_over_time(
         )
 
     fig.suptitle(
-        f"Crop Coherence Over Time: {output_name}\n" f"({n_crops} crops, EMA \u03b1 = {ema_alpha})",
+        f"Crop Coherence Over Time: {output_name}\n({n_crops} crops, EMA \u03b1 = {ema_alpha})",
         fontsize=12,
         fontweight="bold",
     )
