@@ -2,6 +2,7 @@ import logging
 from itertools import product
 from typing import Annotated
 
+import numpy as np
 import pandas as pd
 from cyclopts import Parameter
 
@@ -69,7 +70,6 @@ from endo_pipeline.settings.workflow_defaults import (
     FEATURES_FILTERED_MANIFEST_NAMES,
     RANDOM_SEED,
 )
-import numpy as np
 
 
 def get_param_sweep_run_name(bin_scale: int, kernel_scale: int) -> str:
@@ -219,6 +219,7 @@ def generate_flow_field_for_low_high_control(
     sweep_name: str | None = None,
     kernel_bandwidths_dynamics: dict[Column.DiffAEData, float] | None = None,
     bin_widths_dynamics: dict[Column.DiffAEData, float] | None = None,
+    overwrite_results: bool = True,
 ) -> None:
     """
     Generate drift vector field and estimate fixed points.
@@ -442,6 +443,25 @@ def generate_flow_field_for_low_high_control(
         ColumnName.DATASET: dataset_name,
         ColumnName.SHEAR_STRESS: shear_stress,
     }
+
+    vector_field_evaluated = (
+        vector_field_dataframe_manifest.locations.get(dataset_name, DataframeLocation()).fmsid
+        is not None
+    )
+    fixed_points_evaluated = (
+        fixed_points_dataframe_manifest.locations.get(dataset_name, DataframeLocation()).fmsid
+        is not None
+    )
+    if fixed_points_evaluated and vector_field_evaluated and overwrite_results is False:
+        logger.warning(
+            """Bootstrap results for dataset '%s': bin_widths '%s', kernel bandwidths '%s' already
+            exist and overwrite is disabled. Skipping.""",
+            dataset_name,
+            bin_widths,
+            kernels,
+        )
+        return
+
     vector_field_dataframe, fixed_points_dataframe = get_drift_estimates_and_fixed_points(
         dataframe=df_flow,
         column_names=column_names,
@@ -535,6 +555,7 @@ def bootstrap_fixed_points_for_low_high_control(
     sweep_name: str | None = None,
     kernel_bandwidths_dynamics: dict[Column.DiffAEData, float] | None = None,
     bin_widths_dynamics: dict[Column.DiffAEData, float] | None = None,
+    overwrite_results: bool = True,
 ) -> None:
     """
     Bootstrap fixed point confidence intervals by subsampling data.
@@ -750,21 +771,35 @@ def bootstrap_fixed_points_for_low_high_control(
     }
 
     # for dataset_name in dataset_names:
-    #     if dataset_name not in feature_dataframe_manifest.locations:
-    #         logger.warning(
-    #             "Dataset '%s' not found in manifest '%s'. Skipping.",
-    #             dataset_name,
-    #             feature_dataframe_manifest_name,
-    #         )
-    #         continue
+    if dataset_name not in feature_dataframe_manifest.locations:
+        logger.warning(
+            "Dataset '%s' not found in manifest '%s'. Skipping.",
+            dataset_name,
+            feature_dataframe_manifest_name,
+        )
+        return
 
-    #     if dataset_name not in baseline_fixed_point_manifest.locations:
-    #         logger.warning(
-    #             "Dataset '%s' not found in manifest '%s'. Skipping.",
-    #             dataset_name,
-    #             feature_dataframe_manifest_name,
-    #         )
-    #         continue
+    if dataset_name not in baseline_fixed_point_manifest.locations:
+        logger.warning(
+            "Dataset '%s' not found in manifest '%s'. Skipping.",
+            dataset_name,
+            feature_dataframe_manifest_name,
+        )
+        return
+
+    bootstrap_evaluated = (
+        bootstrap_results_manifest.locations.get(dataset_name, DataframeLocation()).fmsid
+        is not None
+    )
+    if bootstrap_evaluated and overwrite_results is False:
+        logger.warning(
+            """Bootstrap results for dataset '%s': bin_widths '%s', kernel bandwidths '%s' already
+            exist and overwrite is disabled. Skipping.""",
+            dataset_name,
+            bin_widths,
+            kernels,
+        )
+        return
 
     #     dataset_config = load_dataset_config(dataset_name)
 
