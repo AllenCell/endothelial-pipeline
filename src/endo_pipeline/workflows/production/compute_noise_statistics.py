@@ -134,6 +134,7 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
         # process on a per-flow condition basis
         for flow_condition in dataset_config.flow_conditions:
             dataset_name_flow = f"{dataset_name}_shear_{flow_condition.shear_stress_bin}"
+            print(dataset_name_flow, "\n")
 
             df_flow = filter_dataframe_to_flow_condition_by_timepoint(
                 df_steady_state, dataset_config, flow_condition
@@ -188,6 +189,7 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
                     timepoints_array=timepoints_array,
                     vector_field=vector_field,
                     centering_method=centering_method,
+                    max_lag=15,
                 )
                 lagged_correlations = normalize_lagged_covariances(lagged_covariances)
 
@@ -199,7 +201,7 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
                     lag_one_covariance < 0, lag_one_covariance, np.nan
                 )
                 print(measurement_noise_variance)
-                lag_gt_one_correlation = np.einsum("ii->i", lagged_correlations[2:])
+                lag_gt_one_correlation = np.einsum("...ii->...i", lagged_correlations[2:])
                 print(np.max(np.abs(lag_gt_one_correlation)))
                 print(np.min(np.abs(lag_gt_one_correlation)))
-                print(np.mean(np.abs(lag_gt_one_correlation)))
+                print(np.mean(lag_gt_one_correlation), "\n")
