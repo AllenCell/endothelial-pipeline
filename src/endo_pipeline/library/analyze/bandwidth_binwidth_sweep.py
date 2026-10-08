@@ -69,6 +69,7 @@ from endo_pipeline.settings.workflow_defaults import (
     FEATURES_FILTERED_MANIFEST_NAMES,
     RANDOM_SEED,
 )
+import numpy as np
 
 
 def get_param_sweep_run_name(bin_scale: int, kernel_scale: int) -> str:
