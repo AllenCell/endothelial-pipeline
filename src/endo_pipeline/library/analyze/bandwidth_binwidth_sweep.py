@@ -1,7 +1,9 @@
 import logging
 from itertools import product
+from typing import Annotated
 
 import pandas as pd
+from cyclopts import Parameter
 
 from endo_pipeline.cli import DEMO_MODE, UPLOAD_TO_FMS, Datasets, PatchType, StrList
 from endo_pipeline.configs import load_dataset_config
@@ -32,6 +34,13 @@ from endo_pipeline.settings.bandwidth_binwidth_sweep import (
     BINWIDTH_EXPONENT_LIMITS,
     KERNEL_BANDWIDTH_EXPONENT_LIMITS,
     PARAMETER_SCALE_BASE,
+)
+from endo_pipeline.settings.bootstrap_fixed_points import (
+    BATCH_SIZE_SCALING_FACTOR,
+    BOOTSTRAP_MATCH_RADIUS,
+    FP_CI_LOWER_PERCENTILE,
+    FP_CI_UPPER_PERCENTILE,
+    NUM_BOOTSTRAP_ITERATIONS,
 )
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.column_names import ColumnName as Column
