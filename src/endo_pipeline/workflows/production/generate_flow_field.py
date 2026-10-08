@@ -9,6 +9,7 @@ def main(
     sweep_name: str | None = None,
     kernel_bandwidths_dynamics: dict[Column.DiffAEData, float] | None = None,
     bin_widths_dynamics: dict[Column.DiffAEData, float] | None = None,
+    overwrite_results: bool = True,
 ) -> None:
     """
     Generate drift vector field and estimate fixed points.
@@ -231,6 +232,24 @@ def main(
                 "Dataset '%s' not found in manifest '%s'. Skipping.",
                 dataset_name,
                 feature_dataframe_manifest_name,
+            )
+            continue
+
+        vector_field_evaluated = (
+            vector_field_dataframe_manifest.locations.get(dataset_name, DataframeLocation()).fmsid
+            is not None
+        )
+        fixed_points_evaluated = (
+            fixed_points_dataframe_manifest.locations.get(dataset_name, DataframeLocation()).fmsid
+            is not None
+        )
+        if fixed_points_evaluated and vector_field_evaluated and overwrite_results is False:
+            logger.warning(
+                """Bootstrap results for dataset '%s': bin_widths '%s', kernel bandwidths '%s' already
+                exist and overwrite is disabled. Skipping.""",
+                dataset_name,
+                bin_widths,
+                kernels,
             )
             continue
 

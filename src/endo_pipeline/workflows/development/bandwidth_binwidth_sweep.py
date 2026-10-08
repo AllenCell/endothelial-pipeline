@@ -90,6 +90,7 @@ def main(
             sweep_name=run_name_for_sweep_condition,
             kernel_bandwidths_dynamics=kernel_bandwidths,
             bin_widths_dynamics=bin_widths,
+            overwrite_results=overwrite_results,
         )
 
     for bin_scale, kernel_scale in tqdm(
@@ -122,6 +123,7 @@ def main(
             sweep_name=run_name_for_sweep_condition,
             kernel_bandwidths_dynamics=kernel_bandwidths,
             bin_widths_dynamics=bin_widths,
+            overwrite_results=overwrite_results,
         )
 
 
