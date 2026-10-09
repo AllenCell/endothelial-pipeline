@@ -1,5 +1,4 @@
 from endo_pipeline.cli import Datasets, PatchType
-from endo_pipeline.library.analyze.numerics.correlations import NoiseCorrelationCentering
 
 
 def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None) -> None:
@@ -46,10 +45,17 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
     import logging
 
     import numpy as np
+    import pandas as pd
 
-    from endo_pipeline.cli import DEMO_MODE
+    from endo_pipeline.cli import DEMO_MODE, UPLOAD_TO_FMS
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import join_sorted_strings, load_dataframe
+    from endo_pipeline.io import (
+        build_fms_annotations,
+        get_output_path,
+        join_sorted_strings,
+        load_dataframe,
+        upload_file_to_fms,
+    )
     from endo_pipeline.library.analyze.dataframe_filtering import (
         filter_dataframe_by_shear_stress,
         filter_dataframe_by_track_length,
@@ -60,25 +66,40 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
         add_track_duration_to_dataframe,
     )
     from endo_pipeline.library.analyze.numerics.correlations import (
-        compute_lagged_covariances,
+        NoiseCorrelationCentering,
+        compute_noise_statistics_dataframe,
         get_trajectories_and_differences_for_noise_correlations,
-        normalize_lagged_covariances,
     )
     from endo_pipeline.library.analyze.vector_field_estimation import (
         get_vector_field_as_dict_from_dataframe,
     )
     from endo_pipeline.library.analyze.vector_field_function import get_callable_vector_field
-    from endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.manifests import (
+        DataframeLocation,
+        create_dataframe_manifest,
+        load_dataframe_manifest,
+        load_model_manifest,
+        save_dataframe_manifest,
+    )
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
         DYNAMICS_COLUMN_NAMES,
         LONG_TRACK_THRESHOLD_LENGTH,
         METADATA_COLUMNS_TO_KEEP,
     )
-    from endo_pipeline.settings.manifest_names import VECTOR_FIELD_MANIFEST_NAMES
-    from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
+    from endo_pipeline.settings.manifest_names import (
+        NOISE_STATISTICS_MANIFEST_NAME_PREFIXES,
+        VECTOR_FIELD_MANIFEST_NAMES,
+    )
+    from endo_pipeline.settings.workflow_defaults import (
+        DEFAULT_MODEL_MANIFEST_NAME,
+        DEFAULT_MODEL_RUN_NAME,
+        FEATURES_FILTERED_MANIFEST_NAMES,
+    )
 
     logger = logging.getLogger(__name__)
+
+    output_path = get_output_path(__file__)
 
     dataset_names = datasets or [
         *get_datasets_in_collection("shear_stress"),
@@ -113,6 +134,23 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
     vector_field_manifest_name = f"{VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{name_suffix}"
     vector_field_manifest = load_dataframe_manifest(vector_field_manifest_name)
 
+    # Build dataframe manifest names that include sorted list of selected
+    # columns used to compute noise statistics.
+    name_prefix = NOISE_STATISTICS_MANIFEST_NAME_PREFIXES[patch_type]
+    noise_statistics_manifest_name = f"{name_prefix}_{name_suffix}"
+    noise_statistics_manifest = create_dataframe_manifest(
+        noise_statistics_manifest_name, workflow_name=__file__
+    )
+
+    # Add parameters to dataframe manifest for traceability
+    noise_statistics_manifest.parameters = {
+        "model_manifest_name": DEFAULT_MODEL_MANIFEST_NAME,
+        "run_name": DEFAULT_MODEL_RUN_NAME,
+        "patch_type": patch_type,
+        "columns": [f"{column}" for column in column_names],
+    }
+    save_dataframe_manifest(noise_statistics_manifest)
+
     for dataset_name in dataset_names:
         if dataset_name not in feature_dataframe_manifest.locations:
             logger.warning(
@@ -132,9 +170,9 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
         df_vec = load_dataframe(vector_field_manifest.locations[dataset_name], delay=False)
 
         # process on a per-flow condition basis
+        noise_statistics_dataframe_list = []
         for flow_condition in dataset_config.flow_conditions:
             dataset_name_flow = f"{dataset_name}_shear_{flow_condition.shear_stress_bin}"
-            print(dataset_name_flow, "\n")
 
             df_flow = filter_dataframe_to_flow_condition_by_timepoint(
                 df_steady_state, dataset_config, flow_condition
@@ -180,28 +218,59 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
                 logger.warning("No valid patches found for [ %s ]. Skipping.", dataset_name_flow)
                 continue
 
-            # Compute covariances as a function of lag for the current centering method
-            for centering_method in NoiseCorrelationCentering:
-                lagged_covariances = compute_lagged_covariances(
-                    traj_list=traj_list,
-                    d_traj_list=d_traj_list,
-                    column_names=column_names,
-                    timepoints_array=timepoints_array,
-                    vector_field=vector_field,
-                    centering_method=centering_method,
-                    max_lag=15,
-                )
-                lagged_correlations = normalize_lagged_covariances(lagged_covariances)
+            metadata_dict = {
+                Column.DATASET: dataset_name,
+                Column.SHEAR_STRESS: flow_condition.shear_stress,
+            }
 
-                lag_zero_correlations = lagged_correlations[0]
-                print(lag_zero_correlations)
-                lag_one_correlations = lagged_correlations[1]
-                print(lag_one_correlations)
-                measurement_noise_covariance = np.where(
-                    lagged_covariances[1] < 0, -lagged_covariances[1], np.nan
-                )
-                print(measurement_noise_covariance)
-                lag_gt_one_correlation = np.einsum("...ii->...i", lagged_correlations[2:])
-                print(np.max(np.abs(lag_gt_one_correlation)))
-                print(np.min(np.abs(lag_gt_one_correlation)))
-                print(np.mean(lag_gt_one_correlation), "\n")
+            # Compute noise correlation statistics (noise correlation and
+            # measurement noise variance per feature, as a function of lag) for
+            # the current flow condition
+            noise_statistics_dataframe = compute_noise_statistics_dataframe(
+                traj_list=traj_list,
+                d_traj_list=d_traj_list,
+                column_names=column_names,
+                timepoints_array=timepoints_array,
+                vector_field=vector_field,
+                centering_method=NoiseCorrelationCentering.MEAN_SUBTRACTED,
+                max_lag=15,
+                metadata_dict=metadata_dict,
+            )
+            noise_statistics_dataframe_list.append(noise_statistics_dataframe)
+
+        if not noise_statistics_dataframe_list:
+            logger.warning("No noise statistics computed for [ %s ]. Skipping.", dataset_name)
+            continue
+
+        # Concatenate noise statistics dataframes for each flow condition
+        noise_statistics_for_dataset = pd.concat(noise_statistics_dataframe_list, ignore_index=True)
+
+        # Save dataframe to file
+        save_path = output_path / f"{name_prefix}_{dataset_name}_{name_suffix}.parquet"
+        noise_statistics_for_dataset.to_parquet(save_path, index=False)
+
+        # Create location object with output path
+        location = noise_statistics_manifest.locations.get(dataset_name, DataframeLocation())
+        location.path = save_path
+
+        # Upload to FMS (internal only) and replace local path with file id
+        if UPLOAD_TO_FMS:
+            annotations = build_fms_annotations(
+                dataset_config,
+                model_manifest=load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME),
+                run_name=DEFAULT_MODEL_RUN_NAME,
+                additional_notes="Dataframe containing noise correlation statistics for various features.",
+            )
+            fmsid = upload_file_to_fms(save_path, annotations=annotations, file_type="parquet")
+            location.fmsid = fmsid
+            location.path = None
+
+        # Add dataframe location to dataframe manifest and save
+        noise_statistics_manifest.locations[dataset_name] = location
+        save_dataframe_manifest(noise_statistics_manifest)
+
+
+if __name__ == "__main__":
+    from endo_pipeline.cli import workflow_cli
+
+    workflow_cli(main)

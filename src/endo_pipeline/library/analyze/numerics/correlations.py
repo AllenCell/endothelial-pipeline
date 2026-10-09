@@ -3,6 +3,7 @@
 import logging
 from collections.abc import Callable, Sequence
 from enum import StrEnum
+from itertools import combinations_with_replacement
 
 import numpy as np
 import pandas as pd
@@ -666,3 +667,85 @@ def compute_measurement_noise_variance(covariances: np.ndarray) -> np.ndarray:
         )
     lag_one_covariance = np.einsum("ii->i", covariances[1])
     return np.where(lag_one_covariance < 0, lag_one_covariance, np.nan)
+
+
+def compute_noise_statistics_dataframe(
+    traj_list: list[pd.DataFrame],
+    d_traj_list: list[pd.DataFrame],
+    column_names: list[str],
+    timepoints_array: np.ndarray,
+    vector_field: Callable,
+    centering_method: NoiseCorrelationCentering,
+    max_lag: int = 15,
+    metadata_dict: dict[str, str | float] | None = None,
+) -> pd.DataFrame:
+    """
+    Compute a tidy dataframe of noise correlation statistics as a function of lag.
+
+    For each unique pair of features in column_names (including each feature
+    paired with itself), this method computes the normalized noise correlation
+    at every lag from zero to max_lag, along with the estimated lag-one
+    measurement noise covariance for that pair, and saves them in a dataframe
+    with columns for the two feature names, lag, correlation, and measurement
+    noise covariance.
+
+    Parameters
+    ----------
+    traj_list
+        List of dataframes containing the trajectories for each patch.
+    d_traj_list
+        List of dataframes containing the forward differences of the trajectories.
+    column_names
+        List of feature column names for which to compute noise statistics.
+    timepoints_array
+        Array of timepoints corresponding to the rows in the trajectory dataframes.
+    vector_field
+        Callable representing the vector field used for centering the residuals.
+    centering_method
+        Method used to center the residuals.
+    max_lag
+        Largest lag, in frames, to evaluate.
+    metadata_dict
+        Optional dictionary of additional metadata to add as columns to the output
+        dataframe (e.g. dataset name, shear stress).
+    """
+    covariances = compute_lagged_covariances(
+        traj_list=traj_list,
+        d_traj_list=d_traj_list,
+        column_names=column_names,
+        timepoints_array=timepoints_array,
+        vector_field=vector_field,
+        centering_method=centering_method,
+        max_lag=max_lag,
+    )
+    correlations = normalize_lagged_covariances(covariances)
+    measurement_noise_covariance = np.where(covariances[1] < 0, -covariances[1], np.nan)
+
+    num_lags = correlations.shape[0]
+    noise_statistics_dataframe_list = []
+    for feature_index_1, feature_index_2 in combinations_with_replacement(
+        range(len(column_names)), 2
+    ):
+        noise_statistics_dataframe_list.append(
+            pd.DataFrame(
+                {
+                    Column.NoiseStatistics.FEATURE_1: column_names[feature_index_1],
+                    Column.NoiseStatistics.FEATURE_2: column_names[feature_index_2],
+                    Column.NoiseStatistics.LAG: np.arange(num_lags),
+                    Column.NoiseStatistics.CORRELATION: correlations[
+                        :, feature_index_1, feature_index_2
+                    ],
+                    Column.NoiseStatistics.MEASUREMENT_NOISE_COVARIANCE: measurement_noise_covariance[
+                        feature_index_1, feature_index_2
+                    ],
+                }
+            )
+        )
+
+    noise_statistics_dataframe = pd.concat(noise_statistics_dataframe_list, ignore_index=True)
+
+    if metadata_dict is not None:
+        for key in metadata_dict:
+            noise_statistics_dataframe[key] = metadata_dict[key]
+
+    return noise_statistics_dataframe
