@@ -22,6 +22,6 @@ parameters:
 columns: {}
 locations:
   20260304_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-09/bootstrap_fixed_points/bootstrapped_fixed_points_grid_based_20260304_20X_20261009_015459_latent_512_bw0pt05_kb1pt2.parquet
+    fmsid: a88f7f4deefc4d47bbb87202533194a8
+    path: null
     s3uri: null

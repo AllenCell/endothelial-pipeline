@@ -22,20 +22,20 @@ parameters:
 columns: {}
 locations:
   20250618_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-09/bootstrap_fixed_points/bootstrapped_fixed_points_grid_based_20250618_20X_20261009_103404_latent_512_bw0pt06_kb0pt08.parquet
+    fmsid: fda693620481418781bfbc414f4cefc4
+    path: null
     s3uri: null
   20250319_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-09/bootstrap_fixed_points/bootstrapped_fixed_points_grid_based_20250319_20X_20261009_104504_latent_512_bw0pt06_kb0pt08.parquet
+    fmsid: 2139b76f4e4844de86ec4d648f8f567e
+    path: null
     s3uri: null
   20260304_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-09/bootstrap_fixed_points/bootstrapped_fixed_points_grid_based_20260304_20X_20261009_105800_latent_512_bw0pt06_kb0pt08.parquet
+    fmsid: dc9c703e4f6c44d1a6b16dce3f127ee2
+    path: null
     s3uri: null
   20250611_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-09/bootstrap_fixed_points/bootstrapped_fixed_points_grid_based_20250611_20X_20261009_110614_latent_512_bw0pt06_kb0pt08.parquet
+    fmsid: 73280828ba224847b4798c6d81091508
+    path: null
     s3uri: null
   20250618_20X-20250611_20X:
     fmsid: 7e712ae3560042119e5dd01f125dafc3
