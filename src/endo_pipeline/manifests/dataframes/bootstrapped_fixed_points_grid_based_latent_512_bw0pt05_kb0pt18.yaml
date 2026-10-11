@@ -37,3 +37,7 @@ locations:
     fmsid: null
     path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-10/bootstrap_fixed_points/bootstrapped_fixed_points_grid_based_20250611_20X_20261010_005431_latent_512_bw0pt05_kb0pt18.parquet
     s3uri: null
+  20250618_20X-20250611_20X:
+    fmsid: ab41011488d347138f3ca7179133d8be
+    path: null
+    s3uri: null
