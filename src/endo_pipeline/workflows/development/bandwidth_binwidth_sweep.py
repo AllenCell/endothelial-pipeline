@@ -6,6 +6,7 @@ def main(
     patch_type: PatchType = "grid_based",
     run_low_high_control: bool = False,
     overwrite_results: bool = True,
+    fms_upload_only: bool = False,
 ) -> None:
     """
     Sweep bin width and kernel bandwidth parameters for fixed point bootstrapping.
@@ -42,6 +43,8 @@ def main(
         get_binwidth_bandwidth_dict,
         get_param_sweep_run_name,
         get_parameter_space,
+        upload_bootstrapped_fixed_points_to_fms,
+        upload_flow_fields_to_fms,
     )
     from endo_pipeline.workflows.production import bootstrap_fixed_points, generate_flow_field
 
@@ -58,6 +61,34 @@ def main(
         datasets = ["20250618_20X", "20250611_20X"]
 
     parameter_space = get_parameter_space()
+
+    if fms_upload_only:
+        for bw, kb in tqdm(parameter_space, desc=f"Generating flow fields for: {datasets}"):
+
+            for dataset_name in datasets:
+                logger.info("FMS upload only mode enabled.")
+
+                # get tag of parameter scaling combination used for this run
+                run_name_for_sweep_condition = get_param_sweep_run_name(bw, kb)
+
+                # Flow field uploads:
+                upload_flow_fields_to_fms(
+                    sweep_name=run_name_for_sweep_condition,
+                    dataset_name=dataset_name,
+                    patch_type=patch_type,
+                    overwrite_fmsids=overwrite_results,
+                )
+
+                # Bootstrapped fixed points uploads:
+                upload_bootstrapped_fixed_points_to_fms(
+                    sweep_name=run_name_for_sweep_condition,
+                    dataset_name=dataset_name,
+                    patch_type=patch_type,
+                    overwrite_fmsids=overwrite_results,
+                )
+
+        # Exit after uploading to FMS and don't run the analyses on the parameters in the sweep.
+        return
 
     for bw, kb in tqdm(parameter_space, desc=f"Generating flow fields for: {datasets}"):
         # apply parameter scaling exponents to the default bin widths and kernel bandwidths
