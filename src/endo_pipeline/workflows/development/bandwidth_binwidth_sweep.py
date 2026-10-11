@@ -63,7 +63,7 @@ def main(
     parameter_space = get_parameter_space()
 
     if fms_upload_only:
-        for bw, kb in tqdm(parameter_space, desc=f"Generating flow fields for: {datasets}"):
+        for bw, kb in tqdm(parameter_space, desc=f"Upload-only mode to FMS for: {datasets}"):
 
             for dataset_name in datasets:
                 logger.info("FMS upload only mode enabled.")

@@ -39,3 +39,7 @@ locations:
     fmsid: null
     path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-08/generate_flow_field/drift_vector_field_grid_based_20250611_20X_polar_r_polar_theta_rho_latent_512_bw0pt05_kb1pt2.parquet
     s3uri: null
+  20250618_20X-20250611_20X:
+    fmsid: 7a54f60146474a86b322fdb1e69bf2cf
+    path: null
+    s3uri: null
