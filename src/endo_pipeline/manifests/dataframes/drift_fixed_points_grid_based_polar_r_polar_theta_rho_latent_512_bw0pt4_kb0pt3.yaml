@@ -24,14 +24,14 @@ parameters:
 columns: {}
 locations:
   20250319_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-09/generate_flow_field/drift_fixed_points_grid_based_20250319_20X_polar_r_polar_theta_rho_latent_512_bw0pt4_kb0pt3.parquet
+    fmsid: 06b3d4047bec450cbe59a5867892a683
+    path: null
     s3uri: null
   20260304_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-09/generate_flow_field/drift_fixed_points_grid_based_20260304_20X_polar_r_polar_theta_rho_latent_512_bw0pt4_kb0pt3.parquet
+    fmsid: 30ecd3d63f2e4aaab5e901550a3d1429
+    path: null
     s3uri: null
   20250611_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-09/generate_flow_field/drift_fixed_points_grid_based_20250611_20X_polar_r_polar_theta_rho_latent_512_bw0pt4_kb0pt3.parquet
+    fmsid: 60c34d3fd9e5443782d54858581cfb6c
+    path: null
     s3uri: null

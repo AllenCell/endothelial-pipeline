@@ -24,18 +24,18 @@ parameters:
 columns: {}
 locations:
   20250618_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-09/generate_flow_field/drift_fixed_points_grid_based_20250618_20X_polar_r_polar_theta_rho_latent_512_bw0pt06_kb0pt16.parquet
+    fmsid: d6e49955da8c498b9ace6f5fd3c5e65a
+    path: null
     s3uri: null
   20250319_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-09/generate_flow_field/drift_fixed_points_grid_based_20250319_20X_polar_r_polar_theta_rho_latent_512_bw0pt06_kb0pt16.parquet
+    fmsid: c6b48eac2c1f45febfaf1edef2f6d6d8
+    path: null
     s3uri: null
   20260304_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-09/generate_flow_field/drift_fixed_points_grid_based_20260304_20X_polar_r_polar_theta_rho_latent_512_bw0pt06_kb0pt16.parquet
+    fmsid: 3060b33ba2bf45838c75f4b461cc836e
+    path: null
     s3uri: null
   20250611_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-09/generate_flow_field/drift_fixed_points_grid_based_20250611_20X_polar_r_polar_theta_rho_latent_512_bw0pt06_kb0pt16.parquet
+    fmsid: d4c840f234674a53a7aa0ac9f37ded05
+    path: null
     s3uri: null

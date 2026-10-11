@@ -1010,16 +1010,15 @@ def upload_flow_fields_to_fms(
         save_path = location.path
 
         # Upload to FMS (internal only)
-        if UPLOAD_TO_FMS:
-            annotations = build_fms_annotations(
-                dataset_config,
-                model_manifest=model_manifest,
-                run_name=DEFAULT_MODEL_RUN_NAME,
-                additional_notes=additional_notes,
-            )
-            fmsid = upload_file_to_fms(save_path, annotations=annotations, file_type="parquet")
-            location.fmsid = fmsid
-            location.path = None
+        annotations = build_fms_annotations(
+            dataset_config,
+            model_manifest=model_manifest,
+            run_name=DEFAULT_MODEL_RUN_NAME,
+            additional_notes=additional_notes,
+        )
+        fmsid = upload_file_to_fms(save_path, annotations=annotations, file_type="parquet")
+        location.fmsid = fmsid
+        location.path = None
 
         # Add dataframe location to dataframe manifest and save
         manifest.locations[dataset_name] = location
