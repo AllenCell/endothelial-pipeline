@@ -60,8 +60,7 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
         build_cross_correlations_array_from_dataframe,
     )
     from endo_pipeline.library.visualize.diffae_features.noise_correlations import (
-        plot_cross_correlations_against_lag,
-        plot_noise_amplitude,
+        plot_noise_correlation_vs_lag,
         plot_normalized_two_timepoint_cross_correlations,
         plot_periodogram_histogram,
         plot_periodogram_vs_expected,
@@ -153,14 +152,6 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
             variance_t = cross_correlations[diagonal_indices, diagonal_indices]
             sigma_t = np.sqrt(np.einsum("tii->ti", variance_t))
 
-            plot_noise_amplitude(
-                sigma_t=sigma_t,
-                timepoints_array=timepoints_array,
-                column_names=column_names,
-                plot_title=f"Noise amplitude: {dataset_name_flow}",
-                output_path=output_path,
-                file_name=slugify(f"noise_amplitude_{dataset_name_flow}"),
-            )
             plot_normalized_two_timepoint_cross_correlations(
                 cross_correlations=cross_correlations,
                 sigma_t=sigma_t,
@@ -170,20 +161,19 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
                 output_path=output_path,
                 file_name=slugify(f"normalized_cross_correlations_{dataset_name_flow}"),
             )
-            plot_cross_correlations_against_lag(
-                cross_correlations=cross_correlations,
-                timepoints_array=timepoints_array,
-                column_names=column_names,
-                plot_title=f"Cross-correlations vs time lag: {dataset_name_flow}",
-                output_path=output_path,
-                file_name=slugify(f"cross_correlations_vs_lag_{dataset_name_flow}"),
-            )
 
             # noise correlation / measurement noise summary statistics for this
             # flow condition, loaded from compute-noise-statistics
             noise_statistics_flow = noise_statistics_dataframe[
                 noise_statistics_dataframe[Column.SHEAR_STRESS] == flow_condition.shear_stress
             ]
+            plot_noise_correlation_vs_lag(
+                noise_statistics_dataframe=noise_statistics_flow,
+                column_names=column_names,
+                plot_title=f"Noise correlation vs lag: {dataset_name_flow}",
+                output_path=output_path,
+                file_name=slugify(f"noise_correlation_vs_lag_{dataset_name_flow}"),
+            )
             is_diagonal = (
                 noise_statistics_flow[Column.NoiseStatistics.FEATURE_1]
                 == noise_statistics_flow[Column.NoiseStatistics.FEATURE_2]
