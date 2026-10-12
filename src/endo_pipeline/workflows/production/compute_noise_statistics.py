@@ -8,6 +8,12 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
     This analysis serves as a validation of whether or not the noise term of the
     underlying dynamics is indeed uncorrelated across timepoints (white noise).
 
+    In addition to the tidy noise correlation / measurement noise covariance
+    statistics dataframe, this workflow also saves the full two-timepoint noise
+    correlation functions (see `compute-noise-correlations`) and the periodogram
+    of the drift-removed residuals for each feature. These are loaded directly by
+    `visualize-noise-statistics` to produce the corresponding plots.
+
     #correlation-analysis #grid-based #cell-centered #test-ready
 
     ## Example usage
@@ -67,7 +73,9 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
     )
     from endo_pipeline.library.analyze.numerics.correlations import (
         NoiseCorrelationCentering,
+        compute_noise_correlation_function_dataframe,
         compute_noise_statistics_dataframe,
+        compute_periodogram_dataframe,
         get_trajectories_and_differences_for_noise_correlations,
     )
     from endo_pipeline.library.analyze.vector_field_estimation import (
@@ -86,8 +94,11 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
         DYNAMICS_COLUMN_NAMES,
         LONG_TRACK_THRESHOLD_LENGTH,
         METADATA_COLUMNS_TO_KEEP,
+        TIME_STEP_IN_HOURS,
     )
     from endo_pipeline.settings.manifest_names import (
+        NOISE_CORRELATIONS_MANIFEST_NAME_PREFIXES,
+        NOISE_PERIODOGRAM_MANIFEST_NAME_PREFIXES,
         NOISE_STATISTICS_MANIFEST_NAME_PREFIXES,
         VECTOR_FIELD_MANIFEST_NAMES,
     )
@@ -151,6 +162,25 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
     }
     save_dataframe_manifest(noise_statistics_manifest)
 
+    # Build dataframe manifest names for the full two-timepoint noise
+    # correlation functions and the residual periodograms computed alongside
+    # the noise statistics dataframe.
+    correlations_name_prefix = NOISE_CORRELATIONS_MANIFEST_NAME_PREFIXES[patch_type]
+    noise_correlations_manifest_name = f"{correlations_name_prefix}_{name_suffix}"
+    noise_correlations_manifest = create_dataframe_manifest(
+        noise_correlations_manifest_name, workflow_name=__file__
+    )
+    noise_correlations_manifest.parameters = noise_statistics_manifest.parameters
+    save_dataframe_manifest(noise_correlations_manifest)
+
+    periodogram_name_prefix = NOISE_PERIODOGRAM_MANIFEST_NAME_PREFIXES[patch_type]
+    noise_periodogram_manifest_name = f"{periodogram_name_prefix}_{name_suffix}"
+    noise_periodogram_manifest = create_dataframe_manifest(
+        noise_periodogram_manifest_name, workflow_name=__file__
+    )
+    noise_periodogram_manifest.parameters = noise_statistics_manifest.parameters
+    save_dataframe_manifest(noise_periodogram_manifest)
+
     for dataset_name in dataset_names:
         if dataset_name not in feature_dataframe_manifest.locations:
             logger.warning(
@@ -171,6 +201,8 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
 
         # process on a per-flow condition basis
         noise_statistics_dataframe_list = []
+        noise_correlation_function_dataframe_list = []
+        periodogram_dataframe_list = []
         for flow_condition in dataset_config.flow_conditions:
             dataset_name_flow = f"{dataset_name}_shear_{flow_condition.shear_stress_bin}"
 
@@ -238,6 +270,35 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
             )
             noise_statistics_dataframe_list.append(noise_statistics_dataframe)
 
+            # Compute the full two-timepoint noise correlation function (see
+            # compute-noise-correlations) for later visualization
+            correlation_function_dataframe = compute_noise_correlation_function_dataframe(
+                traj_list=traj_list,
+                d_traj_list=d_traj_list,
+                column_names=column_names,
+                timepoints_array=timepoints_array,
+                vector_field=vector_field,
+                centering_method=NoiseCorrelationCentering.MEAN_SUBTRACTED,
+                metadata_dict=metadata_dict,
+            )
+            if correlation_function_dataframe is not None:
+                noise_correlation_function_dataframe_list.append(correlation_function_dataframe)
+
+            # Compute the periodogram of the drift-removed residuals for each
+            # feature, used to check the noise signature against the expected
+            # white-noise power spectrum
+            periodogram_dataframe = compute_periodogram_dataframe(
+                traj_list=traj_list,
+                d_traj_list=d_traj_list,
+                column_names=column_names,
+                timepoints_array=timepoints_array,
+                vector_field=vector_field,
+                centering_method=NoiseCorrelationCentering.MEAN_SUBTRACTED,
+                dt=TIME_STEP_IN_HOURS,
+                metadata_dict=metadata_dict,
+            )
+            periodogram_dataframe_list.append(periodogram_dataframe)
+
         if not noise_statistics_dataframe_list:
             logger.warning("No noise statistics computed for [ %s ]. Skipping.", dataset_name)
             continue
@@ -268,6 +329,50 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
         # Add dataframe location to dataframe manifest and save
         noise_statistics_manifest.locations[dataset_name] = location
         save_dataframe_manifest(noise_statistics_manifest)
+
+        # Save the two-timepoint noise correlation functions for the dataset
+        if noise_correlation_function_dataframe_list:
+            noise_correlation_function_for_dataset = pd.concat(
+                noise_correlation_function_dataframe_list, ignore_index=True
+            )
+            correlations_save_path = (
+                output_path / f"{correlations_name_prefix}_{dataset_name}_{name_suffix}.parquet"
+            )
+            noise_correlation_function_for_dataset.to_parquet(correlations_save_path, index=False)
+
+            correlations_location = noise_correlations_manifest.locations.get(
+                dataset_name, DataframeLocation()
+            )
+            correlations_location.path = correlations_save_path
+            if UPLOAD_TO_FMS:
+                fmsid = upload_file_to_fms(
+                    correlations_save_path, annotations=annotations, file_type="parquet"
+                )
+                correlations_location.fmsid = fmsid
+                correlations_location.path = None
+            noise_correlations_manifest.locations[dataset_name] = correlations_location
+            save_dataframe_manifest(noise_correlations_manifest)
+
+        # Save the residual periodograms for the dataset
+        if periodogram_dataframe_list:
+            periodogram_for_dataset = pd.concat(periodogram_dataframe_list, ignore_index=True)
+            periodogram_save_path = (
+                output_path / f"{periodogram_name_prefix}_{dataset_name}_{name_suffix}.parquet"
+            )
+            periodogram_for_dataset.to_parquet(periodogram_save_path, index=False)
+
+            periodogram_location = noise_periodogram_manifest.locations.get(
+                dataset_name, DataframeLocation()
+            )
+            periodogram_location.path = periodogram_save_path
+            if UPLOAD_TO_FMS:
+                fmsid = upload_file_to_fms(
+                    periodogram_save_path, annotations=annotations, file_type="parquet"
+                )
+                periodogram_location.fmsid = fmsid
+                periodogram_location.path = None
+            noise_periodogram_manifest.locations[dataset_name] = periodogram_location
+            save_dataframe_manifest(noise_periodogram_manifest)
 
 
 if __name__ == "__main__":
