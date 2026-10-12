@@ -1,0 +1,17 @@
+name: noise_correlation_functions_grid_based_polar_r_polar_theta_rho
+workflow: compute_noise_statistics
+parameters:
+  model_manifest_name: diffae_baseline
+  run_name: latent_512
+  patch_type: grid_based
+  columns: [polar_theta, polar_r, rho]
+columns: {}
+locations:
+  20250319_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-12/compute_noise_statistics/noise_correlation_functions_grid_based_20250319_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20250618_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-12/compute_noise_statistics/noise_correlation_functions_grid_based_20250618_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null

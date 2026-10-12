@@ -679,6 +679,39 @@ class ColumnName:
         MEASUREMENT_NOISE_COVARIANCE = "measurement_noise_covariance"
         """Estimated covariance of the independent measurement error between feature_1 and feature_2."""
 
+    class NoiseCorrelationFunction(StrEnum):
+        """Column name suffixes used for the full two-timepoint noise correlation function."""
+
+        TIMEPOINT_1 = "timepoint_1"
+        """First timepoint in the two-timepoint noise correlation pair."""
+
+        TIMEPOINT_2 = "timepoint_2"
+        """Second timepoint in the two-timepoint noise correlation pair."""
+
+        FEATURE_1 = "feature_1"
+        """First feature variable in the noise correlation pair."""
+
+        FEATURE_2 = "feature_2"
+        """Second feature variable in the noise correlation pair."""
+
+        CORRELATION = "noise_correlation"
+        """Unnormalized two-timepoint noise correlation R_ij(t, t') between feature_1 and feature_2."""
+
+    class Periodogram(StrEnum):
+        """Column name suffixes used for the periodogram of noise residuals."""
+
+        FEATURE = "feature"
+        """Feature variable for which the periodogram is computed."""
+
+        PATCH_INDEX = "patch_index"
+        """Index of the patch (0-based) contributing the periodogram value."""
+
+        MODE = "mode"
+        """Discrete sine transform mode number."""
+
+        POWER = "power"
+        """Periodogram power at the given mode, for the given patch and feature."""
+
     RANDOM_SEED = "random_seed"
     """Random number generator seed."""
 

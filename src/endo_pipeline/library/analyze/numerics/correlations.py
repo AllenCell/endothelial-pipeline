@@ -6,6 +6,7 @@ from itertools import combinations_with_replacement
 
 import numpy as np
 import pandas as pd
+from scipy.fft import dst
 from scipy.optimize import curve_fit
 
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
@@ -704,3 +705,206 @@ def compute_noise_statistics_dataframe(
             noise_statistics_dataframe[key] = metadata_dict[key]
 
     return noise_statistics_dataframe
+
+
+def compute_noise_correlation_function_dataframe(
+    traj_list: list[pd.DataFrame],
+    d_traj_list: list[pd.DataFrame],
+    column_names: list[str],
+    timepoints_array: np.ndarray,
+    vector_field: Callable,
+    centering_method: NoiseCorrelationCentering,
+    metadata_dict: dict[str, str | float] | None = None,
+) -> pd.DataFrame | None:
+    """
+    Compute a tidy dataframe of the full two-timepoint noise correlation function.
+
+    For each unique pair of features in column_names (including each feature
+    paired with itself), this method saves the unnormalized two-timepoint noise
+    correlation R_ij(t, t') (see `compute_two_timepoint_noise_correlations`) for
+    every pair of timepoints, in a dataframe with columns for the two feature
+    names, the two timepoints, and the correlation value.
+
+    Parameters
+    ----------
+    traj_list
+        List of dataframes containing the trajectories for each patch.
+    d_traj_list
+        List of dataframes containing the forward differences of the trajectories.
+    column_names
+        List of feature column names for which to compute the correlation function.
+    timepoints_array
+        Array of timepoints corresponding to the rows in the trajectory dataframes.
+    vector_field
+        Callable representing the vector field used for centering the residuals.
+    centering_method
+        Method used to center the residuals.
+    metadata_dict
+        Optional dictionary of additional metadata to add as columns to the output
+        dataframe (e.g. dataset name, shear stress).
+    """
+    cross_correlations = compute_two_timepoint_noise_correlations(
+        traj_list=traj_list,
+        d_traj_list=d_traj_list,
+        column_names=column_names,
+        timepoints_array=timepoints_array,
+        vector_field=vector_field,
+        centering_method=centering_method,
+    )
+    if cross_correlations is None:
+        return None
+
+    timepoints_1, timepoints_2 = np.meshgrid(timepoints_array, timepoints_array, indexing="ij")
+
+    correlation_function_dataframe_list = []
+    for feature_index_1, feature_index_2 in combinations_with_replacement(
+        range(len(column_names)), 2
+    ):
+        correlation_function_dataframe_list.append(
+            pd.DataFrame(
+                {
+                    Column.NoiseCorrelationFunction.FEATURE_1: column_names[feature_index_1],
+                    Column.NoiseCorrelationFunction.FEATURE_2: column_names[feature_index_2],
+                    Column.NoiseCorrelationFunction.TIMEPOINT_1: timepoints_1.ravel(),
+                    Column.NoiseCorrelationFunction.TIMEPOINT_2: timepoints_2.ravel(),
+                    Column.NoiseCorrelationFunction.CORRELATION: cross_correlations[
+                        :, :, feature_index_1, feature_index_2
+                    ].ravel(),
+                }
+            )
+        )
+
+    correlation_function_dataframe = pd.concat(
+        correlation_function_dataframe_list, ignore_index=True
+    )
+
+    if metadata_dict is not None:
+        for key in metadata_dict:
+            correlation_function_dataframe[key] = metadata_dict[key]
+
+    return correlation_function_dataframe
+
+
+def build_cross_correlations_array_from_dataframe(
+    dataframe: pd.DataFrame, column_names: list[str]
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Reconstruct the full two-timepoint noise correlation array from the tidy
+    dataframe produced by `compute_noise_correlation_function_dataframe`.
+
+    Since R_ij(t, t') = R_ji(t', t), only the unique feature pairs are saved in
+    the dataframe; the missing pairs are filled in here by transposing.
+
+    Parameters
+    ----------
+    dataframe
+        Tidy dataframe of two-timepoint noise correlations, as produced by
+        `compute_noise_correlation_function_dataframe`.
+    column_names
+        List of feature column names, in the order they should appear in the
+        reconstructed array.
+
+    Returns
+    -------
+    :
+        Tuple of the reconstructed cross-correlation array, of shape
+        (num_timepoints, num_timepoints, num_features, num_features), and the
+        sorted array of unique timepoints.
+    """
+    timepoints_array = np.sort(dataframe[Column.NoiseCorrelationFunction.TIMEPOINT_1].unique())
+    n_timepoints = len(timepoints_array)
+    n_dim = len(column_names)
+
+    cross_correlations = np.full((n_timepoints, n_timepoints, n_dim, n_dim), np.nan)
+    for feature_index_1, feature_index_2 in combinations_with_replacement(range(n_dim), 2):
+        pair_dataframe = dataframe[
+            (dataframe[Column.NoiseCorrelationFunction.FEATURE_1] == column_names[feature_index_1])
+            & (
+                dataframe[Column.NoiseCorrelationFunction.FEATURE_2]
+                == column_names[feature_index_2]
+            )
+        ]
+        correlation_matrix = pair_dataframe.pivot(
+            index=Column.NoiseCorrelationFunction.TIMEPOINT_1,
+            columns=Column.NoiseCorrelationFunction.TIMEPOINT_2,
+            values=Column.NoiseCorrelationFunction.CORRELATION,
+        ).to_numpy()
+        cross_correlations[:, :, feature_index_1, feature_index_2] = correlation_matrix
+        cross_correlations[:, :, feature_index_2, feature_index_1] = correlation_matrix.T
+
+    return cross_correlations, timepoints_array
+
+
+def compute_periodogram_dataframe(
+    traj_list: list[pd.DataFrame],
+    d_traj_list: list[pd.DataFrame],
+    column_names: list[str],
+    timepoints_array: np.ndarray,
+    vector_field: Callable,
+    centering_method: NoiseCorrelationCentering,
+    dt: float,
+    metadata_dict: dict[str, str | float] | None = None,
+) -> pd.DataFrame:
+    """
+    Compute a tidy dataframe of the periodogram of the drift-removed residuals
+    for each feature and patch, used to check the noise signature against the
+    expected white-noise power spectrum.
+
+    Parameters
+    ----------
+    traj_list
+        List of dataframes containing the trajectories for each patch.
+    d_traj_list
+        List of dataframes containing the forward differences of the trajectories.
+    column_names
+        List of feature column names for which to compute the periodogram.
+    timepoints_array
+        Array of timepoints corresponding to the rows in the trajectory dataframes.
+    vector_field
+        Callable representing the vector field used for centering the residuals.
+    centering_method
+        Method used to center the residuals.
+    dt
+        Time step between observations.
+    metadata_dict
+        Optional dictionary of additional metadata to add as columns to the output
+        dataframe (e.g. dataset name, shear stress).
+    """
+    residuals = compute_centered_residuals(
+        traj_list=traj_list,
+        d_traj_list=d_traj_list,
+        column_names=column_names,
+        timepoints_array=timepoints_array,
+        vector_field=vector_field,
+        centering_method=centering_method,
+    )
+    # Replace missing timepoints (NaNs) with zeros before computing the
+    # discrete sine transform (DST)
+    residuals = np.nan_to_num(residuals, nan=0.0)
+    n_patches, num_samples, _ = residuals.shape
+    modes = np.arange(1, num_samples + 1)
+    patch_indices, mode_grid = np.meshgrid(np.arange(n_patches), modes, indexing="ij")
+
+    periodogram_dataframe_list = []
+    for i, column_name in enumerate(column_names):
+        # One DST per patch, each the length of the shared timepoint axis
+        residuals_dst = dt * dst(residuals[:, :, i], type=1, axis=1) / 2
+        periodogram = 2 * residuals_dst**2 / (dt * (num_samples + 1))
+        periodogram_dataframe_list.append(
+            pd.DataFrame(
+                {
+                    Column.Periodogram.FEATURE: column_name,
+                    Column.Periodogram.PATCH_INDEX: patch_indices.ravel(),
+                    Column.Periodogram.MODE: mode_grid.ravel(),
+                    Column.Periodogram.POWER: periodogram.ravel(),
+                }
+            )
+        )
+
+    periodogram_dataframe = pd.concat(periodogram_dataframe_list, ignore_index=True)
+
+    if metadata_dict is not None:
+        for key in metadata_dict:
+            periodogram_dataframe[key] = metadata_dict[key]
+
+    return periodogram_dataframe
