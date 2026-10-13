@@ -6,7 +6,7 @@ import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy.stats import gamma, kstest
+from scipy.stats import expon, kstest
 
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
@@ -215,6 +215,7 @@ def plot_noise_correlation_vs_lag(
 
 def plot_periodogram_vs_expected(
     periodogram: np.ndarray,
+    frequencies: np.ndarray,
     sigma_2_e: float,
     d_coeff: float,
     dt: float,
@@ -224,13 +225,17 @@ def plot_periodogram_vs_expected(
 ) -> Path:
     """
     Plot the mean periodogram of the drift-removed residuals against the
-    expected power spectrum for white noise.
+    expected power spectrum for white noise, in the frequency domain (DFT),
+    following the large-N limit of Vestergaard et al. (2014, Sec. III B 2).
 
     Parameters
     ----------
     periodogram
-        Array of shape (num_patches, num_modes) containing the periodogram of
-        the residuals for each patch.
+        Array of shape (num_patches, num_frequencies) containing the DFT-based
+        periodogram of the residuals for each patch.
+    frequencies
+        Array of shape (num_frequencies,) containing the DFT frequencies, in
+        units of 1/dt, at which the periodogram was evaluated.
     sigma_2_e
         Estimated measurement noise variance.
     d_coeff
@@ -244,17 +249,13 @@ def plot_periodogram_vs_expected(
     file_name
         Optional, specific name of the file to save the plot as.
     """
-    num_samples = periodogram.shape[1]
     periodogram_avg = np.mean(periodogram, axis=0)
-    modes = np.arange(1, num_samples + 1)
-    p_expected_normed = 1 + sigma_2_e / (d_coeff * dt) * (
-        1 - np.cos(np.pi * modes / (num_samples + 1))
-    )
+    p_expected_normed = 1 + sigma_2_e / (d_coeff * dt) * (1 - np.cos(2 * np.pi * frequencies * dt))
 
     fig, ax = plt.subplots()
-    ax.plot(modes, periodogram_avg / (2 * d_coeff * dt**2), "r.", label="Periodogram")
-    ax.plot(modes, p_expected_normed, "k-", label="White noise")
-    ax.set_xlabel("Mode")
+    ax.plot(frequencies, periodogram_avg / (2 * d_coeff * dt**2), "r.", label="Periodogram")
+    ax.plot(frequencies, p_expected_normed, "k-", label="White noise")
+    ax.set_xlabel("Frequency $f$")
     ax.set_ylabel("Power")
     ax.set_title(f"Periodogram vs Expected for noise signature in {column_label}")
     ax.legend()
@@ -269,16 +270,17 @@ def plot_periodogram_histogram(
     file_name: str | None = None,
 ) -> tuple[float, float]:
     """
-    Plot a histogram of periodogram values (pooled across patches and modes,
-    normalized by their mean) against the theoretical gamma(shape=1/2, scale=2)
-    distribution expected for white noise, and test goodness-of-fit with a
-    Kolmogorov-Smirnov (K-S) test.
+    Plot a histogram of periodogram values (pooled across patches and
+    frequencies, normalized by their mean) against the theoretical
+    exponential (unit mean) distribution expected for white noise in the
+    DFT frequency domain, large-N limit (Vestergaard et al. 2014, Sec. III B 2),
+    and test goodness-of-fit with a Kolmogorov-Smirnov (K-S) test.
 
     Parameters
     ----------
     periodogram
-        Array of shape (num_patches, num_modes) containing the periodogram of
-        the residuals for each patch.
+        Array of shape (num_patches, num_frequencies) containing the DFT-based
+        periodogram of the residuals for each patch.
     column_label
         Label for the feature being plotted.
     output_path
@@ -290,7 +292,7 @@ def plot_periodogram_histogram(
     -------
     :
         K-S test statistic and p-value. If the p-value is small, then fail to
-        reject the null hypothesis that the data follows the gamma
+        reject the null hypothesis that the data follows the exponential
         distribution.
     """
     p_k_avg = np.mean(periodogram)
@@ -299,10 +301,10 @@ def plot_periodogram_histogram(
     fig, ax = plt.subplots()
     x = np.linspace(0, 10, 1000)
     bins = x[::25]
-    gamma_pdf = gamma.pdf(x, a=0.5, scale=2)
-    ax.plot(x, gamma_pdf, "k-", label="$\\Gamma$(shape=1/2, scale=2)")
+    exponential_pdf = expon.pdf(x, scale=1)
+    ax.plot(x, exponential_pdf, "k-", label="Exp(mean=1)")
     ax.hist(normalized_periodogram, bins=bins, alpha=0.7, label="Periodogram", density=True)
-    ks_stat, p_value = kstest(normalized_periodogram, gamma(a=0.5, scale=2).cdf)
+    ks_stat, p_value = kstest(normalized_periodogram, expon(scale=1).cdf)
     ax.text(0.5, 0.9, f"K-S test p-value: {p_value:.4f}", transform=ax.transAxes, ha="center")
     ax.set_xlabel("Power")
     ax.set_xlim(0, 10)

@@ -7,8 +7,9 @@ from itertools import combinations_with_replacement
 
 import numpy as np
 import pandas as pd
-from scipy.fft import dst
+from scipy.fft import rfftfreq
 from scipy.optimize import curve_fit
+from scipy.signal import lombscargle
 
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.numerics.forward_difference import (
@@ -880,6 +881,72 @@ def build_cross_correlations_array_from_dataframe(
     return cross_correlations, timepoints_array
 
 
+MIN_VALID_SAMPLES_FOR_PERIODOGRAM: int = 2
+"""Minimum number of non-missing timepoints a patch needs for its Lomb-Scargle
+periodogram to be defined; patches with fewer are left as NaN."""
+
+
+def compute_lombscargle_periodogram(
+    residuals: np.ndarray,
+    timepoints_array: np.ndarray,
+    dt: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Compute the periodogram of (possibly incomplete) residuals via the
+    Lomb-Scargle periodogram, evaluated at the DFT frequencies of the large-N
+    limit treatment of Vestergaard et al. (2014, Phys. Rev. E 89, 022726, Sec.
+    III B 2).
+
+    Missing timepoints (NaN) are a per-patch subset of valid samples passed
+    directly to `scipy.signal.lombscargle`, rather than filled with zeros:
+    zero-filling biases the periodogram toward lower power in proportion to
+    the fraction of missing data, which can spuriously fail the white-noise
+    goodness-of-fit test. For complete, evenly-sampled data, the classical
+    Lomb-Scargle periodogram (`precenter=True`) is equal to the standard DFT
+    periodogram up to a factor of `dt`, which brings it into the physical
+    units of Eq. (13) of the reference; this also holds with missing data,
+    since Lomb-Scargle normalizes each frequency by the window function of
+    the samples actually present.
+
+    Parameters
+    ----------
+    residuals
+        Array of shape (num_patches, num_timepoints, num_features), with NaN
+        at timepoints where a patch has no difference.
+    timepoints_array
+        Array of shape (num_timepoints,) of the shared timepoint axis, in
+        units of frames (i.e., multiples of `dt`).
+    dt
+        Time step between observations.
+
+    Returns
+    -------
+    :
+        Tuple of the periodogram array, of shape (num_patches, num_frequencies,
+        num_features), and the array of frequencies (units of 1/dt) at which it
+        was evaluated. Patches with fewer than `MIN_VALID_SAMPLES_FOR_PERIODOGRAM`
+        valid timepoints are NaN for every frequency.
+    """
+    n_patches, num_samples, n_dim = residuals.shape
+    # DFT frequencies f_k = k / (N dt) for k = 1, ..., floor(N/2), excluding
+    # the zero-frequency (DC) term removed by drift-centering
+    frequencies = rfftfreq(num_samples, d=dt)[1:]
+    angular_frequencies = 2 * np.pi * frequencies
+    times = timepoints_array * dt
+
+    periodogram = np.full((n_patches, len(frequencies), n_dim), np.nan)
+    for patch_index in range(n_patches):
+        for feature_index in range(n_dim):
+            values = residuals[patch_index, :, feature_index]
+            valid = ~np.isnan(values)
+            if valid.sum() < MIN_VALID_SAMPLES_FOR_PERIODOGRAM:
+                continue
+            power = lombscargle(times[valid], values[valid], angular_frequencies, precenter=True)
+            periodogram[patch_index, :, feature_index] = dt * power
+
+    return periodogram, frequencies
+
+
 def compute_periodogram_dataframe(
     traj_list: list[pd.DataFrame],
     d_traj_list: list[pd.DataFrame],
@@ -894,6 +961,14 @@ def compute_periodogram_dataframe(
     Compute a tidy dataframe of the periodogram of the drift-removed residuals
     for each feature and patch, used to check the noise signature against the
     expected white-noise power spectrum.
+
+    The periodogram is computed in the frequency domain, following the
+    large-N limit treatment of Vestergaard et al. (2014, Phys. Rev. E 89,
+    022726, Sec. III B 2), rather than the discrete sine transform (DST) mode
+    domain used for finite N. Under the white-noise null hypothesis, the
+    periodogram values normalized by their expected power spectrum are
+    exponentially distributed. See `compute_lombscargle_periodogram` for how
+    missing timepoints are handled.
 
     Parameters
     ----------
@@ -923,27 +998,23 @@ def compute_periodogram_dataframe(
         vector_field=vector_field,
         centering_method=centering_method,
     )
-    # Replace missing timepoints (NaNs) with zeros before computing the
-    # discrete sine transform (DST)
-    residuals = np.nan_to_num(residuals, nan=0.0)
-    n_patches, num_samples, _ = residuals.shape
-    modes = np.arange(1, num_samples + 1)
-    patch_indices, mode_grid = np.meshgrid(np.arange(n_patches), modes, indexing="ij")
+    n_patches = residuals.shape[0]
+    periodogram, frequencies = compute_lombscargle_periodogram(residuals, timepoints_array, dt)
+    patch_indices, freq_grid = np.meshgrid(np.arange(n_patches), frequencies, indexing="ij")
 
     periodogram_dataframe_list = []
     for i, column_name in enumerate(column_names):
-        # One DST per patch, each the length of the shared timepoint axis
-        residuals_dst = dt * dst(residuals[:, :, i], type=1, axis=1) / 2
-        periodogram = 2 * residuals_dst**2 / (dt * (num_samples + 1))
+        feature_dataframe = pd.DataFrame(
+            {
+                Column.Periodogram.FEATURE: column_name,
+                Column.Periodogram.PATCH_INDEX: patch_indices.ravel(),
+                Column.Periodogram.FREQUENCY: freq_grid.ravel(),
+                Column.Periodogram.POWER: periodogram[:, :, i].ravel(),
+            }
+        )
+        # drop patches with too few valid timepoints to define a periodogram
         periodogram_dataframe_list.append(
-            pd.DataFrame(
-                {
-                    Column.Periodogram.FEATURE: column_name,
-                    Column.Periodogram.PATCH_INDEX: patch_indices.ravel(),
-                    Column.Periodogram.MODE: mode_grid.ravel(),
-                    Column.Periodogram.POWER: periodogram.ravel(),
-                }
-            )
+            feature_dataframe.dropna(subset=[Column.Periodogram.POWER])
         )
 
     periodogram_dataframe = pd.concat(periodogram_dataframe_list, ignore_index=True)
