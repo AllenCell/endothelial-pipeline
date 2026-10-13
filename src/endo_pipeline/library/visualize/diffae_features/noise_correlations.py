@@ -1,12 +1,12 @@
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy.stats import expon, kstest
+from scipy.stats import chisquare, expon, kstest
 
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
@@ -14,6 +14,23 @@ from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
+
+
+class PeriodogramGoodnessOfFit(NamedTuple):
+    """Container for goodness-of-fit results of the periodogram against Exp(1)."""
+
+    ks_statistic: float
+    """K-S distance between the empirical and Exp(1) CDFs; scale-free effect size."""
+
+    ks_p_value: float
+    """K-S p-value. Invalid as a significance test here: d_coeff and sigma_2_e
+    are fit from the same data, so the null distribution isn't fully specified."""
+
+    chi2_statistic: float
+    """Pearson chi-squared statistic over equiprobable bins."""
+
+    chi2_p_value: float
+    """Chi-squared p-value with ddof=2, accounting for the two fitted parameters."""
 
 
 def plot_noise_amplitude(
@@ -272,14 +289,21 @@ def plot_periodogram_histogram(
     column_label: str,
     output_path: Path,
     file_name: str | None = None,
-) -> tuple[float, float]:
+) -> PeriodogramGoodnessOfFit:
     """
     Plot a histogram of periodogram values (pooled across patches and
     frequencies, normalized by their per-frequency expected power spectrum)
     against the theoretical exponential (unit mean) distribution expected for
     white noise in the DFT frequency domain, large-N limit (Vestergaard et al.
-    2014, Sec. III B 2), and test goodness-of-fit with a Kolmogorov-Smirnov
-    (K-S) test.
+    2014, Sec. III B 2).
+
+    Goodness-of-fit is reported two ways: the Kolmogorov-Smirnov (K-S)
+    statistic as a sample-size-independent effect size, and a chi-squared
+    test (with ddof=2) as the significance test. A plain K-S p-value is not
+    valid here, since `d_coeff` and `sigma_2_e` are themselves estimated from
+    this same data rather than known a priori, so the null distribution isn't
+    fully specified; the chi-squared test's ddof is reduced by 2 to account
+    for those two fitted parameters.
 
     Parameters
     ----------
@@ -305,9 +329,9 @@ def plot_periodogram_histogram(
     Returns
     -------
     :
-        K-S test statistic and p-value. If the p-value is small, then reject
-        the null hypothesis that the data follows the exponential
-        distribution.
+        K-S statistic/p-value and chi-squared statistic/p-value. If the
+        chi-squared p-value is small, reject the null hypothesis that the
+        data follows the exponential distribution.
     """
     # Expected power spectrum is frequency-dependent, so compute normalized
     # periodogram for each frequency before scaling back up and pooling
@@ -321,8 +345,27 @@ def plot_periodogram_histogram(
     exponential_pdf = expon.pdf(x, scale=1)
     ax.plot(x, exponential_pdf, "k-", label="Exp(mean=1)")
     ax.hist(normalized_periodogram, bins=bins, alpha=0.7, label="Periodogram", density=True)
-    ks_stat, p_value = kstest(normalized_periodogram, expon(scale=1).cdf)
-    ax.text(0.5, 0.9, f"K-S test p-value: {p_value:.4f}", transform=ax.transAxes, ha="center")
+
+    ks_stat, ks_p_value = kstest(normalized_periodogram, expon(scale=1).cdf)
+
+    # equiprobable bins under Exp(1) so each has the same expected count,
+    # satisfying the chi-squared test's minimum-expected-count assumption
+    n_samples = normalized_periodogram.size
+    n_bins = int(np.clip(n_samples // 20, 5, 20))
+    bin_edges = expon.ppf(np.linspace(0, 1, n_bins + 1), scale=1)
+    observed_counts, _ = np.histogram(normalized_periodogram, bins=bin_edges)
+    chi2_stat, chi2_p_value = chisquare(observed_counts, f_exp=n_samples / n_bins, ddof=2)
+
+    if chi2_p_value < 0.05:
+        print(f"Rejecting null hypothesis for {column_label} with chi2 p={chi2_p_value:.4f}")
+    ax.text(
+        0.5,
+        0.9,
+        f"K-S D = {ks_stat:.3f} (effect size)\n"
+        f"$\\chi^2$ test p-value: {chi2_p_value:.4f} (ddof=2)",
+        transform=ax.transAxes,
+        ha="center",
+    )
     ax.set_xlabel("Power")
     ax.set_xlim(0, 10)
     ax.set_ylabel("Histogram (density)")
@@ -331,4 +374,4 @@ def plot_periodogram_histogram(
     figure_name = file_name or "periodogram_hist"
     save_plot_to_path(fig, output_path, figure_name)
 
-    return ks_stat, p_value
+    return PeriodogramGoodnessOfFit(ks_stat, ks_p_value, chi2_stat, chi2_p_value)
