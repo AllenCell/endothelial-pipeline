@@ -269,7 +269,7 @@ def plot_periodogram_vs_expected(
     ax.plot(frequencies, periodogram_avg / (2 * d_coeff * dt**2), "r.", label="Periodogram")
     ax.plot(frequencies, p_expected_normed, "k-", label="White noise")
     ax.set_xlabel("Frequency $f$")
-    ax.set_ylabel("Power")
+    ax.set_ylabel("$S(f)/[D \\Delta t^2]$")
     ax.set_title(f"Periodogram vs Expected for noise signature in {column_label}")
     ax.legend()
     figure_name = file_name or "periodogram_vs_expected"
@@ -322,15 +322,15 @@ def plot_periodogram_histogram(
         the null hypothesis that the data follows the exponential
         distribution.
     """
-    # expected power spectrum is frequency-dependent whenever sigma_2_e > 0,
-    # so each frequency must be normalized separately before pooling
+    # Expected power spectrum is frequency-dependent, so compute normalized
+    # periodogram for each frequency before scaling back up and pooling
     p_expected_normed = 1 + sigma_2_e / (d_coeff * dt) * (1 - np.cos(2 * np.pi * frequencies * dt))
     expected_power = 2 * d_coeff * dt**2 * p_expected_normed
     normalized_periodogram = (periodogram / expected_power[np.newaxis, :]).ravel()
 
     fig, ax = plt.subplots()
     x = np.linspace(0, 10, 1000)
-    bins = x[::25]
+    bins = x[::25].tolist()
     exponential_pdf = expon.pdf(x, scale=1)
     ax.plot(x, exponential_pdf, "k-", label="Exp(mean=1)")
     ax.hist(normalized_periodogram, bins=bins, alpha=0.7, label="Periodogram", density=True)
