@@ -228,6 +228,10 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
                 )
                 plot_periodogram_histogram(
                     periodogram=periodogram,
+                    frequencies=frequencies,
+                    sigma_2_e=sigma_2_e,
+                    d_coeff=d_coeff,
+                    dt=dt,
                     column_label=column_label,
                     output_path=output_path,
                     file_name=f"{dataset_name_flow}_periodogram_hist_{column_label}",
