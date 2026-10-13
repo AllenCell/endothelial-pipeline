@@ -706,11 +706,11 @@ class ColumnName:
         PATCH_INDEX = "patch_index"
         """Index of the patch (0-based) contributing the periodogram value."""
 
-        MODE = "mode"
-        """Discrete sine transform mode number."""
+        FREQUENCY = "frequency"
+        """DFT frequency (units of 1/dt) at which the periodogram is evaluated."""
 
         POWER = "power"
-        """Periodogram power at the given mode, for the given patch and feature."""
+        """Periodogram power at the given frequency, for the given patch and feature."""
 
     RANDOM_SEED = "random_seed"
     """Random number generator seed."""

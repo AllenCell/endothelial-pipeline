@@ -194,11 +194,13 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
                         column_name,
                     )
                     continue
-                periodogram = periodogram_flow_feature.pivot(
+                periodogram_pivot = periodogram_flow_feature.pivot(
                     index=Column.Periodogram.PATCH_INDEX,
-                    columns=Column.Periodogram.MODE,
+                    columns=Column.Periodogram.FREQUENCY,
                     values=Column.Periodogram.POWER,
-                ).to_numpy()
+                )
+                frequencies = periodogram_pivot.columns.to_numpy()
+                periodogram = periodogram_pivot.to_numpy()
                 column_label = COLUMN_METADATA[column_name].label or column_name
 
                 # the measurement noise variance is already stored in the manifest;
@@ -216,6 +218,7 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
 
                 plot_periodogram_vs_expected(
                     periodogram=periodogram,
+                    frequencies=frequencies,
                     sigma_2_e=sigma_2_e,
                     d_coeff=d_coeff,
                     dt=dt,
