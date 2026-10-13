@@ -278,22 +278,36 @@ def plot_periodogram_vs_expected(
 
 def plot_periodogram_histogram(
     periodogram: np.ndarray,
+    frequencies: np.ndarray,
+    sigma_2_e: float,
+    d_coeff: float,
+    dt: float,
     column_label: str,
     output_path: Path,
     file_name: str | None = None,
 ) -> tuple[float, float]:
     """
     Plot a histogram of periodogram values (pooled across patches and
-    frequencies, normalized by their mean) against the theoretical
-    exponential (unit mean) distribution expected for white noise in the
-    DFT frequency domain, large-N limit (Vestergaard et al. 2014, Sec. III B 2),
-    and test goodness-of-fit with a Kolmogorov-Smirnov (K-S) test.
+    frequencies, normalized by their per-frequency expected power spectrum)
+    against the theoretical exponential (unit mean) distribution expected for
+    white noise in the DFT frequency domain, large-N limit (Vestergaard et al.
+    2014, Sec. III B 2), and test goodness-of-fit with a Kolmogorov-Smirnov
+    (K-S) test.
 
     Parameters
     ----------
     periodogram
         Array of shape (num_patches, num_frequencies) containing the DFT-based
         periodogram of the residuals for each patch.
+    frequencies
+        Array of shape (num_frequencies,) containing the DFT frequencies, in
+        units of 1/dt, at which the periodogram was evaluated.
+    sigma_2_e
+        Estimated measurement noise variance.
+    d_coeff
+        Estimated diffusion (drift) coefficient.
+    dt
+        Time step between observations.
     column_label
         Label for the feature being plotted.
     output_path
@@ -304,12 +318,15 @@ def plot_periodogram_histogram(
     Returns
     -------
     :
-        K-S test statistic and p-value. If the p-value is small, then fail to
-        reject the null hypothesis that the data follows the exponential
+        K-S test statistic and p-value. If the p-value is small, then reject
+        the null hypothesis that the data follows the exponential
         distribution.
     """
-    p_k_avg = np.mean(periodogram)
-    normalized_periodogram = periodogram.ravel() / p_k_avg
+    # expected power spectrum is frequency-dependent whenever sigma_2_e > 0,
+    # so each frequency must be normalized separately before pooling
+    p_expected_normed = 1 + sigma_2_e / (d_coeff * dt) * (1 - np.cos(2 * np.pi * frequencies * dt))
+    expected_power = 2 * d_coeff * dt**2 * p_expected_normed
+    normalized_periodogram = (periodogram / expected_power[np.newaxis, :]).ravel()
 
     fig, ax = plt.subplots()
     x = np.linspace(0, 10, 1000)
