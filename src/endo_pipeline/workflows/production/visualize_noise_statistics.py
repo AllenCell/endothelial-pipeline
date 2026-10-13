@@ -207,12 +207,14 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
                 # the (unnormalized) lag-zero variance is recovered from it and the
                 # lag-one correlation, since the saved correlations are normalized
                 # by the lag-zero variance
-                lag_one_correlation = diagonal_stats.loc[
-                    (column_name, 1), Column.NoiseStatistics.CORRELATION
-                ]
-                sigma_2_e = diagonal_stats.loc[
-                    (column_name, 1), Column.NoiseStatistics.MEASUREMENT_NOISE_COVARIANCE
-                ]
+                lag_one_correlation = float(
+                    diagonal_stats.loc[(column_name, 1), Column.NoiseStatistics.CORRELATION]
+                )
+                sigma_2_e = float(
+                    diagonal_stats.loc[
+                        (column_name, 1), Column.NoiseStatistics.MEASUREMENT_NOISE_COVARIANCE
+                    ]
+                )
                 lag_zero_covariance = -sigma_2_e / lag_one_correlation
                 d_coeff = (lag_zero_covariance - 2 * sigma_2_e) / (2 * dt)
 
