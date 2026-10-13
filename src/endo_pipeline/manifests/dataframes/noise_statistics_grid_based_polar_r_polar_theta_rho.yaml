@@ -1,0 +1,129 @@
+name: noise_statistics_grid_based_polar_r_polar_theta_rho
+workflow: compute_noise_statistics
+parameters:
+  model_manifest_name: diffae_baseline
+  run_name: latent_512
+  patch_type: grid_based
+  columns: [polar_theta, polar_r, rho]
+columns: {}
+locations:
+  20250319_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20250319_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20250618_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20250618_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20250813_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20250813_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20251001_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20251001_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20250402_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20250402_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20250409_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20250409_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20250428_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20250428_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20250716_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20250716_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20250604_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20250604_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20260121_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20260121_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20260126_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20260126_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20260209_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20260209_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20260216_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20260216_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20260304_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20260304_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20250326_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20250326_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20260114_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20260114_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20260128_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20260128_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20260202_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20260202_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20260204_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20260204_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20260211_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20260211_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20260225_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20260225_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20260302_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20260302_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20250611_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20250611_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20250908_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20250908_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20251029_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20251029_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20251119_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20251119_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20260309_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20260309_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20260325_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20260325_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20260504_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20260504_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20260506_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-13/compute_noise_statistics/noise_statistics_grid_based_20260506_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null

@@ -3,10 +3,13 @@
 import logging
 from collections.abc import Callable, Sequence
 from enum import StrEnum
+from itertools import combinations_with_replacement
 
 import numpy as np
 import pandas as pd
+from scipy.fft import rfftfreq
 from scipy.optimize import curve_fit
+from scipy.signal import lombscargle
 
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
 from endo_pipeline.library.analyze.numerics.forward_difference import (
@@ -397,6 +400,87 @@ class NoiseCorrelationCentering(StrEnum):
     """Center differences by subtracting the estimated drift component."""
 
 
+def compute_centered_residuals(
+    traj_list: list[pd.DataFrame],
+    d_traj_list: list[pd.DataFrame],
+    column_names: list[str],
+    timepoints_array: np.ndarray,
+    vector_field: Callable,
+    centering_method: NoiseCorrelationCentering,
+) -> np.ndarray:
+    """
+    Build the array of drift-removed residuals eta(t) for every patch.
+
+    The residual is the part of the observed forward difference that is not
+    explained by the deterministic drift, so under the modeling assumption of an
+    Euler-Maruyama discretized SDE it is the realized noise increment. The drift
+    is removed either by subtracting the ensemble mean displacement at each
+    timepoint or by subtracting the drift predicted by the estimated vector
+    field.
+
+    Parameters
+    ----------
+    traj_list
+        List of dataframes containing trajectories for each patch.
+    d_traj_list
+        List of dataframes containing forward differences for each patch.
+    column_names
+        List of feature column names.
+    timepoints_array
+        Array of timepoints to consider.
+    vector_field
+        Callable vector field used to estimate the drift component.
+    centering_method
+        Method used to center the differences.
+
+    Returns
+    -------
+    :
+        Array of shape (num_patches, num_timepoints, num_features) containing
+        the residuals, with NaN at timepoints where a patch has no difference.
+    """
+    n_dim = len(column_names)
+    n_timepoints = timepoints_array.shape[0]
+    n_patches = len(traj_list)
+    diff_column_names = [f"{col}{Column.DiffAEData.DIFFERENCE_SUFFIX}" for col in column_names]
+
+    mean_dx_t = None
+    if centering_method == NoiseCorrelationCentering.MEAN_SUBTRACTED:
+        # Ensemble mean of the forward differences across patches at each timepoint
+        mean_dx_t = (
+            pd.concat(d_traj_list)
+            .groupby(Column.TIMEPOINT)[diff_column_names]
+            .mean()
+            .reindex(timepoints_array)
+            .to_numpy()
+        )
+
+    residuals = np.full((n_patches, n_timepoints, n_dim), np.nan)
+    for patch_index, (filtered_traj, filtered_d_traj) in enumerate(
+        zip(traj_list, d_traj_list, strict=True)
+    ):
+        # Extract the timepoints, values, and differences for this patch
+        patch_timepoints_x_t = filtered_traj[Column.TIMEPOINT].to_numpy()
+        patch_timepoints_dx_t = filtered_d_traj[Column.TIMEPOINT].to_numpy()
+        patch_x_t = filtered_traj[column_names].to_numpy()
+        patch_dx_t = filtered_d_traj[diff_column_names].to_numpy()
+
+        # place this patch's trajectory values and differences on the
+        # shared timepoint axis, leaving NaN at timepoints where the
+        # patch has no difference/value
+        x_t = np.full((n_timepoints, n_dim), np.nan)
+        x_t[np.searchsorted(timepoints_array, patch_timepoints_x_t)] = patch_x_t
+        dx_t = np.full((n_timepoints, n_dim), np.nan)
+        dx_t[np.searchsorted(timepoints_array, patch_timepoints_dx_t)] = patch_dx_t
+
+        if mean_dx_t is not None:
+            residuals[patch_index] = dx_t - mean_dx_t
+        else:
+            residuals[patch_index] = dx_t - vector_field(x_t) * TIME_STEP_IN_HOURS
+
+    return residuals
+
+
 def compute_two_timepoint_noise_correlations(
     traj_list: list[pd.DataFrame],
     d_traj_list: list[pd.DataFrame],
@@ -443,46 +527,20 @@ def compute_two_timepoint_noise_correlations(
     n_timepoints = timepoints_array.shape[0]
     cross_correlations = np.zeros((n_timepoints, n_timepoints, n_dim, n_dim))
     n_points = np.zeros((n_timepoints, n_timepoints))
-    diff_column_names = [f"{col}{Column.DiffAEData.DIFFERENCE_SUFFIX}" for col in column_names]
 
-    if centering_method == NoiseCorrelationCentering.MEAN_SUBTRACTED:
-        # Ensemble mean of the forward differences across patches at each timepoint
-        mean_dx_t = (
-            pd.concat(d_traj_list)
-            .groupby(Column.TIMEPOINT)[diff_column_names]
-            .mean()
-            .reindex(timepoints_array)
-            .to_numpy()
-        )
+    residuals = compute_centered_residuals(
+        traj_list=traj_list,
+        d_traj_list=d_traj_list,
+        column_names=column_names,
+        timepoints_array=timepoints_array,
+        vector_field=vector_field,
+        centering_method=centering_method,
+    )
 
-    for filtered_traj, filtered_d_traj in zip(traj_list, d_traj_list, strict=True):
-        # Extract the timepoints, values, and differences for this patch
-        patch_timepoints_x_t = filtered_traj[Column.TIMEPOINT].to_numpy()
-        patch_timepoints_dx_t = filtered_d_traj[Column.TIMEPOINT].to_numpy()
-        patch_x_t = filtered_traj[column_names].to_numpy()
-        patch_dx_t = filtered_d_traj[diff_column_names].to_numpy()
-
-        # place this patch's trajectory values and differences on the
-        # shared timepoint axis, leaving NaN at timepoints where the
-        # patch has no difference/value
-        x_t = np.full((n_timepoints, n_dim), np.nan)
-        x_t[np.searchsorted(timepoints_array, patch_timepoints_x_t)] = patch_x_t
-        dx_t = np.full((n_timepoints, n_dim), np.nan)
-        dx_t[np.searchsorted(timepoints_array, patch_timepoints_dx_t)] = patch_dx_t
-
-        # To get the cross-correlations of the noise term, we need to separate
-        # out the drift. We can either do this by subtracting the mean
-        # displacement at the timepoint across patches (mean subtracted) or
-        # by subtracting the predicted drift from the vector field (drift subtracted).
-        if centering_method == NoiseCorrelationCentering.MEAN_SUBTRACTED:
-            eta_t = dx_t - mean_dx_t
-        else:
-            f_x_t = vector_field(x_t)
-            eta_t = dx_t - f_x_t * TIME_STEP_IN_HOURS
-
+    for patch_residuals in residuals:
         # mask to valid timepoints
-        is_valid = ~np.isnan(eta_t).any(axis=1)
-        eta_t = np.where(is_valid[:, np.newaxis], eta_t, 0.0)
+        is_valid = ~np.isnan(patch_residuals).any(axis=1)
+        eta_t = np.where(is_valid[:, np.newaxis], patch_residuals, 0.0)
 
         # Compute two timepoint cross correlation: R_ij(t, t') = < eta_i(t) eta_j(t') >
         # Use Einstein summation to efficiently compute this numerically.
@@ -494,3 +552,475 @@ def compute_two_timepoint_noise_correlations(
         cross_correlations /= n_points[:, :, np.newaxis, np.newaxis]
 
     return cross_correlations
+
+
+def compute_lagged_covariances(
+    traj_list: list[pd.DataFrame],
+    d_traj_list: list[pd.DataFrame],
+    column_names: list[str],
+    timepoints_array: np.ndarray,
+    vector_field: Callable,
+    centering_method: NoiseCorrelationCentering,
+    max_lag: int = 10,
+) -> np.ndarray:
+    """
+    Compute pooled lagged covariance matrices of the residuals.
+
+    The covariance at lag ``tau`` is ``R_ij(tau) = < eta_i(t) eta_j(t + tau) >``,
+    pooled over every patch and every timepoint at which both members of the
+    pair are observed. Pairs that straddle a missing timepoint are excluded
+    rather than zero filled, so that gaps in a track do not bias the estimate
+    toward zero.
+
+    Parameters
+    ----------
+    traj_list
+        List of dataframes containing the trajectories for each patch.
+    d_traj_list
+        List of dataframes containing the forward differences of the trajectories.
+    column_names
+        List of column names corresponding to the features in the trajectories.
+    timepoints_array
+        Array of timepoints corresponding to the rows in the trajectory dataframes.
+    vector_field
+        Callable representing the vector field used for centering the residuals.
+    centering_method
+        Method used to center the residuals.
+    max_lag
+        Largest lag, in frames, to evaluate.
+
+    Returns
+    -------
+    :
+        Covariance matrices of shape (max_lag + 1, num_features, num_features).
+    """
+
+    if centering_method not in NoiseCorrelationCentering:
+        logger.error(
+            "Invalid centering method: %s. Must be one of %s.",
+            centering_method,
+            list(NoiseCorrelationCentering),
+        )
+        return
+
+    # Get centered feature displacement residuals
+    n_dim = len(column_names)
+    n_timepoints = timepoints_array.shape[0]
+    max_lag = int(min(max_lag, n_timepoints - 1))
+
+    residuals = compute_centered_residuals(
+        traj_list=traj_list,
+        d_traj_list=d_traj_list,
+        column_names=column_names,
+        timepoints_array=timepoints_array,
+        vector_field=vector_field,
+        centering_method=centering_method,
+    )
+
+    is_valid = ~np.isnan(residuals).any(axis=2)
+    centered = residuals - np.nanmean(residuals, axis=(0, 1))
+    # zero fill so that excluded entries contribute nothing to the sums below
+    centered = np.where(is_valid[..., np.newaxis], centered, 0.0)
+
+    covariances = np.full((max_lag + 1, n_dim, n_dim), np.nan)
+    for lag in range(max_lag + 1):
+        leading = centered[:, : n_timepoints - lag, :]
+        trailing = centered[:, lag:, :]
+        n_pairs = int((is_valid[:, : n_timepoints - lag] & is_valid[:, lag:]).sum())
+        if n_pairs == 0:
+            continue
+        covariances[lag] = np.einsum("pti,ptj->ij", leading, trailing) / n_pairs
+
+    return covariances
+
+
+def normalize_lagged_covariances(covariances: np.ndarray) -> np.ndarray:
+    """Rescale lagged covariances to correlations in [-1, 1]."""
+    sigma = np.sqrt(np.diag(covariances[0]))
+    with np.errstate(divide="ignore", invalid="ignore"):
+        return covariances / np.outer(sigma, sigma)
+
+
+def compute_measurement_noise_variance(covariances: np.ndarray) -> np.ndarray:
+    """
+    Estimate the variance of the independent error on each observed coordinate.
+
+    Independent error enters the forward difference as ``eta(t) = s(t) + e(t +
+    1) - e(t)``, where s(t) is the dynamical noise (true signal) and e(t) is the
+    independent measurement error. The error variance is therefore equal to the
+    the lag-one covariance ``cov(eta(t), eta(t + 1))``. The estimate only has
+    meaning when that covariance is negative, and is reported as NaN otherwise.
+
+    Parameters
+    ----------
+    covariances
+        Lagged covariance matrices of shape (max_lag + 1, num_features,
+        num_features).
+
+    Returns
+    -------
+    :
+        Estimated measurement noise variance for each feature, of shape
+        (num_features,).
+    """
+    if covariances.shape[0] < 2:
+        raise ValueError(
+            "Covariances must have at least two lags to estimate lag-one measurement noise variance."
+        )
+    lag_one_covariance = np.einsum("ii->i", covariances[1])
+    return np.where(lag_one_covariance < 0, lag_one_covariance, np.nan)
+
+
+def compute_noise_statistics_dataframe(
+    traj_list: list[pd.DataFrame],
+    d_traj_list: list[pd.DataFrame],
+    column_names: list[str],
+    timepoints_array: np.ndarray,
+    vector_field: Callable,
+    centering_method: NoiseCorrelationCentering,
+    max_lag: int = 15,
+    metadata_dict: dict[str, str | float] | None = None,
+) -> pd.DataFrame:
+    """
+    Compute a tidy dataframe of noise correlation statistics as a function of lag.
+
+    For each unique pair of features in column_names (including each feature
+    paired with itself), this method computes the normalized noise correlation
+    at every lag from zero to max_lag, along with the estimated lag-one
+    measurement noise covariance for that pair, and saves them in a dataframe
+    with columns for the two feature names, lag, correlation, and measurement
+    noise covariance.
+
+    Parameters
+    ----------
+    traj_list
+        List of dataframes containing the trajectories for each patch.
+    d_traj_list
+        List of dataframes containing the forward differences of the trajectories.
+    column_names
+        List of feature column names for which to compute noise statistics.
+    timepoints_array
+        Array of timepoints corresponding to the rows in the trajectory dataframes.
+    vector_field
+        Callable representing the vector field used for centering the residuals.
+    centering_method
+        Method used to center the residuals.
+    max_lag
+        Largest lag, in frames, to evaluate.
+    metadata_dict
+        Optional dictionary of additional metadata to add as columns to the output
+        dataframe (e.g. dataset name, shear stress).
+    """
+    covariances = compute_lagged_covariances(
+        traj_list=traj_list,
+        d_traj_list=d_traj_list,
+        column_names=column_names,
+        timepoints_array=timepoints_array,
+        vector_field=vector_field,
+        centering_method=centering_method,
+        max_lag=max_lag,
+    )
+    correlations = normalize_lagged_covariances(covariances)
+    measurement_noise_covariance = np.where(covariances[1] < 0, -covariances[1], np.nan)
+
+    num_lags = correlations.shape[0]
+    noise_statistics_dataframe_list = []
+    for feature_index_1, feature_index_2 in combinations_with_replacement(
+        range(len(column_names)), 2
+    ):
+        noise_statistics_dataframe_list.append(
+            pd.DataFrame(
+                {
+                    Column.NoiseStatistics.FEATURE_1: column_names[feature_index_1],
+                    Column.NoiseStatistics.FEATURE_2: column_names[feature_index_2],
+                    Column.NoiseStatistics.LAG: np.arange(num_lags),
+                    Column.NoiseStatistics.CORRELATION: correlations[
+                        :, feature_index_1, feature_index_2
+                    ],
+                    Column.NoiseStatistics.MEASUREMENT_NOISE_COVARIANCE: measurement_noise_covariance[
+                        feature_index_1, feature_index_2
+                    ],
+                }
+            )
+        )
+
+    noise_statistics_dataframe = pd.concat(noise_statistics_dataframe_list, ignore_index=True)
+
+    if metadata_dict is not None:
+        for key in metadata_dict:
+            noise_statistics_dataframe[key] = metadata_dict[key]
+
+    return noise_statistics_dataframe
+
+
+def compute_noise_correlation_function_dataframe(
+    traj_list: list[pd.DataFrame],
+    d_traj_list: list[pd.DataFrame],
+    column_names: list[str],
+    timepoints_array: np.ndarray,
+    vector_field: Callable,
+    centering_method: NoiseCorrelationCentering,
+    metadata_dict: dict[str, str | float] | None = None,
+) -> pd.DataFrame | None:
+    """
+    Compute a tidy dataframe of the full two-timepoint noise correlation function.
+
+    For each unique pair of features in column_names (including each feature
+    paired with itself), this method saves the unnormalized two-timepoint noise
+    correlation R_ij(t, t') (see `compute_two_timepoint_noise_correlations`) for
+    every pair of timepoints, in a dataframe with columns for the two feature
+    names, the two timepoints, and the correlation value.
+
+    Parameters
+    ----------
+    traj_list
+        List of dataframes containing the trajectories for each patch.
+    d_traj_list
+        List of dataframes containing the forward differences of the trajectories.
+    column_names
+        List of feature column names for which to compute the correlation function.
+    timepoints_array
+        Array of timepoints corresponding to the rows in the trajectory dataframes.
+    vector_field
+        Callable representing the vector field used for centering the residuals.
+    centering_method
+        Method used to center the residuals.
+    metadata_dict
+        Optional dictionary of additional metadata to add as columns to the output
+        dataframe (e.g. dataset name, shear stress).
+    """
+    cross_correlations = compute_two_timepoint_noise_correlations(
+        traj_list=traj_list,
+        d_traj_list=d_traj_list,
+        column_names=column_names,
+        timepoints_array=timepoints_array,
+        vector_field=vector_field,
+        centering_method=centering_method,
+    )
+    if cross_correlations is None:
+        return None
+
+    timepoints_1, timepoints_2 = np.meshgrid(timepoints_array, timepoints_array, indexing="ij")
+
+    correlation_function_dataframe_list = []
+    for feature_index_1, feature_index_2 in combinations_with_replacement(
+        range(len(column_names)), 2
+    ):
+        correlation_function_dataframe_list.append(
+            pd.DataFrame(
+                {
+                    Column.NoiseCorrelationFunction.FEATURE_1: column_names[feature_index_1],
+                    Column.NoiseCorrelationFunction.FEATURE_2: column_names[feature_index_2],
+                    Column.NoiseCorrelationFunction.TIMEPOINT_1: timepoints_1.ravel(),
+                    Column.NoiseCorrelationFunction.TIMEPOINT_2: timepoints_2.ravel(),
+                    Column.NoiseCorrelationFunction.CORRELATION: cross_correlations[
+                        :, :, feature_index_1, feature_index_2
+                    ].ravel(),
+                }
+            )
+        )
+
+    correlation_function_dataframe = pd.concat(
+        correlation_function_dataframe_list, ignore_index=True
+    )
+
+    if metadata_dict is not None:
+        for key in metadata_dict:
+            correlation_function_dataframe[key] = metadata_dict[key]
+
+    return correlation_function_dataframe
+
+
+def build_cross_correlations_array_from_dataframe(
+    dataframe: pd.DataFrame, column_names: list[str]
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Reconstruct the full two-timepoint noise correlation array from the tidy
+    dataframe produced by `compute_noise_correlation_function_dataframe`.
+
+    Since R_ij(t, t') = R_ji(t', t), only the unique feature pairs are saved in
+    the dataframe; the missing pairs are filled in here by transposing.
+
+    Parameters
+    ----------
+    dataframe
+        Tidy dataframe of two-timepoint noise correlations, as produced by
+        `compute_noise_correlation_function_dataframe`.
+    column_names
+        List of feature column names, in the order they should appear in the
+        reconstructed array.
+
+    Returns
+    -------
+    :
+        Tuple of the reconstructed cross-correlation array, of shape
+        (num_timepoints, num_timepoints, num_features, num_features), and the
+        sorted array of unique timepoints.
+    """
+    timepoints_array = np.sort(dataframe[Column.NoiseCorrelationFunction.TIMEPOINT_1].unique())
+    n_timepoints = len(timepoints_array)
+    n_dim = len(column_names)
+
+    cross_correlations = np.full((n_timepoints, n_timepoints, n_dim, n_dim), np.nan)
+    for feature_index_1, feature_index_2 in combinations_with_replacement(range(n_dim), 2):
+        pair_dataframe = dataframe[
+            (dataframe[Column.NoiseCorrelationFunction.FEATURE_1] == column_names[feature_index_1])
+            & (
+                dataframe[Column.NoiseCorrelationFunction.FEATURE_2]
+                == column_names[feature_index_2]
+            )
+        ]
+        correlation_matrix = pair_dataframe.pivot(
+            index=Column.NoiseCorrelationFunction.TIMEPOINT_1,
+            columns=Column.NoiseCorrelationFunction.TIMEPOINT_2,
+            values=Column.NoiseCorrelationFunction.CORRELATION,
+        ).to_numpy()
+        cross_correlations[:, :, feature_index_1, feature_index_2] = correlation_matrix
+        cross_correlations[:, :, feature_index_2, feature_index_1] = correlation_matrix.T
+
+    return cross_correlations, timepoints_array
+
+
+MIN_VALID_SAMPLES_FOR_PERIODOGRAM: int = 2
+"""Minimum number of non-missing timepoints a patch needs for its Lomb-Scargle
+periodogram to be defined; patches with fewer are left as NaN."""
+
+
+def compute_lombscargle_periodogram(
+    residuals: np.ndarray,
+    timepoints_array: np.ndarray,
+    dt: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Compute the periodogram of (possibly incomplete) residuals via the
+    Lomb-Scargle periodogram, evaluated at the DFT frequencies of the large-N
+    limit treatment of Vestergaard et al. (2014, Phys. Rev. E 89, 022726, Sec.
+    III B 2).
+
+    Missing timepoints (NaN) are a per-patch subset of valid samples passed
+    directly to `scipy.signal.lombscargle`, rather than filled with zeros:
+    zero-filling biases the periodogram toward lower power in proportion to
+    the fraction of missing data, which can spuriously fail the white-noise
+    goodness-of-fit test. For complete, evenly-sampled data, the classical
+    Lomb-Scargle periodogram (`precenter=True`) is equal to the standard DFT
+    periodogram up to a factor of `dt`, which brings it into the physical
+    units of Eq. (13) of the reference; this also holds with missing data,
+    since Lomb-Scargle normalizes each frequency by the window function of
+    the samples actually present.
+
+    Parameters
+    ----------
+    residuals
+        Array of shape (num_patches, num_timepoints, num_features), with NaN
+        at timepoints where a patch has no difference.
+    timepoints_array
+        Array of shape (num_timepoints,) of the shared timepoint axis, in
+        units of frames (i.e., multiples of `dt`).
+    dt
+        Time step between observations.
+
+    Returns
+    -------
+    :
+        Tuple of the periodogram array, of shape (num_patches, num_frequencies,
+        num_features), and the array of frequencies (units of 1/dt) at which it
+        was evaluated. Patches with fewer than `MIN_VALID_SAMPLES_FOR_PERIODOGRAM`
+        valid timepoints are NaN for every frequency.
+    """
+    n_patches, num_samples, n_dim = residuals.shape
+    # DFT frequencies f_k = k / (N dt) for k = 1, ..., floor(N/2), excluding
+    # the zero-frequency (DC) term removed by drift-centering
+    frequencies = rfftfreq(num_samples, d=dt)[1:]
+    angular_frequencies = 2 * np.pi * frequencies
+    times = timepoints_array * dt
+
+    periodogram = np.full((n_patches, len(frequencies), n_dim), np.nan)
+    for patch_index in range(n_patches):
+        for feature_index in range(n_dim):
+            values = residuals[patch_index, :, feature_index]
+            valid = ~np.isnan(values)
+            if valid.sum() < MIN_VALID_SAMPLES_FOR_PERIODOGRAM:
+                continue
+            power = lombscargle(times[valid], values[valid], angular_frequencies, precenter=True)
+            periodogram[patch_index, :, feature_index] = dt * power
+
+    return periodogram, frequencies
+
+
+def compute_periodogram_dataframe(
+    traj_list: list[pd.DataFrame],
+    d_traj_list: list[pd.DataFrame],
+    column_names: list[str],
+    timepoints_array: np.ndarray,
+    vector_field: Callable,
+    centering_method: NoiseCorrelationCentering,
+    dt: float,
+    metadata_dict: dict[str, str | float] | None = None,
+) -> pd.DataFrame:
+    """
+    Compute a tidy dataframe of the periodogram of the drift-removed residuals
+    for each feature and patch, used to check the noise signature against the
+    expected white-noise power spectrum.
+
+    The periodogram is computed in the frequency domain, following the
+    large-N limit treatment of Vestergaard et al. (2014, Phys. Rev. E 89,
+    022726, Sec. III B 2), rather than the discrete sine transform (DST) mode
+    domain used for finite N. Under the white-noise null hypothesis, the
+    periodogram values normalized by their expected power spectrum are
+    exponentially distributed. See `compute_lombscargle_periodogram` for how
+    missing timepoints are handled.
+
+    Parameters
+    ----------
+    traj_list
+        List of dataframes containing the trajectories for each patch.
+    d_traj_list
+        List of dataframes containing the forward differences of the trajectories.
+    column_names
+        List of feature column names for which to compute the periodogram.
+    timepoints_array
+        Array of timepoints corresponding to the rows in the trajectory dataframes.
+    vector_field
+        Callable representing the vector field used for centering the residuals.
+    centering_method
+        Method used to center the residuals.
+    dt
+        Time step between observations.
+    metadata_dict
+        Optional dictionary of additional metadata to add as columns to the output
+        dataframe (e.g. dataset name, shear stress).
+    """
+    residuals = compute_centered_residuals(
+        traj_list=traj_list,
+        d_traj_list=d_traj_list,
+        column_names=column_names,
+        timepoints_array=timepoints_array,
+        vector_field=vector_field,
+        centering_method=centering_method,
+    )
+    n_patches = residuals.shape[0]
+    periodogram, frequencies = compute_lombscargle_periodogram(residuals, timepoints_array, dt)
+    patch_indices, freq_grid = np.meshgrid(np.arange(n_patches), frequencies, indexing="ij")
+
+    periodogram_dataframe_list = []
+    for i, column_name in enumerate(column_names):
+        feature_dataframe = pd.DataFrame(
+            {
+                Column.Periodogram.FEATURE: column_name,
+                Column.Periodogram.PATCH_INDEX: patch_indices.ravel(),
+                Column.Periodogram.FREQUENCY: freq_grid.ravel(),
+                Column.Periodogram.POWER: periodogram[:, :, i].ravel(),
+            }
+        )
+        # drop patches with too few valid timepoints to define a periodogram
+        periodogram_dataframe_list.append(
+            feature_dataframe.dropna(subset=[Column.Periodogram.POWER])
+        )
+
+    periodogram_dataframe = pd.concat(periodogram_dataframe_list, ignore_index=True)
+
+    if metadata_dict is not None:
+        for key in metadata_dict:
+            periodogram_dataframe[key] = metadata_dict[key]
+
+    return periodogram_dataframe

@@ -1,16 +1,36 @@
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+from scipy.stats import chisquare, expon, kstest
 
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
+
+
+class PeriodogramGoodnessOfFit(NamedTuple):
+    """Container for goodness-of-fit results of the periodogram against Exp(1)."""
+
+    ks_statistic: float
+    """K-S distance between the empirical and Exp(1) CDFs; scale-free effect size."""
+
+    ks_p_value: float
+    """K-S p-value. Invalid as a significance test here: d_coeff and sigma_2_e
+    are fit from the same data, so the null distribution isn't fully specified."""
+
+    chi2_statistic: float
+    """Pearson chi-squared statistic over equiprobable bins."""
+
+    chi2_p_value: float
+    """Chi-squared p-value with ddof=2, accounting for the two fitted parameters."""
 
 
 def plot_noise_amplitude(
@@ -154,3 +174,204 @@ def plot_cross_correlations_against_lag(
             figure_name = file_name or "noise_correlation_vs_tau"
             figure_name = f"{figure_name}_{column_names[i]}_{column_names[j]}"
             save_plot_to_path(fig, output_path, figure_name)
+
+
+def plot_noise_correlation_vs_lag(
+    noise_statistics_dataframe: pd.DataFrame,
+    column_names: list[str],
+    plot_title: str,
+    output_path: Path,
+    file_name: str | None = None,
+) -> None:
+    """
+    Plot the noise correlation as a function of lag directly from the tidy
+    noise statistics dataframe (see `compute_noise_statistics_dataframe`),
+    rather than from the full two-timepoint noise correlation function.
+
+    Parameters
+    ----------
+    noise_statistics_dataframe
+        Tidy dataframe of noise correlation statistics, as produced by
+        `compute_noise_statistics_dataframe`.
+    column_names
+        List of feature column names to plot.
+    plot_title
+        Title for the plot.
+    output_path
+        Directory where the plot will be saved.
+    file_name
+        Optional, specific name of the file to save the plot as.
+    """
+    n_dim = len(column_names)
+    for i in range(n_dim):
+        for j in range(i, n_dim):
+            pair_dataframe = noise_statistics_dataframe[
+                (noise_statistics_dataframe[Column.NoiseStatistics.FEATURE_1] == column_names[i])
+                & (noise_statistics_dataframe[Column.NoiseStatistics.FEATURE_2] == column_names[j])
+            ].sort_values(Column.NoiseStatistics.LAG)
+
+            fig, ax = plt.subplots(figsize=(8, 6))
+            ax.plot(
+                pair_dataframe[Column.NoiseStatistics.LAG],
+                pair_dataframe[Column.NoiseStatistics.CORRELATION],
+                "o-",
+            )
+            ax.axhline(0, color="k", linewidth=0.5, linestyle="--")
+            ax.set_xlabel("Lag")
+            ax.set_ylabel("$R_{{ij}}$")
+            ax.set_ylim(-1.05, 1.05)
+            column_label_i = COLUMN_METADATA[column_names[i]].label or column_names[i]
+            column_label_j = COLUMN_METADATA[column_names[j]].label or column_names[j]
+            ax.set_title(
+                f"{plot_title}\nR_{{ij}} vs lag for (i,j) = ({column_label_i}, {column_label_j})"
+            )
+            figure_name = file_name or "noise_correlation_vs_lag"
+            figure_name = f"{figure_name}_{column_names[i]}_{column_names[j]}"
+            save_plot_to_path(fig, output_path, figure_name)
+
+
+def plot_periodogram_vs_expected(
+    periodogram: np.ndarray,
+    frequencies: np.ndarray,
+    sigma_2_e: float,
+    d_coeff: float,
+    dt: float,
+    column_label: str,
+    output_path: Path,
+    file_name: str | None = None,
+) -> Path:
+    """
+    Plot the mean periodogram of the drift-removed residuals against the
+    expected power spectrum for white noise, in the frequency domain (DFT),
+    following the large-N limit of Vestergaard et al. (2014, Sec. III B 2).
+
+    Parameters
+    ----------
+    periodogram
+        Array of shape (num_patches, num_frequencies) containing the DFT-based
+        periodogram of the residuals for each patch.
+    frequencies
+        Array of shape (num_frequencies,) containing the DFT frequencies, in
+        units of 1/dt, at which the periodogram was evaluated.
+    sigma_2_e
+        Estimated measurement noise variance.
+    d_coeff
+        Estimated diffusion (drift) coefficient.
+    dt
+        Time step between observations.
+    column_label
+        Label for the feature being plotted.
+    output_path
+        Directory where the plot will be saved.
+    file_name
+        Optional, specific name of the file to save the plot as.
+    """
+    periodogram_avg = np.mean(periodogram, axis=0)
+    p_expected_normed = 1 + sigma_2_e / (d_coeff * dt) * (1 - np.cos(2 * np.pi * frequencies * dt))
+
+    fig, ax = plt.subplots()
+    ax.plot(frequencies, periodogram_avg / (2 * d_coeff * dt**2), "r.", label="Periodogram")
+    ax.plot(frequencies, p_expected_normed, "k-", label="White noise")
+    ax.set_xlabel("Frequency $f$")
+    ax.set_ylabel("$S(f)/[D \\Delta t^2]$")
+    ax.set_title(f"Periodogram vs Expected for noise signature in {column_label}")
+    ax.legend()
+    figure_name = file_name or "periodogram_vs_expected"
+    return save_plot_to_path(fig, output_path, figure_name)
+
+
+def plot_periodogram_histogram(
+    periodogram: np.ndarray,
+    frequencies: np.ndarray,
+    sigma_2_e: float,
+    d_coeff: float,
+    dt: float,
+    column_label: str,
+    output_path: Path,
+    file_name: str | None = None,
+) -> PeriodogramGoodnessOfFit:
+    """
+    Plot a histogram of periodogram values (pooled across patches and
+    frequencies, normalized by their per-frequency expected power spectrum)
+    against the theoretical exponential (unit mean) distribution expected for
+    white noise in the DFT frequency domain, large-N limit (Vestergaard et al.
+    2014, Sec. III B 2).
+
+    Goodness-of-fit is reported two ways: the Kolmogorov-Smirnov (K-S)
+    statistic as a sample-size-independent effect size, and a chi-squared
+    test (with ddof=2) as the significance test. A plain K-S p-value is not
+    valid here, since `d_coeff` and `sigma_2_e` are themselves estimated from
+    this same data rather than known a priori, so the null distribution isn't
+    fully specified; the chi-squared test's ddof is reduced by 2 to account
+    for those two fitted parameters.
+
+    Parameters
+    ----------
+    periodogram
+        Array of shape (num_patches, num_frequencies) containing the DFT-based
+        periodogram of the residuals for each patch.
+    frequencies
+        Array of shape (num_frequencies,) containing the DFT frequencies, in
+        units of 1/dt, at which the periodogram was evaluated.
+    sigma_2_e
+        Estimated measurement noise variance.
+    d_coeff
+        Estimated diffusion (drift) coefficient.
+    dt
+        Time step between observations.
+    column_label
+        Label for the feature being plotted.
+    output_path
+        Directory where the plot will be saved.
+    file_name
+        Optional, specific name of the file to save the plot as.
+
+    Returns
+    -------
+    :
+        K-S statistic/p-value and chi-squared statistic/p-value. If the
+        chi-squared p-value is small, reject the null hypothesis that the
+        data follows the exponential distribution.
+    """
+    # Expected power spectrum is frequency-dependent, so compute normalized
+    # periodogram for each frequency before scaling back up and pooling
+    p_expected_normed = 1 + sigma_2_e / (d_coeff * dt) * (1 - np.cos(2 * np.pi * frequencies * dt))
+    expected_power = 2 * d_coeff * dt**2 * p_expected_normed
+    normalized_periodogram = (periodogram / expected_power[np.newaxis, :]).ravel()
+
+    fig, ax = plt.subplots()
+    x = np.linspace(0, 10, 1000)
+    bins = x[::25].tolist()
+    exponential_pdf = expon.pdf(x, scale=1)
+    ax.plot(x, exponential_pdf, "k-", label="Exp(mean=1)")
+    ax.hist(normalized_periodogram, bins=bins, alpha=0.7, label="Periodogram", density=True)
+
+    ks_stat, ks_p_value = kstest(normalized_periodogram, expon(scale=1).cdf)
+
+    # equiprobable bins under Exp(1) so each has the same expected count,
+    # satisfying the chi-squared test's minimum-expected-count assumption
+    n_samples = normalized_periodogram.size
+    n_bins = int(np.clip(n_samples // 20, 5, 20))
+    bin_edges = expon.ppf(np.linspace(0, 1, n_bins + 1), scale=1)
+    observed_counts, _ = np.histogram(normalized_periodogram, bins=bin_edges)
+    chi2_stat, chi2_p_value = chisquare(observed_counts, f_exp=n_samples / n_bins, ddof=2)
+
+    if chi2_p_value < 0.05:
+        print(f"Rejecting null hypothesis for {column_label} with chi2 p={chi2_p_value:.4f}")
+    ax.text(
+        0.5,
+        0.9,
+        f"K-S D = {ks_stat:.3f} (effect size)\n"
+        f"$\\chi^2$ test p-value: {chi2_p_value:.4f} (ddof=2)",
+        transform=ax.transAxes,
+        ha="center",
+    )
+    ax.set_xlabel("Power")
+    ax.set_xlim(0, 10)
+    ax.set_ylabel("Histogram (density)")
+    ax.set_title(f"Periodogram for noise signature in {column_label}")
+    ax.legend()
+    figure_name = file_name or "periodogram_hist"
+    save_plot_to_path(fig, output_path, figure_name)
+
+    return PeriodogramGoodnessOfFit(ks_stat, ks_p_value, chi2_stat, chi2_p_value)

@@ -53,3 +53,30 @@ AUTOCORRELATION_MANIFEST_NAME_PREFIXES: dict[PatchTypeLiteral, str] = {
     "cell_centered": "autocorrelation_cell_centered",
 }
 """Mapping of patch type to autocorrelation dataframe manifest name."""
+
+GRID_BASED_NOISE_STATISTICS_MANIFEST_NAME_PREFIX: str = "noise_statistics_grid_based"
+"""Dataframe manifest name for noise statistics of grid-based features."""
+
+NOISE_STATISTICS_MANIFEST_NAME_PREFIXES: dict[PatchTypeLiteral, str] = {
+    "grid_based": GRID_BASED_NOISE_STATISTICS_MANIFEST_NAME_PREFIX,
+    "cell_centered": "noise_statistics_cell_centered",
+}
+"""Mapping of patch type to noise statistics dataframe manifest name."""
+
+GRID_BASED_NOISE_CORRELATIONS_MANIFEST_NAME_PREFIX: str = "noise_correlation_functions_grid_based"
+"""Extra manifest name for full two-timepoint noise correlation functions of grid-based features."""
+
+NOISE_CORRELATIONS_MANIFEST_NAME_PREFIXES: dict[PatchTypeLiteral, str] = {
+    "grid_based": GRID_BASED_NOISE_CORRELATIONS_MANIFEST_NAME_PREFIX,
+    "cell_centered": "noise_correlation_functions_cell_centered",
+}
+"""Mapping of patch type to two-timepoint noise correlation function extra manifest name."""
+
+GRID_BASED_NOISE_PERIODOGRAM_MANIFEST_NAME_PREFIX: str = "noise_periodograms_grid_based"
+"""Extra manifest name for noise residual periodograms of grid-based features."""
+
+NOISE_PERIODOGRAM_MANIFEST_NAME_PREFIXES: dict[PatchTypeLiteral, str] = {
+    "grid_based": GRID_BASED_NOISE_PERIODOGRAM_MANIFEST_NAME_PREFIX,
+    "cell_centered": "noise_periodograms_cell_centered",
+}
+"""Mapping of patch type to noise residual periodogram extra manifest name."""
