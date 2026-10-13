@@ -226,7 +226,7 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
                     dt=dt,
                     column_label=column_label,
                     output_path=output_path,
-                    file_name=f"{dataset_name_flow}_periodogram_vs_expected_{column_label}",
+                    file_name=f"{dataset_name_flow}_periodogram_vs_expected_{column_name}",
                 )
                 plot_periodogram_histogram(
                     periodogram=periodogram,
@@ -236,7 +236,7 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
                     dt=dt,
                     column_label=column_label,
                     output_path=output_path,
-                    file_name=f"{dataset_name_flow}_periodogram_hist_{column_label}",
+                    file_name=f"{dataset_name_flow}_periodogram_hist_{column_name}",
                 )
 
 
