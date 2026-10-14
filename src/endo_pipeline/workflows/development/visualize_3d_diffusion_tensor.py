@@ -118,7 +118,7 @@ def main(
     mesh_column_names = [ColumnTemplate.MESH_GRID % column for column in column_names]
     num_dimensions = len(column_names)
 
-    # Unique (i, j) entries of the symmetric tensor and their panel titles
+    # Unique (i, j) entries and their panel titles/column names, labeled with i <= j
     entry_pairs = list(combinations_with_replacement(range(num_dimensions), 2))
     entry_labels = [
         f"{Unicode.SIGMA}({column_labels[i]}, {column_labels[j]})" for i, j in entry_pairs
@@ -126,6 +126,9 @@ def main(
     entry_column_names = [
         ColumnTemplate.NOISE_AMPLITUDE % (column_names[i], column_names[j]) for i, j in entry_pairs
     ]
+    # sigma is the lower-triangular Cholesky factor, so the non-trivial entry
+    # for each (i, j) pair with i < j lives at tensor index (j, i), not (i, j).
+    tensor_index_pairs = [(j, i) for i, j in entry_pairs]
     required_columns = [
         *mesh_column_names,
         *entry_column_names,
@@ -213,7 +216,7 @@ def main(
                     slice_axis_index=slice_axis,
                     plot_bounds=bounds_for_plots,
                     slice_steps=grid_points_1d[slice_axis],
-                    entry_pairs=entry_pairs,
+                    entry_pairs=tensor_index_pairs,
                     entry_labels=entry_labels,
                     fig_savedir=stack_savedir,
                     feature_labels=column_labels,
