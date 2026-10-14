@@ -23,6 +23,12 @@ FMS_ANNOTATION_NOTES_STRATONOVICH_VECTOR_FIELD: str = (
 )
 """Annotation notes for Stratonovich-corrected vector field dataframes uploaded to FMS."""
 
+FMS_ANNOTATION_NOTES_STRATONOVICH_FIXED_POINTS: str = (
+    "High-confidence fixed points identified from the Stratonovich (alpha=1/2) "
+    "noise-induced-drift corrected %dD flow field."
+)
+"""Annotation notes for Stratonovich-corrected fixed point dataframes uploaded to FMS."""
+
 
 FMS_ANNOTATION_NOTES_BOOTSTRAPPING: str = (
     "Bootstrapped fixed points from 3D flow field analysis, including "

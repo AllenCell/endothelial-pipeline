@@ -258,3 +258,47 @@ def create_noise_amplitude_vector_field_df(
             noise_amplitude_dataframe[key] = metadata_dict[key]
 
     return noise_amplitude_dataframe
+
+
+def get_reshaped_noise_amplitude_and_grid(
+    noise_amplitude_dataframe: pd.DataFrame,
+    column_names: list[str | Column.DiffAEData],
+) -> tuple[np.ndarray, list[np.ndarray]]:
+    """
+    Reconstruct the noise amplitude tensor field `sigma(x)` and its grid from
+    the wide dataframe produced by `create_noise_amplitude_vector_field_df`.
+
+    Parameters
+    ----------
+    noise_amplitude_dataframe
+        Dataframe containing the noise amplitude tensor field data, with
+        columns for the mesh grid coordinates and the tensor components.
+    column_names
+        List of column names corresponding to the features used for computing
+        the noise amplitude.
+
+    Returns
+    -------
+    :
+        Tuple of the noise amplitude tensor field, shape `(*grid_shape, ndim,
+        ndim)`, and the 1D grid points for each dimension.
+    """
+    ndim = len(column_names)
+    mesh_column_names = [ColumnTemplate.MESH_GRID % name for name in column_names]
+    grid_points_1d = [
+        np.sort(noise_amplitude_dataframe[column_name].unique())
+        for column_name in mesh_column_names
+    ]
+    grid_shape = tuple(len(points) for points in grid_points_1d)
+
+    sigma = np.full((*grid_shape, ndim, ndim), np.nan)
+    for feature_index_1, feature_index_2 in combinations_with_replacement(range(ndim), 2):
+        tensor_column_name = ColumnTemplate.NOISE_AMPLITUDE % (
+            column_names[feature_index_1],
+            column_names[feature_index_2],
+        )
+        values = noise_amplitude_dataframe[tensor_column_name].to_numpy().reshape(grid_shape)
+        sigma[..., feature_index_1, feature_index_2] = values
+        sigma[..., feature_index_2, feature_index_1] = values
+
+    return sigma, grid_points_1d
