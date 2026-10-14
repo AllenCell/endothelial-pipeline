@@ -97,7 +97,7 @@ def main():
             )
 
             # plot the heatmap
-            fig, ax = plt.subplots(figsize=(2.2, 2))
+            fig, ax = plt.subplots(figsize=(3.0, 2.5))
             sns.heatmap(
                 df_agg.pivot(index="bw", columns="kb", values="num_fixedpoints"),
                 cmap="magma",
@@ -158,15 +158,10 @@ def main():
                 df_for_summary_plots[ColumnName.FIXED_POINT_STABILITY] == stability
             ]
             df_for_summary_plots.sort_values(by=["kb", "bw"], inplace=True)
+
             # do a scatterplot of the fixed points at each ML-based feature for each dataset
             fig, axes = plt.subplots(ncols=1, nrows=3, figsize=(6.3, 4.0), sharex=True)
             for col, ax in zip(DYNAMICS_COLUMN_NAMES, axes, strict=True):
-                # err_low_col = ColumnNameTemplate.BOOTSTRAP_CI_LOWER % col
-                # err_high_col = ColumnNameTemplate.BOOTSTRAP_CI_UPPER % col
-                # y_errors = (
-                #     df_for_summary_plots[col] - df_for_summary_plots[err_low_col],
-                #     df_for_summary_plots[err_high_col] - df_for_summary_plots[col],
-                # )
                 ax.scatter(
                     x=df_for_summary_plots["param_combo"],
                     y=df_for_summary_plots[col],
@@ -175,15 +170,6 @@ def main():
                     marker=".",
                     ls="",
                 )
-                # ax.errorbar(
-                #     x=df_for_summary_plots["param_combo"],
-                #     y=df_for_summary_plots[col],
-                #     yerr=y_errors,
-                #     alpha=0.5,
-                #     c="black",
-                #     marker=".",
-                #     ls="",
-                # )
                 column_metadata = COLUMN_METADATA[col]
                 ax.set_ylabel(f"{column_metadata.label_with_unit}$^*$", fontsize=FONTSIZE_SMALL)
                 if col == ColumnName.DiffAEData.POLAR_ANGLE:
@@ -207,7 +193,7 @@ def main():
                 )
 
             axes[-1].set_xticklabels(
-                axes[-1].get_xticklabels(), rotation=45, ha="right", fontsize=FONTSIZE_SMALL
+                axes[-1].get_xticklabels(), rotation=60, ha="right", fontsize=FONTSIZE_SMALL
             )
             axes[-1].set_xlabel("Parameter Combination", fontsize=FONTSIZE_SMALL)
             fig.suptitle(
