@@ -14,6 +14,7 @@ def main(
     mask_threshold: Annotated[
         float | None, Parameter(negative_none="no-")
     ] = HISTOGRAM_THRESHOLD_FOR_MASKING,
+    ito: Annotated[bool, Parameter(negative="--stratonovich")] = True,
 ) -> None:
     """
     Visualize 2D drift vector field and fixed points.
@@ -74,6 +75,9 @@ def main(
     mask_threshold
         Threshold for masking low-confidence regions of drift estimates based on
         histogram of data points. If None, no masking is applied.
+    ito
+        True to visualize the Ito drift vector field, False to visualize
+        Stratonovich-corrected flow field.
     """
 
     import logging
@@ -129,6 +133,8 @@ def main(
     from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
     from endo_pipeline.settings.manifest_names import (
         FIXED_POINT_MANIFEST_NAMES,
+        STRATONOVICH_FIXED_POINT_MANIFEST_NAMES,
+        STRATONOVICH_VECTOR_FIELD_MANIFEST_NAMES,
         VECTOR_FIELD_MANIFEST_NAMES,
     )
     from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
@@ -177,8 +183,18 @@ def main(
 
     # Load drift vector field and fixed points for selected column
     name_suffix = join_sorted_strings(column_names)
-    vector_field_manifest_name = f"{VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{name_suffix}"
-    fixed_points_manifest_name = f"{FIXED_POINT_MANIFEST_NAMES[patch_type]}_{name_suffix}"
+    ito_suffix = "ito" if ito else "stratonovich"
+    if ito:
+        vector_field_manifest_name = f"{VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{name_suffix}"
+        fixed_points_manifest_name = f"{FIXED_POINT_MANIFEST_NAMES[patch_type]}_{name_suffix}"
+    else:
+        vector_field_manifest_name = (
+            f"{STRATONOVICH_VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{name_suffix}"
+        )
+        fixed_points_manifest_name = (
+            f"{STRATONOVICH_FIXED_POINT_MANIFEST_NAMES[patch_type]}_{name_suffix}"
+        )
+
     vector_field_manifest = load_dataframe_manifest(vector_field_manifest_name)
     fixed_points_manifest = load_dataframe_manifest(fixed_points_manifest_name)
 
@@ -292,7 +308,7 @@ def main(
                 axes_titles=contour_axes_titles,
             )
             fig.suptitle(fig_title, y=1.00)
-            figure_name = f"{dataset_name_flow}{name_suffix}_contours"
+            figure_name = f"{dataset_name_flow}_{name_suffix}_{ito_suffix}_contours"
             save_plot_to_path(fig, output_path, figure_name, tight_layout=False, file_format=".png")
 
             # Plot quiver plot of drift and save
@@ -303,7 +319,7 @@ def main(
                 axes_limits=bounds_for_plots,
             )
             fig.suptitle(f"{fig_title} \n drift in ({column_labels[0]}, {column_labels[1]})", y=1.0)
-            figure_name = f"{dataset_name_flow}{name_suffix}_quiver"
+            figure_name = f"{dataset_name_flow}_{name_suffix}_{ito_suffix}_quiver"
             save_plot_to_path(fig, output_path, figure_name, file_format=".png")
 
             if fixed_points_dataframe is not None:
@@ -351,7 +367,7 @@ def main(
                         labels=[stable_fixed_point_handle.get_label()],
                         loc="upper right",
                     )
-                figure_name = f"{dataset_name_flow}{name_suffix}_quiver_fixed_points"
+                figure_name = f"{dataset_name_flow}_{name_suffix}_{ito_suffix}_quiver_fixed_points"
                 save_plot_to_path(fig, output_path, figure_name, file_format=".png")
 
 

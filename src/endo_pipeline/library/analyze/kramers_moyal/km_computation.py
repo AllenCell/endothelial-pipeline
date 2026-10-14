@@ -2,6 +2,7 @@
 
 import logging
 from collections.abc import Callable
+from itertools import combinations_with_replacement
 
 import numpy as np
 from scipy.signal import convolve
@@ -468,6 +469,99 @@ def get_kramers_moyal_coeffs(
     drift, diffusion = _reshape_outputs_to_drift_diffusion_coefficients(ndim, kmc)
 
     return drift, diffusion
+
+
+def _get_covariance_powers(ndim: int) -> np.ndarray:
+    """Generate powers for kernel-weighted conditional second moments `<eta_i eta_j | x>`.
+
+    Row 0 is all zeros (normalization/density, as required by
+    `_convolve_histogram_with_kernel`), and each subsequent row corresponds to
+    one unique `(i, j)` pair from `itertools.combinations_with_replacement`,
+    with power 2 at index `i` for diagonal pairs (`i == j`) and power 1 at both
+    `i` and `j` for off-diagonal pairs.
+    """
+    pair_indices = list(combinations_with_replacement(range(ndim), 2))
+    powers = np.zeros((1 + len(pair_indices), ndim), dtype=int)
+    for row, (i, j) in enumerate(pair_indices, start=1):
+        powers[row, i] += 1
+        powers[row, j] += 1
+    return powers
+
+
+def get_kernel_residual_covariance(
+    positions: np.ndarray,
+    residuals: np.ndarray,
+    bins: list[np.ndarray],
+    kernel: KramersMoyalKernel | list[KramersMoyalKernel],
+) -> np.ndarray:
+    """
+    Kernel-convolution estimate of the conditional residual covariance
+    `<eta(t) eta(t)^T | x(t) = x>`.
+
+    This reuses the same kernel-convolution-based estimator used for the
+    Kramers-Moyal drift/diffusion coefficients (see `get_kramers_moyal_coeffs`),
+    but conditions on already drift-subtracted residuals `eta(t)` (see
+    `compute_centered_residuals`) rather than the raw forward differences.
+    Smoothing with the kernel (instead of a simple per-bin sample average)
+    avoids the sparse/noisy estimates that a direct histogram average produces
+    in bins with few samples.
+
+    Parameters
+    ----------
+    positions
+        Array of shape `(num_samples, ndim)` with the state `x(t)` each
+        residual was observed at.
+    residuals
+        Array of shape `(num_samples, ndim)` with the drift-removed residuals
+        `eta(t)`.
+    bins
+        List of monotonically increasing bin edges for each dimension.
+    kernel
+        Kramers-Moyal kernel or list of kernels (one per dimension) used for
+        the kernel convolution.
+
+    Returns
+    -------
+    :
+        Symmetric covariance tensor field with shape `(*grid_shape, ndim,
+        ndim)`.
+    """
+    ndim = positions.shape[-1]
+    pair_indices = list(combinations_with_replacement(range(ndim), 2))
+    powers = _get_covariance_powers(ndim)
+
+    weights = np.prod(np.power(residuals.T, powers[..., None]), axis=1)
+    hist = histogramdd(positions, bins=bins, weights=weights)
+
+    # Generate centered kernel on larger grid
+    edges_extended = [(e[1] - e[0]) * np.arange(-e.size, e.size + 1) for e in bins]
+    edges_cartesian_prod = get_cartesian_product(edges_extended)
+
+    if isinstance(kernel, list):
+        kernel_eval = _evaluate_multivariate_product_kernel(edges_cartesian_prod, kernel)
+    else:
+        kernel_eval = _evaluate_single_multivariate_kernel(edges_cartesian_prod, kernel)
+
+    kmc = _convolve_histogram_with_kernel(hist, kernel_eval, bins, powers)
+
+    # same axes-permute + transpose recipe as
+    # `_reshape_outputs_to_drift_diffusion_coefficients`, to undo the grid-axis
+    # reordering from `histogramdd`/convolution and drop the density row.
+    axes_permute = [0, *list(reversed(range(1, ndim + 1)))]
+    cov_pairs = np.transpose(kmc, axes_permute)[1:].T
+
+    # `_convolve_histogram_with_kernel` divides every order-2 term by
+    # factorial(2) = 2 (so that the pure-square terms give the Kramers-Moyal
+    # diffusion coefficient directly); undo that here to get the raw second
+    # moment `<eta_i eta_j | x>` expected by `compute_kernel_noise_amplitude`.
+    cov_pairs = cov_pairs * 2.0
+
+    covariance = np.full((*cov_pairs.shape[:-1], ndim, ndim), np.nan)
+    for (i, j), values in zip(pair_indices, np.moveaxis(cov_pairs, -1, 0), strict=True):
+        covariance[..., i, j] = values
+        covariance[..., j, i] = values
+
+    return covariance
 
 
 def get_kernel_density_estimate_from_histogram(

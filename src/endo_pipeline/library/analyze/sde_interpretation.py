@@ -18,107 +18,20 @@ Ito interpretation and `alpha = 1/2` the Stratonovich interpretation.
 """
 
 import logging
+from itertools import combinations_with_replacement
 
 import numpy as np
 import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
+from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
+    get_kernel_residual_covariance,
+)
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
-from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
+from endo_pipeline.library.analyze.vector_field_function import compute_extrapolated_vector_field
 from endo_pipeline.settings.column_names import ColumnName as Column
-
-
-def compute_diffusion_coefficients(
-    dataframe: pd.DataFrame,
-    column_names: list[str | Column.DiffAEData],
-    bins: list[np.ndarray],
-    kernel: KramersMoyalKernel | list[KramersMoyalKernel],
-    time_step: float,
-) -> np.ndarray:
-    """
-    Compute the diffusion coefficient estimates from data.
-
-    Parameters
-    ----------
-    dataframe
-        DataFrame containing the trajectories.
-    column_names
-        List of column names corresponding to the trajectory components.
-    bins
-        List of numpy arrays defining the bin edges for each dimension.
-    kernel
-        Kramers-Moyal kernel or list of kernels to use for coefficient estimation.
-    time_step
-        Time step between consecutive trajectory points.
-
-    Returns
-    -------
-    :
-        Array of diffusion coefficients.
-
-    """
-    # get list of per-crop trajectories, the corresponding
-    # displacement vectors, and time differences
-    traj_list, d_traj_list = get_traj_and_diff(dataframe, column_names)
-
-    # get diffusion tensor estimates in units hours^-1 for each bin in 3D space
-    # (Kramers-Moyal coefficient estimation)
-    diffusion_coeffs = get_kramers_moyal_coeffs(
-        traj_list, d_traj_list, bins=bins, dt=time_step, kernel=kernel
-    )[1]
-
-    # Ensure diffusion_coeffs always has a trailing components dimension
-    # (shape ..., N) so that downstream functions handle the 1D case
-    # (single column) the same as multi-dimensional cases.
-    if diffusion_coeffs.ndim == 1:
-        diffusion_coeffs = diffusion_coeffs[:, np.newaxis]
-
-    return diffusion_coeffs
-
-
-def assemble_symmetric_diffusion_tensor(diffusion_coeffs: np.ndarray, ndim: int) -> np.ndarray:
-    """Assemble the symmetric diffusion tensor field from Kramers-Moyal components.
-
-    The last axis of `diffusion_coeffs` holds the pure second moments in
-    dimension order (`D_00, D_11, ...`) followed by the mixed interaction
-    terms in `i < j` order (`D_01, D_02, ..., D_12, ...`), matching the
-    output ordering of `get_kramers_moyal_coeffs`.
-
-    Parameters
-    ----------
-    diffusion_coeffs
-        Array of Kramers-Moyal diffusion components with shape
-        `(..., ndim * (ndim + 1) // 2)`.
-    ndim
-        Number of feature dimensions.
-
-    Returns
-    -------
-    :
-        Symmetric diffusion tensor field with shape `(..., ndim, ndim)`.
-
-    """
-    n_expected = ndim * (ndim + 1) // 2
-    if diffusion_coeffs.shape[-1] != n_expected:
-        raise ValueError(
-            f"Expected {n_expected} diffusion components for {ndim} dimensions, "
-            f"got {diffusion_coeffs.shape[-1]}."
-        )
-
-    tensor = np.full((*diffusion_coeffs.shape[:-1], ndim, ndim), np.nan)
-    for i in range(ndim):
-        tensor[..., i, i] = diffusion_coeffs[..., i]
-
-    component_index = ndim
-    for i in range(ndim):
-        for j in range(i + 1, ndim):
-            tensor[..., i, j] = diffusion_coeffs[..., component_index]
-            tensor[..., j, i] = diffusion_coeffs[..., component_index]
-            component_index += 1
-
-    return tensor
+from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 
 
 def compute_noise_amplitude(diffusion_tensor: np.ndarray) -> np.ndarray:
@@ -194,48 +107,217 @@ def compute_noise_induced_drift_residual(
     return np.einsum("...kj,...kij->...i", sigma, grad_sigma)
 
 
-def compute_residual_magnitude_ratio(
-    drift_coeffs: np.ndarray,
-    diffusion_coeffs: np.ndarray,
-    centers: list[np.ndarray],
-) -> np.ndarray:
+def extrapolate_noise_amplitude_tensor(sigma: np.ndarray, centers: list[np.ndarray]) -> np.ndarray:
     """
-    Compute the ratio of the magnitude of the noise-induced drift residual to
-    the magnitude of the original drift.
+    Fill NaN entries of the noise amplitude tensor field by interpolation.
 
-    ## Input array shapes
-
-    The input arrays are expected to have the following shapes:
-
-    - `drift_coeffs`: `(..., ndim)`
-    - `diffusion_coeffs`: `(..., ndim * (ndim + 1) // 2)`
-    - `centers`: list of 1D arrays, each of length corresponding to the number
-      of bins in that dimension.
+    Kernel-smoothed noise amplitude estimates are NaN wherever the local data
+    density was too low (see `compute_kernel_noise_amplitude`). Differentiating a
+    field with scattered NaN bins directly (see
+    `compute_noise_induced_drift_residual`) propagates NaN to every
+    neighboring bin via `numpy.gradient`'s central differences, which can turn
+    a sparsely-masked field into an almost entirely NaN one. Filling the NaN
+    bins first, the same way the drift field itself is extrapolated, avoids
+    this cascade.
 
     Parameters
     ----------
-    drift_coeffs
-        Array of Ito-interpretation drift components.
-    diffusion_coeffs
-        Array of Kramers-Moyal diffusion tensorcomponents.
+    sigma
+        Noise amplitude tensor field with shape `(..., ndim, ndim)`.
     centers
-        Bin center arrays for each dimension.
+        Bin centre arrays for each dimension.
 
     Returns
     -------
     :
-        Ratio of the magnitude of the noise-induced drift residual to the
-        magnitude of the original drift, with shape `(..., ndim)`.
-
+        Noise amplitude tensor field with the same shape, with NaN entries
+        filled in by interpolation/extrapolation from the valid entries.
     """
-
     ndim = len(centers)
-    diffusion_tensor = assemble_symmetric_diffusion_tensor(diffusion_coeffs, ndim)
-    sigma = compute_noise_amplitude(diffusion_tensor)
-    noise_induced_drift = compute_noise_induced_drift_residual(sigma, centers)
+    grid_shape = sigma.shape[:-2]
+    sigma_flat = sigma.reshape(*grid_shape, ndim * ndim)
+    filled = compute_extrapolated_vector_field(
+        sigma_flat, centers, method="linear", for_vtk_files=False
+    )
+    return np.stack(filled["vectors"], axis=-1).reshape(*grid_shape, ndim, ndim)
 
-    ratio = np.linalg.norm(noise_induced_drift, axis=-1)
-    with np.errstate(divide="ignore", invalid="ignore"):
-        ratio /= np.linalg.norm(drift_coeffs, axis=-1)
 
-    return ratio
+def compute_kernel_residual_covariance(
+    positions: np.ndarray,
+    residuals: np.ndarray,
+    bins: list[np.ndarray],
+    kernel: KramersMoyalKernel | list[KramersMoyalKernel],
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Compute a kernel-smoothed estimate of the residual autocovariance,
+    `<eta(t) eta(t)^T | x(t) = x>`, conditioned on the state `x(t)`.
+
+    This uses the same kernel-convolution-based estimator as the drift vector
+    field (see `compute_drift_vector_field`), applied to the already
+    drift-removed residuals `eta(t)` (see `compute_centered_residuals`) instead
+    of the raw forward differences, so the per-bin estimate is smoothed over
+    neighboring bins rather than averaged from the (often sparse) samples
+    within a single bin.
+
+    Parameters
+    ----------
+    positions
+        Array of shape `(num_patches, num_timepoints, ndim)` with the state
+        `x(t)` for every patch/timepoint pair, NaN where unobserved.
+    residuals
+        Array of shape `(num_patches, num_timepoints, ndim)` with the
+        drift-removed residuals `eta(t)`, NaN where unobserved.
+    bins
+        List of monotonically increasing bin edges for each dimension of the
+        state space to condition the average on.
+    kernel
+        Kramers-Moyal kernel or list of kernels (one per dimension) used for
+        the kernel convolution, matching the kernel(s) used for the
+        pre-computed drift vector field.
+
+    Returns
+    -------
+    :
+        Tuple of the symmetric kernel-smoothed covariance tensor, shape
+        `(*grid_shape, ndim, ndim)`, and the raw (unsmoothed) number of
+        samples contributing to each bin, shape `(*grid_shape,)`, for
+        diagnostic purposes.
+    """
+    is_valid = ~np.isnan(residuals).any(axis=-1) & ~np.isnan(positions).any(axis=-1)
+    x_valid = positions[is_valid]
+    eta_valid = residuals[is_valid]
+
+    covariance = get_kernel_residual_covariance(x_valid, eta_valid, bins=bins, kernel=kernel)
+    counts = np.histogramdd(x_valid, bins=bins)[0]
+
+    return covariance, counts
+
+
+def compute_kernel_noise_amplitude(covariance: np.ndarray, time_step: float) -> np.ndarray:
+    """
+    Convert a kernel-smoothed residual covariance into the state-dependent
+    noise amplitude `sigma(x)`.
+
+    The covariance `<eta eta^T | x>` is first rescaled into the Kramers-Moyal
+    diffusion tensor `D(x) = <eta eta^T | x> / (2 dt)`, then factored via
+    `compute_noise_amplitude`.
+
+    Parameters
+    ----------
+    covariance
+        Kernel-smoothed residual covariance tensor, shape `(*grid_shape,
+        ndim, ndim)` (see `compute_kernel_residual_covariance`).
+    time_step
+        Time step between consecutive observations.
+
+    Returns
+    -------
+    :
+        Noise amplitude field `sigma(x)`, shape `(*grid_shape, ndim, ndim)`.
+    """
+    diffusion_tensor = covariance / (2.0 * time_step)
+
+    return compute_noise_amplitude(diffusion_tensor)
+
+
+def create_noise_amplitude_vector_field_df(
+    noise_amplitude: np.ndarray,
+    sample_counts: np.ndarray,
+    column_names: list[str | Column.DiffAEData],
+    feature_grid: tuple[np.ndarray, ...],
+    metadata_dict: dict[str, str | float] | None = None,
+) -> pd.DataFrame:
+    """
+    Create dataframe containing the kernel-smoothed noise amplitude tensor
+    field for a single flow condition.
+
+    The output dataframe has columns for the grid points in each dimension
+    (matching the layout of `create_drift_vector_field_df`), the unique
+    entries of the symmetric noise amplitude tensor `sigma_ij(x)`, and the
+    number of residual samples contributing to each grid point.
+
+    Parameters
+    ----------
+    noise_amplitude
+        Noise amplitude tensor field, shape `(*grid_shape, ndim, ndim)`.
+    sample_counts
+        Number of residual samples contributing to each bin, shape
+        `(*grid_shape,)`.
+    column_names
+        List of column names corresponding to the features used for computing
+        the noise amplitude.
+    feature_grid
+        Tuple of ND arrays with the grid points in each dimension, matching
+        `sample_counts.shape`.
+    metadata_dict
+        Optional, dictionary containing metadata to include in the output
+        dataframe (e.g. dataset name, shear stress).
+    """
+    mesh_column_names = [ColumnTemplate.MESH_GRID % name for name in column_names]
+    noise_amplitude_dataframe = pd.DataFrame(columns=[Column.DATASET, *mesh_column_names])
+
+    for mesh_column_name, grid in zip(mesh_column_names, feature_grid, strict=True):
+        noise_amplitude_dataframe[mesh_column_name] = grid.flatten()
+
+    for feature_index_1, feature_index_2 in combinations_with_replacement(
+        range(len(column_names)), 2
+    ):
+        tensor_column_name = ColumnTemplate.NOISE_AMPLITUDE % (
+            column_names[feature_index_1],
+            column_names[feature_index_2],
+        )
+        noise_amplitude_dataframe[tensor_column_name] = noise_amplitude[
+            ..., feature_index_1, feature_index_2
+        ].flatten()
+
+    noise_amplitude_dataframe[Column.NoiseAmplitude.SAMPLE_COUNT] = sample_counts.flatten()
+
+    if metadata_dict is not None:
+        for key in metadata_dict:
+            noise_amplitude_dataframe[key] = metadata_dict[key]
+
+    return noise_amplitude_dataframe
+
+
+def get_reshaped_noise_amplitude_and_grid(
+    noise_amplitude_dataframe: pd.DataFrame,
+    column_names: list[str | Column.DiffAEData],
+) -> tuple[np.ndarray, list[np.ndarray]]:
+    """
+    Reconstruct the noise amplitude tensor field `sigma(x)` and its grid from
+    the wide dataframe produced by `create_noise_amplitude_vector_field_df`.
+
+    Parameters
+    ----------
+    noise_amplitude_dataframe
+        Dataframe containing the noise amplitude tensor field data, with
+        columns for the mesh grid coordinates and the tensor components.
+    column_names
+        List of column names corresponding to the features used for computing
+        the noise amplitude.
+
+    Returns
+    -------
+    :
+        Tuple of the noise amplitude tensor field, shape `(*grid_shape, ndim,
+        ndim)`, and the 1D grid points for each dimension.
+    """
+    ndim = len(column_names)
+    mesh_column_names = [ColumnTemplate.MESH_GRID % name for name in column_names]
+    grid_points_1d = [
+        np.sort(noise_amplitude_dataframe[column_name].unique())
+        for column_name in mesh_column_names
+    ]
+    grid_shape = tuple(len(points) for points in grid_points_1d)
+
+    sigma = np.full((*grid_shape, ndim, ndim), np.nan)
+    for feature_index_1, feature_index_2 in combinations_with_replacement(range(ndim), 2):
+        tensor_column_name = ColumnTemplate.NOISE_AMPLITUDE % (
+            column_names[feature_index_1],
+            column_names[feature_index_2],
+        )
+        values = noise_amplitude_dataframe[tensor_column_name].to_numpy().reshape(grid_shape)
+        sigma[..., feature_index_1, feature_index_2] = values
+        sigma[..., feature_index_2, feature_index_1] = values
+
+    return sigma, grid_points_1d
