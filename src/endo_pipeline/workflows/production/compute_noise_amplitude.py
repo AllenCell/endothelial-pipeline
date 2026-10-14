@@ -19,12 +19,10 @@ def main(
     Kramers-Moyal diffusion tensor estimate, computed on the same grid as the
     pre-computed vector field.
 
-    In addition to the noise amplitude tensor dataframe, this workflow uses
-    `sigma(x)` to assemble the Stratonovich (alpha=1/2) noise-induced drift
-    correction and saves the resulting corrected drift vector field, with the
-    same dataframe structure as the Ito vector field produced by
-    `generate-flow-field`, so that the Ito and Stratonovich fixed points can be
-    compared directly.
+    The resulting `sigma(x)` can be combined with the pre-computed Ito drift to
+    assemble the Stratonovich (alpha=1/2) noise-induced drift correction (see
+    `generate-stratonovich-flow-field`), so that the Ito and Stratonovich fixed
+    points can be compared directly.
 
     #dynamical-systems #correlation-analysis #grid-based #cell-centered #test-ready
 
@@ -96,11 +94,9 @@ def main(
     from endo_pipeline.library.analyze.sde_interpretation import (
         compute_binned_residual_covariance,
         compute_histogram_noise_amplitude,
-        compute_noise_induced_drift_residual,
         create_noise_amplitude_vector_field_df,
     )
     from endo_pipeline.library.analyze.vector_field_estimation import (
-        create_drift_vector_field_df,
         get_valid_flow_field_column_names,
         get_vector_field_as_dict_from_dataframe,
     )
@@ -121,13 +117,9 @@ def main(
         MIN_SAMPLES_PER_NOISE_AMPLITUDE_BIN,
         TIME_STEP_IN_HOURS,
     )
-    from endo_pipeline.settings.flow_field_dataframes import (
-        FMS_ANNOTATION_NOTES_NOISE_AMPLITUDE,
-        FMS_ANNOTATION_NOTES_STRATONOVICH_VECTOR_FIELD,
-    )
+    from endo_pipeline.settings.flow_field_dataframes import FMS_ANNOTATION_NOTES_NOISE_AMPLITUDE
     from endo_pipeline.settings.manifest_names import (
         NOISE_AMPLITUDE_MANIFEST_NAME_PREFIXES,
-        STRATONOVICH_VECTOR_FIELD_MANIFEST_NAMES,
         VECTOR_FIELD_MANIFEST_NAMES,
     )
     from endo_pipeline.settings.workflow_defaults import (
@@ -195,20 +187,6 @@ def main(
     }
     save_dataframe_manifest(noise_amplitude_manifest)
 
-    # Build dataframe manifest for the Stratonovich (alpha=1/2) noise-induced
-    # drift corrected vector field, with the same structure as the Ito vector
-    # field from `generate-flow-field`.
-    stratonovich_name_prefix = STRATONOVICH_VECTOR_FIELD_MANIFEST_NAMES[patch_type]
-    stratonovich_vector_field_manifest_name = f"{stratonovich_name_prefix}_{name_suffix}"
-    stratonovich_vector_field_manifest = create_dataframe_manifest(
-        stratonovich_vector_field_manifest_name, workflow_name=__file__
-    )
-    stratonovich_vector_field_manifest.parameters = {
-        **noise_amplitude_manifest.parameters,
-        "alpha": 0.5,
-    }
-    save_dataframe_manifest(stratonovich_vector_field_manifest)
-
     for dataset_name in dataset_names:
         if dataset_name not in feature_dataframe_manifest.locations:
             logger.warning(
@@ -237,7 +215,6 @@ def main(
 
         # process on a per-flow condition basis
         noise_amplitude_dataframe_list = []
-        stratonovich_vector_field_dataframe_list = []
         for flow_condition in dataset_config.flow_conditions:
             dataset_name_flow = f"{dataset_name}_shear_{flow_condition.shear_stress_bin}"
 
@@ -342,72 +319,38 @@ def main(
                 )
             )
 
-            # Assemble the Stratonovich (alpha=1/2) noise-induced drift
-            # correction from sigma(x) and subtract it from the pre-computed
-            # Ito drift, so the two interpretations can be compared downstream.
-            drift_coeffs = np.stack(vector_field_dict["vectors"], axis=-1)
-            noise_induced_drift = compute_noise_induced_drift_residual(
-                noise_amplitude, grid_points_1d
-            )
-            stratonovich_drift_coeffs = drift_coeffs - 0.5 * noise_induced_drift
-            stratonovich_vector_field_dataframe_list.append(
-                create_drift_vector_field_df(
-                    drift_coeffs=stratonovich_drift_coeffs,
-                    column_names=column_names,
-                    feature_grid=feature_grid,
-                    metadata_dict=metadata_dict,
-                )
-            )
-
         if not noise_amplitude_dataframe_list:
             logger.warning("No noise amplitude tensor computed for [ %s ]. Skipping.", dataset_name)
             continue
 
-        # Concatenate dataframes for each flow condition
+        # Concatenate noise amplitude dataframes for each flow condition
         noise_amplitude_for_dataset = pd.concat(noise_amplitude_dataframe_list, ignore_index=True)
-        stratonovich_vector_field_for_dataset = pd.concat(
-            stratonovich_vector_field_dataframe_list, ignore_index=True
+
+        # Save dataframe to file
+        save_path = (
+            output_path / f"{noise_amplitude_name_prefix}_{dataset_name}_{name_suffix}.parquet"
         )
+        noise_amplitude_for_dataset.to_parquet(save_path, index=False)
 
-        for manifest, dataframe, dataframe_name_prefix, additional_notes in [
-            (
-                noise_amplitude_manifest,
-                noise_amplitude_for_dataset,
-                noise_amplitude_name_prefix,
-                FMS_ANNOTATION_NOTES_NOISE_AMPLITUDE % len(column_names),
-            ),
-            (
-                stratonovich_vector_field_manifest,
-                stratonovich_vector_field_for_dataset,
-                stratonovich_name_prefix,
-                FMS_ANNOTATION_NOTES_STRATONOVICH_VECTOR_FIELD % len(column_names),
-            ),
-        ]:
-            # Save dataframe to file
-            save_path = (
-                output_path / f"{dataframe_name_prefix}_{dataset_name}_{name_suffix}.parquet"
+        # Create location object with output path
+        location = noise_amplitude_manifest.locations.get(dataset_name, DataframeLocation())
+        location.path = save_path
+
+        # Upload to FMS (internal only) and replace local path with file id
+        if UPLOAD_TO_FMS:
+            annotations = build_fms_annotations(
+                dataset_config,
+                model_manifest=load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME),
+                run_name=DEFAULT_MODEL_RUN_NAME,
+                additional_notes=FMS_ANNOTATION_NOTES_NOISE_AMPLITUDE % len(column_names),
             )
-            dataframe.to_parquet(save_path, index=False)
+            fmsid = upload_file_to_fms(save_path, annotations=annotations, file_type="parquet")
+            location.fmsid = fmsid
+            location.path = None
 
-            # Create location object with output path
-            location = manifest.locations.get(dataset_name, DataframeLocation())
-            location.path = save_path
-
-            # Upload to FMS (internal only) and replace local path with file id
-            if UPLOAD_TO_FMS:
-                annotations = build_fms_annotations(
-                    dataset_config,
-                    model_manifest=load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME),
-                    run_name=DEFAULT_MODEL_RUN_NAME,
-                    additional_notes=additional_notes,
-                )
-                fmsid = upload_file_to_fms(save_path, annotations=annotations, file_type="parquet")
-                location.fmsid = fmsid
-                location.path = None
-
-            # Add dataframe location to dataframe manifest and save
-            manifest.locations[dataset_name] = location
-            save_dataframe_manifest(manifest)
+        # Add dataframe location to dataframe manifest and save
+        noise_amplitude_manifest.locations[dataset_name] = location
+        save_dataframe_manifest(noise_amplitude_manifest)
 
 
 if __name__ == "__main__":

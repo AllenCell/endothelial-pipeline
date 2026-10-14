@@ -23,6 +23,15 @@ FIXED_POINT_MANIFEST_NAMES: dict[PatchTypeLiteral, str] = {
 }
 """Mapping of patch type to fixed points dataframe manifest name."""
 
+GRID_BASED_STRATONOVICH_FIXED_POINT_MANIFEST_NAME: str = "stratonovich_fixed_points_grid_based"
+"""Dataframe manifest name for grid-based fixed points of the Stratonovich-corrected vector field."""
+
+STRATONOVICH_FIXED_POINT_MANIFEST_NAMES: dict[PatchTypeLiteral, str] = {
+    "grid_based": GRID_BASED_STRATONOVICH_FIXED_POINT_MANIFEST_NAME,
+    "cell_centered": "stratonovich_fixed_points_cell_centered",
+}
+"""Mapping of patch type to Stratonovich-corrected fixed points dataframe manifest name."""
+
 GRID_BASED_BOOTSTRAPPING_MANIFEST_NAME: str = "bootstrapped_fixed_points_grid_based"
 """Dataframe manifest name for grid-based bootstrapping results."""
 
