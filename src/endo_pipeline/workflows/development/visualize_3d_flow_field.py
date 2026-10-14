@@ -11,7 +11,7 @@ def main(
     use_same_axes: Annotated[bool, Parameter(negative="--use-auto-axes")] = False,
     plot_stack: bool = False,
     compute_vtk: bool = False,
-    ito: bool = True,
+    ito: Annotated[bool, Parameter(negative="--stratonovich")] = True,
 ) -> None:
     """
     Visualize 3D drift vector field and fixed points.
@@ -172,6 +172,7 @@ def main(
 
     # Load drift vector field and fixed points for selected column
     name_suffix = join_sorted_strings(column_names)
+    ito_suffix = "ito" if ito else "stratonovich"
     if ito:
         logger.info("Using Ito vector field manifests.")
         vector_field_manifest_name = f"{VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{name_suffix}"
@@ -377,7 +378,7 @@ def main(
                 plot_stack,
                 output_path,
                 fig_title=fig_title,
-                filename=f"{dataset_name_flow}{name_suffix}",
+                filename=f"{dataset_name_flow}_{name_suffix}_{ito_suffix}",
             )
 
     # finally, if fixed point data is available, then plot the fixed points

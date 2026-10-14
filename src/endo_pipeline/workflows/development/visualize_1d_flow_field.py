@@ -1,3 +1,7 @@
+from typing import Annotated
+
+from cyclopts import Parameter
+
 from endo_pipeline.cli import Datasets, PatchType
 
 
@@ -5,6 +9,7 @@ def main(
     patch_type: PatchType = "grid_based",
     datasets: Datasets | None = None,
     column: str | None = None,
+    ito: Annotated[bool, Parameter(negative="--stratonovich")] = True,
 ) -> None:
     """
     Visualize 1D drift vector field and fixed points.
@@ -57,8 +62,11 @@ def main(
         Patch type used to calculate the features.
     datasets
         List of datasets or dataset collections to visualize.
-    columns
+    column
         Specific column to visualize.
+    ito
+        True to visualize the Ito drift vector field, False to visualize
+        Stratonovich-corrected flow field.
     """
 
     import logging
@@ -97,6 +105,8 @@ def main(
     from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
     from endo_pipeline.settings.manifest_names import (
         FIXED_POINT_MANIFEST_NAMES,
+        STRATONOVICH_FIXED_POINT_MANIFEST_NAMES,
+        STRATONOVICH_VECTOR_FIELD_MANIFEST_NAMES,
         VECTOR_FIELD_MANIFEST_NAMES,
     )
     from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE
@@ -141,8 +151,18 @@ def main(
     ]
 
     # Load drift vector field and fixed points for selected column
-    vector_field_manifest_name = f"{VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{column_name}"
-    fixed_points_manifest_name = f"{FIXED_POINT_MANIFEST_NAMES[patch_type]}_{column_name}"
+    ito_suffix = "ito" if ito else "stratonovich"
+    if ito:
+        vector_field_manifest_name = f"{VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{column_name}"
+        fixed_points_manifest_name = f"{FIXED_POINT_MANIFEST_NAMES[patch_type]}_{column_name}"
+    else:
+        vector_field_manifest_name = (
+            f"{STRATONOVICH_VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{column_name}"
+        )
+        fixed_points_manifest_name = (
+            f"{STRATONOVICH_FIXED_POINT_MANIFEST_NAMES[patch_type]}_{column_name}"
+        )
+
     vector_field_manifest = load_dataframe_manifest(vector_field_manifest_name)
     fixed_points_manifest = load_dataframe_manifest(fixed_points_manifest_name)
 
@@ -207,7 +227,7 @@ def main(
                 zero_line_kwargs={"linestyle": "--", "color": "gray", "linewidth": 1, "alpha": 0.7},
             )
             ax.set_title(fig_title)
-            figure_name = f"{dataset_name_flow}_{column_name}_drift_vector_field"
+            figure_name = f"{dataset_name_flow}_{column_name}_{ito_suffix}_drift_vector_field"
             save_plot_to_path(fig, output_path, figure_name, file_format=".png")
 
             if fixed_points_dataframe is not None:
@@ -228,7 +248,7 @@ def main(
                 )
                 legend_handles = make_legend_handles_for_fixed_pts([StabilityLabel.STABLE])
                 ax.legend(handles=legend_handles, loc="upper right", fontsize="small")
-                figure_name = f"{dataset_name_flow}_{column_name}_stable_fixed_points"
+                figure_name = f"{dataset_name_flow}_{column_name}_{ito_suffix}_stable_fixed_points"
                 save_plot_to_path(fig, output_path, figure_name, file_format=".png")
 
 

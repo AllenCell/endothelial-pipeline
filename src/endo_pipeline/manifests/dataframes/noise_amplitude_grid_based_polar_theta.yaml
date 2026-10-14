@@ -1,0 +1,10 @@
+name: noise_amplitude_grid_based_polar_theta
+workflow: compute_noise_amplitude
+parameters:
+  model_manifest_name: diffae_baseline
+  run_name: latent_512
+  patch_type: grid_based
+  columns: [polar_theta]
+  min_samples_per_bin: 20
+columns: {}
+locations: {}
