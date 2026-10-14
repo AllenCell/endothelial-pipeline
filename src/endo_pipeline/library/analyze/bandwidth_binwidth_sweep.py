@@ -137,12 +137,13 @@ def get_parameter_space() -> list[tuple[float, float]]:
         (bin width, kernel bandwidth) combinations of the parameters used for the sweep.
     """
 
-    # create the parameter space of the broad scaling exponents
-    parameter_space = list(product(SWEEP_BINWIDTHS, SWEEP_KERNEL_BANDWIDTHS))
-
-    # create the parameter space of the narrow scaling exponents
-    parameter_space_narrow = list(product(SWEEP_BINWIDTHS_NARROW, SWEEP_KERNEL_BANDWIDTHS_NARROW))
-    param_space_all = parameter_space = list(set(parameter_space) | set(parameter_space_narrow))
+    # combine the broad and narrow parameter sets
+    sweep_binwidths_all = list(set(SWEEP_BINWIDTHS) | set(SWEEP_BINWIDTHS_NARROW))
+    sweep_kernel_bandwidths_all = list(
+        set(SWEEP_KERNEL_BANDWIDTHS) | set(SWEEP_KERNEL_BANDWIDTHS_NARROW)
+    )
+    # create the full parameter space of all combinations of the bin widths and kernel bandwidths
+    param_space_all = list(product(sweep_binwidths_all, sweep_kernel_bandwidths_all))
 
     return param_space_all
 
