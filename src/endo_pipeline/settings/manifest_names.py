@@ -14,6 +14,15 @@ VECTOR_FIELD_MANIFEST_NAMES: dict[PatchTypeLiteral, str] = {
 }
 """Mapping of patch type to vector field dataframe manifest name."""
 
+GRID_BASED_STRATONOVICH_VECTOR_FIELD_MANIFEST_NAME: str = "stratonovich_vector_field_grid_based"
+"""Dataframe manifest name for the Stratonovich noise-induced-drift corrected vector field, grid-based."""
+
+STRATONOVICH_VECTOR_FIELD_MANIFEST_NAMES: dict[PatchTypeLiteral, str] = {
+    "grid_based": GRID_BASED_STRATONOVICH_VECTOR_FIELD_MANIFEST_NAME,
+    "cell_centered": "stratonovich_vector_field_cell_centered",
+}
+"""Mapping of patch type to Stratonovich-corrected vector field dataframe manifest name."""
+
 
 GRID_BASED_FIXED_POINT_MANIFEST_NAME: str = "drift_fixed_points_grid_based"
 """Dataframe manifest name for grid-based fixed points."""
@@ -80,3 +89,12 @@ NOISE_PERIODOGRAM_MANIFEST_NAME_PREFIXES: dict[PatchTypeLiteral, str] = {
     "cell_centered": "noise_periodograms_cell_centered",
 }
 """Mapping of patch type to noise residual periodogram extra manifest name."""
+
+GRID_BASED_NOISE_AMPLITUDE_MANIFEST_NAME_PREFIX: str = "noise_amplitude_grid_based"
+"""Dataframe manifest name for the histogram-based noise amplitude tensor field of grid-based features."""
+
+NOISE_AMPLITUDE_MANIFEST_NAME_PREFIXES: dict[PatchTypeLiteral, str] = {
+    "grid_based": GRID_BASED_NOISE_AMPLITUDE_MANIFEST_NAME_PREFIX,
+    "cell_centered": "noise_amplitude_cell_centered",
+}
+"""Mapping of patch type to noise amplitude tensor field dataframe manifest name."""

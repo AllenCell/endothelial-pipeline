@@ -12,6 +12,17 @@ FMS_ANNOTATION_NOTES_FIXED_POINTS: str = (
 )
 """Annotation notes for fixed point dataframes uploaded to FMS."""
 
+FMS_ANNOTATION_NOTES_NOISE_AMPLITUDE: str = (
+    "Histogram-based estimate of the state-dependent noise amplitude tensor sigma(x) "
+    "for %dD flow field grid points."
+)
+"""Annotation notes for noise amplitude tensor field dataframes uploaded to FMS."""
+
+FMS_ANNOTATION_NOTES_STRATONOVICH_VECTOR_FIELD: str = (
+    "Stratonovich (alpha=1/2) noise-induced-drift corrected vector field for %dD flow field grid points."
+)
+"""Annotation notes for Stratonovich-corrected vector field dataframes uploaded to FMS."""
+
 
 FMS_ANNOTATION_NOTES_BOOTSTRAPPING: str = (
     "Bootstrapped fixed points from 3D flow field analysis, including "

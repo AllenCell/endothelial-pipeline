@@ -712,6 +712,12 @@ class ColumnName:
         POWER = "power"
         """Periodogram power at the given frequency, for the given patch and feature."""
 
+    class NoiseAmplitude(StrEnum):
+        """Column name suffixes used for the histogram-based noise amplitude tensor field."""
+
+        SAMPLE_COUNT = "sample_count"
+        """Number of residual samples contributing to the noise amplitude estimate at this grid point."""
+
     RANDOM_SEED = "random_seed"
     """Random number generator seed."""
 
@@ -777,6 +783,9 @@ class ColumnNameTemplate(StrEnum):
 
     MESH_GRID = "%s_mesh_grid"
     """Column name template: Vector field mesh grid in %s."""
+
+    NOISE_AMPLITUDE = "%s_%s_noise_amplitude"
+    """Column name template: Component of the histogram-based noise amplitude tensor sigma_ij corresponding to features %s, %s."""
 
     BASELINE_FIXED_POINT = "%s_baseline"
     """Column name template: Baseline fixed point location in %s."""
