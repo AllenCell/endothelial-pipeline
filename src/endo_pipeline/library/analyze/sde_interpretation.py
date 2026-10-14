@@ -25,7 +25,10 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-from endo_pipeline.library.analyze.numerics.binning import histogramdd
+from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
+    get_kernel_residual_covariance,
+)
+from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.vector_field_function import compute_extrapolated_vector_field
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
@@ -108,8 +111,8 @@ def extrapolate_noise_amplitude_tensor(sigma: np.ndarray, centers: list[np.ndarr
     """
     Fill NaN entries of the noise amplitude tensor field by interpolation.
 
-    Histogram-binned noise amplitude estimates are NaN wherever a bin had too
-    few samples (see `compute_histogram_noise_amplitude`). Differentiating a
+    Kernel-smoothed noise amplitude estimates are NaN wherever the local data
+    density was too low (see `compute_kernel_noise_amplitude`). Differentiating a
     field with scattered NaN bins directly (see
     `compute_noise_induced_drift_residual`) propagates NaN to every
     neighboring bin via `numpy.gradient`'s central differences, which can turn
@@ -139,19 +142,22 @@ def extrapolate_noise_amplitude_tensor(sigma: np.ndarray, centers: list[np.ndarr
     return np.stack(filled["vectors"], axis=-1).reshape(*grid_shape, ndim, ndim)
 
 
-def compute_binned_residual_covariance(
+def compute_kernel_residual_covariance(
     positions: np.ndarray,
     residuals: np.ndarray,
     bins: list[np.ndarray],
+    kernel: KramersMoyalKernel | list[KramersMoyalKernel],
 ) -> tuple[np.ndarray, np.ndarray]:
     """
-    Compute a histogram-based average of the residual autocovariance,
+    Compute a kernel-smoothed estimate of the residual autocovariance,
     `<eta(t) eta(t)^T | x(t) = x>`, conditioned on the state `x(t)`.
 
-    Unlike the kernel-convolution-based Kramers-Moyal diffusion estimate, this
-    averages the outer product of already drift-removed residuals (see
-    `compute_centered_residuals`) within each bin using a simple sample mean,
-    with no kernel smoothing.
+    This uses the same kernel-convolution-based estimator as the drift vector
+    field (see `compute_drift_vector_field`), applied to the already
+    drift-removed residuals `eta(t)` (see `compute_centered_residuals`) instead
+    of the raw forward differences, so the per-bin estimate is smoothed over
+    neighboring bins rather than averaged from the (often sparse) samples
+    within a single bin.
 
     Parameters
     ----------
@@ -164,67 +170,45 @@ def compute_binned_residual_covariance(
     bins
         List of monotonically increasing bin edges for each dimension of the
         state space to condition the average on.
+    kernel
+        Kramers-Moyal kernel or list of kernels (one per dimension) used for
+        the kernel convolution, matching the kernel(s) used for the
+        pre-computed drift vector field.
 
     Returns
     -------
     :
-        Tuple of the symmetric binned covariance tensor, shape `(*grid_shape,
-        ndim, ndim)`, and the number of samples contributing to each bin,
-        shape `(*grid_shape,)`.
+        Tuple of the symmetric kernel-smoothed covariance tensor, shape
+        `(*grid_shape, ndim, ndim)`, and the raw (unsmoothed) number of
+        samples contributing to each bin, shape `(*grid_shape,)`, for
+        diagnostic purposes.
     """
-    ndim = positions.shape[-1]
     is_valid = ~np.isnan(residuals).any(axis=-1) & ~np.isnan(positions).any(axis=-1)
     x_valid = positions[is_valid]
     eta_valid = residuals[is_valid]
 
-    # weight each sample by 1 (for the bin counts) and by the product of
-    # residual components for every unique feature pair (for the covariance)
-    pair_indices = list(combinations_with_replacement(range(ndim), 2))
-    weights = np.stack(
-        [np.ones(len(x_valid)), *(eta_valid[:, i] * eta_valid[:, j] for i, j in pair_indices)],
-        axis=0,
-    )
-    hist = histogramdd(x_valid, bins=bins, weights=weights)
-    counts, moment_sums = hist[0], hist[1:]
-
-    with np.errstate(divide="ignore", invalid="ignore"):
-        mean_outer_products = moment_sums / counts
-
-    covariance = np.full((*counts.shape, ndim, ndim), np.nan)
-    for (i, j), values in zip(pair_indices, mean_outer_products, strict=True):
-        covariance[..., i, j] = values
-        covariance[..., j, i] = values
+    covariance = get_kernel_residual_covariance(x_valid, eta_valid, bins=bins, kernel=kernel)
+    counts = np.histogramdd(x_valid, bins=bins)[0]
 
     return covariance, counts
 
 
-def compute_histogram_noise_amplitude(
-    covariance: np.ndarray,
-    counts: np.ndarray,
-    time_step: float,
-    min_samples_per_bin: int = 1,
-) -> np.ndarray:
+def compute_kernel_noise_amplitude(covariance: np.ndarray, time_step: float) -> np.ndarray:
     """
-    Convert a histogram-binned residual covariance into the state-dependent
+    Convert a kernel-smoothed residual covariance into the state-dependent
     noise amplitude `sigma(x)`.
 
     The covariance `<eta eta^T | x>` is first rescaled into the Kramers-Moyal
     diffusion tensor `D(x) = <eta eta^T | x> / (2 dt)`, then factored via
-    `compute_noise_amplitude`. Bins with fewer than `min_samples_per_bin`
-    contributing samples are masked as NaN before factoring, since the sample
-    covariance there is unreliable.
+    `compute_noise_amplitude`.
 
     Parameters
     ----------
     covariance
-        Binned residual covariance tensor, shape `(*grid_shape, ndim, ndim)`
-        (see `compute_binned_residual_covariance`).
-    counts
-        Number of samples contributing to each bin, shape `(*grid_shape,)`.
+        Kernel-smoothed residual covariance tensor, shape `(*grid_shape,
+        ndim, ndim)` (see `compute_kernel_residual_covariance`).
     time_step
         Time step between consecutive observations.
-    min_samples_per_bin
-        Minimum number of samples required for a bin to be considered valid.
 
     Returns
     -------
@@ -232,7 +216,6 @@ def compute_histogram_noise_amplitude(
         Noise amplitude field `sigma(x)`, shape `(*grid_shape, ndim, ndim)`.
     """
     diffusion_tensor = covariance / (2.0 * time_step)
-    diffusion_tensor[counts < min_samples_per_bin] = np.nan
 
     return compute_noise_amplitude(diffusion_tensor)
 
@@ -245,7 +228,7 @@ def create_noise_amplitude_vector_field_df(
     metadata_dict: dict[str, str | float] | None = None,
 ) -> pd.DataFrame:
     """
-    Create dataframe containing the histogram-based noise amplitude tensor
+    Create dataframe containing the kernel-smoothed noise amplitude tensor
     field for a single flow condition.
 
     The output dataframe has columns for the grid points in each dimension

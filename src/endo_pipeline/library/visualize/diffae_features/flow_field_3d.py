@@ -34,7 +34,11 @@ from endo_pipeline.settings.flow_field_3d import (
     CLIP_MAGNITUDES,
     CLIP_MAX_MAGNITUDE_PERCENTILE,
     CLIP_MIN_MAGNITUDE_PERCENTILE,
+    DIFFUSION_TENSOR_CONTOUR_CBAR_NUM_TICKS,
+    DIFFUSION_TENSOR_CONTOUR_COLORMAP,
+    DIFFUSION_TENSOR_CONTOUR_LEVELS,
     FIGSIZE_2D_FLOW_FIELD,
+    FIGSIZE_DIFFUSION_TENSOR_CONTOURS,
     FIGSIZE_FLOW_FIELD_STACK,
     FLOW_FIELD_X_AXIS_LABEL,
     FLOW_FIELD_Y_AXIS_LABELS,
@@ -43,8 +47,10 @@ from endo_pipeline.settings.flow_field_3d import (
     KDE_CONTOUR_OPACITY,
     LOG_NORM_MAGNITUDES,
     NCOLS_2D_FLOW_FIELD,
+    NCOLS_DIFFUSION_TENSOR_CONTOURS,
     NORMALIZE_QUIVER_VECTORS,
     NROWS_2D_FLOW_FIELD,
+    NROWS_DIFFUSION_TENSOR_CONTOURS,
     QUIVER_COLORMAP,
     QUIVER_DOWNSAMPLE_FACTOR,
     QUIVER_VECTOR_SCALE,
@@ -371,6 +377,187 @@ def plot_flow_field_stack(
             fig_savedir,
             f"flow_field_stack_{n}",
         )
+
+
+def plot_diffusion_tensor_contours(
+    meshgrid: tuple[np.ndarray, np.ndarray],
+    tensor_values: np.ndarray,
+    entry_labels: list[str],
+    axes_limits: tuple[tuple[float, float], tuple[float, float]],
+    x_label: str,
+    y_label: str,
+    n_rows: int = NROWS_DIFFUSION_TENSOR_CONTOURS,
+    n_cols: int = NCOLS_DIFFUSION_TENSOR_CONTOURS,
+    figsize: tuple[float, float] = FIGSIZE_DIFFUSION_TENSOR_CONTOURS,
+    colormap: str = DIFFUSION_TENSOR_CONTOUR_COLORMAP,
+    num_levels: int = DIFFUSION_TENSOR_CONTOUR_LEVELS,
+    cbar_num_ticks: int = DIFFUSION_TENSOR_CONTOUR_CBAR_NUM_TICKS,
+) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
+    """Make contour plots of each unique entry of a diffusion/noise amplitude
+    tensor over a single 2D slice of the 3D state space.
+
+    Parameters
+    ----------
+    meshgrid
+        Tuple (x_grid, y_grid) of 2D arrays with the grid coordinates of the
+        slice.
+    tensor_values
+        Tensor entry values evaluated on the slice, with shape
+        ``(nx, ny, len(entry_labels))``.
+    entry_labels
+        Title for each tensor entry panel, e.g. ``"{Unicode.SIGMA}(r, r)"``.
+    axes_limits
+        Tuple of (x_limits, y_limits) shared across all panels.
+    x_label
+        Label for the x-axis, set on the bottom row of panels only.
+    y_label
+        Label for the y-axis, set on the left column of panels only.
+    n_rows
+        Number of rows of entry panels.
+    n_cols
+        Number of columns of entry panels.
+    figsize
+        Size of the figure, specified as a tuple (width, height).
+    colormap
+        Colormap to use for the contour plots.
+    num_levels
+        Number of contour levels to use in each panel.
+    cbar_num_ticks
+        Number of ticks to use in the colorbar for each panel.
+
+    Returns
+    -------
+    :
+        Matplotlib Figure and 2D array of Axes with the contour plots of each
+        tensor entry.
+
+    """
+    fig, ax = plt.subplots(n_rows, n_cols, figsize=figsize, layout="constrained")
+    ax_flat = ax.ravel()
+
+    for entry_index, entry_label in enumerate(entry_labels):
+        values = tensor_values[..., entry_index]
+        if np.all(np.isnan(values)):
+            logger.warning(
+                "Tensor entry '%s' is all-NaN in this slice; skipping panel.", entry_label
+            )
+            ax_flat[entry_index].set_title(entry_label, fontsize=FONTSIZE_MEDIUM)
+            continue
+
+        vmin, vmax = np.nanmin(values), np.nanmax(values)
+        if vmin == vmax:
+            # constant entry over this slice (e.g. an off-diagonal entry that
+            # is exactly zero from the lower-triangular Cholesky factor) -
+            # widen the range so contour levels are strictly increasing
+            padding = 0.5 if vmin == 0 else abs(vmin) * 0.5
+            vmin, vmax = vmin - padding, vmax + padding
+        contour_levels = np.linspace(vmin, vmax, num_levels)
+        contour = ax_flat[entry_index].contourf(
+            meshgrid[0], meshgrid[1], values, levels=contour_levels, cmap=colormap, extend="both"
+        )
+        colorbar_ticks = np.linspace(vmin, vmax, cbar_num_ticks)
+        fig.colorbar(contour, ax=ax_flat[entry_index], ticks=colorbar_ticks, format="%.2f")
+        ax_flat[entry_index].set_title(entry_label, fontsize=FONTSIZE_MEDIUM)
+
+    # hide any unused panels (e.g. fewer entries than n_rows * n_cols)
+    for ax_ in ax_flat[len(entry_labels) :]:
+        ax_.axis("off")
+
+    ax_grid = ax.reshape(n_rows, n_cols)
+    for ax_ in ax_grid[-1, :]:
+        ax_.set_xlabel(x_label, fontsize=FONTSIZE_MEDIUM)
+    for ax_ in ax_grid[:, 0]:
+        ax_.set_ylabel(y_label, fontsize=FONTSIZE_MEDIUM)
+    for ax_ in ax_flat[: len(entry_labels)]:
+        ax_.set_xlim(*axes_limits[0])
+        ax_.set_ylim(*axes_limits[1])
+        ax_.set_aspect("auto", adjustable="box")
+
+    return fig, ax
+
+
+def plot_diffusion_tensor_stack(
+    tensor_field: np.ndarray,
+    meshgrid: tuple[np.ndarray, np.ndarray, np.ndarray],
+    plot_axes_indices: tuple[int, int],
+    slice_axis_index: int,
+    plot_bounds: list[tuple[float, float]],
+    slice_steps: np.ndarray,
+    entry_pairs: list[tuple[int, int]],
+    entry_labels: list[str],
+    fig_savedir: Path,
+    feature_labels: list[str],
+    fig_title: str | None = None,
+) -> None:
+    """Make and save contour plots of diffusion tensor entries over a stack of
+    2D slices taken along one axis of the 3D state space.
+
+    Parameters
+    ----------
+    tensor_field
+        Diffusion/noise amplitude tensor field, with shape
+        ``(*grid_shape, ndim, ndim)``.
+    meshgrid
+        Tuple of 3D arrays (xgrid, ygrid, zgrid) for the full 3D state space,
+        typically obtained from `np.meshgrid(..., indexing="ij")`.
+    plot_axes_indices
+        Tuple (i, j) of feature indices to plot on the x and y axes of each
+        slice.
+    slice_axis_index
+        Index of the feature variable to slice over.
+    plot_bounds
+        List of (min, max) tuples specifying the plot bounds for each feature.
+    slice_steps
+        Grid values along the slicing axis at which to take 2D slices.
+    entry_pairs
+        List of (i, j) index pairs identifying each unique tensor entry, e.g.
+        from `itertools.combinations_with_replacement`.
+    entry_labels
+        Title for each tensor entry panel, matching the order of `entry_pairs`.
+    fig_savedir
+        Directory to save the figures.
+    feature_labels
+        List of labels for each feature variable in the plot.
+    fig_title
+        Optional, title for the figure. If None, no title is set.
+
+    """
+    i, j = plot_axes_indices
+    x_i_grid = meshgrid[i]
+    x_j_grid = meshgrid[j]
+    x_k_grid = meshgrid[slice_axis_index]
+
+    for n, slice_value in enumerate(slice_steps):
+        slice_indexes = get_slice_indexes(x_k_grid, slice_value)
+        my_shape = [len(np.unique(slice_indexes[d])) for d in range(len(slice_indexes))]
+        which_idx = np.where(np.array(my_shape) == 1)[0][0]
+
+        x1_grid = np.take(x_i_grid[slice_indexes].reshape(my_shape), 0, axis=which_idx)
+        x2_grid = np.take(x_j_grid[slice_indexes].reshape(my_shape), 0, axis=which_idx)
+
+        tensor_slice = np.stack(
+            [
+                np.take(tensor_field[..., a, b][slice_indexes].reshape(my_shape), 0, axis=which_idx)
+                for a, b in entry_pairs
+            ],
+            axis=-1,
+        )
+
+        fig, _ = plot_diffusion_tensor_contours(
+            (x1_grid, x2_grid),
+            tensor_slice,
+            entry_labels,
+            axes_limits=(plot_bounds[i], plot_bounds[j]),
+            x_label=feature_labels[i],
+            y_label=feature_labels[j],
+        )
+        title = f"{feature_labels[slice_axis_index]} = {slice_value:.4f}"
+        if fig_title is not None:
+            title = f"{fig_title}\n{title}"
+        fig.suptitle(title, fontsize=FONTSIZE_LARGE, fontfamily=FONT_FAMILY)
+        # figure uses the constrained layout engine (see plot_diffusion_tensor_contours),
+        # which conflicts with save_plot_to_path's default tight_layout call
+        save_plot_to_path(fig, fig_savedir, f"diffusion_tensor_stack_{n}", tight_layout=False)
 
 
 def plot_one_slice_quiver(
