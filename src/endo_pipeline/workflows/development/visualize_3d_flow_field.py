@@ -179,10 +179,10 @@ def main(
     else:
         logger.info("Using Stratonovich vector field manifests.")
         vector_field_manifest_name = (
-            f"{STRATONOVICH_VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{name_suffix}_stratonovich"
+            f"{STRATONOVICH_VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{name_suffix}"
         )
         fixed_points_manifest_name = (
-            f"{STRATONOVICH_FIXED_POINT_MANIFEST_NAMES[patch_type]}_{name_suffix}_stratonovich"
+            f"{STRATONOVICH_FIXED_POINT_MANIFEST_NAMES[patch_type]}_{name_suffix}"
         )
     vector_field_manifest = load_dataframe_manifest(vector_field_manifest_name)
     fixed_points_manifest = load_dataframe_manifest(fixed_points_manifest_name)
