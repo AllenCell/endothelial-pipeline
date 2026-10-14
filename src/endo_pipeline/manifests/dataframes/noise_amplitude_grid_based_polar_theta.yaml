@@ -1,0 +1,22 @@
+name: noise_amplitude_grid_based_polar_theta
+workflow: compute_noise_amplitude
+parameters:
+  model_manifest_name: diffae_baseline
+  run_name: latent_512
+  patch_type: grid_based
+  columns: [polar_theta]
+  kernels:
+  - column: polar_theta
+    name: periodic
+    bandwidth: 0.15
+    period: 3.141592653589793
+columns: {}
+locations:
+  20250409_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-14/compute_noise_amplitude/noise_amplitude_grid_based_20250409_20X_polar_theta.parquet
+    s3uri: null
+  20251001_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-14/compute_noise_amplitude/noise_amplitude_grid_based_20251001_20X_polar_theta.parquet
+    s3uri: null

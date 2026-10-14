@@ -66,6 +66,12 @@ TRAJECTORY_TIME_SPAN: tuple[float, float] = (0.0, 5000.0)
 DIFFUSION_TENSOR_CONTOUR_COLORMAP: str = "viridis"
 """Colormap for diffusion tensor entry contour plots in 3D flow field visualization."""
 
+DIFFUSION_TENSOR_CONTOUR_VMIN: float = 0.0
+"""Fixed minimum colorbar value for diffusion tensor entry contour plots."""
+
+DIFFUSION_TENSOR_CONTOUR_VMAX: float = 0.75
+"""Fixed maximum colorbar value for diffusion tensor entry contour plots."""
+
 DIFFUSION_TENSOR_CONTOUR_LEVELS: int = 25
 """Number of contour levels for diffusion tensor entry contour plots."""
 
