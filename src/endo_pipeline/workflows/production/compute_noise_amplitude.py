@@ -16,9 +16,8 @@ def main(
     (the forward difference minus the drift predicted by the pre-computed
     vector field from `generate-flow-field`), binned by the state `x(t)`.
     This is an independent, non-parametric check of the kernel-convolution-based
-    Kramers-Moyal diffusion tensor estimate used elsewhere (see
-    `compute-noise-residual`), computed on the same grid as the pre-computed
-    vector field.
+    Kramers-Moyal diffusion tensor estimate, computed on the same grid as the
+    pre-computed vector field.
 
     In addition to the noise amplitude tensor dataframe, this workflow uses
     `sigma(x)` to assemble the Stratonovich (alpha=1/2) noise-induced drift
