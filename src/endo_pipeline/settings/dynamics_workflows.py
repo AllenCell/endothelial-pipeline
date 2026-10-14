@@ -123,3 +123,9 @@ Minimum track length (in number of timepoints) to include in analyses of
 long-timescale statistics (e.g., mean squared displacement) in dynamics
 workflows.
 """
+
+MIN_SAMPLES_PER_NOISE_AMPLITUDE_BIN: int = 20
+"""
+Minimum number of residual samples required in a histogram bin for the
+binned noise amplitude tensor estimate to be considered reliable there.
+"""

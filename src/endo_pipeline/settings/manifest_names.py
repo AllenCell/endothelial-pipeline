@@ -61,3 +61,12 @@ NOISE_STATISTICS_MANIFEST_NAME_PREFIXES: dict[PatchTypeLiteral, str] = {
     "cell_centered": "noise_statistics_cell_centered",
 }
 """Mapping of patch type to noise statistics dataframe manifest name."""
+
+GRID_BASED_NOISE_AMPLITUDE_MANIFEST_NAME_PREFIX: str = "noise_amplitude_grid_based"
+"""Dataframe manifest name for the histogram-based noise amplitude tensor field of grid-based features."""
+
+NOISE_AMPLITUDE_MANIFEST_NAME_PREFIXES: dict[PatchTypeLiteral, str] = {
+    "grid_based": GRID_BASED_NOISE_AMPLITUDE_MANIFEST_NAME_PREFIX,
+    "cell_centered": "noise_amplitude_cell_centered",
+}
+"""Mapping of patch type to noise amplitude tensor field dataframe manifest name."""
