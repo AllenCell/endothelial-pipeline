@@ -37,6 +37,8 @@ from endo_pipeline.settings.flow_field_3d import (
     DIFFUSION_TENSOR_CONTOUR_CBAR_NUM_TICKS,
     DIFFUSION_TENSOR_CONTOUR_COLORMAP,
     DIFFUSION_TENSOR_CONTOUR_LEVELS,
+    DIFFUSION_TENSOR_CONTOUR_VMAX,
+    DIFFUSION_TENSOR_CONTOUR_VMIN,
     FIGSIZE_2D_FLOW_FIELD,
     FIGSIZE_DIFFUSION_TENSOR_CONTOURS,
     FIGSIZE_FLOW_FIELD_STACK,
@@ -392,6 +394,8 @@ def plot_diffusion_tensor_contours(
     colormap: str = DIFFUSION_TENSOR_CONTOUR_COLORMAP,
     num_levels: int = DIFFUSION_TENSOR_CONTOUR_LEVELS,
     cbar_num_ticks: int = DIFFUSION_TENSOR_CONTOUR_CBAR_NUM_TICKS,
+    vmin: float = DIFFUSION_TENSOR_CONTOUR_VMIN,
+    vmax: float = DIFFUSION_TENSOR_CONTOUR_VMAX,
 ) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
     """Make contour plots of each unique entry of a diffusion/noise amplitude
     tensor over a single 2D slice of the 3D state space.
@@ -424,6 +428,10 @@ def plot_diffusion_tensor_contours(
         Number of contour levels to use in each panel.
     cbar_num_ticks
         Number of ticks to use in the colorbar for each panel.
+    vmin
+        Fixed minimum colorbar value, shared across all panels.
+    vmax
+        Fixed maximum colorbar value, shared across all panels.
 
     Returns
     -------
@@ -444,13 +452,6 @@ def plot_diffusion_tensor_contours(
             ax_flat[entry_index].set_title(entry_label, fontsize=FONTSIZE_MEDIUM)
             continue
 
-        vmin, vmax = np.nanmin(values), np.nanmax(values)
-        if vmin == vmax:
-            # constant entry over this slice (e.g. an off-diagonal entry that
-            # is exactly zero from the lower-triangular Cholesky factor) -
-            # widen the range so contour levels are strictly increasing
-            padding = 0.5 if vmin == 0 else abs(vmin) * 0.5
-            vmin, vmax = vmin - padding, vmax + padding
         contour_levels = np.linspace(vmin, vmax, num_levels)
         contour = ax_flat[entry_index].contourf(
             meshgrid[0], meshgrid[1], values, levels=contour_levels, cmap=colormap, extend="both"

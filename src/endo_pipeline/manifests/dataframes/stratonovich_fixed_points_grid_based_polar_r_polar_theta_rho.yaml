@@ -15,3 +15,15 @@ locations:
     fmsid: null
     path: /allen/aics/users/erin.angelini/2026-10-14/generate_stratonovich_flow_field/stratonovich_fixed_points_grid_based_20251001_20X_polar_r_polar_theta_rho.parquet
     s3uri: null
+  20250319_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-14/generate_stratonovich_flow_field/stratonovich_fixed_points_grid_based_20250319_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20250618_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-14/generate_stratonovich_flow_field/stratonovich_fixed_points_grid_based_20250618_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
+  20250409_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/2026-10-14/generate_stratonovich_flow_field/stratonovich_fixed_points_grid_based_20250409_20X_polar_r_polar_theta_rho.parquet
+    s3uri: null
