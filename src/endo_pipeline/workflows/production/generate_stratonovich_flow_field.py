@@ -85,6 +85,7 @@ def main(
     from endo_pipeline.library.analyze.numerics.fixed_points import get_fixed_points_within_bounds
     from endo_pipeline.library.analyze.sde_interpretation import (
         compute_noise_induced_drift_residual,
+        extrapolate_noise_amplitude_tensor,
         get_reshaped_noise_amplitude_and_grid,
     )
     from endo_pipeline.library.analyze.vector_field_estimation import (
@@ -262,8 +263,13 @@ def main(
             noise_amplitude, _ = get_reshaped_noise_amplitude_and_grid(
                 noise_amplitude_for_flow_condition, column_names
             )
-            noise_induced_drift = compute_noise_induced_drift_residual(
+            # Fill NaN bins before differentiating, so sparse per-bin estimates
+            # don't cascade into an almost entirely NaN corrected field
+            noise_amplitude_filled = extrapolate_noise_amplitude_tensor(
                 noise_amplitude, grid_points_1d
+            )
+            noise_induced_drift = compute_noise_induced_drift_residual(
+                noise_amplitude_filled, grid_points_1d
             )
             stratonovich_drift_coeffs = drift_coeffs - 0.5 * noise_induced_drift
 

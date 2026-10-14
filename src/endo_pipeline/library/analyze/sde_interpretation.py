@@ -26,6 +26,7 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 from endo_pipeline.library.analyze.numerics.binning import histogramdd
+from endo_pipeline.library.analyze.vector_field_function import compute_extrapolated_vector_field
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 
@@ -101,6 +102,41 @@ def compute_noise_induced_drift_residual(
     )
 
     return np.einsum("...kj,...kij->...i", sigma, grad_sigma)
+
+
+def extrapolate_noise_amplitude_tensor(sigma: np.ndarray, centers: list[np.ndarray]) -> np.ndarray:
+    """
+    Fill NaN entries of the noise amplitude tensor field by interpolation.
+
+    Histogram-binned noise amplitude estimates are NaN wherever a bin had too
+    few samples (see `compute_histogram_noise_amplitude`). Differentiating a
+    field with scattered NaN bins directly (see
+    `compute_noise_induced_drift_residual`) propagates NaN to every
+    neighboring bin via `numpy.gradient`'s central differences, which can turn
+    a sparsely-masked field into an almost entirely NaN one. Filling the NaN
+    bins first, the same way the drift field itself is extrapolated, avoids
+    this cascade.
+
+    Parameters
+    ----------
+    sigma
+        Noise amplitude tensor field with shape `(..., ndim, ndim)`.
+    centers
+        Bin centre arrays for each dimension.
+
+    Returns
+    -------
+    :
+        Noise amplitude tensor field with the same shape, with NaN entries
+        filled in by interpolation/extrapolation from the valid entries.
+    """
+    ndim = len(centers)
+    grid_shape = sigma.shape[:-2]
+    sigma_flat = sigma.reshape(*grid_shape, ndim * ndim)
+    filled = compute_extrapolated_vector_field(
+        sigma_flat, centers, method="linear", for_vtk_files=False
+    )
+    return np.stack(filled["vectors"], axis=-1).reshape(*grid_shape, ndim, ndim)
 
 
 def compute_binned_residual_covariance(
