@@ -24,20 +24,20 @@ parameters:
 columns: {}
 locations:
   20250618_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-09/generate_flow_field/drift_vector_field_grid_based_20250618_20X_polar_r_polar_theta_rho_latent_512_bw0pt025_kb1pt2.parquet
+    fmsid: daa53dd5133941f8a42d213e56c111d1
+    path: null
     s3uri: null
   20250319_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-09/generate_flow_field/drift_vector_field_grid_based_20250319_20X_polar_r_polar_theta_rho_latent_512_bw0pt025_kb1pt2.parquet
+    fmsid: c8639b8761d24747b2bf0e669619afe7
+    path: null
     s3uri: null
   20260304_20X:
     fmsid: 204a130d89d34150b5f7e3d90c7ffc15
     path: null
     s3uri: null
   20250611_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-09/generate_flow_field/drift_vector_field_grid_based_20250611_20X_polar_r_polar_theta_rho_latent_512_bw0pt025_kb1pt2.parquet
+    fmsid: 5f4659a729084013ae62199062d1a0e0
+    path: null
     s3uri: null
   20250618_20X-20250611_20X:
     fmsid: e335cafc9fff4a04b0e14ec76cb00b98

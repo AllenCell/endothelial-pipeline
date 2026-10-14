@@ -24,8 +24,8 @@ parameters:
 columns: {}
 locations:
   20250618_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-09/generate_flow_field/drift_vector_field_grid_based_20250618_20X_polar_r_polar_theta_rho_latent_512_bw0pt4_kb0pt3.parquet
+    fmsid: 9f3c6171dad1477bba57494b68e58d56
+    path: null
     s3uri: null
   20250319_20X:
     fmsid: 6be4defce5a44b359dff4b0c36fd6222
