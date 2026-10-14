@@ -11,6 +11,7 @@ def main(
     use_same_axes: Annotated[bool, Parameter(negative="--use-auto-axes")] = False,
     plot_stack: bool = False,
     compute_vtk: bool = False,
+    ito: bool = True,
 ) -> None:
     """
     Visualize 3D drift vector field and fixed points.
@@ -18,9 +19,9 @@ def main(
     #dynamical-systems #grid-based #cell-centered #visualization #test-ready
 
     This workflow uses the precomputed drift vector field and fixed points
-    output by the `generate_flow_field` workflow, run for all three column names.
-    Make sure to run that workflow with the matching patch type and column
-    names before visualizing.
+    output by the `generate_flow_field` workflow, run for all three column
+    names. Make sure to run that workflow with the matching patch type and
+    column names before visualizing.
 
     Visualization outputs include:
 
@@ -37,15 +38,11 @@ def main(
 
     To run the workflow in demo mode:
 
-    ```bash
-    uv run endopipe visualize-3d-flow-field -d
-    ```
+    ```bash uv run endopipe visualize-3d-flow-field -d ```
 
     To run the workflow for a single dataset:
 
-    ```bash
-    uv run endopipe visualize-3d-flow-field --datasets DATASET_NAME
-    ```
+    ```bash uv run endopipe visualize-3d-flow-field --datasets DATASET_NAME ```
 
     ## Dataset collection
 
@@ -70,6 +67,9 @@ def main(
         variables, False otherwise.
     compute_vtk
         True to compute and save VTK files for 3D flow fields, False otherwise.
+    ito
+        True to visualize the Ito drift vector field, False to visualize
+        Stratonovich-corrected flow field.
     """
 
     import logging
@@ -124,6 +124,8 @@ def main(
     from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
     from endo_pipeline.settings.manifest_names import (
         FIXED_POINT_MANIFEST_NAMES,
+        STRATONOVICH_FIXED_POINT_MANIFEST_NAMES,
+        STRATONOVICH_VECTOR_FIELD_MANIFEST_NAMES,
         VECTOR_FIELD_MANIFEST_NAMES,
     )
     from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
@@ -170,8 +172,18 @@ def main(
 
     # Load drift vector field and fixed points for selected column
     name_suffix = join_sorted_strings(column_names)
-    vector_field_manifest_name = f"{VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{name_suffix}"
-    fixed_points_manifest_name = f"{FIXED_POINT_MANIFEST_NAMES[patch_type]}_{name_suffix}"
+    if ito:
+        logger.info("Using Ito vector field manifests.")
+        vector_field_manifest_name = f"{VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{name_suffix}"
+        fixed_points_manifest_name = f"{FIXED_POINT_MANIFEST_NAMES[patch_type]}_{name_suffix}"
+    else:
+        logger.info("Using Stratonovich vector field manifests.")
+        vector_field_manifest_name = (
+            f"{STRATONOVICH_VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{name_suffix}_stratonovich"
+        )
+        fixed_points_manifest_name = (
+            f"{STRATONOVICH_FIXED_POINT_MANIFEST_NAMES[patch_type]}_{name_suffix}_stratonovich"
+        )
     vector_field_manifest = load_dataframe_manifest(vector_field_manifest_name)
     fixed_points_manifest = load_dataframe_manifest(fixed_points_manifest_name)
 
