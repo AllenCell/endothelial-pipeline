@@ -62,3 +62,21 @@ INIT_POINT_3D: tuple[float, float, float] = (1.5, 0.2, -0.5)
 
 TRAJECTORY_TIME_SPAN: tuple[float, float] = (0.0, 5000.0)
 """Default time span for ODE solver in 3D flow field trajectory visualization."""
+
+DIFFUSION_TENSOR_CONTOUR_COLORMAP: str = "viridis"
+"""Colormap for diffusion tensor entry contour plots in 3D flow field visualization."""
+
+DIFFUSION_TENSOR_CONTOUR_LEVELS: int = 25
+"""Number of contour levels for diffusion tensor entry contour plots."""
+
+DIFFUSION_TENSOR_CONTOUR_CBAR_NUM_TICKS: int = 5
+"""Number of colorbar ticks for diffusion tensor entry contour plots."""
+
+NROWS_DIFFUSION_TENSOR_CONTOURS: int = 2
+"""Number of rows of entry panels for the diffusion tensor contour figure (3D state space)."""
+
+NCOLS_DIFFUSION_TENSOR_CONTOURS: int = 3
+"""Number of columns of entry panels for the diffusion tensor contour figure (3D state space)."""
+
+FIGSIZE_DIFFUSION_TENSOR_CONTOURS: tuple[int, int] = (13, 8)
+"""Figure size for the diffusion tensor entry contour figure."""

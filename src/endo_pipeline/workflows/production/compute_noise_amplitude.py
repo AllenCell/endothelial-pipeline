@@ -8,16 +8,16 @@ def main(
 ) -> None:
     """
     Compute the state-dependent noise amplitude tensor sigma(x) from a
-    histogram-based average of the residual autocovariance.
+    kernel-smoothed average of the residual autocovariance.
 
-    This workflow estimates `sigma(x)` directly from
-    `<eta(t) eta(t)^T | x(t) = x>`, a simple histogram average (no kernel
-    smoothing) of the outer product of the drift-removed residuals `eta(t)`
-    (the forward difference minus the drift predicted by the pre-computed
-    vector field from `generate-flow-field`), binned by the state `x(t)`.
-    This is an independent, non-parametric check of the kernel-convolution-based
-    Kramers-Moyal diffusion tensor estimate, computed on the same grid as the
-    pre-computed vector field.
+    This workflow estimates `sigma(x)` from `<eta(t) eta(t)^T | x(t) = x>`,
+    using the same kernel-convolution-based Kramers-Moyal estimator as the
+    drift vector field (see `generate-flow-field`), but applied to the
+    drift-removed residuals `eta(t)` (the forward difference minus the drift
+    predicted by the pre-computed vector field) instead of the raw forward
+    differences. Smoothing with the kernel, rather than a simple per-bin
+    sample average, avoids the sparse/noisy estimates that a direct histogram
+    average produces in bins with few residual samples.
 
     The resulting `sigma(x)` can be combined with the pre-computed Ito drift to
     assemble the Stratonovich (alpha=1/2) noise-induced drift correction (see
@@ -83,6 +83,7 @@ def main(
         filter_dataframe_to_flow_condition_by_timepoint,
         filter_dataframe_to_steady_state,
     )
+    from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
         add_track_duration_to_dataframe,
     )
@@ -92,8 +93,8 @@ def main(
         get_trajectories_and_differences_for_noise_correlations,
     )
     from endo_pipeline.library.analyze.sde_interpretation import (
-        compute_binned_residual_covariance,
-        compute_histogram_noise_amplitude,
+        compute_kernel_noise_amplitude,
+        compute_kernel_residual_covariance,
         create_noise_amplitude_vector_field_df,
     )
     from endo_pipeline.library.analyze.vector_field_estimation import (
@@ -112,9 +113,11 @@ def main(
     from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
     from endo_pipeline.settings.dynamics_workflows import (
         BIN_WIDTHS_DYNAMICS,
+        KERNEL_BANDWIDTHS_DYNAMICS,
+        KERNEL_NAMES_DYNAMICS,
+        KERNEL_PERIODS_DYNAMICS,
         LONG_TRACK_THRESHOLD_LENGTH,
         METADATA_COLUMNS_TO_KEEP,
-        MIN_SAMPLES_PER_NOISE_AMPLITUDE_BIN,
         TIME_STEP_IN_HOURS,
     )
     from endo_pipeline.settings.flow_field_dataframes import FMS_ANNOTATION_NOTES_NOISE_AMPLITUDE
@@ -160,6 +163,17 @@ def main(
     mesh_column_names = [ColumnTemplate.MESH_GRID % name for name in column_names]
     bin_widths = [BIN_WIDTHS_DYNAMICS[column_name] for column_name in column_names]
 
+    # Build kernels for each selected column, matching the kernels used to
+    # generate the pre-computed drift vector field.
+    kernels: list[KramersMoyalKernel] = [
+        KramersMoyalKernel(
+            name=KERNEL_NAMES_DYNAMICS[column_name],
+            bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_name],
+            period=KERNEL_PERIODS_DYNAMICS[column_name],
+        )
+        for column_name in column_names
+    ]
+
     # Load feature dataframe for specified patch type
     feature_dataframe_manifest_name = FEATURES_FILTERED_MANIFEST_NAMES[patch_type]
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
@@ -183,7 +197,15 @@ def main(
         "run_name": DEFAULT_MODEL_RUN_NAME,
         "patch_type": patch_type,
         "columns": [f"{column}" for column in column_names],
-        "min_samples_per_bin": MIN_SAMPLES_PER_NOISE_AMPLITUDE_BIN,
+        "kernels": [
+            {
+                "column": str(column),
+                "name": kernel.name,
+                "bandwidth": kernel.bandwidth,
+                "period": kernel.period,
+            }
+            for column, kernel in zip(column_names, kernels, strict=False)
+        ],
     }
     save_dataframe_manifest(noise_amplitude_manifest)
 
@@ -292,16 +314,14 @@ def main(
                 return_positions=True,
             )
 
-            # Histogram-based average of <eta(t) eta(t)^T | x(t) = x>, and the
+            # Kernel-smoothed average of <eta(t) eta(t)^T | x(t) = x>, and the
             # corresponding noise amplitude tensor sigma(x)
-            covariance, sample_counts = compute_binned_residual_covariance(
-                positions=positions, residuals=residuals, bins=bin_edges
+            covariance, sample_counts = compute_kernel_residual_covariance(
+                positions=positions, residuals=residuals, bins=bin_edges, kernel=kernels
             )
-            noise_amplitude = compute_histogram_noise_amplitude(
+            noise_amplitude = compute_kernel_noise_amplitude(
                 covariance=covariance,
-                counts=sample_counts,
                 time_step=TIME_STEP_IN_HOURS,
-                min_samples_per_bin=MIN_SAMPLES_PER_NOISE_AMPLITUDE_BIN,
             )
 
             feature_grid = np.meshgrid(*grid_points_1d, indexing="ij")
