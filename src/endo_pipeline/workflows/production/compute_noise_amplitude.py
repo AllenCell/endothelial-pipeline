@@ -105,8 +105,8 @@ def main(
         get_trajectories_and_differences_for_noise_correlations,
     )
     from endo_pipeline.library.analyze.sde_interpretation import (
-        compute_kernel_noise_amplitude,
         compute_kernel_residual_covariance,
+        compute_noise_amplitude,
         create_noise_amplitude_vector_field_df,
     )
     from endo_pipeline.library.analyze.vector_field_estimation import (
@@ -340,14 +340,13 @@ def main(
                 column_names=column_names,
                 timepoints_array=timepoints_array,
                 vector_field=vector_field,
-                centering_method=NoiseCorrelationCentering.MEAN_SUBTRACTED,
+                centering_method=NoiseCorrelationCentering.DRIFT_SUBTRACTED,
                 max_lag=1,
             )
             corrected_covariance = covariance + 2.0 * lagged_covariances[1]
 
-            noise_amplitude = compute_kernel_noise_amplitude(
-                covariance=corrected_covariance,
-                time_step=TIME_STEP_IN_HOURS,
+            noise_amplitude = compute_noise_amplitude(
+                sigma_squared_tensor=corrected_covariance / TIME_STEP_IN_HOURS,
             )
 
             feature_grid = np.meshgrid(*grid_points_1d, indexing="ij")
