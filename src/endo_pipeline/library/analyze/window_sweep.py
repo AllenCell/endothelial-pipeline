@@ -10,6 +10,7 @@ recomputing the flow-field fixed points at each position.
 
 import logging
 import os
+from dataclasses import dataclass
 from enum import StrEnum
 
 import numpy as np
@@ -45,7 +46,49 @@ BLAS_THREAD_ENV_VARS = (
 """BLAS thread environment variables to cap the number of threads used by
 linear-algebra backends."""
 
-_worker_state: dict = {}
+
+@dataclass
+class WorkerState:
+    """Per-worker state set once by initializer."""
+
+    df: pd.DataFrame
+    """Dataframe containing the data for the current window."""
+
+    lower_by_row: pd.Series
+    """Lower bound of the analysis window for each row."""
+
+    upper_by_row: pd.Series
+    """Upper bound of the analysis window for each row."""
+
+    swept_boundary: str
+    """Which edge of the analysis window is being swept."""
+
+    dataset_config: DatasetConfig
+    """Dataset configuration for the dataset being processed."""
+
+    dataset_name: str
+    """Name of the dataset."""
+
+    column_names: list
+    """List of feature column names used in the analysis."""
+
+    bin_widths: list
+    """List of bin widths for the grid used in vector field estimation."""
+
+    kernels: list
+    """List of kernels used for vector field estimation."""
+
+    num_bootstrap_iterations: int
+    """Number of bootstrap iterations to perform."""
+
+    bootstrap_match_radius: float
+    """Match radius for bootstrap fixed points."""
+
+    random_seed: int
+    """Random seed for reproducibility."""
+
+
+_worker_state: WorkerState | None = None
 """Global state shared across tasks in a worker, set once by the initializer."""
 
 
@@ -64,15 +107,15 @@ def init_window_worker(
     lower_by_row: pd.Series,
     upper_by_row: pd.Series,
     swept_boundary: str,
-    dataset_config,
+    dataset_config: DatasetConfig,
     dataset_name: str,
     column_names: list,
     bin_widths: list,
     kernels: list,
     blas_threads_per_worker: int,
-    num_bootstrap_iterations: int = 0,
-    bootstrap_match_radius: float = 0.0,
-    random_seed: int = 0,
+    num_bootstrap_iterations: int,
+    bootstrap_match_radius: float,
+    random_seed: int,
 ) -> None:
     """
     Populate ``_worker_state`` once per worker process (pool initializer).
@@ -110,7 +153,8 @@ def init_window_worker(
     for env_var in BLAS_THREAD_ENV_VARS:
         os.environ[env_var] = str(blas_threads_per_worker)
 
-    _worker_state.update(
+    global _worker_state
+    _worker_state = WorkerState(
         df=df,
         lower_by_row=lower_by_row,
         upper_by_row=upper_by_row,
@@ -226,24 +270,27 @@ def compute_fixed_points_for_edge(edge_timepoint: int) -> tuple[int, int, list[p
     timepoint, the number of pooled window rows, and a list of fixed-point
     dataframes (one per flow condition that produced any).
     """
-    df = _worker_state["df"]
-    swept_boundary = _worker_state["swept_boundary"]
-    dataset_config = _worker_state["dataset_config"]
-    dataset_name = _worker_state["dataset_name"]
-    column_names = _worker_state["column_names"]
-    num_bootstrap_iterations = _worker_state.get("num_bootstrap_iterations", 0)
-    bootstrap_match_radius = _worker_state.get("bootstrap_match_radius", 0.0)
+    assert (
+        _worker_state is not None
+    ), "init_window_worker must run before compute_fixed_points_for_edge"
+    df = _worker_state.df
+    swept_boundary = _worker_state.swept_boundary
+    dataset_config = _worker_state.dataset_config
+    dataset_name = _worker_state.dataset_name
+    column_names = _worker_state.column_names
+    num_bootstrap_iterations = _worker_state.num_bootstrap_iterations
+    bootstrap_match_radius = _worker_state.bootstrap_match_radius
     # Per-edge RNG so bootstrap resampling is reproducible and independent
     # across the parallel edge positions.
-    rng = np.random.default_rng(_worker_state.get("random_seed", 0) + edge_timepoint)
+    rng = np.random.default_rng(_worker_state.random_seed + edge_timepoint)
 
     if swept_boundary == SweptBoundary.START_STEADY_STATE:
         # Steady-state start swept; cell piling (upper) held per position.
         lower_by_row = edge_timepoint
-        upper_by_row = _worker_state["upper_by_row"]
+        upper_by_row = _worker_state.upper_by_row
     elif swept_boundary == SweptBoundary.START_CELL_PILING:
         # Cell-piling boundary swept; steady-state onset (lower) held per position.
-        lower_by_row = _worker_state["lower_by_row"]
+        lower_by_row = _worker_state.lower_by_row
         upper_by_row = edge_timepoint
     else:
         raise ValueError(f"Unexpected swept boundary: {swept_boundary}")
@@ -278,8 +325,8 @@ def compute_fixed_points_for_edge(edge_timepoint: int) -> tuple[int, int, list[p
         _, fixed_points_dataframe = get_drift_estimates_and_fixed_points(
             dataframe=df_flow,
             column_names=column_names,
-            bin_widths=_worker_state["bin_widths"],
-            kernel=_worker_state["kernels"],
+            bin_widths=_worker_state.bin_widths,
+            kernel=_worker_state.kernels,
             time_step=TIME_STEP_IN_HOURS,
             metadata_dict=metadata_dict,
         )
@@ -293,8 +340,8 @@ def compute_fixed_points_for_edge(edge_timepoint: int) -> tuple[int, int, list[p
             df_flow=df_flow,
             baseline_fixed_points=fixed_points_dataframe,
             column_names=column_names,
-            bin_widths=_worker_state["bin_widths"],
-            kernels=_worker_state["kernels"],
+            bin_widths=_worker_state.bin_widths,
+            kernels=_worker_state.kernels,
             num_bootstrap_iterations=num_bootstrap_iterations,
             bootstrap_match_radius=bootstrap_match_radius,
             rng=rng,
