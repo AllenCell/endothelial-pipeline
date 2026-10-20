@@ -19,17 +19,6 @@ def main(
     sample average, avoids the sparse/noisy estimates that a direct histogram
     average produces in bins with few residual samples.
 
-    The kernel-smoothed covariance `R(x) = <eta(t) eta(t)^T | x(t) = x>` is
-    corrected for independent measurement error before being converted to
-    `sigma(x)`, via `sigma(x) sigma(x)^T = (1/dt) [R(x) + 2 K(dt)]`, where
-    `K(dt)` is the pooled (not state-conditioned) lag-one covariance of the
-    residuals, computed the same way as the diagnostic reported by
-    `compute-noise-statistics` (see `compute_lagged_covariances`). Under the
-    additive-measurement-error model `eta(t) = s(t) + e(t + dt) - e(t)` (`s`
-    the true dynamical noise increment, `e` iid-in-time measurement error),
-    `K(dt) = -Sigma_e` exactly in expectation, so adding `2 K(dt)` removes the
-    `2 Sigma_e` bias that measurement error otherwise adds to `R(x)`.
-
     The resulting `sigma(x)` can be combined with the pre-computed Ito drift to
     assemble the Stratonovich (alpha=1/2) noise-induced drift correction (see
     `generate-stratonovich-flow-field`), so that the Ito and Stratonovich fixed
@@ -101,7 +90,6 @@ def main(
     from endo_pipeline.library.analyze.numerics.correlations import (
         NoiseCorrelationCentering,
         compute_centered_residuals,
-        compute_lagged_covariances,
         get_trajectories_and_differences_for_noise_correlations,
     )
     from endo_pipeline.library.analyze.sde_interpretation import (
@@ -331,22 +319,8 @@ def main(
                 positions=positions, residuals=residuals, bins=bin_edges, kernel=kernels
             )
 
-            # Pooled (not state-conditioned) lag-one covariance K(dt), computed
-            # the same way as the diagnostic reported by compute-noise-statistics,
-            # used to correct R(x) for independent measurement error.
-            lagged_covariances = compute_lagged_covariances(
-                traj_list=traj_list,
-                d_traj_list=d_traj_list,
-                column_names=column_names,
-                timepoints_array=timepoints_array,
-                vector_field=vector_field,
-                centering_method=NoiseCorrelationCentering.DRIFT_SUBTRACTED,
-                max_lag=1,
-            )
-            corrected_covariance = covariance + 2.0 * lagged_covariances[1]
-
             noise_amplitude = compute_noise_amplitude(
-                sigma_squared_tensor=corrected_covariance / TIME_STEP_IN_HOURS,
+                sigma_squared_tensor=covariance / TIME_STEP_IN_HOURS,
             )
 
             feature_grid = np.meshgrid(*grid_points_1d, indexing="ij")

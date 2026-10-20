@@ -22,25 +22,25 @@ columns: {}
 locations:
   20250319_20X:
     fmsid: null
-    path: /allen/aics/users/erin.angelini/2026-10-19/compute_noise_amplitude/noise_amplitude_grid_based_20250319_20X_polar_r_polar_theta_rho.parquet
+    path: /allen/aics/users/erin.angelini/2026-10-20/compute_noise_amplitude/noise_amplitude_grid_based_20250319_20X_polar_r_polar_theta_rho.parquet
     s3uri: null
   20250409_20X:
     fmsid: null
-    path: /allen/aics/users/erin.angelini/2026-10-19/compute_noise_amplitude/noise_amplitude_grid_based_20250409_20X_polar_r_polar_theta_rho.parquet
+    path: /allen/aics/users/erin.angelini/2026-10-20/compute_noise_amplitude/noise_amplitude_grid_based_20250409_20X_polar_r_polar_theta_rho.parquet
     s3uri: null
   20251001_20X:
     fmsid: null
-    path: /allen/aics/users/erin.angelini/2026-10-19/compute_noise_amplitude/noise_amplitude_grid_based_20251001_20X_polar_r_polar_theta_rho.parquet
+    path: /allen/aics/users/erin.angelini/2026-10-20/compute_noise_amplitude/noise_amplitude_grid_based_20251001_20X_polar_r_polar_theta_rho.parquet
     s3uri: null
   20250604_20X:
     fmsid: null
-    path: /allen/aics/users/erin.angelini/2026-10-19/compute_noise_amplitude/noise_amplitude_grid_based_20250604_20X_polar_r_polar_theta_rho.parquet
+    path: /allen/aics/users/erin.angelini/2026-10-20/compute_noise_amplitude/noise_amplitude_grid_based_20250604_20X_polar_r_polar_theta_rho.parquet
     s3uri: null
   20250813_20X:
     fmsid: null
-    path: /allen/aics/users/erin.angelini/2026-10-19/compute_noise_amplitude/noise_amplitude_grid_based_20250813_20X_polar_r_polar_theta_rho.parquet
+    path: /allen/aics/users/erin.angelini/2026-10-20/compute_noise_amplitude/noise_amplitude_grid_based_20250813_20X_polar_r_polar_theta_rho.parquet
     s3uri: null
   20251029_20X:
     fmsid: null
-    path: /allen/aics/users/erin.angelini/2026-10-19/compute_noise_amplitude/noise_amplitude_grid_based_20251029_20X_polar_r_polar_theta_rho.parquet
+    path: /allen/aics/users/erin.angelini/2026-10-20/compute_noise_amplitude/noise_amplitude_grid_based_20251029_20X_polar_r_polar_theta_rho.parquet
     s3uri: null
