@@ -13,17 +13,7 @@ import pandas as pd
 from endo_pipeline.cli import DEMO_MODE
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
-from endo_pipeline.library.analyze.window_sweep import (
-    DETECTION_RATE,
-    SHEAR_STRESS_BIN,
-    WINDOW_EDGE_MINUTES,
-)
-from endo_pipeline.library.visualize.window_sweep_plots import (
-    MINUTES_PER_HOUR,
-    WINDOW_EDGE_HOURS,
-    plot_num_timepoints,
-    plot_sweep,
-)
+from endo_pipeline.library.visualize.window_sweep_plots import plot_num_timepoints, plot_sweep
 from endo_pipeline.manifests import list_datasets_with_dataframes, load_dataframe_manifest
 from endo_pipeline.settings.bootstrap_fixed_points import BOOTSTRAP_THRESHOLD
 from endo_pipeline.settings.column_names import ColumnName as Column
@@ -61,23 +51,25 @@ for boundary, manifest_name in MANIFEST_NAMES.items():
         df = load_dataframe(manifest.locations[dataset_name])
         # Keep only higher-confidence fixed points (same threshold the other
         # fixed-point workflows use).
-        if DETECTION_RATE not in df.columns:
+        if Column.FIXED_POINT_DETECTION_RATE not in df.columns:
             logger.warning(
                 "'%s' column missing for %s / %s (pre-bootstrap output?); skipping. "
                 "Re-run `endopipe sweep-window-fixed-points` for this dataset.",
-                DETECTION_RATE,
+                Column.FIXED_POINT_DETECTION_RATE,
                 dataset_name,
                 boundary,
             )
             continue
-        df = df[df[DETECTION_RATE] >= BOOTSTRAP_THRESHOLD]
-        df[WINDOW_EDGE_HOURS] = df[WINDOW_EDGE_MINUTES] / MINUTES_PER_HOUR
+        df = df[df[Column.FIXED_POINT_DETECTION_RATE] >= BOOTSTRAP_THRESHOLD]
+        df[Column.SteadyStateWindow.WINDOW_EDGE_HOURS] = (
+            df[Column.SteadyStateWindow.WINDOW_EDGE_MINUTES] / 60
+        )
         frames[boundary][dataset_name] = df
 
 # Both boundaries share the same absolute-time edge grid so a single x-axis
 # range keeps the steady-state and cell-piling plots on the same scale.
 x_max_hours = max(
-    float(df[WINDOW_EDGE_HOURS].max())
+    float(df[Column.SteadyStateWindow.WINDOW_EDGE_HOURS].max())
     for boundary_frames in frames.values()
     for df in boundary_frames.values()
 )
@@ -105,7 +97,7 @@ for dataset_name in list_datasets_with_dataframes(baseline_manifest):
     )
     config = load_dataset_config(dataset_name)
     bin_by_stress = {fc.shear_stress: fc.shear_stress_bin for fc in config.flow_conditions}
-    baseline_df[SHEAR_STRESS_BIN] = baseline_df[Column.SHEAR_STRESS].map(bin_by_stress)
+    baseline_df[Column.SHEAR_STRESS_BIN] = baseline_df[Column.SHEAR_STRESS].map(bin_by_stress)
     baseline_frames[dataset_name] = baseline_df
 
 # %% plot

@@ -34,14 +34,6 @@ from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
 
 logger = logging.getLogger(__name__)
 
-# Output column names.
-WINDOW_EDGE_TIMEPOINT = "window_edge_timepoint"  # absolute movie timepoint of swept edge
-WINDOW_EDGE_MINUTES = "window_edge_minutes"
-SWEPT_BOUNDARY = "swept_boundary"  # which edge moved
-SHEAR_STRESS_BIN = "shear_stress_bin"
-NUM_WINDOW_TIMEPOINTS = "num_window_timepoints"  # rows pooled across all FOVs
-DETECTION_RATE = Column.FIXED_POINT_DETECTION_RATE  # bootstrap detection rate per fixed point
-
 # Which edge of the analysis window is swept.
 START_STEADY_STATE = "start_steady_state"  # lower bound; cell piling fixed
 START_CELL_PILING = "start_cell_piling"  # upper bound; steady-state onset fixed
@@ -279,7 +271,7 @@ def compute_fixed_points_for_edge(edge_timepoint: int) -> tuple[int, int, list[p
         metadata_dict: dict[str, str | float] = {
             Column.DATASET: dataset_name,
             Column.SHEAR_STRESS: flow_condition.shear_stress,
-            SHEAR_STRESS_BIN: flow_condition.shear_stress_bin,
+            Column.SHEAR_STRESS_BIN: flow_condition.shear_stress_bin,
         }
         _, fixed_points_dataframe = get_drift_estimates_and_fixed_points(
             dataframe=df_flow,
@@ -295,7 +287,7 @@ def compute_fixed_points_for_edge(edge_timepoint: int) -> tuple[int, int, list[p
         # Bootstrap the window to score each fixed point's reliability. Left
         # unfiltered here; downstream can threshold on `detection_rate` (paper
         # convention: > 0.4).
-        fixed_points_dataframe[DETECTION_RATE] = compute_window_detection_rates(
+        fixed_points_dataframe[Column.FIXED_POINT_DETECTION_RATE] = compute_window_detection_rates(
             df_flow=df_flow,
             baseline_fixed_points=fixed_points_dataframe,
             column_names=column_names,
@@ -306,9 +298,9 @@ def compute_fixed_points_for_edge(edge_timepoint: int) -> tuple[int, int, list[p
             rng=rng,
         )
 
-        fixed_points_dataframe[WINDOW_EDGE_TIMEPOINT] = edge_timepoint
-        fixed_points_dataframe[SWEPT_BOUNDARY] = swept_boundary
-        fixed_points_dataframe[NUM_WINDOW_TIMEPOINTS] = len(df_flow)
+        fixed_points_dataframe[Column.SteadyStateWindow.WINDOW_EDGE_TIMEPOINT] = edge_timepoint
+        fixed_points_dataframe[Column.SteadyStateWindow.SWEPT_BOUNDARY] = swept_boundary
+        fixed_points_dataframe[Column.SteadyStateWindow.NUM_WINDOW_TIMEPOINTS] = len(df_flow)
         results.append(fixed_points_dataframe)
 
     return edge_timepoint, len(df_swept), results

@@ -43,6 +43,9 @@ class ColumnName:
     SHEAR_STRESS = "shear_stress"
     """Shear stress value [dyn/cm^2]."""
 
+    SHEAR_STRESS_BIN = "shear_stress_bin"
+    """Shear stress bin corresponding to flow condition."""
+
     SHEAR_STRESS_REGIME = "shear_stress_regime"
     """Experimentalist categorization of the shear stress response."""
 
@@ -660,6 +663,24 @@ class ColumnName:
 
         EXPONENTIAL_FIT = "exponential_fit"
         """Values of exponential decay curve fit to autocorrelation function."""
+
+    class SteadyStateWindow(StrEnum):
+        """Column names used for steady state window sweep."""
+
+        WINDOW_EDGE_TIMEPOINT = "window_edge_timepoint"
+        """Absolute frame number of swept edge."""
+
+        WINDOW_EDGE_MINUTES = "window_edge_minutes"
+        """Time in minutes of swept edge."""
+
+        WINDOW_EDGE_HOURS = "window_edge_hours"
+        """Time in hours of swept edge."""
+
+        SWEPT_BOUNDARY = "swept_boundary"
+        """Which edge moved."""
+
+        NUM_WINDOW_TIMEPOINTS = "num_window_timepoints"
+        """Number of window timepoints (rows pooled across all FOVs)."""
 
     RANDOM_SEED = "random_seed"
     """Random number generator seed."""

@@ -11,11 +11,6 @@ from endo_pipeline.configs import (
     get_start_of_steady_state_for_position,
     load_dataset_config,
 )
-from endo_pipeline.library.analyze.window_sweep import (
-    NUM_WINDOW_TIMEPOINTS,
-    SHEAR_STRESS_BIN,
-    WINDOW_EDGE_TIMEPOINT,
-)
 from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.library.visualize.figure_4 import wrap_theta_for_vector_field_vis
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
@@ -28,10 +23,6 @@ from endo_pipeline.settings.dynamics_workflows import (
 )
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, VECTOR_FIELD_THETA_RANGE
-
-# Derived column added for plotting (swept edge position in movie-time hours).
-WINDOW_EDGE_HOURS = "window_edge_hours"
-MINUTES_PER_HOUR = 60
 
 # Fixed-point coordinate columns, one per swept dynamics dimension.
 FIXED_POINT_COLUMNS = {
@@ -171,7 +162,7 @@ def draw_baseline_fixed_points(
         # Match the paper: wrap theta fixed points into the vector-field range.
         if column_name == Column.DiffAEData.POLAR_ANGLE:
             y_value = float(wrap_theta_for_paper(pd.Series([y_value])).iloc[0])
-        color = shear_colors.get(row.get(SHEAR_STRESS_BIN), "black")
+        color = shear_colors.get(row.get(Column.SHEAR_STRESS_BIN), "black")
         ax.axhline(
             y_value,
             color=color,
@@ -224,7 +215,7 @@ def plot_sweep(
     if stable_only:
         dataset_df = dataset_df[dataset_df[Column.FIXED_POINT_STABILITY] == StabilityLabel.STABLE]
 
-    shear_bins = sorted(dataset_df[SHEAR_STRESS_BIN].dropna().unique())
+    shear_bins = sorted(dataset_df[Column.SHEAR_STRESS_BIN].dropna().unique())
     cmap = plt.get_cmap("viridis", max(len(shear_bins), 1))
     shear_colors = {shear_bin: cmap(i) for i, shear_bin in enumerate(shear_bins)}
 
@@ -241,7 +232,7 @@ def plot_sweep(
         axes, FIXED_POINT_COLUMNS.items(), strict=False
     ):
         for shear_bin in shear_bins:
-            shear_df = dataset_df[dataset_df[SHEAR_STRESS_BIN] == shear_bin]
+            shear_df = dataset_df[dataset_df[Column.SHEAR_STRESS_BIN] == shear_bin]
             for stability, style in FIXED_POINT_PLOT_STYLE.items():
                 subset = shear_df[shear_df[Column.FIXED_POINT_STABILITY] == stability]
                 if subset.empty:
@@ -251,7 +242,7 @@ def plot_sweep(
                 if column_name == Column.DiffAEData.POLAR_ANGLE:
                     y_values = wrap_theta_for_paper(y_values)
                 ax.scatter(
-                    subset[WINDOW_EDGE_HOURS],
+                    subset[Column.SteadyStateWindow.WINDOW_EDGE_HOURS],
                     y_values,
                     marker=style.marker,
                     s=style.markersize,
@@ -358,7 +349,7 @@ def plot_num_timepoints(
     if stable_only:
         dataset_df = dataset_df[dataset_df[Column.FIXED_POINT_STABILITY] == StabilityLabel.STABLE]
 
-    shear_bins = sorted(dataset_df[SHEAR_STRESS_BIN].dropna().unique())
+    shear_bins = sorted(dataset_df[Column.SHEAR_STRESS_BIN].dropna().unique())
     cmap = plt.get_cmap("viridis", max(len(shear_bins), 1))
     shear_colors = {shear_bin: cmap(i) for i, shear_bin in enumerate(shear_bins)}
 
@@ -368,13 +359,13 @@ def plot_num_timepoints(
         # One row per (edge position, shear bin): the count is identical across
         # the fixed points found for that condition, so drop duplicates.
         counts = (
-            dataset_df[dataset_df[SHEAR_STRESS_BIN] == shear_bin]
-            .drop_duplicates(subset=WINDOW_EDGE_TIMEPOINT)
-            .sort_values(WINDOW_EDGE_HOURS)
+            dataset_df[dataset_df[Column.SHEAR_STRESS_BIN] == shear_bin]
+            .drop_duplicates(subset=Column.SteadyStateWindow.WINDOW_EDGE_TIMEPOINT)
+            .sort_values(Column.SteadyStateWindow.WINDOW_EDGE_HOURS)
         )
         ax.plot(
-            counts[WINDOW_EDGE_HOURS],
-            counts[NUM_WINDOW_TIMEPOINTS],
+            counts[Column.SteadyStateWindow.WINDOW_EDGE_HOURS],
+            counts[Column.SteadyStateWindow.NUM_WINDOW_TIMEPOINTS],
             marker="o",
             color=shear_colors[shear_bin],
             label=f"{int(shear_bin)} dyn/cm²",

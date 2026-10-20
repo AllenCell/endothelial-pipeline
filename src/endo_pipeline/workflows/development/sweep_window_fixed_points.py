@@ -48,8 +48,6 @@ def main(
     from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_annotations
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.window_sweep import (
-        WINDOW_EDGE_MINUTES,
-        WINDOW_EDGE_TIMEPOINT,
         WINDOW_SWEEP_MANIFEST_NAMES,
         build_window_anchors,
         build_window_edge_grid,
@@ -239,8 +237,8 @@ def main(
                 continue
 
             sweep_results = pd.concat(sweep_fixed_points, ignore_index=True)
-            sweep_results[WINDOW_EDGE_MINUTES] = (
-                sweep_results[WINDOW_EDGE_TIMEPOINT] * TIME_STEP_IN_MINUTES
+            sweep_results[Column.SteadyStateWindow.WINDOW_EDGE_MINUTES] = (
+                sweep_results[Column.SteadyStateWindow.WINDOW_EDGE_TIMEPOINT] * TIME_STEP_IN_MINUTES
             )
 
             save_path = (
@@ -251,7 +249,7 @@ def main(
             logger.info(
                 "Saved %d fixed point(s) across %d edge position(s) to [ %s ].",
                 len(sweep_results),
-                sweep_results[WINDOW_EDGE_TIMEPOINT].nunique(),
+                sweep_results[Column.SteadyStateWindow.WINDOW_EDGE_TIMEPOINT].nunique(),
                 save_path,
             )
 
