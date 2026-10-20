@@ -153,6 +153,19 @@ def plot_noise_correlation_vs_lag(
             ax.axhline(0, color="k", linewidth=0.5, linestyle="--")
             ax.set_xlabel("Lag")
             ax.set_ylabel("$R_{{ij}}$")
+            # add measurement error variance as text if it is not NaN
+            measurement_error_variance = pair_dataframe[
+                Column.NoiseStatistics.MEASUREMENT_NOISE_COVARIANCE
+            ].iloc[0]
+            if not pd.isna(measurement_error_variance):
+                ax.text(
+                    0.95,
+                    0.95,
+                    f"Measurement error variance: {measurement_error_variance:.5f}",
+                    transform=ax.transAxes,
+                    ha="right",
+                    va="top",
+                )
             ax.set_ylim(-1.05, 1.05)
             column_label_i = COLUMN_METADATA[column_names[i]].label or column_names[i]
             column_label_j = COLUMN_METADATA[column_names[j]].label or column_names[j]

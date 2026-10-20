@@ -90,7 +90,6 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
                 dataset_name,
             )
             continue
-        print("\n Processing dataset:", dataset_name)
         dataset_config = load_dataset_config(dataset_name)
         noise_statistics_dataframe = load_dataframe(
             noise_statistics_manifest.locations[dataset_name], delay=False
