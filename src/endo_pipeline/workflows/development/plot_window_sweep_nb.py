@@ -13,13 +13,17 @@ import pandas as pd
 from endo_pipeline.cli import DEMO_MODE
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
+from endo_pipeline.library.analyze.window_sweep import SweptBoundary
 from endo_pipeline.library.visualize.window_sweep_plots import plot_num_timepoints, plot_sweep
 from endo_pipeline.manifests import list_datasets_with_dataframes, load_dataframe_manifest
 from endo_pipeline.settings.bootstrap_fixed_points import BOOTSTRAP_THRESHOLD
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
-from endo_pipeline.settings.manifest_names import BOOTSTRAPPING_MANIFEST_NAMES
+from endo_pipeline.settings.manifest_names import (
+    BOOTSTRAPPING_MANIFEST_NAMES,
+    WINDOW_SWEEP_MANIFEST_NAMES,
+)
 
 plt.style.use("endo_pipeline.figure")
 
@@ -33,8 +37,8 @@ MANIFEST_NAMES = {
 BASELINE_FIXED_POINT_MANIFEST_NAME = BOOTSTRAPPING_MANIFEST_NAMES["grid_based"]
 
 # %% load data
-frames: dict[str, dict[str, pd.DataFrame]] = {}
-for boundary, manifest_name in MANIFEST_NAMES.items():
+frames: dict[SweptBoundary, dict[str, pd.DataFrame]] = {}
+for boundary, manifest_name in WINDOW_SWEEP_MANIFEST_NAMES.items():
     manifest = load_dataframe_manifest(manifest_name)
     frames[boundary] = {}
 

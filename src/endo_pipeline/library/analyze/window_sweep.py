@@ -284,6 +284,8 @@ def compute_fixed_points_for_edge(edge_timepoint: int) -> tuple[int, int, list[p
     # across the parallel edge positions.
     rng = np.random.default_rng(_worker_state.random_seed + edge_timepoint)
 
+    lower_by_row: pd.Series | int
+    upper_by_row: pd.Series | int
     if swept_boundary == SweptBoundary.START_STEADY_STATE:
         # Steady-state start swept; cell piling (upper) held per position.
         lower_by_row = edge_timepoint

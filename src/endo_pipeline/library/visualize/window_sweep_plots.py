@@ -123,7 +123,7 @@ def draw_annotation_lines(ax: plt.Axes, dataset_name: str) -> None:
         ax.axvspan(min(values), max(values), color=color, alpha=0.12, zorder=0)
 
 
-def add_relative_time_axis(ax: plt.Axes, dataset_name: str, boundary: str) -> None:
+def add_relative_time_axis(ax: plt.Axes, dataset_name: str, boundary: SweptBoundary) -> None:
     """Add a secondary top x-axis: time relative to the swept boundary's annotation.
 
     Annotations are per-FOV, so the axis is anchored to a single reference FOV:
@@ -211,7 +211,7 @@ def annotation_legend_handles(dataset_name: str) -> list[Patch]:
 def plot_sweep(
     dataset_df: pd.DataFrame,
     dataset_name: str,
-    boundary: str,
+    boundary: SweptBoundary,
     x_max_hours: float,
     stable_only: bool = True,
     baseline_df: pd.DataFrame | None = None,
@@ -346,7 +346,7 @@ def plot_sweep(
 def plot_num_timepoints(
     dataset_df: pd.DataFrame,
     dataset_name: str,
-    boundary: str,
+    boundary: SweptBoundary,
     x_max_hours: float,
     stable_only: bool = False,
 ) -> plt.Figure:
