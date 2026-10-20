@@ -18,9 +18,9 @@ def main(
     #dynamical-systems #grid-based #cell-centered #visualization #test-ready
 
     This workflow uses the precomputed drift vector field and fixed points
-    output by the `generate_flow_field` workflow, run for all three column
-    names. Make sure to run that workflow with the matching patch type and
-    column names before visualizing.
+    output by the `generate_flow_field` workflow, run for all three column names.
+    Make sure to run that workflow with the matching patch type and column
+    names before visualizing.
 
     Visualization outputs include:
 
@@ -37,11 +37,15 @@ def main(
 
     To run the workflow in demo mode:
 
-    ```bash uv run endopipe visualize-3d-flow-field -d ```
+    ```bash
+    uv run endopipe visualize-3d-flow-field -d
+    ```
 
     To run the workflow for a single dataset:
 
-    ```bash uv run endopipe visualize-3d-flow-field --datasets DATASET_NAME ```
+    ```bash
+    uv run endopipe visualize-3d-flow-field --datasets DATASET_NAME
+    ```
 
     ## Dataset collection
 
@@ -166,7 +170,6 @@ def main(
 
     # Load drift vector field and fixed points for selected column
     name_suffix = join_sorted_strings(column_names)
-    logger.info("Using Ito vector field manifests.")
     vector_field_manifest_name = f"{VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{name_suffix}"
     fixed_points_manifest_name = f"{FIXED_POINT_MANIFEST_NAMES[patch_type]}_{name_suffix}"
     vector_field_manifest = load_dataframe_manifest(vector_field_manifest_name)
@@ -362,7 +365,7 @@ def main(
                 plot_stack,
                 output_path,
                 fig_title=fig_title,
-                filename=f"{dataset_name_flow}_{name_suffix}",
+                filename=f"{dataset_name_flow}{name_suffix}",
             )
 
     # finally, if fixed point data is available, then plot the fixed points

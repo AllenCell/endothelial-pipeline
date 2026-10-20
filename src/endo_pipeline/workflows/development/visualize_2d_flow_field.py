@@ -292,7 +292,7 @@ def main(
                 axes_titles=contour_axes_titles,
             )
             fig.suptitle(fig_title, y=1.00)
-            figure_name = f"{dataset_name_flow}_{name_suffix}_contours"
+            figure_name = f"{dataset_name_flow}{name_suffix}_contours"
             save_plot_to_path(fig, output_path, figure_name, tight_layout=False, file_format=".png")
 
             # Plot quiver plot of drift and save
@@ -303,7 +303,7 @@ def main(
                 axes_limits=bounds_for_plots,
             )
             fig.suptitle(f"{fig_title} \n drift in ({column_labels[0]}, {column_labels[1]})", y=1.0)
-            figure_name = f"{dataset_name_flow}_{name_suffix}_quiver"
+            figure_name = f"{dataset_name_flow}{name_suffix}_quiver"
             save_plot_to_path(fig, output_path, figure_name, file_format=".png")
 
             if fixed_points_dataframe is not None:
@@ -351,7 +351,7 @@ def main(
                         labels=[stable_fixed_point_handle.get_label()],
                         loc="upper right",
                     )
-                figure_name = f"{dataset_name_flow}_{name_suffix}_quiver_fixed_points"
+                figure_name = f"{dataset_name_flow}{name_suffix}_quiver_fixed_points"
                 save_plot_to_path(fig, output_path, figure_name, file_format=".png")
 
 

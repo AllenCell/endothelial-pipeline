@@ -57,7 +57,7 @@ def main(
         Patch type used to calculate the features.
     datasets
         List of datasets or dataset collections to visualize.
-    column
+    columns
         Specific column to visualize.
     """
 
