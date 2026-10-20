@@ -80,6 +80,7 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
         load_model_manifest,
         save_dataframe_manifest,
     )
+    from endo_pipeline.settings.autocorrelations import MAX_LAG_NOISE_COVARIANCE
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import (
         DYNAMICS_COLUMN_NAMES,
@@ -231,7 +232,7 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
                 column_names=column_names,
                 timepoints_array=timepoints_array,
                 vector_field=vector_field,
-                max_lag=15,
+                max_lag=MAX_LAG_NOISE_COVARIANCE,
                 metadata_dict=metadata_dict,
             )
             noise_statistics_dataframe_list.append(noise_statistics_dataframe)

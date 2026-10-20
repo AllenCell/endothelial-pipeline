@@ -12,7 +12,7 @@ from endo_pipeline.library.analyze.dataframe_validation import check_required_co
 from endo_pipeline.library.analyze.numerics.forward_difference import (
     compute_forward_differences_along_trajectory,
 )
-from endo_pipeline.settings.autocorrelations import NUM_TIMEPOINT_FRAC
+from endo_pipeline.settings.autocorrelations import MAX_LAG_NOISE_COVARIANCE, NUM_TIMEPOINT_FRAC
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import POLAR_ANGLE_PERIOD, TIME_STEP_IN_HOURS
 
@@ -632,7 +632,7 @@ def compute_noise_statistics_dataframe(
     column_names: list[str],
     timepoints_array: np.ndarray,
     vector_field: Callable,
-    max_lag: int = 15,
+    max_lag: int = MAX_LAG_NOISE_COVARIANCE,
     metadata_dict: dict[str, str | float] | None = None,
 ) -> pd.DataFrame:
     """
