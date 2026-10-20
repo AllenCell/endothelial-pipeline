@@ -681,6 +681,24 @@ class ColumnName:
 
         NUM_WINDOW_TIMEPOINTS = "num_window_timepoints"
         """Number of window timepoints (rows pooled across all FOVs)."""
+        
+    class NoiseStatistics(StrEnum):
+        """Column name suffixes used in noise correlation analysis."""
+
+        LAG = "lag"
+        """Lag at which the noise correlation is computed."""
+
+        FEATURE_1 = "feature_1"
+        """First feature variable in the noise correlation pair."""
+
+        FEATURE_2 = "feature_2"
+        """Second feature variable in the noise correlation pair."""
+
+        CORRELATION = "noise_correlation"
+        """Normalized noise correlation value between feature_1 and feature_2 at given lag."""
+
+        MEASUREMENT_NOISE_COVARIANCE = "measurement_noise_covariance"
+        """Estimated covariance of the independent measurement error between feature_1 and feature_2."""
 
     RANDOM_SEED = "random_seed"
     """Random number generator seed."""
