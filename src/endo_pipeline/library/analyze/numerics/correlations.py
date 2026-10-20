@@ -2,7 +2,6 @@
 
 import logging
 from collections.abc import Callable, Sequence
-from enum import StrEnum
 
 import numpy as np
 import pandas as pd
@@ -383,27 +382,12 @@ def get_trajectories_and_differences_for_noise_correlations(
     return traj_list, d_traj_list
 
 
-class NoiseCorrelationCentering(StrEnum):
-    """
-    Class representing the different centering methods for computing noise
-    correlations.
-    """
-
-    MEAN_SUBTRACTED = "mean-subtracted"
-    """Center differences by subtracting the ensemble mean of the differences at
-    the given timepoint."""
-
-    DRIFT_SUBTRACTED = "drift-subtracted"
-    """Center differences by subtracting the estimated drift component."""
-
-
 def compute_two_timepoint_noise_correlations(
     traj_list: list[pd.DataFrame],
     d_traj_list: list[pd.DataFrame],
     column_names: list[str],
     timepoints_array: np.ndarray,
     vector_field: Callable,
-    centering_method: NoiseCorrelationCentering,
 ) -> np.ndarray | None:
     """
     Compute two-timepoint cross correlations of the noise present in
@@ -421,8 +405,6 @@ def compute_two_timepoint_noise_correlations(
         Array of timepoints to consider for the correlations.
     vector_field
         Callable vector field used to estimate the drift component.
-    centering_method
-        Method used to center the differences when computing noise correlations.
 
     Returns
     -------
@@ -430,30 +412,12 @@ def compute_two_timepoint_noise_correlations(
         Array containing the two-timepoint noise correlations.
     """
 
-    if centering_method not in NoiseCorrelationCentering:
-        logger.error(
-            "Invalid centering method: %s. Must be one of %s.",
-            centering_method,
-            list(NoiseCorrelationCentering),
-        )
-        return
-
     # Build arrays to store results
     n_dim = len(column_names)
     n_timepoints = timepoints_array.shape[0]
     cross_correlations = np.zeros((n_timepoints, n_timepoints, n_dim, n_dim))
     n_points = np.zeros((n_timepoints, n_timepoints))
     diff_column_names = [f"{col}{Column.DiffAEData.DIFFERENCE_SUFFIX}" for col in column_names]
-
-    if centering_method == NoiseCorrelationCentering.MEAN_SUBTRACTED:
-        # Ensemble mean of the forward differences across patches at each timepoint
-        mean_dx_t = (
-            pd.concat(d_traj_list)
-            .groupby(Column.TIMEPOINT)[diff_column_names]
-            .mean()
-            .reindex(timepoints_array)
-            .to_numpy()
-        )
 
     for filtered_traj, filtered_d_traj in zip(traj_list, d_traj_list, strict=True):
         # Extract the timepoints, values, and differences for this patch
@@ -471,14 +435,10 @@ def compute_two_timepoint_noise_correlations(
         dx_t[np.searchsorted(timepoints_array, patch_timepoints_dx_t)] = patch_dx_t
 
         # To get the cross-correlations of the noise term, we need to separate
-        # out the drift. We can either do this by subtracting the mean
-        # displacement at the timepoint across patches (mean subtracted) or
-        # by subtracting the predicted drift from the vector field (drift subtracted).
-        if centering_method == NoiseCorrelationCentering.MEAN_SUBTRACTED:
-            eta_t = dx_t - mean_dx_t
-        else:
-            f_x_t = vector_field(x_t)
-            eta_t = dx_t - f_x_t * TIME_STEP_IN_HOURS
+        # out the drift. We do this by subtracting the predicted drift from the
+        # vector field estimate.
+        f_x_t = vector_field(x_t)
+        eta_t = dx_t - f_x_t * TIME_STEP_IN_HOURS
 
         # mask to valid timepoints
         is_valid = ~np.isnan(eta_t).any(axis=1)

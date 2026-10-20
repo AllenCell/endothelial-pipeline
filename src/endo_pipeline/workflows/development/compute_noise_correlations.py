@@ -59,7 +59,6 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
         add_track_duration_to_dataframe,
     )
     from endo_pipeline.library.analyze.numerics.correlations import (
-        NoiseCorrelationCentering,
         compute_two_timepoint_noise_correlations,
         get_trajectories_and_differences_for_noise_correlations,
     )
@@ -187,62 +186,53 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
                 continue
 
             # Compute cross corrlelations and make plots
-            for centering_method in NoiseCorrelationCentering:
-                # Compute cross-correlations for the current centering method
-                cross_correlations = compute_two_timepoint_noise_correlations(
-                    traj_list=traj_list,
-                    d_traj_list=d_traj_list,
-                    column_names=column_names,
+            cross_correlations = compute_two_timepoint_noise_correlations(
+                traj_list=traj_list,
+                d_traj_list=d_traj_list,
+                column_names=column_names,
+                timepoints_array=timepoints_array,
+                vector_field=vector_field,
+            )
+
+            if cross_correlations is None:
+                # If method returns early due to an error, continue
+                continue
+            else:
+                # sigma_i(t) = sqrt(R_ii(t, t)); stationary noise has a flat sigma_i(t)
+                diagonal_indices = np.arange(n_timepoints)
+                variance_t = cross_correlations[diagonal_indices, diagonal_indices]
+                sigma_t = np.sqrt(np.einsum("tii->ti", variance_t))
+                _ = plot_noise_amplitude(
+                    sigma_t=sigma_t,
                     timepoints_array=timepoints_array,
-                    vector_field=vector_field,
-                    centering_method=centering_method,
+                    column_names=column_names,
+                    plot_title=f"Noise amplitude: {dataset_name_flow}",
+                    output_path=output_path,
+                    file_name=slugify(f"noise_amplitude_{dataset_name_flow}"),
                 )
 
-                if cross_correlations is None:
-                    # If method returns early due to an error, continue
-                    continue
-                else:
-                    # sigma_i(t) = sqrt(R_ii(t, t)); stationary noise has a flat sigma_i(t)
-                    diagonal_indices = np.arange(n_timepoints)
-                    variance_t = cross_correlations[diagonal_indices, diagonal_indices]
-                    sigma_t = np.sqrt(np.einsum("tii->ti", variance_t))
-                    _ = plot_noise_amplitude(
-                        sigma_t=sigma_t,
-                        timepoints_array=timepoints_array,
-                        column_names=column_names,
-                        plot_title=f"Noise amplitude ({centering_method}): {dataset_name_flow}",
-                        output_path=output_path,
-                        file_name=slugify(
-                            f"noise_amplitude_{centering_method}_{dataset_name_flow}"
-                        ),
-                    )
+                # rho_ij(t, t') = R_ij(t, t') / (sigma_i(t) * sigma_j(t')),
+                # which rescales to [-1, 1] and divides out any potential drift
+                # in the noise amplitude
+                plot_normalized_two_timepoint_cross_correlations(
+                    cross_correlations=cross_correlations,
+                    sigma_t=sigma_t,
+                    timepoints_range=timepoints_range,
+                    column_names=column_names,
+                    plot_title=f"Normalized cross-correlations: {dataset_name_flow}",
+                    output_path=output_path,
+                    file_name=slugify(f"normalized_cross_correlations_{dataset_name_flow}"),
+                )
 
-                    # rho_ij(t, t') = R_ij(t, t') / (sigma_i(t) * sigma_j(t')),
-                    # which rescales to [-1, 1] and divides out any potential drift
-                    # in the noise amplitude
-                    plot_normalized_two_timepoint_cross_correlations(
-                        cross_correlations=cross_correlations,
-                        sigma_t=sigma_t,
-                        timepoints_range=timepoints_range,
-                        column_names=column_names,
-                        plot_title=f"Normalized cross-correlations ({centering_method}): {dataset_name_flow}",
-                        output_path=output_path,
-                        file_name=slugify(
-                            f"normalized_cross_correlations_{centering_method}_{dataset_name_flow}"
-                        ),
-                    )
-
-                    # Plot R_ij(t,t') = R_ji(t',t) as a function of the time lag tau = t' - t
-                    plot_cross_correlations_against_lag(
-                        cross_correlations=cross_correlations,
-                        timepoints_array=timepoints_array,
-                        column_names=column_names,
-                        plot_title=f"Cross-correlations vs time lag ({centering_method}): {dataset_name_flow}",
-                        output_path=output_path,
-                        file_name=slugify(
-                            f"cross_correlations_vs_lag_{centering_method}_{dataset_name_flow}"
-                        ),
-                    )
+                # Plot R_ij(t,t') = R_ji(t',t) as a function of the time lag tau = t' - t
+                plot_cross_correlations_against_lag(
+                    cross_correlations=cross_correlations,
+                    timepoints_array=timepoints_array,
+                    column_names=column_names,
+                    plot_title=f"Cross-correlations vs time lag: {dataset_name_flow}",
+                    output_path=output_path,
+                    file_name=slugify(f"cross_correlations_vs_lag_{dataset_name_flow}"),
+                )
 
 
 if __name__ == "__main__":
