@@ -1,12 +1,13 @@
 # %%
 import logging
 from itertools import combinations_with_replacement
+from typing import cast
 
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import curve_fit
 
-from endo_pipeline.cli import DEMO_MODE
+from endo_pipeline.cli import DEMO_MODE, PatchType
 from endo_pipeline.configs import (
     get_datasets_in_collection,
     get_shear_stress_label_for_dataset,
@@ -34,7 +35,7 @@ from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 # %%
 logger = logging.getLogger(__name__)
 
-patch_type = "grid_based"
+patch_type = cast(PatchType, "grid_based")
 output_path = get_output_path(__file__, patch_type)
 
 dataset_names = get_datasets_in_collection("shear_stress", "perturbation")
