@@ -10,6 +10,7 @@ recomputing the flow-field fixed points at each position.
 
 import logging
 import os
+from enum import StrEnum
 
 import numpy as np
 import pandas as pd
@@ -34,18 +35,7 @@ from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
 
 logger = logging.getLogger(__name__)
 
-# Which edge of the analysis window is swept.
-START_STEADY_STATE = "start_steady_state"  # lower bound; cell piling fixed
-START_CELL_PILING = "start_cell_piling"  # upper bound; steady-state onset fixed
-
-# Dataframe manifest name per swept boundary. Each manifest is keyed by dataset
-# and points to the sweep parquet outputs for that boundary.
-WINDOW_SWEEP_MANIFEST_NAMES = {
-    START_STEADY_STATE: "window_sweep_start_steady_state",
-    START_CELL_PILING: "window_sweep_start_cell_piling",
-}
-
-_BLAS_THREAD_ENV_VARS = (
+BLAS_THREAD_ENV_VARS = (
     "OMP_NUM_THREADS",
     "MKL_NUM_THREADS",
     "OPENBLAS_NUM_THREADS",
@@ -57,6 +47,16 @@ linear-algebra backends."""
 
 _worker_state: dict = {}
 """Global state shared across tasks in a worker, set once by the initializer."""
+
+
+class SweptBoundary(StrEnum):
+    """Which edge of the analysis window is being swept."""
+
+    START_STEADY_STATE = "start_steady_state"
+    """Lower bound swept, cell piling fixed."""
+
+    START_CELL_PILING = "start_cell_piling"
+    """Upper bound swept, steady-state onset fixed."""
 
 
 def init_window_worker(
@@ -107,7 +107,7 @@ def init_window_worker(
         Random seed for reproducibility.
     """
     # Cap linear-algebra backend threads so workers don't oversubscribe cores
-    for env_var in _BLAS_THREAD_ENV_VARS:
+    for env_var in BLAS_THREAD_ENV_VARS:
         os.environ[env_var] = str(blas_threads_per_worker)
 
     _worker_state.update(
@@ -237,14 +237,16 @@ def compute_fixed_points_for_edge(edge_timepoint: int) -> tuple[int, int, list[p
     # across the parallel edge positions.
     rng = np.random.default_rng(_worker_state.get("random_seed", 0) + edge_timepoint)
 
-    if swept_boundary == START_STEADY_STATE:
+    if swept_boundary == SweptBoundary.START_STEADY_STATE:
         # Steady-state start swept; cell piling (upper) held per position.
         lower_by_row = edge_timepoint
         upper_by_row = _worker_state["upper_by_row"]
-    else:  # START_CELL_PILING
+    elif swept_boundary == SweptBoundary.START_CELL_PILING:
         # Cell-piling boundary swept; steady-state onset (lower) held per position.
         lower_by_row = _worker_state["lower_by_row"]
         upper_by_row = edge_timepoint
+    else:
+        raise ValueError(f"Unexpected swept boundary: {swept_boundary}")
 
     # Keep rows within the (per-position) window [lower, upper).
     df_swept = df[(df[Column.TIMEPOINT] >= lower_by_row) & (df[Column.TIMEPOINT] < upper_by_row)]

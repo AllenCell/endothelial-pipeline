@@ -48,7 +48,7 @@ def main(
     from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_annotations
     from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
     from endo_pipeline.library.analyze.window_sweep import (
-        WINDOW_SWEEP_MANIFEST_NAMES,
+        SweptBoundary,
         build_window_anchors,
         build_window_edge_grid,
         compute_fixed_points_for_edge,
@@ -74,6 +74,7 @@ def main(
         METADATA_COLUMNS_TO_KEEP,
         TIME_STEP_IN_MINUTES,
     )
+    from endo_pipeline.settings.manifest_names import WINDOW_SWEEP_MANIFEST_NAMES
     from endo_pipeline.settings.workflow_defaults import (
         FEATURES_UNFILTERED_MANIFEST_NAMES,
         RANDOM_SEED,
@@ -93,7 +94,9 @@ def main(
     sweep_interval_timepoints = max(1, round(sweep_interval_minutes / TIME_STEP_IN_MINUTES))
 
     # Sweep both window edges unless a single one was requested.
-    boundaries = [sweep_variable] if sweep_variable else ["start_steady_state", "start_cell_piling"]
+    if sweep_variable not in list(SweptBoundary):
+        raise ValueError(f"Unexpected sweep variable: {sweep_variable}")
+    boundaries = [sweep_variable] if sweep_variable else list(SweptBoundary)
 
     column_names = list(DYNAMICS_COLUMN_NAMES)
     columns_to_compute = [*METADATA_COLUMNS_TO_KEEP[patch_type], *column_names]
