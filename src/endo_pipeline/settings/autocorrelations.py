@@ -12,3 +12,7 @@ AUTOCORRELATION_FMS_ANNOTATION_NOTES: str = (
     "Dataframe containing autocorrelation function for various features."
 )
 """Annotation notes for autocorrelation dataframes uploaded to FMS."""
+
+MAX_LAG_NOISE_COVARIANCE = 15
+"""Maximum lag (in number of time points) to calculate the two-timepoint noise
+covariance as a function of lag."""
