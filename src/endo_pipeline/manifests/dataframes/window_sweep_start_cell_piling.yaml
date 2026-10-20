@@ -7,12 +7,12 @@ parameters:
   num_bootstrap_iterations: 500
   bootstrap_match_radius: 0.3
 columns:
-  window_edge_timepoint: Absolute movie timepoint of the swept window edge.
-  window_edge_minutes: Swept window edge position, in minutes from movie start.
-  swept_boundary: Which window edge was swept (start_steady_state or start_cell_piling).
-  shear_stress_bin: Shear stress bin of the pooled fixed point.
-  num_window_timepoints: Number of rows pooled across all FOVs at this edge position.
-  detection_rate: Bootstrap detection rate of the fixed point (unfiltered; paper threshold > 0.4).
+  window_edge_timepoint: Time in frame number of swept edge.
+  window_edge_minutes: Time in minutes of swept edge.
+  swept_boundary: Which window edge moved in sweep.
+  shear_stress_bin: Shear stress bin corresponding to flow condition.
+  num_window_timepoints: Number of window timepoints (rows pooled across all FOVs).
+  detection_rate: Fraction of bootstrap iterations in which a matched fixed point was found.
 locations:
   20250402_20X:
     fmsid: null

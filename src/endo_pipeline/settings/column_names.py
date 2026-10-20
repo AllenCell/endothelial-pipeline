@@ -668,7 +668,7 @@ class ColumnName:
         """Column names used for steady state window sweep."""
 
         WINDOW_EDGE_TIMEPOINT = "window_edge_timepoint"
-        """Absolute frame number of swept edge."""
+        """Time in frame number of swept edge."""
 
         WINDOW_EDGE_MINUTES = "window_edge_minutes"
         """Time in minutes of swept edge."""
@@ -677,7 +677,7 @@ class ColumnName:
         """Time in hours of swept edge."""
 
         SWEPT_BOUNDARY = "swept_boundary"
-        """Which edge moved."""
+        """Which window edge moved in sweep."""
 
         NUM_WINDOW_TIMEPOINTS = "num_window_timepoints"
         """Number of window timepoints (rows pooled across all FOVs)."""
