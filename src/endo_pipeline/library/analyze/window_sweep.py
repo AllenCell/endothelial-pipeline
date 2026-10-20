@@ -1,4 +1,5 @@
-"""Helpers for ``sweep_window_fixed_points``
+"""
+Helpers for ``sweep_window_fixed_points``
 
 The steady-state analysis window for each position runs from the steady-state
 onset (``NOT_STEADY_STATE`` cutoff) to the cell-piling onset (``CELL_PILING``).
@@ -13,7 +14,7 @@ import os
 import numpy as np
 import pandas as pd
 
-from endo_pipeline.configs import get_start_of_steady_state_for_position
+from endo_pipeline.configs import DatasetConfig, get_start_of_steady_state_for_position
 from endo_pipeline.library.analyze.bootstrap_fixed_points import (
     match_bootstrap_fixed_points_to_baseline,
     run_flow_field_and_fixed_points,
@@ -52,7 +53,6 @@ WINDOW_SWEEP_MANIFEST_NAMES = {
     START_CELL_PILING: "window_sweep_start_cell_piling",
 }
 
-# BLAS backends whose thread pools we cap to avoid oversubscription.
 _BLAS_THREAD_ENV_VARS = (
     "OMP_NUM_THREADS",
     "MKL_NUM_THREADS",
@@ -60,21 +60,11 @@ _BLAS_THREAD_ENV_VARS = (
     "NUMEXPR_NUM_THREADS",
     "VECLIB_MAXIMUM_THREADS",
 )
+"""BLAS thread environment variables to cap the number of threads used by
+linear-algebra backends."""
 
-# Read-only state shared across tasks in a worker, set once by the initializer.
 _worker_state: dict = {}
-
-
-def limit_blas_threads(n_threads: int) -> None:
-    """Cap linear-algebra backend threads so workers don't oversubscribe cores."""
-    for env_var in _BLAS_THREAD_ENV_VARS:
-        os.environ[env_var] = str(n_threads)
-    try:
-        from threadpoolctl import threadpool_limits
-
-        threadpool_limits(limits=n_threads)
-    except ImportError:
-        pass  # env vars suffice under spawn / forkserver
+"""Global state shared across tasks in a worker, set once by the initializer."""
 
 
 def init_window_worker(
@@ -92,8 +82,42 @@ def init_window_worker(
     bootstrap_match_radius: float = 0.0,
     random_seed: int = 0,
 ) -> None:
-    """Populate ``_worker_state`` once per worker process (pool initializer)."""
-    limit_blas_threads(blas_threads_per_worker)
+    """
+    Populate ``_worker_state`` once per worker process (pool initializer).
+
+    Parameters
+    ----------
+    df
+        The dataframe containing the data for the current window.
+    lower_by_row
+        The lower bound of the analysis window for each row.
+    upper_by_row
+        The upper bound of the analysis window for each row.
+    swept_boundary
+        Which edge of the window is being swept.
+    dataset_config
+        Dataset configuration for the dataset being processed.
+    dataset_name
+        Name of the dataset.
+    column_names
+        List of feature column names used in the analysis.
+    bin_widths
+        List of bin widths for the grid used in vector field estimation.
+    kernels
+        List of kernels used for vector field estimation.
+    blas_threads_per_worker
+        Number of BLAS threads to use per worker.
+    num_bootstrap_iterations
+        Number of bootstrap iterations to perform.
+    bootstrap_match_radius
+        Radius within which to match bootstrap fixed points.
+    random_seed
+        Random seed for reproducibility.
+    """
+    # Cap linear-algebra backend threads so workers don't oversubscribe cores
+    for env_var in _BLAS_THREAD_ENV_VARS:
+        os.environ[env_var] = str(blas_threads_per_worker)
+
     _worker_state.update(
         df=df,
         lower_by_row=lower_by_row,
@@ -120,17 +144,38 @@ def compute_window_detection_rates(
     bootstrap_match_radius: float,
     rng: np.random.Generator,
 ) -> np.ndarray:
-    """Bootstrap detection rate for each baseline fixed point in one window.
+    """
+    Bootstrap detection rate for each baseline fixed point in one window.
 
-    Resamples the window's trajectories with replacement ``num_bootstrap_iterations``
-    times, refits the flow field, finds fixed points, and matches them back to
-    ``baseline_fixed_points`` (same coordinate/stability matching as
-    ``bootstrap_fixed_points``). Returns, per baseline fixed point (in row
-    order), the fraction of iterations in which a match was found within
-    ``bootstrap_match_radius``.
+    Resamples the window's trajectories with replacement
+    ``num_bootstrap_iterations`` times, refits the flow field, finds fixed
+    points, and matches them back to ``baseline_fixed_points`` (same
+    coordinate/stability matching as ``bootstrap_fixed_points``). Returns, per
+    baseline fixed point (in row order), the fraction of iterations in which a
+    match was found within ``bootstrap_match_radius``.
 
     Returns an array of ``nan`` (one per baseline row) if bootstrapping is
     disabled or the window has no usable trajectories.
+
+    Parameters
+    ----------
+    df_flow
+        The feature data for the flow condition being processed.
+    baseline_fixed_points
+        The fixed points obtained from the baseline fit.
+    column_names
+        The column names corresponding to the feature variables.
+    bin_widths
+        The bin widths for the grid used in vector field estimation.
+    kernels
+        The kernels used for vector field estimation.
+    num_bootstrap_iterations
+        The number of bootstrap iterations to perform.
+    bootstrap_match_radius
+        The radius within which a bootstrap fixed point is considered a match to
+        a baseline fixed point.
+    rng
+        The random number generator for bootstrapping.
     """
     n_baseline = len(baseline_fixed_points)
     if n_baseline == 0:
@@ -269,22 +314,29 @@ def compute_fixed_points_for_edge(edge_timepoint: int) -> tuple[int, int, list[p
     return edge_timepoint, len(df_swept), results
 
 
-def _range_start(timepoint_range) -> int:
-    """Return the first frame of a scalar or ``[low, high]`` timepoint range."""
-    if isinstance(timepoint_range, (list, tuple)):
+def _range_start(timepoint_range: int | tuple[int, int]) -> int:
+    """
+    Return the first frame of a scalar or ``[low, high]`` timepoint range.
+
+    Handles the fact that timepoint annotations may be either a single integer
+    or a range (tuple of two integers).
+    """
+    if isinstance(timepoint_range, tuple):
         return timepoint_range[0]
     return timepoint_range
 
 
 def build_window_anchors(
-    dataset_config,
-    cell_piling_ranges: dict,
+    dataset_config: DatasetConfig,
+    cell_piling_ranges: dict[int, list[tuple[int, int]]],
 ) -> tuple[dict[int, int], dict[int, int]]:
-    """Return per-position steady-state onsets and cell-piling boundaries.
+    """
+    Return per-position steady-state onsets and cell-piling boundaries.
 
     Positions without an annotated steady-state onset are skipped. Positions
     without a cell-piling annotation fall back to the movie end
     (``dataset_config.duration``) as the upper bound.
+
     """
 
     position_onsets: dict[int, int] = {}
@@ -305,11 +357,19 @@ def build_window_anchors(
 
 
 def build_window_edge_grid(duration: int, sweep_interval_timepoints: int) -> list[int]:
-    """Absolute movie timepoints to place the swept edge at (uniform grid).
+    """
+    Absolute movie timepoints to place the swept edge at (uniform grid).
 
     The grid spans the whole movie (``0 .. duration``) in steps of
     ``sweep_interval_timepoints`` and is identical for both swept edges, so the
     two sweeps share the same absolute-time x-axis. Edge positions that leave an
     empty window for a given FOV simply contribute no rows for that FOV.
+
+    Parameters
+    ----------
+    duration
+        Duration of the movie, in units frames.
+    sweep_interval_timepoints
+        Interval between updated sweep edges, in units frames.
     """
     return list(range(0, duration + 1, sweep_interval_timepoints))
