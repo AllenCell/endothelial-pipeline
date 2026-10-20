@@ -94,7 +94,7 @@ def main(
     sweep_interval_timepoints = max(1, round(sweep_interval_minutes / TIME_STEP_IN_MINUTES))
 
     # Sweep both window edges unless a single one was requested.
-    if sweep_variable not in list(SweptBoundary):
+    if sweep_variable is not None and sweep_variable not in list(SweptBoundary):
         raise ValueError(f"Unexpected sweep variable: {sweep_variable}")
     boundaries = [sweep_variable] if sweep_variable else list(SweptBoundary)
 
