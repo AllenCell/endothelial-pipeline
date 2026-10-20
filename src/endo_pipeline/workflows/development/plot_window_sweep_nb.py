@@ -6,6 +6,7 @@ Load and plot the start of steady state and cell piling sweep of the fixed point
 
 # %%
 import logging
+from typing import cast
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -38,7 +39,8 @@ BASELINE_FIXED_POINT_MANIFEST_NAME = BOOTSTRAPPING_MANIFEST_NAMES["grid_based"]
 
 # %% load data
 frames: dict[SweptBoundary, dict[str, pd.DataFrame]] = {}
-for boundary, manifest_name in WINDOW_SWEEP_MANIFEST_NAMES.items():
+for boundary_, manifest_name in WINDOW_SWEEP_MANIFEST_NAMES.items():
+    boundary = cast(SweptBoundary, boundary_)
     manifest = load_dataframe_manifest(manifest_name)
     frames[boundary] = {}
 
