@@ -11,7 +11,6 @@ def main(
     use_same_axes: Annotated[bool, Parameter(negative="--use-auto-axes")] = False,
     plot_stack: bool = False,
     compute_vtk: bool = False,
-    ito: Annotated[bool, Parameter(negative="--stratonovich")] = True,
 ) -> None:
     """
     Visualize 3D drift vector field and fixed points.
@@ -67,9 +66,6 @@ def main(
         variables, False otherwise.
     compute_vtk
         True to compute and save VTK files for 3D flow fields, False otherwise.
-    ito
-        True to visualize the Ito drift vector field, False to visualize
-        Stratonovich-corrected flow field.
     """
 
     import logging
@@ -124,8 +120,6 @@ def main(
     from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
     from endo_pipeline.settings.manifest_names import (
         FIXED_POINT_MANIFEST_NAMES,
-        STRATONOVICH_FIXED_POINT_MANIFEST_NAMES,
-        STRATONOVICH_VECTOR_FIELD_MANIFEST_NAMES,
         VECTOR_FIELD_MANIFEST_NAMES,
     )
     from endo_pipeline.settings.workflow_defaults import FEATURES_FILTERED_MANIFEST_NAMES
@@ -172,19 +166,9 @@ def main(
 
     # Load drift vector field and fixed points for selected column
     name_suffix = join_sorted_strings(column_names)
-    ito_suffix = "ito" if ito else "stratonovich"
-    if ito:
-        logger.info("Using Ito vector field manifests.")
-        vector_field_manifest_name = f"{VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{name_suffix}"
-        fixed_points_manifest_name = f"{FIXED_POINT_MANIFEST_NAMES[patch_type]}_{name_suffix}"
-    else:
-        logger.info("Using Stratonovich vector field manifests.")
-        vector_field_manifest_name = (
-            f"{STRATONOVICH_VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{name_suffix}"
-        )
-        fixed_points_manifest_name = (
-            f"{STRATONOVICH_FIXED_POINT_MANIFEST_NAMES[patch_type]}_{name_suffix}"
-        )
+    logger.info("Using Ito vector field manifests.")
+    vector_field_manifest_name = f"{VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{name_suffix}"
+    fixed_points_manifest_name = f"{FIXED_POINT_MANIFEST_NAMES[patch_type]}_{name_suffix}"
     vector_field_manifest = load_dataframe_manifest(vector_field_manifest_name)
     fixed_points_manifest = load_dataframe_manifest(fixed_points_manifest_name)
 
@@ -378,7 +362,7 @@ def main(
                 plot_stack,
                 output_path,
                 fig_title=fig_title,
-                filename=f"{dataset_name_flow}_{name_suffix}_{ito_suffix}",
+                filename=f"{dataset_name_flow}_{name_suffix}",
             )
 
     # finally, if fixed point data is available, then plot the fixed points

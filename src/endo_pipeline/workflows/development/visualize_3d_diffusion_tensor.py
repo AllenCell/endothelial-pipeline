@@ -82,7 +82,7 @@ def main(
     from endo_pipeline.library.analyze.dataframe_validation import (
         check_required_columns_in_dataframe,
     )
-    from endo_pipeline.library.analyze.sde_interpretation import (
+    from endo_pipeline.library.analyze.noise_amplitude import (
         extrapolate_noise_amplitude_tensor,
         get_reshaped_noise_amplitude_and_grid,
     )

@@ -15,7 +15,7 @@ from endo_pipeline.configs import (
 from endo_pipeline.io import get_output_path, join_sorted_strings, load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_shear_stress
 from endo_pipeline.library.analyze.dataframe_validation import check_required_columns_in_dataframe
-from endo_pipeline.library.analyze.sde_interpretation import (
+from endo_pipeline.library.analyze.noise_amplitude import (
     extrapolate_noise_amplitude_tensor,
     get_reshaped_noise_amplitude_and_grid,
 )
@@ -279,7 +279,5 @@ for dataset_name in dataset_names:
             fig, output_path, f"{dataset_name_flow}_dsigma_11_d{derivative_name}_vs_r.png"
         )
 
-print(
-    "Mean r_inflection over %d processed datasets: %.3f", len(r_inflections), np.mean(r_inflections)
-)
+print("Mean r_inflection:", np.mean(r_inflections))
 # %%

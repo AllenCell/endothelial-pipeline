@@ -15,14 +15,7 @@ def main(
     drift vector field (see `generate-flow-field`), but applied to the
     drift-removed residuals `eta(t)` (the forward difference minus the drift
     predicted by the pre-computed vector field) instead of the raw forward
-    differences. Smoothing with the kernel, rather than a simple per-bin
-    sample average, avoids the sparse/noisy estimates that a direct histogram
-    average produces in bins with few residual samples.
-
-    The resulting `sigma(x)` can be combined with the pre-computed Ito drift to
-    assemble the Stratonovich (alpha=1/2) noise-induced drift correction (see
-    `generate-stratonovich-flow-field`), so that the Ito and Stratonovich fixed
-    points can be compared directly.
+    differences.
 
     #dynamical-systems #correlation-analysis #grid-based #cell-centered #test-ready
 
@@ -87,15 +80,15 @@ def main(
     from endo_pipeline.library.analyze.live_data_manifest.lib_make_seg_feats_manifest import (
         add_track_duration_to_dataframe,
     )
+    from endo_pipeline.library.analyze.noise_amplitude import (
+        compute_kernel_residual_covariance,
+        compute_noise_amplitude,
+        create_noise_amplitude_vector_field_df,
+    )
     from endo_pipeline.library.analyze.numerics.correlations import (
         NoiseCorrelationCentering,
         compute_centered_residuals,
         get_trajectories_and_differences_for_noise_correlations,
-    )
-    from endo_pipeline.library.analyze.sde_interpretation import (
-        compute_kernel_residual_covariance,
-        compute_noise_amplitude,
-        create_noise_amplitude_vector_field_df,
     )
     from endo_pipeline.library.analyze.vector_field_estimation import (
         get_valid_flow_field_column_names,
