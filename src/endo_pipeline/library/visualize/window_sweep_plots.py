@@ -11,6 +11,7 @@ from endo_pipeline.configs import (
     get_start_of_steady_state_for_position,
     load_dataset_config,
 )
+from endo_pipeline.library.analyze.window_sweep import SweptBoundary
 from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.library.visualize.figure_4 import wrap_theta_for_vector_field_vis
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
@@ -36,13 +37,16 @@ BASELINE_LINE_WIDTH = 1.3
 BASELINE_LINE_LABEL = "baseline (annotated window)"
 
 BOUNDARY_ANCHOR = {
-    "start_steady_state": ("onset", min),
-    "start_cell_piling": ("cell_piling", max),
+    SweptBoundary.START_STEADY_STATE: ("onset", min),
+    SweptBoundary.START_CELL_PILING: ("cell_piling", max),
 }
+"""Anchor type and aggregation function for each swept boundary."""
+
 RELATIVE_XLABEL = {
-    "start_steady_state": "Time from first steady-state start (hours)",
-    "start_cell_piling": "Time from last cell-piling start (hours)",
+    SweptBoundary.START_STEADY_STATE: "Time from first steady-state start (hours)",
+    SweptBoundary.START_CELL_PILING: "Time from last cell-piling start (hours)",
 }
+"""X-axis label for each swept boundary."""
 
 
 def get_ylimits_for_column(column_name: str) -> tuple[float, float] | None:
@@ -60,11 +64,19 @@ def get_ylimits_for_column(column_name: str) -> tuple[float, float] | None:
     return None
 
 
-def wrap_theta_for_paper(theta_values: pd.Series) -> pd.Series:
-    """Wrap polar-angle fixed points into ``VECTOR_FIELD_THETA_RANGE`` (paper convention).
+def _wrap_theta_for_plot(theta_values: pd.Series) -> pd.Series:
+    """Wrap polar-angle fixed points into the asymmetric display range defined
+    by ``VECTOR_FIELD_THETA_RANGE``.
 
-    Mirrors the figure-4 flow-field visualization: first fold into one period,
-    then shift the tails into the asymmetric display range.
+    Parameters
+    ----------
+    theta_values
+        Series of polar-angle fixed points.
+
+    Returns
+    -------
+    :
+        Wrapped polar-angle values.
     """
     theta_min, theta_max = VECTOR_FIELD_THETA_RANGE
     folded = theta_values % POLAR_ANGLE_PERIOD
@@ -161,7 +173,7 @@ def draw_baseline_fixed_points(
             continue
         # Match the paper: wrap theta fixed points into the vector-field range.
         if column_name == Column.DiffAEData.POLAR_ANGLE:
-            y_value = float(wrap_theta_for_paper(pd.Series([y_value])).iloc[0])
+            y_value = float(_wrap_theta_for_plot(pd.Series([y_value])).iloc[0])
         color = shear_colors.get(row.get(Column.SHEAR_STRESS_BIN), "black")
         ax.axhline(
             y_value,
@@ -240,7 +252,7 @@ def plot_sweep(
                 # Match the paper: wrap theta fixed points into the vector-field range.
                 y_values = subset[fixed_point_column]
                 if column_name == Column.DiffAEData.POLAR_ANGLE:
-                    y_values = wrap_theta_for_paper(y_values)
+                    y_values = _wrap_theta_for_plot(y_values)
                 ax.scatter(
                     subset[Column.SteadyStateWindow.WINDOW_EDGE_HOURS],
                     y_values,
