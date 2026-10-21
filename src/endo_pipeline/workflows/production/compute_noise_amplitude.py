@@ -86,7 +86,6 @@ def main(
         create_noise_amplitude_vector_field_df,
     )
     from endo_pipeline.library.analyze.numerics.correlations import (
-        NoiseCorrelationCentering,
         compute_centered_residuals,
         get_trajectories_and_differences_for_noise_correlations,
     )
@@ -303,8 +302,6 @@ def main(
                 column_names=column_names,
                 timepoints_array=timepoints_array,
                 vector_field=vector_field,
-                centering_method=NoiseCorrelationCentering.DRIFT_SUBTRACTED,
-                return_positions=True,
             )
 
             # Kernel-smoothed average R(x) = <eta(t) eta(t)^T | x(t) = x>
