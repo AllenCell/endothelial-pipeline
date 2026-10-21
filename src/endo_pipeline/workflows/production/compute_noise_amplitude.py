@@ -114,7 +114,7 @@ def main(
     )
     from endo_pipeline.settings.flow_field_dataframes import FMS_ANNOTATION_NOTES_NOISE_AMPLITUDE
     from endo_pipeline.settings.manifest_names import (
-        NOISE_AMPLITUDE_MANIFEST_NAME_PREFIXES,
+        NOISE_AMPLITUDE_MANIFEST_NAMES,
         VECTOR_FIELD_MANIFEST_NAMES,
     )
     from endo_pipeline.settings.workflow_defaults import (
@@ -177,8 +177,7 @@ def main(
 
     # Build dataframe manifest names that include sorted list of selected
     # columns used to compute the noise amplitude tensor.
-    noise_amplitude_name_prefix = NOISE_AMPLITUDE_MANIFEST_NAME_PREFIXES[patch_type]
-    noise_amplitude_manifest_name = f"{noise_amplitude_name_prefix}_{name_suffix}"
+    noise_amplitude_manifest_name = NOISE_AMPLITUDE_MANIFEST_NAMES[patch_type]
     noise_amplitude_manifest = create_dataframe_manifest(
         noise_amplitude_manifest_name, workflow_name=__file__
     )
@@ -336,7 +335,7 @@ def main(
 
         # Save dataframe to file
         save_path = (
-            output_path / f"{noise_amplitude_name_prefix}_{dataset_name}_{name_suffix}.parquet"
+            output_path / f"{noise_amplitude_manifest_name}_{dataset_name}_{name_suffix}.parquet"
         )
         noise_amplitude_for_dataset.to_parquet(save_path, index=False)
 
