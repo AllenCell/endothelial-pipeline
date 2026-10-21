@@ -107,8 +107,12 @@ def main(
 
     dataset_names = datasets or get_datasets_in_collection(DEFAULT_DATASETS_DYNAMICS_VIS)
 
+    max_slice_steps: int | None = None
     if DEMO_MODE:
-        logger.warning("DEMO MODE - Limiting to one dataset")
+        max_slice_steps = 10
+        logger.warning(
+            "DEMO MODE - Limiting to one dataset and a maximum of %d 2D slices for plots", 10
+        )
         dataset_names = dataset_names[:1]
 
     # Use all three dynamics columns, matching the compute-noise-amplitude output
@@ -120,7 +124,7 @@ def main(
     # Unique (i, j) entries and their panel titles/column names, labeled with i <= j
     entry_pairs = list(combinations_with_replacement(range(num_dimensions), 2))
     entry_labels = [
-        f"{Unicode.SIGMA}({column_labels[i]}, {column_labels[j]})" for i, j in entry_pairs
+        f"{Unicode.SIGMA}$_{{{column_labels[i]}, {column_labels[j]}}}$" for i, j in entry_pairs
     ]
     entry_column_names = [
         ColumnTemplate.NOISE_AMPLITUDE % (column_names[i], column_names[j]) for i, j in entry_pairs
@@ -210,20 +214,18 @@ def main(
 
             for plot_axes, slice_axis in zip(plot_axes_indices, slice_axis_indices, strict=True):
                 slice_column_name = column_names[slice_axis]
-                logger.info(
-                    "Plotting diffusion tensor contours for [ %s ], slice axis [ %s ].",
-                    dataset_name_flow,
-                    slice_column_name,
-                )
                 stack_savedir = output_path / f"{dataset_name_flow}_{slice_column_name}_stack"
                 stack_savedir.mkdir(parents=True, exist_ok=True)
+                slice_steps = grid_points_1d[slice_axis]
+                if max_slice_steps is not None:
+                    slice_steps = slice_steps[:max_slice_steps]
                 plot_noise_tensor_stack(
                     sigma,
                     grid,
                     plot_axes_indices=plot_axes,
                     slice_axis_index=slice_axis,
                     plot_bounds=bounds_for_plots,
-                    slice_steps=grid_points_1d[slice_axis],
+                    slice_steps=slice_steps,
                     entry_pairs=tensor_index_pairs,
                     entry_labels=entry_labels,
                     fig_savedir=stack_savedir,
