@@ -11,13 +11,14 @@ def main(
     use_same_axes: Annotated[bool, Parameter(negative="--use-auto-axes")] = False,
 ) -> None:
     """
-    Visualize entries of the diffusion tensor over 2D slices of 3D state space.
+    Visualize entries of the 3D noise amplitude tensor over 1D and 2D slices of
+    3D state space.
 
     #dynamical-systems #grid-based #cell-centered #visualization #test-ready
 
     This workflow uses the precomputed noise amplitude tensor output by the
-    `compute-noise-amplitude` workflow, run for all three dynamics column
-    names. Make sure to run that workflow with the matching patch type before
+    `compute-noise-amplitude` workflow, run for all three dynamics column names.
+    Make sure to run that workflow with the matching patch type before
     visualizing.
 
     The noise amplitude `sigma` solves `D = (1/2) sigma sigma^T` for the
@@ -28,23 +29,20 @@ def main(
 
     Visualization outputs include:
 
-    - For each of the three possible slicing axes, a stack of contour plots
-      (one per grid value along that axis) showing every unique entry of the
-      noise amplitude tensor over the corresponding 2D slice of state space.
+    - For each of the three possible slicing axes, a stack of contour plots (one
+      per grid value along that axis) showing every unique entry of the noise
+      amplitude tensor over the corresponding 2D slice of state space.
 
     ## Example usage
 
     To run the workflow in demo mode:
 
-    ```bash
-    uv run endopipe visualize-3d-diffusion-tensor -d
-    ```
+    ```bash uv run endopipe visualize-3d-noise-amplitude -d ```
 
     To run the workflow for a single dataset:
 
-    ```bash
-    uv run endopipe visualize-3d-diffusion-tensor --datasets DATASET_NAME
-    ```
+    ```bash uv run endopipe visualize-3d-noise-amplitude --datasets
+    DATASET_NAME ```
 
     ## Dataset collection
 
@@ -53,8 +51,8 @@ def main(
 
     ## Workflow demo
 
-    Running the workflow in demo mode (`-d` or `--demo-mode`) will visualize
-    the diffusion tensor for the first dataset.
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will visualize the
+    diffusion tensor for the first dataset.
 
     Parameters
     ----------
@@ -87,8 +85,9 @@ def main(
         get_reshaped_noise_amplitude_and_grid,
     )
     from endo_pipeline.library.visualize.columns import get_label_for_column
-    from endo_pipeline.library.visualize.diffae_features.flow_field_3d import (
-        plot_diffusion_tensor_stack,
+    from endo_pipeline.library.visualize.diffae_features.noise_correlations import (
+        plot_noise_tensor_stack,
+        plot_polar_theta_noise_versus_polar_r,
     )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
@@ -189,6 +188,15 @@ def main(
             sigma = extrapolate_noise_amplitude_tensor(sigma, grid_points_1d)
             grid = np.meshgrid(*grid_points_1d, indexing="ij")
 
+            # First, plot sigma_{theta, theta} as a function of r
+            _ = plot_polar_theta_noise_versus_polar_r(
+                sigma,
+                grid,
+                fig_title,
+                output_path,
+                f"{dataset_name_flow}_sigma_11_vs_r",
+            )
+
             # if not using same axes for all datasets, use bin limits for this
             # specific dataset, to zoom in on the region covered by this grid
             if not use_same_axes:
@@ -209,7 +217,7 @@ def main(
                 )
                 stack_savedir = output_path / f"{dataset_name_flow}_{slice_column_name}_stack"
                 stack_savedir.mkdir(parents=True, exist_ok=True)
-                plot_diffusion_tensor_stack(
+                plot_noise_tensor_stack(
                     sigma,
                     grid,
                     plot_axes_indices=plot_axes,
