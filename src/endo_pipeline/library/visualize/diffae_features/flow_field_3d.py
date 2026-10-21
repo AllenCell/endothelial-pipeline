@@ -197,16 +197,16 @@ def _get_colormap_norm(
         The colormap normalization object.
 
     """
+    vmin = np.nanmin(color_metric)
+    vmax = np.nanmax(color_metric)
+    # nanmin/nanmax of an all-NaN array return NaN, which Normalize/LogNorm reject
+    if not (np.isfinite(vmin) and np.isfinite(vmax)):
+        logger.warning("Color metric is all-NaN; falling back to a default colormap range.")
+        vmin, vmax = 0.0, 1.0
     if log_normalize:
-        return LogNorm(
-            vmin=np.nanmin(color_metric),
-            vmax=np.nanmax(color_metric),
-        )
+        return LogNorm(vmin=vmin, vmax=vmax)
     else:
-        return Normalize(
-            vmin=np.nanmin(color_metric),
-            vmax=np.nanmax(color_metric),
-        )
+        return Normalize(vmin=vmin, vmax=vmax)
 
 
 def _get_colormap_values(
