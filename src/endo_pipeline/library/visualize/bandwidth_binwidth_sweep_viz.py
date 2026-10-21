@@ -83,6 +83,19 @@ FP_LOCATION_TOP_MARGIN = 0.25
 
 FileFormat = Literal[".png", ".svg", ".pdf"]
 
+# color used to highlight the parameter combination used in the main analysis in all figures
+MAIN_ANALYSIS_PARAMS_COLOR = "tab:green"
+
+
+def _get_main_analysis_parameters() -> tuple[float, float]:
+    """
+    Get the (binwidth, kernel bandwidth) combination used in the main analysis, which is the same
+    for every dataset.
+    """
+    bw_original = np.unique(list(BIN_WIDTHS_DYNAMICS.values())).item()
+    kb_original = np.unique(list(KERNEL_BANDWIDTHS_DYNAMICS.values())).item()
+    return bw_original, kb_original
+
 
 def load_sweep_fixed_points(unwrap_angle: bool = True) -> pd.DataFrame:
     """
@@ -268,7 +281,8 @@ def plot_fixed_point_count_heatmaps(
     threshold for every parameter combination of the sweep, one heatmap per dataset.
 
     The heatmaps share a single colorbar drawn to the right of the dataset columns. Parameter
-    combinations with no results for a dataset are drawn in grey.
+    combinations with no results for a dataset are drawn in grey. The annotation and tick labels of
+    the parameter combination used in the main analysis are highlighted.
 
     Parameters
     ----------
@@ -294,6 +308,7 @@ def plot_fixed_point_count_heatmaps(
     # smallest to place the smallest binwidth at the bottom of the y-axis
     sweep_binwidths = sorted({bw for bw, _ in parameter_space}, reverse=True)
     sweep_kernel_bandwidths = sorted({kb for _, kb in parameter_space})
+    bw_original, kb_original = _get_main_analysis_parameters()
 
     df_datasets = df_sweep.loc[df_sweep[ColumnName.DATASET].isin(datasets)]
     df_stability = df_datasets.loc[df_datasets[ColumnName.FIXED_POINT_STABILITY] == stability]
@@ -327,7 +342,9 @@ def plot_fixed_point_count_heatmaps(
             cmap="magma",
             linewidths=0.5,
             annot=True,
-            annot_kws={"fontsize": FONTSIZE_XSMALL},
+            # all annotations are white, the main analysis parameter combination is highlighted
+            # below
+            annot_kws={"fontsize": FONTSIZE_XSMALL, "color": "white"},
             ax=ax,
             vmin=0,
             vmax=vmax,
@@ -341,6 +358,22 @@ def plot_fixed_point_count_heatmaps(
         ax.tick_params(axis="both", which="major", labelsize=FONTSIZE_XSMALL)
         ax.tick_params(axis="x", rotation=90)
         ax.tick_params(axis="y", rotation=0)
+
+        # highlight the annotation and the tick labels of the parameter combination used in the
+        # main analysis. Seaborn centers each annotation in its cell, so the integer part of its
+        # position gives the (column, row) index of the cell in the heatmap data
+        for text in ax.texts:
+            col_index, row_index = (int(coord) for coord in text.get_position())
+            if np.isclose(heatmap_data.index[row_index], bw_original) and np.isclose(
+                heatmap_data.columns[col_index], kb_original
+            ):
+                text.set_color(MAIN_ANALYSIS_PARAMS_COLOR)
+        for label in ax.get_xticklabels():
+            if label.get_text() == f"{kb_original:g}":
+                label.set_color(MAIN_ANALYSIS_PARAMS_COLOR)
+        for label in ax.get_yticklabels():
+            if label.get_text() == f"{bw_original:g}":
+                label.set_color(MAIN_ANALYSIS_PARAMS_COLOR)
 
         ax.set_title(dataset, fontsize=FONTSIZE_MEDIUM)
         ax.set_xlabel("Kernel Bandwidth", fontsize=FONTSIZE_SMALL)
@@ -537,8 +570,7 @@ def plot_fixed_point_location_summary(
     local_parameter_space = set(
         product(SWEEP_PARAM_EXAMPLE_BINWIDTHS, SWEEP_PARAM_EXAMPLE_KERNEL_BANDWIDTHS)
     )
-    bw_original = np.unique(list(BIN_WIDTHS_DYNAMICS.values())).item()
-    kb_original = np.unique(list(KERNEL_BANDWIDTHS_DYNAMICS.values())).item()
+    bw_original, kb_original = _get_main_analysis_parameters()
 
     # rename the bootstrapped cluster mean columns to the plain feature names so that the column
     # metadata can be looked up directly
@@ -619,7 +651,7 @@ def plot_fixed_point_location_summary(
             # mark the parameter combination used in the main analysis
             main_params_line = ax.axvline(
                 x=_format_param_combo(kb_original, bw_original),
-                color="red",
+                color=MAIN_ANALYSIS_PARAMS_COLOR,
                 linestyle="--",
                 linewidth=1,
                 zorder=0,
