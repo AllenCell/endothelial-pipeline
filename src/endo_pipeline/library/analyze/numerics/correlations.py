@@ -387,8 +387,7 @@ def compute_centered_residuals(
     column_names: list[str],
     timepoints_array: np.ndarray,
     vector_field: Callable,
-    return_positions: bool = False,
-) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
+) -> np.ndarray:
     """
     Build the array of drift-removed residuals eta(t) for every patch.
 
@@ -408,17 +407,12 @@ def compute_centered_residuals(
         Array of timepoints to consider.
     vector_field
         Callable vector field used to estimate the drift component.
-    return_positions
-        If True, also return the state x(t) that each residual was observed
-        at, placed on the same (patch, timepoint) axes as the residuals.
 
     Returns
     -------
     :
         Array of shape (num_patches, num_timepoints, num_features) containing
         the residuals, with NaN at timepoints where a patch has no difference.
-        If `return_positions` is True, also returns the corresponding x(t)
-        array of the same shape.
     """
     n_dim = len(column_names)
     n_timepoints = timepoints_array.shape[0]
@@ -426,7 +420,6 @@ def compute_centered_residuals(
     diff_column_names = [f"{col}{Column.DiffAEData.DIFFERENCE_SUFFIX}" for col in column_names]
 
     residuals = np.full((n_patches, n_timepoints, n_dim), np.nan)
-    positions = np.full((n_patches, n_timepoints, n_dim), np.nan) if return_positions else None
     for patch_index, (filtered_traj, filtered_d_traj) in enumerate(
         zip(traj_list, d_traj_list, strict=True)
     ):
@@ -444,13 +437,8 @@ def compute_centered_residuals(
         dx_t = np.full((n_timepoints, n_dim), np.nan)
         dx_t[np.searchsorted(timepoints_array, patch_timepoints_dx_t)] = patch_dx_t
 
-        if positions is not None:
-            positions[patch_index] = x_t
-
+        # compute and store the residuals for this patch
         residuals[patch_index] = dx_t - vector_field(x_t) * TIME_STEP_IN_HOURS
-
-    if return_positions:
-        return residuals, positions
 
     return residuals
 
