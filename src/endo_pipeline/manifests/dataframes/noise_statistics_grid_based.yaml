@@ -1,0 +1,136 @@
+name: noise_statistics_grid_based
+workflow: compute_noise_statistics
+parameters:
+  model_manifest_name: diffae_baseline
+  run_name: latent_512
+  patch_type: grid_based
+  columns: [polar_theta, polar_r, rho]
+columns:
+  feature_1: First feature variable in the noise correlation pair
+  feature_2: Second feature variable in the noise correlation pair
+  lag: Lag at which the noise correlation is computed
+  noise_correlation: Normalized noise correlation value between feature_1 and feature_2 at given lag
+  measurement_noise_covariance: Estimated covariance of the independent measurement error between feature_1 and feature_2
+  dataset: Name of dataset
+  shear_stress: Shear stress value [dyn/cm^2]
+locations:
+  20250618_20X:
+    fmsid: d31f216efd93442a9e987b9d591715a4
+    path: null
+    s3uri: null
+  20250402_20X:
+    fmsid: 2ad259bdb1634779b00755db3a2654e8
+    path: null
+    s3uri: null
+  20250409_20X:
+    fmsid: cfe93184155144fa97d7caed8f3b0ef5
+    path: null
+    s3uri: null
+  20250428_20X:
+    fmsid: 78e13cb2ba7a4fedbbcdceecc9aa806d
+    path: null
+    s3uri: null
+  20250716_20X:
+    fmsid: 0ddbd7a3ef8d4719adc4aef0a5c7c9d5
+    path: null
+    s3uri: null
+  20250319_20X:
+    fmsid: 333ed2f0d4f344118204bc55133e62e2
+    path: null
+    s3uri: null
+  20250604_20X:
+    fmsid: 50855fe293d2446b8d4522b19ad18af4
+    path: null
+    s3uri: null
+  20260121_20X:
+    fmsid: b31e9a6ddc93480a8d302813975d52c7
+    path: null
+    s3uri: null
+  20260126_20X:
+    fmsid: 5034d27ed0644830940e445a282df2d8
+    path: null
+    s3uri: null
+  20260209_20X:
+    fmsid: 27a9b074fbf045548b89ea0ccb5b6b58
+    path: null
+    s3uri: null
+  20260216_20X:
+    fmsid: 8cb44d80e77d4fb4b9e347641fa0bd7d
+    path: null
+    s3uri: null
+  20260304_20X:
+    fmsid: 8207ae473d71450f9eb5d13efec1c6af
+    path: null
+    s3uri: null
+  20250813_20X:
+    fmsid: 660db17276bf44a9ab130e20cbe6c1d7
+    path: null
+    s3uri: null
+  20250326_20X:
+    fmsid: 32320cfc9dc14ec89ae0935d1f09e94e
+    path: null
+    s3uri: null
+  20260114_20X:
+    fmsid: 1ed2b93d45bc49c0867aa17f9577cb59
+    path: null
+    s3uri: null
+  20260128_20X:
+    fmsid: 19dbf1df7a484c33b5e26b0d8c8f4e98
+    path: null
+    s3uri: null
+  20260202_20X:
+    fmsid: e33168a1b8bf45a2b365179d6ab6d7cc
+    path: null
+    s3uri: null
+  20260204_20X:
+    fmsid: 5be0636617464c07b5a2a13ee6e06814
+    path: null
+    s3uri: null
+  20260211_20X:
+    fmsid: d327df5200b74590a37d78ea76b685ed
+    path: null
+    s3uri: null
+  20260225_20X:
+    fmsid: 58ed5ebcacf548c79facfa4d91619b87
+    path: null
+    s3uri: null
+  20260302_20X:
+    fmsid: da10431a5ab64f7dbac5e468d29e505a
+    path: null
+    s3uri: null
+  20250611_20X:
+    fmsid: c91576da36224736a72c678a41864e46
+    path: null
+    s3uri: null
+  20251001_20X:
+    fmsid: 8d963ec5e63c4eebb575c81506b44f1d
+    path: null
+    s3uri: null
+  20250908_20X:
+    fmsid: c6e8aae324424c43b7ae5210e2a15fbd
+    path: null
+    s3uri: null
+  20251029_20X:
+    fmsid: 841dc29dc46241afacd3e10642e69e8b
+    path: null
+    s3uri: null
+  20251119_20X:
+    fmsid: 25a16aaacaa142f09eadad62d09f56db
+    path: null
+    s3uri: null
+  20260309_20X:
+    fmsid: 5e06dddb596144aa9f12b5719d83bd6c
+    path: null
+    s3uri: null
+  20260325_20X:
+    fmsid: 6108b7ecb5ae4903bfc267d91f06da31
+    path: null
+    s3uri: null
+  20260504_20X:
+    fmsid: 2a0a70adedb141dcb3a96b1f1c11dd81
+    path: null
+    s3uri: null
+  20260506_20X:
+    fmsid: dd9d1af359524a3ea051eb3b8cc34b24
+    path: null
+    s3uri: null

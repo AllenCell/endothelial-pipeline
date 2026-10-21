@@ -5,9 +5,11 @@ from typing import Any
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
+from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
@@ -104,5 +106,72 @@ def plot_cross_correlations_against_lag(
                 f"{plot_title}\nR_{{ij}}(t, t') for (i,j) = ({column_label_i}, {column_label_j})"
             )
             figure_name = file_name or "noise_correlation_vs_tau"
+            figure_name = f"{figure_name}_{column_names[i]}_{column_names[j]}"
+            save_plot_to_path(fig, output_path, figure_name)
+
+
+def plot_noise_correlation_vs_lag(
+    noise_statistics_dataframe: pd.DataFrame,
+    column_names: list[str],
+    plot_title: str,
+    output_path: Path,
+    file_name: str | None = None,
+) -> None:
+    """
+    Plot the noise correlation as a function of lag directly from the tidy
+    noise statistics dataframe (see `compute_noise_statistics_dataframe`),
+    rather than from the full two-timepoint noise correlation function.
+
+    Parameters
+    ----------
+    noise_statistics_dataframe
+        Tidy dataframe of noise correlation statistics, as produced by
+        `compute_noise_statistics_dataframe`.
+    column_names
+        List of feature column names to plot.
+    plot_title
+        Title for the plot.
+    output_path
+        Directory where the plot will be saved.
+    file_name
+        Optional, specific name of the file to save the plot as.
+    """
+    n_dim = len(column_names)
+    for i in range(n_dim):
+        for j in range(i, n_dim):
+            pair_dataframe = noise_statistics_dataframe[
+                (noise_statistics_dataframe[Column.NoiseStatistics.FEATURE_1] == column_names[i])
+                & (noise_statistics_dataframe[Column.NoiseStatistics.FEATURE_2] == column_names[j])
+            ].sort_values(Column.NoiseStatistics.LAG)
+
+            fig, ax = plt.subplots(figsize=(8, 6))
+            ax.plot(
+                pair_dataframe[Column.NoiseStatistics.LAG],
+                pair_dataframe[Column.NoiseStatistics.CORRELATION],
+                "o-",
+            )
+            ax.axhline(0, color="k", linewidth=0.5, linestyle="--")
+            ax.set_xlabel("Lag")
+            ax.set_ylabel("$R_{{ij}}$")
+            # add measurement error variance as text if it is not NaN
+            measurement_error_variance = pair_dataframe[
+                Column.NoiseStatistics.MEASUREMENT_NOISE_COVARIANCE
+            ].iloc[0]
+            if not pd.isna(measurement_error_variance):
+                ax.text(
+                    0.95,
+                    0.95,
+                    f"Measurement error variance: {measurement_error_variance:.5f}",
+                    transform=ax.transAxes,
+                    ha="right",
+                    va="top",
+                )
+            ax.set_ylim(-1.05, 1.05)
+            column_label_i = COLUMN_METADATA[column_names[i]].label or column_names[i]
+            column_label_j = COLUMN_METADATA[column_names[j]].label or column_names[j]
+            ax.set_title(
+                f"{plot_title}\nR_{{ij}} vs lag for (i,j) = ({column_label_i}, {column_label_j})"
+            )
+            figure_name = file_name or "noise_correlation_vs_lag"
             figure_name = f"{figure_name}_{column_names[i]}_{column_names[j]}"
             save_plot_to_path(fig, output_path, figure_name)
