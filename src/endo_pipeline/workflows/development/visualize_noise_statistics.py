@@ -50,14 +50,14 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
 
     from endo_pipeline.cli import DEMO_MODE
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
-    from endo_pipeline.io import get_output_path, join_sorted_strings, load_dataframe, slugify
+    from endo_pipeline.io import get_output_path, load_dataframe, slugify
     from endo_pipeline.library.visualize.diffae_features.noise_correlations import (
         plot_noise_correlation_vs_lag,
     )
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
-    from endo_pipeline.settings.manifest_names import NOISE_STATISTICS_MANIFEST_NAME_PREFIXES
+    from endo_pipeline.settings.manifest_names import NOISE_STATISTICS_MANIFEST_NAMES
 
     logger = logging.getLogger(__name__)
 
@@ -77,10 +77,7 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
     # Load manifests produced by compute-noise-statistics: the tidy noise
     # correlation / measurement noise covariance statistics dataframe, the full
     # two-timepoint noise correlation functions, and the residual periodograms.
-    name_suffix = join_sorted_strings(column_names)
-    noise_statistics_manifest_name = (
-        f"{NOISE_STATISTICS_MANIFEST_NAME_PREFIXES[patch_type]}_{name_suffix}"
-    )
+    noise_statistics_manifest_name = NOISE_STATISTICS_MANIFEST_NAMES[patch_type]
     noise_statistics_manifest = load_dataframe_manifest(noise_statistics_manifest_name)
 
     for dataset_name in dataset_names:
