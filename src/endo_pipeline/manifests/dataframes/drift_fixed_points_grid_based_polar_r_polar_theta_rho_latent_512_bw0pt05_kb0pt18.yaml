@@ -1,0 +1,45 @@
+name: drift_fixed_points_grid_based_polar_r_polar_theta_rho_latent_512_bw0pt05_kb0pt18
+workflow: generate_flow_field
+parameters:
+  model_manifest_name: diffae_baseline
+  run_name: latent_512
+  patch_type: grid_based
+  kernels:
+  - column: polar_theta
+    name: periodic
+    bandwidth: 0.18
+    period: 3.141592653589793
+  - column: polar_r
+    name: gaussian
+    bandwidth: 0.18
+    period: null
+  - column: rho
+    name: gaussian
+    bandwidth: 0.18
+    period: null
+  bin_widths: [0.05, 0.05, 0.05]
+  num_init_samples_for_root_solver: 250
+  lower_percentile_for_filtering_fpts: 5.0
+  upper_percentile_for_filtering_fpts: 95.0
+columns: {}
+locations:
+  20250618_20X:
+    fmsid: 349f26222ea74ef8b11e3d98431ede4c
+    path: null
+    s3uri: null
+  20250319_20X:
+    fmsid: 8483ced15c1f452db03fbeca62f20d9a
+    path: null
+    s3uri: null
+  20260304_20X:
+    fmsid: 72fcb81d6cce46fab01c4e9180c49b6e
+    path: null
+    s3uri: null
+  20250611_20X:
+    fmsid: 991b143e06bf4b5da9e449b69ed02057
+    path: null
+    s3uri: null
+  20250618_20X-20250611_20X:
+    fmsid: 996bcf588f5048d8b51c02d0ab2b0d80
+    path: null
+    s3uri: null
