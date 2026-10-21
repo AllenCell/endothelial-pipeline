@@ -935,7 +935,7 @@ def upload_flow_fields_to_fms(
     dataset_name: str,
     patch_type: PatchType = "grid_based",
     overwrite_fmsids: bool = True,
-    column_names: list[str] | None = None,
+    column_names: list[str] | list[Column.DiffAEData] | None = None,
 ):
     logger = logging.getLogger(__name__)
 
