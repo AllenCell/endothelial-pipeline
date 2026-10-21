@@ -68,7 +68,6 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
     from endo_pipeline.library.analyze.vector_field_function import get_callable_vector_field
     from endo_pipeline.library.visualize.diffae_features.noise_correlations import (
         plot_cross_correlations_against_lag,
-        plot_noise_amplitude,
         plot_normalized_two_timepoint_cross_correlations,
     )
     from endo_pipeline.manifests import load_dataframe_manifest
@@ -202,14 +201,6 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
                 diagonal_indices = np.arange(n_timepoints)
                 variance_t = cross_correlations[diagonal_indices, diagonal_indices]
                 sigma_t = np.sqrt(np.einsum("tii->ti", variance_t))
-                _ = plot_noise_amplitude(
-                    sigma_t=sigma_t,
-                    timepoints_array=timepoints_array,
-                    column_names=column_names,
-                    plot_title=f"Noise amplitude: {dataset_name_flow}",
-                    output_path=output_path,
-                    file_name=slugify(f"noise_amplitude_{dataset_name_flow}"),
-                )
 
                 # rho_ij(t, t') = R_ij(t, t') / (sigma_i(t) * sigma_j(t')),
                 # which rescales to [-1, 1] and divides out any potential drift

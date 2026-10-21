@@ -13,54 +13,6 @@ from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 logger = logging.getLogger(__name__)
 
 
-def plot_noise_amplitude(
-    sigma_t: np.ndarray,
-    timepoints_array: np.ndarray,
-    column_names: list[str],
-    plot_title: str,
-    output_path: Path,
-    file_name: str | None = None,
-) -> Path:
-    """
-    Plot the noise amplitude for each feature across timepoints.
-
-    ## Input array shapes
-
-    The input array of computed noise amplitudes should be of shape (T, D),
-    where T is the number of timepoints and D is the number of features. The
-    corresponding input array of timepoints should be of shape (T,), and the
-    list of column names should have length D.
-
-    Parameters
-    ----------
-    sigma_t
-        Array of noise amplitudes for each feature across timepoints.
-    timepoints_array
-        Array of timepoints corresponding to the noise amplitudes.
-    column_names
-        List of feature names corresponding to the dimensions of the
-        noise amplitude array.
-    plot_title
-        Title for the plot.
-    output_path
-        Directory where the plot will be saved.
-    file_name
-        Optional, specific name of the file to save the plot as.
-    """
-    # sigma_i(t) = sqrt(R_ii(t, t)); stationary noise has a flat sigma_i(t)
-    n_dim = len(column_names)
-
-    fig, ax = plt.subplots(figsize=(8, 6))
-    for i in range(n_dim):
-        ax.plot(timepoints_array, sigma_t[:, i], label=column_names[i])
-    ax.set_xlabel("Frame number $t$")
-    ax.set_ylabel(f"{Unicode.SIGMA}$_i(t) = \\sqrt{{R_{{ii}}(t, t)}}$")
-    ax.set_title(plot_title)
-    ax.legend()
-    figure_name = file_name or "noise_amplitude"
-    return save_plot_to_path(fig, output_path, figure_name)
-
-
 def plot_normalized_two_timepoint_cross_correlations(
     cross_correlations: np.ndarray,
     sigma_t: np.ndarray,
